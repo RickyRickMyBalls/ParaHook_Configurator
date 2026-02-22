@@ -1,0 +1,20 @@
+{
+  "name": "replicad-app",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.3",
+    "vite": "^7.3.1"
+  },
+  "dependencies": {
+    "replicad": "^0.20.5",
+    "replicad-opencascadejs": "^0.20.2",
+    "three": "^0.183.0"
+  }
+}
