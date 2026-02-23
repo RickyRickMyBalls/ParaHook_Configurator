@@ -23,7 +23,10 @@ export class Viewer {
 
   private scene: THREE.Scene;
   private camera: THREE.PerspectiveCamera;
-  private controls: OrbitControls;
+
+  //hand edit
+  //was private controls: OrbitControls;
+private controls: any;
 
   // World origin helpers in MAIN scene
   private originAxes: THREE.AxesHelper;
@@ -188,7 +191,13 @@ export class Viewer {
   // only frame once automatically (prevents camera jump on rebuild)
   private hasFramedOnce = false;
 
-  constructor(private canvas: HTMLCanvasElement) {
+private canvas: HTMLCanvasElement;
+
+constructor(canvas: HTMLCanvasElement) {
+    //hand edit
+    this.canvas = canvas;
+    
+    //end hand edit
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.setClearColor(0x0b0b0f, 1);
@@ -424,7 +433,7 @@ export class Viewer {
     const loader = new OBJLoader();
     loader.load(
       url,
-      (object) => {
+      (object: any) => {
         this.clearShoe();
 
         const mat = new THREE.MeshStandardMaterial({
@@ -456,7 +465,7 @@ export class Viewer {
         this.log(`shoe: OBJ loaded OK`);
       },
       undefined,
-      (err) => {
+      (err: any) => {
         console.error("OBJ load failed:", err);
         this.log(`shoe: OBJ load FAILED (check /public path and filename)`);
         this.shoeRequested = false;
@@ -473,7 +482,7 @@ export class Viewer {
     const loader = new STLLoader();
     loader.load(
       url,
-      (geometry) => {
+      (geometry: any) => {
         this.clearShoe();
 
         const mat = new THREE.MeshStandardMaterial({
@@ -509,7 +518,7 @@ export class Viewer {
         this.log(`shoe: STL loaded OK`);
       },
       undefined,
-      (err) => {
+      (err: any) => {
         console.error("Failed to load shoe STL:", url, err);
         this.log(`shoe: STL load FAILED (check /public path and filename)`);
         this.shoeRequested = false;
@@ -562,7 +571,7 @@ export class Viewer {
     const loader = new STLLoader();
     loader.load(
       url,
-      (geometry) => {
+      (geometry: any) => {
         this.clearFootpad(i);
 
         const mat = new THREE.MeshStandardMaterial({
@@ -600,7 +609,7 @@ export class Viewer {
         this.log(`footpad${slot}: loaded OK`);
       },
       undefined,
-      (err) => {
+      (err: any) => {
         console.error(`Failed to load footpad ${slot} STL:`, url, err);
         this.footpadRequested[i] = false;
         this.log(`footpad${slot}: load FAILED (check /public path and filename)`);

@@ -16,7 +16,7 @@ function clamp(n: number, lo: number, hi: number) {
 }
 
 const add = (a: Pt, b: Pt): Pt => ({ x: a.x + b.x, y: a.y + b.y });
-const sub = (a: Pt, b: Pt): Pt => ({ x: a.x - b.x, y: a.y - b.y });
+
 const mul = (a: Pt, s: number): Pt => ({ x: a.x * s, y: a.y * s });
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;

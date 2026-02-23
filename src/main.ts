@@ -71,10 +71,10 @@ const hookMediumEl = mustEl<HTMLInputElement>("hookMediumEnabled");
 const hookLargeEl = mustEl<HTMLInputElement>("hookLargeEnabled");
 const hookXLEl = mustEl<HTMLInputElement>("hookXLEnabled");
 
-viewer.loadHookSTEP(1, `${BASE}hooks/small.step`);
-viewer.loadHookSTEP(2, `${BASE}hooks/medium.step`);
-viewer.loadHookSTEP(3, `${BASE}hooks/large.step`);
-viewer.loadHookSTEP(4, `${BASE}hooks/xl.step`);
+viewer.loadHookSTEP(1 as const, `${BASE}hooks/small.step`);
+viewer.loadHookSTEP(2 as const, `${BASE}hooks/medium.step`);
+viewer.loadHookSTEP(3 as const, `${BASE}hooks/large.step`);
+viewer.loadHookSTEP(4 as const, `${BASE}hooks/xl.step`);
 
 
 
@@ -117,10 +117,10 @@ function applyHookTransformUIToViewer() {
   const dz = clamp(readNumber(hookZEl, 0), -100, 100);
   const rz = clamp(readNumber(hookRotEl, 0), -180, 180);
 
-  [1, 2, 3, 4].forEach((id) => {
-    viewer.setHookOffset(id, dx, dy, dz);
-    viewer.setHookRotationDeg(id, 0, 0, rz);
-  });
+([1, 2, 3, 4] as const).forEach((id) => {
+  viewer.setHookOffset(id, dx, dy, dz);
+  viewer.setHookRotationDeg(id, 0, 0, rz);
+});
 
   syncHookLabels();
 }
@@ -145,9 +145,10 @@ const footpadRotEl = mustEl<HTMLInputElement>("footpadRot");
 
 log("footpads: initializing...");
 
-viewer.loadFootpad(1, "/footpad1.stl");
-viewer.loadFootpad(2, "/footpad2.stl");
-viewer.loadFootpad(3, "/footpad3.stl");
+viewer.loadFootpad(1, `${BASE}footpad1.stl`);
+viewer.loadFootpad(2, `${BASE}footpad2.stl`);
+viewer.loadFootpad(3, `${BASE}footpad3.stl`);
+
 viewer.setFootpadUnitScale(25.4);
 
 function applyFootpadUIToViewer() {
@@ -404,8 +405,11 @@ function asIndexArray(x: any, vertCount: number): Uint16Array | Uint32Array {
   if (x instanceof Uint16Array || x instanceof Uint32Array) return x;
   if (ArrayBuffer.isView(x) && x.buffer) {
     // If it’s already some integer typed array, normalize to 16/32 based on vertex count.
-    const arr = Array.from(x as any);
+
+      //hand edit
+    const arr = Array.from(x as any).map((v) => Number(v)) as number[];
     return vertCount > 65535 ? new Uint32Array(arr) : new Uint16Array(arr);
+
   }
   if (Array.isArray(x)) return vertCount > 65535 ? new Uint32Array(x) : new Uint16Array(x);
   throw new Error("indices not array-like");
@@ -488,9 +492,7 @@ worker.addEventListener("messageerror", () => {
 let pending = false;
 let lastSig = "";
 
-function sig(p: ModelParams, ids: number[]) {
-  return ids.map((i) => (p as any)[`param${i}`]).join(",");
-}
+
 
 function computeSignature(p: ModelParams): string {
   const base = !!baseEnabledEl.checked;
