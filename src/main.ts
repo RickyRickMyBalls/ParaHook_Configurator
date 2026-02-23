@@ -2,6 +2,8 @@
 import "./style.css";
 import { Viewer } from "./viewer";
 
+const BASE = import.meta.env.BASE_URL; // e.g. "/ParaHook_Configurator/" on GitHub Pages
+
 type ModelParams = Record<string, number>; // param1..paramN
 
 type PartToggles = {
@@ -69,10 +71,12 @@ const hookMediumEl = mustEl<HTMLInputElement>("hookMediumEnabled");
 const hookLargeEl = mustEl<HTMLInputElement>("hookLargeEnabled");
 const hookXLEl = mustEl<HTMLInputElement>("hookXLEnabled");
 
-viewer.loadHookSTEP(1, "/hooks/small.step");
-viewer.loadHookSTEP(2, "/hooks/medium.step");
-viewer.loadHookSTEP(3, "/hooks/large.step");
-viewer.loadHookSTEP(4, "/hooks/xl.step");
+viewer.loadHookSTEP(1, `${BASE}hooks/small.step`);
+viewer.loadHookSTEP(2, `${BASE}hooks/medium.step`);
+viewer.loadHookSTEP(3, `${BASE}hooks/large.step`);
+viewer.loadHookSTEP(4, `${BASE}hooks/xl.step`);
+
+
 
 function applyHookUIToViewer() {
   viewer.setHookVisible(1, !!hookSmallEl.checked);
@@ -179,7 +183,8 @@ const shoeYEl = mustEl<HTMLInputElement>("shoeY");
 const shoeZEl = mustEl<HTMLInputElement>("shoeZ");
 const shoeRotEl = mustEl<HTMLInputElement>("shoeRot");
 
-viewer.loadOBJ("/shoe.obj");
+
+viewer.loadOBJ(`${BASE}shoe.obj`);
 
 const SHOE_BASE_UNIT_SCALE = 60;
 const SHOE_BASE_ROT = { x: 90, y: 0, z: 0 };
