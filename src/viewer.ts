@@ -520,6 +520,15 @@ export class Viewer {
     const s = this.shoeScale * this.shoeUnitScale;
     this.shoePivot.scale.set(s, s, s);
 
+    // IMPORTANT:
+    // The shoe is typically given a "base" X/Y rotation to lie correctly.
+    // If we use the default Euler order ("XYZ"), then changing rz can look like a Y-rotation
+    // after the base rotations are applied.
+    //
+    // We want the UI "plan rotation" (rz) to be applied FIRST (true plan / Z),
+    // then base X/Y rotations apply afterward.
+    this.shoePivot.rotation.order = "ZXY";
+
     const rx = (this.shoeRotDeg.x * Math.PI) / 180;
     const ry = (this.shoeRotDeg.y * Math.PI) / 180;
     const rz = (this.shoeRotDeg.z * Math.PI) / 180;
@@ -794,26 +803,39 @@ export class Viewer {
   // -----------------------------
   // Premade Hooks (STEP)
   // -----------------------------
-  private applyHookState(i: number) {
-    const pivot = this.hookPivots[i];
-    if (!pivot) return;
 
-    pivot.visible = !!this.hookVisible[i];
+private applyHookState(i: number) {
+  const pivot = this.hookPivots[i];
+  if (!pivot) return;
 
-    // base + delta offset
-    pivot.position.set(
-      this.hookBaseOffset.x + this.hookDeltaOffset.x,
-      this.hookBaseOffset.y + this.hookDeltaOffset.y,
-      this.hookBaseOffset.z + this.hookDeltaOffset.z
-    );
+  pivot.visible = !!this.hookVisible[i];
 
-    // base + delta rotation
-    const rx = ((this.hookBaseRotDeg.x + this.hookDeltaRotDeg.x) * Math.PI) / 180;
-    const ry = ((this.hookBaseRotDeg.y + this.hookDeltaRotDeg.y) * Math.PI) / 180;
-    const rz = ((this.hookBaseRotDeg.z + this.hookDeltaRotDeg.z) * Math.PI) / 180;
-    pivot.rotation.set(rx, ry, rz);
-  }
+  // base + delta offset
+  pivot.position.set(
+    this.hookBaseOffset.x + this.hookDeltaOffset.x,
+    this.hookBaseOffset.y + this.hookDeltaOffset.y,
+    this.hookBaseOffset.z + this.hookDeltaOffset.z
+  );
 
+  // IMPORTANT:
+  // We want "plan rotation" to be true Z rotation even when a base X rotation (e.g. 90deg) is applied.
+  // Setting Euler order to ZXY applies Z FIRST, then X/Y, preventing the "looks like Y rotation" issue.
+  pivot.rotation.order = "ZXY";
+
+  // Compatibility remap:
+  // If your UI is currently feeding the plan slider into ry, treat ry as planZ.
+  // (So you don't have to change main.ts/UI wiring immediately.)
+  const planZDeg = (this.hookDeltaRotDeg.z || 0) + (this.hookDeltaRotDeg.y || 0);
+
+  const rx = ((this.hookBaseRotDeg.x + this.hookDeltaRotDeg.x) * Math.PI) / 180;
+
+  // Keep actual Y rotation neutral unless you explicitly want it later.
+  const ry = (this.hookBaseRotDeg.y * Math.PI) / 180;
+
+  const rz = ((this.hookBaseRotDeg.z + planZDeg) * Math.PI) / 180;
+
+  pivot.rotation.set(rx, ry, rz);
+}
   private clearHook(i: number) {
     const pivot = this.hookPivots[i];
     if (pivot) this.scene.remove(pivot);

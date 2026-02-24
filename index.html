@@ -4,7 +4,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Replicad Foothook</title>
+    <title>ParaHook Generator</title>
     <style>
       html, body {
         margin: 0;
@@ -232,7 +232,7 @@
       <div id="toolbarPanel" class="panelBox">
         <div id="titlePanel">
           <div id="appTitle">Parahook Generator</div>
-          <div id="appVersion">v 0.12.420</div>
+          <div id="appVersion">v 0.13.422</div>
         </div>
 
         <div class="row header">
@@ -244,16 +244,18 @@
           <button id="exportStl" type="button" class="secondary">Export STL</button>
           <button id="exportStep" type="button" class="secondary">Export STEP</button>
         </div>
+
+                  <!-- MODEL TOGGLE -->
+          <div class="check">
+            <input id="modelEnabled" type="checkbox" checked />
+            <label for="modelEnabled">Enable model (model.ts)</label>
+          </div>
       </div>
 
       <!-- BOX 2: Controls (scrollable) -->
       <div id="controlsPanel" class="panelBox">
         <form id="controls" autocomplete="off">
-          <!-- MODEL TOGGLE -->
-          <div class="check">
-            <input id="modelEnabled" type="checkbox" checked />
-            <label for="modelEnabled">Enable model (model.ts)</label>
-          </div>
+
 
           <!-- SECTION CUT -->
           <details class="section">
@@ -350,7 +352,7 @@
             </div>
 
             <div class="check">
-              <input id="footpad2Enabled" type="checkbox" />
+              <input id="footpad2Enabled" type="checkbox" checked/>
               <label for="footpad2Enabled">Footpad 2</label>
             </div>
 
