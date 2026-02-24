@@ -346,9 +346,13 @@ type Pt = { x: number; y: number };
 function add2(a: Pt, b: Pt): Pt {
   return { x: a.x + b.x, y: a.y + b.y };
 }
+void add2;
+
 function mul2(a: Pt, s: number): Pt {
   return { x: a.x * s, y: a.y * s };
 }
+void mul2;
+
 function vlen2(a: Pt) {
   return Math.hypot(a.x, a.y);
 }
@@ -399,6 +403,7 @@ function arcLenBetween(pts: Pt[], i0: number, i1: number) {
   for (let i = i0 + 1; i <= i1; i++) acc += dist2(pts[i - 1], pts[i]);
   return acc;
 }
+void arcLenBetween;
 
 function findEndIdxByArcLen(pts: Pt[], targetLen: number) {
   let acc = 0;
@@ -448,6 +453,7 @@ function evalStationByArcLenBetween(
   const tan = vnorm2(tans[end] ?? tans[end - 1] ?? { x: 0, y: 1 });
   return { pt, tan };
 }
+void evalStationByArcLenBetween; 
 
 function sampleSpineMain(p: Record<string, number>) {
   const baseLen = clamp(num(p.param1, 195), 50, 2000);
