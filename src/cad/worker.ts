@@ -197,7 +197,8 @@ function applyToeFlags(params: ParamMap, toeB: boolean, toeC: boolean) {
 }
 
 // -----------------------------
-// Section cut (Y plane)
+// Section cut (Y plane) - robust: no replicad.makeBox()
+// Keeps BACK side (Y <= cutY)
 // -----------------------------
 function sectionCutEnabled(params: ParamMap): boolean {
   return numParam(params, "sectionCutEnabled") === 1;
@@ -210,19 +211,25 @@ function sectionCutY(params: ParamMap): number {
 function applySectionCutKeepBack(shape: any, cutYmm: number): any {
   const BIG = 100000;
 
-  const r: any = replicad as any;
-  if (typeof r.makeBox !== "function") {
-    throw new Error("replicad.makeBox is not available; cannot perform section cut box");
-  }
-
-  const ySize = cutYmm - (-BIG);
-  const halfBox = r.makeBox(BIG * 2, ySize, BIG * 2, [-BIG, -BIG, -BIG]);
-
   if (!shape || typeof shape.intersect !== "function") {
     throw new Error("Shape has no intersect(); cannot apply section cut");
   }
 
-  return shape.intersect(halfBox);
+  // box spans X,Z huge; Y from -BIG to cutYmm
+  const yMin = -BIG;
+  const yMax = cutYmm;
+  const ySize = Math.max(0.001, yMax - yMin);
+
+  const box = (replicad.draw([0, 0]) as any)
+    .lineTo([BIG * 2, 0])
+    .lineTo([BIG * 2, ySize])
+    .lineTo([0, ySize])
+    .close()
+    .sketchOnPlane("XY")
+    .extrude(BIG * 2)
+    .translate([-BIG, yMin, -BIG]);
+
+  return shape.intersect(box);
 }
 
 // -----------------------------
@@ -405,10 +412,11 @@ async function getHeelMesh(params: ParamMap, enabled: boolean, tolerance: unknow
   return { mesh: m, reused: false, shapeReused: s.reused };
 }
 
-function fuseOrThrow(a: any, b: any) {
-  if (!a && !b) throw new Error("No shapes to fuse");
-  if (a && b) return a.fuse(b);
-  return a ?? b;
+function safeFuse(a: any, b: any) {
+  if (!a) return b ?? null;
+  if (!b) return a ?? null;
+  if (typeof a.fuse !== "function") throw new Error("Shape missing fuse()");
+  return a.fuse(b);
 }
 
 // -----------------------------
@@ -454,6 +462,7 @@ self.onmessage = async (ev: MessageEvent<WorkerIn>) => {
       const toeCEnabled = !!msg.payload.toeCEnabled;
       const heelEnabled = !!msg.payload.heelEnabled;
 
+      // Section cut path: build shapes (cached), fuse, cut, mesh once
       if (sectionCutEnabled(params)) {
         post({ type: "status", message: "building model for section cut..." });
 
@@ -463,10 +472,16 @@ self.onmessage = async (ev: MessageEvent<WorkerIn>) => {
         const heel = await getHeelShape(params, heelEnabled);
 
         let combined: any = null;
-        combined = baseEnabled ? base.shape : combined;
-        combined = fuseOrThrow(combined, toeAB.shape);
-        combined = fuseOrThrow(combined, toeBC.shape);
-        combined = fuseOrThrow(combined, heel.shape);
+        if (baseEnabled) combined = safeFuse(combined, base.shape);
+        if (toeBEnabled) combined = safeFuse(combined, toeAB.shape);
+        if (toeCEnabled) combined = safeFuse(combined, toeBC.shape);
+        if (heelEnabled) combined = safeFuse(combined, heel.shape);
+
+        if (!combined) {
+          post({ type: "mesh", payload: { positions: [], indices: [], normals: undefined } });
+          post({ type: "status", message: "ready (section cut preview: nothing enabled)" });
+          return;
+        }
 
         const yCut = sectionCutY(params);
         const cutResult = applySectionCutKeepBack(combined, yCut);
@@ -480,6 +495,7 @@ self.onmessage = async (ev: MessageEvent<WorkerIn>) => {
         return;
       }
 
+      // Normal path: per-part cached meshes, merge in JS
       const base = await getBaseMesh(params, baseEnabled, tolerance);
       const toeAB = await getToeABMesh(params, toeBEnabled, tolerance);
       const toeBC = await getToeBCMesh(params, toeCEnabled, tolerance);
@@ -532,10 +548,12 @@ self.onmessage = async (ev: MessageEvent<WorkerIn>) => {
       const heel = await getHeelShape(params, heelEnabled);
 
       let combined: any = null;
-      combined = baseEnabled ? base.shape : combined;
-      combined = fuseOrThrow(combined, toeAB.shape);
-      combined = fuseOrThrow(combined, toeBC.shape);
-      combined = fuseOrThrow(combined, heel.shape);
+      if (baseEnabled) combined = safeFuse(combined, base.shape);
+      if (toeBEnabled) combined = safeFuse(combined, toeAB.shape);
+      if (toeCEnabled) combined = safeFuse(combined, toeBC.shape);
+      if (heelEnabled) combined = safeFuse(combined, heel.shape);
+
+      if (!combined) throw new Error("Nothing enabled to export.");
 
       let outShape: any = combined;
 
@@ -573,10 +591,12 @@ self.onmessage = async (ev: MessageEvent<WorkerIn>) => {
       const heel = await getHeelShape(params, heelEnabled);
 
       let combined: any = null;
-      combined = baseEnabled ? base.shape : combined;
-      combined = fuseOrThrow(combined, toeAB.shape);
-      combined = fuseOrThrow(combined, toeBC.shape);
-      combined = fuseOrThrow(combined, heel.shape);
+      if (baseEnabled) combined = safeFuse(combined, base.shape);
+      if (toeBEnabled) combined = safeFuse(combined, toeAB.shape);
+      if (toeCEnabled) combined = safeFuse(combined, toeBC.shape);
+      if (heelEnabled) combined = safeFuse(combined, heel.shape);
+
+      if (!combined) throw new Error("Nothing enabled to export.");
 
       let outShape: any = combined;
 

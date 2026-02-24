@@ -232,7 +232,7 @@
       <div id="toolbarPanel" class="panelBox">
         <div id="titlePanel">
           <div id="appTitle">Parahook Generator</div>
-          <div id="appVersion">v 0.13.422</div>
+          <div id="appVersion">v 0.13.423</div>
         </div>
 
         <div class="row header">
@@ -245,209 +245,231 @@
           <button id="exportStep" type="button" class="secondary">Export STEP</button>
         </div>
 
-                  <!-- MODEL TOGGLE -->
-          <div class="check">
-            <input id="modelEnabled" type="checkbox" checked />
-            <label for="modelEnabled">Enable model (model.ts)</label>
-          </div>
+        <!-- MODEL TOGGLE -->
+        <div class="check">
+          <input id="modelEnabled" type="checkbox" checked />
+          <label for="modelEnabled">Enable model (model.ts)</label>
+        </div>
       </div>
 
       <!-- BOX 2: Controls (scrollable) -->
       <div id="controlsPanel" class="panelBox">
         <form id="controls" autocomplete="off">
 
-
-          <!-- SECTION CUT -->
+          <!-- REFERENCE (collapsible group) -->
           <details class="section">
-            <summary>Section Cut</summary>
-            <div class="sectionMeta">Slice preview/export at a Y plane (mm)</div>
+            <summary>Reference</summary>
 
-            <div class="check">
-              <input id="sectionCutEnabled" type="checkbox" />
-              <label for="sectionCutEnabled">Enable section cut</label>
-            </div>
+            <!-- Notes -->
+            <details class="section">
+              <summary>-Notes</summary>
+              <div class="sectionMeta">13.423 - added section cut</div>
+              <div class="sectionMeta">13.422 - updated shoe rotation</div>
+            </details>
 
-            <div class="row">
-              <label>Section Cut Y (mm)
-                <input id="sectionCutY" type="range" min="-200" max="420" step="1" value="0" />
-              </label>
-              <input class="valInput" id="sectionCutYVal" type="number" step="1" value="0" />
-            </div>
-          </details>
+            <!-- SECTION CUT -->
+            <details class="section">
+              <summary>-Section Cut</summary>
+              <div class="sectionMeta">Slice preview/export. Offset is in mm along the active cut normal.</div>
 
-          <details class="section">
-            <summary>Quality</summary>
-            <div class="sectionMeta">Preview mesh settings</div>
+              <div class="check">
+                <input id="sectionCutEnabled" type="checkbox" />
+                <label for="sectionCutEnabled">Enable section cut</label>
+              </div>
 
-            <div class="row">
-              <label>Mesh Tolerance (higher = faster)
-                <input id="tolerance" name="tolerance" type="range" min="0.3" max="3.0" step="0.1" value="1.5" />
-              </label>
-              <input class="valInput" id="toleranceVal" type="number" step="0.1" value="1.5" />
-            </div>
-          </details>
+              <div class="check">
+                <input id="sectionCutFlip" type="checkbox" />
+                <label for="sectionCutFlip">Flip section cut</label>
+              </div>
 
-          <!-- PREMADE HOOKS -->
-          <details class="section">
-            <summary>Premade Hooks</summary>
-            <div class="sectionMeta">STEP overlays (small / medium / large / XL)</div>
+              <div class="check">
+                <input id="sectionCutZswitch" type="checkbox" />
+                <label for="sectionCutZswitch">Plan / Section</label>
+              </div>
 
-            <div class="check">
-              <input id="hookSmallEnabled" type="checkbox" />
-              <label for="hookSmallEnabled">Small</label>
-            </div>
+              <div class="row">
+                <label>Section Cut Offset
+                  <input id="sectionCutOffset" type="range" min="-200" max="420" step="1" value="0" />
+                </label>
+                <input class="valInput" id="sectionCutOffsetVal" type="number" step="1" value="0" />
+              </div>
+            </details>
 
-            <div class="check">
-              <input id="hookMediumEnabled" type="checkbox" />
-              <label for="hookMediumEnabled">Medium</label>
-            </div>
+            <!-- Quality -->
+            <details class="section">
+              <summary>-Quality</summary>
+              <div class="sectionMeta">Preview mesh settings</div>
 
-            <div class="check">
-              <input id="hookLargeEnabled" type="checkbox" />
-              <label for="hookLargeEnabled">Large</label>
-            </div>
+              <div class="row">
+                <label>Mesh Tolerance (higher = faster)
+                  <input id="tolerance" name="tolerance" type="range" min="0.3" max="3.0" step="0.1" value="1.5" />
+                </label>
+                <input class="valInput" id="toleranceVal" type="number" step="0.1" value="1.5" />
+              </div>
+            </details>
 
-            <div class="check">
-              <input id="hookXLEnabled" type="checkbox" />
-              <label for="hookXLEnabled">XL</label>
-            </div>
+            <!-- PREMADE HOOKS -->
+            <details class="section">
+              <summary>-Premade Hooks</summary>
+              <div class="sectionMeta">STEP overlays (small / medium / large / XL)</div>
 
-            <div class="row">
-              <label>Hook Transform X (mm)
-                <input id="hookX" type="range" min="-150" max="150" step="1" value="0" />
-              </label>
-              <input class="valInput" id="hookXVal" type="number" step="1" value="0" />
-            </div>
+              <div class="check">
+                <input id="hookSmallEnabled" type="checkbox" />
+                <label for="hookSmallEnabled">Small</label>
+              </div>
 
-            <div class="row">
-              <label>Hook Transform Y (mm)
-                <input id="hookY" type="range" min="-150" max="150" step="1" value="0" />
-              </label>
-              <input class="valInput" id="hookYVal" type="number" step="1" value="0" />
-            </div>
+              <div class="check">
+                <input id="hookMediumEnabled" type="checkbox" />
+                <label for="hookMediumEnabled">Medium</label>
+              </div>
 
-            <div class="row">
-              <label>Hook Transform Z (mm)
-                <input id="hookZ" type="range" min="-100" max="100" step="1" value="0" />
-              </label>
-              <input class="valInput" id="hookZVal" type="number" step="1" value="0" />
-            </div>
+              <div class="check">
+                <input id="hookLargeEnabled" type="checkbox" />
+                <label for="hookLargeEnabled">Large</label>
+              </div>
 
-            <div class="row">
-              <label>Hook Rotate Plan (deg)
-                <input id="hookRot" type="range" min="-180" max="180" step="1" value="0" />
-              </label>
-              <input class="valInput" id="hookRotVal" type="number" step="1" value="0" />
-            </div>
-          </details>
+              <div class="check">
+                <input id="hookXLEnabled" type="checkbox" />
+                <label for="hookXLEnabled">XL</label>
+              </div>
 
-          <!-- REFERENCE FOOTPAD -->
-          <details class="section">
-            <summary>Reference Footpad</summary>
-            <div class="sectionMeta">STL overlays for pad fit reference</div>
+              <div class="row">
+                <label>Hook Transform X (mm)
+                  <input id="hookX" type="range" min="-150" max="150" step="1" value="0" />
+                </label>
+                <input class="valInput" id="hookXVal" type="number" step="1" value="0" />
+              </div>
 
-            <div class="check">
-              <input id="footpad1Enabled" type="checkbox" />
-              <label for="footpad1Enabled">Footpad 1</label>
-            </div>
+              <div class="row">
+                <label>Hook Transform Y (mm)
+                  <input id="hookY" type="range" min="-150" max="150" step="1" value="0" />
+                </label>
+                <input class="valInput" id="hookYVal" type="number" step="1" value="0" />
+              </div>
 
-            <div class="check">
-              <input id="footpad2Enabled" type="checkbox" checked/>
-              <label for="footpad2Enabled">Footpad 2</label>
-            </div>
+              <div class="row">
+                <label>Hook Transform Z (mm)
+                  <input id="hookZ" type="range" min="-100" max="100" step="1" value="0" />
+                </label>
+                <input class="valInput" id="hookZVal" type="number" step="1" value="0" />
+              </div>
 
-            <div class="check">
-              <input id="footpad3Enabled" type="checkbox" />
-              <label for="footpad3Enabled">Footpad 3</label>
-            </div>
+              <div class="row">
+                <label>Hook Rotate Plan (deg)
+                  <input id="hookRot" type="range" min="-180" max="180" step="1" value="0" />
+                </label>
+                <input class="valInput" id="hookRotVal" type="number" step="1" value="0" />
+              </div>
+            </details>
 
-            <div class="row">
-              <label>Footpad Transform X (mm)
-                <input id="footpadX" type="range" min="-100" max="150" step="1" value="62" />
-              </label>
-              <input class="valInput" id="footpadXVal" type="number" step="1" value="62" />
-            </div>
+            <!-- REFERENCE FOOTPAD -->
+            <details class="section">
+              <summary>-Reference Footpad</summary>
+              <div class="sectionMeta">STL overlays for pad fit reference</div>
 
-            <div class="row">
-              <label>Footpad Transform Y (mm)
-                <input id="footpadY" type="range" min="-100" max="150" step="1" value="95" />
-              </label>
-              <input class="valInput" id="footpadYVal" type="number" step="1" value="95" />
-            </div>
+              <div class="check">
+                <input id="footpad1Enabled" type="checkbox" />
+                <label for="footpad1Enabled">Footpad 1</label>
+              </div>
 
-            <div class="row">
-              <label>Footpad Transform Z (mm)
-                <input id="footpadZ" type="range" min="-100" max="100" step="1" value="-19" />
-              </label>
-              <input class="valInput" id="footpadZVal" type="number" step="1" value="-19" />
-            </div>
+              <div class="check">
+                <input id="footpad2Enabled" type="checkbox" checked />
+                <label for="footpad2Enabled">Footpad 2</label>
+              </div>
 
-            <div class="row">
-              <label>Footpad Rotate Plan (deg)
-                <input id="footpadRot" type="range" min="-180" max="180" step="1" value="0" />
-              </label>
-              <input class="valInput" id="footpadRotVal" type="number" step="1" value="0" />
-            </div>
-          </details>
+              <div class="check">
+                <input id="footpad3Enabled" type="checkbox" />
+                <label for="footpad3Enabled">Footpad 3</label>
+              </div>
 
-          <!-- REFERENCE SHOE -->
-          <details class="section">
-            <summary>Reference Shoe</summary>
-            <div class="sectionMeta">OBJ overlay for fit and scale reference</div>
+              <div class="row">
+                <label>Footpad Transform X (mm)
+                  <input id="footpadX" type="range" min="-100" max="150" step="1" value="62" />
+                </label>
+                <input class="valInput" id="footpadXVal" type="number" step="1" value="62" />
+              </div>
 
-            <div class="check">
-              <input id="shoeEnabled" type="checkbox" checked />
-              <label for="shoeEnabled">Show shoe reference</label>
-            </div>
+              <div class="row">
+                <label>Footpad Transform Y (mm)
+                  <input id="footpadY" type="range" min="-100" max="150" step="1" value="95" />
+                </label>
+                <input class="valInput" id="footpadYVal" type="number" step="1" value="95" />
+              </div>
 
-            <div class="row">
-              <label>Shoe Size (US 5–15) (10 = 1.00x)
-                <input id="shoeSize" type="range" min="5" max="15" step="0.5" value="10" />
-              </label>
-              <input class="valInput" id="shoeSizeVal" type="number" step="0.5" value="10" />
-            </div>
+              <div class="row">
+                <label>Footpad Transform Z (mm)
+                  <input id="footpadZ" type="range" min="-100" max="100" step="1" value="-19" />
+                </label>
+                <input class="valInput" id="footpadZVal" type="number" step="1" value="-19" />
+              </div>
 
-            <div class="row">
-              <label>Computed Scale (relative to size 10)
-                <input id="shoeScale" type="range" min="0.90" max="1.10" step="0.001" value="1.000" disabled />
-              </label>
-              <input class="valInput" id="shoeScaleVal" type="number" step="0.001" value="1.000" disabled />
-            </div>
+              <div class="row">
+                <label>Footpad Rotate Plan (deg)
+                  <input id="footpadRot" type="range" min="-180" max="180" step="1" value="0" />
+                </label>
+                <input class="valInput" id="footpadRotVal" type="number" step="1" value="0" />
+              </div>
+            </details>
 
-            <div class="row">
-              <label>Transparency (0 = solid, 1 = invisible)
-                <input id="shoeAlpha" type="range" min="0" max="1" step="0.01" value="0.5" />
-              </label>
-              <input class="valInput" id="shoeAlphaVal" type="number" step="0.01" value="0.5" />
-            </div>
+            <!-- REFERENCE SHOE -->
+            <details class="section">
+              <summary>-Reference Shoe</summary>
+              <div class="sectionMeta">OBJ overlay for fit and scale reference</div>
 
-            <div class="row">
-              <label>Transform X (mm)
-                <input id="shoeX" type="range" min="-200" max="200" step="1" value="0" />
-              </label>
-              <input class="valInput" id="shoeXVal" type="number" step="1" value="0" />
-            </div>
+              <div class="check">
+                <input id="shoeEnabled" type="checkbox" checked />
+                <label for="shoeEnabled">Show shoe reference</label>
+              </div>
 
-            <div class="row">
-              <label>Transform Y (mm)
-                <input id="shoeY" type="range" min="-200" max="200" step="1" value="0" />
-              </label>
-              <input class="valInput" id="shoeYVal" type="number" step="1" value="0" />
-            </div>
+              <div class="row">
+                <label>Shoe Size (US 5–15) (10 = 1.00x)
+                  <input id="shoeSize" type="range" min="5" max="15" step="0.5" value="10" />
+                </label>
+                <input class="valInput" id="shoeSizeVal" type="number" step="0.5" value="10" />
+              </div>
 
-            <div class="row">
-              <label>Transform Z (mm)
-                <input id="shoeZ" type="range" min="-200" max="200" step="1" value="0" />
-              </label>
-              <input class="valInput" id="shoeZVal" type="number" step="1" value="0" />
-            </div>
+              <div class="row">
+                <label>Computed Scale (relative to size 10)
+                  <input id="shoeScale" type="range" min="0.90" max="1.10" step="0.001" value="1.000" disabled />
+                </label>
+                <input class="valInput" id="shoeScaleVal" type="number" step="0.001" value="1.000" disabled />
+              </div>
 
-            <div class="row">
-              <label>Rotate Plan (deg)
-                <input id="shoeRot" type="range" min="-180" max="180" step="1" value="0" />
-              </label>
-              <input class="valInput" id="shoeRotVal" type="number" step="1" value="0" />
-            </div>
+              <div class="row">
+                <label>Transparency (0 = solid, 1 = invisible)
+                  <input id="shoeAlpha" type="range" min="0" max="1" step="0.01" value="0.5" />
+                </label>
+                <input class="valInput" id="shoeAlphaVal" type="number" step="0.01" value="0.5" />
+              </div>
+
+              <div class="row">
+                <label>Transform X (mm)
+                  <input id="shoeX" type="range" min="-200" max="200" step="1" value="0" />
+                </label>
+                <input class="valInput" id="shoeXVal" type="number" step="1" value="0" />
+              </div>
+
+              <div class="row">
+                <label>Transform Y (mm)
+                  <input id="shoeY" type="range" min="-200" max="200" step="1" value="0" />
+                </label>
+                <input class="valInput" id="shoeYVal" type="number" step="1" value="0" />
+              </div>
+
+              <div class="row">
+                <label>Transform Z (mm)
+                  <input id="shoeZ" type="range" min="-200" max="200" step="1" value="0" />
+                </label>
+                <input class="valInput" id="shoeZVal" type="number" step="1" value="0" />
+              </div>
+
+              <div class="row">
+                <label>Rotate Plan (deg)
+                  <input id="shoeRot" type="range" min="-180" max="180" step="1" value="0" />
+                </label>
+                <input class="valInput" id="shoeRotVal" type="number" step="1" value="0" />
+              </div>
+            </details>
           </details>
 
           <!-- BASEPLATE (PARAM1..PARAM8) -->
@@ -455,10 +477,10 @@
             <summary>Baseplate</summary>
             <div class="sectionMeta">Primary dimensions (param1..param8)</div>
 
-<div class="check">
-  <input id="vizBasePts" type="checkbox" />
-  <label for="vizBasePts">Show Baseplate control points</label>
-</div>
+            <div class="check">
+              <input id="vizBasePts" type="checkbox" />
+              <label for="vizBasePts">Show Baseplate control points</label>
+            </div>
 
             <div class="check">
               <input id="baseEnabled" type="checkbox" checked />
@@ -570,17 +592,14 @@
             </div>
 
             <!-- Profile A -->
-            <details class="section">
+            <details class="section" open>
               <summary>Profile A</summary>
               <div class="sectionMeta">Start profile at spline start</div>
 
-                <div class="check">
-                  <input id="vizAArcPts" type="checkbox" />
-                  <label for="vizAArcPts">Show Profile A arc control points</label>
-                </div>
-
-
-
+              <div class="check">
+                <input id="vizAArcPts" type="checkbox" />
+                <label for="vizAArcPts">Show Profile A arc control points</label>
+              </div>
 
               <div class="paramRow">
                 <div class="paramTop">
@@ -650,11 +669,9 @@
             </details>
 
             <!-- Profile B -->
-            <details class="section">
+            <details class="section" open>
               <summary>Profile B</summary>
               <div class="sectionMeta">Mid control profile. Station is mm along spline from origin. Controls A→B intermediate sections.</div>
-
-
 
               <div class="check">
                 <input id="vizBArcPts" type="checkbox" />
@@ -729,15 +746,15 @@
             </details>
 
             <!-- Profile C -->
-            <details class="section">
+            <details class="section" open>
               <summary>Profile C</summary>
               <div class="sectionMeta">End profile. Station is mm along spline from origin. Controls B→C intermediate sections.</div>
 
-
               <div class="check">
-  <input id="vizCArcPts" type="checkbox" />
-  <label for="vizCArcPts">Show Profile C arc control points</label>
-</div>
+                <input id="vizCArcPts" type="checkbox" />
+                <label for="vizCArcPts">Show Profile C arc control points</label>
+              </div>
+
               <div class="paramRow">
                 <div class="paramTop">
                   <div class="paramTag">Param 21</div>
@@ -827,10 +844,10 @@
               <label for="heelEnabled">Enable heel kick loft</label>
             </div>
 
-<div class="check">
-  <input id="vizHeelArcPts" type="checkbox" />
-  <label for="vizHeelArcPts">Show Heel Kick arc control points</label>
-</div>
+            <div class="check">
+              <input id="vizHeelArcPts" type="checkbox" />
+              <label for="vizHeelArcPts">Show Heel Kick arc control points</label>
+            </div>
 
             <div class="paramRow">
               <div class="paramTop">
@@ -948,6 +965,7 @@
               </div>
             </div>
           </details>
+
         </form>
       </div>
 
@@ -1002,7 +1020,7 @@
       // -----------------------------
       const ids = [
         ["tolerance", "toleranceVal"],
-        ["sectionCutY", "sectionCutYVal"],
+        ["sectionCutOffset", "sectionCutOffsetVal"],
 
         // Shoe
         ["shoeSize", "shoeSizeVal"],

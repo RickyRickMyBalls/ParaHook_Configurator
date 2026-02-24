@@ -2,15 +2,15 @@
 import "./style.css";
 import { Viewer } from "./viewer";
 
-const BASE = import.meta.env.BASE_URL; // e.g. "/ParaHook_Configurator/" on GitHub Pages
+const BASE = import.meta.env.BASE_URL;
 
-type ModelParams = Record<string, number>; // param1..paramN
+type ModelParams = Record<string, number>;
 
 type PartToggles = {
   baseEnabled: boolean;
-  toeBEnabled: boolean; // Toe loft 1: A->B
-  toeCEnabled: boolean; // Toe loft 2: B->C (independent)
-  heelEnabled: boolean; // heel loft
+  toeBEnabled: boolean;
+  toeCEnabled: boolean;
+  heelEnabled: boolean;
 };
 
 type BuildPayload = {
@@ -208,11 +208,7 @@ function applyShoeUIToViewer() {
   const dy = clamp(readNumber(shoeYEl, 0), -5000, 5000);
   const dz = clamp(readNumber(shoeZEl, 0), -5000, 5000);
 
-  viewer.setShoeOffset(
-    SHOE_BASE_OFFSET.x + dx,
-    SHOE_BASE_OFFSET.y + dy,
-    SHOE_BASE_OFFSET.z + dz
-  );
+  viewer.setShoeOffset(SHOE_BASE_OFFSET.x + dx, SHOE_BASE_OFFSET.y + dy, SHOE_BASE_OFFSET.z + dz);
 
   const rz = clamp(readNumber(shoeRotEl, 0), -360, 360);
   viewer.setShoeRotationDeg(SHOE_BASE_ROT.x, SHOE_BASE_ROT.y, rz);
@@ -234,20 +230,19 @@ const exportStepBtn = mustEl<HTMLButtonElement>("exportStep");
 
 const modelEnabledEl = mustEl<HTMLInputElement>("modelEnabled");
 
-// Baseplate viz toggle (HTML id is vizBasePts)
 const vizBasePtsEl = mustEl<HTMLInputElement>("vizBasePts");
 
-// Arc viz toggles
 const vizAArcPtsEl = mustEl<HTMLInputElement>("vizAArcPts");
 const vizBArcPtsEl = mustEl<HTMLInputElement>("vizBArcPts");
 const vizCArcPtsEl = mustEl<HTMLInputElement>("vizCArcPts");
 const vizHeelArcPtsEl = mustEl<HTMLInputElement>("vizHeelArcPts");
 
-// Section cut UI
+// Section cut UI (viewer-only)
 const sectionCutEnabledEl = mustEl<HTMLInputElement>("sectionCutEnabled");
-const sectionCutYEl = mustEl<HTMLInputElement>("sectionCutY");
+const sectionCutFlipEl = mustEl<HTMLInputElement>("sectionCutFlip");
+const sectionCutZswitchEl = mustEl<HTMLInputElement>("sectionCutZswitch");
+const sectionCutOffsetEl = mustEl<HTMLInputElement>("sectionCutOffset");
 
-// Enable toggles
 const baseEnabledEl = mustEl<HTMLInputElement>("baseEnabled");
 const toeBEnabledEl = mustEl<HTMLInputElement>("toeBEnabled");
 const toeCEnabledEl = mustEl<HTMLInputElement>("toeCEnabled");
@@ -270,16 +265,11 @@ function setBusy(busy: boolean) {
   exportStepBtn.disabled = busy || !modelOn;
 }
 
-// -----------------------------
-// Auto-discover param inputs: param1, param2, ... paramN
-// -----------------------------
 const paramEls = Array.from(document.querySelectorAll<HTMLInputElement>('input[id^="param"]'))
   .filter((el) => /^param\d+$/.test(el.id))
   .sort((a, b) => Number(a.id.slice(5)) - Number(b.id.slice(5)));
 
-const paramValEls = paramEls.map(
-  (el) => document.getElementById(`${el.id}Val`) as HTMLInputElement | null
-);
+const paramValEls = paramEls.map((el) => document.getElementById(`${el.id}Val`) as HTMLInputElement | null);
 
 function syncLabels() {
   tolVal.value = tolEl.value;
@@ -289,14 +279,10 @@ function syncLabels() {
   }
 }
 
+// NOTE: section cut removed from params (viewer-only)
 function readParams(): ModelParams {
   const p: any = {};
   for (const el of paramEls) p[el.id] = readNumber(el, 0);
-
-  // Section cut lives outside param list
-  p.sectionCutEnabled = sectionCutEnabledEl.checked ? 1 : 0;
-  p.sectionCutY = clamp(readNumber(sectionCutYEl, 0), -5000, 5000);
-
   return p as ModelParams;
 }
 
@@ -304,8 +290,26 @@ function readTolerance(): number {
   return clamp(readNumber(tolEl, 1.5), 0.3, 3.0);
 }
 
+// viewer-only section cut wiring (new combined API; implement in viewer.ts next)
+function applySectionCutUIToViewer() {
+  const enabled = !!sectionCutEnabledEl.checked;
+  const flip = !!sectionCutFlipEl.checked;
+
+  // unchecked = Section (XZ), checked = Plan (XY)
+  const plane = sectionCutZswitchEl.checked ? ("XY" as const) : ("XZ" as const);
+
+  const offset = clamp(readNumber(sectionCutOffsetEl, 0), -5000, 5000);
+
+  viewer.setSectionCut({
+    enabled,
+    flip,
+    plane,
+    offset,
+  });
+}
+
 // -----------------------------
-// Baseplate viz helpers (ONLY control points now)
+// Baseplate viz helpers
 // -----------------------------
 type XYZ = { x: number; y: number; z: number };
 type Pt2 = { x: number; y: number };
@@ -339,19 +343,9 @@ function updateBaseplateViz() {
 }
 
 // -----------------------------
-// Arc viz math (MATCHES model.ts)
+// Arc viz math
 // -----------------------------
 type Pt = { x: number; y: number };
-
-function add2(a: Pt, b: Pt): Pt {
-  return { x: a.x + b.x, y: a.y + b.y };
-}
-void add2;
-
-function mul2(a: Pt, s: number): Pt {
-  return { x: a.x * s, y: a.y * s };
-}
-void mul2;
 
 function vlen2(a: Pt) {
   return Math.hypot(a.x, a.y);
@@ -398,13 +392,6 @@ function catmullRomDeriv(p0: Pt, p1: Pt, p2: Pt, p3: Pt, t: number): Pt {
   return { x: 0.5 * (bx + cx + dx), y: 0.5 * (by + cy + dy) };
 }
 
-function arcLenBetween(pts: Pt[], i0: number, i1: number) {
-  let acc = 0;
-  for (let i = i0 + 1; i <= i1; i++) acc += dist2(pts[i - 1], pts[i]);
-  return acc;
-}
-void arcLenBetween;
-
 function findEndIdxByArcLen(pts: Pt[], targetLen: number) {
   let acc = 0;
   for (let i = 1; i < pts.length; i++) {
@@ -414,46 +401,12 @@ function findEndIdxByArcLen(pts: Pt[], targetLen: number) {
   return pts.length - 1;
 }
 
-function lerp(a: number, b: number, t: number) {
-  return a + (b - a) * t;
-}
-function lerpPt(a: Pt, b: Pt, t: number): Pt {
-  return { x: lerp(a.x, b.x, t), y: lerp(a.y, b.y, t) };
-}
-
-function evalStationByArcLenBetween(
-  pts: Pt[],
-  tans: Pt[],
-  i0: number,
-  i1: number,
-  targetLen: number
-): { pt: Pt; tan: Pt } {
-  const end = clamp(i1, i0 + 1, pts.length - 1);
-  const start = clamp(i0, 0, end - 1);
-
-  let acc = 0;
-  for (let i = start + 1; i <= end; i++) {
-    const a = pts[i - 1];
-    const b = pts[i];
-    const seg = dist2(a, b);
-    if (seg < 1e-9) continue;
-
-    if (acc + seg >= targetLen) {
-      const u = clamp((targetLen - acc) / seg, 0, 1);
-      const pt = lerpPt(a, b, u);
-      const ta = tans[i - 1] ?? tans[start];
-      const tb = tans[i] ?? tans[end];
-      const tan = vnorm2(lerpPt(ta, tb, u));
-      return { pt, tan };
-    }
-    acc += seg;
-  }
-
-  const pt = pts[end];
-  const tan = vnorm2(tans[end] ?? tans[end - 1] ?? { x: 0, y: 1 });
-  return { pt, tan };
-}
-void evalStationByArcLenBetween; 
+// function lerp(a: number, b: number, t: number) {
+//   return a + (b - a) * t;
+// }
+// function lerpPt(a: Pt, b: Pt, t: number): Pt {
+//   return { x: lerp(a.x, b.x, t), y: lerp(a.y, b.y, t) };
+// }
 
 function sampleSpineMain(p: Record<string, number>) {
   const baseLen = clamp(num(p.param1, 195), 50, 2000);
@@ -498,7 +451,6 @@ function sampleSpineMain(p: Record<string, number>) {
 }
 
 function rotateZDegOnYAxis(angDeg: number): { x: number; y: number; z: number } {
-  // rotate (0,1,0) about Z
   const a = (angDeg * Math.PI) / 180;
   const c = Math.cos(a);
   const s = Math.sin(a);
@@ -519,8 +471,8 @@ function arc3PointsAtStation(
 ): XYZ[] {
   const ang = sectionAngleDegFromTan(tan);
 
-  const u = rotateZDegOnYAxis(ang); // local X direction in world
-  const v = { x: 0, y: 0, z: 1 };   // local Z direction in world
+  const u = rotateZDegOnYAxis(ang);
+  const v = { x: 0, y: 0, z: 1 };
 
   const o = { x: station.x, y: station.y, z: 0 };
 
@@ -542,69 +494,55 @@ function arc3PointsAtStation(
 function updateArcViz() {
   const p = readParams() as any;
 
-  // visibility first (so groups hide immediately)
   viewer.setAArcVizVisible(!!vizAArcPtsEl.checked);
   viewer.setBArcVizVisible(!!vizBArcPtsEl.checked);
   viewer.setCArcVizVisible(!!vizCArcPtsEl.checked);
   viewer.setHeelArcVizVisible(!!vizHeelArcPtsEl.checked);
 
-  // if all off, skip work
   if (!vizAArcPtsEl.checked && !vizBArcPtsEl.checked && !vizCArcPtsEl.checked && !vizHeelArcPtsEl.checked) return;
 
   const { spinePts, spineTan } = sampleSpineMain(p);
 
-  // Toe A is at start index 0
   const stA = { pt: spinePts[0], tan: spineTan[0] };
 
-  // Station B by arc length (param15)
   const stationB = clamp(num(p.param15, 60), 1, 2000);
   let idxB = findEndIdxByArcLen(spinePts, stationB);
   idxB = clamp(idxB, 1, spinePts.length - 2);
   const stB = { pt: spinePts[idxB], tan: spineTan[idxB] };
 
-  // Station C by arc length (param21)
   const stationC = clamp(num(p.param21, 137), 1, 2000);
   let idxC = findEndIdxByArcLen(spinePts, stationC);
   idxC = clamp(idxC, idxB + 1, spinePts.length - 1);
   const stC = { pt: spinePts[idxC], tan: spineTan[idxC] };
 
-  // FLIP_X is true everywhere for the arch profiles (sx = -1)
   const sx = -1;
 
-  // A geom (param10..13)
   const A_arcX = clamp(num(p.param10, 0), -2000, 2000) * sx;
   const A_arcZ = clamp(num(p.param11, 27), -2000, 2000);
   const A_endX = clamp(num(p.param12, 47), 0.1, 2000) * sx;
   const A_endZ = clamp(num(p.param13, 35), 0.1, 2000);
 
-  // B geom (param17..20)
   const B_arcX = clamp(num(p.param17, 0), -2000, 2000) * sx;
   const B_arcZ = clamp(num(p.param18, 41), -2000, 2000);
   const B_endX = clamp(num(p.param19, 20), 0.1, 2000) * sx;
   const B_endZ = clamp(num(p.param20, 50), 0.1, 2000);
 
-  // C geom (param23..26)
   const C_arcX = clamp(num(p.param23, 0), -2000, 2000) * sx;
   const C_arcZ = clamp(num(p.param24, 29), -2000, 2000);
   const C_endX = clamp(num(p.param25, 19), 0.1, 2000) * sx;
   const C_endZ = clamp(num(p.param26, 65), 0.1, 2000);
 
-  // Heel "arch" is the clipped C profile at station C (same 3 defining points)
   const H_arcX = C_arcX;
   const H_arcZ = C_arcZ;
   const H_endX = C_endX;
   const H_endZ = C_endZ;
 
-  // Send points into viewer
   if (vizAArcPtsEl.checked) viewer.setAArcPoints(arc3PointsAtStation(stA.pt, stA.tan, A_arcX, A_arcZ, A_endX, A_endZ));
   if (vizBArcPtsEl.checked) viewer.setBArcPoints(arc3PointsAtStation(stB.pt, stB.tan, B_arcX, B_arcZ, B_endX, B_endZ));
   if (vizCArcPtsEl.checked) viewer.setCArcPoints(arc3PointsAtStation(stC.pt, stC.tan, C_arcX, C_arcZ, C_endX, C_endZ));
   if (vizHeelArcPtsEl.checked) viewer.setHeelArcPoints(arc3PointsAtStation(stC.pt, stC.tan, H_arcX, H_arcZ, H_endX, H_endZ));
 }
 
-// -----------------------------
-// Download helper
-// -----------------------------
 function downloadArrayBuffer(buffer: ArrayBuffer, filename: string, mime: string) {
   const blob = new Blob([buffer], { type: mime });
   const url = URL.createObjectURL(blob);
@@ -617,15 +555,11 @@ function downloadArrayBuffer(buffer: ArrayBuffer, filename: string, mime: string
   URL.revokeObjectURL(url);
 }
 
-// -----------------------------
-// Worker
-// -----------------------------
 const worker = new Worker(new URL("./cad/worker.ts", import.meta.url), { type: "module" });
 
 function asFloat32(x: any): Float32Array {
   if (x instanceof Float32Array) return x;
-  if (ArrayBuffer.isView(x) && x.buffer)
-    return new Float32Array(x.buffer, x.byteOffset, Math.floor(x.byteLength / 4));
+  if (ArrayBuffer.isView(x) && x.buffer) return new Float32Array(x.buffer, x.byteOffset, Math.floor(x.byteLength / 4));
   if (Array.isArray(x)) return new Float32Array(x);
   throw new Error("positions/normals not array-like");
 }
@@ -712,9 +646,6 @@ worker.addEventListener("messageerror", () => {
   setStatus("worker messageerror");
 });
 
-// -----------------------------
-// Build/export actions
-// -----------------------------
 let pending = false;
 let lastSig = "";
 
@@ -726,8 +657,6 @@ function computeSignature(p: ModelParams): string {
 
   const parts: string[] = [];
   parts.push([base ? 1 : 0, toeB ? 1 : 0, toeC ? 1 : 0, heel ? 1 : 0].join(","));
-
-  parts.push(`sectionCut=${(p as any).sectionCutEnabled ?? 0},y=${(p as any).sectionCutY ?? 0}`);
 
   parts.push(paramEls.map((el) => (p as any)[el.id]).join(","));
 
@@ -756,6 +685,7 @@ function rebuild() {
   syncLabels();
   updateBaseplateViz();
   updateArcViz();
+  applySectionCutUIToViewer();
 
   if (!isModelEnabled()) {
     setBusy(false);
@@ -794,6 +724,7 @@ function exportStl() {
   syncLabels();
   updateBaseplateViz();
   updateArcViz();
+  applySectionCutUIToViewer();
 
   if (!isModelEnabled()) {
     setBusy(false);
@@ -824,6 +755,7 @@ function exportStep() {
   syncLabels();
   updateBaseplateViz();
   updateArcViz();
+  applySectionCutUIToViewer();
 
   if (!isModelEnabled()) {
     setBusy(false);
@@ -850,12 +782,11 @@ function exportStep() {
   worker.postMessage(out);
 }
 
-// -----------------------------
-// Model enable
-// -----------------------------
 function applyModelEnabledState() {
   const on = isModelEnabled();
   viewer.setModelVisible(on);
+
+  applySectionCutUIToViewer();
 
   pending = false;
   setBusy(false);
@@ -869,12 +800,10 @@ function applyModelEnabledState() {
   }
 }
 
-// -----------------------------
-// UI wiring
-// -----------------------------
 syncLabels();
 updateBaseplateViz();
 updateArcViz();
+applySectionCutUIToViewer();
 
 modelEnabledEl.addEventListener("change", applyModelEnabledState);
 
@@ -888,20 +817,13 @@ vizBasePtsEl.addEventListener("change", updateBaseplateViz);
   });
 });
 
-[sectionCutEnabledEl, sectionCutYEl].forEach((el) => {
-  el.addEventListener("input", () => {
-    if (!isModelEnabled()) return;
-    rebuildDebounced();
-  });
-  el.addEventListener("change", () => {
-    if (!isModelEnabled()) return;
-    rebuild();
-  });
+// section cut should NEVER rebuild; viewer-only
+[sectionCutEnabledEl, sectionCutFlipEl, sectionCutZswitchEl, sectionCutOffsetEl].forEach((el) => {
+  el.addEventListener("input", applySectionCutUIToViewer);
+  el.addEventListener("change", applySectionCutUIToViewer);
 });
 
-[baseEnabledEl, toeBEnabledEl, toeCEnabledEl, heelEnabledEl].forEach((el) =>
-  el.addEventListener("change", () => rebuild())
-);
+[baseEnabledEl, toeBEnabledEl, toeCEnabledEl, heelEnabledEl].forEach((el) => el.addEventListener("change", () => rebuild()));
 
 rebuildBtn.addEventListener("click", rebuild);
 exportStlBtn.addEventListener("click", exportStl);
@@ -912,6 +834,7 @@ exportStepBtn.addEventListener("click", exportStep);
     syncLabels();
     updateBaseplateViz();
     updateArcViz();
+    applySectionCutUIToViewer();
     if (!isModelEnabled()) return;
     rebuildDebounced();
   });
@@ -920,6 +843,7 @@ exportStepBtn.addEventListener("click", exportStep);
     syncLabels();
     updateBaseplateViz();
     updateArcViz();
+    applySectionCutUIToViewer();
     if (!isModelEnabled()) return;
     rebuild();
   });

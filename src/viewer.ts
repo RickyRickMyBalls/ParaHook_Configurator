@@ -24,30 +24,128 @@ export class Viewer {
   private scene: THREE.Scene;
   private camera: THREE.PerspectiveCamera;
 
-  // hand edit
-  // was private controls: OrbitControls;
   private controls: any;
 
-  // World origin helpers in MAIN scene
   private originAxes: THREE.AxesHelper;
   private originDot: THREE.Mesh;
 
-  // Axis gizmo (corner XYZ)
   private axisScene: THREE.Scene;
   private axisCamera: THREE.PerspectiveCamera;
   private axisHelper: THREE.AxesHelper;
   private axisViewportSize = 120;
   private axisViewportPadding = 10;
 
-  // Parametric model mesh (from worker)
   private mesh: THREE.Mesh | null = null;
 
-  // MODEL VISIBILITY TOGGLE (for the "Enable model" checkbox)
   private modelVisible = true;
 
   setModelVisible(v: boolean) {
     this.modelVisible = !!v;
     if (this.mesh) this.mesh.visible = this.modelVisible;
+  }
+
+  // -----------------------------
+  // Section cut (viewer-only clipping plane)
+  // -----------------------------
+  private sectionCutEnabled = false;
+  private sectionCutFlip = false;
+  private sectionCutPlaneMode: "XZ" | "XY" = "XZ"; // XZ = section (cut by Y), XY = plan (cut by Z)
+  private sectionCutOffset = 0;
+
+  // Keep one plane instance; mutate it.
+  // Base convention (no flip):
+  // - XZ mode: plane at y = offset, normal (0, -1, 0)
+  // - XY mode: plane at z = offset, normal (0, 0, -1)
+  private sectionPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), 0);
+
+  private applyClippingToMaterial(mat: THREE.Material | THREE.Material[] | null | undefined) {
+    if (!mat) return;
+
+    const applyOne = (m: any) => {
+      if (this.sectionCutEnabled) {
+        m.clippingPlanes = [this.sectionPlane];
+        m.clipShadows = true;
+      } else {
+        m.clippingPlanes = [];
+        m.clipShadows = false;
+      }
+      m.needsUpdate = true;
+    };
+
+    if (Array.isArray(mat)) mat.forEach(applyOne);
+    else applyOne(mat as any);
+  }
+
+  private applyClippingToObject(obj: THREE.Object3D | null | undefined) {
+    if (!obj) return;
+    obj.traverse((child: any) => {
+      if (child?.isMesh) this.applyClippingToMaterial(child.material);
+    });
+  }
+
+  private applySectionCutToAll() {
+    if (this.mesh) this.applyClippingToMaterial(this.mesh.material as any);
+
+    if (this.shoePivot) this.applyClippingToObject(this.shoePivot);
+
+    for (const p of this.footpadPivots) if (p) this.applyClippingToObject(p);
+    for (const p of this.hookPivots) if (p) this.applyClippingToObject(p);
+  }
+
+  private recomputeSectionPlane() {
+    // Build the "unflipped" plane first
+    if (this.sectionCutPlaneMode === "XZ") {
+      // y = offset
+      this.sectionPlane.normal.set(0, -1, 0);
+      this.sectionPlane.constant = this.sectionCutOffset;
+    } else {
+      // z = offset
+      this.sectionPlane.normal.set(0, 0, -1);
+      this.sectionPlane.constant = this.sectionCutOffset;
+    }
+
+    // Flip should keep plane location but invert kept side:
+    // Negate BOTH normal and constant to keep the same geometric plane.
+    if (this.sectionCutFlip) {
+      this.sectionPlane.normal.multiplyScalar(-1);
+      this.sectionPlane.constant *= -1;
+    }
+  }
+
+  // New combined API used by main.ts
+  setSectionCut(opts: { enabled: boolean; flip: boolean; plane: "XZ" | "XY"; offset: number }) {
+    this.sectionCutEnabled = !!opts.enabled;
+    this.sectionCutFlip = !!opts.flip;
+    this.sectionCutPlaneMode = opts.plane === "XY" ? "XY" : "XZ";
+
+    const off = Number(opts.offset);
+    this.sectionCutOffset = Number.isFinite(off) ? off : 0;
+
+    // keep enabled globally; turning planes on/off is enough
+    this.renderer.localClippingEnabled = true;
+
+    this.recomputeSectionPlane();
+    this.applySectionCutToAll();
+  }
+
+  // Backward-compatible wrappers (safe to keep; optional)
+  setSectionCutEnabled(v: boolean) {
+    this.setSectionCut({
+      enabled: !!v,
+      flip: this.sectionCutFlip,
+      plane: this.sectionCutPlaneMode,
+      offset: this.sectionCutOffset,
+    });
+  }
+
+  // Legacy name retained; acts as XZ mode offset setter
+  setSectionCutY(y: number) {
+    this.setSectionCut({
+      enabled: this.sectionCutEnabled,
+      flip: this.sectionCutFlip,
+      plane: "XZ",
+      offset: y,
+    });
   }
 
   // -----------------------------
@@ -71,7 +169,6 @@ export class Viewer {
   }
 
   setControlPoints(points: XYZ[]) {
-    // Expect exactly 4, but handle any count safely.
     this.ensureCtrlCount(points.length);
     for (let i = 0; i < points.length; i++) {
       const p = points[i];
@@ -81,17 +178,12 @@ export class Viewer {
   }
 
   private ensureCtrlCount(n: number) {
-    // Remove extras
     while (this.ctrlMeshes.length > n) {
       const m = this.ctrlMeshes.pop()!;
       this.baseplateCtrlGroup.remove(m);
-      // geometry/material are shared, do not dispose here
     }
-    // Add missing
     while (this.ctrlMeshes.length < n) {
       const idx = this.ctrlMeshes.length;
-
-      // Alternate slightly different blues for visibility (optional)
       const mat = idx === 0 || idx === 3 ? this.ctrlMatBlue2 : this.ctrlMatBlue;
 
       const m = new THREE.Mesh(this.ctrlSphereGeo, mat);
@@ -104,17 +196,6 @@ export class Viewer {
 
   // -----------------------------
   // Arc visualization (3 points each)
-  //   A arc pts (3)
-  //   B arc pts (3)
-  //   C arc pts (3)
-  //   Heel arc pts (3)
-  //
-  // Request: "make every profile sphere a different color, group them by profile / button"
-  //
-  // Implementation:
-  // - Each profile gets its own Group (A/B/C/Heel)
-  // - Within a profile, the 3 spheres have 3 distinct materials (pt1/pt2/pt3)
-  // - Visibility is per-profile group, matching its checkbox/button
   // -----------------------------
   private arcVizGroup: THREE.Group;
 
@@ -130,7 +211,6 @@ export class Viewer {
 
   private arcSphereGeo: THREE.SphereGeometry;
 
-  // Per-profile, per-point materials (3 colors per profile)
   private aArcMats: THREE.MeshBasicMaterial[] = [];
   private bArcMats: THREE.MeshBasicMaterial[] = [];
   private cArcMats: THREE.MeshBasicMaterial[] = [];
@@ -152,16 +232,12 @@ export class Viewer {
     mats3: THREE.Material[],
     namePrefix: string
   ) {
-    // Remove extras
     while (meshes.length > n) {
       const m = meshes.pop()!;
       group.remove(m);
     }
-    // Add missing
     while (meshes.length < n) {
       const idx = meshes.length;
-
-      // Cycle through 3 distinct materials for the 3 points
       const mat = mats3[idx % mats3.length];
 
       const m = new THREE.Mesh(this.arcSphereGeo, mat);
@@ -171,7 +247,6 @@ export class Viewer {
       meshes.push(m);
     }
 
-    // If count is <=3 and mats were changed, re-apply materials deterministically
     for (let i = 0; i < meshes.length; i++) {
       meshes[i].material = mats3[i % mats3.length];
     }
@@ -209,7 +284,6 @@ export class Viewer {
     this.setArcGroupVisible(this.heelArcGroup, this.heelArcVisible);
   }
 
-  // Expect 3 points, but accepts any count safely.
   setAArcPoints(points: XYZ[]) {
     this.setArcPoints(this.aArcMeshes, this.aArcGroup, points, this.aArcMats, "aArcPt");
   }
@@ -239,7 +313,6 @@ export class Viewer {
   private shoeRotDeg: XYZ = { x: 0, y: 0, z: 0 };
   private shoeOffset: XYZ = { x: 0, y: 0, z: 0 };
 
-  // Notify main.ts for debug panel
   private onShoeStatus?: (line: string) => void;
 
   // -----------------------------
@@ -266,37 +339,32 @@ export class Viewer {
   private hookRequested: boolean[] = [false, false, false, false];
   private hookVisible: boolean[] = [false, false, false, false];
 
-  // Base transform for premades (applied before UI deltas)
   private hookBaseOffset: XYZ = { x: -5, y: 98, z: 33 };
   private hookBaseRotDeg: XYZ = { x: 90, y: 0, z: 0 };
 
-  // UI deltas from sliders (keep sliders starting at 0)
   private hookDeltaOffset: XYZ = { x: 0, y: 0, z: 0 };
   private hookDeltaRotDeg: XYZ = { x: 0, y: 0, z: 0 };
 
-  // keep premades solid
   private hookOpacity = 1.0;
 
-  // OpenCascade in main thread (for STEP import)
   private ocLoaded = false;
   private ocLoadingPromise: Promise<void> | null = null;
 
-  // only frame once automatically (prevents camera jump on rebuild)
   private hasFramedOnce = false;
 
   private canvas: HTMLCanvasElement;
 
   constructor(canvas: HTMLCanvasElement) {
-    // hand edit
     this.canvas = canvas;
-    // end hand edit
 
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.setClearColor(0x0b0b0f, 1);
     this.renderer.autoClear = true;
 
-    // Main scene
+    // enable clipping for section cut
+    this.renderer.localClippingEnabled = true;
+
     this.scene = new THREE.Scene();
     this.scene.up.set(0, 0, 1);
 
@@ -312,7 +380,6 @@ export class Viewer {
     this.controls.panSpeed = 0.7;
     this.controls.screenSpacePanning = false;
 
-    // Lighting
     const hemi = new THREE.HemisphereLight(0xffffff, 0x1a1a1a, 0.9);
     this.scene.add(hemi);
 
@@ -331,7 +398,6 @@ export class Viewer {
     const amb = new THREE.AmbientLight(0xffffff, 0.12);
     this.scene.add(amb);
 
-    // World-origin gizmo in the MAIN scene
     this.originAxes = new THREE.AxesHelper(40);
     this.scene.add(this.originAxes);
 
@@ -341,7 +407,6 @@ export class Viewer {
     );
     this.scene.add(this.originDot);
 
-    // Axis gizmo scene (corner XYZ)
     this.axisScene = new THREE.Scene();
     this.axisScene.up.set(0, 0, 1);
 
@@ -353,9 +418,6 @@ export class Viewer {
     this.axisHelper = new THREE.AxesHelper(1.2);
     this.axisScene.add(this.axisHelper);
 
-    // -----------------------------
-    // Baseplate viz init (CONTROL POINTS ONLY)
-    // -----------------------------
     this.baseplateVizGroup = new THREE.Group();
     this.baseplateVizGroup.name = "baseplateVizGroup";
     this.baseplateVizGroup.visible = false;
@@ -366,17 +428,13 @@ export class Viewer {
     this.baseplateVizGroup.add(this.baseplateCtrlGroup);
     this.scene.add(this.baseplateVizGroup);
 
-    // Shared resources for baseplate control points
-    this.ctrlSphereGeo = new THREE.SphereGeometry(2.8, 16, 16); // larger for the 4 points
+    this.ctrlSphereGeo = new THREE.SphereGeometry(2.8, 16, 16);
     this.ctrlMatBlue = new THREE.MeshBasicMaterial({ color: 0x2d7cff });
     this.ctrlMatBlue2 = new THREE.MeshBasicMaterial({ color: 0x1aa3ff });
 
-    // -----------------------------
-    // Arc viz init (A/B/C/Heel)
-    // -----------------------------
     this.arcVizGroup = new THREE.Group();
     this.arcVizGroup.name = "arcVizGroup";
-    this.arcVizGroup.visible = true; // sub-groups handle their own visibility
+    this.arcVizGroup.visible = true;
     this.scene.add(this.arcVizGroup);
 
     this.aArcGroup = new THREE.Group();
@@ -399,32 +457,26 @@ export class Viewer {
     this.heelArcGroup.visible = false;
     this.arcVizGroup.add(this.heelArcGroup);
 
-    // Shared resources for arc points (slightly smaller than baseplate ctrl points)
     this.arcSphereGeo = new THREE.SphereGeometry(2.2, 16, 16);
 
-    // 3 distinct colors per profile (pt1, pt2, pt3)
-    // A = yellows
     this.aArcMats = [
       new THREE.MeshBasicMaterial({ color: 0xffcc00 }),
       new THREE.MeshBasicMaterial({ color: 0xffee66 }),
       new THREE.MeshBasicMaterial({ color: 0xffaa00 }),
     ];
 
-    // B = pinks/purples
     this.bArcMats = [
       new THREE.MeshBasicMaterial({ color: 0xff66cc }),
       new THREE.MeshBasicMaterial({ color: 0xcc66ff }),
       new THREE.MeshBasicMaterial({ color: 0xff99dd }),
     ];
 
-    // C = greens
     this.cArcMats = [
       new THREE.MeshBasicMaterial({ color: 0x66ff66 }),
       new THREE.MeshBasicMaterial({ color: 0x33cc99 }),
       new THREE.MeshBasicMaterial({ color: 0x99ff99 }),
     ];
 
-    // Heel = oranges/reds
     this.heelArcMats = [
       new THREE.MeshBasicMaterial({ color: 0xff8844 }),
       new THREE.MeshBasicMaterial({ color: 0xff4444 }),
@@ -445,9 +497,6 @@ export class Viewer {
     this.camera.updateProjectionMatrix();
   }
 
-  // -----------------------------
-  // Debug hook for main.ts
-  // -----------------------------
   setOnShoeStatus(cb: (line: string) => void) {
     this.onShoeStatus = cb;
   }
@@ -455,9 +504,6 @@ export class Viewer {
     if (this.onShoeStatus) this.onShoeStatus(line);
   }
 
-  // -----------------------------
-  // Shared helpers
-  // -----------------------------
   private disposeObjectGeometries(obj: THREE.Object3D) {
     obj.traverse((child: any) => {
       if (child?.isMesh) {
@@ -494,9 +540,6 @@ export class Viewer {
     return this.ocLoadingPromise;
   }
 
-  // -----------------------------
-  // Shoe core helpers
-  // -----------------------------
   private clearShoe() {
     if (this.shoePivot) this.scene.remove(this.shoePivot);
     if (this.shoeRoot) this.disposeObjectGeometries(this.shoeRoot);
@@ -520,13 +563,6 @@ export class Viewer {
     const s = this.shoeScale * this.shoeUnitScale;
     this.shoePivot.scale.set(s, s, s);
 
-    // IMPORTANT:
-    // The shoe is typically given a "base" X/Y rotation to lie correctly.
-    // If we use the default Euler order ("XYZ"), then changing rz can look like a Y-rotation
-    // after the base rotations are applied.
-    //
-    // We want the UI "plan rotation" (rz) to be applied FIRST (true plan / Z),
-    // then base X/Y rotations apply afterward.
     this.shoePivot.rotation.order = "ZXY";
 
     const rx = (this.shoeRotDeg.x * Math.PI) / 180;
@@ -599,6 +635,8 @@ export class Viewer {
           depthWrite: false,
         });
 
+        this.applyClippingToMaterial(mat);
+
         object.traverse((child: any) => {
           if (child?.isMesh) child.material = mat;
         });
@@ -647,6 +685,8 @@ export class Viewer {
           depthWrite: false,
         });
 
+        this.applyClippingToMaterial(mat);
+
         const mesh = new THREE.Mesh(geometry, mat);
 
         const pivot = new THREE.Group();
@@ -680,9 +720,6 @@ export class Viewer {
     );
   }
 
-  // -----------------------------
-  // Footpads
-  // -----------------------------
   private applyFootpadState(i: number) {
     const pivot = this.footpadPivots[i];
     if (!pivot) return;
@@ -729,12 +766,14 @@ export class Viewer {
         this.clearFootpad(i);
 
         const mat = new THREE.MeshStandardMaterial({
-          color: 0x22cc66, // green footpads
+          color: 0x22cc66,
           metalness: 0.0,
           roughness: 0.9,
           transparent: false,
           opacity: 1.0,
         });
+
+        this.applyClippingToMaterial(mat);
 
         const mesh = new THREE.Mesh(geometry, mat);
 
@@ -800,42 +839,29 @@ export class Viewer {
     for (let i = 0; i < 3; i++) this.applyFootpadState(i);
   }
 
-  // -----------------------------
-  // Premade Hooks (STEP)
-  // -----------------------------
+  private applyHookState(i: number) {
+    const pivot = this.hookPivots[i];
+    if (!pivot) return;
 
-private applyHookState(i: number) {
-  const pivot = this.hookPivots[i];
-  if (!pivot) return;
+    pivot.visible = !!this.hookVisible[i];
 
-  pivot.visible = !!this.hookVisible[i];
+    pivot.position.set(
+      this.hookBaseOffset.x + this.hookDeltaOffset.x,
+      this.hookBaseOffset.y + this.hookDeltaOffset.y,
+      this.hookBaseOffset.z + this.hookDeltaOffset.z
+    );
 
-  // base + delta offset
-  pivot.position.set(
-    this.hookBaseOffset.x + this.hookDeltaOffset.x,
-    this.hookBaseOffset.y + this.hookDeltaOffset.y,
-    this.hookBaseOffset.z + this.hookDeltaOffset.z
-  );
+    pivot.rotation.order = "ZXY";
 
-  // IMPORTANT:
-  // We want "plan rotation" to be true Z rotation even when a base X rotation (e.g. 90deg) is applied.
-  // Setting Euler order to ZXY applies Z FIRST, then X/Y, preventing the "looks like Y rotation" issue.
-  pivot.rotation.order = "ZXY";
+    const planZDeg = (this.hookDeltaRotDeg.z || 0) + (this.hookDeltaRotDeg.y || 0);
 
-  // Compatibility remap:
-  // If your UI is currently feeding the plan slider into ry, treat ry as planZ.
-  // (So you don't have to change main.ts/UI wiring immediately.)
-  const planZDeg = (this.hookDeltaRotDeg.z || 0) + (this.hookDeltaRotDeg.y || 0);
+    const rx = ((this.hookBaseRotDeg.x + this.hookDeltaRotDeg.x) * Math.PI) / 180;
+    const ry = (this.hookBaseRotDeg.y * Math.PI) / 180;
+    const rz = ((this.hookBaseRotDeg.z + planZDeg) * Math.PI) / 180;
 
-  const rx = ((this.hookBaseRotDeg.x + this.hookDeltaRotDeg.x) * Math.PI) / 180;
+    pivot.rotation.set(rx, ry, rz);
+  }
 
-  // Keep actual Y rotation neutral unless you explicitly want it later.
-  const ry = (this.hookBaseRotDeg.y * Math.PI) / 180;
-
-  const rz = ((this.hookBaseRotDeg.z + planZDeg) * Math.PI) / 180;
-
-  pivot.rotation.set(rx, ry, rz);
-}
   private clearHook(i: number) {
     const pivot = this.hookPivots[i];
     if (pivot) this.scene.remove(pivot);
@@ -900,9 +926,10 @@ private applyHookState(i: number) {
         depthWrite: true,
       });
 
+      this.applyClippingToMaterial(mat);
+
       const mesh = new THREE.Mesh(geometry, mat);
 
-      // Center mesh under pivot so rotations look sane
       const pivot = new THREE.Group();
       pivot.name = `hookPivot${slot}`;
 
@@ -917,7 +944,6 @@ private applyHookState(i: number) {
       this.hookRoots[i] = mesh;
       this.hookMaterials[i] = mat;
 
-      // honor current UI state (visibility + transforms)
       this.applyHookState(i);
 
       pivot.renderOrder = -3;
@@ -937,31 +963,26 @@ private applyHookState(i: number) {
     this.applyHookState(i);
   }
 
-  // Called by main.ts (slider deltas). Slot is accepted but delta applies to ALL hooks.
   setHookOffset(_slot: 1 | 2 | 3 | 4, x: number, y: number, z: number) {
     this.hookDeltaOffset = { x: Number(x) || 0, y: Number(y) || 0, z: Number(z) || 0 };
     for (let i = 0; i < 4; i++) this.applyHookState(i);
   }
 
-  // Called by main.ts (rotation delta). Slot is accepted but delta applies to ALL hooks.
   setHookRotationDeg(_slot: 1 | 2 | 3 | 4, rx: number, ry: number, rz: number) {
     this.hookDeltaRotDeg = { x: Number(rx) || 0, y: Number(ry) || 0, z: Number(rz) || 0 };
     for (let i = 0; i < 4; i++) this.applyHookState(i);
   }
 
-  // Optional convenience APIs (if you prefer “global” names in main.ts)
   setHookOffsetDelta(x: number, y: number, z: number) {
     this.hookDeltaOffset = { x: Number(x) || 0, y: Number(y) || 0, z: Number(z) || 0 };
     for (let i = 0; i < 4; i++) this.applyHookState(i);
   }
+
   setHookRotDeltaDeg(zDeg: number) {
     this.hookDeltaRotDeg = { x: 0, y: 0, z: Number(zDeg) || 0 };
     for (let i = 0; i < 4; i++) this.applyHookState(i);
   }
 
-  // -----------------------------
-  // Replicad mesh display (parametric model)
-  // -----------------------------
   setMesh(payload: MeshPayload, opts?: { frame?: boolean }) {
     const geometry = new THREE.BufferGeometry();
 
@@ -982,6 +1003,8 @@ private applyHookState(i: number) {
       roughness: 0.75,
     });
 
+    this.applyClippingToMaterial(material);
+
     if (this.mesh) {
       this.scene.remove(this.mesh);
       const oldGeo = this.mesh.geometry as THREE.BufferGeometry;
@@ -992,7 +1015,6 @@ private applyHookState(i: number) {
 
     this.mesh = new THREE.Mesh(geometry, material);
 
-    // IMPORTANT: honor the checkbox state
     this.mesh.visible = this.modelVisible;
 
     this.scene.add(this.mesh);
