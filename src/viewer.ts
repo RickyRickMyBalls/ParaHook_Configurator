@@ -18,6 +18,11 @@ export type MeshPayload = {
 
 type XYZ = { x: number; y: number; z: number };
 
+type SectionStencilPair = {
+  back: THREE.Mesh;
+  front: THREE.Mesh;
+};
+
 export class Viewer {
   private renderer: THREE.WebGLRenderer;
 
@@ -45,7 +50,7 @@ export class Viewer {
   }
 
   // -----------------------------
-  // Section cut (viewer-only clipping plane)
+  // Section cut (viewer-only clipping plane) + STENCIL CAP
   // -----------------------------
   private sectionCutEnabled = false;
   private sectionCutFlip = false;
@@ -57,6 +62,19 @@ export class Viewer {
   // - XZ mode: plane at y = offset, normal (0, -1, 0)
   // - XY mode: plane at z = offset, normal (0, 0, -1)
   private sectionPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), 0);
+
+  // Stencil-cap system (viewer-only, no geometry rebuild)
+  private sectionCapEnabled = true; // cap renders when sectionCutEnabled && sectionCapEnabled
+
+  private stencilBackMaterial: THREE.MeshBasicMaterial;
+  private stencilFrontMaterial: THREE.MeshBasicMaterial;
+  private capMaterial: THREE.MeshStandardMaterial;
+
+  private capMesh: THREE.Mesh;
+  private capSize = 200000; // big plane to cover scene objects
+
+  // Track stencil meshes we create so we can remove/cleanup
+  private sectionStencils: SectionStencilPair[] = [];
 
   private applyClippingToMaterial(mat: THREE.Material | THREE.Material[] | null | undefined) {
     if (!mat) return;
@@ -90,6 +108,8 @@ export class Viewer {
 
     for (const p of this.footpadPivots) if (p) this.applyClippingToObject(p);
     for (const p of this.hookPivots) if (p) this.applyClippingToObject(p);
+
+    this.applyStencilState();
   }
 
   private recomputeSectionPlane() {
@@ -110,6 +130,100 @@ export class Viewer {
       this.sectionPlane.normal.multiplyScalar(-1);
       this.sectionPlane.constant *= -1;
     }
+
+    this.updateCapTransform();
+  }
+
+  private applyStencilState() {
+    const capOn = this.sectionCutEnabled && this.sectionCapEnabled;
+
+    // cap mesh visibility
+    this.capMesh.visible = capOn;
+
+    // stencil meshes visibility
+    for (const s of this.sectionStencils) {
+      s.back.visible = capOn;
+      s.front.visible = capOn;
+    }
+
+    // keep stencil materials' clipping in sync (when enabled)
+    // When disabled we still keep them, but invisible.
+    this.stencilBackMaterial.clippingPlanes = capOn ? [this.sectionPlane] : [];
+    this.stencilFrontMaterial.clippingPlanes = capOn ? [this.sectionPlane] : [];
+    this.stencilBackMaterial.needsUpdate = true;
+    this.stencilFrontMaterial.needsUpdate = true;
+  }
+
+  private updateCapTransform() {
+    // Align cap plane to the current section plane mode/offset
+    // - XZ mode: cap lies in XZ plane at y=offset, normal along +/-Y
+    // - XY mode: cap lies in XY plane at z=offset, normal along +/-Z
+    if (this.sectionCutPlaneMode === "XZ") {
+      this.capMesh.position.set(0, this.sectionCutOffset, 0);
+      this.capMesh.rotation.set(-Math.PI / 2, 0, 0); // make plane normal +Y
+    } else {
+      this.capMesh.position.set(0, 0, this.sectionCutOffset);
+      this.capMesh.rotation.set(0, 0, 0); // plane normal +Z
+    }
+    this.capMesh.updateMatrixWorld();
+  }
+
+  private clearSectionStencils() {
+    for (const s of this.sectionStencils) {
+      // remove from whatever parent they are on
+      if (s.back.parent) s.back.parent.remove(s.back);
+      if (s.front.parent) s.front.parent.remove(s.front);
+      // Do NOT dispose geometry: it is shared with the visible mesh geometry.
+    }
+    this.sectionStencils = [];
+  }
+
+  private addSectionStencilsForMesh(mesh: THREE.Mesh) {
+    const geo = mesh.geometry as THREE.BufferGeometry | undefined;
+    if (!geo) return;
+
+    const back = new THREE.Mesh(geo, this.stencilBackMaterial);
+    const front = new THREE.Mesh(geo, this.stencilFrontMaterial);
+
+    back.name = `${mesh.name || "mesh"}__stencilBack`;
+    front.name = `${mesh.name || "mesh"}__stencilFront`;
+
+    back.frustumCulled = mesh.frustumCulled;
+    front.frustumCulled = mesh.frustumCulled;
+
+    // Render order:
+    //  - Stencil passes first
+    //  - Cap after
+    //  - Visible meshes later
+    back.renderOrder = -100;
+    front.renderOrder = -100;
+
+    const parent = mesh.parent ?? this.scene;
+    parent.add(back);
+    parent.add(front);
+
+    this.sectionStencils.push({ back, front });
+
+    this.applyStencilState();
+  }
+
+  private addSectionStencilsForObject(obj: THREE.Object3D) {
+    obj.traverse((child: any) => {
+      if (child?.isMesh) this.addSectionStencilsForMesh(child as THREE.Mesh);
+    });
+  }
+
+  private rebuildSectionStencils() {
+    this.clearSectionStencils();
+
+    if (this.mesh) this.addSectionStencilsForMesh(this.mesh);
+
+    if (this.shoePivot) this.addSectionStencilsForObject(this.shoePivot);
+
+    for (const p of this.footpadPivots) if (p) this.addSectionStencilsForObject(p);
+    for (const p of this.hookPivots) if (p) this.addSectionStencilsForObject(p);
+
+    this.applyStencilState();
   }
 
   // New combined API used by main.ts
@@ -146,6 +260,12 @@ export class Viewer {
       plane: "XZ",
       offset: y,
     });
+  }
+
+  // Optional helper if you want to toggle cap without touching main.ts
+  setSectionCapEnabled(v: boolean) {
+    this.sectionCapEnabled = !!v;
+    this.applyStencilState();
   }
 
   // -----------------------------
@@ -357,10 +477,14 @@ export class Viewer {
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
 
-    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+    // IMPORTANT: stencil must be enabled for section cap
+    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, stencil: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.setClearColor(0x0b0b0f, 1);
     this.renderer.autoClear = true;
+    this.renderer.autoClearColor = true;
+    this.renderer.autoClearDepth = true;
+    this.renderer.autoClearStencil = true;
 
     // enable clipping for section cut
     this.renderer.localClippingEnabled = true;
@@ -483,6 +607,59 @@ export class Viewer {
       new THREE.MeshBasicMaterial({ color: 0xffbb66 }),
     ];
 
+    // -----------------------------
+    // Build stencil-cap materials + cap mesh (once)
+    // -----------------------------
+    this.stencilBackMaterial = new THREE.MeshBasicMaterial({
+      side: THREE.BackSide,
+      clippingPlanes: [], // set by applyStencilState()
+      stencilWrite: true,
+      stencilFunc: THREE.AlwaysStencilFunc,
+      stencilFail: THREE.KeepStencilOp,
+      stencilZFail: THREE.KeepStencilOp,
+      stencilZPass: THREE.IncrementWrapStencilOp,
+      colorWrite: false,
+      depthWrite: false,
+      depthTest: true,
+    });
+
+    this.stencilFrontMaterial = new THREE.MeshBasicMaterial({
+      side: THREE.FrontSide,
+      clippingPlanes: [], // set by applyStencilState()
+      stencilWrite: true,
+      stencilFunc: THREE.AlwaysStencilFunc,
+      stencilFail: THREE.KeepStencilOp,
+      stencilZFail: THREE.KeepStencilOp,
+      stencilZPass: THREE.DecrementWrapStencilOp,
+      colorWrite: false,
+      depthWrite: false,
+      depthTest: true,
+    });
+
+    this.capMaterial = new THREE.MeshStandardMaterial({
+      color: 0x9a9aa0,
+      metalness: 0.0,
+      roughness: 0.85,
+      side: THREE.DoubleSide,
+      stencilWrite: true,
+      stencilRef: 0,
+      stencilFunc: THREE.NotEqualStencilFunc,
+      stencilFail: THREE.ReplaceStencilOp,
+      stencilZFail: THREE.ReplaceStencilOp,
+      stencilZPass: THREE.ReplaceStencilOp,
+      depthWrite: true,
+      depthTest: true,
+    });
+
+    this.capMesh = new THREE.Mesh(new THREE.PlaneGeometry(this.capSize, this.capSize), this.capMaterial);
+    this.capMesh.name = "sectionCapPlane";
+    this.capMesh.renderOrder = -50; // after stencils (-100), before visible meshes
+    this.capMesh.visible = false;
+    this.scene.add(this.capMesh);
+
+    this.updateCapTransform();
+    this.applyStencilState();
+
     window.addEventListener("resize", () => this.resize());
     this.resize();
 
@@ -553,6 +730,9 @@ export class Viewer {
     }
 
     this.shoeRequested = false;
+
+    // stencils depend on existing meshes
+    this.rebuildSectionStencils();
   }
 
   private applyShoeState() {
@@ -654,6 +834,9 @@ export class Viewer {
         this.applyShoeState();
         this.scene.add(pivot);
 
+        // stencils
+        this.rebuildSectionStencils();
+
         this.log(`shoe: OBJ loaded OK`);
       },
       undefined,
@@ -709,6 +892,9 @@ export class Viewer {
         this.applyShoeState();
         this.scene.add(pivot);
 
+        // stencils
+        this.rebuildSectionStencils();
+
         this.log(`shoe: STL loaded OK`);
       },
       undefined,
@@ -750,6 +936,9 @@ export class Viewer {
     const mat = this.footpadMaterials[i];
     if (mat) mat.dispose();
     this.footpadMaterials[i] = null;
+
+    // stencils
+    this.rebuildSectionStencils();
   }
 
   loadFootpad(slot: 1 | 2 | 3, url: string) {
@@ -798,6 +987,9 @@ export class Viewer {
 
         pivot.renderOrder = -2;
         this.scene.add(pivot);
+
+        // stencils
+        this.rebuildSectionStencils();
 
         this.log(`footpad${slot}: loaded OK`);
       },
@@ -875,6 +1067,9 @@ export class Viewer {
     const mat = this.hookMaterials[i];
     if (mat) mat.dispose();
     this.hookMaterials[i] = null;
+
+    // stencils
+    this.rebuildSectionStencils();
   }
 
   async loadHookSTEP(slot: 1 | 2 | 3 | 4, url: string) {
@@ -949,6 +1144,9 @@ export class Viewer {
       pivot.renderOrder = -3;
       this.scene.add(pivot);
 
+      // stencils
+      this.rebuildSectionStencils();
+
       this.log(`hook${slot}: loaded OK`);
     } catch (e) {
       console.error(`Failed to load hook STEP ${slot}:`, url, e);
@@ -1014,10 +1212,14 @@ export class Viewer {
     }
 
     this.mesh = new THREE.Mesh(geometry, material);
-
+    this.mesh.name = "paramMesh";
     this.mesh.visible = this.modelVisible;
+    this.mesh.renderOrder = 0;
 
     this.scene.add(this.mesh);
+
+    // stencils must match latest geometry
+    this.rebuildSectionStencils();
 
     const forceFrame = !!opts?.frame;
     if (!this.hasFramedOnce || forceFrame) {
@@ -1086,6 +1288,10 @@ export class Viewer {
     const h = this.canvas.clientHeight;
 
     this.renderer.setViewport(0, 0, w, h);
+
+    // Robust stencil clearing
+    this.renderer.clear(true, true, true);
+
     this.renderer.render(this.scene, this.camera);
 
     this.renderAxisGizmo(w, h);
