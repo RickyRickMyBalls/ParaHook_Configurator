@@ -48,6 +48,10 @@ function readNumber(input: HTMLInputElement, fallback: number): number {
 function clamp(n: number, lo: number, hi: number) {
   return Math.min(hi, Math.max(lo, n));
 }
+function num(v: any, f: number) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : f;
+}
 
 const canvas = mustEl<HTMLCanvasElement>("c");
 const viewer = new Viewer(canvas);
@@ -75,8 +79,6 @@ viewer.loadHookSTEP(1 as const, `${BASE}hooks/small.step`);
 viewer.loadHookSTEP(2 as const, `${BASE}hooks/medium.step`);
 viewer.loadHookSTEP(3 as const, `${BASE}hooks/large.step`);
 viewer.loadHookSTEP(4 as const, `${BASE}hooks/xl.step`);
-
-
 
 function applyHookUIToViewer() {
   viewer.setHookVisible(1, !!hookSmallEl.checked);
@@ -117,10 +119,10 @@ function applyHookTransformUIToViewer() {
   const dz = clamp(readNumber(hookZEl, 0), -100, 100);
   const rz = clamp(readNumber(hookRotEl, 0), -180, 180);
 
-([1, 2, 3, 4] as const).forEach((id) => {
-  viewer.setHookOffset(id, dx, dy, dz);
-  viewer.setHookRotationDeg(id, 0, 0, rz);
-});
+  ([1, 2, 3, 4] as const).forEach((id) => {
+    viewer.setHookOffset(id, dx, dy, dz);
+    viewer.setHookRotationDeg(id, 0, 0, rz);
+  });
 
   syncHookLabels();
 }
@@ -184,7 +186,6 @@ const shoeYEl = mustEl<HTMLInputElement>("shoeY");
 const shoeZEl = mustEl<HTMLInputElement>("shoeZ");
 const shoeRotEl = mustEl<HTMLInputElement>("shoeRot");
 
-
 viewer.loadOBJ(`${BASE}shoe.obj`);
 
 const SHOE_BASE_UNIT_SCALE = 60;
@@ -221,9 +222,7 @@ applyShoeUIToViewer();
 shoeEnabledEl.addEventListener("change", applyShoeUIToViewer);
 shoeAlphaEl.addEventListener("input", applyShoeUIToViewer);
 shoeScaleEl.addEventListener("input", applyShoeUIToViewer);
-[shoeXEl, shoeYEl, shoeZEl, shoeRotEl].forEach((el) =>
-  el.addEventListener("input", applyShoeUIToViewer)
-);
+[shoeXEl, shoeYEl, shoeZEl, shoeRotEl].forEach((el) => el.addEventListener("input", applyShoeUIToViewer));
 
 // -----------------------------
 // Main UI (parametric model)
@@ -234,7 +233,15 @@ const exportStlBtn = mustEl<HTMLButtonElement>("exportStl");
 const exportStepBtn = mustEl<HTMLButtonElement>("exportStep");
 
 const modelEnabledEl = mustEl<HTMLInputElement>("modelEnabled");
-const showPointsEl = mustEl<HTMLInputElement>("showPoints");
+
+// Baseplate viz toggle (HTML id is vizBasePts)
+const vizBasePtsEl = mustEl<HTMLInputElement>("vizBasePts");
+
+// Arc viz toggles
+const vizAArcPtsEl = mustEl<HTMLInputElement>("vizAArcPts");
+const vizBArcPtsEl = mustEl<HTMLInputElement>("vizBArcPts");
+const vizCArcPtsEl = mustEl<HTMLInputElement>("vizCArcPts");
+const vizHeelArcPtsEl = mustEl<HTMLInputElement>("vizHeelArcPts");
 
 // Section cut UI
 const sectionCutEnabledEl = mustEl<HTMLInputElement>("sectionCutEnabled");
@@ -266,9 +273,7 @@ function setBusy(busy: boolean) {
 // -----------------------------
 // Auto-discover param inputs: param1, param2, ... paramN
 // -----------------------------
-const paramEls = Array.from(
-  document.querySelectorAll<HTMLInputElement>('input[id^="param"]')
-)
+const paramEls = Array.from(document.querySelectorAll<HTMLInputElement>('input[id^="param"]'))
   .filter((el) => /^param\d+$/.test(el.id))
   .sort((a, b) => Number(a.id.slice(5)) - Number(b.id.slice(5)));
 
@@ -300,7 +305,7 @@ function readTolerance(): number {
 }
 
 // -----------------------------
-// Baseplate viz helpers
+// Baseplate viz helpers (ONLY control points now)
 // -----------------------------
 type XYZ = { x: number; y: number; z: number };
 type Pt2 = { x: number; y: number };
@@ -325,7 +330,37 @@ function computeControlPoints(p: Record<string, number>): Pt2[] {
   ];
 }
 
-function catmullRom(p0: Pt2, p1: Pt2, p2: Pt2, p3: Pt2, t: number): Pt2 {
+function updateBaseplateViz() {
+  const p = readParams() as any;
+  const ctrl2 = computeControlPoints(p);
+
+  viewer.setControlPoints(ctrl2.map((q) => ({ x: q.x, y: q.y, z: 0 })));
+  viewer.setBaseplateVizVisible(!!vizBasePtsEl.checked);
+}
+
+// -----------------------------
+// Arc viz math (MATCHES model.ts)
+// -----------------------------
+type Pt = { x: number; y: number };
+
+function add2(a: Pt, b: Pt): Pt {
+  return { x: a.x + b.x, y: a.y + b.y };
+}
+function mul2(a: Pt, s: number): Pt {
+  return { x: a.x * s, y: a.y * s };
+}
+function vlen2(a: Pt) {
+  return Math.hypot(a.x, a.y);
+}
+function vnorm2(a: Pt): Pt {
+  const l = vlen2(a);
+  return l > 1e-9 ? { x: a.x / l, y: a.y / l } : { x: 0, y: 1 };
+}
+function dist2(a: Pt, b: Pt) {
+  return Math.hypot(b.x - a.x, b.y - a.y);
+}
+
+function catmullRom(p0: Pt, p1: Pt, p2: Pt, p3: Pt, t: number): Pt {
   const t2 = t * t;
   const t3 = t2 * t;
 
@@ -344,12 +379,102 @@ function catmullRom(p0: Pt2, p1: Pt2, p2: Pt2, p3: Pt2, t: number): Pt2 {
   return { x: 0.5 * (ax + bx + cx + dx), y: 0.5 * (ay + by + cy + dy) };
 }
 
-function computeSpineSamplePoints(ctrl: Pt2[], samplesPerSegment = 60): XYZ[] {
-  const spine = ctrl;
-  const P = [spine[0], ...spine, spine[spine.length - 1]];
+function catmullRomDeriv(p0: Pt, p1: Pt, p2: Pt, p3: Pt, t: number): Pt {
+  const t2 = t * t;
 
-  const out: XYZ[] = [];
-  for (let seg = 0; seg < spine.length - 1; seg++) {
+  const bx = p2.x - p0.x;
+  const by = p2.y - p0.y;
+
+  const cx = (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * (2 * t);
+  const cy = (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * (2 * t);
+
+  const dx = (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * (3 * t2);
+  const dy = (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * (3 * t2);
+
+  return { x: 0.5 * (bx + cx + dx), y: 0.5 * (by + cy + dy) };
+}
+
+function arcLenBetween(pts: Pt[], i0: number, i1: number) {
+  let acc = 0;
+  for (let i = i0 + 1; i <= i1; i++) acc += dist2(pts[i - 1], pts[i]);
+  return acc;
+}
+
+function findEndIdxByArcLen(pts: Pt[], targetLen: number) {
+  let acc = 0;
+  for (let i = 1; i < pts.length; i++) {
+    acc += dist2(pts[i - 1], pts[i]);
+    if (acc >= targetLen) return i;
+  }
+  return pts.length - 1;
+}
+
+function lerp(a: number, b: number, t: number) {
+  return a + (b - a) * t;
+}
+function lerpPt(a: Pt, b: Pt, t: number): Pt {
+  return { x: lerp(a.x, b.x, t), y: lerp(a.y, b.y, t) };
+}
+
+function evalStationByArcLenBetween(
+  pts: Pt[],
+  tans: Pt[],
+  i0: number,
+  i1: number,
+  targetLen: number
+): { pt: Pt; tan: Pt } {
+  const end = clamp(i1, i0 + 1, pts.length - 1);
+  const start = clamp(i0, 0, end - 1);
+
+  let acc = 0;
+  for (let i = start + 1; i <= end; i++) {
+    const a = pts[i - 1];
+    const b = pts[i];
+    const seg = dist2(a, b);
+    if (seg < 1e-9) continue;
+
+    if (acc + seg >= targetLen) {
+      const u = clamp((targetLen - acc) / seg, 0, 1);
+      const pt = lerpPt(a, b, u);
+      const ta = tans[i - 1] ?? tans[start];
+      const tb = tans[i] ?? tans[end];
+      const tan = vnorm2(lerpPt(ta, tb, u));
+      return { pt, tan };
+    }
+    acc += seg;
+  }
+
+  const pt = pts[end];
+  const tan = vnorm2(tans[end] ?? tans[end - 1] ?? { x: 0, y: 1 });
+  return { pt, tan };
+}
+
+function sampleSpineMain(p: Record<string, number>) {
+  const baseLen = clamp(num(p.param1, 195), 50, 2000);
+  const heelPct = clamp(num(p.param4, 67), 1, 100);
+  const toePct = clamp(num(p.param5, 46), 1, 100);
+
+  const p2x = clamp(num(p.param6, -14), -1000, 1000);
+  const p3x = clamp(num(p.param7, -2), -1000, 1000);
+  const p4x = clamp(num(p.param8, 1), -1000, 1000);
+
+  const p3y = clamp((baseLen * heelPct) / 100, 1, baseLen - 0.001);
+  const p2y = clamp((p3y * toePct) / 100, 0.001, p3y - 0.001);
+
+  const spineCtrl: Pt[] = [
+    { x: 0, y: 0 },
+    { x: p2x, y: p2y },
+    { x: p3x, y: p3y },
+    { x: p4x, y: baseLen },
+  ];
+
+  const samplesPerSegment = 60;
+  const P: Pt[] = [spineCtrl[0], ...spineCtrl, spineCtrl[spineCtrl.length - 1]];
+
+  const spinePts: Pt[] = [];
+  const spineTan: Pt[] = [];
+
+  for (let seg = 0; seg < spineCtrl.length - 1; seg++) {
     const p0 = P[seg + 0];
     const p1 = P[seg + 1];
     const p2 = P[seg + 2];
@@ -357,21 +482,118 @@ function computeSpineSamplePoints(ctrl: Pt2[], samplesPerSegment = 60): XYZ[] {
 
     for (let i = 0; i <= samplesPerSegment; i++) {
       if (seg > 0 && i === 0) continue;
-      const tt = i / samplesPerSegment;
-      const pt = catmullRom(p0, p1, p2, p3, tt);
-      out.push({ x: pt.x, y: pt.y, z: 0 });
+      const t = i / samplesPerSegment;
+      spinePts.push(catmullRom(p0, p1, p2, p3, t));
+      spineTan.push(vnorm2(catmullRomDeriv(p0, p1, p2, p3, t)));
     }
   }
-  return out;
+
+  return { spinePts, spineTan };
 }
 
-function updateBaseplateViz() {
-  const p = readParams() as any;
-  const ctrl2 = computeControlPoints(p);
+function rotateZDegOnYAxis(angDeg: number): { x: number; y: number; z: number } {
+  // rotate (0,1,0) about Z
+  const a = (angDeg * Math.PI) / 180;
+  const c = Math.cos(a);
+  const s = Math.sin(a);
+  return { x: -s, y: c, z: 0 };
+}
 
-  viewer.setControlPoints(ctrl2.map((q) => ({ x: q.x, y: q.y, z: 0 })));
-  viewer.setSpineSamplePoints(computeSpineSamplePoints(ctrl2, 60));
-  viewer.setBaseplateVizVisible(!!showPointsEl.checked);
+function sectionAngleDegFromTan(tan: Pt) {
+  return (Math.atan2(tan.y, tan.x) * 180) / Math.PI;
+}
+
+function arc3PointsAtStation(
+  station: Pt,
+  tan: Pt,
+  localCtrlX: number,
+  localCtrlZ: number,
+  localEndX: number,
+  localEndZ: number
+): XYZ[] {
+  const ang = sectionAngleDegFromTan(tan);
+
+  const u = rotateZDegOnYAxis(ang); // local X direction in world
+  const v = { x: 0, y: 0, z: 1 };   // local Z direction in world
+
+  const o = { x: station.x, y: station.y, z: 0 };
+
+  const p0 = o;
+  const p1 = {
+    x: o.x + u.x * localCtrlX + v.x * localCtrlZ,
+    y: o.y + u.y * localCtrlX + v.y * localCtrlZ,
+    z: o.z + u.z * localCtrlX + v.z * localCtrlZ,
+  };
+  const p2 = {
+    x: o.x + u.x * localEndX + v.x * localEndZ,
+    y: o.y + u.y * localEndX + v.y * localEndZ,
+    z: o.z + u.z * localEndX + v.z * localEndZ,
+  };
+
+  return [p0, p1, p2];
+}
+
+function updateArcViz() {
+  const p = readParams() as any;
+
+  // visibility first (so groups hide immediately)
+  viewer.setAArcVizVisible(!!vizAArcPtsEl.checked);
+  viewer.setBArcVizVisible(!!vizBArcPtsEl.checked);
+  viewer.setCArcVizVisible(!!vizCArcPtsEl.checked);
+  viewer.setHeelArcVizVisible(!!vizHeelArcPtsEl.checked);
+
+  // if all off, skip work
+  if (!vizAArcPtsEl.checked && !vizBArcPtsEl.checked && !vizCArcPtsEl.checked && !vizHeelArcPtsEl.checked) return;
+
+  const { spinePts, spineTan } = sampleSpineMain(p);
+
+  // Toe A is at start index 0
+  const stA = { pt: spinePts[0], tan: spineTan[0] };
+
+  // Station B by arc length (param15)
+  const stationB = clamp(num(p.param15, 60), 1, 2000);
+  let idxB = findEndIdxByArcLen(spinePts, stationB);
+  idxB = clamp(idxB, 1, spinePts.length - 2);
+  const stB = { pt: spinePts[idxB], tan: spineTan[idxB] };
+
+  // Station C by arc length (param21)
+  const stationC = clamp(num(p.param21, 137), 1, 2000);
+  let idxC = findEndIdxByArcLen(spinePts, stationC);
+  idxC = clamp(idxC, idxB + 1, spinePts.length - 1);
+  const stC = { pt: spinePts[idxC], tan: spineTan[idxC] };
+
+  // FLIP_X is true everywhere for the arch profiles (sx = -1)
+  const sx = -1;
+
+  // A geom (param10..13)
+  const A_arcX = clamp(num(p.param10, 0), -2000, 2000) * sx;
+  const A_arcZ = clamp(num(p.param11, 27), -2000, 2000);
+  const A_endX = clamp(num(p.param12, 47), 0.1, 2000) * sx;
+  const A_endZ = clamp(num(p.param13, 35), 0.1, 2000);
+
+  // B geom (param17..20)
+  const B_arcX = clamp(num(p.param17, 0), -2000, 2000) * sx;
+  const B_arcZ = clamp(num(p.param18, 41), -2000, 2000);
+  const B_endX = clamp(num(p.param19, 20), 0.1, 2000) * sx;
+  const B_endZ = clamp(num(p.param20, 50), 0.1, 2000);
+
+  // C geom (param23..26)
+  const C_arcX = clamp(num(p.param23, 0), -2000, 2000) * sx;
+  const C_arcZ = clamp(num(p.param24, 29), -2000, 2000);
+  const C_endX = clamp(num(p.param25, 19), 0.1, 2000) * sx;
+  const C_endZ = clamp(num(p.param26, 65), 0.1, 2000);
+
+  // Heel "arch" is the clipped C profile at station C (same 3 defining points)
+  const H_arcX = C_arcX;
+  const H_arcZ = C_arcZ;
+  const H_endX = C_endX;
+  const H_endZ = C_endZ;
+
+  // Send points into viewer
+  if (vizAArcPtsEl.checked) viewer.setAArcPoints(arc3PointsAtStation(stA.pt, stA.tan, A_arcX, A_arcZ, A_endX, A_endZ));
+  if (vizBArcPtsEl.checked) viewer.setBArcPoints(arc3PointsAtStation(stB.pt, stB.tan, B_arcX, B_arcZ, B_endX, B_endZ));
+  if (vizCArcPtsEl.checked) viewer.setCArcPoints(arc3PointsAtStation(stC.pt, stC.tan, C_arcX, C_arcZ, C_endX, C_endZ));
+  if (vizHeelArcPtsEl.checked) viewer.setHeelArcPoints(arc3PointsAtStation(stC.pt, stC.tan, H_arcX, H_arcZ, H_endX, H_endZ));
 }
 
 // -----------------------------
@@ -396,7 +618,8 @@ const worker = new Worker(new URL("./cad/worker.ts", import.meta.url), { type: "
 
 function asFloat32(x: any): Float32Array {
   if (x instanceof Float32Array) return x;
-  if (ArrayBuffer.isView(x) && x.buffer) return new Float32Array(x.buffer, x.byteOffset, Math.floor(x.byteLength / 4));
+  if (ArrayBuffer.isView(x) && x.buffer)
+    return new Float32Array(x.buffer, x.byteOffset, Math.floor(x.byteLength / 4));
   if (Array.isArray(x)) return new Float32Array(x);
   throw new Error("positions/normals not array-like");
 }
@@ -404,12 +627,8 @@ function asFloat32(x: any): Float32Array {
 function asIndexArray(x: any, vertCount: number): Uint16Array | Uint32Array {
   if (x instanceof Uint16Array || x instanceof Uint32Array) return x;
   if (ArrayBuffer.isView(x) && x.buffer) {
-    // If it’s already some integer typed array, normalize to 16/32 based on vertex count.
-
-      //hand edit
     const arr = Array.from(x as any).map((v) => Number(v)) as number[];
     return vertCount > 65535 ? new Uint32Array(arr) : new Uint16Array(arr);
-
   }
   if (Array.isArray(x)) return vertCount > 65535 ? new Uint32Array(x) : new Uint16Array(x);
   throw new Error("indices not array-like");
@@ -447,10 +666,11 @@ worker.onmessage = (ev: MessageEvent<WorkerIn>) => {
 
       log(`mesh rx: verts=${vertCount} tris=${Math.floor(indices.length / 3)}`);
 
-      viewer.setMesh({ positions: Array.from(positions), normals: normals ? Array.from(normals) : undefined, indices: Array.from(indices) });
-
-      // If your viewer expects typed arrays instead of number[], swap to this line instead:
-      // (viewer as any).setMesh({ positions, normals, indices });
+      viewer.setMesh({
+        positions: Array.from(positions),
+        normals: normals ? Array.from(normals) : undefined,
+        indices: Array.from(indices),
+      });
 
       setBusy(false);
       return setStatus("ready");
@@ -492,8 +712,6 @@ worker.addEventListener("messageerror", () => {
 let pending = false;
 let lastSig = "";
 
-
-
 function computeSignature(p: ModelParams): string {
   const base = !!baseEnabledEl.checked;
   const toeB = !!toeBEnabledEl.checked;
@@ -505,8 +723,13 @@ function computeSignature(p: ModelParams): string {
 
   parts.push(`sectionCut=${(p as any).sectionCutEnabled ?? 0},y=${(p as any).sectionCutY ?? 0}`);
 
-  // Keep it simple: include all param values that exist in DOM (stable order)
   parts.push(paramEls.map((el) => (p as any)[el.id]).join(","));
+
+  parts.push(
+    `vizBase=${vizBasePtsEl.checked ? 1 : 0},vizA=${vizAArcPtsEl.checked ? 1 : 0},vizB=${
+      vizBArcPtsEl.checked ? 1 : 0
+    },vizC=${vizCArcPtsEl.checked ? 1 : 0},vizH=${vizHeelArcPtsEl.checked ? 1 : 0}`
+  );
 
   return parts.join("|");
 }
@@ -526,6 +749,7 @@ function rebuildDebounced() {
 function rebuild() {
   syncLabels();
   updateBaseplateViz();
+  updateArcViz();
 
   if (!isModelEnabled()) {
     setBusy(false);
@@ -563,6 +787,7 @@ function rebuild() {
 function exportStl() {
   syncLabels();
   updateBaseplateViz();
+  updateArcViz();
 
   if (!isModelEnabled()) {
     setBusy(false);
@@ -592,6 +817,7 @@ function exportStl() {
 function exportStep() {
   syncLabels();
   updateBaseplateViz();
+  updateArcViz();
 
   if (!isModelEnabled()) {
     setBusy(false);
@@ -642,11 +868,20 @@ function applyModelEnabledState() {
 // -----------------------------
 syncLabels();
 updateBaseplateViz();
+updateArcViz();
 
 modelEnabledEl.addEventListener("change", applyModelEnabledState);
-showPointsEl.addEventListener("change", updateBaseplateViz);
 
-// Section cut controls force rebuild
+vizBasePtsEl.addEventListener("change", updateBaseplateViz);
+
+[vizAArcPtsEl, vizBArcPtsEl, vizCArcPtsEl, vizHeelArcPtsEl].forEach((el) => {
+  el.addEventListener("change", () => {
+    updateArcViz();
+    if (!isModelEnabled()) return;
+    rebuildDebounced();
+  });
+});
+
 [sectionCutEnabledEl, sectionCutYEl].forEach((el) => {
   el.addEventListener("input", () => {
     if (!isModelEnabled()) return;
@@ -658,7 +893,6 @@ showPointsEl.addEventListener("change", updateBaseplateViz);
   });
 });
 
-// Part toggles rebuild immediately
 [baseEnabledEl, toeBEnabledEl, toeCEnabledEl, heelEnabledEl].forEach((el) =>
   el.addEventListener("change", () => rebuild())
 );
@@ -667,11 +901,11 @@ rebuildBtn.addEventListener("click", rebuild);
 exportStlBtn.addEventListener("click", exportStl);
 exportStepBtn.addEventListener("click", exportStep);
 
-// Any param/tolerance change rebuilds
 ([tolEl, ...paramEls]).forEach((el) => {
   el.addEventListener("input", () => {
     syncLabels();
     updateBaseplateViz();
+    updateArcViz();
     if (!isModelEnabled()) return;
     rebuildDebounced();
   });
@@ -679,6 +913,7 @@ exportStepBtn.addEventListener("click", exportStep);
   el.addEventListener("change", () => {
     syncLabels();
     updateBaseplateViz();
+    updateArcViz();
     if (!isModelEnabled()) return;
     rebuild();
   });

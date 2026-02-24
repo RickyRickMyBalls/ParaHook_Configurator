@@ -22,7 +22,7 @@
         -webkit-user-select: text;
       }
 
-      /* Resizable, scrollable UI panel */
+      /* OUTER container only (position + sizing + resize) */
       #ui {
         position: fixed;
         top: 16px;
@@ -34,20 +34,67 @@
 
         height: 85vh;
         min-height: 360px;
-        max-height: calc(100vh - 32px);
+        max-height: calc(100vh - 5px);
 
-        padding: 14px 14px 10px 14px;
+        overflow: hidden; /* panels manage their own scroll */
+        resize: both;
+        box-sizing: border-box;
 
+        display: flex;
+        flex-direction: column;
+        gap: 10px; /* space between boxes */
+      }
+
+      /* REUSABLE big box style */
+      .panelBox {
         background: rgba(20,20,24,0.9);
         border-radius: 12px;
         color: #e8e8ea;
-
         box-shadow: 0 10px 30px rgba(0,0,0,0.45);
         user-select: none;
-
-        overflow: auto;
-        resize: both;
         box-sizing: border-box;
+        padding: 14px 14px 10px 14px;
+      }
+
+      /* Title/Version panel */
+      #titlePanel {
+        background: rgba(0,0,0,0.20);
+        border: 1px solid rgba(255,255,255,0.14);
+        border-radius: 12px;
+        padding: 10px 12px;
+        box-sizing: border-box;
+
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 10px;
+      }
+
+      #appTitle {
+        font-weight: 900;
+        letter-spacing: 0.2px;
+        font-size: 14px;
+        line-height: 1.2;
+      }
+
+      #appVersion {
+        font-size: 12px;
+        opacity: 0.8;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+
+      /* Middle panel scrolls */
+      #controlsPanel {
+        flex: 1 1 auto;
+        overflow: auto;
+        min-height: 0; /* critical for flex children to scroll */
+      }
+
+      /* Debug panel stays its own box */
+      #debugPanel {
+        flex: 0 0 auto;
       }
 
       form { margin: 0; }
@@ -138,11 +185,10 @@
       }
       .paramBody input[type="range"] { flex: 1 1 auto; width: auto; }
 
-      /* DEBUG */
+      /* DEBUG (inside its own panel now) */
       #debug {
-        margin-top: 12px;
-        padding-top: 10px;
-        border-top: 1px solid rgba(255,255,255,0.15);
+        margin: 0;
+        padding: 0;
 
         height: 260px;
         min-height: 140px;
@@ -182,7 +228,13 @@
 
   <body>
     <div id="ui">
-      <form id="controls" autocomplete="off">
+      <!-- BOX 1: Title + Version + Toolbar -->
+      <div id="toolbarPanel" class="panelBox">
+        <div id="titlePanel">
+          <div id="appTitle">Parahook Generator</div>
+          <div id="appVersion">v 0.12.420</div>
+        </div>
+
         <div class="row header">
           <div id="status">idle</div>
         </div>
@@ -192,685 +244,718 @@
           <button id="exportStl" type="button" class="secondary">Export STL</button>
           <button id="exportStep" type="button" class="secondary">Export STEP</button>
         </div>
+      </div>
 
-        <!-- MODEL TOGGLE -->
-        <div class="check">
-          <input id="modelEnabled" type="checkbox" checked />
-          <label for="modelEnabled">Enable model (model.ts)</label>
-        </div>
-
-        <!-- SECTION CUT -->
-        <details class="section">
-          <summary>Section Cut</summary>
-          <div class="sectionMeta">Slice preview/export at a Y plane (mm)</div>
-
+      <!-- BOX 2: Controls (scrollable) -->
+      <div id="controlsPanel" class="panelBox">
+        <form id="controls" autocomplete="off">
+          <!-- MODEL TOGGLE -->
           <div class="check">
-            <input id="sectionCutEnabled" type="checkbox" />
-            <label for="sectionCutEnabled">Enable section cut</label>
+            <input id="modelEnabled" type="checkbox" checked />
+            <label for="modelEnabled">Enable model (model.ts)</label>
           </div>
 
-          <div class="row">
-            <label>Section Cut Y (mm)
-              <input id="sectionCutY" type="range" min="-200" max="420" step="1" value="0" />
-            </label>
-            <input class="valInput" id="sectionCutYVal" type="number" step="1" value="0" />
-          </div>
-        </details>
-
-        <details class="section">
-          <summary>Quality</summary>
-          <div class="sectionMeta">Preview mesh settings</div>
-
-          <div class="row">
-            <label>Mesh Tolerance (higher = faster)
-              <input id="tolerance" name="tolerance" type="range" min="0.3" max="3.0" step="0.1" value="1.5" />
-            </label>
-            <input class="valInput" id="toleranceVal" type="number" step="0.1" value="1.5" />
-          </div>
-        </details>
-
-        <!-- PREMADE HOOKS -->
-        <details class="section">
-          <summary>Premade Hooks</summary>
-          <div class="sectionMeta">STEP overlays (small / medium / large / XL)</div>
-
-          <div class="check">
-            <input id="hookSmallEnabled" type="checkbox" />
-            <label for="hookSmallEnabled">Small</label>
-          </div>
-
-          <div class="check">
-            <input id="hookMediumEnabled" type="checkbox" />
-            <label for="hookMediumEnabled">Medium</label>
-          </div>
-
-          <div class="check">
-            <input id="hookLargeEnabled" type="checkbox" />
-            <label for="hookLargeEnabled">Large</label>
-          </div>
-
-          <div class="check">
-            <input id="hookXLEnabled" type="checkbox" />
-            <label for="hookXLEnabled">XL</label>
-          </div>
-
-          <div class="row">
-            <label>Hook Transform X (mm)
-              <input id="hookX" type="range" min="-150" max="150" step="1" value="0" />
-            </label>
-            <input class="valInput" id="hookXVal" type="number" step="1" value="0" />
-          </div>
-
-          <div class="row">
-            <label>Hook Transform Y (mm)
-              <input id="hookY" type="range" min="-150" max="150" step="1" value="0" />
-            </label>
-            <input class="valInput" id="hookYVal" type="number" step="1" value="0" />
-          </div>
-
-          <div class="row">
-            <label>Hook Transform Z (mm)
-              <input id="hookZ" type="range" min="-100" max="100" step="1" value="0" />
-            </label>
-            <input class="valInput" id="hookZVal" type="number" step="1" value="0" />
-          </div>
-
-          <div class="row">
-            <label>Hook Rotate Plan (deg)
-              <input id="hookRot" type="range" min="-180" max="180" step="1" value="0" />
-            </label>
-            <input class="valInput" id="hookRotVal" type="number" step="1" value="0" />
-          </div>
-        </details>
-
-        <!-- REFERENCE FOOTPAD -->
-        <details class="section">
-          <summary>Reference Footpad</summary>
-          <div class="sectionMeta">STL overlays for pad fit reference</div>
-
-          <div class="check">
-            <input id="footpad1Enabled" type="checkbox" />
-            <label for="footpad1Enabled">Footpad 1</label>
-          </div>
-
-          <div class="check">
-            <input id="footpad2Enabled" type="checkbox" />
-            <label for="footpad2Enabled">Footpad 2</label>
-          </div>
-
-          <div class="check">
-            <input id="footpad3Enabled" type="checkbox" />
-            <label for="footpad3Enabled">Footpad 3</label>
-          </div>
-
-          <div class="row">
-            <label>Footpad Transform X (mm)
-              <input id="footpadX" type="range" min="-100" max="150" step="1" value="62" />
-            </label>
-            <input class="valInput" id="footpadXVal" type="number" step="1" value="62" />
-          </div>
-
-          <div class="row">
-            <label>Footpad Transform Y (mm)
-              <input id="footpadY" type="range" min="-100" max="150" step="1" value="95" />
-            </label>
-            <input class="valInput" id="footpadYVal" type="number" step="1" value="95" />
-          </div>
-
-          <div class="row">
-            <label>Footpad Transform Z (mm)
-              <input id="footpadZ" type="range" min="-100" max="100" step="1" value="-19" />
-            </label>
-            <input class="valInput" id="footpadZVal" type="number" step="1" value="-19" />
-          </div>
-
-          <div class="row">
-            <label>Footpad Rotate Plan (deg)
-              <input id="footpadRot" type="range" min="-180" max="180" step="1" value="0" />
-            </label>
-            <input class="valInput" id="footpadRotVal" type="number" step="1" value="0" />
-          </div>
-        </details>
-
-        <!-- REFERENCE SHOE -->
-        <details class="section">
-          <summary>Reference Shoe</summary>
-          <div class="sectionMeta">OBJ overlay for fit and scale reference</div>
-
-          <div class="check">
-            <input id="shoeEnabled" type="checkbox" checked />
-            <label for="shoeEnabled">Show shoe reference</label>
-          </div>
-
-          <div class="row">
-            <label>Shoe Size (US 5–15) (10 = 1.00x)
-              <input id="shoeSize" type="range" min="5" max="15" step="0.5" value="10" />
-            </label>
-            <input class="valInput" id="shoeSizeVal" type="number" step="0.5" value="10" />
-          </div>
-
-          <div class="row">
-            <label>Computed Scale (relative to size 10)
-              <input id="shoeScale" type="range" min="0.90" max="1.10" step="0.001" value="1.000" disabled />
-            </label>
-            <input class="valInput" id="shoeScaleVal" type="number" step="0.001" value="1.000" disabled />
-          </div>
-
-          <div class="row">
-            <label>Transparency (0 = solid, 1 = invisible)
-              <input id="shoeAlpha" type="range" min="0" max="1" step="0.01" value="0.5" />
-            </label>
-            <input class="valInput" id="shoeAlphaVal" type="number" step="0.01" value="0.5" />
-          </div>
-
-          <div class="row">
-            <label>Transform X (mm)
-              <input id="shoeX" type="range" min="-200" max="200" step="1" value="0" />
-            </label>
-            <input class="valInput" id="shoeXVal" type="number" step="1" value="0" />
-          </div>
-
-          <div class="row">
-            <label>Transform Y (mm)
-              <input id="shoeY" type="range" min="-200" max="200" step="1" value="0" />
-            </label>
-            <input class="valInput" id="shoeYVal" type="number" step="1" value="0" />
-          </div>
-
-          <div class="row">
-            <label>Transform Z (mm)
-              <input id="shoeZ" type="range" min="-200" max="200" step="1" value="0" />
-            </label>
-            <input class="valInput" id="shoeZVal" type="number" step="1" value="0" />
-          </div>
-
-          <div class="row">
-            <label>Rotate Plan (deg)
-              <input id="shoeRot" type="range" min="-180" max="180" step="1" value="0" />
-            </label>
-            <input class="valInput" id="shoeRotVal" type="number" step="1" value="0" />
-          </div>
-        </details>
-
-        <!-- BASEPLATE (PARAM1..PARAM8) -->
-        <details class="section">
-          <summary>Baseplate</summary>
-          <div class="sectionMeta">Primary dimensions (param1..param8)</div>
-
-          <div class="check">
-            <input id="showPoints" type="checkbox" />
-            <label for="showPoints">Visualizer: show 4 control points</label>
-          </div>
-
-          <div class="check">
-            <input id="baseEnabled" type="checkbox" checked />
-            <label for="baseEnabled">Enable baseplate</label>
-          </div>
-
-          <div class="paramRow">
-            <div class="paramTop">
-              <div class="paramTag">Param 1</div>
-              <div class="paramName">Base Length (Y)</div>
-            </div>
-            <div class="paramBody">
-              <input id="param1" name="param1" type="range" min="100" max="420" step="1" value="195" />
-              <input class="valInput" id="param1Val" type="number" step="1" value="195" />
-            </div>
-          </div>
-
-          <div class="paramRow">
-            <div class="paramTop">
-              <div class="paramTag">Param 2</div>
-              <div class="paramName">Base Width Offset (mm)</div>
-            </div>
-            <div class="paramBody">
-              <input id="param2" name="param2" type="range" min="5" max="140" step="1" value="30" />
-              <input class="valInput" id="param2Val" type="number" step="1" value="30" />
-            </div>
-          </div>
-
-          <div class="paramRow">
-            <div class="paramTop">
-              <div class="paramTag">Param 3</div>
-              <div class="paramName">Base Thickness (Z)</div>
-            </div>
-            <div class="paramBody">
-              <input id="param3" name="param3" type="range" min="-40" max="30" step="1" value="12" />
-              <input class="valInput" id="param3Val" type="number" step="1" value="12" />
-            </div>
-          </div>
-
-          <div class="paramRow">
-            <div class="paramTop">
-              <div class="paramTag">Param 4</div>
-              <div class="paramName">Point Heel % (P3 Y as % of Base Length)</div>
-            </div>
-            <div class="paramBody">
-              <input id="param4" name="param4" type="range" min="50" max="100" step="1" value="67" />
-              <input class="valInput" id="param4Val" type="number" step="1" value="67" />
-            </div>
-          </div>
-
-          <div class="paramRow">
-            <div class="paramTop">
-              <div class="paramTag">Param 5</div>
-              <div class="paramName">Point Toe % (P2 Y as % of Heel Y)</div>
-            </div>
-            <div class="paramBody">
-              <input id="param5" name="param5" type="range" min="5" max="95" step="1" value="46" />
-              <input class="valInput" id="param5Val" type="number" step="1" value="46" />
-            </div>
-          </div>
-
-          <div class="paramRow">
-            <div class="paramTop">
-              <div class="paramTag">Param 6</div>
-              <div class="paramName">Point 2 X</div>
-            </div>
-            <div class="paramBody">
-              <input id="param6" name="param6" type="range" min="-80" max="40" step="1" value="-14" />
-              <input class="valInput" id="param6Val" type="number" step="1" value="-14" />
-            </div>
-          </div>
-
-          <div class="paramRow">
-            <div class="paramTop">
-              <div class="paramTag">Param 7</div>
-              <div class="paramName">Point 3 X</div>
-            </div>
-            <div class="paramBody">
-              <input id="param7" name="param7" type="range" min="-80" max="40" step="1" value="-2" />
-              <input class="valInput" id="param7Val" type="number" step="1" value="-2" />
-            </div>
-          </div>
-
-          <div class="paramRow">
-            <div class="paramTop">
-              <div class="paramTag">Param 8</div>
-              <div class="paramName">Point 4 X</div>
-            </div>
-            <div class="paramBody">
-              <input id="param8" name="param8" type="range" min="-80" max="80" step="1" value="1" />
-              <input class="valInput" id="param8Val" type="number" step="1" value="1" />
-            </div>
-          </div>
-        </details>
-
-        <!-- Toe Hook -->
-        <details class="section">
-          <summary>Toe Hook</summary>
-          <div class="sectionMeta">Profiles A → B (mid) → C (end). Stations measured in mm along the spline from origin.</div>
-
-          <div class="check">
-            <input id="toeBEnabled" type="checkbox" checked />
-            <label for="toeBEnabled">Enable Profile B loft (A → B)</label>
-          </div>
-
-          <div class="check">
-            <input id="toeCEnabled" type="checkbox" checked />
-            <label for="toeCEnabled">Enable Profile C loft (B → C)</label>
-          </div>
-
-          <!-- Profile A -->
+          <!-- SECTION CUT -->
           <details class="section">
-            <summary>Profile A</summary>
-            <div class="sectionMeta">Start profile at spline start</div>
+            <summary>Section Cut</summary>
+            <div class="sectionMeta">Slice preview/export at a Y plane (mm)</div>
+
+            <div class="check">
+              <input id="sectionCutEnabled" type="checkbox" />
+              <label for="sectionCutEnabled">Enable section cut</label>
+            </div>
+
+            <div class="row">
+              <label>Section Cut Y (mm)
+                <input id="sectionCutY" type="range" min="-200" max="420" step="1" value="0" />
+              </label>
+              <input class="valInput" id="sectionCutYVal" type="number" step="1" value="0" />
+            </div>
+          </details>
+
+          <details class="section">
+            <summary>Quality</summary>
+            <div class="sectionMeta">Preview mesh settings</div>
+
+            <div class="row">
+              <label>Mesh Tolerance (higher = faster)
+                <input id="tolerance" name="tolerance" type="range" min="0.3" max="3.0" step="0.1" value="1.5" />
+              </label>
+              <input class="valInput" id="toleranceVal" type="number" step="0.1" value="1.5" />
+            </div>
+          </details>
+
+          <!-- PREMADE HOOKS -->
+          <details class="section">
+            <summary>Premade Hooks</summary>
+            <div class="sectionMeta">STEP overlays (small / medium / large / XL)</div>
+
+            <div class="check">
+              <input id="hookSmallEnabled" type="checkbox" />
+              <label for="hookSmallEnabled">Small</label>
+            </div>
+
+            <div class="check">
+              <input id="hookMediumEnabled" type="checkbox" />
+              <label for="hookMediumEnabled">Medium</label>
+            </div>
+
+            <div class="check">
+              <input id="hookLargeEnabled" type="checkbox" />
+              <label for="hookLargeEnabled">Large</label>
+            </div>
+
+            <div class="check">
+              <input id="hookXLEnabled" type="checkbox" />
+              <label for="hookXLEnabled">XL</label>
+            </div>
+
+            <div class="row">
+              <label>Hook Transform X (mm)
+                <input id="hookX" type="range" min="-150" max="150" step="1" value="0" />
+              </label>
+              <input class="valInput" id="hookXVal" type="number" step="1" value="0" />
+            </div>
+
+            <div class="row">
+              <label>Hook Transform Y (mm)
+                <input id="hookY" type="range" min="-150" max="150" step="1" value="0" />
+              </label>
+              <input class="valInput" id="hookYVal" type="number" step="1" value="0" />
+            </div>
+
+            <div class="row">
+              <label>Hook Transform Z (mm)
+                <input id="hookZ" type="range" min="-100" max="100" step="1" value="0" />
+              </label>
+              <input class="valInput" id="hookZVal" type="number" step="1" value="0" />
+            </div>
+
+            <div class="row">
+              <label>Hook Rotate Plan (deg)
+                <input id="hookRot" type="range" min="-180" max="180" step="1" value="0" />
+              </label>
+              <input class="valInput" id="hookRotVal" type="number" step="1" value="0" />
+            </div>
+          </details>
+
+          <!-- REFERENCE FOOTPAD -->
+          <details class="section">
+            <summary>Reference Footpad</summary>
+            <div class="sectionMeta">STL overlays for pad fit reference</div>
+
+            <div class="check">
+              <input id="footpad1Enabled" type="checkbox" />
+              <label for="footpad1Enabled">Footpad 1</label>
+            </div>
+
+            <div class="check">
+              <input id="footpad2Enabled" type="checkbox" />
+              <label for="footpad2Enabled">Footpad 2</label>
+            </div>
+
+            <div class="check">
+              <input id="footpad3Enabled" type="checkbox" />
+              <label for="footpad3Enabled">Footpad 3</label>
+            </div>
+
+            <div class="row">
+              <label>Footpad Transform X (mm)
+                <input id="footpadX" type="range" min="-100" max="150" step="1" value="62" />
+              </label>
+              <input class="valInput" id="footpadXVal" type="number" step="1" value="62" />
+            </div>
+
+            <div class="row">
+              <label>Footpad Transform Y (mm)
+                <input id="footpadY" type="range" min="-100" max="150" step="1" value="95" />
+              </label>
+              <input class="valInput" id="footpadYVal" type="number" step="1" value="95" />
+            </div>
+
+            <div class="row">
+              <label>Footpad Transform Z (mm)
+                <input id="footpadZ" type="range" min="-100" max="100" step="1" value="-19" />
+              </label>
+              <input class="valInput" id="footpadZVal" type="number" step="1" value="-19" />
+            </div>
+
+            <div class="row">
+              <label>Footpad Rotate Plan (deg)
+                <input id="footpadRot" type="range" min="-180" max="180" step="1" value="0" />
+              </label>
+              <input class="valInput" id="footpadRotVal" type="number" step="1" value="0" />
+            </div>
+          </details>
+
+          <!-- REFERENCE SHOE -->
+          <details class="section">
+            <summary>Reference Shoe</summary>
+            <div class="sectionMeta">OBJ overlay for fit and scale reference</div>
+
+            <div class="check">
+              <input id="shoeEnabled" type="checkbox" checked />
+              <label for="shoeEnabled">Show shoe reference</label>
+            </div>
+
+            <div class="row">
+              <label>Shoe Size (US 5–15) (10 = 1.00x)
+                <input id="shoeSize" type="range" min="5" max="15" step="0.5" value="10" />
+              </label>
+              <input class="valInput" id="shoeSizeVal" type="number" step="0.5" value="10" />
+            </div>
+
+            <div class="row">
+              <label>Computed Scale (relative to size 10)
+                <input id="shoeScale" type="range" min="0.90" max="1.10" step="0.001" value="1.000" disabled />
+              </label>
+              <input class="valInput" id="shoeScaleVal" type="number" step="0.001" value="1.000" disabled />
+            </div>
+
+            <div class="row">
+              <label>Transparency (0 = solid, 1 = invisible)
+                <input id="shoeAlpha" type="range" min="0" max="1" step="0.01" value="0.5" />
+              </label>
+              <input class="valInput" id="shoeAlphaVal" type="number" step="0.01" value="0.5" />
+            </div>
+
+            <div class="row">
+              <label>Transform X (mm)
+                <input id="shoeX" type="range" min="-200" max="200" step="1" value="0" />
+              </label>
+              <input class="valInput" id="shoeXVal" type="number" step="1" value="0" />
+            </div>
+
+            <div class="row">
+              <label>Transform Y (mm)
+                <input id="shoeY" type="range" min="-200" max="200" step="1" value="0" />
+              </label>
+              <input class="valInput" id="shoeYVal" type="number" step="1" value="0" />
+            </div>
+
+            <div class="row">
+              <label>Transform Z (mm)
+                <input id="shoeZ" type="range" min="-200" max="200" step="1" value="0" />
+              </label>
+              <input class="valInput" id="shoeZVal" type="number" step="1" value="0" />
+            </div>
+
+            <div class="row">
+              <label>Rotate Plan (deg)
+                <input id="shoeRot" type="range" min="-180" max="180" step="1" value="0" />
+              </label>
+              <input class="valInput" id="shoeRotVal" type="number" step="1" value="0" />
+            </div>
+          </details>
+
+          <!-- BASEPLATE (PARAM1..PARAM8) -->
+          <details class="section">
+            <summary>Baseplate</summary>
+            <div class="sectionMeta">Primary dimensions (param1..param8)</div>
+
+<div class="check">
+  <input id="vizBasePts" type="checkbox" />
+  <label for="vizBasePts">Show Baseplate control points</label>
+</div>
+
+            <div class="check">
+              <input id="baseEnabled" type="checkbox" checked />
+              <label for="baseEnabled">Enable baseplate</label>
+            </div>
 
             <div class="paramRow">
               <div class="paramTop">
-                <div class="paramTag">Param 9</div>
-                <div class="paramName">Toe Hook Thickness (offset, mm)</div>
+                <div class="paramTag">Param 1</div>
+                <div class="paramName">Base Length (Y)</div>
               </div>
               <div class="paramBody">
-                <input id="param9" name="param9" type="range" min="5" max="20" step="0.5" value="12" />
-                <input class="valInput" id="param9Val" type="number" step="0.5" value="12" />
+                <input id="param1" name="param1" type="range" min="100" max="420" step="1" value="195" />
+                <input class="valInput" id="param1Val" type="number" step="1" value="195" />
               </div>
             </div>
 
             <div class="paramRow">
               <div class="paramTop">
-                <div class="paramTag">Param 10</div>
-                <div class="paramName">Arc Control X A (mm)</div>
+                <div class="paramTag">Param 2</div>
+                <div class="paramName">Base Width Offset (mm)</div>
               </div>
               <div class="paramBody">
-                <input id="param10" name="param10" type="range" min="-40" max="40" step="1" value="0" />
-                <input class="valInput" id="param10Val" type="number" step="1" value="0" />
+                <input id="param2" name="param2" type="range" min="5" max="140" step="1" value="30" />
+                <input class="valInput" id="param2Val" type="number" step="1" value="30" />
               </div>
             </div>
 
             <div class="paramRow">
               <div class="paramTop">
-                <div class="paramTag">Param 11</div>
-                <div class="paramName">Arc Control Z A (mm)</div>
+                <div class="paramTag">Param 3</div>
+                <div class="paramName">Base Thickness (Z)</div>
               </div>
               <div class="paramBody">
-                <input id="param11" name="param11" type="range" min="5" max="120" step="1" value="27" />
-                <input class="valInput" id="param11Val" type="number" step="1" value="27" />
+                <input id="param3" name="param3" type="range" min="-40" max="30" step="1" value="12" />
+                <input class="valInput" id="param3Val" type="number" step="1" value="12" />
               </div>
             </div>
 
             <div class="paramRow">
               <div class="paramTop">
-                <div class="paramTag">Param 12</div>
-                <div class="paramName">End X A (mm)</div>
+                <div class="paramTag">Param 4</div>
+                <div class="paramName">Point Heel % (P3 Y as % of Base Length)</div>
               </div>
               <div class="paramBody">
-                <input id="param12" name="param12" type="range" min="0" max="120" step="1" value="47" />
-                <input class="valInput" id="param12Val" type="number" step="1" value="47" />
+                <input id="param4" name="param4" type="range" min="50" max="100" step="1" value="67" />
+                <input class="valInput" id="param4Val" type="number" step="1" value="67" />
               </div>
             </div>
 
             <div class="paramRow">
               <div class="paramTop">
-                <div class="paramTag">Param 13</div>
-                <div class="paramName">End Z A (mm)</div>
+                <div class="paramTag">Param 5</div>
+                <div class="paramName">Point Toe % (P2 Y as % of Heel Y)</div>
               </div>
               <div class="paramBody">
-                <input id="param13" name="param13" type="range" min="0" max="120" step="1" value="35" />
-                <input class="valInput" id="param13Val" type="number" step="1" value="35" />
+                <input id="param5" name="param5" type="range" min="5" max="95" step="1" value="46" />
+                <input class="valInput" id="param5Val" type="number" step="1" value="46" />
               </div>
             </div>
 
             <div class="paramRow">
               <div class="paramTop">
-                <div class="paramTag">Param 14</div>
-                <div class="paramName">Profile A Fillet Radius (mm)</div>
+                <div class="paramTag">Param 6</div>
+                <div class="paramName">Point 2 X</div>
               </div>
               <div class="paramBody">
-                <input id="param14" name="param14" type="range" min="0" max="30" step="0.5" value="5" />
-                <input class="valInput" id="param14Val" type="number" step="0.5" value="5" />
+                <input id="param6" name="param6" type="range" min="-80" max="40" step="1" value="-14" />
+                <input class="valInput" id="param6Val" type="number" step="1" value="-14" />
+              </div>
+            </div>
+
+            <div class="paramRow">
+              <div class="paramTop">
+                <div class="paramTag">Param 7</div>
+                <div class="paramName">Point 3 X</div>
+              </div>
+              <div class="paramBody">
+                <input id="param7" name="param7" type="range" min="-80" max="40" step="1" value="-2" />
+                <input class="valInput" id="param7Val" type="number" step="1" value="-2" />
+              </div>
+            </div>
+
+            <div class="paramRow">
+              <div class="paramTop">
+                <div class="paramTag">Param 8</div>
+                <div class="paramName">Point 4 X</div>
+              </div>
+              <div class="paramBody">
+                <input id="param8" name="param8" type="range" min="-80" max="80" step="1" value="1" />
+                <input class="valInput" id="param8Val" type="number" step="1" value="1" />
               </div>
             </div>
           </details>
 
-          <!-- Profile B -->
+          <!-- Toe Hook -->
           <details class="section">
-            <summary>Profile B</summary>
-            <div class="sectionMeta">Mid control profile. Station is mm along spline from origin. Controls A→B intermediate sections.</div>
+            <summary>Toe Hook</summary>
+            <div class="sectionMeta">Profiles A → B (mid) → C (end). Stations measured in mm along the spline from origin.</div>
+
+            <div class="check">
+              <input id="toeBEnabled" type="checkbox" checked />
+              <label for="toeBEnabled">Enable Profile B loft (A → B)</label>
+            </div>
+
+            <div class="check">
+              <input id="toeCEnabled" type="checkbox" checked />
+              <label for="toeCEnabled">Enable Profile C loft (B → C)</label>
+            </div>
+
+            <!-- Profile A -->
+            <details class="section">
+              <summary>Profile A</summary>
+              <div class="sectionMeta">Start profile at spline start</div>
+
+                <div class="check">
+                  <input id="vizAArcPts" type="checkbox" />
+                  <label for="vizAArcPts">Show Profile A arc control points</label>
+                </div>
+
+
+
+
+              <div class="paramRow">
+                <div class="paramTop">
+                  <div class="paramTag">Param 9</div>
+                  <div class="paramName">Toe Hook Thickness (offset, mm)</div>
+                </div>
+                <div class="paramBody">
+                  <input id="param9" name="param9" type="range" min="5" max="20" step="0.5" value="12" />
+                  <input class="valInput" id="param9Val" type="number" step="0.5" value="12" />
+                </div>
+              </div>
+
+              <div class="paramRow">
+                <div class="paramTop">
+                  <div class="paramTag">Param 10</div>
+                  <div class="paramName">Arc Control X A (mm)</div>
+                </div>
+                <div class="paramBody">
+                  <input id="param10" name="param10" type="range" min="-40" max="40" step="1" value="0" />
+                  <input class="valInput" id="param10Val" type="number" step="1" value="0" />
+                </div>
+              </div>
+
+              <div class="paramRow">
+                <div class="paramTop">
+                  <div class="paramTag">Param 11</div>
+                  <div class="paramName">Arc Control Z A (mm)</div>
+                </div>
+                <div class="paramBody">
+                  <input id="param11" name="param11" type="range" min="5" max="120" step="1" value="27" />
+                  <input class="valInput" id="param11Val" type="number" step="1" value="27" />
+                </div>
+              </div>
+
+              <div class="paramRow">
+                <div class="paramTop">
+                  <div class="paramTag">Param 12</div>
+                  <div class="paramName">End X A (mm)</div>
+                </div>
+                <div class="paramBody">
+                  <input id="param12" name="param12" type="range" min="0" max="120" step="1" value="47" />
+                  <input class="valInput" id="param12Val" type="number" step="1" value="47" />
+                </div>
+              </div>
+
+              <div class="paramRow">
+                <div class="paramTop">
+                  <div class="paramTag">Param 13</div>
+                  <div class="paramName">End Z A (mm)</div>
+                </div>
+                <div class="paramBody">
+                  <input id="param13" name="param13" type="range" min="0" max="120" step="1" value="35" />
+                  <input class="valInput" id="param13Val" type="number" step="1" value="35" />
+                </div>
+              </div>
+
+              <div class="paramRow">
+                <div class="paramTop">
+                  <div class="paramTag">Param 14</div>
+                  <div class="paramName">Profile A Fillet Radius (mm)</div>
+                </div>
+                <div class="paramBody">
+                  <input id="param14" name="param14" type="range" min="0" max="30" step="0.5" value="5" />
+                  <input class="valInput" id="param14Val" type="number" step="0.5" value="5" />
+                </div>
+              </div>
+            </details>
+
+            <!-- Profile B -->
+            <details class="section">
+              <summary>Profile B</summary>
+              <div class="sectionMeta">Mid control profile. Station is mm along spline from origin. Controls A→B intermediate sections.</div>
+
+
+
+              <div class="check">
+                <input id="vizBArcPts" type="checkbox" />
+                <label for="vizBArcPts">Show Profile B arc control points</label>
+              </div>
+
+              <div class="paramRow">
+                <div class="paramTop">
+                  <div class="paramTag">Param 15</div>
+                  <div class="paramName">Profile B Length (mm along spline)</div>
+                </div>
+                <div class="paramBody">
+                  <input id="param15" name="param15" type="range" min="1" max="260" step="1" value="60" />
+                  <input class="valInput" id="param15Val" type="number" step="1" value="60" />
+                </div>
+              </div>
+
+              <div class="paramRow">
+                <div class="paramTop">
+                  <div class="paramTag">Param 16</div>
+                  <div class="paramName">A→B Intermediate Profiles (0 = A→B only)</div>
+                </div>
+                <div class="paramBody">
+                  <input id="param16" name="param16" type="range" min="0" max="60" step="1" value="2" />
+                  <input class="valInput" id="param16Val" type="number" step="1" value="2" />
+                </div>
+              </div>
+
+              <div class="paramRow">
+                <div class="paramTop">
+                  <div class="paramTag">Param 17</div>
+                  <div class="paramName">Arc Control X B (mm)</div>
+                </div>
+                <div class="paramBody">
+                  <input id="param17" name="param17" type="range" min="-80" max="80" step="1" value="0" />
+                  <input class="valInput" id="param17Val" type="number" step="1" value="0" />
+                </div>
+              </div>
+
+              <div class="paramRow">
+                <div class="paramTop">
+                  <div class="paramTag">Param 18</div>
+                  <div class="paramName">Arc Control Z B (mm)</div>
+                </div>
+                <div class="paramBody">
+                  <input id="param18" name="param18" type="range" min="0" max="160" step="1" value="41" />
+                  <input class="valInput" id="param18Val" type="number" step="1" value="41" />
+                </div>
+              </div>
+
+              <div class="paramRow">
+                <div class="paramTop">
+                  <div class="paramTag">Param 19</div>
+                  <div class="paramName">End X B (mm)</div>
+                </div>
+                <div class="paramBody">
+                  <input id="param19" name="param19" type="range" min="0" max="140" step="1" value="20" />
+                  <input class="valInput" id="param19Val" type="number" step="1" value="20" />
+                </div>
+              </div>
+
+              <div class="paramRow">
+                <div class="paramTop">
+                  <div class="paramTag">Param 20</div>
+                  <div class="paramName">End Z B (mm)</div>
+                </div>
+                <div class="paramBody">
+                  <input id="param20" name="param20" type="range" min="0" max="160" step="1" value="50" />
+                  <input class="valInput" id="param20Val" type="number" step="1" value="50" />
+                </div>
+              </div>
+            </details>
+
+            <!-- Profile C -->
+            <details class="section">
+              <summary>Profile C</summary>
+              <div class="sectionMeta">End profile. Station is mm along spline from origin. Controls B→C intermediate sections.</div>
+
+
+              <div class="check">
+  <input id="vizCArcPts" type="checkbox" />
+  <label for="vizCArcPts">Show Profile C arc control points</label>
+</div>
+              <div class="paramRow">
+                <div class="paramTop">
+                  <div class="paramTag">Param 21</div>
+                  <div class="paramName">Profile C Length (mm along spline)</div>
+                </div>
+                <div class="paramBody">
+                  <input id="param21" name="param21" type="range" min="1" max="260" step="1" value="137" />
+                  <input class="valInput" id="param21Val" type="number" step="1" value="137" />
+                </div>
+              </div>
+
+              <div class="paramRow">
+                <div class="paramTop">
+                  <div class="paramTag">Param 22</div>
+                  <div class="paramName">B→C Intermediate Profiles (0 = B→C only)</div>
+                </div>
+                <div class="paramBody">
+                  <input id="param22" name="param22" type="range" min="0" max="60" step="1" value="3" />
+                  <input class="valInput" id="param22Val" type="number" step="1" value="3" />
+                </div>
+              </div>
+
+              <div class="paramRow">
+                <div class="paramTop">
+                  <div class="paramTag">Param 23</div>
+                  <div class="paramName">Arc Control X C (mm)</div>
+                </div>
+                <div class="paramBody">
+                  <input id="param23" name="param23" type="range" min="-80" max="80" step="1" value="0" />
+                  <input class="valInput" id="param23Val" type="number" step="1" value="0" />
+                </div>
+              </div>
+
+              <div class="paramRow">
+                <div class="paramTop">
+                  <div class="paramTag">Param 24</div>
+                  <div class="paramName">Arc Control Z C (mm)</div>
+                </div>
+                <div class="paramBody">
+                  <input id="param24" name="param24" type="range" min="0" max="180" step="1" value="29" />
+                  <input class="valInput" id="param24Val" type="number" step="1" value="29" />
+                </div>
+              </div>
+
+              <div class="paramRow">
+                <div class="paramTop">
+                  <div class="paramTag">Param 25</div>
+                  <div class="paramName">End X C (mm)</div>
+                </div>
+                <div class="paramBody">
+                  <input id="param25" name="param25" type="range" min="0" max="180" step="1" value="19" />
+                  <input class="valInput" id="param25Val" type="number" step="1" value="19" />
+                </div>
+              </div>
+
+              <div class="paramRow">
+                <div class="paramTop">
+                  <div class="paramTag">Param 26</div>
+                  <div class="paramName">End Z C (mm)</div>
+                </div>
+                <div class="paramBody">
+                  <input id="param26" name="param26" type="range" min="0" max="180" step="1" value="65" />
+                  <input class="valInput" id="param26Val" type="number" step="1" value="65" />
+                </div>
+              </div>
+
+              <div class="paramRow">
+                <div class="paramTop">
+                  <div class="paramTag">Param 27</div>
+                  <div class="paramName">Profile C Fillet Radius (mm) (placeholder)</div>
+                </div>
+                <div class="paramBody">
+                  <input id="param27" name="param27" type="range" min="0" max="30" step="0.5" value="0" />
+                  <input class="valInput" id="param27Val" type="number" step="0.5" value="0" />
+                </div>
+              </div>
+            </details>
+          </details>
+
+          <!-- Heel Kick -->
+          <details class="section">
+            <summary>Heel Kick</summary>
+            <div class="sectionMeta">Heights and fillet placeholders for the heel-kick loft.</div>
+
+            <div class="check">
+              <input id="heelEnabled" type="checkbox" checked />
+              <label for="heelEnabled">Enable heel kick loft</label>
+            </div>
+
+<div class="check">
+  <input id="vizHeelArcPts" type="checkbox" />
+  <label for="vizHeelArcPts">Show Heel Kick arc control points</label>
+</div>
 
             <div class="paramRow">
               <div class="paramTop">
-                <div class="paramTag">Param 15</div>
-                <div class="paramName">Profile B Length (mm along spline)</div>
+                <div class="paramTag">Param 28</div>
+                <div class="paramName">Heel Kick Height at Profile C (mm)</div>
               </div>
               <div class="paramBody">
-                <input id="param15" name="param15" type="range" min="1" max="260" step="1" value="60" />
-                <input class="valInput" id="param15Val" type="number" step="1" value="60" />
+                <input id="param28" name="param28" type="range" min="0" max="200" step="1" value="40" />
+                <input class="valInput" id="param28Val" type="number" step="1" value="40" />
               </div>
             </div>
 
             <div class="paramRow">
               <div class="paramTop">
-                <div class="paramTag">Param 16</div>
-                <div class="paramName">A→B Intermediate Profiles (0 = A→B only)</div>
+                <div class="paramTag">Param 29</div>
+                <div class="paramName">Heel Kick Height at Profile D (mm)</div>
               </div>
               <div class="paramBody">
-                <input id="param16" name="param16" type="range" min="0" max="60" step="1" value="2" />
-                <input class="valInput" id="param16Val" type="number" step="1" value="2" />
+                <input id="param29" name="param29" type="range" min="0" max="200" step="1" value="10" />
+                <input class="valInput" id="param29Val" type="number" step="1" value="10" />
               </div>
             </div>
 
             <div class="paramRow">
               <div class="paramTop">
-                <div class="paramTag">Param 17</div>
-                <div class="paramName">Arc Control X B (mm)</div>
+                <div class="paramTag">Param 30</div>
+                <div class="paramName">Heel Loft Intermediate Profiles (0 = C→D only)</div>
               </div>
               <div class="paramBody">
-                <input id="param17" name="param17" type="range" min="-80" max="80" step="1" value="0" />
-                <input class="valInput" id="param17Val" type="number" step="1" value="0" />
+                <input id="param30" name="param30" type="range" min="0" max="60" step="1" value="2" />
+                <input class="valInput" id="param30Val" type="number" step="1" value="2" />
               </div>
             </div>
 
             <div class="paramRow">
               <div class="paramTop">
-                <div class="paramTag">Param 18</div>
-                <div class="paramName">Arc Control Z B (mm)</div>
+                <div class="paramTag">Param 31</div>
+                <div class="paramName">Heel Kick Fillet Radius 1 (mm) (placeholder)</div>
               </div>
               <div class="paramBody">
-                <input id="param18" name="param18" type="range" min="0" max="160" step="1" value="41" />
-                <input class="valInput" id="param18Val" type="number" step="1" value="41" />
+                <input id="param31" name="param31" type="range" min="0" max="30" step="0.5" value="0" />
+                <input class="valInput" id="param31Val" type="number" step="0.5" value="0" />
               </div>
             </div>
 
             <div class="paramRow">
               <div class="paramTop">
-                <div class="paramTag">Param 19</div>
-                <div class="paramName">End X B (mm)</div>
+                <div class="paramTag">Param 32</div>
+                <div class="paramName">Heel Kick Fillet Radius 2 (mm) (placeholder)</div>
               </div>
               <div class="paramBody">
-                <input id="param19" name="param19" type="range" min="0" max="140" step="1" value="20" />
-                <input class="valInput" id="param19Val" type="number" step="1" value="20" />
-              </div>
-            </div>
-
-            <div class="paramRow">
-              <div class="paramTop">
-                <div class="paramTag">Param 20</div>
-                <div class="paramName">End Z B (mm)</div>
-              </div>
-              <div class="paramBody">
-                <input id="param20" name="param20" type="range" min="0" max="160" step="1" value="50" />
-                <input class="valInput" id="param20Val" type="number" step="1" value="50" />
+                <input id="param32" name="param32" type="range" min="0" max="30" step="0.5" value="0" />
+                <input class="valInput" id="param32Val" type="number" step="0.5" value="0" />
               </div>
             </div>
           </details>
 
-          <!-- Profile C -->
+          <!-- Fillets placeholders -->
           <details class="section">
-            <summary>Profile C</summary>
-            <div class="sectionMeta">End profile. Station is mm along spline from origin. Controls B→C intermediate sections.</div>
+            <summary>Fillets</summary>
+            <div class="sectionMeta">Temporary global fillet params (placeholders). These do not affect the model yet.</div>
 
             <div class="paramRow">
               <div class="paramTop">
-                <div class="paramTag">Param 21</div>
-                <div class="paramName">Profile C Length (mm along spline)</div>
+                <div class="paramTag">Param 33</div>
+                <div class="paramName">Fillet Param 1 (mm) (placeholder)</div>
               </div>
               <div class="paramBody">
-                <input id="param21" name="param21" type="range" min="1" max="260" step="1" value="137" />
-                <input class="valInput" id="param21Val" type="number" step="1" value="137" />
+                <input id="param33" name="param33" type="range" min="0" max="30" step="0.5" value="0" />
+                <input class="valInput" id="param33Val" type="number" step="0.5" value="0" />
               </div>
             </div>
 
             <div class="paramRow">
               <div class="paramTop">
-                <div class="paramTag">Param 22</div>
-                <div class="paramName">B→C Intermediate Profiles (0 = B→C only)</div>
+                <div class="paramTag">Param 34</div>
+                <div class="paramName">Fillet Param 2 (mm) (placeholder)</div>
               </div>
               <div class="paramBody">
-                <input id="param22" name="param22" type="range" min="0" max="60" step="1" value="3" />
-                <input class="valInput" id="param22Val" type="number" step="1" value="3" />
+                <input id="param34" name="param34" type="range" min="0" max="30" step="0.5" value="0" />
+                <input class="valInput" id="param34Val" type="number" step="0.5" value="0" />
               </div>
             </div>
 
             <div class="paramRow">
               <div class="paramTop">
-                <div class="paramTag">Param 23</div>
-                <div class="paramName">Arc Control X C (mm)</div>
+                <div class="paramTag">Param 35</div>
+                <div class="paramName">Fillet Param 3 (mm) (placeholder)</div>
               </div>
               <div class="paramBody">
-                <input id="param23" name="param23" type="range" min="-80" max="80" step="1" value="0" />
-                <input class="valInput" id="param23Val" type="number" step="1" value="0" />
+                <input id="param35" name="param35" type="range" min="0" max="30" step="0.5" value="0" />
+                <input class="valInput" id="param35Val" type="number" step="0.5" value="0" />
               </div>
             </div>
 
             <div class="paramRow">
               <div class="paramTop">
-                <div class="paramTag">Param 24</div>
-                <div class="paramName">Arc Control Z C (mm)</div>
+                <div class="paramTag">Param 36</div>
+                <div class="paramName">Fillet Param 4 (mm) (placeholder)</div>
               </div>
               <div class="paramBody">
-                <input id="param24" name="param24" type="range" min="0" max="180" step="1" value="29" />
-                <input class="valInput" id="param24Val" type="number" step="1" value="29" />
+                <input id="param36" name="param36" type="range" min="0" max="30" step="0.5" value="0" />
+                <input class="valInput" id="param36Val" type="number" step="0.5" value="0" />
               </div>
             </div>
 
             <div class="paramRow">
               <div class="paramTop">
-                <div class="paramTag">Param 25</div>
-                <div class="paramName">End X C (mm)</div>
+                <div class="paramTag">Param 37</div>
+                <div class="paramName">Fillet Param 5 (mm) (placeholder)</div>
               </div>
               <div class="paramBody">
-                <input id="param25" name="param25" type="range" min="0" max="180" step="1" value="19" />
-                <input class="valInput" id="param25Val" type="number" step="1" value="19" />
-              </div>
-            </div>
-
-            <div class="paramRow">
-              <div class="paramTop">
-                <div class="paramTag">Param 26</div>
-                <div class="paramName">End Z C (mm)</div>
-              </div>
-              <div class="paramBody">
-                <input id="param26" name="param26" type="range" min="0" max="180" step="1" value="65" />
-                <input class="valInput" id="param26Val" type="number" step="1" value="65" />
-              </div>
-            </div>
-
-            <div class="paramRow">
-              <div class="paramTop">
-                <div class="paramTag">Param 27</div>
-                <div class="paramName">Profile C Fillet Radius (mm) (placeholder)</div>
-              </div>
-              <div class="paramBody">
-                <input id="param27" name="param27" type="range" min="0" max="30" step="0.5" value="0" />
-                <input class="valInput" id="param27Val" type="number" step="0.5" value="0" />
+                <input id="param37" name="param37" type="range" min="0" max="30" step="0.5" value="0" />
+                <input class="valInput" id="param37Val" type="number" step="0.5" value="0" />
               </div>
             </div>
           </details>
-        </details>
+        </form>
+      </div>
 
-        <!-- Heel Kick -->
-        <details class="section">
-          <summary>Heel Kick</summary>
-          <div class="sectionMeta">Heights and fillet placeholders for the heel-kick loft.</div>
-
-          <div class="check">
-            <input id="heelEnabled" type="checkbox" checked />
-            <label for="heelEnabled">Enable heel kick loft</label>
-          </div>
-
-          <div class="paramRow">
-            <div class="paramTop">
-              <div class="paramTag">Param 28</div>
-              <div class="paramName">Heel Kick Height at Profile C (mm)</div>
-            </div>
-            <div class="paramBody">
-              <input id="param28" name="param28" type="range" min="0" max="200" step="1" value="40" />
-              <input class="valInput" id="param28Val" type="number" step="1" value="40" />
-            </div>
-          </div>
-
-          <div class="paramRow">
-            <div class="paramTop">
-              <div class="paramTag">Param 29</div>
-              <div class="paramName">Heel Kick Height at Profile D (mm)</div>
-            </div>
-            <div class="paramBody">
-              <input id="param29" name="param29" type="range" min="0" max="200" step="1" value="10" />
-              <input class="valInput" id="param29Val" type="number" step="1" value="10" />
-            </div>
-          </div>
-
-          <div class="paramRow">
-            <div class="paramTop">
-              <div class="paramTag">Param 30</div>
-              <div class="paramName">Heel Loft Intermediate Profiles (0 = C→D only)</div>
-            </div>
-            <div class="paramBody">
-              <input id="param30" name="param30" type="range" min="0" max="60" step="1" value="2" />
-              <input class="valInput" id="param30Val" type="number" step="1" value="2" />
-            </div>
-          </div>
-
-          <div class="paramRow">
-            <div class="paramTop">
-              <div class="paramTag">Param 31</div>
-              <div class="paramName">Heel Kick Fillet Radius 1 (mm) (placeholder)</div>
-            </div>
-            <div class="paramBody">
-              <input id="param31" name="param31" type="range" min="0" max="30" step="0.5" value="0" />
-              <input class="valInput" id="param31Val" type="number" step="0.5" value="0" />
-            </div>
-          </div>
-
-          <div class="paramRow">
-            <div class="paramTop">
-              <div class="paramTag">Param 32</div>
-              <div class="paramName">Heel Kick Fillet Radius 2 (mm) (placeholder)</div>
-            </div>
-            <div class="paramBody">
-              <input id="param32" name="param32" type="range" min="0" max="30" step="0.5" value="0" />
-              <input class="valInput" id="param32Val" type="number" step="0.5" value="0" />
-            </div>
-          </div>
-        </details>
-
-        <!-- Fillets placeholders -->
-        <details class="section">
-          <summary>Fillets</summary>
-          <div class="sectionMeta">Temporary global fillet params (placeholders). These do not affect the model yet.</div>
-
-          <div class="paramRow">
-            <div class="paramTop">
-              <div class="paramTag">Param 33</div>
-              <div class="paramName">Fillet Param 1 (mm) (placeholder)</div>
-            </div>
-            <div class="paramBody">
-              <input id="param33" name="param33" type="range" min="0" max="30" step="0.5" value="0" />
-              <input class="valInput" id="param33Val" type="number" step="0.5" value="0" />
-            </div>
-          </div>
-
-          <div class="paramRow">
-            <div class="paramTop">
-              <div class="paramTag">Param 34</div>
-              <div class="paramName">Fillet Param 2 (mm) (placeholder)</div>
-            </div>
-            <div class="paramBody">
-              <input id="param34" name="param34" type="range" min="0" max="30" step="0.5" value="0" />
-              <input class="valInput" id="param34Val" type="number" step="0.5" value="0" />
-            </div>
-          </div>
-
-          <div class="paramRow">
-            <div class="paramTop">
-              <div class="paramTag">Param 35</div>
-              <div class="paramName">Fillet Param 3 (mm) (placeholder)</div>
-            </div>
-            <div class="paramBody">
-              <input id="param35" name="param35" type="range" min="0" max="30" step="0.5" value="0" />
-              <input class="valInput" id="param35Val" type="number" step="0.5" value="0" />
-            </div>
-          </div>
-
-          <div class="paramRow">
-            <div class="paramTop">
-              <div class="paramTag">Param 36</div>
-              <div class="paramName">Fillet Param 4 (mm) (placeholder)</div>
-            </div>
-            <div class="paramBody">
-              <input id="param36" name="param36" type="range" min="0" max="30" step="0.5" value="0" />
-              <input class="valInput" id="param36Val" type="number" step="0.5" value="0" />
-            </div>
-          </div>
-
-          <div class="paramRow">
-            <div class="paramTop">
-              <div class="paramTag">Param 37</div>
-              <div class="paramName">Fillet Param 5 (mm) (placeholder)</div>
-            </div>
-            <div class="paramBody">
-              <input id="param37" name="param37" type="range" min="0" max="30" step="0.5" value="0" />
-              <input class="valInput" id="param37Val" type="number" step="0.5" value="0" />
-            </div>
-          </div>
-        </details>
-
+      <!-- BOX 3: Debug (own big box) -->
+      <div id="debugPanel" class="panelBox">
         <div id="debug">
           <div id="debugHeader">Debug</div>
           <pre id="log"></pre>
         </div>
-      </form>
+      </div>
     </div>
 
     <canvas id="c"></canvas>

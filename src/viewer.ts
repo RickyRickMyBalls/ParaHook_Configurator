@@ -24,9 +24,9 @@ export class Viewer {
   private scene: THREE.Scene;
   private camera: THREE.PerspectiveCamera;
 
-  //hand edit
-  //was private controls: OrbitControls;
-private controls: any;
+  // hand edit
+  // was private controls: OrbitControls;
+  private controls: any;
 
   // World origin helpers in MAIN scene
   private originAxes: THREE.AxesHelper;
@@ -51,23 +51,19 @@ private controls: any;
   }
 
   // -----------------------------
-  // Baseplate visualization (points)
+  // Baseplate visualization (CONTROL POINTS ONLY)
   // -----------------------------
   private baseplateVizVisible = false;
 
   private baseplateVizGroup: THREE.Group;
   private baseplateCtrlGroup: THREE.Group;
-  private baseplateSpineGroup: THREE.Group;
 
   private ctrlMeshes: THREE.Mesh[] = [];
-  private spineMeshes: THREE.Mesh[] = [];
 
   private ctrlSphereGeo: THREE.SphereGeometry;
-  private spineSphereGeo: THREE.SphereGeometry;
 
   private ctrlMatBlue: THREE.MeshBasicMaterial;
   private ctrlMatBlue2: THREE.MeshBasicMaterial;
-  private spineMatGray: THREE.MeshBasicMaterial;
 
   setBaseplateVizVisible(v: boolean) {
     this.baseplateVizVisible = !!v;
@@ -80,15 +76,6 @@ private controls: any;
     for (let i = 0; i < points.length; i++) {
       const p = points[i];
       const m = this.ctrlMeshes[i];
-      m.position.set(p.x, p.y, p.z);
-    }
-  }
-
-  setSpineSamplePoints(points: XYZ[]) {
-    this.ensureSpineCount(points.length);
-    for (let i = 0; i < points.length; i++) {
-      const p = points[i];
-      const m = this.spineMeshes[i];
       m.position.set(p.x, p.y, p.z);
     }
   }
@@ -115,19 +102,125 @@ private controls: any;
     }
   }
 
-  private ensureSpineCount(n: number) {
-    while (this.spineMeshes.length > n) {
-      const m = this.spineMeshes.pop()!;
-      this.baseplateSpineGroup.remove(m);
+  // -----------------------------
+  // Arc visualization (3 points each)
+  //   A arc pts (3)
+  //   B arc pts (3)
+  //   C arc pts (3)
+  //   Heel arc pts (3)
+  //
+  // Request: "make every profile sphere a different color, group them by profile / button"
+  //
+  // Implementation:
+  // - Each profile gets its own Group (A/B/C/Heel)
+  // - Within a profile, the 3 spheres have 3 distinct materials (pt1/pt2/pt3)
+  // - Visibility is per-profile group, matching its checkbox/button
+  // -----------------------------
+  private arcVizGroup: THREE.Group;
+
+  private aArcGroup: THREE.Group;
+  private bArcGroup: THREE.Group;
+  private cArcGroup: THREE.Group;
+  private heelArcGroup: THREE.Group;
+
+  private aArcMeshes: THREE.Mesh[] = [];
+  private bArcMeshes: THREE.Mesh[] = [];
+  private cArcMeshes: THREE.Mesh[] = [];
+  private heelArcMeshes: THREE.Mesh[] = [];
+
+  private arcSphereGeo: THREE.SphereGeometry;
+
+  // Per-profile, per-point materials (3 colors per profile)
+  private aArcMats: THREE.MeshBasicMaterial[] = [];
+  private bArcMats: THREE.MeshBasicMaterial[] = [];
+  private cArcMats: THREE.MeshBasicMaterial[] = [];
+  private heelArcMats: THREE.MeshBasicMaterial[] = [];
+
+  private aArcVisible = false;
+  private bArcVisible = false;
+  private cArcVisible = false;
+  private heelArcVisible = false;
+
+  private setArcGroupVisible(group: THREE.Group, v: boolean) {
+    group.visible = !!v;
+  }
+
+  private ensureArcCount(
+    meshes: THREE.Mesh[],
+    group: THREE.Group,
+    n: number,
+    mats3: THREE.Material[],
+    namePrefix: string
+  ) {
+    // Remove extras
+    while (meshes.length > n) {
+      const m = meshes.pop()!;
+      group.remove(m);
     }
-    while (this.spineMeshes.length < n) {
-      const idx = this.spineMeshes.length;
-      const m = new THREE.Mesh(this.spineSphereGeo, this.spineMatGray);
-      m.name = `spinePoint${idx}`;
-      m.renderOrder = 40;
-      this.baseplateSpineGroup.add(m);
-      this.spineMeshes.push(m);
+    // Add missing
+    while (meshes.length < n) {
+      const idx = meshes.length;
+
+      // Cycle through 3 distinct materials for the 3 points
+      const mat = mats3[idx % mats3.length];
+
+      const m = new THREE.Mesh(this.arcSphereGeo, mat);
+      m.name = `${namePrefix}${idx + 1}`;
+      m.renderOrder = 60;
+      group.add(m);
+      meshes.push(m);
     }
+
+    // If count is <=3 and mats were changed, re-apply materials deterministically
+    for (let i = 0; i < meshes.length; i++) {
+      meshes[i].material = mats3[i % mats3.length];
+    }
+  }
+
+  private setArcPoints(
+    meshes: THREE.Mesh[],
+    group: THREE.Group,
+    points: XYZ[],
+    mats3: THREE.Material[],
+    namePrefix: string
+  ) {
+    const n = points.length;
+    this.ensureArcCount(meshes, group, n, mats3, namePrefix);
+    for (let i = 0; i < n; i++) {
+      const p = points[i];
+      meshes[i].position.set(p.x, p.y, p.z);
+    }
+  }
+
+  setAArcVizVisible(v: boolean) {
+    this.aArcVisible = !!v;
+    this.setArcGroupVisible(this.aArcGroup, this.aArcVisible);
+  }
+  setBArcVizVisible(v: boolean) {
+    this.bArcVisible = !!v;
+    this.setArcGroupVisible(this.bArcGroup, this.bArcVisible);
+  }
+  setCArcVizVisible(v: boolean) {
+    this.cArcVisible = !!v;
+    this.setArcGroupVisible(this.cArcGroup, this.cArcVisible);
+  }
+  setHeelArcVizVisible(v: boolean) {
+    this.heelArcVisible = !!v;
+    this.setArcGroupVisible(this.heelArcGroup, this.heelArcVisible);
+  }
+
+  // Expect 3 points, but accepts any count safely.
+  setAArcPoints(points: XYZ[]) {
+    this.setArcPoints(this.aArcMeshes, this.aArcGroup, points, this.aArcMats, "aArcPt");
+  }
+  setBArcPoints(points: XYZ[]) {
+    this.setArcPoints(this.bArcMeshes, this.bArcGroup, points, this.bArcMats, "bArcPt");
+  }
+  setCArcPoints(points: XYZ[]) {
+    this.setArcPoints(this.cArcMeshes, this.cArcGroup, points, this.cArcMats, "cArcPt");
+  }
+  setHeelArcPoints(points: XYZ[]) {
+    this.setArcPoints(this.heelArcMeshes, this.heelArcGroup, points, this.heelArcMats, "heelArcPt");
   }
 
   // -----------------------------
@@ -191,13 +284,13 @@ private controls: any;
   // only frame once automatically (prevents camera jump on rebuild)
   private hasFramedOnce = false;
 
-private canvas: HTMLCanvasElement;
+  private canvas: HTMLCanvasElement;
 
-constructor(canvas: HTMLCanvasElement) {
-    //hand edit
+  constructor(canvas: HTMLCanvasElement) {
+    // hand edit
     this.canvas = canvas;
-    
-    //end hand edit
+    // end hand edit
+
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.setClearColor(0x0b0b0f, 1);
@@ -261,7 +354,7 @@ constructor(canvas: HTMLCanvasElement) {
     this.axisScene.add(this.axisHelper);
 
     // -----------------------------
-    // Baseplate viz init
+    // Baseplate viz init (CONTROL POINTS ONLY)
     // -----------------------------
     this.baseplateVizGroup = new THREE.Group();
     this.baseplateVizGroup.name = "baseplateVizGroup";
@@ -270,21 +363,73 @@ constructor(canvas: HTMLCanvasElement) {
     this.baseplateCtrlGroup = new THREE.Group();
     this.baseplateCtrlGroup.name = "baseplateCtrlGroup";
 
-    this.baseplateSpineGroup = new THREE.Group();
-    this.baseplateSpineGroup.name = "baseplateSpineGroup";
-
-    this.baseplateVizGroup.add(this.baseplateSpineGroup);
     this.baseplateVizGroup.add(this.baseplateCtrlGroup);
     this.scene.add(this.baseplateVizGroup);
 
-    // Shared resources for viz points
-    this.ctrlSphereGeo = new THREE.SphereGeometry(2.8, 16, 16);  // larger for the 4 points
-    this.spineSphereGeo = new THREE.SphereGeometry(1.4, 12, 12); // smaller for sampled spine
-
-    // Blue control points + gray sampled points (as requested)
+    // Shared resources for baseplate control points
+    this.ctrlSphereGeo = new THREE.SphereGeometry(2.8, 16, 16); // larger for the 4 points
     this.ctrlMatBlue = new THREE.MeshBasicMaterial({ color: 0x2d7cff });
     this.ctrlMatBlue2 = new THREE.MeshBasicMaterial({ color: 0x1aa3ff });
-    this.spineMatGray = new THREE.MeshBasicMaterial({ color: 0xaaaaaa });
+
+    // -----------------------------
+    // Arc viz init (A/B/C/Heel)
+    // -----------------------------
+    this.arcVizGroup = new THREE.Group();
+    this.arcVizGroup.name = "arcVizGroup";
+    this.arcVizGroup.visible = true; // sub-groups handle their own visibility
+    this.scene.add(this.arcVizGroup);
+
+    this.aArcGroup = new THREE.Group();
+    this.aArcGroup.name = "aArcGroup";
+    this.aArcGroup.visible = false;
+    this.arcVizGroup.add(this.aArcGroup);
+
+    this.bArcGroup = new THREE.Group();
+    this.bArcGroup.name = "bArcGroup";
+    this.bArcGroup.visible = false;
+    this.arcVizGroup.add(this.bArcGroup);
+
+    this.cArcGroup = new THREE.Group();
+    this.cArcGroup.name = "cArcGroup";
+    this.cArcGroup.visible = false;
+    this.arcVizGroup.add(this.cArcGroup);
+
+    this.heelArcGroup = new THREE.Group();
+    this.heelArcGroup.name = "heelArcGroup";
+    this.heelArcGroup.visible = false;
+    this.arcVizGroup.add(this.heelArcGroup);
+
+    // Shared resources for arc points (slightly smaller than baseplate ctrl points)
+    this.arcSphereGeo = new THREE.SphereGeometry(2.2, 16, 16);
+
+    // 3 distinct colors per profile (pt1, pt2, pt3)
+    // A = yellows
+    this.aArcMats = [
+      new THREE.MeshBasicMaterial({ color: 0xffcc00 }),
+      new THREE.MeshBasicMaterial({ color: 0xffee66 }),
+      new THREE.MeshBasicMaterial({ color: 0xffaa00 }),
+    ];
+
+    // B = pinks/purples
+    this.bArcMats = [
+      new THREE.MeshBasicMaterial({ color: 0xff66cc }),
+      new THREE.MeshBasicMaterial({ color: 0xcc66ff }),
+      new THREE.MeshBasicMaterial({ color: 0xff99dd }),
+    ];
+
+    // C = greens
+    this.cArcMats = [
+      new THREE.MeshBasicMaterial({ color: 0x66ff66 }),
+      new THREE.MeshBasicMaterial({ color: 0x33cc99 }),
+      new THREE.MeshBasicMaterial({ color: 0x99ff99 }),
+    ];
+
+    // Heel = oranges/reds
+    this.heelArcMats = [
+      new THREE.MeshBasicMaterial({ color: 0xff8844 }),
+      new THREE.MeshBasicMaterial({ color: 0xff4444 }),
+      new THREE.MeshBasicMaterial({ color: 0xffbb66 }),
+    ];
 
     window.addEventListener("resize", () => this.resize());
     this.resize();
