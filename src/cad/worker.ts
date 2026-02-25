@@ -8,6 +8,7 @@ import {
   buildBaseSolid,
   buildToeABSolid,
   buildToeBCSolid,
+  buildToeSolid,
   buildHeelSolid,
   type ParamMap,
 } from "./model";
@@ -152,7 +153,7 @@ function mergeMeshes(a: ReturnType<typeof toStdMesh>, b: ReturnType<typeof toStd
 }
 
 // -----------------------------
-// Signatures (UPDATED to match HTML numbering)
+// Signatures (NAMED PARAM KEYS)
 // -----------------------------
 function numParam(params: ParamMap, key: string): number {
   const v = (params as any)[key];
@@ -160,27 +161,142 @@ function numParam(params: ParamMap, key: string): number {
   return Number.isFinite(n) ? n : 0;
 }
 
+function sigFromKeys(params: ParamMap, keys: string[]) {
+  return keys.map((k) => numParam(params, k)).join(",");
+}
+
+// Baseplate: dimensions + screw holes
 function baseSignature(params: ParamMap): string {
-  return [1, 2, 3, 4, 5, 6, 7, 8].map((i) => numParam(params, `param${i}`)).join(",");
+  return sigFromKeys(params, [
+    "bp_len",
+    "bp_wid",
+    "bp_thk",
+    "bp_heelPct",
+    "bp_toePct",
+    "bp_p2x",
+    "bp_p3x",
+    "bp_p4x",
+
+    // screw holes
+    "bp_sh_x",
+    "bp_sh_y",
+    "bp_sh_dia",
+    "bp_sh_slot",
+    "bp_sh_dist",
+    "bp_sh_ang",
+  ]);
 }
 
-// Toe A->B uses thickness(9) + A(10..13) + filletA(14) + stationB(15) + midAB(16) + B(17..20)
+// Toe A->B: thickness + A geom + stationB + midAB + B geom
 function toeABSignature(params: ParamMap): string {
-  return [9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
-    .map((i) => numParam(params, `param${i}`))
-    .join(",");
+  return sigFromKeys(params, [
+    // Spine/base path controls (toe sections ride sampled spine)
+    "bp_len",
+    "bp_heelPct",
+    "bp_toePct",
+    "bp_p2x",
+    "bp_p3x",
+    "bp_p4x",
+
+    "toe_thk",
+    "fil_1",
+
+    // Profile A controls
+    "toe_a_p1s",
+    "toe_a_p3s",
+    "toe_a_endx",
+    "toe_a_endz",
+    "toe_a_enda",
+    "toe_a_strength",
+
+    // Loft
+    "toe_b_sta",
+    "toe_ab_mid",
+
+    // Profile B controls
+    "toe_a_strength",
+    "toe_b_strength",
+    "toe_b_p1s",
+    "toe_b_p3s",
+    "toe_b_endx",
+    "toe_b_endz",
+    "toe_b_enda",
+    "toe_b_strength",
+  ]);
 }
 
-// Toe B->C uses thickness(9) + stationB(15)+midAB(16)+B(17..20) + stationC(21)+midBC(22)+C(23..26) + filletC(27)
+// Toe B->C: thickness + B geom + stationC + midBC + C geom
 function toeBCSignature(params: ParamMap): string {
-  return [9, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27]
-    .map((i) => numParam(params, `param${i}`))
-    .join(",");
+  return sigFromKeys(params, [
+    // Spine/base path controls (toe sections ride sampled spine)
+    "bp_len",
+    "bp_heelPct",
+    "bp_toePct",
+    "bp_p2x",
+    "bp_p3x",
+    "bp_p4x",
+
+    "toe_thk",
+    "fil_1",
+
+    // Profile B controls
+    "toe_b_p1s",
+    "toe_b_p3s",
+    "toe_b_endx",
+    "toe_b_endz",
+    "toe_b_enda",
+    "toe_b_strength",
+
+    // Loft
+    "toe_b_sta",
+    "toe_c_sta",
+    "toe_bc_mid",
+
+    // Profile C controls
+    "toe_b_strength",
+    "toe_c_strength",
+    "toe_c_p1s",
+    "toe_c_p3s",
+    "toe_c_endx",
+    "toe_c_endz",
+    "toe_c_enda",
+    "toe_c_strength",
+  ]);
 }
 
-// Heel uses thickness(9) + stationC(21) + C geom (23..26) + heel (28..30)
+function toeCombinedSignature(params: ParamMap): string {
+  return `${toeABSignature(params)}|${toeBCSignature(params)}`;
+}
+
+// Heel: uses toe C station/control as upstream anchor + heel params
 function heelSignature(params: ParamMap): string {
-  return [9, 21, 23, 24, 25, 26, 28, 29, 30].map((i) => numParam(params, `param${i}`)).join(",");
+  return sigFromKeys(params, [
+    // Spine/base path controls (heel rides the sampled spine)
+    "bp_len",
+    "bp_heelPct",
+    "bp_toePct",
+    "bp_p2x",
+    "bp_p3x",
+    "bp_p4x",
+
+    // Shared thickness (used by fitted heel profile offset)
+    "toe_thk",
+
+    // toe C anchor
+    "toe_c_sta",
+    "toe_c_p1s",
+    "toe_c_p3s",
+    "toe_c_endx",
+    "toe_c_endz",
+    "toe_c_enda",
+
+    // heel controls
+    "heel_h_c",
+    "heel_h_d",
+    "heel_cd_mid",
+    "heel_f1",
+    "heel_f2",
+  ]);
 }
 
 function tolKey(toleranceRaw: unknown) {
@@ -189,47 +305,11 @@ function tolKey(toleranceRaw: unknown) {
 }
 
 // -----------------------------
-// Param flag injection (model reads these from params)
+// Param flag injection (model reads these from params if desired)
 // -----------------------------
 function applyToeFlags(params: ParamMap, toeB: boolean, toeC: boolean) {
   (params as any).toeBEnabled = toeB ? 1 : 0;
   (params as any).toeCEnabled = toeC ? 1 : 0;
-}
-
-// -----------------------------
-// Section cut (Y plane) - robust: no replicad.makeBox()
-// Keeps BACK side (Y <= cutY)
-// -----------------------------
-function sectionCutEnabled(params: ParamMap): boolean {
-  return numParam(params, "sectionCutEnabled") === 1;
-}
-function sectionCutY(params: ParamMap): number {
-  const y = numParam(params, "sectionCutY");
-  return Number.isFinite(y) ? y : 0;
-}
-
-function applySectionCutKeepBack(shape: any, cutYmm: number): any {
-  const BIG = 100000;
-
-  if (!shape || typeof shape.intersect !== "function") {
-    throw new Error("Shape has no intersect(); cannot apply section cut");
-  }
-
-  // box spans X,Z huge; Y from -BIG to cutYmm
-  const yMin = -BIG;
-  const yMax = cutYmm;
-  const ySize = Math.max(0.001, yMax - yMin);
-
-  const box = (replicad.draw([0, 0]) as any)
-    .lineTo([BIG * 2, 0])
-    .lineTo([BIG * 2, ySize])
-    .lineTo([0, ySize])
-    .close()
-    .sketchOnPlane("XY")
-    .extrude(BIG * 2)
-    .translate([-BIG, yMin, -BIG]);
-
-  return shape.intersect(box);
 }
 
 // -----------------------------
@@ -238,21 +318,25 @@ function applySectionCutKeepBack(shape: any, cutYmm: number): any {
 let cachedBaseShape: any | null = null;
 let cachedToeABShape: any | null = null;
 let cachedToeBCShape: any | null = null;
+let cachedToeCombinedShape: any | null = null;
 let cachedHeelShape: any | null = null;
 
 let cachedBaseSig = "";
 let cachedToeABSig = "";
 let cachedToeBCSig = "";
+let cachedToeCombinedSig = "";
 let cachedHeelSig = "";
 
 let cachedBaseMesh: ReturnType<typeof toStdMesh> | null = null;
 let cachedToeABMesh: ReturnType<typeof toStdMesh> | null = null;
 let cachedToeBCMesh: ReturnType<typeof toStdMesh> | null = null;
+let cachedToeCombinedMesh: ReturnType<typeof toStdMesh> | null = null;
 let cachedHeelMesh: ReturnType<typeof toStdMesh> | null = null;
 
 let cachedBaseMeshKey = "";
 let cachedToeABMeshKey = "";
 let cachedToeBCMeshKey = "";
+let cachedToeCombinedMeshKey = "";
 let cachedHeelMeshKey = "";
 
 async function getBaseShape(params: ParamMap, enabled: boolean) {
@@ -314,6 +398,27 @@ async function getToeBCShape(params: ParamMap, enabled: boolean) {
   }
 
   return { shape: cachedToeBCShape, reused: true, sig: cachedToeBCSig };
+}
+
+async function getToeCombinedShape(params: ParamMap, enabled: boolean) {
+  if (!enabled) return { shape: null as any, reused: true, sig: "" };
+
+  const sig = toeCombinedSignature(params);
+
+  if (!cachedToeCombinedShape || sig !== cachedToeCombinedSig) {
+    post({ type: "status", message: "building toe A->B->C..." });
+    applyToeFlags(params, true, true);
+    const s = await buildToeSolid(params);
+
+    cachedToeCombinedShape = s;
+    cachedToeCombinedSig = sig;
+
+    cachedToeCombinedMesh = null;
+    cachedToeCombinedMeshKey = "";
+    return { shape: s, reused: false, sig };
+  }
+
+  return { shape: cachedToeCombinedShape, reused: true, sig: cachedToeCombinedSig };
 }
 
 async function getHeelShape(params: ParamMap, enabled: boolean) {
@@ -393,6 +498,25 @@ async function getToeBCMesh(params: ParamMap, enabled: boolean, tolerance: unkno
   return { mesh: m, reused: false, shapeReused: s.reused };
 }
 
+async function getToeCombinedMesh(params: ParamMap, enabled: boolean, tolerance: unknown) {
+  const s = await getToeCombinedShape(params, enabled);
+  if (!enabled || !s.shape) return { mesh: null as any, reused: true, shapeReused: true };
+
+  const key = `${s.sig}|tol=${tolKey(tolerance)}`;
+  if (cachedToeCombinedMesh && cachedToeCombinedMeshKey === key) {
+    return { mesh: cachedToeCombinedMesh, reused: true, shapeReused: s.reused };
+  }
+
+  post({ type: "status", message: `meshing toe A->B->C... (tol=${tolKey(tolerance)})` });
+  const faces = meshShape(s.shape as any, tolerance);
+  const m = toStdMesh(faces as any);
+
+  cachedToeCombinedMesh = m;
+  cachedToeCombinedMeshKey = key;
+
+  return { mesh: m, reused: false, shapeReused: s.reused };
+}
+
 async function getHeelMesh(params: ParamMap, enabled: boolean, tolerance: unknown) {
   const s = await getHeelShape(params, enabled);
   if (!enabled || !s.shape) return { mesh: null as any, reused: true, shapeReused: true };
@@ -461,50 +585,35 @@ self.onmessage = async (ev: MessageEvent<WorkerIn>) => {
       const toeBEnabled = !!msg.payload.toeBEnabled;
       const toeCEnabled = !!msg.payload.toeCEnabled;
       const heelEnabled = !!msg.payload.heelEnabled;
+      const toeBothEnabled = toeBEnabled && toeCEnabled;
+      const fil1 = Math.max(0, Number((params as any).fil_1) || 0);
 
-      // Section cut path: build shapes (cached), fuse, cut, mesh once
-      if (sectionCutEnabled(params)) {
-        post({ type: "status", message: "building model for section cut..." });
-
-        const base = await getBaseShape(params, baseEnabled);
-        const toeAB = await getToeABShape(params, toeBEnabled);
-        const toeBC = await getToeBCShape(params, toeCEnabled);
-        const heel = await getHeelShape(params, heelEnabled);
-
-        let combined: any = null;
-        if (baseEnabled) combined = safeFuse(combined, base.shape);
-        if (toeBEnabled) combined = safeFuse(combined, toeAB.shape);
-        if (toeCEnabled) combined = safeFuse(combined, toeBC.shape);
-        if (heelEnabled) combined = safeFuse(combined, heel.shape);
-
-        if (!combined) {
-          post({ type: "mesh", payload: { positions: [], indices: [], normals: undefined } });
-          post({ type: "status", message: "ready (section cut preview: nothing enabled)" });
-          return;
-        }
-
-        const yCut = sectionCutY(params);
-        const cutResult = applySectionCutKeepBack(combined, yCut);
-
-        post({ type: "status", message: `meshing section cut... (tol=${tolKey(tolerance)})` });
-        const faces = meshShape(cutResult, tolerance);
-        const m = toStdMesh(faces as any);
-
-        post({ type: "mesh", payload: m });
-        post({ type: "status", message: "ready (section cut preview)" });
-        return;
+      if (fil1 > 0.001) {
+        const toePath =
+          toeBothEnabled ? "A->B->C" : toeBEnabled ? "A->B" : toeCEnabled ? "B->C only" : "toe off";
+        const fil1Applies = toeBEnabled; // fil_1 affects profile A, so requires A->B presence
+        post({
+          type: "status",
+          message: `fil_1 dbg: ${fil1.toFixed(2)}mm path=${toePath} ${fil1Applies ? "APPLY" : "IGNORED(no A)"}`,
+        });
       }
 
       // Normal path: per-part cached meshes, merge in JS
       const base = await getBaseMesh(params, baseEnabled, tolerance);
-      const toeAB = await getToeABMesh(params, toeBEnabled, tolerance);
-      const toeBC = await getToeBCMesh(params, toeCEnabled, tolerance);
+      const toeABC = await getToeCombinedMesh(params, toeBothEnabled, tolerance);
+      const toeAB = toeBothEnabled
+        ? ({ mesh: null as any, reused: true } as { mesh: any; reused: boolean })
+        : await getToeABMesh(params, toeBEnabled, tolerance);
+      const toeBC = toeBothEnabled
+        ? ({ mesh: null as any, reused: true } as { mesh: any; reused: boolean })
+        : await getToeBCMesh(params, toeCEnabled, tolerance);
       const heel = await getHeelMesh(params, heelEnabled, tolerance);
 
       const meshes: ReturnType<typeof toStdMesh>[] = [];
       if (baseEnabled && base.mesh) meshes.push(base.mesh);
-      if (toeBEnabled && toeAB.mesh) meshes.push(toeAB.mesh);
-      if (toeCEnabled && toeBC.mesh) meshes.push(toeBC.mesh);
+      if (toeBothEnabled && toeABC.mesh) meshes.push(toeABC.mesh);
+      if (!toeBothEnabled && toeBEnabled && toeAB.mesh) meshes.push(toeAB.mesh);
+      if (!toeBothEnabled && toeCEnabled && toeBC.mesh) meshes.push(toeBC.mesh);
       if (heelEnabled && heel.mesh) meshes.push(heel.mesh);
 
       if (meshes.length === 0) {
@@ -521,8 +630,9 @@ self.onmessage = async (ev: MessageEvent<WorkerIn>) => {
         message:
           `preview mesh merged (` +
           `base:${baseEnabled ? (base.reused ? "cached" : "meshed") : "off"} ` +
-          `toeAB:${toeBEnabled ? (toeAB.reused ? "cached" : "meshed") : "off"} ` +
-          `toeBC:${toeCEnabled ? (toeBC.reused ? "cached" : "meshed") : "off"} ` +
+          `toe:${toeBothEnabled ? (toeABC.reused ? "abc-cached" : "abc-meshed") : "split"} ` +
+          `toeAB:${!toeBothEnabled && toeBEnabled ? (toeAB.reused ? "cached" : "meshed") : "off"} ` +
+          `toeBC:${!toeBothEnabled && toeCEnabled ? (toeBC.reused ? "cached" : "meshed") : "off"} ` +
           `heel:${heelEnabled ? (heel.reused ? "cached" : "meshed") : "off"}` +
           `)`,
       });
@@ -541,32 +651,32 @@ self.onmessage = async (ev: MessageEvent<WorkerIn>) => {
       const toeBEnabled = !!msg.payload.toeBEnabled;
       const toeCEnabled = !!msg.payload.toeCEnabled;
       const heelEnabled = !!msg.payload.heelEnabled;
+      const toeBothEnabled = toeBEnabled && toeCEnabled;
 
       const base = await getBaseShape(params, baseEnabled);
-      const toeAB = await getToeABShape(params, toeBEnabled);
-      const toeBC = await getToeBCShape(params, toeCEnabled);
+      const toeABC = await getToeCombinedShape(params, toeBothEnabled);
+      const toeAB = toeBothEnabled
+        ? ({ shape: null as any } as { shape: any })
+        : await getToeABShape(params, toeBEnabled);
+      const toeBC = toeBothEnabled
+        ? ({ shape: null as any } as { shape: any })
+        : await getToeBCShape(params, toeCEnabled);
       const heel = await getHeelShape(params, heelEnabled);
 
       let combined: any = null;
       if (baseEnabled) combined = safeFuse(combined, base.shape);
-      if (toeBEnabled) combined = safeFuse(combined, toeAB.shape);
-      if (toeCEnabled) combined = safeFuse(combined, toeBC.shape);
+      if (toeBothEnabled) combined = safeFuse(combined, toeABC.shape);
+      if (!toeBothEnabled && toeBEnabled) combined = safeFuse(combined, toeAB.shape);
+      if (!toeBothEnabled && toeCEnabled) combined = safeFuse(combined, toeBC.shape);
       if (heelEnabled) combined = safeFuse(combined, heel.shape);
 
       if (!combined) throw new Error("Nothing enabled to export.");
 
-      let outShape: any = combined;
-
-      if (sectionCutEnabled(params)) {
-        post({ type: "status", message: "applying section cut (step)..." });
-        outShape = applySectionCutKeepBack(combined, sectionCutY(params));
-      }
-
-      if (!outShape || typeof outShape.blobSTEP !== "function") {
+      if (!combined || typeof combined.blobSTEP !== "function") {
         throw new Error("Shape has no blobSTEP().");
       }
 
-      const blob = outShape.blobSTEP();
+      const blob = combined.blobSTEP();
       if (!(blob instanceof Blob)) throw new Error("blobSTEP did not return a Blob");
 
       const buffer = await blobToArrayBuffer(blob);
@@ -584,33 +694,33 @@ self.onmessage = async (ev: MessageEvent<WorkerIn>) => {
       const toeBEnabled = !!msg.payload.toeBEnabled;
       const toeCEnabled = !!msg.payload.toeCEnabled;
       const heelEnabled = !!msg.payload.heelEnabled;
+      const toeBothEnabled = toeBEnabled && toeCEnabled;
 
       const base = await getBaseShape(params, baseEnabled);
-      const toeAB = await getToeABShape(params, toeBEnabled);
-      const toeBC = await getToeBCShape(params, toeCEnabled);
+      const toeABC = await getToeCombinedShape(params, toeBothEnabled);
+      const toeAB = toeBothEnabled
+        ? ({ shape: null as any } as { shape: any })
+        : await getToeABShape(params, toeBEnabled);
+      const toeBC = toeBothEnabled
+        ? ({ shape: null as any } as { shape: any })
+        : await getToeBCShape(params, toeCEnabled);
       const heel = await getHeelShape(params, heelEnabled);
 
       let combined: any = null;
       if (baseEnabled) combined = safeFuse(combined, base.shape);
-      if (toeBEnabled) combined = safeFuse(combined, toeAB.shape);
-      if (toeCEnabled) combined = safeFuse(combined, toeBC.shape);
+      if (toeBothEnabled) combined = safeFuse(combined, toeABC.shape);
+      if (!toeBothEnabled && toeBEnabled) combined = safeFuse(combined, toeAB.shape);
+      if (!toeBothEnabled && toeCEnabled) combined = safeFuse(combined, toeBC.shape);
       if (heelEnabled) combined = safeFuse(combined, heel.shape);
 
       if (!combined) throw new Error("Nothing enabled to export.");
 
-      let outShape: any = combined;
-
-      if (sectionCutEnabled(params)) {
-        post({ type: "status", message: "applying section cut (stl)..." });
-        outShape = applySectionCutKeepBack(combined, sectionCutY(params));
-      }
-
-      if (!outShape || typeof outShape.blobSTL !== "function") {
+      if (!combined || typeof combined.blobSTL !== "function") {
         throw new Error("Shape has no blobSTL().");
       }
 
       const stlTol = 0.2;
-      const blob = outShape.blobSTL({ tolerance: stlTol, binary: true });
+      const blob = combined.blobSTL({ tolerance: stlTol, binary: true });
       if (!(blob instanceof Blob)) throw new Error("blobSTL did not return a Blob");
 
       const buffer = await blobToArrayBuffer(blob);

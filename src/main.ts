@@ -48,6 +48,9 @@ function readNumber(input: HTMLInputElement, fallback: number): number {
 function clamp(n: number, lo: number, hi: number) {
   return Math.min(hi, Math.max(lo, n));
 }
+function clampInt(n: number, lo: number, hi: number) {
+  return Math.round(clamp(n, lo, hi));
+}
 function num(v: any, f: number) {
   const n = Number(v);
   return Number.isFinite(n) ? n : f;
@@ -265,13 +268,150 @@ function setBusy(busy: boolean) {
   exportStepBtn.disabled = busy || !modelOn;
 }
 
-const paramEls = Array.from(document.querySelectorAll<HTMLInputElement>('input[id^="param"]'))
-  .filter((el) => /^param\d+$/.test(el.id))
-  .sort((a, b) => Number(a.id.slice(5)) - Number(b.id.slice(5)));
+// -----------------------------
+// Named parameter wiring (matches index.html ids)
+// -----------------------------
+const paramIds: string[] = [
+  // Baseplate: Dimensions
+  "bp_len",
+  "bp_wid",
+  "bp_thk",
+  "bp_heelPct",
+  "bp_toePct",
+  "bp_p2x",
+  "bp_p3x",
+  "bp_p4x",
 
-const paramValEls = paramEls.map((el) => document.getElementById(`${el.id}Val`) as HTMLInputElement | null);
+  // Baseplate: Screw holes
+  "bp_sh_x",
+  "bp_sh_y",
+  "bp_sh_dia",
+  "bp_sh_slot",
+  "bp_sh_dist",
+  "bp_sh_ang",
+
+  // Toe: shared
+  "toe_thk",
+
+  // Toe A
+  "toe_a_p1s",
+  "toe_a_p3s",
+  "toe_a_endx",
+  "toe_a_endz",
+  "toe_a_enda",
+  "toe_a_strength",
+
+  // Toe B
+  "toe_b_sta",
+  "toe_ab_mid",
+  "toe_b_p1s",
+  "toe_b_p3s",
+  "toe_b_endx",
+  "toe_b_endz",
+  "toe_b_enda",
+  "toe_b_strength",
+
+  // Toe C
+  "toe_c_sta",
+  "toe_bc_mid",
+  "toe_c_p1s",
+  "toe_c_p3s",
+  "toe_c_endx",
+  "toe_c_endz",
+  "toe_c_enda",
+  "toe_c_strength",
+
+  // Heel
+  "heel_h_c",
+  "heel_h_d",
+  "heel_cd_mid",
+  "heel_f1",
+  "heel_f2",
+
+  // Fillets
+  "fil_1",
+  "fil_2",
+  "fil_3",
+  "fil_4",
+  "fil_5",
+];
+
+const paramEls = paramIds.map((id) => mustEl<HTMLInputElement>(id));
+const paramValEls = paramIds.map((id) => document.getElementById(`${id}Val`) as HTMLInputElement | null);
+const toeCEndZEl = mustEl<HTMLInputElement>("toe_c_endz");
+const heelHCEl = mustEl<HTMLInputElement>("heel_h_c");
+const heelHDEl = mustEl<HTMLInputElement>("heel_h_d");
+const heelHCValEl = document.getElementById("heel_h_cVal") as HTMLInputElement | null;
+const heelHDValEl = document.getElementById("heel_h_dVal") as HTMLInputElement | null;
+
+// -----------------------------
+// Auto B-C intermediate profiles (toe_bc_mid)
+// - Auto-fills toe_bc_mid unless user has manually adjusted it
+// - User can re-enable auto by setting toe_bc_mid back to 0
+// -----------------------------
+const toeBCMidEl = mustEl<HTMLInputElement>("toe_bc_mid");
+let toeBCMidUserTouched = false;
+
+toeBCMidEl.addEventListener("input", () => {
+  if (Number(toeBCMidEl.value) !== 0) toeBCMidUserTouched = true;
+});
+
+function readParams(): ModelParams {
+  enforceHeelHeightMaxFromToeC();
+  const p: ModelParams = {};
+  for (let i = 0; i < paramIds.length; i++) {
+    p[paramIds[i]] = readNumber(paramEls[i], 0);
+  }
+  return p;
+}
+
+function enforceHeelHeightMaxFromToeC() {
+  const maxHeel = clamp(readNumber(toeCEndZEl, 65), 0.1, 2000);
+  const maxStr = String(maxHeel);
+
+  [heelHCEl, heelHDEl].forEach((el) => {
+    el.max = maxStr;
+    const v = clamp(readNumber(el, 0), 0, maxHeel);
+    const vStr = String(v);
+    if (el.value !== vStr) el.value = vStr;
+  });
+
+  if (heelHCValEl) {
+    heelHCValEl.max = maxStr;
+    heelHCValEl.value = heelHCEl.value;
+  }
+  if (heelHDValEl) {
+    heelHDValEl.max = maxStr;
+    heelHDValEl.value = heelHDEl.value;
+  }
+}
+
+function computeSuggestedToeBCMid(p: ModelParams): number {
+  const staB = clamp(num(p.toe_b_sta, 60), 1, 2000);
+  const staC = clamp(num(p.toe_c_sta, 137), 1, 2000);
+  const delta = Math.max(0, staC - staB);
+
+  // 5mm = smoother (more profiles), 10mm = faster
+  const targetSpacingMm = 5;
+
+  return clampInt(delta / targetSpacingMm, 0, 200);
+}
+
+function applyAutoToeBCMidUI() {
+  const current = Number(toeBCMidEl.value) || 0;
+
+  // If user explicitly set 0, treat it as "auto"
+  const allowAuto = !toeBCMidUserTouched || current === 0;
+  if (!allowAuto) return;
+
+  const p = readParams();
+  const suggested = computeSuggestedToeBCMid(p);
+
+  toeBCMidEl.value = String(suggested);
+}
 
 function syncLabels() {
+  enforceHeelHeightMaxFromToeC();
   tolVal.value = tolEl.value;
   for (let i = 0; i < paramEls.length; i++) {
     const v = paramValEls[i];
@@ -279,18 +419,11 @@ function syncLabels() {
   }
 }
 
-// NOTE: section cut removed from params (viewer-only)
-function readParams(): ModelParams {
-  const p: any = {};
-  for (const el of paramEls) p[el.id] = readNumber(el, 0);
-  return p as ModelParams;
-}
-
 function readTolerance(): number {
   return clamp(readNumber(tolEl, 1.5), 0.3, 3.0);
 }
 
-// viewer-only section cut wiring (new combined API; implement in viewer.ts next)
+// viewer-only section cut wiring
 function applySectionCutUIToViewer() {
   const enabled = !!sectionCutEnabledEl.checked;
   const flip = !!sectionCutFlipEl.checked;
@@ -315,13 +448,13 @@ type XYZ = { x: number; y: number; z: number };
 type Pt2 = { x: number; y: number };
 
 function computeControlPoints(p: Record<string, number>): Pt2[] {
-  const baseLen = clamp(Number(p.param1 ?? 195), 50, 2000);
-  const heelPct = clamp(Number(p.param4 ?? 67), 1, 100);
-  const toePct = clamp(Number(p.param5 ?? 46), 1, 100);
+  const baseLen = clamp(Number(p.bp_len ?? 195), 50, 2000);
+  const heelPct = clamp(Number(p.bp_heelPct ?? 67), 1, 100);
+  const toePct = clamp(Number(p.bp_toePct ?? 46), 1, 100);
 
-  const p2x = Number(p.param6 ?? -14);
-  const p3x = Number(p.param7 ?? -2);
-  const p4x = Number(p.param8 ?? 1);
+  const p2x = Number(p.bp_p2x ?? -14);
+  const p3x = Number(p.bp_p3x ?? -2);
+  const p4x = Number(p.bp_p4x ?? 1);
 
   const p3y = clamp((baseLen * heelPct) / 100, 1, baseLen - 0.001);
   const p2y = clamp((p3y * toePct) / 100, 0.001, p3y - 0.001);
@@ -346,6 +479,7 @@ function updateBaseplateViz() {
 // Arc viz math
 // -----------------------------
 type Pt = { x: number; y: number };
+type Pt3 = { x: number; y: number; z: number };
 
 function vlen2(a: Pt) {
   return Math.hypot(a.x, a.y);
@@ -392,6 +526,91 @@ function catmullRomDeriv(p0: Pt, p1: Pt, p2: Pt, p3: Pt, t: number): Pt {
   return { x: 0.5 * (bx + cx + dx), y: 0.5 * (by + cy + dy) };
 }
 
+function catmullRom3(p0: Pt3, p1: Pt3, p2: Pt3, p3: Pt3, t: number): Pt3 {
+  const t2 = t * t;
+  const t3 = t2 * t;
+  return {
+    x:
+      0.5 *
+      (2 * p1.x +
+        (p2.x - p0.x) * t +
+        (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * t2 +
+        (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * t3),
+    y:
+      0.5 *
+      (2 * p1.y +
+        (p2.y - p0.y) * t +
+        (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * t2 +
+        (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * t3),
+    z:
+      0.5 *
+      (2 * p1.z +
+        (p2.z - p0.z) * t +
+        (2 * p0.z - 5 * p1.z + 4 * p2.z - p3.z) * t2 +
+        (-p0.z + 3 * p1.z - 3 * p2.z + p3.z) * t3),
+  };
+}
+
+function bezier3_2d(p0: Pt, p1: Pt, p2: Pt, p3: Pt, t: number): Pt {
+  const u = 1 - t;
+  const b0 = u * u * u;
+  const b1 = 3 * u * u * t;
+  const b2 = 3 * u * t * t;
+  const b3 = t * t * t;
+  return {
+    x: b0 * p0.x + b1 * p1.x + b2 * p2.x + b3 * p3.x,
+    y: b0 * p0.y + b1 * p1.y + b2 * p2.y + b3 * p3.y,
+  };
+}
+
+function bezier3Deriv2d(p0: Pt, p1: Pt, p2: Pt, p3: Pt, t: number): Pt {
+  const u = 1 - t;
+  return {
+    x: 3 * (u * u * (p1.x - p0.x) + 2 * u * t * (p2.x - p1.x) + t * t * (p3.x - p2.x)),
+    y: 3 * (u * u * (p1.y - p0.y) + 2 * u * t * (p2.y - p1.y) + t * t * (p3.y - p2.y)),
+  };
+}
+
+function dirFromDeg2(deg: number): Pt {
+  const rad = (deg * Math.PI) / 180;
+  return { x: Math.cos(rad), y: Math.sin(rad) };
+}
+
+function toeInnerEndLocal(endX: number, endZ: number, p1s: number, p3s: number, endAngDeg: number, off: number): Pt {
+  const P0: Pt = { x: 0, y: 0 };
+  const P3: Pt = { x: endX, y: endZ };
+  const span = Math.hypot(P3.x - P0.x, P3.y - P0.y);
+  const offSafe = clamp(off, 0.2, Math.max(0.2, span * 0.45));
+  const P1: Pt = { x: 0, y: clamp(p1s, 0, 10000) };
+
+  const dir = dirFromDeg2(endAngDeg - 180);
+  const p3 = clamp(p3s, 0, Math.max(1, span * 1.5));
+  let P2: Pt = { x: P3.x - dir.x * p3, y: P3.y - dir.y * p3 };
+  P2 = { x: P2.x, y: Math.max(0, P2.y) };
+
+  const mid: Pt = { x: (P0.x + P3.x) * 0.5, y: (P0.y + P3.y) * 0.5 };
+  const testP = bezier3_2d(P0, P1, P2, P3, 0.5);
+  const dvMid = vnorm2(bezier3Deriv2d(P0, P1, P2, P3, 0.5));
+  const nLeftMid = vnorm2({ x: -dvMid.y, y: dvMid.x });
+  const cand1 = { x: testP.x + nLeftMid.x * offSafe, y: testP.y + nLeftMid.y * offSafe };
+  const cand2 = { x: testP.x - nLeftMid.x * offSafe, y: testP.y - nLeftMid.y * offSafe };
+  const inwardSign = dist2(cand1, mid) < dist2(cand2, mid) ? 1 : -1;
+
+  const dvEnd = vnorm2(bezier3Deriv2d(P0, P1, P2, P3, 1));
+  const nLeftEnd = vnorm2({ x: -dvEnd.y, y: dvEnd.x });
+  return {
+    x: P3.x + nLeftEnd.x * offSafe * -inwardSign,
+    y: Math.max(0, P3.y + nLeftEnd.y * offSafe * -inwardSign),
+  };
+}
+
+function localToWorldAtStation(st: { pt: Pt; tan: Pt }, local: Pt): Pt3 {
+  const t = vnorm2(st.tan);
+  const u = { x: -t.y, y: t.x, z: 0 };
+  const o = { x: st.pt.x, y: st.pt.y, z: 0 };
+  return { x: o.x + u.x * local.x, y: o.y + u.y * local.x, z: o.z + local.y };
+}
+
 function findEndIdxByArcLen(pts: Pt[], targetLen: number) {
   let acc = 0;
   for (let i = 1; i < pts.length; i++) {
@@ -401,21 +620,14 @@ function findEndIdxByArcLen(pts: Pt[], targetLen: number) {
   return pts.length - 1;
 }
 
-// function lerp(a: number, b: number, t: number) {
-//   return a + (b - a) * t;
-// }
-// function lerpPt(a: Pt, b: Pt, t: number): Pt {
-//   return { x: lerp(a.x, b.x, t), y: lerp(a.y, b.y, t) };
-// }
-
 function sampleSpineMain(p: Record<string, number>) {
-  const baseLen = clamp(num(p.param1, 195), 50, 2000);
-  const heelPct = clamp(num(p.param4, 67), 1, 100);
-  const toePct = clamp(num(p.param5, 46), 1, 100);
+  const baseLen = clamp(num(p.bp_len, 195), 50, 2000);
+  const heelPct = clamp(num(p.bp_heelPct, 67), 1, 100);
+  const toePct = clamp(num(p.bp_toePct, 46), 1, 100);
 
-  const p2x = clamp(num(p.param6, -14), -1000, 1000);
-  const p3x = clamp(num(p.param7, -2), -1000, 1000);
-  const p4x = clamp(num(p.param8, 1), -1000, 1000);
+  const p2x = clamp(num(p.bp_p2x, -14), -1000, 1000);
+  const p3x = clamp(num(p.bp_p3x, -2), -1000, 1000);
+  const p4x = clamp(num(p.bp_p4x, 1), -1000, 1000);
 
   const p3y = clamp((baseLen * heelPct) / 100, 1, baseLen - 0.001);
   const p2y = clamp((p3y * toePct) / 100, 0.001, p3y - 0.001);
@@ -505,42 +717,78 @@ function updateArcViz() {
 
   const stA = { pt: spinePts[0], tan: spineTan[0] };
 
-  const stationB = clamp(num(p.param15, 60), 1, 2000);
+  const stationB = clamp(num(p.toe_b_sta, 60), 1, 2000);
   let idxB = findEndIdxByArcLen(spinePts, stationB);
   idxB = clamp(idxB, 1, spinePts.length - 2);
   const stB = { pt: spinePts[idxB], tan: spineTan[idxB] };
 
-  const stationC = clamp(num(p.param21, 137), 1, 2000);
+  const stationC = clamp(num(p.toe_c_sta, 137), 1, 2000);
   let idxC = findEndIdxByArcLen(spinePts, stationC);
   idxC = clamp(idxC, idxB + 1, spinePts.length - 1);
   const stC = { pt: spinePts[idxC], tan: spineTan[idxC] };
 
+  // Mirror X for the arc controls (matches existing behavior)
   const sx = -1;
 
-  const A_arcX = clamp(num(p.param10, 0), -2000, 2000) * sx;
-  const A_arcZ = clamp(num(p.param11, 27), -2000, 2000);
-  const A_endX = clamp(num(p.param12, 47), 0.1, 2000) * sx;
-  const A_endZ = clamp(num(p.param13, 35), 0.1, 2000);
+  // A controls
+  const A_arcX = clamp(num(p.toe_a_p1s, 25), -2000, 2000) * sx;
+  const A_arcZ = clamp(num(p.toe_a_p3s, 35), -2000, 2000);
+  const A_endX = clamp(num(p.toe_a_endx, 47), 0.1, 2000) * sx;
+  const A_endZ = clamp(num(p.toe_a_endz, 35), 0.1, 2000);
 
-  const B_arcX = clamp(num(p.param17, 0), -2000, 2000) * sx;
-  const B_arcZ = clamp(num(p.param18, 41), -2000, 2000);
-  const B_endX = clamp(num(p.param19, 20), 0.1, 2000) * sx;
-  const B_endZ = clamp(num(p.param20, 50), 0.1, 2000);
+  // B controls
+  const B_arcX = clamp(num(p.toe_b_p1s, 25), -2000, 2000) * sx;
+  const B_arcZ = clamp(num(p.toe_b_p3s, 35), -2000, 2000);
+  const B_endX = clamp(num(p.toe_b_endx, 20), 0.1, 2000) * sx;
+  const B_endZ = clamp(num(p.toe_b_endz, 50), 0.1, 2000);
 
-  const C_arcX = clamp(num(p.param23, 0), -2000, 2000) * sx;
-  const C_arcZ = clamp(num(p.param24, 29), -2000, 2000);
-  const C_endX = clamp(num(p.param25, 19), 0.1, 2000) * sx;
-  const C_endZ = clamp(num(p.param26, 65), 0.1, 2000);
+  // C controls
+  const C_arcX = clamp(num(p.toe_c_p1s, 25), -2000, 2000) * sx;
+  const C_arcZ = clamp(num(p.toe_c_p3s, 35), -2000, 2000);
+  const C_endX = clamp(num(p.toe_c_endx, 19), 0.1, 2000) * sx;
+  const C_endZ = clamp(num(p.toe_c_endz, 65), 0.1, 2000);
 
-  const H_arcX = C_arcX;
-  const H_arcZ = C_arcZ;
-  const H_endX = C_endX;
-  const H_endZ = C_endZ;
+  // Rail debug overlay (reuses existing arc-point groups):
+  // A = sampled OUTER rail, B = sampled INNER rail, C = outer anchors, Heel = inner anchors
+  const toeThk = clamp(num(p.toe_thk, 12), 0.2, 80);
+  const A_enda = clamp(num(p.toe_a_enda, 0), -180, 180);
+  const B_enda = clamp(num(p.toe_b_enda, 0), -180, 180);
+  const C_enda = clamp(num(p.toe_c_enda, 0), -180, 180);
 
-  if (vizAArcPtsEl.checked) viewer.setAArcPoints(arc3PointsAtStation(stA.pt, stA.tan, A_arcX, A_arcZ, A_endX, A_endZ));
-  if (vizBArcPtsEl.checked) viewer.setBArcPoints(arc3PointsAtStation(stB.pt, stB.tan, B_arcX, B_arcZ, B_endX, B_endZ));
-  if (vizCArcPtsEl.checked) viewer.setCArcPoints(arc3PointsAtStation(stC.pt, stC.tan, C_arcX, C_arcZ, C_endX, C_endZ));
-  if (vizHeelArcPtsEl.checked) viewer.setHeelArcPoints(arc3PointsAtStation(stC.pt, stC.tan, H_arcX, H_arcZ, H_endX, H_endZ));
+  const A_endW = localToWorldAtStation(stA, { x: A_endX, y: A_endZ });
+  const B_endW = localToWorldAtStation(stB, { x: B_endX, y: B_endZ });
+  const C_endW = localToWorldAtStation(stC, { x: C_endX, y: C_endZ });
+
+  const A_inW = localToWorldAtStation(stA, toeInnerEndLocal(A_endX, A_endZ, A_arcX / sx, A_arcZ, A_enda, toeThk));
+  const B_inW = localToWorldAtStation(stB, toeInnerEndLocal(B_endX, B_endZ, B_arcX / sx, B_arcZ, B_enda, toeThk));
+  const C_inW = localToWorldAtStation(stC, toeInnerEndLocal(C_endX, C_endZ, C_arcX / sx, C_arcZ, C_enda, toeThk));
+
+  let lenAB = 0;
+  for (let i = 1; i <= idxB; i++) lenAB += dist2(spinePts[i - 1], spinePts[i]);
+  let lenBC = 0;
+  for (let i = idxB + 1; i <= idxC; i++) lenBC += dist2(spinePts[i - 1], spinePts[i]);
+  lenBC = Math.max(1e-6, lenBC);
+  const lenAC = lenAB + lenBC;
+  const railSamples = 80;
+  const outerRailPts: XYZ[] = [];
+  const innerRailPts: XYZ[] = [];
+  for (let i = 0; i <= railSamples; i++) {
+    const sAbs = (lenAC * i) / railSamples;
+    if (sAbs <= lenAB) {
+      const tAB = lenAB <= 1e-9 ? 0 : clamp(sAbs / lenAB, 0, 1);
+      outerRailPts.push(catmullRom3(A_endW, A_endW, B_endW, C_endW, tAB));
+      innerRailPts.push(catmullRom3(A_inW, A_inW, B_inW, C_inW, tAB));
+    } else {
+      const tBC = lenBC <= 1e-9 ? 0 : clamp((sAbs - lenAB) / lenBC, 0, 1);
+      outerRailPts.push(catmullRom3(A_endW, B_endW, C_endW, C_endW, tBC));
+      innerRailPts.push(catmullRom3(A_inW, B_inW, C_inW, C_inW, tBC));
+    }
+  }
+
+  if (vizAArcPtsEl.checked) viewer.setAArcPoints(outerRailPts);
+  if (vizBArcPtsEl.checked) viewer.setBArcPoints(innerRailPts);
+  if (vizCArcPtsEl.checked) viewer.setCArcPoints([A_endW, B_endW, C_endW]);
+  if (vizHeelArcPtsEl.checked) viewer.setHeelArcPoints([A_inW, B_inW, C_inW]);
 }
 
 function downloadArrayBuffer(buffer: ArrayBuffer, filename: string, mime: string) {
@@ -658,7 +906,7 @@ function computeSignature(p: ModelParams): string {
   const parts: string[] = [];
   parts.push([base ? 1 : 0, toeB ? 1 : 0, toeC ? 1 : 0, heel ? 1 : 0].join(","));
 
-  parts.push(paramEls.map((el) => (p as any)[el.id]).join(","));
+  parts.push(paramIds.map((id) => p[id]).join(","));
 
   parts.push(
     `vizBase=${vizBasePtsEl.checked ? 1 : 0},vizA=${vizAArcPtsEl.checked ? 1 : 0},vizB=${
@@ -682,6 +930,7 @@ function rebuildDebounced() {
 }
 
 function rebuild() {
+  applyAutoToeBCMidUI();
   syncLabels();
   updateBaseplateViz();
   updateArcViz();
@@ -721,6 +970,7 @@ function rebuild() {
 }
 
 function exportStl() {
+  applyAutoToeBCMidUI();
   syncLabels();
   updateBaseplateViz();
   updateArcViz();
@@ -752,6 +1002,7 @@ function exportStl() {
 }
 
 function exportStep() {
+  applyAutoToeBCMidUI();
   syncLabels();
   updateBaseplateViz();
   updateArcViz();
