@@ -310,6 +310,7 @@ function toeBezierOffsetProfile2D(
   for (let i = 1; i < ddLoop.length; i++) dd = (dd as any).lineTo([ddLoop[i].x, ddLoop[i].y]);
   return (dd as any).close();
 }
+type ArchPts = { outerPts: Pt[]; innerPts: Pt[] };
 
 function toeBezierOffsetProfileFixedPts(
   endX: number,
@@ -571,7 +572,7 @@ function clippedToeBezierProfileLower(
 ) {
   const { outerPts, innerPts } = toeBezierOffsetProfileFixedPts(endX, endZ, p1s, p3s, enda, thickness);
 
-  const maxOuterZ = Math.max(...outerPts.map((p) => p.y));
+  const maxOuterZ = Math.max(...outerPts.map((p: Pt) => p.y));
   const clip = clamp(clipZ, 0.1, Math.max(0.1, maxOuterZ - 0.1));
 
   const o2 = clipPolylineAtY(outerPts, clip);
@@ -592,7 +593,7 @@ function clippedToeBezierProfileLowerNormalCap(
 ) {
   const { outerPts, innerPts } = toeBezierOffsetProfileFixedPts(endX, endZ, p1s, p3s, enda, thickness);
 
-  const maxOuterZ = Math.max(...outerPts.map((p) => p.y));
+  const maxOuterZ = Math.max(...outerPts.map((p: Pt) => p.y));
   const clip = clamp(clipZ, 0.1, Math.max(0.1, maxOuterZ - 0.1));
 
   const o2 = clipPolylineAtY(outerPts, clip);
@@ -640,7 +641,7 @@ function toeBezierProfileTopCutByAmount(
 
   const baseMeta = toeBezierMeta2D(endX, endZ, p1s, p3s, enda, thickness);
   const { outerPts } = toeBezierOffsetProfileFixedPts(endX, endZ, p1s, p3s, enda, thickness);
-  const maxOuterZ = Math.max(...outerPts.map((p) => p.y));
+  const maxOuterZ = Math.max(...outerPts.map((p: Pt) => p.y));
   // Toe fillet semantics: cut amount is measured down from the sampled profile end/top Z
   // (e.g. endZ 35 with r=10 -> clip at z=25), then capped with a normal-cap cut.
   const refTopZ = clamp(baseMeta.outerEnd.y, 0.1, maxOuterZ);
@@ -672,7 +673,7 @@ function toeBezierMetaTopCutByAmount(
   if (cut <= 1e-6) return base;
   try {
     const { outerPts, innerPts } = toeBezierOffsetProfileFixedPts(endX, endZ, p1s, p3s, enda, thickness);
-    const maxOuterZ = Math.max(...outerPts.map((p) => p.y));
+    const maxOuterZ = Math.max(...outerPts.map((p: Pt) => p.y));
     const minCapZ = Math.max(0.5, Math.min(maxOuterZ * 0.25, maxOuterZ - 0.5));
     const cutSafe = clamp(cut, 0, Math.max(0, maxOuterZ - minCapZ));
     const clip = clamp(maxOuterZ - cutSafe, 0.1, Math.max(0.1, maxOuterZ - 0.1));
@@ -714,7 +715,7 @@ function toeBezierMetaNormalCapByClipZ(
   const base = toeBezierMeta2D(endX, endZ, p1s, p3s, enda, thickness);
   try {
     const { outerPts, innerPts } = toeBezierOffsetProfileFixedPts(endX, endZ, p1s, p3s, enda, thickness);
-    const maxOuterZ = Math.max(...outerPts.map((p) => p.y));
+    const maxOuterZ = Math.max(...outerPts.map((p: Pt) => p.y));
     const clip = clamp(clipZ, 0.1, Math.max(0.1, maxOuterZ - 0.1));
 
     const o2 = clipPolylineAtY(outerPts, clip);
@@ -1744,7 +1745,7 @@ export async function buildHeelSolid(input: ParamMap): Promise<Shape3D> {
   // exceed the available profile C geometry.
   try {
     const { outerPts } = toeBezierOffsetProfileFixedPts(sxFirst * endX_C, endZ_C, p1s_C, p3s_C, enda_C, thickness);
-    const cTopZ = Math.max(...outerPts.map((p) => p.y));
+    const cTopZ = Math.max(...outerPts.map((p: Pt) => p.y));
     const safeTopZ = Math.max(0.1, cTopZ - 0.1);
     const prevHC = heelH_C;
     const prevHD = heelH_D;
