@@ -1,12 +1,17 @@
-// FILE: src/cad/model.ts
-import { draw, makePlane, type Shape3D } from "replicad";
+﻿// FILE: src/cad/model.ts
+import { draw, drawCircle, makePlane, type Shape3D } from "replicad";
 
 export type ParamMap = Record<string, unknown>;
-type Pt = { x: number; y: number };
+type Pt = { x: number; y: number; arcMidFromPrev?: { x: number; y: number }; skipDraw?: boolean };
 
 // =======================================================
 // Shared helpers
 // =======================================================
+const DEBUG_SHOW_SH_FIL_1_INFILL_SEPARATE = false;
+const DEBUG_SKIP_BASE_CUT_WHEN_SH_FIL_1 = false;
+const DEBUG_SKIP_SH_FIL_1_INFILL_FUSE = false;
+const DEBUG_FORCE_SH_FIL_1_OFFSET_SIDE: 0 | 1 | -1 = 0; // 0=auto, 1=offA, -1=offB
+
 function num(v: unknown, f: number) {
   const n = Number(v);
   return Number.isFinite(n) ? n : f;
@@ -384,8 +389,191 @@ function rot2(p: Pt, angDeg: number): Pt {
 function polyToDraw(loop: Pt[]) {
   if (loop.length < 3) throw new Error("polyToDraw: need >=3 points");
   let d = draw([loop[0].x, loop[0].y]);
-  for (let i = 1; i < loop.length; i++) d = (d as any).lineTo([loop[i].x, loop[i].y]);
+  for (let i = 1; i < loop.length; i++) {
+    const p = loop[i];
+    if (p.skipDraw) continue;
+    if (p.arcMidFromPrev) {
+      d = (d as any).threePointsArcTo([p.x, p.y], [p.arcMidFromPrev.x, p.arcMidFromPrev.y]);
+    } else {
+      d = (d as any).lineTo([p.x, p.y]);
+    }
+  }
   return (d as any).close();
+}
+
+function signedArea2(loop: Pt[]) {
+  let a = 0;
+  for (let i = 0; i < loop.length; i++) {
+    const p = loop[i];
+    const q = loop[(i + 1) % loop.length];
+    a += p.x * q.y - q.x * p.y;
+  }
+  return 0.5 * a;
+}
+
+function pruneLoopTinyKinks(loop: Pt[], distEps = 0.2, offLineEps = 0.08): Pt[] {
+  let out = loop.slice();
+  if (out.length < 4) return out;
+
+  for (let pass = 0; pass < 4; pass++) {
+    let changed = false;
+    const next: Pt[] = [];
+    const n = out.length;
+    if (n < 4) break;
+
+    for (let i = 0; i < n; i++) {
+      const a = out[(i - 1 + n) % n];
+      const b = out[i];
+      const c = out[(i + 1) % n];
+
+      const ab = dist(a, b);
+      const bc = dist(b, c);
+      const ac = dist(a, c);
+
+      // Remove tiny spikes/edges.
+      if (ab <= distEps || bc <= distEps) {
+        changed = true;
+        continue;
+      }
+
+      // Remove nearly-collinear points by perpendicular distance to AC.
+      if (ac > 1e-6) {
+        const area2 = Math.abs(cross2(sub(b, a), sub(c, a)));
+        const h = area2 / ac;
+        if (h <= offLineEps) {
+          changed = true;
+          continue;
+        }
+      }
+
+      next.push(b);
+    }
+
+    out = dedupePts(next, 1e-6);
+    if (!changed) break;
+  }
+
+  return out.length >= 3 ? out : loop;
+}
+
+function filletClosedLoopCorner(loop: Pt[], idx: number, radius: number, arcSegs = 8, emitTrueArc = false): Pt[] {
+  if (loop.length < 3) return loop;
+  const r = Math.max(0, radius);
+  if (r <= 1e-6) return loop;
+
+  const n = loop.length;
+  const i1 = idx % n;
+  const p1 = loop[i1];
+  const minAdjDist = Math.max(1, r * 0.6);
+  const pickNeighbor = (step: -1 | 1) => {
+    let k = i1;
+    let traveled = 0;
+    for (let hops = 0; hops < n - 1; hops++) {
+      const kNext = (k + step + n) % n;
+      traveled += dist(loop[k], loop[kNext]);
+      k = kNext;
+      if (traveled >= minAdjDist) return { idx: k, pt: loop[k] };
+    }
+    const j = (i1 + step + n) % n;
+    return { idx: j, pt: loop[j] };
+  };
+  const prevPick = pickNeighbor(-1);
+  const nextPick = pickNeighbor(1);
+  const p0 = prevPick.pt;
+  const p2 = nextPick.pt;
+
+  const a = sub(p0, p1);
+  const b = sub(p2, p1);
+  const la = vlen(a);
+  const lb = vlen(b);
+  if (la <= 1e-6 || lb <= 1e-6) return loop;
+
+  const ua = mul(a, 1 / la);
+  const ub = mul(b, 1 / lb);
+  const dot = clamp(dot2(ua, ub), -1, 1);
+  const theta = Math.acos(dot);
+  if (!Number.isFinite(theta) || theta <= 1e-3 || theta >= Math.PI - 1e-3) return loop;
+
+  const tanHalf = Math.tan(theta * 0.5);
+  if (Math.abs(tanHalf) <= 1e-9) return loop;
+
+  const maxTrim = Math.max(0, Math.min(la, lb) - 1e-4);
+  const trim = Math.min(r / tanHalf, maxTrim);
+  if (trim <= 1e-6) return loop;
+
+  const rEff = trim * tanHalf;
+  const sinHalf = Math.sin(theta * 0.5);
+  if (Math.abs(sinHalf) <= 1e-9) return loop;
+
+  const start = add(p1, mul(ua, trim));
+  const end = add(p1, mul(ub, trim));
+  const bis = vnorm(add(ua, ub));
+  if (vlen(bis) <= 1e-6) return loop;
+
+  const orient = signedArea2(loop) >= 0 ? 1 : -1; // +1 CCW, -1 CW
+  const incoming = sub(p1, p0);
+  const outgoing = sub(p2, p1);
+  const centerDist = rEff / sinHalf;
+  const cA = add(p1, mul(bis, centerDist));
+  const cB = add(p1, mul(bis, -centerDist));
+  const sideScore = (c: Pt) => {
+    const s1 = cross2(incoming, sub(c, p0)) * orient;
+    const s2 = cross2(outgoing, sub(c, p1)) * orient;
+    return Math.min(s1, s2);
+  };
+  const center = sideScore(cA) >= sideScore(cB) ? cA : cB;
+
+  const rs = sub(start, center);
+  const re = sub(end, center);
+  let a0 = Math.atan2(rs.y, rs.x);
+  let a1 = Math.atan2(re.y, re.x);
+  let da = a1 - a0;
+  while (da <= -Math.PI) da += Math.PI * 2;
+  while (da > Math.PI) da -= Math.PI * 2;
+
+  const arcPts: Pt[] = [];
+  const segs = Math.max(2, Math.round(arcSegs));
+  for (let i = 1; i < segs; i++) {
+    const t = i / segs;
+    const a = a0 + da * t;
+    arcPts.push({ x: center.x + Math.cos(a) * rEff, y: center.y + Math.sin(a) * rEff, skipDraw: emitTrueArc });
+  }
+  let endOut: Pt = end;
+  if (emitTrueArc) {
+    const aMid = a0 + da * 0.5;
+    endOut = {
+      x: end.x,
+      y: end.y,
+      arcMidFromPrev: { x: center.x + Math.cos(aMid) * rEff, y: center.y + Math.sin(aMid) * rEff },
+    };
+  }
+
+  const shouldSkip = (i: number) => {
+    if (i === i1) return true;
+    // Skip points between prevPick -> corner and corner -> nextPick since the fillet trims them.
+    let k = (prevPick.idx + 1) % n;
+    while (k !== i1) {
+      if (k === i) return true;
+      k = (k + 1) % n;
+    }
+    k = (i1 + 1) % n;
+    while (k !== nextPick.idx) {
+      if (k === i) return true;
+      k = (k + 1) % n;
+    }
+    return false;
+  };
+
+  const out: Pt[] = [];
+  for (let i = 0; i < n; i++) {
+    if (i === prevPick.idx) {
+      out.push(loop[i], start, ...arcPts, endOut);
+      continue;
+    }
+    if (shouldSkip(i)) continue;
+    out.push(loop[i]);
+  }
+  return dedupePts(out, 1e-6);
 }
 
 function stadiumLoop(diaMm: number, lengthMm: number, segsPerSemi = 24): Pt[] {
@@ -429,12 +617,227 @@ function stadiumLoop(diaMm: number, lengthMm: number, segsPerSemi = 24): Pt[] {
   return out;
 }
 
+// Explicit stadium from two circle centers:
+// top tangent line -> end half-circle -> bottom tangent line -> start half-circle
+// (arcs are sampled as polylines for robustness with the current sketch code path)
+function stadiumBetweenCentersLoop(a: Pt, b: Pt, diaMm: number, segsPerSemi = 24): Pt[] {
+  const dia = Math.max(0, diaMm);
+  const r = dia * 0.5;
+  if (r <= 1e-6) return [];
+
+  const d = sub(b, a);
+  const L = vlen(d);
+  if (L <= 1e-6) return stadiumLoop(dia, dia, Math.max(12, segsPerSemi));
+
+  const u = vnorm(d);
+  const n = { x: -u.y, y: u.x }; // left normal
+
+  const out: Pt[] = [];
+
+  // Start on the "top" tangent of the start circle, then line to end top tangent.
+  out.push({ x: a.x + n.x * r, y: a.y + n.y * r });
+  out.push({ x: b.x + n.x * r, y: b.y + n.y * r });
+
+  // End cap: sweep from +n to -n through +u.
+  for (let i = 1; i <= segsPerSemi; i++) {
+    const t = i / segsPerSemi;
+    const ang = Math.PI * t;
+    const vx = n.x * Math.cos(ang) + u.x * Math.sin(ang);
+    const vy = n.y * Math.cos(ang) + u.y * Math.sin(ang);
+    out.push({ x: b.x + vx * r, y: b.y + vy * r });
+  }
+
+  // Bottom tangent back to start circle.
+  out.push({ x: a.x - n.x * r, y: a.y - n.y * r });
+
+  // Start cap: sweep from -n back to +n through -u.
+  for (let i = 1; i <= segsPerSemi; i++) {
+    const t = i / segsPerSemi;
+    const ang = Math.PI * t;
+    const vx = -n.x * Math.cos(ang) - u.x * Math.sin(ang);
+    const vy = -n.y * Math.cos(ang) - u.y * Math.sin(ang);
+    out.push({ x: a.x + vx * r, y: a.y + vy * r });
+  }
+
+  return dedupePts(out, 1e-6);
+}
+
+function segmentIntersectionPt(a0: Pt, a1: Pt, b0: Pt, b1: Pt, eps = 1e-9): Pt | null {
+  const r = sub(a1, a0);
+  const s = sub(b1, b0);
+  const denom = cross2(r, s);
+  if (Math.abs(denom) <= eps) return null;
+
+  const qmp = sub(b0, a0);
+  const t = cross2(qmp, s) / denom;
+  const u = cross2(qmp, r) / denom;
+  if (t < -eps || t > 1 + eps || u < -eps || u > 1 + eps) return null;
+
+  return { x: a0.x + r.x * t, y: a0.y + r.y * t };
+}
+
+function closedLoopIntersections2D(loopA: Pt[], loopB: Pt[]): Pt[] {
+  if (loopA.length < 2 || loopB.length < 2) return [];
+  const out: Pt[] = [];
+  for (let i = 0; i < loopA.length; i++) {
+    const a0 = loopA[i];
+    const a1 = loopA[(i + 1) % loopA.length];
+    for (let j = 0; j < loopB.length; j++) {
+      const b0 = loopB[j];
+      const b1 = loopB[(j + 1) % loopB.length];
+      const hit = segmentIntersectionPt(a0, a1, b0, b1);
+      if (hit) out.push(hit);
+    }
+  }
+  return out;
+}
+
+function dedupePtsAnyOrder(pts: Pt[], eps = 1e-3): Pt[] {
+  const out: Pt[] = [];
+  for (const p of pts) {
+    if (!out.some((q) => Math.hypot(p.x - q.x, p.y - q.y) <= eps)) out.push(p);
+  }
+  return out;
+}
+
 function makeSlotCutter2D(centerX: number, centerY: number, diaMm: number, slotLenMm: number, angDeg: number) {
   const loopLocal = stadiumLoop(diaMm, slotLenMm, 26);
   if (loopLocal.length < 3) return null;
 
   const loopWorld = loopLocal.map((p) => rot2(p, angDeg)).map((p) => ({ x: p.x + centerX, y: p.y + centerY }));
   return polyToDraw(loopWorld);
+}
+
+function makeSlotCutter2DFromCenters(a: Pt, b: Pt, diaMm: number) {
+  const loop = stadiumBetweenCentersLoop(a, b, diaMm, 26);
+  if (loop.length < 3) return null;
+  return polyToDraw(loop);
+}
+
+type SegHit2D = { pt: Pt; segIdx: number; t: number };
+type LoopIntersectionHit2D = { pt: Pt; a: SegHit2D; b: SegHit2D };
+
+function pointInClosedLoop2D(loop: Pt[], p: Pt): boolean {
+  let inside = false;
+  for (let i = 0, j = loop.length - 1; i < loop.length; j = i++) {
+    const pi = loop[i];
+    const pj = loop[j];
+    const yi = pi.y > p.y;
+    const yj = pj.y > p.y;
+    if (yi === yj) continue;
+    const xCross = ((pj.x - pi.x) * (p.y - pi.y)) / ((pj.y - pi.y) || 1e-12) + pi.x;
+    if (p.x < xCross) inside = !inside;
+  }
+  return inside;
+}
+
+function polylinePointAtFrac(path: Pt[], frac01: number): Pt {
+  if (path.length <= 1) return path[0] ?? { x: 0, y: 0 };
+  const t = clamp(frac01, 0, 1);
+  let total = 0;
+  for (let i = 1; i < path.length; i++) total += dist(path[i - 1], path[i]);
+  if (total <= 1e-9) return path[0];
+
+  const target = total * t;
+  let acc = 0;
+  for (let i = 1; i < path.length; i++) {
+    const a = path[i - 1];
+    const b = path[i];
+    const seg = dist(a, b);
+    if (seg <= 1e-9) continue;
+    if (acc + seg >= target) {
+      const u = (target - acc) / seg;
+      return lerpPt(a, b, u);
+    }
+    acc += seg;
+  }
+  return path[path.length - 1];
+}
+
+function closedLoopIntersectionsDetailed(loopA: Pt[], loopB: Pt[], eps = 1e-9): LoopIntersectionHit2D[] {
+  if (loopA.length < 2 || loopB.length < 2) return [];
+  const out: LoopIntersectionHit2D[] = [];
+  for (let i = 0; i < loopA.length; i++) {
+    const a0 = loopA[i];
+    const a1 = loopA[(i + 1) % loopA.length];
+    const r = sub(a1, a0);
+    for (let j = 0; j < loopB.length; j++) {
+      const b0 = loopB[j];
+      const b1 = loopB[(j + 1) % loopB.length];
+      const s = sub(b1, b0);
+      const denom = cross2(r, s);
+      if (Math.abs(denom) <= eps) continue;
+      const qmp = sub(b0, a0);
+      const t = cross2(qmp, s) / denom;
+      const u = cross2(qmp, r) / denom;
+      if (t < -eps || t > 1 + eps || u < -eps || u > 1 + eps) continue;
+      out.push({
+        pt: { x: a0.x + r.x * t, y: a0.y + r.y * t },
+        a: { pt: { x: a0.x + r.x * t, y: a0.y + r.y * t }, segIdx: i, t: clamp(t, 0, 1) },
+        b: { pt: { x: a0.x + r.x * t, y: a0.y + r.y * t }, segIdx: j, t: clamp(u, 0, 1) },
+      });
+    }
+  }
+  return out;
+}
+
+function traceClosedLoopBetweenHits(loop: Pt[], from: SegHit2D, to: SegHit2D): Pt[] {
+  const n = loop.length;
+  if (n < 2) return [];
+  const out: Pt[] = [{ x: from.pt.x, y: from.pt.y }];
+
+  if (from.segIdx === to.segIdx && to.t >= from.t) {
+    out.push({ x: to.pt.x, y: to.pt.y });
+    return dedupePts(out, 1e-6);
+  }
+
+  let seg = from.segIdx;
+  for (let guard = 0; guard < n + 2; guard++) {
+    const nextVertex = loop[(seg + 1) % n];
+    out.push({ x: nextVertex.x, y: nextVertex.y });
+    seg = (seg + 1) % n;
+    if (seg === to.segIdx) break;
+  }
+  out.push({ x: to.pt.x, y: to.pt.y });
+  return dedupePts(out, 1e-6);
+}
+
+// Keep these local helpers available for iterative seam/infill work even when a
+// given build path does not currently call them.
+void closedLoopIntersections2D;
+void dedupePtsAnyOrder;
+void polylinePointAtFrac;
+void traceClosedLoopBetweenHits;
+
+// Same stadium footprint as makeSlotCutter2DFromCenters, but built from true lines + arcs
+// (used for washer outer pads so the seam is not polygonized).
+function makeSlotProfile2DFromCentersArc(a: Pt, b: Pt, diaMm: number) {
+  const dia = Math.max(0, diaMm);
+  const r = dia * 0.5;
+  if (r <= 1e-6) return null;
+
+  const d = sub(b, a);
+  const L = vlen(d);
+  if (L <= 1e-6) return (drawCircle(r) as any).translate(a.x, a.y);
+
+  const u = vnorm(d);
+  const n = { x: -u.y, y: u.x }; // left normal
+
+  const aTop = { x: a.x + n.x * r, y: a.y + n.y * r };
+  const bTop = { x: b.x + n.x * r, y: b.y + n.y * r };
+  const bBot = { x: b.x - n.x * r, y: b.y - n.y * r };
+  const aBot = { x: a.x - n.x * r, y: a.y - n.y * r };
+
+  // Points on the arc bulges (ensures semicircles, not straight chords)
+  const bMid = { x: b.x + u.x * r, y: b.y + u.y * r };
+  const aMid = { x: a.x - u.x * r, y: a.y - u.y * r };
+
+  let d2 = draw([aTop.x, aTop.y]);
+  d2 = (d2 as any).lineTo([bTop.x, bTop.y]);
+  d2 = (d2 as any).threePointsArcTo([bBot.x, bBot.y], [bMid.x, bMid.y]);
+  d2 = (d2 as any).lineTo([aBot.x, aBot.y]);
+  d2 = (d2 as any).threePointsArcTo([aTop.x, aTop.y], [aMid.x, aMid.y]);
+  return (d2 as any).close();
 }
 
 function fuseMany(shapes: any[]): any | null {
@@ -910,41 +1313,581 @@ export async function buildBaseSolid(input: ParamMap): Promise<Shape3D> {
 
   inner[0] = { x: 0, y: 0 };
 
-  let d = draw([0, 0]);
-  d = (d as any).lineTo([outer[0].x, outer[0].y]);
-  for (let i = 1; i < outer.length; i++) d = (d as any).lineTo([outer[i].x, outer[i].y]);
-  d = (d as any).lineTo([inner[inner.length - 1].x, inner[inner.length - 1].y]);
-  for (let i = inner.length - 2; i >= 0; i--) d = (d as any).lineTo([inner[i].x, inner[i].y]);
-  d = (d as any).close();
+  // Build the baseplate sketch loop as points so we can fillet the end-cap corners
+  // (outer[last] and inner[last]) before extrusion.
+  let baseLoop: Pt[] = [{ x: 0, y: 0 }, ...outer, inner[inner.length - 1], ...inner.slice(0, inner.length - 1).reverse()];
+  const startCapOuterIdx = 1; // first point in outer[] == baseLoop[1]
+  const endCapOuterIdx = outer.length; // [0]=origin, [1..outer.length]=outer[]
+  const baseFilletEnabled = clamp(getV(input, "bp_fil_1", "param_bp_fil_1", 0), 0, 1) > 0.5;
+  const baseFilletRadius = clamp(getV(input, "bp_fil_1_r", "param_bp_fil_1_r", 8), 0, 200);
+  const baseEndFilletR = baseFilletEnabled ? baseFilletRadius : 0;
 
-  const base = (d as any).sketchOnPlane("XY").extrude(-baseThk) as Shape3D;
+  // Fillet the toe outer end-cap corner plus the outer-start corner. Apply higher
+  // index first to avoid shifting lower indices before we process them.
+  baseLoop = filletClosedLoopCorner(baseLoop, endCapOuterIdx, baseEndFilletR, 10, true);
+  baseLoop = filletClosedLoopCorner(baseLoop, startCapOuterIdx, baseEndFilletR, 10, true);
+  baseLoop = pruneLoopTinyKinks(baseLoop, 0.25, 0.12);
+
+  const base = (polyToDraw(baseLoop) as any).sketchOnPlane("XY").extrude(-baseThk) as Shape3D;
 
   // Screw holes (named + legacy param31..36)
+  // UI-local screw-hole origin: (0,0) in the UI maps to this calibrated baseplate point.
+  const SH_ORIGIN_X = -40;
+  const SH_ORIGIN_Y = 25;
   const shX = clamp(getV(input, "bp_sh_x", "param31", 0), -1000, 1000);
   const shY = clamp(getV(input, "bp_sh_y", "param32", 0), -1000, 1000);
   const shDia = clamp(getV(input, "bp_sh_dia", "param33", 0), 0, 200);
-  const shSlot = clamp(getV(input, "bp_sh_slot", "param34", 0), 0, 400);
-  const shDist = clamp(getV(input, "bp_sh_dist", "param35", 60), 0, 4000);
-  const shAng = clamp(getV(input, "bp_sh_ang", "param36", 0), -360, 360);
+  const shWasher = clamp(getV(input, "bp_sh_washer", "param33b", 10), 0, 400);
+  const shSlot = clamp(getV(input, "bp_sh_slot", "param34", 30), 0, 400);
+  const shDist = clamp(getV(input, "bp_sh_dist", "param35", 10), 0, 4000);
+  const shAng = clamp(getV(input, "bp_sh_ang", "param36", 12), -360, 360);
+  const shAng2 = clamp(getV(input, "bp_sh_ang2", "param36b", -20), -360, 360);
+  const shOff2 = clamp(getV(input, "bp_sh_off2", "param36c", 60), -4000, 4000);
+  const shFil1Enabled = clamp(getV(input, "sh_fil_1", "param_sh_fil_1", 0), 0, 1) > 0.5;
+  const shFil1Radius = clamp(getV(input, "sh_fil_1_r", "param_sh_fil_1_r", 4), 0, 200);
+
+  if (shFil1Enabled && shFil1Radius > 1e-6) {
+    // Placeholder: values are now wired through UI -> main -> worker -> model.
+    // Screw-hole fillet application can be added where slot/hole cutter loops are built.
+  }
 
   if (shDia <= 1e-6) return base;
 
-  const cx = baseWid * 0.5 + shX;
-  const cy = baseLen * 0.5 + shY;
+  // UI values are local offsets from the calibrated screw-hole origin.
+  const cx = SH_ORIGIN_X + shX;
+  const cy = SH_ORIGIN_Y + shY;
 
-  const axis = rot2({ x: 1, y: 0 }, shAng);
-  const half = shDist * 0.5;
+  // UI-friendly convention: 0 deg = +Y (baseplate length direction)
+  const axis = rot2({ x: 0, y: 1 }, shAng);
+  // Pair spacing semantics:
+  // - round holes (slot=0): bp_sh_dist = center-to-center distance
+  // - slots (slot>0):      bp_sh_dist = end-to-start gap between slots
+  //   (measured along the slot centerline span, so add slot length to get center spacing)
+  const pairCenterSpacing = shSlot > 1e-6 ? shDist + shSlot : shDist;
+  // bp_sh_x / bp_sh_y define the FIRST hole/slot center.
+  // The SECOND hole/slot is placed along the pattern axis by the computed spacing.
+  const c1 = { x: cx, y: cy };
+  const axis2 = rot2({ x: 0, y: 1 }, shAng + shAng2);
+  const c2Base = { x: cx + axis.x * pairCenterSpacing, y: cy + axis.y * pairCenterSpacing };
+  const c2 = { x: c2Base.x + axis2.x * shOff2, y: c2Base.y + axis2.y * shOff2 };
 
-  const c1 = { x: cx - axis.x * half, y: cy - axis.y * half };
-  const c2 = { x: cx + axis.x * half, y: cy + axis.y * half };
+  // Build an inline round/slot profile anchored at the first hole center, extending
+  // along local +Y by `slotExtra` when slotExtra > 0.
+  const makeInlineProfileAt = (c: Pt, dia: number, slotExtra: number, slotAxis: Pt): any | null => {
+    const dSafe = Math.max(0, dia);
+    if (dSafe <= 1e-6) return null;
+    if (slotExtra > 1e-6) {
+      const cEnd = { x: c.x + slotAxis.x * slotExtra, y: c.y + slotAxis.y * slotExtra };
+      return makeSlotCutter2DFromCenters(c, cEnd, dSafe);
+    }
+    return makeSlotCutter2D(c.x, c.y, dSafe, dSafe, 0);
+  };
+  const makeInlineProfileAtArc = (c: Pt, dia: number, slotExtra: number, slotAxis: Pt): any | null => {
+    const dSafe = Math.max(0, dia);
+    if (dSafe <= 1e-6) return null;
+    if (slotExtra > 1e-6) {
+      const cEnd = { x: c.x + slotAxis.x * slotExtra, y: c.y + slotAxis.y * slotExtra };
+      return makeSlotProfile2DFromCentersArc(c, cEnd, dSafe);
+    }
+    return (drawCircle(dSafe * 0.5) as any).translate(c.x, c.y);
+  };
+  const makeInlineProfileLoopAt = (c: Pt, dia: number, slotExtra: number, slotAxis: Pt): Pt[] | null => {
+    const dSafe = Math.max(0, dia);
+    if (dSafe <= 1e-6) return null;
+    if (slotExtra > 1e-6) {
+      const cEnd = { x: c.x + slotAxis.x * slotExtra, y: c.y + slotAxis.y * slotExtra };
+      return stadiumBetweenCentersLoop(c, cEnd, dSafe, 26);
+    }
+    return stadiumLoop(dSafe, dSafe, 26).map((p) => ({ x: p.x + c.x, y: p.y + c.y }));
+  };
 
-  const slotLenTotal = Math.max(shDia, shSlot > 0 ? shSlot : shDia);
+  const washerOffset = Math.max(0, shWasher);
+  const washerOuterDia = shDia + washerOffset * 2;
 
-  const s1 = makeSlotCutter2D(c1.x, c1.y, shDia, slotLenTotal, shAng);
-  const s2 = makeSlotCutter2D(c2.x, c2.y, shDia, slotLenTotal, shAng);
+  // 1) Washer profiles first (outer footprint only; no hole cut yet)
+  const washer2D = [
+    makeInlineProfileAtArc(c1, washerOuterDia, shSlot, axis),
+    makeInlineProfileAtArc(c2, washerOuterDia, shSlot, axis2),
+  ].filter(Boolean) as any[];
+  const washerOuterLoops2D = [
+    makeInlineProfileLoopAt(c1, washerOuterDia, shSlot, axis),
+    makeInlineProfileLoopAt(c2, washerOuterDia, shSlot, axis2),
+  ].filter((v): v is Pt[] => !!v && v.length >= 3);
 
-  const cutters2D = [s1, s2].filter(Boolean) as any[];
+  // 2) Hole/slot cutters second (actual through-cuts)
+  const cutters2D = [makeInlineProfileAt(c1, shDia, shSlot, axis), makeInlineProfileAt(c2, shDia, shSlot, axis2)].filter(
+    Boolean
+  ) as any[];
   if (!cutters2D.length) return base;
+
+  // Optional washer pads: add local thickness BELOW the baseplate bottom face (do not
+  // protrude above the top face at z=0). The screw-hole cutters below intentionally
+  // cut only through the original baseplate thickness, not through the added washer
+  // solids, so the washer additions remain solid.
+  let solid = base as any;
+  let shFil1Deferred3D: any[] = [];
+  const washerDepth = Math.max(0.1, Math.abs(baseThk));
+  if (washer2D.length && washerDepth > 1e-6) {
+    const baseBottomZ = Math.min(0, -baseThk);
+    const washerPlane = makePlane("XY", [0, 0, baseBottomZ]);
+    const washer3D = washer2D.map((w2d) => (w2d as any).sketchOnPlane(washerPlane).extrude(washerDepth));
+    const washerSolid = fuseMany(washer3D);
+    if (washerSolid && typeof solid.fuse === "function") {
+      try {
+        solid = solid.fuse(washerSolid);
+
+        // SH_FIL_1: build 2D seam "infill" patches between the base outer loop and
+        // each washer outer loop, fillet the two seam corners in 2D, then extrude.
+        if (shFil1Enabled && shFil1Radius > 1e-6) {
+          try {
+            const infill2D: any[] = [];
+            let dbgHits = 0;
+            let dbgPatches = 0;
+            let dbgRejectedWrongSide = 0;
+            let dbgRejectedArea = 0;
+            const armLen = clamp(shFil1Radius * 2.8, 2.0, 40);
+
+            // Walk along the closed loop from an intersection hit by arc length, so on a
+            // densely-sampled spline we can reach points farther away than the tiny local segment.
+            const pointAlongHitLoop = (loop: Pt[], h: SegHit2D, dirSign: -1 | 1, len: number): Pt | null => {
+              const n = loop.length;
+              if (n < 2) return null;
+              let remaining = Math.max(0, len);
+
+              if (dirSign > 0) {
+                let segIdx = h.segIdx;
+                let cur = { x: h.pt.x, y: h.pt.y };
+                let segEnd = loop[(segIdx + 1) % n];
+                for (let guard = 0; guard < n + 2; guard++) {
+                  const segVec = sub(segEnd, cur);
+                  const segLen = vlen(segVec);
+                  if (segLen > 1e-9) {
+                    if (remaining <= segLen) {
+                      const u = remaining / segLen;
+                      return lerpPt(cur, segEnd, u);
+                    }
+                    remaining -= segLen;
+                  }
+                  segIdx = (segIdx + 1) % n;
+                  cur = { x: segEnd.x, y: segEnd.y };
+                  segEnd = loop[(segIdx + 1) % n];
+                }
+                return cur;
+              }
+
+              let segIdx = h.segIdx;
+              let cur = { x: h.pt.x, y: h.pt.y };
+              let segStart = loop[segIdx];
+              for (let guard = 0; guard < n + 2; guard++) {
+                const segVec = sub(segStart, cur);
+                const segLen = vlen(segVec);
+                if (segLen > 1e-9) {
+                  if (remaining <= segLen) {
+                    const u = remaining / segLen;
+                    return lerpPt(cur, segStart, u);
+                  }
+                  remaining -= segLen;
+                }
+                segIdx = (segIdx - 1 + n) % n;
+                cur = { x: segStart.x, y: segStart.y };
+                segStart = loop[segIdx];
+              }
+              return cur;
+            };
+
+            for (const wLoop of washerOuterLoops2D) {
+              const rawHits = closedLoopIntersectionsDetailed(baseLoop, wLoop);
+              const hits = rawHits.filter(
+                (h, idx) => !rawHits.slice(0, idx).some((q) => Math.hypot(q.pt.x - h.pt.x, q.pt.y - h.pt.y) <= 0.4)
+              );
+              dbgHits += hits.length;
+              for (const h of hits) {
+                type Cand = { basePt: Pt; washPt: Pt; score: number; areaAbs: number };
+                const cands: Cand[] = [];
+
+                for (const bDir of [-1, 1] as const) {
+                  const basePt = pointAlongHitLoop(baseLoop, h.a, bDir, armLen);
+                  if (!basePt) continue;
+                  for (const wDir of [-1, 1] as const) {
+                    const washPt = pointAlongHitLoop(wLoop, h.b, wDir, armLen);
+                    if (!washPt) continue;
+
+                    const triMid = {
+                      x: (h.pt.x + basePt.x + washPt.x) / 3,
+                      y: (h.pt.y + basePt.y + washPt.y) / 3,
+                    };
+                    const outsideBase = !pointInClosedLoop2D(baseLoop, triMid);
+                    const outsideWasher = !pointInClosedLoop2D(wLoop, triMid);
+                    const closureMid = { x: 0.5 * (basePt.x + washPt.x), y: 0.5 * (basePt.y + washPt.y) };
+                    const closureOutsideBase = !pointInClosedLoop2D(baseLoop, closureMid);
+                    const closureOutsideWasher = !pointInClosedLoop2D(wLoop, closureMid);
+                    const closureSeamDist = dist(h.pt, closureMid);
+                    const areaAbs = Math.abs(cross2(sub(basePt, h.pt), sub(washPt, h.pt))) * 0.5;
+                    if (areaAbs <= 1e-4) continue;
+
+                    // Primary rule: the closure edge (basePt->washPt) must sit on the outside
+                    // of both loops (the "blue" side). This directly targets the side you drew.
+                    let score = 0;
+                    if (closureOutsideBase) score += 10000;
+                    if (closureOutsideWasher) score += 10000;
+                    if (closureOutsideBase && closureOutsideWasher) score += 20000;
+                    // Choose the "blue side": the closure chord should be farther away
+                    // from the seam, not the compact inner closure.
+                    score += 8000 * closureSeamDist;
+
+                    // Secondary heuristic: wedge interior also outside both solids.
+                    if (outsideBase) score += 1000;
+                    if (outsideWasher) score += 1000;
+                    if (outsideBase && outsideWasher) score += 5000;
+
+                    // Prefer a reasonably sized patch (not tiny shards, not giant slivers).
+                    score += Math.min(areaAbs, armLen * armLen * 0.25) * 0.5;
+                    score -= 0.005 * (dist(h.pt, basePt) + dist(h.pt, washPt));
+
+                    cands.push({ basePt, washPt, score, areaAbs });
+                  }
+                }
+
+                if (!cands.length) continue;
+                cands.sort((a, b) => b.score - a.score);
+                const best = cands[0];
+
+                // Local clamp: tiny wedge corners cannot support the full UI radius.
+                const lA = dist(h.pt, best.basePt);
+                const lB = dist(h.pt, best.washPt);
+                const localR = Math.min(shFil1Radius, Math.max(0, 0.42 * Math.min(lA, lB)));
+                if (localR <= 0.05) continue;
+
+                // Then make a NEW profile from only the good side (red seam fillet path),
+                // and close it with a separate cap path so we don't redraw/keep the wrong
+                // direct closure edge on top of itself.
+                const nearestIdx = (loop: Pt[], p: Pt) => {
+                  let bestI = -1;
+                  let bestD = Infinity;
+                  for (let i = 0; i < loop.length; i++) {
+                    const d = dist(loop[i], p);
+                    if (d < bestD) {
+                      bestD = d;
+                      bestI = i;
+                    }
+                  }
+                  return bestI;
+                };
+                const pathBetweenIdx = (loop: Pt[], i0: number, i1: number): Pt[] => {
+                  const n = loop.length;
+                  const out: Pt[] = [];
+                  let i = i0;
+                  for (let guard = 0; guard < n + 1; guard++) {
+                    out.push(loop[i]);
+                    if (i === i1) break;
+                    i = (i + 1) % n;
+                  }
+                  return dedupePts(out, 1e-6);
+                };
+                const minDistToSeam = (path: Pt[]) => Math.min(...path.map((p) => dist(p, h.pt)));
+                const pathArcScore = (path: Pt[]) => {
+                  if (path.length < 2) return -Infinity;
+                  let plen = 0;
+                  for (let i = 1; i < path.length; i++) plen += dist(path[i - 1], path[i]);
+                  const chord = dist(path[0], path[path.length - 1]);
+                  const bow = Math.max(0, plen - chord); // fillet arc path should have non-zero bow
+                  const seamProx = minDistToSeam(path);
+                  // Prefer visible curvature first, then points near seam as a tie-breaker.
+                  return bow * 100 - seamProx;
+                };
+                const pathLen = (path: Pt[]) => {
+                  let L = 0;
+                  for (let i = 1; i < path.length; i++) L += dist(path[i - 1], path[i]);
+                  return L;
+                };
+                const extractRedPathFromWedge = (seed: Pt[]) => {
+                  let wedgeLoop = dedupePts(seed, 1e-6);
+                  if (wedgeLoop.length < 3) return null;
+                  wedgeLoop = filletClosedLoopCorner(wedgeLoop, 0, localR, 12);
+                  wedgeLoop = pruneLoopTinyKinks(wedgeLoop, 0.05, 0.03);
+                  if (wedgeLoop.length < 3) return null;
+
+                  const iBase = nearestIdx(wedgeLoop, best.basePt);
+                  const iWash = nearestIdx(wedgeLoop, best.washPt);
+                  if (iBase < 0 || iWash < 0 || iBase === iWash) return null;
+
+                  const pA = pathBetweenIdx(wedgeLoop, iBase, iWash);
+                  const pB = pathBetweenIdx(wedgeLoop, iWash, iBase).reverse();
+                  const sA = pathArcScore(pA);
+                  const sB = pathArcScore(pB);
+                  let rp = sA >= sB ? pA : pB;
+                  if (rp.length < 2) return null;
+                  if (dist(rp[0], best.basePt) > dist(rp[rp.length - 1], best.basePt)) rp = rp.slice().reverse();
+
+                  const plen = pathLen(rp);
+                  const chord = dist(rp[0], rp[rp.length - 1]);
+                  const bow = Math.max(0, plen - chord);
+                  const seamProx = minDistToSeam(rp);
+                  const mid = rp[Math.floor(rp.length / 2)];
+                  const midSeam = dist(mid, h.pt);
+                  const maxSeam = Math.max(...rp.map((p) => dist(p, h.pt)));
+                  // Prefer a curved path that stays local around the seam (purple path),
+                  // and penalize the long "front edge" branch.
+                  const pickScore = bow * 120 - plen * 8 - midSeam * 6 - seamProx * 4;
+                  return { rp, pickScore, sA, sB, nA: pA.length, nB: pB.length, bow, plen, midSeam, maxSeam };
+                };
+
+                const candNorm = extractRedPathFromWedge([h.pt, best.basePt, best.washPt]);
+                const candFlip = extractRedPathFromWedge([h.pt, best.washPt, best.basePt]);
+                if (!candNorm && !candFlip) continue;
+                let useFlip = !!candFlip && !candNorm;
+                if (candNorm && candFlip) {
+                  const normCurved = candNorm.bow > 0.25;
+                  const flipCurved = candFlip.bow > 0.25;
+                  if (normCurved && flipCurved) {
+                    // Strong rule: prefer the curved path that remains local to the seam.
+                    // This directly targets the "purple line" instead of the front radius.
+                    const normLocal = candNorm.midSeam + 0.35 * candNorm.maxSeam + 0.05 * candNorm.plen;
+                    const flipLocal = candFlip.midSeam + 0.35 * candFlip.maxSeam + 0.05 * candFlip.plen;
+                    useFlip = flipLocal < normLocal;
+                  } else if (flipCurved !== normCurved) {
+                    useFlip = flipCurved;
+                  } else {
+                    useFlip = candFlip.pickScore > candNorm.pickScore;
+                  }
+                }
+                let redPath = (useFlip ? candFlip : candNorm)!.rp;
+                postModelDebugStatus(
+                  `[sh_fil_1] redPath seam=(${h.pt.x.toFixed(1)},${h.pt.y.toFixed(1)}) ` +
+                    `norm=${candNorm ? `${candNorm.pickScore.toFixed(1)}/b${candNorm.bow.toFixed(2)}/m${candNorm.midSeam.toFixed(1)}` : "x"} ` +
+                    `flip=${candFlip ? `${candFlip.pickScore.toFixed(1)}/b${candFlip.bow.toFixed(2)}/m${candFlip.midSeam.toFixed(1)}` : "x"} ` +
+                    `use=${useFlip ? "flip" : "norm"}`
+                );
+
+                // Build a closed ribbon by offsetting the good seam-fillet path and capping both ends.
+                const pBase = redPath[0];
+                const pWash = redPath[redPath.length - 1];
+                if (redPath.length < 2) continue;
+
+                const scoreOutside = (p: Pt) => {
+                  let s = 0;
+                  if (!pointInClosedLoop2D(baseLoop, p)) s += 10;
+                  if (!pointInClosedLoop2D(wLoop, p)) s += 10;
+                  s += 0.02 * dist(p, h.pt);
+                  return s;
+                };
+                const seamChordMid = { x: 0.5 * (pBase.x + pWash.x), y: 0.5 * (pBase.y + pWash.y) };
+                const seamChordDir = vnorm(sub(pWash, pBase));
+                const seamChordN = { x: -seamChordDir.y, y: seamChordDir.x };
+                const sideOfChord = (p: Pt) => dot2(sub(p, seamChordMid), seamChordN);
+                const seamSideSign = Math.sign(sideOfChord(h.pt)) || 1;
+                // Flip only the back pair (high-Y seams) while leaving the front pair unchanged.
+                // This is a temporary targeted correction while we tune the auto-chooser.
+                const isBackPair = h.pt.y > 90;
+                const desiredSideSign = isBackPair ? -seamSideSign : seamSideSign;
+                const sideMatchesDesired = (p: Pt) => (Math.sign(sideOfChord(p)) || 0) === desiredSideSign;
+
+                // Keep the additive ribbon much thinner than the seam fillet radius.
+                // If this scales too aggressively with radius, the patch can flip sides.
+                const offDist = clamp(localR * 0.35, 0.25, Math.min(armLen * 0.35, 2.0));
+                // Use a stable ribbon offset direction from the seam chord normal.
+                // The local-path-normal approach flips on some short/faceted front corners.
+                const buildOffsetPath = (sign: 1 | -1) => {
+                  const n = sign > 0 ? seamChordN : { x: -seamChordN.x, y: -seamChordN.y };
+                  return redPath.map((p) => ({ x: p.x + n.x * offDist, y: p.y + n.y * offDist }));
+                };
+                const offA = dedupePts(buildOffsetPath(1), 1e-6);
+                const offB = dedupePts(buildOffsetPath(-1), 1e-6);
+                if (offA.length < 2 || offB.length < 2) continue;
+
+                const offsetMetrics = (off: Pt[]) => {
+                  const mid = off[Math.floor(off.length / 2)];
+                  const startCapMid = lerpPt(redPath[0], off[0], 0.5);
+                  const endCapMid = lerpPt(redPath[redPath.length - 1], off[off.length - 1], 0.5);
+                  const centroid = off.reduce(
+                    (acc, p) => ({ x: acc.x + p.x / off.length, y: acc.y + p.y / off.length }),
+                    { x: 0, y: 0 }
+                  );
+                  // Positive means "more on desired side of the seam chord"
+                  const sideMetric =
+                    desiredSideSign *
+                    (0.6 * sideOfChord(mid) + 0.4 * sideOfChord(centroid));
+                  let s = 0;
+                  s += scoreOutside(mid) + scoreOutside(startCapMid) + scoreOutside(endCapMid);
+                  s += 0.5 * scoreOutside(centroid);
+                  if (sideMatchesDesired(mid)) s += 300;
+                  else s -= 600;
+                  if (sideMatchesDesired(centroid)) s += 150;
+                  else s -= 300;
+
+                  // Candidate penalty using the same side checks as the later patch guard.
+                  let tmpPatch = dedupePts([...redPath, ...off.slice().reverse()], 1e-6);
+                  tmpPatch = pruneLoopTinyKinks(tmpPatch, 0.05, 0.03);
+                  const tmpArea = Math.abs(signedArea2(tmpPatch));
+                  const areaBad = !Number.isFinite(tmpArea) || tmpArea < 0.01 || tmpArea > armLen * armLen * 4;
+                  const closureSamples = [
+                    lerpPt(redPath[0], off[0], 0.2),
+                    startCapMid,
+                    lerpPt(redPath[0], off[0], 0.8),
+                    lerpPt(redPath[redPath.length - 1], off[off.length - 1], 0.2),
+                    endCapMid,
+                    lerpPt(redPath[redPath.length - 1], off[off.length - 1], 0.8),
+                  ];
+                  // Also score the offset edge itself; if this lies against/inside the baseplate
+                  // side, the visible seam edge becomes the offset edge (looks shifted by ribbon thickness).
+                  const offEdgeSamples = [
+                    off[Math.max(0, Math.floor((off.length - 1) * 0.2))],
+                    off[Math.max(0, Math.floor((off.length - 1) * 0.5))],
+                    off[Math.max(0, Math.floor((off.length - 1) * 0.8))],
+                  ];
+                  const insideCount = closureSamples.reduce(
+                    (acc, p) => acc + (pointInClosedLoop2D(baseLoop, p) || pointInClosedLoop2D(wLoop, p) ? 1 : 0),
+                    0
+                  );
+                  const offEdgeInsideCount = offEdgeSamples.reduce(
+                    (acc, p) => acc + (pointInClosedLoop2D(baseLoop, p) || pointInClosedLoop2D(wLoop, p) ? 1 : 0),
+                    0
+                  );
+                  const centroidInside =
+                    (pointInClosedLoop2D(baseLoop, centroid) ? 1 : 0) + (pointInClosedLoop2D(wLoop, centroid) ? 1 : 0);
+                  const capMidInside =
+                    (pointInClosedLoop2D(baseLoop, startCapMid) ? 1 : 0) +
+                    (pointInClosedLoop2D(wLoop, startCapMid) ? 1 : 0) +
+                    (pointInClosedLoop2D(baseLoop, endCapMid) ? 1 : 0) +
+                    (pointInClosedLoop2D(wLoop, endCapMid) ? 1 : 0);
+                  const penalty =
+                    (areaBad ? 1000 : 0) +
+                    insideCount * 100 +
+                    offEdgeInsideCount * 180 +
+                    capMidInside * 60 +
+                    centroidInside * 40;
+
+                  return { s, sideMetric, mid, centroid, penalty, offEdgeInsideCount };
+                };
+                const mA = offsetMetrics(offA);
+                const mB = offsetMetrics(offB);
+                let offPath = offA;
+                // Optional hard override for debugging side selection.
+                if (DEBUG_FORCE_SH_FIL_1_OFFSET_SIDE === 1) {
+                  offPath = offA;
+                } else if (DEBUG_FORCE_SH_FIL_1_OFFSET_SIDE === -1) {
+                  offPath = offB;
+                } else if (mA.penalty !== mB.penalty) {
+                  // Choose the side that best passes the actual patch-side checks first.
+                  offPath = mA.penalty <= mB.penalty ? offA : offB;
+                } else if (Math.abs(mA.sideMetric - mB.sideMetric) > 1e-6) {
+                  offPath = mA.sideMetric >= mB.sideMetric ? offA : offB;
+                } else {
+                  offPath = mA.s >= mB.s ? offA : offB;
+                }
+
+                postModelDebugStatus(
+                  `[sh_fil_1] off pts seam=(${h.pt.x.toFixed(1)},${h.pt.y.toFixed(1)}) ` +
+                    `force=${DEBUG_FORCE_SH_FIL_1_OFFSET_SIDE} ` +
+                    `pa=${mA.penalty}(io${mA.offEdgeInsideCount}) pb=${mB.penalty}(io${mB.offEdgeInsideCount}) ` +
+                    `sa=${mA.sideMetric.toFixed(2)} sb=${mB.sideMetric.toFixed(2)} ` +
+                    `o0=(${offPath[0].x.toFixed(1)},${offPath[0].y.toFixed(1)}) ` +
+                    `om=(${offPath[Math.floor(offPath.length / 2)].x.toFixed(1)},${offPath[Math.floor(offPath.length / 2)].y.toFixed(1)}) ` +
+                    `oN=(${offPath[offPath.length - 1].x.toFixed(1)},${offPath[offPath.length - 1].y.toFixed(1)})`
+                );
+
+                let patchLoop: Pt[] = [...redPath, ...offPath.slice().reverse()];
+                patchLoop = dedupePts(patchLoop, 1e-6);
+                // Preserve the seam fillet curve points on the final ribbon patch.
+                // Aggressive pruning here can flatten the front two patches into straight edges.
+                // patchLoop = pruneLoopTinyKinks(patchLoop, 0.05, 0.03);
+                if (patchLoop.length < 3) continue;
+
+                // Extra guard: skip degenerate/oversized patches that can poison the fuse.
+                const patchArea = Math.abs(signedArea2(patchLoop));
+                if (!Number.isFinite(patchArea) || patchArea < 0.01 || patchArea > armLen * armLen * 4) {
+                  dbgRejectedArea++;
+                  if (!(DEBUG_SHOW_SH_FIL_1_INFILL_SEPARATE && DEBUG_SKIP_SH_FIL_1_INFILL_FUSE)) {
+                    continue;
+                  }
+                  postModelDebugStatus(
+                    `[sh_fil_1] debug keep patch (area) seam=(${h.pt.x.toFixed(1)},${h.pt.y.toFixed(1)}) a=${patchArea.toFixed(2)}`
+                  );
+                }
+
+                // Validate only the ribbon end caps / centroid; the red seam path lies on the boundary.
+                const startCapMid = lerpPt(redPath[0], offPath[0], 0.5);
+                const endCapMid = lerpPt(redPath[redPath.length - 1], offPath[offPath.length - 1], 0.5);
+                const patchCentroid = patchLoop.reduce(
+                  (acc, p) => ({ x: acc.x + p.x / patchLoop.length, y: acc.y + p.y / patchLoop.length }),
+                  { x: 0, y: 0 }
+                );
+                const closureSamples = [
+                  lerpPt(redPath[0], offPath[0], 0.2),
+                  startCapMid,
+                  lerpPt(redPath[0], offPath[0], 0.8),
+                  lerpPt(redPath[redPath.length - 1], offPath[offPath.length - 1], 0.2),
+                  endCapMid,
+                  lerpPt(redPath[redPath.length - 1], offPath[offPath.length - 1], 0.8),
+                ];
+                const closureCrossesInterior = closureSamples.some(
+                  (s) => pointInClosedLoop2D(baseLoop, s) || pointInClosedLoop2D(wLoop, s)
+                );
+                const wrongSide =
+                  closureCrossesInterior ||
+                  pointInClosedLoop2D(baseLoop, startCapMid) ||
+                  pointInClosedLoop2D(wLoop, startCapMid) ||
+                  pointInClosedLoop2D(baseLoop, endCapMid) ||
+                  pointInClosedLoop2D(wLoop, endCapMid) ||
+                  pointInClosedLoop2D(baseLoop, patchCentroid) ||
+                  pointInClosedLoop2D(wLoop, patchCentroid);
+                if (wrongSide) {
+                  dbgRejectedWrongSide++;
+                  if (!(DEBUG_SHOW_SH_FIL_1_INFILL_SEPARATE && DEBUG_SKIP_SH_FIL_1_INFILL_FUSE)) {
+                    continue;
+                  }
+                  postModelDebugStatus(
+                    `[sh_fil_1] debug keep patch (side) seam=(${h.pt.x.toFixed(1)},${h.pt.y.toFixed(1)})`
+                  );
+                }
+
+                infill2D.push(polyToDraw(patchLoop));
+                dbgPatches++;
+              }
+            }
+
+            postModelDebugStatus(
+              `[sh_fil_1] 2d infill r=${shFil1Radius.toFixed(2)} hits=${dbgHits} patches=${dbgPatches} ` +
+                `rejArea=${dbgRejectedArea} rejSide=${dbgRejectedWrongSide}`
+            );
+
+            if (infill2D.length) {
+              const infill3D = infill2D.map((d2) => (d2 as any).sketchOnPlane(washerPlane).extrude(washerDepth));
+              if (typeof solid.fuse === "function") {
+                if (DEBUG_SKIP_SH_FIL_1_INFILL_FUSE) {
+                  postModelDebugStatus(`[sh_fil_1] debug: skipping infill fuse for isolation`);
+                } else {
+                  // Defer SH_FIL_1 patch fusion until after the screw-hole cut(cutter) step.
+                  // This avoids the "bad fuse -> bad cut" cascade if the intermediate solid
+                  // becomes fragile before the normal through-cut boolean runs.
+                  shFil1Deferred3D.push(...infill3D);
+                  postModelDebugStatus(`[sh_fil_1] deferred patch fuse count=${infill3D.length}`);
+                }
+              }
+
+              if (DEBUG_SHOW_SH_FIL_1_INFILL_SEPARATE) {
+                const infillSolidDebug = fuseMany(infill3D);
+                if (infillSolidDebug && typeof (infillSolidDebug as any).clone === "function" && typeof solid.fuse === "function") {
+                  try {
+                    const zLift = Math.abs(baseThk) + washerDepth + 8;
+                    const infillDebug = (infillSolidDebug as any).clone().translateZ(zLift);
+                    solid = solid.fuse(infillDebug);
+                    postModelDebugStatus(`[sh_fil_1] debug infill copy shown at +Z ${zLift.toFixed(1)}`);
+                  } catch {
+                    postModelDebugStatus(`[sh_fil_1] debug infill copy fuse failed`);
+                  }
+                }
+              }
+            }
+          } catch (e) {
+            postModelDebugStatus(`[sh_fil_1] 2d infill failed: ${e instanceof Error ? e.message : String(e)}`);
+          }
+        }
+      } catch {
+        // Keep baseplate build resilient if the washer fuse fails for edge cases.
+      }
+    }
+  }
 
   const z0 = Math.min(0, -baseThk);
   const z1 = Math.max(0, -baseThk);
@@ -953,9 +1896,47 @@ export async function buildBaseSolid(input: ParamMap): Promise<Shape3D> {
 
   const cutters3D = cutters2D.map((c2d) => (c2d as any).sketchOnPlane(plane).extrude(depth));
   const cutter = fuseMany(cutters3D);
-  if (!cutter || typeof (base as any).cut !== "function") return base;
+  if (!cutter || typeof solid.cut !== "function") {
+    let outNoCut = solid as any;
+    if (shFil1Deferred3D.length && typeof outNoCut.fuse === "function") {
+      let fusedCount = 0;
+      let failedCount = 0;
+      for (let i = 0; i < shFil1Deferred3D.length; i++) {
+        try {
+          outNoCut = outNoCut.fuse(shFil1Deferred3D[i]);
+          fusedCount++;
+        } catch (e) {
+          failedCount++;
+          postModelDebugStatus(`[sh_fil_1] deferred patch fuse failed i=${i}: ${e instanceof Error ? e.message : String(e)}`);
+        }
+      }
+      postModelDebugStatus(`[sh_fil_1] deferred patch fuse summary fused=${fusedCount} failed=${failedCount}`);
+    }
+    return outNoCut as Shape3D;
+  }
 
-  return ((base as any).cut(cutter) as Shape3D) ?? base;
+  if (DEBUG_SKIP_BASE_CUT_WHEN_SH_FIL_1 && shFil1Enabled && shFil1Radius > 1e-6) {
+    postModelDebugStatus(`[sh_fil_1] debug: skipping base cut(cutter) for isolation`);
+    return solid as Shape3D;
+  }
+
+  let outSolid: any = (solid.cut(cutter) as Shape3D) ?? (solid as Shape3D);
+  if (shFil1Deferred3D.length && typeof outSolid.fuse === "function") {
+    let fusedCount = 0;
+    let failedCount = 0;
+    for (let i = 0; i < shFil1Deferred3D.length; i++) {
+      try {
+        outSolid = outSolid.fuse(shFil1Deferred3D[i]);
+        fusedCount++;
+      } catch (e) {
+        failedCount++;
+        postModelDebugStatus(`[sh_fil_1] deferred patch fuse failed i=${i}: ${e instanceof Error ? e.message : String(e)}`);
+      }
+    }
+    postModelDebugStatus(`[sh_fil_1] deferred patch fuse summary fused=${fusedCount} failed=${failedCount}`);
+  }
+
+  return outSolid as Shape3D;
 }
 
 // =======================================================

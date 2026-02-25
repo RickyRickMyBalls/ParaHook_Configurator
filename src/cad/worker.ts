@@ -23,6 +23,11 @@ type PartToggles = {
 type BuildPayload = {
   params: ParamMap;
   tolerance: number;
+  freezeBaseRefit?: boolean;
+  freezeToeRefit?: boolean;
+  freezeHeelRefit?: boolean;
+  forceFullRefit?: boolean;
+  forceHeelRefit?: boolean;
 } & PartToggles;
 
 type ExportPayload = {
@@ -180,10 +185,17 @@ function baseSignature(params: ParamMap): string {
     // screw holes
     "bp_sh_x",
     "bp_sh_y",
+    "bp_sh_ang",
     "bp_sh_dia",
+    "bp_sh_washer",
     "bp_sh_slot",
     "bp_sh_dist",
-    "bp_sh_ang",
+    "bp_sh_ang2",
+    "bp_sh_off2",
+    "bp_fil_1",
+    "bp_fil_1_r",
+    "sh_fil_1",
+    "sh_fil_1_r",
   ]);
 }
 
@@ -339,12 +351,20 @@ let cachedToeBCMeshKey = "";
 let cachedToeCombinedMeshKey = "";
 let cachedHeelMeshKey = "";
 
-async function getBaseShape(params: ParamMap, enabled: boolean) {
+type RefitOpts = { freezeRefit?: boolean; forceRefit?: boolean };
+
+async function getBaseShape(params: ParamMap, enabled: boolean, opts?: RefitOpts) {
   if (!enabled) return { shape: null as any, reused: true, sig: "" };
 
   const sig = baseSignature(params);
+  const freezeRefit = !!opts?.freezeRefit;
+  const forceRefit = !!opts?.forceRefit;
 
-  if (!cachedBaseShape || sig !== cachedBaseSig) {
+  if (freezeRefit && cachedBaseShape) {
+    return { shape: cachedBaseShape, reused: true, sig: cachedBaseSig };
+  }
+
+  if (forceRefit || !cachedBaseShape || sig !== cachedBaseSig) {
     post({ type: "status", message: "building baseplate..." });
     const s = await buildBaseSolid(params);
     cachedBaseShape = s;
@@ -358,12 +378,18 @@ async function getBaseShape(params: ParamMap, enabled: boolean) {
   return { shape: cachedBaseShape, reused: true, sig: cachedBaseSig };
 }
 
-async function getToeABShape(params: ParamMap, enabled: boolean) {
+async function getToeABShape(params: ParamMap, enabled: boolean, opts?: RefitOpts) {
   if (!enabled) return { shape: null as any, reused: true, sig: "" };
 
   const sig = toeABSignature(params);
+  const freezeRefit = !!opts?.freezeRefit;
+  const forceRefit = !!opts?.forceRefit;
 
-  if (!cachedToeABShape || sig !== cachedToeABSig) {
+  if (freezeRefit && cachedToeABShape) {
+    return { shape: cachedToeABShape, reused: true, sig: cachedToeABSig };
+  }
+
+  if (forceRefit || !cachedToeABShape || sig !== cachedToeABSig) {
     post({ type: "status", message: "building toe A->B..." });
     applyToeFlags(params, true, false);
     const s = await buildToeABSolid(params);
@@ -379,12 +405,18 @@ async function getToeABShape(params: ParamMap, enabled: boolean) {
   return { shape: cachedToeABShape, reused: true, sig: cachedToeABSig };
 }
 
-async function getToeBCShape(params: ParamMap, enabled: boolean) {
+async function getToeBCShape(params: ParamMap, enabled: boolean, opts?: RefitOpts) {
   if (!enabled) return { shape: null as any, reused: true, sig: "" };
 
   const sig = toeBCSignature(params);
+  const freezeRefit = !!opts?.freezeRefit;
+  const forceRefit = !!opts?.forceRefit;
 
-  if (!cachedToeBCShape || sig !== cachedToeBCSig) {
+  if (freezeRefit && cachedToeBCShape) {
+    return { shape: cachedToeBCShape, reused: true, sig: cachedToeBCSig };
+  }
+
+  if (forceRefit || !cachedToeBCShape || sig !== cachedToeBCSig) {
     post({ type: "status", message: "building toe B->C..." });
     applyToeFlags(params, false, true);
     const s = await buildToeBCSolid(params);
@@ -400,12 +432,18 @@ async function getToeBCShape(params: ParamMap, enabled: boolean) {
   return { shape: cachedToeBCShape, reused: true, sig: cachedToeBCSig };
 }
 
-async function getToeCombinedShape(params: ParamMap, enabled: boolean) {
+async function getToeCombinedShape(params: ParamMap, enabled: boolean, opts?: RefitOpts) {
   if (!enabled) return { shape: null as any, reused: true, sig: "" };
 
   const sig = toeCombinedSignature(params);
+  const freezeRefit = !!opts?.freezeRefit;
+  const forceRefit = !!opts?.forceRefit;
 
-  if (!cachedToeCombinedShape || sig !== cachedToeCombinedSig) {
+  if (freezeRefit && cachedToeCombinedShape) {
+    return { shape: cachedToeCombinedShape, reused: true, sig: cachedToeCombinedSig };
+  }
+
+  if (forceRefit || !cachedToeCombinedShape || sig !== cachedToeCombinedSig) {
     post({ type: "status", message: "building toe A->B->C..." });
     applyToeFlags(params, true, true);
     const s = await buildToeSolid(params);
@@ -421,12 +459,22 @@ async function getToeCombinedShape(params: ParamMap, enabled: boolean) {
   return { shape: cachedToeCombinedShape, reused: true, sig: cachedToeCombinedSig };
 }
 
-async function getHeelShape(params: ParamMap, enabled: boolean) {
+async function getHeelShape(
+  params: ParamMap,
+  enabled: boolean,
+  opts?: RefitOpts
+) {
   if (!enabled) return { shape: null as any, reused: true, sig: "" };
 
   const sig = heelSignature(params);
+  const freezeRefit = !!opts?.freezeRefit;
+  const forceRefit = !!opts?.forceRefit;
 
-  if (!cachedHeelShape || sig !== cachedHeelSig) {
+  if (freezeRefit && cachedHeelShape) {
+    return { shape: cachedHeelShape, reused: true, sig: cachedHeelSig };
+  }
+
+  if (forceRefit || !cachedHeelShape || sig !== cachedHeelSig) {
     post({ type: "status", message: "building heel kick..." });
     const s = await buildHeelSolid(params);
 
@@ -441,8 +489,8 @@ async function getHeelShape(params: ParamMap, enabled: boolean) {
   return { shape: cachedHeelShape, reused: true, sig: cachedHeelSig };
 }
 
-async function getBaseMesh(params: ParamMap, enabled: boolean, tolerance: unknown) {
-  const s = await getBaseShape(params, enabled);
+async function getBaseMesh(params: ParamMap, enabled: boolean, tolerance: unknown, opts?: RefitOpts) {
+  const s = await getBaseShape(params, enabled, opts);
   if (!enabled || !s.shape) return { mesh: null as any, reused: true, shapeReused: true };
 
   const key = `${s.sig}|tol=${tolKey(tolerance)}`;
@@ -460,8 +508,8 @@ async function getBaseMesh(params: ParamMap, enabled: boolean, tolerance: unknow
   return { mesh: m, reused: false, shapeReused: s.reused };
 }
 
-async function getToeABMesh(params: ParamMap, enabled: boolean, tolerance: unknown) {
-  const s = await getToeABShape(params, enabled);
+async function getToeABMesh(params: ParamMap, enabled: boolean, tolerance: unknown, opts?: RefitOpts) {
+  const s = await getToeABShape(params, enabled, opts);
   if (!enabled || !s.shape) return { mesh: null as any, reused: true, shapeReused: true };
 
   const key = `${s.sig}|tol=${tolKey(tolerance)}`;
@@ -479,8 +527,8 @@ async function getToeABMesh(params: ParamMap, enabled: boolean, tolerance: unkno
   return { mesh: m, reused: false, shapeReused: s.reused };
 }
 
-async function getToeBCMesh(params: ParamMap, enabled: boolean, tolerance: unknown) {
-  const s = await getToeBCShape(params, enabled);
+async function getToeBCMesh(params: ParamMap, enabled: boolean, tolerance: unknown, opts?: RefitOpts) {
+  const s = await getToeBCShape(params, enabled, opts);
   if (!enabled || !s.shape) return { mesh: null as any, reused: true, shapeReused: true };
 
   const key = `${s.sig}|tol=${tolKey(tolerance)}`;
@@ -498,8 +546,8 @@ async function getToeBCMesh(params: ParamMap, enabled: boolean, tolerance: unkno
   return { mesh: m, reused: false, shapeReused: s.reused };
 }
 
-async function getToeCombinedMesh(params: ParamMap, enabled: boolean, tolerance: unknown) {
-  const s = await getToeCombinedShape(params, enabled);
+async function getToeCombinedMesh(params: ParamMap, enabled: boolean, tolerance: unknown, opts?: RefitOpts) {
+  const s = await getToeCombinedShape(params, enabled, opts);
   if (!enabled || !s.shape) return { mesh: null as any, reused: true, shapeReused: true };
 
   const key = `${s.sig}|tol=${tolKey(tolerance)}`;
@@ -517,8 +565,13 @@ async function getToeCombinedMesh(params: ParamMap, enabled: boolean, tolerance:
   return { mesh: m, reused: false, shapeReused: s.reused };
 }
 
-async function getHeelMesh(params: ParamMap, enabled: boolean, tolerance: unknown) {
-  const s = await getHeelShape(params, enabled);
+async function getHeelMesh(
+  params: ParamMap,
+  enabled: boolean,
+  tolerance: unknown,
+  opts?: RefitOpts
+) {
+  const s = await getHeelShape(params, enabled, opts);
   if (!enabled || !s.shape) return { mesh: null as any, reused: true, shapeReused: true };
 
   const key = `${s.sig}|tol=${tolKey(tolerance)}`;
@@ -580,6 +633,11 @@ self.onmessage = async (ev: MessageEvent<WorkerIn>) => {
 
     if (msg.type === "build") {
       const { params, tolerance } = msg.payload;
+      const freezeBaseRefit = !!msg.payload.freezeBaseRefit;
+      const freezeToeRefit = !!msg.payload.freezeToeRefit;
+      const freezeHeelRefit = !!msg.payload.freezeHeelRefit;
+      const forceFullRefit = !!msg.payload.forceFullRefit;
+      const forceHeelRefit = !!msg.payload.forceHeelRefit;
 
       const baseEnabled = !!msg.payload.baseEnabled;
       const toeBEnabled = !!msg.payload.toeBEnabled;
@@ -599,15 +657,30 @@ self.onmessage = async (ev: MessageEvent<WorkerIn>) => {
       }
 
       // Normal path: per-part cached meshes, merge in JS
-      const base = await getBaseMesh(params, baseEnabled, tolerance);
-      const toeABC = await getToeCombinedMesh(params, toeBothEnabled, tolerance);
+      const base = await getBaseMesh(params, baseEnabled, tolerance, {
+        freezeRefit: freezeBaseRefit,
+        forceRefit: forceFullRefit,
+      });
+      const toeABC = await getToeCombinedMesh(params, toeBothEnabled, tolerance, {
+        freezeRefit: freezeToeRefit,
+        forceRefit: forceFullRefit,
+      });
       const toeAB = toeBothEnabled
         ? ({ mesh: null as any, reused: true } as { mesh: any; reused: boolean })
-        : await getToeABMesh(params, toeBEnabled, tolerance);
+        : await getToeABMesh(params, toeBEnabled, tolerance, {
+            freezeRefit: freezeToeRefit,
+            forceRefit: forceFullRefit,
+          });
       const toeBC = toeBothEnabled
         ? ({ mesh: null as any, reused: true } as { mesh: any; reused: boolean })
-        : await getToeBCMesh(params, toeCEnabled, tolerance);
-      const heel = await getHeelMesh(params, heelEnabled, tolerance);
+        : await getToeBCMesh(params, toeCEnabled, tolerance, {
+            freezeRefit: freezeToeRefit,
+            forceRefit: forceFullRefit,
+          });
+      const heel = await getHeelMesh(params, heelEnabled, tolerance, {
+        freezeRefit: freezeHeelRefit,
+        forceRefit: forceFullRefit || forceHeelRefit,
+      });
 
       const meshes: ReturnType<typeof toStdMesh>[] = [];
       if (baseEnabled && base.mesh) meshes.push(base.mesh);

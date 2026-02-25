@@ -16,6 +16,11 @@ type PartToggles = {
 type BuildPayload = {
   params: ModelParams;
   tolerance: number;
+  freezeBaseRefit?: boolean;
+  freezeToeRefit?: boolean;
+  freezeHeelRefit?: boolean;
+  forceFullRefit?: boolean;
+  forceHeelRefit?: boolean;
 } & PartToggles;
 
 type ExportPayload = {
@@ -250,9 +255,13 @@ const baseEnabledEl = mustEl<HTMLInputElement>("baseEnabled");
 const toeBEnabledEl = mustEl<HTMLInputElement>("toeBEnabled");
 const toeCEnabledEl = mustEl<HTMLInputElement>("toeCEnabled");
 const heelEnabledEl = mustEl<HTMLInputElement>("heelEnabled");
+const bpFil1El = mustEl<HTMLInputElement>("bp_fil_1");
+const shFil1El = mustEl<HTMLInputElement>("sh_fil_1");
 
 const tolEl = mustEl<HTMLInputElement>("tolerance");
 const tolVal = mustEl<HTMLInputElement>("toleranceVal");
+const debounceMsEl = mustEl<HTMLInputElement>("debounceMs");
+const rebuildAsOneEl = mustEl<HTMLInputElement>("rebuildAsOne");
 
 function setStatus(msg: string) {
   statusEl.textContent = msg;
@@ -285,10 +294,13 @@ const paramIds: string[] = [
   // Baseplate: Screw holes
   "bp_sh_x",
   "bp_sh_y",
+  "bp_sh_ang",
   "bp_sh_dia",
+  "bp_sh_washer",
   "bp_sh_slot",
   "bp_sh_dist",
-  "bp_sh_ang",
+  "bp_sh_ang2",
+  "bp_sh_off2",
 
   // Toe: shared
   "toe_thk",
@@ -334,6 +346,8 @@ const paramIds: string[] = [
   "fil_3",
   "fil_4",
   "fil_5",
+  "sh_fil_1_r",
+  "bp_fil_1_r",
 ];
 
 const paramEls = paramIds.map((id) => mustEl<HTMLInputElement>(id));
@@ -362,6 +376,8 @@ function readParams(): ModelParams {
   for (let i = 0; i < paramIds.length; i++) {
     p[paramIds[i]] = readNumber(paramEls[i], 0);
   }
+  p.bp_fil_1 = bpFil1El.checked ? 1 : 0;
+  p.sh_fil_1 = shFil1El.checked ? 1 : 0;
   return p;
 }
 
@@ -853,8 +869,37 @@ worker.addEventListener("messageerror", () => {
   setStatus("worker messageerror");
 });
 
-let pending = false;
+let rebuildTimer: number | null = null;
 let lastSig = "";
+let crossRefitPendingManual = false;
+
+function cancelPendingRebuild() {
+  if (rebuildTimer != null) {
+    window.clearTimeout(rebuildTimer);
+    rebuildTimer = null;
+  }
+}
+
+function readRebuildDebounceMs(): number {
+  return clampInt(readNumber(debounceMsEl, 200), 0, 1000);
+}
+
+type RebuildOptions = {
+  freezeBaseRefit?: boolean;
+  freezeToeRefit?: boolean;
+  freezeHeelRefit?: boolean;
+  forceFullRefit?: boolean;
+  forceHeelRefit?: boolean;
+};
+
+type ParamGroup = "base" | "toe" | "heel" | "other";
+
+function classifyParamGroup(id: string): ParamGroup {
+  if (id.startsWith("bp_") || id.startsWith("sh_")) return "base";
+  if (id.startsWith("toe_") || id.startsWith("fil_")) return "toe";
+  if (id.startsWith("heel_")) return "heel";
+  return "other";
+}
 
 function computeSignature(p: ModelParams): string {
   const base = !!baseEnabledEl.checked;
@@ -866,6 +911,8 @@ function computeSignature(p: ModelParams): string {
   parts.push([base ? 1 : 0, toeB ? 1 : 0, toeC ? 1 : 0, heel ? 1 : 0].join(","));
 
   parts.push(paramIds.map((id) => p[id]).join(","));
+  parts.push(`bp_fil_1=${bpFil1El.checked ? 1 : 0}`);
+  parts.push(`sh_fil_1=${shFil1El.checked ? 1 : 0}`);
 
   parts.push(
     `vizBase=${vizBasePtsEl.checked ? 1 : 0},vizA=${vizAArcPtsEl.checked ? 1 : 0},vizB=${
@@ -878,17 +925,16 @@ function computeSignature(p: ModelParams): string {
 
 function rebuildDebounced() {
   if (!isModelEnabled()) return;
-  if (pending) return;
-
-  pending = true;
-  window.setTimeout(() => {
-    pending = false;
+  cancelPendingRebuild();
+  rebuildTimer = window.setTimeout(() => {
+    rebuildTimer = null;
     if (!isModelEnabled()) return;
     rebuild();
-  }, 200);
+  }, readRebuildDebounceMs());
 }
 
-function rebuild() {
+function rebuild(opts: RebuildOptions = {}) {
+  cancelPendingRebuild();
   applyAutoToeBCMidUI();
   syncLabels();
   updateBaseplateViz();
@@ -902,7 +948,7 @@ function rebuild() {
 
   const params = readParams();
   const s = computeSignature(params);
-  if (s === lastSig) return setStatus("ready (cached)");
+  if (s === lastSig && !opts.forceFullRefit && !opts.forceHeelRefit) return setStatus("ready (cached)");
   lastSig = s;
 
   const base = !!baseEnabledEl.checked;
@@ -922,6 +968,11 @@ function rebuild() {
       toeBEnabled: toeB,
       toeCEnabled: toeC,
       heelEnabled: heel,
+      freezeBaseRefit: !!opts.freezeBaseRefit,
+      freezeToeRefit: !!opts.freezeToeRefit,
+      freezeHeelRefit: !!opts.freezeHeelRefit,
+      forceFullRefit: !!opts.forceFullRefit,
+      forceHeelRefit: !!opts.forceHeelRefit,
     },
   };
 
@@ -998,7 +1049,7 @@ function applyModelEnabledState() {
 
   applySectionCutUIToViewer();
 
-  pending = false;
+  cancelPendingRebuild();
   setBusy(false);
   lastSig = "";
 
@@ -1035,7 +1086,29 @@ vizBasePtsEl.addEventListener("change", updateBaseplateViz);
 
 [baseEnabledEl, toeBEnabledEl, toeCEnabledEl, heelEnabledEl].forEach((el) => el.addEventListener("change", () => rebuild()));
 
-rebuildBtn.addEventListener("click", rebuild);
+bpFil1El.addEventListener("change", () => {
+  if (!isModelEnabled()) return;
+  if (rebuildAsOneEl.checked) {
+    crossRefitPendingManual = false;
+    return rebuild();
+  }
+  crossRefitPendingManual = true;
+  return rebuild({ freezeToeRefit: true, freezeHeelRefit: true });
+});
+shFil1El.addEventListener("change", () => {
+  if (!isModelEnabled()) return;
+  if (rebuildAsOneEl.checked) {
+    crossRefitPendingManual = false;
+    return rebuild();
+  }
+  crossRefitPendingManual = true;
+  return rebuild({ freezeToeRefit: true, freezeHeelRefit: true });
+});
+
+rebuildBtn.addEventListener("click", () => {
+  crossRefitPendingManual = false;
+  rebuild({ forceFullRefit: true, forceHeelRefit: true });
+});
 exportStlBtn.addEventListener("click", exportStl);
 exportStepBtn.addEventListener("click", exportStep);
 
@@ -1045,8 +1118,6 @@ exportStepBtn.addEventListener("click", exportStep);
     updateBaseplateViz();
     updateArcViz();
     applySectionCutUIToViewer();
-    if (!isModelEnabled()) return;
-    rebuildDebounced();
   });
 
   el.addEventListener("change", () => {
@@ -1055,7 +1126,30 @@ exportStepBtn.addEventListener("click", exportStep);
     updateArcViz();
     applySectionCutUIToViewer();
     if (!isModelEnabled()) return;
-    rebuild();
+    if (rebuildAsOneEl.checked) {
+      crossRefitPendingManual = false;
+      return rebuild();
+    }
+
+    if (el.id === "tolerance") {
+      return rebuild({ freezeBaseRefit: crossRefitPendingManual, freezeToeRefit: crossRefitPendingManual, freezeHeelRefit: crossRefitPendingManual });
+    }
+
+    const group = classifyParamGroup(el.id);
+    if (group === "base") {
+      crossRefitPendingManual = true;
+      return rebuild({ freezeToeRefit: true, freezeHeelRefit: true });
+    }
+    if (group === "toe") {
+      crossRefitPendingManual = true;
+      return rebuild({ freezeBaseRefit: true, freezeHeelRefit: true });
+    }
+    if (group === "heel") {
+      crossRefitPendingManual = true;
+      return rebuild({ freezeBaseRefit: true, freezeToeRefit: true });
+    }
+
+    rebuild({ freezeBaseRefit: crossRefitPendingManual, freezeToeRefit: crossRefitPendingManual, freezeHeelRefit: crossRefitPendingManual });
   });
 });
 

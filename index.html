@@ -250,7 +250,7 @@ details.section details.section > summary {
       <div id="toolbarPanel" class="panelBox">
         <div id="titlePanel">
           <div id="appTitle">Parahook Generator</div>
-          <div id="appVersion">v 0.14.1</div>
+          <div id="appVersion">v 0.14.2</div>
         </div>
 
         <div class="row header">
@@ -280,13 +280,24 @@ details.section details.section > summary {
 
             <!-- Notes -->
             <details class="section">
-              <summary>-Notes</summary>
-              <div class="sectionMeta">0.14.1 - New Wiggle technology. toe A->B->C loft path is grounded to the baseplate for the solid model; toe hook arc controls now use P1S / P3S handle strengths (replacing older arc controls), and the new result is super wiggly.</div>
-<div class="sectionMeta">Toe rail architecture is driven by Profile A/B/C with per-profile rail strengths (TOE_A_STR, TOE_B_STR, TOE_C_STR) used to blend/control the outer/inner rail behavior across the loft.</div>
-<div class="sectionMeta">Heel kick: Profile C/D and C->D intermediates use a normal-cap cut workflow (cut by Z height, cap perpendicular to the outer tangent).</div>
-<div class="sectionMeta">Heel heights are clamped in app logic to the current Profile C top range; HEEL_H_C / HEEL_H_D may snap down if set too high.</div>
-<div class="sectionMeta">Debug window now logs worker build receives (sequence + dt) to help tune rebuild/debounce behavior.</div>
-<div class="sectionMeta">HEEL_F1 / HEEL_F2 and FIL_1..FIL_5 remain experimental / placeholder controls unless noted in current code behavior.</div>
+              <summary>-Releases</summary>
+              <details class="section" open>
+                <summary>0.14.2</summary>
+                <div class="sectionMeta">Added baseplate screw holes / slot controls. BP_SH_X and BP_SH_Y move the screw-hole pair origin relative to the UI screw-hole reference point on the baseplate.</div>
+                <div class="sectionMeta">BP_SH_ANG sets the primary screw-hole axis angle. BP_SH_DIST sets spacing between hole centers along that axis. BP_SH_ANG2 and BP_SH_OFF2 control the second hole orientation/offset for non-matching slot alignment.</div>
+                <div class="sectionMeta">BP_SH_DIA sets the actual hole diameter. BP_SH_WASHER sets the washer footprint diameter. BP_SH_SLOT adds slot length to the inline hole/washer profile (0 = round hole / round washer).</div>
+                <div class="sectionMeta">BP_FIL_1 note: baseplate fillet path now renders as a 3-point arc (cleaner than tiny line segments), and the fillet on the corner touching the inner spline was removed.</div>
+              </details>
+
+              <details class="section">
+                <summary>0.14.1</summary>
+                <div class="sectionMeta">New Wiggle technology. toe A->B->C loft path is grounded to the baseplate for the solid model; toe hook arc controls now use P1S / P3S handle strengths (replacing older arc controls), and the new result is super wiggly.</div>
+                <div class="sectionMeta">Toe rail architecture is driven by Profile A/B/C with per-profile rail strengths (TOE_A_STR, TOE_B_STR, TOE_C_STR) used to blend/control the outer/inner rail behavior across the loft.</div>
+                <div class="sectionMeta">Heel kick: Profile C/D and C->D intermediates use a normal-cap cut workflow (cut by Z height, cap perpendicular to the outer tangent).</div>
+                <div class="sectionMeta">Heel heights are clamped in app logic to the current Profile C top range; HEEL_H_C / HEEL_H_D may snap down if set too high.</div>
+                <div class="sectionMeta">Debug window now logs worker build receives (sequence + dt) to help tune rebuild/debounce behavior.</div>
+                <div class="sectionMeta">HEEL_F1 / HEEL_F2 and FIL_1..FIL_5 remain experimental / placeholder controls unless noted in current code behavior.</div>
+              </details>
 
               <details class="section">
                 <summary>0.13.0</summary>
@@ -333,6 +344,18 @@ details.section details.section > summary {
                   <input id="tolerance" name="tolerance" type="range" min="0.3" max="3.0" step="0.1" value="1.5" />
                 </label>
                 <input class="valInput" id="toleranceVal" type="number" step="0.1" value="1.5" />
+              </div>
+
+              <div class="row">
+                <label>Rebuild Debounce (ms)
+                  <input id="debounceMs" type="range" min="0" max="1000" step="10" value="200" />
+                </label>
+                <input class="valInput" id="debounceMsVal" type="number" min="0" max="1000" step="10" value="200" />
+              </div>
+
+              <div class="check">
+                <input id="rebuildAsOne" type="checkbox" />
+                <label for="rebuildAsOne">rebuild as one</label>
               </div>
             </details>
 
@@ -621,13 +644,13 @@ details.section details.section > summary {
   <details class="section">
     <summary>-Screw Holes</summary>
     <div class="sectionMeta">
-      Slot pattern controls. Move offsets shift the whole pattern. Slot length is 0 for a round hole.
+      Slot pattern controls. Hole 1 X/Y are local offsets (mm) from the calibrated screw-hole origin. Slot length is 0 for a round hole.
     </div>
 
     <div class="paramRow">
       <div class="paramTop">
         <div class="paramTag">BP_SH_X</div>
-        <div class="paramName">Move X (mm)</div>
+        <div class="paramName">Hole 1 X Offset (mm)</div>
       </div>
       <div class="paramBody">
         <input id="bp_sh_x" name="bp_sh_x" type="range" min="-80" max="80" step="1" value="0" />
@@ -638,11 +661,22 @@ details.section details.section > summary {
     <div class="paramRow">
       <div class="paramTop">
         <div class="paramTag">BP_SH_Y</div>
-        <div class="paramName">Move Y (mm)</div>
+        <div class="paramName">Hole 1 Y Offset (mm)</div>
       </div>
       <div class="paramBody">
         <input id="bp_sh_y" name="bp_sh_y" type="range" min="-120" max="120" step="1" value="0" />
         <input class="valInput" id="bp_sh_yVal" type="number" step="1" value="0" />
+      </div>
+    </div>
+
+    <div class="paramRow">
+      <div class="paramTop">
+        <div class="paramTag">BP_SH_ANG</div>
+        <div class="paramName">Hole 1 Angle (deg)</div>
+      </div>
+      <div class="paramBody">
+        <input id="bp_sh_ang" name="bp_sh_ang" type="range" min="-180" max="180" step="1" value="12" />
+        <input class="valInput" id="bp_sh_angVal" type="number" step="1" value="12" />
       </div>
     </div>
 
@@ -659,12 +693,23 @@ details.section details.section > summary {
 
     <div class="paramRow">
       <div class="paramTop">
+        <div class="paramTag">BP_SH_WASHER</div>
+        <div class="paramName">Washer Diameter (mm)</div>
+      </div>
+      <div class="paramBody">
+        <input id="bp_sh_washer" name="bp_sh_washer" type="range" min="5" max="30" step="0.5" value="10" />
+        <input class="valInput" id="bp_sh_washerVal" type="number" min="5" max="30" step="0.5" value="10" />
+      </div>
+    </div>
+
+    <div class="paramRow">
+      <div class="paramTop">
         <div class="paramTag">BP_SH_SLOT</div>
         <div class="paramName">Screw Slot Length (mm)</div>
       </div>
       <div class="paramBody">
-        <input id="bp_sh_slot" name="bp_sh_slot" type="range" min="0" max="40" step="0.5" value="0" />
-        <input class="valInput" id="bp_sh_slotVal" type="number" step="0.5" value="0" />
+        <input id="bp_sh_slot" name="bp_sh_slot" type="range" min="0" max="40" step="0.5" value="30" />
+        <input class="valInput" id="bp_sh_slotVal" type="number" step="0.5" value="30" />
       </div>
     </div>
 
@@ -674,19 +719,30 @@ details.section details.section > summary {
         <div class="paramName">Slot Distance (center-to-center, mm)</div>
       </div>
       <div class="paramBody">
-        <input id="bp_sh_dist" name="bp_sh_dist" type="range" min="10" max="180" step="1" value="60" />
-        <input class="valInput" id="bp_sh_distVal" type="number" step="1" value="60" />
+        <input id="bp_sh_dist" name="bp_sh_dist" type="range" min="10" max="180" step="1" value="10" />
+        <input class="valInput" id="bp_sh_distVal" type="number" step="1" value="10" />
       </div>
     </div>
 
     <div class="paramRow">
       <div class="paramTop">
-        <div class="paramTag">BP_SH_ANG</div>
-        <div class="paramName">Slot Angle (deg)</div>
+        <div class="paramTag">BP_SH_ANG2</div>
+        <div class="paramName">Hole 2 Angle (deg)</div>
       </div>
       <div class="paramBody">
-        <input id="bp_sh_ang" name="bp_sh_ang" type="range" min="-180" max="180" step="1" value="0" />
-        <input class="valInput" id="bp_sh_angVal" type="number" step="1" value="0" />
+        <input id="bp_sh_ang2" name="bp_sh_ang2" type="range" min="-180" max="180" step="1" value="-20" />
+        <input class="valInput" id="bp_sh_ang2Val" type="number" step="1" value="-20" />
+      </div>
+    </div>
+
+    <div class="paramRow">
+      <div class="paramTop">
+        <div class="paramTag">BP_SH_OFF2</div>
+        <div class="paramName">Hole 2 Offset (mm, along axis)</div>
+      </div>
+      <div class="paramBody">
+        <input id="bp_sh_off2" name="bp_sh_off2" type="range" min="-80" max="80" step="1" value="60" />
+        <input class="valInput" id="bp_sh_off2Val" type="number" step="1" value="60" />
       </div>
     </div>
   </details>
@@ -1141,6 +1197,38 @@ details.section details.section > summary {
                 <input class="valInput" id="fil_5Val" type="number" step="0.5" value="0" />
               </div>
             </div>
+
+            <div class="check">
+              <input id="bp_fil_1" type="checkbox" checked />
+              <label for="bp_fil_1">BP_FIL_1</label>
+            </div>
+
+            <div class="paramRow">
+              <div class="paramTop">
+                <div class="paramTag">BP_FIL_1_R</div>
+                <div class="paramName">Base Plate Fillet 1 Radius (mm)</div>
+              </div>
+              <div class="paramBody">
+                <input id="bp_fil_1_r" name="bp_fil_1_r" type="range" min="0" max="40" step="0.5" value="8" />
+                <input class="valInput" id="bp_fil_1_rVal" type="number" step="0.5" value="8" />
+              </div>
+            </div>
+
+            <div class="check">
+              <input id="sh_fil_1" type="checkbox" checked />
+              <label for="sh_fil_1">SH_FIL_1</label>
+            </div>
+
+            <div class="paramRow">
+              <div class="paramTop">
+                <div class="paramTag">SH_FIL_1_R</div>
+                <div class="paramName">Screw Hole Fillet 1 Radius (mm)</div>
+              </div>
+              <div class="paramBody">
+                <input id="sh_fil_1_r" name="sh_fil_1_r" type="range" min="0" max="40" step="0.5" value="4" />
+                <input class="valInput" id="sh_fil_1_rVal" type="number" step="0.5" value="4" />
+              </div>
+            </div>
           </details>
 
         </form>
@@ -1167,6 +1255,8 @@ details.section details.section > summary {
         const r = document.getElementById(rangeId);
         const n = document.getElementById(numberId);
         if (!r || !n) return;
+        let numberChangeDebounceTimer = null;
+        const NUMBER_CHANGE_DEBOUNCE_MS = 120;
 
         if (typeof r.min === "string") n.min = r.min;
         if (typeof r.max === "string") n.max = r.max;
@@ -1174,7 +1264,7 @@ details.section details.section > summary {
 
         const syncNumber = () => { n.value = String(r.value); };
 
-        const syncRange = () => {
+        const syncRange = (immediateChange = false) => {
           const lo = Number.isFinite(Number(r.min)) ? Number(r.min) : -Infinity;
           const hi = Number.isFinite(Number(r.max)) ? Number(r.max) : Infinity;
           const v = clamp(Number(n.value), lo, hi);
@@ -1183,11 +1273,23 @@ details.section details.section > summary {
           r.value = String(v);
           n.value = String(v);
           r.dispatchEvent(new Event("input", { bubbles: true }));
+          if (numberChangeDebounceTimer != null) {
+            clearTimeout(numberChangeDebounceTimer);
+            numberChangeDebounceTimer = null;
+          }
+          if (immediateChange) {
+            r.dispatchEvent(new Event("change", { bubbles: true }));
+            return;
+          }
+          numberChangeDebounceTimer = setTimeout(() => {
+            numberChangeDebounceTimer = null;
+            r.dispatchEvent(new Event("change", { bubbles: true }));
+          }, NUMBER_CHANGE_DEBOUNCE_MS);
         };
 
         r.addEventListener("input", syncNumber);
-        n.addEventListener("input", syncRange);
-        n.addEventListener("change", syncRange);
+        n.addEventListener("input", () => syncRange(false));
+        n.addEventListener("change", () => syncRange(true));
 
         syncNumber();
       }
@@ -1197,6 +1299,7 @@ details.section details.section > summary {
       // -----------------------------
       const ids = [
         ["tolerance", "toleranceVal"],
+        ["debounceMs", "debounceMsVal"],
         ["sectionCutOffset", "sectionCutOffsetVal"],
 
         // Shoe
@@ -1235,10 +1338,13 @@ details.section details.section > summary {
         // Baseplate Screw Holes
         ["bp_sh_x", "bp_sh_xVal"],
         ["bp_sh_y", "bp_sh_yVal"],
+        ["bp_sh_ang", "bp_sh_angVal"],
         ["bp_sh_dia", "bp_sh_diaVal"],
+        ["bp_sh_washer", "bp_sh_washerVal"],
         ["bp_sh_slot", "bp_sh_slotVal"],
         ["bp_sh_dist", "bp_sh_distVal"],
-        ["bp_sh_ang", "bp_sh_angVal"],
+        ["bp_sh_ang2", "bp_sh_ang2Val"],
+        ["bp_sh_off2", "bp_sh_off2Val"],
 
         // Toe
         ["toe_thk", "toe_thkVal"],
@@ -1284,6 +1390,8 @@ details.section details.section > summary {
         ["fil_3", "fil_3Val"],
         ["fil_4", "fil_4Val"],
         ["fil_5", "fil_5Val"],
+        ["sh_fil_1_r", "sh_fil_1_rVal"],
+        ["bp_fil_1_r", "bp_fil_1_rVal"],
       ];
 
       for (const pair of ids) bindRangeToNumber(pair[0], pair[1]);
