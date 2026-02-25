@@ -369,59 +369,6 @@ function toeBezierOffsetProfileFixedPts(
   return { outerPts, innerPts };
 }
 
-function rectProfileXZSigned(widthX: number, heightZ: number, sx: number) {
-  const w = clamp(Math.abs(widthX), 0.1, 2000);
-  const h = clamp(heightZ, 0.0, 2000);
-  const x1 = sx * w;
-
-  let d = (draw([0, 0]) as any).lineTo([x1, 0]).lineTo([x1, h]).lineTo([0, h]);
-  return (d as any).close();
-}
-
-// Toe-style near-rectangle heel profile:
-// same construction family as the C->D toe-like mids (clipped toe bezier),
-// but guarded so the offset does not collapse when heelWidth ~= thickness.
-function heelNearRectToeProfileXZSigned(widthX: number, heightZ: number, sx: number, thickness: number) {
-  const w = clamp(Math.abs(widthX), 0.1, 2000);
-  const h = clamp(heightZ, 0.1, 2000);
-  const x1 = sx * w;
-  const makePolylineFallback = () => {
-    const crownDip = clamp(Math.min(h * 0.05, w * 0.18), 0.08, 1.5);
-    const shoulderDip = crownDip * 0.55;
-    let d = (draw([0, 0]) as any)
-      .lineTo([x1, 0])
-      .lineTo([x1, h])
-      .lineTo([x1 * 0.75, Math.max(0, h - shoulderDip)])
-      .lineTo([x1 * 0.5, Math.max(0, h - crownDip)])
-      .lineTo([x1 * 0.25, Math.max(0, h - shoulderDip)])
-      .lineTo([0, h]);
-    return (d as any).close();
-  };
-
-  // Guard against inner-offset collapse at D (often heelWidth ~= thickness).
-  // Keep the offset well below half-width and below height.
-  const offSafe = clamp(Math.min(thickness, w * 0.34, h * 0.8), 0.2, Math.max(0.2, Math.min(w * 0.45, h * 0.9)));
-
-  // If the heel end is too narrow/short, prefer the robust fallback section.
-  if (w <= 2.0 || h <= 1.0 || offSafe >= w * 0.48) {
-    return makePolylineFallback();
-  }
-
-  // Very shallow toe-like crown so the result is visually near-rectangular but
-  // still has the same profile topology/edge correspondence as the toe-like mids.
-  const crownRise = clamp(Math.min(h * 0.04, 1.0), 0.05, 1.0);
-  const endZ = h + crownRise;
-  const p1s = Math.max(0.1, h * 0.9);
-  const p3s = clamp(w * 0.14, 0.05, Math.max(0.05, w * 0.35));
-  const enda = -90;
-
-  try {
-    return clippedToeBezierProfileLower(x1, endZ, p1s, p3s, enda, offSafe, h);
-  } catch {
-    return makePolylineFallback();
-  }
-}
-
 // =======================================================
 // Screw holes / slots (baseplate cutouts)
 // - Uses ONLY line segments (no arc API assumptions)
@@ -501,67 +448,6 @@ function fuseMany(shapes: any[]): any | null {
 // =======================================================
 // Heel helper
 // =======================================================
-type ArchPts = { outerPts: Pt[]; innerPts: Pt[] };
-
-function archOffsetProfileFixedPts(
-  startX: number,
-  startZ: number,
-  endX: number,
-  endZ: number,
-  ctrlX: number,
-  ctrlZ: number,
-  off: number
-): ArchPts {
-  const A: Pt = { x: startX, y: startZ };
-  const C: Pt = { x: endX, y: endZ };
-
-  const span = Math.hypot(C.x - A.x, C.y - A.y);
-  const offSafe = clamp(off, 0.2, Math.max(0.2, span * 0.45));
-
-  const minX = Math.min(startX, endX);
-  const maxX = Math.max(startX, endX);
-  const minZ = Math.min(startZ, endZ);
-  const maxZ = Math.max(startZ, endZ);
-
-  const B: Pt = {
-    x: clamp(ctrlX, minX, maxX),
-    y: clamp(ctrlZ, minZ, maxZ + 200),
-  };
-
-  const samples = 60;
-  const outerPts: Pt[] = [];
-  const outerN: Pt[] = [];
-
-  for (let i = 0; i <= samples; i++) {
-    const t = i / samples;
-    const pt = catmullRom(A, A, B, C, t);
-    const dv = vnorm(catmullRomDeriv(A, A, B, C, t));
-    const nLeft = vnorm({ x: -dv.y, y: dv.x });
-    outerPts.push(pt);
-    outerN.push(nLeft);
-  }
-  for (let i = 1; i <= samples; i++) {
-    const t = i / samples;
-    const pt = catmullRom(A, B, C, C, t);
-    const dv = vnorm(catmullRomDeriv(A, B, C, C, t));
-    const nLeft = vnorm({ x: -dv.y, y: dv.x });
-    outerPts.push(pt);
-    outerN.push(nLeft);
-  }
-
-  const mid: Pt = { x: (A.x + C.x) * 0.5, y: (A.y + C.y) * 0.5 };
-  const midIdx = Math.floor(outerPts.length / 2);
-  const testP = outerPts[midIdx];
-  const testN = outerN[midIdx];
-
-  const cand1 = add(testP, mul(testN, offSafe));
-  const cand2 = add(testP, mul(testN, -offSafe));
-  const inwardSign = vlen(sub(cand1, mid)) < vlen(sub(cand2, mid)) ? 1 : -1;
-
-  const innerPts = outerPts.map((p, i) => add(p, mul(outerN[i], offSafe * -inwardSign)));
-  return { outerPts, innerPts };
-}
-
 function drawFromOuterInner(outerPts: Pt[], innerPts: Pt[]) {
   let d = draw([outerPts[0].x, outerPts[0].y]);
   for (let i = 1; i < outerPts.length; i++) d = (d as any).lineTo([outerPts[i].x, outerPts[i].y]);
@@ -672,18 +558,6 @@ function trimPolylineBackFromEnd(pts: Pt[], backLen: number): Pt[] | null {
   }
 
   return null;
-}
-
-function clippedArchProfileLower(endX: number, endZ: number, ctrlX: number, ctrlZ: number, thickness: number, clipZ: number) {
-  const { outerPts, innerPts } = archOffsetProfileFixedPts(0, 0, endX, endZ, ctrlX, ctrlZ, thickness);
-
-  const maxOuterZ = Math.max(...outerPts.map((p) => p.y));
-  const clip = clamp(clipZ, 0.1, Math.max(0.1, maxOuterZ - 0.1));
-
-  const o2 = clipPolylineAtY(outerPts, clip);
-  const i2 = clipPolylineAtY(innerPts, clip);
-
-  return drawFromOuterInner(o2, i2);
 }
 
 function clippedToeBezierProfileLower(
@@ -1280,7 +1154,7 @@ function fitEndAngleForInnerRail(
     let localBestErr = bestErr;
 
     for (let i = 0; i < refineSteps; i++) {
-      const u = refineSteps === 1 ? 0.5 : i / (refineSteps - 1);
+      const u = i / (refineSteps - 1);
       const ang = clamp(bestAng + (u * 2 - 1) * window, -180, 180);
       const err = errAt(ang);
       if (err < localBestErr) {
@@ -1860,7 +1734,6 @@ export async function buildHeelSolid(input: ParamMap): Promise<Shape3D> {
   const p3s_C = clamp(getV(input, "toe_c_p3s", "param9998", 35), 0, 10000);
   const enda_C = clamp(getV(input, "toe_c_enda", "param9999", -70), -180, 180);
 
-  const heelWidth = thickness;
   const sx = 1;
   const sxFirst = -sx;
   const cdLen = arcLenBetween(spinePts, idxC, idxEnd);

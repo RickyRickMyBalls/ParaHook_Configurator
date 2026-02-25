@@ -662,47 +662,6 @@ function sampleSpineMain(p: Record<string, number>) {
   return { spinePts, spineTan };
 }
 
-function rotateZDegOnYAxis(angDeg: number): { x: number; y: number; z: number } {
-  const a = (angDeg * Math.PI) / 180;
-  const c = Math.cos(a);
-  const s = Math.sin(a);
-  return { x: -s, y: c, z: 0 };
-}
-
-function sectionAngleDegFromTan(tan: Pt) {
-  return (Math.atan2(tan.y, tan.x) * 180) / Math.PI;
-}
-
-function arc3PointsAtStation(
-  station: Pt,
-  tan: Pt,
-  localCtrlX: number,
-  localCtrlZ: number,
-  localEndX: number,
-  localEndZ: number
-): XYZ[] {
-  const ang = sectionAngleDegFromTan(tan);
-
-  const u = rotateZDegOnYAxis(ang);
-  const v = { x: 0, y: 0, z: 1 };
-
-  const o = { x: station.x, y: station.y, z: 0 };
-
-  const p0 = o;
-  const p1 = {
-    x: o.x + u.x * localCtrlX + v.x * localCtrlZ,
-    y: o.y + u.y * localCtrlX + v.y * localCtrlZ,
-    z: o.z + u.z * localCtrlX + v.z * localCtrlZ,
-  };
-  const p2 = {
-    x: o.x + u.x * localEndX + v.x * localEndZ,
-    y: o.y + u.y * localEndX + v.y * localEndZ,
-    z: o.z + u.z * localEndX + v.z * localEndZ,
-  };
-
-  return [p0, p1, p2];
-}
-
 function updateArcViz() {
   const p = readParams() as any;
 

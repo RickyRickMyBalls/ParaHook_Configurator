@@ -250,7 +250,7 @@ details.section details.section > summary {
       <div id="toolbarPanel" class="panelBox">
         <div id="titlePanel">
           <div id="appTitle">Parahook Generator</div>
-          <div id="appVersion">v 0.14.0</div>
+          <div id="appVersion">v 0.14.1</div>
         </div>
 
         <div class="row header">
@@ -281,7 +281,18 @@ details.section details.section > summary {
             <!-- Notes -->
             <details class="section">
               <summary>-Notes</summary>
-              <div class="sectionMeta">0.14.0 - renamed params to named keys (legacy paramN still present in payload later)</div>
+              <div class="sectionMeta">0.14.1 - New Wiggle technology. toe A->B->C loft path is grounded to the baseplate for the solid model; toe hook arc controls now use P1S / P3S handle strengths (replacing older arc controls), and the new result is super wiggly.</div>
+<div class="sectionMeta">Toe rail architecture is driven by Profile A/B/C with per-profile rail strengths (TOE_A_STR, TOE_B_STR, TOE_C_STR) used to blend/control the outer/inner rail behavior across the loft.</div>
+<div class="sectionMeta">Heel kick: Profile C/D and C->D intermediates use a normal-cap cut workflow (cut by Z height, cap perpendicular to the outer tangent).</div>
+<div class="sectionMeta">Heel heights are clamped in app logic to the current Profile C top range; HEEL_H_C / HEEL_H_D may snap down if set too high.</div>
+<div class="sectionMeta">Debug window now logs worker build receives (sequence + dt) to help tune rebuild/debounce behavior.</div>
+<div class="sectionMeta">HEEL_F1 / HEEL_F2 and FIL_1..FIL_5 remain experimental / placeholder controls unless noted in current code behavior.</div>
+
+              <details class="section">
+                <summary>0.13.0</summary>
+                <div class="sectionMeta">13.423 - added section cut</div>
+                <div class="sectionMeta">13.422 - updated shoe rotation</div>
+              </details>
             </details>
 
             <!-- SECTION CUT -->
