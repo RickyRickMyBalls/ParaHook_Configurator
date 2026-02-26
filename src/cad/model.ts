@@ -7,10 +7,29 @@ type Pt = { x: number; y: number; arcMidFromPrev?: { x: number; y: number }; ski
 // =======================================================
 // Shared helpers
 // =======================================================
+
+
 const DEBUG_SHOW_SH_FIL_1_INFILL_SEPARATE = false;
 const DEBUG_SKIP_BASE_CUT_WHEN_SH_FIL_1 = false;
 const DEBUG_SKIP_SH_FIL_1_INFILL_FUSE = false;
 const DEBUG_FORCE_SH_FIL_1_OFFSET_SIDE: 0 | 1 | -1 = 0; // 0=auto, 1=offA, -1=offB
+const DEBUG_HEEL_FIL_1_FLIP = true;
+const DEBUG_HEEL_FIL_2_FLIP = true;
+const DEBUG_HEEL_FIL_1_D_FLIP_OVERRIDE = true;
+const DEBUG_HEEL_FIL_1_D_FLIP_VALUE = true; // explicit branch for D (don't infer by inversion)
+const DEBUG_HEEL_FIL_1_D_FLIP_Y_MAX = 11.5; // local profile y (world Z), target endpoint D only
+const DEBUG_HEEL_FIL_1_KEEP_CONST_SIZE = true; // don't lowY-shrink HEEL_FIL_1 local patch trim
+const DEBUG_HEEL_FIL_1_TRUE_ARC_DRAW = true; // match TH_FIL_1 draw style (hybrid true-arc rendering)
+const DEBUG_HEEL_FIL_2_KEEP_CONST_SIZE = true; // don't lowY-shrink HEEL_FIL_2 local patch trim
+const DEBUG_HEEL_FIL_3_TRUE_ARC_DRAW = false; // heel loft is more stable with polygonized crown fillets
+const DEBUG_HEEL_FIL_2_D_OVERRIDE = true;
+const DEBUG_HEEL_FIL_2_D_TAN_FLIP_VALUE = true; // true => useDown branch
+const DEBUG_HEEL_FIL_2_D_SPLICE_REV_VALUE = true; // true => sCut,end,arcRev,start ; false => sCut,start,arcFwd,end
+const DEBUG_HEEL_FIL_2_D_Y_MAX = 11.5; // local profile y (world Z), target endpoint D only
+const DEBUG_HEEL_FIL_2_FORCE_SPLICE_REV: boolean | null = null; // null=auto, true=rev, false=fwd
+
+let toeBuildExposeTailParts = false;
+let toeLastBuildTailShape: Shape3D | null = null;
 
 function num(v: unknown, f: number) {
   const n = Number(v);
@@ -311,9 +330,9 @@ function toeBezierOffsetProfile2D(
     return (draw([0, 0]) as any).lineTo([1, 0]).lineTo([1, 1]).lineTo([0, 1]).close();
   }
 
-  let dd = draw([ddLoop[0].x, ddLoop[0].y]);
-  for (let i = 1; i < ddLoop.length; i++) dd = (dd as any).lineTo([ddLoop[i].x, ddLoop[i].y]);
-  return (dd as any).close();
+  ddLoop = maybeFilletToeTopCapLoop(ddLoop, outerPts.length);
+  ddLoop = maybeFilletHeelTopCapLoop(ddLoop, outerPts.length);
+  return polyToDraw(ddLoop);
 }
 type ArchPts = { outerPts: Pt[]; innerPts: Pt[] };
 
@@ -456,7 +475,14 @@ function pruneLoopTinyKinks(loop: Pt[], distEps = 0.2, offLineEps = 0.08): Pt[] 
   return out.length >= 3 ? out : loop;
 }
 
-function filletClosedLoopCorner(loop: Pt[], idx: number, radius: number, arcSegs = 8, emitTrueArc = false): Pt[] {
+function filletClosedLoopCorner(
+  loop: Pt[],
+  idx: number,
+  radius: number,
+  arcSegs = 8,
+  emitTrueArc = false,
+  useTrimDistance = false
+): Pt[] {
   if (loop.length < 3) return loop;
   const r = Math.max(0, radius);
   if (r <= 1e-6) return loop;
@@ -464,7 +490,7 @@ function filletClosedLoopCorner(loop: Pt[], idx: number, radius: number, arcSegs
   const n = loop.length;
   const i1 = idx % n;
   const p1 = loop[i1];
-  const minAdjDist = Math.max(1, r * 0.6);
+  const minAdjDist = Math.max(1, r * (useTrimDistance ? 1.2 : 0.6));
   const pickNeighbor = (step: -1 | 1) => {
     let k = i1;
     let traveled = 0;
@@ -498,7 +524,8 @@ function filletClosedLoopCorner(loop: Pt[], idx: number, radius: number, arcSegs
   if (Math.abs(tanHalf) <= 1e-9) return loop;
 
   const maxTrim = Math.max(0, Math.min(la, lb) - 1e-4);
-  const trim = Math.min(r / tanHalf, maxTrim);
+  const trimTarget = useTrimDistance ? r : r / tanHalf;
+  const trim = Math.min(trimTarget, maxTrim);
   if (trim <= 1e-6) return loop;
 
   const rEff = trim * tanHalf;
@@ -808,6 +835,8 @@ void closedLoopIntersections2D;
 void dedupePtsAnyOrder;
 void polylinePointAtFrac;
 void traceClosedLoopBetweenHits;
+void maybeFilletHeelTopInnerLoop;
+void maybeFilletHeelTopOuterLoop;
 
 // Same stadium footprint as makeSlotCutter2DFromCenters, but built from true lines + arcs
 // (used for washer outer pads so the seam is not polygonized).
@@ -849,17 +878,733 @@ function fuseMany(shapes: any[]): any | null {
   return out;
 }
 
+let toeTopInnerFilletEnabled = false;
+let toeTopInnerFilletRadius = 0;
+let toeTopInnerFilletDebugCount = 0;
+let toeTopOuterFilletEnabled = false;
+let toeTopOuterFilletRadius = 0;
+let toeTopOuterFilletDebugCount = 0;
+let heelTopInnerFilletEnabled = false;
+let heelTopInnerFilletRadius = 0;
+let heelTopInnerFilletDebugCount = 0;
+let heelTopOuterFilletEnabled = false;
+let heelTopOuterFilletRadius = 0;
+let heelTopOuterFilletDebugCount = 0;
+let heelTopCrownEnabled = false;
+let heelTopCrownDebugCount = 0;
+let heelTopCrownInnerEnabled = false;
+let heelTopCrownInnerRadius = 0;
+let heelTopCrownOuterEnabled = false;
+let heelTopCrownOuterRadius = 0;
+let heelTopCrownApplyThisProfile = true;
+let heelTopCrownPatchOnly = false;
+
+function setToeTopInnerFilletConfig(input: ParamMap) {
+  clearHeelTopCapFilletConfig();
+  toeTopInnerFilletEnabled = clamp(getV(input, "th_fil_1", "param_th_fil_1", 0), 0, 1) > 0.5;
+  toeTopInnerFilletRadius = clamp(getV(input, "th_fil_1_r", "param_th_fil_1_r", 4), 0, 200);
+  toeTopInnerFilletDebugCount = 0;
+  toeTopOuterFilletEnabled = clamp(getV(input, "th_fil_2", "param_th_fil_2", 0), 0, 1) > 0.5;
+  toeTopOuterFilletRadius = clamp(getV(input, "th_fil_2_r", "param_th_fil_2_r", 4), 0, 200);
+  toeTopOuterFilletDebugCount = 0;
+  if (toeTopInnerFilletEnabled) {
+    postModelDebugStatus(
+      `[th_fil_1] enabled r=${toeTopInnerFilletRadius.toFixed(2)}${toeTopInnerFilletRadius > 3 ? " (over 3?)" : ""}`
+    );
+  }
+  if (toeTopOuterFilletEnabled) {
+    postModelDebugStatus(`[th_fil_2] enabled r=${toeTopOuterFilletRadius.toFixed(2)}`);
+  }
+}
+
+function clearToeTopInnerFilletConfig() {
+  toeTopInnerFilletEnabled = false;
+  toeTopInnerFilletRadius = 0;
+  toeTopInnerFilletDebugCount = 0;
+  toeTopOuterFilletEnabled = false;
+  toeTopOuterFilletRadius = 0;
+  toeTopOuterFilletDebugCount = 0;
+}
+
+function setHeelTopCapFilletConfig(input: ParamMap) {
+  // HEEL_FIL_1 / HEEL_FIL_2 now drive the crown-cap shoulder radii (inner/outer).
+  heelTopInnerFilletEnabled = false;
+  heelTopInnerFilletRadius = clamp(getV(input, "heel_fil_1_r", "param_heel_fil_1_r", 4), 0, 200);
+  heelTopInnerFilletDebugCount = 0;
+  heelTopOuterFilletEnabled = false;
+  heelTopOuterFilletRadius = clamp(getV(input, "heel_fil_2_r", "param_heel_fil_2_r", 4), 0, 200);
+  heelTopOuterFilletDebugCount = 0;
+  // Crown mode uses a single enable toggle (HEEL_FIL_1 checkbox). Both shoulders
+  // are always built; the two radius sliders set outer/inner shoulder radii.
+  // Visual/model mapping is flipped relative to local profile labels in this heel
+  // section setup, so HEEL_FIL_1_R drives crown outer and HEEL_FIL_2_R drives crown inner.
+  heelTopCrownEnabled = clamp(getV(input, "heel_fil_1", "param_heel_fil_1", 0), 0, 1) > 0.5;
+  heelTopCrownOuterEnabled = heelTopCrownEnabled;
+  heelTopCrownInnerEnabled = heelTopCrownEnabled;
+  heelTopCrownOuterRadius = heelTopInnerFilletRadius;
+  heelTopCrownInnerRadius = heelTopOuterFilletRadius;
+  heelTopCrownDebugCount = 0;
+  if (heelTopCrownEnabled) {
+    postModelDebugStatus(
+      `[heel_crown] enabled(heel_fil_1) rOuter=${heelTopCrownOuterRadius.toFixed(2)} rInner=${heelTopCrownInnerRadius.toFixed(
+        2
+      )} lift=1.0 off=(r+1)`
+    );
+  }
+}
+
+function clearHeelTopCapFilletConfig() {
+  heelTopInnerFilletEnabled = false;
+  heelTopInnerFilletRadius = 0;
+  heelTopInnerFilletDebugCount = 0;
+  heelTopOuterFilletEnabled = false;
+  heelTopOuterFilletRadius = 0;
+  heelTopOuterFilletDebugCount = 0;
+  heelTopCrownEnabled = false;
+  heelTopCrownDebugCount = 0;
+  heelTopCrownInnerEnabled = false;
+  heelTopCrownInnerRadius = 0;
+  heelTopCrownOuterEnabled = false;
+  heelTopCrownOuterRadius = 0;
+  heelTopCrownApplyThisProfile = true;
+  heelTopCrownPatchOnly = false;
+}
+
+function maybeAddHeelTopCapCrownLoop(loop: Pt[], outerCount: number): Pt[] {
+  if (!heelTopCrownEnabled || !heelTopCrownApplyThisProfile) return loop;
+  if (loop.length < 4) return loop;
+  const topOuterIdx = outerCount - 1;
+  const topInnerIdx = outerCount;
+  if (topOuterIdx < 0 || topInnerIdx >= loop.length) return loop;
+
+  const pOuter = loop[topOuterIdx];
+  const pInner = loop[topInnerIdx];
+  const capVec = sub(pInner, pOuter);
+  const capLen = vlen(capVec);
+  if (capLen <= 1e-6) return loop;
+  const capDir = mul(capVec, 1 / capLen);
+  const capNLeft = vnorm({ x: -capDir.y, y: capDir.x });
+  // HEEL_FIL_3 is defined in sketch space as an added top cap in +y ("up").
+  const outN = capNLeft.y >= 0 ? capNLeft : mul(capNLeft, -1);
+
+  const lift = 1.0;
+  const crownRInner = heelTopCrownInnerEnabled ? Math.max(0, heelTopCrownInnerRadius) : 0;
+  const crownROuter = heelTopCrownOuterEnabled ? Math.max(0, heelTopCrownOuterRadius) : 0;
+  const crownRMax = Math.max(crownRInner, crownROuter);
+  const crownOffset = crownRMax + lift;
+  const pOuterUp = add(pOuter, mul(outN, crownOffset));
+  const pInnerUp = add(pInner, mul(outN, crownOffset));
+
+  let out: Pt[];
+  let crownOuterCornerIdx: number;
+  let crownInnerCornerIdx: number;
+  if (heelTopCrownPatchOnly) {
+    // Crown-only patch profile: original cap -> raised cap, then fillet the two
+    // raised shoulders. This is lofted separately and fused onto the heel.
+    out = [pOuter, pOuterUp, pInnerUp, pInner];
+    crownOuterCornerIdx = 1;
+    crownInnerCornerIdx = 2;
+  } else {
+    out = [...loop.slice(0, topOuterIdx + 1), pOuterUp, pInnerUp, ...loop.slice(topInnerIdx)];
+    crownOuterCornerIdx = topOuterIdx + 1;
+    crownInnerCornerIdx = topOuterIdx + 2;
+  }
+  // Apply the higher index first to preserve the lower corner index.
+  if (heelTopCrownInnerEnabled && crownRInner > 1e-6) {
+    out = filletClosedLoopCorner(out, crownInnerCornerIdx, crownRInner, 10, DEBUG_HEEL_FIL_3_TRUE_ARC_DRAW);
+  }
+  if (heelTopCrownOuterEnabled && crownROuter > 1e-6) {
+    out = filletClosedLoopCorner(out, crownOuterCornerIdx, crownROuter, 10, DEBUG_HEEL_FIL_3_TRUE_ARC_DRAW);
+  }
+  out = pruneLoopTinyKinks(out, 0.2, 0.08);
+
+  if (heelTopCrownDebugCount < 6) {
+    postModelDebugStatus(
+      `[heel_crown] i=${heelTopCrownDebugCount} mode=${heelTopCrownPatchOnly ? "patch" : "full"} topCapLen=${capLen.toFixed(2)} ` +
+        `lift=${lift.toFixed(2)} rO=${crownROuter.toFixed(2)} rI=${crownRInner.toFixed(2)} off=${crownOffset.toFixed(2)} outN=(${outN.x.toFixed(2)},${outN.y.toFixed(2)})`
+    );
+    heelTopCrownDebugCount++;
+  }
+  return out;
+}
+
+function maybeFilletToeTopInnerLoop(loop: Pt[], topInnerIdx: number): Pt[] {
+  if (!toeTopInnerFilletEnabled) return loop;
+  if (toeTopInnerFilletRadius <= 1e-6) return loop;
+  if (loop.length < 3) return loop;
+  if (topInnerIdx <= 0 || topInnerIdx >= loop.length) return loop;
+  if (toeTopInnerFilletDebugCount < 8) {
+    const n = loop.length;
+    const p = loop[topInnerIdx];
+    const pPrev = loop[(topInnerIdx - 1 + n) % n];
+    const pNext = loop[(topInnerIdx + 1) % n];
+    postModelDebugStatus(
+      `[th_fil_1] i=${toeTopInnerFilletDebugCount} idx=${topInnerIdx}/${n - 1} r=${toeTopInnerFilletRadius.toFixed(2)} ` +
+        `pt=(${p.x.toFixed(1)},${p.y.toFixed(1)}) prev=${dist(pPrev, p).toFixed(2)} next=${dist(p, pNext).toFixed(2)}`
+    );
+    toeTopInnerFilletDebugCount++;
+  }
+  return filletClosedLoopCorner(loop, topInnerIdx, toeTopInnerFilletRadius, 10, true);
+}
+
+function maybeFilletToeTopOuterLoop(loop: Pt[], topOuterIdx: number): Pt[] {
+  if (!toeTopOuterFilletEnabled) return loop;
+  if (toeTopOuterFilletRadius <= 1e-6) return loop;
+  if (loop.length < 3) return loop;
+  if (topOuterIdx <= 0 || topOuterIdx >= loop.length) return loop;
+  if (toeTopOuterFilletDebugCount < 8) {
+    const n = loop.length;
+    const p = loop[topOuterIdx];
+    const pPrev = loop[(topOuterIdx - 1 + n) % n];
+    const pNext = loop[(topOuterIdx + 1) % n];
+    postModelDebugStatus(
+      `[th_fil_2] i=${toeTopOuterFilletDebugCount} idx=${topOuterIdx}/${n - 1} r=${toeTopOuterFilletRadius.toFixed(2)} ` +
+        `pt=(${p.x.toFixed(1)},${p.y.toFixed(1)}) prev=${dist(pPrev, p).toFixed(2)} next=${dist(p, pNext).toFixed(2)}`
+    );
+    toeTopOuterFilletDebugCount++;
+  }
+  return filletClosedLoopCorner(loop, topOuterIdx, toeTopOuterFilletRadius, 10, true);
+}
+
+function maybeFilletToeTopCapLoop(loop: Pt[], outerCount: number): Pt[] {
+  let out = loop;
+  out = maybeFilletToeTopInnerLoop(out, outerCount);
+  out = maybeFilletToeTopOuterLoop(out, outerCount - 1);
+  return out;
+}
+
+function maybeFilletHeelTopInnerLoop(loop: Pt[], topInnerIdx: number): Pt[] {
+  if (!heelTopInnerFilletEnabled) return loop;
+  if (heelTopInnerFilletRadius <= 1e-6) return loop;
+  if (loop.length < 3) return loop;
+  if (topInnerIdx <= 0 || topInnerIdx >= loop.length) return loop;
+  const n = loop.length;
+  const p = loop[topInnerIdx];
+  const pPrev = loop[(topInnerIdx - 1 + n) % n];
+  const pNext = loop[(topInnerIdx + 1) % n];
+  const immediatePrev = dist(pPrev, p);
+  const immediateNext = dist(p, pNext);
+  const spanDist = (startIdx: number, step: -1 | 1, maxHops = 24) => {
+    let acc = 0;
+    let k = startIdx;
+    for (let hops = 0; hops < maxHops; hops++) {
+      const kNext = (k + step + n) % n;
+      acc += dist(loop[k], loop[kNext]);
+      k = kNext;
+      if (acc >= heelTopInnerFilletRadius * 1.2) break;
+    }
+    return acc;
+  };
+  const localSpanPrev = spanDist(topInnerIdx, -1);
+  const localSpanNext = spanDist(topInnerIdx, 1);
+  let localTrim = Math.min(heelTopInnerFilletRadius, Math.max(0, Math.min(localSpanPrev, localSpanNext) - 0.1));
+  if (localTrim <= 0.2) {
+    if (heelTopInnerFilletDebugCount < 8) {
+      postModelDebugStatus(
+        `[heel_fil_1] skip tiny trim=${localTrim.toFixed(2)} imm=(${immediatePrev.toFixed(2)},${immediateNext.toFixed(2)})`
+      );
+      heelTopInnerFilletDebugCount++;
+    }
+    return loop;
+  }
+  if (!DEBUG_HEEL_FIL_1_KEEP_CONST_SIZE) {
+    const minCornerYForFillet = Math.max(8, localTrim * 10);
+    if (p.y < minCornerYForFillet) {
+      const capped = Math.min(localTrim, Math.max(0.2, p.y * 0.08));
+      if (heelTopInnerFilletDebugCount < 8) {
+        postModelDebugStatus(
+          `[heel_fil_1] cap lowY y=${p.y.toFixed(2)} trim=${localTrim.toFixed(2)}->${capped.toFixed(2)}`
+        );
+        heelTopInnerFilletDebugCount++;
+      }
+      localTrim = capped;
+    }
+    if (localTrim <= 0.2) {
+      if (heelTopInnerFilletDebugCount < 8) {
+        postModelDebugStatus(
+          `[heel_fil_1] skip tiny trim after cap=${localTrim.toFixed(2)}`
+        );
+        heelTopInnerFilletDebugCount++;
+      }
+      return loop;
+    }
+  }
+  try {
+    const capDir = vnorm(sub(pPrev, p)); // from inner-top corner toward outer-top corner along top cap
+    if (vlen(capDir) <= 1e-9) throw new Error("capDir");
+    const capNLeft = vnorm({ x: -capDir.y, y: capDir.x });
+    // Cut the inner spline where it reaches the requested offset from the top-cap line.
+    const cutOffset = localTrim + 0.1;
+    const findSplineCutForNormal = (candN: Pt) => {
+      const signedOffAt = (q: Pt) => dot2(sub(q, p), candN);
+      let hitSegStart = -1;
+      let hitSegEnd = -1;
+      let sCut: Pt | null = null;
+      for (let j = topInnerIdx; j < n - 1; j++) {
+        const a = loop[j];
+        const b = loop[j + 1];
+        const da = signedOffAt(a);
+        const db = signedOffAt(b);
+        if (da >= cutOffset - 1e-6) {
+          sCut = { x: a.x, y: a.y };
+          hitSegStart = j;
+          hitSegEnd = j;
+          break;
+        }
+        if (da <= cutOffset + 1e-6 && db >= cutOffset - 1e-6 && Math.abs(db - da) > 1e-9) {
+          const u = clamp((cutOffset - da) / (db - da), 0, 1);
+          sCut = lerpPt(a, b, u);
+          hitSegStart = j;
+          hitSegEnd = j + 1;
+          break;
+        }
+      }
+      if (!sCut || hitSegEnd < 0) return null;
+      return { capN: candN, sCut, hitSegStart, hitSegEnd };
+    };
+
+    const cA = findSplineCutForNormal(capNLeft);
+    const cB = findSplineCutForNormal(mul(capNLeft, -1));
+    const candidates = [cA, cB].filter((v): v is NonNullable<typeof cA> => !!v);
+    if (!candidates.length) throw new Error("no spline cut");
+    // Prefer trimming downward in profile space (lower y cut point). If tied, prefer
+    // the one that points more downward.
+    candidates.sort((u, v) => (u.sCut.y - v.sCut.y) || (u.capN.y - v.capN.y));
+    const chosen = candidates[0];
+    const capN = chosen.capN;
+    const sCut = chosen.sCut;
+    let hitSegStart = chosen.hitSegStart;
+    let hitSegEnd = chosen.hitSegEnd;
+
+    // Tangent = local spline segment direction at the cut. Extend this straight line to the cap.
+    const segA = loop[Math.max(topInnerIdx, hitSegStart)];
+    const segB = loop[Math.min(n - 1, Math.max(hitSegStart + 1, hitSegEnd))];
+    let splineDirDown = vnorm(sub(segB, segA));
+    if (dot2(splineDirDown, capN) < 0) splineDirDown = mul(splineDirDown, -1); // force toward deeper inner profile
+    const flipHeelFil1ForThisSection =
+      DEBUG_HEEL_FIL_1_D_FLIP_OVERRIDE && p.y <= DEBUG_HEEL_FIL_1_D_FLIP_Y_MAX
+        ? DEBUG_HEEL_FIL_1_D_FLIP_VALUE
+        : DEBUG_HEEL_FIL_1_FLIP;
+    const tanToCap = flipHeelFil1ForThisSection ? splineDirDown : mul(splineDirDown, -1);
+
+    // Intersect tangent line from sCut with the top-cap line through p.
+    const lineLine = (o1: Pt, d1: Pt, o2: Pt, d2: Pt): Pt | null => {
+      const den = cross2(d1, d2);
+      if (Math.abs(den) <= 1e-9) return null;
+      const t = cross2(sub(o2, o1), d2) / den;
+      return add(o1, mul(d1, t));
+    };
+    const q = lineLine(p, capDir, sCut, tanToCap);
+    if (!q) throw new Error("parallel tangent/cap");
+
+    // Build a local line-line fillet at q using trim-distance semantics.
+    const filletOpenCornerByTrim = (p0: Pt, p1: Pt, p2: Pt, trimReq: number, arcSegs = 8, preferNear?: Pt) => {
+      const a = sub(p0, p1);
+      const b = sub(p2, p1);
+      const la = vlen(a);
+      const lb = vlen(b);
+      if (la <= 1e-6 || lb <= 1e-6) return null;
+      const ua = mul(a, 1 / la);
+      const ub = mul(b, 1 / lb);
+      const dot = clamp(dot2(ua, ub), -1, 1);
+      const theta = Math.acos(dot);
+      if (!Number.isFinite(theta) || theta <= 1e-3 || theta >= Math.PI - 1e-3) return null;
+      const tanHalf = Math.tan(theta * 0.5);
+      if (Math.abs(tanHalf) <= 1e-9) return null;
+      const maxTrim = Math.max(0, Math.min(la, lb) - 1e-4);
+      const trim = Math.min(Math.max(0, trimReq), maxTrim);
+      if (trim <= 1e-6) return null;
+      const rEff = trim * tanHalf;
+      const sinHalf = Math.sin(theta * 0.5);
+      if (Math.abs(sinHalf) <= 1e-9) return null;
+      const start = add(p1, mul(ua, trim));
+      const end = add(p1, mul(ub, trim));
+      const bis = vnorm(add(ua, ub));
+      if (vlen(bis) <= 1e-6) return null;
+      const centerDist = rEff / sinHalf;
+      const cA = add(p1, mul(bis, centerDist));
+      const cB = add(p1, mul(bis, -centerDist));
+      let center = cA;
+      if (preferNear) {
+        center = dist(cA, preferNear) <= dist(cB, preferNear) ? cA : cB;
+      }
+      const rs = sub(start, center);
+      const re = sub(end, center);
+      let a0 = Math.atan2(rs.y, rs.x);
+      let a1 = Math.atan2(re.y, re.x);
+      let da = a1 - a0;
+      while (da <= -Math.PI) da += Math.PI * 2;
+      while (da > Math.PI) da -= Math.PI * 2;
+      const arcPts: Pt[] = [];
+      const segs = Math.max(2, Math.round(arcSegs));
+      for (let i = 1; i < segs; i++) {
+        const t = i / segs;
+        const aAng = a0 + da * t;
+        arcPts.push({ x: center.x + Math.cos(aAng) * rEff, y: center.y + Math.sin(aAng) * rEff });
+      }
+      const aMid = a0 + da * 0.5;
+      const arcMid = { x: center.x + Math.cos(aMid) * rEff, y: center.y + Math.sin(aMid) * rEff };
+      return { start, end, arcPts, arcMid };
+    };
+
+    // Use a finite construction point on the tangent side behind the cut.
+    const p2Line = add(sCut, mul(tanToCap, Math.max(localTrim * 2.5, 4)));
+    const patch = filletOpenCornerByTrim(pPrev, q, p2Line, localTrim, 10, p);
+    if (!patch) throw new Error("open fillet patch failed");
+
+    // Ensure the tangent-side fillet endpoint lies between q and sCut; otherwise clamp/skip.
+    const tanLineLen = dist(q, sCut);
+    if (tanLineLen <= 1e-6) throw new Error("tiny tangent leg");
+    if (dist(q, patch.end) > tanLineLen + 1e-3) throw new Error("fillet trim exceeds tangent leg");
+
+    if (heelTopInnerFilletDebugCount < 8) {
+      postModelDebugStatus(
+        `[heel_fil_1] local patch trim=${heelTopInnerFilletRadius.toFixed(2)}->${localTrim.toFixed(2)} ` +
+          `y=${p.y.toFixed(1)} flip=${flipHeelFil1ForThisSection ? 1 : 0} dOvr=${p.y <= DEBUG_HEEL_FIL_1_D_FLIP_Y_MAX ? 1 : 0} ` +
+          `capN=(${capN.x.toFixed(2)},${capN.y.toFixed(2)}) cut=(${sCut.x.toFixed(1)},${sCut.y.toFixed(1)})`
+      );
+      heelTopInnerFilletDebugCount++;
+    }
+
+    // Splice: ... pPrev, capStart, arc..., tanEnd, sCut, rest of spline ...
+    const out: Pt[] = [];
+    const prevIdx = topInnerIdx - 1;
+    for (let i = 0; i <= prevIdx; i++) out.push(loop[i]);
+    if (DEBUG_HEEL_FIL_1_TRUE_ARC_DRAW) {
+      const arcPtsSkip = patch.arcPts.map((pt) => ({ x: pt.x, y: pt.y, skipDraw: true as const }));
+      const patchEndArc: Pt = { x: patch.end.x, y: patch.end.y, arcMidFromPrev: patch.arcMid };
+      out.push(patch.start, ...arcPtsSkip, patchEndArc, sCut);
+    } else {
+      out.push(patch.start, ...patch.arcPts, patch.end, sCut);
+    }
+    for (let i = hitSegEnd; i < n; i++) out.push(loop[i]);
+    return dedupePts(out, 1e-6);
+  } catch (e) {
+    if (heelTopInnerFilletDebugCount < 8) {
+      postModelDebugStatus(`[heel_fil_1] local patch fallback: ${e instanceof Error ? e.message : String(e)}`);
+      heelTopInnerFilletDebugCount++;
+    }
+    // Fallback to the simpler corner fillet if the local construction fails.
+    return filletClosedLoopCorner(loop, topInnerIdx, localTrim, 10, false, true);
+  }
+}
+
+function maybeFilletHeelTopOuterLoop(loop: Pt[], topOuterIdx: number): Pt[] {
+  if (!heelTopOuterFilletEnabled) return loop;
+  if (heelTopOuterFilletRadius <= 1e-6) return loop;
+  if (loop.length < 3) return loop;
+  if (topOuterIdx <= 0 || topOuterIdx >= loop.length) return loop;
+  const n = loop.length;
+  const p = loop[topOuterIdx];
+  const pPrev = loop[(topOuterIdx - 1 + n) % n];
+  const pNext = loop[(topOuterIdx + 1) % n];
+  const immediatePrev = dist(pPrev, p);
+  const immediateNext = dist(p, pNext);
+  const spanDist = (startIdx: number, step: -1 | 1, maxHops = 24) => {
+    let acc = 0;
+    let k = startIdx;
+    for (let hops = 0; hops < maxHops; hops++) {
+      const kNext = (k + step + n) % n;
+      acc += dist(loop[k], loop[kNext]);
+      k = kNext;
+      if (acc >= heelTopOuterFilletRadius * 1.2) break;
+    }
+    return acc;
+  };
+  const localSpanPrev = spanDist(topOuterIdx, -1);
+  const localSpanNext = spanDist(topOuterIdx, 1);
+  let localTrim = Math.min(heelTopOuterFilletRadius, Math.max(0, Math.min(localSpanPrev, localSpanNext) - 0.1));
+  if (localTrim <= 0.2) {
+    if (heelTopOuterFilletDebugCount < 8) {
+      postModelDebugStatus(
+        `[heel_fil_2] skip tiny trim=${localTrim.toFixed(2)} imm=(${immediatePrev.toFixed(2)},${immediateNext.toFixed(2)})`
+      );
+      heelTopOuterFilletDebugCount++;
+    }
+    return loop;
+  }
+  if (!DEBUG_HEEL_FIL_2_KEEP_CONST_SIZE) {
+    const minCornerYForFillet = Math.max(8, localTrim * 10);
+    if (p.y < minCornerYForFillet) {
+      const capped = Math.min(localTrim, Math.max(0.2, p.y * 0.08));
+      if (heelTopOuterFilletDebugCount < 8) {
+        postModelDebugStatus(
+          `[heel_fil_2] cap lowY y=${p.y.toFixed(2)} trim=${localTrim.toFixed(2)}->${capped.toFixed(2)}`
+        );
+        heelTopOuterFilletDebugCount++;
+      }
+      localTrim = capped;
+    }
+    if (localTrim <= 0.2) {
+      if (heelTopOuterFilletDebugCount < 8) {
+        postModelDebugStatus(
+          `[heel_fil_2] skip tiny trim after cap=${localTrim.toFixed(2)}`
+        );
+        heelTopOuterFilletDebugCount++;
+      }
+      return loop;
+    }
+  }
+  if (heelTopOuterFilletDebugCount < 8) {
+    postModelDebugStatus(
+      `[heel_fil_2] i=${heelTopOuterFilletDebugCount} idx=${topOuterIdx}/${n - 1} trim=${heelTopOuterFilletRadius.toFixed(2)}->${localTrim.toFixed(2)} ` +
+        `pt=(${p.x.toFixed(1)},${p.y.toFixed(1)}) prev=${immediatePrev.toFixed(2)} next=${immediateNext.toFixed(2)}`
+    );
+    heelTopOuterFilletDebugCount++;
+  }
+  try {
+    // top cap goes from outer-top corner p -> inner-top corner pNext
+    const capDir = vnorm(sub(pNext, p));
+    if (vlen(capDir) <= 1e-9) throw new Error("capDir");
+    const capNLeft = vnorm({ x: -capDir.y, y: capDir.x });
+    const cutOffset = localTrim + 0.1;
+
+    const findSplineCutForNormal = (candN: Pt) => {
+      const signedOffAt = (q: Pt) => dot2(sub(q, p), candN);
+      let hitSegStart = -1;
+      let hitSegEnd = -1;
+      let sCut: Pt | null = null;
+      for (let j = topOuterIdx; j > 0; j--) {
+        const a = loop[j];
+        const b = loop[j - 1];
+        const da = signedOffAt(a);
+        const db = signedOffAt(b);
+        if (da >= cutOffset - 1e-6) {
+          sCut = { x: a.x, y: a.y };
+          hitSegStart = j;
+          hitSegEnd = j;
+          break;
+        }
+        if (da <= cutOffset + 1e-6 && db >= cutOffset - 1e-6 && Math.abs(db - da) > 1e-9) {
+          const u = clamp((cutOffset - da) / (db - da), 0, 1);
+          sCut = lerpPt(a, b, u);
+          hitSegStart = j;
+          hitSegEnd = j - 1;
+          break;
+        }
+      }
+      if (!sCut || hitSegEnd < 0) return null;
+      return { capN: candN, sCut, hitSegStart, hitSegEnd };
+    };
+
+    const cA = findSplineCutForNormal(capNLeft);
+    const cB = findSplineCutForNormal(mul(capNLeft, -1));
+    const candidates = [cA, cB].filter((v): v is NonNullable<typeof cA> => !!v);
+    if (!candidates.length) throw new Error("no spline cut");
+    candidates.sort((u, v) => (u.sCut.y - v.sCut.y) || (u.capN.y - v.capN.y));
+    const chosen = candidates[0];
+    const capN = chosen.capN;
+    const sCut = chosen.sCut;
+    const hitSegStart = chosen.hitSegStart;
+    const hitSegEnd = chosen.hitSegEnd;
+
+    const segA = loop[Math.max(0, Math.min(hitSegStart, topOuterIdx))];
+    const segB = loop[Math.max(0, Math.min(hitSegEnd, topOuterIdx))];
+    const lineLine = (o1: Pt, d1: Pt, o2: Pt, d2: Pt): Pt | null => {
+      const den = cross2(d1, d2);
+      if (Math.abs(den) <= 1e-9) return null;
+      const t = cross2(sub(o2, o1), d2) / den;
+      return add(o1, mul(d1, t));
+    };
+    const filletOpenCornerByTrim = (p0: Pt, p1: Pt, p2: Pt, trimReq: number, arcSegs = 8, preferNear?: Pt) => {
+      const a = sub(p0, p1);
+      const b = sub(p2, p1);
+      const la = vlen(a);
+      const lb = vlen(b);
+      if (la <= 1e-6 || lb <= 1e-6) return null;
+      const ua = mul(a, 1 / la);
+      const ub = mul(b, 1 / lb);
+      const dot = clamp(dot2(ua, ub), -1, 1);
+      const theta = Math.acos(dot);
+      if (!Number.isFinite(theta) || theta <= 1e-3 || theta >= Math.PI - 1e-3) return null;
+      const tanHalf = Math.tan(theta * 0.5);
+      if (Math.abs(tanHalf) <= 1e-9) return null;
+      const maxTrim = Math.max(0, Math.min(la, lb) - 1e-4);
+      const trim = Math.min(Math.max(0, trimReq), maxTrim);
+      if (trim <= 1e-6) return null;
+      const rEff = trim * tanHalf;
+      const sinHalf = Math.sin(theta * 0.5);
+      if (Math.abs(sinHalf) <= 1e-9) return null;
+      const start = add(p1, mul(ua, trim));
+      const end = add(p1, mul(ub, trim));
+      const bis = vnorm(add(ua, ub));
+      if (vlen(bis) <= 1e-6) return null;
+      const centerDist = rEff / sinHalf;
+      const c1 = add(p1, mul(bis, centerDist));
+      const c2 = add(p1, mul(bis, -centerDist));
+      let center = c1;
+      if (preferNear) center = dist(c1, preferNear) <= dist(c2, preferNear) ? c1 : c2;
+      const rs = sub(start, center);
+      const re = sub(end, center);
+      let a0 = Math.atan2(rs.y, rs.x);
+      let a1 = Math.atan2(re.y, re.x);
+      let da = a1 - a0;
+      while (da <= -Math.PI) da += Math.PI * 2;
+      while (da > Math.PI) da -= Math.PI * 2;
+      const arcPts: Pt[] = [];
+      const segs = Math.max(2, Math.round(arcSegs));
+      for (let i = 1; i < segs; i++) {
+        const t = i / segs;
+        const aa = a0 + da * t;
+        arcPts.push({ x: center.x + Math.cos(aa) * rEff, y: center.y + Math.sin(aa) * rEff });
+      }
+      return { start, end, arcPts };
+    };
+
+    let splineDirDown = vnorm(sub(segB, segA));
+    if (dot2(splineDirDown, capN) < 0) splineDirDown = mul(splineDirDown, -1);
+
+    const signedOff = (r: Pt) => dot2(sub(r, p), capN);
+    const capLen = dist(p, pNext);
+    const tryPatch = (useDown: boolean) => {
+      const tanToCap = useDown ? splineDirDown : mul(splineDirDown, -1);
+      const q = lineLine(p, capDir, sCut, tanToCap);
+      if (!q) return null;
+      const p2Line = add(sCut, mul(tanToCap, Math.max(localTrim * 2.5, 4)));
+      const patch = filletOpenCornerByTrim(pNext, q, p2Line, localTrim, 10, p);
+      if (!patch) return null;
+      const tanLineLen = dist(q, sCut);
+      if (tanLineLen <= 1e-6) return null;
+      if (dist(q, patch.end) > tanLineLen + 1e-3) return null;
+      const capLegLen = dist(q, pNext);
+      if (capLegLen <= 1e-6) return null;
+      if (dist(q, patch.start) > capLegLen + 1e-3) return null;
+      // Critical for HEEL_FIL_2: the cap-side fillet endpoint must lie on the
+      // actual top-cap segment p -> pNext, not on a cap-line extension past p.
+      const capProj = dot2(sub(patch.start, p), capDir);
+      if (capProj < -1e-4 || capProj > capLen + 1e-4) return null;
+
+      // Score candidates by staying on the inward side of the cap line and keeping
+      // the tangent endpoint deeper into the profile than the cut point.
+      const filletPts = [patch.start, ...patch.arcPts, patch.end];
+      let negCount = 0;
+      let outCount = 0;
+      let minOff = Infinity;
+      for (const fp of filletPts) {
+        const so = signedOff(fp);
+        if (so < -1e-4) negCount++;
+        if (so < minOff) minOff = so;
+        if (!pointInClosedLoop2D(loop, fp)) outCount++;
+      }
+      const endOff = signedOff(patch.end);
+      const cutOff = signedOff(sCut);
+      if (endOff < cutOff - 1e-3) negCount += 4; // strong penalty for "outward" tangent endpoint
+
+      return { tanToCap, q, patch, useDown, negCount, minOff, outCount, capProj };
+    };
+
+    const candDown = tryPatch(true);
+    const candUp = tryPatch(false);
+    const candidates2 = [candDown, candUp].filter((v): v is NonNullable<typeof candDown> => !!v);
+    if (!candidates2.length) throw new Error("open fillet patch failed");
+    const preferUseDown = DEBUG_HEEL_FIL_2_FLIP ? true : false;
+    candidates2.sort((a, b) => {
+      if (a.outCount !== b.outCount) return a.outCount - b.outCount;
+      if (a.negCount !== b.negCount) return a.negCount - b.negCount;
+      if (Math.abs(a.minOff - b.minOff) > 1e-6) return b.minOff - a.minOff;
+      if (a.useDown !== b.useDown) return (a.useDown === preferUseDown ? -1 : 1);
+      return 0;
+    });
+    const isHeelFil2DSection = DEBUG_HEEL_FIL_2_D_OVERRIDE && p.y <= DEBUG_HEEL_FIL_2_D_Y_MAX;
+    let chosenPatch = candidates2[0];
+    if (isHeelFil2DSection) {
+      const forcedUseDown = DEBUG_HEEL_FIL_2_D_TAN_FLIP_VALUE;
+      const forced = candidates2.find((c) => c.useDown === forcedUseDown);
+      if (forced) chosenPatch = forced;
+    }
+    const patch = chosenPatch.patch;
+
+    if (heelTopOuterFilletDebugCount < 8) {
+      postModelDebugStatus(
+        `[heel_fil_2] local patch trim=${heelTopOuterFilletRadius.toFixed(2)}->${localTrim.toFixed(2)} ` +
+          `flip=${DEBUG_HEEL_FIL_2_FLIP ? 1 : 0} pick=${chosenPatch.useDown ? 1 : 0} out=${chosenPatch.outCount} dOvr=${isHeelFil2DSection ? 1 : 0} ` +
+          `capProj=${chosenPatch.capProj.toFixed(2)}/${capLen.toFixed(2)} capN=(${capN.x.toFixed(2)},${capN.y.toFixed(2)}) ` +
+          `cut=(${sCut.x.toFixed(1)},${sCut.y.toFixed(1)})`
+      );
+      heelTopOuterFilletDebugCount++;
+    }
+
+    // Splice can differ by section depending on the chosen branch. Try both point
+    // orders and keep the one that preserves loop winding / avoids weird planes.
+    const prefix = loop.slice(0, hitSegEnd + 1);
+    const suffix = loop.slice(topOuterIdx + 1);
+    const baseSign = Math.sign(signedArea2(loop)) || 1;
+    const buildOut = (reverseArcOrder: boolean) => {
+      const arcPts = reverseArcOrder ? patch.arcPts.slice().reverse() : patch.arcPts.slice();
+      const seq = reverseArcOrder
+        ? [sCut, patch.end, ...arcPts, patch.start]
+        : [sCut, patch.start, ...arcPts, patch.end];
+      return dedupePts([...prefix, ...seq, ...suffix], 1e-6);
+    };
+    const scoreOut = (cand: Pt[]) => {
+      const sign = Math.sign(signedArea2(cand)) || baseSign;
+      const signPenalty = sign === baseSign ? 0 : 100;
+      // Compare local continuity across the splice.
+      const left = cand[Math.max(0, prefix.length - 1)];
+      const a = cand[Math.min(cand.length - 1, prefix.length)];
+      const b = cand[Math.min(cand.length - 1, cand.length - suffix.length - 1)];
+      const right = cand[Math.min(cand.length - 1, cand.length - suffix.length)];
+      const jumpPenalty = (left && a ? dist(left, a) : 0) + (b && right ? dist(b, right) : 0);
+      let outPenalty = 0;
+      for (const fp of [patch.start, ...patch.arcPts, patch.end]) {
+        if (!pointInClosedLoop2D(cand, fp)) outPenalty++;
+      }
+      return signPenalty + outPenalty * 10 + jumpPenalty;
+    };
+    const outRev = buildOut(true);
+    const outFwd = buildOut(false);
+    const scoreRev = scoreOut(outRev);
+    const scoreFwd = scoreOut(outFwd);
+    const forceSpliceRevD = isHeelFil2DSection ? DEBUG_HEEL_FIL_2_D_SPLICE_REV_VALUE : null;
+    const forceSpliceRev =
+      DEBUG_HEEL_FIL_2_FORCE_SPLICE_REV !== null
+        ? DEBUG_HEEL_FIL_2_FORCE_SPLICE_REV
+        : forceSpliceRevD !== null
+          ? forceSpliceRevD
+          : null;
+    if (heelTopOuterFilletDebugCount < 8) {
+      postModelDebugStatus(
+        `[heel_fil_2] splice pick=${forceSpliceRev === null ? (scoreRev <= scoreFwd ? "rev" : "fwd") : (forceSpliceRev ? "rev*" : "fwd*")} ` +
+          `scores=(${scoreRev.toFixed(2)},${scoreFwd.toFixed(2)}) dOvr=${isHeelFil2DSection ? 1 : 0} ` +
+          `gOvr=${DEBUG_HEEL_FIL_2_FORCE_SPLICE_REV === null ? "-" : DEBUG_HEEL_FIL_2_FORCE_SPLICE_REV ? 1 : 0}`
+      );
+      heelTopOuterFilletDebugCount++;
+    }
+    if (forceSpliceRev === true) return outRev;
+    if (forceSpliceRev === false) return outFwd;
+    return scoreRev <= scoreFwd ? outRev : outFwd;
+  } catch (e) {
+    if (heelTopOuterFilletDebugCount < 8) {
+      postModelDebugStatus(`[heel_fil_2] local patch fallback: ${e instanceof Error ? e.message : String(e)}`);
+      heelTopOuterFilletDebugCount++;
+    }
+    return filletClosedLoopCorner(loop, topOuterIdx, localTrim, 10, false, true);
+  }
+}
+
+function maybeFilletHeelTopCapLoop(loop: Pt[], outerCount: number): Pt[] {
+  let out = loop;
+  out = maybeAddHeelTopCapCrownLoop(out, outerCount);
+  // Old HEEL_FIL_1/2 corner-fillet geometry path is disabled; those controls now
+  // drive the crown-cap shoulder radii in maybeAddHeelTopCapCrownLoop().
+  return out;
+}
+
 // =======================================================
 // Heel helper
 // =======================================================
 function drawFromOuterInner(outerPts: Pt[], innerPts: Pt[]) {
-  let d = draw([outerPts[0].x, outerPts[0].y]);
-  for (let i = 1; i < outerPts.length; i++) d = (d as any).lineTo([outerPts[i].x, outerPts[i].y]);
-
-  d = (d as any).lineTo([innerPts[innerPts.length - 1].x, innerPts[innerPts.length - 1].y]);
-
-  for (let i = innerPts.length - 2; i >= 0; i--) d = (d as any).lineTo([innerPts[i].x, innerPts[i].y]);
-  return (d as any).close();
+  if (outerPts.length < 2 || innerPts.length < 2) {
+    let d = draw([outerPts[0]?.x ?? 0, outerPts[0]?.y ?? 0]);
+    for (let i = 1; i < outerPts.length; i++) d = (d as any).lineTo([outerPts[i].x, outerPts[i].y]);
+    for (let i = innerPts.length - 1; i >= 0; i--) d = (d as any).lineTo([innerPts[i].x, innerPts[i].y]);
+    return (d as any).close();
+  }
+  let loop: Pt[] = [...outerPts, ...innerPts.slice().reverse()];
+  loop = dedupePts(loop, 1e-6);
+  loop = maybeFilletToeTopCapLoop(loop, outerPts.length);
+  loop = maybeFilletHeelTopCapLoop(loop, outerPts.length);
+  return polyToDraw(loop);
 }
 
 function clipPolylineAtY(pts: Pt[], clipY: number): Pt[] {
@@ -1266,6 +2011,8 @@ function sampleSpine(input: ParamMap) {
 // Baseplate + screw holes cut
 // =======================================================
 export async function buildBaseSolid(input: ParamMap): Promise<Shape3D> {
+  const railMathMode = Math.round(clamp(num((input as any).rail_math_mode, 1), 1, 10));
+  const tagentABaseplateCutPerp = clamp(getV(input, "tagent_a_bp_cut_perp", "param_tagent_a_bp_cut_perp", 0), 0, 1) > 0.5;
   const baseLen = clamp(getV(input, "bp_len", "param1", 195), 50, 2000);
   const baseWid = clamp(getV(input, "bp_wid", "param2", 30), 1, 300);
   const baseThk = clamp(getV(input, "bp_thk", "param3", 12), -40, 200);
@@ -1312,6 +2059,70 @@ export async function buildBaseSolid(input: ParamMap): Promise<Shape3D> {
   }
 
   inner[0] = { x: 0, y: 0 };
+
+  // Rail Math 6 baseplate tweak: make the toe end-cap horizontal (along X / constant Y)
+  // by trimming the outer spline to the same Y as the inner toe endpoint.
+  // Profile-A hidden option can also force the origin-side cap to be perpendicular
+  // (horizontal end-cap at y=0) even outside Rail Math 6.
+  const applyToeEndCapFlat = railMathMode === 6;
+  const applyStartCapFlat = railMathMode === 6 || tagentABaseplateCutPerp;
+  if ((applyToeEndCapFlat || applyStartCapFlat) && outer.length >= 2 && inner.length >= 1) {
+    if (applyToeEndCapFlat) {
+      const targetY = inner[inner.length - 1].y;
+      let replaced = false;
+      for (let i = outer.length - 1; i >= 1; i--) {
+        const a = outer[i - 1];
+        const b = outer[i];
+        const yMin = Math.min(a.y, b.y) - 1e-9;
+        const yMax = Math.max(a.y, b.y) + 1e-9;
+        if (targetY < yMin || targetY > yMax) continue;
+
+        const dy = b.y - a.y;
+        let x = b.x;
+        if (Math.abs(dy) > 1e-9) {
+          const u = clamp((targetY - a.y) / dy, 0, 1);
+          x = a.x + (b.x - a.x) * u;
+        }
+
+        outer.splice(i, outer.length - i, { x, y: targetY });
+        replaced = true;
+        break;
+      }
+      if (!replaced) {
+        const last = outer[outer.length - 1];
+        outer[outer.length - 1] = { x: last.x, y: targetY };
+      }
+    }
+
+    if (applyStartCapFlat) {
+      // Flatten the origin-side cap so the start end-cap is horizontal at y=0.
+      // Since inner[0] is anchored to (0,0), we trim the first outer segment to y=0.
+      const startTargetY = 0;
+      let startReplaced = false;
+      for (let i = 1; i < outer.length; i++) {
+        const a = outer[i - 1];
+        const b = outer[i];
+        const yMin = Math.min(a.y, b.y) - 1e-9;
+        const yMax = Math.max(a.y, b.y) + 1e-9;
+        if (startTargetY < yMin || startTargetY > yMax) continue;
+
+        const dy = b.y - a.y;
+        let x = a.x;
+        if (Math.abs(dy) > 1e-9) {
+          const u = clamp((startTargetY - a.y) / dy, 0, 1);
+          x = a.x + (b.x - a.x) * u;
+        }
+
+        outer.splice(0, i, { x, y: startTargetY });
+        startReplaced = true;
+        break;
+      }
+      if (!startReplaced) {
+        const first = outer[0];
+        outer[0] = { x: first.x, y: startTargetY };
+      }
+    }
+  }
 
   // Build the baseplate sketch loop as points so we can fillet the end-cap corners
   // (outer[last] and inner[last]) before extrusion.
@@ -2174,9 +2985,26 @@ function buildToeABCLoft(
   toeAFilletMm = 0,
   bRailStrength = 1,
   aRailStrength = 1,
-  cRailStrength = 1
+  cRailStrength = 1,
+  railMathMode = 1,
+  railMath5Cull = 1,
+  railMath5HeelHC = 40,
+  railMath5Addback = 0,
+  railMath6a = true,
+  railMath6b = false,
+  railMath6c = false,
+  tagentProfileA = true,
+  tagentProfileB = true,
+  tagentAOffsetRotDeg = 0,
+  tagentAMidpoint = 50,
+  tagentAPlaceholder1 = 0,
+  tagentAPlaceholder2 = 0
 ) {
+  void railMath6c;
+  void tagentAPlaceholder1;
+  void tagentAPlaceholder2;
   const sx = flipX ? -1 : 1;
+  void railMath5Addback;
 
   const lenAB = arcLenBetween(spinePts, 0, idxB);
   const lenBC = arcLenBetween(spinePts, idxB, idxC);
@@ -2219,6 +3047,31 @@ function buildToeABCLoft(
     };
   }
 
+  if ((railMathMode === 4 || railMathMode === 5 || railMathMode === 6) && stations.length > 4) {
+    const bcInteriorCount = stations.filter((q) => q.s > lenAB + 1e-9 && q.s < lenAC - 1e-9).length;
+    let toDrop =
+      railMathMode === 5
+        ? Math.min(Math.max(0, Math.round(railMath5Cull)), bcInteriorCount)
+        : bcInteriorCount >= 5
+          ? 2
+          : bcInteriorCount >= 1
+            ? 1
+            : 0;
+    while (toDrop-- > 0) {
+      let rm = -1;
+      for (let i = stations.length - 2; i >= 1; i--) {
+        if (stations[i].s > lenAB + 1e-9 && stations[i].s < lenAC - 1e-9) {
+          rm = i;
+          break;
+        }
+      }
+      if (rm < 0) break;
+      stations.splice(rm, 1);
+    }
+  }
+
+  // rail_math_5_addback is A->C-only for now (ABC mode intentionally unchanged).
+
   const A_st = stations[0];
   const B_st =
     stations.find((q) => Math.abs(q.s - lenAB) <= 1e-9) ?? { pt: spinePts[idxB], tan: spineTan[idxB], s: lenAB };
@@ -2247,6 +3100,52 @@ function buildToeABCLoft(
     const t = vnorm(stTan);
     const u: Pt3 = { x: -t.y, y: t.x, z: 0 };
     return norm3({ x: u.x * localDir.x, y: u.y * localDir.x, z: localDir.y });
+  }
+  function lerp3Pt(a: Pt3, b: Pt3, t: number): Pt3 {
+    return { x: lerp(a.x, b.x, t), y: lerp(a.y, b.y, t), z: lerp(a.z, b.z, t) };
+  }
+  function cross3(a: Pt3, b: Pt3): Pt3 {
+    return {
+      x: a.y * b.z - a.z * b.y,
+      y: a.z * b.x - a.x * b.z,
+      z: a.x * b.y - a.y * b.x,
+    };
+  }
+  function arc3PtEval(a: Pt3, m: Pt3, c: Pt3, t: number): Pt3 {
+    const u = sub3(m, a);
+    const v = sub3(c, a);
+    const n = cross3(u, v);
+    const n2 = dot3(n, n);
+    if (n2 < 1e-10) return lerp3Pt(a, c, t);
+    const uu = dot3(u, u);
+    const vv = dot3(v, v);
+    const term1 = mul3(cross3(n, v), uu);
+    const term2 = mul3(cross3(u, n), vv);
+    const center = add3(a, mul3(add3(term1, term2), 1 / (2 * n2)));
+    const ra = sub3(a, center);
+    const rm = sub3(m, center);
+    const rc = sub3(c, center);
+    const rA = len3(ra);
+    const rM = len3(rm);
+    const rC = len3(rc);
+    if (rA < 1e-9 || rM < 1e-9 || rC < 1e-9) return lerp3Pt(a, c, t);
+    const ex = norm3(ra);
+    const nHat = norm3(n);
+    const ey = norm3(cross3(nHat, ex));
+    const ang = (p: Pt3) => Math.atan2(dot3(p, ey), dot3(p, ex));
+    const thA = 0;
+    let thM = ang(rm);
+    let thC = ang(rc);
+    while (thM > Math.PI) thM -= 2 * Math.PI;
+    while (thM < -Math.PI) thM += 2 * Math.PI;
+    while (thC - thA > Math.PI) thC -= 2 * Math.PI;
+    while (thC - thA < -Math.PI) thC += 2 * Math.PI;
+    const mBetween = (x: number, a0: number, c0: number) =>
+      a0 <= c0 ? x >= a0 - 1e-6 && x <= c0 + 1e-6 : x <= a0 + 1e-6 && x >= c0 - 1e-6;
+    if (!mBetween(thM, thA, thC)) thC += thC >= 0 ? -2 * Math.PI : 2 * Math.PI;
+    const th = lerp(thA, thC, t);
+    const r = lerp(rA, rC, t);
+    return add3(center, add3(mul3(ex, Math.cos(th) * r), mul3(ey, Math.sin(th) * r)));
   }
   function makeRelaxedPrevPoint(
     Aw: Pt3,
@@ -2289,11 +3188,54 @@ function buildToeABCLoft(
   const A_prevOuterW = makeRelaxedPrevPoint(A_endW, B_endW, A_st.tan, A_meta.endNormal, sx * A.endX);
   const A_prevInnerW = makeRelaxedPrevPoint(A_inW, B_inW, A_st.tan, A_meta.endNormal, A_meta.innerEnd.x);
   const bTanScale = 1 / clamp(bRailStrength, 0.2, 8);
+  const outerABArcGuideMidW = hermite3(
+    A_endW,
+    B_endW,
+    mul3(sub3(B_endW, A_prevOuterW), 0.5),
+    mul3(sub3(C_endW, A_endW), 0.5 * bTanScale),
+    0.5
+  );
+  const outerBCArcGuideMidW = hermite3(
+    B_endW,
+    C_endW,
+    mul3(sub3(C_endW, A_endW), 0.5 * bTanScale),
+    mul3(sub3(C_endW, B_endW), 0.5 * cTanScale),
+    0.5
+  );
+  const innerABArcGuideMidW = hermite3(
+    A_inW,
+    B_inW,
+    mul3(sub3(B_inW, A_prevInnerW), 0.5),
+    mul3(sub3(C_inW, A_inW), 0.5 * bTanScale),
+    0.5
+  );
+  const innerBCArcGuideMidW = hermite3(
+    B_inW,
+    C_inW,
+    mul3(sub3(C_inW, A_inW), 0.5 * bTanScale),
+    mul3(sub3(C_inW, B_inW), 0.5 * cTanScale),
+    0.5
+  );
+  const bcChordOuter = sub3(C_endW, B_endW);
+  const bcChordInner = sub3(C_inW, B_inW);
+  const bcMode3OuterM0 = mul3(bcChordOuter, 0.45);
+  const bcMode3InnerM0 = mul3(bcChordInner, 0.45);
+  const bcMode3OuterM1Down: Pt3 = { x: 0, y: 0, z: -Math.max(5, len3(bcChordOuter) * 0.45) };
+  const bcMode3InnerM1Down: Pt3 = { x: 0, y: 0, z: -Math.max(5, len3(bcChordInner) * 0.45) };
   // Use Hermite rail so A/B/C strength sliders directly control endpoint tangent magnitudes.
   const USE_MAIN_DEBUG_RAIL_MATH = false;
 
   // Planes (unwrap)
   const angPrev = { v: null as number | null };
+  function endpointOriginFrameTan(pt: Pt, tanFallback: Pt): Pt {
+    const radial = vlen(pt) > 1e-6 ? vnorm(pt) : vnorm(tanFallback);
+    return radial;
+  }
+  function blendFrameTan(fromTan: Pt, toTan: Pt, alpha01: number): Pt {
+    const a = clamp(alpha01, 0, 1);
+    const v = add(mul(vnorm(fromTan), 1 - a), mul(vnorm(toTan), a));
+    return vlen(v) > 1e-6 ? vnorm(v) : vnorm(toTan);
+  }
   function makeSectionPlane(pt: Pt, tan: Pt) {
     const t = vnorm(tan);
     let angDeg = (Math.atan2(t.y, t.x) * 180) / Math.PI;
@@ -2308,10 +3250,41 @@ function buildToeABCLoft(
   }
 
   const sketches = stations.map((st, idx) => {
-    const plane = makeSectionPlane(st.pt, st.tan);
+    const onAB = st.s <= lenAB;
+    const railMath6UseSmoothRails = railMathMode === 6 && railMath6b;
+    const useArc3Rails = railMathMode === 4 || railMathMode === 5 || (railMathMode === 6 && !railMath6UseSmoothRails);
+    const useLinearRails = railMathMode === 2;
+    const useMode3DownEndRails = railMathMode === 3;
+    const skipInnerRailFit = railMathMode === 3;
+    const suppressAFilletCut = railMathMode === 3;
+    const isFinalC = idx === stations.length - 1;
+    // Rail Math 4/5: fixed A frame with final C snap. Rail Math 6: fixed world frame
+    // (non-tangent) for all sections so every profile keeps the same orientation.
+    const railMath6FixedWorldTan: Pt = { x: 0, y: 1 };
+    const railMath6SnapFinalC = railMath6a || railMath6b;
+    const frameTanBase =
+      railMathMode === 6
+        ? (railMath6SnapFinalC && isFinalC ? C_st.tan : railMath6FixedWorldTan)
+        : useArc3Rails
+        ? (isFinalC ? C_st.tan : A_st.tan)
+        : st.tan;
+    const isExactB = Math.abs(st.s - lenAB) <= 1e-9;
+    const tagentAFrameTan = dirFromDeg(90 + tagentAOffsetRotDeg);
+    const aBlendReach = Math.max(1e-6, clamp(tagentAMidpoint / 100, 0, 1));
+    const tABNorm = lenAB <= 1e-9 ? 1 : clamp(st.s / lenAB, 0, 1);
+    const aBlendAlpha = smoothstep01(clamp(tABNorm / aBlendReach, 0, 1));
+    const frameTanAfterA =
+      !tagentProfileA && onAB ? blendFrameTan(tagentAFrameTan, frameTanBase, aBlendAlpha) : frameTanBase;
+    const frameTan =
+      !tagentProfileA && idx === 0
+        ? frameTanAfterA
+        : !tagentProfileB && isExactB
+        ? endpointOriginFrameTan(st.pt, frameTanBase)
+        : frameTanAfterA;
+    const plane = makeSectionPlane(st.pt, frameTan);
 
     let prof: ToeProfileBezier;
-    if (st.s <= lenAB) {
+    if (onAB) {
       const t = lenAB <= 1e-9 ? 0 : clamp(st.s / lenAB, 0, 1);
       prof = lerpProf(A, B, t);
     } else {
@@ -2319,15 +3292,59 @@ function buildToeABCLoft(
       prof = lerpProf(B, C, t);
     }
 
+    if (railMathMode === 5 && isFinalC) {
+      const clipH = clamp(railMath5HeelHC, 0.1, Math.max(0.1, C.endZ - 0.1));
+      let heelProf2d: any;
+      const prevToeTopInnerEnabled = toeTopInnerFilletEnabled;
+      const prevToeTopInnerRadius = toeTopInnerFilletRadius;
+      const prevToeTopInnerDebugCount = toeTopInnerFilletDebugCount;
+      const prevToeTopOuterEnabled = toeTopOuterFilletEnabled;
+      const prevToeTopOuterRadius = toeTopOuterFilletRadius;
+      const prevToeTopOuterDebugCount = toeTopOuterFilletDebugCount;
+      toeTopInnerFilletEnabled = false;
+      toeTopOuterFilletEnabled = false;
+      try {
+        try {
+          heelProf2d = toeBezierProfileMatchedToNormalCapRefByClipZ(
+            sx * C.endX,
+            C.endZ,
+            C.p1s,
+            C.p3s,
+            C.enda,
+            thickness,
+            clipH
+          );
+        } catch {
+          heelProf2d = clippedToeBezierProfileLower(sx * C.endX, C.endZ, C.p1s, C.p3s, C.enda, thickness, clipH);
+        }
+      } catch {
+        heelProf2d = toeBezierOffsetProfile2D(sx * C.endX, C.endZ, C.p1s, C.p3s, C.enda, thickness, 0, 0);
+      } finally {
+        toeTopInnerFilletEnabled = prevToeTopInnerEnabled;
+        toeTopInnerFilletRadius = prevToeTopInnerRadius;
+        toeTopInnerFilletDebugCount = prevToeTopInnerDebugCount;
+        toeTopOuterFilletEnabled = prevToeTopOuterEnabled;
+        toeTopOuterFilletRadius = prevToeTopOuterRadius;
+        toeTopOuterFilletDebugCount = prevToeTopOuterDebugCount;
+      }
+      return heelProf2d.sketchOnPlane(plane);
+    }
+
       // OUTER desired rail
       const filletCut = clamp(toeAFilletMm, 0, 200);
       const cutAmtAB =
-        st.s <= lenAB && filletCut > 1e-6 ? filletCut * (1 - smoothstep01(clamp(st.s / filletCut, 0, 1))) : 0;
+        !suppressAFilletCut && onAB && filletCut > 1e-6 ? filletCut * (1 - smoothstep01(clamp(st.s / filletCut, 0, 1))) : 0;
 
     let desiredOuterW: Pt3;
-    if (st.s <= lenAB) {
+    if (onAB) {
       const tAB = lenAB <= 1e-9 ? 0 : clamp(st.s / lenAB, 0, 1);
-      desiredOuterW = USE_MAIN_DEBUG_RAIL_MATH
+      desiredOuterW = useArc3Rails
+        ? arc3PtEval(A_endW, outerABArcGuideMidW, B_endW, tAB)
+        : useMode3DownEndRails
+        ? hermite3(A_endW, B_endW, mul3(sub3(B_endW, A_endW), 0.45), mul3(sub3(B_endW, A_endW), 0.45), tAB)
+        : useLinearRails
+        ? lerp3Pt(A_endW, B_endW, tAB)
+        : USE_MAIN_DEBUG_RAIL_MATH
         ? catmullRom3(A_endW, A_endW, B_endW, C_endW, tAB)
         : hermite3(
             A_endW,
@@ -2338,7 +3355,13 @@ function buildToeABCLoft(
             );
     } else {
       const tBC = lenBC <= 1e-9 ? 0 : clamp((st.s - lenAB) / lenBC, 0, 1);
-      desiredOuterW = USE_MAIN_DEBUG_RAIL_MATH
+      desiredOuterW = useArc3Rails
+        ? arc3PtEval(B_endW, outerBCArcGuideMidW, C_endW, tBC)
+        : useMode3DownEndRails
+        ? hermite3(B_endW, C_endW, bcMode3OuterM0, bcMode3OuterM1Down, tBC)
+        : useLinearRails
+        ? lerp3Pt(B_endW, C_endW, tBC)
+        : USE_MAIN_DEBUG_RAIL_MATH
         ? catmullRom3(A_endW, B_endW, C_endW, C_endW, tBC)
         : hermite3(
             B_endW,
@@ -2351,9 +3374,15 @@ function buildToeABCLoft(
 
     // INNER desired rail
     let desiredInnerW: Pt3;
-    if (st.s <= lenAB) {
+    if (onAB) {
       const tAB = lenAB <= 1e-9 ? 0 : clamp(st.s / lenAB, 0, 1);
-      desiredInnerW = USE_MAIN_DEBUG_RAIL_MATH
+      desiredInnerW = useArc3Rails
+        ? arc3PtEval(A_inW, innerABArcGuideMidW, B_inW, tAB)
+        : useMode3DownEndRails
+        ? hermite3(A_inW, B_inW, mul3(sub3(B_inW, A_inW), 0.45), mul3(sub3(B_inW, A_inW), 0.45), tAB)
+        : useLinearRails
+        ? lerp3Pt(A_inW, B_inW, tAB)
+        : USE_MAIN_DEBUG_RAIL_MATH
         ? catmullRom3(A_inW, A_inW, B_inW, C_inW, tAB)
         : hermite3(
             A_inW,
@@ -2364,7 +3393,13 @@ function buildToeABCLoft(
             );
     } else {
       const tBC = lenBC <= 1e-9 ? 0 : clamp((st.s - lenAB) / lenBC, 0, 1);
-      desiredInnerW = USE_MAIN_DEBUG_RAIL_MATH
+      desiredInnerW = useArc3Rails
+        ? arc3PtEval(B_inW, innerBCArcGuideMidW, C_inW, tBC)
+        : useMode3DownEndRails
+        ? hermite3(B_inW, C_inW, bcMode3InnerM0, bcMode3InnerM1Down, tBC)
+        : useLinearRails
+        ? lerp3Pt(B_inW, C_inW, tBC)
+        : USE_MAIN_DEBUG_RAIL_MATH
         ? catmullRom3(A_inW, B_inW, C_inW, C_inW, tBC)
         : hermite3(
             B_inW,
@@ -2375,26 +3410,28 @@ function buildToeABCLoft(
             );
     }
 
-    const desiredOuterLocalBeforeCut = solveLocalEndXZ(st.pt, st.tan, desiredOuterW);
-    const desiredInnerLocalBeforeCut = solveLocalEndXZ(st.pt, st.tan, desiredInnerW);
+    const desiredOuterLocalBeforeCut = solveLocalEndXZ(st.pt, frameTan, desiredOuterW);
+    const desiredInnerLocalBeforeCut = solveLocalEndXZ(st.pt, frameTan, desiredInnerW);
 
       const desiredOuterLocalAfterCut = desiredOuterLocalBeforeCut;
       const desiredInnerLocalAfterCut = desiredInnerLocalBeforeCut;
 
-    const solved = solveLocalEndXZ(st.pt, st.tan, desiredOuterW);
+    const solved = solveLocalEndXZ(st.pt, frameTan, desiredOuterW);
 
-    const fittedEnda = fitEndAngleForInnerRail(
-      { pt: st.pt, tan: st.tan },
-      desiredInnerW,
-      solved.endXSigned,
-      solved.endZ,
-      prof.p1s,
-      prof.p3s,
-      prof.enda,
-      thickness,
-      55,
-      17
-    );
+    const fittedEnda = skipInnerRailFit
+      ? prof.enda
+      : fitEndAngleForInnerRail(
+          { pt: st.pt, tan: frameTan },
+          desiredInnerW,
+          solved.endXSigned,
+          solved.endZ,
+          prof.p1s,
+          prof.p3s,
+          prof.enda,
+          thickness,
+          55,
+          17
+        );
 
       // Temporary hard test disabled in combined ABC path (it can invalidate the
       // first loft section against the rail-fitted progression). Keep normal behavior.
@@ -2412,7 +3449,7 @@ function buildToeABCLoft(
 
         if ((filletCut > 1e-6 || idx === 0) && (idx <= 5 || (st.s > lenAB && idx === stations.length - 1))) {
           postModelDebugStatus(
-              `[fil_1][ABC] i=${idx} s=${st.s.toFixed(1)} ${st.s <= lenAB ? "AB" : "BC"} ` +
+              `[fil_1][ABC][rm${railMathMode}] i=${idx} s=${st.s.toFixed(1)} ${onAB ? "AB" : "BC"} ` +
               `railCut=0.0 secCut=${sectionCapCutAmt.toFixed(1)} ` +
           `oZ:${desiredOuterLocalBeforeCut.endZ.toFixed(1)}->${desiredOuterLocalAfterCut.endZ.toFixed(1)} ` +
           `iZ:${desiredInnerLocalBeforeCut.endZ.toFixed(1)}->${desiredInnerLocalAfterCut.endZ.toFixed(1)} ` +
@@ -2443,12 +3480,537 @@ function buildToeABCLoft(
   return (sketches[0] as any).loftWith(sketches.slice(1)) as Shape3D;
 }
 
+function buildToeACLoft(
+  spinePts: Pt[],
+  spineTan: Pt[],
+  idxC: number,
+  midAC: number,
+  A: ToeProfileBezier,
+  C: ToeProfileBezier,
+  thickness: number,
+  flipX: boolean,
+  toeAFilletMm = 0,
+  aRailStrength = 1,
+  cRailStrength = 1,
+  railMathMode = 1,
+  railMath5Cull = 1,
+  railMath5HeelHC = 40,
+  railMath5Addback = 0,
+  railMath6a = true,
+  railMath6b = false,
+  railMath6c = false,
+  tagentProfileA = true,
+  tagentAOffsetRotDeg = 0,
+  tagentAMidpoint = 50,
+  tagentAPlaceholder1 = 0,
+  tagentAPlaceholder2 = 0
+) {
+  const sx = flipX ? -1 : 1;
+  void railMath5Addback;
+  void railMath6c;
+  void tagentAPlaceholder1;
+  void tagentAPlaceholder2;
+  const lenAC = arcLenBetween(spinePts, 0, idxC);
+  const nAC = Math.max(0, Math.round(midAC));
+
+  const sList: number[] = [0];
+  for (let i = 1; i <= nAC; i++) sList.push((lenAC * i) / (nAC + 1));
+  sList.push(lenAC);
+
+  const stations: { pt: Pt; tan: Pt; s: number }[] = [];
+  for (const s of sList) {
+    if (s <= 1e-9) {
+      stations.push({ pt: spinePts[0], tan: spineTan[0], s: 0 });
+    } else if (Math.abs(s - lenAC) <= 1e-9) {
+      stations.push({ pt: spinePts[idxC], tan: spineTan[idxC], s: lenAC });
+    } else {
+      const st = evalStationByArcLenBetween(spinePts, spineTan, 0, idxC, s);
+      stations.push({ pt: st.pt, tan: st.tan, s });
+    }
+  }
+
+  if ((railMathMode === 4 || railMathMode === 5 || railMathMode === 6) && stations.length > 3) {
+    const interiorCount = stations.length - 2; // exclude A and C
+    let toDrop =
+      railMathMode === 5
+        ? Math.min(Math.max(0, Math.round(railMath5Cull)), interiorCount)
+        : interiorCount >= 5
+          ? 2
+          : 1;
+    while (toDrop-- > 0 && stations.length > 3) {
+      stations.splice(stations.length - 2, 1); // drop last interior before C
+    }
+  }
+  // rail_math_5_addback is handled as a separate tail loft (not station reinsertion).
+  function lerpProf(p0: ToeProfileBezier, p1: ToeProfileBezier, t: number): ToeProfileBezier {
+    return {
+      endX: lerp(p0.endX, p1.endX, t),
+      endZ: lerp(p0.endZ, p1.endZ, t),
+      p1s: lerp(p0.p1s, p1.p1s, t),
+      p3s: lerp(p0.p3s, p1.p3s, t),
+      enda: lerp(p0.enda, p1.enda, t),
+    };
+  }
+
+  const A_st = stations[0];
+  const C_st = stations[stations.length - 1];
+  const A_meta = toeBezierMeta2D(sx * A.endX, A.endZ, A.p1s, A.p3s, A.enda, thickness);
+  const C_meta = toeBezierMeta2D(sx * C.endX, C.endZ, C.p1s, C.p3s, C.enda, thickness);
+  const A_endW = endPointWorld(A_st.pt, A_st.tan, sx * A.endX, A.endZ);
+  const C_endW = endPointWorld(C_st.pt, C_st.tan, sx * C.endX, C.endZ);
+  const A_inW = localToWorld(A_st.pt, A_st.tan, A_meta.innerEnd);
+  const C_inW = localToWorld(C_st.pt, C_st.tan, C_meta.innerEnd);
+  const aTanScale = 1 / clamp(aRailStrength, 0.2, 8);
+  const cTanScale = 1 / clamp(cRailStrength, 0.2, 8);
+
+  function localDirToWorldDir(stTan: Pt, localDir: Pt): Pt3 {
+    const t = vnorm(stTan);
+    const u: Pt3 = { x: -t.y, y: t.x, z: 0 };
+    return norm3({ x: u.x * localDir.x, y: u.y * localDir.x, z: localDir.y });
+  }
+  function lerp3Pt(a: Pt3, b: Pt3, t: number): Pt3 {
+    return { x: lerp(a.x, b.x, t), y: lerp(a.y, b.y, t), z: lerp(a.z, b.z, t) };
+  }
+  function cross3(a: Pt3, b: Pt3): Pt3 {
+    return {
+      x: a.y * b.z - a.z * b.y,
+      y: a.z * b.x - a.x * b.z,
+      z: a.x * b.y - a.y * b.x,
+    };
+  }
+  function arc3PtEval(a: Pt3, m: Pt3, c: Pt3, t: number): Pt3 {
+    const u = sub3(m, a);
+    const v = sub3(c, a);
+    const n = cross3(u, v);
+    const n2 = dot3(n, n);
+    if (n2 < 1e-10) return lerp3Pt(a, c, t);
+    const uu = dot3(u, u);
+    const vv = dot3(v, v);
+    const term1 = mul3(cross3(n, v), uu);
+    const term2 = mul3(cross3(u, n), vv);
+    const center = add3(a, mul3(add3(term1, term2), 1 / (2 * n2)));
+    const ra = sub3(a, center);
+    const rm = sub3(m, center);
+    const rc = sub3(c, center);
+    const rA = len3(ra);
+    const rM = len3(rm);
+    const rC = len3(rc);
+    if (rA < 1e-9 || rM < 1e-9 || rC < 1e-9) return lerp3Pt(a, c, t);
+    const ex = norm3(ra);
+    const nHat = norm3(n);
+    const ey = norm3(cross3(nHat, ex));
+    const ang = (p: Pt3) => Math.atan2(dot3(p, ey), dot3(p, ex));
+    const thA = 0;
+    let thM = ang(rm);
+    let thC = ang(rc);
+    while (thM > Math.PI) thM -= 2 * Math.PI;
+    while (thM < -Math.PI) thM += 2 * Math.PI;
+    while (thC - thA > Math.PI) thC -= 2 * Math.PI;
+    while (thC - thA < -Math.PI) thC += 2 * Math.PI;
+    const mBetween = (x: number, a0: number, c0: number) =>
+      a0 <= c0 ? x >= a0 - 1e-6 && x <= c0 + 1e-6 : x <= a0 + 1e-6 && x >= c0 - 1e-6;
+    if (!mBetween(thM, thA, thC)) thC += thC >= 0 ? -2 * Math.PI : 2 * Math.PI;
+    const th = lerp(thA, thC, t);
+    const r = lerp(rA, rC, t);
+    return add3(center, add3(mul3(ex, Math.cos(th) * r), mul3(ey, Math.sin(th) * r)));
+  }
+  function makeRelaxedPrevPoint(Aw: Pt3, Cw: Pt3, stTan: Pt, localEndNormal: Pt, wantedLocalXSign: number) {
+    const chord = sub3(Cw, Aw);
+    const chordLen = Math.max(1e-6, len3(chord));
+    const chordDir = norm3(chord);
+    const t = vnorm(stTan);
+    const uAxis: Pt3 = { x: -t.y, y: t.x, z: 0 };
+    let localTan: Pt = { x: localEndNormal.y, y: -localEndNormal.x };
+    let profDir = localDirToWorldDir(stTan, localTan);
+    if (dot3(profDir, chordDir) < 0) {
+      localTan = { x: -localTan.x, y: -localTan.y };
+      profDir = localDirToWorldDir(stTan, localTan);
+    }
+    const DIR_BLEND = 0.55;
+    const MAG_SCALE = 0.30;
+    let dir = norm3(add3(mul3(chordDir, 1 - DIR_BLEND), mul3(profDir, DIR_BLEND)));
+    const wantedSign = Math.sign(wantedLocalXSign || 1);
+    const side = dot3(dir, uAxis);
+    if (side * wantedSign < 0) dir = norm3(sub3(dir, mul3(uAxis, 2 * side)));
+    const tanAtA = mul3(dir, chordLen * MAG_SCALE * aTanScale);
+    return sub3(Cw, mul3(tanAtA, 2));
+  }
+
+  const A_prevOuterW = makeRelaxedPrevPoint(A_endW, C_endW, A_st.tan, A_meta.endNormal, sx * A.endX);
+  const A_prevInnerW = makeRelaxedPrevPoint(A_inW, C_inW, A_st.tan, A_meta.endNormal, A_meta.innerEnd.x);
+  const outerArcGuideMidW = hermite3(
+    A_endW,
+    C_endW,
+    mul3(sub3(C_endW, A_prevOuterW), 0.5),
+    mul3(sub3(C_endW, A_endW), 0.5 * cTanScale),
+    0.5
+  );
+  const innerArcGuideMidW = hermite3(
+    A_inW,
+    C_inW,
+    mul3(sub3(C_inW, A_prevInnerW), 0.5),
+    mul3(sub3(C_inW, A_inW), 0.5 * cTanScale),
+    0.5
+  );
+  const acChordOuter = sub3(C_endW, A_endW);
+  const acChordInner = sub3(C_inW, A_inW);
+  const acMode3OuterM0 = mul3(acChordOuter, 0.45);
+  const acMode3InnerM0 = mul3(acChordInner, 0.45);
+  const acMode3OuterM1Down: Pt3 = { x: 0, y: 0, z: -Math.max(5, len3(acChordOuter) * 0.45) };
+  const acMode3InnerM1Down: Pt3 = { x: 0, y: 0, z: -Math.max(5, len3(acChordInner) * 0.45) };
+
+  const angPrev = { v: null as number | null };
+  function endpointOriginFrameTan(pt: Pt, tanFallback: Pt): Pt {
+    const radial = vlen(pt) > 1e-6 ? vnorm(pt) : vnorm(tanFallback);
+    return radial;
+  }
+  function blendFrameTan(fromTan: Pt, toTan: Pt, alpha01: number): Pt {
+    const a = clamp(alpha01, 0, 1);
+    const v = add(mul(vnorm(fromTan), 1 - a), mul(vnorm(toTan), a));
+    return vlen(v) > 1e-6 ? vnorm(v) : vnorm(toTan);
+  }
+  function makeSectionPlane(pt: Pt, tan: Pt) {
+    const t = vnorm(tan);
+    let angDeg = (Math.atan2(t.y, t.x) * 180) / Math.PI;
+    if (angPrev.v !== null) {
+      while (angDeg - angPrev.v > 180) angDeg -= 360;
+      while (angDeg - angPrev.v < -180) angDeg += 360;
+    }
+    angPrev.v = angDeg;
+    return (makePlane("YZ", [pt.x, pt.y, 0]) as any).pivot(angDeg, [0, 0, 1]);
+  }
+
+  function buildRailMath5FinalCHeelProfileSketch(plane: any) {
+    const clipH = clamp(railMath5HeelHC, 0.1, Math.max(0.1, C.endZ - 0.1));
+    let heelProf2d: any;
+    const prevToeTopInnerEnabled = toeTopInnerFilletEnabled;
+    const prevToeTopInnerRadius = toeTopInnerFilletRadius;
+    const prevToeTopInnerDebugCount = toeTopInnerFilletDebugCount;
+    const prevToeTopOuterEnabled = toeTopOuterFilletEnabled;
+    const prevToeTopOuterRadius = toeTopOuterFilletRadius;
+    const prevToeTopOuterDebugCount = toeTopOuterFilletDebugCount;
+    const prevHeelTopCrownEnabled = heelTopCrownEnabled;
+    const prevHeelTopCrownDebugCount = heelTopCrownDebugCount;
+    const prevHeelTopCrownInnerEnabled = heelTopCrownInnerEnabled;
+    const prevHeelTopCrownInnerRadius = heelTopCrownInnerRadius;
+    const prevHeelTopCrownOuterEnabled = heelTopCrownOuterEnabled;
+    const prevHeelTopCrownOuterRadius = heelTopCrownOuterRadius;
+    const prevHeelTopCrownApplyThisProfile = heelTopCrownApplyThisProfile;
+    const prevHeelTopCrownPatchOnly = heelTopCrownPatchOnly;
+    toeTopInnerFilletEnabled = false;
+    toeTopOuterFilletEnabled = false;
+    // If toe top fillets are enabled, add the crown shape on this final RM5 profile.
+    // Reuse crown builder mapping (same visual swap as heel crown wiring).
+    const toeCrownOn = prevToeTopInnerEnabled || prevToeTopOuterEnabled;
+    heelTopCrownEnabled = toeCrownOn;
+    heelTopCrownOuterEnabled = toeCrownOn && prevToeTopInnerEnabled;
+    heelTopCrownInnerEnabled = toeCrownOn && prevToeTopOuterEnabled;
+    heelTopCrownOuterRadius = prevToeTopInnerRadius;
+    heelTopCrownInnerRadius = prevToeTopOuterRadius;
+    heelTopCrownApplyThisProfile = true;
+    heelTopCrownPatchOnly = false;
+    heelTopCrownDebugCount = 0;
+    try {
+      try {
+        heelProf2d = toeBezierProfileMatchedToNormalCapRefByClipZ(
+          sx * C.endX,
+          C.endZ,
+          C.p1s,
+          C.p3s,
+          C.enda,
+          thickness,
+          clipH
+        );
+      } catch {
+        heelProf2d = clippedToeBezierProfileLower(sx * C.endX, C.endZ, C.p1s, C.p3s, C.enda, thickness, clipH);
+      }
+    } catch {
+      heelProf2d = toeBezierOffsetProfile2D(sx * C.endX, C.endZ, C.p1s, C.p3s, C.enda, thickness, 0, 0);
+    } finally {
+      toeTopInnerFilletEnabled = prevToeTopInnerEnabled;
+      toeTopInnerFilletRadius = prevToeTopInnerRadius;
+      toeTopInnerFilletDebugCount = prevToeTopInnerDebugCount;
+      toeTopOuterFilletEnabled = prevToeTopOuterEnabled;
+      toeTopOuterFilletRadius = prevToeTopOuterRadius;
+      toeTopOuterFilletDebugCount = prevToeTopOuterDebugCount;
+      heelTopCrownEnabled = prevHeelTopCrownEnabled;
+      heelTopCrownDebugCount = prevHeelTopCrownDebugCount;
+      heelTopCrownInnerEnabled = prevHeelTopCrownInnerEnabled;
+      heelTopCrownInnerRadius = prevHeelTopCrownInnerRadius;
+      heelTopCrownOuterEnabled = prevHeelTopCrownOuterEnabled;
+      heelTopCrownOuterRadius = prevHeelTopCrownOuterRadius;
+      heelTopCrownApplyThisProfile = prevHeelTopCrownApplyThisProfile;
+      heelTopCrownPatchOnly = prevHeelTopCrownPatchOnly;
+    }
+    return heelProf2d.sketchOnPlane(plane);
+  }
+
+  let railMath5TailStartStation: { pt: Pt; tan: Pt; s: number } | null = null;
+  let railMath5TailStartOuterW: Pt3 | null = null;
+  let railMath5TailStartInnerW: Pt3 | null = null;
+  let railMath5TailStartSolved:
+    | {
+        endXSigned: number;
+        endZ: number;
+        p1s: number;
+        p3s: number;
+        fittedEnda: number;
+        cutAmt: number;
+      }
+    | null = null;
+  const railMath5TailStartIdx = railMathMode === 5 && railMath5Addback > 0 ? Math.max(0, stations.length - 2) : -1;
+
+  const sketches = stations.map((st, idx) => {
+    const railMath6UseSmoothRails = railMathMode === 6 && railMath6b;
+    const useArc3Rails = railMathMode === 4 || railMathMode === 5 || (railMathMode === 6 && !railMath6UseSmoothRails);
+    const isFinalC = idx === stations.length - 1;
+    const railMath6FixedWorldTan: Pt = { x: 0, y: 1 };
+    const railMath6SnapFinalC = railMath6a || railMath6b;
+    const frameTanBase =
+      railMathMode === 6
+        ? (railMath6SnapFinalC && isFinalC ? C_st.tan : railMath6FixedWorldTan)
+        : useArc3Rails
+        ? (isFinalC ? C_st.tan : A_st.tan)
+        : st.tan;
+    const tagentAFrameTan = dirFromDeg(90 + tagentAOffsetRotDeg);
+    const aBlendReach = Math.max(1e-6, clamp(tagentAMidpoint / 100, 0, 1));
+    const tACNorm = lenAC <= 1e-9 ? 1 : clamp(st.s / lenAC, 0, 1);
+    const aBlendAlpha = smoothstep01(clamp(tACNorm / aBlendReach, 0, 1));
+    const frameTan = !tagentProfileA ? blendFrameTan(tagentAFrameTan, frameTanBase, aBlendAlpha) : frameTanBase;
+    const plane = makeSectionPlane(st.pt, frameTan);
+    const t = lenAC <= 1e-9 ? 0 : clamp(st.s / lenAC, 0, 1);
+    const prof = lerpProf(A, C, t);
+    const useLinearRails = railMathMode === 2;
+    const useMode3DownEndRails = railMathMode === 3;
+    const skipInnerRailFit = railMathMode === 3;
+    const suppressAFilletCut = railMathMode === 3;
+
+    if (railMathMode === 5 && isFinalC) return buildRailMath5FinalCHeelProfileSketch(plane);
+
+    const filletCut = clamp(toeAFilletMm, 0, 200);
+    const cutAmt =
+      suppressAFilletCut || filletCut <= 1e-6
+        ? 0
+        : filletCut * (1 - smoothstep01(clamp(st.s / Math.max(1e-6, filletCut), 0, 1)));
+
+    const desiredOuterW =
+      useArc3Rails
+        ? arc3PtEval(A_endW, outerArcGuideMidW, C_endW, t)
+        : useMode3DownEndRails
+        ? hermite3(A_endW, C_endW, acMode3OuterM0, acMode3OuterM1Down, t)
+        : useLinearRails
+        ? lerp3Pt(A_endW, C_endW, t)
+        : hermite3(
+            A_endW,
+            C_endW,
+            mul3(sub3(C_endW, A_prevOuterW), 0.5),
+            mul3(sub3(C_endW, A_endW), 0.5 * cTanScale),
+            t
+          );
+    const desiredInnerW =
+      useArc3Rails
+        ? arc3PtEval(A_inW, innerArcGuideMidW, C_inW, t)
+        : useMode3DownEndRails
+        ? hermite3(A_inW, C_inW, acMode3InnerM0, acMode3InnerM1Down, t)
+        : useLinearRails
+        ? lerp3Pt(A_inW, C_inW, t)
+        : hermite3(
+            A_inW,
+            C_inW,
+            mul3(sub3(C_inW, A_prevInnerW), 0.5),
+            mul3(sub3(C_inW, A_inW), 0.5 * cTanScale),
+            t
+          );
+
+    if (idx === railMath5TailStartIdx) {
+      railMath5TailStartStation = st;
+      railMath5TailStartOuterW = desiredOuterW;
+      railMath5TailStartInnerW = desiredInnerW;
+    }
+
+    const solved = solveLocalEndXZ(st.pt, frameTan, desiredOuterW);
+    const fittedEnda = skipInnerRailFit
+      ? prof.enda
+      : fitEndAngleForInnerRail(
+          { pt: st.pt, tan: frameTan },
+          desiredInnerW,
+          solved.endXSigned,
+          solved.endZ,
+          prof.p1s,
+          prof.p3s,
+          prof.enda,
+          thickness,
+          55,
+          17
+        );
+
+    const actualMeta = toeBezierMetaTopCutByAmount(
+      solved.endXSigned,
+      solved.endZ,
+      prof.p1s,
+      prof.p3s,
+      fittedEnda,
+      thickness,
+      cutAmt
+    );
+    if ((filletCut > 1e-6 || idx === 0) && (idx <= 5 || idx === stations.length - 1)) {
+      postModelDebugStatus(
+        `[fil_1][AC][rm${railMathMode}] i=${idx} s=${st.s.toFixed(1)} cut=${cutAmt.toFixed(1)} ` +
+          `railO=(${solved.endXSigned.toFixed(1)},${solved.endZ.toFixed(1)}) ` +
+          `actO=(${actualMeta.outerEnd.x.toFixed(1)},${actualMeta.outerEnd.y.toFixed(1)}) ` +
+          `actI=(${actualMeta.innerEnd.x.toFixed(1)},${actualMeta.innerEnd.y.toFixed(1)})`
+      );
+    }
+
+    const prof2d =
+      cutAmt > 1e-6
+        ? toeBezierProfileTopCutByAmount(solved.endXSigned, solved.endZ, prof.p1s, prof.p3s, fittedEnda, thickness, cutAmt)
+        : toeBezierOffsetProfile2D(solved.endXSigned, solved.endZ, prof.p1s, prof.p3s, fittedEnda, thickness, 0, 0);
+    const sketch = (prof2d as any).sketchOnPlane(plane);
+    if (idx === railMath5TailStartIdx) {
+      railMath5TailStartSolved = {
+        endXSigned: solved.endXSigned,
+        endZ: solved.endZ,
+        p1s: prof.p1s,
+        p3s: prof.p3s,
+        fittedEnda,
+        cutAmt,
+      };
+    }
+    return sketch;
+  });
+
+  if (sketches.length < 2) return (sketches[0] as any).extrude(1) as Shape3D;
+  let baseSolid = (sketches[0] as any).loftWith(sketches.slice(1)) as Shape3D;
+
+  if (!(railMathMode === 5 && railMath5Addback > 0)) return baseSolid;
+  if (!railMath5TailStartStation || !railMath5TailStartOuterW || !railMath5TailStartInnerW || !railMath5TailStartSolved) return baseSolid;
+
+  const tailStart = railMath5TailStartStation as { pt: Pt; tan: Pt; s: number };
+  const tailEnd = stations[stations.length - 1] as { pt: Pt; tan: Pt; s: number };
+  const tailStartSolved = railMath5TailStartSolved as {
+    endXSigned: number;
+    endZ: number;
+    p1s: number;
+    p3s: number;
+    fittedEnda: number;
+    cutAmt: number;
+  };
+  if (!tailEnd || tailEnd.s - tailStart.s <= 1e-6) return baseSolid;
+
+  const addCount = Math.max(0, Math.round(railMath5Addback));
+  if (addCount <= 0) return baseSolid;
+
+  const tMidGlobal = clamp(((tailStart.s + tailEnd.s) * 0.5) / Math.max(1e-6, lenAC), 0, 1);
+  const tailOuterGuideMidW = arc3PtEval(A_endW, outerArcGuideMidW, C_endW, tMidGlobal);
+  const tailInnerGuideMidW = arc3PtEval(A_inW, innerArcGuideMidW, C_inW, tMidGlobal);
+
+  const tailStations: { pt: Pt; tan: Pt; s: number }[] = [tailStart];
+  for (let i = 1; i <= addCount; i++) {
+    const u = i / (addCount + 1);
+    const s = lerp(tailStart.s, tailEnd.s, u);
+    if (s >= lenAC - 1e-9 || s <= tailStart.s + 1e-9) continue;
+    const st = evalStationByArcLenBetween(spinePts, spineTan, 0, idxC, s);
+    tailStations.push({ pt: st.pt, tan: st.tan, s });
+  }
+  tailStations.push(tailEnd);
+
+  const tailStartPlane = makeSectionPlane(tailStart.pt, A_st.tan);
+  const tailStartProf2d =
+    tailStartSolved.cutAmt > 1e-6
+      ? toeBezierProfileTopCutByAmount(
+          tailStartSolved.endXSigned,
+          tailStartSolved.endZ,
+          tailStartSolved.p1s,
+          tailStartSolved.p3s,
+          tailStartSolved.fittedEnda,
+          thickness,
+          tailStartSolved.cutAmt
+        )
+      : toeBezierOffsetProfile2D(
+          tailStartSolved.endXSigned,
+          tailStartSolved.endZ,
+          tailStartSolved.p1s,
+          tailStartSolved.p3s,
+          tailStartSolved.fittedEnda,
+          thickness,
+          0,
+          0
+        );
+  const tailSketches: any[] = [(tailStartProf2d as any).sketchOnPlane(tailStartPlane)];
+  for (let i = 1; i < tailStations.length; i++) {
+    const st = tailStations[i];
+    const isFinalTailC = i === tailStations.length - 1;
+    const frameTan = isFinalTailC ? C_st.tan : A_st.tan;
+    const plane = makeSectionPlane(st.pt, frameTan);
+    if (isFinalTailC) {
+      tailSketches.push(buildRailMath5FinalCHeelProfileSketch(plane));
+      continue;
+    }
+
+    const u = clamp((st.s - tailStart.s) / Math.max(1e-6, tailEnd.s - tailStart.s), 0, 1);
+    const t = clamp(st.s / Math.max(1e-6, lenAC), 0, 1);
+    const prof = lerpProf(A, C, t);
+    const filletCut = clamp(toeAFilletMm, 0, 200);
+    const cutAmt =
+      filletCut <= 1e-6 ? 0 : filletCut * (1 - smoothstep01(clamp(st.s / Math.max(1e-6, filletCut), 0, 1)));
+    const desiredOuterW = arc3PtEval(railMath5TailStartOuterW as Pt3, tailOuterGuideMidW, C_endW, u);
+    const desiredInnerW = arc3PtEval(railMath5TailStartInnerW as Pt3, tailInnerGuideMidW, C_inW, u);
+    const solved = solveLocalEndXZ(st.pt, frameTan, desiredOuterW);
+    const fittedEnda = fitEndAngleForInnerRail(
+      { pt: st.pt, tan: frameTan },
+      desiredInnerW,
+      solved.endXSigned,
+      solved.endZ,
+      prof.p1s,
+      prof.p3s,
+      prof.enda,
+      thickness,
+      55,
+      17
+    );
+    const prof2d =
+      cutAmt > 1e-6
+        ? toeBezierProfileTopCutByAmount(solved.endXSigned, solved.endZ, prof.p1s, prof.p3s, fittedEnda, thickness, cutAmt)
+        : toeBezierOffsetProfile2D(solved.endXSigned, solved.endZ, prof.p1s, prof.p3s, fittedEnda, thickness, 0, 0);
+    tailSketches.push((prof2d as any).sketchOnPlane(plane));
+  }
+
+  if (tailSketches.length >= 2) {
+    postModelDebugStatus(
+      `[rail_math_5] tail addback=${addCount} startS=${tailStart.s.toFixed(1)} endS=${tailEnd.s.toFixed(1)}`
+    );
+    try {
+      const tailSolid = (tailSketches[0] as any).loftWith(tailSketches.slice(1)) as Shape3D;
+      toeLastBuildTailShape = tailSolid;
+      postModelDebugStatus(`[rail_math_5] tail loft built sketches=${tailSketches.length}`);
+      if (toeBuildExposeTailParts) return baseSolid;
+      try {
+        baseSolid = ((baseSolid as any).fuse(tailSolid) as Shape3D) ?? baseSolid;
+        postModelDebugStatus("[rail_math_5] tail loft fused");
+      } catch (e) {
+        postModelDebugStatus(`[rail_math_5] tail fuse failed: ${e instanceof Error ? e.message : String(e)}`);
+      }
+    } catch (e) {
+      postModelDebugStatus(`[rail_math_5] tail loft failed: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }
+
+  return baseSolid;
+}
+
+export type ToeBuildParts = {
+  main: Shape3D | null;
+  tail: Shape3D | null;
+};
+
 // =======================================================
 // Toe (AB/BC kept as simple lofts; ABC is the smooth fake-rail loft)
 // =======================================================
 export async function buildToeABSolid(input: ParamMap): Promise<Shape3D | null> {
   const enabled = !!num((input as any).toeBEnabled, 1);
   if (!enabled) return null;
+  setToeTopInnerFilletConfig(input);
 
   const toeThickness = clamp(getV(input, "toe_thk", "param9", 12), 0.2, 80);
   const toeAFillet = clamp(getV(input, "fil_1", "param10", 0), 0, 200);
@@ -2539,6 +4101,7 @@ export async function buildToeABSolid(input: ParamMap): Promise<Shape3D | null> 
 export async function buildToeBCSolid(input: ParamMap): Promise<Shape3D | null> {
   const enabled = !!num((input as any).toeCEnabled, 1);
   if (!enabled) return null;
+  setToeTopInnerFilletConfig(input);
 
   const toeThickness = clamp(getV(input, "toe_thk", "param9", 12), 0.2, 80);
 
@@ -2619,12 +4182,28 @@ export async function buildToeBCSolid(input: ParamMap): Promise<Shape3D | null> 
 }
 
 export async function buildToeSolid(input: ParamMap): Promise<Shape3D | null> {
-  const toeBEnabled = !!num((input as any).toeBEnabled, 1);
+  toeLastBuildTailShape = null;
+  const toeAddProfileB = !!num((input as any).toe_add_profile_b, num((input as any).toeBEnabled, 0));
   const toeCEnabled = !!num((input as any).toeCEnabled, 1);
-  if (!toeBEnabled && !toeCEnabled) return null;
+  const tagentProfileA = Math.round(num((input as any).tagent_profile_a, 1)) > 0;
+  const tagentProfileB = Math.round(num((input as any).tagent_profile_b, 1)) > 0;
+  const tagentAOffsetRotDeg = clamp(getV(input, "tagent_a_offset_rot", "param_tagent_a_offset_rot", 0), -180, 180);
+  const tagentAMidpoint = clamp(getV(input, "tagent_a_midpoint", "param_tagent_a_midpoint", 50), 0, 100);
+  const tagentAPlaceholder1 = clamp(
+    getV(input, "tagent_a_placeholder_1", "param_tagent_a_placeholder_1", 0),
+    -10000,
+    10000
+  );
+  const tagentAPlaceholder2 = clamp(
+    getV(input, "tagent_a_placeholder_2", "param_tagent_a_placeholder_2", 0),
+    -10000,
+    10000
+  );
+  if (!toeCEnabled) return null;
 
-  // If both are on: build ONE smooth loft A->B->C using fake rails.
-  if (toeBEnabled && toeCEnabled) {
+  // If Profile B is on: build ONE smooth loft A->B->C using fake rails.
+  if (toeAddProfileB) {
+    setToeTopInnerFilletConfig(input);
     const toeThickness = clamp(getV(input, "toe_thk", "param9", 12), 0.2, 80);
     const toeAFillet = clamp(getV(input, "fil_1", "param10", 0), 0, 200);
 
@@ -2659,6 +4238,13 @@ export async function buildToeSolid(input: ParamMap): Promise<Shape3D | null> {
     const aRailStrength = clamp(getV(input, "toe_a_strength", "param10011", 2), 0.2, 8);
     const bRailStrength = clamp(getV(input, "toe_b_strength", "param10010", 2), 0.2, 8);
     const cRailStrength = clamp(getV(input, "toe_c_strength", "param10012", 7), 0.2, 8);
+    const railMathMode = Math.round(clamp(num((input as any).rail_math_mode, 1), 1, 10));
+    const railMath5Cull = Math.round(clamp(num((input as any).rail_math_5_cull, 1), 0, 4));
+    const railMath5HeelHC = clamp(getV(input, "heel_h_c", "param28", 40), 0.1, 400);
+    const railMath5Addback = Math.round(clamp(num((input as any).rail_math_5_addback, 0), 0, 6));
+    const railMath6a = Math.round(num((input as any).rail_math_6a, railMathMode === 6 ? 1 : 0)) > 0;
+    const railMath6b = Math.round(num((input as any).rail_math_6b, 0)) > 0;
+    const railMath6c = Math.round(num((input as any).rail_math_6c, 0)) > 0;
 
     const { spinePts, spineTan } = sampleSpine(input);
 
@@ -2684,19 +4270,111 @@ export async function buildToeSolid(input: ParamMap): Promise<Shape3D | null> {
       toeAFillet,
       bRailStrength,
       aRailStrength,
-      cRailStrength
+      cRailStrength,
+      railMathMode,
+      railMath5Cull,
+      railMath5HeelHC,
+      railMath5Addback,
+      railMath6a,
+      railMath6b,
+      railMath6c,
+      tagentProfileA,
+      tagentProfileB,
+      tagentAOffsetRotDeg,
+      tagentAMidpoint,
+      tagentAPlaceholder1,
+      tagentAPlaceholder2
     );
   }
 
-  // Otherwise: keep the single segment lofts
-  if (toeBEnabled && !toeCEnabled) return await buildToeABSolid(input);
-  return await buildToeBCSolid(input);
+  // Direct A->C mode (Profile B hidden/off). Reuse TOE_BC_MID as A->C intermediates.
+  setToeTopInnerFilletConfig(input);
+  const toeThickness = clamp(getV(input, "toe_thk", "param9", 12), 0.2, 80);
+  const toeAFillet = clamp(getV(input, "fil_1", "param10", 0), 0, 200);
+
+  const A: ToeProfileBezier = {
+    p1s: clamp(getV(input, "toe_a_p1s", "param9991", 25), 0, 10000),
+    p3s: clamp(getV(input, "toe_a_p3s", "param9992", 35), 0, 10000),
+    endX: clamp(getV(input, "toe_a_endx", "param12", 47), 0.1, 2000),
+    endZ: clamp(getV(input, "toe_a_endz", "param13", 35), 0.1, 2000),
+    enda: clamp(getV(input, "toe_a_enda", "param9993", 0), -180, 180),
+  };
+  const C: ToeProfileBezier = {
+    p1s: clamp(getV(input, "toe_c_p1s", "param9997", 25), 0, 10000),
+    p3s: clamp(getV(input, "toe_c_p3s", "param9998", 35), 0, 10000),
+    endX: clamp(getV(input, "toe_c_endx", "param25", 19), 0.1, 2000),
+    endZ: clamp(getV(input, "toe_c_endz", "param26", 75), 0.1, 2000),
+    enda: clamp(getV(input, "toe_c_enda", "param9999", -70), -180, 180),
+  };
+  const stationC = clamp(getV(input, "toe_c_sta", "param21", 137), 1, 2000);
+  const midAC = clamp(getV(input, "toe_bc_mid", "param22", 15), 0, 200);
+  const aRailStrength = clamp(getV(input, "toe_a_strength", "param10011", 2), 0.2, 8);
+  const cRailStrength = clamp(getV(input, "toe_c_strength", "param10012", 7), 0.2, 8);
+  const { spinePts, spineTan } = sampleSpine(input);
+  let idxC = findEndIdxByArcLen(spinePts, stationC);
+  idxC = clamp(idxC, 1, spinePts.length - 1);
+  const railMathMode = Math.round(clamp(num((input as any).rail_math_mode, 1), 1, 10));
+  const railMath5Cull = Math.round(clamp(num((input as any).rail_math_5_cull, 1), 0, 4));
+  const railMath5HeelHC = clamp(getV(input, "heel_h_c", "param28", 40), 0.1, 400);
+  const railMath5Addback = Math.round(clamp(num((input as any).rail_math_5_addback, 0), 0, 6));
+  const railMath6a = Math.round(num((input as any).rail_math_6a, railMathMode === 6 ? 1 : 0)) > 0;
+  const railMath6b = Math.round(num((input as any).rail_math_6b, 0)) > 0;
+  const railMath6c = Math.round(num((input as any).rail_math_6c, 0)) > 0;
+  const FLIP_X = true;
+  return buildToeACLoft(
+    spinePts,
+    spineTan,
+    idxC,
+    midAC,
+    A,
+    C,
+    toeThickness,
+    FLIP_X,
+    toeAFillet,
+    aRailStrength,
+    cRailStrength,
+    railMathMode,
+    railMath5Cull,
+    railMath5HeelHC,
+    railMath5Addback,
+    railMath6a,
+    railMath6b,
+    railMath6c,
+    tagentProfileA,
+    tagentAOffsetRotDeg,
+    tagentAMidpoint,
+    tagentAPlaceholder1,
+    tagentAPlaceholder2
+  );
+}
+
+export async function buildToeSolidParts(input: ParamMap): Promise<ToeBuildParts> {
+  const prevExpose = toeBuildExposeTailParts;
+  const prevTail = toeLastBuildTailShape;
+  toeBuildExposeTailParts = true;
+  toeLastBuildTailShape = null;
+  try {
+    const main = await buildToeSolid(input);
+    return { main, tail: toeLastBuildTailShape };
+  } finally {
+    toeBuildExposeTailParts = prevExpose;
+    toeLastBuildTailShape = prevTail;
+  }
 }
 
 // =======================================================
 // Heel Kick
 // =======================================================
-export async function buildHeelSolid(input: ParamMap): Promise<Shape3D> {
+export type HeelBuildParts = {
+  main: Shape3D | null;
+  crown: Shape3D | null;
+  debug: Shape3D | null;
+  debugOnly: boolean;
+};
+
+export async function buildHeelSolidParts(input: ParamMap): Promise<HeelBuildParts> {
+  clearToeTopInnerFilletConfig();
+  setHeelTopCapFilletConfig(input);
   const { spinePts, spineTan } = sampleSpine(input);
 
   const stationC = clamp(getV(input, "toe_c_sta", "param21", 137), 1, 2000);
@@ -2708,6 +4386,23 @@ export async function buildHeelSolid(input: ParamMap): Promise<Shape3D> {
   let heelH_C = clamp(getV(input, "heel_h_c", "param28", 40), 0.1, 400);
   let heelH_D = clamp(getV(input, "heel_h_d", "param29", 10), 0.1, 400);
   const midCD = Math.round(clamp(getV(input, "heel_cd_mid", "param30", 2), 0, 60));
+  const heelCDMidPct = clamp(getV(input, "heel_cd_mid_pct", "param_heel_cd_mid_pct", 50), 10, 90) / 100;
+  const heelMidCtrl = clamp(getV(input, "heel_mid_ctrl", "param_heel_mid_ctrl", 1), 0, 1) > 0.5;
+  const heelRailMathMode = Math.round(clamp(getV(input, "heel_rail_math_mode", "param_heel_rail_math_mode", 1), 1, 5));
+  const heelRailMath4a = clamp(getV(input, "heel_rail_math_4a", "param_heel_rail_math_4a", 1), 0, 1) > 0.5;
+  const heelRailMath4b = clamp(getV(input, "heel_rail_math_4b", "param_heel_rail_math_4b", 0), 0, 1) > 0.5;
+  const tagentProfileC = clamp(getV(input, "tagent_profile_c", "param_tagent_profile_c", 1), 0, 1) > 0.5;
+  const tagentProfileD = clamp(getV(input, "tagent_profile_d", "param_tagent_profile_d", 1), 0, 1) > 0.5;
+  const tagentDCutPerp = clamp(getV(input, "tagent_d_cut_perp", "param_tagent_d_cut_perp", 0), 0, 1) > 0.5;
+  void tagentDCutPerp;
+  const heelRm3Sweep = clamp(getV(input, "heel_rm3_sweep", "param_heel_rm3_sweep", 1), 0, 2);
+  const heelRm3Bias = clamp(getV(input, "heel_rm3_bias", "param_heel_rm3_bias", 0), -1, 1);
+  const heelRm3Blend = clamp(getV(input, "heel_rm3_blend", "param_heel_rm3_blend", 1), 0, 1);
+  const heelRm4bSweep = clamp(getV(input, "heel_rm4b_sweep", "param_heel_rm4b_sweep", 1), 0, 2);
+  const heelRm4bBias = clamp(getV(input, "heel_rm4b_bias", "param_heel_rm4b_bias", 0), -1, 1);
+  const heelRm4bBlend = clamp(getV(input, "heel_rm4b_blend", "param_heel_rm4b_blend", 1), 0, 1);
+  const heelSweepUI = clamp(getV(input, "heel_sweep", "param_heel_sweep", 0), 0, 1) > 0.5;
+  const heelSweep = heelSweepUI || heelRailMathMode === 2 || heelRailMathMode === 3;
   const thickness = clamp(getV(input, "toe_thk", "param9", 12), 0.5, 80);
 
   const endX_C = clamp(getV(input, "toe_c_endx", "param25", 19), 0.1, 2000);
@@ -2750,10 +4445,31 @@ export async function buildHeelSolid(input: ParamMap): Promise<Shape3D> {
     return clippedToeBezierProfileLower(sxFirst * endX_C, endZ_C, p1s_C, p3s_C, enda_C, thickness, h);
   }
 
-  function buildHeelSketches(useNormalCap: boolean, sectionCountLocal: number) {
+  function makeHeelProfileAtHeightCrownMode(h: number, useNormalCap: boolean, crownOn: boolean, crownPatchOnly = false) {
+    const prev = heelTopCrownApplyThisProfile;
+    const prevPatchOnly = heelTopCrownPatchOnly;
+    heelTopCrownApplyThisProfile = crownOn;
+    heelTopCrownPatchOnly = crownPatchOnly;
+    try {
+      return makeHeelProfileAtHeight(h, useNormalCap);
+    } finally {
+      heelTopCrownApplyThisProfile = prev;
+      heelTopCrownPatchOnly = prevPatchOnly;
+    }
+  }
+
+  function buildHeelSketches(
+    useNormalCap: boolean,
+    sectionCountLocal: number,
+    crownMode: "none" | "endpoints" | "patchAll" = "none"
+  ) {
     const angPrev = { v: null as number | null };
-    function makePlaneAt(pt: Pt, tan: Pt) {
-      const t = vnorm(tan);
+    function makePlaneAt(pt: Pt, tan: Pt, frameTanOverride?: Pt | null) {
+      const t = frameTanOverride
+        ? vnorm(frameTanOverride)
+        : heelRailMathMode === 4
+        ? ({ x: 0, y: 1 } as Pt) // fixed XZ-like section orientation (parallel profiles)
+        : vnorm(tan);
       let angDeg = (Math.atan2(t.y, t.x) * 180) / Math.PI;
 
       if (angPrev.v !== null) {
@@ -2765,32 +4481,225 @@ export async function buildHeelSolid(input: ParamMap): Promise<Shape3D> {
       return (makePlane("YZ", [pt.x, pt.y, 0]) as any).pivot(angDeg, [0, 0, 1]);
     }
 
+    function endpointOriginFrameTan(pt: Pt, tanFallback: Pt): Pt {
+      // "Perpendicular to origin" is interpreted as using the radial direction
+      // from world origin -> section point as the section plane normal.
+      const radial = vlen(pt) > 1e-6 ? vnorm(pt) : vnorm(tanFallback);
+      return radial;
+    }
+
     const sketches: any[] = [];
     // Denser sampling near D helps define the cut-cap edge more cleanly.
     // Keep the user-controlled section count intact; only bias spacing.
     const sectionCountEff = Math.max(2, sectionCountLocal);
+    let insertedDControlMid = false;
 
-    const planeC = makePlaneAt(spinePts[idxC], spineTan[idxC]);
-    sketches.push((makeHeelProfileAtHeight(heelH_C, useNormalCap) as any).sketchOnPlane(planeC));
+    const pushSketchAtT = (tRaw: number, h: number) => {
+      const t = clamp(tRaw, 0, 1);
+      if (t <= 1e-9 || t >= 1 - 1e-9) return;
+      const targetLen = cdLen * t;
+      const st = evalStationByArcLenBetween(spinePts, spineTan, idxC, idxEnd, targetLen);
+      const tanForPlane = st.tan;
+      const plane = makePlaneAt(st.pt, tanForPlane);
+      const prof = makeHeelProfileAtHeightCrownMode(h, useNormalCap, crownMode === "patchAll", crownMode === "patchAll");
+      sketches.push((prof as any).sketchOnPlane(plane));
+    };
 
-      for (let k = 1; k < sectionCountEff - 1; k++) {
-        const tLin = k / (sectionCountEff - 1);
-        const t = tLin;
-        const targetLen = cdLen * t;
-        const st = evalStationByArcLenBetween(spinePts, spineTan, idxC, idxEnd, targetLen);
-      const h = heelH_C + (heelH_D - heelH_C) * t;
-      const plane = makePlaneAt(st.pt, st.tan);
-      const midProf = makeHeelProfileAtHeight(h, useNormalCap);
-      sketches.push((midProf as any).sketchOnPlane(plane));
+    const hAtTBase = (t: number) => {
+      if (!heelMidCtrl) {
+        const uRaw = clamp(t, 0, 1);
+        const u = heelSweep ? smoothstep01(uRaw) : uRaw;
+        return heelH_C + (heelH_D - heelH_C) * u;
       }
+      if (t >= heelCDMidPct) return heelH_D;
+      const uRaw = heelCDMidPct <= 1e-6 ? 1 : clamp(t / heelCDMidPct, 0, 1);
+      const u = heelSweep ? smoothstep01(uRaw) : uRaw;
+      return heelH_C + (heelH_D - heelH_C) * u;
+    };
 
-      const planeD = makePlaneAt(spinePts[idxEnd], spineTan[idxEnd]);
-      sketches.push((makeHeelProfileAtHeight(heelH_D, useNormalCap) as any).sketchOnPlane(planeD));
-      return sketches;
+    function arc2HeightEval(p0: Pt, pm: Pt, p1: Pt, t01: number): number {
+      // Evaluate a circular arc through 3 points in (t,height) space; fallback to
+      // linear interpolation if points are nearly collinear.
+      const t = clamp(t01, 0, 1);
+      const a = p0;
+      const b = pm;
+      const c = p1;
+      const d = 2 * (a.x * (b.y - c.y) + b.x * (c.y - a.y) + c.x * (a.y - b.y));
+      if (Math.abs(d) < 1e-8) return lerp(a.y, c.y, t);
+      const a2 = a.x * a.x + a.y * a.y;
+      const b2 = b.x * b.x + b.y * b.y;
+      const c2 = c.x * c.x + c.y * c.y;
+      const cx = (a2 * (b.y - c.y) + b2 * (c.y - a.y) + c2 * (a.y - b.y)) / d;
+      const cy = (a2 * (c.x - b.x) + b2 * (a.x - c.x) + c2 * (b.x - a.x)) / d;
+      const center: Pt = { x: cx, y: cy };
+      const ra = sub(a, center);
+      const rm = sub(b, center);
+      const rc = sub(c, center);
+      const rA = vlen(ra);
+      const rC = vlen(rc);
+      if (rA <= 1e-8 || rC <= 1e-8) return lerp(a.y, c.y, t);
+      let thA = Math.atan2(ra.y, ra.x);
+      let thM = Math.atan2(rm.y, rm.x);
+      let thC = Math.atan2(rc.y, rc.x);
+      while (thM - thA > Math.PI) thM -= 2 * Math.PI;
+      while (thM - thA < -Math.PI) thM += 2 * Math.PI;
+      while (thC - thA > Math.PI) thC -= 2 * Math.PI;
+      while (thC - thA < -Math.PI) thC += 2 * Math.PI;
+      const between = (x: number, a0: number, c0: number) =>
+        a0 <= c0 ? x >= a0 - 1e-6 && x <= c0 + 1e-6 : x <= a0 + 1e-6 && x >= c0 - 1e-6;
+      if (!between(thM, thA, thC)) thC += thC >= thA ? -2 * Math.PI : 2 * Math.PI;
+      const th = lerp(thA, thC, t);
+      const r = lerp(rA, rC, t);
+      return cy + Math.sin(th) * r;
     }
 
-  const sketches = buildHeelSketches(true, sectionCount);
-  return (sketches[0] as any).loftWith(sketches.slice(1)) as Shape3D;
+    const hAtT = (t: number) => {
+      const useRm3Arc = heelRailMathMode === 3;
+      const useRm4bArc = heelRailMathMode === 4 && heelRailMath4b && !heelRailMath4a;
+      // Rail math 3 currently conflicts with the inserted midpoint-control profile
+      // sequencing. Keep mode-2/sweep behavior when midpoint control is enabled.
+      // Rail math 4B should still arc up to the midpoint, then hold D.
+      if (!useRm3Arc && !useRm4bArc) return hAtTBase(t);
+      if (useRm3Arc && heelMidCtrl) return hAtTBase(t);
+      const tt = clamp(t, 0, 1);
+      // RM3/RM4B controls:
+      // - sweep: scales arc bow away from the straight C->D line
+      // - bias : shifts the guide point earlier/later along t
+      // - blend: blends arc result back toward the current/sweep progression
+      const arcSweep = useRm4bArc ? heelRm4bSweep : heelRm3Sweep;
+      const arcBias = useRm4bArc ? heelRm4bBias : heelRm3Bias;
+      const arcBlend = useRm4bArc ? heelRm4bBlend : heelRm3Blend;
+      const evalArcHeight01 = (u01: number, baseEval: (u: number) => number = hAtTBase) => {
+        const u = clamp(u01, 0, 1);
+        const p0: Pt = { x: 0, y: heelH_C };
+        const p1: Pt = { x: 1, y: heelH_D };
+        const xm = clamp(0.5 + arcBias * 0.35, 0.1, 0.9);
+        const baseMidY = baseEval(xm);
+        const lineMidY = lerp(heelH_C, heelH_D, xm);
+        const bowedMidY = lineMidY + (baseMidY - lineMidY) * arcSweep;
+        const pm: Pt = { x: xm, y: bowedMidY };
+        const arcY = arc2HeightEval(p0, pm, p1, u);
+        const baseY = baseEval(u);
+        return lerp(baseY, arcY, arcBlend);
+      };
+
+      if (useRm4bArc && heelMidCtrl) {
+        if (tt >= heelCDMidPct) return heelH_D;
+        const u = heelCDMidPct <= 1e-6 ? 1 : clamp(tt / heelCDMidPct, 0, 1);
+        // In midpoint mode, RM4B should curve only over the local C->mid segment,
+        // then hold D after the midpoint. Use a local base progression here rather
+        // than the global midpoint-aware base function.
+        const baseEvalToMid = (uu01: number) => {
+          const uu = clamp(uu01, 0, 1);
+          const us = heelSweep ? smoothstep01(uu) : uu;
+          return heelH_C + (heelH_D - heelH_C) * us;
+        };
+        return evalArcHeight01(u, baseEvalToMid);
+      }
+      return evalArcHeight01(tt);
+    };
+
+    const remapTForSweep = (tLin: number) => {
+      if (!heelSweep) return tLin;
+      if (!heelMidCtrl) return smoothstep01(clamp(tLin, 0, 1));
+      const t = clamp(tLin, 0, 1);
+      if (t <= heelCDMidPct) {
+        const denom = Math.max(1e-6, heelCDMidPct);
+        const u = smoothstep01(clamp(t / denom, 0, 1));
+        return heelCDMidPct * u;
+      }
+      const denom = Math.max(1e-6, 1 - heelCDMidPct);
+      const u = smoothstep01(clamp((t - heelCDMidPct) / denom, 0, 1));
+      return heelCDMidPct + (1 - heelCDMidPct) * u;
+    };
+
+    if (heelSweep) {
+      postModelDebugStatus(
+        `[heel_sweep] on midCtrl=${heelMidCtrl ? 1 : 0} midPct=${(heelCDMidPct * 100).toFixed(0)} sections=${sectionCountEff}` +
+          ((heelRailMathMode === 2 || heelRailMathMode === 3) && !heelSweepUI
+            ? ` (heel rail math ${heelRailMathMode})`
+            : "")
+      );
+    }
+
+    const planeC = makePlaneAt(
+      spinePts[idxC],
+      spineTan[idxC],
+      tagentProfileC ? null : endpointOriginFrameTan(spinePts[idxC], spineTan[idxC])
+    );
+    sketches.push(
+      (makeHeelProfileAtHeightCrownMode(heelH_C, useNormalCap, crownMode !== "none", crownMode === "patchAll") as any).sketchOnPlane(
+        planeC
+      )
+    );
+
+    for (let k = 1; k < sectionCountEff - 1; k++) {
+      const tLin = k / (sectionCountEff - 1);
+      const tGeom = remapTForSweep(tLin);
+      if (heelMidCtrl && !insertedDControlMid && tGeom > heelCDMidPct + 1e-6) {
+        pushSketchAtT(heelCDMidPct, heelH_D);
+        insertedDControlMid = true;
+      }
+      if (heelMidCtrl && Math.abs(tGeom - heelCDMidPct) <= 1e-6) {
+        pushSketchAtT(tGeom, heelH_D);
+        insertedDControlMid = true;
+        continue;
+      }
+      pushSketchAtT(tGeom, hAtT(tGeom));
+    }
+    if (heelMidCtrl && !insertedDControlMid) {
+      pushSketchAtT(heelCDMidPct, heelH_D);
+    }
+
+    const planeD = makePlaneAt(
+      spinePts[idxEnd],
+      spineTan[idxEnd],
+      tagentProfileD ? null : endpointOriginFrameTan(spinePts[idxEnd], spineTan[idxEnd])
+    );
+    sketches.push(
+      (makeHeelProfileAtHeightCrownMode(heelH_D, useNormalCap, crownMode !== "none", crownMode === "patchAll") as any).sketchOnPlane(
+        planeD
+      )
+    );
+    return sketches;
+  }
+
+  const sketches = buildHeelSketches(true, sectionCount, "none");
+
+  let heelSolid: Shape3D;
+  try {
+    heelSolid = (sketches[0] as any).loftWith(sketches.slice(1)) as Shape3D;
+  } catch (e) {
+    throw e;
+  }
+  let crownSolid: Shape3D | null = null;
+
+  if (heelTopCrownEnabled) {
+    try {
+      const crownSketches = buildHeelSketches(true, sectionCount, "patchAll");
+      if (crownSketches.length >= 2) {
+        crownSolid = (crownSketches[0] as any).loftWith(crownSketches.slice(1)) as Shape3D;
+        if (crownSolid) postModelDebugStatus("[heel_crown] crown loft built");
+      }
+    } catch (e) {
+      postModelDebugStatus(`[heel_crown] crown loft failed: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }
+
+  return { main: heelSolid, crown: crownSolid, debug: null, debugOnly: false };
+}
+
+export async function buildHeelSolid(input: ParamMap): Promise<Shape3D> {
+  const parts = await buildHeelSolidParts(input);
+  if (parts.debugOnly && parts.debug) return parts.debug;
+  if (!parts.main) throw new Error("Heel build returned no main solid");
+
+  let out = parts.main as Shape3D;
+  if (parts.crown && typeof (out as any).fuse === "function") {
+    out = (out as any).fuse(parts.crown) as Shape3D;
+    postModelDebugStatus("[heel_crown] crown loft fused");
+  }
+  return out;
 }
 
 // =======================================================

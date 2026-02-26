@@ -9,7 +9,8 @@ import {
   buildToeABSolid,
   buildToeBCSolid,
   buildToeSolid,
-  buildHeelSolid,
+  buildToeSolidParts,
+  buildHeelSolidParts,
   type ParamMap,
 } from "./model";
 
@@ -196,6 +197,12 @@ function baseSignature(params: ParamMap): string {
     "bp_fil_1_r",
     "sh_fil_1",
     "sh_fil_1_r",
+    // Rail math can affect baseplate sketch in certain modes (e.g. RM6)
+    "rail_math_mode",
+    "rail_math_6a",
+    "rail_math_6b",
+    "rail_math_6c",
+    "tagent_a_bp_cut_perp",
   ]);
 }
 
@@ -212,6 +219,14 @@ function toeABSignature(params: ParamMap): string {
 
     "toe_thk",
     "fil_1",
+    "th_fil_1",
+    "th_fil_1_r",
+    "th_fil_2",
+    "th_fil_2_r",
+    "tagent_a_offset_rot",
+    "tagent_a_midpoint",
+    "tagent_a_placeholder_1",
+    "tagent_a_placeholder_2",
 
     // Profile A controls
     "toe_a_p1s",
@@ -219,6 +234,7 @@ function toeABSignature(params: ParamMap): string {
     "toe_a_endx",
     "toe_a_endz",
     "toe_a_enda",
+    "tagent_profile_a",
     "toe_a_strength",
 
     // Loft
@@ -233,6 +249,7 @@ function toeABSignature(params: ParamMap): string {
     "toe_b_endx",
     "toe_b_endz",
     "toe_b_enda",
+    "tagent_profile_b",
     "toe_b_strength",
   ]);
 }
@@ -250,6 +267,14 @@ function toeBCSignature(params: ParamMap): string {
 
     "toe_thk",
     "fil_1",
+    "th_fil_1",
+    "th_fil_1_r",
+    "th_fil_2",
+    "th_fil_2_r",
+    "tagent_a_offset_rot",
+    "tagent_a_midpoint",
+    "tagent_a_placeholder_1",
+    "tagent_a_placeholder_2",
 
     // Profile B controls
     "toe_b_p1s",
@@ -257,6 +282,7 @@ function toeBCSignature(params: ParamMap): string {
     "toe_b_endx",
     "toe_b_endz",
     "toe_b_enda",
+    "tagent_profile_b",
     "toe_b_strength",
 
     // Loft
@@ -277,7 +303,15 @@ function toeBCSignature(params: ParamMap): string {
 }
 
 function toeCombinedSignature(params: ParamMap): string {
-  return `${toeABSignature(params)}|${toeBCSignature(params)}`;
+  const railMathMode = Math.min(10, Math.max(1, Math.round(numParam(params, "rail_math_mode")) || 1));
+  const railMath5Cull = Math.min(4, Math.max(0, Math.round(numParam(params, "rail_math_5_cull")) || 0));
+  const railMath5Addback = Math.min(6, Math.max(0, Math.round(numParam(params, "rail_math_5_addback")) || 0));
+  const railMath6a = Math.round(numParam(params, "rail_math_6a")) ? 1 : 0;
+  const railMath6b = Math.round(numParam(params, "rail_math_6b")) ? 1 : 0;
+  const railMath6c = Math.round(numParam(params, "rail_math_6c")) ? 1 : 0;
+  return `modeB=${numParam(params, "toe_add_profile_b")}|railMath=${railMathMode}|railMath5Cull=${railMath5Cull}|railMath5Addback=${railMath5Addback}|railMath6=${railMath6a}${railMath6b}${railMath6c}|${toeABSignature(
+    params
+  )}|${toeBCSignature(params)}`;
 }
 
 // Heel: uses toe C station/control as upstream anchor + heel params
@@ -306,8 +340,27 @@ function heelSignature(params: ParamMap): string {
     "heel_h_c",
     "heel_h_d",
     "heel_cd_mid",
+    "heel_cd_mid_pct",
+    "heel_rm3_sweep",
+    "heel_rm3_bias",
+    "heel_rm3_blend",
+    "heel_rm4b_sweep",
+    "heel_rm4b_bias",
+    "heel_rm4b_blend",
+    "heel_mid_ctrl",
+    "heel_sweep",
+    "heel_rail_math_4a",
+    "heel_rail_math_4b",
+    "tagent_profile_c",
+    "tagent_profile_d",
+    "tagent_d_cut_perp",
+    "heel_fil_1",
+    "heel_fil_1_r",
+    "heel_fil_2",
+    "heel_fil_2_r",
     "heel_f1",
     "heel_f2",
+    "heel_rail_math_mode",
   ]);
 }
 
@@ -331,7 +384,11 @@ let cachedBaseShape: any | null = null;
 let cachedToeABShape: any | null = null;
 let cachedToeBCShape: any | null = null;
 let cachedToeCombinedShape: any | null = null;
-let cachedHeelShape: any | null = null;
+let cachedToeCombinedMainShape: any | null = null;
+let cachedToeCombinedTailShape: any | null = null;
+let cachedHeelMainShape: any | null = null;
+let cachedHeelCrownShape: any | null = null;
+let cachedHeelDebugShape: any | null = null;
 
 let cachedBaseSig = "";
 let cachedToeABSig = "";
@@ -465,28 +522,108 @@ async function getHeelShape(
   opts?: RefitOpts
 ) {
   if (!enabled) return { shape: null as any, reused: true, sig: "" };
+  const p = await getHeelParts(params, enabled, opts);
+
+  let shape: any = null;
+  shape = safeFuse(shape, p.main);
+  shape = safeFuse(shape, p.crown);
+  if (!shape && p.debugOnly) {
+    throw new Error("Heel loft failed (debug-only heel result). Disable debug/crown or adjust heel settings to export.");
+  }
+  return { shape, reused: p.reused, sig: p.sig };
+}
+
+async function getToeCombinedParts(params: ParamMap, enabled: boolean, opts?: RefitOpts) {
+  if (!enabled) return { main: null as any, tail: null as any, reused: true, sig: "" };
+
+  const sig = toeCombinedSignature(params);
+  const freezeRefit = !!opts?.freezeRefit;
+  const forceRefit = !!opts?.forceRefit;
+  const hasCachedToeParts = !!(cachedToeCombinedMainShape || cachedToeCombinedTailShape);
+
+  if (freezeRefit && hasCachedToeParts) {
+    return {
+      main: cachedToeCombinedMainShape,
+      tail: cachedToeCombinedTailShape,
+      reused: true,
+      sig: cachedToeCombinedSig,
+    };
+  }
+
+  if (forceRefit || !hasCachedToeParts || sig !== cachedToeCombinedSig) {
+    post({ type: "status", message: "building toe A->B->C..." });
+    applyToeFlags(params, true, true);
+    const parts = await buildToeSolidParts(params);
+
+    cachedToeCombinedMainShape = parts.main;
+    cachedToeCombinedTailShape = parts.tail;
+    cachedToeCombinedSig = sig;
+
+    cachedToeCombinedMesh = null;
+    cachedToeCombinedMeshKey = "";
+    return { main: parts.main, tail: parts.tail, reused: false, sig };
+  }
+
+  return {
+    main: cachedToeCombinedMainShape,
+    tail: cachedToeCombinedTailShape,
+    reused: true,
+    sig: cachedToeCombinedSig,
+  };
+}
+
+async function getHeelParts(
+  params: ParamMap,
+  enabled: boolean,
+  opts?: RefitOpts
+) {
+  if (!enabled) return { main: null as any, crown: null as any, debug: null as any, debugOnly: false, reused: true, sig: "" };
 
   const sig = heelSignature(params);
   const freezeRefit = !!opts?.freezeRefit;
   const forceRefit = !!opts?.forceRefit;
+  const hasCachedHeelParts = !!(cachedHeelMainShape || cachedHeelCrownShape || cachedHeelDebugShape);
 
-  if (freezeRefit && cachedHeelShape) {
-    return { shape: cachedHeelShape, reused: true, sig: cachedHeelSig };
+  if (freezeRefit && hasCachedHeelParts) {
+    return {
+      main: cachedHeelMainShape,
+      crown: cachedHeelCrownShape,
+      debug: cachedHeelDebugShape,
+      debugOnly: !cachedHeelMainShape && !!cachedHeelDebugShape,
+      reused: true,
+      sig: cachedHeelSig,
+    };
   }
 
-  if (forceRefit || !cachedHeelShape || sig !== cachedHeelSig) {
+  if (forceRefit || !hasCachedHeelParts || sig !== cachedHeelSig) {
     post({ type: "status", message: "building heel kick..." });
-    const s = await buildHeelSolid(params);
+    const parts = await buildHeelSolidParts(params);
 
-    cachedHeelShape = s;
+    cachedHeelMainShape = parts.main;
+    cachedHeelCrownShape = parts.crown;
+    cachedHeelDebugShape = parts.debug;
     cachedHeelSig = sig;
 
     cachedHeelMesh = null;
     cachedHeelMeshKey = "";
-    return { shape: s, reused: false, sig };
+    return {
+      main: cachedHeelMainShape,
+      crown: cachedHeelCrownShape,
+      debug: cachedHeelDebugShape,
+      debugOnly: !!parts.debugOnly,
+      reused: false,
+      sig,
+    };
   }
 
-  return { shape: cachedHeelShape, reused: true, sig: cachedHeelSig };
+  return {
+    main: cachedHeelMainShape,
+    crown: cachedHeelCrownShape,
+    debug: cachedHeelDebugShape,
+    debugOnly: !cachedHeelMainShape && !!cachedHeelDebugShape,
+    reused: true,
+    sig: cachedHeelSig,
+  };
 }
 
 async function getBaseMesh(params: ParamMap, enabled: boolean, tolerance: unknown, opts?: RefitOpts) {
@@ -547,8 +684,9 @@ async function getToeBCMesh(params: ParamMap, enabled: boolean, tolerance: unkno
 }
 
 async function getToeCombinedMesh(params: ParamMap, enabled: boolean, tolerance: unknown, opts?: RefitOpts) {
-  const s = await getToeCombinedShape(params, enabled, opts);
-  if (!enabled || !s.shape) return { mesh: null as any, reused: true, shapeReused: true };
+  const s = await getToeCombinedParts(params, enabled, opts);
+  const hasToePreviewParts = !!(s.main || s.tail);
+  if (!enabled || !hasToePreviewParts) return { mesh: null as any, reused: true, shapeReused: true };
 
   const key = `${s.sig}|tol=${tolKey(tolerance)}`;
   if (cachedToeCombinedMesh && cachedToeCombinedMeshKey === key) {
@@ -556,8 +694,12 @@ async function getToeCombinedMesh(params: ParamMap, enabled: boolean, tolerance:
   }
 
   post({ type: "status", message: `meshing toe A->B->C... (tol=${tolKey(tolerance)})` });
-  const faces = meshShape(s.shape as any, tolerance);
-  const m = toStdMesh(faces as any);
+  const meshes: ReturnType<typeof toStdMesh>[] = [];
+  if (s.main) meshes.push(toStdMesh(meshShape(s.main as any, tolerance) as any));
+  if (s.tail) meshes.push(toStdMesh(meshShape(s.tail as any, tolerance) as any));
+  if (meshes.length === 0) return { mesh: null as any, reused: true, shapeReused: s.reused };
+  let m = meshes[0];
+  for (let i = 1; i < meshes.length; i++) m = mergeMeshes(m, meshes[i]);
 
   cachedToeCombinedMesh = m;
   cachedToeCombinedMeshKey = key;
@@ -565,14 +707,22 @@ async function getToeCombinedMesh(params: ParamMap, enabled: boolean, tolerance:
   return { mesh: m, reused: false, shapeReused: s.reused };
 }
 
+// Legacy split toe helpers are retained for compatibility/testing but are no longer
+// used by the UI-driven build/export paths after the Add Profile B mode switch.
+void getToeABShape;
+void getToeBCShape;
+void getToeABMesh;
+void getToeBCMesh;
+
 async function getHeelMesh(
   params: ParamMap,
   enabled: boolean,
   tolerance: unknown,
   opts?: RefitOpts
 ) {
-  const s = await getHeelShape(params, enabled, opts);
-  if (!enabled || !s.shape) return { mesh: null as any, reused: true, shapeReused: true };
+  const s = await getHeelParts(params, enabled, opts);
+  const hasHeelPreviewParts = !!(s.main || s.crown || s.debug);
+  if (!enabled || !hasHeelPreviewParts) return { mesh: null as any, reused: true, shapeReused: true };
 
   const key = `${s.sig}|tol=${tolKey(tolerance)}`;
   if (cachedHeelMesh && cachedHeelMeshKey === key) {
@@ -580,8 +730,14 @@ async function getHeelMesh(
   }
 
   post({ type: "status", message: `meshing heel... (tol=${tolKey(tolerance)})` });
-  const faces = meshShape(s.shape as any, tolerance);
-  const m = toStdMesh(faces as any);
+  const meshes: ReturnType<typeof toStdMesh>[] = [];
+  if (s.main) meshes.push(toStdMesh(meshShape(s.main as any, tolerance) as any));
+  if (s.crown) meshes.push(toStdMesh(meshShape(s.crown as any, tolerance) as any));
+  if (s.debug) meshes.push(toStdMesh(meshShape(s.debug as any, tolerance) as any));
+  if (meshes.length === 0) return { mesh: null as any, reused: true, shapeReused: s.reused };
+
+  let m = meshes[0];
+  for (let i = 1; i < meshes.length; i++) m = mergeMeshes(m, meshes[i]);
 
   cachedHeelMesh = m;
   cachedHeelMeshKey = key;
@@ -640,16 +796,14 @@ self.onmessage = async (ev: MessageEvent<WorkerIn>) => {
       const forceHeelRefit = !!msg.payload.forceHeelRefit;
 
       const baseEnabled = !!msg.payload.baseEnabled;
-      const toeBEnabled = !!msg.payload.toeBEnabled;
-      const toeCEnabled = !!msg.payload.toeCEnabled;
       const heelEnabled = !!msg.payload.heelEnabled;
-      const toeBothEnabled = toeBEnabled && toeCEnabled;
+      const toeEnabled = true;
+      const toeWithB = !!(Number((params as any).toe_add_profile_b) || 0);
       const fil1 = Math.max(0, Number((params as any).fil_1) || 0);
 
       if (fil1 > 0.001) {
-        const toePath =
-          toeBothEnabled ? "A->B->C" : toeBEnabled ? "A->B" : toeCEnabled ? "B->C only" : "toe off";
-        const fil1Applies = toeBEnabled; // fil_1 affects profile A, so requires A->B presence
+        const toePath = toeWithB ? "A->B->C" : "A->C";
+        const fil1Applies = true; // fil_1 affects profile A, which exists in both modes
         post({
           type: "status",
           message: `fil_1 dbg: ${fil1.toFixed(2)}mm path=${toePath} ${fil1Applies ? "APPLY" : "IGNORED(no A)"}`,
@@ -661,22 +815,10 @@ self.onmessage = async (ev: MessageEvent<WorkerIn>) => {
         freezeRefit: freezeBaseRefit,
         forceRefit: forceFullRefit,
       });
-      const toeABC = await getToeCombinedMesh(params, toeBothEnabled, tolerance, {
+      const toeABC = await getToeCombinedMesh(params, toeEnabled, tolerance, {
         freezeRefit: freezeToeRefit,
         forceRefit: forceFullRefit,
       });
-      const toeAB = toeBothEnabled
-        ? ({ mesh: null as any, reused: true } as { mesh: any; reused: boolean })
-        : await getToeABMesh(params, toeBEnabled, tolerance, {
-            freezeRefit: freezeToeRefit,
-            forceRefit: forceFullRefit,
-          });
-      const toeBC = toeBothEnabled
-        ? ({ mesh: null as any, reused: true } as { mesh: any; reused: boolean })
-        : await getToeBCMesh(params, toeCEnabled, tolerance, {
-            freezeRefit: freezeToeRefit,
-            forceRefit: forceFullRefit,
-          });
       const heel = await getHeelMesh(params, heelEnabled, tolerance, {
         freezeRefit: freezeHeelRefit,
         forceRefit: forceFullRefit || forceHeelRefit,
@@ -684,9 +826,7 @@ self.onmessage = async (ev: MessageEvent<WorkerIn>) => {
 
       const meshes: ReturnType<typeof toStdMesh>[] = [];
       if (baseEnabled && base.mesh) meshes.push(base.mesh);
-      if (toeBothEnabled && toeABC.mesh) meshes.push(toeABC.mesh);
-      if (!toeBothEnabled && toeBEnabled && toeAB.mesh) meshes.push(toeAB.mesh);
-      if (!toeBothEnabled && toeCEnabled && toeBC.mesh) meshes.push(toeBC.mesh);
+      if (toeEnabled && toeABC.mesh) meshes.push(toeABC.mesh);
       if (heelEnabled && heel.mesh) meshes.push(heel.mesh);
 
       if (meshes.length === 0) {
@@ -702,12 +842,12 @@ self.onmessage = async (ev: MessageEvent<WorkerIn>) => {
         type: "status",
         message:
           `preview mesh merged (` +
-          `base:${baseEnabled ? (base.reused ? "cached" : "meshed") : "off"} ` +
-          `toe:${toeBothEnabled ? (toeABC.reused ? "abc-cached" : "abc-meshed") : "split"} ` +
-          `toeAB:${!toeBothEnabled && toeBEnabled ? (toeAB.reused ? "cached" : "meshed") : "off"} ` +
-          `toeBC:${!toeBothEnabled && toeCEnabled ? (toeBC.reused ? "cached" : "meshed") : "off"} ` +
-          `heel:${heelEnabled ? (heel.reused ? "cached" : "meshed") : "off"}` +
-          `)`,
+            `base:${baseEnabled ? (base.reused ? "cached" : "meshed") : "off"} ` +
+            `toe:${toeEnabled ? (toeABC.reused ? (toeWithB ? "abc-cached" : "ac-cached") : (toeWithB ? "abc-meshed" : "ac-meshed")) : "off"} ` +
+            `toeAB:off ` +
+            `toeBC:off ` +
+            `heel:${heelEnabled ? (heel.reused ? "cached" : "meshed") : "off"}` +
+            `)`,
       });
 
       post({ type: "mesh", payload: merged });
@@ -721,26 +861,16 @@ self.onmessage = async (ev: MessageEvent<WorkerIn>) => {
       const params = msg.payload.params;
 
       const baseEnabled = !!msg.payload.baseEnabled;
-      const toeBEnabled = !!msg.payload.toeBEnabled;
-      const toeCEnabled = !!msg.payload.toeCEnabled;
       const heelEnabled = !!msg.payload.heelEnabled;
-      const toeBothEnabled = toeBEnabled && toeCEnabled;
+      const toeEnabled = true;
 
       const base = await getBaseShape(params, baseEnabled);
-      const toeABC = await getToeCombinedShape(params, toeBothEnabled);
-      const toeAB = toeBothEnabled
-        ? ({ shape: null as any } as { shape: any })
-        : await getToeABShape(params, toeBEnabled);
-      const toeBC = toeBothEnabled
-        ? ({ shape: null as any } as { shape: any })
-        : await getToeBCShape(params, toeCEnabled);
+      const toeABC = await getToeCombinedShape(params, toeEnabled);
       const heel = await getHeelShape(params, heelEnabled);
 
       let combined: any = null;
       if (baseEnabled) combined = safeFuse(combined, base.shape);
-      if (toeBothEnabled) combined = safeFuse(combined, toeABC.shape);
-      if (!toeBothEnabled && toeBEnabled) combined = safeFuse(combined, toeAB.shape);
-      if (!toeBothEnabled && toeCEnabled) combined = safeFuse(combined, toeBC.shape);
+      if (toeEnabled) combined = safeFuse(combined, toeABC.shape);
       if (heelEnabled) combined = safeFuse(combined, heel.shape);
 
       if (!combined) throw new Error("Nothing enabled to export.");
@@ -764,26 +894,16 @@ self.onmessage = async (ev: MessageEvent<WorkerIn>) => {
       const params = msg.payload.params;
 
       const baseEnabled = !!msg.payload.baseEnabled;
-      const toeBEnabled = !!msg.payload.toeBEnabled;
-      const toeCEnabled = !!msg.payload.toeCEnabled;
       const heelEnabled = !!msg.payload.heelEnabled;
-      const toeBothEnabled = toeBEnabled && toeCEnabled;
+      const toeEnabled = true;
 
       const base = await getBaseShape(params, baseEnabled);
-      const toeABC = await getToeCombinedShape(params, toeBothEnabled);
-      const toeAB = toeBothEnabled
-        ? ({ shape: null as any } as { shape: any })
-        : await getToeABShape(params, toeBEnabled);
-      const toeBC = toeBothEnabled
-        ? ({ shape: null as any } as { shape: any })
-        : await getToeBCShape(params, toeCEnabled);
+      const toeABC = await getToeCombinedShape(params, toeEnabled);
       const heel = await getHeelShape(params, heelEnabled);
 
       let combined: any = null;
       if (baseEnabled) combined = safeFuse(combined, base.shape);
-      if (toeBothEnabled) combined = safeFuse(combined, toeABC.shape);
-      if (!toeBothEnabled && toeBEnabled) combined = safeFuse(combined, toeAB.shape);
-      if (!toeBothEnabled && toeCEnabled) combined = safeFuse(combined, toeBC.shape);
+      if (toeEnabled) combined = safeFuse(combined, toeABC.shape);
       if (heelEnabled) combined = safeFuse(combined, heel.shape);
 
       if (!combined) throw new Error("Nothing enabled to export.");

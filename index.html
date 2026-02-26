@@ -42,7 +42,7 @@
 
         display: flex;
         flex-direction: column;
-        gap: 10px; /* space between boxes */
+        gap: 0px; /* space between boxes */
       }
 
       /* REUSABLE big box style */
@@ -69,6 +69,7 @@
         justify-content: space-between;
         gap: 12px;
         margin-bottom: 10px;
+        cursor: pointer;
       }
 
       #appTitle {
@@ -90,11 +91,57 @@
         flex: 1 1 auto;
         overflow: auto;
         min-height: 0; /* critical for flex children to scroll */
+        margin-top: 5px;
+      }
+      #controlsPanelTitle {
+        text-align: center;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        opacity: 0.75;
+        margin: 5px 0 8px 0;
       }
 
       /* Debug panel stays its own box */
       #debugPanel {
         flex: 0 0 auto;
+        background: transparent;
+        box-shadow: none;
+        padding: 0;
+        border-radius: 0;
+        margin-top: -8px; /* keep seam overlap, but shift debug panel down 5px */
+        position: relative;
+        z-index: 1;
+      }
+      #toolbarPanel {
+        padding-top: 10px;
+        padding-bottom: 8px;
+      }
+      #toolbarPanel #titlePanel {
+        margin-bottom: 6px;
+      }
+      #toolbarPanel .row.header {
+        margin-bottom: 6px;
+      }
+      #toolbarPanel .check {
+        margin: 4px 0;
+      }
+      #toolbarPanel.titleOnly {
+        padding-top: 8px;
+        padding-bottom: 8px;
+      }
+      #toolbarPanel.titleOnly #titlePanel {
+        margin-bottom: 0;
+        justify-content: space-between;
+      }
+      #toolbarPanel.titleOnly .row.header,
+      #toolbarPanel.titleOnly .check {
+        display: none;
+      }
+      #toolbarPanel.titleOnly #appVersion,
+      #toolbarPanel.titleOnly #appVersion {
+        display: none;
       }
 
       form { margin: 0; }
@@ -107,6 +154,16 @@
         grid-template-columns: 1fr 1fr 1fr;
         gap: 8px;
         margin: 8px 0 10px 0;
+      }
+      .btnRow.twoCols {
+        grid-template-columns: 1fr 1fr;
+        margin-top: 0;
+      }
+      .btnStack {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 8px;
+        margin: 8px 0 0 0;
       }
 
       label { display: grid; grid-template-columns: 1fr; gap: 6px; font-size: 13px; line-height: 1.2; }
@@ -121,7 +178,7 @@
       details.section {
         margin-top: 10px;
         border-top: 1px solid rgba(255,255,255,0.15);
-        padding-top: 10px;
+        padding-top: 15px;
       }
       details.section summary {
         cursor: pointer;
@@ -132,6 +189,10 @@
       }
       details.section summary::-webkit-details-marker { display: none; }
       .sectionMeta { font-size: 12px; opacity: 0.8; margin: 4px 0 8px 0; }
+      .endDivider {
+        margin: 10px 0 2px 0;
+        border-top: 1px solid rgba(255,255,255,0.15);
+      }
 
 
       /* Subsection styling (nested inside another section) */
@@ -158,8 +219,41 @@ details.section details.section > summary {
         align-items: center;
         margin: 8px 0;
       }
+      .check.withSideStats {
+        grid-template-columns: auto 1fr auto;
+        gap: 10px 12px;
+      }
       .check input[type="checkbox"] { width: 16px; height: 16px; }
       .check label { display: block; font-size: 13px; line-height: 1.2; }
+      .miniStats {
+        display: grid;
+        grid-template-rows: 1fr 1fr;
+        gap: 4px;
+        min-width: 100px;
+        transform: translateX(-70px);
+      }
+      .miniStatsRow {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        align-items: center;
+        gap: 6px;
+        min-height: 16px;
+        line-height: 1;
+        font-size: 11px;
+        border-radius: 6px;
+        padding: 2px 6px;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.10);
+        font-variant-numeric: tabular-nums;
+      }
+      .miniStatsKey {
+        opacity: 0.75;
+        text-transform: lowercase;
+      }
+      .miniStatsVal {
+        text-align: right;
+        opacity: 0.95;
+      }
 
       /* Value input boxes */
       .valInput {
@@ -224,8 +318,14 @@ details.section details.section > summary {
         opacity: 0.95;
         box-sizing: border-box;
       }
+      #debug.collapsed {
+        height: auto;
+        min-height: 0;
+        max-height: none;
+        resize: none;
+      }
 
-      #debugHeader { font-weight: 700; opacity: 0.95; flex: 0 0 auto; }
+      #debugHeader { font-weight: 700; opacity: 0.95; flex: 0 0 auto; position: relative; top: 2px; }
 
       #log {
         flex: 1 1 auto;
@@ -241,6 +341,14 @@ details.section details.section > summary {
 
         box-sizing: border-box;
       }
+      #debug.collapsed #log {
+        flex: 0 0 auto;
+        min-height: 0;
+        max-height: calc(1.5em + 7px);
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+      }
     </style>
   </head>
 
@@ -249,30 +357,48 @@ details.section details.section > summary {
       <!-- BOX 1: Title + Version + Toolbar -->
       <div id="toolbarPanel" class="panelBox">
         <div id="titlePanel">
-          <div id="appTitle">Parahook Generator</div>
-          <div id="appVersion">v 0.14.2</div>
+          <div id="appTitle">ParaHook Generator</div>
+          <div id="appVersion">v 0.14.3</div>
         </div>
 
         <div class="row header">
           <div id="status">idle</div>
         </div>
 
-        <div class="btnRow">
-          <button id="rebuild" type="button">Rebuild</button>
-          <button id="exportStl" type="button" class="secondary">Export STL</button>
-          <button id="exportStep" type="button" class="secondary">Export STEP</button>
-        </div>
-
         <!-- MODEL TOGGLE -->
-        <div class="check">
+        <div class="check withSideStats">
           <input id="modelEnabled" type="checkbox" checked />
           <label for="modelEnabled">Enable model (model.ts)</label>
+          <div id="meshMiniStats" class="miniStats" aria-label="Mesh statistics">
+            <div class="miniStatsRow">
+              <span class="miniStatsKey">verts =</span>
+              <span id="meshVerts" class="miniStatsVal">-</span>
+            </div>
+            <div class="miniStatsRow">
+              <span class="miniStatsKey">tris =</span>
+              <span id="meshTris" class="miniStatsVal">-</span>
+            </div>
+          </div>
         </div>
       </div>
 
       <!-- BOX 2: Controls (scrollable) -->
       <div id="controlsPanel" class="panelBox">
+        <div id="controlsPanelTitle">Toolbar</div>
         <form id="controls" autocomplete="off">
+
+          <!-- BUTTONS (collapsible group) -->
+          <details class="section">
+            <summary>Buttons</summary>
+            <div class="sectionMeta">Custom button actions and presets (WIP)</div>
+            <div class="btnStack">
+              <button id="rebuild" type="button">Rebuild</button>
+              <button id="exportStl" type="button" class="secondary">Export STL</button>
+              <button id="exportStep" type="button" class="secondary">Export STEP</button>
+              <button id="loadSettings" type="button" class="secondary">Load Settings</button>
+              <button id="exportSettings" type="button" class="secondary">Export Settings</button>
+            </div>
+          </details>
 
           <!-- REFERENCE (collapsible group) -->
           <details class="section">
@@ -282,6 +408,23 @@ details.section details.section > summary {
             <details class="section">
               <summary>-Releases</summary>
               <details class="section" open>
+                <summary>0.14.3</summary>
+                <div class="sectionMeta">Dr good fillet, Smooth &amp; Wiggly.</div>
+                <div class="sectionMeta">Added Load Settings / Export Settings buttons (JSON) to save and restore the full UI input state.</div>
+                <div class="sectionMeta">Heel crown fillet flow was reworked into a separate crown object path for preview performance and fused export output.</div>
+                <div class="sectionMeta">HEEL_FIL_1 is now the heel crown enable toggle (master on/off for the added crown on the top of the heel kick).</div>
+                <div class="sectionMeta">HEEL_FIL_1_R and HEEL_FIL_2_R now control the two crown shoulder radii (the two rounded top corners of the raised heel cap strip).</div>
+                <div class="sectionMeta">When only the crown is enabled, the crown still builds fully; each side radius can be adjusted independently using the two heel fillet radius sliders.</div>
+                <div class="sectionMeta">Dr Good Fillet auto-enables BP_FIL_1, TH_FIL_1, TH_FIL_2, and HEEL_FIL_1. Diet unchecked switches heel behavior to Sweep ON + Heel Midpoint Control OFF.</div>
+                <div class="sectionMeta">Toe Hook now uses a single Add Profile B toggle (default OFF). OFF = direct A→C loft. ON = A→B→C loft. Profile B params are hidden when OFF and their values are preserved.</div>
+                <div class="sectionMeta">TOE_AB_MID is ignored when Add Profile B is OFF. TOE_BC_MID is reused as the A→C intermediate profile count in that mode.</div>
+                <div class="sectionMeta">Toe Hook Rail Math modes were added. Rail Math 1 = default Hermite fit, 2 = linear rails, 3 = linear + fixed end angle behavior, 4 = arc rails with absolute frame, 5/6 are experimental branches for custom end/transition rail tuning.</div>
+                <div class="sectionMeta">Rail Math 5 adds two tuning controls: Rail Math 5 Cull Count (how many near-C intermediates are removed) and Rail Math 5 Add-Back Profiles (separate tail-loft transition profiles from the last AC intermediate to final Profile C).</div>
+                <div class="sectionMeta">Heel Kick Rail Math modes were added (1–5). Heel Rail Math 2 mirrors the Sweep behavior. Heel Rail Math 4 keeps heel profiles parallel (fixed vertical section orientation) while 4A/4B are experimental sub-modes.</div>
+                <div class="sectionMeta">Heel Rail Math 3 / Sweep and Heel Rail Math 4B now expose arc-shape tuning sliders: Sweep, Bias, and Blend. Sweep and Heel Rail Math 3 are UI-synced and share the same RM3 slider values.</div>
+              </details>
+
+              <details class="section">
                 <summary>0.14.2</summary>
                 <div class="sectionMeta">Added baseplate screw holes / slot controls. BP_SH_X and BP_SH_Y move the screw-hole pair origin relative to the UI screw-hole reference point on the baseplate.</div>
                 <div class="sectionMeta">BP_SH_ANG sets the primary screw-hole axis angle. BP_SH_DIST sets spacing between hole centers along that axis. BP_SH_ANG2 and BP_SH_OFF2 control the second hole orientation/offset for non-matching slot alignment.</div>
@@ -480,8 +623,8 @@ details.section details.section > summary {
               </div>
 
               <div class="row">
-                <label>Computed Scale (relative to size 10)
-                  <input id="shoeScale" type="range" min="0.90" max="1.10" step="0.001" value="1.000" disabled />
+                <label>Computed Scale //(relative to size 10)
+                  <input id="shoeScale" type="range" min="0.80" max="1.25" step="0.001" value="1" disabled />
                 </label>
                 <input class="valInput" id="shoeScaleVal" type="number" step="0.001" value="1.000" disabled />
               </div>
@@ -686,7 +829,7 @@ details.section details.section > summary {
         <div class="paramName">Screw Diameter (mm)</div>
       </div>
       <div class="paramBody">
-        <input id="bp_sh_dia" name="bp_sh_dia" type="range" min="2" max="10" step="0.1" value="5.0" />
+        <input id="bp_sh_dia" name="bp_sh_dia" type="range" min="2" max="10" step="0.1" value="5" />
         <input class="valInput" id="bp_sh_diaVal" type="number" step="0.1" value="5.0" />
       </div>
     </div>
@@ -751,19 +894,13 @@ details.section details.section > summary {
           <details class="section">
             <summary>Toe Hook</summary>
             <div class="sectionMeta">Profiles A → B (mid) → C (end). Stations measured in mm along the spline from origin.</div>
-
             <div class="check">
-              <input id="toeBEnabled" type="checkbox" checked />
-              <label for="toeBEnabled">Enable Profile B loft (A → B)</label>
-            </div>
-
-            <div class="check">
-              <input id="toeCEnabled" type="checkbox" checked />
-              <label for="toeCEnabled">Enable Profile C loft (B → C)</label>
+              <input id="toeAddProfileB" type="checkbox"  checked />
+              <label for="toeAddProfileB">Add Profile B</label>
             </div>
 
             <!-- Profile A -->
-            <details class="section" open>
+            <details class="section">
               <summary>Profile A</summary>
               <div class="sectionMeta">
                 Start profile at spline start. Uses a 2-point organic curve (Bezier) with a vertical start handle and an angled end handle.
@@ -853,7 +990,7 @@ details.section details.section > summary {
             </details>
 
             <!-- Profile B -->
-            <details class="section" open>
+            <details id="toeProfileBSection" class="section" open>
               <summary>Profile B</summary>
               <div class="sectionMeta">Mid control profile. Station is mm along spline from origin. Controls A→B intermediate sections.</div>
 
@@ -878,7 +1015,7 @@ details.section details.section > summary {
                   <div class="paramName">A→B Intermediate Profiles (0 = A→B only)</div>
                 </div>
                 <div class="paramBody">
-                  <input id="toe_ab_mid" name="toe_ab_mid" type="range" min="0" max="60" step="1" value="10" />
+                  <input id="toe_ab_mid" name="toe_ab_mid" type="range" min="0" max="60" step="1" value="20" />
                   <input class="valInput" id="toe_ab_midVal" type="number" step="1" value="10" />
                 </div>
               </div>
@@ -960,7 +1097,7 @@ details.section details.section > summary {
             </details>
 
             <!-- Profile C -->
-            <details class="section" open>
+            <details class="section">
               <summary>Profile C</summary>
               <div class="sectionMeta">End profile. Station is mm along spline from origin. Controls B→C intermediate sections.</div>
 
@@ -985,7 +1122,7 @@ details.section details.section > summary {
                   <div class="paramName">B→C Intermediate Profiles (0 = B→C only)</div>
                 </div>
                 <div class="paramBody">
-                  <input id="toe_bc_mid" name="toe_bc_mid" type="range" min="0" max="60" step="1" value="15" />
+                  <input id="toe_bc_mid" name="toe_bc_mid" type="range" min="0" max="60" step="1" value="20" />
                   <input class="valInput" id="toe_bc_midVal" type="number" step="1" value="15" />
                 </div>
               </div>
@@ -1064,7 +1201,9 @@ details.section details.section > summary {
                   <input class="valInput" id="toe_c_strengthVal" type="number" min="0.2" max="8" step="0.01" value="7" />
                 </div>
               </div>
+
             </details>
+
           </details>
 
           <!-- Heel Kick (still paramN on purpose; we will rename after toe is stable) -->
@@ -1093,6 +1232,48 @@ details.section details.section > summary {
               </div>
             </div>
 
+            <div class="check">
+              <input id="heel_mid_ctrl" type="checkbox" />
+              <label for="heel_mid_ctrl">heel midpoint control</label>
+            </div>
+
+            <div class="check">
+              <input id="heel_sweep" type="checkbox" />
+              <label for="heel_sweep">sweep</label>
+            </div>
+            <div id="heelSweepRm3Wrap" style="display:none; margin: 4px 0 8px 18px;">
+              <div class="paramRow">
+                <div class="paramTop">
+                  <div class="paramTag">HEEL_RM3_SWEEP</div>
+                  <div class="paramName">Heel RM3 Arc Sweep</div>
+                </div>
+                <div class="paramBody">
+                  <input id="heel_sweep_rm3_sweep" type="range" min="0" max="2" step="0.01" value="1" />
+                  <input class="valInput" id="heel_sweep_rm3_sweepVal" type="number" min="0" max="2" step="0.01" value="1" />
+                </div>
+              </div>
+              <div class="paramRow">
+                <div class="paramTop">
+                  <div class="paramTag">HEEL_RM3_BIAS</div>
+                  <div class="paramName">Heel RM3 Midpoint Bias</div>
+                </div>
+                <div class="paramBody">
+                  <input id="heel_sweep_rm3_bias" type="range" min="-1" max="1" step="0.01" value="0" />
+                  <input class="valInput" id="heel_sweep_rm3_biasVal" type="number" min="-1" max="1" step="0.01" value="0" />
+                </div>
+              </div>
+              <div class="paramRow">
+                <div class="paramTop">
+                  <div class="paramTag">HEEL_RM3_BLEND</div>
+                  <div class="paramName">Heel RM3 Blend</div>
+                </div>
+                <div class="paramBody">
+                  <input id="heel_sweep_rm3_blend" type="range" min="0" max="1" step="0.01" value="1" />
+                  <input class="valInput" id="heel_sweep_rm3_blendVal" type="number" min="0" max="1" step="0.01" value="1" />
+                </div>
+              </div>
+            </div>
+
             <div class="paramRow">
               <div class="paramTop">
                 <div class="paramTag">HEEL_H_D</div>
@@ -1110,8 +1291,19 @@ details.section details.section > summary {
                 <div class="paramName">Heel Loft Intermediate Profiles (0 = C→D only)</div>
               </div>
               <div class="paramBody">
-                <input id="heel_cd_mid" name="heel_cd_mid" type="range" min="0" max="60" step="1" value="2" />
+                <input id="heel_cd_mid" name="heel_cd_mid" type="range" min="0" max="60" step="1" value="10" />
                 <input class="valInput" id="heel_cd_midVal" type="number" step="1" value="2" />
+              </div>
+            </div>
+
+            <div class="paramRow">
+              <div class="paramTop">
+                <div class="paramTag">HEEL_CD_MID_PCT</div>
+                <div class="paramName">Heel D-Profile Midpoint (%)</div>
+              </div>
+              <div class="paramBody">
+                <input id="heel_cd_mid_pct" name="heel_cd_mid_pct" type="range" min="10" max="90" step="1" value="50" />
+                <input class="valInput" id="heel_cd_mid_pctVal" type="number" min="10" max="90" step="1" value="50" />
               </div>
             </div>
 
@@ -1142,99 +1334,436 @@ details.section details.section > summary {
           <details class="section">
             <summary>Fillets</summary>
             <div class="sectionMeta">Temporary global fillet params (placeholders). These do not affect the model yet.</div>
-
-            <div class="paramRow">
-              <div class="paramTop">
-                <div class="paramTag">FIL_1</div>
-                <div class="paramName">Fillet Param 1 (mm) (placeholder)</div>
-              </div>
-              <div class="paramBody">
-                <input id="fil_1" name="fil_1" type="range" min="0" max="30" step="0.5" value="0" />
-                <input class="valInput" id="fil_1Val" type="number" step="0.5" value="0" />
-              </div>
-            </div>
-
-            <div class="paramRow">
-              <div class="paramTop">
-                <div class="paramTag">FIL_2</div>
-                <div class="paramName">Fillet Param 2 (mm) (placeholder)</div>
-              </div>
-              <div class="paramBody">
-                <input id="fil_2" name="fil_2" type="range" min="0" max="30" step="0.5" value="0" />
-                <input class="valInput" id="fil_2Val" type="number" step="0.5" value="0" />
-              </div>
-            </div>
-
-            <div class="paramRow">
-              <div class="paramTop">
-                <div class="paramTag">FIL_3</div>
-                <div class="paramName">Fillet Param 3 (mm) (placeholder)</div>
-              </div>
-              <div class="paramBody">
-                <input id="fil_3" name="fil_3" type="range" min="0" max="30" step="0.5" value="0" />
-                <input class="valInput" id="fil_3Val" type="number" step="0.5" value="0" />
-              </div>
-            </div>
-
-            <div class="paramRow">
-              <div class="paramTop">
-                <div class="paramTag">FIL_4</div>
-                <div class="paramName">Fillet Param 4 (mm) (placeholder)</div>
-              </div>
-              <div class="paramBody">
-                <input id="fil_4" name="fil_4" type="range" min="0" max="30" step="0.5" value="0" />
-                <input class="valInput" id="fil_4Val" type="number" step="0.5" value="0" />
-              </div>
-            </div>
-
-            <div class="paramRow">
-              <div class="paramTop">
-                <div class="paramTag">FIL_5</div>
-                <div class="paramName">Fillet Param 5 (mm) (placeholder)</div>
-              </div>
-              <div class="paramBody">
-                <input id="fil_5" name="fil_5" type="range" min="0" max="30" step="0.5" value="0" />
-                <input class="valInput" id="fil_5Val" type="number" step="0.5" value="0" />
-              </div>
-            </div>
-
             <div class="check">
-              <input id="bp_fil_1" type="checkbox" checked />
-              <label for="bp_fil_1">BP_FIL_1</label>
+              <input id="dr_good_fillet" type="checkbox"  checked />
+              <label for="dr_good_fillet">Dr Good Fillet</label>
             </div>
+            <div class="check" id="dr_good_fillet_diet_wrap" style="display: none;">
+              <input id="dr_good_fillet_diet" type="checkbox" />
+              <label for="dr_good_fillet_diet">Diet</label>
+            </div>
+            <details class="section">
+              <summary>Global (Placeholders)</summary>
 
-            <div class="paramRow">
-              <div class="paramTop">
-                <div class="paramTag">BP_FIL_1_R</div>
-                <div class="paramName">Base Plate Fillet 1 Radius (mm)</div>
+              <div class="paramRow">
+                <div class="paramTop">
+                  <div class="paramTag">FIL_1</div>
+                  <div class="paramName">Fillet Param 1 (mm) (placeholder)</div>
+                </div>
+                <div class="paramBody">
+                  <input id="fil_1" name="fil_1" type="range" min="0" max="30" step="0.5" value="0" />
+                  <input class="valInput" id="fil_1Val" type="number" step="0.5" value="0" />
+                </div>
               </div>
-              <div class="paramBody">
-                <input id="bp_fil_1_r" name="bp_fil_1_r" type="range" min="0" max="40" step="0.5" value="8" />
-                <input class="valInput" id="bp_fil_1_rVal" type="number" step="0.5" value="8" />
-              </div>
-            </div>
 
-            <div class="check">
-              <input id="sh_fil_1" type="checkbox" checked />
-              <label for="sh_fil_1">SH_FIL_1</label>
-            </div>
+              <div class="paramRow">
+                <div class="paramTop">
+                  <div class="paramTag">FIL_2</div>
+                  <div class="paramName">Fillet Param 2 (mm) (placeholder)</div>
+                </div>
+                <div class="paramBody">
+                  <input id="fil_2" name="fil_2" type="range" min="0" max="30" step="0.5" value="0" />
+                  <input class="valInput" id="fil_2Val" type="number" step="0.5" value="0" />
+                </div>
+              </div>
 
-            <div class="paramRow">
-              <div class="paramTop">
-                <div class="paramTag">SH_FIL_1_R</div>
-                <div class="paramName">Screw Hole Fillet 1 Radius (mm)</div>
+              <div class="paramRow">
+                <div class="paramTop">
+                  <div class="paramTag">FIL_3</div>
+                  <div class="paramName">Fillet Param 3 (mm) (placeholder)</div>
+                </div>
+                <div class="paramBody">
+                  <input id="fil_3" name="fil_3" type="range" min="0" max="30" step="0.5" value="0" />
+                  <input class="valInput" id="fil_3Val" type="number" step="0.5" value="0" />
+                </div>
               </div>
-              <div class="paramBody">
-                <input id="sh_fil_1_r" name="sh_fil_1_r" type="range" min="0" max="40" step="0.5" value="4" />
-                <input class="valInput" id="sh_fil_1_rVal" type="number" step="0.5" value="4" />
+
+              <div class="paramRow">
+                <div class="paramTop">
+                  <div class="paramTag">FIL_4</div>
+                  <div class="paramName">Fillet Param 4 (mm) (placeholder)</div>
+                </div>
+                <div class="paramBody">
+                  <input id="fil_4" name="fil_4" type="range" min="0" max="30" step="0.5" value="0" />
+                  <input class="valInput" id="fil_4Val" type="number" step="0.5" value="0" />
+                </div>
               </div>
-            </div>
+
+              <div class="paramRow">
+                <div class="paramTop">
+                  <div class="paramTag">FIL_5</div>
+                  <div class="paramName">Fillet Param 5 (mm) (placeholder)</div>
+                </div>
+                <div class="paramBody">
+                  <input id="fil_5" name="fil_5" type="range" min="0" max="30" step="0.5" value="0" />
+                  <input class="valInput" id="fil_5Val" type="number" step="0.5" value="0" />
+                </div>
+              </div>
+            </details>
+
+            <details class="section">
+              <summary>Baseplate</summary>
+
+              <div class="check">
+                <input id="bp_fil_1" type="checkbox" checked />
+                <label for="bp_fil_1">BP_FIL_1</label>
+              </div>
+
+              <div class="paramRow">
+                <div class="paramTop">
+                  <div class="paramTag">BP_FIL_1_R</div>
+                  <div class="paramName">Base Plate Fillet 1 Radius (mm)</div>
+                </div>
+                <div class="paramBody">
+                  <input id="bp_fil_1_r" name="bp_fil_1_r" type="range" min="0" max="40" step="0.5" value="8" />
+                  <input class="valInput" id="bp_fil_1_rVal" type="number" step="0.5" value="8" />
+                </div>
+              </div>
+
+              <div class="check">
+                <input id="sh_fil_1" type="checkbox" />
+                <label for="sh_fil_1">SH_FIL_1</label>
+              </div>
+
+              <div class="paramRow">
+                <div class="paramTop">
+                  <div class="paramTag">SH_FIL_1_R</div>
+                  <div class="paramName">Screw Hole Fillet 1 Radius (mm)</div>
+                </div>
+                <div class="paramBody">
+                  <input id="sh_fil_1_r" name="sh_fil_1_r" type="range" min="0" max="40" step="0.5" value="4" />
+                  <input class="valInput" id="sh_fil_1_rVal" type="number" step="0.5" value="4" />
+                </div>
+              </div>
+            </details>
+
+            <details class="section">
+              <summary>Toe Hook</summary>
+
+              <div class="check">
+                <input id="th_fil_1" type="checkbox"  checked />
+                <label for="th_fil_1">TH_FIL_1</label>
+              </div>
+
+              <div class="paramRow">
+                <div class="paramTop">
+                  <div class="paramTag">TH_FIL_1_R</div>
+                  <div class="paramName">TH Fillet 1 Radius (mm)</div>
+                </div>
+                <div class="paramBody">
+                  <input id="th_fil_1_r" name="th_fil_1_r" type="range" min="0" max="40" step="0.5" value="4" />
+                  <input class="valInput" id="th_fil_1_rVal" type="number" step="0.5" value="4" />
+                </div>
+              </div>
+
+              <div class="check">
+                <input id="th_fil_2" type="checkbox"  checked />
+                <label for="th_fil_2">TH_FIL_2</label>
+              </div>
+
+              <div class="paramRow">
+                <div class="paramTop">
+                  <div class="paramTag">TH_FIL_2_R</div>
+                  <div class="paramName">TH Fillet 2 Radius (mm)</div>
+                </div>
+                <div class="paramBody">
+                  <input id="th_fil_2_r" name="th_fil_2_r" type="range" min="0" max="40" step="0.5" value="4" />
+                  <input class="valInput" id="th_fil_2_rVal" type="number" step="0.5" value="4" />
+                </div>
+              </div>
+            </details>
+
+            <details class="section">
+              <summary>Heel</summary>
+
+              <div class="check">
+                <input id="heel_fil_1" type="checkbox"  checked />
+                <label for="heel_fil_1">HEEL_FIL_1</label>
+              </div>
+
+              <div class="paramRow">
+                <div class="paramTop">
+                  <div class="paramTag">HEEL_FIL_1_R</div>
+                  <div class="paramName">Heel Fillet 1 Radius (mm)</div>
+                </div>
+                <div class="paramBody">
+                  <input id="heel_fil_1_r" name="heel_fil_1_r" type="range" min="0" max="40" step="0.5" value="4" />
+                  <input class="valInput" id="heel_fil_1_rVal" type="number" step="0.5" value="4" />
+                </div>
+              </div>
+
+              <div class="paramRow">
+                <div class="paramTop">
+                  <div class="paramTag">HEEL_FIL_2_R</div>
+                  <div class="paramName">Heel Fillet 2 Radius (mm)</div>
+                </div>
+                <div class="paramBody">
+                  <input id="heel_fil_2_r" name="heel_fil_2_r" type="range" min="0" max="40" step="0.5" value="4" />
+                  <input class="valInput" id="heel_fil_2_rVal" type="number" step="0.5" value="4" />
+                </div>
+              </div>
+            </details>
+
+
           </details>
+            <details class="section">
+              <summary>Rail Math</summary>
 
+              <details class="section" open>
+                <summary>Tagent Profiles</summary>
+                <div class="check">
+                  <input id="tagent_profile_a" type="checkbox" />
+                  <label for="tagent_profile_a">Tagent Profile A</label>
+                </div>
+                <div id="tagentProfileAControls" style="display:none; margin: 4px 0 10px 18px;">
+                  <div class="paramRow">
+                    <div class="paramTop">
+                      <div class="paramTag">TAGENT_A_OFFSET_ROT</div>
+                      <div class="paramName">Offset Rotation</div>
+                    </div>
+                    <div class="paramBody">
+                      <input id="tagent_a_offset_rot" type="range" min="-180" max="180" step="1" value="0" />
+                      <input class="valInput" id="tagent_a_offset_rotVal" type="number" min="-180" max="180" step="1" value="0" />
+                    </div>
+                  </div>
+                  <div class="paramRow">
+                    <div class="paramTop">
+                      <div class="paramTag">TAGENT_A_MIDPOINT</div>
+                      <div class="paramName">Midpoint</div>
+                    </div>
+                    <div class="paramBody">
+                      <input id="tagent_a_midpoint" type="range" min="0" max="100" step="1" value="100" />
+                      <input class="valInput" id="tagent_a_midpointVal" type="number" min="0" max="100" step="1" value="50" />
+                    </div>
+                  </div>
+                  <div class="paramRow">
+                    <div class="paramTop">
+                      <div class="paramTag">TAGENT_A_PLACEHOLDER_1</div>
+                      <div class="paramName">Placeholder 1</div>
+                    </div>
+                    <div class="paramBody">
+                      <input id="tagent_a_placeholder_1" type="range" min="0" max="100" step="1" value="0" />
+                      <input class="valInput" id="tagent_a_placeholder_1Val" type="number" min="0" max="100" step="1" value="0" />
+                    </div>
+                  </div>
+                  <div class="paramRow">
+                    <div class="paramTop">
+                      <div class="paramTag">TAGENT_A_PLACEHOLDER_2</div>
+                      <div class="paramName">Placeholder 2</div>
+                    </div>
+                    <div class="paramBody">
+                      <input id="tagent_a_placeholder_2" type="range" min="0" max="100" step="1" value="0" />
+                      <input class="valInput" id="tagent_a_placeholder_2Val" type="number" min="0" max="100" step="1" value="0" />
+                    </div>
+                  </div>
+                  <div class="check">
+                    <input id="tagent_a_bp_cut_perp" type="checkbox"  checked />
+                    <label for="tagent_a_bp_cut_perp">Perpendicular Baseplate Cut @ A</label>
+                  </div>
+                </div>
+                <div class="check">
+                  <input id="tagent_profile_b" type="checkbox" checked />
+                  <label for="tagent_profile_b">Tagent Profile B</label>
+                </div>
+                <div class="check">
+                  <input id="tagent_profile_c" type="checkbox" checked />
+                  <label for="tagent_profile_c">Tagent Profile C</label>
+                </div>
+                <div class="check">
+                  <input id="tagent_profile_d" type="checkbox" checked />
+                  <label for="tagent_profile_d">Tagent Profile D</label>
+                </div>
+                <div id="tagentProfileDControls" style="display:none; margin: 4px 0 10px 18px;">
+                  <div class="check">
+                    <input id="tagent_d_cut_perp" type="checkbox" />
+                    <label for="tagent_d_cut_perp">Perpendicular Heel Cut @ D</label>
+                  </div>
+                </div>
+              </details>
+
+              <details class="section">
+                <summary>Toe Hook Rail Math</summary>
+                <div class="check">
+                  <input id="rail_math_current" type="checkbox" checked />
+                  <label for="rail_math_current">Default: Hermite Fit</label>
+                </div>
+                <div class="check">
+                  <input id="rail_math_2" type="checkbox" />
+                  <label for="rail_math_2">Rail Math 2: Linear Rails</label>
+                </div>
+                <div class="check">
+                  <input id="rail_math_3" type="checkbox" />
+                  <label for="rail_math_3">Rail Math 3: Linear + Fixed End Angle</label>
+                </div>
+                <div class="check">
+                  <input id="rail_math_4" type="checkbox" />
+                  <label for="rail_math_4">Rail Math 4: Arc Rails (Absolute Frame)</label>
+                </div>
+                <div class="check">
+                  <input id="rail_math_5" type="checkbox" />
+                  <label for="rail_math_5">Rail Math 5</label>
+                </div>
+                <div id="railMath5CullWrap" class="paramRow" style="display:none;">
+                  <div class="paramTop">
+                    <div class="paramTag">RAIL_MATH_5_CULL</div>
+                    <div class="paramName">Rail Math 5 Cull Count (near C)</div>
+                  </div>
+                  <div class="paramBody">
+                    <input id="rail_math_5_cull" name="rail_math_5_cull" type="range" min="0" max="4" step="1" value="1" />
+                    <input class="valInput" id="rail_math_5_cullVal" type="number" min="0" max="4" step="1" value="1" />
+                  </div>
+                </div>
+                <div id="railMath5AddbackWrap" class="paramRow" style="display:none;">
+                  <div class="paramTop">
+                    <div class="paramTag">RAIL_MATH_5_ADDBACK</div>
+                    <div class="paramName">Rail Math 5 Add-Back Profiles (Last AC -> C)</div>
+                  </div>
+                  <div class="paramBody">
+                    <input id="rail_math_5_addback" name="rail_math_5_addback" type="range" min="0" max="6" step="1" value="0" />
+                    <input class="valInput" id="rail_math_5_addbackVal" type="number" min="0" max="6" step="1" value="0" />
+                  </div>
+                </div>
+                <div class="check">
+                  <input id="rail_math_6" type="checkbox" />
+                  <label for="rail_math_6">Rail Math 6</label>
+                </div>
+                <div id="railMath6SubWrap" style="display:none; margin: 4px 0 8px 18px;">
+                  <div class="check">
+                    <input id="rail_math_6a" type="checkbox"  checked />
+                    <label for="rail_math_6a">Rail Math 6A</label>
+                  </div>
+                  <div class="check">
+                    <input id="rail_math_6b" type="checkbox" />
+                    <label for="rail_math_6b">Rail Math 6B</label>
+                  </div>
+                  <div class="check">
+                    <input id="rail_math_6c" type="checkbox" />
+                    <label for="rail_math_6c">Rail Math 6C</label>
+                  </div>
+                </div>
+                <div class="check">
+                  <input id="rail_math_7" type="checkbox" />
+                  <label for="rail_math_7">Rail Math 7</label>
+                </div>
+                <div class="check">
+                  <input id="rail_math_8" type="checkbox" />
+                  <label for="rail_math_8">Rail Math 8</label>
+                </div>
+                <div class="check">
+                  <input id="rail_math_9" type="checkbox" />
+                  <label for="rail_math_9">Rail Math 9</label>
+                </div>
+                <div class="check">
+                  <input id="rail_math_10" type="checkbox" />
+                  <label for="rail_math_10">Rail Math 10</label>
+                </div>
+              </details>
+
+              <details class="section">
+                <summary>Heel Kick Rail Math</summary>
+                <div class="check">
+                  <input id="heel_rail_math_1" type="checkbox" />
+                  <label for="heel_rail_math_1">Heel Rail Math 1</label>
+                </div>
+                <div class="check">
+                  <input id="heel_rail_math_2" type="checkbox" checked />
+                  <label for="heel_rail_math_2">Heel Rail Math 2</label>
+                </div>
+                <div class="check">
+                  <input id="heel_rail_math_3" type="checkbox" />
+                  <label for="heel_rail_math_3">Heel Rail Math 3</label>
+                </div>
+                <div id="heelRailMath3Wrap" style="display:none; margin: 4px 0 8px 18px;">
+                  <div class="paramRow">
+                    <div class="paramTop">
+                      <div class="paramTag">HEEL_RM3_SWEEP</div>
+                      <div class="paramName">Heel RM3 Arc Sweep</div>
+                    </div>
+                    <div class="paramBody">
+                      <input id="heel_rm3_sweep" name="heel_rm3_sweep" type="range" min="0" max="2" step="0.01" value="1" />
+                      <input class="valInput" id="heel_rm3_sweepVal" type="number" min="0" max="2" step="0.01" value="1" />
+                    </div>
+                  </div>
+                  <div class="paramRow">
+                    <div class="paramTop">
+                      <div class="paramTag">HEEL_RM3_BIAS</div>
+                      <div class="paramName">Heel RM3 Midpoint Bias</div>
+                    </div>
+                    <div class="paramBody">
+                      <input id="heel_rm3_bias" name="heel_rm3_bias" type="range" min="-1" max="1" step="0.01" value="0" />
+                      <input class="valInput" id="heel_rm3_biasVal" type="number" min="-1" max="1" step="0.01" value="0" />
+                    </div>
+                  </div>
+                  <div class="paramRow">
+                    <div class="paramTop">
+                      <div class="paramTag">HEEL_RM3_BLEND</div>
+                      <div class="paramName">Heel RM3 Blend</div>
+                    </div>
+                    <div class="paramBody">
+                      <input id="heel_rm3_blend" name="heel_rm3_blend" type="range" min="0" max="1" step="0.01" value="1" />
+                      <input class="valInput" id="heel_rm3_blendVal" type="number" min="0" max="1" step="0.01" value="1" />
+                    </div>
+                  </div>
+                </div>
+                <div class="check">
+                  <input id="heel_rail_math_4" type="checkbox" />
+                  <label for="heel_rail_math_4">Heel Rail Math 4</label>
+                </div>
+                <div id="heelRailMath4SubWrap" style="display: none; margin: 6px 0 10px 18px;">
+                  <div class="check">
+                    <input id="heel_rail_math_4a" type="checkbox" checked />
+                    <label for="heel_rail_math_4a">Heel Rail Math 4A</label>
+                  </div>
+                  <div class="check">
+                    <input id="heel_rail_math_4b" type="checkbox" />
+                    <label for="heel_rail_math_4b">Heel Rail Math 4B</label>
+                  </div>
+                  <div id="heelRailMath4bWrap" style="display:none; margin: 4px 0 8px 18px;">
+                    <div class="paramRow">
+                      <div class="paramTop">
+                        <div class="paramTag">HEEL_RM4B_SWEEP</div>
+                        <div class="paramName">Heel RM4B Arc Sweep</div>
+                      </div>
+                      <div class="paramBody">
+                        <input id="heel_rm4b_sweep" name="heel_rm4b_sweep" type="range" min="0" max="2" step="0.01" value="1" />
+                        <input class="valInput" id="heel_rm4b_sweepVal" type="number" min="0" max="2" step="0.01" value="1" />
+                      </div>
+                    </div>
+                    <div class="paramRow">
+                      <div class="paramTop">
+                        <div class="paramTag">HEEL_RM4B_BIAS</div>
+                        <div class="paramName">Heel RM4B Midpoint Bias</div>
+                      </div>
+                      <div class="paramBody">
+                        <input id="heel_rm4b_bias" name="heel_rm4b_bias" type="range" min="-1" max="1" step="0.01" value="0" />
+                        <input class="valInput" id="heel_rm4b_biasVal" type="number" min="-1" max="1" step="0.01" value="0" />
+                      </div>
+                    </div>
+                    <div class="paramRow">
+                      <div class="paramTop">
+                        <div class="paramTag">HEEL_RM4B_BLEND</div>
+                        <div class="paramName">Heel RM4B Blend</div>
+                      </div>
+                      <div class="paramBody">
+                        <input id="heel_rm4b_blend" name="heel_rm4b_blend" type="range" min="0" max="1" step="0.01" value="1" />
+                        <input class="valInput" id="heel_rm4b_blendVal" type="number" min="0" max="1" step="0.01" value="1" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="check">
+                  <input id="heel_rail_math_5" type="checkbox" />
+                  <label for="heel_rail_math_5">Heel Rail Math 5</label>
+                </div>
+              </details>
+            </details>
+            <div class="endDivider" aria-hidden="true"></div>
         </form>
+
+        
       </div>
 
-      <!-- BOX 3: Debug (own big box) -->
+      <!-- BOX 3: Debug (layout wrapper, outer visuals removed) -->
       <div id="debugPanel" class="panelBox">
         <div id="debug">
           <div id="debugHeader">Debug</div>
@@ -1247,6 +1776,36 @@ details.section details.section > summary {
     <script type="module" src="/src/main.ts"></script>
 
     <script>
+      function swapDomNodes(a, b) {
+        if (!a || !b || !a.parentNode || !b.parentNode || a === b) return;
+        const aMarker = document.createTextNode("");
+        const bMarker = document.createTextNode("");
+        a.parentNode.insertBefore(aMarker, a);
+        b.parentNode.insertBefore(bMarker, b);
+        aMarker.parentNode.replaceChild(b, aMarker);
+        bMarker.parentNode.replaceChild(a, bMarker);
+      }
+
+      const toolbarPanelSwapEl = document.getElementById("toolbarPanel");
+      const titlePanelSwapEl = document.getElementById("titlePanel");
+      const appVersionSwapEl = document.getElementById("appVersion");
+      const statusSwapEl = document.getElementById("status");
+      if (toolbarPanelSwapEl && titlePanelSwapEl && appVersionSwapEl && statusSwapEl) {
+        titlePanelSwapEl.addEventListener("click", () => {
+          swapDomNodes(appVersionSwapEl, statusSwapEl);
+          toolbarPanelSwapEl.classList.toggle("titleOnly");
+        });
+      }
+
+      const debugToggleEl = document.getElementById("debug");
+      if (debugToggleEl) {
+        debugToggleEl.addEventListener("click", (e) => {
+          const target = e.target;
+          if (target instanceof HTMLElement && target.closest("input, button, a, label")) return;
+          debugToggleEl.classList.toggle("collapsed");
+        });
+      }
+
       function clamp(n, lo, hi) {
         return Math.min(hi, Math.max(lo, n));
       }
@@ -1265,13 +1824,29 @@ details.section details.section > summary {
         const syncNumber = () => { n.value = String(r.value); };
 
         const syncRange = (immediateChange = false) => {
+          const raw = String(n.value ?? "");
+          if (!immediateChange) {
+            // Allow partial typing in number boxes (e.g. "1.", "-", ".")
+            // without immediately normalizing and resetting the caret.
+            if (
+              raw === "" ||
+              raw === "-" ||
+              raw === "+" ||
+              raw === "." ||
+              raw === "-." ||
+              raw === "+." ||
+              /[.]$/.test(raw)
+            ) {
+              return;
+            }
+          }
           const lo = Number.isFinite(Number(r.min)) ? Number(r.min) : -Infinity;
           const hi = Number.isFinite(Number(r.max)) ? Number(r.max) : Infinity;
           const v = clamp(Number(n.value), lo, hi);
           if (!Number.isFinite(v)) return;
 
           r.value = String(v);
-          n.value = String(v);
+          if (immediateChange) n.value = String(v);
           r.dispatchEvent(new Event("input", { bubbles: true }));
           if (numberChangeDebounceTimer != null) {
             clearTimeout(numberChangeDebounceTimer);
@@ -1381,6 +1956,7 @@ details.section details.section > summary {
         ["heel_h_c", "heel_h_cVal"],
         ["heel_h_d", "heel_h_dVal"],
         ["heel_cd_mid", "heel_cd_midVal"],
+        ["heel_cd_mid_pct", "heel_cd_mid_pctVal"],
         ["heel_f1", "heel_f1Val"],
         ["heel_f2", "heel_f2Val"],
 
@@ -1391,7 +1967,15 @@ details.section details.section > summary {
         ["fil_4", "fil_4Val"],
         ["fil_5", "fil_5Val"],
         ["sh_fil_1_r", "sh_fil_1_rVal"],
+        ["th_fil_1_r", "th_fil_1_rVal"],
+        ["th_fil_2_r", "th_fil_2_rVal"],
+        ["heel_fil_1_r", "heel_fil_1_rVal"],
+        ["heel_fil_2_r", "heel_fil_2_rVal"],
         ["bp_fil_1_r", "bp_fil_1_rVal"],
+        ["tagent_a_offset_rot", "tagent_a_offset_rotVal"],
+        ["tagent_a_midpoint", "tagent_a_midpointVal"],
+        ["tagent_a_placeholder_1", "tagent_a_placeholder_1Val"],
+        ["tagent_a_placeholder_2", "tagent_a_placeholder_2Val"],
       ];
 
       for (const pair of ids) bindRangeToNumber(pair[0], pair[1]);
@@ -1402,9 +1986,13 @@ details.section details.section > summary {
       const shoeSizeEl = document.getElementById("shoeSize");
       const shoeScaleEl = document.getElementById("shoeScale");
       const shoeScaleValEl = document.getElementById("shoeScaleVal");
+      const shoeXAutoEl = document.getElementById("shoeX");
+      const shoeXAutoValEl = document.getElementById("shoeXVal");
+      const shoeZAutoEl = document.getElementById("shoeZ");
+      const shoeZAutoValEl = document.getElementById("shoeZVal");
 
       function computeShoeScaleFromSize(size) {
-        const step = 1 / 3; // inches per full size
+        const step = 0.5; // tuned so size 15 ~= 1.25 scale
         const L10 = 10;     // baseline inches (ratio)
         const L = L10 + (size - 10) * step;
         return L / L10;
@@ -1415,15 +2003,58 @@ details.section details.section > summary {
         const size = Number(shoeSizeEl.value);
         const scale = computeShoeScaleFromSize(size);
 
+        // Auto shoe reference transform presets (lerp):
+        // size 5  => X 0,  Z -9
+        // size 15 => X 32, Z +19
+        const t = clamp((size - 5) / 10, 0, 1);
+        const shoeX = 0 + (32 - 0) * t;
+        const shoeZ = -9 + (19 - -9) * t;
+
         shoeScaleEl.value = String(scale.toFixed(3));
         shoeScaleValEl.value = String(scale.toFixed(3));
         shoeScaleEl.dispatchEvent(new Event("input", { bubbles: true }));
+
+        if (shoeXAutoEl) {
+          shoeXAutoEl.value = String(Math.round(shoeX));
+          if (shoeXAutoValEl) shoeXAutoValEl.value = shoeXAutoEl.value;
+          shoeXAutoEl.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+        if (shoeZAutoEl) {
+          shoeZAutoEl.value = String(Math.round(shoeZ));
+          if (shoeZAutoValEl) shoeZAutoValEl.value = shoeZAutoEl.value;
+          shoeZAutoEl.dispatchEvent(new Event("input", { bubbles: true }));
+        }
       }
 
       if (shoeSizeEl) {
         shoeSizeEl.addEventListener("input", updateShoeScale);
         updateShoeScale();
       }
+
+      const tagentProfileAEl = document.getElementById("tagent_profile_a");
+      const tagentProfileAControlsEl = document.getElementById("tagentProfileAControls");
+      const tagentProfileDEl = document.getElementById("tagent_profile_d");
+      const tagentProfileDControlsEl = document.getElementById("tagentProfileDControls");
+      function syncTagentProfileAControls() {
+        if (!tagentProfileAEl || !tagentProfileAControlsEl) return;
+        tagentProfileAControlsEl.style.display = tagentProfileAEl.checked ? "none" : "";
+      }
+      function syncTagentProfileDControls() {
+        if (!tagentProfileDEl || !tagentProfileDControlsEl) return;
+        tagentProfileDControlsEl.style.display = tagentProfileDEl.checked ? "none" : "";
+      }
+      if (tagentProfileAEl && tagentProfileAControlsEl) {
+        tagentProfileAEl.addEventListener("change", syncTagentProfileAControls);
+        syncTagentProfileAControls();
+      }
+      if (tagentProfileDEl && tagentProfileDControlsEl) {
+        tagentProfileDEl.addEventListener("change", syncTagentProfileDControls);
+        syncTagentProfileDControls();
+      }
     </script>
   </body>
 </html>
+
+
+
+

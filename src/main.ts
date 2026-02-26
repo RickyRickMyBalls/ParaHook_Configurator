@@ -196,7 +196,7 @@ const shoeRotEl = mustEl<HTMLInputElement>("shoeRot");
 
 viewer.loadOBJ(`${BASE}shoe.obj`);
 
-const SHOE_BASE_UNIT_SCALE = 60;
+const SHOE_BASE_UNIT_SCALE = 66; // +10% reference shoe import baseline
 const SHOE_BASE_ROT = { x: 90, y: 0, z: 0 };
 const SHOE_BASE_OFFSET = { x: 45, y: 102, z: 45 };
 
@@ -235,6 +235,10 @@ const statusEl = mustEl<HTMLDivElement>("status");
 const rebuildBtn = mustEl<HTMLButtonElement>("rebuild");
 const exportStlBtn = mustEl<HTMLButtonElement>("exportStl");
 const exportStepBtn = mustEl<HTMLButtonElement>("exportStep");
+const loadSettingsBtn = mustEl<HTMLButtonElement>("loadSettings");
+const exportSettingsBtn = mustEl<HTMLButtonElement>("exportSettings");
+const meshVertsEl = document.getElementById("meshVerts") as HTMLSpanElement | null;
+const meshTrisEl = document.getElementById("meshTris") as HTMLSpanElement | null;
 
 const modelEnabledEl = mustEl<HTMLInputElement>("modelEnabled");
 
@@ -252,11 +256,74 @@ const sectionCutZswitchEl = mustEl<HTMLInputElement>("sectionCutZswitch");
 const sectionCutOffsetEl = mustEl<HTMLInputElement>("sectionCutOffset");
 
 const baseEnabledEl = mustEl<HTMLInputElement>("baseEnabled");
-const toeBEnabledEl = mustEl<HTMLInputElement>("toeBEnabled");
-const toeCEnabledEl = mustEl<HTMLInputElement>("toeCEnabled");
+const toeAddProfileBEl = mustEl<HTMLInputElement>("toeAddProfileB");
+const toeProfileBSectionEl = mustEl<HTMLElement>("toeProfileBSection");
 const heelEnabledEl = mustEl<HTMLInputElement>("heelEnabled");
+const heelMidCtrlEl = mustEl<HTMLInputElement>("heel_mid_ctrl");
+const heelSweepEl = mustEl<HTMLInputElement>("heel_sweep");
+const heelSweepRm3WrapEl = mustEl<HTMLElement>("heelSweepRm3Wrap");
+const drGoodFilletEl = mustEl<HTMLInputElement>("dr_good_fillet");
+const drGoodFilletDietWrapEl = mustEl<HTMLElement>("dr_good_fillet_diet_wrap");
+const drGoodFilletDietEl = mustEl<HTMLInputElement>("dr_good_fillet_diet");
 const bpFil1El = mustEl<HTMLInputElement>("bp_fil_1");
 const shFil1El = mustEl<HTMLInputElement>("sh_fil_1");
+const thFil1El = mustEl<HTMLInputElement>("th_fil_1");
+const thFil2El = mustEl<HTMLInputElement>("th_fil_2");
+const heelFil1El = mustEl<HTMLInputElement>("heel_fil_1");
+const railMathCurrentEl = mustEl<HTMLInputElement>("rail_math_current");
+const railMath2El = mustEl<HTMLInputElement>("rail_math_2");
+const railMath3El = mustEl<HTMLInputElement>("rail_math_3");
+const railMath4El = mustEl<HTMLInputElement>("rail_math_4");
+const railMath5El = mustEl<HTMLInputElement>("rail_math_5");
+const railMath6El = mustEl<HTMLInputElement>("rail_math_6");
+const railMath7El = mustEl<HTMLInputElement>("rail_math_7");
+const railMath8El = mustEl<HTMLInputElement>("rail_math_8");
+const railMath9El = mustEl<HTMLInputElement>("rail_math_9");
+const railMath10El = mustEl<HTMLInputElement>("rail_math_10");
+const railMath5CullWrapEl = mustEl<HTMLElement>("railMath5CullWrap");
+const railMath5AddbackWrapEl = mustEl<HTMLElement>("railMath5AddbackWrap");
+const railMath6SubWrapEl = mustEl<HTMLElement>("railMath6SubWrap");
+const heelRailMath3WrapEl = mustEl<HTMLElement>("heelRailMath3Wrap");
+const heelRailMath4SubWrapEl = mustEl<HTMLElement>("heelRailMath4SubWrap");
+const heelRailMath4bWrapEl = mustEl<HTMLElement>("heelRailMath4bWrap");
+const railMath6aEl = mustEl<HTMLInputElement>("rail_math_6a");
+const railMath6bEl = mustEl<HTMLInputElement>("rail_math_6b");
+const railMath6cEl = mustEl<HTMLInputElement>("rail_math_6c");
+const heelRailMath1El = mustEl<HTMLInputElement>("heel_rail_math_1");
+const heelRailMath2El = mustEl<HTMLInputElement>("heel_rail_math_2");
+const heelRailMath3El = mustEl<HTMLInputElement>("heel_rail_math_3");
+const heelRailMath4El = mustEl<HTMLInputElement>("heel_rail_math_4");
+const heelRailMath5El = mustEl<HTMLInputElement>("heel_rail_math_5");
+const heelRailMath4aEl = mustEl<HTMLInputElement>("heel_rail_math_4a");
+const heelRailMath4bEl = mustEl<HTMLInputElement>("heel_rail_math_4b");
+const tagentProfileAEl = mustEl<HTMLInputElement>("tagent_profile_a");
+const tagentProfileBEl = mustEl<HTMLInputElement>("tagent_profile_b");
+const tagentProfileCEl = mustEl<HTMLInputElement>("tagent_profile_c");
+const tagentProfileDEl = mustEl<HTMLInputElement>("tagent_profile_d");
+const tagentDCutPerpEl = mustEl<HTMLInputElement>("tagent_d_cut_perp");
+const tagentABpCutPerpEl = mustEl<HTMLInputElement>("tagent_a_bp_cut_perp");
+const railMath5CullEl = mustEl<HTMLInputElement>("rail_math_5_cull");
+const railMath5CullValEl = document.getElementById("rail_math_5_cullVal") as HTMLInputElement | null;
+const railMath5AddbackEl = mustEl<HTMLInputElement>("rail_math_5_addback");
+const railMath5AddbackValEl = document.getElementById("rail_math_5_addbackVal") as HTMLInputElement | null;
+const heelRm3SweepEl = mustEl<HTMLInputElement>("heel_rm3_sweep");
+const heelRm3SweepValEl = document.getElementById("heel_rm3_sweepVal") as HTMLInputElement | null;
+const heelRm3BiasEl = mustEl<HTMLInputElement>("heel_rm3_bias");
+const heelRm3BiasValEl = document.getElementById("heel_rm3_biasVal") as HTMLInputElement | null;
+const heelRm3BlendEl = mustEl<HTMLInputElement>("heel_rm3_blend");
+const heelRm3BlendValEl = document.getElementById("heel_rm3_blendVal") as HTMLInputElement | null;
+const heelRm4bSweepEl = mustEl<HTMLInputElement>("heel_rm4b_sweep");
+const heelRm4bSweepValEl = document.getElementById("heel_rm4b_sweepVal") as HTMLInputElement | null;
+const heelRm4bBiasEl = mustEl<HTMLInputElement>("heel_rm4b_bias");
+const heelRm4bBiasValEl = document.getElementById("heel_rm4b_biasVal") as HTMLInputElement | null;
+const heelRm4bBlendEl = mustEl<HTMLInputElement>("heel_rm4b_blend");
+const heelRm4bBlendValEl = document.getElementById("heel_rm4b_blendVal") as HTMLInputElement | null;
+const heelSweepRm3SweepEl = mustEl<HTMLInputElement>("heel_sweep_rm3_sweep");
+const heelSweepRm3SweepValEl = document.getElementById("heel_sweep_rm3_sweepVal") as HTMLInputElement | null;
+const heelSweepRm3BiasEl = mustEl<HTMLInputElement>("heel_sweep_rm3_bias");
+const heelSweepRm3BiasValEl = document.getElementById("heel_sweep_rm3_biasVal") as HTMLInputElement | null;
+const heelSweepRm3BlendEl = mustEl<HTMLInputElement>("heel_sweep_rm3_blend");
+const heelSweepRm3BlendValEl = document.getElementById("heel_sweep_rm3_blendVal") as HTMLInputElement | null;
 
 const tolEl = mustEl<HTMLInputElement>("tolerance");
 const tolVal = mustEl<HTMLInputElement>("toleranceVal");
@@ -267,6 +334,10 @@ function setStatus(msg: string) {
   statusEl.textContent = msg;
   log(`status: ${msg}`);
 }
+function setMiniMeshStats(verts: number | null, tris: number | null) {
+  if (meshVertsEl) meshVertsEl.textContent = verts == null ? "-" : verts.toLocaleString();
+  if (meshTrisEl) meshTrisEl.textContent = tris == null ? "-" : tris.toLocaleString();
+}
 function isModelEnabled() {
   return !!modelEnabledEl.checked;
 }
@@ -275,6 +346,191 @@ function setBusy(busy: boolean) {
   rebuildBtn.disabled = busy || !modelOn;
   exportStlBtn.disabled = busy || !modelOn;
   exportStepBtn.disabled = busy || !modelOn;
+}
+
+function syncToeProfileBUI() {
+  toeProfileBSectionEl.style.display = toeAddProfileBEl.checked ? "" : "none";
+}
+
+function syncRailMathUI() {
+  const showRailMath5 = readRailMathMode() === 5;
+  const showRailMath6 = readRailMathMode() === 6;
+  const showHeelRailMath4 = heelRailMath4El.checked;
+  const showHeelRailMath4b = showHeelRailMath4 && heelRailMath4bEl.checked;
+  railMath5CullWrapEl.style.display = showRailMath5 ? "" : "none";
+  railMath5AddbackWrapEl.style.display = showRailMath5 ? "" : "none";
+  railMath6SubWrapEl.style.display = showRailMath6 ? "" : "none";
+  heelRailMath3WrapEl.style.display = heelRailMath3El.checked ? "" : "none";
+  heelSweepRm3WrapEl.style.display = heelSweepEl.checked ? "" : "none";
+  heelRailMath4SubWrapEl.style.display = showHeelRailMath4 ? "" : "none";
+  heelRailMath4bWrapEl.style.display = showHeelRailMath4b ? "" : "none";
+  if (showRailMath6 && !railMath6aEl.checked && !railMath6bEl.checked && !railMath6cEl.checked) {
+    railMath6aEl.checked = true;
+  }
+  if (showHeelRailMath4 && !heelRailMath4aEl.checked && !heelRailMath4bEl.checked) {
+    heelRailMath4aEl.checked = true;
+  }
+}
+
+let syncingHeelSweepRm3 = false;
+let syncingHeelRm3Mirrors = false;
+
+function syncHeelRm3MirrorValuesFromCanonical() {
+  if (syncingHeelRm3Mirrors) return;
+  syncingHeelRm3Mirrors = true;
+  heelSweepRm3SweepEl.value = heelRm3SweepEl.value;
+  if (heelSweepRm3SweepValEl) heelSweepRm3SweepValEl.value = heelRm3SweepEl.value;
+  heelSweepRm3BiasEl.value = heelRm3BiasEl.value;
+  if (heelSweepRm3BiasValEl) heelSweepRm3BiasValEl.value = heelRm3BiasEl.value;
+  heelSweepRm3BlendEl.value = heelRm3BlendEl.value;
+  if (heelSweepRm3BlendValEl) heelSweepRm3BlendValEl.value = heelRm3BlendEl.value;
+  syncingHeelRm3Mirrors = false;
+}
+
+function pushSweepRm3MirrorToCanonical(
+  srcRange: HTMLInputElement,
+  dstRange: HTMLInputElement,
+  dstVal: HTMLInputElement | null,
+  eventType: "input" | "change"
+) {
+  if (syncingHeelRm3Mirrors) return;
+  syncingHeelRm3Mirrors = true;
+  dstRange.value = srcRange.value;
+  if (dstVal) dstVal.value = srcRange.value;
+  syncingHeelRm3Mirrors = false;
+  dstRange.dispatchEvent(new Event(eventType, { bubbles: true }));
+}
+
+function syncHeelSweepAndRailMath3FromSweep() {
+  if (syncingHeelSweepRm3) return;
+  syncingHeelSweepRm3 = true;
+  if (heelSweepEl.checked) {
+    heelRailMath3El.checked = true;
+    [heelRailMath1El, heelRailMath2El, heelRailMath4El, heelRailMath5El].forEach((el) => (el.checked = false));
+  } else if (heelRailMath3El.checked) {
+    heelRailMath3El.checked = false;
+    heelRailMath1El.checked = true;
+    [heelRailMath2El, heelRailMath4El, heelRailMath5El].forEach((el) => (el.checked = false));
+  }
+  syncingHeelSweepRm3 = false;
+}
+
+function syncHeelSweepFromHeelRailMathSelection() {
+  if (syncingHeelSweepRm3) return;
+  syncingHeelSweepRm3 = true;
+  heelSweepEl.checked = heelRailMath3El.checked;
+  syncingHeelSweepRm3 = false;
+}
+
+function wireParamValMirror(valEl: HTMLInputElement | null, rangeEl: HTMLInputElement) {
+  if (!valEl) return;
+  valEl.addEventListener("input", () => {
+    rangeEl.value = valEl.value;
+    rangeEl.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  valEl.addEventListener("change", () => {
+    rangeEl.value = valEl.value;
+    rangeEl.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+}
+
+function setupExclusiveCheckboxGroup(group: HTMLInputElement[], defaultEl: HTMLInputElement) {
+  let syncing = false;
+  const isRailMathGroup = group.some((g) => g.id.startsWith("rail_math_"));
+  const isHeelRailMathGroup = group.some((g) => g.id.startsWith("heel_rail_math_"));
+  const apply = (active: HTMLInputElement) => {
+    syncing = true;
+    for (const el of group) el.checked = el === active;
+    syncing = false;
+  };
+  for (const el of group) {
+    el.addEventListener("change", () => {
+      if (syncing) return;
+      if (el.checked) {
+        apply(el);
+      } else {
+        apply(defaultEl);
+      }
+      if (isHeelRailMathGroup) syncHeelSweepFromHeelRailMathSelection();
+      if (isRailMathGroup || isHeelRailMathGroup) syncRailMathUI();
+      if (!isModelEnabled()) return;
+      if (isRailMathGroup) {
+        if (rebuildAsOneEl.checked) {
+          crossRefitPendingManual = false;
+          return rebuild();
+        }
+        crossRefitPendingManual = true;
+        return rebuild({ freezeHeelRefit: true });
+      }
+      rebuildDebounced();
+    });
+  }
+  const initiallyChecked = group.find((el) => el.checked) ?? defaultEl;
+  apply(initiallyChecked);
+}
+
+function readRailMathMode(): number {
+  if (railMath10El.checked) return 10;
+  if (railMath9El.checked) return 9;
+  if (railMath8El.checked) return 8;
+  if (railMath7El.checked) return 7;
+  if (railMath6El.checked) return 6;
+  if (railMath5El.checked) return 5;
+  if (railMath2El.checked) return 2;
+  if (railMath3El.checked) return 3;
+  if (railMath4El.checked) return 4;
+  return 1;
+}
+
+function readHeelRailMathMode(): number {
+  if (heelRailMath5El.checked) return 5;
+  if (heelRailMath4El.checked) return 4;
+  if (heelRailMath3El.checked) return 3;
+  if (heelRailMath2El.checked) return 2;
+  return 1;
+}
+
+function rebuildHeelToeBasePreset() {
+  if (!isModelEnabled()) return;
+  if (rebuildAsOneEl.checked) {
+    crossRefitPendingManual = false;
+    return rebuild();
+  }
+  crossRefitPendingManual = true;
+  return rebuild();
+}
+
+function applyDrGoodDietPreset(isDiet: boolean) {
+  // UI-only hook for preset variations.
+  // `isDiet === true`  -> default Dr Good preset
+  // `isDiet === false` -> non-diet variant
+  if (isDiet) {
+    heelMidCtrlEl.checked = true;
+    heelSweepEl.checked = false;
+    return;
+  }
+  heelMidCtrlEl.checked = false;
+  heelSweepEl.checked = true;
+  const heelCdMidEl = document.getElementById("heel_cd_mid") as HTMLInputElement | null;
+  const heelCdMidValEl = document.getElementById("heel_cd_midVal") as HTMLInputElement | null;
+  if (heelCdMidEl) {
+    const cur = Number(heelCdMidEl.value) || 0;
+    if (cur < 10) {
+      heelCdMidEl.value = "10";
+      if (heelCdMidValEl) heelCdMidValEl.value = "10";
+    }
+  }
+}
+
+let drGoodPresetReady = false;
+
+function syncDrGoodDietUIOnLoad() {
+  if (!drGoodFilletEl.checked) {
+    drGoodFilletDietWrapEl.style.display = "none";
+    drGoodFilletDietEl.checked = true;
+    return;
+  }
+  drGoodFilletDietWrapEl.style.display = "";
 }
 
 // -----------------------------
@@ -306,6 +562,10 @@ const paramIds: string[] = [
   "toe_thk",
 
   // Toe A
+  "tagent_a_offset_rot",
+  "tagent_a_midpoint",
+  "tagent_a_placeholder_1",
+  "tagent_a_placeholder_2",
   "toe_a_p1s",
   "toe_a_p3s",
   "toe_a_endx",
@@ -332,11 +592,20 @@ const paramIds: string[] = [
   "toe_c_endz",
   "toe_c_enda",
   "toe_c_strength",
+  "rail_math_5_cull",
+  "rail_math_5_addback",
 
   // Heel
   "heel_h_c",
   "heel_h_d",
   "heel_cd_mid",
+  "heel_cd_mid_pct",
+  "heel_rm3_sweep",
+  "heel_rm3_bias",
+  "heel_rm3_blend",
+  "heel_rm4b_sweep",
+  "heel_rm4b_bias",
+  "heel_rm4b_blend",
   "heel_f1",
   "heel_f2",
 
@@ -347,6 +616,10 @@ const paramIds: string[] = [
   "fil_4",
   "fil_5",
   "sh_fil_1_r",
+  "th_fil_1_r",
+  "th_fil_2_r",
+  "heel_fil_1_r",
+  "heel_fil_2_r",
   "bp_fil_1_r",
 ];
 
@@ -364,7 +637,9 @@ const heelHDValEl = document.getElementById("heel_h_dVal") as HTMLInputElement |
 // - User can re-enable auto by setting toe_bc_mid back to 0
 // -----------------------------
 const toeBCMidEl = mustEl<HTMLInputElement>("toe_bc_mid");
-let toeBCMidUserTouched = false;
+// Treat a non-zero authored HTML default as an intentional value so startup auto-fill
+// doesn't overwrite it on the first rebuild.
+let toeBCMidUserTouched = Number(toeBCMidEl.value) !== 0;
 
 toeBCMidEl.addEventListener("input", () => {
   if (Number(toeBCMidEl.value) !== 0) toeBCMidUserTouched = true;
@@ -378,6 +653,29 @@ function readParams(): ModelParams {
   }
   p.bp_fil_1 = bpFil1El.checked ? 1 : 0;
   p.sh_fil_1 = shFil1El.checked ? 1 : 0;
+  p.th_fil_1 = thFil1El.checked ? 1 : 0;
+  p.th_fil_2 = thFil2El.checked ? 1 : 0;
+  p.heel_fil_1 = heelFil1El.checked ? 1 : 0;
+  p.heel_fil_2 = 1;
+  p.toe_add_profile_b = toeAddProfileBEl.checked ? 1 : 0;
+  p.rail_math_mode = readRailMathMode();
+  p.rail_math_6a = railMath6aEl.checked ? 1 : 0;
+  p.rail_math_6b = railMath6bEl.checked ? 1 : 0;
+  p.rail_math_6c = railMath6cEl.checked ? 1 : 0;
+  p.heel_rail_math_mode = readHeelRailMathMode();
+  p.heel_rail_math_4a = heelRailMath4aEl.checked ? 1 : 0;
+  p.heel_rail_math_4b = heelRailMath4bEl.checked ? 1 : 0;
+  p.tagent_profile_a = tagentProfileAEl.checked ? 1 : 0;
+  p.tagent_profile_b = tagentProfileBEl.checked ? 1 : 0;
+  p.tagent_profile_c = tagentProfileCEl.checked ? 1 : 0;
+  p.tagent_profile_d = tagentProfileDEl.checked ? 1 : 0;
+  p.tagent_d_cut_perp = tagentDCutPerpEl.checked ? 1 : 0;
+  p.tagent_a_bp_cut_perp = tagentABpCutPerpEl.checked ? 1 : 0;
+  p.toeBEnabled = toeAddProfileBEl.checked ? 1 : 0; // compat routing
+  p.toeCEnabled = 1; // C always on
+  if (!toeAddProfileBEl.checked) p.toe_ab_mid = 0;
+  p.heel_mid_ctrl = heelMidCtrlEl.checked ? 1 : 0;
+  p.heel_sweep = heelSweepEl.checked ? 1 : 0;
   return p;
 }
 
@@ -778,6 +1076,171 @@ function downloadArrayBuffer(buffer: ArrayBuffer, filename: string, mime: string
   URL.revokeObjectURL(url);
 }
 
+function downloadTextFile(text: string, filename: string, mime = "application/json") {
+  const blob = new Blob([text], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+type SettingsValue = string | boolean;
+type SettingsSnapshot = {
+  kind: "parahook-settings";
+  version: 1;
+  exportedAt: string;
+  inputs: Record<string, SettingsValue>;
+};
+
+function collectSettingsSnapshot(): SettingsSnapshot {
+  const inputs: Record<string, SettingsValue> = {};
+  const allInputs = Array.from(document.querySelectorAll<HTMLInputElement>("input[id]"));
+
+  for (const el of allInputs) {
+    if (!el.id) continue;
+    if (el.id.endsWith("Val")) continue; // mirrored numeric boxes
+    if (el.type === "file") continue;
+    if (el.type === "checkbox") {
+      inputs[el.id] = !!el.checked;
+    } else {
+      inputs[el.id] = String(el.value ?? "");
+    }
+  }
+
+  return {
+    kind: "parahook-settings",
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    inputs,
+  };
+}
+
+function normalizeExclusiveChecks(group: HTMLInputElement[], defaultEl: HTMLInputElement) {
+  const active = group.find((el) => el.checked) ?? defaultEl;
+  for (const el of group) el.checked = el === active;
+}
+
+function syncTagentProfileControlVisibility() {
+  const aWrap = document.getElementById("tagentProfileAControls") as HTMLElement | null;
+  const dWrap = document.getElementById("tagentProfileDControls") as HTMLElement | null;
+  if (aWrap) aWrap.style.display = tagentProfileAEl.checked ? "none" : "";
+  if (dWrap) dWrap.style.display = tagentProfileDEl.checked ? "none" : "";
+}
+
+function applySettingsSnapshot(snapshot: SettingsSnapshot) {
+  const entries = Object.entries(snapshot.inputs ?? {});
+  for (const [id, raw] of entries) {
+    const el = document.getElementById(id);
+    if (!(el instanceof HTMLInputElement)) continue;
+    if (el.type === "file") continue;
+
+    if (el.type === "checkbox") {
+      el.checked = !!raw;
+      continue;
+    }
+
+    if (typeof raw === "string" || typeof raw === "number" || typeof raw === "boolean") {
+      el.value = String(raw);
+      const pairedVal = document.getElementById(`${id}Val`);
+      if (pairedVal instanceof HTMLInputElement) pairedVal.value = el.value;
+    }
+  }
+
+  // Preserve imported toe_bc_mid instead of letting auto-mode overwrite it on rebuild.
+  if (Object.prototype.hasOwnProperty.call(snapshot.inputs, "toe_bc_mid")) {
+    const v = Number((snapshot.inputs as Record<string, unknown>).toe_bc_mid);
+    toeBCMidUserTouched = Number.isFinite(v) && v !== 0;
+  }
+
+  normalizeExclusiveChecks(
+    [
+      railMathCurrentEl,
+      railMath2El,
+      railMath3El,
+      railMath4El,
+      railMath5El,
+      railMath6El,
+      railMath7El,
+      railMath8El,
+      railMath9El,
+      railMath10El,
+    ],
+    railMathCurrentEl
+  );
+  normalizeExclusiveChecks([railMath6aEl, railMath6bEl, railMath6cEl], railMath6aEl);
+  normalizeExclusiveChecks([heelRailMath4aEl, heelRailMath4bEl], heelRailMath4aEl);
+  normalizeExclusiveChecks(
+    [heelRailMath1El, heelRailMath2El, heelRailMath3El, heelRailMath4El, heelRailMath5El],
+    heelRailMath1El
+  );
+
+  if (heelSweepEl.checked) {
+    syncHeelSweepAndRailMath3FromSweep();
+  } else {
+    syncHeelSweepFromHeelRailMathSelection();
+  }
+
+  syncToeProfileBUI();
+  syncRailMathUI();
+  syncDrGoodDietUIOnLoad();
+  syncTagentProfileControlVisibility();
+  syncHeelRm3MirrorValuesFromCanonical();
+  syncLabels();
+
+  applyHookUIToViewer();
+  applyHookTransformUIToViewer();
+  applyFootpadUIToViewer();
+  applyShoeUIToViewer();
+  applySectionCutUIToViewer();
+  updateBaseplateViz();
+  updateArcViz();
+}
+
+function exportSettings() {
+  const snapshot = collectSettingsSnapshot();
+  const timestamp = new Date().toISOString().replace(/[:]/g, "-").replace(/\..+$/, "Z");
+  downloadTextFile(JSON.stringify(snapshot, null, 2), `parahook-settings-${timestamp}.json`);
+  setStatus("exported settings");
+}
+
+async function importSettingsFromFile(file: File) {
+  const text = await file.text();
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    throw new Error("Invalid JSON file");
+  }
+
+  const raw = parsed as Partial<SettingsSnapshot> & { inputs?: Record<string, SettingsValue> };
+  if (!raw || typeof raw !== "object" || !raw.inputs || typeof raw.inputs !== "object") {
+    throw new Error("Settings file missing `inputs` object");
+  }
+
+  const snapshot: SettingsSnapshot = {
+    kind: "parahook-settings",
+    version: 1,
+    exportedAt: typeof raw.exportedAt === "string" ? raw.exportedAt : new Date().toISOString(),
+    inputs: raw.inputs,
+  };
+
+  cancelPendingRebuild();
+  crossRefitPendingManual = false;
+  applySettingsSnapshot(snapshot);
+  lastSig = "";
+  applyModelEnabledState();
+}
+
+const settingsFileInputEl = document.createElement("input");
+settingsFileInputEl.type = "file";
+settingsFileInputEl.accept = ".json,application/json";
+settingsFileInputEl.style.display = "none";
+document.body.appendChild(settingsFileInputEl);
+
 const worker = new Worker(new URL("./cad/worker.ts", import.meta.url), { type: "module" });
 
 function asFloat32(x: any): Float32Array {
@@ -804,6 +1267,7 @@ worker.onmessage = (ev: MessageEvent<WorkerIn>) => {
 
   if (msg.type === "error") {
     setBusy(false);
+    setMiniMeshStats(null, null);
     return setStatus(`error: ${msg.message}`);
   }
 
@@ -828,6 +1292,7 @@ worker.onmessage = (ev: MessageEvent<WorkerIn>) => {
       const indices = asIndexArray(indicesRaw, vertCount);
 
       log(`mesh rx: verts=${vertCount} tris=${Math.floor(indices.length / 3)}`);
+      setMiniMeshStats(vertCount, Math.floor(indices.length / 3));
 
       viewer.setMesh({
         positions: Array.from(positions),
@@ -839,6 +1304,7 @@ worker.onmessage = (ev: MessageEvent<WorkerIn>) => {
       return setStatus("ready");
     } catch (e: any) {
       setBusy(false);
+      setMiniMeshStats(null, null);
       return setStatus(`error: mesh parse failed: ${e?.message ?? String(e)}`);
     }
   }
@@ -896,23 +1362,51 @@ type ParamGroup = "base" | "toe" | "heel" | "other";
 
 function classifyParamGroup(id: string): ParamGroup {
   if (id.startsWith("bp_") || id.startsWith("sh_")) return "base";
-  if (id.startsWith("toe_") || id.startsWith("fil_")) return "toe";
+  if (
+    id.startsWith("toe_") ||
+    id.startsWith("fil_") ||
+    id.startsWith("th_") ||
+    id.startsWith("rail_math_") ||
+    id.startsWith("tagent_a_")
+  )
+    return "toe";
   if (id.startsWith("heel_")) return "heel";
   return "other";
 }
 
 function computeSignature(p: ModelParams): string {
   const base = !!baseEnabledEl.checked;
-  const toeB = !!toeBEnabledEl.checked;
-  const toeC = !!toeCEnabledEl.checked;
+  const toeAddB = !!toeAddProfileBEl.checked;
   const heel = !!heelEnabledEl.checked;
 
   const parts: string[] = [];
-  parts.push([base ? 1 : 0, toeB ? 1 : 0, toeC ? 1 : 0, heel ? 1 : 0].join(","));
+  parts.push([base ? 1 : 0, toeAddB ? 1 : 0, heel ? 1 : 0].join(","));
 
   parts.push(paramIds.map((id) => p[id]).join(","));
   parts.push(`bp_fil_1=${bpFil1El.checked ? 1 : 0}`);
   parts.push(`sh_fil_1=${shFil1El.checked ? 1 : 0}`);
+  parts.push(`th_fil_1=${thFil1El.checked ? 1 : 0}`);
+  parts.push(`th_fil_2=${thFil2El.checked ? 1 : 0}`);
+  parts.push(`heel_fil_1=${heelFil1El.checked ? 1 : 0}`);
+  parts.push(`heel_fil_2=1`);
+  parts.push(`toe_add_profile_b=${toeAddB ? 1 : 0}`);
+  parts.push(`rail_math_mode=${readRailMathMode()}`);
+  parts.push(`rail_math_5_cull=${readNumber(railMath5CullEl, 1)}`);
+  parts.push(`rail_math_5_addback=${readNumber(mustEl<HTMLInputElement>("rail_math_5_addback"), 0)}`);
+  parts.push(`rail_math_6a=${railMath6aEl.checked ? 1 : 0}`);
+  parts.push(`rail_math_6b=${railMath6bEl.checked ? 1 : 0}`);
+  parts.push(`rail_math_6c=${railMath6cEl.checked ? 1 : 0}`);
+  parts.push(`heel_rail_math_mode=${readHeelRailMathMode()}`);
+  parts.push(`heel_rail_math_4a=${heelRailMath4aEl.checked ? 1 : 0}`);
+  parts.push(`heel_rail_math_4b=${heelRailMath4bEl.checked ? 1 : 0}`);
+  parts.push(`tagent_profile_a=${tagentProfileAEl.checked ? 1 : 0}`);
+  parts.push(`tagent_profile_b=${tagentProfileBEl.checked ? 1 : 0}`);
+  parts.push(`tagent_profile_c=${tagentProfileCEl.checked ? 1 : 0}`);
+  parts.push(`tagent_profile_d=${tagentProfileDEl.checked ? 1 : 0}`);
+  parts.push(`tagent_d_cut_perp=${tagentDCutPerpEl.checked ? 1 : 0}`);
+  parts.push(`tagent_a_bp_cut_perp=${tagentABpCutPerpEl.checked ? 1 : 0}`);
+  parts.push(`heel_mid_ctrl=${heelMidCtrlEl.checked ? 1 : 0}`);
+  parts.push(`heel_sweep=${heelSweepEl.checked ? 1 : 0}`);
 
   parts.push(
     `vizBase=${vizBasePtsEl.checked ? 1 : 0},vizA=${vizAArcPtsEl.checked ? 1 : 0},vizB=${
@@ -952,8 +1446,9 @@ function rebuild(opts: RebuildOptions = {}) {
   lastSig = s;
 
   const base = !!baseEnabledEl.checked;
-  const toeB = !!toeBEnabledEl.checked;
-  const toeC = !!toeCEnabledEl.checked;
+  const toeAddB = !!toeAddProfileBEl.checked;
+  const toeB = toeAddB;
+  const toeC = true;
   const heel = !!heelEnabledEl.checked;
 
   setBusy(true);
@@ -1002,8 +1497,8 @@ function exportStl() {
       params,
       filename: "foothook.stl",
       baseEnabled: !!baseEnabledEl.checked,
-      toeBEnabled: !!toeBEnabledEl.checked,
-      toeCEnabled: !!toeCEnabledEl.checked,
+      toeBEnabled: !!toeAddProfileBEl.checked,
+      toeCEnabled: true,
       heelEnabled: !!heelEnabledEl.checked,
     },
   };
@@ -1034,8 +1529,8 @@ function exportStep() {
       params,
       filename: "foothook.step",
       baseEnabled: !!baseEnabledEl.checked,
-      toeBEnabled: !!toeBEnabledEl.checked,
-      toeCEnabled: !!toeCEnabledEl.checked,
+      toeBEnabled: !!toeAddProfileBEl.checked,
+      toeCEnabled: true,
       heelEnabled: !!heelEnabledEl.checked,
     },
   };
@@ -1057,11 +1552,40 @@ function applyModelEnabledState() {
     setStatus("model enabled");
     rebuild();
   } else {
+    setMiniMeshStats(null, null);
     setStatus("model disabled");
   }
 }
 
 syncLabels();
+syncToeProfileBUI();
+setupExclusiveCheckboxGroup(
+  [
+    railMathCurrentEl,
+    railMath2El,
+    railMath3El,
+    railMath4El,
+    railMath5El,
+    railMath6El,
+    railMath7El,
+    railMath8El,
+    railMath9El,
+    railMath10El,
+  ],
+  railMathCurrentEl
+);
+setupExclusiveCheckboxGroup([railMath6aEl, railMath6bEl, railMath6cEl], railMath6aEl);
+setupExclusiveCheckboxGroup([heelRailMath4aEl, heelRailMath4bEl], heelRailMath4aEl);
+setupExclusiveCheckboxGroup(
+  [heelRailMath1El, heelRailMath2El, heelRailMath3El, heelRailMath4El, heelRailMath5El],
+  heelRailMath1El
+);
+if (heelSweepEl.checked) {
+  syncHeelSweepAndRailMath3FromSweep();
+} else {
+  syncHeelSweepFromHeelRailMathSelection();
+}
+syncRailMathUI();
 updateBaseplateViz();
 updateArcViz();
 applySectionCutUIToViewer();
@@ -1084,7 +1608,40 @@ vizBasePtsEl.addEventListener("change", updateBaseplateViz);
   el.addEventListener("change", applySectionCutUIToViewer);
 });
 
-[baseEnabledEl, toeBEnabledEl, toeCEnabledEl, heelEnabledEl].forEach((el) => el.addEventListener("change", () => rebuild()));
+[baseEnabledEl, heelEnabledEl].forEach((el) => el.addEventListener("change", () => rebuild()));
+toeAddProfileBEl.addEventListener("change", () => {
+  syncToeProfileBUI();
+  if (!isModelEnabled()) return;
+  if (rebuildAsOneEl.checked) {
+    crossRefitPendingManual = false;
+    return rebuild();
+  }
+  crossRefitPendingManual = true;
+  return rebuild({ freezeBaseRefit: true, freezeHeelRefit: true });
+});
+[railMathCurrentEl, railMath2El, railMath3El, railMath4El, railMath5El, railMath6El, railMath7El, railMath8El, railMath9El, railMath10El].forEach(
+  (el) => el.addEventListener("change", syncRailMathUI)
+);
+heelMidCtrlEl.addEventListener("change", () => {
+  if (!isModelEnabled()) return;
+  if (rebuildAsOneEl.checked) {
+    crossRefitPendingManual = false;
+    return rebuild();
+  }
+  crossRefitPendingManual = true;
+  return rebuild({ freezeBaseRefit: true, freezeToeRefit: true });
+});
+heelSweepEl.addEventListener("change", () => {
+  syncHeelSweepAndRailMath3FromSweep();
+  syncRailMathUI();
+  if (!isModelEnabled()) return;
+  if (rebuildAsOneEl.checked) {
+    crossRefitPendingManual = false;
+    return rebuild();
+  }
+  crossRefitPendingManual = true;
+  return rebuild({ freezeBaseRefit: true, freezeToeRefit: true });
+});
 
 bpFil1El.addEventListener("change", () => {
   if (!isModelEnabled()) return;
@@ -1104,13 +1661,167 @@ shFil1El.addEventListener("change", () => {
   crossRefitPendingManual = true;
   return rebuild({ freezeToeRefit: true, freezeHeelRefit: true });
 });
+thFil1El.addEventListener("change", () => {
+  if (!isModelEnabled()) return;
+  if (rebuildAsOneEl.checked) {
+    crossRefitPendingManual = false;
+    return rebuild();
+  }
+  crossRefitPendingManual = true;
+  return rebuild({ freezeBaseRefit: true, freezeHeelRefit: true });
+});
+thFil2El.addEventListener("change", () => {
+  if (!isModelEnabled()) return;
+  if (rebuildAsOneEl.checked) {
+    crossRefitPendingManual = false;
+    return rebuild();
+  }
+  crossRefitPendingManual = true;
+  return rebuild({ freezeBaseRefit: true, freezeHeelRefit: true });
+});
+heelFil1El.addEventListener("change", () => {
+  if (!isModelEnabled()) return;
+  if (rebuildAsOneEl.checked) {
+    crossRefitPendingManual = false;
+    return rebuild();
+  }
+  crossRefitPendingManual = true;
+  return rebuild({ freezeBaseRefit: true, freezeToeRefit: true });
+});
+[tagentProfileAEl, tagentProfileBEl].forEach((el) => {
+  el.addEventListener("change", () => {
+    if (!isModelEnabled()) return;
+    if (rebuildAsOneEl.checked) {
+      crossRefitPendingManual = false;
+      return rebuild();
+    }
+    crossRefitPendingManual = true;
+    return rebuild({ freezeBaseRefit: true, freezeHeelRefit: true });
+  });
+});
+[tagentABpCutPerpEl].forEach((el) => {
+  el.addEventListener("change", () => {
+    if (!isModelEnabled()) return;
+    if (rebuildAsOneEl.checked) {
+      crossRefitPendingManual = false;
+      return rebuild();
+    }
+    crossRefitPendingManual = true;
+    return rebuild({ freezeToeRefit: true, freezeHeelRefit: true });
+  });
+});
+[tagentProfileCEl, tagentProfileDEl].forEach((el) => {
+  el.addEventListener("change", () => {
+    if (!isModelEnabled()) return;
+    if (rebuildAsOneEl.checked) {
+      crossRefitPendingManual = false;
+      return rebuild();
+    }
+    crossRefitPendingManual = true;
+    return rebuild({ freezeBaseRefit: true, freezeToeRefit: true });
+  });
+});
+[tagentDCutPerpEl].forEach((el) => {
+  el.addEventListener("change", () => {
+    if (!isModelEnabled()) return;
+    if (rebuildAsOneEl.checked) {
+      crossRefitPendingManual = false;
+      return rebuild();
+    }
+    crossRefitPendingManual = true;
+    return rebuild({ freezeBaseRefit: true, freezeToeRefit: true });
+  });
+});
+drGoodFilletEl.addEventListener("change", () => {
+  if (!drGoodPresetReady) return;
+  if (!drGoodFilletEl.checked) {
+    drGoodFilletDietWrapEl.style.display = "none";
+    drGoodFilletDietEl.checked = false;
+    // Reset hidden child state so next enable starts from Diet=on.
+    drGoodFilletDietEl.checked = true;
+    return;
+  }
 
+  drGoodFilletDietWrapEl.style.display = "";
+  drGoodFilletDietEl.checked = true;
+
+  bpFil1El.checked = true;
+  thFil1El.checked = true;
+  thFil2El.checked = true;
+  heelFil1El.checked = true;
+  applyDrGoodDietPreset(true);
+  return rebuildHeelToeBasePreset();
+});
+drGoodFilletDietEl.addEventListener("change", () => {
+  if (!drGoodPresetReady) return;
+  if (!drGoodFilletEl.checked) return;
+  applyDrGoodDietPreset(!!drGoodFilletDietEl.checked);
+  return rebuildHeelToeBasePreset();
+});
 rebuildBtn.addEventListener("click", () => {
   crossRefitPendingManual = false;
   rebuild({ forceFullRefit: true, forceHeelRefit: true });
 });
 exportStlBtn.addEventListener("click", exportStl);
 exportStepBtn.addEventListener("click", exportStep);
+exportSettingsBtn.addEventListener("click", exportSettings);
+loadSettingsBtn.addEventListener("click", () => {
+  settingsFileInputEl.value = "";
+  settingsFileInputEl.click();
+});
+settingsFileInputEl.addEventListener("change", async () => {
+  const file = settingsFileInputEl.files?.[0];
+  if (!file) return;
+  try {
+    setStatus("loading settings...");
+    await importSettingsFromFile(file);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    setBusy(false);
+    setStatus(`settings load failed: ${msg}`);
+    log(`settings import error: ${msg}`);
+  } finally {
+    settingsFileInputEl.value = "";
+  }
+});
+
+syncDrGoodDietUIOnLoad();
+drGoodPresetReady = true;
+wireParamValMirror(railMath5CullValEl, railMath5CullEl);
+wireParamValMirror(railMath5AddbackValEl, railMath5AddbackEl);
+wireParamValMirror(heelRm3SweepValEl, heelRm3SweepEl);
+wireParamValMirror(heelRm3BiasValEl, heelRm3BiasEl);
+wireParamValMirror(heelRm3BlendValEl, heelRm3BlendEl);
+wireParamValMirror(heelSweepRm3SweepValEl, heelSweepRm3SweepEl);
+wireParamValMirror(heelSweepRm3BiasValEl, heelSweepRm3BiasEl);
+wireParamValMirror(heelSweepRm3BlendValEl, heelSweepRm3BlendEl);
+wireParamValMirror(heelRm4bSweepValEl, heelRm4bSweepEl);
+wireParamValMirror(heelRm4bBiasValEl, heelRm4bBiasEl);
+wireParamValMirror(heelRm4bBlendValEl, heelRm4bBlendEl);
+
+[heelRm3SweepEl, heelRm3BiasEl, heelRm3BlendEl].forEach((el) => {
+  el.addEventListener("input", syncHeelRm3MirrorValuesFromCanonical);
+  el.addEventListener("change", syncHeelRm3MirrorValuesFromCanonical);
+});
+heelSweepRm3SweepEl.addEventListener("input", () =>
+  pushSweepRm3MirrorToCanonical(heelSweepRm3SweepEl, heelRm3SweepEl, heelRm3SweepValEl, "input")
+);
+heelSweepRm3SweepEl.addEventListener("change", () =>
+  pushSweepRm3MirrorToCanonical(heelSweepRm3SweepEl, heelRm3SweepEl, heelRm3SweepValEl, "change")
+);
+heelSweepRm3BiasEl.addEventListener("input", () =>
+  pushSweepRm3MirrorToCanonical(heelSweepRm3BiasEl, heelRm3BiasEl, heelRm3BiasValEl, "input")
+);
+heelSweepRm3BiasEl.addEventListener("change", () =>
+  pushSweepRm3MirrorToCanonical(heelSweepRm3BiasEl, heelRm3BiasEl, heelRm3BiasValEl, "change")
+);
+heelSweepRm3BlendEl.addEventListener("input", () =>
+  pushSweepRm3MirrorToCanonical(heelSweepRm3BlendEl, heelRm3BlendEl, heelRm3BlendValEl, "input")
+);
+heelSweepRm3BlendEl.addEventListener("change", () =>
+  pushSweepRm3MirrorToCanonical(heelSweepRm3BlendEl, heelRm3BlendEl, heelRm3BlendValEl, "change")
+);
+syncHeelRm3MirrorValuesFromCanonical();
 
 ([tolEl, ...paramEls]).forEach((el) => {
   el.addEventListener("input", () => {
@@ -1133,6 +1844,11 @@ exportStepBtn.addEventListener("click", exportStep);
 
     if (el.id === "tolerance") {
       return rebuild({ freezeBaseRefit: crossRefitPendingManual, freezeToeRefit: crossRefitPendingManual, freezeHeelRefit: crossRefitPendingManual });
+    }
+
+    if (el.id.startsWith("rail_math_")) {
+      crossRefitPendingManual = true;
+      return rebuild({ freezeHeelRefit: true });
     }
 
     const group = classifyParamGroup(el.id);
