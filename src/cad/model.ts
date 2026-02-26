@@ -3660,10 +3660,6 @@ function buildToeACLoft(
   const acMode3InnerM1Down: Pt3 = { x: 0, y: 0, z: -Math.max(5, len3(acChordInner) * 0.45) };
 
   const angPrev = { v: null as number | null };
-  function endpointOriginFrameTan(pt: Pt, tanFallback: Pt): Pt {
-    const radial = vlen(pt) > 1e-6 ? vnorm(pt) : vnorm(tanFallback);
-    return radial;
-  }
   function blendFrameTan(fromTan: Pt, toTan: Pt, alpha01: number): Pt {
     const a = clamp(alpha01, 0, 1);
     const v = add(mul(vnorm(fromTan), 1 - a), mul(vnorm(toTan), a));
