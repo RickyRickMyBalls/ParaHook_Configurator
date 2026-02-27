@@ -88,6 +88,29 @@ function num(v: any, f: number) {
 
 const canvas = mustEl<HTMLCanvasElement>("c");
 const viewer = new Viewer(canvas);
+const mobileLayoutMediaQuery = window.matchMedia("(max-width: 900px), (pointer: coarse)");
+let isMobileLayoutActive = false;
+let onLayoutModeChanged: ((isMobile: boolean) => void) | null = null;
+
+function updateAppViewportHeightVar() {
+  const next = window.visualViewport?.height ?? window.innerHeight;
+  document.documentElement.style.setProperty("--app-vh", `${Math.round(next)}px`);
+}
+
+function applyLayoutModeFromMediaQuery() {
+  isMobileLayoutActive = mobileLayoutMediaQuery.matches;
+  document.body.classList.toggle("mobile-layout", isMobileLayoutActive);
+  onLayoutModeChanged?.(isMobileLayoutActive);
+}
+
+updateAppViewportHeightVar();
+applyLayoutModeFromMediaQuery();
+
+window.addEventListener("resize", updateAppViewportHeightVar);
+window.visualViewport?.addEventListener("resize", updateAppViewportHeightVar);
+if ("addEventListener" in mobileLayoutMediaQuery) {
+  mobileLayoutMediaQuery.addEventListener("change", applyLayoutModeFromMediaQuery);
+}
 const gizmoViewportResizeHandleEl = document.getElementById("gizmoViewportResizeHandle") as HTMLDivElement | null;
 const gizmoToolbarResizeHandleEl = document.getElementById("gizmoToolbarResizeHandle") as HTMLDivElement | null;
 const gizmoToggleBtnEl = document.getElementById("gizmoToggleBtn") as HTMLButtonElement | null;
@@ -1817,6 +1840,8 @@ const statusProgressFillEl = mustEl<HTMLDivElement>("statusProgressFill");
 const rebuildBtn = mustEl<HTMLButtonElement>("rebuild");
 const modelLivePauseBtn = mustEl<HTMLButtonElement>("modelLivePauseBtn");
 const titleStatsToggleBtn = mustEl<HTMLButtonElement>("titleStatsToggleBtn");
+const controlsPanelEl = mustEl<HTMLDivElement>("controlsPanel");
+const toolbarMinimizeEdgeBtnEl = mustEl<HTMLButtonElement>("toolbarMinimizeEdgeBtn");
 const exportStlBtn = mustEl<HTMLButtonElement>("exportStl");
 const exportStepBtn = mustEl<HTMLButtonElement>("exportStep");
 const loadSettingsBtn = mustEl<HTMLButtonElement>("loadSettings");
@@ -1978,6 +2003,7 @@ function isModelEnabled() {
   return !!modelEnabledEl.checked;
 }
 let liveAutoRebuildPaused = false;
+let toolbarCollapsed = false;
 let titleStatsOpen = false;
 let titleStatBuildCount = 0;
 let titleStatLastBuildDurationMs: number | null = null;
@@ -2085,6 +2111,16 @@ function updateStatusProgressFromMessage(msg: string) {
 }
 function isLiveAutoRebuildEnabled() {
   return !liveAutoRebuildPaused;
+}
+function setToolbarCollapsed(collapsed: boolean) {
+  toolbarCollapsed = collapsed;
+  const active = collapsed;
+  document.body.classList.toggle("toolbar-collapsed", active);
+  toolbarMinimizeEdgeBtnEl.textContent = active ? "▶" : "◀";
+  toolbarMinimizeEdgeBtnEl.setAttribute("aria-pressed", active ? "true" : "false");
+  toolbarMinimizeEdgeBtnEl.setAttribute("aria-label", active ? "Show toolbar" : "Hide toolbar");
+  toolbarMinimizeEdgeBtnEl.title = active ? "Show toolbar" : "Hide toolbar";
+  controlsPanelEl.setAttribute("aria-hidden", active ? "true" : "false");
 }
 function canAutoRebuild() {
   return isModelEnabled() && isLiveAutoRebuildEnabled();
@@ -3851,6 +3887,21 @@ modelEnabledEl.addEventListener("change", applyModelEnabledState);
 modelEnabledEl.addEventListener("change", syncGeneratedModelLayerRow);
 modelEnabledEl.addEventListener("change", syncModelLivePauseButton);
 modelEnabledEl.addEventListener("change", syncTitleStatsPanel);
+toolbarMinimizeEdgeBtnEl.addEventListener("click", () => {
+  setToolbarCollapsed(!toolbarCollapsed);
+});
+onLayoutModeChanged = (isMobile) => {
+  if (isMobile) {
+    setToolbarCollapsed(true);
+    gizmoControlsPanelOpen = false;
+    gizmoSettingsPanelOpen = false;
+    positionGizmoViewportResizeHandle();
+    return;
+  }
+  setToolbarCollapsed(false);
+  positionGizmoViewportResizeHandle();
+};
+onLayoutModeChanged(isMobileLayoutActive);
 titleStatsToggleBtn.addEventListener("click", () => {
   if (toolbarPanelEl.classList.contains("titleOnly")) return;
   setTitleStatsOpen(!titleStatsOpen);

@@ -9,11 +9,20 @@
       html, body {
         margin: 0;
         height: 100%;
+        min-height: 100dvh;
         overflow: hidden;
         font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
       }
 
-      #c { width: 100vw; height: 100vh; display: block; }
+      body {
+        min-height: var(--app-vh, 100dvh);
+      }
+
+      #c {
+        width: 100vw;
+        height: var(--app-vh, 100dvh);
+        display: block;
+      }
 
       /* Allow text selection in debug + status */
       #log,
@@ -32,9 +41,9 @@
         min-width: 300px;
         max-width: min(700px, calc(100vw - 32px));
 
-        height: 100vh;
-        min-height: 100vh;
-        max-height: 100vh;
+        height: var(--app-vh, 100dvh);
+        min-height: var(--app-vh, 100dvh);
+        max-height: var(--app-vh, 100dvh);
 
         overflow: hidden; /* panels manage their own scroll */
         resize: horizontal;
@@ -120,6 +129,7 @@
         z-index: auto;
       }
       #titleBlockPanel {
+        position: relative;
         padding-top: 14px;
         padding-bottom: 14px;
         display: flex;
@@ -133,7 +143,7 @@
         resize: vertical;
         overflow: hidden;
         min-height: 240px;
-        max-height: calc(100vh - 32px);
+        max-height: calc(var(--app-vh, 100dvh) - 32px);
       }
       #titleBlockPanel #titlePanel {
         margin-bottom: 10px;
@@ -355,6 +365,29 @@ details.section details.section > summary {
       #titleStatsToggleBtn[aria-pressed="true"] {
         background: rgba(255,255,255,0.10);
         border-color: rgba(255,255,255,0.18);
+      }
+      #toolbarMinimizeEdgeBtn {
+        position: absolute;
+        right: 6px;
+        top: 110px;
+        z-index: 6;
+        width: 28px;
+        height: 28px;
+        padding: 0;
+        border-radius: 8px;
+        border: 1px solid rgba(255,255,255,0.14);
+        background: rgba(255,255,255,0.05);
+        color: #e8e8ea;
+        font-size: 14px;
+        line-height: 1;
+        display: grid;
+        place-items: center;
+      }
+      #toolbarMinimizeEdgeBtn:hover {
+        background: rgba(255,255,255,0.10);
+      }
+      body.toolbar-collapsed #toolbarMinimizeEdgeBtn {
+        background: rgba(255,255,255,0.12);
       }
       #titleStatsPanel {
         display: none;
@@ -665,7 +698,7 @@ details.section details.section > summary {
         right: 24px;
         z-index: 2000;
         width: min(520px, calc(100vw - 32px));
-        max-height: calc(100vh - 32px);
+        max-height: calc(var(--app-vh, 100dvh) - 32px);
         overflow: hidden;
         background: rgba(20,20,24,0.95);
         color: #e8e8ea;
@@ -1149,6 +1182,66 @@ details.section details.section > summary {
       #gizmoSpinSpeedLabel {
         display: none;
       }
+
+      body.toolbar-collapsed #controlsPanel {
+        display: none;
+      }
+
+      @media (max-width: 900px), (pointer: coarse) {
+        #ui {
+          top: max(8px, env(safe-area-inset-top));
+          left: max(8px, env(safe-area-inset-left));
+          width: min(96vw, 400px);
+          max-width: min(96vw, 420px);
+          min-width: min(280px, calc(100vw - 16px));
+          resize: none;
+        }
+        #titleBlockPanel.statsExpanded {
+          resize: none;
+        }
+        #debug {
+          resize: none;
+          max-height: 50vh;
+        }
+        .floatHost {
+          resize: none;
+        }
+        .panelActionBtn {
+          min-width: 40px;
+          min-height: 30px;
+        }
+        button {
+          min-height: 38px;
+        }
+        .check input[type="checkbox"] {
+          width: 22px;
+          height: 22px;
+        }
+        body.mobile-layout #gizmoToolbarResizeHandle,
+        body.mobile-layout #gizmoViewportResizeHandle,
+        body.mobile-layout #gizmoControlsBtn,
+        body.mobile-layout #gizmoGizmoPanel,
+        body.mobile-layout #gizmoRollCwBtn,
+        body.mobile-layout #gizmoRollCcwBtn,
+        body.mobile-layout #gizmoModeCurrentBtn,
+        body.mobile-layout #gizmoModeOrbitBtn,
+        body.mobile-layout #gizmoModeTrackballBtn,
+        body.mobile-layout #gizmoModeArcballBtn,
+        body.mobile-layout #gizmoGravityLabel,
+        body.mobile-layout #gizmoGravityRange,
+        body.mobile-layout #gizmoDecayLabel,
+        body.mobile-layout #gizmoDecayRange,
+        body.mobile-layout #gizmoSpinToggleBtn,
+        body.mobile-layout #gizmoSpinSpeedLabel,
+        body.mobile-layout #gizmoSpinSpeedRange,
+        body.mobile-layout #gizmoZoomStopsInertiaBtn,
+        body.mobile-layout #gizmoViewPanel .gizmoSubSection:not(:first-child) {
+          display: none !important;
+        }
+        body.mobile-layout #gizmoViewPanel {
+          width: min(220px, 62vw);
+        }
+      }
     </style>
   </head>
 
@@ -1212,6 +1305,13 @@ details.section details.section > summary {
             </div>
           </div>
         </div>
+        <button
+          id="toolbarMinimizeEdgeBtn"
+          type="button"
+          aria-pressed="false"
+          aria-label="Hide toolbar"
+          title="Hide toolbar"
+        >◀</button>
       </div>
 
       <!-- BOX 2: Controls (scrollable) -->
@@ -3226,11 +3326,16 @@ details.section details.section > summary {
 
       (function setupPanelPopouts() {
         const panelStates = new Map();
+        const mobileLayoutQuery = window.matchMedia("(max-width: 900px), (pointer: coarse)");
         const PANEL_BTN_ICONS = {
           float: "▣",
           window: "⇱",
           dock: "↩"
         };
+
+        function isMobileLayout() {
+          return mobileLayoutQuery.matches || document.body.classList.contains("mobile-layout");
+        }
 
         function getPopupDoc(win, title) {
           if (!win || win.closed) return null;
@@ -3561,6 +3666,7 @@ details.section details.section > summary {
         }
 
         function toggleFloat(st) {
+          if (isMobileLayout()) return;
           if (st.mode === "float") return dock(st);
           ensurePlaceholder(st);
           if (st.mode === "window") {
@@ -3590,6 +3696,7 @@ details.section details.section > summary {
         }
 
         function toggleWindow(st) {
+          if (isMobileLayout()) return;
           if (st.mode === "window") return dock(st);
           ensurePlaceholder(st);
           restoreFloatScrollLayout(st);
@@ -3635,12 +3742,14 @@ details.section details.section > summary {
           if (floatBtn) {
             floatBtn.addEventListener("click", (ev) => {
               swallow(ev);
+              if (isMobileLayout()) return;
               toggleFloat(st);
             });
           }
           if (winBtn) {
             winBtn.addEventListener("click", (ev) => {
               swallow(ev);
+              if (isMobileLayout()) return;
               toggleWindow(st);
             });
           }
@@ -3650,6 +3759,23 @@ details.section details.section > summary {
         bindPanel("layers", "layersSection", "layersFloatToggle", "layersWindowToggle", "Layers");
         bindPanel("radio", "radioSection", "radioFloatToggle", "radioWindowToggle", "Gusano");
         bindPanel("debug", "debugPanel", "debugFloatToggle", "debugWindowToggle", "Debug");
+
+        function syncPanelPopoutButtonVisibility() {
+          const hidden = isMobileLayout();
+          const btns = document.querySelectorAll(
+            "#paraHookParamsFloatToggle, #paraHookParamsWindowToggle, #layersFloatToggle, #layersWindowToggle, #radioFloatToggle, #radioWindowToggle, #debugFloatToggle, #debugWindowToggle"
+          );
+          btns.forEach((btn) => {
+            if (!(btn instanceof HTMLElement)) return;
+            btn.style.display = hidden ? "none" : "";
+          });
+        }
+
+        syncPanelPopoutButtonVisibility();
+        if ("addEventListener" in mobileLayoutQuery) {
+          mobileLayoutQuery.addEventListener("change", syncPanelPopoutButtonVisibility);
+        }
+        window.addEventListener("resize", syncPanelPopoutButtonVisibility);
       })();
     </script>
   </body>
