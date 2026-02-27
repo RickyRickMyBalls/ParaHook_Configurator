@@ -88,6 +88,8 @@ function num(v: any, f: number) {
 
 const canvas = mustEl<HTMLCanvasElement>("c");
 const viewer = new Viewer(canvas);
+const bootLoadingOverlayEl = document.getElementById("bootLoadingOverlay") as HTMLDivElement | null;
+let bootLoadingActive = !!bootLoadingOverlayEl;
 const mobileLayoutMediaQuery = window.matchMedia("(max-width: 900px), (pointer: coarse)");
 let isMobileLayoutActive = false;
 let onLayoutModeChanged: ((isMobile: boolean) => void) | null = null;
@@ -136,6 +138,7 @@ const gizmoSpinSpeedRangeEl = document.getElementById("gizmoSpinSpeedRange") as 
 const gizmoZoomStopsInertiaBtnEl = document.getElementById("gizmoZoomStopsInertiaBtn") as HTMLButtonElement | null;
 const gizmoViewBtnEl = document.getElementById("gizmoViewBtn") as HTMLButtonElement | null;
 const gizmoControlsBtnEl = document.getElementById("gizmoControlsBtn") as HTMLButtonElement | null;
+const gizmoControlsPanelEl = document.getElementById("gizmoControlsPanel") as HTMLDivElement | null;
 const gizmoViewPanelEl = document.getElementById("gizmoViewPanel") as HTMLDivElement | null;
 const gizmoViewResetBtnEl = document.getElementById("gizmoViewResetBtn") as HTMLButtonElement | null;
 const gizmoViewPerspectiveBtnEl = document.getElementById("gizmoViewPerspectiveBtn") as HTMLButtonElement | null;
@@ -292,6 +295,7 @@ function positionGizmoViewportResizeHandle() {
     !gizmoZoomStopsInertiaBtnEl &&
     !gizmoViewBtnEl &&
     !gizmoControlsBtnEl &&
+    !gizmoControlsPanelEl &&
     !gizmoViewPanelEl
   ) return;
   const vp = viewer.getAxisGizmoViewportScreenRect?.();
@@ -331,6 +335,7 @@ function positionGizmoViewportResizeHandle() {
       gizmoZoomStopsInertiaBtnEl,
       gizmoViewBtnEl,
       gizmoControlsBtnEl,
+      gizmoControlsPanelEl,
       gizmoViewPanelEl,
     },
     layout,
@@ -2016,6 +2021,18 @@ function setStatus(msg: string) {
   titleStatCurrentStatus = msg;
   setStatusText(msg);
   updateStatusProgressFromMessage(msg);
+  if (
+    bootLoadingActive &&
+    (isSuccessLikeStatus(msg) ||
+      msg === "model disabled" ||
+      msg.startsWith("error:") ||
+      msg.startsWith("worker error:") ||
+      msg === "worker messageerror")
+  ) {
+    bootLoadingActive = false;
+    bootLoadingOverlayEl?.classList.add("hidden");
+    bootLoadingOverlayEl?.setAttribute("aria-hidden", "true");
+  }
   log(`status: ${msg}`);
   syncTitleStatsPanel();
 }

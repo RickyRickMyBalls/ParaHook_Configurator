@@ -1139,7 +1139,7 @@ export class Viewer {
 
     this.camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100000);
     this.camera.up.set(0, 0, 1);
-    this.camera.position.set(200, 160, 200);
+    this.camera.position.set(-200, -160, 200);
 
     this.controls = this.createControlsForMode(this.controlMode);
     this.attachControlEventHooks(this.controlMode, this.controls);
@@ -3626,7 +3626,7 @@ export class Viewer {
     this.setControlTarget(center);
 
     const dist = radius / Math.sin((this.camera.fov * Math.PI) / 360);
-    this.camera.position.set(center.x + dist, center.y - dist * 0.7, center.z + dist);
+    this.camera.position.set(center.x - dist, center.y - dist * 0.7, center.z + dist);
 
     this.camera.near = Math.max(0.1, dist / 1000);
     this.camera.far = dist * 1000;

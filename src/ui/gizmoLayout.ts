@@ -64,6 +64,7 @@ export type GizmoLayoutElements = {
   gizmoZoomStopsInertiaBtnEl: HTMLButtonElement | null;
   gizmoViewBtnEl: HTMLButtonElement | null;
   gizmoControlsBtnEl: HTMLButtonElement | null;
+  gizmoControlsPanelEl: HTMLDivElement | null;
   gizmoViewPanelEl: HTMLDivElement | null;
 };
 
@@ -127,6 +128,12 @@ export function applyGizmoLayout(
     if (!el) return;
     el.style.display = on ? "block" : "none";
   };
+  const setScrollableMaxHeight = (el: HTMLElement | null, top: number) => {
+    if (!el) return;
+    const viewportH = Math.round(window.visualViewport?.height ?? window.innerHeight);
+    const maxH = Math.max(36, viewportH - Math.round(top) - 8);
+    el.style.maxHeight = `${maxH}px`;
+  };
 
   setPos(elements.gizmoViewportResizeHandleEl, layout.handleLeft, layout.handleTop);
   setPos(elements.gizmoToolbarResizeHandleEl, layout.toolbarHandleLeft, layout.toolbarHandleTop);
@@ -142,6 +149,7 @@ export function applyGizmoLayout(
   if (elements.gizmoGizmoPanelEl) {
     setPos(elements.gizmoGizmoPanelEl, layout.modeBaseLeft, layout.gizmoPanelTop);
     elements.gizmoGizmoPanelEl.style.width = `${layout.toolbarWidth}px`;
+    setScrollableMaxHeight(elements.gizmoGizmoPanelEl, layout.gizmoPanelTop);
     elements.gizmoGizmoPanelEl.classList.toggle("open", state.gizmoOpen);
   }
   if (elements.gizmoCardinalUpBadgeEl) {
@@ -162,9 +170,16 @@ export function applyGizmoLayout(
     elements.gizmoControlsBtnEl.style.width = `${layout.toolbarWidth}px`;
     elements.gizmoControlsBtnEl.setAttribute("aria-pressed", state.controlsOpen ? "true" : "false");
   }
+  if (elements.gizmoControlsPanelEl) {
+    setPos(elements.gizmoControlsPanelEl, layout.modeBaseLeft, layout.controlsStackTop);
+    elements.gizmoControlsPanelEl.style.width = `${layout.toolbarWidth}px`;
+    setScrollableMaxHeight(elements.gizmoControlsPanelEl, layout.controlsStackTop);
+    elements.gizmoControlsPanelEl.classList.toggle("open", state.controlsOpen);
+  }
   if (elements.gizmoViewPanelEl) {
     setPos(elements.gizmoViewPanelEl, layout.viewPanelLeft, layout.viewPanelTop);
     elements.gizmoViewPanelEl.style.width = `${layout.toolbarWidth}px`;
+    setScrollableMaxHeight(elements.gizmoViewPanelEl, layout.viewPanelTop);
   }
   setDisplay(elements.gizmoToolbarResizeHandleEl, state.gizmoOpen || state.viewOpen || state.controlsOpen);
 
@@ -199,6 +214,7 @@ export function applyGizmoLayout(
   if (elements.gizmoZoomStopsInertiaBtnEl) elements.gizmoZoomStopsInertiaBtnEl.style.width = `${layout.toolbarWidth}px`;
 
   const controlsVisible = state.controlsOpen;
+  setDisplay(elements.gizmoControlsPanelEl, controlsVisible);
   setDisplay(elements.gizmoModeCurrentBtnEl, controlsVisible);
   setDisplay(elements.gizmoModeOrbitBtnEl, controlsVisible);
   setDisplay(elements.gizmoModeTrackballBtnEl, controlsVisible);

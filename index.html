@@ -23,6 +23,66 @@
         height: var(--app-vh, 100dvh);
         display: block;
       }
+      #bootLoadingOverlay {
+        position: fixed;
+        inset: 0;
+        z-index: 5000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(8, 10, 14, 0.88);
+        backdrop-filter: blur(3px);
+        color: #e8e8ea;
+        pointer-events: auto;
+        opacity: 1;
+        transition: opacity 220ms ease, visibility 220ms ease;
+      }
+      #bootLoadingOverlay.hidden {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+      }
+      .bootLoadingCard {
+        min-width: 220px;
+        max-width: min(88vw, 360px);
+        padding: 16px 18px;
+        border-radius: 12px;
+        background: rgba(20, 20, 24, 0.92);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+        display: grid;
+        gap: 10px;
+        text-align: center;
+      }
+      .bootLoadingTitle {
+        font-size: 14px;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+      }
+      .bootLoadingSub {
+        font-size: 12px;
+        opacity: 0.82;
+      }
+      .bootLoadingSpinner {
+        width: 26px;
+        height: 26px;
+        margin: 0 auto;
+        border-radius: 999px;
+        border: 2px solid rgba(255, 255, 255, 0.2);
+        border-top-color: rgba(255, 255, 255, 0.9);
+        animation: bootSpin 0.85s linear infinite;
+      }
+      @keyframes bootSpin {
+        to { transform: rotate(360deg); }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #bootLoadingOverlay {
+          transition: none;
+        }
+        .bootLoadingSpinner {
+          animation: none;
+        }
+      }
 
       /* Allow text selection in debug + status */
       #log,
@@ -867,6 +927,9 @@ details.section details.section > summary {
         border: 1px solid rgba(255,255,255,0.14);
         background: rgba(20,20,24,0.92);
         box-sizing: border-box;
+        max-height: calc(var(--app-vh, 100dvh) - 16px);
+        overflow: auto;
+        overscroll-behavior: contain;
       }
       #gizmoGizmoPanel.open {
         display: grid;
@@ -1059,12 +1122,64 @@ details.section details.section > summary {
         border: 1px solid rgba(255,255,255,0.14);
         background: rgba(20,20,24,0.92);
         box-sizing: border-box;
+        max-height: calc(var(--app-vh, 100dvh) - 16px);
+        overflow: auto;
+        overscroll-behavior: contain;
       }
       #gizmoViewPanel.starsOpen {
         width: 168px;
       }
       #gizmoViewPanel.open {
         display: grid;
+      }
+      #gizmoControlsPanel {
+        position: fixed;
+        left: 0;
+        top: 0;
+        z-index: 1200;
+        width: 108px;
+        display: none;
+        grid-template-columns: 1fr 1fr;
+        gap: 4px;
+        padding: 6px;
+        border-radius: 8px;
+        border: 1px solid rgba(255,255,255,0.14);
+        background: rgba(20,20,24,0.92);
+        box-sizing: border-box;
+        max-height: calc(var(--app-vh, 100dvh) - 16px);
+        overflow: auto;
+        overscroll-behavior: contain;
+      }
+      #gizmoControlsPanel.open {
+        display: grid;
+      }
+      #gizmoControlsPanel .gizmoModeBtn,
+      #gizmoControlsPanel #gizmoGravityLabel,
+      #gizmoControlsPanel #gizmoGravityRange,
+      #gizmoControlsPanel #gizmoDecayLabel,
+      #gizmoControlsPanel #gizmoDecayRange,
+      #gizmoControlsPanel #gizmoSpinToggleBtn,
+      #gizmoControlsPanel #gizmoSpinSpeedLabel,
+      #gizmoControlsPanel #gizmoSpinSpeedRange,
+      #gizmoControlsPanel #gizmoZoomStopsInertiaBtn {
+        position: static;
+        left: auto;
+        top: auto;
+      }
+      #gizmoControlsPanel #gizmoGravityLabel,
+      #gizmoControlsPanel #gizmoGravityRange,
+      #gizmoControlsPanel #gizmoDecayLabel,
+      #gizmoControlsPanel #gizmoDecayRange,
+      #gizmoControlsPanel #gizmoSpinToggleBtn,
+      #gizmoControlsPanel #gizmoSpinSpeedLabel,
+      #gizmoControlsPanel #gizmoSpinSpeedRange,
+      #gizmoControlsPanel #gizmoZoomStopsInertiaBtn {
+        grid-column: 1 / -1;
+        width: 100% !important;
+      }
+      #gizmoControlsPanel .gizmoModeBtn {
+        width: 100% !important;
+        min-width: 0;
       }
       .gizmoSubSection {
         border: 1px solid rgba(255,255,255,0.14);
@@ -1240,22 +1355,8 @@ details.section details.section > summary {
         }
         body.mobile-layout #gizmoToolbarResizeHandle,
         body.mobile-layout #gizmoViewportResizeHandle,
-        body.mobile-layout #gizmoControlsBtn,
-        body.mobile-layout #gizmoGizmoPanel,
         body.mobile-layout #gizmoRollCwBtn,
         body.mobile-layout #gizmoRollCcwBtn,
-        body.mobile-layout #gizmoModeCurrentBtn,
-        body.mobile-layout #gizmoModeOrbitBtn,
-        body.mobile-layout #gizmoModeTrackballBtn,
-        body.mobile-layout #gizmoModeArcballBtn,
-        body.mobile-layout #gizmoGravityLabel,
-        body.mobile-layout #gizmoGravityRange,
-        body.mobile-layout #gizmoDecayLabel,
-        body.mobile-layout #gizmoDecayRange,
-        body.mobile-layout #gizmoSpinToggleBtn,
-        body.mobile-layout #gizmoSpinSpeedLabel,
-        body.mobile-layout #gizmoSpinSpeedRange,
-        body.mobile-layout #gizmoZoomStopsInertiaBtn,
         body.mobile-layout #gizmoViewPanel .gizmoSubSection:not(:first-child) {
           display: none !important;
         }
@@ -1287,12 +1388,19 @@ details.section details.section > summary {
   </head>
 
   <body>
+    <div id="bootLoadingOverlay" role="status" aria-live="polite" aria-label="Loading model">
+      <div class="bootLoadingCard">
+        <div class="bootLoadingSpinner" aria-hidden="true"></div>
+        <div class="bootLoadingTitle">Loading model</div>
+        <div class="bootLoadingSub">Preparing geometry and camera...</div>
+      </div>
+    </div>
     <div id="ui">
       <!-- BOX 1: Title + Version + Toolbar -->
       <div id="titleBlockPanel" class="panelBox">
         <div id="titlePanel">
           <div id="appTitle">ParaHook Generator</div>
-          <div id="appVersion">v 0.15.2</div>
+          <div id="appVersion">v0.16.3</div>
         </div>
 
         <div class="row header">
@@ -1338,8 +1446,8 @@ details.section details.section > summary {
               <div id="debugHeader" style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
                 <span>Debug</span>
                 <span style="display:flex; gap:6px;">
-                  <button id="debugFloatToggle" type="button" class="panelActionBtn" aria-pressed="false" aria-label="Float panel" title="Float panel">â–£</button>
-                  <button id="debugWindowToggle" type="button" class="panelActionBtn" aria-pressed="false" aria-label="Open panel in window" title="Open panel in window">â‡±</button>
+                  <button id="debugFloatToggle" type="button" class="panelActionBtn" aria-pressed="false" aria-label="Float panel" title="Float panel">▣</button>
+                  <button id="debugWindowToggle" type="button" class="panelActionBtn" aria-pressed="false" aria-label="Open panel in window" title="Open panel in window">⇱</button>
                 </span>
               </div>
               <pre id="log"></pre>
@@ -1373,6 +1481,18 @@ details.section details.section > summary {
             <details class="section">
               <summary>-Releases</summary>
               <details class="section" open>
+                <summary>v0.16.3</summary>
+                <details class="section">
+                  <summary>Added</summary>
+                  <div class="sectionMeta">1. Mobile/desktop toolbar collapse redesign: external edge button, smooth dock animation, and full toolbar hide/show behavior.</div>
+                  <div class="sectionMeta">2. Gizmo mobile optimization: compact 50% startup mode on mobile with tap-to-expand interaction.</div>
+                  <div class="sectionMeta">3. Gizmo UX updates: right-edge anchoring, scrollable Gizmo/View/Controls panels, and viewport-aware panel sizing to prevent off-screen clipping.</div>
+                  <div class="sectionMeta">4. Startup experience: blocking boot loading overlay added until initial model ready/error state.</div>
+                  <div class="sectionMeta">5. Camera default alignment updates: startup/reset framing adjusted to isometric -X,-Y orientation.</div>
+                </details>
+              </details>
+
+              <details class="section">
                 <summary>v0.15.2</summary>
                 <details class="section">
                   <summary>Added</summary>
@@ -1680,8 +1800,8 @@ details.section details.section > summary {
             <summary>Parahook Parameters</summary>
             <div class="sectionMeta">Primary geometry controls for the parahook model.</div>
             <div class="panelActionRow">
-                <button id="paraHookParamsFloatToggle" type="button" class="panelActionBtn" aria-pressed="false" aria-label="Float panel" title="Float panel">â–£</button>
-                <button id="paraHookParamsWindowToggle" type="button" class="panelActionBtn" aria-pressed="false" aria-label="Open panel in window" title="Open panel in window">â‡±</button>
+                <button id="paraHookParamsFloatToggle" type="button" class="panelActionBtn" aria-pressed="false" aria-label="Float panel" title="Float panel">▣</button>
+                <button id="paraHookParamsWindowToggle" type="button" class="panelActionBtn" aria-pressed="false" aria-label="Open panel in window" title="Open panel in window">⇱</button>
             </div>
 <!-- TRANSFORM (viewer-only) -->
 <details class="section">
@@ -2861,8 +2981,8 @@ details.section details.section > summary {
               <button id="layersMaterialsToggle" type="button" class="panelActionBtn" aria-pressed="true" title="Toggle shoe materials">Mats On</button>
             </div>
             <div class="panelActionRow">
-                  <button id="layersFloatToggle" type="button" class="panelActionBtn" aria-pressed="false" aria-label="Float panel" title="Float panel">â–£</button>
-                  <button id="layersWindowToggle" type="button" class="panelActionBtn" aria-pressed="false" aria-label="Open panel in window" title="Open panel in window">â‡±</button>
+                  <button id="layersFloatToggle" type="button" class="panelActionBtn" aria-pressed="false" aria-label="Float panel" title="Float panel">▣</button>
+                  <button id="layersWindowToggle" type="button" class="panelActionBtn" aria-pressed="false" aria-label="Open panel in window" title="Open panel in window">⇱</button>
             </div>
 
             <div class="layersHeaderRow">
@@ -2891,8 +3011,8 @@ details.section details.section > summary {
             <summary>Gusano</summary>
             <div class="sectionMeta">Keota Radio</div>
             <div class="panelActionRow">
-                  <button id="radioFloatToggle" type="button" class="panelActionBtn" aria-pressed="false" aria-label="Float panel" title="Float panel">â–£</button>
-                  <button id="radioWindowToggle" type="button" class="panelActionBtn" aria-pressed="false" aria-label="Open panel in window" title="Open panel in window">â‡±</button>
+                  <button id="radioFloatToggle" type="button" class="panelActionBtn" aria-pressed="false" aria-label="Float panel" title="Float panel">▣</button>
+                  <button id="radioWindowToggle" type="button" class="panelActionBtn" aria-pressed="false" aria-label="Open panel in window" title="Open panel in window">⇱</button>
             </div>
 
             <div class="radioRow">
@@ -2958,18 +3078,20 @@ details.section details.section > summary {
     <div id="gizmoFpsBadge" aria-label="Frames per second">-- fps</div>
     <button id="gizmoRollCcwBtn" type="button" aria-label="Roll clockwise" title="Roll +90ï¿½">&#8635;</button>
     <button id="gizmoRollCwBtn" type="button" aria-label="Roll counter-clockwise" title="Roll -90ï¿½">&#8634;</button>
-    <button id="gizmoModeCurrentBtn" class="gizmoModeBtn" type="button" aria-pressed="false">Ant Crawl</button>
-    <button id="gizmoModeOrbitBtn" class="gizmoModeBtn" type="button" aria-pressed="true">Orbit</button>
-    <button id="gizmoModeTrackballBtn" class="gizmoModeBtn" type="button" aria-pressed="false">Trackball</button>
-    <button id="gizmoModeArcballBtn" class="gizmoModeBtn" type="button" aria-pressed="false">Arcball</button>
-    <div id="gizmoGravityLabel" class="gizmoSliderLabel">Inertia</div>
-    <input id="gizmoGravityRange" type="range" min="0" max="100" step="1" value="70" title="Gravity / inertia" aria-label="Camera inertia" />
-    <div id="gizmoDecayLabel" class="gizmoSliderLabel">Decay</div>
-    <input id="gizmoDecayRange" type="range" min="0" max="101" step="1" value="0" title="Decay time" aria-label="Decay time" />
-    <button id="gizmoSpinToggleBtn" type="button" aria-pressed="false">Spin</button>
-    <div id="gizmoSpinSpeedLabel" class="gizmoSliderLabel">Spin Speed</div>
-    <input id="gizmoSpinSpeedRange" type="range" min="0" max="100" step="1" value="55" title="Spin speed" aria-label="Spin speed" />
-    <button id="gizmoZoomStopsInertiaBtn" type="button" aria-pressed="false" title="Toggle zoom stopping inertia">Zoom Stops Inertia</button>
+    <div id="gizmoControlsPanel">
+      <button id="gizmoModeCurrentBtn" class="gizmoModeBtn" type="button" aria-pressed="false">Ant Crawl</button>
+      <button id="gizmoModeOrbitBtn" class="gizmoModeBtn" type="button" aria-pressed="true">Orbit</button>
+      <button id="gizmoModeTrackballBtn" class="gizmoModeBtn" type="button" aria-pressed="false">Trackball</button>
+      <button id="gizmoModeArcballBtn" class="gizmoModeBtn" type="button" aria-pressed="false">Arcball</button>
+      <div id="gizmoGravityLabel" class="gizmoSliderLabel">Inertia</div>
+      <input id="gizmoGravityRange" type="range" min="0" max="100" step="1" value="70" title="Gravity / inertia" aria-label="Camera inertia" />
+      <div id="gizmoDecayLabel" class="gizmoSliderLabel">Decay</div>
+      <input id="gizmoDecayRange" type="range" min="0" max="101" step="1" value="0" title="Decay time" aria-label="Decay time" />
+      <button id="gizmoSpinToggleBtn" type="button" aria-pressed="false">Spin</button>
+      <div id="gizmoSpinSpeedLabel" class="gizmoSliderLabel">Spin Speed</div>
+      <input id="gizmoSpinSpeedRange" type="range" min="0" max="100" step="1" value="55" title="Spin speed" aria-label="Spin speed" />
+      <button id="gizmoZoomStopsInertiaBtn" type="button" aria-pressed="false" title="Toggle zoom stopping inertia">Zoom Stops Inertia</button>
+    </div>
     <button id="gizmoViewBtn" type="button">View</button>
     <button id="gizmoControlsBtn" type="button">Controls</button>
     <div id="gizmoViewPanel">
@@ -3369,9 +3491,9 @@ details.section details.section > summary {
         const panelStates = new Map();
         const mobileLayoutQuery = window.matchMedia("(max-width: 900px), (pointer: coarse)");
         const PANEL_BTN_ICONS = {
-          float: "â–£",
-          window: "â‡±",
-          dock: "â†©"
+          float: "▣",
+          window: "⇱",
+          dock: "↩"
         };
 
         function isMobileLayout() {
@@ -3821,6 +3943,7 @@ details.section details.section > summary {
     </script>
   </body>
 </html>
+
 
 
 
