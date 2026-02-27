@@ -9,6 +9,7 @@ export type GizmoLayoutState = {
   gizmoPanelHeight: number;
   viewOpen: boolean;
   controlsOpen: boolean;
+  compactTabs: boolean;
   spinEnabled: boolean;
   viewPanelHeight: number;
   toolbarWidthOverride: number | null;
@@ -40,6 +41,8 @@ export type GizmoLayoutResult = {
 const HANDLE_HALF = 7;
 const ROW_H = 22;
 const VIEW_PANEL_GAP = 8;
+const COLLAPSED_ROW_EXTRA_GAP = 10;
+const COMPACT_TAB_ROW_STEP = 88;
 
 export type GizmoLayoutElements = {
   gizmoViewportResizeHandleEl: HTMLDivElement | null;
@@ -70,19 +73,25 @@ export type GizmoLayoutElements = {
 
 export function computeGizmoLayout(vp: GizmoViewportRect, state: GizmoLayoutState): GizmoLayoutResult {
   const expanded = state.gizmoOpen || state.viewOpen || state.controlsOpen;
-  const maxWidth = Math.max(108, Math.round(vp.left + vp.size - 8));
-  const requestedWidth = Number.isFinite(state.toolbarWidthOverride as number)
-    ? Math.round(state.toolbarWidthOverride as number)
-    : Math.round(vp.size);
-  const toolbarWidth = expanded ? Math.min(maxWidth, Math.max(108, requestedWidth)) : 108;
+  const compactTabsActive = state.compactTabs && !expanded;
+  const collapsedExtraGap = expanded ? 0 : compactTabsActive ? 0 : COLLAPSED_ROW_EXTRA_GAP;
+  const collapsedWidth = state.compactTabs ? 24 : 108;
+  const maxWidth = Math.max(collapsedWidth, Math.round(vp.left + vp.size - 8));
+  const requestedWidth = compactTabsActive
+    ? collapsedWidth
+    : Number.isFinite(state.toolbarWidthOverride as number)
+      ? Math.round(state.toolbarWidthOverride as number)
+      : Math.round(vp.size);
+  const toolbarWidth = expanded ? Math.min(maxWidth, Math.max(108, requestedWidth)) : collapsedWidth;
   const toolbarRight = Math.round(vp.left + vp.size);
   const modeBaseLeft = Math.round(toolbarRight - toolbarWidth);
   const gizmoRowTop = Math.round(vp.top + vp.size + 4);
   const gizmoPanelTop = Math.round(gizmoRowTop + 24);
   const gizmoPanelDrop = state.gizmoOpen ? Math.round(state.gizmoPanelHeight + VIEW_PANEL_GAP) : 0;
-  const viewRowTop = gizmoRowTop + ROW_H + gizmoPanelDrop;
+  const rowStep = compactTabsActive ? COMPACT_TAB_ROW_STEP : ROW_H;
+  const viewRowTop = gizmoRowTop + rowStep + gizmoPanelDrop + collapsedExtraGap;
   const viewPanelDrop = state.viewOpen ? Math.round(state.viewPanelHeight + VIEW_PANEL_GAP) : 0;
-  const controlsRowTop = viewRowTop + ROW_H + viewPanelDrop;
+  const controlsRowTop = viewRowTop + rowStep + viewPanelDrop;
   const controlsStackTop = controlsRowTop + ROW_H;
 
   return {

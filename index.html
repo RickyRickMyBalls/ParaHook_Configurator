@@ -44,6 +44,7 @@
       }
       .bootLoadingCard {
         min-width: 220px;
+        width: min(88vw, 360px);
         max-width: min(88vw, 360px);
         padding: 16px 18px;
         border-radius: 12px;
@@ -62,6 +63,66 @@
       .bootLoadingSub {
         font-size: 12px;
         opacity: 0.82;
+      }
+      .bootLoadingProgress {
+        position: relative;
+        width: 100%;
+        min-width: 100%;
+        max-width: 100%;
+        height: 18px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        background: rgba(255, 255, 255, 0.07);
+        overflow: hidden;
+      }
+      .bootLoadingProgressFill {
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 0%;
+        background: linear-gradient(90deg, rgba(95, 170, 255, 0.65), rgba(135, 210, 255, 0.85));
+        transition: width 140ms ease;
+      }
+      .bootLoadingProgressText {
+        position: absolute;
+        inset: 0 8px 0 8px;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        color: #f3f6fb;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+      }
+      .bootLoadingDetail {
+        min-height: 14px;
+        font-size: 11px;
+        line-height: 1.35;
+        color: rgba(232, 232, 234, 0.9);
+        text-align: left;
+        word-break: break-word;
+      }
+      .bootLoadingLog {
+        height: 100px;
+        max-height: 28vh;
+        overflow: auto;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(0, 0, 0, 0.28);
+        padding: 6px 8px;
+        box-sizing: border-box;
+        text-align: left;
+        font-size: 11px;
+        line-height: 1.3;
+        color: rgba(232, 232, 234, 0.9);
+      }
+      .bootLoadingLogLine {
+        margin: 0 0 4px 0;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+      .bootLoadingLogLine:last-child {
+        margin-bottom: 0;
       }
       .bootLoadingSpinner {
         width: 26px;
@@ -663,7 +724,7 @@ details.section details.section > summary {
       }
       .layerRow {
         display: grid;
-        grid-template-columns: auto 1fr;
+        grid-template-columns: auto auto 1fr auto;
         align-items: center;
         gap: 8px;
         width: 100%;
@@ -703,9 +764,6 @@ details.section details.section > summary {
       .layerRow.ref.hidden {
         display: none;
       }
-      .layerRow.ref.hasAction {
-        grid-template-columns: auto 1fr auto;
-      }
       .layerRowLabel {
         font-size: 12px;
         line-height: 1.2;
@@ -713,7 +771,8 @@ details.section details.section > summary {
         color: inherit;
       }
       .eyeBtn,
-      .layerRowActionBtn {
+      .layerRowActionBtn,
+      .layerRowMaterialBtn {
         width: 28px;
         height: 24px;
         padding: 0;
@@ -732,6 +791,165 @@ details.section details.section > summary {
       }
       .layerRowActionBtn:hover {
         background: rgba(255,255,255,0.08);
+      }
+      .layerRowMaterialBtn:hover {
+        background: rgba(255,255,255,0.08);
+      }
+      .layerRowActionBtn:disabled,
+      .layerRowMaterialBtn:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+      .layerRowMaterialBtn {
+        font-size: 12px;
+      }
+      #materialsFloatPanel {
+        z-index: 2100;
+        width: min(360px, calc(100vw - 32px));
+        min-width: 300px;
+        min-height: 260px;
+        max-height: calc(var(--app-vh, 100dvh) - 32px);
+        color: #e8e8ea;
+      }
+      #materialsFloatPanel[hidden] {
+        display: none !important;
+      }
+      #materialsBody {
+        display: grid;
+        gap: 8px;
+      }
+      #materialsTitle {
+        font-size: 13px;
+        font-weight: 700;
+        margin: 0;
+        color: #e8e8ea;
+      }
+      #materialsHeader {
+        color: #e8e8ea;
+      }
+      #materialsCloseBtn {
+        min-width: 28px;
+        min-height: 24px;
+        padding: 0 8px;
+      }
+      #materialsFocusText {
+        font-size: 12px;
+        opacity: 0.85;
+        color: #e8e8ea;
+      }
+      #materialsPartSection {
+        display: grid;
+        gap: 4px;
+      }
+      .materialsSectionLabel {
+        font-size: 11px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        opacity: 0.82;
+        color: #e8e8ea;
+      }
+      .materialsPartListWrap {
+        width: 100%;
+        height: 102px;
+        min-height: 72px;
+        max-height: 260px;
+        border-radius: 8px;
+        border: 1px solid rgba(255,255,255,0.16);
+        background: rgba(255,255,255,0.06);
+        box-sizing: border-box;
+        padding: 4px;
+        overflow: auto;
+        resize: vertical;
+        overscroll-behavior: contain;
+      }
+      #materialsPartList {
+        display: grid;
+        gap: 4px;
+      }
+      .materialsPartBtn {
+        width: 100%;
+        min-height: 28px;
+        border-radius: 7px;
+        border: 1px solid rgba(255,255,255,0.14);
+        background: rgba(255,255,255,0.04);
+        color: #e8e8ea;
+        text-align: left;
+        padding: 4px 8px;
+        box-sizing: border-box;
+        font-size: 12px;
+        line-height: 1.2;
+      }
+      .materialsPartBtn[aria-pressed="true"] {
+        background: rgba(255,255,255,0.20);
+        border-color: rgba(255,255,255,0.32);
+      }
+      #materialsTuneSection {
+        padding: 8px;
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 8px;
+        background: rgba(255,255,255,0.02);
+        display: grid;
+        gap: 8px;
+      }
+      .materialsColorRow {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 8px;
+        align-items: center;
+      }
+      #materialsColorPicker {
+        width: 52px;
+        height: 30px;
+        border: 1px solid rgba(255,255,255,0.18);
+        border-radius: 6px;
+        background: transparent;
+        padding: 0;
+      }
+      #materialsColorHex {
+        width: 100%;
+        height: 30px;
+        border: 1px solid rgba(255,255,255,0.16);
+        border-radius: 8px;
+        background: rgba(255,255,255,0.06);
+        color: #e8e8ea;
+        padding: 0 8px;
+        box-sizing: border-box;
+      }
+      #materialsNewBtn {
+        width: 100%;
+      }
+      .materialsListWrap {
+        border: 1px solid rgba(255,255,255,0.10);
+        border-radius: 8px;
+        padding: 6px;
+        background: rgba(255,255,255,0.02);
+        max-height: 220px;
+        overflow: auto;
+        overscroll-behavior: contain;
+      }
+      .materialsList {
+        display: grid;
+        gap: 6px;
+      }
+      .materialPresetBtn {
+        width: 100%;
+        text-align: left;
+      }
+      .materialPresetBtn[aria-pressed="true"] {
+        background: rgba(255,255,255,0.14);
+      }
+      .materialTuneRow {
+        display: grid;
+        gap: 4px;
+      }
+      .materialTuneLabel {
+        font-size: 11px;
+        opacity: 0.85;
+        color: #e8e8ea;
+      }
+      .materialTuneRange {
+        width: 100%;
+        accent-color: #8fb5ff;
       }
 
       .radioRow {
@@ -1349,36 +1567,74 @@ details.section details.section > summary {
         button {
           min-height: 38px;
         }
+        body.mobile-layout #gizmoToggleBtn,
+        body.mobile-layout #gizmoCardinalUpBadge,
+        body.mobile-layout #gizmoViewBtn,
+        body.mobile-layout #gizmoControlsBtn {
+          height: 22px !important;
+          min-height: 22px !important;
+          padding: 2px 6px !important;
+          line-height: 1.1 !important;
+        }
         .check input[type="checkbox"] {
           width: 22px;
           height: 22px;
         }
-        body.mobile-layout #gizmoToolbarResizeHandle,
-        body.mobile-layout #gizmoViewportResizeHandle,
         body.mobile-layout #gizmoRollCwBtn,
         body.mobile-layout #gizmoRollCcwBtn,
         body.mobile-layout #gizmoViewPanel .gizmoSubSection:not(:first-child) {
           display: none !important;
+        }
+        body.mobile-layout #gizmoToolbarResizeHandle,
+        body.mobile-layout #gizmoViewportResizeHandle {
+          display: block !important;
+          width: 12px;
+          height: 12px;
+          border-radius: 4px;
+        }
+        body.mobile-layout #gizmoToolbarResizeHandle {
+          cursor: ew-resize;
+        }
+        body.mobile-layout #gizmoViewportResizeHandle {
+          cursor: nesw-resize;
         }
         body.mobile-layout #gizmoViewPanel {
           width: min(220px, 62vw);
         }
         body.mobile-layout.mobile-gizmo-collapsed #gizmoToggleBtn,
         body.mobile-layout.mobile-gizmo-collapsed #gizmoViewBtn,
+        body.mobile-layout.mobile-gizmo-collapsed #gizmoControlsBtn,
         body.mobile-layout.mobile-gizmo-collapsed #gizmoCardinalUpBadge,
         body.mobile-layout.mobile-gizmo-collapsed #gizmoFpsBadge {
-          width: 18px !important;
-          min-width: 18px !important;
-          height: 18px !important;
-          min-height: 18px !important;
-          padding: 0 !important;
+          width: 24px !important;
+          min-width: 24px !important;
+          height: 78px !important;
+          min-height: 78px !important;
+          padding: 4px 2px !important;
           border-radius: 6px !important;
-          font-size: 0 !important;
-          line-height: 0 !important;
-          letter-spacing: 0 !important;
-          opacity: 0.68;
-          pointer-events: none;
-          transition: width 150ms ease, height 150ms ease, opacity 150ms ease;
+          line-height: 1.05 !important;
+          letter-spacing: 0.02em !important;
+          opacity: 0.82;
+          writing-mode: vertical-rl;
+          text-orientation: mixed;
+          transform: rotate(180deg);
+          transition: width 150ms ease, height 150ms ease, opacity 150ms ease, transform 150ms ease;
+        }
+        body.mobile-layout.mobile-gizmo-collapsed #gizmoToggleBtn {
+          font-size: 10px !important;
+          pointer-events: auto !important;
+        }
+        body.mobile-layout.mobile-gizmo-collapsed #gizmoViewBtn {
+          font-size: 10px !important;
+          pointer-events: auto !important;
+        }
+        body.mobile-layout.mobile-gizmo-collapsed #gizmoControlsBtn {
+          font-size: 10px !important;
+          pointer-events: auto !important;
+        }
+        body.mobile-layout.mobile-gizmo-collapsed #gizmoCardinalUpBadge,
+        body.mobile-layout.mobile-gizmo-collapsed #gizmoFpsBadge {
+          display: none !important;
         }
         body.mobile-layout.mobile-gizmo-collapsed #gizmoViewPanel {
           display: none !important;
@@ -1393,6 +1649,12 @@ details.section details.section > summary {
         <div class="bootLoadingSpinner" aria-hidden="true"></div>
         <div class="bootLoadingTitle">Loading model</div>
         <div class="bootLoadingSub">Preparing geometry and camera...</div>
+        <div class="bootLoadingProgress" aria-label="Model loading progress">
+          <div id="bootLoadingProgressFill" class="bootLoadingProgressFill" aria-hidden="true"></div>
+          <div id="bootLoadingProgressText" class="bootLoadingProgressText">0%</div>
+        </div>
+        <div id="bootLoadingDetail" class="bootLoadingDetail">Files 0/2 | 0.00 / -- MB | main: bootstrapping UI</div>
+        <div id="bootLoadingLog" class="bootLoadingLog" aria-label="Loading activity log"></div>
       </div>
     </div>
     <div id="ui">
@@ -3062,6 +3324,55 @@ details.section details.section > summary {
       aria-label="Hide toolbar"
       title="Hide toolbar"
     >&#9664;</button>
+    <div id="materialsFloatPanel" class="floatHost" hidden>
+      <div id="materialsHeader" class="floatHostHeader">
+        <div class="floatHostTitleWrap">
+          <div id="materialsTitle" class="floatHostTitle">Materials</div>
+        </div>
+        <div class="panelActionRow">
+          <button id="materialsCloseBtn" type="button" class="panelActionBtn" aria-label="Close materials panel" title="Close">X</button>
+        </div>
+      </div>
+      <div id="materialsBody" class="floatHostBody">
+        <div id="materialsFocusText">Focused item: none</div>
+        <div id="materialsPartSection">
+          <div class="materialsSectionLabel">Object Part</div>
+          <div class="materialsPartListWrap">
+            <div id="materialsPartList" aria-label="Object part list"></div>
+          </div>
+        </div>
+        <div id="materialsTuneSection">
+          <div class="materialTuneRow">
+            <label class="materialTuneLabel" for="materialsMetalnessRange">Metalness</label>
+            <input id="materialsMetalnessRange" class="materialTuneRange" type="range" min="0" max="1" step="0.01" value="0.05" />
+          </div>
+          <div class="materialTuneRow">
+            <label class="materialTuneLabel" for="materialsRoughnessRange">Roughness</label>
+            <input id="materialsRoughnessRange" class="materialTuneRange" type="range" min="0" max="1" step="0.01" value="0.75" />
+          </div>
+          <div class="materialTuneRow">
+            <label class="materialTuneLabel" for="materialsOpacityRange">Opacity</label>
+            <input id="materialsOpacityRange" class="materialTuneRange" type="range" min="0.08" max="1" step="0.01" value="1" />
+          </div>
+          <div class="materialsColorRow">
+            <input id="materialsColorPicker" type="color" value="#ffffff" aria-label="Material color" />
+            <input id="materialsColorHex" type="text" value="#FFFFFF" maxlength="7" aria-label="Material hex color" />
+          </div>
+        </div>
+        <button id="materialsNewBtn" type="button" class="secondary">New Material</button>
+        <div class="materialsListWrap">
+          <div class="materialsList" id="materialsPresetList">
+            <button type="button" class="secondary materialPresetBtn" data-mat-name="Default Material" data-mat-kind="default">Default Material</button>
+            <button type="button" class="secondary materialPresetBtn" data-mat-name="White" data-mat-color="#ffffff">White</button>
+            <button type="button" class="secondary materialPresetBtn" data-mat-name="Gray" data-mat-color="#808080">Gray</button>
+            <button type="button" class="secondary materialPresetBtn" data-mat-name="Black" data-mat-color="#111111">Black</button>
+            <button type="button" class="secondary materialPresetBtn" data-mat-name="Blue" data-mat-color="#2f6fff">Blue</button>
+            <button type="button" class="secondary materialPresetBtn" data-mat-name="Red" data-mat-color="#d63c3c">Red</button>
+            <button type="button" class="secondary materialPresetBtn" data-mat-name="Green" data-mat-color="#2f9b4f">Green</button>
+          </div>
+        </div>
+      </div>
+    </div>
     <canvas id="c"></canvas>
     <div id="gizmoViewportResizeHandle" aria-label="Resize gizmo viewport" title="Drag to resize gizmo viewport"></div>
     <div id="gizmoToolbarResizeHandle" aria-label="Resize gizmo toolbar" title="Drag to resize gizmo toolbar"></div>

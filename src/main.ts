@@ -90,9 +90,142 @@ const canvas = mustEl<HTMLCanvasElement>("c");
 const viewer = new Viewer(canvas);
 const bootLoadingOverlayEl = document.getElementById("bootLoadingOverlay") as HTMLDivElement | null;
 let bootLoadingActive = !!bootLoadingOverlayEl;
+const bootLoadingProgressFillEl = document.getElementById("bootLoadingProgressFill") as HTMLDivElement | null;
+const bootLoadingProgressTextEl = document.getElementById("bootLoadingProgressText") as HTMLDivElement | null;
+const bootLoadingDetailEl = document.getElementById("bootLoadingDetail") as HTMLDivElement | null;
+const bootLoadingLogEl = document.getElementById("bootLoadingLog") as HTMLDivElement | null;
+const BOOT_TOTAL_ASSET_COUNT = 2;
+const BOOT_LOG_MAX_LINES = 140;
+const bootLoadedAssets: Record<"opencascade" | "mesh", boolean> = {
+  opencascade: false,
+  mesh: false,
+};
+const bootAssetBytes: Record<"opencascade" | "mesh", number | null> = {
+  opencascade: null,
+  mesh: null,
+};
+let bootProgressPct = 0;
+let bootStatusDetail = "main: bootstrapping UI";
+let lastBootLogLine = "";
 const mobileLayoutMediaQuery = window.matchMedia("(max-width: 900px), (pointer: coarse)");
 let isMobileLayoutActive = false;
 let onLayoutModeChanged: ((isMobile: boolean) => void) | null = null;
+
+function formatBootBytesAsMb(bytes: number | null) {
+  if (!(bytes != null && Number.isFinite(bytes) && bytes >= 0)) return "--";
+  return (bytes / (1024 * 1024)).toFixed(2);
+}
+
+function getOpenCascadeResourceBytesFromPerformance() {
+  if (!("performance" in window) || typeof performance.getEntriesByType !== "function") return null;
+  const entries = performance.getEntriesByType("resource") as PerformanceResourceTiming[];
+  for (let i = entries.length - 1; i >= 0; i--) {
+    const name = String(entries[i]?.name ?? "").toLowerCase();
+    if (!name.includes("replicad_single.wasm")) continue;
+    const bytes = entries[i].transferSize || entries[i].decodedBodySize || entries[i].encodedBodySize || 0;
+    if (bytes > 0) return bytes;
+  }
+  return null;
+}
+
+function getBootLoadedAssetCount() {
+  return Number(bootLoadedAssets.opencascade) + Number(bootLoadedAssets.mesh);
+}
+
+function getBootKnownLoadedBytes() {
+  return (bootAssetBytes.opencascade ?? 0) + (bootAssetBytes.mesh ?? 0);
+}
+
+function getBootKnownTotalBytes() {
+  if (bootAssetBytes.opencascade == null || bootAssetBytes.mesh == null) return null;
+  return bootAssetBytes.opencascade + bootAssetBytes.mesh;
+}
+
+function renderBootLoadingOverlay() {
+  if (!bootLoadingActive) return;
+  const pct = Math.max(0, Math.min(100, Math.round(bootProgressPct)));
+  if (bootLoadingProgressFillEl) {
+    bootLoadingProgressFillEl.style.width = `${pct}%`;
+  }
+  if (bootLoadingProgressTextEl) {
+    bootLoadingProgressTextEl.textContent = `${pct}%`;
+  }
+  if (bootLoadingDetailEl) {
+    const loadedCount = getBootLoadedAssetCount();
+    const loadedMb = formatBootBytesAsMb(getBootKnownLoadedBytes());
+    const totalMb = formatBootBytesAsMb(getBootKnownTotalBytes());
+    bootLoadingDetailEl.textContent = `Files ${loadedCount}/${BOOT_TOTAL_ASSET_COUNT} | ${loadedMb} / ${totalMb} MB | ${bootStatusDetail}`;
+  }
+}
+
+function pushBootLoadingLogLine(line: string) {
+  if (!bootLoadingLogEl) return;
+  const text = line.trim();
+  if (!text) return;
+  if (text === lastBootLogLine) return;
+  lastBootLogLine = text;
+  const row = document.createElement("div");
+  row.className = "bootLoadingLogLine";
+  row.textContent = text;
+  bootLoadingLogEl.prepend(row);
+  while (bootLoadingLogEl.childElementCount > BOOT_LOG_MAX_LINES) {
+    const last = bootLoadingLogEl.lastElementChild;
+    if (!last) break;
+    bootLoadingLogEl.removeChild(last);
+  }
+  bootLoadingLogEl.scrollTop = 0;
+}
+
+function setBootProgressPct(nextPct: number) {
+  bootProgressPct = Math.max(bootProgressPct, Math.min(100, nextPct));
+  renderBootLoadingOverlay();
+}
+
+function markBootAssetLoaded(key: "opencascade" | "mesh", bytes: number | null = null) {
+  bootLoadedAssets[key] = true;
+  if (bytes != null && Number.isFinite(bytes) && bytes >= 0) {
+    bootAssetBytes[key] = Math.max(0, Math.round(bytes));
+  } else if (key === "opencascade" && bootAssetBytes.opencascade == null) {
+    bootAssetBytes.opencascade = getOpenCascadeResourceBytesFromPerformance();
+  }
+  renderBootLoadingOverlay();
+}
+
+function describeBootStatusFromMessage(msg: string) {
+  const s = msg.trim().toLowerCase();
+  if (s.startsWith("loading opencascade")) return "worker: loading OpenCascade WASM";
+  if (s.startsWith("opencascade ready")) return "worker: OpenCascade ready, building model";
+  if (s.startsWith("building baseplate")) return "worker: building baseplate";
+  if (s.startsWith("building toe")) return "worker: building toe geometry";
+  if (s.startsWith("building heel")) return "worker: building heel geometry";
+  if (s.startsWith("meshing base")) return "worker: meshing base";
+  if (s.startsWith("meshing toe")) return "worker: meshing toe";
+  if (s.startsWith("meshing heel")) return "worker: meshing heel";
+  if (s.includes("preview mesh merged")) return "worker: merging preview mesh";
+  if (s === "ready" || s.startsWith("ready (")) return "main: applying mesh + resetting camera";
+  if (s.startsWith("error:")) return `main: ${msg}`;
+  if (s.startsWith("worker error:") || s === "worker messageerror") return `worker: ${msg}`;
+  if (s === "building...") return "main: dispatching build to worker";
+  if (s.startsWith("loading settings")) return "main: loading settings file";
+  return `main: ${msg}`;
+}
+
+function updateBootLoadingFromStatus(msg: string) {
+  if (!bootLoadingActive) return;
+  const s = msg.trim().toLowerCase();
+  if (s.startsWith("opencascade ready")) {
+    markBootAssetLoaded("opencascade");
+  }
+  const mapped = mapStatusMessageToProgress(msg);
+  if (mapped != null) {
+    setBootProgressPct(Math.max(4, mapped));
+  } else {
+    setBootProgressPct(Math.max(bootProgressPct, 8));
+  }
+  bootStatusDetail = describeBootStatusFromMessage(msg);
+  renderBootLoadingOverlay();
+  pushBootLoadingLogLine(`${bootStatusDetail} | status="${msg}"`);
+}
 
 function updateAppViewportHeightVar() {
   const next = window.visualViewport?.height ?? window.innerHeight;
@@ -107,6 +240,8 @@ function applyLayoutModeFromMediaQuery() {
 
 updateAppViewportHeightVar();
 applyLayoutModeFromMediaQuery();
+setBootProgressPct(3);
+pushBootLoadingLogLine("main: bootstrapping UI");
 
 window.addEventListener("resize", updateAppViewportHeightVar);
 window.visualViewport?.addEventListener("resize", updateAppViewportHeightVar);
@@ -205,11 +340,41 @@ function getMobileGizmoCompactSize() {
   return Math.max(72, Math.round(full * 0.5));
 }
 
+function getMobileGizmoExpandedSize() {
+  const full = Math.max(72, Math.round(mobileGizmoFullSize || viewer.getAxisGizmoViewportSize?.() || 300));
+  return Math.max(132, full);
+}
+
+function syncGizmoToggleButtonForMobile() {
+  if (!gizmoToggleBtnEl) return;
+  if (!isMobileLayoutActive) {
+    gizmoToggleBtnEl.textContent = "Gizmo";
+    gizmoToggleBtnEl.title = "Gizmo settings";
+    gizmoToggleBtnEl.setAttribute("aria-label", "Gizmo settings");
+    if (gizmoViewBtnEl) gizmoViewBtnEl.textContent = "View";
+    return;
+  }
+  if (mobileGizmoCollapsed) {
+    gizmoToggleBtnEl.textContent = "Gizmo";
+    gizmoToggleBtnEl.title = "Expand gizmo";
+    gizmoToggleBtnEl.setAttribute("aria-label", "Expand gizmo");
+    if (gizmoViewBtnEl) gizmoViewBtnEl.textContent = "View";
+    if (gizmoControlsBtnEl) gizmoControlsBtnEl.textContent = "Controls";
+    return;
+  }
+  gizmoToggleBtnEl.textContent = "Gizmo";
+  gizmoToggleBtnEl.title = "Gizmo settings";
+  gizmoToggleBtnEl.setAttribute("aria-label", "Gizmo settings");
+  if (gizmoViewBtnEl) gizmoViewBtnEl.textContent = "View";
+  if (gizmoControlsBtnEl) gizmoControlsBtnEl.textContent = "Controls";
+}
+
 function setMobileGizmoCollapsed(collapsed: boolean) {
   mobileGizmoCollapsed = !!collapsed;
   document.body.classList.toggle("mobile-gizmo-collapsed", isMobileLayoutActive && mobileGizmoCollapsed);
   if (!isMobileLayoutActive) {
     viewer.setAxisGizmoEnabled?.(true);
+    syncGizmoToggleButtonForMobile();
     return;
   }
   if (mobileGizmoCollapsed) {
@@ -217,11 +382,12 @@ function setMobileGizmoCollapsed(collapsed: boolean) {
     gizmoControlsPanelOpen = false;
     gizmoSettingsPanelOpen = false;
     viewer.setAxisGizmoViewportSize(getMobileGizmoCompactSize());
-    viewer.setAxisGizmoEnabled?.(false);
+    viewer.setAxisGizmoEnabled?.(true);
   } else {
-    viewer.setAxisGizmoViewportSize(Math.max(72, Math.round(mobileGizmoFullSize)));
+    viewer.setAxisGizmoViewportSize(getMobileGizmoExpandedSize());
     viewer.setAxisGizmoEnabled?.(true);
   }
+  syncGizmoToggleButtonForMobile();
   positionGizmoViewportResizeHandle();
 }
 
@@ -305,6 +471,7 @@ function positionGizmoViewportResizeHandle() {
     gizmoPanelHeight: gizmoSettingsPanelOpen && gizmoGizmoPanelEl ? gizmoGizmoPanelEl.getBoundingClientRect().height : 0,
     viewOpen: gizmoViewPanelOpen,
     controlsOpen: gizmoControlsPanelOpen,
+    compactTabs: isMobileLayoutActive && mobileGizmoCollapsed,
     spinEnabled: !!viewer.getAutoSpinEnabled?.(),
     viewPanelHeight: gizmoViewPanelOpen && gizmoViewPanelEl ? gizmoViewPanelEl.getBoundingClientRect().height : 0,
     toolbarWidthOverride: gizmoToolbarWidthOverride,
@@ -372,6 +539,9 @@ if (gizmoViewportResizeHandleEl) {
     | null = null;
 
   const endDrag = () => {
+    if (isMobileLayoutActive && !mobileGizmoCollapsed) {
+      mobileGizmoFullSize = Math.max(72, Math.round(viewer.getAxisGizmoViewportSize?.() ?? mobileGizmoFullSize));
+    }
     drag = null;
     document.body.style.userSelect = "";
   };
@@ -459,7 +629,19 @@ if (gizmoToggleBtnEl) {
   gizmoToggleBtnEl.addEventListener("click", (e) => {
     e.preventDefault();
     e.stopPropagation();
+    if (isMobileLayoutActive) {
+      if (mobileGizmoCollapsed) {
+        setMobileGizmoCollapsed(false);
+        gizmoSettingsPanelOpen = true;
+      } else {
+        setMobileGizmoCollapsed(true);
+      }
+      syncGizmoToggleButtonForMobile();
+      positionGizmoViewportResizeHandle();
+      return;
+    }
     gizmoSettingsPanelOpen = !gizmoSettingsPanelOpen;
+    syncGizmoToggleButtonForMobile();
     positionGizmoViewportResizeHandle();
   });
 }
@@ -640,6 +822,15 @@ if (gizmoViewBtnEl) {
   gizmoViewBtnEl.addEventListener("click", (e) => {
     e.preventDefault();
     e.stopPropagation();
+    if (isMobileLayoutActive && mobileGizmoCollapsed) {
+      setMobileGizmoCollapsed(false);
+      gizmoSettingsPanelOpen = false;
+      gizmoControlsPanelOpen = false;
+      gizmoViewPanelOpen = true;
+      gizmoViewPanelEl?.classList.add("open");
+      positionGizmoViewportResizeHandle();
+      return;
+    }
     gizmoViewPanelOpen = !gizmoViewPanelOpen;
     gizmoViewPanelEl?.classList.toggle("open", gizmoViewPanelOpen);
     positionGizmoViewportResizeHandle();
@@ -649,6 +840,15 @@ if (gizmoControlsBtnEl) {
   gizmoControlsBtnEl.addEventListener("click", (e) => {
     e.preventDefault();
     e.stopPropagation();
+    if (isMobileLayoutActive && mobileGizmoCollapsed) {
+      setMobileGizmoCollapsed(false);
+      gizmoSettingsPanelOpen = false;
+      gizmoViewPanelOpen = false;
+      gizmoViewPanelEl?.classList.remove("open");
+      gizmoControlsPanelOpen = true;
+      positionGizmoViewportResizeHandle();
+      return;
+    }
     gizmoControlsPanelOpen = !gizmoControlsPanelOpen;
     positionGizmoViewportResizeHandle();
   });
@@ -1336,6 +1536,25 @@ applyFootpadUIToViewer();
 [footpad1EnabledEl, footpad2EnabledEl, footpad3EnabledEl].forEach((el) =>
   el.addEventListener("change", syncReferenceLayerRowsFromCheckboxes)
 );
+[footpad1EnabledEl, footpad2EnabledEl, footpad3EnabledEl].forEach((el) =>
+  el.addEventListener("change", () => {
+    if (
+      !materialsFocusState ||
+      (materialsFocusState.target !== "footpad" &&
+        materialsFocusState.target !== "footpad-1" &&
+        materialsFocusState.target !== "footpad-2" &&
+        materialsFocusState.target !== "footpad-3")
+    ) return;
+    if (materialsFocusState.target === "footpad") {
+      const resolved = resolveFootpadMaterialTarget();
+      materialsFocusState.target = resolved.target;
+      materialsFocusState.label = resolved.label;
+    }
+    populateMaterialsPartList();
+    syncMaterialsTuneInputsFromState();
+    syncMaterialsPanelUI();
+  })
+);
 
 // -----------------------------
 // Shoe reference UI
@@ -1904,6 +2123,17 @@ const layersModelListEl = mustEl<HTMLDivElement>("layersModelList");
 const layerSaveCurrentBtn = mustEl<HTMLButtonElement>("layerSaveCurrent");
 const layerUpdateActiveBtn = mustEl<HTMLButtonElement>("layerUpdateActive");
 const layerDeleteActiveBtn = mustEl<HTMLButtonElement>("layerDeleteActive");
+const materialsFloatPanelEl = document.getElementById("materialsFloatPanel") as HTMLDivElement | null;
+const materialsCloseBtnEl = document.getElementById("materialsCloseBtn") as HTMLButtonElement | null;
+const materialsFocusTextEl = document.getElementById("materialsFocusText") as HTMLDivElement | null;
+const materialsPartListEl = document.getElementById("materialsPartList") as HTMLDivElement | null;
+const materialsMetalnessRangeEl = document.getElementById("materialsMetalnessRange") as HTMLInputElement | null;
+const materialsRoughnessRangeEl = document.getElementById("materialsRoughnessRange") as HTMLInputElement | null;
+const materialsOpacityRangeEl = document.getElementById("materialsOpacityRange") as HTMLInputElement | null;
+const materialsColorPickerEl = document.getElementById("materialsColorPicker") as HTMLInputElement | null;
+const materialsColorHexEl = document.getElementById("materialsColorHex") as HTMLInputElement | null;
+const materialsNewBtnEl = document.getElementById("materialsNewBtn") as HTMLButtonElement | null;
+const materialsPresetListEl = document.getElementById("materialsPresetList") as HTMLDivElement | null;
 const meshVertsEl = document.getElementById("meshVerts") as HTMLSpanElement | null;
 const meshTrisEl = document.getElementById("meshTris") as HTMLSpanElement | null;
 const modelXEl = mustEl<HTMLInputElement>("modelX");
@@ -2021,14 +2251,21 @@ function setStatus(msg: string) {
   titleStatCurrentStatus = msg;
   setStatusText(msg);
   updateStatusProgressFromMessage(msg);
+  updateBootLoadingFromStatus(msg);
+  const shouldCloseBootOverlay =
+    isSuccessLikeStatus(msg) ||
+    msg === "model disabled" ||
+    msg.startsWith("error:") ||
+    msg.startsWith("worker error:") ||
+    msg === "worker messageerror";
   if (
     bootLoadingActive &&
-    (isSuccessLikeStatus(msg) ||
-      msg === "model disabled" ||
-      msg.startsWith("error:") ||
-      msg.startsWith("worker error:") ||
-      msg === "worker messageerror")
+    shouldCloseBootOverlay
   ) {
+    if (isSuccessLikeStatus(msg)) {
+      bootStatusDetail = "main: startup complete";
+    }
+    setBootProgressPct(100);
     bootLoadingActive = false;
     bootLoadingOverlayEl?.classList.add("hidden");
     bootLoadingOverlayEl?.setAttribute("aria-hidden", "true");
@@ -3040,6 +3277,7 @@ type SettingsSnapshot = {
   version: 1;
   exportedAt: string;
   inputs: Record<string, SettingsValue>;
+  materials?: MaterialsSnapshot;
 };
 
 type CachedModelLayer = {
@@ -3055,12 +3293,47 @@ type LayersState = {
   activeModelLayerId: string | null;
 };
 
+type LayerRowTarget = ReferenceLayerKind | "generated-model" | "footpad-1" | "footpad-2" | "footpad-3";
+type MaterialPreset = {
+  id: string;
+  name: string;
+  colorHex: number;
+  metalness: number;
+  roughness: number;
+  opacity: number;
+  kind: "default" | "builtin" | "custom";
+};
+type MaterialsSnapshot = {
+  userCounter: number;
+  customPresets: Array<Omit<MaterialPreset, "kind">>;
+  assignments: Record<string, Record<string, { presetId?: string; colorHex: number; metalness: number; roughness: number; opacity: number }>>;
+};
+type MaterialsFocusState = {
+  target: LayerRowTarget;
+  label: string;
+  canApplyMaterial: boolean;
+  selectedPartId: string | null;
+};
+
 const layersState: LayersState = {
   modelLayers: [],
   activeModelLayerId: null,
 };
 let nextParahookLayerCounter = 1;
 let nextLoadedParahookLayerCounter = 1;
+let materialsFocusState: MaterialsFocusState | null = null;
+let materialsPresetLibrary: MaterialPreset[] = [
+  { id: "default", kind: "default", name: "Default Material", colorHex: 0xffffff, metalness: 0.05, roughness: 0.8, opacity: 1 },
+  { id: "white", kind: "builtin", name: "White", colorHex: 0xffffff, metalness: 0.05, roughness: 0.75, opacity: 1 },
+  { id: "gray", kind: "builtin", name: "Gray", colorHex: 0x808080, metalness: 0.05, roughness: 0.75, opacity: 1 },
+  { id: "black", kind: "builtin", name: "Black", colorHex: 0x111111, metalness: 0.05, roughness: 0.75, opacity: 1 },
+  { id: "blue", kind: "builtin", name: "Blue", colorHex: 0x2f6fff, metalness: 0.05, roughness: 0.75, opacity: 1 },
+  { id: "red", kind: "builtin", name: "Red", colorHex: 0xd63c3c, metalness: 0.05, roughness: 0.75, opacity: 1 },
+  { id: "green", kind: "builtin", name: "Green", colorHex: 0x2f9b4f, metalness: 0.05, roughness: 0.75, opacity: 1 },
+];
+let materialsSelectedLibraryItemId: string | null = null;
+let materialsUserCounter = 1;
+const materialsAssignments = new Map<string, Map<string, { presetId?: string; colorHex: number; metalness: number; roughness: number; opacity: number }>>();
 
 function collectSettingsSnapshot(): SettingsSnapshot {
   const inputs: Record<string, SettingsValue> = {};
@@ -3069,6 +3342,7 @@ function collectSettingsSnapshot(): SettingsSnapshot {
   for (const el of allInputs) {
     if (!el.id) continue;
     if (el.id.startsWith("radio")) continue; // keep music player state out of settings snapshots
+    if (el.id.startsWith("materials")) continue; // material system persists separately
     if (el.id.endsWith("Val")) continue; // mirrored numeric boxes
     if (el.type === "file") continue;
     if (el.type === "checkbox" || el.type === "radio") {
@@ -3083,6 +3357,7 @@ function collectSettingsSnapshot(): SettingsSnapshot {
     version: 1,
     exportedAt: new Date().toISOString(),
     inputs,
+    materials: collectMaterialsSnapshot(),
   };
 }
 
@@ -3102,6 +3377,7 @@ function applySettingsSnapshot(snapshot: SettingsSnapshot) {
   const entries = Object.entries(snapshot.inputs ?? {});
   for (const [id, raw] of entries) {
     if (id.startsWith("radio")) continue;
+    if (id.startsWith("materials")) continue;
     const el = document.getElementById(id);
     if (!(el instanceof HTMLInputElement)) continue;
     if (el.type === "file") continue;
@@ -3167,6 +3443,7 @@ function applySettingsSnapshot(snapshot: SettingsSnapshot) {
   applySectionCutUIToViewer();
   updateBaseplateViz();
   updateArcViz();
+  applyMaterialsSnapshot(snapshot.materials);
 }
 
 function applySettingsSnapshotAndRebuild(snapshot: SettingsSnapshot) {
@@ -3208,15 +3485,42 @@ const topReferenceLayerDefs: ReferenceLayerDef[] = [
     label: "Footpad",
     isOn: () => !!(footpad1EnabledEl.checked || footpad2EnabledEl.checked || footpad3EnabledEl.checked),
     toggle: () => {
+      if (!footpadRestoreState) {
+        footpadRestoreState = {
+          one: !!footpad1EnabledEl.checked,
+          two: !!footpad2EnabledEl.checked,
+          three: !!footpad3EnabledEl.checked,
+        };
+      }
       const anyOn = !!(footpad1EnabledEl.checked || footpad2EnabledEl.checked || footpad3EnabledEl.checked);
-      const next = !anyOn;
-      [footpad1EnabledEl, footpad2EnabledEl, footpad3EnabledEl].forEach((el) => {
-        el.checked = next;
-        el.dispatchEvent(new Event("change", { bubbles: true }));
-      });
+      if (anyOn) {
+        footpadRestoreState = {
+          one: !!footpad1EnabledEl.checked,
+          two: !!footpad2EnabledEl.checked,
+          three: !!footpad3EnabledEl.checked,
+        };
+        footpad1EnabledEl.checked = false;
+        footpad2EnabledEl.checked = false;
+        footpad3EnabledEl.checked = false;
+      } else {
+        const restore = footpadRestoreState ?? { one: false, two: true, three: false };
+        const anyRestoreOn = !!(restore.one || restore.two || restore.three);
+        const safeRestore = anyRestoreOn ? restore : { one: false, two: true, three: false };
+        footpad1EnabledEl.checked = !!safeRestore.one;
+        footpad2EnabledEl.checked = !!safeRestore.two;
+        footpad3EnabledEl.checked = !!safeRestore.three;
+      }
+      applyFootpadUIToViewer();
+      syncReferenceLayerRowsFromCheckboxes();
     },
   },
 ];
+
+let footpadRestoreState: { one: boolean; two: boolean; three: boolean } | null = {
+  one: !!footpad1EnabledEl.checked,
+  two: !!footpad2EnabledEl.checked,
+  three: !!footpad3EnabledEl.checked,
+};
 
 let controlPointVizGroupOpen = false;
 
@@ -3307,6 +3611,408 @@ function getCurrentGeneratedModelLabel(): string {
   return active ? active.name.replace(/^parahook_/, "Parahook_") : "unsaved Parahook_1";
 }
 
+function canFocusLayerTarget(target: LayerRowTarget): boolean {
+  return (
+    target === "generated-model" ||
+    target === "shoe" ||
+    target === "footpad" ||
+    target === "baseplate-viz" ||
+    target === "profile-a-viz" ||
+    target === "profile-b-viz" ||
+    target === "profile-c-viz"
+  );
+}
+
+function canApplyMaterialOnTarget(target: LayerRowTarget): boolean {
+  return (
+    target === "generated-model" ||
+    target === "shoe" ||
+    target === "footpad" ||
+    target === "footpad-1" ||
+    target === "footpad-2" ||
+    target === "footpad-3" ||
+    target === "control-point-viz" ||
+    target === "baseplate-viz" ||
+    target === "profile-a-viz" ||
+    target === "profile-b-viz" ||
+    target === "profile-c-viz"
+  );
+}
+
+function resolveFootpadMaterialTarget(): { target: LayerRowTarget; label: string } {
+  const one = !!footpad1EnabledEl.checked;
+  const two = !!footpad2EnabledEl.checked;
+  const three = !!footpad3EnabledEl.checked;
+  if (two) return { target: "footpad-2", label: "Footpad_2" };
+  if (one) return { target: "footpad-1", label: "Footpad_1" };
+  if (three) return { target: "footpad-3", label: "Footpad_3" };
+  return { target: "footpad-2", label: "Footpad_2" };
+}
+
+function focusLayerTarget(target: LayerRowTarget) {
+  if (target === "generated-model") {
+    viewer.frame();
+    return;
+  }
+  if (target === "shoe") viewer.frameShoe();
+  else if (target === "baseplate-viz") viewer.frameBaseplateControlPoints();
+  else if (target === "profile-a-viz") viewer.frameAControlPoints();
+  else if (target === "profile-b-viz") viewer.frameBControlPoints();
+  else if (target === "profile-c-viz") viewer.frameCControlPoints();
+  else viewer.frame();
+}
+
+function materialAssignmentMapForTarget(target: LayerRowTarget) {
+  let map = materialsAssignments.get(target);
+  if (!map) {
+    map = new Map();
+    materialsAssignments.set(target, map);
+  }
+  return map;
+}
+
+function toHexColor(colorHex: number) {
+  return `#${Math.max(0, Math.min(0xffffff, Math.round(colorHex))).toString(16).padStart(6, "0").toUpperCase()}`;
+}
+
+function applyMaterialsPanelDrag(host: HTMLElement) {
+  let drag: { dx: number; dy: number } | null = null;
+  host.addEventListener("pointerdown", (ev) => {
+    if (ev.button !== 0) return;
+    const targetEl = ev.target as Element | null;
+    if (!targetEl || targetEl.closest("button, input, select, textarea, a, label")) return;
+    const rect = host.getBoundingClientRect();
+    const header = host.querySelector(":scope > .floatHostHeader") as HTMLElement | null;
+    const dragHeight = (header?.getBoundingClientRect().height ?? 72) + 4;
+    if (ev.clientY - rect.top > dragHeight) return;
+    drag = { dx: ev.clientX - rect.left, dy: ev.clientY - rect.top };
+    host.style.left = `${Math.round(rect.left)}px`;
+    host.style.top = `${Math.round(rect.top)}px`;
+    host.style.right = "auto";
+    host.classList.add("dragging");
+    try { host.setPointerCapture(ev.pointerId); } catch {}
+    ev.preventDefault();
+  });
+  host.addEventListener("pointermove", (ev) => {
+    if (!drag) return;
+    const rect = host.getBoundingClientRect();
+    const maxLeft = Math.max(0, window.innerWidth - rect.width);
+    const maxTop = Math.max(0, window.innerHeight - Math.min(rect.height, window.innerHeight));
+    const nextLeft = clamp(ev.clientX - drag.dx, 0, maxLeft);
+    const nextTop = clamp(ev.clientY - drag.dy, 0, maxTop);
+    host.style.left = `${Math.round(nextLeft)}px`;
+    host.style.top = `${Math.round(nextTop)}px`;
+  });
+  const end = (ev?: PointerEvent) => {
+    if (!drag) return;
+    drag = null;
+    host.classList.remove("dragging");
+    if (ev) {
+      try { host.releasePointerCapture(ev.pointerId); } catch {}
+    }
+  };
+  host.addEventListener("pointerup", (ev) => end(ev));
+  host.addEventListener("pointercancel", (ev) => end(ev));
+}
+
+if (materialsFloatPanelEl) applyMaterialsPanelDrag(materialsFloatPanelEl);
+
+function getFocusedPartId() {
+  return materialsFocusState?.selectedPartId || "";
+}
+
+function getFocusedPartState() {
+  const target = materialsFocusState?.target;
+  const partId = getFocusedPartId();
+  if (!target || !partId) return null;
+  return viewer.getLayerPartMaterialState?.(target, partId) ?? null;
+}
+
+function syncMaterialsTuneInputsFromState() {
+  const state = getFocusedPartState();
+  if (!state) return;
+  if (materialsMetalnessRangeEl) materialsMetalnessRangeEl.value = String(clamp(state.metalness, 0, 1));
+  if (materialsRoughnessRangeEl) materialsRoughnessRangeEl.value = String(clamp(state.roughness, 0, 1));
+  if (materialsOpacityRangeEl) materialsOpacityRangeEl.value = String(clamp(state.opacity, 0.08, 1));
+  if (materialsColorPickerEl) materialsColorPickerEl.value = toHexColor(state.colorHex);
+  if (materialsColorHexEl) materialsColorHexEl.value = toHexColor(state.colorHex);
+}
+
+function collectMaterialsSnapshot(): MaterialsSnapshot {
+  const customPresets = materialsPresetLibrary
+    .filter((p) => p.kind === "custom")
+    .map((p) => ({
+      id: p.id,
+      name: p.name,
+      colorHex: p.colorHex,
+      metalness: p.metalness,
+      roughness: p.roughness,
+      opacity: p.opacity,
+    }));
+  const assignments: Record<string, Record<string, { presetId?: string; colorHex: number; metalness: number; roughness: number; opacity: number }>> = {};
+  for (const [target, byPart] of materialsAssignments.entries()) {
+    const partObj: Record<string, { presetId?: string; colorHex: number; metalness: number; roughness: number; opacity: number }> = {};
+    for (const [partId, state] of byPart.entries()) {
+      partObj[partId] = { ...state };
+    }
+    assignments[target] = partObj;
+  }
+  return {
+    userCounter: materialsUserCounter,
+    customPresets,
+    assignments,
+  };
+}
+
+function applyMaterialsSnapshot(snapshot?: MaterialsSnapshot) {
+  materialsAssignments.clear();
+  materialsPresetLibrary = materialsPresetLibrary.filter((p) => p.kind !== "custom");
+  materialsUserCounter = 1;
+  if (snapshot) {
+    if (Array.isArray(snapshot.customPresets)) {
+      for (const raw of snapshot.customPresets) {
+        if (!raw?.id || !raw?.name) continue;
+        materialsPresetLibrary.splice(1, 0, {
+          id: raw.id,
+          kind: "custom",
+          name: String(raw.name),
+          colorHex: Math.max(0, Math.min(0xffffff, Math.round(Number(raw.colorHex) || 0xffffff))),
+          metalness: clamp(Number(raw.metalness) || 0.05, 0, 1),
+          roughness: clamp(Number(raw.roughness) || 0.75, 0, 1),
+          opacity: clamp(Number(raw.opacity) || 1, 0.08, 1),
+        });
+      }
+    }
+    materialsUserCounter = Math.max(1, Math.round(Number(snapshot.userCounter) || materialsUserCounter));
+    if (snapshot.assignments && typeof snapshot.assignments === "object") {
+      for (const [target, parts] of Object.entries(snapshot.assignments)) {
+        if (!parts || typeof parts !== "object") continue;
+        const partMap = materialAssignmentMapForTarget(target as LayerRowTarget);
+        for (const [partId, state] of Object.entries(parts as Record<string, any>)) {
+          if (!state || typeof state !== "object") continue;
+          partMap.set(partId, {
+            presetId: typeof state.presetId === "string" ? state.presetId : undefined,
+            colorHex: Math.max(0, Math.min(0xffffff, Math.round(Number(state.colorHex) || 0xffffff))),
+            metalness: clamp(Number(state.metalness) || 0.05, 0, 1),
+            roughness: clamp(Number(state.roughness) || 0.75, 0, 1),
+            opacity: clamp(Number(state.opacity) || 1, 0.08, 1),
+          });
+          viewer.setLayerPartMaterialState?.(target as LayerRowTarget, partId, partMap.get(partId)!);
+        }
+      }
+    }
+  }
+  renderMaterialsPresetList();
+  syncMaterialsPanelUI();
+}
+
+function renderMaterialsPresetList() {
+  if (!materialsPresetListEl) return;
+  materialsPresetListEl.innerHTML = "";
+  for (const preset of materialsPresetLibrary) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "secondary materialPresetBtn";
+    btn.textContent = preset.name;
+    btn.dataset.presetId = preset.id;
+    btn.dataset.matKind = preset.kind;
+    btn.addEventListener("click", () => applySelectedMaterialPreset(preset.id));
+    materialsPresetListEl.appendChild(btn);
+  }
+  syncMaterialsPanelUI();
+}
+
+function syncMaterialPresetPressedState() {
+  if (!materialsPresetListEl) return;
+  const btns = materialsPresetListEl.querySelectorAll<HTMLButtonElement>(".materialPresetBtn");
+  btns.forEach((btn) => {
+    const id = btn.dataset.presetId || "";
+    btn.setAttribute("aria-pressed", materialsSelectedLibraryItemId && id === materialsSelectedLibraryItemId ? "true" : "false");
+  });
+}
+
+function populateMaterialsPartList() {
+  if (!materialsPartListEl) return;
+  materialsPartListEl.innerHTML = "";
+  const target = materialsFocusState?.target;
+  if (!target) return;
+  const parts = viewer.getLayerMaterialParts?.(target) ?? [];
+  const selectedPartId = materialsFocusState?.selectedPartId ?? null;
+  const next = parts.length > 0
+    ? (selectedPartId && parts.some((p) => p.id === selectedPartId) ? selectedPartId : parts[0].id)
+    : "fallback:main";
+
+  const ensureBtn = (id: string, label: string) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "materialsPartBtn";
+    btn.dataset.partId = id;
+    btn.textContent = label;
+    btn.setAttribute("aria-pressed", id === next ? "true" : "false");
+    btn.addEventListener("click", () => {
+      if (!materialsFocusState) return;
+      materialsFocusState.selectedPartId = id;
+      const targetNow = materialsFocusState.target;
+      const existing = materialAssignmentMapForTarget(targetNow).get(id);
+      if (existing) viewer.setLayerPartMaterialState?.(targetNow, id, existing);
+      populateMaterialsPartList();
+      syncMaterialsTuneInputsFromState();
+      syncMaterialsPanelUI();
+    });
+    materialsPartListEl.appendChild(btn);
+  };
+
+  if (parts.length === 0) {
+    ensureBtn("fallback:main", "Main");
+    if (materialsFocusState) materialsFocusState.selectedPartId = "fallback:main";
+    return;
+  }
+  for (const part of parts) {
+    ensureBtn(part.id, part.name);
+  }
+  if (materialsFocusState) materialsFocusState.selectedPartId = next;
+}
+
+function syncMaterialsPanelUI() {
+  const targetLabel = materialsFocusState?.label ?? "none";
+  if (materialsFocusTextEl) materialsFocusTextEl.textContent = `Focused item: ${targetLabel}`;
+  const canApply = !!materialsFocusState?.canApplyMaterial && !!materialsFocusState?.selectedPartId;
+  if (materialsMetalnessRangeEl) materialsMetalnessRangeEl.disabled = !canApply;
+  if (materialsRoughnessRangeEl) materialsRoughnessRangeEl.disabled = !canApply;
+  if (materialsOpacityRangeEl) materialsOpacityRangeEl.disabled = !canApply;
+  if (materialsColorPickerEl) materialsColorPickerEl.disabled = !canApply;
+  if (materialsColorHexEl) materialsColorHexEl.disabled = !canApply;
+  if (materialsNewBtnEl) materialsNewBtnEl.disabled = !canApply;
+  if (materialsPartListEl) {
+    materialsPartListEl.querySelectorAll<HTMLButtonElement>(".materialsPartBtn").forEach((btn) => {
+      btn.disabled = !canApply;
+    });
+  }
+  if (materialsPresetListEl) {
+    materialsPresetListEl.querySelectorAll<HTMLButtonElement>(".materialPresetBtn").forEach((btn) => {
+      btn.disabled = !canApply;
+    });
+  }
+  syncMaterialPresetPressedState();
+}
+
+function applySelectedMaterialPreset(presetId: string) {
+  const target = materialsFocusState?.target;
+  const partId = materialsFocusState?.selectedPartId;
+  if (!target || !partId) return;
+  const preset = materialsPresetLibrary.find((p) => p.id === presetId);
+  if (!preset) return;
+  if (preset.kind === "default") {
+    viewer.resetLayerPartMaterialToDefault?.(target, partId);
+    const state = viewer.getLayerPartMaterialState?.(target, partId);
+    if (state) {
+      materialAssignmentMapForTarget(target).set(partId, { ...state, presetId: preset.id });
+    }
+  } else {
+    const state = {
+      colorHex: preset.colorHex,
+      metalness: preset.metalness,
+      roughness: preset.roughness,
+      opacity: preset.opacity,
+      presetId: preset.id,
+    };
+    viewer.setLayerPartMaterialState?.(target, partId, state);
+    materialAssignmentMapForTarget(target).set(partId, state);
+  }
+  materialsSelectedLibraryItemId = preset.id;
+  syncMaterialsTuneInputsFromState();
+  syncMaterialsPanelUI();
+}
+
+function applyMaterialTuneFromSliders() {
+  const target = materialsFocusState?.target;
+  const partId = materialsFocusState?.selectedPartId;
+  if (!target || !partId) return;
+  const next = {
+    colorHex: Number.parseInt((materialsColorHexEl?.value || "#FFFFFF").replace("#", ""), 16) || 0xffffff,
+    metalness: clamp(readNumber(materialsMetalnessRangeEl!, 0.05), 0, 1),
+    roughness: clamp(readNumber(materialsRoughnessRangeEl!, 0.75), 0, 1),
+    opacity: clamp(readNumber(materialsOpacityRangeEl!, 1), 0.08, 1),
+    presetId: materialsSelectedLibraryItemId ?? undefined,
+  };
+  viewer.setLayerPartMaterialState?.(target, partId, next);
+  materialAssignmentMapForTarget(target).set(partId, next);
+  if (materialsColorPickerEl) materialsColorPickerEl.value = toHexColor(next.colorHex);
+  if (materialsColorHexEl) materialsColorHexEl.value = toHexColor(next.colorHex);
+}
+
+function openMaterialsPanel(target: LayerRowTarget, label: string) {
+  const panel = materialsFloatPanelEl;
+  materialsFocusState = {
+    target,
+    label,
+    canApplyMaterial: canApplyMaterialOnTarget(target),
+    selectedPartId: null,
+  };
+  populateMaterialsPartList();
+  if (panel) {
+    panel.hidden = false;
+    if (!panel.style.left && !panel.style.top) {
+      panel.style.right = "24px";
+      panel.style.top = "24px";
+    }
+  }
+  const partId = materialsFocusState.selectedPartId;
+  if (partId) {
+    const existing = materialAssignmentMapForTarget(target).get(partId);
+    if (existing) viewer.setLayerPartMaterialState?.(target, partId, existing);
+    syncMaterialsTuneInputsFromState();
+  }
+  syncMaterialsPanelUI();
+}
+
+function closeMaterialsPanel() {
+  if (materialsFloatPanelEl) materialsFloatPanelEl.hidden = true;
+}
+
+materialsCloseBtnEl?.addEventListener("click", closeMaterialsPanel);
+materialsMetalnessRangeEl?.addEventListener("input", applyMaterialTuneFromSliders);
+materialsRoughnessRangeEl?.addEventListener("input", applyMaterialTuneFromSliders);
+materialsOpacityRangeEl?.addEventListener("input", applyMaterialTuneFromSliders);
+materialsColorPickerEl?.addEventListener("input", () => {
+  if (!materialsColorHexEl || !materialsColorPickerEl) return;
+  materialsColorHexEl.value = materialsColorPickerEl.value.toUpperCase();
+  applyMaterialTuneFromSliders();
+});
+materialsColorHexEl?.addEventListener("change", () => {
+  if (!materialsColorHexEl) return;
+  const raw = materialsColorHexEl.value.trim();
+  if (!/^#?[0-9a-fA-F]{6}$/.test(raw)) {
+    syncMaterialsTuneInputsFromState();
+    return;
+  }
+  const normalized = raw.startsWith("#") ? raw.toUpperCase() : `#${raw.toUpperCase()}`;
+  materialsColorHexEl.value = normalized;
+  if (materialsColorPickerEl) materialsColorPickerEl.value = normalized;
+  applyMaterialTuneFromSliders();
+});
+materialsNewBtnEl?.addEventListener("click", () => {
+  const target = materialsFocusState?.target;
+  const partId = materialsFocusState?.selectedPartId;
+  if (!target || !partId) return;
+  const state = viewer.getLayerPartMaterialState?.(target, partId);
+  if (!state) return;
+  const preset: MaterialPreset = {
+    id: `custom-${materialsUserCounter}`,
+    name: `Custom ${materialsUserCounter}`,
+    kind: "custom",
+    colorHex: state.colorHex,
+    metalness: state.metalness,
+    roughness: state.roughness,
+    opacity: state.opacity,
+  };
+  materialsUserCounter += 1;
+  materialsPresetLibrary.splice(1, 0, preset);
+  renderMaterialsPresetList();
+  applySelectedMaterialPreset(preset.id);
+});
+renderMaterialsPresetList();
+
 function toggleReferenceVisibility(kind: ReferenceLayerKind) {
   const def = getReferenceLayerDef(kind);
   if (!def) return;
@@ -3328,18 +4034,12 @@ function syncReferenceLayerRowsFromCheckboxes() {
 }
 
 function appendReferenceRow(container: HTMLElement, def: ReferenceLayerDef, opts?: { group?: boolean; sub?: boolean; hidden?: boolean }) {
-  const canFocus =
-    def.kind === "shoe" ||
-    def.kind === "baseplate-viz" ||
-    def.kind === "profile-a-viz" ||
-    def.kind === "profile-b-viz" ||
-    def.kind === "profile-c-viz";
+  const canFocus = canFocusLayerTarget(def.kind);
   const row = document.createElement("div");
   row.className = "layerRow ref";
   if (opts?.group) row.classList.add("group");
   if (opts?.sub) row.classList.add("sub");
   if (opts?.hidden) row.classList.add("hidden");
-  if (canFocus) row.classList.add("hasAction");
   row.dataset.refKind = def.kind;
   row.style.cursor = "pointer";
   row.tabIndex = 0;
@@ -3349,6 +4049,18 @@ function appendReferenceRow(container: HTMLElement, def: ReferenceLayerDef, opts
     if (e.key !== "Enter" && e.key !== " ") return;
     e.preventDefault();
     toggleReferenceVisibility(def.kind);
+  });
+
+  const actionBtn = document.createElement("button");
+  actionBtn.type = "button";
+  actionBtn.className = "layerRowActionBtn";
+  actionBtn.textContent = "\u2316";
+  actionBtn.title = canFocus ? `Focus ${def.label}` : `Focus ${def.label} (unavailable)`;
+  actionBtn.setAttribute("aria-label", `Focus ${def.label}`);
+  actionBtn.disabled = !canFocus;
+  actionBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    focusLayerTarget(def.kind);
   });
 
   const eyeBtn = document.createElement("button");
@@ -3364,26 +4076,27 @@ function appendReferenceRow(container: HTMLElement, def: ReferenceLayerDef, opts
   label.className = "layerRowLabel";
   label.textContent = def.label;
 
+  const materialBtn = document.createElement("button");
+  materialBtn.type = "button";
+  materialBtn.className = "layerRowMaterialBtn";
+  materialBtn.textContent = "\u25C8";
+  materialBtn.title = "Materials";
+  materialBtn.setAttribute("aria-label", `Materials for ${def.label}`);
+  materialBtn.disabled = !canApplyMaterialOnTarget(def.kind);
+  materialBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (def.kind === "footpad") {
+      const resolved = resolveFootpadMaterialTarget();
+      openMaterialsPanel(resolved.target, resolved.label);
+      return;
+    }
+    openMaterialsPanel(def.kind, def.label);
+  });
+
+  row.appendChild(actionBtn);
   row.appendChild(eyeBtn);
   row.appendChild(label);
-
-  if (canFocus) {
-    const actionBtn = document.createElement("button");
-    actionBtn.type = "button";
-    actionBtn.className = "layerRowActionBtn";
-    actionBtn.textContent = "\u2316";
-    actionBtn.title = `Focus ${def.label}`;
-    actionBtn.setAttribute("aria-label", `Focus ${def.label}`);
-    actionBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      if (def.kind === "shoe") viewer.frameShoe();
-      else if (def.kind === "baseplate-viz") viewer.frameBaseplateControlPoints();
-      else if (def.kind === "profile-a-viz") viewer.frameAControlPoints();
-      else if (def.kind === "profile-b-viz") viewer.frameBControlPoints();
-      else if (def.kind === "profile-c-viz") viewer.frameCControlPoints();
-    });
-    row.appendChild(actionBtn);
-  }
+  row.appendChild(materialBtn);
 
   container.appendChild(row);
 }
@@ -3441,8 +4154,32 @@ function renderLayersUI() {
   generatedLabel.className = "layerRowLabel";
   generatedLabel.textContent = getCurrentGeneratedModelLabel();
 
+  const generatedFocusBtn = document.createElement("button");
+  generatedFocusBtn.type = "button";
+  generatedFocusBtn.className = "layerRowActionBtn";
+  generatedFocusBtn.textContent = "\u2316";
+  generatedFocusBtn.title = "Focus generated model";
+  generatedFocusBtn.setAttribute("aria-label", "Focus generated model");
+  generatedFocusBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    focusLayerTarget("generated-model");
+  });
+
+  const generatedMaterialBtn = document.createElement("button");
+  generatedMaterialBtn.type = "button";
+  generatedMaterialBtn.className = "layerRowMaterialBtn";
+  generatedMaterialBtn.textContent = "\u25C8";
+  generatedMaterialBtn.title = "Materials";
+  generatedMaterialBtn.setAttribute("aria-label", "Open materials for generated model");
+  generatedMaterialBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    openMaterialsPanel("generated-model", generatedLabel.textContent || "Generated Model");
+  });
+
+  generatedRow.appendChild(generatedFocusBtn);
   generatedRow.appendChild(generatedEyeBtn);
   generatedRow.appendChild(generatedLabel);
+  generatedRow.appendChild(generatedMaterialBtn);
   layersModelVisibilityListEl.appendChild(generatedRow);
 
   if (layersState.modelLayers.length === 0) {
@@ -3474,6 +4211,17 @@ function renderLayersUI() {
 
   syncReferenceLayerRowsFromCheckboxes();
   syncGeneratedModelLayerRow();
+  if (materialsFocusState) {
+    if (materialsFocusState.target === "generated-model") {
+      materialsFocusState = {
+        ...materialsFocusState,
+        label: getCurrentGeneratedModelLabel(),
+      };
+    }
+    populateMaterialsPartList();
+    syncMaterialsTuneInputsFromState();
+    syncMaterialsPanelUI();
+  }
 }
 
 function activateModelLayer(layerId: string) {
@@ -3644,6 +4392,10 @@ function bindWorkerHandlers(targetWorker: Worker) {
           positions.byteLength +
           (normals ? normals.byteLength : 0) +
           indices.byteLength;
+        markBootAssetLoaded("mesh", meshBytes);
+        setBootProgressPct(98);
+        bootStatusDetail = "main: applying mesh buffers";
+        renderBootLoadingOverlay();
         titleStatMeshBytesApprox = meshBytes;
         titleStatBuildCount += 1;
         if (lastBuildStartAtMs != null) {

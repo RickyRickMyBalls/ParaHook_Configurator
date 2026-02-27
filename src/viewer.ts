@@ -31,6 +31,29 @@ type CameraControlMode = "current" | "orbit" | "trackball" | "arcball";
 type VisualSceneMode = "off" | "stars" | "nebula" | "swarm";
 type DisplayStyleMode = "shaded" | "edges" | "shaded_edges" | "xray" | "xray_edges" | "clay";
 type BackgroundMode = "dark_blue" | "black" | "grid";
+type LayerMaterialTarget =
+  | "generated-model"
+  | "shoe"
+  | "footpad"
+  | "footpad-1"
+  | "footpad-2"
+  | "footpad-3"
+  | "control-point-viz"
+  | "baseplate-viz"
+  | "profile-a-viz"
+  | "profile-b-viz"
+  | "profile-c-viz";
+type LayerMaterialState = {
+  colorHex: number;
+  metalness: number;
+  roughness: number;
+  opacity: number;
+};
+type LayerMaterialPart = {
+  id: string;
+  name: string;
+  count: number;
+};
 
 type SnapViewState = {
   target: THREE.Vector3;
@@ -363,6 +386,125 @@ export class Viewer {
     if (this.mesh) this.mesh.visible = this.modelVisible;
   }
 
+  setParamMeshMaterialColorHex(colorHex: number) {
+    const safe = Number.isFinite(colorHex) ? Math.max(0, Math.min(0xffffff, Math.round(colorHex))) : this.paramMeshMaterialColor;
+    this.paramMeshMaterialColor = safe;
+    this.applyParamMeshMaterialState();
+  }
+
+  setParamMeshMaterialTuning(tuning: { metalness?: number; roughness?: number; opacity?: number }) {
+    if (typeof tuning.metalness === "number" && Number.isFinite(tuning.metalness)) {
+      this.paramMeshMaterialMetalness = Math.max(0, Math.min(1, tuning.metalness));
+    }
+    if (typeof tuning.roughness === "number" && Number.isFinite(tuning.roughness)) {
+      this.paramMeshMaterialRoughness = Math.max(0, Math.min(1, tuning.roughness));
+    }
+    if (typeof tuning.opacity === "number" && Number.isFinite(tuning.opacity)) {
+      this.paramMeshMaterialOpacity = Math.max(0.08, Math.min(1, tuning.opacity));
+    }
+    this.applyParamMeshMaterialState();
+  }
+
+  getParamMeshMaterialState() {
+    return {
+      colorHex: this.paramMeshMaterialColor,
+      metalness: this.paramMeshMaterialMetalness,
+      roughness: this.paramMeshMaterialRoughness,
+      opacity: this.paramMeshMaterialOpacity,
+    };
+  }
+
+  getLayerMaterialParts(target: LayerMaterialTarget): LayerMaterialPart[] {
+    if (target === "control-point-viz") {
+      this.refreshLayerMaterialParts("baseplate-viz");
+      this.refreshLayerMaterialParts("profile-a-viz");
+      this.refreshLayerMaterialParts("profile-b-viz");
+      this.refreshLayerMaterialParts("profile-c-viz");
+      const ids = [
+        ...this.getTargetPartIds("baseplate-viz"),
+        ...this.getTargetPartIds("profile-a-viz"),
+        ...this.getTargetPartIds("profile-b-viz"),
+        ...this.getTargetPartIds("profile-c-viz"),
+      ];
+      return ids.map((id) => {
+        const name = this.layerPartNameById.get(id) ?? id;
+        const count = this.layerPartRefsById.get(id)?.size ?? 0;
+        return { id, name, count };
+      });
+    }
+    this.refreshLayerMaterialParts(target);
+    return this.getTargetPartIds(target).map((id) => {
+      const name = this.layerPartNameById.get(id) ?? id;
+      const count = this.layerPartRefsById.get(id)?.size ?? 0;
+      return { id, name, count };
+    });
+  }
+
+  getLayerPartMaterialState(target: LayerMaterialTarget, partId: string): LayerMaterialState {
+    this.refreshLayerMaterialParts(target);
+    const resolved = this.resolvePartIdForTarget(target, partId) ?? partId;
+    if (!resolved) return { colorHex: 0xffffff, metalness: 0.05, roughness: 0.8, opacity: 1 };
+    const cur = this.layerPartCurrentStateById.get(resolved);
+    if (cur) return { ...cur };
+    const def = this.layerPartDefaultStateById.get(resolved);
+    return def ? { ...def } : { colorHex: 0xffffff, metalness: 0.05, roughness: 0.8, opacity: 1 };
+  }
+
+  setLayerPartMaterialState(target: LayerMaterialTarget, partId: string, patch: Partial<LayerMaterialState>) {
+    this.refreshLayerMaterialParts(target);
+    const resolved = this.resolvePartIdForTarget(target, partId) ?? partId;
+    if (!resolved) return;
+    const base = this.getLayerPartMaterialState(target, resolved);
+    const next: LayerMaterialState = {
+      colorHex: typeof patch.colorHex === "number" && Number.isFinite(patch.colorHex)
+        ? Math.max(0, Math.min(0xffffff, Math.round(patch.colorHex)))
+        : base.colorHex,
+      metalness: typeof patch.metalness === "number" && Number.isFinite(patch.metalness)
+        ? Math.max(0, Math.min(1, patch.metalness))
+        : base.metalness,
+      roughness: typeof patch.roughness === "number" && Number.isFinite(patch.roughness)
+        ? Math.max(0, Math.min(1, patch.roughness))
+        : base.roughness,
+      opacity: typeof patch.opacity === "number" && Number.isFinite(patch.opacity)
+        ? Math.max(0.08, Math.min(1, patch.opacity))
+        : base.opacity,
+    };
+    if (!this.layerPartDefaultStateById.has(resolved)) {
+      this.layerPartDefaultStateById.set(resolved, { ...base });
+    }
+    this.layerPartCurrentStateById.set(resolved, next);
+    this.applyLayerPartStateById(resolved);
+  }
+
+  resetLayerPartMaterialToDefault(target: LayerMaterialTarget, partId: string) {
+    this.refreshLayerMaterialParts(target);
+    const resolved = this.resolvePartIdForTarget(target, partId);
+    if (!resolved) return;
+    const def = this.layerPartDefaultStateById.get(resolved);
+    if (!def) return;
+    this.layerPartCurrentStateById.set(resolved, { ...def });
+    this.applyLayerPartStateById(resolved);
+  }
+
+  // Backward-compatible layer-wide API: apply to first part of focused target.
+  setLayerMaterialColorHex(target: LayerMaterialTarget, colorHex: number) {
+    const partId = this.getLayerMaterialParts(target)[0]?.id;
+    if (!partId) return;
+    this.setLayerPartMaterialState(target, partId, { colorHex });
+  }
+
+  setLayerMaterialTuning(target: LayerMaterialTarget, tuning: { metalness?: number; roughness?: number; opacity?: number }) {
+    const partId = this.getLayerMaterialParts(target)[0]?.id;
+    if (!partId) return;
+    this.setLayerPartMaterialState(target, partId, tuning);
+  }
+
+  getLayerMaterialState(target: LayerMaterialTarget): LayerMaterialState {
+    const partId = this.getLayerMaterialParts(target)[0]?.id;
+    if (!partId) return { colorHex: 0xffffff, metalness: 0.05, roughness: 0.8, opacity: 1 };
+    return this.getLayerPartMaterialState(target, partId);
+  }
+
   setModelWireframeEnabled(enabled: boolean) {
     this.setDisplayStyleMode(enabled ? "edges" : "shaded");
   }
@@ -621,6 +763,247 @@ export class Viewer {
     this.applyDisplayStyleToObject(this.shoeRoot);
     for (const root of this.footpadRoots) this.applyDisplayStyleToObject(root);
     for (const root of this.hookRoots) this.applyDisplayStyleToObject(root);
+  }
+
+  private applyMaterialStateToMaterial(
+    mat: any,
+    state: { colorHex: number; metalness: number; roughness: number; opacity: number }
+  ) {
+    if (!mat) return;
+    if (!mat.userData) mat.userData = {};
+    if (!mat.userData._displayBase) {
+      mat.userData._displayBase = {
+        color: mat.color?.clone?.(),
+        metalness: typeof mat.metalness === "number" ? mat.metalness : undefined,
+        roughness: typeof mat.roughness === "number" ? mat.roughness : undefined,
+        transparent: typeof mat.transparent === "boolean" ? mat.transparent : undefined,
+        opacity: typeof mat.opacity === "number" ? mat.opacity : undefined,
+        depthWrite: typeof mat.depthWrite === "boolean" ? mat.depthWrite : undefined,
+        side: typeof mat.side === "number" ? mat.side : undefined,
+        wireframe: typeof mat.wireframe === "boolean" ? mat.wireframe : undefined,
+      };
+    }
+    if (mat.color?.setHex) mat.color.setHex(state.colorHex);
+    if (typeof mat.metalness === "number") mat.metalness = state.metalness;
+    if (typeof mat.roughness === "number") mat.roughness = state.roughness;
+    if (typeof mat.opacity === "number") mat.opacity = state.opacity;
+    if (typeof mat.transparent === "boolean") mat.transparent = state.opacity < 0.999;
+    mat.userData._displayBase.color = mat.color?.clone?.();
+    if (typeof mat.metalness === "number") mat.userData._displayBase.metalness = state.metalness;
+    if (typeof mat.roughness === "number") mat.userData._displayBase.roughness = state.roughness;
+    if (typeof mat.opacity === "number") mat.userData._displayBase.opacity = state.opacity;
+    if (typeof mat.transparent === "boolean") mat.userData._displayBase.transparent = state.opacity < 0.999;
+    mat.needsUpdate = true;
+    this.applyDisplayStyleToMaterial(mat);
+  }
+
+  private getTargetPartIds(target: LayerMaterialTarget) {
+    return this.layerTargetPartIds.get(target) ?? [];
+  }
+
+  private clearTargetPartRefs(target: LayerMaterialTarget) {
+    const ids = this.getTargetPartIds(target);
+    for (const id of ids) this.layerPartRefsById.set(id, new Set());
+    this.layerTargetPartIds.set(target, []);
+  }
+
+  private defaultLayerStateFromMaterial(mat: any): LayerMaterialState {
+    const colorHex =
+      typeof mat?.color?.getHex === "function"
+        ? Math.max(0, Math.min(0xffffff, Math.round(mat.color.getHex())))
+        : 0xffffff;
+    const metalness = typeof mat?.metalness === "number" ? Math.max(0, Math.min(1, mat.metalness)) : 0.05;
+    const roughness = typeof mat?.roughness === "number" ? Math.max(0, Math.min(1, mat.roughness)) : 0.8;
+    const opacity = typeof mat?.opacity === "number" ? Math.max(0.08, Math.min(1, mat.opacity)) : 1;
+    return { colorHex, metalness, roughness, opacity };
+  }
+
+  private applyLayerPartStateById(partId: string) {
+    const refs = this.layerPartRefsById.get(partId);
+    if (!refs || refs.size === 0) return;
+    const state = this.layerPartCurrentStateById.get(partId) ?? this.layerPartDefaultStateById.get(partId);
+    if (!state) return;
+    for (const mat of refs) this.applyMaterialStateToMaterial(mat, state);
+  }
+
+  private registerPartMaterialRef(target: LayerMaterialTarget, partId: string, name: string, mat: any) {
+    if (!mat) return;
+    if (!this.layerPartRefsById.has(partId)) this.layerPartRefsById.set(partId, new Set());
+    this.layerPartNameById.set(partId, name);
+    const refs = this.layerPartRefsById.get(partId)!;
+    refs.add(mat);
+    if (!this.layerPartDefaultStateById.has(partId)) {
+      const def = this.defaultLayerStateFromMaterial(mat);
+      this.layerPartDefaultStateById.set(partId, { ...def });
+      if (!this.layerPartCurrentStateById.has(partId)) {
+        this.layerPartCurrentStateById.set(partId, { ...def });
+      }
+    }
+    const ids = this.getTargetPartIds(target);
+    if (!ids.includes(partId)) this.layerTargetPartIds.set(target, [...ids, partId]);
+    this.applyLayerPartStateById(partId);
+  }
+
+  private registerPartStub(target: LayerMaterialTarget, partId: string, name: string) {
+    this.layerPartNameById.set(partId, name);
+    if (!this.layerPartRefsById.has(partId)) this.layerPartRefsById.set(partId, new Set());
+    const ids = this.getTargetPartIds(target);
+    if (!ids.includes(partId)) this.layerTargetPartIds.set(target, [...ids, partId]);
+  }
+
+  private resolvePartIdForTarget(target: LayerMaterialTarget, partId: string) {
+    if (target === "control-point-viz") {
+      if (partId) return partId;
+      return (
+        this.getTargetPartIds("baseplate-viz")[0] ??
+        this.getTargetPartIds("profile-a-viz")[0] ??
+        this.getTargetPartIds("profile-b-viz")[0] ??
+        this.getTargetPartIds("profile-c-viz")[0] ??
+        null
+      );
+    }
+    if (partId) return partId;
+    return this.getTargetPartIds(target)[0] ?? null;
+  }
+
+  private refreshLayerMaterialParts(target: LayerMaterialTarget) {
+    if (target === "generated-model") {
+      this.clearTargetPartRefs("generated-model");
+      const mat = this.mesh?.material as any;
+      const mats = Array.isArray(mat) ? mat : mat ? [mat] : [];
+      for (const m of mats) this.registerPartMaterialRef("generated-model", "generated:body", "Body", m);
+      return;
+    }
+    if (target === "shoe") {
+      this.clearTargetPartRefs("shoe");
+      const matNameCounts = new Map<string, number>();
+      let meshCounter = 0;
+      this.shoeRoot?.traverse((child: any) => {
+        if (!child?.isMesh) return;
+        const sourceMat = child.userData?.shoeOriginalMaterial ?? child.material;
+        const mats = Array.isArray(sourceMat) ? sourceMat : sourceMat ? [sourceMat] : [];
+        mats.forEach((m: any, idx: number) => {
+          if (!m) return;
+          const rawName = String(m.name || "").trim();
+          let partName = rawName || String(child.name || "").trim() || `Part ${meshCounter + 1}`;
+          if (mats.length > 1 && !rawName) partName = `${partName} ${idx + 1}`;
+          const nameKey = partName.toLowerCase();
+          const nextCount = (matNameCounts.get(nameKey) ?? 0) + 1;
+          matNameCounts.set(nameKey, nextCount);
+          const suffix = nextCount > 1 ? `_${nextCount}` : "";
+          const partId = `shoe:${nameKey.replace(/[^a-z0-9]+/g, "_")}${suffix}`;
+          this.registerPartMaterialRef("shoe", partId, partName, m);
+        });
+        meshCounter += 1;
+      });
+      return;
+    }
+    if (target === "footpad" || target === "footpad-1" || target === "footpad-2" || target === "footpad-3") {
+      this.clearTargetPartRefs("footpad");
+      this.clearTargetPartRefs("footpad-1");
+      this.clearTargetPartRefs("footpad-2");
+      this.clearTargetPartRefs("footpad-3");
+      const slotIndices =
+        target === "footpad-1" ? [0] :
+        target === "footpad-2" ? [1] :
+        target === "footpad-3" ? [2] :
+        [0, 1, 2];
+
+      for (const i of slotIndices) {
+        const slot = i + 1;
+        const targetKey = (`footpad-${slot}` as LayerMaterialTarget);
+        const root = this.footpadRoots[i];
+        const nameCounts = new Map<string, number>();
+        let foundAny = false;
+        let meshCounter = 0;
+
+        if (root) {
+          root.traverse((child: any) => {
+            if (!child?.isMesh) return;
+            const sourceMat = child.userData?.footpadOriginalMaterial ?? child.material;
+            const mats = Array.isArray(sourceMat) ? sourceMat : sourceMat ? [sourceMat] : [];
+            mats.forEach((m: any, idx: number) => {
+              if (!m) return;
+              const rawName = String(m.name || "").trim();
+              let partName = rawName || String(child.name || "").trim() || `Part ${meshCounter + 1}`;
+              if (mats.length > 1 && !rawName) partName = `${partName} ${idx + 1}`;
+              const nameKey = partName.toLowerCase();
+              const nextCount = (nameCounts.get(nameKey) ?? 0) + 1;
+              nameCounts.set(nameKey, nextCount);
+              const suffix = nextCount > 1 ? `_${nextCount}` : "";
+              const partId = `footpad:slot${slot}:${nameKey.replace(/[^a-z0-9]+/g, "_")}${suffix}`;
+              this.registerPartMaterialRef(targetKey, partId, partName, m);
+              if (target === "footpad") this.registerPartMaterialRef("footpad", partId, partName, m);
+              foundAny = true;
+            });
+            meshCounter += 1;
+          });
+        }
+
+        if (!foundAny) {
+          const fallbackId = `footpad:slot${slot}:main`;
+          const fallbackName = `Footpad ${slot} Main`;
+          this.registerPartStub(targetKey, fallbackId, fallbackName);
+          if (target === "footpad") this.registerPartStub("footpad", fallbackId, fallbackName);
+        }
+      }
+      return;
+    }
+    if (target === "baseplate-viz") {
+      this.clearTargetPartRefs("baseplate-viz");
+      this.registerPartMaterialRef("baseplate-viz", "baseplate-viz:points", "Baseplate Points", this.ctrlMatBlue);
+      this.registerPartMaterialRef("baseplate-viz", "baseplate-viz:points", "Baseplate Points", this.ctrlMatBlue2);
+      return;
+    }
+    if (target === "profile-a-viz") {
+      this.clearTargetPartRefs("profile-a-viz");
+      for (const m of this.aArcMats) this.registerPartMaterialRef("profile-a-viz", "profile-a-viz:handles", "Profile A Handles", m);
+      return;
+    }
+    if (target === "profile-b-viz") {
+      this.clearTargetPartRefs("profile-b-viz");
+      for (const m of this.bArcMats) this.registerPartMaterialRef("profile-b-viz", "profile-b-viz:handles", "Profile B Handles", m);
+      return;
+    }
+    if (target === "profile-c-viz") {
+      this.clearTargetPartRefs("profile-c-viz");
+      for (const m of this.cArcMats) this.registerPartMaterialRef("profile-c-viz", "profile-c-viz:handles", "Profile C Handles", m);
+    }
+  }
+
+  private applyParamMeshMaterialState() {
+    const meshMat = this.mesh?.material as any;
+    if (!meshMat) return;
+    const mats = Array.isArray(meshMat) ? meshMat : [meshMat];
+    mats.forEach((mat: any) => {
+      if (!mat) return;
+      if (!mat.userData) mat.userData = {};
+      if (!mat.userData._displayBase) {
+        mat.userData._displayBase = {
+          color: mat.color?.clone?.(),
+          metalness: typeof mat.metalness === "number" ? mat.metalness : undefined,
+          roughness: typeof mat.roughness === "number" ? mat.roughness : undefined,
+          transparent: typeof mat.transparent === "boolean" ? mat.transparent : undefined,
+          opacity: typeof mat.opacity === "number" ? mat.opacity : undefined,
+          depthWrite: typeof mat.depthWrite === "boolean" ? mat.depthWrite : undefined,
+          side: typeof mat.side === "number" ? mat.side : undefined,
+          wireframe: typeof mat.wireframe === "boolean" ? mat.wireframe : undefined,
+        };
+      }
+      if (mat.color?.setHex) mat.color.setHex(this.paramMeshMaterialColor);
+      if (typeof mat.metalness === "number") mat.metalness = this.paramMeshMaterialMetalness;
+      if (typeof mat.roughness === "number") mat.roughness = this.paramMeshMaterialRoughness;
+      if (typeof mat.opacity === "number") mat.opacity = this.paramMeshMaterialOpacity;
+      if (typeof mat.transparent === "boolean") mat.transparent = this.paramMeshMaterialOpacity < 0.999;
+      mat.userData._displayBase.color = mat.color?.clone?.();
+      mat.userData._displayBase.metalness = this.paramMeshMaterialMetalness;
+      mat.userData._displayBase.roughness = this.paramMeshMaterialRoughness;
+      mat.userData._displayBase.opacity = this.paramMeshMaterialOpacity;
+      mat.userData._displayBase.transparent = this.paramMeshMaterialOpacity < 0.999;
+      mat.needsUpdate = true;
+      this.applyDisplayStyleToMaterial(mat);
+    });
+    if (this.mesh) this.syncEdgeOverlayForMesh(this.mesh);
   }
 
   setParamMeshOffset(x: number, y: number, z: number) {
@@ -1111,6 +1494,15 @@ export class Viewer {
   private hookDeltaRotDeg: XYZ = { x: 0, y: 0, z: 0 };
 
   private hookOpacity = 1.0;
+  private paramMeshMaterialColor = 0xffffff;
+  private paramMeshMaterialMetalness = 0.05;
+  private paramMeshMaterialRoughness = 0.75;
+  private paramMeshMaterialOpacity = 1.0;
+  private layerTargetPartIds = new Map<LayerMaterialTarget, string[]>();
+  private layerPartRefsById = new Map<string, Set<any>>();
+  private layerPartNameById = new Map<string, string>();
+  private layerPartDefaultStateById = new Map<string, LayerMaterialState>();
+  private layerPartCurrentStateById = new Map<string, LayerMaterialState>();
 
   private ocLoaded = false;
   private ocLoadingPromise: Promise<void> | null = null;
@@ -1487,6 +1879,7 @@ export class Viewer {
     } else if (this.shoeMaterial) {
       applyOpacity(this.shoeMaterial);
     }
+    this.refreshLayerMaterialParts("shoe");
   }
 
   private createControlsForMode(mode: CameraControlMode) {
@@ -3075,6 +3468,7 @@ export class Viewer {
         this.applyDisplayStyleToMaterial(child.material);
       });
     }
+    this.refreshLayerMaterialParts("footpad");
   }
 
   private clearFootpad(i: number) {
@@ -3438,8 +3832,11 @@ export class Viewer {
     geometry.computeBoundingSphere();
 
     const material = new THREE.MeshStandardMaterial({
-      metalness: 0.05,
-      roughness: 0.75,
+      color: this.paramMeshMaterialColor,
+      metalness: this.paramMeshMaterialMetalness,
+      roughness: this.paramMeshMaterialRoughness,
+      transparent: this.paramMeshMaterialOpacity < 0.999,
+      opacity: this.paramMeshMaterialOpacity,
       wireframe: this.displayStyleMode === "edges",
     });
 
@@ -3460,6 +3857,7 @@ export class Viewer {
     this.mesh.renderOrder = 0;
     this.scene.add(this.mesh);
     this.syncEdgeOverlayForMesh(this.mesh);
+    this.applyParamMeshMaterialState();
     this.applyParamMeshTransform();
 
     const forceFrame = !!opts?.frame;
