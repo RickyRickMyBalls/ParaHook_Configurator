@@ -27,8 +27,8 @@ html, body {
   max-width: 90vw;
   max-height: 90vh;
 
-  /* IMPORTANT: let content scroll, but don't break resize */
-  overflow: auto;
+  /* Main UI shell should not scroll; inner panels handle scrolling */
+  overflow: hidden;
 
   resize: both;
   min-width: 280px;

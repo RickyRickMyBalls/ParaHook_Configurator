@@ -32,12 +32,12 @@
         min-width: 300px;
         max-width: min(700px, calc(100vw - 32px));
 
-        height: 85vh;
-        min-height: 360px;
-        max-height: calc(100vh - 5px);
+        height: 100vh;
+        min-height: 100vh;
+        max-height: 100vh;
 
         overflow: hidden; /* panels manage their own scroll */
-        resize: both;
+        resize: horizontal;
         box-sizing: border-box;
 
         display: flex;
@@ -114,33 +114,53 @@
         position: relative;
         z-index: 1;
       }
-      #toolbarPanel {
-        padding-top: 10px;
-        padding-bottom: 8px;
+      #titleStatsPanel > #debugPanel {
+        margin-top: 10px;
+        position: static;
+        z-index: auto;
       }
-      #toolbarPanel #titlePanel {
-        margin-bottom: 6px;
+      #titleBlockPanel {
+        padding-top: 14px;
+        padding-bottom: 14px;
+        display: flex;
+        flex-direction: column;
+        flex: 0 0 auto;
+        overflow-x: hidden;
+        overflow-y: visible;
+        min-height: fit-content;
       }
-      #toolbarPanel .row.header {
-        margin-bottom: 6px;
+      #titleBlockPanel.statsExpanded {
+        resize: vertical;
+        overflow: hidden;
+        min-height: 240px;
+        max-height: calc(100vh - 32px);
       }
-      #toolbarPanel .check {
-        margin: 4px 0;
+      #titleBlockPanel #titlePanel {
+        margin-bottom: 10px;
       }
-      #toolbarPanel.titleOnly {
+      #titleBlockPanel .row.header {
+        grid-template-columns: 1fr;
+        margin-bottom: 10px;
+      }
+      #titleBlockPanel .check {
+        margin: 8px 0;
+      }
+      #titleBlockPanel.titleOnly {
         padding-top: 8px;
         padding-bottom: 8px;
       }
-      #toolbarPanel.titleOnly #titlePanel {
+      #titleBlockPanel.titleOnly #titlePanel {
         margin-bottom: 0;
         justify-content: space-between;
       }
-      #toolbarPanel.titleOnly .row.header,
-      #toolbarPanel.titleOnly .check {
+      #titleBlockPanel.titleOnly .row.header,
+      #titleBlockPanel.titleOnly .check,
+      #titleBlockPanel.titleOnly #toolbarTopRow,
+      #titleBlockPanel.titleOnly #titleStatsPanel {
         display: none;
       }
-      #toolbarPanel.titleOnly #appVersion,
-      #toolbarPanel.titleOnly #appVersion {
+      #titleBlockPanel.titleOnly #appVersion,
+      #titleBlockPanel.titleOnly #appVersion {
         display: none;
       }
 
@@ -169,11 +189,60 @@
       label { display: grid; grid-template-columns: 1fr; gap: 6px; font-size: 13px; line-height: 1.2; }
       input[type="range"] { width: 100%; }
 
-      button { padding: 7px 10px; border: 0; border-radius: 8px; cursor: pointer; background: #e8e8ea; color: #111; font-weight: 600; }
-      button.secondary { background: #cfd1d6; }
+      button {
+        padding: 7px 10px;
+        border: 1px solid rgba(255,255,255,0.14);
+        border-radius: 8px;
+        cursor: pointer;
+        background: #33363c;
+        color: #f3f4f6;
+        font-weight: 600;
+      }
+      button.secondary { background: #33363c; color: #f3f4f6; }
+      #modelLivePauseBtn.secondary {
+        background: #0f1215;
+        color: #e8e8ea;
+      }
       button:disabled { opacity: 0.6; cursor: not-allowed; }
 
       #status { font-size: 13px; opacity: 0.9; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      #status {
+        position: relative;
+        display: flex;
+        align-items: center;
+        width: 100%;
+        min-width: 0;
+        min-height: 28px;
+        padding: 0 8px;
+        border-radius: 8px;
+        border: 1px solid rgba(255,255,255,0.10);
+        background: rgba(255,255,255,0.03);
+        box-sizing: border-box;
+      }
+      #statusProgressFill {
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 0%;
+        background: #1f3a57;
+        opacity: 0;
+        transition: width 140ms ease, opacity 120ms ease;
+        pointer-events: none;
+      }
+      #status.progressActive #statusProgressFill {
+        opacity: 1;
+      }
+      #statusText {
+        position: relative;
+        z-index: 1;
+        min-width: 0;
+        width: 100%;
+        color: #eef2f7;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
 
       details.section {
         margin-top: 10px;
@@ -187,8 +256,25 @@
         letter-spacing: 0.2px;
         list-style: none;
       }
+      details.section.hasInlinePanelActions {
+        position: relative;
+      }
+      details.section.hasInlinePanelActions > summary {
+        padding-right: 76px;
+        min-height: 24px;
+        display: flex;
+        align-items: center;
+      }
+      details.section.hasInlinePanelActions > .panelActionRow {
+        position: absolute;
+        top: 13px;
+        right: 0;
+        margin: 0;
+        z-index: 2;
+      }
       details.section summary::-webkit-details-marker { display: none; }
       .sectionMeta { font-size: 12px; opacity: 0.8; margin: 4px 0 8px 0; }
+      .sectionMeta.subNote { margin-left: 16px; }
       .endDivider {
         margin: 10px 0 2px 0;
         border-top: 1px solid rgba(255,255,255,0.15);
@@ -231,6 +317,85 @@ details.section details.section > summary {
         gap: 4px;
         min-width: 100px;
         transform: translateX(-70px);
+      }
+      #titleBlockPanel #meshMiniStats {
+        transform: none;
+        min-width: 0;
+        width: 100%;
+        grid-template-rows: repeat(3, auto);
+      }
+      #toolbarTopRow {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 10px;
+        align-items: start;
+        margin: 8px 0 0 0;
+      }
+      #toolbarTopActions {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 8px;
+      }
+      #toolbarTopActions > button {
+        width: 100%;
+      }
+      #titleStatsToggleBtn {
+        width: 100%;
+        min-height: 16px;
+        padding: 2px 6px;
+        border-radius: 6px;
+        border: 1px solid rgba(255,255,255,0.10);
+        background: rgba(255,255,255,0.04);
+        color: #e8e8ea;
+        font-size: 11px;
+        line-height: 1;
+        text-align: center;
+        font-variant-numeric: tabular-nums;
+      }
+      #titleStatsToggleBtn[aria-pressed="true"] {
+        background: rgba(255,255,255,0.10);
+        border-color: rgba(255,255,255,0.18);
+      }
+      #titleStatsPanel {
+        display: none;
+        margin-top: 10px;
+        padding-top: 8px;
+        border-top: 1px solid rgba(255,255,255,0.10);
+      }
+      #titleStatsPanel.open {
+        display: block;
+      }
+      #titleBlockPanel.statsExpanded #titleStatsPanel.open {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow: auto;
+        overscroll-behavior: contain;
+      }
+      .titleStatsList {
+        display: grid;
+        gap: 6px;
+      }
+      .titleStatsRow {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 8px;
+        align-items: center;
+        min-height: 16px;
+        line-height: 1.1;
+        font-size: 11px;
+        border-radius: 6px;
+        padding: 4px 6px;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.10);
+        font-variant-numeric: tabular-nums;
+      }
+      .titleStatsKey {
+        opacity: 0.75;
+      }
+      .titleStatsVal {
+        text-align: right;
+        opacity: 0.95;
+        white-space: nowrap;
       }
       .miniStatsRow {
         display: grid;
@@ -349,26 +514,667 @@ details.section details.section > summary {
         white-space: nowrap;
         text-overflow: ellipsis;
       }
+
+      .panelActionRow {
+        display: flex;
+        gap: 6px;
+        justify-content: flex-end;
+        margin: 4px 0 8px 0;
+      }
+      .panelActionBtn {
+        padding: 4px 8px;
+        min-width: 34px;
+        border-radius: 6px;
+        border: 1px solid rgba(255,255,255,0.15);
+        background: rgba(255,255,255,0.05);
+        color: #e8e8ea;
+        font-size: 11px;
+        line-height: 1;
+        cursor: pointer;
+      }
+      .panelActionBtn:hover {
+        background: rgba(255,255,255,0.1);
+      }
+      .panelActionBtn[aria-pressed="true"] {
+        background: rgba(255,255,255,0.14);
+      }
+
+      .layersHeaderRow {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin: 4px 0 8px 0;
+      }
+      .layersGroupTitle {
+        font-size: 11px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        opacity: 0.72;
+        font-weight: 700;
+      }
+      .layersList {
+        display: grid;
+        gap: 6px;
+      }
+      .layerRow {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        box-sizing: border-box;
+        padding: 6px 8px;
+        border-radius: 8px;
+        border: 1px solid rgba(255,255,255,0.10);
+        background: rgba(255,255,255,0.02);
+      }
+      .layerRow.model {
+        grid-template-columns: 1fr;
+        cursor: pointer;
+        color: #e8e8ea;
+        text-align: left;
+      }
+      .layerRow.model:hover {
+        background: rgba(255,255,255,0.05);
+        border-color: rgba(255,255,255,0.16);
+      }
+      .layerRow.model.active {
+        background: rgba(255,255,255,0.08);
+        border-color: rgba(255,255,255,0.26);
+      }
+      .layerRow.ref.off {
+        opacity: 0.6;
+      }
+      .layerRow.ref.group {
+        background: rgba(255,255,255,0.035);
+        border-color: rgba(255,255,255,0.14);
+      }
+      .layerRow.ref.sub {
+        margin-left: 14px;
+        width: calc(100% - 14px);
+        background: rgba(255,255,255,0.015);
+        border-color: rgba(255,255,255,0.08);
+      }
+      .layerRow.ref.hidden {
+        display: none;
+      }
+      .layerRow.ref.hasAction {
+        grid-template-columns: auto 1fr auto;
+      }
+      .layerRowLabel {
+        font-size: 12px;
+        line-height: 1.2;
+        text-align: left;
+        color: inherit;
+      }
+      .eyeBtn,
+      .layerRowActionBtn {
+        width: 28px;
+        height: 24px;
+        padding: 0;
+        border-radius: 7px;
+        border: 1px solid rgba(255,255,255,0.14);
+        background: rgba(255,255,255,0.04);
+        color: #e8e8ea;
+        display: grid;
+        place-items: center;
+        line-height: 1;
+        font-size: 13px;
+      }
+      .eyeBtn.off {
+        opacity: 0.55;
+        background: rgba(0,0,0,0.18);
+      }
+      .layerRowActionBtn:hover {
+        background: rgba(255,255,255,0.08);
+      }
+
+      .radioRow {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        gap: 8px;
+        align-items: center;
+        margin: 8px 0;
+      }
+      #radioSection > .sectionMeta {
+        margin-bottom: 4px;
+      }
+      #radioSection > .panelActionRow {
+        margin: 0;
+      }
+      #radioSection > .radioRow {
+        margin-top: 4px;
+      }
+      .radioTiny {
+        font-size: 11px;
+        opacity: 0.85;
+      }
+      #radioScIframe {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        opacity: 0;
+        pointer-events: none;
+        border: 0;
+      }
+
+      .floatHost {
+        position: fixed;
+        top: 24px;
+        right: 24px;
+        z-index: 2000;
+        width: min(520px, calc(100vw - 32px));
+        max-height: calc(100vh - 32px);
+        overflow: hidden;
+        background: rgba(20,20,24,0.95);
+        color: #e8e8ea;
+        border: 1px solid rgba(255,255,255,0.14);
+        border-radius: 12px;
+        box-shadow: 0 14px 40px rgba(0,0,0,0.45);
+        padding: 10px 12px;
+        cursor: default;
+        min-width: 320px;
+        min-height: 180px;
+        resize: both;
+        display: flex;
+        flex-direction: column;
+      }
+      .floatHostHeader {
+        flex: 0 0 auto;
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 8px;
+        background: rgba(20,20,24,0.95);
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+        margin-bottom: 8px;
+        padding: 2px 0 8px 0;
+      }
+      .floatHostTitleWrap {
+        min-width: 0;
+      }
+      .floatHostTitle {
+        font-size: 13px;
+        font-weight: 800;
+        letter-spacing: 0.2px;
+        line-height: 1.2;
+      }
+      .floatHostSub {
+        font-size: 12px;
+        opacity: 0.8;
+        margin-top: 4px;
+      }
+      .floatHostHeader .panelActionRow {
+        margin: 0;
+        flex: 0 0 auto;
+      }
+      .floatHostBody {
+        flex: 1 1 0;
+        min-height: 0;
+        overflow: auto;
+        padding-right: 2px;
+      }
+      .floatHostBody > details.section {
+        margin-top: 0;
+        border-top: none;
+        padding-top: 0;
+      }
+      .floatHostBody > details.section > summary,
+      .floatHostBody > details.section > .sectionMeta,
+      .floatHostBody > details.section > .panelActionRow {
+        display: none !important;
+      }
+      .floatHostBody > #debugPanel #debugHeader {
+        display: none;
+      }
+      .floatToolbarStub {
+        opacity: 0.82;
+      }
+      .floatToolbarStub > summary {
+        cursor: pointer;
+      }
+      .floatHost.dragging {
+        cursor: grabbing;
+      }
+
+      /* Gizmo viewport resize handle (overlay on canvas, bottom-left corner of gizmo viewport) */
+      #gizmoViewportResizeHandle {
+        position: fixed;
+        left: 0;
+        top: 0;
+        z-index: 1200;
+        width: 14px;
+        height: 14px;
+        box-sizing: border-box;
+        border-radius: 3px;
+        border: 1px solid rgba(255,255,255,0.12);
+        background:
+          linear-gradient(135deg,
+            transparent 0 34%,
+            rgba(255,255,255,0.38) 34% 42%,
+            transparent 42% 54%,
+            rgba(255,255,255,0.28) 54% 62%,
+            transparent 62% 74%,
+            rgba(255,255,255,0.20) 74% 82%,
+            transparent 82% 100%),
+          rgba(20,20,24,0.78);
+        box-shadow: 0 6px 14px rgba(0,0,0,0.32);
+        cursor: nesw-resize;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+      #gizmoCardinalUpBadge {
+        position: fixed;
+        left: 0;
+        top: 0;
+        z-index: 1200;
+        min-width: 44px;
+        padding: 2px 6px;
+        box-sizing: border-box;
+        border-radius: 6px;
+        border: 1px solid rgba(255,255,255,0.16);
+        background: rgba(20,20,24,0.82);
+        color: #e8e8ea;
+        font-size: 10px;
+        line-height: 1.1;
+        text-align: center;
+        font-variant-numeric: tabular-nums;
+        user-select: none;
+        -webkit-user-select: none;
+        pointer-events: auto;
+        cursor: pointer;
+      }
+      #gizmoToggleBtn {
+        position: fixed;
+        left: 0;
+        top: 0;
+        z-index: 1200;
+        min-width: 52px;
+        padding: 2px 6px;
+        box-sizing: border-box;
+        border-radius: 6px;
+        border: 1px solid rgba(255,255,255,0.16);
+        background: rgba(20,20,24,0.82);
+        color: #e8e8ea;
+        font-size: 10px;
+        line-height: 1.1;
+        text-align: center;
+        font-variant-numeric: tabular-nums;
+        user-select: none;
+        -webkit-user-select: none;
+        pointer-events: auto;
+        cursor: pointer;
+      }
+      #gizmoToggleBtn[aria-pressed="false"] {
+        opacity: 0.75;
+      }
+      #gizmoGizmoPanel {
+        position: fixed;
+        left: 0;
+        top: 0;
+        z-index: 1200;
+        width: 108px;
+        display: none;
+        grid-template-columns: 1fr;
+        gap: 4px;
+        padding: 6px;
+        border-radius: 8px;
+        border: 1px solid rgba(255,255,255,0.14);
+        background: rgba(20,20,24,0.92);
+        box-sizing: border-box;
+      }
+      #gizmoGizmoPanel.open {
+        display: grid;
+      }
+      #gizmoFpsBadge {
+        position: fixed;
+        left: 0;
+        top: 0;
+        z-index: 1200;
+        min-width: 44px;
+        height: 18px;
+        padding: 0 6px;
+        box-sizing: border-box;
+        border-radius: 6px;
+        border: 1px solid rgba(255,255,255,0.16);
+        background: rgba(20,20,24,0.82);
+        color: #e8e8ea;
+        font-size: 10px;
+        line-height: 16px;
+        text-align: center;
+        font-variant-numeric: tabular-nums;
+        user-select: none;
+        -webkit-user-select: none;
+        pointer-events: none;
+      }
+      #gizmoRollCwBtn,
+      #gizmoRollCcwBtn {
+        position: fixed;
+        left: 0;
+        top: 0;
+        z-index: 1200;
+        width: 24px;
+        height: 20px;
+        padding: 0;
+        border-radius: 6px;
+        border: 1px solid rgba(255,255,255,0.16);
+        background: rgba(20,20,24,0.82);
+        color: #e8e8ea;
+        font-size: 12px;
+        line-height: 1;
+        text-align: center;
+        cursor: pointer;
+      }
+      .gizmoModeBtn {
+        position: fixed;
+        left: 0;
+        top: 0;
+        z-index: 1200;
+        min-width: 52px;
+        height: 20px;
+        padding: 0 6px;
+        border-radius: 6px;
+        border: 1px solid rgba(255,255,255,0.16);
+        background: rgba(20,20,24,0.82);
+        color: #e8e8ea;
+        font-size: 10px;
+        line-height: 1;
+        text-align: center;
+        cursor: pointer;
+      }
+      .gizmoModeBtn[aria-pressed="true"] {
+        background: rgba(255,255,255,0.16);
+        border-color: rgba(255,255,255,0.30);
+      }
+      #gizmoGravityRange {
+        position: fixed;
+        left: 0;
+        top: 0;
+        z-index: 1200;
+        width: 108px;
+        accent-color: #8fb5ff;
+      }
+      .gizmoSliderLabel {
+        position: fixed;
+        left: 0;
+        top: 0;
+        z-index: 1200;
+        width: 108px;
+        color: #d8dbe2;
+        font-size: 10px;
+        line-height: 1;
+        letter-spacing: 0.02em;
+        text-align: left;
+        pointer-events: none;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+      #gizmoToolbarResizeHandle {
+        position: fixed;
+        left: 0;
+        top: 0;
+        z-index: 1200;
+        width: 14px;
+        height: 14px;
+        box-sizing: border-box;
+        border-radius: 3px;
+        border: 1px solid rgba(255,255,255,0.12);
+        background:
+          linear-gradient(135deg,
+            transparent 0 34%,
+            rgba(255,255,255,0.38) 34% 42%,
+            transparent 42% 54%,
+            rgba(255,255,255,0.28) 54% 62%,
+            transparent 62% 74%,
+            rgba(255,255,255,0.20) 74% 82%,
+            transparent 82% 100%),
+          rgba(20,20,24,0.78);
+        box-shadow: 0 6px 14px rgba(0,0,0,0.32);
+        cursor: nwse-resize;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+      #gizmoDecayRange {
+        position: fixed;
+        left: 0;
+        top: 0;
+        z-index: 1200;
+        width: 108px;
+        accent-color: #8fb5ff;
+      }
+      #gizmoSpinToggleBtn,
+      #gizmoZoomStopsInertiaBtn {
+        position: fixed;
+        left: 0;
+        top: 0;
+        z-index: 1200;
+        width: 108px;
+        height: 20px;
+        border-radius: 6px;
+        border: 1px solid rgba(255,255,255,0.16);
+        background: rgba(20,20,24,0.82);
+        color: #e8e8ea;
+        font-size: 10px;
+        line-height: 1;
+        text-align: center;
+        cursor: pointer;
+      }
+      #gizmoSpinToggleBtn[aria-pressed="true"],
+      #gizmoZoomStopsInertiaBtn[aria-pressed="true"] {
+        background: rgba(255,255,255,0.16);
+        border-color: rgba(255,255,255,0.30);
+      }
+      #gizmoViewBtn {
+        position: fixed;
+        left: 0;
+        top: 0;
+        z-index: 1200;
+        width: 108px;
+        height: 20px;
+        border-radius: 6px;
+        border: 1px solid rgba(255,255,255,0.16);
+        background: rgba(20,20,24,0.82);
+        color: #e8e8ea;
+        font-size: 10px;
+        line-height: 1;
+        text-align: center;
+        cursor: pointer;
+      }
+      #gizmoControlsBtn {
+        position: fixed;
+        left: 0;
+        top: 0;
+        z-index: 1200;
+        width: 108px;
+        height: 20px;
+        border-radius: 6px;
+        border: 1px solid rgba(255,255,255,0.16);
+        background: rgba(20,20,24,0.82);
+        color: #e8e8ea;
+        font-size: 10px;
+        line-height: 1;
+        text-align: center;
+        cursor: pointer;
+      }
+      #gizmoControlsBtn[aria-pressed="true"] {
+        background: rgba(255,255,255,0.16);
+        border-color: rgba(255,255,255,0.30);
+      }
+      #gizmoViewPanel {
+        position: fixed;
+        left: 0;
+        top: 0;
+        z-index: 1200;
+        width: 108px;
+        display: none;
+        grid-template-columns: 1fr;
+        gap: 6px;
+        padding: 6px;
+        border-radius: 8px;
+        border: 1px solid rgba(255,255,255,0.14);
+        background: rgba(20,20,24,0.92);
+        box-sizing: border-box;
+      }
+      #gizmoViewPanel.starsOpen {
+        width: 168px;
+      }
+      #gizmoViewPanel.open {
+        display: grid;
+      }
+      .gizmoSubSection {
+        border: 1px solid rgba(255,255,255,0.14);
+        border-radius: 6px;
+        padding: 4px;
+        background: rgba(255,255,255,0.02);
+      }
+      .gizmoSubSection > summary {
+        cursor: pointer;
+        font-size: 10px;
+        line-height: 1.2;
+        font-weight: 700;
+        color: #d8dbe2;
+        user-select: none;
+      }
+      .gizmoSubSection > summary::-webkit-details-marker {
+        display: none;
+      }
+      #gizmoScenesSection > summary {
+        display: block;
+        width: 100%;
+        height: 20px;
+        padding: 0 6px;
+        box-sizing: border-box;
+        border-radius: 6px;
+        border: 1px solid rgba(255,255,255,0.16);
+        background: rgba(20,20,24,0.82);
+        color: #e8e8ea;
+        font-size: 10px;
+        line-height: 18px;
+        font-weight: 600;
+        text-align: center;
+      }
+      #gizmoScenesSection[open] > summary {
+        background: rgba(255,255,255,0.16);
+        border-color: rgba(255,255,255,0.30);
+      }
+      .gizmoSubSectionBody {
+        display: grid;
+        gap: 6px;
+        margin-top: 6px;
+      }
+      .gizmoViewActionBtn {
+        width: 100%;
+        height: 20px;
+        padding: 0 6px;
+        border-radius: 6px;
+        border: 1px solid rgba(255,255,255,0.16);
+        background: rgba(20,20,24,0.82);
+        color: #e8e8ea;
+        font-size: 10px;
+        line-height: 1;
+        text-align: center;
+        cursor: pointer;
+      }
+      .gizmoViewActionBtn[aria-pressed="true"] {
+        background: rgba(255,255,255,0.16);
+        border-color: rgba(255,255,255,0.30);
+      }
+      #gizmoStarsControls {
+        display: none;
+        gap: 4px;
+      }
+      #gizmoStarsControls.open {
+        display: grid;
+      }
+      #gizmoNebulaControls {
+        display: none;
+        gap: 4px;
+      }
+      #gizmoNebulaControls.open {
+        display: grid;
+      }
+      #gizmoSwarmControls {
+        display: none;
+        gap: 4px;
+      }
+      #gizmoSwarmControls.open {
+        display: grid;
+      }
+      #gizmoGridControls {
+        display: none;
+        gap: 4px;
+      }
+      #gizmoGridControls.open {
+        display: grid;
+      }
+      .gizmoStarsLabel {
+        font-size: 9px;
+        line-height: 1;
+        opacity: 0.85;
+        color: #d8dbe2;
+      }
+      .gizmoStarsRange {
+        width: 100%;
+        accent-color: #8fb5ff;
+      }
+      .gizmoSliderRow {
+        display: grid;
+        grid-template-columns: minmax(0, 4fr) minmax(34px, 1fr);
+        align-items: center;
+        gap: 6px;
+      }
+      .gizmoSliderVal {
+        font-size: 9px;
+        line-height: 1;
+        text-align: right;
+        color: #d8dbe2;
+        opacity: 0.9;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+      #gizmoViewFovRange {
+        width: 100%;
+        accent-color: #8fb5ff;
+      }
+      #gizmoSpinSpeedRange {
+        position: fixed;
+        left: 0;
+        top: 0;
+        z-index: 1200;
+        width: 108px;
+        accent-color: #8fb5ff;
+        display: none;
+      }
+      #gizmoSpinSpeedLabel {
+        display: none;
+      }
     </style>
   </head>
 
   <body>
     <div id="ui">
       <!-- BOX 1: Title + Version + Toolbar -->
-      <div id="toolbarPanel" class="panelBox">
+      <div id="titleBlockPanel" class="panelBox">
         <div id="titlePanel">
           <div id="appTitle">ParaHook Generator</div>
-          <div id="appVersion">v 0.14.3</div>
+          <div id="appVersion">v 0.15.2</div>
         </div>
 
         <div class="row header">
-          <div id="status">idle</div>
+          <div id="status">
+            <div id="statusProgressFill" aria-hidden="true"></div>
+            <span id="statusText">idle</span>
+          </div>
         </div>
 
         <!-- MODEL TOGGLE -->
-        <div class="check withSideStats">
-          <input id="modelEnabled" type="checkbox" checked />
-          <label for="modelEnabled">Enable model (model.ts)</label>
+        <input id="modelEnabled" type="checkbox" checked hidden />
+        <div id="toolbarTopRow">
+          <div id="toolbarTopActions">
+            <button id="rebuild" type="button">Rebuild</button>
+            <button id="modelLivePauseBtn" type="button" class="secondary">Live</button>
+          </div>
           <div id="meshMiniStats" class="miniStats" aria-label="Mesh statistics">
             <div class="miniStatsRow">
               <span class="miniStatsKey">verts =</span>
@@ -377,6 +1183,32 @@ details.section details.section > summary {
             <div class="miniStatsRow">
               <span class="miniStatsKey">tris =</span>
               <span id="meshTris" class="miniStatsVal">-</span>
+            </div>
+            <button id="titleStatsToggleBtn" type="button" aria-pressed="false" title="Show stats">Show Stats</button>
+          </div>
+        </div>
+        <div id="titleStatsPanel" aria-hidden="true">
+          <div class="titleStatsList" aria-label="Title block stats">
+            <div class="titleStatsRow"><span class="titleStatsKey">Build Time (ms)</span><span id="titleStatBuildMs" class="titleStatsVal">-</span></div>
+            <div class="titleStatsRow"><span class="titleStatsKey">Status / Queue</span><span id="titleStatQueue" class="titleStatsVal">idle</span></div>
+            <div class="titleStatsRow"><span class="titleStatsKey">Mesh Size (MB)</span><span id="titleStatMeshMB" class="titleStatsVal">-</span></div>
+            <div class="titleStatsRow"><span class="titleStatsKey">Rebuild Mode</span><span id="titleStatRebuildMode" class="titleStatsVal">Live</span></div>
+            <div class="titleStatsRow"><span class="titleStatsKey">Build Count</span><span id="titleStatBuildCount" class="titleStatsVal">0</span></div>
+            <div class="titleStatsRow"><span class="titleStatsKey">Camera Dist</span><span id="titleStatCameraDist" class="titleStatsVal">-</span></div>
+            <div class="titleStatsRow"><span class="titleStatsKey">Active Parts</span><span id="titleStatActiveParts" class="titleStatsVal">-</span></div>
+            <div class="titleStatsRow"><span class="titleStatsKey">Last Rebuild Source</span><span id="titleStatLastSource" class="titleStatsVal">startup</span></div>
+          </div>
+
+          <div id="debugPanel" class="panelBox">
+            <div id="debug">
+              <div id="debugHeader" style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+                <span>Debug</span>
+                <span style="display:flex; gap:6px;">
+                  <button id="debugFloatToggle" type="button" class="panelActionBtn" aria-pressed="false" aria-label="Float panel" title="Float panel">▣</button>
+                  <button id="debugWindowToggle" type="button" class="panelActionBtn" aria-pressed="false" aria-label="Open panel in window" title="Open panel in window">⇱</button>
+                </span>
+              </div>
+              <pre id="log"></pre>
             </div>
           </div>
         </div>
@@ -390,9 +1222,8 @@ details.section details.section > summary {
           <!-- BUTTONS (collapsible group) -->
           <details class="section">
             <summary>Buttons</summary>
-            <div class="sectionMeta">Custom button actions and presets (WIP)</div>
+            <div class="sectionMeta">  <!-- wip desription - add here in future --></div>
             <div class="btnStack">
-              <button id="rebuild" type="button">Rebuild</button>
               <button id="exportStl" type="button" class="secondary">Export STL</button>
               <button id="exportStep" type="button" class="secondary">Export STEP</button>
               <button id="loadSettings" type="button" class="secondary">Load Settings</button>
@@ -408,8 +1239,43 @@ details.section details.section > summary {
             <details class="section">
               <summary>-Releases</summary>
               <details class="section" open>
+                <summary>v0.15.2</summary>
+                <details class="section">
+                  <summary>Added</summary>
+                  <div class="sectionMeta">1. Restored missing/truncated UI tail in index.html (Parahook Parameters wrapper, Layers, Radio, section cut mode radios).</div>
+                  <div class="sectionMeta subNote">1.1 Rebuilt panel pop-out controls (Float + Window) for Parahook Parameters, Layers, Radio, and Debug.</div>
+                  <div class="sectionMeta">2. Restored/updated Layers system Reference Views with grouped Control point Viz parent + Baseplate/Profile A/B/C child rows.</div>
+                  <div class="sectionMeta subNote">2.1 Repaired layers eye icon rendering and row on/off visual sync for Control Point Viz rows.</div>
+                  <div class="sectionMeta subNote">2.2 Added per-row focus buttons (shoe + control point viz rows) to zoom/focus while preserving camera angle.</div>
+                  <div class="sectionMeta">3. Profile A/B/C control-handle visualizer spheres now use handle-point math (P1/P2/P3) instead of sampled rails/anchors.</div>
+                  <div class="sectionMeta subNote">3.1 Control-point visualizer spheres render on top of the model for easier debugging.</div>
+                  <div class="sectionMeta">4. Top-right gizmo upgraded to clickable axis/corner spheres for view snapping.</div>
+                  <div class="sectionMeta">5. Radio sampler behavior updated: closing Radio turns off sampler; collapsed Radio no longer triggers sampler sounds from UI interactions.</div>
+                  <div class="sectionMeta subNote">5.1 Radio UI updates: hidden SoundCloud embed visual, default sampler burst set to 0.10s, burst UI clamped to 1.0s (and runtime clamp in main.ts).</div>
+                  <div class="sectionMeta">6. Title block stats panel UX pass: expanded title stats height behavior tuned, horizontal resize disabled for the title block, and improved min-height handling while expanded.</div>
+                  <div class="sectionMeta subNote">6.1 Debug panel moved into the expanded Title Stats area (under Last Rebuild Source) while preserving Float/Window pop-out controls.</div>
+                  <div class="sectionMeta">7. Title status line upgraded into a dark inline progress bar during busy states (build/remesh/export), with stage-mapped 0-100% progress and text overlay readability.</div>
+                  <div class="sectionMeta subNote">7.1 Ready/idle keeps the original dark toolbar look; status/progress bar now spans full title width even for short status text.</div>
+                  <div class="sectionMeta">8. Toolbar button visual style pass: primary/secondary buttons darkened to match the toolbar, with a darker paused state for the Live/Pause button.</div>
+                  <div class="sectionMeta">9. Gizmo/controls overlay refactor: extracted positioning math into `src/ui/gizmoLayout.ts` for stable row order and easier maintenance.</div>
+                  <div class="sectionMeta subNote">9.1 Added dedicated Gizmo settings panel (opened by the Gizmo button) with live controls for line alpha, sphere size, and text size.</div>
+                  <div class="sectionMeta subNote">9.2 Added independent toolbar width resizing handle for Gizmo/View/Controls stack and dynamic width expansion when sections are open.</div>
+                  <div class="sectionMeta">10. Top-right gizmo upgrade: clickable axis + corner snapping improvements, axis labels, hover feedback tuning, and default viewport size increase to 300.</div>
+                  <div class="sectionMeta subNote">10.1 Added Ant Crawl naming for the former Current camera mode and aligned Ant Crawl corner snapping behavior to Orbit-style canonical corner handling.</div>
+                  <div class="sectionMeta">11. Camera controls UX pass: Perspective/Orthographic toggle sync with FOV slider (`0 = Orthographic`) and smooth slider-driven transitions without unwanted reset snaps.</div>
+                  <div class="sectionMeta subNote">11.1 Added Zoom slider linked to live dolly state, plus projection-specific reset behavior (orthographic reset defaults to Left / -X).</div>
+                  <div class="sectionMeta">12. View panel reorganization: added Render section, split Grid into its own top-level section (open=on, collapsed=off), and nested Scenes under Background.</div>
+                </details>
+                <details class="section">
+                  <summary>To Do</summary>
+                  <div class="sectionMeta">Investigate left UI panel height mismatch (debug log shows ui-height lower than viewport-height even when #ui is set to 100vh).</div>
+                  <div class="sectionMeta">Track/resolve why the toolbar column can appear ~90% of viewport height on some sessions/browser states.</div>
+                </details>
+              </details>
+
+              <details class="section">
                 <summary>0.14.3</summary>
-                <div class="sectionMeta">Dr good fillet, Smooth &amp; Wiggly.</div>
+                <div class="sectionMeta">Dr Good Fillet, Home of the good fillet, Smooth &amp; Wiggly.</div>
                 <div class="sectionMeta">Added Load Settings / Export Settings buttons (JSON) to save and restore the full UI input state.</div>
                 <div class="sectionMeta">Heel crown fillet flow was reworked into a separate crown object path for preview performance and fused export output.</div>
                 <div class="sectionMeta">HEEL_FIL_1 is now the heel crown enable toggle (master on/off for the added crown on the top of the heel kick).</div>
@@ -467,6 +1333,16 @@ details.section details.section > summary {
               <div class="check">
                 <input id="sectionCutZswitch" type="checkbox" />
                 <label for="sectionCutZswitch">Plan / Section</label>
+              </div>
+
+              <div class="check" style="margin-left: 18px;">
+                <input id="sectionCutModeSection" name="sectionCutMode" type="radio" checked />
+                <label for="sectionCutModeSection">Section (XZ)</label>
+              </div>
+
+              <div class="check" style="margin-left: 18px;">
+                <input id="sectionCutModePlan" name="sectionCutMode" type="radio" />
+                <label for="sectionCutModePlan">Plan (XY)</label>
               </div>
 
               <div class="row">
@@ -616,17 +1492,17 @@ details.section details.section > summary {
               </div>
 
               <div class="row">
-                <label>Shoe Size (US 5–15) (10 = 1.00x)
-                  <input id="shoeSize" type="range" min="5" max="15" step="0.5" value="10" />
+                <label>Shoe Size (US 5–14)
+                  <input id="shoeSize" type="range" min="5" max="14" step="0.5" value="10" />
                 </label>
                 <input class="valInput" id="shoeSizeVal" type="number" step="0.5" value="10" />
               </div>
 
               <div class="row">
-                <label>Computed Scale //(relative to size 10)
-                  <input id="shoeScale" type="range" min="0.80" max="1.25" step="0.001" value="1" disabled />
+                <label>Computed Scale  (relative to size 10)
+                  <input id="shoeScale" type="range" min="0.50" max="1.25" step="0.001" value="1" disabled />
                 </label>
-                <input class="valInput" id="shoeScaleVal" type="number" step="0.001" value="1.000" disabled />
+                <input class="valInput" id="shoeScaleVal" type="number" min="0.50" max="1.25" step="0.001" value="1.000" disabled />
               </div>
 
               <div class="row">
@@ -666,6 +1542,91 @@ details.section details.section > summary {
             </details>
           </details>
 
+          <details class="section hasInlinePanelActions" id="paraHookParamsSection" open>
+            <summary>Parahook Parameters</summary>
+            <div class="sectionMeta">Primary geometry controls for the parahook model.</div>
+            <div class="panelActionRow">
+                <button id="paraHookParamsFloatToggle" type="button" class="panelActionBtn" aria-pressed="false" aria-label="Float panel" title="Float panel">▣</button>
+                <button id="paraHookParamsWindowToggle" type="button" class="panelActionBtn" aria-pressed="false" aria-label="Open panel in window" title="Open panel in window">⇱</button>
+            </div>
+<!-- TRANSFORM (viewer-only) -->
+<details class="section">
+  <summary>Transform</summary>
+  <div class="sectionMeta">Viewport-only transform for the generated parahook model (does not affect CAD params or export geometry).</div>
+  <div class="btnStack" style="margin: 0 0 8px 0;">
+    <button id="modelTransformReset" type="button" class="secondary">Reset</button>
+  </div>
+  <div class="check">
+    <input id="modelMirrorXZ" type="checkbox" />
+    <label for="modelMirrorXZ">Mirror (XZ plane)</label>
+  </div>
+
+  <div class="paramRow">
+    <div class="paramTop">
+      <div class="paramTag">MODEL_X</div>
+      <div class="paramName">Model Transform X (mm)</div>
+    </div>
+    <div class="paramBody">
+      <input id="modelX" type="range" min="-300" max="300" step="1" value="0" />
+      <input class="valInput" id="modelXVal" type="number" step="1" value="0" />
+    </div>
+  </div>
+
+  <div class="paramRow">
+    <div class="paramTop">
+      <div class="paramTag">MODEL_Y</div>
+      <div class="paramName">Model Transform Y (mm)</div>
+    </div>
+    <div class="paramBody">
+      <input id="modelY" type="range" min="-300" max="300" step="1" value="0" />
+      <input class="valInput" id="modelYVal" type="number" step="1" value="0" />
+    </div>
+  </div>
+
+  <div class="paramRow">
+    <div class="paramTop">
+      <div class="paramTag">MODEL_Z</div>
+      <div class="paramName">Model Transform Z (mm)</div>
+    </div>
+    <div class="paramBody">
+      <input id="modelZ" type="range" min="-300" max="300" step="1" value="0" />
+      <input class="valInput" id="modelZVal" type="number" step="1" value="0" />
+    </div>
+  </div>
+
+  <div class="paramRow">
+    <div class="paramTop">
+      <div class="paramTag">MODEL_RX</div>
+      <div class="paramName">Model Rotate X (deg)</div>
+    </div>
+    <div class="paramBody">
+      <input id="modelRotX" type="range" min="-180" max="180" step="1" value="0" />
+      <input class="valInput" id="modelRotXVal" type="number" step="1" value="0" />
+    </div>
+  </div>
+
+  <div class="paramRow">
+    <div class="paramTop">
+      <div class="paramTag">MODEL_RY</div>
+      <div class="paramName">Model Rotate Y (deg)</div>
+    </div>
+    <div class="paramBody">
+      <input id="modelRotY" type="range" min="-180" max="180" step="1" value="0" />
+      <input class="valInput" id="modelRotYVal" type="number" step="1" value="0" />
+    </div>
+  </div>
+
+  <div class="paramRow">
+    <div class="paramTop">
+      <div class="paramTag">MODEL_RZ</div>
+      <div class="paramName">Model Rotate Plan (deg)</div>
+    </div>
+    <div class="paramBody">
+      <input id="modelRot" type="range" min="-180" max="180" step="1" value="0" />
+      <input class="valInput" id="modelRotVal" type="number" step="1" value="0" />
+    </div>
+  </div>
+</details>
 <!-- BASEPLATE -->
 <details class="section">
   <summary>Baseplate</summary>
@@ -1757,22 +2718,228 @@ details.section details.section > summary {
                 </div>
               </details>
             </details>
-            <div class="endDivider" aria-hidden="true"></div>
+          </details>
+
+          <details class="section hasInlinePanelActions" id="layersSection" open>
+            <summary>Layers</summary>
+            <div class="layersHeaderRow" style="margin: 4px 0 8px 0;">
+              <div class="sectionMeta" style="margin: 0;">Visibility + cached parahook settings layers</div>
+              <button id="layersMaterialsToggle" type="button" class="panelActionBtn" aria-pressed="true" title="Toggle shoe materials">Mats On</button>
+            </div>
+            <div class="panelActionRow">
+                  <button id="layersFloatToggle" type="button" class="panelActionBtn" aria-pressed="false" aria-label="Float panel" title="Float panel">▣</button>
+                  <button id="layersWindowToggle" type="button" class="panelActionBtn" aria-pressed="false" aria-label="Open panel in window" title="Open panel in window">⇱</button>
+            </div>
+
+            <div class="layersHeaderRow">
+              <div class="layersGroupTitle">Reference Views</div>
+            </div>
+            <div id="layersReferenceList" class="layersList"></div>
+
+            <div class="layersHeaderRow" style="margin-top:10px;">
+              <div class="layersGroupTitle">Generated Model</div>
+            </div>
+            <div id="layersModelVisibilityList" class="layersList"></div>
+
+            <div class="btnRow twoCols" style="margin-top:10px;">
+              <button id="layerSaveCurrent" type="button">Save Current</button>
+              <button id="layerUpdateActive" type="button" class="secondary">Update Active</button>
+            </div>
+            <button id="layerDeleteActive" type="button" class="secondary" style="width:100%;">Delete Active</button>
+
+            <div class="layersHeaderRow" style="margin-top:10px;">
+              <div class="layersGroupTitle">Saved Layers</div>
+            </div>
+            <div id="layersModelList" class="layersList"></div>
+          </details>
+
+          <details class="section hasInlinePanelActions" id="radioSection">
+            <summary>Gusano</summary>
+            <div class="sectionMeta">Keota Radio</div>
+            <div class="panelActionRow">
+                  <button id="radioFloatToggle" type="button" class="panelActionBtn" aria-pressed="false" aria-label="Float panel" title="Float panel">▣</button>
+                  <button id="radioWindowToggle" type="button" class="panelActionBtn" aria-pressed="false" aria-label="Open panel in window" title="Open panel in window">⇱</button>
+            </div>
+
+            <div class="radioRow">
+              <button id="radioPlayPause" type="button" class="secondary" aria-label="Play">▶</button>
+              <div id="radioStatus" class="radioTiny">idle</div>
+              <button id="radioOpenLink" type="button" class="secondary">Open</button>
+            </div>
+
+            <div class="row">
+              <label>Volume
+                <input id="radioVolume" type="range" min="0" max="100" step="1" value="60" />
+              </label>
+            </div>
+
+            <div class="row">
+              <label>Seek
+                <input id="radioSeek" type="range" min="0" max="1000" step="1" value="0" />
+              </label>
+              <div id="radioSeekTime" class="radioTiny">0:00 / 0:00</div>
+            </div>
+
+            <div class="row">
+              <label>Sampler Burst (sec)
+                <input id="radioBurstDuration" type="range" min="0.01" max="1" step="0.01" value="0.10" />
+              </label>
+              <input class="valInput" id="radioBurstDurationVal" type="number" min="0.01" max="1" step="0.01" value="0.10" />
+            </div>
+
+            <iframe
+              id="radioScIframe"
+              title="SoundCloud player"
+              allow="autoplay"
+              referrerpolicy="no-referrer"
+              loading="lazy"
+            ></iframe>
+          </details>
         </form>
 
         
       </div>
-
-      <!-- BOX 3: Debug (layout wrapper, outer visuals removed) -->
-      <div id="debugPanel" class="panelBox">
-        <div id="debug">
-          <div id="debugHeader">Debug</div>
-          <pre id="log"></pre>
-        </div>
-      </div>
     </div>
 
     <canvas id="c"></canvas>
+    <div id="gizmoViewportResizeHandle" aria-label="Resize gizmo viewport" title="Drag to resize gizmo viewport"></div>
+    <div id="gizmoToolbarResizeHandle" aria-label="Resize gizmo toolbar" title="Drag to resize gizmo toolbar"></div>
+    <button id="gizmoToggleBtn" type="button" aria-label="Gizmo settings" aria-pressed="false">Gizmo</button>
+    <div id="gizmoGizmoPanel">
+      <div class="gizmoStarsLabel">Line Alpha</div>
+      <input id="gizmoLineOpacityRange" class="gizmoStarsRange" type="range" min="0" max="100" step="1" value="12" />
+      <div class="gizmoStarsLabel">Sphere Size</div>
+      <input id="gizmoSphereSizeRange" class="gizmoStarsRange" type="range" min="40" max="250" step="1" value="100" />
+      <div class="gizmoStarsLabel">Text Size</div>
+      <input id="gizmoTextSizeRange" class="gizmoStarsRange" type="range" min="50" max="250" step="1" value="100" />
+    </div>
+    <button id="gizmoCardinalUpBadge" type="button" aria-label="Toggle cardinal up">Up +Z</button>
+    <div id="gizmoFpsBadge" aria-label="Frames per second">-- fps</div>
+    <button id="gizmoRollCcwBtn" type="button" aria-label="Roll clockwise" title="Roll +90�">&#8635;</button>
+    <button id="gizmoRollCwBtn" type="button" aria-label="Roll counter-clockwise" title="Roll -90�">&#8634;</button>
+    <button id="gizmoModeCurrentBtn" class="gizmoModeBtn" type="button" aria-pressed="false">Ant Crawl</button>
+    <button id="gizmoModeOrbitBtn" class="gizmoModeBtn" type="button" aria-pressed="true">Orbit</button>
+    <button id="gizmoModeTrackballBtn" class="gizmoModeBtn" type="button" aria-pressed="false">Trackball</button>
+    <button id="gizmoModeArcballBtn" class="gizmoModeBtn" type="button" aria-pressed="false">Arcball</button>
+    <div id="gizmoGravityLabel" class="gizmoSliderLabel">Inertia</div>
+    <input id="gizmoGravityRange" type="range" min="0" max="100" step="1" value="70" title="Gravity / inertia" aria-label="Camera inertia" />
+    <div id="gizmoDecayLabel" class="gizmoSliderLabel">Decay</div>
+    <input id="gizmoDecayRange" type="range" min="0" max="101" step="1" value="0" title="Decay time" aria-label="Decay time" />
+    <button id="gizmoSpinToggleBtn" type="button" aria-pressed="false">Spin</button>
+    <div id="gizmoSpinSpeedLabel" class="gizmoSliderLabel">Spin Speed</div>
+    <input id="gizmoSpinSpeedRange" type="range" min="0" max="100" step="1" value="55" title="Spin speed" aria-label="Spin speed" />
+    <button id="gizmoZoomStopsInertiaBtn" type="button" aria-pressed="false" title="Toggle zoom stopping inertia">Zoom Stops Inertia</button>
+    <button id="gizmoViewBtn" type="button">View</button>
+    <button id="gizmoControlsBtn" type="button">Controls</button>
+    <div id="gizmoViewPanel">
+      <details class="gizmoSubSection" open>
+        <summary>Camera</summary>
+        <div class="gizmoSubSectionBody">
+          <button id="gizmoViewResetBtn" class="gizmoViewActionBtn" type="button">Reset</button>
+          <button id="gizmoViewPerspectiveBtn" class="gizmoViewActionBtn" type="button" aria-pressed="true">Perspective</button>
+          <button id="gizmoViewOrthographicBtn" class="gizmoViewActionBtn" type="button" aria-pressed="false">Orthographic</button>
+          <div class="gizmoStarsLabel">Zoom</div>
+          <input id="gizmoViewZoomRange" type="range" min="25" max="400" step="1" value="100" title="Camera zoom" aria-label="Camera zoom" />
+          <div class="gizmoStarsLabel">FOV</div>
+          <input id="gizmoViewFovRange" type="range" min="0" max="100" step="1" value="45" title="Camera FOV (0 = Orthographic)" aria-label="Camera FOV" />
+          <button id="gizmoViewTopBtn" class="gizmoViewActionBtn" type="button">Top</button>
+          <button id="gizmoViewFrontBtn" class="gizmoViewActionBtn" type="button">Front</button>
+        </div>
+      </details>
+      <details class="gizmoSubSection" open>
+        <summary>Render</summary>
+        <div class="gizmoSubSectionBody">
+          <button id="gizmoViewStyleShadedBtn" class="gizmoViewActionBtn" type="button" aria-pressed="true">Shaded</button>
+          <button id="gizmoViewStyleEdgesBtn" class="gizmoViewActionBtn" type="button" aria-pressed="false">Wireframe</button>
+          <button id="gizmoViewStyleXrayBtn" class="gizmoViewActionBtn" type="button" aria-pressed="false">X-Ray</button>
+          <button id="gizmoViewStyleClayBtn" class="gizmoViewActionBtn" type="button" aria-pressed="false">Clay</button>
+        </div>
+      </details>
+      <details id="gizmoGridSection" class="gizmoSubSection">
+        <summary>Grid</summary>
+        <div class="gizmoSubSectionBody">
+          <div id="gizmoGridControls" class="open">
+            <div class="gizmoStarsLabel">Grid Size</div>
+            <input id="gizmoGridSizeRange" class="gizmoStarsRange" type="range" min="100" max="4000" step="50" value="600" />
+            <div class="gizmoStarsLabel">Grid Divisions</div>
+            <input id="gizmoGridDivisionsRange" class="gizmoStarsRange" type="range" min="4" max="240" step="1" value="30" />
+            <div class="gizmoStarsLabel">Major Step</div>
+            <input id="gizmoGridMajorStepRange" class="gizmoStarsRange" type="range" min="1" max="40" step="1" value="5" />
+            <div class="gizmoStarsLabel">Grid Opacity</div>
+            <input id="gizmoGridOpacityRange" class="gizmoStarsRange" type="range" min="0" max="100" step="1" value="45" />
+            <button id="gizmoGridContrastBtn" class="gizmoViewActionBtn" type="button" aria-pressed="false">High Contrast</button>
+          </div>
+        </div>
+      </details>
+      <details class="gizmoSubSection" open>
+        <summary>Background</summary>
+        <div class="gizmoSubSectionBody">
+          <button id="gizmoViewBgDarkBlueBtn" class="gizmoViewActionBtn" type="button" aria-pressed="true">Dark Blue</button>
+          <button id="gizmoViewBgBlackBtn" class="gizmoViewActionBtn" type="button" aria-pressed="false">Black</button>
+          <details id="gizmoScenesSection" class="gizmoSubSection">
+            <summary>Scenes</summary>
+            <div class="gizmoSubSectionBody">
+              <button id="gizmoViewStarsBtn" class="gizmoViewActionBtn" type="button">Stars</button>
+              <button id="gizmoViewNebulaBtn" class="gizmoViewActionBtn" type="button">Nebula</button>
+              <button id="gizmoViewSwarmBtn" class="gizmoViewActionBtn" type="button">Swarm</button>
+              <div id="gizmoStarsControls">
+                <div class="gizmoStarsLabel">Count</div>
+                <input id="gizmoStarsCountRange" class="gizmoStarsRange" type="range" min="20" max="2000" step="1" value="80" />
+                <div class="gizmoStarsLabel">Motion</div>
+                <input id="gizmoStarsMotionRange" class="gizmoStarsRange" type="range" min="0" max="200" step="1" value="100" />
+                <div class="gizmoStarsLabel">Glow</div>
+                <input id="gizmoStarsGlowRange" class="gizmoStarsRange" type="range" min="0" max="200" step="1" value="100" />
+                <div class="gizmoStarsLabel">Wires</div>
+                <input id="gizmoStarsWireRange" class="gizmoStarsRange" type="range" min="0" max="100" step="1" value="24" />
+                <div class="gizmoStarsLabel">Line Likelihood</div>
+                <input id="gizmoStarsLikelihoodRange" class="gizmoStarsRange" type="range" min="0" max="100" step="1" value="50" />
+                <div class="gizmoStarsLabel">Line Distance</div>
+                <input id="gizmoStarsLineDistanceRange" class="gizmoStarsRange" type="range" min="25" max="500" step="1" value="100" />
+                <div class="gizmoStarsLabel">Node Size</div>
+                <input id="gizmoStarsSizeRange" class="gizmoStarsRange" type="range" min="50" max="250" step="1" value="100" />
+                <div class="gizmoStarsLabel">Max Distance</div>
+                <input id="gizmoStarsDistanceRange" class="gizmoStarsRange" type="range" min="25" max="10000" step="1" value="100" />
+              </div>
+              <div id="gizmoNebulaControls">
+                <div class="gizmoStarsLabel">Density</div>
+                <input id="gizmoNebulaDensityRange" class="gizmoStarsRange" type="range" min="10" max="1000" step="1" value="100" />
+                <div class="gizmoStarsLabel">Scale</div>
+                <input id="gizmoNebulaScaleRange" class="gizmoStarsRange" type="range" min="20" max="300" step="1" value="100" />
+                <div class="gizmoStarsLabel">Turbulence</div>
+                <input id="gizmoNebulaTurbulenceRange" class="gizmoStarsRange" type="range" min="0" max="150" step="1" value="35" />
+                <div class="gizmoStarsLabel">Drift</div>
+                <input id="gizmoNebulaDriftRange" class="gizmoStarsRange" type="range" min="0" max="300" step="1" value="100" />
+                <div class="gizmoStarsLabel">Glow</div>
+                <input id="gizmoNebulaGlowRange" class="gizmoStarsRange" type="range" min="0" max="300" step="1" value="100" />
+                <div class="gizmoStarsLabel">Color Shift</div>
+                <input id="gizmoNebulaColorShiftRange" class="gizmoStarsRange" type="range" min="0" max="100" step="1" value="0" />
+              </div>
+              <div id="gizmoSwarmControls">
+                <div class="gizmoStarsLabel">Count</div>
+                <input id="gizmoSwarmCountRange" class="gizmoStarsRange" type="range" min="50" max="2000" step="10" value="300" />
+                <div class="gizmoStarsLabel">Speed</div>
+                <input id="gizmoSwarmSpeedRange" class="gizmoStarsRange" type="range" min="10" max="300" step="1" value="100" />
+                <div class="gizmoStarsLabel">Cohesion</div>
+                <input id="gizmoSwarmCohesionRange" class="gizmoStarsRange" type="range" min="0" max="200" step="1" value="45" />
+                <div class="gizmoStarsLabel">Separation</div>
+                <input id="gizmoSwarmSeparationRange" class="gizmoStarsRange" type="range" min="0" max="200" step="1" value="50" />
+                <div class="gizmoStarsLabel">Alignment</div>
+                <input id="gizmoSwarmAlignmentRange" class="gizmoStarsRange" type="range" min="0" max="200" step="1" value="50" />
+                <div class="gizmoStarsLabel">Jitter</div>
+                <input id="gizmoSwarmJitterRange" class="gizmoStarsRange" type="range" min="0" max="200" step="1" value="20" />
+                <div class="gizmoStarsLabel">Anim Length</div>
+                <input id="gizmoSwarmDecayRange" class="gizmoStarsRange" type="range" min="1" max="101" step="1" value="40" />
+                <div class="gizmoStarsLabel">Progress</div>
+                <input id="gizmoSwarmProgressRange" class="gizmoStarsRange" type="range" min="0" max="100" step="1" value="0" />
+                <button id="gizmoSwarmExplodeBtn" class="gizmoViewActionBtn" type="button" aria-pressed="false">Explode</button>
+                <div class="gizmoStarsLabel">Explode Strength</div>
+                <input id="gizmoSwarmExplodeStrengthRange" class="gizmoStarsRange" type="range" min="0" max="300" step="1" value="100" />
+              </div>
+            </div>
+          </details>
+        </div>
+      </details>
+    </div>
     <script type="module" src="/src/main.ts"></script>
 
     <script>
@@ -1786,14 +2953,33 @@ details.section details.section > summary {
         bMarker.parentNode.replaceChild(a, bMarker);
       }
 
-      const toolbarPanelSwapEl = document.getElementById("toolbarPanel");
+      const titleBlockPanelSwapEl = document.getElementById("titleBlockPanel");
       const titlePanelSwapEl = document.getElementById("titlePanel");
       const appVersionSwapEl = document.getElementById("appVersion");
       const statusSwapEl = document.getElementById("status");
-      if (toolbarPanelSwapEl && titlePanelSwapEl && appVersionSwapEl && statusSwapEl) {
+      if (titleBlockPanelSwapEl && titlePanelSwapEl && appVersionSwapEl && statusSwapEl) {
         titlePanelSwapEl.addEventListener("click", () => {
           swapDomNodes(appVersionSwapEl, statusSwapEl);
-          toolbarPanelSwapEl.classList.toggle("titleOnly");
+          titleBlockPanelSwapEl.classList.toggle("titleOnly");
+          const isCollapsed = titleBlockPanelSwapEl.classList.contains("titleOnly");
+          if (isCollapsed) {
+            const titleStatsPanelEl = document.getElementById("titleStatsPanel");
+            const titleStatsToggleBtnEl = document.getElementById("titleStatsToggleBtn");
+            if (titleStatsPanelEl) {
+              titleStatsPanelEl.classList.remove("open");
+              titleStatsPanelEl.setAttribute("aria-hidden", "true");
+            }
+            if (titleStatsToggleBtnEl) {
+              titleStatsToggleBtnEl.textContent = "Show Stats";
+              titleStatsToggleBtnEl.setAttribute("aria-pressed", "false");
+              titleStatsToggleBtnEl.setAttribute("title", "Show stats");
+            }
+          }
+          window.dispatchEvent(
+            new CustomEvent("toolbarTitleCollapseChange", {
+              detail: { collapsed: isCollapsed }
+            })
+          );
         });
       }
 
@@ -1898,6 +3084,14 @@ details.section details.section > summary {
         ["hookZ", "hookZVal"],
         ["hookRot", "hookRotVal"],
 
+        // Generated model (viewer-only transform)
+        ["modelX", "modelXVal"],
+        ["modelY", "modelYVal"],
+        ["modelZ", "modelZVal"],
+        ["modelRotX", "modelRotXVal"],
+        ["modelRotY", "modelRotYVal"],
+        ["modelRot", "modelRotVal"],
+
         // Baseplate
         // Baseplate
         ["bp_len", "bp_lenVal"],
@@ -1986,16 +3180,12 @@ details.section details.section > summary {
       const shoeSizeEl = document.getElementById("shoeSize");
       const shoeScaleEl = document.getElementById("shoeScale");
       const shoeScaleValEl = document.getElementById("shoeScaleVal");
-      const shoeXAutoEl = document.getElementById("shoeX");
-      const shoeXAutoValEl = document.getElementById("shoeXVal");
-      const shoeZAutoEl = document.getElementById("shoeZ");
-      const shoeZAutoValEl = document.getElementById("shoeZVal");
 
       function computeShoeScaleFromSize(size) {
-        const step = 0.5; // tuned so size 15 ~= 1.25 scale
-        const L10 = 10;     // baseline inches (ratio)
-        const L = L10 + (size - 10) * step;
-        return L / L10;
+        // UI-calibrated display scale: size 5 => 0.50, size 14 => 1.25 (linear)
+        const clamped = Math.min(14, Math.max(5, Number(size) || 10));
+        const t = (clamped - 5) / 9;
+        return 0.5 + t * 0.75;
       }
 
       function updateShoeScale() {
@@ -2003,27 +3193,9 @@ details.section details.section > summary {
         const size = Number(shoeSizeEl.value);
         const scale = computeShoeScaleFromSize(size);
 
-        // Auto shoe reference transform presets (lerp):
-        // size 5  => X 0,  Z -9
-        // size 15 => X 32, Z +19
-        const t = clamp((size - 5) / 10, 0, 1);
-        const shoeX = 0 + (32 - 0) * t;
-        const shoeZ = -9 + (19 - -9) * t;
-
         shoeScaleEl.value = String(scale.toFixed(3));
         shoeScaleValEl.value = String(scale.toFixed(3));
         shoeScaleEl.dispatchEvent(new Event("input", { bubbles: true }));
-
-        if (shoeXAutoEl) {
-          shoeXAutoEl.value = String(Math.round(shoeX));
-          if (shoeXAutoValEl) shoeXAutoValEl.value = shoeXAutoEl.value;
-          shoeXAutoEl.dispatchEvent(new Event("input", { bubbles: true }));
-        }
-        if (shoeZAutoEl) {
-          shoeZAutoEl.value = String(Math.round(shoeZ));
-          if (shoeZAutoValEl) shoeZAutoValEl.value = shoeZAutoEl.value;
-          shoeZAutoEl.dispatchEvent(new Event("input", { bubbles: true }));
-        }
       }
 
       if (shoeSizeEl) {
@@ -2051,9 +3223,438 @@ details.section details.section > summary {
         tagentProfileDEl.addEventListener("change", syncTagentProfileDControls);
         syncTagentProfileDControls();
       }
+
+      (function setupPanelPopouts() {
+        const panelStates = new Map();
+        const PANEL_BTN_ICONS = {
+          float: "▣",
+          window: "⇱",
+          dock: "↩"
+        };
+
+        function getPopupDoc(win, title) {
+          if (!win || win.closed) return null;
+          const d = win.document;
+          if (!d.body || !d.getElementById("popupPanelHost")) {
+            d.open();
+            d.write(`<!doctype html><html><head><title>${title}</title>
+              <meta charset="utf-8" />
+              <style>
+                html,body{margin:0;padding:0;height:100%;overflow:hidden;background:#0b0b0f;color:#e8e8ea;font-family:system-ui,Segoe UI,Arial,sans-serif}
+                #popupPanelHost{box-sizing:border-box;height:100%;padding:12px;display:flex;flex-direction:column;min-height:0}
+                button{font:inherit}
+              </style>
+            </head><body><div id="popupPanelHost"></div></body></html>`);
+            d.close();
+
+            const head = d.head;
+            if (head) {
+              const styleNodes = document.querySelectorAll('style, link[rel="stylesheet"]');
+              styleNodes.forEach((node) => {
+                head.appendChild(node.cloneNode(true));
+              });
+            }
+          }
+          return d;
+        }
+
+        function ensureState(key, panelEl, floatBtn, winBtn, title) {
+          let st = panelStates.get(key);
+          if (st) return st;
+          st = {
+            key,
+            title,
+            panelEl,
+            floatBtn,
+            winBtn,
+            mode: "docked",
+            popup: null,
+            floatHost: null,
+            floatShellHeader: null,
+            floatShellBody: null,
+            floatShellFloatBtn: null,
+            floatShellWinBtn: null,
+            popupShellHeader: null,
+            popupShellBody: null,
+            popupShellFloatBtn: null,
+            popupShellWinBtn: null,
+            toolbarStubEl: null,
+            placeholder: document.createComment(`${key}-placeholder`)
+          };
+          panelStates.set(key, st);
+          return st;
+        }
+
+        function ensurePlaceholder(st) {
+          if (!st.placeholder.parentNode && st.panelEl.parentNode) {
+            st.panelEl.parentNode.insertBefore(st.placeholder, st.panelEl);
+          }
+        }
+
+        function prepareFloatScrollLayout(_st) {}
+        function restoreFloatScrollLayout(_st) {}
+
+        function createFloatToolbarStub(st) {
+          if (!(st.panelEl instanceof HTMLDetailsElement)) return;
+          if (st.toolbarStubEl) return;
+          const stub = document.createElement("details");
+          stub.className = "section floatToolbarStub";
+          const summary = document.createElement("summary");
+          summary.textContent = st.title;
+          const meta = document.createElement("div");
+          meta.className = "sectionMeta";
+          meta.textContent = "Floated. Click to dock.";
+          stub.appendChild(summary);
+          stub.appendChild(meta);
+          summary.addEventListener("click", (ev) => {
+            ev.preventDefault();
+            ev.stopPropagation();
+            dock(st);
+          });
+          st.toolbarStubEl = stub;
+          if (st.placeholder.parentNode) {
+            st.placeholder.parentNode.insertBefore(stub, st.placeholder.nextSibling);
+          }
+        }
+
+        function removeFloatToolbarStub(st) {
+          if (!st.toolbarStubEl) return;
+          st.toolbarStubEl.remove();
+          st.toolbarStubEl = null;
+        }
+
+        function createFloatShell(st, host) {
+          const header = document.createElement("div");
+          header.className = "floatHostHeader";
+
+          const titleWrap = document.createElement("div");
+          titleWrap.className = "floatHostTitleWrap";
+          const titleEl = document.createElement("div");
+          titleEl.className = "floatHostTitle";
+          titleEl.textContent = st.title;
+          titleWrap.appendChild(titleEl);
+
+          if (st.panelEl instanceof Element) {
+            const directMeta = st.panelEl.querySelector(":scope > .sectionMeta");
+            if (directMeta && (directMeta.textContent ?? "").trim()) {
+              const sub = document.createElement("div");
+              sub.className = "floatHostSub";
+              sub.textContent = directMeta.textContent ?? "";
+              titleWrap.appendChild(sub);
+            }
+          }
+
+          const actions = document.createElement("div");
+          actions.className = "panelActionRow";
+          const floatBtn = document.createElement("button");
+          floatBtn.type = "button";
+          floatBtn.className = "panelActionBtn";
+          const winBtn = document.createElement("button");
+          winBtn.type = "button";
+          winBtn.className = "panelActionBtn";
+          actions.appendChild(floatBtn);
+          actions.appendChild(winBtn);
+
+          floatBtn.addEventListener("click", (ev) => {
+            ev.preventDefault();
+            ev.stopPropagation();
+            toggleFloat(st);
+          });
+          winBtn.addEventListener("click", (ev) => {
+            ev.preventDefault();
+            ev.stopPropagation();
+            toggleWindow(st);
+          });
+
+          header.appendChild(titleWrap);
+          header.appendChild(actions);
+
+          const body = document.createElement("div");
+          body.className = "floatHostBody";
+
+          host.appendChild(header);
+          host.appendChild(body);
+
+          st.floatShellHeader = header;
+          st.floatShellBody = body;
+          st.floatShellFloatBtn = floatBtn;
+          st.floatShellWinBtn = winBtn;
+        }
+
+        function clearFloatShellRefs(st) {
+          st.floatShellHeader = null;
+          st.floatShellBody = null;
+          st.floatShellFloatBtn = null;
+          st.floatShellWinBtn = null;
+        }
+
+        function createPopupShell(st, host, d) {
+          const header = d.createElement("div");
+          header.className = "floatHostHeader";
+
+          const titleWrap = d.createElement("div");
+          titleWrap.className = "floatHostTitleWrap";
+          const titleEl = d.createElement("div");
+          titleEl.className = "floatHostTitle";
+          titleEl.textContent = st.title;
+          titleWrap.appendChild(titleEl);
+
+          if (st.panelEl instanceof Element) {
+            const directMeta = st.panelEl.querySelector(":scope > .sectionMeta");
+            if (directMeta && (directMeta.textContent ?? "").trim()) {
+              const sub = d.createElement("div");
+              sub.className = "floatHostSub";
+              sub.textContent = directMeta.textContent ?? "";
+              titleWrap.appendChild(sub);
+            }
+          }
+
+          const actions = d.createElement("div");
+          actions.className = "panelActionRow";
+          const floatBtn = d.createElement("button");
+          floatBtn.type = "button";
+          floatBtn.className = "panelActionBtn";
+          const winBtn = d.createElement("button");
+          winBtn.type = "button";
+          winBtn.className = "panelActionBtn";
+          actions.appendChild(floatBtn);
+          actions.appendChild(winBtn);
+
+          floatBtn.addEventListener("click", (ev) => {
+            ev.preventDefault();
+            ev.stopPropagation();
+            toggleFloat(st);
+          });
+          winBtn.addEventListener("click", (ev) => {
+            ev.preventDefault();
+            ev.stopPropagation();
+            toggleWindow(st);
+          });
+
+          header.appendChild(titleWrap);
+          header.appendChild(actions);
+
+          const body = d.createElement("div");
+          body.className = "floatHostBody";
+
+          host.appendChild(header);
+          host.appendChild(body);
+
+          st.popupShellHeader = header;
+          st.popupShellBody = body;
+          st.popupShellFloatBtn = floatBtn;
+          st.popupShellWinBtn = winBtn;
+        }
+
+        function clearPopupShellRefs(st) {
+          st.popupShellHeader = null;
+          st.popupShellBody = null;
+          st.popupShellFloatBtn = null;
+          st.popupShellWinBtn = null;
+        }
+
+        function enableFloatDrag(host) {
+          let drag = null;
+
+          host.addEventListener("pointerdown", (ev) => {
+            if (ev.button !== 0) return;
+            const target = ev.target;
+            if (!(target instanceof Element)) return;
+            if (target.closest("button, input, select, textarea, a, label")) return;
+
+            const rect = host.getBoundingClientRect();
+            const y = ev.clientY - rect.top;
+            const headerEl = host.querySelector(":scope > .floatHostHeader");
+            const dragHandleHeight = headerEl instanceof HTMLElement
+              ? Math.ceil(headerEl.getBoundingClientRect().height) + 4
+              : 72;
+            if (y < 0 || y > dragHandleHeight) return;
+
+            drag = {
+              dx: ev.clientX - rect.left,
+              dy: ev.clientY - rect.top
+            };
+
+            host.style.left = `${Math.round(rect.left)}px`;
+            host.style.top = `${Math.round(rect.top)}px`;
+            host.style.right = "auto";
+            host.classList.add("dragging");
+
+            try { host.setPointerCapture(ev.pointerId); } catch {}
+            ev.preventDefault();
+          });
+
+          host.addEventListener("pointermove", (ev) => {
+            if (!drag) return;
+            const hostRect = host.getBoundingClientRect();
+            const maxLeft = Math.max(0, window.innerWidth - hostRect.width);
+            const maxTop = Math.max(0, window.innerHeight - Math.min(hostRect.height, window.innerHeight));
+            const nextLeft = clamp(ev.clientX - drag.dx, 0, maxLeft);
+            const nextTop = clamp(ev.clientY - drag.dy, 0, maxTop);
+            host.style.left = `${Math.round(nextLeft)}px`;
+            host.style.top = `${Math.round(nextTop)}px`;
+          });
+
+          const endDrag = (ev) => {
+            if (!drag) return;
+            drag = null;
+            host.classList.remove("dragging");
+            if (ev && "pointerId" in ev) {
+              try { host.releasePointerCapture(ev.pointerId); } catch {}
+            }
+          };
+
+          host.addEventListener("pointerup", endDrag);
+          host.addEventListener("pointercancel", endDrag);
+        }
+
+        function updateButtons(st) {
+          const setBtnState = (btn, active, inactiveLabel, activeLabel, inactiveIcon, activeIcon) => {
+            if (!btn) return;
+            btn.textContent = active ? activeIcon : inactiveIcon;
+            btn.setAttribute("aria-pressed", active ? "true" : "false");
+            btn.setAttribute("aria-label", active ? activeLabel : inactiveLabel);
+            btn.title = active ? activeLabel : inactiveLabel;
+          };
+          if (st.floatBtn) {
+            const floatActive = st.mode === "float";
+            setBtnState(st.floatBtn, floatActive, "Float panel", "Dock panel", PANEL_BTN_ICONS.float, PANEL_BTN_ICONS.dock);
+          }
+          if (st.winBtn) {
+            const winActive = st.mode === "window";
+            setBtnState(st.winBtn, winActive, "Open panel in window", "Dock panel", PANEL_BTN_ICONS.window, PANEL_BTN_ICONS.dock);
+          }
+          if (st.floatShellFloatBtn) {
+            const floatActive = st.mode === "float";
+            setBtnState(st.floatShellFloatBtn, floatActive, "Float panel", "Dock panel", PANEL_BTN_ICONS.float, PANEL_BTN_ICONS.dock);
+          }
+          if (st.floatShellWinBtn) {
+            const winActive = st.mode === "window";
+            setBtnState(st.floatShellWinBtn, winActive, "Open panel in window", "Dock panel", PANEL_BTN_ICONS.window, PANEL_BTN_ICONS.dock);
+          }
+          if (st.popupShellFloatBtn) {
+            const floatActive = st.mode === "float";
+            setBtnState(st.popupShellFloatBtn, floatActive, "Float panel", "Dock panel", PANEL_BTN_ICONS.float, PANEL_BTN_ICONS.dock);
+          }
+          if (st.popupShellWinBtn) {
+            const winActive = st.mode === "window";
+            setBtnState(st.popupShellWinBtn, winActive, "Open panel in window", "Dock panel", PANEL_BTN_ICONS.window, PANEL_BTN_ICONS.dock);
+          }
+        }
+
+        function dock(st) {
+          restoreFloatScrollLayout(st);
+          removeFloatToolbarStub(st);
+          if (st.popup && !st.popup.closed) {
+            try { st.popup.close(); } catch {}
+          }
+          st.popup = null;
+          st.floatHost?.remove();
+          st.floatHost = null;
+          clearFloatShellRefs(st);
+          clearPopupShellRefs(st);
+          if (st.placeholder.parentNode) {
+            st.placeholder.parentNode.insertBefore(st.panelEl, st.placeholder.nextSibling);
+          }
+          st.mode = "docked";
+          updateButtons(st);
+        }
+
+        function toggleFloat(st) {
+          if (st.mode === "float") return dock(st);
+          ensurePlaceholder(st);
+          if (st.mode === "window") {
+            if (st.popup && !st.popup.closed) {
+              try { st.popup.close(); } catch {}
+            }
+            st.popup = null;
+            clearPopupShellRefs(st);
+          }
+          if (st.floatHost) st.floatHost.remove();
+          const host = document.createElement("div");
+          host.className = "floatHost";
+          host.dataset.floatKey = st.key;
+          const panelRect = st.panelEl.getBoundingClientRect();
+          const targetWidth = Math.min(Math.max(320, Math.round(panelRect.width || 520)), Math.max(320, window.innerWidth - 32));
+          const targetHeight = Math.min(Math.max(220, Math.round(panelRect.height || 640)), Math.max(220, window.innerHeight - 32));
+          host.style.width = `${targetWidth}px`;
+          host.style.height = `${targetHeight}px`;
+          document.body.appendChild(host);
+          enableFloatDrag(host);
+          createFloatShell(st, host);
+          createFloatToolbarStub(st);
+          (st.floatShellBody || host).appendChild(st.panelEl);
+          st.floatHost = host;
+          st.mode = "float";
+          updateButtons(st);
+        }
+
+        function toggleWindow(st) {
+          if (st.mode === "window") return dock(st);
+          ensurePlaceholder(st);
+          restoreFloatScrollLayout(st);
+          createFloatToolbarStub(st);
+          if (st.floatHost) {
+            st.floatHost.remove();
+            st.floatHost = null;
+            clearFloatShellRefs(st);
+          }
+
+          const popup = window.open("", `${st.key}Popup`, "width=560,height=760,resizable=yes,scrollbars=yes");
+          if (!popup) return;
+          st.popup = popup;
+          const d = getPopupDoc(popup, st.title);
+          if (!d) return;
+          const host = d.getElementById("popupPanelHost");
+          if (!host) return;
+          host.textContent = "";
+          createPopupShell(st, host, d);
+          (st.popupShellBody || host).appendChild(st.panelEl);
+          st.mode = "window";
+          updateButtons(st);
+
+          const onClose = () => {
+            clearPopupShellRefs(st);
+            dock(st);
+          };
+          popup.addEventListener("beforeunload", onClose, { once: true });
+        }
+
+        function bindPanel(key, panelId, floatBtnId, winBtnId, title) {
+          const panelEl = document.getElementById(panelId);
+          const floatBtn = document.getElementById(floatBtnId);
+          const winBtn = document.getElementById(winBtnId);
+          if (!panelEl || (!floatBtn && !winBtn)) return;
+          const st = ensureState(key, panelEl, floatBtn, winBtn, title);
+          updateButtons(st);
+
+          const swallow = (ev) => {
+            ev.preventDefault();
+            ev.stopPropagation();
+          };
+          if (floatBtn) {
+            floatBtn.addEventListener("click", (ev) => {
+              swallow(ev);
+              toggleFloat(st);
+            });
+          }
+          if (winBtn) {
+            winBtn.addEventListener("click", (ev) => {
+              swallow(ev);
+              toggleWindow(st);
+            });
+          }
+        }
+
+        bindPanel("parahookParams", "paraHookParamsSection", "paraHookParamsFloatToggle", "paraHookParamsWindowToggle", "Parahook Parameters");
+        bindPanel("layers", "layersSection", "layersFloatToggle", "layersWindowToggle", "Layers");
+        bindPanel("radio", "radioSection", "radioFloatToggle", "radioWindowToggle", "Gusano");
+        bindPanel("debug", "debugPanel", "debugFloatToggle", "debugWindowToggle", "Debug");
+      })();
     </script>
   </body>
 </html>
+
 
 
 
