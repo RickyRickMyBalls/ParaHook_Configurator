@@ -74,8 +74,8 @@ export function computeGizmoLayout(vp: GizmoViewportRect, state: GizmoLayoutStat
     ? Math.round(state.toolbarWidthOverride as number)
     : Math.round(vp.size);
   const toolbarWidth = expanded ? Math.min(maxWidth, Math.max(108, requestedWidth)) : 108;
-  const toolbarRight = Math.round(vp.left + vp.size - 4);
-  const modeBaseLeft = expanded ? Math.round(toolbarRight - toolbarWidth) : Math.round(vp.left);
+  const toolbarRight = Math.round(vp.left + vp.size);
+  const modeBaseLeft = Math.round(toolbarRight - toolbarWidth);
   const gizmoRowTop = Math.round(vp.top + vp.size + 4);
   const gizmoPanelTop = Math.round(gizmoRowTop + 24);
   const gizmoPanelDrop = state.gizmoOpen ? Math.round(state.gizmoPanelHeight + VIEW_PANEL_GAP) : 0;

@@ -1,4 +1,4 @@
-<!-- FILE: index.html -->
+﻿<!-- FILE: index.html -->
 <!doctype html>
 <html lang="en">
   <head>
@@ -52,6 +52,10 @@
         display: flex;
         flex-direction: column;
         gap: 0px; /* space between boxes */
+        clip-path: inset(0 0 0 0 round 12px);
+        opacity: 1;
+        transition: clip-path 240ms ease, opacity 180ms ease;
+        will-change: clip-path, opacity;
       }
 
       /* REUSABLE big box style */
@@ -367,10 +371,10 @@ details.section details.section > summary {
         border-color: rgba(255,255,255,0.18);
       }
       #toolbarMinimizeEdgeBtn {
-        position: absolute;
-        right: 6px;
+        position: fixed;
+        left: 16px;
         top: 110px;
-        z-index: 6;
+        z-index: 60;
         width: 28px;
         height: 28px;
         padding: 0;
@@ -382,12 +386,19 @@ details.section details.section > summary {
         line-height: 1;
         display: grid;
         place-items: center;
+        transition: left 220ms ease, top 220ms ease, background-color 160ms ease, box-shadow 160ms ease;
       }
       #toolbarMinimizeEdgeBtn:hover {
         background: rgba(255,255,255,0.10);
       }
       body.toolbar-collapsed #toolbarMinimizeEdgeBtn {
         background: rgba(255,255,255,0.12);
+        box-shadow: 0 6px 16px rgba(0,0,0,0.35);
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #toolbarMinimizeEdgeBtn {
+          transition: none;
+        }
       }
       #titleStatsPanel {
         display: none;
@@ -1186,6 +1197,16 @@ details.section details.section > summary {
       body.toolbar-collapsed #controlsPanel {
         display: none;
       }
+      body.toolbar-collapsed #ui {
+        clip-path: inset(0 100% 0 0 round 12px);
+        opacity: 0;
+        pointer-events: none;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #ui {
+          transition: none;
+        }
+      }
 
       @media (max-width: 900px), (pointer: coarse) {
         #ui {
@@ -1240,6 +1261,26 @@ details.section details.section > summary {
         }
         body.mobile-layout #gizmoViewPanel {
           width: min(220px, 62vw);
+        }
+        body.mobile-layout.mobile-gizmo-collapsed #gizmoToggleBtn,
+        body.mobile-layout.mobile-gizmo-collapsed #gizmoViewBtn,
+        body.mobile-layout.mobile-gizmo-collapsed #gizmoCardinalUpBadge,
+        body.mobile-layout.mobile-gizmo-collapsed #gizmoFpsBadge {
+          width: 18px !important;
+          min-width: 18px !important;
+          height: 18px !important;
+          min-height: 18px !important;
+          padding: 0 !important;
+          border-radius: 6px !important;
+          font-size: 0 !important;
+          line-height: 0 !important;
+          letter-spacing: 0 !important;
+          opacity: 0.68;
+          pointer-events: none;
+          transition: width 150ms ease, height 150ms ease, opacity 150ms ease;
+        }
+        body.mobile-layout.mobile-gizmo-collapsed #gizmoViewPanel {
+          display: none !important;
         }
       }
     </style>
@@ -1297,21 +1338,14 @@ details.section details.section > summary {
               <div id="debugHeader" style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
                 <span>Debug</span>
                 <span style="display:flex; gap:6px;">
-                  <button id="debugFloatToggle" type="button" class="panelActionBtn" aria-pressed="false" aria-label="Float panel" title="Float panel">▣</button>
-                  <button id="debugWindowToggle" type="button" class="panelActionBtn" aria-pressed="false" aria-label="Open panel in window" title="Open panel in window">⇱</button>
+                  <button id="debugFloatToggle" type="button" class="panelActionBtn" aria-pressed="false" aria-label="Float panel" title="Float panel">â–£</button>
+                  <button id="debugWindowToggle" type="button" class="panelActionBtn" aria-pressed="false" aria-label="Open panel in window" title="Open panel in window">â‡±</button>
                 </span>
               </div>
               <pre id="log"></pre>
             </div>
           </div>
         </div>
-        <button
-          id="toolbarMinimizeEdgeBtn"
-          type="button"
-          aria-pressed="false"
-          aria-label="Hide toolbar"
-          title="Hide toolbar"
-        >◀</button>
       </div>
 
       <!-- BOX 2: Controls (scrollable) -->
@@ -1382,11 +1416,11 @@ details.section details.section > summary {
                 <div class="sectionMeta">HEEL_FIL_1_R and HEEL_FIL_2_R now control the two crown shoulder radii (the two rounded top corners of the raised heel cap strip).</div>
                 <div class="sectionMeta">When only the crown is enabled, the crown still builds fully; each side radius can be adjusted independently using the two heel fillet radius sliders.</div>
                 <div class="sectionMeta">Dr Good Fillet auto-enables BP_FIL_1, TH_FIL_1, TH_FIL_2, and HEEL_FIL_1. Diet unchecked switches heel behavior to Sweep ON + Heel Midpoint Control OFF.</div>
-                <div class="sectionMeta">Toe Hook now uses a single Add Profile B toggle (default OFF). OFF = direct A→C loft. ON = A→B→C loft. Profile B params are hidden when OFF and their values are preserved.</div>
-                <div class="sectionMeta">TOE_AB_MID is ignored when Add Profile B is OFF. TOE_BC_MID is reused as the A→C intermediate profile count in that mode.</div>
+                <div class="sectionMeta">Toe Hook now uses a single Add Profile B toggle (default OFF). OFF = direct Aâ†’C loft. ON = Aâ†’Bâ†’C loft. Profile B params are hidden when OFF and their values are preserved.</div>
+                <div class="sectionMeta">TOE_AB_MID is ignored when Add Profile B is OFF. TOE_BC_MID is reused as the Aâ†’C intermediate profile count in that mode.</div>
                 <div class="sectionMeta">Toe Hook Rail Math modes were added. Rail Math 1 = default Hermite fit, 2 = linear rails, 3 = linear + fixed end angle behavior, 4 = arc rails with absolute frame, 5/6 are experimental branches for custom end/transition rail tuning.</div>
                 <div class="sectionMeta">Rail Math 5 adds two tuning controls: Rail Math 5 Cull Count (how many near-C intermediates are removed) and Rail Math 5 Add-Back Profiles (separate tail-loft transition profiles from the last AC intermediate to final Profile C).</div>
-                <div class="sectionMeta">Heel Kick Rail Math modes were added (1–5). Heel Rail Math 2 mirrors the Sweep behavior. Heel Rail Math 4 keeps heel profiles parallel (fixed vertical section orientation) while 4A/4B are experimental sub-modes.</div>
+                <div class="sectionMeta">Heel Kick Rail Math modes were added (1â€“5). Heel Rail Math 2 mirrors the Sweep behavior. Heel Rail Math 4 keeps heel profiles parallel (fixed vertical section orientation) while 4A/4B are experimental sub-modes.</div>
                 <div class="sectionMeta">Heel Rail Math 3 / Sweep and Heel Rail Math 4B now expose arc-shape tuning sliders: Sweep, Bias, and Blend. Sweep and Heel Rail Math 3 are UI-synced and share the same RM3 slider values.</div>
               </details>
 
@@ -1592,7 +1626,7 @@ details.section details.section > summary {
               </div>
 
               <div class="row">
-                <label>Shoe Size (US 5–14)
+                <label>Shoe Size (US 5â€“14)
                   <input id="shoeSize" type="range" min="5" max="14" step="0.5" value="10" />
                 </label>
                 <input class="valInput" id="shoeSizeVal" type="number" step="0.5" value="10" />
@@ -1646,8 +1680,8 @@ details.section details.section > summary {
             <summary>Parahook Parameters</summary>
             <div class="sectionMeta">Primary geometry controls for the parahook model.</div>
             <div class="panelActionRow">
-                <button id="paraHookParamsFloatToggle" type="button" class="panelActionBtn" aria-pressed="false" aria-label="Float panel" title="Float panel">▣</button>
-                <button id="paraHookParamsWindowToggle" type="button" class="panelActionBtn" aria-pressed="false" aria-label="Open panel in window" title="Open panel in window">⇱</button>
+                <button id="paraHookParamsFloatToggle" type="button" class="panelActionBtn" aria-pressed="false" aria-label="Float panel" title="Float panel">â–£</button>
+                <button id="paraHookParamsWindowToggle" type="button" class="panelActionBtn" aria-pressed="false" aria-label="Open panel in window" title="Open panel in window">â‡±</button>
             </div>
 <!-- TRANSFORM (viewer-only) -->
 <details class="section">
@@ -1954,7 +1988,7 @@ details.section details.section > summary {
           <!-- Toe Hook (named keys) -->
           <details class="section">
             <summary>Toe Hook</summary>
-            <div class="sectionMeta">Profiles A → B (mid) → C (end). Stations measured in mm along the spline from origin.</div>
+            <div class="sectionMeta">Profiles A â†’ B (mid) â†’ C (end). Stations measured in mm along the spline from origin.</div>
             <div class="check">
               <input id="toeAddProfileB" type="checkbox"  checked />
               <label for="toeAddProfileB">Add Profile B</label>
@@ -2053,7 +2087,7 @@ details.section details.section > summary {
             <!-- Profile B -->
             <details id="toeProfileBSection" class="section" open>
               <summary>Profile B</summary>
-              <div class="sectionMeta">Mid control profile. Station is mm along spline from origin. Controls A→B intermediate sections.</div>
+              <div class="sectionMeta">Mid control profile. Station is mm along spline from origin. Controls Aâ†’B intermediate sections.</div>
 
               <div class="sectionMeta" style="margin-top: 6px; opacity: 0.9;">
                 Loft Params
@@ -2073,7 +2107,7 @@ details.section details.section > summary {
               <div class="paramRow">
                 <div class="paramTop">
                   <div class="paramTag">TOE_AB_MID</div>
-                  <div class="paramName">A→B Intermediate Profiles (0 = A→B only)</div>
+                  <div class="paramName">Aâ†’B Intermediate Profiles (0 = Aâ†’B only)</div>
                 </div>
                 <div class="paramBody">
                   <input id="toe_ab_mid" name="toe_ab_mid" type="range" min="0" max="60" step="1" value="20" />
@@ -2160,7 +2194,7 @@ details.section details.section > summary {
             <!-- Profile C -->
             <details class="section">
               <summary>Profile C</summary>
-              <div class="sectionMeta">End profile. Station is mm along spline from origin. Controls B→C intermediate sections.</div>
+              <div class="sectionMeta">End profile. Station is mm along spline from origin. Controls Bâ†’C intermediate sections.</div>
 
               <div class="sectionMeta" style="margin-top: 6px; opacity: 0.9;">
                 Loft Params
@@ -2180,7 +2214,7 @@ details.section details.section > summary {
               <div class="paramRow">
                 <div class="paramTop">
                   <div class="paramTag">TOE_BC_MID</div>
-                  <div class="paramName">B→C Intermediate Profiles (0 = B→C only)</div>
+                  <div class="paramName">Bâ†’C Intermediate Profiles (0 = Bâ†’C only)</div>
                 </div>
                 <div class="paramBody">
                   <input id="toe_bc_mid" name="toe_bc_mid" type="range" min="0" max="60" step="1" value="20" />
@@ -2349,7 +2383,7 @@ details.section details.section > summary {
             <div class="paramRow">
               <div class="paramTop">
                 <div class="paramTag">HEEL_CD_MID</div>
-                <div class="paramName">Heel Loft Intermediate Profiles (0 = C→D only)</div>
+                <div class="paramName">Heel Loft Intermediate Profiles (0 = Câ†’D only)</div>
               </div>
               <div class="paramBody">
                 <input id="heel_cd_mid" name="heel_cd_mid" type="range" min="0" max="60" step="1" value="10" />
@@ -2827,8 +2861,8 @@ details.section details.section > summary {
               <button id="layersMaterialsToggle" type="button" class="panelActionBtn" aria-pressed="true" title="Toggle shoe materials">Mats On</button>
             </div>
             <div class="panelActionRow">
-                  <button id="layersFloatToggle" type="button" class="panelActionBtn" aria-pressed="false" aria-label="Float panel" title="Float panel">▣</button>
-                  <button id="layersWindowToggle" type="button" class="panelActionBtn" aria-pressed="false" aria-label="Open panel in window" title="Open panel in window">⇱</button>
+                  <button id="layersFloatToggle" type="button" class="panelActionBtn" aria-pressed="false" aria-label="Float panel" title="Float panel">â–£</button>
+                  <button id="layersWindowToggle" type="button" class="panelActionBtn" aria-pressed="false" aria-label="Open panel in window" title="Open panel in window">â‡±</button>
             </div>
 
             <div class="layersHeaderRow">
@@ -2857,12 +2891,12 @@ details.section details.section > summary {
             <summary>Gusano</summary>
             <div class="sectionMeta">Keota Radio</div>
             <div class="panelActionRow">
-                  <button id="radioFloatToggle" type="button" class="panelActionBtn" aria-pressed="false" aria-label="Float panel" title="Float panel">▣</button>
-                  <button id="radioWindowToggle" type="button" class="panelActionBtn" aria-pressed="false" aria-label="Open panel in window" title="Open panel in window">⇱</button>
+                  <button id="radioFloatToggle" type="button" class="panelActionBtn" aria-pressed="false" aria-label="Float panel" title="Float panel">â–£</button>
+                  <button id="radioWindowToggle" type="button" class="panelActionBtn" aria-pressed="false" aria-label="Open panel in window" title="Open panel in window">â‡±</button>
             </div>
 
             <div class="radioRow">
-              <button id="radioPlayPause" type="button" class="secondary" aria-label="Play">▶</button>
+              <button id="radioPlayPause" type="button" class="secondary" aria-label="Play">â–¶</button>
               <div id="radioStatus" class="radioTiny">idle</div>
               <button id="radioOpenLink" type="button" class="secondary">Open</button>
             </div>
@@ -2901,6 +2935,13 @@ details.section details.section > summary {
       </div>
     </div>
 
+    <button
+      id="toolbarMinimizeEdgeBtn"
+      type="button"
+      aria-pressed="false"
+      aria-label="Hide toolbar"
+      title="Hide toolbar"
+    >&#9664;</button>
     <canvas id="c"></canvas>
     <div id="gizmoViewportResizeHandle" aria-label="Resize gizmo viewport" title="Drag to resize gizmo viewport"></div>
     <div id="gizmoToolbarResizeHandle" aria-label="Resize gizmo toolbar" title="Drag to resize gizmo toolbar"></div>
@@ -2915,8 +2956,8 @@ details.section details.section > summary {
     </div>
     <button id="gizmoCardinalUpBadge" type="button" aria-label="Toggle cardinal up">Up +Z</button>
     <div id="gizmoFpsBadge" aria-label="Frames per second">-- fps</div>
-    <button id="gizmoRollCcwBtn" type="button" aria-label="Roll clockwise" title="Roll +90�">&#8635;</button>
-    <button id="gizmoRollCwBtn" type="button" aria-label="Roll counter-clockwise" title="Roll -90�">&#8634;</button>
+    <button id="gizmoRollCcwBtn" type="button" aria-label="Roll clockwise" title="Roll +90ï¿½">&#8635;</button>
+    <button id="gizmoRollCwBtn" type="button" aria-label="Roll counter-clockwise" title="Roll -90ï¿½">&#8634;</button>
     <button id="gizmoModeCurrentBtn" class="gizmoModeBtn" type="button" aria-pressed="false">Ant Crawl</button>
     <button id="gizmoModeOrbitBtn" class="gizmoModeBtn" type="button" aria-pressed="true">Orbit</button>
     <button id="gizmoModeTrackballBtn" class="gizmoModeBtn" type="button" aria-pressed="false">Trackball</button>
@@ -3328,9 +3369,9 @@ details.section details.section > summary {
         const panelStates = new Map();
         const mobileLayoutQuery = window.matchMedia("(max-width: 900px), (pointer: coarse)");
         const PANEL_BTN_ICONS = {
-          float: "▣",
-          window: "⇱",
-          dock: "↩"
+          float: "â–£",
+          window: "â‡±",
+          dock: "â†©"
         };
 
         function isMobileLayout() {

@@ -194,6 +194,33 @@ let gizmoToolbarWidthOverride: number | null = null;
 let gizmoSwarmProgressDragging = false;
 let lastVisualSceneMode: "off" | "stars" | "nebula" | "swarm" = "off";
 let visualSceneCameraOverridesSaved: { inertia?: string; decay?: string } | null = null;
+let mobileGizmoCollapsed = false;
+let mobileGizmoFullSize = viewer.getAxisGizmoViewportSize?.() ?? 300;
+
+function getMobileGizmoCompactSize() {
+  const full = Math.max(72, Math.round(mobileGizmoFullSize || viewer.getAxisGizmoViewportSize?.() || 300));
+  return Math.max(72, Math.round(full * 0.5));
+}
+
+function setMobileGizmoCollapsed(collapsed: boolean) {
+  mobileGizmoCollapsed = !!collapsed;
+  document.body.classList.toggle("mobile-gizmo-collapsed", isMobileLayoutActive && mobileGizmoCollapsed);
+  if (!isMobileLayoutActive) {
+    viewer.setAxisGizmoEnabled?.(true);
+    return;
+  }
+  if (mobileGizmoCollapsed) {
+    gizmoViewPanelOpen = false;
+    gizmoControlsPanelOpen = false;
+    gizmoSettingsPanelOpen = false;
+    viewer.setAxisGizmoViewportSize(getMobileGizmoCompactSize());
+    viewer.setAxisGizmoEnabled?.(false);
+  } else {
+    viewer.setAxisGizmoViewportSize(Math.max(72, Math.round(mobileGizmoFullSize)));
+    viewer.setAxisGizmoEnabled?.(true);
+  }
+  positionGizmoViewportResizeHandle();
+}
 
 function setRangeValueAndApply(el: HTMLInputElement | null, value: string) {
   if (!el) return;
@@ -310,6 +337,25 @@ function positionGizmoViewportResizeHandle() {
     state
   );
 }
+
+canvas.addEventListener(
+  "pointerdown",
+  (e) => {
+    if (!isMobileLayoutActive || !mobileGizmoCollapsed) return;
+    const vp = viewer.getAxisGizmoViewportScreenRect?.();
+    if (!vp) return;
+    const insideViewport =
+      e.clientX >= vp.left &&
+      e.clientX <= vp.left + vp.size &&
+      e.clientY >= vp.top &&
+      e.clientY <= vp.top + vp.size;
+    if (!insideViewport) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setMobileGizmoCollapsed(false);
+  },
+  { capture: true }
+);
 
 if (gizmoViewportResizeHandleEl) {
   let drag:
@@ -1837,6 +1883,7 @@ initRadioUI();
 const statusEl = mustEl<HTMLDivElement>("status");
 const statusTextEl = mustEl<HTMLSpanElement>("statusText");
 const statusProgressFillEl = mustEl<HTMLDivElement>("statusProgressFill");
+const uiShellEl = mustEl<HTMLDivElement>("ui");
 const rebuildBtn = mustEl<HTMLButtonElement>("rebuild");
 const modelLivePauseBtn = mustEl<HTMLButtonElement>("modelLivePauseBtn");
 const titleStatsToggleBtn = mustEl<HTMLButtonElement>("titleStatsToggleBtn");
@@ -2015,6 +2062,8 @@ let lastBuildStartAtMs: number | null = null;
 let statusProgressActive = false;
 let statusProgressPct = 0;
 let statusProgressClearTimer: number | null = null;
+let toolbarMinimizeEdgeBtnPositionRaf = 0;
+let lastVisibleUiRectForToolbarBtn: DOMRect | null = null;
 
 function clearStatusProgressTimer() {
   if (statusProgressClearTimer == null) return;
@@ -2112,8 +2161,47 @@ function updateStatusProgressFromMessage(msg: string) {
 function isLiveAutoRebuildEnabled() {
   return !liveAutoRebuildPaused;
 }
+function positionToolbarMinimizeEdgeButton() {
+  const uiRect = uiShellEl.getBoundingClientRect();
+  if (!toolbarCollapsed && uiRect.width > 0 && uiRect.height > 0) {
+    lastVisibleUiRectForToolbarBtn = uiRect;
+  }
+  const btnW = toolbarMinimizeEdgeBtnEl.offsetWidth || 28;
+  const btnH = toolbarMinimizeEdgeBtnEl.offsetHeight || 28;
+  const maxLeft = Math.max(8, window.innerWidth - btnW - 8);
+  const maxTop = Math.max(8, window.innerHeight - btnH - 8);
+  let targetLeft = 16;
+  let targetTop = 110;
+  if (toolbarCollapsed) {
+    const rect = lastVisibleUiRectForToolbarBtn;
+    const dockLeftBase = rect ? Math.round(rect.left - 8) : 8;
+    const dockTopBase = rect ? Math.round(rect.top + 20) : 16;
+    targetLeft = Math.max(8, Math.min(dockLeftBase, maxLeft));
+    targetTop = Math.max(8, Math.min(dockTopBase, maxTop));
+  } else {
+    const edgeInset = 14;
+    const unclampedLeft = Math.round(uiRect.right - edgeInset);
+    const maxTopAnchor = Math.max(18, uiRect.height - btnH - 10);
+    const anchoredTop = Math.max(18, Math.min(110, maxTopAnchor));
+    const unclampedTop = Math.round(uiRect.top + anchoredTop);
+    targetLeft = Math.max(8, Math.min(unclampedLeft, maxLeft));
+    targetTop = Math.max(8, Math.min(unclampedTop, maxTop));
+  }
+  toolbarMinimizeEdgeBtnEl.style.left = `${targetLeft}px`;
+  toolbarMinimizeEdgeBtnEl.style.top = `${targetTop}px`;
+}
+function scheduleToolbarMinimizeEdgeButtonPosition() {
+  if (toolbarMinimizeEdgeBtnPositionRaf) return;
+  toolbarMinimizeEdgeBtnPositionRaf = window.requestAnimationFrame(() => {
+    toolbarMinimizeEdgeBtnPositionRaf = 0;
+    positionToolbarMinimizeEdgeButton();
+  });
+}
 function setToolbarCollapsed(collapsed: boolean) {
   toolbarCollapsed = collapsed;
+  if (collapsed) {
+    setTitleStatsOpen(false);
+  }
   const active = collapsed;
   document.body.classList.toggle("toolbar-collapsed", active);
   toolbarMinimizeEdgeBtnEl.textContent = active ? "▶" : "◀";
@@ -2121,6 +2209,8 @@ function setToolbarCollapsed(collapsed: boolean) {
   toolbarMinimizeEdgeBtnEl.setAttribute("aria-label", active ? "Show toolbar" : "Hide toolbar");
   toolbarMinimizeEdgeBtnEl.title = active ? "Show toolbar" : "Hide toolbar";
   controlsPanelEl.setAttribute("aria-hidden", active ? "true" : "false");
+  uiShellEl.setAttribute("aria-hidden", active ? "true" : "false");
+  scheduleToolbarMinimizeEdgeButtonPosition();
 }
 function canAutoRebuild() {
   return isModelEnabled() && isLiveAutoRebuildEnabled();
@@ -3890,14 +3980,23 @@ modelEnabledEl.addEventListener("change", syncTitleStatsPanel);
 toolbarMinimizeEdgeBtnEl.addEventListener("click", () => {
   setToolbarCollapsed(!toolbarCollapsed);
 });
+window.addEventListener("resize", scheduleToolbarMinimizeEdgeButtonPosition);
+window.visualViewport?.addEventListener("resize", scheduleToolbarMinimizeEdgeButtonPosition);
+new ResizeObserver(() => {
+  scheduleToolbarMinimizeEdgeButtonPosition();
+}).observe(uiShellEl);
 onLayoutModeChanged = (isMobile) => {
   if (isMobile) {
+    mobileGizmoFullSize = Math.max(72, Math.round(viewer.getAxisGizmoViewportSize?.() ?? mobileGizmoFullSize));
     setToolbarCollapsed(true);
     gizmoControlsPanelOpen = false;
     gizmoSettingsPanelOpen = false;
+    setMobileGizmoCollapsed(true);
     positionGizmoViewportResizeHandle();
     return;
   }
+  setMobileGizmoCollapsed(false);
+  viewer.setAxisGizmoViewportSize(Math.max(72, Math.round(mobileGizmoFullSize)));
   setToolbarCollapsed(false);
   positionGizmoViewportResizeHandle();
 };
@@ -3908,6 +4007,7 @@ titleStatsToggleBtn.addEventListener("click", () => {
 });
 window.addEventListener("toolbarTitleCollapseChange", () => {
   syncTitleStatsVisibilityWithToolbarCollapse();
+  scheduleToolbarMinimizeEdgeButtonPosition();
 });
 modelLivePauseBtn.addEventListener("click", () => {
   liveAutoRebuildPaused = !liveAutoRebuildPaused;
@@ -3925,6 +4025,7 @@ modelLivePauseBtn.addEventListener("click", () => {
 syncModelLivePauseButton();
 syncTitleStatsVisibilityWithToolbarCollapse();
 syncTitleStatsPanel();
+scheduleToolbarMinimizeEdgeButtonPosition();
 
 vizBasePtsEl.addEventListener("change", () => {
   if (vizBasePtsEl.checked && !controlPointVizGroupOpen) {
