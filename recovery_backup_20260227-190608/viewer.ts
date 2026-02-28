@@ -20,7 +20,6 @@ export type MeshPayload = {
   positions: number[];
   normals?: number[];
   indices: number[];
-  generatedParts?: Array<{ id: string; name: string; start: number; count: number }>;
 };
 
 type XYZ = { x: number; y: number; z: number };
@@ -35,7 +34,7 @@ type SnapClass = "top" | "bottom" | "side";
 type CameraControlMode = "current" | "orbit" | "trackball" | "arcball";
 type VisualSceneMode = "off" | "stars" | "nebula" | "swarm";
 type DisplayStyleMode = "shaded" | "edges" | "shaded_edges" | "xray" | "xray_edges" | "clay";
-type BackgroundMode = "dark_blue" | "black" | "white" | "custom";
+type BackgroundMode = "dark_blue" | "black" | "white";
 type GridTier = "minor" | "major" | "doubleMajor";
 type GridAxis = "x" | "y";
 type LayerMaterialTarget =
@@ -65,10 +64,6 @@ type ProfileAEditVisualOptions = {
   visible?: boolean;
   fillOpacity?: number;
   lineWidthPx?: number;
-};
-type ProfileEditorDebugHandlePayload = {
-  world: XYZ;
-  local: { u: number; z: number };
 };
 
 type SnapViewState = {
@@ -141,7 +136,6 @@ export class Viewer {
   private gridMajorOpacity = 0.58;
   private gridDoubleMajorOpacity = 0.82;
   private gridCenterMode: "origin" | "model" = "origin";
-  private gridZOffsetMm = 0;
   private gridLineColors: Record<GridTier, Record<GridAxis, string>> = {
     minor: { x: "#4b607f", y: "#2b3443" },
     major: { x: "#7b97bf", y: "#4f6484" },
@@ -330,7 +324,6 @@ export class Viewer {
   private mesh: THREE.Mesh | null = null;
   private displayStyleMode: DisplayStyleMode = "shaded";
   private backgroundMode: BackgroundMode = "dark_blue";
-  private customBackgroundColorHex = "#0b0b0f";
   private paramMeshOffset = new THREE.Vector3(0, 0, 0);
   private paramMeshRotDeg = new THREE.Vector3(0, 0, 0);
   private paramMeshMirrorXZ = false;
@@ -565,24 +558,12 @@ export class Viewer {
     return this.backgroundMode;
   }
 
-  setCustomBackgroundColor(hex: string) {
-    const normalized = (typeof hex === "string" && /^#([0-9a-fA-F]{6})$/.test(hex)) ? hex : "#0b0b0f";
-    this.customBackgroundColorHex = normalized;
-    if (this.backgroundMode === "custom") this.applyBackgroundMode();
-  }
-
-  getCustomBackgroundColor() {
-    return this.customBackgroundColorHex;
-  }
-
   private applyBackgroundMode() {
     const color = this.backgroundMode === "black"
       ? 0x000000
       : this.backgroundMode === "white"
         ? 0xffffff
-        : this.backgroundMode === "custom"
-          ? this.customBackgroundColorHex
-          : 0x0b0b0f;
+        : 0x0b0b0f;
     this.renderer.setClearColor(color, 1);
     if (this.sceneGrid) this.sceneGrid.visible = this.sceneGridVisible;
     if (this.sceneGridMajor) this.sceneGridMajor.visible = this.sceneGridVisible;
@@ -632,17 +613,6 @@ export class Viewer {
 
   getGridCenterMode() {
     return this.gridCenterMode;
-  }
-
-  setGridZOffsetMm(offsetMm: number) {
-    const next = Number.isFinite(offsetMm) ? offsetMm : 0;
-    if (Math.abs(next - this.gridZOffsetMm) < 1e-6) return;
-    this.gridZOffsetMm = next;
-    this.updateGridFollowTargetPosition();
-  }
-
-  getGridZOffsetMm() {
-    return this.gridZOffsetMm;
   }
 
   setGridMinorSpacingMm(mm: number) {
@@ -758,8 +728,7 @@ export class Viewer {
   }
 
   setGridLineColor(tier: GridTier, axis: GridAxis, hex: string) {
-    const text = String(hex || "").trim();
-    const normalized = /^#?[0-9a-fA-F]{6}$/.test(text) ? (text.startsWith("#") ? text : `#${text}`) : "#000000";
+    const normalized = /^#?[0-9a-fA-F]{6}$/.test(String(hex)) ? (String(hex).startsWith("#") ? String(hex) : `#${String(hex)}`) : "#000000";
     this.gridLineColors[tier][axis] = normalized.toLowerCase();
     this.gridColorPreset = this.computeGridColorPresetFromCurrent();
     const mat = this.sceneGridMaterials?.[tier]?.[axis];
@@ -865,10 +834,10 @@ export class Viewer {
   private getGridAnchorPoint(out = new THREE.Vector3()) {
     if (this.gridCenterMode === "model") {
       const c = this.getModelCenterWorld(out);
-      c.z = this.gridZOffsetMm;
+      c.z = 0;
       return c;
     }
-    return out.set(0, 0, this.gridZOffsetMm);
+    return out.set(0, 0, 0);
   }
 
   private updateOriginAnchorPosition() {
@@ -908,7 +877,9 @@ export class Viewer {
     const yPositions: number[] = [];
     for (let i = 0; i <= safeDiv; i++) {
       const p = -half + i * step;
+      // lines parallel to X axis (vary X, fixed Y)
       xPositions.push(-half, p, 0, half, p, 0);
+      // lines parallel to Y axis (vary Y, fixed X)
       yPositions.push(p, -half, 0, p, half, 0);
     }
     const xGeom = new THREE.BufferGeometry();
@@ -1231,22 +1202,6 @@ export class Viewer {
       this.clearTargetPartRefs("generated-model");
       const mat = this.mesh?.material as any;
       const mats = Array.isArray(mat) ? mat : mat ? [mat] : [];
-      const generatedParts =
-        (this.mesh?.userData?.generatedParts as Array<{ id: string; name: string; materialIndex: number }> | undefined) ?? [];
-      if (generatedParts.length && mats.length) {
-        for (const part of generatedParts) {
-          const idx = Math.max(0, Math.min(mats.length - 1, Math.round(Number(part.materialIndex) || 0)));
-          const m = mats[idx];
-          if (!m) continue;
-          this.registerPartMaterialRef(
-            "generated-model",
-            String(part.id || `generated:part:${idx}`),
-            String(part.name || `Part ${idx + 1}`),
-            m
-          );
-        }
-        return;
-      }
       for (const m of mats) this.registerPartMaterialRef("generated-model", "generated:body", "Body", m);
       return;
     }
@@ -1748,14 +1703,6 @@ export class Viewer {
   private profileAHandleMeshById = new Map<ProfileAHandleId, THREE.Mesh>();
   private profileAEditRaycaster = new THREE.Raycaster();
   private profileAEditPointerNdc = new THREE.Vector2();
-  private profileADragGuideGroup: THREE.Group;
-  private profileADragGuideLines: THREE.Line[] = [];
-  private profileADragGuideXMat: THREE.LineBasicMaterial;
-  private profileADragGuideZMat: THREE.LineBasicMaterial;
-  private profileADragGuideLabelCanvas: HTMLCanvasElement | null = null;
-  private profileADragGuideLabelCtx: CanvasRenderingContext2D | null = null;
-  private profileADragGuideLabelTex: THREE.CanvasTexture | null = null;
-  private profileADragGuideLabel: THREE.Sprite | null = null;
   private profileADragState:
     | {
         pointerId: number;
@@ -1769,31 +1716,6 @@ export class Viewer {
         local: { u: number; z: number };
         allLocal: Record<ProfileAHandleId, { u: number; z: number }>;
       }) => void)
-    | null = null;
-  private profileEditorHandleGroup: THREE.Group;
-  private profileEditorHandleMesh: THREE.Mesh;
-  private profileEditorHandleMat: THREE.MeshBasicMaterial;
-  private profileEditorHandleVisible = false;
-  private profileEditorHandleEnabled = false;
-  private profileEditorHandleWorld: THREE.Vector3 | null = null;
-  private profileEditorDragFrame:
-    | {
-        origin: THREE.Vector3;
-        uAxis: THREE.Vector3;
-        zAxis: THREE.Vector3;
-        normal: THREE.Vector3;
-      }
-    | null = null;
-  private profileEditorHandleRaycaster = new THREE.Raycaster();
-  private profileEditorHandlePointerNdc = new THREE.Vector2();
-  private profileEditorDragState:
-    | {
-        pointerId: number;
-        plane: THREE.Plane;
-      }
-    | null = null;
-  private onProfileEditorHandleDragCommitCb:
-    | ((payload: ProfileEditorDebugHandlePayload) => void)
     | null = null;
 
   private aArcVisible = false;
@@ -1861,101 +1783,6 @@ export class Viewer {
 
   private updateProfileAEditVisibility() {
     this.profileAEditGroup.visible = this.profileAEditEnabled && this.aArcVisible;
-    if (!(this.profileAEditEnabled && this.aArcVisible)) this.setProfileADragGuideVisible(false);
-  }
-
-  private setGuideLinePoints(line: THREE.Line, a: THREE.Vector3, b: THREE.Vector3) {
-    const geo = line.geometry as THREE.BufferGeometry;
-    const pos = geo.getAttribute("position") as THREE.BufferAttribute | undefined;
-    if (!pos || pos.count < 2) {
-      const next = new Float32Array([a.x, a.y, a.z, b.x, b.y, b.z]);
-      geo.setAttribute("position", new THREE.BufferAttribute(next, 3));
-      return;
-    }
-    pos.setXYZ(0, a.x, a.y, a.z);
-    pos.setXYZ(1, b.x, b.y, b.z);
-    pos.needsUpdate = true;
-    geo.computeBoundingSphere();
-  }
-
-  private ensureProfileADragGuideLabel() {
-    if (this.profileADragGuideLabel) return;
-    try {
-      this.profileADragGuideLabelCanvas = document.createElement("canvas");
-      this.profileADragGuideLabelCanvas.width = 256;
-      this.profileADragGuideLabelCanvas.height = 96;
-      this.profileADragGuideLabelCtx = this.profileADragGuideLabelCanvas.getContext("2d");
-      this.profileADragGuideLabelTex = new THREE.CanvasTexture(this.profileADragGuideLabelCanvas);
-      this.profileADragGuideLabelTex.minFilter = THREE.LinearFilter;
-      this.profileADragGuideLabelTex.magFilter = THREE.LinearFilter;
-      const mat = new THREE.SpriteMaterial({
-        map: this.profileADragGuideLabelTex,
-        transparent: true,
-        depthTest: false,
-        depthWrite: false,
-      });
-      this.profileADragGuideLabel = new THREE.Sprite(mat);
-      this.profileADragGuideLabel.renderOrder = 81;
-      this.profileADragGuideLabel.scale.set(24, 9, 1);
-      this.profileADragGuideGroup.add(this.profileADragGuideLabel);
-    } catch {}
-  }
-
-  private updateProfileADragGuideLabelText(textX: string, textZ: string) {
-    this.ensureProfileADragGuideLabel();
-    if (!this.profileADragGuideLabelCanvas || !this.profileADragGuideLabelCtx || !this.profileADragGuideLabelTex) return;
-    const ctx = this.profileADragGuideLabelCtx;
-    const w = this.profileADragGuideLabelCanvas.width;
-    const h = this.profileADragGuideLabelCanvas.height;
-    ctx.clearRect(0, 0, w, h);
-    ctx.fillStyle = "rgba(7,10,16,0.85)";
-    ctx.strokeStyle = "rgba(155,190,255,0.9)";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.roundRect(2, 2, w - 4, h - 4, 12);
-    ctx.fill();
-    ctx.stroke();
-    ctx.fillStyle = "#e6f0ff";
-    ctx.font = "600 28px Inter, sans-serif";
-    ctx.fillText(`X: ${textX}`, 16, 38);
-    ctx.fillText(`Z: ${textZ}`, 16, 76);
-    this.profileADragGuideLabelTex.needsUpdate = true;
-  }
-
-  private updateProfileADragGuideFromHandle(handleId: ProfileAHandleId) {
-    if (!this.profileADragFrame) return this.setProfileADragGuideVisible(false);
-    const p1w = this.profileADragFrame.origin.clone();
-    const hw = this.profileAHandleWorldById.get(handleId);
-    if (!hw) return this.setProfileADragGuideVisible(false);
-    const p1Local = { u: 0, z: 0 };
-    const hLocal = this.toProfileALocalFromWorld(hw);
-    if (!p1Local || !hLocal) return this.setProfileADragGuideVisible(false);
-
-    const onXAxis = this.toProfileAWorldFromLocal({ u: hLocal.u, z: p1Local.z });
-    const onZAxis = this.toProfileAWorldFromLocal({ u: p1Local.u, z: hLocal.z });
-    if (!onXAxis || !onZAxis) return this.setProfileADragGuideVisible(false);
-
-    this.setGuideLinePoints(this.profileADragGuideLines[0], p1w, onXAxis); // X baseline
-    this.setGuideLinePoints(this.profileADragGuideLines[1], p1w, onZAxis); // Z baseline
-    this.setGuideLinePoints(this.profileADragGuideLines[2], hw, onXAxis); // Z projection
-    this.setGuideLinePoints(this.profileADragGuideLines[3], hw, onZAxis); // X projection
-
-    const xValue = hLocal.u;
-    const zValue = hLocal.z;
-    this.updateProfileADragGuideLabelText(xValue.toFixed(2), zValue.toFixed(2));
-    if (this.profileADragGuideLabel) {
-      const up = this.profileADragFrame.zAxis.clone().multiplyScalar(8);
-      const right = this.profileADragFrame.uAxis.clone().multiplyScalar(8);
-      this.profileADragGuideLabel.position.copy(hw).add(up).add(right);
-      this.profileADragGuideLabel.visible = true;
-    }
-    this.setProfileADragGuideVisible(true);
-  }
-
-  private setProfileADragGuideVisible(visible: boolean) {
-    this.profileADragGuideGroup.visible = !!visible;
-    for (const line of this.profileADragGuideLines) line.visible = !!visible;
-    if (this.profileADragGuideLabel) this.profileADragGuideLabel.visible = !!visible;
   }
 
   private toProfileAWorldFromLocal(local: { u: number; z: number }) {
@@ -2174,55 +2001,6 @@ export class Viewer {
     this.onProfileAHandleDragCommitCb = cb;
   }
 
-  setProfileEditorDebugHandleVisible(visible: boolean) {
-    this.profileEditorHandleVisible = !!visible;
-    this.profileEditorHandleGroup.visible = this.profileEditorHandleVisible && !!this.profileEditorHandleWorld;
-  }
-
-  setProfileEditorDebugHandleEnabled(enabled: boolean) {
-    this.profileEditorHandleEnabled = !!enabled;
-    this.profileEditorHandleGroup.visible = this.profileEditorHandleVisible && !!this.profileEditorHandleWorld;
-    if (!this.profileEditorHandleEnabled) this.cancelProfileEditorDrag(false);
-  }
-
-  setProfileEditorDebugHandleFrame(frame: { origin: XYZ; uAxis: XYZ; zAxis: XYZ } | null) {
-    if (!frame) {
-      this.profileEditorDragFrame = null;
-      return;
-    }
-    const origin = new THREE.Vector3(frame.origin.x, frame.origin.y, frame.origin.z);
-    const uAxis = new THREE.Vector3(frame.uAxis.x, frame.uAxis.y, frame.uAxis.z);
-    const zAxis = new THREE.Vector3(frame.zAxis.x, frame.zAxis.y, frame.zAxis.z);
-    if (uAxis.lengthSq() < 1e-9 || zAxis.lengthSq() < 1e-9) {
-      this.profileEditorDragFrame = null;
-      return;
-    }
-    uAxis.normalize();
-    zAxis.normalize();
-    const normal = uAxis.clone().cross(zAxis);
-    if (normal.lengthSq() < 1e-9) {
-      this.profileEditorDragFrame = null;
-      return;
-    }
-    normal.normalize();
-    this.profileEditorDragFrame = { origin, uAxis, zAxis, normal };
-  }
-
-  setProfileEditorDebugHandleWorld(world: XYZ | null) {
-    if (!world || !Number.isFinite(world.x) || !Number.isFinite(world.y) || !Number.isFinite(world.z)) {
-      this.profileEditorHandleWorld = null;
-      this.profileEditorHandleGroup.visible = false;
-      return;
-    }
-    this.profileEditorHandleWorld = new THREE.Vector3(world.x, world.y, world.z);
-    this.profileEditorHandleMesh.position.copy(this.profileEditorHandleWorld);
-    this.profileEditorHandleGroup.visible = this.profileEditorHandleVisible;
-  }
-
-  onProfileEditorDebugHandleDragCommit(cb: (payload: ProfileEditorDebugHandlePayload) => void) {
-    this.onProfileEditorHandleDragCommitCb = cb;
-  }
-
   // -----------------------------
   // Reference shoe (STL/OBJ) via PIVOT
   // -----------------------------
@@ -2330,9 +2108,6 @@ export class Viewer {
     this.renderer.domElement.addEventListener("pointermove", this.onProfileADragPointerMove, { passive: false });
     this.renderer.domElement.addEventListener("pointerup", this.onProfileADragPointerUp, { passive: false });
     this.renderer.domElement.addEventListener("pointercancel", this.onProfileADragPointerCancel, { passive: false });
-    this.renderer.domElement.addEventListener("pointermove", this.onProfileEditorDragPointerMove, { passive: false });
-    this.renderer.domElement.addEventListener("pointerup", this.onProfileEditorDragPointerUp, { passive: false });
-    this.renderer.domElement.addEventListener("pointercancel", this.onProfileEditorDragPointerCancel, { passive: false });
     window.addEventListener("keydown", this.onWindowKeyDown);
 
     const hemi = new THREE.HemisphereLight(0xffffff, 0x1a1a1a, 0.9);
@@ -2441,51 +2216,10 @@ export class Viewer {
     });
     this.profileAEditOutlineMat.resolution.set(this.canvas.clientWidth || 1, this.canvas.clientHeight || 1);
     this.profileAEditOutline = new Line2(this.profileAEditOutlineGeo, this.profileAEditOutlineMat);
+    this.profileAEditOutline.computeLineDistances();
     this.profileAEditOutline.name = "profileAEditOutline";
     this.profileAEditOutline.renderOrder = 56;
     this.profileAEditGroup.add(this.profileAEditOutline);
-    this.profileADragGuideGroup = new THREE.Group();
-    this.profileADragGuideGroup.name = "profileADragGuideGroup";
-    this.profileADragGuideGroup.visible = false;
-    this.arcVizGroup.add(this.profileADragGuideGroup);
-    this.profileADragGuideXMat = new THREE.LineBasicMaterial({
-      color: 0xff6d7a,
-      transparent: true,
-      opacity: 0.95,
-      depthTest: false,
-      depthWrite: false,
-    });
-    this.profileADragGuideZMat = new THREE.LineBasicMaterial({
-      color: 0x63a2ff,
-      transparent: true,
-      opacity: 0.95,
-      depthTest: false,
-      depthWrite: false,
-    });
-    for (let i = 0; i < 4; i++) {
-      const geo = new THREE.BufferGeometry();
-      geo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(6), 3));
-      const line = new THREE.Line(geo, i === 1 || i === 2 ? this.profileADragGuideZMat : this.profileADragGuideXMat);
-      line.renderOrder = 80;
-      line.visible = false;
-      this.profileADragGuideLines.push(line);
-      this.profileADragGuideGroup.add(line);
-    }
-    this.profileEditorHandleGroup = new THREE.Group();
-    this.profileEditorHandleGroup.name = "profileEditorHandleGroup";
-    this.profileEditorHandleGroup.visible = false;
-    this.arcVizGroup.add(this.profileEditorHandleGroup);
-    this.profileEditorHandleMat = new THREE.MeshBasicMaterial({
-      color: 0x3fd2ff,
-      transparent: true,
-      opacity: 0.95,
-      depthTest: false,
-      depthWrite: false,
-    });
-    this.profileEditorHandleMesh = new THREE.Mesh(new THREE.SphereGeometry(2.6, 18, 18), this.profileEditorHandleMat);
-    this.profileEditorHandleMesh.name = "profileEditorHandle";
-    this.profileEditorHandleMesh.renderOrder = 82;
-    this.profileEditorHandleGroup.add(this.profileEditorHandleMesh);
 
     this.bArcGroup = new THREE.Group();
     this.bArcGroup.name = "bArcGroup";
@@ -4714,48 +4448,28 @@ export class Viewer {
     geometry.computeBoundingBox();
     geometry.computeBoundingSphere();
 
-    const partDefs = Array.isArray(payload.generatedParts)
-      ? payload.generatedParts.filter((p) => p && Number.isFinite(p.start) && Number.isFinite(p.count) && p.count > 0)
-      : [];
-    const materialCount = partDefs.length > 0 ? partDefs.length : 1;
-    const materials: THREE.MeshStandardMaterial[] = [];
-    for (let i = 0; i < materialCount; i++) {
-      const material = new THREE.MeshStandardMaterial({
-        color: this.paramMeshMaterialColor,
-        metalness: this.paramMeshMaterialMetalness,
-        roughness: this.paramMeshMaterialRoughness,
-        transparent: this.paramMeshMaterialOpacity < 0.999,
-        opacity: this.paramMeshMaterialOpacity,
-        wireframe: this.displayStyleMode === "edges",
-      });
-      this.applyClippingToMaterial(material);
-      this.applyDisplayStyleToMaterial(material);
-      materials.push(material);
-    }
-    if (partDefs.length > 0) {
-      geometry.clearGroups();
-      for (let i = 0; i < partDefs.length; i++) {
-        const p = partDefs[i];
-        geometry.addGroup(Math.max(0, Math.floor(p.start)), Math.max(0, Math.floor(p.count)), i);
-      }
-    }
+    const material = new THREE.MeshStandardMaterial({
+      color: this.paramMeshMaterialColor,
+      metalness: this.paramMeshMaterialMetalness,
+      roughness: this.paramMeshMaterialRoughness,
+      transparent: this.paramMeshMaterialOpacity < 0.999,
+      opacity: this.paramMeshMaterialOpacity,
+      wireframe: this.displayStyleMode === "edges",
+    });
+
+    this.applyClippingToMaterial(material);
+    this.applyDisplayStyleToMaterial(material);
 
     if (this.mesh) {
       this.scene.remove(this.mesh);
       const oldGeo = this.mesh.geometry as THREE.BufferGeometry;
-      const oldMat = this.mesh.material as THREE.Material | THREE.Material[];
+      const oldMat = this.mesh.material as THREE.Material;
       oldGeo.dispose();
-      if (Array.isArray(oldMat)) oldMat.forEach((m) => m.dispose());
-      else oldMat.dispose();
+      oldMat.dispose();
     }
 
-    const materialArg: THREE.Material | THREE.Material[] = materials.length === 1 ? materials[0] : materials;
-    this.mesh = new THREE.Mesh(geometry, materialArg);
+    this.mesh = new THREE.Mesh(geometry, material);
     this.mesh.name = "paramMesh";
-    this.mesh.userData.generatedParts =
-      partDefs.length > 0
-        ? partDefs.map((p, i) => ({ id: String(p.id || `generated:part:${i}`), name: String(p.name || `Part ${i + 1}`), materialIndex: i }))
-        : [{ id: "generated:body", name: "Body", materialIndex: 0 }];
     this.mesh.visible = this.modelVisible;
     this.mesh.renderOrder = 0;
     this.scene.add(this.mesh);
@@ -5682,7 +5396,6 @@ export class Viewer {
       this.canvas.setPointerCapture(e.pointerId);
     } catch {}
     this.controls.enabled = false;
-    this.updateProfileADragGuideFromHandle(handleId);
     return true;
   }
 
@@ -5702,7 +5415,6 @@ export class Viewer {
     const mesh = this.profileAHandleMeshById.get(this.profileADragState.handleId);
     if (mesh) mesh.position.copy(clampedWorld);
     this.updateProfileAOverlayFromCurrentHandlePoints();
-    this.updateProfileADragGuideFromHandle(this.profileADragState.handleId);
   }
 
   private finishProfileADrag(commit: boolean) {
@@ -5710,7 +5422,6 @@ export class Viewer {
     if (!drag) return;
     this.profileADragState = null;
     this.controls.enabled = true;
-    this.setProfileADragGuideVisible(false);
     if (!commit || !this.profileADragFrame || !this.onProfileAHandleDragCommitCb) return;
 
     const getLocal = (id: ProfileAHandleId) => {
@@ -5760,106 +5471,6 @@ export class Viewer {
     e.stopPropagation();
   };
 
-  private toProfileEditorLocalFromWorld(world: THREE.Vector3) {
-    if (!this.profileEditorDragFrame) return null;
-    const rel = world.clone().sub(this.profileEditorDragFrame.origin);
-    return {
-      u: rel.dot(this.profileEditorDragFrame.uAxis),
-      z: rel.dot(this.profileEditorDragFrame.zAxis),
-    };
-  }
-
-  private toProfileEditorWorldFromLocal(local: { u: number; z: number }) {
-    if (!this.profileEditorDragFrame) return null;
-    return this.profileEditorDragFrame.origin
-      .clone()
-      .addScaledVector(this.profileEditorDragFrame.uAxis, local.u)
-      .addScaledVector(this.profileEditorDragFrame.zAxis, local.z);
-  }
-
-  private tryStartProfileEditorDrag(e: PointerEvent) {
-    if (e.button !== 0) return false;
-    if (!this.profileEditorHandleEnabled || !this.profileEditorDragFrame || !this.profileEditorHandleWorld) return false;
-    const { ndc } = this.getCanvasPointerNdc(e);
-    this.profileEditorHandlePointerNdc.copy(ndc);
-    this.profileEditorHandleRaycaster.setFromCamera(this.profileEditorHandlePointerNdc, this.camera);
-    const hits = this.profileEditorHandleRaycaster.intersectObject(this.profileEditorHandleMesh, false);
-    if (!hits[0]) return false;
-    const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(this.profileEditorDragFrame.normal, this.profileEditorDragFrame.origin);
-    this.profileEditorDragState = {
-      pointerId: e.pointerId,
-      plane,
-    };
-    try {
-      this.canvas.setPointerCapture(e.pointerId);
-    } catch {}
-    this.controls.enabled = false;
-    return true;
-  }
-
-  private updateProfileEditorDrag(e: PointerEvent) {
-    if (!this.profileEditorDragState || e.pointerId !== this.profileEditorDragState.pointerId) return;
-    const { ndc } = this.getCanvasPointerNdc(e);
-    this.profileEditorHandlePointerNdc.copy(ndc);
-    this.profileEditorHandleRaycaster.setFromCamera(this.profileEditorHandlePointerNdc, this.camera);
-    const hitPoint = new THREE.Vector3();
-    if (!this.profileEditorHandleRaycaster.ray.intersectPlane(this.profileEditorDragState.plane, hitPoint)) return;
-    const local = this.toProfileEditorLocalFromWorld(hitPoint);
-    if (!local) return;
-    const world = this.toProfileEditorWorldFromLocal(local);
-    if (!world) return;
-    this.profileEditorHandleWorld = world.clone();
-    this.profileEditorHandleMesh.position.copy(world);
-  }
-
-  private finishProfileEditorDrag(commit: boolean) {
-    const drag = this.profileEditorDragState;
-    if (!drag) return;
-    this.profileEditorDragState = null;
-    this.controls.enabled = true;
-    if (!commit || !this.profileEditorHandleWorld || !this.onProfileEditorHandleDragCommitCb) return;
-    const local = this.toProfileEditorLocalFromWorld(this.profileEditorHandleWorld);
-    if (!local) return;
-    this.onProfileEditorHandleDragCommitCb({
-      world: {
-        x: this.profileEditorHandleWorld.x,
-        y: this.profileEditorHandleWorld.y,
-        z: this.profileEditorHandleWorld.z,
-      },
-      local,
-    });
-  }
-
-  private cancelProfileEditorDrag(commit: boolean) {
-    if (!this.profileEditorDragState) return;
-    const pointerId = this.profileEditorDragState.pointerId;
-    try {
-      this.canvas.releasePointerCapture(pointerId);
-    } catch {}
-    this.finishProfileEditorDrag(commit);
-  }
-
-  private onProfileEditorDragPointerMove = (e: PointerEvent) => {
-    if (!this.profileEditorDragState) return;
-    this.updateProfileEditorDrag(e);
-    e.preventDefault();
-    e.stopPropagation();
-  };
-
-  private onProfileEditorDragPointerUp = (e: PointerEvent) => {
-    if (!this.profileEditorDragState || e.pointerId !== this.profileEditorDragState.pointerId) return;
-    this.cancelProfileEditorDrag(true);
-    e.preventDefault();
-    e.stopPropagation();
-  };
-
-  private onProfileEditorDragPointerCancel = (e: PointerEvent) => {
-    if (!this.profileEditorDragState || e.pointerId !== this.profileEditorDragState.pointerId) return;
-    this.cancelProfileEditorDrag(false);
-    e.preventDefault();
-    e.stopPropagation();
-  };
-
   private onCanvasPointerDown = (e: PointerEvent) => {
     const w = this.canvas.clientWidth;
     const h = this.canvas.clientHeight;
@@ -5885,12 +5496,6 @@ export class Viewer {
         this.snapCameraToDirection(new THREE.Vector3(arr[0], arr[1], arr[2]));
         return;
       }
-    }
-
-    if (this.tryStartProfileEditorDrag(e)) {
-      e.preventDefault();
-      e.stopPropagation();
-      return;
     }
 
     if (this.tryStartProfileADrag(e)) {

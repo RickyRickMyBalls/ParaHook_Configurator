@@ -5,7 +5,7 @@ import { applyGizmoLayout, computeGizmoLayout } from "./ui/gizmoLayout";
 
 const BASE = import.meta.env.BASE_URL;
 
-type ModelParams = Record<string, any>;
+type ModelParams = Record<string, number>;
 
 type PartToggles = {
   baseEnabled: boolean;
@@ -29,87 +29,10 @@ type ExportPayload = {
   filename: string;
 } & PartToggles;
 
-type DebugSectionReport = {
-  key: "profile_a" | "ab" | "ac" | "profile_b" | "bc" | "profile_c" | "profile_hc" | "cd" | "profile_hd";
-  enabledInUi: boolean;
-  modeContext: { addProfileB: boolean; railMathMode: number; thFil3Mode: 0 | 1 | 2 };
-  orientation: { planeDeg: number; frameTanX: number; frameTanY: number; notes: string[] };
-  params: Record<string, number | boolean | string>;
-  metrics: {
-    outerArcLen: number;
-    innerArcLen: number;
-    endCapLen: number;
-    baseCapLen: number;
-    samples: { outer: number; inner: number; endCap: number; baseCap: number; totalLoop: number };
-  };
-  operations: string[];
-};
-
-type DebugProfileReport = {
-  buildId: string;
-  part: "toe_abc" | "toe_ac" | "heel_cd";
-  sections: DebugSectionReport[];
-};
-
-type BuildTracePayload = {
-  buildId: string;
-  tolerance: number;
-  toggles: { baseEnabled: boolean; toeEnabled: boolean; toeWithB: boolean; heelEnabled: boolean };
-  operations: string[];
-  separateMeshes: Array<{
-    id: string;
-    name: string;
-    enabled: boolean;
-    shapeState: "off" | "rebuilt" | "reused";
-    meshState: "off" | "meshed" | "cached";
-    verts: number;
-    tris: number;
-  }>;
-  mergedMeshes: Array<{ id: string; name: string; contributors: string[]; verts: number; tris: number }>;
-  generatedParts: Array<{ id: string; name: string; start: number; count: number }>;
-};
-
-type ProfileEditorSectionKey = "profile_a" | "ab" | "ac" | "profile_b" | "bc" | "profile_c" | "profile_hc" | "cd" | "profile_hd";
-
-type ProfileEditorItem = {
-  key: string;
-  label: string;
-  sectionKey: ProfileEditorSectionKey;
-  stationIndex: number;
-  enabled: boolean;
-  neighborPrevKey?: string;
-  neighborNextKey?: string;
-};
-
-type ProfileEdit = {
-  endX?: number;
-  endZ?: number;
-  angle?: number;
-  rotOffsetDeg?: number;
-  thickness?: number;
-  strength?: number;
-  outerCutMm?: number;
-  outerCutPts?: number;
-  innerCutMm?: number;
-  innerCutPts?: number;
-};
-
-type ProfileEditMap = Record<string, ProfileEdit>;
-type ToeProfileBezierUI = {
-  endX: number;
-  endZ: number;
-  p1s: number;
-  p3s: number;
-  enda: number;
-};
-
 type WorkerIn =
   | { type: "status"; message: string }
   | { type: "error"; message: string }
-  | { type: "mesh_progress"; payload: any }
   | { type: "mesh"; payload: any }
-  | { type: "build_trace"; payload: BuildTracePayload }
-  | { type: "debug_profile_report"; payload: DebugProfileReport }
   | { type: "pong" }
   | { type: "file"; filename: string; mime: string; buffer: ArrayBuffer };
 
@@ -163,8 +86,8 @@ function num(v: any, f: number) {
   return Number.isFinite(n) ? n : f;
 }
 
-const canvas = document.getElementById("c") as HTMLCanvasElement | null;
-let viewer: Viewer;
+const canvas = mustEl<HTMLCanvasElement>("c");
+const viewer = new Viewer(canvas);
 const bootLoadingOverlayEl = document.getElementById("bootLoadingOverlay") as HTMLDivElement | null;
 let bootLoadingActive = !!bootLoadingOverlayEl;
 const bootLoadingProgressFillEl = document.getElementById("bootLoadingProgressFill") as HTMLDivElement | null;
@@ -381,20 +304,6 @@ updateAppViewportHeightVar();
 applyLayoutModeFromMediaQuery();
 setBootProgressPct(3);
 pushBootLoadingLogLine("main: bootstrapping UI");
-if (!canvas) {
-  reportBootRuntimeError("Missing #c canvas element");
-  throw new Error("Missing #c canvas element");
-}
-try {
-  pushBootLoadingLogLine("main: creating viewer");
-  viewer = new Viewer(canvas);
-  pushBootLoadingLogLine("main: viewer ready");
-  setBootProgressPct(4);
-} catch (err) {
-  const msg = err instanceof Error ? err.message : String(err ?? "viewer init failed");
-  reportBootRuntimeError(`viewer init failed: ${msg}`);
-  throw err;
-}
 
 window.addEventListener("resize", updateAppViewportHeightVar);
 window.visualViewport?.addEventListener("resize", updateAppViewportHeightVar);
@@ -439,9 +348,6 @@ const gizmoViewZoomRangeEl = document.getElementById("gizmoViewZoomRange") as HT
 const gizmoViewBgDarkBlueBtnEl = document.getElementById("gizmoViewBgDarkBlueBtn") as HTMLButtonElement | null;
 const gizmoViewBgBlackBtnEl = document.getElementById("gizmoViewBgBlackBtn") as HTMLButtonElement | null;
 const gizmoViewBgWhiteBtnEl = document.getElementById("gizmoViewBgWhiteBtn") as HTMLButtonElement | null;
-const gizmoViewBgCustomBtnEl = document.getElementById("gizmoViewBgCustomBtn") as HTMLButtonElement | null;
-const gizmoViewBgCustomColorWrapEl = document.getElementById("gizmoViewBgCustomColorWrap") as HTMLDivElement | null;
-const gizmoViewBgCustomColorEl = document.getElementById("gizmoViewBgCustomColor") as HTMLInputElement | null;
 const gizmoGridToggleEl = document.getElementById("gizmoGridToggle") as HTMLInputElement | null;
 const gizmoGridControlsEl = document.getElementById("gizmoGridControls") as HTMLDivElement | null;
 const gizmoGridSizeRangeEl = document.getElementById("gizmoGridSizeRange") as HTMLInputElement | null;
@@ -449,7 +355,6 @@ const gizmoGridPresetInfiniteBtnEl = document.getElementById("gizmoGridPresetInf
 const gizmoGridPreset300BtnEl = document.getElementById("gizmoGridPreset300Btn") as HTMLButtonElement | null;
 const gizmoGridPreset250BtnEl = document.getElementById("gizmoGridPreset250Btn") as HTMLButtonElement | null;
 const gizmoGridCenterModeBtnEl = document.getElementById("gizmoGridCenterModeBtn") as HTMLButtonElement | null;
-const gizmoGridSnapBaseBottomBtnEl = document.getElementById("gizmoGridSnapBaseBottomBtn") as HTMLButtonElement | null;
 const gizmoGridMajorSpacingRangeEl = document.getElementById("gizmoGridMajorSpacingRange") as HTMLInputElement | null;
 const gizmoGridMajorQuickRowEl = document.getElementById("gizmoGridMajorQuickRow") as HTMLDivElement | null;
 const gizmoGridMinorSpacingRangeEl = document.getElementById("gizmoGridMinorSpacingRange") as HTMLInputElement | null;
@@ -474,7 +379,7 @@ const gizmoViewFrontBtnEl = document.getElementById("gizmoViewFrontBtn") as HTML
 const gizmoViewLeftBtnEl = document.getElementById("gizmoViewLeftBtn") as HTMLButtonElement | null;
 const gizmoViewRightBtnEl = document.getElementById("gizmoViewRightBtn") as HTMLButtonElement | null;
 const gizmoViewRearBtnEl = document.getElementById("gizmoViewRearBtn") as HTMLButtonElement | null;
-const gizmoScenesSectionEl = document.getElementById("gizmoScenesSection") as HTMLDetailsElement | null;
+const gizmoScenesToggleEl = document.getElementById("gizmoScenesToggle") as HTMLInputElement | null;
 const gizmoViewStarsBtnEl = document.getElementById("gizmoViewStarsBtn") as HTMLButtonElement | null;
 const gizmoViewNebulaBtnEl = document.getElementById("gizmoViewNebulaBtn") as HTMLButtonElement | null;
 const gizmoViewSwarmBtnEl = document.getElementById("gizmoViewSwarmBtn") as HTMLButtonElement | null;
@@ -509,8 +414,6 @@ let gizmoToolbarWidthOverride: number | null = null;
 let gizmoSwarmProgressDragging = false;
 let lastVisualSceneMode: "off" | "stars" | "nebula" | "swarm" = "off";
 let visualSceneCameraOverridesSaved: { inertia?: string; decay?: string } | null = null;
-const ENABLE_PROFILE_A_HANDLE_DRAG = true;
-const ENABLE_PROFILE_A_OVERLAY = false;
 let mobileExpandedGizmoSize = Math.max(132, Math.round(viewer.getAxisGizmoViewportSize?.() ?? 300));
 let desktopExpandedGizmoSize = Math.max(132, Math.round(viewer.getAxisGizmoViewportSize?.() ?? 300));
 let mobileCollapsedGizmoSize = Math.max(72, Math.round(mobileExpandedGizmoSize * 0.5));
@@ -521,10 +424,9 @@ let useMobileCollapsedStyle = true;
 let gizmoToolbarState: GizmoToolbarState = "expanded";
 let activeExpandedPanel: GizmoExpandedPanel = null;
 let gridSizePreset: "infinite" | "300" | "250" | null = null;
-let gridSnapBaseBottomEnabled = true;
 let sceneFeatureEnabled = false;
 let sceneModeWhenEnabled: "stars" | "nebula" | "swarm" = "stars";
-let backgroundBeforeScene: "dark_blue" | "black" | "white" | "custom" = "dark_blue";
+let backgroundBeforeScene: "dark_blue" | "black" | "white" = "dark_blue";
 let gridColorPresetState: "default" | "black" | "green_red" | "custom" = "default";
 let gridColorPresetBeforeWhite: "default" | "black" | "green_red" | "custom" = "default";
 let gridColorSnapshotBeforeWhite: {
@@ -652,96 +554,25 @@ function setRangeValueAndApply(el: HTMLInputElement | null, value: string) {
   el.value = value;
   el.dispatchEvent(new Event("input", { bubbles: true }));
 }
-function refreshDecoratedRangeValue(el: HTMLInputElement | null) {
-  if (!el) return;
-  const updater = (el as HTMLInputElement & { __gizmoUpdateValueLabel?: () => void }).__gizmoUpdateValueLabel;
-  updater?.();
-}
-
-const GRID_SIZE_MIN_MM = 100;
-const GRID_SIZE_MAX_MM = 20000;
-const GRID_SIZE_CURVE_POWER = 1.2022458674074696; // 50% ~= 1000mm
-const GRID_SIZE_RATIO = GRID_SIZE_MAX_MM / GRID_SIZE_MIN_MM;
-const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
-const gridSizeSliderToMm = (sliderRaw: number) => {
-  const t = clamp01((Number.isFinite(sliderRaw) ? sliderRaw : 100) / 100);
-  const curved = Math.pow(t, GRID_SIZE_CURVE_POWER);
-  const mm = GRID_SIZE_MIN_MM * Math.pow(GRID_SIZE_RATIO, curved);
-  return Math.round(Math.max(GRID_SIZE_MIN_MM, Math.min(GRID_SIZE_MAX_MM, mm)));
-};
-const gridSizeMmToSlider = (mmRaw: number) => {
-  const mm = Math.max(GRID_SIZE_MIN_MM, Math.min(GRID_SIZE_MAX_MM, Number.isFinite(mmRaw) ? mmRaw : GRID_SIZE_MAX_MM));
-  const normalized = Math.log(mm / GRID_SIZE_MIN_MM) / Math.log(GRID_SIZE_RATIO);
-  const t = Math.pow(clamp01(normalized), 1 / GRID_SIZE_CURVE_POWER);
-  return Math.round(t * 100);
-};
 
 function setupGizmoSliderValueRows() {
   const targets = document.querySelectorAll<HTMLInputElement>(
     "#gizmoGizmoPanel input[type='range'], #gizmoViewPanel input[type='range']"
   );
-  const withScaleButtons = new Set([
-    "gizmoGridSizeRange",
-    "gizmoGridDoubleMajorSpacingRange",
-    "gizmoGridMajorSpacingRange",
-    "gizmoGridMinorSpacingRange",
-  ]);
   targets.forEach((input) => {
     if (input.dataset.valueDecorated === "1") return;
     const parent = input.parentElement;
     if (!parent) return;
     const row = document.createElement("div");
     row.className = "gizmoSliderRow";
-    if (withScaleButtons.has(input.id)) {
-      row.classList.add("hasInlineControls");
-    }
     const valueEl = document.createElement("div");
     valueEl.className = "gizmoSliderVal";
     const update = () => {
-      if (input.id === "gizmoGridSizeRange") {
-        const actualMm = Math.round(viewer.getGridExtentMm?.() ?? gridSizeSliderToMm(Number(input.value)));
-        valueEl.textContent = String(actualMm);
-        return;
-      }
       valueEl.textContent = input.value;
     };
-    (input as HTMLInputElement & { __gizmoUpdateValueLabel?: () => void }).__gizmoUpdateValueLabel = update;
     input.dataset.valueDecorated = "1";
     parent.insertBefore(row, input);
     row.appendChild(input);
-    if (withScaleButtons.has(input.id)) {
-      const controls = document.createElement("div");
-      controls.className = "gizmoSliderInlineControls";
-      const makeBtn = (label: string, factor: number) => {
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = "gizmoSliderInlineBtn";
-        btn.textContent = label;
-        btn.addEventListener("click", (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          const min = Number(input.min);
-          const max = Number(input.max);
-          const minV = Number.isFinite(min) ? min : 0;
-          const maxV = Number.isFinite(max) ? max : 100;
-          if (input.id === "gizmoGridSizeRange") {
-            const currentMm = gridSizeSliderToMm(Number(input.value));
-            const nextMm = Math.round(Math.max(GRID_SIZE_MIN_MM, Math.min(GRID_SIZE_MAX_MM, currentMm * factor)));
-            input.value = String(gridSizeMmToSlider(nextMm));
-          } else {
-            const current = Number(input.value);
-            const curV = Number.isFinite(current) ? current : minV;
-            const next = Math.round(Math.max(minV, Math.min(maxV, curV * factor)));
-            input.value = String(next);
-          }
-          input.dispatchEvent(new Event("input", { bubbles: true }));
-        });
-        return btn;
-      };
-      controls.appendChild(makeBtn("/2", 0.5));
-      controls.appendChild(makeBtn("x2", 2));
-      row.appendChild(controls);
-    }
     row.appendChild(valueEl);
     input.addEventListener("input", update);
     input.addEventListener("change", update);
@@ -1191,13 +1022,12 @@ const syncViewStyleButtons = () => {
   gizmoViewStyleClayBtnEl?.setAttribute("aria-pressed", mode === "clay" ? "true" : "false");
 };
 const syncViewBackgroundButtons = () => {
-  const mode = (viewer.getBackgroundMode?.() ?? "dark_blue") as "dark_blue" | "black" | "white" | "custom";
+  const mode = (viewer.getBackgroundMode?.() ?? "dark_blue") as "dark_blue" | "black" | "white";
   gizmoViewBgDarkBlueBtnEl?.setAttribute("aria-pressed", mode === "dark_blue" ? "true" : "false");
   gizmoViewBgBlackBtnEl?.setAttribute("aria-pressed", mode === "black" ? "true" : "false");
   gizmoViewBgWhiteBtnEl?.setAttribute("aria-pressed", mode === "white" ? "true" : "false");
-  gizmoViewBgCustomBtnEl?.setAttribute("aria-pressed", mode === "custom" ? "true" : "false");
-  gizmoViewBgCustomColorWrapEl?.classList.toggle("open", mode === "custom");
   if (gizmoGridToggleEl) gizmoGridToggleEl.checked = !!viewer.getGridVisible?.();
+  if (gizmoScenesToggleEl) gizmoScenesToggleEl.checked = sceneFeatureEnabled;
   gizmoGridControlsEl?.classList.add("open");
 };
 const syncGridPresetButtons = () => {
@@ -1218,7 +1048,9 @@ const syncGridColorPresetButtons = () => {
   gizmoGridColorPresetGreenRedBtnEl?.setAttribute("aria-pressed", gridColorPresetState === "green_red" ? "true" : "false");
 };
 const syncGridColorInputsFromViewer = () => {
-  const read = (tier: "doubleMajor" | "major" | "minor", axis: "x" | "y") => viewer.getGridLineColor?.(tier, axis) ?? "#000000";
+  const read = (tier: "doubleMajor" | "major" | "minor", axis: "x" | "y") => {
+    return viewer.getGridLineColor?.(tier, axis) ?? "#000000";
+  };
   if (gizmoGridColorDoubleMajorXEl) gizmoGridColorDoubleMajorXEl.value = read("doubleMajor", "x");
   if (gizmoGridColorDoubleMajorYEl) gizmoGridColorDoubleMajorYEl.value = read("doubleMajor", "y");
   if (gizmoGridColorMajorXEl) gizmoGridColorMajorXEl.value = read("major", "x");
@@ -1267,12 +1099,8 @@ const syncGridColorStateFromViewer = () => {
   syncGridColorInputsFromViewer();
   syncGridColorPresetButtons();
 };
-const applyBackgroundModeUi = (requested: "dark_blue" | "black" | "white" | "custom") => {
-  const prevMode = (viewer.getBackgroundMode?.() ?? "dark_blue") as "dark_blue" | "black" | "white" | "custom";
-  if (requested === "custom") {
-    const customColor = gizmoViewBgCustomColorEl?.value ?? "#0b0b0f";
-    viewer.setCustomBackgroundColor?.(customColor);
-  }
+const applyBackgroundModeUi = (requested: "dark_blue" | "black" | "white") => {
+  const prevMode = (viewer.getBackgroundMode?.() ?? "dark_blue") as "dark_blue" | "black" | "white";
   if (sceneFeatureEnabled) {
     backgroundBeforeScene = requested;
     viewer.setBackgroundMode?.("black");
@@ -1297,11 +1125,8 @@ const applyBackgroundModeUi = (requested: "dark_blue" | "black" | "white" | "cus
 const setScenesFeatureEnabled = (enabled: boolean) => {
   if (enabled === sceneFeatureEnabled) return;
   sceneFeatureEnabled = enabled;
-  if (gizmoScenesSectionEl && gizmoScenesSectionEl.open !== sceneFeatureEnabled) {
-    gizmoScenesSectionEl.open = sceneFeatureEnabled;
-  }
   if (sceneFeatureEnabled) {
-    backgroundBeforeScene = (viewer.getBackgroundMode?.() ?? "dark_blue") as "dark_blue" | "black" | "white" | "custom";
+    backgroundBeforeScene = (viewer.getBackgroundMode?.() ?? "dark_blue") as "dark_blue" | "black" | "white";
     viewer.setBackgroundMode?.("black");
     viewer.setVisualSceneMode?.(sceneModeWhenEnabled);
   } else {
@@ -1310,39 +1135,18 @@ const setScenesFeatureEnabled = (enabled: boolean) => {
   }
   syncViewBackgroundButtons();
 };
-const readBaseplateThicknessMm = () => {
-  const bpThkEl = document.getElementById("bp_thk") as HTMLInputElement | null;
-  return bpThkEl ? readNumber(bpThkEl, 12) : 12;
-};
-const syncGridSnapBaseBottomButton = () => {
-  if (!gizmoGridSnapBaseBottomBtnEl) return;
-  gizmoGridSnapBaseBottomBtnEl.setAttribute("aria-pressed", gridSnapBaseBottomEnabled ? "true" : "false");
-};
-const applyGridSnapBaseBottomMode = (enabled: boolean, announce = true) => {
-  gridSnapBaseBottomEnabled = !!enabled;
-  const zOffset = gridSnapBaseBottomEnabled ? -Math.abs(readBaseplateThicknessMm()) : 0;
-  viewer.setGridZOffsetMm?.(zOffset);
-  syncGridSnapBaseBottomButton();
-  if (announce) setStatus(gridSnapBaseBottomEnabled ? `grid z snapped to base bottom (${zOffset.toFixed(2)} mm)` : "grid z snapped to 0.00 mm");
-};
 const applyGridPreset = (preset: "infinite" | "300" | "250") => {
   gridSizePreset = preset;
   if (preset === "infinite") {
     viewer.setGridInfiniteEnabled?.(true);
-    if (gizmoGridSizeRangeEl) {
-      gizmoGridSizeRangeEl.value = gizmoGridSizeRangeEl.max;
-      refreshDecoratedRangeValue(gizmoGridSizeRangeEl);
-    }
-    const sliderVal = Number(gizmoGridSizeRangeEl?.value ?? 100);
-    viewer.setGridExtentMm?.(gridSizeSliderToMm(sliderVal));
+    if (gizmoGridSizeRangeEl) gizmoGridSizeRangeEl.value = gizmoGridSizeRangeEl.max;
+    const sliderVal = Number(gizmoGridSizeRangeEl?.value ?? 20000);
+    viewer.setGridExtentMm?.(Number.isFinite(sliderVal) ? sliderVal : 20000);
   } else {
     const mm = preset === "300" ? 300 : 250;
     viewer.setGridInfiniteEnabled?.(false);
     viewer.setGridExtentMm?.(mm);
-    if (gizmoGridSizeRangeEl) {
-      gizmoGridSizeRangeEl.value = String(gridSizeMmToSlider(mm));
-      refreshDecoratedRangeValue(gizmoGridSizeRangeEl);
-    }
+    if (gizmoGridSizeRangeEl) gizmoGridSizeRangeEl.value = String(mm);
   }
   syncGridPresetButtons();
 };
@@ -1365,7 +1169,7 @@ bindViewStyleBtn(gizmoViewStyleClayBtnEl, "clay");
 syncViewStyleButtons();
 const bindViewBackgroundBtn = (
   btn: HTMLButtonElement | null,
-  mode: "dark_blue" | "black" | "white" | "custom"
+  mode: "dark_blue" | "black" | "white"
 ) => {
   if (!btn) return;
   btn.addEventListener("click", (e) => {
@@ -1377,25 +1181,6 @@ const bindViewBackgroundBtn = (
 bindViewBackgroundBtn(gizmoViewBgDarkBlueBtnEl, "dark_blue");
 bindViewBackgroundBtn(gizmoViewBgBlackBtnEl, "black");
 bindViewBackgroundBtn(gizmoViewBgWhiteBtnEl, "white");
-bindViewBackgroundBtn(gizmoViewBgCustomBtnEl, "custom");
-if (gizmoViewBgCustomColorEl) {
-  const startingCustomColor = viewer.getCustomBackgroundColor?.() ?? gizmoViewBgCustomColorEl.value;
-  gizmoViewBgCustomColorEl.value = startingCustomColor;
-  viewer.setCustomBackgroundColor?.(startingCustomColor);
-  gizmoViewBgCustomColorEl.addEventListener("input", () => {
-    viewer.setCustomBackgroundColor?.(gizmoViewBgCustomColorEl.value);
-    if (sceneFeatureEnabled) {
-      backgroundBeforeScene = "custom";
-      syncViewBackgroundButtons();
-      return;
-    }
-    if ((viewer.getBackgroundMode?.() ?? "dark_blue") === "custom") {
-      syncViewBackgroundButtons();
-      return;
-    }
-    applyBackgroundModeUi("custom");
-  });
-}
 if (gizmoGridToggleEl) {
   gizmoGridToggleEl.addEventListener("pointerdown", (e) => e.stopPropagation());
   gizmoGridToggleEl.addEventListener("click", (e) => e.stopPropagation());
@@ -1415,25 +1200,8 @@ if (gizmoGridCenterModeBtnEl) {
     syncGridCenterModeButton();
   });
 }
-if (gizmoGridSnapBaseBottomBtnEl) {
-  gizmoGridSnapBaseBottomBtnEl.addEventListener("click", (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    applyGridSnapBaseBottomMode(!gridSnapBaseBottomEnabled, true);
-  });
-}
-const bpThkForGridSnapEl = document.getElementById("bp_thk") as HTMLInputElement | null;
-if (bpThkForGridSnapEl) {
-  const onThicknessChanged = () => {
-    if (!gridSnapBaseBottomEnabled) return;
-    applyGridSnapBaseBottomMode(true, false);
-  };
-  bpThkForGridSnapEl.addEventListener("input", onThicknessChanged);
-  bpThkForGridSnapEl.addEventListener("change", onThicknessChanged);
-}
 viewer.setGridVisible?.(true);
 viewer.setGridCenterMode?.("model");
-applyGridSnapBaseBottomMode(true, false);
 if (gizmoGridToggleEl) gizmoGridToggleEl.checked = true;
 applyGridPreset("300");
 syncViewBackgroundButtons();
@@ -1442,7 +1210,7 @@ syncGridColorStateFromViewer();
 if (gizmoGridSizeRangeEl) {
   const apply = (fromUser = false) => {
     const v = Number(gizmoGridSizeRangeEl.value);
-    const mm = gridSizeSliderToMm(v);
+    const mm = Number.isFinite(v) ? v : 20000;
     viewer.setGridExtentMm?.(mm);
     if (fromUser) {
       viewer.setGridInfiniteEnabled?.(false);
@@ -1451,9 +1219,8 @@ if (gizmoGridSizeRangeEl) {
     }
   };
   gizmoGridSizeRangeEl.addEventListener("input", () => apply(true));
-  const current = Math.round(viewer.getGridExtentMm?.() ?? GRID_SIZE_MAX_MM);
-  gizmoGridSizeRangeEl.value = String(gridSizeMmToSlider(current));
-  refreshDecoratedRangeValue(gizmoGridSizeRangeEl);
+  const current = Math.round(viewer.getGridExtentMm?.() ?? 20000);
+  gizmoGridSizeRangeEl.value = String(Math.min(20000, Math.max(100, current)));
   apply(false);
 }
 if (gizmoGridPresetInfiniteBtnEl) {
@@ -1477,28 +1244,6 @@ if (gizmoGridPreset250BtnEl) {
     applyGridPreset("250");
   });
 }
-const syncMajorSpacingQuickButtons = () => {
-  if (!gizmoGridMajorQuickRowEl || !gizmoGridMajorSpacingRangeEl) return;
-  const current = Math.round(Number(gizmoGridMajorSpacingRangeEl.value) || 0);
-  const buttons = gizmoGridMajorQuickRowEl.querySelectorAll<HTMLButtonElement>("button[data-mode][data-value]");
-  buttons.forEach((btn) => {
-    const mode = String(btn.dataset.mode || "");
-    const target = Math.round(Number(btn.dataset.value) || 0);
-    const active = mode === "set" && target === current;
-    btn.setAttribute("aria-pressed", active ? "true" : "false");
-  });
-};
-const syncMinorSpacingQuickButtons = () => {
-  if (!gizmoGridMinorQuickRowEl || !gizmoGridMinorSpacingRangeEl) return;
-  const current = Math.round(Number(gizmoGridMinorSpacingRangeEl.value) || 0);
-  const buttons = gizmoGridMinorQuickRowEl.querySelectorAll<HTMLButtonElement>("button[data-mode][data-value]");
-  buttons.forEach((btn) => {
-    const mode = String(btn.dataset.mode || "");
-    const target = Math.round(Number(btn.dataset.value) || 0);
-    const active = mode === "set" && target === current;
-    btn.setAttribute("aria-pressed", active ? "true" : "false");
-  });
-};
 if (gizmoGridMajorSpacingRangeEl) {
   const apply = () => {
     const v = Number(gizmoGridMajorSpacingRangeEl.value);
@@ -1516,7 +1261,6 @@ if (gizmoGridMajorSpacingRangeEl) {
       }
       viewer.setGridDoubleMajorSpacingMm?.(Number(gizmoGridDoubleMajorSpacingRangeEl.value));
     }
-    syncMajorSpacingQuickButtons();
   };
   gizmoGridMajorSpacingRangeEl.addEventListener("input", apply);
   const current = Math.round(viewer.getGridMajorSpacingMm?.() ?? 10);
@@ -1543,8 +1287,6 @@ if (gizmoGridMinorSpacingRangeEl) {
       }
       viewer.setGridDoubleMajorSpacingMm?.(Number(gizmoGridDoubleMajorSpacingRangeEl.value));
     }
-    syncMajorSpacingQuickButtons();
-    syncMinorSpacingQuickButtons();
   };
   gizmoGridMinorSpacingRangeEl.addEventListener("input", apply);
   const current = Math.round(viewer.getGridMinorSpacingMm?.() ?? 1);
@@ -1777,6 +1519,7 @@ const syncVisualSceneUI = () => {
   }
   lastVisualSceneMode = sceneFeatureEnabled ? mode : "off";
 
+  if (gizmoScenesToggleEl) gizmoScenesToggleEl.checked = sceneFeatureEnabled;
   gizmoViewStarsBtnEl?.setAttribute("aria-pressed", sceneFeatureEnabled && mode === "stars" ? "true" : "false");
   gizmoViewNebulaBtnEl?.setAttribute("aria-pressed", sceneFeatureEnabled && mode === "nebula" ? "true" : "false");
   gizmoViewSwarmBtnEl?.setAttribute("aria-pressed", sceneFeatureEnabled && mode === "swarm" ? "true" : "false");
@@ -1785,9 +1528,11 @@ const syncVisualSceneUI = () => {
   gizmoSwarmControlsEl?.classList.toggle("open", sceneFeatureEnabled && mode === "swarm");
   gizmoViewPanelEl?.classList.toggle("starsOpen", sceneFeatureEnabled && mode !== "off");
 };
-if (gizmoScenesSectionEl) {
-  gizmoScenesSectionEl.addEventListener("toggle", () => {
-    setScenesFeatureEnabled(gizmoScenesSectionEl.open);
+if (gizmoScenesToggleEl) {
+  gizmoScenesToggleEl.addEventListener("pointerdown", (e) => e.stopPropagation());
+  gizmoScenesToggleEl.addEventListener("click", (e) => e.stopPropagation());
+  gizmoScenesToggleEl.addEventListener("change", () => {
+    setScenesFeatureEnabled(!!gizmoScenesToggleEl.checked);
     syncVisualSceneUI();
   });
 }
@@ -2114,66 +1859,12 @@ requestAnimationFrame(tickGizmoOverlay);
 // Debug panel logger
 // -----------------------------
 const logEl = document.getElementById("log") as HTMLPreElement | null;
-const buildTraceMetaEl = document.getElementById("buildTraceMeta") as HTMLDivElement | null;
-const buildTraceLogEl = document.getElementById("buildTraceLog") as HTMLPreElement | null;
 function log(line: string) {
   if (!logEl) return;
   const t = new Date().toLocaleTimeString();
   logEl.textContent = `[${t}] ${line}\n` + (logEl.textContent ?? "");
 }
-function renderWorkerBuildTrace(trace: BuildTracePayload) {
-  if (buildTraceMetaEl) {
-    buildTraceMetaEl.textContent = `${trace.buildId} | tol=${trace.tolerance.toFixed(2)} | base=${trace.toggles.baseEnabled ? "on" : "off"} toe=${trace.toggles.toeWithB ? "A->B->C" : "A->C"} heel=${trace.toggles.heelEnabled ? "on" : "off"}`;
-  }
-  if (!buildTraceLogEl) return;
-  const lines: string[] = [];
-  lines.push("Operations:");
-  for (let i = 0; i < trace.operations.length; i++) {
-    lines.push(`${i + 1}. ${trace.operations[i]}`);
-  }
-  lines.push("");
-  lines.push("Separate Meshes:");
-  for (const part of trace.separateMeshes) {
-    lines.push(
-      `- ${part.name} [${part.id}] enabled=${part.enabled ? 1 : 0} shape=${part.shapeState} mesh=${part.meshState} verts=${part.verts} tris=${part.tris}`
-    );
-  }
-  lines.push("");
-  lines.push("Merged Meshes:");
-  for (const merged of trace.mergedMeshes) {
-    lines.push(`- ${merged.name} [${merged.id}] verts=${merged.verts} tris=${merged.tris}`);
-    lines.push(`  contributors: ${merged.contributors.join(", ") || "(none)"}`);
-  }
-  lines.push("");
-  lines.push("Generated Parts (combined mesh index ranges):");
-  for (const p of trace.generatedParts) {
-    lines.push(`- ${p.name} [${p.id}] start=${p.start} count=${p.count}`);
-  }
-  buildTraceLogEl.textContent = lines.join("\n");
-}
 viewer.setOnShoeStatus((line) => log(line));
-
-function bindUiParamChangeDebugLogging() {
-  const lastSeen = new Map<string, string>();
-  const emit = (kind: "input" | "change", ev: Event) => {
-    const input = getEventInputTarget(ev.target);
-    if (!input) return;
-    if (!input.id) return;
-    if (isInsideRadioSection(input)) return;
-    const inMainUi = !!input.closest("#controlsPanel") || !!input.closest("#paraHookParamsSection");
-    if (!inMainUi) return;
-    const val =
-      input.type === "checkbox" || input.type === "radio"
-        ? (input.checked ? "1" : "0")
-        : String(input.value);
-    const key = `${kind}:${input.id}`;
-    if (lastSeen.get(key) === val) return;
-    lastSeen.set(key, val);
-    log(`[ui] ${kind} ${input.id}=${val}`);
-  };
-  document.addEventListener("input", (ev) => emit("input", ev), true);
-  document.addEventListener("change", (ev) => emit("change", ev), true);
-}
 
 function normalizeUIContainerHeight() {
   const uiEl = document.getElementById("ui");
@@ -2879,7 +2570,6 @@ function initRadioUI() {
 }
 
 initRadioUI();
-bindUiParamChangeDebugLogging();
 
 // -----------------------------
 // Main UI (parametric model)
@@ -2905,11 +2595,8 @@ const layerUpdateActiveBtn = mustEl<HTMLButtonElement>("layerUpdateActive");
 const layerDeleteActiveBtn = mustEl<HTMLButtonElement>("layerDeleteActive");
 const materialsFloatPanelEl = document.getElementById("materialsFloatPanel") as HTMLDivElement | null;
 const materialsCloseBtnEl = document.getElementById("materialsCloseBtn") as HTMLButtonElement | null;
-const materialsPopoutBtnEl = document.getElementById("materialsPopoutBtn") as HTMLButtonElement | null;
 const materialsFocusTextEl = document.getElementById("materialsFocusText") as HTMLDivElement | null;
 const materialsPartListEl = document.getElementById("materialsPartList") as HTMLDivElement | null;
-const materialsSelectOddBtnEl = document.getElementById("materialsSelectOddBtn") as HTMLButtonElement | null;
-const materialsSelectEvenBtnEl = document.getElementById("materialsSelectEvenBtn") as HTMLButtonElement | null;
 const materialsMetalnessRangeEl = document.getElementById("materialsMetalnessRange") as HTMLInputElement | null;
 const materialsRoughnessRangeEl = document.getElementById("materialsRoughnessRange") as HTMLInputElement | null;
 const materialsOpacityRangeEl = document.getElementById("materialsOpacityRange") as HTMLInputElement | null;
@@ -2956,29 +2643,12 @@ const sectionCutModeSectionEl = mustEl<HTMLInputElement>("sectionCutModeSection"
 const sectionCutModePlanEl = mustEl<HTMLInputElement>("sectionCutModePlan");
 
 const baseEnabledEl = mustEl<HTMLInputElement>("baseEnabled");
-const baseCutProfileAStraightEl = mustEl<HTMLInputElement>("base_cut_profile_a_straight");
-const baseCutProfileDStraightEl = mustEl<HTMLInputElement>("base_cut_profile_d_straight");
 const toeAddProfileBEl = mustEl<HTMLInputElement>("toeAddProfileB");
 const toeProfileBSectionEl = mustEl<HTMLElement>("toeProfileBSection");
 const heelEnabledEl = mustEl<HTMLInputElement>("heelEnabled");
 const heelMidCtrlEl = mustEl<HTMLInputElement>("heel_mid_ctrl");
 const heelSweepEl = mustEl<HTMLInputElement>("heel_sweep");
 const heelSweepRm3WrapEl = mustEl<HTMLElement>("heelSweepRm3Wrap");
-const dbgProfileAEl = mustEl<HTMLInputElement>("dbg_profile_a");
-const dbgProfileBEl = mustEl<HTMLInputElement>("dbg_profile_b");
-const dbgProfileCEl = mustEl<HTMLInputElement>("dbg_profile_c");
-const dbgProfileHCEl = mustEl<HTMLInputElement>("dbg_profile_hc");
-const dbgProfileHDEl = mustEl<HTMLInputElement>("dbg_profile_hd");
-const dbgABEl = mustEl<HTMLInputElement>("dbg_ab");
-const dbgACEl = mustEl<HTMLInputElement>("dbg_ac");
-const dbgBCEl = mustEl<HTMLInputElement>("dbg_bc");
-const dbgCDEl = mustEl<HTMLInputElement>("dbg_cd");
-const debugVizCheckboxes = [dbgProfileAEl, dbgABEl, dbgACEl, dbgProfileBEl, dbgBCEl, dbgProfileCEl, dbgProfileHCEl, dbgCDEl, dbgProfileHDEl];
-const dbgSectionABEl = mustEl<HTMLDetailsElement>("dbgSectionAB");
-const dbgSectionACEl = mustEl<HTMLDetailsElement>("dbgSectionAC");
-const dbgSectionProfileBEl = mustEl<HTMLDetailsElement>("dbgSectionProfileB");
-const dbgSectionBCEl = mustEl<HTMLDetailsElement>("dbgSectionBC");
-const debugSectionReports = new Map<DebugSectionReport["key"], DebugSectionReport>();
 const drGoodFilletEl = mustEl<HTMLInputElement>("dr_good_fillet");
 const drGoodFilletDietWrapEl = mustEl<HTMLElement>("dr_good_fillet_diet_wrap");
 const drGoodFilletDietEl = mustEl<HTMLInputElement>("dr_good_fillet_diet");
@@ -2986,30 +2656,7 @@ const bpFil1El = mustEl<HTMLInputElement>("bp_fil_1");
 const shFil1El = mustEl<HTMLInputElement>("sh_fil_1");
 const thFil1El = mustEl<HTMLInputElement>("th_fil_1");
 const thFil2El = mustEl<HTMLInputElement>("th_fil_2");
-const thFil1REl = mustEl<HTMLInputElement>("th_fil_1_r");
-const thFil1RValEl = mustEl<HTMLInputElement>("th_fil_1_rVal");
-const thFil2REl = mustEl<HTMLInputElement>("th_fil_2_r");
-const thFil2RValEl = mustEl<HTMLInputElement>("th_fil_2_rVal");
-const thFil3ModeChamferEl = mustEl<HTMLInputElement>("th_fil_3_mode_chamfer");
-const thFil3ModeFilletEl = mustEl<HTMLInputElement>("th_fil_3_mode_fillet");
-const thFil3XEl = mustEl<HTMLInputElement>("th_fil_3x");
-const thFil3XActualEl = mustEl<HTMLInputElement>("th_fil_3x_actual");
-const thFil3YEl = mustEl<HTMLInputElement>("th_fil_3y");
-const thFil3YActualEl = mustEl<HTMLInputElement>("th_fil_3y_actual");
-const thFil3XValEl = document.getElementById("th_fil_3xVal") as HTMLInputElement | null;
-const thFil3XActualValEl = document.getElementById("th_fil_3x_actualVal") as HTMLInputElement | null;
-const thFil3YValEl = document.getElementById("th_fil_3yVal") as HTMLInputElement | null;
-const thFil3YActualValEl = document.getElementById("th_fil_3y_actualVal") as HTMLInputElement | null;
 const heelFil1El = mustEl<HTMLInputElement>("heel_fil_1");
-const heelFil1REl = mustEl<HTMLInputElement>("heel_fil_1_r");
-const heelFil1RValEl = mustEl<HTMLInputElement>("heel_fil_1_rVal");
-const heelFil2REl = mustEl<HTMLInputElement>("heel_fil_2_r");
-const heelFil2RValEl = mustEl<HTMLInputElement>("heel_fil_2_rVal");
-const toeBStaEl = mustEl<HTMLInputElement>("toe_b_sta");
-const toeABMidEl = mustEl<HTMLInputElement>("toe_ab_mid");
-const toeABMidValEl = mustEl<HTMLInputElement>("toe_ab_midVal");
-const toeCStaEl = mustEl<HTMLInputElement>("toe_c_sta");
-const toeBCMidValEl = mustEl<HTMLInputElement>("toe_bc_midVal");
 const railMathCurrentEl = mustEl<HTMLInputElement>("rail_math_current");
 const railMath2El = mustEl<HTMLInputElement>("rail_math_2");
 const railMath3El = mustEl<HTMLInputElement>("rail_math_3");
@@ -3020,7 +2667,6 @@ const railMath7El = mustEl<HTMLInputElement>("rail_math_7");
 const railMath8El = mustEl<HTMLInputElement>("rail_math_8");
 const railMath9El = mustEl<HTMLInputElement>("rail_math_9");
 const railMath10El = mustEl<HTMLInputElement>("rail_math_10");
-const railMath11El = mustEl<HTMLInputElement>("rail_math_11");
 const railMath5CullWrapEl = mustEl<HTMLElement>("railMath5CullWrap");
 const railMath5AddbackWrapEl = mustEl<HTMLElement>("railMath5AddbackWrap");
 const railMath6SubWrapEl = mustEl<HTMLElement>("railMath6SubWrap");
@@ -3070,107 +2716,6 @@ const tolEl = mustEl<HTMLInputElement>("tolerance");
 const tolVal = mustEl<HTMLInputElement>("toleranceVal");
 const debounceMsEl = mustEl<HTMLInputElement>("debounceMs");
 const rebuildAsOneEl = mustEl<HTMLInputElement>("rebuildAsOne");
-const profileEditorSectionEl = mustEl<HTMLDetailsElement>("profileEditorSection");
-const profileEditorFocusLabelEl = mustEl<HTMLElement>("profileEditorFocusLabel");
-const profileEditorCountALabelEl = mustEl<HTMLElement>("profileEditorCountALabel");
-const profileEditorCountAEl = mustEl<HTMLElement>("profileEditorCountA");
-const profileEditorCountBLabelEl = mustEl<HTMLElement>("profileEditorCountBLabel");
-const profileEditorCountBEl = mustEl<HTMLElement>("profileEditorCountB");
-const profileEditorCountCLabelEl = mustEl<HTMLElement>("profileEditorCountCLabel");
-const profileEditorCountCEl = mustEl<HTMLElement>("profileEditorCountC");
-const profileEditorCountTotalEl = mustEl<HTMLElement>("profileEditorCountTotal");
-const peRailMath11El = mustEl<HTMLInputElement>("pe_rail_math_11");
-const peIntermedABRowEl = mustEl<HTMLElement>("peIntermedABRow");
-const peIntermedBCRowEl = mustEl<HTMLElement>("peIntermedBCRow");
-const peIntermedACRowEl = mustEl<HTMLElement>("peIntermedACRow");
-const peAddProfileBEl = mustEl<HTMLInputElement>("pe_add_profile_b");
-const peMidABEl = mustEl<HTMLInputElement>("pe_mid_ab");
-const peMidABValEl = mustEl<HTMLInputElement>("pe_mid_abVal");
-const peMidBCEl = mustEl<HTMLInputElement>("pe_mid_bc");
-const peMidBCValEl = mustEl<HTMLInputElement>("pe_mid_bcVal");
-const peMidACEl = mustEl<HTMLInputElement>("pe_mid_ac");
-const peMidACValEl = mustEl<HTMLInputElement>("pe_mid_acVal");
-const profileEditorFocusUpEl = mustEl<HTMLButtonElement>("profileEditorFocusUp");
-const profileEditorFocusDownEl = mustEl<HTMLButtonElement>("profileEditorFocusDown");
-const profileEditorListEl = mustEl<HTMLElement>("profileEditorList");
-const peBaseCapLenEl = mustEl<HTMLElement>("pe_base_cap_len");
-const peBaseCapPtsEl = mustEl<HTMLElement>("pe_base_cap_pts");
-const peOuterArcLenEl = mustEl<HTMLElement>("pe_outer_arc_len");
-const peOuterArcPtsEl = mustEl<HTMLElement>("pe_outer_arc_pts");
-const peInnerArcLenEl = mustEl<HTMLElement>("pe_inner_arc_len");
-const peInnerArcPtsEl = mustEl<HTMLElement>("pe_inner_arc_pts");
-const peAbsRotEl = mustEl<HTMLElement>("pe_abs_rot");
-const peTangentRotEl = mustEl<HTMLElement>("pe_tangent_rot");
-const peIsolatedModeEl = mustEl<HTMLInputElement>("pe_isolated_mode");
-const peSectionModeEl = mustEl<HTMLInputElement>("pe_section_mode");
-const peLoftPrevEl = mustEl<HTMLInputElement>("pe_loft_prev");
-const peLoftNextEl = mustEl<HTMLInputElement>("pe_loft_next");
-const peDragHandleEnableEl = mustEl<HTMLInputElement>("pe_drag_handle_enable");
-const peDragHandleShowOnlyEl = mustEl<HTMLInputElement>("pe_drag_handle_show_only");
-const peEndXEl = mustEl<HTMLInputElement>("pe_endx");
-const peEndXValEl = mustEl<HTMLInputElement>("pe_endxVal");
-const peEndXDefaultEl = mustEl<HTMLInputElement>("pe_endx_default");
-const peEndZEl = mustEl<HTMLInputElement>("pe_endz");
-const peEndZValEl = mustEl<HTMLInputElement>("pe_endzVal");
-const peEndZDefaultEl = mustEl<HTMLInputElement>("pe_endz_default");
-const peAngleEl = mustEl<HTMLInputElement>("pe_angle");
-const peAngleValEl = mustEl<HTMLInputElement>("pe_angleVal");
-const peAngleDefaultEl = mustEl<HTMLInputElement>("pe_angle_default");
-const peRotOffsetEl = mustEl<HTMLInputElement>("pe_rot_offset");
-const peRotOffsetValEl = mustEl<HTMLInputElement>("pe_rot_offsetVal");
-const peRotOffsetDefaultEl = mustEl<HTMLInputElement>("pe_rot_offset_default");
-const peThicknessEl = mustEl<HTMLInputElement>("pe_thickness");
-const peThicknessValEl = mustEl<HTMLInputElement>("pe_thicknessVal");
-const peThicknessDefaultEl = mustEl<HTMLInputElement>("pe_thickness_default");
-const peStrengthEl = mustEl<HTMLInputElement>("pe_strength");
-const peStrengthValEl = mustEl<HTMLInputElement>("pe_strengthVal");
-const peStrengthDefaultEl = mustEl<HTMLInputElement>("pe_strength_default");
-const peOuterCutMmEl = mustEl<HTMLInputElement>("pe_outer_cut_mm");
-const peOuterCutMmValEl = mustEl<HTMLInputElement>("pe_outer_cut_mmVal");
-const peOuterCutMmDefaultEl = mustEl<HTMLInputElement>("pe_outer_cut_mm_default");
-const peOuterCutPtsEl = mustEl<HTMLInputElement>("pe_outer_cut_pts");
-const peOuterCutPtsValEl = mustEl<HTMLInputElement>("pe_outer_cut_ptsVal");
-const peOuterCutPtsDefaultEl = mustEl<HTMLInputElement>("pe_outer_cut_pts_default");
-const peInnerCutMmEl = mustEl<HTMLInputElement>("pe_inner_cut_mm");
-const peInnerCutMmValEl = mustEl<HTMLInputElement>("pe_inner_cut_mmVal");
-const peInnerCutMmDefaultEl = mustEl<HTMLInputElement>("pe_inner_cut_mm_default");
-const peInnerCutPtsEl = mustEl<HTMLInputElement>("pe_inner_cut_pts");
-const peInnerCutPtsValEl = mustEl<HTMLInputElement>("pe_inner_cut_ptsVal");
-const peInnerCutPtsDefaultEl = mustEl<HTMLInputElement>("pe_inner_cut_pts_default");
-const peRailLayerSectionEl = mustEl<HTMLDetailsElement>("peRailLayerSection");
-const peRailLayerModeLabelEl = mustEl<HTMLElement>("peRailLayerModeLabel");
-const peRailLayerToeEl = mustEl<HTMLElement>("peRailLayerToe");
-const peRailLayerHeelEl = mustEl<HTMLElement>("peRailLayerHeel");
-const peThFil1SectionEl = mustEl<HTMLDetailsElement>("peThFil1Section");
-const peThFil2SectionEl = mustEl<HTMLDetailsElement>("peThFil2Section");
-const peToeFil1El = mustEl<HTMLInputElement>("pe_th_fil_1");
-const peToeFil2El = mustEl<HTMLInputElement>("pe_th_fil_2");
-const peToeFil1RadiusRowEl = mustEl<HTMLElement>("peToeFil1RadiusRow");
-const peToeFil2RadiusRowEl = mustEl<HTMLElement>("peToeFil2RadiusRow");
-const peThFil1REl = mustEl<HTMLInputElement>("pe_th_fil_1_r");
-const peThFil1RValEl = mustEl<HTMLInputElement>("pe_th_fil_1_rVal");
-const peThFil2REl = mustEl<HTMLInputElement>("pe_th_fil_2_r");
-const peThFil2RValEl = mustEl<HTMLInputElement>("pe_th_fil_2_rVal");
-const peThFil3ModeChamferEl = mustEl<HTMLInputElement>("pe_th_fil_3_mode_chamfer");
-const peThFil3ModeFilletEl = mustEl<HTMLInputElement>("pe_th_fil_3_mode_fillet");
-const peThFil3ModeSectionEl = mustEl<HTMLDetailsElement>("peThFil3ModeSection");
-const peThFil3XEl = mustEl<HTMLInputElement>("pe_th_fil_3x");
-const peThFil3XValEl = mustEl<HTMLInputElement>("pe_th_fil_3xVal");
-const peThFil3XActualEl = mustEl<HTMLInputElement>("pe_th_fil_3x_actual");
-const peThFil3XActualValEl = mustEl<HTMLInputElement>("pe_th_fil_3x_actualVal");
-const peThFil3YEl = mustEl<HTMLInputElement>("pe_th_fil_3y");
-const peThFil3YValEl = mustEl<HTMLInputElement>("pe_th_fil_3yVal");
-const peThFil3YActualEl = mustEl<HTMLInputElement>("pe_th_fil_3y_actual");
-const peThFil3YActualValEl = mustEl<HTMLInputElement>("pe_th_fil_3y_actualVal");
-const peHeelFil1El = mustEl<HTMLInputElement>("pe_heel_fil_1");
-const peHeelFil1RadiusRowEl = mustEl<HTMLElement>("peHeelFil1RadiusRow");
-const peHeelFil1REl = mustEl<HTMLInputElement>("pe_heel_fil_1_r");
-const peHeelFil1RValEl = mustEl<HTMLInputElement>("pe_heel_fil_1_rVal");
-const peHeelFil2REl = mustEl<HTMLInputElement>("pe_heel_fil_2_r");
-const peHeelFil2RValEl = mustEl<HTMLInputElement>("pe_heel_fil_2_rVal");
-const peTagentProfileAModeTangentEl = mustEl<HTMLInputElement>("pe_tagent_profile_a_mode_tangent");
-const peTagentProfileAModeBlendEl = mustEl<HTMLInputElement>("pe_tagent_profile_a_mode_blend");
-const peTagentProfileAModeStraightEl = mustEl<HTMLInputElement>("pe_tagent_profile_a_mode_straight");
 
 function setStatus(msg: string) {
   titleStatCurrentStatus = msg;
@@ -3462,868 +3007,8 @@ function setBusy(busy: boolean) {
   syncTitleStatsPanel();
 }
 
-let syncingProfileEditorIntermediateUi = false;
-let syncingProfileEditorRailLayerUi = false;
-
-function setProfileEditorIntermedPairValue(rangeEl: HTMLInputElement, valEl: HTMLInputElement, value: number) {
-  const n = clampInt(value, 0, 200);
-  const s = String(n);
-  rangeEl.value = s;
-  valEl.value = s;
-}
-
-function isToeFocusedProfileSection(sectionKey: ProfileEditorSectionKey | undefined) {
-  return sectionKey === "profile_a" || sectionKey === "ab" || sectionKey === "ac" || sectionKey === "profile_b" || sectionKey === "bc" || sectionKey === "profile_c";
-}
-
-function isHeelFocusedProfileSection(sectionKey: ProfileEditorSectionKey | undefined) {
-  return sectionKey === "profile_hc" || sectionKey === "cd" || sectionKey === "profile_hd";
-}
-
-function syncProfileEditorRailLayerVisibility() {
-  const sectionKey = getFocusedProfileEditorItem()?.sectionKey;
-  const showToe = isToeFocusedProfileSection(sectionKey);
-  const showHeel = isHeelFocusedProfileSection(sectionKey);
-  peRailLayerToeEl.style.display = showToe ? "" : "none";
-  peRailLayerHeelEl.style.display = showHeel ? "" : "none";
-  peRailLayerSectionEl.open = showToe || showHeel;
-  if (showToe) peRailLayerModeLabelEl.textContent = "Toe profile controls";
-  else if (showHeel) peRailLayerModeLabelEl.textContent = "Heel profile controls";
-  else peRailLayerModeLabelEl.textContent = "No focused profile";
-}
-
-function syncProfileEditorRailLayerCollapseStates() {
-  peThFil1SectionEl.open = !!peToeFil1El.checked;
-  peThFil2SectionEl.open = !!peToeFil2El.checked;
-  const thFil3Active = !!(peThFil3ModeChamferEl.checked || peThFil3ModeFilletEl.checked);
-  peThFil3ModeSectionEl.open = thFil3Active;
-}
-
-function getTagentProfileAMode(): "tangent" | "blend" | "straight" {
-  if (tagentProfileAEl.checked) return "tangent";
-  return "blend";
-}
-
-function setProfileEditorTagentProfileAMode(mode: "tangent" | "blend" | "straight") {
-  peTagentProfileAModeTangentEl.checked = mode === "tangent";
-  peTagentProfileAModeBlendEl.checked = mode === "blend";
-  peTagentProfileAModeStraightEl.checked = mode === "straight";
-}
-
-function pushProfileEditorTagentProfileAModeToCanonical(mode: "tangent" | "blend" | "straight") {
-  if (syncingProfileEditorRailLayerUi) return;
-  if (mode === "tangent") {
-    tagentProfileAEl.checked = true;
-  } else if (mode === "blend" || mode === "straight") {
-    tagentProfileAEl.checked = false;
-  }
-  tagentProfileAEl.dispatchEvent(new Event("change", { bubbles: true }));
-}
-
-function syncProfileEditorRailLayerMirrorsFromCanonical() {
-  if (syncingProfileEditorRailLayerUi) return;
-  syncingProfileEditorRailLayerUi = true;
-  peToeFil1El.checked = thFil1El.checked;
-  peToeFil2El.checked = thFil2El.checked;
-  peToeFil1RadiusRowEl.style.display = peToeFil1El.checked ? "" : "none";
-  peToeFil2RadiusRowEl.style.display = peToeFil2El.checked ? "" : "none";
-  peThFil1REl.value = thFil1REl.value;
-  peThFil1RValEl.value = thFil1RValEl.value;
-  peThFil2REl.value = thFil2REl.value;
-  peThFil2RValEl.value = thFil2RValEl.value;
-  peThFil3ModeChamferEl.checked = thFil3ModeChamferEl.checked;
-  peThFil3ModeFilletEl.checked = thFil3ModeFilletEl.checked;
-  peThFil3XEl.value = thFil3XEl.value;
-  peThFil3XValEl.value = thFil3XValEl?.value ?? thFil3XEl.value;
-  peThFil3XActualEl.value = thFil3XActualEl.value;
-  peThFil3XActualValEl.value = thFil3XActualValEl?.value ?? thFil3XActualEl.value;
-  peThFil3YEl.value = thFil3YEl.value;
-  peThFil3YValEl.value = thFil3YValEl?.value ?? thFil3YEl.value;
-  peThFil3YActualEl.value = thFil3YActualEl.value;
-  peThFil3YActualValEl.value = thFil3YActualValEl?.value ?? thFil3YActualEl.value;
-  peHeelFil1El.checked = heelFil1El.checked;
-  peHeelFil1RadiusRowEl.style.display = peHeelFil1El.checked ? "" : "none";
-  peHeelFil1REl.value = heelFil1REl.value;
-  peHeelFil1RValEl.value = heelFil1RValEl.value;
-  peHeelFil2REl.value = heelFil2REl.value;
-  peHeelFil2RValEl.value = heelFil2RValEl.value;
-  setProfileEditorTagentProfileAMode(getTagentProfileAMode());
-  syncingProfileEditorRailLayerUi = false;
-  syncProfileEditorRailLayerCollapseStates();
-}
-
-function pushProfileEditorRailLayerCheckboxToCanonical(srcEl: HTMLInputElement, dstEl: HTMLInputElement) {
-  if (syncingProfileEditorRailLayerUi) return;
-  dstEl.checked = srcEl.checked;
-  dstEl.dispatchEvent(new Event("change", { bubbles: true }));
-}
-
-function pushProfileEditorRailLayerRangeToCanonical(
-  srcRangeEl: HTMLInputElement,
-  srcValEl: HTMLInputElement,
-  dstRangeEl: HTMLInputElement,
-  dstValEl: HTMLInputElement | null,
-  mode: "int" | "float",
-  eventType: "input" | "change"
-) {
-  if (syncingProfileEditorRailLayerUi) return;
-  const raw = mode === "int" ? clampInt(readNumber(srcRangeEl, 0), -100000, 100000) : readNumber(srcRangeEl, 0);
-  const value = String(raw);
-  srcRangeEl.value = value;
-  srcValEl.value = value;
-  dstRangeEl.value = value;
-  if (dstValEl) dstValEl.value = value;
-  dstRangeEl.dispatchEvent(new Event(eventType, { bubbles: true }));
-}
-
-function bindProfileEditorRailLayerRangeMirror(
-  peRangeEl: HTMLInputElement,
-  peValEl: HTMLInputElement,
-  canonicalRangeEl: HTMLInputElement,
-  canonicalValEl: HTMLInputElement | null,
-  mode: "int" | "float" = "float"
-) {
-  peRangeEl.addEventListener("input", () =>
-    pushProfileEditorRailLayerRangeToCanonical(peRangeEl, peValEl, canonicalRangeEl, canonicalValEl, mode, "input")
-  );
-  peRangeEl.addEventListener("change", () =>
-    pushProfileEditorRailLayerRangeToCanonical(peRangeEl, peValEl, canonicalRangeEl, canonicalValEl, mode, "change")
-  );
-  peValEl.addEventListener("input", () => {
-    if (syncingProfileEditorRailLayerUi) return;
-    peRangeEl.value = peValEl.value;
-    pushProfileEditorRailLayerRangeToCanonical(peRangeEl, peValEl, canonicalRangeEl, canonicalValEl, mode, "input");
-  });
-  peValEl.addEventListener("change", () => {
-    if (syncingProfileEditorRailLayerUi) return;
-    peRangeEl.value = peValEl.value;
-    pushProfileEditorRailLayerRangeToCanonical(peRangeEl, peValEl, canonicalRangeEl, canonicalValEl, mode, "change");
-  });
-}
-
-function syncProfileEditorIntermediateUIFromCanonical() {
-  if (syncingProfileEditorIntermediateUi) return;
-  syncingProfileEditorIntermediateUi = true;
-  const addB = !!toeAddProfileBEl.checked;
-  peAddProfileBEl.checked = addB;
-  const ab = clampInt(readNumber(toeABMidEl, 10), 0, 200);
-  const bc = clampInt(readNumber(toeBCMidEl, 15), 0, 200);
-
-  setProfileEditorIntermedPairValue(peMidABEl, peMidABValEl, ab);
-  setProfileEditorIntermedPairValue(peMidBCEl, peMidBCValEl, bc);
-  setProfileEditorIntermedPairValue(peMidACEl, peMidACValEl, bc);
-
-  peIntermedABRowEl.style.display = addB ? "" : "none";
-  peIntermedBCRowEl.style.display = addB ? "" : "none";
-  peIntermedACRowEl.style.display = addB ? "none" : "";
-
-  peMidABEl.disabled = !addB;
-  peMidABValEl.disabled = !addB;
-  peMidBCEl.disabled = !addB;
-  peMidBCValEl.disabled = !addB;
-  peMidACEl.disabled = addB;
-  peMidACValEl.disabled = addB;
-
-  syncingProfileEditorIntermediateUi = false;
-}
-
-function pushProfileEditorIntermediateToCanonical(source: "ab" | "bc" | "ac", eventType: "input" | "change") {
-  if (syncingProfileEditorIntermediateUi) return;
-  const fromRange = source === "ab" ? peMidABEl : source === "bc" ? peMidBCEl : peMidACEl;
-  const clamped = clampInt(readNumber(fromRange, source === "ab" ? 10 : 15), 0, 200);
-  const targetRange = source === "ab" ? toeABMidEl : toeBCMidEl;
-  const targetVal = source === "ab" ? toeABMidValEl : toeBCMidValEl;
-
-  syncingProfileEditorIntermediateUi = true;
-  targetRange.value = String(clamped);
-  targetVal.value = String(clamped);
-  syncingProfileEditorIntermediateUi = false;
-
-  targetRange.dispatchEvent(new Event(eventType, { bubbles: true }));
-  syncProfileEditorIntermediateUIFromCanonical();
-}
-
 function syncToeProfileBUI() {
   toeProfileBSectionEl.style.display = toeAddProfileBEl.checked ? "" : "none";
-  syncDebugToeSectionsForProfileB();
-  const aToCDetails = mustEl<HTMLDetailsElement>("dbgSectionAC");
-  aToCDetails.classList.toggle("sectionDisabled", !!toeAddProfileBEl.checked);
-  if (toeAddProfileBEl.checked) aToCDetails.removeAttribute("open");
-  syncProfileEditorIntermediateUIFromCanonical();
-  refreshDebugFilterLists();
-  rebuildProfileEditorRegistry(true);
-}
-
-function setDebugSectionDisabled(sectionEl: HTMLDetailsElement, disabled: boolean) {
-  sectionEl.classList.toggle("sectionDisabled", disabled);
-  if (disabled) sectionEl.removeAttribute("open");
-  const controls = sectionEl.querySelectorAll<HTMLInputElement>("input");
-  controls.forEach((el) => {
-    if (el.type === "checkbox" && disabled) el.checked = false;
-    el.disabled = disabled;
-  });
-}
-
-function syncDebugToeSectionsForProfileB() {
-  const addB = toeAddProfileBEl.checked;
-  setDebugSectionDisabled(dbgSectionABEl, !addB);
-  setDebugSectionDisabled(dbgSectionProfileBEl, !addB);
-  setDebugSectionDisabled(dbgSectionBCEl, !addB);
-  setDebugSectionDisabled(dbgSectionACEl, addB);
-}
-
-function readFilterItemsForSection(sectionId: string): string[] {
-  const th3Mode = thFil3ModeChamferEl.checked ? "Chamfer" : thFil3ModeFilletEl.checked ? "Fillet" : "Off";
-  const railMode = readRailMathMode();
-  const items: string[] = [];
-  const push = (txt: string) => items.push(`${items.length + 1}. ${txt}`);
-
-  if (sectionId === "profile_a") {
-    push(`Base sketch drawn from Toe A params (endX/endZ/p1s/p3s/endA + thickness).`);
-    push(`Section frame/orientation applied (tangent profile A ${tagentProfileAEl.checked ? "on" : "off"}).`);
-    push(`Rail solve applied (rail_math_mode=${railMode}) for outer/inner targets.`);
-    if (th3Mode !== "Off") push(`TH_FIL_3 ${th3Mode} cutback applied from Profile A.`);
-    if (thFil1El.checked) push("TH_FIL_1 inner top fillet applied.");
-    if (thFil2El.checked) push("TH_FIL_2 outer top fillet applied.");
-    if (tagentABpCutPerpEl.checked || baseCutProfileAStraightEl.checked) push("Baseplate cut straight at Profile A enabled.");
-  } else if (sectionId === "ab") {
-    push("A>B intermediates generated from Toe_AB_Mid.");
-    push(`Interpolated profile A->B then rail solved (mode ${railMode}).`);
-    if (th3Mode !== "Off") push("TH_FIL_3 falloff influences early A-side intermediates.");
-  } else if (sectionId === "ac") {
-    push("A>C intermediates generated from Toe_BC_Mid (Profile B disabled).");
-    push(`Interpolated profile A->C then rail solved (mode ${railMode}).`);
-    if (th3Mode !== "Off") push("TH_FIL_3 falloff influences early A-side intermediates.");
-  } else if (sectionId === "profile_b") {
-    push("Base sketch drawn from Toe B params.");
-    push("Exact B station section generated.");
-    push(`Rail solve blends A->B and B->C (mode ${railMode}).`);
-  } else if (sectionId === "bc") {
-    push("B>C intermediates generated from Toe_BC_Mid.");
-    push(`Interpolated profile B->C then rail solved (mode ${railMode}).`);
-  } else if (sectionId === "profile_c") {
-    push("Base sketch drawn from Toe C params.");
-    push(`Final C section solved/snapped by rail math mode ${railMode}.`);
-  } else if (sectionId === "profile_hc") {
-    push("Heel Profile C base sketch generated from heel params.");
-    push("Profile C reference is sampled, then a clean fitted heel profile is rebuilt at H_C.");
-    push("Heel rail sweep controls applied.");
-    if (heelFil1El.checked) push("Heel crown/fillet system applied.");
-  } else if (sectionId === "cd") {
-    push("C>D heel intermediates generated from Heel_CD_Mid.");
-    push("Heel sweep rail math applied across intermediates.");
-  } else if (sectionId === "profile_hd") {
-    push("Heel Profile D base sketch generated from heel params.");
-    if (tagentProfileDEl.checked) push("Tangent Profile D enabled.");
-    if (tagentDCutPerpEl.checked || baseCutProfileDStraightEl.checked) push("Cut Profile D straight enabled.");
-  }
-
-  return items.length ? items : ["1. No active filters for this section."];
-}
-
-function writeFilterList(listId: string, items: string[]) {
-  const el = document.getElementById(listId);
-  if (!el) return;
-  el.innerHTML = "";
-  for (const item of items) {
-    const li = document.createElement("li");
-    li.textContent = item.replace(/^\d+\.\s*/, "");
-    el.appendChild(li);
-  }
-}
-
-function renderProfileParamBlock(sectionKey: DebugSectionReport["key"], dataId: string) {
-  const el = document.getElementById(dataId) as HTMLPreElement | null;
-  if (!el) return;
-  const rep = debugSectionReports.get(sectionKey);
-  if (!rep) {
-    el.textContent = "No telemetry yet.";
-    return;
-  }
-  const lines: string[] = [];
-  lines.push(`Part: ${rep.modeContext.addProfileB ? "A>B>C" : "A>C"} | rail_math_mode=${rep.modeContext.railMathMode} | th_fil_3_mode=${rep.modeContext.thFil3Mode}`);
-  lines.push(`Orientation: planeDeg=${rep.orientation.planeDeg.toFixed(2)} frameTan=(${rep.orientation.frameTanX.toFixed(3)}, ${rep.orientation.frameTanY.toFixed(3)})`);
-  if (rep.orientation.notes?.length) lines.push(`Notes: ${rep.orientation.notes.join(" | ")}`);
-  lines.push(
-    `Metrics: outerArc=${rep.metrics.outerArcLen.toFixed(2)} innerArc=${rep.metrics.innerArcLen.toFixed(2)} endCap=${rep.metrics.endCapLen.toFixed(2)} baseCap=${rep.metrics.baseCapLen.toFixed(2)}`
-  );
-  const s = rep.metrics.samples;
-  lines.push(`Samples: outer=${s.outer} inner=${s.inner} endCap=${s.endCap} baseCap=${s.baseCap} total=${s.totalLoop}`);
-  lines.push("Params:");
-  const keys = Object.keys(rep.params).sort();
-  for (const k of keys) lines.push(`  ${k}=${String(rep.params[k])}`);
-  el.textContent = lines.join("\n");
-}
-
-function renderProfileFilterList(sectionKey: DebugSectionReport["key"], listId: string, fallback: string[]) {
-  const rep = debugSectionReports.get(sectionKey);
-  if (!rep || !rep.operations?.length) {
-    writeFilterList(listId, fallback);
-    return;
-  }
-  writeFilterList(listId, rep.operations.map((op, i) => `${i + 1}. ${op}`));
-}
-
-function refreshDebugFilterLists() {
-  renderProfileFilterList("profile_a", "dbg_filters_profile_a", readFilterItemsForSection("profile_a"));
-  renderProfileFilterList("ab", "dbg_filters_ab", readFilterItemsForSection("ab"));
-  renderProfileFilterList("ac", "dbg_filters_ac", readFilterItemsForSection("ac"));
-  renderProfileFilterList("profile_b", "dbg_filters_profile_b", readFilterItemsForSection("profile_b"));
-  renderProfileFilterList("bc", "dbg_filters_bc", readFilterItemsForSection("bc"));
-  renderProfileFilterList("profile_c", "dbg_filters_profile_c", readFilterItemsForSection("profile_c"));
-  renderProfileFilterList("profile_hc", "dbg_filters_profile_hc", readFilterItemsForSection("profile_hc"));
-  renderProfileFilterList("cd", "dbg_filters_cd", readFilterItemsForSection("cd"));
-  renderProfileFilterList("profile_hd", "dbg_filters_profile_hd", readFilterItemsForSection("profile_hd"));
-
-  renderProfileParamBlock("profile_a", "dbg_data_profile_a");
-  renderProfileParamBlock("ab", "dbg_data_ab");
-  renderProfileParamBlock("ac", "dbg_data_ac");
-  renderProfileParamBlock("profile_b", "dbg_data_profile_b");
-  renderProfileParamBlock("bc", "dbg_data_bc");
-  renderProfileParamBlock("profile_c", "dbg_data_profile_c");
-  renderProfileParamBlock("profile_hc", "dbg_data_profile_hc");
-  renderProfileParamBlock("cd", "dbg_data_cd");
-  renderProfileParamBlock("profile_hd", "dbg_data_profile_hd");
-}
-
-let profileEditorItems: ProfileEditorItem[] = [];
-let profileEditorFocusKey = "";
-let profileEditorEdits: ProfileEditMap = {};
-let profileEditorHiddenSectionIds = new Set<string>();
-let syncingProfileEditorUi = false;
-let syncingProfileEditorCuts = false;
-let syncingProfileEditorDefaultsUi = false;
-type ProfileEditNumericKey =
-  | "endX"
-  | "endZ"
-  | "angle"
-  | "rotOffsetDeg"
-  | "thickness"
-  | "strength"
-  | "outerCutMm"
-  | "outerCutPts"
-  | "innerCutMm"
-  | "innerCutPts";
-
-function buildProfileEditorItems(): ProfileEditorItem[] {
-  const out: ProfileEditorItem[] = [];
-  const addB = !!toeAddProfileBEl.checked;
-  const ab = clampInt(readNumber(toeABMidEl, 10), 0, 200);
-  const bc = clampInt(readNumber(toeBCMidEl, 15), 0, 200);
-  const cd = clampInt(readNumber(mustEl<HTMLInputElement>("heel_cd_mid"), 2), 0, 60);
-  out.push({ key: "toe:profile_a:0", label: "Profile A", sectionKey: "profile_a", stationIndex: 0, enabled: true });
-  if (addB) {
-    for (let i = 1; i <= ab; i++) {
-      out.push({ key: `toe:ab:${i}`, label: `A>B ${i}`, sectionKey: "ab", stationIndex: i, enabled: true });
-    }
-    out.push({ key: `toe:profile_b:${ab + 1}`, label: "Profile B", sectionKey: "profile_b", stationIndex: ab + 1, enabled: true });
-    for (let i = 1; i <= bc; i++) {
-      out.push({ key: `toe:bc:${i}`, label: `B>C ${i}`, sectionKey: "bc", stationIndex: i, enabled: true });
-    }
-    out.push({ key: `toe:profile_c:${ab + bc + 2}`, label: "Profile C", sectionKey: "profile_c", stationIndex: ab + bc + 2, enabled: true });
-  } else {
-    for (let i = 1; i <= bc; i++) {
-      out.push({ key: `toe:ac:${i}`, label: `A>C ${i}`, sectionKey: "ac", stationIndex: i, enabled: true });
-    }
-    out.push({ key: `toe:profile_c:${bc + 1}`, label: "Profile C", sectionKey: "profile_c", stationIndex: bc + 1, enabled: true });
-  }
-  out.push({ key: "heel:profile_hc:0", label: "Heel Profile C", sectionKey: "profile_hc", stationIndex: 0, enabled: true });
-  for (let i = 1; i <= cd; i++) {
-    out.push({ key: `heel:cd:${i}`, label: `C>D ${i}`, sectionKey: "cd", stationIndex: i, enabled: true });
-  }
-  out.push({ key: `heel:profile_hd:${cd + 1}`, label: "Profile D", sectionKey: "profile_hd", stationIndex: cd + 1, enabled: true });
-  for (let i = 0; i < out.length; i++) {
-    out[i].neighborPrevKey = i > 0 ? out[i - 1].key : undefined;
-    out[i].neighborNextKey = i < out.length - 1 ? out[i + 1].key : undefined;
-  }
-  return out;
-}
-
-function getFocusedProfileEditorItem(): ProfileEditorItem | null {
-  return profileEditorItems.find((it) => it.key === profileEditorFocusKey) ?? null;
-}
-
-function getToeProfileEditorItems() {
-  return profileEditorItems.filter((it) => it.enabled && it.key.startsWith("toe:"));
-}
-
-function getSectionPartIdForProfileItem(item: ProfileEditorItem): string | null {
-  if (!item.enabled || !item.key.startsWith("toe:")) return null;
-  const toeItems = getToeProfileEditorItems();
-  const idx = toeItems.findIndex((it) => it.key === item.key);
-  if (idx < 0 || idx >= toeItems.length - 1) return null;
-  const fromKey = toeItems[idx].key;
-  const toKey = toeItems[idx + 1].key;
-  return `toe:sec:${idx}-${idx + 1}:${fromKey}->${toKey}`;
-}
-
-function readProfileEditorHiddenSectionBlob() {
-  try {
-    return JSON.stringify(Array.from(profileEditorHiddenSectionIds.values()));
-  } catch {
-    return "[]";
-  }
-}
-
-function ensureProfileEditorSectionLoftModeEnabled() {
-  let changed = false;
-  if (!profileEditorSectionEl.open) {
-    profileEditorSectionEl.open = true;
-    changed = true;
-  }
-  if (!railMath11El.checked) {
-    railMath11El.checked = true;
-    changed = true;
-  }
-  if (!peSectionModeEl.checked) {
-    peSectionModeEl.checked = true;
-    changed = true;
-  }
-  if (changed) syncLabels();
-}
-
-function focusMaterialsOnGeneratedPart(partId: string) {
-  openMaterialsPanel("generated-model", "Generated ParaHook");
-  if (!materialsFocusState || materialsFocusState.target !== "generated-model") return;
-  materialsFocusState.selectedPartIds = [partId];
-  const existing = materialAssignmentMapForTarget("generated-model").get(partId);
-  if (existing) viewer.setLayerPartMaterialState?.("generated-model", partId, existing);
-  populateMaterialsPartList();
-  syncMaterialsTuneInputsFromState();
-  syncMaterialsPanelUI();
-}
-
-function getProfileEditorMetrics(item: ProfileEditorItem | null) {
-  if (!item) return null;
-  const rep = debugSectionReports.get(item.sectionKey);
-  return rep?.metrics ?? null;
-}
-
-function getOrCreateProfileEdit(key: string): ProfileEdit {
-  if (!profileEditorEdits[key]) profileEditorEdits[key] = {};
-  return profileEditorEdits[key];
-}
-
-function refreshProfileEditorMetricsUI() {
-  const item = getFocusedProfileEditorItem();
-  const m = getProfileEditorMetrics(item);
-  const resolved = getFocusedProfileEditorDebugHandleData({ requireSectionOpen: false })?.resolved ?? null;
-  if (!m) {
-    peBaseCapLenEl.textContent = "-";
-    peBaseCapPtsEl.textContent = "-";
-    peOuterArcLenEl.textContent = "-";
-    peOuterArcPtsEl.textContent = "-";
-    peInnerArcLenEl.textContent = "-";
-    peInnerArcPtsEl.textContent = "-";
-  } else {
-    peBaseCapLenEl.textContent = m.baseCapLen.toFixed(2);
-    peBaseCapPtsEl.textContent = String(m.samples.baseCap);
-    peOuterArcLenEl.textContent = m.outerArcLen.toFixed(2);
-    peOuterArcPtsEl.textContent = String(m.samples.outer);
-    peInnerArcLenEl.textContent = m.innerArcLen.toFixed(2);
-    peInnerArcPtsEl.textContent = String(m.samples.inner);
-  }
-  peAbsRotEl.textContent = resolved ? resolved.absRotDeg.toFixed(2) : "-";
-  peTangentRotEl.textContent = resolved ? resolved.tangentRotDeg.toFixed(2) : "-";
-}
-
-function renderProfileEditorList() {
-  profileEditorListEl.innerHTML = "";
-  for (const item of profileEditorItems) {
-    const row = document.createElement("div");
-    row.className = `profileEditorItemRow${item.key === profileEditorFocusKey ? " active" : ""}${item.enabled ? "" : " disabled"}`;
-
-    const sectionPartId = getSectionPartIdForProfileItem(item);
-    const eyeBtn = document.createElement("button");
-    eyeBtn.type = "button";
-    eyeBtn.className = "profileEditorIconBtn";
-    eyeBtn.textContent = sectionPartId && !profileEditorHiddenSectionIds.has(sectionPartId) ? "Eye" : "Off";
-    eyeBtn.title = sectionPartId
-      ? (profileEditorHiddenSectionIds.has(sectionPartId) ? "Show this section loft" : "Hide this section loft")
-      : "No section loft for this profile";
-    eyeBtn.disabled = !item.enabled || !sectionPartId;
-    eyeBtn.addEventListener("click", (ev) => {
-      ev.preventDefault();
-      ev.stopPropagation();
-      if (!sectionPartId) return;
-      ensureProfileEditorSectionLoftModeEnabled();
-      if (profileEditorHiddenSectionIds.has(sectionPartId)) profileEditorHiddenSectionIds.delete(sectionPartId);
-      else profileEditorHiddenSectionIds.add(sectionPartId);
-      renderProfileEditorList();
-      if (canAutoRebuild() && readRailMathMode() === 11) {
-        markParamChangeRebuildSource();
-        rebuild({ freezeBaseRefit: true, freezeHeelRefit: true, noInterrupt: true });
-      }
-    });
-
-    const focusBtn = document.createElement("button");
-    focusBtn.type = "button";
-    focusBtn.className = `profileEditorItem${item.key === profileEditorFocusKey ? " active" : ""}${item.enabled ? "" : " disabled"}`;
-    focusBtn.textContent = item.label;
-    focusBtn.disabled = !item.enabled;
-    focusBtn.addEventListener("click", () => {
-      setProfileEditorFocus(item.key, true);
-    });
-
-    const matBtn = document.createElement("button");
-    matBtn.type = "button";
-    matBtn.className = "profileEditorIconBtn";
-    matBtn.textContent = "Mat";
-    matBtn.title = "Focus this section in Materials";
-    matBtn.disabled = !item.enabled || !sectionPartId;
-    matBtn.addEventListener("click", (ev) => {
-      ev.preventDefault();
-      ev.stopPropagation();
-      if (!sectionPartId) return;
-      ensureProfileEditorSectionLoftModeEnabled();
-      focusMaterialsOnGeneratedPart(sectionPartId);
-    });
-
-    row.appendChild(eyeBtn);
-    row.appendChild(focusBtn);
-    row.appendChild(matBtn);
-    profileEditorListEl.appendChild(row);
-  }
-}
-
-function refreshProfileEditorCountsUI() {
-  const addB = !!toeAddProfileBEl.checked;
-  const enabledItems = profileEditorItems.filter((it) => it.enabled);
-  const countA = enabledItems.filter((it) => (addB ? it.sectionKey === "profile_a" || it.sectionKey === "ab" : it.sectionKey === "profile_a" || it.sectionKey === "ac")).length;
-  const countB = addB
-    ? enabledItems.filter((it) => it.sectionKey === "profile_b" || it.sectionKey === "bc").length
-    : 0;
-  const countC = enabledItems.filter((it) => it.sectionKey === "profile_c" || it.sectionKey === "profile_hc" || it.sectionKey === "cd" || it.sectionKey === "profile_hd").length;
-  profileEditorCountALabelEl.textContent = addB ? "A + A>B" : "A + A>C";
-  profileEditorCountAEl.textContent = String(countA);
-  profileEditorCountBLabelEl.textContent = "B + B>C";
-  profileEditorCountBEl.textContent = String(countB);
-  profileEditorCountCLabelEl.textContent = "C + C>D";
-  profileEditorCountCEl.textContent = String(countC);
-  profileEditorCountTotalEl.textContent = String(countA + countB + countC);
-}
-
-function setProfileEditorFocus(key: string, triggerRebuild = false) {
-  const found = profileEditorItems.find((it) => it.key === key && it.enabled);
-  if (!found && profileEditorItems.length) profileEditorFocusKey = profileEditorItems[0].key;
-  else if (found) profileEditorFocusKey = found.key;
-  const item = getFocusedProfileEditorItem();
-  profileEditorFocusLabelEl.textContent = item?.label ?? "None";
-  syncingProfileEditorUi = true;
-  const edit = item ? getOrCreateProfileEdit(item.key) : {};
-  const resolved = getFocusedProfileEditorDebugHandleData({ requireSectionOpen: false })?.resolved ?? null;
-  peEndXEl.value = String(num(edit.endX, num(resolved?.endX, 0)));
-  peEndXValEl.value = peEndXEl.value;
-  peEndZEl.value = String(num(edit.endZ, num(resolved?.endZ, 0)));
-  peEndZValEl.value = peEndZEl.value;
-  peAngleEl.value = String(num(edit.angle, num(resolved?.angle, 0)));
-  peAngleValEl.value = peAngleEl.value;
-  peRotOffsetEl.value = String(num(edit.rotOffsetDeg, num(resolved?.rotOffsetDeg, 0)));
-  peRotOffsetValEl.value = peRotOffsetEl.value;
-  peThicknessEl.value = String(num(edit.thickness, 12));
-  peThicknessValEl.value = peThicknessEl.value;
-  peStrengthEl.value = String(num(edit.strength, 1));
-  peStrengthValEl.value = peStrengthEl.value;
-  peOuterCutMmEl.value = String(num(edit.outerCutMm, 0));
-  peOuterCutMmValEl.value = peOuterCutMmEl.value;
-  peOuterCutPtsEl.value = String(clampInt(num(edit.outerCutPts, 0), 0, 200));
-  peOuterCutPtsValEl.value = peOuterCutPtsEl.value;
-  peInnerCutMmEl.value = String(num(edit.innerCutMm, 0));
-  peInnerCutMmValEl.value = peInnerCutMmEl.value;
-  peInnerCutPtsEl.value = String(clampInt(num(edit.innerCutPts, 0), 0, 200));
-  peInnerCutPtsValEl.value = peInnerCutPtsEl.value;
-  syncingProfileEditorUi = false;
-  syncProfileEditorDefaultToggleUi();
-  refreshProfileEditorMetricsUI();
-  syncProfileEditorRailLayerVisibility();
-  syncProfileEditorRailLayerMirrorsFromCanonical();
-  renderProfileEditorList();
-  refreshProfileEditorCountsUI();
-  syncProfileEditorCutPairs("outer", "mm");
-  syncProfileEditorCutPairs("inner", "mm");
-  updateProfileEditorDebugHandleInViewer();
-  if (triggerRebuild && canAutoRebuild()) {
-    markParamChangeRebuildSource();
-    rebuildDebounced();
-  }
-}
-
-function rebuildProfileEditorRegistry(logPrune = false) {
-  const next = buildProfileEditorItems();
-  const nextSet = new Set(next.map((it) => it.key));
-  const before = Object.keys(profileEditorEdits).length;
-  for (const k of Object.keys(profileEditorEdits)) {
-    if (!nextSet.has(k)) delete profileEditorEdits[k];
-  }
-  const after = Object.keys(profileEditorEdits).length;
-  if (logPrune && before !== after) log(`[profile-editor] pruned ${before - after} stale edits (topology changed)`);
-  profileEditorItems = next;
-  const validSectionIds = new Set(
-    profileEditorItems
-      .map((it) => getSectionPartIdForProfileItem(it))
-      .filter((id): id is string => !!id)
-  );
-  for (const id of Array.from(profileEditorHiddenSectionIds.values())) {
-    if (!validSectionIds.has(id)) profileEditorHiddenSectionIds.delete(id);
-  }
-  if (!profileEditorItems.find((it) => it.key === profileEditorFocusKey)) {
-    profileEditorFocusKey = profileEditorItems[0]?.key ?? "";
-  }
-  setProfileEditorFocus(profileEditorFocusKey, false);
-}
-
-function updateFocusedProfileEdit(partial: Partial<ProfileEdit>) {
-  const item = getFocusedProfileEditorItem();
-  if (!item) return;
-  const cur = getOrCreateProfileEdit(item.key);
-  Object.assign(cur, partial);
-}
-
-type ProfileEditorDefaultBinding = {
-  toggleEl: HTMLInputElement;
-  rangeEl: HTMLInputElement;
-  valEl: HTMLInputElement;
-  key: ProfileEditNumericKey;
-  readValue: () => number;
-};
-
-const profileEditorDefaultBindings: ProfileEditorDefaultBinding[] = [
-  { toggleEl: peEndXDefaultEl, rangeEl: peEndXEl, valEl: peEndXValEl, key: "endX", readValue: () => readNumber(peEndXEl, 0) },
-  { toggleEl: peEndZDefaultEl, rangeEl: peEndZEl, valEl: peEndZValEl, key: "endZ", readValue: () => readNumber(peEndZEl, 0) },
-  { toggleEl: peAngleDefaultEl, rangeEl: peAngleEl, valEl: peAngleValEl, key: "angle", readValue: () => readNumber(peAngleEl, 0) },
-  { toggleEl: peRotOffsetDefaultEl, rangeEl: peRotOffsetEl, valEl: peRotOffsetValEl, key: "rotOffsetDeg", readValue: () => readNumber(peRotOffsetEl, 0) },
-  { toggleEl: peThicknessDefaultEl, rangeEl: peThicknessEl, valEl: peThicknessValEl, key: "thickness", readValue: () => readNumber(peThicknessEl, 12) },
-  { toggleEl: peStrengthDefaultEl, rangeEl: peStrengthEl, valEl: peStrengthValEl, key: "strength", readValue: () => readNumber(peStrengthEl, 1) },
-  { toggleEl: peOuterCutMmDefaultEl, rangeEl: peOuterCutMmEl, valEl: peOuterCutMmValEl, key: "outerCutMm", readValue: () => readNumber(peOuterCutMmEl, 0) },
-  { toggleEl: peOuterCutPtsDefaultEl, rangeEl: peOuterCutPtsEl, valEl: peOuterCutPtsValEl, key: "outerCutPts", readValue: () => clampInt(readNumber(peOuterCutPtsEl, 0), 0, 500) },
-  { toggleEl: peInnerCutMmDefaultEl, rangeEl: peInnerCutMmEl, valEl: peInnerCutMmValEl, key: "innerCutMm", readValue: () => readNumber(peInnerCutMmEl, 0) },
-  { toggleEl: peInnerCutPtsDefaultEl, rangeEl: peInnerCutPtsEl, valEl: peInnerCutPtsValEl, key: "innerCutPts", readValue: () => clampInt(readNumber(peInnerCutPtsEl, 0), 0, 500) },
-];
-
-function profileEditorHasOverride(key: ProfileEditNumericKey) {
-  const item = getFocusedProfileEditorItem();
-  if (!item) return false;
-  const pe = profileEditorEdits[item.key];
-  if (!pe) return false;
-  const n = Number((pe as any)[key]);
-  return Number.isFinite(n);
-}
-
-function setProfileEditorOverrideEnabled(key: ProfileEditNumericKey, enabled: boolean, nextValue?: number) {
-  const item = getFocusedProfileEditorItem();
-  if (!item) return;
-  if (enabled) {
-    const cur = getOrCreateProfileEdit(item.key);
-    if (nextValue != null && Number.isFinite(nextValue)) (cur as any)[key] = nextValue;
-    return;
-  }
-  const cur = profileEditorEdits[item.key];
-  if (!cur) return;
-  delete (cur as any)[key];
-  if (Object.keys(cur).length === 0) delete profileEditorEdits[item.key];
-}
-
-function syncProfileEditorDefaultToggleUi() {
-  syncingProfileEditorDefaultsUi = true;
-  for (const b of profileEditorDefaultBindings) {
-    const useDefault = !profileEditorHasOverride(b.key);
-    b.toggleEl.checked = useDefault;
-    b.rangeEl.disabled = useDefault;
-    b.valEl.disabled = useDefault;
-  }
-  syncingProfileEditorDefaultsUi = false;
-}
-
-function syncProfileEditorCutPairs(kind: "outer" | "inner", source: "mm" | "pts") {
-  if (syncingProfileEditorUi || syncingProfileEditorCuts) return;
-  const item = getFocusedProfileEditorItem();
-  if (!item) return;
-  const m = getProfileEditorMetrics(item);
-  const arcLen = Math.max(1e-6, kind === "outer" ? num(m?.outerArcLen, 0) : num(m?.innerArcLen, 0));
-  const maxPts = clampInt(kind === "outer" ? num(m?.samples.outer, 0) : num(m?.samples.inner, 0), 1, 500);
-  const mmEl = kind === "outer" ? peOuterCutMmEl : peInnerCutMmEl;
-  const mmValEl = kind === "outer" ? peOuterCutMmValEl : peInnerCutMmValEl;
-  const ptsEl = kind === "outer" ? peOuterCutPtsEl : peInnerCutPtsEl;
-  const ptsValEl = kind === "outer" ? peOuterCutPtsValEl : peInnerCutPtsValEl;
-  ptsEl.max = String(maxPts);
-  ptsValEl.max = String(maxPts);
-  syncingProfileEditorCuts = true;
-  if (source === "mm") {
-    const mm = clamp(readNumber(mmEl, 0), 0, 2000);
-    const pts = clampInt(Math.round((mm / arcLen) * maxPts), 0, maxPts);
-    ptsEl.value = String(pts);
-    ptsValEl.value = String(pts);
-    updateFocusedProfileEdit(kind === "outer" ? { outerCutMm: mm, outerCutPts: pts } : { innerCutMm: mm, innerCutPts: pts });
-  } else {
-    const pts = clampInt(readNumber(ptsEl, 0), 0, maxPts);
-    const mm = clamp((pts / maxPts) * arcLen, 0, 2000);
-    mmEl.value = String(mm);
-    mmValEl.value = String(mm);
-    updateFocusedProfileEdit(kind === "outer" ? { outerCutMm: mm, outerCutPts: pts } : { innerCutMm: mm, innerCutPts: pts });
-  }
-  syncingProfileEditorCuts = false;
-}
-
-function readProfileEditorBlob() {
-  try {
-    return JSON.stringify(profileEditorEdits);
-  } catch {
-    return "{}";
-  }
-}
-
-function lerpProfileEditorToe(a: ToeProfileBezierUI, b: ToeProfileBezierUI, tRaw: number): ToeProfileBezierUI {
-  const t = clamp(tRaw, 0, 1);
-  const mix = (x: number, y: number) => x + (y - x) * t;
-  return {
-    endX: mix(a.endX, b.endX),
-    endZ: mix(a.endZ, b.endZ),
-    p1s: mix(a.p1s, b.p1s),
-    p3s: mix(a.p3s, b.p3s),
-    enda: mix(a.enda, b.enda),
-  };
-}
-
-function parseProfileEditorIndexFromKey(key: string) {
-  const raw = key.split(":").pop();
-  const n = Number(raw);
-  return Number.isFinite(n) ? Math.max(0, Math.round(n)) : 0;
-}
-
-function getFocusedProfileEditorDebugHandleData(opts?: { requireSectionOpen?: boolean }): {
-  frame: { origin: XYZ; uAxis: XYZ; zAxis: XYZ };
-  world: XYZ;
-  resolved: { endX: number; endZ: number; angle: number; rotOffsetDeg: number; absRotDeg: number; tangentRotDeg: number };
-} | null {
-  if (opts?.requireSectionOpen !== false && !profileEditorSectionEl.open) return null;
-  const item = getFocusedProfileEditorItem();
-  if (!item || !item.enabled || !item.key.startsWith("toe:")) return null;
-
-  const p = readParams() as any;
-  const { spinePts, spineTan } = sampleSpineMain(p);
-  if (!spinePts.length || !spineTan.length) return null;
-
-  const addB = !!toeAddProfileBEl.checked;
-  const nAB = clampInt(readNumber(toeABMidEl, 10), 0, 200);
-  const nBC = clampInt(readNumber(toeBCMidEl, 15), 0, 200);
-  const staB = clamp(num(p.toe_b_sta, 60), 1, 2000);
-  const staC = clamp(num(p.toe_c_sta, 137), 1, 2000);
-  const idxB = clamp(findEndIdxByArcLen(spinePts, staB), 1, Math.max(1, spinePts.length - 2));
-  const idxC = clamp(findEndIdxByArcLen(spinePts, staC), idxB + 1, Math.max(idxB + 1, spinePts.length - 1));
-
-  const profA: ToeProfileBezierUI = {
-    endX: clamp(num(p.toe_a_endx, 47), 0.1, 2000),
-    endZ: clamp(num(p.toe_a_endz, 35), 0.1, 2000),
-    p1s: clamp(num(p.toe_a_p1s, 25), 0, 10000),
-    p3s: clamp(num(p.toe_a_p3s, 35), 0, 10000),
-    enda: clamp(num(p.toe_a_enda, 0), -180, 180),
-  };
-  const profB: ToeProfileBezierUI = {
-    endX: clamp(num(p.toe_b_endx, 20), 0.1, 2000),
-    endZ: clamp(num(p.toe_b_endz, 50), 0.1, 2000),
-    p1s: clamp(num(p.toe_b_p1s, 25), 0, 10000),
-    p3s: clamp(num(p.toe_b_p3s, 35), 0, 10000),
-    enda: clamp(num(p.toe_b_enda, 0), -180, 180),
-  };
-  const profC: ToeProfileBezierUI = {
-    endX: clamp(num(p.toe_c_endx, 19), 0.1, 2000),
-    endZ: clamp(num(p.toe_c_endz, 65), 0.1, 2000),
-    p1s: clamp(num(p.toe_c_p1s, 25), 0, 10000),
-    p3s: clamp(num(p.toe_c_p3s, 35), 0, 10000),
-    enda: clamp(num(p.toe_c_enda, 0), -180, 180),
-  };
-
-  let stationIdx = 0;
-  let prof = profA;
-  const key = item.key;
-  if (key.startsWith("toe:profile_a:")) {
-    stationIdx = 0;
-    prof = profA;
-  } else if (key.startsWith("toe:profile_b:") && addB) {
-    stationIdx = idxB;
-    prof = profB;
-  } else if (key.startsWith("toe:profile_c:")) {
-    stationIdx = idxC;
-    prof = profC;
-  } else if (key.startsWith("toe:ab:") && addB && nAB > 0) {
-    const i = clamp(parseProfileEditorIndexFromKey(key), 1, nAB);
-    const t = i / (nAB + 1);
-    stationIdx = clamp(Math.round(0 + (idxB - 0) * t), 0, idxB);
-    prof = lerpProfileEditorToe(profA, profB, t);
-  } else if (key.startsWith("toe:bc:") && addB && nBC > 0) {
-    const i = clamp(parseProfileEditorIndexFromKey(key), 1, nBC);
-    const t = i / (nBC + 1);
-    stationIdx = clamp(Math.round(idxB + (idxC - idxB) * t), idxB, idxC);
-    prof = lerpProfileEditorToe(profB, profC, t);
-  } else if (key.startsWith("toe:ac:") && !addB && nBC > 0) {
-    const i = clamp(parseProfileEditorIndexFromKey(key), 1, nBC);
-    const t = i / (nBC + 1);
-    stationIdx = clamp(Math.round(0 + (idxC - 0) * t), 0, idxC);
-    prof = lerpProfileEditorToe(profA, profC, t);
-  } else {
-    return null;
-  }
-
-  const edit = profileEditorEdits[item.key] ?? null;
-  if (edit && Number.isFinite(edit.endX as number)) prof.endX = clamp(num(edit.endX, prof.endX), 0.1, 2000);
-  if (edit && Number.isFinite(edit.endZ as number)) prof.endZ = clamp(num(edit.endZ, prof.endZ), 0.1, 2000);
-  const rotOffsetDeg = edit && Number.isFinite(edit.rotOffsetDeg as number) ? clamp(num(edit.rotOffsetDeg, 0), -180, 180) : 0;
-
-  stationIdx = clampInt(stationIdx, 0, Math.max(0, spinePts.length - 1));
-  const tangentBase = vnorm2(spineTan[stationIdx]);
-  const tangentAbsDeg = (Math.atan2(tangentBase.y, tangentBase.x) * 180) / Math.PI;
-  const absRotDeg = tangentAbsDeg + rotOffsetDeg;
-  const frameTan = rotateVecDeg2(tangentBase, rotOffsetDeg);
-  const st = { pt: spinePts[stationIdx], tan: frameTan };
-  const t = vnorm2(frameTan);
-  const uAxis: XYZ = { x: -t.y, y: t.x, z: 0 };
-  const zAxis: XYZ = { x: 0, y: 0, z: 1 };
-  const origin: XYZ = { x: st.pt.x, y: st.pt.y, z: 0 };
-  const sx = -1;
-  const world = localToWorldAtStation(st, { x: sx * prof.endX, y: prof.endZ });
-  return {
-    frame: { origin, uAxis, zAxis },
-    world,
-    resolved: {
-      endX: prof.endX,
-      endZ: prof.endZ,
-      angle: prof.enda,
-      rotOffsetDeg,
-      absRotDeg,
-      tangentRotDeg: rotOffsetDeg,
-    },
-  };
-}
-
-function updateProfileEditorDebugHandleInViewer() {
-  const data = getFocusedProfileEditorDebugHandleData();
-  const dragEnabled = !!peDragHandleEnableEl.checked;
-  const showOnlyEnabled = !!peDragHandleShowOnlyEl.checked;
-  const showHandle = dragEnabled || showOnlyEnabled;
-  if (!data || !showHandle) {
-    viewer.setProfileEditorDebugHandleVisible(false);
-    viewer.setProfileEditorDebugHandleEnabled(false);
-    viewer.setProfileEditorDebugHandleFrame(null);
-    viewer.setProfileEditorDebugHandleWorld(null);
-    return;
-  }
-  viewer.setProfileEditorDebugHandleFrame(data.frame);
-  viewer.setProfileEditorDebugHandleWorld(data.world);
-  viewer.setProfileEditorDebugHandleVisible(true);
-  viewer.setProfileEditorDebugHandleEnabled(dragEnabled);
-}
-
-function setProfileEditorHandleMode(nextMode: "drag" | "show_only" | "off") {
-  if (nextMode === "drag") {
-    peDragHandleEnableEl.checked = true;
-    peDragHandleShowOnlyEl.checked = false;
-  } else if (nextMode === "show_only") {
-    peDragHandleEnableEl.checked = false;
-    peDragHandleShowOnlyEl.checked = true;
-  } else {
-    peDragHandleEnableEl.checked = false;
-    peDragHandleShowOnlyEl.checked = false;
-  }
 }
 
 function syncRailMathUI() {
@@ -4396,11 +3081,6 @@ function syncHeelSweepFromHeelRailMathSelection() {
   syncingHeelSweepRm3 = false;
 }
 
-function resetDebugVizDefaultsOnBoot() {
-  // Prevent browser form-state restore from re-enabling heavy debug geometry on startup.
-  for (const el of debugVizCheckboxes) el.checked = false;
-}
-
 function wireParamValMirror(valEl: HTMLInputElement | null, rangeEl: HTMLInputElement) {
   if (!valEl) return;
   valEl.addEventListener("input", () => {
@@ -4450,7 +3130,6 @@ function setupExclusiveCheckboxGroup(group: HTMLInputElement[], defaultEl: HTMLI
 }
 
 function readRailMathMode(): number {
-  if (railMath11El.checked) return 11;
   if (railMath10El.checked) return 10;
   if (railMath9El.checked) return 9;
   if (railMath8El.checked) return 8;
@@ -4505,19 +3184,6 @@ function applyDrGoodDietPreset(isDiet: boolean) {
 }
 
 let drGoodPresetReady = false;
-const drGoodFilletChildren = [bpFil1El, thFil1El, thFil2El, heelFil1El] as const;
-
-function setDrGoodFilletChildrenEnabled(enabled: boolean) {
-  for (const el of drGoodFilletChildren) el.checked = enabled;
-}
-
-function syncDrGoodMasterFromChildToggle(changed: HTMLInputElement) {
-  if (!drGoodFilletEl.checked) return;
-  if (changed.checked) return;
-  drGoodFilletEl.checked = false;
-  drGoodFilletDietWrapEl.style.display = "none";
-  drGoodFilletDietEl.checked = true;
-}
 
 function syncDrGoodDietUIOnLoad() {
   if (!drGoodFilletEl.checked) {
@@ -4526,7 +3192,6 @@ function syncDrGoodDietUIOnLoad() {
     return;
   }
   drGoodFilletDietWrapEl.style.display = "";
-  setDrGoodFilletChildrenEnabled(true);
 }
 
 // -----------------------------
@@ -4614,36 +3279,6 @@ const paramIds: string[] = [
   "sh_fil_1_r",
   "th_fil_1_r",
   "th_fil_2_r",
-  "th_fil_3x",
-  "th_fil_3x_actual",
-  "th_fil_3y",
-  "th_fil_3y_actual",
-  "dbg_profile_a_x",
-  "dbg_profile_a_z",
-  "dbg_profile_b_x",
-  "dbg_profile_b_z",
-  "dbg_profile_c_x",
-  "dbg_profile_c_z",
-  "dbg_profile_hc_x",
-  "dbg_profile_hc_z",
-  "dbg_profile_hd_x",
-  "dbg_profile_hd_z",
-  "dbg_ab_first_x",
-  "dbg_ab_first_y",
-  "dbg_ab_step_x",
-  "dbg_ab_step_y",
-  "dbg_ac_first_x",
-  "dbg_ac_first_y",
-  "dbg_ac_step_x",
-  "dbg_ac_step_y",
-  "dbg_bc_first_x",
-  "dbg_bc_first_y",
-  "dbg_bc_step_x",
-  "dbg_bc_step_y",
-  "dbg_cd_first_x",
-  "dbg_cd_first_y",
-  "dbg_cd_step_x",
-  "dbg_cd_step_y",
   "heel_fil_1_r",
   "heel_fil_2_r",
   "bp_fil_1_r",
@@ -4663,168 +3298,13 @@ const heelHDValEl = document.getElementById("heel_h_dVal") as HTMLInputElement |
 // - User can re-enable auto by setting toe_bc_mid back to 0
 // -----------------------------
 const toeBCMidEl = mustEl<HTMLInputElement>("toe_bc_mid");
-let syncingToeFil3Y = false;
-let syncingToeFil3X = false;
+// Treat a non-zero authored HTML default as an intentional value so startup auto-fill
+// doesn't overwrite it on the first rebuild.
+let toeBCMidUserTouched = Number(toeBCMidEl.value) !== 0;
 
-function getToeFil3InteriorCount() {
-  const addB = !!toeAddProfileBEl.checked;
-  const ab = clampInt(readNumber(toeABMidEl, 10), 0, 200);
-  const bc = clampInt(readNumber(toeBCMidEl, 15), 0, 200);
-  return addB ? ab + bc : bc;
-}
-
-function getToeFil3ActualMaxCount() {
-  // Requested cap behavior:
-  // - If B is enabled: cap by Toe_AB_Mid
-  // - If B is disabled (A->C path): cap by Toe_BC_Mid
-  return toeAddProfileBEl.checked ? clampInt(readNumber(toeABMidEl, 10), 0, 200) : clampInt(readNumber(toeBCMidEl, 15), 0, 200);
-}
-
-function applyToeFil3ActualLimit() {
-  const maxCount = getToeFil3ActualMaxCount();
-  thFil3YActualEl.max = String(maxCount);
-  if (thFil3YActualValEl) thFil3YActualValEl.max = String(maxCount);
-  const clamped = clampInt(readNumber(thFil3YActualEl, 0), 0, maxCount);
-  thFil3YActualEl.value = String(clamped);
-  if (thFil3YActualValEl) thFil3YActualValEl.value = String(clamped);
-}
-
-function getToeFil3StraightSpanMm() {
-  return clamp(readNumber(toeCStaEl, 137), 1, 2000);
-}
-
-function getToeFil3XActualMaxCount() {
-  return 70; // matches toeBezierOffsetProfileFixedPts outer sample count
-}
-
-function getToeFil3AOuterArcLenMm() {
-  const endX = clamp(readNumber(mustEl<HTMLInputElement>("toe_a_endx"), 47), 0.1, 2000);
-  const endZ = clamp(readNumber(mustEl<HTMLInputElement>("toe_a_endz"), 35), 0.1, 2000);
-  const p1s = clamp(readNumber(mustEl<HTMLInputElement>("toe_a_p1s"), 25), 0, 10000);
-  const p3s = clamp(readNumber(mustEl<HTMLInputElement>("toe_a_p3s"), 35), 0, 10000);
-  const endA = clamp(readNumber(mustEl<HTMLInputElement>("toe_a_enda"), 0), -180, 180);
-  const samples = 70;
-  const p0 = { x: 0, y: 0 };
-  const p3 = { x: -Math.abs(endX), y: endZ };
-  const p1 = { x: 0, y: p1s };
-  const aRad = ((endA - 180) * Math.PI) / 180;
-  const dir = { x: Math.cos(aRad), y: Math.sin(aRad) };
-  const span = Math.hypot(p3.x - p0.x, p3.y - p0.y);
-  const p3Safe = clamp(p3s, 0, Math.max(1, span * 1.5));
-  const p2 = { x: p3.x - dir.x * p3Safe, y: Math.max(0, p3.y - dir.y * p3Safe) };
-  const bz = (t: number) => {
-    const mt = 1 - t;
-    const mt2 = mt * mt;
-    const t2 = t * t;
-    return {
-      x: mt2 * mt * p0.x + 3 * mt2 * t * p1.x + 3 * mt * t2 * p2.x + t2 * t * p3.x,
-      y: mt2 * mt * p0.y + 3 * mt2 * t * p1.y + 3 * mt * t2 * p2.y + t2 * t * p3.y,
-    };
-  };
-  let len = 0;
-  let prev = bz(0);
-  for (let i = 1; i <= samples; i++) {
-    const cur = bz(i / samples);
-    len += Math.hypot(cur.x - prev.x, cur.y - prev.y);
-    prev = cur;
-  }
-  return clamp(len, 0.1, 5000);
-}
-
-function applyToeFil3XActualLimit() {
-  const maxCount = getToeFil3XActualMaxCount();
-  thFil3XActualEl.max = String(maxCount);
-  if (thFil3XActualValEl) thFil3XActualValEl.max = String(maxCount);
-  const clamped = clampInt(readNumber(thFil3XActualEl, 0), 0, maxCount);
-  thFil3XActualEl.value = String(clamped);
-  if (thFil3XActualValEl) thFil3XActualValEl.value = String(clamped);
-}
-
-function toeFil3XMmToCount(mmRaw: number) {
-  const mm = clamp(mmRaw, 0, 100);
-  const maxCount = getToeFil3XActualMaxCount();
-  const arcLen = getToeFil3AOuterArcLenMm();
-  if (arcLen <= 1e-6) return 0;
-  return clampInt(Math.round((mm / arcLen) * maxCount), 0, maxCount);
-}
-
-function toeFil3XCountToMm(countRaw: number) {
-  const count = clampInt(countRaw, 0, getToeFil3XActualMaxCount());
-  const arcLen = getToeFil3AOuterArcLenMm();
-  const mm = (count / Math.max(1, getToeFil3XActualMaxCount())) * arcLen;
-  return clamp(Math.round(mm), 0, 100);
-}
-
-function syncToeFil3XActualFromX() {
-  if (syncingToeFil3X) return;
-  syncingToeFil3X = true;
-  applyToeFil3XActualLimit();
-  const count = toeFil3XMmToCount(readNumber(thFil3XEl, 20));
-  thFil3XActualEl.value = String(count);
-  if (thFil3XActualValEl) thFil3XActualValEl.value = String(count);
-  syncingToeFil3X = false;
-}
-
-function syncToeFil3XFromActual() {
-  if (syncingToeFil3X) return;
-  syncingToeFil3X = true;
-  applyToeFil3XActualLimit();
-  const mm = toeFil3XCountToMm(readNumber(thFil3XActualEl, 0));
-  thFil3XEl.value = String(mm);
-  if (thFil3XValEl) thFil3XValEl.value = String(mm);
-  syncingToeFil3X = false;
-}
-
-function refreshToeFil3XMapping(prefer: "x" | "actual" = "x") {
-  applyToeFil3XActualLimit();
-  if (prefer === "actual") syncToeFil3XFromActual();
-  else syncToeFil3XActualFromX();
-}
-
-function toeFil3MmToCount(mmRaw: number) {
-  const mm = clamp(mmRaw, 0, 100);
-  const maxCount = getToeFil3ActualMaxCount();
-  const interior = getToeFil3InteriorCount();
-  const span = getToeFil3StraightSpanMm();
-  if (interior <= 0 || span <= 1e-6) return 0;
-  const count = Math.round((mm / span) * interior);
-  return clampInt(count, 0, maxCount);
-}
-
-function toeFil3CountToMm(countRaw: number) {
-  const count = clampInt(countRaw, 0, getToeFil3ActualMaxCount());
-  const interior = getToeFil3InteriorCount();
-  const span = getToeFil3StraightSpanMm();
-  if (interior <= 0 || span <= 1e-6) return 0;
-  const mm = (count / interior) * span;
-  return clamp(Math.round(mm), 0, 100);
-}
-
-function syncToeFil3YActualFromY() {
-  if (syncingToeFil3Y) return;
-  syncingToeFil3Y = true;
-  applyToeFil3ActualLimit();
-  const count = toeFil3MmToCount(readNumber(thFil3YEl, 20));
-  thFil3YActualEl.value = String(count);
-  if (thFil3YActualValEl) thFil3YActualValEl.value = String(count);
-  syncingToeFil3Y = false;
-}
-
-function syncToeFil3YFromActual() {
-  if (syncingToeFil3Y) return;
-  syncingToeFil3Y = true;
-  applyToeFil3ActualLimit();
-  const mm = toeFil3CountToMm(readNumber(thFil3YActualEl, 0));
-  thFil3YEl.value = String(mm);
-  if (thFil3YValEl) thFil3YValEl.value = String(mm);
-  syncingToeFil3Y = false;
-}
-
-function refreshToeFil3YMapping(prefer: "y" | "actual" = "y") {
-  applyToeFil3ActualLimit();
-  if (prefer === "actual") syncToeFil3YFromActual();
-  else syncToeFil3YActualFromY();
-}
+toeBCMidEl.addEventListener("input", () => {
+  if (Number(toeBCMidEl.value) !== 0) toeBCMidUserTouched = true;
+});
 
 function readParams(): ModelParams {
   enforceHeelHeightMaxFromToeC();
@@ -4836,22 +3316,6 @@ function readParams(): ModelParams {
   p.sh_fil_1 = shFil1El.checked ? 1 : 0;
   p.th_fil_1 = thFil1El.checked ? 1 : 0;
   p.th_fil_2 = thFil2El.checked ? 1 : 0;
-  p.th_fil_3_mode = thFil3ModeChamferEl.checked ? 1 : thFil3ModeFilletEl.checked ? 2 : 0;
-  if (p.th_fil_3_mode > 0) {
-    // Prevent DR Good / UI state from leaking TH_FIL_1/2 into chamfer/fillet-3 tests.
-    p.th_fil_1 = 0;
-    p.th_fil_2 = 0;
-  }
-  p.th_fil_debug_profiles = debugVizEnabledFromUi() ? 1 : 0;
-  p.dbg_profile_a = dbgProfileAEl.checked ? 1 : 0;
-  p.dbg_profile_b = dbgProfileBEl.checked ? 1 : 0;
-  p.dbg_profile_c = dbgProfileCEl.checked ? 1 : 0;
-  p.dbg_profile_hc = dbgProfileHCEl.checked ? 1 : 0;
-  p.dbg_profile_hd = dbgProfileHDEl.checked ? 1 : 0;
-  p.dbg_ab = dbgABEl.checked ? 1 : 0;
-  p.dbg_ac = dbgACEl.checked ? 1 : 0;
-  p.dbg_bc = dbgBCEl.checked ? 1 : 0;
-  p.dbg_cd = dbgCDEl.checked ? 1 : 0;
   p.heel_fil_1 = heelFil1El.checked ? 1 : 0;
   p.heel_fil_2 = 1;
   p.toe_add_profile_b = toeAddProfileBEl.checked ? 1 : 0;
@@ -4873,15 +3337,6 @@ function readParams(): ModelParams {
   if (!toeAddProfileBEl.checked) p.toe_ab_mid = 0;
   p.heel_mid_ctrl = heelMidCtrlEl.checked ? 1 : 0;
   p.heel_sweep = heelSweepEl.checked ? 1 : 0;
-  p.rail_math_11 = railMath11El.checked ? 1 : 0;
-  p.pe_enabled = profileEditorSectionEl.open ? 1 : 0;
-  p.pe_focus_key = profileEditorFocusKey;
-  p.pe_section_mode = peSectionModeEl.checked ? 1 : 0;
-  p.pe_isolated_mode = peIsolatedModeEl.checked ? 1 : 0;
-  p.pe_loft_prev = peLoftPrevEl.checked ? 1 : 0;
-  p.pe_loft_next = peLoftNextEl.checked ? 1 : 0;
-  p.pe_edit_blob = readProfileEditorBlob();
-  p.pe_hidden_sections_blob = readProfileEditorHiddenSectionBlob();
   return p;
 }
 
@@ -4906,14 +3361,28 @@ function enforceHeelHeightMaxFromToeC() {
   }
 }
 
-function applyAutoToeBCMidUI() {
-  // Disabled: keep toe_bc_mid exactly as authored in the UI.
-  // Previous behavior auto-increased this value based on station spacing.
-  // This is now intentionally a no-op.
+function computeSuggestedToeBCMid(p: ModelParams): number {
+  const staB = clamp(num(p.toe_b_sta, 60), 1, 2000);
+  const staC = clamp(num(p.toe_c_sta, 137), 1, 2000);
+  const delta = Math.max(0, staC - staB);
+
+  // 5mm = smoother (more profiles), 10mm = faster
+  const targetSpacingMm = 5;
+
+  return clampInt(delta / targetSpacingMm, 0, 200);
 }
 
-function syncProfileEditorRailMath11MirrorFromMain() {
-  peRailMath11El.checked = railMath11El.checked;
+function applyAutoToeBCMidUI() {
+  const current = Number(toeBCMidEl.value) || 0;
+
+  // If user explicitly set 0, treat it as "auto"
+  const allowAuto = !toeBCMidUserTouched || current === 0;
+  if (!allowAuto) return;
+
+  const p = readParams();
+  const suggested = computeSuggestedToeBCMid(p);
+
+  toeBCMidEl.value = String(suggested);
 }
 
 function syncLabels() {
@@ -4923,9 +3392,6 @@ function syncLabels() {
     const v = paramValEls[i];
     if (v) v.value = paramEls[i].value;
   }
-  syncProfileEditorIntermediateUIFromCanonical();
-  refreshDebugFilterLists();
-  rebuildProfileEditorRegistry(false);
 }
 
 function readTolerance(): number {
@@ -5083,13 +3549,6 @@ function dirFromDeg2(deg: number): Pt {
   return { x: Math.cos(rad), y: Math.sin(rad) };
 }
 
-function rotateVecDeg2(v: Pt, deg: number): Pt {
-  const rad = (deg * Math.PI) / 180;
-  const c = Math.cos(rad);
-  const s = Math.sin(rad);
-  return { x: v.x * c - v.y * s, y: v.x * s + v.y * c };
-}
-
 function toeInnerEndLocal(endX: number, endZ: number, p1s: number, p3s: number, endAngDeg: number, off: number): Pt {
   const P0: Pt = { x: 0, y: 0 };
   const P3: Pt = { x: endX, y: endZ };
@@ -5235,7 +3694,7 @@ function updateArcViz() {
   const p = readParams() as any;
 
   viewer.setAArcVizVisible(!!vizAArcPtsEl.checked);
-  viewer.setProfileAEditEnabled(ENABLE_PROFILE_A_HANDLE_DRAG && !!vizAArcPtsEl.checked);
+  viewer.setProfileAEditEnabled(!!vizAArcPtsEl.checked);
   viewer.setBArcVizVisible(!!vizBArcPtsEl.checked);
   viewer.setCArcVizVisible(!!vizCArcPtsEl.checked);
   viewer.setHeelArcVizVisible(!!vizHeelArcPtsEl.checked);
@@ -5255,30 +3714,6 @@ function updateArcViz() {
   let idxC = findEndIdxByArcLen(spinePts, stationC);
   idxC = clamp(idxC, idxB + 1, spinePts.length - 1);
   const stC = { pt: spinePts[idxC], tan: spineTan[idxC] };
-  const endpointOriginFrameTan = (pt: Pt, tanFallback: Pt): Pt => {
-    const len = Math.hypot(pt.x, pt.y);
-    return len > 1e-6 ? { x: pt.x / len, y: pt.y / len } : vnorm2(tanFallback);
-  };
-  const blendFrameTan = (fromTan: Pt, toTan: Pt, alpha01: number): Pt => {
-    const a = clamp(alpha01, 0, 1);
-    const fromN = vnorm2(fromTan);
-    const toN = vnorm2(toTan);
-    const mix = { x: fromN.x * (1 - a) + toN.x * a, y: fromN.y * (1 - a) + toN.y * a };
-    return Math.hypot(mix.x, mix.y) > 1e-6 ? vnorm2(mix) : toN;
-  };
-  const tagentAOffsetRotDeg = clamp(num(p.tagent_a_offset_rot, 0), -180, 180);
-  const tagentAMidpoint = clamp(num(p.tagent_a_midpoint, 50), 0, 100);
-  const tagentAFrameTan = dirFromDeg2(90 + tagentAOffsetRotDeg);
-  const aBlendReach = Math.max(1e-6, tagentAMidpoint / 100);
-  const aBlendAlphaAtA = 0;
-  const aBlendAlphaAtB = clamp(1 / aBlendReach, 0, 1);
-  const frameTanA = !tagentProfileAEl.checked ? blendFrameTan(tagentAFrameTan, stA.tan, aBlendAlphaAtA) : stA.tan;
-  let frameTanB = !tagentProfileAEl.checked ? blendFrameTan(tagentAFrameTan, stB.tan, aBlendAlphaAtB) : stB.tan;
-  if (!tagentProfileBEl.checked) frameTanB = endpointOriginFrameTan(stB.pt, stB.tan);
-  const frameTanC = !tagentProfileCEl.checked ? endpointOriginFrameTan(stC.pt, stC.tan) : stC.tan;
-  const stAFrame = { pt: stA.pt, tan: frameTanA };
-  const stBFrame = { pt: stB.pt, tan: frameTanB };
-  const stCFrame = { pt: stC.pt, tan: frameTanC };
 
   // Mirror X for the arc controls (matches existing behavior)
   const sx = -1;
@@ -5308,32 +3743,25 @@ function updateArcViz() {
   const B_enda = clamp(num(p.toe_b_enda, 0), -180, 180);
   const C_enda = clamp(num(p.toe_c_enda, 0), -180, 180);
 
-  const A_inW = localToWorldAtStation(stAFrame, toeInnerEndLocal(A_endX, A_endZ, A_arcX / sx, A_arcZ, A_enda, toeThk));
-  const B_inW = localToWorldAtStation(stBFrame, toeInnerEndLocal(B_endX, B_endZ, B_arcX / sx, B_arcZ, B_enda, toeThk));
-  const C_inW = localToWorldAtStation(stCFrame, toeInnerEndLocal(C_endX, C_endZ, C_arcX / sx, C_arcZ, C_enda, toeThk));
-  const A_handlePtsW = profileHandlePointsWorldAtStation(stAFrame, A_endX, A_endZ, A_arcX / sx, A_arcZ, A_enda);
-  const A_patchPtsW = ENABLE_PROFILE_A_OVERLAY
-    ? sampleProfilePatchWorldAtStation(stAFrame, A_endX, A_endZ, A_arcX / sx, A_arcZ, A_enda)
-    : [];
-  const B_handlePtsW = profileHandlePointsWorldAtStation(stBFrame, B_endX, B_endZ, B_arcX / sx, B_arcZ, B_enda);
-  const C_handlePtsW = profileHandlePointsWorldAtStation(stCFrame, C_endX, C_endZ, C_arcX / sx, C_arcZ, C_enda);
+  const A_inW = localToWorldAtStation(stA, toeInnerEndLocal(A_endX, A_endZ, A_arcX / sx, A_arcZ, A_enda, toeThk));
+  const B_inW = localToWorldAtStation(stB, toeInnerEndLocal(B_endX, B_endZ, B_arcX / sx, B_arcZ, B_enda, toeThk));
+  const C_inW = localToWorldAtStation(stC, toeInnerEndLocal(C_endX, C_endZ, C_arcX / sx, C_arcZ, C_enda, toeThk));
+  const A_handlePtsW = profileHandlePointsWorldAtStation(stA, A_endX, A_endZ, A_arcX / sx, A_arcZ, A_enda);
+  const A_patchPtsW = sampleProfilePatchWorldAtStation(stA, A_endX, A_endZ, A_arcX / sx, A_arcZ, A_enda);
+  const B_handlePtsW = profileHandlePointsWorldAtStation(stB, B_endX, B_endZ, B_arcX / sx, B_arcZ, B_enda);
+  const C_handlePtsW = profileHandlePointsWorldAtStation(stC, C_endX, C_endZ, C_arcX / sx, C_arcZ, C_enda);
 
   try {
-    if (!ENABLE_PROFILE_A_HANDLE_DRAG) {
-      viewer.setProfileAEditEnabled(false);
-    } else {
-    const tanLen = Math.hypot(stAFrame.tan.x, stAFrame.tan.y);
-    const frameOk = Number.isFinite(stAFrame.pt.x) && Number.isFinite(stAFrame.pt.y) && tanLen > 1e-6;
-    const handlesOk =
-      isFiniteXYZ(A_handlePtsW[0]) &&
-      isFiniteXYZ(A_handlePtsW[1]) &&
-      isFiniteXYZ(A_handlePtsW[2]);
-    if (frameOk && handlesOk) {
-      const tA = { x: stAFrame.tan.x / tanLen, y: stAFrame.tan.y / tanLen };
+    const tanLen = Math.hypot(stA.tan.x, stA.tan.y);
+    const frameOk = Number.isFinite(stA.pt.x) && Number.isFinite(stA.pt.y) && tanLen > 1e-6;
+    const handlesOk = isFiniteXYZ(A_handlePtsW[0]) && isFiniteXYZ(A_handlePtsW[1]) && isFiniteXYZ(A_handlePtsW[2]);
+    const patchOk = A_patchPtsW.length >= 3 && A_patchPtsW.every((pt) => isFiniteXYZ(pt));
+    if (frameOk && handlesOk && patchOk) {
+      const tA = { x: stA.tan.x / tanLen, y: stA.tan.y / tanLen };
       const uA: XYZ = { x: -tA.y, y: tA.x, z: 0 };
       const zA: XYZ = { x: 0, y: 0, z: 1 };
       viewer.setProfileAEditDragFrame({
-        origin: { x: stAFrame.pt.x, y: stAFrame.pt.y, z: 0 },
+        origin: { x: stA.pt.x, y: stA.pt.y, z: 0 },
         uAxis: uA,
         zAxis: zA,
       });
@@ -5342,15 +3770,9 @@ function updateArcViz() {
         { id: "P2", world: A_handlePtsW[1] },
         { id: "P3", world: A_handlePtsW[2] },
       ]);
-      const patchOk = A_patchPtsW.length >= 3 && A_patchPtsW.every((pt) => isFiniteXYZ(pt));
-      if (ENABLE_PROFILE_A_OVERLAY && patchOk) {
-        viewer.setProfileAEditVisual(A_patchPtsW, { visible: !!vizAArcPtsEl.checked, fillOpacity: 0.5, lineWidthPx: 4.5 });
-      } else {
-        viewer.setProfileAEditVisual([], { visible: false });
-      }
+      viewer.setProfileAEditVisual(A_patchPtsW, { visible: !!vizAArcPtsEl.checked, fillOpacity: 0.5, lineWidthPx: 4.5 });
     } else {
       viewer.setProfileAEditEnabled(false);
-    }
     }
   } catch {
     viewer.setProfileAEditEnabled(false);
@@ -5428,32 +3850,10 @@ function commitProfileAHandleDragToInputs(allLocal: Record<"P1" | "P2" | "P3", {
   rebuild({ freezeBaseRefit: true, freezeHeelRefit: true });
 }
 
-if (ENABLE_PROFILE_A_HANDLE_DRAG) {
-  viewer.onProfileAHandleDragCommit(({ allLocal }) => {
-    const valid = (v: { u: number; z: number } | undefined) => !!v && Number.isFinite(v.u) && Number.isFinite(v.z);
-    if (!valid(allLocal.P1) || !valid(allLocal.P2) || !valid(allLocal.P3)) return;
-    commitProfileAHandleDragToInputs(allLocal);
-  });
-}
-
-viewer.onProfileEditorDebugHandleDragCommit(({ local }) => {
-  if (syncingProfileEditorUi) return;
-  const item = getFocusedProfileEditorItem();
-  if (!item || !item.enabled || !item.key.startsWith("toe:")) return;
-  const endX = clamp(Math.abs(local.u), 0.1, 2000);
-  const endZ = clamp(local.z, 0.1, 2000);
-  updateFocusedProfileEdit({ endX, endZ });
-  syncingProfileEditorUi = true;
-  peEndXEl.value = endX.toFixed(3);
-  peEndXValEl.value = peEndXEl.value;
-  peEndZEl.value = endZ.toFixed(3);
-  peEndZValEl.value = peEndZEl.value;
-  syncingProfileEditorUi = false;
-  updateProfileEditorDebugHandleInViewer();
-  if (canAutoRebuild() && readRailMathMode() === 11) {
-    markParamChangeRebuildSource();
-    rebuildDebounced();
-  }
+viewer.onProfileAHandleDragCommit(({ allLocal }) => {
+  const valid = (v: { u: number; z: number } | undefined) => !!v && Number.isFinite(v.u) && Number.isFinite(v.z);
+  if (!valid(allLocal.P1) || !valid(allLocal.P2) || !valid(allLocal.P3)) return;
+  commitProfileAHandleDragToInputs(allLocal);
 });
 
 function downloadArrayBuffer(buffer: ArrayBuffer, filename: string, mime: string) {
@@ -5521,7 +3921,7 @@ type MaterialsFocusState = {
   target: LayerRowTarget;
   label: string;
   canApplyMaterial: boolean;
-  selectedPartIds: string[];
+  selectedPartId: string | null;
 };
 
 const layersState: LayersState = {
@@ -5582,31 +3982,6 @@ function syncTagentProfileControlVisibility() {
   if (dWrap) dWrap.style.display = tagentProfileDEl.checked ? "none" : "";
 }
 
-let syncingStraightCutDupes = false;
-function syncStraightCutDupes(source: "tagentA" | "tagentD" | "baseA" | "baseD" | "init") {
-  if (syncingStraightCutDupes) return;
-  syncingStraightCutDupes = true;
-  if (source === "tagentA") baseCutProfileAStraightEl.checked = tagentABpCutPerpEl.checked;
-  else if (source === "baseA") tagentABpCutPerpEl.checked = baseCutProfileAStraightEl.checked;
-  else if (source === "tagentD") baseCutProfileDStraightEl.checked = tagentDCutPerpEl.checked;
-  else if (source === "baseD") tagentDCutPerpEl.checked = baseCutProfileDStraightEl.checked;
-  else {
-    baseCutProfileAStraightEl.checked = tagentABpCutPerpEl.checked;
-    baseCutProfileDStraightEl.checked = tagentDCutPerpEl.checked;
-  }
-  syncingStraightCutDupes = false;
-}
-
-function enforceStraightCutDisablesTangents() {
-  if (tagentABpCutPerpEl.checked || baseCutProfileAStraightEl.checked) {
-    tagentProfileAEl.checked = false;
-  }
-  if (tagentDCutPerpEl.checked || baseCutProfileDStraightEl.checked) {
-    tagentProfileDEl.checked = false;
-  }
-  syncTagentProfileControlVisibility();
-}
-
 function applySettingsSnapshot(snapshot: SettingsSnapshot) {
   const entries = Object.entries(snapshot.inputs ?? {});
   for (const [id, raw] of entries) {
@@ -5628,6 +4003,11 @@ function applySettingsSnapshot(snapshot: SettingsSnapshot) {
     }
   }
 
+  // Preserve imported toe_bc_mid instead of letting auto-mode overwrite it on rebuild.
+  if (Object.prototype.hasOwnProperty.call(snapshot.inputs, "toe_bc_mid")) {
+    const v = Number((snapshot.inputs as Record<string, unknown>).toe_bc_mid);
+    toeBCMidUserTouched = Number.isFinite(v) && v !== 0;
+  }
   syncCollapsedStylePreferenceFromUI();
 
   normalizeExclusiveChecks(
@@ -5642,7 +4022,6 @@ function applySettingsSnapshot(snapshot: SettingsSnapshot) {
       railMath8El,
       railMath9El,
       railMath10El,
-      railMath11El,
     ],
     railMathCurrentEl
   );
@@ -5652,8 +4031,6 @@ function applySettingsSnapshot(snapshot: SettingsSnapshot) {
     [heelRailMath1El, heelRailMath2El, heelRailMath3El, heelRailMath4El, heelRailMath5El],
     heelRailMath1El
   );
-  syncStraightCutDupes("init");
-  enforceStraightCutDisablesTangents();
 
   if (heelSweepEl.checked) {
     syncHeelSweepAndRailMath3FromSweep();
@@ -5664,11 +4041,9 @@ function applySettingsSnapshot(snapshot: SettingsSnapshot) {
   syncSectionCutModeRadiosFromCheckbox();
   syncToeProfileBUI();
   syncRailMathUI();
-  syncProfileEditorRailMath11MirrorFromMain();
   syncDrGoodDietUIOnLoad();
   syncTagentProfileControlVisibility();
   syncHeelRm3MirrorValuesFromCanonical();
-  syncProfileEditorRailLayerMirrorsFromCanonical();
   syncLabels();
 
   applyHookUIToViewer();
@@ -5951,96 +4326,9 @@ function applyMaterialsPanelDrag(host: HTMLElement) {
 }
 
 if (materialsFloatPanelEl) applyMaterialsPanelDrag(materialsFloatPanelEl);
-let materialsPopupWindow: Window | null = null;
-let materialsDockPlaceholder: Comment | null = null;
-let materialsDockParent: ParentNode | null = null;
-
-function isMaterialsPoppedOut() {
-  return !!(materialsPopupWindow && !materialsPopupWindow.closed && materialsFloatPanelEl && materialsFloatPanelEl.ownerDocument === materialsPopupWindow.document);
-}
-
-function syncMaterialsPopoutButtonState() {
-  if (!materialsPopoutBtnEl) return;
-  const popped = isMaterialsPoppedOut();
-  materialsPopoutBtnEl.textContent = popped ? "↩" : "⇱";
-  materialsPopoutBtnEl.setAttribute("aria-pressed", popped ? "true" : "false");
-  materialsPopoutBtnEl.setAttribute("aria-label", popped ? "Dock materials panel" : "Open materials in window");
-  materialsPopoutBtnEl.title = popped ? "Dock materials panel" : "Open materials in window";
-}
-
-function ensureMaterialsPopupDoc(win: Window) {
-  const d = win.document;
-  if (!d.body || !d.getElementById("materialsPopupHost")) {
-    d.open();
-    d.write(`<!doctype html><html><head><title>Materials</title><meta charset="utf-8" />
-      <style>html,body{margin:0;padding:0;height:100%;overflow:hidden;background:#0b0b0f;color:#e8e8ea;font-family:system-ui,Segoe UI,Arial,sans-serif}
-      #materialsPopupHost{box-sizing:border-box;height:100%;padding:12px;display:flex;flex-direction:column;min-height:0}
-      button{font:inherit}</style></head><body><div id="materialsPopupHost"></div></body></html>`);
-    d.close();
-    const head = d.head;
-    if (head) {
-      const styleNodes = document.querySelectorAll('style, link[rel="stylesheet"]');
-      styleNodes.forEach((node) => head.appendChild(node.cloneNode(true)));
-    }
-  }
-  return d;
-}
-
-function dockMaterialsPanel(closePopup = false) {
-  if (!materialsFloatPanelEl) return;
-  if (materialsDockPlaceholder?.parentNode) {
-    materialsDockPlaceholder.parentNode.insertBefore(materialsFloatPanelEl, materialsDockPlaceholder.nextSibling);
-    materialsDockPlaceholder.remove();
-    materialsDockPlaceholder = null;
-  } else if (materialsDockParent) {
-    materialsDockParent.appendChild(materialsFloatPanelEl);
-  }
-  if (closePopup && materialsPopupWindow && !materialsPopupWindow.closed) {
-    try { materialsPopupWindow.close(); } catch {}
-  }
-  materialsPopupWindow = null;
-  syncMaterialsPopoutButtonState();
-}
-
-function popoutMaterialsPanel() {
-  if (!materialsFloatPanelEl) return;
-  if (isMaterialsPoppedOut()) {
-    dockMaterialsPanel(true);
-    return;
-  }
-
-  const popup = window.open("", "materialsPopup", "width=460,height=760,resizable=yes,scrollbars=yes");
-  if (!popup) return;
-  materialsPopupWindow = popup;
-  const d = ensureMaterialsPopupDoc(popup);
-  const host = d.getElementById("materialsPopupHost");
-  if (!host) {
-    syncMaterialsPopoutButtonState();
-    return;
-  }
-
-  if (!materialsDockPlaceholder) {
-    materialsDockParent = materialsFloatPanelEl.parentNode;
-    materialsDockPlaceholder = document.createComment("materials-panel-placeholder");
-    materialsDockParent?.insertBefore(materialsDockPlaceholder, materialsFloatPanelEl);
-  }
-
-  materialsFloatPanelEl.hidden = false;
-  host.textContent = "";
-  host.appendChild(materialsFloatPanelEl);
-  if (materialsFocusState) {
-    populateMaterialsPartList();
-    syncMaterialsTuneInputsFromState();
-    syncMaterialsPanelUI();
-  }
-  syncMaterialsPopoutButtonState();
-
-  const onClose = () => dockMaterialsPanel(false);
-  popup.addEventListener("beforeunload", onClose, { once: true });
-}
 
 function getFocusedPartId() {
-  return materialsFocusState?.selectedPartIds?.[0] || "";
+  return materialsFocusState?.selectedPartId || "";
 }
 
 function getFocusedPartState() {
@@ -6159,9 +4447,10 @@ function populateMaterialsPartList() {
   const target = materialsFocusState?.target;
   if (!target) return;
   const parts = viewer.getLayerMaterialParts?.(target) ?? [];
-  const selectedSet = new Set((materialsFocusState?.selectedPartIds ?? []).filter((id) => parts.some((p) => p.id === id)));
-  if (parts.length > 0 && selectedSet.size === 0) selectedSet.add(parts[0].id);
-  if (materialsFocusState) materialsFocusState.selectedPartIds = Array.from(selectedSet);
+  const selectedPartId = materialsFocusState?.selectedPartId ?? null;
+  const next = parts.length > 0
+    ? (selectedPartId && parts.some((p) => p.id === selectedPartId) ? selectedPartId : parts[0].id)
+    : "fallback:main";
 
   const ensureBtn = (id: string, label: string) => {
     const btn = document.createElement("button");
@@ -6169,19 +4458,13 @@ function populateMaterialsPartList() {
     btn.className = "materialsPartBtn";
     btn.dataset.partId = id;
     btn.textContent = label;
-    btn.setAttribute("aria-pressed", selectedSet.has(id) ? "true" : "false");
+    btn.setAttribute("aria-pressed", id === next ? "true" : "false");
     btn.addEventListener("click", () => {
       if (!materialsFocusState) return;
-      const nextSet = new Set(materialsFocusState.selectedPartIds ?? []);
-      if (nextSet.has(id)) nextSet.delete(id);
-      else nextSet.add(id);
-      if (nextSet.size === 0) nextSet.add(id);
-      materialsFocusState.selectedPartIds = Array.from(nextSet);
+      materialsFocusState.selectedPartId = id;
       const targetNow = materialsFocusState.target;
-      for (const selectedId of materialsFocusState.selectedPartIds) {
-        const existing = materialAssignmentMapForTarget(targetNow).get(selectedId);
-        if (existing) viewer.setLayerPartMaterialState?.(targetNow, selectedId, existing);
-      }
+      const existing = materialAssignmentMapForTarget(targetNow).get(id);
+      if (existing) viewer.setLayerPartMaterialState?.(targetNow, id, existing);
       populateMaterialsPartList();
       syncMaterialsTuneInputsFromState();
       syncMaterialsPanelUI();
@@ -6191,26 +4474,25 @@ function populateMaterialsPartList() {
 
   if (parts.length === 0) {
     ensureBtn("fallback:main", "Main");
-    if (materialsFocusState) materialsFocusState.selectedPartIds = ["fallback:main"];
+    if (materialsFocusState) materialsFocusState.selectedPartId = "fallback:main";
     return;
   }
   for (const part of parts) {
     ensureBtn(part.id, part.name);
   }
+  if (materialsFocusState) materialsFocusState.selectedPartId = next;
 }
 
 function syncMaterialsPanelUI() {
   const targetLabel = materialsFocusState?.label ?? "none";
   if (materialsFocusTextEl) materialsFocusTextEl.textContent = `Focused item: ${targetLabel}`;
-  const canApply = !!materialsFocusState?.canApplyMaterial && (materialsFocusState?.selectedPartIds?.length ?? 0) > 0;
+  const canApply = !!materialsFocusState?.canApplyMaterial && !!materialsFocusState?.selectedPartId;
   if (materialsMetalnessRangeEl) materialsMetalnessRangeEl.disabled = !canApply;
   if (materialsRoughnessRangeEl) materialsRoughnessRangeEl.disabled = !canApply;
   if (materialsOpacityRangeEl) materialsOpacityRangeEl.disabled = !canApply;
   if (materialsColorPickerEl) materialsColorPickerEl.disabled = !canApply;
   if (materialsColorHexEl) materialsColorHexEl.disabled = !canApply;
   if (materialsNewBtnEl) materialsNewBtnEl.disabled = !canApply;
-  if (materialsSelectOddBtnEl) materialsSelectOddBtnEl.disabled = !materialsFocusState?.canApplyMaterial;
-  if (materialsSelectEvenBtnEl) materialsSelectEvenBtnEl.disabled = !materialsFocusState?.canApplyMaterial;
   if (materialsPartListEl) {
     materialsPartListEl.querySelectorAll<HTMLButtonElement>(".materialsPartBtn").forEach((btn) => {
       btn.disabled = !canApply;
@@ -6226,28 +4508,26 @@ function syncMaterialsPanelUI() {
 
 function applySelectedMaterialPreset(presetId: string) {
   const target = materialsFocusState?.target;
-  const partIds = materialsFocusState?.selectedPartIds ?? [];
-  if (!target || !partIds.length) return;
+  const partId = materialsFocusState?.selectedPartId;
+  if (!target || !partId) return;
   const preset = materialsPresetLibrary.find((p) => p.id === presetId);
   if (!preset) return;
-  for (const partId of partIds) {
-    if (preset.kind === "default") {
-      viewer.resetLayerPartMaterialToDefault?.(target, partId);
-      const state = viewer.getLayerPartMaterialState?.(target, partId);
-      if (state) {
-        materialAssignmentMapForTarget(target).set(partId, { ...state, presetId: preset.id });
-      }
-    } else {
-      const state = {
-        colorHex: preset.colorHex,
-        metalness: preset.metalness,
-        roughness: preset.roughness,
-        opacity: preset.opacity,
-        presetId: preset.id,
-      };
-      viewer.setLayerPartMaterialState?.(target, partId, state);
-      materialAssignmentMapForTarget(target).set(partId, state);
+  if (preset.kind === "default") {
+    viewer.resetLayerPartMaterialToDefault?.(target, partId);
+    const state = viewer.getLayerPartMaterialState?.(target, partId);
+    if (state) {
+      materialAssignmentMapForTarget(target).set(partId, { ...state, presetId: preset.id });
     }
+  } else {
+    const state = {
+      colorHex: preset.colorHex,
+      metalness: preset.metalness,
+      roughness: preset.roughness,
+      opacity: preset.opacity,
+      presetId: preset.id,
+    };
+    viewer.setLayerPartMaterialState?.(target, partId, state);
+    materialAssignmentMapForTarget(target).set(partId, state);
   }
   materialsSelectedLibraryItemId = preset.id;
   syncMaterialsTuneInputsFromState();
@@ -6256,8 +4536,8 @@ function applySelectedMaterialPreset(presetId: string) {
 
 function applyMaterialTuneFromSliders() {
   const target = materialsFocusState?.target;
-  const partIds = materialsFocusState?.selectedPartIds ?? [];
-  if (!target || !partIds.length) return;
+  const partId = materialsFocusState?.selectedPartId;
+  if (!target || !partId) return;
   const next = {
     colorHex: Number.parseInt((materialsColorHexEl?.value || "#FFFFFF").replace("#", ""), 16) || 0xffffff,
     metalness: clamp(readNumber(materialsMetalnessRangeEl!, 0.05), 0, 1),
@@ -6265,10 +4545,8 @@ function applyMaterialTuneFromSliders() {
     opacity: clamp(readNumber(materialsOpacityRangeEl!, 1), 0.08, 1),
     presetId: materialsSelectedLibraryItemId ?? undefined,
   };
-  for (const partId of partIds) {
-    viewer.setLayerPartMaterialState?.(target, partId, next);
-    materialAssignmentMapForTarget(target).set(partId, next);
-  }
+  viewer.setLayerPartMaterialState?.(target, partId, next);
+  materialAssignmentMapForTarget(target).set(partId, next);
   if (materialsColorPickerEl) materialsColorPickerEl.value = toHexColor(next.colorHex);
   if (materialsColorHexEl) materialsColorHexEl.value = toHexColor(next.colorHex);
 }
@@ -6279,38 +4557,30 @@ function openMaterialsPanel(target: LayerRowTarget, label: string) {
     target,
     label,
     canApplyMaterial: canApplyMaterialOnTarget(target),
-    selectedPartIds: [],
+    selectedPartId: null,
   };
   populateMaterialsPartList();
   if (panel) {
     panel.hidden = false;
-    if (!panel.style.left && !panel.style.top && !isMaterialsPoppedOut()) {
+    if (!panel.style.left && !panel.style.top) {
       panel.style.right = "24px";
       panel.style.top = "24px";
     }
   }
-  const partIds = materialsFocusState.selectedPartIds;
-  if (partIds.length) {
-    for (const partId of partIds) {
-      const existing = materialAssignmentMapForTarget(target).get(partId);
-      if (existing) viewer.setLayerPartMaterialState?.(target, partId, existing);
-    }
+  const partId = materialsFocusState.selectedPartId;
+  if (partId) {
+    const existing = materialAssignmentMapForTarget(target).get(partId);
+    if (existing) viewer.setLayerPartMaterialState?.(target, partId, existing);
     syncMaterialsTuneInputsFromState();
   }
   syncMaterialsPanelUI();
-  syncMaterialsPopoutButtonState();
 }
 
 function closeMaterialsPanel() {
-  if (isMaterialsPoppedOut()) {
-    dockMaterialsPanel(true);
-  }
   if (materialsFloatPanelEl) materialsFloatPanelEl.hidden = true;
-  syncMaterialsPopoutButtonState();
 }
 
 materialsCloseBtnEl?.addEventListener("click", closeMaterialsPanel);
-materialsPopoutBtnEl?.addEventListener("click", popoutMaterialsPanel);
 materialsMetalnessRangeEl?.addEventListener("input", applyMaterialTuneFromSliders);
 materialsRoughnessRangeEl?.addEventListener("input", applyMaterialTuneFromSliders);
 materialsOpacityRangeEl?.addEventListener("input", applyMaterialTuneFromSliders);
@@ -6331,28 +4601,9 @@ materialsColorHexEl?.addEventListener("change", () => {
   if (materialsColorPickerEl) materialsColorPickerEl.value = normalized;
   applyMaterialTuneFromSliders();
 });
-materialsSelectOddBtnEl?.addEventListener("click", () => {
-  if (!materialsFocusState) return;
-  const parts = viewer.getLayerMaterialParts?.(materialsFocusState.target) ?? [];
-  materialsFocusState.selectedPartIds = parts.filter((_, i) => i % 2 === 0).map((p) => p.id);
-  populateMaterialsPartList();
-  syncMaterialsTuneInputsFromState();
-  syncMaterialsPanelUI();
-});
-materialsSelectEvenBtnEl?.addEventListener("click", () => {
-  if (!materialsFocusState) return;
-  const parts = viewer.getLayerMaterialParts?.(materialsFocusState.target) ?? [];
-  materialsFocusState.selectedPartIds = parts.filter((_, i) => i % 2 === 1).map((p) => p.id);
-  if (materialsFocusState.selectedPartIds.length === 0 && parts.length > 0) {
-    materialsFocusState.selectedPartIds = [parts[0].id];
-  }
-  populateMaterialsPartList();
-  syncMaterialsTuneInputsFromState();
-  syncMaterialsPanelUI();
-});
 materialsNewBtnEl?.addEventListener("click", () => {
   const target = materialsFocusState?.target;
-  const partId = materialsFocusState?.selectedPartIds?.[0];
+  const partId = materialsFocusState?.selectedPartId;
   if (!target || !partId) return;
   const state = viewer.getLayerPartMaterialState?.(target, partId);
   if (!state) return;
@@ -6371,7 +4622,6 @@ materialsNewBtnEl?.addEventListener("click", () => {
   applySelectedMaterialPreset(preset.id);
 });
 renderMaterialsPresetList();
-syncMaterialsPopoutButtonState();
 
 function toggleReferenceVisibility(kind: ReferenceLayerKind) {
   const def = getReferenceLayerDef(kind);
@@ -6692,17 +4942,7 @@ settingsFileInputEl.accept = ".json,application/json";
 settingsFileInputEl.style.display = "none";
 document.body.appendChild(settingsFileInputEl);
 
-pushBootLoadingLogLine("main: pre-worker init reached");
-let worker: Worker;
-try {
-  pushBootLoadingLogLine("main: creating CAD worker");
-  worker = createCadWorker();
-  pushBootLoadingLogLine("main: CAD worker created");
-} catch (err) {
-  const msg = err instanceof Error ? err.message : String(err ?? "worker create failed");
-  reportBootRuntimeError(`worker init failed: ${msg}`);
-  throw err;
-}
+let worker = createCadWorker();
 
 function asFloat32(x: any): Float32Array {
   if (x instanceof Float32Array) return x;
@@ -6721,92 +4961,12 @@ function asIndexArray(x: any, vertCount: number): Uint16Array | Uint32Array {
   throw new Error("indices not array-like");
 }
 
-function applyWorkerMeshPayload(payload: any, opts: { finalizeBuild: boolean; countBuildStats: boolean }) {
-  const m = payload ?? {};
-  const positionsRaw = m.positions ?? m.vertices;
-  const normalsRaw = m.normals;
-  const indicesRaw = m.indices ?? m.triangles;
-
-  if (!positionsRaw || !indicesRaw) {
-    throw new Error("mesh missing positions/indices");
-  }
-
-  const positions = asFloat32(positionsRaw);
-  const normals = normalsRaw ? asFloat32(normalsRaw) : undefined;
-  const generatedPartsRaw = Array.isArray((m as any).generatedParts) ? (m as any).generatedParts : [];
-  const generatedParts = generatedPartsRaw
-    .map((p: any, i: number) => ({
-      id: String(p?.id ?? `generated:part:${i}`),
-      name: String(p?.name ?? `Part ${i + 1}`),
-      start: Math.max(0, Math.floor(Number(p?.start) || 0)),
-      count: Math.max(0, Math.floor(Number(p?.count) || 0)),
-    }))
-    .filter((p: { count: number }) => p.count > 0);
-
-  const vertCount = Math.floor(positions.length / 3);
-  const indices = asIndexArray(indicesRaw, vertCount);
-  const triCount = Math.floor(indices.length / 3);
-
-  if (opts.countBuildStats) {
-    const meshBytes =
-      positions.byteLength +
-      (normals ? normals.byteLength : 0) +
-      indices.byteLength;
-    markBootAssetLoaded("mesh", meshBytes);
-    setBootProgressPct(98);
-    bootStatusDetail = "main: applying mesh buffers";
-    renderBootLoadingOverlay();
-    titleStatMeshBytesApprox = meshBytes;
-    titleStatBuildCount += 1;
-    if (lastBuildStartAtMs != null) {
-      titleStatLastBuildDurationMs = Math.max(0, performance.now() - lastBuildStartAtMs);
-      lastBuildStartAtMs = null;
-    }
-    syncTitleStatsPanel();
-    log(`mesh rx: verts=${vertCount} tris=${triCount}`);
-  }
-
-  setMiniMeshStats(vertCount, triCount);
-  viewer.setMesh({
-    positions: Array.from(positions),
-    normals: normals ? Array.from(normals) : undefined,
-    indices: Array.from(indices),
-    generatedParts,
-  });
-
-  if (materialsFocusState?.target === "generated-model") {
-    populateMaterialsPartList();
-    syncMaterialsTuneInputsFromState();
-    syncMaterialsPanelUI();
-  }
-
-  if (opts.finalizeBuild) {
-    setBusy(false);
-    setStatus("ready");
-  }
-}
-
 function bindWorkerHandlers(targetWorker: Worker) {
   targetWorker.onmessage = (ev: MessageEvent<WorkerIn>) => {
     if (targetWorker !== worker) return;
     const msg = ev.data;
 
     if (msg.type === "status") return setStatus(msg.message);
-    if (msg.type === "build_trace") {
-      renderWorkerBuildTrace(msg.payload);
-      return;
-    }
-
-    if (msg.type === "debug_profile_report") {
-      const payload = msg.payload;
-      if (payload?.sections?.length) {
-        for (const s of payload.sections) debugSectionReports.set(s.key, s);
-        refreshDebugFilterLists();
-        refreshProfileEditorMetricsUI();
-        updateProfileEditorDebugHandleInViewer();
-      }
-      return;
-    }
 
     if (msg.type === "error") {
       if (lastBuildStartAtMs != null) {
@@ -6816,31 +4976,59 @@ function bindWorkerHandlers(targetWorker: Worker) {
       }
       setBusy(false);
       setMiniMeshStats(null, null);
-      setStatus(`error: ${msg.message}`);
-      return flushQueuedNoInterruptRebuild();
+      return setStatus(`error: ${msg.message}`);
     }
 
     if (msg.type === "pong") return log("worker: pong");
 
-    if (msg.type === "mesh_progress") {
-      try {
-        applyWorkerMeshPayload(msg.payload, { finalizeBuild: false, countBuildStats: false });
-        return;
-      } catch (e: any) {
-        log(`mesh_progress parse failed: ${e?.message ?? String(e)}`);
-        return;
-      }
-    }
-
     if (msg.type === "mesh") {
       try {
-        applyWorkerMeshPayload(msg.payload, { finalizeBuild: true, countBuildStats: true });
-        return flushQueuedNoInterruptRebuild();
+        const m = msg.payload ?? {};
+        const positionsRaw = m.positions ?? m.vertices;
+        const normalsRaw = m.normals;
+        const indicesRaw = m.indices ?? m.triangles;
+
+        if (!positionsRaw || !indicesRaw) {
+          setBusy(false);
+          return setStatus("error: mesh missing positions/indices");
+        }
+
+        const positions = asFloat32(positionsRaw);
+        const normals = normalsRaw ? asFloat32(normalsRaw) : undefined;
+
+        const vertCount = Math.floor(positions.length / 3);
+        const indices = asIndexArray(indicesRaw, vertCount);
+        const meshBytes =
+          positions.byteLength +
+          (normals ? normals.byteLength : 0) +
+          indices.byteLength;
+        markBootAssetLoaded("mesh", meshBytes);
+        setBootProgressPct(98);
+        bootStatusDetail = "main: applying mesh buffers";
+        renderBootLoadingOverlay();
+        titleStatMeshBytesApprox = meshBytes;
+        titleStatBuildCount += 1;
+        if (lastBuildStartAtMs != null) {
+          titleStatLastBuildDurationMs = Math.max(0, performance.now() - lastBuildStartAtMs);
+          lastBuildStartAtMs = null;
+        }
+        syncTitleStatsPanel();
+
+        log(`mesh rx: verts=${vertCount} tris=${Math.floor(indices.length / 3)}`);
+        setMiniMeshStats(vertCount, Math.floor(indices.length / 3));
+
+        viewer.setMesh({
+          positions: Array.from(positions),
+          normals: normals ? Array.from(normals) : undefined,
+          indices: Array.from(indices),
+        });
+
+        setBusy(false);
+        return setStatus("ready");
       } catch (e: any) {
         setBusy(false);
         setMiniMeshStats(null, null);
-        setStatus(`error: mesh parse failed: ${e?.message ?? String(e)}`);
-        return flushQueuedNoInterruptRebuild();
+        return setStatus(`error: mesh parse failed: ${e?.message ?? String(e)}`);
       }
     }
 
@@ -6848,8 +5036,7 @@ function bindWorkerHandlers(targetWorker: Worker) {
       lastBuildStartAtMs = null;
       downloadArrayBuffer(msg.buffer, msg.filename, msg.mime);
       setBusy(false);
-      setStatus(`downloaded: ${msg.filename}`);
-      return flushQueuedNoInterruptRebuild();
+      return setStatus(`downloaded: ${msg.filename}`);
     }
 
     log(`unknown worker message: ${JSON.stringify(msg)}`);
@@ -6866,14 +5053,12 @@ function bindWorkerHandlers(targetWorker: Worker) {
 
     setBusy(false);
     setStatus(`worker error: ${parts.join(" ")}`);
-    flushQueuedNoInterruptRebuild();
   });
 
   targetWorker.addEventListener("messageerror", () => {
     if (targetWorker !== worker) return;
     setBusy(false);
     setStatus("worker messageerror");
-    flushQueuedNoInterruptRebuild();
   });
 }
 
@@ -6889,7 +5074,6 @@ function restartCadWorkerForInterruption(reason: string) {
   } catch {}
   worker = createCadWorker();
   lastBuildStartAtMs = null;
-  queuedNoInterruptRebuild = null;
   log(`worker: interrupted and restarted (${reason})`);
 }
 
@@ -6897,7 +5081,6 @@ let rebuildTimer: number | null = null;
 let lastSig = "";
 let crossRefitPendingManual = false;
 let suppressParamChangeRebuild = false;
-let queuedNoInterruptRebuild: { source: string; opts: RebuildOptions } | null = null;
 
 function cancelPendingRebuild() {
   if (rebuildTimer != null) {
@@ -6916,7 +5099,6 @@ type RebuildOptions = {
   freezeHeelRefit?: boolean;
   forceFullRefit?: boolean;
   forceHeelRefit?: boolean;
-  noInterrupt?: boolean;
 };
 
 type ParamGroup = "base" | "toe" | "heel" | "other";
@@ -6948,17 +5130,6 @@ function computeSignature(p: ModelParams): string {
   parts.push(`sh_fil_1=${shFil1El.checked ? 1 : 0}`);
   parts.push(`th_fil_1=${thFil1El.checked ? 1 : 0}`);
   parts.push(`th_fil_2=${thFil2El.checked ? 1 : 0}`);
-  parts.push(`th_fil_3_mode=${thFil3ModeChamferEl.checked ? 1 : thFil3ModeFilletEl.checked ? 2 : 0}`);
-  parts.push(`th_fil_debug_profiles=${debugVizEnabledFromUi() ? 1 : 0}`);
-  parts.push(`dbg_profile_a=${dbgProfileAEl.checked ? 1 : 0}`);
-  parts.push(`dbg_profile_b=${dbgProfileBEl.checked ? 1 : 0}`);
-  parts.push(`dbg_profile_c=${dbgProfileCEl.checked ? 1 : 0}`);
-  parts.push(`dbg_profile_hc=${dbgProfileHCEl.checked ? 1 : 0}`);
-  parts.push(`dbg_profile_hd=${dbgProfileHDEl.checked ? 1 : 0}`);
-  parts.push(`dbg_ab=${dbgABEl.checked ? 1 : 0}`);
-  parts.push(`dbg_ac=${dbgACEl.checked ? 1 : 0}`);
-  parts.push(`dbg_bc=${dbgBCEl.checked ? 1 : 0}`);
-  parts.push(`dbg_cd=${dbgCDEl.checked ? 1 : 0}`);
   parts.push(`heel_fil_1=${heelFil1El.checked ? 1 : 0}`);
   parts.push(`heel_fil_2=1`);
   parts.push(`toe_add_profile_b=${toeAddB ? 1 : 0}`);
@@ -6979,14 +5150,6 @@ function computeSignature(p: ModelParams): string {
   parts.push(`tagent_a_bp_cut_perp=${tagentABpCutPerpEl.checked ? 1 : 0}`);
   parts.push(`heel_mid_ctrl=${heelMidCtrlEl.checked ? 1 : 0}`);
   parts.push(`heel_sweep=${heelSweepEl.checked ? 1 : 0}`);
-  parts.push(`pe_enabled=${profileEditorSectionEl.open ? 1 : 0}`);
-  parts.push(`pe_focus_key=${profileEditorFocusKey}`);
-  parts.push(`pe_section_mode=${peSectionModeEl.checked ? 1 : 0}`);
-  parts.push(`pe_isolated_mode=${peIsolatedModeEl.checked ? 1 : 0}`);
-  parts.push(`pe_loft_prev=${peLoftPrevEl.checked ? 1 : 0}`);
-  parts.push(`pe_loft_next=${peLoftNextEl.checked ? 1 : 0}`);
-  parts.push(`pe_edit_blob=${readProfileEditorBlob()}`);
-  parts.push(`pe_hidden_sections_blob=${readProfileEditorHiddenSectionBlob()}`);
 
   parts.push(
     `vizBase=${vizBasePtsEl.checked ? 1 : 0},vizA=${vizAArcPtsEl.checked ? 1 : 0},vizB=${
@@ -6997,24 +5160,15 @@ function computeSignature(p: ModelParams): string {
   return parts.join("|");
 }
 
-function rebuildDebounced(source = "param-change", opts?: RebuildOptions) {
+function rebuildDebounced(source = "param-change") {
   if (!canAutoRebuild()) return;
   cancelPendingRebuild();
   rebuildTimer = window.setTimeout(() => {
     rebuildTimer = null;
     if (!canAutoRebuild()) return;
     setLastRebuildSource(source);
-    rebuild(opts);
+    rebuild();
   }, readRebuildDebounceMs());
-}
-
-function flushQueuedNoInterruptRebuild() {
-  if (!queuedNoInterruptRebuild) return;
-  if (titleStatCurrentBusy) return;
-  const queued = queuedNoInterruptRebuild;
-  queuedNoInterruptRebuild = null;
-  setLastRebuildSource(queued.source);
-  rebuild(queued.opts);
 }
 
 function rebuild(opts: RebuildOptions = {}) {
@@ -7042,18 +5196,11 @@ function rebuild(opts: RebuildOptions = {}) {
   const heel = !!heelEnabledEl.checked;
 
   const wasBusy = titleStatCurrentBusy;
-  if (wasBusy && opts.noInterrupt) {
-    queuedNoInterruptRebuild = {
-      source: titleStatLastRebuildSource,
-      opts: { ...opts },
-    };
-    return;
-  }
   setBusy(true);
   setStatus("building...");
 
   // Interrupt the current worker job so the newest UI input rebuild starts immediately.
-  if (wasBusy && !opts.noInterrupt) {
+  if (wasBusy) {
     restartCadWorkerForInterruption("new rebuild request");
     setBusy(true);
     setStatus("building...");
@@ -7175,8 +5322,6 @@ function syncModelLivePauseButton() {
 
 syncLabels();
 syncToeProfileBUI();
-refreshToeFil3YMapping("y");
-refreshToeFil3XMapping("x");
 setupExclusiveCheckboxGroup(
   [
     railMathCurrentEl,
@@ -7189,7 +5334,6 @@ setupExclusiveCheckboxGroup(
     railMath8El,
     railMath9El,
     railMath10El,
-    railMath11El,
   ],
   railMathCurrentEl
 );
@@ -7205,7 +5349,6 @@ if (heelSweepEl.checked) {
   syncHeelSweepFromHeelRailMathSelection();
 }
 syncRailMathUI();
-syncProfileEditorRailMath11MirrorFromMain();
 updateBaseplateViz();
 updateArcViz();
 applySectionCutUIToViewer();
@@ -7298,215 +5441,6 @@ sectionCutZswitchEl.addEventListener("change", syncSectionCutModeRadiosFromCheck
 });
 syncSectionCutModeRadiosFromCheckbox();
 
-function bindProfileEditorNumeric(
-  rangeEl: HTMLInputElement,
-  valEl: HTMLInputElement,
-  onUpdate: (v: number) => void,
-  mode: "float" | "int" = "float"
-) {
-  const rebuildProfileEditorFast = () => {
-    const preferProfileEditorFastPath =
-      profileEditorSectionEl.open &&
-      peSectionModeEl.checked &&
-      readRailMathMode() === 11;
-    if (preferProfileEditorFastPath) {
-      rebuildDebounced("param-change", { freezeBaseRefit: true, freezeHeelRefit: true, noInterrupt: true });
-      return;
-    }
-    rebuildDebounced();
-  };
-  const syncFromRange = () => {
-    valEl.value = rangeEl.value;
-    const v = mode === "int" ? clampInt(readNumber(rangeEl, 0), -100000, 100000) : readNumber(rangeEl, 0);
-    onUpdate(v);
-  };
-  const syncFromVal = () => {
-    rangeEl.value = valEl.value;
-    const v = mode === "int" ? clampInt(readNumber(valEl, 0), -100000, 100000) : readNumber(valEl, 0);
-    onUpdate(v);
-  };
-  rangeEl.addEventListener("input", () => {
-    if (syncingProfileEditorUi) return;
-    syncFromRange();
-    if (canAutoRebuild() && readRailMathMode() === 11) {
-      markParamChangeRebuildSource();
-      rebuildProfileEditorFast();
-    }
-  });
-  rangeEl.addEventListener("change", () => {
-    if (syncingProfileEditorUi) return;
-    syncFromRange();
-    if (canAutoRebuild() && readRailMathMode() === 11) {
-      markParamChangeRebuildSource();
-      rebuildProfileEditorFast();
-    }
-  });
-  valEl.addEventListener("input", () => {
-    if (syncingProfileEditorUi) return;
-    syncFromVal();
-  });
-  valEl.addEventListener("change", () => {
-    if (syncingProfileEditorUi) return;
-    syncFromVal();
-    if (canAutoRebuild() && readRailMathMode() === 11) {
-      markParamChangeRebuildSource();
-      rebuildProfileEditorFast();
-    }
-  });
-}
-
-bindProfileEditorNumeric(peEndXEl, peEndXValEl, (v) => {
-  updateFocusedProfileEdit({ endX: v });
-  updateProfileEditorDebugHandleInViewer();
-});
-bindProfileEditorNumeric(peEndZEl, peEndZValEl, (v) => {
-  updateFocusedProfileEdit({ endZ: v });
-  updateProfileEditorDebugHandleInViewer();
-});
-bindProfileEditorNumeric(peAngleEl, peAngleValEl, (v) => updateFocusedProfileEdit({ angle: v }));
-bindProfileEditorNumeric(peRotOffsetEl, peRotOffsetValEl, (v) => {
-  updateFocusedProfileEdit({ rotOffsetDeg: clamp(v, -180, 180) });
-  updateProfileEditorDebugHandleInViewer();
-});
-bindProfileEditorNumeric(peThicknessEl, peThicknessValEl, (v) => updateFocusedProfileEdit({ thickness: v }));
-bindProfileEditorNumeric(peStrengthEl, peStrengthValEl, (v) => updateFocusedProfileEdit({ strength: v }));
-bindProfileEditorNumeric(peOuterCutMmEl, peOuterCutMmValEl, () => syncProfileEditorCutPairs("outer", "mm"));
-bindProfileEditorNumeric(peOuterCutPtsEl, peOuterCutPtsValEl, () => syncProfileEditorCutPairs("outer", "pts"), "int");
-bindProfileEditorNumeric(peInnerCutMmEl, peInnerCutMmValEl, () => syncProfileEditorCutPairs("inner", "mm"));
-bindProfileEditorNumeric(peInnerCutPtsEl, peInnerCutPtsValEl, () => syncProfileEditorCutPairs("inner", "pts"), "int");
-for (const binding of profileEditorDefaultBindings) {
-  binding.toggleEl.addEventListener("change", () => {
-    if (syncingProfileEditorDefaultsUi) return;
-    const useDefault = binding.toggleEl.checked;
-    setProfileEditorOverrideEnabled(binding.key, !useDefault, binding.readValue());
-    syncProfileEditorDefaultToggleUi();
-    if (useDefault) {
-      setProfileEditorFocus(profileEditorFocusKey, false);
-    }
-    if (!canAutoRebuild() || readRailMathMode() !== 11) return;
-    markParamChangeRebuildSource();
-    const preferProfileEditorFastPath = profileEditorSectionEl.open && peSectionModeEl.checked;
-    if (preferProfileEditorFastPath) {
-      rebuildDebounced("param-change", { freezeBaseRefit: true, freezeHeelRefit: true, noInterrupt: true });
-      return;
-    }
-    rebuildDebounced();
-  });
-}
-peDragHandleEnableEl.addEventListener("change", () => {
-  setProfileEditorHandleMode(peDragHandleEnableEl.checked ? "drag" : "off");
-  updateProfileEditorDebugHandleInViewer();
-});
-peDragHandleShowOnlyEl.addEventListener("change", () => {
-  setProfileEditorHandleMode(peDragHandleShowOnlyEl.checked ? "show_only" : "off");
-  updateProfileEditorDebugHandleInViewer();
-});
-setProfileEditorHandleMode(peDragHandleEnableEl.checked ? "drag" : peDragHandleShowOnlyEl.checked ? "show_only" : "off");
-
-peToeFil1El.addEventListener("change", () => {
-  pushProfileEditorRailLayerCheckboxToCanonical(peToeFil1El, thFil1El);
-  syncProfileEditorRailLayerMirrorsFromCanonical();
-});
-peToeFil2El.addEventListener("change", () => {
-  pushProfileEditorRailLayerCheckboxToCanonical(peToeFil2El, thFil2El);
-  syncProfileEditorRailLayerMirrorsFromCanonical();
-});
-peThFil3ModeChamferEl.addEventListener("change", () => {
-  pushProfileEditorRailLayerCheckboxToCanonical(peThFil3ModeChamferEl, thFil3ModeChamferEl);
-  syncProfileEditorRailLayerMirrorsFromCanonical();
-});
-peThFil3ModeFilletEl.addEventListener("change", () => {
-  pushProfileEditorRailLayerCheckboxToCanonical(peThFil3ModeFilletEl, thFil3ModeFilletEl);
-  syncProfileEditorRailLayerMirrorsFromCanonical();
-});
-peHeelFil1El.addEventListener("change", () => {
-  pushProfileEditorRailLayerCheckboxToCanonical(peHeelFil1El, heelFil1El);
-  syncProfileEditorRailLayerMirrorsFromCanonical();
-});
-peTagentProfileAModeTangentEl.addEventListener("change", () => {
-  if (!peTagentProfileAModeTangentEl.checked) return;
-  pushProfileEditorTagentProfileAModeToCanonical("tangent");
-  syncProfileEditorRailLayerMirrorsFromCanonical();
-});
-peTagentProfileAModeBlendEl.addEventListener("change", () => {
-  if (!peTagentProfileAModeBlendEl.checked) return;
-  pushProfileEditorTagentProfileAModeToCanonical("blend");
-  syncProfileEditorRailLayerMirrorsFromCanonical();
-});
-peTagentProfileAModeStraightEl.addEventListener("change", () => {
-  if (!peTagentProfileAModeStraightEl.checked) return;
-  pushProfileEditorTagentProfileAModeToCanonical("straight");
-  syncProfileEditorRailLayerMirrorsFromCanonical();
-});
-
-bindProfileEditorRailLayerRangeMirror(peThFil1REl, peThFil1RValEl, thFil1REl, thFil1RValEl, "float");
-bindProfileEditorRailLayerRangeMirror(peThFil2REl, peThFil2RValEl, thFil2REl, thFil2RValEl, "float");
-bindProfileEditorRailLayerRangeMirror(peThFil3XEl, peThFil3XValEl, thFil3XEl, thFil3XValEl, "int");
-bindProfileEditorRailLayerRangeMirror(peThFil3XActualEl, peThFil3XActualValEl, thFil3XActualEl, thFil3XActualValEl, "int");
-bindProfileEditorRailLayerRangeMirror(peThFil3YEl, peThFil3YValEl, thFil3YEl, thFil3YValEl, "int");
-bindProfileEditorRailLayerRangeMirror(peThFil3YActualEl, peThFil3YActualValEl, thFil3YActualEl, thFil3YActualValEl, "int");
-bindProfileEditorRailLayerRangeMirror(peHeelFil1REl, peHeelFil1RValEl, heelFil1REl, heelFil1RValEl, "float");
-bindProfileEditorRailLayerRangeMirror(peHeelFil2REl, peHeelFil2RValEl, heelFil2REl, heelFil2RValEl, "float");
-
-[
-  thFil1El,
-  thFil2El,
-  thFil1REl,
-  thFil2REl,
-  thFil3ModeChamferEl,
-  thFil3ModeFilletEl,
-  thFil3XEl,
-  thFil3XActualEl,
-  thFil3YEl,
-  thFil3YActualEl,
-  heelFil1El,
-  heelFil1REl,
-  heelFil2REl,
-  tagentProfileAEl,
-].forEach((el) => {
-  el.addEventListener("input", syncProfileEditorRailLayerMirrorsFromCanonical);
-  el.addEventListener("change", syncProfileEditorRailLayerMirrorsFromCanonical);
-});
-syncProfileEditorRailLayerMirrorsFromCanonical();
-
-profileEditorFocusUpEl.addEventListener("click", (ev) => {
-  ev.preventDefault();
-  if (!profileEditorItems.length) return;
-  const idx = Math.max(0, profileEditorItems.findIndex((it) => it.key === profileEditorFocusKey));
-  const next = idx <= 0 ? profileEditorItems[profileEditorItems.length - 1] : profileEditorItems[idx - 1];
-  setProfileEditorFocus(next.key, true);
-});
-profileEditorFocusDownEl.addEventListener("click", (ev) => {
-  ev.preventDefault();
-  if (!profileEditorItems.length) return;
-  const idx = Math.max(0, profileEditorItems.findIndex((it) => it.key === profileEditorFocusKey));
-  const next = idx >= profileEditorItems.length - 1 ? profileEditorItems[0] : profileEditorItems[idx + 1];
-  setProfileEditorFocus(next.key, true);
-});
-[peSectionModeEl, peIsolatedModeEl, peLoftPrevEl, peLoftNextEl, railMath11El].forEach((el) => {
-  el.addEventListener("change", () => {
-    if (!canAutoRebuild()) return;
-    markParamChangeRebuildSource();
-    rebuildDebounced();
-  });
-});
-railMath11El.addEventListener("change", () => {
-  syncProfileEditorRailMath11MirrorFromMain();
-});
-peRailMath11El.addEventListener("change", () => {
-  railMath11El.checked = peRailMath11El.checked;
-  railMath11El.dispatchEvent(new Event("change", { bubbles: true }));
-  syncProfileEditorRailMath11MirrorFromMain();
-});
-profileEditorSectionEl.addEventListener("toggle", () => {
-  updateProfileEditorDebugHandleInViewer();
-  if (!canAutoRebuild()) return;
-  if (readRailMathMode() !== 11) return;
-  markParamChangeRebuildSource();
-  rebuildDebounced();
-});
-rebuildProfileEditorRegistry(false);
-
 [baseEnabledEl, heelEnabledEl].forEach((el) =>
   el.addEventListener("change", () => {
     syncTitleStatsPanel();
@@ -7517,7 +5451,6 @@ rebuildProfileEditorRegistry(false);
 );
 toeAddProfileBEl.addEventListener("change", () => {
   syncToeProfileBUI();
-  refreshToeFil3YMapping("y");
   syncTitleStatsPanel();
   if (!canAutoRebuild()) return;
   markParamChangeRebuildSource();
@@ -7528,99 +5461,9 @@ toeAddProfileBEl.addEventListener("change", () => {
   crossRefitPendingManual = true;
   return rebuild({ freezeBaseRefit: true, freezeHeelRefit: true });
 });
-[railMathCurrentEl, railMath2El, railMath3El, railMath4El, railMath5El, railMath6El, railMath7El, railMath8El, railMath9El, railMath10El, railMath11El].forEach(
+[railMathCurrentEl, railMath2El, railMath3El, railMath4El, railMath5El, railMath6El, railMath7El, railMath8El, railMath9El, railMath10El].forEach(
   (el) => el.addEventListener("change", syncRailMathUI)
 );
-const triggerToeOnlyRebuild = () => {
-  if (!isModelEnabled()) return;
-  markParamChangeRebuildSource();
-  const preferProfileEditorFastPath =
-    profileEditorSectionEl.open &&
-    peSectionModeEl.checked &&
-    readRailMathMode() === 11;
-  if (preferProfileEditorFastPath) {
-    crossRefitPendingManual = true;
-    return rebuild({ freezeBaseRefit: true, freezeHeelRefit: true, noInterrupt: true });
-  }
-  if (rebuildAsOneEl.checked) {
-    crossRefitPendingManual = false;
-    return rebuild({ noInterrupt: true });
-  }
-  crossRefitPendingManual = true;
-  return rebuild({ freezeBaseRefit: true, freezeHeelRefit: true, noInterrupt: true });
-};
-function debugVizEnabledFromUi() {
-  return !!(
-    dbgProfileAEl.checked ||
-    dbgProfileBEl.checked ||
-    dbgProfileCEl.checked ||
-    dbgProfileHCEl.checked ||
-    dbgProfileHDEl.checked ||
-    dbgABEl.checked ||
-    dbgACEl.checked ||
-    dbgBCEl.checked ||
-    dbgCDEl.checked
-  );
-}
-const triggerFullModelRebuild = () => {
-  if (!isModelEnabled()) return;
-  markParamChangeRebuildSource();
-  crossRefitPendingManual = false;
-  return rebuild();
-};
-const syncToeFil3ModeCheckboxes = (source: "chamfer" | "fillet") => {
-  if (source === "chamfer" && thFil3ModeChamferEl.checked) thFil3ModeFilletEl.checked = false;
-  if (source === "fillet" && thFil3ModeFilletEl.checked) thFil3ModeChamferEl.checked = false;
-};
-thFil3ModeChamferEl.addEventListener("change", () => {
-  syncToeFil3ModeCheckboxes("chamfer");
-  triggerToeOnlyRebuild();
-});
-thFil3ModeFilletEl.addEventListener("change", () => {
-  syncToeFil3ModeCheckboxes("fillet");
-  triggerToeOnlyRebuild();
-});
-[dbgProfileAEl, dbgProfileBEl, dbgProfileCEl, dbgProfileHCEl, dbgProfileHDEl, dbgABEl, dbgACEl, dbgBCEl, dbgCDEl].forEach((el) => {
-  el.addEventListener("change", () => triggerFullModelRebuild());
-});
-thFil3YEl.addEventListener("input", () => syncToeFil3YActualFromY());
-thFil3YEl.addEventListener("change", () => syncToeFil3YActualFromY());
-thFil3YActualEl.addEventListener("input", () => syncToeFil3YFromActual());
-thFil3YActualEl.addEventListener("change", () => syncToeFil3YFromActual());
-thFil3XEl.addEventListener("input", () => syncToeFil3XActualFromX());
-thFil3XEl.addEventListener("change", () => syncToeFil3XActualFromX());
-thFil3XActualEl.addEventListener("input", () => syncToeFil3XFromActual());
-thFil3XActualEl.addEventListener("change", () => syncToeFil3XFromActual());
-[toeBStaEl, toeCStaEl, toeABMidEl, toeBCMidEl].forEach((el) => {
-  el.addEventListener("input", () => refreshToeFil3YMapping("y"));
-  el.addEventListener("change", () => refreshToeFil3YMapping("y"));
-});
-[toeABMidEl, toeBCMidEl].forEach((el) => {
-  el.addEventListener("input", () => syncProfileEditorIntermediateUIFromCanonical());
-  el.addEventListener("change", () => syncProfileEditorIntermediateUIFromCanonical());
-});
-[peMidABEl, peMidABValEl].forEach((el) => {
-  el.addEventListener("input", () => pushProfileEditorIntermediateToCanonical("ab", "input"));
-  el.addEventListener("change", () => pushProfileEditorIntermediateToCanonical("ab", "change"));
-});
-[peMidBCEl, peMidBCValEl].forEach((el) => {
-  el.addEventListener("input", () => pushProfileEditorIntermediateToCanonical("bc", "input"));
-  el.addEventListener("change", () => pushProfileEditorIntermediateToCanonical("bc", "change"));
-});
-[peMidACEl, peMidACValEl].forEach((el) => {
-  el.addEventListener("input", () => pushProfileEditorIntermediateToCanonical("ac", "input"));
-  el.addEventListener("change", () => pushProfileEditorIntermediateToCanonical("ac", "change"));
-});
-peAddProfileBEl.addEventListener("change", () => {
-  if (syncingProfileEditorIntermediateUi) return;
-  if (toeAddProfileBEl.checked === peAddProfileBEl.checked) return;
-  toeAddProfileBEl.checked = peAddProfileBEl.checked;
-  toeAddProfileBEl.dispatchEvent(new Event("change", { bubbles: true }));
-});
-[mustEl<HTMLInputElement>("toe_a_endx"), mustEl<HTMLInputElement>("toe_a_endz"), mustEl<HTMLInputElement>("toe_a_p1s"), mustEl<HTMLInputElement>("toe_a_p3s"), mustEl<HTMLInputElement>("toe_a_enda"), mustEl<HTMLInputElement>("toe_thk")].forEach((el) => {
-  el.addEventListener("input", () => refreshToeFil3XMapping("x"));
-  el.addEventListener("change", () => refreshToeFil3XMapping("x"));
-});
 heelMidCtrlEl.addEventListener("change", () => {
   if (!canAutoRebuild()) return;
   markParamChangeRebuildSource();
@@ -7645,7 +5488,6 @@ heelSweepEl.addEventListener("change", () => {
 });
 
 bpFil1El.addEventListener("change", () => {
-  syncDrGoodMasterFromChildToggle(bpFil1El);
   if (!canAutoRebuild()) return;
   markParamChangeRebuildSource();
   if (rebuildAsOneEl.checked) {
@@ -7666,7 +5508,6 @@ shFil1El.addEventListener("change", () => {
   return rebuild({ freezeToeRefit: true, freezeHeelRefit: true });
 });
 thFil1El.addEventListener("change", () => {
-  syncDrGoodMasterFromChildToggle(thFil1El);
   if (!canAutoRebuild()) return;
   markParamChangeRebuildSource();
   if (rebuildAsOneEl.checked) {
@@ -7677,7 +5518,6 @@ thFil1El.addEventListener("change", () => {
   return rebuild({ freezeBaseRefit: true, freezeHeelRefit: true });
 });
 thFil2El.addEventListener("change", () => {
-  syncDrGoodMasterFromChildToggle(thFil2El);
   if (!canAutoRebuild()) return;
   markParamChangeRebuildSource();
   if (rebuildAsOneEl.checked) {
@@ -7688,7 +5528,6 @@ thFil2El.addEventListener("change", () => {
   return rebuild({ freezeBaseRefit: true, freezeHeelRefit: true });
 });
 heelFil1El.addEventListener("change", () => {
-  syncDrGoodMasterFromChildToggle(heelFil1El);
   if (!canAutoRebuild()) return;
   markParamChangeRebuildSource();
   if (rebuildAsOneEl.checked) {
@@ -7712,28 +5551,6 @@ heelFil1El.addEventListener("change", () => {
 });
 [tagentABpCutPerpEl].forEach((el) => {
   el.addEventListener("change", () => {
-    syncStraightCutDupes("tagentA");
-    if (tagentABpCutPerpEl.checked) {
-      tagentProfileAEl.checked = false;
-      syncTagentProfileControlVisibility();
-    }
-    if (!canAutoRebuild()) return;
-    markParamChangeRebuildSource();
-    if (rebuildAsOneEl.checked) {
-      crossRefitPendingManual = false;
-      return rebuild();
-    }
-    crossRefitPendingManual = true;
-    return rebuild({ freezeToeRefit: true, freezeHeelRefit: true });
-  });
-});
-[baseCutProfileAStraightEl].forEach((el) => {
-  el.addEventListener("change", () => {
-    syncStraightCutDupes("baseA");
-    if (baseCutProfileAStraightEl.checked) {
-      tagentProfileAEl.checked = false;
-      syncTagentProfileControlVisibility();
-    }
     if (!canAutoRebuild()) return;
     markParamChangeRebuildSource();
     if (rebuildAsOneEl.checked) {
@@ -7758,28 +5575,6 @@ heelFil1El.addEventListener("change", () => {
 });
 [tagentDCutPerpEl].forEach((el) => {
   el.addEventListener("change", () => {
-    syncStraightCutDupes("tagentD");
-    if (tagentDCutPerpEl.checked) {
-      tagentProfileDEl.checked = false;
-      syncTagentProfileControlVisibility();
-    }
-    if (!canAutoRebuild()) return;
-    markParamChangeRebuildSource();
-    if (rebuildAsOneEl.checked) {
-      crossRefitPendingManual = false;
-      return rebuild();
-    }
-    crossRefitPendingManual = true;
-    return rebuild({ freezeBaseRefit: true, freezeToeRefit: true });
-  });
-});
-[baseCutProfileDStraightEl].forEach((el) => {
-  el.addEventListener("change", () => {
-    syncStraightCutDupes("baseD");
-    if (baseCutProfileDStraightEl.checked) {
-      tagentProfileDEl.checked = false;
-      syncTagentProfileControlVisibility();
-    }
     if (!canAutoRebuild()) return;
     markParamChangeRebuildSource();
     if (rebuildAsOneEl.checked) {
@@ -7794,14 +5589,19 @@ drGoodFilletEl.addEventListener("change", () => {
   if (!drGoodPresetReady) return;
   if (!drGoodFilletEl.checked) {
     drGoodFilletDietWrapEl.style.display = "none";
-    setDrGoodFilletChildrenEnabled(false);
+    drGoodFilletDietEl.checked = false;
+    // Reset hidden child state so next enable starts from Diet=on.
     drGoodFilletDietEl.checked = true;
-    return rebuildHeelToeBasePreset();
+    return;
   }
 
   drGoodFilletDietWrapEl.style.display = "";
   drGoodFilletDietEl.checked = true;
-  setDrGoodFilletChildrenEnabled(true);
+
+  bpFil1El.checked = true;
+  thFil1El.checked = true;
+  thFil2El.checked = true;
+  heelFil1El.checked = true;
   applyDrGoodDietPreset(true);
   return rebuildHeelToeBasePreset();
 });
@@ -7843,9 +5643,6 @@ settingsFileInputEl.addEventListener("change", async () => {
 });
 
 syncDrGoodDietUIOnLoad();
-syncStraightCutDupes("init");
-enforceStraightCutDisablesTangents();
-resetDebugVizDefaultsOnBoot();
 drGoodPresetReady = true;
 wireParamValMirror(railMath5CullValEl, railMath5CullEl);
 wireParamValMirror(railMath5AddbackValEl, railMath5AddbackEl);
@@ -7943,7 +5740,6 @@ modelTransformResetBtn.addEventListener("click", () => {
 });
 
 log("main.ts loaded");
-pushBootLoadingLogLine("main: post-init reached, sending worker ping");
 worker.postMessage({ type: "ping" });
 
 setBusy(false);

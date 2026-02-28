@@ -693,38 +693,8 @@ details.section details.section > summary {
         white-space: nowrap;
         text-overflow: ellipsis;
       }
-      #buildTracePanel {
-        margin-top: 6px;
-        border-top: 1px solid rgba(255,255,255,0.12);
-        padding-top: 6px;
-      }
-      #buildTracePanel summary {
-        cursor: pointer;
-        font-weight: 700;
-        font-size: 11px;
-      }
-      #buildTraceMeta {
-        margin: 4px 0 6px 0;
-      }
-      #buildTraceLog {
-        margin: 0;
-        padding: 8px;
-        border-radius: 8px;
-        background: rgba(0,0,0,0.35);
-        max-height: 220px;
-        overflow: auto;
-        white-space: pre-wrap;
-        word-break: break-word;
-        box-sizing: border-box;
-      }
 
       .panelActionRow {
-        display: flex;
-        gap: 6px;
-        justify-content: flex-end;
-        margin: 4px 0 8px 0;
-      }
-      .profileEditorFocusNav {
         display: flex;
         gap: 6px;
         justify-content: flex-end;
@@ -1526,7 +1496,7 @@ details.section details.section > summary {
       }
       #gizmoScenesSection > summary {
         display: grid;
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr auto;
         align-items: center;
         gap: 8px;
         width: 100%;
@@ -1544,22 +1514,6 @@ details.section details.section > summary {
       #gizmoScenesSection[open] > summary {
         background: rgba(255,255,255,0.16);
         border-color: rgba(255,255,255,0.30);
-      }
-      #gizmoViewBgCustomColorWrap {
-        display: none;
-        margin-top: 6px;
-      }
-      #gizmoViewBgCustomColorWrap.open {
-        display: block;
-      }
-      #gizmoViewBgCustomColor {
-        width: 100%;
-        height: 24px;
-        border: 1px solid rgba(255,255,255,0.18);
-        border-radius: 6px;
-        background: rgba(255,255,255,0.04);
-        padding: 2px;
-        box-sizing: border-box;
       }
       #gizmoGridSection > summary {
         display: grid;
@@ -1632,12 +1586,6 @@ details.section details.section > summary {
         display: grid;
         grid-template-columns: repeat(7, minmax(0, 1fr));
         gap: 4px;
-      }
-      #gizmoGridMajorQuickRow {
-        grid-template-columns: repeat(5, minmax(0, 1fr));
-      }
-      #gizmoGridMinorQuickRow {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
       }
       .gizmoStepRow.minor {
         grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -1727,29 +1675,6 @@ details.section details.section > summary {
         grid-template-columns: minmax(0, 4fr) minmax(34px, 1fr);
         align-items: center;
         gap: 6px;
-      }
-      .gizmoSliderRow.hasInlineControls {
-        grid-template-columns: minmax(0, 4fr) auto minmax(34px, 1fr);
-      }
-      .gizmoSliderInlineControls {
-        display: inline-grid;
-        grid-template-columns: auto auto;
-        gap: 4px;
-      }
-      .gizmoSliderInlineBtn {
-        height: 18px;
-        min-width: 24px;
-        padding: 0 6px;
-        border-radius: 5px;
-        border: 1px solid rgba(255,255,255,0.16);
-        background: rgba(20,20,24,0.82);
-        color: #e8e8ea;
-        font-size: 9px;
-        line-height: 1;
-        cursor: pointer;
-      }
-      .gizmoSliderInlineBtn:hover {
-        background: rgba(255,255,255,0.10);
       }
       .gizmoSliderVal {
         font-size: 9px;
@@ -1941,15 +1866,6 @@ details.section details.section > summary {
                 </span>
               </div>
               <pre id="log"></pre>
-              <details class="section hasInlinePanelActions" id="buildTracePanel">
-                <summary>Worker Build Trace</summary>
-                <div class="panelActionRow">
-                  <button id="buildTraceFloatToggle" type="button" class="panelActionBtn" aria-pressed="false" aria-label="Float panel" title="Float panel">▣</button>
-                  <button id="buildTraceWindowToggle" type="button" class="panelActionBtn" aria-pressed="false" aria-label="Open panel in window" title="Open panel in window">⇱</button>
-                </div>
-                <div id="buildTraceMeta" class="sectionMeta">No trace yet.</div>
-                <pre id="buildTraceLog"></pre>
-              </details>
             </div>
           </div>
         </div>
@@ -2393,14 +2309,6 @@ details.section details.section > summary {
   <div class="check">
     <input id="baseEnabled" type="checkbox" checked />
     <label for="baseEnabled">Enable baseplate</label>
-  </div>
-  <div class="check">
-    <input id="base_cut_profile_a_straight" type="checkbox" checked />
-    <label for="base_cut_profile_a_straight">Cut Profile A Straight</label>
-  </div>
-  <div class="check">
-    <input id="base_cut_profile_d_straight" type="checkbox" />
-    <label for="base_cut_profile_d_straight">Cut Profile D Straight</label>
   </div>
 
   <!-- Dimensions -->
@@ -3057,7 +2965,7 @@ details.section details.section > summary {
             <summary>Fillets</summary>
             <div class="sectionMeta">Temporary global fillet params (placeholders). These do not affect the model yet.</div>
             <div class="check">
-              <input id="dr_good_fillet" type="checkbox" />
+              <input id="dr_good_fillet" type="checkbox"  checked />
               <label for="dr_good_fillet">Dr Good Fillet</label>
             </div>
             <div class="check" id="dr_good_fillet_diet_wrap" style="display: none;">
@@ -3193,59 +3101,6 @@ details.section details.section > summary {
                   <input class="valInput" id="th_fil_2_rVal" type="number" step="0.5" value="4" />
                 </div>
               </div>
-
-              <div class="check">
-                <input id="th_fil_3_mode_chamfer" type="checkbox" />
-                <label for="th_fil_3_mode_chamfer">Chamfer</label>
-              </div>
-              <div class="check">
-                <input id="th_fil_3_mode_fillet" type="checkbox" />
-                <label for="th_fil_3_mode_fillet">Fillet</label>
-              </div>
-
-              <div class="paramRow">
-                <div class="paramTop">
-                  <div class="paramTag">TH_FIL_3X</div>
-                  <div class="paramName">Toe Hook Fillet 3 X (mm)</div>
-                </div>
-                <div class="paramBody">
-                  <input id="th_fil_3x" name="th_fil_3x" type="range" min="0" max="100" step="1" value="20" />
-                  <input class="valInput" id="th_fil_3xVal" type="number" min="0" max="100" step="1" value="20" />
-                </div>
-              </div>
-
-              <div class="paramRow">
-                <div class="paramTop">
-                  <div class="paramTag">TH_FIL_3X_ACTUAL</div>
-                  <div class="paramName">Toe Hook Fillet 3 X Actual (outer-arc sample points)</div>
-                </div>
-                <div class="paramBody">
-                  <input id="th_fil_3x_actual" name="th_fil_3x_actual" type="range" min="0" max="69" step="1" value="0" />
-                  <input class="valInput" id="th_fil_3x_actualVal" type="number" min="0" max="69" step="1" value="0" />
-                </div>
-              </div>
-
-              <div class="paramRow">
-                <div class="paramTop">
-                  <div class="paramTag">TH_FIL_3Y</div>
-                  <div class="paramName">Toe Hook Fillet 3 Y (mm)</div>
-                </div>
-                <div class="paramBody">
-                  <input id="th_fil_3y" name="th_fil_3y" type="range" min="0" max="100" step="1" value="20" />
-                  <input class="valInput" id="th_fil_3yVal" type="number" min="0" max="100" step="1" value="20" />
-                </div>
-              </div>
-
-              <div class="paramRow">
-                <div class="paramTop">
-                  <div class="paramTag">TH_FIL_3Y_ACTUAL</div>
-                  <div class="paramName">Toe Hook Fillet 3 Y Actual (intermediate profiles)</div>
-                </div>
-                <div class="paramBody">
-                  <input id="th_fil_3y_actual" name="th_fil_3y_actual" type="range" min="0" max="100" step="1" value="0" />
-                  <input class="valInput" id="th_fil_3y_actualVal" type="number" min="0" max="100" step="1" value="0" />
-                </div>
-              </div>
             </details>
 
             <details class="section">
@@ -3281,342 +3136,6 @@ details.section details.section > summary {
 
 
           </details>
-            <details class="section">
-              <summary>Debug</summary>
-              <div class="sectionMeta">Profile debug visualization (lifted +50 Z, extruded 5mm).</div>
-
-              <details class="section" id="dbgSectionProfileA">
-                <summary>Profile A</summary>
-                <div class="check">
-                  <input id="dbg_profile_a" type="checkbox" />
-                  <label for="dbg_profile_a">Profile A</label>
-                </div>
-                <div class="paramRow">
-                  <div class="paramTop">
-                    <div class="paramTag">DBG_A_X</div>
-                    <div class="paramName">Profile A X Transform</div>
-                  </div>
-                  <div class="paramBody">
-                    <input id="dbg_profile_a_x" type="range" min="-200" max="200" step="1" value="0" />
-                    <input class="valInput" id="dbg_profile_a_xVal" type="number" min="-200" max="200" step="1" value="0" />
-                  </div>
-                </div>
-                <div class="paramRow">
-                  <div class="paramTop">
-                    <div class="paramTag">DBG_A_Z</div>
-                    <div class="paramName">Profile A Z Transform</div>
-                  </div>
-                  <div class="paramBody">
-                    <input id="dbg_profile_a_z" type="range" min="-200" max="200" step="1" value="0" />
-                    <input class="valInput" id="dbg_profile_a_zVal" type="number" min="-200" max="200" step="1" value="0" />
-                  </div>
-                </div>
-                <div class="profileFilterBox">
-                  <div class="profileFilterTitle">Profile Filters</div>
-                  <ol id="dbg_filters_profile_a" class="profileFilterList"></ol>
-                </div>
-                <div class="profileFilterBox">
-                  <div class="profileFilterTitle">Profile Data</div>
-                  <pre id="dbg_data_profile_a" class="profileDataText"></pre>
-                </div>
-              </details>
-
-              <details class="section" id="dbgSectionAB">
-                <summary>A&gt;B</summary>
-                <div class="check">
-                  <input id="dbg_ab" type="checkbox" />
-                  <label for="dbg_ab">Debug A&gt;B Intermediates</label>
-                </div>
-                <div class="paramRow">
-                  <div class="paramTop">
-                    <div class="paramTag">DBG_AB_FIRST_X</div>
-                    <div class="paramName">First Profile X</div>
-                  </div>
-                  <div class="paramBody">
-                    <input id="dbg_ab_first_x" type="range" min="-200" max="200" step="1" value="0" />
-                    <input class="valInput" id="dbg_ab_first_xVal" type="number" min="-200" max="200" step="1" value="0" />
-                  </div>
-                </div>
-                <div class="paramRow">
-                  <div class="paramTop">
-                    <div class="paramTag">DBG_AB_FIRST_Y</div>
-                    <div class="paramName">First Profile Y</div>
-                  </div>
-                  <div class="paramBody">
-                    <input id="dbg_ab_first_y" type="range" min="-200" max="200" step="1" value="0" />
-                    <input class="valInput" id="dbg_ab_first_yVal" type="number" min="-200" max="200" step="1" value="0" />
-                  </div>
-                </div>
-                <div class="paramRow">
-                  <div class="paramTop">
-                    <div class="paramTag">DBG_AB_STEP_X</div>
-                    <div class="paramName">Distance X Per Profile</div>
-                  </div>
-                  <div class="paramBody">
-                    <input id="dbg_ab_step_x" type="range" min="-100" max="100" step="1" value="0" />
-                    <input class="valInput" id="dbg_ab_step_xVal" type="number" min="-100" max="100" step="1" value="0" />
-                  </div>
-                </div>
-                <div class="paramRow">
-                  <div class="paramTop">
-                    <div class="paramTag">DBG_AB_STEP_Y</div>
-                    <div class="paramName">Distance Y Per Profile</div>
-                  </div>
-                  <div class="paramBody">
-                    <input id="dbg_ab_step_y" type="range" min="-100" max="100" step="1" value="0" />
-                    <input class="valInput" id="dbg_ab_step_yVal" type="number" min="-100" max="100" step="1" value="0" />
-                  </div>
-                </div>
-                <div class="profileFilterBox">
-                  <div class="profileFilterTitle">Profile Filters</div>
-                  <ol id="dbg_filters_ab" class="profileFilterList"></ol>
-                </div>
-                <div class="profileFilterBox">
-                  <div class="profileFilterTitle">Profile Data</div>
-                  <pre id="dbg_data_ab" class="profileDataText"></pre>
-                </div>
-              </details>
-
-              <details class="section" id="dbgSectionAC">
-                <summary>A&gt;C</summary>
-                <div class="check">
-                  <input id="dbg_ac" type="checkbox" />
-                  <label for="dbg_ac">Debug A&gt;C Intermediates</label>
-                </div>
-                <div class="paramRow">
-                  <div class="paramTop">
-                    <div class="paramTag">DBG_AC_FIRST_X</div>
-                    <div class="paramName">First Profile X</div>
-                  </div>
-                  <div class="paramBody">
-                    <input id="dbg_ac_first_x" type="range" min="-200" max="200" step="1" value="0" />
-                    <input class="valInput" id="dbg_ac_first_xVal" type="number" min="-200" max="200" step="1" value="0" />
-                  </div>
-                </div>
-                <div class="paramRow">
-                  <div class="paramTop">
-                    <div class="paramTag">DBG_AC_FIRST_Y</div>
-                    <div class="paramName">First Profile Y</div>
-                  </div>
-                  <div class="paramBody">
-                    <input id="dbg_ac_first_y" type="range" min="-200" max="200" step="1" value="0" />
-                    <input class="valInput" id="dbg_ac_first_yVal" type="number" min="-200" max="200" step="1" value="0" />
-                  </div>
-                </div>
-                <div class="paramRow">
-                  <div class="paramTop">
-                    <div class="paramTag">DBG_AC_STEP_X</div>
-                    <div class="paramName">Distance X Per Profile</div>
-                  </div>
-                  <div class="paramBody">
-                    <input id="dbg_ac_step_x" type="range" min="-100" max="100" step="1" value="0" />
-                    <input class="valInput" id="dbg_ac_step_xVal" type="number" min="-100" max="100" step="1" value="0" />
-                  </div>
-                </div>
-                <div class="paramRow">
-                  <div class="paramTop">
-                    <div class="paramTag">DBG_AC_STEP_Y</div>
-                    <div class="paramName">Distance Y Per Profile</div>
-                  </div>
-                  <div class="paramBody">
-                    <input id="dbg_ac_step_y" type="range" min="-100" max="100" step="1" value="0" />
-                    <input class="valInput" id="dbg_ac_step_yVal" type="number" min="-100" max="100" step="1" value="0" />
-                  </div>
-                </div>
-                <div class="profileFilterBox">
-                  <div class="profileFilterTitle">Profile Filters</div>
-                  <ol id="dbg_filters_ac" class="profileFilterList"></ol>
-                </div>
-                <div class="profileFilterBox">
-                  <div class="profileFilterTitle">Profile Data</div>
-                  <pre id="dbg_data_ac" class="profileDataText"></pre>
-                </div>
-              </details>
-
-              <details class="section" id="dbgSectionProfileB">
-                <summary>Profile B</summary>
-                <div class="check">
-                  <input id="dbg_profile_b" type="checkbox" />
-                  <label for="dbg_profile_b">Profile B</label>
-                </div>
-                <div class="paramRow">
-                  <div class="paramTop">
-                    <div class="paramTag">DBG_B_X</div>
-                    <div class="paramName">Profile B X Transform</div>
-                  </div>
-                  <div class="paramBody">
-                    <input id="dbg_profile_b_x" type="range" min="-200" max="200" step="1" value="0" />
-                    <input class="valInput" id="dbg_profile_b_xVal" type="number" min="-200" max="200" step="1" value="0" />
-                  </div>
-                </div>
-                <div class="paramRow">
-                  <div class="paramTop">
-                    <div class="paramTag">DBG_B_Z</div>
-                    <div class="paramName">Profile B Z Transform</div>
-                  </div>
-                  <div class="paramBody">
-                    <input id="dbg_profile_b_z" type="range" min="-200" max="200" step="1" value="0" />
-                    <input class="valInput" id="dbg_profile_b_zVal" type="number" min="-200" max="200" step="1" value="0" />
-                  </div>
-                </div>
-                <div class="profileFilterBox">
-                  <div class="profileFilterTitle">Profile Filters</div>
-                  <ol id="dbg_filters_profile_b" class="profileFilterList"></ol>
-                </div>
-                <div class="profileFilterBox">
-                  <div class="profileFilterTitle">Profile Data</div>
-                  <pre id="dbg_data_profile_b" class="profileDataText"></pre>
-                </div>
-              </details>
-
-              <details class="section" id="dbgSectionBC">
-                <summary>B&gt;C</summary>
-                <div class="check">
-                  <input id="dbg_bc" type="checkbox" />
-                  <label for="dbg_bc">Debug B&gt;C Intermediates</label>
-                </div>
-                <div class="paramRow">
-                  <div class="paramTop">
-                    <div class="paramTag">DBG_BC_FIRST_X</div>
-                    <div class="paramName">First Profile X</div>
-                  </div>
-                  <div class="paramBody">
-                    <input id="dbg_bc_first_x" type="range" min="-200" max="200" step="1" value="0" />
-                    <input class="valInput" id="dbg_bc_first_xVal" type="number" min="-200" max="200" step="1" value="0" />
-                  </div>
-                </div>
-                <div class="paramRow">
-                  <div class="paramTop">
-                    <div class="paramTag">DBG_BC_FIRST_Y</div>
-                    <div class="paramName">First Profile Y</div>
-                  </div>
-                  <div class="paramBody">
-                    <input id="dbg_bc_first_y" type="range" min="-200" max="200" step="1" value="0" />
-                    <input class="valInput" id="dbg_bc_first_yVal" type="number" min="-200" max="200" step="1" value="0" />
-                  </div>
-                </div>
-                <div class="paramRow">
-                  <div class="paramTop"><div class="paramTag">DBG_BC_STEP_X</div><div class="paramName">Distance X Per Profile</div></div>
-                  <div class="paramBody"><input id="dbg_bc_step_x" type="range" min="-100" max="100" step="1" value="0" /><input class="valInput" id="dbg_bc_step_xVal" type="number" min="-100" max="100" step="1" value="0" /></div>
-                </div>
-                <div class="paramRow">
-                  <div class="paramTop"><div class="paramTag">DBG_BC_STEP_Y</div><div class="paramName">Distance Y Per Profile</div></div>
-                  <div class="paramBody"><input id="dbg_bc_step_y" type="range" min="-100" max="100" step="1" value="0" /><input class="valInput" id="dbg_bc_step_yVal" type="number" min="-100" max="100" step="1" value="0" /></div>
-                </div>
-                <div class="profileFilterBox">
-                  <div class="profileFilterTitle">Profile Filters</div>
-                  <ol id="dbg_filters_bc" class="profileFilterList"></ol>
-                </div>
-                <div class="profileFilterBox">
-                  <div class="profileFilterTitle">Profile Data</div>
-                  <pre id="dbg_data_bc" class="profileDataText"></pre>
-                </div>
-              </details>
-
-              <details class="section" id="dbgSectionProfileC">
-                <summary>Profile C</summary>
-                <div class="check">
-                  <input id="dbg_profile_c" type="checkbox" />
-                  <label for="dbg_profile_c">Profile C</label>
-                </div>
-                <div class="paramRow">
-                  <div class="paramTop"><div class="paramTag">DBG_C_X</div><div class="paramName">Profile C X Transform</div></div>
-                  <div class="paramBody"><input id="dbg_profile_c_x" type="range" min="-200" max="200" step="1" value="0" /><input class="valInput" id="dbg_profile_c_xVal" type="number" min="-200" max="200" step="1" value="0" /></div>
-                </div>
-                <div class="paramRow">
-                  <div class="paramTop"><div class="paramTag">DBG_C_Z</div><div class="paramName">Profile C Z Transform</div></div>
-                  <div class="paramBody"><input id="dbg_profile_c_z" type="range" min="-200" max="200" step="1" value="0" /><input class="valInput" id="dbg_profile_c_zVal" type="number" min="-200" max="200" step="1" value="0" /></div>
-                </div>
-                <div class="profileFilterBox">
-                  <div class="profileFilterTitle">Profile Filters</div>
-                  <ol id="dbg_filters_profile_c" class="profileFilterList"></ol>
-                </div>
-                <div class="profileFilterBox">
-                  <div class="profileFilterTitle">Profile Data</div>
-                  <pre id="dbg_data_profile_c" class="profileDataText"></pre>
-                </div>
-              </details>
-
-              <details class="section" id="dbgSectionProfileHC">
-                <summary>H_C</summary>
-                <div class="check">
-                  <input id="dbg_profile_hc" type="checkbox" />
-                  <label for="dbg_profile_hc">Heel Profile C</label>
-                </div>
-                <div class="paramRow">
-                  <div class="paramTop"><div class="paramTag">DBG_HC_X</div><div class="paramName">Heel Profile C X Transform</div></div>
-                  <div class="paramBody"><input id="dbg_profile_hc_x" type="range" min="-200" max="200" step="1" value="0" /><input class="valInput" id="dbg_profile_hc_xVal" type="number" min="-200" max="200" step="1" value="0" /></div>
-                </div>
-                <div class="paramRow">
-                  <div class="paramTop"><div class="paramTag">DBG_HC_Z</div><div class="paramName">Heel Profile C Z Transform</div></div>
-                  <div class="paramBody"><input id="dbg_profile_hc_z" type="range" min="-200" max="200" step="1" value="0" /><input class="valInput" id="dbg_profile_hc_zVal" type="number" min="-200" max="200" step="1" value="0" /></div>
-                </div>
-                <div class="profileFilterBox">
-                  <div class="profileFilterTitle">Profile Filters</div>
-                  <ol id="dbg_filters_profile_hc" class="profileFilterList"></ol>
-                </div>
-                <div class="profileFilterBox">
-                  <div class="profileFilterTitle">Profile Data</div>
-                  <pre id="dbg_data_profile_hc" class="profileDataText"></pre>
-                </div>
-              </details>
-
-              <details class="section" id="dbgSectionCD">
-                <summary>C&gt;D</summary>
-                <div class="check">
-                  <input id="dbg_cd" type="checkbox" />
-                  <label for="dbg_cd">Debug C&gt;D Intermediates</label>
-                </div>
-                <div class="paramRow">
-                  <div class="paramTop"><div class="paramTag">DBG_CD_FIRST_X</div><div class="paramName">First Profile X</div></div>
-                  <div class="paramBody"><input id="dbg_cd_first_x" type="range" min="-200" max="200" step="1" value="0" /><input class="valInput" id="dbg_cd_first_xVal" type="number" min="-200" max="200" step="1" value="0" /></div>
-                </div>
-                <div class="paramRow">
-                  <div class="paramTop"><div class="paramTag">DBG_CD_FIRST_Y</div><div class="paramName">First Profile Y</div></div>
-                  <div class="paramBody"><input id="dbg_cd_first_y" type="range" min="-200" max="200" step="1" value="0" /><input class="valInput" id="dbg_cd_first_yVal" type="number" min="-200" max="200" step="1" value="0" /></div>
-                </div>
-                <div class="paramRow">
-                  <div class="paramTop"><div class="paramTag">DBG_CD_STEP_X</div><div class="paramName">Distance X Per Profile</div></div>
-                  <div class="paramBody"><input id="dbg_cd_step_x" type="range" min="-100" max="100" step="1" value="0" /><input class="valInput" id="dbg_cd_step_xVal" type="number" min="-100" max="100" step="1" value="0" /></div>
-                </div>
-                <div class="paramRow">
-                  <div class="paramTop"><div class="paramTag">DBG_CD_STEP_Y</div><div class="paramName">Distance Y Per Profile</div></div>
-                  <div class="paramBody"><input id="dbg_cd_step_y" type="range" min="-100" max="100" step="1" value="0" /><input class="valInput" id="dbg_cd_step_yVal" type="number" min="-100" max="100" step="1" value="0" /></div>
-                </div>
-                <div class="profileFilterBox">
-                  <div class="profileFilterTitle">Profile Filters</div>
-                  <ol id="dbg_filters_cd" class="profileFilterList"></ol>
-                </div>
-                <div class="profileFilterBox">
-                  <div class="profileFilterTitle">Profile Data</div>
-                  <pre id="dbg_data_cd" class="profileDataText"></pre>
-                </div>
-              </details>
-
-              <details class="section" id="dbgSectionProfileHD">
-                <summary>D</summary>
-                <div class="check">
-                  <input id="dbg_profile_hd" type="checkbox" />
-                  <label for="dbg_profile_hd">Heel Profile D</label>
-                </div>
-                <div class="paramRow">
-                  <div class="paramTop"><div class="paramTag">DBG_HD_X</div><div class="paramName">Heel Profile D X Transform</div></div>
-                  <div class="paramBody"><input id="dbg_profile_hd_x" type="range" min="-200" max="200" step="1" value="0" /><input class="valInput" id="dbg_profile_hd_xVal" type="number" min="-200" max="200" step="1" value="0" /></div>
-                </div>
-                <div class="paramRow">
-                  <div class="paramTop"><div class="paramTag">DBG_HD_Z</div><div class="paramName">Heel Profile D Z Transform</div></div>
-                  <div class="paramBody"><input id="dbg_profile_hd_z" type="range" min="-200" max="200" step="1" value="0" /><input class="valInput" id="dbg_profile_hd_zVal" type="number" min="-200" max="200" step="1" value="0" /></div>
-                </div>
-                <div class="profileFilterBox">
-                  <div class="profileFilterTitle">Profile Filters</div>
-                  <ol id="dbg_filters_profile_hd" class="profileFilterList"></ol>
-                </div>
-                <div class="profileFilterBox">
-                  <div class="profileFilterTitle">Profile Data</div>
-                  <pre id="dbg_data_profile_hd" class="profileDataText"></pre>
-                </div>
-              </details>
-            </details>
             <details class="section">
               <summary>Rail Math</summary>
 
@@ -3669,7 +3188,7 @@ details.section details.section > summary {
                   </div>
                   <div class="check">
                     <input id="tagent_a_bp_cut_perp" type="checkbox"  checked />
-                    <label for="tagent_a_bp_cut_perp">Baseplate Cut Straight - Profile A</label>
+                    <label for="tagent_a_bp_cut_perp">Perpendicular Baseplate Cut @ A</label>
                   </div>
                 </div>
                 <div class="check">
@@ -3687,7 +3206,7 @@ details.section details.section > summary {
                 <div id="tagentProfileDControls" style="display:none; margin: 4px 0 10px 18px;">
                   <div class="check">
                     <input id="tagent_d_cut_perp" type="checkbox" />
-                    <label for="tagent_d_cut_perp">Heel Cut Straight - Profile D</label>
+                    <label for="tagent_d_cut_perp">Perpendicular Heel Cut @ D</label>
                   </div>
                 </div>
               </details>
@@ -3767,10 +3286,6 @@ details.section details.section > summary {
                 <div class="check">
                   <input id="rail_math_10" type="checkbox" />
                   <label for="rail_math_10">Rail Math 10</label>
-                </div>
-                <div class="check">
-                  <input id="rail_math_11" type="checkbox" />
-                  <label for="rail_math_11">Rail Math 11: Custom Profile Editor</label>
                 </div>
               </details>
 
@@ -3872,315 +3387,6 @@ details.section details.section > summary {
                 </div>
               </details>
             </details>
-
-            <details class="section hasInlinePanelActions" id="profileEditorSection">
-              <summary>Profile Editor</summary>
-              <div class="sectionMeta">Focused Profile: <span id="profileEditorFocusLabel">Profile A</span></div>
-              <div class="check" style="margin-top:6px;">
-                <input id="pe_rail_math_11" type="checkbox" />
-                <label for="pe_rail_math_11">Rail Math 11: Custom Profile Editor</label>
-              </div>
-              <div class="panelActionRow">
-                <button id="profileEditorFloatToggle" type="button" class="panelActionBtn" aria-pressed="false" aria-label="Float panel" title="Float panel">▣</button>
-                <button id="profileEditorWindowToggle" type="button" class="panelActionBtn" aria-pressed="false" aria-label="Open panel in window" title="Open panel in window">⇱</button>
-              </div>
-              <div class="profileFilterTitle" style="margin-top:6px;">Profile Counts</div>
-              <div class="sectionMeta"><span id="profileEditorCountALabel">A + A&gt;B</span> = <span id="profileEditorCountA">0</span></div>
-              <div class="sectionMeta"><span id="profileEditorCountBLabel">B + B&gt;C</span> = <span id="profileEditorCountB">0</span></div>
-              <div class="sectionMeta"><span id="profileEditorCountCLabel">C + C&gt;D</span> = <span id="profileEditorCountC">0</span></div>
-              <div class="sectionMeta">Total Profiles = <span id="profileEditorCountTotal">0</span></div>
-              <div class="profileFilterBox" style="margin-top:8px; margin-bottom:8px;">
-                <div class="profileFilterTitle">Intermediate Profiles</div>
-                <div class="check">
-                  <input id="pe_add_profile_b" type="checkbox" checked />
-                  <label for="pe_add_profile_b">Add Profile B</label>
-                </div>
-                <div class="paramRow" id="peIntermedABRow">
-                  <div class="paramTop"><div class="paramTag">PE_AB_MID</div><div class="paramName">A&gt;B Mid</div></div>
-                  <div class="paramBody">
-                    <input id="pe_mid_ab" type="range" min="0" max="60" step="1" value="20" />
-                    <input class="valInput" id="pe_mid_abVal" type="number" min="0" max="60" step="1" value="20" />
-                  </div>
-                </div>
-                <div class="paramRow" id="peIntermedBCRow">
-                  <div class="paramTop"><div class="paramTag">PE_BC_MID</div><div class="paramName">B&gt;C Mid</div></div>
-                  <div class="paramBody">
-                    <input id="pe_mid_bc" type="range" min="0" max="60" step="1" value="15" />
-                    <input class="valInput" id="pe_mid_bcVal" type="number" min="0" max="60" step="1" value="15" />
-                  </div>
-                </div>
-                <div class="paramRow" id="peIntermedACRow">
-                  <div class="paramTop"><div class="paramTag">PE_AC_MID</div><div class="paramName">A&gt;C Mid (B Off)</div></div>
-                  <div class="paramBody">
-                    <input id="pe_mid_ac" type="range" min="0" max="60" step="1" value="15" />
-                    <input class="valInput" id="pe_mid_acVal" type="number" min="0" max="60" step="1" value="15" />
-                  </div>
-                </div>
-              </div>
-              <div class="profileEditorFocusNav">
-                <button id="profileEditorFocusUp" class="secondary" type="button">Up</button>
-                <button id="profileEditorFocusDown" class="secondary" type="button">Down</button>
-              </div>
-              <div class="profileEditorListWrap">
-                <div class="profileFilterTitle">Profile List</div>
-                <div id="profileEditorList" class="profileEditorList"></div>
-              </div>
-              <div class="profileFilterBox">
-                <div class="profileFilterTitle">Focused Profile Info</div>
-                <div class="sectionMeta">Base cap length (mm): <span id="pe_base_cap_len">-</span></div>
-                <div class="sectionMeta">Base cap points: <span id="pe_base_cap_pts">-</span></div>
-                <div class="sectionMeta">Outer arc length (mm): <span id="pe_outer_arc_len">-</span></div>
-                <div class="sectionMeta">Outer arc points: <span id="pe_outer_arc_pts">-</span></div>
-                <div class="sectionMeta">Inner arc length (mm): <span id="pe_inner_arc_len">-</span></div>
-                <div class="sectionMeta">Inner arc points: <span id="pe_inner_arc_pts">-</span></div>
-                <div class="sectionMeta">Profile Absolute Rotation (deg): <span id="pe_abs_rot">-</span></div>
-                <div class="sectionMeta">Profile Tangent Rotation (deg): <span id="pe_tangent_rot">-</span></div>
-              </div>
-              <details class="section" id="peRailLayerSection" open>
-                <summary>Rail Layer (Focused Profile)</summary>
-                <div class="sectionMeta" id="peRailLayerModeLabel">Toe profile controls</div>
-                <div id="peRailLayerToe">
-                  <details class="section" id="peThFil1Section">
-                    <summary>TH_FIL_1 Filter</summary>
-                    <div class="check">
-                      <input id="pe_th_fil_1" type="checkbox" />
-                      <label for="pe_th_fil_1">Enable TH_FIL_1</label>
-                    </div>
-                    <div class="paramRow" id="peToeFil1RadiusRow">
-                      <div class="paramTop">
-                        <div class="paramTag">PE_TH_FIL_1_R</div>
-                        <div class="paramName">TH Fillet 1 Radius (mm)</div>
-                      </div>
-                      <div class="paramBody">
-                        <input id="pe_th_fil_1_r" type="range" min="0" max="40" step="0.5" value="4" />
-                        <input class="valInput" id="pe_th_fil_1_rVal" type="number" min="0" max="40" step="0.5" value="4" />
-                      </div>
-                    </div>
-                  </details>
-                  <details class="section" id="peThFil2Section">
-                    <summary>TH_FIL_2 Filter</summary>
-                    <div class="check">
-                      <input id="pe_th_fil_2" type="checkbox" />
-                      <label for="pe_th_fil_2">Enable TH_FIL_2</label>
-                    </div>
-                    <div class="paramRow" id="peToeFil2RadiusRow">
-                      <div class="paramTop">
-                        <div class="paramTag">PE_TH_FIL_2_R</div>
-                        <div class="paramName">TH Fillet 2 Radius (mm)</div>
-                      </div>
-                      <div class="paramBody">
-                        <input id="pe_th_fil_2_r" type="range" min="0" max="40" step="0.5" value="4" />
-                        <input class="valInput" id="pe_th_fil_2_rVal" type="number" min="0" max="40" step="0.5" value="4" />
-                      </div>
-                    </div>
-                  </details>
-                  <details class="section" id="peThFil3ModeSection">
-                    <summary>TH_FIL_3 Filter</summary>
-                    <div class="check">
-                      <input id="pe_th_fil_3_mode_chamfer" type="checkbox" />
-                      <label for="pe_th_fil_3_mode_chamfer">Chamfer</label>
-                    </div>
-                    <div class="check">
-                      <input id="pe_th_fil_3_mode_fillet" type="checkbox" />
-                      <label for="pe_th_fil_3_mode_fillet">Fillet</label>
-                    </div>
-                    <div class="paramRow">
-                      <div class="paramTop">
-                        <div class="paramTag">PE_TH_FIL_3X</div>
-                        <div class="paramName">TH Fillet 3 X (mm)</div>
-                      </div>
-                      <div class="paramBody">
-                        <input id="pe_th_fil_3x" type="range" min="0" max="100" step="1" value="20" />
-                        <input class="valInput" id="pe_th_fil_3xVal" type="number" min="0" max="100" step="1" value="20" />
-                      </div>
-                    </div>
-                    <div class="paramRow">
-                      <div class="paramTop">
-                        <div class="paramTag">PE_TH_FIL_3X_ACT</div>
-                        <div class="paramName">TH Fillet 3 X Actual</div>
-                      </div>
-                      <div class="paramBody">
-                        <input id="pe_th_fil_3x_actual" type="range" min="0" max="69" step="1" value="0" />
-                        <input class="valInput" id="pe_th_fil_3x_actualVal" type="number" min="0" max="69" step="1" value="0" />
-                      </div>
-                    </div>
-                    <div class="paramRow">
-                      <div class="paramTop">
-                        <div class="paramTag">PE_TH_FIL_3Y</div>
-                        <div class="paramName">TH Fillet 3 Y (mm)</div>
-                      </div>
-                      <div class="paramBody">
-                        <input id="pe_th_fil_3y" type="range" min="0" max="100" step="1" value="20" />
-                        <input class="valInput" id="pe_th_fil_3yVal" type="number" min="0" max="100" step="1" value="20" />
-                      </div>
-                    </div>
-                    <div class="paramRow">
-                      <div class="paramTop">
-                        <div class="paramTag">PE_TH_FIL_3Y_ACT</div>
-                        <div class="paramName">TH Fillet 3 Y Actual</div>
-                      </div>
-                      <div class="paramBody">
-                        <input id="pe_th_fil_3y_actual" type="range" min="0" max="100" step="1" value="0" />
-                        <input class="valInput" id="pe_th_fil_3y_actualVal" type="number" min="0" max="100" step="1" value="0" />
-                      </div>
-                    </div>
-                  </details>
-                  <details class="section" id="peTagentProfileASection">
-                    <summary>Tangent Profile A</summary>
-                    <div class="check">
-                      <input id="pe_tagent_profile_a_mode_tangent" name="pe_tagent_profile_a_mode" type="radio" />
-                      <label for="pe_tagent_profile_a_mode_tangent">Tangent</label>
-                    </div>
-                    <div class="check">
-                      <input id="pe_tagent_profile_a_mode_blend" name="pe_tagent_profile_a_mode" type="radio" />
-                      <label for="pe_tagent_profile_a_mode_blend">Blend</label>
-                    </div>
-                    <div class="check">
-                      <input id="pe_tagent_profile_a_mode_straight" name="pe_tagent_profile_a_mode" type="radio" />
-                      <label for="pe_tagent_profile_a_mode_straight">Straight Cut</label>
-                    </div>
-                  </details>
-                </div>
-                <div id="peRailLayerHeel" style="display:none;">
-                  <div class="check">
-                    <input id="pe_heel_fil_1" type="checkbox" />
-                    <label for="pe_heel_fil_1">HEEL_FIL_1</label>
-                  </div>
-                  <div class="paramRow" id="peHeelFil1RadiusRow">
-                    <div class="paramTop">
-                      <div class="paramTag">PE_HEEL_FIL_1_R</div>
-                      <div class="paramName">Heel Fillet 1 Radius (mm)</div>
-                    </div>
-                    <div class="paramBody">
-                      <input id="pe_heel_fil_1_r" type="range" min="0" max="40" step="0.5" value="4" />
-                      <input class="valInput" id="pe_heel_fil_1_rVal" type="number" min="0" max="40" step="0.5" value="4" />
-                    </div>
-                  </div>
-                  <div class="paramRow">
-                    <div class="paramTop">
-                      <div class="paramTag">PE_HEEL_FIL_2_R</div>
-                      <div class="paramName">Heel Fillet 2 Radius (mm)</div>
-                    </div>
-                    <div class="paramBody">
-                      <input id="pe_heel_fil_2_r" type="range" min="0" max="40" step="0.5" value="4" />
-                      <input class="valInput" id="pe_heel_fil_2_rVal" type="number" min="0" max="40" step="0.5" value="4" />
-                    </div>
-                  </div>
-                </div>
-              </details>
-              <div class="profileFilterBox">
-                <div class="profileFilterTitle">Modify</div>
-                <div class="check">
-                  <input id="pe_section_mode" type="checkbox" />
-                  <label for="pe_section_mode">Enable profile edit mode (section lofts)</label>
-                </div>
-                <div class="check">
-                  <input id="pe_isolated_mode" type="checkbox" />
-                  <label for="pe_isolated_mode">Isolated focused loft mode (replace toe)</label>
-                </div>
-                <div class="check">
-                  <input id="pe_loft_prev" type="checkbox" />
-                  <label for="pe_loft_prev">Loft To Previous</label>
-                </div>
-                <div class="check">
-                  <input id="pe_loft_next" type="checkbox" />
-                  <label for="pe_loft_next">Loft To Next</label>
-                </div>
-                <div class="profileFilterBox">
-                  <div class="profileFilterTitle">Handle Mode</div>
-                  <div class="check">
-                    <input id="pe_drag_handle_enable" type="checkbox" checked />
-                    <label for="pe_drag_handle_enable">Enable drag handle</label>
-                  </div>
-                  <div class="check">
-                    <input id="pe_drag_handle_show_only" type="checkbox" />
-                    <label for="pe_drag_handle_show_only">Show handle only</label>
-                  </div>
-                </div>
-                <div class="profileFilterBox">
-                  <div class="profileFilterTitle">Transform</div>
-                  <div class="paramRow">
-                    <div class="paramTop"><div class="paramTag">PE_ENDX</div><div class="paramName">End X</div><label><input id="pe_endx_default" type="checkbox" checked /> Default</label></div>
-                    <div class="paramBody">
-                      <input id="pe_endx" type="range" min="-200" max="200" step="0.1" value="0" />
-                      <input class="valInput" id="pe_endxVal" type="number" min="-200" max="200" step="0.1" value="0" />
-                    </div>
-                  </div>
-                  <div class="paramRow">
-                    <div class="paramTop"><div class="paramTag">PE_ENDZ</div><div class="paramName">End Z</div><label><input id="pe_endz_default" type="checkbox" checked /> Default</label></div>
-                    <div class="paramBody">
-                      <input id="pe_endz" type="range" min="-200" max="200" step="0.1" value="0" />
-                      <input class="valInput" id="pe_endzVal" type="number" min="-200" max="200" step="0.1" value="0" />
-                    </div>
-                  </div>
-                  <div class="paramRow">
-                    <div class="paramTop"><div class="paramTag">PE_ANGLE</div><div class="paramName">Angle</div><label><input id="pe_angle_default" type="checkbox" checked /> Default</label></div>
-                    <div class="paramBody">
-                      <input id="pe_angle" type="range" min="-180" max="180" step="0.1" value="0" />
-                      <input class="valInput" id="pe_angleVal" type="number" min="-180" max="180" step="0.1" value="0" />
-                    </div>
-                  </div>
-                  <div class="paramRow">
-                    <div class="paramTop"><div class="paramTag">PE_ROT_OFF</div><div class="paramName">Rotation Offset (deg)</div><label><input id="pe_rot_offset_default" type="checkbox" checked /> Default</label></div>
-                    <div class="paramBody">
-                      <input id="pe_rot_offset" type="range" min="-180" max="180" step="0.1" value="0" />
-                      <input class="valInput" id="pe_rot_offsetVal" type="number" min="-180" max="180" step="0.1" value="0" />
-                    </div>
-                  </div>
-                </div>
-                <div class="profileFilterBox">
-                  <div class="profileFilterTitle">Shape</div>
-                  <div class="paramRow">
-                    <div class="paramTop"><div class="paramTag">PE_THK</div><div class="paramName">Thickness</div><label><input id="pe_thickness_default" type="checkbox" checked /> Default</label></div>
-                    <div class="paramBody">
-                      <input id="pe_thickness" type="range" min="0.2" max="80" step="0.1" value="12" />
-                      <input class="valInput" id="pe_thicknessVal" type="number" min="0.2" max="80" step="0.1" value="12" />
-                    </div>
-                  </div>
-                  <div class="paramRow">
-                    <div class="paramTop"><div class="paramTag">PE_STR</div><div class="paramName">Strength</div><label><input id="pe_strength_default" type="checkbox" checked /> Default</label></div>
-                    <div class="paramBody">
-                      <input id="pe_strength" type="range" min="0.2" max="8" step="0.1" value="1" />
-                      <input class="valInput" id="pe_strengthVal" type="number" min="0.2" max="8" step="0.1" value="1" />
-                    </div>
-                  </div>
-                </div>
-                <div class="profileFilterBox">
-                  <div class="profileFilterTitle">Outer Cutback</div>
-                  <div class="paramRow">
-                    <div class="paramTop"><div class="paramTag">PE_OCUT_MM</div><div class="paramName">Outer Cutback (mm)</div><label><input id="pe_outer_cut_mm_default" type="checkbox" checked /> Default</label></div>
-                    <div class="paramBody">
-                      <input id="pe_outer_cut_mm" type="range" min="0" max="200" step="0.1" value="0" />
-                      <input class="valInput" id="pe_outer_cut_mmVal" type="number" min="0" max="200" step="0.1" value="0" />
-                    </div>
-                  </div>
-                  <div class="paramRow">
-                    <div class="paramTop"><div class="paramTag">PE_OCUT_PTS</div><div class="paramName">Outer Cutback (pts)</div><label><input id="pe_outer_cut_pts_default" type="checkbox" checked /> Default</label></div>
-                    <div class="paramBody">
-                      <input id="pe_outer_cut_pts" type="range" min="0" max="200" step="1" value="0" />
-                      <input class="valInput" id="pe_outer_cut_ptsVal" type="number" min="0" max="200" step="1" value="0" />
-                    </div>
-                  </div>
-                </div>
-                <div class="profileFilterBox">
-                  <div class="profileFilterTitle">Inner Cutback</div>
-                  <div class="paramRow">
-                    <div class="paramTop"><div class="paramTag">PE_ICUT_MM</div><div class="paramName">Inner Cutback (mm)</div><label><input id="pe_inner_cut_mm_default" type="checkbox" checked /> Default</label></div>
-                    <div class="paramBody">
-                      <input id="pe_inner_cut_mm" type="range" min="0" max="200" step="0.1" value="0" />
-                      <input class="valInput" id="pe_inner_cut_mmVal" type="number" min="0" max="200" step="0.1" value="0" />
-                    </div>
-                  </div>
-                  <div class="paramRow">
-                    <div class="paramTop"><div class="paramTag">PE_ICUT_PTS</div><div class="paramName">Inner Cutback (pts)</div><label><input id="pe_inner_cut_pts_default" type="checkbox" checked /> Default</label></div>
-                    <div class="paramBody">
-                      <input id="pe_inner_cut_pts" type="range" min="0" max="200" step="1" value="0" />
-                      <input class="valInput" id="pe_inner_cut_ptsVal" type="number" min="0" max="200" step="1" value="0" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </details>
           </details>
 
           <details class="section hasInlinePanelActions" id="layersSection" open>
@@ -4277,7 +3483,6 @@ details.section details.section > summary {
           <div id="materialsTitle" class="floatHostTitle">Materials</div>
         </div>
         <div class="panelActionRow">
-          <button id="materialsPopoutBtn" type="button" class="panelActionBtn" aria-pressed="false" aria-label="Open materials in window" title="Open materials in window">⇱</button>
           <button id="materialsCloseBtn" type="button" class="panelActionBtn" aria-label="Close materials panel" title="Close">X</button>
         </div>
       </div>
@@ -4285,10 +3490,6 @@ details.section details.section > summary {
         <div id="materialsFocusText">Focused item: none</div>
         <div id="materialsPartSection">
           <div class="materialsSectionLabel">Object Part</div>
-          <div class="panelActionRow" style="margin: 4px 0 6px 0;">
-            <button id="materialsSelectOddBtn" type="button" class="secondary">Select All Odds</button>
-            <button id="materialsSelectEvenBtn" type="button" class="secondary">Select All Evens</button>
-          </div>
           <div class="materialsPartListWrap">
             <div id="materialsPartList" aria-label="Object part list"></div>
           </div>
@@ -4397,14 +3598,13 @@ details.section details.section > summary {
         <div class="gizmoSubSectionBody">
           <div id="gizmoGridControls" class="open">
             <div class="gizmoStarsLabel">Grid Size (mm)</div>
-            <input id="gizmoGridSizeRange" class="gizmoStarsRange" type="range" min="0" max="100" step="1" value="100" />
+            <input id="gizmoGridSizeRange" class="gizmoStarsRange" type="range" min="100" max="20000" step="50" value="20000" />
             <div class="gizmoPresetRow">
               <button id="gizmoGridPresetInfiniteBtn" class="gizmoPresetBtn" type="button" aria-pressed="true">Infinite</button>
               <button id="gizmoGridPreset300Btn" class="gizmoPresetBtn" type="button" aria-pressed="false">300x300</button>
               <button id="gizmoGridPreset250Btn" class="gizmoPresetBtn" type="button" aria-pressed="false">250x250</button>
             </div>
             <button id="gizmoGridCenterModeBtn" class="gizmoViewActionBtn" type="button" aria-pressed="false">Center: Origin</button>
-            <button id="gizmoGridSnapBaseBottomBtn" class="gizmoViewActionBtn" type="button">Snap Z: Base Bottom</button>
             <div class="gizmoStarsLabel">Double Major Spacing (mm)</div>
             <input id="gizmoGridDoubleMajorSpacingRange" class="gizmoStarsRange" type="range" min="1" max="400" step="1" value="100" />
             <div id="gizmoGridDoubleMajorPresetRow" class="gizmoStepRow doubleMajor">
@@ -4422,6 +3622,8 @@ details.section details.section > summary {
               <button class="gizmoStepBtn" type="button" data-mode="set" data-value="15">15</button>
               <button class="gizmoStepBtn" type="button" data-mode="set" data-value="20">20</button>
               <button class="gizmoStepBtn" type="button" data-mode="set" data-value="25">25</button>
+              <button class="gizmoStepBtn" type="button" data-mode="mul" data-value="2">x2</button>
+              <button class="gizmoStepBtn" type="button" data-mode="mul" data-value="0.5">/2</button>
             </div>
             <div class="gizmoStarsLabel">Minor Spacing (mm)</div>
             <input id="gizmoGridMinorSpacingRange" class="gizmoStarsRange" type="range" min="1" max="100" step="1" value="1" />
@@ -4430,6 +3632,8 @@ details.section details.section > summary {
               <button class="gizmoStepBtn" type="button" data-mode="set" data-value="2">2</button>
               <button class="gizmoStepBtn" type="button" data-mode="set" data-value="5">5</button>
               <button class="gizmoStepBtn" type="button" data-mode="set" data-value="10">10</button>
+              <button class="gizmoStepBtn" type="button" data-mode="mul" data-value="2">x2</button>
+              <button class="gizmoStepBtn" type="button" data-mode="mul" data-value="0.5">/2</button>
             </div>
             <div class="gizmoStarsLabel">Major Opacity</div>
             <input id="gizmoGridMajorOpacityRange" class="gizmoStarsRange" type="range" min="0" max="100" step="1" value="58" />
@@ -4480,13 +3684,10 @@ details.section details.section > summary {
           <button id="gizmoViewBgDarkBlueBtn" class="gizmoViewActionBtn" type="button" aria-pressed="true">Dark Blue</button>
           <button id="gizmoViewBgBlackBtn" class="gizmoViewActionBtn" type="button" aria-pressed="false">Black</button>
           <button id="gizmoViewBgWhiteBtn" class="gizmoViewActionBtn" type="button" aria-pressed="false">White</button>
-          <button id="gizmoViewBgCustomBtn" class="gizmoViewActionBtn" type="button" aria-pressed="false">Custom</button>
-          <div id="gizmoViewBgCustomColorWrap">
-            <input id="gizmoViewBgCustomColor" type="color" value="#0b0b0f" aria-label="Custom background color" />
-          </div>
           <details id="gizmoScenesSection" class="gizmoSubSection">
             <summary>
               <span>Scenes</span>
+              <input id="gizmoScenesToggle" class="gizmoSummaryToggle" type="checkbox" aria-label="Toggle scenes" />
             </summary>
             <div class="gizmoSubSectionBody">
               <button id="gizmoViewStarsBtn" class="gizmoViewActionBtn" type="button">Stars</button>
@@ -4773,14 +3974,6 @@ details.section details.section > summary {
         ["sh_fil_1_r", "sh_fil_1_rVal"],
         ["th_fil_1_r", "th_fil_1_rVal"],
         ["th_fil_2_r", "th_fil_2_rVal"],
-        ["th_fil_3x", "th_fil_3xVal"],
-        ["th_fil_3x_actual", "th_fil_3x_actualVal"],
-        ["th_fil_3y", "th_fil_3yVal"],
-        ["th_fil_3y_actual", "th_fil_3y_actualVal"],
-        ["dbg_ac_first_x", "dbg_ac_first_xVal"],
-        ["dbg_ac_first_y", "dbg_ac_first_yVal"],
-        ["dbg_ac_step_x", "dbg_ac_step_xVal"],
-        ["dbg_ac_step_y", "dbg_ac_step_yVal"],
         ["heel_fil_1_r", "heel_fil_1_rVal"],
         ["heel_fil_2_r", "heel_fil_2_rVal"],
         ["bp_fil_1_r", "bp_fil_1_rVal"],
@@ -5274,16 +4467,14 @@ details.section details.section > summary {
         }
 
         bindPanel("parahookParams", "paraHookParamsSection", "paraHookParamsFloatToggle", "paraHookParamsWindowToggle", "Parahook Parameters");
-        bindPanel("profileEditor", "profileEditorSection", "profileEditorFloatToggle", "profileEditorWindowToggle", "Profile Editor");
         bindPanel("layers", "layersSection", "layersFloatToggle", "layersWindowToggle", "Layers");
         bindPanel("radio", "radioSection", "radioFloatToggle", "radioWindowToggle", "Gusano");
         bindPanel("debug", "debugPanel", "debugFloatToggle", "debugWindowToggle", "Debug");
-        bindPanel("buildTrace", "buildTracePanel", "buildTraceFloatToggle", "buildTraceWindowToggle", "Worker Build Trace");
 
         function syncPanelPopoutButtonVisibility() {
           const hidden = isMobileLayout();
           const btns = document.querySelectorAll(
-            "#paraHookParamsFloatToggle, #paraHookParamsWindowToggle, #profileEditorFloatToggle, #profileEditorWindowToggle, #layersFloatToggle, #layersWindowToggle, #radioFloatToggle, #radioWindowToggle, #debugFloatToggle, #debugWindowToggle, #buildTraceFloatToggle, #buildTraceWindowToggle"
+            "#paraHookParamsFloatToggle, #paraHookParamsWindowToggle, #layersFloatToggle, #layersWindowToggle, #radioFloatToggle, #radioWindowToggle, #debugFloatToggle, #debugWindowToggle"
           );
           btns.forEach((btn) => {
             if (!(btn instanceof HTMLElement)) return;

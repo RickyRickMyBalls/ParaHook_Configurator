@@ -110,3 +110,124 @@ label {
 input[type="range"] {
   width: 140px;
 }
+
+.sectionDisabled {
+  opacity: 0.45;
+}
+
+.sectionDisabled > summary {
+  pointer-events: none;
+  cursor: default;
+}
+
+.profileFilterBox {
+  margin: 6px 0 0 0;
+  padding: 6px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.profileFilterTitle {
+  font-size: 10px;
+  opacity: 0.85;
+  margin-bottom: 6px;
+  user-select: text;
+}
+
+.profileFilterList {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 10px;
+  line-height: 1.25;
+  max-height: 90px;
+  overflow-y: auto;
+  resize: vertical;
+  min-height: 56px;
+  user-select: text;
+}
+
+.profileDataText {
+  margin: 0;
+  padding: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.25);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 10px;
+  line-height: 1.25;
+  white-space: pre-wrap;
+  max-height: 120px;
+  min-height: 62px;
+  overflow: auto;
+  resize: both;
+  user-select: text;
+}
+
+.profileEditorListWrap {
+  margin: 6px 0 0 0;
+}
+
+.profileEditorList {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.2);
+  max-height: 160px;
+  min-height: 88px;
+  overflow: auto;
+  padding: 4px;
+}
+
+.profileEditorItem {
+  width: 100%;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  padding: 4px 6px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.profileEditorItemRow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.profileEditorIconBtn {
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  color: inherit;
+  font-size: 10px;
+  line-height: 1;
+  padding: 5px 6px;
+  cursor: pointer;
+}
+
+.profileEditorIconBtn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.profileEditorItemRow.active .profileEditorItem {
+  background: rgba(0, 157, 255, 0.25);
+}
+
+.profileEditorItemRow.disabled {
+  opacity: 0.5;
+}
+
+.profileEditorItem:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.profileEditorItem.active {
+  background: rgba(0, 157, 255, 0.25);
+}
+
+.profileEditorItem.disabled {
+  opacity: 0.5;
+  cursor: default;
+}

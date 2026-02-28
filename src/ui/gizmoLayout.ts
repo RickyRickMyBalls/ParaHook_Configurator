@@ -9,7 +9,7 @@ export type GizmoLayoutState = {
   gizmoPanelHeight: number;
   viewOpen: boolean;
   controlsOpen: boolean;
-  compactTabs: boolean;
+  collapsedMode: "horizontal" | "vertical" | null;
   spinEnabled: boolean;
   viewPanelHeight: number;
   toolbarWidthOverride: number | null;
@@ -29,6 +29,7 @@ export type GizmoLayoutResult = {
   rollCwTop: number;
   modeBaseLeft: number;
   toolbarWidth: number;
+  auxRowTop: number;
   gizmoRowTop: number;
   gizmoPanelTop: number;
   viewRowTop: number;
@@ -43,6 +44,7 @@ const ROW_H = 22;
 const VIEW_PANEL_GAP = 8;
 const COLLAPSED_ROW_EXTRA_GAP = 10;
 const COMPACT_TAB_ROW_STEP = 88;
+const TOOLBAR_BTN_GAP = 4;
 
 export type GizmoLayoutElements = {
   gizmoViewportResizeHandleEl: HTMLDivElement | null;
@@ -73,26 +75,35 @@ export type GizmoLayoutElements = {
 
 export function computeGizmoLayout(vp: GizmoViewportRect, state: GizmoLayoutState): GizmoLayoutResult {
   const expanded = state.gizmoOpen || state.viewOpen || state.controlsOpen;
-  const compactTabsActive = state.compactTabs && !expanded;
+  const compactTabsActive = state.collapsedMode === "vertical" && !expanded;
   const collapsedExtraGap = expanded ? 0 : compactTabsActive ? 0 : COLLAPSED_ROW_EXTRA_GAP;
-  const collapsedWidth = state.compactTabs ? 24 : 108;
-  const maxWidth = Math.max(collapsedWidth, Math.round(vp.left + vp.size - 8));
+  const viewportW = Math.round(window.visualViewport?.width ?? window.innerWidth);
+  const toolbarRight = Math.min(Math.round(vp.left + vp.size), Math.max(8, viewportW - 8));
+  const maxWidth = Math.max(24, Math.round(toolbarRight - 8));
+  const desktopCollapsedWidth = Number.isFinite(state.toolbarWidthOverride as number)
+    ? Math.max(108, Math.round(state.toolbarWidthOverride as number))
+    : Math.max(180, Math.round(vp.size));
+  const collapsedWidth = state.collapsedMode === "vertical" ? 24 : Math.min(maxWidth, desktopCollapsedWidth);
   const requestedWidth = compactTabsActive
     ? collapsedWidth
     : Number.isFinite(state.toolbarWidthOverride as number)
       ? Math.round(state.toolbarWidthOverride as number)
       : Math.round(vp.size);
   const toolbarWidth = expanded ? Math.min(maxWidth, Math.max(108, requestedWidth)) : collapsedWidth;
-  const toolbarRight = Math.round(vp.left + vp.size);
   const modeBaseLeft = Math.round(toolbarRight - toolbarWidth);
-  const gizmoRowTop = Math.round(vp.top + vp.size + 4);
-  const gizmoPanelTop = Math.round(gizmoRowTop + 24);
+  const auxRowTop = Math.round(vp.top + vp.size + 4);
+  const gizmoRowTop = compactTabsActive ? auxRowTop : Math.round(auxRowTop + ROW_H + 6);
+  const gizmoPanelTop = compactTabsActive ? Math.round(gizmoRowTop + 24) : Math.round(gizmoRowTop + ROW_H + 6);
   const gizmoPanelDrop = state.gizmoOpen ? Math.round(state.gizmoPanelHeight + VIEW_PANEL_GAP) : 0;
-  const rowStep = compactTabsActive ? COMPACT_TAB_ROW_STEP : ROW_H;
-  const viewRowTop = gizmoRowTop + rowStep + gizmoPanelDrop + collapsedExtraGap;
+  const rowStep = compactTabsActive ? COMPACT_TAB_ROW_STEP : 0;
+  const viewRowTop = compactTabsActive
+    ? gizmoRowTop + rowStep + gizmoPanelDrop + collapsedExtraGap
+    : gizmoRowTop;
   const viewPanelDrop = state.viewOpen ? Math.round(state.viewPanelHeight + VIEW_PANEL_GAP) : 0;
-  const controlsRowTop = viewRowTop + rowStep + viewPanelDrop;
-  const controlsStackTop = controlsRowTop + ROW_H;
+  const controlsRowTop = compactTabsActive ? viewRowTop + rowStep + viewPanelDrop : gizmoRowTop;
+  const controlsStackTop = compactTabsActive
+    ? controlsRowTop + ROW_H
+    : gizmoPanelTop + gizmoPanelDrop + viewPanelDrop;
 
   return {
     handleLeft: Math.round(vp.left - HANDLE_HALF),
@@ -113,6 +124,7 @@ export function computeGizmoLayout(vp: GizmoViewportRect, state: GizmoLayoutStat
     rollCwTop: Math.round(vp.top + 28),
     modeBaseLeft,
     toolbarWidth,
+    auxRowTop,
     gizmoRowTop,
     gizmoPanelTop,
     viewRowTop,
@@ -137,58 +149,86 @@ export function applyGizmoLayout(
     if (!el) return;
     el.style.display = on ? "block" : "none";
   };
-  const setScrollableMaxHeight = (el: HTMLElement | null, top: number) => {
+  const setScrollablePanelPlacement = (el: HTMLElement | null, desiredTop: number, minUsableHeight = 140) => {
     if (!el) return;
     const viewportH = Math.round(window.visualViewport?.height ?? window.innerHeight);
-    const maxH = Math.max(36, viewportH - Math.round(top) - 8);
-    el.style.maxHeight = `${maxH}px`;
+    const margin = 8;
+    let top = Math.round(desiredTop);
+    let maxH = viewportH - top - margin;
+    if (maxH < minUsableHeight) {
+      top = Math.max(margin, viewportH - minUsableHeight - margin);
+      maxH = viewportH - top - margin;
+    }
+    el.style.top = `${Math.round(top)}px`;
+    el.style.maxHeight = `${Math.max(80, Math.round(maxH))}px`;
+    el.style.overflowY = "auto";
+    el.style.overflowX = "hidden";
+    el.style.setProperty("-webkit-overflow-scrolling", "touch");
+    el.style.touchAction = "pan-y";
   };
 
   setPos(elements.gizmoViewportResizeHandleEl, layout.handleLeft, layout.handleTop);
   setPos(elements.gizmoToolbarResizeHandleEl, layout.toolbarHandleLeft, layout.toolbarHandleTop);
-  setPos(elements.gizmoFpsBadgeEl, layout.fpsLeft, layout.fpsTop);
   setPos(elements.gizmoRollCcwBtnEl, layout.rollCcwLeft, layout.rollCcwTop);
   setPos(elements.gizmoRollCwBtnEl, layout.rollCwLeft, layout.rollCwTop);
+  const expanded = state.gizmoOpen || state.viewOpen || state.controlsOpen;
+  const compactTabsActive = state.collapsedMode === "vertical" && !expanded;
+  const oneThirdW = Math.max(
+    compactTabsActive ? 24 : 56,
+    Math.floor((layout.toolbarWidth - TOOLBAR_BTN_GAP * 2) / 3)
+  );
+  const topHalfW = Math.max(44, Math.floor((layout.toolbarWidth - TOOLBAR_BTN_GAP) / 2));
 
   if (elements.gizmoToggleBtnEl) {
     setPos(elements.gizmoToggleBtnEl, layout.modeBaseLeft, layout.gizmoRowTop);
-    elements.gizmoToggleBtnEl.style.width = `${Math.max(48, Math.floor((layout.toolbarWidth - 4) / 2))}px`;
+    elements.gizmoToggleBtnEl.style.width = `${compactTabsActive ? layout.toolbarWidth : oneThirdW}px`;
     elements.gizmoToggleBtnEl.setAttribute("aria-pressed", state.gizmoOpen ? "true" : "false");
   }
   if (elements.gizmoGizmoPanelEl) {
     setPos(elements.gizmoGizmoPanelEl, layout.modeBaseLeft, layout.gizmoPanelTop);
     elements.gizmoGizmoPanelEl.style.width = `${layout.toolbarWidth}px`;
-    setScrollableMaxHeight(elements.gizmoGizmoPanelEl, layout.gizmoPanelTop);
+    setScrollablePanelPlacement(elements.gizmoGizmoPanelEl, layout.gizmoPanelTop, 120);
     elements.gizmoGizmoPanelEl.classList.toggle("open", state.gizmoOpen);
   }
   if (elements.gizmoCardinalUpBadgeEl) {
-    const halfW = Math.max(48, Math.floor((layout.toolbarWidth - 4) / 2));
-    setPos(elements.gizmoCardinalUpBadgeEl, layout.modeBaseLeft + halfW + 4, layout.gizmoRowTop);
-    elements.gizmoCardinalUpBadgeEl.style.width = `${halfW}px`;
-    elements.gizmoCardinalUpBadgeEl.style.minWidth = `${halfW}px`;
+    setPos(elements.gizmoCardinalUpBadgeEl, layout.modeBaseLeft, layout.auxRowTop);
+    elements.gizmoCardinalUpBadgeEl.style.width = `${topHalfW}px`;
+    elements.gizmoCardinalUpBadgeEl.style.minWidth = `${topHalfW}px`;
     const dirText = state.cardinalUpLabel.startsWith("-") ? "Down" : "Up";
     elements.gizmoCardinalUpBadgeEl.textContent = `${state.cardinalUpLabel} ${dirText}`;
   }
+  if (elements.gizmoFpsBadgeEl) {
+    setPos(elements.gizmoFpsBadgeEl, layout.modeBaseLeft + topHalfW + TOOLBAR_BTN_GAP, layout.auxRowTop);
+    elements.gizmoFpsBadgeEl.style.width = `${topHalfW}px`;
+    elements.gizmoFpsBadgeEl.style.minWidth = `${topHalfW}px`;
+  }
+  setDisplay(elements.gizmoCardinalUpBadgeEl, !compactTabsActive);
+  setDisplay(elements.gizmoFpsBadgeEl, !compactTabsActive);
 
   if (elements.gizmoViewBtnEl) {
-    setPos(elements.gizmoViewBtnEl, layout.modeBaseLeft, layout.viewRowTop);
-    elements.gizmoViewBtnEl.style.width = `${layout.toolbarWidth}px`;
+    setPos(
+      elements.gizmoViewBtnEl,
+      compactTabsActive ? layout.modeBaseLeft : layout.modeBaseLeft + oneThirdW + TOOLBAR_BTN_GAP,
+      layout.viewRowTop
+    );
+    elements.gizmoViewBtnEl.style.width = `${compactTabsActive ? layout.toolbarWidth : oneThirdW}px`;
+    elements.gizmoViewBtnEl.setAttribute("aria-pressed", state.viewOpen ? "true" : "false");
   }
   if (elements.gizmoControlsBtnEl) {
-    setPos(elements.gizmoControlsBtnEl, layout.modeBaseLeft, layout.controlsRowTop);
-    elements.gizmoControlsBtnEl.style.width = `${layout.toolbarWidth}px`;
+    setPos(elements.gizmoControlsBtnEl, compactTabsActive ? layout.modeBaseLeft : layout.modeBaseLeft + (oneThirdW + TOOLBAR_BTN_GAP) * 2, layout.controlsRowTop);
+    elements.gizmoControlsBtnEl.style.width = `${compactTabsActive ? layout.toolbarWidth : oneThirdW}px`;
     elements.gizmoControlsBtnEl.setAttribute("aria-pressed", state.controlsOpen ? "true" : "false");
   }
   if (elements.gizmoControlsPanelEl) {
     setPos(elements.gizmoControlsPanelEl, layout.modeBaseLeft, layout.controlsStackTop);
     elements.gizmoControlsPanelEl.style.width = `${layout.toolbarWidth}px`;
-    setScrollableMaxHeight(elements.gizmoControlsPanelEl, layout.controlsStackTop);
+    setScrollablePanelPlacement(elements.gizmoControlsPanelEl, layout.controlsStackTop, 160);
     elements.gizmoControlsPanelEl.classList.toggle("open", state.controlsOpen);
   }
   if (elements.gizmoViewPanelEl) {
     setPos(elements.gizmoViewPanelEl, layout.viewPanelLeft, layout.viewPanelTop);
     elements.gizmoViewPanelEl.style.width = `${layout.toolbarWidth}px`;
-    setScrollableMaxHeight(elements.gizmoViewPanelEl, layout.viewPanelTop);
+    setScrollablePanelPlacement(elements.gizmoViewPanelEl, layout.viewPanelTop, 180);
   }
   setDisplay(elements.gizmoToolbarResizeHandleEl, state.gizmoOpen || state.viewOpen || state.controlsOpen);
 

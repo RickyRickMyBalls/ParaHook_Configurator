@@ -30,6 +30,14 @@ const DEBUG_HEEL_FIL_2_FORCE_SPLICE_REV: boolean | null = null; // null=auto, tr
 
 let toeBuildExposeTailParts = false;
 let toeLastBuildTailShape: Shape3D | null = null;
+let toeBuildExposeSectionParts = false;
+export type ToeSectionBuildPart = {
+  id: string;
+  name: string;
+  cacheKey: string;
+  shape: Shape3D | null;
+};
+let toeLastBuildSectionParts: ToeSectionBuildPart[] | null = null;
 
 function num(v: unknown, f: number) {
   const n = Number(v);
@@ -45,6 +53,36 @@ function postModelDebugStatus(message: string) {
     if (typeof g?.postMessage === "function") {
       g.postMessage({ type: "status", message });
     }
+  } catch {}
+}
+
+type DebugSectionKey = "profile_a" | "ab" | "ac" | "profile_b" | "bc" | "profile_c" | "profile_hc" | "cd" | "profile_hd";
+type DebugSectionReport = {
+  key: DebugSectionKey;
+  enabledInUi: boolean;
+  modeContext: { addProfileB: boolean; railMathMode: number; thFil3Mode: ToeFil3Mode };
+  orientation: { planeDeg: number; frameTanX: number; frameTanY: number; notes: string[] };
+  params: Record<string, number | boolean | string>;
+  metrics: {
+    outerArcLen: number;
+    innerArcLen: number;
+    endCapLen: number;
+    baseCapLen: number;
+    samples: { outer: number; inner: number; endCap: number; baseCap: number; totalLoop: number };
+  };
+  operations: string[];
+};
+
+type DebugProfileReport = {
+  buildId: string;
+  part: "toe_abc" | "toe_ac" | "heel_cd";
+  sections: DebugSectionReport[];
+};
+
+function postModelDebugReport(payload: DebugProfileReport) {
+  try {
+    const g: any = globalThis as any;
+    if (typeof g?.postMessage === "function") g.postMessage({ type: "debug_profile_report", payload });
   } catch {}
 }
 
@@ -67,6 +105,208 @@ function dist(a: Pt, b: Pt) {
 function smoothstep01(t: number) {
   t = clamp(t, 0, 1);
   return t * t * (3 - 2 * t);
+}
+type ToeFil3Mode = 0 | 1 | 2;
+type ToeFil3Settings = {
+  mode: ToeFil3Mode;
+  xMm: number;
+  xActualCount: number;
+  yMm: number;
+  yActualCount: number;
+};
+type ProfileEdit = {
+  endX?: number;
+  endZ?: number;
+  angle?: number;
+  rotOffsetDeg?: number;
+  thickness?: number;
+  strength?: number;
+  outerCutMm?: number;
+  outerCutPts?: number;
+  innerCutMm?: number;
+  innerCutPts?: number;
+};
+type ProfileEditMap = Record<string, ProfileEdit>;
+type ProfileEditorSettings = {
+  mode11: boolean;
+  enabled: boolean;
+  sectionMode: boolean;
+  focusKey: string;
+  isolatedMode: boolean;
+  loftPrev: boolean;
+  loftNext: boolean;
+  edits: ProfileEditMap;
+};
+
+function readProfileEditorSettings(input: ParamMap): ProfileEditorSettings {
+  const mode11 = Math.round(num((input as any).rail_math_mode, 1)) === 11 || Math.round(num((input as any).rail_math_11, 0)) === 1;
+  const enabled = Math.round(num((input as any).pe_enabled, 0)) === 1;
+  const sectionMode = Math.round(num((input as any).pe_section_mode, 0)) === 1;
+  const isolatedMode = Math.round(num((input as any).pe_isolated_mode, 0)) === 1;
+  const loftPrev = Math.round(num((input as any).pe_loft_prev, 0)) === 1;
+  const loftNext = Math.round(num((input as any).pe_loft_next, 0)) === 1;
+  const focusKey = String((input as any).pe_focus_key ?? "");
+  let edits: ProfileEditMap = {};
+  try {
+    const raw = (input as any).pe_edit_blob;
+    if (typeof raw === "string" && raw.trim()) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === "object") edits = parsed as ProfileEditMap;
+    }
+  } catch (e) {
+    postModelDebugStatus(`[profile_editor] invalid pe_edit_blob ignored: ${e instanceof Error ? e.message : String(e)}`);
+  }
+  return { mode11, enabled, sectionMode, focusKey, isolatedMode, loftPrev, loftNext, edits };
+}
+
+function profileEditFor(settings: ProfileEditorSettings | null, key: string): ProfileEdit | null {
+  if (!settings?.mode11) return null;
+  const raw = settings.edits?.[key];
+  return raw && typeof raw === "object" ? raw : null;
+}
+
+function profileEditNumber(edit: ProfileEdit | null, key: keyof ProfileEdit): number | null {
+  if (!edit) return null;
+  const raw = (edit as any)[key];
+  const n = typeof raw === "number" ? raw : Number(raw);
+  return Number.isFinite(n) ? n : null;
+}
+
+const TOE_SECTION_CACHE_MAX = 512;
+const toeSectionLoftCacheABC = new Map<string, any>();
+const toeSectionLoftCacheAC = new Map<string, any>();
+
+function trimSectionCache(cache: Map<string, any>) {
+  while (cache.size > TOE_SECTION_CACHE_MAX) {
+    const first = cache.keys().next();
+    if (first.done) break;
+    cache.delete(first.value);
+  }
+}
+
+function buildCachedToeSectionLoft(cache: Map<string, any>, key: string, build: () => any): any {
+  const cached = cache.get(key);
+  if (cached) {
+    try {
+      if (typeof (cached as any).clone === "function") return (cached as any).clone();
+      return cached;
+    } catch {}
+  }
+  const solid = build();
+  if (!solid) return solid;
+  try {
+    cache.set(key, typeof (solid as any).clone === "function" ? (solid as any).clone() : solid);
+    trimSectionCache(cache);
+  } catch {
+    cache.set(key, solid);
+    trimSectionCache(cache);
+  }
+  return solid;
+}
+
+function makeToeSectionCacheKey(
+  part: "abc" | "ac",
+  i0: number,
+  i1: number,
+  a: { params: Record<string, number | boolean | string> } | null,
+  b: { params: Record<string, number | boolean | string> } | null
+) {
+  return `${part}|${i0}:${i1}|a=${JSON.stringify(a?.params ?? {})}|b=${JSON.stringify(b?.params ?? {})}`;
+}
+function resolveToeFil3EffectLenMm(
+  settings: ToeFil3Settings | null,
+  straightSpanMm: number,
+  interiorCount: number
+) {
+  if (!settings) return 0;
+  const yMm = clamp(settings.yMm, 0, 100);
+  const count = clamp(Math.round(settings.yActualCount), 0, 100);
+  const span = Math.max(1e-6, straightSpanMm);
+  if (count > 0 && interiorCount > 0) {
+    return clamp((count / interiorCount) * span, 0, 100);
+  }
+  return yMm;
+}
+function computeToeFil3CutAmountByProgress(
+  mode: ToeFil3Mode,
+  cutXmm: number,
+  progress01: number
+) {
+  const x = clamp(cutXmm, 0, 100);
+  const t = clamp(progress01, 0, 1);
+  if (mode === 0 || x <= 1e-6) return 0;
+  if (mode === 1) return x * (1 - t); // chamfer: linear
+  return x * (1 - smoothstep01(t)); // fillet: rounded
+}
+type ToeFil3StationState = {
+  active: boolean;
+  progress01: number;
+  cutMm: number;
+  inRange: boolean;
+};
+function computeToeFil3StationState(
+  stationOrderFromA: number,
+  stationS: number,
+  effectLenMm: number,
+  interiorCount: number,
+  yActualCount: number,
+  mode: ToeFil3Mode,
+  xMm: number
+): ToeFil3StationState {
+  if (mode === 0 || xMm <= 1e-6) return { active: false, progress01: 0, cutMm: 0, inRange: false };
+  const hasCountRange = yActualCount > 0 && interiorCount > 0;
+  let progress01 = 1;
+  if (hasCountRange) {
+    const reach = Math.max(1, yActualCount + 1);
+    progress01 = clamp(stationOrderFromA / reach, 0, 1);
+  } else {
+    const denom = Math.max(1e-6, effectLenMm);
+    progress01 = clamp(stationS / denom, 0, 1);
+  }
+  const inRange = progress01 < 1 - 1e-9;
+  const cutMm = inRange ? computeToeFil3CutAmountByProgress(mode, xMm, progress01) : 0;
+  return { active: true, progress01, cutMm, inRange };
+}
+type ToeFil3ArcCutState = {
+  cutMm: number;
+  outerArcLenMm: number;
+  maxPointCount: number;
+  basePointCount: number;
+  stationPointCount: number;
+};
+function computeToeFil3ArcCutForSection(
+  mode: ToeFil3Mode,
+  inRange: boolean,
+  progress01: number,
+  xMm: number,
+  xActualCount: number,
+  endX: number,
+  endZ: number,
+  p1s: number,
+  p3s: number,
+  enda: number,
+  thickness: number
+): ToeFil3ArcCutState {
+  const { outerPts } = toeBezierOffsetProfileFixedPts(endX, endZ, p1s, p3s, enda, thickness);
+  const outerArcLenMm = Math.max(0, polylineLength(outerPts));
+  const maxPointCount = Math.max(1, outerPts.length - 2);
+  if (mode === 0 || !inRange || outerArcLenMm <= 1e-6) {
+    return { cutMm: 0, outerArcLenMm, maxPointCount, basePointCount: 0, stationPointCount: 0 };
+  }
+  const baseCountFromMm = Math.round((clamp(xMm, 0, 100) / outerArcLenMm) * maxPointCount);
+  const basePointCount = clamp(
+    xActualCount > 0 ? Math.round(xActualCount) : baseCountFromMm,
+    0,
+    maxPointCount
+  );
+  if (basePointCount <= 0) {
+    return { cutMm: 0, outerArcLenMm, maxPointCount, basePointCount: 0, stationPointCount: 0 };
+  }
+  const factor = mode === 1 ? 1 - clamp(progress01, 0, 1) : 1 - smoothstep01(progress01);
+  let stationPointCount = clamp(Math.round(basePointCount * factor), 0, basePointCount);
+  if (factor > 1e-6 && stationPointCount === 0) stationPointCount = 1;
+  const cutMm = (stationPointCount / maxPointCount) * outerArcLenMm;
+  return { cutMm, outerArcLenMm, maxPointCount, basePointCount, stationPointCount };
 }
 function dot2(a: Pt, b: Pt) {
   return a.x * b.x + a.y * b.y;
@@ -98,6 +338,13 @@ function dedupePts(pts: Pt[], eps = 1e-6): Pt[] {
 function dirFromDeg(deg: number): Pt {
   const rad = (deg * Math.PI) / 180;
   return { x: Math.cos(rad), y: Math.sin(rad) };
+}
+
+function rotateVecDeg(v: Pt, deg: number): Pt {
+  const rad = (deg * Math.PI) / 180;
+  const c = Math.cos(rad);
+  const s = Math.sin(rad);
+  return { x: v.x * c - v.y * s, y: v.x * s + v.y * c };
 }
 
 // =======================================================
@@ -878,6 +1125,163 @@ function fuseMany(shapes: any[]): any | null {
   return out;
 }
 
+type DebugPair = { x: number; y: number };
+type ProfileXZ = { x: number; z: number };
+type IntermedDebug = { on: boolean; first: DebugPair; step: DebugPair };
+type ProfileDebug = { on: boolean; xz: ProfileXZ };
+type DebugVizSettings = {
+  enabled: boolean;
+  profileA: ProfileDebug;
+  profileB: ProfileDebug;
+  profileC: ProfileDebug;
+  heelC: ProfileDebug;
+  heelD: ProfileDebug;
+  ab: IntermedDebug;
+  ac: IntermedDebug;
+  bc: IntermedDebug;
+  cd: IntermedDebug;
+};
+
+const DEBUG_VIZ_LIFT_Z = 50;
+const DEBUG_VIZ_EXTRUDE = 5;
+
+function readDebugVizSettings(input: ParamMap): DebugVizSettings {
+  const readOn = (k: string) => Math.round(clamp(getV(input, k, `param_${k}`, 0), 0, 1)) > 0;
+  const readN = (k: string, d = 0) => clamp(getV(input, k, `param_${k}`, d), -1000, 1000);
+  const profileAOn = readOn("dbg_profile_a");
+  const profileBOn = readOn("dbg_profile_b");
+  const profileCOn = readOn("dbg_profile_c");
+  const heelCOn = readOn("dbg_profile_hc");
+  const heelDOn = readOn("dbg_profile_hd");
+  const abOn = readOn("dbg_ab");
+  const acOn = readOn("dbg_ac");
+  const bcOn = readOn("dbg_bc");
+  const cdOn = readOn("dbg_cd");
+  return {
+    enabled: profileAOn || profileBOn || profileCOn || heelCOn || heelDOn || abOn || acOn || bcOn || cdOn,
+    profileA: { on: profileAOn, xz: { x: readN("dbg_profile_a_x"), z: readN("dbg_profile_a_z") } },
+    profileB: { on: profileBOn, xz: { x: readN("dbg_profile_b_x"), z: readN("dbg_profile_b_z") } },
+    profileC: { on: profileCOn, xz: { x: readN("dbg_profile_c_x"), z: readN("dbg_profile_c_z") } },
+    heelC: { on: heelCOn, xz: { x: readN("dbg_profile_hc_x"), z: readN("dbg_profile_hc_z") } },
+    heelD: { on: heelDOn, xz: { x: readN("dbg_profile_hd_x"), z: readN("dbg_profile_hd_z") } },
+    ab: {
+      on: abOn,
+      first: { x: readN("dbg_ab_first_x"), y: readN("dbg_ab_first_y") },
+      step: { x: readN("dbg_ab_step_x"), y: readN("dbg_ab_step_y") },
+    },
+    ac: {
+      on: acOn,
+      first: { x: readN("dbg_ac_first_x"), y: readN("dbg_ac_first_y") },
+      step: { x: readN("dbg_ac_step_x"), y: readN("dbg_ac_step_y") },
+    },
+    bc: {
+      on: bcOn,
+      first: { x: readN("dbg_bc_first_x"), y: readN("dbg_bc_first_y") },
+      step: { x: readN("dbg_bc_step_x"), y: readN("dbg_bc_step_y") },
+    },
+    cd: {
+      on: cdOn,
+      first: { x: readN("dbg_cd_first_x"), y: readN("dbg_cd_first_y") },
+      step: { x: readN("dbg_cd_step_x"), y: readN("dbg_cd_step_y") },
+    },
+  };
+}
+
+function buildDebugSolidFromSketch(sk: any, dx: number, dy: number, dz: number): Shape3D | null {
+  try {
+    // Never extrude the live loft sketch handle directly: that can invalidate it
+    // and crash the subsequent toe loft ("This object has been deleted").
+    const sketchClone = typeof (sk as any)?.clone === "function" ? (sk as any).clone() : null;
+    if (!sketchClone) return null;
+    return ((sketchClone as any).extrude(DEBUG_VIZ_EXTRUDE) as Shape3D).translate(dx, dy, dz) as Shape3D;
+  } catch {
+    return null;
+  }
+}
+
+function buildToeProfileDebugStack(
+  sketches: any[],
+  label: string,
+  cfg: DebugVizSettings,
+  nAB: number,
+  nBC: number
+): Shape3D | null {
+  if (!cfg.enabled || !Array.isArray(sketches) || sketches.length === 0) return null;
+  postModelDebugStatus(`[${label}] start profiles=${sketches.length} liftZ=${DEBUG_VIZ_LIFT_Z} extrude=${DEBUG_VIZ_EXTRUDE}`);
+  const solids: Shape3D[] = [];
+  const lastIdx = sketches.length - 1;
+  const bIdx = nAB > 0 && sketches.length >= nAB + 2 ? 1 + nAB : -1;
+  const addProfile = (idx: number, prof: ProfileDebug, name: string) => {
+    if (!prof.on || idx < 0 || idx > lastIdx || !sketches[idx]) return;
+    const s = buildDebugSolidFromSketch(sketches[idx], prof.xz.x, 0, DEBUG_VIZ_LIFT_Z + prof.xz.z);
+    if (s) {
+      solids.push(s);
+      postModelDebugStatus(`[${label}] ${name} idx=${idx} tx=${prof.xz.x.toFixed(1)} tz=${prof.xz.z.toFixed(1)}`);
+    }
+  };
+  addProfile(0, cfg.profileA, "profileA");
+  addProfile(bIdx, cfg.profileB, "profileB");
+  addProfile(lastIdx, cfg.profileC, "profileC");
+
+  const addIntermed = (start: number, end: number, g: IntermedDebug, name: string) => {
+    if (!g.on || end < start) return;
+    let k = 0;
+    for (let idx = start; idx <= end; idx++, k++) {
+      if (!sketches[idx]) continue;
+      const dx = g.first.x + g.step.x * k;
+      const dy = g.first.y + g.step.y * k;
+      const s = buildDebugSolidFromSketch(sketches[idx], dx, dy, DEBUG_VIZ_LIFT_Z);
+      if (s) solids.push(s);
+    }
+    postModelDebugStatus(
+      `[${label}] ${name} count=${Math.max(0, end - start + 1)} first=(${g.first.x.toFixed(1)},${g.first.y.toFixed(1)}) ` +
+      `step=(${g.step.x.toFixed(1)},${g.step.y.toFixed(1)})`
+    );
+  };
+
+  if (nAB > 0) addIntermed(1, nAB, cfg.ab, "A>B");
+  if (nBC > 0 && bIdx >= 0) addIntermed(bIdx + 1, lastIdx - 1, cfg.bc, "B>C");
+  if (nAB === 0 && nBC > 0) addIntermed(1, lastIdx - 1, cfg.ac, "A>C");
+
+  if (!solids.length) {
+    postModelDebugStatus(`[${label}] no debug solids built`);
+    return null;
+  }
+  postModelDebugStatus(`[${label}] done solids=${solids.length}`);
+  return (fuseMany(solids as any[]) as Shape3D | null) ?? null;
+}
+
+function buildHeelProfileDebugStack(sketches: any[], label: string, cfg: DebugVizSettings): Shape3D | null {
+  if (!cfg.enabled || !Array.isArray(sketches) || sketches.length === 0) return null;
+  postModelDebugStatus(`[${label}] start profiles=${sketches.length} liftZ=${DEBUG_VIZ_LIFT_Z} extrude=${DEBUG_VIZ_EXTRUDE}`);
+  const solids: Shape3D[] = [];
+  const lastIdx = sketches.length - 1;
+  if (cfg.heelC.on && sketches[0]) {
+    const s = buildDebugSolidFromSketch(sketches[0], cfg.heelC.xz.x, 0, DEBUG_VIZ_LIFT_Z + cfg.heelC.xz.z);
+    if (s) solids.push(s);
+  }
+  if (cfg.heelD.on && sketches[lastIdx]) {
+    const s = buildDebugSolidFromSketch(sketches[lastIdx], cfg.heelD.xz.x, 0, DEBUG_VIZ_LIFT_Z + cfg.heelD.xz.z);
+    if (s) solids.push(s);
+  }
+  if (cfg.cd.on) {
+    let k = 0;
+    for (let idx = 1; idx < lastIdx; idx++, k++) {
+      if (!sketches[idx]) continue;
+      const dx = cfg.cd.first.x + cfg.cd.step.x * k;
+      const dy = cfg.cd.first.y + cfg.cd.step.y * k;
+      const s = buildDebugSolidFromSketch(sketches[idx], dx, dy, DEBUG_VIZ_LIFT_Z);
+      if (s) solids.push(s);
+    }
+  }
+  if (!solids.length) {
+    postModelDebugStatus(`[${label}] no debug solids built`);
+    return null;
+  }
+  postModelDebugStatus(`[${label}] done solids=${solids.length}`);
+  return (fuseMany(solids as any[]) as Shape3D | null) ?? null;
+}
+
 let toeTopInnerFilletEnabled = false;
 let toeTopInnerFilletRadius = 0;
 let toeTopInnerFilletDebugCount = 0;
@@ -901,12 +1305,21 @@ let heelTopCrownPatchOnly = false;
 
 function setToeTopInnerFilletConfig(input: ParamMap) {
   clearHeelTopCapFilletConfig();
+  const thFil3Mode = Math.round(clamp(getV(input, "th_fil_3_mode", "param_th_fil_3_mode", 0), 0, 2));
+  const thFil3Active = thFil3Mode > 0;
   toeTopInnerFilletEnabled = clamp(getV(input, "th_fil_1", "param_th_fil_1", 0), 0, 1) > 0.5;
   toeTopInnerFilletRadius = clamp(getV(input, "th_fil_1_r", "param_th_fil_1_r", 4), 0, 200);
   toeTopInnerFilletDebugCount = 0;
   toeTopOuterFilletEnabled = clamp(getV(input, "th_fil_2", "param_th_fil_2", 0), 0, 1) > 0.5;
   toeTopOuterFilletRadius = clamp(getV(input, "th_fil_2_r", "param_th_fil_2_r", 4), 0, 200);
   toeTopOuterFilletDebugCount = 0;
+  if (thFil3Active) {
+    // TH_FIL_3 owns the toe-end shaping path; disable TH_FIL_1/2 corner fillets
+    // to avoid them visually masking or overriding the profile-end shave.
+    toeTopInnerFilletEnabled = false;
+    toeTopOuterFilletEnabled = false;
+    postModelDebugStatus(`[th_fil_3] active mode=${thFil3Mode} (TH_FIL_1/2 disabled for this build)`);
+  }
   if (toeTopInnerFilletEnabled) {
     postModelDebugStatus(
       `[th_fil_1] enabled r=${toeTopInnerFilletRadius.toFixed(2)}${toeTopInnerFilletRadius > 3 ? " (over 3?)" : ""}`
@@ -1709,6 +2122,34 @@ function trimPolylineBackFromEnd(pts: Pt[], backLen: number): Pt[] | null {
   return null;
 }
 
+function polylineLength(pts: Pt[]): number {
+  if (!Array.isArray(pts) || pts.length < 2) return 0;
+  let total = 0;
+  for (let i = 1; i < pts.length; i++) total += dist(pts[i - 1], pts[i]);
+  return total;
+}
+
+function computeProfileMetrics(outerPts: Pt[], innerPts: Pt[]) {
+  const outerArcLen = polylineLength(outerPts);
+  const innerArcLen = polylineLength(innerPts);
+  const endCapLen =
+    outerPts.length && innerPts.length ? dist(outerPts[outerPts.length - 1], innerPts[innerPts.length - 1]) : 0;
+  const baseCapLen = outerPts.length && innerPts.length ? dist(outerPts[0], innerPts[0]) : 0;
+  return {
+    outerArcLen,
+    innerArcLen,
+    endCapLen,
+    baseCapLen,
+    samples: {
+      outer: outerPts.length,
+      inner: innerPts.length,
+      endCap: endCapLen > 1e-9 ? 2 : 0,
+      baseCap: baseCapLen > 1e-9 ? 2 : 0,
+      totalLoop: outerPts.length + innerPts.length,
+    },
+  };
+}
+
 function clippedToeBezierProfileLower(
   endX: number,
   endZ: number,
@@ -1763,11 +2204,14 @@ function clippedToeBezierProfileLowerNormalCap(
 
   const shave = Math.max(0, shaveMm);
   if (shave <= 1e-6) return drawFromOuterInner(o2, i2);
+  const maxShave = Math.max(0, Math.min(polylineLength(o2), polylineLength(i2)) - 0.25);
+  const shaveSafe = clamp(shave, 0, maxShave);
+  if (shaveSafe <= 1e-6) return drawFromOuterInner(o2, i2);
 
   // Fake fillet/chamfer: shave both cap endpoints back along their respective
   // curves, then reconnect. This softens the top corner without changing topology.
-  const o3 = trimPolylineBackFromEnd(o2, shave);
-  const i3 = trimPolylineBackFromEnd(i2, shave);
+  const o3 = trimPolylineBackFromEnd(o2, shaveSafe);
+  const i3 = trimPolylineBackFromEnd(i2, shaveSafe);
   if (!o3 || !i3 || o3.length < 2 || i3.length < 2) return drawFromOuterInner(o2, i2);
 
   return drawFromOuterInner(o3, i3);
@@ -1961,6 +2405,53 @@ function toeBezierProfileMatchedToNormalCapRefByClipZ(
   return toeBezierOffsetProfile2D(ref.outerEnd.x, ref.outerEnd.y, p1sFit, p3sFit, fittedEnda, thickness, 0, 0, true);
 }
 
+function toeBezierProfileMatchedToRailTargets(
+  baseEndX: number,
+  baseEndZ: number,
+  p1s: number,
+  p3s: number,
+  baseEnda: number,
+  thickness: number,
+  desiredOuterLocal: Pt,
+  desiredInnerLocal: Pt
+) {
+  const baseSpan = Math.max(1e-6, Math.hypot(baseEndX, baseEndZ));
+  const refSpan = Math.max(1e-6, Math.hypot(desiredOuterLocal.x, desiredOuterLocal.y));
+  const spanScale = clamp(refSpan / baseSpan, 0.18, 1.0);
+  const hScale = clamp(
+    desiredOuterLocal.y / Math.max(1e-6, Math.abs(baseEndZ)),
+    0.18,
+    1.0
+  );
+  const ctrlScale = Math.min(spanScale, hScale);
+  const p1sFit = clamp(p1s * ctrlScale, 0.1, Math.max(0.1, desiredOuterLocal.y * 1.1));
+  const p3sFit = clamp(p3s * ctrlScale, 0.05, Math.max(0.05, refSpan * 0.9));
+  const fittedEnda = fitToeEndAngleForLocalInnerTarget(
+    desiredInnerLocal,
+    desiredOuterLocal.x,
+    desiredOuterLocal.y,
+    p1sFit,
+    p3sFit,
+    baseEnda,
+    thickness,
+    true,
+    60,
+    31
+  );
+  const profile = toeBezierOffsetProfile2D(
+    desiredOuterLocal.x,
+    desiredOuterLocal.y,
+    p1sFit,
+    p3sFit,
+    fittedEnda,
+    thickness,
+    0,
+    0,
+    true
+  );
+  return { profile, fittedEnda, p1sFit, p3sFit };
+}
+
 // =======================================================
 // Spine sampling
 // =======================================================
@@ -2011,7 +2502,9 @@ function sampleSpine(input: ParamMap) {
 // Baseplate + screw holes cut
 // =======================================================
 export async function buildBaseSolid(input: ParamMap): Promise<Shape3D> {
-  const railMathMode = Math.round(clamp(num((input as any).rail_math_mode, 1), 1, 10));
+  const railMathMode = Math.round(clamp(num((input as any).rail_math_mode, 1), 1, 11));
+  const tagentProfileAEnabled = clamp(getV(input, "tagent_profile_a", "param_tagent_profile_a", 1), 0, 1) > 0.5;
+  const tagentAOffsetRotDeg = clamp(getV(input, "tagent_a_offset_rot", "param_tagent_a_offset_rot", 0), -180, 180);
   const tagentABaseplateCutPerp = clamp(getV(input, "tagent_a_bp_cut_perp", "param_tagent_a_bp_cut_perp", 0), 0, 1) > 0.5;
   const baseLen = clamp(getV(input, "bp_len", "param1", 195), 50, 2000);
   const baseWid = clamp(getV(input, "bp_wid", "param2", 30), 1, 300);
@@ -2065,7 +2558,9 @@ export async function buildBaseSolid(input: ParamMap): Promise<Shape3D> {
   // Profile-A hidden option can also force the origin-side cap to be perpendicular
   // (horizontal end-cap at y=0) even outside Rail Math 6.
   const applyToeEndCapFlat = railMathMode === 6;
-  const applyStartCapFlat = railMathMode === 6 || tagentABaseplateCutPerp;
+  // The A-perpendicular start-cap option belongs to the non-Tagent-A path.
+  // When Tagent Profile A is enabled, avoid forcing this trim.
+  const applyStartCapFlat = railMathMode === 6 || (tagentABaseplateCutPerp && !tagentProfileAEnabled);
   if ((applyToeEndCapFlat || applyStartCapFlat) && outer.length >= 2 && inner.length >= 1) {
     if (applyToeEndCapFlat) {
       const targetY = inner[inner.length - 1].y;
@@ -2095,31 +2590,99 @@ export async function buildBaseSolid(input: ParamMap): Promise<Shape3D> {
     }
 
     if (applyStartCapFlat) {
-      // Flatten the origin-side cap so the start end-cap is horizontal at y=0.
-      // Since inner[0] is anchored to (0,0), we trim the first outer segment to y=0.
-      const startTargetY = 0;
+      // Rail Math 6 keeps a horizontal start cap at y=0.
+      // A-perpendicular mode trims with a line through origin that is perpendicular
+      // to the effective A-frame tangent (dot(p, tangent) = 0).
+      const usePerpCutAtA = tagentABaseplateCutPerp && railMathMode !== 6;
       let startReplaced = false;
-      for (let i = 1; i < outer.length; i++) {
-        const a = outer[i - 1];
-        const b = outer[i];
-        const yMin = Math.min(a.y, b.y) - 1e-9;
-        const yMax = Math.max(a.y, b.y) + 1e-9;
-        if (startTargetY < yMin || startTargetY > yMax) continue;
-
-        const dy = b.y - a.y;
-        let x = a.x;
-        if (Math.abs(dy) > 1e-9) {
-          const u = clamp((startTargetY - a.y) / dy, 0, 1);
-          x = a.x + (b.x - a.x) * u;
+      if (usePerpCutAtA) {
+        const spineTanStart = vnorm(sub(spine[1], spine[0]));
+        const tagentAFrameTan = dirFromDeg(90 + tagentAOffsetRotDeg);
+        const cutNormal = tagentProfileAEnabled ? spineTanStart : vnorm(tagentAFrameTan);
+        const capDir = vnorm({ x: -cutNormal.y, y: cutNormal.x });
+        const sAt = (p: Pt) => dot2(p, cutNormal);
+        let chosenStart: Pt | null = null;
+        for (let i = 1; i < outer.length; i++) {
+          const a = outer[i - 1];
+          const b = outer[i];
+          const sa = sAt(a);
+          const sb = sAt(b);
+          const crosses = sa === 0 || sb === 0 || sa * sb <= 0;
+          if (!crosses) continue;
+          const denom = sa - sb;
+          const u = Math.abs(denom) > 1e-9 ? clamp(sa / denom, 0, 1) : 0;
+          const x = a.x + (b.x - a.x) * u;
+          const y = a.y + (b.y - a.y) * u;
+          chosenStart = { x, y };
+          outer.splice(0, i, chosenStart);
+          startReplaced = true;
+          break;
         }
-
-        outer.splice(0, i, { x, y: startTargetY });
-        startReplaced = true;
-        break;
+        if (!startReplaced && outer.length > 0) {
+          const first = outer[0];
+          const d = sAt(first);
+          chosenStart = { x: first.x - cutNormal.x * d, y: first.y - cutNormal.y * d };
+          outer[0] = chosenStart;
+          startReplaced = true;
+        }
+        if (startReplaced && outer.length > 0) {
+          // Keep a healthy start-cap width so the cap edge/spline does not collapse.
+          const minStartWidth = Math.max(1e-3, baseWid * 0.5);
+          const targetStart = mul(capDir, baseWid);
+          const cur = outer[0];
+          const curWidth = Math.abs(dot2(cur, capDir));
+          if (!Number.isFinite(curWidth) || curWidth < minStartWidth) {
+            outer[0] = targetStart;
+          } else {
+            // Keep whichever direction is already in use, but normalize width.
+            const sign = dot2(cur, capDir) >= 0 ? 1 : -1;
+            outer[0] = mul(capDir, Math.max(minStartWidth, curWidth) * sign);
+          }
+        }
+      } else {
+        const startTargetY = 0;
+        for (let i = 1; i < outer.length; i++) {
+          const a = outer[i - 1];
+          const b = outer[i];
+          const yMin = Math.min(a.y, b.y) - 1e-9;
+          const yMax = Math.max(a.y, b.y) + 1e-9;
+          if (startTargetY < yMin || startTargetY > yMax) continue;
+          const dy = b.y - a.y;
+          let x = a.x;
+          if (Math.abs(dy) > 1e-9) {
+            const u = clamp((startTargetY - a.y) / dy, 0, 1);
+            x = a.x + (b.x - a.x) * u;
+          }
+          outer.splice(0, i, { x, y: startTargetY });
+          startReplaced = true;
+          break;
+        }
+        if (!startReplaced && outer.length > 0) {
+          const first = outer[0];
+          outer[0] = { x: first.x, y: startTargetY };
+        }
       }
-      if (!startReplaced) {
-        const first = outer[0];
-        outer[0] = { x: first.x, y: startTargetY };
+    }
+  }
+
+  if (applyToeEndCapFlat || applyStartCapFlat) {
+    // Guard against degenerate start/end caps after flat-cap trimming.
+    // This can happen when the flattened outer point collapses onto the inner anchor,
+    // creating a zero-length edge that destabilizes downstream sketch building.
+    outer.splice(0, outer.length, ...dedupePts(outer, 1e-6));
+    if (outer.length >= 2) {
+      const startInner = inner[0];
+      const endInner = inner[inner.length - 1];
+      if (dist(outer[0], startInner) < 1e-4) {
+        const nx = outer[1].x;
+        const safeX = Math.abs(nx) > 1e-4 ? nx : (nx >= 0 ? 1 : -1) * Math.max(1e-3, baseWid * 0.02);
+        outer[0] = { x: safeX, y: startInner.y };
+      }
+      const last = outer.length - 1;
+      if (dist(outer[last], endInner) < 1e-4) {
+        const px = outer[last - 1].x;
+        const safeX = Math.abs(px) > 1e-4 ? px : (px >= 0 ? 1 : -1) * Math.max(1e-3, baseWid * 0.02);
+        outer[last] = { x: safeX, y: endInner.y };
       }
     }
   }
@@ -2137,7 +2700,18 @@ export async function buildBaseSolid(input: ParamMap): Promise<Shape3D> {
   // index first to avoid shifting lower indices before we process them.
   baseLoop = filletClosedLoopCorner(baseLoop, endCapOuterIdx, baseEndFilletR, 10, true);
   baseLoop = filletClosedLoopCorner(baseLoop, startCapOuterIdx, baseEndFilletR, 10, true);
-  baseLoop = pruneLoopTinyKinks(baseLoop, 0.25, 0.12);
+  // Keep the no-fillet path as direct as possible. The kink-prune pass can over-trim
+  // sharp corners in edge cases when BP_FIL_1 is off.
+  if (baseEndFilletR > 1e-6) {
+    baseLoop = pruneLoopTinyKinks(baseLoop, 0.25, 0.12);
+  }
+  baseLoop = dedupePts(baseLoop, 1e-6);
+  if (baseLoop.length < 3) {
+    // Hard fallback: rebuild a raw loop from current rails so baseplate build
+    // remains resilient even if a prior cleanup pass collapsed the loop.
+    const rawLoop: Pt[] = [{ x: 0, y: 0 }, ...outer, inner[inner.length - 1], ...inner.slice(0, inner.length - 1).reverse()];
+    baseLoop = dedupePts(rawLoop, 1e-6);
+  }
 
   const base = (polyToDraw(baseLoop) as any).sketchOnPlane("XY").extrude(-baseThk) as Shape3D;
 
@@ -2998,7 +3572,10 @@ function buildToeABCLoft(
   tagentAOffsetRotDeg = 0,
   tagentAMidpoint = 50,
   tagentAPlaceholder1 = 0,
-  tagentAPlaceholder2 = 0
+  tagentAPlaceholder2 = 0,
+  toeFil3: ToeFil3Settings | null = null,
+  debugViz: DebugVizSettings | null = null,
+  profileEditor: ProfileEditorSettings | null = null
 ) {
   void railMath6c;
   void tagentAPlaceholder1;
@@ -3076,6 +3653,78 @@ function buildToeABCLoft(
   const B_st =
     stations.find((q) => Math.abs(q.s - lenAB) <= 1e-9) ?? { pt: spinePts[idxB], tan: spineTan[idxB], s: lenAB };
   const C_st = stations[stations.length - 1];
+  const toeFil3InteriorCount = Math.max(0, stations.length - 2);
+  const toeFil3StraightSpan = Math.hypot(C_st.pt.x - A_st.pt.x, C_st.pt.y - A_st.pt.y);
+  const toeFil3EffectLen = resolveToeFil3EffectLenMm(toeFil3, toeFil3StraightSpan, toeFil3InteriorCount);
+  const toeFil3Mode = toeFil3?.mode ?? 0;
+  const toeFil3X = clamp(toeFil3?.xMm ?? 0, 0, 100);
+  const toeFil3XActual = clamp(Math.round(toeFil3?.xActualCount ?? 0), 0, 200);
+  const toeFil3Count = clamp(Math.round(toeFil3?.yActualCount ?? 0), 0, 100);
+  if (toeFil3Mode !== 0) {
+    postModelDebugStatus(
+      `[th_fil_3][ABC] mode=${toeFil3Mode} x=${toeFil3X.toFixed(1)} yMm=${(toeFil3?.yMm ?? 0).toFixed(1)} ` +
+      `yActual=${toeFil3Count} interior=${toeFil3InteriorCount} effectLen=${toeFil3EffectLen.toFixed(1)}`
+    );
+  }
+  const toeSectionReports: Array<{
+    idx: number;
+    s: number;
+    keyHint: "a" | "b" | "c" | "ab" | "bc";
+    frameTan: Pt;
+    planeDeg: number;
+    notes: string[];
+    params: Record<string, number | boolean | string>;
+    metrics: ReturnType<typeof computeProfileMetrics>;
+    operations: string[];
+  }> = [];
+  let prevValidSection: {
+    endXSigned: number;
+    endZ: number;
+    p1s: number;
+    p3s: number;
+    fittedEnda: number;
+  } | null = null;
+  const profileEditorActive = !!(profileEditor?.mode11 && profileEditor?.enabled);
+  const bIdxReport = nAB > 0 ? nAB + 1 : -1;
+  const toeKeyForIdx = (idx: number): string => {
+    if (idx <= 0) return "toe:profile_a:0";
+    if (idx === stations.length - 1) return `toe:profile_c:${idx}`;
+    if (nAB > 0) {
+      if (idx < bIdxReport) return `toe:ab:${idx}`;
+      if (idx === bIdxReport) return `toe:profile_b:${idx}`;
+      return `toe:bc:${idx - bIdxReport}`;
+    }
+    return `toe:ac:${idx}`;
+  };
+  const applyProfileEditToToeProfile = (profile: ToeProfileBezier, key: string) => {
+    const pe = profileEditFor(profileEditor, key);
+    if (!pe) return;
+    const peEndX = profileEditNumber(pe, "endX");
+    const peEndZ = profileEditNumber(pe, "endZ");
+    const peAngle = profileEditNumber(pe, "angle");
+    if (peEndX !== null) profile.endX = clamp(peEndX, 0.1, 2000);
+    if (peEndZ !== null) profile.endZ = clamp(peEndZ, 0.1, 2000);
+    if (peAngle !== null) profile.enda = clamp(peAngle, -180, 180);
+  };
+  if (profileEditorActive) {
+    applyProfileEditToToeProfile(A, "toe:profile_a:0");
+    if (nAB > 0) applyProfileEditToToeProfile(B, `toe:profile_b:${bIdxReport}`);
+    applyProfileEditToToeProfile(C, `toe:profile_c:${stations.length - 1}`);
+  }
+  const parseFocusIdx = (): number => {
+    if (!profileEditorActive || !profileEditor?.focusKey?.startsWith("toe:")) return -1;
+    const key = profileEditor.focusKey;
+    if (key.startsWith("toe:profile_a:")) return 0;
+    if (key.startsWith("toe:profile_c:")) return stations.length - 1;
+    const n = Math.round(num(key.split(":").pop(), -1));
+    if (!Number.isFinite(n) || n < 0) return -1;
+    if (key.startsWith("toe:ab:")) return n;
+    if (key.startsWith("toe:profile_b:")) return bIdxReport;
+    if (key.startsWith("toe:bc:")) return bIdxReport + n;
+    if (key.startsWith("toe:ac:")) return n;
+    return -1;
+  };
+  const focusIdx = parseFocusIdx();
 
   // OUTER anchors
   const A_meta = toeBezierMeta2D(sx * A.endX, A.endZ, A.p1s, A.p3s, A.enda, thickness);
@@ -3246,10 +3895,16 @@ function buildToeABCLoft(
     }
     angPrev.v = angDeg;
 
-    return (makePlane("YZ", [pt.x, pt.y, 0]) as any).pivot(angDeg, [0, 0, 1]);
+    return { plane: (makePlane("YZ", [pt.x, pt.y, 0]) as any).pivot(angDeg, [0, 0, 1]), angDeg };
   }
+  let toeFil3StableFrameFallbackLogged = false;
 
-  const sketches = stations.map((st, idx) => {
+  postModelDebugStatus(
+    `[toe_abc] sections=${stations.length} lenAB=${lenAB.toFixed(2)} lenBC=${lenBC.toFixed(2)} debugProfiles=${debugViz?.enabled ? 1 : 0}`
+  );
+  let sketches: any[] = [];
+  try {
+    sketches = stations.map((st, idx) => {
     const onAB = st.s <= lenAB;
     const railMath6UseSmoothRails = railMathMode === 6 && railMath6b;
     const useArc3Rails = railMathMode === 4 || railMathMode === 5 || (railMathMode === 6 && !railMath6UseSmoothRails);
@@ -3262,6 +3917,14 @@ function buildToeABCLoft(
     // (non-tangent) for all sections so every profile keeps the same orientation.
     const railMath6FixedWorldTan: Pt = { x: 0, y: 1 };
     const railMath6SnapFinalC = railMath6a || railMath6b;
+    const profileEditKey = toeKeyForIdx(idx);
+    const pe = profileEditFor(profileEditor, profileEditKey);
+    const peEndXOverride = profileEditNumber(pe, "endX");
+    const peEndZOverride = profileEditNumber(pe, "endZ");
+    const peAngleOverride = profileEditNumber(pe, "angle");
+    const peStrengthOverride = profileEditNumber(pe, "strength");
+    const peThicknessOverride = profileEditNumber(pe, "thickness");
+    const sectionThickness = peThicknessOverride !== null ? clamp(peThicknessOverride, 0.5, 80) : thickness;
     const frameTanBase =
       railMathMode === 6
         ? (railMath6SnapFinalC && isFinalC ? C_st.tan : railMath6FixedWorldTan)
@@ -3273,15 +3936,27 @@ function buildToeABCLoft(
     const aBlendReach = Math.max(1e-6, clamp(tagentAMidpoint / 100, 0, 1));
     const tABNorm = lenAB <= 1e-9 ? 1 : clamp(st.s / lenAB, 0, 1);
     const aBlendAlpha = smoothstep01(clamp(tABNorm / aBlendReach, 0, 1));
+    const useTagentABlend = !tagentProfileA && onAB;
+    const useToeFil3StableFrameFallback = toeFil3Mode !== 0 && !tagentProfileA;
+    if (useToeFil3StableFrameFallback && !toeFil3StableFrameFallbackLogged) {
+      postModelDebugStatus("[th_fil_3][ABC] tangent A off -> using stable frame fallback");
+      toeFil3StableFrameFallbackLogged = true;
+    }
     const frameTanAfterA =
-      !tagentProfileA && onAB ? blendFrameTan(tagentAFrameTan, frameTanBase, aBlendAlpha) : frameTanBase;
-    const frameTan =
+      useTagentABlend && !useToeFil3StableFrameFallback
+        ? blendFrameTan(tagentAFrameTan, frameTanBase, aBlendAlpha)
+        : frameTanBase;
+    let frameTan =
       !tagentProfileA && idx === 0
         ? frameTanAfterA
         : !tagentProfileB && isExactB
         ? endpointOriginFrameTan(st.pt, frameTanBase)
         : frameTanAfterA;
-    const plane = makeSectionPlane(st.pt, frameTan);
+    const peRotOffset = profileEditNumber(pe, "rotOffsetDeg");
+    if (peRotOffset !== null) {
+      frameTan = rotateVecDeg(frameTan, clamp(peRotOffset, -180, 180));
+    }
+    const { plane, angDeg } = makeSectionPlane(st.pt, frameTan);
 
     let prof: ToeProfileBezier;
     if (onAB) {
@@ -3291,6 +3966,13 @@ function buildToeABCLoft(
       const t = lenBC <= 1e-9 ? 0 : clamp((st.s - lenAB) / lenBC, 0, 1);
       prof = lerpProf(B, C, t);
     }
+    if (pe) {
+      if (peEndXOverride !== null) prof.endX = clamp(peEndXOverride, 0.1, 2000);
+      if (peEndZOverride !== null) prof.endZ = clamp(peEndZOverride, 0.1, 2000);
+      if (peAngleOverride !== null) prof.enda = clamp(peAngleOverride, -180, 180);
+    }
+    const bTanScaleLocal = onAB ? 1 / clamp(peStrengthOverride ?? bRailStrength, 0.2, 8) : bTanScale;
+    const cTanScaleLocal = !onAB ? 1 / clamp(peStrengthOverride ?? cRailStrength, 0.2, 8) : cTanScale;
 
     if (railMathMode === 5 && isFinalC) {
       const clipH = clamp(railMath5HeelHC, 0.1, Math.max(0.1, C.endZ - 0.1));
@@ -3330,10 +4012,54 @@ function buildToeABCLoft(
       return heelProf2d.sketchOnPlane(plane);
     }
 
-      // OUTER desired rail
-      const filletCut = clamp(toeAFilletMm, 0, 200);
-      const cutAmtAB =
-        !suppressAFilletCut && onAB && filletCut > 1e-6 ? filletCut * (1 - smoothstep01(clamp(st.s / filletCut, 0, 1))) : 0;
+    // OUTER desired rail
+    const filletCut = clamp(toeAFilletMm, 0, 200);
+    const fil3State = computeToeFil3StationState(
+      idx,
+      st.s,
+      toeFil3EffectLen,
+      toeFil3InteriorCount,
+      toeFil3Count,
+      toeFil3Mode,
+      toeFil3X
+    );
+    const useToeFil3 = fil3State.active;
+    const toeFil3Progress = fil3State.progress01;
+    const baseCutAmtAB = suppressAFilletCut
+      ? 0
+      : useToeFil3
+      ? fil3State.cutMm
+      : onAB && filletCut > 1e-6
+      ? filletCut * (1 - smoothstep01(clamp(st.s / filletCut, 0, 1)))
+      : 0;
+    let toeFil3StationPointCount = 0;
+    let toeFil3BasePointCount = 0;
+    let toeFil3OuterArcLen = 0;
+    const toeFil3ArcCut = useToeFil3
+      ? computeToeFil3ArcCutForSection(
+          toeFil3Mode,
+          fil3State.inRange,
+          toeFil3Progress,
+          toeFil3X,
+          toeFil3XActual,
+          sx * prof.endX,
+          prof.endZ,
+          prof.p1s,
+          prof.p3s,
+          prof.enda,
+          sectionThickness
+        )
+      : null;
+    if (toeFil3ArcCut) {
+      toeFil3StationPointCount = toeFil3ArcCut.stationPointCount;
+      toeFil3BasePointCount = toeFil3ArcCut.basePointCount;
+      toeFil3OuterArcLen = toeFil3ArcCut.outerArcLenMm;
+    }
+    const cutAmtAB = useToeFil3 ? toeFil3ArcCut?.cutMm ?? 0 : baseCutAmtAB;
+    const peOuterCutMm = clamp(num(pe?.outerCutMm, 0), 0, 2000);
+    const peInnerCutMm = clamp(num(pe?.innerCutMm, 0), 0, 2000);
+    const peOuterCutPts = clamp(Math.round(num(pe?.outerCutPts, 0)), 0, 500);
+    const peInnerCutPts = clamp(Math.round(num(pe?.innerCutPts, 0)), 0, 500);
 
     let desiredOuterW: Pt3;
     if (onAB) {
@@ -3350,7 +4076,7 @@ function buildToeABCLoft(
             A_endW,
             B_endW,
             mul3(sub3(B_endW, A_prevOuterW), 0.5),
-            mul3(sub3(C_endW, A_endW), 0.5 * bTanScale),
+            mul3(sub3(C_endW, A_endW), 0.5 * bTanScaleLocal),
             tAB
             );
     } else {
@@ -3366,8 +4092,8 @@ function buildToeABCLoft(
         : hermite3(
             B_endW,
             C_endW,
-            mul3(sub3(C_endW, A_endW), 0.5 * bTanScale),
-            mul3(sub3(C_endW, B_endW), 0.5 * cTanScale),
+            mul3(sub3(C_endW, A_endW), 0.5 * bTanScaleLocal),
+            mul3(sub3(C_endW, B_endW), 0.5 * cTanScaleLocal),
             tBC
           );
     }
@@ -3388,7 +4114,7 @@ function buildToeABCLoft(
             A_inW,
             B_inW,
             mul3(sub3(B_inW, A_prevInnerW), 0.5),
-            mul3(sub3(C_inW, A_inW), 0.5 * bTanScale),
+            mul3(sub3(C_inW, A_inW), 0.5 * bTanScaleLocal),
             tAB
             );
     } else {
@@ -3404,8 +4130,8 @@ function buildToeABCLoft(
         : hermite3(
             B_inW,
             C_inW,
-            mul3(sub3(C_inW, A_inW), 0.5 * bTanScale),
-            mul3(sub3(C_inW, B_inW), 0.5 * cTanScale),
+            mul3(sub3(C_inW, A_inW), 0.5 * bTanScaleLocal),
+            mul3(sub3(C_inW, B_inW), 0.5 * cTanScaleLocal),
             tBC
             );
     }
@@ -3413,39 +4139,205 @@ function buildToeABCLoft(
     const desiredOuterLocalBeforeCut = solveLocalEndXZ(st.pt, frameTan, desiredOuterW);
     const desiredInnerLocalBeforeCut = solveLocalEndXZ(st.pt, frameTan, desiredInnerW);
 
-      const desiredOuterLocalAfterCut = desiredOuterLocalBeforeCut;
-      const desiredInnerLocalAfterCut = desiredInnerLocalBeforeCut;
+    const applyToeFil3CutToLocal = (v: { endXSigned: number; endZ: number }, cutMm: number) => {
+      if (!useToeFil3 || cutMm <= 1e-6) return v;
+      const sign = Math.sign(v.endXSigned) || -1;
+      const minX = 0.5;
+      const cutSafe = Math.min(cutMm, Math.max(0, Math.abs(v.endXSigned) - minX));
+      const cutX = Math.max(minX, Math.abs(v.endXSigned) - cutSafe);
+      return { endXSigned: sign * cutX, endZ: v.endZ };
+    };
+    const applyProfileCutToLocal = (v: { endXSigned: number; endZ: number }, cutMm: number) => {
+      if (cutMm <= 1e-6) return v;
+      const sign = Math.sign(v.endXSigned) || -1;
+      const minX = 0.5;
+      const cutSafe = Math.min(cutMm, Math.max(0, Math.abs(v.endXSigned) - minX));
+      const cutX = Math.max(minX, Math.abs(v.endXSigned) - cutSafe);
+      return { endXSigned: sign * cutX, endZ: v.endZ };
+    };
+    let desiredOuterLocalAfterCut = applyToeFil3CutToLocal(desiredOuterLocalBeforeCut, cutAmtAB);
+    let desiredInnerLocalAfterCut = applyToeFil3CutToLocal(desiredInnerLocalBeforeCut, cutAmtAB);
+    if (useToeFil3 && idx === 0 && cutAmtAB > 1e-6) {
+      const arcRef = toeBezierMetaArcTrimByAmount(
+        sx * prof.endX,
+        prof.endZ,
+        prof.p1s,
+        prof.p3s,
+        prof.enda,
+        sectionThickness,
+        cutAmtAB
+      );
+      desiredOuterLocalAfterCut = { endXSigned: arcRef.outerEnd.x, endZ: arcRef.outerEnd.y };
+      desiredInnerLocalAfterCut = { endXSigned: arcRef.innerEnd.x, endZ: arcRef.innerEnd.y };
+    }
+    if (profileEditorActive) {
+      const sectionOuterCut = peOuterCutMm + (toeFil3ArcCut ? (peOuterCutPts / Math.max(1, toeFil3ArcCut.maxPointCount)) * toeFil3ArcCut.outerArcLenMm : 0);
+      const sectionInnerCut = peInnerCutMm + (toeFil3ArcCut ? (peInnerCutPts / Math.max(1, toeFil3ArcCut.maxPointCount)) * toeFil3ArcCut.outerArcLenMm : 0);
+      desiredOuterLocalAfterCut = applyProfileCutToLocal(desiredOuterLocalAfterCut, sectionOuterCut);
+      desiredInnerLocalAfterCut = applyProfileCutToLocal(desiredInnerLocalAfterCut, sectionInnerCut);
+    }
 
-    const solved = solveLocalEndXZ(st.pt, frameTan, desiredOuterW);
+    const desiredOuterWForSolve = endPointWorld(
+      st.pt,
+      frameTan,
+      desiredOuterLocalAfterCut.endXSigned,
+      desiredOuterLocalAfterCut.endZ
+    );
+    const desiredInnerWForFit = localToWorld(st.pt, frameTan, {
+      x: desiredInnerLocalAfterCut.endXSigned,
+      y: desiredInnerLocalAfterCut.endZ,
+    });
 
-    const fittedEnda = skipInnerRailFit
-      ? prof.enda
-      : fitEndAngleForInnerRail(
-          { pt: st.pt, tan: frameTan },
-          desiredInnerW,
+    let solved: { endXSigned: number; endZ: number };
+    let fittedEnda: number;
+    let sectionCapCutAmt = cutAmtAB;
+    let prof2d: any;
+    let rebuildMode: "clean_fit" | "legacy_top_cut" | "fallback_prev" = "clean_fit";
+    let rebuildOk = 1;
+    let fallbackNote = "";
+    try {
+      solved = solveLocalEndXZ(st.pt, frameTan, desiredOuterWForSolve);
+      if (useToeFil3) {
+        const matched = toeBezierProfileMatchedToRailTargets(
+          sx * prof.endX,
+          prof.endZ,
+          prof.p1s,
+          prof.p3s,
+          prof.enda,
+          sectionThickness,
+          { x: solved.endXSigned, y: solved.endZ },
+          { x: desiredInnerLocalAfterCut.endXSigned, y: desiredInnerLocalAfterCut.endZ }
+        );
+        fittedEnda = matched.fittedEnda;
+        prof2d = matched.profile;
+      } else {
+        fittedEnda = skipInnerRailFit
+          ? prof.enda
+          : fitEndAngleForInnerRail(
+              { pt: st.pt, tan: frameTan },
+              desiredInnerWForFit,
+              solved.endXSigned,
+              solved.endZ,
+              prof.p1s,
+              prof.p3s,
+              prof.enda,
+              sectionThickness,
+              55,
+              17
+            );
+        prof2d = toeBezierOffsetProfile2D(
           solved.endXSigned,
           solved.endZ,
           prof.p1s,
           prof.p3s,
-          prof.enda,
-          thickness,
-          55,
-          17
+          fittedEnda,
+          sectionThickness,
+          0,
+          0
         );
+      }
+      if (!Number.isFinite(solved.endXSigned) || !Number.isFinite(solved.endZ) || !Number.isFinite(fittedEnda)) {
+        throw new Error("invalid solved section");
+      }
+      prevValidSection = {
+        endXSigned: solved.endXSigned,
+        endZ: solved.endZ,
+        p1s: prof.p1s,
+        p3s: prof.p3s,
+        fittedEnda,
+      };
+    } catch (e) {
+      rebuildOk = 0;
+      fallbackNote = e instanceof Error ? e.message : String(e);
+      if (prevValidSection) {
+        rebuildMode = "fallback_prev";
+        solved = { endXSigned: prevValidSection.endXSigned, endZ: prevValidSection.endZ };
+        fittedEnda = prevValidSection.fittedEnda;
+        prof2d = toeBezierOffsetProfile2D(
+          prevValidSection.endXSigned,
+          prevValidSection.endZ,
+          prevValidSection.p1s,
+          prevValidSection.p3s,
+          prevValidSection.fittedEnda,
+          sectionThickness,
+          0,
+          0
+        );
+        rebuildOk = 1;
+      } else {
+        rebuildMode = "legacy_top_cut";
+        if (useToeFil3 && cutAmtAB > 1e-6) {
+          const arcRef = toeBezierMetaArcTrimByAmount(
+            sx * prof.endX,
+            prof.endZ,
+            prof.p1s,
+            prof.p3s,
+            prof.enda,
+            sectionThickness,
+            cutAmtAB
+          );
+          solved = { endXSigned: arcRef.outerEnd.x, endZ: arcRef.outerEnd.y };
+          const matched = toeBezierProfileMatchedToRailTargets(
+            sx * prof.endX,
+            prof.endZ,
+            prof.p1s,
+            prof.p3s,
+            prof.enda,
+            sectionThickness,
+            { x: arcRef.outerEnd.x, y: arcRef.outerEnd.y },
+            { x: arcRef.innerEnd.x, y: arcRef.innerEnd.y }
+          );
+          fittedEnda = matched.fittedEnda;
+          prof2d = matched.profile;
+          sectionCapCutAmt = cutAmtAB;
+        } else {
+          solved = solveLocalEndXZ(st.pt, frameTan, desiredOuterW);
+          fittedEnda = skipInnerRailFit
+            ? prof.enda
+            : fitEndAngleForInnerRail(
+                { pt: st.pt, tan: frameTan },
+                desiredInnerW,
+                solved.endXSigned,
+                solved.endZ,
+                prof.p1s,
+                prof.p3s,
+                prof.enda,
+                sectionThickness,
+                55,
+                17
+              );
+          sectionCapCutAmt = !useToeFil3 && cutAmtAB > 1e-6 ? cutAmtAB : 0;
+          prof2d =
+            sectionCapCutAmt > 1e-6
+              ? toeBezierProfileTopCutByAmount(
+                  solved.endXSigned,
+                  solved.endZ,
+                  prof.p1s,
+                  prof.p3s,
+                  fittedEnda,
+                  sectionThickness,
+                  sectionCapCutAmt
+                )
+              : toeBezierOffsetProfile2D(
+                  solved.endXSigned,
+                  solved.endZ,
+                  prof.p1s,
+                  prof.p3s,
+                  fittedEnda,
+                  sectionThickness,
+                  0,
+                  0
+                );
+        }
+        rebuildOk = 1;
+      }
+      postModelDebugStatus(`[th_fil_3][ABC] fallback i=${idx} mode=${rebuildMode} reason=${fallbackNote}`);
+    }
 
-      // Temporary hard test disabled in combined ABC path (it can invalidate the
-      // first loft section against the rail-fitted progression). Keep normal behavior.
-      const sectionCapCutAmt = cutAmtAB;
-
-    const actualMeta = toeBezierMetaTopCutByAmount(
-      solved.endXSigned,
-      solved.endZ,
-      prof.p1s,
-      prof.p3s,
-      fittedEnda,
-      thickness,
-      sectionCapCutAmt
-    );
+    if (peEndXOverride !== null) solved.endXSigned = sx * clamp(peEndXOverride, 0.1, 2000);
+    if (peEndZOverride !== null) solved.endZ = clamp(peEndZOverride, 0.1, 2000);
+    if (peAngleOverride !== null) fittedEnda = clamp(peAngleOverride, -180, 180);
+    const actualMeta = toeBezierMeta2D(solved.endXSigned, solved.endZ, prof.p1s, prof.p3s, fittedEnda, sectionThickness);
 
         if ((filletCut > 1e-6 || idx === 0) && (idx <= 5 || (st.s > lenAB && idx === stations.length - 1))) {
           postModelDebugStatus(
@@ -3460,24 +4352,246 @@ function buildToeABCLoft(
       );
     }
 
-      const prof2d =
-        sectionCapCutAmt > 1e-6
-          ? toeBezierProfileTopCutByAmount(
-              solved.endXSigned,
-              solved.endZ,
-              prof.p1s,
-              prof.p3s,
-              fittedEnda,
-              thickness,
-              sectionCapCutAmt
-            )
-          : toeBezierOffsetProfile2D(solved.endXSigned, solved.endZ, prof.p1s, prof.p3s, fittedEnda, thickness, 0, 0);
+      const { outerPts: finalOuterPts, innerPts: finalInnerPts } = toeBezierOffsetProfileFixedPts(
+        solved.endXSigned,
+        solved.endZ,
+        prof.p1s,
+        prof.p3s,
+        fittedEnda,
+        sectionThickness
+      );
+      const keyHint: "a" | "b" | "c" | "ab" | "bc" = idx === 0 ? "a" : isExactB ? "b" : idx === stations.length - 1 ? "c" : onAB ? "ab" : "bc";
+      const notes: string[] = [];
+      if (useToeFil3StableFrameFallback) notes.push("tangent profile A off -> stable frame fallback");
+      if (useToeFil3 && sectionCapCutAmt > 1e-6) notes.push(`TH_FIL_3 cutApplied=${sectionCapCutAmt.toFixed(2)}mm progress=${toeFil3Progress.toFixed(3)}`);
+      if (rebuildMode !== "clean_fit") notes.push(`rebuild fallback=${rebuildMode}${fallbackNote ? ` (${fallbackNote})` : ""}`);
+      toeSectionReports.push({
+        idx,
+        s: st.s,
+        keyHint,
+        frameTan,
+        planeDeg: angDeg,
+        notes,
+        params: {
+          toe_thk: sectionThickness,
+          toe_a_endx: A.endX,
+          toe_a_endz: A.endZ,
+          toe_a_p1s: A.p1s,
+          toe_a_p3s: A.p3s,
+          toe_a_enda: A.enda,
+          toe_b_endx: B.endX,
+          toe_b_endz: B.endZ,
+          toe_c_endx: C.endX,
+          toe_c_endz: C.endZ,
+          rail_math_mode: railMathMode,
+          th_fil_3_mode: toeFil3Mode,
+          th_fil_3_effect_station: fil3State.inRange ? 1 : 0,
+          th_fil_3x: toeFil3X,
+          th_fil_3x_actual: toeFil3XActual,
+          th_fil_3y_effect_len: toeFil3EffectLen,
+          th_fil_3_cut_applied_mm: sectionCapCutAmt,
+          th_fil_3_cut_points: toeFil3StationPointCount,
+          th_fil_3_base_points: toeFil3BasePointCount,
+          th_fil_3_outer_arc_len_mm: toeFil3OuterArcLen,
+          th_fil_3_progress_01: toeFil3Progress,
+          th_fil_3_outer_before_x: desiredOuterLocalBeforeCut.endXSigned,
+          th_fil_3_outer_before_z: desiredOuterLocalBeforeCut.endZ,
+          th_fil_3_outer_after_x: desiredOuterLocalAfterCut.endXSigned,
+          th_fil_3_outer_after_z: desiredOuterLocalAfterCut.endZ,
+          th_fil_3_inner_before_x: desiredInnerLocalBeforeCut.endXSigned,
+          th_fil_3_inner_before_z: desiredInnerLocalBeforeCut.endZ,
+          th_fil_3_inner_after_x: desiredInnerLocalAfterCut.endXSigned,
+          th_fil_3_inner_after_z: desiredInnerLocalAfterCut.endZ,
+          th_fil_3_rebuild_mode: rebuildMode,
+          th_fil_3_rebuild_ok: rebuildOk ? 1 : 0,
+          th_fil_3_cut_applied: sectionCapCutAmt,
+          th_fil_3_progress: toeFil3Progress,
+          tagent_profile_a: tagentProfileA,
+          pe_mode11: profileEditorActive ? 1 : 0,
+          pe_key: profileEditKey,
+          pe_outer_cut_mm: peOuterCutMm,
+          pe_outer_cut_pts: peOuterCutPts,
+          pe_inner_cut_mm: peInnerCutMm,
+          pe_inner_cut_pts: peInnerCutPts,
+        },
+        metrics: computeProfileMetrics(finalOuterPts, finalInnerPts),
+        operations: [
+          "Base sketch drawn from toe profile params.",
+          "Section orientation frame resolved.",
+          `Layer 1 rail targets solved (rail_math_mode=${railMathMode}).`,
+          useToeFil3 ? `Layer 2 TH_FIL_3 ${toeFil3Mode === 1 ? "chamfer" : "fillet"} deformation applied.` : "Layer 2 TH_FIL_3 inactive.",
+          "Clean profile rebuilt from final target endpoints.",
+          rebuildMode !== "clean_fit" ? `Fallback applied: ${rebuildMode}.` : "No fallback required.",
+        ],
+      });
 
-    return (prof2d as any).sketchOnPlane(plane);
-  });
+      return (prof2d as any).sketchOnPlane(plane);
+    });
+  } catch (e) {
+    postModelDebugStatus(`[toe_abc] sketch build failed: ${e instanceof Error ? e.message : String(e)}`);
+    throw e;
+  }
+  postModelDebugStatus(`[toe_abc] sketches ready count=${sketches.length}`);
 
-  if (sketches.length < 2) return (sketches[0] as any).extrude(1) as Shape3D;
-  return (sketches[0] as any).loftWith(sketches.slice(1)) as Shape3D;
+  if (profileEditorActive && profileEditor?.isolatedMode) {
+    const pairSolids: Shape3D[] = [];
+    const addPair = (a: number, b: number, tag: string) => {
+      if (a < 0 || b < 0 || a >= sketches.length || b >= sketches.length || a === b) return;
+      const i0 = Math.min(a, b);
+      const i1 = Math.max(a, b);
+      try {
+        const sk0 = sketches[i0];
+        const sk1 = sketches[i1];
+        const s = (sk0 as any).loftWith([sk1]) as Shape3D;
+        pairSolids.push(s);
+        postModelDebugStatus(`[profile_editor] isolated ${tag} built i=${i0}->${i1}`);
+      } catch (e) {
+        postModelDebugStatus(`[profile_editor] isolated ${tag} failed: ${e instanceof Error ? e.message : String(e)}`);
+      }
+    };
+    if (focusIdx >= 0) {
+      if (profileEditor.loftPrev) addPair(focusIdx, focusIdx - 1, "prev");
+      if (profileEditor.loftNext) addPair(focusIdx, focusIdx + 1, "next");
+    }
+    if (!pairSolids.length) {
+      postModelDebugStatus("[profile_editor] isolated mode on with no loft toggles enabled");
+      return null as any;
+    }
+    let iso = pairSolids[0];
+    for (let i = 1; i < pairSolids.length; i++) {
+      try {
+        iso = (((iso as any).fuse(pairSolids[i]) as Shape3D) ?? iso) as Shape3D;
+      } catch {}
+    }
+    return iso;
+  }
+
+  if (profileEditorActive && profileEditor?.sectionMode) {
+    const sectionParts: ToeSectionBuildPart[] = [];
+    if (sketches.length >= 2) {
+      for (let i = 0; i < sketches.length - 1; i++) {
+        const r0 = toeSectionReports.find((r) => r.idx === i) ?? null;
+        const r1 = toeSectionReports.find((r) => r.idx === i + 1) ?? null;
+        const cacheKey = makeToeSectionCacheKey("abc", i, i + 1, r0, r1);
+        const fromKey = toeKeyForIdx(i);
+        const toKey = toeKeyForIdx(i + 1);
+        const partId = `toe:sec:${i}-${i + 1}:${fromKey}->${toKey}`;
+        const partName = `Toe Section ${i}->${i + 1}`;
+        try {
+          const sec = buildCachedToeSectionLoft(toeSectionLoftCacheABC, cacheKey, () => {
+            const sk0 = sketches[i];
+            const sk1 = sketches[i + 1];
+            const c0 = typeof (sk0 as any)?.clone === "function" ? (sk0 as any).clone() : sk0;
+            const c1 = typeof (sk1 as any)?.clone === "function" ? (sk1 as any).clone() : sk1;
+            return (c0 as any).loftWith([c1]) as Shape3D;
+          });
+          if (sec) sectionParts.push({ id: partId, name: partName, cacheKey, shape: sec });
+        } catch (e) {
+          postModelDebugStatus(`[profile_editor] section loft failed i=${i}->${i + 1}: ${e instanceof Error ? e.message : String(e)}`);
+        }
+      }
+    }
+    if (toeBuildExposeSectionParts) toeLastBuildSectionParts = sectionParts;
+    const sectionSolids = sectionParts.map((p) => p.shape).filter(Boolean) as Shape3D[];
+    if (sectionSolids.length) {
+      postModelDebugStatus(`[profile_editor] section mode on (A->B->C) sections=${sectionSolids.length} cache=${toeSectionLoftCacheABC.size}`);
+      const merged = (fuseMany(sectionSolids as any[]) as Shape3D | null) ?? sectionSolids[0];
+      if (merged) return merged;
+    }
+    postModelDebugStatus("[profile_editor] section mode had no valid section lofts; falling back to single loft");
+  }
+
+  let baseSolid: Shape3D;
+  try {
+    const loftSlice = (startIdx: number, endIdxInclusive: number): Shape3D => {
+      const srcChunk = sketches.slice(startIdx, endIdxInclusive + 1);
+      const chunk = srcChunk
+        .map((sk) => (typeof (sk as any)?.clone === "function" ? (sk as any).clone() : sk))
+        .filter(Boolean);
+      if (chunk.length < 2) return (chunk[0] as any).extrude(1) as Shape3D;
+      return (chunk[0] as any).loftWith(chunk.slice(1)) as Shape3D;
+    };
+    const useSegmentedToeFil3Loft = toeFil3Mode !== 0 && sketches.length >= 6;
+    if (useSegmentedToeFil3Loft) {
+      const splitIdx = Math.round(clamp(Math.max(2, toeFil3Count + 2), 2, sketches.length - 2));
+      const frontCount = splitIdx + 1;
+      const backCount = sketches.length - splitIdx;
+      if (frontCount < 3 || backCount < 3) {
+        postModelDebugStatus("[toe_abc] segmented disabled: insufficient sketches");
+        if (sketches.length < 2) baseSolid = (sketches[0] as any).extrude(1) as Shape3D;
+        else baseSolid = (sketches[0] as any).loftWith(sketches.slice(1)) as Shape3D;
+      } else {
+        postModelDebugStatus(
+          `[toe_abc] segmented loft mode split=${splitIdx}/${sketches.length - 1} yActual=${toeFil3Count}`
+        );
+        const front = loftSlice(0, splitIdx);
+        postModelDebugStatus("[toe_abc] segmented front loft built");
+        const back = loftSlice(splitIdx, sketches.length - 1);
+        postModelDebugStatus("[toe_abc] segmented back loft built");
+        baseSolid = (((front as any).fuse(back) as Shape3D) ?? front) as Shape3D;
+        postModelDebugStatus("[toe_abc] segmented loft fused");
+      }
+    } else {
+      if (sketches.length < 2) baseSolid = (sketches[0] as any).extrude(1) as Shape3D;
+      else baseSolid = (sketches[0] as any).loftWith(sketches.slice(1)) as Shape3D;
+    }
+  } catch (e) {
+    postModelDebugStatus(`[toe_abc] loft failed: ${e instanceof Error ? e.message : String(e)}`);
+    throw e;
+  }
+  postModelDebugStatus(`[toe_abc] loft built`);
+
+  try {
+    const byIdx = (i: number) => toeSectionReports.find((r) => r.idx === i) ?? null;
+    const firstInRange = (lo: number, hi: number) => toeSectionReports.find((r) => r.idx >= lo && r.idx <= hi) ?? null;
+    const mk = (key: DebugSectionKey, src: typeof toeSectionReports[number] | null, enabledInUi: boolean): DebugSectionReport => ({
+      key,
+      enabledInUi,
+      modeContext: { addProfileB: nAB > 0, railMathMode: railMathMode as number, thFil3Mode: toeFil3Mode as ToeFil3Mode },
+      orientation: src
+        ? { planeDeg: src.planeDeg, frameTanX: src.frameTan.x, frameTanY: src.frameTan.y, notes: src.notes }
+        : { planeDeg: 0, frameTanX: 0, frameTanY: 1, notes: [] },
+      params: src?.params ?? {},
+      metrics:
+        src?.metrics ??
+        { outerArcLen: 0, innerArcLen: 0, endCapLen: 0, baseCapLen: 0, samples: { outer: 0, inner: 0, endCap: 0, baseCap: 0, totalLoop: 0 } },
+      operations: src?.operations ?? ["Section not built in this mode."],
+    });
+    const sections: DebugSectionReport[] = [
+      mk("profile_a", byIdx(0), true),
+      mk("ab", nAB > 0 ? firstInRange(1, nAB) : null, nAB > 0),
+      mk("ac", nAB === 0 ? firstInRange(1, stations.length - 2) : null, nAB === 0),
+      mk("profile_b", nAB > 0 ? byIdx(bIdxReport) : null, nAB > 0),
+      mk("bc", nAB > 0 ? firstInRange(bIdxReport + 1, stations.length - 2) : null, nAB > 0),
+      mk("profile_c", byIdx(stations.length - 1), true),
+    ];
+    postModelDebugReport({
+      buildId: `${Date.now()}-toe-abc`,
+      part: "toe_abc",
+      sections,
+    });
+  } catch {}
+
+  if (debugViz?.enabled) {
+    try {
+      const debugSketches = sketches
+        .map((sk) => (typeof (sk as any)?.clone === "function" ? (sk as any).clone() : null))
+        .filter(Boolean);
+      const debugStack = buildToeProfileDebugStack(debugSketches, "th_fil_3_debug_abc", debugViz, nAB, nBC);
+      if (debugStack) {
+        try {
+          baseSolid = ((baseSolid as any).fuse(debugStack) as Shape3D) ?? baseSolid;
+          postModelDebugStatus("[th_fil_3_debug_abc] fused");
+        } catch (e) {
+          postModelDebugStatus(`[th_fil_3_debug_abc] fuse failed: ${e instanceof Error ? e.message : String(e)}`);
+        }
+      }
+    } catch (e) {
+      postModelDebugStatus(`[th_fil_3_debug_abc] build failed: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }
+
+  return baseSolid;
 }
 
 function buildToeACLoft(
@@ -3503,7 +4617,10 @@ function buildToeACLoft(
   tagentAOffsetRotDeg = 0,
   tagentAMidpoint = 50,
   tagentAPlaceholder1 = 0,
-  tagentAPlaceholder2 = 0
+  tagentAPlaceholder2 = 0,
+  toeFil3: ToeFil3Settings | null = null,
+  debugViz: DebugVizSettings | null = null,
+  profileEditor: ProfileEditorSettings | null = null
 ) {
   const sx = flipX ? -1 : 1;
   void railMath5Addback;
@@ -3554,6 +4671,19 @@ function buildToeACLoft(
 
   const A_st = stations[0];
   const C_st = stations[stations.length - 1];
+  const toeFil3InteriorCount = Math.max(0, stations.length - 2);
+  const toeFil3StraightSpan = Math.hypot(C_st.pt.x - A_st.pt.x, C_st.pt.y - A_st.pt.y);
+  const toeFil3EffectLen = resolveToeFil3EffectLenMm(toeFil3, toeFil3StraightSpan, toeFil3InteriorCount);
+  const toeFil3Mode = toeFil3?.mode ?? 0;
+  const toeFil3X = clamp(toeFil3?.xMm ?? 0, 0, 100);
+  const toeFil3XActual = clamp(Math.round(toeFil3?.xActualCount ?? 0), 0, 200);
+  const toeFil3Count = clamp(Math.round(toeFil3?.yActualCount ?? 0), 0, 100);
+  if (toeFil3Mode !== 0) {
+    postModelDebugStatus(
+      `[th_fil_3][AC] mode=${toeFil3Mode} x=${toeFil3X.toFixed(1)} yMm=${(toeFil3?.yMm ?? 0).toFixed(1)} ` +
+      `yActual=${toeFil3Count} interior=${toeFil3InteriorCount} effectLen=${toeFil3EffectLen.toFixed(1)}`
+    );
+  }
   const A_meta = toeBezierMeta2D(sx * A.endX, A.endZ, A.p1s, A.p3s, A.enda, thickness);
   const C_meta = toeBezierMeta2D(sx * C.endX, C.endZ, C.p1s, C.p3s, C.enda, thickness);
   const A_endW = endPointWorld(A_st.pt, A_st.tan, sx * A.endX, A.endZ);
@@ -3673,8 +4803,9 @@ function buildToeACLoft(
       while (angDeg - angPrev.v < -180) angDeg += 360;
     }
     angPrev.v = angDeg;
-    return (makePlane("YZ", [pt.x, pt.y, 0]) as any).pivot(angDeg, [0, 0, 1]);
+    return { plane: (makePlane("YZ", [pt.x, pt.y, 0]) as any).pivot(angDeg, [0, 0, 1]), angDeg };
   }
+  let toeFil3StableFrameFallbackLogged = false;
 
   function buildRailMath5FinalCHeelProfileSketch(plane: any) {
     const clipH = clamp(railMath5HeelHC, 0.1, Math.max(0.1, C.endZ - 0.1));
@@ -3756,12 +4887,72 @@ function buildToeACLoft(
     | null = null;
   const railMath5TailStartIdx = railMathMode === 5 && railMath5Addback > 0 ? Math.max(0, stations.length - 2) : -1;
 
-  const sketches = stations.map((st, idx) => {
+  postModelDebugStatus(
+    `[toe_ac] sections=${stations.length} lenAC=${lenAC.toFixed(2)} debugProfiles=${debugViz?.enabled ? 1 : 0}`
+  );
+  const toeSectionReports: Array<{
+    idx: number;
+    frameTan: Pt;
+    planeDeg: number;
+    notes: string[];
+    params: Record<string, number | boolean | string>;
+    metrics: ReturnType<typeof computeProfileMetrics>;
+    operations: string[];
+  }> = [];
+  let prevValidSection: {
+    endXSigned: number;
+    endZ: number;
+    p1s: number;
+    p3s: number;
+    fittedEnda: number;
+  } | null = null;
+  const profileEditorActive = !!(profileEditor?.mode11 && profileEditor?.enabled);
+  const toeKeyForIdx = (idx: number): string => {
+    if (idx <= 0) return "toe:profile_a:0";
+    if (idx === stations.length - 1) return `toe:profile_c:${idx}`;
+    return `toe:ac:${idx}`;
+  };
+  const applyProfileEditToToeProfile = (profile: ToeProfileBezier, key: string) => {
+    const pe = profileEditFor(profileEditor, key);
+    if (!pe) return;
+    const peEndX = profileEditNumber(pe, "endX");
+    const peEndZ = profileEditNumber(pe, "endZ");
+    const peAngle = profileEditNumber(pe, "angle");
+    if (peEndX !== null) profile.endX = clamp(peEndX, 0.1, 2000);
+    if (peEndZ !== null) profile.endZ = clamp(peEndZ, 0.1, 2000);
+    if (peAngle !== null) profile.enda = clamp(peAngle, -180, 180);
+  };
+  if (profileEditorActive) {
+    applyProfileEditToToeProfile(A, "toe:profile_a:0");
+    applyProfileEditToToeProfile(C, `toe:profile_c:${stations.length - 1}`);
+  }
+  const parseFocusIdx = (): number => {
+    if (!profileEditorActive || !profileEditor?.focusKey?.startsWith("toe:")) return -1;
+    const key = profileEditor.focusKey;
+    if (key.startsWith("toe:profile_a:")) return 0;
+    if (key.startsWith("toe:profile_c:")) return stations.length - 1;
+    const n = Math.round(num(key.split(":").pop(), -1));
+    if (!Number.isFinite(n) || n < 0) return -1;
+    if (key.startsWith("toe:ac:")) return n;
+    return -1;
+  };
+  const focusIdx = parseFocusIdx();
+  let sketches: any[] = [];
+  try {
+    sketches = stations.map((st, idx) => {
     const railMath6UseSmoothRails = railMathMode === 6 && railMath6b;
     const useArc3Rails = railMathMode === 4 || railMathMode === 5 || (railMathMode === 6 && !railMath6UseSmoothRails);
     const isFinalC = idx === stations.length - 1;
     const railMath6FixedWorldTan: Pt = { x: 0, y: 1 };
     const railMath6SnapFinalC = railMath6a || railMath6b;
+    const profileEditKey = toeKeyForIdx(idx);
+    const pe = profileEditFor(profileEditor, profileEditKey);
+    const peEndXOverride = profileEditNumber(pe, "endX");
+    const peEndZOverride = profileEditNumber(pe, "endZ");
+    const peAngleOverride = profileEditNumber(pe, "angle");
+    const peStrengthOverride = profileEditNumber(pe, "strength");
+    const peThicknessOverride = profileEditNumber(pe, "thickness");
+    const sectionThickness = peThicknessOverride !== null ? clamp(peThicknessOverride, 0.5, 80) : thickness;
     const frameTanBase =
       railMathMode === 6
         ? (railMath6SnapFinalC && isFinalC ? C_st.tan : railMath6FixedWorldTan)
@@ -3772,10 +4963,29 @@ function buildToeACLoft(
     const aBlendReach = Math.max(1e-6, clamp(tagentAMidpoint / 100, 0, 1));
     const tACNorm = lenAC <= 1e-9 ? 1 : clamp(st.s / lenAC, 0, 1);
     const aBlendAlpha = smoothstep01(clamp(tACNorm / aBlendReach, 0, 1));
-    const frameTan = !tagentProfileA ? blendFrameTan(tagentAFrameTan, frameTanBase, aBlendAlpha) : frameTanBase;
-    const plane = makeSectionPlane(st.pt, frameTan);
+    const useTagentABlend = !tagentProfileA;
+    const useToeFil3StableFrameFallback = toeFil3Mode !== 0 && !tagentProfileA;
+    if (useToeFil3StableFrameFallback && !toeFil3StableFrameFallbackLogged) {
+      postModelDebugStatus("[th_fil_3][AC] tangent A off -> using stable frame fallback");
+      toeFil3StableFrameFallbackLogged = true;
+    }
+    let frameTan =
+      useTagentABlend && !useToeFil3StableFrameFallback
+        ? blendFrameTan(tagentAFrameTan, frameTanBase, aBlendAlpha)
+        : frameTanBase;
+    const peRotOffset = profileEditNumber(pe, "rotOffsetDeg");
+    if (peRotOffset !== null) {
+      frameTan = rotateVecDeg(frameTan, clamp(peRotOffset, -180, 180));
+    }
+    const { plane, angDeg } = makeSectionPlane(st.pt, frameTan);
     const t = lenAC <= 1e-9 ? 0 : clamp(st.s / lenAC, 0, 1);
     const prof = lerpProf(A, C, t);
+    if (pe) {
+      if (peEndXOverride !== null) prof.endX = clamp(peEndXOverride, 0.1, 2000);
+      if (peEndZOverride !== null) prof.endZ = clamp(peEndZOverride, 0.1, 2000);
+      if (peAngleOverride !== null) prof.enda = clamp(peAngleOverride, -180, 180);
+    }
+    const cTanScaleLocal = 1 / clamp(peStrengthOverride ?? cRailStrength, 0.2, 8);
     const useLinearRails = railMathMode === 2;
     const useMode3DownEndRails = railMathMode === 3;
     const skipInnerRailFit = railMathMode === 3;
@@ -3784,10 +4994,53 @@ function buildToeACLoft(
     if (railMathMode === 5 && isFinalC) return buildRailMath5FinalCHeelProfileSketch(plane);
 
     const filletCut = clamp(toeAFilletMm, 0, 200);
-    const cutAmt =
-      suppressAFilletCut || filletCut <= 1e-6
+    const fil3State = computeToeFil3StationState(
+      idx,
+      st.s,
+      toeFil3EffectLen,
+      toeFil3InteriorCount,
+      toeFil3Count,
+      toeFil3Mode,
+      toeFil3X
+    );
+    const useToeFil3 = fil3State.active;
+    const toeFil3Progress = fil3State.progress01;
+    const baseCutAmt =
+      suppressAFilletCut
+        ? 0
+        : useToeFil3
+        ? fil3State.cutMm
+        : filletCut <= 1e-6
         ? 0
         : filletCut * (1 - smoothstep01(clamp(st.s / Math.max(1e-6, filletCut), 0, 1)));
+    let toeFil3StationPointCount = 0;
+    let toeFil3BasePointCount = 0;
+    let toeFil3OuterArcLen = 0;
+    const toeFil3ArcCut = useToeFil3
+      ? computeToeFil3ArcCutForSection(
+          toeFil3Mode,
+          fil3State.inRange,
+          toeFil3Progress,
+          toeFil3X,
+          toeFil3XActual,
+          sx * prof.endX,
+          prof.endZ,
+          prof.p1s,
+          prof.p3s,
+          prof.enda,
+          thickness
+        )
+      : null;
+    if (toeFil3ArcCut) {
+      toeFil3StationPointCount = toeFil3ArcCut.stationPointCount;
+      toeFil3BasePointCount = toeFil3ArcCut.basePointCount;
+      toeFil3OuterArcLen = toeFil3ArcCut.outerArcLenMm;
+    }
+    const cutAmt = useToeFil3 ? toeFil3ArcCut?.cutMm ?? 0 : baseCutAmt;
+    const peOuterCutMm = clamp(num(pe?.outerCutMm, 0), 0, 2000);
+    const peInnerCutMm = clamp(num(pe?.innerCutMm, 0), 0, 2000);
+    const peOuterCutPts = clamp(Math.round(num(pe?.outerCutPts, 0)), 0, 500);
+    const peInnerCutPts = clamp(Math.round(num(pe?.innerCutPts, 0)), 0, 500);
 
     const desiredOuterW =
       useArc3Rails
@@ -3800,7 +5053,7 @@ function buildToeACLoft(
             A_endW,
             C_endW,
             mul3(sub3(C_endW, A_prevOuterW), 0.5),
-            mul3(sub3(C_endW, A_endW), 0.5 * cTanScale),
+            mul3(sub3(C_endW, A_endW), 0.5 * cTanScaleLocal),
             t
           );
     const desiredInnerW =
@@ -3814,7 +5067,7 @@ function buildToeACLoft(
             A_inW,
             C_inW,
             mul3(sub3(C_inW, A_prevInnerW), 0.5),
-            mul3(sub3(C_inW, A_inW), 0.5 * cTanScale),
+            mul3(sub3(C_inW, A_inW), 0.5 * cTanScaleLocal),
             t
           );
 
@@ -3824,44 +5077,290 @@ function buildToeACLoft(
       railMath5TailStartInnerW = desiredInnerW;
     }
 
-    const solved = solveLocalEndXZ(st.pt, frameTan, desiredOuterW);
-    const fittedEnda = skipInnerRailFit
-      ? prof.enda
-      : fitEndAngleForInnerRail(
-          { pt: st.pt, tan: frameTan },
-          desiredInnerW,
+    const desiredOuterLocalBeforeCut = solveLocalEndXZ(st.pt, frameTan, desiredOuterW);
+    const desiredInnerLocalBeforeCut = solveLocalEndXZ(st.pt, frameTan, desiredInnerW);
+    const applyToeFil3CutToLocal = (v: { endXSigned: number; endZ: number }, cutMm: number) => {
+      if (!useToeFil3 || cutMm <= 1e-6) return v;
+      const sign = Math.sign(v.endXSigned) || -1;
+      const minX = 0.5;
+      const cutSafe = Math.min(cutMm, Math.max(0, Math.abs(v.endXSigned) - minX));
+      const cutX = Math.max(minX, Math.abs(v.endXSigned) - cutSafe);
+      return { endXSigned: sign * cutX, endZ: v.endZ };
+    };
+    const applyProfileCutToLocal = (v: { endXSigned: number; endZ: number }, cutMm: number) => {
+      if (cutMm <= 1e-6) return v;
+      const sign = Math.sign(v.endXSigned) || -1;
+      const minX = 0.5;
+      const cutSafe = Math.min(cutMm, Math.max(0, Math.abs(v.endXSigned) - minX));
+      const cutX = Math.max(minX, Math.abs(v.endXSigned) - cutSafe);
+      return { endXSigned: sign * cutX, endZ: v.endZ };
+    };
+    let desiredOuterLocalAfterCut = applyToeFil3CutToLocal(desiredOuterLocalBeforeCut, cutAmt);
+    let desiredInnerLocalAfterCut = applyToeFil3CutToLocal(desiredInnerLocalBeforeCut, cutAmt);
+    if (useToeFil3 && idx === 0 && cutAmt > 1e-6) {
+      const arcRef = toeBezierMetaArcTrimByAmount(
+        sx * prof.endX,
+        prof.endZ,
+        prof.p1s,
+        prof.p3s,
+        prof.enda,
+        sectionThickness,
+        cutAmt
+      );
+      desiredOuterLocalAfterCut = { endXSigned: arcRef.outerEnd.x, endZ: arcRef.outerEnd.y };
+      desiredInnerLocalAfterCut = { endXSigned: arcRef.innerEnd.x, endZ: arcRef.innerEnd.y };
+    }
+    if (profileEditorActive) {
+      const outerPtsCutMm = toeFil3ArcCut ? (peOuterCutPts / Math.max(1, toeFil3ArcCut.maxPointCount)) * toeFil3ArcCut.outerArcLenMm : 0;
+      const innerPtsCutMm = toeFil3ArcCut ? (peInnerCutPts / Math.max(1, toeFil3ArcCut.maxPointCount)) * toeFil3ArcCut.outerArcLenMm : 0;
+      const sectionOuterCut = peOuterCutMm + outerPtsCutMm;
+      const sectionInnerCut = peInnerCutMm + innerPtsCutMm;
+      desiredOuterLocalAfterCut = applyProfileCutToLocal(desiredOuterLocalAfterCut, sectionOuterCut);
+      desiredInnerLocalAfterCut = applyProfileCutToLocal(desiredInnerLocalAfterCut, sectionInnerCut);
+    }
+
+    const desiredOuterWForSolve = endPointWorld(
+      st.pt,
+      frameTan,
+      desiredOuterLocalAfterCut.endXSigned,
+      desiredOuterLocalAfterCut.endZ
+    );
+    const desiredInnerWForFit = localToWorld(st.pt, frameTan, {
+      x: desiredInnerLocalAfterCut.endXSigned,
+      y: desiredInnerLocalAfterCut.endZ,
+    });
+
+    let solved: { endXSigned: number; endZ: number };
+    let fittedEnda: number;
+    let sectionCapCutAmt = cutAmt;
+    let prof2d: any;
+    let rebuildMode: "clean_fit" | "legacy_top_cut" | "fallback_prev" = "clean_fit";
+    let rebuildOk = 1;
+    let fallbackNote = "";
+    try {
+      solved = solveLocalEndXZ(st.pt, frameTan, desiredOuterWForSolve);
+      if (useToeFil3) {
+        const matched = toeBezierProfileMatchedToRailTargets(
+          sx * prof.endX,
+          prof.endZ,
+          prof.p1s,
+          prof.p3s,
+          prof.enda,
+          sectionThickness,
+          { x: solved.endXSigned, y: solved.endZ },
+          { x: desiredInnerLocalAfterCut.endXSigned, y: desiredInnerLocalAfterCut.endZ }
+        );
+        fittedEnda = matched.fittedEnda;
+        prof2d = matched.profile;
+      } else {
+        fittedEnda = skipInnerRailFit
+          ? prof.enda
+          : fitEndAngleForInnerRail(
+              { pt: st.pt, tan: frameTan },
+              desiredInnerWForFit,
+              solved.endXSigned,
+              solved.endZ,
+              prof.p1s,
+              prof.p3s,
+              prof.enda,
+              sectionThickness,
+              55,
+              17
+            );
+        prof2d = toeBezierOffsetProfile2D(
           solved.endXSigned,
           solved.endZ,
           prof.p1s,
           prof.p3s,
-          prof.enda,
-          thickness,
-          55,
-          17
+          fittedEnda,
+          sectionThickness,
+          0,
+          0
         );
+      }
+      if (!Number.isFinite(solved.endXSigned) || !Number.isFinite(solved.endZ) || !Number.isFinite(fittedEnda)) {
+        throw new Error("invalid solved section");
+      }
+      prevValidSection = {
+        endXSigned: solved.endXSigned,
+        endZ: solved.endZ,
+        p1s: prof.p1s,
+        p3s: prof.p3s,
+        fittedEnda,
+      };
+    } catch (e) {
+      rebuildOk = 0;
+      fallbackNote = e instanceof Error ? e.message : String(e);
+      if (prevValidSection) {
+        rebuildMode = "fallback_prev";
+        solved = { endXSigned: prevValidSection.endXSigned, endZ: prevValidSection.endZ };
+        fittedEnda = prevValidSection.fittedEnda;
+        prof2d = toeBezierOffsetProfile2D(
+          prevValidSection.endXSigned,
+          prevValidSection.endZ,
+          prevValidSection.p1s,
+          prevValidSection.p3s,
+          prevValidSection.fittedEnda,
+          sectionThickness,
+          0,
+          0
+        );
+        rebuildOk = 1;
+      } else {
+        rebuildMode = "legacy_top_cut";
+        if (useToeFil3 && cutAmt > 1e-6) {
+          const arcRef = toeBezierMetaArcTrimByAmount(
+            sx * prof.endX,
+            prof.endZ,
+            prof.p1s,
+            prof.p3s,
+            prof.enda,
+            sectionThickness,
+            cutAmt
+          );
+          solved = { endXSigned: arcRef.outerEnd.x, endZ: arcRef.outerEnd.y };
+          const matched = toeBezierProfileMatchedToRailTargets(
+            sx * prof.endX,
+            prof.endZ,
+            prof.p1s,
+            prof.p3s,
+            prof.enda,
+            sectionThickness,
+            { x: arcRef.outerEnd.x, y: arcRef.outerEnd.y },
+            { x: arcRef.innerEnd.x, y: arcRef.innerEnd.y }
+          );
+          fittedEnda = matched.fittedEnda;
+          prof2d = matched.profile;
+          sectionCapCutAmt = cutAmt;
+        } else {
+          solved = solveLocalEndXZ(st.pt, frameTan, desiredOuterW);
+          fittedEnda = skipInnerRailFit
+            ? prof.enda
+            : fitEndAngleForInnerRail(
+                { pt: st.pt, tan: frameTan },
+                desiredInnerW,
+                solved.endXSigned,
+                solved.endZ,
+                prof.p1s,
+                prof.p3s,
+                prof.enda,
+                sectionThickness,
+                55,
+                17
+              );
+          sectionCapCutAmt = !useToeFil3 && cutAmt > 1e-6 ? cutAmt : 0;
+          prof2d =
+            sectionCapCutAmt > 1e-6
+              ? toeBezierProfileTopCutByAmount(
+                  solved.endXSigned,
+                  solved.endZ,
+                  prof.p1s,
+                  prof.p3s,
+                  fittedEnda,
+                  sectionThickness,
+                  sectionCapCutAmt
+                )
+              : toeBezierOffsetProfile2D(
+                  solved.endXSigned,
+                  solved.endZ,
+                  prof.p1s,
+                  prof.p3s,
+                  fittedEnda,
+                  sectionThickness,
+                  0,
+                  0
+                );
+        }
+        rebuildOk = 1;
+      }
+      postModelDebugStatus(`[th_fil_3][AC] fallback i=${idx} mode=${rebuildMode} reason=${fallbackNote}`);
+    }
+    if (peEndXOverride !== null) solved.endXSigned = sx * clamp(peEndXOverride, 0.1, 2000);
+    if (peEndZOverride !== null) solved.endZ = clamp(peEndZOverride, 0.1, 2000);
+    if (peAngleOverride !== null) fittedEnda = clamp(peAngleOverride, -180, 180);
+    const actualMeta = toeBezierMeta2D(solved.endXSigned, solved.endZ, prof.p1s, prof.p3s, fittedEnda, sectionThickness);
+    if ((filletCut > 1e-6 || idx === 0) && (idx <= 5 || idx === stations.length - 1)) {
+      postModelDebugStatus(
+        `[fil_1][AC][rm${railMathMode}] i=${idx} s=${st.s.toFixed(1)} cut=${cutAmt.toFixed(1)} ` +
+          `railO=(${desiredOuterLocalAfterCut.endXSigned.toFixed(1)},${desiredOuterLocalAfterCut.endZ.toFixed(1)}) ` +
+          `actO=(${actualMeta.outerEnd.x.toFixed(1)},${actualMeta.outerEnd.y.toFixed(1)}) ` +
+          `railI=(${desiredInnerLocalAfterCut.endXSigned.toFixed(1)},${desiredInnerLocalAfterCut.endZ.toFixed(1)}) ` +
+          `actI=(${actualMeta.innerEnd.x.toFixed(1)},${actualMeta.innerEnd.y.toFixed(1)})`
+      );
+    }
 
-    const actualMeta = toeBezierMetaTopCutByAmount(
+    const { outerPts: finalOuterPts, innerPts: finalInnerPts } = toeBezierOffsetProfileFixedPts(
       solved.endXSigned,
       solved.endZ,
       prof.p1s,
       prof.p3s,
       fittedEnda,
-      thickness,
-      cutAmt
+      sectionThickness
     );
-    if ((filletCut > 1e-6 || idx === 0) && (idx <= 5 || idx === stations.length - 1)) {
-      postModelDebugStatus(
-        `[fil_1][AC][rm${railMathMode}] i=${idx} s=${st.s.toFixed(1)} cut=${cutAmt.toFixed(1)} ` +
-          `railO=(${solved.endXSigned.toFixed(1)},${solved.endZ.toFixed(1)}) ` +
-          `actO=(${actualMeta.outerEnd.x.toFixed(1)},${actualMeta.outerEnd.y.toFixed(1)}) ` +
-          `actI=(${actualMeta.innerEnd.x.toFixed(1)},${actualMeta.innerEnd.y.toFixed(1)})`
-      );
+    const notes: string[] = [];
+    if (useToeFil3StableFrameFallback) notes.push("tangent profile A off -> stable frame fallback");
+    if (useToeFil3 && sectionCapCutAmt > 1e-6) {
+      notes.push(`TH_FIL_3 cutApplied=${sectionCapCutAmt.toFixed(2)}mm progress=${toeFil3Progress.toFixed(3)}`);
     }
-
-    const prof2d =
-      cutAmt > 1e-6
-        ? toeBezierProfileTopCutByAmount(solved.endXSigned, solved.endZ, prof.p1s, prof.p3s, fittedEnda, thickness, cutAmt)
-        : toeBezierOffsetProfile2D(solved.endXSigned, solved.endZ, prof.p1s, prof.p3s, fittedEnda, thickness, 0, 0);
+    if (rebuildMode !== "clean_fit") notes.push(`rebuild fallback=${rebuildMode}${fallbackNote ? ` (${fallbackNote})` : ""}`);
+    toeSectionReports.push({
+      idx,
+      frameTan,
+      planeDeg: angDeg,
+      notes,
+      params: {
+        toe_thk: sectionThickness,
+        toe_a_endx: A.endX,
+        toe_a_endz: A.endZ,
+        toe_a_p1s: A.p1s,
+        toe_a_p3s: A.p3s,
+        toe_a_enda: A.enda,
+        toe_c_endx: C.endX,
+        toe_c_endz: C.endZ,
+        toe_c_p1s: C.p1s,
+        toe_c_p3s: C.p3s,
+        toe_c_enda: C.enda,
+        rail_math_mode: railMathMode,
+        th_fil_3_mode: toeFil3Mode,
+        th_fil_3_effect_station: fil3State.inRange ? 1 : 0,
+        th_fil_3x: toeFil3X,
+        th_fil_3x_actual: toeFil3XActual,
+        th_fil_3y_effect_len: toeFil3EffectLen,
+        th_fil_3_cut_applied_mm: sectionCapCutAmt,
+        th_fil_3_cut_points: toeFil3StationPointCount,
+        th_fil_3_base_points: toeFil3BasePointCount,
+        th_fil_3_outer_arc_len_mm: toeFil3OuterArcLen,
+        th_fil_3_progress_01: toeFil3Progress,
+        th_fil_3_outer_before_x: desiredOuterLocalBeforeCut.endXSigned,
+        th_fil_3_outer_before_z: desiredOuterLocalBeforeCut.endZ,
+        th_fil_3_outer_after_x: desiredOuterLocalAfterCut.endXSigned,
+        th_fil_3_outer_after_z: desiredOuterLocalAfterCut.endZ,
+        th_fil_3_inner_before_x: desiredInnerLocalBeforeCut.endXSigned,
+        th_fil_3_inner_before_z: desiredInnerLocalBeforeCut.endZ,
+        th_fil_3_inner_after_x: desiredInnerLocalAfterCut.endXSigned,
+        th_fil_3_inner_after_z: desiredInnerLocalAfterCut.endZ,
+        th_fil_3_rebuild_mode: rebuildMode,
+        th_fil_3_rebuild_ok: rebuildOk ? 1 : 0,
+        th_fil_3_cut_applied: sectionCapCutAmt,
+        th_fil_3_progress: toeFil3Progress,
+        tagent_profile_a: tagentProfileA,
+        pe_mode11: profileEditorActive ? 1 : 0,
+        pe_key: profileEditKey,
+        pe_outer_cut_mm: peOuterCutMm,
+        pe_outer_cut_pts: peOuterCutPts,
+        pe_inner_cut_mm: peInnerCutMm,
+        pe_inner_cut_pts: peInnerCutPts,
+      },
+      metrics: computeProfileMetrics(finalOuterPts, finalInnerPts),
+      operations: [
+        "Base sketch drawn from toe profile params.",
+        "Section orientation frame resolved.",
+        `Layer 1 rail targets solved (rail_math_mode=${railMathMode}).`,
+        useToeFil3 ? `Layer 2 TH_FIL_3 ${toeFil3Mode === 1 ? "chamfer" : "fillet"} deformation applied.` : "Layer 2 TH_FIL_3 inactive.",
+        "Clean profile rebuilt from final target endpoints.",
+        rebuildMode !== "clean_fit" ? `Fallback applied: ${rebuildMode}.` : "No fallback required.",
+      ],
+    });
     const sketch = (prof2d as any).sketchOnPlane(plane);
     if (idx === railMath5TailStartIdx) {
       railMath5TailStartSolved = {
@@ -3873,14 +5372,169 @@ function buildToeACLoft(
         cutAmt,
       };
     }
-    return sketch;
-  });
+      return sketch;
+    });
+  } catch (e) {
+    postModelDebugStatus(`[toe_ac] sketch build failed: ${e instanceof Error ? e.message : String(e)}`);
+    throw e;
+  }
+  postModelDebugStatus(`[toe_ac] sketches ready count=${sketches.length}`);
+  if (profileEditorActive && profileEditor?.isolatedMode) {
+    const pairSolids: Shape3D[] = [];
+    const addPair = (a: number, b: number, tag: string) => {
+      if (a < 0 || b < 0 || a >= sketches.length || b >= sketches.length || a === b) return;
+      const i0 = Math.min(a, b);
+      const i1 = Math.max(a, b);
+      try {
+        const s = ((sketches[i0] as any).loftWith([sketches[i1]]) as Shape3D);
+        pairSolids.push(s);
+        postModelDebugStatus(`[profile_editor] isolated ${tag} built i=${i0}->${i1}`);
+      } catch (e) {
+        postModelDebugStatus(`[profile_editor] isolated ${tag} failed: ${e instanceof Error ? e.message : String(e)}`);
+      }
+    };
+    if (focusIdx >= 0) {
+      if (profileEditor.loftPrev) addPair(focusIdx, focusIdx - 1, "prev");
+      if (profileEditor.loftNext) addPair(focusIdx, focusIdx + 1, "next");
+    }
+    if (!pairSolids.length) {
+      postModelDebugStatus("[profile_editor] isolated mode on with no loft toggles enabled");
+      return null as any;
+    }
+    let iso = pairSolids[0];
+    for (let i = 1; i < pairSolids.length; i++) {
+      try {
+        iso = (((iso as any).fuse(pairSolids[i]) as Shape3D) ?? iso) as Shape3D;
+      } catch {}
+    }
+    return iso;
+  }
+  if (profileEditorActive && profileEditor?.sectionMode) {
+    const sectionParts: ToeSectionBuildPart[] = [];
+    if (sketches.length >= 2) {
+      for (let i = 0; i < sketches.length - 1; i++) {
+        const r0 = toeSectionReports.find((r) => r.idx === i) ?? null;
+        const r1 = toeSectionReports.find((r) => r.idx === i + 1) ?? null;
+        const cacheKey = makeToeSectionCacheKey("ac", i, i + 1, r0, r1);
+        const fromKey = toeKeyForIdx(i);
+        const toKey = toeKeyForIdx(i + 1);
+        const partId = `toe:sec:${i}-${i + 1}:${fromKey}->${toKey}`;
+        const partName = `Toe Section ${i}->${i + 1}`;
+        try {
+          const sec = buildCachedToeSectionLoft(toeSectionLoftCacheAC, cacheKey, () => {
+            const sk0 = sketches[i];
+            const sk1 = sketches[i + 1];
+            const c0 = typeof (sk0 as any)?.clone === "function" ? (sk0 as any).clone() : sk0;
+            const c1 = typeof (sk1 as any)?.clone === "function" ? (sk1 as any).clone() : sk1;
+            return (c0 as any).loftWith([c1]) as Shape3D;
+          });
+          if (sec) sectionParts.push({ id: partId, name: partName, cacheKey, shape: sec });
+        } catch (e) {
+          postModelDebugStatus(`[profile_editor] section loft failed i=${i}->${i + 1}: ${e instanceof Error ? e.message : String(e)}`);
+        }
+      }
+    }
+    if (toeBuildExposeSectionParts) toeLastBuildSectionParts = sectionParts;
+    const sectionSolids = sectionParts.map((p) => p.shape).filter(Boolean) as Shape3D[];
+    if (sectionSolids.length) {
+      postModelDebugStatus(`[profile_editor] section mode on (A->C) sections=${sectionSolids.length} cache=${toeSectionLoftCacheAC.size}`);
+      const merged = (fuseMany(sectionSolids as any[]) as Shape3D | null) ?? sectionSolids[0];
+      if (merged) return merged;
+    }
+    postModelDebugStatus("[profile_editor] section mode had no valid section lofts; falling back to single loft");
+  }
+  let baseSolid: Shape3D;
+  try {
+    const loftSlice = (startIdx: number, endIdxInclusive: number): Shape3D => {
+      const srcChunk = sketches.slice(startIdx, endIdxInclusive + 1);
+      const chunk = srcChunk
+        .map((sk) => (typeof (sk as any)?.clone === "function" ? (sk as any).clone() : sk))
+        .filter(Boolean);
+      if (chunk.length < 2) return (chunk[0] as any).extrude(1) as Shape3D;
+      return (chunk[0] as any).loftWith(chunk.slice(1)) as Shape3D;
+    };
+    const useSegmentedToeFil3Loft = toeFil3Mode !== 0 && sketches.length >= 6;
+    if (useSegmentedToeFil3Loft) {
+      const splitIdx = Math.round(clamp(Math.max(2, toeFil3Count + 2), 2, sketches.length - 2));
+      const frontCount = splitIdx + 1;
+      const backCount = sketches.length - splitIdx;
+      if (frontCount < 3 || backCount < 3) {
+        postModelDebugStatus("[toe_ac] segmented disabled: insufficient sketches");
+        if (sketches.length < 2) baseSolid = (sketches[0] as any).extrude(1) as Shape3D;
+        else baseSolid = (sketches[0] as any).loftWith(sketches.slice(1)) as Shape3D;
+      } else {
+        postModelDebugStatus(
+          `[toe_ac] segmented loft mode split=${splitIdx}/${sketches.length - 1} yActual=${toeFil3Count}`
+        );
+        const front = loftSlice(0, splitIdx);
+        postModelDebugStatus("[toe_ac] segmented front loft built");
+        const back = loftSlice(splitIdx, sketches.length - 1);
+        postModelDebugStatus("[toe_ac] segmented back loft built");
+        baseSolid = (((front as any).fuse(back) as Shape3D) ?? front) as Shape3D;
+        postModelDebugStatus("[toe_ac] segmented loft fused");
+      }
+    } else {
+      if (sketches.length < 2) baseSolid = (sketches[0] as any).extrude(1) as Shape3D;
+      else baseSolid = (sketches[0] as any).loftWith(sketches.slice(1)) as Shape3D;
+    }
+  } catch (e) {
+    postModelDebugStatus(`[toe_ac] loft failed: ${e instanceof Error ? e.message : String(e)}`);
+    throw e;
+  }
+  postModelDebugStatus("[toe_ac] loft built");
 
-  if (sketches.length < 2) return (sketches[0] as any).extrude(1) as Shape3D;
-  let baseSolid = (sketches[0] as any).loftWith(sketches.slice(1)) as Shape3D;
+  try {
+    const byIdx = (i: number) => toeSectionReports.find((r) => r.idx === i) ?? null;
+    const firstInRange = (lo: number, hi: number) => toeSectionReports.find((r) => r.idx >= lo && r.idx <= hi) ?? null;
+    const mk = (key: DebugSectionKey, src: typeof toeSectionReports[number] | null, enabledInUi: boolean): DebugSectionReport => ({
+      key,
+      enabledInUi,
+      modeContext: { addProfileB: false, railMathMode: railMathMode as number, thFil3Mode: toeFil3Mode as ToeFil3Mode },
+      orientation: src
+        ? { planeDeg: src.planeDeg, frameTanX: src.frameTan.x, frameTanY: src.frameTan.y, notes: src.notes }
+        : { planeDeg: 0, frameTanX: 0, frameTanY: 1, notes: [] },
+      params: src?.params ?? {},
+      metrics:
+        src?.metrics ??
+        { outerArcLen: 0, innerArcLen: 0, endCapLen: 0, baseCapLen: 0, samples: { outer: 0, inner: 0, endCap: 0, baseCap: 0, totalLoop: 0 } },
+      operations: src?.operations ?? ["Section not built in this mode."],
+    });
+    const sections: DebugSectionReport[] = [
+      mk("profile_a", byIdx(0), true),
+      mk("ab", null, false),
+      mk("ac", firstInRange(1, stations.length - 2), true),
+      mk("profile_b", null, false),
+      mk("bc", null, false),
+      mk("profile_c", byIdx(stations.length - 1), true),
+    ];
+    postModelDebugReport({
+      buildId: `${Date.now()}-toe-ac`,
+      part: "toe_ac",
+      sections,
+    });
+  } catch {}
 
-  if (!(railMathMode === 5 && railMath5Addback > 0)) return baseSolid;
-  if (!railMath5TailStartStation || !railMath5TailStartOuterW || !railMath5TailStartInnerW || !railMath5TailStartSolved) return baseSolid;
+  const applyFil3DebugStack = (solid: Shape3D): Shape3D => {
+    if (!debugViz?.enabled) return solid;
+    try {
+      const debugSketches = sketches
+        .map((sk) => (typeof (sk as any)?.clone === "function" ? (sk as any).clone() : null))
+        .filter(Boolean);
+      const debugStack = buildToeProfileDebugStack(debugSketches, "th_fil_3_debug_ac", debugViz, nAC, 0);
+      if (!debugStack) return solid;
+      const fused = (((solid as any).fuse(debugStack) as Shape3D) ?? solid) as Shape3D;
+      postModelDebugStatus("[th_fil_3_debug_ac] fused");
+      return fused;
+    } catch (e) {
+      postModelDebugStatus(`[th_fil_3_debug_ac] fuse failed: ${e instanceof Error ? e.message : String(e)}`);
+      return solid;
+    }
+  };
+
+  if (!(railMathMode === 5 && railMath5Addback > 0)) return applyFil3DebugStack(baseSolid);
+  if (!railMath5TailStartStation || !railMath5TailStartOuterW || !railMath5TailStartInnerW || !railMath5TailStartSolved) {
+    return applyFil3DebugStack(baseSolid);
+  }
 
   const tailStart = railMath5TailStartStation as { pt: Pt; tan: Pt; s: number };
   const tailEnd = stations[stations.length - 1] as { pt: Pt; tan: Pt; s: number };
@@ -3892,10 +5546,10 @@ function buildToeACLoft(
     fittedEnda: number;
     cutAmt: number;
   };
-  if (!tailEnd || tailEnd.s - tailStart.s <= 1e-6) return baseSolid;
+  if (!tailEnd || tailEnd.s - tailStart.s <= 1e-6) return applyFil3DebugStack(baseSolid);
 
   const addCount = Math.max(0, Math.round(railMath5Addback));
-  if (addCount <= 0) return baseSolid;
+  if (addCount <= 0) return applyFil3DebugStack(baseSolid);
 
   const tMidGlobal = clamp(((tailStart.s + tailEnd.s) * 0.5) / Math.max(1e-6, lenAC), 0, 1);
   const tailOuterGuideMidW = arc3PtEval(A_endW, outerArcGuideMidW, C_endW, tMidGlobal);
@@ -3911,9 +5565,9 @@ function buildToeACLoft(
   }
   tailStations.push(tailEnd);
 
-  const tailStartPlane = makeSectionPlane(tailStart.pt, A_st.tan);
+  const { plane: tailStartPlane } = makeSectionPlane(tailStart.pt, A_st.tan);
   const tailStartProf2d =
-    tailStartSolved.cutAmt > 1e-6
+    tailStartSolved.cutAmt > 1e-6 && toeFil3Mode === 0
       ? toeBezierProfileTopCutByAmount(
           tailStartSolved.endXSigned,
           tailStartSolved.endZ,
@@ -3938,7 +5592,7 @@ function buildToeACLoft(
     const st = tailStations[i];
     const isFinalTailC = i === tailStations.length - 1;
     const frameTan = isFinalTailC ? C_st.tan : A_st.tan;
-    const plane = makeSectionPlane(st.pt, frameTan);
+    const { plane } = makeSectionPlane(st.pt, frameTan);
     if (isFinalTailC) {
       tailSketches.push(buildRailMath5FinalCHeelProfileSketch(plane));
       continue;
@@ -3948,14 +5602,60 @@ function buildToeACLoft(
     const t = clamp(st.s / Math.max(1e-6, lenAC), 0, 1);
     const prof = lerpProf(A, C, t);
     const filletCut = clamp(toeAFilletMm, 0, 200);
-    const cutAmt =
-      filletCut <= 1e-6 ? 0 : filletCut * (1 - smoothstep01(clamp(st.s / Math.max(1e-6, filletCut), 0, 1)));
+    const fil3State = computeToeFil3StationState(
+      i,
+      st.s,
+      toeFil3EffectLen,
+      toeFil3InteriorCount,
+      toeFil3Count,
+      toeFil3Mode,
+      toeFil3X
+    );
+    const useToeFil3 = fil3State.active;
+    const toeFil3Progress = fil3State.progress01;
+    const baseCutAmt = useToeFil3
+      ? fil3State.cutMm
+      : filletCut <= 1e-6
+      ? 0
+      : filletCut * (1 - smoothstep01(clamp(st.s / Math.max(1e-6, filletCut), 0, 1)));
+    const toeFil3ArcCut = useToeFil3
+      ? computeToeFil3ArcCutForSection(
+          toeFil3Mode,
+          fil3State.inRange,
+          toeFil3Progress,
+          toeFil3X,
+          toeFil3XActual,
+          sx * prof.endX,
+          prof.endZ,
+          prof.p1s,
+          prof.p3s,
+          prof.enda,
+          thickness
+        )
+      : null;
+    const cutAmt = useToeFil3 ? toeFil3ArcCut?.cutMm ?? 0 : baseCutAmt;
     const desiredOuterW = arc3PtEval(railMath5TailStartOuterW as Pt3, tailOuterGuideMidW, C_endW, u);
     const desiredInnerW = arc3PtEval(railMath5TailStartInnerW as Pt3, tailInnerGuideMidW, C_inW, u);
-    const solved = solveLocalEndXZ(st.pt, frameTan, desiredOuterW);
+    const desiredOuterLocalBeforeCut = solveLocalEndXZ(st.pt, frameTan, desiredOuterW);
+    const desiredInnerLocalBeforeCut = solveLocalEndXZ(st.pt, frameTan, desiredInnerW);
+    const applyToeFil3CutToLocal = (v: { endXSigned: number; endZ: number }, cutMm: number) => {
+      if (!useToeFil3 || cutMm <= 1e-6) return v;
+      const sign = Math.sign(v.endXSigned) || -1;
+      const minX = 0.5;
+      const cutSafe = Math.min(cutMm, Math.max(0, Math.abs(v.endXSigned) - minX));
+      const cutX = Math.max(minX, Math.abs(v.endXSigned) - cutSafe);
+      return { endXSigned: sign * cutX, endZ: v.endZ };
+    };
+    let desiredOuterLocalAfterCut = applyToeFil3CutToLocal(desiredOuterLocalBeforeCut, cutAmt);
+    let desiredInnerLocalAfterCut = applyToeFil3CutToLocal(desiredInnerLocalBeforeCut, cutAmt);
+    const solved = solveLocalEndXZ(
+      st.pt,
+      frameTan,
+      endPointWorld(st.pt, frameTan, desiredOuterLocalAfterCut.endXSigned, desiredOuterLocalAfterCut.endZ)
+    );
     const fittedEnda = fitEndAngleForInnerRail(
       { pt: st.pt, tan: frameTan },
-      desiredInnerW,
+      localToWorld(st.pt, frameTan, { x: desiredInnerLocalAfterCut.endXSigned, y: desiredInnerLocalAfterCut.endZ }),
       solved.endXSigned,
       solved.endZ,
       prof.p1s,
@@ -3966,7 +5666,7 @@ function buildToeACLoft(
       17
     );
     const prof2d =
-      cutAmt > 1e-6
+      !useToeFil3 && cutAmt > 1e-6
         ? toeBezierProfileTopCutByAmount(solved.endXSigned, solved.endZ, prof.p1s, prof.p3s, fittedEnda, thickness, cutAmt)
         : toeBezierOffsetProfile2D(solved.endXSigned, solved.endZ, prof.p1s, prof.p3s, fittedEnda, thickness, 0, 0);
     tailSketches.push((prof2d as any).sketchOnPlane(plane));
@@ -3992,12 +5692,13 @@ function buildToeACLoft(
     }
   }
 
-  return baseSolid;
+  return applyFil3DebugStack(baseSolid);
 }
 
 export type ToeBuildParts = {
   main: Shape3D | null;
   tail: Shape3D | null;
+  sections: ToeSectionBuildPart[] | null;
 };
 
 // =======================================================
@@ -4183,6 +5884,7 @@ export async function buildToeSolid(input: ParamMap): Promise<Shape3D | null> {
   const toeCEnabled = !!num((input as any).toeCEnabled, 1);
   const tagentProfileA = Math.round(num((input as any).tagent_profile_a, 1)) > 0;
   const tagentProfileB = Math.round(num((input as any).tagent_profile_b, 1)) > 0;
+  const tagentABpCutPerp = Math.round(num((input as any).tagent_a_bp_cut_perp, 0)) > 0;
   const tagentAOffsetRotDeg = clamp(getV(input, "tagent_a_offset_rot", "param_tagent_a_offset_rot", 0), -180, 180);
   const tagentAMidpoint = clamp(getV(input, "tagent_a_midpoint", "param_tagent_a_midpoint", 50), 0, 100);
   const tagentAPlaceholder1 = clamp(
@@ -4194,6 +5896,24 @@ export async function buildToeSolid(input: ParamMap): Promise<Shape3D | null> {
     getV(input, "tagent_a_placeholder_2", "param_tagent_a_placeholder_2", 0),
     -10000,
     10000
+  );
+  const toeFil3Mode = Math.round(clamp(num((input as any).th_fil_3_mode, 0), 0, 2)) as ToeFil3Mode;
+  const toeFil3X = clamp(getV(input, "th_fil_3x", "param_th_fil_3x", 20), 0, 100);
+  const toeFil3XActual = Math.round(clamp(getV(input, "th_fil_3x_actual", "param_th_fil_3x_actual", 0), 0, 200));
+  const toeFil3Y = clamp(getV(input, "th_fil_3y", "param_th_fil_3y", 20), 0, 100);
+  const toeFil3YActual = Math.round(clamp(getV(input, "th_fil_3y_actual", "param_th_fil_3y_actual", 0), 0, 100));
+  const debugViz = readDebugVizSettings(input);
+  const profileEditor = readProfileEditorSettings(input);
+  const toeFil3Settings: ToeFil3Settings = {
+    mode: toeFil3Mode,
+    xMm: toeFil3X,
+    xActualCount: toeFil3XActual,
+    yMm: toeFil3Y,
+    yActualCount: toeFil3YActual,
+  };
+  postModelDebugStatus(
+    `[toe] start addB=${toeAddProfileB ? 1 : 0} cOn=${toeCEnabled ? 1 : 0} fil3Mode=${toeFil3Mode} ` +
+    `dbgProfiles=${debugViz.enabled ? 1 : 0} tagA=${tagentProfileA ? 1 : 0} tagABpCutPerp=${tagentABpCutPerp ? 1 : 0}`
   );
   if (!toeCEnabled) return null;
 
@@ -4234,7 +5954,7 @@ export async function buildToeSolid(input: ParamMap): Promise<Shape3D | null> {
     const aRailStrength = clamp(getV(input, "toe_a_strength", "param10011", 2), 0.2, 8);
     const bRailStrength = clamp(getV(input, "toe_b_strength", "param10010", 2), 0.2, 8);
     const cRailStrength = clamp(getV(input, "toe_c_strength", "param10012", 7), 0.2, 8);
-    const railMathMode = Math.round(clamp(num((input as any).rail_math_mode, 1), 1, 10));
+    const railMathMode = Math.round(clamp(num((input as any).rail_math_mode, 1), 1, 11));
     const railMath5Cull = Math.round(clamp(num((input as any).rail_math_5_cull, 1), 0, 4));
     const railMath5HeelHC = clamp(getV(input, "heel_h_c", "param28", 40), 0.1, 400);
     const railMath5Addback = Math.round(clamp(num((input as any).rail_math_5_addback, 0), 0, 6));
@@ -4251,36 +5971,48 @@ export async function buildToeSolid(input: ParamMap): Promise<Shape3D | null> {
     idxC = clamp(idxC, idxB + 1, spinePts.length - 1);
 
     const FLIP_X = true;
-    return buildToeABCLoft(
-      spinePts,
-      spineTan,
-      idxB,
-      idxC,
-      midAB,
-      midBC,
-      A,
-      B,
-      C,
-      toeThickness,
-      FLIP_X,
-      toeAFillet,
-      bRailStrength,
-      aRailStrength,
-      cRailStrength,
-      railMathMode,
-      railMath5Cull,
-      railMath5HeelHC,
-      railMath5Addback,
-      railMath6a,
-      railMath6b,
-      railMath6c,
-      tagentProfileA,
-      tagentProfileB,
-      tagentAOffsetRotDeg,
-      tagentAMidpoint,
-      tagentAPlaceholder1,
-      tagentAPlaceholder2
-    );
+    postModelDebugStatus("[toe] building A->B->C loft");
+    const buildToeAbcWith = (toeFil3SettingsArg: ToeFil3Settings | null) =>
+      buildToeABCLoft(
+        spinePts,
+        spineTan,
+        idxB,
+        idxC,
+        midAB,
+        midBC,
+        A,
+        B,
+        C,
+        toeThickness,
+        FLIP_X,
+        toeAFillet,
+        bRailStrength,
+        aRailStrength,
+        cRailStrength,
+        railMathMode,
+        railMath5Cull,
+        railMath5HeelHC,
+        railMath5Addback,
+        railMath6a,
+        railMath6b,
+        railMath6c,
+        tagentProfileA,
+        tagentProfileB,
+        tagentAOffsetRotDeg,
+        tagentAMidpoint,
+        tagentAPlaceholder1,
+        tagentAPlaceholder2,
+        toeFil3SettingsArg,
+        debugViz,
+        profileEditor
+      );
+    try {
+      return buildToeAbcWith(toeFil3Settings);
+    } catch (e) {
+      postModelDebugStatus(`[toe] A->B->C build failed: ${e instanceof Error ? e.message : String(e)}`);
+      if (toeFil3Mode !== 0) postModelDebugStatus("[toe] TH_FIL_3 build failed; no auto-disable retry");
+      throw e;
+    }
   }
 
   // Direct A->C mode (Profile B hidden/off). Reuse TOE_BC_MID as A->C intermediates.
@@ -4309,7 +6041,7 @@ export async function buildToeSolid(input: ParamMap): Promise<Shape3D | null> {
   const { spinePts, spineTan } = sampleSpine(input);
   let idxC = findEndIdxByArcLen(spinePts, stationC);
   idxC = clamp(idxC, 1, spinePts.length - 1);
-  const railMathMode = Math.round(clamp(num((input as any).rail_math_mode, 1), 1, 10));
+  const railMathMode = Math.round(clamp(num((input as any).rail_math_mode, 1), 1, 11));
   const railMath5Cull = Math.round(clamp(num((input as any).rail_math_5_cull, 1), 0, 4));
   const railMath5HeelHC = clamp(getV(input, "heel_h_c", "param28", 40), 0.1, 400);
   const railMath5Addback = Math.round(clamp(num((input as any).rail_math_5_addback, 0), 0, 6));
@@ -4317,44 +6049,107 @@ export async function buildToeSolid(input: ParamMap): Promise<Shape3D | null> {
   const railMath6b = Math.round(num((input as any).rail_math_6b, 0)) > 0;
   const railMath6c = Math.round(num((input as any).rail_math_6c, 0)) > 0;
   const FLIP_X = true;
-  return buildToeACLoft(
-    spinePts,
-    spineTan,
-    idxC,
-    midAC,
-    A,
-    C,
-    toeThickness,
-    FLIP_X,
-    toeAFillet,
-    aRailStrength,
-    cRailStrength,
-    railMathMode,
-    railMath5Cull,
-    railMath5HeelHC,
-    railMath5Addback,
-    railMath6a,
-    railMath6b,
-    railMath6c,
-    tagentProfileA,
-    tagentAOffsetRotDeg,
-    tagentAMidpoint,
-    tagentAPlaceholder1,
-    tagentAPlaceholder2
-  );
+  postModelDebugStatus("[toe] building A->C loft");
+  const buildToeAcWith = (toeFil3SettingsArg: ToeFil3Settings | null) =>
+    buildToeACLoft(
+      spinePts,
+      spineTan,
+      idxC,
+      midAC,
+      A,
+      C,
+      toeThickness,
+      FLIP_X,
+      toeAFillet,
+      aRailStrength,
+      cRailStrength,
+      railMathMode,
+      railMath5Cull,
+      railMath5HeelHC,
+      railMath5Addback,
+      railMath6a,
+      railMath6b,
+      railMath6c,
+      tagentProfileA,
+      tagentAOffsetRotDeg,
+      tagentAMidpoint,
+      tagentAPlaceholder1,
+      tagentAPlaceholder2,
+      toeFil3SettingsArg,
+      debugViz,
+      profileEditor
+    );
+  try {
+    return buildToeAcWith(toeFil3Settings);
+  } catch (e) {
+    postModelDebugStatus(`[toe] A->C build failed: ${e instanceof Error ? e.message : String(e)}`);
+    if (toeFil3Mode !== 0) postModelDebugStatus("[toe] TH_FIL_3 build failed; no auto-disable retry");
+    throw e;
+  }
+}
+
+function toeBezierMetaArcTrimByAmount(
+  endX: number,
+  endZ: number,
+  p1s: number,
+  p3s: number,
+  enda: number,
+  thickness: number,
+  cutMm: number
+): ToeMeta2D {
+  const base = toeBezierMeta2D(endX, endZ, p1s, p3s, enda, thickness, true);
+  const cut = Math.max(0, cutMm);
+  if (cut <= 1e-6) return base;
+  try {
+    const { outerPts, innerPts } = toeBezierOffsetProfileFixedPts(endX, endZ, p1s, p3s, enda, thickness);
+    const outerLen = polylineLength(outerPts);
+    const innerLen = polylineLength(innerPts);
+    const maxCut = Math.max(0, Math.min(outerLen, innerLen) - 0.25);
+    const cutSafe = clamp(cut, 0, maxCut);
+    if (cutSafe <= 1e-6) return base;
+
+    const o2 = trimPolylineBackFromEnd(outerPts, cutSafe) ?? outerPts;
+    const iBack = trimPolylineBackFromEnd(innerPts, cutSafe) ?? innerPts;
+    if (o2.length < 2 || iBack.length < 2) return base;
+
+    const oEnd = o2[o2.length - 1];
+    const oPrev = o2[o2.length - 2];
+    const tan = vnorm(sub(oEnd, oPrev));
+    const endNormal = vnorm({ x: -tan.y, y: tan.x });
+    const toInner = sub(iBack[iBack.length - 1], oEnd);
+    const inward = dot2(endNormal, toInner) >= 0 ? endNormal : mul(endNormal, -1);
+    const i2 = trimPolylineAtRayHit(innerPts, oEnd, inward) ?? iBack;
+    if (i2.length < 2) return base;
+
+    return {
+      outerEnd: oEnd,
+      innerEnd: i2[i2.length - 1],
+      inwardSign: base.inwardSign,
+      offSafe: base.offSafe,
+      endNormal,
+    };
+  } catch {
+    return base;
+  }
 }
 
 export async function buildToeSolidParts(input: ParamMap): Promise<ToeBuildParts> {
   const prevExpose = toeBuildExposeTailParts;
+  const prevExposeSections = toeBuildExposeSectionParts;
   const prevTail = toeLastBuildTailShape;
+  const prevSections = toeLastBuildSectionParts;
   toeBuildExposeTailParts = true;
+  toeBuildExposeSectionParts = true;
   toeLastBuildTailShape = null;
+  toeLastBuildSectionParts = null;
   try {
     const main = await buildToeSolid(input);
-    return { main, tail: toeLastBuildTailShape };
+    return { main, tail: toeLastBuildTailShape, sections: toeLastBuildSectionParts };
   } finally {
     toeBuildExposeTailParts = prevExpose;
+    toeBuildExposeSectionParts = prevExposeSections;
     toeLastBuildTailShape = prevTail;
+    toeLastBuildSectionParts = prevSections;
   }
 }
 
@@ -4371,6 +6166,7 @@ export type HeelBuildParts = {
 export async function buildHeelSolidParts(input: ParamMap): Promise<HeelBuildParts> {
   clearToeTopInnerFilletConfig();
   setHeelTopCapFilletConfig(input);
+  const debugViz = readDebugVizSettings(input);
   const { spinePts, spineTan } = sampleSpine(input);
 
   const stationC = clamp(getV(input, "toe_c_sta", "param21", 137), 1, 2000);
@@ -4411,6 +6207,54 @@ export async function buildHeelSolidParts(input: ParamMap): Promise<HeelBuildPar
   const sxFirst = -sx;
   const cdLen = arcLenBetween(spinePts, idxC, idxEnd);
   const sectionCount = midCD + 2;
+  const toeAddProfileB = Math.round(num((input as any).toe_add_profile_b, num((input as any).toeBEnabled, 0))) > 0;
+  const toeRailMathModeForCtx = Math.round(clamp(num((input as any).rail_math_mode, 1), 1, 11));
+  const toeFil3ModeForCtx = Math.round(clamp(num((input as any).th_fil_3_mode, 0), 0, 2)) as ToeFil3Mode;
+
+  const calcPlaneDeg = (tan: Pt) => (Math.atan2(vnorm(tan).y, vnorm(tan).x) * 180) / Math.PI;
+  const safeEmptyMetrics = {
+    outerArcLen: 0,
+    innerArcLen: 0,
+    endCapLen: 0,
+    baseCapLen: 0,
+    samples: { outer: 0, inner: 0, endCap: 0, baseCap: 0, totalLoop: 0 },
+  };
+
+  function heelMetricsAtHeight(h: number) {
+    try {
+      const ref = toeBezierMetaNormalCapByClipZ(sxFirst * endX_C, endZ_C, p1s_C, p3s_C, enda_C, thickness, h);
+      const baseSpan = Math.max(1e-6, Math.hypot(sxFirst * endX_C, endZ_C));
+      const refSpan = Math.max(1e-6, Math.hypot(ref.outerEnd.x, ref.outerEnd.y));
+      const spanScale = clamp(refSpan / baseSpan, 0.18, 1.0);
+      const hScale = clamp(ref.outerEnd.y / Math.max(1e-6, Math.abs(endZ_C)), 0.18, 1.0);
+      const ctrlScale = Math.min(spanScale, hScale);
+      const p1sFit = clamp(p1s_C * ctrlScale, 0.1, Math.max(0.1, ref.outerEnd.y * 1.1));
+      const p3sFit = clamp(p3s_C * ctrlScale, 0.05, Math.max(0.05, refSpan * 0.9));
+      const fittedEnda = fitToeEndAngleForLocalInnerTarget(
+        ref.innerEnd,
+        ref.outerEnd.x,
+        ref.outerEnd.y,
+        p1sFit,
+        p3sFit,
+        enda_C,
+        thickness,
+        true,
+        60,
+        31
+      );
+      const { outerPts, innerPts } = toeBezierOffsetProfileFixedPts(
+        ref.outerEnd.x,
+        ref.outerEnd.y,
+        p1sFit,
+        p3sFit,
+        fittedEnda,
+        thickness
+      );
+      return computeProfileMetrics(outerPts, innerPts);
+    } catch {
+      return safeEmptyMetrics;
+    }
+  }
 
   // Model-side safety clamp based on the actual sampled C profile shape (more reliable
   // than using toe_c_endz alone). This prevents asking the cap-cut/loft for heights that
@@ -4681,8 +6525,108 @@ export async function buildHeelSolidParts(input: ParamMap): Promise<HeelBuildPar
       postModelDebugStatus(`[heel_crown] crown loft failed: ${e instanceof Error ? e.message : String(e)}`);
     }
   }
+  // Build debug solids from a fresh sketch set so loft creation can't be invalidated
+  // by reusing/deleting the original sketch handles.
+  let debugProfilesSolid: Shape3D | null = null;
+  try {
+    const debugSketches = buildHeelSketches(true, sectionCount, "none");
+    debugProfilesSolid = buildHeelProfileDebugStack(debugSketches, "debug_heel_cd", debugViz);
+  } catch (e) {
+    postModelDebugStatus(`[debug_heel_cd] build failed: ${e instanceof Error ? e.message : String(e)}`);
+  }
 
-  return { main: heelSolid, crown: crownSolid, debug: null, debugOnly: false };
+  try {
+    const midIdx = Math.max(1, Math.min(sectionCount - 2, Math.round((sectionCount - 1) * 0.5)));
+    const midT = clamp(midIdx / Math.max(1, sectionCount - 1), 0, 1);
+    const midLen = cdLen * midT;
+    const midStation = evalStationByArcLenBetween(spinePts, spineTan, idxC, idxEnd, midLen);
+    const hMid = heelH_C + (heelH_D - heelH_C) * midT;
+
+    const commonParams: Record<string, number | boolean | string> = {
+      heel_h_c: heelH_C,
+      heel_h_d: heelH_D,
+      heel_cd_mid: midCD,
+      heel_cd_mid_pct: heelCDMidPct * 100,
+      heel_mid_ctrl: heelMidCtrl,
+      heel_rail_math_mode: heelRailMathMode,
+      heel_sweep: heelSweep,
+      tagent_profile_c: tagentProfileC,
+      tagent_profile_d: tagentProfileD,
+      tagent_d_cut_perp: tagentDCutPerp,
+      toe_c_endx: endX_C,
+      toe_c_endz: endZ_C,
+      toe_c_p1s: p1s_C,
+      toe_c_p3s: p3s_C,
+      toe_c_enda: enda_C,
+      toe_thk: thickness,
+    };
+    const sections: DebugSectionReport[] = [
+      {
+        key: "profile_hc",
+        enabledInUi: true,
+        modeContext: { addProfileB: toeAddProfileB, railMathMode: toeRailMathModeForCtx, thFil3Mode: toeFil3ModeForCtx },
+        orientation: {
+          planeDeg: calcPlaneDeg(tagentProfileC ? spineTan[idxC] : (vlen(spinePts[idxC]) > 1e-6 ? vnorm(spinePts[idxC]) : spineTan[idxC])),
+          frameTanX: (tagentProfileC ? spineTan[idxC] : (vlen(spinePts[idxC]) > 1e-6 ? vnorm(spinePts[idxC]) : spineTan[idxC])).x,
+          frameTanY: (tagentProfileC ? spineTan[idxC] : (vlen(spinePts[idxC]) > 1e-6 ? vnorm(spinePts[idxC]) : spineTan[idxC])).y,
+          notes: [],
+        },
+        params: commonParams,
+        metrics: heelMetricsAtHeight(heelH_C),
+        operations: [
+          "Base heel profile input derived from Toe C parameters.",
+          "Profile C sampled as normal-cap reference at H_C.",
+          "Clean fitted heel profile rebuilt from sampled reference.",
+          "Section orientation frame resolved (tangent/radial override).",
+        ],
+      },
+      {
+        key: "cd",
+        enabledInUi: true,
+        modeContext: { addProfileB: toeAddProfileB, railMathMode: toeRailMathModeForCtx, thFil3Mode: toeFil3ModeForCtx },
+        orientation: {
+          planeDeg: calcPlaneDeg(midStation.tan),
+          frameTanX: vnorm(midStation.tan).x,
+          frameTanY: vnorm(midStation.tan).y,
+          notes: [],
+        },
+        params: commonParams,
+        metrics: heelMetricsAtHeight(hMid),
+        operations: [
+          "C>D intermediate station sampled on heel rail.",
+          "Height interpolated/swept between H_C and H_D.",
+          "Profile C sampled as reference and clean fitted rebuild applied.",
+          `Heel rail math mode ${heelRailMathMode} applied.`,
+        ],
+      },
+      {
+        key: "profile_hd",
+        enabledInUi: true,
+        modeContext: { addProfileB: toeAddProfileB, railMathMode: toeRailMathModeForCtx, thFil3Mode: toeFil3ModeForCtx },
+        orientation: {
+          planeDeg: calcPlaneDeg(tagentProfileD ? spineTan[idxEnd] : (vlen(spinePts[idxEnd]) > 1e-6 ? vnorm(spinePts[idxEnd]) : spineTan[idxEnd])),
+          frameTanX: (tagentProfileD ? spineTan[idxEnd] : (vlen(spinePts[idxEnd]) > 1e-6 ? vnorm(spinePts[idxEnd]) : spineTan[idxEnd])).x,
+          frameTanY: (tagentProfileD ? spineTan[idxEnd] : (vlen(spinePts[idxEnd]) > 1e-6 ? vnorm(spinePts[idxEnd]) : spineTan[idxEnd])).y,
+          notes: [],
+        },
+        params: commonParams,
+        metrics: heelMetricsAtHeight(heelH_D),
+        operations: [
+          "Base heel profile input derived from Toe C parameters.",
+          "Profile C sampled as normal-cap reference at H_D.",
+          "Clean fitted heel profile rebuilt from sampled reference.",
+          "Section orientation frame resolved (tangent/radial override).",
+        ],
+      },
+    ];
+    postModelDebugReport({
+      buildId: `${Date.now()}-heel-cd`,
+      part: "heel_cd",
+      sections,
+    });
+  } catch {}
+
+  return { main: heelSolid, crown: crownSolid, debug: debugProfilesSolid, debugOnly: false };
 }
 
 export async function buildHeelSolid(input: ParamMap): Promise<Shape3D> {
@@ -4694,6 +6638,10 @@ export async function buildHeelSolid(input: ParamMap): Promise<Shape3D> {
   if (parts.crown && typeof (out as any).fuse === "function") {
     out = (out as any).fuse(parts.crown) as Shape3D;
     postModelDebugStatus("[heel_crown] crown loft fused");
+  }
+  if (parts.debug && typeof (out as any).fuse === "function") {
+    out = (out as any).fuse(parts.debug) as Shape3D;
+    postModelDebugStatus("[debug_heel_cd] debug profiles fused");
   }
   return out;
 }
