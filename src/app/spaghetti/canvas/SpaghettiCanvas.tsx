@@ -11,7 +11,7 @@ import {
 import {
   getDefaultNodeParams,
   getNodeDef,
-  listNodeTypes,
+  listUserAddableNodeTypes,
   type NodeTypeId,
 } from '../registry/nodeRegistry'
 import type {
@@ -22,15 +22,31 @@ import type {
 import { useSpaghettiStore, type ConnectionDragState } from '../store/useSpaghettiStore'
 import { validateGraph } from '../compiler/validateGraph'
 import { evaluateSpaghettiGraph } from '../compiler/evaluateGraph'
-import { NodeView, type NodeInputCompositeState } from './NodeView'
+import { NodeView } from './NodeView'
 import {
   buildNodeDriverVm,
   type DriverNumberChange,
-  type NodeDriverVm,
+  type OutputPinnedRowVm,
 } from './driverVm'
-import type { PortDetailLine } from './PortView'
+import type { PartRowOrderSection } from '../parts/partRowOrder'
+import {
+  applyPartRowOrderToNodeParams,
+  buildVmRowIdsForSection,
+  movePartRowOrderSection,
+  normalizePartRowOrder,
+} from '../parts/partRowOrder'
 import { getFieldNodeAtPath, getFieldTree } from '../types/fieldTree'
 import { SpaghettiContextMenu } from '../ui/SpaghettiContextMenu'
+import {
+  resolveEffectiveInputPort,
+  resolveEffectiveOutputPort,
+} from '../features/effectivePorts'
+import {
+  addNode as addNodeCommand,
+  connectEdgeWithAutoReplace,
+  planConnectEdgeWithAutoReplace,
+  removeEdge as removeEdgeCommand,
+} from '../graphCommands'
 import type {
   ConnectionValidationResult,
   PortAnchorMap,
@@ -45,6 +61,16 @@ import {
   type CompositeExpansionDirection,
 } from './compositeExpansion'
 import { isInteractiveTarget } from '../spInteractive'
+import {
+  selectDiagnosticsVm,
+  selectNodeVm,
+  type NodeInputCompositeState,
+} from '../selectors'
+import {
+  defaultNodeRegistry,
+  type ConnectionContractResult,
+  validateConnectionContract,
+} from '../contracts/endpoints'
 
 type EndpointPayload = {
   nodeId: string
@@ -74,44 +100,12 @@ const compareNodes = (a: SpaghettiNode, b: SpaghettiNode): number =>
 const compareEdges = (a: SpaghettiGraph['edges'][number], b: SpaghettiGraph['edges'][number]): number =>
   a.edgeId.localeCompare(b.edgeId)
 
-const describePortType = (type: PortSpec['type']): string =>
-  type.unit === undefined ? type.kind : `${type.kind}:${type.unit}`
-
 const clampNumber = (value: number, min: number, max: number): number =>
   Math.min(max, Math.max(min, value))
 
-const formatNumber = (value: number): string =>
-  Number.isInteger(value) ? value.toString() : value.toFixed(3)
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value)
 
-const isSpline2Like = (value: unknown): value is { points: Array<{ x: number; y: number }>; closed: boolean } => {
-  if (typeof value !== 'object' || value === null) {
-    return false
-  }
-  const candidate = value as { points?: unknown; closed?: unknown }
-  if (!Array.isArray(candidate.points) || typeof candidate.closed !== 'boolean') {
-    return false
-  }
-  return candidate.points.every((point) => {
-    if (typeof point !== 'object' || point === null) {
-      return false
-    }
-    const vec = point as { x?: unknown; y?: unknown }
-    return typeof vec.x === 'number' && Number.isFinite(vec.x) && typeof vec.y === 'number' && Number.isFinite(vec.y)
-  })
-}
-
-const isVec2Like = (value: unknown): value is { x: number; y: number } => {
-  if (typeof value !== 'object' || value === null) {
-    return false
-  }
-  const candidate = value as { x?: unknown; y?: unknown }
-  return (
-    typeof candidate.x === 'number' &&
-    Number.isFinite(candidate.x) &&
-    typeof candidate.y === 'number' &&
-    Number.isFinite(candidate.y)
-  )
-}
 
 const resolveEndpointKind = (
   graph: SpaghettiGraph,
@@ -126,8 +120,10 @@ const resolveEndpointKind = (
   if (nodeDef === undefined) {
     return null
   }
-  const ports = direction === 'out' ? nodeDef.outputs : nodeDef.inputs
-  const port = ports.find((candidate) => candidate.portId === endpoint.portId)
+  const port =
+    direction === 'out'
+      ? resolveEffectiveOutputPort(node, endpoint.portId, nodeDef)
+      : resolveEffectiveInputPort(node, endpoint.portId, nodeDef)
   if (port === undefined) {
     return null
   }
@@ -152,9 +148,6 @@ const toEdgeEndpoint = (endpoint: EndpointPayload): EndpointPayload => {
 
 const endpointPathKey = (path: string[] | undefined): string =>
   normalizePath(path)?.join('.') ?? ''
-
-const leafPortPathKey = (portId: string, path: string[] | undefined): string =>
-  `${portId}::${endpointPathKey(path)}`
 
 const isSketchAnchorPointValueBarClickTarget = (target: EventTarget | null): boolean => {
   if (!(target instanceof Element)) {
@@ -202,20 +195,6 @@ const isTopDragHandle = (target: EventTarget | null): boolean => {
     target.closest('.SpaghettiNodePresetRow') !== null ||
     target.closest('.SpaghettiNodeToolbarEditor') !== null
   )
-}
-
-const getValueAtPath = (value: unknown, path: string[] | undefined): unknown => {
-  if (path === undefined || path.length === 0) {
-    return value
-  }
-  let current: unknown = value
-  for (const segment of path) {
-    if (typeof current !== 'object' || current === null) {
-      return undefined
-    }
-    current = (current as Record<string, unknown>)[segment]
-  }
-  return current
 }
 
 const pathsEqual = (a: string[] | undefined, b: string[] | undefined): boolean => {
@@ -306,103 +285,79 @@ const buildBaseplateSketchPointParams = (lengthMm: number, widthMm: number) => (
   anchorPoint5: { x: 0, y: 0 },
 })
 
-const validateConnectionCheap = (
+export const validateConnectionCheap = (
   graph: SpaghettiGraph,
   payload: {
     from: EndpointPayload
     to: EndpointPayload
   },
 ): ConnectionValidationResult => {
-  const fromNode = graph.nodes.find((node) => node.nodeId === payload.from.nodeId)
-  const toNode = graph.nodes.find((node) => node.nodeId === payload.to.nodeId)
-  if (fromNode === undefined || toNode === undefined) {
-    return {
-      ok: false,
-      reason: 'Endpoint node not found.',
-    }
+  const planned = planConnectEdgeWithAutoReplace(graph, {
+    edgeId: '__ct1-cheap-probe__',
+    from: toEdgeEndpoint(payload.from),
+    to: toEdgeEndpoint(payload.to),
+  })
+  if (planned.kind === 'noop') {
+    return { ok: true, code: 'OK' }
   }
 
-  const fromDef = getNodeDef(fromNode.type)
-  const toDef = getNodeDef(toNode.type)
-  if (fromDef === undefined || toDef === undefined) {
-    return {
-      ok: false,
-      reason: 'Node definition not found.',
-    }
+  const projectedGraph: SpaghettiGraph = {
+    ...graph,
+    edges: planned.nextEdges,
   }
-
-  const fromPort = fromDef.outputs.find((port) => port.portId === payload.from.portId)
-  const toPort = toDef.inputs.find((port) => port.portId === payload.to.portId)
-  if (fromPort === undefined || toPort === undefined) {
-    return {
-      ok: false,
-      reason: 'Port not found.',
-    }
-  }
-
-  const fromFieldNode = getFieldNodeAtPath(getFieldTree(fromPort.type), payload.from.path)
-  const toFieldNode = getFieldNodeAtPath(getFieldTree(toPort.type), payload.to.path)
-  if (fromFieldNode === undefined || toFieldNode === undefined) {
-    return {
-      ok: false,
-      reason: 'Path not found.',
-    }
-  }
-  if (
-    (payload.from.path !== undefined && fromFieldNode.kind !== 'leaf') ||
-    (payload.to.path !== undefined && toFieldNode.kind !== 'leaf')
-  ) {
-    return {
-      ok: false,
-      reason: 'Connection endpoint must target leaf fields.',
-    }
-  }
-
-  if (fromFieldNode.type.kind !== toFieldNode.type.kind) {
-    return {
-      ok: false,
-      reason: `Port kinds do not match (${fromFieldNode.type.kind} -> ${toFieldNode.type.kind}).`,
-    }
-  }
-
-  if (fromFieldNode.type.unit !== toFieldNode.type.unit) {
-    return {
-      ok: false,
-      reason: 'Port units do not match.',
-    }
-  }
-
-  const duplicate = graph.edges.some(
-    (edge) =>
-      edge.from.nodeId === payload.from.nodeId &&
-      edge.from.portId === payload.from.portId &&
-      pathsEqual(edge.from.path, payload.from.path) &&
-      edge.to.nodeId === payload.to.nodeId &&
-      edge.to.portId === payload.to.portId &&
-      pathsEqual(edge.to.path, payload.to.path),
+  const decision = validateConnectionContract(
+    projectedGraph,
+    defaultNodeRegistry,
+    payload.from,
+    payload.to,
   )
-  if (duplicate) {
-    return {
-      ok: false,
-      reason: 'Connection already exists.',
+  if (decision.ok) {
+    return { ok: true, code: 'OK' }
+  }
+  return {
+    ok: false,
+    code: decision.code,
+    reason: toCanvasConnectionReason(decision),
+  }
+}
+
+const toCanvasConnectionReason = (
+  decision: Extract<ConnectionContractResult, { ok: false }>,
+): string => {
+  switch (decision.code) {
+    case 'EDGE_FROM_NODE_MISSING':
+    case 'EDGE_TO_NODE_MISSING':
+      return 'Endpoint node not found.'
+    case 'NODE_TYPE_UNKNOWN':
+      return 'Node definition not found.'
+    case 'EDGE_FROM_PORT_MISSING':
+    case 'EDGE_TO_PORT_MISSING':
+      return 'Port not found.'
+    case 'FEATURE_WIRE_INTRA_NODE_UNSUPPORTED':
+      return 'Feature virtual inputs must be driven from another node in Phase 2 v1.'
+    case 'FEATURE_VIRTUAL_INPUT_PATH_UNSUPPORTED':
+      return 'Feature virtual inputs do not support path connections.'
+    case 'DRIVER_VIRTUAL_INPUT_PATH_UNSUPPORTED':
+      return 'Driver virtual inputs do not support path connections.'
+    case 'EDGE_FROM_PATH_INVALID':
+    case 'EDGE_TO_PATH_INVALID':
+      return 'Path not found.'
+    case 'EDGE_FROM_PATH_NOT_LEAF':
+    case 'EDGE_TO_PATH_NOT_LEAF':
+      return 'Connection endpoint must target leaf fields.'
+    case 'EDGE_TYPE_MISMATCH':
+      return 'Port kinds or units do not match.'
+    case 'EDGE_TO_PATH_DUPLICATE':
+      return 'Connection already exists.'
+    case 'EDGE_TO_MAX_CONNECTIONS': {
+      const maxConnectionsIn = decision.details.maxConnectionsIn ?? 1
+      return `Input allows up to ${maxConnectionsIn} connection(s).`
+    }
+    default: {
+      const _exhaustive: never = decision.code
+      return _exhaustive
     }
   }
-
-  const incomingCount = graph.edges.filter(
-    (edge) =>
-      edge.to.nodeId === payload.to.nodeId &&
-      edge.to.portId === payload.to.portId &&
-      pathsEqual(edge.to.path, payload.to.path),
-  ).length
-  const maxConnectionsIn = toPort.maxConnectionsIn ?? 1
-  if (incomingCount >= maxConnectionsIn) {
-    return {
-      ok: false,
-      reason: `Input allows up to ${maxConnectionsIn} connection(s).`,
-    }
-  }
-
-  return { ok: true }
 }
 
 const areAnchorsEqual = (a: PortAnchorMap, b: PortAnchorMap): boolean => {
@@ -451,12 +406,18 @@ const distancePointToSegmentSq = (
   return distanceSq(point, closest)
 }
 
-type NodeRenderData = {
-  inputPortDetails: Record<string, PortDetailLine[]>
-  outputPortDetails: Record<string, PortDetailLine[]>
-  inputCompositeState: NodeInputCompositeState
-  primitiveNumberValue: number
-  driverVm: NodeDriverVm | null
+const buildInputConnectionCountByPortId = (
+  edges: readonly SpaghettiGraph['edges'][number][],
+  nodeId: string,
+): Map<string, number> => {
+  const counts = new Map<string, number>()
+  for (const edge of edges) {
+    if (edge.to.nodeId !== nodeId) {
+      continue
+    }
+    counts.set(edge.to.portId, (counts.get(edge.to.portId) ?? 0) + 1)
+  }
+  return counts
 }
 
 const EMPTY_NODE_INPUT_COMPOSITE_STATE: NodeInputCompositeState = {
@@ -479,10 +440,9 @@ export function SpaghettiCanvas() {
   const uiMessage = useSpaghettiStore((state) => state.uiMessage)
   const edgeWaypoints = useSpaghettiStore((state) => state.edgeWaypoints)
   const ensureNodePositions = useSpaghettiStore((state) => state.ensureNodePositions)
+  const applyGraphCommand = useSpaghettiStore((state) => state.applyGraphCommand)
   const applyGraphPatch = useSpaghettiStore((state) => state.applyGraphPatch)
   const setManyNodePos = useSpaghettiStore((state) => state.setManyNodePos)
-  const addEdge = useSpaghettiStore((state) => state.addEdge)
-  const removeEdge = useSpaghettiStore((state) => state.removeEdge)
   const insertEdgeWaypoint = useSpaghettiStore((state) => state.insertEdgeWaypoint)
   const setEdgeWaypointPos = useSpaghettiStore((state) => state.setEdgeWaypointPos)
   const removeEdgeWaypoint = useSpaghettiStore((state) => state.removeEdgeWaypoint)
@@ -686,7 +646,7 @@ export function SpaghettiCanvas() {
 
   const availableNodeTypes = useMemo(
     () =>
-      [...listNodeTypes()].sort(
+      [...listUserAddableNodeTypes()].sort(
         (a, b) => a.label.localeCompare(b.label) || a.type.localeCompare(b.type),
       ),
     [],
@@ -753,163 +713,28 @@ export function SpaghettiCanvas() {
     }
     return nextEvaluation
   }, [graph])
+  const diagnosticsVm = useMemo(
+    () =>
+      selectDiagnosticsVm({
+        graph,
+        evaluation,
+      }),
+    [evaluation, graph],
+  )
   const nodePos = graph.ui?.nodes ?? {}
   const nodeRenderDataById = useMemo(() => {
     const t0 = DEV ? performance.now() : 0
-    const byNodeId = new Map<string, NodeRenderData>()
-
-    for (const node of sortedNodes) {
-      const nodeDef = getNodeDef(node.type)
-      const nodeInputs = nodeDef?.inputs ?? []
-      const nodeOutputs = nodeDef?.outputs ?? []
-
-      const incoming = sortedEdges.filter((edge) => edge.to.nodeId === node.nodeId)
-      const inputConnectionCountByPortId = new Map<string, number>()
-      for (const edge of incoming) {
-        inputConnectionCountByPortId.set(
-          edge.to.portId,
-          (inputConnectionCountByPortId.get(edge.to.portId) ?? 0) + 1,
-        )
-      }
-      const wholeDrivenByPortId = new Set<string>()
-      const leafDrivenByPortIdPathKey = new Set<string>()
-      const firstWholeIncomingByPortId = new Map<string, SpaghettiGraph['edges'][number]>()
-      const hasLeafByPortId = new Set<string>()
-      const hasWholeByPortId = new Set<string>()
-
-      for (const edge of incoming) {
-        const normalizedToPath =
-          edge.to.path === undefined || edge.to.path.length === 0 ? undefined : edge.to.path
-        if (normalizedToPath === undefined) {
-          wholeDrivenByPortId.add(edge.to.portId)
-          hasWholeByPortId.add(edge.to.portId)
-          if (!firstWholeIncomingByPortId.has(edge.to.portId)) {
-            firstWholeIncomingByPortId.set(edge.to.portId, edge)
-          }
-          continue
-        }
-        leafDrivenByPortIdPathKey.add(leafPortPathKey(edge.to.portId, normalizedToPath))
-        hasLeafByPortId.add(edge.to.portId)
-      }
-
-      const legacyLeafOverrideOnWhole = new Set<string>()
-      for (const portId of hasWholeByPortId) {
-        if (hasLeafByPortId.has(portId)) {
-          legacyLeafOverrideOnWhole.add(portId)
-        }
-      }
-
-      const vec2DisplayByPortId = new Map<string, { x: number; y: number }>()
-      for (const port of nodeInputs) {
-        if (port.type.kind !== 'vec2') {
-          continue
-        }
-
-        const raw = node.params[port.portId]
-        const literalVec = isVec2Like(raw) ? raw : { x: 0, y: 0 }
-
-        if (!wholeDrivenByPortId.has(port.portId)) {
-          vec2DisplayByPortId.set(port.portId, literalVec)
-          continue
-        }
-
-        const wholeEdge = firstWholeIncomingByPortId.get(port.portId)
-        if (wholeEdge === undefined) {
-          vec2DisplayByPortId.set(port.portId, literalVec)
-          continue
-        }
-
-        const sourceOutput =
-          evaluation.outputsByNodeId[wholeEdge.from.nodeId]?.[wholeEdge.from.portId]
-        const sourceValue = getValueAtPath(sourceOutput, wholeEdge.from.path)
-        vec2DisplayByPortId.set(port.portId, isVec2Like(sourceValue) ? sourceValue : literalVec)
-      }
-
-      const inputPortDetails: Record<string, PortDetailLine[]> = Object.fromEntries(
-        nodeInputs.map((port) => {
-          const incomingForPort = incoming.filter((edge) => edge.to.portId === port.portId)
-          const lines: PortDetailLine[] = [
-            { text: `type: ${describePortType(port.type)}`, kind: port.type.kind },
-            { text: `optional: ${port.optional === true ? 'yes' : 'no'}` },
-            { text: `connections in: ${incomingForPort.length}/${port.maxConnectionsIn ?? 1}` },
-          ]
-          for (const edge of incomingForPort) {
-            lines.push({
-              text: `from: ${edge.from.nodeId}.${edge.from.portId}${
-                edge.from.path === undefined ? '' : `.${endpointPathKey(edge.from.path)}`
-              }`,
-            })
-          }
-          return [port.portId, lines]
-        }),
-      )
-
-      const outgoing = sortedEdges.filter((edge) => edge.from.nodeId === node.nodeId)
-      const outputPortDetails: Record<string, PortDetailLine[]> = Object.fromEntries(
-        nodeOutputs.map((port) => {
-          const outgoingForPort = outgoing.filter((edge) => edge.from.portId === port.portId)
-          const lines: PortDetailLine[] = [
-            { text: `type: ${describePortType(port.type)}`, kind: port.type.kind },
-            { text: `connections out: ${outgoingForPort.length}` },
-          ]
-
-          const resolvedValue = evaluation.outputsByNodeId[node.nodeId]?.[port.portId]
-          if (port.type.kind === 'spline2' && isSpline2Like(resolvedValue)) {
-            const points = resolvedValue.points.slice(0, 5)
-            points.forEach((point, index) => {
-              lines.push({
-                text: `vec2[${index + 1}]: (${formatNumber(point.x)}, ${formatNumber(point.y)})`,
-                kind: 'vec2',
-              })
-            })
-            lines.push({
-              text: `closed: ${resolvedValue.closed ? 'true' : 'false'}`,
-              kind: 'boolean',
-            })
-          }
-
-          for (const edge of outgoingForPort) {
-            lines.push({
-              text: `to: ${edge.to.nodeId}.${edge.to.portId}${
-                edge.to.path === undefined ? '' : `.${endpointPathKey(edge.to.path)}`
-              }`,
-            })
-          }
-
-          return [port.portId, lines]
-        }),
-      )
-
-      byNodeId.set(node.nodeId, {
-        inputPortDetails,
-        outputPortDetails,
-        inputCompositeState: {
-          wholeDrivenByPortId,
-          leafDrivenByPortIdPathKey,
-          legacyLeafOverrideOnWhole,
-          vec2DisplayByPortId,
-        },
-        primitiveNumberValue:
-          node.type === 'Primitive/Number' && typeof node.params.value === 'number'
-            ? node.params.value
-            : 0,
-        driverVm: buildNodeDriverVm(node, nodeDef, {
-          resolvedInputsByPortId: evaluation.inputsByNodeId[node.nodeId],
-          connectionCountByPortId: inputConnectionCountByPortId,
-        }),
-      })
-    }
-
+    const selected = selectNodeVm(graph, evaluation, diagnosticsVm)
     if (DEV) {
       console.log(
         '[perf] buildNodeRenderData ms',
         performance.now() - t0,
         'nodes',
-        sortedNodes.length,
+        selected.orderedNodeIds.length,
       )
     }
-    return byNodeId
-  }, [evaluation.inputsByNodeId, evaluation.outputsByNodeId, sortedEdges, sortedNodes])
+    return selected.byNodeId
+  }, [diagnosticsVm, evaluation, graph])
 
   const stageSize = useMemo(() => {
     const t0 = DEV ? performance.now() : 0
@@ -1463,16 +1288,31 @@ export function SpaghettiCanvas() {
             })
           } else {
             const edgeId = generateUniqueEdgeId(graphSnapshot)
+            const insertPlan = planConnectEdgeWithAutoReplace(graphSnapshot, {
+              edgeId,
+              from: toEdgeEndpoint(sourceEndpoint),
+              to: toEdgeEndpoint(targetEndpoint),
+            })
+
+            if (insertPlan.kind === 'noop') {
+              setUiMessage({
+                level: 'info',
+                text: 'Connection unchanged.',
+              })
+              connectionDragRef.current = null
+              clearConnectionDrag()
+              hoverInputTargetRef.current = null
+              hoverOutputTargetRef.current = null
+              setHoverInputTarget(null)
+              setHoverOutputTarget(null)
+              window.removeEventListener('pointermove', handleMove)
+              window.removeEventListener('pointerup', handleUp)
+              return
+            }
+
             const tentative = {
               ...graphSnapshot,
-              edges: [
-                ...graphSnapshot.edges,
-                {
-                  edgeId,
-                  from: toEdgeEndpoint(sourceEndpoint),
-                  to: toEdgeEndpoint(targetEndpoint),
-                },
-              ],
+              edges: insertPlan.nextEdges,
             }
             const cycleError = validateGraph(tentative).errors.some(
               (diagnostic) => diagnostic.code === 'GRAPH_CYCLE_DETECTED',
@@ -1483,15 +1323,17 @@ export function SpaghettiCanvas() {
                 text: 'Connection would introduce a cycle.',
               })
             } else {
-              addEdge({
-                edgeId,
-                from: toEdgeEndpoint(sourceEndpoint),
-                to: toEdgeEndpoint(targetEndpoint),
-              })
-              setSelectedEdgeId(edgeId)
+              applyGraphCommand(
+                connectEdgeWithAutoReplace({
+                  edgeId,
+                  from: toEdgeEndpoint(sourceEndpoint),
+                  to: toEdgeEndpoint(targetEndpoint),
+                }),
+              )
+              setSelectedEdgeId(insertPlan.insertedEdge.edgeId)
               setUiMessage({
                 level: 'info',
-                text: 'Connection created.',
+                text: insertPlan.removedEdgeIds.length > 0 ? 'Connection replaced.' : 'Connection created.',
               })
             }
           }
@@ -1511,7 +1353,7 @@ export function SpaghettiCanvas() {
       window.addEventListener('pointerup', handleUp)
     },
     [
-      addEdge,
+      applyGraphCommand,
       clearConnectionDrag,
       clearUiMessage,
       setConnectionDrag,
@@ -1562,7 +1404,10 @@ export function SpaghettiCanvas() {
         return
       }
 
-      removeEdge(existing.edgeId)
+      applyGraphCommand(removeEdgeCommand(existing.edgeId))
+      if (selectedEdgeId === existing.edgeId) {
+        setSelectedEdgeId(null)
+      }
       const detachedGraph: SpaghettiGraph = {
         ...graph,
         edges: sortedEdges.filter((edge) => edge.edgeId !== existing.edgeId),
@@ -1584,7 +1429,7 @@ export function SpaghettiCanvas() {
       event.stopPropagation()
       event.preventDefault()
     },
-    [beginConnectionDrag, graph, removeEdge, sortedEdges],
+    [applyGraphCommand, beginConnectionDrag, graph, selectedEdgeId, setSelectedEdgeId, sortedEdges],
   )
 
   const handleOutputPointerEnter = useCallback((target: OutputTarget) => {
@@ -1635,7 +1480,9 @@ export function SpaghettiCanvas() {
     if (selectedEdgeId === null) {
       return
     }
-    removeEdge(selectedEdgeId)
+    applyGraphCommand(removeEdgeCommand(selectedEdgeId))
+    setSelectedEdgeId(null)
+    setHoveredEdgeId(null)
     if (selectedWaypoint?.edgeId === selectedEdgeId) {
       setSelectedWaypoint(null)
     }
@@ -1643,7 +1490,14 @@ export function SpaghettiCanvas() {
       level: 'info',
       text: 'Edge deleted.',
     })
-  }, [removeEdge, selectedEdgeId, selectedWaypoint, setUiMessage])
+  }, [
+    applyGraphCommand,
+    selectedEdgeId,
+    selectedWaypoint,
+    setHoveredEdgeId,
+    setSelectedEdgeId,
+    setUiMessage,
+  ])
 
   const resolveWaypointInsertIndex = useCallback(
     (
@@ -1795,24 +1649,16 @@ export function SpaghettiCanvas() {
       const nodeId = generateUniqueNodeId(graph)
       const x = Math.round(nodeAddMenu.stageX)
       const y = Math.round(nodeAddMenu.stageY)
-      applyGraphPatch((prev) => ({
-        ...prev,
-        nodes: [
-          ...prev.nodes,
-          {
+      applyGraphCommand(
+        addNodeCommand({
+          node: {
             nodeId,
             type,
             params: getDefaultNodeParams(type),
           },
-        ],
-        ui: {
-          ...(prev.ui?.viewport === undefined ? {} : { viewport: prev.ui.viewport }),
-          nodes: {
-            ...(prev.ui?.nodes ?? {}),
-            [nodeId]: { x, y },
-          },
-        },
-      }))
+          position: { x, y },
+        }),
+      )
       setSelectedNodeId(nodeId)
       setSelectedEdgeId(null)
       setUiMessage({
@@ -1821,7 +1667,7 @@ export function SpaghettiCanvas() {
       })
       setNodeAddMenu(null)
     },
-    [applyGraphPatch, graph, nodeAddMenu, setSelectedEdgeId, setSelectedNodeId, setUiMessage],
+    [applyGraphCommand, graph, nodeAddMenu, setSelectedEdgeId, setSelectedNodeId, setUiMessage],
   )
 
   const handlePresetChange = useCallback(
@@ -1841,6 +1687,79 @@ export function SpaghettiCanvas() {
           }
         }),
       }))
+    },
+    [applyGraphPatch],
+  )
+
+  const handleMoveSectionRow = useCallback(
+    (
+      nodeId: string,
+      section: PartRowOrderSection,
+      rowId: string,
+      direction: 'up' | 'down',
+    ) => {
+      applyGraphPatch((prev) => {
+        const targetNode = prev.nodes.find((node) => node.nodeId === nodeId)
+        if (targetNode === undefined) {
+          return prev
+        }
+        const targetNodeDef = getNodeDef(targetNode.type)
+        const naturalDriverVm = buildNodeDriverVm(targetNode, targetNodeDef, {
+          connectionCountByPortId: buildInputConnectionCountByPortId(prev.edges, nodeId),
+        })
+        if (naturalDriverVm === null) {
+          return prev
+        }
+
+        const vmDriversRowIds = buildVmRowIdsForSection(nodeId, naturalDriverVm.drivers)
+        const vmInputsRowIds = buildVmRowIdsForSection(nodeId, naturalDriverVm.inputs)
+        const outputEndpointRows = naturalDriverVm.outputs.filter(
+          (row): row is Extract<OutputPinnedRowVm, { kind: 'endpoint' }> => row.kind === 'endpoint',
+        )
+        const vmOutputsRowIds = buildVmRowIdsForSection(nodeId, outputEndpointRows)
+
+        const normalizedPartRowOrder = normalizePartRowOrder({
+          node: targetNode,
+          vmDriversRowIds,
+          vmInputsRowIds,
+          vmOutputsRowIds,
+        })
+        const moved = movePartRowOrderSection({
+          normalized: normalizedPartRowOrder.normalized,
+          naturalRowIdsBySection: {
+            drivers: vmDriversRowIds,
+            inputs: vmInputsRowIds,
+            outputs: vmOutputsRowIds,
+          },
+          section,
+          rowId,
+          direction,
+        })
+        if (!moved.changed) {
+          return prev
+        }
+
+        const baseParams =
+          normalizedPartRowOrder.repairedNode?.params ?? targetNode.params
+        const nextParams = applyPartRowOrderToNodeParams(baseParams, moved.next)
+        const prevPartRowOrder = JSON.stringify(baseParams.partRowOrder)
+        const nextPartRowOrder = JSON.stringify(nextParams.partRowOrder)
+        if (prevPartRowOrder === nextPartRowOrder) {
+          return prev
+        }
+
+        return {
+          ...prev,
+          nodes: prev.nodes.map((node) =>
+            node.nodeId === nodeId
+              ? {
+                  ...node,
+                  params: nextParams,
+                }
+              : node,
+          ),
+        }
+      })
     },
     [applyGraphPatch],
   )
@@ -1891,6 +1810,31 @@ export function SpaghettiCanvas() {
           kind: 'lit',
           value,
         })
+        return
+      }
+
+      if (change.kind === 'nodeParamOffset') {
+        applyGraphPatch((prev) => ({
+          ...prev,
+          nodes: prev.nodes.map((node) => {
+            if (node.nodeId !== nodeId) {
+              return node
+            }
+            const currentOffsetByParamId = isRecord(node.params.driverOffsetByParamId)
+              ? node.params.driverOffsetByParamId
+              : {}
+            return {
+              ...node,
+              params: {
+                ...node.params,
+                driverOffsetByParamId: {
+                  ...currentOffsetByParamId,
+                  [change.paramId]: value,
+                },
+              },
+            }
+          }),
+        }))
         return
       }
 
@@ -2284,41 +2228,57 @@ export function SpaghettiCanvas() {
               x: 40 + (index % 4) * 280,
               y: 40 + Math.floor(index / 4) * 200,
             }
-            const nodeDef = getNodeDef(node.type)
-            const renderData = nodeRenderDataById.get(node.nodeId)
+            const nodeVm = nodeRenderDataById.get(node.nodeId)
             return (
               <NodeView
-                key={node.nodeId}
+                key={nodeVm?.nodeId ?? node.nodeId}
                 node={node}
                 rowViewMode={rowViewMode}
                 x={pos.x}
                 y={pos.y}
-                title={nodeDef?.label ?? node.type}
-                template={nodeDef?.template}
-                allInputs={nodeDef?.inputs ?? []}
-                allOutputs={nodeDef?.outputs ?? []}
-                uiSections={nodeDef?.uiSections}
-                drivers={renderData?.driverVm?.drivers}
-                inputs={renderData?.driverVm?.inputs}
-                outputs={renderData?.driverVm?.outputs}
-                otherOutputs={renderData?.driverVm?.otherOutputs}
-                presetOptions={nodeDef?.presetOptions}
-                inputPortDetails={renderData?.inputPortDetails}
-                outputPortDetails={renderData?.outputPortDetails}
+                title={nodeVm?.title ?? node.type}
+                template={nodeVm?.template}
+                allInputs={nodeVm?.allInputs ?? []}
+                allOutputs={nodeVm?.allOutputs ?? []}
+                uiSections={nodeVm?.uiSections}
+                drivers={nodeVm?.driverVm?.drivers}
+                inputs={nodeVm?.driverVm?.inputs}
+                outputs={nodeVm?.driverVm?.outputs}
+                otherOutputs={nodeVm?.driverVm?.otherOutputs}
+                outputPreviewRows={nodeVm?.outputPreviewRows}
+                presetOptions={nodeVm?.presetOptions}
+                inputPortDetails={nodeVm?.inputPortDetails}
+                outputPortDetails={nodeVm?.outputPortDetails}
+                driverInputPortByRowId={nodeVm?.driverInputPortByRowId}
+                driverOutputPortByRowId={nodeVm?.driverOutputPortByRowId}
+                driverDrivenStateByRowId={nodeVm?.driverDrivenStateByRowId}
+                driverWarningByRowId={nodeVm?.driverWarningByRowId}
+                driverGroups={nodeVm?.driverGroups}
+                driverRowIndexById={nodeVm?.driverRowIndexById}
+                featureRows={nodeVm?.featureRows}
+                featureRowIndexById={nodeVm?.featureRowIndexById}
+                internalDependencyEdges={nodeVm?.internalDependencyEdges}
+                inputRowIndexById={nodeVm?.inputRowIndexById}
+                outputEndpointIndexByRowId={nodeVm?.outputEndpointIndexByRowId}
+                outputEndpointCount={nodeVm?.outputEndpointCount}
+                featureVirtualInputStateByPortId={
+                  nodeVm?.featureVirtualInputStateByPortId
+                }
                 inputCompositeState={
-                  renderData?.inputCompositeState ?? EMPTY_NODE_INPUT_COMPOSITE_STATE
+                  nodeVm?.inputCompositeState ?? EMPTY_NODE_INPUT_COMPOSITE_STATE
                 }
                 compositeExpansionRevision={
                   compositeExpansionRevisionByNodeId.get(node.nodeId) ?? 0
                 }
                 getCompositeExpanded={getCompositeExpanded}
                 setCompositeExpanded={setCompositeExpanded}
-                primitiveNumberValue={renderData?.primitiveNumberValue ?? 0}
+                primitiveNumberValue={nodeVm?.primitiveNumberValue ?? 0}
                 selected={selectedNodeId === node.nodeId}
                 getInputDropState={getInputDropState}
                 getOutputDropState={getOutputDropState}
                 onPresetChange={handlePresetChange}
                 onDriverNumberChange={handleDriverNumberChange}
+                onMoveSectionRow={handleMoveSectionRow}
                 onNodePointerDown={handleNodePointerDown}
                 onRegisterPortElement={handleRegisterPortElement}
                 onOutputPointerDown={handleOutputPointerDown}
@@ -2340,6 +2300,7 @@ export function SpaghettiCanvas() {
             edges={graph.edges}
             edgeWaypoints={edgeWaypoints}
             edgeColorById={edgeColorById}
+            edgeStatusById={diagnosticsVm.edgeStatusById}
             portAnchors={portAnchors}
             wireCurviness={wireCurviness}
             width={stageSize.width}

@@ -33,6 +33,7 @@ export type EdgeWaypointMap = Record<string, EdgeWaypoint[]>
 
 export type ConnectionValidationResult = {
   ok: boolean
+  code?: string
   reason?: string
 }
 

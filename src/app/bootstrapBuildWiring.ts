@@ -1,4 +1,5 @@
 import { buildDispatcher } from './buildDispatcher'
+import { LEGACY_BUILD_STATS_PART_ORDER } from '../shared/buildStatsKeys'
 import { selectChangedGeomParamIds, useAppStore } from './store/useAppStore'
 
 let wired = false
@@ -36,6 +37,13 @@ export const bootstrapBuildWiring = (): void => {
       heelKickInstances: state.heelKickInstances,
       toeHookInstances: state.toeHookInstances,
     }
+  })
+  buildDispatcher.setBuildStatsPartKeysProvider(() => {
+    const state = useAppStore.getState()
+    if (state.inputMode === 'spaghetti') {
+      return state.spaghettiPendingStatsPartKeys
+    }
+    return [...LEGACY_BUILD_STATS_PART_ORDER]
   })
 
   buildDispatcher.requestBuild(useAppStore.getState().box)

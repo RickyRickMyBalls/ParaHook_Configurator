@@ -42,6 +42,7 @@ export type AppState = {
   workerError: string | null
   spaghettiLastCompile: CompileSpaghettiGraphResult | null
   spaghettiPendingChangedParamIds: string[]
+  spaghettiPendingStatsPartKeys: string[]
   spaghettiPendingInstances: {
     heelKickInstances: number[]
     toeHookInstances: number[]
@@ -116,6 +117,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   workerError: null,
   spaghettiLastCompile: null,
   spaghettiPendingChangedParamIds: [],
+  spaghettiPendingStatsPartKeys: [],
   spaghettiPendingInstances: null,
   spaghettiPreviousBuildInputs: null,
   setBoxParam: (key, value) => {
@@ -156,6 +158,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       inputMode: mode,
       pendingBuildAfterRelease: false,
       spaghettiPendingChangedParamIds: [],
+      spaghettiPendingStatsPartKeys: [],
       spaghettiPendingInstances: null,
     })
   },
@@ -190,6 +193,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     )
     set({
       spaghettiPendingChangedParamIds: requestBuild.changedParamIds,
+      spaghettiPendingStatsPartKeys: requestBuild.partKeys,
       spaghettiPendingInstances: requestBuild.instances,
       spaghettiPreviousBuildInputs: compileResult.buildInputs,
     })

@@ -1,0 +1,104 @@
+----------------------------------------------------------------------------------------------------------------------------
+MASTER CONSOLIDATION - Unified Docs Task Map (header, unnumbered)
+----------------------------------------------------------------------------------------------------------------------------
+
+Purpose: single index for routes/branches/dead-ends across `/docs` so flowchart work can start from one place.
+
+Imported task-list sources (open / in-progress / done snapshot):
+- [~] roadmap.md (16 / 0 / 8)
+- [~] tasks/Phase 2C v2.2 Driven Number Offset Mode (5 / 0 / 0)
+- [~] tasks/Phase 2B v2.0 Feature Input Wiring Expansion (25 / 0 / 0)
+- [~] tasks/Phase 2B v2.0 Feature Input Wiring Expansion (Extrude taper + offset) (33 / 0 / 19)
+- [~] tasks/Phase 3.md (17 / 0 / 0)
+- [~] tasks/Phase 4 v1 - Sketch System (78 / 0 / 5)
+- [~] tasks/Phase 4A v1 Baseplate Sketch MVP Checklist (62 / 0 / 6)
+- [~] plans/Phase4a runtime bridge/Phase 4A Runtime Bridge (41 / 0 / 0)
+- [~] plans/Phase4a runtime bridge/Phase OP/Phase OP Tasks (25 / 11 / 33)
+- [~] silly/NODE-tasklist.md (30 / 0 / 74)
+- [~] silly/datNEWNEW_task-list.md (26 / 4 / 43)
+- [~] silly/UI-Wishlist.md (87 / 4 / 28) (contains duplicate sections)
+- [~] tasks/design.md (13 / 1 / 20)
+- [~] silly/checklist.md (13 / 0 / 19)
+- [~] old/master-tasks.md (5 / 1 / 5)
+- [~] old/targetrepo.md (legacy architecture + engine route map; no checkbox counters)
+- [~] old/oldchanges.md and old/listofchanges*.md (legacy branch history; narrative source)
+- [~] silly/wishlist_Params.md and silly/Master Plan*.md (idea backlog; narrative source)
+
+Phase breakdown derived from old/listofchanges.md ([001]-[062]):
+- [x] Phase A - App creation + Spaghetti foundation ([001]-[010])
+  - core editor/canvas, path-aware endpoints, reroute/tangent wiring, floating window baseline, interaction guards
+- [x] Phase B - Interaction mode pass + template scaffolding ([011]-[020])
+  - mode transitions, scrub controls, context routing, node template flagging setup
+- [x] Phase C - Part template taxonomy + part definitions ([021]-[025])
+  - Drivers/Inputs/Outputs taxonomy, Baseplate/ToeHook/HeelKick template population and alignment
+- [x] Phase D - Node UI polish + typed wiring visuals ([026]-[036])
+  - typed sockets/wires, output lane/row layout passes, toolbar/expand-collapse UX refinements
+- [x] Phase E - Phase 1 contract + planning/tasklist infrastructure ([037]-[042], [044])
+  - partSlots contract, closure hardening, docs task infra, status sync entries
+- [x] Phase F - Feature wiring and row ordering tracks ([043], [045]-[051])
+  - external feature virtual input wiring (v1) + row order metadata and reorder UI polish
+- [x] Phase G - Driver wiring evolution ([052]-[055], [057], [060])
+  - driver outputs, wire->driver inputs, auto-replace semantics, 2B v2.0 taper/offset expansion
+- [x] Phase H - Changelog/tasklist maintenance checkpoints ([054], [056], [058], [059], [061])
+  - completion markers, renumbering, next-task tracking
+- [x] Phase I - Runtime bridge hardening ([062])
+  - tessellation determinism + CCW lock at compile boundary
+
+Phase breakdown derived from docs/CHANGELOG.md ([001]-[067], canonical timeline):
+- [x] Phase A - App creation + Spaghetti foundation ([001]-[010])
+- [x] Phase B - Interaction/mode pass + template scaffolding ([011]-[020])
+- [x] Phase C - Part template taxonomy + part definitions ([021]-[025])
+- [x] Phase D - UI polish + typed wiring visuals ([026]-[036])
+- [x] Phase E - Phase 1 contract + task infra ([037]-[042], [044])
+- [x] Phase F - Feature wiring v1 + row ordering track ([043], [045]-[051])
+- [x] Phase G - Driver wiring evolution + 2B v2.0 expansion ([052]-[055], [057], [060])
+- [x] Phase H - Documentation maintenance checkpoints ([054], [056], [058], [059], [061], [063], [065])
+- [x] Phase I - Runtime bridge hardening ([062])
+- [x] Phase J - DR-0 canonical driver ID contract + dual-read compatibility ([064])
+- [x] Phase K - 2C v2.2 driven numeric offset mode ([066])
+- [x] Phase L - CK-1 graph command kernel centralization ([067])
+
+Detailed import from docs/CHANGELOG.md (newest first, canonical):
+- [x] [067] CK-1 graph command kernel centralization (graphCommands + store/apply path + canvas/editor call-site migration + command tests)
+- [x] [066] 2C v2.2 driven numeric offset mode (normalization metadata + effective out:drv + driven/offset/effective UI)
+- [x] [065] Roadmap restore rollback (docs-only format restore)
+- [x] [064] DR-0 canonical driver IDs + legacy dual-read compatibility (`in:drv:*`, `out:drv:*`)
+- [x] [063] Roadmap execution-queue reorganization (docs-only)
+- [x] [062] Runtime bridge hardening (deterministic tessellation + CCW lock at compile boundary)
+- [x] [061] Runtime bridge next-task changelog add (docs-only)
+- [x] [060] 2B v2.0 expansion: extrude taper/offset feature virtual inputs
+- [x] [059]-[058] NODE tasklist maintenance/renumbering (docs-only)
+- [x] [057] 2C v2.1 driver input auto-replace hardening
+- [x] [056]-[054] completion tracking + changelog housekeeping (docs-only)
+- [x] [055]-[052] driver input/output virtual port rollout phases
+- [x] [051]-[045] feature stack virtual input v1 and row ordering passes
+- [x] [044]-[037] phase-1 contract closes + planning/tasklist setup
+- [x] [036]-[026] node UI/wiring visual polish passes
+- [x] [025]-[021] part template taxonomy and node definition population
+- [x] [020]-[011] interaction mode passes and scaffolding
+- [x] [010]-[001] app creation foundation and early spaghetti architecture
+
+Newest / active branch routes (top priority):
+- [~] CK-1 Graph Command Kernel (de-spaghetti graph mutation commands)
+- [~] 2C v2.2 Driven Numeric Offset Mode (Output+UI scope)
+- [ ] DR-0 Driver Input+Output Ports (global wiring)
+- [ ] CT-1 Contract lock (resolver/validator/canvas parity)
+- [ ] VM-1 Derived VM selector split (source vs derived state)
+
+Next branch routes:
+- [ ] 2B v2.0+ feature wiring expansion beyond Extrude.depth (taper/offset + parity/tests)
+- [ ] SK-1/SK-2/SK-3 sketch system contract + diagnostics + compiler parity
+- [ ] FS-1/FS-2 first real shape path (part solid output + feature-stack node MVP)
+- [ ] ND-1/ND-2/ND-3 expansion nodes + internal dependency visualization
+
+Flowchart prep checklist (routes / branches / dead-ends):
+- [ ] Build branch map from docs source files: roadmap + tasks + plans + silly + old
+- [ ] Tag each branch as Active / Parked / Legacy / Dead-end candidate
+- [ ] Add dependency arrows (example: CK-1 before VM-1; SK track before FS rollout)
+- [ ] Mark branch merge points (OutputPreview, Feature Wiring, Driver Wiring)
+- [ ] Mark abandoned or superseded paths explicitly in this file (append-only notes)
+
+Oldest branch candidates identified during consolidation:
+- [ ] Legacy container-migration track (Phase 3 optional child-container migration)
+- [ ] Legacy Feature 2B backlog variants duplicated across old/silly docs
+- [ ] Legacy engine-routing architecture branch from old/targetrepo.md (keep near bottom in priority)

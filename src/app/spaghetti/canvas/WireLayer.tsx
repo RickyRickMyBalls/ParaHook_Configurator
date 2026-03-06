@@ -10,11 +10,13 @@ import {
 import type { EdgeWaypointMap, Point2, PortAnchorMap, PortDirection } from './types'
 import { buildPortAnchorKey } from './types'
 import { getTypeColor } from './typeColors'
+import type { EdgeStatusByIdEntry } from '../selectors'
 
 type WireLayerProps = {
   edges: SpaghettiEdge[]
   edgeWaypoints: EdgeWaypointMap
   edgeColorById: Record<string, string>
+  edgeStatusById: Record<string, EdgeStatusByIdEntry>
   portAnchors: PortAnchorMap
   wireCurviness: number
   width: number
@@ -41,6 +43,7 @@ export function WireLayer({
   edges,
   edgeWaypoints,
   edgeColorById,
+  edgeStatusById,
   portAnchors,
   wireCurviness,
   width,
@@ -97,12 +100,14 @@ export function WireLayer({
       {geometries.map((geometry) => {
         const isSelected = geometry.edge.edgeId === selectedEdgeId
         const isHovered = geometry.edge.edgeId === hoveredEdgeId
+        const edgeStatus = edgeStatusById[geometry.edge.edgeId]
         const wireColor = edgeColorById[geometry.edge.edgeId] ?? getTypeColor('number')
+        const isDashed = edgeStatus !== undefined && edgeStatus.kind !== 'ok'
         return (
           <path
             key={geometry.edge.edgeId}
             d={geometry.bezier.d}
-            className={`SpaghettiWire ${
+            className={`SpaghettiWire ${isDashed ? 'SpaghettiWire--dashed' : ''} ${
               isSelected ? 'SpaghettiWire--selected' : isHovered ? 'SpaghettiWire--hovered' : ''
             }`}
             style={{ stroke: wireColor }}

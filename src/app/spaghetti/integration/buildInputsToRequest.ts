@@ -1,4 +1,9 @@
 import type { CompileSpaghettiGraphResult } from '../compiler/compileGraph'
+import {
+  deriveSpaghettiSourcePartKeysFromProfilePatch,
+  orderSpaghettiSourcePartKeys,
+  withAssembledBuildStatsKey,
+} from '../../../shared/buildStatsKeys'
 
 export type SpaghettiBuildInputs = NonNullable<CompileSpaghettiGraphResult['buildInputs']>
 
@@ -9,6 +14,7 @@ export type BuildInputsRequestTranslation = {
     toeHookInstances: number[]
   }
   changedParamIds: string[]
+  partKeys: string[]
 }
 
 const spProfileKeys = [
@@ -67,10 +73,22 @@ const toProfilePatch = (
     previousBuildInputs === undefined ? undefined : readFeatureStackIR(previousBuildInputs)
 
   const patch: ProfilePatch = {
-    sp_baseplate_anchorSpline2: isRecord(baseplate) ? baseplate.anchorSpline2 ?? null : null,
-    sp_baseplate_offsetSpline2: isRecord(baseplate) ? baseplate.offsetSpline2 ?? null : null,
-    sp_toeHook1_anchorSpline2: isRecord(toeHook1) ? toeHook1.anchorSpline2 ?? null : null,
-    sp_heelKick1_anchorSpline2: isRecord(heelKick1) ? heelKick1.anchorSpline2 ?? null : null,
+    ...(isRecord(baseplate)
+      ? {
+          sp_baseplate_anchorSpline2: baseplate.anchorSpline2 ?? null,
+          sp_baseplate_offsetSpline2: baseplate.offsetSpline2 ?? null,
+        }
+      : {}),
+    ...(isRecord(toeHook1)
+      ? {
+          sp_toeHook1_anchorSpline2: toeHook1.anchorSpline2 ?? null,
+        }
+      : {}),
+    ...(isRecord(heelKick1)
+      ? {
+          sp_heelKick1_anchorSpline2: heelKick1.anchorSpline2 ?? null,
+        }
+      : {}),
   }
 
   if (currentFeatureStackIR !== undefined) {
@@ -87,6 +105,11 @@ export const buildRequestFromBuildInputs = (
   previousBuildInputs?: SpaghettiBuildInputs,
 ): BuildInputsRequestTranslation => {
   const profilePatch = toProfilePatch(buildInputs, previousBuildInputs)
+  const orderedSourcePartKeys =
+    buildInputs.orderedPartKeys.length > 0
+      ? orderSpaghettiSourcePartKeys(buildInputs.orderedPartKeys)
+      : deriveSpaghettiSourcePartKeysFromProfilePatch(profilePatch)
+  const partKeys = withAssembledBuildStatsKey(orderedSourcePartKeys)
   const instances = {
     heelKickInstances: [...buildInputs.instances.heelKickInstances],
     toeHookInstances: [...buildInputs.instances.toeHookInstances],
@@ -97,6 +120,7 @@ export const buildRequestFromBuildInputs = (
       profilePatch,
       instances,
       changedParamIds: ['sp_full'],
+      partKeys,
     }
   }
 
@@ -109,5 +133,6 @@ export const buildRequestFromBuildInputs = (
     profilePatch,
     instances,
     changedParamIds,
+    partKeys,
   }
 }

@@ -16,40 +16,51 @@ const rectangleStack = (): FeatureStack => [
   {
     type: 'sketch',
     featureId: 'sketch-1',
-    entities: [
+    plane: 'XY',
+    components: [
       {
-        entityId: 'e3',
+        rowId: 'r1',
+        componentId: 'e1',
         type: 'line',
-        start: { kind: 'lit', x: 10, y: 10 },
-        end: { kind: 'lit', x: 0, y: 10 },
+        a: { kind: 'lit', x: 0, y: 0 },
+        b: { kind: 'lit', x: 10, y: 0 },
       },
       {
-        entityId: 'e1',
+        rowId: 'r2',
+        componentId: 'e2',
         type: 'line',
-        start: { kind: 'lit', x: 0, y: 0 },
-        end: { kind: 'lit', x: 10, y: 0 },
+        a: { kind: 'lit', x: 10, y: 0 },
+        b: { kind: 'lit', x: 10, y: 10 },
       },
       {
-        entityId: 'e4',
+        rowId: 'r3',
+        componentId: 'e3',
         type: 'line',
-        start: { kind: 'lit', x: 0, y: 10 },
-        end: { kind: 'lit', x: 0, y: 0 },
+        a: { kind: 'lit', x: 10, y: 10 },
+        b: { kind: 'lit', x: 0, y: 10 },
       },
       {
-        entityId: 'e2',
+        rowId: 'r4',
+        componentId: 'e4',
         type: 'line',
-        start: { kind: 'lit', x: 10, y: 0 },
-        end: { kind: 'lit', x: 10, y: 10 },
+        a: { kind: 'lit', x: 0, y: 10 },
+        b: { kind: 'lit', x: 0, y: 0 },
       },
     ],
     outputs: {
       profiles: [
         {
           profileId: 'prof_rect',
-          entityIds: ['e1', 'e2', 'e3', 'e4'],
+          profileIndex: 0,
           area: 100,
+          loop: {
+            segments: [],
+            winding: 'CCW',
+          },
+          verticesProxy: [],
         },
       ],
+      diagnostics: [],
     },
     uiState: {
       collapsed: false,
@@ -86,8 +97,9 @@ describe('compileFeatureStack', () => {
 
     expect(ir[0].profilesResolved).toHaveLength(1)
     expect(ir[0].profilesResolved[0].profileId).toBe('prof_rect')
-    expect(ir[0].profilesResolved[0].vertices).toHaveLength(4)
-    expect(signedArea(ir[0].profilesResolved[0].vertices)).toBeGreaterThan(0)
+    expect(ir[0].profilesResolved[0].loop.segments.length).toBeGreaterThan(0)
+    expect(ir[0].profilesResolved[0].verticesProxy.length).toBeGreaterThan(2)
+    expect(signedArea(ir[0].profilesResolved[0].verticesProxy)).toBeGreaterThan(0)
   })
 
   it('maps extrude profileRef to sketchFeatureId and keeps bodyId', () => {
@@ -100,20 +112,67 @@ describe('compileFeatureStack', () => {
     expect(ir[1].profileRef).toEqual({
       sketchFeatureId: 'sketch-1',
       profileId: 'prof_rect',
+      profileIndex: 0,
     })
     expect(ir[1].bodyId).toBe('body-1')
+    expect(ir[1].depthResolved).toBe(7)
+    expect(ir[1].taperResolved).toBe(0)
+    expect(ir[1].offsetResolved).toBe(0)
   })
 
-  it('returns empty vertices when profile entity chain cannot be resolved', () => {
+  it('returns empty profiles when chain is not closed', () => {
     const stack = rectangleStack()
     const sketch = stack[0] as Extract<FeatureStack[number], { type: 'sketch' }>
-    sketch.outputs.profiles[0].entityIds = ['e1', 'missing', 'e3', 'e4']
+    const target = sketch.components[3]
+    if (target.type === 'line') {
+      sketch.components[3] = {
+        ...target,
+        b: { kind: 'lit', x: 9, y: 10 },
+      }
+    }
 
     const ir = compileFeatureStack(stack)
     expect(ir[0].op).toBe('sketch')
     if (ir[0].op !== 'sketch') {
       return
     }
-    expect(ir[0].profilesResolved[0].vertices).toEqual([])
+    expect(ir[0].profilesResolved).toEqual([])
+  })
+
+  it('emits resolved taper/offset when provided on extrude params', () => {
+    const stack = rectangleStack()
+    const extrude = stack[1] as Extract<FeatureStack[number], { type: 'extrude' }>
+    extrude.params.taper = { kind: 'lit', value: 4 }
+    extrude.params.offset = { kind: 'lit', value: 2 }
+
+    const ir = compileFeatureStack(stack)
+    expect(ir[1].op).toBe('extrude')
+    if (ir[1].op !== 'extrude') {
+      return
+    }
+
+    expect(ir[1].taperResolved).toBe(4)
+    expect(ir[1].offsetResolved).toBe(2)
+  })
+
+  it('excludes disabled features while preserving deterministic enabled-feature order', () => {
+    const stack = rectangleStack()
+    stack[0] = {
+      ...stack[0],
+      enabled: false,
+    }
+
+    const ir = compileFeatureStack(stack)
+    expect(ir).toEqual([
+      {
+        op: 'extrude',
+        featureId: 'extrude-1',
+        profileRef: null,
+        depthResolved: 7,
+        taperResolved: 0,
+        offsetResolved: 0,
+        bodyId: 'body-1',
+      },
+    ])
   })
 })

@@ -4,13 +4,32 @@ import {
   computeFeatureStackIrParts,
   type FeatureStackIrParts,
 } from '../compiler/compileGraph'
+import { evaluateSpaghettiGraph } from '../compiler/evaluateGraph'
 import { pickDefaultProfileRef } from '../features/autoLink'
+import {
+  moveFeatureInStack,
+} from '../features/featureDependencies'
 import { readFeatureStack } from '../features/featureSchema'
-import { deriveProfiles } from '../features/profileDerivation'
+import { deriveProfilesWithDiagnostics } from '../features/profileDerivation'
 import type { NumberExpression, Vec2Expression } from '../features/expressions'
-import type { FeatureStack, SketchFeature } from '../features/featureTypes'
+import type { FeatureStack, SketchComponent, SketchFeature } from '../features/featureTypes'
+import { isFeatureEnabled as isFeatureEnabledInStack } from '../features/featureTypes'
 import type { FeatureStackIR } from '../features/compileFeatureStack'
+import { parseDriverVirtualInputPortId } from '../features/driverVirtualPorts'
+import {
+  addEdge as addEdgeCommand,
+  removeEdge as removeEdgeCommand,
+  type GraphCommand,
+} from '../graphCommands'
+import { isPartNodeType, normalizePartSlots } from '../parts/partSlots'
+import { buildNodeDriverVm, type OutputPinnedRowVm } from '../canvas/driverVm'
+import {
+  buildVmRowIdsForSection,
+  normalizePartRowOrder,
+} from '../parts/partRowOrder'
 import { getNodeDef } from '../registry/nodeRegistry'
+import { ensureOutputPreviewSingletonPatch } from '../system/ensureOutputPreviewSingleton'
+import { ensureOutputPreviewSlotsPatch } from '../system/ensureOutputPreviewSlots'
 import type {
   EdgeEndpoint,
   GraphNodePos,
@@ -19,6 +38,7 @@ import type {
   SpaghettiNode,
 } from '../schema/spaghettiTypes'
 import { newId } from '../utils/id'
+import { makeComponentId, makeRowId } from '../utils/id'
 
 export type ConnectionDragState = {
   anchorDirection: 'in' | 'out'
@@ -51,7 +71,7 @@ type EdgeWaypoint = {
 export type SpaghettiStoreState = {
   graph: SpaghettiGraph
   partFeatureStackIrByPartKey: FeatureStackIrParts
-  partKeyByNodeId: Record<string, keyof FeatureStackIrParts>
+  partKeyByNodeId: Record<string, string>
   edgeWaypoints: Record<string, EdgeWaypoint[]>
   selectedNodeId: string | null
   selectedEdgeId: string | null
@@ -59,6 +79,7 @@ export type SpaghettiStoreState = {
   connectionDrag: ConnectionDragState | null
   uiMessage: CanvasUiMessage | null
   setGraph: (next: SpaghettiGraph) => void
+  applyGraphCommand: (cmd: GraphCommand) => void
   applyGraphPatch: (patchFn: (prev: SpaghettiGraph) => SpaghettiGraph) => void
   setNodePos: (nodeId: string, x: number, y: number) => void
   setManyNodePos: (updates: NodePosUpdate[]) => void
@@ -78,8 +99,38 @@ export type SpaghettiStoreState = {
   setUiMessage: (message: CanvasUiMessage | null) => void
   clearUiMessage: () => void
   addSketchFeature: (nodeId: string) => void
+  addCloseProfileFeature: (nodeId: string) => void
   addExtrudeFeature: (nodeId: string) => void
   toggleFeatureCollapsed: (nodeId: string, featureId: string) => void
+  moveFeatureUp: (nodeId: string, featureId: string) => void
+  moveFeatureDown: (nodeId: string, featureId: string) => void
+  setFeatureEnabled: (nodeId: string, featureId: string, enabled: boolean) => void
+  addSketchComponent: (
+    nodeId: string,
+    featureId: string,
+    componentType: SketchComponent['type'],
+  ) => void
+  updateSketchComponentPoint: (
+    nodeId: string,
+    featureId: string,
+    rowId: string,
+    pointKey: 'a' | 'b' | 'p0' | 'p1' | 'p2' | 'p3' | 'start' | 'mid' | 'end',
+    value: Vec2Expression,
+  ) => void
+  moveSketchComponentUp: (nodeId: string, featureId: string, rowId: string) => void
+  moveSketchComponentDown: (nodeId: string, featureId: string, rowId: string) => void
+  removeSketchComponent: (nodeId: string, featureId: string, rowId: string) => void
+  setSketchRectangleDimensions: (
+    nodeId: string,
+    featureId: string,
+    dimensions: { width?: number; length?: number },
+  ) => void
+  setCloseProfileSource: (
+    nodeId: string,
+    featureId: string,
+    sourceSketchFeatureId: string | null,
+  ) => void
+  // Legacy compatibility methods kept for existing tests/callers.
   addSketchLine: (nodeId: string, featureId: string) => void
   updateSketchLineEndpoint: (
     nodeId: string,
@@ -89,10 +140,12 @@ export type SpaghettiStoreState = {
     value: Vec2Expression,
   ) => void
   setExtrudeDepth: (nodeId: string, featureId: string, depth: NumberExpression) => void
+  setExtrudeTaper: (nodeId: string, featureId: string, taper: NumberExpression) => void
+  setExtrudeOffset: (nodeId: string, featureId: string, offset: NumberExpression) => void
   setExtrudeProfileRef: (
     nodeId: string,
     featureId: string,
-    ref: { sourceFeatureId: string; profileId: string } | null,
+    ref: { sourceFeatureId: string; profileId: string; profileIndex?: number } | null,
   ) => void
   getPartFeatureStackIrForNode: (nodeId: string) => FeatureStackIR | null
   validate: () => ReturnType<typeof compileSpaghettiGraph>
@@ -164,6 +217,145 @@ const normalizeInputEndpointPortAlias = (
   }
 }
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value)
+
+const listNumericNodeParamDriverParamIds = (
+  nodeDef: ReturnType<typeof getNodeDef>,
+): string[] => {
+  if (nodeDef === undefined) {
+    return []
+  }
+  const ids = new Set<string>()
+  for (const spec of nodeDef.inputDrivers ?? []) {
+    if (spec.kind !== 'nodeParam') {
+      continue
+    }
+    if (spec.control.kind !== 'nodeParam') {
+      continue
+    }
+    if (spec.control.wireOutputType?.kind !== 'number') {
+      continue
+    }
+    ids.add(spec.control.paramId)
+  }
+  return [...ids].sort((a, b) => a.localeCompare(b))
+}
+
+const canonicalizeDriverOffsetMetadata = (options: {
+  params: Record<string, unknown>
+  numericParamIds: readonly string[]
+  drivenNumericParamIds: ReadonlySet<string> | undefined
+}): Record<string, unknown> => {
+  const { params, numericParamIds, drivenNumericParamIds } = options
+  if (numericParamIds.length === 0) {
+    let changed = false
+    const next = {
+      ...params,
+    }
+    if (next.driverOffsetByParamId !== undefined) {
+      delete next.driverOffsetByParamId
+      changed = true
+    }
+    if (next.driverDrivenByParamId !== undefined) {
+      delete next.driverDrivenByParamId
+      changed = true
+    }
+    return changed ? next : params
+  }
+
+  const rawOffset =
+    isRecord(params.driverOffsetByParamId) ? params.driverOffsetByParamId : undefined
+
+  const canonicalOffsetEntries: Array<[string, number]> = []
+  const canonicalDrivenEntries: Array<[string, true]> = []
+  for (const paramId of numericParamIds) {
+    if (drivenNumericParamIds?.has(paramId) === true) {
+      canonicalDrivenEntries.push([paramId, true])
+    }
+
+    const rawOffsetValue = rawOffset?.[paramId]
+    if (typeof rawOffsetValue === 'number' && Number.isFinite(rawOffsetValue)) {
+      canonicalOffsetEntries.push([paramId, rawOffsetValue])
+      continue
+    }
+    if (drivenNumericParamIds?.has(paramId) === true) {
+      canonicalOffsetEntries.push([paramId, 0])
+    }
+  }
+
+  const canonicalOffset =
+    canonicalOffsetEntries.length === 0
+      ? undefined
+      : Object.fromEntries(canonicalOffsetEntries)
+  const canonicalDriven =
+    canonicalDrivenEntries.length === 0
+      ? undefined
+      : Object.fromEntries(canonicalDrivenEntries)
+
+  const offsetChanged = (() => {
+    if (canonicalOffset === undefined) {
+      return params.driverOffsetByParamId !== undefined
+    }
+    if (!isRecord(params.driverOffsetByParamId)) {
+      return true
+    }
+    const rawOffsetByParamId = params.driverOffsetByParamId
+    const rawKeys = Object.keys(rawOffsetByParamId)
+    const canonicalKeys = Object.keys(canonicalOffset)
+    if (rawKeys.length !== canonicalKeys.length) {
+      return true
+    }
+    for (const key of canonicalKeys) {
+      const rawValue = rawOffsetByParamId[key]
+      if (typeof rawValue !== 'number' || !Number.isFinite(rawValue) || rawValue !== canonicalOffset[key]) {
+        return true
+      }
+    }
+    return false
+  })()
+
+  const drivenChanged = (() => {
+    if (canonicalDriven === undefined) {
+      return params.driverDrivenByParamId !== undefined
+    }
+    if (!isRecord(params.driverDrivenByParamId)) {
+      return true
+    }
+    const rawDrivenByParamId = params.driverDrivenByParamId
+    const rawKeys = Object.keys(rawDrivenByParamId)
+    const canonicalKeys = Object.keys(canonicalDriven)
+    if (rawKeys.length !== canonicalKeys.length) {
+      return true
+    }
+    for (const key of canonicalKeys) {
+      if (rawDrivenByParamId[key] !== true) {
+        return true
+      }
+    }
+    return false
+  })()
+
+  if (!offsetChanged && !drivenChanged) {
+    return params
+  }
+
+  const next: Record<string, unknown> = {
+    ...params,
+  }
+  if (canonicalOffset === undefined) {
+    delete next.driverOffsetByParamId
+  } else {
+    next.driverOffsetByParamId = canonicalOffset
+  }
+  if (canonicalDriven === undefined) {
+    delete next.driverDrivenByParamId
+  } else {
+    next.driverDrivenByParamId = canonicalDriven
+  }
+  return next
+}
+
 const normalizeGraphUiPositions = (graph: SpaghettiGraph): SpaghettiGraph => {
   const sortedNodes = [...graph.nodes].sort(compareNodes)
   const nodeById = new Map(graph.nodes.map((node) => [node.nodeId, node]))
@@ -200,15 +392,89 @@ const normalizeGraphUiPositions = (graph: SpaghettiGraph): SpaghettiGraph => {
     ),
   }))
 
-  const normalizedNodes = graph.nodes.map((node) => {
-    if (node.ui === undefined) {
-      return node
+  const inputConnectionCountsByNodeId = new Map<string, Map<string, number>>()
+  for (const edge of normalizedEdges) {
+    const nextMap = inputConnectionCountsByNodeId.get(edge.to.nodeId) ?? new Map<string, number>()
+    nextMap.set(edge.to.portId, (nextMap.get(edge.to.portId) ?? 0) + 1)
+    inputConnectionCountsByNodeId.set(edge.to.nodeId, nextMap)
+  }
+
+  const numericDriverParamIdsByNodeId = new Map<string, string[]>()
+  for (const node of graph.nodes) {
+    if (!isPartNodeType(node.type)) {
+      continue
     }
-    return {
+    const numericDriverParamIds = listNumericNodeParamDriverParamIds(getNodeDef(node.type))
+    if (numericDriverParamIds.length === 0) {
+      continue
+    }
+    numericDriverParamIdsByNodeId.set(node.nodeId, numericDriverParamIds)
+  }
+
+  const drivenNumericParamIdsByNodeId = new Map<string, Set<string>>()
+  for (const edge of normalizedEdges) {
+    if (normalizePath(edge.to.path) !== undefined) {
+      continue
+    }
+    const parsedDriverInput = parseDriverVirtualInputPortId(edge.to.portId)
+    if (parsedDriverInput === null) {
+      continue
+    }
+    const numericDriverParamIds = numericDriverParamIdsByNodeId.get(edge.to.nodeId)
+    if (numericDriverParamIds === undefined || !numericDriverParamIds.includes(parsedDriverInput.paramId)) {
+      continue
+    }
+    const next = drivenNumericParamIdsByNodeId.get(edge.to.nodeId) ?? new Set<string>()
+    next.add(parsedDriverInput.paramId)
+    drivenNumericParamIdsByNodeId.set(edge.to.nodeId, next)
+  }
+
+  const normalizedNodes = graph.nodes.map((node) => {
+    const normalizedPartSlots = isPartNodeType(node.type)
+      ? normalizePartSlots(node.partSlots, node.nodeId).partSlots
+      : node.partSlots
+    let normalizedParams = node.params
+    if (isPartNodeType(node.type)) {
+      const nodeDef = getNodeDef(node.type)
+      normalizedParams = canonicalizeDriverOffsetMetadata({
+        params: normalizedParams,
+        numericParamIds: numericDriverParamIdsByNodeId.get(node.nodeId) ?? [],
+        drivenNumericParamIds: drivenNumericParamIdsByNodeId.get(node.nodeId),
+      })
+      const vm = buildNodeDriverVm(node, nodeDef, {
+        connectionCountByPortId: inputConnectionCountsByNodeId.get(node.nodeId),
+      })
+      if (vm !== null) {
+        const outputEndpointRows = vm.outputs.filter(
+          (row): row is Extract<OutputPinnedRowVm, { kind: 'endpoint' }> => row.kind === 'endpoint',
+        )
+        const normalizedPartRowOrder = normalizePartRowOrder({
+          node: {
+            ...node,
+            params: normalizedParams,
+          },
+          vmDriversRowIds: buildVmRowIdsForSection(node.nodeId, vm.drivers),
+          vmInputsRowIds: buildVmRowIdsForSection(node.nodeId, vm.inputs),
+          vmOutputsRowIds: buildVmRowIdsForSection(node.nodeId, outputEndpointRows),
+        })
+        if (normalizedPartRowOrder.repairedNode !== undefined) {
+          normalizedParams = normalizedPartRowOrder.repairedNode.params
+        }
+      }
+    }
+    const normalizedNode = {
       nodeId: node.nodeId,
       type: node.type,
-      params: node.params,
+      params: normalizedParams,
+      ...(normalizedPartSlots === undefined ? {} : { partSlots: normalizedPartSlots }),
     }
+    if (node.ui === undefined) {
+      if (isPartNodeType(node.type)) {
+        return normalizedNode
+      }
+      return node
+    }
+    return normalizedNode
   })
 
   return {
@@ -222,7 +488,15 @@ const normalizeGraphUiPositions = (graph: SpaghettiGraph): SpaghettiGraph => {
   }
 }
 
-const isPartNode = (node: SpaghettiNode): boolean => node.type.startsWith('Part/')
+export const normalizeGraphForStoreCommit = (graph: SpaghettiGraph): SpaghettiGraph => {
+  const singletonPatch = ensureOutputPreviewSingletonPatch(graph)
+  const singletonRepaired = singletonPatch ? singletonPatch(graph) : graph
+  const slotsPatch = ensureOutputPreviewSlotsPatch(singletonRepaired)
+  const slotsRepaired = slotsPatch ? slotsPatch(singletonRepaired) : singletonRepaired
+  return normalizeGraphUiPositions(slotsRepaired)
+}
+
+const isPartNode = (node: SpaghettiNode): boolean => isPartNodeType(node.type)
 
 const getPartFeatureStack = (node: SpaghettiNode): FeatureStack =>
   readFeatureStack(node.params.featureStack)
@@ -238,36 +512,202 @@ const setPartFeatureStack = (node: SpaghettiNode, stack: FeatureStack): Spaghett
 const recomputeSketchFeature = (feature: SketchFeature): SketchFeature => ({
   ...feature,
   outputs: {
-    profiles: deriveProfiles(feature.entities),
+    ...deriveProfilesWithDiagnostics(feature.components),
   },
 })
 
 const createSketchFeature = (): SketchFeature => ({
   type: 'sketch',
   featureId: newId('feature'),
-  entities: [],
+  plane: 'XY',
+  components: [],
   outputs: {
     profiles: [],
+    diagnostics: [],
   },
   uiState: {
     collapsed: false,
   },
 })
 
-const createDefaultLine = () => ({
-  entityId: newId('entity'),
-  type: 'line' as const,
-  start: {
+const createDefaultLineComponent = (): SketchComponent => ({
+  rowId: makeRowId(),
+  componentId: makeComponentId(),
+  type: 'line',
+  a: {
     kind: 'lit' as const,
     x: 0,
     y: 0,
   },
-  end: {
+  b: {
     kind: 'lit' as const,
     x: 100,
     y: 0,
   },
 })
+
+const createDefaultSplineComponent = (): SketchComponent => ({
+  rowId: makeRowId(),
+  componentId: makeComponentId(),
+  type: 'spline',
+  p0: { kind: 'lit', x: 0, y: 0 },
+  p1: { kind: 'lit', x: 25, y: 0 },
+  p2: { kind: 'lit', x: 75, y: 0 },
+  p3: { kind: 'lit', x: 100, y: 0 },
+})
+
+const createDefaultArcComponent = (): SketchComponent => ({
+  rowId: makeRowId(),
+  componentId: makeComponentId(),
+  type: 'arc3pt',
+  start: { kind: 'lit', x: 0, y: 0 },
+  mid: { kind: 'lit', x: 50, y: 25 },
+  end: { kind: 'lit', x: 100, y: 0 },
+})
+
+const createDefaultComponent = (
+  componentType: SketchComponent['type'],
+): SketchComponent => {
+  if (componentType === 'spline') return createDefaultSplineComponent()
+  if (componentType === 'arc3pt') return createDefaultArcComponent()
+  return createDefaultLineComponent()
+}
+
+const isCubeSeedRectangleSketch = (feature: SketchFeature): boolean =>
+  feature.featureId === 'cube-sketch-1' &&
+  feature.components.length === 4 &&
+  feature.components.every((component) => component.type === 'line')
+
+const rewriteCubeSeedRectangleSketch = (
+  feature: SketchFeature,
+  dimensions: {
+    width?: number
+    length?: number
+  },
+): SketchFeature => {
+  if (!isCubeSeedRectangleSketch(feature)) {
+    return feature
+  }
+
+  const currentLength = feature.components[0]?.type === 'line' ? feature.components[0].b.x : 0
+  const currentWidth = feature.components[1]?.type === 'line' ? feature.components[1].b.y : 0
+  const nextLength =
+    typeof dimensions.length === 'number' && Number.isFinite(dimensions.length)
+      ? dimensions.length
+      : currentLength
+  const nextWidth =
+    typeof dimensions.width === 'number' && Number.isFinite(dimensions.width)
+      ? dimensions.width
+      : currentWidth
+
+  const nextComponents = [
+    {
+      ...feature.components[0],
+      a: { kind: 'lit' as const, x: 0, y: 0 },
+      b: { kind: 'lit' as const, x: nextLength, y: 0 },
+    },
+    {
+      ...feature.components[1],
+      a: { kind: 'lit' as const, x: nextLength, y: 0 },
+      b: { kind: 'lit' as const, x: nextLength, y: nextWidth },
+    },
+    {
+      ...feature.components[2],
+      a: { kind: 'lit' as const, x: nextLength, y: nextWidth },
+      b: { kind: 'lit' as const, x: 0, y: nextWidth },
+    },
+    {
+      ...feature.components[3],
+      a: { kind: 'lit' as const, x: 0, y: nextWidth },
+      b: { kind: 'lit' as const, x: 0, y: 0 },
+    },
+  ]
+
+  const unchanged = nextComponents.every((component, index) => {
+    const current = feature.components[index]
+    return (
+      current?.type === 'line' &&
+      current.a.x === component.a.x &&
+      current.a.y === component.a.y &&
+      current.b.x === component.b.x &&
+      current.b.y === component.b.y
+    )
+  })
+  if (unchanged) {
+    return feature
+  }
+
+  return recomputeSketchFeature({
+    ...feature,
+    components: nextComponents,
+  })
+}
+
+const createCloseProfileFeature = () => ({
+  type: 'closeProfile' as const,
+  featureId: newId('feature'),
+  inputs: {
+    sourceSketchFeatureId: null,
+  },
+  outputs: {
+    profileRef: null,
+  },
+  uiState: {
+    collapsed: false,
+  },
+})
+
+const recomputeCloseProfileOutputs = (stack: FeatureStack): FeatureStack => {
+  const sketchById = new Map<string, Extract<FeatureStack[number], { type: 'sketch' }>>()
+  return stack.map((feature) => {
+    if (feature.type === 'sketch') {
+      if (isFeatureEnabledInStack(feature)) {
+        sketchById.set(feature.featureId, feature)
+      }
+      return feature
+    }
+    if (feature.type !== 'closeProfile') {
+      return feature
+    }
+    if (!isFeatureEnabledInStack(feature)) {
+      if (feature.outputs.profileRef === null) {
+        return feature
+      }
+      return {
+        ...feature,
+        outputs: {
+          ...feature.outputs,
+          profileRef: null,
+        },
+      }
+    }
+    const sourceId = feature.inputs.sourceSketchFeatureId
+    const source = sourceId === null ? undefined : sketchById.get(sourceId)
+    const selected = source?.outputs.profiles[0]
+    const nextRef =
+      sourceId === null || selected === undefined
+        ? null
+        : {
+            sourceFeatureId: sourceId,
+            profileId: selected.profileId,
+            profileIndex: 0 as const,
+          }
+    if (
+      feature.outputs.profileRef?.sourceFeatureId === nextRef?.sourceFeatureId &&
+      feature.outputs.profileRef?.profileId === nextRef?.profileId &&
+      feature.outputs.profileRef?.profileIndex === nextRef?.profileIndex
+    ) {
+      return feature
+    }
+    return {
+      ...feature,
+      outputs: {
+        ...feature.outputs,
+        profileRef: nextRef,
+      },
+    }
+  })
+}
 
 const updatePartNodeFeatureStack = (
   graph: SpaghettiGraph,
@@ -280,7 +720,7 @@ const updatePartNodeFeatureStack = (
       return node
     }
     const currentStack = getPartFeatureStack(node)
-    const nextStack = updateFn(currentStack)
+    const nextStack = recomputeCloseProfileOutputs(updateFn(currentStack))
     if (nextStack === currentStack) {
       return node
     }
@@ -299,7 +739,7 @@ const upsertNodePos = (
   graph: SpaghettiGraph,
   updatesByNodeId: Record<string, GraphNodePos>,
 ): SpaghettiGraph => {
-  const canonical = normalizeGraphUiPositions(graph)
+  const canonical = normalizeGraphForStoreCommit(graph)
   const currentPos = canonical.ui?.nodes ?? {}
   let changed = false
   const nextPos: Record<string, GraphNodePos> = { ...currentPos }
@@ -370,7 +810,18 @@ type FeatureStackIrCacheSlice = Pick<
 >
 
 const deriveFeatureStackIrCache = (graph: SpaghettiGraph): FeatureStackIrCacheSlice => {
-  const computed = computeFeatureStackIrParts(graph)
+  const hasPartNodes = graph.nodes.some((node) => node.type.startsWith('Part/'))
+  if (!hasPartNodes) {
+    const computed = computeFeatureStackIrParts(graph)
+    return {
+      partFeatureStackIrByPartKey: computed.parts,
+      partKeyByNodeId: computed.nodeIdToPartKey,
+    }
+  }
+  const evaluation = evaluateSpaghettiGraph(graph)
+  const computed = computeFeatureStackIrParts(graph, {
+    resolvedInputsByNodeId: evaluation.ok ? evaluation.inputsByNodeId : undefined,
+  })
   return {
     partFeatureStackIrByPartKey: computed.parts,
     partKeyByNodeId: computed.nodeIdToPartKey,
@@ -384,7 +835,7 @@ const withGraphAndFeatureStackCache = (
   ...deriveFeatureStackIrCache(graph),
 })
 
-const initialGraph = normalizeGraphUiPositions(emptyGraph)
+const initialGraph = normalizeGraphForStoreCommit(emptyGraph)
 
 export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
   ...withGraphAndFeatureStackCache(initialGraph),
@@ -395,7 +846,7 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
   connectionDrag: null,
   uiMessage: null,
   setGraph: (next) => {
-    const nextGraph = normalizeGraphUiPositions(next)
+    const nextGraph = normalizeGraphForStoreCommit(next)
     set({
       ...withGraphAndFeatureStackCache(nextGraph),
       selectedNodeId: null,
@@ -406,9 +857,20 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
       uiMessage: null,
     })
   },
+  applyGraphCommand: (cmd) => {
+    set((state) => {
+      let nextGraph = cmd(state.graph)
+      nextGraph = normalizeGraphForStoreCommit(nextGraph)
+      return {
+        ...withGraphAndFeatureStackCache(nextGraph),
+        edgeWaypoints: pruneEdgeWaypoints(nextGraph, state.edgeWaypoints),
+      }
+    })
+  },
   applyGraphPatch: (patchFn) => {
     set((state) => {
-      const nextGraph = normalizeGraphUiPositions(patchFn(state.graph))
+      let nextGraph = patchFn(state.graph)
+      nextGraph = normalizeGraphForStoreCommit(nextGraph)
       return {
         ...withGraphAndFeatureStackCache(nextGraph),
         edgeWaypoints: pruneEdgeWaypoints(nextGraph, state.edgeWaypoints),
@@ -445,34 +907,20 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
   },
   ensureNodePositions: () => {
     set((state) => {
-      const nextGraph = normalizeGraphUiPositions(state.graph)
+      const nextGraph = normalizeGraphForStoreCommit(state.graph)
       return {
         ...withGraphAndFeatureStackCache(nextGraph),
       }
     })
   },
   addEdge: (edge) => {
-    set((state) => {
-      if (state.graph.edges.some((existing) => existing.edgeId === edge.edgeId)) {
-        return state
-      }
-      const nextGraph = {
-        ...state.graph,
-        edges: [...state.graph.edges, edge],
-      }
-      return {
-        ...withGraphAndFeatureStackCache(nextGraph),
-      }
-    })
+    get().applyGraphCommand(addEdgeCommand(edge))
   },
   removeEdge: (edgeId) => {
     set((state) => {
+      const nextGraph = normalizeGraphForStoreCommit(removeEdgeCommand(edgeId)(state.graph))
       const nextWaypoints = { ...state.edgeWaypoints }
       delete nextWaypoints[edgeId]
-      const nextGraph = {
-        ...state.graph,
-        edges: state.graph.edges.filter((edge) => edge.edgeId !== edgeId),
-      }
       return {
         ...withGraphAndFeatureStackCache(nextGraph),
         edgeWaypoints: nextWaypoints,
@@ -656,6 +1104,17 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
       }
     })
   },
+  addCloseProfileFeature: (nodeId) => {
+    set((state) => {
+      const nextGraph = updatePartNodeFeatureStack(state.graph, nodeId, (stack) => [
+        ...stack,
+        createCloseProfileFeature(),
+      ])
+      return {
+        ...withGraphAndFeatureStackCache(nextGraph),
+      }
+    })
+  },
   addExtrudeFeature: (nodeId) => {
     set((state) => {
       const nextGraph = updatePartNodeFeatureStack(state.graph, nodeId, (stack) => {
@@ -672,6 +1131,14 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
               depth: {
                 kind: 'lit',
                 value: 10,
+              },
+              taper: {
+                kind: 'lit',
+                value: 0,
+              },
+              offset: {
+                kind: 'lit',
+                value: 0,
               },
             },
             outputs: {
@@ -708,7 +1175,7 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
       }
     })
   },
-  addSketchLine: (nodeId, featureId) => {
+  addSketchComponent: (nodeId, featureId, componentType) => {
     set((state) => {
       const nextGraph = updatePartNodeFeatureStack(state.graph, nodeId, (stack) =>
         stack.map((feature) => {
@@ -717,7 +1184,7 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
           }
           return recomputeSketchFeature({
             ...feature,
-            entities: [...feature.entities, createDefaultLine()],
+            components: [...feature.components, createDefaultComponent(componentType)],
           })
         }),
       )
@@ -726,24 +1193,67 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
       }
     })
   },
-  updateSketchLineEndpoint: (nodeId, featureId, entityId, which, value) => {
+  moveFeatureUp: (nodeId, featureId) => {
+    set((state) => {
+      const nextGraph = updatePartNodeFeatureStack(state.graph, nodeId, (stack) =>
+        moveFeatureInStack(stack, featureId, 'up'),
+      )
+      return {
+        ...withGraphAndFeatureStackCache(nextGraph),
+      }
+    })
+  },
+  moveFeatureDown: (nodeId, featureId) => {
+    set((state) => {
+      const nextGraph = updatePartNodeFeatureStack(state.graph, nodeId, (stack) =>
+        moveFeatureInStack(stack, featureId, 'down'),
+      )
+      return {
+        ...withGraphAndFeatureStackCache(nextGraph),
+      }
+    })
+  },
+  setFeatureEnabled: (nodeId, featureId, enabled) => {
+    set((state) => {
+      const nextGraph = updatePartNodeFeatureStack(state.graph, nodeId, (stack) =>
+        stack.map((feature) =>
+          feature.featureId !== featureId
+            ? feature
+            : feature.enabled === enabled
+              ? feature
+              : {
+                  ...feature,
+                  enabled,
+                },
+        ),
+      )
+      return {
+        ...withGraphAndFeatureStackCache(nextGraph),
+      }
+    })
+  },
+  updateSketchComponentPoint: (nodeId, featureId, rowId, pointKey, value) => {
     set((state) => {
       const nextGraph = updatePartNodeFeatureStack(state.graph, nodeId, (stack) =>
         stack.map((feature) => {
           if (feature.featureId !== featureId || feature.type !== 'sketch') {
             return feature
           }
-          const entities = feature.entities.map((entity) =>
-            entity.entityId !== entityId
-              ? entity
-              : {
-                  ...entity,
-                  [which]: value,
-                },
-          )
+          const components = feature.components.map((component) => {
+            if (component.rowId !== rowId) {
+              return component
+            }
+            if (!(pointKey in component)) {
+              return component
+            }
+            return {
+              ...component,
+              [pointKey]: value,
+            } as SketchComponent
+          })
           return recomputeSketchFeature({
             ...feature,
-            entities,
+            components,
           })
         }),
       )
@@ -751,6 +1261,116 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
         ...withGraphAndFeatureStackCache(nextGraph),
       }
     })
+  },
+  moveSketchComponentUp: (nodeId, featureId, rowId) => {
+    set((state) => {
+      const nextGraph = updatePartNodeFeatureStack(state.graph, nodeId, (stack) =>
+        stack.map((feature) => {
+          if (feature.featureId !== featureId || feature.type !== 'sketch') {
+            return feature
+          }
+          const index = feature.components.findIndex((component) => component.rowId === rowId)
+          if (index <= 0) return feature
+          const next = feature.components.slice()
+          const temp = next[index - 1]
+          next[index - 1] = next[index]
+          next[index] = temp
+          return recomputeSketchFeature({
+            ...feature,
+            components: next,
+          })
+        }),
+      )
+      return {
+        ...withGraphAndFeatureStackCache(nextGraph),
+      }
+    })
+  },
+  moveSketchComponentDown: (nodeId, featureId, rowId) => {
+    set((state) => {
+      const nextGraph = updatePartNodeFeatureStack(state.graph, nodeId, (stack) =>
+        stack.map((feature) => {
+          if (feature.featureId !== featureId || feature.type !== 'sketch') {
+            return feature
+          }
+          const index = feature.components.findIndex((component) => component.rowId === rowId)
+          if (index < 0 || index >= feature.components.length - 1) return feature
+          const next = feature.components.slice()
+          const temp = next[index + 1]
+          next[index + 1] = next[index]
+          next[index] = temp
+          return recomputeSketchFeature({
+            ...feature,
+            components: next,
+          })
+        }),
+      )
+      return {
+        ...withGraphAndFeatureStackCache(nextGraph),
+      }
+    })
+  },
+  removeSketchComponent: (nodeId, featureId, rowId) => {
+    set((state) => {
+      const nextGraph = updatePartNodeFeatureStack(state.graph, nodeId, (stack) =>
+        stack.map((feature) => {
+          if (feature.featureId !== featureId || feature.type !== 'sketch') {
+            return feature
+          }
+          const components = feature.components.filter((component) => component.rowId !== rowId)
+          if (components.length === feature.components.length) return feature
+          return recomputeSketchFeature({
+            ...feature,
+            components,
+          })
+        }),
+      )
+      return {
+        ...withGraphAndFeatureStackCache(nextGraph),
+      }
+    })
+  },
+  setSketchRectangleDimensions: (nodeId, featureId, dimensions) => {
+    set((state) => {
+      const nextGraph = updatePartNodeFeatureStack(state.graph, nodeId, (stack) =>
+        stack.map((feature) =>
+          feature.featureId !== featureId || feature.type !== 'sketch'
+            ? feature
+            : rewriteCubeSeedRectangleSketch(feature, dimensions),
+        ),
+      )
+      return {
+        ...withGraphAndFeatureStackCache(nextGraph),
+      }
+    })
+  },
+  setCloseProfileSource: (nodeId, featureId, sourceSketchFeatureId) => {
+    set((state) => {
+      const nextGraph = updatePartNodeFeatureStack(state.graph, nodeId, (stack) =>
+        stack.map((feature) =>
+          feature.featureId !== featureId || feature.type !== 'closeProfile'
+            ? feature
+            : {
+                ...feature,
+                inputs: {
+                  ...feature.inputs,
+                  sourceSketchFeatureId,
+                },
+              },
+        ),
+      )
+      return {
+        ...withGraphAndFeatureStackCache(nextGraph),
+      }
+    })
+  },
+  // Legacy compatibility wrappers.
+  addSketchLine: (nodeId, featureId) => {
+    get().addSketchComponent(nodeId, featureId, 'line')
+  },
+  updateSketchLineEndpoint: (nodeId, featureId, entityId, which, value) => {
+    const pointKey = which === 'start' ? 'a' : 'b'
+    get().updateSketchComponentPoint(nodeId, featureId, entityId, pointKey, value)
   },
   setExtrudeDepth: (nodeId, featureId, depth) => {
     set((state) => {
@@ -763,6 +1383,46 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
                 params: {
                   ...feature.params,
                   depth,
+                },
+              },
+        ),
+      )
+      return {
+        ...withGraphAndFeatureStackCache(nextGraph),
+      }
+    })
+  },
+  setExtrudeTaper: (nodeId, featureId, taper) => {
+    set((state) => {
+      const nextGraph = updatePartNodeFeatureStack(state.graph, nodeId, (stack) =>
+        stack.map((feature) =>
+          feature.featureId !== featureId || feature.type !== 'extrude'
+            ? feature
+            : {
+                ...feature,
+                params: {
+                  ...feature.params,
+                  taper,
+                },
+              },
+        ),
+      )
+      return {
+        ...withGraphAndFeatureStackCache(nextGraph),
+      }
+    })
+  },
+  setExtrudeOffset: (nodeId, featureId, offset) => {
+    set((state) => {
+      const nextGraph = updatePartNodeFeatureStack(state.graph, nodeId, (stack) =>
+        stack.map((feature) =>
+          feature.featureId !== featureId || feature.type !== 'extrude'
+            ? feature
+            : {
+                ...feature,
+                params: {
+                  ...feature.params,
+                  offset,
                 },
               },
         ),

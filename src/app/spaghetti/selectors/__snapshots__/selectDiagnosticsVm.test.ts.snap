@@ -1,0 +1,45 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`selectDiagnosticsVm > matches stable DiagnosticsVm contract snapshot 1`] = `
+{
+  "edgeStatusById": {
+    "edge-cycle-1": {
+      "kind": "ok",
+    },
+    "edge-cycle-2": {
+      "kind": "ok",
+    },
+    "edge-missing": {
+      "kind": "ok",
+    },
+    "edge-ok": {
+      "kind": "ok",
+    },
+    "edge-type": {
+      "blame": "both",
+      "kind": "typeMismatch",
+      "message": "type mismatch",
+      "reasons": [
+        "typeMismatch",
+      ],
+    },
+    "edge-unresolved": {
+      "kind": "ok",
+    },
+  },
+  "items": [
+    {
+      "code": "EDGE_TYPE_MISMATCH",
+      "edgeId": "edge-type",
+      "id": "error::EDGE_TYPE_MISMATCH::type mismatch::::edge-type",
+      "level": "error",
+      "message": "type mismatch",
+    },
+  ],
+  "slotStatus": {
+    "s001": "ok",
+    "s002": "ok",
+    "s003": "empty",
+  },
+}
+`;

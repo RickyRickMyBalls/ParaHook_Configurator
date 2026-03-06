@@ -6,6 +6,11 @@ import type {
   BuildResult,
   PartArtifact,
 } from '../../shared/buildTypes'
+import { getPartArtifactKey } from '../../shared/buildTypes'
+import {
+  deriveSpaghettiSourcePartKeysFromProfilePatch,
+  withAssembledBuildStatsKey,
+} from '../../shared/buildStatsKeys'
 import { buildModel } from '../buildModel'
 import { emitArtifacts } from './artifactEmitter'
 import { computeAffectedPartKeys } from './paramRouting'
@@ -28,6 +33,9 @@ const CONTROL_MODE: ControlMode = 'profile_editor'
 
 const now = (): number => Date.now()
 
+const asRecord = (value: unknown): Record<string, unknown> | null =>
+  typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : null
+
 const emit = (
   emitProgress: ProgressEmitter,
   message: Omit<BuildProgress, 'type'>,
@@ -40,7 +48,7 @@ const emit = (
 
 const findPart = (parts: PartArtifact[], partKey: string): PartArtifact => {
   const part = parts.find(
-    (candidate) => (candidate.partKeyStr ?? candidate.id) === partKey,
+    (candidate) => getPartArtifactKey(candidate) === partKey,
   )
   if (part === undefined) {
     throw new Error(`Missing part artifact for key: ${partKey}`)
@@ -59,8 +67,14 @@ export const buildPipeline = async (
     payload,
     instances,
   })
-  const orderedPartKeys = deriveBuildPartKeyStrings(instances)
-  const affectedSet = new Set(computeAffectedPartKeys(request.changedParamIds, instances))
+  const spaghettiPartKeys = deriveSpaghettiSourcePartKeysFromProfilePatch(
+    asRecord(payload) ?? {},
+  )
+  const orderedPartKeys =
+    spaghettiPartKeys.length > 0
+      ? withAssembledBuildStatsKey(spaghettiPartKeys)
+      : deriveBuildPartKeyStrings(instances)
+  const affectedSet = new Set(computeAffectedPartKeys(request.changedParamIds, orderedPartKeys))
 
   for (const partKey of orderedPartKeys) {
     emit(emitProgress, {

@@ -7,6 +7,13 @@ import type {
 } from '../schema/spaghettiTypes'
 import type { SpaghettiDiagnostic } from './validateGraph'
 import { validateGraph } from './validateGraph'
+import { listEffectiveInputPorts } from '../features/effectivePorts'
+import {
+  listDriverVirtualInputPorts,
+  getDriverVirtualOutputValue,
+  parseDriverVirtualInputPortId,
+  listDriverVirtualOutputPorts,
+} from '../features/driverVirtualPorts'
 import {
   getFieldTree,
   isCompositeFieldNode,
@@ -353,7 +360,9 @@ export const evaluateSpaghettiGraph = (graph: SpaghettiGraph): EvaluationResult 
       return defaultValueForLeafType(fieldNode.type)
     }
 
-    for (const inputPort of nodeDef.inputs) {
+    const effectiveInputPorts = listEffectiveInputPorts(node, nodeDef)
+
+    for (const inputPort of effectiveInputPorts) {
       const matchingEdges = incomingEdges.filter((edge) => edge.to.portId === inputPort.portId)
       const fieldTree = getFieldTree(inputPort.type)
       const literalValue = node.params[inputPort.portId]
@@ -480,11 +489,40 @@ export const evaluateSpaghettiGraph = (graph: SpaghettiGraph): EvaluationResult 
     }
     inputsByNodeId[nodeId] = inputs
 
+    const resolvedParams: Record<string, unknown> = {
+      ...node.params,
+    }
+    const driverVirtualInputs = listDriverVirtualInputPorts(node, nodeDef)
+    for (const driverVirtualInput of driverVirtualInputs) {
+      const parsedDriverInput = parseDriverVirtualInputPortId(driverVirtualInput.portId)
+      if (parsedDriverInput === null) {
+        continue
+      }
+      const hasIncomingWholeDriverEdge = incomingEdges.some(
+        (edge) =>
+          edge.to.portId === driverVirtualInput.portId &&
+          normalizePath(edge.to.path) === undefined,
+      )
+      if (!hasIncomingWholeDriverEdge) {
+        continue
+      }
+      const resolvedDriverValue = inputs[driverVirtualInput.portId]
+      if (resolvedDriverValue === undefined) {
+        hasNodeError = true
+        continue
+      }
+      resolvedParams[parsedDriverInput.paramId] = resolvedDriverValue
+    }
+
+    if (hasNodeError) {
+      continue
+    }
+
     let computedUnknown: unknown
     try {
       computedUnknown = nodeDef.compute({
         nodeId,
-        params: node.params,
+        params: resolvedParams,
         inputs,
       })
     } catch (error) {
@@ -547,6 +585,32 @@ export const evaluateSpaghettiGraph = (graph: SpaghettiGraph): EvaluationResult 
         message: `Node "${nodeId}" returned undeclared output "${key}".`,
         nodeId,
       })
+    }
+
+    const virtualDriverOutputs = listDriverVirtualOutputPorts(node, nodeDef)
+    const resolvedParamNode: SpaghettiNode = {
+      ...node,
+      params: resolvedParams,
+    }
+    for (const virtualOutput of virtualDriverOutputs) {
+      const virtualValue = getDriverVirtualOutputValue(
+        resolvedParamNode,
+        nodeDef,
+        virtualOutput.portId,
+      )
+      if (virtualValue === undefined) {
+        continue
+      }
+      if (!isValidForPortType(virtualValue, virtualOutput.type)) {
+        errors.push({
+          level: 'error',
+          code: 'OUTPUT_INVALID_SHAPE',
+          message: `Invalid output shape for "${nodeId}.${virtualOutput.portId}" (${virtualOutput.type.kind}).`,
+          nodeId,
+        })
+        continue
+      }
+      nodeOutputs[virtualOutput.portId] = virtualValue
     }
 
     outputsByNodeId[nodeId] = nodeOutputs

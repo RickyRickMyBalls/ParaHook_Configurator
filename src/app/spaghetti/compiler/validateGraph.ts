@@ -1,6 +1,20 @@
-import type { PortSpec, PortType, SpaghettiGraph, SpaghettiNode } from '../schema/spaghettiTypes'
+import type { EdgeEndpoint, SpaghettiGraph, SpaghettiNode } from '../schema/spaghettiTypes'
+import { isPartNodeType, normalizePartSlots } from '../parts/partSlots'
+import { buildNodeDriverVm, type OutputPinnedRowVm } from '../canvas/driverVm'
 import { getNodeDef } from '../registry/nodeRegistry'
-import { getFieldNodeAtPath, getFieldTree } from '../types/fieldTree'
+import { readFeatureStack } from '../features/featureSchema'
+import { getFeatureDependencyIssues } from '../features/featureDependencies'
+import {
+  buildVmRowIdsForSection,
+  normalizePartRowOrder,
+} from '../parts/partRowOrder'
+import {
+  createConnectionContractIncrementalState,
+  defaultNodeRegistry,
+  type ConnectionContractCode,
+  type ConnectionContractResult,
+  validateConnectionContract,
+} from '../contracts/endpoints'
 
 export type SpaghettiDiagnostic = {
   level: 'error' | 'warn'
@@ -18,9 +32,6 @@ export type GraphValidationResult = {
 
 const compareByNodeId = (a: SpaghettiNode, b: SpaghettiNode): number =>
   a.nodeId.localeCompare(b.nodeId) || a.type.localeCompare(b.type)
-
-const compareTypesExact = (source: PortType, target: PortType): boolean =>
-  source.kind === target.kind && source.unit === target.unit
 
 const normalizePath = (path: string[] | undefined): string[] | undefined =>
   path === undefined || path.length === 0 ? undefined : path
@@ -56,10 +67,12 @@ const collectCycleNodes = (
     .sort((a, b) => a.localeCompare(b))
 
   let processed = 0
-  let cursor = 0
 
-  while (cursor < queue.length) {
-    const nodeId = queue[cursor++]
+  while (queue.length > 0) {
+    const nodeId = queue.shift()
+    if (nodeId === undefined) {
+      break
+    }
     processed += 1
     const neighbors = [...(adjacency.get(nodeId) ?? [])].sort((a, b) =>
       a.localeCompare(b),
@@ -84,20 +97,132 @@ const collectCycleNodes = (
     .sort((a, b) => a.localeCompare(b))
 }
 
+const formatEndpointPathSuffix = (endpoint: EdgeEndpoint): string => {
+  const pathKey = endpointPathKey(endpoint.path)
+  return pathKey.length === 0 ? '' : `.${pathKey}`
+}
+
+const formatEndpointPathSuffixFromKey = (pathKey: string): string =>
+  pathKey.length === 0 ? '' : `.${pathKey}`
+
+const buildConnectionDiagnosticMessage = (
+  edge: SpaghettiGraph['edges'][number],
+  decision: Extract<ConnectionContractResult, { ok: false }>,
+): string => {
+  switch (decision.code) {
+    case 'EDGE_FROM_NODE_MISSING':
+      return `Edge source node "${edge.from.nodeId}" does not exist.`
+    case 'EDGE_TO_NODE_MISSING':
+      return `Edge target node "${edge.to.nodeId}" does not exist.`
+    case 'NODE_TYPE_UNKNOWN':
+      return `Unknown node type "${decision.details.nodeType ?? 'unknown'}".`
+    case 'EDGE_FROM_PORT_MISSING':
+      return `Output port "${edge.from.portId}" does not exist on node "${edge.from.nodeId}".`
+    case 'EDGE_TO_PORT_MISSING':
+      return `Input port "${edge.to.portId}" does not exist on node "${edge.to.nodeId}".`
+    case 'EDGE_FROM_PATH_INVALID':
+      return `Output path "${endpointPathKey(edge.from.path)}" does not exist on "${edge.from.nodeId}.${edge.from.portId}".`
+    case 'EDGE_FROM_PATH_NOT_LEAF':
+      return `Output path "${endpointPathKey(edge.from.path)}" is not a leaf on "${edge.from.nodeId}.${edge.from.portId}".`
+    case 'EDGE_TO_PATH_INVALID':
+      return `Input path "${endpointPathKey(edge.to.path)}" does not exist on "${edge.to.nodeId}.${edge.to.portId}".`
+    case 'EDGE_TO_PATH_NOT_LEAF':
+      return `Input path "${endpointPathKey(edge.to.path)}" is not a leaf on "${edge.to.nodeId}.${edge.to.portId}".`
+    case 'FEATURE_VIRTUAL_INPUT_PATH_UNSUPPORTED':
+      return `Feature virtual input "${edge.to.nodeId}.${edge.to.portId}" does not support path connections.`
+    case 'DRIVER_VIRTUAL_INPUT_PATH_UNSUPPORTED':
+      return `Driver virtual input "${edge.to.nodeId}.${edge.to.portId}" does not support path connections.`
+    case 'FEATURE_WIRE_INTRA_NODE_UNSUPPORTED':
+      return `Feature virtual input "${edge.to.nodeId}.${edge.to.portId}" cannot be driven from the same node in Phase 2 v1.`
+    case 'EDGE_TYPE_MISMATCH':
+      return `Type mismatch from "${edge.from.nodeId}.${edge.from.portId}${formatEndpointPathSuffix(edge.from)}" to "${edge.to.nodeId}.${edge.to.portId}${formatEndpointPathSuffix(edge.to)}".`
+    case 'EDGE_TO_PATH_DUPLICATE': {
+      const pathKey = decision.details.toPathKey
+      return `Duplicate leaf-path connections targeting "${edge.to.nodeId}.${edge.to.portId}${formatEndpointPathSuffixFromKey(pathKey)}".`
+    }
+    case 'EDGE_TO_MAX_CONNECTIONS': {
+      const pathKey = decision.details.toPathKey
+      const maxConnectionsIn = decision.details.maxConnectionsIn ?? 1
+      return `Input endpoint "${edge.to.nodeId}.${edge.to.portId}${formatEndpointPathSuffixFromKey(pathKey)}" exceeds maxConnectionsIn (${maxConnectionsIn}).`
+    }
+    default: {
+      const _exhaustive: never = decision.code
+      return _exhaustive
+    }
+  }
+}
+
+const isCycleExcludedConnectionCode = (code: ConnectionContractCode): boolean =>
+  code === 'FEATURE_VIRTUAL_INPUT_PATH_UNSUPPORTED' ||
+  code === 'DRIVER_VIRTUAL_INPUT_PATH_UNSUPPORTED' ||
+  code === 'FEATURE_WIRE_INTRA_NODE_UNSUPPORTED'
+
+export const validateGraphConnectionDecision = (
+  graph: SpaghettiGraph,
+  edge: {
+    from: EdgeEndpoint
+    to: EdgeEndpoint
+  },
+): ConnectionContractResult =>
+  validateConnectionContract(graph, defaultNodeRegistry, edge.from, edge.to)
+
 export const validateGraph = (graph: SpaghettiGraph): GraphValidationResult => {
   const errors: SpaghettiDiagnostic[] = []
   const warnings: SpaghettiDiagnostic[] = []
 
   const sortedNodes = [...graph.nodes].sort(compareByNodeId)
   const sortedEdges = [...graph.edges].sort((a, b) => a.edgeId.localeCompare(b.edgeId))
+  const inputConnectionCountsByNodeId = new Map<string, Map<string, number>>()
+  for (const edge of sortedEdges) {
+    const byPort = inputConnectionCountsByNodeId.get(edge.to.nodeId) ?? new Map<string, number>()
+    byPort.set(edge.to.portId, (byPort.get(edge.to.portId) ?? 0) + 1)
+    inputConnectionCountsByNodeId.set(edge.to.nodeId, byPort)
+  }
 
   const nodeById = new Map<string, SpaghettiNode>()
-  const nodeDefsById = new Map<string, ReturnType<typeof getNodeDef>>()
-
   for (const node of sortedNodes) {
     nodeById.set(node.nodeId, node)
     const nodeDef = getNodeDef(node.type)
-    nodeDefsById.set(node.nodeId, nodeDef)
+    let paramsForValidation = node.params
+
+    if (isPartNodeType(node.type)) {
+      const normalized = normalizePartSlots(node.partSlots, node.nodeId)
+      for (const warning of normalized.warnings) {
+        warnings.push({
+          level: 'warn',
+          code: warning.code,
+          message: warning.message,
+          nodeId: node.nodeId,
+        })
+      }
+      // TODO(partSlots): enforce slot type/category gating when slot contents are introduced.
+
+      const vm = buildNodeDriverVm(node, nodeDef, {
+        connectionCountByPortId: inputConnectionCountsByNodeId.get(node.nodeId),
+      })
+      if (vm !== null) {
+        const outputEndpointRows = vm.outputs.filter(
+          (row): row is Extract<OutputPinnedRowVm, { kind: 'endpoint' }> => row.kind === 'endpoint',
+        )
+        const normalizedPartRowOrder = normalizePartRowOrder({
+          node,
+          vmDriversRowIds: buildVmRowIdsForSection(node.nodeId, vm.drivers),
+          vmInputsRowIds: buildVmRowIdsForSection(node.nodeId, vm.inputs),
+          vmOutputsRowIds: buildVmRowIdsForSection(node.nodeId, outputEndpointRows),
+        })
+        for (const warning of normalizedPartRowOrder.warnings) {
+          warnings.push({
+            level: 'warn',
+            code: warning.code,
+            message: warning.message,
+            nodeId: node.nodeId,
+          })
+        }
+        if (normalizedPartRowOrder.repairedNode !== undefined) {
+          paramsForValidation = normalizedPartRowOrder.repairedNode.params
+        }
+      }
+    }
 
     if (nodeDef === undefined) {
       errors.push({
@@ -109,7 +234,7 @@ export const validateGraph = (graph: SpaghettiGraph): GraphValidationResult => {
       continue
     }
 
-    const paramsResult = nodeDef.paramsSchema.safeParse(node.params)
+    const paramsResult = nodeDef.paramsSchema.safeParse(paramsForValidation)
     if (!paramsResult.success) {
       errors.push({
         level: 'error',
@@ -120,184 +245,88 @@ export const validateGraph = (graph: SpaghettiGraph): GraphValidationResult => {
     }
   }
 
-  const adjacency = new Map<string, Set<string>>()
-  const indegree = new Map<string, number>()
-
-  const findPort = (ports: PortSpec[], portId: string): PortSpec | undefined =>
-    ports.find((port) => port.portId === portId)
-
-  for (const edge of sortedEdges) {
-    const fromNode = nodeById.get(edge.from.nodeId)
-    const toNode = nodeById.get(edge.to.nodeId)
-
-    if (fromNode === undefined) {
+  for (const node of sortedNodes) {
+    if (!isPartNodeType(node.type)) {
+      continue
+    }
+    const stack = readFeatureStack(node.params.featureStack)
+    for (const issue of getFeatureDependencyIssues(stack)) {
+      if (issue.code === 'CLOSE_PROFILE_SOURCE_MISSING') {
+        errors.push({
+          level: 'error',
+          code: issue.code,
+          message: `Close Profile "${issue.featureId}" references missing source sketch.`,
+          nodeId: node.nodeId,
+        })
+        continue
+      }
+      if (issue.code === 'CLOSE_PROFILE_PROFILE_MISSING') {
+        errors.push({
+          level: 'error',
+          code: issue.code,
+          message: `Close Profile "${issue.featureId}" source sketch has no profile.`,
+          nodeId: node.nodeId,
+        })
+        continue
+      }
       errors.push({
         level: 'error',
-        code: 'EDGE_FROM_NODE_MISSING',
-        message: `Edge source node "${edge.from.nodeId}" does not exist.`,
-        edgeId: edge.edgeId,
+        code: issue.code,
+        message: `Extrude "${issue.featureId}" references missing profile source.`,
+        nodeId: node.nodeId,
       })
-    }
-
-    if (toNode === undefined) {
-      errors.push({
-        level: 'error',
-        code: 'EDGE_TO_NODE_MISSING',
-        message: `Edge target node "${edge.to.nodeId}" does not exist.`,
-        edgeId: edge.edgeId,
-      })
-    }
-
-    if (fromNode !== undefined && toNode !== undefined) {
-      const fromDef = nodeDefsById.get(fromNode.nodeId)
-      const toDef = nodeDefsById.get(toNode.nodeId)
-
-      let fromPort: PortSpec | undefined
-      let fromType: PortType | undefined
-      if (fromDef !== undefined) {
-        fromPort = findPort(fromDef.outputs, edge.from.portId)
-        if (fromPort === undefined) {
-          errors.push({
-            level: 'error',
-            code: 'EDGE_FROM_PORT_MISSING',
-            message: `Output port "${edge.from.portId}" does not exist on node "${fromNode.nodeId}".`,
-            edgeId: edge.edgeId,
-          })
-        } else {
-          const resolved = getFieldNodeAtPath(
-            getFieldTree(fromPort.type),
-            normalizePath(edge.from.path),
-          )
-          if (resolved === undefined) {
-            errors.push({
-              level: 'error',
-              code: 'EDGE_FROM_PATH_INVALID',
-              message: `Output path "${endpointPathKey(edge.from.path)}" does not exist on "${fromNode.nodeId}.${fromPort.portId}".`,
-              edgeId: edge.edgeId,
-            })
-          } else if (edge.from.path !== undefined && resolved.kind !== 'leaf') {
-            errors.push({
-              level: 'error',
-              code: 'EDGE_FROM_PATH_NOT_LEAF',
-              message: `Output path "${endpointPathKey(edge.from.path)}" is not a leaf on "${fromNode.nodeId}.${fromPort.portId}".`,
-              edgeId: edge.edgeId,
-            })
-          } else {
-            fromType = resolved.type
-          }
-        }
-      }
-
-      let toPort: PortSpec | undefined
-      let toType: PortType | undefined
-      if (toDef !== undefined) {
-        toPort = findPort(toDef.inputs, edge.to.portId)
-        if (toPort === undefined) {
-          errors.push({
-            level: 'error',
-            code: 'EDGE_TO_PORT_MISSING',
-            message: `Input port "${edge.to.portId}" does not exist on node "${toNode.nodeId}".`,
-            edgeId: edge.edgeId,
-          })
-        } else {
-          const resolved = getFieldNodeAtPath(
-            getFieldTree(toPort.type),
-            normalizePath(edge.to.path),
-          )
-          if (resolved === undefined) {
-            errors.push({
-              level: 'error',
-              code: 'EDGE_TO_PATH_INVALID',
-              message: `Input path "${endpointPathKey(edge.to.path)}" does not exist on "${toNode.nodeId}.${toPort.portId}".`,
-              edgeId: edge.edgeId,
-            })
-          } else if (edge.to.path !== undefined && resolved.kind !== 'leaf') {
-            errors.push({
-              level: 'error',
-              code: 'EDGE_TO_PATH_NOT_LEAF',
-              message: `Input path "${endpointPathKey(edge.to.path)}" is not a leaf on "${toNode.nodeId}.${toPort.portId}".`,
-              edgeId: edge.edgeId,
-            })
-          } else {
-            toType = resolved.type
-          }
-        }
-      }
-
-      if (fromPort !== undefined && toPort !== undefined && fromType !== undefined && toType !== undefined) {
-        if (!compareTypesExact(fromType, toType)) {
-          errors.push({
-            level: 'error',
-            code: 'EDGE_TYPE_MISMATCH',
-            message: `Type mismatch from "${fromNode.nodeId}.${fromPort.portId}${edge.from.path === undefined ? '' : `.${endpointPathKey(edge.from.path)}`}" to "${toNode.nodeId}.${toPort.portId}${edge.to.path === undefined ? '' : `.${endpointPathKey(edge.to.path)}`}".`,
-            edgeId: edge.edgeId,
-          })
-        }
-      }
-
-      if (!adjacency.has(fromNode.nodeId)) {
-        adjacency.set(fromNode.nodeId, new Set())
-      }
-      adjacency.get(fromNode.nodeId)?.add(toNode.nodeId)
-      if (!indegree.has(fromNode.nodeId)) {
-        indegree.set(fromNode.nodeId, 0)
-      }
-      if (!indegree.has(toNode.nodeId)) {
-        indegree.set(toNode.nodeId, 0)
-      }
-      indegree.set(toNode.nodeId, (indegree.get(toNode.nodeId) ?? 0) + 1)
     }
   }
 
-  const incomingByEndpoint = new Map<string, { count: number; max: number; edgeId: string }>()
-  const duplicateLeafTargets = new Set<string>()
-  for (const edge of sortedEdges) {
-    const toNode = nodeById.get(edge.to.nodeId)
-    if (toNode === undefined) {
-      continue
-    }
-    const toDef = nodeDefsById.get(toNode.nodeId)
-    if (toDef === undefined) {
-      continue
-    }
-    const toPort = findPort(toDef.inputs, edge.to.portId)
-    if (toPort === undefined) {
-      continue
-    }
+  const adjacency = new Map<string, Set<string>>()
+  const indegree = new Map<string, number>()
 
-    const pathKey = endpointPathKey(edge.to.path)
-    const endpointKey = `${edge.to.nodeId}::${edge.to.portId}::${pathKey}`
-    if (edge.to.path !== undefined) {
-      if (duplicateLeafTargets.has(endpointKey)) {
-        errors.push({
-          level: 'error',
-          code: 'EDGE_TO_PATH_DUPLICATE',
-          message: `Duplicate leaf-path connections targeting "${edge.to.nodeId}.${edge.to.portId}.${pathKey}".`,
-          edgeId: edge.edgeId,
-        })
-      } else {
-        duplicateLeafTargets.add(endpointKey)
+  const excludedEdgeIds = new Set<string>()
+  const incrementalConnectionState = createConnectionContractIncrementalState()
+
+  for (const edge of sortedEdges) {
+    const decision = validateConnectionContract(
+      graph,
+      defaultNodeRegistry,
+      edge.from,
+      edge.to,
+      {
+        incrementalState: incrementalConnectionState,
+      },
+    )
+    if (!decision.ok && decision.code !== 'NODE_TYPE_UNKNOWN') {
+      errors.push({
+        level: 'error',
+        code: decision.code,
+        message: buildConnectionDiagnosticMessage(edge, decision),
+        edgeId: edge.edgeId,
+      })
+      if (isCycleExcludedConnectionCode(decision.code)) {
+        excludedEdgeIds.add(edge.edgeId)
       }
     }
 
-    const current = incomingByEndpoint.get(endpointKey)
-    if (current === undefined) {
-      incomingByEndpoint.set(endpointKey, {
-        count: 1,
-        max: toPort.maxConnectionsIn ?? 1,
-        edgeId: edge.edgeId,
-      })
+    if (excludedEdgeIds.has(edge.edgeId)) {
       continue
     }
-    current.count += 1
-    if (current.count > current.max) {
-      errors.push({
-        level: 'error',
-        code: 'EDGE_TO_MAX_CONNECTIONS',
-        message: `Input endpoint "${edge.to.nodeId}.${edge.to.portId}${pathKey.length === 0 ? '' : `.${pathKey}`}" exceeds maxConnectionsIn (${current.max}).`,
-        edgeId: edge.edgeId,
-      })
+
+    const fromNode = nodeById.get(edge.from.nodeId)
+    const toNode = nodeById.get(edge.to.nodeId)
+    if (fromNode === undefined || toNode === undefined) {
+      continue
     }
+
+    if (!adjacency.has(fromNode.nodeId)) {
+      adjacency.set(fromNode.nodeId, new Set())
+    }
+    adjacency.get(fromNode.nodeId)?.add(toNode.nodeId)
+    if (!indegree.has(fromNode.nodeId)) {
+      indegree.set(fromNode.nodeId, 0)
+    }
+    if (!indegree.has(toNode.nodeId)) {
+      indegree.set(toNode.nodeId, 0)
+    }
+    indegree.set(toNode.nodeId, (indegree.get(toNode.nodeId) ?? 0) + 1)
   }
 
   const cycleNodeIds = collectCycleNodes(adjacency, new Map(indegree))

@@ -7,3 +7,7 @@ export const newId = (prefix: string): string => {
   fallbackCounter += 1
   return `${prefix}-fallback-${fallbackCounter}`
 }
+
+export const makeRowId = (): string => newId('row')
+
+export const makeComponentId = (): string => newId('comp')

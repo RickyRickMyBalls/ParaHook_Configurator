@@ -1,55 +1,47 @@
-import { partKeyToString, type PartArtifact } from '../../shared/buildTypes'
+import {
+  getPartArtifactKey,
+  parsePartKeyString,
+  type PartArtifact,
+} from '../../shared/buildTypes'
 
 type InstancePartId = 'heelKick' | 'toeHook'
 
-const INSTANCE_PART_KEY_PATTERN = /^(heelKick|toeHook)#([1-9]\d*)$/
-
-const fallbackPartIdToPartKeyStr = (id: PartArtifact['id']): string => {
-  if (id === 'heelKick') {
-    return 'heelKick#1'
-  }
-  if (id === 'toeHook') {
-    return 'toeHook#1'
-  }
-  return id
+const PART_LABELS: Record<string, string> = {
+  assembled: 'Assembled',
+  baseplate: 'Baseplate',
+  cube: 'Cube',
+  cubeProof: 'Cube Proof',
+  heelKick: 'Heel Kick',
+  toeHook: 'Toe Hook',
 }
 
-export const artifactToPartKeyStr = (artifact: PartArtifact): string => {
-  if (typeof artifact.partKeyStr === 'string' && artifact.partKeyStr.length > 0) {
-    return artifact.partKeyStr
-  }
-  if (artifact.partKey !== undefined) {
-    return partKeyToString(artifact.partKey)
-  }
-  return fallbackPartIdToPartKeyStr(artifact.id)
-}
+export const artifactToPartKeyStr = (artifact: PartArtifact): string =>
+  getPartArtifactKey(artifact)
 
 export const parseInstancePartKey = (
   partKeyStr: string,
 ): { id: InstancePartId; instance: number } | null => {
-  const match = INSTANCE_PART_KEY_PATTERN.exec(partKeyStr)
-  if (match === null) {
+  const parsed = parsePartKeyString(partKeyStr)
+  if (
+    parsed.instance === null ||
+    (parsed.id !== 'heelKick' && parsed.id !== 'toeHook')
+  ) {
     return null
   }
   return {
-    id: match[1] as InstancePartId,
-    instance: Number(match[2]),
+    id: parsed.id as InstancePartId,
+    instance: parsed.instance,
   }
 }
 
 export const partKeyStrToLabel = (partKeyStr: string): string => {
-  if (partKeyStr === 'baseplate') {
-    return 'Baseplate'
-  }
-  if (partKeyStr === 'assembled') {
-    return 'Assembled'
-  }
-  const parsed = parseInstancePartKey(partKeyStr)
-  if (parsed === null) {
+  const parsed = parsePartKeyString(partKeyStr)
+  const baseLabel = PART_LABELS[parsed.id]
+  if (baseLabel === undefined) {
     return partKeyStr
   }
-  if (parsed.id === 'heelKick') {
-    return `Heel Kick #${parsed.instance}`
+  if (parsed.instance === null) {
+    return baseLabel
   }
-  return `Toe Hook #${parsed.instance}`
+  return `${baseLabel} #${parsed.instance}`
 }

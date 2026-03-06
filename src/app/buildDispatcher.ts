@@ -1,8 +1,8 @@
 import {
+  isPartArtifact,
   normalizeInstances,
-  PART_ORDER,
-  partKeyToString,
 } from '../shared/buildTypes'
+import { LEGACY_BUILD_STATS_PART_ORDER } from '../shared/buildStatsKeys'
 import type {
   AssembleRequest,
   AssembleResult,
@@ -10,8 +10,6 @@ import type {
   BuildProgress,
   BuildRequest,
   BuildResult,
-  PartArtifact,
-  PartId,
   WorkerError,
 } from '../shared/buildTypes'
 import { useBuildStatsStore } from './store/buildStatsStore'
@@ -30,56 +28,8 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 const isStringArray = (value: unknown): value is string[] =>
   Array.isArray(value) && value.every((item) => typeof item === 'string')
 
-const partIds = [...PART_ORDER]
-const buildPartOrder: string[] = [
-  partKeyToString({ id: 'baseplate', instance: null }),
-  partKeyToString({ id: 'heelKick', instance: 1 }),
-  partKeyToString({ id: 'toeHook', instance: 1 }),
-  partKeyToString({ id: 'assembled', instance: null }),
-]
-
 const SIGNATURE_ENGINE_MODE = 'stub_box'
 const SIGNATURE_CONTROL_MODE = 'profile_editor'
-
-const isPartArtifact = (value: unknown): value is PartArtifact => {
-  if (!isRecord(value)) {
-    return false
-  }
-  if (
-    !partIds.includes(value.id as PartId) ||
-    typeof value.label !== 'string' ||
-    value.kind !== 'box'
-  ) {
-    return false
-  }
-  if (!isRecord(value.params)) {
-    return false
-  }
-  if (value.partKeyStr !== undefined && typeof value.partKeyStr !== 'string') {
-    return false
-  }
-  if (value.partKey !== undefined) {
-    if (!isRecord(value.partKey)) {
-      return false
-    }
-    if (!partIds.includes(value.partKey.id as PartId)) {
-      return false
-    }
-    if (
-      value.partKey.instance !== null &&
-      (typeof value.partKey.instance !== 'number' ||
-        !Number.isInteger(value.partKey.instance) ||
-        value.partKey.instance < 1)
-    ) {
-      return false
-    }
-  }
-  return (
-    typeof value.params.width === 'number' &&
-    typeof value.params.length === 'number' &&
-    typeof value.params.height === 'number'
-  )
-}
 
 const isBuildResult = (value: unknown): value is BuildResult => {
   if (!isRecord(value)) {
@@ -170,6 +120,7 @@ export class BuildDispatcher {
   private latestResolvedSeq = 0
   private readonly pendingChangedParamIdsBySeq = new Map<number, string[]>()
   private getChangedParamIdsForNextBuild: (() => string[]) | null = null
+  private getBuildStatsPartKeysForNextBuild: (() => string[]) | null = null
   private getBuildInstancesForNextBuild: (() => BuildInstances) | null = null
   private onBuildResult: BuildResultHandler = () => {}
   private onAssembleResult: AssembleResultHandler = () => {}
@@ -204,6 +155,10 @@ export class BuildDispatcher {
     this.getBuildInstancesForNextBuild = provider
   }
 
+  public setBuildStatsPartKeysProvider(provider: () => string[]): void {
+    this.getBuildStatsPartKeysForNextBuild = provider
+  }
+
   public requestBuild(params: BoxParams): number {
     const seq = ++this.seqCounter
     this.latestRequestedSeq = seq
@@ -219,10 +174,13 @@ export class BuildDispatcher {
     const changedParamIds = this.normalizeChangedParamIds(
       this.getChangedParamIdsForNextBuild?.() ?? [],
     )
+    const buildStatsPartKeys = this.normalizeBuildStatsPartKeys(
+      this.getBuildStatsPartKeysForNextBuild?.() ?? [...LEGACY_BUILD_STATS_PART_ORDER],
+    )
     this.pendingChangedParamIdsBySeq.set(seq, changedParamIds)
     this.prunePendingChangedParamIds(this.latestRequestedSeq)
 
-    useBuildStatsStore.getState().resetStatsForSeq(seq, buildPartOrder)
+    useBuildStatsStore.getState().resetStatsForSeq(seq, buildStatsPartKeys)
     useBuildStatsStore.getState().setOverallState('building')
 
     const message: BuildRequest = {
@@ -393,6 +351,17 @@ export class BuildDispatcher {
     ]
     normalized.sort((a, b) => a.localeCompare(b))
     return normalized
+  }
+
+  private normalizeBuildStatsPartKeys(partKeys: readonly unknown[]): string[] {
+    const normalized = [
+      ...new Set(
+        partKeys.filter(
+          (partKey): partKey is string => typeof partKey === 'string' && partKey.length > 0,
+        ),
+      ),
+    ]
+    return normalized.length > 0 ? normalized : [...LEGACY_BUILD_STATS_PART_ORDER]
   }
 
   private prunePendingChangedParamIds(minSeq: number): void {

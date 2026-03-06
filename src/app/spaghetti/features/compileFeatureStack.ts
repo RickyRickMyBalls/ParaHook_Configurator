@@ -1,31 +1,38 @@
-import { resolveNumberExpression, resolveVec2Expression } from './expressions'
-import type { FeatureStack, ProfileReference } from './featureTypes'
+import { resolveNumberExpression } from './expressions'
+import { deriveProfilesWithDiagnostics } from './profileDerivation'
+import { getEffectiveFeatureStack } from './featureDependencies'
+import type { FeatureStack, ProfileLoop, ProfileReference } from './featureTypes'
 
 type Point2 = {
   x: number
   y: number
 }
 
-type ResolvedLine = {
-  entityId: string
-  start: Point2
-  end: Point2
-}
-
 type IRProfileReference = {
   sketchFeatureId: string
   profileId: string
+  profileIndex: number
+}
+
+export type IRSketchProfileResolved = {
+  profileId: string
+  profileIndex: number
+  area: number
+  loop: ProfileLoop
+  verticesProxy: Point2[]
 }
 
 export type IRSketch = {
   op: 'sketch'
   featureId: string
-  linesResolved: ResolvedLine[]
-  profilesResolved: Array<{
-    profileId: string
-    area: number
-    vertices: Point2[]
-  }>
+  profilesResolved: IRSketchProfileResolved[]
+}
+
+export type IRCloseProfile = {
+  op: 'closeProfile'
+  featureId: string
+  sourceSketchFeatureId: string | null
+  profileRefResolved: IRProfileReference | null
 }
 
 export type IRExtrude = {
@@ -33,80 +40,12 @@ export type IRExtrude = {
   featureId: string
   profileRef: IRProfileReference | null
   depthResolved: number
+  taperResolved: number
+  offsetResolved: number
   bodyId?: string
 }
 
-export type FeatureStackIR = Array<IRSketch | IRExtrude>
-
-const pointKey = (point: Point2): string => `${String(point.x)}|${String(point.y)}`
-
-const signedArea = (vertices: readonly Point2[]): number => {
-  if (vertices.length < 3) {
-    return 0
-  }
-  let sum = 0
-  for (let index = 0; index < vertices.length; index += 1) {
-    const current = vertices[index]
-    const next = vertices[(index + 1) % vertices.length]
-    sum += current.x * next.y - next.x * current.y
-  }
-  return sum * 0.5
-}
-
-const normalizeCounterClockwise = (vertices: Point2[]): Point2[] => {
-  const area = signedArea(vertices)
-  if (area >= 0) {
-    return vertices
-  }
-  return [vertices[0], ...vertices.slice(1).reverse()]
-}
-
-const compareVertexSequences = (a: readonly Point2[], b: readonly Point2[]): number => {
-  const count = Math.min(a.length, b.length)
-  for (let index = 0; index < count; index += 1) {
-    const keyA = pointKey(a[index])
-    const keyB = pointKey(b[index])
-    const comparison = keyA.localeCompare(keyB)
-    if (comparison !== 0) {
-      return comparison
-    }
-  }
-  return a.length - b.length
-}
-
-const tryBuildLoop = (segments: readonly ResolvedLine[], reverseFirst: boolean): Point2[] | null => {
-  if (segments.length < 3) {
-    return null
-  }
-  const first = segments[0]
-  const start = reverseFirst ? first.end : first.start
-  const next = reverseFirst ? first.start : first.end
-  const vertices: Point2[] = [start, next]
-  let current = next
-
-  for (let index = 1; index < segments.length; index += 1) {
-    const segment = segments[index]
-    const startKey = pointKey(segment.start)
-    const endKey = pointKey(segment.end)
-    const currentKey = pointKey(current)
-    if (startKey === currentKey) {
-      current = segment.end
-      vertices.push(current)
-      continue
-    }
-    if (endKey === currentKey) {
-      current = segment.start
-      vertices.push(current)
-      continue
-    }
-    return null
-  }
-
-  if (pointKey(vertices[0]) !== pointKey(current)) {
-    return null
-  }
-  return vertices.slice(0, vertices.length - 1)
-}
+export type FeatureStackIR = Array<IRSketch | IRCloseProfile | IRExtrude>
 
 const toIRProfileRef = (profileRef: ProfileReference | null): IRProfileReference | null => {
   if (profileRef === null) {
@@ -115,73 +54,119 @@ const toIRProfileRef = (profileRef: ProfileReference | null): IRProfileReference
   return {
     sketchFeatureId: profileRef.sourceFeatureId,
     profileId: profileRef.profileId,
+    profileIndex: profileRef.profileIndex ?? 0,
   }
 }
 
-const resolveProfileVertices = (
-  entityIds: readonly string[],
-  linesByEntityId: ReadonlyMap<string, ResolvedLine>,
-): Point2[] => {
-  if (entityIds.length < 3) {
-    return []
+const reconcileProfileIds = (
+  resolved: ReturnType<typeof deriveProfilesWithDiagnostics>,
+  legacyProfileId: string | undefined,
+): IRSketchProfileResolved[] => {
+  const next = resolved.profiles.map((profile, index) => ({
+    profileId: profile.profileId,
+    profileIndex: profile.profileIndex ?? index,
+    area: profile.area,
+    loop: profile.loop,
+    verticesProxy: profile.verticesProxy,
+  }))
+  if (next.length === 1 && legacyProfileId !== undefined && legacyProfileId.length > 0) {
+    next[0] = {
+      ...next[0],
+      profileId: legacyProfileId,
+      profileIndex: 0,
+    }
   }
-  const segments: ResolvedLine[] = []
-  for (const entityId of entityIds) {
-    const segment = linesByEntityId.get(entityId)
-    if (segment === undefined) {
-      return []
-    }
-    segments.push(segment)
-  }
-
-  const direct = tryBuildLoop(segments, false)
-  const reversed = tryBuildLoop(segments, true)
-  const selected = (() => {
-    if (direct === null && reversed === null) {
-      return null
-    }
-    if (direct === null) {
-      return reversed
-    }
-    if (reversed === null) {
-      return direct
-    }
-    return compareVertexSequences(direct, reversed) <= 0 ? direct : reversed
-  })()
-
-  if (selected === null) {
-    return []
-  }
-  const normalized = normalizeCounterClockwise(selected)
-  return Math.abs(signedArea(normalized)) > 0 ? normalized : []
+  return next
 }
 
-export const compileFeatureStack = (stack: FeatureStack): FeatureStackIR =>
-  stack.map((feature) => {
+export const compileFeatureStack = (stack: FeatureStack): FeatureStackIR => {
+  const effectiveStack = getEffectiveFeatureStack(stack)
+  const sketchProfilesByFeatureId = new Map<string, IRSketchProfileResolved[]>()
+  const closeProfileByFeatureId = new Map<string, IRCloseProfile>()
+  const out: FeatureStackIR = []
+
+  for (const feature of effectiveStack) {
     if (feature.type === 'sketch') {
-      const linesResolved: ResolvedLine[] = feature.entities.map((entity) => ({
-        entityId: entity.entityId,
-        start: resolveVec2Expression(entity.start),
-        end: resolveVec2Expression(entity.end),
-      }))
-      const linesByEntityId = new Map(linesResolved.map((line) => [line.entityId, line]))
-      return {
+      const resolved = deriveProfilesWithDiagnostics(feature.components)
+      const legacyPreferredProfileId = feature.outputs.profiles[0]?.profileId
+      const profilesResolved = reconcileProfileIds(resolved, legacyPreferredProfileId)
+      sketchProfilesByFeatureId.set(feature.featureId, profilesResolved)
+      out.push({
         op: 'sketch',
         featureId: feature.featureId,
-        linesResolved,
-        profilesResolved: feature.outputs.profiles.map((profile) => ({
-          profileId: profile.profileId,
-          area: profile.area,
-          vertices: resolveProfileVertices(profile.entityIds, linesByEntityId),
-        })),
-      }
+        profilesResolved,
+      })
+      continue
     }
 
-    return {
+    if (feature.type === 'closeProfile') {
+      const sourceSketchFeatureId = feature.inputs.sourceSketchFeatureId
+      const sourceProfiles =
+        sourceSketchFeatureId === null
+          ? []
+          : (sketchProfilesByFeatureId.get(sourceSketchFeatureId) ?? [])
+      const selected = sourceProfiles[0]
+      const profileRefResolved =
+        sourceSketchFeatureId === null || selected === undefined
+          ? null
+          : {
+              sketchFeatureId: sourceSketchFeatureId,
+              profileId: selected.profileId,
+              profileIndex: 0,
+            }
+      const op: IRCloseProfile = {
+        op: 'closeProfile',
+        featureId: feature.featureId,
+        sourceSketchFeatureId,
+        profileRefResolved,
+      }
+      closeProfileByFeatureId.set(feature.featureId, op)
+      out.push(op)
+      continue
+    }
+
+    const directCandidate = toIRProfileRef(feature.inputs.profileRef)
+    const direct =
+      directCandidate === null
+        ? null
+        : sketchProfilesByFeatureId.has(directCandidate.sketchFeatureId)
+          ? directCandidate
+          : closeProfileByFeatureId.has(directCandidate.sketchFeatureId)
+            ? directCandidate
+            : null
+    const viaClose =
+      direct === null ? null : closeProfileByFeatureId.get(direct.sketchFeatureId) ?? null
+    const profileRef =
+      viaClose === null
+        ? direct
+        : viaClose.profileRefResolved === null
+          ? null
+          : {
+              sketchFeatureId: viaClose.profileRefResolved.sketchFeatureId,
+              profileId: viaClose.profileRefResolved.profileId,
+              profileIndex: 0,
+            }
+
+    out.push({
       op: 'extrude',
       featureId: feature.featureId,
-      profileRef: toIRProfileRef(feature.inputs.profileRef),
+      profileRef,
       depthResolved: resolveNumberExpression(feature.params.depth),
+      taperResolved: resolveNumberExpression(
+        feature.params.taper ?? {
+          kind: 'lit',
+          value: 0,
+        },
+      ),
+      offsetResolved: resolveNumberExpression(
+        feature.params.offset ?? {
+          kind: 'lit',
+          value: 0,
+        },
+      ),
       bodyId: feature.outputs.bodyId,
-    }
-  })
+    })
+  }
+
+  return out
+}

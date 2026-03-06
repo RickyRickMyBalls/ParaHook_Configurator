@@ -49,11 +49,23 @@ const edgeEndpointSchema = z
   })
   .strict()
 
+const partSlotsSchema = z
+  .object({
+    drivers: z.literal(true),
+    inputs: z.literal(true),
+    featureStack: z.literal(true),
+    outputs: z.literal(true),
+  })
+  .strict()
+
 const spaghettiNodeSchema = z
   .object({
     nodeId: z.string().min(1),
     type: z.string().min(1),
     params: z.record(z.string(), z.unknown()),
+    // Keep parse/load non-fatal for malformed legacy partSlots payloads.
+    // Canonical partSlots shape is enforced by app-level normalization/validation.
+    partSlots: z.unknown().optional(),
     ui: nodeUISchema.optional(),
   })
   .strict()
@@ -104,11 +116,29 @@ const spaghettiGraphInputSchema = z
 
 export const spaghettiGraphSchema: z.ZodType<SpaghettiGraph> =
   spaghettiGraphInputSchema.transform((graph) => {
+    const normalizedNodes: SpaghettiGraph['nodes'] = graph.nodes.map((node) => ({
+      nodeId: node.nodeId,
+      type: node.type,
+      params: node.params,
+      ...(node.partSlots === undefined
+        ? {}
+        : {
+            // Preserve legacy malformed payloads through parse so deterministic
+            // repair/warning logic can run in app normalization/validation.
+            partSlots: node.partSlots as SpaghettiGraph['nodes'][number]['partSlots'],
+          }),
+      ...(node.ui === undefined ? {} : { ui: node.ui }),
+    }))
+
     if (graph.ui === undefined) {
-      return graph
+      return {
+        ...graph,
+        nodes: normalizedNodes,
+      }
     }
     return {
       ...graph,
+      nodes: normalizedNodes,
       ui: {
         ...(graph.ui.nodes === undefined ? {} : { nodes: graph.ui.nodes }),
         ...(graph.ui.viewport === undefined ? {} : { viewport: graph.ui.viewport }),
@@ -119,4 +149,11 @@ export const spaghettiGraphSchema: z.ZodType<SpaghettiGraph> =
 export const parseSpaghettiGraph = (input: unknown): SpaghettiGraph =>
   spaghettiGraphSchema.parse(input)
 
-export { edgeEndpointSchema, nodeUISchema, portSpecSchema, portTypeSchema, unitSchema }
+export {
+  edgeEndpointSchema,
+  nodeUISchema,
+  partSlotsSchema,
+  portSpecSchema,
+  portTypeSchema,
+  unitSchema,
+}

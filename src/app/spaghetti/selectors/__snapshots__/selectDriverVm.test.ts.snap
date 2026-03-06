@@ -1,0 +1,66 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`selectDriverVm > matches stable DriverRowVm contract snapshot 1`] = `
+[
+  {
+    "paramId": "hookWidth",
+    "rowId": "drv:hookWidth",
+    "section": "drivers",
+  },
+  {
+    "paramId": "hookThickness",
+    "rowId": "drv:hookThickness",
+    "section": "drivers",
+  },
+  {
+    "paramId": "hookTrim",
+    "rowId": "drv:hookTrim",
+    "section": "drivers",
+  },
+  {
+    "paramId": "profileA_end",
+    "rowId": "drv:profileA_end",
+    "section": "drivers",
+  },
+  {
+    "paramId": "profileA_endCtrl",
+    "rowId": "drv:profileA_endCtrl",
+    "section": "drivers",
+  },
+  {
+    "paramId": "profileA_baseCtrl",
+    "rowId": "drv:profileA_baseCtrl",
+    "section": "drivers",
+  },
+  {
+    "paramId": "profileB_end",
+    "rowId": "drv:profileB_end",
+    "section": "drivers",
+  },
+  {
+    "paramId": "profileB_endCtrl",
+    "rowId": "drv:profileB_endCtrl",
+    "section": "drivers",
+  },
+  {
+    "paramId": "profileB_baseCtrl",
+    "rowId": "drv:profileB_baseCtrl",
+    "section": "drivers",
+  },
+  {
+    "paramId": undefined,
+    "rowId": "in:anchorSpline",
+    "section": "inputs",
+  },
+  {
+    "paramId": undefined,
+    "rowId": "in:railMath",
+    "section": "inputs",
+  },
+  {
+    "paramId": undefined,
+    "rowId": "out:toeLoft",
+    "section": "outputs",
+  },
+]
+`;

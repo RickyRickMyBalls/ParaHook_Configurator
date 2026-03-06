@@ -2,8 +2,8 @@ import {
   normalizeInstances,
   partKeyToString,
   type BoxParams,
+  type LegacyPartId,
   type PartArtifact,
-  type PartId,
   type PartKey,
 } from '../../shared/buildTypes'
 
@@ -12,7 +12,7 @@ type BuildInstances = {
   toeHookInstances?: number[]
 }
 
-const PART_LABELS: Record<PartId, string> = {
+const PART_LABELS: Record<LegacyPartId, string> = {
   baseplate: 'Baseplate',
   heelKick: 'Heel Kick',
   toeHook: 'Toe Hook',
@@ -21,7 +21,7 @@ const PART_LABELS: Record<PartId, string> = {
 
 const createPart = (partKey: PartKey, params: BoxParams): PartArtifact => ({
   id: partKey.id,
-  label: PART_LABELS[partKey.id],
+  label: PART_LABELS[partKey.id as LegacyPartId] ?? partKey.id,
   kind: 'box',
   params,
   partKeyStr: partKeyToString(partKey),

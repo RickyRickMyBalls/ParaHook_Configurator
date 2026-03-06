@@ -1,0 +1,159 @@
+okay that sounds good. can we also add an effect of when the user builds/compiles all the wires will highlight &  with arrows > >> showing direction of movement. all active wires that lead to the "output preview" will show this active status
+
+this happends when user builds/compiles to show flow if information in real time
+
+
+user can also toggle on a button in spaghetti Toolbar to "render path" to turn on this active status of items plugged into output preview
+
+Message #9
+
+Yes—do it as a pure UI overlay driven by the existing resolver/preview VMs, with zero graph mutations.
+
+Behavior spec
+A) “Build/Compile pulse” (one-shot)
+
+When the user clicks Build/Compile (or when a build finishes), briefly animate:
+
+only active edges/nodes that contribute to OutputPreview render slots
+
+show directional motion (moving dashes or repeating arrowheads) from source → OutputPreview
+
+B) “Render Path” toggle (persistent)
+
+A toolbar toggle enables a persistent overlay:
+
+active path stays highlighted/animated continuously
+
+everything else is normal (or optionally dimmed)
+
+Architecture-safe source of truth
+
+Use selectPreviewRenderVm (or extend it) to produce the active dependency set:
+
+activeNodeIds: Set<string>
+
+activeEdgeKeys: Set<string>
+
+(optional) activeSlots: slotId[]
+
+Compute this purely from:
+
+OutputPreview slot connections
+
+upstream traversal (graph edges)
+
+validator/diagnostics (so unresolved edges can be excluded or shown differently)
+
+No topology edits; this is derived state only.
+
+UI state (safe)
+
+Add UI-only state (store or local UI store), not graph:
+
+renderPathEnabled: boolean (toolbar toggle)
+
+compilePulseNonce: number (increment to retrigger animation)
+
+compilePulseUntilMs: number (optional time window for pulse)
+
+Trigger rules:
+
+On Build/Compile click: compilePulseNonce++ and set compilePulseUntilMs = now + 800 (example)
+
+Render overlay if renderPathEnabled || now < compilePulseUntilMs
+
+Rendering approach (SVG wires)
+Active flow effect options
+
+Moving dashed stroke (simple, cheap)
+
+active edge gets stroke-dasharray
+
+animate stroke-dashoffset to create motion
+
+Arrowhead markers (clear direction)
+
+define an SVG marker arrowhead
+
+apply to active edges as marker-end="url(#arrow)"
+
+“> >>” repeating arrows (closest to your ask)
+
+best done by combining (1) moving dashes + (2) arrow marker
+
+or draw a second overlay path with a patterned stroke (more work)
+
+Recommended: moving dashes + arrow marker. It reads like “flow”.
+
+Unresolved edges
+
+If DR-1 marks an edge non-ok, keep it dashed (diagnostic style).
+
+If it’s also in the active set, you can layer: active glow + diagnostic dash, but keep it readable.
+
+Toolbar
+
+Add a toggle button in SpaghettiToolbar:
+
+label: Render Path
+
+toggles renderPathEnabled
+
+This is UI-only state; no graph mutations.
+
+Codex prompt
+
+Plan Mode (High)
+
+Implement “Render Path” active-wire visualization and compile pulse animation in the Spaghetti editor.
+
+Hard constraints:
+- Do NOT mutate graph topology during evaluation/selector/render/compile.
+- Only graphCommands/ and normalizeGraphForStoreCommit may mutate topology.
+- Worker protocol unchanged; schemaVersion unchanged.
+- UI must remain selector-driven.
+
+Feature requirements:
+1) Active dependency set:
+   - Extend selectPreviewRenderVm (or add a new selector) to compute:
+     activeNodeIds: Set<nodeId>
+     activeEdgeKeys: Set<edgeKey>
+   - Active set = all nodes/edges upstream that contribute to OutputPreview renderable slots.
+   - Deterministic traversal and ordering.
+   - Exclude unresolved/non-ok edges from “renderable” set OR mark them separately (but keep deterministic).
+
+2) Toolbar toggle:
+   - Add UI-only state: renderPathEnabled:boolean.
+   - Add a SpaghettiToolbar toggle button labeled “Render Path”.
+   - When enabled, render active overlay continuously.
+
+3) Compile/build pulse:
+   - Add UI-only state: compilePulseNonce:number and/or compilePulseUntilMs:number.
+   - On Build/Compile action (the existing build trigger point in UI), trigger a pulse:
+     - active overlay turns on for ~800ms even if renderPathEnabled is false.
+   - No async background tasks; just UI timing.
+
+4) Wire rendering:
+   - In SpaghettiCanvas edge rendering, if an edgeKey is in activeEdgeKeys and overlay is on:
+     - visually highlight it (e.g., thicker stroke or glow) AND
+     - show direction of flow from source -> OutputPreview using:
+       (a) animated dashed stroke via stroke-dashoffset, and
+       (b) arrow marker at the end (marker-end).
+   - Keep DR-1 diagnostic dashed style for non-ok edges; ensure combined styling is readable.
+
+5) Tests:
+   - Add a deterministic unit test for the selector that computes activeEdgeKeys/activeNodeIds from a fixed fixture graph with OutputPreview slots.
+   - Ensure repeated selector calls deep-equal.
+
+Deliverables:
+- Selector changes (active dependency set)
+- UI store changes (renderPathEnabled, compilePulse)
+- Toolbar toggle
+- Canvas wire style updates (animated dashes + arrows)
+- Tests
+
+Verification:
+npm.cmd run test
+npm.cmd run build
+
+If you want the overlay to show only the paths feeding slots that are currently visible (e.g., respecting OP-6.1 hidden trailing empty slot), that can be enforced by basing traversal only on the slots included in the OutputPreview V

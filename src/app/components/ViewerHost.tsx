@@ -1,8 +1,11 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { setViewer } from '../viewerBridge'
 import { Viewer } from '../../viewer/Viewer'
 import { useAppStore } from '../store/useAppStore'
 import { useUiPrefsStore } from '../store/uiPrefsStore'
+import { useSpaghettiStore } from '../spaghetti/store/useSpaghettiStore'
+import { selectPreviewRenderVm } from '../spaghetti/selectors'
+import { toViewerRenderablePart } from '../../shared/buildTypes'
 
 export function ViewerHost() {
   const mountRef = useRef<HTMLDivElement | null>(null)
@@ -12,7 +15,17 @@ export function ViewerHost() {
   const selectedPartKey = useAppStore((state) => state.selectedPartKey)
   const assembled = useAppStore((state) => state.assembled)
   const viewMode = useAppStore((state) => state.viewMode)
+  const inputMode = useAppStore((state) => state.inputMode)
+  const graph = useSpaghettiStore((state) => state.graph)
   const view = useUiPrefsStore((state) => state.view)
+
+  const previewList = useMemo(
+    () =>
+      inputMode === 'spaghetti'
+        ? selectPreviewRenderVm(graph, parts)
+        : { items: [], viewerParts: [] },
+    [graph, inputMode, parts],
+  )
 
   useEffect(() => {
     if (mountRef.current === null) {
@@ -38,13 +51,26 @@ export function ViewerHost() {
 
     if (viewMode === 'parts') {
       viewer.setAssembled(null)
-      viewer.setParts(parts, partsVisibility, selectedPartKey)
+      if (inputMode === 'spaghetti') {
+        viewer.setParts(previewList.viewerParts, partsVisibility, selectedPartKey)
+        return
+      }
+      // Legacy parts use their canonical artifact key as viewer identity.
+      viewer.setParts(parts.map((part) => toViewerRenderablePart(part)), partsVisibility, selectedPartKey)
       return
     }
 
     viewer.setParts([], partsVisibility, selectedPartKey)
     viewer.setAssembled(assembled)
-  }, [parts, partsVisibility, selectedPartKey, assembled, viewMode])
+  }, [
+    assembled,
+    inputMode,
+    parts,
+    partsVisibility,
+    previewList,
+    selectedPartKey,
+    viewMode,
+  ])
 
   useEffect(() => {
     viewerRef.current?.setSelectedPart(selectedPartKey)

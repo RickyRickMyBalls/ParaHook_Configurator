@@ -8,13 +8,20 @@ const sketchWithProfiles = (
 ): SketchFeature => ({
   type: 'sketch',
   featureId,
-  entities: [],
+  plane: 'XY',
+  components: [],
   outputs: {
     profiles: profiles.map((profile) => ({
       profileId: profile.profileId,
+      profileIndex: 0,
       area: profile.area,
-      entityIds: [],
+      loop: {
+        segments: [],
+        winding: 'CCW',
+      },
+      verticesProxy: [],
     })),
+    diagnostics: [],
   },
   uiState: {
     collapsed: false,
@@ -39,6 +46,7 @@ describe('pickDefaultProfileRef', () => {
     expect(pickDefaultProfileRef(stack, stack.length)).toEqual({
       sourceFeatureId: 'feature-sketch-2',
       profileId: 'prof_new',
+      profileIndex: 0,
     })
   })
 
@@ -53,6 +61,7 @@ describe('pickDefaultProfileRef', () => {
     expect(pickDefaultProfileRef(stack, stack.length)).toEqual({
       sourceFeatureId: 'feature-sketch-1',
       profileId: 'prof_large',
+      profileIndex: 0,
     })
   })
 

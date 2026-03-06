@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   deriveProfiles,
+  deriveProfilesWithDiagnostics,
   deriveProfilesFromLines,
   profileIdFromSignature,
 } from './profileDerivation'
@@ -26,55 +27,44 @@ const line = (
 })
 
 describe('deriveProfiles', () => {
-  it('derives one deterministic profile for a rectangle', () => {
+  it('derives one deterministic profile for a closed rectangle chain', () => {
     const profiles = deriveProfiles([
-      line('e3', { x: 100, y: 50 }, { x: 0, y: 50 }),
       line('e1', { x: 0, y: 0 }, { x: 100, y: 0 }),
-      line('e4', { x: 0, y: 50 }, { x: 0, y: 0 }),
       line('e2', { x: 100, y: 0 }, { x: 100, y: 50 }),
+      line('e3', { x: 100, y: 50 }, { x: 0, y: 50 }),
+      line('e4', { x: 0, y: 50 }, { x: 0, y: 0 }),
     ])
 
     expect(profiles).toHaveLength(1)
-    expect(profiles[0].entityIds).toEqual(['e1', 'e2', 'e3', 'e4'])
+    expect(profiles[0].profileIndex).toBe(0)
     expect(profiles[0].area).toBe(5000)
     expect(profiles[0].profileId).toBe(profileIdFromSignature('e1|e2|e3|e4'))
+    expect(profiles[0].loop.segments).toHaveLength(4)
   })
 
-  it('sorts multiple loops deterministically by area desc', () => {
-    const profiles = deriveProfiles([
-      line('a1', { x: 0, y: 0 }, { x: 100, y: 0 }),
-      line('a2', { x: 100, y: 0 }, { x: 100, y: 100 }),
-      line('a3', { x: 100, y: 100 }, { x: 0, y: 100 }),
-      line('a4', { x: 0, y: 100 }, { x: 0, y: 0 }),
-      line('b1', { x: 200, y: 0 }, { x: 220, y: 0 }),
-      line('b2', { x: 220, y: 0 }, { x: 220, y: 20 }),
-      line('b3', { x: 220, y: 20 }, { x: 200, y: 20 }),
-      line('b4', { x: 200, y: 20 }, { x: 200, y: 0 }),
+  it('returns not-closed diagnostic for open chains', () => {
+    const result = deriveProfilesWithDiagnostics([
+      line('e1', { x: 0, y: 0 }, { x: 100, y: 0 }),
+      line('e2', { x: 100, y: 0 }, { x: 100, y: 50 }),
+      line('e3', { x: 100, y: 50 }, { x: 0, y: 50 }),
     ])
-
-    expect(profiles).toHaveLength(2)
-    expect(profiles[0].area).toBe(10000)
-    expect(profiles[1].area).toBe(400)
+    expect(result.profiles).toEqual([])
+    expect(result.diagnostics).toEqual([
+      {
+        code: 'SKETCH_PROFILE_NOT_CLOSED',
+        message: 'Sketch chain is not closed (first start does not match last end).',
+      },
+    ])
   })
 
-  it('keeps profileId stable across cycle direction/rotation variants', () => {
-    const clockwise = deriveProfiles([
-      line('c1', { x: 0, y: 0 }, { x: 10, y: 0 }),
-      line('c2', { x: 10, y: 0 }, { x: 10, y: 10 }),
-      line('c3', { x: 10, y: 10 }, { x: 0, y: 10 }),
-      line('c4', { x: 0, y: 10 }, { x: 0, y: 0 }),
+  it('returns degenerate diagnostic for zero-area closed chains', () => {
+    const result = deriveProfilesWithDiagnostics([
+      line('e1', { x: 0, y: 0 }, { x: 10, y: 0 }),
+      line('e2', { x: 10, y: 0 }, { x: 20, y: 0 }),
+      line('e3', { x: 20, y: 0 }, { x: 0, y: 0 }),
     ])
-    const reversed = deriveProfiles([
-      line('c3', { x: 0, y: 10 }, { x: 10, y: 10 }),
-      line('c2', { x: 10, y: 10 }, { x: 10, y: 0 }),
-      line('c1', { x: 10, y: 0 }, { x: 0, y: 0 }),
-      line('c4', { x: 0, y: 0 }, { x: 0, y: 10 }),
-    ])
-
-    expect(clockwise).toHaveLength(1)
-    expect(reversed).toHaveLength(1)
-    expect(clockwise[0].profileId).toBe(reversed[0].profileId)
-    expect(clockwise[0].entityIds).toEqual(reversed[0].entityIds)
+    expect(result.profiles).toEqual([])
+    expect(result.diagnostics[0]?.code).toBe('SKETCH_PROFILE_DEGENERATE')
   })
 
   it('keeps the compatibility alias wired to deriveProfiles', () => {

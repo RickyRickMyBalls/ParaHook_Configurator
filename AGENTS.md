@@ -1,48 +1,108 @@
-## Change Log Maintenance Rule
+## Purpose
 
-All Codex-generated implementation work MUST update the project Change Log.
+This file defines the repository maintenance rules Codex must follow when making implementation changes.
 
-File:
-CHANGELOG.md (or the existing Change Log document used in this repository)
+Implementation changes include:
+- source code
+- configuration
+- schema
+- architecture
+- UI behavior
+- repository process/rules docs
 
-Rules:
+## Core Rule
 
-1. NEVER delete or rewrite previous entries.
-2. ALWAYS insert a new entry at the top of the Change Log entries (directly under the title/rules block), not at the end.
-3. Preserve the existing formatting style used in the Change Log.
-4. Each new entry must include the following sections:
+For every implementation change, Codex must update all required project-tracking documents in the same change set.
 
-   Scope / Constraints Honored
-   Summary of Implementation
-   Files Changed
-   Behavior Changes (if any)
-   Verification Steps
+Required files:
+- `docs/CHANGELOG.md`
+- `docs/TASKLIST.md`
+- `docs/change-List.md`
 
-5. Entry headers must follow this format:
+## CHANGELOG Rule
 
-   ## [NNN] YYYY-MM-DD HH:mm (Task Title)
+Primary file:
+`docs/CHANGELOG.md`
 
-6. Use the current system time when generating the entry.
-7. `NNN` must be the next highest sequential number in the file.
-8. Entries must be deterministic so git diffs remain stable.
+Requirements:
+1. Never delete or rewrite previous entries.
+2. Always prepend the new entry at the top of the entry list.
+3. Preserve the existing formatting style.
+4. Use the next sequential numeric index `[NNN]`.
+5. Use the current system time.
+6. Wrap each new entry header with the same separator style already used in the file.
+7. Keep entries deterministic so diffs remain stable.
 
-## Behavior Requirement
+Required entry structure:
+- `## [NNN] YYYY-MM-DD HH:mm (Task Title)`
+- `### Scope / Constraints Honored`
+- `### Summary of Implementation`
+- `### Files Changed`
+- `### Behavior Changes (if any)`
+- `### Verification Steps`
 
-Whenever Codex performs a task that modifies source code, configuration, schema, or architecture:
+Non-destructive policy:
+- never delete old changelog entries
+- never rewrite old changelog entries
+- never change old timestamps
+- never insert a new entry anywhere except the top
 
+## TASKLIST Rule
+
+Primary file:
+`docs/TASKLIST.md`
+
+Requirements:
+1. Treat `docs/TASKLIST.md` as the main execution tasklist.
+2. Update task status in the same change set as the implementation.
+3. Use:
+   - `[ ]` not started
+   - `[~]` in progress / partial
+   - `[x]` completed
+4. Keep newest phase blocks at the top.
+5. Never delete old phase task lists.
+6. Preserve completed phases as full checklist blocks.
+7. Keep completed accomplished items marked `[x]`.
+8. Do not collapse completed phases into one-line summaries only.
+9. If a task is blocked, mark it `[~]` and include a one-line blocker note.
+10. Keep wording deterministic and concise.
+
+Required tasklist structure:
+1. `Status Legend`
+2. `Active Phases (Newest -> Oldest)`
+3. `Completed Log (Newest -> Oldest)`
+
+Formatting rules for phases:
+- keep visible phase headers
+- keep separator lines between phase blocks
+- keep tasks as checkboxes
+- use indented sub-checkboxes for concrete subtasks
+
+Completed phase expectations:
+- preserve the full completed checklist block
+- keep the phase readable as a historical record
+- include completion date when the tasklist format already expects it
+- include related changelog index `[NNN]` when available
+
+## change-List Rule
+
+Primary file:
+`docs/change-List.md`
+
+Requirements:
+1. Add a matching entry after implementation work in the same change set.
+2. Preserve the file's current numbering/ordering style.
+3. Keep newest entries at the top unless the user explicitly requests restructuring.
+4. Do not delete or rewrite existing entries unless the user explicitly asks for cleanup, deduplication, or reformatting.
+5. Keep wording concise and deterministic.
+
+## Required Sequence
+
+When Codex performs implementation work:
 1. Implement the requested change.
-2. Run any verification steps requested in the prompt.
-3. Insert a new Change Log entry at the top (reverse order) describing the change.
+2. Run requested verification, if any.
+3. Update `docs/CHANGELOG.md`.
+4. Update `docs/TASKLIST.md`.
+5. Update `docs/change-List.md`.
 
-Do not skip Change Log updates.
-
-## Non-Destructive Policy
-
-Under no circumstances may Codex:
-
-- delete previous Change Log entries
-- rewrite previous entries
-- change timestamps of existing entries
-- insert new entries anywhere except the top of the log entries
-
-The Change Log is reverse-ordered with newest entries first.
+Do not skip these maintenance updates.

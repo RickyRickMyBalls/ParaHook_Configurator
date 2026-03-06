@@ -1,11 +1,18 @@
 import { z } from 'zod'
 import { featureStackSchema } from '../features/featureSchema'
-import type { PortSpec } from '../schema/spaghettiTypes'
+import {
+  cloneOutputPreviewDefaultParams,
+  OUTPUT_PREVIEW_NODE_TYPE,
+} from '../system/outputPreviewNode'
+import type { PortSpec, Unit } from '../schema/spaghettiTypes'
 
 export type NodeTypeId =
   | 'Part/Baseplate'
+  | 'Part/Cube'
+  | 'Part/CubeProof'
   | 'Part/ToeHook'
   | 'Part/HeelKick'
+  | typeof OUTPUT_PREVIEW_NODE_TYPE
   | 'Output/Assembled'
   | 'Primitive/Number'
   | 'Primitive/Vec2'
@@ -36,6 +43,10 @@ export type DriverEndpointRef = {
 export type DriverNumberControlSpec = {
   kind: 'nodeParam'
   paramId: string
+  wireOutputType?: {
+    kind: 'number' | 'boolean'
+    unit?: Unit
+  }
   min?: number
   max?: number
   step?: number
@@ -53,6 +64,10 @@ export type DriverNumberControlSpec = {
 export type DriverVec2ControlSpec = {
   kind: 'nodeParamVec2'
   paramId: string
+  wireOutputType?: {
+    kind: 'vec2'
+    unit?: Unit
+  }
   min?: number
   max?: number
   step?: number
@@ -105,6 +120,7 @@ export type NodeDefinition = {
   label: string
   paramsSchema: z.ZodTypeAny
   defaultParams?: Record<string, unknown>
+  isUserAddable?: boolean
   inputs: PortSpec[]
   outputs: PortSpec[]
   compute: (ctx: NodeComputeContext) => NodeComputeResult
@@ -118,10 +134,34 @@ export type NodeDefinition = {
 
 const unitSchema = z.enum(['mm', 'deg', 'unitless'])
 const emptyParamsSchema = z.object({}).strict()
+const outputPreviewParamsSchema = z
+  .object({
+    slots: z.array(
+      z
+        .object({
+          slotId: z.string().min(1),
+        })
+        .strict(),
+    ),
+    nextSlotIndex: z.number().int().positive(),
+  })
+  .strict()
+const partRowOrderSchema = z
+  .object({
+    drivers: z.array(z.string()).optional(),
+    inputs: z.array(z.string()).optional(),
+    outputs: z.array(z.string()).optional(),
+  })
+  .strict()
+const driverOffsetByParamIdSchema = z.record(z.string(), z.number().finite())
+const driverDrivenByParamIdSchema = z.record(z.string(), z.literal(true))
 const baseplateParamsSchema = z
   .object({
     presetId: z.string().min(1).optional(),
     featureStack: featureStackSchema.optional(),
+    partRowOrder: partRowOrderSchema.optional(),
+    driverOffsetByParamId: driverOffsetByParamIdSchema.optional(),
+    driverDrivenByParamId: driverDrivenByParamIdSchema.optional(),
     widthMm: z.number().positive().optional(),
     lengthMm: z.number().positive().optional(),
     anchorPoint1: z.object({ x: z.number(), y: z.number() }).strict().optional(),
@@ -135,6 +175,9 @@ const toeHookParamsSchema = z
   .object({
     presetId: z.string().min(1).optional(),
     featureStack: featureStackSchema.optional(),
+    partRowOrder: partRowOrderSchema.optional(),
+    driverOffsetByParamId: driverOffsetByParamIdSchema.optional(),
+    driverDrivenByParamId: driverDrivenByParamIdSchema.optional(),
     hookWidth: z.number().finite().optional(),
     hookThickness: z.number().finite().optional(),
     hookTrim: z.number().finite().optional(),
@@ -146,8 +189,24 @@ const toeHookParamsSchema = z
     profileB_baseCtrl: z.object({ x: z.number(), y: z.number() }).strict().optional(),
   })
   .strict()
+const cubeParamsSchema = z
+  .object({
+    featureStack: featureStackSchema.optional(),
+  })
+  .strict()
+const cubeProofParamsSchema = z
+  .object({
+    featureStack: featureStackSchema.optional(),
+  })
+  .strict()
 const defaultBaseplateWidth = 30
 const defaultBaseplateLength = 200
+const defaultCubeLength = 20
+const defaultCubeWidth = 20
+const defaultCubeHeight = 20
+const defaultCubeProofLength = 20
+const defaultCubeProofWidth = 10
+const defaultCubeProofHeight = 12
 const defaultToeHookWidth = 24
 const defaultToeHookThickness = 4
 const defaultToeHookTrim = 2
@@ -177,6 +236,106 @@ const isVec2Like = (value: unknown): value is { x: number; y: number } =>
   Number.isFinite((value as { x: number }).x) &&
   typeof (value as { y?: unknown }).y === 'number' &&
   Number.isFinite((value as { y: number }).y)
+
+const buildRectangleExtrudeFeatureStack = (config: {
+  prefix: string
+  length: number
+  width: number
+  height: number
+}) => [
+  {
+    type: 'sketch',
+    featureId: `${config.prefix}-sketch-1`,
+    plane: 'XY',
+    components: [
+      {
+        rowId: `${config.prefix}-row-1`,
+        componentId: `${config.prefix}-line-1`,
+        type: 'line',
+        a: { kind: 'lit', x: 0, y: 0 },
+        b: { kind: 'lit', x: config.length, y: 0 },
+      },
+      {
+        rowId: `${config.prefix}-row-2`,
+        componentId: `${config.prefix}-line-2`,
+        type: 'line',
+        a: { kind: 'lit', x: config.length, y: 0 },
+        b: { kind: 'lit', x: config.length, y: config.width },
+      },
+      {
+        rowId: `${config.prefix}-row-3`,
+        componentId: `${config.prefix}-line-3`,
+        type: 'line',
+        a: { kind: 'lit', x: config.length, y: config.width },
+        b: { kind: 'lit', x: 0, y: config.width },
+      },
+      {
+        rowId: `${config.prefix}-row-4`,
+        componentId: `${config.prefix}-line-4`,
+        type: 'line',
+        a: { kind: 'lit', x: 0, y: config.width },
+        b: { kind: 'lit', x: 0, y: 0 },
+      },
+    ],
+    outputs: {
+      profiles: [
+        {
+          profileId: `${config.prefix}-profile-1`,
+          profileIndex: 0,
+          area: config.length * config.width,
+        },
+      ],
+    },
+    uiState: {
+      collapsed: false,
+    },
+  },
+  {
+    type: 'extrude',
+    featureId: `${config.prefix}-extrude-1`,
+    inputs: {
+      profileRef: {
+        sourceFeatureId: `${config.prefix}-sketch-1`,
+        profileId: `${config.prefix}-profile-1`,
+        profileIndex: 0,
+      },
+    },
+    params: {
+      depth: {
+        kind: 'lit',
+        value: config.height,
+      },
+      taper: {
+        kind: 'lit',
+        value: 0,
+      },
+      offset: {
+        kind: 'lit',
+        value: 0,
+      },
+    },
+    outputs: {
+      bodyId: `${config.prefix}-body-1`,
+    },
+    uiState: {
+      collapsed: false,
+    },
+  },
+] as const
+
+const cubeFeatureStack = buildRectangleExtrudeFeatureStack({
+  prefix: 'cube',
+  length: defaultCubeLength,
+  width: defaultCubeWidth,
+  height: defaultCubeHeight,
+})
+
+const cubeProofFeatureStack = buildRectangleExtrudeFeatureStack({
+  prefix: 'cubeProof',
+  length: defaultCubeProofLength,
+  width: defaultCubeProofWidth,
+  height: defaultCubeProofHeight,
+})
 
 export const registry: Record<NodeTypeId, NodeDefinition> = {
   'Part/Baseplate': {
@@ -253,6 +412,7 @@ export const registry: Record<NodeTypeId, NodeDefinition> = {
         control: {
           kind: 'nodeParam',
           paramId: 'widthMm',
+          wireOutputType: { kind: 'number', unit: 'mm' },
           min: 1,
           max: 500,
           step: 0.1,
@@ -279,6 +439,7 @@ export const registry: Record<NodeTypeId, NodeDefinition> = {
         control: {
           kind: 'nodeParam',
           paramId: 'lengthMm',
+          wireOutputType: { kind: 'number', unit: 'mm' },
           min: 1,
           max: 2000,
           step: 0.1,
@@ -387,6 +548,65 @@ export const registry: Record<NodeTypeId, NodeDefinition> = {
       }
     },
   },
+  'Part/Cube': {
+    type: 'Part/Cube',
+    label: 'Cube',
+    paramsSchema: cubeParamsSchema,
+    defaultParams: {
+      featureStack: cubeFeatureStack,
+    },
+    template: 'part',
+    inputs: [],
+    outputs: [
+      {
+        portId: 'solid',
+        label: 'Solid',
+        type: { kind: 'toeLoft' },
+      },
+    ],
+    outputDrivers: [
+      {
+        kind: 'endpoint',
+        endpoint: {
+          portId: 'solid',
+          label: 'Solid',
+        },
+      },
+    ],
+    compute: () => ({
+      solid: null,
+    }),
+  },
+  'Part/CubeProof': {
+    type: 'Part/CubeProof',
+    label: 'Cube Proof',
+    paramsSchema: cubeProofParamsSchema,
+    defaultParams: {
+      featureStack: cubeProofFeatureStack,
+    },
+    isUserAddable: false,
+    template: 'part',
+    inputs: [],
+    outputs: [
+      {
+        portId: 'solid',
+        label: 'Solid',
+        type: { kind: 'toeLoft' },
+      },
+    ],
+    outputDrivers: [
+      {
+        kind: 'endpoint',
+        endpoint: {
+          portId: 'solid',
+          label: 'Solid',
+        },
+      },
+    ],
+    compute: () => ({
+      solid: null,
+    }),
+  },
   'Part/ToeHook': {
     type: 'Part/ToeHook',
     label: 'Toe Hook',
@@ -436,6 +656,7 @@ export const registry: Record<NodeTypeId, NodeDefinition> = {
         control: {
           kind: 'nodeParam',
           paramId: 'hookWidth',
+          wireOutputType: { kind: 'number', unit: 'mm' },
           min: 0,
           max: 500,
           step: 0.1,
@@ -449,6 +670,7 @@ export const registry: Record<NodeTypeId, NodeDefinition> = {
         control: {
           kind: 'nodeParam',
           paramId: 'hookThickness',
+          wireOutputType: { kind: 'number', unit: 'mm' },
           min: 0,
           max: 200,
           step: 0.1,
@@ -462,6 +684,7 @@ export const registry: Record<NodeTypeId, NodeDefinition> = {
         control: {
           kind: 'nodeParam',
           paramId: 'hookTrim',
+          wireOutputType: { kind: 'number', unit: 'mm' },
           min: 0,
           max: 200,
           step: 0.1,
@@ -475,6 +698,7 @@ export const registry: Record<NodeTypeId, NodeDefinition> = {
         control: {
           kind: 'nodeParamVec2',
           paramId: 'profileA_end',
+          wireOutputType: { kind: 'vec2', unit: 'mm' },
           step: 0.1,
           fallbackValue: defaultToeHookProfileAEnd,
         },
@@ -486,6 +710,7 @@ export const registry: Record<NodeTypeId, NodeDefinition> = {
         control: {
           kind: 'nodeParamVec2',
           paramId: 'profileA_endCtrl',
+          wireOutputType: { kind: 'vec2', unit: 'mm' },
           step: 0.1,
           fallbackValue: defaultToeHookProfileAEndCtrl,
         },
@@ -497,6 +722,7 @@ export const registry: Record<NodeTypeId, NodeDefinition> = {
         control: {
           kind: 'nodeParamVec2',
           paramId: 'profileA_baseCtrl',
+          wireOutputType: { kind: 'vec2', unit: 'mm' },
           step: 0.1,
           fallbackValue: defaultToeHookProfileABaseCtrl,
         },
@@ -508,6 +734,7 @@ export const registry: Record<NodeTypeId, NodeDefinition> = {
         control: {
           kind: 'nodeParamVec2',
           paramId: 'profileB_end',
+          wireOutputType: { kind: 'vec2', unit: 'mm' },
           step: 0.1,
           fallbackValue: defaultToeHookProfileBEnd,
         },
@@ -519,6 +746,7 @@ export const registry: Record<NodeTypeId, NodeDefinition> = {
         control: {
           kind: 'nodeParamVec2',
           paramId: 'profileB_endCtrl',
+          wireOutputType: { kind: 'vec2', unit: 'mm' },
           step: 0.1,
           fallbackValue: defaultToeHookProfileBEndCtrl,
         },
@@ -530,6 +758,7 @@ export const registry: Record<NodeTypeId, NodeDefinition> = {
         control: {
           kind: 'nodeParamVec2',
           paramId: 'profileB_baseCtrl',
+          wireOutputType: { kind: 'vec2', unit: 'mm' },
           step: 0.1,
           fallbackValue: defaultToeHookProfileBBaseCtrl,
         },
@@ -624,6 +853,7 @@ export const registry: Record<NodeTypeId, NodeDefinition> = {
         control: {
           kind: 'nodeParam',
           paramId: 'hookWidth',
+          wireOutputType: { kind: 'number', unit: 'mm' },
           min: 0,
           max: 500,
           step: 0.1,
@@ -637,6 +867,7 @@ export const registry: Record<NodeTypeId, NodeDefinition> = {
         control: {
           kind: 'nodeParam',
           paramId: 'hookThickness',
+          wireOutputType: { kind: 'number', unit: 'mm' },
           min: 0,
           max: 200,
           step: 0.1,
@@ -650,6 +881,7 @@ export const registry: Record<NodeTypeId, NodeDefinition> = {
         control: {
           kind: 'nodeParam',
           paramId: 'hookTrim',
+          wireOutputType: { kind: 'number', unit: 'mm' },
           min: 0,
           max: 200,
           step: 0.1,
@@ -663,6 +895,7 @@ export const registry: Record<NodeTypeId, NodeDefinition> = {
         control: {
           kind: 'nodeParamVec2',
           paramId: 'profileA_end',
+          wireOutputType: { kind: 'vec2', unit: 'mm' },
           step: 0.1,
           fallbackValue: defaultHeelKickProfileAEnd,
         },
@@ -674,6 +907,7 @@ export const registry: Record<NodeTypeId, NodeDefinition> = {
         control: {
           kind: 'nodeParamVec2',
           paramId: 'profileA_endCtrl',
+          wireOutputType: { kind: 'vec2', unit: 'mm' },
           step: 0.1,
           fallbackValue: defaultHeelKickProfileAEndCtrl,
         },
@@ -685,6 +919,7 @@ export const registry: Record<NodeTypeId, NodeDefinition> = {
         control: {
           kind: 'nodeParamVec2',
           paramId: 'profileA_baseCtrl',
+          wireOutputType: { kind: 'vec2', unit: 'mm' },
           step: 0.1,
           fallbackValue: defaultHeelKickProfileABaseCtrl,
         },
@@ -696,6 +931,7 @@ export const registry: Record<NodeTypeId, NodeDefinition> = {
         control: {
           kind: 'nodeParamVec2',
           paramId: 'profileB_end',
+          wireOutputType: { kind: 'vec2', unit: 'mm' },
           step: 0.1,
           fallbackValue: defaultHeelKickProfileBEnd,
         },
@@ -707,6 +943,7 @@ export const registry: Record<NodeTypeId, NodeDefinition> = {
         control: {
           kind: 'nodeParamVec2',
           paramId: 'profileB_endCtrl',
+          wireOutputType: { kind: 'vec2', unit: 'mm' },
           step: 0.1,
           fallbackValue: defaultHeelKickProfileBEndCtrl,
         },
@@ -718,6 +955,7 @@ export const registry: Record<NodeTypeId, NodeDefinition> = {
         control: {
           kind: 'nodeParamVec2',
           paramId: 'profileB_baseCtrl',
+          wireOutputType: { kind: 'vec2', unit: 'mm' },
           step: 0.1,
           fallbackValue: defaultHeelKickProfileBBaseCtrl,
         },
@@ -762,6 +1000,19 @@ export const registry: Record<NodeTypeId, NodeDefinition> = {
     compute: () => ({
       hookLoft: null,
     }),
+  },
+  [OUTPUT_PREVIEW_NODE_TYPE]: {
+    type: OUTPUT_PREVIEW_NODE_TYPE,
+    label: 'Output Preview',
+    paramsSchema: outputPreviewParamsSchema,
+    defaultParams: cloneOutputPreviewDefaultParams(),
+    isUserAddable: false,
+    inputs: [],
+    outputs: [],
+    compute: () => {
+      // OP-0: system/UI-only aggregation node with no evaluation outputs.
+      return {}
+    },
   },
   'Output/Assembled': {
     type: 'Output/Assembled',
@@ -918,6 +1169,9 @@ export const getNodeDef = (type: string): NodeDefinition | undefined =>
   registry[type as NodeTypeId]
 
 export const listNodeTypes = (): NodeDefinition[] => Object.values(registry)
+
+export const listUserAddableNodeTypes = (): NodeDefinition[] =>
+  listNodeTypes().filter((nodeDef) => nodeDef.isUserAddable !== false)
 
 const cloneDefaultParams = (value: Record<string, unknown>): Record<string, unknown> =>
   JSON.parse(JSON.stringify(value)) as Record<string, unknown>

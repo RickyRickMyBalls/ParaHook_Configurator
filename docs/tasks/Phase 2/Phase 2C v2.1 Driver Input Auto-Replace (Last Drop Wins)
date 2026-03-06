@@ -1,0 +1,52 @@
+Phase 2C v2.1 — Driver Input Auto-Replace (Last Drop Wins)
+
+[~] Lock scope: applies ONLY to to.portId = drv:in:<paramId>
+[~] Lock endpoint matching: whole-port only (to.path must be undefined; normalizedPathKey = "")
+[~] Lock edgeId policy:
+    - duplicate re-drop = NO-OP (preserve existing edgeId)
+    - non-identical replace = NEW edgeId
+
+Core Behavior
+[ ] Implement replacement at drop commit:
+    - remove ALL existing edges targeting same (to.nodeId + to.portId) endpoint
+    - preserve survivor edge order
+    - append new edge once at end
+[ ] Self-heal legacy invalid graphs with multiple incoming edges to drv:in:*
+[ ] Ensure cycle check runs on candidate graph before commit
+[ ] Keep validator unchanged for final graph invariants (maxConnectionsIn=1 still enforced)
+
+Cheap-Check Parity
+[ ] Update validateConnectionCheap for drv:in:* targets:
+    - do NOT reject due to occupied/maxConnectionsIn when replaceable
+    - still reject type/unit mismatch
+    - still reject to.path with code DRIVER_VIRTUAL_INPUT_PATH_UNSUPPORTED
+[ ] Lock cheap-check cycle behavior:
+    - if cheap-check does cycles today: must agree with drop commit
+    - if not: explicitly ignore cycles; drop commit enforces cycles
+
+No-Op Policy
+[ ] Detect exact duplicate drop (same from + same to) and do NO-OP (no graph mutation)
+
+Determinism
+[ ] Preserve existing edges array order for survivors
+[ ] Deterministically append the new edge once
+[ ] Atomic mutation: one applyGraphPatch (remove + add together)
+
+Tests
+[ ] Helper tests (recommended pure module) for replacement planning:
+    - single incoming replaced
+    - multiple incoming replaced (self-heal)
+    - duplicate drop is no-op
+    - non-driver endpoints unaffected
+[ ] SpaghettiCanvas.validation.test.ts:
+    - cheap-check accepts occupied drv:in:* when replaceable
+    - cheap-check rejects mismatch
+    - cheap-check rejects to.path with correct code/reason
+[ ] Integration-style test:
+    - perform replacement and assert validateGraph ok
+    - cycle-introducing replacement rejected
+
+Verification + Changelog
+[ ] npm.cmd run test
+[ ] npm.cmd run build
+[ ] Add new top entry in docs/listofchanges.md (exact existing format)

@@ -5,7 +5,17 @@ import { buildFoothookParts } from '../products/foothook/buildFoothook'
 const createGenericPart = (product: ProductId, seed: number): PartArtifact => ({
   id: `${product}-${seed}`,
   label: `${product} body`,
-  order: 0,
+  kind: 'box',
+  params: {
+    length: 1,
+    width: 1,
+    height: 1,
+  },
+  partKeyStr: `${product}-${seed}`,
+  partKey: {
+    id: `${product}-${seed}`,
+    instance: null,
+  },
 })
 
 export const assembleStages = (

@@ -1,13 +1,14 @@
 import {
   memo,
+  useEffect,
   useRef,
   useState,
   type MouseEvent,
   type PointerEvent,
   type ReactNode,
 } from 'react'
-import type { NodeUiSection } from '../registry/nodeRegistry'
 import type { PortSpec, SpaghettiNode } from '../schema/spaghettiTypes'
+import type { PartRowOrderSection } from '../parts/partRowOrder'
 import {
   getFieldTree,
   isCompositeFieldNode,
@@ -19,6 +20,7 @@ import { PortView, type PortDetailLine } from './PortView'
 import type { CompositeExpansionDirection } from './compositeExpansion'
 import { NumberField } from './fields/NumberField'
 import { Vec2Field } from './fields/Vec2Field'
+import { getTypeColor } from './typeColors'
 import type {
   DriverControlRowVm,
   DriverEndpointRowVm,
@@ -35,6 +37,15 @@ import {
   useSpaghettiUiStore,
 } from './state/spaghettiUiStore'
 import { SP_INTERACTIVE_PROPS } from '../spInteractive'
+import { OUTPUT_PREVIEW_NODE_TYPE } from '../system/outputPreviewNode'
+import type {
+  DriverRowWarningVm,
+  DriverSectionGroupVm,
+  FeatureDependencyEdge,
+  FeatureDependencyRow,
+  NodeInputCompositeState,
+  OutputPreviewSlotRowVm,
+} from '../selectors'
 
 const DEV = import.meta.env.DEV
 const DEV_PROBE_NODE_ID_KEY = '__SP_PROBE_NODE_ID'
@@ -64,12 +75,15 @@ type CompositeContextMenuState = {
   portId: string
 }
 
-export type NodeInputCompositeState = {
-  wholeDrivenByPortId: ReadonlySet<string>
-  leafDrivenByPortIdPathKey: ReadonlySet<string>
-  legacyLeafOverrideOnWhole: ReadonlySet<string>
-  vec2DisplayByPortId: ReadonlyMap<string, { x: number; y: number }>
-}
+export type FeatureVirtualInputStateByPortId = Record<
+  string,
+  {
+    driven: boolean
+    connectionCount: number
+    unresolved: boolean
+    drivenValue?: number
+  }
+>
 
 type NodeViewProps = {
   node: SpaghettiNode
@@ -84,10 +98,32 @@ type NodeViewProps = {
   inputs?: InputEndpointRowVm[]
   outputs?: OutputPinnedRowVm[]
   otherOutputs?: DriverEndpointRowVm[]
-  uiSections?: NodeUiSection[]
+  outputPreviewRows?: OutputPreviewSlotRowVm[]
+  uiSections?: Array<{ sectionId: string; label: string; items: string[] }>
   presetOptions?: string[]
   inputPortDetails?: Record<string, PortDetailLine[]>
   outputPortDetails?: Record<string, PortDetailLine[]>
+  driverInputPortByRowId?: Record<string, PortSpec>
+  driverOutputPortByRowId?: Record<string, PortSpec>
+  driverDrivenStateByRowId?: Record<
+    string,
+    {
+      driven: boolean
+      connectionCount: number
+      resolvedValue?: unknown
+      unresolved: boolean
+    }
+  >
+  driverWarningByRowId?: Record<string, DriverRowWarningVm>
+  driverGroups?: DriverSectionGroupVm[]
+  driverRowIndexById?: Record<string, number>
+  featureRows?: FeatureDependencyRow[]
+  featureRowIndexById?: Record<string, number>
+  internalDependencyEdges?: FeatureDependencyEdge[]
+  inputRowIndexById?: Record<string, number>
+  outputEndpointIndexByRowId?: Record<string, number>
+  outputEndpointCount?: number
+  featureVirtualInputStateByPortId?: FeatureVirtualInputStateByPortId
   inputCompositeState: NodeInputCompositeState
   compositeExpansionRevision: number
   getCompositeExpanded: (
@@ -110,6 +146,12 @@ type NodeViewProps = {
     nodeId: string,
     change: DriverNumberChange,
     value: number,
+  ) => void
+  onMoveSectionRow?: (
+    nodeId: string,
+    section: PartRowOrderSection,
+    rowId: string,
+    direction: 'up' | 'down',
   ) => void
   onPrimitiveNumberValueChange: (nodeId: string, value: number) => void
   outputRowMinHeight: number
@@ -136,6 +178,12 @@ type NodeViewProps = {
   ) => void
   onInputPointerEnter: (payload: EndpointPayload) => void
   onInputPointerLeave: (payload: EndpointPayload) => void
+}
+
+type InternalDependencyPathVm = {
+  id: string
+  d: string
+  className: string
 }
 
 const endpointKey = (
@@ -174,6 +222,27 @@ const formatPinValue = (value: number): string => {
   return Number.isInteger(rounded) ? rounded.toString() : rounded.toString()
 }
 
+const buildDependencyPath = (
+  fromX: number,
+  fromY: number,
+  toX: number,
+  toY: number,
+): string => {
+  const deltaX = Math.max(18, Math.abs(toX - fromX) * 0.45)
+  const controlAX = fromX + deltaX
+  const controlBX = toX - deltaX
+  return `M ${fromX} ${fromY} C ${controlAX} ${fromY}, ${controlBX} ${toY}, ${toX} ${toY}`
+}
+
+const fallbackDependencyClassName = (edge: FeatureDependencyEdge): string =>
+  `SpaghettiInternalDependencyWire ${
+    edge.kind === 'driverToFeature'
+      ? 'SpaghettiInternalDependencyWire--driver'
+      : 'SpaghettiInternalDependencyWire--feature'
+  } ${edge.effective ? '' : 'SpaghettiInternalDependencyWire--inactive'} ${
+    edge.enabled ? '' : 'SpaghettiInternalDependencyWire--disabled'
+  }`
+
 function NodeViewComponent({
   node,
   rowViewMode,
@@ -187,10 +256,24 @@ function NodeViewComponent({
   inputs,
   outputs,
   otherOutputs,
+  outputPreviewRows,
   uiSections,
   presetOptions,
   inputPortDetails,
   outputPortDetails,
+  driverInputPortByRowId,
+  driverOutputPortByRowId,
+  driverDrivenStateByRowId,
+  driverWarningByRowId,
+  driverGroups,
+  driverRowIndexById,
+  featureRows,
+  featureRowIndexById,
+  internalDependencyEdges,
+  inputRowIndexById,
+  outputEndpointIndexByRowId,
+  outputEndpointCount,
+  featureVirtualInputStateByPortId,
   inputCompositeState,
   compositeExpansionRevision,
   getCompositeExpanded,
@@ -201,6 +284,7 @@ function NodeViewComponent({
   getOutputDropState,
   onPresetChange,
   onDriverNumberChange,
+  onMoveSectionRow,
   onPrimitiveNumberValueChange,
   outputRowMinHeight,
   onOutputRowMinHeightChange,
@@ -233,6 +317,9 @@ function NodeViewComponent({
   const showPresetPicker = isPartTemplate
 
   const nodeElementRef = useRef<HTMLElement | null>(null)
+  const partTemplateElementRef = useRef<HTMLDivElement | null>(null)
+  const driverRowElementByIdRef = useRef<Record<string, HTMLDivElement | null>>({})
+  const featureRowElementByIdRef = useRef<Record<string, HTMLDivElement | null>>({})
   const paramsText = JSON.stringify(node.params, null, 2)
   const presetValue =
     typeof node.params.presetId === 'string' && node.params.presetId.length > 0
@@ -242,6 +329,7 @@ function NodeViewComponent({
   const [scrubSensitivity, setScrubSensitivity] = useState(0)
   const [showInternalWiring, setShowInternalWiring] = useState(true)
   const [toolbarEditorOpen, setToolbarEditorOpen] = useState(false)
+  const [internalDependencyPaths, setInternalDependencyPaths] = useState<InternalDependencyPathVm[]>([])
   const [compositeContextMenu, setCompositeContextMenu] =
     useState<CompositeContextMenuState | null>(null)
 
@@ -363,7 +451,12 @@ function NodeViewComponent({
     summary?: ReactNode,
   ) => {
     return (
-      <div className="SpaghettiNodeGroup" data-sp-group-id={groupId} data-sp-section-id={sectionId}>
+      <div
+        key={`${sectionId}-${groupId}`}
+        className="SpaghettiNodeGroup"
+        data-sp-group-id={groupId}
+        data-sp-section-id={sectionId}
+      >
         <div
           className="SpaghettiNodeSectionLabel SpaghettiNodeSectionHeaderHitArea SpaghettiNodeSectionRow"
           {...SP_INTERACTIVE_PROPS}
@@ -379,6 +472,80 @@ function NodeViewComponent({
         </div>
         {collapsed ? summary : null}
         {!collapsed ? <div className="SpaghettiNodeGroupBody">{children}</div> : null}
+      </div>
+    )
+  }
+
+  const wrapWithSectionRowMoveControls = (
+    section: PartRowOrderSection,
+    rowId: string,
+    indexInSection: number | undefined,
+    sectionLength: number | undefined,
+    content: ReactNode,
+    options?: {
+      orderable?: boolean
+      alignToValueBar?: boolean
+    },
+  ): ReactNode => {
+    const orderable = options?.orderable !== false
+    if (
+      !orderable ||
+      onMoveSectionRow === undefined ||
+      indexInSection === undefined ||
+      sectionLength === undefined
+    ) {
+      return content
+    }
+
+    const disableAll = sectionLength < 2
+    const disableUp = disableAll || indexInSection <= 0
+    const disableDown = disableAll || indexInSection >= sectionLength - 1
+
+    return (
+      <div key={`row-move-${section}-${rowId}`} className="SpaghettiSectionRowWithMove">
+        <div className="SpaghettiSectionRowBody">{content}</div>
+        <div
+          className={`SpaghettiSectionRowMoveControls ${
+            options?.alignToValueBar === true
+              ? 'SpaghettiSectionRowMoveControls--valueBarAligned'
+              : ''
+          }`}
+        >
+          <button
+            type="button"
+            className="SpaghettiSectionRowMoveButton"
+            {...SP_INTERACTIVE_PROPS}
+            disabled={disableUp}
+            onPointerDown={(event) => event.stopPropagation()}
+            onClick={(event) => {
+              event.stopPropagation()
+              if (disableUp) {
+                return
+              }
+              onMoveSectionRow(node.nodeId, section, rowId, 'up')
+            }}
+            aria-label="Move row up"
+          >
+            {'\u25B2'}
+          </button>
+          <button
+            type="button"
+            className="SpaghettiSectionRowMoveButton"
+            {...SP_INTERACTIVE_PROPS}
+            disabled={disableDown}
+            onPointerDown={(event) => event.stopPropagation()}
+            onClick={(event) => {
+              event.stopPropagation()
+              if (disableDown) {
+                return
+              }
+              onMoveSectionRow(node.nodeId, section, rowId, 'down')
+            }}
+            aria-label="Move row down"
+          >
+            {'\u25BC'}
+          </button>
+        </div>
       </div>
     )
   }
@@ -797,21 +964,157 @@ function NodeViewComponent({
 
   const renderDriverControlRow = (
     driver: DriverControlRowVm,
-    options?: { pinsOnly?: boolean },
+    options?: {
+      pinsOnly?: boolean
+      sectionIndex?: number
+      sectionLength?: number
+    },
   ) => {
     const pinsOnly = options?.pinsOnly === true
+    const toDriverWarningTooltip = (warning: DriverRowWarningVm): string => {
+      if (typeof warning.message === 'string' && warning.message.length > 0) {
+        return warning.message
+      }
+      const reasonLabel = (warning.reasons ?? [warning.kind]).join(', ')
+      return `Driver input warning: ${reasonLabel}`
+    }
+    const renderDriverWarning = (rowId: string) => {
+      const warning = driverWarningByRowId?.[rowId]
+      if (warning === undefined) {
+        return null
+      }
+      return (
+        <span
+          className={`SpaghettiDriverWarningIndicator SpaghettiDriverWarningIndicator--${warning.kind}`}
+          title={toDriverWarningTooltip(warning)}
+          aria-label={toDriverWarningTooltip(warning)}
+        >
+          !
+        </span>
+      )
+    }
+    const renderDriverPins = (rowId: string) => {
+      const inputPort = driverInputPortByRowId?.[rowId]
+      const outputPort = driverOutputPortByRowId?.[rowId]
+      if (inputPort === undefined && outputPort === undefined) {
+        return null
+      }
+      return (
+        <span className="SpaghettiDriverPinCluster">
+          {inputPort !== undefined ? (
+            (() => {
+              const payload: EndpointPayload = {
+                nodeId: node.nodeId,
+                portId: inputPort.portId,
+              }
+              const dropState = getInputDropState(payload)
+              const dropStateClass =
+                dropState === null
+                  ? ''
+                  : dropState === 'compatible'
+                    ? 'SpaghettiDriverInputPinSlot--compatible'
+                    : 'SpaghettiDriverInputPinSlot--incompatible'
+              return (
+                <span
+                  className={`SpaghettiDriverInputPinSlot ${dropStateClass}`}
+                  title={
+                    inputPort.type.unit === undefined
+                      ? inputPort.type.kind
+                      : `${inputPort.type.kind}:${inputPort.type.unit}`
+                  }
+                  onPointerEnter={() => onInputPointerEnter(payload)}
+                  onPointerLeave={() => onInputPointerLeave(payload)}
+                >
+                  <span
+                    ref={(element) =>
+                      onRegisterPortElement(node.nodeId, 'in', inputPort.portId, undefined, element)
+                    }
+                    className={`SpaghettiPortAnchor SpaghettiPortAnchor--in SpaghettiPortAnchor--kind-${inputPort.type.kind} SpaghettiDriverInputPin`}
+                    style={{ backgroundColor: getTypeColor(inputPort.type.kind) }}
+                    onPointerDown={(event) => {
+                      event.stopPropagation()
+                      if (event.button !== 0) {
+                        return
+                      }
+                      onInputPointerDown(event, payload)
+                    }}
+                    data-sp-driver-input-port-id={inputPort.portId}
+                  />
+                </span>
+              )
+            })()
+          ) : null}
+          {outputPort !== undefined ? (
+            (() => {
+              const payload: EndpointPayload = {
+                nodeId: node.nodeId,
+                portId: outputPort.portId,
+              }
+              const dropState = getOutputDropState(payload)
+              const dropStateClass =
+                dropState === null
+                  ? ''
+                  : dropState === 'compatible'
+                    ? 'SpaghettiDriverOutputPinSlot--compatible'
+                    : 'SpaghettiDriverOutputPinSlot--incompatible'
+              return (
+                <span
+                  className={`SpaghettiDriverOutputPinSlot ${dropStateClass}`}
+                  title={
+                    outputPort.type.unit === undefined
+                      ? outputPort.type.kind
+                      : `${outputPort.type.kind}:${outputPort.type.unit}`
+                  }
+                  onPointerEnter={() => onOutputPointerEnter(payload)}
+                  onPointerLeave={() => onOutputPointerLeave(payload)}
+                >
+                  <span
+                    ref={(element) =>
+                      onRegisterPortElement(node.nodeId, 'out', outputPort.portId, undefined, element)
+                    }
+                    className={`SpaghettiPortAnchor SpaghettiPortAnchor--out SpaghettiPortAnchor--kind-${outputPort.type.kind} SpaghettiDriverOutputPin`}
+                    style={{ backgroundColor: getTypeColor(outputPort.type.kind) }}
+                    onPointerDown={(event) => {
+                      event.stopPropagation()
+                      if (event.button !== 0) {
+                        return
+                      }
+                      onOutputPointerDown(event, payload)
+                    }}
+                    data-sp-driver-output-port-id={outputPort.portId}
+                  />
+                </span>
+              )
+            })()
+          ) : null}
+        </span>
+      )
+    }
+
     if (driver.kind === 'nodeParamVec2') {
-      const xDisabled = driver.xInput.disabled === true || !showEditors
-      const yDisabled = driver.yInput.disabled === true || !showEditors
+      const drivenState = driverDrivenStateByRowId?.[driver.rowId]
+      const xDisabled =
+        driver.xInput.disabled === true || drivenState?.driven === true || !showEditors
+      const yDisabled =
+        driver.yInput.disabled === true || drivenState?.driven === true || !showEditors
       const pinValueLabel = `${formatPinValue(driver.xInput.value)}, ${formatPinValue(
         driver.yInput.value,
       )}`
-      return (
+      const content = (
         <div
           key={driver.rowId}
+          ref={(element) => {
+            driverRowElementByIdRef.current[driver.rowId] = element
+          }}
           className={`SpRow SpRow--driver SpaghettiDriverControlRow SpaghettiDriverControlRow--vec2 ${
             xDisabled && yDisabled ? 'isDisabled' : ''
+          } ${
+            driverOutputPortByRowId?.[driver.rowId] === undefined &&
+            driverInputPortByRowId?.[driver.rowId] === undefined
+              ? ''
+              : 'SpaghettiDriverControlRow--wireableOut'
           }`}
+          data-sp-driver-row-id={driver.rowId}
         >
           <span className="SpaghettiDriverControlLabel">{driver.label}</span>
           <Vec2Field
@@ -838,19 +1141,158 @@ function NodeViewComponent({
             scrubSpeed={scrubSensitivity}
           />
           {pinsOnly ? <span className="SpaghettiDriverPinValue">{pinValueLabel}</span> : null}
+          {renderDriverWarning(driver.rowId)}
+          {renderDriverPins(driver.rowId)}
+          {drivenState?.unresolved === true ? (
+            <span className="SpaghettiDriverUnresolvedMessage">Driven (unresolved)</span>
+          ) : null}
         </div>
+      )
+      return wrapWithSectionRowMoveControls(
+        'drivers',
+        driver.rowId,
+        options?.sectionIndex,
+        options?.sectionLength,
+        content,
+        {
+          alignToValueBar: true,
+        },
+      )
+    }
+
+    if (driver.kind === 'nodeParamNumber') {
+      const valueInput = driver.numberInput
+      const drivenState = driverDrivenStateByRowId?.[driver.rowId]
+      const disabled =
+        valueInput.disabled === true || drivenState?.driven === true || !showEditors
+      const inOffsetMode =
+        drivenState?.driven === true &&
+        driver.offsetMode === true &&
+        driver.offsetInput !== undefined
+      const offsetInput = inOffsetMode ? driver.offsetInput : undefined
+      const drivenDisplayValue =
+        typeof driver.drivenValue === 'number' && Number.isFinite(driver.drivenValue)
+          ? driver.drivenValue
+          : valueInput.value
+      const effectiveDisplayValue =
+        typeof driver.effectiveValue === 'number' && Number.isFinite(driver.effectiveValue)
+          ? driver.effectiveValue
+          : undefined
+      const pinValueLabel =
+        inOffsetMode && effectiveDisplayValue !== undefined
+          ? formatPinValue(effectiveDisplayValue)
+          : formatPinValue(valueInput.value)
+      const content = (
+        <div
+          key={driver.rowId}
+          ref={(element) => {
+            driverRowElementByIdRef.current[driver.rowId] = element
+          }}
+          className={`SpRow SpRow--driver SpaghettiDriverControlRow SpaghettiDriverControlRow--number ${
+            disabled ? 'isDisabled' : ''
+          } ${inOffsetMode ? 'SpaghettiDriverControlRow--offsetMode' : ''} ${
+            driverOutputPortByRowId?.[driver.rowId] === undefined &&
+            driverInputPortByRowId?.[driver.rowId] === undefined
+              ? ''
+              : 'SpaghettiDriverControlRow--wireableOut'
+          }`}
+          data-sp-driver-row-id={driver.rowId}
+        >
+          {inOffsetMode && offsetInput !== undefined ? (
+            <div className="SpaghettiDriverOffsetModeStack">
+              <NumberField
+                scrubLabel={`${driver.label} (Driven)`}
+                value={drivenDisplayValue}
+                min={valueInput.min}
+                max={valueInput.max}
+                step={valueInput.step ?? 0.1}
+                disabled={true}
+                driven={true}
+                scrubSpeed={scrubSensitivity}
+                className="SpaghettiDriverNumberField SpaghettiDriverNumberField--drivenValue"
+                onChange={() => {
+                  // Read-only in driven mode.
+                }}
+              />
+              <NumberField
+                scrubLabel="Offset"
+                value={offsetInput.value}
+                step={offsetInput.step ?? 0.1}
+                disabled={offsetInput.disabled === true || !showEditors}
+                scrubSpeed={scrubSensitivity}
+                className="SpaghettiDriverNumberField SpaghettiDriverNumberField--offsetValue"
+                onChange={(value) =>
+                  onDriverNumberChange(node.nodeId, offsetInput.change, value)
+                }
+              />
+              {effectiveDisplayValue !== undefined ? (
+                <NumberField
+                  scrubLabel="Effective"
+                  value={effectiveDisplayValue}
+                  step={valueInput.step ?? 0.1}
+                  disabled={true}
+                  scrubSpeed={scrubSensitivity}
+                  className="SpaghettiDriverNumberField SpaghettiDriverNumberField--effectiveValue"
+                  onChange={() => {
+                    // Read-only effective display.
+                  }}
+                />
+              ) : null}
+            </div>
+          ) : (
+            <NumberField
+              scrubLabel={driver.label}
+              value={valueInput.value}
+              min={valueInput.min}
+              max={valueInput.max}
+              step={valueInput.step ?? 0.1}
+              disabled={disabled}
+              driven={valueInput.driven}
+              scrubSpeed={scrubSensitivity}
+              className="SpaghettiDriverNumberField"
+              onChange={(value) => onDriverNumberChange(node.nodeId, valueInput.change, value)}
+            />
+          )}
+          {pinsOnly ? <span className="SpaghettiDriverPinValue">{pinValueLabel}</span> : null}
+          {renderDriverWarning(driver.rowId)}
+          {renderDriverPins(driver.rowId)}
+          {drivenState?.unresolved === true ? (
+            <span className="SpaghettiDriverUnresolvedMessage">Driven (unresolved)</span>
+          ) : null}
+        </div>
+      )
+      return wrapWithSectionRowMoveControls(
+        'drivers',
+        driver.rowId,
+        options?.sectionIndex,
+        options?.sectionLength,
+        content,
+        {
+          alignToValueBar: true,
+        },
       )
     }
 
     const valueInput = driver.numberInput
-    const disabled = valueInput.disabled === true || !showEditors
+    const drivenState = driverDrivenStateByRowId?.[driver.rowId]
+    const disabled =
+      valueInput.disabled === true || drivenState?.driven === true || !showEditors
     const pinValueLabel = formatPinValue(valueInput.value)
-    return (
+    const content = (
       <div
         key={driver.rowId}
+        ref={(element) => {
+          driverRowElementByIdRef.current[driver.rowId] = element
+        }}
         className={`SpRow SpRow--driver SpaghettiDriverControlRow SpaghettiDriverControlRow--number ${
           disabled ? 'isDisabled' : ''
+        } ${
+          driverOutputPortByRowId?.[driver.rowId] === undefined &&
+          driverInputPortByRowId?.[driver.rowId] === undefined
+            ? ''
+            : 'SpaghettiDriverControlRow--wireableOut'
         }`}
+        data-sp-driver-row-id={driver.rowId}
       >
         <NumberField
           scrubLabel={driver.label}
@@ -865,12 +1307,33 @@ function NodeViewComponent({
           onChange={(value) => onDriverNumberChange(node.nodeId, valueInput.change, value)}
         />
         {pinsOnly ? <span className="SpaghettiDriverPinValue">{pinValueLabel}</span> : null}
+        {renderDriverWarning(driver.rowId)}
+        {renderDriverPins(driver.rowId)}
+        {drivenState?.unresolved === true ? (
+          <span className="SpaghettiDriverUnresolvedMessage">Driven (unresolved)</span>
+        ) : null}
       </div>
+    )
+    return wrapWithSectionRowMoveControls(
+      'drivers',
+      driver.rowId,
+      options?.sectionIndex,
+      options?.sectionLength,
+      content,
+      {
+        alignToValueBar: true,
+      },
     )
   }
 
-  const renderInputRow = (driver: InputEndpointRowVm) => {
-    return renderInputPortByType(driver.port, {
+  const renderInputRow = (
+    driver: InputEndpointRowVm,
+    options?: {
+      sectionIndex?: number
+      sectionLength?: number
+    },
+  ) => {
+    const content = renderInputPortByType(driver.port, {
       endpointPortId: driver.endpointPortId,
       labelOverride: driver.labelOverride,
       resolvedValueLabel: driver.displayValue,
@@ -892,6 +1355,16 @@ function NodeViewComponent({
             },
           }),
     })
+    return wrapWithSectionRowMoveControls(
+      'inputs',
+      driver.rowId,
+      options?.sectionIndex,
+      options?.sectionLength,
+      content,
+      {
+        alignToValueBar: driver.numberInput !== undefined,
+      },
+    )
   }
 
   const renderReservedOutputRow = (driver: Extract<OutputPinnedRowVm, { kind: 'reserved' }>) => (
@@ -915,15 +1388,31 @@ function NodeViewComponent({
     </div>
   )
 
-  const renderOutputRow = (driver: OutputPinnedRowVm) => {
+  const renderOutputRow = (
+    driver: OutputPinnedRowVm,
+    options?: {
+      sectionIndex?: number
+      sectionLength?: number
+    },
+  ) => {
     if (driver.kind === 'reserved') {
       return renderReservedOutputRow(driver)
     }
-    return renderOutputPortByType(driver.port, {
+    const content = renderOutputPortByType(driver.port, {
       endpointPortId: driver.endpointPortId,
       path: driver.endpointPath,
       labelOverride: driver.labelOverride,
     })
+    return wrapWithSectionRowMoveControls(
+      'outputs',
+      driver.rowId,
+      options?.sectionIndex,
+      options?.sectionLength,
+      content,
+      {
+        alignToValueBar: true,
+      },
+    )
   }
 
   const menuPortId = compositeContextMenu?.portId
@@ -938,6 +1427,121 @@ function NodeViewComponent({
     showDebugInfo &&
     menuPortDetailsKey !== undefined &&
     expandedDetails[menuPortDetailsKey] === true
+  const resolvedDriverGroupsForOverlay: DriverSectionGroupVm[] =
+    driverGroups ??
+    [
+      {
+        groupId: '__untitled__',
+        label: 'Properties',
+        rows: drivers ?? [],
+      },
+    ]
+  const driverSectionCollapsedForOverlay = isSectionCollapsed(SECTION_IDS.drivers)
+  const featureSectionCollapsedForOverlay =
+    isCollapsedMode || isSectionCollapsed(SECTION_IDS.featureStack)
+  const visibleDriverRowIdsForOverlay = driverSectionCollapsedForOverlay
+    ? []
+    : resolvedDriverGroupsForOverlay.flatMap((group) =>
+        isGroupCollapsed(SECTION_IDS.drivers, group.groupId)
+          ? []
+          : group.rows.map((row) => row.rowId),
+      )
+  const visibleFeatureRowsForOverlay = featureSectionCollapsedForOverlay
+    ? []
+    : featureRows ?? []
+  const visibleDriverRowIdsForOverlayKey = visibleDriverRowIdsForOverlay.join('|')
+  const visibleFeatureRowsForOverlayKey = visibleFeatureRowsForOverlay
+    .map((row) => row.rowId)
+    .join('|')
+  const internalDependencyEdgeKey = (internalDependencyEdges ?? [])
+    .map((edge) => `${edge.id}:${edge.enabled ? '1' : '0'}:${edge.effective ? '1' : '0'}`)
+    .join('|')
+  const featureRowIndexKey = Object.entries(featureRowIndexById ?? {})
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([rowId, index]) => `${rowId}:${index}`)
+    .join('|')
+  const showInternalDependencyOverlay =
+    isPartTemplate &&
+    rowViewMode === 'everything' &&
+    showInternalWiring &&
+    visibleFeatureRowsForOverlay.length > 0 &&
+    (internalDependencyEdges?.length ?? 0) > 0
+
+  useEffect(() => {
+    if (!showInternalDependencyOverlay) {
+      setInternalDependencyPaths([])
+      return
+    }
+
+    const partTemplateElement = partTemplateElementRef.current
+    if (partTemplateElement === null) {
+      return
+    }
+
+    const templateRect = partTemplateElement.getBoundingClientRect()
+    const fallbackDriverYByRowId = Object.fromEntries(
+      visibleDriverRowIdsForOverlay.map((rowId, index) => [rowId, 48 + index * 28]),
+    ) as Record<string, number>
+    const fallbackFeatureYByRowId = Object.fromEntries(
+      visibleFeatureRowsForOverlay.map((row, index) => [
+        row.rowId,
+        220 + ((featureRowIndexById?.[row.rowId] ?? index) * 34),
+      ]),
+    ) as Record<string, number>
+
+    const nextPaths = (internalDependencyEdges ?? []).flatMap((edge) => {
+      if (edge.kind === 'driverToFeature' && !visibleDriverRowIdsForOverlay.includes(edge.sourceId)) {
+        return []
+      }
+      const sourceElement =
+        edge.sourceKind === 'driverRow'
+          ? driverRowElementByIdRef.current[edge.sourceId]
+          : featureRowElementByIdRef.current[`feature:${edge.sourceId}`]
+      const targetElement = featureRowElementByIdRef.current[edge.targetRowId]
+
+      const sourceRect = sourceElement?.getBoundingClientRect()
+      const targetRect = targetElement?.getBoundingClientRect()
+
+      const sourceX =
+        sourceRect === undefined
+          ? edge.sourceKind === 'driverRow'
+            ? 28
+            : templateRect.width * 0.44
+          : sourceRect.right - templateRect.left
+      const sourceY =
+        sourceRect === undefined
+          ? edge.sourceKind === 'driverRow'
+            ? (fallbackDriverYByRowId[edge.sourceId] ?? 48)
+            : (fallbackFeatureYByRowId[`feature:${edge.sourceId}`] ?? 220)
+          : sourceRect.top - templateRect.top + sourceRect.height / 2
+      const targetX =
+        targetRect === undefined ? templateRect.width * 0.56 : targetRect.left - templateRect.left
+      const targetY =
+        targetRect === undefined
+          ? (fallbackFeatureYByRowId[edge.targetRowId] ?? 220)
+          : targetRect.top - templateRect.top + targetRect.height / 2
+
+      return [
+        {
+          id: edge.id,
+          d: buildDependencyPath(sourceX, sourceY, targetX, targetY),
+          className: fallbackDependencyClassName(edge),
+        },
+      ]
+    })
+
+    setInternalDependencyPaths(nextPaths)
+  }, [
+    isCollapsedMode,
+    isPartTemplate,
+    rowViewMode,
+    showInternalDependencyOverlay,
+    showInternalWiring,
+    visibleDriverRowIdsForOverlayKey,
+    visibleFeatureRowsForOverlayKey,
+    internalDependencyEdgeKey,
+    featureRowIndexKey,
+  ])
 
   const renderLegacySections = () => {
     if (uiSections === undefined || uiSections.length === 0) {
@@ -989,7 +1593,6 @@ function NodeViewComponent({
     const outputRemainder = otherOutputs ?? []
     const featureStackMode = rowViewMode === 'everything' ? 'full' : 'summary'
     const showEverythingExtras = rowViewMode === 'everything'
-    const showInternalDependenciesPlaceholder = false
     const driversSectionCollapsed = isSectionCollapsed(SECTION_IDS.drivers)
     const inputsSectionCollapsed = isSectionCollapsed(SECTION_IDS.inputs)
     const outputsSectionCollapsed = isSectionCollapsed(SECTION_IDS.outputs)
@@ -997,92 +1600,152 @@ function NodeViewComponent({
     const inputsPinsOnly = inputsSectionCollapsed
     const outputsPinsOnly = outputsSectionCollapsed
     const hideFeatureStackBody = isCollapsedMode || isSectionCollapsed(SECTION_IDS.featureStack)
+    const resolvedDriverGroups: DriverSectionGroupVm[] = resolvedDriverGroupsForOverlay
+    const resolvedDriverRowIndexById = driverRowIndexById ?? {}
+    const resolvedInputRowIndexById = inputRowIndexById ?? {}
+    const resolvedOutputEndpointIndexByRowId = outputEndpointIndexByRowId ?? {}
+    const resolvedOutputEndpointCount = outputEndpointCount ?? outputRows.length
 
-    const groupedControlRows: Array<{ groupLabel: string; rows: DriverControlRowVm[] }> = []
-    const groupedControlRowsByLabel = new Map<string, { groupLabel: string; rows: DriverControlRowVm[] }>()
-    for (const row of controlRows) {
-      const groupLabel =
-        row.groupLabel === undefined || row.groupLabel.length === 0 ? '__untitled__' : row.groupLabel
-      const existing = groupedControlRowsByLabel.get(groupLabel)
-      if (existing !== undefined) {
-        existing.rows.push(row)
-        continue
-      }
-      const created = {
-        groupLabel,
-        rows: [row],
-      }
-      groupedControlRowsByLabel.set(groupLabel, created)
-      groupedControlRows.push(created)
-    }
+    const orderedSections: Array<{
+      key: 'drivers' | 'inputs' | 'featureStack' | 'outputs'
+      className: string
+      renderBody: () => ReactNode
+    }> = [
+      {
+        key: 'drivers',
+        className: 'SpaghettiNodeSection SpaghettiTemplateSection',
+        renderBody: () => (
+          <>
+            {renderSectionHeader(
+              'Drivers',
+              SECTION_IDS.drivers,
+              resolvedDriverGroups.map((group) => group.groupId),
+            )}
+            {!driversPinsOnly ? (
+              <div className="SpaghettiNodeSectionItems">
+                {resolvedDriverGroups.map((group) => {
+                  const collapsed = isGroupCollapsed(SECTION_IDS.drivers, group.groupId)
+                  return renderGroupHeader(
+                    group.label,
+                    SECTION_IDS.drivers,
+                    group.groupId,
+                    collapsed,
+                    <div className="SpaghettiDriverGroup">
+                      {group.rows.map((driver) =>
+                        renderDriverControlRow(driver, {
+                          pinsOnly: driversPinsOnly,
+                          sectionIndex: resolvedDriverRowIndexById[driver.rowId],
+                          sectionLength: controlRows.length,
+                        }),
+                      )}
+                    </div>,
+                    <div className="SpaghettiDriverGroupCollapsedSummary" />,
+                  )
+                })}
+              </div>
+            ) : null}
+          </>
+        ),
+      },
+      {
+        key: 'inputs',
+        className: 'SpaghettiNodeSection SpaghettiTemplateSection',
+        renderBody: () => (
+          <>
+            {renderSectionHeader('Inputs', SECTION_IDS.inputs)}
+            {!inputsPinsOnly ? (
+              <div
+                className={`SpaghettiNodePortColumn SpaghettiNodePortColumn--in ${
+                  inputsPinsOnly ? 'InputsSection--pinsOnly' : ''
+                }`}
+              >
+                {inputRows.map((driver) =>
+                  renderInputRow(driver, {
+                    sectionIndex: resolvedInputRowIndexById[driver.rowId],
+                    sectionLength: inputRows.length,
+                  }),
+                )}
+              </div>
+            ) : null}
+          </>
+        ),
+      },
+      {
+        key: 'featureStack',
+        className: 'SpaghettiNodeSection SpaghettiTemplateSection',
+        renderBody: () => (
+          <>
+            {renderSectionHeader('Feature Stack', SECTION_IDS.featureStack)}
+            {hideFeatureStackBody ? null : (
+              <FeatureStackView
+                node={node}
+                mode={featureStackMode}
+                isGroupCollapsed={(groupId) => isGroupCollapsed(SECTION_IDS.featureStack, groupId)}
+                onToggleGroup={(groupId) => onToggleGroup(SECTION_IDS.featureStack, groupId)()}
+                featureRows={featureRows}
+                onRegisterFeatureRowElement={(rowId, element) => {
+                  featureRowElementByIdRef.current[rowId] = element
+                }}
+                featureVirtualInputStateByPortId={featureVirtualInputStateByPortId}
+                featureInputWiring={{
+                  getInputDropState,
+                  onRegisterPortElement,
+                  onInputPointerDown,
+                  onInputPointerEnter,
+                  onInputPointerLeave,
+                }}
+              />
+            )}
+          </>
+        ),
+      },
+      {
+        key: 'outputs',
+        className: 'SpaghettiNodeSection SpaghettiTemplateSection SpaghettiTemplateSection--outputs',
+        renderBody: () => (
+          <>
+            {renderSectionHeader('Outputs', SECTION_IDS.outputs)}
+            {!outputsPinsOnly ? (
+              <div
+                className={`SpaghettiNodePortColumn SpaghettiNodePortColumn--out ${
+                  outputsPinsOnly ? 'OutputsSection--pinsOnly' : ''
+                }`}
+              >
+                {outputRows.map((driver) =>
+                  renderOutputRow(driver, {
+                    sectionIndex:
+                      driver.kind === 'endpoint'
+                        ? resolvedOutputEndpointIndexByRowId[driver.rowId]
+                        : undefined,
+                    sectionLength: resolvedOutputEndpointCount,
+                  }),
+                )}
+              </div>
+            ) : null}
+          </>
+        ),
+      },
+    ]
 
     return (
-      <div className="SpaghettiNodeTemplate">
-        <section className="SpaghettiNodeSection SpaghettiTemplateSection">
-          {renderSectionHeader(
-            'Drivers',
-            SECTION_IDS.drivers,
-            groupedControlRows.map((group) => group.groupLabel),
-          )}
-          {!driversPinsOnly ? (
-            <div className="SpaghettiNodeSectionItems">
-              {groupedControlRows.map((group) => {
-                const collapsed = isGroupCollapsed(SECTION_IDS.drivers, group.groupLabel)
-                const isDefaultGroup = group.groupLabel === '__untitled__'
-                return renderGroupHeader(
-                  isDefaultGroup ? 'Properties' : group.groupLabel,
-                  SECTION_IDS.drivers,
-                  group.groupLabel,
-                  collapsed,
-                  <div className="SpaghettiDriverGroup">
-                    {group.rows.map((driver) =>
-                      renderDriverControlRow(driver, { pinsOnly: driversPinsOnly }),
-                    )}
-                  </div>,
-                  <div className="SpaghettiDriverGroupCollapsedSummary" />,
-                )
-              })}
-            </div>
-          ) : null}
-        </section>
+      <div ref={partTemplateElementRef} className="SpaghettiNodeTemplate SpaghettiNodeTemplate--withInternalDeps">
+        {orderedSections.map((section) => (
+          <section key={section.key} className={section.className}>
+            {section.renderBody()}
+          </section>
+        ))}
 
-        <section className="SpaghettiNodeSection SpaghettiTemplateSection">
-          {renderSectionHeader('Inputs', SECTION_IDS.inputs)}
-          {!inputsPinsOnly ? (
-            <div
-              className={`SpaghettiNodePortColumn SpaghettiNodePortColumn--in ${
-                inputsPinsOnly ? 'InputsSection--pinsOnly' : ''
-              }`}
-            >
-              {inputRows.map((driver) => renderInputRow(driver))}
-            </div>
-          ) : null}
-        </section>
-
-        <section className="SpaghettiNodeSection SpaghettiTemplateSection">
-          {renderSectionHeader('Feature Stack', SECTION_IDS.featureStack)}
-          {hideFeatureStackBody ? null : (
-            <FeatureStackView
-              node={node}
-              mode={featureStackMode}
-              isGroupCollapsed={(groupId) => isGroupCollapsed(SECTION_IDS.featureStack, groupId)}
-              onToggleGroup={(groupId) => onToggleGroup(SECTION_IDS.featureStack, groupId)()}
-            />
-          )}
-        </section>
-
-        <section className="SpaghettiNodeSection SpaghettiTemplateSection SpaghettiTemplateSection--outputs">
-          {renderSectionHeader('Outputs', SECTION_IDS.outputs)}
-          {!outputsPinsOnly ? (
-            <div
-              className={`SpaghettiNodePortColumn SpaghettiNodePortColumn--out ${
-                outputsPinsOnly ? 'OutputsSection--pinsOnly' : ''
-              }`}
-            >
-              {outputRows.map((driver) => renderOutputRow(driver))}
-            </div>
-          ) : null}
-        </section>
+        {showInternalDependencyOverlay ? (
+          <svg
+            className="SpaghettiInternalDependencyOverlay"
+            data-sp-internal-dependency-overlay="1"
+            aria-hidden="true"
+          >
+            {internalDependencyPaths.map((path) => (
+              <path key={path.id} className={path.className} d={path.d} />
+            ))}
+          </svg>
+        ) : null}
 
         {showEverythingExtras && outputRemainder.length > 0 ? (
           <section className="SpaghettiNodeSection SpaghettiTemplateSection SpaghettiTemplateSection--outputs SpaghettiNodeTemplateExtras">
@@ -1100,16 +1763,51 @@ function NodeViewComponent({
         ) : null}
 
         {showEverythingExtras ? renderLegacySections() : null}
-
-        {showEverythingExtras && showInternalDependenciesPlaceholder ? (
-          <section className="SpaghettiNodeSection SpaghettiTemplateAuxSection">
-            <div className="SpaghettiNodeSectionLabel">Internal Dependencies (future)</div>
-            <div className="SpaghettiNodeSectionItem">Reserved</div>
-          </section>
-        ) : null}
       </div>
     )
   }
+
+  const renderOutputPreviewTemplate = () => (
+    <div className="SpaghettiNodeTemplate SpaghettiOutputPreviewTemplate">
+      <section className="SpaghettiNodeSection SpaghettiTemplateSection SpaghettiOutputPreviewSection">
+        <div className="SpaghettiNodeSectionLabel">Parts List</div>
+        <div className="SpaghettiNodePortColumn SpaghettiNodePortColumn--in">
+          {(outputPreviewRows ?? []).map((row) => (
+            <div
+              key={row.rowId}
+              className="SpaghettiOutputPreviewRow"
+              data-sp-output-preview-slot-id={row.slotId}
+            >
+              {renderInputPortByType(row.port, {
+                endpointPortId: row.port.portId,
+                labelOverride: row.slotId,
+                resolvedValueLabel: row.statusPrimary,
+              })}
+              {row.statusSecondary !== undefined ? (
+                <div
+                  className={`SpaghettiOutputPreviewMeta ${
+                    row.isTrailingEmpty ? 'SpaghettiOutputPreviewHint' : ''
+                  }`}
+                  {...SP_INTERACTIVE_PROPS}
+                >
+                  {row.statusSecondary}
+                </div>
+              ) : null}
+              {row.slotStatus === 'unresolved' ? (
+                <div
+                  className="SpaghettiOutputPreviewWarning"
+                  title={row.warningMessage ?? 'Unresolved slot input.'}
+                  {...SP_INTERACTIVE_PROPS}
+                >
+                  !
+                </div>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      </section>
+    </div>
+  )
 
   const renderLegacyNodePorts = () => (
     <>
@@ -1257,7 +1955,11 @@ function NodeViewComponent({
         </section>
       ) : null}
 
-      {isPartTemplate ? renderPartTemplate() : renderLegacyNodePorts()}
+      {node.type === OUTPUT_PREVIEW_NODE_TYPE && outputPreviewRows !== undefined
+        ? renderOutputPreviewTemplate()
+        : isPartTemplate
+          ? renderPartTemplate()
+          : renderLegacyNodePorts()}
 
       {showDebugInfo ? <pre className="SpaghettiNodeParams">{paramsText}</pre> : null}
 

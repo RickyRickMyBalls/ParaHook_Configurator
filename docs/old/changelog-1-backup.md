@@ -1,8 +1,1008 @@
-﻿# Change Log
+# Change Log
 
 Numbering rule for major entries:
 - Prefix each new `##` section with a sequential command index: `[NNN]`.
 - Increment by 1 for every new Codex-added section.
+
+<!-- ============================================================ -->
+## [062] 2026-03-04 22:12 (Post-4A Hardening: Tessellation Determinism + CCW Lock)
+<!-- ============================================================ -->
+
+### Scope / Constraints Honored
+- Kept tessellation strictly at the compile-to-worker boundary (`compileGraph` payload assembly path).
+- Preserved worker protocol and runtime contract:
+  - `schemaVersion` remains `1`,
+  - runtime ops remain `sketch` and `extrude` only.
+- Kept analytic `ProfileLoop.segments` authoritative in app state.
+- Did not move tessellation into worker/runtime layers.
+
+### Summary of Implementation
+- Extracted runtime tessellation into compiler-local helper `runtimeTessellation.ts` and wired `compileGraph` to use it.
+- Added deterministic tessellation constants and pipeline:
+  - canonicalize to 6 decimals,
+  - epsilon-based duplicate suppression (`EPSILON = 1e-6`) after canonicalization,
+  - closure snap after full segment emission,
+  - CCW enforcement using open-ring signed area with implicit closing edge.
+- Implemented closure behavior to avoid synthetic close-point appends while normalizing near-closure deterministically.
+- Added compile payload determinism test for curved `sketch -> closeProfile -> extrude` fixture:
+  - byte-identical payload JSON across runs,
+  - `schemaVersion` lock,
+  - runtime op set lock (no emitted `closeProfile` op),
+  - CCW/non-negative loop area assertion.
+- Added focused tessellation unit tests for epsilon join suppression, closure snap/no double-close, CCW enforcement, and repeat determinism.
+
+### Files Changed
+- `src/app/spaghetti/compiler/runtimeTessellation.ts`
+- `src/app/spaghetti/compiler/runtimeTessellation.test.ts`
+- `src/app/spaghetti/compiler/compileGraph.ts`
+- `src/app/spaghetti/compiler/compileGraph.test.ts`
+- `docs/listofchanges.md`
+
+### Behavior Changes (if any)
+- Runtime sketch vertices emitted by compile-time tessellation are now epsilon-hardened and canonicalized deterministically.
+- Near-closure endpoints are snapped deterministically; runtime payload remains worker-compatible with unchanged schema/op set.
+
+### Verification Steps
+- `npm.cmd run test -- src/app/spaghetti/compiler/runtimeTessellation.test.ts src/app/spaghetti/compiler/compileGraph.test.ts`
+- `npm.cmd run test`
+- `npm.cmd run build`
+- Result: tests passed and build succeeded.
+
+<!-- ============================================================ -->
+## [061] 2026-03-04 22:01 (Phase 4A Runtime Bridge: Added Next-Task Changelog Entry)
+<!-- ============================================================ -->
+
+### Scope / Constraints Honored
+- Documentation-only update.
+- No worker/protocol/scheduler changes.
+- No schema/runtime/compiler behavior changes.
+
+### Summary of Implementation
+- Added changelog tracking entry for the queued Phase 4A runtime bridge task:
+  - analytic `ProfileLoop.segments` bridge to runtime vertex loops,
+  - tessellation at compile-to-runtime boundary only,
+  - runtime ops contract remains `sketch` + `extrude`.
+
+### Files Changed
+- `docs/listofchanges.md`
+
+### Behavior Changes (if any)
+- No runtime behavior changes.
+- Change tracking now includes the Phase 4A runtime bridge next task.
+
+### Verification Steps
+- Reviewed `docs/listofchanges.md` for format consistency and sequential section index (`[061]`).
+
+<!-- ============================================================ -->
+## [060] 2026-03-04 20:57 (Phase 2B v2.0: Expand Feature Virtual Inputs to Extrude Taper/Offset)
+<!-- ============================================================ -->
+
+### Scope / Constraints Honored
+- App-layer only.
+- No worker/protocol/scheduler changes.
+- No schema version bump.
+- Resolver remains single source of truth across validator/canvas/evaluator/UI.
+- NodeView remains generic.
+
+### Summary of Implementation
+- Expanded feature virtual input contract from `Extrude.depth` only to `Extrude.depth`, `Extrude.taper`, and `Extrude.offset`.
+- Added deterministic virtual ID/type handling for:
+  - `fs:in:<featureId>:extrude:depth` (`number:mm`)
+  - `fs:in:<featureId>:extrude:taper` (`number:deg`)
+  - `fs:in:<featureId>:extrude:offset` (`number:mm`)
+- Added optional extrude params `taper`/`offset` using locked literal defaults `{ kind: 'lit', value: 0 }`.
+- Added validator + cheap-check parity for feature virtual path rejection with `FEATURE_VIRTUAL_INPUT_PATH_UNSUPPORTED`.
+- Extended compile/evaluate flow so taper/offset overrides are deterministic and IR extrude fields are always present:
+  - `depthResolved`, `taperResolved`, `offsetResolved`.
+- Extended extrude UI rows and wiring state for depth/taper/offset with driven lock + unresolved behavior consistency.
+- Added/updated tests for virtual ports, validation parity, evaluate determinism, compile overrides/defaults, and UI rendering behavior.
+
+### Files Changed
+- `src/app/spaghetti/features/featureTypes.ts`
+- `src/app/spaghetti/features/featureSchema.ts`
+- `src/app/spaghetti/features/featureVirtualPorts.ts`
+- `src/app/spaghetti/features/featureVirtualPorts.test.ts`
+- `src/app/spaghetti/features/compileFeatureStack.ts`
+- `src/app/spaghetti/features/compileFeatureStack.test.ts`
+- `src/app/spaghetti/compiler/validateGraph.ts`
+- `src/app/spaghetti/compiler/validateGraph.test.ts`
+- `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
+- `src/app/spaghetti/canvas/SpaghettiCanvas.validation.test.ts`
+- `src/app/spaghetti/compiler/evaluateGraph.ts`
+- `src/app/spaghetti/compiler/evaluateGraph.test.ts`
+- `src/app/spaghetti/compiler/compileGraph.ts`
+- `src/app/spaghetti/compiler/compileGraph.test.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/ui/FeatureStackView.tsx`
+- `src/app/spaghetti/ui/features/ExtrudeFeatureView.tsx`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+- `docs/listofchanges.md`
+
+### Behavior Changes (if any)
+- Users can now wire into extrude taper/offset feature params using feature virtual inputs.
+- Feature virtual inputs remain whole-port only; path-based connections are explicitly rejected.
+- Occupied `fs:in:*` endpoints still reject in cheap-check (`maxConnectionsIn = 1`), unchanged from feature input contract.
+- Compiled extrude IR now always includes deterministic resolved numeric fields for taper and offset.
+
+### Verification Steps
+- `npm.cmd run test`
+- `npm.cmd run build`
+- Result: all tests passed and build succeeded.
+
+<!-- ============================================================ -->
+## [059] 2026-03-04 20:33 (Renumber NODE Tasklist Sections After Duplicate 7)
+<!-- ============================================================ -->
+
+### Scope / Constraints Honored
+- Documentation-only update.
+- No worker/protocol/scheduler changes.
+- No schema/runtime/compiler behavior changes.
+- Preserved changelog format and top-insert ordering.
+
+### Summary of Implementation
+- Updated `docs/NODE-tasklist.md` section numbering to resolve duplicate `7` and increment subsequent sections.
+- Applied requested sequence adjustment:
+  - second `7` -> `8`,
+  - all following section numbers incremented by `+1`.
+- Resulting section sequence from that point is now monotonic and unambiguous.
+
+### Files Changed
+- `docs/NODE-tasklist.md`
+- `docs/listofchanges.md`
+
+### Behavior Changes (if any)
+- No runtime behavior changes.
+- Tasklist numbering/readability improved.
+
+### Verification Steps
+- Reviewed `docs/NODE-tasklist.md` headings to confirm corrected numbering order.
+- Confirmed new changelog entry inserted at top with next sequential index `[059]`.
+
+<!-- ============================================================ -->
+## [058] 2026-03-04 20:28 (Update NODE Tasklist for Phase 2C v2.1 Completion)
+<!-- ============================================================ -->
+
+### Scope / Constraints Honored
+- Documentation-only checklist update.
+- No worker/protocol/scheduler changes.
+- No schema/runtime/compiler behavior changes in this step.
+- Preserved existing changelog format and reverse-chronological insertion.
+
+### Summary of Implementation
+- Updated `docs/NODE-tasklist.md` to add Phase 2C v2.1 (`Driver Input Auto-Replace`) as implemented.
+- Added completed checklist items for:
+  - scoped auto-replace on `drv:in:*`,
+  - duplicate-drop no-op behavior,
+  - deterministic replace/heal semantics,
+  - whole-port endpoint-key lock,
+  - cycle check enforcement at final drop commit.
+- Renumbered downstream sections to keep sequence consistent:
+  - Feature wiring expansion moved to section 10,
+  - Phase 3 moved to section 11,
+  - Quality gates moved to section 12.
+- Added Phase 2C v2.1 full regression gate completion line.
+
+### Files Changed
+- `docs/NODE-tasklist.md`
+- `docs/listofchanges.md`
+
+### Behavior Changes (if any)
+- No runtime behavior changes.
+- Planning/checklist documents now reflect Phase 2C v2.1 completion.
+
+### Verification Steps
+- Reviewed `docs/NODE-tasklist.md` for section numbering, status marks, and quality-gate alignment with implemented work.
+- Confirmed changelog entry inserted at top with next sequential index `[058]`.
+
+<!-- ============================================================ -->
+## [057] 2026-03-04 20:26 (Phase 2C v2.1: Driver Input Auto-Replace on Drop)
+<!-- ============================================================ -->
+
+### Scope / Constraints Honored
+- App-layer only.
+- No worker/protocol/scheduler changes.
+- No schema version bump.
+- Resolver remains the single source of truth for endpoint typing/availability.
+- `maxConnectionsIn` contract for `drv:in:*` remains 1 in final graph state.
+- NodeView remained generic (no part-type UI branching added).
+
+### Summary of Implementation
+- Implemented deterministic auto-replace planning for driver virtual input targets (`drv:in:*`) via a new pure helper module.
+- Added whole-port endpoint-key lock for driver virtual inputs:
+  - endpoint matching ignores path component and uses empty normalized path key.
+- Added drop-time replacement semantics:
+  - exact duplicate drop on clean occupied target is a no-op (existing edge preserved),
+  - otherwise remove all existing incoming edges on same driver endpoint and append one new edge,
+  - cycle checks run against the final candidate graph before commit.
+- Updated canvas drop commit to use one atomic `applyGraphPatch` for replacement (remove+add together).
+- Updated cheap-check semantics for occupied `drv:in:*` targets:
+  - allowed when type/unit/path checks pass (replace-allowed),
+  - path/type/unit invalid cases still reject as before.
+- Added tests for endpoint-key behavior, replacement/no-op/healing logic, and cheap-check scope lock for occupied driver targets.
+
+### Files Changed
+- `src/app/spaghetti/canvas/driverInputAutoReplace.ts` (new)
+- `src/app/spaghetti/canvas/driverInputAutoReplace.test.ts` (new)
+- `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
+- `src/app/spaghetti/canvas/SpaghettiCanvas.validation.test.ts`
+- `docs/listofchanges.md`
+
+### Behavior Changes (if any)
+- Dropping a new compatible wire onto an occupied `drv:in:<paramId>` now replaces prior incoming edge(s) deterministically (`last drop wins`).
+- Dropping the exact same connection again on a clean occupied driver input is now a no-op.
+- Occupied non-driver inputs continue to enforce max-connection rejection in cheap-check.
+- Cycle rejection still occurs at final drop commit (cheap-check still does not perform cycle checks).
+
+### Verification Steps
+- `npm.cmd run test -- src/app/spaghetti/canvas/driverInputAutoReplace.test.ts src/app/spaghetti/canvas/SpaghettiCanvas.validation.test.ts src/app/spaghetti/canvas/NodeView.test.tsx src/app/spaghetti/compiler/validateGraph.test.ts src/app/spaghetti/compiler/evaluateGraph.test.ts`
+- `npm.cmd run test`
+- `npm.cmd run build`
+- Result: all tests passed and build succeeded.
+
+<!-- ============================================================ -->
+## [056] 2026-03-04 20:13 (Update Checklists for Phase 2C v2 Completion)
+<!-- ============================================================ -->
+
+### Scope / Constraints Honored
+- Documentation-only update for task tracking/checklists.
+- No worker/protocol/scheduler changes.
+- No schema/runtime/compiler behavior changes.
+- Preserved existing changelog format and reverse-chronological insertion.
+
+### Summary of Implementation
+- Updated `docs/NODE-tasklist.md` to mark Phase 2C v2 (Wire -> Driver) as implemented.
+- Added explicit completed checklist coverage for:
+  - strict `drv:in:<paramId>` virtual input contract,
+  - path-rejection parity code `DRIVER_VIRTUAL_INPUT_PATH_UNSUPPORTED`,
+  - driven-unresolved lock semantics and parity tests.
+- Added Phase 2C v2 regression quality gate completion (`test` + `build` passing).
+- Updated `docs/tasks/master-tasks.md` to reflect current state:
+  - moved current priority to Phase 2B v2+ expansion work,
+  - refreshed active/backlog items,
+  - added completed milestones for Phase 2A, 2C v1, and 2C v2.
+
+### Files Changed
+- `docs/NODE-tasklist.md`
+- `docs/tasks/master-tasks.md`
+- `docs/listofchanges.md`
+
+### Behavior Changes (if any)
+- No runtime behavior changes.
+- Project planning/checklist documents now reflect current implementation status.
+
+### Verification Steps
+- Reviewed `docs/NODE-tasklist.md` for phase status and checklist consistency.
+- Reviewed `docs/tasks/master-tasks.md` for synchronized priority/active/backlog/completed state.
+- Confirmed changelog entry inserted at top with next sequential index `[056]`.
+
+<!-- ============================================================ -->
+## [055] 2026-03-04 20:08 (Phase 2C v2: Wire -> Driver Virtual Inputs with Deterministic Parity)
+<!-- ============================================================ -->
+
+### Scope / Constraints Honored
+- App-layer only.
+- No worker/protocol/scheduler changes.
+- No schema version bump.
+- No drag/drop redesign.
+- Kept NodeView generic (row-metadata-driven; no part-type branching).
+- Preserved resolver parity across validator, cheap-check, evaluator, and UI pin rendering.
+
+### Summary of Implementation
+- Added driver virtual input contract for Part nodeParam drivers:
+  - `drv:in:<paramId>` with strict parser lock (`^[A-Za-z0-9_]+$`, non-empty, no extra `:`).
+  - input direction, whole-port only, `maxConnectionsIn = 1`.
+- Extended effective input resolver to include driver virtual inputs after declared and feature virtual inputs.
+- Added deterministic path rejection for driver virtual inputs:
+  - `validateGraph` emits `DRIVER_VIRTUAL_INPUT_PATH_UNSUPPORTED`.
+  - `validateConnectionCheap` returns matching code plus locked reason text:
+    `Driver virtual inputs do not support path connections.`
+- Integrated evaluation override semantics:
+  - wired `drv:in:*` overrides `resolvedParams[paramId]` non-mutatively.
+  - wired-but-unresolved keeps node driven/unresolved (no fallback to manual param).
+  - driver virtual outputs read from resolved params, preserving deterministic order.
+- Added UI wiring/render support on driver rows:
+  - driver input pins + existing output pins rendered for eligible nodeParam rows.
+  - driver row editor locks when driven.
+  - deterministic unresolved indicator shown when driven but unresolved.
+- Updated tests for parser/listing, validator parity, cheap/full parity, evaluator overrides, unresolved lock behavior, and NodeView pin/lock rendering.
+
+### Files Changed
+- `src/app/spaghetti/features/driverVirtualPorts.ts`
+- `src/app/spaghetti/features/effectivePorts.ts`
+- `src/app/spaghetti/compiler/validateGraph.ts`
+- `src/app/spaghetti/compiler/evaluateGraph.ts`
+- `src/app/spaghetti/canvas/types.ts`
+- `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
+- `src/app/spaghetti/canvas/driverVm.ts`
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/theme/v15Theme.css`
+- `src/app/spaghetti/features/driverVirtualPorts.test.ts`
+- `src/app/spaghetti/compiler/validateGraph.test.ts`
+- `src/app/spaghetti/canvas/SpaghettiCanvas.validation.test.ts`
+- `src/app/spaghetti/compiler/evaluateGraph.test.ts`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+- `docs/listofchanges.md`
+
+### Behavior Changes (if any)
+- Users can now wire `node.out -> drv:in:<paramId>` for Part nodeParam number/vec2 drivers with resolver-consistent validation.
+- Driver rows can expose both input and output virtual pins; featureParam rows remain excluded.
+- Driven drivers become read-only while wired.
+- Wired-but-unresolved drivers remain locked and unresolved; manual param value is not silently used.
+- Driver virtual input paths are deterministically rejected with parity across cheap and full validation.
+
+### Verification Steps
+- `npm.cmd run test -- src/app/spaghetti/features/driverVirtualPorts.test.ts src/app/spaghetti/compiler/validateGraph.test.ts src/app/spaghetti/canvas/SpaghettiCanvas.validation.test.ts src/app/spaghetti/compiler/evaluateGraph.test.ts src/app/spaghetti/canvas/NodeView.test.tsx src/app/spaghetti/canvas/driverVm.test.ts`
+- `npm.cmd run test`
+- `npm.cmd run build`
+- Result: all tests passed and build succeeded.
+
+<!-- ============================================================ -->
+## [054] 2026-03-04 19:51 (Update NODE Tasklist for Phase 2C v1 Completion)
+<!-- ============================================================ -->
+
+### Scope / Constraints Honored
+- Documentation-only tasklist update.
+- No worker/protocol/scheduler changes.
+- No schema/runtime/compiler code changes in this step.
+- Preserved existing changelog entry format and reverse-chronological insertion rule.
+
+### Summary of Implementation
+- Updated `docs/NODE-tasklist.md` to mark Phase 2C v1 Driver -> Input wiring as implemented.
+- Marked all Phase 2C v1 checklist items complete.
+- Added explicit completion item for `drv:<paramId>` parser charset lock:
+  - `^[A-Za-z0-9_]+$` (non-empty, no `:`).
+- Restored/kept downstream future sections (`Phase 2C v2`, `Phase 2B v2+`, `Phase 3`, and quality gates) in correct order after tasklist refresh.
+
+### Files Changed
+- `docs/NODE-tasklist.md`
+- `docs/listofchanges.md`
+
+### Behavior Changes (if any)
+- No runtime behavior changes.
+- Project planning/task tracking now reflects Phase 2C v1 as complete.
+
+### Verification Steps
+- Reviewed `docs/NODE-tasklist.md` for:
+  - updated Phase 2C v1 status and items,
+  - intact section ordering through sections 8-11,
+  - checklist legend/difficulty format consistency.
+
+<!-- ============================================================ -->
+## [053] 2026-03-04 19:48 (Phase 2C v1 Closure Hardening: Driver ParamId Charset + Determinism Locks)
+<!-- ============================================================ -->
+
+### Scope / Constraints Honored
+- App-layer only.
+- No worker/protocol/scheduler changes.
+- No schema version bump.
+- No drag-and-drop redesign.
+- Kept Phase 2C v1 scope lock: nodeParam driver outputs only; featureParam driver outputs excluded.
+
+### Summary of Implementation
+- Hardened `drv:<paramId>` parsing to enforce v1 param-id charset lock:
+  - non-empty
+  - no `:`
+  - regex `^[A-Za-z0-9_]+$`
+- Retained single-source resolver behavior for driver virtual outputs (`effectivePorts`) and existing evaluator/canvas/UI integration.
+- Added deterministic test coverage for malformed `drv:*` IDs and repeated evaluation equality for driver virtual output wiring.
+
+### Files Changed
+- `src/app/spaghetti/features/driverVirtualPorts.ts`
+- `src/app/spaghetti/features/driverVirtualPorts.test.ts`
+- `src/app/spaghetti/compiler/evaluateGraph.test.ts`
+- `docs/listofchanges.md`
+
+### Behavior Changes (if any)
+- Malformed driver virtual output IDs (for example `drv:width-mm`, `drv:width mm`, `drv:`) are now rejected deterministically by parser/is-check.
+- Deterministic driver virtual output evaluation behavior is now explicitly locked by repeat-equality test coverage.
+
+### Verification Steps
+- `npm.cmd run test -- src/app/spaghetti/features/driverVirtualPorts.test.ts src/app/spaghetti/compiler/evaluateGraph.test.ts`
+- `npm.cmd run test`
+- `npm.cmd run build`
+- Result: all tests passed and build succeeded.
+
+<!-- ============================================================ -->
+## [052] 2026-03-04 19:06 (Phase 2C v1 Driver Virtual Output Wiring)
+<!-- ============================================================ -->
+
+### Scope / Constraints Honored
+- App-layer only.
+- No worker/protocol/scheduler changes.
+- No schema version bump.
+- No drag-and-drop redesign.
+- Feature stack remains embedded in `node.params.featureStack`.
+- v1 lock enforced: nodeParam drivers only (`nodeParamNumber`/`nodeParamVec2`), featureParam drivers excluded.
+
+### Summary of Implementation
+- Added virtual driver output port module with deterministic ID contract `drv:<paramId>`.
+- Extended Part driver control metadata to support explicit `wireOutputType` and populated it for Part nodeParam drivers.
+- Updated effective output resolver so declared outputs and driver virtual outputs are resolved from one source.
+- Updated evaluator to append driver virtual outputs into `outputsByNodeId` from canonical node param values/fallback semantics (no node compute changes).
+- Updated canvas render data to expose driver output port metadata by rowId and kept cheap validation parity through shared resolver.
+- Updated NodeView to render output pins on nodeParam driver rows (right-end aligned; pin remains before row move controls when present).
+- Added tests for helper contract, validator/evaluator behavior, resolver parity, and UI rendering expectations.
+
+### Files Changed
+- `src/app/spaghetti/features/driverVirtualPorts.ts` (new)
+- `src/app/spaghetti/features/driverVirtualPorts.test.ts` (new)
+- `src/app/spaghetti/features/effectivePorts.ts`
+- `src/app/spaghetti/registry/nodeRegistry.ts`
+- `src/app/spaghetti/compiler/evaluateGraph.ts`
+- `src/app/spaghetti/compiler/evaluateGraph.test.ts`
+- `src/app/spaghetti/compiler/validateGraph.test.ts`
+- `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
+- `src/app/spaghetti/canvas/SpaghettiCanvas.validation.test.ts`
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+- `src/app/theme/v15Theme.css`
+- `docs/listofchanges.md`
+
+### Behavior Changes (if any)
+- Part node nodeParam driver rows now expose wireable output pins when `wireOutputType` metadata is present.
+- `drv:<paramId> -> input` edges are now resolved/validated/evaluated consistently across cheap canvas validation and full graph validation.
+- Driver virtual outputs are available in evaluation output maps (for example `outputsByNodeId[nodeId]['drv:widthMm']`).
+- FeatureParam drivers (for example first extrude depth) remain non-wireable in v1.
+
+### Verification Steps
+- `npm.cmd run test -- src/app/spaghetti/features/driverVirtualPorts.test.ts src/app/spaghetti/compiler/validateGraph.test.ts src/app/spaghetti/compiler/evaluateGraph.test.ts src/app/spaghetti/canvas/SpaghettiCanvas.validation.test.ts src/app/spaghetti/canvas/NodeView.test.tsx`
+- `npm.cmd run test`
+- `npm.cmd run build`
+- Result: all tests passed and build succeeded.
+
+<!-- ============================================================ -->
+## [051] 2026-03-04 18:47 (Center Reorder Button Glyph and Increase Font Size)
+<!-- ============================================================ -->
+
+### Scope / Constraints Honored
+- App-layer CSS-only UI tweak.
+- No worker/protocol/scheduler changes.
+- No schema/compiler/runtime behavior changes.
+- No drag-and-drop changes.
+
+### Summary of Implementation
+- Updated row reorder button text/glyph alignment to centered layout.
+- Increased reorder button glyph size from `2px` to `10px`.
+- Added explicit centering properties on `.SpaghettiSectionRowMoveButton`:
+  - `display: inline-flex`
+  - `align-items: center`
+  - `justify-content: center`
+  - `text-align: center`
+
+### Files Changed
+- `src/app/theme/v15Theme.css`
+- `docs/listofchanges.md`
+
+### Behavior Changes (if any)
+- Up/down arrow glyphs in reorder buttons are now centered and visibly larger.
+
+### Verification Steps
+- Confirmed CSS values in `.SpaghettiSectionRowMoveButton`:
+  - `font-size: 10px`
+  - centered flex alignment properties present.
+
+<!-- ============================================================ -->
+## [050] 2026-03-04 18:46 (Set Row Reorder Button Size to 20x5)
+<!-- ============================================================ -->
+
+### Scope / Constraints Honored
+- App-layer CSS style tweak only.
+- No worker/protocol/scheduler changes.
+- No schema/runtime/compiler behavior changes.
+- No drag-and-drop behavior changes.
+
+### Summary of Implementation
+- Updated row reorder button dimensions to requested size:
+  - `width: 20px`
+  - `height: 5px`
+- Applied to `.SpaghettiSectionRowMoveButton` hover/non-hover selector block.
+
+### Files Changed
+- `src/app/theme/v15Theme.css`
+- `docs/listofchanges.md`
+
+### Behavior Changes (if any)
+- Reorder up/down controls now render at `20x5` size.
+
+### Verification Steps
+- Confirmed CSS values in `.SpaghettiSectionRowMoveButton`:
+  - `min-width: 20px`
+  - `width: 20px`
+  - `height: 5px`
+
+<!-- ============================================================ -->
+## [049] 2026-03-04 18:46 (Align Output Row Reorder Controls to Full Row Height)
+<!-- ============================================================ -->
+
+### Scope / Constraints Honored
+- App-layer UI alignment update only.
+- No worker/protocol/scheduler changes.
+- No schema/validation/compiler/runtime behavior changes.
+- No drag-and-drop behavior changes.
+
+### Summary of Implementation
+- Updated output row reorder controls to use the full-height alignment mode already used for top/bottom pinning.
+- Output section up/down buttons now stretch/alignment-match the row container and pin top/bottom consistently instead of staying center-stacked.
+
+### Files Changed
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `docs/listofchanges.md`
+
+### Behavior Changes (if any)
+- Output row reorder arrows now align to full row height (top and bottom anchors), matching row container bounds.
+
+### Verification Steps
+- `npm.cmd run test -- src/app/spaghetti/canvas/NodeView.test.tsx`
+- Confirmed output row move wrapper now uses `alignToValueBar: true`.
+
+<!-- ============================================================ -->
+## [048] 2026-03-04 18:44 (Pin Row Reorder Arrows to Row Top/Bottom)
+<!-- ============================================================ -->
+
+### Scope / Constraints Honored
+- App-layer CSS alignment tweak only.
+- No worker/protocol/scheduler changes.
+- No schema/validation/compiler/runtime behavior changes.
+- No drag-and-drop changes.
+
+### Summary of Implementation
+- Updated the value-bar-aligned row move control container to stretch across the full row height.
+- Removed offset-based positioning that pushed controls downward.
+- Kept vertical `space-between` so:
+  - up arrow is pinned to row top,
+  - down arrow is pinned to row bottom.
+
+### Files Changed
+- `src/app/theme/v15Theme.css`
+- `docs/listofchanges.md`
+
+### Behavior Changes (if any)
+- Row reorder arrows now align to the top and bottom bounds of the row container instead of being offset toward the bottom.
+
+### Verification Steps
+- `npm.cmd run test -- src/app/spaghetti/canvas/NodeView.test.tsx`
+- Confirmed CSS for `.SpaghettiSectionRowMoveControls--valueBarAligned`:
+  - `align-self: stretch`
+  - `margin-top: 0`
+  - `height: auto`
+  - `min-height: 100%`
+  - `justify-content: space-between`
+
+<!-- ============================================================ -->
+## [047] 2026-03-04 18:44 (Resize and Re-Align Row Reorder Arrows)
+<!-- ============================================================ -->
+
+### Scope / Constraints Honored
+- App-layer UI styling/layout update only.
+- No worker/protocol/scheduler changes.
+- No schema/normalization/compiler behavior changes.
+- No drag-and-drop implementation changes.
+
+### Summary of Implementation
+- Updated row reorder button dimensions from `5x5` to `8x8`.
+- Kept compact glyph sizing.
+- Added value-bar alignment mode for row move controls:
+  - top button aligned to the top of the value-bar zone,
+  - bottom button aligned to the bottom of the value-bar zone.
+- Applied this alignment mode for Drivers and number-driven Inputs, while preserving centered controls for rows without value bars (for example many Outputs).
+
+### Files Changed
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/theme/v15Theme.css`
+- `docs/listofchanges.md`
+
+### Behavior Changes (if any)
+- Reorder up/down arrows are now larger (`8x8`) and vertically pinned to the value-bar bounds where applicable.
+
+### Verification Steps
+- `npm.cmd run test -- src/app/spaghetti/canvas/NodeView.test.tsx`
+- Confirmed CSS values:
+  - `.SpaghettiSectionRowMoveButton` width/height `8px`
+  - `.SpaghettiSectionRowMoveControls--valueBarAligned` uses `margin-top: 20px`, `height: 24px`, `justify-content: space-between`
+
+<!-- ============================================================ -->
+## [046] 2026-03-04 18:41 (Shrink Row Reorder Arrow Controls)
+<!-- ============================================================ -->
+
+### Scope / Constraints Honored
+- App-layer styling update only.
+- No worker/protocol/scheduler changes.
+- No schema/runtime logic changes.
+- No drag-and-drop or feature-stack migration changes.
+
+### Summary of Implementation
+- Reduced row reorder arrow control dimensions and glyph size for the `SpaghettiSectionRowMoveButton` style.
+- Applied requested values:
+  - button size `5px x 5px`
+  - `font-size: 2px`
+
+### Files Changed
+- `src/app/theme/v15Theme.css`
+- `docs/listofchanges.md`
+
+### Behavior Changes (if any)
+- Reorder up/down arrow controls in Drivers/Inputs/Outputs row move UI now render at much smaller size.
+
+### Verification Steps
+- Confirmed CSS values in `SpaghettiSectionRowMoveButton`:
+  - `min-width: 5px`
+  - `width: 5px`
+  - `height: 5px`
+  - `font-size: 2px`
+
+<!-- ============================================================ -->
+## [045] 2026-03-04 18:40 (Phase 2A: Row Ordering Metadata v1 for Part VM Rows)
+<!-- ============================================================ -->
+
+### Scope / Constraints Honored
+- App-layer only.
+- No worker/protocol/scheduler changes.
+- No schema version bump.
+- No drag-and-drop added.
+- Feature Stack row ordering not introduced in this phase.
+- NodeView kept generic (shared row-move controls, no new part-type branching logic).
+
+### Summary of Implementation
+- Added `partRowOrder` metadata support for part params (`drivers`, `inputs`, `outputs`) in Part node params schemas.
+- Added new deterministic helper module `partRowOrder.ts` for:
+  - stable row ID construction (`drv:*`, `in:*`, `out:*`),
+  - deterministic normalize/repair behavior,
+  - section ordering application,
+  - output endpoint reordering while keeping reserved output rows fixed,
+  - deterministic adjacent swap + no-op metadata clearing.
+- Refactored `driverVm` row IDs from index-based IDs to stable deterministic IDs.
+- Integrated silent canonicalization in store normalization path (no diagnostics emitted from store).
+- Integrated single-source diagnostics in `validateGraph`:
+  - new warning code `partRowOrder_invalid_shape_repaired`,
+  - no warning on metadata absence,
+  - params validation uses repaired params for non-fatal malformed metadata handling.
+- Integrated ordered VM row rendering in canvas pipeline before `NodeView` render.
+- Added up/down reorder controls for Drivers/Inputs/Outputs rows in `NodeView`.
+- Added deterministic persistence for row reorder operations in `SpaghettiCanvas`:
+  - initializes from current natural order when metadata absent,
+  - applies pure adjacent swaps,
+  - clears section metadata when returning to natural order,
+  - removes `partRowOrder` when all sections are empty/undefined.
+
+### Files Changed
+- `src/app/spaghetti/parts/partRowOrder.ts`
+- `src/app/spaghetti/parts/partRowOrder.test.ts`
+- `src/app/spaghetti/canvas/driverVm.ts`
+- `src/app/spaghetti/canvas/driverVm.test.ts`
+- `src/app/spaghetti/registry/nodeRegistry.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `src/app/spaghetti/compiler/validateGraph.ts`
+- `src/app/spaghetti/compiler/validateGraph.test.ts`
+- `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/theme/v15Theme.css`
+- `docs/listofchanges.md`
+
+### Behavior Changes (if any)
+- Part VM rows now have stable deterministic IDs used for ordering metadata.
+- Part nodes can persist per-section row ordering in `params.partRowOrder`.
+- Invalid `partRowOrder` shapes are repaired deterministically; warning emitted only from `validateGraph` with code `partRowOrder_invalid_shape_repaired`.
+- Drivers/Inputs/Outputs rows can be reordered via up/down controls; ordering is deterministic and metadata is minimized when equal to natural order.
+- Reserved output rows remain fixed in natural positions and are not reorderable in v1.
+
+### Verification Steps
+- `npm.cmd run test -- src/app/spaghetti/parts/partRowOrder.test.ts src/app/spaghetti/canvas/driverVm.test.ts src/app/spaghetti/store/useSpaghettiStore.test.ts src/app/spaghetti/compiler/validateGraph.test.ts src/app/spaghetti/canvas/NodeView.test.tsx src/app/spaghetti/canvas/SpaghettiCanvas.validation.test.ts`
+- `npm.cmd run test`
+- `npm.cmd run build`
+
+<!-- ============================================================ -->
+## [044] 2026-03-04 18:23 (Update Task Lists After Phase 2 v1 Completion)
+<!-- ============================================================ -->
+
+### Scope / Constraints Honored
+- Documentation-only update under `docs/`.
+- No worker/protocol/scheduler changes.
+- No source/schema/runtime behavior changes in this step.
+- No drag-and-drop or feature-stack architecture migration changes in this step.
+
+### Summary of Implementation
+- Updated `docs/NODE-tasklist.md` to reflect current project status after Phase 2 v1:
+  - marked Phase 2B v1 virtual feature-input wiring scope as implemented,
+  - split future work into Phase 2A (row ordering), Phase 2B v2+ (wiring expansion), and Phase 3 migration path,
+  - refreshed quality gates with explicit Phase 2 v1 verification completion.
+- Updated `docs/tasks/master-tasks.md` from placeholder state to an actionable board:
+  - set current priority to Phase 2A,
+  - listed active work for row-ordering metadata,
+  - added backlog for Phase 2A/2B v2/Phase 3,
+  - recorded completed Phase 1 and Phase 2 v1 milestones.
+
+### Files Changed
+- `docs/NODE-tasklist.md`
+- `docs/tasks/master-tasks.md`
+- `docs/listofchanges.md`
+
+### Behavior Changes (if any)
+- None. This change updates task planning/status documents only.
+
+### Verification Steps
+- Reviewed `docs/NODE-tasklist.md` for updated phase status markers and section numbering.
+- Reviewed `docs/tasks/master-tasks.md` for synchronized priority/active/backlog/completed state.
+- Confirmed changelog entry inserted at top with next sequential index `[044]`.
+
+<!-- ============================================================ -->
+## [043] 2026-03-04 18:21 (Phase 2 v1: External Feature-Input Wiring via Virtual Ports)
+<!-- ============================================================ -->
+
+### Scope / Constraints Honored
+- App-layer only.
+- No worker/protocol/scheduler changes.
+- Feature Stack remains embedded in `node.params.featureStack`.
+- No drag-and-drop implementation.
+- Phase 2 v1 scope locked to:
+  - inputs only,
+  - `Extrude.depth` only,
+  - no composite paths,
+  - `maxConnectionsIn = 1`,
+  - external-only simplification (`from.nodeId !== to.nodeId`) for feature-target edges.
+
+### Summary of Implementation
+- Added deterministic virtual feature input port contract:
+  - `fs:in:<featureId>:extrude:depth`,
+  - parse/build helpers,
+  - virtual input listing in feature-stack order,
+  - deterministic compile-time extrude depth override utility.
+- Added shared effective-port resolver utilities and used them across compiler/canvas/UI listing to keep endpoint behavior consistent.
+- Updated validation/evaluation/compile pipeline:
+  - `validateGraph` now resolves virtual feature inputs, enforces max incoming constraints, and emits `FEATURE_WIRE_INTRA_NODE_UNSUPPORTED` for same-node feature-target edges (documented v1 simplification).
+  - `evaluateGraph` now resolves virtual feature inputs into `inputsByNodeId[nodeId][virtualPortId]`.
+  - `compileGraph` now applies evaluated virtual depth inputs as deterministic in-memory overrides before feature-stack IR compilation.
+- Updated UI for Extrude-only wiring row:
+  - added wireable depth endpoint inside `ExtrudeFeatureView`,
+  - reused canvas pointer/anchor/drop validation handlers,
+  - added driven-state UX: wired depth disables manual editing and shows driven value.
+- Added/updated tests for virtual port helpers, resolver consistency, validator rules, evaluation mapping, compile determinism/override behavior, and UI rendering/disabled behavior.
+
+### Files Changed
+- `src/app/spaghetti/features/featureVirtualPorts.ts`
+- `src/app/spaghetti/features/effectivePorts.ts`
+- `src/app/spaghetti/compiler/validateGraph.ts`
+- `src/app/spaghetti/compiler/evaluateGraph.ts`
+- `src/app/spaghetti/compiler/compileGraph.ts`
+- `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/ui/FeatureStackView.tsx`
+- `src/app/spaghetti/ui/features/ExtrudeFeatureView.tsx`
+- `src/app/spaghetti/features/featureVirtualPorts.test.ts`
+- `src/app/spaghetti/canvas/SpaghettiCanvas.validation.test.ts`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+- `src/app/spaghetti/compiler/validateGraph.test.ts`
+- `src/app/spaghetti/compiler/evaluateGraph.test.ts`
+- `src/app/spaghetti/compiler/compileGraph.test.ts`
+- `docs/listofchanges.md`
+
+### Behavior Changes (if any)
+- Part nodes now expose virtual feature input endpoints for extrude depth (`fs:in:<featureId>:extrude:depth`) in app-layer validation/evaluation/UI/compile flow.
+- External wires can drive `Extrude.depth`; driven values override embedded depth literals at compile time only.
+- Same-node feature-target edges are rejected in v1 with deterministic error code `FEATURE_WIRE_INTRA_NODE_UNSUPPORTED`.
+
+### Verification Steps
+- `npm.cmd run test -- src/app/spaghetti/features/featureVirtualPorts.test.ts src/app/spaghetti/canvas/SpaghettiCanvas.validation.test.ts src/app/spaghetti/compiler/validateGraph.test.ts src/app/spaghetti/compiler/evaluateGraph.test.ts src/app/spaghetti/compiler/compileGraph.test.ts src/app/spaghetti/canvas/NodeView.test.tsx`
+- `npm.cmd run test -- src/app/spaghetti/canvas/NodeView.test.tsx src/app/spaghetti/canvas/SpaghettiCanvas.validation.test.ts src/app/spaghetti/compiler/compileGraph.test.ts`
+- `npm.cmd run test`
+- `npm.cmd run build`
+
+<!-- ============================================================ -->
+## [042] 2026-03-04 17:55 (Create docs/tasks Master Task File)
+<!-- ============================================================ -->
+
+### Scope / Constraints Honored
+- Documentation-only update under `docs/`.
+- No worker/protocol/scheduler changes.
+- No source/schema/runtime behavior changes.
+- No drag-and-drop or feature-stack migration work in this step.
+
+### Summary of Implementation
+- Created new directory: `docs/tasks/`.
+- Added `docs/tasks/master-tasks.md` as a central task-tracking document.
+- Seeded the file with a deterministic baseline structure:
+  - legend,
+  - current priority,
+  - active work,
+  - backlog,
+  - completed.
+
+### Files Changed
+- `docs/tasks/master-tasks.md`
+- `docs/listofchanges.md`
+
+### Behavior Changes (if any)
+- None. Documentation scaffolding only.
+
+### Verification Steps
+- Confirmed `docs/tasks/` exists.
+- Confirmed `docs/tasks/master-tasks.md` exists with starter sections.
+- Confirmed changelog entry inserted at top with next sequential index `[042]`.
+
+<!-- ============================================================ -->
+## [041] 2026-03-04 17:53 (Update NODE Tasklist Status for Phase 1 Closure)
+<!-- ============================================================ -->
+
+### Scope / Constraints Honored
+- Documentation-only update in `docs`.
+- No worker/protocol/scheduler changes.
+- No app runtime, schema, or renderer code changes.
+- No drag-and-drop or feature-stack migration implementation in this step.
+
+### Summary of Implementation
+- Updated `docs/NODE-tasklist.md` status markers to reflect completed Phase 1 closure work.
+- Marked all Phase 1 checklist items complete for:
+  - Part container contract (`partSlots`) metadata/normalization/invariants/diagnostics.
+  - Locked Part section render order.
+  - Required tests and verification tasks.
+- Marked Quality Gates entries complete to match current verification and changelog compliance state.
+- Left future roadmap sections (Phase 2 and Phase 3) unchanged.
+
+### Files Changed
+- `docs/NODE-tasklist.md`
+- `docs/listofchanges.md`
+
+### Behavior Changes (if any)
+- None. This change updates planning/status documentation only.
+
+### Verification Steps
+- Reviewed `docs/NODE-tasklist.md` for updated `[x]` statuses in Sections 2, 3, 4, and 7.
+- Confirmed changelog entry inserted at the top with next sequential index `[041]`.
+
+<!-- ============================================================ -->
+## [040] 2026-03-04 17:51 (Phase 1 Closure Hardening: Non-Fatal partSlots Parse + Deterministic Coverage)
+<!-- ============================================================ -->
+
+### Scope / Constraints Honored
+- App-layer only changes in spaghetti schema/store/validator/canvas tests.
+- No worker/protocol/scheduler changes.
+- Feature Stack remains embedded in `node.params.featureStack`.
+- No drag-and-drop implementation.
+- Drivers/Inputs/Outputs remain VM-row generated.
+
+### Summary of Implementation
+- Updated graph schema parsing so malformed legacy `partSlots` payloads do not hard-fail graph parsing:
+  - `spaghettiNodeSchema.partSlots` now accepts unknown payloads at parse boundary.
+  - `spaghettiGraphSchema` transform preserves malformed `partSlots` payloads for deterministic downstream repair/validation.
+- Kept deterministic normalization and repair architecture unchanged:
+  - store canonicalization (`normalizeGraphUiPositions`) still normalizes Part-node `partSlots` silently.
+  - validation remains the single warning source for `partSlots` diagnostics.
+- Expanded deterministic test coverage:
+  - added schema compatibility tests proving malformed `partSlots` payloads parse successfully,
+  - added validator invalid-shape matrix tests (`null`, array, string, partial, extra key, false value),
+  - added validator reproducibility test for stable warning list/order across runs,
+  - added store test proving non-Part nodes are not `partSlots`-normalized.
+- Renderer contract remains locked and covered:
+  - `Drivers -> Inputs -> Feature Stack -> Outputs`
+  - Feature Stack still sourced from embedded `node.params.featureStack`.
+
+### Files Changed
+- `src/app/spaghetti/schema/spaghettiSchema.ts`
+- `src/app/spaghetti/schema/spaghettiSchema.test.ts`
+- `src/app/spaghetti/compiler/validateGraph.test.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `docs/listofchanges.md`
+
+### Behavior Changes (if any)
+- Malformed legacy `partSlots` payloads no longer cause parse-time graph rejection.
+- Deterministic repair path remains app-driven (store normalization + validator diagnostics), preserving backward compatibility.
+
+### Verification Steps
+- `npm.cmd run test -- src/app/spaghetti/schema/spaghettiSchema.test.ts src/app/spaghetti/store/useSpaghettiStore.test.ts src/app/spaghetti/compiler/validateGraph.test.ts src/app/spaghetti/canvas/NodeView.test.tsx`
+- `npm.cmd run test`
+- `npm.cmd run build`
+
+<!-- ============================================================ -->
+## [039] 2026-03-04 17:43 (Add Easy-to-Hard Scale to NODE Tasklist Titles)
+<!-- ============================================================ -->
+
+### Scope / Constraints Honored
+- Documentation-only update in `docs`.
+- No worker/protocol/scheduler changes.
+- No app runtime or schema behavior changes.
+- No drag-and-drop or feature-stack migration implementation.
+
+### Summary of Implementation
+- Updated `docs/NODE-tasklist.md` to include an explicit difficulty scale definition:
+  - `1 = easiest`, `100 = hardest`.
+- Added `Easy to Hard: X/100` labels directly on each major checklist section title to provide immediate complexity guidance.
+- Preserved existing checklist structure and status markers (`[ ]`, `[~]`, `[x]`).
+
+### Files Changed
+- `docs/NODE-tasklist.md`
+- `docs/listofchanges.md`
+
+### Behavior Changes (if any)
+- None. This is a documentation clarity update only.
+
+### Verification Steps
+- Reviewed all major section headings in `docs/NODE-tasklist.md` to confirm each includes a `1-100` difficulty score.
+- Confirmed changelog entry is inserted at the top with next sequential index `[039]`.
+
+<!-- ============================================================ -->
+## [038] 2026-03-04 17:40 (Add NODE Tasklist Checklist)
+<!-- ============================================================ -->
+
+### Scope / Constraints Honored
+- Documentation-only update in app docs.
+- No worker/protocol/scheduler changes.
+- No schema/runtime behavior changes.
+- No drag-and-drop or feature-stack migration work performed.
+
+### Summary of Implementation
+- Added `docs/NODE-tasklist.md` with a full status checklist covering:
+  - locked Phase 1 architectural decisions,
+  - Phase 1 container contract tasks (`partSlots` metadata, normalization, invariants, diagnostics),
+  - locked part section render order requirements,
+  - required tests and verification gates,
+  - Phase 2 feature-level wiring roadmap,
+  - optional Phase 3 true child-container migration path.
+- Checklist uses standardized state markers: `[ ]`, `[~]`, `[x]`.
+
+### Files Changed
+- `docs/NODE-tasklist.md`
+- `docs/listofchanges.md`
+
+### Behavior Changes (if any)
+- None. This change adds planning/documentation only.
+
+### Verification Steps
+- Reviewed checklist structure and status markers for deterministic formatting.
+- Confirmed changelog entry inserted at top with next sequential index.
+
+<!-- ============================================================ -->
+## [037] 2026-03-04 17:39 (Phase 1 Part Container Contract)
+<!-- ============================================================ -->
+
+### Scope / Constraints Honored
+- App-layer only changes in schema/store/validator/canvas tests.
+- No worker/protocol/scheduler changes.
+- Feature Stack remains embedded at `node.params.featureStack`.
+- No drag-and-drop implementation was added.
+- Node row-generation architecture remains VM-driven.
+
+### Summary of Implementation
+- Added additive `partSlots` structural metadata to `SpaghettiNode` with the Phase 1 contract keys:
+  - `drivers: true`
+  - `inputs: true`
+  - `featureStack: true`
+  - `outputs: true`
+- Added strict graph-schema parsing support for optional `partSlots`.
+- Added new deterministic part-slots utility module:
+  - `DEFAULT_PART_SLOTS`
+  - `isPartNodeType(...)`
+  - `hasValidPartSlots(...)`
+  - `normalizePartSlots(...)`
+- Integrated deterministic part-slots normalization into graph load canonicalization (`normalizeGraphUiPositions`) for part nodes.
+- Added non-fatal deterministic validation warnings for part-slot normalization states:
+  - `partSlots_missing_normalized`
+  - `partSlots_invalid_shape_repaired`
+- Refactored part template section rendering to an explicit ordered descriptor list, locking visible order to:
+  - Drivers -> Inputs -> Feature Stack -> Outputs
+- Added tests for part-slot normalization/repair, warning-code emission, render-order lock, and Feature Stack embedded-source behavior.
+
+### Files Changed
+- `src/app/spaghetti/schema/spaghettiTypes.ts`
+- `src/app/spaghetti/schema/spaghettiSchema.ts`
+- `src/app/spaghetti/parts/partSlots.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/compiler/validateGraph.ts`
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `src/app/spaghetti/compiler/validateGraph.test.ts`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+- `docs/listofchanges.md`
+
+### Behavior Changes (if any)
+- Part nodes are now canonically persisted with `partSlots` metadata after load normalization.
+- Legacy part nodes missing `partSlots` are deterministically normalized to the default container contract.
+- Invalid `partSlots` shapes are deterministically repaired to the default container contract.
+- Validator now emits deterministic warning diagnostics for missing/invalid part-slot metadata.
+- Part template section rendering order is explicitly locked by descriptor ordering.
+
+### Verification Steps
+- `npm.cmd run test`
+- `npm.cmd run build`
 
 <!-- ============================================================ -->
 ## [036] 2026-03-04 03:55 (Expand/Collapse and Toolbar Visibility Improvements)

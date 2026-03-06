@@ -1,3 +1,4 @@
+import { compareSpaghettiSourcePartKeys } from '../../shared/buildStatsKeys'
 import {
   extrudeFaceAlongZ,
   faceFromWire,
@@ -114,7 +115,11 @@ const mergeBodies = (bodies: ReadonlyMap<string, Shape3D>): MeshPack | null => {
     return null
   }
   const meshes = [...bodies.entries()]
-    .sort((a, b) => a[0].localeCompare(b[0]))
+    .sort(
+      (a, b) =>
+        compareSpaghettiSourcePartKeys(a[1].partKey, b[1].partKey) ||
+        a[1].bodyId.localeCompare(b[1].bodyId),
+    )
     .map(([, shape]) => shape.mesh)
   return mergeMeshPacks(meshes)
 }
@@ -222,7 +227,8 @@ const runExtrude = (
   }
 
   const bodyId = feature.bodyId ?? feature.featureId
-  if (context.bodies.has(bodyId)) {
+  const bodyKey = `${partKey}:${bodyId}`
+  if (context.bodies.has(bodyKey)) {
     pushDiagnostic(
       diagnostics,
       partKey,
@@ -241,9 +247,9 @@ const runExtrude = (
       op: 'extrude',
       partKey,
     })
-    context.bodies.set(bodyId, shape)
+    context.bodies.set(bodyKey, shape)
     context.bodyTrace.push({
-      bodyKey: `${partKey}:${bodyId}`,
+      bodyKey,
       bodyId,
       partKey,
       featureId: feature.featureId,
@@ -272,18 +278,24 @@ export const executeFeatureStack = (partsIR: FeatureStackIRPayload): ExecuteFeat
     bodyTrace: [],
   }
   const diagnostics: RuntimeDiagnostic[] = []
-  const partKeys = Object.keys(partsIR.parts).sort((a, b) => a.localeCompare(b))
+  const partKeys = Object.keys(partsIR.parts).sort(compareSpaghettiSourcePartKeys)
 
   for (const partKey of partKeys) {
+    const partContext: RuntimeContext = {
+      sketches: new Map(),
+      profiles: new Map(),
+      bodies: context.bodies,
+      bodyTrace: context.bodyTrace,
+    }
     const operations = partsIR.parts[partKey] ?? []
     let executionIndex = 0
     for (const operation of operations) {
       try {
         if (operation.op === 'sketch') {
-          runSketch(context, partKey, operation, diagnostics)
+          runSketch(partContext, partKey, operation, diagnostics)
           continue
         }
-        executionIndex = runExtrude(context, partKey, operation, diagnostics, executionIndex)
+        executionIndex = runExtrude(partContext, partKey, operation, diagnostics, executionIndex)
       } catch (error: unknown) {
         const message =
           error instanceof Error ? error.message : 'Feature execution failed unexpectedly.'
@@ -305,7 +317,7 @@ export const executeFeatureStack = (partsIR: FeatureStackIRPayload): ExecuteFeat
     diagnostics,
     bodyTrace: [...context.bodyTrace].sort(
       (a, b) =>
-        a.partKey.localeCompare(b.partKey) ||
+        compareSpaghettiSourcePartKeys(a.partKey, b.partKey) ||
         a.executionIndex - b.executionIndex ||
         a.bodyId.localeCompare(b.bodyId),
     ),

@@ -32,7 +32,7 @@ const initialFloatingPosition: FloatingPosition = {
   y: 12,
 }
 
-const minFloatingWidth = 560
+const minFloatingWidth = 250
 const minFloatingHeight = 420
 const floatingEdgePadding = 12
 const axisGizmoLeftInset = 324

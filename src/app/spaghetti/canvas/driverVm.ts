@@ -8,6 +8,12 @@ import type {
 } from '../registry/nodeRegistry'
 import type { PortSpec, SpaghettiNode } from '../schema/spaghettiTypes'
 import { getFieldNodeAtPath, getFieldTree } from '../types/fieldTree'
+import {
+  buildDriverFeatureParamRowId,
+  buildDriverNodeParamRowId,
+  buildInputRowId,
+  buildOutputRowId,
+} from '../parts/partRowOrder'
 
 const normalizePath = (path: string[] | undefined): string[] | undefined =>
   path === undefined || path.length === 0 ? undefined : path
@@ -100,6 +106,10 @@ export type DriverNumberChange =
       axis: 'x' | 'y'
     }
   | {
+      kind: 'nodeParamOffset'
+      paramId: string
+    }
+  | {
       kind: 'featureParam'
       featureParamKind: 'firstExtrudeDepth'
       featureId?: string
@@ -113,6 +123,7 @@ export type DriverNumberInputVm = {
   showSlider?: boolean
   disabled?: boolean
   driven?: boolean
+  unresolved?: boolean
   change: DriverNumberChange
 }
 
@@ -144,6 +155,10 @@ export type DriverNodeParamNumberRowVm = {
   label: string
   groupLabel?: string
   numberInput: DriverNumberInputVm
+  offsetMode?: boolean
+  drivenValue?: number
+  offsetInput?: DriverNumberInputVm
+  effectiveValue?: number
 }
 
 export type DriverNodeParamVec2RowVm = {
@@ -178,6 +193,11 @@ export type NodeDriverVm = {
   otherOutputs: DriverEndpointRowVm[]
 }
 
+type DriverDrivenState = {
+  driven: boolean
+  unresolved: boolean
+}
+
 const toFiniteNumberOr = (value: unknown, fallback: number): number =>
   typeof value === 'number' && Number.isFinite(value) ? value : fallback
 
@@ -192,14 +212,23 @@ const isVec2Like = (value: unknown): value is { x: number; y: number } =>
 const resolveNumberControl = (
   node: SpaghettiNode,
   control: DriverNumberControlSpec,
+  resolvedOverrideValue: unknown,
+  drivenState: DriverDrivenState | undefined,
 ): DriverNumberInputVm => {
   const fallbackValue = control.fallbackValue ?? 0
+  const resolvedValue =
+    typeof resolvedOverrideValue === 'number' && Number.isFinite(resolvedOverrideValue)
+      ? resolvedOverrideValue
+      : toFiniteNumberOr(node.params[control.paramId], fallbackValue)
   return {
-    value: toFiniteNumberOr(node.params[control.paramId], fallbackValue),
+    value: resolvedValue,
     min: control.min,
     max: control.max,
     step: control.step,
     showSlider: control.showSlider,
+    disabled: drivenState?.driven === true ? true : undefined,
+    driven: drivenState?.driven === true ? true : undefined,
+    unresolved: drivenState?.unresolved === true ? true : undefined,
     change: {
       kind: 'nodeParam',
       paramId: control.paramId,
@@ -211,17 +240,25 @@ const resolveNumberControl = (
 const resolveVec2Control = (
   node: SpaghettiNode,
   control: DriverVec2ControlSpec,
+  resolvedOverrideValue: unknown,
+  drivenState: DriverDrivenState | undefined,
 ): Pick<DriverNodeParamVec2RowVm, 'xInput' | 'yInput'> => {
   const fallbackValue = control.fallbackValue ?? { x: 0, y: 0 }
-  const resolved = isVec2Like(node.params[control.paramId])
-    ? (node.params[control.paramId] as { x: number; y: number })
-    : fallbackValue
+  const resolved =
+    isVec2Like(resolvedOverrideValue)
+      ? resolvedOverrideValue
+      : isVec2Like(node.params[control.paramId])
+        ? (node.params[control.paramId] as { x: number; y: number })
+        : fallbackValue
   return {
     xInput: {
       value: toFiniteNumberOr(resolved.x, fallbackValue.x),
       min: control.min,
       max: control.max,
       step: control.step,
+      disabled: drivenState?.driven === true ? true : undefined,
+      driven: drivenState?.driven === true ? true : undefined,
+      unresolved: drivenState?.unresolved === true ? true : undefined,
       change: {
         kind: 'nodeParamVec2Axis',
         paramId: control.paramId,
@@ -233,6 +270,9 @@ const resolveVec2Control = (
       min: control.min,
       max: control.max,
       step: control.step,
+      disabled: drivenState?.driven === true ? true : undefined,
+      driven: drivenState?.driven === true ? true : undefined,
+      unresolved: drivenState?.unresolved === true ? true : undefined,
       change: {
         kind: 'nodeParamVec2Axis',
         paramId: control.paramId,
@@ -248,6 +288,11 @@ export const buildNodeDriverVm = (
   options?: {
     resolvedInputsByPortId?: Record<string, unknown>
     connectionCountByPortId?: ReadonlyMap<string, number>
+    resolvedDriverValuesByParamId?: Record<string, unknown>
+    driverDrivenStateByParamId?: Record<string, DriverDrivenState>
+    drivenValueByParamId?: Record<string, number>
+    offsetByParamId?: Record<string, number>
+    effectiveValueByParamId?: Record<string, number>
   },
 ): NodeDriverVm | null => {
   if (nodeDef?.template !== 'part') {
@@ -261,7 +306,7 @@ export const buildNodeDriverVm = (
   const stack = readFeatureStack(node.params.featureStack)
   const firstExtrude = readFirstExtrudeFeature(stack)
 
-  for (const [index, spec] of (nodeDef.inputDrivers ?? []).entries()) {
+  for (const spec of nodeDef.inputDrivers ?? []) {
     if (spec.kind === 'endpoint') {
       const resolved = resolveEndpointPort(nodeDef.inputs, spec.endpoint)
       if (resolved === null) {
@@ -278,9 +323,13 @@ export const buildNodeDriverVm = (
         resolved.port.type.kind === 'number' && typeof resolvedInputValue === 'number' && Number.isFinite(resolvedInputValue)
           ? formatDisplayNumber(resolvedInputValue, resolved.port.type.unit)
           : undefined
+      const encodedInputPath = pathKey(resolved.path)
       inputs.push({
         kind: 'endpoint',
-        rowId: `in-endpoint-${index}-${buildDriverEndpointKey(spec.endpoint.portId, resolved.path)}`,
+        rowId: buildInputRowId(
+          spec.endpoint.portId,
+          encodedInputPath.length === 0 ? undefined : encodedInputPath,
+        ),
         direction: 'in',
         port: resolved.port,
         endpointPortId: spec.endpoint.portId,
@@ -292,26 +341,85 @@ export const buildNodeDriverVm = (
           spec.wiringDisabled === true ? 'Legacy wire (read-only)' : undefined,
         ...(spec.numberControl === undefined
           ? {}
-          : { numberInput: resolveNumberControl(node, spec.numberControl) }),
+          : {
+              numberInput: resolveNumberControl(
+                node,
+                spec.numberControl,
+                undefined,
+                undefined,
+              ),
+            }),
       })
       continue
     }
 
     if (spec.kind === 'nodeParam') {
       if (spec.control.kind === 'nodeParam') {
+        const drivenState = options?.driverDrivenStateByParamId?.[spec.control.paramId]
+        const offsetValueRaw = options?.offsetByParamId?.[spec.control.paramId]
+        const offsetValue =
+          typeof offsetValueRaw === 'number' && Number.isFinite(offsetValueRaw)
+            ? offsetValueRaw
+            : 0
+        const drivenValue = options?.drivenValueByParamId?.[spec.control.paramId]
+        const effectiveValueFromOption =
+          options?.effectiveValueByParamId?.[spec.control.paramId]
+        const effectiveValue =
+          typeof effectiveValueFromOption === 'number' &&
+          Number.isFinite(effectiveValueFromOption)
+            ? effectiveValueFromOption
+            : typeof drivenValue === 'number' && Number.isFinite(drivenValue)
+              ? drivenValue + offsetValue
+              : undefined
         drivers.push({
           kind: 'nodeParamNumber',
-          rowId: `in-node-param-${index}-${spec.control.paramId}`,
+          rowId: buildDriverNodeParamRowId(spec.control.paramId),
           label: spec.label,
           groupLabel: spec.groupLabel,
-          numberInput: resolveNumberControl(node, spec.control),
+          numberInput: resolveNumberControl(
+            node,
+            spec.control,
+            options?.resolvedDriverValuesByParamId?.[spec.control.paramId],
+            drivenState,
+          ),
+          offsetMode: drivenState?.driven === true ? true : undefined,
+          drivenValue:
+            drivenState?.driven === true &&
+            drivenState.unresolved !== true &&
+            typeof drivenValue === 'number' &&
+            Number.isFinite(drivenValue)
+              ? drivenValue
+              : undefined,
+          offsetInput:
+            drivenState?.driven === true
+              ? {
+                  value: offsetValue,
+                  step: spec.control.step,
+                  change: {
+                    kind: 'nodeParamOffset',
+                    paramId: spec.control.paramId,
+                  },
+                }
+              : undefined,
+          effectiveValue:
+            drivenState?.driven === true &&
+            drivenState.unresolved !== true &&
+            typeof effectiveValue === 'number' &&
+            Number.isFinite(effectiveValue)
+              ? effectiveValue
+              : undefined,
         })
         continue
       }
-      const vec2Control = resolveVec2Control(node, spec.control)
+      const vec2Control = resolveVec2Control(
+        node,
+        spec.control,
+        options?.resolvedDriverValuesByParamId?.[spec.control.paramId],
+        options?.driverDrivenStateByParamId?.[spec.control.paramId],
+      )
       drivers.push({
         kind: 'nodeParamVec2',
-        rowId: `in-node-param-vec2-${index}-${spec.control.paramId}`,
+        rowId: buildDriverNodeParamRowId(spec.control.paramId),
         label: spec.label,
         groupLabel: spec.groupLabel,
         ...vec2Control,
@@ -328,7 +436,7 @@ export const buildNodeDriverVm = (
         : 0
     drivers.push({
       kind: 'featureParam',
-      rowId: `in-feature-${index}-${spec.featureParam.kind}`,
+      rowId: buildDriverFeatureParamRowId(spec.featureParam.kind),
       label: spec.label,
       groupLabel: spec.groupLabel,
       numberInput: {
@@ -355,10 +463,14 @@ export const buildNodeDriverVm = (
       if (resolved === null) {
         continue
       }
+      const encodedOutputPath = pathKey(resolved.path)
       outputDriverEndpointKeys.add(buildDriverEndpointKey(spec.endpoint.portId, resolved.path))
       outputs.push({
         kind: 'endpoint',
-        rowId: `out-endpoint-${index}-${buildDriverEndpointKey(spec.endpoint.portId, resolved.path)}`,
+        rowId: buildOutputRowId(
+          spec.endpoint.portId,
+          encodedOutputPath.length === 0 ? undefined : encodedOutputPath,
+        ),
         direction: 'out',
         port: resolved.port,
         endpointPortId: spec.endpoint.portId,
@@ -378,9 +490,9 @@ export const buildNodeDriverVm = (
 
   const otherOutputs: DriverEndpointRowVm[] = nodeDef.outputs
     .filter((port) => !outputDriverEndpointKeys.has(buildDriverEndpointKey(port.portId, undefined)))
-    .map((port, index) => ({
+    .map((port) => ({
       kind: 'endpoint',
-      rowId: `out-other-${index}-${buildDriverEndpointKey(port.portId, undefined)}`,
+      rowId: buildOutputRowId(port.portId),
       direction: 'out',
       port,
       endpointPortId: port.portId,

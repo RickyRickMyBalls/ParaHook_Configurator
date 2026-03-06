@@ -1,9 +1,12 @@
 import type { SpaghettiGraph } from '../schema/spaghettiTypes'
 import { compileFeatureStack, type FeatureStackIR } from '../features/compileFeatureStack'
+import { getEffectiveFeatureStack } from '../features/featureDependencies'
 import { readFeatureStack } from '../features/featureSchema'
+import { applyFeatureVirtualInputOverrides } from '../features/featureVirtualPorts'
 import { getNodeDef } from '../registry/nodeRegistry'
 import type { SpaghettiDiagnostic } from './validateGraph'
 import { evaluateSpaghettiGraph } from './evaluateGraph'
+import { tessellateProfileLoop } from './runtimeTessellation'
 
 export type CompileSpaghettiGraphResult = {
   ok: boolean
@@ -19,6 +22,7 @@ export type CompileSpaghettiGraphResult = {
       heelKickInstances: number[]
       toeHookInstances: number[]
     }
+    orderedPartKeys: string[]
     resolvedParts: Record<string, Record<string, unknown>>
     resolvedShared?: Record<string, unknown>
   }
@@ -26,28 +30,55 @@ export type CompileSpaghettiGraphResult = {
 
 type FeatureStackIRPayload = {
   schemaVersion: 1
-  parts: FeatureStackIrParts
+  parts: RuntimeFeatureStackParts
 }
 
-type PartKey = 'baseplate' | 'toeHook#1' | 'heelKick#1'
+type BasePartId = 'baseplate' | 'cube' | 'cubeProof' | 'toeHook' | 'heelKick'
+type OwnedPartKey = string
 
 type PartNodeSpec = {
-  nodeType: 'Part/Baseplate' | 'Part/ToeHook' | 'Part/HeelKick'
-  partKey: PartKey
+  nodeType: 'Part/Baseplate' | 'Part/Cube' | 'Part/CubeProof' | 'Part/ToeHook' | 'Part/HeelKick'
+  basePartId: BasePartId
 }
 
 const PART_NODE_SPECS: readonly PartNodeSpec[] = [
-  { nodeType: 'Part/Baseplate', partKey: 'baseplate' },
-  { nodeType: 'Part/ToeHook', partKey: 'toeHook#1' },
-  { nodeType: 'Part/HeelKick', partKey: 'heelKick#1' },
+  { nodeType: 'Part/Baseplate', basePartId: 'baseplate' },
+  { nodeType: 'Part/Cube', basePartId: 'cube' },
+  { nodeType: 'Part/CubeProof', basePartId: 'cubeProof' },
+  { nodeType: 'Part/ToeHook', basePartId: 'toeHook' },
+  { nodeType: 'Part/HeelKick', basePartId: 'heelKick' },
 ]
 
-export type FeatureStackIrParts = Partial<Record<PartKey, FeatureStackIR>>
+const ALWAYS_NUMBERED_PART_IDS = new Set<BasePartId>(['toeHook', 'heelKick'])
+
+export type FeatureStackIrParts = Record<OwnedPartKey, FeatureStackIR>
+type RuntimeFeatureStackParts = Record<OwnedPartKey, RuntimeFeatureOp[]>
+
+type RuntimeFeatureOp =
+  | {
+      op: 'sketch'
+      featureId: string
+      profilesResolved: Array<{
+        profileId: string
+        area: number
+        vertices: Array<{ x: number; y: number }>
+      }>
+    }
+  | {
+      op: 'extrude'
+      featureId: string
+      profileRef: { sketchFeatureId: string; profileId: string } | null
+      depthResolved: number
+      taperResolved: number
+      offsetResolved: number
+      bodyId?: string
+    }
 
 export type FeatureStackIrPartsComputation = {
   parts: FeatureStackIrParts
-  nodeIdToPartKey: Record<string, PartKey>
-  partNodes: Partial<Record<PartKey, SpaghettiGraph['nodes'][number]>>
+  orderedPartKeys: string[]
+  nodeIdToPartKey: Record<string, OwnedPartKey>
+  partNodesByPartKey: Record<OwnedPartKey, SpaghettiGraph['nodes'][number]>
   hasNonEmptyFeatureStack: boolean
   warnings: SpaghettiDiagnostic[]
 }
@@ -61,6 +92,56 @@ const compareDiagnostics = (a: SpaghettiDiagnostic, b: SpaghettiDiagnostic): num
 const sortDiagnostics = (
   diagnostics: readonly SpaghettiDiagnostic[],
 ): SpaghettiDiagnostic[] => [...diagnostics].sort(compareDiagnostics)
+
+const toRuntimeFeatureStackParts = (parts: FeatureStackIrParts): RuntimeFeatureStackParts => {
+  const out: RuntimeFeatureStackParts = {}
+  for (const [partKey, operations] of Object.entries(parts)) {
+    const runtimeOps: RuntimeFeatureOp[] = []
+    for (const operation of operations) {
+      if (operation.op === 'sketch') {
+        runtimeOps.push({
+          op: 'sketch',
+          featureId: operation.featureId,
+          profilesResolved: operation.profilesResolved.map((profile) => ({
+            profileId: profile.profileId,
+            area: profile.area,
+            vertices: tessellateProfileLoop(profile.loop.segments),
+          })),
+        })
+        continue
+      }
+      if (operation.op === 'closeProfile') {
+        continue
+      }
+      runtimeOps.push({
+        op: 'extrude',
+        featureId: operation.featureId,
+        profileRef:
+          operation.profileRef === null
+            ? null
+            : {
+                sketchFeatureId: operation.profileRef.sketchFeatureId,
+                profileId: operation.profileRef.profileId,
+              },
+        depthResolved: operation.depthResolved,
+        taperResolved: operation.taperResolved,
+        offsetResolved: operation.offsetResolved,
+        bodyId: operation.bodyId,
+      })
+    }
+    out[partKey] = runtimeOps
+  }
+  return out
+}
+
+const buildOwnedPartKey = (
+  basePartId: BasePartId,
+  index: number,
+  total: number,
+): OwnedPartKey =>
+  ALWAYS_NUMBERED_PART_IDS.has(basePartId) || total > 1
+    ? `${basePartId}#${index + 1}`
+    : basePartId
 
 type ToeHookAnchorPortMapping = {
   uiPortId: 'anchorSpline'
@@ -190,45 +271,46 @@ const canonicalizeLegacyInputPortIds = (graph: SpaghettiGraph): SpaghettiGraph =
 
 export const computeFeatureStackIrParts = (
   graph: SpaghettiGraph,
+  options?: {
+    resolvedInputsByNodeId?: Record<string, Record<string, unknown>>
+  },
 ): FeatureStackIrPartsComputation => {
   const sortedNodes = [...graph.nodes].sort(
     (a, b) => a.nodeId.localeCompare(b.nodeId) || a.type.localeCompare(b.type),
   )
   const warnings: SpaghettiDiagnostic[] = []
-  const nodeIdToPartKey: Record<string, PartKey> = {}
-  const partNodes: Partial<Record<PartKey, SpaghettiGraph['nodes'][number]>> = {}
+  const orderedPartKeys: string[] = []
+  const nodeIdToPartKey: Record<string, OwnedPartKey> = {}
+  const partNodesByPartKey: Record<OwnedPartKey, SpaghettiGraph['nodes'][number]> = {}
   const parts: FeatureStackIrParts = {}
   let hasNonEmptyFeatureStack = false
 
   for (const spec of PART_NODE_SPECS) {
     const matches = sortedNodes.filter((node) => node.type === spec.nodeType)
-    const selectedNode = matches[0]
-    for (const duplicate of matches.slice(1)) {
-      warnings.push({
-        level: 'warn',
-        code: 'DUPLICATE_PART_NODE',
-        message: `Ignoring duplicate part node of type "${spec.nodeType}" with nodeId "${duplicate.nodeId}".`,
-        nodeId: duplicate.nodeId,
-      })
-    }
-    if (selectedNode === undefined) {
-      continue
-    }
+    for (const [index, node] of matches.entries()) {
+      const partKey = buildOwnedPartKey(spec.basePartId, index, matches.length)
+      orderedPartKeys.push(partKey)
+      partNodesByPartKey[partKey] = node
+      nodeIdToPartKey[node.nodeId] = partKey
 
-    partNodes[spec.partKey] = selectedNode
-    nodeIdToPartKey[selectedNode.nodeId] = spec.partKey
-
-    const featureStack = readFeatureStack(selectedNode.params.featureStack)
-    parts[spec.partKey] = compileFeatureStack(featureStack)
-    if (featureStack.length > 0) {
-      hasNonEmptyFeatureStack = true
+      const featureStack = readFeatureStack(node.params.featureStack)
+      const withOverrides = applyFeatureVirtualInputOverrides(
+        featureStack,
+        options?.resolvedInputsByNodeId?.[node.nodeId],
+      )
+      const compiled = compileFeatureStack(withOverrides)
+      parts[partKey] = compiled
+      if (getEffectiveFeatureStack(withOverrides).length > 0 && compiled.length > 0) {
+        hasNonEmptyFeatureStack = true
+      }
     }
   }
 
   return {
     parts,
+    orderedPartKeys,
     nodeIdToPartKey,
-    partNodes,
+    partNodesByPartKey,
     hasNonEmptyFeatureStack,
     warnings,
   }
@@ -253,41 +335,49 @@ export const compileSpaghettiGraph = (
     }
   }
 
-  const featureStackComputation = computeFeatureStackIrParts(canonicalGraph)
-  const baseplateNode = featureStackComputation.partNodes.baseplate
-  const toeHookNode = featureStackComputation.partNodes['toeHook#1']
-  const heelKickNode = featureStackComputation.partNodes['heelKick#1']
-
+  const featureStackComputation = computeFeatureStackIrParts(canonicalGraph, {
+    resolvedInputsByNodeId: evaluationResult.inputsByNodeId,
+  })
   const resolvedParts: Record<string, Record<string, unknown>> = {}
-  if (baseplateNode !== undefined) {
-    const baseplateOutputs = evaluationResult.outputsByNodeId[baseplateNode.nodeId] ?? {}
-    resolvedParts.baseplate = {
-      anchorSpline2: baseplateOutputs.anchorSpline2,
-      offsetSpline2: baseplateOutputs.offsetSpline2,
+  for (const partKey of featureStackComputation.orderedPartKeys) {
+    const partNode = featureStackComputation.partNodesByPartKey[partKey]
+    if (partNode === undefined) {
+      continue
     }
-  }
-  if (toeHookNode !== undefined) {
-    const anchorPortMapping = getToeHookAnchorPortMapping()
-    resolvedParts['toeHook#1'] = {
-      [anchorPortMapping.payloadKey]: resolveToeHookAnchorInputValue(
-        canonicalGraph,
-        evaluationResult.outputsByNodeId,
-        toeHookNode.nodeId,
-      ),
+    if (partKey === 'baseplate' || partKey.startsWith('baseplate#')) {
+      const baseplateOutputs = evaluationResult.outputsByNodeId[partNode.nodeId] ?? {}
+      resolvedParts[partKey] = {
+        anchorSpline2: baseplateOutputs.anchorSpline2,
+        offsetSpline2: baseplateOutputs.offsetSpline2,
+      }
+      continue
     }
-  }
-  if (heelKickNode !== undefined) {
-    const anchorPortMapping = getHeelKickAnchorPortMapping()
-    resolvedParts['heelKick#1'] = {
-      [anchorPortMapping.payloadKey]: resolveHeelKickAnchorInputValue(
-        canonicalGraph,
-        evaluationResult.outputsByNodeId,
-        heelKickNode.nodeId,
-      ),
+    if (partKey === 'toeHook#1' || partKey.startsWith('toeHook#')) {
+      const anchorPortMapping = getToeHookAnchorPortMapping()
+      resolvedParts[partKey] = {
+        [anchorPortMapping.payloadKey]: resolveToeHookAnchorInputValue(
+          canonicalGraph,
+          evaluationResult.outputsByNodeId,
+          partNode.nodeId,
+        ),
+      }
+      continue
+    }
+    if (partKey === 'heelKick#1' || partKey.startsWith('heelKick#')) {
+      const anchorPortMapping = getHeelKickAnchorPortMapping()
+      resolvedParts[partKey] = {
+        [anchorPortMapping.payloadKey]: resolveHeelKickAnchorInputValue(
+          canonicalGraph,
+          evaluationResult.outputsByNodeId,
+          partNode.nodeId,
+        ),
+      }
     }
   }
 
-  const featureStackIrParts: FeatureStackIRPayload['parts'] = featureStackComputation.parts
+  const featureStackIrParts: FeatureStackIRPayload['parts'] = toRuntimeFeatureStackParts(
+    featureStackComputation.parts,
+  )
   const hasNonEmptyFeatureStack = featureStackComputation.hasNonEmptyFeatureStack
   const featureStackIR: FeatureStackIRPayload | undefined = hasNonEmptyFeatureStack
     ? {
@@ -310,9 +400,16 @@ export const compileSpaghettiGraph = (
     evaluation,
     buildInputs: {
       instances: {
-        heelKickInstances: [1],
-        toeHookInstances: [1],
+        heelKickInstances: featureStackComputation.orderedPartKeys
+          .filter((partKey) => partKey.startsWith('heelKick#'))
+          .map((partKey) => Number(partKey.slice('heelKick#'.length)))
+          .filter((value) => Number.isInteger(value) && Number.isFinite(value)),
+        toeHookInstances: featureStackComputation.orderedPartKeys
+          .filter((partKey) => partKey.startsWith('toeHook#'))
+          .map((partKey) => Number(partKey.slice('toeHook#'.length)))
+          .filter((value) => Number.isInteger(value) && Number.isFinite(value)),
       },
+      orderedPartKeys: [...featureStackComputation.orderedPartKeys],
       resolvedParts,
       resolvedShared:
         featureStackIR === undefined

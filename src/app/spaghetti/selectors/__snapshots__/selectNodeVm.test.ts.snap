@@ -1,0 +1,549 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`selectNodeVm > matches stable NodeVm contract snapshot 1`] = `
+[
+  {
+    "allInputs": [
+      {
+        "label": "Width",
+        "optional": true,
+        "portId": "width",
+        "type": {
+          "kind": "number",
+          "unit": "mm",
+        },
+      },
+      {
+        "label": "Length",
+        "optional": true,
+        "portId": "length",
+        "type": {
+          "kind": "number",
+          "unit": "mm",
+        },
+      },
+      {
+        "label": "Anchor Point 1",
+        "optional": true,
+        "portId": "anchorPoint1",
+        "type": {
+          "kind": "vec2",
+          "unit": "mm",
+        },
+      },
+      {
+        "label": "Anchor Point 2",
+        "optional": true,
+        "portId": "anchorPoint2",
+        "type": {
+          "kind": "vec2",
+          "unit": "mm",
+        },
+      },
+      {
+        "label": "Anchor Point 3",
+        "optional": true,
+        "portId": "anchorPoint3",
+        "type": {
+          "kind": "vec2",
+          "unit": "mm",
+        },
+      },
+      {
+        "label": "Anchor Point 4",
+        "optional": true,
+        "portId": "anchorPoint4",
+        "type": {
+          "kind": "vec2",
+          "unit": "mm",
+        },
+      },
+      {
+        "label": "Anchor Point 5",
+        "optional": true,
+        "portId": "anchorPoint5",
+        "type": {
+          "kind": "vec2",
+          "unit": "mm",
+        },
+      },
+    ],
+    "allOutputs": [
+      {
+        "label": "Base Plate Spline (Inner)",
+        "portId": "anchorSpline2",
+        "type": {
+          "kind": "spline2",
+        },
+      },
+    ],
+    "driverDrivenStateByRowId": {
+      "drv:lengthMm": {
+        "connectionCount": 0,
+        "driven": false,
+        "unresolved": false,
+      },
+      "drv:widthMm": {
+        "connectionCount": 0,
+        "driven": false,
+        "unresolved": false,
+      },
+    },
+    "driverGroups": [
+      {
+        "groupId": "__untitled__",
+        "label": "Properties",
+        "rows": [
+          {
+            "drivenValue": undefined,
+            "effectiveValue": undefined,
+            "groupLabel": undefined,
+            "kind": "nodeParamNumber",
+            "label": "Width",
+            "numberInput": {
+              "change": {
+                "kind": "nodeParam",
+                "paramId": "widthMm",
+                "syncRect": {
+                  "lengthFallback": 200,
+                  "lengthParamId": "lengthMm",
+                  "pointParamIds": [
+                    "anchorPoint1",
+                    "anchorPoint2",
+                    "anchorPoint3",
+                    "anchorPoint4",
+                    "anchorPoint5",
+                  ],
+                  "widthFallback": 30,
+                  "widthParamId": "widthMm",
+                },
+              },
+              "disabled": undefined,
+              "driven": undefined,
+              "max": 500,
+              "min": 1,
+              "showSlider": true,
+              "step": 0.1,
+              "unresolved": undefined,
+              "value": 30,
+            },
+            "offsetInput": undefined,
+            "offsetMode": undefined,
+            "rowId": "drv:widthMm",
+          },
+          {
+            "drivenValue": undefined,
+            "effectiveValue": undefined,
+            "groupLabel": undefined,
+            "kind": "nodeParamNumber",
+            "label": "Length",
+            "numberInput": {
+              "change": {
+                "kind": "nodeParam",
+                "paramId": "lengthMm",
+                "syncRect": {
+                  "lengthFallback": 200,
+                  "lengthParamId": "lengthMm",
+                  "pointParamIds": [
+                    "anchorPoint1",
+                    "anchorPoint2",
+                    "anchorPoint3",
+                    "anchorPoint4",
+                    "anchorPoint5",
+                  ],
+                  "widthFallback": 30,
+                  "widthParamId": "widthMm",
+                },
+              },
+              "disabled": undefined,
+              "driven": undefined,
+              "max": 2000,
+              "min": 1,
+              "showSlider": true,
+              "step": 0.1,
+              "unresolved": undefined,
+              "value": 200,
+            },
+            "offsetInput": undefined,
+            "offsetMode": undefined,
+            "rowId": "drv:lengthMm",
+          },
+          {
+            "groupLabel": undefined,
+            "kind": "featureParam",
+            "label": "Thickness",
+            "numberInput": {
+              "change": {
+                "featureParamKind": "firstExtrudeDepth",
+                "kind": "featureParam",
+              },
+              "disabled": true,
+              "driven": true,
+              "max": 2000,
+              "min": 0,
+              "showSlider": true,
+              "step": 0.1,
+              "value": 0,
+            },
+            "rowId": "drv:feature:firstExtrudeDepth",
+          },
+        ],
+      },
+    ],
+    "driverInputPortByRowId": {
+      "drv:lengthMm": {
+        "label": "Length Driver Input",
+        "maxConnectionsIn": 1,
+        "optional": true,
+        "portId": "in:drv:lengthMm",
+        "type": {
+          "kind": "number",
+          "unit": "mm",
+        },
+      },
+      "drv:widthMm": {
+        "label": "Width Driver Input",
+        "maxConnectionsIn": 1,
+        "optional": true,
+        "portId": "in:drv:widthMm",
+        "type": {
+          "kind": "number",
+          "unit": "mm",
+        },
+      },
+    },
+    "driverOutputPortByRowId": {
+      "drv:lengthMm": {
+        "label": "Length",
+        "portId": "out:drv:lengthMm",
+        "type": {
+          "kind": "number",
+          "unit": "mm",
+        },
+      },
+      "drv:widthMm": {
+        "label": "Width",
+        "portId": "out:drv:widthMm",
+        "type": {
+          "kind": "number",
+          "unit": "mm",
+        },
+      },
+    },
+    "driverRowIndexById": {
+      "drv:feature:firstExtrudeDepth": 2,
+      "drv:lengthMm": 1,
+      "drv:widthMm": 0,
+    },
+    "driverVm": {
+      "drivers": [
+        {
+          "drivenValue": undefined,
+          "effectiveValue": undefined,
+          "groupLabel": undefined,
+          "kind": "nodeParamNumber",
+          "label": "Width",
+          "numberInput": {
+            "change": {
+              "kind": "nodeParam",
+              "paramId": "widthMm",
+              "syncRect": {
+                "lengthFallback": 200,
+                "lengthParamId": "lengthMm",
+                "pointParamIds": [
+                  "anchorPoint1",
+                  "anchorPoint2",
+                  "anchorPoint3",
+                  "anchorPoint4",
+                  "anchorPoint5",
+                ],
+                "widthFallback": 30,
+                "widthParamId": "widthMm",
+              },
+            },
+            "disabled": undefined,
+            "driven": undefined,
+            "max": 500,
+            "min": 1,
+            "showSlider": true,
+            "step": 0.1,
+            "unresolved": undefined,
+            "value": 30,
+          },
+          "offsetInput": undefined,
+          "offsetMode": undefined,
+          "rowId": "drv:widthMm",
+        },
+        {
+          "drivenValue": undefined,
+          "effectiveValue": undefined,
+          "groupLabel": undefined,
+          "kind": "nodeParamNumber",
+          "label": "Length",
+          "numberInput": {
+            "change": {
+              "kind": "nodeParam",
+              "paramId": "lengthMm",
+              "syncRect": {
+                "lengthFallback": 200,
+                "lengthParamId": "lengthMm",
+                "pointParamIds": [
+                  "anchorPoint1",
+                  "anchorPoint2",
+                  "anchorPoint3",
+                  "anchorPoint4",
+                  "anchorPoint5",
+                ],
+                "widthFallback": 30,
+                "widthParamId": "widthMm",
+              },
+            },
+            "disabled": undefined,
+            "driven": undefined,
+            "max": 2000,
+            "min": 1,
+            "showSlider": true,
+            "step": 0.1,
+            "unresolved": undefined,
+            "value": 200,
+          },
+          "offsetInput": undefined,
+          "offsetMode": undefined,
+          "rowId": "drv:lengthMm",
+        },
+        {
+          "groupLabel": undefined,
+          "kind": "featureParam",
+          "label": "Thickness",
+          "numberInput": {
+            "change": {
+              "featureParamKind": "firstExtrudeDepth",
+              "kind": "featureParam",
+            },
+            "disabled": true,
+            "driven": true,
+            "max": 2000,
+            "min": 0,
+            "showSlider": true,
+            "step": 0.1,
+            "value": 0,
+          },
+          "rowId": "drv:feature:firstExtrudeDepth",
+        },
+      ],
+      "inputs": [],
+      "otherOutputs": [],
+      "outputs": [
+        {
+          "direction": "out",
+          "endpointPath": undefined,
+          "endpointPortId": "anchorSpline2",
+          "kind": "endpoint",
+          "labelOverride": "Inner Spline Anchor",
+          "port": {
+            "label": "Base Plate Spline (Inner)",
+            "portId": "anchorSpline2",
+            "type": {
+              "kind": "spline2",
+            },
+          },
+          "rowId": "out:anchorSpline2",
+        },
+        {
+          "kind": "reserved",
+          "label": "Mesh Output",
+          "reservedKind": "mesh",
+          "rowId": "out-reserved-1-mesh",
+          "state": "pending",
+        },
+      ],
+      "template": "part",
+    },
+    "driverWarningByRowId": {},
+    "featureRowIndexById": {},
+    "featureRows": [],
+    "featureVirtualInputStateByPortId": {},
+    "inputCompositeState": {
+      "leafDrivenByPortIdPathKey": Set {},
+      "legacyLeafOverrideOnWhole": Set {},
+      "vec2DisplayByPortId": Map {
+        "anchorPoint1" => {
+          "x": 0,
+          "y": 0,
+        },
+        "anchorPoint2" => {
+          "x": 0,
+          "y": 0,
+        },
+        "anchorPoint3" => {
+          "x": 0,
+          "y": 0,
+        },
+        "anchorPoint4" => {
+          "x": 0,
+          "y": 0,
+        },
+        "anchorPoint5" => {
+          "x": 0,
+          "y": 0,
+        },
+      },
+      "wholeDrivenByPortId": Set {},
+    },
+    "inputPortDetails": {
+      "anchorPoint1": [
+        {
+          "kind": "vec2",
+          "text": "type: vec2:mm",
+        },
+        {
+          "text": "optional: yes",
+        },
+        {
+          "text": "connections in: 0/1",
+        },
+      ],
+      "anchorPoint2": [
+        {
+          "kind": "vec2",
+          "text": "type: vec2:mm",
+        },
+        {
+          "text": "optional: yes",
+        },
+        {
+          "text": "connections in: 0/1",
+        },
+      ],
+      "anchorPoint3": [
+        {
+          "kind": "vec2",
+          "text": "type: vec2:mm",
+        },
+        {
+          "text": "optional: yes",
+        },
+        {
+          "text": "connections in: 0/1",
+        },
+      ],
+      "anchorPoint4": [
+        {
+          "kind": "vec2",
+          "text": "type: vec2:mm",
+        },
+        {
+          "text": "optional: yes",
+        },
+        {
+          "text": "connections in: 0/1",
+        },
+      ],
+      "anchorPoint5": [
+        {
+          "kind": "vec2",
+          "text": "type: vec2:mm",
+        },
+        {
+          "text": "optional: yes",
+        },
+        {
+          "text": "connections in: 0/1",
+        },
+      ],
+      "length": [
+        {
+          "kind": "number",
+          "text": "type: number:mm",
+        },
+        {
+          "text": "optional: yes",
+        },
+        {
+          "text": "connections in: 0/1",
+        },
+      ],
+      "width": [
+        {
+          "kind": "number",
+          "text": "type: number:mm",
+        },
+        {
+          "text": "optional: yes",
+        },
+        {
+          "text": "connections in: 0/1",
+        },
+      ],
+    },
+    "inputRowIndexById": {},
+    "internalDependencyEdges": [],
+    "nodeId": "node-a",
+    "outputEndpointCount": 1,
+    "outputEndpointIndexByRowId": {
+      "out:anchorSpline2": 0,
+    },
+    "outputPortDetails": {
+      "anchorSpline2": [
+        {
+          "kind": "spline2",
+          "text": "type: spline2",
+        },
+        {
+          "text": "connections out: 0",
+        },
+        {
+          "kind": "vec2",
+          "text": "vec2[1]: (0, 0)",
+        },
+        {
+          "kind": "vec2",
+          "text": "vec2[2]: (0, 0)",
+        },
+        {
+          "kind": "vec2",
+          "text": "vec2[3]: (0, 0)",
+        },
+        {
+          "kind": "vec2",
+          "text": "vec2[4]: (0, 0)",
+        },
+        {
+          "kind": "vec2",
+          "text": "vec2[5]: (0, 0)",
+        },
+        {
+          "kind": "boolean",
+          "text": "closed: true",
+        },
+      ],
+    },
+    "outputPreviewRows": undefined,
+    "presetOptions": [
+      "default",
+    ],
+    "primitiveNumberValue": 0,
+    "template": "part",
+    "title": "Baseplate",
+    "uiSections": [
+      {
+        "items": [
+          "Line 1",
+          "Line 2",
+          "Line 3",
+          "Line 4",
+        ],
+        "label": "1 - Sketch",
+        "sectionId": "sketch",
+      },
+      {
+        "items": [
+          "baseplateThickness",
+        ],
+        "label": "2 - Extrusion",
+        "sectionId": "extrusion",
+      },
+    ],
+  },
+]
+`;

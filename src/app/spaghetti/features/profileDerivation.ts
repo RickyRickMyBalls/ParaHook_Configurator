@@ -1,69 +1,33 @@
-import type { ProfileOutput, SketchEntity } from './featureTypes'
+import type {
+  ProfileOutput,
+  Segment2,
+  SketchComponent,
+  SketchDerivationDiagnostic,
+  SketchEntity,
+} from './featureTypes'
 
 type Point2 = { x: number; y: number }
 
-type EndpointsByEntity = {
-  aKey: string
-  bKey: string
+type DeriveProfilesResult = {
+  profiles: ProfileOutput[]
+  diagnostics: SketchDerivationDiagnostic[]
 }
 
-type CycleTraversal = {
-  entityIds: string[]
-  pointKeys: string[]
-}
+const CANON_PRECISION = 6
+const CANON_SCALE = 10 ** CANON_PRECISION
+
+const canonNumber = (value: number): number =>
+  Math.round(value * CANON_SCALE) / CANON_SCALE
+
+const canonPoint = (point: Point2): Point2 => ({
+  x: canonNumber(point.x),
+  y: canonNumber(point.y),
+})
 
 const pointKeyFromPoint = (point: Point2): string => `${String(point.x)}|${String(point.y)}`
 
-const compareStringArrays = (a: readonly string[], b: readonly string[]): number => {
-  const count = Math.min(a.length, b.length)
-  for (let index = 0; index < count; index += 1) {
-    const comparison = a[index].localeCompare(b[index])
-    if (comparison !== 0) {
-      return comparison
-    }
-  }
-  return a.length - b.length
-}
-
-const rotate = <T>(items: readonly T[], index: number): T[] => [
-  ...items.slice(index),
-  ...items.slice(0, index),
-]
-
-const rotateToSmallestEntityId = (ring: readonly string[]): string[] => {
-  if (ring.length === 0) {
-    return []
-  }
-  let smallestIndex = 0
-  for (let index = 1; index < ring.length; index += 1) {
-    if (ring[index].localeCompare(ring[smallestIndex]) < 0) {
-      smallestIndex = index
-    }
-  }
-  return rotate(ring, smallestIndex)
-}
-
-const canonicalEntityRing = (ring: readonly string[]): string[] => {
-  if (ring.length === 0) {
-    return []
-  }
-  const forward = rotateToSmallestEntityId(ring)
-  const reverse = rotateToSmallestEntityId([...ring].reverse())
-  return compareStringArrays(forward, reverse) <= 0 ? forward : reverse
-}
-
-export const hashFnv1a32 = (str: string): number => {
-  const bytes = new TextEncoder().encode(str)
-  let hash = 0x811c9dc5
-  for (const byte of bytes) {
-    hash ^= byte
-    hash = Math.imul(hash, 0x01000193) >>> 0
-  }
-  return hash >>> 0
-}
-
-export const profileIdFromSignature = (sig: string): string =>
-  `prof_${hashFnv1a32(sig).toString(36)}`
+const pointsEqual = (a: Point2, b: Point2): boolean =>
+  pointKeyFromPoint(canonPoint(a)) === pointKeyFromPoint(canonPoint(b))
 
 const signedShoelaceArea = (vertices: readonly Point2[]): number => {
   if (vertices.length < 3) {
@@ -78,184 +42,181 @@ const signedShoelaceArea = (vertices: readonly Point2[]): number => {
   return sum * 0.5
 }
 
-const otherPointKey = (
-  endpoints: EndpointsByEntity,
-  currentPointKey: string,
-): string | null => {
-  if (endpoints.aKey === currentPointKey) {
-    return endpoints.bKey
+const pushUnique = (points: Point2[], next: Point2): void => {
+  const candidate = canonPoint(next)
+  if (points.length === 0) {
+    points.push(candidate)
+    return
   }
-  if (endpoints.bKey === currentPointKey) {
-    return endpoints.aKey
-  }
-  return null
-}
-
-const findCycleFromStart = (
-  startPointKey: string,
-  endpointsByEntityId: ReadonlyMap<string, EndpointsByEntity>,
-  adjacencyByPointKey: ReadonlyMap<string, string[]>,
-  availableEntityIds: ReadonlySet<string>,
-): CycleTraversal | null => {
-  const usedInPath = new Set<string>()
-  const entityIds: string[] = []
-  const pointKeys: string[] = [startPointKey]
-
-  let currentPointKey = startPointKey
-  while (true) {
-    const candidateEntityIds = adjacencyByPointKey.get(currentPointKey) ?? []
-    let nextEntityId: string | null = null
-    let nextPointKey: string | null = null
-
-    for (const entityId of candidateEntityIds) {
-      if (!availableEntityIds.has(entityId) || usedInPath.has(entityId)) {
-        continue
-      }
-      const endpoints = endpointsByEntityId.get(entityId)
-      if (endpoints === undefined) {
-        continue
-      }
-      const nextKey = otherPointKey(endpoints, currentPointKey)
-      if (nextKey === null) {
-        continue
-      }
-      nextEntityId = entityId
-      nextPointKey = nextKey
-      break
-    }
-
-    if (nextEntityId === null || nextPointKey === null) {
-      return null
-    }
-
-    usedInPath.add(nextEntityId)
-    entityIds.push(nextEntityId)
-    pointKeys.push(nextPointKey)
-
-    if (nextPointKey === startPointKey) {
-      return entityIds.length >= 3 ? { entityIds, pointKeys } : null
-    }
-
-    currentPointKey = nextPointKey
+  const prev = points[points.length - 1]
+  if (pointKeyFromPoint(prev) !== pointKeyFromPoint(candidate)) {
+    points.push(candidate)
   }
 }
 
-const buildGraph = (entities: readonly SketchEntity[]) => {
-  const endpointsByEntityId = new Map<string, EndpointsByEntity>()
-  const adjacencyByPointKey = new Map<string, string[]>()
-  const pointsByKey = new Map<string, Point2>()
-  const sortedEntities = [...entities].sort((a, b) => a.entityId.localeCompare(b.entityId))
+const midBezierAt05 = (p0: Point2, p1: Point2, p2: Point2, p3: Point2): Point2 => {
+  // Deterministic midpoint proxy only for orientation/area math.
+  const t = 0.5
+  const u = 1 - t
+  const b0 = u * u * u
+  const b1 = 3 * u * u * t
+  const b2 = 3 * u * t * t
+  const b3 = t * t * t
+  return {
+    x: b0 * p0.x + b1 * p1.x + b2 * p2.x + b3 * p3.x,
+    y: b0 * p0.y + b1 * p1.y + b2 * p2.y + b3 * p3.y,
+  }
+}
 
-  for (const entity of sortedEntities) {
-    if (entity.type !== 'line') {
+const toSegmentStart = (segment: Segment2): Point2 => {
+  if (segment.kind === 'line2') return segment.a
+  if (segment.kind === 'bezier2') return segment.p0
+  return segment.start
+}
+
+const toSegmentEnd = (segment: Segment2): Point2 => {
+  if (segment.kind === 'line2') return segment.b
+  if (segment.kind === 'bezier2') return segment.p3
+  return segment.end
+}
+
+const resolveSketchComponentToSegment = (component: SketchComponent): Segment2 => {
+  if (component.type === 'line') {
+    return {
+      kind: 'line2',
+      a: canonPoint(component.a),
+      b: canonPoint(component.b),
+    }
+  }
+  if (component.type === 'spline') {
+    return {
+      kind: 'bezier2',
+      p0: canonPoint(component.p0),
+      p1: canonPoint(component.p1),
+      p2: canonPoint(component.p2),
+      p3: canonPoint(component.p3),
+    }
+  }
+  return {
+    kind: 'arc3pt2',
+    start: canonPoint(component.start),
+    mid: canonPoint(component.mid),
+    end: canonPoint(component.end),
+  }
+}
+
+const normalizeLegacyEntities = (entities: readonly SketchEntity[]): SketchComponent[] =>
+  entities.map((entity) => ({
+    rowId: `legacy-row-${entity.entityId}`,
+    componentId: entity.entityId,
+    type: 'line',
+    a: entity.start,
+    b: entity.end,
+  }))
+
+export const hashFnv1a32 = (str: string): number => {
+  const bytes = new TextEncoder().encode(str)
+  let hash = 0x811c9dc5
+  for (const byte of bytes) {
+    hash ^= byte
+    hash = Math.imul(hash, 0x01000193) >>> 0
+  }
+  return hash >>> 0
+}
+
+export const profileIdFromSignature = (sig: string): string =>
+  `prof_${hashFnv1a32(sig).toString(36)}`
+
+const buildProxyVertices = (segments: readonly Segment2[]): Point2[] => {
+  const out: Point2[] = []
+  if (segments.length === 0) return out
+  pushUnique(out, toSegmentStart(segments[0]))
+  for (const segment of segments) {
+    if (segment.kind === 'bezier2') {
+      pushUnique(out, midBezierAt05(segment.p0, segment.p1, segment.p2, segment.p3))
+      pushUnique(out, segment.p3)
       continue
     }
-    const startPoint: Point2 = { x: entity.start.x, y: entity.start.y }
-    const endPoint: Point2 = { x: entity.end.x, y: entity.end.y }
-    const aKey = pointKeyFromPoint(startPoint)
-    const bKey = pointKeyFromPoint(endPoint)
-    if (aKey === bKey) {
+    if (segment.kind === 'arc3pt2') {
+      pushUnique(out, segment.mid)
+      pushUnique(out, segment.end)
       continue
     }
+    pushUnique(out, segment.b)
+  }
+  if (out.length > 0 && !pointsEqual(out[0], out[out.length - 1])) {
+    out.push(out[0])
+  }
+  if (out.length > 1) {
+    out.pop()
+  }
+  return out
+}
 
-    endpointsByEntityId.set(entity.entityId, { aKey, bKey })
-    if (!pointsByKey.has(aKey)) {
-      pointsByKey.set(aKey, startPoint)
-    }
-    if (!pointsByKey.has(bKey)) {
-      pointsByKey.set(bKey, endPoint)
-    }
+export const deriveProfilesWithDiagnostics = (
+  input: SketchComponent[] | SketchEntity[],
+): DeriveProfilesResult => {
+  const components = input.length === 0
+    ? []
+    : 'entityId' in input[0]
+      ? normalizeLegacyEntities(input as SketchEntity[])
+      : (input as SketchComponent[])
 
-    const aAdjacency = adjacencyByPointKey.get(aKey) ?? []
-    aAdjacency.push(entity.entityId)
-    adjacencyByPointKey.set(aKey, aAdjacency)
-
-    const bAdjacency = adjacencyByPointKey.get(bKey) ?? []
-    bAdjacency.push(entity.entityId)
-    adjacencyByPointKey.set(bKey, bAdjacency)
+  if (components.length === 0) {
+    return { profiles: [], diagnostics: [] }
   }
 
-  for (const adjacency of adjacencyByPointKey.values()) {
-    adjacency.sort((a, b) => a.localeCompare(b))
+  const segments = components.map(resolveSketchComponentToSegment)
+  const firstStart = toSegmentStart(segments[0])
+  const lastEnd = toSegmentEnd(segments[segments.length - 1])
+  if (!pointsEqual(firstStart, lastEnd)) {
+    return {
+      profiles: [],
+      diagnostics: [
+        {
+          code: 'SKETCH_PROFILE_NOT_CLOSED',
+          message: 'Sketch chain is not closed (first start does not match last end).',
+        },
+      ],
+    }
   }
+
+  const proxyVertices = buildProxyVertices(segments)
+  const areaSigned = signedShoelaceArea(proxyVertices)
+  if (Math.abs(areaSigned) <= 1e-9) {
+    return {
+      profiles: [],
+      diagnostics: [
+        {
+          code: 'SKETCH_PROFILE_DEGENERATE',
+          message: 'Sketch chain is closed but degenerate (zero proxy area).',
+        },
+      ],
+    }
+  }
+
+  const winding: 'CCW' | 'CW' = areaSigned >= 0 ? 'CCW' : 'CW'
+  const canonicalSig = components.map((component) => component.componentId).join('|')
+  const profileId = profileIdFromSignature(canonicalSig)
 
   return {
-    endpointsByEntityId,
-    adjacencyByPointKey,
-    pointsByKey,
+    profiles: [
+      {
+        profileId,
+        profileIndex: 0,
+        area: Math.abs(areaSigned),
+        loop: {
+          segments,
+          winding,
+        },
+        verticesProxy: proxyVertices,
+      },
+    ],
+    diagnostics: [],
   }
 }
 
-export const deriveProfiles = (entities: SketchEntity[]): ProfileOutput[] => {
-  if (entities.length < 3) {
-    return []
-  }
-
-  const { endpointsByEntityId, adjacencyByPointKey, pointsByKey } = buildGraph(entities)
-  if (endpointsByEntityId.size < 3) {
-    return []
-  }
-
-  const availableEntityIds = new Set<string>(
-    [...endpointsByEntityId.keys()].sort((a, b) => a.localeCompare(b)),
-  )
-  const pointKeys = [...adjacencyByPointKey.keys()].sort((a, b) => a.localeCompare(b))
-  const seenSignatures = new Set<string>()
-  const derived: Array<ProfileOutput & { signature: string }> = []
-
-  for (const startPointKey of pointKeys) {
-    while (true) {
-      const traversal = findCycleFromStart(
-        startPointKey,
-        endpointsByEntityId,
-        adjacencyByPointKey,
-        availableEntityIds,
-      )
-      if (traversal === null) {
-        break
-      }
-
-      const canonicalEntityIds = canonicalEntityRing(traversal.entityIds)
-      const signature = canonicalEntityIds.join('|')
-      if (signature.length === 0 || seenSignatures.has(signature)) {
-        break
-      }
-
-      const vertices = traversal.pointKeys
-        .slice(0, traversal.pointKeys.length - 1)
-        .map((pointKey) => pointsByKey.get(pointKey))
-        .filter((point): point is Point2 => point !== undefined)
-      const area = Math.abs(signedShoelaceArea(vertices))
-      if (area <= 0) {
-        break
-      }
-
-      seenSignatures.add(signature)
-      derived.push({
-        profileId: profileIdFromSignature(signature),
-        entityIds: canonicalEntityIds,
-        area,
-        signature,
-      })
-
-      for (const entityId of traversal.entityIds) {
-        availableEntityIds.delete(entityId)
-      }
-    }
-  }
-
-  derived.sort((a, b) => {
-    if (b.area !== a.area) {
-      return b.area - a.area
-    }
-    const signatureComparison = a.signature.localeCompare(b.signature)
-    if (signatureComparison !== 0) {
-      return signatureComparison
-    }
-    return a.profileId.localeCompare(b.profileId)
-  })
-
-  return derived.map(({ signature: _signature, ...profile }) => profile)
-}
+export const deriveProfiles = (input: SketchComponent[] | SketchEntity[]): ProfileOutput[] =>
+  deriveProfilesWithDiagnostics(input).profiles
 
 export const deriveProfilesFromLines = deriveProfiles

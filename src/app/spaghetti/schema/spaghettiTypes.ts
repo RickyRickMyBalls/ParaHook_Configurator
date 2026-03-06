@@ -41,10 +41,27 @@ export type EdgeEndpoint = {
   path?: string[]
 }
 
+export type PartSlots = {
+  drivers: true
+  inputs: true
+  featureStack: true
+  outputs: true
+}
+
+export type OutputPreviewSlot = {
+  slotId: string
+}
+
+export type OutputPreviewParams = {
+  slots: OutputPreviewSlot[]
+  nextSlotIndex: number
+}
+
 export type SpaghettiNode = {
   nodeId: string
   type: string
   params: Record<string, unknown>
+  partSlots?: PartSlots
   ui?: NodeUI
 }
 

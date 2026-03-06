@@ -24,8 +24,7 @@ import {
   WebGLRenderer,
 } from 'three'
 import type { TransformControlsMode } from 'three/examples/jsm/controls/TransformControls.js'
-import type { AssembleResult, PartArtifact } from '../shared/buildTypes'
-import { artifactToPartKeyStr } from '../app/parts/partKeyResolver'
+import type { AssembleResult, ViewerRenderablePart } from '../shared/buildTypes'
 import {
   DEFAULT_VIEW_SETTINGS,
   type LightSpec,
@@ -181,7 +180,7 @@ export class Viewer {
   }
 
   public setParts(
-    parts: PartArtifact[],
+    parts: ViewerRenderablePart[],
     visibility: Record<string, boolean>,
     selectedPartKey: string | null = this.selectedPartKey,
   ): void {
@@ -190,22 +189,23 @@ export class Viewer {
 
     let xCursor = -2
     for (const part of parts) {
-      const partKeyStr = artifactToPartKeyStr(part)
+      const partKeyStr = part.viewerKey
+      const artifact = part.artifact
       const geometry = new BoxGeometry(
-        part.params.length,
-        part.params.height,
-        part.params.width,
+        artifact.params.length,
+        artifact.params.height,
+        artifact.params.width,
       )
       const material = this.resolveMaterialForPart(partKeyStr)
       const mesh = new Mesh(geometry, material)
       mesh.name = partKeyStr
-      mesh.position.set(xCursor + part.params.length / 2, part.params.height / 2, 0)
+      mesh.position.set(xCursor + artifact.params.length / 2, artifact.params.height / 2, 0)
       mesh.visible = visibility[partKeyStr] ?? true
       mesh.castShadow = this.currentViewSettings.shadowsEnabled
       mesh.receiveShadow = this.currentViewSettings.shadowsEnabled
       this.rootGroup.add(mesh)
       this.partMeshes.set(partKeyStr, mesh)
-      xCursor += part.params.length + 0.2
+      xCursor += artifact.params.length + 0.2
     }
 
     this.refreshSelectionStyling()

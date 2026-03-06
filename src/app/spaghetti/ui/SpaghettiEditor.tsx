@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { getDefaultNodeParams, type NodeTypeId } from '../registry/nodeRegistry'
+import { addNode as addNodeCommand } from '../graphCommands'
 import type { SpaghettiNode } from '../schema/spaghettiTypes'
 import { useSpaghettiStore } from '../store/useSpaghettiStore'
 import { CollapsedEditor } from './CollapsedEditor'
@@ -47,7 +48,7 @@ type SpaghettiEditorProps = {
 export function SpaghettiEditor({ showHeaderControls = true }: SpaghettiEditorProps) {
   const graph = useSpaghettiStore((state) => state.graph)
   const selectedNodeId = useSpaghettiStore((state) => state.selectedNodeId)
-  const applyGraphPatch = useSpaghettiStore((state) => state.applyGraphPatch)
+  const applyGraphCommand = useSpaghettiStore((state) => state.applyGraphCommand)
   const setSelectedNodeId = useSpaghettiStore((state) => state.setSelectedNodeId)
   const setUiMessage = useSpaghettiStore((state) => state.setUiMessage)
 
@@ -77,17 +78,15 @@ export function SpaghettiEditor({ showHeaderControls = true }: SpaghettiEditorPr
 
   const handleAddPartNode = () => {
     const nodeId = createNodeId()
-    applyGraphPatch((prev) => ({
-      ...prev,
-      nodes: [
-        ...prev.nodes,
-        {
+    applyGraphCommand(
+      addNodeCommand({
+        node: {
           nodeId,
           type: newPartType,
           params: getDefaultNodeParams(newPartType),
         },
-      ],
-    }))
+      }),
+    )
     setSelectedNodeId(nodeId)
     setFocusNodeId(nodeId)
     setUiMessage({
@@ -98,94 +97,102 @@ export function SpaghettiEditor({ showHeaderControls = true }: SpaghettiEditorPr
 
   return (
     <div className="SpaghettiEditorRoot">
-      {showHeaderControls ? (
-        <>
-          <div className="SpaghettiEditorHeader">
-            <div className="V15Wrap">
-              <button
-                type="button"
-                className={`SpaghettiEditorModeButton ${
-                  viewMode === 'expanded' ? 'SpaghettiEditorModeButton--active' : ''
-                }`}
-                onClick={() => setViewMode('expanded')}
-              >
-                Expanded
-              </button>
-              <button
-                type="button"
-                className={`SpaghettiEditorModeButton ${
-                  viewMode === 'collapsed' ? 'SpaghettiEditorModeButton--active' : ''
-                }`}
-                onClick={() => setViewMode('collapsed')}
-              >
-                Collapsed
-              </button>
-            </div>
-
-            <div className="SpaghettiTypeLegend">
-              {typeLegend.map((item) => (
-                <div key={item.type} className="SpaghettiTypeLegendItem">
-                  <span className={`SpaghettiTypeSwatch ${item.className}`} />
-                  <span>{item.type}</span>
-                  <span className="SpaghettiTypeLegendHex">{item.colorToken}</span>
+      <div className="SpaghettiEditorShell">
+        <div className="SpaghettiEditorBody">
+          {showHeaderControls ? (
+            <div
+              className={`SpaghettiEditorToolbarScroll ${
+                viewMode === 'expanded' ? 'SpaghettiEditorToolbarScroll--expanded' : ''
+              }`}
+            >
+              <div className="SpaghettiEditorHeader">
+                <div className="V15Wrap">
+                  <button
+                    type="button"
+                    className={`SpaghettiEditorModeButton ${
+                      viewMode === 'expanded' ? 'SpaghettiEditorModeButton--active' : ''
+                    }`}
+                    onClick={() => setViewMode('expanded')}
+                  >
+                    Expanded
+                  </button>
+                  <button
+                    type="button"
+                    className={`SpaghettiEditorModeButton ${
+                      viewMode === 'collapsed' ? 'SpaghettiEditorModeButton--active' : ''
+                    }`}
+                    onClick={() => setViewMode('collapsed')}
+                  >
+                    Collapsed
+                  </button>
                 </div>
-              ))}
+
+                <div className="SpaghettiTypeLegend">
+                  {typeLegend.map((item) => (
+                    <div key={item.type} className="SpaghettiTypeLegendItem">
+                      <span className={`SpaghettiTypeSwatch ${item.className}`} />
+                      <span>{item.type}</span>
+                      <span className="SpaghettiTypeLegendHex">{item.colorToken}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <label className="SpaghettiEditorFocusField">
+                  <span>Focus Node</span>
+                  <select
+                    value={focusNodeId ?? ''}
+                    onChange={(event) => {
+                      const next = event.target.value.trim()
+                      setFocusNodeId(next.length > 0 ? next : null)
+                    }}
+                  >
+                    {sortedNodes.length === 0 ? (
+                      <option value="">No nodes</option>
+                    ) : (
+                      sortedNodes.map((node) => (
+                        <option key={node.nodeId} value={node.nodeId}>
+                          {node.nodeId}
+                        </option>
+                      ))
+                    )}
+                  </select>
+                </label>
+              </div>
+
+              <div className="SpaghettiEditorAddRow">
+                <label className="SpaghettiEditorFocusField">
+                  <span>New Part Node</span>
+                  <select
+                    value={newPartType}
+                    onChange={(event) => {
+                      setNewPartType(event.target.value as PartNodeType)
+                    }}
+                  >
+                    {partTypeOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <button type="button" onClick={handleAddPartNode}>
+                  Add Part Node
+                </button>
+              </div>
             </div>
+          ) : null}
 
-            <label className="SpaghettiEditorFocusField">
-              <span>Focus Node</span>
-              <select
-                value={focusNodeId ?? ''}
-                onChange={(event) => {
-                  const next = event.target.value.trim()
-                  setFocusNodeId(next.length > 0 ? next : null)
-                }}
-              >
-                {sortedNodes.length === 0 ? (
-                  <option value="">No nodes</option>
-                ) : (
-                  sortedNodes.map((node) => (
-                    <option key={node.nodeId} value={node.nodeId}>
-                      {node.nodeId}
-                    </option>
-                  ))
-                )}
-              </select>
-            </label>
-          </div>
+          {viewMode === 'expanded' ? (
+            <ExpandedEditor />
+          ) : (
+            <CollapsedEditor focusNodeId={focusNodeId} />
+          )}
 
-          <div className="SpaghettiEditorAddRow">
-            <label className="SpaghettiEditorFocusField">
-              <span>New Part Node</span>
-              <select
-                value={newPartType}
-                onChange={(event) => {
-                  setNewPartType(event.target.value as PartNodeType)
-                }}
-              >
-                {partTypeOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <button type="button" onClick={handleAddPartNode}>
-              Add Part Node
-            </button>
-          </div>
-        </>
-      ) : null}
-
-      {viewMode === 'expanded' ? (
-        <ExpandedEditor />
-      ) : (
-        <CollapsedEditor focusNodeId={focusNodeId} />
-      )}
-
-      {focusPartKey !== null ? (
-        <div className="V15Meta">Focused part: {focusPartKey}</div>
-      ) : null}
+          {focusPartKey !== null ? (
+            <div className="V15Meta">Focused part: {focusPartKey}</div>
+          ) : null}
+        </div>
+      </div>
     </div>
   )
 }
