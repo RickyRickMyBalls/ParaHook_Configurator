@@ -12,97 +12,122 @@ Implementation changes include:
 
 ## Core Rule
 
-For every implementation change, Codex must update all required project-tracking documents in the same change set.
+For every implementation change, Codex must update the required project-tracking docs in the same change set unless the user explicitly says otherwise.
 
-Required files:
+Canonical tracking files:
 - `docs/CHANGELOG.md`
-- `docs/TASKLIST.md`
-- `docs/change-List.md`
+- `docs/Chill-Log.md` when chill mode is active
+
+Canonical docs-structure references:
+- `docs/Doc-Index.md`
+- `docs/Phase-Plans/00_Phase-Setup.md`
 
 ## CHANGELOG Rule
 
 Primary file:
-`docs/CHANGELOG.md`
+- `docs/CHANGELOG.md`
 
 Requirements:
-1. Never delete or rewrite previous entries.
-2. Always prepend the new entry at the top of the entry list.
-3. Preserve the existing formatting style.
-4. Use the next sequential numeric index `[NNN]`.
-5. Use the current system time.
-6. Wrap each new entry header with the same separator style already used in the file.
-7. Keep entries deterministic so diffs remain stable.
-
-Required entry structure:
-- `## [NNN] YYYY-MM-DD HH:mm (Task Title)`
-- `### Scope / Constraints Honored`
-- `### Summary of Implementation`
-- `### Files Changed`
-- `### Behavior Changes (if any)`
-- `### Verification Steps`
+1. Never delete or rewrite previous entries unless the user explicitly asks for changelog cleanup.
+2. Add new entries at the top of the live entry list.
+3. Preserve the existing formatting style already used in the file.
+4. Use the current system time.
+5. Keep wording deterministic so diffs remain stable.
 
 Non-destructive policy:
-- never delete old changelog entries
-- never rewrite old changelog entries
-- never change old timestamps
-- never insert a new entry anywhere except the top
+- never rewrite old timestamps without explicit user instruction
+- never silently merge or remove old entries
+- prefer appending new truth rather than rewriting history
 
-## TASKLIST Rule
+## Chill Mode Rule
 
-Primary file:
-`docs/TASKLIST.md`
+The user may explicitly switch the repo into `chill mode`.
 
-Requirements:
-1. Treat `docs/TASKLIST.md` as the main execution tasklist.
-2. Update task status in the same change set as the implementation.
-3. Use:
-   - `[ ]` not started
-   - `[~]` in progress / partial
-   - `[x]` completed
-4. Keep newest phase blocks at the top.
-5. Never delete old phase task lists.
-6. Preserve completed phases as full checklist blocks.
-7. Keep completed accomplished items marked `[x]`.
-8. Do not collapse completed phases into one-line summaries only.
-9. If a task is blocked, mark it `[~]` and include a one-line blocker note.
-10. Keep wording deterministic and concise.
+While chill mode is active:
+- log small rapid edits in `docs/Chill-Log.md`
+- do not add a full `docs/CHANGELOG.md` entry for every small edit
+- keep the chill log clear enough that it can be consolidated later
 
-Required tasklist structure:
-1. `Status Legend`
-2. `Active Phases (Newest -> Oldest)`
-3. `Completed Log (Newest -> Oldest)`
+Chill mode ends only when the user explicitly asks to update the changelog or gives a clearly equivalent instruction.
 
-Formatting rules for phases:
-- keep visible phase headers
-- keep separator lines between phase blocks
-- keep tasks as checkboxes
-- use indented sub-checkboxes for concrete subtasks
+When chill mode ends:
+- read the active chill batch
+- consolidate it into one new `docs/CHANGELOG.md` entry unless the user asks for a different treatment
 
-Completed phase expectations:
-- preserve the full completed checklist block
-- keep the phase readable as a historical record
-- include completion date when the tasklist format already expects it
-- include related changelog index `[NNN]` when available
+## Planning Mode Rule
 
-## change-List Rule
+The user may explicitly switch the repo into `planning mode`.
 
-Primary file:
-`docs/change-List.md`
+While planning mode is active:
+- read `docs/Agents/Agents-Planning.md`
+- follow its planning-specific workflow
+- stay focused on architecture, product direction, salvageable systems, refactor candidates, new objects, and retirement candidates
+- avoid drifting into implementation unless the user explicitly asks for code or file edits
+- do not add `docs/CHANGELOG.md` entries for planning-mode work
+- record planning-mode batch progress in the active `docs/Archive/CodexContext/History-Chats/N_CodexChat.md` file under its top-of-file `Planning-Batch` section
+- keep `Planning-Batch` entries numbered newest-first
+- when a doc is created or edited during planning mode, follow normal `docs/Doc-Index.md` local doc-history rules in that doc instead of creating a changelog entry
 
-Requirements:
-1. Add a matching entry after implementation work in the same change set.
-2. Preserve the file's current numbering/ordering style.
-3. Keep newest entries at the top unless the user explicitly requests restructuring.
-4. Do not delete or rewrite existing entries unless the user explicitly asks for cleanup, deduplication, or reformatting.
-5. Keep wording concise and deterministic.
+Planning mode ends only when the user explicitly exits it or clearly switches back to normal implementation work.
+
+## Historian Mode Rule
+
+The user may explicitly switch the repo into `historian mode`.
+
+Use historian mode only when the user explicitly asks for history processing.
+
+Historian workflow:
+1. Read the target `docs/Archive/History/# - chatgpt.md` file or other explicitly requested history file.
+2. Add a structured readable summary near the top of that same file.
+3. Preserve the raw transcript underneath, preferably wrapped in an HTML comment.
+4. Update `docs/Archive/History/0 - compiled-HISTORY.md` with a short index entry.
+
+Rule:
+- keep the compiled history file short
+- keep the detailed write-up in the specific history file
+- do not delete raw history unless the user explicitly asks
+
+## Phase Docs Rule
+
+The phase-system source of truth lives in:
+- `docs/Phase-Plans/00_Phase-Setup.md`
+
+Use that file when:
+- deciding the correct phase prefix
+- adding or revising family phase-plan structure
+- checking phase-plan lifecycle rules
+- checking checklist marker meanings
+
+Current phase-plan workspace:
+- `docs/Phase-Plans/Tasks/Future/` = planned, not started
+- `docs/Phase-Plans/Tasks/` = active
+- `docs/Phase-Plans/Tasks/Old/` = completed or retired task files
+- family docs such as `docs/Phase-Plans/14_DOC - Phase-Plans.md` hold prefix-level planning/history
+
+If phase-system instructions in another file conflict with `docs/Phase-Plans/00_Phase-Setup.md`, prefer `00_Phase-Setup.md`.
+
+## Codex Chat Capture Rule
+
+When a new long-form Codex working session begins, use the next
+`docs/Archive/CodexContext/History-Chats/N_CodexChat.md` file as the running
+notes surface for:
+- key project decisions
+- important architecture clarifications
+- phase/prefix rule changes
+- docs workflow decisions
+- strong conclusions about current direction
+
+`N_CodexChat.md` is the conversation-facing working capture.
+`N_CodexContext.md` is the later distilled handoff summary.
+
+Do not wait until the end of the session to record major reusable decisions if
+the chat is clearly producing project knowledge that should survive the session.
 
 ## Required Sequence
 
 When Codex performs implementation work:
 1. Implement the requested change.
-2. Run requested verification, if any.
-3. Update `docs/CHANGELOG.md`.
-4. Update `docs/TASKLIST.md`.
-5. Update `docs/change-List.md`.
+2. Run verification when requested or when it is reasonably needed.
+3. Update `docs/CHANGELOG.md` unless chill mode is active or the user explicitly says not to.
 
-Do not skip these maintenance updates.
+Do not skip required maintenance updates silently.

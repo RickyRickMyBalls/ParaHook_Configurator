@@ -19,6 +19,8 @@ const makeFixtureNodeDef = (config: {
 
 const numberMmType: PortType = { kind: 'number', unit: 'mm' }
 const numberDegType: PortType = { kind: 'number', unit: 'deg' }
+const vec2MmType: PortType = { kind: 'vec2', unit: 'mm' }
+const booleanType: PortType = { kind: 'boolean' }
 
 const fixtureNodeDefs: Record<string, NodeDefinition> = {
   'Test/NumberMmSource': makeFixtureNodeDef({
@@ -42,6 +44,28 @@ const fixtureNodeDefs: Record<string, NodeDefinition> = {
         type: numberDegType,
       },
     ],
+  }),
+  'Test/Vec2MmSink': makeFixtureNodeDef({
+    label: 'Test Vec2 Sink (mm)',
+    inputs: [
+      {
+        portId: 'in',
+        label: 'In',
+        type: vec2MmType,
+      },
+    ],
+    outputs: [],
+  }),
+  'Test/BooleanSink': makeFixtureNodeDef({
+    label: 'Test Boolean Sink',
+    inputs: [
+      {
+        portId: 'in',
+        label: 'In',
+        type: booleanType,
+      },
+    ],
+    outputs: [],
   }),
 }
 
@@ -250,6 +274,68 @@ describe('contract parity (canvas cheap-check vs validator decision)', () => {
       return
     }
     expect(decision.code).toBe('EDGE_TYPE_MISMATCH')
+  })
+
+  it('keeps parity for Param node compatibility and mismatch rules', () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'n-param-number',
+          type: 'Param/Number',
+          params: { value: 10 },
+        },
+        {
+          nodeId: 'n-param-boolean',
+          type: 'Param/Boolean',
+          params: { value: true },
+        },
+        {
+          nodeId: 'n-param-vec2',
+          type: 'Param/Vec2',
+          params: { value: { x: 1, y: 2 } },
+        },
+        {
+          nodeId: 'n-baseplate',
+          type: 'Part/Baseplate',
+          params: {},
+        },
+        {
+          nodeId: 'n-vec2-sink',
+          type: 'Test/Vec2MmSink',
+          params: {},
+        },
+        {
+          nodeId: 'n-boolean-sink',
+          type: 'Test/BooleanSink',
+          params: {},
+        },
+      ],
+      edges: [],
+    }
+
+    assertProjectedParity(graph, {
+      from: { nodeId: 'n-param-number', portId: 'value' },
+      to: { nodeId: 'n-baseplate', portId: 'width' },
+    })
+    assertProjectedParity(graph, {
+      from: { nodeId: 'n-param-vec2', portId: 'value' },
+      to: { nodeId: 'n-vec2-sink', portId: 'in' },
+    })
+    assertProjectedParity(graph, {
+      from: { nodeId: 'n-param-boolean', portId: 'value' },
+      to: { nodeId: 'n-boolean-sink', portId: 'in' },
+    })
+
+    const mismatchDecision = getProjectedContractDecision(graph, {
+      from: { nodeId: 'n-param-boolean', portId: 'value' },
+      to: { nodeId: 'n-baseplate', portId: 'width' },
+    })
+    expect(mismatchDecision.ok).toBe(false)
+    if (mismatchDecision.ok) {
+      return
+    }
+    expect(mismatchDecision.code).toBe('EDGE_TYPE_MISMATCH')
   })
 
   it('keeps parity for OutputPreview dynamic slot input resolution', () => {

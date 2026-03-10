@@ -1,14 +1,1902 @@
 ﻿# CHANGELOG
 
+## Doc Header
 Numbering rule for major entries:
-- Prefix each new `##` section with a sequential command index: `[NNN]`.
+- Prefix each new `###` entry section with a sequential command index: `[NNN]`.
 - Increment by 1 for every new Codex-added section.
 
-<!-- ============================================================ -->
-## [084] 2026-03-05 19:11 (Phase FS-4 Multi-Part Feature Stack Support)
-<!-- ============================================================ -->
+### Doc History
+7. 2026-03-08 10:23: Removed planning-only entries `[132]` through `[139]` from the live changelog after moving that batch tracking back into the active `N_CodexChat.md` planning surface
+6. 2026-03-07 14:41: Updated the forward changelog title-format rule so normalized entries should use the dashed date/time layout with the canonical phase title in one backticked block
+5. 2026-03-07 14:24: Added normalized `HUMAN SUMMARY:` lines across all numbered changelog entries and reconstructed marker blocks using entry-body context so folded scanning is readable throughout the file
+4. 2026-03-07 13:44: Added the new headerless `HUMAN SUMMARY:` rule so future changelog entries include a short 1-3 sentence readable summary directly under the entry wrapper
+3. 2026-03-07 13:39: Tightened the forward changelog-title rule so new entries should use a backticked canonical phase title shape like ``### [119] 2026-03-05 23:09 `SP - Phase 6 - Resizable Debug Inspector Drawer` ``
+2. 2026-03-07 13:34: Tightened the changelog rules so new permanent entries now explicitly require a canonical phase prefix in the entry title
+1. 2026-03-07 13:21: Re-structured the top of this file to match the current doc rules with a proper `Doc Header` and `Doc Body` split while preserving the existing changelog entry format
 
-### Scope / Constraints Honored
+### Purpose
+
+This file is the canonical completed-work history for `/20/parahook`.
+
+Use it for:
+- permanent completed-work history
+- major shipped implementation entries
+- major docs/system consolidation entries that belong in permanent project history
+
+Do not use it for:
+- temporary chill-batch logging
+- speculative planning
+- active task execution checklists
+
+### Changelog Rules
+
+- each permanent changelog entry in `## Doc Body` starts with an HTML divider comment
+- the main entry heading for new normalized entries should use `###` in this shape:
+  - `### [NNN] - YYYY-MM-DD HH:MM - `PREFIX - Phase N - Title``
+- each new permanent entry title should use the current canonical phase-prefix naming system when the work belongs to a canonical phase family
+  - example:
+    - `### [131] - YYYY-MM-DD HH:MM - `SP - Phase 8 - Entry Title``
+- if the work is docs/meta/process work, use the canonical meta prefix when appropriate:
+  - example:
+    - `### [131] - YYYY-MM-DD HH:MM - `OO - Phase 13 - Entry Title``
+- existing older entries do not need to be mass-rewritten just to match this title punctuation style
+- the same HTML divider comment appears again directly under the main entry heading
+- directly under the entry wrapper, include one headerless summary line in this shape:
+  - `HUMAN SUMMARY: 1-3 sentences about what this changelog entry did`
+- keep the human summary readable and compact so folding to the entry level still leaves a quick human scan
+- prefer the human-summary line to use one outer backtick span for readable color grouping in VS Code, and reopen the outer span after any escaped inline file/code reference so the remaining sentence returns to the summary color
+  - example:
+    - `HUMAN SUMMARY: `This renamed the canonical chill-mode tracking file to \`docs/Chill-Log.md\` `and updated the repo docs to follow that new path.``
+- standard entry subsections use `####`
+- the normal subsection order is:
+  - `HUMAN SUMMARY: ...` `headerless line, not a heading`
+  - `#### Scope / Constraints Honored`
+  - `#### Summary of Implementation`
+  - `#### Files Changed`
+  - `#### Behavior Changes (if any)`
+  - `#### Verification Steps`
+- reconstructed-history bands may also use visible marker headings such as:
+  - `#### Reconstructed`
+  - `### Reconstructed Gap`
+- reconstructed entries still use numbered `###` headings underneath those markers
+- keep numbering sequential unless the user explicitly requests a renumber pass
+
+
+
+## Doc Body
+
+<!-- ============================================================ -->
+### [159] - 2026-03-10 00:00 - `GE - Phase 11C - Save/Load Interaction With Editors Task Doc Setup`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Created the dedicated \`11C\` task doc for save/load interaction with editors so the editor-facing open/swap/load behavior now has its own execution-planning surface after \`11A\` and \`11B\`, and refreshed the roadmap plan-doc tracker to count that new doc.`
+
+#### Scope / Constraints Honored
+- Added planning/task-doc and roadmap-tracking updates only.
+- Kept `11C` scoped to editor-facing save/load behavior rather than raw file IO or Browser cached lifecycle.
+- Did not start `11C` implementation.
+
+#### Summary of Implementation
+- Created `docs/Phase-Plans/Tasks/Future/01.08 - GE - Phase 11C.md`.
+- Framed `11C` around:
+  - `Open Graph`
+  - `Load Into New Graph`
+  - `Open In New Editor`
+  - `Swap Current Editor`
+  - Browser/editor coordination during save/load actions
+- Grounded the doc in the current seams:
+  - `src/app/spaghetti/store/useSpaghettiStore.ts`
+  - `src/app/panels/BrowserPanel.tsx`
+  - `src/app/panels/SpaghettiPanel.tsx`
+  - `src/app/spaghetti/ui/SpaghettiEditor.tsx`
+- Updated roadmap `Plan.md Status` for `[1.2C]` and refreshed the dedicated plan-doc totals.
+
+#### Files Changed
+- `docs/Phase-Plans/Tasks/Future/01.08 - GE - Phase 11C.md`
+- `docs/Human-Plans/roadmap/roadmap.md`
+
+#### Behavior Changes (if any)
+- None. Planning/docs only.
+
+#### Verification Steps
+- Re-read the roadmap `11C` section, the `GE` family phase doc, and the existing `11A` / `11B` task docs before creating the new task file.
+- Read back the updated roadmap tracker sections after the patch.
+
+<!-- ============================================================ -->
+### [158] - 2026-03-09 22:37 - `OO - Phase 13 - Explicit 2.3 Carry-Forward Note For Browser Build Bars`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Expanded the roadmap text inside \`[2.3] AS - Phase 6 - Project Content Inspection And Build Control Surface\` so the later home for richer Browser row loading/build bars is now explicit there, rather than only implied by the earlier \`11B\` scope note.`
+
+#### Scope / Constraints Honored
+- Changed roadmap/docs only.
+- Kept `11B` and `[2.3]` scope boundaries intact.
+- Did not start any implementation work.
+
+#### Summary of Implementation
+- Added a new roadmap doc-history note for the `[2.3]` clarification.
+- Expanded the `[2.3]` section with an explicit carry-forward block that says:
+  - `11B` owns simple Browser row `dirty/saved` state
+  - `[2.3]` owns later richer Browser row loading/build bars
+- Added a checklist reminder in `[2.3]` so that richer row bars stay anchored to the later build-control lane.
+
+#### Files Changed
+- `docs/Human-Plans/roadmap/roadmap.md`
+
+#### Behavior Changes (if any)
+- None. Roadmap/planning only.
+
+#### Verification Steps
+- Read back the updated `[2.3]` section after the patch.
+
+<!-- ============================================================ -->
+### [157] - 2026-03-09 22:36 - `OO - Phase 13 - Roadmap Note For 11B Dirty State Versus Later Build Bars`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Updated the roadmap to keep \`11B\` focused on Browser cached-entry dirty/saved state only, while explicitly deferring richer Browser row loading/build bars to the later Browser/build-control lane instead of letting that UI scope leak into cached graph lifecycle work.`
+
+#### Scope / Constraints Honored
+- Changed roadmap/docs only.
+- Kept `11B` narrow and did not start implementation work.
+- Preserved the later Browser/build-control phase as the home for richer row activity bars.
+
+#### Summary of Implementation
+- Added a roadmap doc-history note for the new `11B` scope clarification.
+- Expanded the `[1.2B] GE - Phase 11B - Cached Graph Lifecycle` summary and checklist to include:
+  - simple dirty/saved Browser row state in scope
+  - richer loading/build bars deferred out of scope
+- Added a carry-forward note under `[2.3] AS - Phase 6 - Project Content Inspection And Build Control Surface` so later Browser row build bars have an explicit roadmap home.
+
+#### Files Changed
+- `docs/Human-Plans/roadmap/roadmap.md`
+
+#### Behavior Changes (if any)
+- None. Roadmap/planning only.
+
+#### Verification Steps
+- Read back the updated `11B` and `[2.3]` roadmap sections after the patch.
+
+<!-- ============================================================ -->
+### [156] - 2026-03-09 22:32 - `GE - Phase 11B - Cached Graph Lifecycle Task Doc Setup`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Created the dedicated \`11B\` task doc for cached graph lifecycle so the Browser-owned saved-versus-live graph layer now has its own execution-planning surface after the shipped \`11A\` persistence core, and refreshed the roadmap plan-doc tracker to count that new doc.`
+
+#### Scope / Constraints Honored
+- Added planning/task-doc and roadmap-tracking updates only.
+- Kept `11B` scoped to cached graph lifecycle rather than raw file IO or editor interaction policy.
+- Did not start `11B` implementation.
+
+#### Summary of Implementation
+- Created `docs/Phase-Plans/Tasks/Future/01.07 - GE - Phase 11B.md`.
+- Framed `11B` around:
+  - Browser-owned cached graph entries
+  - saved graph versus cached live graph behavior
+  - reopen/focus behavior for cached graphs
+  - keeping editor interaction policy deferred to `11C`
+- Grounded the doc in the current seams:
+  - `src/app/spaghetti/store/useSpaghettiStore.ts`
+  - `src/app/panels/BrowserPanel.tsx`
+  - `src/app/io/graphDocumentPersistence.ts`
+- Updated roadmap `Plan.md Status` for `[1.2B]` and refreshed the dedicated plan-doc totals.
+
+#### Files Changed
+- `docs/Phase-Plans/Tasks/Future/01.07 - GE - Phase 11B.md`
+- `docs/Human-Plans/roadmap/roadmap.md`
+
+#### Behavior Changes (if any)
+- None. Planning/docs only.
+
+#### Verification Steps
+- Re-read the roadmap `11B` section, the `GE` family phase doc, and the shipped `11A` task doc before creating the new task file.
+- Read back the updated roadmap tracker sections after the patch.
+
+<!-- ============================================================ -->
+### [155] - 2026-03-09 22:26 - `GE - Phase 11A - Graph Document Persistence Core`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Implemented the first real graph-document persistence core by adding stable serialize/deserialize helpers plus browser file save/load services for one \`GraphDocument\`, routing load validation through \`parseGraphDocument()\`, and verifying the new persistence surface with targeted tests and a production build.`
+
+#### Scope / Constraints Honored
+- Kept `11A` limited to one graph-document persistence core.
+- Kept Browser cache lifecycle, editor open/swap/import behavior, and project-file ownership out of this phase.
+- Reused the existing graph-document schema/parse boundary instead of introducing a second persistence schema.
+
+#### Summary of Implementation
+- Added `src/app/io/graphDocumentPersistence.ts` as the first dedicated graph-document persistence module.
+- Implemented:
+  - `serializeGraphDocument()`
+  - `deserializeGraphDocument()`
+  - `saveGraphDocumentToFile()`
+  - `loadGraphDocumentFromFile()`
+  - supporting filename and persisted-shape helpers
+- Locked the saved unit to the canonical runtime `GraphDocument` shape:
+  - `graphDocumentId`
+  - `name`
+  - `version`
+  - `graph`
+- Routed load validation through the existing `parseGraphDocument()` path so malformed JSON and malformed graph-document payloads fail at the correct boundary.
+- Added targeted persistence tests covering:
+  - stable JSON serialization
+  - deserialize roundtrip
+  - invalid JSON failure
+  - invalid shape failure
+  - browser-file save path
+  - browser-file load path
+  - no-file-selected rejection
+- Updated the `11A` task doc and roadmap to reflect the shipped persistence-core cut.
+
+#### Files Changed
+- `src/app/io/graphDocumentPersistence.ts`
+- `src/app/io/graphDocumentPersistence.test.ts`
+- `docs/Phase-Plans/Tasks/Future/01.06 - GE - Phase 11A.md`
+- `docs/Human-Plans/roadmap/roadmap.md`
+
+#### Behavior Changes (if any)
+- The app now has a dedicated low-level persistence surface for saving and loading one `GraphDocument` as JSON.
+- Persisted graph files exclude runtime-only graph buckets, viewport/browser state, and editor interaction state.
+- Later Browser/editor save-load UX can now build on a stable persistence seam instead of inventing file behavior ad hoc.
+
+#### Verification Steps
+- `cmd /c npm test -- src/app/io/graphDocumentPersistence.test.ts src/app/spaghetti/schema/spaghettiSchema.test.ts`
+- `cmd /c npm run build`
+
+<!-- ============================================================ -->
+### [154] - 2026-03-09 22:02 - `GE - Phase 11A - Graph Document Persistence Core Spec Tightening`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Tightened the \`11A\` task doc into a code-grounded implementation-ready spec by locking the live \`GraphDocument\` contract, the existing \`parseGraphDocument()\` load boundary, and the first pure-helper plus browser-file-IO persistence surface while keeping \`11B\`, \`11C\`, and \`GE 12\` work deferred.`
+
+#### Scope / Constraints Honored
+- Updated only the `11A` task doc and changelog.
+- Kept `11A` limited to persistence core planning/spec work.
+- Did not start `11A` implementation.
+
+#### Summary of Implementation
+- Reframed `11A` around one persisted `GraphDocument`, one load boundary, and one browser file IO seam.
+- Grounded the doc in the live schema/runtime seams:
+  - `src/app/spaghetti/schema/spaghettiTypes.ts`
+  - `src/app/spaghetti/schema/spaghettiSchema.ts`
+  - `src/app/spaghetti/store/useSpaghettiStore.ts`
+- Locked the persistence split to:
+  - pure helpers: `serializeGraphDocument()` / `deserializeGraphDocument()`
+  - browser file IO: `saveGraphDocumentToFile()` / `loadGraphDocumentFromFile()`
+- Added tighter acceptance checks and explicit deferred boundaries for `11B`, `11C`, and `GE 12`.
+
+#### Files Changed
+- `docs/Phase-Plans/Tasks/Future/01.06 - GE - Phase 11A.md`
+
+#### Behavior Changes (if any)
+- None. Spec/docs only.
+
+#### Verification Steps
+- Read the updated `11A` task doc against the live schema/runtime seams before patching.
+
+<!-- ============================================================ -->
+### [153] - 2026-03-09 21:55 - `GE - Phase 11A - Graph Document Persistence Core Task Doc Setup`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Created the dedicated \`11A\` task doc for graph-document persistence core and updated the roadmap plan-doc tracker so the first save/load core phase now has its own implementation-planning surface before code work starts.`
+
+#### Scope / Constraints Honored
+- Added planning/task-doc and roadmap-tracking updates only.
+- Kept `11A` scoped to graph-document persistence core.
+- Did not start `11A` implementation.
+
+#### Summary of Implementation
+- Created `docs/Phase-Plans/Tasks/Future/01.06 - GE - Phase 11A.md`.
+- Locked the first-pass `11A` direction around:
+  - one durable graph-document file contract
+  - validation and parse behavior on load
+  - save/load core entry points
+  - keeping viewport/browser/editor runtime state out of the persisted graph-document contract
+- Updated roadmap `Plan.md Status` for `[1.2A]` and refreshed the dedicated plan-doc totals.
+
+#### Files Changed
+- `docs/Phase-Plans/Tasks/Future/01.06 - GE - Phase 11A.md`
+- `docs/Human-Plans/roadmap/roadmap.md`
+
+#### Behavior Changes (if any)
+- None. Planning/docs only.
+
+#### Verification Steps
+- Read the new `11A` task doc and refreshed roadmap plan-doc sections after the patch.
+
+<!-- ============================================================ -->
+### [152] - 2026-03-09 21:43 - `OO - Phase 13 - Roadmap Checklist Refresh After 9C`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Updated the roadmap checklist state after the real \`9C\` cut, marking the immediate single-graph-cleanup track complete now that \`9A\`, \`9B\`, and \`9C\` have all landed while leaving later routing, persistence, and ownership work pending.`
+
+#### Scope / Constraints Honored
+- Changed only roadmap-tracking docs.
+- Kept the checklist strict to what actually landed.
+- Did not re-order future phases.
+
+#### Summary of Implementation
+- Added a roadmap doc-history note for the post-`9C` checklist refresh.
+- Marked `Immediate CheckList` item `5. Single-Graph Cleanup In Service Of Browser` complete.
+- Tightened the note under that item so it now points forward to routing, persistence, and project-ownership work instead of more single-graph cleanup.
+
+#### Files Changed
+- `docs/Human-Plans/roadmap/roadmap.md`
+
+#### Behavior Changes (if any)
+- None. Documentation/tracking only.
+
+#### Verification Steps
+- Read the updated roadmap checklist sections after the patch.
+
+<!-- ============================================================ -->
+### [151] - 2026-03-09 21:43 - `SP - Phase 9C - Graph-Local Compile / Preview Preparation`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Moved spaghetti compile/build memory and preview-preparation memory into graph-local runtime owned by \`useSpaghettiStore\`, reconnected the app-store/build-wiring/viewer bridge to those graph-keyed buckets, and verified the bridge cut with targeted store/preview tests plus a full production build.`
+
+#### Scope / Constraints Honored
+- Kept `9C` as a bridge phase only.
+- Left full worker/result routing redesign for `SP - Phase 10`.
+- Left Browser-facing output hierarchy and later `AS` structure work out of this cut.
+- Kept one shared worker lifecycle and one shared viewer shell.
+
+#### Summary of Implementation
+- Added graph-local runtime buckets in `useSpaghettiStore` for:
+  - compile/build memory
+  - preview-preparation memory
+  - light build-seq to graph-document tracking
+- Removed the old spaghetti-global compile/build buckets from `useAppStore`.
+- Reconnected `compileSpaghetti()` and `requestSpaghettiBuild()` so they operate through graph-local runtime while preserving the active-graph bridge for this phase.
+- Reconnected `bootstrapBuildWiring.ts` to read graph-keyed pending build state from `useSpaghettiStore`.
+- Added a reusable preview-preparation builder and switched `ViewerHost` to consume graph-local preview-prep instead of one global active-graph path.
+- Reconnected `SpaghettiPanel` and `DebugInspectorDrawer` to graph-local compile state.
+
+#### Files Changed
+- `src/app/spaghetti/previewPreparation.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `src/app/spaghetti/selectors/selectPreviewRenderVm.ts`
+- `src/app/spaghetti/selectors/selectPreviewRenderVm.test.ts`
+- `src/app/store/useAppStore.ts`
+- `src/app/bootstrapBuildWiring.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/panels/SpaghettiPanel.tsx`
+- `src/app/spaghetti/ui/DebugInspectorDrawer.tsx`
+- `docs/Phase-Plans/Tasks/Future/01.05 - SP - Phase 9C.md`
+- `docs/Human-Plans/roadmap/roadmap.md`
+
+#### Behavior Changes (if any)
+- Spaghetti compile/build memory is now stored per graph document instead of in one global app-store bucket.
+- Preview-preparation memory is now graph-local and reused by the viewer bridge.
+- Build-seq tracking now resolves through graph identity so `9C` has a clean handoff into later routing work.
+
+#### Verification Steps
+- `cmd /c npm test -- src/app/spaghetti/store/useSpaghettiStore.test.ts src/app/spaghetti/selectors/selectPreviewRenderVm.test.ts`
+- `cmd /c npm run build`
+
+<!-- ============================================================ -->
+### [150] - 2026-03-09 21:16 - `SP - Phase 9C - Task Doc Setup`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Created the dedicated \`9C\` task doc for graph-local compile/build and preview-preparation bridge work, carrying forward the locked decisions from the roadmap, Decisions file, and Codex notes so the next bridge phase now has its own implementation-planning surface.`
+
+#### Scope / Constraints Honored
+- Added only planning/task-doc and roadmap tracking updates.
+- Kept `9C` scoped as a bridge phase.
+- Did not start `9C` runtime implementation.
+
+#### Summary of Implementation
+- Created `docs/Phase-Plans/Tasks/Future/01.05 - SP - Phase 9C.md`.
+- Locked the `9C` implementation target around:
+  - graph-local compile/build memory
+  - graph-local preview-preparation memory
+  - shared worker/viewer infrastructure
+  - softened global compile/build seams
+- Recorded the live seam focus around:
+  - `useAppStore.ts`
+  - `bootstrapBuildWiring.ts`
+  - `ViewerHost.tsx`
+  - `useSpaghettiStore.ts`
+- Updated the roadmap dedicated-plan tracker so `[1.1C]` now counts as having its own plan/task doc.
+
+#### Files Changed
+- `docs/Phase-Plans/Tasks/Future/01.05 - SP - Phase 9C.md`
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- No runtime behavior changed.
+
+#### Verification Steps
+- Re-read the locked `9C` roadmap, decisions, and Codex notes sections before writing the task doc.
+- Confirmed the roadmap totals after marking `[1.1C]` as having a dedicated plan doc.
+
+<!-- ============================================================ -->
+### [149] - 2026-03-09 21:10 - `SP - Phase 9B - Browser Startup Render Loop Fix`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Fixed the black-screen startup regression in the new `9B` Browser shell by removing unstable Zustand array selectors from the live React components, which was causing the UI to collapse into an external-store snapshot loop right after mount.`
+
+#### Scope / Constraints Honored
+- Kept the fix inside the existing `9B` Browser/runtime surface.
+- Did not change the phase boundary, persistence, or graph-routing work.
+- Touched only the live React subscription pattern that was causing the startup failure.
+
+#### Summary of Implementation
+- Reworked `BrowserPanel` so it subscribes to raw graph/viewport state and derives ordered arrays locally with `useMemo` instead of subscribing with selectors that allocate new arrays every render.
+- Reworked `SpaghettiEditor` the same way for the graph-document dropdown source.
+- Verified that the store tests still pass and the production build succeeds after removing the unstable selector pattern.
+
+#### Files Changed
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/spaghetti/ui/SpaghettiEditor.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- The `9B` Browser shell should now stay mounted instead of flashing and then collapsing to a black screen on startup.
+
+#### Verification Steps
+- Ran `cmd /c npm run build`
+- Ran `cmd /c npm test -- src/app/spaghetti/store/useSpaghettiStore.test.ts`
+
+<!-- ============================================================ -->
+### [148] - 2026-03-09 21:06 - `SP - Phase 9B - Browser First Startup Fix`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Fixed the first `9B` startup regression where an auto-seeded spaghetti viewport could push the app into an empty graph scene too early, by switching the Browser-first flow to boot with no open spaghetti viewport and keeping the viewer on legacy parts until a real graph viewport is opened.`
+
+#### Scope / Constraints Honored
+- Kept the fix inside the existing `9B` Browser-first phase boundary.
+- Did not pull in persistence, project ownership, or graph-local compile/build routing.
+- Preserved the Browser-first open/focus structure from the main `9B` cut.
+
+#### Summary of Implementation
+- Changed the spaghetti store boot path so the app no longer auto-seeds an open editor viewport on startup.
+- Kept the active graph-document bridge intact even when no viewport is open.
+- Updated `ViewerHost` so spaghetti mode only switches the viewer onto graph preview output when a real active editor viewport exists; otherwise it keeps showing the legacy parts path.
+- Updated the store tests to match the new Browser-first/no-auto-open startup behavior.
+- Added the carry-forward note to the `9B` task doc close-out section.
+
+#### Files Changed
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `src/app/components/ViewerHost.tsx`
+- `docs/Phase-Plans/Tasks/Future/01.04 - SP - Phase 9B.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- The app now boots with Browser available but no automatically opened spaghetti viewport.
+- Spaghetti mode no longer forces the viewer into an empty graph preview path unless a real graph viewport is open/focused.
+
+#### Verification Steps
+- Ran `cmd /c npm test -- src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- Ran `cmd /c npm run build`
+
+<!-- ============================================================ -->
+### [147] - 2026-03-09 20:58 - `SP - Phase 9B - Browser First Multi-Viewport Foundation`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Implemented the first real `9B` Browser-first runtime cut by adding a permanent left-dock Browser tree, expanding `useSpaghettiStore` into a real open/focus viewport manager, moving floating viewport geometry into store-managed viewport state, and wiring the editor header to switch graph bindings per viewport while keeping compile/build routing and project ownership out of scope.`
+
+#### Scope / Constraints Honored
+- Implemented only the `9B` Browser/open-focus structural cut.
+- Kept graph truth graph-owned and viewport coordination viewport-owned.
+- Kept persistence, project ownership, and graph-local compile/build routing out of this phase.
+- Kept the first `9B` pass to one visible floating spaghetti surface while allowing more than one live viewport record.
+
+#### Summary of Implementation
+- Expanded the shared `EditorViewport` contract to include window mode, position, size, and z-order.
+- Reworked `useSpaghettiStore` so it can:
+  - create additional graph documents
+  - open/focus/close editor viewports
+  - bind a viewport to a different graph document
+  - keep the active graph bridge/cache synchronized with the focused viewport
+- Added a new Browser panel as a permanent left-dock Fusion-style hierarchy shell backed by the current graph/viewport runtime.
+- Moved floating spaghetti window position/size ownership out of `AppShell` local state and into viewport-managed store state.
+- Added the graph dropdown in `SpaghettiEditor` so one viewport can switch which graph document it is showing.
+- Added `useSpaghettiStore` tests covering multi-document and multi-viewport bridge behavior.
+- Updated the `9B` task doc and roadmap status to reflect the shipped phase.
+
+#### Files Changed
+- `src/app/spaghetti/schema/spaghettiTypes.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `src/app/AppShell.tsx`
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/spaghetti/ui/SpaghettiEditor.tsx`
+- `src/app/theme/v15Theme.css`
+- `docs/Phase-Plans/Tasks/Future/01.04 - SP - Phase 9B.md`
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- Browser is now a permanent left dock surface instead of only an implied future phase target.
+- The focused spaghetti viewport is now chosen from Browser/open-focus viewport state rather than only a one-window shell assumption.
+- Floating spaghetti window geometry is now viewport-managed state.
+- The editor header can now switch the current viewport to another graph document.
+- Multiple live viewport records can exist even though the first pass still renders only one visible floating spaghetti surface.
+
+#### Verification Steps
+- Ran `cmd /c npm test -- src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- Ran `cmd /c npm run build`
+
+<!-- ============================================================ -->
+### [146] - 2026-03-09 20:36 - `OO - Phase 13 - 9B Browser-First Implementation Preference`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Recorded the `9B` implementation preference to build the Browser/open-focus structure first and keep only one visible floating spaghetti surface in the first pass, deferring true multiple visible windows until after the Browser coordination model is real.`
+
+#### Scope / Constraints Honored
+- Added only planning/reference doc updates.
+- Did not change runtime code or implementation order.
+- Kept the decision tightly scoped to first-pass `9B` sequencing.
+
+#### Summary of Implementation
+- Updated `docs/Phase-Plans/Tasks/Future/01.04 - SP - Phase 9B.md` with the first-pass `9B` implementation preference.
+- Recorded the same decision in `docs/Human-Plans/CodexNotes/7_CodexChatNotes.md`.
+- Locked the sequence as:
+  - Browser/open-focus structure first
+  - one visible floating surface first
+  - true multi-window later
+
+#### Files Changed
+- `docs/Phase-Plans/Tasks/Future/01.04 - SP - Phase 9B.md`
+- `docs/Human-Plans/CodexNotes/7_CodexChatNotes.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- No runtime behavior changed.
+
+#### Verification Steps
+- Confirmed the decision fits the existing `9B` phase boundary and strengthens sequencing without pulling extra scope into the phase.
+
+<!-- ============================================================ -->
+### [145] - 2026-03-09 20:34 - `OO - Phase 13 - Browser Visual Direction Capture`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Captured the Browser visual direction as a Fusion360-style left hierarchy tree and folded that guidance into the \`9B\` task doc plus active Codex notes, so the Browser phase now has a clearer UI target instead of only an abstract viewport-manager description.`
+
+#### Scope / Constraints Honored
+- Added only planning/reference doc updates.
+- Did not change runtime code or implementation order.
+- Kept the note focused on Browser shape and future row-level controls.
+
+#### Summary of Implementation
+- Updated `docs/Phase-Plans/Tasks/Future/01.04 - SP - Phase 9B.md` with a new Browser surface direction section.
+- Recorded the same direction in `docs/Human-Plans/CodexNotes/7_CodexChatNotes.md`.
+- Locked the working Browser mental model as:
+  - docked left-side hierarchy tree
+  - Fusion360-style navigation surface
+  - expandable rows
+  - future support for loading bars and richer row-level controls
+
+#### Files Changed
+- `docs/Phase-Plans/Tasks/Future/01.04 - SP - Phase 9B.md`
+- `docs/Human-Plans/CodexNotes/7_CodexChatNotes.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- No runtime behavior changed.
+
+#### Verification Steps
+- Confirmed the new Browser direction note fits the existing `9B` phase boundary and does not pull in unrelated `9C`, persistence, or project-ownership work.
+
+<!-- ============================================================ -->
+### [144] - 2026-03-09 18:59 - `SP - Phase 9B - Decision-Complete Plan Doc`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Completed the \`9B\` task doc as a decision-complete implementation spec, grounding it in the live \`9A.3\` runtime seams and locking the Browser/viewport/editor coordination model, the viewport-owned vs graph-owned split, the focus and z-order rules, and the deferred boundary with \`9C\`, persistence, and project ownership.`
+
+#### Scope / Constraints Honored
+- Completed only the planning/task-doc work for `9B`.
+- Kept the phase scoped to Browser-coordinated multi-editor foundation work.
+- Did not start the `9B` runtime implementation.
+- Preserved `9C`, persistence, and project ownership as deferred work.
+
+#### Summary of Implementation
+- Reworked `docs/Phase-Plans/Tasks/Future/01.04 - SP - Phase 9B.md` into a decision-complete execution spec.
+- Added explicit carry-forward rules from `9A`.
+- Locked the first real `9B` runtime model:
+  - multiple editor viewports
+  - one focused viewport
+  - one `meatball editor view` maximum
+  - viewport-managed position/size/z-order
+- Locked the Browser -> viewport -> panel -> editor flow and graph-switching behavior.
+- Tightened the current seam findings using the live `AppShell`, `useSpaghettiStore`, `SpaghettiPanel`, and `SpaghettiEditor` runtime shape.
+- Tightened acceptance criteria and deferred boundaries so `9B` does not collapse into `9C`, `GE 11`, or `GE 12`.
+
+#### Files Changed
+- `docs/Phase-Plans/Tasks/Future/01.04 - SP - Phase 9B.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- No runtime behavior changed.
+
+#### Verification Steps
+- Re-read the live `9A.3` runtime seams in `AppShell.tsx`, `useSpaghettiStore.ts`, `SpaghettiPanel.tsx`, and `SpaghettiEditor.tsx`.
+- Re-read `CHANGELOG.md`, `6_CodexChatNotes.md`, `7_CodexChatNotes.md`, `roadmap.md`, and `Decisions.MD` before tightening the `9B` task doc.
+
+<!-- ============================================================ -->
+### [143] - 2026-03-09 18:51 - `SP - Phase 9B - Task Doc Setup`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Created the dedicated \`9B\` task doc for the multi-editor Browser foundation, carrying forward the locked viewport, focus, z-order, graph-switching, and single-\`meatball editor view\` rules so the next Browser-foundation phase now has its own execution-planning surface.`
+
+#### Scope / Constraints Honored
+- Added only the planning/task-doc setup for `9B`.
+- Kept the phase scoped to Browser-coordinated multi-editor foundation work.
+- Did not start the `9B` runtime implementation.
+- Updated the roadmap and changelog in the same change set.
+
+#### Summary of Implementation
+- Created `docs/Phase-Plans/Tasks/Future/01.04 - SP - Phase 9B.md`.
+- Locked the core `9B` direction:
+  - more than one graph editor surface
+  - Browser-coordinated open/focused viewport state
+  - graph switching inside one editor viewport
+  - focus/z-order rules
+  - single `meatball editor view` rule
+- Kept graph truth graph-owned and viewport state viewport-owned.
+- Updated the roadmap dedicated-plan tracker so `9B` is counted as having its own task doc.
+
+#### Files Changed
+- `docs/Phase-Plans/Tasks/Future/01.04 - SP - Phase 9B.md`
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- No runtime behavior changed.
+
+#### Verification Steps
+- Re-read the locked `9B` roadmap and decisions sections before writing the task doc.
+- Reused the current `9A.x` task-doc structure so the new phase doc matches the existing planning workflow.
+
+<!-- ============================================================ -->
+### [142] - 2026-03-09 18:13 - `OO - Phase 13 - Roadmap 9A Status Refresh`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Updated the roadmap so the `9A` lane-body checklists now reflect the real `9A.2` and `9A.3` implementation work, and refreshed the dedicated plan-doc tracker to count the finished `9A.3` task file.`
+
+#### Scope / Constraints Honored
+- Updated only roadmap tracking/docs state.
+- Kept the refresh strict to work that actually landed.
+- Did not mark broader `9B`, `9C`, or later lane items complete.
+
+#### Summary of Implementation
+- Added a new roadmap doc-history note for the refresh.
+- Marked the `9A` phase-level lane-body checklist as partly landed where appropriate:
+  - empty graph documents valid
+  - minimum graph document shape locked
+  - authored graph/canvas persistence truth defined
+- Marked the `9A.2` lane-body checklist complete for:
+  - node positions
+  - edge wiring/connections
+  - node values/config
+  - node row mode
+- Marked the `9A.3` lane-body checklist complete for:
+  - viewport binding by `graphDocumentId`
+  - first singleton graph/store split
+  - moving spaghetti document memory out of one app-global bucket
+  - keeping Browser/persistence work out of the slice
+- Updated the dedicated plan-doc checklist and totals so `9A.3` is counted as having its own task doc.
+
+#### Files Changed
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- No runtime behavior changed.
+
+#### Verification Steps
+- Re-read the `9A` lane-body roadmap entries against the completed `9A.1`, `9A.2`, and `9A.3` task docs and the landed implementation state before marking items complete.
+
+<!-- ============================================================ -->
+### [141] - 2026-03-09 18:09 - `OO - Phase 13 - 9A Carry-Forward Lessons Capture`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Added a compact carry-forward note in \`7_CodexChatNotes.md\` capturing the main lessons from \`9A.1\` through \`9A.3\`, including the working store split, the usefulness of narrow temporary bridges, the authored-vs-local state boundary, and the main future pressure seams for \`9B\` and \`9C\`.`
+
+#### Scope / Constraints Honored
+- Added only planning/reference notes.
+- Did not change runtime code or roadmap ordering.
+- Kept the notes focused on reusable architectural lessons instead of repeating task-doc detail.
+
+#### Summary of Implementation
+- Added one new numbered notes entry in `docs/Human-Plans/CodexNotes/7_CodexChatNotes.md`.
+- Captured the main `9A` carry-forward lessons:
+  - `useSpaghettiStore` vs `useAppStore` ownership split
+  - narrow temporary bridges are acceptable when explicit
+  - graph-owned vs local presentation state boundary
+  - hidden active-graph consumers across the runtime chain
+  - value of phase-pure cuts
+  - likely next pressure seams for `9B` and `9C`
+
+#### Files Changed
+- `docs/Human-Plans/CodexNotes/7_CodexChatNotes.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- No runtime behavior changed.
+
+#### Verification Steps
+- Continued the active notes numbering from `[88]` to `[89]`.
+- Confirmed the note was added to the current active `7_CodexChatNotes.md` surface.
+
+<!-- ============================================================ -->
+### [140] - 2026-03-09 18:07 - `OO - Phase 13 - Codex Notes Naming Decision Capture`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Seeded the new active \`7_CodexChatNotes.md\` file and recorded the decision to keep the current spaghetti/app store and editor names for now, deferring any rename pass until the ownership seams settle enough to make better names obvious.`
+
+#### Scope / Constraints Honored
+- Added only a small durable notes update.
+- Did not change runtime code or phase implementation state.
+- Preserved the decision as a carry-forward note instead of starting a rename pass.
+
+#### Summary of Implementation
+- Created the active `docs/Human-Plans/CodexNotes/7_CodexChatNotes.md` notes surface.
+- Added one new numbered note:
+  - keep current store/editor names for now
+  - revisit only if the names become a real source of confusion later
+  - likely first rename candidate remains `useSpaghettiUiStore`
+
+#### Files Changed
+- `docs/Human-Plans/CodexNotes/7_CodexChatNotes.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- No runtime behavior changed.
+
+#### Verification Steps
+- Confirmed `7_CodexChatNotes.md` was empty before seeding it.
+- Continued the absolute numbered notes path after `[87]` in `6_CodexChatNotes.md`.
+
+<!-- ============================================================ -->
+### [139] - 2026-03-09 18:01 - `SP - Phase 9A.3 - Viewport Binding And First Singleton Split`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Implemented the \`9A.3\` viewport-binding cut by adding the first editor viewport container in \`useSpaghettiStore\`, keeping it synchronized with the active graph-document bridge, and rewiring the spaghetti shell/panel/editor path to consume explicit \`editorViewportId\` and \`graphDocumentId\` binding without pulling full Browser or graph-routing work forward.`
+
+#### Scope / Constraints Honored
+- Implemented only the narrow `9A.3` viewport-binding cut.
+- Kept viewport state in `useSpaghettiStore`, not `useAppStore`.
+- Preserved `activeGraphDocumentId` as a temporary compatibility bridge.
+- Kept floating window position/size in `AppShell`.
+- Did not pull in multi-viewport coordination, graph switching UX, persistence, or graph-local compile/build routing.
+
+#### Summary of Implementation
+- Added the first viewport runtime seam:
+  - `EditorViewport` type
+  - `editorViewportsById`
+  - `editorViewportOrder`
+  - `activeEditorViewportId`
+  - `setActiveEditorViewportId`
+- Added explicit viewport/document selectors in `useSpaghettiStore` for:
+  - active viewport
+  - viewport by id
+  - graph document by id
+  - graph by document id
+- Seeded one default floating viewport bound to the active graph document and kept `activeGraphDocumentId` synchronized as the current compatibility bridge.
+- Rewired the runtime component flow so:
+  - `AppShell` renders spaghetti through the active viewport seam
+  - `SpaghettiPanel` receives `editorViewportId`
+  - `SpaghettiEditor` receives `editorViewportId` and `graphDocumentId`
+  - `ExpandedEditor`, `CollapsedEditor`, and `SpaghettiCanvas` read graph data by explicit `graphDocumentId`
+- Updated the `9A.3` task doc to mark the implementation complete and record close-out notes.
+
+#### Files Changed
+- `src/app/spaghetti/schema/spaghettiTypes.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `src/app/AppShell.tsx`
+- `src/app/panels/SpaghettiPanel.tsx`
+- `src/app/spaghetti/ui/SpaghettiEditor.tsx`
+- `src/app/spaghetti/ui/ExpandedEditor.tsx`
+- `src/app/spaghetti/ui/CollapsedEditor.tsx`
+- `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
+- `docs/Phase-Plans/Tasks/Future/01.03 - SP - Phase 9A.3.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- The spaghetti editor surface now mounts through an explicit editor viewport binding instead of relying only on one implicit global graph/editor seam.
+- The compile/build bridge still uses the active graph document, so behavior remains stable while the editor-binding seam becomes explicit.
+
+#### Verification Steps
+- `cmd /c npm test -- src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `cmd /c npm run build`
+
+<!-- ============================================================ -->
+### [138] - 2026-03-09 17:50 - `SP - Phase 9A.3 - Decision-Complete Plan Doc`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Completed the \`9A.3\` task doc as a decision-complete implementation spec, locking the first \`EditorViewport\` contract, its runtime placement in \`useSpaghettiStore\`, the explicit \`AppShell -> SpaghettiPanel -> SpaghettiEditor\` binding flow, and the temporary \`activeGraphDocumentId\` bridge so viewport binding can be implemented without dragging in \`9B\` or \`9C\`.`
+
+#### Scope / Constraints Honored
+- Completed only the planning/task-doc work for `9A.3`.
+- Kept the phase narrow to single-viewport binding and the first singleton split.
+- Did not start runtime implementation for viewport binding.
+- Preserved `9B`, `9C`, persistence, and routing as deferred work.
+
+#### Summary of Implementation
+- Completed `docs/Phase-Plans/Tasks/Future/01.03 - SP - Phase 9A.3.md` as an implementation-ready execution spec.
+- Locked the first-pass runtime placement:
+  - graph documents stay in `useSpaghettiStore`
+  - the first viewport container also lives in `useSpaghettiStore`
+  - `useAppStore` stays as temporary app-shell mode and compile/build bridge state
+- Added explicit first-pass contracts for:
+  - `EditorViewport`
+  - `SpaghettiViewportState`
+  - `SpaghettiPanelProps`
+  - `SpaghettiEditorProps`
+- Added the explicit binding flow and temporary compatibility rule so `activeGraphDocumentId` remains synchronized with the active viewport binding during `9A.3`.
+- Tightened the implementation sequence, guardrails, and acceptance checks so the implementer does not need to choose where viewport state lives or how panel/editor binding should flow.
+
+#### Files Changed
+- `docs/Phase-Plans/Tasks/Future/01.03 - SP - Phase 9A.3.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- No runtime behavior changed.
+
+#### Verification Steps
+- Reviewed `src/app/AppShell.tsx`, `src/app/panels/SpaghettiPanel.tsx`, `src/app/spaghetti/ui/SpaghettiEditor.tsx`, `src/app/spaghetti/store/useSpaghettiStore.ts`, and `src/app/store/useAppStore.ts` to ground the plan in the current runtime seams.
+- Rechecked `docs/Human-Plans/roadmap/roadmap.md`, `docs/Human-Plans/Decisions.MD`, and `docs/Human-Plans/CodexNotes/6_CodexChatNotes.md` to keep the final `9A.3` task doc aligned with the locked roadmap direction.
+
+<!-- ============================================================ -->
+### [137] - 2026-03-09 17:43 - `SP - Phase 9A.3 - Viewport Binding Plan Doc Setup`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Created the dedicated \`9A.3\` task doc for viewport binding and the first singleton split, aligning it with the locked roadmap and decisions so the next editor-binding cut now has its own implementation-ready planning surface. Also refreshed the roadmap plan-doc status counts so Lane \`[1.1A.3]\` is tracked as having a dedicated task file.`
+
+#### Scope / Constraints Honored
+- Added only the planning/task-doc setup for `9A.3`.
+- Kept the new doc aligned with the existing `9A.1` / `9A.2` task-doc structure.
+- Did not start implementation code for viewport binding.
+- Updated the roadmap and changelog in the same change set per repo maintenance rules.
+
+#### Summary of Implementation
+- Created `docs/Phase-Plans/Tasks/Future/01.03 - SP - Phase 9A.3.md`.
+- Narrowed the plan to the intended `9A.3` cut:
+  - first explicit `EditorViewport` contract
+  - binding editor viewport identity to `graphDocumentId`
+  - breaking the one-window spaghetti assumption without absorbing `9B`
+- Documented current seams in:
+  - `AppShell.tsx`
+  - `SpaghettiPanel.tsx`
+  - `SpaghettiEditor.tsx`
+- Added the standard execution sections:
+  - progress checklist
+  - architecture spec
+  - master checklist
+  - implementation plan
+  - close-out notes
+- Updated roadmap `Plan.md Status` for `[1.1A.3]` and refreshed the dedicated-doc totals.
+
+#### Files Changed
+- `docs/Phase-Plans/Tasks/Future/01.03 - SP - Phase 9A.3.md`
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- No runtime behavior changed.
+
+#### Verification Steps
+- Reviewed `docs/Human-Plans/roadmap/roadmap.md` and `docs/Human-Plans/Decisions.MD` to align the new task doc with the current `9A.3` planning boundary.
+- Reviewed `src/app/AppShell.tsx`, `src/app/panels/SpaghettiPanel.tsx`, and `src/app/spaghetti/ui/SpaghettiEditor.tsx` to ground the new plan in the current singleton seams.
+
+<!-- ============================================================ -->
+### [136] - 2026-03-09 17:25 - `SP - Phase 9A.2 - Graph-Owned Node Row Mode`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Implemented the narrow \`9A.2\` authored-canvas cut by moving per-node row mode into graph-owned state under \`SpaghettiGraph.ui.nodeModesByNodeId\`. Kept section/group/composite collapse, composite expansion, and other viewport-local interaction state out of canonical graph truth, removed node-mode ownership from \`useSpaghettiUiStore\`, and verified the change with targeted Vitest coverage plus a full build.`
+
+#### Scope / Constraints Honored
+- Implemented only the narrow `9A.2` move.
+- Kept `SpaghettiGraph.ui` as the state home instead of adding a new top-level authored-canvas object.
+- Kept section/group/composite collapse local.
+- Kept composite expansion, selection, hover, drag, pan/zoom, menus, and `edgeWaypoints` out of canonical graph-owned truth.
+- Kept `inputMode` as temporary UI mode state.
+
+#### Summary of Implementation
+- Extended `SpaghettiGraph.ui` with sparse `nodeModesByNodeId` support.
+- Added schema parsing support for graph-owned node modes.
+- Added store-side node-mode selector and mutation helpers in `useSpaghettiStore`.
+- Normalized node-mode storage so default `essentials` entries are omitted and stale node-mode entries are pruned during graph normalization.
+- Reconnected `SpaghettiCanvas` to write node mode through graph-owned store actions.
+- Reconnected `NodeView` to render from graph-owned node mode passed down from the canvas runtime.
+- Removed node-mode ownership from `useSpaghettiUiStore`, leaving it responsible only for local collapse state.
+- Updated tests for schema parsing, store behavior, UI-store behavior, and `NodeView` rendering.
+- Marked the `9A.2` task doc as complete.
+
+#### Files Changed
+- `src/app/spaghetti/schema/spaghettiTypes.ts`
+- `src/app/spaghetti/schema/spaghettiSchema.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/canvas/state/spaghettiUiStore.ts`
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
+- `src/app/spaghetti/canvas/rowViewMode.ts`
+- `src/app/spaghetti/schema/spaghettiSchema.test.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `src/app/spaghetti/canvas/state/spaghettiUiStore.test.ts`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+- `docs/Phase-Plans/Tasks/Future/01.02 - SP - Phase 9A.2.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- Per-node row mode is now graph-owned authored state.
+- Default `essentials` mode is implicit and no longer needs explicit storage.
+- `useSpaghettiUiStore` no longer owns node-mode truth.
+
+#### Verification Steps
+- Ran `cmd /c npm test -- src/app/spaghetti/schema/spaghettiSchema.test.ts src/app/spaghetti/store/useSpaghettiStore.test.ts src/app/spaghetti/canvas/state/spaghettiUiStore.test.ts src/app/spaghetti/canvas/NodeView.test.tsx`
+- Ran `cmd /c npm run build`
+
+<!-- ============================================================ -->
+### [135] - 2026-03-09 17:10 - `DOC - Phase 14 - Tighten SP 9A.2 Into Implementation-Ready Spec`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Reworked the \`SP 9A.2\` task doc into a decision-complete implementation spec. Narrowed the phase to one concrete authored-canvas move: per-node row mode becomes graph-owned under \`SpaghettiGraph.ui\`, while section/group/composite collapse and other viewport-local canvas state stay out of scope for this cut.`
+
+#### Scope / Constraints Honored
+- Documentation-only update.
+- Kept `9A.2` phase-pure and intentionally narrow.
+- Did not fold `9A.3`, `9B`, persistence, or routing work into the spec.
+- Kept section/group/composite collapse, composite expansion, and other viewport-local state out of canonical graph-owned truth for this phase.
+
+#### Summary of Implementation
+- Rewrote `docs/Phase-Plans/Tasks/Future/01.02 - SP - Phase 9A.2.md` into an implementation-ready spec.
+- Locked the canonical `9A.2` state contract to extend existing `SpaghettiGraph.ui` with `nodeModesByNodeId`.
+- Replaced broad authored-canvas wording with code-grounded seams from `spaghettiUiStore`, `NodeView`, and `SpaghettiCanvas`.
+- Locked the execution sequence around moving only node-mode ownership from `useSpaghettiUiStore` into the graph-owned seam.
+- Added precise acceptance checks for schema parsing, sparse-default storage, store updates, UI reads/writes, and boundary preservation.
+
+#### Files Changed
+- `docs/Phase-Plans/Tasks/Future/01.02 - SP - Phase 9A.2.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- No product behavior changes.
+- The `9A.2` task doc is now specific enough to implement directly without leaving ownership decisions to the implementer.
+
+#### Verification Steps
+- Re-read the current runtime seams in:
+  - `src/app/spaghetti/schema/spaghettiTypes.ts`
+  - `src/app/spaghetti/canvas/state/spaghettiUiStore.ts`
+  - `src/app/spaghetti/canvas/NodeView.tsx`
+  - `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
+- Confirmed the rewritten task doc now matches the real code seams and the already-locked `Decisions.MD` direction.
+
+<!-- ============================================================ -->
+### [134] - 2026-03-09 16:20 - `DOC - Phase 14 - Create SP 9A.2 Task Doc`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Created the next phase-task planning doc for \`[1.1A.2] SP - Phase 9A.2 - Graph-Owned Authored Canvas State\` and updated the roadmap to show that the dedicated doc now exists. The new plan stays phase-pure: it focuses on graph-authored canvas truth, node row mode ownership, and keeping viewport/editor-local state out of canonical graph state.`
+
+#### Scope / Constraints Honored
+- Documentation-only update.
+- Kept the new task doc scoped to `9A.2` only.
+- Did not fold `9A.3`, `9B`, or `9C` work into this file.
+
+#### Summary of Implementation
+- Added `docs/Phase-Plans/Tasks/Future/01.02 - SP - Phase 9A.2.md`.
+- Built the new file in the same planning shape used for `9A.1`:
+  - `Progress CheckList`
+  - `Doc Header`
+  - `Arch Spec`
+  - `Master CheckList`
+  - `Plan.md`
+  - `Close Out notes`
+- Locked the `9A.2` planning focus around graph-owned authored canvas truth, especially node row mode, while keeping `selection`, `hover`, drag, pan/zoom, menu state, and `edgeWaypoints` out of canonical graph-owned truth by default.
+- Updated the roadmap `Plan.md Status` for `[1.1A.2]` and refreshed the dedicated-plan totals.
+
+#### Files Changed
+- `docs/Phase-Plans/Tasks/Future/01.02 - SP - Phase 9A.2.md`
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- No product behavior changes.
+- The planning system now has dedicated future task docs for both `9A.1` and `9A.2`.
+
+#### Verification Steps
+- Reviewed `docs/Phase-Plans/00_Phase-Setup.md` for task-doc placement and naming context.
+- Reviewed `docs/Phase-Plans/Tasks/Future/01.01 - SP - Phase 9.md` and mirrored its planning structure for the next phase.
+- Updated the roadmap to reflect the new dedicated `9A.2` task doc.
+
+<!-- ============================================================ -->
+### [133] - 2026-03-09 16:20 - `DOC - Phase 14 - Roadmap Checkbox Refresh After SP 9A.1`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Updated the human roadmap checklists to reflect the real state after the \`SP 9A.1\` implementation cut. Marked the dedicated \`9A.1\` plan doc as created, updated the dedicated-plan totals, and checked only the specific roadmap bullets that were actually completed by the first graph-document pass.`
+
+#### Scope / Constraints Honored
+- Documentation-only update.
+- Kept roadmap status strict to the work that is actually done.
+- Did not mark broader `1.1`, `1.1A`, or later phases complete just because `9A.1` landed.
+
+#### Summary of Implementation
+- Added a new roadmap doc-history line explaining the post-`9A.1` checklist refresh.
+- Marked `Plan.md Status` complete for `[1.1A.1] SP - Phase 9A.1 - Graph Document Shape And Identity`.
+- Updated the dedicated-plan totals from `0 / 27` to `1 / 26`.
+- Checked the specific `9A.1` lane-body checklist bullets that are now true:
+  - `graphDocumentId`, `name`, and `version`
+  - `graph.nodes` and `graph.edges` as the core payload
+  - empty graph documents valid
+
+#### Files Changed
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- No product behavior changes.
+- The roadmap now more accurately shows that `9A.1` has both a real task doc and a completed first implementation pass.
+
+#### Verification Steps
+- Reviewed the roadmap `Plan.md Status` and `Dedicated Plan.md CheckList Total` sections against the existing `01.01 - SP - Phase 9.md` task doc.
+- Checked only the `9A.1` checklist bullets that are directly supported by the landed implementation.
+
+<!-- ============================================================ -->
+### [132] - 2026-03-09 16:11 - `SP - Phase 9 - Graph Document Foundations 9A.1 Cut`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Introduced the first canonical \`GraphDocument\` contract for spaghetti graphs, added a runtime active-document container in the spaghetti store, and re-routed app/editor/viewer consumers through the document layer while keeping viewport-only state out of the first-pass document shape. Added direct schema/store tests for the new document behavior and verified the cut with build plus targeted Vitest runs.`
+
+#### Scope / Constraints Honored
+- Implemented only the `9A.1` graph-document foundation cut.
+- Kept `inputMode` as temporary UI mode state.
+- Kept `edgeWaypoints` outside canonical `GraphDocument` state.
+- Kept viewport/editor-local state outside canonical `GraphDocument` state.
+- Did not introduce persistence, multi-viewport binding, or Browser/project ownership work.
+
+#### Summary of Implementation
+- Added `GraphDocument` and `GraphDocumentVersion` to the spaghetti schema types.
+- Added `graphDocumentSchema` and `parseGraphDocument` so the first-pass document contract is validated separately from raw `SpaghettiGraph`.
+- Added `graphDocumentsById`, `graphDocumentOrder`, and `activeGraphDocumentId` to `useSpaghettiStore`.
+- Wrapped the current singleton graph as the first runtime `GraphDocument` and kept the legacy `graph` bridge synchronized to the active document graph during the refactor cut.
+- Added `selectActiveGraphDocument` and `selectActiveGraph` selectors and switched `useAppStore`, `ViewerHost`, `PartsListPanel`, `CollapsedEditor`, `DebugInspectorDrawer`, `SpaghettiEditor`, and `SpaghettiCanvas` to consume canonical graph data through the document layer.
+
+#### Files Changed
+- `src/app/spaghetti/schema/spaghettiTypes.ts`
+- `src/app/spaghetti/schema/spaghettiSchema.ts`
+- `src/app/spaghetti/schema/spaghettiSchema.test.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `src/app/store/useAppStore.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/panels/PartsListPanel.tsx`
+- `src/app/spaghetti/ui/CollapsedEditor.tsx`
+- `src/app/spaghetti/ui/DebugInspectorDrawer.tsx`
+- `src/app/spaghetti/ui/SpaghettiEditor.tsx`
+- `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
+- `docs/Phase-Plans/Tasks/Future/01.01 - SP - Phase 9.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- The spaghetti runtime now has explicit active graph-document identity instead of relying only on the singleton graph field.
+- Compile/build and UI graph consumers now resolve the active graph through the document layer.
+- The first-pass document contract remains limited to `graphDocumentId`, `name`, `version`, and `graph`.
+
+#### Verification Steps
+- Ran `cmd /c npm run build`
+- Ran `cmd /c npm test -- src/app/spaghetti/schema/spaghettiSchema.test.ts src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- Added close-out implementation notes to `docs/Phase-Plans/Tasks/Future/01.01 - SP - Phase 9.md`
+
+<!-- ============================================================ -->
+### [131] - 2026-03-07 12:08 - `DOC - Phase 13 - Canonical Changelog Rewrite - Draft Recovered Entry Shapes From History Log`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Reworked the Reference - Planned CHANGELOG.md Entry Shapes section in docs/Phases/OO - Phase 13 - Canonical Changelog Rewrite.md so it reads like actual draft recovered changelog entries instead of thin placeholder shapes. Used docs/History/0 - History-TaskLog.md as the main source for the early recovered Conv 8 band and tightened the later recovered entries against the canonical phase log.`
+
+#### Scope / Constraints Honored
+- Documentation-only update.
+- Kept worker protocol unchanged.
+- Kept graph `schemaVersion` unchanged.
+- Kept topology mutation boundaries unchanged.
+- Kept the `PartArtifact` contract unchanged.
+- Kept OutputPreview invariants unchanged.
+- Added no product behavior changes.
+
+#### Summary of Implementation
+- Reworked the `Reference - Planned CHANGELOG.md Entry Shapes` section in `docs/Phases/OO - Phase 13 - Canonical Changelog Rewrite.md` so it reads like actual draft recovered changelog entries instead of thin placeholder shapes.
+- Used `docs/History/0 - History-TaskLog.md` as the main source for the early recovered Conv 8 band and tightened the later recovered entries against the canonical phase log.
+- Added a clear source rule inside the plan doc so the early recovered entries, later recovered entries, and inferred gap entries each point back to the right evidence source.
+- Expanded the early recovered entry drafts with more concrete summary bullets and file lists so the phase plan now shows a more realistic preview of what will be written into the canonical rewritten changelog.
+
+#### Files Changed
+- `docs/Phases/OO - Phase 13 - Canonical Changelog Rewrite.md` (now DOC - Phase Plans.md)
+- `docs/CHANGELOG.md`
+- `docs/change-List.md`
+
+#### Behavior Changes (if any)
+- No product behavior changes.
+- The Phase 13 planning doc now gives a much clearer preview of the recovered changelog text that will eventually be inserted into `docs/CHANGELOG.md`.
+
+#### Verification Steps
+- Reviewed `docs/History/0 - History-TaskLog.md` and `docs/Phases/00_Phase_Log.md` while revising the draft entry shapes.
+- Confirmed the Phase 13 reference section now distinguishes Conv 8 source entries, Conv 9 source entries, and explicitly inferred gap entries.
+- Confirmed the updated draft entries still follow the example changelog format shape already defined in the phase plan.
+- No build or test run required for this documentation-only update.
+
+<!-- ============================================================ -->
+### [130] - 2026-03-07 10:51 - `DOC - Phase 12 - Phase Setup Cleanup - Add Future Phase File Checklist Format Rule`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Added a Future Phase File Setup Rule to docs/Phases/00_Phase-Setup.md. Defined the required top-of-file structure for future phase planning docs in docs/Phases/Future/.`
+
+#### Scope / Constraints Honored
+- Documentation-only update.
+- Kept worker protocol unchanged.
+- Kept graph `schemaVersion` unchanged.
+- Kept topology mutation boundaries unchanged.
+- Kept the `PartArtifact` contract unchanged.
+- Kept OutputPreview invariants unchanged.
+- Added no product behavior changes.
+
+#### Summary of Implementation
+- Added a `Future Phase File Setup Rule` to `docs/Phases/00_Phase-Setup.md`.
+- Defined the required top-of-file structure for future phase planning docs in `docs/Phases/Future/`.
+- Required the high-detail checklist in future phase files to use one visible parent checklist with section items and sub-checklist items underneath.
+- Kept the workflow split intact so `AGENTS.md` still owns the enforcement/workflow rule while `00_Phase-Setup.md` now owns the practical setup/template guidance.
+
+#### Files Changed
+- `docs/Phases/00_Phase-Setup.md`
+- `docs/CHANGELOG.md`
+- `docs/change-List.md`
+
+#### Behavior Changes (if any)
+- No product behavior changes.
+- Future phase files now have an explicit required checklist shape defined in the canonical phase setup doc.
+
+#### Verification Steps
+- Reviewed the updated `00_Phase-Setup.md` and confirmed it now includes the future phase-file naming rule, required sections, and checklist format example.
+- Confirmed the `Phase Loop Rule` remains in `AGENTS.md` so setup guidance and workflow enforcement stay split cleanly.
+- No build or test run required for this documentation-only update.
+
+<!-- ============================================================ -->
+### [129] - 2026-03-07 10:37 - `DOC - Phase 12 - Repo Docs And Workflow Cleanup - Consolidate Chill Batch #3`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Consolidated the active chill-mode work into one permanent changelog entry and one permanent docs/change-List.md line. Reworked the current phase docs so the canonical setup, checklist, and log now have a cleaner split between phase-system definition, future phase planning, and completed phase history.`
+
+#### Scope / Constraints Honored
+- Documentation-only consolidation.
+- Kept worker protocol unchanged.
+- Kept graph `schemaVersion` unchanged.
+- Kept topology mutation boundaries unchanged.
+- Kept the `PartArtifact` contract unchanged.
+- Kept OutputPreview invariants unchanged.
+- Added no product behavior changes.
+- Consolidated only `Chill Batch #3`.
+
+#### Summary of Implementation
+- Consolidated the active chill-mode work into one permanent changelog entry and one permanent `docs/change-List.md` line.
+- Reworked the current phase docs so the canonical setup, checklist, and log now have a cleaner split between phase-system definition, future phase planning, and completed phase history.
+- Expanded the repo-reference docs with a clearer repository snapshot, multi-level hierarchy views, snapshot explanation notes, and a restated ownership-boundary golden rule.
+- Tightened the repo workflow rules in `AGENTS.md`, including the phase-doc split, the new phase loop workflow, and a lighter chill-mode diff policy for routine small edits.
+- Continued the recovered-history cleanup with formatted `COPY` files, prompt/response summaries, missing-task reconstruction, and stronger compiled history notes around the early `/20/` restart seam.
+
+#### Files Changed
+- `AGENTS.md`
+- `docs/Chill-Log.md`
+- `docs/DOCindex.md`
+- `docs/History/0 - compiled-HISTORY.md`
+- `docs/History/8 - COPY.md`
+- `docs/History/9 - COPY.md`
+- `docs/History/12 - COPY.md`
+- `docs/History/MISSINGTASKS.md`
+- `docs/Phases/00_Phase-CheckList.md`
+- `docs/Phases/00_Phase-Setup.md`
+- `docs/Phases/00_Phase_Log.md`
+- `docs/Phases/00_Phase_List.md`
+- `docs/TASKLIST.md`
+- `docs/TaskHistoryCompilation.md`
+- `docs/repo.md`
+- `docs/CHANGELOG.md`
+- `docs/change-List.md`
+
+#### Behavior Changes (if any)
+- No product behavior changes.
+- The repo now has a clearer standing phase workflow: `00_Phase-Setup.md` for classification and future planning, `docs/Phases/Future/*.md` for active phase plans, and `00_Phase_Log.md` for completed detailed phase history.
+- `Chill Batch #3` is now permanently recorded in the repo changelog under `[104]`.
+
+#### Verification Steps
+- Reviewed the active entries in `Chill Batch #3` and consolidated them into one permanent changelog entry.
+- Added the matching one-line permanent entry to `docs/change-List.md`.
+- Marked `Chill Batch #3` as compiled in `docs/Chill-Log.md`.
+- No build or test run required for this documentation-only consolidation.
+
+<!-- ============================================================ -->
+### [128] - 2026-03-06 20:51 - `DOC - Phase 9 - Chill Mode Docs Workflow - Rename Canonical Chill Log To Chill-Log`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Renamed the canonical chill-mode file from docs/Chill-Mode-Edits.md to docs/Chill-Log.md. Updated the renamed file so its title, purpose, and canonical note use the new chill-log name.`
+
+#### Scope / Constraints Honored
+- Documentation-only update.
+- Kept worker protocol unchanged.
+- Kept graph `schemaVersion` unchanged.
+- Kept topology mutation boundaries unchanged.
+- Kept the `PartArtifact` contract unchanged.
+- Kept OutputPreview invariants unchanged.
+- Added no product behavior changes.
+
+#### Summary of Implementation
+- Renamed the canonical chill-mode file from `docs/Chill-Mode-Edits.md` to `docs/Chill-Log.md`.
+- Updated the renamed file so its title, purpose, and canonical note use the new chill-log name.
+- Updated `AGENTS.md` and `docs/Documentation-Rules.md` so the repo's active chill-mode instructions now point to `docs/Chill-Log.md`.
+
+#### Files Changed
+- `AGENTS.md`
+- `docs/Chill-Log.md`
+- `docs/Documentation-Rules.md`
+- `docs/CHANGELOG.md`
+- `docs/change-List.md`
+
+#### Behavior Changes (if any)
+- No product behavior changes.
+- The canonical chill-mode log path is now `docs/Chill-Log.md`.
+
+#### Verification Steps
+- Reviewed the renamed chill-mode file and confirmed the active batch history remained intact.
+- Updated the live chill-mode references in `AGENTS.md` and `docs/Documentation-Rules.md` to the new path.
+- No build or test run required for this documentation-only rename.
+
+<!-- ============================================================ -->
+### [127] - 2026-03-06 20:47 - `DOC - Phase 11 - History And Phase-System Consolidation - Consolidate Chill Batch #2`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Consolidated the active chill-mode work into one permanent changelog entry and one permanent docs/change-List.md line. Rebuilt the restored history system around structured historian summaries, compiled-history continuity, ordered restored task logs, and explicit gap tracking between recovered /20/ history and the shipped changelog era.`
+
+#### Scope / Constraints Honored
+- Documentation-only consolidation.
+- Kept worker protocol unchanged.
+- Kept graph `schemaVersion` unchanged.
+- Kept topology mutation boundaries unchanged.
+- Kept the `PartArtifact` contract unchanged.
+- Kept OutputPreview invariants unchanged.
+- Added no product behavior changes.
+- Consolidated only `Chill Batch #2`.
+
+#### Summary of Implementation
+- Consolidated the active chill-mode work into one permanent changelog entry and one permanent `docs/change-List.md` line.
+- Rebuilt the restored history system around structured historian summaries, compiled-history continuity, ordered restored task logs, and explicit gap tracking between recovered `/20/` history and the shipped changelog era.
+- Reworked the canonical docs and phase system around one active prefix model, including the canonical phase setup, grouped phase checklist, chronological phase list, and the supporting documentation rules.
+- Added and expanded roadmap and planning docs covering the current ParaHook vision, Spaghetti Studio direction, leaving legacy, and the current product/architecture roadmap layers.
+- Tightened the chill-mode file itself so the active chill log now matches the current `AGENTS.md` workflow without deleting older chill-history files.
+
+#### Files Changed
+- `docs/Chill-Mode-Edits.md`
+- `docs/Change-List-COMPILED.md`
+- `docs/Documentation-Rules.md`
+- `docs/TaskHistoryCompilation.md`
+- `docs/Bugs/0_Bug_Report.md`
+- `docs/History/0 - compiled-HISTORY.md`
+- `docs/History/0 - GIT.md`
+- `docs/History/0 - History-TaskList.md`
+- `docs/History/0 - History-TaskLog.md`
+- `docs/History/1 - chatgpt.md`
+- `docs/History/2 - chatgpt.md`
+- `docs/History/3 - chatgpt.md`
+- `docs/History/4 - chatgpt.md`
+- `docs/History/5 - chatgpt.md`
+- `docs/History/6 - chatgpt.md`
+- `docs/History/7 - chatgpt.md`
+- `docs/History/8 - chatgpt.md`
+- `docs/History/9 - chatgpt.md`
+- `docs/History/10 - chatgpt.md`
+- `docs/History/11 - chatgpt.md`
+- `docs/Phases/00_Phase-Setup.md`
+- `docs/Phases/00_Phase-CheckList.md`
+- `docs/Phases/00_Phase_List.md`
+- `docs/Phases/00_Phase_Log.md`
+- `docs/Plans/README.md`
+- `docs/Plans/Architecture/Spaghetti-Editor-Arch/Spaghetti-Editor-Explained.md`
+- `docs/Plans/Wish-Features/WISHLIST.md`
+- `docs/Plans/Wish-Features/Spaghetti-Editor/01.0 - Master Spaghetti.md`
+- `docs/Plans/Wish-Features/Spaghetti-Editor/01.5 - Muliple Spaghetti Bowls.md`
+- `docs/roadmap/02_Vision-Roadmap.md`
+- `docs/roadmap/03_Spaghetti-Studio.md`
+- `docs/roadmap/Focused-Roadmap.md`
+- `docs/roadmap/LEAVING-legacy.md`
+- `docs/roadmap/Medium ROADMAP.md`
+- `docs/tasks/001 - GE - Phase 1 - Clean Restart.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- No product behavior changes.
+- The repo now has a more coherent history-reconstruction system, a more stable canonical phase system, and clearer roadmap docs for the current ParaHook-to-Spaghetti-Studio direction.
+- `Chill Batch #2` is now permanently recorded in the repo changelog under `[102]`.
+
+#### Verification Steps
+- Reviewed the active entries in `Chill Batch #2` and consolidated them into one permanent changelog entry.
+- Added the matching one-line permanent entry to `docs/change-List.md`.
+- Marked `Chill Batch #2` as compiled in `docs/Chill-Mode-Edits.md`.
+- No build or test run required for this documentation-only consolidation.
+
+<!-- ============================================================ -->
+### [126] - 2026-03-06 02:35 - `DOC - Phase 10 - Docs Planning Sprint - Consolidate Chill Batch #1`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Consolidated Chill Batch #1 into one permanent changelog entry and one permanent change-List.md line. Organized the repoï¿½s planning/docs structure around architecture, wish features, Spaghetti editor planning, roadmap cleanup, and unresolved decisions.`
+
+#### Scope / Constraints Honored
+- Documentation-only consolidation.
+- Kept worker protocol unchanged.
+- Kept graph `schemaVersion` unchanged.
+- Kept topology mutation boundaries unchanged.
+- Kept the `PartArtifact` contract unchanged.
+- Kept OutputPreview invariants unchanged.
+- Added no product behavior changes.
+- Consolidated only `Chill Batch #1`.
+
+#### Summary of Implementation
+- Consolidated `Chill Batch #1` into one permanent changelog entry and one permanent `change-List.md` line.
+- Organized the repoï¿½s planning/docs structure around architecture, wish features, Spaghetti editor planning, roadmap cleanup, and unresolved decisions.
+- Added and expanded core planning docs for the current `/20/` app, including architecture history, system map, glossary, old-feature wishlist, Jake mode direction, decisions backlog, and Spaghetti editor concept docs.
+- Refined the chill-mode workflow itself by adding numbered batch entries, per-doc `Doc History` rules, and timestamped local doc histories.
+- Cleaned up several planning docs from pasted transcript form into structured reference notes.
+
+#### Files Changed
+- `AGENTS.md`
+- `docs/chill-mode-ChangeList.md`
+- `docs/change-List.md`
+- `docs/Plans/File-List.md`
+- `docs/Plans/Temp-CHANGELOG-Entry.md`
+- `docs/Plans/Architecture/Glossary.md`
+- `docs/Plans/Architecture/History.md`
+- `docs/Plans/Architecture/System-Map.md`
+- `docs/Plans/Decisions.MD`
+- `docs/Plans/Wish-Features/00 - old-Wishes.md`
+- `docs/Plans/Wish-Features/04 - Gizmo.md`
+- `docs/Plans/Wish-Features/10 - radio-Sampler.md`
+- `docs/Plans/Wish-Features/11 - Scenes.md`
+- `docs/Plans/Wish-Features/Jake-Mode.md`
+- `docs/Plans/Wish-Features/Spaghetti-Editor/01.0 - Master Spaghetti.md`
+- `docs/Plans/Wish-Features/Spaghetti-Editor/01.1 - Spaghetti Editor.md`
+- `docs/Plans/Wish-Features/Spaghetti-Editor/01.2 - Spaghetti Editor Tool Bar.md`
+- `docs/Plans/Wish-Features/Spaghetti-Editor/01.3 - Wires ui`
+- `docs/Plans/Wish-Features/Spaghetti-Editor/01.4 - Nodes.md`
+- `docs/roadmap/LegacyList.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- No product behavior changes.
+- The docs system now has a clearer planning structure and a cleaner distinction between architecture docs, wishlist docs, Spaghetti editor docs, roadmap cleanup notes, and open decisions.
+- `Chill Batch #1` is now permanently recorded in the repo changelog under `[101]`.
+
+#### Verification Steps
+- Reviewed all numbered entries in `Chill Batch #1` and consolidated them into one coherent permanent changelog entry.
+- Added the matching one-line entry to `docs/change-List.md`.
+- Marked `Chill Batch #1` as compiled in `docs/chill-mode-ChangeList.md`.
+- No build or test run required for this docs-only consolidation.
+
+<!-- ============================================================ -->
+### [125] - 2026-03-05 23:57 - `DOC - Phase 9 - Chill Mode Docs Workflow - Add Temporary Chill Change Log File`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Added docs/chill-mode-ChangeList.md as a temporary logging file for chill-mode edit batches. Initialized the file with purpose text, batch rules, and a starter Chill Batch #1 template.`
+
+#### Scope / Constraints Honored
+- Documentation-only change.
+- Kept worker protocol unchanged.
+- Kept graph `schemaVersion` unchanged.
+- Kept topology mutation boundaries unchanged.
+- Kept the `PartArtifact` contract unchanged.
+- Kept OutputPreview invariants unchanged.
+- Added no product behavior changes.
+
+#### Summary of Implementation
+- Added `docs/chill-mode-ChangeList.md` as a temporary logging file for chill-mode edit batches.
+- Initialized the file with purpose text, batch rules, and a starter `Chill Batch #1` template.
+- Left permanent tracking behavior unchanged outside chill mode.
+
+#### Files Changed
+- `docs/chill-mode-ChangeList.md`
+- `docs/CHANGELOG.md`
+- `docs/change-List.md`
+
+#### Behavior Changes (if any)
+- No product behavior changes.
+- The repo now has a dedicated temporary file for collecting chill-mode edit batches before consolidation.
+
+#### Verification Steps
+- Reviewed the new chill-mode log file structure and starter batch template.
+- No build or test run required for this documentation-only change.
+
+<!-- ============================================================ -->
+### [124] - 2026-03-05 23:54 - `DOC - Phase 9 - Chill Mode Docs Workflow - Add Chill Mode To AGENTS.md`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Added a Chill Mode Rule to AGENTS.md. Defined docs/Chill-Mode-Edits.md as the temporary log file for rapid small edits during chill mode.`
+
+#### Scope / Constraints Honored
+- Documentation/process update only.
+- Kept worker protocol unchanged.
+- Kept graph `schemaVersion` unchanged.
+- Kept topology mutation boundaries unchanged.
+- Kept the `PartArtifact` contract unchanged.
+- Kept OutputPreview invariants unchanged.
+
+#### Summary of Implementation
+- Added a `Chill Mode Rule` to `AGENTS.md`.
+- Defined `docs/Chill-Mode-Edits.md` as the temporary log file for rapid small edits during chill mode.
+- Defined the active `Chill Batch` workflow, including explicit activation, one active batch at a time, and consolidation into one `docs/CHANGELOG.md` entry plus one `docs/change-List.md` line when the user says `Update changelog`.
+
+#### Files Changed
+- `AGENTS.md`
+- `docs/CHANGELOG.md`
+- `docs/change-List.md`
+
+#### Behavior Changes (if any)
+- `AGENTS.md` now supports a special chill-mode workflow for rapid small edits without creating a permanent changelog entry for each edit.
+- Outside chill mode, the normal `docs/CHANGELOG.md` and `docs/change-List.md` rules still apply.
+
+#### Verification Steps
+- Reviewed the updated `AGENTS.md` rules for consistency with the requested chill-mode workflow.
+- No build or test run required for this docs-only policy update.
+
+<!-- ============================================================ -->
+### [123] - 2026-03-05 23:43 - `DOC - Phase 8 - Wish Features Setup - Spaghetti Editor Toolbar Wishlist`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Added docs/Wish-Features/3 - Spaghetti Editor Tool Bar.md to capture the desired future cleanup of the Spaghetti Editor toolbar area. Documented the current fragmented control ownership across SpaghettiPanel, SpaghettiEditor, and SpaghettiCanvas.`
+
+#### Scope / Constraints Honored
+- Documentation-only change.
+- Kept worker protocol unchanged.
+- Kept graph `schemaVersion` unchanged.
+- Kept topology mutation boundaries unchanged.
+- Kept the `PartArtifact` contract unchanged.
+- Kept OutputPreview invariants unchanged.
+- Added no product behavior changes.
+
+#### Summary of Implementation
+- Added `docs/Wish-Features/3 - Spaghetti Editor Tool Bar.md` to capture the desired future cleanup of the Spaghetti Editor toolbar area.
+- Documented the current fragmented control ownership across `SpaghettiPanel`, `SpaghettiEditor`, and `SpaghettiCanvas`.
+- Captured the requested direction: improve help text, redesign sample/load controls, reduce info-window height, move the toolbar drag bar below the toolbar, and move canvas-toolbar controls into the main toolbar.
+
+#### Files Changed
+- `docs/Wish-Features/3 - Spaghetti Editor Tool Bar.md`
+- `docs/CHANGELOG.md`
+- `docs/change-List.md`
+
+#### Behavior Changes (if any)
+- No product behavior changes.
+- The repo now has a dedicated wishlist doc for the future Spaghetti Editor toolbar cleanup.
+
+#### Verification Steps
+- Reviewed the new doc against the current control split in `SpaghettiPanel`, `SpaghettiEditor`, and `SpaghettiCanvas`.
+- No build or test run required for this documentation-only change.
+
+<!-- ============================================================ -->
+### [122] - 2026-03-05 23:37 - `DOC - Phase 8 - Wish Features Setup - Spaghetti Editor Wishlist`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Added docs/Wish-Features/Spaghetti Editor.md to capture future Spaghetti Editor ideas discussed in planning. Recorded current window/layout pain points, desired Toolbar/Half/Full/Browser window modes, and the desired top-right control model.`
+
+#### Scope / Constraints Honored
+- Documentation-only change.
+- Kept worker protocol unchanged.
+- Kept graph `schemaVersion` unchanged.
+- Kept topology mutation boundaries unchanged.
+- Kept the `PartArtifact` contract unchanged.
+- Kept OutputPreview invariants unchanged.
+- Added no product behavior changes.
+
+#### Summary of Implementation
+- Added `docs/Wish-Features/Spaghetti Editor.md` to capture future Spaghetti Editor ideas discussed in planning.
+- Recorded current window/layout pain points, desired Toolbar/Half/Full/Browser window modes, and the desired top-right control model.
+- Documented longer-term ideas for multiple editor instances, browser-window hosting, multi-document ownership, and shared-viewport rendering for multiple independent ParaHooks.
+
+#### Files Changed
+- `docs/Wish-Features/Spaghetti Editor.md`
+- `docs/CHANGELOG.md`
+- `docs/change-List.md`
+
+#### Behavior Changes (if any)
+- No product behavior changes.
+- The repo now has a dedicated Spaghetti Editor wishlist doc for future UI and architecture ideas.
+
+#### Verification Steps
+- Reviewed the new wishlist doc for consistency with recent Spaghetti windowing and multi-instance architecture discussions.
+- No build or test run required for this documentation-only change.
+
+<!-- ============================================================ -->
+### [121] - 2026-03-05 23:28 - `DOC - Phase 7 - Docs Policy Cleanup - Remove TASKLIST Requirement From AGENTS.md`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Removed docs/TASKLIST.md from the required tracking files in AGENTS.md. Removed the dedicated TASKLIST rule block from AGENTS.md.`
+
+#### Scope / Constraints Honored
+- Documentation/process update only.
+- Kept worker protocol unchanged.
+- Kept graph `schemaVersion` unchanged.
+- Kept topology mutation boundaries unchanged.
+- Kept the `PartArtifact` contract unchanged.
+- Kept OutputPreview invariants unchanged.
+
+#### Summary of Implementation
+- Removed `docs/TASKLIST.md` from the required tracking files in `AGENTS.md`.
+- Removed the dedicated `TASKLIST` rule block from `AGENTS.md`.
+- Updated the required maintenance sequence in `AGENTS.md` so it now requires `docs/CHANGELOG.md` and `docs/change-List.md`, but no longer requires `docs/TASKLIST.md`.
+
+#### Files Changed
+- `AGENTS.md`
+- `docs/CHANGELOG.md`
+- `docs/TASKLIST.md`
+- `docs/change-List.md`
+
+#### Behavior Changes (if any)
+- Future Codex implementation changes are no longer required by `AGENTS.md` to update `docs/TASKLIST.md`.
+- `docs/CHANGELOG.md` and `docs/change-List.md` remain required tracking files.
+
+#### Verification Steps
+- Reviewed the updated `AGENTS.md` instructions for consistency after removing `TASKLIST` maintenance requirements.
+- No build or test run required for this docs-only policy update.
+
+<!-- ============================================================ -->
+### [120] - 2026-03-05 23:23 - `SP - Phase 7 - Spaghetti Editor Window Update Phase Plan`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Added docs/Phases/UI_Window-Update_PhasePlan.md to plan the next Spaghetti window/layout phase. Captured the three current resize/layout bugs plus the new four-mode Spaghetti window feature request.`
+
+#### Scope / Constraints Honored
+- Documentation-only change.
+- Kept worker protocol unchanged.
+- Kept graph `schemaVersion` unchanged.
+- Kept topology mutation boundaries unchanged.
+- Kept the `PartArtifact` contract unchanged.
+- Kept OutputPreview invariants unchanged.
+- Added no product behavior changes.
+
+#### Summary of Implementation
+- Added `docs/Phases/UI_Window-Update_PhasePlan.md` to plan the next Spaghetti window/layout phase.
+- Captured the three current resize/layout bugs plus the new four-mode Spaghetti window feature request.
+- Recommended an ownership split where `AppShell` owns outer window modes and geometry while `SpaghettiPanel` owns header/canvas/debug split behavior.
+
+#### Files Changed
+- `docs/Phases/UI_Window-Update_PhasePlan.md`
+- `docs/CHANGELOG.md`
+- `docs/TASKLIST.md`
+- `docs/change-List.md`
+
+#### Behavior Changes (if any)
+- No product behavior changes.
+- The repo now has a dedicated UI phase plan for Spaghetti window bugs and future window modes.
+
+#### Verification Steps
+- Reviewed the new phase plan against the current `AppShell` and `SpaghettiPanel` layout responsibilities.
+- No build or test run required for this documentation-only change.
+
+<!-- ============================================================ -->
+### [119] - 2026-03-05 23:09 - `SP - Phase 6 - Resizable Debug Inspector Drawer`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Added a second vertical resize handle above the Debug Inspector drawer in SpaghettiPanel. Gave the debug drawer its own height state with drag-to-resize and double-click reset behavior, matching the existing Spaghetti editor resize affordance.`
+
+#### Scope / Constraints Honored
+- Kept worker protocol unchanged.
+- Kept graph `schemaVersion` unchanged.
+- Kept graph topology mutation boundaries unchanged.
+- Kept the `PartArtifact` contract unchanged.
+- Kept OutputPreview invariants unchanged.
+- Added no compile, runtime, selector, or viewer behavior changes.
+
+#### Summary of Implementation
+- Added a second vertical resize handle above the `Debug Inspector` drawer in `SpaghettiPanel`.
+- Gave the debug drawer its own height state with drag-to-resize and double-click reset behavior, matching the existing Spaghetti editor resize affordance.
+- Updated the debug drawer layout so the toggle remains fixed while the inspector body fills the drawer and scrolls within the resized area.
+
+#### Files Changed
+- `src/app/panels/SpaghettiPanel.tsx`
+- `src/app/spaghetti/ui/DebugInspectorDrawer.tsx`
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+- `docs/TASKLIST.md`
+- `docs/change-List.md`
+
+#### Behavior Changes (if any)
+- The `Debug Inspector` can now be resized vertically from a handle above the drawer.
+- Double-clicking the new resize handle resets the drawer to its default height.
+
+#### Verification Steps
+- `npm.cmd run build` (passed, existing Vite chunk-size warning only)
+
+<!-- ============================================================ -->
+### [118] - 2026-03-05 22:54 - `DOC - Phase 6 - Docs Task And Phase Setup - Plain-English Engine Architecture Overview`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Added docs/Architecture/Engine-Architecture.md to explain the app's engine in plain English. Documented the main layer boundaries: app/state, worker/build execution, viewer/rendering, and shared contracts.`
+
+#### Scope / Constraints Honored
+- Documentation-only change.
+- Kept worker protocol unchanged.
+- Kept graph `schemaVersion` unchanged.
+- Kept topology mutation boundaries unchanged.
+- Kept the `PartArtifact` contract unchanged.
+- Kept OutputPreview invariants unchanged.
+- Added no product behavior changes.
+
+#### Summary of Implementation
+- Added `docs/Architecture/Engine-Architecture.md` to explain the app's engine in plain English.
+- Documented the main layer boundaries: app/state, worker/build execution, viewer/rendering, and shared contracts.
+- Explained how legacy mode and Spaghetti mode both feed the same worker pipeline, and clarified the preview identity versus build identity split.
+
+#### Files Changed
+- `docs/Architecture/Engine-Architecture.md`
+- `docs/CHANGELOG.md`
+- `docs/TASKLIST.md`
+- `docs/change-List.md`
+
+#### Behavior Changes (if any)
+- No product behavior changes.
+- Repository docs now include a readable explanation of how the engine is structured and how data flows through it.
+
+#### Verification Steps
+- Reviewed the new architecture doc against current app, worker, shared, and spaghetti file structure.
+- No build or test run required for this documentation-only change.
+
+<!-- ============================================================ -->
+### [117] - 2026-03-05 22:45 - `DOC - Phase 6 - Docs Task And Phase Setup - Add Changelog-Derived Phase Checklist`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Populated docs/Phases/00_Phase-CheckList.md with one-line checklist entries grouped by phase family. Derived the checklist from completed CHANGELOG.md phase entries only, so listed phases are marked completed.`
+
+#### Scope / Constraints Honored
+- Documentation-only change.
+- Read phase names/status from `docs/CHANGELOG.md`.
+- Kept worker protocol unchanged.
+- Kept graph `schemaVersion` unchanged.
+- Kept topology mutation boundaries unchanged.
+- Kept the `PartArtifact` contract unchanged.
+- Kept OutputPreview invariants unchanged.
+
+#### Summary of Implementation
+- Populated `docs/Phases/00_Phase-CheckList.md` with one-line checklist entries grouped by phase family.
+- Derived the checklist from completed `CHANGELOG.md` phase entries only, so listed phases are marked completed.
+- Separated current canonical prefix-based phases from older legacy numbered phases instead of renaming historical work.
+
+#### Files Changed
+- `docs/Phases/00_Phase-CheckList.md`
+- `docs/CHANGELOG.md`
+- `docs/TASKLIST.md`
+- `docs/change-List.md`
+
+#### Behavior Changes (if any)
+- No product behavior changes.
+- The phase checklist now provides a changelog-derived grouped overview of completed phases.
+
+#### Verification Steps
+- Reviewed `docs/CHANGELOG.md` phase headings and populated `docs/Phases/00_Phase-CheckList.md` from those entries only.
+- No build or test run required for this documentation-only change.
+
+<!-- ============================================================ -->
+### [116] - 2026-03-05 22:37 - `DOC - Phase 6 - Docs Task And Phase Setup - Add Canonical Phase Setup Guide`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Added docs/Phases/01_Phase-Setup.md as a canonical planning-structure guide for the repo. Defined the intended roles of roadmap, phase setup docs, phase plans, task files, changelog, and change-list so each document type has a single responsibility.`
+
+#### Scope / Constraints Honored
+- Documentation-only change.
+- Kept worker protocol unchanged.
+- Kept graph `schemaVersion` unchanged.
+- Kept topology mutation boundaries unchanged.
+- Kept the `PartArtifact` contract unchanged.
+- Kept OutputPreview invariants unchanged.
+- Added no product behavior changes.
+
+#### Summary of Implementation
+- Added `docs/Phases/01_Phase-Setup.md` as a canonical planning-structure guide for the repo.
+- Defined the intended roles of roadmap, phase setup docs, phase plans, task files, changelog, and change-list so each document type has a single responsibility.
+- Documented a recommended stable track-prefix system (`GE`, `VM`, `NI`, `FS`, `PT`, `PR`, `AS`, `VR`, `DBG`, `EX`, `ADV`) and naming rules for phases/sub-phases.
+
+#### Files Changed
+- `docs/Phases/01_Phase-Setup.md`
+- `docs/CHANGELOG.md`
+- `docs/TASKLIST.md`
+- `docs/change-List.md`
+
+#### Behavior Changes (if any)
+- No product behavior changes.
+- Repository planning docs now include a higher-level guide for keeping roadmap, phases, tasks, and history separated.
+
+#### Verification Steps
+- Reviewed `docs/Phases/01_Phase-Setup.md` for consistency with the current docs structure and naming direction.
+- No build or test run required for this documentation-only change.
+
+<!-- ============================================================ -->
+### [115] - 2026-03-05 22:30 - `DOC - Phase 6 - Docs Task And Phase Setup - Split NI Task Files`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Added standalone task files for NI-1, NI-2, and NI-3 under docs/tasks/. Copied the current checklist/status content from docs/TASKLIST.md so the task files match the completed task blocks already tracked there.`
+
+#### Scope / Constraints Honored
+- Documentation-only change.
+- Kept worker protocol unchanged.
+- Kept graph `schemaVersion` unchanged.
+- Kept topology mutation boundaries unchanged.
+- Kept the `PartArtifact` contract unchanged.
+- Kept OutputPreview invariants unchanged.
+- Kept existing task wording/status sourced from `docs/TASKLIST.md`.
+
+#### Summary of Implementation
+- Added standalone task files for `NI-1`, `NI-2`, and `NI-3` under `docs/tasks/`.
+- Copied the current checklist/status content from `docs/TASKLIST.md` so the task files match the completed task blocks already tracked there.
+- Restored `docs/tasks/NI-3.md` after deletion and aligned it with the current canonical wording that uses `expanded` rather than `everything`.
+
+#### Files Changed
+- `docs/tasks/NI-1.md`
+- `docs/tasks/NI-2.md`
+- `docs/tasks/NI-3.md`
+- `docs/CHANGELOG.md`
+- `docs/TASKLIST.md`
+- `docs/change-List.md`
+
+#### Behavior Changes (if any)
+- No product behavior changes.
+- Documentation now has dedicated task files for the NI-1, NI-2, and NI-3 phases.
+
+#### Verification Steps
+- Verified `docs/tasks/NI-1.md`, `docs/tasks/NI-2.md`, and `docs/tasks/NI-3.md` were created from the current `docs/TASKLIST.md` entries.
+- No build or test run required for this documentation-only change.
+
+<!-- ============================================================ -->
+### [114] - 2026-03-05 22:05 - `DBG - Phase 1 - Debug Inspector Foundation`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Added a read-only Debug Inspector drawer to the Spaghetti panel with a show/hide toggle that only affects panel visibility. Introduced a selector-owned debug aggregation layer that surfaces compile status, received artifacts, deterministic OutputPreview slot mapping, preview render VM entries, and the exact preview renderables ViewerHost receives in spaghetti parts mode.`
+
+#### Scope / Constraints Honored
+- Kept worker protocol unchanged.
+- Kept graph `schemaVersion` unchanged.
+- Kept graph topology mutation boundaries unchanged.
+- Kept the `PartArtifact` contract unchanged.
+- Kept the Feature Stack IR shape unchanged.
+- Kept OutputPreview invariants unchanged.
+- Added no graph repair logic, debug mutation actions, selection/drag behavior changes, or part-specific debug branches.
+
+#### Summary of Implementation
+- Added a read-only `Debug Inspector` drawer to the Spaghetti panel with a show/hide toggle that only affects panel visibility.
+- Introduced a selector-owned debug aggregation layer that surfaces compile status, received artifacts, deterministic OutputPreview slot mapping, preview render VM entries, and the exact preview renderables `ViewerHost` receives in spaghetti parts mode.
+- Kept the inspector structured and deterministic with stable slot ordering, stable preview ordering, stable viewer-input ordering, and explicit empty/inactive states for missing artifacts or non-preview viewer modes.
+
+#### Files Changed
+- `src/app/panels/SpaghettiPanel.tsx`
+- `src/app/spaghetti/selectors/index.ts`
+- `src/app/spaghetti/selectors/selectDebugInspectorVm.ts`
+- `src/app/spaghetti/selectors/selectDebugInspectorVm.test.ts`
+- `src/app/spaghetti/ui/DebugInspectorDrawer.tsx`
+- `src/app/theme/v15Theme.css`
+- `docs/tasks/DBG-1.md`
+- `docs/CHANGELOG.md`
+- `docs/TASKLIST.md`
+- `docs/change-List.md`
+
+#### Behavior Changes (if any)
+- Added a developer-facing, read-only debug drawer for spaghetti preview pipeline inspection.
+- Showing or hiding the drawer does not change compile, graph, preview selector, worker, or viewer behavior.
+
+#### Verification Steps
+- `npx.cmd tsc -p tsconfig.json --noEmit` (passed)
+- `npm.cmd run test -- src/app/spaghetti/selectors/selectDebugInspectorVm.test.ts src/app/spaghetti/selectors/selectPreviewRenderVm.test.ts` (passed)
+- `npm.cmd run test` (passed)
+- `npm.cmd run build` (passed, existing Vite chunk-size warning only)
+- Manual browser verification of the new drawer was not run in this terminal-only environment.
+
+<!-- ============================================================ -->
+### [113] - 2026-03-05 21:47 - `NI - Phase 5 - Modern Node Interaction Cleanup - Node Section Collapse Consistency`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Normalized part-node section shells in NodeView so Drivers, Inputs, Feature Stack, and Outputs share one deterministic body-visibility rule: collapsed node mode hides all section bodies, while section toggles remain node-scoped and independent. Restored deterministic node-title mode cycling through the canonical NI-2 vocabulary (collapsed -> essentials -> expanded -> collapsed) by wiring title clicks through canvas-owned node mode state instead of reintroducing any canvas-global mode owner.`
+
+#### Scope / Constraints Honored
+- Kept worker protocol unchanged.
+- Kept graph `schemaVersion` unchanged.
+- Kept topology mutation boundaries unchanged.
+- Kept the `PartArtifact` contract unchanged.
+- Kept the Feature Stack IR schema unchanged.
+- Kept OutputPreview invariants unchanged.
+- Added no section tri-state behavior, nested node behavior, worker/runtime/compile contract expansion, or automatic mode switching.
+- Preserved the NI-1 selection/drag interaction model and NI-2 node-scoped mode ownership.
+
+#### Summary of Implementation
+- Normalized part-node section shells in `NodeView` so `Drivers`, `Inputs`, `Feature Stack`, and `Outputs` share one deterministic body-visibility rule: collapsed node mode hides all section bodies, while section toggles remain node-scoped and independent.
+- Restored deterministic node-title mode cycling through the canonical NI-2 vocabulary (`collapsed -> essentials -> expanded -> collapsed`) by wiring title clicks through canvas-owned node mode state instead of reintroducing any canvas-global mode owner.
+- Removed real feature input-port rows from sketch/extrude feature panels, kept status-only linked-input indicators inside Feature Stack, and left actual wireable inputs owned by the `Inputs` section.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/rowViewMode.ts`
+- `src/app/spaghetti/canvas/rowViewMode.test.ts`
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+- `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
+- `src/app/spaghetti/ui/FeatureStackView.tsx`
+- `src/app/spaghetti/ui/features/SketchFeatureView.tsx`
+- `src/app/spaghetti/ui/features/ExtrudeFeatureView.tsx`
+
+#### Behavior Changes
+- Collapsed mode now renders section shells only for part nodes; section bodies stay hidden until the node returns to `essentials` or `expanded`.
+- Feature Stack no longer renders actual `Feature Wire Inputs` or owns wireable port rows; linked feature params now render as status-only indicators while real inputs remain in the `Inputs` section.
+- Part nodes keep deterministic section order (`Drivers -> Inputs -> Feature Stack -> Outputs`) and title clicks now cycle the current nodeï¿½s mode without altering NI-1 drag ownership.
+
+#### Verification Steps
+- `npx.cmd tsc -p tsconfig.json --noEmit` (passed)
+- `npm.cmd run test -- src/app/spaghetti/canvas/rowViewMode.test.ts src/app/spaghetti/canvas/NodeView.test.tsx src/app/spaghetti/canvas/state/spaghettiUiStore.test.ts src/app/spaghetti/canvas/interactionModel.test.ts` (passed)
+- `npm.cmd run test` (passed)
+- `npm.cmd run build` (passed, existing Vite chunk-size warning only)
+
+<!-- ============================================================ -->
+### [112] - 2026-03-05 20:57 - `NI - Phase 5 - Modern Node Interaction Cleanup - Per-Node View Mode System`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Replaced the canvas-global row mode with node-scoped UI-store state by adding nodeModeByNodeId, getNodeMode(nodeId), and setNodeMode(nodeId, mode), with deterministic fallback to essentials. Standardized the view-mode vocabulary to collapsed | essentials | expanded, removed the remaining internal everything token, and updated NodeView to read its mode directly from useSpaghettiUiStore.`
+
+#### Scope / Constraints Honored
+- Kept worker protocol unchanged.
+- Kept graph `schemaVersion` unchanged.
+- Kept topology mutation boundaries unchanged.
+- Kept the `PartArtifact` contract unchanged.
+- Kept the Feature Stack IR schema unchanged.
+- Kept OutputPreview invariants unchanged.
+- Added no section tri-state behavior, node rendering refactor, collapse consistency cleanup, or automatic mode changes.
+- Preserved the NI-1 selection/drag interaction model.
+
+#### Summary of Implementation
+- Replaced the canvas-global row mode with node-scoped UI-store state by adding `nodeModeByNodeId`, `getNodeMode(nodeId)`, and `setNodeMode(nodeId, mode)`, with deterministic fallback to `essentials`.
+- Standardized the view-mode vocabulary to `collapsed | essentials | expanded`, removed the remaining internal `everything` token, and updated `NodeView` to read its mode directly from `useSpaghettiUiStore`.
+- Removed the canvas-toolbar row-mode selector, converted the node context menu to target the clicked nodeï¿½s stored mode, and removed the old hidden auto-mode switching paths so canvas rendering no longer has a global mode owner.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/rowViewMode.ts`
+- `src/app/spaghetti/canvas/rowViewMode.test.ts`
+- `src/app/spaghetti/canvas/state/spaghettiUiStore.ts`
+- `src/app/spaghetti/canvas/state/spaghettiUiStore.test.ts`
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+- `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
+
+#### Verification
+- `npx.cmd tsc -p tsconfig.json --noEmit` (passed)
+- `npm.cmd run test -- src/app/spaghetti/canvas/rowViewMode.test.ts src/app/spaghetti/canvas/state/spaghettiUiStore.test.ts src/app/spaghetti/canvas/NodeView.test.tsx src/app/spaghetti/canvas/interactionModel.test.ts` (passed)
+- `npm.cmd run test` (passed)
+- `npm.cmd run build` (passed)
+
+<!-- ============================================================ -->
+### [111] - 2026-03-05 20:21 - `NI - Phase 5 - Modern Node Interaction Cleanup - Node Selection And Drag Model`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Split node interaction ownership into explicit header and body paths in NodeView, with header hits reserved for drag-capable selection and body hits reserved for selection-only behavior. Updated SpaghettiCanvas to treat node-owned pointer paths separately from true empty-canvas deselection, so inside-node clicks no longer leak into stage clearing and drag can only arm from the header path.`
+
+#### Scope / Constraints Honored
+- Kept worker protocol unchanged.
+- Kept graph `schemaVersion` unchanged.
+- Kept topology mutation boundaries unchanged.
+- Kept the `PartArtifact` contract unchanged.
+- Kept the Feature Stack IR schema unchanged.
+- Kept OutputPreview invariants unchanged.
+- Added no per-node view modes, section tri-state logic, rendering-mode redesign, or hidden automatic mode cleanup.
+
+#### Summary of Implementation
+- Split node interaction ownership into explicit header and body paths in `NodeView`, with header hits reserved for drag-capable selection and body hits reserved for selection-only behavior.
+- Updated `SpaghettiCanvas` to treat node-owned pointer paths separately from true empty-canvas deselection, so inside-node clicks no longer leak into stage clearing and drag can only arm from the header path.
+- Added deterministic interaction-model tests for selection, drag gating, and empty-canvas clearing, plus a `NodeView` assertion that the component renders distinct header/body interaction zones.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+- `src/app/spaghetti/canvas/interactionModel.ts`
+- `src/app/spaghetti/canvas/interactionModel.test.ts`
+
+#### Verification
+- `npm.cmd run test -- src/app/spaghetti/canvas/interactionModel.test.ts src/app/spaghetti/canvas/NodeView.test.tsx` (passed)
+- `npx.cmd tsc -p tsconfig.json --noEmit` (passed)
+- `npm.cmd run test` (passed)
+- `npm.cmd run build` (passed)
+
+<!-- ============================================================ -->
+### [110] - 2026-03-05 19:36 - `DR - Phase 12 - Param And Input Node Foundation`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Added authored utility node registry entries for Param/Number, Param/Boolean, and Param/Vec2 with deterministic defaults, stable value outputs, and local evaluation-only compute behavior. Hid legacy Primitive/Number and Primitive/Vec2 from new add-node authoring while keeping them readable/evaluable, and added a selector-owned compact utility VM/render path so authored values no longer rely on the old Primitive/Number output-port editing special case.`
+
+#### Scope / Constraints Honored
+- Kept worker protocol unchanged.
+- Kept graph `schemaVersion` unchanged.
+- Kept topology mutation boundaries unchanged (`graphCommands/` + `normalizeGraphForStoreCommit` only).
+- Kept the `PartArtifact` contract unchanged.
+- Kept the Feature Stack IR schema unchanged.
+- Kept OutputPreview invariants unchanged.
+- Kept selector/viewer architecture unchanged.
+- Added no Rail Math, pin exposure, profile runtime expansion, worker/runtime geometry changes, or toolbar/palette redesign.
+
+#### Summary of Implementation
+- Added authored utility node registry entries for `Param/Number`, `Param/Boolean`, and `Param/Vec2` with deterministic defaults, stable `value` outputs, and local evaluation-only compute behavior.
+- Hid legacy `Primitive/Number` and `Primitive/Vec2` from new add-node authoring while keeping them readable/evaluable, and added a selector-owned compact utility VM/render path so authored values no longer rely on the old `Primitive/Number` output-port editing special case.
+- Routed utility-node edits through `setNodeParams` graph commands in the canvas, added compact helper-node styling/rendering for number/boolean/vec2 values, and expanded deterministic tests for registry contracts, evaluation, contract parity, selector VM output, and NodeView rendering.
+
+#### Files Changed
+- `src/app/spaghetti/registry/nodeRegistry.ts`
+- `src/app/spaghetti/registry/nodeRegistry.test.ts`
+- `src/app/spaghetti/selectors/selectNodeVm.ts`
+- `src/app/spaghetti/selectors/selectNodeVm.test.ts`
+- `src/app/spaghetti/selectors/__snapshots__/selectNodeVm.test.ts.snap`
+- `src/app/spaghetti/selectors/index.ts`
+- `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+- `src/app/spaghetti/compiler/evaluateGraph.test.ts`
+- `src/app/spaghetti/contracts/contractParity.test.ts`
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+- `docs/TASKLIST.md`
+- `docs/change-List.md`
+
+#### Behavior Changes (if any)
+- New graphs can add `Param/Number`, `Param/Boolean`, and `Param/Vec2` nodes from the add menu; legacy primitive number/vec2 nodes remain compatible but are no longer offered for new authoring.
+- `Param/Number` now wires directly into existing `number:mm` inputs and `Param/Vec2` wires directly into existing `vec2:mm` inputs through the normal shared endpoint validator.
+- Utility value nodes now render as compact helper nodes with selector-owned view-model data and command-routed param edits instead of relying on the old `Primitive/Number` inline output-port editor path.
+
+#### Verification Steps
+- `npm.cmd run test`
+- `npm.cmd run build`
+
+<!-- ============================================================ -->
+### [109] - 2026-03-05 19:11 - `FS - Phase 15 - Multi-Part Feature Stack Support`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Generalized spaghetti part ownership in compileGraph so supported part nodes compile into deterministic canonical partKeyStr values across singleton and multi-instance graphs, while preserving legacy singleton keys where required. Threaded compile-owned ordered part keys into spaghetti build request translation and shared part-key ordering helpers so Build Stats, cache rows, and worker/runtime ordering all use the same canonical source/build identity rules.`
+
+#### Scope / Constraints Honored
 - Kept worker protocol unchanged.
 - Kept graph `schemaVersion` unchanged.
 - Kept topology mutation boundaries unchanged (`graphCommands/` + `normalizeGraphForStoreCommit` only).
@@ -18,13 +1906,13 @@ Numbering rule for major entries:
 - Kept FS-3 internal dependency visualization behavior unchanged.
 - Added no boolean operations, mating/alignment systems, subgraphs/containers, export pipeline changes, or new geometry kinds.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Generalized spaghetti part ownership in `compileGraph` so supported part nodes compile into deterministic canonical `partKeyStr` values across singleton and multi-instance graphs, while preserving legacy singleton keys where required.
 - Threaded compile-owned ordered part keys into spaghetti build request translation and shared part-key ordering helpers so Build Stats, cache rows, and worker/runtime ordering all use the same canonical source/build identity rules.
 - Hardened worker/runtime multi-part execution so part-local sketch/profile/body identities no longer collide across different graph-owned parts, while preserving the existing `PartArtifact` and worker message contracts.
 - Preserved explicit OutputPreview slot mapping through `nodeId -> sourcePartKeyStr -> artifact` and added regression coverage for multi-slot preview resolution, unresolved-slot behavior, repeated compile/build parity, and deterministic cache-hit ordering.
 
-### Files Changed
+#### Files Changed
 - `src/app/parts/partKeyResolver.ts`
 - `src/app/spaghetti/compiler/compileGraph.ts`
 - `src/app/spaghetti/compiler/compileGraph.test.ts`
@@ -43,74 +1931,77 @@ Numbering rule for major entries:
 - `docs/TASKLIST.md`
 - `docs/change-List.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - Multiple supported spaghetti part nodes in the same graph now compile into deterministic canonical owned part keys and can build/render together without reusing preview slot ids as artifact identity.
 - OutputPreview can now resolve multiple distinct spaghetti artifacts in one graph while preserving slot order, unresolved-slot visibility, and slot-scoped viewer identity.
 - Repeated unchanged multi-part spaghetti builds now surface deterministic source/build cache rows keyed by canonical `partKeyStr`, with `assembled` still last.
 
-### Verification Steps
+#### Verification Steps
 - `npm.cmd run test`
 - `npm.cmd run build`
 
 <!-- ============================================================ -->
-## [083] 2026-03-05 19:00 (Docs Policy: Rewrite AGENTS.md Into Clean Canonical Rules)
+### [108] - 2026-03-05 19:00 - `DOC - Phase 5 - Docs Policy Cleanup - Rewrite AGENTS Into Canonical Rules`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Replaced the layered AGENTS.md instructions with a cleaner canonical rule set organized by purpose, required files, and maintenance sequence. Preserved the existing repository requirements for CHANGELOG.md, TASKLIST.md, and change-List.md while rewriting them in a more direct format for Codex consumption.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - Documentation/process update only.
 - Kept worker protocol unchanged.
 - Kept graph `schemaVersion` unchanged.
 - Kept topology mutation boundaries unchanged (`graphCommands/` + `normalizeGraphForStoreCommit` only).
 - Kept OutputPreview invariants unchanged.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Replaced the layered `AGENTS.md` instructions with a cleaner canonical rule set organized by purpose, required files, and maintenance sequence.
 - Preserved the existing repository requirements for `CHANGELOG.md`, `TASKLIST.md`, and `change-List.md` while rewriting them in a more direct format for Codex consumption.
 - Consolidated duplicate maintenance guidance into a single readable instruction flow.
 
-### Files Changed
+#### Files Changed
 - `AGENTS.md`
 - `docs/CHANGELOG.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - Repository maintenance rules are now easier to parse, but the required maintenance behavior remains the same: update changelog, tasklist, and change-list for implementation work.
 
-### Verification Steps
+#### Verification Steps
 - Reviewed rewritten `AGENTS.md` for rule completeness and consistency.
 - No build or test run required for this docs-only policy update.
 
 <!-- ============================================================ -->
-## [082] 2026-03-05 18:53 (Docs Policy: Preserve Full Completed Phase Blocks In Tasklist)
+### [107] - 2026-03-05 18:53 - `DOC - Phase 5 - Docs Policy Cleanup - Preserve Completed Task Blocks`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Updated AGENTS.md so tasklist maintenance instructions explicitly forbid deleting old phase task lists after completion. Added a rule that completed phases must remain as full completed checklist blocks with accomplished items marked [x].`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - Documentation/process update only.
 - Kept worker protocol unchanged.
 - Kept graph `schemaVersion` unchanged.
 - Kept topology mutation boundaries unchanged (`graphCommands/` + `normalizeGraphForStoreCommit` only).
 - Kept OutputPreview invariants unchanged.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Updated `AGENTS.md` so tasklist maintenance instructions explicitly forbid deleting old phase task lists after completion.
 - Added a rule that completed phases must remain as full completed checklist blocks with accomplished items marked `[x]`.
 - Clarified that completed phase sections should retain visible phase headers and separator lines in the tasklist, similar in spirit to changelog section boundaries.
 
-### Files Changed
+#### Files Changed
 - `AGENTS.md`
 - `docs/CHANGELOG.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - Future tasklist maintenance is now required to preserve full historical completed phase blocks instead of collapsing them into short summaries or deleting older phase task lists.
 
-### Verification Steps
+#### Verification Steps
 - Reviewed updated `AGENTS.md` instructions for tasklist maintenance consistency.
 - No build or test run required for this docs-only policy update.
 
 <!-- ============================================================ -->
-## [081] 2026-03-05 18:46 (Phase FS-3 Feature Dependency Visualization)
+### [106] - 2026-03-05 18:46 - `FS - Phase 14 - Feature Stack Expansion And Dependency Visualization - Dependency Visualization`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Extended the shared FS-2 dependency utility to emit deterministic feature rows plus feature-to-feature and driver-to-feature dependency edges without mutating graph or feature state. Threaded selector-owned feature row ids, row indexes, and internal dependency edges through selectNodeVm so part-node rendering reads deterministic dependency VMs instead of recomputing feature graph logic in the UI.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - Kept worker protocol unchanged.
 - Kept graph `schemaVersion` unchanged.
 - Kept topology mutation boundaries unchanged (`graphCommands/` + `normalizeGraphForStoreCommit` only).
@@ -119,14 +2010,14 @@ Numbering rule for major entries:
 - Kept FS-2 feature ordering, enable/disable semantics, and compile behavior unchanged.
 - Added no multi-part support, boolean operations, sketch solver tooling, or new graph wiring systems.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Extended the shared FS-2 dependency utility to emit deterministic feature rows plus feature-to-feature and driver-to-feature dependency edges without mutating graph or feature state.
 - Threaded selector-owned feature row ids, row indexes, and internal dependency edges through `selectNodeVm` so part-node rendering reads deterministic dependency VMs instead of recomputing feature graph logic in the UI.
 - Updated the part node UI to register stable driver/feature row anchors and render a local internal dependency overlay only in `everything` mode when the existing `Show internal wiring` toggle is enabled.
 - Kept dependency styling structural-only so existing DR-1 warnings/diagnostics remain the status layer, while disabled or ineffective features/wires stay visible in muted form.
 - Added deterministic regression coverage for dependency graph analysis, selector VM output, feature row anchors, and node overlay gating.
 
-### Files Changed
+#### Files Changed
 - `src/app/spaghetti/features/featureDependencies.ts`
 - `src/app/spaghetti/features/featureDependencies.test.ts`
 - `src/app/spaghetti/selectors/selectNodeVm.ts`
@@ -139,20 +2030,21 @@ Numbering rule for major entries:
 - `src/app/theme/v15Theme.css`
 - `docs/CHANGELOG.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - Part-template nodes in `everything` mode can now show deterministic internal dependency wires for existing driver-to-feature and feature-to-feature relationships when `Show internal wiring` is enabled.
 - Collapsed and compact node modes remain unchanged and do not render the internal dependency overlay.
 - Disabled or ineffective features remain visible in the feature stack and dependency visualization without changing compile/runtime behavior.
 
-### Verification Steps
+#### Verification Steps
 - `npm.cmd run test`
 - `npm.cmd run build`
 
 <!-- ============================================================ -->
-## [080] 2026-03-05 18:35 (Phase FS-2 Feature Stack Core Operations Expansion)
+### [105] - 2026-03-05 18:35 - `FS - Phase 14 - Feature Stack Expansion And Dependency Visualization - Core Operations Expansion`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Added generic feature-stack enabled-state support with backward-compatible default enable behavior for legacy stored features. Introduced shared feature dependency analysis so compile, validation, diagnostics, and reorder guards all use the same prior-enabled-feature ordering rules.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - Kept worker protocol unchanged.
 - Kept graph `schemaVersion` unchanged.
 - Kept topology mutation boundaries unchanged (`graphCommands/` + `normalizeGraphForStoreCommit` only).
@@ -161,15 +2053,15 @@ Numbering rule for major entries:
 - Kept selector-driven UI flow unchanged.
 - Added no multi-part support, boolean operations, sketch solver tooling, or alternate geometry pipelines.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Added generic feature-stack enabled-state support with backward-compatible default enable behavior for legacy stored features.
 - Introduced shared feature dependency analysis so compile, validation, diagnostics, and reorder guards all use the same prior-enabled-feature ordering rules.
 - Hardened `compileFeatureStack` to emit deterministic IR from the effective enabled feature order only, while preserving feature ids and current runtime payload shape.
 - Added commit-boundary feature editing actions for move-up, move-down, and enable/disable in the Spaghetti store, with deterministic rejection of dependency-breaking reorders.
 - Updated the feature stack UI to expose row-level Up/Down and Enable/Disable controls while keeping disabled features visible and locally editable in place.
-- Preserved Cube’s existing render path while ensuring disabled or misordered feature dependencies resolve as unresolved through the current compile/runtime/artifact pipeline.
+- Preserved Cubeï¿½s existing render path while ensuring disabled or misordered feature dependencies resolve as unresolved through the current compile/runtime/artifact pipeline.
 
-### Files Changed
+#### Files Changed
 - `src/app/spaghetti/features/featureTypes.ts`
 - `src/app/spaghetti/features/featureSchema.ts`
 - `src/app/spaghetti/features/featureDependencies.ts`
@@ -188,21 +2080,22 @@ Numbering rule for major entries:
 - `src/worker/cad/featureStackRuntime.test.ts`
 - `docs/CHANGELOG.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - Feature stacks now support deterministic feature enable/disable state without changing graph topology or the existing render pipeline.
 - Feature reorders are allowed only when they preserve valid enabled-feature dependency ordering.
 - Disabled features remain visible in the stack UI but are excluded from compiled/runtime feature execution.
 - Cube remains renderable through the existing FS-1 pipeline, and disabling its extrude feature leaves it unresolved at runtime instead of producing a render artifact.
 
-### Verification Steps
+#### Verification Steps
 - `npm.cmd run test`
 - `npm.cmd run build`
 
 <!-- ============================================================ -->
-## [079] 2026-03-05 18:17 (Phase FS-1A Spaghetti Build Stats / Cache Panel Integration)
+### [104] - 2026-03-05 18:17 - `FS - Phase 14 - Feature Stack Expansion And Dependency Visualization - Build Stats And Cache Integration`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Added a shared deterministic build-stats key helper so spaghetti builds derive canonical source/build part rows from the same profile patch content already sent to the worker. Narrowed spaghetti build request translation to a minimal profile patch and carried forward a canonical partKeys list for stats seeding, keeping cube keyed by build identity rather than preview slot identity.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - Kept worker protocol unchanged.
 - Kept graph `schemaVersion` unchanged.
 - Kept topology mutation boundaries unchanged (`graphCommands/` + `normalizeGraphForStoreCommit` only).
@@ -211,7 +2104,7 @@ Numbering rule for major entries:
 - Kept title-bar stats panel expand/collapse behavior unchanged.
 - Added no new node types, geometry features, cache-engine redesign, or multi-part support.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Added a shared deterministic build-stats key helper so spaghetti builds derive canonical source/build part rows from the same profile patch content already sent to the worker.
 - Narrowed spaghetti build request translation to a minimal profile patch and carried forward a canonical `partKeys` list for stats seeding, keeping `cube` keyed by build identity rather than preview slot identity.
 - Extended app build wiring so `BuildDispatcher` resets stats rows from a provider-driven canonical part-key list, preserving legacy ordering while letting spaghetti builds seed rows like `cube` plus `assembled`.
@@ -219,7 +2112,7 @@ Numbering rule for major entries:
 - Scoped cache/progress routing changes so `sp_*` changed ids invalidate the relevant spaghetti row set without redesigning cache semantics.
 - Added deterministic regression coverage for shared key derivation, spaghetti build request translation, dispatcher row seeding, and worker progress/cache output.
 
-### Files Changed
+#### Files Changed
 - `src/shared/buildStatsKeys.ts`
 - `src/shared/buildStatsKeys.test.ts`
 - `src/app/buildDispatcher.ts`
@@ -234,169 +2127,175 @@ Numbering rule for major entries:
 - `src/worker/pipeline/signatures.ts`
 - `docs/CHANGELOG.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - The Build Stats panel now shows spaghetti build rows using canonical source/build identity such as `cube`, instead of falling back to the legacy fixed row list for spaghetti builds.
 - Repeated unchanged spaghetti builds now surface deterministic cache-hit rows aligned with the same canonical spaghetti part keys that drive viewport-visible artifacts.
 - Legacy build stats ordering remains unchanged, and `assembled` still appears as the final row.
 
-### Verification Steps
+#### Verification Steps
 - `npm.cmd run test`
 - `npm.cmd run build`
 
 <!-- ============================================================ -->
-## [078] 2026-03-05 18:08 (Phase UI-2.4 Spaghetti Panel Split Resize Ownership Fix)
+### [103] - 2026-03-05 18:08 - `SP - Phase 5 - Spaghetti Window And Layout Foundations - Split Resize Ownership Fix`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Moved the vertical resize handle behavior from SpaghettiEditor into SpaghettiPanel, where the actual header-versus-canvas split is defined. Changed the resize logic to control the canvas wrap height directly so dragging the handle now shrinks the expanded header block instead of only resizing content inside the canvas region.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - Kept worker protocol unchanged.
 - Kept graph `schemaVersion` unchanged.
 - Kept topology mutation boundaries unchanged (`graphCommands/` + `normalizeGraphForStoreCommit` only).
 - Kept OutputPreview invariants unchanged.
 - Limited the change to Spaghetti panel/editor layout and resize ownership.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Moved the vertical resize handle behavior from `SpaghettiEditor` into `SpaghettiPanel`, where the actual header-versus-canvas split is defined.
 - Changed the resize logic to control the canvas wrap height directly so dragging the handle now shrinks the expanded header block instead of only resizing content inside the canvas region.
 - Tightened the header block flex rules so the expanded header can collapse into its own scrollbar while the lower editor area grows.
 - Removed the old inner-editor resize state and handle ownership from `SpaghettiEditor`.
 
-### Files Changed
+#### Files Changed
 - `src/app/panels/SpaghettiPanel.tsx`
 - `src/app/spaghetti/ui/SpaghettiEditor.tsx`
 - `src/app/theme/v15Theme.css`
 - `docs/CHANGELOG.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - Dragging the resize bar now resizes the actual panel split between the collapsible header section and the lower editor/canvas section.
 - With the header expanded, the handle can move through space that was previously blocked because the header now shrinks and scrolls instead of staying fixed above the editor.
 
-### Verification Steps
+#### Verification Steps
 - `npm.cmd run test`
 - `npm.cmd run build`
 - Result: tests passed; build succeeded.
 
 <!-- ============================================================ -->
-## [077] 2026-03-05 18:04 (Phase UI-2.3 Spaghetti Editor Minimum Height Reduction)
+### [102] - 2026-03-05 18:04 - `SP - Phase 5 - Spaghetti Window And Layout Foundations - Minimum Height Reduction`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Reduced the Spaghetti editor minimum manual resize height from 280px to 100px. Preserved the existing top resize handle behavior and bottom-anchored editor layout while allowing the handle to move higher.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - Kept worker protocol unchanged.
 - Kept graph `schemaVersion` unchanged.
 - Kept topology mutation boundaries unchanged (`graphCommands/` + `normalizeGraphForStoreCommit` only).
 - Kept OutputPreview invariants unchanged.
 - Limited the change to Spaghetti editor resize clamp behavior.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Reduced the Spaghetti editor minimum manual resize height from `280px` to `100px`.
 - Preserved the existing top resize handle behavior and bottom-anchored editor layout while allowing the handle to move higher.
 
-### Files Changed
+#### Files Changed
 - `src/app/spaghetti/ui/SpaghettiEditor.tsx`
 - `docs/CHANGELOG.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - The Spaghetti editor can now be resized much shorter before the top handle hits its minimum-height stop.
 
-### Verification Steps
+#### Verification Steps
 - `npm.cmd run test`
 - `npm.cmd run build`
 - Result: tests passed; build succeeded.
 
 <!-- ============================================================ -->
-## [076] 2026-03-05 17:57 (Phase UI-2.2 Spaghetti Panel Header Scroll Relocation)
+### [101] - 2026-03-05 17:57 - `SP - Phase 5 - Spaghetti Window And Layout Foundations - Header Scroll Relocation`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Moved the scrollable overflow region up from the expanded editor toolbar area into the collapsible Spaghetti panel header block. Added a dedicated header scroll container so the section beginning at How To Use Spaghetti Editor scrolls independently when the panel is short.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - Kept worker protocol unchanged.
 - Kept graph `schemaVersion` unchanged.
 - Kept topology mutation boundaries unchanged (`graphCommands/` + `normalizeGraphForStoreCommit` only).
 - Kept OutputPreview invariants unchanged.
 - Limited the change to Spaghetti panel/editor layout behavior.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Moved the scrollable overflow region up from the expanded editor toolbar area into the collapsible Spaghetti panel header block.
 - Added a dedicated header scroll container so the section beginning at `How To Use Spaghetti Editor` scrolls independently when the panel is short.
 - Removed the expanded-toolbar scrollbar so the lower editor controls and canvas region remain separate from the header scroll behavior.
 
-### Files Changed
+#### Files Changed
 - `src/app/panels/SpaghettiPanel.tsx`
 - `src/app/theme/v15Theme.css`
 - `docs/CHANGELOG.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - When the Spaghetti panel header is expanded, the help/sample/compile/status section now owns the scrollbar.
 - The expanded/collapsed mode controls and canvas area no longer show that scrollbar.
 
-### Verification Steps
+#### Verification Steps
 - `npm.cmd run test`
 - `npm.cmd run build`
 - Result: tests passed; build succeeded.
 
 <!-- ============================================================ -->
-## [075] 2026-03-05 17:49 (Phase UI-2.1 Spaghetti Editor Minimum Width Tightening)
+### [100] - 2026-03-05 17:49 - `SP - Phase 5 - Spaghetti Window And Layout Foundations - Minimum Width Tightening`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Reduced the floating Spaghetti editor minimum width in AppShell from 560 to 320. Tightened the minimum window width so the editor can shrink to roughly the same width footprint as the top-left ParaHook Generator v20 title bar region.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - Kept worker protocol unchanged.
 - Kept graph `schemaVersion` unchanged.
 - Kept topology mutation boundaries unchanged (`graphCommands/` + `normalizeGraphForStoreCommit` only).
 - Kept OutputPreview invariants unchanged.
 - Limited the change to floating Spaghetti editor window sizing behavior.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Reduced the floating Spaghetti editor minimum width in `AppShell` from `560` to `320`.
 - Tightened the minimum window width so the editor can shrink to roughly the same width footprint as the top-left `ParaHook Generator v20` title bar region.
 
-### Files Changed
+#### Files Changed
 - `src/app/AppShell.tsx`
 - `docs/CHANGELOG.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - The floating Spaghetti editor can now be resized narrower before hitting its minimum width limit.
 
-### Verification Steps
+#### Verification Steps
 - `npm.cmd run test`
 - `npm.cmd run build`
 - Result: tests passed; build succeeded.
 
 <!-- ============================================================ -->
-## [074] 2026-03-05 17:43 (Phase UI-2 Spaghetti Canvas Vertical Resize Handle)
+### [099] - 2026-03-05 17:43 - `SP - Phase 5 - Spaghetti Window And Layout Foundations - Vertical Resize Handle`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Added a drag handle above the Spaghetti editor content so users can resize the full editor block vertically from its top edge while keeping it bottom-anchored. Implemented pointer-driven editor-height resizing in SpaghettiEditor with minimum-height and parent-height clamping.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - Kept worker protocol unchanged.
 - Kept graph `schemaVersion` unchanged.
 - Kept topology mutation boundaries unchanged (`graphCommands/` + `normalizeGraphForStoreCommit` only).
 - Kept OutputPreview invariants unchanged.
 - Limited the change to Spaghetti editor layout/UI behavior.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Added a drag handle above the Spaghetti editor content so users can resize the full editor block vertically from its top edge while keeping it bottom-anchored.
 - Implemented pointer-driven editor-height resizing in `SpaghettiEditor` with minimum-height and parent-height clamping.
 - Added double-click reset behavior on the resize bar to restore the default flexible editor height.
 - Added scrollable editor-body behavior so header controls and canvas remain reachable when the editor is resized shorter.
 - Styled the resize control as a dedicated top splitter/grab bar inside the Spaghetti editor shell.
 
-### Files Changed
+#### Files Changed
 - `src/app/spaghetti/ui/SpaghettiEditor.tsx`
 - `src/app/theme/v15Theme.css`
 - `docs/CHANGELOG.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - The Spaghetti editor block can now be manually dragged taller or shorter from a top resize bar while staying anchored to the bottom of its panel.
 - When the editor is resized smaller than its content, the editor body scrolls instead of clipping the header/canvas controls.
 - Default behavior remains unchanged until the user drags the handle; double-click resets the manual height.
 
-### Verification Steps
+#### Verification Steps
 - `npm.cmd run test`
 - `npm.cmd run build`
 - Result: tests passed; build succeeded.
 
 <!-- ============================================================ -->
-## [073] 2026-03-05 17:28 (Phase FS-1 Feature Stack Solid Contract Lock)
+### [098] - 2026-03-05 17:28 - `FS - Phase 13 - Feature Stack Solid Contract Lock`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Locked src/shared/buildTypes.ts as the canonical solid artifact contract and made PartArtifact require partKey and partKeyStr. Added shared artifact identity helpers for canonical part-key parsing, validation, and viewer-part wrapping.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - Kept worker protocol unchanged.
 - Kept graph `schemaVersion` unchanged.
 - Kept topology mutation boundaries unchanged (`graphCommands/` + `normalizeGraphForStoreCommit` only).
@@ -404,7 +2303,7 @@ Numbering rule for major entries:
 - Kept selector-driven preview/viewer flow unchanged.
 - Added no new geometry kinds, multi-part support, booleans, or graph architecture changes.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Locked `src/shared/buildTypes.ts` as the canonical solid artifact contract and made `PartArtifact` require `partKey` and `partKeyStr`.
 - Added shared artifact identity helpers for canonical part-key parsing, validation, and viewer-part wrapping.
 - Collapsed `src/shared/partsTypes.ts` onto the canonical shared contract so the repo no longer carries a second competing `PartArtifact` definition.
@@ -414,7 +2313,7 @@ Numbering rule for major entries:
 - Tightened build-result validation to treat current worker artifacts as canonical instead of optional/best-effort identity payloads.
 - Added deterministic regression coverage for the shared artifact contract, preview slot/source mapping, and repeated graph-produced Cube artifact builds.
 
-### Files Changed
+#### Files Changed
 - `src/shared/buildTypes.ts`
 - `src/shared/buildTypes.test.ts`
 - `src/shared/partsTypes.ts`
@@ -435,20 +2334,21 @@ Numbering rule for major entries:
 - `src/worker/products/foothook/parts/toeHook.ts`
 - `docs/CHANGELOG.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - Preview slot identity now stays explicit as `viewerKey` instead of being encoded by mutating `PartArtifact.partKeyStr`.
 - Canonical artifacts retain source part identity all the way into preview/viewer flow.
 - Spaghetti-mode slot visibility, selection, and unresolved-slot exclusion behavior remain unchanged.
 
-### Verification Steps
+#### Verification Steps
 - `npm.cmd run test`
 - `npm.cmd run build`
 
 <!-- ============================================================ -->
-## [072] 2026-03-05 17:10 (Phase FS-0B First Renderable Part Through Existing Part Pipeline)
+### [097] - 2026-03-05 17:10 - `FS - Phase 12 - First Renderable Part Through Existing Part Pipeline`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Added Part/CubeProof as a minimal cube-aligned proof node with a deterministic rectangle-to-extrude default Feature Stack and the existing OutputPreview-consumable output kind. Extended compile-time part ownership so PART_NODE_SPECS and computeFeatureStackIrParts() map Part/CubeProof to cubeProof.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - Kept worker protocol unchanged.
 - Kept graph `schemaVersion` unchanged.
 - Kept topology mutation boundaries unchanged (`graphCommands/` + `normalizeGraphForStoreCommit` only).
@@ -456,7 +2356,7 @@ Numbering rule for major entries:
 - Kept selector-driven preview/viewer flow unchanged.
 - Added no parallel mesh-output architecture, scripting nodes, or subgraph/container systems.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Added `Part/CubeProof` as a minimal cube-aligned proof node with a deterministic rectangle-to-extrude default Feature Stack and the existing OutputPreview-consumable output kind.
 - Extended compile-time part ownership so `PART_NODE_SPECS` and `computeFeatureStackIrParts()` map `Part/CubeProof` to `cubeProof`.
 - Documented the two critical path handoffs:
@@ -469,7 +2369,7 @@ Numbering rule for major entries:
 - Relaxed shared/app-side artifact validation just enough to accept non-legacy graph-produced part ids like `cubeProof`, while preserving legacy build ordering behavior.
 - Added deterministic compile/runtime/selector coverage for the proof part and preserved DR-1 unresolved-slot preview exclusion behavior.
 
-### Files Changed
+#### Files Changed
 - `src/shared/buildTypes.ts`
 - `src/app/buildDispatcher.ts`
 - `src/app/parts/partKeyResolver.ts`
@@ -483,19 +2383,20 @@ Numbering rule for major entries:
 - `src/worker/cad/featureStackRuntime.test.ts`
 - `docs/CHANGELOG.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - Graph-produced `cubeProof` parts now flow through the existing `PartArtifact -> OutputPreview -> selector -> ViewerHost` path.
 - Missing proof-part artifacts remain excluded from preview rendering while slot connectivity behavior stays unchanged.
 
-### Verification Steps
+#### Verification Steps
 - `npm.cmd run test`
 - `npm.cmd run build`
 
 <!-- ============================================================ -->
-## [071] 2026-03-05 15:37 (Phase VM-1B Selector Contract Hardening)
+### [096] - 2026-03-05 15:37 - `VM - Phase 5 - Selector Contract Hardening`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Standardized selector access through src/app/spaghetti/selectors/index.ts and expanded barrel exports for hardened VM contracts/types. Hardened selector contracts and identities.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - Kept worker protocol unchanged.
 - Kept graph `schemaVersion` unchanged.
 - Kept topology mutation boundaries unchanged (`graphCommands/` + `normalizeGraphForStoreCommit` only).
@@ -503,7 +2404,7 @@ Numbering rule for major entries:
 - Added no new node types or geometry features.
 - Limited this phase to selector contract hardening and UI import/consumption cleanup.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Standardized selector access through `src/app/spaghetti/selectors/index.ts` and expanded barrel exports for hardened VM contracts/types.
 - Hardened selector contracts and identities:
   - `selectNodeVm` now emits full `NodeVm` metadata used by canvas/node rendering (title/template/ports/sections/row-group metadata) with stable `nodeId`.
@@ -518,7 +2419,7 @@ Numbering rule for major entries:
   - `ViewerHost` now consumes selector-provided preview VM (`viewerParts`) from barrel and no longer reshapes preview artifacts locally.
 - Added selector barrel contract test plus VM snapshot coverage for Node/Driver/Preview/Diagnostics contracts.
 
-### Files Changed
+#### Files Changed
 - `src/app/spaghetti/selectors/index.ts`
 - `src/app/spaghetti/selectors/selectDiagnosticsVm.ts`
 - `src/app/spaghetti/selectors/selectDriverVm.ts`
@@ -543,27 +2444,28 @@ Numbering rule for major entries:
 - `src/app/panels/PartsListPanel.tsx`
 - `docs/CHANGELOG.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - No feature-level behavior changes introduced.
 - UI rendering now consumes hardened selector VM contracts directly for target surfaces; existing VM-1/DR-1 behavior remains preserved.
 
-### Verification Steps
+#### Verification Steps
 - `npm.cmd run test`
 - `npm.cmd run build`
 - Result: tests passed; build succeeded.
 
 <!-- ============================================================ -->
-## [070] 2026-03-05 13:08 (Phase DR-1 Driver Diagnostics & Invalid Wiring Visualization)
+### [095] - 2026-03-05 13:08 - `DR - Phase 11 - Driver Diagnostics And Invalid Wiring Visualization`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Extended diagnostics selector VM with deterministic edge + slot state. Kept endpoint-derived helpers secondary-only by documenting buildEndpointGroupingKey(...) for grouping/contract semantics (not diagnostics identity).`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - Kept worker protocol unchanged.
 - Kept graph `schemaVersion` unchanged.
 - Kept topology mutation boundaries unchanged (`graphCommands/` + `normalizeGraphForStoreCommit` only).
 - Kept OutputPreview slot normalization invariant unchanged (exactly one trailing empty slot in graph state).
 - Kept selector-driven UI integration pattern.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Extended diagnostics selector VM with deterministic edge + slot state:
   - added `edgeStatusById` keyed by stable `edgeId` identity,
   - added `slotStatus` for OutputPreview slots (`ok` / `unresolved` / `empty`),
@@ -577,7 +2479,7 @@ Numbering rule for major entries:
 - Extended preview render selector to skip `unresolved` slots so unresolved entries remain visible in Parts List but are excluded from preview mesh rendering.
 - Added deterministic tests for missing-port/type-mismatch/unresolved/cycle status classification and selector/view-model behavior.
 
-### Files Changed
+#### Files Changed
 - `src/app/spaghetti/selectors/selectDiagnosticsVm.ts`
 - `src/app/spaghetti/contracts/endpoints.ts`
 - `src/app/spaghetti/canvas/WireLayer.tsx`
@@ -595,22 +2497,23 @@ Numbering rule for major entries:
 - `src/app/spaghetti/partsList/selectPartsListItems.test.ts`
 - `docs/CHANGELOG.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - Non-`ok` edges now render dashed in Spaghetti canvas.
 - Driver rows with non-`ok` driver-input edges now show warning indicators and tooltip diagnostics.
 - OutputPreview slot state is explicitly represented as `ok` / `unresolved` / `empty`.
 - Preview rendering now skips slots marked `unresolved`; unresolved slots remain visible in Parts List UI.
 
-### Verification Steps
+#### Verification Steps
 - `npm.cmd run test`
 - `npm.cmd run build`
 - Result: all tests passed; build succeeded.
 
 <!-- ============================================================ -->
-## [069] 2026-03-05 12:13 (Phase CT-1 Contract Lock: Resolver/Validator/Canvas Parity)
+### [094] - 2026-03-05 12:13 - `GE - Phase 10 - Contract Lock - Resolver Validator Canvas Parity`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Added shared endpoint contract module at src/app/spaghetti/contracts/endpoints.ts. Rewired canvas cheap-check (validateConnectionCheap) to call shared contract only.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - Kept worker protocol unchanged.
 - Kept graph `schemaVersion` unchanged.
 - Did not modify `compileGraph.ts` or `evaluateGraph.ts` behavior.
@@ -618,7 +2521,7 @@ Numbering rule for major entries:
 - Added no topology mutation in evaluator/selector/render/compile paths.
 - Kept topology mutation limited to graph commands + deterministic normalization.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Added shared endpoint contract module at `src/app/spaghetti/contracts/endpoints.ts`:
   - driver alias canonicalization (`drv:*`/`drv:in:*` to canonical `out:drv:*`/`in:drv:*`)
   - node-type-aware canonicalization entrypoint
@@ -635,7 +2538,7 @@ Numbering rule for major entries:
 - Updated driver input auto-replace target keying to use shared canonical endpoint key helper.
 - Added CT-1 parity test suite asserting canvas cheap-check and validator contract decision agreement (`ok` + `code`) across driver aliases, mixed alias counting behavior, unit mismatch, OutputPreview dynamic slot ports, feature virtual ports, and composite leaf-path rules.
 
-### Files Changed
+#### Files Changed
 - `src/app/spaghetti/contracts/endpoints.ts`
 - `src/app/spaghetti/contracts/contractParity.test.ts`
 - `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
@@ -643,21 +2546,22 @@ Numbering rule for major entries:
 - `src/app/spaghetti/compiler/validateGraph.ts`
 - `docs/CHANGELOG.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - Canvas cheap-check now derives rejection codes/messages from the shared contract engine used by `validateGraph`.
 - Driver-input drop validation remains replace-friendly by validating projected post-auto-replace topology before command commit.
 - Validator and canvas now share deterministic endpoint resolution/canonicalization and connection decision codes, reducing parity drift risk.
 
-### Verification Steps
+#### Verification Steps
 - `npm.cmd run test`
 - `npm.cmd run build`
 - Result: all tests passed; build succeeded.
 
 <!-- ============================================================ -->
-## [068] 2026-03-05 11:48 (Phase VM-1 Derived View Model Selectors)
+### [093] - 2026-03-05 11:48 - `VM - Phase 4 - Derived View Model Selectors`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Added pure deterministic selector layer under src/app/spaghetti/selectors/. Refactored SpaghettiCanvas node render-data derivation to use selectNodeVm via useMemo, removing large inline derivation logic.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - Kept worker protocol unchanged.
 - Kept graph `schemaVersion` unchanged.
 - Did not modify `compileGraph.ts` or `evaluateGraph.ts` behavior.
@@ -665,7 +2569,7 @@ Numbering rule for major entries:
 - Added no topology mutation in selectors.
 - Kept UI integration incremental with selector-backed derivation in existing render flow.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Added pure deterministic selector layer under `src/app/spaghetti/selectors/`:
   - `selectNodeVm` for node-card derived rows/details/composite input state and driver VM assembly.
   - `selectDriverVm` for driven driver row state and numeric offset/effective derivation.
@@ -676,7 +2580,7 @@ Numbering rule for major entries:
 - Updated viewer preview wiring to use `selectPreviewRenderVm` while preserving render contract.
 - Added selector test coverage for deterministic ordering, offset-mode correctness, OP-5 parity, stable diagnostics ordering, and idempotence.
 
-### Files Changed
+#### Files Changed
 - `src/app/spaghetti/selectors/selectNodeVm.ts`
 - `src/app/spaghetti/selectors/selectDriverVm.ts`
 - `src/app/spaghetti/selectors/selectPreviewRenderVm.ts`
@@ -690,20 +2594,21 @@ Numbering rule for major entries:
 - `src/app/components/ViewerHost.tsx`
 - `docs/CHANGELOG.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - No topology/runtime protocol changes.
 - UI derivation logic is now selector-backed, improving determinism and testability with behavior parity preserved.
 
-### Verification Steps
+#### Verification Steps
 - `npm.cmd run test`
 - `npm.cmd run build`
 - Result: all tests passed; build succeeded.
 
 <!-- ============================================================ -->
-## [067] 2026-03-05 11:28 (Phase CK-1 Graph Command Kernel)
+### [092] - 2026-03-05 11:28 - `GE - Phase 9 - Graph Command Kernel`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Introduced centralized graph command kernel under src/app/spaghetti/graphCommands/ with pure (graph) => nextGraph commands. Added applyGraphCommand(cmd) to useSpaghettiStore and wired it through existing normalization (normalizeGraphForStoreCommit) and waypoint pruning.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - Kept worker protocol unchanged.
 - Kept graph `schemaVersion` unchanged.
 - Did not modify `compileGraph.ts` or `evaluateGraph.ts` behavior.
@@ -712,7 +2617,7 @@ Numbering rule for major entries:
 - Kept UI refactor minimal by replacing topology mutations with graph command calls.
 - Preserved deterministic command behavior and post-command normalization flow.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Introduced centralized graph command kernel under `src/app/spaghetti/graphCommands/` with pure `(graph) => nextGraph` commands:
   - `addNode`, `removeNode`, `addEdge`, `removeEdge`, `replaceEdge`, `setNodeParams`, `setNodePosition`
   - `connectEdgeWithAutoReplace` + `planConnectEdgeWithAutoReplace` wrapper around driver input auto-replace planning.
@@ -725,7 +2630,7 @@ Numbering rule for major entries:
 - Refactored `SpaghettiEditor` node add flow to use `addNode` command.
 - Added command-layer tests covering add/remove node/edge, auto-replace connect behavior, determinism, and OutputPreview non-deletable invariant through store command+normalization path.
 
-### Files Changed
+#### Files Changed
 - `src/app/spaghetti/graphCommands/types.ts`
 - `src/app/spaghetti/graphCommands/addNode.ts`
 - `src/app/spaghetti/graphCommands/removeNode.ts`
@@ -742,20 +2647,21 @@ Numbering rule for major entries:
 - `src/app/spaghetti/ui/SpaghettiEditor.tsx`
 - `docs/CHANGELOG.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - Topology mutations are now centralized through graph command functions plus store commit normalization.
 - Existing user-facing behavior is preserved; OutputPreview singleton invariant remains enforced after command commits.
 
-### Verification Steps
+#### Verification Steps
 - `npm.cmd run test`
 - `npm.cmd run build`
 - Result: all tests passed; build succeeded.
 
 <!-- ============================================================ -->
-## [066] 2026-03-05 11:13 (Phase 2C v2.2: Driven Numeric Driver Offset Mode)
+### [091] - 2026-03-05 11:13 - `DR - Phase 10 - Driven Numeric Driver Offset Mode`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Added optional part-node param metadata for driven numeric offsets. Extended store commit normalization to.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - Kept worker protocol unchanged.
 - Kept graph `schemaVersion` unchanged.
 - Did not modify `compileGraph.ts` or `evaluateGraph.ts` implementation files.
@@ -764,7 +2670,7 @@ Numbering rule for major entries:
 - Kept topology mutations out of evaluation/selector/render/compile paths; normalization-only params patching used.
 - Did not auto-delete edges for unresolved/invalid driver states.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Added optional part-node param metadata for driven numeric offsets:
   - `driverOffsetByParamId?: Record<string, number>`
   - `driverDrivenByParamId?: Record<string, true>`
@@ -787,7 +2693,7 @@ Numbering rule for major entries:
   - driven numeric rows show read-only driven value, editable offset control, and read-only effective value,
   - unresolved driven behavior remains intact with unresolved messaging.
 
-### Files Changed
+#### Files Changed
 - `src/app/spaghetti/registry/nodeRegistry.ts`
 - `src/app/spaghetti/store/useSpaghettiStore.ts`
 - `src/app/spaghetti/features/driverVirtualPorts.ts`
@@ -803,48 +2709,50 @@ Numbering rule for major entries:
 - `src/app/spaghetti/canvas/NodeView.test.tsx`
 - `docs/CHANGELOG.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - Driven numeric driver virtual outputs now emit effective values (`driven + offset`) when driven metadata is present.
 - Numeric driver rows in driven mode now expose an editable local offset and read-only effective readout.
 - Driven-but-unresolved behavior remains unresolved; offset is not applied in unresolved state.
 - Non-numeric drivers and non-driven numeric drivers retain prior behavior.
 
-### Verification Steps
+#### Verification Steps
 - `npm.cmd run test`
 - `npm.cmd run build`
 - Result: all tests passed; build succeeded.
 
 <!-- ============================================================ -->
-## [065] 2026-03-05 01:22 (Roadmap Restore: Revert to Previous Tree-Backed Layout)
+### [090] - 2026-03-05 01:22 - `DOC - Phase 4 - Roadmap Restore - Previous Tree-Backed Layout`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Reverted docs/roadmap.md from the condensed execution-queue format back to the prior version. Restored the full trailing history tree and hierarchy sections that were previously present at the end of the file.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - Documentation-only rollback of roadmap structure.
 - No source/runtime/schema/protocol changes.
 - Preserved existing changelog entries without edits.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Reverted `docs/roadmap.md` from the condensed execution-queue format back to the prior version.
 - Restored the full trailing history tree and hierarchy sections that were previously present at the end of the file.
 - Preserved prior track ordering and checklist content in the restored roadmap format.
 
-### Files Changed
+#### Files Changed
 - `docs/roadmap.md`
 - `docs/CHANGELOG.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - No runtime behavior changes.
 - Roadmap document returns to the prior tree-inclusive presentation.
 
-### Verification Steps
+#### Verification Steps
 - Reviewed `docs/roadmap.md` and confirmed `## History Tree` and trailing hierarchy content are present.
 - Confirmed new changelog section inserted at top with next sequential index `[065]`.
 
 <!-- ============================================================ -->
-## [064] 2026-03-05 01:21 (Phase DR-0 Driver Input+Output Ports: Canonical IDs + Dual-Read Compatibility)
+### [089] - 2026-03-05 01:21 - `DR - Phase 9 - Canonical Driver ID Contract`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Switched canonical driver virtual port IDs to. Preserved dual-read compatibility for legacy aliases.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - Kept worker protocol unchanged.
 - Kept graph `schemaVersion` unchanged.
 - Did not modify `compileGraph` or `evaluateGraph` implementation files.
@@ -852,7 +2760,7 @@ Numbering rule for major entries:
 - No new node types introduced.
 - Limited canvas changes to minimal driver-wire exposure/parity paths.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Switched canonical driver virtual port IDs to:
   - input: `in:drv:<paramId>`
   - output: `out:drv:<paramId>`
@@ -865,7 +2773,7 @@ Numbering rule for major entries:
 - Updated full validator endpoint counting to canonicalize driver-input endpoint keys so mixed alias edges respect the single-connection contract.
 - Expanded tests to cover canonical contract, compatibility aliases, unit mismatch rejection for `in:drv:*`, and mixed-alias max-connection behavior.
 
-### Files Changed
+#### Files Changed
 - `src/app/spaghetti/features/driverVirtualPorts.ts`
 - `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
 - `src/app/spaghetti/canvas/driverInputAutoReplace.ts`
@@ -879,28 +2787,29 @@ Numbering rule for major entries:
 - `src/app/spaghetti/compiler/evaluateGraph.test.ts`
 - `docs/CHANGELOG.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - New canonical IDs are now first-class for driver virtual wiring:
   - `out:drv:*` for driver outputs
   - `in:drv:*` for driver inputs
 - Legacy IDs remain accepted for backwards compatibility.
 - Mixed canonical/legacy driver-input aliases now resolve as one logical endpoint for max-connection enforcement/auto-replace semantics.
 
-### Verification Steps
+#### Verification Steps
 - `npm.cmd run test`
 - `npm.cmd run build`
 - Result: all tests passed; build succeeded.
 
 <!-- ============================================================ -->
-## [063] 2026-03-05 01:15 (Roadmap Reorganization: Execution Queue + Track Consolidation)
+### [088] - 2026-03-05 01:15 - `DOC - Phase 3 - Roadmap Reorganization - Execution Queue And Track Consolidation`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Replaced docs/roadmap.md with a focused working roadmap structure. Aligned current priorities with recent logs.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - Documentation-only update.
 - No source code, schema, runtime, worker, or protocol changes.
 - Preserved historical implementation detail in existing changelog/archive docs.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Replaced `docs/roadmap.md` with a focused working roadmap structure:
   - explicit `Now`, `Next`, and `After Next` execution queue,
   - grouped active tracks by delivery concern (driver wiring, geometry/feature stack, sketch reliability, architecture hardening),
@@ -911,23 +2820,24 @@ Numbering rule for major entries:
   - recent completions called out for `[060]` and `[062]`,
   - queue centered on open driver and parity work.
 
-### Files Changed
+#### Files Changed
 - `docs/roadmap.md`
 - `docs/CHANGELOG.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - No runtime behavior changes.
 - Planning workflow now has a single concise execution view with reduced duplication/noise.
 
-### Verification Steps
+#### Verification Steps
 - Reviewed `docs/roadmap.md` section order and status grouping for consistency.
 - Confirmed new entry inserted at top of `docs/CHANGELOG.md` with sequential index `[063]`.
 
 <!-- ============================================================ -->
-## [062] 2026-03-04 22:12 (Post-4A Hardening: Tessellation Determinism + CCW Lock)
+### [087] - 2026-03-04 22:12 - `GE - Phase 8 - Runtime Bridge Hardening - Tessellation Determinism And CCW Lock`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Extracted runtime tessellation into compiler-local helper runtimeTessellation.ts and wired compileGraph to use it. Added deterministic tessellation constants and pipeline.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - Kept tessellation strictly at the compile-to-worker boundary (`compileGraph` payload assembly path).
 - Preserved worker protocol and runtime contract:
   - `schemaVersion` remains `1`,
@@ -935,7 +2845,7 @@ Numbering rule for major entries:
 - Kept analytic `ProfileLoop.segments` authoritative in app state.
 - Did not move tessellation into worker/runtime layers.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Extracted runtime tessellation into compiler-local helper `runtimeTessellation.ts` and wired `compileGraph` to use it.
 - Added deterministic tessellation constants and pipeline:
   - canonicalize to 6 decimals,
@@ -950,60 +2860,62 @@ Numbering rule for major entries:
   - CCW/non-negative loop area assertion.
 - Added focused tessellation unit tests for epsilon join suppression, closure snap/no double-close, CCW enforcement, and repeat determinism.
 
-### Files Changed
+#### Files Changed
 - `src/app/spaghetti/compiler/runtimeTessellation.ts`
 - `src/app/spaghetti/compiler/runtimeTessellation.test.ts`
 - `src/app/spaghetti/compiler/compileGraph.ts`
 - `src/app/spaghetti/compiler/compileGraph.test.ts`
 - `docs/listofchanges.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - Runtime sketch vertices emitted by compile-time tessellation are now epsilon-hardened and canonicalized deterministically.
 - Near-closure endpoints are snapped deterministically; runtime payload remains worker-compatible with unchanged schema/op set.
 
-### Verification Steps
+#### Verification Steps
 - `npm.cmd run test -- src/app/spaghetti/compiler/runtimeTessellation.test.ts src/app/spaghetti/compiler/compileGraph.test.ts`
 - `npm.cmd run test`
 - `npm.cmd run build`
 - Result: tests passed and build succeeded.
 
 <!-- ============================================================ -->
-## [061] 2026-03-04 22:01 (Phase 4A Runtime Bridge: Added Next-Task Changelog Entry)
+### [086] - 2026-03-04 22:01 - `GE - Phase 8 - Runtime Bridge Hardening - Added Next-Task Changelog Entry`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Added changelog tracking entry for the queued Phase 4A runtime bridge task. No runtime behavior changes.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - Documentation-only update.
 - No worker/protocol/scheduler changes.
 - No schema/runtime/compiler behavior changes.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Added changelog tracking entry for the queued Phase 4A runtime bridge task:
   - analytic `ProfileLoop.segments` bridge to runtime vertex loops,
   - tessellation at compile-to-runtime boundary only,
   - runtime ops contract remains `sketch` + `extrude`.
 
-### Files Changed
+#### Files Changed
 - `docs/listofchanges.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - No runtime behavior changes.
 - Change tracking now includes the Phase 4A runtime bridge next task.
 
-### Verification Steps
+#### Verification Steps
 - Reviewed `docs/listofchanges.md` for format consistency and sequential section index (`[061]`).
 
 <!-- ============================================================ -->
-## [060] 2026-03-04 20:57 (Phase 2B v2.0: Expand Feature Virtual Inputs to Extrude Taper/Offset)
+### [085] - 2026-03-04 20:57 - `DR - Phase 8 - Virtual Feature Wiring Expansion - Expand Extrude Taper And Offset Inputs`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Expanded feature virtual input contract from Extrude.depth only to Extrude.depth, Extrude.taper, and Extrude.offset. Added deterministic virtual ID/type handling for.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - App-layer only.
 - No worker/protocol/scheduler changes.
 - No schema version bump.
 - Resolver remains single source of truth across validator/canvas/evaluator/UI.
 - NodeView remains generic.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Expanded feature virtual input contract from `Extrude.depth` only to `Extrude.depth`, `Extrude.taper`, and `Extrude.offset`.
 - Added deterministic virtual ID/type handling for:
   - `fs:in:<featureId>:extrude:depth` (`number:mm`)
@@ -1016,7 +2928,7 @@ Numbering rule for major entries:
 - Extended extrude UI rows and wiring state for depth/taper/offset with driven lock + unresolved behavior consistency.
 - Added/updated tests for virtual ports, validation parity, evaluate determinism, compile overrides/defaults, and UI rendering behavior.
 
-### Files Changed
+#### Files Changed
 - `src/app/spaghetti/features/featureTypes.ts`
 - `src/app/spaghetti/features/featureSchema.ts`
 - `src/app/spaghetti/features/featureVirtualPorts.ts`
@@ -1037,57 +2949,59 @@ Numbering rule for major entries:
 - `src/app/spaghetti/canvas/NodeView.test.tsx`
 - `docs/listofchanges.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - Users can now wire into extrude taper/offset feature params using feature virtual inputs.
 - Feature virtual inputs remain whole-port only; path-based connections are explicitly rejected.
 - Occupied `fs:in:*` endpoints still reject in cheap-check (`maxConnectionsIn = 1`), unchanged from feature input contract.
 - Compiled extrude IR now always includes deterministic resolved numeric fields for taper and offset.
 
-### Verification Steps
+#### Verification Steps
 - `npm.cmd run test`
 - `npm.cmd run build`
 - Result: all tests passed and build succeeded.
 
 <!-- ============================================================ -->
-## [059] 2026-03-04 20:33 (Renumber NODE Tasklist Sections After Duplicate 7)
+### [084] - 2026-03-04 20:33 - `DOC - Phase 2 - Node Tasking And Checklist Support - Renumber Tasklist Sections`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Updated docs/NODE-tasklist.md section numbering to resolve duplicate 7 and increment subsequent sections. Applied requested sequence adjustment.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - Documentation-only update.
 - No worker/protocol/scheduler changes.
 - No schema/runtime/compiler behavior changes.
 - Preserved changelog format and top-insert ordering.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Updated `docs/NODE-tasklist.md` section numbering to resolve duplicate `7` and increment subsequent sections.
 - Applied requested sequence adjustment:
   - second `7` -> `8`,
   - all following section numbers incremented by `+1`.
 - Resulting section sequence from that point is now monotonic and unambiguous.
 
-### Files Changed
+#### Files Changed
 - `docs/NODE-tasklist.md`
 - `docs/listofchanges.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - No runtime behavior changes.
 - Tasklist numbering/readability improved.
 
-### Verification Steps
+#### Verification Steps
 - Reviewed `docs/NODE-tasklist.md` headings to confirm corrected numbering order.
 - Confirmed new changelog entry inserted at top with next sequential index `[059]`.
 
 <!-- ============================================================ -->
-## [058] 2026-03-04 20:28 (Update NODE Tasklist for Phase 2C v2.1 Completion)
+### [083] - 2026-03-04 20:28 - `DOC - Phase 2 - Node Tasking And Checklist Support - Update Phase 2C v2.1 Status`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Updated docs/NODE-tasklist.md to add Phase 2C v2.1 (Driver Input Auto-Replace) as implemented. Added completed checklist items for.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - Documentation-only checklist update.
 - No worker/protocol/scheduler changes.
 - No schema/runtime/compiler behavior changes in this step.
 - Preserved existing changelog format and reverse-chronological insertion.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Updated `docs/NODE-tasklist.md` to add Phase 2C v2.1 (`Driver Input Auto-Replace`) as implemented.
 - Added completed checklist items for:
   - scoped auto-replace on `drv:in:*`,
@@ -1101,23 +3015,24 @@ Numbering rule for major entries:
   - Quality gates moved to section 12.
 - Added Phase 2C v2.1 full regression gate completion line.
 
-### Files Changed
+#### Files Changed
 - `docs/NODE-tasklist.md`
 - `docs/listofchanges.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - No runtime behavior changes.
 - Planning/checklist documents now reflect Phase 2C v2.1 completion.
 
-### Verification Steps
+#### Verification Steps
 - Reviewed `docs/NODE-tasklist.md` for section numbering, status marks, and quality-gate alignment with implemented work.
 - Confirmed changelog entry inserted at top with next sequential index `[058]`.
 
 <!-- ============================================================ -->
-## [057] 2026-03-04 20:26 (Phase 2C v2.1: Driver Input Auto-Replace on Drop)
+### [082] - 2026-03-04 20:26 - `DR - Phase 8 - Virtual Feature Wiring Expansion - Driver Input Auto-Replace`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Implemented deterministic auto-replace planning for driver virtual input targets (drv:in:*) via a new pure helper module. Added whole-port endpoint-key lock for driver virtual inputs.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - App-layer only.
 - No worker/protocol/scheduler changes.
 - No schema version bump.
@@ -1125,7 +3040,7 @@ Numbering rule for major entries:
 - `maxConnectionsIn` contract for `drv:in:*` remains 1 in final graph state.
 - NodeView remained generic (no part-type UI branching added).
 
-### Summary of Implementation
+#### Summary of Implementation
 - Implemented deterministic auto-replace planning for driver virtual input targets (`drv:in:*`) via a new pure helper module.
 - Added whole-port endpoint-key lock for driver virtual inputs:
   - endpoint matching ignores path component and uses empty normalized path key.
@@ -1139,36 +3054,37 @@ Numbering rule for major entries:
   - path/type/unit invalid cases still reject as before.
 - Added tests for endpoint-key behavior, replacement/no-op/healing logic, and cheap-check scope lock for occupied driver targets.
 
-### Files Changed
+#### Files Changed
 - `src/app/spaghetti/canvas/driverInputAutoReplace.ts` (new)
 - `src/app/spaghetti/canvas/driverInputAutoReplace.test.ts` (new)
 - `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
 - `src/app/spaghetti/canvas/SpaghettiCanvas.validation.test.ts`
 - `docs/listofchanges.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - Dropping a new compatible wire onto an occupied `drv:in:<paramId>` now replaces prior incoming edge(s) deterministically (`last drop wins`).
 - Dropping the exact same connection again on a clean occupied driver input is now a no-op.
 - Occupied non-driver inputs continue to enforce max-connection rejection in cheap-check.
 - Cycle rejection still occurs at final drop commit (cheap-check still does not perform cycle checks).
 
-### Verification Steps
+#### Verification Steps
 - `npm.cmd run test -- src/app/spaghetti/canvas/driverInputAutoReplace.test.ts src/app/spaghetti/canvas/SpaghettiCanvas.validation.test.ts src/app/spaghetti/canvas/NodeView.test.tsx src/app/spaghetti/compiler/validateGraph.test.ts src/app/spaghetti/compiler/evaluateGraph.test.ts`
 - `npm.cmd run test`
 - `npm.cmd run build`
 - Result: all tests passed and build succeeded.
 
 <!-- ============================================================ -->
-## [056] 2026-03-04 20:13 (Update Checklists for Phase 2C v2 Completion)
+### [081] - 2026-03-04 20:13 - `DOC - Phase 2 - Node Tasking And Checklist Support - Update Phase 2C v2 Status`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Updated docs/NODE-tasklist.md to mark Phase 2C v2 (Wire -> Driver) as implemented. Added explicit completed checklist coverage for.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - Documentation-only update for task tracking/checklists.
 - No worker/protocol/scheduler changes.
 - No schema/runtime/compiler behavior changes.
 - Preserved existing changelog format and reverse-chronological insertion.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Updated `docs/NODE-tasklist.md` to mark Phase 2C v2 (Wire -> Driver) as implemented.
 - Added explicit completed checklist coverage for:
   - strict `drv:in:<paramId>` virtual input contract,
@@ -1180,25 +3096,26 @@ Numbering rule for major entries:
   - refreshed active/backlog items,
   - added completed milestones for Phase 2A, 2C v1, and 2C v2.
 
-### Files Changed
+#### Files Changed
 - `docs/NODE-tasklist.md`
 - `docs/tasks/master-tasks.md`
 - `docs/listofchanges.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - No runtime behavior changes.
 - Project planning/checklist documents now reflect current implementation status.
 
-### Verification Steps
+#### Verification Steps
 - Reviewed `docs/NODE-tasklist.md` for phase status and checklist consistency.
 - Reviewed `docs/tasks/master-tasks.md` for synchronized priority/active/backlog/completed state.
 - Confirmed changelog entry inserted at top with next sequential index `[056]`.
 
 <!-- ============================================================ -->
-## [055] 2026-03-04 20:08 (Phase 2C v2: Wire -> Driver Virtual Inputs with Deterministic Parity)
+### [080] - 2026-03-04 20:08 - `DR - Phase 8 - Virtual Feature Wiring Expansion - Driver Virtual Inputs`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Added driver virtual input contract for Part nodeParam drivers. Extended effective input resolver to include driver virtual inputs after declared and feature virtual inputs.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - App-layer only.
 - No worker/protocol/scheduler changes.
 - No schema version bump.
@@ -1206,7 +3123,7 @@ Numbering rule for major entries:
 - Kept NodeView generic (row-metadata-driven; no part-type branching).
 - Preserved resolver parity across validator, cheap-check, evaluator, and UI pin rendering.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Added driver virtual input contract for Part nodeParam drivers:
   - `drv:in:<paramId>` with strict parser lock (`^[A-Za-z0-9_]+$`, non-empty, no extra `:`).
   - input direction, whole-port only, `maxConnectionsIn = 1`.
@@ -1225,7 +3142,7 @@ Numbering rule for major entries:
   - deterministic unresolved indicator shown when driven but unresolved.
 - Updated tests for parser/listing, validator parity, cheap/full parity, evaluator overrides, unresolved lock behavior, and NodeView pin/lock rendering.
 
-### Files Changed
+#### Files Changed
 - `src/app/spaghetti/features/driverVirtualPorts.ts`
 - `src/app/spaghetti/features/effectivePorts.ts`
 - `src/app/spaghetti/compiler/validateGraph.ts`
@@ -1242,62 +3159,64 @@ Numbering rule for major entries:
 - `src/app/spaghetti/canvas/NodeView.test.tsx`
 - `docs/listofchanges.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - Users can now wire `node.out -> drv:in:<paramId>` for Part nodeParam number/vec2 drivers with resolver-consistent validation.
 - Driver rows can expose both input and output virtual pins; featureParam rows remain excluded.
 - Driven drivers become read-only while wired.
 - Wired-but-unresolved drivers remain locked and unresolved; manual param value is not silently used.
 - Driver virtual input paths are deterministically rejected with parity across cheap and full validation.
 
-### Verification Steps
+#### Verification Steps
 - `npm.cmd run test -- src/app/spaghetti/features/driverVirtualPorts.test.ts src/app/spaghetti/compiler/validateGraph.test.ts src/app/spaghetti/canvas/SpaghettiCanvas.validation.test.ts src/app/spaghetti/compiler/evaluateGraph.test.ts src/app/spaghetti/canvas/NodeView.test.tsx src/app/spaghetti/canvas/driverVm.test.ts`
 - `npm.cmd run test`
 - `npm.cmd run build`
 - Result: all tests passed and build succeeded.
 
 <!-- ============================================================ -->
-## [054] 2026-03-04 19:51 (Update NODE Tasklist for Phase 2C v1 Completion)
+### [079] - 2026-03-04 19:51 - `DOC - Phase 2 - Node Tasking And Checklist Support - Update Phase 2C v1 Status`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Updated docs/NODE-tasklist.md to mark Phase 2C v1 Driver -> Input wiring as implemented. Marked all Phase 2C v1 checklist items complete.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - Documentation-only tasklist update.
 - No worker/protocol/scheduler changes.
 - No schema/runtime/compiler code changes in this step.
 - Preserved existing changelog entry format and reverse-chronological insertion rule.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Updated `docs/NODE-tasklist.md` to mark Phase 2C v1 Driver -> Input wiring as implemented.
 - Marked all Phase 2C v1 checklist items complete.
 - Added explicit completion item for `drv:<paramId>` parser charset lock:
   - `^[A-Za-z0-9_]+$` (non-empty, no `:`).
 - Restored/kept downstream future sections (`Phase 2C v2`, `Phase 2B v2+`, `Phase 3`, and quality gates) in correct order after tasklist refresh.
 
-### Files Changed
+#### Files Changed
 - `docs/NODE-tasklist.md`
 - `docs/listofchanges.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - No runtime behavior changes.
 - Project planning/task tracking now reflects Phase 2C v1 as complete.
 
-### Verification Steps
+#### Verification Steps
 - Reviewed `docs/NODE-tasklist.md` for:
   - updated Phase 2C v1 status and items,
   - intact section ordering through sections 8-11,
   - checklist legend/difficulty format consistency.
 
 <!-- ============================================================ -->
-## [053] 2026-03-04 19:48 (Phase 2C v1 Closure Hardening: Driver ParamId Charset + Determinism Locks)
+### [078] - 2026-03-04 19:48 - `DR - Phase 8 - Virtual Feature Wiring Expansion - Driver ParamId Determinism Locks`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Hardened drv:<paramId> parsing to enforce v1 param-id charset lock. Retained single-source resolver behavior for driver virtual outputs (effectivePorts) and existing evaluator/canvas/UI integration.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - App-layer only.
 - No worker/protocol/scheduler changes.
 - No schema version bump.
 - No drag-and-drop redesign.
 - Kept Phase 2C v1 scope lock: nodeParam driver outputs only; featureParam driver outputs excluded.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Hardened `drv:<paramId>` parsing to enforce v1 param-id charset lock:
   - non-empty
   - no `:`
@@ -1305,27 +3224,28 @@ Numbering rule for major entries:
 - Retained single-source resolver behavior for driver virtual outputs (`effectivePorts`) and existing evaluator/canvas/UI integration.
 - Added deterministic test coverage for malformed `drv:*` IDs and repeated evaluation equality for driver virtual output wiring.
 
-### Files Changed
+#### Files Changed
 - `src/app/spaghetti/features/driverVirtualPorts.ts`
 - `src/app/spaghetti/features/driverVirtualPorts.test.ts`
 - `src/app/spaghetti/compiler/evaluateGraph.test.ts`
 - `docs/listofchanges.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - Malformed driver virtual output IDs (for example `drv:width-mm`, `drv:width mm`, `drv:`) are now rejected deterministically by parser/is-check.
 - Deterministic driver virtual output evaluation behavior is now explicitly locked by repeat-equality test coverage.
 
-### Verification Steps
+#### Verification Steps
 - `npm.cmd run test -- src/app/spaghetti/features/driverVirtualPorts.test.ts src/app/spaghetti/compiler/evaluateGraph.test.ts`
 - `npm.cmd run test`
 - `npm.cmd run build`
 - Result: all tests passed and build succeeded.
 
 <!-- ============================================================ -->
-## [052] 2026-03-04 19:06 (Phase 2C v1 Driver Virtual Output Wiring)
+### [077] - 2026-03-04 19:06 - `DR - Phase 8 - Virtual Feature Wiring Expansion - Driver Virtual Output Wiring`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Added virtual driver output port module with deterministic ID contract drv:<paramId>. Extended Part driver control metadata to support explicit wireOutputType and populated it for Part nodeParam drivers.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - App-layer only.
 - No worker/protocol/scheduler changes.
 - No schema version bump.
@@ -1333,7 +3253,7 @@ Numbering rule for major entries:
 - Feature stack remains embedded in `node.params.featureStack`.
 - v1 lock enforced: nodeParam drivers only (`nodeParamNumber`/`nodeParamVec2`), featureParam drivers excluded.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Added virtual driver output port module with deterministic ID contract `drv:<paramId>`.
 - Extended Part driver control metadata to support explicit `wireOutputType` and populated it for Part nodeParam drivers.
 - Updated effective output resolver so declared outputs and driver virtual outputs are resolved from one source.
@@ -1342,7 +3262,7 @@ Numbering rule for major entries:
 - Updated NodeView to render output pins on nodeParam driver rows (right-end aligned; pin remains before row move controls when present).
 - Added tests for helper contract, validator/evaluator behavior, resolver parity, and UI rendering expectations.
 
-### Files Changed
+#### Files Changed
 - `src/app/spaghetti/features/driverVirtualPorts.ts` (new)
 - `src/app/spaghetti/features/driverVirtualPorts.test.ts` (new)
 - `src/app/spaghetti/features/effectivePorts.ts`
@@ -1357,29 +3277,30 @@ Numbering rule for major entries:
 - `src/app/theme/v15Theme.css`
 - `docs/listofchanges.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - Part node nodeParam driver rows now expose wireable output pins when `wireOutputType` metadata is present.
 - `drv:<paramId> -> input` edges are now resolved/validated/evaluated consistently across cheap canvas validation and full graph validation.
 - Driver virtual outputs are available in evaluation output maps (for example `outputsByNodeId[nodeId]['drv:widthMm']`).
 - FeatureParam drivers (for example first extrude depth) remain non-wireable in v1.
 
-### Verification Steps
+#### Verification Steps
 - `npm.cmd run test -- src/app/spaghetti/features/driverVirtualPorts.test.ts src/app/spaghetti/compiler/validateGraph.test.ts src/app/spaghetti/compiler/evaluateGraph.test.ts src/app/spaghetti/canvas/SpaghettiCanvas.validation.test.ts src/app/spaghetti/canvas/NodeView.test.tsx`
 - `npm.cmd run test`
 - `npm.cmd run build`
 - Result: all tests passed and build succeeded.
 
 <!-- ============================================================ -->
-## [051] 2026-03-04 18:47 (Center Reorder Button Glyph and Increase Font Size)
+### [076] - 2026-03-04 18:47 - `NI - Phase 4 - Node UI And Wire Layout Pass - Center Reorder Glyph`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Updated row reorder button text/glyph alignment to centered layout. Increased reorder button glyph size from 2px to 10px.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - App-layer CSS-only UI tweak.
 - No worker/protocol/scheduler changes.
 - No schema/compiler/runtime behavior changes.
 - No drag-and-drop changes.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Updated row reorder button text/glyph alignment to centered layout.
 - Increased reorder button glyph size from `2px` to `10px`.
 - Added explicit centering properties on `.SpaghettiSectionRowMoveButton`:
@@ -1388,97 +3309,100 @@ Numbering rule for major entries:
   - `justify-content: center`
   - `text-align: center`
 
-### Files Changed
+#### Files Changed
 - `src/app/theme/v15Theme.css`
 - `docs/listofchanges.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - Up/down arrow glyphs in reorder buttons are now centered and visibly larger.
 
-### Verification Steps
+#### Verification Steps
 - Confirmed CSS values in `.SpaghettiSectionRowMoveButton`:
   - `font-size: 10px`
   - centered flex alignment properties present.
 
 <!-- ============================================================ -->
-## [050] 2026-03-04 18:46 (Set Row Reorder Button Size to 20x5)
+### [075] - 2026-03-04 18:46 - `NI - Phase 4 - Node UI And Wire Layout Pass - Set Reorder Button Size`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Updated row reorder button dimensions to requested size. Applied to .SpaghettiSectionRowMoveButton hover/non-hover selector block.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - App-layer CSS style tweak only.
 - No worker/protocol/scheduler changes.
 - No schema/runtime/compiler behavior changes.
 - No drag-and-drop behavior changes.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Updated row reorder button dimensions to requested size:
   - `width: 20px`
   - `height: 5px`
 - Applied to `.SpaghettiSectionRowMoveButton` hover/non-hover selector block.
 
-### Files Changed
+#### Files Changed
 - `src/app/theme/v15Theme.css`
 - `docs/listofchanges.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - Reorder up/down controls now render at `20x5` size.
 
-### Verification Steps
+#### Verification Steps
 - Confirmed CSS values in `.SpaghettiSectionRowMoveButton`:
   - `min-width: 20px`
   - `width: 20px`
   - `height: 5px`
 
 <!-- ============================================================ -->
-## [049] 2026-03-04 18:46 (Align Output Row Reorder Controls to Full Row Height)
+### [074] - 2026-03-04 18:46 - `NI - Phase 4 - Node UI And Wire Layout Pass - Align Output Row Reorder Controls`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Updated output row reorder controls to use the full-height alignment mode already used for top/bottom pinning. Output section up/down buttons now stretch/alignment-match the row container and pin top/bottom consistently instead of staying center-stacked.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - App-layer UI alignment update only.
 - No worker/protocol/scheduler changes.
 - No schema/validation/compiler/runtime behavior changes.
 - No drag-and-drop behavior changes.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Updated output row reorder controls to use the full-height alignment mode already used for top/bottom pinning.
 - Output section up/down buttons now stretch/alignment-match the row container and pin top/bottom consistently instead of staying center-stacked.
 
-### Files Changed
+#### Files Changed
 - `src/app/spaghetti/canvas/NodeView.tsx`
 - `docs/listofchanges.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - Output row reorder arrows now align to full row height (top and bottom anchors), matching row container bounds.
 
-### Verification Steps
+#### Verification Steps
 - `npm.cmd run test -- src/app/spaghetti/canvas/NodeView.test.tsx`
 - Confirmed output row move wrapper now uses `alignToValueBar: true`.
 
 <!-- ============================================================ -->
-## [048] 2026-03-04 18:44 (Pin Row Reorder Arrows to Row Top/Bottom)
+### [073] - 2026-03-04 18:44 - `NI - Phase 4 - Node UI And Wire Layout Pass - Pin Row Reorder Arrows`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Updated the value-bar-aligned row move control container to stretch across the full row height. Removed offset-based positioning that pushed controls downward.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - App-layer CSS alignment tweak only.
 - No worker/protocol/scheduler changes.
 - No schema/validation/compiler/runtime behavior changes.
 - No drag-and-drop changes.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Updated the value-bar-aligned row move control container to stretch across the full row height.
 - Removed offset-based positioning that pushed controls downward.
 - Kept vertical `space-between` so:
   - up arrow is pinned to row top,
   - down arrow is pinned to row bottom.
 
-### Files Changed
+#### Files Changed
 - `src/app/theme/v15Theme.css`
 - `docs/listofchanges.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - Row reorder arrows now align to the top and bottom bounds of the row container instead of being offset toward the bottom.
 
-### Verification Steps
+#### Verification Steps
 - `npm.cmd run test -- src/app/spaghetti/canvas/NodeView.test.tsx`
 - Confirmed CSS for `.SpaghettiSectionRowMoveControls--valueBarAligned`:
   - `align-self: stretch`
@@ -1488,16 +3412,17 @@ Numbering rule for major entries:
   - `justify-content: space-between`
 
 <!-- ============================================================ -->
-## [047] 2026-03-04 18:44 (Resize and Re-Align Row Reorder Arrows)
+### [072] - 2026-03-04 18:44 - `NI - Phase 4 - Node UI And Wire Layout Pass - Resize Row Reorder Arrows`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Updated row reorder button dimensions from 5x5 to 8x8. Kept compact glyph sizing.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - App-layer UI styling/layout update only.
 - No worker/protocol/scheduler changes.
 - No schema/normalization/compiler behavior changes.
 - No drag-and-drop implementation changes.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Updated row reorder button dimensions from `5x5` to `8x8`.
 - Kept compact glyph sizing.
 - Added value-bar alignment mode for row move controls:
@@ -1505,44 +3430,45 @@ Numbering rule for major entries:
   - bottom button aligned to the bottom of the value-bar zone.
 - Applied this alignment mode for Drivers and number-driven Inputs, while preserving centered controls for rows without value bars (for example many Outputs).
 
-### Files Changed
+#### Files Changed
 - `src/app/spaghetti/canvas/NodeView.tsx`
 - `src/app/theme/v15Theme.css`
 - `docs/listofchanges.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - Reorder up/down arrows are now larger (`8x8`) and vertically pinned to the value-bar bounds where applicable.
 
-### Verification Steps
+#### Verification Steps
 - `npm.cmd run test -- src/app/spaghetti/canvas/NodeView.test.tsx`
 - Confirmed CSS values:
   - `.SpaghettiSectionRowMoveButton` width/height `8px`
   - `.SpaghettiSectionRowMoveControls--valueBarAligned` uses `margin-top: 20px`, `height: 24px`, `justify-content: space-between`
 
 <!-- ============================================================ -->
-## [046] 2026-03-04 18:41 (Shrink Row Reorder Arrow Controls)
+### [071] - 2026-03-04 18:41 - `NI - Phase 4 - Node UI And Wire Layout Pass - Shrink Row Reorder Arrow Controls`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Reduced row reorder arrow control dimensions and glyph size for the SpaghettiSectionRowMoveButton style. Applied requested values.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - App-layer styling update only.
 - No worker/protocol/scheduler changes.
 - No schema/runtime logic changes.
 - No drag-and-drop or feature-stack migration changes.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Reduced row reorder arrow control dimensions and glyph size for the `SpaghettiSectionRowMoveButton` style.
 - Applied requested values:
   - button size `5px x 5px`
   - `font-size: 2px`
 
-### Files Changed
+#### Files Changed
 - `src/app/theme/v15Theme.css`
 - `docs/listofchanges.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - Reorder up/down arrow controls in Drivers/Inputs/Outputs row move UI now render at much smaller size.
 
-### Verification Steps
+#### Verification Steps
 - Confirmed CSS values in `SpaghettiSectionRowMoveButton`:
   - `min-width: 5px`
   - `width: 5px`
@@ -1550,10 +3476,11 @@ Numbering rule for major entries:
   - `font-size: 2px`
 
 <!-- ============================================================ -->
-## [045] 2026-03-04 18:40 (Phase 2A: Row Ordering Metadata v1 for Part VM Rows)
+### [070] - 2026-03-04 18:40 - `DR - Phase 8 - Virtual Feature Wiring Expansion - Row Ordering Metadata`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Added partRowOrder metadata support for part params (drivers, inputs, outputs) in Part node params schemas. Added new deterministic helper module partRowOrder.ts for.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - App-layer only.
 - No worker/protocol/scheduler changes.
 - No schema version bump.
@@ -1561,7 +3488,7 @@ Numbering rule for major entries:
 - Feature Stack row ordering not introduced in this phase.
 - NodeView kept generic (shared row-move controls, no new part-type branching logic).
 
-### Summary of Implementation
+#### Summary of Implementation
 - Added `partRowOrder` metadata support for part params (`drivers`, `inputs`, `outputs`) in Part node params schemas.
 - Added new deterministic helper module `partRowOrder.ts` for:
   - stable row ID construction (`drv:*`, `in:*`, `out:*`),
@@ -1583,7 +3510,7 @@ Numbering rule for major entries:
   - clears section metadata when returning to natural order,
   - removes `partRowOrder` when all sections are empty/undefined.
 
-### Files Changed
+#### Files Changed
 - `src/app/spaghetti/parts/partRowOrder.ts`
 - `src/app/spaghetti/parts/partRowOrder.test.ts`
 - `src/app/spaghetti/canvas/driverVm.ts`
@@ -1598,29 +3525,30 @@ Numbering rule for major entries:
 - `src/app/theme/v15Theme.css`
 - `docs/listofchanges.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - Part VM rows now have stable deterministic IDs used for ordering metadata.
 - Part nodes can persist per-section row ordering in `params.partRowOrder`.
 - Invalid `partRowOrder` shapes are repaired deterministically; warning emitted only from `validateGraph` with code `partRowOrder_invalid_shape_repaired`.
 - Drivers/Inputs/Outputs rows can be reordered via up/down controls; ordering is deterministic and metadata is minimized when equal to natural order.
 - Reserved output rows remain fixed in natural positions and are not reorderable in v1.
 
-### Verification Steps
+#### Verification Steps
 - `npm.cmd run test -- src/app/spaghetti/parts/partRowOrder.test.ts src/app/spaghetti/canvas/driverVm.test.ts src/app/spaghetti/store/useSpaghettiStore.test.ts src/app/spaghetti/compiler/validateGraph.test.ts src/app/spaghetti/canvas/NodeView.test.tsx src/app/spaghetti/canvas/SpaghettiCanvas.validation.test.ts`
 - `npm.cmd run test`
 - `npm.cmd run build`
 
 <!-- ============================================================ -->
-## [044] 2026-03-04 18:23 (Update Task Lists After Phase 2 v1 Completion)
+### [069] - 2026-03-04 18:23 - `DOC - Phase 2 - Node Tasking And Checklist Support - Update Task Lists After Phase 2`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Updated docs/NODE-tasklist.md to reflect current project status after Phase 2 v1. Updated docs/tasks/master-tasks.md from placeholder state to an actionable board.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - Documentation-only update under `docs/`.
 - No worker/protocol/scheduler changes.
 - No source/schema/runtime behavior changes in this step.
 - No drag-and-drop or feature-stack architecture migration changes in this step.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Updated `docs/NODE-tasklist.md` to reflect current project status after Phase 2 v1:
   - marked Phase 2B v1 virtual feature-input wiring scope as implemented,
   - split future work into Phase 2A (row ordering), Phase 2B v2+ (wiring expansion), and Phase 3 migration path,
@@ -1631,24 +3559,25 @@ Numbering rule for major entries:
   - added backlog for Phase 2A/2B v2/Phase 3,
   - recorded completed Phase 1 and Phase 2 v1 milestones.
 
-### Files Changed
+#### Files Changed
 - `docs/NODE-tasklist.md`
 - `docs/tasks/master-tasks.md`
 - `docs/listofchanges.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - None. This change updates task planning/status documents only.
 
-### Verification Steps
+#### Verification Steps
 - Reviewed `docs/NODE-tasklist.md` for updated phase status markers and section numbering.
 - Reviewed `docs/tasks/master-tasks.md` for synchronized priority/active/backlog/completed state.
 - Confirmed changelog entry inserted at top with next sequential index `[044]`.
 
 <!-- ============================================================ -->
-## [043] 2026-03-04 18:21 (Phase 2 v1: External Feature-Input Wiring via Virtual Ports)
+### [068] - 2026-03-04 18:21 - `DR - Phase 8 - Virtual Feature Wiring Expansion - External Feature-Input Wiring`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Added deterministic virtual feature input port contract. Added shared effective-port resolver utilities and used them across compiler/canvas/UI listing to keep endpoint behavior consistent.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - App-layer only.
 - No worker/protocol/scheduler changes.
 - Feature Stack remains embedded in `node.params.featureStack`.
@@ -1660,7 +3589,7 @@ Numbering rule for major entries:
   - `maxConnectionsIn = 1`,
   - external-only simplification (`from.nodeId !== to.nodeId`) for feature-target edges.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Added deterministic virtual feature input port contract:
   - `fs:in:<featureId>:extrude:depth`,
   - parse/build helpers,
@@ -1677,7 +3606,7 @@ Numbering rule for major entries:
   - added driven-state UX: wired depth disables manual editing and shows driven value.
 - Added/updated tests for virtual port helpers, resolver consistency, validator rules, evaluation mapping, compile determinism/override behavior, and UI rendering/disabled behavior.
 
-### Files Changed
+#### Files Changed
 - `src/app/spaghetti/features/featureVirtualPorts.ts`
 - `src/app/spaghetti/features/effectivePorts.ts`
 - `src/app/spaghetti/compiler/validateGraph.ts`
@@ -1695,28 +3624,29 @@ Numbering rule for major entries:
 - `src/app/spaghetti/compiler/compileGraph.test.ts`
 - `docs/listofchanges.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - Part nodes now expose virtual feature input endpoints for extrude depth (`fs:in:<featureId>:extrude:depth`) in app-layer validation/evaluation/UI/compile flow.
 - External wires can drive `Extrude.depth`; driven values override embedded depth literals at compile time only.
 - Same-node feature-target edges are rejected in v1 with deterministic error code `FEATURE_WIRE_INTRA_NODE_UNSUPPORTED`.
 
-### Verification Steps
+#### Verification Steps
 - `npm.cmd run test -- src/app/spaghetti/features/featureVirtualPorts.test.ts src/app/spaghetti/canvas/SpaghettiCanvas.validation.test.ts src/app/spaghetti/compiler/validateGraph.test.ts src/app/spaghetti/compiler/evaluateGraph.test.ts src/app/spaghetti/compiler/compileGraph.test.ts src/app/spaghetti/canvas/NodeView.test.tsx`
 - `npm.cmd run test -- src/app/spaghetti/canvas/NodeView.test.tsx src/app/spaghetti/canvas/SpaghettiCanvas.validation.test.ts src/app/spaghetti/compiler/compileGraph.test.ts`
 - `npm.cmd run test`
 - `npm.cmd run build`
 
 <!-- ============================================================ -->
-## [042] 2026-03-04 17:55 (Create docs/tasks Master Task File)
+### [067] - 2026-03-04 17:55 - `DOC - Phase 2 - Node Tasking And Checklist Support - Create Tasks Master File`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Created new directory: docs/tasks/. Added docs/tasks/master-tasks.md as a central task-tracking document.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - Documentation-only update under `docs/`.
 - No worker/protocol/scheduler changes.
 - No source/schema/runtime behavior changes.
 - No drag-and-drop or feature-stack migration work in this step.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Created new directory: `docs/tasks/`.
 - Added `docs/tasks/master-tasks.md` as a central task-tracking document.
 - Seeded the file with a deterministic baseline structure:
@@ -1726,29 +3656,30 @@ Numbering rule for major entries:
   - backlog,
   - completed.
 
-### Files Changed
+#### Files Changed
 - `docs/tasks/master-tasks.md`
 - `docs/listofchanges.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - None. Documentation scaffolding only.
 
-### Verification Steps
+#### Verification Steps
 - Confirmed `docs/tasks/` exists.
 - Confirmed `docs/tasks/master-tasks.md` exists with starter sections.
 - Confirmed changelog entry inserted at top with next sequential index `[042]`.
 
 <!-- ============================================================ -->
-## [041] 2026-03-04 17:53 (Update NODE Tasklist Status for Phase 1 Closure)
+### [066] - 2026-03-04 17:53 - `DOC - Phase 2 - Node Tasking And Checklist Support - Update Phase 1 Status`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Updated docs/NODE-tasklist.md status markers to reflect completed Phase 1 closure work. Marked all Phase 1 checklist items complete for.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - Documentation-only update in `docs`.
 - No worker/protocol/scheduler changes.
 - No app runtime, schema, or renderer code changes.
 - No drag-and-drop or feature-stack migration implementation in this step.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Updated `docs/NODE-tasklist.md` status markers to reflect completed Phase 1 closure work.
 - Marked all Phase 1 checklist items complete for:
   - Part container contract (`partSlots`) metadata/normalization/invariants/diagnostics.
@@ -1757,29 +3688,30 @@ Numbering rule for major entries:
 - Marked Quality Gates entries complete to match current verification and changelog compliance state.
 - Left future roadmap sections (Phase 2 and Phase 3) unchanged.
 
-### Files Changed
+#### Files Changed
 - `docs/NODE-tasklist.md`
 - `docs/listofchanges.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - None. This change updates planning/status documentation only.
 
-### Verification Steps
+#### Verification Steps
 - Reviewed `docs/NODE-tasklist.md` for updated `[x]` statuses in Sections 2, 3, 4, and 7.
 - Confirmed changelog entry inserted at the top with next sequential index `[041]`.
 
 <!-- ============================================================ -->
-## [040] 2026-03-04 17:51 (Phase 1 Closure Hardening: Non-Fatal partSlots Parse + Deterministic Coverage)
+### [065] - 2026-03-04 17:51 - `PT - Phase 6 - Part Container Contract - Closure Hardening`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Updated graph schema parsing so malformed legacy partSlots payloads do not hard-fail graph parsing. Kept deterministic normalization and repair architecture unchanged.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - App-layer only changes in spaghetti schema/store/validator/canvas tests.
 - No worker/protocol/scheduler changes.
 - Feature Stack remains embedded in `node.params.featureStack`.
 - No drag-and-drop implementation.
 - Drivers/Inputs/Outputs remain VM-row generated.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Updated graph schema parsing so malformed legacy `partSlots` payloads do not hard-fail graph parsing:
   - `spaghettiNodeSchema.partSlots` now accepts unknown payloads at parse boundary.
   - `spaghettiGraphSchema` transform preserves malformed `partSlots` payloads for deterministic downstream repair/validation.
@@ -1795,60 +3727,62 @@ Numbering rule for major entries:
   - `Drivers -> Inputs -> Feature Stack -> Outputs`
   - Feature Stack still sourced from embedded `node.params.featureStack`.
 
-### Files Changed
+#### Files Changed
 - `src/app/spaghetti/schema/spaghettiSchema.ts`
 - `src/app/spaghetti/schema/spaghettiSchema.test.ts`
 - `src/app/spaghetti/compiler/validateGraph.test.ts`
 - `src/app/spaghetti/store/useSpaghettiStore.test.ts`
 - `docs/listofchanges.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - Malformed legacy `partSlots` payloads no longer cause parse-time graph rejection.
 - Deterministic repair path remains app-driven (store normalization + validator diagnostics), preserving backward compatibility.
 
-### Verification Steps
+#### Verification Steps
 - `npm.cmd run test -- src/app/spaghetti/schema/spaghettiSchema.test.ts src/app/spaghetti/store/useSpaghettiStore.test.ts src/app/spaghetti/compiler/validateGraph.test.ts src/app/spaghetti/canvas/NodeView.test.tsx`
 - `npm.cmd run test`
 - `npm.cmd run build`
 
 <!-- ============================================================ -->
-## [039] 2026-03-04 17:43 (Add Easy-to-Hard Scale to NODE Tasklist Titles)
+### [064] - 2026-03-04 17:43 - `DOC - Phase 2 - Node Tasking And Checklist Support - Add Easy-To-Hard Scale`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Updated docs/NODE-tasklist.md to include an explicit difficulty scale definition. Added Easy to Hard: X/100 labels directly on each major checklist section title to provide immediate complexity guidance.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - Documentation-only update in `docs`.
 - No worker/protocol/scheduler changes.
 - No app runtime or schema behavior changes.
 - No drag-and-drop or feature-stack migration implementation.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Updated `docs/NODE-tasklist.md` to include an explicit difficulty scale definition:
   - `1 = easiest`, `100 = hardest`.
 - Added `Easy to Hard: X/100` labels directly on each major checklist section title to provide immediate complexity guidance.
 - Preserved existing checklist structure and status markers (`[ ]`, `[~]`, `[x]`).
 
-### Files Changed
+#### Files Changed
 - `docs/NODE-tasklist.md`
 - `docs/listofchanges.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - None. This is a documentation clarity update only.
 
-### Verification Steps
+#### Verification Steps
 - Reviewed all major section headings in `docs/NODE-tasklist.md` to confirm each includes a `1-100` difficulty score.
 - Confirmed changelog entry is inserted at the top with next sequential index `[039]`.
 
 <!-- ============================================================ -->
-## [038] 2026-03-04 17:40 (Add NODE Tasklist Checklist)
+### [063] - 2026-03-04 17:40 - `DOC - Phase 2 - Node Tasking And Checklist Support - Add NODE Tasklist Checklist`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Added docs/NODE-tasklist.md with a full status checklist covering. Checklist uses standardized state markers: [ ], [~], [x].`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - Documentation-only update in app docs.
 - No worker/protocol/scheduler changes.
 - No schema/runtime behavior changes.
 - No drag-and-drop or feature-stack migration work performed.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Added `docs/NODE-tasklist.md` with a full status checklist covering:
   - locked Phase 1 architectural decisions,
   - Phase 1 container contract tasks (`partSlots` metadata, normalization, invariants, diagnostics),
@@ -1858,29 +3792,30 @@ Numbering rule for major entries:
   - optional Phase 3 true child-container migration path.
 - Checklist uses standardized state markers: `[ ]`, `[~]`, `[x]`.
 
-### Files Changed
+#### Files Changed
 - `docs/NODE-tasklist.md`
 - `docs/listofchanges.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - None. This change adds planning/documentation only.
 
-### Verification Steps
+#### Verification Steps
 - Reviewed checklist structure and status markers for deterministic formatting.
 - Confirmed changelog entry inserted at top with next sequential index.
 
 <!-- ============================================================ -->
-## [037] 2026-03-04 17:39 (Phase 1 Part Container Contract)
+### [062] - 2026-03-04 17:39 - `PT - Phase 6 - Part Container Contract`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Added additive partSlots structural metadata to SpaghettiNode with the Phase 1 contract keys. Added strict graph-schema parsing support for optional partSlots.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - App-layer only changes in schema/store/validator/canvas tests.
 - No worker/protocol/scheduler changes.
 - Feature Stack remains embedded at `node.params.featureStack`.
 - No drag-and-drop implementation was added.
 - Node row-generation architecture remains VM-driven.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Added additive `partSlots` structural metadata to `SpaghettiNode` with the Phase 1 contract keys:
   - `drivers: true`
   - `inputs: true`
@@ -1900,7 +3835,7 @@ Numbering rule for major entries:
   - Drivers -> Inputs -> Feature Stack -> Outputs
 - Added tests for part-slot normalization/repair, warning-code emission, render-order lock, and Feature Stack embedded-source behavior.
 
-### Files Changed
+#### Files Changed
 - `src/app/spaghetti/schema/spaghettiTypes.ts`
 - `src/app/spaghetti/schema/spaghettiSchema.ts`
 - `src/app/spaghetti/parts/partSlots.ts`
@@ -1912,60 +3847,62 @@ Numbering rule for major entries:
 - `src/app/spaghetti/canvas/NodeView.test.tsx`
 - `docs/listofchanges.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - Part nodes are now canonically persisted with `partSlots` metadata after load normalization.
 - Legacy part nodes missing `partSlots` are deterministically normalized to the default container contract.
 - Invalid `partSlots` shapes are deterministically repaired to the default container contract.
 - Validator now emits deterministic warning diagnostics for missing/invalid part-slot metadata.
 - Part template section rendering order is explicitly locked by descriptor ordering.
 
-### Verification Steps
+#### Verification Steps
 - `npm.cmd run test`
 - `npm.cmd run build`
 
 <!-- ============================================================ -->
-## [036] 2026-03-04 03:55 (Expand/Collapse and Toolbar Visibility Improvements)
+### [061] - 2026-03-04 03:55 - `NI - Phase 4 - Node UI And Wire Layout Pass - Expand Collapse And Toolbar Visibility`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Restored toolbar control visibility by keeping the toolbar toggle button mounted in both open and closed states (show/hide states only). Unified driver section presentation to avoid duplicate top-level and grouped Drivers labels, then adjusted default driver grouping behavior.`
 
-### Edit Times (HH:MM)
+#### Edit Times (HH:MM)
 - 03:49
 - 03:52
 - 03:55
 - 03:56
 - 04:00
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - App-layer UI/CSS updates in Spaghetti node template controls and headers.
 - No compileGraph, worker, protocol, scheduler, or schema changes.
 - Kept behavior metadata-driven with generic section/group collapse interactions.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Restored toolbar control visibility by keeping the toolbar toggle button mounted in both open and closed states (show/hide states only).
 - Unified driver section presentation to avoid duplicate top-level and grouped `Drivers` labels, then adjusted default driver grouping behavior.
 - Enabled collapsible driver subgroups for default/unlabeled driver rows so drivers expand/collapse consistently with section/group headers (`Properties` bucket used where no explicit group label exists).
 
-### Files Changed
+#### Files Changed
 - `src/app/spaghetti/canvas/NodeView.tsx`
 - `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
 - `src/app/theme/v15Theme.css`
 - `docs/listofchanges.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - Toolbar control button now remains visible after opening the editor.
 - Duplicate `Drivers` headers for Baseplate-style default-group drivers were removed.
 - Driver buckets now participate in section/group collapse interactions.
 - Node dragging in Spaghetti canvas now requires pointer events to originate in top node chrome (`SpaghettiNodeHeader`, `SpaghettiNodePresetRow`, or toolbar editor region), preventing unintended drags from ports/rows.
-- Added a global “Pin Size” toolbar slider to control port dot diameter for both input and output pins across nodes.
+- Added a global ï¿½Pin Sizeï¿½ toolbar slider to control port dot diameter for both input and output pins across nodes.
 - Port dot size now follows a shared canvas-level CSS variable (`--sp-port-dot-size`) so updates apply instantly and consistently to all node pins (including template and legacy ports).
 
-### Verification Steps
+#### Verification Steps
 - `npm.cmd run build` (passed).
 
 <!-- ============================================================ -->
-## [035] 2026-03-04 03:38 (Fit Node Preset Picker Width to Content)
+### [060] - 2026-03-04 03:38 - `NI - Phase 4 - Node UI And Wire Layout Pass - Fit Node Preset Picker Width`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Changed the node preset picker control width behavior so the dropdown width now shrinks to fit its displayed text (for example > default). Updated .SpaghettiNodePresetControls to auto-width and made the <select> intrinsic-content width with nowrap text.`
 
-### Edit Times (HH:MM)
+#### Edit Times (HH:MM)
 - 03:38
 - 03:44
 - 03:47
@@ -1981,14 +3918,14 @@ Numbering rule for major entries:
 - 03:53
 - 03:55
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - UI/CSS-only adjustment in Spaghetti node preset picker.
 - No compileGraph, worker protocol, or graph schema changes.
 - Added a generic, metadata-driven section/group collapse model for part-node template sections using stable UI-store keys.
 - Preserved node drag/select interaction safety by marking section/group headers as `data-sp-interactive="1"` and keeping drag guard centralized.
 - Kept behavior deterministic and node-specific by scoping collapse state to `nodeId` and stable section/group IDs.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Changed the node preset picker control width behavior so the dropdown width now shrinks to fit its displayed text (for example `> default`).
 - Updated `.SpaghettiNodePresetControls` to auto-width and made the `<select>` intrinsic-content width with nowrap text.
 - In output template rows, anchored output header text by position: node output names now align to the top-left corner and output type labels align to the bottom-right near the anchor.
@@ -2003,14 +3940,14 @@ Numbering rule for major entries:
 - Added a reusable section-header render helper in `NodeView.tsx` so Feature Stack and other collapsible toolbar sections use a common collapse interaction.
 - Restored the part-node toolbar control toggle button in `NodeView.tsx` and made toolbar editor rows conditional on that toggle, so the control panel expands on demand rather than always rendering.
 
-### Files Changed
+#### Files Changed
 - `src/app/theme/v15Theme.css`
 - `src/app/spaghetti/canvas/NodeView.tsx`
 - `src/app/spaghetti/canvas/FeatureStackView.tsx`
 - `src/app/spaghetti/canvas/state/spaghettiUiStore.ts`
 - `docs/listofchanges.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - Template preset picker no longer uses a fixed/stretch width and now matches the selected label width.
 - `Other/Debug (Legacy)` and its child sections now support collapse controls in the same format as Drivers/Inputs/Outputs.
 - Feature Stack section now collapses via the same shared helper pattern used by other node toolbar headers.
@@ -2021,115 +3958,120 @@ Numbering rule for major entries:
 - Restored default/unlabeled driver buckets as collapsible subgroups so drivers can expand/collapse like other section/group headers.
 - Default/unlabeled driver bucket header now renders as `Properties` to avoid duplicating the top-level `Drivers` section label while preserving collapse behavior.
 
-### Verification Steps
+#### Verification Steps
 - `npm.cmd run build` (passed).
 
 <!-- ============================================================ -->
-## [034] 2026-03-04 03:24 (Add Global Output Height Slider in Node Toolbar Editor)
+### [059] - 2026-03-04 03:24 - `NI - Phase 4 - Node UI And Wire Layout Pass - Global Output Height Slider`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Added an Output Height slider under existing node toolbar controls (Sensitivity, wiring toggle). Implemented as global shared state in SpaghettiCanvas so changing it in any node updates all output rows.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - App-layer UI/CSS update only for Spaghetti canvas/node editor controls.
 - No graph/compiler/worker/protocol/schema changes.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Added an `Output Height` slider under existing node toolbar controls (`Sensitivity`, wiring toggle).
 - Implemented as global shared state in `SpaghettiCanvas` so changing it in any node updates all output rows.
 - Applied the value via CSS custom property (`--sp-output-row-min-height`) on canvas root.
 - Updated output row min-height CSS to consume the variable with fallback.
 
-### Files Changed
+#### Files Changed
 - `src/app/spaghetti/canvas/NodeView.tsx`
 - `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
 - `src/app/theme/v15Theme.css`
 - `docs/listofchanges.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - Node toolbar editor now includes an `Output Height` slider.
 - Output row minimum height for all nodes updates live from that single slider value.
 
-### Verification Steps
+#### Verification Steps
 - `npm.cmd run build` (passed)
 
 <!-- ============================================================ -->
-## [033] 2026-03-04 03:21 (Set Output Row Minimum Height to 25px)
+### [058] - 2026-03-04 03:21 - `NI - Phase 4 - Node UI And Wire Layout Pass - Set Output Row Minimum Height`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Updated output lane row minimum height to a fixed 25px for .SpaghettiTemplateSection--outputs .SpaghettiPort--out. Output endpoint rows in the Outputs section now enforce at least 25px height.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - CSS/UI-only sizing update for template output rows.
 - No graph/compiler/worker/protocol/schema changes.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Updated output lane row minimum height to a fixed `25px` for `.SpaghettiTemplateSection--outputs .SpaghettiPort--out`.
 
-### Files Changed
+#### Files Changed
 - `src/app/theme/v15Theme.css`
 - `docs/listofchanges.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - Output endpoint rows in the Outputs section now enforce at least 25px height.
 
-### Verification Steps
+#### Verification Steps
 - `npm.cmd run build` (passed)
 
 <!-- ============================================================ -->
-## [032] 2026-03-04 03:20 (Increase Output Row Height in Template Outputs Lane)
+### [057] - 2026-03-04 03:20 - `NI - Phase 4 - Node UI And Wire Layout Pass - Increase Output Row Height`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Increased output row vertical size by raising output row minimum height and vertical padding. Increased output header minimum height to keep label/type alignment centered within the taller row.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - CSS/UI-only update in Spaghetti template output row styling.
 - No graph/compiler/worker/protocol/schema changes.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Increased output row vertical size by raising output row minimum height and vertical padding.
 - Increased output header minimum height to keep label/type alignment centered within the taller row.
 
-### Files Changed
+#### Files Changed
 - `src/app/theme/v15Theme.css`
 - `docs/listofchanges.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - Output endpoint rows in the Outputs section now render taller than before.
 
-### Verification Steps
+#### Verification Steps
 - `npm.cmd run build` (passed)
 
 <!-- ============================================================ -->
-## [031] 2026-03-04 03:19 (Half-Width Input/Output Lanes + Output Row Height Match)
+### [056] - 2026-03-04 03:19 - `NI - Phase 4 - Node UI And Wire Layout Pass - Half-Width Input Output Lanes`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Restored half-width lane behavior for template endpoint rows. Kept output pin offset at the outer right edge while preserving lane anchoring.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - CSS/UI-only layout adjustments for Spaghetti node template lanes.
 - No graph/compiler/worker/protocol/schema changes.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Restored half-width lane behavior for template endpoint rows:
   - input lane is half-width and anchored left,
   - output lane is half-width and anchored right.
 - Kept output pin offset at the outer right edge while preserving lane anchoring.
 - Matched output row vertical sizing to input row sizing by aligning output row padding/header min-height with input row baseline.
 
-### Files Changed
+#### Files Changed
 - `src/app/theme/v15Theme.css`
 - `docs/listofchanges.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - Input endpoint rows now occupy left half of section width.
 - Output endpoint rows now occupy right half of section width.
 - Output endpoint row height now visually matches input endpoint row height.
 
-### Verification Steps
+#### Verification Steps
 - `npm.cmd run build` (passed)
 
 <!-- ============================================================ -->
-## [030] 2026-03-04 03:17 (Align Template Section Widths + Move Output Pins to Outer Edge)
+### [055] - 2026-03-04 03:17 - `NI - Phase 4 - Node UI And Wire Layout Pass - Align Template Section Widths`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Made all template sections use the same width treatment as Drivers by applying the section margin rule to every .SpaghettiTemplateSection instead of only the first section. Matched port-column widths to driver-style full section width.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - CSS/UI-only layout updates for Spaghetti node template.
 - No graph/compiler/worker/protocol/schema changes.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Made all template sections use the same width treatment as Drivers by applying the section margin rule to every `.SpaghettiTemplateSection` instead of only the first section.
 - Matched port-column widths to driver-style full section width:
   - input port column in template sections now full width,
@@ -2138,72 +4080,75 @@ Numbering rule for major entries:
   - output row overflow set to visible,
   - output pin offset moved outward.
 
-### Files Changed
+#### Files Changed
 - `src/app/theme/v15Theme.css`
 - `docs/listofchanges.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - Inputs/Feature Stack/Outputs sections now visually align in width with Drivers.
 - Output rows span full section width instead of half-width.
 - Output socket pin sits on the outer right edge, matching the driver-side pin feel.
 
-### Verification Steps
+#### Verification Steps
 - `npm.cmd run build` (passed)
 
 <!-- ============================================================ -->
-## [029] 2026-03-04 03:14 (Fix Node Selection/Right-Side Click Regression by Wire Layer Ordering)
+### [054] - 2026-03-04 03:14 - `NI - Phase 4 - Node UI And Wire Layout Pass - Fix Right-Side Click Regression`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Lowered Spaghetti wire layer stacking order so node surfaces are above wires for pointer interaction. This prevents wire hit targets from stealing right-side node clicks and selection interactions.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - UI-layer CSS interaction fix only.
 - No graph/compiler/worker/protocol/schema changes.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Lowered Spaghetti wire layer stacking order so node surfaces are above wires for pointer interaction.
 - This prevents wire hit targets from stealing right-side node clicks and selection interactions.
 
-### Files Changed
+#### Files Changed
 - `src/app/theme/v15Theme.css`
 - `docs/listofchanges.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - Node selection/highlight interactions now take precedence over overlapping wire strokes on node rows, including right/output side clicks.
 
-### Verification Steps
+#### Verification Steps
 - `npm.cmd run build` (passed)
 
 <!-- ============================================================ -->
-## [028] 2026-03-04 03:11 (Remove Output Composite Toggle Button for Inner Spline)
+### [053] - 2026-03-04 03:11 - `NI - Phase 4 - Node UI And Wire Layout Pass - Remove Output Composite Toggle`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Removed the output composite toggle button hook from composite output row rendering in NodeView. Inner spline output rows no longer render the right-side chevron/toggle button.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - UI-only change in Spaghetti node view rendering.
 - No compile graph, worker protocol, or schema/runtime changes.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Removed the output composite toggle button hook from composite output row rendering in `NodeView`.
 - `Inner` spline output rows no longer render the right-side chevron/toggle button.
 
-### Files Changed
+#### Files Changed
 - `src/app/spaghetti/canvas/NodeView.tsx`
 - `docs/listofchanges.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - Composite outputs still render, but their toggle button is no longer shown in output rows.
 
-### Verification Steps
+#### Verification Steps
 - `npm.cmd run build` (passed)
 
 <!-- ============================================================ -->
-## [027] 2026-03-04 03:09 (Typed Sockets and Wires by Port Kind)
+### [052] - 2026-03-04 03:09 - `NI - Phase 4 - Node UI And Wire Layout Pass - Typed Sockets And Wires`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Added a shared type color source in canvas layer. Updated PortView socket rendering.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - App-layer Spaghetti canvas/view updates only.
 - `compileGraph`, worker protocol, and graph schema were not changed.
 - Node rendering remains metadata-driven via `port.type.kind` (no node-type branching).
 
-### Summary of Implementation
+#### Summary of Implementation
 - Added a shared type color source in canvas layer:
   - `TYPE_COLOR_MAP` plus `getTypeColor(kind)` in `typeColors.ts`.
 - Updated `PortView` socket rendering:
@@ -2221,33 +4166,34 @@ Numbering rule for major entries:
   - connection validation now rejects `from.kind !== to.kind` with a dedicated reason,
   - unit mismatch remains blocked as a separate check.
 
-### Files Changed
+#### Files Changed
 - `src/app/spaghetti/canvas/typeColors.ts` (new)
 - `src/app/spaghetti/canvas/PortView.tsx`
 - `src/app/spaghetti/canvas/WireLayer.tsx`
 - `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
 - `docs/listofchanges.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - Socket circles now always color from the shared type map keyed by `port.type.kind`.
 - Wires now inherit color from the source endpoint type, including composite leaf-field connections.
 - Drag-preview wire color follows the current source endpoint when determinable.
 - Connection attempts with mismatched endpoint kinds are rejected with an explicit kind-mismatch message.
 
-### Verification Steps
+#### Verification Steps
 - `npm.cmd run build` (passed)
 
 <!-- ============================================================ -->
-## [026] 2026-03-04 03:40 (Spaghetti Node UI Tweak Pass v2: Driver/Section Styling, Output Streamline, Node Toolbar Editor)
+### [051] - 2026-03-04 03:40 - `NI - Phase 4 - Node UI And Wire Layout Pass - Driver Section Styling And Toolbar Editor`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Performed iterative visual cleanup to push node styling toward Blender-like compactness. Unified/expanded section interaction model.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - App-layer UI/view changes only.
 - No worker/runtime/protocol/scheduler/compile-payload contract changes.
 - `NodeView` remained metadata-driven (no node-type branching introduced).
 - Deterministic row ordering preserved (no new sort logic added).
 
-### Summary of Implementation
+#### Summary of Implementation
 - Performed iterative visual cleanup to push node styling toward Blender-like compactness:
   - tighter row density, smaller sockets, cleaner spacing primitives,
   - driver field endcaps redesigned as integrated clickable caps (step down/up),
@@ -2275,7 +4221,7 @@ Numbering rule for major entries:
 - Wire layering adjustments:
   - raised spaghetti wire layer above node baseplate/output UI surfaces per UX request.
 
-### Style Standards Established (Current)
+#### Style Standards Established (Current)
 - Section headers (`Drivers`, `Inputs`, etc.) define the typography baseline for node control labels.
 - Driver number fields:
   - compact single-row control,
@@ -2289,7 +4235,7 @@ Numbering rule for major entries:
 - Preset row controls:
   - toolbar toggle and dropdown match height/border/background family.
 
-### Files Changed
+#### Files Changed
 - `src/app/theme/v15Theme.css`
 - `src/app/spaghetti/canvas/fields/NumberField.tsx`
 - `src/app/spaghetti/canvas/fields/Vec2Field.tsx`
@@ -2298,7 +4244,7 @@ Numbering rule for major entries:
 - `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
 - `docs/listofchanges.md`
 
-### Behavior Changes (UI)
+#### Behavior Changes (UI)
 - Drivers/Inputs/Outputs can collapse independently from section headers.
 - Driver pins-only mode now shows lightweight numeric value labels near output pins.
 - Node toolbar editor is opt-in per node and exposes:
@@ -2306,21 +4252,22 @@ Numbering rule for major entries:
   - internal wiring visibility.
 - Endcaps now support click-based incremental stepping.
 
-### Notes
+#### Notes
 - This entry captures an iterative polish pass with many micro-adjustments in CSS/layout layering.
 - Intentional outcome: preserve existing graph semantics while improving node readability and edit ergonomics.
 
 <!-- ============================================================ -->
-## [025] 2026-03-04 01:02 (Part Template UI Polish v1: Shared Blender NumberField + Baseplate Width/Length Driver Refactor)
+### [050] - 2026-03-04 01:02 - `PT - Phase 5 - Part Template Population - Shared NumberField And Driver Refactor`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Added evaluator-resolved inputs exposure for UI consumption without Canvas-side partial evaluation. Extended driver VM endpoint row metadata and registry endpoint-driver metadata.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - UI/view-model/compiler-evaluator app-layer changes only.
 - No worker runtime, protocol contract, scheduler, or auto-build behavior changes.
 - `NodeView` remains generic and metadata-driven (no node-type branching added).
 - Deterministic ordering preserved from registry/VM order (no sorting introduced).
 
-### Summary of Implementation
+#### Summary of Implementation
 - Added evaluator-resolved inputs exposure for UI consumption without Canvas-side partial evaluation:
   - `EvaluationResult.inputsByNodeId` now carries the already-resolved per-node inputs map.
 - Extended driver VM endpoint row metadata and registry endpoint-driver metadata:
@@ -2342,7 +4289,7 @@ Numbering rule for major entries:
   - driver rows no longer reserve pin gutters or show ghost lane visuals,
   - outputs now support compact right-anchored badge cluster while preserving full-row hit area/wiring behavior.
 
-### Files Changed
+#### Files Changed
 - `src/app/spaghetti/compiler/evaluateGraph.ts`
 - `src/app/spaghetti/canvas/driverVm.ts`
 - `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
@@ -2357,30 +4304,31 @@ Numbering rule for major entries:
 - `src/app/theme/v15Theme.css`
 - `docs/listofchanges.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - Collapsed/essentials/everything now share the same editable Number/Vec2 control baseline; expanded modes add sections/rows instead of changing control style.
 - Driver controls now use a unified Blender-like scrub+input control style with no arrows/spinners.
 - Numeric input badges can display resolved values when known; unresolved inputs continue to display type badges.
 - Baseplate Width/Length primary editing is now in Drivers; legacy width/length input rows appear only when wired and are read-only/non-wireable.
 - Output rows keep full-width interaction/wiring behavior while visually right-anchoring the output badge cluster.
 
-### Verification Steps
+#### Verification Steps
 - `npm.cmd run test -- src/app/spaghetti/canvas/rowViewMode.test.ts src/app/spaghetti/canvas/driverVm.test.ts src/app/spaghetti/compiler/evaluateGraph.test.ts` (passed)
 - `npm.cmd run test` (passed)
 - `npm.cmd run build` (passed)
 
 <!-- ============================================================ -->
-## [024] 2026-03-04 00:29 (HeelKick Part Template v2: ToeHook-Parity Drivers/Ports + Payload-Compatible Anchor Mapping)
+### [049] - 2026-03-04 00:29 - `PT - Phase 5 - Part Template Population - HeelKick Template Population`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Converted existing Part/HeelKick node definition to ToeHook-parity part-template shape. Added heel-specific deterministic defaults (different from ToeHook) for profile controls.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - UI/data-model + spaghetti compiler/store compatibility updates only.
 - No worker/protocol/scheduler runtime changes.
 - `NodeView` remains generic and metadata-driven; no node-type branches added.
 - Deterministic ordering preserved via registry driver order and first-seen group order.
 - Registry remains the single source of truth for default node params.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Converted existing `Part/HeelKick` node definition to ToeHook-parity part-template shape:
   - Drivers (Global/Profile A/Profile B), non-wireable.
   - Inputs: `anchorSpline`, `railMath` (wireable).
@@ -2400,7 +4348,7 @@ Numbering rule for major entries:
   - `createValidBaseplateHeelKickGraph()`,
   - panel button: `Load Baseplate - HeelKick`.
 
-### Files Changed
+#### Files Changed
 - `src/app/spaghetti/registry/nodeRegistry.ts`
 - `src/app/spaghetti/compiler/compileGraph.ts`
 - `src/app/spaghetti/canvas/driverVm.test.ts`
@@ -2410,26 +4358,27 @@ Numbering rule for major entries:
 - `src/app/panels/SpaghettiPanel.tsx`
 - `docs/listofchanges.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - HeelKick now renders full part template sections with populated grouped drivers and pin-bearing inputs/outputs.
 - HeelKick accepts legacy incoming anchor edges targeting `anchorSpline2` and canonicalizes/resolves them to `anchorSpline` paths.
 - Build payload contract for heel remains unchanged (`...anchorSpline2`).
 
-### Verification Steps
+#### Verification Steps
 - `npm.cmd --prefix parahook run test` (passed)
 - `npm.cmd --prefix parahook run build` (passed)
 
 <!-- ============================================================ -->
-## [023] 2026-03-04 00:20 (ToeHook Part Template Population v2: Alias Compatibility + Registry Defaults + Opaque Types)
+### [048] - 2026-03-04 00:20 - `PT - Phase 5 - Part Template Population - ToeHook Template Population`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Populated Part/ToeHook template metadata with deterministic default drivers/inputs/outputs. Added registry-level backward compatibility alias metadata.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - UI/data-model and compiler/store compatibility updates for Spaghetti graphing.
 - No worker runtime/protocol/scheduler behavior changes.
 - Payload key compatibility preserved (`anchorSpline2` remains emitted for ToeHook build inputs).
 - Deterministic ordering preserved for driver/input/output rows and grouped drivers (first-seen group order, registry row order).
 
-### Summary of Implementation
+#### Summary of Implementation
 - Populated `Part/ToeHook` template metadata with deterministic default drivers/inputs/outputs:
   - Drivers (non-wireable): Global + Profile A + Profile B rows (number + vec2 param controls),
   - Inputs (wireable): `anchorSpline`, `railMath`,
@@ -2455,7 +4404,7 @@ Numbering rule for major entries:
   - payload key: `anchorSpline2`.
   - Compile path includes fallback support for legacy-stored `anchorSpline2` input edges.
 
-### Files Changed
+#### Files Changed
 - `src/app/spaghetti/registry/nodeRegistry.ts`
 - `src/app/spaghetti/schema/spaghettiTypes.ts`
 - `src/app/spaghetti/schema/spaghettiSchema.ts`
@@ -2474,7 +4423,7 @@ Numbering rule for major entries:
 - `src/app/spaghetti/compiler/evaluateGraph.test.ts`
 - `docs/listofchanges.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - ToeHook part nodes now render meaningful default rows under:
   - Drivers -> Inputs -> Feature Stack -> Outputs.
 - ToeHook Drivers are non-wireable controls; Inputs/Outputs remain pin-based wireable endpoints.
@@ -2482,21 +4431,22 @@ Numbering rule for major entries:
 - Build payload contract remains unchanged: ToeHook anchor value still emitted as `anchorSpline2`.
 - Opaque kinds `railMath`/`toeLoft` are now wire/display-capable with strict placeholder value validation.
 
-### Verification Steps
+#### Verification Steps
 - `npm.cmd --prefix parahook run test` (passed)
 - `npm.cmd --prefix parahook run build` (passed)
 
 <!-- ============================================================ -->
-## [022] 2026-03-03 23:05 (Baseplate Outputs v1 Cleanup: Public Interface Tightening)
+### [047] - 2026-03-03 23:05 - `PT - Phase 5 - Part Template Population - Baseplate Outputs Cleanup`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Updated Part/Baseplate output port declarations to the minimal public set by removing incidental outer spline output exposure. Kept existing output-driver taxonomy unchanged.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - UI/registry-only cleanup.
 - No edits under `src/app/spaghetti/features/**`, `src/app/spaghetti/compiler/**`, `src/app/spaghetti/integration/**`, or `src/worker/**`.
 - No protocol/scheduler changes.
 - Deterministic output ordering behavior preserved.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Updated `Part/Baseplate` output port declarations to the minimal public set by removing incidental outer spline output exposure:
   - kept: `anchorSpline2` (wireable public endpoint),
   - removed from public outputs: `offsetSpline2` (intermediate/internal artifact).
@@ -2505,30 +4455,31 @@ Numbering rule for major entries:
   - reserved `Mesh Output` pending row remains endpoint-less and non-wireable.
 - Updated Baseplate compute return shape to remove undeclared `offsetSpline2`, keeping evaluator validation green while preserving compiler/integration code paths unchanged.
 
-### Files Changed
+#### Files Changed
 - `src/app/spaghetti/registry/nodeRegistry.ts`
 - `docs/listofchanges.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - Baseplate now exposes only intended public output endpoint (`Inner Spline Anchor`) plus reserved mesh pending row in template output rows.
 - In `everything` mode, Baseplate no longer contributes incidental endpoint(s) to `Other Outputs` via port-subtraction.
 
-### Verification Steps
+#### Verification Steps
 - `rg -n "offsetSpline2|Base Plate Spline \\(Outer\\)" src/app/spaghetti/registry/nodeRegistry.ts`
 - `npm.cmd --prefix parahook run test`
 - `npm.cmd --prefix parahook run build`
 
 <!-- ============================================================ -->
-## [021] 2026-03-03 22:56 (Part Node Template v1 Taxonomy Refactor: Drivers / Inputs / Outputs)
+### [046] - 2026-03-03 22:56 - `PT - Phase 5 - Part Template Population - Drivers Inputs Outputs Taxonomy`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Refactored part-template row taxonomy in VM and NodeView from Input Drivers/Output Drivers to. Updated driverVm output shape to drivers, inputs, outputs, otherOutputs while keeping existing metadata fields (inputDrivers, outputDrivers) unchanged for minimal API churn.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - UI-only refactor in canvas/view-model layers.
 - No edits under `src/app/spaghetti/features/**`, `src/app/spaghetti/compiler/**`, `src/app/spaghetti/integration/**`, or `src/worker/**`.
 - No protocol/scheduler changes.
 - Deterministic ordering preserved from metadata arrays and stable endpoint-key subtraction.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Refactored part-template row taxonomy in VM and `NodeView` from `Input Drivers/Output Drivers` to:
   - `Drivers` (feature-param controls, non-wireable),
   - `Inputs` (wireable endpoint rows),
@@ -2547,63 +4498,65 @@ Numbering rule for major entries:
   - row remains endpoint-less and non-wireable.
 - Updated canvas interactive-target guard so disabled reserved port targets are still treated as interactive UI targets (preventing node-drag capture on that control area).
 
-### Files Changed
+#### Files Changed
 - `src/app/spaghetti/canvas/driverVm.ts`
 - `src/app/spaghetti/canvas/NodeView.tsx`
 - `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
 - `docs/listofchanges.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - Part node sections now display locked taxonomy labels: `Drivers`, `Inputs`, `Feature Stack`, `Outputs`.
 - `Outputs` remains the last core section in all modes.
 - Reserved mesh pending row remains disabled/non-wireable but no longer behaves like non-interactive empty space for node drag/select hit-testing.
 
-### Verification Steps
+#### Verification Steps
 - `rg -n "Baseplate|ToeHook|HeelKick|Part/Baseplate|Part/ToeHook|Part/HeelKick" src/app/spaghetti/canvas/NodeView.tsx` (no matches)
 - `npm.cmd --prefix parahook run test` (passed)
 - `npm.cmd --prefix parahook run build` (passed)
 
 <!-- ============================================================ -->
-## [020] 2026-03-03 20:44 (Remove Baseplate Title-Click Mode Buttons; Keep Right-Click Mode Menu)
+### [045] - 2026-03-03 20:44 - `NI - Phase 3 - Baseplate And Node Surface UI - Remove Title-Click Mode Buttons`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Removed Baseplate header click-to-open mode picker from NodeView. Removed associated callback wiring from SpaghettiCanvas.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - Canvas/UI-only cleanup.
 - No edits under `src/app/spaghetti/features/**`, `compiler/**`, or `integration/**`.
 - No worker/protocol/scheduler changes.
 - No compile/evaluate semantic changes.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Removed Baseplate header click-to-open mode picker from `NodeView`.
 - Removed associated callback wiring from `SpaghettiCanvas`.
 - Removed now-unused mode-picker styles from theme.
 - Right-click node context menu (`collapsed` / `essentials` / `expanded`) remains the active mode-switch UI.
 
-### Files Changed
+#### Files Changed
 - `src/app/spaghetti/canvas/NodeView.tsx`
 - `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
 - `src/app/theme/v15Theme.css`
 - `docs/listofchanges.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - Clicking Baseplate title/top no longer opens row-mode buttons.
 - Row mode switching from nodes is now right-click menu driven.
 
-### Verification Steps
+#### Verification Steps
 - `npm.cmd --prefix parahook run test` (passed)
 - `npm.cmd --prefix parahook run build` (passed)
 
 <!-- ============================================================ -->
-## [019] 2026-03-03 20:39 (Context Menu Routing: Blank Canvas Adds Nodes, Node Blocks Switch Row Mode)
+### [044] - 2026-03-03 20:39 - `NI - Phase 3 - Baseplate And Node Surface UI - Context Menu Routing`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Updated viewport right-click behavior in SpaghettiCanvas. Added canvas-level node row-mode context menu using SpaghettiContextMenu with 3 options.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - Canvas/UI-only interaction update.
 - No edits under `src/app/spaghetti/features/**`, `compiler/**`, or `integration/**`.
 - No worker/protocol/scheduler changes.
 - No compile/evaluate semantic changes.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Updated viewport right-click behavior in `SpaghettiCanvas`:
   - If target is inside a `.SpaghettiNode`, open node row-mode context menu.
   - If target is on blank canvas area, open existing add-node search menu.
@@ -2616,29 +4569,30 @@ Numbering rule for major entries:
   - opening add-node menu closes node mode menu.
 - Added Escape handling for the node row-mode context menu.
 
-### Files Changed
+#### Files Changed
 - `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
 - `docs/listofchanges.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - Right-click on blank node editor space now shows the add-node search menu only.
 - Right-click on any node block (Baseplate, Toe Hook, Heel Kick, etc.) now shows row-mode options instead of add-node menu.
 
-### Verification Steps
+#### Verification Steps
 - `npm.cmd --prefix parahook run test` (passed)
 - `npm.cmd --prefix parahook run build` (passed)
 
 <!-- ============================================================ -->
-## [018] 2026-03-03 20:34 (Baseplate Header Mode Picker: Collapsed / Essentials / Expanded)
+### [043] - 2026-03-03 20:34 - `NI - Phase 3 - Baseplate And Node Surface UI - Header Mode Picker`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Replaced Baseplate title click behavior with a header mode picker. Clicking the top Baseplate header now toggles a 3-button mode menu.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - Canvas/UI-only behavior and styling changes.
 - No edits under `src/app/spaghetti/features/**`, `compiler/**`, or `integration/**`.
 - No worker/protocol/scheduler changes.
 - No compile/evaluate semantic changes.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Replaced Baseplate title click behavior with a header mode picker.
 - Clicking the top Baseplate header now toggles a 3-button mode menu:
   - `collapsed`
@@ -2650,60 +4604,62 @@ Numbering rule for major entries:
   - `expanded` => row mode `everything` (internal expanded mode)
 - Added compact button styles and active-state highlighting for current row mode.
 
-### Files Changed
+#### Files Changed
 - `src/app/spaghetti/canvas/NodeView.tsx`
 - `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
 - `src/app/theme/v15Theme.css`
 - `docs/listofchanges.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - Clicking the top of a Baseplate node now opens mode options instead of immediately forcing `collapsed`.
 - Selecting a mode button switches the canvas into that mode and closes the picker.
 
-### Verification Steps
+#### Verification Steps
 - `npm.cmd --prefix parahook run test` (passed)
 - `npm.cmd --prefix parahook run build` (passed)
 
 <!-- ============================================================ -->
-## [017] 2026-03-03 20:30 (Align Scrub Slider Left Edge with Preset Dropdown)
+### [042] - 2026-03-03 20:30 - `NI - Phase 3 - Baseplate And Node Surface UI - Align Scrub Slider Left Edge`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Introduced a shared right-column width token for Baseplate controls (clamp(140px, 50%, 170px)). Applied the shared width to.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - UI-only style adjustment.
 - No edits under `src/app/spaghetti/features/**`, `compiler/**`, or `integration/**`.
 - No worker/protocol/scheduler changes.
 - No graph semantic changes.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Introduced a shared right-column width token for Baseplate controls (`clamp(140px, 50%, 170px)`).
 - Applied the shared width to:
   - `Preset` dropdown (`.SpaghettiNodePresetRow select`),
   - scrub controls row (`.SpaghettiNodeScrubControls`).
 - Kept scrub slider at 50% width and right-anchored within that aligned control column.
 
-### Files Changed
+#### Files Changed
 - `src/app/theme/v15Theme.css`
 - `docs/listofchanges.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - Scrub slider no longer spans the full node row.
 - Slider left edge now aligns with the `default` preset dropdown left edge above.
 
-### Verification Steps
+#### Verification Steps
 - `npm.cmd --prefix parahook run test` (passed)
 - `npm.cmd --prefix parahook run build` (passed)
 
 <!-- ============================================================ -->
-## [016] 2026-03-03 20:28 (Scrub Toggle Presets Restored with Continuous Half-Width Slider)
+### [041] - 2026-03-03 20:28 - `NI - Phase 3 - Baseplate And Node Surface UI - Scrub Toggle Presets Restored`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Reintroduced scrub toggle button in Baseplate sketch header with two presets. Kept continuous slider behavior (0..100) and in-between values.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - UI-only change in canvas layer.
 - No edits under `src/app/spaghetti/features/**`, `compiler/**`, or `integration/**`.
 - No worker/protocol/scheduler changes.
 - No compile/evaluate semantic changes.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Reintroduced scrub toggle button in Baseplate sketch header with two presets:
   - `low` preset => `0%`,
   - `high` preset => `100%`.
@@ -2711,29 +4667,30 @@ Numbering rule for major entries:
 - Preset state is derived from current slider position and toggles between the two preset endpoints.
 - Existing slider layout remains half-width and right-anchored.
 
-### Files Changed
+#### Files Changed
 - `src/app/spaghetti/canvas/NodeView.tsx`
 - `docs/listofchanges.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - Users can now freely scrub with the slider and also jump instantly between low/high preset values via the toggle button.
 - Slider remains half-width and anchored right as requested.
 
-### Verification Steps
+#### Verification Steps
 - `npm.cmd --prefix parahook run test` (passed)
 - `npm.cmd --prefix parahook run build` (passed)
 
 <!-- ============================================================ -->
-## [015] 2026-03-03 20:27 (Baseplate Scrub Slider: Half-Width Right Anchor + Continuous 0-100)
+### [040] - 2026-03-03 20:27 - `NI - Phase 3 - Baseplate And Node Surface UI - Half-Width Scrub Slider`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Replaced binary scrub mode (low/high) with a continuous numeric scrub setting (0..100) in NodeView/PortView. Updated Baseplate scrub control UI.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - UI-only changes in canvas/theme layers.
 - No edits under `src/app/spaghetti/features/**`, `compiler/**`, or `integration/**`.
 - No worker/protocol/scheduler changes.
 - No compile/evaluate semantic changes.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Replaced binary scrub mode (`low`/`high`) with a continuous numeric scrub setting (`0..100`) in `NodeView`/`PortView`.
 - Updated Baseplate scrub control UI:
   - slider range now `0..100` with fractional movement (`step=0.1`),
@@ -2742,89 +4699,92 @@ Numbering rule for major entries:
 - Updated scrub drag behavior in `PortView` to interpolate threshold and sensitivity across the full slider range.
 - Updated theme styles so the scrub slider is half-width and remains right-anchored in its row.
 
-### Files Changed
+#### Files Changed
 - `src/app/spaghetti/canvas/NodeView.tsx`
 - `src/app/spaghetti/canvas/PortView.tsx`
 - `src/app/theme/v15Theme.css`
 - `docs/listofchanges.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - Scrub speed now glides smoothly from 0 to 100 and uses in-between values.
 - Slider occupies half the scrub row width and stays aligned to the right.
 - Scrub mode toggle button is removed in favor of continuous slider control.
 
-### Verification Steps
+#### Verification Steps
 - `npm.cmd --prefix parahook run test` (passed)
 - `npm.cmd --prefix parahook run build` (passed)
 
 <!-- ============================================================ -->
-## [014] 2026-03-03 20:25 (Baseplate Drivers Label Moved Below Scrub Controls)
+### [039] - 2026-03-03 20:25 - `NI - Phase 3 - Baseplate And Node Surface UI - Drivers Label Below Scrub Controls`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Updated Baseplate sketch header layout styles to stack content vertically. Positioned scrub speed controls on the first row and the Drivers label on the second row.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - UI-only layout adjustment.
 - No edits under `src/app/spaghetti/features/**`, `compiler/**`, or `integration/**`.
 - No worker/protocol/scheduler changes.
 - No graph compile/evaluate/runtime behavior changes.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Updated Baseplate sketch header layout styles to stack content vertically.
 - Positioned scrub speed controls on the first row and the `Drivers` label on the second row.
 - Kept existing control behavior and interaction handling unchanged.
 
-### Files Changed
+#### Files Changed
 - `src/app/theme/v15Theme.css`
 - `docs/listofchanges.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - `Drivers` is no longer horizontally aligned with the speed controls; it now appears one row lower.
 - Scrub controls remain right-aligned and functionally unchanged.
 
-### Verification Steps
+#### Verification Steps
 - `npm.cmd --prefix parahook run test` (passed)
 - `npm.cmd --prefix parahook run build` (passed)
 
 <!-- ============================================================ -->
-## [013] 2026-03-03 20:24 (Baseplate Title Click Forces Collapsed Row Mode)
+### [038] - 2026-03-03 20:24 - `NI - Phase 3 - Baseplate And Node Surface UI - Title Click Forces Collapsed Mode`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Added a dedicated onBaseplateTitleClick callback from SpaghettiCanvas to NodeView. In NodeView, made the title text interactive only for Baseplate nodes.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - Canvas/UI-only change.
 - No edits under `src/app/spaghetti/features/**`, `compiler/**`, or `integration/**`.
 - No worker/protocol/scheduler changes.
 - No graph compile/evaluate semantic changes.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Added a dedicated `onBaseplateTitleClick` callback from `SpaghettiCanvas` to `NodeView`.
 - In `NodeView`, made the title text interactive only for Baseplate nodes:
   - stops pointer-down propagation to avoid node drag initiation from title clicks,
   - invokes the callback on click.
 - In `SpaghettiCanvas`, callback sets row mode directly to `collapsed`.
 
-### Files Changed
+#### Files Changed
 - `src/app/spaghetti/canvas/NodeView.tsx`
 - `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
 - `docs/listofchanges.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - Clicking the `Baseplate` text in the node header now forces canvas row mode to `collapsed`.
 - Other node title clicks are unchanged.
 
-### Verification Steps
+#### Verification Steps
 - `npm.cmd --prefix parahook run test` (passed)
 - `npm.cmd --prefix parahook run build` (passed)
 
 <!-- ============================================================ -->
-## [012] 2026-03-03 22:38 (Data-Driven Part Template v1: Driver VM + Template-Flag NodeView)
+### [037] - 2026-03-03 22:38 - `PT - Phase 5 - Part Template Population - Driver VM And Template-Flag NodeView`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Added explicit part-template metadata to node definitions. Added generic driver VM resolver (driverVm.ts) that maps node metadata + params to render rows without node-type branching in NodeView.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - UI-only refactor in canvas/registry/theme layers.
 - No edits under `src/app/spaghetti/compiler/**`, `src/app/spaghetti/integration/**`, or `src/worker/**`.
 - No protocol/scheduler changes.
 - Deterministic ordering preserved via metadata order and stable endpoint keys.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Added explicit part-template metadata to node definitions:
   - `template?: 'part'`
   - `inputDrivers` and `outputDrivers` specs
@@ -2843,7 +4803,7 @@ Numbering rule for major entries:
 - Updated `FeatureStackView` with `mode: 'summary' | 'full'` and wired summary/full behavior by row mode.
 - Added disabled-port interaction guard support for reserved rows using `data-sp-disabled-port="1"`.
 
-### Files Changed
+#### Files Changed
 - `src/app/spaghetti/registry/nodeRegistry.ts`
 - `src/app/spaghetti/canvas/driverVm.ts`
 - `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
@@ -2852,56 +4812,58 @@ Numbering rule for major entries:
 - `src/app/theme/v15Theme.css`
 - `docs/listofchanges.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - Part-node layout is now metadata/template driven rather than node-type branching in `NodeView`.
 - Collapsed mode keeps Input Driver and Output Driver endpoint anchors visible; hidden internals do not register anchors.
 - Essentials mode shows only drivers + feature stack summary (legacy/debug sections hidden).
 - Everything mode shows drivers + full feature stack, then other outputs and legacy/debug sections.
 - Reserved Mesh Output row is visibly disabled, always shows a dot, and is non-interactive for wiring.
 
-### Verification Steps
+#### Verification Steps
 - `rg -n "Baseplate|ToeHook|HeelKick|Part/Baseplate|Part/ToeHook|Part/HeelKick" src/app/spaghetti/canvas/NodeView.tsx` (no matches)
 - `npm.cmd --prefix parahook run test` (passed)
 - `npm.cmd --prefix parahook run build` (passed)
 
 <!-- ============================================================ -->
-## [011] 2026-03-03 20:20 (Input Node Click Promotes Collapsed Row Mode to Essentials)
+### [036] - 2026-03-03 20:20 - `NI - Phase 3 - Baseplate And Node Surface UI - Input Click Promotes To Essentials`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Updated handleNodePointerDown in SpaghettiCanvas to resolve the clicked node before drag start. In collapsed row mode, clicking an input/source-style node now schedules setRowViewMode('essentials').`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - Canvas/UI-only change in allowed layer.
 - No edits under `src/app/spaghetti/features/**`, `compiler/**`, or `integration/**`.
 - No worker/protocol/scheduler changes.
 - No compile/evaluate semantic changes.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Updated `handleNodePointerDown` in `SpaghettiCanvas` to resolve the clicked node before drag start.
 - In `collapsed` row mode, clicking an input/source-style node now schedules `setRowViewMode('essentials')`.
 - Input/source-style node detection is based on node definition shape: zero inputs and at least one output.
 
-### Files Changed
+#### Files Changed
 - `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
 - `docs/listofchanges.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - Clicking an input/source node while canvas row mode is `collapsed` now opens row mode to `essentials`.
 - Existing node selection and drag initiation behavior for non-interactive node surface remains unchanged.
 
-### Verification Steps
+#### Verification Steps
 - `npm.cmd --prefix parahook run test` (passed)
 - `npm.cmd --prefix parahook run build` (passed)
 
 <!-- ============================================================ -->
-## [010] 2026-03-03 20:08 (Selected Baseplate Chevron Interaction Guard via Interactive Targets)
+### [035] - 2026-03-03 20:08 - `NI - Phase 3 - Baseplate And Node Surface UI - Chevron Interaction Guard`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Added reusable interactive-target predicate in canvas. Updated handleNodePointerDown in SpaghettiCanvas.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - Canvas/UI-only changes.
 - No edits under `src/app/spaghetti/features/**`, `compiler/**`, or `integration/**`.
 - No worker/protocol/scheduler changes.
 - No row-mode or composite-evaluation semantic changes.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Added reusable interactive-target predicate in canvas:
   - `isSpaghettiInteractiveTarget(target: EventTarget | null)`.
   - Matches `data-sp-interactive="1"` first, then form-control and existing Spaghetti interactive selectors.
@@ -2915,87 +4877,90 @@ Numbering rule for major entries:
   - range input,
   - context-menu root container.
 
-### Files Changed
+#### Files Changed
 - `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
 - `src/app/spaghetti/canvas/PortView.tsx`
 - `src/app/spaghetti/ui/SpaghettiContextMenu.tsx`
 - `docs/listofchanges.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - When Baseplate node is selected, clicking `Anchor Point 1` (and other composite) chevron now expands/collapses immediately without requiring deselection.
 - Node drag still starts from non-interactive node areas.
 - Port wire drag, value scrubbing, and context menu interactions remain available through interactive elements.
 
-### Verification Steps
+#### Verification Steps
 - `npm.cmd --prefix parahook run test` (passed)
 - `npm.cmd --prefix parahook run build` (passed)
 
 <!-- ============================================================ -->
-## [009] 2026-03-03 18:09 (Anchor Bar Click Forces Essentials Mode Deterministically)
+### [034] - 2026-03-03 18:09 - `NI - Phase 3 - Baseplate And Node Surface UI - Anchor Bar Forces Essentials Mode`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Added a canvas click-capture guard that detects clicks inside Baseplate sketch anchor-point value bars. Detection now resolves to the parent composite group root port label (Anchor Point 1..5) so leaf X/Y bar clicks are included.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - UI-only patch in canvas layer.
 - No changes under `features/**`, `compiler/**`, or `integration/**`.
 - No worker/protocol/scheduler changes.
 - Row-mode transition remains render/UI-only behavior.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Added a canvas click-capture guard that detects clicks inside Baseplate sketch anchor-point value bars.
 - Detection now resolves to the parent composite group root port label (`Anchor Point 1..5`) so leaf `X/Y` bar clicks are included.
 - Mode transition is forced one-way to `essentials` via `requestAnimationFrame` to avoid ending in any other row mode during the same click cycle.
 
-### Files Changed
+#### Files Changed
 - `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
 - `docs/listofchanges.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - Clicking any sketch anchor-point value bar now settles row mode to `essentials` deterministically, including clicks on expanded leaf bars.
 - No compile/evaluate/runtime behavior changed.
 
-### Verification Steps
+#### Verification Steps
 - `npm.cmd --prefix parahook run test` (passed)
 - `npm.cmd --prefix parahook run build` (passed)
 
 <!-- ============================================================ -->
-## [008] 2026-03-03 18:03 (Canvas Drag Rerender Guard for Port Drop State)
+### [033] - 2026-03-03 18:03 - `NI - Phase 3 - Baseplate And Node Surface UI - Canvas Drag Rerender Guard`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Added a stable connectionDragAnchor snapshot in SpaghettiCanvas derived only from anchor identity fields (direction, nodeId, portId, path). Switched hover validation and input/output drop-state callbacks to depend on the stable anchor snapshot instead of the full connectionDrag object.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - UI repair only in allowed canvas layer.
 - No changes in `src/app/spaghetti/features/**`, `compiler/**`, or `integration/**`.
 - No worker/protocol/scheduler edits.
 - Row mode and composite expansion behavior remain render-only concerns.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Added a stable `connectionDragAnchor` snapshot in `SpaghettiCanvas` derived only from anchor identity fields (`direction`, `nodeId`, `portId`, `path`).
 - Switched hover validation and input/output drop-state callbacks to depend on the stable anchor snapshot instead of the full `connectionDrag` object.
 - This prevents per-pointer-move callback identity churn from propagating into memoized `NodeView` props during wire dragging.
 
-### Files Changed
+#### Files Changed
 - `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
 - `docs/listofchanges.md`
 
-### Behavior Changes (if any)
+#### Behavior Changes (if any)
 - While dragging a wire, node drop-state rendering now updates based on anchor/hover target changes rather than every pointer-position update, reducing avoidable node rerenders.
 - No graph compile/evaluate semantics were changed; no row mode or composite state semantics were changed.
 
-### Verification Steps
+#### Verification Steps
 - `npm.cmd --prefix parahook run test` (passed)
 - `npm.cmd --prefix parahook run build` (passed)
 
 <!-- ============================================================ -->
-## [007] 2026-03-03 17:55 (UI Stabilization Amendments: Composite Map State + Output Leaf Rendering)
+### [032] - 2026-03-03 17:55 - `VM - Phase 3 - UI Stabilization - Composite Map State + Output Leaf Rendering`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Added row-mode helper flags in rowViewMode limited to row concerns only. Added composite expansion key helper with exact parent-key format.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - App-layer only implementation.
 - No worker/protocol/scheduler contract changes.
 - No CAD/feature execution logic moved into UI.
 - No compiler behavior changes for graph semantics.
 - Row modes remain render-only controls.
 
-### Summary of Implementation
+#### Summary of Implementation
 - Added row-mode helper flags in `rowViewMode` limited to row concerns only:
   - `showEditors`
   - `showDebugInfo`
@@ -3014,7 +4979,7 @@ Numbering rule for major entries:
 - Ensured output leaf anchors mount only when leaf rows are rendered; parent anchors remain mounted.
 - Replaced per-node inline hover/drop wrappers from canvas render loop with stable shared callbacks.
 
-### Files Changed
+#### Files Changed
 - `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
 - `src/app/spaghetti/canvas/NodeView.tsx`
 - `src/app/spaghetti/canvas/rowViewMode.ts`
@@ -3024,14 +4989,14 @@ Numbering rule for major entries:
 - `src/app/spaghetti/compiler/compileGraph.test.ts`
 - `docs/listofchanges.md`
 
-### Behavior Changes
+#### Behavior Changes
 - Row mode semantics are now explicit and deterministic for composite leaves across input/output columns.
 - Composite expansion state is now parent-row scoped for both directions (`in` and `out`) and stored as canvas-local map state.
 - `NodeView` no longer performs graph evaluation; UI rendering is separated from evaluation logic.
 - Output composite ports now expose deterministic leaf rows/anchors when visible by mode.
 - No compiler/worker/protocol behavior changes.
 
-### Perf Check
+#### Perf Check
 - Method: render-path stability audit focused on `NodeView` subtree invalidation sources.
 - Verified changes:
   - node-scoped derived render payload is memoized in `SpaghettiCanvas` (`nodeRenderDataById`),
@@ -3039,19 +5004,20 @@ Numbering rule for major entries:
   - shared hover/drop handlers are stable callbacks rather than per-node inline wrappers.
 - Result: non-node canvas state updates no longer introduce avoidable node-subtree prop churn from those prior wrapper/data patterns.
 
-### CSS Impact
+#### CSS Impact
 - Global theme selectors changed: none.
 - Local class strategy retained; no `v15Theme.css` selector edits were required for this pass.
 
-### Verification Steps
+#### Verification Steps
 - `npm.cmd --prefix parahook run test` (passed)
 - `npm.cmd --prefix parahook run build` (passed)
 
 <!-- ============================================================ -->
-## [006] 2026-03-03 17:04 (Expose Fields + View Modes)
+### [031] - 2026-03-03 17:04 - `DR - Phase 7 - Expose Fields And View Modes`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Added fieldTree composite definitions for spline2 and profileLoop with deterministic leaf traversal. Added deterministic tests for new fieldTree leaf paths.`
 
-### Scope / Constraints
+#### Scope / Constraints
 - App-layer only implementation.
 - No worker/protocol/scheduler contract changes.
 - No auto-build trigger behavior changes.
@@ -3061,7 +5027,7 @@ Numbering rule for major entries:
 - Parent composite anchor remains active in collapsed row mode.
 - Part panel ordering preserved when visible: `uiSections -> params -> Feature Stack`.
 
-### Summary
+#### Summary
 - Added `fieldTree` composite definitions for `spline2` and `profileLoop` with deterministic leaf traversal.
 - Added deterministic tests for new `fieldTree` leaf paths.
 - Extended `validateGraph` tests with test-local `profileLoop` fixture node defs (no runtime node-type additions).
@@ -3078,7 +5044,7 @@ Numbering rule for major entries:
   - `Base Plate Spline (Outer)`
 - Added minimal `spComp_` and `spView_` CSS hooks for mode/control styling.
 
-### Files Changed
+#### Files Changed
 - `src/app/spaghetti/types/fieldTree.ts`
 - `src/app/spaghetti/types/fieldTree.test.ts`
 - `src/app/spaghetti/compiler/validateGraph.test.ts`
@@ -3089,7 +5055,7 @@ Numbering rule for major entries:
 - `src/app/theme/v15Theme.css`
 - `docs/listofchanges.md`
 
-### Behavior Changes
+#### Behavior Changes
 - Composite types `spline2` and `profileLoop` now expose deterministic leaf paths in app-layer field tree introspection.
 - Row mode now controls node-port disclosure without mutating graph edges or compile/evaluate semantics.
 - In collapsed row mode, parent composite anchors remain wireable while leaf anchors are hidden.
@@ -3097,22 +5063,23 @@ Numbering rule for major entries:
 - Everything mode shows debug/info panels and full recursive composite leaf rendering.
 - Baseplate spline output labels are standardized for UI display without changing port IDs/types.
 
-### Verification
+#### Verification
 - `npm.cmd --prefix parahook run test` (passed)
 - `npm.cmd --prefix parahook run build` (passed)
 
 <!-- ============================================================ -->
-## [005] 2026-03-03 16:05 (Feature Stack v1 Debug Preview: App-Layer IR-Driven UI)
+### [030] - 2026-03-03 16:05 - `FS - Phase 11 - Feature Stack v1 Debug Preview - App-Layer IR-Driven UI`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Added deterministic Feature Stack Debug Preview driven by compile-path IR (no UI-side compileFeatureStack calls). Extracted shared compile helper in compileGraph so payload emission and UI cache use the same part IR derivation path.`
 
-### Scope / Constraints
+#### Scope / Constraints
 - App-layer only implementation.
 - No worker/protocol/scheduler contract changes.
 - No auto-build trigger behavior added.
 - Deterministic ordering/labels/rendering enforced for preview and diagnostics.
 - Feature Stack panel placement updated to locked order: `uiSections -> params -> Feature Stack`.
 
-### Summary
+#### Summary
 - Added deterministic Feature Stack Debug Preview driven by compile-path IR (no UI-side `compileFeatureStack` calls).
 - Extracted shared compile helper in `compileGraph` so payload emission and UI cache use the same part IR derivation path.
 - Added store-level cache and selector for per-part Feature Stack IR mapped from nodeId.
@@ -3121,7 +5088,7 @@ Numbering rule for major entries:
 - Applied deterministic diagnostics sort/key policy and per-level badge counts.
 - Added namespaced `fsPrev_*` styles and pure-function tests for preview determinism.
 
-### Files Changed
+#### Files Changed
 - `src/app/spaghetti/compiler/compileGraph.ts`
 - `src/app/spaghetti/store/useSpaghettiStore.ts`
 - `src/app/spaghetti/canvas/NodeView.tsx`
@@ -3133,7 +5100,7 @@ Numbering rule for major entries:
 - `src/app/theme/v15Theme.css`
 - `docs/listofchanges.md`
 
-### Behavior Changes
+#### Behavior Changes
 - Feature previews now consume compile-path part IR via store cache (`getPartFeatureStackIrForNode`) instead of recompiling in UI.
 - Sketch preview profile ordering is now deterministic: area descending, then `profileId` ascending.
 - Sketch/extrude preview labels now use `A..Z`, then `Profile <n>` fallback.
@@ -3141,15 +5108,16 @@ Numbering rule for major entries:
 - Diagnostics display now applies stable ordering (`error`, `warning`, `info`, then message, then featureId) and deterministic keys.
 - Part node panel order is now `uiSections -> params -> Feature Stack`.
 
-### Verification
+#### Verification
 - `npm.cmd --prefix parahook run test` (passed)
 - `npm.cmd --prefix parahook run build` (passed)
 
 <!-- ============================================================ -->
-## [004] 2026-03-03 15:37 (Feature Stack v1 Worker Pipeline: Option-B Runtime Execution)
+### [029] - 2026-03-03 15:37 - `FS - Phase 10 - Feature Stack v1 Worker Pipeline - Option-B Runtime Execution`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Added app compile emission for Option-B sketch payload. Added worker feature stack runtime that.`
 
-### Scope / Constraints
+#### Scope / Constraints
 - Implemented worker + CAD runtime execution for Feature Stack v1 with deterministic in-memory mesh-pack adapter.
 - No scheduler behavior changes.
 - No shared protocol contract changes.
@@ -3157,7 +5125,7 @@ Numbering rule for major entries:
 - Legacy build result envelope remains `PartArtifact[]`.
 - Worker payload handling remains branch-specific flat profile patch (`payload.sp_featureStackIR` namespace).
 
-### Summary
+#### Summary
 - Added app compile emission for Option-B sketch payload:
   - `IRSketch.profilesResolved: [{ profileId, area, vertices[] }]`
   - deterministic ordered loop vertices with CCW normalization
@@ -3175,7 +5143,7 @@ Numbering rule for major entries:
   - single flush per build via worker build orchestrator
 - Integrated runtime into active worker build path through a new thin `buildModel` coordinator while preserving legacy artifacts output.
 
-### Files Changed
+#### Files Changed
 - `src/app/spaghetti/features/compileFeatureStack.ts`
 - `src/app/spaghetti/features/compileFeatureStack.test.ts`
 - `src/worker/cad/cadTypes.ts`
@@ -3187,29 +5155,30 @@ Numbering rule for major entries:
 - `src/worker/products/foothook/buildFoothook.ts`
 - `docs/listofchanges.md`
 
-### Behavior Changes
+#### Behavior Changes
 - App compile IR now includes `profilesResolved` loop geometry for sketch ops (Option-B lock).
 - Worker Feature Stack execution is active when `sp_featureStackIR` is present in current payload patch namespace.
 - Worker now emits at most one aggregated warning log per build for unique runtime warnings.
 - Runtime merge semantics are deterministic mesh concatenation in stable bodyId order; no CAD boolean claims.
 
-### Verification
+#### Verification
 - `npm.cmd --prefix parahook run test`
 - `npm.cmd --prefix parahook run build`
 - Vite large-chunk warning remains unchanged (non-regression).
 
 <!-- ============================================================ -->
-## [003] 2026-03-03 (Feature Stack v1 Spec-Alignment: App Layer)
+### [028] - 2026-03-03 - `FS - Phase 9 - Feature Stack v1 App-Layer Alignment`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Added canonical profile derivation exports. Kept compatibility alias.`
 
-### Scope / Constraints Honored
+#### Scope / Constraints Honored
 - App-layer only changes.
 - No worker/protocol/scheduler contract changes.
 - No auto-build behavior changes.
 - `buildRequestSchema.profile` remains `z.record(z.string(), z.unknown())`.
 - Existing composite/path/wiring behavior preserved.
 
-### Feature API Alignment
+#### Feature API Alignment
 - Added canonical profile derivation exports:
   - `hashFnv1a32(str)`
   - `profileIdFromSignature(sig)`
@@ -3225,7 +5194,7 @@ Numbering rule for major entries:
 - Kept compatibility type alias:
   - `FeatureDiagnostic = Diagnostic`
 
-### Determinism and Derivation Contract
+#### Determinism and Derivation Contract
 - Updated profile derivation to locked deterministic rules:
   - point keys use exact `${String(x)}|${String(y)}`
   - exact literal endpoints (no tolerance rounding path)
@@ -3235,7 +5204,7 @@ Numbering rule for major entries:
   - zero-area loop rejection
   - stable output sorting: area desc, signature asc, profileId asc
 
-### Store / UI Alignment
+#### Store / UI Alignment
 - Store now uses canonical helpers:
   - `deriveProfiles(...)`
   - `pickDefaultProfileRef(...)`
@@ -3250,14 +5219,14 @@ Numbering rule for major entries:
   - `Profile: <SketchShort>/<ProfileLabel>, Depth: <value>`
 - Profile labels use `A..Z` then `Profile <n>` fallback.
 
-### Compile / Payload Alignment
+#### Compile / Payload Alignment
 - `sp_featureStackIR` compile emission aligned to non-empty feature stack presence.
 - Emitted IR payload remains:
   - `{ schemaVersion: 1, parts: Record<PartKey, IR[]> }`
 - Existing part-key mapping retained (`baseplate`, `toeHook#1`, `heelKick#1`) with deterministic behavior.
 - Patch/change detection path continues using stable hashing and includes `sp_featureStackIR`.
 
-### Files Changed
+#### Files Changed
 - `src/app/spaghetti/features/profileDerivation.ts`
 - `src/app/spaghetti/features/autoLink.ts`
 - `src/app/spaghetti/features/diagnostics.ts`
@@ -3268,11 +5237,11 @@ Numbering rule for major entries:
 - `src/app/spaghetti/features/profileDerivation.test.ts`
 - `src/app/spaghetti/features/autoLink.test.ts`
 
-### Verification
+#### Verification
 - `npm.cmd run test` (passed)
 - `npm.cmd --prefix parahook run build` (passed)
 
-### Interaction Boundary Guard Fix (2026-03-04)
+#### Interaction Boundary Guard Fix (2026-03-04)
 - Fix: prevent node drag/select from capturing UI control pointerdown; audit interactive markers.
 - Added shared interaction helper `src/app/spaghetti/spInteractive.ts`:
   - `isInteractiveTarget(target)` selector guard
@@ -3290,24 +5259,26 @@ Numbering rule for major entries:
   - `src/app/spaghetti/canvas/NodeView.tsx`
 
 <!-- ============================================================ -->
-## [002] 2026-03-03 (Spaghetti Floating Window Follow-up: Default Geometry + Drag)
+### [027] - 2026-03-03 - `SP - Phase 4 - Floating Window Follow-up - Default Geometry + Drag`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Updated default Spaghetti floating window open anchor to start around 30% down from viewport top. Re-enabled normal dragging immediately on open (removed resize-first drag gating).`
 
-### Floating Window Behavior
+#### Floating Window Behavior
 - Updated default Spaghetti floating window open anchor to start around 30% down from viewport top.
 - Re-enabled normal dragging immediately on open (removed resize-first drag gating).
 - First drag now marks the floating window as user-positioned so it behaves like a normal float window.
 - Updated default open width to span from the left side to the left side of the gizmo/right overlay area.
 - Updated default open height to span from the 30% top anchor down to the viewport bottom (subject to existing clamp/padding).
 
-### Files Changed
+#### Files Changed
 - `src/app/AppShell.tsx`
 
 <!-- ============================================================ -->
-## [001] 2026-03-03 (Compiled Master Entry)
+### [026] - 2026-03-03 - `GE - Phase 7 - Early Modern Baseline - Compiled Master Entry`
 <!-- ============================================================ -->
+HUMAN SUMMARY: `Added Vitest setup and tests for field tree, validator path rules, and evaluator precedence. Added npm run test script and vitest dev dependency.`
 
-### Scope / Locked Invariants
+#### Scope / Locked Invariants
 - App-layer only changes in this phase; no worker/protocol/scheduler contract changes.
 - Compile/build remains explicit; canvas interactions do not auto-trigger build.
 - Determinism preserved for path-aware logic and composite handling (edge traversal sorted by `edgeId` where required).
@@ -3315,7 +5286,7 @@ Numbering rule for major entries:
 - Parent composite anchor remains active while collapsed.
 - Legacy mixed graphs (whole + leaf edges) are preserved; UI warns but does not delete edges.
 
-### Canvas and Node Editor UX
+#### Canvas and Node Editor UX
 - Added right-click canvas node-add menu with search, placing nodes at cursor.
 - Added typed color coding for ports/anchors so colors match port kinds.
 - Updated anchor measurement to use actual small port-circle elements.
@@ -3324,7 +5295,7 @@ Numbering rule for major entries:
 - Updated node layout to top-left inputs and bottom-right outputs.
 - Baseplate node now presents `Drivers` and `Sketch Inputs` sections with grouped labels.
 
-### Wire Routing and Editing
+#### Wire Routing and Editing
 - Added wire curviness slider (`0` linear, `25` baseline, `100` highly curved).
 - Added reroute-point editing:
   - double-click wire to add point
@@ -3339,7 +5310,7 @@ Numbering rule for major entries:
   - `Flip Tangent Side 2`
 - Reworked waypoint segment routing to keep tangency through reroute points.
 
-### Numeric Controls and Baseplate Sketch UX
+#### Numeric Controls and Baseplate Sketch UX
 - Moved Baseplate `width`/`length` to inline port controls.
 - Added matching inline template for `Primitive/Number`.
 - Unified value-bar control includes:
@@ -3352,7 +5323,7 @@ Numbering rule for major entries:
 - Width/Length driver updates resync sketch points to canonical rectangle.
 - Added Baseplate scrub-speed toggle (`low` blue / `high` green) and increased `high` sensitivity.
 
-### Composite Field Tree and Path Endpoint System
+#### Composite Field Tree and Path Endpoint System
 - Added composite field introspection:
   - `getFieldTree`
   - `getFieldNodeAtPath`
@@ -3404,7 +5375,7 @@ Numbering rule for major entries:
   - whole-port compile lookup ignores target leaf edges
   - source extraction respects optional `from.path`
 
-### Composite Vec2 Parent UX (Break/Group + Info Menu)
+#### Composite Vec2 Parent UX (Break/Group + Info Menu)
 - Collapsed composite vec2 parent rows render inline `X`/`Y` value bars (blue tone, 50/50 split).
 - Parent anchor remains active while collapsed.
 - Inline editors continue using existing literal param backing values (no new literal store).
@@ -3426,11 +5397,11 @@ Numbering rule for major entries:
 - Removed top-right composite action buttons in favor of context menu actions.
 - Added CSS support for inline XY, driven/disabled states, warning badge, and menu visuals.
 
-### Testing and Tooling
+#### Testing and Tooling
 - Added Vitest setup and tests for field tree, validator path rules, and evaluator precedence.
 - Added `npm run test` script and `vitest` dev dependency.
 
-### Files Changed (Grouped by Area)
+#### Files Changed (Grouped by Area)
 - Canvas/UI core:
   - `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
   - `src/app/spaghetti/canvas/WireLayer.tsx`
@@ -3460,6 +5431,784 @@ Numbering rule for major entries:
   - `src/app/spaghetti/compiler/validateGraph.test.ts`
   - `src/app/spaghetti/compiler/evaluateGraph.test.ts`
 
-### Verification
+#### Verification
 - `npm.cmd run test` (passed)
 - `npm.cmd --prefix parahook run build` (passed)
+
+
+<!-- ============================================================ -->
+### Reconstructed from here down
+<!-- ============================================================ -->
+HUMAN SUMMARY: `This marks the point where the changelog shifts from shipped modern entries into reconstructed earlier history.`
+
+
+<!-- ============================================================ -->
+### Reconstructed `Gap`
+HUMAN SUMMARY: `This marks an inferred bridge entry reconstructed from incomplete evidence rather than a fully evidenced historical log.`
+### [025] - [Gap] - `First Landed Graph / Feature Stack / Expose Fields Implementation Wave`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Likely captured the first landed implementation wave that turned earlier graph, Feature Stack, and expose-fields planning into real shipped work. Likely bridged the restored conversation-era systems into the first visible shipped changelog band.`
+#### Scope / Constraints Honored
+- Recovered bridge entry with incomplete evidence.
+- Preserved the distinction between recovered completed entries and inferred bridge entries.
+
+#### Summary of Implementation
+- Likely captured the first landed implementation wave that turned earlier graph, Feature Stack, and expose-fields planning into real shipped work.
+- Likely bridged the restored conversation-era systems into the first visible shipped changelog band.
+- Likely established enough product/runtime continuity for the later shipped entries to appear as already-standing work.
+
+#### Files Changed
+- exact file set unknown
+- likely touched early Spaghetti, Feature Stack, driver, and build-integration files
+
+#### Behavior Changes (if any)
+- Likely marked the real transition from restored planning/history into the first shipped modern graph wave.
+
+#### Verification Steps
+- Review compiled gap row `[025]`.
+- Treat this entry as explicitly inferred until stronger evidence is recovered.
+
+<!-- ============================================================ -->
+### Reconstructed `Gap`
+HUMAN SUMMARY: `This marks an inferred bridge entry reconstructed from incomplete evidence rather than a fully evidenced historical log.`
+### [024] - [Gap] - `Restored History To First Shipped Changelog Handoff`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Likely captured the handoff from the restored conversation-derived restart work into the first shipped changelog era. Likely stabilized enough app/store/panel/runtime behavior for the shipped changelog band to begin.`
+#### Scope / Constraints Honored
+- Recovered bridge entry with incomplete evidence.
+- Preserved the distinction between recovered completed entries and inferred bridge entries.
+
+#### Summary of Implementation
+- Likely captured the handoff from the restored conversation-derived restart work into the first shipped changelog era.
+- Likely stabilized enough app/store/panel/runtime behavior for the shipped changelog band to begin.
+
+#### Files Changed
+- exact file set unknown
+- likely touched the app shell, store wiring, and early modern graph/runtime surfaces
+
+#### Behavior Changes (if any)
+- Likely marks a continuity handoff more than one single isolated feature.
+
+#### Verification Steps
+- Review compiled gap row `[024]`.
+- Treat this entry as explicitly inferred until stronger evidence is recovered.
+
+<!-- ============================================================ -->
+### Reconstructed
+HUMAN SUMMARY: `This marks a reconstructed historical entry recovered from compiled logs and later canonical docs.`
+### [023] - [Conv 9] - `SP - Phase 3 - Spaghetti Editor S3 - Compile To Build Integration`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Connected Spaghetti compile output into the live build path. Turned Spaghetti from an isolated graph/editor experiment into a real authoring input mode.`
+#### Scope / Constraints Honored
+- Recovered history entry based on compiled history and later canonical phase reconstruction.
+- Preserved the existing warm-worker runtime direction.
+- Preserved the existing app -> worker -> viewer separation.
+
+#### Summary of Implementation
+- Connected Spaghetti compile output into the live build path.
+- Turned Spaghetti from an isolated graph/editor experiment into a real authoring input mode.
+- Preserved the current worker path while feeding it graph-produced build intent.
+
+#### Files Changed
+- `src/app/spaghetti/compiler/compileGraph.ts`
+- `src/app/spaghetti/integration/buildInputsToRequest.ts`
+- `src/app/buildDispatcher.ts`
+- `src/worker/buildModel.ts`
+- `src/shared/buildTypes.ts`
+
+#### Behavior Changes (if any)
+- The graph system could now drive the live build path instead of staying only a planning/editor surface.
+
+#### Verification Steps
+- Review compiled row `[023]` and the canonical phase log for `SP - Phase 3`.
+- Confirm the draft stays consistent with the later shipped changelog wording around early Spaghetti integration.
+
+
+<!-- ============================================================ -->
+### Reconstructed
+HUMAN SUMMARY: `This marks a reconstructed historical entry recovered from compiled logs and later canonical docs.`
+### [022] - [Conv 9] - `GE - Phase 6 - Worker Affected-Part Routing And Cache Preference`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Defined worker-side affected-part routing as real build input. Added cache-preference thinking around unaffected parts.`
+#### Scope / Constraints Honored
+- Recovered history entry based on conversation-derived task logs.
+- Preserved the one warm worker rule.
+- Preserved the current deterministic stub-output baseline while routing work matured.
+
+#### Summary of Implementation
+- Defined worker-side affected-part routing as real build input.
+- Added cache-preference thinking around unaffected parts.
+- Strengthened the engine toward selective recompute without restarting the architecture.
+
+#### Files Changed
+- `src/app/buildDispatcher.ts`
+- `src/shared/buildTypes.ts`
+- `src/shared/partRouting.ts`
+- `src/worker/pipeline/buildPipeline.ts`
+- `src/worker/pipeline/signatures.ts`
+
+#### Behavior Changes (if any)
+- The worker could reason more directly about which parts were affected by param changes.
+
+#### Verification Steps
+- Review restored `GE - Phase 6` detail in the phase log.
+- Confirm the drafted summary matches the compiled title and recovered routing/signature work.
+
+<!-- ============================================================ -->
+### Reconstructed
+HUMAN SUMMARY: `This marks a reconstructed historical entry recovered from compiled logs and later canonical docs.`
+### [021] - [Conv 9] - `DR - Phase 3 - Param Ownership / Routing v20`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Applied modern param ownership and changed-id routing to the /20/ direction. Strengthened the bridge between param namespaces, affected-part routing, and future selective recompute.`
+#### Scope / Constraints Honored
+- Recovered history entry based on compiled history and restored `/20/` restart planning.
+- Preserved the new canonical param-ownership direction.
+- Preserved the engine-first roadmap ordering.
+
+#### Summary of Implementation
+- Applied modern param ownership and changed-id routing to the `/20/` direction.
+- Strengthened the bridge between param namespaces, affected-part routing, and future selective recompute.
+- Reduced flat global rebuild thinking in favor of controlled routing.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/buildDispatcher.ts`
+- `src/shared/buildTypes.ts`
+- `src/shared/partRouting.ts`
+- `src/worker/pipeline/buildPipeline.ts`
+
+#### Behavior Changes (if any)
+- Param changes became more explicitly tied to part-owned routing behavior.
+
+#### Verification Steps
+- Review the compiled row `[021]` and the phase log entry for `DR - Phase 3`.
+- Confirm the draft stays aligned with the earlier `PT` param-ownership phases.
+
+<!-- ============================================================ -->
+### Reconstructed
+HUMAN SUMMARY: `This marks a reconstructed historical entry recovered from compiled logs and later canonical docs.`
+### [020] - [Conv 9] - `SP - Phase 2 - Spaghetti Editor S2 - Compute / Evaluate / Compile Skeleton`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Added the first compute/evaluate skeleton for the graph system. Introduced compile-shape thinking into the Spaghetti layer.`
+#### Scope / Constraints Honored
+- Recovered history entry based on compiled history and restored Spaghetti phase mapping.
+- Preserved the existing app/worker/viewer split.
+- Kept Spaghetti as a graph-authoring layer rather than a second runtime.
+
+#### Summary of Implementation
+- Added the first compute/evaluate skeleton for the graph system.
+- Introduced compile-shape thinking into the Spaghetti layer.
+- Prepared the graph to produce deterministic build-facing data.
+
+#### Files Changed
+- `src/app/spaghetti/compiler/evaluateGraph.ts`
+- `src/app/spaghetti/compiler/compileGraph.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/schema/spaghettiSchema.ts`
+
+#### Behavior Changes (if any)
+- Spaghetti became capable of producing meaningful compile-oriented graph output.
+
+#### Verification Steps
+- Review compiled row `[020]` and the phase log entry for `SP - Phase 2`.
+- Confirm the draft fits between `SP - Phase 1` store/schema work and `SP - Phase 3` compile-to-build integration.
+
+<!-- ============================================================ -->
+### Reconstructed
+HUMAN SUMMARY: `This marks a reconstructed historical entry recovered from compiled logs and later canonical docs.`
+### [019] - [Conv 9] - `SP - Phase 1 - Spaghetti Editor S1 - Schema / Validation / Store`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Landed the first serious Spaghetti graph schema and registry foundation. Added validation and cycle-awareness around the graph model.`
+#### Scope / Constraints Honored
+- Recovered history entry based on compiled history and conversation-9 reconstruction.
+- Preserved the main app/worker/viewer separation.
+- Added graph ownership without changing product truth outside the new graph system.
+
+#### Summary of Implementation
+- Landed the first serious Spaghetti graph schema and registry foundation.
+- Added validation and cycle-awareness around the graph model.
+- Gave Spaghetti its own store foundation so it became a real subsystem.
+
+#### Files Changed
+- `src/app/spaghetti/schema/spaghettiSchema.ts`
+- `src/app/spaghetti/registry/nodeRegistry.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/compiler/validateGraph.ts`
+
+#### Behavior Changes (if any)
+- Spaghetti became a concrete graph subsystem with real state ownership.
+
+#### Verification Steps
+- Review compiled row `[019]` and the phase log entry for `SP - Phase 1`.
+- Confirm the draft matches the earliest reconstructed schema/store/validation milestone.
+
+<!-- ============================================================ -->
+### Reconstructed
+HUMAN SUMMARY: `This marks a reconstructed historical entry recovered from compiled logs and later canonical docs.`
+### [018] - [Conv 9] - `VM - Phase 2 - Instance-Aware Store And ViewModel Baseline`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Made instance-aware state and view-model shaping part of the baseline. Reduced single-instance assumptions across store and UI logic.`
+#### Scope / Constraints Honored
+- Recovered history entry based on compiled history and restored task mapping.
+- Preserved the selector-first view-model discipline established earlier.
+- Preserved the app/worker separation.
+
+#### Summary of Implementation
+- Made instance-aware state and view-model shaping part of the baseline.
+- Reduced single-instance assumptions across store and UI logic.
+- Prepared the app for more than one owned part/view path.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/store/selectors.ts`
+- `src/shared/partsTypes.ts`
+- `src/app/panels/PartsListPanel.tsx`
+
+#### Behavior Changes (if any)
+- The app could reason more cleanly about multiple part/view identities instead of a single monolithic output path.
+
+#### Verification Steps
+- Review compiled row `[018]` and the phase log entry for `VM - Phase 2`.
+- Confirm the draft stays consistent with later multi-part and parts-list work.
+
+<!-- ============================================================ -->
+### Reconstructed
+HUMAN SUMMARY: `This marks a reconstructed historical entry recovered from compiled logs and later canonical docs.`
+### [017] - [Conv 9] - `AS - Phase 4 - Canonical Part Identity And Assembled Direction`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Clarified part identity as a canonical concept instead of one loose preview blob. Strengthened the distinction between part outputs and the assembled output.`
+#### Scope / Constraints Honored
+- Recovered history entry based on compiled history and restored phase summaries.
+- Preserved the Parts List and artifact-driven product direction.
+- Preserved the move away from scrubber/history UI.
+
+#### Summary of Implementation
+- Clarified part identity as a canonical concept instead of one loose preview blob.
+- Strengthened the distinction between part outputs and the assembled output.
+- Moved the product away from looser `final` wording and toward assembled identity.
+
+#### Files Changed
+- `src/shared/partsTypes.ts`
+- `src/shared/buildTypes.ts`
+- `src/worker/pipeline/artifactEmitter.ts`
+- `src/app/panels/PartsListPanel.tsx`
+
+#### Behavior Changes (if any)
+- The output model became easier to reason about in terms of parts versus assembled results.
+
+#### Verification Steps
+- Review compiled row `[017]` and the phase log entry for `AS - Phase 4`.
+- Confirm the draft fits after the early parts/artifact baseline gap.
+
+<!-- ============================================================ -->
+### Reconstructed `Gap`
+HUMAN SUMMARY: `This marks an inferred bridge entry reconstructed from incomplete evidence rather than a fully evidenced historical log.`
+### [016] - [Gap] - `AS - Phase 3 - First Parts / Artifact Baseline`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Likely defined the first stable part/artifact identity layer between the restart and later assembled-direction work. Likely turned the product from one preview mesh into named output parts.`
+#### Scope / Constraints Honored
+- Recovered gap note with incomplete evidence.
+- Preserved the existing parts-list and artifact-driven product direction.
+
+#### Summary of Implementation
+- Likely defined the first stable part/artifact identity layer between the restart and later assembled-direction work.
+- Likely turned the product from one preview mesh into named output parts.
+- Likely gave later part-order and assembled work a concrete baseline to build on.
+
+#### Files Changed
+- exact file set unknown
+- likely touched `src/shared/partsTypes.ts`
+- likely touched `src/shared/buildTypes.ts`
+- likely touched `src/worker/pipeline/artifactEmitter.ts`
+
+#### Behavior Changes (if any)
+- Likely gave the early restart a clearer part/artifact identity model.
+
+#### Verification Steps
+- Review compiled gap row `[016]` and the gap-phase note in the canonical phase log.
+- Treat this entry as explicitly inferred until stronger evidence is recovered.
+
+<!-- ============================================================ -->
+### Reconstructed Gap
+HUMAN SUMMARY: `This marks an inferred bridge entry reconstructed from incomplete evidence rather than a fully evidenced historical log.`
+### [015] - [Gap] - `GE - Phase 5 - First Running Box Vertical Slice`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Likely added the first width / length / height controls. Likely proved the first real end-to-end box slice through app, worker, and viewer.`
+#### Scope / Constraints Honored
+- Recovered gap note with incomplete evidence.
+- Preserved the clean app -> worker -> viewer architecture.
+- Preserved the one warm worker rule.
+
+#### Summary of Implementation
+- Likely added the first `width / length / height` controls.
+- Likely proved the first real end-to-end box slice through app, worker, and viewer.
+- Likely hardened the first dispatcher/latest-only rebuild loop around a running vertical slice.
+
+#### Files Changed
+- exact file set unknown
+- likely touched `src/app/buildDispatcher.ts`
+- likely touched `src/app/store/useAppStore.ts`
+- likely touched `src/worker/worker.ts`
+- likely touched `src/viewer/Viewer.ts`
+
+#### Behavior Changes (if any)
+- Likely turned the clean restart from a structural skeleton into a live vertical slice.
+
+#### Verification Steps
+- Review compiled gap row `[015]` and the gap-phase note in the canonical phase log.
+- Treat this entry as explicitly inferred until stronger evidence is recovered.
+
+<!-- ============================================================ -->
+### Reconstructed `Gap`
+HUMAN SUMMARY: `This marks an inferred bridge entry reconstructed from incomplete evidence rather than a fully evidenced historical log.`
+### [014] - [Gap] - `GE - Phase 4 - First Repo Setup Execution`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Likely ran the clean restart Codex setup prompt against the real /20/parahook repo. Likely created the actual folder structure and starter app/viewer/worker/shared files.`
+#### Scope / Constraints Honored
+- Recovered gap note with incomplete evidence.
+- Preserved the clean restart architecture direction.
+- Preserved the early `/20/` repo setup assumptions.
+
+#### Summary of Implementation
+- Likely ran the clean restart Codex setup prompt against the real `/20/parahook` repo.
+- Likely created the actual folder structure and starter app/viewer/worker/shared files.
+- Likely verified the first executable repo baseline before the box vertical slice.
+
+#### Files Changed
+- exact file set unknown
+- likely touched the initial repo bootstrap files under `src/`
+- likely touched `package.json`, `vite.config.ts`, and `tsconfig*.json`
+
+#### Behavior Changes (if any)
+- Likely marks the first real execution step of the `/20/` clean restart.
+
+#### Verification Steps
+- Review compiled gap row `[014]` and the gap-phase note in the canonical phase log.
+- Treat this entry as explicitly inferred until stronger evidence is recovered.
+
+<!-- ============================================================ -->
+### Reconstructed
+HUMAN SUMMARY: `This marks a reconstructed historical entry recovered from compiled logs and later canonical docs.`
+### [013] - [Conv 8] - `ADV - Phase 2 - Roadmap Ordering`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Locked routing and ownership work ahead of UI polish. Locked engine foundation ahead of richer parts-toolbar expansion.`
+#### Scope / Constraints Honored
+- Recovered history entry based on restored conversation evidence.
+- Planning-heavy entry that shaped later implementation order.
+- Preserved the clean restart architecture assumptions.
+
+#### Summary of Implementation
+- Locked routing and ownership work ahead of UI polish.
+- Locked engine foundation ahead of richer parts-toolbar expansion.
+- Delayed real toe replacement until the routing foundation was stable enough.
+- Produced the first human-readable restart roadmap that connected the clean engine baseline to later real-toe work.
+
+#### Files Changed
+- `PLANS.md`
+- `src/shared/partRouting.ts`
+- `src/worker/pipeline/buildPipeline.ts`
+- `src/shared/productSchema.ts`
+- `src/shared/buildTypes.ts`
+
+#### Behavior Changes (if any)
+- No immediate product behavior change.
+- Established the priority order that guided the next phases of the restart.
+
+#### Verification Steps
+- Review restored `ADV - Phase 2` in the history task log and phase log.
+- Confirm the draft reflects roadmap sequencing rather than shipped UI behavior.
+
+<!-- ============================================================ -->
+### Reconstructed
+HUMAN SUMMARY: `This marks a reconstructed historical entry recovered from compiled logs and later canonical docs.`
+### [012] - [Conv 8] - `ADV - Phase 1 - Future-Ready Systems`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Identified undo/redo as canonical-state history rather than mesh history. Identified shareable URLs/codes as canonical-state serialization features.`
+#### Scope / Constraints Honored
+- Recovered history entry based on restored conversation evidence.
+- Planning-heavy entry that defined future-ready system direction.
+- Preserved the canonical-state rule.
+
+#### Summary of Implementation
+- Identified undo/redo as canonical-state history rather than mesh history.
+- Identified shareable URLs/codes as canonical-state serialization features.
+- Kept delta-style performance as a future goal while using full snapshots plus caching as the safer baseline.
+- Preserved these systems as future-ready architecture without forcing them into the first clean restart phase.
+
+#### Files Changed
+- `src/shared/productSchema.ts`
+- `src/shared/buildTypes.ts`
+- `src/shared/canonicalLayout.ts`
+- `src/worker/pipeline/signatures.ts`
+
+#### Behavior Changes (if any)
+- No immediate product behavior change.
+- Established the correct ownership model for future undo/share/performance systems.
+
+#### Verification Steps
+- Review restored `ADV - Phase 1` detail in the history task log and phase log.
+- Confirm the draft reads as a future-system direction lock, not a shipped feature drop.
+
+<!-- ============================================================ -->
+### Reconstructed
+HUMAN SUMMARY: `This marks a reconstructed historical entry recovered from compiled logs and later canonical docs.`
+### [011] - [Conv 8] - `EX - Phase 1 - Future Export Shape`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Kept export as a worker-side concern instead of a viewer or UI convenience. Based future export on deterministic assembled/canonical state.`
+#### Scope / Constraints Honored
+- Recovered history entry based on restored restart history.
+- Preserved worker ownership of export.
+- Preserved deterministic assembled/canonical state as the export source.
+
+#### Summary of Implementation
+- Kept export as a worker-side concern instead of a viewer or UI convenience.
+- Based future export on deterministic assembled/canonical state.
+- Preserved export as part of the engine pipeline direction.
+- Avoided tying export behavior to ad hoc UI or camera/view state.
+
+#### Files Changed
+- `src/worker/pipeline/exportService.ts`
+- `src/shared/buildTypes.ts`
+- `src/shared/exportTypes.ts`
+- `src/app/buildDispatcher.ts`
+- `src/app/io/download.ts`
+
+#### Behavior Changes (if any)
+- No broad export feature landed yet, but the ownership boundary was locked correctly.
+
+#### Verification Steps
+- Review restored `EX - Phase 1` detail in the history task log and phase log.
+- Confirm the draft reflects export direction rather than a full export feature rollout.
+
+<!-- ============================================================ -->
+### Reconstructed
+HUMAN SUMMARY: `This marks a reconstructed historical entry recovered from compiled logs and later canonical docs.`
+### [010] - [Conv 8] - `VR - Phase 1 - Viewer Ownership`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Locked viewer-only controls as rebuild-free concerns. Kept camera, materials, and visibility as presentation behavior rather than CAD behavior.`
+#### Scope / Constraints Honored
+- Recovered history entry based on restored restart history.
+- Preserved the rule that viewer-only controls remain rebuild-free.
+- Preserved the app/worker/viewer boundary.
+
+#### Summary of Implementation
+- Locked viewer-only controls as rebuild-free concerns.
+- Kept camera, materials, and visibility as presentation behavior rather than CAD behavior.
+- Preserved a clean viewer boundary for future workbench systems.
+- Kept the worker focused on geometry and export artifacts instead of presentation state.
+
+#### Files Changed
+- `src/viewer/Viewer.ts`
+- `src/viewer/scene/SceneManager.ts`
+- `src/app/viewerBridge.ts`
+- `src/app/store/uiPrefsStore.ts`
+- `src/viewer/gizmo/`
+- `src/viewer/controlViz/`
+
+#### Behavior Changes (if any)
+- Viewer controls and presentation ownership were kept out of the geometry execution path.
+
+#### Verification Steps
+- Review restored `VR - Phase 1` in the history task log and the canonical phase log.
+- Confirm the draft matches the rebuild-free viewer rule.
+
+<!-- ============================================================ -->
+### Reconstructed
+HUMAN SUMMARY: `This marks a reconstructed historical entry recovered from compiled logs and later canonical docs.`
+### [009] - [Conv 8] - `VM - Phase 1 - Selector Discipline`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Treated selectors as architecture, not late optimization. Used selectors to keep high-frequency UI surfaces subscribed only to the slices they need.`
+#### Scope / Constraints Honored
+- Recovered history entry based on restored restart history.
+- Preserved Zustand state ownership.
+- Preserved the clean app/worker separation.
+
+#### Summary of Implementation
+- Treated selectors as architecture, not late optimization.
+- Used selectors to keep high-frequency UI surfaces subscribed only to the slices they need.
+- Established source-state versus read-model discipline early.
+- Prevented whole-store subscriptions from becoming the default pattern for the restart UI.
+
+#### Files Changed
+- `src/app/store/selectors.ts`
+- `src/app/store/useAppStore.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/panels/PartsListPanel.tsx`
+- `src/app/panels/BuildStatusPanel.tsx`
+
+#### Behavior Changes (if any)
+- UI rerender boundaries became more explicit and scalable.
+
+#### Verification Steps
+- Review restored `VM - Phase 1` in the history task log and the canonical phase log.
+- Confirm the draft reflects selector discipline rather than a late cleanup pass.
+
+<!-- ============================================================ -->
+### Reconstructed
+HUMAN SUMMARY: `This marks a reconstructed historical entry recovered from compiled logs and later canonical docs.`
+### [008] - [Conv 8] - `JK - Phase 1 - Mode Structure`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Kept profileEditor as the primary geometry-authoring mode. Defined Jake Mode as a simplified wrapper over the main system.`
+#### Scope / Constraints Honored
+- Recovered history entry based on restored restart history.
+- Preserved Profile Editor as the main geometry truth.
+- Avoided creating a separate Jake geometry truth.
+
+#### Summary of Implementation
+- Kept `profileEditor` as the primary geometry-authoring mode.
+- Defined Jake Mode as a simplified wrapper over the main system.
+- Reserved Jake as a real product layer instead of a vague later add-on.
+- Kept Jake visible in the clean-slate repo structure so it would not become a bolted-on afterthought.
+
+#### Files Changed
+- `src/app/jakeMode/JakeControls.tsx`
+- `src/app/jakeMode/jakeConstraints.ts`
+- `src/app/jakeMode/jakeAdapter.ts`
+- `src/app/profileEditor/ProfileControls.tsx`
+- `src/app/store/useAppStore.ts`
+- `src/shared/productSchema.ts`
+
+#### Behavior Changes (if any)
+- The mode model became clearer: advanced authoring in the main editor, simplified control in Jake.
+
+#### Verification Steps
+- Review restored `JK - Phase 1` in the history task log and the canonical phase log.
+- Confirm the draft stays aligned with the later Jake-mode vision.
+
+<!-- ============================================================ -->
+### Reconstructed
+HUMAN SUMMARY: `This marks a reconstructed historical entry recovered from compiled logs and later canonical docs.`
+### [007] - [Conv 8] - `PT - Phase 2 - Param Ownership Direction`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Defined the early param namespace direction around bp_*, th1_*, and hk1_*. Extended the same ownership pattern to future part instances.`
+#### Scope / Constraints Honored
+- Recovered history entry based on restored restart history.
+- Preserved the move toward part-owned params.
+- Preserved routing-first sequencing.
+
+#### Summary of Implementation
+- Defined the early param namespace direction around `bp_*`, `th1_*`, and `hk1_*`.
+- Extended the same ownership pattern to future part instances.
+- Framed param ownership as the base for scalable per-part recompute.
+- Kept param identity tied to part-instance thinking instead of falling back to flat global buckets.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/shared/partRouting.ts`
+- `src/shared/buildTypes.ts`
+- `src/worker/pipeline/buildPipeline.ts`
+- `src/worker/pipeline/signatures.ts`
+
+#### Behavior Changes (if any)
+- Params became more explicitly tied to part ownership rather than one flat namespace.
+
+#### Verification Steps
+- Review restored `PT - Phase 2` in the history task log and the canonical phase log.
+- Confirm the draft matches the later routing and signature work.
+
+<!-- ============================================================ -->
+### Reconstructed
+HUMAN SUMMARY: `This marks a reconstructed historical entry recovered from compiled logs and later canonical docs.`
+### [006] - [Conv 8] - `PT - Phase 1 - Independent Part Thinking`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Reframed the restarted app around independently buildable parts. Treated parts as focusable, visible, and eventually independently rebuildable.`
+#### Scope / Constraints Honored
+- Recovered history entry based on restored restart history.
+- Preserved the shift away from one opaque history stream.
+- Preserved the move toward independently buildable parts.
+
+#### Summary of Implementation
+- Reframed the restarted app around independently buildable parts.
+- Treated parts as focusable, visible, and eventually independently rebuildable.
+- Prepared the product for multiple future part instances instead of one monolithic output.
+- Tied part-list selection to part-focused controls so the UI could stay organized around real product pieces.
+
+#### Files Changed
+- `src/shared/partsTypes.ts`
+- `src/shared/productSchema.ts`
+- `src/worker/pipeline/partsSpec.ts`
+- `src/app/panels/PartsListPanel.tsx`
+- `src/app/store/useAppStore.ts`
+
+#### Behavior Changes (if any)
+- The product mental model shifted from one opaque result to multiple real parts.
+
+#### Verification Steps
+- Review restored `PT - Phase 1` in the history task log and the canonical phase log.
+- Confirm the draft stays aligned with the later parts-list and artifact phases.
+
+<!-- ============================================================ -->
+### Reconstructed
+HUMAN SUMMARY: `This marks a reconstructed historical entry recovered from compiled logs and later canonical docs.`
+### [005] - [Conv 8] - `AS - Phase 2 - Deterministic Part Ordering`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Locked base parts first as the default visible ordering. Inserted future toe instances after the base parts in deterministic sequence.`
+#### Scope / Constraints Honored
+- Recovered history entry based on restored restart history.
+- Preserved the parts-list direction.
+- Preserved stable deterministic ordering rules.
+
+#### Summary of Implementation
+- Locked base parts first as the default visible ordering.
+- Inserted future toe instances after the base parts in deterministic sequence.
+- Treated visible part order as a stable product rule rather than arbitrary UI sorting.
+- Locked later parts to declared pipeline/build order instead of ad hoc UI order.
+
+#### Files Changed
+- `src/shared/partsTypes.ts`
+- `src/worker/pipeline/partsSpec.ts`
+- `src/worker/pipeline/artifactEmitter.ts`
+- `src/app/panels/PartsListPanel.tsx`
+
+#### Behavior Changes (if any)
+- Part ordering became a deterministic product rule tied to the pipeline, not just display preference.
+
+#### Verification Steps
+- Review restored `AS - Phase 2` in the history task log and the canonical phase log.
+- Confirm the draft stays aligned with later assembly and artifact identity work.
+
+<!-- ============================================================ -->
+### Reconstructed
+HUMAN SUMMARY: `This marks a reconstructed historical entry recovered from compiled logs and later canonical docs.`
+### [004] - [Conv 8] - `AS - Phase 1 - Parts List Replacement`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Removed the history scrubber direction from the restart baseline. Replaced it with a Parts List model.`
+#### Scope / Constraints Honored
+- Recovered history entry based on restored restart history.
+- Preserved the move away from history scrubber UI.
+- Preserved artifact-driven inspection as the main direction.
+
+#### Summary of Implementation
+- Removed the history scrubber direction from the restart baseline.
+- Replaced it with a Parts List model.
+- Made part selection focus relevant controls instead of scrubbing through time.
+- Treated future history support as optional later work layered on top of artifacts instead of the base UI.
+
+#### Files Changed
+- `src/app/panels/PartsListPanel.tsx`
+- `src/app/AppShell.tsx`
+- `src/app/store/useAppStore.ts`
+- `src/shared/partsTypes.ts`
+- `src/worker/pipeline/artifactEmitter.ts`
+
+#### Behavior Changes (if any)
+- The product moved from time-travel UI toward part-driven inspection.
+
+#### Verification Steps
+- Review restored `AS - Phase 1` in the history task log and the canonical phase log.
+- Confirm the draft stays consistent with the later deterministic ordering and assembled-direction work.
+
+<!-- ============================================================ -->
+### Reconstructed
+HUMAN SUMMARY: `This marks a reconstructed historical entry recovered from compiled logs and later canonical docs.`
+### [003] - [Conv 8] - `GE - Phase 3 - Engine Roadmap Foundation`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Made param ownership and routing the first real engine milestone after the clean restart. Defined deterministic per-part signatures as the basis for selective recompute and artifact stability.`
+#### Scope / Constraints Honored
+- Recovered history entry based on restored restart history.
+- Preserved the clean restart architecture.
+- Preserved the routing-first direction for post-restart work.
+
+#### Summary of Implementation
+- Made param ownership and routing the first real engine milestone after the clean restart.
+- Defined deterministic per-part signatures as the basis for selective recompute and artifact stability.
+- Ordered the roadmap as routing first, selective recompute second, and real geometry later.
+- Added changed-param thinking so the worker could eventually reason about affected parts without guessing from raw UI churn.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/buildDispatcher.ts`
+- `src/shared/buildTypes.ts`
+- `src/shared/partRouting.ts`
+- `src/worker/pipeline/buildPipeline.ts`
+- `src/worker/pipeline/partsSpec.ts`
+- `src/worker/pipeline/signatures.ts`
+
+#### Behavior Changes (if any)
+- The engine roadmap stopped being UI-first and became routing-first.
+
+#### Verification Steps
+- Review restored `GE - Phase 3` in the history task log and the canonical phase log.
+- Confirm the draft fits between the clean restart and the later worker routing work.
+
+<!-- ============================================================ -->
+### Reconstructed
+HUMAN SUMMARY: `This marks a reconstructed historical entry recovered from compiled logs and later canonical docs.`
+### [002] - [Conv 8] - `GE - Phase 2 - Runtime And Rebuild Rules`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Locked one warm worker as the restart invariant. Used latest-only scheduling so rapid control churn collapses into the newest valid build request.`
+#### Scope / Constraints Honored
+- Recovered history entry based on restored restart history.
+- Preserved the one warm worker rule.
+- Preserved the clean app -> worker -> viewer separation.
+
+#### Summary of Implementation
+- Locked one warm worker as the restart invariant.
+- Used latest-only scheduling so rapid control churn collapses into the newest valid build request.
+- Dropped stale worker results and separated render-only changes from geometry-affecting changes.
+- Kept worker communication on shared protocol/schema boundaries instead of app-to-runtime reach-in.
+
+#### Files Changed
+- `src/app/buildDispatcher.ts`
+- `src/app/store/useAppStore.ts`
+- `src/app/store/intentClassifier.ts`
+- `src/app/protocol.ts`
+- `src/worker/worker.ts`
+- `src/worker/scheduler.ts`
+- `src/worker/validation.ts`
+- `src/shared/buildTypes.ts`
+- `src/shared/productSchema.ts`
+
+#### Behavior Changes (if any)
+- The runtime gained clearer rebuild rules and a safer worker scheduling model.
+
+#### Verification Steps
+- Review restored `GE - Phase 2` in the history task log and the canonical phase log.
+- Confirm the draft reflects the warm-worker, latest-only, stale-drop, and render-vs-geometry split.
+
+<!-- ============================================================ -->
+### Reconstructed
+HUMAN SUMMARY: `This marks a reconstructed historical entry recovered from compiled logs and later canonical docs.`
+### [001] - [Conv 8] - `GE - Phase 1 - Clean Restart Architecture`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Initialized the new /20/parahook stack with Vite, React, TypeScript, Three.js, Zustand, and Zod. Created the clean-slate source layout for app, viewer, worker, geometry, runtime, shared, and tests.`
+#### Scope / Constraints Honored
+- Recovered history entry based on restored restart conversation evidence.
+- Preserved the clean app -> worker -> viewer architecture as the foundation.
+- Preserved the rule that UI captures intent, worker executes CAD, and viewer renders results.
+
+#### Summary of Implementation
+- Initialized the new `/20/parahook` stack with Vite, React, TypeScript, Three.js, Zustand, and Zod.
+- Created the clean-slate source layout for `app`, `viewer`, `worker`, `geometry`, `runtime`, `shared`, and `tests`.
+- Built the first warm-worker and viewer skeletons and confirmed the clean restart compiled.
+- Established the first hard import and ownership boundaries between app, viewer, worker, and geometry before real CAD work started.
+
+#### Files Changed
+- `src/index.ts`
+- `src/app/store/useAppStore.ts`
+- `src/app/store/selectors.ts`
+- `src/app/buildDispatcher.ts`
+- `src/app/protocol.ts`
+- `src/app/profileEditor/ProfileControls.tsx`
+- `src/app/jakeMode/JakeControls.tsx`
+- `src/app/panels/PartsListPanel.tsx`
+- `src/app/panels/BuildStatusPanel.tsx`
+- `src/viewer/Viewer.ts`
+- `src/viewer/scene/SceneManager.ts`
+- `src/viewer/renderers/MeshRenderer.ts`
+- `src/worker/worker.ts`
+- `src/worker/scheduler.ts`
+- `src/worker/pipeline/buildPipeline.ts`
+- `src/worker/pipeline/exportService.ts`
+- `src/shared/productSchema.ts`
+- `src/shared/buildTypes.ts`
+- `src/shared/partsTypes.ts`
+- `src/shared/constants.ts`
+
+#### Behavior Changes (if any)
+- Established the clean `/20/` restart architecture and baseline runtime bring-up.
+
+#### Verification Steps
+- Review restored `GE - Phase 1` in the history task log and the canonical phase log.
+- Confirm the draft reflects the original restart architecture, repo layout, worker skeleton, and viewer skeleton.
+

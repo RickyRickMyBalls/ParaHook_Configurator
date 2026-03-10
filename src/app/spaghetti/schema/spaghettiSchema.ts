@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import type { SpaghettiGraph } from './spaghettiTypes'
+import type { GraphDocument, SpaghettiGraph } from './spaghettiTypes'
 
 const unitSchema = z.enum(['mm', 'deg', 'unitless'])
 
@@ -91,6 +91,12 @@ const graphUISchema = z
           .strict(),
       )
       .optional(),
+    nodeModesByNodeId: z
+      .record(
+        z.string(),
+        z.enum(['collapsed', 'essentials', 'expanded']),
+      )
+      .optional(),
     viewport: z
       .object({
         x: z.number(),
@@ -141,6 +147,9 @@ export const spaghettiGraphSchema: z.ZodType<SpaghettiGraph> =
       nodes: normalizedNodes,
       ui: {
         ...(graph.ui.nodes === undefined ? {} : { nodes: graph.ui.nodes }),
+        ...(graph.ui.nodeModesByNodeId === undefined
+          ? {}
+          : { nodeModesByNodeId: graph.ui.nodeModesByNodeId }),
         ...(graph.ui.viewport === undefined ? {} : { viewport: graph.ui.viewport }),
       },
     }
@@ -149,8 +158,29 @@ export const spaghettiGraphSchema: z.ZodType<SpaghettiGraph> =
 export const parseSpaghettiGraph = (input: unknown): SpaghettiGraph =>
   spaghettiGraphSchema.parse(input)
 
+const graphDocumentInputSchema = z
+  .object({
+    graphDocumentId: z.string().min(1),
+    name: z.string().min(1),
+    version: z.literal(1).default(1),
+    graph: spaghettiGraphInputSchema,
+  })
+  .strict()
+
+export const graphDocumentSchema: z.ZodType<GraphDocument> =
+  graphDocumentInputSchema.transform((document) => ({
+    graphDocumentId: document.graphDocumentId,
+    name: document.name,
+    version: document.version,
+    graph: spaghettiGraphSchema.parse(document.graph),
+  }))
+
+export const parseGraphDocument = (input: unknown): GraphDocument =>
+  graphDocumentSchema.parse(input)
+
 export {
   edgeEndpointSchema,
+  graphDocumentInputSchema,
   nodeUISchema,
   partSlotsSchema,
   portSpecSchema,

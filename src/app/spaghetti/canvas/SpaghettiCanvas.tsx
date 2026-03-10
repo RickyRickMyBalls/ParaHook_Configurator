@@ -19,7 +19,12 @@ import type {
   SpaghettiGraph,
   SpaghettiNode,
 } from '../schema/spaghettiTypes'
-import { useSpaghettiStore, type ConnectionDragState } from '../store/useSpaghettiStore'
+import {
+  selectGraphByDocumentId,
+  selectNodeMode,
+  useSpaghettiStore,
+  type ConnectionDragState,
+} from '../store/useSpaghettiStore'
 import { validateGraph } from '../compiler/validateGraph'
 import { evaluateSpaghettiGraph } from '../compiler/evaluateGraph'
 import { NodeView } from './NodeView'
@@ -46,6 +51,7 @@ import {
   connectEdgeWithAutoReplace,
   planConnectEdgeWithAutoReplace,
   removeEdge as removeEdgeCommand,
+  setNodeParams as setNodeParamsCommand,
 } from '../graphCommands'
 import type {
   ConnectionValidationResult,
@@ -55,7 +61,12 @@ import type {
 import { buildPortAnchorKey, parsePortAnchorKey } from './types'
 import { WireLayer } from './WireLayer'
 import { getTypeColor } from './typeColors'
-import type { RowViewMode } from './rowViewMode'
+import { getNextViewMode } from './rowViewMode'
+import {
+  getNodeInteractionBehavior,
+  readCanvasPointerTargetState,
+  shouldClearCanvasSelection,
+} from './interactionModel'
 import {
   buildCompositeExpansionKey,
   type CompositeExpansionDirection,
@@ -106,6 +117,18 @@ const clampNumber = (value: number, min: number, max: number): number =>
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 
+const readVec2Axis = (
+  value: unknown,
+  axis: 'x' | 'y',
+  fallback = 0,
+): number => {
+  if (!isRecord(value)) {
+    return fallback
+  }
+  const axisValue = value[axis]
+  return typeof axisValue === 'number' && Number.isFinite(axisValue) ? axisValue : fallback
+}
+
 
 const resolveEndpointKind = (
   graph: SpaghettiGraph,
@@ -148,54 +171,6 @@ const toEdgeEndpoint = (endpoint: EndpointPayload): EndpointPayload => {
 
 const endpointPathKey = (path: string[] | undefined): string =>
   normalizePath(path)?.join('.') ?? ''
-
-const isSketchAnchorPointValueBarClickTarget = (target: EventTarget | null): boolean => {
-  if (!(target instanceof Element)) {
-    return false
-  }
-  const valueBar = target.closest('.SpaghettiValueBar')
-  if (valueBar === null) {
-    return false
-  }
-  const compositeGroup = valueBar.closest('.SpaghettiCompositeGroup')
-  let portElement = valueBar.closest('.SpaghettiPort--in')
-  if (compositeGroup !== null) {
-    for (const child of Array.from(compositeGroup.children)) {
-      if (child instanceof HTMLElement && child.classList.contains('SpaghettiPort--in')) {
-        portElement = child
-        break
-      }
-    }
-  }
-  if (portElement === null) {
-    return false
-  }
-  const portName = portElement.querySelector('.SpaghettiPortName')?.textContent?.trim() ?? ''
-  if (!/^Anchor Point [1-5]$/.test(portName)) {
-    return false
-  }
-  const nodeElement = portElement.closest('.SpaghettiNode')
-  if (nodeElement === null) {
-    return false
-  }
-  const sketchInputsLabel = nodeElement.querySelector('.SpaghettiNodeSketchInputsLabel')
-  if (sketchInputsLabel === null) {
-    return false
-  }
-  const relation = sketchInputsLabel.compareDocumentPosition(portElement)
-  return (relation & Node.DOCUMENT_POSITION_FOLLOWING) !== 0
-}
-
-const isTopDragHandle = (target: EventTarget | null): boolean => {
-  if (!(target instanceof Element)) {
-    return false
-  }
-  return (
-    target.closest('.SpaghettiNodeHeader') !== null ||
-    target.closest('.SpaghettiNodePresetRow') !== null ||
-    target.closest('.SpaghettiNodeToolbarEditor') !== null
-  )
-}
 
 const pathsEqual = (a: string[] | undefined, b: string[] | undefined): boolean => {
   const normalizedA = normalizePath(a)
@@ -431,8 +406,12 @@ const DEV = import.meta.env.DEV
 const DEV_PROBE_NODE_ID_KEY = '__SP_PROBE_NODE_ID'
 type DevProbeWindow = Window & { [DEV_PROBE_NODE_ID_KEY]?: string }
 
-export function SpaghettiCanvas() {
-  const graph = useSpaghettiStore((state) => state.graph)
+type SpaghettiCanvasProps = {
+  graphDocumentId: string
+}
+
+export function SpaghettiCanvas({ graphDocumentId }: SpaghettiCanvasProps) {
+  const graph = useSpaghettiStore((state) => selectGraphByDocumentId(state, graphDocumentId))
   const selectedNodeId = useSpaghettiStore((state) => state.selectedNodeId)
   const selectedEdgeId = useSpaghettiStore((state) => state.selectedEdgeId)
   const hoveredEdgeId = useSpaghettiStore((state) => state.hoveredEdgeId)
@@ -456,6 +435,7 @@ export function SpaghettiCanvas() {
   const setUiMessage = useSpaghettiStore((state) => state.setUiMessage)
   const clearUiMessage = useSpaghettiStore((state) => state.clearUiMessage)
   const setExtrudeDepth = useSpaghettiStore((state) => state.setExtrudeDepth)
+  const setNodeMode = useSpaghettiStore((state) => state.setNodeMode)
 
   const stageRef = useRef<HTMLDivElement | null>(null)
   const viewportRef = useRef<HTMLDivElement | null>(null)
@@ -476,11 +456,11 @@ export function SpaghettiCanvas() {
   const [nodeRowModeMenu, setNodeRowModeMenu] = useState<{
     x: number
     y: number
+    nodeId: string
   } | null>(null)
   const [wireCurviness, setWireCurviness] = useState(25)
   const [outputRowMinHeight, setOutputRowMinHeight] = useState(40)
   const [pinDotSize, setPinDotSize] = useState(8)
-  const [rowViewMode, setRowViewMode] = useState<RowViewMode>('essentials')
   const [expandedComposites, setExpandedComposites] = useState(
     () => new Map<string, boolean>(),
   )
@@ -519,6 +499,25 @@ export function SpaghettiCanvas() {
   const previousPortElementVersionByNodeIdRef = useRef(new Map<string, number>())
   const lastUiActionRef = useRef<string | null>(null)
   const evaluationRunCountRef = useRef(0)
+  const nodeRowMode = useSpaghettiStore((state) => {
+    if (nodeRowModeMenu === null) {
+      return null
+    }
+    const viewportGraph = selectGraphByDocumentId(state, graphDocumentId)
+    if (viewportGraph === null) {
+      return null
+    }
+    return selectNodeMode(
+      {
+        graph: viewportGraph,
+      },
+      nodeRowModeMenu.nodeId,
+    )
+  })
+
+  if (graph === null) {
+    return <div className="V15Error">Viewport graph binding is missing.</div>
+  }
 
   if (DEV) {
     canvasRenderCountRef.current += 1
@@ -986,32 +985,30 @@ export function SpaghettiCanvas() {
       if (isInteractiveTarget(event.target)) {
         return
       }
-      if (!isTopDragHandle(event.target)) {
+      event.stopPropagation()
+
+      const behavior = getNodeInteractionBehavior('header')
+      if (!behavior.selectsNode) {
         return
       }
       const node = graph.nodes.find((candidate) => candidate.nodeId === nodeId)
       if (node === undefined) {
         return
       }
-      const pos = nodePos[nodeId]
-      if (pos === undefined) {
-        return
-      }
-      if (rowViewMode === 'collapsed') {
-        const nodeDef = getNodeDef(node.type)
-        const isInputNode =
-          nodeDef !== undefined && nodeDef.inputs.length === 0 && nodeDef.outputs.length > 0
-        if (isInputNode) {
-          window.requestAnimationFrame(() => {
-            setRowViewMode('essentials')
-          })
-        }
-      }
 
       setSelectedNodeId(nodeId)
       setSelectedEdgeId(null)
       setSelectedWaypoint(null)
       clearUiMessage()
+
+      if (!behavior.startsDrag) {
+        return
+      }
+
+      const pos = nodePos[nodeId]
+      if (pos === undefined) {
+        return
+      }
 
       dragStateRef.current = {
         nodeId,
@@ -1041,7 +1038,6 @@ export function SpaghettiCanvas() {
 
       window.addEventListener('pointermove', handleMove)
       window.addEventListener('pointerup', handleUp)
-      event.stopPropagation()
       event.preventDefault()
     },
     [
@@ -1050,10 +1046,48 @@ export function SpaghettiCanvas() {
       graph.nodes,
       nodePos,
       queueNodePos,
-      rowViewMode,
       setSelectedEdgeId,
       setSelectedNodeId,
-      setRowViewMode,
+      setSelectedWaypoint,
+    ],
+  )
+
+  const handleNodeBodyPointerDown = useCallback(
+    (event: ReactPointerEvent<HTMLElement>, nodeId: string) => {
+      if (event.button !== 0) {
+        return
+      }
+      if (isInteractiveTarget(event.target)) {
+        return
+      }
+      event.stopPropagation()
+
+      const behavior = getNodeInteractionBehavior('body')
+      if (!behavior.selectsNode) {
+        return
+      }
+
+      setSelectedNodeId(nodeId)
+      setSelectedEdgeId(null)
+      setSelectedWaypoint(null)
+      clearUiMessage()
+    },
+    [clearUiMessage, setSelectedEdgeId, setSelectedNodeId],
+  )
+
+  const handleNodeTitleClick = useCallback(
+    (nodeId: string) => {
+      setSelectedNodeId(nodeId)
+      setSelectedEdgeId(null)
+      setSelectedWaypoint(null)
+      clearUiMessage()
+      setNodeMode(nodeId, getNextViewMode(selectNodeMode(useSpaghettiStore.getState(), nodeId)))
+    },
+    [
+      clearUiMessage,
+      setNodeMode,
+      setSelectedEdgeId,
+      setSelectedNodeId,
       setSelectedWaypoint,
     ],
   )
@@ -1691,6 +1725,77 @@ export function SpaghettiCanvas() {
     [applyGraphPatch],
   )
 
+  const handleUtilityNumberValueChange = useCallback(
+    (nodeId: string, value: number) => {
+      const targetNode = graph.nodes.find((node) => node.nodeId === nodeId)
+      if (targetNode === undefined) {
+        return
+      }
+
+      applyGraphCommand(
+        setNodeParamsCommand({
+          nodeId,
+          params: {
+            ...targetNode.params,
+            value,
+          },
+        }),
+      )
+    },
+    [applyGraphCommand, graph.nodes],
+  )
+
+  const handleUtilityBooleanValueChange = useCallback(
+    (nodeId: string, value: boolean) => {
+      const targetNode = graph.nodes.find((node) => node.nodeId === nodeId)
+      if (targetNode === undefined) {
+        return
+      }
+
+      applyGraphCommand(
+        setNodeParamsCommand({
+          nodeId,
+          params: {
+            ...targetNode.params,
+            value,
+          },
+        }),
+      )
+    },
+    [applyGraphCommand, graph.nodes],
+  )
+
+  const handleUtilityVec2AxisChange = useCallback(
+    (nodeId: string, axis: 'x' | 'y', value: number) => {
+      const targetNode = graph.nodes.find((node) => node.nodeId === nodeId)
+      if (targetNode === undefined) {
+        return
+      }
+
+      const nextParams =
+        targetNode.type === 'Primitive/Vec2'
+          ? {
+              ...targetNode.params,
+              [axis]: value,
+            }
+          : {
+              ...targetNode.params,
+              value: {
+                x: axis === 'x' ? value : readVec2Axis(targetNode.params.value, 'x'),
+                y: axis === 'y' ? value : readVec2Axis(targetNode.params.value, 'y'),
+              },
+            }
+
+      applyGraphCommand(
+        setNodeParamsCommand({
+          nodeId,
+          params: nextParams,
+        }),
+      )
+    },
+    [applyGraphCommand, graph.nodes],
+  )
+
   const handleMoveSectionRow = useCallback(
     (
       nodeId: string,
@@ -1883,30 +1988,9 @@ export function SpaghettiCanvas() {
     [applyGraphPatch, setExtrudeDepth],
   )
 
-  const handlePrimitiveNumberValueChange = useCallback(
-    (nodeId: string, value: number) => {
-      applyGraphPatch((prev) => ({
-        ...prev,
-        nodes: prev.nodes.map((node) => {
-          if (node.nodeId !== nodeId) {
-            return node
-          }
-          return {
-            ...node,
-            params: {
-              ...node.params,
-              value,
-            },
-          }
-        }),
-      }))
-    },
-    [applyGraphPatch],
-  )
-
   return (
     <div
-      className={`SpaghettiCanvasRoot spView_root spView_mode-${rowViewMode}`}
+      className="SpaghettiCanvasRoot spView_root"
       style={
         {
           '--sp-output-row-min-height': `${outputRowMinHeight}px`,
@@ -1965,26 +2049,6 @@ export function SpaghettiCanvas() {
             }}
           />
         </label>
-        <label className="SpaghettiCanvasRowMode spView_modeControl">
-          <span>Rows</span>
-          <select
-            value={rowViewMode}
-            onChange={(event) => {
-              const nextMode = event.target.value as RowViewMode
-              if (
-                nextMode === 'collapsed' ||
-                nextMode === 'essentials' ||
-                nextMode === 'everything'
-              ) {
-                setRowViewMode(nextMode)
-              }
-            }}
-          >
-            <option value="collapsed">Collapsed</option>
-            <option value="essentials">Essentials</option>
-            <option value="everything">Everything</option>
-          </select>
-        </label>
         {uiMessage !== null ? (
           <div
             className={`SpaghettiCanvasMessage ${
@@ -2013,10 +2077,16 @@ export function SpaghettiCanvas() {
           const localX = event.clientX - rect.left
           const localY = event.clientY - rect.top
           if (target.closest('.SpaghettiNode') !== null) {
+            const nodeElement = target.closest('.SpaghettiNode')
+            const nodeId = nodeElement?.getAttribute('data-sp-node-id')
+            if (nodeId === null || nodeId === undefined || nodeId.length === 0) {
+              return
+            }
             setNodeAddMenu(null)
             setNodeRowModeMenu({
               x: clampNumber(localX, 8, Math.max(8, rect.width - 210)),
               y: clampNumber(localY, 8, Math.max(8, rect.height - 160)),
+              nodeId,
             })
             return
           }
@@ -2165,57 +2235,51 @@ export function SpaghettiCanvas() {
           x={nodeRowModeMenu?.x ?? 0}
           y={nodeRowModeMenu?.y ?? 0}
           onClose={() => setNodeRowModeMenu(null)}
-          items={[
-            {
-              id: 'node-mode-collapsed',
-              label: 'collapsed',
-              onSelect: () => {
-                setRowViewMode('collapsed')
-                setNodeRowModeMenu(null)
-              },
-            },
-            {
-              id: 'node-mode-essentials',
-              label: 'essentials',
-              onSelect: () => {
-                setRowViewMode('essentials')
-                setNodeRowModeMenu(null)
-              },
-            },
-            {
-              id: 'node-mode-expanded',
-              label: 'expanded',
-              onSelect: () => {
-                setRowViewMode('everything')
-                setNodeRowModeMenu(null)
-              },
-            },
-          ]}
+          items={
+            nodeRowModeMenu === null
+              ? []
+              : [
+                  {
+                    id: 'node-mode-collapsed',
+                    label: 'collapsed',
+                    disabled: nodeRowMode === 'collapsed',
+                    onSelect: () => {
+                      setNodeMode(nodeRowModeMenu.nodeId, 'collapsed')
+                      setNodeRowModeMenu(null)
+                    },
+                  },
+                  {
+                    id: 'node-mode-essentials',
+                    label: 'essentials',
+                    disabled: nodeRowMode === 'essentials',
+                    onSelect: () => {
+                      setNodeMode(nodeRowModeMenu.nodeId, 'essentials')
+                      setNodeRowModeMenu(null)
+                    },
+                  },
+                  {
+                    id: 'node-mode-expanded',
+                    label: 'expanded',
+                    disabled: nodeRowMode === 'expanded',
+                    onSelect: () => {
+                      setNodeMode(nodeRowModeMenu.nodeId, 'expanded')
+                      setNodeRowModeMenu(null)
+                    },
+                  },
+                ]
+          }
         />
         <div
           ref={stageRef}
-          className={`SpaghettiCanvasStage spView_stage spView_mode-${rowViewMode}`}
+          className="SpaghettiCanvasStage spView_stage"
           style={{
             width: `${stageSize.width}px`,
             height: `${stageSize.height}px`,
             transform: `translate(${view.panX}px, ${view.panY}px) scale(${view.zoom})`,
             transformOrigin: '0 0',
           }}
-          onClickCapture={(event) => {
-            if (event.button !== 0) {
-              return
-            }
-            if (isSketchAnchorPointValueBarClickTarget(event.target)) {
-              if (rowViewMode === 'essentials') {
-                return
-              }
-              window.requestAnimationFrame(() => {
-                setRowViewMode('essentials')
-              })
-            }
-          }}
           onPointerDown={(event) => {
-            if (isInteractiveTarget(event.target)) {
+            if (!shouldClearCanvasSelection(readCanvasPointerTargetState(event.target))) {
               return
             }
             setSelectedNodeId(null)
@@ -2229,15 +2293,17 @@ export function SpaghettiCanvas() {
               y: 40 + Math.floor(index / 4) * 200,
             }
             const nodeVm = nodeRenderDataById.get(node.nodeId)
+            const nodeMode = selectNodeMode(useSpaghettiStore.getState(), node.nodeId)
             return (
               <NodeView
                 key={nodeVm?.nodeId ?? node.nodeId}
                 node={node}
-                rowViewMode={rowViewMode}
                 x={pos.x}
                 y={pos.y}
                 title={nodeVm?.title ?? node.type}
+                nodeMode={nodeMode}
                 template={nodeVm?.template}
+                utilityVm={nodeVm?.utilityVm}
                 allInputs={nodeVm?.allInputs ?? []}
                 allOutputs={nodeVm?.allOutputs ?? []}
                 uiSections={nodeVm?.uiSections}
@@ -2272,14 +2338,18 @@ export function SpaghettiCanvas() {
                 }
                 getCompositeExpanded={getCompositeExpanded}
                 setCompositeExpanded={setCompositeExpanded}
-                primitiveNumberValue={nodeVm?.primitiveNumberValue ?? 0}
                 selected={selectedNodeId === node.nodeId}
                 getInputDropState={getInputDropState}
                 getOutputDropState={getOutputDropState}
                 onPresetChange={handlePresetChange}
                 onDriverNumberChange={handleDriverNumberChange}
+                onUtilityNumberValueChange={handleUtilityNumberValueChange}
+                onUtilityBooleanValueChange={handleUtilityBooleanValueChange}
+                onUtilityVec2AxisChange={handleUtilityVec2AxisChange}
                 onMoveSectionRow={handleMoveSectionRow}
-                onNodePointerDown={handleNodePointerDown}
+                onNodeHeaderPointerDown={handleNodePointerDown}
+                onNodeBodyPointerDown={handleNodeBodyPointerDown}
+                onNodeTitleClick={handleNodeTitleClick}
                 onRegisterPortElement={handleRegisterPortElement}
                 onOutputPointerDown={handleOutputPointerDown}
                 onOutputPointerEnter={handleOutputPointerEnter}
@@ -2287,7 +2357,6 @@ export function SpaghettiCanvas() {
                 onInputPointerDown={handleInputPointerDown}
                 onInputPointerEnter={handleInputPointerEnter}
                 onInputPointerLeave={handleInputPointerLeave}
-                onPrimitiveNumberValueChange={handlePrimitiveNumberValueChange}
                 outputRowMinHeight={outputRowMinHeight}
                 onOutputRowMinHeightChange={setOutputRowMinHeight}
                 pinDotSize={pinDotSize}

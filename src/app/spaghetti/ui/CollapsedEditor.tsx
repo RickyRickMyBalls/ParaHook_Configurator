@@ -1,9 +1,10 @@
 import { useMemo } from 'react'
 import { getNodeDef } from '../registry/nodeRegistry'
 import type { SpaghettiEdge, SpaghettiGraph, SpaghettiNode } from '../schema/spaghettiTypes'
-import { useSpaghettiStore } from '../store/useSpaghettiStore'
+import { selectGraphByDocumentId, useSpaghettiStore } from '../store/useSpaghettiStore'
 
 type CollapsedEditorProps = {
+  graphDocumentId: string
   focusNodeId: string | null
 }
 
@@ -115,10 +116,10 @@ export const getUpstreamTopoNodeIds = (
   return topo
 }
 
-export function CollapsedEditor({ focusNodeId }: CollapsedEditorProps) {
-  const graph = useSpaghettiStore((state) => state.graph)
+export function CollapsedEditor({ graphDocumentId, focusNodeId }: CollapsedEditorProps) {
+  const graph = useSpaghettiStore((state) => selectGraphByDocumentId(state, graphDocumentId))
 
-  const sortedNodes = useMemo(() => [...graph.nodes].sort(compareByNodeId), [graph.nodes])
+  const sortedNodes = useMemo(() => [...(graph?.nodes ?? [])].sort(compareByNodeId), [graph?.nodes])
   const nodesById = useMemo(() => {
     const map = new Map<string, SpaghettiNode>()
     for (const node of sortedNodes) {
@@ -129,11 +130,19 @@ export function CollapsedEditor({ focusNodeId }: CollapsedEditorProps) {
 
   const focusNode = focusNodeId === null ? undefined : nodesById.get(focusNodeId)
   const upstreamNodeIds = useMemo(() => {
-    if (focusNodeId === null) {
+    if (focusNodeId === null || graph === null) {
       return []
     }
     return getUpstreamTopoNodeIds(graph, focusNodeId)
   }, [focusNodeId, graph])
+
+  if (graph === null) {
+    return (
+      <div className="SpaghettiCollapsedRoot">
+        <div className="V15Error">Viewport graph binding is missing.</div>
+      </div>
+    )
+  }
 
   return (
     <div className="SpaghettiCollapsedRoot">

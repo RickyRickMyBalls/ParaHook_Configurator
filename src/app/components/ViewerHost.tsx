@@ -3,8 +3,12 @@ import { setViewer } from '../viewerBridge'
 import { Viewer } from '../../viewer/Viewer'
 import { useAppStore } from '../store/useAppStore'
 import { useUiPrefsStore } from '../store/uiPrefsStore'
-import { useSpaghettiStore } from '../spaghetti/store/useSpaghettiStore'
-import { selectPreviewRenderVm } from '../spaghetti/selectors'
+import {
+  selectActiveEditorViewport,
+  selectGraphPreviewPreparationByDocumentId,
+  useSpaghettiStore,
+} from '../spaghetti/store/useSpaghettiStore'
+import { selectPreviewRenderVmFromPreparation } from '../spaghetti/selectors/selectPreviewRenderVm'
 import { toViewerRenderablePart } from '../../shared/buildTypes'
 
 export function ViewerHost() {
@@ -16,15 +20,22 @@ export function ViewerHost() {
   const assembled = useAppStore((state) => state.assembled)
   const viewMode = useAppStore((state) => state.viewMode)
   const inputMode = useAppStore((state) => state.inputMode)
-  const graph = useSpaghettiStore((state) => state.graph)
+  const activeEditorViewport = useSpaghettiStore(selectActiveEditorViewport)
+  const activeGraphPreviewPreparation = useSpaghettiStore((state) =>
+    activeEditorViewport === null
+      ? null
+      : selectGraphPreviewPreparationByDocumentId(state, activeEditorViewport.graphDocumentId),
+  )
   const view = useUiPrefsStore((state) => state.view)
 
   const previewList = useMemo(
     () =>
-      inputMode === 'spaghetti'
-        ? selectPreviewRenderVm(graph, parts)
+      inputMode === 'spaghetti' &&
+      activeEditorViewport !== null &&
+      activeGraphPreviewPreparation !== null
+        ? selectPreviewRenderVmFromPreparation(activeGraphPreviewPreparation, parts)
         : { items: [], viewerParts: [] },
-    [graph, inputMode, parts],
+    [activeEditorViewport, activeGraphPreviewPreparation, inputMode, parts],
   )
 
   useEffect(() => {
@@ -51,7 +62,7 @@ export function ViewerHost() {
 
     if (viewMode === 'parts') {
       viewer.setAssembled(null)
-      if (inputMode === 'spaghetti') {
+      if (inputMode === 'spaghetti' && activeEditorViewport !== null) {
         viewer.setParts(previewList.viewerParts, partsVisibility, selectedPartKey)
         return
       }
@@ -64,6 +75,7 @@ export function ViewerHost() {
     viewer.setAssembled(assembled)
   }, [
     assembled,
+    activeEditorViewport,
     inputMode,
     parts,
     partsVisibility,

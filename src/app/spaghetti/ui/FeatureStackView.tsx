@@ -1,7 +1,6 @@
 import { useMemo } from 'react'
 import { getFeatureDiagnostics, type FeatureDiagnostic } from '../features/diagnostics'
 import type { FeatureDependencyRow } from '../features/featureDependencies'
-import { listEffectiveInputPorts } from '../features/effectivePorts'
 import { canMoveFeatureInStack } from '../features/featureDependencies'
 import { readFeatureStack } from '../features/featureSchema'
 import {
@@ -10,17 +9,13 @@ import {
   buildExtrudeTaperVirtualInputPortId,
   buildSketchRectLengthVirtualInputPortId,
   buildSketchRectWidthVirtualInputPortId,
-  isFeatureVirtualInputPortId,
 } from '../features/featureVirtualPorts'
 import type { ExtrudeFeature } from '../features/featureTypes'
 import { isFeatureEnabled } from '../features/featureTypes'
 import type { SpaghettiNode } from '../schema/spaghettiTypes'
 import { useSpaghettiStore } from '../store/useSpaghettiStore'
 import { SP_INTERACTIVE_PROPS } from '../spInteractive'
-import {
-  ExtrudeFeatureView,
-  type FeatureInputWiringBridge,
-} from './features/ExtrudeFeatureView'
+import { ExtrudeFeatureView } from './features/ExtrudeFeatureView'
 import { SketchFeatureView } from './features/SketchFeatureView'
 import { CloseProfileFeatureView } from './features/CloseProfileFeatureView'
 import {
@@ -43,7 +38,6 @@ type FeatureStackViewProps = {
       drivenValue?: number
     }
   >
-  featureInputWiring?: FeatureInputWiringBridge
   featureRows?: readonly FeatureDependencyRow[]
   onRegisterFeatureRowElement?: (rowId: string, element: HTMLDivElement | null) => void
 }
@@ -135,7 +129,6 @@ export function FeatureStackView({
   isGroupCollapsed,
   onToggleGroup,
   featureVirtualInputStateByPortId,
-  featureInputWiring,
   featureRows,
   onRegisterFeatureRowElement,
 }: FeatureStackViewProps) {
@@ -202,14 +195,6 @@ export function FeatureStackView({
     }
     return next
   }, [stack])
-  const virtualFeatureInputsByPortId = useMemo(() => {
-    const next = new Map<string, ReturnType<typeof listEffectiveInputPorts>[number]>()
-    for (const port of listEffectiveInputPorts(node)) {
-      if (!isFeatureVirtualInputPortId(port.portId)) continue
-      next.set(port.portId, port)
-    }
-    return next
-  }, [node])
   const featureRowByFeatureId = useMemo(
     () => new Map((featureRows ?? []).map((row) => [row.featureId, row])),
     [featureRows],
@@ -222,26 +207,23 @@ export function FeatureStackView({
 
   return (
     <section className="SpaghettiFeatureStack">
-      <div className="SpaghettiFeatureStackHeader">
-        <div className="SpaghettiFeatureStackTitle">Feature Stack</div>
-        {showFullEditors ? (
-          <div className="SpaghettiFeatureStackActions">
-            <button type="button" {...SP_INTERACTIVE_PROPS} onClick={() => addSketchFeature(node.nodeId)}>
-              + Sketch
-            </button>
-            <button
-              type="button"
-              {...SP_INTERACTIVE_PROPS}
-              onClick={() => addCloseProfileFeature(node.nodeId)}
-            >
-              + Close Profile
-            </button>
-            <button type="button" {...SP_INTERACTIVE_PROPS} onClick={() => addExtrudeFeature(node.nodeId)}>
-              + Extrude
-            </button>
-          </div>
-        ) : null}
-      </div>
+      {showFullEditors ? (
+        <div className="SpaghettiFeatureStackActions">
+          <button type="button" {...SP_INTERACTIVE_PROPS} onClick={() => addSketchFeature(node.nodeId)}>
+            + Sketch
+          </button>
+          <button
+            type="button"
+            {...SP_INTERACTIVE_PROPS}
+            onClick={() => addCloseProfileFeature(node.nodeId)}
+          >
+            + Close Profile
+          </button>
+          <button type="button" {...SP_INTERACTIVE_PROPS} onClick={() => addExtrudeFeature(node.nodeId)}>
+            + Extrude
+          </button>
+        </div>
+      ) : null}
 
       {stack.length === 0 ? <div className="SpaghettiFeatureEmpty">No features yet.</div> : null}
 
@@ -360,15 +342,12 @@ export function FeatureStackView({
                     previewProfiles={sketchProfilesByFeatureId.get(feature.featureId) ?? []}
                     highlightedProfileIds={highlightedProfilesBySketchFeatureId.get(feature.featureId) ?? emptyProfileSet}
                     irAvailable={featureStackIr !== null}
-                    widthVirtualInputPort={virtualFeatureInputsByPortId.get(buildSketchRectWidthVirtualInputPortId(feature.featureId))}
                     widthVirtualInputState={
                       featureVirtualInputStateByPortId?.[buildSketchRectWidthVirtualInputPortId(feature.featureId)]
                     }
-                    lengthVirtualInputPort={virtualFeatureInputsByPortId.get(buildSketchRectLengthVirtualInputPortId(feature.featureId))}
                     lengthVirtualInputState={
                       featureVirtualInputStateByPortId?.[buildSketchRectLengthVirtualInputPortId(feature.featureId)]
                     }
-                    featureInputWiring={featureInputWiring}
                   />
                 ) : feature.type === 'closeProfile' ? (
                   <CloseProfileFeatureView nodeId={node.nodeId} feature={feature} stack={stack} featureIndex={index} />
@@ -380,19 +359,15 @@ export function FeatureStackView({
                     featureIndex={index}
                     previewProfilesBySketchId={sketchProfilesByFeatureId}
                     closeProfileResolvedByFeatureId={closeProfileResolvedByFeatureId}
-                    depthVirtualInputPort={virtualFeatureInputsByPortId.get(buildExtrudeDepthVirtualInputPortId(feature.featureId))}
                     depthVirtualInputState={
                       featureVirtualInputStateByPortId?.[buildExtrudeDepthVirtualInputPortId(feature.featureId)]
                     }
-                    taperVirtualInputPort={virtualFeatureInputsByPortId.get(buildExtrudeTaperVirtualInputPortId(feature.featureId))}
                     taperVirtualInputState={
                       featureVirtualInputStateByPortId?.[buildExtrudeTaperVirtualInputPortId(feature.featureId)]
                     }
-                    offsetVirtualInputPort={virtualFeatureInputsByPortId.get(buildExtrudeOffsetVirtualInputPortId(feature.featureId))}
                     offsetVirtualInputState={
                       featureVirtualInputStateByPortId?.[buildExtrudeOffsetVirtualInputPortId(feature.featureId)]
                     }
-                    featureInputWiring={featureInputWiring}
                   />
                 )}
                 {featureDiagnostics.length > 0 ? (

@@ -76,16 +76,54 @@ export type GraphNodePos = {
   y: number
 }
 
+export type NodeRowMode = 'collapsed' | 'essentials' | 'expanded'
+
 export type SpaghettiGraph = {
   schemaVersion: 1
   nodes: SpaghettiNode[]
   edges: SpaghettiEdge[]
   ui?: {
     nodes?: Record<string, GraphNodePos>
+    nodeModesByNodeId?: Record<string, NodeRowMode>
     viewport?: {
       x: number
       y: number
       zoom: number
     }
   }
+}
+
+export type GraphDocumentVersion = 1
+
+export type GraphDocument = {
+  graphDocumentId: string
+  name: string
+  version: GraphDocumentVersion
+  graph: SpaghettiGraph
+}
+
+export type EditorViewportWindowMode =
+  | 'collapsed'
+  | 'meatball editor view'
+  | 'expanded'
+  | 'separateWindow'
+
+export type EditorViewportPosition = {
+  x: number
+  y: number
+}
+
+export type EditorViewportSize = {
+  width: number
+  height: number
+}
+
+export type EditorViewport = {
+  editorViewportId: string
+  graphDocumentId: string
+  isFocused: boolean
+  windowMode: EditorViewportWindowMode
+  position: EditorViewportPosition
+  size: EditorViewportSize
+  zOrder: number
 }

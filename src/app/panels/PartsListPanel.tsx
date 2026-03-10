@@ -6,7 +6,7 @@ import {
   partKeyStrToLabel,
 } from '../parts/partKeyResolver'
 import { selectChangedGeomParamIds } from '../store/useAppStore'
-import { useSpaghettiStore } from '../spaghetti/store/useSpaghettiStore'
+import { selectActiveGraph, useSpaghettiStore } from '../spaghetti/store/useSpaghettiStore'
 import { selectPartsListPanelVm } from '../spaghetti/selectors'
 
 export function PartsListPanel() {
@@ -14,7 +14,7 @@ export function PartsListPanel() {
   const partsVisibility = useAppStore((state) => state.partsVisibility)
   const selectedPartKey = useAppStore((state) => state.selectedPartKey)
   const inputMode = useAppStore((state) => state.inputMode)
-  const graph = useSpaghettiStore((state) => state.graph)
+  const graph = useSpaghettiStore(selectActiveGraph)
   const buildPolicy = useAppStore((state) => state.buildPolicy)
   const dirtyCount = useAppStore((state) => selectChangedGeomParamIds(state).length)
   const heelKickInstances = useAppStore((state) => state.heelKickInstances)

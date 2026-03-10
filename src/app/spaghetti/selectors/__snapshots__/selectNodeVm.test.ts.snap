@@ -522,7 +522,6 @@ exports[`selectNodeVm > matches stable NodeVm contract snapshot 1`] = `
     "presetOptions": [
       "default",
     ],
-    "primitiveNumberValue": 0,
     "template": "part",
     "title": "Baseplate",
     "uiSections": [
@@ -544,6 +543,7 @@ exports[`selectNodeVm > matches stable NodeVm contract snapshot 1`] = `
         "sectionId": "extrusion",
       },
     ],
+    "utilityVm": undefined,
   },
 ]
 `;

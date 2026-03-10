@@ -4,14 +4,13 @@ import {
   type ViewerRenderablePart,
 } from '../../../shared/buildTypes'
 import type { SpaghettiGraph } from '../schema/spaghettiTypes'
-import { evaluateSpaghettiGraph } from '../compiler/evaluateGraph'
 import {
-  selectPreviewRenderList,
-  type PreviewRenderEntry,
-} from '../viewer/selectPreviewRenderList'
-import { selectDiagnosticsVm } from './selectDiagnosticsVm'
+  buildPreviewPreparationEntries,
+  prepareGraphPreviewPreparation,
+  type GraphPreviewPreparation,
+} from '../previewPreparation'
 
-export type PreviewRenderVmItem = PreviewRenderEntry & {
+export type PreviewRenderVmItem = ReturnType<typeof buildPreviewPreparationEntries>[number] & {
   id: string
   nodeId: string
   isReady: boolean
@@ -24,18 +23,11 @@ export type PreviewRenderVm = {
   viewerParts: ViewerRenderablePart[]
 }
 
-const buildPreviewRenderVm = (
-  graph: SpaghettiGraph,
+const buildPreviewRenderVmFromPreparation = (
+  previewPreparation: GraphPreviewPreparation,
   buildOutputs: PartArtifact[],
 ): PreviewRenderVm => {
-  const evaluation = evaluateSpaghettiGraph(graph)
-  const diagnosticsVm = selectDiagnosticsVm({
-    graph,
-    evaluation,
-  })
-
-  const items = selectPreviewRenderList(graph, buildOutputs)
-    .filter((entry) => diagnosticsVm.slotStatus[entry.slotId] !== 'unresolved')
+  const items = buildPreviewPreparationEntries(previewPreparation, buildOutputs)
     .map((entry) => ({
       ...entry,
       id: `preview:${entry.slotId}:${entry.sourceNodeId}:${entry.sourcePartKeyStr}`,
@@ -57,6 +49,7 @@ const buildPreviewRenderVm = (
 let lastGraph: SpaghettiGraph | undefined
 let lastBuildOutputs: PartArtifact[] | undefined
 let lastPreviewRenderVm: PreviewRenderVm | undefined
+let lastPreviewPreparation: GraphPreviewPreparation | undefined
 
 export const selectPreviewRenderVm = (
   graph: SpaghettiGraph,
@@ -69,9 +62,30 @@ export const selectPreviewRenderVm = (
   ) {
     return lastPreviewRenderVm
   }
-  const next = buildPreviewRenderVm(graph, buildOutputs)
+  const previewPreparation = prepareGraphPreviewPreparation(graph)
+  const next = buildPreviewRenderVmFromPreparation(previewPreparation, buildOutputs)
   lastGraph = graph
   lastBuildOutputs = buildOutputs
+  lastPreviewPreparation = previewPreparation
+  lastPreviewRenderVm = next
+  return next
+}
+
+export const selectPreviewRenderVmFromPreparation = (
+  previewPreparation: GraphPreviewPreparation,
+  buildOutputs: PartArtifact[],
+): PreviewRenderVm => {
+  if (
+    lastPreviewRenderVm !== undefined &&
+    lastPreviewPreparation === previewPreparation &&
+    lastBuildOutputs === buildOutputs
+  ) {
+    return lastPreviewRenderVm
+  }
+  const next = buildPreviewRenderVmFromPreparation(previewPreparation, buildOutputs)
+  lastGraph = undefined
+  lastBuildOutputs = buildOutputs
+  lastPreviewPreparation = previewPreparation
   lastPreviewRenderVm = next
   return next
 }

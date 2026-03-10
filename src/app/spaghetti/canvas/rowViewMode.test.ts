@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { getRowViewFlags } from './rowViewMode'
+import { getNextViewMode, getRowViewFlags } from './rowViewMode'
 
-describe('rowViewMode', () => {
+describe('viewMode', () => {
   it('returns deterministic collapsed flags', () => {
     expect(getRowViewFlags('collapsed')).toEqual({
       showEditors: true,
@@ -20,12 +20,18 @@ describe('rowViewMode', () => {
     })
   })
 
-  it('returns deterministic everything flags', () => {
-    expect(getRowViewFlags('everything')).toEqual({
+  it('returns deterministic expanded flags', () => {
+    expect(getRowViewFlags('expanded')).toEqual({
       showEditors: true,
       showDebugInfo: true,
       renderLeafRows: true,
       forceLeafRows: true,
     })
+  })
+
+  it('cycles view modes deterministically', () => {
+    expect(getNextViewMode('collapsed')).toBe('essentials')
+    expect(getNextViewMode('essentials')).toBe('expanded')
+    expect(getNextViewMode('expanded')).toBe('collapsed')
   })
 })

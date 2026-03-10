@@ -335,6 +335,82 @@ describe('evaluateSpaghettiGraph composite resolution', () => {
   })
 })
 
+describe('evaluateSpaghettiGraph Param nodes', () => {
+  it('resolves Param/* outputs to authored typed values deterministically', () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'n-param-number',
+          type: 'Param/Number',
+          params: { value: 12.5 },
+        },
+        {
+          nodeId: 'n-param-boolean',
+          type: 'Param/Boolean',
+          params: { value: true },
+        },
+        {
+          nodeId: 'n-param-vec2',
+          type: 'Param/Vec2',
+          params: { value: { x: 4, y: 7 } },
+        },
+      ],
+      edges: [],
+    }
+
+    const first = evaluateSpaghettiGraph(graph)
+    const second = evaluateSpaghettiGraph(graph)
+
+    expect(first.ok).toBe(true)
+    expect(first.outputsByNodeId['n-param-number']?.value).toBe(12.5)
+    expect(first.outputsByNodeId['n-param-boolean']?.value).toBe(true)
+    expect(first.outputsByNodeId['n-param-vec2']?.value).toEqual({ x: 4, y: 7 })
+    expect(second).toEqual(first)
+  })
+
+  it('feeds Param/Number and Param/Vec2 into current part inputs through normal evaluation', () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'n-param-number',
+          type: 'Param/Number',
+          params: { value: 44 },
+        },
+        {
+          nodeId: 'n-param-vec2',
+          type: 'Param/Vec2',
+          params: { value: { x: 10, y: 20 } },
+        },
+        {
+          nodeId: 'n-baseplate',
+          type: 'Part/Baseplate',
+          params: {},
+        },
+      ],
+      edges: [
+        {
+          edgeId: 'e-width',
+          from: { nodeId: 'n-param-number', portId: 'value' },
+          to: { nodeId: 'n-baseplate', portId: 'width' },
+        },
+        {
+          edgeId: 'e-anchor-1',
+          from: { nodeId: 'n-param-vec2', portId: 'value' },
+          to: { nodeId: 'n-baseplate', portId: 'anchorPoint1' },
+        },
+      ],
+    }
+
+    const result = evaluateSpaghettiGraph(graph)
+
+    expect(result.ok).toBe(true)
+    expect(result.inputsByNodeId['n-baseplate']?.width).toBe(44)
+    expect(result.inputsByNodeId['n-baseplate']?.anchorPoint1).toEqual({ x: 10, y: 20 })
+  })
+})
+
 describe('evaluateSpaghettiGraph opaque kinds', () => {
   it('accepts railMath null and __opaqueRef values but rejects arbitrary objects', () => {
     const nullGraph: SpaghettiGraph = {

@@ -1,10 +1,7 @@
 import type { SketchComponent, SketchFeature } from '../../features/featureTypes'
-import type { PortSpec } from '../../schema/spaghettiTypes'
 import { useSpaghettiStore } from '../../store/useSpaghettiStore'
 import { SP_INTERACTIVE_PROPS } from '../../spInteractive'
 import { FeatureValueBar } from './FeatureValueBar'
-import { PortView } from '../../canvas/PortView'
-import type { FeatureInputWiringBridge } from './ExtrudeFeatureView'
 import {
   formatStableNumber,
   renderProfilePreview,
@@ -17,21 +14,18 @@ type SketchFeatureViewProps = {
   previewProfiles: PreviewProfileWithLabel[]
   highlightedProfileIds: ReadonlySet<string>
   irAvailable: boolean
-  widthVirtualInputPort?: PortSpec
   widthVirtualInputState?: {
     driven: boolean
     connectionCount: number
     unresolved: boolean
     drivenValue?: number
   }
-  lengthVirtualInputPort?: PortSpec
   lengthVirtualInputState?: {
     driven: boolean
     connectionCount: number
     unresolved: boolean
     drivenValue?: number
   }
-  featureInputWiring?: FeatureInputWiringBridge
 }
 
 const POINT_KEYS_BY_COMPONENT: Record<
@@ -66,11 +60,8 @@ export function SketchFeatureView({
   previewProfiles,
   highlightedProfileIds,
   irAvailable,
-  widthVirtualInputPort,
   widthVirtualInputState,
-  lengthVirtualInputPort,
   lengthVirtualInputState,
-  featureInputWiring,
 }: SketchFeatureViewProps) {
   const addSketchComponent = useSpaghettiStore((state) => state.addSketchComponent)
   const updateSketchComponentPoint = useSpaghettiStore((state) => state.updateSketchComponentPoint)
@@ -145,47 +136,25 @@ export function SketchFeatureView({
     )
   }
 
-  const renderVirtualInputRow = (
+  const renderLinkedInputStatus = (
     label: string,
-    portId: string,
-    port: PortSpec | undefined,
     driven: boolean,
     unresolved: boolean,
     value: number,
-    dataAttribute: 'data-sp-feature-width-port-id' | 'data-sp-feature-length-port-id',
   ) => {
-    if (port === undefined || featureInputWiring === undefined) {
+    if (!driven) {
       return null
     }
     return (
-      <div className="SpaghettiFeatureDepthWireInput" {...{ [dataAttribute]: portId }}>
-        <PortView
-          nodeId={nodeId}
-          direction="in"
-          endpointPortId={portId}
-          port={port}
-          labelOverride={`${label} Input`}
-          dropState={featureInputWiring.getInputDropState({
-            nodeId,
-            portId,
-          })}
-          setPortElement={(element) =>
-            featureInputWiring.onRegisterPortElement(nodeId, 'in', portId, undefined, element)
-          }
-          onInputPointerDown={featureInputWiring.onInputPointerDown}
-          onInputPointerEnter={featureInputWiring.onInputPointerEnter}
-          onInputPointerLeave={featureInputWiring.onInputPointerLeave}
-          resolvedValueLabel={
-            driven && !unresolved ? `${formatStableNumber(value)} ${port.type.unit ?? ''}`.trim() : undefined
-          }
-          drivenMessage={
-            !driven
-              ? undefined
-              : unresolved
-                ? 'Driven by external wire (unresolved).'
-                : 'Driven by external wire.'
-          }
-        />
+      <div className="SpaghettiFeatureLinkedStatus">
+        <span className="SpaghettiFeatureLinkedBadge">
+          {unresolved ? `${label}: Linked input (unresolved)` : `${label}: Linked input`}
+        </span>
+        {!unresolved ? (
+          <span className="SpaghettiFeatureLinkedValue">
+            {`${formatStableNumber(value)} mm`.trim()}
+          </span>
+        ) : null}
       </div>
     )
   }
@@ -194,34 +163,10 @@ export function SketchFeatureView({
     <div className="SpaghettiFeatureBody" {...SP_INTERACTIVE_PROPS}>
       {isRectangleSketch ? (
         <>
-          {featureInputWiring !== undefined ? (
-            <>
-              <div className="SpaghettiFeatureSectionHeader">
-                <span>Feature Wire Inputs</span>
-              </div>
-              {renderVirtualInputRow(
-                'Width',
-                widthVirtualInputPort?.portId ?? '',
-                widthVirtualInputPort,
-                widthDriven,
-                widthUnresolved,
-                widthValue,
-                'data-sp-feature-width-port-id',
-              )}
-              {renderVirtualInputRow(
-                'Length',
-                lengthVirtualInputPort?.portId ?? '',
-                lengthVirtualInputPort,
-                lengthDriven,
-                lengthUnresolved,
-                lengthValue,
-                'data-sp-feature-length-port-id',
-              )}
-            </>
-          ) : null}
           <div className="SpaghettiFeatureSectionHeader">
             <span>Width</span>
           </div>
+          {renderLinkedInputStatus('Width', widthDriven, widthUnresolved, widthValue)}
           <FeatureValueBar
             label="mm"
             value={widthValue}
@@ -238,6 +183,7 @@ export function SketchFeatureView({
           <div className="SpaghettiFeatureSectionHeader">
             <span>Length</span>
           </div>
+          {renderLinkedInputStatus('Length', lengthDriven, lengthUnresolved, lengthValue)}
           <FeatureValueBar
             label="mm"
             value={lengthValue}

@@ -1,7 +1,12 @@
 import { create } from 'zustand'
 import { buildDispatcher } from '../buildDispatcher'
 import { artifactToPartKeyStr } from '../parts/partKeyResolver'
-import { useSpaghettiStore } from '../spaghetti/store/useSpaghettiStore'
+import {
+  selectActiveGraphDocument,
+  selectActiveGraph,
+  selectActiveGraphPendingBuildState,
+  useSpaghettiStore,
+} from '../spaghetti/store/useSpaghettiStore'
 import type { SpaghettiGraph } from '../spaghetti/schema/spaghettiTypes'
 import {
   compileSpaghettiGraph,
@@ -40,14 +45,6 @@ export type AppState = {
   assembled: AssembledMesh | null
   assembledSignature: string | null
   workerError: string | null
-  spaghettiLastCompile: CompileSpaghettiGraphResult | null
-  spaghettiPendingChangedParamIds: string[]
-  spaghettiPendingStatsPartKeys: string[]
-  spaghettiPendingInstances: {
-    heelKickInstances: number[]
-    toeHookInstances: number[]
-  } | null
-  spaghettiPreviousBuildInputs: CompileSpaghettiGraphResult['buildInputs'] | null
   setBoxParam: (key: BoxParamKey, value: number) => void
   setInputMode: (mode: InputMode) => void
   setSpaghettiGraph: (graph: SpaghettiGraph) => void
@@ -115,11 +112,6 @@ export const useAppStore = create<AppState>((set, get) => ({
   assembled: null,
   assembledSignature: null,
   workerError: null,
-  spaghettiLastCompile: null,
-  spaghettiPendingChangedParamIds: [],
-  spaghettiPendingStatsPartKeys: [],
-  spaghettiPendingInstances: null,
-  spaghettiPreviousBuildInputs: null,
   setBoxParam: (key, value) => {
     const state = get()
     if (state.box[key] === value) {
@@ -157,52 +149,49 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({
       inputMode: mode,
       pendingBuildAfterRelease: false,
-      spaghettiPendingChangedParamIds: [],
-      spaghettiPendingStatsPartKeys: [],
-      spaghettiPendingInstances: null,
     })
   },
   setSpaghettiGraph: (graph) => {
     useSpaghettiStore.getState().setGraph(graph)
-    set({
-      spaghettiLastCompile: null,
-    })
   },
   compileSpaghetti: () => {
-    const graph = useSpaghettiStore.getState().graph
+    const spaghettiState = useSpaghettiStore.getState()
+    const activeGraphDocument = selectActiveGraphDocument(spaghettiState)
+    const graph = selectActiveGraph(spaghettiState)
     const compileResult = compileSpaghettiGraph(graph)
-    set({
-      spaghettiLastCompile: compileResult,
-    })
+    spaghettiState.setGraphCompileResult(activeGraphDocument.graphDocumentId, compileResult)
     return compileResult
   },
   requestSpaghettiBuild: () => {
     const state = get()
-    const graph = useSpaghettiStore.getState().graph
+    const spaghettiState = useSpaghettiStore.getState()
+    const activeGraphDocument = selectActiveGraphDocument(spaghettiState)
+    const graph = selectActiveGraph(spaghettiState)
     const compileResult = compileSpaghettiGraph(graph)
-    set({
-      spaghettiLastCompile: compileResult,
-    })
+    spaghettiState.setGraphCompileResult(activeGraphDocument.graphDocumentId, compileResult)
     if (!compileResult.ok || compileResult.buildInputs === undefined) {
       return compileResult
     }
 
+    const activePendingBuildState = selectActiveGraphPendingBuildState(spaghettiState)
     const requestBuild = buildRequestFromBuildInputs(
       compileResult.buildInputs,
-      state.spaghettiPreviousBuildInputs ?? undefined,
+      activePendingBuildState?.previousBuildInputs ?? undefined,
     )
-    set({
-      spaghettiPendingChangedParamIds: requestBuild.changedParamIds,
-      spaghettiPendingStatsPartKeys: requestBuild.partKeys,
-      spaghettiPendingInstances: requestBuild.instances,
-      spaghettiPreviousBuildInputs: compileResult.buildInputs,
-    })
 
     const payloadWithPatch = {
       ...state.box,
       ...requestBuild.profilePatch,
     }
-    buildDispatcher.requestBuild(payloadWithPatch as BoxParams)
+    const buildSeq = buildDispatcher.requestBuild(payloadWithPatch as BoxParams)
+    spaghettiState.stageGraphBuildRequest(activeGraphDocument.graphDocumentId, {
+      compileResult,
+      previousBuildInputs: activePendingBuildState?.previousBuildInputs ?? null,
+      pendingChangedParamIds: requestBuild.changedParamIds,
+      pendingStatsPartKeys: requestBuild.partKeys,
+      pendingInstances: requestBuild.instances,
+      buildSeq,
+    })
     return compileResult
   },
   setBuildPolicy: (policy) => {
@@ -244,6 +233,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ viewMode: mode })
   },
   acceptBuildResult: (result) => {
+    useSpaghettiStore.getState().acceptGraphBuildResult(result.seq)
     set((state) => {
       if (result.seq <= state.lastBuildSeq) {
         return state

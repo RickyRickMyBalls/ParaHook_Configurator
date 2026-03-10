@@ -1,5 +1,4 @@
 import { create } from 'zustand'
-
 const encodeNodeSegment = (value: string): string => value.replace(/\|/g, '%7C')
 
 export type SpaghettiUiStoreState = {

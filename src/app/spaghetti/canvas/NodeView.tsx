@@ -29,14 +29,14 @@ import type {
   OutputPinnedRowVm,
 } from './driverVm'
 import type { PortDirection } from './types'
-import { getRowViewFlags, type RowViewMode } from './rowViewMode'
+import { getRowViewFlags, type ViewMode } from './rowViewMode'
 import {
   buildCompositeCollapseKey,
   buildGroupCollapseKey,
   buildSectionCollapseKey,
   useSpaghettiUiStore,
 } from './state/spaghettiUiStore'
-import { SP_INTERACTIVE_PROPS } from '../spInteractive'
+import { isInteractiveTarget, SP_INTERACTIVE_PROPS } from '../spInteractive'
 import { OUTPUT_PREVIEW_NODE_TYPE } from '../system/outputPreviewNode'
 import type {
   DriverRowWarningVm,
@@ -45,6 +45,7 @@ import type {
   FeatureDependencyRow,
   NodeInputCompositeState,
   OutputPreviewSlotRowVm,
+  UtilityNodeVm,
 } from '../selectors'
 
 const DEV = import.meta.env.DEV
@@ -87,11 +88,12 @@ export type FeatureVirtualInputStateByPortId = Record<
 
 type NodeViewProps = {
   node: SpaghettiNode
-  rowViewMode: RowViewMode
   x: number
   y: number
   title: string
+  nodeMode?: ViewMode
   template?: 'part'
+  utilityVm?: UtilityNodeVm
   allInputs: PortSpec[]
   allOutputs: PortSpec[]
   drivers?: DriverControlRowVm[]
@@ -137,7 +139,6 @@ type NodeViewProps = {
     portId: string,
     expanded: boolean,
   ) => void
-  primitiveNumberValue?: number
   selected: boolean
   getInputDropState: (payload: EndpointPayload) => PortDropState
   getOutputDropState: (payload: EndpointPayload) => PortDropState
@@ -147,18 +148,25 @@ type NodeViewProps = {
     change: DriverNumberChange,
     value: number,
   ) => void
+  onUtilityNumberValueChange: (nodeId: string, value: number) => void
+  onUtilityBooleanValueChange: (nodeId: string, value: boolean) => void
+  onUtilityVec2AxisChange: (nodeId: string, axis: 'x' | 'y', value: number) => void
   onMoveSectionRow?: (
     nodeId: string,
     section: PartRowOrderSection,
     rowId: string,
     direction: 'up' | 'down',
   ) => void
-  onPrimitiveNumberValueChange: (nodeId: string, value: number) => void
   outputRowMinHeight: number
   onOutputRowMinHeightChange: (value: number) => void
   pinDotSize: number
   onPinDotSizeChange: (value: number) => void
-  onNodePointerDown: (event: PointerEvent<HTMLElement>, nodeId: string) => void
+  onNodeHeaderPointerDown: (
+    event: PointerEvent<HTMLElement>,
+    nodeId: string,
+  ) => void
+  onNodeBodyPointerDown: (event: PointerEvent<HTMLElement>, nodeId: string) => void
+  onNodeTitleClick: (nodeId: string) => void
   onRegisterPortElement: (
     nodeId: string,
     direction: PortDirection,
@@ -245,11 +253,12 @@ const fallbackDependencyClassName = (edge: FeatureDependencyEdge): string =>
 
 function NodeViewComponent({
   node,
-  rowViewMode,
   x,
   y,
   title,
+  nodeMode = 'essentials',
   template,
+  utilityVm,
   allInputs,
   allOutputs,
   drivers,
@@ -278,19 +287,22 @@ function NodeViewComponent({
   compositeExpansionRevision,
   getCompositeExpanded,
   setCompositeExpanded,
-  primitiveNumberValue,
   selected,
   getInputDropState,
   getOutputDropState,
   onPresetChange,
   onDriverNumberChange,
+  onUtilityNumberValueChange,
+  onUtilityBooleanValueChange,
+  onUtilityVec2AxisChange,
   onMoveSectionRow,
-  onPrimitiveNumberValueChange,
   outputRowMinHeight,
   onOutputRowMinHeightChange,
   pinDotSize,
   onPinDotSizeChange,
-  onNodePointerDown,
+  onNodeHeaderPointerDown,
+  onNodeBodyPointerDown,
+  onNodeTitleClick,
   onRegisterPortElement,
   onOutputPointerDown,
   onOutputPointerEnter,
@@ -308,11 +320,11 @@ function NodeViewComponent({
     }
   }
 
-  const rowFlags = getRowViewFlags(rowViewMode)
-  const isCollapsedMode = rowViewMode === 'collapsed'
+  const rowFlags = getRowViewFlags(nodeMode)
+  const isCollapsedMode = nodeMode === 'collapsed'
   const showDebugInfo = rowFlags.showDebugInfo
   const showEditors = rowFlags.showEditors
-  const canMutateCompositeExpansion = rowViewMode === 'essentials'
+  const canMutateCompositeExpansion = nodeMode === 'essentials'
   const isPartTemplate = template === 'part'
   const showPresetPicker = isPartTemplate
 
@@ -398,6 +410,28 @@ function NodeViewComponent({
     setCompositeExpanded(direction, node.nodeId, portId, expanded)
   }
 
+  const handleNodeHeaderPointerDown = (event: PointerEvent<HTMLElement>) => {
+    event.stopPropagation()
+    onNodeHeaderPointerDown(event, node.nodeId)
+  }
+
+  const handleNodeBodyPointerDown = (event: PointerEvent<HTMLElement>) => {
+    if (isInteractiveTarget(event.target)) {
+      return
+    }
+    event.stopPropagation()
+    onNodeBodyPointerDown(event, node.nodeId)
+  }
+
+  const handleNodeTitlePointerDown = (event: PointerEvent<HTMLButtonElement>) => {
+    event.stopPropagation()
+  }
+
+  const handleNodeTitleClick = (event: MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation()
+    onNodeTitleClick(node.nodeId)
+  }
+
   const openCompositeContextMenu = (
     event: MouseEvent<HTMLElement>,
     portId: string,
@@ -439,6 +473,31 @@ function NodeViewComponent({
           {collapsed ? '\u25B8' : '\u25BE'}
         </span>
       </div>
+    )
+  }
+
+  const isSectionBodyVisible = (sectionId: string): boolean =>
+    !isCollapsedMode && !isSectionCollapsed(sectionId)
+
+  const renderPartSection = (
+    sectionId: 'drivers' | 'inputs' | 'featureStack' | 'outputs',
+    label: string,
+    body: ReactNode,
+    options?: {
+      className?: string
+      forceGroupIds?: readonly string[]
+    },
+  ) => {
+    const bodyVisible = isSectionBodyVisible(SECTION_IDS[sectionId])
+    return (
+      <section
+        className={options?.className ?? 'SpaghettiNodeSection SpaghettiTemplateSection'}
+        data-sp-section-id={SECTION_IDS[sectionId]}
+        data-sp-section-body-visible={bodyVisible ? '1' : '0'}
+      >
+        {renderSectionHeader(label, SECTION_IDS[sectionId], options?.forceGroupIds)}
+        {bodyVisible ? body : null}
+      </section>
     )
   }
 
@@ -822,20 +881,6 @@ function NodeViewComponent({
     const detailsKey = endpointKey('out', endpointPortId, path)
     const isRootPort = path === undefined || path.length === 0
 
-    const valueInput =
-      !isRootPort || !showEditors || node.type !== 'Primitive/Number' || endpointPortId !== 'value'
-        ? undefined
-        : {
-            value: primitiveNumberValue ?? 0,
-            min: -1000,
-            max: 1000,
-            step: 0.1,
-            showSlider: true,
-            onChange: (value: number) => {
-              onPrimitiveNumberValueChange(node.nodeId, value)
-            },
-          }
-
     return (
       <PortView
         key={`out-${endpointPortId}-${path?.join('.') ?? 'root'}`}
@@ -866,7 +911,6 @@ function NodeViewComponent({
         compositeExpanded={options?.compositeExpanded}
         onToggleComposite={options?.onToggleComposite}
         childTone={path !== undefined}
-        valueInput={valueInput}
         scrubSpeed={scrubSensitivity}
         onOutputPointerDown={onOutputPointerDown}
         onOutputPointerEnter={onOutputPointerEnter}
@@ -1436,17 +1480,16 @@ function NodeViewComponent({
         rows: drivers ?? [],
       },
     ]
-  const driverSectionCollapsedForOverlay = isSectionCollapsed(SECTION_IDS.drivers)
-  const featureSectionCollapsedForOverlay =
-    isCollapsedMode || isSectionCollapsed(SECTION_IDS.featureStack)
-  const visibleDriverRowIdsForOverlay = driverSectionCollapsedForOverlay
+  const showDriverSectionBody = isSectionBodyVisible(SECTION_IDS.drivers)
+  const showFeatureStackSectionBody = isSectionBodyVisible(SECTION_IDS.featureStack)
+  const visibleDriverRowIdsForOverlay = !showDriverSectionBody
     ? []
     : resolvedDriverGroupsForOverlay.flatMap((group) =>
         isGroupCollapsed(SECTION_IDS.drivers, group.groupId)
           ? []
           : group.rows.map((row) => row.rowId),
       )
-  const visibleFeatureRowsForOverlay = featureSectionCollapsedForOverlay
+  const visibleFeatureRowsForOverlay = !showFeatureStackSectionBody
     ? []
     : featureRows ?? []
   const visibleDriverRowIdsForOverlayKey = visibleDriverRowIdsForOverlay.join('|')
@@ -1462,7 +1505,7 @@ function NodeViewComponent({
     .join('|')
   const showInternalDependencyOverlay =
     isPartTemplate &&
-    rowViewMode === 'everything' &&
+    nodeMode === 'expanded' &&
     showInternalWiring &&
     visibleFeatureRowsForOverlay.length > 0 &&
     (internalDependencyEdges?.length ?? 0) > 0
@@ -1534,7 +1577,7 @@ function NodeViewComponent({
   }, [
     isCollapsedMode,
     isPartTemplate,
-    rowViewMode,
+    nodeMode,
     showInternalDependencyOverlay,
     showInternalWiring,
     visibleDriverRowIdsForOverlayKey,
@@ -1591,149 +1634,93 @@ function NodeViewComponent({
     const inputRows = inputs ?? []
     const outputRows = outputs ?? []
     const outputRemainder = otherOutputs ?? []
-    const featureStackMode = rowViewMode === 'everything' ? 'full' : 'summary'
-    const showEverythingExtras = rowViewMode === 'everything'
-    const driversSectionCollapsed = isSectionCollapsed(SECTION_IDS.drivers)
-    const inputsSectionCollapsed = isSectionCollapsed(SECTION_IDS.inputs)
-    const outputsSectionCollapsed = isSectionCollapsed(SECTION_IDS.outputs)
-    const driversPinsOnly = driversSectionCollapsed
-    const inputsPinsOnly = inputsSectionCollapsed
-    const outputsPinsOnly = outputsSectionCollapsed
-    const hideFeatureStackBody = isCollapsedMode || isSectionCollapsed(SECTION_IDS.featureStack)
+    const featureStackMode = nodeMode === 'expanded' ? 'full' : 'summary'
+    const showExpandedExtras = nodeMode === 'expanded'
     const resolvedDriverGroups: DriverSectionGroupVm[] = resolvedDriverGroupsForOverlay
     const resolvedDriverRowIndexById = driverRowIndexById ?? {}
     const resolvedInputRowIndexById = inputRowIndexById ?? {}
     const resolvedOutputEndpointIndexByRowId = outputEndpointIndexByRowId ?? {}
     const resolvedOutputEndpointCount = outputEndpointCount ?? outputRows.length
 
-    const orderedSections: Array<{
-      key: 'drivers' | 'inputs' | 'featureStack' | 'outputs'
-      className: string
-      renderBody: () => ReactNode
-    }> = [
-      {
-        key: 'drivers',
-        className: 'SpaghettiNodeSection SpaghettiTemplateSection',
-        renderBody: () => (
-          <>
-            {renderSectionHeader(
-              'Drivers',
-              SECTION_IDS.drivers,
-              resolvedDriverGroups.map((group) => group.groupId),
-            )}
-            {!driversPinsOnly ? (
-              <div className="SpaghettiNodeSectionItems">
-                {resolvedDriverGroups.map((group) => {
-                  const collapsed = isGroupCollapsed(SECTION_IDS.drivers, group.groupId)
-                  return renderGroupHeader(
-                    group.label,
-                    SECTION_IDS.drivers,
-                    group.groupId,
-                    collapsed,
-                    <div className="SpaghettiDriverGroup">
-                      {group.rows.map((driver) =>
-                        renderDriverControlRow(driver, {
-                          pinsOnly: driversPinsOnly,
-                          sectionIndex: resolvedDriverRowIndexById[driver.rowId],
-                          sectionLength: controlRows.length,
-                        }),
-                      )}
-                    </div>,
-                    <div className="SpaghettiDriverGroupCollapsedSummary" />,
-                  )
-                })}
-              </div>
-            ) : null}
-          </>
-        ),
-      },
-      {
-        key: 'inputs',
-        className: 'SpaghettiNodeSection SpaghettiTemplateSection',
-        renderBody: () => (
-          <>
-            {renderSectionHeader('Inputs', SECTION_IDS.inputs)}
-            {!inputsPinsOnly ? (
-              <div
-                className={`SpaghettiNodePortColumn SpaghettiNodePortColumn--in ${
-                  inputsPinsOnly ? 'InputsSection--pinsOnly' : ''
-                }`}
-              >
-                {inputRows.map((driver) =>
-                  renderInputRow(driver, {
-                    sectionIndex: resolvedInputRowIndexById[driver.rowId],
-                    sectionLength: inputRows.length,
-                  }),
-                )}
-              </div>
-            ) : null}
-          </>
-        ),
-      },
-      {
-        key: 'featureStack',
-        className: 'SpaghettiNodeSection SpaghettiTemplateSection',
-        renderBody: () => (
-          <>
-            {renderSectionHeader('Feature Stack', SECTION_IDS.featureStack)}
-            {hideFeatureStackBody ? null : (
-              <FeatureStackView
-                node={node}
-                mode={featureStackMode}
-                isGroupCollapsed={(groupId) => isGroupCollapsed(SECTION_IDS.featureStack, groupId)}
-                onToggleGroup={(groupId) => onToggleGroup(SECTION_IDS.featureStack, groupId)()}
-                featureRows={featureRows}
-                onRegisterFeatureRowElement={(rowId, element) => {
-                  featureRowElementByIdRef.current[rowId] = element
-                }}
-                featureVirtualInputStateByPortId={featureVirtualInputStateByPortId}
-                featureInputWiring={{
-                  getInputDropState,
-                  onRegisterPortElement,
-                  onInputPointerDown,
-                  onInputPointerEnter,
-                  onInputPointerLeave,
-                }}
-              />
-            )}
-          </>
-        ),
-      },
-      {
-        key: 'outputs',
-        className: 'SpaghettiNodeSection SpaghettiTemplateSection SpaghettiTemplateSection--outputs',
-        renderBody: () => (
-          <>
-            {renderSectionHeader('Outputs', SECTION_IDS.outputs)}
-            {!outputsPinsOnly ? (
-              <div
-                className={`SpaghettiNodePortColumn SpaghettiNodePortColumn--out ${
-                  outputsPinsOnly ? 'OutputsSection--pinsOnly' : ''
-                }`}
-              >
-                {outputRows.map((driver) =>
-                  renderOutputRow(driver, {
-                    sectionIndex:
-                      driver.kind === 'endpoint'
-                        ? resolvedOutputEndpointIndexByRowId[driver.rowId]
-                        : undefined,
-                    sectionLength: resolvedOutputEndpointCount,
-                  }),
-                )}
-              </div>
-            ) : null}
-          </>
-        ),
-      },
-    ]
-
     return (
       <div ref={partTemplateElementRef} className="SpaghettiNodeTemplate SpaghettiNodeTemplate--withInternalDeps">
-        {orderedSections.map((section) => (
-          <section key={section.key} className={section.className}>
-            {section.renderBody()}
-          </section>
-        ))}
+        {renderPartSection(
+          'drivers',
+          'Drivers',
+          <div className="SpaghettiNodeSectionItems">
+            {resolvedDriverGroups.map((group) => {
+              const collapsed = isGroupCollapsed(SECTION_IDS.drivers, group.groupId)
+              return renderGroupHeader(
+                group.label,
+                SECTION_IDS.drivers,
+                group.groupId,
+                collapsed,
+                <div className="SpaghettiDriverGroup">
+                  {group.rows.map((driver) =>
+                    renderDriverControlRow(driver, {
+                      pinsOnly: false,
+                      sectionIndex: resolvedDriverRowIndexById[driver.rowId],
+                      sectionLength: controlRows.length,
+                    }),
+                  )}
+                </div>,
+                <div className="SpaghettiDriverGroupCollapsedSummary" />,
+              )
+            })}
+          </div>,
+          {
+            forceGroupIds: resolvedDriverGroups.map((group) => group.groupId),
+          },
+        )}
+
+        {renderPartSection(
+          'inputs',
+          'Inputs',
+          <div className="SpaghettiNodePortColumn SpaghettiNodePortColumn--in">
+            {inputRows.map((driver) =>
+              renderInputRow(driver, {
+                sectionIndex: resolvedInputRowIndexById[driver.rowId],
+                sectionLength: inputRows.length,
+              }),
+            )}
+          </div>,
+        )}
+
+        {renderPartSection(
+          'featureStack',
+          'Feature Stack',
+          <FeatureStackView
+            node={node}
+            mode={featureStackMode}
+            isGroupCollapsed={(groupId) => isGroupCollapsed(SECTION_IDS.featureStack, groupId)}
+            onToggleGroup={(groupId) => onToggleGroup(SECTION_IDS.featureStack, groupId)()}
+            featureRows={featureRows}
+            onRegisterFeatureRowElement={(rowId, element) => {
+              featureRowElementByIdRef.current[rowId] = element
+            }}
+            featureVirtualInputStateByPortId={featureVirtualInputStateByPortId}
+          />,
+        )}
+
+        {renderPartSection(
+          'outputs',
+          'Outputs',
+          <div className="SpaghettiNodePortColumn SpaghettiNodePortColumn--out">
+            {outputRows.map((driver) =>
+              renderOutputRow(driver, {
+                sectionIndex:
+                  driver.kind === 'endpoint'
+                    ? resolvedOutputEndpointIndexByRowId[driver.rowId]
+                    : undefined,
+                sectionLength: resolvedOutputEndpointCount,
+              }),
+            )}
+          </div>,
+          {
+            className:
+              'SpaghettiNodeSection SpaghettiTemplateSection SpaghettiTemplateSection--outputs',
+          },
+        )}
 
         {showInternalDependencyOverlay ? (
           <svg
@@ -1747,7 +1734,7 @@ function NodeViewComponent({
           </svg>
         ) : null}
 
-        {showEverythingExtras && outputRemainder.length > 0 ? (
+        {showExpandedExtras && outputRemainder.length > 0 ? (
           <section className="SpaghettiNodeSection SpaghettiTemplateSection SpaghettiTemplateSection--outputs SpaghettiNodeTemplateExtras">
             <div className="SpaghettiNodeSectionLabel">Other Outputs</div>
             <div className="SpaghettiNodePortColumn SpaghettiNodePortColumn--out">
@@ -1762,7 +1749,7 @@ function NodeViewComponent({
           </section>
         ) : null}
 
-        {showEverythingExtras ? renderLegacySections() : null}
+        {showExpandedExtras ? renderLegacySections() : null}
       </div>
     )
   }
@@ -1809,6 +1796,93 @@ function NodeViewComponent({
     </div>
   )
 
+  const renderUtilityNodeTemplate = () => {
+    if (utilityVm === undefined) {
+      return null
+    }
+
+    const outputPort = renderOutputPortByType(utilityVm.outputPort, {
+      endpointPortId: utilityVm.outputPort.portId,
+    })
+
+    const renderEditor = () => {
+      if (utilityVm.kind === 'paramNumber') {
+        return (
+          <NumberField
+            scrubLabel=""
+            value={utilityVm.value}
+            min={-2000}
+            max={2000}
+            step={0.1}
+            disabled={!showEditors}
+            scrubSpeed={scrubSensitivity}
+            tone="white"
+            compact
+            onChange={(value) => {
+              onUtilityNumberValueChange(node.nodeId, value)
+            }}
+          />
+        )
+      }
+
+      if (utilityVm.kind === 'paramBoolean') {
+        return (
+          <label className="SpaghettiUtilityNodeToggle" {...SP_INTERACTIVE_PROPS}>
+            <input
+              type="checkbox"
+              checked={utilityVm.value}
+              disabled={!showEditors}
+              onPointerDown={(event) => event.stopPropagation()}
+              onChange={(event) => {
+                onUtilityBooleanValueChange(node.nodeId, event.target.checked)
+              }}
+            />
+            <span>{utilityVm.value ? 'True' : 'False'}</span>
+          </label>
+        )
+      }
+
+      return (
+        <Vec2Field
+          x={{
+            value: utilityVm.value.x,
+            step: 0.1,
+            disabled: !showEditors,
+            onChange: (value) => {
+              onUtilityVec2AxisChange(node.nodeId, 'x', value)
+            },
+          }}
+          y={{
+            value: utilityVm.value.y,
+            step: 0.1,
+            disabled: !showEditors,
+            onChange: (value) => {
+              onUtilityVec2AxisChange(node.nodeId, 'y', value)
+            },
+          }}
+          scrubSpeed={scrubSensitivity}
+          tone="white"
+        />
+      )
+    }
+
+    return (
+      <div className="SpaghettiNodeTemplate SpaghettiUtilityNodeTemplate">
+        <section className="SpaghettiNodeSection SpaghettiUtilityNodeSection">
+          <div className="SpaghettiUtilityNodeEditorRow" {...SP_INTERACTIVE_PROPS}>
+            <span className="SpaghettiUtilityNodeEditorLabel">Value</span>
+            <div className="SpaghettiUtilityNodeEditorControl">{renderEditor()}</div>
+          </div>
+        </section>
+        <section className="SpaghettiNodeSection SpaghettiUtilityNodeSection SpaghettiUtilityNodeSection--outputs">
+          <div className="SpaghettiNodePortColumn SpaghettiNodePortColumn--out">
+            {outputPort}
+          </div>
+        </section>
+      </div>
+    )
+  }
+
   const renderLegacyNodePorts = () => (
     <>
       <div className="SpaghettiNodePorts">
@@ -1843,168 +1917,190 @@ function NodeViewComponent({
   return (
     <article
       ref={nodeElementRef}
+      data-sp-node-id={node.nodeId}
       className={`SpaghettiNode ${selected ? 'SpaghettiNode--selected' : ''} ${
         showInternalWiring ? 'SpaghettiNode--showInternalWiring' : ''
       }`}
       style={{ left: `${x}px`, top: `${y}px` }}
-      onPointerDown={(event) => onNodePointerDown(event, node.nodeId)}
     >
-      <header className="SpaghettiNodeHeader">
-        <strong>{title}</strong>
+      <header
+        className="SpaghettiNodeHeader"
+        data-sp-node-header-zone="1"
+        onPointerDown={handleNodeHeaderPointerDown}
+      >
+        <button
+          type="button"
+          className="SpaghettiNodeTitleButton"
+          data-sp-node-title-cycle="1"
+          {...SP_INTERACTIVE_PROPS}
+          onPointerDown={handleNodeTitlePointerDown}
+          onClick={handleNodeTitleClick}
+        >
+          <strong>{title}</strong>
+        </button>
         <span className="SpaghettiNodeType">{node.type}</span>
       </header>
 
-      {showPresetPicker ? (
-        <label className="SpaghettiNodePresetRow">
-          <span>Preset</span>
-          <span className="SpaghettiNodePresetControls">
-            <select
-              value={presetValue}
-              onChange={(event) => onPresetChange(node.nodeId, event.target.value)}
-              onPointerDown={(event) => event.stopPropagation()}
-            >
-              {(presetOptions ?? ['default']).map((option) => (
-                <option key={option} value={option}>
-                  {`> ${option}`}
-                </option>
-              ))}
-            </select>
-            <button
-              type="button"
-              className="SpaghettiNodeToolbarToggle"
-              aria-label={toolbarEditorOpen ? 'Hide node toolbar controls' : 'Show node toolbar controls'}
-              {...SP_INTERACTIVE_PROPS}
-              onClick={() => setToolbarEditorOpen((current) => !current)}
-            >
-              {toolbarEditorOpen ? '\u25BE' : '\u25B8'}
-            </button>
-          </span>
-        </label>
-      ) : null}
-
-      {showPresetPicker && toolbarEditorOpen ? (
-        <section
-          className="SpaghettiNodeToolbarEditor"
-          {...SP_INTERACTIVE_PROPS}
-        >
-          <label className="SpaghettiNodeToolbarRow">
-            <span>Sensitivity</span>
-            <input
-              className="SpaghettiNodeToolbarSlider"
-              type="range"
-              min={0}
-              max={100}
-              step={1}
-              value={scrubSensitivity}
-              onChange={(event) => {
-                const next = Number(event.target.value)
-                if (!Number.isFinite(next)) {
-                  return
+      <div
+        className="SpaghettiNodeBody"
+        data-sp-node-body-zone="1"
+        onPointerDown={handleNodeBodyPointerDown}
+      >
+        {showPresetPicker ? (
+          <label className="SpaghettiNodePresetRow">
+            <span>Preset</span>
+            <span className="SpaghettiNodePresetControls">
+              <select
+                value={presetValue}
+                onChange={(event) => onPresetChange(node.nodeId, event.target.value)}
+                onPointerDown={(event) => event.stopPropagation()}
+              >
+                {(presetOptions ?? ['default']).map((option) => (
+                  <option key={option} value={option}>
+                    {`> ${option}`}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                className="SpaghettiNodeToolbarToggle"
+                aria-label={
+                  toolbarEditorOpen
+                    ? 'Hide node toolbar controls'
+                    : 'Show node toolbar controls'
                 }
-                setScrubSensitivity(Math.max(0, Math.min(100, next)))
-              }}
-            />
-            <span className="SpaghettiNodeToolbarValue">{scrubSensitivity}</span>
+                {...SP_INTERACTIVE_PROPS}
+                onClick={() => setToolbarEditorOpen((current) => !current)}
+              >
+                {toolbarEditorOpen ? '\u25BE' : '\u25B8'}
+              </button>
+            </span>
           </label>
-          <label className="SpaghettiNodeToolbarRow">
-            <span>Output Height</span>
-            <input
-              className="SpaghettiNodeToolbarSlider"
-              type="range"
-              min={16}
-              max={48}
-              step={1}
-              value={outputRowMinHeight}
-              onChange={(event) => {
-                const next = Number(event.target.value)
-                if (!Number.isFinite(next)) {
-                  return
-                }
-                onOutputRowMinHeightChange(Math.max(16, Math.min(48, Math.round(next))))
-              }}
-            />
-            <span className="SpaghettiNodeToolbarValue">{outputRowMinHeight}</span>
-          </label>
-          <label className="SpaghettiNodeToolbarRow">
-            <span>Pin Size</span>
-            <input
-              className="SpaghettiNodeToolbarSlider"
-              type="range"
-              min={5}
-              max={16}
-              step={1}
-              value={pinDotSize}
-              onChange={(event) => {
-                const next = Number(event.target.value)
-                if (!Number.isFinite(next)) {
-                  return
-                }
-                onPinDotSizeChange(Math.max(5, Math.min(16, Math.round(next))))
-              }}
-            />
-            <span className="SpaghettiNodeToolbarValue">{pinDotSize}</span>
-          </label>
-          <label className="SpaghettiNodeToolbarRow SpaghettiNodeToolbarRow--toggle">
-            <input
-              type="checkbox"
-              checked={showInternalWiring}
-              onChange={(event) => setShowInternalWiring(event.target.checked)}
-            />
-            <span>Show internal wiring</span>
-          </label>
-        </section>
-      ) : null}
+        ) : null}
 
-      {node.type === OUTPUT_PREVIEW_NODE_TYPE && outputPreviewRows !== undefined
-        ? renderOutputPreviewTemplate()
-        : isPartTemplate
-          ? renderPartTemplate()
-          : renderLegacyNodePorts()}
+        {showPresetPicker && toolbarEditorOpen ? (
+          <section className="SpaghettiNodeToolbarEditor" {...SP_INTERACTIVE_PROPS}>
+            <label className="SpaghettiNodeToolbarRow">
+              <span>Sensitivity</span>
+              <input
+                className="SpaghettiNodeToolbarSlider"
+                type="range"
+                min={0}
+                max={100}
+                step={1}
+                value={scrubSensitivity}
+                onChange={(event) => {
+                  const next = Number(event.target.value)
+                  if (!Number.isFinite(next)) {
+                    return
+                  }
+                  setScrubSensitivity(Math.max(0, Math.min(100, next)))
+                }}
+              />
+              <span className="SpaghettiNodeToolbarValue">{scrubSensitivity}</span>
+            </label>
+            <label className="SpaghettiNodeToolbarRow">
+              <span>Output Height</span>
+              <input
+                className="SpaghettiNodeToolbarSlider"
+                type="range"
+                min={16}
+                max={48}
+                step={1}
+                value={outputRowMinHeight}
+                onChange={(event) => {
+                  const next = Number(event.target.value)
+                  if (!Number.isFinite(next)) {
+                    return
+                  }
+                  onOutputRowMinHeightChange(Math.max(16, Math.min(48, Math.round(next))))
+                }}
+              />
+              <span className="SpaghettiNodeToolbarValue">{outputRowMinHeight}</span>
+            </label>
+            <label className="SpaghettiNodeToolbarRow">
+              <span>Pin Size</span>
+              <input
+                className="SpaghettiNodeToolbarSlider"
+                type="range"
+                min={5}
+                max={16}
+                step={1}
+                value={pinDotSize}
+                onChange={(event) => {
+                  const next = Number(event.target.value)
+                  if (!Number.isFinite(next)) {
+                    return
+                  }
+                  onPinDotSizeChange(Math.max(5, Math.min(16, Math.round(next))))
+                }}
+              />
+              <span className="SpaghettiNodeToolbarValue">{pinDotSize}</span>
+            </label>
+            <label className="SpaghettiNodeToolbarRow SpaghettiNodeToolbarRow--toggle">
+              <input
+                type="checkbox"
+                checked={showInternalWiring}
+                onChange={(event) => setShowInternalWiring(event.target.checked)}
+              />
+              <span>Show internal wiring</span>
+            </label>
+          </section>
+        ) : null}
 
-      {showDebugInfo ? <pre className="SpaghettiNodeParams">{paramsText}</pre> : null}
+        {node.type === OUTPUT_PREVIEW_NODE_TYPE && outputPreviewRows !== undefined
+          ? renderOutputPreviewTemplate()
+          : isPartTemplate
+            ? renderPartTemplate()
+            : utilityVm !== undefined
+              ? renderUtilityNodeTemplate()
+              : renderLegacyNodePorts()}
 
-      <SpaghettiContextMenu
-        open={compositeContextMenu !== null}
-        x={compositeContextMenu?.x ?? 0}
-        y={compositeContextMenu?.y ?? 0}
-        onClose={() => setCompositeContextMenu(null)}
-        items={
-          compositeContextMenu === null
-            ? []
-            : [
-                {
-                  id: menuPortExpanded ? 'group-composite' : 'break-composite',
-                  label: menuPortExpanded ? 'Group pins' : 'Break composite',
-                  disabled: !canMutateCompositeExpansion,
-                  onSelect: () => {
-                    if (menuPortId === undefined || !canMutateCompositeExpansion) {
-                      return
-                    }
-                    setCompositeExpandedForNode('in', menuPortId, !menuPortExpanded)
-                    setCompositeContextMenu(null)
+        {showDebugInfo ? <pre className="SpaghettiNodeParams">{paramsText}</pre> : null}
+
+        <SpaghettiContextMenu
+          open={compositeContextMenu !== null}
+          x={compositeContextMenu?.x ?? 0}
+          y={compositeContextMenu?.y ?? 0}
+          onClose={() => setCompositeContextMenu(null)}
+          items={
+            compositeContextMenu === null
+              ? []
+              : [
+                  {
+                    id: menuPortExpanded ? 'group-composite' : 'break-composite',
+                    label: menuPortExpanded ? 'Group pins' : 'Break composite',
+                    disabled: !canMutateCompositeExpansion,
+                    onSelect: () => {
+                      if (menuPortId === undefined || !canMutateCompositeExpansion) {
+                        return
+                      }
+                      setCompositeExpandedForNode('in', menuPortId, !menuPortExpanded)
+                      setCompositeContextMenu(null)
+                    },
                   },
-                },
-                ...(showDebugInfo
-                  ? [
-                      {
-                        id: menuPortInfoExpanded ? 'hide-info' : 'show-info',
-                        label: menuPortInfoExpanded ? 'Hide info' : 'Show info',
-                        onSelect: () => {
-                          if (menuPortDetailsKey === undefined) {
-                            return
-                          }
-                          setExpandedDetails((current) => ({
-                            ...current,
-                            [menuPortDetailsKey]: !menuPortInfoExpanded,
-                          }))
-                          setCompositeContextMenu(null)
+                  ...(showDebugInfo
+                    ? [
+                        {
+                          id: menuPortInfoExpanded ? 'hide-info' : 'show-info',
+                          label: menuPortInfoExpanded ? 'Hide info' : 'Show info',
+                          onSelect: () => {
+                            if (menuPortDetailsKey === undefined) {
+                              return
+                            }
+                            setExpandedDetails((current) => ({
+                              ...current,
+                              [menuPortDetailsKey]: !menuPortInfoExpanded,
+                            }))
+                            setCompositeContextMenu(null)
+                          },
                         },
-                      },
-                    ]
-                  : []),
-              ]
-        }
-      />
+                      ]
+                    : []),
+                ]
+          }
+        />
+      </div>
     </article>
   )
 }

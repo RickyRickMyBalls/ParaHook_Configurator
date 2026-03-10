@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseSpaghettiGraph } from './spaghettiSchema'
+import { parseGraphDocument, parseSpaghettiGraph } from './spaghettiSchema'
 import { OUTPUT_PREVIEW_NODE_TYPE } from '../system/outputPreviewNode'
 
 describe('parseSpaghettiGraph partSlots compatibility', () => {
@@ -70,5 +70,68 @@ describe('parseSpaghettiGraph OutputPreview compatibility', () => {
     expect(node?.type).toBe(OUTPUT_PREVIEW_NODE_TYPE)
     expect(node?.params.slots).toEqual([{ slotId: 's001' }, { slotId: 's010' }, { slotId: 's002' }])
     expect(node?.params.nextSlotIndex).toBe(11)
+  })
+
+  it('preserves sparse graph-owned node row modes through parse', () => {
+    const parsed = parseSpaghettiGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-baseplate-1',
+          type: 'Part/Baseplate',
+          params: {},
+        },
+      ],
+      edges: [],
+      ui: {
+        nodeModesByNodeId: {
+          'node-baseplate-1': 'expanded',
+        },
+      },
+    })
+
+    expect(parsed.ui?.nodeModesByNodeId).toEqual({
+      'node-baseplate-1': 'expanded',
+    })
+  })
+})
+
+describe('parseGraphDocument', () => {
+  it('parses the first-pass GraphDocument contract and validates the nested graph', () => {
+    const parsed = parseGraphDocument({
+      graphDocumentId: 'graph-document-1',
+      name: 'Graph 1',
+      version: 1,
+      graph: {
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'n-baseplate',
+            type: 'Part/Baseplate',
+            params: {},
+          },
+        ],
+        edges: [],
+      },
+    })
+
+    expect(parsed).toMatchObject({
+      graphDocumentId: 'graph-document-1',
+      name: 'Graph 1',
+      version: 1,
+    })
+    expect(parsed.graph).toEqual(
+      parseSpaghettiGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'n-baseplate',
+            type: 'Part/Baseplate',
+            params: {},
+          },
+        ],
+        edges: [],
+      }),
+    )
   })
 })

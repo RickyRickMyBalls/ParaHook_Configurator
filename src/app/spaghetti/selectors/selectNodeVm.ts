@@ -81,6 +81,8 @@ const isVec2Like = (value: unknown): value is { x: number; y: number } => {
   )
 }
 
+const isBooleanLike = (value: unknown): value is boolean => typeof value === 'boolean'
+
 const isSpline2Like = (value: unknown): value is { points: Array<{ x: number; y: number }>; closed: boolean } => {
   if (typeof value !== 'object' || value === null) {
     return false
@@ -151,6 +153,26 @@ export type DriverSectionGroupVm = {
   label: string
   rows: DriverControlRowVm[]
 }
+
+export type UtilityNodeVm =
+  | {
+      source: 'param' | 'legacyPrimitive'
+      kind: 'paramNumber'
+      value: number
+      outputPort: PortSpec
+    }
+  | {
+      source: 'param'
+      kind: 'paramBoolean'
+      value: boolean
+      outputPort: PortSpec
+    }
+  | {
+      source: 'param' | 'legacyPrimitive'
+      kind: 'paramVec2'
+      value: { x: number; y: number }
+      outputPort: PortSpec
+    }
 
 const buildOutputPreviewSlotRows = (params: {
   node: SpaghettiNode
@@ -276,6 +298,7 @@ export type NodeVm = {
   nodeId: string
   title: string
   template?: 'part'
+  utilityVm?: UtilityNodeVm
   uiSections?: NodeUiSection[]
   presetOptions?: string[]
   allInputs: PortSpec[]
@@ -304,7 +327,6 @@ export type NodeVm = {
       drivenValue?: number
     }
   >
-  primitiveNumberValue: number
   driverVm: ReturnType<typeof selectDriverVm>['driverVm']
   driverGroups: DriverSectionGroupVm[]
   driverRowIndexById: Record<string, number>
@@ -430,6 +452,24 @@ const buildNodeVm = (
           { text: `connections out: ${outgoingForPort.length}` },
         ]
         const resolvedValue = evaluation.outputsByNodeId[node.nodeId]?.[port.portId]
+        if (port.type.kind === 'number' && typeof resolvedValue === 'number' && Number.isFinite(resolvedValue)) {
+          lines.push({
+            text: `value: ${formatNumber(resolvedValue)}`,
+            kind: 'number',
+          })
+        }
+        if (port.type.kind === 'boolean' && typeof resolvedValue === 'boolean') {
+          lines.push({
+            text: `value: ${resolvedValue ? 'true' : 'false'}`,
+            kind: 'boolean',
+          })
+        }
+        if (port.type.kind === 'vec2' && isVec2Like(resolvedValue)) {
+          lines.push({
+            text: `value: (${formatNumber(resolvedValue.x)}, ${formatNumber(resolvedValue.y)})`,
+            kind: 'vec2',
+          })
+        }
         if (port.type.kind === 'spline2' && isSpline2Like(resolvedValue)) {
           const points = resolvedValue.points.slice(0, 5)
           points.forEach((point, index) => {
@@ -453,6 +493,49 @@ const buildNodeVm = (
         return [port.portId, lines]
       }),
     )
+    const utilityVm = (() : UtilityNodeVm | undefined => {
+      const valuePort = nodeOutputs.find((port) => port.portId === 'value')
+      if (valuePort === undefined) {
+        return undefined
+      }
+
+      if (node.type === 'Param/Number' || node.type === 'Primitive/Number') {
+        const rawValue = node.params.value
+        return {
+          source: node.type === 'Param/Number' ? 'param' : 'legacyPrimitive',
+          kind: 'paramNumber',
+          value: typeof rawValue === 'number' && Number.isFinite(rawValue) ? rawValue : 0,
+          outputPort: valuePort,
+        }
+      }
+
+      if (node.type === 'Param/Boolean') {
+        return {
+          source: 'param',
+          kind: 'paramBoolean',
+          value: isBooleanLike(node.params.value) ? node.params.value : false,
+          outputPort: valuePort,
+        }
+      }
+
+      if (node.type === 'Param/Vec2' || node.type === 'Primitive/Vec2') {
+        const rawValue =
+          node.type === 'Param/Vec2'
+            ? node.params.value
+            : {
+                x: node.params.x,
+                y: node.params.y,
+              }
+        return {
+          source: node.type === 'Param/Vec2' ? 'param' : 'legacyPrimitive',
+          kind: 'paramVec2',
+          value: isVec2Like(rawValue) ? rawValue : { x: 0, y: 0 },
+          outputPort: valuePort,
+        }
+      }
+
+      return undefined
+    })()
     const featureVirtualInputStateByPortId: Record<
       string,
       { driven: boolean; connectionCount: number; unresolved: boolean; drivenValue?: number }
@@ -598,6 +681,7 @@ const buildNodeVm = (
       nodeId: node.nodeId,
       title: nodeDef?.label ?? node.type,
       template: nodeDef?.template,
+      utilityVm,
       uiSections: nodeDef?.uiSections,
       presetOptions: nodeDef?.presetOptions,
       allInputs: node.type === OUTPUT_PREVIEW_NODE_TYPE ? effectiveInputPorts : nodeInputs,
@@ -615,10 +699,6 @@ const buildNodeVm = (
         vec2DisplayByPortId,
       },
       featureVirtualInputStateByPortId,
-      primitiveNumberValue:
-        node.type === 'Primitive/Number' && typeof node.params.value === 'number'
-          ? node.params.value
-          : 0,
       driverVm: orderedDriverVm,
       driverGroups,
       driverRowIndexById,

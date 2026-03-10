@@ -6,7 +6,6 @@ exports[`selectPreviewRenderVm > matches stable PreviewRenderVm contract snapsho
     {
       "id": "preview:s001:node-toe:toeHook#1",
       "isReady": true,
-      "key": "s001",
       "nodeId": "node-toe",
       "renderable": {
         "id": "toeHook",

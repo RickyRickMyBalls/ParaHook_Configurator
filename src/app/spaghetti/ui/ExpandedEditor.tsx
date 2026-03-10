@@ -1,9 +1,13 @@
 import { SpaghettiCanvas } from '../canvas/SpaghettiCanvas'
 
-export function ExpandedEditor() {
+type ExpandedEditorProps = {
+  graphDocumentId: string
+}
+
+export function ExpandedEditor({ graphDocumentId }: ExpandedEditorProps) {
   return (
     <div className="spaghettiCanvasHost">
-      <SpaghettiCanvas />
+      <SpaghettiCanvas graphDocumentId={graphDocumentId} />
     </div>
   )
 }

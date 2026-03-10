@@ -1,45 +1,13 @@
-import type { PointerEvent as ReactPointerEvent } from 'react'
 import type { ExtrudeFeature, FeatureStack } from '../../features/featureTypes'
-import {
-  buildExtrudeDepthVirtualInputPortId,
-  buildExtrudeOffsetVirtualInputPortId,
-  buildExtrudeTaperVirtualInputPortId,
-} from '../../features/featureVirtualPorts'
-import type { PortSpec } from '../../schema/spaghettiTypes'
 import { useSpaghettiStore } from '../../store/useSpaghettiStore'
 import { SP_INTERACTIVE_PROPS } from '../../spInteractive'
 import { FeatureValueBar } from './FeatureValueBar'
-import { PortView } from '../../canvas/PortView'
-import type { PortDirection } from '../../canvas/types'
 import {
   formatStableNumber,
   labelProfilesForPreview,
   renderProfilePreview,
   type PreviewProfileWithLabel,
 } from './profilePreview'
-
-type EndpointPayload = {
-  nodeId: string
-  portId: string
-  path?: string[]
-}
-
-export type FeatureInputWiringBridge = {
-  getInputDropState: (payload: EndpointPayload) => 'compatible' | 'incompatible' | null
-  onRegisterPortElement: (
-    nodeId: string,
-    direction: PortDirection,
-    portId: string,
-    path: string[] | undefined,
-    element: HTMLElement | null,
-  ) => void
-  onInputPointerDown: (
-    event: ReactPointerEvent<HTMLElement>,
-    payload: EndpointPayload,
-  ) => void
-  onInputPointerEnter: (payload: EndpointPayload) => void
-  onInputPointerLeave: (payload: EndpointPayload) => void
-}
 
 type ExtrudeFeatureViewProps = {
   nodeId: string
@@ -51,28 +19,24 @@ type ExtrudeFeatureViewProps = {
     string,
     { sourceFeatureId: string; profileId: string; profileIndex: number }
   >
-  depthVirtualInputPort?: PortSpec
   depthVirtualInputState?: {
     driven: boolean
     connectionCount: number
     unresolved: boolean
     drivenValue?: number
   }
-  taperVirtualInputPort?: PortSpec
   taperVirtualInputState?: {
     driven: boolean
     connectionCount: number
     unresolved: boolean
     drivenValue?: number
   }
-  offsetVirtualInputPort?: PortSpec
   offsetVirtualInputState?: {
     driven: boolean
     connectionCount: number
     unresolved: boolean
     drivenValue?: number
   }
-  featureInputWiring?: FeatureInputWiringBridge
 }
 
 const shortId = (id: string): string => id.slice(0, 8)
@@ -84,13 +48,9 @@ export function ExtrudeFeatureView({
   featureIndex,
   previewProfilesBySketchId,
   closeProfileResolvedByFeatureId,
-  depthVirtualInputPort,
   depthVirtualInputState,
-  taperVirtualInputPort,
   taperVirtualInputState,
-  offsetVirtualInputPort,
   offsetVirtualInputState,
-  featureInputWiring,
 }: ExtrudeFeatureViewProps) {
   const setExtrudeDepth = useSpaghettiStore((state) => state.setExtrudeDepth)
   const setExtrudeTaper = useSpaghettiStore((state) => state.setExtrudeTaper)
@@ -137,9 +97,6 @@ export function ExtrudeFeatureView({
     selectedProfile === undefined || selectedSourceFeatureId.length === 0
       ? '-'
       : `${shortId(selectedSourceFeatureId)}/${selectedProfile.label}`
-  const depthPortId = buildExtrudeDepthVirtualInputPortId(feature.featureId)
-  const taperPortId = buildExtrudeTaperVirtualInputPortId(feature.featureId)
-  const offsetPortId = buildExtrudeOffsetVirtualInputPortId(feature.featureId)
   const depthDriven =
     depthVirtualInputState?.driven === true && depthVirtualInputState.connectionCount > 0
   const depthUnresolved = depthVirtualInputState?.unresolved === true
@@ -162,100 +119,36 @@ export function ExtrudeFeatureView({
       ? offsetVirtualInputState.drivenValue
       : feature.params.offset?.value ?? 0
 
-  const renderVirtualInputRow = (
+  const renderLinkedInputStatus = (
     label: string,
-    portId: string,
-    port: PortSpec | undefined,
     driven: boolean,
     unresolved: boolean,
     value: number,
-    dataAttribute:
-      | 'data-sp-feature-depth-port-id'
-      | 'data-sp-feature-taper-port-id'
-      | 'data-sp-feature-offset-port-id',
+    unit: string,
   ) => {
-    if (port === undefined || featureInputWiring === undefined) return null
+    if (!driven) {
+      return null
+    }
     return (
-      <div className="SpaghettiFeatureDepthWireInput" {...{ [dataAttribute]: portId }}>
-        <PortView
-          nodeId={nodeId}
-          direction="in"
-          endpointPortId={portId}
-          port={port}
-          labelOverride={`${label} Input`}
-          dropState={featureInputWiring.getInputDropState({
-            nodeId,
-            portId,
-          })}
-          setPortElement={(element) =>
-            featureInputWiring.onRegisterPortElement(
-              nodeId,
-              'in',
-              portId,
-              undefined,
-              element,
-            )
-          }
-          onInputPointerDown={featureInputWiring.onInputPointerDown}
-          onInputPointerEnter={featureInputWiring.onInputPointerEnter}
-          onInputPointerLeave={featureInputWiring.onInputPointerLeave}
-          resolvedValueLabel={
-            driven && !unresolved
-              ? `${formatStableNumber(value)} ${port.type.unit ?? ''}`.trim()
-              : undefined
-          }
-          drivenMessage={
-            !driven
-              ? undefined
-              : unresolved
-                ? 'Driven by external wire (unresolved).'
-                : 'Driven by external wire.'
-          }
-        />
+      <div className="SpaghettiFeatureLinkedStatus">
+        <span className="SpaghettiFeatureLinkedBadge">
+          {unresolved ? `${label}: Linked input (unresolved)` : `${label}: Linked input`}
+        </span>
+        {!unresolved ? (
+          <span className="SpaghettiFeatureLinkedValue">
+            {`${formatStableNumber(value)} ${unit}`.trim()}
+          </span>
+        ) : null}
       </div>
     )
   }
 
   return (
     <div className="SpaghettiFeatureBody" {...SP_INTERACTIVE_PROPS}>
-      {featureInputWiring !== undefined ? (
-        <>
-          <div className="SpaghettiFeatureSectionHeader">
-            <span>Feature Wire Inputs</span>
-          </div>
-          {renderVirtualInputRow(
-            'Depth',
-            depthPortId,
-            depthVirtualInputPort,
-            depthDriven,
-            depthUnresolved,
-            depthValue,
-            'data-sp-feature-depth-port-id',
-          )}
-          {renderVirtualInputRow(
-            'Taper',
-            taperPortId,
-            taperVirtualInputPort,
-            taperDriven,
-            taperUnresolved,
-            taperValue,
-            'data-sp-feature-taper-port-id',
-          )}
-          {renderVirtualInputRow(
-            'Offset',
-            offsetPortId,
-            offsetVirtualInputPort,
-            offsetDriven,
-            offsetUnresolved,
-            offsetValue,
-            'data-sp-feature-offset-port-id',
-          )}
-        </>
-      ) : null}
-
       <div className="SpaghettiFeatureSectionHeader">
         <span>Depth</span>
       </div>
+      {renderLinkedInputStatus('Depth', depthDriven, depthUnresolved, depthValue, 'mm')}
       <FeatureValueBar
         label="mm"
         value={depthValue}
@@ -274,6 +167,7 @@ export function ExtrudeFeatureView({
       <div className="SpaghettiFeatureSectionHeader">
         <span>Taper</span>
       </div>
+      {renderLinkedInputStatus('Taper', taperDriven, taperUnresolved, taperValue, 'deg')}
       <FeatureValueBar
         label="deg"
         value={taperValue}
@@ -292,6 +186,7 @@ export function ExtrudeFeatureView({
       <div className="SpaghettiFeatureSectionHeader">
         <span>Offset</span>
       </div>
+      {renderLinkedInputStatus('Offset', offsetDriven, offsetUnresolved, offsetValue, 'mm')}
       <FeatureValueBar
         label="mm"
         value={offsetValue}

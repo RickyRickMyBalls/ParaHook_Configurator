@@ -14,6 +14,9 @@ export type NodeTypeId =
   | 'Part/HeelKick'
   | typeof OUTPUT_PREVIEW_NODE_TYPE
   | 'Output/Assembled'
+  | 'Param/Number'
+  | 'Param/Boolean'
+  | 'Param/Vec2'
   | 'Primitive/Number'
   | 'Primitive/Vec2'
   | 'Primitive/SplineFromPoints'
@@ -134,6 +137,7 @@ export type NodeDefinition = {
 
 const unitSchema = z.enum(['mm', 'deg', 'unitless'])
 const emptyParamsSchema = z.object({}).strict()
+const vec2Schema = z.object({ x: z.number(), y: z.number() }).strict()
 const outputPreviewParamsSchema = z
   .object({
     slots: z.array(
@@ -197,6 +201,21 @@ const cubeParamsSchema = z
 const cubeProofParamsSchema = z
   .object({
     featureStack: featureStackSchema.optional(),
+  })
+  .strict()
+const paramNumberParamsSchema = z
+  .object({
+    value: z.number(),
+  })
+  .strict()
+const paramBooleanParamsSchema = z
+  .object({
+    value: z.boolean(),
+  })
+  .strict()
+const paramVec2ParamsSchema = z
+  .object({
+    value: vec2Schema,
   })
   .strict()
 const defaultBaseplateWidth = 30
@@ -1022,9 +1041,67 @@ export const registry: Record<NodeTypeId, NodeDefinition> = {
     outputs: [],
     compute: () => ({}),
   },
+  'Param/Number': {
+    type: 'Param/Number',
+    label: 'Param Number',
+    paramsSchema: paramNumberParamsSchema,
+    defaultParams: {
+      value: 0,
+    },
+    inputs: [],
+    outputs: [
+      {
+        portId: 'value',
+        label: 'Value',
+        type: { kind: 'number', unit: 'mm' },
+      },
+    ],
+    compute: ({ params }) => ({
+      value: params.value,
+    }),
+  },
+  'Param/Boolean': {
+    type: 'Param/Boolean',
+    label: 'Param Boolean',
+    paramsSchema: paramBooleanParamsSchema,
+    defaultParams: {
+      value: false,
+    },
+    inputs: [],
+    outputs: [
+      {
+        portId: 'value',
+        label: 'Value',
+        type: { kind: 'boolean' },
+      },
+    ],
+    compute: ({ params }) => ({
+      value: params.value,
+    }),
+  },
+  'Param/Vec2': {
+    type: 'Param/Vec2',
+    label: 'Param Vec2',
+    paramsSchema: paramVec2ParamsSchema,
+    defaultParams: {
+      value: { x: 0, y: 0 },
+    },
+    inputs: [],
+    outputs: [
+      {
+        portId: 'value',
+        label: 'Value',
+        type: { kind: 'vec2', unit: 'mm' },
+      },
+    ],
+    compute: ({ params }) => ({
+      value: params.value,
+    }),
+  },
   'Primitive/Number': {
     type: 'Primitive/Number',
     label: 'Number',
+    isUserAddable: false,
     paramsSchema: z
       .object({
         value: z.number(),
@@ -1050,6 +1127,7 @@ export const registry: Record<NodeTypeId, NodeDefinition> = {
   'Primitive/Vec2': {
     type: 'Primitive/Vec2',
     label: 'Vec2',
+    isUserAddable: false,
     paramsSchema: z
       .object({
         x: z.number(),

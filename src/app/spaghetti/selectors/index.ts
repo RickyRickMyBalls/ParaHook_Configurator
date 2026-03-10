@@ -1,4 +1,12 @@
 export {
+  selectDebugInspectorVm,
+  type DebugArtifactRow,
+  type DebugInspectorVm,
+  type DebugOutputPreviewSlotRow,
+  type DebugPreviewRenderRow,
+  type DebugViewerInputRow,
+} from './selectDebugInspectorVm'
+export {
   selectDiagnosticsVm,
   type DiagnosticsVm,
   type DiagnosticsVmItem,
@@ -17,6 +25,7 @@ export {
   type NodeInputCompositeState,
   type NodeVm,
   type OutputPreviewSlotRowVm,
+  type UtilityNodeVm,
 } from './selectNodeVm'
 export {
   selectPreviewRenderVm,

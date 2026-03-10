@@ -1,5 +1,6 @@
 import { buildDispatcher } from './buildDispatcher'
 import { LEGACY_BUILD_STATS_PART_ORDER } from '../shared/buildStatsKeys'
+import { selectActiveGraphPendingBuildState, useSpaghettiStore } from './spaghetti/store/useSpaghettiStore'
 import { selectChangedGeomParamIds, useAppStore } from './store/useAppStore'
 
 let wired = false
@@ -11,7 +12,7 @@ export const bootstrapBuildWiring = (): void => {
 
   buildDispatcher.setChangedParamIdsProvider(() =>
     useAppStore.getState().inputMode === 'spaghetti'
-      ? useAppStore.getState().spaghettiPendingChangedParamIds
+      ? (selectActiveGraphPendingBuildState(useSpaghettiStore.getState())?.pendingChangedParamIds ?? [])
       : selectChangedGeomParamIds(useAppStore.getState()),
   )
   buildDispatcher.setBuildResultHandler((result) => {
@@ -21,13 +22,15 @@ export const bootstrapBuildWiring = (): void => {
     useAppStore.getState().setAssembled(result)
   })
   buildDispatcher.setWorkerErrorHandler((error) => {
+    useSpaghettiStore.getState().clearGraphBuildRequest(error.seq)
     useAppStore.getState().setWorkerError(error.message)
   })
   buildDispatcher.setBuildInstancesProvider(() => {
     const state = useAppStore.getState()
     if (state.inputMode === 'spaghetti') {
+      const pendingBuildState = selectActiveGraphPendingBuildState(useSpaghettiStore.getState())
       return (
-        state.spaghettiPendingInstances ?? {
+        pendingBuildState?.pendingInstances ?? {
           heelKickInstances: [1],
           toeHookInstances: [1],
         }
@@ -41,7 +44,7 @@ export const bootstrapBuildWiring = (): void => {
   buildDispatcher.setBuildStatsPartKeysProvider(() => {
     const state = useAppStore.getState()
     if (state.inputMode === 'spaghetti') {
-      return state.spaghettiPendingStatsPartKeys
+      return selectActiveGraphPendingBuildState(useSpaghettiStore.getState())?.pendingStatsPartKeys ?? []
     }
     return [...LEGACY_BUILD_STATS_PART_ORDER]
   })

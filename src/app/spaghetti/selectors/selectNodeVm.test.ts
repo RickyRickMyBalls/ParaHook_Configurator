@@ -248,6 +248,65 @@ describe('selectNodeVm', () => {
     ])
   })
 
+  it('builds selector-owned utility node vm data for Param nodes', () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-param-number',
+          type: 'Param/Number',
+          params: { value: 15 },
+        },
+        {
+          nodeId: 'node-param-boolean',
+          type: 'Param/Boolean',
+          params: { value: true },
+        },
+        {
+          nodeId: 'node-param-vec2',
+          type: 'Param/Vec2',
+          params: { value: { x: 3, y: 9 } },
+        },
+      ],
+      edges: [],
+    }
+
+    const evaluation = evaluateSpaghettiGraph(graph)
+    const diagnosticsVm = selectDiagnosticsVm({ graph, evaluation })
+    const vm = selectNodeVm(graph, evaluation, diagnosticsVm)
+
+    expect(vm.byNodeId.get('node-param-number')?.utilityVm).toEqual({
+      source: 'param',
+      kind: 'paramNumber',
+      value: 15,
+      outputPort: {
+        portId: 'value',
+        label: 'Value',
+        type: { kind: 'number', unit: 'mm' },
+      },
+    })
+    expect(vm.byNodeId.get('node-param-boolean')?.utilityVm).toEqual({
+      source: 'param',
+      kind: 'paramBoolean',
+      value: true,
+      outputPort: {
+        portId: 'value',
+        label: 'Value',
+        type: { kind: 'boolean' },
+      },
+    })
+    expect(vm.byNodeId.get('node-param-vec2')?.utilityVm).toEqual({
+      source: 'param',
+      kind: 'paramVec2',
+      value: { x: 3, y: 9 },
+      outputPort: {
+        portId: 'value',
+        label: 'Value',
+        type: { kind: 'vec2', unit: 'mm' },
+      },
+    })
+  })
+
   it('matches stable NodeVm contract snapshot', () => {
     const graph: SpaghettiGraph = {
       schemaVersion: 1,

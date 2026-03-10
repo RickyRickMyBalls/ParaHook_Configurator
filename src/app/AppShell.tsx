@@ -2,7 +2,6 @@ import {
   useCallback,
   useEffect,
   useRef,
-  useState,
   type PointerEvent as ReactPointerEvent,
 } from 'react'
 import { BuildStatsDrawer } from './components/BuildStatsDrawer'
@@ -12,8 +11,10 @@ import { ViewToolbar } from './components/ViewToolbar'
 import { ViewerHost } from './components/ViewerHost'
 import { ViewportOverlay } from './components/ViewportOverlay'
 import { BoxPanel } from './panels/BoxPanel'
+import { BrowserPanel } from './panels/BrowserPanel'
 import { PartsListPanel } from './panels/PartsListPanel'
 import { SpaghettiPanel } from './panels/SpaghettiPanel'
+import { selectActiveEditorViewport, useSpaghettiStore } from './spaghetti/store/useSpaghettiStore'
 import { useAppStore } from './store/useAppStore'
 import { useBuildStatsStore } from './store/buildStatsStore'
 
@@ -32,28 +33,26 @@ const initialFloatingPosition: FloatingPosition = {
   y: 12,
 }
 
-const minFloatingWidth = 250
-const minFloatingHeight = 420
+const initialFloatingSize: FloatingSize = {
+  width: 980,
+  height: 760,
+}
+
+const minFloatingWidth = 200
+const minFloatingHeight = 200
 const floatingEdgePadding = 12
-const axisGizmoLeftInset = 324
 
 export function AppShell() {
   const statsExpanded = useBuildStatsStore((state) => state.statsExpanded)
   const inputMode = useAppStore((state) => state.inputMode)
-  const showSpaghettiFloating = inputMode === 'spaghetti'
+  const activeEditorViewport = useSpaghettiStore(selectActiveEditorViewport)
+  const setActiveEditorViewportId = useSpaghettiStore((state) => state.setActiveEditorViewportId)
+  const setEditorViewportPosition = useSpaghettiStore((state) => state.setEditorViewportPosition)
+  const setEditorViewportSize = useSpaghettiStore((state) => state.setEditorViewportSize)
+  const showSpaghettiFloating = inputMode === 'spaghetti' && activeEditorViewport !== null
   const viewportRef = useRef<HTMLElement | null>(null)
-  const floatingWindowRef = useRef<HTMLDivElement | null>(null)
-  const [floatingPos, setFloatingPos] = useState<FloatingPosition>(initialFloatingPosition)
-  const [floatingSize, setFloatingSize] = useState<FloatingSize>({
-    width: 980,
-    height: 760,
-  })
-  const [hasManualResize, setHasManualResize] = useState(false)
   const floatingPosRef = useRef<FloatingPosition>(initialFloatingPosition)
-  const floatingSizeRef = useRef<FloatingSize>({
-    width: 980,
-    height: 760,
-  })
+  const floatingSizeRef = useRef<FloatingSize>(initialFloatingSize)
   const dragRef = useRef<{
     pointerOffsetX: number
     pointerOffsetY: number
@@ -106,86 +105,82 @@ export function AppShell() {
     }
   }, [])
 
-const anchorTopLeftPos = useCallback((): FloatingPosition => {
-    const viewportElement = viewportRef.current
-    if (viewportElement === null) {
-      return { x: 12, y: 12 }
-    }
-    return clampFloatingPos({
-      x: 12,
-      y: Math.round(viewportElement.clientHeight * 0.3),
-    })
-  }, [clampFloatingPos])
+  useEffect(() => {
+    floatingPosRef.current = activeEditorViewport?.position ?? initialFloatingPosition
+  }, [activeEditorViewport?.position])
 
   useEffect(() => {
-    floatingPosRef.current = floatingPos
-  }, [floatingPos])
+    floatingSizeRef.current = activeEditorViewport?.size ?? initialFloatingSize
+  }, [activeEditorViewport?.size])
 
   useEffect(() => {
-    floatingSizeRef.current = floatingSize
-  }, [floatingSize])
-
-  useEffect(() => {
-    if (!showSpaghettiFloating) {
+    if (!showSpaghettiFloating || activeEditorViewport === null) {
       return
     }
-    setHasManualResize(false)
-    const viewportElement = viewportRef.current
-    if (viewportElement !== null) {
-      const nextPos = anchorTopLeftPos()
-      const nextSize = clampFloatingSize({
-        width: viewportElement.clientWidth - nextPos.x - axisGizmoLeftInset,
-        height: viewportElement.clientHeight - nextPos.y - floatingEdgePadding,
-      })
-      floatingSizeRef.current = nextSize
-      setFloatingSize(nextSize)
-      const clampedPos = clampFloatingPos(nextPos)
-      floatingPosRef.current = clampedPos
-      setFloatingPos(clampedPos)
-      return
+    const clampedSize = clampFloatingSize(activeEditorViewport.size)
+    if (
+      clampedSize.width !== activeEditorViewport.size.width ||
+      clampedSize.height !== activeEditorViewport.size.height
+    ) {
+      setEditorViewportSize(activeEditorViewport.editorViewportId, clampedSize)
     }
-    setFloatingPos((current) => {
-      const clamped = clampFloatingPos(current)
-      floatingPosRef.current = clamped
-      return clamped
-    })
-  }, [anchorTopLeftPos, clampFloatingPos, clampFloatingSize, showSpaghettiFloating])
+    const clampedPos = clampFloatingPos(activeEditorViewport.position)
+    if (
+      clampedPos.x !== activeEditorViewport.position.x ||
+      clampedPos.y !== activeEditorViewport.position.y
+    ) {
+      setEditorViewportPosition(activeEditorViewport.editorViewportId, clampedPos)
+    }
+  }, [
+    activeEditorViewport,
+    clampFloatingPos,
+    clampFloatingSize,
+    setEditorViewportPosition,
+    setEditorViewportSize,
+    showSpaghettiFloating,
+  ])
 
   useEffect(() => {
     const handleResize = () => {
-      setFloatingSize((current) => {
-        const clamped = clampFloatingSize(current)
-        floatingSizeRef.current = clamped
-        return clamped
-      })
-      setFloatingPos((current) => {
-        if (!hasManualResize) {
-          const anchored = anchorTopLeftPos()
-          floatingPosRef.current = anchored
-          return anchored
-        }
-        const clamped = clampFloatingPos(current)
-        floatingPosRef.current = clamped
-        return clamped
-      })
+      if (activeEditorViewport === null) {
+        return
+      }
+      const nextSize = clampFloatingSize(activeEditorViewport.size)
+      if (
+        nextSize.width !== activeEditorViewport.size.width ||
+        nextSize.height !== activeEditorViewport.size.height
+      ) {
+        setEditorViewportSize(activeEditorViewport.editorViewportId, nextSize)
+      }
+      const nextPos = clampFloatingPos(activeEditorViewport.position)
+      if (
+        nextPos.x !== activeEditorViewport.position.x ||
+        nextPos.y !== activeEditorViewport.position.y
+      ) {
+        setEditorViewportPosition(activeEditorViewport.editorViewportId, nextPos)
+      }
     }
     window.addEventListener('resize', handleResize)
     return () => {
       window.removeEventListener('resize', handleResize)
     }
-  }, [anchorTopLeftPos, clampFloatingPos, clampFloatingSize, hasManualResize])
+  }, [
+    activeEditorViewport,
+    clampFloatingPos,
+    clampFloatingSize,
+    setEditorViewportPosition,
+    setEditorViewportSize,
+  ])
 
   const handleSpaghettiDragStart = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>) => {
-      if (event.button !== 0) {
+      if (event.button !== 0 || activeEditorViewport === null) {
         return
       }
+      setActiveEditorViewportId(activeEditorViewport.editorViewportId)
       const viewportElement = viewportRef.current
       if (viewportElement === null) {
         return
-      }
-      if (!hasManualResize) {
-        setHasManualResize(true)
       }
 
       const viewportRect = viewportElement.getBoundingClientRect()
@@ -207,7 +202,7 @@ const anchorTopLeftPos = useCallback((): FloatingPosition => {
         }
         const clamped = clampFloatingPos(candidate)
         floatingPosRef.current = clamped
-        setFloatingPos(clamped)
+        setEditorViewportPosition(activeEditorViewport.editorViewportId, clamped)
       }
 
       const handleUp = () => {
@@ -220,14 +215,15 @@ const anchorTopLeftPos = useCallback((): FloatingPosition => {
       window.addEventListener('pointerup', handleUp)
       event.preventDefault()
     },
-    [clampFloatingPos, hasManualResize],
+    [activeEditorViewport, clampFloatingPos, setActiveEditorViewportId, setEditorViewportPosition],
   )
 
   const handleSpaghettiResizeStart = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>) => {
-      if (event.button !== 0) {
+      if (event.button !== 0 || activeEditorViewport === null) {
         return
       }
+      setActiveEditorViewportId(activeEditorViewport.editorViewportId)
       resizeRef.current = {
         startPointerX: event.clientX,
         startPointerY: event.clientY,
@@ -245,20 +241,10 @@ const anchorTopLeftPos = useCallback((): FloatingPosition => {
           height: state.startHeight + (moveEvent.clientY - state.startPointerY),
         })
         floatingSizeRef.current = nextSize
-        setFloatingSize(nextSize)
-        if (!hasManualResize) {
-          setHasManualResize(true)
-        }
-        setFloatingPos((current) => {
-          if (!hasManualResize) {
-            const anchored = anchorTopLeftPos()
-            floatingPosRef.current = anchored
-            return anchored
-          }
-          const clamped = clampFloatingPos(current)
-          floatingPosRef.current = clamped
-          return clamped
-        })
+        setEditorViewportSize(activeEditorViewport.editorViewportId, nextSize)
+        const clamped = clampFloatingPos(floatingPosRef.current)
+        floatingPosRef.current = clamped
+        setEditorViewportPosition(activeEditorViewport.editorViewportId, clamped)
       }
 
       const handleUp = () => {
@@ -272,7 +258,14 @@ const anchorTopLeftPos = useCallback((): FloatingPosition => {
       event.preventDefault()
       event.stopPropagation()
     },
-    [anchorTopLeftPos, clampFloatingPos, clampFloatingSize, hasManualResize],
+    [
+      activeEditorViewport,
+      clampFloatingPos,
+      clampFloatingSize,
+      setActiveEditorViewportId,
+      setEditorViewportPosition,
+      setEditorViewportSize,
+    ],
   )
 
   return (
@@ -281,6 +274,7 @@ const anchorTopLeftPos = useCallback((): FloatingPosition => {
         <TitleStatusBar />
         {statsExpanded ? <BuildStatsDrawer /> : null}
         <div className="PanelStack">
+          <BrowserPanel />
           <Toolbar />
           <PartsListPanel />
           {inputMode === 'legacy' ? <BoxPanel /> : null}
@@ -292,13 +286,13 @@ const anchorTopLeftPos = useCallback((): FloatingPosition => {
         {showSpaghettiFloating ? (
           <aside className="SpaghettiFloatingDock">
             <div
-              ref={floatingWindowRef}
               className="SpaghettiFloatingWindow"
               style={{
-                left: `${floatingPos.x}px`,
-                top: `${floatingPos.y}px`,
-                width: `${floatingSize.width}px`,
-                height: `${floatingSize.height}px`,
+                left: `${activeEditorViewport.position.x}px`,
+                top: `${activeEditorViewport.position.y}px`,
+                width: `${activeEditorViewport.size.width}px`,
+                height: `${activeEditorViewport.size.height}px`,
+                zIndex: activeEditorViewport.zOrder,
               }}
             >
               <div
@@ -309,7 +303,7 @@ const anchorTopLeftPos = useCallback((): FloatingPosition => {
                 <span>Drag</span>
               </div>
               <div className="SpaghettiFloatingBody">
-                <SpaghettiPanel />
+                <SpaghettiPanel editorViewportId={activeEditorViewport.editorViewportId} />
               </div>
               <div
                 className="SpaghettiFloatingResizeHandle"

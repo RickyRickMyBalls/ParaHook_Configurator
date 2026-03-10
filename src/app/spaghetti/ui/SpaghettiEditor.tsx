@@ -2,7 +2,10 @@ import { useEffect, useMemo, useState } from 'react'
 import { getDefaultNodeParams, type NodeTypeId } from '../registry/nodeRegistry'
 import { addNode as addNodeCommand } from '../graphCommands'
 import type { SpaghettiNode } from '../schema/spaghettiTypes'
-import { useSpaghettiStore } from '../store/useSpaghettiStore'
+import {
+  selectGraphByDocumentId,
+  useSpaghettiStore,
+} from '../store/useSpaghettiStore'
 import { CollapsedEditor } from './CollapsedEditor'
 import { ExpandedEditor } from './ExpandedEditor'
 
@@ -42,13 +45,24 @@ const createNodeId = (): string => {
 }
 
 type SpaghettiEditorProps = {
+  editorViewportId: string
+  graphDocumentId: string
   showHeaderControls?: boolean
 }
 
-export function SpaghettiEditor({ showHeaderControls = true }: SpaghettiEditorProps) {
-  const graph = useSpaghettiStore((state) => state.graph)
+export function SpaghettiEditor({
+  editorViewportId,
+  graphDocumentId,
+  showHeaderControls = true,
+}: SpaghettiEditorProps) {
+  const graph = useSpaghettiStore((state) => selectGraphByDocumentId(state, graphDocumentId))
+  const graphDocumentsById = useSpaghettiStore((state) => state.graphDocumentsById)
+  const graphDocumentOrder = useSpaghettiStore((state) => state.graphDocumentOrder)
   const selectedNodeId = useSpaghettiStore((state) => state.selectedNodeId)
   const applyGraphCommand = useSpaghettiStore((state) => state.applyGraphCommand)
+  const bindEditorViewportToGraphDocument = useSpaghettiStore(
+    (state) => state.bindEditorViewportToGraphDocument,
+  )
   const setSelectedNodeId = useSpaghettiStore((state) => state.setSelectedNodeId)
   const setUiMessage = useSpaghettiStore((state) => state.setUiMessage)
 
@@ -57,7 +71,15 @@ export function SpaghettiEditor({ showHeaderControls = true }: SpaghettiEditorPr
   const [focusPartKey] = useState<string | null>(null)
   const [newPartType, setNewPartType] = useState<PartNodeType>('Part/Baseplate')
 
-  const sortedNodes = useMemo(() => [...graph.nodes].sort(compareNodes), [graph.nodes])
+  const graphDocuments = useMemo(
+    () =>
+      graphDocumentOrder
+        .map((currentGraphDocumentId) => graphDocumentsById[currentGraphDocumentId] ?? null)
+        .filter((document) => document !== null),
+    [graphDocumentOrder, graphDocumentsById],
+  )
+
+  const sortedNodes = useMemo(() => [...(graph?.nodes ?? [])].sort(compareNodes), [graph?.nodes])
   const availableNodeIds = useMemo(
     () => new Set(sortedNodes.map((node) => node.nodeId)),
     [sortedNodes],
@@ -77,6 +99,9 @@ export function SpaghettiEditor({ showHeaderControls = true }: SpaghettiEditorPr
   }, [availableNodeIds, focusNodeId, sortedNodes])
 
   const handleAddPartNode = () => {
+    if (graph === null) {
+      return
+    }
     const nodeId = createNodeId()
     applyGraphCommand(
       addNodeCommand({
@@ -96,9 +121,16 @@ export function SpaghettiEditor({ showHeaderControls = true }: SpaghettiEditorPr
   }
 
   return (
-    <div className="SpaghettiEditorRoot">
+    <div
+      className="SpaghettiEditorRoot"
+      data-editor-viewport-id={editorViewportId}
+      data-graph-document-id={graphDocumentId}
+    >
       <div className="SpaghettiEditorShell">
         <div className="SpaghettiEditorBody">
+          {graph === null ? (
+            <div className="V15Error">Viewport graph binding is missing.</div>
+          ) : null}
           {showHeaderControls ? (
             <div
               className={`SpaghettiEditorToolbarScroll ${
@@ -107,6 +139,21 @@ export function SpaghettiEditor({ showHeaderControls = true }: SpaghettiEditorPr
             >
               <div className="SpaghettiEditorHeader">
                 <div className="V15Wrap">
+                  <label className="SpaghettiEditorFocusField">
+                    <span>Graph</span>
+                    <select
+                      value={graphDocumentId}
+                      onChange={(event) => {
+                        bindEditorViewportToGraphDocument(editorViewportId, event.target.value)
+                      }}
+                    >
+                      {graphDocuments.map((document) => (
+                        <option key={document.graphDocumentId} value={document.graphDocumentId}>
+                          {document.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
                   <button
                     type="button"
                     className={`SpaghettiEditorModeButton ${
@@ -175,17 +222,17 @@ export function SpaghettiEditor({ showHeaderControls = true }: SpaghettiEditorPr
                     ))}
                   </select>
                 </label>
-                <button type="button" onClick={handleAddPartNode}>
+                <button type="button" onClick={handleAddPartNode} disabled={graph === null}>
                   Add Part Node
                 </button>
               </div>
             </div>
           ) : null}
 
-          {viewMode === 'expanded' ? (
-            <ExpandedEditor />
+          {graph === null ? null : viewMode === 'expanded' ? (
+            <ExpandedEditor graphDocumentId={graphDocumentId} />
           ) : (
-            <CollapsedEditor focusNodeId={focusNodeId} />
+            <CollapsedEditor graphDocumentId={graphDocumentId} focusNodeId={focusNodeId} />
           )}
 
           {focusPartKey !== null ? (

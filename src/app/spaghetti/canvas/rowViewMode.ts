@@ -1,4 +1,6 @@
-export type RowViewMode = 'collapsed' | 'essentials' | 'everything'
+import type { NodeRowMode } from '../schema/spaghettiTypes'
+
+export type ViewMode = NodeRowMode
 
 export type RowViewFlags = {
   showEditors: boolean
@@ -7,7 +9,7 @@ export type RowViewFlags = {
   forceLeafRows: boolean
 }
 
-export const getRowViewFlags = (mode: RowViewMode): RowViewFlags => {
+export const getRowViewFlags = (mode: ViewMode): RowViewFlags => {
   if (mode === 'collapsed') {
     return {
       showEditors: true,
@@ -17,7 +19,7 @@ export const getRowViewFlags = (mode: RowViewMode): RowViewFlags => {
     }
   }
 
-  if (mode === 'everything') {
+  if (mode === 'expanded') {
     return {
       showEditors: true,
       showDebugInfo: true,
@@ -32,4 +34,14 @@ export const getRowViewFlags = (mode: RowViewMode): RowViewFlags => {
     renderLeafRows: true,
     forceLeafRows: false,
   }
+}
+
+export const getNextViewMode = (mode: ViewMode): ViewMode => {
+  if (mode === 'collapsed') {
+    return 'essentials'
+  }
+  if (mode === 'essentials') {
+    return 'expanded'
+  }
+  return 'collapsed'
 }

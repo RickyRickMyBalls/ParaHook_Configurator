@@ -5,9 +5,14 @@ import {
   createValidBaseplateGraph,
   createValidBaseplateToeHookGraph,
 } from '../spaghetti/dev/sampleGraph'
+import { DebugInspectorDrawer } from '../spaghetti/ui/DebugInspectorDrawer'
 import { SpaghettiEditor } from '../spaghetti/ui/SpaghettiEditor'
 import { SpaghettiEditorBoundary } from '../spaghetti/ui/SpaghettiEditorBoundary'
-import { useSpaghettiStore } from '../spaghetti/store/useSpaghettiStore'
+import {
+  selectEditorViewportById,
+  selectGraphCompileResultByDocumentId,
+  useSpaghettiStore,
+} from '../spaghetti/store/useSpaghettiStore'
 import { useAppStore } from '../store/useAppStore'
 
 const describeDiagnosticContext = (diagnostic: {
@@ -25,6 +30,8 @@ const describeDiagnosticContext = (diagnostic: {
 }
 
 const minCanvasHeight = 100
+const minDebugDrawerHeight = 160
+const defaultDebugDrawerHeight = 360
 
 type ResizeState = {
   startClientY: number
@@ -32,18 +39,28 @@ type ResizeState = {
   maxHeight: number
 }
 
-export function SpaghettiPanel() {
+type SpaghettiPanelProps = {
+  editorViewportId: string
+}
+
+export function SpaghettiPanel({ editorViewportId }: SpaghettiPanelProps) {
   const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false)
+  const [isDebugVisible, setIsDebugVisible] = useState(false)
   const [canvasHeight, setCanvasHeight] = useState<number | null>(null)
+  const [debugHeight, setDebugHeight] = useState<number | null>(null)
   const buildPolicy = useAppStore((state) => state.buildPolicy)
-  const spaghettiLastCompile = useAppStore((state) => state.spaghettiLastCompile)
   const setSpaghettiGraph = useAppStore((state) => state.setSpaghettiGraph)
   const compileSpaghetti = useAppStore((state) => state.compileSpaghetti)
   const requestSpaghettiBuild = useAppStore((state) => state.requestSpaghettiBuild)
   const uiMessage = useSpaghettiStore((state) => state.uiMessage)
+  const viewport = useSpaghettiStore((state) => selectEditorViewportById(state, editorViewportId))
   const panelRef = useRef<HTMLElement | null>(null)
   const titleRef = useRef<HTMLButtonElement | null>(null)
   const resizeStateRef = useRef<ResizeState | null>(null)
+  const graphDocumentId = viewport?.graphDocumentId ?? null
+  const spaghettiLastCompile = useSpaghettiStore((state) =>
+    graphDocumentId === null ? null : selectGraphCompileResultByDocumentId(state, graphDocumentId),
+  )
 
   const errors = spaghettiLastCompile?.diagnostics.errors ?? []
   const warnings = spaghettiLastCompile?.diagnostics.warnings ?? []
@@ -132,6 +149,60 @@ export function SpaghettiPanel() {
     setCanvasHeight(null)
   }
 
+  const handleDebugResizeStart = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    if (event.button !== 0 || !isDebugVisible) {
+      return
+    }
+    const panel = panelRef.current
+    if (panel === null) {
+      return
+    }
+
+    const canvasWrap = panel.querySelector<HTMLElement>('.SpaghettiPanelCanvasWrap')
+    const debugDrawer = panel.querySelector<HTMLElement>('.SpaghettiDebugDrawer')
+    if (canvasWrap === null || debugDrawer === null) {
+      return
+    }
+
+    const startHeight = Math.round(debugDrawer.getBoundingClientRect().height)
+    const canvasCurrentHeight = Math.round(canvasWrap.getBoundingClientRect().height)
+    resizeStateRef.current = {
+      startClientY: event.clientY,
+      startHeight,
+      maxHeight: Math.max(
+        minDebugDrawerHeight,
+        startHeight + Math.max(0, canvasCurrentHeight - minCanvasHeight),
+      ),
+    }
+
+    const handlePointerMove = (moveEvent: PointerEvent) => {
+      const resizeState = resizeStateRef.current
+      if (resizeState === null) {
+        return
+      }
+      const deltaY = moveEvent.clientY - resizeState.startClientY
+      const nextHeight = Math.max(
+        minDebugDrawerHeight,
+        Math.min(resizeState.maxHeight, resizeState.startHeight - deltaY),
+      )
+      setDebugHeight(nextHeight)
+    }
+
+    const handlePointerUp = () => {
+      resizeStateRef.current = null
+      window.removeEventListener('pointermove', handlePointerMove)
+      window.removeEventListener('pointerup', handlePointerUp)
+    }
+
+    window.addEventListener('pointermove', handlePointerMove)
+    window.addEventListener('pointerup', handlePointerUp)
+    event.preventDefault()
+  }
+
+  const handleResetDebugHeight = () => {
+    setDebugHeight(null)
+  }
+
   const canvasWrapStyle: CSSProperties | undefined =
     canvasHeight === null
       ? undefined
@@ -140,8 +211,21 @@ export function SpaghettiPanel() {
           flex: '0 0 auto',
         }
 
+  const debugDrawerStyle: CSSProperties | undefined =
+    isDebugVisible
+      ? {
+          height: `${debugHeight ?? defaultDebugDrawerHeight}px`,
+          flex: '0 0 auto',
+        }
+      : undefined
+
   return (
-    <section ref={panelRef} className="V15Panel SpaghettiPanelRoot">
+    <section
+      ref={panelRef}
+      className="V15Panel SpaghettiPanelRoot"
+      data-editor-viewport-id={editorViewportId}
+      data-graph-document-id={graphDocumentId ?? ''}
+    >
       <button
         ref={titleRef}
         type="button"
@@ -279,9 +363,36 @@ export function SpaghettiPanel() {
         style={canvasWrapStyle}
       >
         <SpaghettiEditorBoundary>
-          <SpaghettiEditor showHeaderControls={!isHeaderCollapsed} />
+          {graphDocumentId === null ? (
+            <div className="V15Error">Viewport graph binding is missing.</div>
+          ) : (
+            <SpaghettiEditor
+              editorViewportId={editorViewportId}
+              graphDocumentId={graphDocumentId}
+              showHeaderControls={!isHeaderCollapsed}
+            />
+          )}
         </SpaghettiEditorBoundary>
       </div>
+
+      {isDebugVisible ? (
+        <button
+          type="button"
+          className="SpaghettiCanvasResizeBar SpaghettiDebugResizeBar"
+          onPointerDown={handleDebugResizeStart}
+          onDoubleClick={handleResetDebugHeight}
+          aria-label="Resize debug inspector area"
+          title="Drag to resize debug inspector. Double-click to reset."
+        >
+          <span className="SpaghettiCanvasResizeGrip" />
+        </button>
+      ) : null}
+
+      <DebugInspectorDrawer
+        isOpen={isDebugVisible}
+        onToggle={() => setIsDebugVisible((value) => !value)}
+        style={debugDrawerStyle}
+      />
     </section>
   )
 }
