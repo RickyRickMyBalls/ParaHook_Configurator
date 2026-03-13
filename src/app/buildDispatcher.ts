@@ -1,15 +1,18 @@
 import {
   isPartArtifact,
+  LEGACY_RUNTIME_GRAPH_DOCUMENT_ID,
+  LEGACY_RUNTIME_PROJECT_FILE_ID,
   normalizeInstances,
 } from '../shared/buildTypes'
 import { LEGACY_BUILD_STATS_PART_ORDER } from '../shared/buildStatsKeys'
 import type {
   AssembleRequest,
   AssembleResult,
-  BoxParams,
   BuildProgress,
   BuildRequest,
   BuildResult,
+  BuildRoutingIdentity,
+  BoxParams,
   WorkerError,
 } from '../shared/buildTypes'
 import { useBuildStatsStore } from './store/buildStatsStore'
@@ -20,6 +23,20 @@ type WorkerErrorHandler = (error: WorkerError) => void
 type BuildInstances = {
   heelKickInstances?: number[]
   toeHookInstances?: number[]
+}
+
+type BuildRequestOptions = {
+  routingIdentity?: BuildRoutingIdentity
+  changedParamIds?: string[]
+  buildInstances?: BuildInstances
+  buildStatsPartKeys?: string[]
+}
+
+type RoutingLedger = {
+  latestRequestedSeq: number
+  latestResolvedSeq: number
+  pendingChangedParamIdsBySeq: Map<number, string[]>
+  pendingBuildRequestIdBySeq: Map<number, string>
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -35,7 +52,13 @@ const isBuildResult = (value: unknown): value is BuildResult => {
   if (!isRecord(value)) {
     return false
   }
-  if (value.type !== 'build_result' || typeof value.seq !== 'number') {
+  if (
+    value.type !== 'build_result' ||
+    typeof value.seq !== 'number' ||
+    typeof value.projectFileId !== 'string' ||
+    typeof value.graphDocumentId !== 'string' ||
+    typeof value.buildRequestId !== 'string'
+  ) {
     return false
   }
   if (!Array.isArray(value.parts)) {
@@ -72,12 +95,24 @@ const isWorkerError = (value: unknown): value is WorkerError => {
   if (!isRecord(value)) {
     return false
   }
-  return (
-    value.type === 'worker_error' &&
-    typeof value.seq === 'number' &&
-    (value.op === 'assemble' || value.op === 'build' || value.op === 'export') &&
-    typeof value.message === 'string'
-  )
+  if (
+    value.type !== 'worker_error' ||
+    typeof value.seq !== 'number' ||
+    (value.op !== 'assemble' && value.op !== 'build' && value.op !== 'export') ||
+    typeof value.message !== 'string'
+  ) {
+    return false
+  }
+  if (value.projectFileId !== undefined && typeof value.projectFileId !== 'string') {
+    return false
+  }
+  if (value.graphDocumentId !== undefined && typeof value.graphDocumentId !== 'string') {
+    return false
+  }
+  if (value.buildRequestId !== undefined && typeof value.buildRequestId !== 'string') {
+    return false
+  }
+  return true
 }
 
 const isBuildProgress = (value: unknown): value is BuildProgress => {
@@ -87,6 +122,9 @@ const isBuildProgress = (value: unknown): value is BuildProgress => {
   if (
     value.type !== 'build_progress' ||
     typeof value.seq !== 'number' ||
+    typeof value.projectFileId !== 'string' ||
+    typeof value.graphDocumentId !== 'string' ||
+    typeof value.buildRequestId !== 'string' ||
     typeof value.partKey !== 'string'
   ) {
     return false
@@ -118,7 +156,7 @@ export class BuildDispatcher {
   private seqCounter = 0
   private latestRequestedSeq = 0
   private latestResolvedSeq = 0
-  private readonly pendingChangedParamIdsBySeq = new Map<number, string[]>()
+  private readonly routingLedgerByKey = new Map<string, RoutingLedger>()
   private getChangedParamIdsForNextBuild: (() => string[]) | null = null
   private getBuildStatsPartKeysForNextBuild: (() => string[]) | null = null
   private getBuildInstancesForNextBuild: (() => BuildInstances) | null = null
@@ -159,10 +197,14 @@ export class BuildDispatcher {
     this.getBuildStatsPartKeysForNextBuild = provider
   }
 
-  public requestBuild(params: BoxParams): number {
+  public requestBuild(params: BoxParams, options?: BuildRequestOptions): number {
     const seq = ++this.seqCounter
     this.latestRequestedSeq = seq
-    const buildInstances = this.getBuildInstancesForNextBuild?.()
+    const routingIdentity = options?.routingIdentity ?? this.createLegacyRoutingIdentity(seq)
+    const ledger = this.getOrCreateRoutingLedger(routingIdentity)
+    ledger.latestRequestedSeq = seq
+
+    const buildInstances = options?.buildInstances ?? this.getBuildInstancesForNextBuild?.()
     const heelKickInstances =
       buildInstances === undefined
         ? undefined
@@ -172,13 +214,16 @@ export class BuildDispatcher {
         ? undefined
         : normalizeInstances(buildInstances.toeHookInstances)
     const changedParamIds = this.normalizeChangedParamIds(
-      this.getChangedParamIdsForNextBuild?.() ?? [],
+      options?.changedParamIds ?? this.getChangedParamIdsForNextBuild?.() ?? [],
     )
     const buildStatsPartKeys = this.normalizeBuildStatsPartKeys(
-      this.getBuildStatsPartKeysForNextBuild?.() ?? [...LEGACY_BUILD_STATS_PART_ORDER],
+      options?.buildStatsPartKeys ??
+        this.getBuildStatsPartKeysForNextBuild?.() ??
+        [...LEGACY_BUILD_STATS_PART_ORDER],
     )
-    this.pendingChangedParamIdsBySeq.set(seq, changedParamIds)
-    this.prunePendingChangedParamIds(this.latestRequestedSeq)
+    ledger.pendingChangedParamIdsBySeq.set(seq, changedParamIds)
+    ledger.pendingBuildRequestIdBySeq.set(seq, routingIdentity.buildRequestId)
+    this.prunePendingRoutingState(ledger)
 
     useBuildStatsStore.getState().resetStatsForSeq(seq, buildStatsPartKeys)
     useBuildStatsStore.getState().setOverallState('building')
@@ -186,6 +231,9 @@ export class BuildDispatcher {
     const message: BuildRequest = {
       type: 'build',
       seq,
+      projectFileId: routingIdentity.projectFileId,
+      graphDocumentId: routingIdentity.graphDocumentId,
+      buildRequestId: routingIdentity.buildRequestId,
       payload: params,
       ...(changedParamIds.length > 0 ? { changedParamIds } : {}),
       ...(buildInstances === undefined
@@ -231,6 +279,9 @@ export class BuildDispatcher {
     useBuildStatsStore.getState().applyProgress({
       type: 'build_progress',
       seq,
+      projectFileId: LEGACY_RUNTIME_PROJECT_FILE_ID,
+      graphDocumentId: LEGACY_RUNTIME_GRAPH_DOCUMENT_ID,
+      buildRequestId: `legacy-assemble-${seq}`,
       phase: 'assemble',
       partKey: 'assembled',
       state: 'cache_hit',
@@ -240,6 +291,9 @@ export class BuildDispatcher {
     useBuildStatsStore.getState().applyProgress({
       type: 'build_progress',
       seq,
+      projectFileId: LEGACY_RUNTIME_PROJECT_FILE_ID,
+      graphDocumentId: LEGACY_RUNTIME_GRAPH_DOCUMENT_ID,
+      buildRequestId: `legacy-assemble-${seq}`,
       phase: 'assemble',
       partKey: 'assembled',
       state: 'done',
@@ -256,10 +310,10 @@ export class BuildDispatcher {
   }
 
   private readonly handleMessage = (event: MessageEvent<unknown>): void => {
-    this.prunePendingChangedParamIds(this.latestRequestedSeq)
-
     if (isBuildProgress(event.data)) {
-      if (this.isStale(event.data.seq)) {
+      const ledger = this.getOrCreateRoutingLedger(event.data)
+      this.prunePendingRoutingState(ledger)
+      if (this.isBuildStale(event.data.seq, event.data.buildRequestId, ledger)) {
         return
       }
       useBuildStatsStore.getState().applyProgress(event.data)
@@ -267,18 +321,22 @@ export class BuildDispatcher {
     }
 
     if (isBuildResult(event.data)) {
-      if (this.isStale(event.data.seq)) {
-        this.pendingChangedParamIdsBySeq.delete(event.data.seq)
+      const ledger = this.getOrCreateRoutingLedger(event.data)
+      this.prunePendingRoutingState(ledger)
+      if (this.isBuildStale(event.data.seq, event.data.buildRequestId, ledger)) {
+        ledger.pendingChangedParamIdsBySeq.delete(event.data.seq)
+        ledger.pendingBuildRequestIdBySeq.delete(event.data.seq)
         return
       }
 
       const acceptedChangedParamIds = this.normalizeChangedParamIds(
         event.data.changedParamIds ??
-          this.pendingChangedParamIdsBySeq.get(event.data.seq) ??
+          ledger.pendingChangedParamIdsBySeq.get(event.data.seq) ??
           [],
       )
-      this.pendingChangedParamIdsBySeq.delete(event.data.seq)
-      this.latestResolvedSeq = event.data.seq
+      ledger.pendingChangedParamIdsBySeq.delete(event.data.seq)
+      ledger.pendingBuildRequestIdBySeq.delete(event.data.seq)
+      ledger.latestResolvedSeq = event.data.seq
       this.onBuildResult({
         ...event.data,
         changedParamIds: acceptedChangedParamIds,
@@ -288,7 +346,7 @@ export class BuildDispatcher {
     }
 
     if (isAssembleResult(event.data)) {
-      if (this.isStale(event.data.seq)) {
+      if (this.isGlobalStale(event.data.seq)) {
         return
       }
 
@@ -301,14 +359,19 @@ export class BuildDispatcher {
     }
 
     if (isWorkerError(event.data)) {
-      if (this.isStale(event.data.seq)) {
-        if (event.data.op === 'build') {
-          this.pendingChangedParamIdsBySeq.delete(event.data.seq)
+      if (event.data.op === 'build' && this.hasRoutingIdentity(event.data)) {
+        const ledger = this.getOrCreateRoutingLedger(event.data)
+        this.prunePendingRoutingState(ledger)
+        if (this.isBuildStale(event.data.seq, event.data.buildRequestId, ledger)) {
+          ledger.pendingChangedParamIdsBySeq.delete(event.data.seq)
+          ledger.pendingBuildRequestIdBySeq.delete(event.data.seq)
+          return
         }
+        ledger.pendingChangedParamIdsBySeq.delete(event.data.seq)
+        ledger.pendingBuildRequestIdBySeq.delete(event.data.seq)
+        ledger.latestResolvedSeq = event.data.seq
+      } else if (this.isGlobalStale(event.data.seq)) {
         return
-      }
-      if (event.data.op === 'build') {
-        this.pendingChangedParamIdsBySeq.delete(event.data.seq)
       }
       this.latestResolvedSeq = event.data.seq
       this.onWorkerError(event.data)
@@ -316,11 +379,32 @@ export class BuildDispatcher {
     }
   }
 
-  private isStale(seq: number): boolean {
+  private isGlobalStale(seq: number): boolean {
     if (seq < this.latestRequestedSeq) {
       return true
     }
     if (seq <= this.latestResolvedSeq) {
+      return true
+    }
+    return false
+  }
+
+  private isBuildStale(
+    seq: number,
+    buildRequestId: string,
+    ledger: RoutingLedger,
+  ): boolean {
+    if (seq < ledger.latestRequestedSeq) {
+      return true
+    }
+    if (seq <= ledger.latestResolvedSeq) {
+      return true
+    }
+    const expectedBuildRequestId = ledger.pendingBuildRequestIdBySeq.get(seq)
+    if (expectedBuildRequestId === undefined) {
+      return true
+    }
+    if (expectedBuildRequestId !== buildRequestId) {
       return true
     }
     return false
@@ -364,12 +448,59 @@ export class BuildDispatcher {
     return normalized.length > 0 ? normalized : [...LEGACY_BUILD_STATS_PART_ORDER]
   }
 
-  private prunePendingChangedParamIds(minSeq: number): void {
-    for (const seq of this.pendingChangedParamIdsBySeq.keys()) {
-      if (seq < minSeq) {
-        this.pendingChangedParamIdsBySeq.delete(seq)
+  private prunePendingRoutingState(ledger: RoutingLedger): void {
+    for (const seq of ledger.pendingChangedParamIdsBySeq.keys()) {
+      if (seq < ledger.latestRequestedSeq) {
+        ledger.pendingChangedParamIdsBySeq.delete(seq)
       }
     }
+    for (const seq of ledger.pendingBuildRequestIdBySeq.keys()) {
+      if (seq < ledger.latestRequestedSeq) {
+        ledger.pendingBuildRequestIdBySeq.delete(seq)
+      }
+    }
+  }
+
+  private getOrCreateRoutingLedger(
+    identity: Pick<BuildRoutingIdentity, 'projectFileId' | 'graphDocumentId'>,
+  ): RoutingLedger {
+    const key = this.buildRoutingKey(identity)
+    const existing = this.routingLedgerByKey.get(key)
+    if (existing !== undefined) {
+      return existing
+    }
+    const created: RoutingLedger = {
+      latestRequestedSeq: 0,
+      latestResolvedSeq: 0,
+      pendingChangedParamIdsBySeq: new Map<number, string[]>(),
+      pendingBuildRequestIdBySeq: new Map<number, string>(),
+    }
+    this.routingLedgerByKey.set(key, created)
+    return created
+  }
+
+  private buildRoutingKey(
+    identity: Pick<BuildRoutingIdentity, 'projectFileId' | 'graphDocumentId'>,
+  ): string {
+    return `${identity.projectFileId}::${identity.graphDocumentId}`
+  }
+
+  private createLegacyRoutingIdentity(seq: number): BuildRoutingIdentity {
+    return {
+      projectFileId: LEGACY_RUNTIME_PROJECT_FILE_ID,
+      graphDocumentId: LEGACY_RUNTIME_GRAPH_DOCUMENT_ID,
+      buildRequestId: `legacy-build-${seq}`,
+    }
+  }
+
+  private hasRoutingIdentity(
+    error: WorkerError,
+  ): error is WorkerError & Required<Pick<BuildRoutingIdentity, 'projectFileId' | 'graphDocumentId' | 'buildRequestId'>> {
+    return (
+      typeof error.projectFileId === 'string' &&
+      typeof error.graphDocumentId === 'string' &&
+      typeof error.buildRequestId === 'string'
+    )
   }
 }
 

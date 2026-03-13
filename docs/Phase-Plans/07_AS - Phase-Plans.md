@@ -3,6 +3,7 @@
 ### Fold Hack 3
 #### Fold Hack 4
 ##### Doc History
+3. 2026-03-11 12:23: Renamed the future `AS - Phase 5` and `AS - Phase 6` placeholders to match the roadmap carry-forward, so the family doc now points at Browser-facing graph output structure work and later project-content inspection/build-control work instead of the older narrower OutputPreview/inspection placeholder wording
 2. 2026-03-08 00:00: Rebuilt the completed `AS` phases from `docs/CHANGELOG.md`, keeping `AS - Phase 3` as an inferred gap phase and adding real summaries, grouped checklists, and file-footprint sections for `AS - Phase 1`, `2`, `3`, and `4`
 1. 2026-03-08 00:00: Created this family phase-plan file in the settled canonical structure so the `AS` family now has a proper home for later changelog reconstruction, checklist buildout, and future preview-assembly planning
 
@@ -185,7 +186,7 @@ Current understanding:
 - [x] strengthen the distinction between part outputs and the assembled output
 - [x] move the product away from loose `final` wording toward assembled identity
 
-## [ ] - AS - Phase 5 - `OutputPreview Render Path Stabilization`
+## [ ] - AS - Phase 5 - `Browser-Facing Graph Output Structure`
 
 Human Summary: Future placeholder. This phase is listed in the canonical setup ladder but has not been completed in the current tracked history.
 
@@ -199,13 +200,18 @@ This is currently a future canonical `AS` phase.
 ##### Phase Summary
 
 Current placeholder understanding:
-- this phase should stabilize the OutputPreview render path after the earlier parts/artifact assembly phases
+- this phase should turn graph output handoff into a clearer Browser-facing content structure
+- it should become the family home for the first real `Component / Assembly / Object / Part` display direction
+- it should carry the deeper output/content structure intentionally deferred out of the first `SP - Phase 11` Browser tree pass
 
 ### Phase 5 CheckList
 
-- [ ] define the target OutputPreview stabilization scope
+- [ ] define the first Browser-facing graph-output structure
+- [ ] decide the first-pass `Component / Object / Part` display direction
+- [ ] leave room for optional `Assembly` grouping without forcing final hierarchy depth too early
+- [ ] keep sub-parts / sub-components as later derived structure rather than first-pass top-level Browser rows
 
-## [ ] - AS - Phase 6 - `Graph Aware Parts And Preview Inspection`
+## [ ] - AS - Phase 6 - `Project Content Inspection And Build Control Surface`
 
 Human Summary: Future placeholder. This phase is listed in the canonical setup ladder but has not been completed in the current tracked history.
 
@@ -219,8 +225,13 @@ This is currently a future canonical `AS` phase.
 ##### Phase Summary
 
 Current placeholder understanding:
-- this phase should make preview assembly and inspection more graph-aware
+- this phase should expose project-content inspection and build-oriented Browser surfaces
+- it should become the family home for build bars, build-status rows, and richer Browser-side build inspection after the first hierarchy pass exists
+- it should keep build-control UI separate from visibility/material/view-control UI
 
 ### Phase 6 CheckList
 
-- [ ] define the target graph-aware preview inspection scope
+- [ ] define the target project-content inspection surface
+- [ ] define where Browser row build bars and build-status rows belong
+- [ ] keep build/generate controls separate from view/visibility controls
+- [ ] leave room for later row actions such as isolate, rename, export, and deeper item actions

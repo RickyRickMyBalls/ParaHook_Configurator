@@ -25,6 +25,12 @@ class MockWorker {
     this.postedMessages.push(message)
   }
 
+  public dispatchMessage(message: unknown): void {
+    for (const handler of this.handlers) {
+      handler({ data: message } as MessageEvent<unknown>)
+    }
+  }
+
   public terminate(): void {}
 }
 
@@ -91,6 +97,164 @@ describe('BuildDispatcher build stats seeding', () => {
     expect(useBuildStatsStore.getState().partOrder).toEqual([
       ...LEGACY_BUILD_STATS_PART_ORDER,
     ])
+    dispatcher.dispose()
+  })
+
+  it('rejects a wrong-graph result and keeps the handler quiet', async () => {
+    const module = await import('./buildDispatcher')
+    module.buildDispatcher.dispose()
+    const dispatcher = new module.BuildDispatcher()
+    const handler = vi.fn()
+    dispatcher.setBuildResultHandler(handler)
+
+    dispatcher.requestBuild(
+      { width: 1, length: 2, height: 3 },
+      {
+        routingIdentity: {
+          projectFileId: 'project-1',
+          graphDocumentId: 'graph-a',
+          buildRequestId: 'request-a-1',
+        },
+      },
+    )
+
+    const worker = (dispatcher as unknown as { worker: MockWorker }).worker
+    worker.dispatchMessage({
+      type: 'build_result',
+      seq: 1,
+      projectFileId: 'project-1',
+      graphDocumentId: 'graph-b',
+      buildRequestId: 'request-b-1',
+      parts: [],
+      changedParamIds: ['sp_full'],
+    })
+
+    expect(handler).not.toHaveBeenCalled()
+    dispatcher.dispose()
+  })
+
+  it('rejects stale same-graph results after a newer request is issued', async () => {
+    const module = await import('./buildDispatcher')
+    module.buildDispatcher.dispose()
+    const dispatcher = new module.BuildDispatcher()
+    const handler = vi.fn()
+    dispatcher.setBuildResultHandler(handler)
+
+    dispatcher.requestBuild(
+      { width: 1, length: 2, height: 3 },
+      {
+        routingIdentity: {
+          projectFileId: 'project-1',
+          graphDocumentId: 'graph-a',
+          buildRequestId: 'request-a-1',
+        },
+      },
+    )
+    dispatcher.requestBuild(
+      { width: 4, length: 5, height: 6 },
+      {
+        routingIdentity: {
+          projectFileId: 'project-1',
+          graphDocumentId: 'graph-a',
+          buildRequestId: 'request-a-2',
+        },
+      },
+    )
+
+    const worker = (dispatcher as unknown as { worker: MockWorker }).worker
+    worker.dispatchMessage({
+      type: 'build_result',
+      seq: 2,
+      projectFileId: 'project-1',
+      graphDocumentId: 'graph-a',
+      buildRequestId: 'request-a-2',
+      parts: [],
+      changedParamIds: ['sp_width'],
+    })
+    worker.dispatchMessage({
+      type: 'build_result',
+      seq: 1,
+      projectFileId: 'project-1',
+      graphDocumentId: 'graph-a',
+      buildRequestId: 'request-a-1',
+      parts: [],
+      changedParamIds: ['sp_full'],
+    })
+
+    expect(handler).toHaveBeenCalledTimes(1)
+    expect(handler).toHaveBeenCalledWith(
+      expect.objectContaining({
+        seq: 2,
+        graphDocumentId: 'graph-a',
+        buildRequestId: 'request-a-2',
+      }),
+    )
+    dispatcher.dispose()
+  })
+
+  it('keeps concurrent graph results isolated per routing ledger', async () => {
+    const module = await import('./buildDispatcher')
+    module.buildDispatcher.dispose()
+    const dispatcher = new module.BuildDispatcher()
+    const handler = vi.fn()
+    dispatcher.setBuildResultHandler(handler)
+
+    dispatcher.requestBuild(
+      { width: 1, length: 2, height: 3 },
+      {
+        routingIdentity: {
+          projectFileId: 'project-1',
+          graphDocumentId: 'graph-a',
+          buildRequestId: 'request-a-1',
+        },
+      },
+    )
+    dispatcher.requestBuild(
+      { width: 7, length: 8, height: 9 },
+      {
+        routingIdentity: {
+          projectFileId: 'project-1',
+          graphDocumentId: 'graph-b',
+          buildRequestId: 'request-b-1',
+        },
+      },
+    )
+
+    const worker = (dispatcher as unknown as { worker: MockWorker }).worker
+    worker.dispatchMessage({
+      type: 'build_result',
+      seq: 2,
+      projectFileId: 'project-1',
+      graphDocumentId: 'graph-b',
+      buildRequestId: 'request-b-1',
+      parts: [],
+      changedParamIds: ['sp_length'],
+    })
+    worker.dispatchMessage({
+      type: 'build_result',
+      seq: 1,
+      projectFileId: 'project-1',
+      graphDocumentId: 'graph-a',
+      buildRequestId: 'request-a-1',
+      parts: [],
+      changedParamIds: ['sp_width'],
+    })
+
+    expect(handler).toHaveBeenCalledTimes(2)
+    expect(handler).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        seq: 2,
+        graphDocumentId: 'graph-b',
+      }),
+    )
+    expect(handler).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        seq: 1,
+        graphDocumentId: 'graph-a',
+      }),
+    )
     dispatcher.dispose()
   })
 })

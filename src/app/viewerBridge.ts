@@ -10,6 +10,9 @@ export interface ViewerApi {
   frameAll: () => void
   frameSelected: (partId: string | null) => void
   snapCameraToDirection: (dir: SnapDirection) => void
+  beginTemporaryOrbitDrag: (startClientX: number, startClientY: number) => void
+  updateTemporaryOrbitDrag: (clientX: number, clientY: number) => void
+  endTemporaryOrbitDrag: () => void
   applyViewSettings: (settings: ViewSettings) => void
   setGizmoEnabled: (enabled: boolean) => void
   setGizmoMode: (mode: GizmoMode) => void
@@ -43,4 +46,22 @@ export const subscribeViewer = (
   return () => {
     listeners.delete(listener)
   }
+}
+
+export const beginViewerTemporaryOrbitDrag = (
+  startClientX: number,
+  startClientY: number,
+): void => {
+  viewer?.beginTemporaryOrbitDrag(startClientX, startClientY)
+}
+
+export const updateViewerTemporaryOrbitDrag = (
+  clientX: number,
+  clientY: number,
+): void => {
+  viewer?.updateTemporaryOrbitDrag(clientX, clientY)
+}
+
+export const endViewerTemporaryOrbitDrag = (): void => {
+  viewer?.endTemporaryOrbitDrag()
 }

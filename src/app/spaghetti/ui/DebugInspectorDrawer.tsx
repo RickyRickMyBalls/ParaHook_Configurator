@@ -1,11 +1,13 @@
 import { useMemo, type CSSProperties } from 'react'
-import { useAppStore } from '../../store/useAppStore'
 import {
-  selectActiveGraph,
-  selectActiveGraphCompileResult,
+  selectViewerTargetGraph,
+  selectViewerTargetGraphAcceptedBuildOutputs,
+  selectViewerTargetGraphCompileResult,
+  selectViewerTargetGraphOutputSurface,
   useSpaghettiStore,
 } from '../store/useSpaghettiStore'
 import { selectDebugInspectorVm } from '../selectors/selectDebugInspectorVm'
+import { useAppStore } from '../../store/useAppStore'
 
 type DebugInspectorDrawerProps = {
   isOpen: boolean
@@ -16,22 +18,29 @@ type DebugInspectorDrawerProps = {
 const renderValue = (value: string | null): string => value ?? '-'
 
 export function DebugInspectorDrawer({ isOpen, onToggle, style }: DebugInspectorDrawerProps) {
-  const graph = useSpaghettiStore(selectActiveGraph)
-  const buildOutputs = useAppStore((state) => state.parts)
-  const compileResult = useSpaghettiStore(selectActiveGraphCompileResult)
+  const graph = useSpaghettiStore(selectViewerTargetGraph)
+  const buildOutputs = useSpaghettiStore(selectViewerTargetGraphAcceptedBuildOutputs)
+  const compileResult = useSpaghettiStore(selectViewerTargetGraphCompileResult)
+  const outputSurface = useSpaghettiStore(selectViewerTargetGraphOutputSurface)
   const inputMode = useAppStore((state) => state.inputMode)
   const viewMode = useAppStore((state) => state.viewMode)
 
   const debugVm = useMemo(
     () =>
       selectDebugInspectorVm({
-        graph,
+        graph:
+          graph ?? {
+            schemaVersion: 1,
+            nodes: [],
+            edges: [],
+          },
+        outputSurface,
         buildOutputs,
         compileResult,
         inputMode,
         viewMode,
       }),
-    [buildOutputs, compileResult, graph, inputMode, viewMode],
+    [buildOutputs, compileResult, graph, inputMode, outputSurface, viewMode],
   )
 
   return (

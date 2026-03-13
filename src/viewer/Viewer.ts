@@ -267,6 +267,18 @@ export class Viewer {
     this.cameraController.snapToDirection(direction)
   }
 
+  public beginTemporaryOrbitDrag(startClientX: number, startClientY: number): void {
+    this.cameraController.beginTemporaryOrbitDrag(startClientX, startClientY)
+  }
+
+  public updateTemporaryOrbitDrag(clientX: number, clientY: number): void {
+    this.cameraController.updateTemporaryOrbitDrag(clientX, clientY)
+  }
+
+  public endTemporaryOrbitDrag(): void {
+    this.cameraController.endTemporaryOrbitDrag()
+  }
+
   public frameAll(): void {
     this.cameraController.frameAll(this.rootGroup)
   }

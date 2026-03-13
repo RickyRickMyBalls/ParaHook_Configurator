@@ -1,5 +1,9 @@
 import { create } from 'zustand'
 import {
+  loadGraphDocumentFromFile as loadGraphDocumentFromFileCommand,
+  saveGraphDocumentToFile as saveGraphDocumentToFileCommand,
+} from '../../io/graphDocumentPersistence'
+import {
   compileSpaghettiGraph,
   computeFeatureStackIrParts,
   type FeatureStackIrParts,
@@ -27,6 +31,11 @@ import {
   buildVmRowIdsForSection,
   normalizePartRowOrder,
 } from '../parts/partRowOrder'
+import {
+  buildGraphOutputSurface,
+  type GraphPublishedOutputEntry,
+  type GraphOutputSurface,
+} from '../outputSurface'
 import { prepareGraphPreviewPreparation, type GraphPreviewPreparation } from '../previewPreparation'
 import { getNodeDef } from '../registry/nodeRegistry'
 import { ensureOutputPreviewSingletonPatch } from '../system/ensureOutputPreviewSingleton'
@@ -35,9 +44,12 @@ import type { ViewMode } from '../canvas/rowViewMode'
 import type {
   EdgeEndpoint,
   EditorViewport,
+  EditorViewportRestoreFromCollapsed,
+  EditorViewportRestoreFromSplit,
   EditorViewportPosition,
   EditorViewportSize,
   GraphDocument,
+  GraphReceiveReference,
   GraphNodePos,
   NodeRowMode,
   SpaghettiEdge,
@@ -46,6 +58,7 @@ import type {
 } from '../schema/spaghettiTypes'
 import { newId } from '../utils/id'
 import { makeComponentId, makeRowId } from '../utils/id'
+import type { BuildRoutingIdentity, PartArtifact } from '../../../shared/buildTypes'
 
 export type ConnectionDragState = {
   anchorDirection: 'in' | 'out'
@@ -86,12 +99,42 @@ export type GraphCompileBuildState = {
   pendingChangedParamIds: string[]
   pendingStatsPartKeys: string[]
   pendingInstances: GraphBuildInstances | null
+  currentGraphRevision: number
   lastBuildSeq: number | null
+  latestIssuedGraphRevision: number | null
+  latestIssuedBuildSeq: number
+  latestAcceptedGraphRevision: number | null
+  latestAcceptedBuildSeq: number | null
+  inFlightGraphRevision: number | null
+  inFlightBuildRequestId: string | null
+  inFlightBuildSeq: number | null
 }
 
 export type GraphRuntimeState = {
   compileBuild: GraphCompileBuildState
   previewPreparation: GraphPreviewPreparation
+  acceptedBuildOutputs: PartArtifact[]
+  acceptedPreviewBuildOutputs: PartArtifact[]
+  outputSurface: GraphOutputSurface
+}
+
+export type ResolvedGraphReceiveReference = GraphReceiveReference & {
+  receivingGraphDocumentId: string
+  sourceEntry: GraphPublishedOutputEntry | null
+  resolutionState: 'resolved' | 'unresolved'
+}
+
+export type SharedViewerCompositionState = {
+  compositionId: string
+  graphDocumentIds: string[]
+}
+
+export type CachedGraphEntry = {
+  cachedGraphId: string
+  graphDocumentId: string
+  source: 'in-memory' | 'file-load'
+  isDirty: boolean
+  lastSavedAt?: string
 }
 
 export type SpaghettiStoreState = {
@@ -99,8 +142,12 @@ export type SpaghettiStoreState = {
   graphDocumentsById: Record<string, GraphDocument>
   graphDocumentOrder: string[]
   activeGraphDocumentId: string
+  viewerTargetGraphDocumentId: string | null
+  sharedViewerComposition: SharedViewerCompositionState | null
   graphRuntimeByDocumentId: Record<string, GraphRuntimeState>
   graphDocumentIdByBuildSeq: Record<number, string>
+  cachedGraphEntriesById: Record<string, CachedGraphEntry>
+  cachedGraphEntryOrder: string[]
   editorViewportsById: Record<string, EditorViewport>
   editorViewportOrder: string[]
   activeEditorViewportId: string
@@ -135,6 +182,17 @@ export type SpaghettiStoreState = {
   clearUiMessage: () => void
   createGraphDocument: (graph?: SpaghettiGraph, name?: string) => string
   duplicateActiveGraphDocument: () => string
+  addGraphReceiveReference: (
+    graphDocumentId: string,
+    reference: {
+      sourceGraphDocumentId: string
+      sourceOutputEntryId: string
+      receiveId?: string
+      receiveNodeId?: string
+      mode?: 'link'
+    },
+  ) => string | null
+  removeGraphReceiveReference: (graphDocumentId: string, receiveId: string) => boolean
   setGraphCompileResult: (
     graphDocumentId: string,
     compileResult: ReturnType<typeof compileSpaghettiGraph> | null,
@@ -147,19 +205,58 @@ export type SpaghettiStoreState = {
       pendingChangedParamIds: string[]
       pendingStatsPartKeys: string[]
       pendingInstances: GraphBuildInstances
+      buildRequestId: string
       buildSeq: number
     },
   ) => void
-  acceptGraphBuildResult: (buildSeq: number) => void
-  clearGraphBuildRequest: (buildSeq: number) => void
+  acceptGraphBuildResult: (
+    routingIdentity: BuildRoutingIdentity & {
+      buildSeq: number
+      buildOutputs?: PartArtifact[]
+    },
+  ) => boolean
+  clearGraphBuildRequest: (
+    routingIdentity: BuildRoutingIdentity & { buildSeq: number },
+  ) => boolean
+  saveCachedGraphEntryToFile: (
+    cachedGraphId: string,
+    options?: {
+      filename?: string
+      savedAt?: string
+      env?: NonNullable<Parameters<typeof saveGraphDocumentToFileCommand>[2]>
+    },
+  ) => Promise<void>
+  loadGraphDocumentFromFile: (
+    options?: {
+      env?: NonNullable<Parameters<typeof loadGraphDocumentFromFileCommand>[1]>
+    },
+  ) => Promise<string>
   openGraphDocumentInViewport: (graphDocumentId: string) => string | null
+  openGraphDocumentInNewViewport: (graphDocumentId: string) => string | null
   bindEditorViewportToGraphDocument: (editorViewportId: string, graphDocumentId: string) => void
+  swapFocusedEditorViewportToGraphDocument: (graphDocumentId: string) => string | null
+  loadGraphDocumentIntoNewGraphFromFile: (
+    options?: {
+      env?: NonNullable<Parameters<typeof loadGraphDocumentFromFileCommand>[1]>
+    },
+  ) => Promise<string>
+  saveFocusedEditorViewportGraphToFile: (
+    options?: {
+      filename?: string
+      savedAt?: string
+      env?: NonNullable<Parameters<typeof saveGraphDocumentToFileCommand>[2]>
+    },
+  ) => Promise<void>
   closeEditorViewport: (editorViewportId: string) => void
   setActiveEditorViewportId: (editorViewportId: string) => void
+  setViewerTargetGraphDocumentId: (graphDocumentId: string | null) => void
+  addEditorViewportGraphToSharedViewerComposition: (editorViewportId: string) => string | null
+  removeEditorViewportGraphFromSharedViewerComposition: (editorViewportId: string) => string | null
   setEditorViewportWindowMode: (
     editorViewportId: string,
     windowMode: EditorViewport['windowMode'],
   ) => void
+  setEditorViewportSplitRatio: (editorViewportId: string, splitRatio: number) => void
   setEditorViewportPosition: (
     editorViewportId: string,
     position: EditorViewportPosition,
@@ -224,8 +321,14 @@ type GraphDocumentStateSlice = Pick<
   | 'graphDocumentsById'
   | 'graphDocumentOrder'
   | 'activeGraphDocumentId'
+  | 'viewerTargetGraphDocumentId'
   | 'graphRuntimeByDocumentId'
   | 'graphDocumentIdByBuildSeq'
+>
+
+type CachedGraphStateSlice = Pick<
+  SpaghettiStoreState,
+  'cachedGraphEntriesById' | 'cachedGraphEntryOrder'
 >
 
 type ViewportStateSlice = Pick<
@@ -240,8 +343,16 @@ const defaultXStep = 280
 const defaultYStep = 200
 const defaultNodeRowMode: NodeRowMode = 'essentials'
 const defaultEditorViewportId = 'editor-viewport-1'
-const defaultViewportPosition: EditorViewportPosition = { x: 12, y: 12 }
-const defaultViewportSize: EditorViewportSize = { width: 980, height: 760 }
+// Spawn new floating editors just to the right of the left dock/title-status stack.
+export const defaultViewportPosition: EditorViewportPosition = { x: 344, y: 16 }
+export const defaultViewportSize: EditorViewportSize = { width: 980, height: 760 }
+export const defaultViewportSplitRatio = 0.5
+const minViewportSplitRatio = 0.25
+const maxViewportSplitRatio = 0.75
+const EMPTY_PART_ARTIFACTS: PartArtifact[] = []
+const EMPTY_GRAPH_RECEIVE_REFERENCES: GraphReceiveReference[] = []
+const EMPTY_RESOLVED_GRAPH_RECEIVE_REFERENCES: ResolvedGraphReceiveReference[] = []
+const EMPTY_SHARED_VIEWER_COMPOSITION_GRAPH_DOCUMENT_IDS: string[] = []
 
 const compareNodes = (a: SpaghettiNode, b: SpaghettiNode): number =>
   a.nodeId.localeCompare(b.nodeId) || a.type.localeCompare(b.type)
@@ -309,6 +420,23 @@ const normalizeInputEndpointPortAlias = (
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 
+const isGraphReceiveReference = (value: unknown): value is GraphReceiveReference => {
+  if (!isRecord(value)) {
+    return false
+  }
+  return (
+    typeof value.receiveId === 'string' &&
+    value.receiveId.length > 0 &&
+    typeof value.sourceGraphDocumentId === 'string' &&
+    value.sourceGraphDocumentId.length > 0 &&
+    typeof value.sourceOutputEntryId === 'string' &&
+    value.sourceOutputEntryId.length > 0 &&
+    value.mode === 'link' &&
+    (value.receiveNodeId === undefined ||
+      (typeof value.receiveNodeId === 'string' && value.receiveNodeId.length > 0))
+  )
+}
+
 const cloneGraph = (graph: SpaghettiGraph): SpaghettiGraph => {
   if (typeof structuredClone === 'function') {
     return structuredClone(graph)
@@ -326,6 +454,34 @@ const nextOrdinalId = (prefix: string, existingIds: readonly string[]): string =
     maxNumber = Math.max(maxNumber, Number.parseInt(match[1] ?? '0', 10))
   }
   return `${prefix}-${maxNumber + 1}`
+}
+
+const normalizeReceiveReferences = (
+  receiveReferences: SpaghettiGraph['receiveReferences'],
+): SpaghettiGraph['receiveReferences'] => {
+  if (!Array.isArray(receiveReferences) || receiveReferences.length === 0) {
+    return undefined
+  }
+
+  const seenReceiveIds = new Set<string>()
+  const normalized: GraphReceiveReference[] = []
+  for (const reference of [...receiveReferences].sort((left, right) =>
+    left.receiveId.localeCompare(right.receiveId),
+  )) {
+    if (!isGraphReceiveReference(reference) || seenReceiveIds.has(reference.receiveId)) {
+      continue
+    }
+    seenReceiveIds.add(reference.receiveId)
+    normalized.push({
+      receiveId: reference.receiveId,
+      sourceGraphDocumentId: reference.sourceGraphDocumentId,
+      sourceOutputEntryId: reference.sourceOutputEntryId,
+      mode: 'link',
+      ...(reference.receiveNodeId === undefined ? {} : { receiveNodeId: reference.receiveNodeId }),
+    })
+  }
+
+  return normalized.length > 0 ? normalized : undefined
 }
 
 const listNumericNodeParamDriverParamIds = (
@@ -595,10 +751,15 @@ const normalizeGraphUiPositions = (graph: SpaghettiGraph): SpaghettiGraph => {
     normalizedNodeModes[node.nodeId] = mode
   }
 
+  const normalizedReceiveReferences = normalizeReceiveReferences(graph.receiveReferences)
+
   return {
-    ...graph,
+    schemaVersion: graph.schemaVersion,
     nodes: normalizedNodes,
     edges: normalizedEdges,
+    ...(normalizedReceiveReferences === undefined
+      ? {}
+      : { receiveReferences: normalizedReceiveReferences }),
     ui: {
       ...(Object.keys(normalizedNodeModes).length === 0
         ? {}
@@ -1009,6 +1170,58 @@ const createGraphDocument = (
   graph,
 })
 
+const upsertGraphReceiveReference = (
+  graph: SpaghettiGraph,
+  reference: GraphReceiveReference,
+): SpaghettiGraph => {
+  const current = graph.receiveReferences ?? EMPTY_GRAPH_RECEIVE_REFERENCES
+  const existingIndex = current.findIndex((entry) => entry.receiveId === reference.receiveId)
+  if (existingIndex >= 0) {
+    const existing = current[existingIndex]
+    if (
+      existing.sourceGraphDocumentId === reference.sourceGraphDocumentId &&
+      existing.sourceOutputEntryId === reference.sourceOutputEntryId &&
+      existing.mode === reference.mode &&
+      existing.receiveNodeId === reference.receiveNodeId
+    ) {
+      return graph
+    }
+    const nextReceiveReferences = [...current]
+    nextReceiveReferences[existingIndex] = reference
+    return {
+      ...graph,
+      receiveReferences: nextReceiveReferences,
+    }
+  }
+  return {
+    ...graph,
+    receiveReferences: [...current, reference],
+  }
+}
+
+const removeGraphReceiveReferenceFromGraph = (
+  graph: SpaghettiGraph,
+  receiveId: string,
+): SpaghettiGraph => {
+  const current = graph.receiveReferences
+  if (current === undefined) {
+    return graph
+  }
+  const nextReceiveReferences = current.filter((entry) => entry.receiveId !== receiveId)
+  if (nextReceiveReferences.length === current.length) {
+    return graph
+  }
+  if (nextReceiveReferences.length === 0) {
+    const nextGraph = { ...graph }
+    delete nextGraph.receiveReferences
+    return nextGraph
+  }
+  return {
+    ...graph,
+    receiveReferences: nextReceiveReferences,
+  }
+}
+
 const createEditorViewport = (
   graphDocumentId: string,
   options?: {
@@ -1026,8 +1239,86 @@ const createEditorViewport = (
   windowMode: options?.windowMode ?? 'expanded',
   position: options?.position ?? defaultViewportPosition,
   size: options?.size ?? defaultViewportSize,
+  splitRatio: defaultViewportSplitRatio,
+  restoreFromCollapsed: null,
+  restoreFromSplit: null,
   zOrder: options?.zOrder ?? 1,
 })
+
+const clampViewportSplitRatio = (splitRatio: number): number =>
+  Math.min(maxViewportSplitRatio, Math.max(minViewportSplitRatio, splitRatio))
+
+const snapshotExpandedRestoreState = (
+  viewport: EditorViewport,
+): EditorViewportRestoreFromSplit => ({
+  windowMode: 'expanded',
+  position: viewport.position,
+  size: viewport.size,
+})
+
+const snapshotCollapsedRestoreState = (
+  viewport: EditorViewport,
+): EditorViewportRestoreFromCollapsed => {
+  if (viewport.windowMode === 'split view') {
+    return {
+      windowMode: 'split view',
+      position: viewport.position,
+      size: viewport.size,
+      splitRatio: viewport.splitRatio,
+    }
+  }
+  if (viewport.windowMode === 'maximized') {
+    return {
+      windowMode: 'maximized',
+      position: viewport.position,
+      size: viewport.size,
+    }
+  }
+  return {
+    windowMode: 'expanded',
+    position: viewport.position,
+    size: viewport.size,
+  }
+}
+
+const addGraphDocumentIdToSharedViewerComposition = (
+  composition: SharedViewerCompositionState | null,
+  graphDocumentId: string,
+): SharedViewerCompositionState => {
+  if (composition === null) {
+    return {
+      compositionId: newId('shared-viewer-composition'),
+      graphDocumentIds: [graphDocumentId],
+    }
+  }
+  if (composition.graphDocumentIds.includes(graphDocumentId)) {
+    return composition
+  }
+  return {
+    ...composition,
+    graphDocumentIds: [...composition.graphDocumentIds, graphDocumentId],
+  }
+}
+
+const removeGraphDocumentIdFromSharedViewerComposition = (
+  composition: SharedViewerCompositionState | null,
+  graphDocumentId: string,
+): SharedViewerCompositionState | null => {
+  if (composition === null) {
+    return null
+  }
+  const nextGraphDocumentIds = composition.graphDocumentIds.filter((id) => id !== graphDocumentId)
+  if (nextGraphDocumentIds.length === composition.graphDocumentIds.length) {
+    return composition
+  }
+  if (nextGraphDocumentIds.length === 0) {
+    return null
+  }
+  return {
+    ...composition,
+    graphDocumentIds: nextGraphDocumentIds,
+  }
+}
 
 const createEmptyGraphCompileBuildState = (): GraphCompileBuildState => ({
   lastCompileResult: null,
@@ -1035,25 +1326,96 @@ const createEmptyGraphCompileBuildState = (): GraphCompileBuildState => ({
   pendingChangedParamIds: [],
   pendingStatsPartKeys: [],
   pendingInstances: null,
+  currentGraphRevision: 0,
   lastBuildSeq: null,
+  latestIssuedGraphRevision: null,
+  latestIssuedBuildSeq: 0,
+  latestAcceptedGraphRevision: null,
+  latestAcceptedBuildSeq: null,
+  inFlightGraphRevision: null,
+  inFlightBuildRequestId: null,
+  inFlightBuildSeq: null,
 })
 
-const createGraphRuntimeState = (graph: SpaghettiGraph): GraphRuntimeState => ({
-  compileBuild: createEmptyGraphCompileBuildState(),
-  previewPreparation: prepareGraphPreviewPreparation(graph),
+const createGraphRuntimeState = (
+  graphDocumentId: string,
+  graph: SpaghettiGraph,
+): GraphRuntimeState => {
+  const compileBuild = createEmptyGraphCompileBuildState()
+  const previewPreparation = prepareGraphPreviewPreparation(graph)
+  const acceptedBuildOutputs: PartArtifact[] = []
+  const acceptedPreviewBuildOutputs: PartArtifact[] = []
+  return {
+    compileBuild,
+    previewPreparation,
+    acceptedBuildOutputs,
+    acceptedPreviewBuildOutputs,
+    outputSurface: buildGraphOutputSurface({
+      graphDocumentId,
+      previewPreparation,
+      acceptedBuildOutputs,
+      publishedAtBuildSeq: compileBuild.latestAcceptedBuildSeq,
+    }),
+  }
+}
+
+const createCachedGraphEntry = (
+  graphDocumentId: string,
+  options?: {
+    source?: CachedGraphEntry['source']
+    isDirty?: boolean
+    lastSavedAt?: string
+  },
+): CachedGraphEntry => ({
+  cachedGraphId: graphDocumentId,
+  graphDocumentId,
+  source: options?.source ?? 'in-memory',
+  isDirty: options?.isDirty ?? true,
+  lastSavedAt: options?.lastSavedAt,
 })
+
+const syncCachedGraphEntries = (
+  graphDocumentOrder: string[],
+  cachedGraphEntriesById: Record<string, CachedGraphEntry>,
+): CachedGraphStateSlice => {
+  const nextCachedGraphEntriesById: Record<string, CachedGraphEntry> = {}
+  for (const graphDocumentId of graphDocumentOrder) {
+    const existingEntry = cachedGraphEntriesById[graphDocumentId]
+    nextCachedGraphEntriesById[graphDocumentId] =
+      existingEntry ?? createCachedGraphEntry(graphDocumentId)
+  }
+  return {
+    cachedGraphEntriesById: nextCachedGraphEntriesById,
+    cachedGraphEntryOrder: [...graphDocumentOrder],
+  }
+}
 
 const withUpdatedGraphRuntimeGraph = (
   runtime: GraphRuntimeState | undefined,
+  graphDocumentId: string,
   graph: SpaghettiGraph,
-): GraphRuntimeState => ({
-  compileBuild: runtime?.compileBuild ?? createEmptyGraphCompileBuildState(),
-  previewPreparation: {
+): GraphRuntimeState => {
+  const compileBuild = runtime?.compileBuild ?? createEmptyGraphCompileBuildState()
+  const previewPreparation = {
     ...prepareGraphPreviewPreparation(graph),
     buildStatsReadyPartKeys:
       runtime?.previewPreparation.buildStatsReadyPartKeys ?? [],
-  },
-})
+  }
+  const acceptedBuildOutputs = runtime?.acceptedBuildOutputs ?? []
+  const acceptedPreviewBuildOutputs = runtime?.acceptedPreviewBuildOutputs ?? []
+  return {
+    compileBuild,
+    previewPreparation,
+    acceptedBuildOutputs,
+    acceptedPreviewBuildOutputs,
+    outputSurface: buildGraphOutputSurface({
+      graphDocumentId,
+      previewPreparation,
+      acceptedBuildOutputs,
+      publishedAtBuildSeq: compileBuild.latestAcceptedBuildSeq,
+    }),
+  }
+}
 
 type BrowserViewportState = Pick<
   SpaghettiStoreState,
@@ -1061,8 +1423,11 @@ type BrowserViewportState = Pick<
   | 'graphDocumentsById'
   | 'graphDocumentOrder'
   | 'activeGraphDocumentId'
+  | 'viewerTargetGraphDocumentId'
   | 'graphRuntimeByDocumentId'
   | 'graphDocumentIdByBuildSeq'
+  | 'cachedGraphEntriesById'
+  | 'cachedGraphEntryOrder'
   | 'editorViewportsById'
   | 'editorViewportOrder'
   | 'activeEditorViewportId'
@@ -1090,17 +1455,24 @@ const withBrowserViewportState = (
     graphDocumentOrder?: string[]
     graphRuntimeByDocumentId?: Record<string, GraphRuntimeState>
     graphDocumentIdByBuildSeq?: Record<number, string>
+    cachedGraphEntriesById?: Record<string, CachedGraphEntry>
+    cachedGraphEntryOrder?: string[]
     editorViewportsById?: Record<string, EditorViewport>
     editorViewportOrder?: string[]
     activeEditorViewportId?: string
+    viewerTargetGraphDocumentId?: string | null
     fallbackGraphDocumentId?: string
   },
-): GraphDocumentStateSlice & ViewportStateSlice & FeatureStackIrCacheSlice => {
+): GraphDocumentStateSlice & CachedGraphStateSlice & ViewportStateSlice & FeatureStackIrCacheSlice => {
   const graphDocumentsById = next.graphDocumentsById ?? state.graphDocumentsById
   const graphDocumentOrder = next.graphDocumentOrder ?? state.graphDocumentOrder
   const graphRuntimeByDocumentId = next.graphRuntimeByDocumentId ?? state.graphRuntimeByDocumentId
   const graphDocumentIdByBuildSeq =
     next.graphDocumentIdByBuildSeq ?? state.graphDocumentIdByBuildSeq
+  const syncedCachedGraphState = syncCachedGraphEntries(
+    graphDocumentOrder,
+    next.cachedGraphEntriesById ?? state.cachedGraphEntriesById,
+  )
   const editorViewportsById = next.editorViewportsById ?? state.editorViewportsById
   const editorViewportOrder = next.editorViewportOrder ?? state.editorViewportOrder
   const activeEditorViewportId = next.activeEditorViewportId ?? state.activeEditorViewportId
@@ -1119,14 +1491,24 @@ const withBrowserViewportState = (
     ) ?? graphDocumentsById[graphDocumentOrder[0] ?? ''] ?? null
 
   const activeGraph = activeDocument?.graph ?? state.graph
+  const viewerTargetGraphDocumentId =
+    next.viewerTargetGraphDocumentId !== undefined
+      ? next.viewerTargetGraphDocumentId
+      : activeDocument?.graphDocumentId ??
+        (state.viewerTargetGraphDocumentId !== null &&
+        graphDocumentsById[state.viewerTargetGraphDocumentId] !== undefined
+          ? state.viewerTargetGraphDocumentId
+          : next.fallbackGraphDocumentId ?? null)
 
   return {
     ...withGraphAndFeatureStackCache(activeGraph),
     graphDocumentsById,
     graphDocumentOrder,
     activeGraphDocumentId: activeDocument?.graphDocumentId ?? state.activeGraphDocumentId,
+    viewerTargetGraphDocumentId,
     graphRuntimeByDocumentId,
     graphDocumentIdByBuildSeq,
+    ...syncedCachedGraphState,
     editorViewportsById,
     editorViewportOrder,
     activeEditorViewportId,
@@ -1164,9 +1546,42 @@ const focusViewportCollection = (
   return nextViewportsById
 }
 
+const appendFocusedViewport = (
+  state: Pick<
+    SpaghettiStoreState,
+    'editorViewportsById' | 'editorViewportOrder' | 'graphDocumentsById'
+  >,
+  graphDocumentId: string,
+): {
+  editorViewportId: string
+  editorViewportsById: Record<string, EditorViewport>
+  editorViewportOrder: string[]
+} | null => {
+  if (state.graphDocumentsById[graphDocumentId] === undefined) {
+    return null
+  }
+  const editorViewportId = nextOrdinalId('editor-viewport', state.editorViewportOrder)
+  const nextViewport = createEditorViewport(graphDocumentId, {
+    editorViewportId,
+    isFocused: true,
+    zOrder: getMaxViewportZOrder(state.editorViewportsById) + 1,
+  })
+  return {
+    editorViewportId,
+    editorViewportsById: focusViewportCollection(
+      {
+        ...state.editorViewportsById,
+        [editorViewportId]: nextViewport,
+      },
+      editorViewportId,
+    ),
+    editorViewportOrder: [...state.editorViewportOrder, editorViewportId],
+  }
+}
+
 const withInitialGraphDocumentState = (
   document: GraphDocument,
-): GraphDocumentStateSlice & ViewportStateSlice & FeatureStackIrCacheSlice => {
+): GraphDocumentStateSlice & CachedGraphStateSlice & ViewportStateSlice & FeatureStackIrCacheSlice => {
   return withBrowserViewportState(
     {
       ...withGraphAndFeatureStackCache(document.graph),
@@ -1175,10 +1590,18 @@ const withInitialGraphDocumentState = (
       },
       graphDocumentOrder: [document.graphDocumentId],
       activeGraphDocumentId: document.graphDocumentId,
+      viewerTargetGraphDocumentId: document.graphDocumentId,
       graphRuntimeByDocumentId: {
-        [document.graphDocumentId]: createGraphRuntimeState(document.graph),
+        [document.graphDocumentId]: createGraphRuntimeState(document.graphDocumentId, document.graph),
       },
       graphDocumentIdByBuildSeq: {},
+      cachedGraphEntriesById: {
+        [document.graphDocumentId]: createCachedGraphEntry(document.graphDocumentId, {
+          source: 'in-memory',
+          isDirty: true,
+        }),
+      },
+      cachedGraphEntryOrder: [document.graphDocumentId],
       editorViewportsById: {},
       editorViewportOrder: [],
       activeEditorViewportId: '',
@@ -1196,23 +1619,54 @@ const withUpdatedActiveGraphDocumentState = (
     | 'graphDocumentsById'
     | 'graphDocumentOrder'
     | 'activeGraphDocumentId'
+    | 'viewerTargetGraphDocumentId'
     | 'graphRuntimeByDocumentId'
     | 'graphDocumentIdByBuildSeq'
+    | 'cachedGraphEntriesById'
+    | 'cachedGraphEntryOrder'
     | 'editorViewportsById'
     | 'editorViewportOrder'
     | 'activeEditorViewportId'
   >,
   graph: SpaghettiGraph,
-): GraphDocumentStateSlice & ViewportStateSlice & FeatureStackIrCacheSlice => {
-  const activeDocument = state.graphDocumentsById[state.activeGraphDocumentId]
-  if (activeDocument === undefined) {
+): GraphDocumentStateSlice & CachedGraphStateSlice & ViewportStateSlice & FeatureStackIrCacheSlice => {
+  return withUpdatedGraphDocumentState(state, state.activeGraphDocumentId, graph)
+}
+
+const withUpdatedGraphDocumentState = (
+  state: Pick<
+    SpaghettiStoreState,
+    | 'graph'
+    | 'graphDocumentsById'
+    | 'graphDocumentOrder'
+    | 'activeGraphDocumentId'
+    | 'viewerTargetGraphDocumentId'
+    | 'graphRuntimeByDocumentId'
+    | 'graphDocumentIdByBuildSeq'
+    | 'cachedGraphEntriesById'
+    | 'cachedGraphEntryOrder'
+    | 'editorViewportsById'
+    | 'editorViewportOrder'
+    | 'activeEditorViewportId'
+  >,
+  graphDocumentId: string,
+  graph: SpaghettiGraph,
+): GraphDocumentStateSlice & CachedGraphStateSlice & ViewportStateSlice & FeatureStackIrCacheSlice => {
+  const targetDocument = state.graphDocumentsById[graphDocumentId]
+  if (targetDocument === undefined) {
     return withInitialGraphDocumentState(createGraphDocument(graph))
   }
 
   const nextDocument: GraphDocument = {
-    ...activeDocument,
+    ...targetDocument,
     graph,
   }
+  const currentRuntime = state.graphRuntimeByDocumentId[nextDocument.graphDocumentId]
+  const nextRuntime = withUpdatedGraphRuntimeGraph(
+    currentRuntime,
+    nextDocument.graphDocumentId,
+    graph,
+  )
 
   return withBrowserViewportState(state, {
     graphDocumentsById: {
@@ -1221,10 +1675,23 @@ const withUpdatedActiveGraphDocumentState = (
     },
     graphRuntimeByDocumentId: {
       ...state.graphRuntimeByDocumentId,
-      [nextDocument.graphDocumentId]: withUpdatedGraphRuntimeGraph(
-        state.graphRuntimeByDocumentId[nextDocument.graphDocumentId],
-        graph,
-      ),
+      [nextDocument.graphDocumentId]: {
+        ...nextRuntime,
+        compileBuild: {
+          ...nextRuntime.compileBuild,
+          currentGraphRevision: (currentRuntime?.compileBuild.currentGraphRevision ?? 0) + 1,
+        },
+      },
+    },
+    cachedGraphEntriesById: {
+      ...state.cachedGraphEntriesById,
+      [nextDocument.graphDocumentId]: {
+        ...(state.cachedGraphEntriesById[nextDocument.graphDocumentId] ??
+          createCachedGraphEntry(nextDocument.graphDocumentId)),
+        cachedGraphId: nextDocument.graphDocumentId,
+        graphDocumentId: nextDocument.graphDocumentId,
+        isDirty: true,
+      },
     },
   })
 }
@@ -1251,14 +1718,69 @@ export const selectOrderedGraphDocuments = (
     .map((graphDocumentId) => state.graphDocumentsById[graphDocumentId] ?? null)
     .filter((document): document is GraphDocument => document !== null)
 
+export const selectCachedGraphEntryById = (
+  state: Pick<SpaghettiStoreState, 'cachedGraphEntriesById'>,
+  cachedGraphId: string,
+): CachedGraphEntry | null => state.cachedGraphEntriesById[cachedGraphId] ?? null
+
+export const selectCachedGraphEntryByDocumentId = (
+  state: Pick<SpaghettiStoreState, 'cachedGraphEntriesById'>,
+  graphDocumentId: string,
+): CachedGraphEntry | null =>
+  Object.values(state.cachedGraphEntriesById).find(
+    (entry) => entry.graphDocumentId === graphDocumentId,
+  ) ?? null
+
+export const selectOrderedCachedGraphEntries = (
+  state: Pick<SpaghettiStoreState, 'cachedGraphEntriesById' | 'cachedGraphEntryOrder'>,
+): CachedGraphEntry[] =>
+  state.cachedGraphEntryOrder
+    .map((cachedGraphId) => state.cachedGraphEntriesById[cachedGraphId] ?? null)
+    .filter((entry): entry is CachedGraphEntry => entry !== null)
+
 export const selectActiveGraph = (
   state: Pick<SpaghettiStoreState, 'graphDocumentsById' | 'activeGraphDocumentId' | 'graph'>,
 ): SpaghettiGraph => selectActiveGraphDocument(state).graph
+
+export const selectViewerTargetGraphDocumentId = (
+  state: Pick<SpaghettiStoreState, 'viewerTargetGraphDocumentId'>,
+): string | null => state.viewerTargetGraphDocumentId
+
+export const selectSharedViewerComposition = (
+  state: Pick<SpaghettiStoreState, 'sharedViewerComposition'>,
+): SharedViewerCompositionState | null => state.sharedViewerComposition
+
+export const selectSharedViewerCompositionGraphDocumentIds = (
+  state: Pick<SpaghettiStoreState, 'sharedViewerComposition'>,
+): string[] =>
+  state.sharedViewerComposition?.graphDocumentIds ?? EMPTY_SHARED_VIEWER_COMPOSITION_GRAPH_DOCUMENT_IDS
+
+export const selectIsGraphDocumentInSharedViewerComposition = (
+  state: Pick<SpaghettiStoreState, 'sharedViewerComposition'>,
+  graphDocumentId: string,
+): boolean => selectSharedViewerCompositionGraphDocumentIds(state).includes(graphDocumentId)
+
+export const selectViewerTargetGraphDocument = (
+  state: Pick<SpaghettiStoreState, 'graphDocumentsById' | 'viewerTargetGraphDocumentId'>,
+): GraphDocument | null =>
+  state.viewerTargetGraphDocumentId === null
+    ? null
+    : state.graphDocumentsById[state.viewerTargetGraphDocumentId] ?? null
+
+export const selectViewerTargetGraph = (
+  state: Pick<SpaghettiStoreState, 'graphDocumentsById' | 'viewerTargetGraphDocumentId'>,
+): SpaghettiGraph | null => selectViewerTargetGraphDocument(state)?.graph ?? null
 
 export const selectGraphByDocumentId = (
   state: Pick<SpaghettiStoreState, 'graphDocumentsById'>,
   graphDocumentId: string,
 ): SpaghettiGraph | null => selectGraphDocumentById(state, graphDocumentId)?.graph ?? null
+
+export const selectGraphReceiveReferencesByDocumentId = (
+  state: Pick<SpaghettiStoreState, 'graphDocumentsById'>,
+  graphDocumentId: string,
+): GraphReceiveReference[] =>
+  selectGraphByDocumentId(state, graphDocumentId)?.receiveReferences ?? EMPTY_GRAPH_RECEIVE_REFERENCES
 
 export const selectGraphRuntimeByDocumentId = (
   state: Pick<SpaghettiStoreState, 'graphRuntimeByDocumentId'>,
@@ -1269,6 +1791,13 @@ export const selectActiveGraphRuntime = (
   state: Pick<SpaghettiStoreState, 'graphRuntimeByDocumentId' | 'activeGraphDocumentId'>,
 ): GraphRuntimeState | null =>
   selectGraphRuntimeByDocumentId(state, state.activeGraphDocumentId)
+
+export const selectViewerTargetGraphRuntime = (
+  state: Pick<SpaghettiStoreState, 'graphRuntimeByDocumentId' | 'viewerTargetGraphDocumentId'>,
+): GraphRuntimeState | null =>
+  state.viewerTargetGraphDocumentId === null
+    ? null
+    : selectGraphRuntimeByDocumentId(state, state.viewerTargetGraphDocumentId)
 
 export const selectGraphCompileResultByDocumentId = (
   state: Pick<SpaghettiStoreState, 'graphRuntimeByDocumentId'>,
@@ -1286,6 +1815,69 @@ export const selectGraphPreviewPreparationByDocumentId = (
   graphDocumentId: string,
 ): GraphPreviewPreparation | null =>
   selectGraphRuntimeByDocumentId(state, graphDocumentId)?.previewPreparation ?? null
+
+export const selectGraphOutputSurfaceByDocumentId = (
+  state: Pick<SpaghettiStoreState, 'graphRuntimeByDocumentId'>,
+  graphDocumentId: string,
+): GraphOutputSurface | null =>
+  selectGraphRuntimeByDocumentId(state, graphDocumentId)?.outputSurface ?? null
+
+export const selectResolvedGraphReceiveReferencesByDocumentId = (
+  state: Pick<SpaghettiStoreState, 'graphDocumentsById' | 'graphRuntimeByDocumentId'>,
+  graphDocumentId: string,
+): ResolvedGraphReceiveReference[] => {
+  const receiveReferences = selectGraphReceiveReferencesByDocumentId(state, graphDocumentId)
+  if (receiveReferences.length === 0) {
+    return EMPTY_RESOLVED_GRAPH_RECEIVE_REFERENCES
+  }
+
+  return receiveReferences.map((reference) => {
+    const sourceEntry =
+      selectGraphOutputSurfaceByDocumentId(state, reference.sourceGraphDocumentId)?.entries.find(
+        (entry) => entry.outputEntryId === reference.sourceOutputEntryId,
+      ) ?? null
+    return {
+      ...reference,
+      receivingGraphDocumentId: graphDocumentId,
+      sourceEntry,
+      resolutionState: sourceEntry?.state === 'resolved' ? 'resolved' : 'unresolved',
+    }
+  })
+}
+
+export const selectViewerTargetGraphOutputSurface = (
+  state: Pick<SpaghettiStoreState, 'graphRuntimeByDocumentId' | 'viewerTargetGraphDocumentId'>,
+): GraphOutputSurface | null =>
+  selectViewerTargetGraphRuntime(state)?.outputSurface ?? null
+
+export const selectViewerTargetGraphPreviewPreparation = (
+  state: Pick<SpaghettiStoreState, 'graphRuntimeByDocumentId' | 'viewerTargetGraphDocumentId'>,
+): GraphPreviewPreparation | null =>
+  selectViewerTargetGraphRuntime(state)?.previewPreparation ?? null
+
+export const selectGraphAcceptedBuildOutputsByDocumentId = (
+  state: Pick<SpaghettiStoreState, 'graphRuntimeByDocumentId'>,
+  graphDocumentId: string,
+): PartArtifact[] =>
+  selectGraphRuntimeByDocumentId(state, graphDocumentId)?.acceptedBuildOutputs ?? EMPTY_PART_ARTIFACTS
+
+export const selectViewerTargetGraphAcceptedBuildOutputs = (
+  state: Pick<SpaghettiStoreState, 'graphRuntimeByDocumentId' | 'viewerTargetGraphDocumentId'>,
+): PartArtifact[] =>
+  selectViewerTargetGraphRuntime(state)?.acceptedBuildOutputs ?? EMPTY_PART_ARTIFACTS
+
+export const selectViewerTargetGraphAcceptedPreviewBuildOutputs = (
+  state: Pick<SpaghettiStoreState, 'graphRuntimeByDocumentId' | 'viewerTargetGraphDocumentId'>,
+): PartArtifact[] =>
+  selectViewerTargetGraphRuntime(state)?.acceptedPreviewBuildOutputs ?? EMPTY_PART_ARTIFACTS
+
+export const selectViewerTargetGraphCompileResult = (
+  state: Pick<
+    SpaghettiStoreState,
+    'graphRuntimeByDocumentId' | 'viewerTargetGraphDocumentId'
+  >,
+): ReturnType<typeof compileSpaghettiGraph> | null =>
+  selectViewerTargetGraphRuntime(state)?.compileBuild.lastCompileResult ?? null
 
 export const selectActiveGraphPreviewPreparation = (
   state: Pick<SpaghettiStoreState, 'graphRuntimeByDocumentId' | 'activeGraphDocumentId'>,
@@ -1318,6 +1910,7 @@ const initialGraphDocument = createGraphDocument(initialGraph)
 
 export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
   ...withInitialGraphDocumentState(initialGraphDocument),
+  sharedViewerComposition: null,
   edgeWaypoints: {},
   selectedNodeId: null,
   selectedEdgeId: null,
@@ -1327,20 +1920,8 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
   setGraph: (next) => {
     const nextGraph = normalizeGraphForStoreCommit(next)
     set((state) => {
-      const nextState = withUpdatedActiveGraphDocumentState(state, nextGraph)
-      const activeGraphDocumentId = nextState.activeGraphDocumentId
-      const nextGraphDocumentIdByBuildSeq = Object.fromEntries(
-        Object.entries(nextState.graphDocumentIdByBuildSeq).filter(
-          ([, graphDocumentId]) => graphDocumentId !== activeGraphDocumentId,
-        ),
-      ) as Record<number, string>
       return {
-        ...nextState,
-        graphRuntimeByDocumentId: {
-          ...nextState.graphRuntimeByDocumentId,
-          [activeGraphDocumentId]: createGraphRuntimeState(nextGraph),
-        },
-        graphDocumentIdByBuildSeq: nextGraphDocumentIdByBuildSeq,
+        ...withUpdatedActiveGraphDocumentState(state, nextGraph),
         selectedNodeId: null,
         selectedEdgeId: null,
         hoveredEdgeId: null,
@@ -1610,7 +2191,14 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
         },
         graphRuntimeByDocumentId: {
           ...current.graphRuntimeByDocumentId,
-          [graphDocumentId]: createGraphRuntimeState(nextGraph),
+          [graphDocumentId]: createGraphRuntimeState(graphDocumentId, nextGraph),
+        },
+        cachedGraphEntriesById: {
+          ...current.cachedGraphEntriesById,
+          [graphDocumentId]: createCachedGraphEntry(graphDocumentId, {
+            source: 'in-memory',
+            isDirty: true,
+          }),
         },
         graphDocumentOrder: [...current.graphDocumentOrder, graphDocumentId],
       }),
@@ -1624,6 +2212,53 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
       cloneGraph(activeDocument.graph),
       `${activeDocument.name} Copy`,
     )
+  },
+  addGraphReceiveReference: (graphDocumentId, reference) => {
+    const state = get()
+    const targetGraph = selectGraphByDocumentId(state, graphDocumentId)
+    if (targetGraph === null) {
+      return null
+    }
+
+    const receiveId =
+      reference.receiveId?.trim().length
+        ? reference.receiveId.trim()
+        : nextOrdinalId(
+            'receive',
+            (targetGraph.receiveReferences ?? EMPTY_GRAPH_RECEIVE_REFERENCES).map((entry) => entry.receiveId),
+          )
+    const nextGraph = upsertGraphReceiveReference(targetGraph, {
+      receiveId,
+      sourceGraphDocumentId: reference.sourceGraphDocumentId,
+      sourceOutputEntryId: reference.sourceOutputEntryId,
+      mode: reference.mode ?? 'link',
+      ...(reference.receiveNodeId === undefined
+        ? {}
+        : { receiveNodeId: reference.receiveNodeId }),
+    })
+
+    if (nextGraph === targetGraph) {
+      return receiveId
+    }
+
+    set((current) => withUpdatedGraphDocumentState(current, graphDocumentId, nextGraph))
+    return receiveId
+  },
+  removeGraphReceiveReference: (graphDocumentId, receiveId) => {
+    let removed = false
+    set((state) => {
+      const targetGraph = selectGraphByDocumentId(state, graphDocumentId)
+      if (targetGraph === null) {
+        return state
+      }
+      const nextGraph = removeGraphReceiveReferenceFromGraph(targetGraph, receiveId)
+      if (nextGraph === targetGraph) {
+        return state
+      }
+      removed = true
+      return withUpdatedGraphDocumentState(state, graphDocumentId, nextGraph)
+    })
+    return removed
   },
   setGraphCompileResult: (graphDocumentId, compileResult) => {
     set((state) => {
@@ -1651,10 +2286,19 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
       if (runtime === undefined) {
         return state
       }
+      const nextGraphDocumentIdByBuildSeq = Object.fromEntries(
+        Object.entries(state.graphDocumentIdByBuildSeq).filter(
+          ([seq, trackedGraphDocumentId]) =>
+            trackedGraphDocumentId !== graphDocumentId ||
+            Number.parseInt(seq, 10) >= options.buildSeq,
+        ),
+      ) as Record<number, string>
+      nextGraphDocumentIdByBuildSeq[options.buildSeq] = graphDocumentId
       return {
         graphRuntimeByDocumentId: {
           ...state.graphRuntimeByDocumentId,
           [graphDocumentId]: {
+            ...runtime,
             compileBuild: {
               lastCompileResult: options.compileResult,
               previousBuildInputs: options.compileResult.buildInputs ?? options.previousBuildInputs,
@@ -1664,7 +2308,15 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
                 heelKickInstances: [...options.pendingInstances.heelKickInstances],
                 toeHookInstances: [...options.pendingInstances.toeHookInstances],
               },
+              currentGraphRevision: runtime.compileBuild.currentGraphRevision,
               lastBuildSeq: options.buildSeq,
+              latestIssuedGraphRevision: runtime.compileBuild.currentGraphRevision,
+              latestIssuedBuildSeq: options.buildSeq,
+              latestAcceptedGraphRevision: runtime.compileBuild.latestAcceptedGraphRevision,
+              latestAcceptedBuildSeq: runtime.compileBuild.latestAcceptedBuildSeq,
+              inFlightGraphRevision: runtime.compileBuild.currentGraphRevision,
+              inFlightBuildRequestId: options.buildRequestId,
+              inFlightBuildSeq: options.buildSeq,
             },
             previewPreparation: {
               ...runtime.previewPreparation,
@@ -1672,57 +2324,184 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
             },
           },
         },
-        graphDocumentIdByBuildSeq: {
-          ...state.graphDocumentIdByBuildSeq,
-          [options.buildSeq]: graphDocumentId,
-        },
+        graphDocumentIdByBuildSeq: nextGraphDocumentIdByBuildSeq,
       }
     })
   },
-  acceptGraphBuildResult: (buildSeq) => {
+  acceptGraphBuildResult: (routingIdentity) => {
+    let accepted = false
     set((state) => {
-      const graphDocumentId = state.graphDocumentIdByBuildSeq[buildSeq]
-      if (graphDocumentId === undefined) {
+      const trackedGraphDocumentId = state.graphDocumentIdByBuildSeq[routingIdentity.buildSeq]
+      if (trackedGraphDocumentId !== routingIdentity.graphDocumentId) {
         return state
       }
-      const runtime = state.graphRuntimeByDocumentId[graphDocumentId]
+      const runtime = state.graphRuntimeByDocumentId[routingIdentity.graphDocumentId]
       if (runtime === undefined) {
-        const nextGraphDocumentIdByBuildSeq = { ...state.graphDocumentIdByBuildSeq }
-        delete nextGraphDocumentIdByBuildSeq[buildSeq]
-        return {
-          graphDocumentIdByBuildSeq: nextGraphDocumentIdByBuildSeq,
-        }
+        return state
+      }
+      const compileBuild = runtime.compileBuild
+      if (
+        compileBuild.inFlightBuildSeq !== routingIdentity.buildSeq ||
+        compileBuild.inFlightBuildRequestId !== routingIdentity.buildRequestId ||
+        routingIdentity.buildSeq < compileBuild.latestIssuedBuildSeq ||
+        (compileBuild.latestAcceptedBuildSeq !== null &&
+          routingIdentity.buildSeq <= compileBuild.latestAcceptedBuildSeq)
+      ) {
+        return state
       }
 
       const nextGraphDocumentIdByBuildSeq = { ...state.graphDocumentIdByBuildSeq }
-      delete nextGraphDocumentIdByBuildSeq[buildSeq]
+      delete nextGraphDocumentIdByBuildSeq[routingIdentity.buildSeq]
+      accepted = true
+      const acceptedBuildOutputs = Array.isArray(routingIdentity.buildOutputs)
+        ? [...routingIdentity.buildOutputs]
+        : runtime.acceptedBuildOutputs
 
       return {
         graphRuntimeByDocumentId: {
           ...state.graphRuntimeByDocumentId,
-          [graphDocumentId]: {
+          [routingIdentity.graphDocumentId]: {
             ...runtime,
             compileBuild: {
-              ...runtime.compileBuild,
-              lastBuildSeq: buildSeq,
+              ...compileBuild,
+              lastBuildSeq: routingIdentity.buildSeq,
+              latestAcceptedGraphRevision: compileBuild.inFlightGraphRevision,
+              latestAcceptedBuildSeq: routingIdentity.buildSeq,
+              inFlightGraphRevision: null,
+              inFlightBuildRequestId: null,
+              inFlightBuildSeq: null,
+            },
+            acceptedBuildOutputs,
+            acceptedPreviewBuildOutputs: Array.isArray(routingIdentity.buildOutputs)
+              ? [...routingIdentity.buildOutputs]
+              : runtime.acceptedPreviewBuildOutputs,
+            outputSurface: buildGraphOutputSurface({
+              graphDocumentId: routingIdentity.graphDocumentId,
+              previewPreparation: runtime.previewPreparation,
+              acceptedBuildOutputs,
+              publishedAtBuildSeq: routingIdentity.buildSeq,
+            }),
+          },
+        },
+        graphDocumentIdByBuildSeq: nextGraphDocumentIdByBuildSeq,
+      }
+    })
+    return accepted
+  },
+  clearGraphBuildRequest: (routingIdentity) => {
+    let cleared = false
+    set((state) => {
+      const trackedGraphDocumentId = state.graphDocumentIdByBuildSeq[routingIdentity.buildSeq]
+      if (trackedGraphDocumentId !== routingIdentity.graphDocumentId) {
+        return state
+      }
+      const runtime = state.graphRuntimeByDocumentId[routingIdentity.graphDocumentId]
+      if (runtime === undefined) {
+        return state
+      }
+      const compileBuild = runtime.compileBuild
+      if (
+        compileBuild.inFlightBuildSeq !== routingIdentity.buildSeq ||
+        compileBuild.inFlightBuildRequestId !== routingIdentity.buildRequestId
+      ) {
+        return state
+      }
+
+      const nextGraphDocumentIdByBuildSeq = { ...state.graphDocumentIdByBuildSeq }
+      delete nextGraphDocumentIdByBuildSeq[routingIdentity.buildSeq]
+      cleared = true
+
+      return {
+        graphRuntimeByDocumentId: {
+          ...state.graphRuntimeByDocumentId,
+          [routingIdentity.graphDocumentId]: {
+            ...runtime,
+            compileBuild: {
+              ...compileBuild,
+              inFlightGraphRevision: null,
+              inFlightBuildRequestId: null,
+              inFlightBuildSeq: null,
             },
           },
         },
         graphDocumentIdByBuildSeq: nextGraphDocumentIdByBuildSeq,
       }
     })
+    return cleared
   },
-  clearGraphBuildRequest: (buildSeq) => {
-    set((state) => {
-      if (state.graphDocumentIdByBuildSeq[buildSeq] === undefined) {
-        return state
+  saveCachedGraphEntryToFile: async (cachedGraphId, options) => {
+    const state = get()
+    const entry = state.cachedGraphEntriesById[cachedGraphId]
+    if (entry === undefined) {
+      throw new Error(`Cached graph entry "${cachedGraphId}" was not found.`)
+    }
+    const document = state.graphDocumentsById[entry.graphDocumentId]
+    if (document === undefined) {
+      throw new Error(`Graph document "${entry.graphDocumentId}" was not found.`)
+    }
+
+    await saveGraphDocumentToFileCommand(
+      document,
+      options?.filename !== undefined
+        ? {
+            filename: options.filename,
+          }
+        : undefined,
+      options?.env,
+    )
+
+    const savedAt = options?.savedAt ?? new Date().toISOString()
+    set((current) => {
+      const currentEntry = current.cachedGraphEntriesById[cachedGraphId]
+      if (currentEntry === undefined) {
+        return current
       }
-      const nextGraphDocumentIdByBuildSeq = { ...state.graphDocumentIdByBuildSeq }
-      delete nextGraphDocumentIdByBuildSeq[buildSeq]
       return {
-        graphDocumentIdByBuildSeq: nextGraphDocumentIdByBuildSeq,
+        cachedGraphEntriesById: {
+          ...current.cachedGraphEntriesById,
+          [cachedGraphId]: {
+            ...currentEntry,
+            isDirty: false,
+            lastSavedAt: savedAt,
+          },
+        },
       }
     })
+  },
+  loadGraphDocumentFromFile: async (options) => {
+    const loadedDocument = await loadGraphDocumentFromFileCommand(undefined, options?.env)
+    const graphDocumentId = loadedDocument.graphDocumentId
+    const nextGraph = normalizeGraphForStoreCommit(cloneGraph(loadedDocument.graph))
+    const nextDocument: GraphDocument = {
+      ...loadedDocument,
+      graph: nextGraph,
+    }
+
+    set((current) =>
+      withBrowserViewportState(current, {
+        graphDocumentsById: {
+          ...current.graphDocumentsById,
+          [graphDocumentId]: nextDocument,
+        },
+        graphRuntimeByDocumentId: {
+          ...current.graphRuntimeByDocumentId,
+          [graphDocumentId]: createGraphRuntimeState(graphDocumentId, nextGraph),
+        },
+        cachedGraphEntriesById: {
+          ...current.cachedGraphEntriesById,
+          [graphDocumentId]: createCachedGraphEntry(graphDocumentId, {
+            source: 'file-load',
+            isDirty: false,
+          }),
+        },
+        graphDocumentOrder: current.graphDocumentOrder.includes(graphDocumentId)
+          ? current.graphDocumentOrder
+          : [...current.graphDocumentOrder, graphDocumentId],
+        fallbackGraphDocumentId: graphDocumentId,
+      }),
+    )
+
+    return graphDocumentId
   },
   openGraphDocumentInViewport: (graphDocumentId) => {
     const state = get()
@@ -1737,26 +2516,33 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
       return existingViewport.editorViewportId
     }
 
-    const editorViewportId = nextOrdinalId('editor-viewport', state.editorViewportOrder)
+    const nextViewportState = appendFocusedViewport(state, graphDocumentId)
+    if (nextViewportState === null) {
+      return null
+    }
     set((current) => {
-      const nextViewport = createEditorViewport(graphDocumentId, {
-        editorViewportId,
-        isFocused: true,
-        zOrder: getMaxViewportZOrder(current.editorViewportsById) + 1,
-      })
       return withBrowserViewportState(current, {
-        editorViewportsById: focusViewportCollection(
-          {
-            ...current.editorViewportsById,
-            [editorViewportId]: nextViewport,
-          },
-          editorViewportId,
-        ),
-        editorViewportOrder: [...current.editorViewportOrder, editorViewportId],
-        activeEditorViewportId: editorViewportId,
+        editorViewportsById: nextViewportState.editorViewportsById,
+        editorViewportOrder: nextViewportState.editorViewportOrder,
+        activeEditorViewportId: nextViewportState.editorViewportId,
       })
     })
-    return editorViewportId
+    return nextViewportState.editorViewportId
+  },
+  openGraphDocumentInNewViewport: (graphDocumentId) => {
+    const state = get()
+    const nextViewportState = appendFocusedViewport(state, graphDocumentId)
+    if (nextViewportState === null) {
+      return null
+    }
+    set((current) =>
+      withBrowserViewportState(current, {
+        editorViewportsById: nextViewportState.editorViewportsById,
+        editorViewportOrder: nextViewportState.editorViewportOrder,
+        activeEditorViewportId: nextViewportState.editorViewportId,
+      }),
+    )
+    return nextViewportState.editorViewportId
   },
   bindEditorViewportToGraphDocument: (editorViewportId, graphDocumentId) => {
     set((state) => {
@@ -1779,6 +2565,65 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
         activeEditorViewportId: editorViewportId,
       })
     })
+  },
+  swapFocusedEditorViewportToGraphDocument: (graphDocumentId) => {
+    const state = get()
+    if (state.activeEditorViewportId.length === 0) {
+      return null
+    }
+    const activeViewport = state.editorViewportsById[state.activeEditorViewportId]
+    if (activeViewport === undefined || state.graphDocumentsById[graphDocumentId] === undefined) {
+      return null
+    }
+    get().bindEditorViewportToGraphDocument(activeViewport.editorViewportId, graphDocumentId)
+    return activeViewport.editorViewportId
+  },
+  loadGraphDocumentIntoNewGraphFromFile: async (options) => {
+    const loadedDocument = await loadGraphDocumentFromFileCommand(undefined, options?.env)
+    const nextGraph = normalizeGraphForStoreCommit(cloneGraph(loadedDocument.graph))
+    const state = get()
+    const graphDocumentId = nextOrdinalId('graph-document', state.graphDocumentOrder)
+
+    set((current) =>
+      withBrowserViewportState(current, {
+        graphDocumentsById: {
+          ...current.graphDocumentsById,
+          [graphDocumentId]: createGraphDocument(nextGraph, {
+            graphDocumentId,
+            name: loadedDocument.name,
+          }),
+        },
+        graphRuntimeByDocumentId: {
+          ...current.graphRuntimeByDocumentId,
+          [graphDocumentId]: createGraphRuntimeState(graphDocumentId, nextGraph),
+        },
+        cachedGraphEntriesById: {
+          ...current.cachedGraphEntriesById,
+          [graphDocumentId]: createCachedGraphEntry(graphDocumentId, {
+            source: 'in-memory',
+            isDirty: true,
+          }),
+        },
+        graphDocumentOrder: [...current.graphDocumentOrder, graphDocumentId],
+        fallbackGraphDocumentId: graphDocumentId,
+      }),
+    )
+
+    return graphDocumentId
+  },
+  saveFocusedEditorViewportGraphToFile: async (options) => {
+    const state = get()
+    const activeViewport = selectActiveEditorViewport(state)
+    if (activeViewport === null) {
+      throw new Error('There is no focused editor viewport to save.')
+    }
+    const entry = selectCachedGraphEntryByDocumentId(state, activeViewport.graphDocumentId)
+    if (entry === null) {
+      throw new Error(
+        `Cached graph entry for graph document "${activeViewport.graphDocumentId}" was not found.`,
+      )
+    }
+    await get().saveCachedGraphEntryToFile(entry.cachedGraphId, options)
   },
   closeEditorViewport: (editorViewportId) => {
     set((state) => {
@@ -1822,36 +2667,232 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
       })
     })
   },
+  setViewerTargetGraphDocumentId: (graphDocumentId) => {
+    set((state) => {
+      if (graphDocumentId !== null && state.graphDocumentsById[graphDocumentId] === undefined) {
+        return state
+      }
+      if (state.viewerTargetGraphDocumentId === graphDocumentId) {
+        return state
+      }
+      return {
+        viewerTargetGraphDocumentId: graphDocumentId,
+      }
+    })
+  },
+  addEditorViewportGraphToSharedViewerComposition: (editorViewportId) => {
+    const viewport = selectEditorViewportById(get(), editorViewportId)
+    if (viewport === null) {
+      return null
+    }
+    const graphDocumentId = viewport.graphDocumentId
+    set((state) => {
+      if (state.graphDocumentsById[graphDocumentId] === undefined) {
+        return state
+      }
+      const nextComposition = addGraphDocumentIdToSharedViewerComposition(
+        state.sharedViewerComposition,
+        graphDocumentId,
+      )
+      if (nextComposition === state.sharedViewerComposition) {
+        return state
+      }
+      return {
+        sharedViewerComposition: nextComposition,
+      }
+    })
+    return graphDocumentId
+  },
+  removeEditorViewportGraphFromSharedViewerComposition: (editorViewportId) => {
+    const viewport = selectEditorViewportById(get(), editorViewportId)
+    if (viewport === null) {
+      return null
+    }
+    const graphDocumentId = viewport.graphDocumentId
+    set((state) => {
+      const nextComposition = removeGraphDocumentIdFromSharedViewerComposition(
+        state.sharedViewerComposition,
+        graphDocumentId,
+      )
+      if (nextComposition === state.sharedViewerComposition) {
+        return state
+      }
+      return {
+        sharedViewerComposition: nextComposition,
+      }
+    })
+    return graphDocumentId
+  },
   setEditorViewportWindowMode: (editorViewportId, windowMode) => {
     set((state) => {
       const viewport = state.editorViewportsById[editorViewportId]
       if (viewport === undefined || viewport.windowMode === windowMode) {
-        return state
+        if (viewport?.windowMode !== 'collapsed' && viewport?.windowMode !== 'maximized' && viewport?.windowMode !== 'split view') {
+          return state
+        }
       }
+
+      const resolveRestoreFromCollapsed = (): EditorViewport => {
+        const restore = viewport.restoreFromCollapsed
+        if (restore === null) {
+          return {
+            ...viewport,
+            windowMode: 'expanded',
+            position: defaultViewportPosition,
+            size: defaultViewportSize,
+            restoreFromCollapsed: null,
+          }
+        }
+        return {
+          ...viewport,
+          windowMode: restore.windowMode,
+          position: restore.position ?? viewport.position,
+          size: restore.size ?? viewport.size,
+          splitRatio: restore.splitRatio ?? viewport.splitRatio,
+          restoreFromCollapsed: null,
+        }
+      }
+
+      const resolveRestoreFromSplit = (): EditorViewport => {
+        const restore = viewport.restoreFromSplit
+        if (restore === null) {
+          return {
+            ...viewport,
+            windowMode: 'expanded',
+            position: defaultViewportPosition,
+            size: defaultViewportSize,
+            restoreFromSplit: null,
+          }
+        }
+        return {
+          ...viewport,
+          windowMode: restore.windowMode,
+          position: restore.position ?? viewport.position,
+          size: restore.size ?? viewport.size,
+          restoreFromSplit: null,
+        }
+      }
+
+      let nextViewport: EditorViewport
+
+      if (windowMode === 'collapsed') {
+        nextViewport =
+          viewport.windowMode === 'collapsed'
+            ? resolveRestoreFromCollapsed()
+            : {
+                ...viewport,
+                windowMode: 'collapsed',
+                restoreFromCollapsed: snapshotCollapsedRestoreState(viewport),
+              }
+      } else if (windowMode === 'maximized') {
+        nextViewport =
+          viewport.windowMode === 'maximized'
+            ? {
+                ...viewport,
+                windowMode: 'expanded',
+                position: defaultViewportPosition,
+                size: defaultViewportSize,
+                restoreFromCollapsed: null,
+                restoreFromSplit: null,
+              }
+            : {
+                ...viewport,
+                windowMode: 'maximized',
+                restoreFromCollapsed: null,
+                restoreFromSplit: null,
+              }
+      } else if (windowMode === 'split view') {
+        if (viewport.windowMode === 'split view') {
+          nextViewport = resolveRestoreFromSplit()
+        } else if (viewport.windowMode === 'collapsed') {
+          nextViewport = {
+            ...viewport,
+            windowMode: 'split view',
+            splitRatio: defaultViewportSplitRatio,
+            restoreFromCollapsed: null,
+            restoreFromSplit:
+              viewport.restoreFromSplit ??
+              (viewport.restoreFromCollapsed !== null &&
+              viewport.restoreFromCollapsed.windowMode !== 'split view'
+                ? {
+                    windowMode: viewport.restoreFromCollapsed.windowMode,
+                    position: viewport.restoreFromCollapsed.position,
+                    size: viewport.restoreFromCollapsed.size,
+                  }
+                : snapshotExpandedRestoreState(viewport)),
+          }
+        } else {
+          nextViewport = {
+            ...viewport,
+            windowMode: 'split view',
+            splitRatio: defaultViewportSplitRatio,
+            restoreFromCollapsed: null,
+            restoreFromSplit:
+              viewport.windowMode === 'maximized'
+                ? {
+                    windowMode: 'maximized',
+                    position: viewport.position,
+                    size: viewport.size,
+                  }
+                : snapshotExpandedRestoreState(viewport),
+          }
+        }
+      } else if (windowMode === 'meatball editor view') {
+        nextViewport = {
+          ...viewport,
+          windowMode: 'meatball editor view',
+          restoreFromCollapsed: null,
+          restoreFromSplit: null,
+        }
+      } else {
+        nextViewport = {
+          ...viewport,
+          windowMode,
+        }
+      }
+
       const nextViewportsById: Record<string, EditorViewport> = {}
       for (const [currentViewportId, currentViewport] of Object.entries(state.editorViewportsById)) {
         if (
           currentViewportId !== editorViewportId &&
-          windowMode === 'meatball editor view' &&
+          nextViewport.windowMode === 'meatball editor view' &&
           currentViewport.windowMode === 'meatball editor view'
         ) {
           nextViewportsById[currentViewportId] = {
             ...currentViewport,
             windowMode: 'expanded',
+            restoreFromCollapsed: null,
+            restoreFromSplit: null,
           }
           continue
         }
         nextViewportsById[currentViewportId] =
-          currentViewportId === editorViewportId
-            ? {
-                ...currentViewport,
-                windowMode,
-              }
-            : currentViewport
+          currentViewportId === editorViewportId ? nextViewport : currentViewport
       }
       return withBrowserViewportState(state, {
         editorViewportsById: nextViewportsById,
       })
+    })
+  },
+  setEditorViewportSplitRatio: (editorViewportId, splitRatio) => {
+    set((state) => {
+      const viewport = state.editorViewportsById[editorViewportId]
+      if (viewport === undefined) {
+        return state
+      }
+      const nextSplitRatio = clampViewportSplitRatio(splitRatio)
+      if (viewport.splitRatio === nextSplitRatio) {
+        return state
+      }
+      return {
+        editorViewportsById: {
+          ...state.editorViewportsById,
+          [editorViewportId]: {
+            ...viewport,
+            splitRatio: nextSplitRatio,
+          },
+        },
+      }
     })
   },
   setEditorViewportPosition: (editorViewportId, position) => {

@@ -78,6 +78,16 @@ const spaghettiEdgeSchema = z
   })
   .strict()
 
+const graphReceiveReferenceSchema = z
+  .object({
+    receiveId: z.string().min(1),
+    sourceGraphDocumentId: z.string().min(1),
+    sourceOutputEntryId: z.string().min(1),
+    mode: z.literal('link'),
+    receiveNodeId: z.string().min(1).optional(),
+  })
+  .strict()
+
 const graphUISchema = z
   .object({
     nodes: z
@@ -116,6 +126,7 @@ const spaghettiGraphInputSchema = z
     schemaVersion: z.literal(1).default(1),
     nodes: z.array(spaghettiNodeSchema),
     edges: z.array(spaghettiEdgeSchema),
+    receiveReferences: z.array(graphReceiveReferenceSchema).optional(),
     ui: graphUISchema.optional(),
   })
   .strict()
@@ -140,11 +151,17 @@ export const spaghettiGraphSchema: z.ZodType<SpaghettiGraph> =
       return {
         ...graph,
         nodes: normalizedNodes,
+        ...(graph.receiveReferences === undefined
+          ? {}
+          : { receiveReferences: graph.receiveReferences }),
       }
     }
     return {
       ...graph,
       nodes: normalizedNodes,
+      ...(graph.receiveReferences === undefined
+        ? {}
+        : { receiveReferences: graph.receiveReferences }),
       ui: {
         ...(graph.ui.nodes === undefined ? {} : { nodes: graph.ui.nodes }),
         ...(graph.ui.nodeModesByNodeId === undefined

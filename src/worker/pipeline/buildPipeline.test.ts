@@ -124,6 +124,9 @@ describe('buildPipeline spaghetti stats integration', () => {
       {
         type: 'build',
         seq: 1,
+        projectFileId: 'legacy-runtime-project',
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-1',
         payload: cubePayload(),
         changedParamIds: ['sp_full'],
       },
@@ -146,6 +149,9 @@ describe('buildPipeline spaghetti stats integration', () => {
       {
         type: 'build',
         seq: 1,
+        projectFileId: 'legacy-runtime-project',
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-1',
         payload: cubePayload(),
         changedParamIds: ['sp_full'],
       },
@@ -157,6 +163,9 @@ describe('buildPipeline spaghetti stats integration', () => {
       {
         type: 'build',
         seq: 2,
+        projectFileId: 'legacy-runtime-project',
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-2',
         payload: cubePayload(),
         changedParamIds: [],
       },
@@ -185,6 +194,9 @@ describe('buildPipeline spaghetti stats integration', () => {
       {
         type: 'build',
         seq: 10,
+        projectFileId: 'legacy-runtime-project',
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-10',
         payload: multiCubePayload(),
         changedParamIds: ['sp_full'],
       },
@@ -205,6 +217,9 @@ describe('buildPipeline spaghetti stats integration', () => {
       {
         type: 'build',
         seq: 11,
+        projectFileId: 'legacy-runtime-project',
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-11',
         payload: multiCubePayload(),
         changedParamIds: [],
       },

@@ -4,6 +4,15 @@ export type BoxParams = {
   height: number
 }
 
+export const LEGACY_RUNTIME_PROJECT_FILE_ID = 'legacy-runtime-project'
+export const LEGACY_RUNTIME_GRAPH_DOCUMENT_ID = 'legacy-runtime-graph'
+
+export type BuildRoutingIdentity = {
+  projectFileId: string
+  graphDocumentId: string
+  buildRequestId: string
+}
+
 export type ViewMode = 'parts' | 'assembled'
 export type BuildPhase = 'parts' | 'assemble' | 'export'
 export type BuildProgressState = 'queued' | 'cache_hit' | 'building' | 'done' | 'error'
@@ -123,6 +132,9 @@ export const toViewerRenderablePart = (
 export type BuildRequest = {
   type: 'build'
   seq: number
+  projectFileId: string
+  graphDocumentId: string
+  buildRequestId: string
   payload: BoxParams
   changedParamIds?: string[]
   heelKickInstances?: number[]
@@ -138,6 +150,9 @@ export type AssembleRequest = {
 export type BuildResult = {
   type: 'build_result'
   seq: number
+  projectFileId: string
+  graphDocumentId: string
+  buildRequestId: string
   parts: PartArtifact[]
   changedParamIds?: string[]
 }
@@ -158,11 +173,17 @@ export type WorkerError = {
   seq: number
   op: 'assemble' | 'build' | 'export'
   message: string
+  projectFileId?: string
+  graphDocumentId?: string
+  buildRequestId?: string
 }
 
 export type BuildProgress = {
   type: 'build_progress'
   seq: number
+  projectFileId: string
+  graphDocumentId: string
+  buildRequestId: string
   phase: BuildPhase
   partKey: string
   state: BuildProgressState

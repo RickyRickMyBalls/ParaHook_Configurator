@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { PartArtifact } from '../../../shared/buildTypes'
+import { buildGraphOutputSurface } from '../outputSurface'
+import { prepareGraphPreviewPreparation } from '../previewPreparation'
 import { getDefaultNodeParams } from '../registry/nodeRegistry'
 import type { SpaghettiGraph } from '../schema/spaghettiTypes'
 import { OUTPUT_PREVIEW_NODE_TYPE } from '../system/outputPreviewNode'
@@ -63,8 +65,15 @@ const cubeArtifact2: PartArtifact = {
 
 describe('selectDebugInspectorVm', () => {
   it('builds deterministic compile, OutputPreview, preview VM, and viewer sections', () => {
+    const outputSurface = buildGraphOutputSurface({
+      graphDocumentId: 'graph-document-test',
+      previewPreparation: prepareGraphPreviewPreparation(cubeGraph),
+      acceptedBuildOutputs: [cubeArtifact2, cubeArtifact1],
+      publishedAtBuildSeq: 9,
+    })
     const vm = selectDebugInspectorVm({
       graph: cubeGraph,
+      outputSurface,
       buildOutputs: [cubeArtifact2, cubeArtifact1],
       compileResult: {
         ok: true,
@@ -87,14 +96,14 @@ describe('selectDebugInspectorVm', () => {
     expect(vm.outputPreview.slots).toEqual([
       {
         slotId: 's010',
-        state: 'filled',
+        state: 'resolved',
         sourceNodeId: 'node-cube-2',
         sourcePartKeyStr: 'cube#2',
         artifactPartKeyStr: 'cube#2',
       },
       {
         slotId: 's020',
-        state: 'filled',
+        state: 'resolved',
         sourceNodeId: 'node-cube-1',
         sourcePartKeyStr: 'cube#1',
         artifactPartKeyStr: 'cube#1',
@@ -149,6 +158,12 @@ describe('selectDebugInspectorVm', () => {
   it('shows viewer input as inactive outside spaghetti parts mode', () => {
     const vm = selectDebugInspectorVm({
       graph: cubeGraph,
+      outputSurface: buildGraphOutputSurface({
+        graphDocumentId: 'graph-document-test',
+        previewPreparation: prepareGraphPreviewPreparation(cubeGraph),
+        acceptedBuildOutputs: [cubeArtifact2, cubeArtifact1],
+        publishedAtBuildSeq: 9,
+      }),
       buildOutputs: [cubeArtifact2, cubeArtifact1],
       compileResult: null,
       inputMode: 'spaghetti',
@@ -161,8 +176,15 @@ describe('selectDebugInspectorVm', () => {
   })
 
   it('is deterministic across repeated calls with identical inputs', () => {
+    const outputSurface = buildGraphOutputSurface({
+      graphDocumentId: 'graph-document-test',
+      previewPreparation: prepareGraphPreviewPreparation(cubeGraph),
+      acceptedBuildOutputs: [cubeArtifact2, cubeArtifact1],
+      publishedAtBuildSeq: 9,
+    })
     const first = selectDebugInspectorVm({
       graph: cubeGraph,
+      outputSurface,
       buildOutputs: [cubeArtifact2, cubeArtifact1],
       compileResult: null,
       inputMode: 'spaghetti',
@@ -170,6 +192,7 @@ describe('selectDebugInspectorVm', () => {
     })
     const second = selectDebugInspectorVm({
       graph: cubeGraph,
+      outputSurface,
       buildOutputs: [cubeArtifact2, cubeArtifact1],
       compileResult: null,
       inputMode: 'spaghetti',

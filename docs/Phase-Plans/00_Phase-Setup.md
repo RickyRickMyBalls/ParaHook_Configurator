@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+27. 2026-03-11 12:23: Updated the future `AS`, `VR`, and `GE` ladder entries so the canonical phase setup now matches the newer roadmap carry-forward naming for Browser-facing output structure, project-content inspection/build-control work, richer viewer/browser controls, and the fuller `GE - Phase 12` ownership direction
 26. 2026-03-08 00:00: Added the short ownership labels back to the `Future Legacy Updates` reminder list so the compact existing-prefix guidance still says what `VR`, `DBG`, `DOC`, and `LEG` actually mean
 25. 2026-03-08 00:00: Pruned the `Future Legacy Updates` candidate list so only the wish-area prefixes that still seem meaningfully distinct remain, while the viewer, inspection, and workbench candidates that fit existing canonical families were removed
 24. 2026-03-08 00:00: Simplified the `Future Legacy Updates` section into the same compact prefix-list style as the canonical prefix blocks so future candidates now scan faster without the longer explanatory sub-bullets
@@ -273,16 +274,16 @@ Checklist rules:
 - [x] `AS - Phase 2 - Deterministic Part Ordering`
 - [?] `AS - Phase 3 - First Parts / Artifact Baseline`
 - [x] `AS - Phase 4 - Canonical Part Identity And Assembled Direction`
-- [ ] `AS - Phase 5 - OutputPreview Render Path Stabilization`
-- [ ] `AS - Phase 6 - Graph Aware Parts And Preview Inspection`
+- [ ] `AS - Phase 5 - Browser-Facing Graph Output Structure`
+- [ ] `AS - Phase 6 - Project Content Inspection And Build Control Surface`
 
 ### `VR` - Viewer layer
 - [x] `VR - Phase 1 - Viewer Ownership`
 - [ ] `VR - Phase 2 - Gizmo Parity Return`
 - [ ] `VR - Phase 3 - Scenes Return`
 - [ ] `VR - Phase 4 - Radio Sampler Return`
-- [ ] `VR - Phase 5 - Section Cut Reference Workspace And Layer Material Controls`
-- [ ] `VR - Phase 6 - Multi Part Rendering And Highlighting`
+- [ ] `VR - Phase 5 - Reference Asset Workspace And Project View Layers`
+- [ ] `VR - Phase 6 - Browser Controls, Materials, And Rich Visibility`
 
 ### `DBG` - Inspection layer
 - [x] `DBG - Phase 1 - Debug Inspector Foundation`

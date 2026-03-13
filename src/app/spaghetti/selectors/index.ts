@@ -34,7 +34,9 @@ export {
 } from './selectPreviewRenderVm'
 export {
   selectPartsListItems,
+  selectPartsListItemsFromOutputSurface,
   selectPartsListPanelVm,
+  selectPartsListPanelVmFromOutputSurface,
   type PartsListItem,
   type PartsListPanelItemVm,
   type PartsListPanelVm,

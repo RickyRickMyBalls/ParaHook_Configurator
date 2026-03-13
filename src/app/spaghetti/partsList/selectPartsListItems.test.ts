@@ -1,7 +1,15 @@
 import { describe, expect, it } from 'vitest'
+import { buildGraphOutputSurface } from '../outputSurface'
+import { prepareGraphPreviewPreparation } from '../previewPreparation'
 import type { SpaghettiGraph } from '../schema/spaghettiTypes'
 import { OUTPUT_PREVIEW_NODE_TYPE } from '../system/outputPreviewNode'
-import { selectPartsListItems, selectPartsListPanelVm } from '../selectors'
+import {
+  selectPartsListItems,
+  selectPartsListItemsFromOutputSurface,
+  selectPartsListPanelVm,
+  selectPartsListPanelVmFromOutputSurface,
+} from '../selectors'
+import type { PartArtifact } from '../../../shared/buildTypes'
 
 const outputPreviewNode = (slotIds: string[]) => ({
   nodeId: 'node-output-preview-1',
@@ -22,6 +30,15 @@ const heelKickNode = {
   nodeId: 'node-heelkick-1',
   type: 'Part/HeelKick',
   params: {},
+}
+
+const toeHookArtifact: PartArtifact = {
+  id: 'toeHook',
+  label: 'Toe Hook',
+  kind: 'box',
+  params: { width: 1, length: 2, height: 3 },
+  partKeyStr: 'toeHook#1',
+  partKey: { id: 'toeHook', instance: 1 },
 }
 
 const graphWithOutputPreview = (
@@ -168,5 +185,43 @@ describe('selectPartsListItems', () => {
     expect(vm.items).toHaveLength(1)
     expect(vm.items[0]?.slotId).toBe('s001')
     expect(vm.items[0]?.primaryLabel).toContain('s001:')
+  })
+
+  it('can consume the graph-owned output surface directly for parts-list rows and panel vm', () => {
+    const graph = graphWithOutputPreview(['s001', 's002'], [
+      {
+        edgeId: 'edge-s001',
+        from: { nodeId: 'node-toehook-1', portId: 'toeLoft' },
+        to: { nodeId: 'node-output-preview-1', portId: 'in:solid:s001' },
+      },
+    ])
+    const outputSurface = buildGraphOutputSurface({
+      graphDocumentId: 'graph-document-test',
+      previewPreparation: prepareGraphPreviewPreparation(graph),
+      acceptedBuildOutputs: [toeHookArtifact],
+      publishedAtBuildSeq: 4,
+    })
+
+    const items = selectPartsListItemsFromOutputSurface(graph, outputSurface)
+    expect(items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          slotId: 's001',
+          slotStatus: 'ok',
+          sourceNodeId: 'node-toehook-1',
+          sourcePortId: 'toeLoft',
+        }),
+        expect.objectContaining({
+          slotId: 's002',
+          slotStatus: 'empty',
+          sourceNodeId: null,
+        }),
+      ]),
+    )
+
+    const panelVm = selectPartsListPanelVmFromOutputSurface(graph, outputSurface)
+    expect(panelVm.items).toHaveLength(1)
+    expect(panelVm.items[0]?.slotId).toBe('s001')
+    expect(panelVm.items[0]?.primaryLabel).toContain('s001:')
   })
 })

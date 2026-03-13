@@ -20,9 +20,7 @@
   --v15-selected: rgba(96, 142, 255, 0.22);
   --v15-error: #ff7272;
   --v15-axis-widget-top: 12px;
-  --v15-axis-widget-size: calc(
-    var(--v15-right-dock-width) - (var(--v15-right-dock-padding-x) * 2)
-  );
+  --v15-axis-widget-size: 176px;
   --v15-view-anchor-gap: 12px;
   --v15-view-anchor-top: calc(
     var(--v15-axis-widget-top) + var(--v15-axis-widget-size) + var(--v15-view-anchor-gap)
@@ -45,8 +43,8 @@ body {
 
 .AppShellRoot {
   display: flex;
-  height: 100vh;
-  min-height: 100vh;
+  height: 100dvh;
+  min-height: 100dvh;
   width: 100%;
   position: relative;
   overflow: hidden;
@@ -66,9 +64,136 @@ body {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  overflow-y: auto;
+  overflow-y: hidden;
   overflow-x: hidden;
   pointer-events: none;
+}
+
+.LeftDockContent {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  gap: 12px;
+  width: 100%;
+  overflow: visible;
+  pointer-events: auto;
+}
+
+.LeftDockPanelStackShell {
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.LeftDockPanelStackShell.isConstrained {
+  flex: 1 1 auto;
+}
+
+.LeftDockResizeHandle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: -16px;
+  width: 12px;
+  cursor: ew-resize;
+  pointer-events: auto;
+  z-index: 4;
+}
+
+.LeftDockResizeHandle.isViewportSplit {
+  bottom: auto;
+  height: calc(100dvh - 32px);
+}
+
+.LeftDockResizeHandle::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 2px;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  transition:
+    background 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.LeftDockResizeHandle:hover::before {
+  background: rgba(124, 160, 255, 0.52);
+  box-shadow: 0 0 0 3px rgba(124, 160, 255, 0.12);
+}
+
+.LeftDockResizeToggle {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 18px;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(20, 20, 24, 0.92);
+  color: rgba(238, 242, 255, 0.88);
+  font-size: 8px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 1;
+}
+
+.LeftDockResizeToggle:hover,
+.LeftDockResizeToggle.isActive {
+  border-color: rgba(124, 160, 255, 0.42);
+  background: rgba(96, 142, 255, 0.2);
+  color: rgba(245, 247, 255, 0.98);
+}
+
+.LeftDockResizeMenu {
+  position: fixed;
+  z-index: 50;
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  border: 1px solid rgba(124, 160, 255, 0.3);
+  border-radius: 10px;
+  background: rgba(20, 20, 24, 0.98);
+  box-shadow:
+    0 12px 30px rgba(0, 0, 0, 0.48),
+    0 0 0 1px rgba(124, 160, 255, 0.12);
+}
+
+.LeftDockResizeMenuAction {
+  width: 100%;
+  min-height: 28px;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  text-align: left;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(238, 242, 255, 0.92);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.LeftDockResizeMenuAction:hover {
+  border-color: var(--v15-panel-border-soft);
+  background: rgba(255, 255, 255, 0.09);
 }
 
 .RightDock {
@@ -89,6 +214,11 @@ body {
   overflow-y: auto;
   overflow-x: hidden;
   pointer-events: none;
+  transition:
+    width 180ms ease,
+    min-width 180ms ease,
+    max-width 180ms ease,
+    padding-top 180ms ease;
 }
 
 .RightPanelStack {
@@ -349,28 +479,192 @@ body {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  min-width: 0;
 }
 
-.BrowserPanelRoot {
+.PanelStack.isConstrained {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+  scrollbar-color: rgba(86, 92, 110, 0.95) rgba(8, 10, 14, 0.92);
+  scrollbar-width: thin;
+}
+
+.PanelStack::-webkit-scrollbar {
+  width: 12px;
+}
+
+.PanelStack::-webkit-scrollbar-track {
+  background: rgba(8, 10, 14, 0.92);
+}
+
+.PanelStack::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    180deg,
+    rgba(92, 98, 118, 0.98) 0%,
+    rgba(60, 65, 82, 0.98) 100%
+  );
+  border-radius: 999px;
+  border: 2px solid rgba(8, 10, 14, 0.92);
+}
+
+.PanelStack::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(
+    180deg,
+    rgba(110, 118, 142, 0.98) 0%,
+    rgba(74, 80, 99, 0.98) 100%
+  );
+}
+
+.LeftDockPanelTarget {
+  min-width: 0;
   display: flex;
   flex-direction: column;
+  gap: 0;
+}
+
+.LeftDockPanelTarget--meatball-editor {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.LeftDockPanelGhostSlot {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition:
+    max-height 180ms ease,
+    opacity 180ms ease;
+}
+
+.LeftDockPanelTarget.isPreviewActive .LeftDockPanelGhostSlot {
+  max-height: 88px;
+  opacity: 1;
+}
+
+.LeftDockPanelGhost {
+  height: 72px;
+  box-sizing: border-box;
+  border: 1px dashed rgba(255, 255, 255, 0.85);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.82);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.V15Panel.BrowserPanelRoot {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+  overflow: visible;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.V15Panel.BrowserPanelRoot.isFloating {
+  height: auto;
+}
+
+.BrowserPanelBody {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
   gap: 10px;
+  margin-top: -8px;
+  padding: 18px 12px 12px;
+  border: 1px solid var(--v15-panel-border);
+  border-radius: 12px;
+  background: var(--v15-panel-bg);
+  box-shadow: var(--v15-panel-shadow);
 }
 
-.BrowserPanelHeader {
+.BrowserPanelTitleBar {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 7px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+  background: linear-gradient(180deg, rgba(39, 48, 68, 0.96) 0%, rgba(31, 37, 54, 0.96) 100%);
+  color: #eef2ff;
+  position: relative;
+  z-index: 1;
+}
+
+.BrowserPanelTitleBar.isCollapsed {
+  border-bottom: none;
+}
+
+.BrowserPanelTitleCluster {
+  display: flex;
+  align-items: center;
   gap: 8px;
 }
 
-.BrowserPanelActions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+.BrowserPanelTitle {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 
-.BrowserPanelActions > button {
-  flex: 1 1 140px;
+.V15Panel button.BrowserPanelChromeButton,
+.V15Panel button.BrowserPanelChromeButton:hover {
+  min-width: 28px;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+  color: #f5f7ff;
+  font-size: 10px;
+  line-height: 1;
+  letter-spacing: 0.04em;
+}
+
+.V15Panel button.BrowserPanelChromeButton:hover {
+  background: rgba(96, 142, 255, 0.22);
+  border-color: rgba(96, 142, 255, 0.45);
+}
+
+.BrowserFloatingDock {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 24;
+}
+
+.BrowserFloatingWindow {
+  position: absolute;
+  min-width: 280px;
+  min-height: 220px;
+  max-width: calc(100% - 24px);
+  max-height: calc(100% - 24px);
+  pointer-events: auto;
+}
+
+.BrowserFloatingWindow.isCollapsed {
+  min-height: 0;
 }
 
 .BrowserTree {
@@ -402,6 +696,14 @@ body {
   gap: 8px;
 }
 
+.BrowserTreeSummary--withActions {
+  justify-content: space-between;
+}
+
+.BrowserTreeSummaryLabel {
+  min-width: 0;
+}
+
 .BrowserTreeSummary::-webkit-details-marker {
   display: none;
 }
@@ -419,16 +721,47 @@ body {
   transform: rotate(90deg);
 }
 
+.BrowserTreeSummaryActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.V15Panel button.BrowserTreeSummaryAction,
+.V15Panel button.BrowserTreeSummaryAction:hover {
+  min-width: 22px;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(245, 247, 255, 0.92);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.02em;
+}
+
+.V15Panel button.BrowserTreeSummaryAction:hover {
+  background: rgba(96, 142, 255, 0.2);
+  border-color: rgba(96, 142, 255, 0.42);
+}
+
 .BrowserTreeGroup {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   padding: 0 8px 8px 16px;
 }
 
 .BrowserTreeRow {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr) auto auto auto;
   gap: 6px;
   align-items: center;
 }
@@ -438,18 +771,117 @@ body {
   background: var(--v15-selected);
 }
 
+.BrowserTreeRow.isOpen .BrowserTreeRowMain {
+  border-color: rgba(120, 152, 228, 0.26);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.BrowserTreeRow.isActiveEditor .BrowserTreeRowMain {
+  border-color: rgba(96, 142, 255, 0.42);
+  box-shadow: inset 0 0 0 1px rgba(96, 142, 255, 0.08);
+}
+
+.BrowserTreeRowLead {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.BrowserTreeRowExpand,
+.BrowserTreeRowIcon {
+  width: 20px;
+  min-width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  font-size: 10px;
+}
+
+.BrowserTreeRowExpand {
+  border: 1px solid var(--v15-panel-border-soft);
+  background: transparent;
+}
+
+.BrowserTreeRowExpand--placeholder {
+  color: transparent;
+  border: 1px solid transparent;
+}
+
+.BrowserTreeRowIcon {
+  border: 1px solid var(--v15-panel-border-soft);
+  color: rgba(238, 242, 255, 0.86);
+  background: rgba(255, 255, 255, 0.03);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.V15Panel button.BrowserTreeRowPolicy {
+  width: 20px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(244, 247, 255, 0.96);
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 0.04em;
+}
+
+.V15Panel button.BrowserTreeRowPolicy--live {
+  border-color: rgba(72, 201, 125, 0.36);
+  background: rgba(55, 148, 88, 0.18);
+  color: rgba(212, 255, 225, 0.96);
+}
+
+.V15Panel button.BrowserTreeRowPolicy--release {
+  border-color: rgba(236, 196, 88, 0.38);
+  background: rgba(194, 142, 34, 0.2);
+  color: rgba(255, 242, 195, 0.96);
+}
+
+.V15Panel button.BrowserTreeRowPolicy--manual {
+  border-color: rgba(224, 106, 106, 0.34);
+  background: rgba(153, 48, 48, 0.2);
+  color: rgba(255, 216, 216, 0.96);
+}
+
 .BrowserTreeRowMain,
-.V15Panel button.BrowserTreeRowAction {
+.BrowserTreeRowQuickAction,
+.BrowserTreeRowOverflow,
+.BrowserTreeContextMenuAction {
   min-height: 28px;
 }
 
 .V15Panel button.BrowserTreeRowMain {
   width: 100%;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
   gap: 8px;
   align-items: center;
   text-align: left;
+  transition:
+    background 140ms ease,
+    border-color 140ms ease;
+}
+
+.V15Panel button.BrowserTreeRowMain.isGraphRow {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+  padding: 0;
+}
+
+.V15Panel button.BrowserTreeRowMain:hover {
+  border-color: var(--v15-panel-border-soft);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.V15Panel button.BrowserTreeRowMain.isGraphRow .BrowserTreeRowLabel {
+  display: none;
 }
 
 .BrowserTreeRowLabel {
@@ -461,17 +893,256 @@ body {
   font-weight: 700;
 }
 
+.BrowserGraphStateBar {
+  position: relative;
+  min-width: 0;
+  min-height: 26px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  overflow: hidden;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 0 8px;
+  gap: 8px;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    background 160ms ease;
+}
+
+.BrowserGraphStateFill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 100%;
+  background: linear-gradient(90deg, rgba(84, 186, 124, 0.34), rgba(84, 186, 124, 0.12));
+  transition:
+    width 160ms ease,
+    background 160ms ease;
+}
+
+.BrowserGraphStateBar--rebuild .BrowserGraphStateFill {
+  width: 0;
+  background: transparent;
+}
+
+.BrowserGraphStateBar--done .BrowserGraphStateFill {
+  width: 100%;
+  background: linear-gradient(90deg, rgba(84, 186, 124, 0.34), rgba(84, 186, 124, 0.12));
+}
+
+.BrowserGraphStateBar--building .BrowserGraphStateFill {
+  width: 0;
+  background: linear-gradient(90deg, rgba(232, 186, 86, 0.58), rgba(232, 186, 86, 0.18));
+  animation: BrowserGraphStateBuildFill 1.05s ease-in-out infinite;
+}
+
+.BrowserGraphStateText {
+  position: relative;
+  z-index: 1;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(244, 247, 255, 0.86);
+}
+
+.BrowserGraphStateLabel {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(244, 247, 255, 0.95);
+}
+
+.BrowserTreeRow.isOpen .BrowserGraphStateBar {
+  border-color: rgba(96, 142, 255, 0.28);
+  box-shadow:
+    inset 0 0 0 1px rgba(96, 142, 255, 0.1),
+    0 0 0 1px rgba(96, 142, 255, 0.12),
+    0 0 18px rgba(72, 112, 255, 0.14);
+}
+
+.BrowserTreeRow.isOpen .BrowserGraphStateBar::after {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 -28px;
+  width: 28px;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.14) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  pointer-events: none;
+  animation: BrowserGraphOpenGlowSweep 2.2s linear infinite;
+}
+
+.BrowserTreeRow.isActiveEditor .BrowserGraphStateBar {
+  border-color: rgba(122, 168, 255, 0.42);
+  box-shadow:
+    inset 0 0 0 1px rgba(122, 168, 255, 0.12),
+    0 0 0 1px rgba(122, 168, 255, 0.18),
+    0 0 24px rgba(72, 112, 255, 0.2);
+}
+
 .BrowserTreeRowMeta {
   font-size: 11px;
   color: var(--v15-text-muted);
+  text-transform: none;
+  letter-spacing: 0.02em;
+}
+
+.V15Panel button.BrowserTreeRowOverflow {
+  min-width: 28px;
+  width: 28px;
+  padding: 0;
+  justify-content: center;
+  border-radius: 8px;
+  border-color: transparent;
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--v15-text-muted);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+}
+
+.V15Panel button.BrowserTreeRowOverflow:hover,
+.V15Panel button.BrowserTreeRowOverflow.isActive {
+  border-color: var(--v15-panel-border-soft);
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(238, 242, 255, 0.94);
+}
+
+.V15Panel button.BrowserTreeRowQuickAction {
+  min-width: 28px;
+  width: 28px;
+  padding: 0;
+  justify-content: center;
+  border-radius: 8px;
+  border-color: transparent;
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--v15-text-muted);
   text-transform: uppercase;
+}
+
+.V15Panel button.BrowserTreeRowQuickAction--close:hover {
+  border-color: rgba(255, 112, 112, 0.26);
+  background: rgba(255, 112, 112, 0.12);
+  color: rgba(255, 220, 220, 0.96);
+}
+
+.V15Panel button.BrowserTreeRowQuickAction--save {
+  font-size: 10px;
+  font-weight: 900;
   letter-spacing: 0.04em;
+}
+
+.V15Panel button.BrowserTreeRowQuickAction--save.BrowserTreeRowQuickAction--unsaved {
+  border-color: rgba(87, 129, 255, 0.28);
+  background: rgba(87, 129, 255, 0.16);
+  color: rgba(232, 239, 255, 0.96);
+}
+
+.V15Panel button.BrowserTreeRowQuickAction--save.BrowserTreeRowQuickAction--saved {
+  border-color: rgba(84, 186, 124, 0.18);
+  background: rgba(84, 186, 124, 0.08);
+  color: rgba(212, 255, 225, 0.84);
+}
+
+.V15Panel button.BrowserTreeRowQuickAction--save:hover,
+.V15Panel button.BrowserTreeRowQuickAction--save.isActive {
+  border-color: var(--v15-panel-border-soft);
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(244, 247, 255, 0.98);
 }
 
 .BrowserTreeEmpty {
   padding: 4px 0 2px;
   font-size: 12px;
   color: var(--v15-text-muted);
+}
+
+.BrowserTreeSectionNote {
+  padding: 0 8px 6px 16px;
+  font-size: 11px;
+  color: var(--v15-text-muted);
+}
+
+@keyframes BrowserGraphStateBuildFill {
+  0% {
+    width: 0;
+    opacity: 0.82;
+  }
+
+  72% {
+    width: 100%;
+    opacity: 1;
+  }
+
+  100% {
+    width: 100%;
+    opacity: 0.94;
+  }
+}
+
+@keyframes BrowserGraphOpenGlowSweep {
+  from {
+    transform: translateX(0);
+    opacity: 0.28;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
+
+  to {
+    transform: translateX(220px);
+    opacity: 0.18;
+  }
+}
+
+.BrowserTreeContextMenu {
+  position: fixed;
+  z-index: 50;
+  min-width: 180px;
+  max-width: min(240px, calc(100vw - 24px));
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  border: 1px solid rgba(124, 160, 255, 0.3);
+  border-radius: 10px;
+  background: rgba(20, 20, 24, 0.98);
+  box-shadow:
+    0 12px 30px rgba(0, 0, 0, 0.48),
+    0 0 0 1px rgba(124, 160, 255, 0.12);
+}
+
+.BrowserTreeContextMenuHeader {
+  padding: 2px 4px 6px;
+  border-bottom: 1px solid var(--v15-panel-border-soft);
+  font-size: 11px;
+  font-weight: 800;
+  color: rgba(238, 242, 255, 0.92);
+}
+
+.V15Panel button.BrowserTreeContextMenuAction {
+  width: 100%;
+  justify-content: flex-start;
+  text-align: left;
+  border-color: transparent;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.V15Panel button.BrowserTreeContextMenuAction:hover {
+  border-color: var(--v15-panel-border-soft);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .V15Panel {
@@ -493,6 +1164,397 @@ body {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  background: var(--sp-window-body-bg);
+  border-color: var(--sp-window-body-border);
+  font-family: var(--sp-window-font-family);
+  font-size: var(--sp-window-font-size);
+}
+
+.SpaghettiPanelRoot button,
+.SpaghettiPanelRoot select,
+.SpaghettiPanelRoot input,
+.SpaghettiPanelRoot textarea {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+.SpaghettiPanelRoot .V15Meta,
+.SpaghettiPanelRoot .V15Error,
+.SpaghettiPanelRoot .V15SectionLabel {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+.SpaghettiPanelHeaderShell {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 auto;
+  min-height: 0;
+  gap: var(--sp-window-gap);
+}
+
+.SpaghettiPanelPinnedRow {
+  flex: 0 0 auto;
+}
+
+.SpaghettiWindowShell {
+  opacity: 1;
+}
+
+.SpaghettiWindowSettingsSection {
+  border: 1px solid var(--sp-window-body-border);
+  border-radius: 10px;
+  background: var(--sp-window-toolbar-surface-strong);
+  padding: var(--sp-window-pad-y) var(--sp-window-pad-x);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-window-gap);
+}
+
+.SpaghettiWindowSettingsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: var(--sp-window-font-size);
+  font-weight: 800;
+  color: rgba(238, 242, 255, 0.94);
+}
+
+.SpaghettiWindowSettingsActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.V15Panel button.SpaghettiWindowSettingsClampToggle {
+  min-height: 24px;
+  padding: 0 var(--sp-window-pad-x);
+  font-size: calc(var(--sp-window-font-size) - 1px);
+  white-space: nowrap;
+  font-family: var(--sp-window-font-family);
+}
+
+.V15Panel button.SpaghettiWindowSettingsClampToggle.isActive,
+.V15Panel button.SpaghettiWindowSettingsClampToggle.isActive:hover {
+  border-color: rgba(255, 160, 102, 0.52);
+  background: rgba(255, 145, 82, 0.2);
+  color: rgba(255, 238, 224, 0.98);
+}
+
+.V15Panel button.SpaghettiWindowSettingsReset {
+  min-height: 24px;
+  padding: 0 var(--sp-window-pad-x);
+  font-size: calc(var(--sp-window-font-size) - 1px);
+  white-space: nowrap;
+  font-family: var(--sp-window-font-family);
+}
+
+.SpaghettiWindowSettingsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: var(--sp-window-gap);
+}
+
+.SpaghettiWindowSettingsField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: calc(var(--sp-window-font-size) - 1px);
+  color: var(--v15-text-dim);
+}
+
+.SpaghettiWindowSettingsField .ParaSlider,
+.SpaghettiWindowSettingsField .ParaSelect {
+  width: 100%;
+}
+
+.SpaghettiWindowSettingsField select {
+  min-height: 26px;
+  border-radius: 8px;
+  border: 1px solid var(--v15-panel-border-soft);
+  background: color-mix(in srgb, var(--sp-window-toolbar-bg) 86%, white 5%);
+  color: var(--v15-text);
+  padding: calc(var(--sp-window-pad-y) * 0.5) var(--sp-window-pad-x);
+  color-scheme: dark;
+  font-size: var(--sp-window-font-size);
+  font-family: var(--sp-window-font-family);
+}
+
+.SpaghettiWindowSettingsField select option {
+  background: #101218;
+  color: var(--v15-text);
+}
+
+.SpaghettiWindowSettingsSliderRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.SpaghettiWindowSettingsSliderRow span {
+  min-width: 38px;
+  text-align: right;
+  color: rgba(238, 242, 255, 0.86);
+  font-size: var(--sp-window-font-size);
+  font-family: var(--sp-window-font-family);
+}
+
+.ParaSlider {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  min-width: 0;
+}
+
+.V15Panel button.ParaSliderCap {
+  flex: 0 0 28px;
+  width: 28px;
+  min-width: 28px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid var(--v15-panel-border-soft);
+  background: color-mix(in srgb, var(--sp-window-toolbar-bg) 86%, white 5%);
+  color: var(--v15-text);
+  font-size: calc(var(--sp-window-font-size) - 1px);
+  font-family: var(--sp-window-font-family);
+  line-height: 1;
+  border-radius: 0;
+}
+
+.V15Panel button.ParaSliderCap--left {
+  border-radius: 8px 0 0 8px;
+}
+
+.V15Panel button.ParaSliderCap--right {
+  border-left: none;
+  border-radius: 0 8px 8px 0;
+}
+
+.ParaSliderTrack {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 30px;
+  border: 1px solid var(--v15-panel-border-soft);
+  border-left: none;
+  background: color-mix(in srgb, var(--sp-window-toolbar-bg) 86%, white 5%);
+  cursor: ew-resize;
+  overflow: hidden;
+  outline: none;
+}
+
+.ParaSliderTrack:focus-visible {
+  box-shadow: inset 0 0 0 1px rgba(124, 160, 255, 0.45);
+}
+
+.ParaSliderTrack.isClampEditing {
+  cursor: col-resize;
+}
+
+.ParaSliderClampRange {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  border-radius: 0;
+  background: rgba(124, 160, 255, 0.1);
+  pointer-events: none;
+}
+
+.ParaSliderClampRange.isClampEditing {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 160, 102, 0.4) 0%,
+    rgba(255, 136, 66, 0.26) 100%
+  );
+}
+
+.ParaSliderFill {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  background: linear-gradient(
+    90deg,
+    rgba(124, 160, 255, 0.38) 0%,
+    rgba(124, 160, 255, 0.2) 100%
+  );
+  border-radius: 0;
+  pointer-events: none;
+}
+
+.ParaSliderValueMarker {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  width: 2px;
+  margin-left: -1px;
+  border-radius: 999px;
+  background: rgba(244, 247, 255, 0.92);
+  box-shadow: 0 0 0 1px rgba(11, 11, 15, 0.42);
+  pointer-events: none;
+}
+
+.V15Panel button.ParaSliderClampHandle {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  width: 10px;
+  min-width: 10px;
+  margin-left: -5px;
+  padding: 0;
+  border: 1px solid rgba(255, 187, 130, 0.75);
+  border-radius: 999px;
+  background: rgba(255, 146, 82, 0.92);
+  box-shadow: 0 0 0 1px rgba(10, 10, 14, 0.4);
+  cursor: col-resize;
+  z-index: 2;
+}
+
+.V15Panel button.ParaSliderClampHandle:hover {
+  background: rgba(255, 170, 108, 0.98);
+  border-color: rgba(255, 214, 184, 0.92);
+}
+
+.ParaSliderContent {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 var(--sp-window-pad-x);
+  pointer-events: none;
+}
+
+.ParaSliderLabel,
+.ParaSliderValue {
+  font-size: var(--sp-window-font-size);
+  font-family: var(--sp-window-font-family);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.ParaSliderLabel {
+  color: rgba(230, 236, 248, 0.94);
+}
+
+.ParaSliderValue {
+  color: rgba(238, 242, 255, 0.86);
+  text-align: right;
+}
+
+.ParaSelect {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  min-width: 0;
+}
+
+.V15Panel button.ParaSelectCap {
+  flex: 0 0 28px;
+  width: 28px;
+  min-width: 28px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid var(--v15-panel-border-soft);
+  background: color-mix(in srgb, var(--sp-window-toolbar-bg) 86%, white 5%);
+  color: var(--v15-text);
+  font-size: calc(var(--sp-window-font-size) - 1px);
+  font-family: var(--sp-window-font-family);
+  line-height: 1;
+  border-radius: 0;
+}
+
+.V15Panel button.ParaSelectCap--left {
+  border-radius: 8px 0 0 8px;
+}
+
+.V15Panel button.ParaSelectCap--right {
+  border-left: none;
+  border-radius: 0 8px 8px 0;
+}
+
+.ParaSelectTrack {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 30px;
+  border: 1px solid var(--v15-panel-border-soft);
+  border-left: none;
+  background: color-mix(in srgb, var(--sp-window-toolbar-bg) 86%, white 5%);
+  overflow: hidden;
+}
+
+.ParaSelectTrack:focus-within {
+  box-shadow: inset 0 0 0 1px rgba(124, 160, 255, 0.45);
+}
+
+.ParaSelectContent {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 var(--sp-window-pad-x);
+  pointer-events: none;
+}
+
+.ParaSelectLabel,
+.ParaSelectValue {
+  font-size: var(--sp-window-font-size);
+  font-family: var(--sp-window-font-family);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.ParaSelectLabel {
+  color: rgba(230, 236, 248, 0.94);
+}
+
+.ParaSelectValue {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: rgba(238, 242, 255, 0.86);
+  text-align: right;
+}
+
+.ParaSelectChevron {
+  flex: 0 0 auto;
+  font-size: calc(var(--sp-window-font-size) - 1px);
+  opacity: 0.78;
+}
+
+.ParaSelectNative {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.SpaghettiFocusRow {
+  border: 1px solid var(--sp-window-body-border);
+  border-radius: 10px;
+  background: var(--sp-window-toolbar-surface);
+  padding: var(--sp-window-pad-y) var(--sp-window-pad-x);
+}
+
+.SpaghettiGraphSection {
+  border: 1px solid var(--v15-panel-border-soft);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 10px;
 }
 
 .SpaghettiPanelHeaderBlock {
@@ -500,41 +1562,77 @@ body {
   flex-direction: column;
   flex: 0 1 auto;
   min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+  border: 1px solid var(--v15-panel-border-soft);
+  border-radius: 10px;
+  background: var(--sp-window-toolbar-bg);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  scrollbar-color: rgba(86, 92, 110, 0.95) rgba(8, 10, 14, 0.92);
+  scrollbar-width: thin;
+}
+
+.SpaghettiPanelHeaderBlock::-webkit-scrollbar {
+  width: 12px;
+}
+
+.SpaghettiPanelHeaderBlock::-webkit-scrollbar-track {
+  background: rgba(8, 10, 14, 0.92);
+}
+
+.SpaghettiPanelHeaderBlock::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    180deg,
+    rgba(92, 98, 118, 0.98) 0%,
+    rgba(60, 65, 82, 0.98) 100%
+  );
+  border-radius: 999px;
+  border: 2px solid rgba(8, 10, 14, 0.92);
+}
+
+.SpaghettiPanelHeaderBlock::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(
+    180deg,
+    rgba(110, 118, 142, 0.98) 0%,
+    rgba(74, 80, 99, 0.98) 100%
+  );
+}
+
+.SpaghettiPanelHeaderBlock.isCollapsed {
+  min-height: 0;
   overflow: hidden;
 }
 
 .SpaghettiPanelHeaderScroll {
   display: flex;
   flex-direction: column;
-  flex: 1 1 auto;
-  gap: 10px;
+  flex: 0 0 auto;
+  gap: 0;
   min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding-right: 2px;
-  scrollbar-gutter: stable;
+  overflow: visible;
+  padding: 0;
 }
 
-.SpaghettiPanelTitleToggle {
+.SpaghettiPanelHeaderScroll.isCollapsed {
+  min-height: 10px;
+}
+
+.SpaghettiPanelToolbarTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 100%;
+}
+
+.SpaghettiPanelToolbarGroup {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  text-align: left;
-  cursor: pointer;
-  border: 1px solid var(--v15-panel-border-soft);
-  border-radius: 8px;
-  padding: 8px 10px;
-  background: rgba(255, 255, 255, 0.03);
-}
-
-.SpaghettiPanelTitleToggle span:first-child {
-  font-weight: 800;
-}
-
-.SpaghettiPanelTitleToggle span:last-child {
-  font-size: 11px;
-  color: var(--v15-text-muted);
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
 }
 
 .V15PanelTitle {
@@ -653,8 +1751,9 @@ body {
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-height: calc(100vh - var(--v15-view-anchor-top) - 16px);
+  max-height: calc(100dvh - var(--v15-view-anchor-top) - 16px);
   overflow: hidden;
+  transition: max-height 180ms ease;
 }
 
 .ViewToolbarToggle {
@@ -1226,11 +2325,16 @@ body {
   min-width: 0;
   min-height: 0;
   overflow: hidden;
+  transition: margin-left 160ms ease;
+}
+
+.ViewportArea.isLeftDockSplit {
+  margin-left: 320px;
 }
 
 .SpaghettiFloatingDock {
   position: absolute;
-  z-index: 11;
+  z-index: 24;
   inset: 0;
   pointer-events: none;
 }
@@ -1246,8 +2350,21 @@ body {
   overflow: hidden;
 }
 
+.SpaghettiFloatingWindow.isMaximized {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-height: 100%;
+}
+
+.SpaghettiFloatingWindow.isCollapsed {
+  height: auto;
+  max-height: none;
+}
+
 .SpaghettiFloatingHandle {
   display: flex;
+  flex-direction: row;
   justify-content: space-between;
   align-items: center;
   gap: 10px;
@@ -1257,15 +2374,163 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-bottom: none;
   border-radius: 10px 10px 0 0;
-  background: linear-gradient(180deg, rgba(39, 48, 68, 0.96) 0%, rgba(31, 37, 54, 0.96) 100%);
+  background: var(--sp-window-titlebar-bg);
   color: #eef2ff;
-  font-size: 12px;
+  font-size: var(--sp-window-font-size);
   font-weight: 700;
   letter-spacing: 0.02em;
   text-transform: uppercase;
   cursor: grab;
   user-select: text;
   pointer-events: auto;
+  font-family: var(--sp-window-font-family);
+}
+
+.SpaghettiFloatingHandleRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.SpaghettiFloatingHandle.isMeatball {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.SpaghettiFloatingHandle.isMeatball .SpaghettiFloatingHandleTitle {
+  flex: 0 0 auto;
+}
+
+.SpaghettiFloatingHandle.isMeatball .SpaghettiFloatingHandleRow {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 8px;
+}
+
+.SpaghettiFloatingHandle.isMeatball .SpaghettiFloatingHandleGraph {
+  width: 100%;
+}
+
+.SpaghettiFloatingHandle.isMeatball .SpaghettiFloatingHandleActions {
+  width: 100%;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+
+.SpaghettiFloatingHandleTitle {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.SpaghettiFloatingHandleGraph {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  min-width: 0;
+  justify-content: flex-start;
+}
+
+.SpaghettiFloatingHandleActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  margin-left: auto;
+  min-width: 0;
+}
+
+.SpaghettiFloatingHandle.isMeatball .SpaghettiFloatingHandleActions {
+  margin-left: 0;
+}
+
+.SpaghettiFloatingHandleCoreActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.SpaghettiFloatingHandleAdvancedActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  min-width: 0;
+  max-width: 0;
+  opacity: 0;
+  overflow: hidden;
+  transform: translateX(8px);
+  pointer-events: none;
+  transition:
+    max-width 180ms ease,
+    opacity 160ms ease,
+    transform 180ms ease;
+}
+
+.SpaghettiFloatingHandleAdvancedActions.isExpanded {
+  max-width: 220px;
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: auto;
+}
+
+.SpaghettiFloatingHandle.isMeatball .SpaghettiFloatingHandleActions {
+  width: 100%;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+
+.SpaghettiFloatingHandle.isMeatball .SpaghettiFloatingHandleAdvancedActions {
+  max-width: 0;
+  flex-basis: 100%;
+}
+
+.SpaghettiFloatingHandle.isMeatball .SpaghettiFloatingHandleAdvancedActions.isExpanded {
+  max-width: 100%;
+}
+
+.SpaghettiWindowAction,
+.SpaghettiWindowAction:hover {
+  min-width: 28px;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+  color: #f5f7ff;
+  font-size: 10px;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.SpaghettiWindowAction.isActive,
+.SpaghettiWindowAction:hover {
+  background: rgba(96, 142, 255, 0.22);
+  border-color: rgba(96, 142, 255, 0.45);
+}
+
+.SpaghettiWindowAction--meatball.isActive,
+.SpaghettiWindowAction--meatball.isActive:hover {
+  background: rgba(214, 72, 72, 0.22);
+  border-color: rgba(214, 72, 72, 0.55);
+  color: #ffd7d7;
+}
+
+.SpaghettiWindowAction--build {
+  flex: 0 0 auto;
+}
+
+.SpaghettiWindowActionTrayToggle {
+  flex: 0 0 auto;
 }
 
 .SpaghettiFloatingHandle:active {
@@ -1279,6 +2544,7 @@ body {
   min-height: 0;
   overflow: hidden;
   pointer-events: auto;
+  background: var(--sp-window-canvas-shell-bg);
 }
 
 .SpaghettiFloatingBody > * {
@@ -1309,6 +2575,191 @@ body {
     transparent 100%
   );
   opacity: 0.85;
+}
+
+.SpaghettiMeatballHost {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  flex: 1 1 auto;
+  height: 100%;
+  min-height: 0;
+}
+
+.SpaghettiMeatballHost .SpaghettiFloatingHandle {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.SpaghettiMeatballHost .SpaghettiPanelRoot {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.ViewportSplitLayout {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+  gap: 0;
+}
+
+.ViewportSplitLayout.isLeftDockSplit {
+  --split-left-offset: var(--left-dock-split-width, 320px);
+}
+
+.ViewportSplitPane {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.ViewportSplitPane--viewer,
+.ViewportSplitPane--editor,
+.ViewportSplitDivider {
+  transition:
+    margin-left 180ms ease,
+    width 180ms ease;
+}
+
+.ViewportSplitDividerShell {
+  position: relative;
+  width: 100%;
+}
+
+.ViewportSplitPane--viewer {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ViewportSplitLayout.isLeftDockSplit .ViewportSplitPane--viewer {
+  margin-left: var(--split-left-offset);
+  width: calc(100% - var(--split-left-offset));
+  justify-self: start;
+}
+
+.ViewportSplitPane--editor {
+  padding: 12px;
+  box-sizing: border-box;
+}
+
+.ViewportSplitPriorityToggle,
+.ViewportSplitPriorityToggle:hover {
+  position: absolute;
+  top: 18px;
+  left: calc(var(--split-left-offset, 0px) + 6px);
+  z-index: 5;
+  min-width: 24px;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+  color: #eef2ff;
+  font-size: 10px;
+  line-height: 1;
+  transition:
+    left 180ms ease,
+    background 140ms ease,
+    border-color 140ms ease;
+}
+
+.ViewportSplitPriorityToggle:hover,
+.ViewportSplitPriorityToggle.isEditorPriority {
+  background: rgba(96, 142, 255, 0.22);
+  border-color: rgba(96, 142, 255, 0.45);
+}
+
+.ViewportSplitLayout.isLeftDockSplit.isEditorPriority .ViewportSplitPriorityToggle {
+  left: 6px;
+}
+
+.ViewportSplitPriorityToggle--divider,
+.ViewportSplitPriorityToggle--divider:hover {
+  top: auto;
+  left: calc(var(--split-left-offset, 0px) + 12px);
+  bottom: -7px;
+  z-index: 6;
+}
+
+.ViewportSplitPriorityToggle--divider.isEditorPriority,
+.ViewportSplitPriorityToggle--divider.isEditorPriority:hover {
+  left: 6px;
+}
+
+.ViewportSplitLayout.isLeftDockSplit .ViewportSplitPane--editor {
+  margin-left: var(--split-left-offset);
+  width: calc(100% - var(--split-left-offset));
+  justify-self: start;
+}
+
+.ViewportSplitLayout.isLeftDockSplit.isEditorPriority .ViewportSplitPane--editor {
+  margin-left: 0;
+  width: 100%;
+}
+
+.ViewportSplitDivider,
+.ViewportSplitDivider:hover {
+  display: block;
+  width: 100%;
+  min-height: 10px;
+  height: 10px;
+  padding: 0;
+  border-radius: 0;
+  border: none;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(255, 255, 255, 0.18) 50%,
+    rgba(255, 255, 255, 0.08) 100%
+  );
+  cursor: row-resize;
+}
+
+.ViewportSplitLayout.isLeftDockSplit .ViewportSplitDivider {
+  margin-left: var(--split-left-offset);
+  width: calc(100% - var(--split-left-offset));
+  justify-self: start;
+}
+
+.ViewportSplitLayout.isLeftDockSplit.isEditorPriority .ViewportSplitDivider {
+  margin-left: 0;
+  width: 100%;
+}
+
+.ViewportBottomSplitDockGhost {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 3;
+  pointer-events: none;
+  border: 1px dashed rgba(255, 255, 255, 0.85);
+  border-radius: 12px 12px 0 0;
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.ViewportBottomSplitDockGhost.isLeftDockShifted {
+  left: var(--left-dock-split-width, 320px);
+}
+
+.SpaghettiSplitWindow {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 10px;
+  box-shadow: var(--v15-panel-shadow);
 }
 
 .ViewportRoot {
@@ -1346,6 +2797,10 @@ body {
   height: var(--v15-axis-widget-size);
   overflow: hidden;
   user-select: text;
+  transition:
+    width 180ms ease,
+    height 180ms ease,
+    transform 180ms ease;
 }
 
 .AxisWidgetResizeHandle {
@@ -1413,12 +2868,13 @@ body {
 }
 
 .SpaghettiPanelCanvasWrap {
-  margin-top: 10px;
+  margin-top: 0;
   position: relative;
   display: flex;
   flex: 1 1 auto;
   min-height: 0;
   overflow: hidden;
+  background: color-mix(in srgb, var(--sp-window-body-bg) 82%, black 18%);
 }
 
 .SpaghettiPanelCanvasWrap.isExpanded {
@@ -1429,7 +2885,7 @@ body {
   flex: 0 0 auto;
   border: 1px solid var(--v15-panel-border-soft);
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--sp-window-toolbar-surface);
   overflow: hidden;
 }
 
@@ -1553,16 +3009,68 @@ body {
   border: 1px solid var(--v15-panel-border-soft);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.02);
-  margin-bottom: 10px;
+}
+
+.SpaghettiToolbarSection {
+  border: 1px solid var(--v15-panel-border-soft);
+  border-radius: 8px;
+  background: var(--sp-window-toolbar-surface);
+}
+
+.SpaghettiToolbarRow {
+  display: flex;
+  align-items: center;
+  padding: var(--sp-window-pad-y) var(--sp-window-pad-x);
+  border: 1px solid var(--v15-panel-border-soft);
+  border-radius: 8px;
+  background: var(--sp-window-toolbar-surface);
+}
+
+.SpaghettiToolbarSectionSummary {
+  cursor: pointer;
+  padding: var(--sp-window-pad-y) var(--sp-window-pad-x);
+  font-size: var(--sp-window-font-size);
+  font-weight: 700;
+  font-family: var(--sp-window-font-family);
+  color: var(--v15-text-dim);
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.SpaghettiToolbarSectionSummary::-webkit-details-marker {
+  display: none;
+}
+
+.SpaghettiToolbarSectionSummary::after {
+  content: '+';
+  order: -1;
+}
+
+.SpaghettiToolbarSection[open] .SpaghettiToolbarSectionSummary::after {
+  content: '-';
+}
+
+.SpaghettiToolbarSectionBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-window-gap);
+  padding: var(--sp-window-pad-y) var(--sp-window-pad-x);
+  border-top: 1px solid var(--v15-panel-border-soft);
 }
 
 .SpaghettiHelpSummary {
   cursor: pointer;
-  padding: 8px 10px;
-  font-size: 12px;
+  padding: var(--sp-window-pad-y) var(--sp-window-pad-x);
+  font-size: var(--sp-window-font-size);
   font-weight: 700;
+  font-family: var(--sp-window-font-family);
   color: var(--v15-text-dim);
   list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .SpaghettiHelpSummary::-webkit-details-marker {
@@ -1571,7 +3079,7 @@ body {
 
 .SpaghettiHelpSummary::after {
   content: '+';
-  float: right;
+  order: -1;
 }
 
 .SpaghettiHelpDetails[open] .SpaghettiHelpSummary::after {
@@ -1579,8 +3087,10 @@ body {
 }
 
 .SpaghettiHelpBody {
-  padding: 0 10px 8px 10px;
+  padding: var(--sp-window-pad-y) var(--sp-window-pad-x);
   border-top: 1px solid var(--v15-panel-border-soft);
+  font-size: var(--sp-window-font-size);
+  font-family: var(--sp-window-font-family);
 }
 
 .SpaghettiEditorRoot {
@@ -1650,8 +3160,95 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 12px;
+  font-size: var(--sp-window-font-size);
   color: var(--v15-text-dim);
+}
+
+.SpaghettiFocusNodeControls {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.V15Panel button.SpaghettiFocusNodeCycle {
+  width: 24px;
+  min-width: 24px;
+  height: 24px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  font-size: var(--sp-window-font-size);
+  font-family: var(--sp-window-font-family);
+  line-height: 1;
+}
+
+.SpaghettiGraphDocumentSelect {
+  width: 100%;
+  min-width: 0;
+  border-radius: 8px;
+  border: 1px solid var(--v15-panel-border-soft);
+  background: color-mix(in srgb, var(--sp-window-toolbar-bg) 86%, white 5%);
+  color: var(--v15-text);
+  padding: calc(var(--sp-window-pad-y) - 1px) calc(var(--sp-window-pad-x) + 2px);
+  box-sizing: border-box;
+  color-scheme: dark;
+  font-family: var(--sp-window-font-family);
+  font-size: var(--sp-window-font-size);
+}
+
+.SpaghettiGraphDocumentSelect--titlebar {
+  flex: 0 0 auto;
+  min-height: 28px;
+  min-width: 0;
+  padding: 4px 22px 4px 10px;
+  border-color: rgba(255, 255, 255, 0.18);
+  background-color: rgba(255, 255, 255, 0.08);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%23eef2ff' d='M1.2.6 5 4.2 8.8.6 10 1.8 5 6 0 1.8z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 7px center;
+  background-size: 8px 5px;
+  color: #eef2ff;
+  font-size: var(--sp-window-font-size);
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+  text-align: left;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+
+.SpaghettiGraphDocumentSelect option,
+.SpaghettiGraphDocumentSelect optgroup {
+  background: #101218;
+  color: var(--v15-text);
+}
+
+.SpaghettiGraphDocumentSelect option:checked {
+  background: #1d6fe9;
+  color: #ffffff;
+}
+
+.SpaghettiGraphDocumentRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.V15Panel button.SpaghettiGraphQuickAction {
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  font-size: var(--sp-window-font-size);
+  letter-spacing: 0.04em;
 }
 
 .SpaghettiTypeLegend {
@@ -1665,11 +3262,11 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 10px;
+  font-size: calc(var(--sp-window-font-size) - 1px);
   color: rgba(221, 229, 243, 0.9);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 999px;
-  padding: 3px 7px;
+  padding: calc(var(--sp-window-pad-y) - 3px) calc(var(--sp-window-pad-x) - 1px);
   background: rgba(255, 255, 255, 0.02);
 }
 
@@ -1697,22 +3294,37 @@ body {
 
 .SpaghettiEditorFocusField select {
   min-width: 180px;
+  min-height: 24px;
   border-radius: 8px;
   border: 1px solid var(--v15-panel-border-soft);
-  background: rgba(255, 255, 255, 0.06);
+  background: color-mix(in srgb, var(--sp-window-toolbar-bg) 86%, white 5%);
   color: var(--v15-text);
-  padding: 5px 8px;
+  padding: 2px var(--sp-window-pad-x);
+  font-size: var(--sp-window-font-size);
+  font-family: var(--sp-window-font-family);
+  color-scheme: dark;
+}
+
+.SpaghettiEditorFocusField select option,
+.SpaghettiEditorFocusField select optgroup {
+  background: #101218;
+  color: var(--v15-text);
+}
+
+.SpaghettiEditorFocusField select option:checked {
+  background: #1d6fe9;
+  color: #ffffff;
 }
 
 .SpaghettiCollapsedRoot {
   border: 1px solid var(--v15-panel-border-soft);
   border-radius: 10px;
-  background: rgba(8, 10, 14, 0.8);
-  padding: 10px;
+  background: var(--sp-window-canvas-shell-bg);
+  padding: var(--sp-window-pad-y) var(--sp-window-pad-x);
 }
 
 .SpaghettiCollapsedHeader {
-  font-size: 12px;
+  font-size: var(--sp-window-font-size);
   color: var(--v15-text-dim);
   margin-bottom: 6px;
 }
@@ -1720,13 +3332,13 @@ body {
 .SpaghettiCollapsedFocusCard {
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.03);
-  padding: 8px;
+  background: var(--sp-window-toolbar-surface);
+  padding: var(--sp-window-pad-y) var(--sp-window-pad-x);
   margin-bottom: 10px;
 }
 
 .SpaghettiCollapsedFocusLabel {
-  font-size: 12px;
+  font-size: var(--sp-window-font-size);
   font-weight: 700;
 }
 
@@ -1740,33 +3352,57 @@ body {
   overflow: hidden;
 }
 
-.SpaghettiCanvasResizeBar {
+.V15Panel button.SpaghettiCanvasResizeBar,
+.V15Panel button.SpaghettiCanvasResizeBar:hover {
   flex: 0 0 auto;
-  width: 100px;
-  height: 16px;
-  border: 1px solid var(--v15-panel-border-soft);
+  width: 100%;
+  max-width: none;
+  height: 4px;
+  appearance: none;
+  -webkit-appearance: none;
+  border: none;
   border-radius: 999px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)),
-    rgba(8, 10, 14, 0.7);
+  background: transparent;
+  box-shadow: none;
+  color: transparent;
   cursor: ns-resize;
   display: flex;
   align-items: center;
   justify-content: center;
   align-self: center;
   padding: 0;
+  margin: 0;
+}
+
+.SpaghettiCanvasResizeBar::before {
+  content: '';
+  width: 100%;
+  height: 2px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  transition:
+    background 140ms ease,
+    box-shadow 140ms ease;
 }
 
 .SpaghettiCanvasResizeBar:hover {
-  border-color: rgba(96, 142, 255, 0.45);
-  background:
-    linear-gradient(180deg, rgba(96, 142, 255, 0.18), rgba(96, 142, 255, 0.04)),
-    rgba(8, 10, 14, 0.78);
+  background: transparent;
+}
+
+.SpaghettiCanvasResizeBar:hover::before {
+  background: rgba(124, 160, 255, 0.56);
+  box-shadow: 0 0 8px rgba(124, 160, 255, 0.18);
 }
 
 .SpaghettiCanvasResizeBar:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px rgba(96, 142, 255, 0.45);
+}
+
+.SpaghettiCanvasResizeBar:focus-visible::before {
+  background: rgba(124, 160, 255, 0.62);
+  box-shadow:
+    0 0 0 1px rgba(124, 160, 255, 0.2),
+    0 0 8px rgba(124, 160, 255, 0.2);
 }
 
 .SpaghettiDebugResizeBar {
@@ -1774,15 +3410,7 @@ body {
 }
 
 .SpaghettiCanvasResizeGrip {
-  width: 56px;
-  height: 4px;
-  border-radius: 999px;
-  background:
-    repeating-linear-gradient(
-      90deg,
-      rgba(227, 235, 247, 0.92) 0 6px,
-      rgba(227, 235, 247, 0.32) 6px 10px
-    );
+  display: none;
 }
 
 .SpaghettiCanvasRoot {
@@ -1795,10 +3423,12 @@ body {
   flex-direction: column;
   border: 1px solid var(--v15-panel-border-soft);
   border-radius: 10px;
-  background: rgba(8, 10, 14, 0.8);
-  padding: 8px;
+  background: var(--sp-window-canvas-shell-bg);
+  padding: var(--sp-window-pad-y) var(--sp-window-pad-x);
   outline: none;
   overflow: hidden;
+  font-family: var(--sp-window-font-family);
+  font-size: var(--sp-window-font-size);
 }
 
 .SpaghettiCanvasRoot:focus-visible {
@@ -1810,15 +3440,30 @@ body {
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
+  gap: var(--sp-window-gap);
+  margin-bottom: var(--sp-window-gap);
+  font-size: var(--sp-window-font-size);
+  font-family: var(--sp-window-font-family);
+}
+
+.SpaghettiCanvasToolbar--modeOnly {
+  margin-bottom: 10px;
+}
+
+.SpaghettiCanvasModeToggle {
+  display: inline-flex;
+  align-items: center;
   gap: 6px;
-  margin-bottom: 8px;
+  flex-wrap: wrap;
+  font-family: var(--sp-window-font-family);
 }
 
 .SpaghettiCanvasCurveControl {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: 11px;
+  font-size: var(--sp-window-font-size);
+  font-family: var(--sp-window-font-family);
   color: rgba(220, 228, 244, 0.9);
 }
 
@@ -1831,7 +3476,7 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
+  font-size: var(--sp-window-font-size);
   color: rgba(220, 228, 244, 0.9);
 }
 
@@ -1840,18 +3485,20 @@ body {
   min-width: 118px;
   border-radius: 6px;
   border: 1px solid var(--v15-panel-border-soft);
-  background: rgba(255, 255, 255, 0.07);
+  background: color-mix(in srgb, var(--sp-window-toolbar-bg) 86%, white 5%);
   color: var(--v15-text);
-  padding: 3px 6px;
-  font-size: 11px;
+  padding: calc(var(--sp-window-pad-y) * 0.45) calc(var(--sp-window-pad-x) * 0.8);
+  font-size: var(--sp-window-font-size);
+  font-family: var(--sp-window-font-family);
 }
 
 .SpaghettiCanvasMessage {
   flex: 1 1 100%;
-  font-size: 11px;
+  font-size: var(--sp-window-font-size);
   border-radius: 8px;
   border: 1px solid transparent;
-  padding: 4px 8px;
+  padding: calc(var(--sp-window-pad-y) - 2px) var(--sp-window-pad-x);
+  font-family: var(--sp-window-font-family);
 }
 
 .SpaghettiCanvasMessage--info {
@@ -1874,7 +3521,7 @@ body {
   min-height: 0;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
-  background: rgba(11, 12, 18, 0.85);
+  background: var(--sp-window-canvas-well-bg);
 }
 
 .SpaghettiNodeAddMenu {
@@ -1940,6 +3587,7 @@ body {
 .SpaghettiCanvasStage {
   position: relative;
   isolation: isolate;
+  opacity: var(--sp-graph-content-opacity);
 }
 
 .SpaghettiWireLayer {

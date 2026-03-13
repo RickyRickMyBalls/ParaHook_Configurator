@@ -9,6 +9,12 @@ export class CameraController {
   private readonly tmpSize = new Vector3()
   private readonly tmpCenter = new Vector3()
   private readonly tmpDirection = new Vector3()
+  private temporaryOrbitDrag:
+    | {
+        lastClientX: number
+        lastClientY: number
+      }
+    | null = null
 
   public constructor(camera: PerspectiveCamera, domElement: HTMLElement) {
     this.camera = camera
@@ -31,6 +37,39 @@ export class CameraController {
 
   public setEnabled(enabled: boolean): void {
     this.controls.enabled = enabled
+  }
+
+  public beginTemporaryOrbitDrag(startClientX: number, startClientY: number): void {
+    this.temporaryOrbitDrag = {
+      lastClientX: startClientX,
+      lastClientY: startClientY,
+    }
+  }
+
+  public updateTemporaryOrbitDrag(clientX: number, clientY: number): void {
+    if (this.temporaryOrbitDrag === null) {
+      return
+    }
+    const deltaX = clientX - this.temporaryOrbitDrag.lastClientX
+    const deltaY = clientY - this.temporaryOrbitDrag.lastClientY
+    if (deltaX === 0 && deltaY === 0) {
+      return
+    }
+
+    const elementHeight = Math.max(this.controls.domElement?.clientHeight ?? 1, 1)
+    const twoPi = Math.PI * 2
+    this.controls.rotateLeft((twoPi * deltaX) / elementHeight)
+    this.controls.rotateUp((twoPi * deltaY) / elementHeight)
+    this.controls.update()
+
+    this.temporaryOrbitDrag = {
+      lastClientX: clientX,
+      lastClientY: clientY,
+    }
+  }
+
+  public endTemporaryOrbitDrag(): void {
+    this.temporaryOrbitDrag = null
   }
 
   public frameBox(box3: Box3): void {

@@ -6,7 +6,11 @@ import type {
   BuildResult,
   PartArtifact,
 } from '../../shared/buildTypes'
-import { getPartArtifactKey } from '../../shared/buildTypes'
+import {
+  getPartArtifactKey,
+  LEGACY_RUNTIME_GRAPH_DOCUMENT_ID,
+  LEGACY_RUNTIME_PROJECT_FILE_ID,
+} from '../../shared/buildTypes'
 import {
   deriveSpaghettiSourcePartKeysFromProfilePatch,
   withAssembledBuildStatsKey,
@@ -60,7 +64,15 @@ export const buildPipeline = async (
   request: BuildRequest,
   emitProgress: ProgressEmitter,
 ): Promise<BuildResult> => {
-  const { seq, payload, heelKickInstances, toeHookInstances } = request
+  const {
+    seq,
+    payload,
+    heelKickInstances,
+    toeHookInstances,
+    projectFileId,
+    graphDocumentId,
+    buildRequestId,
+  } = request
   const instances = { heelKickInstances, toeHookInstances }
   const buildSignature = makeBuildSignature(payload, ENGINE_MODE, CONTROL_MODE)
   const parts = buildModel({
@@ -79,6 +91,9 @@ export const buildPipeline = async (
   for (const partKey of orderedPartKeys) {
     emit(emitProgress, {
       seq,
+      projectFileId,
+      graphDocumentId,
+      buildRequestId,
       phase: 'parts',
       partKey,
       state: 'queued',
@@ -90,6 +105,9 @@ export const buildPipeline = async (
     if (!isAffected && partCache.has(partSignature)) {
       emit(emitProgress, {
         seq,
+        projectFileId,
+        graphDocumentId,
+        buildRequestId,
         phase: 'parts',
         partKey,
         state: 'cache_hit',
@@ -98,6 +116,9 @@ export const buildPipeline = async (
       })
       emit(emitProgress, {
         seq,
+        projectFileId,
+        graphDocumentId,
+        buildRequestId,
         phase: 'parts',
         partKey,
         state: 'done',
@@ -110,6 +131,9 @@ export const buildPipeline = async (
     if (partCache.has(partSignature)) {
       emit(emitProgress, {
         seq,
+        projectFileId,
+        graphDocumentId,
+        buildRequestId,
         phase: 'parts',
         partKey,
         state: 'cache_hit',
@@ -118,6 +142,9 @@ export const buildPipeline = async (
       })
       emit(emitProgress, {
         seq,
+        projectFileId,
+        graphDocumentId,
+        buildRequestId,
         phase: 'parts',
         partKey,
         state: 'done',
@@ -132,6 +159,9 @@ export const buildPipeline = async (
     try {
       emit(emitProgress, {
         seq,
+        projectFileId,
+        graphDocumentId,
+        buildRequestId,
         phase: 'parts',
         partKey,
         state: 'building',
@@ -142,6 +172,9 @@ export const buildPipeline = async (
 
       emit(emitProgress, {
         seq,
+        projectFileId,
+        graphDocumentId,
+        buildRequestId,
         phase: 'parts',
         partKey,
         state: 'building',
@@ -156,6 +189,9 @@ export const buildPipeline = async (
 
       emit(emitProgress, {
         seq,
+        projectFileId,
+        graphDocumentId,
+        buildRequestId,
         phase: 'parts',
         partKey,
         state: 'done',
@@ -166,6 +202,9 @@ export const buildPipeline = async (
       const message = error instanceof Error ? error.message : 'Part build failed.'
       emit(emitProgress, {
         seq,
+        projectFileId,
+        graphDocumentId,
+        buildRequestId,
         phase: 'parts',
         partKey,
         state: 'error',
@@ -176,7 +215,16 @@ export const buildPipeline = async (
   }
 
   buildCache.add(buildSignature)
-  return emitArtifacts(seq, parts, request.changedParamIds)
+  return emitArtifacts(
+    {
+      seq,
+      projectFileId,
+      graphDocumentId,
+      buildRequestId,
+    },
+    parts,
+    request.changedParamIds,
+  )
 }
 
 export const assemblePipeline = async (
@@ -186,9 +234,13 @@ export const assemblePipeline = async (
   const { seq, payload } = request
   const signature = makeBuildSignature(payload, ENGINE_MODE, CONTROL_MODE)
   const partKey = 'assembled'
+  const buildRequestId = `legacy-assemble-${seq}`
 
   emit(emitProgress, {
     seq,
+    projectFileId: LEGACY_RUNTIME_PROJECT_FILE_ID,
+    graphDocumentId: LEGACY_RUNTIME_GRAPH_DOCUMENT_ID,
+    buildRequestId,
     phase: 'assemble',
     partKey,
     state: 'queued',
@@ -197,6 +249,9 @@ export const assemblePipeline = async (
   if (assembleCache.has(signature)) {
     emit(emitProgress, {
       seq,
+      projectFileId: LEGACY_RUNTIME_PROJECT_FILE_ID,
+      graphDocumentId: LEGACY_RUNTIME_GRAPH_DOCUMENT_ID,
+      buildRequestId,
       phase: 'assemble',
       partKey,
       state: 'cache_hit',
@@ -205,6 +260,9 @@ export const assemblePipeline = async (
     })
     emit(emitProgress, {
       seq,
+      projectFileId: LEGACY_RUNTIME_PROJECT_FILE_ID,
+      graphDocumentId: LEGACY_RUNTIME_GRAPH_DOCUMENT_ID,
+      buildRequestId,
       phase: 'assemble',
       partKey,
       state: 'done',
@@ -228,6 +286,9 @@ export const assemblePipeline = async (
   try {
     emit(emitProgress, {
       seq,
+      projectFileId: LEGACY_RUNTIME_PROJECT_FILE_ID,
+      graphDocumentId: LEGACY_RUNTIME_GRAPH_DOCUMENT_ID,
+      buildRequestId,
       phase: 'assemble',
       partKey,
       state: 'building',
@@ -238,6 +299,9 @@ export const assemblePipeline = async (
 
     emit(emitProgress, {
       seq,
+      projectFileId: LEGACY_RUNTIME_PROJECT_FILE_ID,
+      graphDocumentId: LEGACY_RUNTIME_GRAPH_DOCUMENT_ID,
+      buildRequestId,
       phase: 'assemble',
       partKey,
       state: 'building',
@@ -250,6 +314,9 @@ export const assemblePipeline = async (
 
     emit(emitProgress, {
       seq,
+      projectFileId: LEGACY_RUNTIME_PROJECT_FILE_ID,
+      graphDocumentId: LEGACY_RUNTIME_GRAPH_DOCUMENT_ID,
+      buildRequestId,
       phase: 'assemble',
       partKey,
       state: 'done',
@@ -271,6 +338,9 @@ export const assemblePipeline = async (
     const message = error instanceof Error ? error.message : 'Assemble failed.'
     emit(emitProgress, {
       seq,
+      projectFileId: LEGACY_RUNTIME_PROJECT_FILE_ID,
+      graphDocumentId: LEGACY_RUNTIME_GRAPH_DOCUMENT_ID,
+      buildRequestId,
       phase: 'assemble',
       partKey,
       state: 'error',

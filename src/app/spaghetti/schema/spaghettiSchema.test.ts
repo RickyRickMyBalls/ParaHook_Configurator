@@ -94,6 +94,31 @@ describe('parseSpaghettiGraph OutputPreview compatibility', () => {
       'node-baseplate-1': 'expanded',
     })
   })
+
+  it('preserves graph-authored receive references through parse', () => {
+    const parsed = parseSpaghettiGraph({
+      schemaVersion: 1,
+      nodes: [],
+      edges: [],
+      receiveReferences: [
+        {
+          receiveId: 'receive-1',
+          sourceGraphDocumentId: 'graph-document-2',
+          sourceOutputEntryId: 'output-entry:s001:node-cube-1',
+          mode: 'link',
+        },
+      ],
+    })
+
+    expect(parsed.receiveReferences).toEqual([
+      {
+        receiveId: 'receive-1',
+        sourceGraphDocumentId: 'graph-document-2',
+        sourceOutputEntryId: 'output-entry:s001:node-cube-1',
+        mode: 'link',
+      },
+    ])
+  })
 })
 
 describe('parseGraphDocument', () => {

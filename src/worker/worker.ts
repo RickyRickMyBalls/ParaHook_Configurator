@@ -21,7 +21,7 @@ interface WorkerScope {
 }
 
 const workerScope = self as unknown as WorkerScope
-let currentSeq = 0
+let currentAssembleSeq = 0
 let isWarm = false
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -37,7 +37,13 @@ const isBuildRequest = (value: unknown): value is BuildRequest => {
   if (!isRecord(value)) {
     return false
   }
-  if (value.type !== 'build' || typeof value.seq !== 'number') {
+  if (
+    value.type !== 'build' ||
+    typeof value.seq !== 'number' ||
+    typeof value.projectFileId !== 'string' ||
+    typeof value.graphDocumentId !== 'string' ||
+    typeof value.buildRequestId !== 'string'
+  ) {
     return false
   }
   if (!isRecord(value.payload)) {
@@ -91,51 +97,51 @@ workerScope.addEventListener('message', async (event: MessageEvent<unknown>) => 
     return
   }
 
-  if (event.data.seq < currentSeq) {
-    return
-  }
-
-  const requestSeq = event.data.seq
-  currentSeq = requestSeq
-
-  const emitProgress: ProgressEmitter = (message) => {
-    if (requestSeq !== currentSeq) {
-      return
-    }
-    workerScope.postMessage(message)
-  }
-
   if (event.data.type === 'build') {
+    const emitProgress: ProgressEmitter = (message) => {
+      workerScope.postMessage(message)
+    }
     try {
       const result = await buildPipeline(event.data, emitProgress)
-      if (requestSeq !== currentSeq) {
-        return
-      }
       workerScope.postMessage(result)
     } catch (error: unknown) {
-      if (requestSeq !== currentSeq) {
-        return
-      }
       const message = error instanceof Error ? error.message : 'Build failed.'
       const workerError: WorkerError = {
         type: 'worker_error',
-        seq: requestSeq,
+        seq: event.data.seq,
         op: 'build',
         message,
+        projectFileId: event.data.projectFileId,
+        graphDocumentId: event.data.graphDocumentId,
+        buildRequestId: event.data.buildRequestId,
       }
       workerScope.postMessage(workerError)
     }
     return
   }
 
+  if (event.data.seq < currentAssembleSeq) {
+    return
+  }
+
+  const requestSeq = event.data.seq
+  currentAssembleSeq = requestSeq
+
+  const emitProgress: ProgressEmitter = (message) => {
+    if (requestSeq !== currentAssembleSeq) {
+      return
+    }
+    workerScope.postMessage(message)
+  }
+
   try {
     const result = await assemblePipeline(event.data, emitProgress)
-    if (requestSeq !== currentSeq) {
+    if (requestSeq !== currentAssembleSeq) {
       return
     }
     workerScope.postMessage(result)
   } catch (error: unknown) {
-    if (requestSeq !== currentSeq) {
+    if (requestSeq !== currentAssembleSeq) {
       return
     }
     const message =

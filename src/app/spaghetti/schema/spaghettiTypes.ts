@@ -57,6 +57,16 @@ export type OutputPreviewParams = {
   nextSlotIndex: number
 }
 
+export type GraphReceiveMode = 'link'
+
+export type GraphReceiveReference = {
+  receiveId: string
+  sourceGraphDocumentId: string
+  sourceOutputEntryId: string
+  mode: GraphReceiveMode
+  receiveNodeId?: string
+}
+
 export type SpaghettiNode = {
   nodeId: string
   type: string
@@ -82,6 +92,7 @@ export type SpaghettiGraph = {
   schemaVersion: 1
   nodes: SpaghettiNode[]
   edges: SpaghettiEdge[]
+  receiveReferences?: GraphReceiveReference[]
   ui?: {
     nodes?: Record<string, GraphNodePos>
     nodeModesByNodeId?: Record<string, NodeRowMode>
@@ -106,6 +117,8 @@ export type EditorViewportWindowMode =
   | 'collapsed'
   | 'meatball editor view'
   | 'expanded'
+  | 'maximized'
+  | 'split view'
   | 'separateWindow'
 
 export type EditorViewportPosition = {
@@ -118,6 +131,19 @@ export type EditorViewportSize = {
   height: number
 }
 
+export type EditorViewportRestoreFromCollapsed = {
+  windowMode: 'expanded' | 'maximized' | 'split view'
+  position?: EditorViewportPosition
+  size?: EditorViewportSize
+  splitRatio?: number
+}
+
+export type EditorViewportRestoreFromSplit = {
+  windowMode: 'expanded' | 'maximized'
+  position?: EditorViewportPosition
+  size?: EditorViewportSize
+}
+
 export type EditorViewport = {
   editorViewportId: string
   graphDocumentId: string
@@ -125,5 +151,8 @@ export type EditorViewport = {
   windowMode: EditorViewportWindowMode
   position: EditorViewportPosition
   size: EditorViewportSize
+  splitRatio: number
+  restoreFromCollapsed: EditorViewportRestoreFromCollapsed | null
+  restoreFromSplit: EditorViewportRestoreFromSplit | null
   zOrder: number
 }

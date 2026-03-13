@@ -3,11 +3,14 @@ import { buildDispatcher } from '../buildDispatcher'
 import { artifactToPartKeyStr } from '../parts/partKeyResolver'
 import {
   selectActiveGraphDocument,
-  selectActiveGraph,
-  selectActiveGraphPendingBuildState,
+  selectGraphByDocumentId,
+  selectOrderedGraphDocuments,
+  selectResolvedGraphReceiveReferencesByDocumentId,
+  selectGraphRuntimeByDocumentId,
+  type SpaghettiStoreState,
   useSpaghettiStore,
 } from '../spaghetti/store/useSpaghettiStore'
-import type { SpaghettiGraph } from '../spaghetti/schema/spaghettiTypes'
+import type { GraphDocument, SpaghettiGraph } from '../spaghetti/schema/spaghettiTypes'
 import {
   compileSpaghettiGraph,
   type CompileSpaghettiGraphResult,
@@ -20,12 +23,62 @@ import type {
   PartArtifact,
   ViewMode,
 } from '../../shared/buildTypes'
+import {
+  LEGACY_RUNTIME_GRAPH_DOCUMENT_ID,
+  LEGACY_RUNTIME_PROJECT_FILE_ID,
+} from '../../shared/buildTypes'
+import { newId } from '../spaghetti/utils/id'
 
 type BoxParamKey = keyof BoxParams
 type PartsVisibility = Record<string, boolean>
 type AssembledMesh = AssembleResult['assembled']
 type BuildPolicy = 'live' | 'release' | 'manual'
 type InputMode = 'legacy' | 'spaghetti'
+type ProjectFileVersion = 1
+
+export type ProjectGraphDocumentEntry = {
+  graphDocumentId: string
+  label: string
+  sourceFilePath: string | null
+  orderIndex: number
+}
+
+export type ProjectFile = {
+  projectFileId: string
+  name: string
+  version: ProjectFileVersion
+  graphDocuments: ProjectGraphDocumentEntry[]
+  rootAssemblyId: string | null
+}
+
+export type ProjectAssemblyRecord = {
+  assemblyId: string
+  label: string
+  childComponentIds: string[]
+}
+
+export type ProjectComponentRecord = {
+  componentId: string
+  ownerGraphDocumentId: string
+  sourceGraphDocumentId: string
+  sourceOutputEntryId: string
+  label: string
+  componentSourceKind: 'published-output' | 'receive-link'
+  resolutionState: 'resolved' | 'unresolved'
+  receiveId: string | null
+}
+
+export type ProjectContentState = {
+  assembliesById: Record<string, ProjectAssemblyRecord>
+  componentsById: Record<string, ProjectComponentRecord>
+}
+
+export type ProjectContentBrowserRowVm = {
+  rowId: string
+  kind: 'assembly' | 'component'
+  label: string
+  meta: string
+}
 
 export type AppState = {
   box: BoxParams
@@ -44,10 +97,14 @@ export type AppState = {
   viewMode: ViewMode
   assembled: AssembledMesh | null
   assembledSignature: string | null
+  currentProject: ProjectFile
+  projectContent: ProjectContentState
   workerError: string | null
   setBoxParam: (key: BoxParamKey, value: number) => void
   setInputMode: (mode: InputMode) => void
   setSpaghettiGraph: (graph: SpaghettiGraph) => void
+  compileGraphDocument: (graphDocumentId: string) => CompileSpaghettiGraphResult
+  requestGraphDocumentBuild: (graphDocumentId: string) => CompileSpaghettiGraphResult
   compileSpaghetti: () => CompileSpaghettiGraphResult
   requestSpaghettiBuild: () => CompileSpaghettiGraphResult
   setBuildPolicy: (policy: BuildPolicy) => void
@@ -81,6 +138,207 @@ const defaultVisibility: PartsVisibility = {
   assembled: true,
 }
 
+const PROJECT_FILE_VERSION: ProjectFileVersion = 1
+const INITIAL_PROJECT_FILE_ID = 'project-file-1'
+const ROOT_ASSEMBLY_LABEL = 'Assembly Root'
+
+const buildRootAssemblyId = (projectFileId: string): string =>
+  `assembly-root:${projectFileId}`
+
+const buildProjectComponentId = (
+  projectFileId: string,
+  graphDocumentId: string,
+  outputEntryId: string,
+): string => `project-component:${projectFileId}:${graphDocumentId}:${outputEntryId}`
+
+const buildProjectReceiveComponentId = (
+  projectFileId: string,
+  graphDocumentId: string,
+  receiveId: string,
+): string => `project-component:${projectFileId}:receive:${graphDocumentId}:${receiveId}`
+
+const toProjectGraphDocumentEntry = (
+  document: Pick<GraphDocument, 'graphDocumentId' | 'name'>,
+  orderIndex: number,
+): ProjectGraphDocumentEntry => ({
+  graphDocumentId: document.graphDocumentId,
+  label: document.name,
+  sourceFilePath: null,
+  orderIndex,
+})
+
+const buildProjectGraphDocuments = (
+  spaghettiState: Pick<SpaghettiStoreState, 'graphDocumentsById' | 'graphDocumentOrder'>,
+): ProjectGraphDocumentEntry[] =>
+  selectOrderedGraphDocuments(spaghettiState).map((document, orderIndex) =>
+    toProjectGraphDocumentEntry(document, orderIndex),
+  )
+
+const createInitialProjectFile = (): ProjectFile => ({
+  projectFileId: INITIAL_PROJECT_FILE_ID,
+  name: 'Project 1',
+  version: PROJECT_FILE_VERSION,
+  graphDocuments: buildProjectGraphDocuments(useSpaghettiStore.getState()),
+  rootAssemblyId: buildRootAssemblyId(INITIAL_PROJECT_FILE_ID),
+})
+
+const buildProjectContentState = (
+  project: ProjectFile,
+  spaghettiState: Pick<
+    SpaghettiStoreState,
+    'graphDocumentsById' | 'graphDocumentOrder' | 'graphRuntimeByDocumentId'
+  >,
+): ProjectContentState => {
+  const rootAssemblyId = project.rootAssemblyId ?? buildRootAssemblyId(project.projectFileId)
+  const childComponentIds: string[] = []
+  const componentsById: Record<string, ProjectComponentRecord> = {}
+
+  for (const documentEntry of project.graphDocuments) {
+    const outputSurface = selectGraphRuntimeByDocumentId(
+      spaghettiState,
+      documentEntry.graphDocumentId,
+    )?.outputSurface
+    if (outputSurface === null || outputSurface === undefined) {
+      continue
+    }
+    for (const entry of outputSurface.entries) {
+      if (entry.state !== 'resolved') {
+        continue
+      }
+      const componentId = buildProjectComponentId(
+        project.projectFileId,
+        documentEntry.graphDocumentId,
+        entry.outputEntryId,
+      )
+      childComponentIds.push(componentId)
+      componentsById[componentId] = {
+        componentId,
+        ownerGraphDocumentId: documentEntry.graphDocumentId,
+        sourceGraphDocumentId: documentEntry.graphDocumentId,
+        sourceOutputEntryId: entry.outputEntryId,
+        label: entry.label,
+        componentSourceKind: 'published-output',
+        resolutionState: 'resolved',
+        receiveId: null,
+      }
+    }
+
+    for (const receiveReference of selectResolvedGraphReceiveReferencesByDocumentId(
+      spaghettiState,
+      documentEntry.graphDocumentId,
+    )) {
+      const componentId = buildProjectReceiveComponentId(
+        project.projectFileId,
+        documentEntry.graphDocumentId,
+        receiveReference.receiveId,
+      )
+      const label = receiveReference.sourceEntry?.label ?? receiveReference.sourceOutputEntryId
+      childComponentIds.push(componentId)
+      componentsById[componentId] = {
+        componentId,
+        ownerGraphDocumentId: documentEntry.graphDocumentId,
+        sourceGraphDocumentId: receiveReference.sourceGraphDocumentId,
+        sourceOutputEntryId: receiveReference.sourceOutputEntryId,
+        label,
+        componentSourceKind: 'receive-link',
+        resolutionState: receiveReference.resolutionState,
+        receiveId: receiveReference.receiveId,
+      }
+    }
+  }
+
+  return {
+    assembliesById: {
+      [rootAssemblyId]: {
+        assemblyId: rootAssemblyId,
+        label: ROOT_ASSEMBLY_LABEL,
+        childComponentIds,
+      },
+    },
+    componentsById,
+  }
+}
+
+const createInitialProjectContentState = (): ProjectContentState => {
+  const initialProject = createInitialProjectFile()
+  return buildProjectContentState(initialProject, useSpaghettiStore.getState())
+}
+
+const areProjectGraphDocumentsEqual = (
+  left: ProjectGraphDocumentEntry[],
+  right: ProjectGraphDocumentEntry[],
+): boolean =>
+  left.length === right.length &&
+  left.every((entry, index) => {
+    const other = right[index]
+    return (
+      other !== undefined &&
+      entry.graphDocumentId === other.graphDocumentId &&
+      entry.label === other.label &&
+      entry.sourceFilePath === other.sourceFilePath &&
+      entry.orderIndex === other.orderIndex
+    )
+  })
+
+const areOrderedStringArraysEqual = (left: string[], right: string[]): boolean =>
+  left.length === right.length && left.every((value, index) => value === right[index])
+
+const areProjectAssemblyRecordsEqual = (
+  left: ProjectAssemblyRecord,
+  right: ProjectAssemblyRecord,
+): boolean =>
+  left.assemblyId === right.assemblyId &&
+  left.label === right.label &&
+  areOrderedStringArraysEqual(left.childComponentIds, right.childComponentIds)
+
+const areProjectAssembliesEqual = (
+  left: Record<string, ProjectAssemblyRecord>,
+  right: Record<string, ProjectAssemblyRecord>,
+): boolean => {
+  const leftKeys = Object.keys(left)
+  const rightKeys = Object.keys(right)
+  return (
+    areOrderedStringArraysEqual(leftKeys, rightKeys) &&
+    leftKeys.every((assemblyId) => {
+      const other = right[assemblyId]
+      return other !== undefined && areProjectAssemblyRecordsEqual(left[assemblyId], other)
+    })
+  )
+}
+
+const areProjectComponentsEqual = (
+  left: Record<string, ProjectComponentRecord>,
+  right: Record<string, ProjectComponentRecord>,
+): boolean => {
+  const leftKeys = Object.keys(left)
+  const rightKeys = Object.keys(right)
+  return (
+    areOrderedStringArraysEqual(leftKeys, rightKeys) &&
+    leftKeys.every((componentId) => {
+      const other = right[componentId]
+      const entry = left[componentId]
+      return (
+        other !== undefined &&
+        entry.componentId === other.componentId &&
+        entry.ownerGraphDocumentId === other.ownerGraphDocumentId &&
+        entry.sourceGraphDocumentId === other.sourceGraphDocumentId &&
+        entry.sourceOutputEntryId === other.sourceOutputEntryId &&
+        entry.label === other.label &&
+        entry.componentSourceKind === other.componentSourceKind &&
+        entry.resolutionState === other.resolutionState &&
+        entry.receiveId === other.receiveId
+      )
+    })
+  )
+}
+
+const areProjectContentStatesEqual = (
+  left: ProjectContentState,
+  right: ProjectContentState,
+): boolean =>
+  areProjectAssembliesEqual(left.assembliesById, right.assembliesById) &&
+  areProjectComponentsEqual(left.componentsById, right.componentsById)
+
 export const selectChangedGeomParamIds = (state: Pick<AppState, 'geomDirty' | 'geomBuilt'>): string[] => {
   const changed: string[] = []
   for (const id of Object.keys(state.geomDirty)) {
@@ -111,6 +369,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   viewMode: 'parts',
   assembled: null,
   assembledSignature: null,
+  currentProject: createInitialProjectFile(),
+  projectContent: createInitialProjectContentState(),
   workerError: null,
   setBoxParam: (key, value) => {
     const state = get()
@@ -154,45 +414,64 @@ export const useAppStore = create<AppState>((set, get) => ({
   setSpaghettiGraph: (graph) => {
     useSpaghettiStore.getState().setGraph(graph)
   },
-  compileSpaghetti: () => {
+  compileGraphDocument: (graphDocumentId) => {
     const spaghettiState = useSpaghettiStore.getState()
-    const activeGraphDocument = selectActiveGraphDocument(spaghettiState)
-    const graph = selectActiveGraph(spaghettiState)
+    const graph = selectGraphByDocumentId(spaghettiState, graphDocumentId)
+    if (graph === null) {
+      throw new Error(`Graph document "${graphDocumentId}" was not found.`)
+    }
     const compileResult = compileSpaghettiGraph(graph)
-    spaghettiState.setGraphCompileResult(activeGraphDocument.graphDocumentId, compileResult)
+    spaghettiState.setGraphCompileResult(graphDocumentId, compileResult)
     return compileResult
   },
-  requestSpaghettiBuild: () => {
+  requestGraphDocumentBuild: (graphDocumentId) => {
     const state = get()
     const spaghettiState = useSpaghettiStore.getState()
-    const activeGraphDocument = selectActiveGraphDocument(spaghettiState)
-    const graph = selectActiveGraph(spaghettiState)
-    const compileResult = compileSpaghettiGraph(graph)
-    spaghettiState.setGraphCompileResult(activeGraphDocument.graphDocumentId, compileResult)
+    const compileResult = get().compileGraphDocument(graphDocumentId)
     if (!compileResult.ok || compileResult.buildInputs === undefined) {
       return compileResult
     }
 
-    const activePendingBuildState = selectActiveGraphPendingBuildState(spaghettiState)
+    const pendingBuildState =
+      selectGraphRuntimeByDocumentId(spaghettiState, graphDocumentId)?.compileBuild ?? null
     const requestBuild = buildRequestFromBuildInputs(
       compileResult.buildInputs,
-      activePendingBuildState?.previousBuildInputs ?? undefined,
+      pendingBuildState?.previousBuildInputs ?? undefined,
     )
+    const buildRequestId = newId('build-request')
 
     const payloadWithPatch = {
       ...state.box,
       ...requestBuild.profilePatch,
     }
-    const buildSeq = buildDispatcher.requestBuild(payloadWithPatch as BoxParams)
-    spaghettiState.stageGraphBuildRequest(activeGraphDocument.graphDocumentId, {
+    const buildSeq = buildDispatcher.requestBuild(payloadWithPatch as BoxParams, {
+      routingIdentity: {
+        projectFileId: state.currentProject.projectFileId,
+        graphDocumentId,
+        buildRequestId,
+      },
+      changedParamIds: requestBuild.changedParamIds,
+      buildInstances: requestBuild.instances,
+      buildStatsPartKeys: requestBuild.partKeys,
+    })
+    spaghettiState.stageGraphBuildRequest(graphDocumentId, {
       compileResult,
-      previousBuildInputs: activePendingBuildState?.previousBuildInputs ?? null,
+      previousBuildInputs: pendingBuildState?.previousBuildInputs ?? null,
       pendingChangedParamIds: requestBuild.changedParamIds,
       pendingStatsPartKeys: requestBuild.partKeys,
       pendingInstances: requestBuild.instances,
+      buildRequestId,
       buildSeq,
     })
     return compileResult
+  },
+  compileSpaghetti: () => {
+    const activeGraphDocument = selectActiveGraphDocument(useSpaghettiStore.getState())
+    return get().compileGraphDocument(activeGraphDocument.graphDocumentId)
+  },
+  requestSpaghettiBuild: () => {
+    const activeGraphDocument = selectActiveGraphDocument(useSpaghettiStore.getState())
+    return get().requestGraphDocumentBuild(activeGraphDocument.graphDocumentId)
   },
   setBuildPolicy: (policy) => {
     set((state) => ({
@@ -223,7 +502,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
   requestManualBuild: () => {
     if (get().inputMode === 'spaghetti') {
-      get().requestSpaghettiBuild()
+      const activeGraphDocument = selectActiveGraphDocument(useSpaghettiStore.getState())
+      get().requestGraphDocumentBuild(activeGraphDocument.graphDocumentId)
       return
     }
     set({ pendingBuildAfterRelease: false })
@@ -233,10 +513,40 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ viewMode: mode })
   },
   acceptBuildResult: (result) => {
-    useSpaghettiStore.getState().acceptGraphBuildResult(result.seq)
+    const currentProjectId = get().currentProject.projectFileId
+    const isLegacyRoutingResult =
+      result.projectFileId === LEGACY_RUNTIME_PROJECT_FILE_ID &&
+      result.graphDocumentId === LEGACY_RUNTIME_GRAPH_DOCUMENT_ID
+    if (!isLegacyRoutingResult && result.projectFileId !== currentProjectId) {
+      return
+    }
+    const acceptedSpaghettiResult = isLegacyRoutingResult
+      ? false
+      : useSpaghettiStore.getState().acceptGraphBuildResult({
+          projectFileId: result.projectFileId,
+          graphDocumentId: result.graphDocumentId,
+          buildRequestId: result.buildRequestId,
+          buildSeq: result.seq,
+          buildOutputs: result.parts,
+        })
+    if (!isLegacyRoutingResult && !acceptedSpaghettiResult) {
+      return
+    }
+
     set((state) => {
       if (result.seq <= state.lastBuildSeq) {
+        if (!isLegacyRoutingResult) {
+          return {
+            lastBuildSeq: state.lastBuildSeq,
+          }
+        }
         return state
+      }
+
+      if (!isLegacyRoutingResult) {
+        return {
+          lastBuildSeq: result.seq,
+        }
       }
 
       const nextGeomBuilt = { ...state.geomBuilt }
@@ -371,3 +681,126 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
 }))
+
+export const selectCurrentProject = (state: Pick<AppState, 'currentProject'>): ProjectFile =>
+  state.currentProject
+
+export const selectCurrentProjectId = (state: Pick<AppState, 'currentProject'>): string =>
+  state.currentProject.projectFileId
+
+export const selectCurrentProjectGraphDocuments = (
+  state: Pick<AppState, 'currentProject'>,
+): ProjectGraphDocumentEntry[] => state.currentProject.graphDocuments
+
+export const selectCurrentProjectContent = (
+  state: Pick<AppState, 'projectContent'>,
+): ProjectContentState => state.projectContent
+
+export const selectCurrentProjectRootAssembly = (
+  state: Pick<AppState, 'currentProject' | 'projectContent'>,
+): ProjectAssemblyRecord | null => {
+  const rootAssemblyId = state.currentProject.rootAssemblyId
+  if (rootAssemblyId === null) {
+    return null
+  }
+  return state.projectContent.assembliesById[rootAssemblyId] ?? null
+}
+
+export const selectCurrentProjectRootComponents = (
+  state: Pick<AppState, 'currentProject' | 'projectContent'>,
+): ProjectComponentRecord[] => {
+  const rootAssembly = selectCurrentProjectRootAssembly(state)
+  if (rootAssembly === null) {
+    return []
+  }
+  return rootAssembly.childComponentIds
+    .map((componentId) => state.projectContent.componentsById[componentId] ?? null)
+    .filter((component): component is ProjectComponentRecord => component !== null)
+}
+
+export const selectCurrentProjectContentBrowserRows = (
+  state: Pick<AppState, 'currentProject' | 'projectContent'>,
+): ProjectContentBrowserRowVm[] => {
+  const rootAssembly = selectCurrentProjectRootAssembly(state)
+  if (rootAssembly === null) {
+    return []
+  }
+  const graphLabelByDocumentId = Object.fromEntries(
+    state.currentProject.graphDocuments.map((entry) => [entry.graphDocumentId, entry.label]),
+  ) as Record<string, string>
+  const rows: ProjectContentBrowserRowVm[] = [
+    {
+      rowId: rootAssembly.assemblyId,
+      kind: 'assembly',
+      label: rootAssembly.label,
+      meta:
+        rootAssembly.childComponentIds.length === 1
+          ? '1 Component'
+          : `${rootAssembly.childComponentIds.length} Components`,
+    },
+  ]
+  for (const component of selectCurrentProjectRootComponents(state)) {
+    const ownerGraphLabel =
+      graphLabelByDocumentId[component.ownerGraphDocumentId] ?? component.ownerGraphDocumentId
+    const sourceGraphLabel =
+      graphLabelByDocumentId[component.sourceGraphDocumentId] ?? component.sourceGraphDocumentId
+    rows.push({
+      rowId: component.componentId,
+      kind: 'component',
+      label: component.label,
+      meta:
+        component.componentSourceKind === 'receive-link'
+          ? component.resolutionState === 'resolved'
+            ? `${ownerGraphLabel} <- ${sourceGraphLabel}`
+            : `${ownerGraphLabel} unresolved`
+          : sourceGraphLabel,
+    })
+  }
+  return rows
+}
+
+const syncCurrentProjectFromSpaghetti = (
+  spaghettiState: Pick<
+    SpaghettiStoreState,
+    'graphDocumentsById' | 'graphDocumentOrder' | 'graphRuntimeByDocumentId'
+  >,
+): void => {
+  const nextGraphDocuments = buildProjectGraphDocuments(spaghettiState)
+  useAppStore.setState((state) => {
+    const nextRootAssemblyId =
+      state.currentProject.rootAssemblyId ?? buildRootAssemblyId(state.currentProject.projectFileId)
+    const currentProjectChanged =
+      !areProjectGraphDocumentsEqual(state.currentProject.graphDocuments, nextGraphDocuments) ||
+      state.currentProject.rootAssemblyId !== nextRootAssemblyId
+    const nextCurrentProject = currentProjectChanged
+      ? {
+          ...state.currentProject,
+          graphDocuments: nextGraphDocuments,
+          rootAssemblyId: nextRootAssemblyId,
+        }
+      : state.currentProject
+    const nextProjectContent = buildProjectContentState(nextCurrentProject, spaghettiState)
+
+    if (
+      nextCurrentProject === state.currentProject &&
+      areProjectContentStatesEqual(state.projectContent, nextProjectContent)
+    ) {
+      return state
+    }
+    return {
+      currentProject: nextCurrentProject,
+      projectContent: nextProjectContent,
+    }
+  })
+}
+
+useSpaghettiStore.subscribe((state, previousState) => {
+  if (
+    state.graphDocumentOrder === previousState.graphDocumentOrder &&
+    state.graphDocumentsById === previousState.graphDocumentsById &&
+    state.graphRuntimeByDocumentId === previousState.graphRuntimeByDocumentId
+  ) {
+    return
+  }
+  syncCurrentProjectFromSpaghetti(state)
+})

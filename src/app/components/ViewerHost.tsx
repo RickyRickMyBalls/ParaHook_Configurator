@@ -4,12 +4,22 @@ import { Viewer } from '../../viewer/Viewer'
 import { useAppStore } from '../store/useAppStore'
 import { useUiPrefsStore } from '../store/uiPrefsStore'
 import {
-  selectActiveEditorViewport,
-  selectGraphPreviewPreparationByDocumentId,
+  selectSharedViewerComposition,
+  selectViewerTargetGraphAcceptedPreviewBuildOutputs,
+  selectViewerTargetGraphPreviewPreparation,
   useSpaghettiStore,
 } from '../spaghetti/store/useSpaghettiStore'
-import { selectPreviewRenderVmFromPreparation } from '../spaghetti/selectors/selectPreviewRenderVm'
+import {
+  selectPreviewRenderVmFromPreparation,
+  type PreviewRenderVm,
+} from '../spaghetti/selectors/selectPreviewRenderVm'
+import { selectSharedPreviewRenderVm } from '../spaghetti/selectors/selectSharedPreviewRenderVm'
 import { toViewerRenderablePart } from '../../shared/buildTypes'
+
+const EMPTY_PREVIEW_LIST: PreviewRenderVm = {
+  items: [],
+  viewerParts: [],
+}
 
 export function ViewerHost() {
   const mountRef = useRef<HTMLDivElement | null>(null)
@@ -20,22 +30,42 @@ export function ViewerHost() {
   const assembled = useAppStore((state) => state.assembled)
   const viewMode = useAppStore((state) => state.viewMode)
   const inputMode = useAppStore((state) => state.inputMode)
-  const activeEditorViewport = useSpaghettiStore(selectActiveEditorViewport)
-  const activeGraphPreviewPreparation = useSpaghettiStore((state) =>
-    activeEditorViewport === null
-      ? null
-      : selectGraphPreviewPreparationByDocumentId(state, activeEditorViewport.graphDocumentId),
-  )
+  const graphRuntimeByDocumentId = useSpaghettiStore((state) => state.graphRuntimeByDocumentId)
+  const sharedViewerComposition = useSpaghettiStore(selectSharedViewerComposition)
+  const viewerTargetPreviewPreparation = useSpaghettiStore(selectViewerTargetGraphPreviewPreparation)
+  const viewerTargetBuildOutputs = useSpaghettiStore(selectViewerTargetGraphAcceptedPreviewBuildOutputs)
   const view = useUiPrefsStore((state) => state.view)
 
   const previewList = useMemo(
-    () =>
-      inputMode === 'spaghetti' &&
-      activeEditorViewport !== null &&
-      activeGraphPreviewPreparation !== null
-        ? selectPreviewRenderVmFromPreparation(activeGraphPreviewPreparation, parts)
-        : { items: [], viewerParts: [] },
-    [activeEditorViewport, activeGraphPreviewPreparation, inputMode, parts],
+    () => {
+      if (inputMode !== 'spaghetti') {
+        return EMPTY_PREVIEW_LIST
+      }
+      if (sharedViewerComposition !== null) {
+        return selectSharedPreviewRenderVm(
+          sharedViewerComposition.graphDocumentIds.map((graphDocumentId) => ({
+            graphDocumentId,
+            previewPreparation: graphRuntimeByDocumentId[graphDocumentId]?.previewPreparation ?? null,
+            buildOutputs:
+              graphRuntimeByDocumentId[graphDocumentId]?.acceptedPreviewBuildOutputs ?? [],
+          })),
+        )
+      }
+      if (viewerTargetPreviewPreparation === null) {
+        return EMPTY_PREVIEW_LIST
+      }
+      return selectPreviewRenderVmFromPreparation(
+        viewerTargetPreviewPreparation,
+        viewerTargetBuildOutputs,
+      )
+    },
+    [
+      graphRuntimeByDocumentId,
+      inputMode,
+      sharedViewerComposition,
+      viewerTargetBuildOutputs,
+      viewerTargetPreviewPreparation,
+    ],
   )
 
   useEffect(() => {
@@ -62,7 +92,10 @@ export function ViewerHost() {
 
     if (viewMode === 'parts') {
       viewer.setAssembled(null)
-      if (inputMode === 'spaghetti' && activeEditorViewport !== null) {
+      if (
+        inputMode === 'spaghetti' &&
+        (sharedViewerComposition !== null || viewerTargetPreviewPreparation !== null)
+      ) {
         viewer.setParts(previewList.viewerParts, partsVisibility, selectedPartKey)
         return
       }
@@ -75,12 +108,13 @@ export function ViewerHost() {
     viewer.setAssembled(assembled)
   }, [
     assembled,
-    activeEditorViewport,
     inputMode,
     parts,
     partsVisibility,
     previewList,
     selectedPartKey,
+    sharedViewerComposition,
+    viewerTargetPreviewPreparation,
     viewMode,
   ])
 

@@ -73,6 +73,11 @@ import {
 } from './compositeExpansion'
 import { isInteractiveTarget } from '../spInteractive'
 import {
+  beginViewerTemporaryOrbitDrag,
+  endViewerTemporaryOrbitDrag,
+  updateViewerTemporaryOrbitDrag,
+} from '../../viewerBridge'
+import {
   selectDiagnosticsVm,
   selectNodeVm,
   type NodeInputCompositeState,
@@ -408,9 +413,23 @@ type DevProbeWindow = Window & { [DEV_PROBE_NODE_ID_KEY]?: string }
 
 type SpaghettiCanvasProps = {
   graphDocumentId: string
+  fitNodeId?: string | null
+  fitNodeRequestKey?: number
+  isMeatballView?: boolean
+  isToolbarVisible?: boolean
+  viewMode?: 'expanded' | 'collapsed'
+  onSetViewMode?: (viewMode: 'expanded' | 'collapsed') => void
 }
 
-export function SpaghettiCanvas({ graphDocumentId }: SpaghettiCanvasProps) {
+export function SpaghettiCanvas({
+  graphDocumentId,
+  fitNodeId = null,
+  fitNodeRequestKey = 0,
+  isMeatballView = false,
+  isToolbarVisible = true,
+  viewMode = 'expanded',
+  onSetViewMode,
+}: SpaghettiCanvasProps) {
   const graph = useSpaghettiStore((state) => selectGraphByDocumentId(state, graphDocumentId))
   const selectedNodeId = useSpaghettiStore((state) => state.selectedNodeId)
   const selectedEdgeId = useSpaghettiStore((state) => state.selectedEdgeId)
@@ -499,6 +518,7 @@ export function SpaghettiCanvas({ graphDocumentId }: SpaghettiCanvasProps) {
   const previousPortElementVersionByNodeIdRef = useRef(new Map<string, number>())
   const lastUiActionRef = useRef<string | null>(null)
   const evaluationRunCountRef = useRef(0)
+  const lastFitNodeRequestKeyRef = useRef<number>(fitNodeRequestKey)
   const nodeRowMode = useSpaghettiStore((state) => {
     if (nodeRowModeMenu === null) {
       return null
@@ -543,6 +563,67 @@ export function SpaghettiCanvas({ graphDocumentId }: SpaghettiCanvasProps) {
   useEffect(() => {
     viewRef.current = view
   }, [view])
+
+  useLayoutEffect(() => {
+    if (fitNodeId === null || viewMode !== 'expanded') {
+      lastFitNodeRequestKeyRef.current = fitNodeRequestKey
+      return
+    }
+    if (lastFitNodeRequestKeyRef.current === fitNodeRequestKey) {
+      return
+    }
+    const viewportElement = viewportRef.current
+    const stageElement = stageRef.current
+    if (viewportElement === null || stageElement === null) {
+      return
+    }
+    const nodeElement = stageElement.querySelector<HTMLElement>(`[data-sp-node-id="${fitNodeId}"]`)
+    if (nodeElement === null) {
+      return
+    }
+
+    const viewportRect = viewportElement.getBoundingClientRect()
+    const stageRect = stageElement.getBoundingClientRect()
+    const nodeRect = nodeElement.getBoundingClientRect()
+    const stageX = (nodeRect.left - stageRect.left) / viewRef.current.zoom
+    const stageY = (nodeRect.top - stageRect.top) / viewRef.current.zoom
+    const stageWidth = nodeRect.width / viewRef.current.zoom
+    const stageHeight = nodeRect.height / viewRef.current.zoom
+    const sidePadding = isMeatballView ? 20 : 28
+    const topPadding = isMeatballView ? 12 : 22
+    const bottomPadding = isMeatballView ? 40 : 72
+    const widthFittedZoom =
+      (viewportRect.width - sidePadding * 2) / Math.max(stageWidth, 1)
+    const heightFittedZoom =
+      (viewportRect.height - topPadding - bottomPadding) / Math.max(stageHeight, 1)
+    const fittedZoom = isMeatballView
+      ? Math.min(widthFittedZoom * 0.985, heightFittedZoom)
+      : Math.min(widthFittedZoom, heightFittedZoom)
+    const nextZoom = clampNumber(
+      fittedZoom * (isMeatballView ? 1 : 1.18),
+      0.4,
+      isMeatballView ? 2.9 : 2.6,
+    )
+    const centeredPanX = viewportRect.width * 0.5 - (stageX + stageWidth * 0.5) * nextZoom
+    const minVisibleLeftPanX = sidePadding - stageX * nextZoom
+    const maxVisibleRightPanX =
+      viewportRect.width - sidePadding - (stageX + stageWidth) * nextZoom
+    const nextPanX = Math.round(
+      isMeatballView
+        ? minVisibleLeftPanX <= maxVisibleRightPanX
+          ? clampNumber(centeredPanX, minVisibleLeftPanX, maxVisibleRightPanX)
+          : (minVisibleLeftPanX + maxVisibleRightPanX) * 0.5
+        : Math.max(centeredPanX, minVisibleLeftPanX),
+    )
+    const nextPanY = Math.round(topPadding - stageY * nextZoom)
+
+    setView({
+      panX: nextPanX,
+      panY: nextPanY,
+      zoom: nextZoom,
+    })
+    lastFitNodeRequestKeyRef.current = fitNodeRequestKey
+  }, [fitNodeId, fitNodeRequestKey, graph?.nodes, isMeatballView, viewMode])
 
   useEffect(() => {
     ensureNodePositions()
@@ -2015,50 +2096,74 @@ export function SpaghettiCanvas({ graphDocumentId }: SpaghettiCanvasProps) {
         }
       }}
     >
-      <div className="SpaghettiCanvasToolbar">
-        <button type="button" onClick={handleDeleteSelectedEdge} disabled={selectedEdgeId === null}>
-          Delete Selected Edge
-        </button>
-        <button
-          type="button"
-          onClick={handleFlipSelectedWaypointSide1}
-          disabled={selectedWaypoint === null}
-        >
-          Flip Tangent Side 1
-        </button>
-        <button
-          type="button"
-          onClick={handleFlipSelectedWaypointSide2}
-          disabled={selectedWaypoint === null}
-        >
-          Flip Tangent Side 2
-        </button>
-        <label className="SpaghettiCanvasCurveControl">
-          <span>Wire Curve: {wireCurviness}</span>
-          <input
-            type="range"
-            min={0}
-            max={100}
-            step={1}
-            value={wireCurviness}
-            onChange={(event) => {
-              const next = Number(event.target.value)
-              if (Number.isFinite(next)) {
-                setWireCurviness(Math.max(0, Math.min(100, Math.round(next))))
-              }
-            }}
-          />
-        </label>
-        {uiMessage !== null ? (
-          <div
-            className={`SpaghettiCanvasMessage ${
-              uiMessage.level === 'error' ? 'SpaghettiCanvasMessage--error' : 'SpaghettiCanvasMessage--info'
-            }`}
-          >
-            {uiMessage.text}
+      {isToolbarVisible ? (
+        <div className="SpaghettiCanvasToolbar">
+          <div className="SpaghettiCanvasModeToggle">
+            <button
+              type="button"
+              className={`SpaghettiEditorModeButton ${
+                viewMode === 'expanded' ? 'SpaghettiEditorModeButton--active' : ''
+              }`}
+              onClick={() => onSetViewMode?.('expanded')}
+            >
+              Expanded
+            </button>
+            <button
+              type="button"
+              className={`SpaghettiEditorModeButton ${
+                viewMode === 'collapsed' ? 'SpaghettiEditorModeButton--active' : ''
+              }`}
+              onClick={() => onSetViewMode?.('collapsed')}
+            >
+              Collapsed
+            </button>
           </div>
-        ) : null}
-      </div>
+          <button type="button" onClick={handleDeleteSelectedEdge} disabled={selectedEdgeId === null}>
+            Delete Selected Edge
+          </button>
+          <button
+            type="button"
+            onClick={handleFlipSelectedWaypointSide1}
+            disabled={selectedWaypoint === null}
+          >
+            Flip Tangent Side 1
+          </button>
+          <button
+            type="button"
+            onClick={handleFlipSelectedWaypointSide2}
+            disabled={selectedWaypoint === null}
+          >
+            Flip Tangent Side 2
+          </button>
+          <label className="SpaghettiCanvasCurveControl">
+            <span>Wire Curve: {wireCurviness}</span>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={1}
+              value={wireCurviness}
+              onChange={(event) => {
+                const next = Number(event.target.value)
+                if (Number.isFinite(next)) {
+                  setWireCurviness(Math.max(0, Math.min(100, Math.round(next))))
+                }
+              }}
+            />
+          </label>
+          {uiMessage !== null ? (
+            <div
+              className={`SpaghettiCanvasMessage ${
+                uiMessage.level === 'error'
+                  ? 'SpaghettiCanvasMessage--error'
+                  : 'SpaghettiCanvasMessage--info'
+              }`}
+            >
+              {uiMessage.text}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
       <div
         ref={viewportRef}
         className="SpaghettiCanvasScroller"
@@ -2128,6 +2233,24 @@ export function SpaghettiCanvas({ graphDocumentId }: SpaghettiCanvasProps) {
           })
         }}
         onPointerDown={(event) => {
+          if (viewMode === 'expanded' && event.button === 1 && event.ctrlKey) {
+            beginViewerTemporaryOrbitDrag(event.clientX, event.clientY)
+            const handleMove = (moveEvent: PointerEvent) => {
+              updateViewerTemporaryOrbitDrag(moveEvent.clientX, moveEvent.clientY)
+            }
+            const handleUp = () => {
+              endViewerTemporaryOrbitDrag()
+              window.removeEventListener('pointermove', handleMove)
+              window.removeEventListener('pointerup', handleUp)
+              window.removeEventListener('pointercancel', handleUp)
+            }
+            window.addEventListener('pointermove', handleMove)
+            window.addEventListener('pointerup', handleUp)
+            window.addEventListener('pointercancel', handleUp)
+            event.preventDefault()
+            event.stopPropagation()
+            return
+          }
           if (event.button !== 0) {
             return
           }

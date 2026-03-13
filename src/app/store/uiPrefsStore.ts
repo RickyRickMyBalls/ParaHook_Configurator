@@ -170,8 +170,12 @@ const sanitizePreset = (preset: MaterialPreset): MaterialPreset => ({
 
 type UiPrefsState = {
   view: ViewSettings
+  viewToolbarOpen: boolean
+  viewToolbarExpandedAxisWidgetSize: number | null
   setView: (patch: Partial<ViewSettings>) => void
   setViewKey: <K extends keyof ViewSettings>(key: K, value: ViewSettings[K]) => void
+  setViewToolbarOpen: (open: boolean) => void
+  setViewToolbarExpandedAxisWidgetSize: (size: number | null) => void
   selectLight: (id: string | null) => void
   addLight: (spec?: Partial<LightSpec>) => void
   deleteLight: (id: string) => void
@@ -188,11 +192,19 @@ type UiPrefsState = {
 
 export const useUiPrefsStore = create<UiPrefsState>((set, get) => ({
   view: createDefaultView(),
+  viewToolbarOpen: false,
+  viewToolbarExpandedAxisWidgetSize: null,
   setView: (patch) => {
     set({ view: { ...get().view, ...patch } })
   },
   setViewKey: (key, value) => {
     set({ view: { ...get().view, [key]: value } })
+  },
+  setViewToolbarOpen: (open) => {
+    set({ viewToolbarOpen: open })
+  },
+  setViewToolbarExpandedAxisWidgetSize: (size) => {
+    set({ viewToolbarExpandedAxisWidgetSize: size })
   },
   selectLight: (id) => {
     set({

@@ -6,15 +6,20 @@ import {
   partKeyStrToLabel,
 } from '../parts/partKeyResolver'
 import { selectChangedGeomParamIds } from '../store/useAppStore'
-import { selectActiveGraph, useSpaghettiStore } from '../spaghetti/store/useSpaghettiStore'
-import { selectPartsListPanelVm } from '../spaghetti/selectors'
+import {
+  selectViewerTargetGraph,
+  selectViewerTargetGraphOutputSurface,
+  useSpaghettiStore,
+} from '../spaghetti/store/useSpaghettiStore'
+import { selectPartsListPanelVmFromOutputSurface } from '../spaghetti/selectors'
 
 export function PartsListPanel() {
   const parts = useAppStore((state) => state.parts)
   const partsVisibility = useAppStore((state) => state.partsVisibility)
   const selectedPartKey = useAppStore((state) => state.selectedPartKey)
   const inputMode = useAppStore((state) => state.inputMode)
-  const graph = useSpaghettiStore(selectActiveGraph)
+  const viewerTargetGraph = useSpaghettiStore(selectViewerTargetGraph)
+  const viewerTargetOutputSurface = useSpaghettiStore(selectViewerTargetGraphOutputSurface)
   const buildPolicy = useAppStore((state) => state.buildPolicy)
   const dirtyCount = useAppStore((state) => selectChangedGeomParamIds(state).length)
   const heelKickInstances = useAppStore((state) => state.heelKickInstances)
@@ -28,7 +33,13 @@ export function PartsListPanel() {
   const removeHeelKickInstance = useAppStore((state) => state.removeHeelKickInstance)
   const removeToeHookInstance = useAppStore((state) => state.removeToeHookInstance)
   const partsDetailsRef = useRef<HTMLDetailsElement | null>(null)
-  const spaghettiVm = useMemo(() => selectPartsListPanelVm(graph), [graph])
+  const spaghettiVm = useMemo(
+    () =>
+      viewerTargetGraph === null
+        ? { items: [] }
+        : selectPartsListPanelVmFromOutputSurface(viewerTargetGraph, viewerTargetOutputSurface),
+    [viewerTargetGraph, viewerTargetOutputSurface],
+  )
 
   useEffect(() => {
     if (inputMode !== 'spaghetti') {

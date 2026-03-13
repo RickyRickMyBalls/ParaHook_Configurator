@@ -22,7 +22,19 @@ export const bootstrapBuildWiring = (): void => {
     useAppStore.getState().setAssembled(result)
   })
   buildDispatcher.setWorkerErrorHandler((error) => {
-    useSpaghettiStore.getState().clearGraphBuildRequest(error.seq)
+    if (
+      error.op === 'build' &&
+      typeof error.projectFileId === 'string' &&
+      typeof error.graphDocumentId === 'string' &&
+      typeof error.buildRequestId === 'string'
+    ) {
+      useSpaghettiStore.getState().clearGraphBuildRequest({
+        projectFileId: error.projectFileId,
+        graphDocumentId: error.graphDocumentId,
+        buildRequestId: error.buildRequestId,
+        buildSeq: error.seq,
+      })
+    }
     useAppStore.getState().setWorkerError(error.message)
   })
   buildDispatcher.setBuildInstancesProvider(() => {

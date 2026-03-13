@@ -1,23 +1,90 @@
 import { afterEach, describe, expect, it } from 'vitest'
+import {
+  loadGraphDocumentFromFile,
+  saveGraphDocumentToFile,
+  serializeGraphDocument,
+} from '../../io/graphDocumentPersistence'
 import type { SpaghettiGraph } from '../schema/spaghettiTypes'
 import { OUTPUT_PREVIEW_NODE_TYPE } from '../system/outputPreviewNode'
 import {
+  defaultViewportPosition,
+  defaultViewportSize,
   selectActiveEditorViewport,
+  selectCachedGraphEntryById,
   selectActiveGraphDocument,
   selectActiveGraphRuntime,
+  selectGraphAcceptedBuildOutputsByDocumentId,
+  selectGraphOutputSurfaceByDocumentId,
+  selectOrderedCachedGraphEntries,
   selectGraphDocumentById,
   selectGraphByDocumentId,
+  selectGraphReceiveReferencesByDocumentId,
   selectNodeMode,
   selectOrderedEditorViewports,
   selectOrderedGraphDocuments,
+  selectResolvedGraphReceiveReferencesByDocumentId,
+  selectSharedViewerComposition,
+  selectSharedViewerCompositionGraphDocumentIds,
+  selectViewerTargetGraphAcceptedBuildOutputs,
+  selectViewerTargetGraphDocumentId,
+  selectViewerTargetGraphOutputSurface,
   useSpaghettiStore,
 } from './useSpaghettiStore'
+import type { PartArtifact } from '../../../shared/buildTypes'
 
 const emptyGraph: SpaghettiGraph = {
   schemaVersion: 1,
   nodes: [],
   edges: [],
 }
+
+const baseplateArtifact: PartArtifact = {
+  id: 'baseplate',
+  label: 'Baseplate',
+  kind: 'box',
+  params: { width: 1, length: 2, height: 3 },
+  partKeyStr: 'baseplate',
+  partKey: { id: 'baseplate', instance: null },
+}
+
+const cubeArtifact: PartArtifact = {
+  id: 'cube',
+  label: 'Cube',
+  kind: 'box',
+  params: { width: 4, length: 5, height: 6 },
+  partKeyStr: 'cube',
+  partKey: { id: 'cube', instance: null },
+}
+
+const graphWithPublishedPart = (
+  nodeId: string,
+  nodeType: string,
+  slotId: string = 's001',
+): SpaghettiGraph => ({
+  schemaVersion: 1,
+  nodes: [
+    {
+      nodeId: 'node-output-preview-1',
+      type: OUTPUT_PREVIEW_NODE_TYPE,
+      params: {
+        slots: [{ slotId }],
+        nextSlotIndex: 2,
+      },
+    },
+    {
+      nodeId,
+      type: nodeType,
+      params: {},
+    },
+  ],
+  edges: [
+    {
+      edgeId: `edge-${slotId}`,
+      from: { nodeId, portId: 'solid' },
+      to: { nodeId: 'node-output-preview-1', portId: `in:solid:${slotId}` },
+    },
+  ],
+})
 
 describe('useSpaghettiStore graph normalization', () => {
   afterEach(() => {
@@ -129,6 +196,41 @@ describe('useSpaghettiStore graph normalization', () => {
     expect(state.activeGraphDocumentId).toBe('graph-document-1')
   })
 
+  it('seeds cached graph entries for live graph documents and marks in-memory graphs dirty', () => {
+    const secondGraphId = useSpaghettiStore.getState().createGraphDocument(
+      {
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-second-1',
+            type: 'Part/Baseplate',
+            params: {},
+          },
+        ],
+        edges: [],
+      },
+      'Graph 2',
+    )
+
+    const state = useSpaghettiStore.getState()
+    expect(selectOrderedCachedGraphEntries(state).map((entry) => entry.cachedGraphId)).toEqual([
+      'graph-document-1',
+      secondGraphId,
+    ])
+    expect(selectCachedGraphEntryById(state, 'graph-document-1')).toMatchObject({
+      cachedGraphId: 'graph-document-1',
+      graphDocumentId: 'graph-document-1',
+      source: 'in-memory',
+      isDirty: true,
+    })
+    expect(selectCachedGraphEntryById(state, secondGraphId)).toMatchObject({
+      cachedGraphId: secondGraphId,
+      graphDocumentId: secondGraphId,
+      source: 'in-memory',
+      isDirty: true,
+    })
+  })
+
   it('openGraphDocumentInViewport creates and focuses a new viewport while syncing the active graph bridge', () => {
     const secondGraphId = useSpaghettiStore.getState().createGraphDocument(
       {
@@ -156,6 +258,38 @@ describe('useSpaghettiStore graph normalization', () => {
     expect(activeViewport?.graphDocumentId).toBe(secondGraphId)
     expect(state.activeGraphDocumentId).toBe(secondGraphId)
     expect(state.graph).toEqual(selectGraphByDocumentId(state, secondGraphId))
+  })
+
+  it('openGraphDocumentInViewport open-or-focuses an existing viewport for the same graph', () => {
+    const firstViewportId = useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
+    const secondViewportId = useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
+    const state = useSpaghettiStore.getState()
+
+    expect(firstViewportId).not.toBeNull()
+    expect(secondViewportId).toBe(firstViewportId)
+    expect(selectOrderedEditorViewports(state)).toHaveLength(1)
+    expect(selectActiveEditorViewport(state)?.editorViewportId).toBe(firstViewportId)
+    expect(state.activeGraphDocumentId).toBe('graph-document-1')
+  })
+
+  it('openGraphDocumentInNewViewport creates a second viewport on the same graph document', () => {
+    const firstViewportId = useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
+    const secondViewportId = useSpaghettiStore.getState().openGraphDocumentInNewViewport(
+      'graph-document-1',
+    )
+    const state = useSpaghettiStore.getState()
+    const orderedViewports = selectOrderedEditorViewports(state)
+
+    expect(firstViewportId).not.toBeNull()
+    expect(secondViewportId).not.toBeNull()
+    expect(secondViewportId).not.toBe(firstViewportId)
+    expect(orderedViewports).toHaveLength(2)
+    expect(orderedViewports.map((viewport) => viewport.graphDocumentId)).toEqual([
+      'graph-document-1',
+      'graph-document-1',
+    ])
+    expect(selectActiveEditorViewport(state)?.editorViewportId).toBe(secondViewportId)
+    expect(state.activeGraphDocumentId).toBe('graph-document-1')
   })
 
   it('bindEditorViewportToGraphDocument rebinds the viewport and refreshes the active graph bridge', () => {
@@ -186,6 +320,168 @@ describe('useSpaghettiStore graph normalization', () => {
     expect(selectActiveEditorViewport(state)?.graphDocumentId).toBe(secondGraphId)
     expect(state.activeGraphDocumentId).toBe(secondGraphId)
     expect(state.graph).toEqual(selectGraphByDocumentId(state, secondGraphId))
+  })
+
+  it('swapFocusedEditorViewportToGraphDocument rebinds only the focused viewport', () => {
+    const secondGraphId = useSpaghettiStore.getState().createGraphDocument(
+      {
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-second-1',
+            type: 'Part/Baseplate',
+            params: {},
+          },
+        ],
+        edges: [],
+      },
+      'Graph 2',
+    )
+    const firstViewportId = useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
+    const secondViewportId = useSpaghettiStore.getState().openGraphDocumentInNewViewport(
+      'graph-document-1',
+    )
+
+    expect(firstViewportId).not.toBeNull()
+    expect(secondViewportId).not.toBeNull()
+
+    const reboundViewportId = useSpaghettiStore
+      .getState()
+      .swapFocusedEditorViewportToGraphDocument(secondGraphId)
+
+    const state = useSpaghettiStore.getState()
+    expect(reboundViewportId).toBe(secondViewportId)
+    expect(state.editorViewportsById[firstViewportId ?? '']?.graphDocumentId).toBe('graph-document-1')
+    expect(state.editorViewportsById[secondViewportId ?? '']?.graphDocumentId).toBe(secondGraphId)
+    expect(selectActiveEditorViewport(state)?.editorViewportId).toBe(secondViewportId)
+    expect(state.activeGraphDocumentId).toBe(secondGraphId)
+  })
+
+  it('viewer target follows focused viewport changes and viewport rebinding', () => {
+    const secondGraphId = useSpaghettiStore.getState().createGraphDocument(
+      {
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-second-1',
+            type: 'Part/Baseplate',
+            params: {},
+          },
+        ],
+        edges: [],
+      },
+      'Graph 2',
+    )
+
+    const firstViewportId = useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
+    const secondViewportId = useSpaghettiStore.getState().openGraphDocumentInViewport(secondGraphId)
+    expect(firstViewportId).not.toBeNull()
+    expect(secondViewportId).not.toBeNull()
+
+    expect(selectViewerTargetGraphDocumentId(useSpaghettiStore.getState())).toBe(secondGraphId)
+
+    useSpaghettiStore.getState().setActiveEditorViewportId(firstViewportId ?? '')
+    expect(selectViewerTargetGraphDocumentId(useSpaghettiStore.getState())).toBe('graph-document-1')
+
+    useSpaghettiStore
+      .getState()
+      .bindEditorViewportToGraphDocument(firstViewportId ?? '', secondGraphId)
+
+    expect(selectViewerTargetGraphDocumentId(useSpaghettiStore.getState())).toBe(secondGraphId)
+  })
+
+  it('shared viewer composition is explicitly authored by viewport actions and survives focus changes', () => {
+    const secondGraphId = useSpaghettiStore.getState().createGraphDocument(
+      {
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-second-1',
+            type: 'Part/Baseplate',
+            params: {},
+          },
+        ],
+        edges: [],
+      },
+      'Graph 2',
+    )
+
+    const firstViewportId = useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
+    const duplicateFirstViewportId = useSpaghettiStore.getState().openGraphDocumentInNewViewport(
+      'graph-document-1',
+    )
+    const secondViewportId = useSpaghettiStore.getState().openGraphDocumentInViewport(secondGraphId)
+
+    expect(firstViewportId).not.toBeNull()
+    expect(duplicateFirstViewportId).not.toBeNull()
+    expect(secondViewportId).not.toBeNull()
+
+    useSpaghettiStore
+      .getState()
+      .addEditorViewportGraphToSharedViewerComposition(firstViewportId ?? '')
+    useSpaghettiStore
+      .getState()
+      .addEditorViewportGraphToSharedViewerComposition(duplicateFirstViewportId ?? '')
+    useSpaghettiStore
+      .getState()
+      .addEditorViewportGraphToSharedViewerComposition(secondViewportId ?? '')
+
+    expect(selectSharedViewerCompositionGraphDocumentIds(useSpaghettiStore.getState())).toEqual([
+      'graph-document-1',
+      secondGraphId,
+    ])
+
+    useSpaghettiStore.getState().setActiveEditorViewportId(firstViewportId ?? '')
+
+    const state = useSpaghettiStore.getState()
+    expect(selectViewerTargetGraphDocumentId(state)).toBe('graph-document-1')
+    expect(selectSharedViewerCompositionGraphDocumentIds(state)).toEqual([
+      'graph-document-1',
+      secondGraphId,
+    ])
+  })
+
+  it('removing the last shared viewer composition member clears the session', () => {
+    const firstViewportId = useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
+
+    expect(firstViewportId).not.toBeNull()
+
+    useSpaghettiStore
+      .getState()
+      .addEditorViewportGraphToSharedViewerComposition(firstViewportId ?? '')
+    expect(selectSharedViewerComposition(useSpaghettiStore.getState())).not.toBeNull()
+
+    useSpaghettiStore
+      .getState()
+      .removeEditorViewportGraphFromSharedViewerComposition(firstViewportId ?? '')
+
+    expect(selectSharedViewerComposition(useSpaghettiStore.getState())).toBeNull()
+  })
+
+  it('swapFocusedEditorViewportToGraphDocument no-ops when no focused viewport exists', () => {
+    const secondGraphId = useSpaghettiStore.getState().createGraphDocument(
+      {
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-second-1',
+            type: 'Part/Baseplate',
+            params: {},
+          },
+        ],
+        edges: [],
+      },
+      'Graph 2',
+    )
+
+    const reboundViewportId = useSpaghettiStore
+      .getState()
+      .swapFocusedEditorViewportToGraphDocument(secondGraphId)
+
+    const state = useSpaghettiStore.getState()
+    expect(reboundViewportId).toBeNull()
+    expect(selectActiveEditorViewport(state)).toBeNull()
+    expect(state.activeGraphDocumentId).toBe('graph-document-1')
   })
 
   it('stores compile/build runtime per graph document and keeps preview-prep graph-local', () => {
@@ -227,6 +523,7 @@ describe('useSpaghettiStore graph normalization', () => {
       pendingChangedParamIds: ['sp_full'],
       pendingStatsPartKeys: ['baseplate', 'assembled'],
       pendingInstances: { heelKickInstances: [1], toeHookInstances: [1] },
+      buildRequestId: 'build-request-42',
       buildSeq: 42,
     })
 
@@ -235,10 +532,372 @@ describe('useSpaghettiStore graph normalization', () => {
     const secondRuntime = state.graphRuntimeByDocumentId[secondGraphId]
 
     expect(firstRuntime.compileBuild.lastCompileResult?.ok).toBe(true)
+    expect(firstRuntime.compileBuild.currentGraphRevision).toBe(0)
+    expect(firstRuntime.compileBuild.latestIssuedGraphRevision).toBe(0)
+    expect(firstRuntime.compileBuild.inFlightGraphRevision).toBe(0)
+    expect(firstRuntime.compileBuild.latestAcceptedGraphRevision).toBeNull()
     expect(firstRuntime.compileBuild.pendingStatsPartKeys).toEqual(['baseplate', 'assembled'])
     expect(firstRuntime.previewPreparation.buildStatsReadyPartKeys).toEqual(['baseplate', 'assembled'])
     expect(secondRuntime.compileBuild.lastCompileResult).toBeNull()
     expect(secondRuntime.previewPreparation.previewIntent).toBe('outputPreview')
+  })
+
+  it('marks the active cached graph entry dirty when the graph document is edited', async () => {
+    const savedBlobParts: BlobPart[] = []
+    const saveEnv: NonNullable<Parameters<typeof saveGraphDocumentToFile>[2]> = {
+      BlobCtor: Blob,
+      documentRef: {
+        createElement: (tagName) => {
+          if (tagName !== 'a') {
+            throw new Error(`Unexpected tag: ${tagName}`)
+          }
+          return {
+            href: '',
+            download: '',
+            click: () => undefined,
+            remove: () => undefined,
+          }
+        },
+        body: {
+          appendChild: () => undefined,
+        },
+      },
+      urlRef: {
+        createObjectURL: (blob: Blob) => {
+          savedBlobParts.push(blob)
+          return 'blob:graph-document'
+        },
+        revokeObjectURL: () => undefined,
+      },
+    }
+
+    await useSpaghettiStore.getState().saveCachedGraphEntryToFile('graph-document-1', {
+      savedAt: '2026-03-10T00:00:00.000Z',
+      env: saveEnv,
+    })
+
+    expect(selectCachedGraphEntryById(useSpaghettiStore.getState(), 'graph-document-1')?.isDirty).toBe(
+      false,
+    )
+
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-baseplate-1',
+          type: 'Part/Baseplate',
+          params: {},
+        },
+      ],
+      edges: [],
+    })
+
+    const state = useSpaghettiStore.getState()
+    expect(savedBlobParts).toHaveLength(1)
+    expect(state.graphRuntimeByDocumentId['graph-document-1']?.compileBuild.currentGraphRevision).toBe(1)
+    expect(selectCachedGraphEntryById(state, 'graph-document-1')).toMatchObject({
+      isDirty: true,
+      lastSavedAt: '2026-03-10T00:00:00.000Z',
+    })
+  })
+
+  it('acceptGraphBuildResult records the accepted graph revision even if the graph changed after the build request was staged', () => {
+    useSpaghettiStore.getState().stageGraphBuildRequest('graph-document-1', {
+      compileResult: {
+        ok: true,
+        diagnostics: { errors: [], warnings: [] },
+        buildInputs: {
+          instances: { heelKickInstances: [1], toeHookInstances: [1] },
+          orderedPartKeys: ['baseplate'],
+          resolvedParts: {},
+        },
+      },
+      previousBuildInputs: null,
+      pendingChangedParamIds: ['sp_full'],
+      pendingStatsPartKeys: ['baseplate', 'assembled'],
+      pendingInstances: { heelKickInstances: [1], toeHookInstances: [1] },
+      buildRequestId: 'build-request-revision',
+      buildSeq: 12,
+    })
+
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-baseplate-2',
+          type: 'Part/Baseplate',
+          params: {},
+        },
+      ],
+      edges: [],
+    })
+
+    const accepted = useSpaghettiStore.getState().acceptGraphBuildResult({
+      projectFileId: 'legacy-runtime-project',
+      graphDocumentId: 'graph-document-1',
+      buildRequestId: 'build-request-revision',
+      buildSeq: 12,
+    })
+
+    const state = useSpaghettiStore.getState()
+    expect(accepted).toBe(true)
+    expect(state.graphRuntimeByDocumentId['graph-document-1']?.compileBuild.currentGraphRevision).toBe(1)
+    expect(state.graphRuntimeByDocumentId['graph-document-1']?.compileBuild.latestAcceptedGraphRevision).toBe(0)
+  })
+
+  it('saving to disk clears save state without changing accepted build freshness', async () => {
+    useSpaghettiStore.getState().stageGraphBuildRequest('graph-document-1', {
+      compileResult: {
+        ok: true,
+        diagnostics: { errors: [], warnings: [] },
+        buildInputs: {
+          instances: { heelKickInstances: [1], toeHookInstances: [1] },
+          orderedPartKeys: ['baseplate'],
+          resolvedParts: {},
+        },
+      },
+      previousBuildInputs: null,
+      pendingChangedParamIds: ['sp_full'],
+      pendingStatsPartKeys: ['baseplate', 'assembled'],
+      pendingInstances: { heelKickInstances: [1], toeHookInstances: [1] },
+      buildRequestId: 'build-request-save',
+      buildSeq: 13,
+    })
+    useSpaghettiStore.getState().acceptGraphBuildResult({
+      projectFileId: 'legacy-runtime-project',
+      graphDocumentId: 'graph-document-1',
+      buildRequestId: 'build-request-save',
+      buildSeq: 13,
+    })
+
+    const saveEnv: NonNullable<Parameters<typeof saveGraphDocumentToFile>[2]> = {
+      BlobCtor: Blob,
+      documentRef: {
+        createElement: (tagName) => {
+          if (tagName !== 'a') {
+            throw new Error(`Unexpected tag: ${tagName}`)
+          }
+          return {
+            href: '',
+            download: '',
+            click: () => undefined,
+            remove: () => undefined,
+          }
+        },
+        body: {
+          appendChild: () => undefined,
+        },
+      },
+      urlRef: {
+        createObjectURL: () => 'blob:graph-document',
+        revokeObjectURL: () => undefined,
+      },
+    }
+
+    await useSpaghettiStore.getState().saveCachedGraphEntryToFile('graph-document-1', {
+      savedAt: '2026-03-13T11:44:00.000Z',
+      env: saveEnv,
+    })
+
+    const state = useSpaghettiStore.getState()
+    expect(selectCachedGraphEntryById(state, 'graph-document-1')?.isDirty).toBe(false)
+    expect(state.graphRuntimeByDocumentId['graph-document-1']?.compileBuild.currentGraphRevision).toBe(0)
+    expect(state.graphRuntimeByDocumentId['graph-document-1']?.compileBuild.latestAcceptedGraphRevision).toBe(0)
+  })
+
+  it('loadGraphDocumentFromFile creates a clean file-load cached entry', async () => {
+    const loadedDocument = {
+      graphDocumentId: 'graph-document-loaded',
+      name: 'Loaded Graph',
+      version: 1 as const,
+      graph: {
+        schemaVersion: 1 as const,
+        nodes: [
+          {
+            nodeId: 'node-loaded-1',
+            type: 'Part/Baseplate',
+            params: {},
+          },
+        ],
+        edges: [],
+      },
+    }
+    const input = {
+      type: '',
+      accept: '',
+      onchange: null as (() => void) | null,
+      files: [
+        {
+          text: async () => serializeGraphDocument(loadedDocument),
+        },
+      ],
+      click: () => {
+        input.onchange?.()
+      },
+      remove: () => undefined,
+    }
+    const loadEnv: NonNullable<Parameters<typeof loadGraphDocumentFromFile>[1]> = {
+      BlobCtor: Blob,
+      documentRef: {
+        createElement: (tagName) => {
+          if (tagName !== 'input') {
+            throw new Error(`Unexpected tag: ${tagName}`)
+          }
+          return input
+        },
+        body: {
+          appendChild: () => undefined,
+        },
+      },
+      urlRef: {
+        createObjectURL: () => 'blob:unused',
+        revokeObjectURL: () => undefined,
+      },
+    }
+
+    const loadedGraphId = await useSpaghettiStore.getState().loadGraphDocumentFromFile({
+      env: loadEnv,
+    })
+
+    const state = useSpaghettiStore.getState()
+    expect(loadedGraphId).toBe('graph-document-loaded')
+    expect(selectGraphDocumentById(state, loadedGraphId)?.name).toBe('Loaded Graph')
+    expect(selectCachedGraphEntryById(state, loadedGraphId)).toMatchObject({
+      cachedGraphId: loadedGraphId,
+      graphDocumentId: loadedGraphId,
+      source: 'file-load',
+      isDirty: false,
+    })
+  })
+
+  it('loadGraphDocumentIntoNewGraphFromFile clones file contents into a fresh dirty graph identity', async () => {
+    const loadedDocument = {
+      graphDocumentId: 'graph-document-loaded',
+      name: 'Loaded Graph',
+      version: 1 as const,
+      graph: {
+        schemaVersion: 1 as const,
+        nodes: [
+          {
+            nodeId: 'node-loaded-1',
+            type: 'Part/Baseplate',
+            params: {},
+          },
+        ],
+        edges: [],
+      },
+    }
+    const input = {
+      type: '',
+      accept: '',
+      onchange: null as (() => void) | null,
+      files: [
+        {
+          text: async () => serializeGraphDocument(loadedDocument),
+        },
+      ],
+      click: () => {
+        input.onchange?.()
+      },
+      remove: () => undefined,
+    }
+    const loadEnv: NonNullable<Parameters<typeof loadGraphDocumentFromFile>[1]> = {
+      BlobCtor: Blob,
+      documentRef: {
+        createElement: (tagName) => {
+          if (tagName !== 'input') {
+            throw new Error(`Unexpected tag: ${tagName}`)
+          }
+          return input
+        },
+        body: {
+          appendChild: () => undefined,
+        },
+      },
+      urlRef: {
+        createObjectURL: () => 'blob:unused',
+        revokeObjectURL: () => undefined,
+      },
+    }
+
+    const clonedGraphId = await useSpaghettiStore.getState().loadGraphDocumentIntoNewGraphFromFile({
+      env: loadEnv,
+    })
+
+    const state = useSpaghettiStore.getState()
+    expect(clonedGraphId).not.toBe('graph-document-loaded')
+    expect(selectGraphDocumentById(state, clonedGraphId)?.name).toBe('Loaded Graph')
+    expect(
+      selectGraphDocumentById(state, clonedGraphId)?.graph.nodes.some(
+        (node) => node.nodeId === 'node-loaded-1' && node.type === 'Part/Baseplate',
+      ),
+    ).toBe(true)
+    expect(selectCachedGraphEntryById(state, clonedGraphId)).toMatchObject({
+      cachedGraphId: clonedGraphId,
+      graphDocumentId: clonedGraphId,
+      source: 'in-memory',
+      isDirty: true,
+    })
+    expect(state.activeGraphDocumentId).toBe(clonedGraphId)
+    expect(selectActiveEditorViewport(state)).toBeNull()
+  })
+
+  it('saveFocusedEditorViewportGraphToFile saves the graph bound to the focused viewport', async () => {
+    const secondGraphId = useSpaghettiStore.getState().createGraphDocument(
+      {
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-second-1',
+            type: 'Part/Baseplate',
+            params: { widthMm: 42 },
+          },
+        ],
+        edges: [],
+      },
+      'Graph 2',
+    )
+    useSpaghettiStore.getState().openGraphDocumentInViewport(secondGraphId)
+
+    const savedBlobs: Blob[] = []
+    const saveEnv: NonNullable<Parameters<typeof saveGraphDocumentToFile>[2]> = {
+      BlobCtor: Blob,
+      documentRef: {
+        createElement: (tagName) => {
+          if (tagName !== 'a') {
+            throw new Error(`Unexpected tag: ${tagName}`)
+          }
+          return {
+            href: '',
+            download: '',
+            click: () => undefined,
+            remove: () => undefined,
+          }
+        },
+        body: {
+          appendChild: () => undefined,
+        },
+      },
+      urlRef: {
+        createObjectURL: (blob: Blob) => {
+          savedBlobs.push(blob)
+          return 'blob:graph-document'
+        },
+        revokeObjectURL: () => undefined,
+      },
+    }
+
+    await useSpaghettiStore.getState().saveFocusedEditorViewportGraphToFile({
+      savedAt: '2026-03-11T00:20:00.000Z',
+      env: saveEnv,
+    })
+
+    expect(savedBlobs).toHaveLength(1)
+    await expect(savedBlobs[0].text()).resolves.toContain(`"graphDocumentId":"${secondGraphId}"`)
+    expect(selectCachedGraphEntryById(useSpaghettiStore.getState(), secondGraphId)).toMatchObject({
+      isDirty: false,
+      lastSavedAt: '2026-03-11T00:20:00.000Z',
+    })
   })
 
   it('acceptGraphBuildResult resolves the tracked graph document by build seq', () => {
@@ -256,14 +915,545 @@ describe('useSpaghettiStore graph normalization', () => {
       pendingChangedParamIds: ['sp_full'],
       pendingStatsPartKeys: ['baseplate', 'assembled'],
       pendingInstances: { heelKickInstances: [1], toeHookInstances: [1] },
+      buildRequestId: 'build-request-99',
       buildSeq: 99,
     })
 
-    useSpaghettiStore.getState().acceptGraphBuildResult(99)
+    const accepted = useSpaghettiStore.getState().acceptGraphBuildResult({
+      projectFileId: 'legacy-runtime-project',
+      graphDocumentId: 'graph-document-1',
+      buildRequestId: 'build-request-99',
+      buildSeq: 99,
+    })
 
     const state = useSpaghettiStore.getState()
+    expect(accepted).toBe(true)
     expect(selectActiveGraphRuntime(state)?.compileBuild.lastBuildSeq).toBe(99)
     expect(state.graphDocumentIdByBuildSeq[99]).toBeUndefined()
+  })
+
+  it('acceptGraphBuildResult stores accepted build outputs per graph without cross-graph overwrite', () => {
+    const secondGraphId = useSpaghettiStore.getState().createGraphDocument(
+      {
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-cube-1',
+            type: 'Part/Cube',
+            params: {},
+          },
+        ],
+        edges: [],
+      },
+      'Graph 2',
+    )
+
+    useSpaghettiStore.getState().stageGraphBuildRequest('graph-document-1', {
+      compileResult: {
+        ok: true,
+        diagnostics: { errors: [], warnings: [] },
+        buildInputs: {
+          instances: { heelKickInstances: [1], toeHookInstances: [1] },
+          orderedPartKeys: ['baseplate'],
+          resolvedParts: {},
+        },
+      },
+      previousBuildInputs: null,
+      pendingChangedParamIds: ['sp_full'],
+      pendingStatsPartKeys: ['baseplate'],
+      pendingInstances: { heelKickInstances: [1], toeHookInstances: [1] },
+      buildRequestId: 'build-request-11',
+      buildSeq: 11,
+    })
+    useSpaghettiStore.getState().stageGraphBuildRequest(secondGraphId, {
+      compileResult: {
+        ok: true,
+        diagnostics: { errors: [], warnings: [] },
+        buildInputs: {
+          instances: { heelKickInstances: [1], toeHookInstances: [1] },
+          orderedPartKeys: ['cube'],
+          resolvedParts: {},
+        },
+      },
+      previousBuildInputs: null,
+      pendingChangedParamIds: ['sp_cube'],
+      pendingStatsPartKeys: ['cube'],
+      pendingInstances: { heelKickInstances: [1], toeHookInstances: [1] },
+      buildRequestId: 'build-request-22',
+      buildSeq: 22,
+    })
+
+    expect(
+      useSpaghettiStore.getState().acceptGraphBuildResult({
+        projectFileId: 'legacy-runtime-project',
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-11',
+        buildSeq: 11,
+        buildOutputs: [baseplateArtifact],
+      }),
+    ).toBe(true)
+    expect(
+      useSpaghettiStore.getState().acceptGraphBuildResult({
+        projectFileId: 'legacy-runtime-project',
+        graphDocumentId: secondGraphId,
+        buildRequestId: 'build-request-22',
+        buildSeq: 22,
+        buildOutputs: [cubeArtifact],
+      }),
+    ).toBe(true)
+
+    const state = useSpaghettiStore.getState()
+    expect(selectGraphAcceptedBuildOutputsByDocumentId(state, 'graph-document-1')).toEqual([
+      baseplateArtifact,
+    ])
+    expect(selectGraphAcceptedBuildOutputsByDocumentId(state, secondGraphId)).toEqual([
+      cubeArtifact,
+    ])
+    useSpaghettiStore.getState().setViewerTargetGraphDocumentId(secondGraphId)
+    expect(selectViewerTargetGraphAcceptedBuildOutputs(useSpaghettiStore.getState())).toEqual([
+      cubeArtifact,
+    ])
+  })
+
+  it('derives graph-owned output surfaces per graph and keeps them independent of viewer target changes', () => {
+    const secondGraphId = useSpaghettiStore.getState().createGraphDocument(
+      graphWithPublishedPart('node-cube-1', 'Part/Cube'),
+      'Graph 2',
+    )
+
+    let state = useSpaghettiStore.getState()
+    expect(selectGraphOutputSurfaceByDocumentId(state, 'graph-document-1')?.entries).toMatchObject([
+      {
+        slotId: 's001',
+        state: 'empty',
+        acceptedArtifactKey: null,
+      },
+    ])
+    expect(selectGraphOutputSurfaceByDocumentId(state, secondGraphId)?.entries).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          slotId: 's001',
+          sourceNodeId: 'node-cube-1',
+          state: 'unresolved',
+          acceptedArtifactKey: null,
+        }),
+      ]),
+    )
+
+    useSpaghettiStore.getState().stageGraphBuildRequest(secondGraphId, {
+      compileResult: {
+        ok: true,
+        diagnostics: { errors: [], warnings: [] },
+        buildInputs: {
+          instances: { heelKickInstances: [1], toeHookInstances: [1] },
+          orderedPartKeys: ['cube'],
+          resolvedParts: {},
+        },
+      },
+      previousBuildInputs: null,
+      pendingChangedParamIds: ['sp_cube'],
+      pendingStatsPartKeys: ['cube'],
+      pendingInstances: { heelKickInstances: [1], toeHookInstances: [1] },
+      buildRequestId: 'build-request-surface',
+      buildSeq: 7,
+    })
+    expect(
+      useSpaghettiStore.getState().acceptGraphBuildResult({
+        projectFileId: 'legacy-runtime-project',
+        graphDocumentId: secondGraphId,
+        buildRequestId: 'build-request-surface',
+        buildSeq: 7,
+        buildOutputs: [cubeArtifact],
+      }),
+    ).toBe(true)
+
+    state = useSpaghettiStore.getState()
+    expect(selectGraphOutputSurfaceByDocumentId(state, secondGraphId)).toMatchObject({
+      graphDocumentId: secondGraphId,
+      publishedAtBuildSeq: 7,
+      surfaceVersion: 1,
+      entries: expect.arrayContaining([
+        expect.objectContaining({
+          slotId: 's001',
+          sourceNodeId: 'node-cube-1',
+          state: 'resolved',
+          acceptedArtifactKey: 'cube',
+        }),
+      ]),
+    })
+    const firstGraphSurface = selectGraphOutputSurfaceByDocumentId(state, 'graph-document-1')
+    expect(firstGraphSurface?.entries).toMatchObject([
+      {
+        slotId: 's001',
+        state: 'empty',
+        acceptedArtifactKey: null,
+      },
+    ])
+
+    useSpaghettiStore.getState().setViewerTargetGraphDocumentId(secondGraphId)
+    expect(selectViewerTargetGraphOutputSurface(useSpaghettiStore.getState())?.graphDocumentId).toBe(
+      secondGraphId,
+    )
+    expect(selectGraphOutputSurfaceByDocumentId(useSpaghettiStore.getState(), 'graph-document-1')).toEqual(
+      firstGraphSurface,
+    )
+  })
+
+  it('stores graph-authored receive references on the targeted graph document by explicit ids', () => {
+    const secondGraphId = useSpaghettiStore.getState().createGraphDocument(
+      graphWithPublishedPart('node-cube-1', 'Part/Cube'),
+      'Graph 2',
+    )
+
+    const receiveId = useSpaghettiStore.getState().addGraphReceiveReference('graph-document-1', {
+      receiveId: 'receive-1',
+      sourceGraphDocumentId: secondGraphId,
+      sourceOutputEntryId: 'output-entry:s001:node-cube-1',
+    })
+
+    expect(receiveId).toBe('receive-1')
+    expect(selectGraphReceiveReferencesByDocumentId(useSpaghettiStore.getState(), 'graph-document-1')).toEqual(
+      [
+        {
+          receiveId: 'receive-1',
+          sourceGraphDocumentId: secondGraphId,
+          sourceOutputEntryId: 'output-entry:s001:node-cube-1',
+          mode: 'link',
+        },
+      ],
+    )
+    expect(selectGraphReceiveReferencesByDocumentId(useSpaghettiStore.getState(), secondGraphId)).toEqual(
+      [],
+    )
+  })
+
+  it('resolves linked receive references by explicit source graph and output ids', () => {
+    const secondGraphId = useSpaghettiStore.getState().createGraphDocument(
+      graphWithPublishedPart('node-cube-1', 'Part/Cube'),
+      'Graph 2',
+    )
+
+    useSpaghettiStore.getState().stageGraphBuildRequest(secondGraphId, {
+      compileResult: {
+        ok: true,
+        diagnostics: { errors: [], warnings: [] },
+        buildInputs: {
+          instances: { heelKickInstances: [1], toeHookInstances: [1] },
+          orderedPartKeys: ['cube'],
+          resolvedParts: {},
+        },
+      },
+      previousBuildInputs: null,
+      pendingChangedParamIds: ['sp_cube'],
+      pendingStatsPartKeys: ['cube'],
+      pendingInstances: { heelKickInstances: [1], toeHookInstances: [1] },
+      buildRequestId: 'build-request-receive',
+      buildSeq: 31,
+    })
+    expect(
+      useSpaghettiStore.getState().acceptGraphBuildResult({
+        projectFileId: 'legacy-runtime-project',
+        graphDocumentId: secondGraphId,
+        buildRequestId: 'build-request-receive',
+        buildSeq: 31,
+        buildOutputs: [cubeArtifact],
+      }),
+    ).toBe(true)
+
+    useSpaghettiStore.getState().addGraphReceiveReference('graph-document-1', {
+      receiveId: 'receive-1',
+      sourceGraphDocumentId: secondGraphId,
+      sourceOutputEntryId: 'output-entry:s001:node-cube-1',
+    })
+
+    expect(
+      selectResolvedGraphReceiveReferencesByDocumentId(useSpaghettiStore.getState(), 'graph-document-1'),
+    ).toEqual([
+      expect.objectContaining({
+        receiveId: 'receive-1',
+        sourceGraphDocumentId: secondGraphId,
+        sourceOutputEntryId: 'output-entry:s001:node-cube-1',
+        receivingGraphDocumentId: 'graph-document-1',
+        resolutionState: 'resolved',
+        sourceEntry: expect.objectContaining({
+          outputEntryId: 'output-entry:s001:node-cube-1',
+          state: 'resolved',
+        }),
+      }),
+    ])
+  })
+
+  it('keeps linked receive resolution independent from graph labels, viewer target, and graph order', () => {
+    const secondGraphId = useSpaghettiStore.getState().createGraphDocument(
+      graphWithPublishedPart('node-cube-1', 'Part/Cube'),
+      'Same Label',
+    )
+    const thirdGraphId = useSpaghettiStore.getState().createGraphDocument(
+      graphWithPublishedPart('node-cube-2', 'Part/Cube'),
+      'Same Label',
+    )
+
+    useSpaghettiStore.getState().stageGraphBuildRequest(secondGraphId, {
+      compileResult: {
+        ok: true,
+        diagnostics: { errors: [], warnings: [] },
+        buildInputs: {
+          instances: { heelKickInstances: [1], toeHookInstances: [1] },
+          orderedPartKeys: ['cube'],
+          resolvedParts: {},
+        },
+      },
+      previousBuildInputs: null,
+      pendingChangedParamIds: ['sp_cube_a'],
+      pendingStatsPartKeys: ['cube'],
+      pendingInstances: { heelKickInstances: [1], toeHookInstances: [1] },
+      buildRequestId: 'build-request-a',
+      buildSeq: 32,
+    })
+    useSpaghettiStore.getState().stageGraphBuildRequest(thirdGraphId, {
+      compileResult: {
+        ok: true,
+        diagnostics: { errors: [], warnings: [] },
+        buildInputs: {
+          instances: { heelKickInstances: [1], toeHookInstances: [1] },
+          orderedPartKeys: ['cube'],
+          resolvedParts: {},
+        },
+      },
+      previousBuildInputs: null,
+      pendingChangedParamIds: ['sp_cube_b'],
+      pendingStatsPartKeys: ['cube'],
+      pendingInstances: { heelKickInstances: [1], toeHookInstances: [1] },
+      buildRequestId: 'build-request-b',
+      buildSeq: 33,
+    })
+    useSpaghettiStore.getState().acceptGraphBuildResult({
+      projectFileId: 'legacy-runtime-project',
+      graphDocumentId: secondGraphId,
+      buildRequestId: 'build-request-a',
+      buildSeq: 32,
+      buildOutputs: [cubeArtifact],
+    })
+    useSpaghettiStore.getState().acceptGraphBuildResult({
+      projectFileId: 'legacy-runtime-project',
+      graphDocumentId: thirdGraphId,
+      buildRequestId: 'build-request-b',
+      buildSeq: 33,
+      buildOutputs: [cubeArtifact],
+    })
+
+    useSpaghettiStore.getState().addGraphReceiveReference('graph-document-1', {
+      receiveId: 'receive-1',
+      sourceGraphDocumentId: thirdGraphId,
+      sourceOutputEntryId: 'output-entry:s001:node-cube-2',
+    })
+
+    useSpaghettiStore.getState().openGraphDocumentInViewport(secondGraphId)
+    useSpaghettiStore.getState().setViewerTargetGraphDocumentId(secondGraphId)
+
+    expect(
+      selectResolvedGraphReceiveReferencesByDocumentId(useSpaghettiStore.getState(), 'graph-document-1'),
+    ).toEqual([
+      expect.objectContaining({
+        receiveId: 'receive-1',
+        sourceGraphDocumentId: thirdGraphId,
+        sourceOutputEntryId: 'output-entry:s001:node-cube-2',
+        resolutionState: 'resolved',
+      }),
+    ])
+  })
+
+  it('keeps missing linked source publications in an unresolved state and supports explicit removal', () => {
+    const secondGraphId = useSpaghettiStore.getState().createGraphDocument(
+      graphWithPublishedPart('node-cube-1', 'Part/Cube'),
+      'Graph 2',
+    )
+
+    useSpaghettiStore.getState().addGraphReceiveReference('graph-document-1', {
+      receiveId: 'receive-1',
+      sourceGraphDocumentId: secondGraphId,
+      sourceOutputEntryId: 'output-entry:s001:node-cube-1',
+    })
+
+    expect(
+      selectResolvedGraphReceiveReferencesByDocumentId(useSpaghettiStore.getState(), 'graph-document-1'),
+    ).toEqual([
+      expect.objectContaining({
+        receiveId: 'receive-1',
+        resolutionState: 'unresolved',
+        sourceEntry: expect.objectContaining({
+          outputEntryId: 'output-entry:s001:node-cube-1',
+          state: 'unresolved',
+        }),
+      }),
+    ])
+
+    expect(useSpaghettiStore.getState().removeGraphReceiveReference('graph-document-1', 'receive-1')).toBe(
+      true,
+    )
+    expect(selectGraphReceiveReferencesByDocumentId(useSpaghettiStore.getState(), 'graph-document-1')).toEqual(
+      [],
+    )
+  })
+
+  it('acceptGraphBuildResult rejects stale writes directly at the graph runtime boundary', () => {
+    useSpaghettiStore.getState().stageGraphBuildRequest('graph-document-1', {
+      compileResult: {
+        ok: true,
+        diagnostics: { errors: [], warnings: [] },
+        buildInputs: {
+          instances: { heelKickInstances: [1], toeHookInstances: [1] },
+          orderedPartKeys: ['baseplate'],
+          resolvedParts: {},
+        },
+      },
+      previousBuildInputs: null,
+      pendingChangedParamIds: ['sp_full'],
+      pendingStatsPartKeys: ['baseplate', 'assembled'],
+      pendingInstances: { heelKickInstances: [1], toeHookInstances: [1] },
+      buildRequestId: 'build-request-1',
+      buildSeq: 1,
+    })
+    useSpaghettiStore.getState().acceptGraphBuildResult({
+      projectFileId: 'legacy-runtime-project',
+      graphDocumentId: 'graph-document-1',
+      buildRequestId: 'build-request-1',
+      buildSeq: 1,
+    })
+
+    useSpaghettiStore.getState().stageGraphBuildRequest('graph-document-1', {
+      compileResult: {
+        ok: true,
+        diagnostics: { errors: [], warnings: [] },
+        buildInputs: {
+          instances: { heelKickInstances: [1], toeHookInstances: [1] },
+          orderedPartKeys: ['baseplate'],
+          resolvedParts: {},
+        },
+      },
+      previousBuildInputs: null,
+      pendingChangedParamIds: ['sp_width'],
+      pendingStatsPartKeys: ['baseplate', 'assembled'],
+      pendingInstances: { heelKickInstances: [1], toeHookInstances: [1] },
+      buildRequestId: 'build-request-2',
+      buildSeq: 2,
+    })
+
+    const accepted = useSpaghettiStore.getState().acceptGraphBuildResult({
+      projectFileId: 'legacy-runtime-project',
+      graphDocumentId: 'graph-document-1',
+      buildRequestId: 'build-request-1',
+      buildSeq: 1,
+    })
+
+    const state = useSpaghettiStore.getState()
+    expect(accepted).toBe(false)
+    expect(state.graphRuntimeByDocumentId['graph-document-1']?.compileBuild.latestAcceptedBuildSeq).toBe(1)
+    expect(state.graphRuntimeByDocumentId['graph-document-1']?.compileBuild.inFlightBuildSeq).toBe(2)
+  })
+
+  it('focus changes do not rebind an in-flight graph build result', () => {
+    const secondGraphId = useSpaghettiStore.getState().createGraphDocument(
+      {
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-second-1',
+            type: 'Part/Baseplate',
+            params: {},
+          },
+        ],
+        edges: [],
+      },
+      'Graph 2',
+    )
+    useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
+    useSpaghettiStore.getState().stageGraphBuildRequest('graph-document-1', {
+      compileResult: {
+        ok: true,
+        diagnostics: { errors: [], warnings: [] },
+        buildInputs: {
+          instances: { heelKickInstances: [1], toeHookInstances: [1] },
+          orderedPartKeys: ['baseplate'],
+          resolvedParts: {},
+        },
+      },
+      previousBuildInputs: null,
+      pendingChangedParamIds: ['sp_full'],
+      pendingStatsPartKeys: ['baseplate', 'assembled'],
+      pendingInstances: { heelKickInstances: [1], toeHookInstances: [1] },
+      buildRequestId: 'build-request-focus',
+      buildSeq: 7,
+    })
+
+    useSpaghettiStore.getState().openGraphDocumentInViewport(secondGraphId)
+
+    const accepted = useSpaghettiStore.getState().acceptGraphBuildResult({
+      projectFileId: 'legacy-runtime-project',
+      graphDocumentId: 'graph-document-1',
+      buildRequestId: 'build-request-focus',
+      buildSeq: 7,
+    })
+
+    const state = useSpaghettiStore.getState()
+    expect(accepted).toBe(true)
+    expect(state.activeGraphDocumentId).toBe(secondGraphId)
+    expect(state.graphRuntimeByDocumentId['graph-document-1']?.compileBuild.latestAcceptedBuildSeq).toBe(7)
+    expect(state.graphRuntimeByDocumentId[secondGraphId]?.compileBuild.latestAcceptedBuildSeq).toBeNull()
+  })
+
+  it('viewport graph switches do not rebind in-flight graph result ownership', () => {
+    const secondGraphId = useSpaghettiStore.getState().createGraphDocument(
+      {
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-second-1',
+            type: 'Part/Baseplate',
+            params: {},
+          },
+        ],
+        edges: [],
+      },
+      'Graph 2',
+    )
+    const viewportId = useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
+    expect(viewportId).not.toBeNull()
+
+    useSpaghettiStore.getState().stageGraphBuildRequest('graph-document-1', {
+      compileResult: {
+        ok: true,
+        diagnostics: { errors: [], warnings: [] },
+        buildInputs: {
+          instances: { heelKickInstances: [1], toeHookInstances: [1] },
+          orderedPartKeys: ['baseplate'],
+          resolvedParts: {},
+        },
+      },
+      previousBuildInputs: null,
+      pendingChangedParamIds: ['sp_full'],
+      pendingStatsPartKeys: ['baseplate', 'assembled'],
+      pendingInstances: { heelKickInstances: [1], toeHookInstances: [1] },
+      buildRequestId: 'build-request-viewport',
+      buildSeq: 8,
+    })
+
+    useSpaghettiStore
+      .getState()
+      .bindEditorViewportToGraphDocument(viewportId ?? '', secondGraphId)
+
+    const accepted = useSpaghettiStore.getState().acceptGraphBuildResult({
+      projectFileId: 'legacy-runtime-project',
+      graphDocumentId: 'graph-document-1',
+      buildRequestId: 'build-request-viewport',
+      buildSeq: 8,
+    })
+
+    const state = useSpaghettiStore.getState()
+    expect(accepted).toBe(true)
+    expect(selectActiveEditorViewport(state)?.graphDocumentId).toBe(secondGraphId)
+    expect(state.graphRuntimeByDocumentId['graph-document-1']?.compileBuild.latestAcceptedBuildSeq).toBe(8)
+    expect(state.graphRuntimeByDocumentId[secondGraphId]?.compileBuild.latestAcceptedBuildSeq).toBeNull()
   })
 
   it('closeEditorViewport falls back to the highest z-order remaining viewport', () => {
@@ -292,6 +1482,89 @@ describe('useSpaghettiStore graph normalization', () => {
     const state = useSpaghettiStore.getState()
     expect(selectActiveEditorViewport(state)?.editorViewportId).toBe(secondViewportId)
     expect(state.activeGraphDocumentId).toBe(secondGraphId)
+  })
+
+  it('setEditorViewportWindowMode toggles maximized back to the default floating size', () => {
+    const viewportId = useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
+    expect(viewportId).not.toBeNull()
+
+    useSpaghettiStore.getState().setEditorViewportPosition(viewportId ?? '', { x: 48, y: 72 })
+    useSpaghettiStore.getState().setEditorViewportSize(viewportId ?? '', { width: 640, height: 520 })
+
+    useSpaghettiStore.getState().setEditorViewportWindowMode(viewportId ?? '', 'maximized')
+    useSpaghettiStore.getState().setEditorViewportWindowMode(viewportId ?? '', 'maximized')
+
+    const viewport = selectActiveEditorViewport(useSpaghettiStore.getState())
+    expect(viewport?.windowMode).toBe('expanded')
+    expect(viewport?.position).toEqual(defaultViewportPosition)
+    expect(viewport?.size).toEqual(defaultViewportSize)
+  })
+
+  it('setEditorViewportWindowMode toggles split view back to the captured prior expanded state', () => {
+    const viewportId = useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
+    expect(viewportId).not.toBeNull()
+
+    useSpaghettiStore.getState().setEditorViewportPosition(viewportId ?? '', { x: 60, y: 90 })
+    useSpaghettiStore.getState().setEditorViewportSize(viewportId ?? '', { width: 700, height: 540 })
+
+    useSpaghettiStore.getState().setEditorViewportWindowMode(viewportId ?? '', 'split view')
+
+    let viewport = selectActiveEditorViewport(useSpaghettiStore.getState())
+    expect(viewport?.windowMode).toBe('split view')
+    expect(viewport?.splitRatio).toBe(0.5)
+    expect(viewport?.restoreFromSplit).toEqual({
+      windowMode: 'expanded',
+      position: { x: 60, y: 90 },
+      size: { width: 700, height: 540 },
+    })
+
+    useSpaghettiStore.getState().setEditorViewportWindowMode(viewportId ?? '', 'split view')
+
+    viewport = selectActiveEditorViewport(useSpaghettiStore.getState())
+    expect(viewport?.windowMode).toBe('expanded')
+    expect(viewport?.position).toEqual({ x: 60, y: 90 })
+    expect(viewport?.size).toEqual({ width: 700, height: 540 })
+    expect(viewport?.restoreFromSplit).toBeNull()
+  })
+
+  it('setEditorViewportWindowMode toggles collapsed back to the captured prior split state', () => {
+    const viewportId = useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
+    expect(viewportId).not.toBeNull()
+
+    useSpaghettiStore.getState().setEditorViewportWindowMode(viewportId ?? '', 'split view')
+    useSpaghettiStore.getState().setEditorViewportSplitRatio(viewportId ?? '', 0.7)
+    useSpaghettiStore.getState().setEditorViewportWindowMode(viewportId ?? '', 'collapsed')
+
+    let viewport = selectActiveEditorViewport(useSpaghettiStore.getState())
+    expect(viewport?.windowMode).toBe('collapsed')
+    expect(viewport?.restoreFromCollapsed).toEqual({
+      windowMode: 'split view',
+      position: defaultViewportPosition,
+      size: defaultViewportSize,
+      splitRatio: 0.7,
+    })
+
+    useSpaghettiStore.getState().setEditorViewportWindowMode(viewportId ?? '', 'collapsed')
+
+    viewport = selectActiveEditorViewport(useSpaghettiStore.getState())
+    expect(viewport?.windowMode).toBe('split view')
+    expect(viewport?.splitRatio).toBe(0.7)
+    expect(viewport?.restoreFromCollapsed).toBeNull()
+  })
+
+  it('only keeps one meatball editor view alive at a time', () => {
+    const secondGraphId = useSpaghettiStore.getState().createGraphDocument(emptyGraph, 'Graph 2')
+    const firstViewportId = useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
+    const secondViewportId = useSpaghettiStore.getState().openGraphDocumentInNewViewport(secondGraphId)
+    expect(firstViewportId).not.toBeNull()
+    expect(secondViewportId).not.toBeNull()
+
+    useSpaghettiStore.getState().setEditorViewportWindowMode(firstViewportId ?? '', 'meatball editor view')
+    useSpaghettiStore.getState().setEditorViewportWindowMode(secondViewportId ?? '', 'meatball editor view')
+
+    const state = useSpaghettiStore.getState()
+    expect(state.editorViewportsById[firstViewportId ?? '']?.windowMode).toBe('expanded')
+    expect(state.editorViewportsById[secondViewportId ?? '']?.windowMode).toBe('meatball editor view')
   })
 
   it('setNodeMode updates active graph document state', () => {

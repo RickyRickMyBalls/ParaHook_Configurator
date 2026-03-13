@@ -6,6 +6,9 @@ import { selectGraphByDocumentId, useSpaghettiStore } from '../store/useSpaghett
 type CollapsedEditorProps = {
   graphDocumentId: string
   focusNodeId: string | null
+  isCanvasToolbarVisible: boolean
+  viewMode: 'expanded' | 'collapsed'
+  onSetViewMode: (viewMode: 'expanded' | 'collapsed') => void
 }
 
 const compareByNodeId = (a: SpaghettiNode, b: SpaghettiNode): number =>
@@ -116,7 +119,13 @@ export const getUpstreamTopoNodeIds = (
   return topo
 }
 
-export function CollapsedEditor({ graphDocumentId, focusNodeId }: CollapsedEditorProps) {
+export function CollapsedEditor({
+  graphDocumentId,
+  focusNodeId,
+  isCanvasToolbarVisible,
+  viewMode,
+  onSetViewMode,
+}: CollapsedEditorProps) {
   const graph = useSpaghettiStore((state) => selectGraphByDocumentId(state, graphDocumentId))
 
   const sortedNodes = useMemo(() => [...(graph?.nodes ?? [])].sort(compareByNodeId), [graph?.nodes])
@@ -146,6 +155,30 @@ export function CollapsedEditor({ graphDocumentId, focusNodeId }: CollapsedEdito
 
   return (
     <div className="SpaghettiCollapsedRoot">
+      {isCanvasToolbarVisible ? (
+        <div className="SpaghettiCanvasToolbar SpaghettiCanvasToolbar--modeOnly">
+          <div className="SpaghettiCanvasModeToggle">
+            <button
+              type="button"
+              className={`SpaghettiEditorModeButton ${
+                viewMode === 'expanded' ? 'SpaghettiEditorModeButton--active' : ''
+              }`}
+              onClick={() => onSetViewMode('expanded')}
+            >
+              Expanded
+            </button>
+            <button
+              type="button"
+              className={`SpaghettiEditorModeButton ${
+                viewMode === 'collapsed' ? 'SpaghettiEditorModeButton--active' : ''
+              }`}
+              onClick={() => onSetViewMode('collapsed')}
+            >
+              Collapsed
+            </button>
+          </div>
+        </div>
+      ) : null}
       <div className="SpaghettiCollapsedHeader">
         <strong>Focused Node</strong>
       </div>

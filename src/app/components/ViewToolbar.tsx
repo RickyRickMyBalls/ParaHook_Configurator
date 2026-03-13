@@ -12,11 +12,20 @@ import {
 import { useAppStore } from '../store/useAppStore'
 import { useUiPrefsStore } from '../store/uiPrefsStore'
 import {
+  selectViewerTargetGraphAcceptedBuildOutputs,
+  useSpaghettiStore,
+} from '../spaghetti/store/useSpaghettiStore'
+import {
   getViewer,
   type CameraPreset,
   type GizmoMode,
   type GizmoSpace,
 } from '../viewerBridge'
+import {
+  COMPACT_AXIS_WIDGET_SIZE,
+  DEFAULT_EXPANDED_AXIS_WIDGET_SIZE,
+  resolveRightDockWidth,
+} from './viewToolbarLayout'
 
 const cameraPresets: CameraPreset[] = ['iso', 'top', 'front', 'left', 'right']
 const lightTypes: LightType[] = ['directional', 'point', 'spot', 'hemisphere', 'ambient']
@@ -111,8 +120,11 @@ const lightTypeLabel = (type: LightType): string => {
 }
 
 export function ViewToolbar() {
-  const parts = useAppStore((state) => state.parts)
+  const legacyParts = useAppStore((state) => state.parts)
+  const inputMode = useAppStore((state) => state.inputMode)
+  const viewerTargetParts = useSpaghettiStore(selectViewerTargetGraphAcceptedBuildOutputs)
   const selectedPartKey = useAppStore((state) => state.selectedPartKey)
+  const parts = inputMode === 'spaghetti' ? viewerTargetParts : legacyParts
 
   const view = useUiPrefsStore((state) => state.view)
   const setViewKey = useUiPrefsStore((state) => state.setViewKey)
@@ -127,6 +139,11 @@ export function ViewToolbar() {
   const setUsePerPartMaterial = useUiPrefsStore((state) => state.setUsePerPartMaterial)
   const assignPartMaterial = useUiPrefsStore((state) => state.assignPartMaterial)
   const clearPartMaterial = useUiPrefsStore((state) => state.clearPartMaterial)
+  const viewToolbarOpen = useUiPrefsStore((state) => state.viewToolbarOpen)
+  const setViewToolbarOpen = useUiPrefsStore((state) => state.setViewToolbarOpen)
+  const viewToolbarExpandedAxisWidgetSize = useUiPrefsStore(
+    (state) => state.viewToolbarExpandedAxisWidgetSize,
+  )
 
   const [gizmoEnabled, setGizmoEnabled] = useState(false)
   const [activeCameraPreset, setActiveCameraPreset] = useState<CameraPreset>('iso')
@@ -176,11 +193,24 @@ export function ViewToolbar() {
     withViewer((viewer) => viewer.setGizmoSpace(next))
   }
 
+  const resolvedAxisWidgetSize = viewToolbarOpen
+    ? viewToolbarExpandedAxisWidgetSize ?? DEFAULT_EXPANDED_AXIS_WIDGET_SIZE
+    : COMPACT_AXIS_WIDGET_SIZE
+  const rightDockWidth = resolveRightDockWidth(resolvedAxisWidgetSize)
+
   return (
-    <aside className="RightDock">
+    <aside className={`RightDock ${viewToolbarOpen ? 'isExpanded' : 'isCompact'}`} style={{ width: `${rightDockWidth}px`, minWidth: `${rightDockWidth}px`, maxWidth: `${rightDockWidth}px` }}>
       <div className="RightPanelStack">
-        <details className="V15Panel ViewToolbarRoot">
-          <summary className="V15PanelTitle ViewToolbarToggle">View</summary>
+        <details className="V15Panel ViewToolbarRoot" open={viewToolbarOpen}>
+          <summary
+            className="V15PanelTitle ViewToolbarToggle"
+            onClick={(event) => {
+              event.preventDefault()
+              setViewToolbarOpen(!viewToolbarOpen)
+            }}
+          >
+            View
+          </summary>
           <div className="ViewToolbarPanel">
           <details className="ViewSection CameraSection ViewStyledSection">
             <summary>Camera</summary>

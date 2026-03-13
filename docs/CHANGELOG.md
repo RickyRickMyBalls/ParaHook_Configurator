@@ -65,6 +65,2157 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 223 -->
+### [223] - 2026-03-12 20:20 - `VR / SP - Lane 2.1E - Shared Left-Dock Ghost Docking For Browser And Meatball Re-Entry`
+<!-- ENTRY 223 -->
+HUMAN SUMMARY: `Added the first fixed-slot `2.1E` dockable left-panel behavior so the Browser can ghost-preview and dock back into its top slot, while dragging the docked meatball editor out now restores the normal floating Spaghetti Editor and lets that floating editor ghost-preview back into the meatball slot.` 
+
+#### Scope / Constraints Honored
+- Kept this to the fixed-slot `2.1E` version instead of introducing arbitrary left-dock panel reordering.
+- Preserved the rule that `meatball editor` is the docked toolbar-hosted presentation, not a separate floating shell.
+- Reused the existing floating Spaghetti Editor shell instead of inventing a second floating editor implementation.
+
+#### Summary of Implementation
+- Added shared left-dock target wrappers in `AppShell` for the Browser and meatball slots.
+- Implemented compact dashed ghost previews that appear when a dragged panel hovers over its valid dock target.
+- Wired the floating Browser drag path to re-dock on drop over the Browser slot.
+- Wired the docked meatball titlebar drag path to restore the normal floating Spaghetti Editor once the drag leaves the dock.
+- Wired the floating Spaghetti Editor drag path to re-enter `meatball editor view` when dropped over the meatball target.
+- Added focused shell tests for Browser re-docking, meatball drag-out, and meatball re-entry.
+
+#### Files Changed
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+- `src/app/theme/v15Theme.css`
+
+#### Behavior Changes
+- Dragging the floating Browser back over its dock slot now shows a ghost placeholder and docks it on release.
+- Dragging the docked meatball editor out now converts it back into the floating Spaghetti Editor during the same drag.
+- Dragging the floating Spaghetti Editor back over the meatball slot now shows a ghost placeholder and restores `meatball editor view` on release.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/AppShell.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 222 -->
+### [222] - 2026-03-12 17:10 - `VR / SP - Lane 2.1D - Add Combined Compile-Build Quick Action Beside Graph Selector`
+HUMAN SUMMARY: `Replaced the separate Compile and Build buttons with one square quick-action button beside the graph selector that runs the existing compile-then-build path in one click, leaving the Build section focused on save-only behavior.` 
+
+#### Scope / Constraints Honored
+- Kept this scoped to the Spaghetti toolbar interaction model.
+- Reused the existing `requestGraphDocumentBuild(...)` path so the new quick action follows the current compile-then-build rules.
+- Did not change the underlying graph compile/build pipeline behavior.
+
+#### Summary of Implementation
+- Added a small square quick-action button to the left of the standalone graph selector row.
+- Wired that button to the existing combined graph build request path.
+- Removed the separate `Compile` and `Build` buttons from the Build section and updated the inline help copy to match the new quick-action flow.
+- Added panel test coverage for the new combined quick-action button.
+
+#### Files Changed
+- `src/app/panels/SpaghettiPanel.tsx`
+- `src/app/panels/SpaghettiPanel.test.tsx`
+- `src/app/theme/v15Theme.css`
+
+#### Behavior Changes
+- The top graph row now exposes one square quick-build action instead of requiring separate compile/build buttons.
+- The Build section now reads more cleanly because save is the only remaining direct button there.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/panels/SpaghettiPanel.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 221 -->
+### [221] - 2026-03-12 17:05 - `VR / SP - Lane 2.1D - Move Canvas View-Mode Toggle Out Of Graph Header`
+HUMAN SUMMARY: `Cleaned up the Graph toolbar section by making the viewport graph selector span the full editor width and moving the Expanded / Collapsed toggle into the editor-surface canvas toolbar, with the same mode controls still visible while the canvas is already in collapsed mode so the user can return immediately.` 
+
+#### Scope / Constraints Honored
+- Kept this scoped to the internal Spaghetti toolbar and editor-surface mode controls.
+- Did not remove any graph-view functionality; only changed where the controls live.
+- Preserved the existing `expanded` / `collapsed` canvas behavior while making the return path clearer.
+
+#### Summary of Implementation
+- Removed the `Expanded` / `Collapsed` buttons from the `Graph` header section so that branch now focuses on graph binding only.
+- Styled the graph-document selector as a full-width control across the Graph section.
+- Passed the view-mode toggle into the actual editor surface so `Expanded` / `Collapsed` now live in the canvas toolbar for expanded view and in a matching toolbar strip for collapsed view.
+- Added focused test coverage to pin the collapsed-view return path.
+
+#### Files Changed
+- `src/app/panels/SpaghettiPanel.tsx`
+- `src/app/panels/SpaghettiPanel.test.tsx`
+- `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
+- `src/app/spaghetti/ui/CollapsedEditor.tsx`
+- `src/app/spaghetti/ui/CollapsedEditor.test.tsx`
+- `src/app/spaghetti/ui/ExpandedEditor.tsx`
+- `src/app/spaghetti/ui/SpaghettiEditor.tsx`
+- `src/app/theme/v15Theme.css`
+
+#### Behavior Changes
+- The `Graph` section now reads as a clean full-width graph-binding control instead of mixing graph binding with canvas mode buttons.
+- The canvas-mode toggle now lives with the rest of the canvas tools, and it remains visible even when the canvas is already in collapsed mode.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/panels/SpaghettiPanel.test.tsx src/app/spaghetti/ui/CollapsedEditor.test.tsx src/app/AppShell.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 220 -->
+### [220] - 2026-03-12 16:57 - `VR / SP - Lane 2.1D - Reorganize Internal Spaghetti Toolbar Into Expandable Sections`
+HUMAN SUMMARY: `Reorganized the internal Spaghetti toolbar into tidy collapsible sections so the growing control surface reads as grouped tool areas instead of one long wall of controls, while preserving the existing graph, node, viewer, build, legend, and diagnostics features.` 
+
+#### Scope / Constraints Honored
+- Kept all existing toolbar functionality intact and only restructured how it is presented.
+- Reused native expandable section behavior instead of inventing a new toolbar state system.
+- Left the titlebar `i` behavior and the rest of the `2.1D` shell/view-mode work unchanged.
+
+#### Summary of Implementation
+- Grouped the internal toolbar into expandable `Graph`, `Node Focus`, `Part Nodes`, `Samples`, `Build`, `Viewer`, `Type Legend`, and `Diagnostics` sections.
+- Left the `Graph` block open by default as the core active-editing section and kept the other groups collapsed by default to reduce visual density.
+- Added dedicated section styling so the new grouped controls read consistently with the existing help/details treatment.
+- Expanded the `SpaghettiPanel` test coverage to assert the grouped section structure and default-open/default-closed behavior.
+
+#### Files Changed
+- `src/app/panels/SpaghettiPanel.tsx`
+- `src/app/panels/SpaghettiPanel.test.tsx`
+- `src/app/theme/v15Theme.css`
+- `docs/Human-Plans/CodexNotes/9_CodexChatNotes.md`
+
+#### Behavior Changes
+- Opening the internal toolbar now reveals grouped collapsible tool areas instead of a single long unstructured strip of controls.
+- Core graph-binding controls stay immediately available, while secondary controls can be expanded only when needed.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/panels/SpaghettiPanel.test.tsx src/app/AppShell.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 219 -->
+### [219] - 2026-03-12 16:48 - `VR / SP - Lane 2.1D - Consolidate Internal Spaghetti Toolbar And Retained-Band Header Collapse`
+HUMAN SUMMARY: `Implemented the internal Spaghetti toolbar cleanup by moving graph/view/focus/new-part controls and the type legend into the real top toolbar area, simplifying the editor body back down to the graph surface itself, and changing the titlebar i behavior so the toolbar collapses to a thin retained band instead of disappearing outright.` 
+
+#### Scope / Constraints Honored
+- Kept this work inside the in-app Spaghetti Editor shell and internal toolbar surface.
+- Reused the existing graph binding, graph-command, and collapsed-editor paths rather than introducing a new editor architecture.
+- Left detached-window behavior and larger shell changes untouched.
+
+#### Summary of Implementation
+- Moved the graph selector, `Expanded` / `Collapsed` mode controls, `Focus Node`, `New Part Node`, and the type/color legend into the `SpaghettiPanel` header area.
+- Simplified `SpaghettiEditor` so it now renders only the active expanded/collapsed editor surface instead of owning a second internal toolbar.
+- Changed the internal header collapse behavior so the `i` button now drives a retained minimized band, while the existing resize bar can pull the toolbar back open to a custom height.
+- Added panel/shell tests covering the consolidated toolbar and retained-band collapsed state.
+
+#### Files Changed
+- `src/app/AppShell.tsx`
+- `src/app/panels/SpaghettiPanel.tsx`
+- `src/app/panels/SpaghettiPanel.test.tsx`
+- `src/app/spaghetti/ui/SpaghettiEditor.tsx`
+- `src/app/theme/v15Theme.css`
+- `docs/Human-Plans/CodexNotes/9_CodexChatNotes.md`
+
+#### Behavior Changes
+- The internal editor toolbar now lives in one coherent top area instead of scattering key controls through the editor body.
+- The `i` button now minimizes the toolbar to a thin retained band rather than fully hiding it.
+- Dragging the existing toolbar/canvas resize bar can reopen that band into a custom toolbar height.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/panels/SpaghettiPanel.test.tsx src/app/AppShell.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 218 -->
+### [218] - 2026-03-12 16:31 - `VR / SP - Lane 2.1D - Small Shell And Selector Fixups Roll-Up`
+HUMAN SUMMARY: `Compiled the recent small UI fix-ups into one readable batch: the Spaghetti Editor kept its top-bar controls in meatball mode, the Browser header became collapsible, the floating editor height was normalized to the browser, the titlebar gained a header-toggle button, and the in-panel viewport graph selector was cleaned up, stabilized, and dark-themed.` 
+
+#### Scope / Constraints Honored
+- This is a roll-up summary of several small shipped UI follow-ups rather than a new large feature cut.
+- Kept the work inside the current in-app Browser and Spaghetti Editor shell surfaces.
+- Left detached/separate-browser behavior deferred.
+
+#### Summary of Implementation
+- Restored the shared Spaghetti top bar inside `meatball editor view` so the docked editor still exposes mode and exit controls.
+- Made the `Browser` header collapse or expand the full Browser body for quick left-dock cleanup.
+- Normalized the default floating editor height against the browser viewport instead of relying on the older fixed pixel default.
+- Added the titlebar `i` button to toggle the Spaghetti header/toolbar area from the shell.
+- Replaced the in-panel header-collapse strip with a viewport graph selector, then hardened that selector to use stable Zustand subscriptions and polished it to span the full row with a darker matching menu theme.
+
+#### Files Changed
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `src/app/panels/SpaghettiPanel.tsx`
+- `src/app/panels/SpaghettiPanel.test.tsx`
+- `src/app/theme/v15Theme.css`
+
+#### Behavior Changes
+- The docked meatball editor no longer feels like a dead end because its shell controls stay visible.
+- The Browser panel can now be folded away at the section-header level.
+- The floating Spaghetti Editor opens with a more browser-relative default height.
+- Header/toolbar collapse now lives in the titlebar instead of being duplicated inside the panel body.
+- The viewport graph selector now reads like a full-width dark-themed control and no longer reintroduces the `New Graph` black-screen selector crash.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/panels/SpaghettiPanel.test.tsx src/app/AppShell.test.tsx src/app/panels/BrowserPanel.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 217 -->
+### [217] - 2026-03-12 16:26 - `VR / SP - Fix New Graph Black-Screen Regression From Unstable Viewport Graph Selector`
+HUMAN SUMMARY: `Fixed the new black-screen-on-New-Graph regression by removing a fresh-array Zustand subscription from the new Spaghetti viewport graph selector and rebuilding those graph options from stable store slices in useMemo, matching the same selector-stability rule documented in Browser bug 2.` 
+
+#### Scope / Constraints Honored
+- Kept this fix scoped to the new Spaghetti viewport graph selector path.
+- Matched the existing selector-stability fix pattern already documented in the Browser bug notes.
+- Did not change the viewport graph-switching behavior itself.
+
+#### Summary of Implementation
+- Stopped subscribing `SpaghettiPanel` directly to `selectOrderedGraphDocuments(...)`, which allocates a fresh array.
+- Switched the panel to subscribe only to stable `graphDocumentsById` and `graphDocumentOrder` slices.
+- Rebuilt the ordered graph-document options locally in `useMemo` before rendering the viewport graph dropdown.
+
+#### Files Changed
+- `src/app/panels/SpaghettiPanel.tsx`
+
+#### Behavior Changes
+- Clicking `New Graph` no longer trips the React/Zustand black-screen crash through the viewport graph selector.
+- The viewport graph dropdown still works, but now follows the stable-subscription rule.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/panels/SpaghettiPanel.test.tsx src/app/AppShell.test.tsx src/app/panels/BrowserPanel.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 216 -->
+### [216] - 2026-03-12 16:22 - `VR / SP - Lane 2.1D - Replace In-Panel Header Toggle With Viewport Graph Selector`
+HUMAN SUMMARY: `Removed the old in-panel Collapse Header row from the Spaghetti Editor and replaced it with a viewport graph dropdown so each editor surface can directly switch which graph document it is bound to while the header collapse control now lives in the top titlebar.` 
+
+#### Scope / Constraints Honored
+- Kept this scoped to the in-panel top row inside `SpaghettiPanel`.
+- Reused the existing viewport rebinding path in the spaghetti store instead of inventing a new graph-switching flow.
+- Left the titlebar `i` button as the single header/toolbar collapse control.
+
+#### Summary of Implementation
+- Replaced the old `Spaghetti Editor / Collapse Header` strip with a `Viewport Graph` dropdown bound to the current viewport graph document.
+- Wired the dropdown to `bindEditorViewportToGraphDocument(...)` so changing the selection really switches the graph shown in that viewport.
+- Added focused panel tests covering the new selector rendering and rebinding behavior.
+
+#### Files Changed
+- `src/app/panels/SpaghettiPanel.tsx`
+- `src/app/panels/SpaghettiPanel.test.tsx`
+- `src/app/theme/v15Theme.css`
+
+#### Behavior Changes
+- The in-panel top row now shows a graph selector for the current viewport instead of an internal header-collapse toggle.
+- Header/toolbar collapse is now controlled from the shell titlebar rather than duplicated inside the panel body.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/panels/SpaghettiPanel.test.tsx src/app/AppShell.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 215 -->
+### [215] - 2026-03-12 16:17 - `VR / SP - Lane 2.1D - Titlebar Header Toggle For Spaghetti Editor`
+HUMAN SUMMARY: `Added a new i button to the Spaghetti Editor titlebar so the top-bar shell can directly expand or collapse the editor header/toolbar area, keeping that state in sync across the floating, split, and meatball presentations.` 
+
+#### Scope / Constraints Honored
+- Kept this scoped to the in-app Spaghetti Editor titlebar and header/toolbar collapse behavior.
+- Reused the existing header-collapse path in `SpaghettiPanel` instead of inventing a second toolbar state.
+- Did not change Browser behavior or detached-window behavior.
+
+#### Summary of Implementation
+- Added a new `i` titlebar button that toggles the Spaghetti header/toolbar area from the shell.
+- Made `SpaghettiPanel` support controlled header-collapse state so the same toggle behavior works across floating, split, and meatball hosts.
+- Added focused shell test coverage for the new titlebar header toggle.
+
+#### Files Changed
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+- `src/app/panels/SpaghettiPanel.tsx`
+
+#### Behavior Changes
+- The Spaghetti Editor top bar now includes an `i` control that expands or collapses the editor header/toolbar area.
+- Header/toolbar collapse state is now driven consistently from either the titlebar or the in-panel header toggle.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/AppShell.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 214 -->
+### [214] - 2026-03-12 16:14 - `VR / SP - Lane 2.1D - Normalize Default Floating Editor Height`
+HUMAN SUMMARY: `Adjusted the normal floating Spaghetti Editor sizing so its default height now normalizes against the current browser viewport height instead of sitting on the old fixed pixel default that could force the editor internals to scroll.` 
+
+#### Scope / Constraints Honored
+- Kept this limited to the default expanded floating-editor height behavior.
+- Preserved the existing maximize, split, meatball, and close mode behavior.
+- Did not change detached-window behavior or the Browser shell.
+
+#### Summary of Implementation
+- Added viewport-relative default-height normalization in `AppShell` for the standard floating editor state.
+- Left user-sized floating editor dimensions intact, while making the untouched default editor height track the current browser viewport more closely.
+
+#### Files Changed
+- `src/app/AppShell.tsx`
+
+#### Behavior Changes
+- The default floating `Spaghetti Editor` now uses a browser-height-based normalized height, reducing the chance that the editor shell starts in a too-short state that forces internal scrolling.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/AppShell.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 213 -->
+### [213] - 2026-03-12 16:10 - `VR / SP - Lane 2.1D - Meatball Header Controls And Browser Panel Collapse`
+HUMAN SUMMARY: `Added the missing top bar back into meatball editor view so the user keeps the shell controls while docked, and made the Browser header itself collapse the full Browser body to reclaim left-dock space quickly.`
+
+#### Scope / Constraints Honored
+- Kept this to two small follow-up UI fixes on top of the shipped `2.1D` editor-surface work and Browser shell.
+- Reused the existing in-app shell controls instead of introducing new window behavior.
+- Did not change detached/separate-browser behavior.
+
+#### Summary of Implementation
+- Reused the existing `SpaghettiWindowTitleBar` inside the `SpaghettiMeatballHost` so the docked editor still exposes mode-switch and close controls.
+- Added a collapsible Browser panel header that hides or shows the entire Browser body, including the top action buttons and tree content.
+- Added focused UI coverage for the meatball-host controls and Browser panel collapse behavior.
+
+#### Files Changed
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `src/app/theme/v15Theme.css`
+
+#### Behavior Changes
+- `meatball editor view` now keeps a visible `Spaghetti Editor` top bar with the same shell-control cluster, so the user can leave that mode directly.
+- Clicking the `Browser` header now collapses or expands the entire Browser body.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/AppShell.test.tsx src/app/panels/BrowserPanel.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 212 -->
+### [212] - 2026-03-12 15:50 - `VR / SP - Lane 2.1D - Spaghetti Floating Window Controls And View Modes`
+HUMAN SUMMARY: `Implemented the 2.1D in-app spaghetti window controls by replacing the old Drag label with explicit shell actions, adding true collapsed / maximized / split-view behavior, and introducing a dedicated meatball editor host below Parts List while keeping detached browser windows deferred.`
+
+#### Scope / Constraints Honored
+- Kept this phase scoped to the active in-app editor surface and did not ship detached or separate-browser window behavior.
+- Reused the existing focused editor viewport/store model instead of introducing true multi-window shell rendering.
+- Preserved normal floating drag/resize behavior for the standard expanded overlay mode.
+
+#### Summary of Implementation
+- Extended the editor viewport window-mode contract with `maximized` and `split view`, plus viewport-owned split ratio and restore metadata so collapsed and split toggles can restore into the correct prior mode.
+- Reworked `AppShell` so the active spaghetti editor can now render in five in-app states: floating `expanded`, header-only `collapsed`, full-overlay `maximized`, docked `split view`, and left-dock `meatball editor view`.
+- Replaced the old top-right `Drag` label with explicit titlebar controls for collapse, meatball, maximize, split, and close, and added the split-mode divider interaction so the user can rebalance the model viewport against the editor pane.
+- Added shell/store tests covering the new window-mode transitions and rendering paths.
+
+#### Files Changed
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+- `src/app/spaghetti/schema/spaghettiTypes.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `src/app/panels/selectBrowserTreeRows.test.ts`
+- `src/app/theme/v15Theme.css`
+
+#### Behavior Changes
+- The spaghetti editor titlebar now exposes explicit in-app shell controls instead of a passive `Drag` label.
+- `collapsed` now means a true header-only strip that hides the editor body while keeping the editor surface available for quick return.
+- `maximized` now fills the current app viewport and toggles back to the default floating editor size on the next maximize click.
+- `split view` now docks the model viewport above the editor with a draggable divider, and toggling split off restores the previously captured non-split state.
+- `meatball editor view` now presents the active editor in a dedicated left-dock host below `Parts List` instead of leaving it as an overlay.
+- Detached/separate-browser editor behavior is still deferred.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/spaghetti/store/useSpaghettiStore.test.ts src/app/AppShell.test.tsx src/app/panels/BrowserPanel.test.tsx src/app/panels/selectBrowserTreeRows.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 211 -->
+### [211] - 2026-03-12 15:02 - `VR / SP - Lane 2.1C - Browser Open Editors Cleanup`
+HUMAN SUMMARY: `Completed the next 2.1C Browser cleanup slice by renaming the Browser branch from Open Viewports to Open Editors, adding a small ... overflow trigger beside selection-first rows, and tightening the Browser copy so editor-session tracking reads more honestly against the current one-active-editor shell.`
+
+#### Scope / Constraints Honored
+- Kept this scoped to Browser naming, Browser row/menu access, and Browser-shell honesty cleanup.
+- Preserved the existing graph/output/viewport action set and reused the same menu surface for right-click and overflow access.
+- Did not change `AppShell` into true multi-window spaghetti-editor rendering.
+
+#### Summary of Implementation
+- Updated `BrowserPanel` so graph, published-output, and editor rows expose a small `...` overflow button that opens the same menu already used by right-click.
+- Renamed the Browser section from `Open Viewports` to `Open Editors` and added a one-line note clarifying that the branch tracks editor sessions while the workspace still shows the active editor surface.
+- Tightened Browser row copy so graph meta now uses editor-oriented wording such as `Active editor` / `Open editor`, and the editor list rows now read as `Active editor` or `Editor zN`.
+- Added a focused `BrowserPanel` interaction test under `jsdom` to cover the new overflow button and the preserved right-click path.
+
+#### Files Changed
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/panels/selectBrowserGraphRows.ts`
+- `src/app/panels/selectBrowserTreeRows.ts`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `src/app/panels/selectBrowserGraphRows.test.ts`
+- `src/app/panels/selectBrowserTreeRows.test.ts`
+- `src/app/panels/browserRowActions.test.ts`
+- `src/app/theme/v15Theme.css`
+- `package.json`
+- `package-lock.json`
+
+#### Behavior Changes
+- Browser rows remain selection-first on normal click, but now have a discoverable `...` menu trigger in addition to right-click.
+- The Browser no longer labels the editor-session branch as `Open Viewports`; it now reads `Open Editors`.
+- Browser row meta is calmer and more explicit about editor/session state.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/panels/selectBrowserGraphRows.test.ts src/app/panels/selectBrowserTreeRows.test.ts src/app/panels/browserRowActions.test.ts src/app/panels/BrowserPanel.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 210 -->
+### [210] - 2026-03-12 14:35 - `VR / SP - Lane 2.1C - Browser Row Action Cleanup And Context Menus`
+HUMAN SUMMARY: `Cleaned up the Browser rows by removing the always-visible row action strips, keeping rows selection-first, and moving existing graph/output/viewport commands into a right-click context menu so the Browser reads more like a calm tree and less like a stack of mini toolbars.`
+
+#### Scope / Constraints Honored
+- Kept this limited to Browser row interaction and presentation cleanup.
+- Preserved the existing explicit graph/output/viewport action set instead of inventing new Browser commands.
+- Avoided pulling deeper Browser hierarchy, materials/visibility controls, or workspace-mode work into this cut.
+
+#### Summary of Implementation
+- Updated `BrowserPanel` so graph rows, published-output rows, and viewport rows now open their action list through a row context menu instead of rendering a visible action strip on every row.
+- Kept row-body click selection-first while making right-click the entry path for:
+  - `Save`
+  - `Open`
+  - `Reveal`
+  - `New Editor`
+  - `Swap Editor`
+  - `Focus`
+  - `Close`
+- Added lightweight Browser context-menu state with:
+  - row selection on right-click
+  - close-on-outside-click
+  - close-on-escape
+  - close-on-action-run behavior
+- Simplified Browser row styling so the hierarchy and labels stay visually primary while the command surface remains secondary.
+
+#### Files Changed
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Browser rows no longer show the full visible action button strip by default.
+- Right-clicking a graph row, published-output row, or viewport row now opens that row's Browser options menu.
+- Browser rows remain selection-first on normal click.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/panels/selectBrowserTreeRows.test.ts src/app/panels/browserRowActions.test.ts`
+- Ran `npm.cmd run build`
+
+<!-- ENTRY 209 -->
+### [209] - 2026-03-12 14:15 - `SP / VR - Lane 2.1B - Browser, Editor, And Shared Viewer Coordination`
+HUMAN SUMMARY: `Implemented `[2.1B]` by adding explicit Browser `Reveal` actions for graph and published-output rows, reusing the existing graph-scoped viewer-target path when shared composition is inactive, surfacing read-only shared-composition status in Browser rows, and preserving the rule that row-body click stays selection-only while explicit `Open` / `Focus` actions remain the only editor-movement path.`
+
+#### Scope / Constraints Honored
+- Kept row-body click as Browser-local selection only.
+- Kept `Reveal` graph-scoped by reusing `viewerTargetGraphDocumentId`.
+- Kept shared composition read-only from the Browser in this cut.
+- Avoided adding any new generic viewer-emphasis state.
+
+#### Summary of Implementation
+- Extended `selectBrowserTreeRows` so graph and published-output rows now expose:
+  - explicit `Reveal` actions
+  - read-only shared-composition participation status for graph rows
+  - disabled `Reveal` behavior while shared composition is active
+- Added `browserRowActions.ts` as a pure Browser action router so:
+  - graph `Reveal` targets its `graphDocumentId`
+  - published-output `Reveal` also targets its source `graphDocumentId`
+  - viewport `Focus` stays explicit and separate
+- Updated `BrowserPanel` to wire `Reveal` through the existing `setViewerTargetGraphDocumentId` path only when shared composition is inactive.
+- Closed out the `2.1B` task doc, the umbrella `2.1` doc, and the roadmap lane body to reflect the shipped `2.1A + 2.1B` Browser workspace wave.
+
+#### Files Changed
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/panels/selectBrowserTreeRows.ts`
+- `src/app/panels/selectBrowserTreeRows.test.ts`
+- `src/app/panels/browserRowActions.ts`
+- `src/app/panels/browserRowActions.test.ts`
+- `docs/Phase-Plans/Tasks/Future/02.1B - SP-VR - Browser, Editor, And Shared Viewer Coordination.md`
+- `docs/Phase-Plans/Tasks/Future/02.1 - VR-SP - Browser Workspace Shell And Item Interaction.md`
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Graph rows and published-output rows now show an explicit `Reveal` action in the Browser.
+- `Reveal` targets the source graph in single-target viewer mode.
+- When shared composition is active, Browser rows show read-only participation status and `Reveal` is disabled instead of mutating composition membership.
+- Browser row-body click still selects the row without moving editor focus or changing shared-composition membership.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/panels/selectBrowserTreeRows.test.ts src/app/panels/browserRowActions.test.ts src/app/panels/selectBrowserGraphRows.test.ts`
+- Ran `npm.cmd run build`
+
+<!-- ENTRY 208 -->
+### [208] - 2026-03-12 14:06 - `SP / VR - Lane 2.1B - Browser, Editor, And Shared Viewer Coordination`
+HUMAN SUMMARY: `Created the dedicated implementation-ready execution spec for `[2.1B]`, locking explicit `Reveal` as the first Browser-to-viewer entry path, keeping Browser row click selection-only, keeping shared composition read-only from Browser rows, and updating the roadmap so the remaining coordination half of `[2.1]` is now ready to implement.`
+
+#### Scope / Constraints Honored
+- Kept this as a docs-only planning/spec pass.
+- Kept Browser row click as selection-only.
+- Kept Browser-authored shared composition membership changes out of scope.
+
+#### Summary of Implementation
+- Added:
+  - `docs/Phase-Plans/Tasks/Future/02.1B - SP-VR - Browser, Editor, And Shared Viewer Coordination.md`
+- Locked the new `2.1B` spec around:
+  - explicit `Reveal`
+  - graph-scoped first-pass reveal
+  - reuse of `viewerTargetGraphDocumentId`
+  - read-only shared-composition status on Browser rows
+  - explicit editor movement through existing `Open` / `Focus` actions only
+- Updated the umbrella `02.1` doc so it now points at `2.1B` as the next implementation-ready target after shipped `2.1A`.
+- Updated roadmap trackers so `[2.1B]` now counts as:
+  - `Decision Coverage` complete
+  - `Plan.md Status` complete
+
+#### Files Changed
+- `docs/Phase-Plans/Tasks/Future/02.1B - SP-VR - Browser, Editor, And Shared Viewer Coordination.md`
+- `docs/Phase-Plans/Tasks/Future/02.1 - VR-SP - Browser Workspace Shell And Item Interaction.md`
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/CHANGELOG.md`
+
+#### Verification Steps
+- Re-read the current `SP` and `VR` planning answers plus the shipped `2.1A` Browser code before writing the `2.1B` spec.
+- Confirmed the new `02.1B` execution-spec doc exists in `docs/Phase-Plans/Tasks/Future`.
+- Confirmed roadmap tracker rows now show `[2.1B]` as decision-complete with its own dedicated plan doc.
+
+<!-- ENTRY 207 -->
+### [207] - 2026-03-12 13:58 - `VR - Lane 2.1A - Browser Workspace Shell And Row Interaction`
+HUMAN SUMMARY: `Implemented `[2.1A]` by adding a shared Browser row-shell contract, refactoring `BrowserPanel` so graph rows, published output rows, and viewport rows share one calm row anatomy, and introducing Browser-local row selection that no longer silently moves editor focus or shared-viewer state.`
+
+#### Scope / Constraints Honored
+- Kept `2.1A` Browser-local only.
+- Left viewer emphasis, editor-focus coordination, and shared-viewer coordination deferred to `[2.1B]`.
+- Kept the `Content` branch functionally unchanged in this cut.
+
+#### Summary of Implementation
+- Added `selectBrowserTreeRows` as the first shared Browser row-shell selector for:
+  - graph-document rows
+  - published graph-output rows
+  - open viewport rows
+- Refactored `BrowserPanel` to render those rows through one shared row shell using:
+  - expand affordance
+  - type icon
+  - label
+  - meta/state text
+  - right-aligned controls
+- Added Browser-local `selectedBrowserRowId` state so row selection is now separate from editor focus.
+- Preserved explicit graph actions while moving graph opening/focusing to an explicit `Open` button and viewport focusing to an explicit `Focus` button.
+- Added selector coverage proving the new row-shell contract and local selection behavior.
+
+#### Files Changed
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/panels/selectBrowserTreeRows.ts`
+- `src/app/panels/selectBrowserTreeRows.test.ts`
+- `src/app/theme/v15Theme.css`
+- `docs/Phase-Plans/Tasks/Future/02.1A - VR - Browser Workspace Shell And Row Interaction.md`
+- `docs/Phase-Plans/Tasks/Future/02.1 - VR-SP - Browser Workspace Shell And Item Interaction.md`
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Single-clicking a graph row, published output row, or viewport row now selects that Browser row locally.
+- Selecting a Browser row no longer opens/focuses an editor viewport.
+- Graph rows now expose explicit `Open`, `Save`, `New Editor`, and `Swap Editor` controls on the row.
+- Viewport rows now expose explicit `Focus` and `Close` controls on the row.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/panels/selectBrowserGraphRows.test.ts src/app/panels/selectBrowserTreeRows.test.ts`.
+- Ran `npm.cmd run build`.
+
+<!-- ENTRY 206 -->
+### [206] - 2026-03-12 13:40 - `VR - Lane 2.1A - Browser Workspace Shell And Row Interaction`
+HUMAN SUMMARY: `Created the dedicated implementation-ready execution spec for `[2.1A]`, locking the Browser-local row/workspace-shell cut, the graph-focused first rollout, and the explicit stop line before Browser/editor/shared-viewer coordination so the next Lane `[2]` implementation target is now ready to build.`
+
+#### Scope / Constraints Honored
+- Kept this as a docs-only planning/spec pass.
+- Locked `2.1A` as Browser-local only.
+- Kept viewer emphasis, editor focus movement, and shared-viewer coordination deferred to `[2.1B]`.
+
+#### Summary of Implementation
+- Added:
+  - `docs/Phase-Plans/Tasks/Future/02.1A - VR - Browser Workspace Shell And Row Interaction.md`
+- Locked the new `2.1A` spec around:
+  - graph-document rows
+  - published graph-output rows
+  - open viewport rows
+  - one shared row anatomy
+  - Browser-local selection and local interaction state
+  - preserved explicit row actions without new coordination behavior
+- Updated the umbrella `02.1` doc so it now points at `2.1A` as the next implementation-ready target.
+- Updated roadmap trackers so `[2.1A]` now counts as:
+  - `Decision Coverage` complete
+  - `Plan.md Status` complete
+
+#### Files Changed
+- `docs/Phase-Plans/Tasks/Future/02.1A - VR - Browser Workspace Shell And Row Interaction.md`
+- `docs/Phase-Plans/Tasks/Future/02.1 - VR-SP - Browser Workspace Shell And Item Interaction.md`
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/CHANGELOG.md`
+
+#### Verification Steps
+- Re-read the current Browser planning answers and live Browser seam notes before writing the `2.1A` spec.
+- Confirmed the new `02.1A` execution-spec doc exists in `docs/Phase-Plans/Tasks/Future`.
+- Confirmed roadmap tracker rows now show `[2.1A]` as decision-complete with its own dedicated plan doc.
+
+<!-- ENTRY 205 -->
+### [205] - 2026-03-13 10:48 - `VR / SP - Lane 2.1 - Browser Workspace Shell And Item Interaction`
+HUMAN SUMMARY: `Finished the final `ASS#` planning pass for `[2.1]` by locking the shared `VR` and `SP` question surfaces, creating the dedicated `02.1` future task doc, and updating the roadmap so the Browser workspace shell lane now reads as decision-complete with its own plan-doc home before the implementation-spec rewrite.`
+
+#### Scope / Constraints Honored
+- Kept this as a docs-only planning pass.
+- Locked the shared `VR` and `SP` family question surfaces without jumping ahead into implementation details.
+- Created a dedicated future task doc for `[2.1]` without falsely presenting the lane as implementation-ready or shipped.
+
+#### Summary of Implementation
+- Confirmed the shared `[2.1]` Browser workspace question surfaces are now fully locked in:
+  - `docs/Phase-Plans/08_VR - Phase-Plans.md`
+  - `docs/Phase-Plans/11_SP - Phase-Plans.md`
+- Created:
+  - `docs/Phase-Plans/Tasks/Future/02.1 - VR-SP - Browser Workspace Shell And Item Interaction.md`
+- Seeded the new task doc with:
+  - progress checklist
+  - purpose and scope
+  - source inputs
+  - the current locked working read
+  - the next implementation-spec rewrite buckets
+- Updated roadmap tracker state so `[2.1]` now counts as:
+  - `Decision Coverage` complete
+  - `Plan.md Status` complete
+
+#### Files Changed
+- `docs/Phase-Plans/08_VR - Phase-Plans.md`
+- `docs/Phase-Plans/11_SP - Phase-Plans.md`
+- `docs/Phase-Plans/Tasks/Future/02.1 - VR-SP - Browser Workspace Shell And Item Interaction.md`
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/CHANGELOG.md`
+
+#### Verification Steps
+- Re-read the shared `[2.1]` `VR` and `SP` question blocks to confirm they are locked.
+- Confirmed the dedicated `02.1` future task doc now exists in `docs/Phase-Plans/Tasks/Future`.
+- Confirmed the roadmap trackers now show `[2.1]` as decision-complete with a created plan doc.
+
+<!-- ENTRY 204 -->
+### [204] - 2026-03-13 10:06 - `SP - Phase 11 - Graphs Panel And Nested Parts`
+HUMAN SUMMARY: `Implemented the first real `SP 11` Browser hierarchy cut by adding expandable `Graph Documents` rows in `BrowserPanel`, deriving one thin published-output child level from each graph's `GraphOutputSurface`, and keeping graph-row state aligned with open/focused editor viewport status without turning the Browser into the full project-content workspace yet.`
+
+#### Scope / Constraints Honored
+- Kept `SP 11` focused on the first Browser hierarchy surface rather than deeper project-content nesting.
+- Read published child rows from graph-owned output surfaces in `useSpaghettiStore` instead of app-owned project-content state.
+- Left richer Browser row controls, build bars, viewer orchestration, and deeper `Assembly / Component / Object / Part` structure deferred.
+
+#### Summary of Implementation
+- Added `selectBrowserGraphRows` as the first Browser-facing selector for graph rows plus published graph output child rows.
+- Derived graph-row status from:
+  - cached graph dirty/saved state
+  - active graph focus
+  - open editor viewport counts
+  - focused viewport ownership
+- Derived child rows from each graph document's `GraphOutputSurface.entries`, including visible state/meta for:
+  - `resolved`
+  - `unresolved`
+  - `empty`
+- Updated `BrowserPanel` so the `Graphs` branch becomes `Graph Documents` with:
+  - expandable graph rows
+  - one thin published-output child level
+  - preserved `Save`, `New Editor`, and `Swap Editor` actions on graph rows
+- Kept Browser expand/collapse state local to the panel while keeping child-row truth graph-owned.
+- Updated the `SP 11` family/task docs and roadmap tracker to reflect the shipped phase.
+
+#### Files Changed
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/panels/selectBrowserGraphRows.ts`
+- `src/app/panels/selectBrowserGraphRows.test.ts`
+- `docs/Phase-Plans/11_SP - Phase-Plans.md`
+- `docs/Phase-Plans/Tasks/Future/01.5 - SP - Phase 11.md`
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- The Browser now shows expandable graph-document rows with published graph output children instead of only a flat graph list.
+- Graph rows display clearer saved/dirty and open/focused editor state.
+- Published output rows are now visible under each graph without pretending they are already full project-owned component/object/part rows.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/panels/selectBrowserGraphRows.test.ts`
+- Ran `npm.cmd run build`
+
+<!-- ENTRY 203 -->
+### [203] - 2026-03-12 23:44 - `SP - Phase 12 - Shared Viewport Composition`
+HUMAN SUMMARY: `Implemented the first real `SP 12` shared-composition seam by adding runtime-owned shared viewer membership in `useSpaghettiStore`, explicit viewport join/leave controls in `SpaghettiPanel`, and graph-qualified multi-graph preview union rendering in `ViewerHost` so the shared viewer can present more than one graph contribution without using focus as truth.`
+
+#### Scope / Constraints Honored
+- Kept `SP 12` focused on viewer/workspace composition rather than Browser ownership or publish/receive meaning.
+- Used graph documents as the first-pass composition unit and explicit viewport actions as the first authoring path.
+- Preserved the existing single `viewerTargetGraphDocumentId` behavior as the fallback when no shared composition session exists.
+
+#### Summary of Implementation
+- Added runtime-only `sharedViewerComposition` state in `useSpaghettiStore` with explicit:
+  - `addEditorViewportGraphToSharedViewerComposition`
+  - `removeEditorViewportGraphFromSharedViewerComposition`
+- Kept composition membership graph-document-based even though the authoring entry path comes from editor viewports, so focus and viewport rebinding do not silently redefine composition truth.
+- Added `selectSharedPreviewRenderVm` to merge more than one graph preview contribution into one shared viewer render list.
+- Qualified shared viewer identities with `graphDocumentId` so same-slot preview outputs from different graphs do not collide in the viewer.
+- Updated `ViewerHost` to:
+  - render the resolved union when a shared composition session exists
+  - fall back to the existing single viewer-target path otherwise
+- Updated `SpaghettiPanel` with first-pass shared composition membership controls and status cues.
+- Updated the `SP 12` family/task docs and roadmap tracker to reflect the shipped phase.
+
+#### Files Changed
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `src/app/spaghetti/selectors/selectSharedPreviewRenderVm.ts`
+- `src/app/spaghetti/selectors/selectSharedPreviewRenderVm.test.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/panels/SpaghettiPanel.tsx`
+- `docs/Phase-Plans/11_SP - Phase-Plans.md`
+- `docs/Phase-Plans/Tasks/Future/01.6 - SP - Phase 12.md`
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- The shared viewer can now intentionally present resolved preview contributions from more than one graph document at the same time.
+- Shared composition membership is now explicit and stable across focus changes instead of being inferred from the currently focused viewport.
+- Two graphs with the same preview slot ids can now coexist in one shared viewer composition without clobbering each other.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/spaghetti/selectors/selectSharedPreviewRenderVm.test.ts src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- Ran `npm.cmd run build`
+
+<!-- ENTRY 202 -->
+### [202] - 2026-03-12 22:32 - `GE - Phase 12C - Cross-Graph Ownership Rules`
+HUMAN SUMMARY: `Implemented the first real `12C` cross-graph ownership seam by persisting graph-authored receive references on graph documents, resolving them against explicit published-output ids in `useSpaghettiStore`, and deriving first-pass linked/unresolved receive components in `useAppStore` without falling back to active-graph or viewer-target singleton state.`
+
+#### Scope / Constraints Honored
+- Kept `12C` focused on cross-graph ownership rules and one minimal linked receive path.
+- Left `Hard Copy`, richer Browser hierarchy, and later `Publish / Receive Execution` workflow work deferred.
+- Preserved source-graph publication ownership while keeping receive intent graph-authored and project composition downstream.
+
+#### Summary of Implementation
+- Extended the graph document/schema contract with first-pass `receiveReferences`.
+- Added explicit graph-targeted receive authoring methods in `useSpaghettiStore`:
+  - `addGraphReceiveReference`
+  - `removeGraphReceiveReference`
+- Added selector-owned receive resolution by:
+  - `sourceGraphDocumentId`
+  - `sourceOutputEntryId`
+- Kept linked receive resolution deterministic and independent of:
+  - active graph
+  - viewer target
+  - focused viewport
+  - graph labels or graph order
+- Extended `useAppStore` project content derivation so linked receive references produce project-owned receive-link components with explicit resolved/unresolved state.
+- Updated the `12C` task doc and roadmap tracker to reflect the shipped phase.
+
+#### Files Changed
+- `src/app/spaghetti/schema/spaghettiTypes.ts`
+- `src/app/spaghetti/schema/spaghettiSchema.ts`
+- `src/app/spaghetti/schema/spaghettiSchema.test.ts`
+- `src/app/io/graphDocumentPersistence.test.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `src/app/store/useAppStore.ts`
+- `src/app/store/useAppStore.test.ts`
+- `docs/Phase-Plans/Tasks/Future/01.4C - GE - Phase 12C.md`
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Graph documents can now persist explicit linked receive declarations that point at another graph's published output entry.
+- Project content now surfaces linked cross-graph receive components and keeps missing source publications visible as unresolved instead of silently dropping them.
+- Cross-graph receive resolution is now id-based rather than inferred from UI focus state.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/spaghetti/schema/spaghettiSchema.test.ts src/app/io/graphDocumentPersistence.test.ts src/app/spaghetti/store/useSpaghettiStore.test.ts src/app/store/useAppStore.test.ts`
+- Ran `npm.cmd run build`
+
+<!-- ENTRY 201 -->
+### [201] - 2026-03-11 20:56 - `GE - Phase 12B - Project Content Tree Ownership`
+HUMAN SUMMARY: `Implemented the first real project-content layer above graph-owned publication by adding app-owned root-assembly and component records in \`useAppStore\`, deriving those components from resolved graph output entries, and exposing a thin Browser content surface that reads project-owned composition instead of only graph/cached-graph state.`
+
+#### Scope / Constraints Honored
+- Kept `12B` focused on project content tree ownership and a thin Browser read surface.
+- Left graph-owned publication truth in `useSpaghettiStore`.
+- Deferred deeper `Object / Part` hierarchy, Browser UX polish, and cross-graph `Publish / Receive` rules.
+
+#### Summary of Implementation
+- Added first-pass project content types and state to `useAppStore`:
+  - `ProjectAssemblyRecord`
+  - `ProjectComponentRecord`
+  - `ProjectContentState`
+- Added one real root assembly record behind `currentProject.rootAssemblyId`.
+- Derived project-owned component records from resolved graph output entries while preserving source references back to:
+  - `sourceGraphDocumentId`
+  - `sourceOutputEntryId`
+- Added selectors for:
+  - current project content
+  - root assembly
+  - root components
+  - Browser-facing project-content rows
+- Updated `BrowserPanel` to render a thin `Content` section showing:
+  - `Assembly Root`
+  - derived `Component` rows
+- Tightened the `12B` docs to match the shipped cut:
+  - resolved outputs only
+  - project content as first-pass project-owned runtime composition state
+- Updated the GE family doc and roadmap lane body so `12B` now reads as implemented.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/store/useAppStore.test.ts`
+- `src/app/panels/BrowserPanel.tsx`
+- `docs/Phase-Plans/Tasks/Future/01.4b - GE - Phase 12b.md`
+- `docs/Phase-Plans/01_GE - Phase-Plans.md`
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- The app now owns a first-pass project content tree above graph-owned output surfaces.
+- `rootAssemblyId` now points to one real root assembly record instead of staying as a nullable symbolic anchor.
+- Resolved graph output entries now lift into project-owned component records that Browser surfaces can read without reconstructing project composition from graph/editor state.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/store/useAppStore.test.ts`
+- Ran `npm.cmd run build`
+
+<!-- ENTRY 200 -->
+### [200] - 2026-03-11 18:10 - `DOC - GE Phase 12B Task Doc Rewrite`
+HUMAN SUMMARY: `Reworked the `GE - Phase 12B - Project Content Tree Ownership` task doc from a placeholder shell into a decision-complete implementation spec, and updated the roadmap tracker so `[1.4B]` now counts as having a real phase doc.`
+
+#### Scope / Constraints Honored
+- Updated docs only.
+- Kept `12B` focused on project content tree ownership, minimal Browser read surface, and the graph-versus-project composition cut.
+- Deferred cross-graph rules, deeper Browser hierarchy, and richer Browser/workspace behavior to later phases.
+
+#### Summary of Implementation
+- Rewrote `docs/Phase-Plans/Tasks/Old/01.4b - GE - Phase 12b.md` into a real execution spec.
+- Locked the first-pass `12B` decisions, including:
+  - one real root assembly record behind `rootAssemblyId`
+  - one project-owned component per graph output entry
+  - project content ownership in `useAppStore`
+  - graph output ownership staying in `useSpaghettiStore`
+  - a minimal `Assembly Root -> Component` Browser read surface
+- Replaced placeholder sections with a real:
+  - problem statement
+  - direction
+  - first-pass type contract
+  - seam findings
+  - deferred boundary
+  - proof bar
+- Updated `docs/Human-Plans/roadmap/roadmap.md` so `[1.4B]` now shows `Plan.md Status` as created in both the tracker section and the dedicated-plan checklist.
+
+#### Files Changed
+- `docs/Phase-Plans/Tasks/Old/01.4b - GE - Phase 12b.md`
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/CHANGELOG.md`
+
+#### Verification Steps
+- Re-read the rewritten `12B` task doc to confirm it now matches the decision-complete execution-spec style used by the other active phase docs.
+- Confirmed the roadmap tracker now marks `[1.4B]` as having a created task doc while parent `[1.4]` remains open.
+
+<!-- ENTRY 199 -->
+### [199] - 2026-03-11 18:02 - `DOC - GE Phase 12B Old Task Doc Skeleton`
+HUMAN SUMMARY: `Created the old-task-doc format skeleton for `GE - Phase 12B - Project Content Tree Ownership`, so there is now a matching `01.4B` execution-doc shell ready to be filled in from the family-level `12B` answers.`
+
+#### Scope / Constraints Honored
+- Updated docs only.
+- Created a format/setup skeleton rather than a filled implementation spec.
+- Kept the new file aligned with the current old-task-doc structure used by nearby phase docs.
+
+#### Summary of Implementation
+- Added `docs/Phase-Plans/Tasks/Old/01.4b - GE - Phase 12b.md`.
+- Set up the standard task-doc sections:
+  - `Progress CheckList`
+  - `Doc Header`
+  - `Purpose`
+  - `Scope`
+  - `Refactor Rule For This Phase`
+  - `Source Inputs`
+  - `Arch Spec`
+- Seeded `12B`-specific placeholder buckets for:
+  - first-pass content tree shape
+  - first-pass `Component` meaning
+  - graph-owned versus project-owned authority
+  - deferred work
+  - proof bar
+
+#### Files Changed
+- `docs/Phase-Plans/Tasks/Old/01.4b - GE - Phase 12b.md`
+- `docs/CHANGELOG.md`
+
+#### Verification Steps
+- Re-read the new file to confirm it matches the structure pattern used by the neighboring old task docs while staying as a setup skeleton instead of a filled spec.
+
+<!-- ENTRY 198 -->
+### [198] - 2026-03-11 17:56 - `DOC - GE Phase 12B Component Granularity Note`
+HUMAN SUMMARY: `Added a short caution note under the `GE - Phase 12B` `Component` suggestion so the family doc now explicitly warns against hard-locking one-component-per-graph granularity too early before later output-structure work clarifies final grouping.`
+
+#### Scope / Constraints Honored
+- Updated docs only.
+- Kept the note local to the `12B` section instead of rewriting the whole family answer set.
+- Preserved the existing `12B` direction while making the `Component` wording safer for later output-structure growth.
+
+#### Summary of Implementation
+- Added a new doc-history entry to `docs/Phase-Plans/01_GE - Phase-Plans.md`.
+- Added a `Granularity caution` note under the `12B Q2` suggested answer.
+- Explicitly warned against prematurely hard-locking:
+  - exactly one component per graph
+- Added safer first-pass wording that keeps `Component` defined as the first project-owned bundle created from graph-published output.
+
+#### Files Changed
+- `docs/Phase-Plans/01_GE - Phase-Plans.md`
+- `docs/CHANGELOG.md`
+
+#### Verification Steps
+- Re-read the `12B Q2` section in `docs/Phase-Plans/01_GE - Phase-Plans.md` to confirm the new caution sits directly under the `Component` suggested answer and keeps the family doc aligned with later output-structure flexibility.
+
+<!-- ENTRY 197 -->
+### [197] - 2026-03-11 17:52 - `DOC - GE Phase 12B Suggested Answers`
+HUMAN SUMMARY: `Added first-pass suggested answers to the GE family doc for `GE - Phase 12B` questions `Q1` through `Q4`, so the project-content ownership planning surface now carries a concrete proposal before those answers are formally locked.`
+
+#### Scope / Constraints Honored
+- Updated docs only.
+- Added suggestions without converting the `12B` questions into locked family decisions.
+- Kept the proposed `12B` boundary focused on ownership and containment rather than Browser UX or richer output-structure work.
+
+#### Summary of Implementation
+- Added a new doc-history entry to `docs/Phase-Plans/01_GE - Phase-Plans.md`.
+- Added suggested-answer text under `GE - Phase 12B`:
+  - `Q1` minimum project content tree shape
+  - `Q2` first-pass `Component` meaning
+  - `Q3` graph-versus-project parenting authority
+  - `Q4` explicit out-of-scope boundary for later Browser/workspace lanes
+- Kept the first-pass tree small and aligned to `Project File -> Assembly Root -> Component`.
+
+#### Files Changed
+- `docs/Phase-Plans/01_GE - Phase-Plans.md`
+- `docs/CHANGELOG.md`
+
+#### Verification Steps
+- Reviewed the new `12B` suggestions to confirm they stay inside `GE - Phase 12B` ownership work and do not pull in later Browser UX, viewer workspace controls, or final Browser-facing output structure.
+
+<!-- ENTRY 196 -->
+### [196] - 2026-03-11 17:46 - `DOC - GE Phase 12A Left-Out Boundary Note`
+HUMAN SUMMARY: `Added a short `What 12A Left Out` carry-forward block to the GE family doc so the work intentionally deferred out of the shipped `12A` cut is visible directly next to the locked `12A` answers.`
+
+#### Scope / Constraints Honored
+- Updated docs only.
+- Kept the note inside the GE family phase doc rather than reopening the dedicated `12A` task doc.
+- Preserved the existing phase split where `12B` owns content-tree work and `12C` owns cross-graph rules.
+
+#### Summary of Implementation
+- Added a new doc-history entry to `docs/Phase-Plans/01_GE - Phase-Plans.md`.
+- Added a `What 12A Left Out` section under the `GE - Phase 12` family body.
+- Listed the intentionally deferred items, including:
+  - project-file persistence
+  - content-tree ownership beyond nullable `rootAssemblyId`
+  - Browser hierarchy/workspace growth
+  - cross-graph `Publish / Receive`
+  - `Link` versus `Hard Copy`
+  - project-owned reference assets
+- Added a short carry-forward rule pointing that deferred work to `12B`, `12C`, and later `SP` / `AS` / `VR` phases.
+
+#### Files Changed
+- `docs/Phase-Plans/01_GE - Phase-Plans.md`
+- `docs/CHANGELOG.md`
+
+#### Verification Steps
+- Re-read the `GE - Phase 12` family section to confirm the new carry-forward block sits after the locked `12A` answers and before the open `12B` / `12C` question surfaces.
+
+<!-- ENTRY 195 -->
+### [195] - 2026-03-11 17:40 - `GE - Phase 12A - Project File Core And Graph Collection Ownership`
+HUMAN SUMMARY: `Implemented the first real in-memory project-above-graphs model by adding `ProjectFile` ownership to `useAppStore`, mirroring project graph membership from spaghetti graph documents, and rerouting graph-aware spaghetti builds to the real current project id instead of the fake legacy runtime project id.`
+
+#### Scope / Constraints Honored
+- Added the first `12A` implementation without pulling in project-file disk persistence.
+- Kept `useAppStore` as the project owner and left `useSpaghettiStore` as the graph/editor/runtime owner.
+- Deferred content-tree ownership and cross-graph `Publish / Receive` rules to later phases.
+
+#### Summary of Implementation
+- Added a first-pass `ProjectFile` and `ProjectGraphDocumentEntry` model to `useAppStore`.
+- Added app-store selectors for current project, current project id, and current project graph membership.
+- Mirrored project graph membership from spaghetti graph-document order/name changes without deriving membership from viewport or viewer-target state.
+- Updated graph-aware build requests to route through the real current `projectFileId`.
+- Rejected wrong-project spaghetti build results at the app-store boundary.
+- Added targeted app-store tests covering:
+  - current project shape
+  - project graph membership independence from viewport/viewer state
+  - project membership updates after file load
+  - graph-aware routing identity using the real project id
+- Updated the `12A` task doc, GE family doc, and roadmap lane-body status to reflect shipped implementation.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/store/useAppStore.test.ts`
+- `docs/Phase-Plans/Tasks/Future/01.4A - GE - Phase 12A.md`
+- `docs/Phase-Plans/01_GE - Phase-Plans.md`
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Spaghetti graph-aware build requests now use the current project id from app-owned project state.
+- The app now has one explicit current `ProjectFile` with graph membership/order that is separate from editor viewport and viewer-target state.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/store/useAppStore.test.ts`
+- Ran `npm.cmd run build`
+
+<!-- ENTRY 194 -->
+### [194] - 2026-03-11 17:18 - `DOC - GE Phase 12A Task Doc Creation`
+HUMAN SUMMARY: `Created the dedicated `GE - Phase 12A - Project File Core And Graph Collection Ownership` task doc as an implementation-ready execution spec, and updated the roadmap tracker so `[1.4A]` now counts as having a real phase doc.`
+
+#### Scope / Constraints Honored
+- Updated docs only.
+- Kept `12A` explicitly scoped to in-memory project ownership and graph collection ownership.
+- Deferred project-file persistence, content tree ownership, and cross-graph rules to later phases.
+
+#### Summary of Implementation
+- Added `docs/Phase-Plans/Tasks/Future/01.4A - GE - Phase 12A.md`.
+- Locked the first-pass `ProjectFile` contract, `useAppStore` ownership cut, project-versus-runtime boundary, and the routing change from `LEGACY_RUNTIME_PROJECT_FILE_ID` to the real current project id inside the new task doc.
+- Updated `docs/Human-Plans/roadmap/roadmap.md` so `[1.4A]` now shows `Plan.md Status` as created in both the tracker section and the dedicated-plan checklist.
+
+#### Files Changed
+- `docs/Phase-Plans/Tasks/Future/01.4A - GE - Phase 12A.md`
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/CHANGELOG.md`
+
+#### Verification Steps
+- Reviewed the new `12A` task doc to confirm it matches the current execution-spec structure used by `11A` and `10C`.
+- Confirmed the roadmap tracker now marks `[1.4A]` as having a created task doc while leaving parent `[1.4]` open.
+
+<!-- ENTRY 193 -->
+### [193] - 2026-03-11 17:08 - `DOC - GE Phase 12A Suggested Answers`
+HUMAN SUMMARY: `Added first-pass suggested answers to the GE family doc for `GE - Phase 12A` questions `Q1` through `Q3`, so the project-file and graph-ownership planning surface now carries a concrete proposal before those answers are formally locked.`
+
+#### Scope / Constraints Honored
+- Updated docs only.
+- Added suggestions without converting the `12A` questions into locked family decisions.
+- Kept the proposed boundary aligned with the current roadmap split between project ownership and runtime/editor/viewer state.
+
+#### Summary of Implementation
+- Added a new doc-history entry to `docs/Phase-Plans/01_GE - Phase-Plans.md`.
+- Added suggested-answer text under `GE - Phase 12A`:
+  - `Q1` minimum `ProjectFile` shape
+  - `Q2` project-owned graph collection scope
+  - `Q3` durable project data versus runtime-only state boundary
+- Included a first-pass TypeScript shape for `ProjectFile` and `ProjectGraphDocumentEntry`.
+
+#### Files Changed
+- `docs/Phase-Plans/01_GE - Phase-Plans.md`
+- `docs/CHANGELOG.md`
+
+#### Verification Steps
+- Reviewed the `12A` suggestions to confirm they stay inside `GE - Phase 12A` ownership work and do not pull in later Browser hierarchy or richer workspace-state responsibilities.
+
+<!-- ENTRY 192 -->
+### [192] - 2026-03-11 17:02 - `DOC - GE Phase 12 Family Question Setup`
+HUMAN SUMMARY: `Expanded the GE family doc's future `GE - Phase 12 - Multi-Document Graph Ownership` section into a real planning surface with explicit open questions for `12A`, `12B`, and `12C`, so the next task docs can be defined against concrete ownership decisions instead of only a placeholder summary.`
+
+#### Scope / Constraints Honored
+- Updated docs only.
+- Kept `GE - Phase 12` in a planning/question state rather than pretending answers are already locked.
+- Preserved the roadmap boundary where Browser workspace polish and richer output structure stay in later `SP` / `AS` / `VR` phases.
+
+#### Summary of Implementation
+- Added a new doc-history entry to `docs/Phase-Plans/01_GE - Phase-Plans.md`.
+- Expanded the `GE - Phase 12` notes to show current planning state.
+- Added a family-level `12A` / `12B` / `12C` question surface covering:
+  - minimum `Project File` shape
+  - graph collection ownership
+  - project content tree boundaries
+  - `Component` meaning
+  - assembly/object parenting authority
+  - `publish / receive`
+  - `Link` versus `Hard Copy`
+  - cross-graph identity requirements
+  - singleton assumptions that must be broken later
+- Replaced the old flat `Phase 12` checklist with grouped checklist buckets aligned to the future subphases.
+
+#### Files Changed
+- `docs/Phase-Plans/01_GE - Phase-Plans.md`
+- `docs/CHANGELOG.md`
+
+#### Verification Steps
+- Reviewed the new `GE - Phase 12` section to confirm the open questions line up with roadmap subphases `[1.4A]`, `[1.4B]`, and `[1.4C]`.
+- Confirmed the checklist now reflects the same `12A` / `12B` / `12C` split instead of one flat placeholder list.
+
+<!-- ENTRY 191 -->
+### [191] - 2026-03-11 16:34 - `DOC - Roadmap GE11 Completion Sync`
+HUMAN SUMMARY: Updated the roadmap lane-body status for `GE - Phase 11 - Graph Persistence And Save Load` to complete, because the shipped `11A`, `11B`, and `11C` subphases now fully cover that lane-body work even though there is still no separate umbrella `1.2` task doc.
+
+#### Scope / Constraints Honored
+- Updated docs only.
+- Changed the lane-body completion state without altering the parent `[1.2]` `Plan.md Status` tracker.
+- Kept the distinction between “implemented phase” and “separate umbrella task doc exists.”
+
+#### Summary of Implementation
+- Marked `### [1.2]` as `[x]` in the roadmap lane body.
+- Marked the lane-body `GE - Phase 11` checklist items complete.
+- Added a roadmap doc-history note explaining why the lane body is now complete while the parent `Plan.md Status` remains open.
+
+#### Files Changed
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- None. Docs-only roadmap status sync.
+
+#### Verification Steps
+- Re-read the `GE - Phase 11` lane-body section in `docs/Human-Plans/roadmap/roadmap.md`.
+- Confirmed `11A`, `11B`, and `11C` are all shipped while the parent `[1.2]` `Plan.md Status` tracker remains separate.
+
+<!-- ENTRY 190 -->
+### [190] - 2026-03-11 16:28 - `VM - Phase 15 - Browser Open Viewports Stable Order`
+HUMAN SUMMARY: Kept the Browser panel's `Open Viewports` list in stable viewport-order instead of re-sorting the focused viewport to the top, so focus is now communicated by highlight without the list jumping around.
+
+#### Scope / Constraints Honored
+- Kept the change limited to Browser-panel viewport list rendering.
+- Did not change viewport focus, z-order, or close behavior.
+- Left the existing focused-row highlight behavior intact.
+
+#### Summary of Implementation
+- Removed the local `zOrder` sort from the `Open Viewports` render path in `BrowserPanel.tsx`.
+- The panel now renders viewports in the existing `editorViewportOrder` sequence and only uses the focused-row styling/meta to indicate focus.
+
+#### Files Changed
+- `src/app/panels/BrowserPanel.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- The focused viewport no longer jumps to the top of the Browser panel's `Open Viewports` list.
+- The list order stays stable while the focused viewport remains visibly highlighted.
+
+#### Verification Steps
+- Re-read the `Open Viewports` render path in `src/app/panels/BrowserPanel.tsx`.
+- Confirmed the local `zOrder` sort is removed and the focused-row styling still applies.
+
+<!-- ENTRY 189 -->
+### [189] - 2026-03-11 16:21 - `SP - Phase 10C - Graph Output Handoff Surface`
+HUMAN SUMMARY: Implemented the first graph-owned output handoff seam for spaghetti by adding published output surfaces to graph runtime state, exposing output-surface selectors, and rerouting the current parts-list and debug output readers so they consume one canonical graph-owned declaration surface instead of rebuilding publication meaning independently.
+
+#### Scope / Constraints Honored
+- Implemented `10C` only.
+- Kept authored `OutputPreview` node params as the source of declaration truth.
+- Kept the shared viewer on the `10B` viewer-target path instead of turning viewer presentation into publication truth.
+- Kept Browser hierarchy, project ownership, and richer `AS` output structure out of scope.
+
+#### Summary of Implementation
+- Added a new spaghetti output-surface module defining the first-pass `GraphOutputSurface` and `GraphPublishedOutputEntry` contract plus derivation logic from preview preparation and accepted graph-local build outputs.
+- Expanded `useSpaghettiStore` graph runtime state so each graph document now owns a derived published output surface alongside compile/build and preview runtime memory.
+- Added graph-output-surface selectors, including graph-by-id and viewer-target variants.
+- Rerouted the spaghetti parts-list panel path to consume the graph-owned output surface through new output-surface-backed selectors.
+- Updated the debug inspector path so the `OutputPreview` section now reads graph-owned output entry state directly while keeping preview-render/viewer sections on the existing viewer/render path.
+- Added targeted tests proving graph-owned output-surface isolation, slot-state derivation, and output-surface-backed selector behavior.
+- Refreshed the `10C` task doc, the `SP` family phase doc, and the roadmap lane-body status to reflect shipped implementation.
+
+#### Files Changed
+- `src/app/spaghetti/outputSurface.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/panels/PartsListPanel.tsx`
+- `src/app/spaghetti/partsList/selectPartsListItems.ts`
+- `src/app/spaghetti/selectors/selectDebugInspectorVm.ts`
+- `src/app/spaghetti/ui/DebugInspectorDrawer.tsx`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `src/app/spaghetti/partsList/selectPartsListItems.test.ts`
+- `src/app/spaghetti/selectors/selectDebugInspectorVm.test.ts`
+- `docs/Phase-Plans/Tasks/Future/01.3C - SP - Phase 10C.md`
+- `docs/Phase-Plans/11_SP - Phase-Plans.md`
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- In spaghetti mode, the parts list and debug inspector now read graph-owned published output state instead of reconstructing `OutputPreview` publication meaning independently.
+- Each graph document now tracks a first-pass published output surface with explicit `empty`, `unresolved`, and `resolved` slot states.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/spaghetti/store/useSpaghettiStore.test.ts src/app/spaghetti/partsList/selectPartsListItems.test.ts src/app/spaghetti/selectors/selectDebugInspectorVm.test.ts`
+- Ran `npm.cmd run build`
+
+<!-- ENTRY 188 -->
+### [188] - 2026-03-11 13:43 - `DOC - SP Phase 10C Task Doc Setup`
+HUMAN SUMMARY: Created the dedicated `01.3C` task doc as the implementation-ready execution spec for graph-owned output handoff, then synced the roadmap tracker so `[1.3C]` now counts as having a dedicated plan doc.
+
+#### Scope / Constraints Honored
+- Updated docs only.
+- Kept the new task doc focused on `10C` output declaration / handoff.
+- Left later Browser hierarchy, project ownership, and richer output structure explicitly out of scope.
+
+#### Summary of Implementation
+- Added `docs/Phase-Plans/Tasks/Future/01.3C - SP - Phase 10C.md`.
+- Wrote the new task doc in the same execution-spec shape used by `10A` and `10B`.
+- Grounded the doc in the live `10C` seams across `useSpaghettiStore`, `previewPreparation`, output-facing selectors, debug surfaces, and `ViewerHost`.
+- Locked the first-pass `GraphOutputSurface` contract, authored-versus-published ownership split, current seam cut, implementation order, and proof bar.
+- Updated `docs/Human-Plans/roadmap/roadmap.md` so `[1.3C]` now shows `Plan.md Status` as created and the dedicated-doc totals reflect the new task doc.
+
+#### Files Changed
+- `docs/Phase-Plans/Tasks/Future/01.3C - SP - Phase 10C.md`
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- None. Docs-only planning update.
+
+#### Verification Steps
+- Re-read the new `01.3C` task doc to confirm it matches the `10A` / `10B` execution-spec shape.
+- Re-read the roadmap tracker to confirm `[1.3C]` now shows `Plan.md Status` as created and the dedicated-doc totals increment accordingly.
+
+<!-- ENTRY 187 -->
+### [187] - 2026-03-11 13:31 - `DOC - SP Phase 10C Answer Lock`
+HUMAN SUMMARY: Locked the `SP - Phase 10C` family-doc answers so the output-handoff planning surface now reflects a graph-owned published output seam, authored-versus-published ownership split, explicit slot-state rules, and a narrow phase boundary aligned to the vision roadmap.
+
+- updated `docs/Phase-Plans/11_SP - Phase-Plans.md`
+- converted `10C.Q1` through `10C.Q7` from open questions into locked first-pass answers
+- kept the `10C` wording graph-owned and handoff-focused so it does not drift into later Browser or project hierarchy work
+
+<!-- ============================================================ -->
+### [186] - 2026-03-11 13:15 - `DOC - Vision Roadmap Phase Label Pass`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Normalized the rough phase list inside the vision roadmap so every lane entry now shows an explicit prefix-and-phase label, reusing real canonical ids where they already exist and marking the remaining unassigned items with visible `Phase TBD` placeholders.`  
+
+#### Scope / Constraints Honored
+- Updated docs only.
+- Kept the work inside the vision roadmap draft rather than promoting placeholder labels into the canonical execution roadmap.
+- Reused existing canonical family/phase ids where the phase setup and roadmap already support them.
+
+#### Summary of Implementation
+- Added a short `Phase TBD` note to the `Vision-Completion Draft` section.
+- Updated all rough phase entries so they now read with explicit prefix-and-phase labels.
+- Used existing canonical labels where already supported, including:
+  - `SP - Phase 9`
+  - `SP - Phase 10`
+  - `SP - Phase 10C`
+  - `SP - Phase 11`
+  - `GE - Phase 11`
+  - `GE - Phase 12`
+  - `AS - Phase 5`
+  - `AS - Phase 6`
+  - `VR - Phase 5`
+  - `VR - Phase 6`
+  - `JK - Phase 2`
+  - `EX - Phase 2 / 3 / 4 / 5`
+- Marked the still-unassigned vision-draft items with explicit `Phase TBD` labels so missing canonical ownership is easy to spot.
+
+#### Files Changed
+- `docs/Human-Plans/roadmap/Vision-roadmap.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- None. Docs-only planning clarity update.
+
+#### Verification Steps
+- Re-read the `Vision-Completion Draft` phase lists in `docs/Human-Plans/roadmap/Vision-roadmap.md`
+- Confirmed that every phase line now shows either:
+  - a concrete prefix-and-phase id
+  - or a visible `Phase TBD` placeholder
+
+<!-- ============================================================ -->
+### [185] - 2026-03-11 13:11 - `DOC - Vision Roadmap Clarity Pass`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Tightened the vision roadmap with a compact core data-flow section, sharper `OutputPreview` wording, an explicit Lane `[1]` finish condition, a clearer `Tier 1` versus `Tier 2` distance read, and a lightweight contracts/IR note so the north-star doc is easier to use without becoming overly implementation-heavy.`  
+
+#### Scope / Constraints Honored
+- Updated docs only.
+- Kept the changes inside the vision roadmap rather than moving them into the execution roadmap.
+- Added the requested clarity improvements without turning the file into a detailed implementation spec.
+
+#### Summary of Implementation
+- Added a new `Core Data Flow` section showing the intended top-level truth flow:
+  - `GraphDocument -> Compile / Evaluate -> Graph Runtime Memory -> Graph Output Declaration -> Project Composition -> Viewer Presentation`
+- Strengthened the `OutputPreview` wording so it now reads as the first pass of the graph-owned output declaration surface.
+- Added an explicit done-condition line for Lane `[1]`.
+- Split the rough distance read into:
+  - `Tier 1 - First real graph-native app`
+  - `Tier 2 - Vision-complete studio`
+- Added a short `Contracts / Schema / IR Discipline` section as a cross-cutting architecture rule instead of a new full top-level pillar.
+
+#### Files Changed
+- `docs/Human-Plans/roadmap/Vision-roadmap.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- None. Docs-only vision-roadmap clarity update.
+
+#### Verification Steps
+- Re-read the updated sections in `docs/Human-Plans/roadmap/Vision-roadmap.md`:
+  - `Core Data Flow`
+  - `Explicit Output Handoff`
+  - `Contracts / Schema / IR Discipline`
+  - `Lane [1]`
+  - `Rough Read On Distance Remaining`
+
+<!-- ============================================================ -->
+### [184] - 2026-03-11 12:43 - `DOC - Vision Roadmap Full Lane Draft`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Expanded the vision roadmap with a rough first-pass lane-and-phase completion draft so the north-star doc now shows the major work groups still needed to reach the full product vision, including Browser ownership, node/wire hardening, part/feature growth, graph-native build contracts, Jake mode, and final cleanup.`  
+
+#### Scope / Constraints Honored
+- Updated docs only.
+- Kept the new content in the vision roadmap instead of turning the execution roadmap into a second product-vision doc.
+- Treated the added lane map as a rough first draft rather than locked canonical sequencing.
+
+#### Summary of Implementation
+- Added a new `Vision-Completion Draft` section to `docs/Human-Plans/roadmap/Vision-roadmap.md`.
+- Broke the full long-range product into six rough lanes:
+  - graph-native foundation and ownership
+  - node/wire/driver/authoring hardening
+  - Browser workspace and project content structure
+  - graph-native build/geometry/assembly/export
+  - product modes and simplified editing
+  - ecosystem/polish/final replacement
+- Added a rough distance read distinguishing:
+  - the smaller set of work likely needed for a first coherent graph-native working app
+  - the larger set of work likely needed for the fuller long-range vision
+
+#### Files Changed
+- `docs/Human-Plans/roadmap/Vision-roadmap.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- None. Docs-only vision-planning update.
+
+#### Verification Steps
+- Re-read the updated `Vision-Completion Draft` section in `docs/Human-Plans/roadmap/Vision-roadmap.md`
+- Confirmed the new section stays:
+  - broader than `roadmap.md`
+  - compatible with the current roadmap direction
+  - explicit about node/wire/part work in addition to Browser/ownership work
+
+<!-- ============================================================ -->
+### [183] - 2026-03-11 12:34 - `DOC - Vision Roadmap Decision Compass`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Rebuilt the vision roadmap into a canonical big-picture decision-check doc so product and architecture direction now lives in one stable north-star surface above the execution roadmap and phase-task planning.`  
+
+#### Scope / Constraints Honored
+- Updated docs only.
+- Reused the current roadmap direction instead of inventing a competing product vision.
+- Kept the new file focused on big-picture direction, guardrails, and decision filtering rather than execution sequencing.
+
+#### Summary of Implementation
+- Replaced the old loose vision-roadmap draft with a structured canonical doc using the current docs format.
+- Added explicit sections for:
+  - north star
+  - product vision
+  - architecture guardrails
+  - desired end state
+  - decision filters
+  - early-phase guardrails
+  - long-range pillars
+  - quick decision questions
+- Positioned the doc as the place to check future Codex decision questions against the intended destination while `roadmap.md` stays focused on execution order.
+
+#### Files Changed
+- `docs/Human-Plans/roadmap/Vision-roadmap.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- None. Docs-only planning and direction update.
+
+#### Verification Steps
+- Re-read `docs/Human-Plans/roadmap/Vision-roadmap.md` to confirm it now functions as:
+  - a big-picture product/architecture compass
+  - a decision-check surface
+  - a non-duplicative companion to `docs/Human-Plans/roadmap/roadmap.md`
+
+<!-- ============================================================ -->
+### [182] - 2026-03-11 12:28 - `DOC - Roadmap Checklist Sync After Family Alignment`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Updated the roadmap checklist markers and totals so the tracker now counts `SP - Phase 11` and the later `AS`/`VR` carry-forward phases as roadmap-broken-down entries after the family phase-plan alignment pass, while still leaving decision coverage and task-doc status unchecked.`
+
+#### Scope / Constraints Honored
+- Updated planning/tracking docs only.
+- Kept the change limited to roadmap checklist markers and totals.
+- Did not falsely mark later carry-forward phases as decision-complete or task-doc-ready.
+
+#### Summary of Implementation
+- Marked `[1.5] SP - Phase 11 - Graphs Panel And Nested Parts` as roadmap-broken-down now that it has a real family planning surface.
+- Marked `[2.1]` through `[2.5]` as roadmap-broken-down now that the later Browser/output/workspace carry-forward phases have explicit roadmap bodies and aligned family-doc homes.
+- Left `Decision Coverage` and `Plan.md Status` unchecked for those later phases.
+- Recomputed the roadmap breakdown totals from `16 / 11` to `22 / 5`.
+
+#### Files Changed
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- None. Docs-only roadmap tracker update.
+
+#### Verification Steps
+- Reviewed the checklist marker sections and totals in `docs/Human-Plans/roadmap/roadmap.md`
+
+<!-- ============================================================ -->
+### [181] - 2026-03-11 12:25 - `DOC - Phase Plans Carry-Forward Phase Alignment`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Aligned the canonical phase-plan family docs with the newer roadmap carry-forward by renaming the future \`AS\` and \`VR\` phases to their current Browser/output/workspace homes and adding the missing future \`GE - Phase 12\` family section.`
+
+#### Scope / Constraints Honored
+- Updated planning/setup docs only.
+- Kept the changes focused on canonical future phase naming and family-doc alignment.
+- Reused the roadmap carry-forward direction instead of inventing new phase families.
+
+#### Summary of Implementation
+- Updated `00_Phase-Setup.md` so the canonical future phase ladder now uses:
+  - `AS - Phase 5 - Browser-Facing Graph Output Structure`
+  - `AS - Phase 6 - Project Content Inspection And Build Control Surface`
+  - `VR - Phase 5 - Reference Asset Workspace And Project View Layers`
+  - `VR - Phase 6 - Browser Controls, Materials, And Rich Visibility`
+- Reworked the `AS` family placeholders so `Phase 5` and `Phase 6` now describe the later Browser-facing output/content structure and build-control surfaces that the roadmap carries forward from `SP - Phase 11`.
+- Reworked the `VR` family placeholders so `Phase 5` and `Phase 6` now describe the later reference/workspace layering and richer Browser/viewer controls that were intentionally deferred out of the first Browser pass.
+- Added the missing `GE - Phase 12 - Multi-Document Graph Ownership` section to the `GE` family doc so the later project-file, graph-document, and project-content ownership work now has a real family-level home instead of existing only in `00_Phase-Setup.md` and the roadmap.
+
+#### Files Changed
+- `docs/Phase-Plans/00_Phase-Setup.md`
+- `docs/Phase-Plans/07_AS - Phase-Plans.md`
+- `docs/Phase-Plans/08_VR - Phase-Plans.md`
+- `docs/Phase-Plans/01_GE - Phase-Plans.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- None. Docs-only phase-plan alignment update.
+
+#### Verification Steps
+- Reviewed the updated future phase ladders in:
+  - `docs/Phase-Plans/00_Phase-Setup.md`
+  - `docs/Phase-Plans/07_AS - Phase-Plans.md`
+  - `docs/Phase-Plans/08_VR - Phase-Plans.md`
+  - `docs/Phase-Plans/01_GE - Phase-Plans.md`
+
+<!-- ============================================================ -->
+### [180] - 2026-03-11 12:19 - `SP - Phase 11 - Q6 Carry-Forward Note`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Added a concrete carry-forward note under \`SP - Phase 11 Q6\` so the family doc now records what the existing history and roadmap already established about the first Browser-pass boundary and what still remains to be locked before that out-of-scope answer is final.`
+
+#### Scope / Constraints Honored
+- Updated planning/tracking docs only.
+- Kept the change focused on `SP - Phase 11 Q6`.
+- Did not prematurely mark `Q6` resolved.
+
+#### Summary of Implementation
+- Expanded the `Q6` working notes in `11_SP - Phase-Plans.md` to summarize what the current tracked history already established:
+  - `SP - Phase 11` is still only a planning surface
+  - the roadmap already carries a defer map into later Browser workspace, output-structure, build-control, visibility/material, and workspace-presentation phases
+  - the answered `Q2` through `Q5` items already narrowed the first pass to a graph-document tree with simple open/focus behavior
+- Added a short “what is still left to lock” list so `Q6` now shows the remaining out-of-scope boundary work instead of only saying `pending`.
+
+#### Files Changed
+- `docs/Phase-Plans/11_SP - Phase-Plans.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- None. Docs-only planning clarification.
+
+#### Verification Steps
+- Reviewed `SP - Phase 11 Q6` in `docs/Phase-Plans/11_SP - Phase-Plans.md`
+
+<!-- ============================================================ -->
+### [179] - 2026-03-11 12:16 - `SP - Phase 10B - Family Doc Cleanup`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Cleaned the SP family phase doc so \`10B\` now appears only once as the canonical answered question block, removing the stale lower duplicate draft section that was still making \`10B\` look partially open.`
+
+#### Scope / Constraints Honored
+- Updated planning/tracking docs only.
+- Kept the cleanup focused on the `SP - Phase 10` family doc.
+- Preserved the live answered `10B` block and the active `10C` question block.
+
+#### Summary of Implementation
+- Added a new family-doc history note explaining the cleanup.
+- Removed the stale lower duplicate `10B` draft question block from `11_SP - Phase-Plans.md`.
+- Cleared the stray leftover bullets from that removed draft so the file now reads with one canonical answered `10B` section followed by the active `10C` planning surface.
+
+#### Files Changed
+- `docs/Phase-Plans/11_SP - Phase-Plans.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- None. Docs-only cleanup.
+
+#### Verification Steps
+- Reviewed the `SP - Phase 10` section in `docs/Phase-Plans/11_SP - Phase-Plans.md` to confirm that `10B` appears only as the answered `10B.Q1` through `10B.Q6` block and no duplicate lower `10B` draft remains.
+
+<!-- ============================================================ -->
+### [178] - 2026-03-11 12:10 - `SP - Phase 10 - Question Label Normalization`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Normalized the remaining \`10B / 10C\` question labels in the SP family phase doc so the live and archived \`Phase 10\` question blocks now carry explicit subphase ids instead of ambiguous generic \`Q1 / Q2 / Q3\` markers.`
+
+#### Scope / Constraints Honored
+- Updated planning/tracking docs only.
+- Kept the change focused on `SP - Phase 10` question labeling clarity.
+- Preserved the older draft block as history instead of deleting it.
+
+#### Summary of Implementation
+- Added a new family-doc history note explaining the label normalization.
+- Marked the old lower `10B` question block as an archived draft and relabeled its checklist and headings to `10B.Draft.Q1` through `10B.Draft.Q5`.
+- Left the live `10B.Q1` through `10B.Q6` block and the new `10C.Q1` through `10C.Q7` block as the canonical active question surfaces.
+
+#### Files Changed
+- `docs/Phase-Plans/11_SP - Phase-Plans.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- None. Docs-only clarity update.
+
+#### Verification Steps
+- Reviewed the `SP - Phase 10` sections in `docs/Phase-Plans/11_SP - Phase-Plans.md` to confirm that the live `10B` and `10C` questions are explicitly labeled and the older duplicate `10B` block is clearly marked as archived.
+
+<!-- ============================================================ -->
+### [177] - 2026-03-11 12:03 - `SP - Phase 10C - Family Question Setup`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Added a dedicated \`10C\` question block to the SP family phase doc so the remaining output-declaration and graph-output handoff decisions now have their own implementation-prep surface before a dedicated \`10C\` task doc is created.`
+
+#### Scope / Constraints Honored
+- Updated planning/tracking docs only.
+- Kept the new questions scoped to `10C` output declaration and handoff semantics.
+- Did not reopen completed `10A` routing or completed `10B` graph-local runtime ownership.
+
+#### Summary of Implementation
+- Added a `10C` checklist with seven open decision questions covering:
+  - first-pass graph-owned output declaration shape
+  - authored `OutputPreview` truth versus derived published output surface
+  - published row identity
+  - empty/unresolved/resolved slot representation
+  - current seam cut
+  - minimum automated proof bar
+  - explicit out-of-scope boundary
+- Added one subsection per `10C` question with `Why This Matters` and `Current Working Read` notes so the next planning pass can lock answers without mixing `10C` back into `10A` or `10B`.
+
+#### Files Changed
+- `docs/Phase-Plans/11_SP - Phase-Plans.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- None. Docs-only planning update.
+
+#### Verification Steps
+- Reviewed the updated `10C` block in `docs/Phase-Plans/11_SP - Phase-Plans.md`
+
+<!-- ============================================================ -->
+### [176] - 2026-03-11 11:16 - `SP - Phase 10B - Graph-Local Preview And Build Memory`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Implemented \`SP - Phase 10B\` by moving accepted spaghetti build outputs into graph-local runtime state, adding explicit \`viewerTargetGraphDocumentId\` ownership for shared-viewer reads, and rerouting the main spaghetti preview/read surfaces away from app-global spaghetti \`parts\` while preserving shared presentation state such as visibility and selection.`
+
+#### Scope / Constraints Honored
+- Kept `10B` focused on graph-local preview/build memory and explicit viewer-target reads.
+- Reused the shipped `10A` graph-aware request/result routing contract instead of changing worker envelopes again.
+- Left `10C` output handoff semantics, Browser hierarchy growth, and project ownership work out of scope.
+
+#### Summary of Implementation
+- Expanded `GraphRuntimeState` in `useSpaghettiStore` so each graph now owns accepted build outputs and accepted preview build outputs in addition to compile/build and preview-preparation state.
+- Added explicit `viewerTargetGraphDocumentId` ownership and viewer-target selectors in `useSpaghettiStore`, and wired viewport focus/rebinding paths so viewer targeting updates through explicit store state instead of implicit active-graph reads.
+- Updated `useAppStore.acceptBuildResult(...)` so spaghetti build results are accepted into graph-local runtime truth instead of projecting canonical spaghetti outputs into app-global `parts`.
+- Rerouted `ViewerHost`, `PartsListPanel`, `DebugInspectorDrawer`, and `ViewToolbar` so spaghetti-mode reads now follow viewer-target graph-local outputs instead of app-global spaghetti `parts`.
+- Added automated coverage for graph-local accepted-output isolation, viewer-target-following behavior, and app-store acceptance preserving graph-local ownership.
+
+#### Files Changed
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `src/app/store/useAppStore.ts`
+- `src/app/store/useAppStore.test.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewToolbar.tsx`
+- `src/app/panels/PartsListPanel.tsx`
+- `src/app/spaghetti/ui/DebugInspectorDrawer.tsx`
+- `docs/Phase-Plans/Tasks/Future/01.3B - SP - Phase 10B.md`
+- `docs/Phase-Plans/11_SP - Phase-Plans.md`
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- In spaghetti mode, accepted build outputs now persist per graph even when that graph is not the current viewer target.
+- The shared viewer and the main spaghetti read surfaces now resolve spaghetti preview/build reads from explicit viewer-target state instead of the focused editor graph or app-global spaghetti `parts`.
+- App-global `parts` remains the canonical legacy-mode build-output bucket; it is no longer the canonical spaghetti-mode runtime bucket.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/spaghetti/store/useSpaghettiStore.test.ts src/app/store/useAppStore.test.ts`
+- `npm.cmd run build`
+
+<!-- ============================================================ -->
+### [175] - 2026-03-11 04:00 - `SP - Phase 10B - Implementation Doc Tightening`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Rewrote the dedicated \`10B\` task doc into a code-grounded implementation-ready execution spec by carrying the locked family answers forward, defining graph-local accepted build-output ownership and explicit viewer-target state as the phase core, and grounding the plan in the current `useAppStore`, `ViewerHost`, `bootstrapBuildWiring`, and `useSpaghettiStore` seams.`
+
+#### Scope / Constraints Honored
+- Updated planning/tracking docs only.
+- Kept `10B` scoped to graph-local preview/build memory and shared-viewer targeting.
+- Kept `10A` routing identity, `10C` output handoff, Browser hierarchy growth, and project ownership out of scope.
+
+#### Summary of Implementation
+- Replaced the `10B` setup stub with a full implementation-ready execution spec matching the `10A` doc structure.
+- Marked the planning/setup checklist complete while leaving the implementation done-check open.
+- Locked the first-pass `10B` direction around:
+  - graph-local accepted spaghetti build-output ownership
+  - graph-local preview render-source ownership
+  - explicit `viewerTargetGraphDocumentId`
+  - viewer-target-following spaghetti inspection/read surfaces
+  - shared visibility/selection presentation state for the first pass
+- Grounded the doc in the current code seams where spaghetti preview/build memory still remains too global:
+  - `useAppStore`
+  - `ViewerHost`
+  - `bootstrapBuildWiring`
+  - `useSpaghettiStore`
+  - `PartsListPanel`
+  - `DebugInspectorDrawer`
+- Added the concrete implementation sequence, acceptance criteria, and the full locked `10B` test bar.
+- Added a roadmap doc-history note so the tracker now reflects that `01.3B` is implementation-ready rather than only created.
+
+#### Files Changed
+- `docs/Phase-Plans/Tasks/Future/01.3B - SP - Phase 10B.md`
+- `docs/Human-Plans/roadmap/roadmap.md`
+
+#### Behavior Changes (if any)
+- No runtime behavior changed.
+- `SP - Phase 10B` now has an implementation-ready task doc instead of a setup stub.
+
+#### Verification Steps
+- Re-read the rewritten `10B` task doc against the locked `10B` family section and the live runtime/viewer seams to confirm the doc is decision-complete for implementation.
+- No tests were run because this was a docs-only planning update.
+
+<!-- ============================================================ -->
+### [174] - 2026-03-11 03:45 - `SP - Phase 10B - Test Bar Lock`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Locked \`10B.Q6\` in the \`SP\` family phase doc so graph-local preview/build memory now has an explicit automated proof bar covering graph-local runtime isolation, graph-local preview-prep isolation, explicit viewer-target selection, build-vs-view separation, stale/wrong-graph protection, and removal of the last canonical one-global spaghetti runtime seams.`
+
+#### Scope / Constraints Honored
+- Updated planning docs only.
+- Kept the change focused on the remaining `10B` proof-bar question.
+- Did not rewrite the dedicated `10B` task doc yet.
+
+#### Summary of Implementation
+- Marked `10B.Q6` resolved in the `SP - Phase 10B` family checklist.
+- Replaced the open `10B.Q6` placeholder with a locked-answer section defining the minimum required automated test bar.
+- Added the `10B.Q6` summary line to the `10B Locked Answers So Far` block so the `10B` family section now reads as a full first-pass decision set.
+
+#### Files Changed
+- `docs/Phase-Plans/11_SP - Phase-Plans.md`
+
+#### Behavior Changes (if any)
+- No runtime behavior changed.
+- `SP - Phase 10B` now has its automated proof bar locked at the family-doc level.
+
+#### Verification Steps
+- Re-read the `10B` section in the `SP` family doc to confirm `Q1` through `Q6` are now all marked resolved and the new test bar matches the already-locked `10B` seam and viewer-target rules.
+- No tests were run because this was a docs-only planning update.
+
+<!-- ============================================================ -->
+### [173] - 2026-03-11 03:35 - `SP - Phase 10B - First Question Lock`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Locked the first five \`10B\` answers in the \`SP\` family phase doc so graph-local preview/build memory now has explicit decisions for the seam cut, reused routing contract, shared-viewer targeting, multi-graph overwrite safety, and out-of-scope boundaries, while leaving the `10B` test-bar question open.`
+
+#### Scope / Constraints Honored
+- Updated planning docs only.
+- Kept `10B` partially locked rather than pretending it is fully implementation-ready.
+- Left the `10B` automated proof-bar question open.
+- Left `10C` and later ownership/output work untouched.
+
+#### Summary of Implementation
+- Reworked the `10B` question block so its numbering now matches the actual answered questions.
+- Marked `10B.Q1` through `10B.Q5` resolved.
+- Locked:
+  - the exact first-pass seam cut across `useAppStore`, `bootstrapBuildWiring`, `buildDispatcher`, and `ViewerHost`
+  - reuse of the minimal graph-routed request/result contract from `10A`
+  - explicit `viewerTargetGraphDocumentId` ownership for shared-viewer projection
+  - per-graph stale-drop and supersession rules for multi-graph safety
+  - the `10B` scope boundary versus later `10C`, `AS`, `SP 11`, and `GE 12` work
+- Added a compact `10B Locked Answers So Far` summary block under the resolved sections.
+
+#### Files Changed
+- `docs/Phase-Plans/11_SP - Phase-Plans.md`
+
+#### Behavior Changes (if any)
+- No runtime behavior changed.
+- `SP - Phase 10B` now has a partially locked family-doc decision surface instead of a fully open question draft.
+
+#### Verification Steps
+- Re-read the `10B` section in the `SP` family doc to confirm the resolved questions and numbering now align cleanly with the new locked answers.
+- No tests were run because this was a docs-only planning update.
+
+<!-- ============================================================ -->
+### [172] - 2026-03-11 03:20 - `SP - Phase 10B - Question Block Setup`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Added a dedicated \`10B\` question block to the \`SP\` family phase doc so graph-local preview/build memory now has its own open implementation-prep checklist covering runtime ownership, shared-viewer projection, non-focused graph result handling, seam cuts, proof-bar testing, and scope boundaries.`
+
+#### Scope / Constraints Honored
+- Updated planning docs only.
+- Kept the new `10B` block open rather than pretending the phase is already decision-complete.
+- Left `10C` and later project-ownership work untouched.
+
+#### Summary of Implementation
+- Added a `10B`-specific decision checklist under the `SP - Phase 10B` family section.
+- Added seven open `10B` questions covering:
+  - graph-local preview/build runtime ownership
+  - allowed remaining app-global bridge state
+  - shared viewer projection rules versus build truth
+  - non-focused graph result storage behavior
+  - current seam cuts across `useAppStore`, `ViewerHost`, `bootstrapBuildWiring`, and `useSpaghettiStore`
+  - minimum automated proof bar
+  - out-of-scope boundaries
+- Added short `Why This Matters` and `Humanized Read` subsections for each question so the planning surface is easier to review before the answer-lock pass.
+
+#### Files Changed
+- `docs/Phase-Plans/11_SP - Phase-Plans.md`
+
+#### Behavior Changes (if any)
+- No runtime behavior changed.
+- `SP - Phase 10B` now has its own question-driven planning section in the family phase doc.
+
+#### Verification Steps
+- Re-read the updated `10B` section in the `SP` family doc to confirm the new questions stay focused on graph-local preview/build memory and do not reopen already-locked `10A` routing decisions.
+- No tests were run because this was a docs-only planning update.
+
+<!-- ============================================================ -->
+### [171] - 2026-03-11 03:10 - `SP - Phase 10B - Plan Doc Setup`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Created the dedicated \`10B\` task doc in normalized `01.3B` form so graph-local preview/build memory now has its own planning surface, and refreshed the roadmap and `SP` family trackers so `[1.3B]` now counts as having a created plan doc.`
+
+#### Scope / Constraints Honored
+- Updated planning/tracking docs only.
+- Kept `10B` as a setup scaffold, not an implementation-ready spec.
+- Left `10C` and later `GE - Phase 12` work untouched.
+
+#### Summary of Implementation
+- Added `docs/Phase-Plans/Tasks/Future/01.3B - SP - Phase 10B.md`.
+- Set up the new task doc with:
+  - a progress checklist
+  - progress rules
+  - a done check
+  - doc history
+  - purpose
+  - scope
+  - source inputs
+  - placeholder `Arch Spec` sections for the later implementation-ready pass
+- Updated the `SP` family doc to mark `10B` as clear enough to justify its own dedicated task doc.
+- Updated the roadmap `Plan.md Status` tracker so `[1.3B]` now shows as having a created task doc.
+
+#### Files Changed
+- `docs/Phase-Plans/Tasks/Future/01.3B - SP - Phase 10B.md`
+- `docs/Phase-Plans/11_SP - Phase-Plans.md`
+- `docs/Human-Plans/roadmap/roadmap.md`
+
+#### Behavior Changes (if any)
+- No runtime behavior changed.
+- `SP - Phase 10B` now has its own dedicated planning doc in the normalized subphase naming scheme.
+
+#### Verification Steps
+- Re-read the new `10B` task doc to confirm it matches the basic task-doc setup pattern used before the implementation-ready pass.
+- Re-read the roadmap and `SP` family trackers to confirm `[1.3B]` now shows `Plan.md Status` as created.
+- No tests were run because this was a docs-only setup update.
+
+<!-- ============================================================ -->
+### [170] - 2026-03-11 03:00 - `SP - Phase 10A - Graph-Aware Build Identity And Routing`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Implemented the first real \`10A\` routing cut by carrying graph identity through build requests, worker progress/results, dispatcher stale-drop, graph-local runtime guards, and explicit graph-routed app entry points, then verified the new isolation behavior with targeted tests and a full build.`
+
+#### Scope / Constraints Honored
+- Implemented `10A` only.
+- Kept compile locally handled in the first pass.
+- Kept build routed through the shared worker path.
+- Kept `10B` preview/build-memory expansion and `10C` output handoff work out of scope.
+
+#### Summary of Implementation
+- Extended `BuildRequest`, `BuildResult`, `BuildProgress`, and build-side worker errors with:
+  - `projectFileId`
+  - `graphDocumentId`
+  - `buildRequestId`
+- Reworked `buildDispatcher` stale-drop handling so build routing is keyed per graph instead of one global build bucket, with request-id matching for accepted progress/results/errors.
+- Removed the worker's old one-global build drop behavior so concurrent graph builds can complete without stomping each other, while keeping assemble latest-only behavior separate.
+- Added graph-local routing truth and defensive accept/clear guards in `useSpaghettiStore` through:
+  - `latestIssuedBuildSeq`
+  - `latestAcceptedBuildSeq`
+  - `inFlightBuildRequestId`
+  - `inFlightBuildSeq`
+- Added canonical graph-routed app entry points in `useAppStore`:
+  - `compileGraphDocument(graphDocumentId)`
+  - `requestGraphDocumentBuild(graphDocumentId)`
+- Kept `compileSpaghetti()` and `requestSpaghettiBuild()` only as thin wrappers over the new graph-routed entry points.
+- Updated `SpaghettiPanel` compile/build actions to pass explicit viewport graph identity.
+- Extended automated coverage for:
+  - wrong-graph rejection
+  - stale same-graph rejection
+  - concurrent graph isolation
+  - focus-change safety
+  - viewport-switch safety
+  - direct stale-write rejection in graph runtime setters
+  - compatibility-wrapper forwarding into the graph-routed build path
+
+#### Files Changed
+- `src/shared/buildTypes.ts`
+- `src/app/buildDispatcher.ts`
+- `src/app/bootstrapBuildWiring.ts`
+- `src/app/store/useAppStore.ts`
+- `src/app/store/useAppStore.test.ts`
+- `src/app/panels/SpaghettiPanel.tsx`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/buildDispatcher.test.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `src/worker/worker.ts`
+- `src/worker/pipeline/buildPipeline.ts`
+- `src/worker/pipeline/artifactEmitter.ts`
+- `src/worker/pipeline/buildPipeline.test.ts`
+- `docs/Phase-Plans/Tasks/Future/01.3A - SP - Phase 10A.md`
+- `docs/Phase-Plans/11_SP - Phase-Plans.md`
+- `docs/Human-Plans/roadmap/roadmap.md`
+
+#### Behavior Changes (if any)
+- Spaghetti build requests and worker results now carry explicit graph routing identity.
+- Concurrent builds for different graph documents no longer share one global stale-drop path.
+- Spaghetti compile/build actions now route through explicit graph-document entry points even though compatibility wrapper names remain.
+- Non-focused graph build results no longer overwrite the currently projected global spaghetti parts/viewer bridge.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/buildDispatcher.test.ts src/app/spaghetti/store/useSpaghettiStore.test.ts src/worker/pipeline/buildPipeline.test.ts`.
+- Ran `npm.cmd run build`.
+
+<!-- ============================================================ -->
+### [169] - 2026-03-11 01:40 - `SP - Phase 10A - Implementation Doc Setup`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Created the dedicated \`10A\` implementation doc in normalized `01.3A` form, rewriting the stub into a code-grounded execution spec for graph-aware build identity and routing and updating the roadmap tracker so `[1.3A]` now counts as having its own task doc.`
+
+#### Scope / Constraints Honored
+- Updated only planning/tracking docs.
+- Kept `10A` as the routing-identity and stale-drop cut only.
+- Left `10B` and `10C` planning untouched.
+
+#### Summary of Implementation
+- Renamed the stub task doc from `01.3 - SP - Phase 10a.md` to `01.3A - SP - Phase 10A.md`.
+- Replaced the basic scaffold with a real implementation-ready execution spec that now defines:
+  - the `10A` problem statement and phase boundary
+  - the shared request/result routing contracts
+  - graph-local routing runtime ownership
+  - wrapper migration rules for compile/build entry points
+  - current seam findings across `useAppStore`, `buildDispatcher`, `bootstrapBuildWiring`, `useSpaghettiStore`, and `protocol.ts`
+  - the ordered implementation sequence and automated proof bar
+- Updated the roadmap `Plan.md Status` tracker and dedicated-plan totals so `[1.3A]` now shows as having a created task doc.
+
+#### Files Changed
+- `docs/Phase-Plans/Tasks/Future/01.3A - SP - Phase 10A.md`
+- `docs/Human-Plans/roadmap/roadmap.md`
+
+#### Behavior Changes (if any)
+- No runtime behavior changed.
+- `SP - Phase 10A` now has its own implementation-ready task doc in the normalized subphase naming scheme.
+
+#### Verification Steps
+- Re-read the new `10A` task doc against the locked family-doc answers to confirm the execution spec stays within `10A` scope.
+- Re-read the roadmap tracker to confirm `[1.3A]` now shows `Plan.md Status` as created and the dedicated-doc totals increment accordingly.
+- No tests were run because this was a docs-only planning update.
+
+<!-- ============================================================ -->
+### [168] - 2026-03-11 01:20 - `SP - Phase 10A - Family Doc Decision Lock`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Locked the \`SP - Phase 10A\` routing section in the family phase doc by converting all seven open \`10A\` questions into resolved planning answers, adding the first-pass synthetic \`projectFileId\` rule, the graph-local routing-state contract, the compatibility-wrapper policy, and the minimum automated proof bar for a future task doc.`
+
+#### Scope / Constraints Honored
+- Updated only planning docs.
+- Locked `10A` at the family-doc level without creating or implementing a dedicated task doc yet.
+- Kept `10B` and `10C` open.
+
+#### Summary of Implementation
+- Converted the `10A` checklist from open questions to resolved decisions.
+- Rewrote `10A.Q1` through `10A.Q7` into locked-answer sections covering:
+  - shared request/result routing envelopes
+  - synthetic runtime `projectFileId`
+  - graph-local `buildSeq` ownership
+  - stale-drop ownership split
+  - in-flight result ownership during focus changes
+  - wrapper-vs-canonical API policy
+  - minimum automated routing proof bar
+- Added a `10A` readiness note describing what the future task doc must cover.
+- Marked `10A` as clear enough to justify a dedicated task doc in the family readiness checklist.
+
+#### Files Changed
+- `docs/Phase-Plans/11_SP - Phase-Plans.md`
+
+#### Behavior Changes (if any)
+- No runtime behavior changed.
+- `SP - Phase 10A` is now decision-complete enough in the family phase doc to support a dedicated implementation task doc.
+
+#### Verification Steps
+- Re-read the updated `10A` section to confirm all seven questions are now locked and internally consistent with the existing `SP - Phase 10` family direction.
+- No tests were run because this was a docs-only planning update.
+
+<!-- ============================================================ -->
+### [167] - 2026-03-11 01:10 - `SP - Phase 10A - Routing Question Block`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Added a dedicated \`10A\` question block inside the \`SP - Phase 10\` family section so the graph-aware routing subphase now explicitly tracks the remaining request-envelope, result-envelope, build-sequence, stale-drop, focus-change, API-entry, and test-bar questions before task-doc creation.`
+
+#### Scope / Constraints Honored
+- Updated only planning docs.
+- Kept the new questions under the existing `10A` subphase instead of reopening the full `SP - Phase 10` family scope.
+- Did not answer or lock the `10A` questions yet.
+
+#### Summary of Implementation
+- Added a `10A`-specific open-question checklist under the `SP - Phase 10A` working breakdown.
+- Added seven `10A` question subsections covering:
+  - request envelope shape
+  - result envelope shape
+  - `buildSeq` ownership
+  - stale-drop ownership
+  - focus changes during in-flight builds
+  - compile/build API entry-point ownership
+  - minimum automated test bar
+- Updated the `SP` family doc history and main `Phase 10` checklist to reflect that the `10A` question block now exists.
+
+#### Files Changed
+- `docs/Phase-Plans/11_SP - Phase-Plans.md`
+
+#### Behavior Changes (if any)
+- No runtime behavior changed.
+- `SP - Phase 10A` now has a dedicated implementation-question block in the family phase doc.
+
+#### Verification Steps
+- Re-read the updated `10A` block in the `SP` family doc to confirm the new questions are phase-specific and do not duplicate the broader family direction locks.
+- No tests were run because this was a docs-only planning update.
+
+<!-- ============================================================ -->
+### [166] - 2026-03-11 01:00 - `SP - Phase 10 - Working Subphase Split`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Split the active \`SP - Phase 10\` family planning surface into explicit working subphases \`10A\`, \`10B\`, and \`10C\` so routing identity, graph-local runtime memory, and output handoff can be tracked and prepared separately in the dependency order they actually need.`
+
+#### Scope / Constraints Honored
+- Updated only planning docs.
+- Kept the existing roadmap-aligned `10A / 10B / 10C` structure rather than inventing a new split.
+- Did not mark any `SP - Phase 10` subphase as implemented.
+
+#### Summary of Implementation
+- Updated the `SP` family phase doc so `Phase 10` now explicitly includes:
+  - a three-part working breakdown section
+  - one subsection each for `10A`, `10B`, and `10C`
+  - minimum win conditions for each subphase
+  - explicit out-of-scope boundaries for each subphase
+  - a subphase-readiness checklist for future task-doc creation
+- Updated the `Phase 10` checklist and small-achievements block to reflect that the split is now part of the canonical family planning surface.
+
+#### Files Changed
+- `docs/Phase-Plans/11_SP - Phase-Plans.md`
+
+#### Behavior Changes (if any)
+- No runtime behavior changed.
+- `SP - Phase 10` is now structured in the family doc as three working subphases instead of one undifferentiated planning block.
+
+#### Verification Steps
+- Re-read the updated `SP - Phase 10` section to confirm the `10A -> 10B -> 10C` dependency order and boundaries are explicit.
+- No tests were run because this was a docs-only planning update.
+
+<!-- ============================================================ -->
+### [165] - 2026-03-11 00:50 - `SP - Phase 10 - Graph Aware Worker And Preview Routing`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Promoted the \`SP - Phase 10\` family section from a placeholder into an active planning surface by carrying forward the already-locked \`[1.3A] / [1.3B] / [1.3C]\` direction and writing the remaining implementation-prep questions around request/result routing, viewer targeting, stale-drop safety, and first-pass seam cuts.`
+
+#### Scope / Constraints Honored
+- Updated only the family planning docs for `SP - Phase 10`.
+- Reused locked direction from the roadmap, decisions file, and Codex notes instead of reopening settled scope.
+- Kept later `AS`, `GE - Phase 12`, and `SP - Phase 11` work explicitly out of the phase-10 setup.
+
+#### Summary of Implementation
+- Replaced the old `SP - Phase 10` placeholder block in the `SP` family phase doc with:
+  - an active summary
+  - a small achievements block
+  - a carried-forward family-level decision lock section
+  - a remaining-question checklist focused on implementation readiness
+- Added one subsection per remaining question so the next pass can lock:
+  - current seam ownership
+  - request/result contract shape
+  - shared viewer target rules
+  - stale-drop/overwrite rules
+  - out-of-scope boundaries
+- Added a matching doc-history entry to the `SP` family file.
+
+#### Files Changed
+- `docs/Phase-Plans/11_SP - Phase-Plans.md`
+
+#### Behavior Changes (if any)
+- No runtime behavior changed.
+- `SP - Phase 10` is now tracked in the family phase doc as an active planning surface rather than a future placeholder.
+
+#### Verification Steps
+- Re-read the updated `SP - Phase 10` section to confirm it now separates locked family direction from the unresolved implementation-prep questions.
+- No tests were run because this was a docs-only planning update.
+
+<!-- ============================================================ -->
+### [164] - 2026-03-11 00:35 - `GE - Phase 11C - Save/Load Interaction With Editors`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Implemented the first explicit \`11C\` editor-action layer by adding Browser row secondary actions for opening a second editor or swapping the focused editor, splitting file load into clone-as-new-graph behavior, and routing editor save through the focused viewport's cached graph entry without disturbing the shipped \`11A\` and \`11B\` seams.`
+
+#### Scope / Constraints Honored
+- Implemented `11C` only.
+- Kept raw graph-document file IO in `11A`.
+- Kept Browser cached-entry lifecycle core in `11B`.
+- Kept `Import Into Current Graph` deferred and explicit rather than collapsing it into `Load Into New Graph`.
+- Kept project ownership and Browser hierarchy growth deferred to later phases.
+
+#### Summary of Implementation
+- Added explicit `11C` store actions in `useSpaghettiStore` for:
+  - opening a graph in a new viewport even when that graph is already open elsewhere
+  - swapping the focused viewport to another graph
+  - loading a graph file into a fresh dirty graph copy
+  - saving the graph bound to the focused editor viewport
+- Preserved `openGraphDocumentInViewport(...)` as the Browser row-click `open-or-focus` path.
+- Updated `BrowserPanel` so graph rows now expose:
+  - `Save`
+  - `New Editor`
+  - `Swap Editor`
+  - and so top-level file load now means `Load Into New Graph`
+- Updated `SpaghettiPanel` with a first-pass editor-side `Save Graph` action routed through the focused viewport binding.
+- Extended store tests to cover same-graph multi-viewport opens, focused-viewport swap behavior, clone-on-load identity rules, and focused-editor save behavior.
+- Tightened the `11C` task doc and the `GE` family phase doc to reflect that `11C` is now implemented.
+
+#### Files Changed
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/panels/SpaghettiPanel.tsx`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `docs/Phase-Plans/Tasks/Future/01.2c - GE - Phase 11C.md`
+- `docs/Phase-Plans/01_GE - Phase-Plans.md`
+
+#### Behavior Changes (if any)
+- Browser graph rows still open-or-focus on row click, but now also expose explicit `New Editor` and `Swap Editor` actions.
+- The Browser file-load button now creates a fresh dirty graph copy instead of preserving the file's live `graphDocumentId`.
+- The app now supports multiple editor viewports bound to the same graph document.
+- Editor-side save now targets the graph bound to the focused viewport through the cached-entry save seam.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/spaghetti/store/useSpaghettiStore.test.ts`.
+- Ran `npm.cmd run build`.
+- Re-read the updated `11C` task doc and `GE` family phase doc after implementation to confirm they now reflect shipped behavior rather than planned behavior.
+
+<!-- ============================================================ -->
+### [163] - 2026-03-11 00:20 - `GE - Phase 11C - Task Doc Tightening`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Tightened the dedicated \`11C\` task doc into a code-grounded implementation-ready spec by using Codex notes as the primary decision source, locking the first-pass editor action model, and naming the exact Browser/store seams that must change for explicit open/new-editor/swap/save behavior.`
+
+#### Scope / Constraints Honored
+- Updated the `11C` task-planning surface only.
+- Kept `11C` implementation itself deferred.
+- Kept raw file IO in `11A`, cached-graph lifecycle in `11B`, and project ownership in `GE 12`.
+- Kept `Import Into Current Graph` explicit but out of first-pass `11C` implementation scope.
+
+#### Summary of Implementation
+- Renamed the task-doc identity from `01.08` wording to canonical `01.2C`.
+- Reworked the `11C` task doc to match the shipped `11A` / `11B` implementation-ready spec format.
+- Marked the planning/read/lock progress checklist complete while leaving the implementation done-check open.
+- Added explicit locked behavior for:
+  - `Open Graph`
+  - `Load Into New Graph`
+  - `Open In New Editor`
+  - `Swap Current Editor`
+  - focused-editor save targeting
+  - Browser focus follow behavior
+- Added code-grounded seam analysis for:
+  - `useSpaghettiStore`
+  - `BrowserPanel`
+  - `SpaghettiEditor`
+- Replaced generic file/ordering notes with a concrete implementation sequence and a targeted test/verification plan.
+
+#### Files Changed
+- `docs/Phase-Plans/Tasks/Future/01.2c - GE - Phase 11C.md`
+
+#### Verification Steps
+- Re-read the rewritten `11C` task doc after the replacement to confirm the file now follows the `11A` / `11B` execution-spec pattern.
+- Verified the doc now locks:
+  - same-graph multi-viewport behavior
+  - focused-viewport swap behavior
+  - `Load Into New Graph` clone-and-dirty semantics
+  - focused-editor save routing through the cached-entry save seam
+- Cross-checked the rewrite against the carry-forward decisions in:
+  - `docs/Human-Plans/CodexNotes/5_CodexChatNotes.md`
+  - `docs/Human-Plans/CodexNotes/6_CodexChatNotes.md`
+  - `docs/Human-Plans/CodexNotes/7_CodexChatNotes.md`
+  - `docs/Human-Plans/CodexNotes/8_CodexChatNotes.md`
+
+<!-- ============================================================ -->
+### [162] - 2026-03-10 22:15 - `GE - Phase 11 - 11C Family Decision Lock`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Locked the remaining family-level \`GE - Phase 11C\` editor-interaction answers in the \`GE\` phase-family doc so Browser row click, graph-copy identity, viewport rebinding, save target, and Browser/editor focus rules are now explicit before \`11C\` implementation starts.`
+
+#### Scope / Constraints Honored
+- Updated the family planning surface only.
+- Kept `11C` implementation work deferred.
+- Kept `11C` scoped to editor interaction policy rather than raw file IO, cached-graph core, or `GE 12` ownership work.
+
+#### Summary of Implementation
+- Added a new family-doc history entry for the `11C` answer-lock pass.
+- Replaced the Phase 11 `11C` question block's open state with explicit locked answers for:
+  - `Open Graph`
+  - `Load Into New Graph`
+  - `Open In New Editor`
+  - `Swap Current Editor`
+  - save targeting
+  - Browser/editor focus follow behavior
+- Marked the family-level `11C` decision checklist and identity-policy checklist items complete while leaving implementation pending.
+
+#### Files Changed
+- `docs/Phase-Plans/01_GE - Phase-Plans.md`
+
+#### Verification Steps
+- Re-read the `GE - Phase 11` family section after the update to confirm all seven `11C` questions now have explicit answers.
+- Cross-checked the locked answers against the carry-forward decisions in:
+  - `docs/Human-Plans/CodexNotes/5_CodexChatNotes.md`
+  - `docs/Human-Plans/CodexNotes/6_CodexChatNotes.md`
+  - `docs/Human-Plans/CodexNotes/7_CodexChatNotes.md`
+
+<!-- ============================================================ -->
+### [161] - 2026-03-10 20:40 - `GE - Phase 11B - Cached Graph Lifecycle`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Implemented the first cached-graph lifecycle layer by adding Browser-owned cached graph entries in \`useSpaghettiStore\`, moving Browser graph rows to cached-entry-backed rendering with simple dirty/saved state, and wiring first-pass Browser load/save actions without pulling \`11C\` editor policy forward.`
+
+#### Scope / Constraints Honored
+- Implemented `11B` only.
+- Kept the live graph document as the authored source of truth.
+- Kept `Open In New Editor`, `Swap Current Editor`, and `Load Into New Graph` deferred to `11C`.
+- Kept richer Browser row build/loading bars deferred to later Browser/build-control phases.
+
+#### Summary of Implementation
+- Added `CachedGraphEntry` state and selectors to `useSpaghettiStore`.
+- Seeded one cached entry per live graph document, with:
+  - startup/new/duplicate in-memory graphs starting dirty
+  - file-loaded graphs starting clean
+- Marked cached entries dirty on committed graph edits.
+- Added first-pass store actions to:
+  - save a cached graph entry through the shipped `11A` persistence seam
+  - load a graph document from file into a cached entry
+- Updated `BrowserPanel` so graph rows are backed by cached entries instead of direct graph-document enumeration.
+- Kept Browser row click behavior as `open-or-focus`.
+
+#### Files Changed
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+
+#### Behavior Changes (if any)
+- Browser graph rows now show simple `Dirty` / `Saved` lifecycle state alongside `Closed` / `Open` / `Focused`.
+- The Browser now exposes first-pass `Load Graph File` and per-row `Save` actions.
+- Loading a graph file creates or refreshes a cached Browser graph entry while keeping the same `graphDocumentId` in first pass.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/spaghetti/store/useSpaghettiStore.test.ts src/app/io/graphDocumentPersistence.test.ts`
+- Ran `npm.cmd run build`
+
+<!-- ============================================================ -->
+### [160] - 2026-03-10 00:08 - `OO - Phase 13 - Roadmap Setup Companion Doc`
+<!-- ============================================================ -->
+HUMAN SUMMARY: `Created a new \`Roadmap-Setup.md\` companion doc so roadmap format/meta/tracker guidance can gradually move out of \`roadmap.md\`, and added a small pointer link in the live roadmap so the lane body can become the main reading surface over time.`
+
+#### Scope / Constraints Honored
+- Added roadmap/docs structure only.
+- Did not change lane meaning or roadmap ordering.
+- Kept the live lane body in `roadmap.md`.
+
+#### Summary of Implementation
+- Added `docs/Human-Plans/roadmap/Roadmap-Setup.md`.
+- Used the new file to define:
+  - why the roadmap is noisy
+  - what should stay in `roadmap.md`
+  - what should move out later
+  - a preferred future roadmap shape
+  - a first cleanup direction
+- Added a small pointer in `docs/Human-Plans/roadmap/roadmap.md` so the new setup companion is discoverable from the live roadmap.
+
+#### Files Changed
+- `docs/Human-Plans/roadmap/Roadmap-Setup.md`
+- `docs/Human-Plans/roadmap/roadmap.md`
+
+#### Behavior Changes (if any)
+- None. Documentation/structure only.
+
+#### Verification Steps
+- Read the new `Roadmap-Setup.md` and confirmed the live roadmap now points to it near the top.
+
 <!-- ============================================================ -->
 ### [159] - 2026-03-10 00:00 - `GE - Phase 11C - Save/Load Interaction With Editors Task Doc Setup`
 <!-- ============================================================ -->

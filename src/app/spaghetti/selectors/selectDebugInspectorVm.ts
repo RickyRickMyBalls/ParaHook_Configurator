@@ -2,6 +2,7 @@ import type { PartArtifact, ViewerRenderablePart } from '../../../shared/buildTy
 import { partKeyToString } from '../../../shared/buildTypes'
 import type { CompileSpaghettiGraphResult } from '../compiler/compileGraph'
 import { computeFeatureStackIrParts } from '../compiler/compileGraph'
+import type { GraphOutputSurface } from '../outputSurface'
 import type { SpaghettiGraph, SpaghettiNode } from '../schema/spaghettiTypes'
 import { OUTPUT_PREVIEW_NODE_TYPE } from '../system/outputPreviewNode'
 import {
@@ -18,7 +19,7 @@ export type DebugArtifactRow = {
 
 export type DebugOutputPreviewSlotRow = {
   slotId: string
-  state: 'filled' | 'empty'
+  state: 'empty' | 'unresolved' | 'resolved'
   sourceNodeId: string | null
   sourcePartKeyStr: string | null
   artifactPartKeyStr: string | null
@@ -107,6 +108,7 @@ const buildArtifactRows = (buildOutputs: readonly PartArtifact[]): DebugArtifact
 
 const buildOutputPreviewSlots = (
   graph: SpaghettiGraph,
+  outputSurface: GraphOutputSurface | null,
   buildOutputs: readonly PartArtifact[],
 ): DebugInspectorVm['outputPreview'] => {
   const outputPreviewNode = graph.nodes.find(isOutputPreviewNode)
@@ -119,16 +121,26 @@ const buildOutputPreviewSlots = (
 
   const partKeyByNodeId = computeFeatureStackIrParts(graph).nodeIdToPartKey
   const artifactByPartKey = new Map(buildOutputs.map((artifact) => [artifact.partKeyStr, artifact]))
-  const slots: DebugOutputPreviewSlotRow[] = readSlotIds(outputPreviewNode).map((slotId) => {
-    const matchingEdge = findMatchingIncomingSlotEdge(graph, outputPreviewNode.nodeId, slotId)
-    const sourceNodeId = matchingEdge?.from.nodeId ?? null
+  const slots: DebugOutputPreviewSlotRow[] = (outputSurface?.entries ?? readSlotIds(outputPreviewNode).map((slotId) => ({
+    slotId,
+    sourceNodeId: findMatchingIncomingSlotEdge(graph, outputPreviewNode.nodeId, slotId)?.from.nodeId ?? '',
+    state: findMatchingIncomingSlotEdge(graph, outputPreviewNode.nodeId, slotId) === undefined
+      ? 'empty'
+      : 'resolved',
+    acceptedArtifactKey: null,
+    outputEntryId: `debug-fallback:${slotId}`,
+    label: slotId,
+  }))).map((entry) => {
+    const sourceNodeId = entry.sourceNodeId.length > 0 ? entry.sourceNodeId : null
     const sourcePartKeyStr =
       sourceNodeId === null ? null : (partKeyByNodeId[sourceNodeId] ?? null)
     const artifactPartKeyStr =
-      sourcePartKeyStr === null ? null : (artifactByPartKey.get(sourcePartKeyStr)?.partKeyStr ?? null)
+      entry.acceptedArtifactKey === null
+        ? (sourcePartKeyStr === null ? null : (artifactByPartKey.get(sourcePartKeyStr)?.partKeyStr ?? null))
+        : (artifactByPartKey.get(entry.acceptedArtifactKey)?.partKeyStr ?? entry.acceptedArtifactKey)
     return {
-      slotId,
-      state: matchingEdge === undefined ? 'empty' : 'filled',
+      slotId: entry.slotId,
+      state: entry.state,
       sourceNodeId,
       sourcePartKeyStr,
       artifactPartKeyStr,
@@ -164,12 +176,13 @@ const buildViewerRows = (
 
 export const selectDebugInspectorVm = (options: {
   graph: SpaghettiGraph
+  outputSurface: GraphOutputSurface | null
   buildOutputs: PartArtifact[]
   compileResult: CompileSpaghettiGraphResult | null
   inputMode: 'legacy' | 'spaghetti'
   viewMode: 'parts' | 'assembled'
 }): DebugInspectorVm => {
-  const { graph, buildOutputs, compileResult, inputMode, viewMode } = options
+  const { graph, outputSurface, buildOutputs, compileResult, inputMode, viewMode } = options
   const previewVm = selectPreviewRenderVm(graph, buildOutputs)
   const viewerParts =
     inputMode === 'spaghetti' && viewMode === 'parts' ? previewVm.viewerParts : []
@@ -182,7 +195,7 @@ export const selectDebugInspectorVm = (options: {
       compiledArtifactsCount: buildOutputs.length,
       artifacts: buildArtifactRows(buildOutputs),
     },
-    outputPreview: buildOutputPreviewSlots(graph, buildOutputs),
+    outputPreview: buildOutputPreviewSlots(graph, outputSurface, buildOutputs),
     previewVm: {
       renderEntryCount: previewVm.items.length,
       entries: buildPreviewRows(previewVm),

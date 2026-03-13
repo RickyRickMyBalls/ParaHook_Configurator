@@ -1,4 +1,5 @@
 import { getNodeDef } from '../registry/nodeRegistry'
+import type { GraphOutputSurface, GraphPublishedOutputEntry } from '../outputSurface'
 import type { SpaghettiEdge, SpaghettiGraph, SpaghettiNode } from '../schema/spaghettiTypes'
 import { OUTPUT_PREVIEW_NODE_TYPE } from '../system/outputPreviewNode'
 import { evaluateSpaghettiGraph } from '../compiler/evaluateGraph'
@@ -190,6 +191,56 @@ const toPanelItem = (item: PartsListItem): PartsListPanelItemVm => {
   }
 }
 
+const toPartsListSlotStatus = (
+  state: GraphPublishedOutputEntry['state'],
+): PartsListItem['slotStatus'] => (state === 'resolved' ? 'ok' : state)
+
+const buildPartsListItemsFromOutputSurface = (
+  graph: SpaghettiGraph,
+  outputSurface: GraphOutputSurface,
+  nodeRegistry: NodeRegistryLike,
+): PartsListItem[] => {
+  const outputPreviewNode = graph.nodes.find(isOutputPreviewNode)
+  const diagnosticsVm = selectDiagnosticsVm({
+    graph,
+    evaluation: evaluateSpaghettiGraph(graph),
+  })
+  return outputSurface.entries.map((entry) => {
+    const sourceNodeId = entry.sourceNodeId.length > 0 ? entry.sourceNodeId : null
+    const sourceNode =
+      sourceNodeId === null
+        ? undefined
+        : graph.nodes.find((node) => node.nodeId === sourceNodeId)
+    const matchingEdges =
+      outputPreviewNode === undefined
+        ? []
+        : findIncomingSlotEdges(graph.edges, outputPreviewNode.nodeId, entry.slotId)
+    const matchingEdge = matchingEdges[0]
+    const unresolvedEdge = matchingEdges.find(
+      (edge) => diagnosticsVm.edgeStatusById[edge.edgeId]?.kind !== 'ok',
+    )
+
+    return {
+      rowId: `parts-slot:${entry.slotId}`,
+      key: entry.slotId,
+      slotId: entry.slotId,
+      slotStatus: toPartsListSlotStatus(entry.state),
+      warningMessage:
+        entry.diagnosticsState === 'hasDiagnostics'
+          ? (unresolvedEdge === undefined
+              ? null
+              : (diagnosticsVm.edgeStatusById[unresolvedEdge.edgeId]?.message ?? null))
+          : null,
+      isConnected: sourceNodeId !== null,
+      sourceNodeId,
+      sourcePortId: matchingEdge?.from.portId ?? null,
+      sourceNodeType: sourceNode?.type.length ? sourceNode.type : null,
+      sourceNodeLabel:
+        sourceNode === undefined ? (sourceNodeId ?? null) : resolveSourceNodeLabel(sourceNode, nodeRegistry),
+    }
+  })
+}
+
 type PartsListItemsCache = {
   graph?: SpaghettiGraph
   nodeRegistry?: NodeRegistryLike
@@ -198,6 +249,15 @@ type PartsListItemsCache = {
 
 let partsListItemsCache: PartsListItemsCache = {}
 
+type PartsListOutputSurfaceCache = {
+  graph?: SpaghettiGraph
+  outputSurface?: GraphOutputSurface | null
+  nodeRegistry?: NodeRegistryLike
+  value?: PartsListItem[]
+}
+
+let partsListOutputSurfaceCache: PartsListOutputSurfaceCache = {}
+
 type PartsListPanelCache = {
   graph?: SpaghettiGraph
   nodeRegistry?: NodeRegistryLike
@@ -205,6 +265,15 @@ type PartsListPanelCache = {
 }
 
 let partsListPanelCache: PartsListPanelCache = {}
+
+type PartsListPanelOutputSurfaceCache = {
+  graph?: SpaghettiGraph
+  outputSurface?: GraphOutputSurface | null
+  nodeRegistry?: NodeRegistryLike
+  value?: PartsListPanelVm
+}
+
+let partsListPanelOutputSurfaceCache: PartsListPanelOutputSurfaceCache = {}
 
 export const selectPartsListPanelVm = (
   graph: SpaghettiGraph,
@@ -231,4 +300,60 @@ export const selectPartsListPanelVm = (
     value: vm,
   }
   return vm
+}
+
+export const selectPartsListItemsFromOutputSurface = (
+  graph: SpaghettiGraph,
+  outputSurface: GraphOutputSurface | null,
+  nodeRegistry: NodeRegistryLike = defaultNodeRegistry,
+): PartsListItem[] => {
+  if (outputSurface === null) {
+    return []
+  }
+  if (
+    partsListOutputSurfaceCache.graph === graph &&
+    partsListOutputSurfaceCache.outputSurface === outputSurface &&
+    partsListOutputSurfaceCache.nodeRegistry === nodeRegistry &&
+    partsListOutputSurfaceCache.value !== undefined
+  ) {
+    return partsListOutputSurfaceCache.value
+  }
+  const value = buildPartsListItemsFromOutputSurface(graph, outputSurface, nodeRegistry)
+  partsListOutputSurfaceCache = {
+    graph,
+    outputSurface,
+    nodeRegistry,
+    value,
+  }
+  return value
+}
+
+export const selectPartsListPanelVmFromOutputSurface = (
+  graph: SpaghettiGraph,
+  outputSurface: GraphOutputSurface | null,
+  nodeRegistry: NodeRegistryLike = defaultNodeRegistry,
+): PartsListPanelVm => {
+  if (
+    partsListPanelOutputSurfaceCache.graph === graph &&
+    partsListPanelOutputSurfaceCache.outputSurface === outputSurface &&
+    partsListPanelOutputSurfaceCache.nodeRegistry === nodeRegistry &&
+    partsListPanelOutputSurfaceCache.value !== undefined
+  ) {
+    return partsListPanelOutputSurfaceCache.value
+  }
+  const allItems = selectPartsListItemsFromOutputSurface(graph, outputSurface, nodeRegistry)
+  const panelItems =
+    allItems.length > 0 && allItems[allItems.length - 1]?.slotStatus === 'empty'
+      ? allItems.slice(0, -1)
+      : allItems
+  const value: PartsListPanelVm = {
+    items: panelItems.map(toPanelItem),
+  }
+  partsListPanelOutputSurfaceCache = {
+    graph,
+    outputSurface,
+    nodeRegistry,
+    value,
+  }
+  return value
 }

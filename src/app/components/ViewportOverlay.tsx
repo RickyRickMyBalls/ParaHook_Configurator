@@ -2,6 +2,12 @@ import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } f
 import { useAppStore } from '../store/useAppStore'
 import { getViewer, subscribeViewer, type ViewerApi } from '../viewerBridge'
 import { useUiPrefsStore } from '../store/uiPrefsStore'
+import {
+  COMPACT_AXIS_WIDGET_SIZE,
+  DEFAULT_EXPANDED_AXIS_WIDGET_SIZE,
+  MAX_AXIS_WIDGET_SIZE,
+  MIN_AXIS_WIDGET_SIZE,
+} from './viewToolbarLayout'
 
 export function ViewportOverlay() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
@@ -9,7 +15,14 @@ export function ViewportOverlay() {
   const selectedPartKey = useAppStore((state) => state.selectedPartKey)
   const viewMode = useAppStore((state) => state.viewMode)
   const axisOverlayEnabled = useUiPrefsStore((state) => state.view.axisOverlayEnabled)
-  const [axisWidgetSize, setAxisWidgetSize] = useState<number | null>(null)
+  const viewToolbarOpen = useUiPrefsStore((state) => state.viewToolbarOpen)
+  const expandedAxisWidgetSize = useUiPrefsStore(
+    (state) => state.viewToolbarExpandedAxisWidgetSize,
+  )
+  const setExpandedAxisWidgetSize = useUiPrefsStore(
+    (state) => state.setViewToolbarExpandedAxisWidgetSize,
+  )
+  const [axisWidgetSize, setAxisWidgetSize] = useState<number>(COMPACT_AXIS_WIDGET_SIZE)
   const resizeStateRef = useRef<{
     active: boolean
     pointerId: number
@@ -24,16 +37,20 @@ export function ViewportOverlay() {
     startSize: 0,
   })
 
-  const MIN_AXIS_WIDGET_SIZE = 80
-  const MAX_AXIS_WIDGET_SIZE = 420
+  const resolvedAxisWidgetSize = viewToolbarOpen
+    ? expandedAxisWidgetSize ?? DEFAULT_EXPANDED_AXIS_WIDGET_SIZE
+    : COMPACT_AXIS_WIDGET_SIZE
 
   const startResize = (event: ReactPointerEvent<HTMLDivElement>): void => {
+    if (!viewToolbarOpen) {
+      return
+    }
     const host = axisWidgetRef.current
     if (host === null) {
       return
     }
 
-    const currentSize = axisWidgetSize ?? host.clientWidth
+    const currentSize = axisWidgetSize || host.clientWidth
     if (currentSize <= 0) {
       return
     }
@@ -62,7 +79,7 @@ export function ViewportOverlay() {
         Math.max(next, MIN_AXIS_WIDGET_SIZE),
         MAX_AXIS_WIDGET_SIZE,
       )
-      setAxisWidgetSize(clamped)
+      setExpandedAxisWidgetSize(clamped)
     }
 
     const stop = (stopEvent: PointerEvent): void => {
@@ -113,41 +130,33 @@ export function ViewportOverlay() {
   }, [axisOverlayEnabled])
 
   useEffect(() => {
-    if (!axisOverlayEnabled || axisWidgetRef.current === null) {
-      return
-    }
-
-    if (axisWidgetSize === null) {
-      const measured = axisWidgetRef.current.clientWidth
-      if (measured > 0) {
-        setAxisWidgetSize(Math.round(measured))
-      }
-    }
-  }, [axisOverlayEnabled, axisWidgetSize])
+    setAxisWidgetSize(resolvedAxisWidgetSize)
+  }, [resolvedAxisWidgetSize])
 
   useEffect(() => {
-    if (axisWidgetSize === null) {
-      return
-    }
     document.documentElement.style.setProperty(
       '--v15-axis-widget-size',
-      `${axisWidgetSize}px`,
+      `${resolvedAxisWidgetSize}px`,
     )
-  }, [axisWidgetSize])
+    return () => {
+      document.documentElement.style.removeProperty('--v15-axis-widget-size')
+    }
+  }, [resolvedAxisWidgetSize])
 
-  const axisWidgetStyle =
-    axisWidgetSize === null ? undefined : { width: `${axisWidgetSize}px`, height: `${axisWidgetSize}px` }
+  const axisWidgetStyle = { width: `${axisWidgetSize}px`, height: `${axisWidgetSize}px` }
 
   return (
     <div className="ViewportOverlayRoot">
       {axisOverlayEnabled ? (
         <div
           ref={axisWidgetRef}
-          className="ViewportOverlayWidget AxisWidget"
+          className={`ViewportOverlayWidget AxisWidget ${viewToolbarOpen ? 'isExpanded' : 'isCompact'}`}
           style={axisWidgetStyle}
         >
           <canvas ref={canvasRef} />
-          <div className="AxisWidgetResizeHandle" onPointerDown={startResize} />
+          {viewToolbarOpen ? (
+            <div className="AxisWidgetResizeHandle" onPointerDown={startResize} />
+          ) : null}
         </div>
       ) : null}
       <div className="ViewportOverlayWidget ViewportHud">
