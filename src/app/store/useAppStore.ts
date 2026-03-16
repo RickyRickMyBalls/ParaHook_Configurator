@@ -7,6 +7,7 @@ import {
   selectOrderedGraphDocuments,
   selectResolvedGraphReceiveReferencesByDocumentId,
   selectGraphRuntimeByDocumentId,
+  type GraphRuntimeState,
   type SpaghettiStoreState,
   useSpaghettiStore,
 } from '../spaghetti/store/useSpaghettiStore'
@@ -16,6 +17,7 @@ import {
   type CompileSpaghettiGraphResult,
 } from '../spaghetti/compiler/compileGraph'
 import { buildRequestFromBuildInputs } from '../spaghetti/integration/buildInputsToRequest'
+import { buildGraphPublishedComponentSurface } from '../spaghetti/outputSurface'
 import type {
   AssembleResult,
   BoxParams,
@@ -61,24 +63,72 @@ export type ProjectComponentRecord = {
   componentId: string
   ownerGraphDocumentId: string
   sourceGraphDocumentId: string
-  sourceOutputEntryId: string
+  sourceOutputEntryId: string | null
+  sourceNodeId: string | null
   label: string
-  componentSourceKind: 'published-output' | 'receive-link'
+  componentSourceKind: 'published-component' | 'receive-link'
   resolutionState: 'resolved' | 'unresolved'
   receiveId: string | null
+  childObjectIds: string[]
+}
+
+export type ProjectObjectRecord = {
+  objectId: string
+  parentComponentId: string
+  sourceGraphDocumentId: string
+  sourceOutputEntryId: string
+  sourceNodeId: string | null
+  slotId: string
+  label: string
+  resolutionState: 'resolved' | 'unresolved' | 'empty'
 }
 
 export type ProjectContentState = {
   assembliesById: Record<string, ProjectAssemblyRecord>
   componentsById: Record<string, ProjectComponentRecord>
+  objectsById: Record<string, ProjectObjectRecord>
 }
 
-export type ProjectContentBrowserRowVm = {
-  rowId: string
-  kind: 'assembly' | 'component'
-  label: string
-  meta: string
-}
+export type ProjectContentBrowserRowVm =
+  | {
+      rowId: string
+      kind: 'assembly'
+      label: string
+      meta: string
+    }
+  | {
+      rowId: string
+      kind: 'component'
+      label: string
+      meta: string
+      ownerGraphDocumentId: string
+      sourceGraphDocumentId: string
+      sourceOutputEntryId: string | null
+      componentSourceKind: ProjectComponentRecord['componentSourceKind']
+      resolutionState: ProjectComponentRecord['resolutionState']
+      receiveId: string | null
+      childObjectCount: number
+      slotId: string | null
+      sourceNodeId: string | null
+      highlightViewerKey: string | null
+      authoringGraphDocumentId: string | null
+      authoringNodeId: string | null
+    }
+  | {
+      rowId: string
+      kind: 'object'
+      label: string
+      meta: string
+      parentComponentId: string
+      sourceGraphDocumentId: string
+      sourceOutputEntryId: string
+      slotId: string
+      sourceNodeId: string | null
+      resolutionState: ProjectObjectRecord['resolutionState']
+      highlightViewerKey: string | null
+      authoringGraphDocumentId: string
+      authoringNodeId: string | null
+    }
 
 export type AppState = {
   box: BoxParams
@@ -145,17 +195,22 @@ const ROOT_ASSEMBLY_LABEL = 'Assembly Root'
 const buildRootAssemblyId = (projectFileId: string): string =>
   `assembly-root:${projectFileId}`
 
-const buildProjectComponentId = (
+const buildProjectPublishedComponentId = (
   projectFileId: string,
   graphDocumentId: string,
-  outputEntryId: string,
-): string => `project-component:${projectFileId}:${graphDocumentId}:${outputEntryId}`
+): string => `project-component:${projectFileId}:${graphDocumentId}:published`
 
 const buildProjectReceiveComponentId = (
   projectFileId: string,
   graphDocumentId: string,
   receiveId: string,
 ): string => `project-component:${projectFileId}:receive:${graphDocumentId}:${receiveId}`
+
+const buildProjectObjectId = (
+  projectFileId: string,
+  graphDocumentId: string,
+  objectId: string,
+): string => `project-object:${projectFileId}:${graphDocumentId}:${objectId}`
 
 const toProjectGraphDocumentEntry = (
   document: Pick<GraphDocument, 'graphDocumentId' | 'name'>,
@@ -192,35 +247,75 @@ const buildProjectContentState = (
   const rootAssemblyId = project.rootAssemblyId ?? buildRootAssemblyId(project.projectFileId)
   const childComponentIds: string[] = []
   const componentsById: Record<string, ProjectComponentRecord> = {}
+  const objectsById: Record<string, ProjectObjectRecord> = {}
 
   for (const documentEntry of project.graphDocuments) {
+    const graphDocument = spaghettiState.graphDocumentsById[documentEntry.graphDocumentId]
     const outputSurface = selectGraphRuntimeByDocumentId(
       spaghettiState,
       documentEntry.graphDocumentId,
     )?.outputSurface
-    if (outputSurface === null || outputSurface === undefined) {
-      continue
-    }
-    for (const entry of outputSurface.entries) {
-      if (entry.state !== 'resolved') {
-        continue
-      }
-      const componentId = buildProjectComponentId(
+    const publishedComponentSurface =
+      graphDocument === undefined
+        ? null
+        : buildGraphPublishedComponentSurface({
+            graphDocumentId: documentEntry.graphDocumentId,
+            graph: graphDocument.graph,
+            outputSurface,
+          })
+
+    if (
+      publishedComponentSurface !== null &&
+      outputSurface !== null &&
+      publishedComponentSurface.objects.length > 0
+    ) {
+      const componentId = buildProjectPublishedComponentId(
         project.projectFileId,
         documentEntry.graphDocumentId,
-        entry.outputEntryId,
       )
+      const childObjectIds = publishedComponentSurface.objects.map((objectRow) =>
+        buildProjectObjectId(project.projectFileId, documentEntry.graphDocumentId, objectRow.objectId),
+      )
+      const resolutionState = publishedComponentSurface.objects.some(
+        (objectRow) => objectRow.state === 'resolved',
+      )
+        ? 'resolved'
+        : 'unresolved'
       childComponentIds.push(componentId)
       componentsById[componentId] = {
         componentId,
         ownerGraphDocumentId: documentEntry.graphDocumentId,
         sourceGraphDocumentId: documentEntry.graphDocumentId,
-        sourceOutputEntryId: entry.outputEntryId,
-        label: entry.label,
-        componentSourceKind: 'published-output',
-        resolutionState: 'resolved',
+        sourceOutputEntryId:
+          publishedComponentSurface.objects.length === 1
+            ? publishedComponentSurface.objects[0]?.outputEntryId ?? null
+            : null,
+        sourceNodeId:
+          publishedComponentSurface.objects.length === 1
+            ? publishedComponentSurface.objects[0]?.sourceNodeId ?? null
+            : null,
+        label: publishedComponentSurface.componentLabel,
+        componentSourceKind: 'published-component',
+        resolutionState,
         receiveId: null,
+        childObjectIds,
       }
+      publishedComponentSurface.objects.forEach((objectRow, index) => {
+        const objectId = childObjectIds[index]
+        if (objectId === undefined) {
+          return
+        }
+        objectsById[objectId] = {
+          objectId,
+          parentComponentId: componentId,
+          sourceGraphDocumentId: documentEntry.graphDocumentId,
+          sourceOutputEntryId: objectRow.outputEntryId,
+          sourceNodeId: objectRow.sourceNodeId,
+          slotId: objectRow.slotId,
+          label: objectRow.label,
+          resolutionState: objectRow.state,
+        }
+      })
     }
 
     for (const receiveReference of selectResolvedGraphReceiveReferencesByDocumentId(
@@ -239,10 +334,12 @@ const buildProjectContentState = (
         ownerGraphDocumentId: documentEntry.graphDocumentId,
         sourceGraphDocumentId: receiveReference.sourceGraphDocumentId,
         sourceOutputEntryId: receiveReference.sourceOutputEntryId,
+        sourceNodeId: receiveReference.sourceEntry?.sourceNodeId ?? null,
         label,
         componentSourceKind: 'receive-link',
         resolutionState: receiveReference.resolutionState,
         receiveId: receiveReference.receiveId,
+        childObjectIds: [],
       }
     }
   }
@@ -256,6 +353,7 @@ const buildProjectContentState = (
       },
     },
     componentsById,
+    objectsById,
   }
 }
 
@@ -323,10 +421,38 @@ const areProjectComponentsEqual = (
         entry.ownerGraphDocumentId === other.ownerGraphDocumentId &&
         entry.sourceGraphDocumentId === other.sourceGraphDocumentId &&
         entry.sourceOutputEntryId === other.sourceOutputEntryId &&
+        entry.sourceNodeId === other.sourceNodeId &&
         entry.label === other.label &&
         entry.componentSourceKind === other.componentSourceKind &&
         entry.resolutionState === other.resolutionState &&
-        entry.receiveId === other.receiveId
+        entry.receiveId === other.receiveId &&
+        areOrderedStringArraysEqual(entry.childObjectIds, other.childObjectIds)
+      )
+    })
+  )
+}
+
+const areProjectObjectsEqual = (
+  left: Record<string, ProjectObjectRecord>,
+  right: Record<string, ProjectObjectRecord>,
+): boolean => {
+  const leftKeys = Object.keys(left)
+  const rightKeys = Object.keys(right)
+  return (
+    areOrderedStringArraysEqual(leftKeys, rightKeys) &&
+    leftKeys.every((objectId) => {
+      const entry = left[objectId]
+      const other = right[objectId]
+      return (
+        other !== undefined &&
+        entry.objectId === other.objectId &&
+        entry.parentComponentId === other.parentComponentId &&
+        entry.sourceGraphDocumentId === other.sourceGraphDocumentId &&
+        entry.sourceOutputEntryId === other.sourceOutputEntryId &&
+        entry.sourceNodeId === other.sourceNodeId &&
+        entry.slotId === other.slotId &&
+        entry.label === other.label &&
+        entry.resolutionState === other.resolutionState
       )
     })
   )
@@ -337,7 +463,8 @@ const areProjectContentStatesEqual = (
   right: ProjectContentState,
 ): boolean =>
   areProjectAssembliesEqual(left.assembliesById, right.assembliesById) &&
-  areProjectComponentsEqual(left.componentsById, right.componentsById)
+  areProjectComponentsEqual(left.componentsById, right.componentsById) &&
+  areProjectObjectsEqual(left.objectsById, right.objectsById)
 
 export const selectChangedGeomParamIds = (state: Pick<AppState, 'geomDirty' | 'geomBuilt'>): string[] => {
   const changed: string[] = []
@@ -718,16 +845,23 @@ export const selectCurrentProjectRootComponents = (
     .filter((component): component is ProjectComponentRecord => component !== null)
 }
 
+const selectProjectObjectsForComponent = (
+  state: Pick<AppState, 'projectContent'>,
+  component: ProjectComponentRecord,
+): ProjectObjectRecord[] =>
+  component.childObjectIds
+    .map((objectId) => state.projectContent.objectsById[objectId] ?? null)
+    .filter((objectRow): objectRow is ProjectObjectRecord => objectRow !== null)
+
 export const selectCurrentProjectContentBrowserRows = (
-  state: Pick<AppState, 'currentProject' | 'projectContent'>,
+  state: Pick<AppState, 'currentProject' | 'projectContent'> & {
+    graphRuntimeByDocumentId: Record<string, GraphRuntimeState>
+  },
 ): ProjectContentBrowserRowVm[] => {
   const rootAssembly = selectCurrentProjectRootAssembly(state)
   if (rootAssembly === null) {
     return []
   }
-  const graphLabelByDocumentId = Object.fromEntries(
-    state.currentProject.graphDocuments.map((entry) => [entry.graphDocumentId, entry.label]),
-  ) as Record<string, string>
   const rows: ProjectContentBrowserRowVm[] = [
     {
       rowId: rootAssembly.assemblyId,
@@ -740,10 +874,25 @@ export const selectCurrentProjectContentBrowserRows = (
     },
   ]
   for (const component of selectCurrentProjectRootComponents(state)) {
-    const ownerGraphLabel =
-      graphLabelByDocumentId[component.ownerGraphDocumentId] ?? component.ownerGraphDocumentId
-    const sourceGraphLabel =
-      graphLabelByDocumentId[component.sourceGraphDocumentId] ?? component.sourceGraphDocumentId
+    const componentObjects = selectProjectObjectsForComponent(state, component)
+    const singleResolvedObject =
+      componentObjects.length === 1 && componentObjects[0]?.resolutionState === 'resolved'
+        ? componentObjects[0]
+        : null
+    const sourceOutputEntry =
+      component.sourceOutputEntryId === null
+        ? null
+        : (state.graphRuntimeByDocumentId[component.sourceGraphDocumentId]?.outputSurface?.entries.find(
+            (entry) => entry.outputEntryId === component.sourceOutputEntryId,
+          ) ?? null)
+    const slotId =
+      component.componentSourceKind === 'published-component'
+        ? singleResolvedObject?.slotId ?? null
+        : sourceOutputEntry?.slotId ?? null
+    const sourceNodeId =
+      component.componentSourceKind === 'published-component'
+        ? singleResolvedObject?.sourceNodeId ?? null
+        : sourceOutputEntry?.sourceNodeId ?? component.sourceNodeId
     rows.push({
       rowId: component.componentId,
       kind: 'component',
@@ -751,9 +900,44 @@ export const selectCurrentProjectContentBrowserRows = (
       meta:
         component.componentSourceKind === 'receive-link'
           ? component.resolutionState === 'resolved'
-            ? `${ownerGraphLabel} <- ${sourceGraphLabel}`
-            : `${ownerGraphLabel} unresolved`
-          : sourceGraphLabel,
+            ? 'Linked Component'
+            : 'Unresolved Link'
+          : component.childObjectIds.length === 1
+            ? '1 Object'
+            : `${component.childObjectIds.length} Objects`,
+      ownerGraphDocumentId: component.ownerGraphDocumentId,
+      sourceGraphDocumentId: component.sourceGraphDocumentId,
+      sourceOutputEntryId: component.sourceOutputEntryId,
+      componentSourceKind: component.componentSourceKind,
+      resolutionState: component.resolutionState,
+      receiveId: component.receiveId,
+      childObjectCount: component.childObjectIds.length,
+      slotId,
+      sourceNodeId,
+      highlightViewerKey:
+        component.componentSourceKind === 'published-component' ? singleResolvedObject?.slotId ?? null : slotId,
+      authoringGraphDocumentId: component.sourceGraphDocumentId,
+      authoringNodeId:
+        component.componentSourceKind === 'published-component'
+          ? singleResolvedObject?.sourceNodeId ?? null
+          : sourceNodeId,
+    })
+    componentObjects.forEach((objectRow) => {
+      rows.push({
+        rowId: objectRow.objectId,
+        kind: 'object',
+        label: objectRow.label,
+        meta: objectRow.resolutionState === 'resolved' ? '' : 'Unresolved',
+        parentComponentId: objectRow.parentComponentId,
+        sourceGraphDocumentId: objectRow.sourceGraphDocumentId,
+        sourceOutputEntryId: objectRow.sourceOutputEntryId,
+        slotId: objectRow.slotId,
+        sourceNodeId: objectRow.sourceNodeId,
+        resolutionState: objectRow.resolutionState,
+        highlightViewerKey: objectRow.resolutionState === 'resolved' ? objectRow.slotId : null,
+        authoringGraphDocumentId: objectRow.sourceGraphDocumentId,
+        authoringNodeId: objectRow.sourceNodeId,
+      })
     })
   }
   return rows

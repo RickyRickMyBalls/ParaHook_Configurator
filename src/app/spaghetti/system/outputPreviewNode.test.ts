@@ -18,6 +18,10 @@ describe('createOutputPreviewNode', () => {
 
     expect(node.type).toBe(OUTPUT_PREVIEW_NODE_TYPE)
     expect(node.params).toEqual({
+      componentLabel: 'Published Component',
+      objects: [
+        { objectId: 'output-object:s001', slotId: 's001', label: 's001', orderIndex: 0 },
+      ],
       slots: [{ slotId: 's001' }],
       nextSlotIndex: 2,
     })
@@ -37,6 +41,10 @@ describe('createOutputPreviewNode', () => {
     expect(created).toBeDefined()
     expect(created?.type).toBe(OUTPUT_PREVIEW_NODE_TYPE)
     expect(created?.params).toEqual({
+      componentLabel: 'Published Component',
+      objects: [
+        { objectId: 'output-object:s001', slotId: 's001', label: 's001', orderIndex: 0 },
+      ],
       slots: [{ slotId: 's001' }],
       nextSlotIndex: 2,
     })

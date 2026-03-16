@@ -518,6 +518,7 @@ exports[`selectNodeVm > matches stable NodeVm contract snapshot 1`] = `
         },
       ],
     },
+    "outputPreviewComponentLabel": undefined,
     "outputPreviewRows": undefined,
     "presetOptions": [
       "default",

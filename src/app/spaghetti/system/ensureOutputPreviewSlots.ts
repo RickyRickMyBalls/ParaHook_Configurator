@@ -3,7 +3,10 @@ import type {
   SpaghettiGraph,
   SpaghettiNode,
 } from '../schema/spaghettiTypes'
-import { OUTPUT_PREVIEW_NODE_TYPE } from './outputPreviewNode'
+import {
+  normalizeOutputPreviewParams,
+  OUTPUT_PREVIEW_NODE_TYPE,
+} from './outputPreviewNode'
 
 const IN_SOLID_PREFIX = 'in:solid:'
 const SEEDED_SLOT_ID = 's001'
@@ -104,7 +107,18 @@ export const ensureOutputPreviewSlotsPatch = (
     slotsChanged = true
   }
 
-  if (!slotsChanged && !nextSlotIndexChanged) {
+  const normalizedParams = normalizeOutputPreviewParams(paramsRecord, nextSlots)
+  const metadataChanged =
+    JSON.stringify({
+      componentLabel: paramsRecord.componentLabel,
+      objects: paramsRecord.objects,
+    }) !==
+    JSON.stringify({
+      componentLabel: normalizedParams.componentLabel,
+      objects: normalizedParams.objects,
+    })
+
+  if (!slotsChanged && !nextSlotIndexChanged && !metadataChanged) {
     return null
   }
 
@@ -123,8 +137,12 @@ export const ensureOutputPreviewSlotsPatch = (
         ...node,
         params: {
           ...nodeParams,
+          componentLabel: normalizedParams.componentLabel,
+          objects: normalizedParams.objects,
           slots: resolvedSlots,
-          ...(shouldWriteNextSlotIndex ? { nextSlotIndex } : {}),
+          ...(shouldWriteNextSlotIndex
+            ? { nextSlotIndex }
+            : { nextSlotIndex: normalizedParams.nextSlotIndex }),
         },
       }
     }),

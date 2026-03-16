@@ -85,6 +85,12 @@ const click = async (element: Element) => {
   })
 }
 
+const doubleClick = async (element: Element) => {
+  await act(async () => {
+    element.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, cancelable: true }))
+  })
+}
+
 const contextMenu = async (element: Element, clientX = 160, clientY = 200) => {
   await act(async () => {
     element.dispatchEvent(
@@ -143,6 +149,7 @@ describe('BrowserPanel', () => {
       setActiveEditorViewportId: vi.fn(),
       setEditorViewportPosition: vi.fn(),
       setViewerTargetGraphDocumentId: vi.fn(),
+      setSelectedNodeId: vi.fn(),
       sharedViewerComposition: null,
       sharedViewerCompositionGraphDocumentIds: [],
     }
@@ -152,6 +159,7 @@ describe('BrowserPanel', () => {
       projectContent: null,
       projectContentRows: [],
       buildPolicy: 'live',
+      selectPart: vi.fn(),
       setInputMode: vi.fn(),
     }
   })
@@ -529,5 +537,494 @@ describe('BrowserPanel', () => {
     await click(container?.querySelector('[aria-label=\"Close Graph 2\"]')!)
 
     expect(currentSpaghettiState.closeEditorViewport).toHaveBeenCalledWith('editor-viewport-2')
+  })
+
+  it('single-clicking a component row selects it and highlights the viewport target when shared composition is inactive', async () => {
+    currentAppState = {
+      ...currentAppState,
+      projectContentRows: [
+        {
+          rowId: 'assembly-root:project-file-1',
+          kind: 'assembly',
+          label: 'Assembly Root',
+          meta: '1 Component',
+        },
+        {
+          rowId: 'project-component:project-file-1:graph-document-1:published',
+          kind: 'component',
+          label: 'Pedal Component',
+          meta: '1 Object',
+          ownerGraphDocumentId: 'graph-document-1',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry:slot-baseplate:node-baseplate-1',
+          componentSourceKind: 'published-component',
+          resolutionState: 'resolved',
+          receiveId: null,
+          childObjectCount: 1,
+          slotId: 'slot-baseplate',
+          sourceNodeId: 'node-baseplate-1',
+          highlightViewerKey: 'slot-baseplate',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-baseplate-1',
+        },
+      ],
+    }
+
+    ;({ root } = await renderBrowserPanel())
+
+    const componentRow = findRowMainByLabel('Pedal Component')
+    expect(componentRow).not.toBeNull()
+
+    await click(componentRow!)
+
+    expect(currentAppState.selectPart).toHaveBeenCalledWith('slot-baseplate')
+    expect(currentSpaghettiState.swapFocusedEditorViewportToGraphDocument).not.toHaveBeenCalled()
+    expect(componentRow?.getAttribute('aria-pressed')).toBe('true')
+  })
+
+  it('lets the content assembly row collapse and hide descendant content rows', async () => {
+    currentAppState = {
+      ...currentAppState,
+      projectContentRows: [
+        {
+          rowId: 'assembly-root:project-file-1',
+          kind: 'assembly',
+          label: 'Assembly Root',
+          meta: '1 Component',
+        },
+        {
+          rowId: 'project-component:project-file-1:graph-document-1:published',
+          kind: 'component',
+          label: 'Pedal Component',
+          meta: '1 Object',
+          ownerGraphDocumentId: 'graph-document-1',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry:slot-baseplate:node-baseplate-1',
+          componentSourceKind: 'published-component',
+          resolutionState: 'resolved',
+          receiveId: null,
+          childObjectCount: 1,
+          slotId: 'slot-baseplate',
+          sourceNodeId: 'node-baseplate-1',
+          highlightViewerKey: 'slot-baseplate',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-baseplate-1',
+        },
+        {
+          rowId: 'project-object:project-file-1:graph-document-1:pedal-body',
+          kind: 'object',
+          label: 'Pedal Body',
+          meta: '',
+          parentComponentId: 'project-component:project-file-1:graph-document-1:published',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry:slot-baseplate:node-baseplate-1',
+          slotId: 'slot-baseplate',
+          sourceNodeId: 'node-baseplate-1',
+          resolutionState: 'resolved',
+          highlightViewerKey: 'slot-baseplate',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-baseplate-1',
+        },
+      ],
+    }
+
+    ;({ container, root } = await renderBrowserPanel())
+
+    expect(findRowMainByLabel('Pedal Component')).not.toBeNull()
+    expect(findRowMainByLabel('Pedal Body')).not.toBeNull()
+
+    await click(findButtonByLabel('Collapse Assembly Root children')!)
+
+    expect(findRowMainByLabel('Pedal Component')).toBeNull()
+    expect(findRowMainByLabel('Pedal Body')).toBeNull()
+    expect(container?.textContent).toContain('Assembly Root')
+  })
+
+  it('lets a component row collapse and hide its object children', async () => {
+    currentAppState = {
+      ...currentAppState,
+      projectContentRows: [
+        {
+          rowId: 'assembly-root:project-file-1',
+          kind: 'assembly',
+          label: 'Assembly Root',
+          meta: '1 Component',
+        },
+        {
+          rowId: 'project-component:project-file-1:graph-document-1:published',
+          kind: 'component',
+          label: 'Pedal Component',
+          meta: '1 Object',
+          ownerGraphDocumentId: 'graph-document-1',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry:slot-baseplate:node-baseplate-1',
+          componentSourceKind: 'published-component',
+          resolutionState: 'resolved',
+          receiveId: null,
+          childObjectCount: 1,
+          slotId: 'slot-baseplate',
+          sourceNodeId: 'node-baseplate-1',
+          highlightViewerKey: 'slot-baseplate',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-baseplate-1',
+        },
+        {
+          rowId: 'project-object:project-file-1:graph-document-1:pedal-body',
+          kind: 'object',
+          label: 'Pedal Body',
+          meta: '',
+          parentComponentId: 'project-component:project-file-1:graph-document-1:published',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry:slot-baseplate:node-baseplate-1',
+          slotId: 'slot-baseplate',
+          sourceNodeId: 'node-baseplate-1',
+          resolutionState: 'resolved',
+          highlightViewerKey: 'slot-baseplate',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-baseplate-1',
+        },
+      ],
+    }
+
+    ;({ container, root } = await renderBrowserPanel())
+
+    expect(findRowMainByLabel('Pedal Body')).not.toBeNull()
+
+    await click(findButtonByLabel('Collapse Pedal Component children')!)
+
+    expect(findRowMainByLabel('Pedal Body')).toBeNull()
+    expect(findRowMainByLabel('Pedal Component')).not.toBeNull()
+    expect(container?.textContent).toContain('Assembly Root')
+  })
+
+  it('single-clicking a component row becomes selection-only when shared composition is active', async () => {
+    currentSpaghettiState = {
+      ...currentSpaghettiState,
+      sharedViewerComposition: {
+        compositionId: 'shared-1',
+        graphDocumentIds: ['graph-document-1'],
+      },
+      sharedViewerCompositionGraphDocumentIds: ['graph-document-1'],
+    }
+    currentAppState = {
+      ...currentAppState,
+      projectContentRows: [
+        {
+          rowId: 'assembly-root:project-file-1',
+          kind: 'assembly',
+          label: 'Assembly Root',
+          meta: '1 Component',
+        },
+        {
+          rowId: 'project-component:project-file-1:graph-document-1:published',
+          kind: 'component',
+          label: 'Pedal Component',
+          meta: '1 Object',
+          ownerGraphDocumentId: 'graph-document-1',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry:slot-baseplate:node-baseplate-1',
+          componentSourceKind: 'published-component',
+          resolutionState: 'resolved',
+          receiveId: null,
+          childObjectCount: 1,
+          slotId: 'slot-baseplate',
+          sourceNodeId: 'node-baseplate-1',
+          highlightViewerKey: 'slot-baseplate',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-baseplate-1',
+        },
+      ],
+    }
+
+    ;({ root } = await renderBrowserPanel())
+
+    const componentRow = findRowMainByLabel('Pedal Component')
+    expect(componentRow).not.toBeNull()
+
+    await click(componentRow!)
+
+    expect(currentAppState.selectPart).not.toHaveBeenCalled()
+    expect(componentRow?.getAttribute('aria-pressed')).toBe('true')
+  })
+
+  it('double-clicking a component row opens the source graph and focuses the source node', async () => {
+    currentSpaghettiState = {
+      ...currentSpaghettiState,
+      activeEditorViewportId: '',
+      editorViewportsById: {},
+      editorViewportOrder: [],
+      openGraphDocumentInViewport: vi.fn(() => 'editor-viewport-2'),
+    }
+    currentAppState = {
+      ...currentAppState,
+      projectContentRows: [
+        {
+          rowId: 'assembly-root:project-file-1',
+          kind: 'assembly',
+          label: 'Assembly Root',
+          meta: '1 Component',
+        },
+        {
+          rowId: 'project-component:project-file-1:graph-document-1:published',
+          kind: 'component',
+          label: 'Pedal Component',
+          meta: '1 Object',
+          ownerGraphDocumentId: 'graph-document-1',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry:slot-baseplate:node-baseplate-1',
+          componentSourceKind: 'published-component',
+          resolutionState: 'resolved',
+          receiveId: null,
+          childObjectCount: 1,
+          slotId: 'slot-baseplate',
+          sourceNodeId: 'node-baseplate-1',
+          highlightViewerKey: 'slot-baseplate',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-baseplate-1',
+        },
+      ],
+    }
+
+    ;({ root } = await renderBrowserPanel({
+      newEditorSpawnPosition: { x: 405, y: 16 },
+    }))
+
+    const componentRow = findRowMainByLabel('Pedal Component')
+    expect(componentRow).not.toBeNull()
+
+    await doubleClick(componentRow!)
+
+    expect(currentSpaghettiState.openGraphDocumentInViewport).toHaveBeenCalledWith('graph-document-1')
+    expect(currentSpaghettiState.setEditorViewportPosition).toHaveBeenCalledWith('editor-viewport-2', {
+      x: 405,
+      y: 16,
+    })
+    expect(currentSpaghettiState.setSelectedNodeId).toHaveBeenCalledWith('node-baseplate-1')
+    expect(currentAppState.setInputMode).toHaveBeenCalledWith('spaghetti')
+  })
+
+  it('double-clicking a component row without a source node opens the source graph only', async () => {
+    currentSpaghettiState = {
+      ...currentSpaghettiState,
+      activeEditorViewportId: '',
+      editorViewportsById: {},
+      editorViewportOrder: [],
+      openGraphDocumentInViewport: vi.fn(() => 'editor-viewport-2'),
+    }
+    currentAppState = {
+      ...currentAppState,
+      projectContentRows: [
+        {
+          rowId: 'assembly-root:project-file-1',
+          kind: 'assembly',
+          label: 'Assembly Root',
+          meta: '1 Component',
+        },
+        {
+          rowId: 'project-component:project-file-1:receive:graph-document-1:receive-1',
+          kind: 'component',
+          label: 'slot-missing',
+          meta: 'Graph 1 unresolved',
+          ownerGraphDocumentId: 'graph-document-1',
+          sourceGraphDocumentId: 'graph-document-2',
+          sourceOutputEntryId: 'output-entry:slot-missing:node-missing-1',
+          componentSourceKind: 'receive-link',
+          resolutionState: 'unresolved',
+          receiveId: 'receive-1',
+          childObjectCount: 0,
+          slotId: null,
+          sourceNodeId: null,
+          highlightViewerKey: null,
+          authoringGraphDocumentId: 'graph-document-2',
+          authoringNodeId: null,
+        },
+      ],
+    }
+
+    ;({ root } = await renderBrowserPanel({
+      newEditorSpawnPosition: { x: 405, y: 16 },
+    }))
+
+    const componentRow = findRowMainByLabel('slot-missing')
+    expect(componentRow).not.toBeNull()
+
+    await doubleClick(componentRow!)
+
+    expect(currentSpaghettiState.openGraphDocumentInViewport).toHaveBeenCalledWith('graph-document-2')
+    expect(currentSpaghettiState.setSelectedNodeId).not.toHaveBeenCalled()
+  })
+
+  it('single-clicking an object row selects it and highlights the viewport target when shared composition is inactive', async () => {
+    currentAppState = {
+      ...currentAppState,
+      projectContentRows: [
+        {
+          rowId: 'assembly-root:project-file-1',
+          kind: 'assembly',
+          label: 'Assembly Root',
+          meta: '1 Component',
+        },
+        {
+          rowId: 'project-component:project-file-1:graph-document-1:published',
+          kind: 'component',
+          label: 'Pedal Component',
+          meta: '1 Object',
+          ownerGraphDocumentId: 'graph-document-1',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry:slot-baseplate:node-baseplate-1',
+          componentSourceKind: 'published-component',
+          resolutionState: 'resolved',
+          receiveId: null,
+          childObjectCount: 1,
+          slotId: 'slot-baseplate',
+          sourceNodeId: 'node-baseplate-1',
+          highlightViewerKey: 'slot-baseplate',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-baseplate-1',
+        },
+        {
+          rowId: 'project-object:project-file-1:graph-document-1:pedal-body',
+          kind: 'object',
+          label: 'Pedal Body',
+          meta: 'Graph 1',
+          parentComponentId: 'project-component:project-file-1:graph-document-1:published',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry:slot-baseplate:node-baseplate-1',
+          slotId: 'slot-baseplate',
+          sourceNodeId: 'node-baseplate-1',
+          resolutionState: 'resolved',
+          highlightViewerKey: 'slot-baseplate',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-baseplate-1',
+        },
+      ],
+    }
+
+    ;({ root } = await renderBrowserPanel())
+
+    const objectRow = findRowMainByLabel('Pedal Body')
+    expect(objectRow).not.toBeNull()
+
+    await click(objectRow!)
+
+    expect(currentAppState.selectPart).toHaveBeenCalledWith('slot-baseplate')
+    expect(currentSpaghettiState.swapFocusedEditorViewportToGraphDocument).not.toHaveBeenCalled()
+    expect(objectRow?.getAttribute('aria-pressed')).toBe('true')
+  })
+
+  it('double-clicking an object row opens the source graph and focuses the source node', async () => {
+    currentSpaghettiState = {
+      ...currentSpaghettiState,
+      activeEditorViewportId: '',
+      editorViewportsById: {},
+      editorViewportOrder: [],
+      openGraphDocumentInViewport: vi.fn(() => 'editor-viewport-2'),
+    }
+    currentAppState = {
+      ...currentAppState,
+      projectContentRows: [
+        {
+          rowId: 'assembly-root:project-file-1',
+          kind: 'assembly',
+          label: 'Assembly Root',
+          meta: '1 Component',
+        },
+        {
+          rowId: 'project-component:project-file-1:graph-document-1:published',
+          kind: 'component',
+          label: 'Pedal Component',
+          meta: '1 Object',
+          ownerGraphDocumentId: 'graph-document-1',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry:slot-baseplate:node-baseplate-1',
+          componentSourceKind: 'published-component',
+          resolutionState: 'resolved',
+          receiveId: null,
+          childObjectCount: 1,
+          slotId: 'slot-baseplate',
+          sourceNodeId: 'node-baseplate-1',
+          highlightViewerKey: 'slot-baseplate',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-baseplate-1',
+        },
+        {
+          rowId: 'project-object:project-file-1:graph-document-1:pedal-body',
+          kind: 'object',
+          label: 'Pedal Body',
+          meta: 'Graph 1',
+          parentComponentId: 'project-component:project-file-1:graph-document-1:published',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry:slot-baseplate:node-baseplate-1',
+          slotId: 'slot-baseplate',
+          sourceNodeId: 'node-baseplate-1',
+          resolutionState: 'resolved',
+          highlightViewerKey: 'slot-baseplate',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-baseplate-1',
+        },
+      ],
+    }
+
+    ;({ root } = await renderBrowserPanel({
+      newEditorSpawnPosition: { x: 405, y: 16 },
+    }))
+
+    const objectRow = findRowMainByLabel('Pedal Body')
+    expect(objectRow).not.toBeNull()
+
+    await doubleClick(objectRow!)
+
+    expect(currentSpaghettiState.openGraphDocumentInViewport).toHaveBeenCalledWith('graph-document-1')
+    expect(currentSpaghettiState.setEditorViewportPosition).toHaveBeenCalledWith('editor-viewport-2', {
+      x: 405,
+      y: 16,
+    })
+    expect(currentSpaghettiState.setSelectedNodeId).toHaveBeenCalledWith('node-baseplate-1')
+    expect(currentAppState.setInputMode).toHaveBeenCalledWith('spaghetti')
+  })
+
+  it('single-clicking a published output row highlights it and double click focuses its source graph node', async () => {
+    currentSpaghettiState = {
+      ...currentSpaghettiState,
+      activeEditorViewportId: '',
+      editorViewportsById: {},
+      editorViewportOrder: [],
+      openGraphDocumentInViewport: vi.fn(() => 'editor-viewport-2'),
+      graphRuntimeByDocumentId: {
+        'graph-document-1': {
+          outputSurface: {
+            graphDocumentId: 'graph-document-1',
+            publishedAtBuildSeq: 7,
+            surfaceVersion: 1,
+            entries: [
+              {
+                outputEntryId: 'output-entry:slot-baseplate:node-baseplate-1',
+                slotId: 'slot-baseplate',
+                sourceNodeId: 'node-baseplate-1',
+                label: 'slot-baseplate',
+                state: 'resolved',
+                acceptedArtifactKey: 'baseplate',
+              },
+            ],
+          },
+        },
+      },
+    }
+
+    ;({ root } = await renderBrowserPanel({
+      newEditorSpawnPosition: { x: 405, y: 16 },
+    }))
+
+    await click(findButtonByLabel('Expand Graph 1 published outputs')!)
+
+    const outputRow = findRowMainByLabel('Resolved | baseplate | Build 7')
+    expect(outputRow).not.toBeNull()
+
+    await click(outputRow!)
+    expect(currentAppState.selectPart).toHaveBeenCalledWith('slot-baseplate')
+
+    await doubleClick(outputRow!)
+    expect(currentSpaghettiState.openGraphDocumentInViewport).toHaveBeenCalledWith('graph-document-1')
+    expect(currentSpaghettiState.setSelectedNodeId).toHaveBeenCalledWith('node-baseplate-1')
   })
 })

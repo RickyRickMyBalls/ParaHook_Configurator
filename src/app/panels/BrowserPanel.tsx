@@ -70,7 +70,8 @@ function BrowserTreeRowShell(props: {
   isOverflowMenuOpen: boolean
   isSaveMenuOpen: boolean
   onSelect: (row: BrowserRenderableRowVm) => void
-  onToggleExpand?: (graphDocumentId: string) => void
+  onDoubleSelect?: (row: BrowserRenderableRowVm) => void
+  onToggleExpand?: (row: BrowserRenderableRowVm) => void
   onCycleGraphBuildPolicy?: (graphDocumentId: string) => void
   onContextMenu: (
     row: BrowserRenderableRowVm,
@@ -93,6 +94,7 @@ function BrowserTreeRowShell(props: {
     onCloseViewportRow,
     onContextMenu,
     onCycleGraphBuildPolicy,
+    onDoubleSelect,
     onOpenMenu,
     onOpenSaveMenu,
     onSelect,
@@ -117,17 +119,22 @@ function BrowserTreeRowShell(props: {
     <div
       className={rowClassName}
       onContextMenu={(event) => onContextMenu(row, event)}
+      style={{ marginLeft: `${row.depth * 16}px` }}
     >
       <div className="BrowserTreeRowLead">
-        {isGraphRow ? (
+        {row.isExpandable ? (
           <button
             type="button"
             className="BrowserTreeRowExpand"
-            onClick={() => onToggleExpand?.(row.graphDocumentId)}
+            onClick={() => onToggleExpand?.(row)}
             aria-label={
-              row.isExpanded
-                ? `Collapse ${row.label} published outputs`
-                : `Expand ${row.label} published outputs`
+              isGraphRow
+                ? row.isExpanded
+                  ? `Collapse ${row.label} published outputs`
+                  : `Expand ${row.label} published outputs`
+                : row.isExpanded
+                  ? `Collapse ${row.label} children`
+                  : `Expand ${row.label} children`
             }
           >
             {row.isExpanded ? '-' : '+'}
@@ -162,6 +169,10 @@ function BrowserTreeRowShell(props: {
         type="button"
         className={`BrowserTreeRowMain ${graphRow !== null ? 'isGraphRow' : ''}`}
         onClick={() => onSelect(row)}
+        onDoubleClick={() => {
+          onSelect(row)
+          onDoubleSelect?.(row)
+        }}
         aria-pressed={row.isSelected}
       >
         <span className="BrowserTreeRowLabel">{row.label}</span>
@@ -290,6 +301,7 @@ export function BrowserPanel({
   const setViewerTargetGraphDocumentId = useSpaghettiStore(
     (state) => state.setViewerTargetGraphDocumentId,
   )
+  const setSelectedNodeId = useSpaghettiStore((state) => state.setSelectedNodeId)
   const sharedViewerComposition = useSpaghettiStore(selectSharedViewerComposition)
   const sharedViewerCompositionGraphDocumentIds = useSpaghettiStore(
     selectSharedViewerCompositionGraphDocumentIds,
@@ -298,7 +310,9 @@ export function BrowserPanel({
   const projectContent = useAppStore((state) => state.projectContent)
   const defaultBuildPolicy = useAppStore((state) => state.buildPolicy)
   const setInputMode = useAppStore((state) => state.setInputMode)
+  const selectPart = useAppStore((state) => state.selectPart)
   const [expandedGraphDocumentIds, setExpandedGraphDocumentIds] = useState<string[]>([])
+  const [collapsedContentRowIds, setCollapsedContentRowIds] = useState<string[]>([])
   const [selectedBrowserRowId, setSelectedBrowserRowId] = useState<string | null>(null)
   const [contextMenu, setContextMenu] = useState<BrowserContextMenuState | null>(null)
   const [localIsBrowserCollapsed, setLocalIsBrowserCollapsed] = useState(false)
@@ -309,8 +323,13 @@ export function BrowserPanel({
   const isBrowserCollapsed = controlledIsCollapsed ?? localIsBrowserCollapsed
 
   const projectContentRows = useMemo(
-    () => selectCurrentProjectContentBrowserRows({ currentProject, projectContent }),
-    [currentProject, projectContent],
+    () =>
+      selectCurrentProjectContentBrowserRows({
+        currentProject,
+        projectContent,
+        graphRuntimeByDocumentId,
+      }),
+    [currentProject, graphRuntimeByDocumentId, projectContent],
   )
 
   const editorViewports = useMemo(
@@ -364,10 +383,12 @@ export function BrowserPanel({
   const browserTreeRows = useMemo(
     () =>
       selectBrowserTreeRows({
+        contentRows: projectContentRows,
         graphRows,
         editorViewports,
         graphDocumentsById,
         selectedRowId: selectedBrowserRowId,
+        collapsedContentRowIds,
         expandedGraphDocumentIds,
         hasActiveEditorViewport: activeEditorViewportId.length > 0,
         sharedViewerCompositionGraphDocumentIds,
@@ -375,10 +396,12 @@ export function BrowserPanel({
       }),
     [
       activeEditorViewportId,
+      collapsedContentRowIds,
       editorViewports,
       expandedGraphDocumentIds,
       graphDocumentsById,
       graphRows,
+      projectContentRows,
       selectedBrowserRowId,
       sharedViewerComposition,
       sharedViewerCompositionGraphDocumentIds,
@@ -482,6 +505,15 @@ export function BrowserPanel({
       return
     }
     if (row.rowKind !== 'graph-document') {
+      if (
+        (row.rowKind === 'component' ||
+          row.rowKind === 'object' ||
+          row.rowKind === 'published-output') &&
+        sharedViewerComposition === null &&
+        row.highlightViewerKey !== null
+      ) {
+        selectPart(row.highlightViewerKey)
+      }
       return
     }
     let editorViewportId: string | null = null
@@ -498,6 +530,23 @@ export function BrowserPanel({
     }
   }
 
+  const handleDoubleSelectBrowserRow = (row: BrowserRenderableRowVm) => {
+    if (
+      row.rowKind !== 'component' &&
+      row.rowKind !== 'object' &&
+      row.rowKind !== 'published-output'
+    ) {
+      return
+    }
+    if (row.authoringGraphDocumentId === null) {
+      return
+    }
+    handleOpenOrFocusGraph(row.authoringGraphDocumentId)
+    if (row.authoringNodeId !== null) {
+      setSelectedNodeId(row.authoringNodeId)
+    }
+  }
+
   const toggleGraphExpanded = (graphDocumentId: string) => {
     setContextMenu(null)
     setExpandedGraphDocumentIds((currentIds) =>
@@ -505,6 +554,25 @@ export function BrowserPanel({
         ? currentIds.filter((currentId) => currentId !== graphDocumentId)
         : [...currentIds, graphDocumentId],
     )
+  }
+
+  const toggleContentRowExpanded = (rowId: string) => {
+    setContextMenu(null)
+    setCollapsedContentRowIds((currentIds) =>
+      currentIds.includes(rowId)
+        ? currentIds.filter((currentId) => currentId !== rowId)
+        : [...currentIds, rowId],
+    )
+  }
+
+  const handleToggleBrowserRowExpand = (row: BrowserRenderableRowVm) => {
+    if (row.rowKind === 'graph-document') {
+      toggleGraphExpanded(row.graphDocumentId)
+      return
+    }
+    if (row.rowKind === 'assembly' || row.rowKind === 'component') {
+      toggleContentRowExpanded(row.rowId)
+    }
   }
 
   const handleCreateGraph = () => {
@@ -720,28 +788,30 @@ export function BrowserPanel({
                 <details open className="BrowserTreeSection">
                   <summary className="BrowserTreeSummary">Content</summary>
                   <div className="BrowserTreeGroup">
-                    {projectContentRows.length === 0 ? (
+                    {browserTreeRows.contentRows.length === 0 ? (
                       <div className="BrowserTreeEmpty">No project content.</div>
                     ) : (
                       <>
-                        <div className="BrowserTreeRow">
-                          <div className="BrowserTreeRowMain">
-                            <span className="BrowserTreeRowLabel">{projectContentRows[0].label}</span>
-                            <span className="BrowserTreeRowMeta">{projectContentRows[0].meta}</span>
-                          </div>
-                        </div>
-                        {projectContentRows.length === 1 ? (
-                          <div className="BrowserTreeEmpty">No resolved components.</div>
-                        ) : (
-                          projectContentRows.slice(1).map((row) => (
-                            <div key={row.rowId} className="BrowserTreeRow">
-                              <div className="BrowserTreeRowMain">
-                                <span className="BrowserTreeRowLabel">{row.label}</span>
-                                <span className="BrowserTreeRowMeta">{row.meta}</span>
-                              </div>
-                            </div>
-                          ))
-                        )}
+                        {browserTreeRows.contentRows.map((row) => (
+                          <BrowserTreeRowShell
+                            key={row.rowId}
+                            row={row}
+                            graphBuildPolicy={null}
+                            isOverflowMenuOpen={false}
+                            isSaveMenuOpen={false}
+                            onSelect={handleSelectBrowserRow}
+                            onDoubleSelect={handleDoubleSelectBrowserRow}
+                            onToggleExpand={handleToggleBrowserRowExpand}
+                            onContextMenu={handleRowContextMenu}
+                            onOpenMenu={handleRowOverflowMenu}
+                            onCloseViewportRow={closeEditorViewport}
+                          />
+                        ))}
+                        {browserTreeRows.contentRows.length === 1 &&
+                        browserTreeRows.contentRows[0]?.rowKind === 'assembly' &&
+                        !browserTreeRows.contentRows[0].isExpandable ? (
+                          <div className="BrowserTreeEmpty">No published content.</div>
+                        ) : null}
                       </>
                     )}
                   </div>
@@ -803,7 +873,8 @@ export function BrowserPanel({
                                 contextMenu.source === 'save-button'
                               }
                               onSelect={handleSelectBrowserRow}
-                              onToggleExpand={toggleGraphExpanded}
+                              onDoubleSelect={handleDoubleSelectBrowserRow}
+                              onToggleExpand={handleToggleBrowserRowExpand}
                               onCycleGraphBuildPolicy={handleCycleGraphBuildPolicy}
                               onContextMenu={handleRowContextMenu}
                               onOpenMenu={handleRowOverflowMenu}
@@ -826,6 +897,7 @@ export function BrowserPanel({
                                       }
                                       isSaveMenuOpen={false}
                                       onSelect={handleSelectBrowserRow}
+                                      onDoubleSelect={handleDoubleSelectBrowserRow}
                                       onContextMenu={handleRowContextMenu}
                                       onOpenMenu={handleRowOverflowMenu}
                                       onCloseViewportRow={closeEditorViewport}
@@ -879,6 +951,7 @@ export function BrowserPanel({
                           }
                           isSaveMenuOpen={false}
                           onSelect={handleSelectBrowserRow}
+                          onDoubleSelect={handleDoubleSelectBrowserRow}
                           onContextMenu={handleRowContextMenu}
                           onOpenMenu={handleRowOverflowMenu}
                           onCloseViewportRow={closeEditorViewport}

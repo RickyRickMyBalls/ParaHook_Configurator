@@ -215,21 +215,23 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
 
     expect(selectCurrentProjectRootAssembly(useAppStore.getState())).toMatchObject({
       assemblyId: 'assembly-root:project-file-1',
-      childComponentIds: [
-        'project-component:project-file-1:graph-document-1:output-entry:slot-baseplate:node-baseplate-1',
-      ],
+      childComponentIds: ['project-component:project-file-1:graph-document-1:published'],
     })
     expect(selectCurrentProjectRootComponents(useAppStore.getState())).toEqual([
       {
-        componentId:
-          'project-component:project-file-1:graph-document-1:output-entry:slot-baseplate:node-baseplate-1',
+        componentId: 'project-component:project-file-1:graph-document-1:published',
         ownerGraphDocumentId: 'graph-document-1',
         sourceGraphDocumentId: 'graph-document-1',
-        sourceOutputEntryId: 'output-entry:slot-baseplate:node-baseplate-1',
-        label: 'slot-baseplate',
-        componentSourceKind: 'published-output',
+        sourceOutputEntryId: null,
+        sourceNodeId: null,
+        label: 'Published Component',
+        componentSourceKind: 'published-component',
         resolutionState: 'resolved',
         receiveId: null,
+        childObjectIds: [
+          'project-object:project-file-1:graph-document-1:output-object:slot-baseplate',
+          'project-object:project-file-1:graph-document-1:output-object:slot-toe-hook',
+        ],
       },
     ])
 
@@ -238,15 +240,19 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
 
     expect(selectCurrentProjectRootComponents(useAppStore.getState())).toEqual([
       {
-        componentId:
-          'project-component:project-file-1:graph-document-1:output-entry:slot-baseplate:node-baseplate-1',
+        componentId: 'project-component:project-file-1:graph-document-1:published',
         ownerGraphDocumentId: 'graph-document-1',
         sourceGraphDocumentId: 'graph-document-1',
-        sourceOutputEntryId: 'output-entry:slot-baseplate:node-baseplate-1',
-        label: 'slot-baseplate',
-        componentSourceKind: 'published-output',
+        sourceOutputEntryId: null,
+        sourceNodeId: null,
+        label: 'Published Component',
+        componentSourceKind: 'published-component',
         resolutionState: 'resolved',
         receiveId: null,
+        childObjectIds: [
+          'project-object:project-file-1:graph-document-1:output-object:slot-baseplate',
+          'project-object:project-file-1:graph-document-1:output-object:slot-toe-hook',
+        ],
       },
     ])
   })
@@ -293,45 +299,82 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     }))
 
     expect(selectCurrentProjectRootComponents(useAppStore.getState())).toEqual([
-      expect.objectContaining({
+      {
+        componentId: 'project-component:project-file-1:graph-document-1:published',
         ownerGraphDocumentId: 'graph-document-1',
         sourceGraphDocumentId: 'graph-document-1',
-        sourceOutputEntryId: 'output-entry:slot-baseplate:node-baseplate-1',
-        label: 'slot-baseplate',
-        componentSourceKind: 'published-output',
+        sourceOutputEntryId: null,
+        sourceNodeId: null,
+        label: 'Published Component',
+        componentSourceKind: 'published-component',
         resolutionState: 'resolved',
         receiveId: null,
-      }),
-      expect.objectContaining({
-        ownerGraphDocumentId: 'graph-document-1',
-        sourceGraphDocumentId: 'graph-document-1',
-        sourceOutputEntryId: 'output-entry:slot-toe-hook:node-toehook-1',
-        label: 'slot-toe-hook',
-        componentSourceKind: 'published-output',
-        resolutionState: 'resolved',
-        receiveId: null,
-      }),
+        childObjectIds: [
+          'project-object:project-file-1:graph-document-1:output-object:slot-baseplate',
+          'project-object:project-file-1:graph-document-1:output-object:slot-toe-hook',
+        ],
+      },
     ])
-    expect(selectCurrentProjectContentBrowserRows(useAppStore.getState())).toEqual([
+    expect(
+      selectCurrentProjectContentBrowserRows({
+        currentProject: useAppStore.getState().currentProject,
+        projectContent: useAppStore.getState().projectContent,
+        graphRuntimeByDocumentId: useSpaghettiStore.getState().graphRuntimeByDocumentId,
+      }),
+    ).toEqual([
       {
         rowId: 'assembly-root:project-file-1',
         kind: 'assembly',
         label: 'Assembly Root',
-        meta: '2 Components',
+        meta: '1 Component',
       },
       {
-        rowId:
-          'project-component:project-file-1:graph-document-1:output-entry:slot-baseplate:node-baseplate-1',
+        rowId: 'project-component:project-file-1:graph-document-1:published',
         kind: 'component',
+        label: 'Published Component',
+        meta: '2 Objects',
+        ownerGraphDocumentId: 'graph-document-1',
+        sourceGraphDocumentId: 'graph-document-1',
+        sourceOutputEntryId: null,
+        componentSourceKind: 'published-component',
+        resolutionState: 'resolved',
+        receiveId: null,
+        childObjectCount: 2,
+        slotId: null,
+        sourceNodeId: null,
+        highlightViewerKey: null,
+        authoringGraphDocumentId: 'graph-document-1',
+        authoringNodeId: null,
+      },
+      {
+        rowId: 'project-object:project-file-1:graph-document-1:output-object:slot-baseplate',
+        kind: 'object',
         label: 'slot-baseplate',
-        meta: 'Graph 1',
+        meta: '',
+        parentComponentId: 'project-component:project-file-1:graph-document-1:published',
+        sourceGraphDocumentId: 'graph-document-1',
+        sourceOutputEntryId: 'output-entry:slot-baseplate:node-baseplate-1',
+        slotId: 'slot-baseplate',
+        sourceNodeId: 'node-baseplate-1',
+        resolutionState: 'resolved',
+        highlightViewerKey: 'slot-baseplate',
+        authoringGraphDocumentId: 'graph-document-1',
+        authoringNodeId: 'node-baseplate-1',
       },
       {
-        rowId:
-          'project-component:project-file-1:graph-document-1:output-entry:slot-toe-hook:node-toehook-1',
-        kind: 'component',
+        rowId: 'project-object:project-file-1:graph-document-1:output-object:slot-toe-hook',
+        kind: 'object',
         label: 'slot-toe-hook',
-        meta: 'Graph 1',
+        meta: '',
+        parentComponentId: 'project-component:project-file-1:graph-document-1:published',
+        sourceGraphDocumentId: 'graph-document-1',
+        sourceOutputEntryId: 'output-entry:slot-toe-hook:node-toehook-1',
+        slotId: 'slot-toe-hook',
+        sourceNodeId: 'node-toehook-1',
+        resolutionState: 'resolved',
+        highlightViewerKey: 'slot-toe-hook',
+        authoringGraphDocumentId: 'graph-document-1',
+        authoringNodeId: 'node-toehook-1',
       },
     ])
   })
@@ -390,34 +433,45 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
 
     expect(selectCurrentProjectRootAssembly(useAppStore.getState())).toMatchObject({
       childComponentIds: expect.arrayContaining([
-        `project-component:project-file-1:${secondGraphId}:output-entry:slot-linked:node-baseplate-2`,
         'project-component:project-file-1:receive:graph-document-1:receive-1',
+        `project-component:project-file-1:${secondGraphId}:published`,
       ]),
     })
     expect(selectCurrentProjectRootComponents(useAppStore.getState())).toEqual(
       expect.arrayContaining([
-      expect.objectContaining({
-        ownerGraphDocumentId: secondGraphId,
-        sourceGraphDocumentId: secondGraphId,
-        sourceOutputEntryId: 'output-entry:slot-linked:node-baseplate-2',
-        label: 'slot-linked',
-        componentSourceKind: 'published-output',
-        resolutionState: 'resolved',
-        receiveId: null,
-      }),
-      expect.objectContaining({
-        componentId: 'project-component:project-file-1:receive:graph-document-1:receive-1',
-        ownerGraphDocumentId: 'graph-document-1',
-        sourceGraphDocumentId: secondGraphId,
-        sourceOutputEntryId: 'output-entry:slot-linked:node-baseplate-2',
-        label: 'slot-linked',
-        componentSourceKind: 'receive-link',
-        resolutionState: 'resolved',
-        receiveId: 'receive-1',
-      }),
+        expect.objectContaining({
+          componentId: `project-component:project-file-1:${secondGraphId}:published`,
+          ownerGraphDocumentId: secondGraphId,
+          sourceGraphDocumentId: secondGraphId,
+          sourceOutputEntryId: 'output-entry:slot-linked:node-baseplate-2',
+          sourceNodeId: 'node-baseplate-2',
+          label: 'Published Component',
+          componentSourceKind: 'published-component',
+          resolutionState: 'resolved',
+          receiveId: null,
+          childObjectIds: [`project-object:project-file-1:${secondGraphId}:output-object:slot-linked`],
+        }),
+        expect.objectContaining({
+          componentId: 'project-component:project-file-1:receive:graph-document-1:receive-1',
+          ownerGraphDocumentId: 'graph-document-1',
+          sourceGraphDocumentId: secondGraphId,
+          sourceOutputEntryId: 'output-entry:slot-linked:node-baseplate-2',
+          sourceNodeId: 'node-baseplate-2',
+          label: 'slot-linked',
+          componentSourceKind: 'receive-link',
+          resolutionState: 'resolved',
+          receiveId: 'receive-1',
+          childObjectIds: [],
+        }),
       ]),
     )
-    expect(selectCurrentProjectContentBrowserRows(useAppStore.getState())).toEqual(
+    expect(
+      selectCurrentProjectContentBrowserRows({
+        currentProject: useAppStore.getState().currentProject,
+        projectContent: useAppStore.getState().projectContent,
+        graphRuntimeByDocumentId: useSpaghettiStore.getState().graphRuntimeByDocumentId,
+      }),
+    ).toEqual(
       expect.arrayContaining([
         {
           rowId: 'assembly-root:project-file-1',
@@ -426,16 +480,55 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
           meta: '2 Components',
         },
         {
-          rowId: `project-component:project-file-1:${secondGraphId}:output-entry:slot-linked:node-baseplate-2`,
+          rowId: `project-component:project-file-1:${secondGraphId}:published`,
           kind: 'component',
+          label: 'Published Component',
+          meta: '1 Object',
+          ownerGraphDocumentId: secondGraphId,
+          sourceGraphDocumentId: secondGraphId,
+          sourceOutputEntryId: 'output-entry:slot-linked:node-baseplate-2',
+          componentSourceKind: 'published-component',
+          resolutionState: 'resolved',
+          receiveId: null,
+          childObjectCount: 1,
+          slotId: 'slot-linked',
+          sourceNodeId: 'node-baseplate-2',
+          highlightViewerKey: 'slot-linked',
+          authoringGraphDocumentId: secondGraphId,
+          authoringNodeId: 'node-baseplate-2',
+        },
+        {
+          rowId: `project-object:project-file-1:${secondGraphId}:output-object:slot-linked`,
+          kind: 'object',
           label: 'slot-linked',
-          meta: 'Graph 2',
+          meta: '',
+          parentComponentId: `project-component:project-file-1:${secondGraphId}:published`,
+          sourceGraphDocumentId: secondGraphId,
+          sourceOutputEntryId: 'output-entry:slot-linked:node-baseplate-2',
+          slotId: 'slot-linked',
+          sourceNodeId: 'node-baseplate-2',
+          resolutionState: 'resolved',
+          highlightViewerKey: 'slot-linked',
+          authoringGraphDocumentId: secondGraphId,
+          authoringNodeId: 'node-baseplate-2',
         },
         {
           rowId: 'project-component:project-file-1:receive:graph-document-1:receive-1',
           kind: 'component',
           label: 'slot-linked',
-          meta: 'Graph 1 <- Graph 2',
+          meta: 'Linked Component',
+          ownerGraphDocumentId: 'graph-document-1',
+          sourceGraphDocumentId: secondGraphId,
+          sourceOutputEntryId: 'output-entry:slot-linked:node-baseplate-2',
+          componentSourceKind: 'receive-link',
+          resolutionState: 'resolved',
+          receiveId: 'receive-1',
+          childObjectCount: 0,
+          slotId: 'slot-linked',
+          sourceNodeId: 'node-baseplate-2',
+          highlightViewerKey: 'slot-linked',
+          authoringGraphDocumentId: secondGraphId,
+          authoringNodeId: 'node-baseplate-2',
         },
       ]),
     )
@@ -467,32 +560,56 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
       sourceOutputEntryId: 'output-entry:slot-missing:node-missing-1',
     })
 
-    expect(selectCurrentProjectRootComponents(useAppStore.getState())).toEqual([
-      expect.objectContaining({
-        componentId: 'project-component:project-file-1:receive:graph-document-1:receive-1',
-        ownerGraphDocumentId: 'graph-document-1',
-        sourceGraphDocumentId: secondGraphId,
-        sourceOutputEntryId: 'output-entry:slot-missing:node-missing-1',
-        label: 'output-entry:slot-missing:node-missing-1',
-        componentSourceKind: 'receive-link',
-        resolutionState: 'unresolved',
-        receiveId: 'receive-1',
+    expect(selectCurrentProjectRootComponents(useAppStore.getState())).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          componentId: 'project-component:project-file-1:receive:graph-document-1:receive-1',
+          ownerGraphDocumentId: 'graph-document-1',
+          sourceGraphDocumentId: secondGraphId,
+          sourceOutputEntryId: 'output-entry:slot-missing:node-missing-1',
+          sourceNodeId: null,
+          label: 'output-entry:slot-missing:node-missing-1',
+          componentSourceKind: 'receive-link',
+          resolutionState: 'unresolved',
+          receiveId: 'receive-1',
+          childObjectIds: [],
+        }),
+      ]),
+    )
+    expect(
+      selectCurrentProjectContentBrowserRows({
+        currentProject: useAppStore.getState().currentProject,
+        projectContent: useAppStore.getState().projectContent,
+        graphRuntimeByDocumentId: useSpaghettiStore.getState().graphRuntimeByDocumentId,
       }),
-    ])
-    expect(selectCurrentProjectContentBrowserRows(useAppStore.getState())).toEqual([
-      {
-        rowId: 'assembly-root:project-file-1',
-        kind: 'assembly',
-        label: 'Assembly Root',
-        meta: '1 Component',
-      },
-      {
-        rowId: 'project-component:project-file-1:receive:graph-document-1:receive-1',
-        kind: 'component',
-        label: 'output-entry:slot-missing:node-missing-1',
-        meta: 'Graph 1 unresolved',
-      },
-    ])
+    ).toEqual(
+      expect.arrayContaining([
+        {
+          rowId: 'assembly-root:project-file-1',
+          kind: 'assembly',
+          label: 'Assembly Root',
+          meta: '1 Component',
+        },
+        {
+          rowId: 'project-component:project-file-1:receive:graph-document-1:receive-1',
+          kind: 'component',
+          label: 'output-entry:slot-missing:node-missing-1',
+          meta: 'Unresolved Link',
+          ownerGraphDocumentId: 'graph-document-1',
+          sourceGraphDocumentId: secondGraphId,
+          sourceOutputEntryId: 'output-entry:slot-missing:node-missing-1',
+          componentSourceKind: 'receive-link',
+          resolutionState: 'unresolved',
+          receiveId: 'receive-1',
+          childObjectCount: 0,
+          slotId: null,
+          sourceNodeId: null,
+          highlightViewerKey: null,
+          authoringGraphDocumentId: secondGraphId,
+          authoringNodeId: null,
+        },
+      ]),
+    )
   })
 
   it('requestSpaghettiBuild forwards explicit graph routing identity into the canonical build path', async () => {

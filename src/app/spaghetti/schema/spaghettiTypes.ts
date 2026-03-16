@@ -52,7 +52,16 @@ export type OutputPreviewSlot = {
   slotId: string
 }
 
+export type OutputPreviewObject = {
+  objectId: string
+  label: string
+  slotId: string
+  orderIndex: number
+}
+
 export type OutputPreviewParams = {
+  componentLabel: string
+  objects: OutputPreviewObject[]
   slots: OutputPreviewSlot[]
   nextSlotIndex: number
 }

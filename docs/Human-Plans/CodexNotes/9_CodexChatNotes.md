@@ -963,7 +963,7 @@ Plain-English read:
 - meatball mode reads like its own editor surface instead of a relabeled spaghetti window
 - the toolbar/canvas boundary is still an active polish seam, but it is materially cleaner than the earlier mixed/bleeding state
 
-##### [ ] [134] 2026-03-12 18:39 - Add A Single Browser Pop-Out Mode As An In-App Floating Panel
+##### [x] [134] 2026-03-12 18:39 - Add A Single Browser Pop-Out Mode As An In-App Floating Panel
 
 Planning direction:
 
@@ -1027,7 +1027,7 @@ Roadmap read:
 - this belongs near the current workspace/shell lane around `[2.1]`
 - it should not be pushed all the way to detached-window work
 
-##### [ ] [135] 2026-03-12 22:16 - `Window Fill` Needs To Target All Non-Graph Spaghetti Chrome, Not Just The Title Bar
+##### [x] [135] 2026-03-12 22:16 - `Window Fill` Needs To Target All Non-Graph Spaghetti Chrome, Not Just The Title Bar
 
 Research finding:
 
@@ -1181,7 +1181,7 @@ Recommendation:
 - first stabilize the window-fill vs graph-content surface boundary
 - then do one dedicated naming cleanup pass before more shell-polish or appearance work is layered on top
 
-##### [ ] [137] 2026-03-12 22:36 - Add A Reusable Slider Clamp / Range System Starting From The `i` Menu
+##### [x] [137] 2026-03-12 22:36 - Add A Reusable Slider Clamp / Range System Starting From The `i` Menu
 
 Planning goal:
 
@@ -1277,7 +1277,7 @@ Recommendation:
 - do this as a small system pass, not as a one-off feature for the three opacity sliders only
 - start with the three opacity sliders, but define the API so later sliders can adopt it with minimal new logic
 
-##### [ ] [138] 2026-03-12 22:42 - Build A Reusable ParaHook Slider Template Before Adding Clamp Controls
+##### [x] [138] 2026-03-12 22:42 - Build A Reusable ParaHook Slider Template Before Adding Clamp Controls
 
 Planning goal:
 
@@ -1359,7 +1359,7 @@ Future likely adoption:
 - other editor/view sliders
 - future clamp-aware sliders elsewhere in the app
 
-[ ] [139] Add An `Edit Clamp` Mode To The New ParaHook Slider System
+##### [x] [139] Add An `Edit Clamp` Mode To The New ParaHook Slider System
 
 Planning goal:
 
@@ -1485,7 +1485,7 @@ Main caution:
   - the current value
   - or the allowed clamp range
 
-[ ] [140] Add A Collapsible Titlebar Action Cluster With Reveal Arrow
+##### [x] [140] Add A Collapsible Titlebar Action Cluster With Reveal Arrow
 
 Planning goal:
 
@@ -1538,7 +1538,7 @@ Why this is worth doing:
 - preserves access to advanced window controls without permanently occupying titlebar space
 - gives the Spaghetti titlebar a cleaner shell-language that can later spread to related surfaces if it works well
 
-[ ] [141] Constrain Spaghetti Split Mode To The Viewport And Add Internal Scroll When Compressed
+##### [x] [141] Constrain Spaghetti Split Mode To The Viewport And Add Internal Scroll When Compressed
 
 Planning goal:
 
@@ -1574,7 +1574,7 @@ Why this is worth doing:
 - avoids visual collisions with the surrounding toolbar panels
 - keeps the editor usable even when the split ratio is pushed to a very small height
 
-[ ] [142] Ctrl-Click The Split Spaghetti Title Bar To Detach Back Into A Floating Editor
+##### [x] [142] Ctrl-Click The Split Spaghetti Title Bar To Detach Back Into A Floating Editor
 
 Planning goal:
 
@@ -1613,7 +1613,7 @@ Why this is worth doing:
 - matches the mental model that the split editor is a temporarily docked version of the same editor surface
 - keeps split mode feeling flexible instead of trapping the editor in the lower pane
 
-[ ] [143] Normal-Drag The Split Spaghetti Title Bar To Resize Split Height
+##### [ ] [143] Normal-Drag The Split Spaghetti Title Bar To Resize Split Height
 
 Planning goal:
 
@@ -1649,7 +1649,7 @@ Why this is worth doing:
 - reduces reliance on the thin horizontal resize bar alone
 - keeps the title bar useful in split mode without overloading the default click behavior
 
-[ ] [144] Split Detach Should Continue As A Live Floating Drag Until Mouse-Up
+##### [x] [144] Split Detach Should Continue As A Live Floating Drag Until Mouse-Up
 
 Planning goal:
 
@@ -1695,7 +1695,7 @@ Why this is worth doing:
 - reduces friction when moving from split editing back to floating editing
 - creates a natural bridge into future dock/undock behaviors for the floating editor
 
-[ ] [145] Dragging A Floating Spaghetti Editor Toward The Bottom Should Offer Split-Dock
+##### [x] [145] Dragging A Floating Spaghetti Editor Toward The Bottom Should Offer Split-Dock
 
 Planning goal:
 
@@ -1740,7 +1740,7 @@ Why this is worth doing:
 - gives the app a more direct "dock this editor into the bottom workspace" gesture
 - complements the split-detach work by making the inverse transition feel equally direct
 
-[ ] [146] Gizmo Should Start Small And Expand With The View Panel
+##### [x] [146] Gizmo Should Start Small And Expand With The View Panel
 
 Planning goal:
 
@@ -1790,7 +1790,7 @@ Why this is worth doing:
 - keeps the gizmo available without letting it dominate the viewer corner
 - makes the `View` panel feel like the thing that owns the larger right-side control footprint
 
-[ ] [147] Preview Mode Build Policy Should Be Preserved And Moved Into The Spaghetti Editor Title Bar
+##### [ ] [147] Preview Mode Build Policy Should Be Preserved And Moved Into The Spaghetti Editor Title Bar
 
 Planning goal:
 
@@ -1863,7 +1863,7 @@ Why this is worth doing:
 - keeps multiple open `Spaghetti Editor` viewports free to run at different rebuild policies depending on complexity
 - creates a path toward Browser-side per-graph/per-object build management instead of one flat global rebuild policy
 
-[ ] [148] Browser Build Bar Should Be One Row And Use Layered State Instead Of Extra Badges
+##### [x] [148] Browser Build Bar Should Be One Row And Use Layered State Instead Of Extra Badges
 
 Planning goal:
 
@@ -1943,7 +1943,7 @@ Why this is worth doing:
 - gives open/active graphs one more visual layer without adding clutter
 - creates a clean future home for Browser-side build-policy ownership
 
-[x] [149] Left Dock Resize Should Temporarily Push And Lock Floating Spaghetti Editors
+##### [x] [149] Left Dock Resize Should Temporarily Push And Lock Floating Spaghetti Editors
 
 Planning goal:
 
@@ -2011,7 +2011,7 @@ Why this is worth doing:
 - keeps the editor width stable during resize, which avoids a more chaotic feeling than simple horizontal push
 - gives the user a predictable temporary lock model instead of a weird overlap state
 
-[ ] [150] Graph Row Save Control Should Become A Local-App Acknowledge Button With A Right-Click Policy Menu
+##### [ ] [150] Graph Row Save Control Should Become A Local-App Acknowledge Button With A Right-Click Policy Menu
 
 Planning goal:
 

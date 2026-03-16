@@ -5,6 +5,7 @@ import { runBrowserRowAction } from './browserRowActions'
 const graphRow: BrowserRenderableRowVm = {
   rowId: 'graph-row:graph-document-1',
   rowKind: 'graph-document',
+  depth: 0,
   cachedGraphId: 'cached-graph-1',
   graphDocumentId: 'graph-document-1',
   isInSharedViewerComposition: false,
@@ -26,9 +27,13 @@ const graphRow: BrowserRenderableRowVm = {
 const publishedOutputRow: BrowserRenderableRowVm = {
   rowId: 'published-output-row:graph-document-1:output-entry:s001:node-a',
   rowKind: 'published-output',
+  depth: 1,
   graphDocumentId: 'graph-document-1',
   outputEntryId: 'output-entry:s001:node-a',
   state: 'resolved',
+  highlightViewerKey: 's001',
+  authoringGraphDocumentId: 'graph-document-1',
+  authoringNodeId: 'node-a',
   iconLabel: 'O',
   label: 's001',
   meta: 'Resolved | Build 7',
@@ -41,6 +46,7 @@ const publishedOutputRow: BrowserRenderableRowVm = {
 const viewportRow: BrowserRenderableRowVm = {
   rowId: 'viewport-row:editor-viewport-1',
   rowKind: 'viewport',
+  depth: 0,
   editorViewportId: 'editor-viewport-1',
   graphDocumentId: 'graph-document-1',
   iconLabel: 'V',

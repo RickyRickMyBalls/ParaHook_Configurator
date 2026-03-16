@@ -38,9 +38,14 @@ const graphRow = (options?: {
     {
       rowId: 'published-output-row:graph-document-1:output-entry:s001:node-a',
       outputEntryId: 'output-entry:s001:node-a',
+      slotId: 's001',
+      sourceNodeId: 'node-a',
       label: 's001',
       meta: 'Resolved | baseplate | Build 7',
       state: 'resolved',
+      highlightViewerKey: 's001',
+      authoringGraphDocumentId: 'graph-document-1',
+      authoringNodeId: 'node-a',
     },
   ],
 })
@@ -66,12 +71,14 @@ const editorViewport = (options?: {
 describe('selectBrowserTreeRows', () => {
   it('builds graph rows with a shared row shell contract and local selection state', () => {
     const rows = selectBrowserTreeRows({
+      contentRows: [],
       graphRows: [graphRow()],
       editorViewports: [],
       graphDocumentsById: {
         'graph-document-1': graphDocument('graph-document-1', 'Graph 1'),
       },
       selectedRowId: 'graph-row:graph-document-1',
+      collapsedContentRowIds: [],
       expandedGraphDocumentIds: ['graph-document-1'],
       hasActiveEditorViewport: true,
       sharedViewerCompositionGraphDocumentIds: [],
@@ -82,6 +89,7 @@ describe('selectBrowserTreeRows', () => {
       {
         rowId: 'graph-row:graph-document-1',
         rowKind: 'graph-document',
+        depth: 0,
         cachedGraphId: 'cached-graph-1',
         graphDocumentId: 'graph-document-1',
         iconLabel: 'G',
@@ -129,9 +137,13 @@ describe('selectBrowserTreeRows', () => {
           {
             rowId: 'published-output-row:graph-document-1:output-entry:s001:node-a',
             rowKind: 'published-output',
+            depth: 1,
             graphDocumentId: 'graph-document-1',
             outputEntryId: 'output-entry:s001:node-a',
             state: 'resolved',
+            highlightViewerKey: 's001',
+            authoringGraphDocumentId: 'graph-document-1',
+            authoringNodeId: 'node-a',
             iconLabel: 'O',
             label: 's001',
             meta: 'Resolved | baseplate | Build 7',
@@ -150,16 +162,19 @@ describe('selectBrowserTreeRows', () => {
         ],
       },
     ])
+    expect(rows.contentRows).toEqual([])
   })
 
   it('keeps Browser selection local and separates it from viewport focus state', () => {
     const rows = selectBrowserTreeRows({
+      contentRows: [],
       graphRows: [graphRow()],
       editorViewports: [editorViewport({ isFocused: true, zOrder: 5 })],
       graphDocumentsById: {
         'graph-document-1': graphDocument('graph-document-1', 'Graph 1'),
       },
       selectedRowId: 'published-output-row:graph-document-1:output-entry:s001:node-a',
+      collapsedContentRowIds: [],
       expandedGraphDocumentIds: [],
       hasActiveEditorViewport: false,
       sharedViewerCompositionGraphDocumentIds: [],
@@ -190,6 +205,7 @@ describe('selectBrowserTreeRows', () => {
       {
         rowId: 'viewport-row:editor-viewport-1',
         rowKind: 'viewport',
+        depth: 0,
         editorViewportId: 'editor-viewport-1',
         graphDocumentId: 'graph-document-1',
         iconLabel: 'V',
@@ -212,12 +228,14 @@ describe('selectBrowserTreeRows', () => {
 
   it('shows read-only shared composition status and disables reveal when shared composition is active', () => {
     const rows = selectBrowserTreeRows({
+      contentRows: [],
       graphRows: [graphRow()],
       editorViewports: [],
       graphDocumentsById: {
         'graph-document-1': graphDocument('graph-document-1', 'Graph 1'),
       },
       selectedRowId: null,
+      collapsedContentRowIds: [],
       expandedGraphDocumentIds: ['graph-document-1'],
       hasActiveEditorViewport: true,
       sharedViewerCompositionGraphDocumentIds: ['graph-document-1'],
@@ -243,6 +261,187 @@ describe('selectBrowserTreeRows', () => {
           disabled: true,
         },
       ],
+    })
+  })
+
+  it('maps component and object content rows into the shared Browser row shell', () => {
+    const rows = selectBrowserTreeRows({
+      contentRows: [
+        {
+          rowId: 'assembly-root:project-file-1',
+          kind: 'assembly',
+          label: 'Assembly Root',
+          meta: '1 Component',
+        },
+        {
+          rowId: 'project-component:project-file-1:graph-document-1:published',
+          kind: 'component',
+          label: 'Pedal Component',
+          meta: '1 Object',
+          ownerGraphDocumentId: 'graph-document-1',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry:s001:node-a',
+          componentSourceKind: 'published-component',
+          resolutionState: 'resolved',
+          receiveId: null,
+          childObjectCount: 1,
+          slotId: 's001',
+          sourceNodeId: 'node-a',
+          highlightViewerKey: 's001',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-a',
+        },
+        {
+          rowId: 'project-object:project-file-1:graph-document-1:pedal-body',
+          kind: 'object',
+          label: 'Pedal Body',
+          meta: '',
+          parentComponentId: 'project-component:project-file-1:graph-document-1:published',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry:s001:node-a',
+          slotId: 's001',
+          sourceNodeId: 'node-a',
+          resolutionState: 'resolved',
+          highlightViewerKey: 's001',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-a',
+        },
+      ],
+      graphRows: [],
+      editorViewports: [],
+      graphDocumentsById: {},
+      selectedRowId: 'project-object:project-file-1:graph-document-1:pedal-body',
+      collapsedContentRowIds: [],
+      expandedGraphDocumentIds: [],
+      hasActiveEditorViewport: true,
+      sharedViewerCompositionGraphDocumentIds: [],
+      sharedViewerCompositionActive: false,
+    })
+
+    expect(rows.contentRows).toEqual([
+      {
+        rowId: 'assembly-root:project-file-1',
+        rowKind: 'assembly',
+        depth: 0,
+        iconLabel: 'A',
+        label: 'Assembly Root',
+        meta: '1 Component',
+        isSelected: false,
+        isExpandable: true,
+        isExpanded: true,
+        actions: [],
+      },
+      {
+        rowId: 'project-component:project-file-1:graph-document-1:published',
+        rowKind: 'component',
+        depth: 1,
+        ownerGraphDocumentId: 'graph-document-1',
+        sourceGraphDocumentId: 'graph-document-1',
+        sourceOutputEntryId: 'output-entry:s001:node-a',
+        componentSourceKind: 'published-component',
+        resolutionState: 'resolved',
+        receiveId: null,
+        slotId: 's001',
+        sourceNodeId: 'node-a',
+        highlightViewerKey: 's001',
+        authoringGraphDocumentId: 'graph-document-1',
+        authoringNodeId: 'node-a',
+        iconLabel: 'C',
+        label: 'Pedal Component',
+        meta: '1 Object',
+        isSelected: false,
+        isExpandable: true,
+        isExpanded: true,
+        actions: [],
+      },
+      {
+        rowId: 'project-object:project-file-1:graph-document-1:pedal-body',
+        rowKind: 'object',
+        depth: 2,
+        parentComponentId: 'project-component:project-file-1:graph-document-1:published',
+        sourceGraphDocumentId: 'graph-document-1',
+        sourceOutputEntryId: 'output-entry:s001:node-a',
+        slotId: 's001',
+        sourceNodeId: 'node-a',
+        resolutionState: 'resolved',
+        highlightViewerKey: 's001',
+        authoringGraphDocumentId: 'graph-document-1',
+        authoringNodeId: 'node-a',
+        iconLabel: 'O',
+        label: 'Pedal Body',
+        meta: '',
+        isSelected: true,
+        isExpandable: false,
+        isExpanded: false,
+        actions: [],
+      },
+    ])
+    expect(rows.graphRows).toEqual([])
+    expect(rows.viewportRows).toEqual([])
+  })
+
+  it('filters descendant content rows by local collapsed state', () => {
+    const rows = selectBrowserTreeRows({
+      contentRows: [
+        {
+          rowId: 'assembly-root:project-file-1',
+          kind: 'assembly',
+          label: 'Assembly Root',
+          meta: '1 Component',
+        },
+        {
+          rowId: 'project-component:project-file-1:graph-document-1:published',
+          kind: 'component',
+          label: 'Pedal Component',
+          meta: '1 Object',
+          ownerGraphDocumentId: 'graph-document-1',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry:s001:node-a',
+          componentSourceKind: 'published-component',
+          resolutionState: 'resolved',
+          receiveId: null,
+          childObjectCount: 1,
+          slotId: 's001',
+          sourceNodeId: 'node-a',
+          highlightViewerKey: 's001',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-a',
+        },
+        {
+          rowId: 'project-object:project-file-1:graph-document-1:pedal-body',
+          kind: 'object',
+          label: 'Pedal Body',
+          meta: '',
+          parentComponentId: 'project-component:project-file-1:graph-document-1:published',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry:s001:node-a',
+          slotId: 's001',
+          sourceNodeId: 'node-a',
+          resolutionState: 'resolved',
+          highlightViewerKey: 's001',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-a',
+        },
+      ],
+      graphRows: [],
+      editorViewports: [],
+      graphDocumentsById: {},
+      selectedRowId: null,
+      collapsedContentRowIds: ['project-component:project-file-1:graph-document-1:published'],
+      expandedGraphDocumentIds: [],
+      hasActiveEditorViewport: true,
+      sharedViewerCompositionGraphDocumentIds: [],
+      sharedViewerCompositionActive: false,
+    })
+
+    expect(rows.contentRows.map((row) => row.rowId)).toEqual([
+      'assembly-root:project-file-1',
+      'project-component:project-file-1:graph-document-1:published',
+    ])
+    expect(rows.contentRows[1]).toMatchObject({
+      rowKind: 'component',
+      isExpandable: true,
+      isExpanded: false,
     })
   })
 })

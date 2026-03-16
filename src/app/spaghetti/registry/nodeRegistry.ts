@@ -140,6 +140,19 @@ const emptyParamsSchema = z.object({}).strict()
 const vec2Schema = z.object({ x: z.number(), y: z.number() }).strict()
 const outputPreviewParamsSchema = z
   .object({
+    componentLabel: z.string().min(1).optional(),
+    objects: z
+      .array(
+      z
+        .object({
+          objectId: z.string().min(1),
+          slotId: z.string().min(1),
+          label: z.string().min(1),
+          orderIndex: z.number().int().min(0).optional(),
+        })
+        .strict(),
+    )
+      .optional(),
     slots: z.array(
       z
         .object({

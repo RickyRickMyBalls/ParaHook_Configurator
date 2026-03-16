@@ -62,6 +62,7 @@ import { buildPortAnchorKey, parsePortAnchorKey } from './types'
 import { WireLayer } from './WireLayer'
 import { getTypeColor } from './typeColors'
 import { getNextViewMode } from './rowViewMode'
+import { normalizeOutputPreviewParams } from '../system/outputPreviewNode'
 import {
   getNodeInteractionBehavior,
   readCanvasPointerTargetState,
@@ -1877,6 +1878,55 @@ export function SpaghettiCanvas({
     [applyGraphCommand, graph.nodes],
   )
 
+  const handleOutputPreviewComponentLabelChange = useCallback(
+    (nodeId: string, value: string) => {
+      const targetNode = graph.nodes.find((node) => node.nodeId === nodeId)
+      if (targetNode === undefined) {
+        return
+      }
+
+      const normalized = normalizeOutputPreviewParams(targetNode.params as Record<string, unknown>)
+      applyGraphCommand(
+        setNodeParamsCommand({
+          nodeId,
+          params: {
+            ...normalized,
+            componentLabel: value,
+          },
+        }),
+      )
+    },
+    [applyGraphCommand, graph.nodes],
+  )
+
+  const handleOutputPreviewObjectLabelChange = useCallback(
+    (nodeId: string, objectId: string, value: string) => {
+      const targetNode = graph.nodes.find((node) => node.nodeId === nodeId)
+      if (targetNode === undefined) {
+        return
+      }
+
+      const normalized = normalizeOutputPreviewParams(targetNode.params as Record<string, unknown>)
+      applyGraphCommand(
+        setNodeParamsCommand({
+          nodeId,
+          params: {
+            ...normalized,
+            objects: normalized.objects.map((objectRow) =>
+              objectRow.objectId === objectId
+                ? {
+                    ...objectRow,
+                    label: value,
+                  }
+                : objectRow,
+            ),
+          },
+        }),
+      )
+    },
+    [applyGraphCommand, graph.nodes],
+  )
+
   const handleMoveSectionRow = useCallback(
     (
       nodeId: string,
@@ -2434,6 +2484,7 @@ export function SpaghettiCanvas({
                 inputs={nodeVm?.driverVm?.inputs}
                 outputs={nodeVm?.driverVm?.outputs}
                 otherOutputs={nodeVm?.driverVm?.otherOutputs}
+                outputPreviewComponentLabel={nodeVm?.outputPreviewComponentLabel}
                 outputPreviewRows={nodeVm?.outputPreviewRows}
                 presetOptions={nodeVm?.presetOptions}
                 inputPortDetails={nodeVm?.inputPortDetails}
@@ -2469,6 +2520,8 @@ export function SpaghettiCanvas({
                 onUtilityNumberValueChange={handleUtilityNumberValueChange}
                 onUtilityBooleanValueChange={handleUtilityBooleanValueChange}
                 onUtilityVec2AxisChange={handleUtilityVec2AxisChange}
+                onOutputPreviewComponentLabelChange={handleOutputPreviewComponentLabelChange}
+                onOutputPreviewObjectLabelChange={handleOutputPreviewObjectLabelChange}
                 onMoveSectionRow={handleMoveSectionRow}
                 onNodeHeaderPointerDown={handleNodePointerDown}
                 onNodeBodyPointerDown={handleNodeBodyPointerDown}

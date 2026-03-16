@@ -100,6 +100,7 @@ type NodeViewProps = {
   inputs?: InputEndpointRowVm[]
   outputs?: OutputPinnedRowVm[]
   otherOutputs?: DriverEndpointRowVm[]
+  outputPreviewComponentLabel?: string
   outputPreviewRows?: OutputPreviewSlotRowVm[]
   uiSections?: Array<{ sectionId: string; label: string; items: string[] }>
   presetOptions?: string[]
@@ -151,6 +152,8 @@ type NodeViewProps = {
   onUtilityNumberValueChange: (nodeId: string, value: number) => void
   onUtilityBooleanValueChange: (nodeId: string, value: boolean) => void
   onUtilityVec2AxisChange: (nodeId: string, axis: 'x' | 'y', value: number) => void
+  onOutputPreviewComponentLabelChange?: (nodeId: string, value: string) => void
+  onOutputPreviewObjectLabelChange?: (nodeId: string, objectId: string, value: string) => void
   onMoveSectionRow?: (
     nodeId: string,
     section: PartRowOrderSection,
@@ -265,6 +268,7 @@ function NodeViewComponent({
   inputs,
   outputs,
   otherOutputs,
+  outputPreviewComponentLabel,
   outputPreviewRows,
   uiSections,
   presetOptions,
@@ -295,6 +299,8 @@ function NodeViewComponent({
   onUtilityNumberValueChange,
   onUtilityBooleanValueChange,
   onUtilityVec2AxisChange,
+  onOutputPreviewComponentLabelChange,
+  onOutputPreviewObjectLabelChange,
   onMoveSectionRow,
   outputRowMinHeight,
   onOutputRowMinHeightChange,
@@ -1757,6 +1763,19 @@ function NodeViewComponent({
   const renderOutputPreviewTemplate = () => (
     <div className="SpaghettiNodeTemplate SpaghettiOutputPreviewTemplate">
       <section className="SpaghettiNodeSection SpaghettiTemplateSection SpaghettiOutputPreviewSection">
+        <label className="SpaghettiOutputPreviewComponentRow" {...SP_INTERACTIVE_PROPS}>
+          <span className="SpaghettiNodeSectionLabel">Component</span>
+          <input
+            className="SpaghettiOutputPreviewComponentInput"
+            type="text"
+            value={outputPreviewComponentLabel ?? ''}
+            disabled={!showEditors}
+            onPointerDown={(event) => event.stopPropagation()}
+            onChange={(event) => {
+              onOutputPreviewComponentLabelChange?.(node.nodeId, event.target.value)
+            }}
+          />
+        </label>
         <div className="SpaghettiNodeSectionLabel">Parts List</div>
         <div className="SpaghettiNodePortColumn SpaghettiNodePortColumn--in">
           {(outputPreviewRows ?? []).map((row) => (
@@ -1765,9 +1784,28 @@ function NodeViewComponent({
               className="SpaghettiOutputPreviewRow"
               data-sp-output-preview-slot-id={row.slotId}
             >
+              {row.objectId !== undefined ? (
+                <label className="SpaghettiOutputPreviewObjectRow" {...SP_INTERACTIVE_PROPS}>
+                  <span>Object</span>
+                  <input
+                    className="SpaghettiOutputPreviewObjectInput"
+                    type="text"
+                    value={row.objectLabel ?? row.slotId}
+                    disabled={!showEditors}
+                    onPointerDown={(event) => event.stopPropagation()}
+                    onChange={(event) => {
+                      onOutputPreviewObjectLabelChange?.(
+                        node.nodeId,
+                        row.objectId!,
+                        event.target.value,
+                      )
+                    }}
+                  />
+                </label>
+              ) : null}
               {renderInputPortByType(row.port, {
                 endpointPortId: row.port.portId,
-                labelOverride: row.slotId,
+                labelOverride: row.objectLabel ?? row.slotId,
                 resolvedValueLabel: row.statusPrimary,
               })}
               {row.statusSecondary !== undefined ? (

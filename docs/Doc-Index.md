@@ -3,6 +3,8 @@
 ## Doc Header
 
 ### Doc History
+16. 2026-03-16 00:33: Added `docs/Human-Plans/roadmap/Now-Next-Later-Much-Later.md` to the active docs map as the compact execution-order companion to the larger roadmap set
+15. 2026-03-15 23:16: Added the active `docs/Human-Plans/CodexNotes/10_CodexChatNotes.md` scratchpad to the foldable docs map under `Human-Plans/CodexNotes` so the new `[2.1E]` planning pass has a discoverable live notes surface
 14. 2026-03-08 00:00: Rebuilt the bottom `Foldable Outline Tree` so it now reflects the current `/docs` structure, including `Agents/`, archived Codex chat files, the current roadmap set, the full numbered family `Phase-Plans.md` files, and the current `Tasks/Future` / `Tasks/Old` split
 13. 2026-03-08 00:00: Clarified the `docs/Chill-Log.md` exception again so ordinary batch activity stays only in the active chill batch, while real header/rule/structure changes to the chill log may still be recorded in its local `Doc History`
 12. 2026-03-08 00:00: Clarified the `docs/Chill-Log.md` exception under the repo-wide `Doc History Rule`, so that file is now explicitly documented as logging its own changes only inside the active chill batch rather than in a local `Doc History` block
@@ -333,6 +335,14 @@ Rule notes:
         - `MISSINGTASKS.md`
 ## -Human-Plans
     - `Decisions.MD`
+### ----CodexNotes
+        - `1-CodexChat.md`
+        - `5_CodexChatNotes.md`
+        - `6_CodexChatNotes.md`
+        - `7_CodexChatNotes.md`
+        - `8_CodexChatNotes.md`
+        - `9_CodexChatNotes.md`
+        - `10_CodexChatNotes.md`
 ### ----Architecture
         - `Engine-Architecture.md`
         - `Glossary.md`
@@ -344,6 +354,7 @@ Rule notes:
 ### ----roadmap
         - `roadmap.md`
         - `Vision-roadmap.md`
+        - `Now-Next-Later-Much-Later.md`
 #### -------archive
             - `02_Vision-Roadmap.md`
             - `03_Spaghetti-Studio.md`

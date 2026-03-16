@@ -4,6 +4,8 @@
 ### Fold Hack 3
 #### FOld Hack 4
 ###### Doc History
+62. 2026-03-15 23:04: Broke the shipped UI cleanup wave into labeled roadmap subphases inside the live lane sections, grouping the implemented work under `[2.1C]`, `[2.1D]`, `[2.1E]`, `[2.3]`, and `[3.3]` so the Browser/editor shell cleanup, build/save row surfaces, and workspace-presentation systems now have clearer lane-level homes
+61. 2026-03-15 23:00: Reconciled the live Lane `[2.1]` roadmap state against the shipped Browser and Spaghetti UI cleanup wave, marking `[2.1C]` complete, keeping `[2.1D]` as the active partial shell/UI lane instead of missing, and moving `[2.1E]` out of the stale not-started state so the fixed-slot left-dock docking pass reads as landed with only a small follow-up tail remaining
 60. 2026-03-12 20:40: Added `[2.1E] VR / SP - Dockable Left Panels And In-App Floating Panel Shell` as the next shared left-dock shell follow-up after the first Browser popout work and the active `2.1D` Spaghetti shell wave, creating a dedicated future task doc that locks one reusable in-app dock/floating system for the `Browser` and docked `meatball editor` instead of treating Browser re-docking as a one-off patch
 59. 2026-03-12 18:32: Compiled the shipped Spaghetti editor UI cleanup back into `[2.1D] VR / SP - Spaghetti Floating Window Controls And View Modes`, marking that lane slice as actively in progress now that the first-pass titlebar controls, meatball/split/maximize behavior, internal toolbar restructuring, and shell-polish follow-ups have landed in code
 58. 2026-03-12 15:38: Expanded `[2.1D] VR / SP - Spaghetti Floating Window Controls And View Modes` with a true header-only `collapsed` mode, clarifying that the new `__` button should hide the editor body while leaving the top bar visible over the model viewport and explicitly distinguishing that state from the separate docked `meatball editor view`
@@ -352,11 +354,11 @@ Meaning:
 - [x] `[2.1] VR / SP - Browser Workspace Shell And Item Interaction`
   - [x] `[2.1A] VR - Browser Workspace Shell And Row Interaction`
   - [x] `[2.1B] SP / VR - Browser, Editor, And Shared Viewer Coordination`
-  - [ ] `[2.1C] VR / SP - Browser Row Action Cleanup And Context Menus`
-  - [ ] `[2.1D] VR / SP - Spaghetti Floating Window Controls And View Modes`
-  - [x] `[2.1E] VR / SP - Dockable Left Panels And In-App Floating Panel Shell`
+  - [x] `[2.1C] VR / SP - Browser Row Action Cleanup And Context Menus`
+  - [~] `[2.1D] VR / SP - Spaghetti Floating Window Controls And View Modes`
+  - [~] `[2.1E] VR / SP - Dockable Left Panels And In-App Floating Panel Shell`
 - [ ] `[2.2] AS - Phase 5 - Browser-Facing Graph Output Structure`
-- [ ] `[2.3] AS - Phase 6 - Project Content Inspection And Build Control Surface`
+- [~] `[2.3] AS - Phase 6 - Project Content Inspection And Build Control Surface`
 - [ ] `[2.4] VR - Phase 5 - Reference Asset Workspace And Project View Layers`
 - [ ] `[2.5] VR - Phase 6 - Browser Controls, Materials, And Rich Visibility`
 
@@ -364,7 +366,7 @@ Meaning:
 
 - [ ] `[3.1] DR / JK - Control Viz And Graph-Driven Control Surfaces`
 - [ ] `[3.2] AS / SP - Build Sequencing, Build Bars, And Output Build Control`
-- [ ] `[3.3] VR / SP - Workspace Presentation Modes`
+- [~] `[3.3] VR / SP - Workspace Presentation Modes`
 - [ ] `[3.4] AS / VR - Advanced Output Types And Later Project Packaging`
 - [ ] `[3.5] GE / SP / AS - Publish / Receive Execution`
 
@@ -395,7 +397,7 @@ Meaning:
   - [x] `[2.1A] VR - Browser Workspace Shell And Row Interaction`
   - [x] `[2.1B] SP / VR - Browser, Editor, And Shared Viewer Coordination`
   - [ ] `[2.1C] VR / SP - Browser Row Action Cleanup And Context Menus`
-  - [ ] `[2.1D] VR / SP - Spaghetti Floating Window Controls And View Modes`
+  - [x] `[2.1D] VR / SP - Spaghetti Floating Window Controls And View Modes`
   - [x] `[2.1E] VR / SP - Dockable Left Panels And In-App Floating Panel Shell`
 - [ ] `[2.2] AS - Phase 5 - Browser-Facing Graph Output Structure`
 - [ ] `[2.3] AS - Phase 6 - Project Content Inspection And Build Control Surface`
@@ -1190,9 +1192,9 @@ Summary:
 CheckList:
 - [x] land `[2.1A]` as the first Browser workspace shell and row-interaction cut
 - [x] land `[2.1B]` as the first Browser/editor/shared-viewer coordination cut
-- [ ] land `[2.1C]` as the Browser row-action cleanup and context-menu cut
+- [x] land `[2.1C]` as the Browser row-action cleanup and context-menu cut
 - [~] land `[2.1D]` as the Spaghetti floating window-controls and view-mode cut
-- [ ] land `[2.1E]` as the shared dockable left-panel shell cut for `Browser` and `meatball editor`
+- [~] land `[2.1E]` as the shared dockable left-panel shell cut for `Browser` and `meatball editor`
 - [x] keep Browser interaction state separate from graph/project ownership truth
 - [x] keep Browser selection separate from editor focus and shared-composition membership
 - [ ] reduce Browser/workspace behavior that still depends on the old `Legacy` versus `Spaghetti` split once the graph-native workspace can stand on its own
@@ -1247,6 +1249,12 @@ Summary:
   - separate toolbar collapse behavior from the canvas toolbar and shell/window controls
 - keep the future detached/new-browser affordance concept attached to this window-bar family while deferring true separate-browser behavior to `SP - Phase 13`
 
+Sub-phase labels for the shipped cleanup wave:
+- `[2.1D.1] [x] - Core floating shell window modes and titlebar controls`
+- `[2.1D.2] [x] - Internal toolbar consolidation, retained-band collapse, and grouped section cleanup`
+- `[2.1D.3] [x] - Split detach/dock ergonomics, split containment, and action-tray shell polish`
+- `[2.1D.4] [~] - Remaining detached-window affordance and later shell follow-up tail`
+
 CheckList:
 - [x] remove the top-right `Drag` label from the floating editor header
 - [x] keep the title bar draggable without spending the action slot on drag text
@@ -1295,11 +1303,12 @@ Likely Files:
 - `src/app/spaghetti/ui/SpaghettiEditor.tsx`
 - `src/app/theme/v15Theme.css`
 
-### [2.1E] [ ] - `VR / SP` - `Dockable Left Panels And In-App Floating Panel Shell`
+### [2.1E] [~] - `VR / SP` - `Dockable Left Panels And In-App Floating Panel Shell`
 
 ##### Summary
 
 Summary:
+- the first fixed-slot reusable left-dock shell pass is now shipped for `Browser` and `meatball editor`, with only a small follow-up tail left if we want to harden the panel movement system further
 - turn the first Browser floating work into one reusable left-dock shell system instead of leaving it as a Browser-only patch
 - let the docked `Browser` and docked `meatball editor` share the same in-app movement contract:
   - docked by default
@@ -1310,22 +1319,28 @@ Summary:
 - when dragged out, `meatball editor` should immediately restore the normal floating `Spaghetti Editor` rather than becoming a separate floating meatball shell
 - keep this cut intentionally narrower than a full movable-panels framework by leaving `Preview Mode` and `Parts List` docked-only for now
 
+Sub-phase labels for the shipped cleanup wave:
+- `[2.1E.1] [x] - Single Browser pop-out host and floating-shell cleanup`
+- `[2.1E.2] [x] - Shared fixed-slot Browser/meatball dock shell with ghost previews`
+- `[2.1E.3] [x] - Left-dock resize bar, split viewport, and split-constrained dock shell behavior`
+- `[2.1E.4] [x] - Floating editor spawn anchoring and dock/editor collision push-lock polish`
+
 CheckList:
-- [ ] introduce one reusable left-panel shell model in `AppShell` for:
+- [x] introduce one reusable left-panel shell model in `AppShell` for:
   - `browser`
   - `meatball-editor`
-- [ ] replace Browser-only dock/floating drag logic with panel-keyed shared shell logic
-- [ ] keep dock targets fixed rather than introducing arbitrary panel reordering:
+- [x] replace Browser-only dock/floating drag logic with panel-keyed shared shell logic
+- [x] keep dock targets fixed rather than introducing arbitrary panel reordering:
   - Browser docks only to the top Browser slot
   - meatball docks only to the meatball slot below `Parts List`
-- [ ] show a compact ghost-preview placeholder over a valid dock target:
+- [x] show a compact ghost-preview placeholder over a valid dock target:
   - white translucent fill
   - dashed white border
   - normal panel-entry height rather than full panel height
-- [ ] animate downstream left-dock content downward while the preview is active
-- [ ] let the docked meatball titlebar drag out by restoring the normal floating `Spaghetti Editor` shell and drag back into its dock slot by re-entering `meatball editor view`
-- [ ] preserve panel collapsed state across docked/floating transitions
-- [ ] keep detached/new-browser behavior and fully generic movable panels out of this cut
+- [~] animate downstream left-dock content downward while the preview is active
+- [x] let the docked meatball titlebar drag out by restoring the normal floating `Spaghetti Editor` shell and drag back into its dock slot by re-entering `meatball editor view`
+- [~] preserve panel collapsed state across docked/floating transitions
+- [x] keep detached/new-browser behavior and fully generic movable panels out of this cut
 
 Likely Files:
 - `src/app/AppShell.tsx`
@@ -1359,7 +1374,7 @@ Likely Files:
 - `src/app/components/ViewerHost.tsx`
 - `src/app/spaghetti/store/useSpaghettiStore.ts`
 
-### [2.1C] [ ] - `VR / SP` - `Browser Row Action Cleanup And Context Menus`
+### [2.1C] [x] - `VR / SP` - `Browser Row Action Cleanup And Context Menus`
 
 ##### Summary
 
@@ -1368,19 +1383,23 @@ Summary:
 - move heavy row commands such as `Save`, `Open`, `Reveal`, `New Editor`, `Swap Editor`, `Focus`, and `Close` out of the always-visible row face and into row options/context menus
 - keep the Browser selection-first while preserving the explicit editor/viewer actions already introduced in `[2.1A]` and `[2.1B]`
 
+Sub-phase labels for the shipped cleanup wave:
+- `[2.1C.1] [x] - Browser row action-strip removal and right-click context menus`
+- `[2.1C.2] [x] - Overflow affordance, `Open Editors` row cleanup, and active-session row polish`
+
 CheckList:
-- [ ] remove the full visible action-strip treatment from graph and viewport rows
-- [ ] make Browser rows read primarily as:
+- [x] remove the full visible action-strip treatment from graph and viewport rows
+- [x] make Browser rows read primarily as:
   - chevron
   - icon/state
   - label
   - quiet meta
-- [ ] add right-click row options for existing graph, output, and viewport actions
-- [ ] decide whether a tiny overflow affordance is still needed for discoverability after right-click exists
-- [ ] keep click semantics calm:
+- [x] add right-click row options for existing graph, output, and viewport actions
+- [x] decide whether a tiny overflow affordance is still needed for discoverability after right-click exists
+- [x] keep click semantics calm:
   - single-click selects
   - explicit options/context actions perform commands
-- [ ] keep deeper hierarchy work, materials/visibility stacks, and broader workspace-presentation systems out of this cut
+- [x] keep deeper hierarchy work, materials/visibility stacks, and broader workspace-presentation systems out of this cut
 
 Likely Files:
 - `src/app/panels/BrowserPanel.tsx`
@@ -1413,7 +1432,7 @@ Likely Files:
 - `src/shared/buildTypes.ts`
 - `src/shared/partsTypes.ts`
 
-### [2.3] [ ] - `AS` - Phase 6 - `Project Content Inspection And Build Control Surface`
+### [2.3] [~] - `AS` - Phase 6 - `Project Content Inspection And Build Control Surface`
 
 ##### Summary
 
@@ -1421,6 +1440,11 @@ Summary:
 - expose project-content inspection and build-oriented controls for Browser rows without collapsing back into one flat parts list
 - this is the better later home for richer Browser row loading/build bars after `11B` only establishes simple dirty/saved cached-entry state
 - this is also the main later home for build-oriented Browser row surfaces intentionally deferred out of the first `SP - Phase 11` Browser hierarchy pass
+
+Sub-phase labels for the shipped cleanup wave:
+- `[2.3A] [x] - Browser graph-row one-line policy/status shell`
+- `[2.3B] [x] - Graph-row save/export split and runtime-owned build freshness`
+- `[2.3C] [ ] - Deeper project-content inspection and per-object/per-part build control`
 
 Carry-forward note:
 - `11B`
@@ -1433,13 +1457,17 @@ Carry-forward note:
 
 CheckList:
 - [ ] show graph/component/object/part build state in the Browser
-- [ ] prepare per-row build bars and build-status surfaces
-- [ ] carry richer Browser row loading/build bars here instead of pulling them back into `11B`
+- [x] prepare first graph-row build bars and build-status surfaces without pulling them back into `11B`
+- [x] carry richer Browser row loading/build bars into a Browser/build-control lane instead of keeping them inside cached-graph lifecycle semantics
+- [x] separate graph-row save/export state from graph-row build/runtime state
 - [ ] separate build controls from view controls in the Browser
 - [ ] keep `generate/build on-off` separate from `view on-off`
 - [ ] leave room for later item actions like isolate, rename, and export
 
 Likely Files:
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/panels/selectBrowserGraphRows.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
 - `src/app/components/BuildStatsDrawer.tsx`
 - `src/app/panels/PartsListPanel.tsx`
 - `src/app/store/useAppStore.ts`
@@ -1543,15 +1571,25 @@ CheckList:
 - [ ] define the graph-native worker request/result contract that should replace the current legacy compatibility path
 - [ ] remove dependence on graph-to-legacy request translation once the graph-native contract is real
 
-### [3.3] [ ] - `VR / SP` - `Workspace Presentation Modes`
+### [3.3] [~] - `VR / SP` - `Workspace Presentation Modes`
 
 Summary:
 - later lane for `Collapsed / Essentials / Expanded`, cleaner inspectors/toolbars, and other ways to keep the main canvas clean while preserving deep inspectability
 - this is the longer-range home for broader workspace-presentation polish after the first Browser hierarchy surface and the first richer Browser workspace pass exist
 
+Sub-phase labels for the shipped cleanup wave:
+- `[3.3A] [x] - Spaghetti window appearance shell and per-viewport style controls`
+- `[3.3B] [x] - Para slider/select presentation primitives and clamp-edit mode`
+- `[3.3C] [x] - Compact/expanded `View` gizmo and right-dock presentation`
+- `[3.3D] [ ] - Saved workspace modes and broader later workspace cleanup`
+
 CheckList:
 - [ ] define `Collapsed / Essentials / Expanded`
 - [ ] define what stays in canvas vs separate panels
+- [x] prove the first reusable workspace-presentation systems in shipped code:
+  - per-window appearance/settings
+  - clamp-aware sliders/selects
+  - compact/expanded `View` presentation
 - [ ] carry broader workspace-presentation polish here instead of forcing it into the first `SP - Phase 11` Browser pass
 - [ ] define saved workspace/presentation modes later if still useful
 - [ ] remove legacy-only panels and workspace affordances once graph-native Browser/workspace coverage makes them redundant

@@ -11,7 +11,10 @@ import {
 import { isFeatureVirtualInputPortId } from '../features/featureVirtualPorts'
 import { getNodeDef, type NodeUiSection } from '../registry/nodeRegistry'
 import type { PortSpec, SpaghettiGraph, SpaghettiNode } from '../schema/spaghettiTypes'
-import { OUTPUT_PREVIEW_NODE_TYPE } from '../system/outputPreviewNode'
+import {
+  normalizeOutputPreviewParams,
+  OUTPUT_PREVIEW_NODE_TYPE,
+} from '../system/outputPreviewNode'
 import type { PortDetailLine } from '../canvas/PortView'
 import {
   type DriverControlRowVm,
@@ -140,6 +143,8 @@ export type OutputPreviewSlotRowVm = {
   rowId: string
   nodeId: string
   slotId: string
+  objectId?: string
+  objectLabel?: string
   port: PortSpec
   slotStatus: 'ok' | 'unresolved' | 'empty'
   statusPrimary: string
@@ -182,23 +187,13 @@ const buildOutputPreviewSlotRows = (params: {
   slotStatusById: Record<string, 'ok' | 'unresolved' | 'empty'>
   edgeStatusById: DiagnosticsVm['edgeStatusById']
 }): OutputPreviewSlotRowVm[] => {
-  const rawSlots = (params.node.params as { slots?: unknown }).slots
-  if (!Array.isArray(rawSlots)) {
-    return []
-  }
-  const slotIds = rawSlots
-    .map((slot) => {
-      if (
-        typeof slot !== 'object' ||
-        slot === null ||
-        typeof (slot as { slotId?: unknown }).slotId !== 'string'
-      ) {
-        return null
-      }
-      const slotId = (slot as { slotId: string }).slotId
-      return slotId.length > 0 ? slotId : null
-    })
-    .filter((slotId): slotId is string => slotId !== null)
+  const normalizedOutputPreviewParams = normalizeOutputPreviewParams(
+    params.node.params as Record<string, unknown>,
+  )
+  const objectBySlotId = new Map(
+    normalizedOutputPreviewParams.objects.map((objectRow) => [objectRow.slotId, objectRow] as const),
+  )
+  const slotIds = normalizedOutputPreviewParams.slots.map((slot) => slot.slotId)
 
   return slotIds.flatMap((slotId, index) => {
     const portId = `in:solid:${slotId}`
@@ -216,6 +211,7 @@ const buildOutputPreviewSlotRows = (params: {
       const upstreamLabel =
         upstreamNode === undefined ? matchingEdge.from.nodeId : resolveNodeDisplayLabel(upstreamNode)
       const upstreamType = upstreamNode?.type ?? 'unknown'
+      const objectRow = objectBySlotId.get(slotId)
       const unresolvedEdge = matchingEdges.find(
         (edge) => params.edgeStatusById[edge.edgeId]?.kind !== 'ok',
       )
@@ -229,10 +225,12 @@ const buildOutputPreviewSlotRows = (params: {
           rowId: `op-slot:${slotId}`,
           nodeId: params.node.nodeId,
           slotId,
+          objectId: objectRow?.objectId,
+          objectLabel: objectRow?.label ?? slotId,
           port,
           slotStatus,
           statusPrimary: upstreamLabel,
-          statusSecondary: `${upstreamType} | ${matchingEdge.from.portId}`,
+          statusSecondary: `${slotId} | ${upstreamType} | ${matchingEdge.from.portId}`,
           warningMessage,
           isTrailingEmpty: false,
         },
@@ -240,15 +238,18 @@ const buildOutputPreviewSlotRows = (params: {
     }
 
     const isTrailingEmpty = index === slotIds.length - 1
+    const objectRow = objectBySlotId.get(slotId)
     return [
       {
         rowId: `op-slot:${slotId}`,
         nodeId: params.node.nodeId,
         slotId,
+        objectId: objectRow?.objectId,
+        objectLabel: objectRow?.label ?? slotId,
         port,
         slotStatus,
         statusPrimary: '(empty)',
-        statusSecondary: isTrailingEmpty ? 'Drop part here' : undefined,
+        statusSecondary: isTrailingEmpty ? `${slotId} | Drop part here` : slotId,
         isTrailingEmpty,
       },
     ]
@@ -336,6 +337,7 @@ export type NodeVm = {
   inputRowIndexById: Record<string, number>
   outputEndpointIndexByRowId: Record<string, number>
   outputEndpointCount: number
+  outputPreviewComponentLabel?: string
   outputPreviewRows?: OutputPreviewSlotRowVm[]
 }
 
@@ -676,6 +678,10 @@ const buildNodeVm = (
             edgeStatusById: resolvedDiagnosticsVm.edgeStatusById,
           })
         : undefined
+    const outputPreviewComponentLabel =
+      node.type === OUTPUT_PREVIEW_NODE_TYPE
+        ? normalizeOutputPreviewParams(node.params as Record<string, unknown>).componentLabel
+        : undefined
 
     const nodeVm: NodeVm = {
       nodeId: node.nodeId,
@@ -708,6 +714,7 @@ const buildNodeVm = (
       inputRowIndexById,
       outputEndpointIndexByRowId,
       outputEndpointCount,
+      outputPreviewComponentLabel,
       outputPreviewRows,
     }
     byNodeId.set(node.nodeId, nodeVm)

@@ -23,6 +23,10 @@ describe('ensureOutputPreviewSingletonPatch', () => {
 
     expect(outputPreviewNodes).toHaveLength(1)
     expect(outputPreviewNodes[0].params).toEqual({
+      componentLabel: 'Published Component',
+      objects: [
+        { objectId: 'output-object:s001', slotId: 's001', label: 's001', orderIndex: 0 },
+      ],
       slots: [{ slotId: 's001' }],
       nextSlotIndex: 2,
     })
@@ -36,6 +40,10 @@ describe('ensureOutputPreviewSingletonPatch', () => {
           nodeId: 'node-output-001',
           type: OUTPUT_PREVIEW_NODE_TYPE,
           params: {
+            componentLabel: 'Published Component',
+            objects: [
+              { objectId: 'output-object:s001', slotId: 's001', label: 's001', orderIndex: 0 },
+            ],
             slots: [{ slotId: 's001' }],
             nextSlotIndex: 2,
           },
@@ -54,7 +62,14 @@ describe('ensureOutputPreviewSingletonPatch', () => {
         {
           nodeId: 'node-output-020',
           type: OUTPUT_PREVIEW_NODE_TYPE,
-          params: { slots: [{ slotId: 's001' }], nextSlotIndex: 2 },
+          params: {
+            componentLabel: 'Published Component',
+            objects: [
+              { objectId: 'output-object:s001', slotId: 's001', label: 's001', orderIndex: 0 },
+            ],
+            slots: [{ slotId: 's001' }],
+            nextSlotIndex: 2,
+          },
         },
         {
           nodeId: 'node-part-001',
@@ -64,12 +79,26 @@ describe('ensureOutputPreviewSingletonPatch', () => {
         {
           nodeId: 'node-output-003',
           type: OUTPUT_PREVIEW_NODE_TYPE,
-          params: { slots: [{ slotId: 's001' }], nextSlotIndex: 2 },
+          params: {
+            componentLabel: 'Published Component',
+            objects: [
+              { objectId: 'output-object:s001', slotId: 's001', label: 's001', orderIndex: 0 },
+            ],
+            slots: [{ slotId: 's001' }],
+            nextSlotIndex: 2,
+          },
         },
         {
           nodeId: 'node-output-100',
           type: OUTPUT_PREVIEW_NODE_TYPE,
-          params: { slots: [{ slotId: 's001' }], nextSlotIndex: 2 },
+          params: {
+            componentLabel: 'Published Component',
+            objects: [
+              { objectId: 'output-object:s001', slotId: 's001', label: 's001', orderIndex: 0 },
+            ],
+            slots: [{ slotId: 's001' }],
+            nextSlotIndex: 2,
+          },
         },
       ],
       edges: [

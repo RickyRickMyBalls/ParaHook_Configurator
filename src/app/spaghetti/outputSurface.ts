@@ -1,6 +1,8 @@
 import type { PartArtifact } from '../../shared/buildTypes'
 import { artifactToPartKeyStr } from '../parts/partKeyResolver'
 import type { GraphPreviewPreparation } from './previewPreparation'
+import type { SpaghettiGraph } from './schema/spaghettiTypes'
+import { normalizeOutputPreviewParams, readOutputPreviewNode } from './system/outputPreviewNode'
 
 export type GraphPublishedOutputState = 'empty' | 'unresolved' | 'resolved'
 export type GraphPublishedOutputDiagnosticsState = 'none' | 'hasDiagnostics' | 'unknown'
@@ -20,6 +22,22 @@ export type GraphOutputSurface = {
   publishedAtBuildSeq: number | null
   surfaceVersion: number
   entries: GraphPublishedOutputEntry[]
+}
+
+export type GraphPublishedObjectSurfaceEntry = {
+  objectId: string
+  label: string
+  outputEntryId: string
+  slotId: string
+  sourceNodeId: string | null
+  acceptedArtifactKey: string | null
+  state: GraphPublishedOutputState
+}
+
+export type GraphPublishedComponentSurface = {
+  graphDocumentId: string
+  componentLabel: string
+  objects: GraphPublishedObjectSurfaceEntry[]
 }
 
 export const GRAPH_OUTPUT_SURFACE_VERSION = 1
@@ -87,5 +105,49 @@ export const buildGraphOutputSurface = (options: {
     publishedAtBuildSeq,
     surfaceVersion: GRAPH_OUTPUT_SURFACE_VERSION,
     entries,
+  }
+}
+
+export const buildGraphPublishedComponentSurface = (options: {
+  graphDocumentId: string
+  graph: SpaghettiGraph
+  outputSurface: GraphOutputSurface | null | undefined
+}): GraphPublishedComponentSurface | null => {
+  const { graph, graphDocumentId, outputSurface } = options
+  const outputPreviewNode = readOutputPreviewNode(graph)
+  if (outputPreviewNode === undefined) {
+    return null
+  }
+
+  const normalizedParams = normalizeOutputPreviewParams(
+    typeof outputPreviewNode.params === 'object' && outputPreviewNode.params !== null
+      ? (outputPreviewNode.params as Record<string, unknown>)
+      : {},
+    outputSurface?.entries.map((entry) => ({ slotId: entry.slotId })),
+  )
+  const outputEntryBySlotId = new Map(
+    (outputSurface?.entries ?? []).map((entry) => [entry.slotId, entry] as const),
+  )
+
+  return {
+    graphDocumentId,
+    componentLabel: normalizedParams.componentLabel,
+    objects: normalizedParams.objects.flatMap((objectRow) => {
+      const entry = outputEntryBySlotId.get(objectRow.slotId)
+      if (entry === undefined || entry.state === 'empty') {
+        return []
+      }
+      return [
+        {
+          objectId: objectRow.objectId,
+          label: objectRow.label,
+          outputEntryId: entry.outputEntryId,
+          slotId: objectRow.slotId,
+          sourceNodeId: entry.sourceNodeId.length ? entry.sourceNodeId : null,
+          acceptedArtifactKey: entry.acceptedArtifactKey,
+          state: entry.state,
+        } satisfies GraphPublishedObjectSurfaceEntry,
+      ]
+    }),
   }
 }

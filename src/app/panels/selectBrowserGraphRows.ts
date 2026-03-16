@@ -8,9 +8,14 @@ import type {
 export type BrowserPublishedGraphOutputRowVm = {
   rowId: string
   outputEntryId: string
+  slotId: string
+  sourceNodeId: string
   label: string
   meta: string
   state: 'empty' | 'resolved' | 'unresolved'
+  highlightViewerKey: string | null
+  authoringGraphDocumentId: string
+  authoringNodeId: string | null
 }
 
 export type BrowserGraphRowVm = {
@@ -65,15 +70,14 @@ export const selectBrowserGraphRows = (options: {
     openViewportCountByGraphDocumentId,
   } = options
 
-  return cachedGraphEntryOrder
-    .map((cachedGraphId) => cachedGraphEntriesById[cachedGraphId] ?? null)
-    .map((entry) => {
+  return cachedGraphEntryOrder.reduce<BrowserGraphRowVm[]>((rows, cachedGraphId) => {
+      const entry = cachedGraphEntriesById[cachedGraphId] ?? null
       if (entry === null) {
-        return null
+        return rows
       }
       const document = graphDocumentsById[entry.graphDocumentId] ?? null
       if (document === null) {
-        return null
+        return rows
       }
 
       const isFocused = activeGraphDocumentId === document.graphDocumentId
@@ -109,12 +113,17 @@ export const selectBrowserGraphRows = (options: {
       const publishedOutputRows = (outputSurface?.entries ?? []).map((publishedEntry) => ({
         rowId: `published-output-row:${document.graphDocumentId}:${publishedEntry.outputEntryId}`,
         outputEntryId: publishedEntry.outputEntryId,
+        slotId: publishedEntry.slotId,
+        sourceNodeId: publishedEntry.sourceNodeId,
         label: publishedEntry.label,
         meta: describePublishedOutputMeta(outputSurface, publishedEntry),
         state: publishedEntry.state,
+        highlightViewerKey: publishedEntry.slotId,
+        authoringGraphDocumentId: document.graphDocumentId,
+        authoringNodeId: publishedEntry.sourceNodeId.length > 0 ? publishedEntry.sourceNodeId : null,
       }))
 
-      return {
+      rows.push({
         cachedGraphId: entry.cachedGraphId,
         graphDocumentId: document.graphDocumentId,
         label: document.name,
@@ -127,7 +136,7 @@ export const selectBrowserGraphRows = (options: {
         buildStateLabel:
           buildState === 'building' ? 'Building' : buildState === 'done' ? 'Done' : 'Rebuild',
         publishedOutputRows,
-      } satisfies BrowserGraphRowVm
-    })
-    .filter((row): row is BrowserGraphRowVm => row !== null)
+      } satisfies BrowserGraphRowVm)
+      return rows
+    }, [])
 }

@@ -65,6 +65,25 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 224 -->
+### [224] - 2026-03-16 00:33 - `DOC - Phase 11 - Condensed Now Next Later Planning Surface`
+<!-- ENTRY 224 -->
+HUMAN SUMMARY: `Added a compact planning doc that condenses the larger roadmap, vision roadmap, wishlist, and active SP planning surface into one recommended Now / Next / Later / Much Later execution order, and registered that doc in the live docs index.` 
+
+#### Scope / Constraints Honored
+- Kept this as a roadmap-adjacent planning surface instead of rewriting the main roadmap.
+- Based the ordering on the live shipped/planned docs rather than older placeholder phase ladders.
+- Left the detailed execution questions in the existing roadmap and phase-plan docs.
+
+#### Summary of Implementation
+- Added `docs/Human-Plans/roadmap/Now-Next-Later-Much-Later.md` as a compact build-order view.
+- Grouped the current planning state into four execution buckets with a short dependency spine and explicit defer rules.
+- Added the new planning doc to the active docs index under `docs/Human-Plans/roadmap/`.
+
+#### Files Changed
+- `docs/Human-Plans/roadmap/Now-Next-Later-Much-Later.md`
+- `docs/Doc-Index.md`
+
 <!-- ENTRY 223 -->
 ### [223] - 2026-03-12 20:20 - `VR / SP - Lane 2.1E - Shared Left-Dock Ghost Docking For Browser And Meatball Re-Entry`
 <!-- ENTRY 223 -->
