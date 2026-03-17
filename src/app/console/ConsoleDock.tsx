@@ -221,7 +221,8 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
             isDiagnosticsPinned,
           }),
         )
-        .toReversed(),
+        .slice()
+        .reverse(),
     [entries, filterMode, isDiagnosticsPinned, isolatedLayer, subsetLayers, visibleLayers],
   )
 

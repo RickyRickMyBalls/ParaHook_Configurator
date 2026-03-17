@@ -172,7 +172,7 @@ const createEntry = (
   const createdAtMs = Date.now()
   const severity: ConsoleSeverity = input.severity ?? 'normal'
   return {
-    id: `console-entry:${newId()}`,
+    id: newId('console-entry'),
     sequence,
     createdAtMs,
     timestampLabel: formatTimestamp(createdAtMs),

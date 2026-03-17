@@ -5,6 +5,7 @@ import { BoxGeometry, Group, Mesh, MeshBasicMaterial, PerspectiveCamera, Vector3
 
 const orbitControlMocks = vi.hoisted(() => ({
   instances: [] as Array<{
+    target: Vector3
     rotateLeft: ReturnType<typeof vi.fn>
     rotateUp: ReturnType<typeof vi.fn>
     update: ReturnType<typeof vi.fn>

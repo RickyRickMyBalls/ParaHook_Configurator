@@ -1,4 +1,11 @@
-import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent,
+} from 'react'
 import { ParaSlider } from './ParaSlider'
 import { ReferenceTimelineGraph } from './ReferenceTimelineGraph'
 import { selectReferenceWorkspaceItems, useAppStore } from '../store/useAppStore'
@@ -889,7 +896,7 @@ export function ReferenceTransformToolbar() {
   }
 
   const openChannelContextMenu = (
-    event: ReactPointerEvent,
+    event: ReactMouseEvent<Element>,
     channel: ReferenceTimelineChannelKey,
   ) => {
     event.preventDefault()

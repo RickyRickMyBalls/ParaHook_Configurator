@@ -1,4 +1,9 @@
-import { useMemo, useRef, type PointerEvent as ReactPointerEvent } from 'react'
+import {
+  useMemo,
+  useRef,
+  type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent,
+} from 'react'
 import { newId } from '../spaghetti/utils/id'
 import type {
   ReferenceTimelineHandle,
@@ -232,7 +237,7 @@ export function ReferenceTimelineGraph({
       nextPoint.t - MIN_POINT_GAP,
     )
     const nextPointRecord: ReferenceTimelinePoint = {
-      pointId: `timeline-point:${newId()}`,
+      pointId: newId('timeline-point'),
       t: nextT,
       value: clamp(local.value, range.min, range.max),
       inHandle: {
@@ -248,7 +253,7 @@ export function ReferenceTimelineGraph({
   }
 
   const handlePointContextMenu = (
-    event: ReactPointerEvent<SVGCircleElement>,
+    event: ReactMouseEvent<SVGCircleElement>,
     pointId: string,
   ) => {
     event.preventDefault()

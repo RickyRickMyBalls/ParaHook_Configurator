@@ -14,8 +14,9 @@ describe('ParaSelect', () => {
 
   afterEach(async () => {
     if (root !== null) {
+      const currentRoot = root
       await act(async () => {
-        root.unmount()
+        currentRoot.unmount()
       })
     }
     container?.remove()

@@ -902,10 +902,10 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
 
     const revokeObjectURL = vi.fn()
     const originalUrl = globalThis.URL
-    globalThis.URL = {
+    globalThis.URL = ({
       ...originalUrl,
       revokeObjectURL,
-    } as typeof URL
+    } as unknown) as typeof URL
 
     try {
       const firstReferenceId = useAppStore.getState().addImportedReference({

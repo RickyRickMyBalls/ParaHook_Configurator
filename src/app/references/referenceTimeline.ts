@@ -99,7 +99,7 @@ export const buildReferenceTimelineConfig = (
     startedAtMs,
     points: [
       {
-        pointId: `timeline-point:${newId()}`,
+        pointId: newId('timeline-point'),
         t: 0,
         value: clampedBaseValue,
         inHandle: null,
@@ -109,7 +109,7 @@ export const buildReferenceTimelineConfig = (
         },
       },
       {
-        pointId: `timeline-point:${newId()}`,
+        pointId: newId('timeline-point'),
         t: 1,
         value: clampedBaseValue,
         inHandle: {

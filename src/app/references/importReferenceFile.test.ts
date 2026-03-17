@@ -6,15 +6,12 @@ import {
 
 describe('importReferenceFileFromDisk', () => {
   it('opens a single-file input for the requested type and returns a workspace object URL', async () => {
+    const file = Object.assign(new Blob(['shoe']), { name: 'shoe.glb' })
     const input = {
       type: '',
       accept: '',
       onchange: null as (() => void) | null,
-      files: [
-        {
-          name: 'shoe.glb',
-        },
-      ],
+      files: [file],
       click: () => {
         input.onchange?.()
       },

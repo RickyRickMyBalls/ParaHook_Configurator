@@ -48,8 +48,9 @@ describe('ConsoleDock', () => {
 
   afterEach(async () => {
     if (root !== null) {
+      const currentRoot = root
       await act(async () => {
-        root.unmount()
+        currentRoot.unmount()
       })
     }
     container?.remove()
@@ -97,7 +98,7 @@ describe('ConsoleDock', () => {
     })
 
     await act(async () => {
-      const form = container.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
       form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
     })
 
@@ -416,13 +417,16 @@ describe('ConsoleDock', () => {
     root = createRoot(container)
 
     const popoutDocument = document.implementation.createHTMLDocument('Console Popout')
-    let beforeUnloadHandler: (() => void) | null = null
+    let beforeUnloadHandler: EventListener | null = null
+    let isPopoutClosed = false
     const popoutWindow = {
-      closed: false,
+      get closed() {
+        return isPopoutClosed
+      },
       document: popoutDocument,
       focus: () => undefined,
       close: () => {
-        popoutWindow.closed = true
+        isPopoutClosed = true
       },
       addEventListener: (name: string, handler: EventListenerOrEventListenerObject) => {
         if (name === 'beforeunload' && typeof handler === 'function') {
@@ -460,7 +464,7 @@ describe('ConsoleDock', () => {
     expect(popoutDocument.querySelector('.ConsoleDock--popoutSurface')).not.toBeNull()
 
     await act(async () => {
-      beforeUnloadHandler?.call(popoutWindow, new Event('beforeunload'))
+      beforeUnloadHandler?.(new Event('beforeunload'))
     })
 
     expect(useConsoleStore.getState().windowMode).toBe('docked')
@@ -610,7 +614,7 @@ describe('ConsoleDock', () => {
     expect(container.querySelector('.ConsoleListView')).not.toBeNull()
 
     await act(async () => {
-      const listButton = container.querySelector(
+      const listButton = container?.querySelector(
         '.ConsoleFloatingWindow button[aria-label="Show console list mode"]',
       ) as HTMLButtonElement | null
       listButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
@@ -628,12 +632,15 @@ describe('ConsoleDock', () => {
     root = createRoot(container)
 
     const popoutDocument = document.implementation.createHTMLDocument('Console Popout')
+    let isPopoutClosed = false
     const popoutWindow = {
-      closed: false,
+      get closed() {
+        return isPopoutClosed
+      },
       document: popoutDocument,
       focus: () => undefined,
       close: () => {
-        popoutWindow.closed = true
+        isPopoutClosed = true
       },
       addEventListener: () => undefined,
       removeEventListener: () => undefined,
@@ -721,7 +728,7 @@ describe('ConsoleDock', () => {
     })
 
     await act(async () => {
-      const form = container.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
       form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
     })
 
@@ -736,7 +743,7 @@ describe('ConsoleDock', () => {
     })
 
     await act(async () => {
-      const form = container.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
       form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
     })
 

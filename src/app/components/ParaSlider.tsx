@@ -109,12 +109,6 @@ export function ParaSlider({
   const normalizedClampMax = normalizeValue(clampMax ?? max, min, max, step)
   const effectiveClampMin = Math.min(normalizedClampMin, normalizedClampMax)
   const effectiveClampMax = Math.max(normalizedClampMin, normalizedClampMax)
-  const normalizedFillPercent = useMemo(() => {
-    if (effectiveClampMax <= effectiveClampMin || normalizedValue <= effectiveClampMin) {
-      return 0
-    }
-    return ((normalizedValue - effectiveClampMin) / (effectiveClampMax - effectiveClampMin)) * 100
-  }, [effectiveClampMax, effectiveClampMin, normalizedValue])
   const displayedFillPercent = useMemo(() => {
     if (effectiveClampMax <= effectiveClampMin || displayedValue <= effectiveClampMin) {
       return 0

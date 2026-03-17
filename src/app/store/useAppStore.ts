@@ -49,7 +49,6 @@ import {
   buildReferenceTimelineConfig,
   getReferenceTimelineDefaultRange,
   getReferenceTransformOverrideAxisValue,
-  setReferenceTransformOverrideAxisValue,
   shiftReferenceTimelineConfig,
   type ReferenceRotateSnapState,
   type ReferenceTimelineChannelKey,
@@ -465,7 +464,8 @@ const applyReferenceTransformTimelineDeltas = (
   return nextTimelineConfigByReferenceId
 }
 
-const buildImportedReferenceId = (): string => `${IMPORTED_REFERENCE_ROW_ID_PREFIX}:${newId()}`
+const buildImportedReferenceId = (): string =>
+  `${IMPORTED_REFERENCE_ROW_ID_PREFIX}:${newId('imported-reference')}`
 
 const buildImportedReferenceLabel = (
   fileName: string,

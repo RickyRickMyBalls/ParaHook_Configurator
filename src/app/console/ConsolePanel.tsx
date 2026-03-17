@@ -74,7 +74,8 @@ export function ConsolePanel({
         isDiagnosticsPinned,
       }),
     )
-    .toReversed()
+    .slice()
+    .reverse()
   const shouldShow = isVisible ?? (surfaceMode === 'docked' ? isExpanded : true)
   const toolsPreset = getConsoleToolsPreset({
     backgroundOpacity,
