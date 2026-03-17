@@ -2,7 +2,7 @@ import type { PartArtifact } from '../../shared/buildTypes'
 import { artifactToPartKeyStr } from '../parts/partKeyResolver'
 import type { GraphPreviewPreparation } from './previewPreparation'
 import type { SpaghettiGraph } from './schema/spaghettiTypes'
-import { normalizeOutputPreviewParams, readOutputPreviewNode } from './system/outputPreviewNode'
+import { readNormalizedOutputPreviewParams } from './system/outputPreviewNode'
 
 export type GraphPublishedOutputState = 'empty' | 'unresolved' | 'resolved'
 export type GraphPublishedOutputDiagnosticsState = 'none' | 'hasDiagnostics' | 'unknown'
@@ -34,10 +34,20 @@ export type GraphPublishedObjectSurfaceEntry = {
   state: GraphPublishedOutputState
 }
 
-export type GraphPublishedComponentSurface = {
+export type GraphPublishedContentSurfaceRow =
+  | {
+      kind: 'object'
+      object: GraphPublishedObjectSurfaceEntry
+    }
+  | {
+      kind: 'component'
+      componentLabel: string
+      objects: GraphPublishedObjectSurfaceEntry[]
+    }
+
+export type GraphPublishedContentSurface = {
   graphDocumentId: string
-  componentLabel: string
-  objects: GraphPublishedObjectSurfaceEntry[]
+  rows: GraphPublishedContentSurfaceRow[]
 }
 
 export const GRAPH_OUTPUT_SURFACE_VERSION = 1
@@ -108,46 +118,60 @@ export const buildGraphOutputSurface = (options: {
   }
 }
 
-export const buildGraphPublishedComponentSurface = (options: {
+export const buildGraphPublishedContentSurface = (options: {
   graphDocumentId: string
   graph: SpaghettiGraph
   outputSurface: GraphOutputSurface | null | undefined
-}): GraphPublishedComponentSurface | null => {
+}): GraphPublishedContentSurface | null => {
   const { graph, graphDocumentId, outputSurface } = options
-  const outputPreviewNode = readOutputPreviewNode(graph)
-  if (outputPreviewNode === undefined) {
-    return null
-  }
-
-  const normalizedParams = normalizeOutputPreviewParams(
-    typeof outputPreviewNode.params === 'object' && outputPreviewNode.params !== null
-      ? (outputPreviewNode.params as Record<string, unknown>)
-      : {},
+  const normalizedParams = readNormalizedOutputPreviewParams(
+    graph,
     outputSurface?.entries.map((entry) => ({ slotId: entry.slotId })),
   )
+  if (normalizedParams === null) {
+    return null
+  }
   const outputEntryBySlotId = new Map(
     (outputSurface?.entries ?? []).map((entry) => [entry.slotId, entry] as const),
   )
+  const publishedObjects = normalizedParams.objects.flatMap((objectRow) => {
+    const entry = outputEntryBySlotId.get(objectRow.slotId)
+    if (entry === undefined || entry.state === 'empty') {
+      return []
+    }
+    return [
+      {
+        objectId: objectRow.objectId,
+        label: objectRow.label,
+        outputEntryId: entry.outputEntryId,
+        slotId: objectRow.slotId,
+        sourceNodeId: entry.sourceNodeId.length ? entry.sourceNodeId : null,
+        acceptedArtifactKey: entry.acceptedArtifactKey,
+        state: entry.state,
+      } satisfies GraphPublishedObjectSurfaceEntry,
+    ]
+  })
 
+  if (publishedObjects.length === 0) {
+    return {
+      graphDocumentId,
+      rows: [],
+    }
+  }
+  if (publishedObjects.length === 1) {
+    return {
+      graphDocumentId,
+      rows: [{ kind: 'object', object: publishedObjects[0] }],
+    }
+  }
   return {
     graphDocumentId,
-    componentLabel: normalizedParams.componentLabel,
-    objects: normalizedParams.objects.flatMap((objectRow) => {
-      const entry = outputEntryBySlotId.get(objectRow.slotId)
-      if (entry === undefined || entry.state === 'empty') {
-        return []
-      }
-      return [
-        {
-          objectId: objectRow.objectId,
-          label: objectRow.label,
-          outputEntryId: entry.outputEntryId,
-          slotId: objectRow.slotId,
-          sourceNodeId: entry.sourceNodeId.length ? entry.sourceNodeId : null,
-          acceptedArtifactKey: entry.acceptedArtifactKey,
-          state: entry.state,
-        } satisfies GraphPublishedObjectSurfaceEntry,
-      ]
-    }),
+    rows: [
+      {
+        kind: 'component',
+        componentLabel: normalizedParams.componentLabel,
+        objects: publishedObjects,
+      },
+    ],
   }
 }

@@ -198,6 +198,7 @@ export function SpaghettiPanel({
   )
   const sharedViewerComposition = useSpaghettiStore(selectSharedViewerComposition)
   const setSelectedNodeId = useSpaghettiStore((state) => state.setSelectedNodeId)
+  const editorViewportNodeFitRequest = useSpaghettiStore((state) => state.editorViewportNodeFitRequest)
   const setUiMessage = useSpaghettiStore((state) => state.setUiMessage)
   const saveFocusedEditorViewportGraphToFile = useSpaghettiStore(
     (state) => state.saveFocusedEditorViewportGraphToFile,
@@ -208,6 +209,7 @@ export function SpaghettiPanel({
   const resizeStateRef = useRef<ResizeState | null>(null)
   const expandedToolbarHeightRef = useRef<number | null>(null)
   const lastHeaderToggleRevisionRef = useRef<number>(headerToggleRevision)
+  const lastExternalFitRequestKeyRef = useRef<number>(-1)
   const isHeaderCollapsed = controlledHeaderCollapsed ?? false
   const graphDocumentId = viewport?.graphDocumentId ?? null
   const spaghettiLastCompile = useSpaghettiStore((state) =>
@@ -293,6 +295,23 @@ export function SpaghettiPanel({
       setFocusNodeId(selectedNodeId)
     }
   }, [availableNodeIds, selectedNodeId])
+
+  useEffect(() => {
+    if (editorViewportNodeFitRequest === null) {
+      return
+    }
+    if (editorViewportNodeFitRequest.editorViewportId !== editorViewportId) {
+      return
+    }
+    if (lastExternalFitRequestKeyRef.current === editorViewportNodeFitRequest.key) {
+      return
+    }
+    lastExternalFitRequestKeyRef.current = editorViewportNodeFitRequest.key
+    setFitNodeRequest({
+      nodeId: editorViewportNodeFitRequest.nodeId,
+      key: editorViewportNodeFitRequest.key,
+    })
+  }, [editorViewportId, editorViewportNodeFitRequest])
 
   useEffect(() => {
     if (focusNodeId !== null && availableNodeIds.has(focusNodeId)) {

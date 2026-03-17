@@ -3,6 +3,40 @@
 ## Doc Header
 
 ### Doc History
+50. 2026-03-17 12:43: Added the new `05.1A` through `05.1D` workspace-mode future task-doc family to the docs map, updated the future-task listing so the hybrid workspace split now has dedicated planning surfaces under the re-homed `[5.1]` roadmap slot, and refreshed the architecture-doc read so `Workspace-Modes.md` stays the umbrella architecture source instead of acting like one giant execution spec
+49. 2026-03-17 12:23: Added `docs/Phase-Plans/Tasks/Future/04.1D - VR-SP-DBG - Layered Event Feeds And Filtering.md` to the docs map as the next dedicated console subphase planning surface after `4.1C`, so richer event publishing, expanded layer ownership, and stronger transcript filtering now have a stable future task-doc home under the `4.1` console lane
+48. 2026-03-17 11:41: Added `docs/Phase-Plans/Tasks/Future/04.1C - VR-SP-DBG - Command Input And Keyboard Routing.md` to the docs map as the next dedicated console subphase planning surface, so typed command input, history, and keyboard-routing ownership now have their own future task doc after the shipped shell/transcript work and the later window-mode expansion
+47. 2026-03-17 11:32: Renamed `docs/Human-Plans/Architecture/Workspace-Split-Modes.md` to `docs/Human-Plans/Architecture/Workspace-Modes.md` and updated the architecture docs map wording so the shell-mode planning surface now uses the cleaner `Windowed Mode` versus `Tiled Mode` pair instead of the earlier draft `Normal Float Mode` versus `Split Mode` wording
+46. 2026-03-17 11:25: Added `docs/Human-Plans/Architecture/Workspace-Split-Modes.md` to the architecture docs map as the new planning surface for a workspace-wide `Normal Float Mode` versus `Split Mode` shell, expanding the earlier Spaghetti-only split experiment into a broader pane-based tool-surface layout direction
+45. 2026-03-17 10:26: Added `docs/Phase-Plans/Tasks/Future/04.1B - VR-SP-DBG - Console Floating And Pop-Out Modes.md` to the docs map as the next console subphase after the shipped shell/transcript core, and updated the parent `04.1` task doc so floating in-app windowing plus dedicated browser pop-out presentation now have a dedicated planning home
+44. 2026-03-17 09:18: Moved `docs/Phase-Plans/Tasks/Future/04.1A - VR-SP-DBG - Console Shell And Transcript Core.md` into `docs/Phase-Plans/Tasks/Old/` after the first console shell/transcript cut shipped, and updated the docs map so `04.1A` now reads as a completed subphase instead of a still-future task
+43. 2026-03-17 08:54: Added `docs/Phase-Plans/Tasks/Future/04.1A - VR-SP-DBG - Console Shell And Transcript Core.md` to the docs map as the first concrete subphase doc under the new console lane, giving the initial shell/transcript implementation cut its own dedicated future task surface
+42. 2026-03-17 08:41: Added `docs/Phase-Plans/Tasks/Future/04.1 - VR-SP-DBG - Console And Layered Transcript.md` to the docs map as the first dedicated future task doc for the new console/debug lane, and updated the roadmap checklist tracker so `[4.1]` now counts as having its own plan surface
+41. 2026-03-17 00:41: Added `docs/Phase-Plans/Tasks/Future/02.4F - VR - General Content Transform Toolbar.md` to the docs map as the next future planning surface after the shipped reference-only transform work, and aligned the roadmap/index trackers so the broader viewer-side content-transform idea now has a stable task-doc home
+40. 2026-03-17 10:31: Renamed `docs/Human-Plans/Architecture/Command-Line.md` to `docs/Human-Plans/Architecture/Console.md` and updated the architecture map so the new app-wide console concept is now documented as one unified `Console` with collapsed/expanded modes and internal layers instead of separate command-line versus command-console wording
+39. 2026-03-17 10:15: Added `docs/Human-Plans/Architecture/Command-Line.md` to the architecture docs map as the new canonical planning surface for the future app-wide bottom command line / command console concept, so the shortcut-routing and command-feedback idea now has a stable home outside temporary notes
+38. 2026-03-16 23:10: Moved `docs/Phase-Plans/Tasks/Future/02.4E - VR - Reference Transform Timelines.md` into `docs/Phase-Plans/Tasks/Old/` after the reference-transform timeline phase shipped, updated the docs map so the `2.4` family now reads as five completed cuts, and removed `02.4E` from the future-task listing
+37. 2026-03-16 22:47: Added `docs/Phase-Plans/Tasks/Future/02.4E - VR - Reference Transform Timelines.md` to the docs map as the new future planning surface for the next reference-workspace carry-forward, and aligned the roadmap/index trackers so the first post-`02.4D` animation/timeline idea now has a real lane/task-doc home
+36. 2026-03-16 20:45: Moved `docs/Phase-Plans/Tasks/02.4D - VR - Reference Transform Controls.md` into `docs/Phase-Plans/Tasks/Old/`, removed it from the active `Tasks` listing, and aligned the docs map so the first reference-workspace family now reads as four shipped cuts (`02.4A` through `02.4D`) instead of leaving the transform-controls phase listed as still active
+35. 2026-03-16 20:18: Promoted `docs/Phase-Plans/Tasks/Future/02.4D - VR - Reference Transform Controls.md` into the active `Tasks` area, updated the docs map to remove it from `Tasks/Future`, and aligned the reference-workspace lane so the docs index now reads as three shipped cuts (`02.4A`, `02.4B`, `02.4C`) plus one active transform-controls spec (`02.4D`)
+34. 2026-03-16 20:18: Added `docs/Phase-Plans/Tasks/Future/02.4D - VR - Reference Transform Controls.md` to the docs map as the new future planning surface for the next `2.4` carry-forward, so the reference-workspace lane now has a dedicated task-doc home for the later transform-toolbar and reference-manipulation phase
+33. 2026-03-16 20:14: Moved the shipped `docs/Phase-Plans/Tasks/02.4C - VR - User Reference Import From Disk.md` spec into `Tasks/Old/` after implementation, updated the docs map so the reference-workspace lane now reads as three completed shipped cuts (`02.4A`, `02.4B`, `02.4C`), and left only the later transform-controls follow-up as the remaining `2.4` carry-forward
+32. 2026-03-16 19:46: Promoted `docs/Phase-Plans/Tasks/02.4C - VR - User Reference Import From Disk.md` into the active `Tasks` area, updated the docs map to remove it from `Tasks/Future`, and aligned the reference-workspace lane so the docs index now reads as two shipped cuts (`02.4A`, `02.4B`), one active user-import spec (`02.4C`), and a later transform-controls follow-up
+31. 2026-03-16 17:18: Moved the shipped `docs/Phase-Plans/Tasks/02.4B - VR - Expanded Reference File Support.md` spec into `Tasks/Old/` after implementation, and updated the docs map so the reference-workspace lane now reads as two completed shipped cuts (`02.4A` and `02.4B`) plus the remaining future `02.4C` user-import follow-up
+30. 2026-03-16 16:58: Promoted `docs/Phase-Plans/Tasks/02.4B - VR - Expanded Reference File Support.md` into the active `Tasks` area, moved the shipped `02.4A - VR - Static Manifest Reference Workspace.md` spec into `Tasks/Old/`, and updated the docs map so the reference-workspace lane now reads as one completed prerequisite, one active `.step` follow-up, and one future user-import follow-up
+29. 2026-03-16 16:14: Added `docs/Bugs/3_ReferenceWorkspace-BlackScreen-Regression.md` to the docs map after the post-`02.4A` black-screen regression appeared, so the new reference-workspace startup-crash note now sits beside the earlier dedicated Browser crash notes
+28. 2026-03-16 15:37: Renamed the active `2.4` execution spec to `02.4A - VR - Static Manifest Reference Workspace.md`, added new future task docs for `02.4B` expanded reference file support and `02.4C` user reference import from disk, and updated the docs map so the `2.4` umbrella now reads as one active cut plus two explicit future follow-ups
+27. 2026-03-16 15:25: Moved `02.4 - VR - Reference Asset Workspace And Project View Layers.md` from `docs/Phase-Plans/Tasks/Future/` into `docs/Phase-Plans/Tasks/` as the active execution spec, updated the docs map to remove it from the future-task list and show it under the live `Tasks` area, and aligned the roadmap checklist state so `[2.4]` now reads as both plan-complete and decision-complete
+26. 2026-03-16 14:55: Added `docs/Phase-Plans/Tasks/Future/02.4 - VR - Reference Asset Workspace And Project View Layers.md` to the docs map as the next major future task-planning surface after the shipped Browser/content work, and updated the roadmap checklist tracker so `[2.4]` now counts as having its own dedicated task doc
+25. 2026-03-16 14:31: Moved `02.1F - VR-SP - Graph Documents Child Sections.md` from `docs/Phase-Plans/Tasks/Future/` into `docs/Phase-Plans/Tasks/Old/` after the Browser graph-child-section pass shipped, updated the docs map to remove it from the future-task list, and added the completed task doc under `Tasks/Old`
+24. 2026-03-16 14:16: Added `docs/Phase-Plans/Tasks/Future/02.1F - VR-SP - Graph Documents Child Sections.md` to the docs map as the new future task-planning surface for the later `Needs Rebuild` plus `Nodes` graph-documents split after the completed `2.3` work
+23. 2026-03-16 14:12: Added `docs/Human-Plans/Architecture/Terminology-Decisions.md` to the architecture docs map as the dedicated home for active naming transitions and vocabulary decisions, so repeated renaming work like `Number -> Float` and `parent node -> Composite Node` now has one canonical architecture-side reference
+22. 2026-03-16 14:04: Added `docs/Human-Plans/CodexNotes/11_CodexChatNotes.md` to the foldable docs map as the new active Codex-notes file for post-`2.3` Browser/roadmap discoveries, continuing the running numbered planning-notes sequence after `10_CodexChatNotes.md`
+21. 2026-03-16 13:35: Moved `02.3 - AS - Project Content Inspection And Build Control Surface.md` from `docs/Phase-Plans/Tasks/` into `docs/Phase-Plans/Tasks/Old/` after the Phase 6 Browser content build/control surface shipped, updated the docs map so active `Tasks` no longer lists it, and added the completed spec under `Tasks/Old`
+20. 2026-03-16 13:17: Moved `02.3 - AS - Project Content Inspection And Build Control Surface.md` from `docs/Phase-Plans/Tasks/Future/` into `docs/Phase-Plans/Tasks/` as the active execution spec, updated the docs map to show it under the live `Tasks` area, and removed it from the `Tasks/Future` list
+19. 2026-03-16 12:36: Added `docs/Human-Plans/Architecture/Spaghetti-Types.md` to the architecture docs map as the human-readable type and identity bridge between current `/src/` Spaghetti type names and the planning-language terms used in Browser/content/build discussions
+18. 2026-03-16 12:17: Moved `02.2 - AS - Browser-Facing Graph Output Structure.md` from `docs/Phase-Plans/Tasks/Future/` into `docs/Phase-Plans/Tasks/` as the active execution spec, updated the docs map to show it under the live `Tasks` area, and removed it from the `Tasks/Future` list
+17. 2026-03-16 12:05: Added the new `docs/Phase-Plans/Tasks/Future/02.2 - AS - Browser-Facing Graph Output Structure.md` planning surface to the docs map, corrected the `Phase-Plan Lifecycle Rule` folder paths to the current `Tasks/Future`, `Tasks`, and `Tasks/Old` structure, and refreshed the foldable `Tasks/Future` listing so it matches the current task-doc set
 16. 2026-03-16 00:33: Added `docs/Human-Plans/roadmap/Now-Next-Later-Much-Later.md` to the active docs map as the compact execution-order companion to the larger roadmap set
 15. 2026-03-15 23:16: Added the active `docs/Human-Plans/CodexNotes/10_CodexChatNotes.md` scratchpad to the foldable docs map under `Human-Plans/CodexNotes` so the new `[2.1E]` planning pass has a discoverable live notes surface
 14. 2026-03-08 00:00: Rebuilt the bottom `Foldable Outline Tree` so it now reflects the current `/docs` structure, including `Agents/`, archived Codex chat files, the current roadmap set, the full numbered family `Phase-Plans.md` files, and the current `Tasks/Future` / `Tasks/Old` split
@@ -137,9 +171,9 @@ Use it to answer:
 
 #### Phase-Plan Lifecycle Rule
 
-- `docs/Phase-Plans/Future/` = planned, not started
+- `docs/Phase-Plans/Tasks/Future/` = planned, not started
 - `docs/Phase-Plans/Tasks/` = active/in progress
-- `docs/Phase-Plans/Old/` = completed/retired
+- `docs/Phase-Plans/Tasks/Old/` = completed/retired
 
 #### Doc Structure Rule
 
@@ -343,14 +377,22 @@ Rule notes:
         - `8_CodexChatNotes.md`
         - `9_CodexChatNotes.md`
         - `10_CodexChatNotes.md`
+        - `11_CodexChatNotes.md`
 ### ----Architecture
+        - `Console.md`
         - `Engine-Architecture.md`
         - `Glossary.md`
+        - `Spaghetti-Types.md`
         - `System-Map.md`
+        - `Terminology-Decisions.md`
+        - `Workspace-Modes.md`
 #### -------Spaghetti-Editor-Arch
             - `Spaghetti-Editor-Explained.md`
 ### ----Bugs
         - `0_Bug_Report.md`
+        - `1_BrowserPanel-Startup-Crash.md`
+        - `2_BrowserPanel-ProjectContent-Selector-Crash.md`
+        - `3_ReferenceWorkspace-BlackScreen-Regression.md`
 ### ----roadmap
         - `roadmap.md`
         - `Vision-roadmap.md`
@@ -398,10 +440,33 @@ Rule notes:
         - `5_CodexChatNotes.md`
         - `6_CodexChatNotes.md`
 ### ----Tasks
-#### -------Future
-            - `DBG_PhasePlan.md`
-            - `UI_Window-Update_PhasePlan.md`
+#### -------Tasks
+        #### -------Future
+            - `02.1 - VR-SP - Browser Workspace Shell And Item Interaction.md`
+            - `02.1A - VR - Browser Workspace Shell And Row Interaction.md`
+            - `02.1B - SP-VR - Browser, Editor, And Shared Viewer Coordination.md`
+            - `02.1C - VR-SP - Browser Row Action Cleanup And Context Menus.md`
+            - `02.1D - VR-SP - Spaghetti Floating Window Controls And View Modes.md`
+            - `02.1E - VR-SP - Dockable Left Panels And In-App Floating Panel Shell.md`
+            - `02.4F - VR - General Content Transform Toolbar.md`
+            - `04.1 - VR-SP-DBG - Console And Layered Transcript.md`
+            - `04.1B - VR-SP-DBG - Console Floating And Pop-Out Modes.md`
+            - `04.1C - VR-SP-DBG - Command Input And Keyboard Routing.md`
+            - `04.1D - VR-SP-DBG - Layered Event Feeds And Filtering.md`
+            - `05.1A - VR-SP - Workspace Layout Foundation And Left-Dock Entry.md`
+            - `05.1B - VR-SP - Split Pane Authoring And Divider Controls.md`
+            - `05.1C - VR-SP - Hybrid Tool Surface Hosting And Floating-Tiled Transitions.md`
+            - `05.1D - VR-SP - Workspace Persistence, Saved Modes, And Migration.md`
 #### -------Old
+            - `04.1A - VR-SP-DBG - Console Shell And Transcript Core.md`
+            - `02.4E - VR - Reference Transform Timelines.md`
+            - `02.4D - VR - Reference Transform Controls.md`
+            - `02.4C - VR - User Reference Import From Disk.md`
+            - `02.4B - VR - Expanded Reference File Support.md`
+            - `02.4A - VR - Static Manifest Reference Workspace.md`
+            - `02.1F - VR-SP - Graph Documents Child Sections.md`
+            - `02.3 - AS - Project Content Inspection And Build Control Surface.md`
+            - `02.2 - AS - Browser-Facing Graph Output Structure.md`
             - `001 - GE - Phase 1 - Clean Restart.md`
             - `14_DOC - Phase 13 - Canonical Changelog Rewrite.md`
             - `14_DOC - Phase 14A.md`

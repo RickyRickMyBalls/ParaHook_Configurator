@@ -17,7 +17,8 @@ import {
   type CompileSpaghettiGraphResult,
 } from '../spaghetti/compiler/compileGraph'
 import { buildRequestFromBuildInputs } from '../spaghetti/integration/buildInputsToRequest'
-import { buildGraphPublishedComponentSurface } from '../spaghetti/outputSurface'
+import { buildGraphPublishedContentSurface } from '../spaghetti/outputSurface'
+import { OUTPUT_PREVIEW_DEFAULT_COMPONENT_LABEL } from '../spaghetti/system/outputPreviewNode'
 import type {
   AssembleResult,
   BoxParams,
@@ -30,6 +31,33 @@ import {
   LEGACY_RUNTIME_PROJECT_FILE_ID,
 } from '../../shared/buildTypes'
 import { newId } from '../spaghetti/utils/id'
+import {
+  REFERENCE_MANIFEST_CATEGORIES,
+  REFERENCE_MANIFEST_ITEMS,
+  USER_REFERENCE_CATEGORY_ID,
+  USER_REFERENCE_CATEGORY_LABEL,
+  resolveReferenceAssetPath,
+  selectReferenceManifestItemsForCategory,
+  type ReferenceCategoryId,
+  type ReferenceTransformOverride,
+  type ReferenceFileType,
+  type ReferenceManifestItem,
+  type ReferenceSourceKind,
+} from '../references/referenceManifest'
+import {
+  DEFAULT_REFERENCE_ROTATE_SNAP,
+  buildReferenceTimelineConfig,
+  getReferenceTimelineDefaultRange,
+  getReferenceTransformOverrideAxisValue,
+  setReferenceTransformOverrideAxisValue,
+  shiftReferenceTimelineConfig,
+  type ReferenceRotateSnapState,
+  type ReferenceTimelineChannelKey,
+  type ReferenceTimelineConfig,
+  type ReferenceTimelineMode,
+  type ReferenceTimelineRange,
+} from '../references/referenceTimeline'
+import { appendConsoleEntry } from '../console/useConsoleStore'
 
 type BoxParamKey = keyof BoxParams
 type PartsVisibility = Record<string, boolean>
@@ -37,6 +65,17 @@ type AssembledMesh = AssembleResult['assembled']
 type BuildPolicy = 'live' | 'release' | 'manual'
 type InputMode = 'legacy' | 'spaghetti'
 type ProjectFileVersion = 1
+export type ProjectContentBuildState = 'rebuild' | 'building' | 'done'
+export type ReferenceItemLoadState = 'unloaded' | 'loading' | 'loaded' | 'error'
+export type ReferenceTransformMode = 'translate' | 'rotate' | 'scale'
+export type ReferenceTransformSpace = 'local' | 'world'
+
+export type ImportedReferenceRecord = {
+  referenceId: string
+  label: string
+  fileType: ReferenceFileType
+  assetPath: string
+}
 
 export type ProjectGraphDocumentEntry = {
   graphDocumentId: string
@@ -56,7 +95,7 @@ export type ProjectFile = {
 export type ProjectAssemblyRecord = {
   assemblyId: string
   label: string
-  childComponentIds: string[]
+  childRowIds: string[]
 }
 
 export type ProjectComponentRecord = {
@@ -74,11 +113,13 @@ export type ProjectComponentRecord = {
 
 export type ProjectObjectRecord = {
   objectId: string
-  parentComponentId: string
+  ownerGraphDocumentId: string
+  parentComponentId: string | null
+  objectSourceKind: 'published-object' | 'receive-link'
   sourceGraphDocumentId: string
   sourceOutputEntryId: string
   sourceNodeId: string | null
-  slotId: string
+  slotId: string | null
   label: string
   resolutionState: 'resolved' | 'unresolved' | 'empty'
 }
@@ -95,12 +136,22 @@ export type ProjectContentBrowserRowVm =
       kind: 'assembly'
       label: string
       meta: string
+      buildState?: ProjectContentBuildState
+      buildStateLabel?: string
+      rebuildGraphDocumentIds?: string[]
+      statusLabel?: string
+      statusTone?: 'quiet' | 'ready' | 'warning'
     }
   | {
       rowId: string
       kind: 'component'
       label: string
       meta: string
+      buildState?: ProjectContentBuildState
+      buildStateLabel?: string
+      rebuildGraphDocumentIds?: string[]
+      statusLabel?: string
+      statusTone?: 'quiet' | 'ready' | 'warning'
       ownerGraphDocumentId: string
       sourceGraphDocumentId: string
       sourceOutputEntryId: string | null
@@ -119,16 +170,85 @@ export type ProjectContentBrowserRowVm =
       kind: 'object'
       label: string
       meta: string
-      parentComponentId: string
+      buildState?: ProjectContentBuildState
+      buildStateLabel?: string
+      rebuildGraphDocumentIds?: string[]
+      statusLabel?: string
+      statusTone?: 'quiet' | 'ready' | 'warning'
+      ownerGraphDocumentId: string
+      parentComponentId: string | null
+      objectSourceKind: ProjectObjectRecord['objectSourceKind']
       sourceGraphDocumentId: string
       sourceOutputEntryId: string
-      slotId: string
+      slotId: string | null
       sourceNodeId: string | null
       resolutionState: ProjectObjectRecord['resolutionState']
       highlightViewerKey: string | null
       authoringGraphDocumentId: string
       authoringNodeId: string | null
     }
+
+export type ReferenceWorkspaceState = {
+  referencesExpanded: boolean
+  categoryExpandedById: Record<ReferenceCategoryId, boolean>
+  visibilityById: Record<string, boolean>
+  loadStateById: Record<string, ReferenceItemLoadState>
+  errorById: Record<string, string | null>
+  transformOverrideById: Record<string, ReferenceTransformOverride | null>
+  channelClampRangeByReferenceId: Record<
+    string,
+    Partial<Record<ReferenceTimelineChannelKey, ReferenceTimelineRange>>
+  >
+  timelineModeByReferenceId: Record<
+    string,
+    Partial<Record<ReferenceTimelineChannelKey, ReferenceTimelineMode>>
+  >
+  timelineConfigByReferenceId: Record<
+    string,
+    Partial<Record<ReferenceTimelineChannelKey, ReferenceTimelineConfig>>
+  >
+  rotateSnapByReferenceId: Record<string, ReferenceRotateSnapState>
+  activeTransformReferenceId: string | null
+  activeTransformMode: ReferenceTransformMode
+  activeTransformSpace: ReferenceTransformSpace
+  importedReferencesById: Record<string, ImportedReferenceRecord>
+  importedReferenceOrder: string[]
+}
+
+export type ReferenceWorkspaceBrowserItemVm = {
+  rowId: string
+  referenceId: string
+  sourceKind: ReferenceSourceKind
+  label: string
+  categoryId: ReferenceCategoryId
+  fileType: ReferenceFileType
+  assetPath: string
+  displayTransform?: ReferenceManifestItem['displayTransform']
+  isVisible: boolean
+  loadState: ReferenceItemLoadState
+  errorMessage: string | null
+  transformOverride?: ReferenceTransformOverride | null
+}
+
+export type ReferenceWorkspaceBrowserCategoryVm = {
+  rowId: string
+  categoryId: ReferenceCategoryId
+  label: string
+  isExpanded: boolean
+  itemCount: number
+  visibleItemCount: number
+  hasLoadingItem: boolean
+  hasErrorItem: boolean
+  emptyLabel: string
+  items: ReferenceWorkspaceBrowserItemVm[]
+}
+
+export type ReferenceWorkspaceBrowserTreeVm = {
+  rowId: string
+  label: string
+  isExpanded: boolean
+  categories: ReferenceWorkspaceBrowserCategoryVm[]
+}
 
 export type AppState = {
   box: BoxParams
@@ -149,6 +269,7 @@ export type AppState = {
   assembledSignature: string | null
   currentProject: ProjectFile
   projectContent: ProjectContentState
+  referenceWorkspace: ReferenceWorkspaceState
   workerError: string | null
   setBoxParam: (key: BoxParamKey, value: number) => void
   setInputMode: (mode: InputMode) => void
@@ -165,6 +286,60 @@ export type AppState = {
   acceptBuildResult: (result: BuildResult) => void
   setAssembled: (result: AssembleResult) => void
   setWorkerError: (message: string | null) => void
+  toggleReferenceWorkspaceExpanded: () => void
+  toggleReferenceCategoryExpanded: (categoryId: ReferenceCategoryId) => void
+  toggleReferenceItemVisibility: (referenceId: string) => void
+  setReferenceItemVisibility: (referenceId: string, visible: boolean) => void
+  toggleReferenceCategoryVisibility: (categoryId: ReferenceCategoryId) => void
+  addImportedReference: (reference: {
+    fileName: string
+    fileType: ReferenceFileType
+    objectUrl: string
+  }) => string
+  retryReferenceItemLoad: (referenceId: string) => void
+  removeImportedReference: (referenceId: string) => void
+  setReferenceItemLoadState: (
+    referenceId: string,
+    loadState: ReferenceItemLoadState,
+    errorMessage?: string | null,
+  ) => void
+  beginReferenceTransform: (referenceId: string) => void
+  endReferenceTransform: () => void
+  setReferenceTransformMode: (mode: ReferenceTransformMode) => void
+  setReferenceTransformSpace: (space: ReferenceTransformSpace) => void
+  setReferenceTransformOverride: (
+    referenceId: string,
+    transformOverride: ReferenceTransformOverride | null,
+  ) => void
+  resetReferenceTransform: (referenceId: string) => void
+  setReferenceChannelClampRange: (
+    referenceId: string,
+    channel: ReferenceTimelineChannelKey,
+    range: ReferenceTimelineRange,
+  ) => void
+  setReferenceTimelineMode: (
+    referenceId: string,
+    channel: ReferenceTimelineChannelKey,
+    mode: ReferenceTimelineMode,
+    startedAtMs?: number,
+  ) => void
+  setReferenceTimelineSpeed: (
+    referenceId: string,
+    channel: ReferenceTimelineChannelKey,
+    speed: number,
+  ) => void
+  setReferenceTimelineCycle: (
+    referenceId: string,
+    channel: ReferenceTimelineChannelKey,
+    cycle: ReferenceTimelineConfig['cycle'],
+  ) => void
+  setReferenceTimelinePoints: (
+    referenceId: string,
+    channel: ReferenceTimelineChannelKey,
+    points: ReferenceTimelineConfig['points'],
+  ) => void
+  setReferenceRotateSnapEnabled: (referenceId: string, enabled: boolean) => void
+  setReferenceRotateSnapValue: (referenceId: string, value: number) => void
   ensureVisibilityForPartKeys: (keys: string[], defaultValue?: boolean) => void
   togglePartVisibility: (partKeyStr: string) => void
   setPartVisibility: (partKeyStr: string, visible: boolean) => void
@@ -190,7 +365,158 @@ const defaultVisibility: PartsVisibility = {
 
 const PROJECT_FILE_VERSION: ProjectFileVersion = 1
 const INITIAL_PROJECT_FILE_ID = 'project-file-1'
-const ROOT_ASSEMBLY_LABEL = 'Assembly Root'
+const ROOT_ASSEMBLY_LABEL = 'Assembly 1'
+const REFERENCE_ROOT_ROW_ID = 'reference-root'
+const IMPORTED_REFERENCE_ROW_ID_PREFIX = 'reference-import'
+
+const createInitialReferenceWorkspaceState = (): ReferenceWorkspaceState => ({
+  referencesExpanded: true,
+  categoryExpandedById: Object.fromEntries(
+    [...REFERENCE_MANIFEST_CATEGORIES.map((category) => category.categoryId), USER_REFERENCE_CATEGORY_ID].map(
+      (categoryId) => [categoryId, true],
+    ),
+  ) as Record<ReferenceCategoryId, boolean>,
+  visibilityById: Object.fromEntries(
+    REFERENCE_MANIFEST_ITEMS.map((item) => [item.referenceId, false]),
+  ) as Record<string, boolean>,
+  loadStateById: Object.fromEntries(
+    REFERENCE_MANIFEST_ITEMS.map((item) => [item.referenceId, 'unloaded']),
+  ) as Record<string, ReferenceItemLoadState>,
+  errorById: Object.fromEntries(
+    REFERENCE_MANIFEST_ITEMS.map((item) => [item.referenceId, null]),
+  ) as Record<string, string | null>,
+  transformOverrideById: {},
+  channelClampRangeByReferenceId: {},
+  timelineModeByReferenceId: {},
+  timelineConfigByReferenceId: {},
+  rotateSnapByReferenceId: {},
+  activeTransformReferenceId: null,
+  activeTransformMode: 'translate',
+  activeTransformSpace: 'local',
+  importedReferencesById: {},
+  importedReferenceOrder: [],
+})
+
+const getReferenceChannelClampRange = (
+  referenceWorkspace: ReferenceWorkspaceState,
+  referenceId: string,
+  channel: ReferenceTimelineChannelKey,
+): ReferenceTimelineRange =>
+  referenceWorkspace.channelClampRangeByReferenceId[referenceId]?.[channel] ??
+  getReferenceTimelineDefaultRange(channel)
+
+const getReferenceTimelineMode = (
+  referenceWorkspace: ReferenceWorkspaceState,
+  referenceId: string,
+  channel: ReferenceTimelineChannelKey,
+): ReferenceTimelineMode =>
+  referenceWorkspace.timelineModeByReferenceId[referenceId]?.[channel] ?? 'basic'
+
+const getReferenceRotateSnapState = (
+  referenceWorkspace: ReferenceWorkspaceState,
+  referenceId: string,
+): ReferenceRotateSnapState =>
+  referenceWorkspace.rotateSnapByReferenceId[referenceId] ?? DEFAULT_REFERENCE_ROTATE_SNAP
+
+const applyReferenceTransformTimelineDeltas = (
+  referenceWorkspace: ReferenceWorkspaceState,
+  referenceId: string,
+  previousTransformOverride: ReferenceTransformOverride | null | undefined,
+  nextTransformOverride: ReferenceTransformOverride | null | undefined,
+): Record<string, Partial<Record<ReferenceTimelineChannelKey, ReferenceTimelineConfig>>> => {
+  const nextTimelineConfigByReferenceId = { ...referenceWorkspace.timelineConfigByReferenceId }
+  const channels: ReferenceTimelineChannelKey[] = [
+    'move-x',
+    'move-y',
+    'move-z',
+    'rotate-x',
+    'rotate-y',
+    'rotate-z',
+    'scale-x',
+    'scale-y',
+    'scale-z',
+  ]
+
+  for (const channel of channels) {
+    if (getReferenceTimelineMode(referenceWorkspace, referenceId, channel) !== 'timeline') {
+      continue
+    }
+    const previousValue = getReferenceTransformOverrideAxisValue(previousTransformOverride, channel)
+    const nextValue = getReferenceTransformOverrideAxisValue(nextTransformOverride, channel)
+    const delta = nextValue - previousValue
+    if (Math.abs(delta) < 0.000001) {
+      continue
+    }
+    const existingConfig = nextTimelineConfigByReferenceId[referenceId]?.[channel]
+    if (existingConfig === undefined) {
+      continue
+    }
+    const nextReferenceConfigs = {
+      ...(nextTimelineConfigByReferenceId[referenceId] ?? {}),
+      [channel]: shiftReferenceTimelineConfig(
+        existingConfig,
+        delta,
+        getReferenceChannelClampRange(referenceWorkspace, referenceId, channel),
+      ),
+    }
+    nextTimelineConfigByReferenceId[referenceId] = nextReferenceConfigs
+  }
+
+  return nextTimelineConfigByReferenceId
+}
+
+const buildImportedReferenceId = (): string => `${IMPORTED_REFERENCE_ROW_ID_PREFIX}:${newId()}`
+
+const buildImportedReferenceLabel = (
+  fileName: string,
+  existingLabels: readonly string[],
+): string => {
+  if (!existingLabels.includes(fileName)) {
+    return fileName
+  }
+
+  let duplicateOrdinal = 2
+  while (existingLabels.includes(`${fileName} (${duplicateOrdinal})`)) {
+    duplicateOrdinal += 1
+  }
+  return `${fileName} (${duplicateOrdinal})`
+}
+
+const getReferenceIdsForCategory = (
+  referenceWorkspace: ReferenceWorkspaceState,
+  categoryId: ReferenceCategoryId,
+): string[] => {
+  if (categoryId === USER_REFERENCE_CATEGORY_ID) {
+    return referenceWorkspace.importedReferenceOrder.filter(
+      (referenceId) => referenceWorkspace.importedReferencesById[referenceId] !== undefined,
+    )
+  }
+  return selectReferenceManifestItemsForCategory(categoryId).map((item) => item.referenceId)
+}
+
+const clearActiveReferenceTransformIfMatches = (
+  referenceWorkspace: ReferenceWorkspaceState,
+  referenceIds: readonly string[],
+): Pick<
+  ReferenceWorkspaceState,
+  'activeTransformReferenceId' | 'activeTransformMode' | 'activeTransformSpace'
+> => {
+  if (
+    referenceWorkspace.activeTransformReferenceId === null ||
+    !referenceIds.includes(referenceWorkspace.activeTransformReferenceId)
+  ) {
+    return {
+      activeTransformReferenceId: referenceWorkspace.activeTransformReferenceId,
+      activeTransformMode: referenceWorkspace.activeTransformMode,
+      activeTransformSpace: referenceWorkspace.activeTransformSpace,
+    }
+  }
+  return {
+    activeTransformReferenceId: null,
+    activeTransformMode: referenceWorkspace.activeTransformMode,
+    activeTransformSpace: referenceWorkspace.activeTransformSpace,
+  }
+}
 
 const buildRootAssemblyId = (projectFileId: string): string =>
   `assembly-root:${projectFileId}`
@@ -200,17 +526,17 @@ const buildProjectPublishedComponentId = (
   graphDocumentId: string,
 ): string => `project-component:${projectFileId}:${graphDocumentId}:published`
 
-const buildProjectReceiveComponentId = (
-  projectFileId: string,
-  graphDocumentId: string,
-  receiveId: string,
-): string => `project-component:${projectFileId}:receive:${graphDocumentId}:${receiveId}`
-
 const buildProjectObjectId = (
   projectFileId: string,
   graphDocumentId: string,
   objectId: string,
 ): string => `project-object:${projectFileId}:${graphDocumentId}:${objectId}`
+
+const buildProjectReceiveObjectId = (
+  projectFileId: string,
+  ownerGraphDocumentId: string,
+  receiveId: string,
+): string => `project-object:${projectFileId}:receive:${ownerGraphDocumentId}:${receiveId}`
 
 const toProjectGraphDocumentEntry = (
   document: Pick<GraphDocument, 'graphDocumentId' | 'name'>,
@@ -245,9 +571,10 @@ const buildProjectContentState = (
   >,
 ): ProjectContentState => {
   const rootAssemblyId = project.rootAssemblyId ?? buildRootAssemblyId(project.projectFileId)
-  const childComponentIds: string[] = []
+  const childRowIds: string[] = []
   const componentsById: Record<string, ProjectComponentRecord> = {}
   const objectsById: Record<string, ProjectObjectRecord> = {}
+  let publishedComponentOrdinal = 0
 
   for (const documentEntry of project.graphDocuments) {
     const graphDocument = spaghettiState.graphDocumentsById[documentEntry.graphDocumentId]
@@ -255,91 +582,114 @@ const buildProjectContentState = (
       spaghettiState,
       documentEntry.graphDocumentId,
     )?.outputSurface
-    const publishedComponentSurface =
+    const publishedContentSurface =
       graphDocument === undefined
         ? null
-        : buildGraphPublishedComponentSurface({
+        : buildGraphPublishedContentSurface({
             graphDocumentId: documentEntry.graphDocumentId,
             graph: graphDocument.graph,
             outputSurface,
           })
 
     if (
-      publishedComponentSurface !== null &&
+      publishedContentSurface !== null &&
       outputSurface !== null &&
-      publishedComponentSurface.objects.length > 0
+      publishedContentSurface.rows.length > 0
     ) {
-      const componentId = buildProjectPublishedComponentId(
-        project.projectFileId,
-        documentEntry.graphDocumentId,
-      )
-      const childObjectIds = publishedComponentSurface.objects.map((objectRow) =>
-        buildProjectObjectId(project.projectFileId, documentEntry.graphDocumentId, objectRow.objectId),
-      )
-      const resolutionState = publishedComponentSurface.objects.some(
-        (objectRow) => objectRow.state === 'resolved',
-      )
-        ? 'resolved'
-        : 'unresolved'
-      childComponentIds.push(componentId)
-      componentsById[componentId] = {
-        componentId,
-        ownerGraphDocumentId: documentEntry.graphDocumentId,
-        sourceGraphDocumentId: documentEntry.graphDocumentId,
-        sourceOutputEntryId:
-          publishedComponentSurface.objects.length === 1
-            ? publishedComponentSurface.objects[0]?.outputEntryId ?? null
-            : null,
-        sourceNodeId:
-          publishedComponentSurface.objects.length === 1
-            ? publishedComponentSurface.objects[0]?.sourceNodeId ?? null
-            : null,
-        label: publishedComponentSurface.componentLabel,
-        componentSourceKind: 'published-component',
-        resolutionState,
-        receiveId: null,
-        childObjectIds,
-      }
-      publishedComponentSurface.objects.forEach((objectRow, index) => {
-        const objectId = childObjectIds[index]
-        if (objectId === undefined) {
-          return
+      for (const publishedRow of publishedContentSurface.rows) {
+        if (publishedRow.kind === 'object') {
+          const objectRow = publishedRow.object
+          const objectId = buildProjectObjectId(
+            project.projectFileId,
+            documentEntry.graphDocumentId,
+            objectRow.objectId,
+          )
+          childRowIds.push(objectId)
+          objectsById[objectId] = {
+            objectId,
+            ownerGraphDocumentId: documentEntry.graphDocumentId,
+            parentComponentId: null,
+            objectSourceKind: 'published-object',
+            sourceGraphDocumentId: documentEntry.graphDocumentId,
+            sourceOutputEntryId: objectRow.outputEntryId,
+            sourceNodeId: objectRow.sourceNodeId,
+            slotId: objectRow.slotId,
+            label: objectRow.label,
+            resolutionState: objectRow.state,
+          }
+          continue
         }
-        objectsById[objectId] = {
-          objectId,
-          parentComponentId: componentId,
+
+        publishedComponentOrdinal += 1
+        const componentId = buildProjectPublishedComponentId(
+          project.projectFileId,
+          documentEntry.graphDocumentId,
+        )
+        const childObjectIds = publishedRow.objects.map((objectRow) =>
+          buildProjectObjectId(project.projectFileId, documentEntry.graphDocumentId, objectRow.objectId),
+        )
+        const resolutionState = publishedRow.objects.some((objectRow) => objectRow.state === 'resolved')
+          ? 'resolved'
+          : 'unresolved'
+        childRowIds.push(componentId)
+        componentsById[componentId] = {
+          componentId,
+          ownerGraphDocumentId: documentEntry.graphDocumentId,
           sourceGraphDocumentId: documentEntry.graphDocumentId,
-          sourceOutputEntryId: objectRow.outputEntryId,
-          sourceNodeId: objectRow.sourceNodeId,
-          slotId: objectRow.slotId,
-          label: objectRow.label,
-          resolutionState: objectRow.state,
+          sourceOutputEntryId: null,
+          sourceNodeId: null,
+          label:
+            publishedRow.componentLabel === OUTPUT_PREVIEW_DEFAULT_COMPONENT_LABEL
+              ? `Component ${publishedComponentOrdinal}`
+              : publishedRow.componentLabel,
+          componentSourceKind: 'published-component',
+          resolutionState,
+          receiveId: null,
+          childObjectIds,
         }
-      })
+        publishedRow.objects.forEach((objectRow, index) => {
+          const objectId = childObjectIds[index]
+          if (objectId === undefined) {
+            return
+          }
+          objectsById[objectId] = {
+            objectId,
+            ownerGraphDocumentId: documentEntry.graphDocumentId,
+            parentComponentId: componentId,
+            objectSourceKind: 'published-object',
+            sourceGraphDocumentId: documentEntry.graphDocumentId,
+            sourceOutputEntryId: objectRow.outputEntryId,
+            sourceNodeId: objectRow.sourceNodeId,
+            slotId: objectRow.slotId,
+            label: objectRow.label,
+            resolutionState: objectRow.state,
+          }
+        })
+      }
     }
 
     for (const receiveReference of selectResolvedGraphReceiveReferencesByDocumentId(
       spaghettiState,
       documentEntry.graphDocumentId,
     )) {
-      const componentId = buildProjectReceiveComponentId(
+      const objectId = buildProjectReceiveObjectId(
         project.projectFileId,
         documentEntry.graphDocumentId,
         receiveReference.receiveId,
       )
       const label = receiveReference.sourceEntry?.label ?? receiveReference.sourceOutputEntryId
-      childComponentIds.push(componentId)
-      componentsById[componentId] = {
-        componentId,
+      childRowIds.push(objectId)
+      objectsById[objectId] = {
+        objectId,
         ownerGraphDocumentId: documentEntry.graphDocumentId,
+        parentComponentId: null,
+        objectSourceKind: 'receive-link',
         sourceGraphDocumentId: receiveReference.sourceGraphDocumentId,
         sourceOutputEntryId: receiveReference.sourceOutputEntryId,
         sourceNodeId: receiveReference.sourceEntry?.sourceNodeId ?? null,
+        slotId: receiveReference.sourceEntry?.slotId ?? null,
         label,
-        componentSourceKind: 'receive-link',
         resolutionState: receiveReference.resolutionState,
-        receiveId: receiveReference.receiveId,
-        childObjectIds: [],
       }
     }
   }
@@ -349,7 +699,7 @@ const buildProjectContentState = (
       [rootAssemblyId]: {
         assemblyId: rootAssemblyId,
         label: ROOT_ASSEMBLY_LABEL,
-        childComponentIds,
+        childRowIds,
       },
     },
     componentsById,
@@ -387,7 +737,7 @@ const areProjectAssemblyRecordsEqual = (
 ): boolean =>
   left.assemblyId === right.assemblyId &&
   left.label === right.label &&
-  areOrderedStringArraysEqual(left.childComponentIds, right.childComponentIds)
+  areOrderedStringArraysEqual(left.childRowIds, right.childRowIds)
 
 const areProjectAssembliesEqual = (
   left: Record<string, ProjectAssemblyRecord>,
@@ -446,7 +796,9 @@ const areProjectObjectsEqual = (
       return (
         other !== undefined &&
         entry.objectId === other.objectId &&
+        entry.ownerGraphDocumentId === other.ownerGraphDocumentId &&
         entry.parentComponentId === other.parentComponentId &&
+        entry.objectSourceKind === other.objectSourceKind &&
         entry.sourceGraphDocumentId === other.sourceGraphDocumentId &&
         entry.sourceOutputEntryId === other.sourceOutputEntryId &&
         entry.sourceNodeId === other.sourceNodeId &&
@@ -498,6 +850,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   assembledSignature: null,
   currentProject: createInitialProjectFile(),
   projectContent: createInitialProjectContentState(),
+  referenceWorkspace: createInitialReferenceWorkspaceState(),
   workerError: null,
   setBoxParam: (key, value) => {
     const state = get()
@@ -515,6 +868,11 @@ export const useAppStore = create<AppState>((set, get) => ({
         [key]: (state.geomDirty[key] ?? 0) + 1,
       },
     }))
+    appendConsoleEntry({
+      layer: 'Params',
+      text: `${key} = ${value}`,
+      source: 'legacy-box',
+    })
     if (state.inputMode === 'spaghetti') {
       return
     }
@@ -590,6 +948,12 @@ export const useAppStore = create<AppState>((set, get) => ({
       buildRequestId,
       buildSeq,
     })
+    appendConsoleEntry({
+      layer: 'App',
+      text: `Requested graph build for ${graphDocumentId}`,
+      source: graphDocumentId,
+      severity: 'info',
+    })
     return compileResult
   },
   compileSpaghetti: () => {
@@ -630,14 +994,32 @@ export const useAppStore = create<AppState>((set, get) => ({
   requestManualBuild: () => {
     if (get().inputMode === 'spaghetti') {
       const activeGraphDocument = selectActiveGraphDocument(useSpaghettiStore.getState())
+      appendConsoleEntry({
+        layer: 'App',
+        text: `Manual build requested for ${activeGraphDocument.graphDocumentId}`,
+        source: activeGraphDocument.graphDocumentId,
+        severity: 'info',
+      })
       get().requestGraphDocumentBuild(activeGraphDocument.graphDocumentId)
       return
     }
     set({ pendingBuildAfterRelease: false })
+    appendConsoleEntry({
+      layer: 'App',
+      text: 'Manual legacy build requested',
+      source: 'legacy-build',
+      severity: 'info',
+    })
     buildDispatcher.requestBuild(get().box)
   },
   setViewMode: (mode) => {
     set({ viewMode: mode })
+    appendConsoleEntry({
+      layer: 'View',
+      text: `View mode: ${mode}`,
+      source: 'view-mode',
+      severity: 'info',
+    })
   },
   acceptBuildResult: (result) => {
     const currentProjectId = get().currentProject.projectFileId
@@ -717,6 +1099,497 @@ export const useAppStore = create<AppState>((set, get) => ({
   setWorkerError: (message) => {
     set({ workerError: message })
   },
+  toggleReferenceWorkspaceExpanded: () => {
+    set((state) => ({
+      referenceWorkspace: {
+        ...state.referenceWorkspace,
+        referencesExpanded: !state.referenceWorkspace.referencesExpanded,
+      },
+    }))
+  },
+  toggleReferenceCategoryExpanded: (categoryId) => {
+    set((state) => ({
+      referenceWorkspace: {
+        ...state.referenceWorkspace,
+        categoryExpandedById: {
+          ...state.referenceWorkspace.categoryExpandedById,
+          [categoryId]: !state.referenceWorkspace.categoryExpandedById[categoryId],
+        },
+      },
+    }))
+  },
+  toggleReferenceItemVisibility: (referenceId) => {
+    set((state) => {
+      const wasVisible = state.referenceWorkspace.visibilityById[referenceId] ?? false
+      const nextVisible = !wasVisible
+      return {
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          visibilityById: {
+            ...state.referenceWorkspace.visibilityById,
+            [referenceId]: nextVisible,
+          },
+          ...(!nextVisible
+            ? clearActiveReferenceTransformIfMatches(state.referenceWorkspace, [referenceId])
+            : {}),
+        },
+      }
+    })
+  },
+  setReferenceItemVisibility: (referenceId, visible) => {
+    set((state) => ({
+      referenceWorkspace: {
+        ...state.referenceWorkspace,
+        visibilityById: {
+          ...state.referenceWorkspace.visibilityById,
+          [referenceId]: visible,
+        },
+        ...(!visible
+          ? clearActiveReferenceTransformIfMatches(state.referenceWorkspace, [referenceId])
+          : {}),
+      },
+    }))
+  },
+  toggleReferenceCategoryVisibility: (categoryId) => {
+    set((state) => {
+      const referenceIds = getReferenceIdsForCategory(state.referenceWorkspace, categoryId)
+      const anyVisible = referenceIds.some(
+        (referenceId) => state.referenceWorkspace.visibilityById[referenceId] ?? false,
+      )
+      const nextVisible = !anyVisible
+      const nextVisibilityById = { ...state.referenceWorkspace.visibilityById }
+      for (const referenceId of referenceIds) {
+        nextVisibilityById[referenceId] = nextVisible
+      }
+      return {
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          visibilityById: nextVisibilityById,
+          ...(!nextVisible
+            ? clearActiveReferenceTransformIfMatches(state.referenceWorkspace, referenceIds)
+            : {}),
+        },
+      }
+    })
+  },
+  addImportedReference: ({ fileName, fileType, objectUrl }) => {
+    const referenceId = buildImportedReferenceId()
+    set((state) => {
+      const existingImportedLabels = state.referenceWorkspace.importedReferenceOrder
+        .map((currentReferenceId) => state.referenceWorkspace.importedReferencesById[currentReferenceId]?.label)
+        .filter((label): label is string => label !== undefined)
+      const label = buildImportedReferenceLabel(fileName, existingImportedLabels)
+      return {
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          referencesExpanded: true,
+          categoryExpandedById: {
+            ...state.referenceWorkspace.categoryExpandedById,
+            [USER_REFERENCE_CATEGORY_ID]: true,
+          },
+          visibilityById: {
+            ...state.referenceWorkspace.visibilityById,
+            [referenceId]: true,
+          },
+          loadStateById: {
+            ...state.referenceWorkspace.loadStateById,
+            [referenceId]: 'unloaded',
+          },
+          errorById: {
+            ...state.referenceWorkspace.errorById,
+            [referenceId]: null,
+          },
+          transformOverrideById: {
+            ...state.referenceWorkspace.transformOverrideById,
+            [referenceId]: null,
+          },
+          channelClampRangeByReferenceId: {
+            ...state.referenceWorkspace.channelClampRangeByReferenceId,
+            [referenceId]: {
+              'move-x': getReferenceTimelineDefaultRange('move-x'),
+              'move-y': getReferenceTimelineDefaultRange('move-y'),
+              'move-z': getReferenceTimelineDefaultRange('move-z'),
+              'rotate-x': getReferenceTimelineDefaultRange('rotate-x'),
+              'rotate-y': getReferenceTimelineDefaultRange('rotate-y'),
+              'rotate-z': getReferenceTimelineDefaultRange('rotate-z'),
+              'scale-x': getReferenceTimelineDefaultRange('scale-x'),
+              'scale-y': getReferenceTimelineDefaultRange('scale-y'),
+              'scale-z': getReferenceTimelineDefaultRange('scale-z'),
+              'rotate-snap': getReferenceTimelineDefaultRange('rotate-snap'),
+            },
+          },
+          timelineModeByReferenceId: {
+            ...state.referenceWorkspace.timelineModeByReferenceId,
+            [referenceId]: {},
+          },
+          timelineConfigByReferenceId: {
+            ...state.referenceWorkspace.timelineConfigByReferenceId,
+            [referenceId]: {},
+          },
+          rotateSnapByReferenceId: {
+            ...state.referenceWorkspace.rotateSnapByReferenceId,
+            [referenceId]: { ...DEFAULT_REFERENCE_ROTATE_SNAP },
+          },
+          importedReferencesById: {
+            ...state.referenceWorkspace.importedReferencesById,
+            [referenceId]: {
+              referenceId,
+              label,
+              fileType,
+              assetPath: objectUrl,
+            },
+          },
+          importedReferenceOrder: [...state.referenceWorkspace.importedReferenceOrder, referenceId],
+        },
+      }
+    })
+    appendConsoleEntry({
+      layer: 'Browser',
+      text: `Imported ${fileName} (${fileType})`,
+      source: referenceId,
+      severity: 'info',
+    })
+    return referenceId
+  },
+  retryReferenceItemLoad: (referenceId) => {
+    set((state) => ({
+      referenceWorkspace: {
+        ...state.referenceWorkspace,
+        visibilityById: {
+          ...state.referenceWorkspace.visibilityById,
+          [referenceId]: true,
+        },
+        loadStateById: {
+          ...state.referenceWorkspace.loadStateById,
+          [referenceId]: 'unloaded',
+        },
+        errorById: {
+          ...state.referenceWorkspace.errorById,
+          [referenceId]: null,
+        },
+      },
+    }))
+  },
+  removeImportedReference: (referenceId) => {
+    set((state) => {
+      const importedReference = state.referenceWorkspace.importedReferencesById[referenceId]
+      if (importedReference === undefined) {
+        return state
+      }
+      if (typeof URL !== 'undefined' && typeof URL.revokeObjectURL === 'function') {
+        URL.revokeObjectURL(importedReference.assetPath)
+      }
+      const nextImportedReferencesById = { ...state.referenceWorkspace.importedReferencesById }
+      delete nextImportedReferencesById[referenceId]
+      const nextVisibilityById = { ...state.referenceWorkspace.visibilityById }
+      delete nextVisibilityById[referenceId]
+      const nextLoadStateById = { ...state.referenceWorkspace.loadStateById }
+      delete nextLoadStateById[referenceId]
+      const nextErrorById = { ...state.referenceWorkspace.errorById }
+      delete nextErrorById[referenceId]
+      const nextTransformOverrideById = { ...state.referenceWorkspace.transformOverrideById }
+      delete nextTransformOverrideById[referenceId]
+      const nextChannelClampRangeByReferenceId = {
+        ...state.referenceWorkspace.channelClampRangeByReferenceId,
+      }
+      delete nextChannelClampRangeByReferenceId[referenceId]
+      const nextTimelineModeByReferenceId = {
+        ...state.referenceWorkspace.timelineModeByReferenceId,
+      }
+      delete nextTimelineModeByReferenceId[referenceId]
+      const nextTimelineConfigByReferenceId = {
+        ...state.referenceWorkspace.timelineConfigByReferenceId,
+      }
+      delete nextTimelineConfigByReferenceId[referenceId]
+      const nextRotateSnapByReferenceId = {
+        ...state.referenceWorkspace.rotateSnapByReferenceId,
+      }
+      delete nextRotateSnapByReferenceId[referenceId]
+      return {
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          visibilityById: nextVisibilityById,
+          loadStateById: nextLoadStateById,
+          errorById: nextErrorById,
+          transformOverrideById: nextTransformOverrideById,
+          channelClampRangeByReferenceId: nextChannelClampRangeByReferenceId,
+          timelineModeByReferenceId: nextTimelineModeByReferenceId,
+          timelineConfigByReferenceId: nextTimelineConfigByReferenceId,
+          rotateSnapByReferenceId: nextRotateSnapByReferenceId,
+          importedReferencesById: nextImportedReferencesById,
+          importedReferenceOrder: state.referenceWorkspace.importedReferenceOrder.filter(
+            (currentReferenceId) => currentReferenceId !== referenceId,
+          ),
+          ...clearActiveReferenceTransformIfMatches(state.referenceWorkspace, [referenceId]),
+        },
+      }
+    })
+  },
+  setReferenceItemLoadState: (referenceId, loadState, errorMessage = null) => {
+    set((state) => ({
+      referenceWorkspace: {
+        ...state.referenceWorkspace,
+        loadStateById: {
+          ...state.referenceWorkspace.loadStateById,
+          [referenceId]: loadState,
+        },
+        errorById: {
+          ...state.referenceWorkspace.errorById,
+          [referenceId]: loadState === 'error' ? errorMessage : null,
+        },
+      },
+    }))
+  },
+  beginReferenceTransform: (referenceId) => {
+    set((state) => ({
+      referenceWorkspace: {
+        ...state.referenceWorkspace,
+        visibilityById: {
+          ...state.referenceWorkspace.visibilityById,
+          [referenceId]: true,
+        },
+        activeTransformReferenceId: referenceId,
+        activeTransformMode: state.referenceWorkspace.activeTransformMode,
+        activeTransformSpace: state.referenceWorkspace.activeTransformSpace,
+      },
+    }))
+  },
+  endReferenceTransform: () => {
+    set((state) => ({
+      referenceWorkspace: {
+        ...state.referenceWorkspace,
+        activeTransformReferenceId: null,
+      },
+    }))
+  },
+  setReferenceTransformMode: (mode) => {
+    set((state) => ({
+      referenceWorkspace: {
+        ...state.referenceWorkspace,
+        activeTransformMode: mode,
+      },
+    }))
+  },
+  setReferenceTransformSpace: (space) => {
+    set((state) => ({
+      referenceWorkspace: {
+        ...state.referenceWorkspace,
+        activeTransformSpace: space,
+      },
+    }))
+  },
+  setReferenceTransformOverride: (referenceId, transformOverride) => {
+    set((state) => {
+      const previousTransformOverride = state.referenceWorkspace.transformOverrideById[referenceId] ?? null
+      return {
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          transformOverrideById: {
+            ...state.referenceWorkspace.transformOverrideById,
+            [referenceId]: transformOverride,
+          },
+          timelineConfigByReferenceId: applyReferenceTransformTimelineDeltas(
+            state.referenceWorkspace,
+            referenceId,
+            previousTransformOverride,
+            transformOverride,
+          ),
+        },
+      }
+    })
+  },
+  resetReferenceTransform: (referenceId) => {
+    set((state) => {
+      const previousTransformOverride = state.referenceWorkspace.transformOverrideById[referenceId] ?? null
+      return {
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          transformOverrideById: {
+            ...state.referenceWorkspace.transformOverrideById,
+            [referenceId]: null,
+          },
+          timelineConfigByReferenceId: applyReferenceTransformTimelineDeltas(
+            state.referenceWorkspace,
+            referenceId,
+            previousTransformOverride,
+            null,
+          ),
+        },
+      }
+    })
+  },
+  setReferenceChannelClampRange: (referenceId, channel, range) => {
+    set((state) => ({
+      referenceWorkspace: {
+        ...state.referenceWorkspace,
+        channelClampRangeByReferenceId: {
+          ...state.referenceWorkspace.channelClampRangeByReferenceId,
+          [referenceId]: {
+            ...(state.referenceWorkspace.channelClampRangeByReferenceId[referenceId] ?? {}),
+            [channel]: range,
+          },
+        },
+      },
+    }))
+  },
+  setReferenceTimelineMode: (referenceId, channel, mode, startedAtMs = performance.now()) => {
+    set((state) => {
+      const nextTimelineModeByReferenceId = {
+        ...state.referenceWorkspace.timelineModeByReferenceId,
+        [referenceId]: {
+          ...(state.referenceWorkspace.timelineModeByReferenceId[referenceId] ?? {}),
+          [channel]: mode,
+        },
+      }
+      const nextTimelineConfigByReferenceId = {
+        ...state.referenceWorkspace.timelineConfigByReferenceId,
+      }
+      if (mode === 'timeline') {
+        const existingConfig = nextTimelineConfigByReferenceId[referenceId]?.[channel]
+        if (existingConfig === undefined) {
+          const baseValue =
+            channel === 'rotate-snap'
+              ? getReferenceRotateSnapState(state.referenceWorkspace, referenceId).value
+              : getReferenceTransformOverrideAxisValue(
+                  state.referenceWorkspace.transformOverrideById[referenceId],
+                  channel,
+                )
+          nextTimelineConfigByReferenceId[referenceId] = {
+            ...(nextTimelineConfigByReferenceId[referenceId] ?? {}),
+            [channel]: buildReferenceTimelineConfig(
+              baseValue,
+              getReferenceChannelClampRange(state.referenceWorkspace, referenceId, channel),
+              startedAtMs,
+            ),
+          }
+        }
+      }
+      return {
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          timelineModeByReferenceId: nextTimelineModeByReferenceId,
+          timelineConfigByReferenceId: nextTimelineConfigByReferenceId,
+        },
+      }
+    })
+  },
+  setReferenceTimelineSpeed: (referenceId, channel, speed) => {
+    set((state) => {
+      const existingConfig = state.referenceWorkspace.timelineConfigByReferenceId[referenceId]?.[channel]
+      if (existingConfig === undefined) {
+        return state
+      }
+      return {
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          timelineConfigByReferenceId: {
+            ...state.referenceWorkspace.timelineConfigByReferenceId,
+            [referenceId]: {
+              ...(state.referenceWorkspace.timelineConfigByReferenceId[referenceId] ?? {}),
+              [channel]: {
+                ...existingConfig,
+                speed,
+              },
+            },
+          },
+        },
+      }
+    })
+  },
+  setReferenceTimelineCycle: (referenceId, channel, cycle) => {
+    set((state) => {
+      const existingConfig = state.referenceWorkspace.timelineConfigByReferenceId[referenceId]?.[channel]
+      if (existingConfig === undefined) {
+        return state
+      }
+      return {
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          timelineConfigByReferenceId: {
+            ...state.referenceWorkspace.timelineConfigByReferenceId,
+            [referenceId]: {
+              ...(state.referenceWorkspace.timelineConfigByReferenceId[referenceId] ?? {}),
+              [channel]: {
+                ...existingConfig,
+                cycle,
+              },
+            },
+          },
+        },
+      }
+    })
+  },
+  setReferenceTimelinePoints: (referenceId, channel, points) => {
+    set((state) => {
+      const existingConfig = state.referenceWorkspace.timelineConfigByReferenceId[referenceId]?.[channel]
+      if (existingConfig === undefined) {
+        return state
+      }
+      return {
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          timelineConfigByReferenceId: {
+            ...state.referenceWorkspace.timelineConfigByReferenceId,
+            [referenceId]: {
+              ...(state.referenceWorkspace.timelineConfigByReferenceId[referenceId] ?? {}),
+              [channel]: {
+                ...existingConfig,
+                points,
+              },
+            },
+          },
+        },
+      }
+    })
+  },
+  setReferenceRotateSnapEnabled: (referenceId, enabled) => {
+    set((state) => ({
+      referenceWorkspace: {
+        ...state.referenceWorkspace,
+        rotateSnapByReferenceId: {
+          ...state.referenceWorkspace.rotateSnapByReferenceId,
+          [referenceId]: {
+            ...getReferenceRotateSnapState(state.referenceWorkspace, referenceId),
+            enabled,
+          },
+        },
+      },
+    }))
+  },
+  setReferenceRotateSnapValue: (referenceId, value) => {
+    set((state) => {
+      const previousValue = getReferenceRotateSnapState(state.referenceWorkspace, referenceId).value
+      const nextTimelineConfigByReferenceId = {
+        ...state.referenceWorkspace.timelineConfigByReferenceId,
+      }
+      if (getReferenceTimelineMode(state.referenceWorkspace, referenceId, 'rotate-snap') === 'timeline') {
+        const existingConfig = nextTimelineConfigByReferenceId[referenceId]?.['rotate-snap']
+        if (existingConfig !== undefined) {
+          nextTimelineConfigByReferenceId[referenceId] = {
+            ...(nextTimelineConfigByReferenceId[referenceId] ?? {}),
+            'rotate-snap': shiftReferenceTimelineConfig(
+              existingConfig,
+              value - previousValue,
+              getReferenceChannelClampRange(state.referenceWorkspace, referenceId, 'rotate-snap'),
+            ),
+          }
+        }
+      }
+      return {
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          rotateSnapByReferenceId: {
+            ...state.referenceWorkspace.rotateSnapByReferenceId,
+            [referenceId]: {
+              ...getReferenceRotateSnapState(state.referenceWorkspace, referenceId),
+              value,
+            },
+          },
+          timelineConfigByReferenceId: nextTimelineConfigByReferenceId,
+        },
+      }
+    })
+  },
   ensureVisibilityForPartKeys: (keys, defaultValue = true) => {
     set((state) => {
       let changed = false
@@ -750,6 +1623,12 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
   selectPart: (partKeyStr) => {
     set({ selectedPartKey: partKeyStr })
+    appendConsoleEntry({
+      layer: 'Selection',
+      text: partKeyStr === null ? 'Selection cleared' : `Selected ${partKeyStr}`,
+      source: partKeyStr,
+      severity: 'info',
+    })
   },
   addHeelKickInstance: () => {
     const next = [...get().heelKickInstances, nextInstanceId(get().heelKickInstances)]
@@ -840,8 +1719,8 @@ export const selectCurrentProjectRootComponents = (
   if (rootAssembly === null) {
     return []
   }
-  return rootAssembly.childComponentIds
-    .map((componentId) => state.projectContent.componentsById[componentId] ?? null)
+  return rootAssembly.childRowIds
+    .map((rowId) => state.projectContent.componentsById[rowId] ?? null)
     .filter((component): component is ProjectComponentRecord => component !== null)
 }
 
@@ -853,6 +1732,71 @@ const selectProjectObjectsForComponent = (
     .map((objectId) => state.projectContent.objectsById[objectId] ?? null)
     .filter((objectRow): objectRow is ProjectObjectRecord => objectRow !== null)
 
+const selectGraphOwnedBuildState = (
+  graphRuntimeByDocumentId: Record<string, GraphRuntimeState>,
+  graphDocumentId: string,
+): ProjectContentBuildState => {
+  const compileBuild = graphRuntimeByDocumentId[graphDocumentId]?.compileBuild
+  if ((compileBuild?.inFlightBuildSeq ?? null) !== null) {
+    return 'building'
+  }
+  if (
+    compileBuild !== undefined &&
+    compileBuild.latestAcceptedGraphRevision !== null &&
+    compileBuild.latestAcceptedGraphRevision === compileBuild.currentGraphRevision
+  ) {
+    return 'done'
+  }
+  return 'rebuild'
+}
+
+const selectProjectContentBuildState = (options: {
+  graphRuntimeByDocumentId: Record<string, GraphRuntimeState>
+  ownerGraphDocumentIds: string[]
+  hasUnresolvedContent: boolean
+  hasContent: boolean
+}): {
+  buildState: ProjectContentBuildState
+  buildStateLabel: string
+} => {
+  const {
+    graphRuntimeByDocumentId,
+    hasContent,
+    hasUnresolvedContent,
+    ownerGraphDocumentIds,
+  } = options
+
+  if (!hasContent) {
+    return {
+      buildState: 'done',
+      buildStateLabel: '',
+    }
+  }
+
+  const graphBuildStates = ownerGraphDocumentIds.map((graphDocumentId) =>
+    selectGraphOwnedBuildState(graphRuntimeByDocumentId, graphDocumentId),
+  )
+
+  if (graphBuildStates.includes('building')) {
+    return {
+      buildState: 'building',
+      buildStateLabel: 'Building',
+    }
+  }
+
+  if (hasUnresolvedContent || graphBuildStates.includes('rebuild')) {
+    return {
+      buildState: 'rebuild',
+      buildStateLabel: 'Rebuild',
+    }
+  }
+
+  return {
+    buildState: 'done',
+    buildStateLabel: 'Built',
+  }
+}
+
 export const selectCurrentProjectContentBrowserRows = (
   state: Pick<AppState, 'currentProject' | 'projectContent'> & {
     graphRuntimeByDocumentId: Record<string, GraphRuntimeState>
@@ -862,18 +1806,79 @@ export const selectCurrentProjectContentBrowserRows = (
   if (rootAssembly === null) {
     return []
   }
+  const assemblyHasContent = rootAssembly.childRowIds.length > 0
+  let assemblyHasUnresolvedContent = false
+  const assemblyRebuildGraphDocumentIds = new Set<string>()
   const rows: ProjectContentBrowserRowVm[] = [
     {
       rowId: rootAssembly.assemblyId,
       kind: 'assembly',
       label: rootAssembly.label,
-      meta:
-        rootAssembly.childComponentIds.length === 1
-          ? '1 Component'
-          : `${rootAssembly.childComponentIds.length} Components`,
+      meta: '',
+      buildState: 'done',
+      buildStateLabel: '',
+      rebuildGraphDocumentIds: [],
+      statusLabel: '',
+      statusTone: 'quiet',
     },
   ]
-  for (const component of selectCurrentProjectRootComponents(state)) {
+  const graphLabelByDocumentId = new Map(
+    state.currentProject.graphDocuments.map((documentEntry) => [
+      documentEntry.graphDocumentId,
+      documentEntry.label,
+    ] as const),
+  )
+  for (const childRowId of rootAssembly.childRowIds) {
+    const component = state.projectContent.componentsById[childRowId]
+    if (component === undefined) {
+      const objectRow = state.projectContent.objectsById[childRowId]
+      if (objectRow === undefined) {
+        continue
+      }
+      const sourceGraphLabel =
+        graphLabelByDocumentId.get(objectRow.sourceGraphDocumentId) ?? objectRow.sourceGraphDocumentId
+      const hasUnresolvedContent = objectRow.resolutionState !== 'resolved'
+      assemblyHasUnresolvedContent ||= hasUnresolvedContent
+      const objectBuildState = selectProjectContentBuildState({
+        graphRuntimeByDocumentId: state.graphRuntimeByDocumentId,
+        ownerGraphDocumentIds: [objectRow.ownerGraphDocumentId],
+        hasUnresolvedContent,
+        hasContent: true,
+      })
+      if (objectBuildState.buildState === 'rebuild') {
+        assemblyRebuildGraphDocumentIds.add(objectRow.ownerGraphDocumentId)
+      }
+      rows.push({
+        rowId: objectRow.objectId,
+        kind: 'object',
+        label: objectRow.label,
+        meta:
+          objectRow.objectSourceKind === 'receive-link'
+            ? objectRow.resolutionState === 'resolved'
+            ? 'Linked Object'
+            : 'Unresolved Link'
+          : sourceGraphLabel,
+        buildState: objectBuildState.buildState,
+        buildStateLabel: objectBuildState.buildStateLabel,
+        rebuildGraphDocumentIds:
+          objectBuildState.buildState === 'rebuild' ? [objectRow.ownerGraphDocumentId] : [],
+        statusLabel: objectRow.resolutionState === 'resolved' ? '' : 'Unresolved',
+        statusTone: objectRow.resolutionState === 'resolved' ? 'quiet' : 'warning',
+        ownerGraphDocumentId: objectRow.ownerGraphDocumentId,
+        parentComponentId: objectRow.parentComponentId,
+        objectSourceKind: objectRow.objectSourceKind,
+        sourceGraphDocumentId: objectRow.sourceGraphDocumentId,
+        sourceOutputEntryId: objectRow.sourceOutputEntryId,
+        slotId: objectRow.slotId,
+        sourceNodeId: objectRow.sourceNodeId,
+        resolutionState: objectRow.resolutionState,
+        highlightViewerKey:
+          objectRow.resolutionState === 'resolved' ? objectRow.slotId : null,
+        authoringGraphDocumentId: objectRow.sourceGraphDocumentId,
+        authoringNodeId: objectRow.sourceNodeId,
+      })
+      continue
+    }
     const componentObjects = selectProjectObjectsForComponent(state, component)
     const singleResolvedObject =
       componentObjects.length === 1 && componentObjects[0]?.resolutionState === 'resolved'
@@ -893,6 +1898,43 @@ export const selectCurrentProjectContentBrowserRows = (
       component.componentSourceKind === 'published-component'
         ? singleResolvedObject?.sourceNodeId ?? null
         : sourceOutputEntry?.sourceNodeId ?? component.sourceNodeId
+    const sourceGraphLabel =
+      graphLabelByDocumentId.get(component.sourceGraphDocumentId) ?? component.sourceGraphDocumentId
+    const componentHasUnresolvedObject = componentObjects.some(
+      (objectRow) => objectRow.resolutionState !== 'resolved',
+    )
+    const componentHasUnresolvedContent =
+      component.componentSourceKind === 'published-component'
+        ? componentHasUnresolvedObject
+        : component.resolutionState !== 'resolved'
+    if (component.componentSourceKind === 'published-component') {
+      assemblyHasUnresolvedContent ||= componentHasUnresolvedObject
+    } else {
+      assemblyHasUnresolvedContent ||= component.resolutionState !== 'resolved'
+    }
+    const componentBuildState = selectProjectContentBuildState({
+      graphRuntimeByDocumentId: state.graphRuntimeByDocumentId,
+      ownerGraphDocumentIds: [component.ownerGraphDocumentId],
+      hasUnresolvedContent: componentHasUnresolvedContent,
+      hasContent: true,
+    })
+    if (componentBuildState.buildState === 'rebuild') {
+      assemblyRebuildGraphDocumentIds.add(component.ownerGraphDocumentId)
+    }
+    const componentStatusLabel =
+      component.componentSourceKind === 'published-component'
+        ? componentObjects.length === 0
+          ? ''
+          : componentHasUnresolvedObject
+            ? 'Unresolved'
+            : 'Ready'
+        : ''
+    const componentStatusTone =
+      componentStatusLabel === 'Unresolved'
+        ? 'warning'
+        : componentStatusLabel === 'Ready'
+          ? 'ready'
+          : 'quiet'
     rows.push({
       rowId: component.componentId,
       kind: 'component',
@@ -902,9 +1944,11 @@ export const selectCurrentProjectContentBrowserRows = (
           ? component.resolutionState === 'resolved'
             ? 'Linked Component'
             : 'Unresolved Link'
-          : component.childObjectIds.length === 1
-            ? '1 Object'
-            : `${component.childObjectIds.length} Objects`,
+          : sourceGraphLabel,
+      buildState: componentBuildState.buildState,
+      buildStateLabel: componentBuildState.buildStateLabel,
+      rebuildGraphDocumentIds:
+        componentBuildState.buildState === 'rebuild' ? [component.ownerGraphDocumentId] : [],
       ownerGraphDocumentId: component.ownerGraphDocumentId,
       sourceGraphDocumentId: component.sourceGraphDocumentId,
       sourceOutputEntryId: component.sourceOutputEntryId,
@@ -912,6 +1956,8 @@ export const selectCurrentProjectContentBrowserRows = (
       resolutionState: component.resolutionState,
       receiveId: component.receiveId,
       childObjectCount: component.childObjectIds.length,
+      statusLabel: componentStatusLabel,
+      statusTone: componentStatusTone,
       slotId,
       sourceNodeId,
       highlightViewerKey:
@@ -923,12 +1969,30 @@ export const selectCurrentProjectContentBrowserRows = (
           : sourceNodeId,
     })
     componentObjects.forEach((objectRow) => {
+      const hasUnresolvedContent = objectRow.resolutionState !== 'resolved'
+      const objectBuildState = selectProjectContentBuildState({
+        graphRuntimeByDocumentId: state.graphRuntimeByDocumentId,
+        ownerGraphDocumentIds: [objectRow.ownerGraphDocumentId],
+        hasUnresolvedContent,
+        hasContent: true,
+      })
+      if (objectBuildState.buildState === 'rebuild') {
+        assemblyRebuildGraphDocumentIds.add(objectRow.ownerGraphDocumentId)
+      }
       rows.push({
         rowId: objectRow.objectId,
         kind: 'object',
         label: objectRow.label,
-        meta: objectRow.resolutionState === 'resolved' ? '' : 'Unresolved',
+        meta: '',
+        buildState: objectBuildState.buildState,
+        buildStateLabel: objectBuildState.buildStateLabel,
+        rebuildGraphDocumentIds:
+          objectBuildState.buildState === 'rebuild' ? [objectRow.ownerGraphDocumentId] : [],
+        statusLabel: objectRow.resolutionState === 'resolved' ? '' : 'Unresolved',
+        statusTone: objectRow.resolutionState === 'resolved' ? 'quiet' : 'warning',
+        ownerGraphDocumentId: objectRow.ownerGraphDocumentId,
         parentComponentId: objectRow.parentComponentId,
+        objectSourceKind: objectRow.objectSourceKind,
         sourceGraphDocumentId: objectRow.sourceGraphDocumentId,
         sourceOutputEntryId: objectRow.sourceOutputEntryId,
         slotId: objectRow.slotId,
@@ -940,8 +2004,104 @@ export const selectCurrentProjectContentBrowserRows = (
       })
     })
   }
+  const assemblyBuildState = selectProjectContentBuildState({
+    graphRuntimeByDocumentId: state.graphRuntimeByDocumentId,
+    ownerGraphDocumentIds: [...new Set(rootAssembly.childRowIds
+      .map((childRowId) => state.projectContent.componentsById[childRowId]?.ownerGraphDocumentId ?? state.projectContent.objectsById[childRowId]?.ownerGraphDocumentId ?? null)
+      .filter((graphDocumentId): graphDocumentId is string => graphDocumentId !== null))],
+    hasUnresolvedContent: assemblyHasUnresolvedContent,
+    hasContent: assemblyHasContent,
+  })
+  rows[0] = {
+    ...rows[0],
+    buildState: assemblyBuildState.buildState,
+    buildStateLabel: assemblyBuildState.buildStateLabel,
+    rebuildGraphDocumentIds: [...assemblyRebuildGraphDocumentIds],
+    statusLabel: assemblyHasContent ? (assemblyHasUnresolvedContent ? 'Unresolved' : 'Ready') : '',
+    statusTone:
+      !assemblyHasContent ? 'quiet' : assemblyHasUnresolvedContent ? 'warning' : 'ready',
+  }
   return rows
 }
+
+export const selectReferenceWorkspaceBrowserTree = (
+  state: Pick<AppState, 'referenceWorkspace'>,
+): ReferenceWorkspaceBrowserTreeVm => {
+  const manifestCategories = REFERENCE_MANIFEST_CATEGORIES.map((category) => {
+    const items = selectReferenceManifestItemsForCategory(category.categoryId).map((item) => ({
+      rowId: `reference-item-row:${item.referenceId}`,
+      referenceId: item.referenceId,
+      sourceKind: 'manifest' as const,
+      label: item.label,
+      categoryId: item.categoryId,
+      fileType: item.fileType,
+      assetPath: resolveReferenceAssetPath(item.assetPath),
+      displayTransform: item.displayTransform,
+      isVisible: state.referenceWorkspace.visibilityById[item.referenceId] ?? false,
+      loadState: state.referenceWorkspace.loadStateById[item.referenceId] ?? 'unloaded',
+      errorMessage: state.referenceWorkspace.errorById[item.referenceId] ?? null,
+      transformOverride: state.referenceWorkspace.transformOverrideById[item.referenceId] ?? null,
+    }))
+
+    return {
+      rowId: `reference-category-row:${category.categoryId}`,
+      categoryId: category.categoryId,
+      label: category.label,
+      isExpanded: state.referenceWorkspace.categoryExpandedById[category.categoryId] ?? true,
+      itemCount: items.length,
+      visibleItemCount: items.filter((item) => item.isVisible).length,
+      hasLoadingItem: items.some((item) => item.isVisible && item.loadState === 'loading'),
+      hasErrorItem: items.some((item) => item.loadState === 'error'),
+      emptyLabel: 'No loadable references yet.',
+      items,
+    }
+  })
+
+  const importedItems = state.referenceWorkspace.importedReferenceOrder
+    .map((referenceId) => state.referenceWorkspace.importedReferencesById[referenceId] ?? null)
+    .filter((item): item is ImportedReferenceRecord => item !== null)
+    .map((item) => ({
+      rowId: `reference-item-row:${item.referenceId}`,
+      referenceId: item.referenceId,
+      sourceKind: 'imported' as const,
+      label: item.label,
+      categoryId: USER_REFERENCE_CATEGORY_ID,
+      fileType: item.fileType,
+      assetPath: item.assetPath,
+      isVisible: state.referenceWorkspace.visibilityById[item.referenceId] ?? false,
+      loadState: state.referenceWorkspace.loadStateById[item.referenceId] ?? 'unloaded',
+      errorMessage: state.referenceWorkspace.errorById[item.referenceId] ?? null,
+      transformOverride: state.referenceWorkspace.transformOverrideById[item.referenceId] ?? null,
+    }))
+
+  const categories = [
+    ...manifestCategories,
+    {
+      rowId: `reference-category-row:${USER_REFERENCE_CATEGORY_ID}`,
+      categoryId: USER_REFERENCE_CATEGORY_ID,
+      label: USER_REFERENCE_CATEGORY_LABEL,
+      isExpanded: state.referenceWorkspace.categoryExpandedById[USER_REFERENCE_CATEGORY_ID] ?? true,
+      itemCount: importedItems.length,
+      visibleItemCount: importedItems.filter((item) => item.isVisible).length,
+      hasLoadingItem: importedItems.some((item) => item.isVisible && item.loadState === 'loading'),
+      hasErrorItem: importedItems.some((item) => item.loadState === 'error'),
+      emptyLabel: 'No imported references yet.',
+      items: importedItems,
+    },
+  ]
+
+  return {
+    rowId: REFERENCE_ROOT_ROW_ID,
+    label: 'References',
+    isExpanded: state.referenceWorkspace.referencesExpanded,
+    categories,
+  }
+}
+
+export const selectReferenceWorkspaceItems = (
+  state: Pick<AppState, 'referenceWorkspace'>,
+): ReferenceWorkspaceBrowserItemVm[] =>
+  selectReferenceWorkspaceBrowserTree(state).categories.flatMap((category) => category.items)
 
 const syncCurrentProjectFromSpaghetti = (
   spaghettiState: Pick<

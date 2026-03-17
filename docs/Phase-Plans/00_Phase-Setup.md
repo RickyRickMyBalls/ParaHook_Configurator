@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+28. 2026-03-16 13:35: Marked `AS - Phase 5` and `AS - Phase 6` complete in the canonical phase inventory so the setup doc now matches the shipped Browser-facing content-structure and content build/control surface work that landed in the real roadmap/task/docs flow
 27. 2026-03-11 12:23: Updated the future `AS`, `VR`, and `GE` ladder entries so the canonical phase setup now matches the newer roadmap carry-forward naming for Browser-facing output structure, project-content inspection/build-control work, richer viewer/browser controls, and the fuller `GE - Phase 12` ownership direction
 26. 2026-03-08 00:00: Added the short ownership labels back to the `Future Legacy Updates` reminder list so the compact existing-prefix guidance still says what `VR`, `DBG`, `DOC`, and `LEG` actually mean
 25. 2026-03-08 00:00: Pruned the `Future Legacy Updates` candidate list so only the wish-area prefixes that still seem meaningfully distinct remain, while the viewer, inspection, and workbench candidates that fit existing canonical families were removed
@@ -274,8 +275,8 @@ Checklist rules:
 - [x] `AS - Phase 2 - Deterministic Part Ordering`
 - [?] `AS - Phase 3 - First Parts / Artifact Baseline`
 - [x] `AS - Phase 4 - Canonical Part Identity And Assembled Direction`
-- [ ] `AS - Phase 5 - Browser-Facing Graph Output Structure`
-- [ ] `AS - Phase 6 - Project Content Inspection And Build Control Surface`
+- [x] `AS - Phase 5 - Browser-Facing Graph Output Structure`
+- [x] `AS - Phase 6 - Project Content Inspection And Build Control Surface`
 
 ### `VR` - Viewer layer
 - [x] `VR - Phase 1 - Viewer Ownership`

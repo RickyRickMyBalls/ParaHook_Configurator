@@ -7,13 +7,17 @@ import type {
 
 export const OUTPUT_PREVIEW_NODE_TYPE = 'System/OutputPreview' as const
 export const OUTPUT_PREVIEW_DEFAULT_COMPONENT_LABEL = 'Published Component' as const
+export const OUTPUT_PREVIEW_DEFAULT_OBJECT_LABEL_PREFIX = 'Object' as const
+
+const buildDefaultOutputPreviewObjectLabel = (orderIndex: number): string =>
+  `${OUTPUT_PREVIEW_DEFAULT_OBJECT_LABEL_PREFIX} ${orderIndex + 1}`
 
 export const OUTPUT_PREVIEW_DEFAULT_PARAMS: OutputPreviewParams = {
   componentLabel: OUTPUT_PREVIEW_DEFAULT_COMPONENT_LABEL,
   objects: [
     {
       objectId: 'output-object:s001',
-      label: 's001',
+      label: buildDefaultOutputPreviewObjectLabel(0),
       slotId: 's001',
       orderIndex: 0,
     },
@@ -40,8 +44,20 @@ const toPositiveInt = (value: unknown, fallback: number): number =>
 
 const buildDefaultOutputPreviewObjectId = (slotId: string): string => `output-object:${slotId}`
 
+const isLegacyDefaultOutputPreviewObjectLabel = (
+  label: string | null,
+  slotId: string,
+  objectId: string | null,
+): boolean =>
+  label === slotId && (objectId === null || objectId === buildDefaultOutputPreviewObjectId(slotId))
+
 export const readOutputPreviewNode = (graph: SpaghettiGraph): SpaghettiNode | undefined =>
   graph.nodes.find((node) => node.type === OUTPUT_PREVIEW_NODE_TYPE)
+
+const toOutputPreviewParamsRecord = (
+  params: SpaghettiNode['params'] | null | undefined,
+): Record<string, unknown> =>
+  typeof params === 'object' && params !== null ? (params as Record<string, unknown>) : {}
 
 export const normalizeOutputPreviewParams = (
   params: Record<string, unknown>,
@@ -73,9 +89,10 @@ export const normalizeOutputPreviewParams = (
     if (slotId === null || rawObjectsBySlotId.has(slotId)) {
       continue
     }
+    const objectId = toNonEmptyString(rawObject.objectId) ?? buildDefaultOutputPreviewObjectId(slotId)
     rawObjectsBySlotId.set(slotId, {
-      objectId: toNonEmptyString(rawObject.objectId) ?? buildDefaultOutputPreviewObjectId(slotId),
-      label: toNonEmptyString(rawObject.label) ?? slotId,
+      objectId,
+      label: toNonEmptyString(rawObject.label) ?? '',
       slotId,
       orderIndex: toPositiveInt(rawObject.orderIndex, 1) - 1,
     })
@@ -83,9 +100,15 @@ export const normalizeOutputPreviewParams = (
 
   const objects = normalizedSlots.map((slot, index) => {
     const existing = rawObjectsBySlotId.get(slot.slotId)
+    const fallbackLabel = buildDefaultOutputPreviewObjectLabel(index)
     return {
       objectId: existing?.objectId ?? buildDefaultOutputPreviewObjectId(slot.slotId),
-      label: existing?.label ?? slot.slotId,
+      label:
+        existing === undefined ||
+        existing.label.length === 0 ||
+        isLegacyDefaultOutputPreviewObjectLabel(existing.label, slot.slotId, existing.objectId)
+          ? fallbackLabel
+          : existing.label,
       slotId: slot.slotId,
       orderIndex: index,
     } satisfies OutputPreviewObject
@@ -98,6 +121,20 @@ export const normalizeOutputPreviewParams = (
     slots: normalizedSlots.map((slot) => ({ ...slot })),
     nextSlotIndex: toPositiveInt(params.nextSlotIndex, normalizedSlots.length + 1),
   }
+}
+
+export const readNormalizedOutputPreviewParams = (
+  graph: SpaghettiGraph,
+  slotsOverride?: OutputPreviewParams['slots'],
+): OutputPreviewParams | null => {
+  const outputPreviewNode = readOutputPreviewNode(graph)
+  if (outputPreviewNode === undefined) {
+    return null
+  }
+  return normalizeOutputPreviewParams(
+    toOutputPreviewParamsRecord(outputPreviewNode.params),
+    slotsOverride,
+  )
 }
 
 const buildTentativeNodeId = (): string => {

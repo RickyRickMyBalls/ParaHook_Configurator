@@ -14,6 +14,7 @@ import { Toolbar } from './components/Toolbar'
 import { ViewToolbar } from './components/ViewToolbar'
 import { ViewerHost } from './components/ViewerHost'
 import { ViewportOverlay } from './components/ViewportOverlay'
+import { ConsoleDock } from './console/ConsoleDock'
 import { BoxPanel } from './panels/BoxPanel'
 import { BrowserPanel } from './panels/BrowserPanel'
 import { PartsListPanel } from './panels/PartsListPanel'
@@ -823,6 +824,9 @@ export function AppShell() {
     }
 
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented) {
+        return
+      }
       if (event.key === 'Escape') {
         setLeftDockResizeMenu(null)
       }
@@ -1676,6 +1680,9 @@ export function AppShell() {
           )}px`,
         }
 
+  const consoleListLeftOffset =
+    isLeftDockViewportSplit && !showSplitLayout ? 0 : leftDockWidth
+
   return (
     <div ref={appShellRef} className="AppShellRoot">
       <aside
@@ -1993,6 +2000,7 @@ export function AppShell() {
             </div>
           </aside>
         ) : null}
+        <ConsoleDock listLeftOffset={consoleListLeftOffset} />
       </section>
       {isBrowserFloating ? (
         <aside className="BrowserFloatingDock">

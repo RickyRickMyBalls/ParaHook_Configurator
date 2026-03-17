@@ -7,6 +7,8 @@ export type BrowserRowActionHandlers = {
   sharedViewerCompositionActive: boolean
   onSaveGraph: (cachedGraphId: string) => void
   onOpenGraph: (graphDocumentId: string) => void
+  onTransformReference: (referenceId: string) => void
+  onViewInGraph: (graphDocumentId: string, nodeId: string | null) => void
   onOpenGraphInNewViewport: (graphDocumentId: string) => void
   onSwapFocusedEditorViewportToGraphDocument: (graphDocumentId: string) => void
   onRevealGraph: (graphDocumentId: string) => void
@@ -44,9 +46,23 @@ export const runBrowserRowAction = (
     return
   }
 
-  if (row.rowKind === 'published-output') {
-    if (action.actionId === 'reveal' && !handlers.sharedViewerCompositionActive) {
-      handlers.onRevealGraph(row.graphDocumentId)
+  if (row.rowKind === 'graph-rebuild-object' || row.rowKind === 'graph-node') {
+    if (action.actionId === 'view-in-graph') {
+      handlers.onViewInGraph(row.authoringGraphDocumentId, row.authoringNodeId)
+    }
+    return
+  }
+
+  if (row.rowKind === 'reference-item') {
+    if (action.actionId === 'transform-object') {
+      handlers.onTransformReference(row.referenceId)
+    }
+    return
+  }
+
+  if (row.rowKind === 'component' || row.rowKind === 'object') {
+    if (action.actionId === 'view-in-graph' && row.authoringGraphDocumentId !== null) {
+      handlers.onViewInGraph(row.authoringGraphDocumentId, row.authoringNodeId)
     }
     return
   }

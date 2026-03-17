@@ -4,6 +4,7 @@ import {
   createOutputPreviewNode,
   createOutputPreviewNodePatch,
   OUTPUT_PREVIEW_NODE_TYPE,
+  readNormalizedOutputPreviewParams,
 } from './outputPreviewNode'
 
 describe('createOutputPreviewNode', () => {
@@ -20,7 +21,7 @@ describe('createOutputPreviewNode', () => {
     expect(node.params).toEqual({
       componentLabel: 'Published Component',
       objects: [
-        { objectId: 'output-object:s001', slotId: 's001', label: 's001', orderIndex: 0 },
+        { objectId: 'output-object:s001', slotId: 's001', label: 'Object 1', orderIndex: 0 },
       ],
       slots: [{ slotId: 's001' }],
       nextSlotIndex: 2,
@@ -43,7 +44,35 @@ describe('createOutputPreviewNode', () => {
     expect(created?.params).toEqual({
       componentLabel: 'Published Component',
       objects: [
-        { objectId: 'output-object:s001', slotId: 's001', label: 's001', orderIndex: 0 },
+        { objectId: 'output-object:s001', slotId: 's001', label: 'Object 1', orderIndex: 0 },
+      ],
+      slots: [{ slotId: 's001' }],
+      nextSlotIndex: 2,
+    })
+  })
+
+  it('reads canonical normalized publish params from the graph OutputPreview node', () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-output-preview-1',
+          type: OUTPUT_PREVIEW_NODE_TYPE,
+          params: {
+            componentLabel: '  Pedal Component  ',
+            objects: [{ slotId: 's001', objectId: 'output-object:s001', label: '  Pedal Body  ' }],
+            slots: [{ slotId: 's001' }],
+            nextSlotIndex: 2,
+          },
+        },
+      ],
+      edges: [],
+    }
+
+    expect(readNormalizedOutputPreviewParams(graph)).toEqual({
+      componentLabel: 'Pedal Component',
+      objects: [
+        { objectId: 'output-object:s001', slotId: 's001', label: 'Pedal Body', orderIndex: 0 },
       ],
       slots: [{ slotId: 's001' }],
       nextSlotIndex: 2,

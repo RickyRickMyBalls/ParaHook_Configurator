@@ -4,6 +4,18 @@
 ### Fold Hack 3
 #### Fold Hack 4
 ##### Doc History
+20. 2026-03-16 23:10: Updated `VR - Phase 5` after shipping `02.4E`, so the family doc now treats `docs/Phase-Plans/Tasks/Old/02.4E - VR - Reference Transform Timelines.md` as the completed fifth reference-workspace cut, records the first shipped per-value timeline/curve-editor layer in the family execution history, and narrows the later carry-forward back to richer reference behavior beyond the now-shipped timeline surface
+19. 2026-03-16 20:45: Updated `VR - Phase 5` after shipping `02.4D`, so the family doc now treats `docs/Phase-Plans/Tasks/Old/02.4D - VR - Reference Transform Controls.md` as the completed fourth reference-workspace cut, marks the first-pass reference workspace family as complete, and pushes any later richer reference behavior forward into `[2.5]` instead of leaving `02.4D` framed as still active
+18. 2026-03-16 20:18: Updated `VR - Phase 5` after promoting `02.4D`, so the family doc now treats `docs/Phase-Plans/Tasks/02.4D - VR - Reference Transform Controls.md` as the active execution-spec carry-forward, narrows the remaining open question surface to richer later reference behavior rather than the transform-toolbar basics, and stops framing `2.4D` as only a vague later note
+17. 2026-03-16 20:14: Updated `VR - Phase 5` after `02.4C` shipped so the family doc now treats `docs/Phase-Plans/Tasks/Old/02.4C - VR - User Reference Import From Disk.md` as the completed third reference-workspace cut, narrows the remaining carry-forward to later transform/richer-control work, and no longer frames user import as the active unfinished execution spec
+16. 2026-03-16 19:46: Updated `VR - Phase 5` after promoting `02.4C`, so the family doc now treats `docs/Phase-Plans/Tasks/02.4C - VR - User Reference Import From Disk.md` as the active execution-spec carry-forward after the shipped `02.4A` and `02.4B` cuts instead of still pointing at the old `Tasks/Future` planning path
+15. 2026-03-16 17:18: Corrected the stale `VR - Phase 5` checklist markers after `02.4B` shipped so the family checklist now marks the already-delivered Browser placement, static-manifest ownership split, category structure, viewer-state row behavior, source-root convention, and first `.step` support as done instead of still reading like an untouched placeholder
+14. 2026-03-16 17:18: Updated `VR - Phase 5` after `02.4B` shipped so the family doc now treats both `02.4A` and `02.4B` as completed prerequisites in `Tasks/Old/`, clears the stale “active execution spec” wording, marks the first `.step` cut as shipped, and narrows the remaining carry-forward to the future `02.4C` user-import follow-up plus later richer reference behavior
+13. 2026-03-16 17:08: Corrected one stale `VR - Phase 5` planning note after the `02.4B` promotion so the family doc no longer points at shipped `02.4A` as the active implementation surface and instead keeps the active-spec reference aligned to `docs/Phase-Plans/Tasks/02.4B - VR - Expanded Reference File Support.md`
+12. 2026-03-16 16:58: Updated `VR - Phase 5` again after `02.4A` shipped and `02.4B` was promoted, so the family doc now treats the static-manifest reference workspace as the completed prerequisite in `Tasks/Old/`, points the active execution-spec slot at `02.4B`, and narrows the remaining carry-forward to `.step` support plus later user-import follow-up
+11. 2026-03-16 15:37: Updated `VR - Phase 5` again after the `2.4` roadmap split so the family doc now points at the active `02.4A` execution spec and recognizes `02.4B` plus `02.4C` as later future-task follow-ups for expanded file support and user-imported references
+10. 2026-03-16 15:25: Updated `VR - Phase 5` to point at the active `02.4` execution spec in `docs/Phase-Plans/Tasks/`, tightened the family wording so the Browser/reference answers now read as locked direction instead of open placeholder questions, and marked the family phase as feeding an active implementation target
+9. 2026-03-16 15:06: Expanded `VR - Phase 5 - Reference Asset Workspace And Project View Layers` from a bare placeholder into a real family planning home, pointing it at the live `02.4` future task doc and adding the main Browser/viewer questions still needed before implementation
 8. 2026-03-12 14:45: Added a `2.1C` carry-forward note under the shared `[2.1]` `VR` planning surface so the family doc now explicitly treats the Fusion-style Browser cleanup as a real later subcut covering tree-first row presentation, moving heavy row commands into context menus, and making Browser section labels honest about current shell reality rather than burying that work in later `[3.3]` workspace-presentation polish
 7. 2026-03-13 10:48: Locked the shared `[2.1]` `VR` questions and created the first dedicated future task doc, so the Browser/workspace side of `Lane [2.1]` now has a closed first-pass decision surface plus a plan-doc home for the next implementation-spec rewrite
 6. 2026-03-13 10:41: Tightened the shared `[2.1]` `VR` suggested answers to capture the intended Browser row model directly, locking the idea that every Browser row should share one calm row anatomy with small right-aligned controls while single-click selection may drive presentation-only viewer emphasis without mutating editor focus or composition truth
@@ -154,30 +166,114 @@ Current placeholder understanding:
 
 - [ ] define the target radio/sampler return scope
 
-## [ ] - VR - Phase 5 - `Reference Asset Workspace And Project View Layers`
+## [x] - VR - Phase 5 - `Reference Asset Workspace And Project View Layers`
 
-Human Summary: Future placeholder. This phase is listed in the canonical setup ladder but has not been completed in the current tracked history.
+ Human Summary: Completed first-pass reference-workspace phase family. This phase now records the shipped static-manifest, `.step`, user-import, and reference-transform cuts, while later richer reference behavior moves on to `[2.5]`.
 
 ### Phase 5 Overview
 #### Fold Hack 4
 
 ##### Phase Notes
 
-This is currently a future canonical `VR` phase.
+- This is now a completed first-pass canonical `VR` phase.
+- The completed shipped prerequisite is:
+  - `docs/Phase-Plans/Tasks/Old/02.4A - VR - Static Manifest Reference Workspace.md`
+- The completed `.step` follow-up is:
+  - `docs/Phase-Plans/Tasks/Old/02.4B - VR - Expanded Reference File Support.md`
+- The completed user-import follow-up is:
+  - `docs/Phase-Plans/Tasks/Old/02.4C - VR - User Reference Import From Disk.md`
+- The completed transform-controls follow-up is:
+  - `docs/Phase-Plans/Tasks/Old/02.4D - VR - Reference Transform Controls.md`
+- Use this family section for the `VR` framing and carry-forward summary.
 
 ##### Phase Summary
 
-Current placeholder understanding:
-- this phase should add Browser/viewer sections for external reference assets and project-view context layers
-- it should keep references separate from `Project File` ownership in the first pass
-- it should become the family home for project-versus-reference view layering after the earlier Browser and ownership foundations land
+Current planning understanding:
+- this phase should bring external reference models back into the Browser and viewer as workspace context layers
+- it should keep references separate from first-pass `Project File` ownership
+- it should keep reference behavior separate from published project `Content` even if references live visually inside the `Content` area of the Browser tree
+- it should become the family home for the first project-versus-reference viewer-layer split before the later richer controls/materials phase
+
+Current preferred visual direction:
+- `Project Browser`
+  - `Content`
+    - `References`
+      - `Footpads`
+      - `Shoes`
+      - `Premade Foothooks`
+    - first assembly/content rows
+  - `Graph Documents`
+  - `Open Editors`
+
+Current preferred reference-row direction:
+- references should use calm viewer-state bars rather than build/rebuild bars
+- `blue` means the reference is visible in the viewer
+- `gray` means the reference is hidden in the viewer
+- clicking a reference row should toggle that reference on/off in the viewer
+
+Current execution-spec direction:
+- `2.4` now uses a static checked-in manifest rather than folder scanning
+- references are lazy-loaded on first toggle
+- references stay hidden by default on app load
+- `02.4A` shipped the static-manifest workspace for `.obj`, `.glb`, and `.stl`
+- `02.4B` shipped the first `.step` cut and real `Premade Foothooks` population
+- `02.4C` shipped the first workspace-only user import flow under `References > User References`
+- `02.4D` shipped the first right-click `Transform Object` flow, floating toolbar control, and session-only reference transform overrides
+- `02.4E` shipped the first per-value `Basic / Timeline` animation layer with speed control, editable curve graphs, and cycle modes inside the reference transform toolbar
+- later split:
+  - `2.4A` = static-manifest reference workspace
+  - `2.4B` = expanded file support such as `.step`
+  - `2.4C` = user reference import from disk
+  - `2.4D` = reference transform controls
+  - `2.4E` = reference transform timelines
 
 ### Phase 5 CheckList
 
-- [ ] define the reference-asset workspace surface
-- [ ] keep references outside first-pass `Project File` ownership
-- [ ] define project-versus-reference visibility separation
-- [ ] leave stronger section-cut or deeper inspection behavior as later viewer follow-up if still needed
+- [x] define the reference-asset workspace surface
+- [x] keep references outside first-pass `Project File` ownership
+- [x] define project-versus-reference visibility separation
+- [x] lock the clean Browser-tree placement for `References` inside the `Content` area without turning references into real published `Content`
+- [x] lock the first legacy reference category parents:
+  - `Footpads`
+  - `Shoes`
+  - `Premade Foothooks`
+- [x] ship the first workspace-only user import flow under `References > User References`
+- [x] lock the first reference viewer-state row behavior:
+  - `blue = on`
+  - `gray = off`
+  - click row = toggle visibility
+- [x] lock the first reference-model source-root convention under `public/ReferenceModels/`
+- [x] add the first real `.step` support so `Premade Foothooks` is no longer placeholder-only
+- [x] leave stronger section-cut or deeper inspection behavior as later viewer follow-up if still needed
+
+### Phase 5 Question Surface
+#### Fold Hack 5
+
+##### Planning Notes
+
+- This section is now mostly a carry-forward reminder rather than the main decision surface.
+- The shipped implementation history now lives in:
+  - `docs/Phase-Plans/Tasks/Old/02.4A - VR - Static Manifest Reference Workspace.md`
+  - `docs/Phase-Plans/Tasks/Old/02.4B - VR - Expanded Reference File Support.md`
+- `docs/Phase-Plans/Tasks/Old/02.4C - VR - User Reference Import From Disk.md`
+- `docs/Phase-Plans/Tasks/Old/02.4D - VR - Reference Transform Controls.md`
+- `docs/Phase-Plans/Tasks/Old/02.4E - VR - Reference Transform Timelines.md`
+- Keep any remaining questions here constrained to later carry-forward such as `[2.5]` and richer reference behavior, not the already-shipped `02.4A` / `02.4B` / `02.4C` / `02.4D` / `02.4E` implementation cuts.
+- Keep this family question surface focused on what is still beyond the shipped `02.4E` timeline cut.
+
+##### Questions To Answer
+
+- Should later phases add a global top-level references visibility toggle above the v1 per-category/per-item behavior?
+- When richer Browser controls arrive in `[2.5]`, which controls belong on reference rows versus category rows?
+- After shipped `02.4E`, which later reference animation controls still belong beyond the first per-value timeline cut:
+  - higher-order playback controls
+  - richer timeline authoring surfaces
+  - cross-value coordination or presets
+- Should a later viewer/reference phase add selection/focus behavior for references without blurring them into project-owned content?
+- After shipped `02.4B` adds `.step`, which later reference-file concerns still justify a separate follow-up before user import:
+  - loader offloading
+  - more file types
+  - stronger per-format transforms/material defaults
 
 ## [ ] - VR / SP - Lane [2.1] - `Browser Workspace Shell And Item Interaction`
 

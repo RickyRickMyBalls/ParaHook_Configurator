@@ -33,10 +33,16 @@ vi.mock('../spaghetti/ui/SpaghettiEditor', () => ({
   SpaghettiEditor: ({
     viewMode,
     focusNodeId,
+    fitNodeId,
+    fitNodeRequestKey,
   }: {
     viewMode: string
     focusNodeId: string | null
-  }) => <div>{`Spaghetti Editor Canvas ${viewMode} ${focusNodeId ?? 'no-focus'}`}</div>,
+    fitNodeId?: string | null
+    fitNodeRequestKey?: number
+  }) => (
+    <div>{`Spaghetti Editor Canvas ${viewMode} ${focusNodeId ?? 'no-focus'} ${fitNodeId ?? 'no-fit'} ${fitNodeRequestKey ?? 0}`}</div>
+  ),
 }))
 
 vi.mock('../spaghetti/ui/SpaghettiEditorBoundary', () => ({
@@ -88,6 +94,7 @@ describe('SpaghettiPanel', () => {
       },
       graphDocumentOrder: ['graph-document-1', 'graph-document-2'],
       selectedNodeId: 'node-1',
+      editorViewportNodeFitRequest: null,
       editorViewportsById: {
         'editor-viewport-1': {
           editorViewportId: 'editor-viewport-1',
@@ -183,6 +190,21 @@ describe('SpaghettiPanel', () => {
     })
 
     expect(select?.value).toBe('node-2')
+  })
+
+  it('forwards an external viewport-targeted node-fit request into the editor canvas props', async () => {
+    currentSpaghettiState = {
+      ...currentSpaghettiState,
+      editorViewportNodeFitRequest: {
+        editorViewportId: 'editor-viewport-1',
+        nodeId: 'node-2',
+        key: 7,
+      },
+    }
+
+    ;({ container, root } = await renderSpaghettiPanel())
+
+    expect(container?.textContent).toContain('Spaghetti Editor Canvas expanded node-1 node-2 7')
   })
 
   it('keeps the focus node row outside the scrollable toolbar block', async () => {

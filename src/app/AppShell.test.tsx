@@ -3,6 +3,7 @@
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { useConsoleStore } from './console/useConsoleStore'
 
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
   true
@@ -229,6 +230,7 @@ describe('AppShell', () => {
   let container: HTMLDivElement | null = null
 
   beforeEach(() => {
+    useConsoleStore.setState(useConsoleStore.getInitialState(), true)
     currentSpaghettiState = {
       activeEditorViewportId: 'editor-viewport-1',
       editorViewportsById: {
@@ -306,7 +308,77 @@ describe('AppShell', () => {
     expect(container?.querySelector('.SpaghettiFloatingHandle')).not.toBeNull()
     expect(container?.querySelector('.SpaghettiFloatingBody')).toBeNull()
     expect(container?.textContent).toContain('Viewer Host')
+    expect(container?.querySelector('.ConsoleBar')).not.toBeNull()
     expect(container?.textContent).not.toContain('Spaghetti Panel editor-viewport-1')
+  })
+
+  it('keeps a persistent bottom console row and expands it from the shell', async () => {
+    ;({ container, root } = await renderAppShell())
+
+    expect(container?.querySelector('.ConsoleBar')).not.toBeNull()
+    expect(container?.querySelector('.ConsolePanel')).toBeNull()
+
+    const expandButton = container?.querySelector(
+      'button[aria-label="Expand console"]',
+    ) as HTMLButtonElement | null
+    expect(expandButton).not.toBeNull()
+
+    await act(async () => {
+      expandButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(container?.querySelector('.ConsolePanel')).not.toBeNull()
+  })
+
+  it('anchors console list mode to the browser resize seam and moves it with dock resize', async () => {
+    useConsoleStore.getState().appendEntry({
+      layer: 'Worker',
+      text: 'Build started',
+      source: 'app-shell-test',
+    })
+    useConsoleStore.getState().switchToList()
+
+    ;({ container, root } = await renderAppShell())
+    mockShellGeometry(container)
+
+    const listView = container?.querySelector('.ConsoleListView') as HTMLDivElement | null
+    const resizeHandle = container?.querySelector('.LeftDockResizeHandle') as HTMLDivElement | null
+    expect(listView).not.toBeNull()
+    expect(listView?.style.left).toBe('320px')
+    expect(listView?.textContent).toContain('Build started')
+    expect(resizeHandle).not.toBeNull()
+
+    await act(async () => {
+      resizeHandle?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: 320,
+          clientY: 300,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 392,
+          clientY: 300,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 392,
+          clientY: 300,
+        }),
+      )
+    })
+
+    expect((container?.querySelector('.ConsoleListView') as HTMLDivElement | null)?.style.left).toBe(
+      '392px',
+    )
   })
 
   it('renders split view as a non-overlay top/bottom layout', async () => {

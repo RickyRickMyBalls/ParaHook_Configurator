@@ -6,6 +6,7 @@ const graphRow: BrowserRenderableRowVm = {
   rowId: 'graph-row:graph-document-1',
   rowKind: 'graph-document',
   depth: 0,
+  treeGuides: [],
   cachedGraphId: 'cached-graph-1',
   graphDocumentId: 'graph-document-1',
   isInSharedViewerComposition: false,
@@ -24,19 +25,43 @@ const graphRow: BrowserRenderableRowVm = {
   children: [],
 }
 
-const publishedOutputRow: BrowserRenderableRowVm = {
-  rowId: 'published-output-row:graph-document-1:output-entry:s001:node-a',
-  rowKind: 'published-output',
+const graphRebuildRow: BrowserRenderableRowVm = {
+  rowId: 'graph-rebuild-row:graph-document-1:project-object:project-file-1:graph-document-1:object-a',
+  rowKind: 'graph-rebuild-object',
   depth: 1,
+  treeGuides: [],
   graphDocumentId: 'graph-document-1',
-  outputEntryId: 'output-entry:s001:node-a',
-  state: 'resolved',
-  highlightViewerKey: 's001',
+  objectRowId: 'project-object:project-file-1:graph-document-1:object-a',
+  objectSourceKind: 'published-object',
+  buildState: 'rebuild',
+  buildStateLabel: 'Rebuild',
+  resolutionState: 'resolved',
+  sourceOutputEntryId: 'output-entry:s001:node-a',
+  sourceNodeId: 'node-a',
   authoringGraphDocumentId: 'graph-document-1',
   authoringNodeId: 'node-a',
   iconLabel: 'O',
-  label: 's001',
-  meta: 'Resolved | Build 7',
+  label: 'Object A',
+  meta: '',
+  isSelected: false,
+  isExpandable: false,
+  isExpanded: false,
+  actions: [],
+}
+
+const graphNodeRow: BrowserRenderableRowVm = {
+  rowId: 'graph-node-row:graph-document-1:node-a',
+  rowKind: 'graph-node',
+  depth: 1,
+  treeGuides: [],
+  graphDocumentId: 'graph-document-1',
+  nodeId: 'node-a',
+  nodeType: 'Part/Cube',
+  authoringGraphDocumentId: 'graph-document-1',
+  authoringNodeId: 'node-a',
+  iconLabel: 'N',
+  label: 'Cube',
+  meta: 'Part/Cube | node-a',
   isSelected: false,
   isExpandable: false,
   isExpanded: false,
@@ -47,6 +72,7 @@ const viewportRow: BrowserRenderableRowVm = {
   rowId: 'viewport-row:editor-viewport-1',
   rowKind: 'viewport',
   depth: 0,
+  treeGuides: [],
   editorViewportId: 'editor-viewport-1',
   graphDocumentId: 'graph-document-1',
   iconLabel: 'V',
@@ -56,6 +82,29 @@ const viewportRow: BrowserRenderableRowVm = {
   isExpandable: false,
   isExpanded: false,
   actions: [],
+}
+
+const referenceItemRow: BrowserRenderableRowVm = {
+  rowId: 'reference-item-row:shoe:shoe-1',
+  rowKind: 'reference-item',
+  depth: 2,
+  treeGuides: [],
+  referenceId: 'shoe:shoe-1',
+  sourceKind: 'manifest',
+  categoryId: 'shoes',
+  fileType: 'glb',
+  assetPath: '/ReferenceModels/shoes/Shoe_1.glb',
+  state: 'hidden',
+  stateLabel: 'Off',
+  errorMessage: null,
+  iconLabel: 'R',
+  label: 'Shoe 1',
+  meta: 'GLB',
+  isSelected: false,
+  isExpandable: false,
+  isExpanded: false,
+  actions: [],
+  showOverflowButton: false,
 }
 
 const action = (actionId: BrowserTreeRowActionVm['actionId']): BrowserTreeRowActionVm => ({
@@ -68,6 +117,8 @@ const handlers = (sharedViewerCompositionActive = false) => ({
   sharedViewerCompositionActive,
   onSaveGraph: vi.fn(),
   onOpenGraph: vi.fn(),
+  onTransformReference: vi.fn(),
+  onViewInGraph: vi.fn(),
   onOpenGraphInNewViewport: vi.fn(),
   onSwapFocusedEditorViewportToGraphDocument: vi.fn(),
   onRevealGraph: vi.fn(),
@@ -84,21 +135,75 @@ describe('runBrowserRowAction', () => {
     expect(nextHandlers.onRevealGraph).toHaveBeenCalledWith('graph-document-1')
   })
 
-  it('reveals a published output row by targeting its source graph document', () => {
+  it('routes a graph rebuild row back through view-in-graph targeting', () => {
     const nextHandlers = handlers(false)
 
-    runBrowserRowAction(publishedOutputRow, action('reveal'), nextHandlers)
+    runBrowserRowAction(graphRebuildRow, action('view-in-graph'), nextHandlers)
 
-    expect(nextHandlers.onRevealGraph).toHaveBeenCalledWith('graph-document-1')
+    expect(nextHandlers.onViewInGraph).toHaveBeenCalledWith('graph-document-1', 'node-a')
+  })
+
+  it('routes a graph node row through the same authoring jump path', () => {
+    const nextHandlers = handlers(true)
+
+    runBrowserRowAction(graphNodeRow, action('view-in-graph'), nextHandlers)
+
+    expect(nextHandlers.onViewInGraph).toHaveBeenCalledWith('graph-document-1', 'node-a')
   })
 
   it('does not retarget viewer reveal while shared composition is active', () => {
     const nextHandlers = handlers(true)
 
     runBrowserRowAction(graphRow, action('reveal'), nextHandlers)
-    runBrowserRowAction(publishedOutputRow, action('reveal'), nextHandlers)
 
     expect(nextHandlers.onRevealGraph).not.toHaveBeenCalled()
+  })
+
+  it('routes content trace actions through view-in-graph instead of reveal targeting', () => {
+    const nextHandlers = handlers(false)
+
+    runBrowserRowAction(
+      {
+        rowId: 'project-object:project-file-1:graph-document-1:pedal-body',
+        rowKind: 'object',
+        depth: 1,
+        treeGuides: [],
+        buildState: 'rebuild',
+        buildStateLabel: 'Rebuild',
+        rebuildGraphDocumentIds: ['graph-document-1'],
+        ownerGraphDocumentId: 'graph-document-1',
+        parentComponentId: null,
+        objectSourceKind: 'published-object',
+        sourceGraphDocumentId: 'graph-document-1',
+        sourceOutputEntryId: 'output-entry:s001:node-a',
+        slotId: 's001',
+        sourceNodeId: 'node-a',
+        resolutionState: 'resolved',
+        highlightViewerKey: 's001',
+        authoringGraphDocumentId: 'graph-document-1',
+        authoringNodeId: 'node-a',
+        iconLabel: 'O',
+        label: 'Pedal Body',
+        meta: 'Graph 1',
+        isSelected: false,
+        isExpandable: false,
+        isExpanded: false,
+        actions: [],
+      },
+      action('view-in-graph'),
+      nextHandlers,
+    )
+
+    expect(nextHandlers.onViewInGraph).toHaveBeenCalledWith('graph-document-1', 'node-a')
+    expect(nextHandlers.onRevealGraph).not.toHaveBeenCalled()
+  })
+
+  it('routes a reference transform action through the reference transform handler', () => {
+    const nextHandlers = handlers(false)
+
+    runBrowserRowAction(referenceItemRow, action('transform-object'), nextHandlers)
+
+    expect(nextHandlers.onTransformReference).toHaveBeenCalledWith('shoe:shoe-1')
   })
 
   it('keeps explicit viewport focus movement separate from row-body selection', () => {

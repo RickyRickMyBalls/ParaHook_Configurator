@@ -7,6 +7,11 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from 'react'
 import {
+  REFERENCE_IMPORT_LABEL_BY_FILE_TYPE,
+  importReferenceFileFromDisk,
+} from '../references/importReferenceFile'
+import type { ReferenceFileType } from '../references/referenceManifest'
+import {
   defaultViewportPosition,
   selectSharedViewerComposition,
   selectSharedViewerCompositionGraphDocumentIds,
@@ -14,16 +19,22 @@ import {
 } from '../spaghetti/store/useSpaghettiStore'
 import {
   selectCurrentProjectContentBrowserRows,
+  selectReferenceWorkspaceBrowserTree,
   useAppStore,
 } from '../store/useAppStore'
 import { selectBrowserGraphRows } from './selectBrowserGraphRows'
 import { runBrowserRowAction } from './browserRowActions'
 import {
   type BrowserRenderableRowVm,
+  type BrowserReferenceCategoryTreeRowVm,
+  type BrowserReferenceItemTreeRowVm,
+  type BrowserReferencesRootTreeRowVm,
   type BrowserGraphTreeRowVm,
+  type BrowserGraphSectionTreeRowVm,
   type BrowserTreeRowActionVm,
   selectBrowserTreeRows,
 } from './selectBrowserTreeRows'
+import { appendConsoleEntry } from '../console/useConsoleStore'
 
 type BrowserGraphBuildPolicy = 'live' | 'release' | 'manual'
 
@@ -32,17 +43,6 @@ const BROWSER_GRAPH_BUILD_POLICY_ORDER: readonly BrowserGraphBuildPolicy[] = [
   'release',
   'manual',
 ]
-
-const browserGraphBuildPolicyChipLabel = (policy: BrowserGraphBuildPolicy): string => {
-  switch (policy) {
-    case 'release':
-      return 'R'
-    case 'manual':
-      return 'M'
-    default:
-      return 'L'
-  }
-}
 
 const browserGraphBuildPolicyLabel = (policy: BrowserGraphBuildPolicy): string => {
   switch (policy) {
@@ -64,15 +64,40 @@ const cycleBrowserGraphBuildPolicy = (
   ]
 }
 
+const describeBrowserRow = (row: BrowserRenderableRowVm): string => {
+  switch (row.rowKind) {
+    case 'reference-item':
+      return `Reference ${row.label}`
+    case 'reference-category':
+      return `Category ${row.label}`
+    case 'references-root':
+      return row.label
+    case 'graph-document':
+      return `Graph ${row.label}`
+    case 'graph-node':
+      return `Node ${row.label}`
+    case 'graph-section':
+      return `Graph section ${row.label}`
+    case 'viewport':
+      return `Viewport ${row.label}`
+    case 'assembly':
+    case 'component':
+    case 'object':
+      return `${row.rowKind} ${row.label}`
+    default:
+      return row.label
+  }
+}
+
 function BrowserTreeRowShell(props: {
   row: BrowserRenderableRowVm
-  graphBuildPolicy: BrowserGraphBuildPolicy | null
+  contentBuildPolicy: BrowserGraphBuildPolicy | null
   isOverflowMenuOpen: boolean
   isSaveMenuOpen: boolean
   onSelect: (row: BrowserRenderableRowVm) => void
   onDoubleSelect?: (row: BrowserRenderableRowVm) => void
   onToggleExpand?: (row: BrowserRenderableRowVm) => void
-  onCycleGraphBuildPolicy?: (graphDocumentId: string) => void
+  onCycleContentBuildPolicy?: (rowId: string) => void
   onContextMenu: (
     row: BrowserRenderableRowVm,
     event: ReactMouseEvent<HTMLDivElement | HTMLButtonElement>,
@@ -85,18 +110,22 @@ function BrowserTreeRowShell(props: {
     row: BrowserGraphTreeRowVm,
     event: ReactMouseEvent<HTMLButtonElement>,
   ) => void
+  onRetryReferenceRow?: (referenceId: string) => void
+  onRemoveImportedReferenceRow?: (referenceId: string) => void
   onCloseViewportRow?: (editorViewportId: string) => void
 }) {
   const {
-    graphBuildPolicy,
+    contentBuildPolicy,
     isOverflowMenuOpen,
     isSaveMenuOpen,
     onCloseViewportRow,
     onContextMenu,
-    onCycleGraphBuildPolicy,
+    onCycleContentBuildPolicy,
     onDoubleSelect,
     onOpenMenu,
     onOpenSaveMenu,
+    onRemoveImportedReferenceRow,
+    onRetryReferenceRow,
     onSelect,
     onToggleExpand,
     row,
@@ -104,24 +133,76 @@ function BrowserTreeRowShell(props: {
 
   const isGraphRow = row.rowKind === 'graph-document'
   const graphRow = isGraphRow ? (row as BrowserGraphTreeRowVm) : null
+  const graphSectionRow =
+    row.rowKind === 'graph-section' ? (row as BrowserGraphSectionTreeRowVm) : null
+  const referenceRootRow =
+    row.rowKind === 'references-root' ? (row as BrowserReferencesRootTreeRowVm) : null
+  const referenceCategoryRow =
+    row.rowKind === 'reference-category' ? (row as BrowserReferenceCategoryTreeRowVm) : null
+  const referenceItemRow =
+    row.rowKind === 'reference-item' ? (row as BrowserReferenceItemTreeRowVm) : null
+  const referenceRow = referenceRootRow ?? referenceCategoryRow ?? referenceItemRow
+  const isImportedReferenceRow = referenceItemRow?.sourceKind === 'imported'
+  const isContentRow =
+    row.rowKind === 'assembly' || row.rowKind === 'component' || row.rowKind === 'object'
+  const isGraphRebuildRow = row.rowKind === 'graph-rebuild-object'
+  const isGraphChildPlainRow = row.rowKind === 'graph-section' || row.rowKind === 'graph-node'
+  const isReferenceRow = referenceRow !== null
+  const isViewportRow = row.rowKind === 'viewport'
+  const buildSurfaceRow =
+    isContentRow || isGraphRebuildRow
+      ? row
+      : null
   const isActiveViewportRow = row.rowKind === 'viewport' && row.meta === 'Active editor'
+  const contentStatusLabel = buildSurfaceRow ? buildSurfaceRow.statusLabel ?? '' : ''
+  const contentStatusTone = buildSurfaceRow ? buildSurfaceRow.statusTone ?? 'quiet' : 'quiet'
+  const contentBuildState = buildSurfaceRow ? buildSurfaceRow.buildState : 'done'
+  const contentBuildStateLabel = buildSurfaceRow ? buildSurfaceRow.buildStateLabel : ''
   const rowClassName = [
     'BrowserTreeRow',
+    `BrowserTreeRow--${row.rowKind}`,
+    `BrowserTreeRow--depth-${row.depth}`,
     row.isSelected ? 'isSelected' : '',
+    !row.isExpandable ? 'isLeaf' : '',
     graphRow?.openViewportCount ? 'isOpen' : '',
     graphRow?.hasFocusedViewport || isActiveViewportRow ? 'isActiveEditor' : '',
-    graphRow?.buildState === 'building' ? 'isBuilding' : '',
+    graphRow?.buildState === 'building' || contentBuildState === 'building' ? 'isBuilding' : '',
   ]
     .filter((value) => value.length > 0)
     .join(' ')
+  const rowMainClassName = [
+    'BrowserTreeRowMain',
+    graphRow !== null ? 'isGraphRow' : '',
+    isContentRow ? 'isContentRow' : '',
+    isGraphRebuildRow ? 'isGraphChildBuildRow' : '',
+    isReferenceRow ? 'isReferenceRow' : '',
+    isGraphChildPlainRow ? 'isGraphChildPlainRow' : '',
+    isViewportRow ? 'isViewportRow' : '',
+    isContentRow ? `isContentRow--${contentBuildState}` : '',
+    isGraphRebuildRow ? `isGraphChildBuildRow--${contentBuildState}` : '',
+    row.rowKind === 'object' ? 'isContentRow--slim' : '',
+    row.rowKind === 'graph-rebuild-object' ? 'isGraphChildBuildRow--slim' : '',
+  ]
+    .filter((value) => value.length > 0)
+    .join(' ')
+  const showOverflowButton = (row.showOverflowButton ?? true) && row.actions.length > 0
 
   return (
     <div
       className={rowClassName}
       onContextMenu={(event) => onContextMenu(row, event)}
-      style={{ marginLeft: `${row.depth * 16}px` }}
     >
       <div className="BrowserTreeRowLead">
+        {row.treeGuides.length > 0 ? (
+          <span className="BrowserTreeRowGuides" aria-hidden="true">
+            {row.treeGuides.map((guide, index) => (
+              <span
+                key={`${row.rowId}:guide:${index}`}
+                className={`BrowserTreeRowGuide BrowserTreeRowGuide--${guide}`}
+              />
+            ))}
+          </span>
+        ) : null}
         {row.isExpandable ? (
           <button
             type="button"
@@ -130,8 +211,12 @@ function BrowserTreeRowShell(props: {
             aria-label={
               isGraphRow
                 ? row.isExpanded
-                  ? `Collapse ${row.label} published outputs`
-                  : `Expand ${row.label} published outputs`
+                  ? `Collapse ${row.label} child sections`
+                  : `Expand ${row.label} child sections`
+                : graphSectionRow !== null
+                  ? row.isExpanded
+                    ? `Collapse ${row.label}`
+                    : `Expand ${row.label}`
                 : row.isExpanded
                   ? `Collapse ${row.label} children`
                   : `Expand ${row.label} children`
@@ -144,19 +229,19 @@ function BrowserTreeRowShell(props: {
             .
           </span>
         )}
-        {graphRow !== null && graphBuildPolicy !== null ? (
+        {isContentRow && contentBuildPolicy !== null ? (
           <button
             type="button"
-            className={`BrowserTreeRowPolicy BrowserTreeRowPolicy--${graphBuildPolicy}`}
+            className={`BrowserTreeRowIcon BrowserTreeRowIcon--policy BrowserTreeRowIcon--${contentBuildPolicy}`}
             onClick={(event) => {
               event.preventDefault()
               event.stopPropagation()
-              onCycleGraphBuildPolicy?.(graphRow.graphDocumentId)
+              onCycleContentBuildPolicy?.(row.rowId)
             }}
-            aria-label={`Cycle build policy for ${graphRow.label}. Current policy ${browserGraphBuildPolicyLabel(graphBuildPolicy)}`}
-            title={`Build policy: ${browserGraphBuildPolicyLabel(graphBuildPolicy)}`}
+            aria-label={`Cycle build policy for ${row.label}. Current policy ${browserGraphBuildPolicyLabel(contentBuildPolicy)}`}
+            title={`Build policy: ${browserGraphBuildPolicyLabel(contentBuildPolicy)}`}
           >
-            {browserGraphBuildPolicyChipLabel(graphBuildPolicy)}
+            {row.iconLabel}
           </button>
         ) : (
           <span className="BrowserTreeRowIcon" aria-hidden="true">
@@ -167,7 +252,7 @@ function BrowserTreeRowShell(props: {
 
       <button
         type="button"
-        className={`BrowserTreeRowMain ${graphRow !== null ? 'isGraphRow' : ''}`}
+        className={rowMainClassName}
         onClick={() => onSelect(row)}
         onDoubleClick={() => {
           onSelect(row)
@@ -175,7 +260,6 @@ function BrowserTreeRowShell(props: {
         }}
         aria-pressed={row.isSelected}
       >
-        <span className="BrowserTreeRowLabel">{row.label}</span>
         {graphRow !== null ? (
           <span
             className={`BrowserGraphStateBar BrowserGraphStateBar--${graphRow.buildState}`}
@@ -187,8 +271,54 @@ function BrowserTreeRowShell(props: {
               <span className="BrowserGraphStateText">{graphRow.buildStateLabel}</span>
             ) : null}
           </span>
+        ) : buildSurfaceRow !== null ? (
+          <span
+            className={`BrowserContentStateBar BrowserContentStateBar--${contentBuildState} ${
+              row.rowKind === 'object' || row.rowKind === 'graph-rebuild-object'
+                ? 'BrowserContentStateBar--slim'
+                : ''
+            }`}
+            title={row.meta}
+          >
+            <span className="BrowserContentStateFill" aria-hidden="true" />
+            <span className="BrowserTreeRowText">
+              <span className="BrowserTreeRowLabel">{row.label}</span>
+              {row.meta.length > 0 ? <span className="BrowserTreeRowMeta">{row.meta}</span> : null}
+            </span>
+            {contentBuildStateLabel.length > 0 || contentStatusLabel.length > 0 ? (
+              <span className="BrowserContentStateMeta">
+                {contentBuildStateLabel.length > 0 ? (
+                  <span className="BrowserContentStateText">{contentBuildStateLabel}</span>
+                ) : null}
+                {contentStatusLabel.length > 0 ? (
+                  <span
+                    className={`BrowserTreeRowStatus BrowserTreeRowStatus--${contentStatusTone} BrowserTreeRowStatus--inline`}
+                  >
+                    {contentStatusLabel}
+                  </span>
+                ) : null}
+              </span>
+            ) : null}
+          </span>
+        ) : referenceRow !== null ? (
+          <span
+            className={`BrowserReferenceStateBar BrowserReferenceStateBar--${referenceRow.state}`}
+            title={row.meta}
+          >
+            <span className="BrowserReferenceStateFill" aria-hidden="true" />
+            <span className="BrowserTreeRowText">
+              <span className="BrowserTreeRowLabel">{row.label}</span>
+              {row.meta.length > 0 ? <span className="BrowserTreeRowMeta">{row.meta}</span> : null}
+            </span>
+            <span className="BrowserReferenceStateText">{referenceRow.stateLabel}</span>
+          </span>
         ) : (
-          <span className="BrowserTreeRowMeta">{row.meta}</span>
+          <span className="BrowserGraphChildPlainBar" title={row.meta}>
+            <span className="BrowserTreeRowText">
+              <span className="BrowserTreeRowLabel">{row.label}</span>
+              {row.meta.length > 0 ? <span className="BrowserTreeRowMeta">{row.meta}</span> : null}
+            </span>
+          </span>
         )}
       </button>
 
@@ -233,7 +363,39 @@ function BrowserTreeRowShell(props: {
         </button>
       ) : null}
 
-      {row.actions.length > 0 ? (
+      {isImportedReferenceRow && referenceItemRow.state === 'error' ? (
+        <button
+          type="button"
+          className="BrowserTreeRowQuickAction BrowserTreeRowQuickAction--retry"
+          onClick={(event) => {
+            event.preventDefault()
+            event.stopPropagation()
+            onRetryReferenceRow?.(referenceItemRow.referenceId)
+          }}
+          aria-label={`Retry ${row.label}`}
+          title={`Retry ${row.label}`}
+        >
+          ↻
+        </button>
+      ) : null}
+
+      {isImportedReferenceRow ? (
+        <button
+          type="button"
+          className="BrowserTreeRowQuickAction BrowserTreeRowQuickAction--close"
+          onClick={(event) => {
+            event.preventDefault()
+            event.stopPropagation()
+            onRemoveImportedReferenceRow?.(referenceItemRow.referenceId)
+          }}
+          aria-label={`Remove ${row.label}`}
+          title={`Remove ${row.label}`}
+        >
+          x
+        </button>
+      ) : null}
+
+      {showOverflowButton ? (
         <button
           type="button"
           className={`BrowserTreeRowOverflow ${isOverflowMenuOpen ? 'isActive' : ''}`}
@@ -255,6 +417,11 @@ type BrowserContextMenuState = {
   y: number
   actions: BrowserTreeRowActionVm[]
   source: 'row' | 'save-button'
+}
+
+type BrowserImportMenuState = {
+  x: number
+  y: number
 }
 
 type BrowserPanelProps = {
@@ -302,24 +469,51 @@ export function BrowserPanel({
     (state) => state.setViewerTargetGraphDocumentId,
   )
   const setSelectedNodeId = useSpaghettiStore((state) => state.setSelectedNodeId)
+  const requestEditorViewportNodeFit = useSpaghettiStore(
+    (state) => state.requestEditorViewportNodeFit,
+  )
   const sharedViewerComposition = useSpaghettiStore(selectSharedViewerComposition)
   const sharedViewerCompositionGraphDocumentIds = useSpaghettiStore(
     selectSharedViewerCompositionGraphDocumentIds,
   )
   const currentProject = useAppStore((state) => state.currentProject)
   const projectContent = useAppStore((state) => state.projectContent)
+  const referenceWorkspace = useAppStore((state) => state.referenceWorkspace)
   const defaultBuildPolicy = useAppStore((state) => state.buildPolicy)
+  const requestGraphDocumentBuild = useAppStore((state) => state.requestGraphDocumentBuild)
   const setInputMode = useAppStore((state) => state.setInputMode)
   const selectPart = useAppStore((state) => state.selectPart)
+  const toggleReferenceWorkspaceExpanded = useAppStore(
+    (state) => state.toggleReferenceWorkspaceExpanded,
+  )
+  const toggleReferenceCategoryExpanded = useAppStore(
+    (state) => state.toggleReferenceCategoryExpanded,
+  )
+  const toggleReferenceItemVisibility = useAppStore(
+    (state) => state.toggleReferenceItemVisibility,
+  )
+  const setReferenceItemVisibility = useAppStore((state) => state.setReferenceItemVisibility)
+  const toggleReferenceCategoryVisibility = useAppStore(
+    (state) => state.toggleReferenceCategoryVisibility,
+  )
+  const addImportedReference = useAppStore((state) => state.addImportedReference)
+  const retryReferenceItemLoad = useAppStore((state) => state.retryReferenceItemLoad)
+  const removeImportedReference = useAppStore((state) => state.removeImportedReference)
+  const beginReferenceTransform = useAppStore((state) => state.beginReferenceTransform)
   const [expandedGraphDocumentIds, setExpandedGraphDocumentIds] = useState<string[]>([])
+  const [graphSectionExpandedByRowId, setGraphSectionExpandedByRowId] = useState<
+    Record<string, boolean>
+  >({})
   const [collapsedContentRowIds, setCollapsedContentRowIds] = useState<string[]>([])
   const [selectedBrowserRowId, setSelectedBrowserRowId] = useState<string | null>(null)
   const [contextMenu, setContextMenu] = useState<BrowserContextMenuState | null>(null)
+  const [importMenu, setImportMenu] = useState<BrowserImportMenuState | null>(null)
   const [localIsBrowserCollapsed, setLocalIsBrowserCollapsed] = useState(false)
-  const [graphBuildPolicyByDocumentId, setGraphBuildPolicyByDocumentId] = useState<
+  const [contentBuildPolicyByRowId, setContentBuildPolicyByRowId] = useState<
     Record<string, BrowserGraphBuildPolicy>
   >({})
   const contextMenuRef = useRef<HTMLDivElement | null>(null)
+  const importMenuRef = useRef<HTMLDivElement | null>(null)
   const isBrowserCollapsed = controlledIsCollapsed ?? localIsBrowserCollapsed
 
   const projectContentRows = useMemo(
@@ -330,6 +524,11 @@ export function BrowserPanel({
         graphRuntimeByDocumentId,
       }),
     [currentProject, graphRuntimeByDocumentId, projectContent],
+  )
+
+  const referenceWorkspaceTree = useMemo(
+    () => selectReferenceWorkspaceBrowserTree({ referenceWorkspace }),
+    [referenceWorkspace],
   )
 
   const editorViewports = useMemo(
@@ -383,6 +582,7 @@ export function BrowserPanel({
   const browserTreeRows = useMemo(
     () =>
       selectBrowserTreeRows({
+        referenceWorkspaceTree,
         contentRows: projectContentRows,
         graphRows,
         editorViewports,
@@ -390,6 +590,7 @@ export function BrowserPanel({
         selectedRowId: selectedBrowserRowId,
         collapsedContentRowIds,
         expandedGraphDocumentIds,
+        graphSectionExpandedByRowId,
         hasActiveEditorViewport: activeEditorViewportId.length > 0,
         sharedViewerCompositionGraphDocumentIds,
         sharedViewerCompositionActive: sharedViewerComposition !== null,
@@ -399,16 +600,18 @@ export function BrowserPanel({
       collapsedContentRowIds,
       editorViewports,
       expandedGraphDocumentIds,
+      graphSectionExpandedByRowId,
       graphDocumentsById,
       graphRows,
       projectContentRows,
+      referenceWorkspaceTree,
       selectedBrowserRowId,
       sharedViewerComposition,
       sharedViewerCompositionGraphDocumentIds,
     ],
   )
 
-  const handleOpenOrFocusGraph = (graphDocumentId: string) => {
+  const handleOpenOrFocusGraph = (graphDocumentId: string): string | null => {
     const existingViewport = Object.values(editorViewportsById).find(
       (viewport) => viewport.graphDocumentId === graphDocumentId,
     )
@@ -417,22 +620,24 @@ export function BrowserPanel({
       setEditorViewportPosition(editorViewportId, newEditorSpawnPosition)
     }
     setInputMode('spaghetti')
+    return editorViewportId
   }
 
-  const handleCycleGraphBuildPolicy = (graphDocumentId: string) => {
-    setGraphBuildPolicyByDocumentId((current) => {
+  const handleCycleContentBuildPolicy = (rowId: string) => {
+    setContentBuildPolicyByRowId((current) => {
       const nextPolicy = cycleBrowserGraphBuildPolicy(
-        current[graphDocumentId] ?? defaultBuildPolicy,
+        current[rowId] ?? defaultBuildPolicy,
       )
       return {
         ...current,
-        [graphDocumentId]: nextPolicy,
+        [rowId]: nextPolicy,
       }
     })
   }
 
   const toggleBrowserCollapsed = () => {
     setContextMenu(null)
+    setImportMenu(null)
     if (onToggleCollapsed !== undefined) {
       onToggleCollapsed()
       return
@@ -460,8 +665,38 @@ export function BrowserPanel({
       action()
     }
 
+  const handleOpenContentImportMenu = (event: ReactMouseEvent<HTMLButtonElement>) => {
+    event.preventDefault()
+    event.stopPropagation()
+    const rect = event.currentTarget.getBoundingClientRect()
+    setContextMenu(null)
+    setImportMenu((current) =>
+      current === null
+        ? {
+            x: rect.right - 8,
+            y: rect.bottom + 6,
+          }
+        : null,
+    )
+  }
+
+  const handleImportReferenceFile = (fileType: ReferenceFileType) => {
+    setImportMenu(null)
+    void importReferenceFileFromDisk(fileType)
+      .then((file) => {
+        const referenceId = addImportedReference(file)
+        setSelectedBrowserRowId(`reference-item-row:${referenceId}`)
+      })
+      .catch((error: unknown) => {
+        if (error instanceof Error && error.message === 'No reference file selected.') {
+          return
+        }
+        console.error(`Failed to import ${fileType.toUpperCase()} reference file.`, error)
+      })
+  }
+
   useEffect(() => {
-    if (contextMenu === null) {
+    if (contextMenu === null && importMenu === null) {
       return
     }
 
@@ -470,17 +705,26 @@ export function BrowserPanel({
       if (contextMenuRef.current?.contains(nextTarget as Node) ?? false) {
         return
       }
+      if (importMenuRef.current?.contains(nextTarget as Node) ?? false) {
+        return
+      }
       setContextMenu(null)
+      setImportMenu(null)
     }
 
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented) {
+        return
+      }
       if (event.key === 'Escape') {
         setContextMenu(null)
+        setImportMenu(null)
       }
     }
 
     const handleWindowChange = () => {
       setContextMenu(null)
+      setImportMenu(null)
     }
 
     window.addEventListener('pointerdown', handlePointerDown)
@@ -494,25 +738,94 @@ export function BrowserPanel({
       window.removeEventListener('resize', handleWindowChange)
       window.removeEventListener('blur', handleWindowChange)
     }
-  }, [contextMenu])
+  }, [contextMenu, importMenu])
 
   const handleSelectBrowserRow = (row: BrowserRenderableRowVm) => {
     setSelectedBrowserRowId(row.rowId)
     setContextMenu(null)
+    setImportMenu(null)
+    if (row.rowKind === 'references-root') {
+      appendConsoleEntry({
+        layer: 'Browser',
+        text: `${row.isExpanded ? 'Collapse' : 'Expand'} ${describeBrowserRow(row)}`,
+        source: 'browser',
+        severity: 'info',
+      })
+      toggleReferenceWorkspaceExpanded()
+      return
+    }
+    if (row.rowKind === 'reference-category') {
+      appendConsoleEntry({
+        layer: 'Browser',
+        text: `${row.label} visibility toggled`,
+        source: 'browser',
+        severity: 'info',
+      })
+      toggleReferenceCategoryVisibility(row.categoryId)
+      return
+    }
+    if (row.rowKind === 'reference-item') {
+      appendConsoleEntry({
+        layer: 'Browser',
+        text: `${row.label} visibility toggled`,
+        source: 'browser',
+        severity: 'info',
+      })
+      toggleReferenceItemVisibility(row.referenceId)
+      return
+    }
     if (row.rowKind === 'viewport') {
+      appendConsoleEntry({
+        layer: 'Browser',
+        text: `Focused ${describeBrowserRow(row)}`,
+        source: 'browser',
+        severity: 'info',
+      })
       setActiveEditorViewportId(row.editorViewportId)
       setInputMode('spaghetti')
       return
     }
-    if (row.rowKind !== 'graph-document') {
+    if (row.rowKind === 'assembly' || row.rowKind === 'component' || row.rowKind === 'object') {
+      appendConsoleEntry({
+        layer: 'Browser',
+        text: `Selected ${describeBrowserRow(row)}`,
+        source: 'browser',
+        severity: 'info',
+      })
+      requestContentRowBuild(row)
       if (
-        (row.rowKind === 'component' ||
-          row.rowKind === 'object' ||
-          row.rowKind === 'published-output') &&
+        row.rowKind !== 'assembly' &&
         sharedViewerComposition === null &&
         row.highlightViewerKey !== null
       ) {
         selectPart(row.highlightViewerKey)
+      }
+      return
+    }
+    if (row.rowKind === 'graph-section') {
+      appendConsoleEntry({
+        layer: 'Browser',
+        text: `${row.isExpanded ? 'Collapse' : 'Expand'} ${describeBrowserRow(row)}`,
+        source: 'browser',
+        severity: 'info',
+      })
+      setGraphSectionExpandedByRowId((current) => ({
+        ...current,
+        [row.rowId]: !(current[row.rowId] ?? row.isExpanded),
+      }))
+      return
+    }
+    if (row.rowKind === 'graph-rebuild-object' || row.rowKind === 'graph-node') {
+      appendConsoleEntry({
+        layer: 'Browser',
+        text: `Focused ${describeBrowserRow(row)}`,
+        source: 'browser',
+        severity: 'info',
+      })
+      const editorViewportId = handleOpenOrFocusGraph(row.authoringGraphDocumentId)
+      setSelectedNodeId(row.authoringNodeId)
+      if (row.rowKind === 'graph-node' && editorViewportId !== null) {
+        requestEditorViewportNodeFit(editorViewportId, row.authoringNodeId)
       }
       return
     }
@@ -526,6 +839,12 @@ export function BrowserPanel({
       }
     }
     if (editorViewportId !== null) {
+      appendConsoleEntry({
+        layer: 'Browser',
+        text: `Opened ${describeBrowserRow(row)}`,
+        source: 'browser',
+        severity: 'info',
+      })
       setInputMode('spaghetti')
     }
   }
@@ -534,7 +853,8 @@ export function BrowserPanel({
     if (
       row.rowKind !== 'component' &&
       row.rowKind !== 'object' &&
-      row.rowKind !== 'published-output'
+      row.rowKind !== 'graph-rebuild-object' &&
+      row.rowKind !== 'graph-node'
     ) {
       return
     }
@@ -549,6 +869,7 @@ export function BrowserPanel({
 
   const toggleGraphExpanded = (graphDocumentId: string) => {
     setContextMenu(null)
+    setImportMenu(null)
     setExpandedGraphDocumentIds((currentIds) =>
       currentIds.includes(graphDocumentId)
         ? currentIds.filter((currentId) => currentId !== graphDocumentId)
@@ -556,8 +877,18 @@ export function BrowserPanel({
     )
   }
 
+  const toggleGraphSectionExpanded = (rowId: string, isExpanded: boolean) => {
+    setContextMenu(null)
+    setImportMenu(null)
+    setGraphSectionExpandedByRowId((current) => ({
+      ...current,
+      [rowId]: !isExpanded,
+    }))
+  }
+
   const toggleContentRowExpanded = (rowId: string) => {
     setContextMenu(null)
+    setImportMenu(null)
     setCollapsedContentRowIds((currentIds) =>
       currentIds.includes(rowId)
         ? currentIds.filter((currentId) => currentId !== rowId)
@@ -566,8 +897,20 @@ export function BrowserPanel({
   }
 
   const handleToggleBrowserRowExpand = (row: BrowserRenderableRowVm) => {
+    if (row.rowKind === 'references-root') {
+      toggleReferenceWorkspaceExpanded()
+      return
+    }
+    if (row.rowKind === 'reference-category') {
+      toggleReferenceCategoryExpanded(row.categoryId)
+      return
+    }
     if (row.rowKind === 'graph-document') {
       toggleGraphExpanded(row.graphDocumentId)
+      return
+    }
+    if (row.rowKind === 'graph-section') {
+      toggleGraphSectionExpanded(row.rowId, row.isExpanded)
       return
     }
     if (row.rowKind === 'assembly' || row.rowKind === 'component') {
@@ -618,11 +961,84 @@ export function BrowserPanel({
     setInputMode('spaghetti')
   }
 
+  const handleViewInGraph = (graphDocumentId: string, nodeId: string | null) => {
+    handleOpenOrFocusGraph(graphDocumentId)
+    if (nodeId !== null) {
+      setSelectedNodeId(nodeId)
+    }
+  }
+
+  const handleRetryImportedReferenceRow = (referenceId: string) => {
+    setContextMenu(null)
+    setImportMenu(null)
+    appendConsoleEntry({
+      layer: 'Browser',
+      text: `Retry imported reference ${referenceId}`,
+      source: 'browser',
+      severity: 'info',
+    })
+    retryReferenceItemLoad(referenceId)
+  }
+
+  const handleRemoveImportedReferenceRow = (referenceId: string) => {
+    setContextMenu(null)
+    setImportMenu(null)
+    appendConsoleEntry({
+      layer: 'Browser',
+      text: `Removed imported reference ${referenceId}`,
+      source: 'browser',
+      severity: 'info',
+    })
+    removeImportedReference(referenceId)
+    setSelectedBrowserRowId((current) =>
+      current === `reference-item-row:${referenceId}` ? null : current,
+    )
+  }
+
+  const handleTransformReferenceRow = (referenceId: string) => {
+    setContextMenu(null)
+    setImportMenu(null)
+    setSelectedBrowserRowId(`reference-item-row:${referenceId}`)
+    setReferenceItemVisibility(referenceId, true)
+    appendConsoleEntry({
+      layer: 'Browser',
+      text: `Transform reference ${referenceId}`,
+      source: 'browser',
+      severity: 'info',
+    })
+    beginReferenceTransform(referenceId)
+  }
+
+  const requestContentRowBuild = (
+    row:
+      | Extract<BrowserRenderableRowVm, { rowKind: 'assembly' }>
+      | Extract<BrowserRenderableRowVm, { rowKind: 'component' }>
+      | Extract<BrowserRenderableRowVm, { rowKind: 'object' }>,
+  ) => {
+    if (row.buildState !== 'rebuild') {
+      return
+    }
+    for (const graphDocumentId of [...new Set(row.rebuildGraphDocumentIds)]) {
+      const inFlightBuildSeq =
+        graphRuntimeByDocumentId[graphDocumentId]?.compileBuild?.inFlightBuildSeq ?? null
+      if (inFlightBuildSeq !== null) {
+        continue
+      }
+      requestGraphDocumentBuild(graphDocumentId)
+    }
+  }
+
   const handleRowAction = (
     row: BrowserRenderableRowVm,
     action: BrowserTreeRowActionVm,
   ) => {
     setContextMenu(null)
+    appendConsoleEntry({
+      layer: 'Browser',
+      text: `${action.label}: ${describeBrowserRow(row)}`,
+      source: 'browser',
+      severity: 'info',
+    })
     runBrowserRowAction(row, action, {
       sharedViewerCompositionActive: sharedViewerComposition !== null,
       onSaveGraph: (cachedGraphId) => {
@@ -631,6 +1047,8 @@ export function BrowserPanel({
         })
       },
       onOpenGraph: handleOpenOrFocusGraph,
+      onTransformReference: handleTransformReferenceRow,
+      onViewInGraph: handleViewInGraph,
       onOpenGraphInNewViewport: (graphDocumentId) => {
         const editorViewportId = openGraphDocumentInNewViewport(graphDocumentId)
         if (editorViewportId !== null) {
@@ -659,6 +1077,7 @@ export function BrowserPanel({
   ) => {
     event.preventDefault()
     setSelectedBrowserRowId(row.rowId)
+    setImportMenu(null)
     if (row.actions.length === 0) {
       setContextMenu(null)
       return
@@ -678,6 +1097,7 @@ export function BrowserPanel({
   ) => {
     event.preventDefault()
     event.stopPropagation()
+    setImportMenu(null)
     if (row.actions.length === 0) {
       setContextMenu(null)
       return
@@ -703,6 +1123,7 @@ export function BrowserPanel({
   ) => {
     event.preventDefault()
     event.stopPropagation()
+    setImportMenu(null)
     const saveActions = row.actions.filter((action) => action.actionId === 'save')
     if (saveActions.length === 0) {
       setContextMenu(null)
@@ -739,6 +1160,26 @@ export function BrowserPanel({
             Math.min(
               contextMenu.y,
               (typeof window === 'undefined' ? contextMenu.y : window.innerHeight) - 260,
+            ),
+          )}px`,
+        }
+
+  const importMenuStyle =
+    importMenu === null
+      ? undefined
+      : {
+          left: `${Math.max(
+            12,
+            Math.min(
+              importMenu.x,
+              (typeof window === 'undefined' ? importMenu.x : window.innerWidth) - 220,
+            ),
+          )}px`,
+          top: `${Math.max(
+            12,
+            Math.min(
+              importMenu.y,
+              (typeof window === 'undefined' ? importMenu.y : window.innerHeight) - 220,
             ),
           )}px`,
         }
@@ -783,12 +1224,52 @@ export function BrowserPanel({
         <div id="browser-panel-body" className="BrowserPanelBody">
           <div className="BrowserTree" role="tree" aria-label="Project browser">
             <details open className="BrowserTreeSection BrowserTreeSection--root">
-              <summary className="BrowserTreeSummary">Project</summary>
+              <summary className="BrowserTreeSummary">Project Browser</summary>
 
-                <details open className="BrowserTreeSection">
-                  <summary className="BrowserTreeSummary">Content</summary>
-                  <div className="BrowserTreeGroup">
-                    {browserTreeRows.contentRows.length === 0 ? (
+                <details open className="BrowserTreeSection BrowserTreeSection--content">
+                  <summary className="BrowserTreeSummary BrowserTreeSummary--withActions">
+                    <span className="BrowserTreeSummaryLabel">Content</span>
+                    <span className="BrowserTreeSummaryActions">
+                      <button
+                        type="button"
+                        className="BrowserTreeSummaryAction"
+                        onPointerDown={handleSectionActionPointerDown}
+                        onClick={handleOpenContentImportMenu}
+                        aria-label="Import reference file"
+                        title="Import Reference"
+                      >
+                        +
+                      </button>
+                    </span>
+                  </summary>
+                  <div className="BrowserTreeGroup BrowserTreeGroup--content">
+                    {browserTreeRows.referenceRows.map((row) => (
+                      <div key={row.rowId}>
+                        <BrowserTreeRowShell
+                          row={row}
+                          contentBuildPolicy={null}
+                          isOverflowMenuOpen={false}
+                          isSaveMenuOpen={false}
+                          onSelect={handleSelectBrowserRow}
+                          onDoubleSelect={handleDoubleSelectBrowserRow}
+                          onToggleExpand={handleToggleBrowserRowExpand}
+                          onContextMenu={handleRowContextMenu}
+                          onOpenMenu={handleRowOverflowMenu}
+                          onRetryReferenceRow={handleRetryImportedReferenceRow}
+                          onRemoveImportedReferenceRow={handleRemoveImportedReferenceRow}
+                          onCloseViewportRow={closeEditorViewport}
+                        />
+                        {row.rowKind === 'reference-category' &&
+                        row.isExpanded &&
+                        row.itemCount === 0 &&
+                        row.emptyLabel.length > 0 ? (
+                          <div className="BrowserTreeEmpty BrowserTreeEmpty--nested">
+                            {row.emptyLabel}
+                          </div>
+                        ) : null}
+                      </div>
+                    ))}
+                    {browserTreeRows.referenceRows.length === 0 && browserTreeRows.contentRows.length === 0 ? (
                       <div className="BrowserTreeEmpty">No project content.</div>
                     ) : (
                       <>
@@ -796,20 +1277,28 @@ export function BrowserPanel({
                           <BrowserTreeRowShell
                             key={row.rowId}
                             row={row}
-                            graphBuildPolicy={null}
-                            isOverflowMenuOpen={false}
+                            contentBuildPolicy={
+                              contentBuildPolicyByRowId[row.rowId] ?? defaultBuildPolicy
+                            }
+                            isOverflowMenuOpen={
+                              contextMenu?.row.rowId === row.rowId && contextMenu.source === 'row'
+                            }
                             isSaveMenuOpen={false}
                             onSelect={handleSelectBrowserRow}
                             onDoubleSelect={handleDoubleSelectBrowserRow}
                             onToggleExpand={handleToggleBrowserRowExpand}
+                            onCycleContentBuildPolicy={handleCycleContentBuildPolicy}
                             onContextMenu={handleRowContextMenu}
                             onOpenMenu={handleRowOverflowMenu}
+                            onRetryReferenceRow={handleRetryImportedReferenceRow}
+                            onRemoveImportedReferenceRow={handleRemoveImportedReferenceRow}
                             onCloseViewportRow={closeEditorViewport}
                           />
                         ))}
                         {browserTreeRows.contentRows.length === 1 &&
                         browserTreeRows.contentRows[0]?.rowKind === 'assembly' &&
-                        !browserTreeRows.contentRows[0].isExpandable ? (
+                        !browserTreeRows.contentRows[0].isExpandable &&
+                        browserTreeRows.referenceRows.length === 0 ? (
                           <div className="BrowserTreeEmpty">No published content.</div>
                         ) : null}
                       </>
@@ -862,9 +1351,7 @@ export function BrowserPanel({
                           <div key={row.cachedGraphId}>
                             <BrowserTreeRowShell
                               row={row}
-                              graphBuildPolicy={
-                                graphBuildPolicyByDocumentId[row.graphDocumentId] ?? defaultBuildPolicy
-                              }
+                              contentBuildPolicy={null}
                               isOverflowMenuOpen={
                                 contextMenu?.row.rowId === row.rowId && contextMenu.source === 'row'
                               }
@@ -875,33 +1362,46 @@ export function BrowserPanel({
                               onSelect={handleSelectBrowserRow}
                               onDoubleSelect={handleDoubleSelectBrowserRow}
                               onToggleExpand={handleToggleBrowserRowExpand}
-                              onCycleGraphBuildPolicy={handleCycleGraphBuildPolicy}
                               onContextMenu={handleRowContextMenu}
                               onOpenMenu={handleRowOverflowMenu}
                               onOpenSaveMenu={handleRowSaveMenu}
+                              onRetryReferenceRow={handleRetryImportedReferenceRow}
+                              onRemoveImportedReferenceRow={handleRemoveImportedReferenceRow}
                               onCloseViewportRow={closeEditorViewport}
                             />
                             {row.isExpanded ? (
                               <div className="BrowserTreeGroup">
                                 {row.children.length === 0 ? (
-                                  <div className="BrowserTreeEmpty">No published graph outputs.</div>
+                                  <div className="BrowserTreeEmpty">No graph child sections.</div>
                                 ) : (
-                                  row.children.map((publishedRow) => (
-                                    <BrowserTreeRowShell
-                                      key={publishedRow.rowId}
-                                      row={publishedRow}
-                                      graphBuildPolicy={null}
-                                      isOverflowMenuOpen={
-                                        contextMenu?.row.rowId === publishedRow.rowId &&
-                                        contextMenu.source === 'row'
-                                      }
-                                      isSaveMenuOpen={false}
-                                      onSelect={handleSelectBrowserRow}
-                                      onDoubleSelect={handleDoubleSelectBrowserRow}
-                                      onContextMenu={handleRowContextMenu}
-                                      onOpenMenu={handleRowOverflowMenu}
-                                      onCloseViewportRow={closeEditorViewport}
-                                    />
+                                  row.children.map((childRow) => (
+                                    <div key={childRow.rowId}>
+                                      <BrowserTreeRowShell
+                                        row={childRow}
+                                        contentBuildPolicy={null}
+                                        isOverflowMenuOpen={
+                                          contextMenu?.row.rowId === childRow.rowId &&
+                                          contextMenu.source === 'row'
+                                        }
+                                        isSaveMenuOpen={false}
+                                        onSelect={handleSelectBrowserRow}
+                                        onDoubleSelect={handleDoubleSelectBrowserRow}
+                                        onToggleExpand={handleToggleBrowserRowExpand}
+                                        onContextMenu={handleRowContextMenu}
+                                        onOpenMenu={handleRowOverflowMenu}
+                                        onRetryReferenceRow={handleRetryImportedReferenceRow}
+                                        onRemoveImportedReferenceRow={handleRemoveImportedReferenceRow}
+                                        onCloseViewportRow={closeEditorViewport}
+                                      />
+                                      {childRow.rowKind === 'graph-section' &&
+                                      childRow.isExpanded &&
+                                      childRow.childCount === 0 &&
+                                      childRow.emptyLabel.length > 0 ? (
+                                        <div className="BrowserTreeEmpty BrowserTreeEmpty--nested">
+                                          {childRow.emptyLabel}
+                                        </div>
+                                      ) : null}
+                                    </div>
                                   ))
                                 )}
                               </div>
@@ -945,7 +1445,7 @@ export function BrowserPanel({
                         <BrowserTreeRowShell
                           key={viewport.rowId}
                           row={viewport}
-                          graphBuildPolicy={null}
+                          contentBuildPolicy={null}
                           isOverflowMenuOpen={
                             contextMenu?.row.rowId === viewport.rowId && contextMenu.source === 'row'
                           }
@@ -954,6 +1454,8 @@ export function BrowserPanel({
                           onDoubleSelect={handleDoubleSelectBrowserRow}
                           onContextMenu={handleRowContextMenu}
                           onOpenMenu={handleRowOverflowMenu}
+                          onRetryReferenceRow={handleRetryImportedReferenceRow}
+                          onRemoveImportedReferenceRow={handleRemoveImportedReferenceRow}
                           onCloseViewportRow={closeEditorViewport}
                         />
                       ))
@@ -985,6 +1487,29 @@ export function BrowserPanel({
               role="menuitem"
             >
               {action.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
+
+      {importMenu !== null ? (
+        <div
+          ref={importMenuRef}
+          className="BrowserTreeContextMenu"
+          style={importMenuStyle}
+          role="menu"
+          aria-label="Import reference options"
+        >
+          <div className="BrowserTreeContextMenuHeader">Import Reference</div>
+          {(['step', 'stl', 'obj', 'glb'] as const).map((fileType) => (
+            <button
+              key={fileType}
+              type="button"
+              className="BrowserTreeContextMenuAction"
+              onClick={() => handleImportReferenceFile(fileType)}
+              role="menuitem"
+            >
+              {REFERENCE_IMPORT_LABEL_BY_FILE_TYPE[fileType]}
             </button>
           ))}
         </div>

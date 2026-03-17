@@ -15,6 +15,7 @@ import type {
   BoxParams,
   WorkerError,
 } from '../shared/buildTypes'
+import { appendConsoleEntry } from './console/useConsoleStore'
 import { useBuildStatsStore } from './store/buildStatsStore'
 
 type BuildResultHandler = (result: BuildResult) => void
@@ -227,6 +228,12 @@ export class BuildDispatcher {
 
     useBuildStatsStore.getState().resetStatsForSeq(seq, buildStatsPartKeys)
     useBuildStatsStore.getState().setOverallState('building')
+    appendConsoleEntry({
+      layer: 'Worker',
+      text: `Build started (${routingIdentity.graphDocumentId})`,
+      source: routingIdentity.graphDocumentId,
+      severity: 'info',
+    })
 
     const message: BuildRequest = {
       type: 'build',
@@ -253,6 +260,12 @@ export class BuildDispatcher {
 
     useBuildStatsStore.getState().resetStatsForSeq(seq, ['assembled'])
     useBuildStatsStore.getState().setOverallState('assembling')
+    appendConsoleEntry({
+      layer: 'Worker',
+      text: 'Assemble started',
+      source: 'assembled',
+      severity: 'info',
+    })
 
     const message: AssembleRequest = {
       type: 'assemble',
@@ -302,6 +315,12 @@ export class BuildDispatcher {
     })
     useBuildStatsStore.getState().setOverallState('idle')
     useBuildStatsStore.getState().triggerCacheHitPulse()
+    appendConsoleEntry({
+      layer: 'Worker',
+      text: 'Assembled cache hit',
+      source: 'assembled',
+      severity: 'info',
+    })
   }
 
   public dispose(): void {
@@ -317,6 +336,12 @@ export class BuildDispatcher {
         return
       }
       useBuildStatsStore.getState().applyProgress(event.data)
+      appendConsoleEntry({
+        layer: 'Worker',
+        text: `${event.data.partKey}: ${event.data.state}`,
+        source: event.data.graphDocumentId,
+        severity: event.data.state === 'error' ? 'error' : 'info',
+      })
       return
     }
 
@@ -342,6 +367,12 @@ export class BuildDispatcher {
         changedParamIds: acceptedChangedParamIds,
       })
       useBuildStatsStore.getState().setOverallState('idle')
+      appendConsoleEntry({
+        layer: 'Worker',
+        text: `Build complete (${event.data.graphDocumentId})`,
+        source: event.data.graphDocumentId,
+        severity: 'info',
+      })
       return
     }
 
@@ -355,6 +386,12 @@ export class BuildDispatcher {
       this.hasCachedAssembled = true
       this.onAssembleResult(event.data)
       useBuildStatsStore.getState().setOverallState('idle')
+      appendConsoleEntry({
+        layer: 'Worker',
+        text: 'Assemble complete',
+        source: 'assembled',
+        severity: 'info',
+      })
       return
     }
 
@@ -376,6 +413,14 @@ export class BuildDispatcher {
       this.latestResolvedSeq = event.data.seq
       this.onWorkerError(event.data)
       useBuildStatsStore.getState().setOverallState('error')
+      appendConsoleEntry({
+        layer: 'Diagnostics',
+        text: event.data.message,
+        source:
+          event.data.graphDocumentId ??
+          (event.data.op === 'assemble' ? 'assembled' : event.data.op),
+        severity: 'error',
+      })
     }
   }
 

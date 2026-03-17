@@ -137,6 +137,12 @@ export type CachedGraphEntry = {
   lastSavedAt?: string
 }
 
+export type EditorViewportNodeFitRequest = {
+  editorViewportId: string
+  nodeId: string
+  key: number
+}
+
 export type SpaghettiStoreState = {
   graph: SpaghettiGraph
   graphDocumentsById: Record<string, GraphDocument>
@@ -155,6 +161,7 @@ export type SpaghettiStoreState = {
   partKeyByNodeId: Record<string, string>
   edgeWaypoints: Record<string, EdgeWaypoint[]>
   selectedNodeId: string | null
+  editorViewportNodeFitRequest: EditorViewportNodeFitRequest | null
   selectedEdgeId: string | null
   hoveredEdgeId: string | null
   connectionDrag: ConnectionDragState | null
@@ -174,6 +181,7 @@ export type SpaghettiStoreState = {
   toggleEdgeWaypointSide1: (edgeId: string, waypointId: string) => void
   toggleEdgeWaypointSide2: (edgeId: string, waypointId: string) => void
   setSelectedNodeId: (nodeId: string | null) => void
+  requestEditorViewportNodeFit: (editorViewportId: string, nodeId: string) => void
   setSelectedEdgeId: (edgeId: string | null) => void
   setHoveredEdgeId: (edgeId: string | null) => void
   setConnectionDrag: (drag: ConnectionDragState | null) => void
@@ -1913,6 +1921,7 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
   sharedViewerComposition: null,
   edgeWaypoints: {},
   selectedNodeId: null,
+  editorViewportNodeFitRequest: null,
   selectedEdgeId: null,
   hoveredEdgeId: null,
   connectionDrag: null,
@@ -2156,6 +2165,15 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
   },
   setSelectedNodeId: (selectedNodeId) => {
     set({ selectedNodeId })
+  },
+  requestEditorViewportNodeFit: (editorViewportId, nodeId) => {
+    set((state) => ({
+      editorViewportNodeFitRequest: {
+        editorViewportId,
+        nodeId,
+        key: (state.editorViewportNodeFitRequest?.key ?? 0) + 1,
+      },
+    }))
   },
   setSelectedEdgeId: (selectedEdgeId) => {
     set({ selectedEdgeId })

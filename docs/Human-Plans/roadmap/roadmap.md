@@ -4,6 +4,21 @@
 ### Fold Hack 3
 #### FOld Hack 4
 ###### Doc History
+77. 2026-03-17 12:40: Re-homed the broader workspace-layout family from `[5.3]` to `[5.1]`, shifted the old control-viz and build-control placeholders to `[5.2]` and `[5.3]`, and expanded the new `[5.1] VR / SP - Workspace Modes` lane body around the dedicated `05.1A` through `05.1D` future task-doc split while keeping the earlier shipped workspace-presentation groundwork visible as landed history instead of consuming the new execution slots
+76. 2026-03-17 11:11: Refreshed the `[4.1]` roadmap row so it now matches the real shipped console state after `4.1A` and `4.1B`, marking the collapsed/expanded shell, layer transcript, tools, floating/pop-out/list modes, and shared styling work as landed while explicitly carrying the remaining command-routing, richer filtering, result UX, inspector bridge, and hotkey-customization work forward into later `4.1C+` subphases
+75. 2026-03-17 00:41: Reworked the roadmap lane structure so the console/debug system now owns the new Lane `[4]` as a first-class cross-cutting workspace-feedback lane, and shifted the older deferred control/build/workspace systems out to the new Lane `[5]` so later build orchestration and packaging work no longer hide the pulled-forward console direction
+74. 2026-03-17 00:41: Added `[2.4F]` under the `2.4` reference-workspace lane as the next future carry-forward for generalizing the shipped reference transform toolbar into a viewer-side transform session for any eligible `Content` object, so the broader content-transform idea now has a dedicated roadmap home instead of being stranded as an ad hoc follow-up to the reference-only toolbar
+73. 2026-03-17 10:42: Added `[4.3E] VR / SP / DBG - Console And Layered Transcript` under the `Workspace Presentation Modes` lane so the new app-wide console concept now has a real roadmap home as a collapsed/expanded workspace presentation surface with command feedback, layered debug/event text, and central keyboard-routing direction instead of floating only as an architecture note
+72. 2026-03-16 23:10: Shipped `[2.4E]` as the fifth completed reference-workspace cut, moving the new reference-transform timeline system out of future planning and into implemented history now that the toolbar supports per-value `Basic / Timeline` mode switching, speed sliders, editable curve graphs, cycle modes, and runtime evaluation across reference transform channels
+71. 2026-03-16 22:47: Added `[2.4E]` under the `2.4` reference-workspace lane as the next future carry-forward for timeline-driven reference transform values, so the new `Basic / Timeline` right-click mode idea, per-value speed slider, curve graph, and cycle modes now have a real roadmap home instead of living only in ad hoc chat notes
+70. 2026-03-16 20:11: Expanded `[3.2] Foundational Geometry Node System` into explicit sub-phase checklist blocks for `[3.2A]` through `[3.2D]`, so the roadmap now records the intended acceptance shape for `Data Types / Sketch Foundation`, `Sketch Operation Authoring`, `Extrude Foundation`, and `Loft Foundation` instead of only listing the labels plus one combined checklist
+69. 2026-03-16 18:07: Reworked Lane `[3]` so the new foundational geometry-authoring cluster now has its own `[3.2]` roadmap home between generic node cleanup and later wire/driver/part/feature hardening, adding a dedicated `SP / NI / FS / GE` sub-lane for `Data Types`, `Sketch`, `Extrude`, and `Loft` and shifting the later Lane `[3]` numbering down by one
+68. 2026-03-16 14:53: Expanded `[4.2] AS / SP - Build Sequencing, Build Bars, And Output Build Control` with explicit selective-build notes so the roadmap now says unaffected sibling published rows must stay clean/cached when another object changes, `Content` rebuild bars must come from runtime chunk truth instead of graph-level fallback state, and first-build versus stale-after-change must be distinguished in later build-state rules
+67. 2026-03-16 14:31: Implemented and closed `[2.1F] VR / SP - Graph Documents Child Sections`, replacing the old raw graph child publish-entry list with `Needs Rebuild` plus `Nodes`, making `Needs Rebuild` object-based and filtered to produced stale/unresolved rows, wiring graph-child click back to authoring reveal, and marking the follow-up complete in the roadmap
+66. 2026-03-16 14:13: Added the new `[2.1F] VR / SP - Graph Documents Child Sections` follow-up under Lane `[2.1]`, giving the post-`2.3` `Graph Documents` cleanup a real roadmap home for the later `Needs Rebuild` plus `Nodes` split instead of incorrectly pushing that work into `[2.4]` reference-assets scope
+65. 2026-03-16 13:35: Closed `[2.3]` after the real Phase 6 implementation shipped, marking the published `Content` build/control lane complete now that content rows rebuild on click, graph rows stay document-oriented, parent and object build bars exist in the Browser, inline content policy chips default to `Live`, and secondary `View In Graph` traceability is wired without collapsing `Content` back into graph-row language
+64. 2026-03-16 13:17: Promoted `02.3` into the active execution-spec stage by refreshing the `[2.3]` lane wording to match the locked `AS - Phase 6` answers, replacing the stale lighter-`Object` wording with the real-object/slimmer-bar rule and clarifying that primary `Content` row click means `Select + Rebuild` while `Graph Documents` stays intentionally simple
+63. 2026-03-16 11:25: Reworked the roadmap lane structure against the newer vision roadmap, renaming Lane `[1]` around graph-native ownership, re-scoping Lane `[2]` around `Graph Documents` versus `Content`, adding a new authoring-hardening Lane `[3]`, and pushing the later build/control/workspace placeholder systems into Lane `[4]` so the execution roadmap no longer hides the missing post-workspace authoring lane
 62. 2026-03-15 23:04: Broke the shipped UI cleanup wave into labeled roadmap subphases inside the live lane sections, grouping the implemented work under `[2.1C]`, `[2.1D]`, `[2.1E]`, `[2.3]`, and `[3.3]` so the Browser/editor shell cleanup, build/save row surfaces, and workspace-presentation systems now have clearer lane-level homes
 61. 2026-03-15 23:00: Reconciled the live Lane `[2.1]` roadmap state against the shipped Browser and Spaghetti UI cleanup wave, marking `[2.1C]` complete, keeping `[2.1D]` as the active partial shell/UI lane instead of missing, and moving `[2.1E]` out of the stale not-started state so the fixed-slot left-dock docking pass reads as landed with only a small follow-up tail remaining
 60. 2026-03-12 20:40: Added `[2.1E] VR / SP - Dockable Left Panels And In-App Floating Panel Shell` as the next shared left-dock shell follow-up after the first Browser popout work and the active `2.1D` Spaghetti shell wave, creating a dedicated future task doc that locks one reusable in-app dock/floating system for the `Browser` and docked `meatball editor` instead of treating Browser re-docking as a one-off patch
@@ -109,495 +124,21 @@ Preferred pattern:
 
 Keep this pattern consistent where possible so `Ctrl+2`, `Ctrl+3`, and `Ctrl+4` views remain useful.
 
-## Doc Body
 
-### `Immediate CheckList`
-#### FOld Hack 4
-##### Fold Hack 5
-- [x] 1. `DOC - Phase 14F - Phase-Plans Setup`
-  - the family phase-plan system is now usable enough to guide next-step decisions
-
-- [x] 2. `Roadmap Buildout`
-  - the next execution lane is now clearer
-  - the roadmap is aligned with the rebuilt family phase files
-  - the Browser / multi-graph direction is now the first major product lane
-  - Planning order so far:
-    - [x] `1.1A - SP - Phase 9A - Graph Document Core`
-    - [x] `1.1B - SP - Phase 9B - Multi-Editor Browser Foundation`
-    - [x] `1.1C - SP - Phase 9C - Graph-Local Compile / Preview Preparation`
-    - [x] `1.2 - GE - Phase 11 - Graph Persistence And Save Load`
-    - [x] `1.3 - SP - Phase 10 - Graph Aware Worker And Preview Routing`
-    - [x] `1.4 - GE - Phase 12 - Multi-Document Graph Ownership`
-    - [x] `1.5 - SP - Phase 11 - Graphs Panel And Nested Parts`
-    - [x] `1.6 - SP - Phase 12 - Shared Viewport Composition`
-  - Lane `[1]` detail status:
-  - [x] - 1.1 - `SP - Phase 9 - Graph Document Foundations`
-    - [x] `[1.1A] SP - Phase 9A - Graph Document Core`
-    - [x] `[1.1B] SP - Phase 9B - Multi-Editor Browser Foundation`
-    - [x] `[1.1C] SP - Phase 9C - Graph-Local Compile / Preview Preparation`
-  - [x] - 1.2 - `GE - Phase 11 - Graph Persistence And Save Load`
-    - [x] `[1.2] GE - Phase 11 - Graph Persistence And Save Load`
-  - [x] - 1.3 - `SP - Phase 10 - Graph Aware Worker And Preview Routing`
-    - [x] `[1.3] SP - Phase 10 - Graph Aware Worker And Preview Routing`
-  - [x] - 1.4 - `GE - Phase 12 - Multi-Document Graph Ownership`
-    - [x] `[1.4] GE - Phase 12 - Multi-Document Graph Ownership`
-  - [x] - 1.5 - `SP - Phase 11 - Graphs Panel And Nested Parts`
-    - [x] `[1.5] SP - Phase 11 - Graphs Panel And Nested Parts`
-  - [x] - 1.6 - `SP - Phase 12 - Shared Viewport Composition`
-    - [x] `[1.6] SP - Phase 12 - Shared Viewport Composition`
-
-- [ ] 3. `Browser / Multi-Graph Foundations`
-  - establish the file / graph / browser ownership structure first
-  - prepare the single-graph editor to become graph-document aware
-  - avoid deepening the wrong single-graph assumptions before the Browser exists
-
-- [ ] 4. `Graph-Aware Output Structure`
-  - move from one flat parts list toward graphs, assemblies, objects, and parts
-  - make `OutputPreview` graph-local
-  - align preview/output structure with the Browser hierarchy
-
-- [x] 5. `Single-Graph Cleanup In Service Of Browser`
-  - `9A`, `9B`, and `9C` removed the main single-graph ownership/runtime assumptions blocking Browser foundations
-  - further work now belongs more to routing, persistence, and project ownership than to single-graph cleanup itself
-
-- [ ] 6. `Future Visibility / Reference Workspace`
-  - keep viewer-side visibility/material/reference controls on the roadmap
-  - delay the richer Browser-side viewer controls until graph/output ownership is stable
-
-##### Master Roadmap CheckList
-
-Use this as the single top-level checklist for roadmap status.
-
-Meaning:
-- `Roadmap Breakdown`
-  - `[x]` = this item is already broken down enough in the roadmap/current notes
-  - `[ ]` = this item still needs more roadmap-level planning
-- `Decision Coverage`
-  - `[x]` = the main decisions for this item are already captured in `docs/Human-Plans/Decisions.MD`
-  - `[ ]` = the main decisions for this item still need to be written/compiled there
-- `Plan.md Status`
-  - `[x]` = this item already has its own dedicated plan/task doc
-  - `[ ]` = this item still needs its own dedicated plan/task doc
-
-##### Bucket 1 - Lane [1] Browser Foundations And Single-Graph Cleanup
-
-- [x] `Roadmap Breakdown` `[1.1] SP - Phase 9 - Graph Document Foundations`
-  - [x] `Decision Coverage` `[1.1]`
-  - [ ] `Plan.md Status` `[1.1]`
-  - [x] `Roadmap Breakdown` `[1.1A] SP - Phase 9A - Graph Document Core`
-    - [x] `Decision Coverage` `[1.1A]`
-    - [ ] `Plan.md Status` `[1.1A]`
-    - [x] `Roadmap Breakdown` `[1.1A.1] SP - Phase 9A.1 - Graph Document Shape And Identity`
-      - [x] `Decision Coverage` `[1.1A.1]`
-      - [x] `Plan.md Status` `[1.1A.1]`
-    - [x] `Roadmap Breakdown` `[1.1A.2] SP - Phase 9A.2 - Graph-Owned Authored Canvas State`
-      - [x] `Decision Coverage` `[1.1A.2]`
-      - [x] `Plan.md Status` `[1.1A.2]`
-    - [x] `Roadmap Breakdown` `[1.1A.3] SP - Phase 9A.3 - Viewport Binding And First Singleton Split`
-      - [x] `Decision Coverage` `[1.1A.3]`
-      - [x] `Plan.md Status` `[1.1A.3]`
-  - [x] `Roadmap Breakdown` `[1.1B] SP - Phase 9B - Multi-Editor Browser Foundation`
-    - [x] `Decision Coverage` `[1.1B]`
-    - [x] `Plan.md Status` `[1.1B]`
-  - [x] `Roadmap Breakdown` `[1.1C] SP - Phase 9C - Graph-Local Compile / Preview Preparation`
-    - [x] `Decision Coverage` `[1.1C]`
-    - [x] `Plan.md Status` `[1.1C]`
-
-- [x] `Roadmap Breakdown` `[1.2] GE - Phase 11 - Graph Persistence And Save Load`
-  - [x] `Decision Coverage` `[1.2]`
-  - [ ] `Plan.md Status` `[1.2]`
-  - [x] `Roadmap Breakdown` `[1.2A] GE - Phase 11A - Graph Document Persistence Core`
-    - [x] `Decision Coverage` `[1.2A]`
-    - [x] `Plan.md Status` `[1.2A]`
-  - [x] `Roadmap Breakdown` `[1.2B] GE - Phase 11B - Cached Graph Lifecycle`
-    - [x] `Decision Coverage` `[1.2B]`
-    - [x] `Plan.md Status` `[1.2B]`
-  - [x] `Roadmap Breakdown` `[1.2C] GE - Phase 11C - Save/Load Interaction With Editors`
-    - [x] `Decision Coverage` `[1.2C]`
-    - [x] `Plan.md Status` `[1.2C]`
-
-- [x] `Roadmap Breakdown` `[1.3] SP - Phase 10 - Graph Aware Worker And Preview Routing`
-  - [x] `Decision Coverage` `[1.3]`
-  - [ ] `Plan.md Status` `[1.3]`
-  - [x] `Roadmap Breakdown` `[1.3A] SP - Phase 10A - Graph-Aware Build Identity And Routing`
-    - [x] `Decision Coverage` `[1.3A]`
-    - [x] `Plan.md Status` `[1.3A]`
-  - [x] `Roadmap Breakdown` `[1.3B] SP - Phase 10B - Graph-Local Preview And Build Memory`
-    - [x] `Decision Coverage` `[1.3B]`
-    - [x] `Plan.md Status` `[1.3B]`
-  - [x] `Roadmap Breakdown` `[1.3C] SP - Phase 10C - Graph Output Handoff Surface`
-    - [x] `Decision Coverage` `[1.3C]`
-    - [x] `Plan.md Status` `[1.3C]`
-
-- [x] `Roadmap Breakdown` `[1.4] GE - Phase 12 - Multi-Document Graph Ownership`
-  - [x] `Decision Coverage` `[1.4]`
-  - [ ] `Plan.md Status` `[1.4]`
-  - [x] `Roadmap Breakdown` `[1.4A] GE - Phase 12A - Project File Core And Graph Collection Ownership`
-    - [x] `Decision Coverage` `[1.4A]`
-    - [x] `Plan.md Status` `[1.4A]`
-  - [x] `Roadmap Breakdown` `[1.4B] GE - Phase 12B - Project Content Tree Ownership`
-    - [x] `Decision Coverage` `[1.4B]`
-    - [x] `Plan.md Status` `[1.4B]`
-  - [x] `Roadmap Breakdown` `[1.4C] GE - Phase 12C - Cross-Graph Ownership Rules`
-    - [x] `Decision Coverage` `[1.4C]`
-    - [x] `Plan.md Status` `[1.4C]`
-
-- [x] `Roadmap Breakdown` `[1.5] SP - Phase 11 - Graphs Panel And Nested Parts`
-  - [x] `Decision Coverage` `[1.5]`
-  - [x] `Plan.md Status` `[1.5]`
-- [x] `Roadmap Breakdown` `[1.6] SP - Phase 12 - Shared Viewport Composition`
-  - [x] `Decision Coverage` `[1.6]`
-  - [x] `Plan.md Status` `[1.6]`
-
-##### Bucket 2 - Lane [2] Browser Workspace And Project Content Expansion
-
-- [x] `Roadmap Breakdown` `[2.1] VR / SP - Browser Workspace Shell And Item Interaction`
-  - [x] `Decision Coverage` `[2.1]`
-  - [x] `Plan.md Status` `[2.1]`
-  - [x] `Roadmap Breakdown` `[2.1A] VR - Browser Workspace Shell And Row Interaction`
-    - [x] `Decision Coverage` `[2.1A]`
-    - [x] `Plan.md Status` `[2.1A]`
-  - [x] `Roadmap Breakdown` `[2.1B] SP / VR - Browser, Editor, And Shared Viewer Coordination`
-    - [x] `Decision Coverage` `[2.1B]`
-    - [x] `Plan.md Status` `[2.1B]`
-  - [x] `Roadmap Breakdown` `[2.1C] VR / SP - Browser Row Action Cleanup And Context Menus`
-    - [ ] `Decision Coverage` `[2.1C]`
-    - [ ] `Plan.md Status` `[2.1C]`
-  - [x] `Roadmap Breakdown` `[2.1D] VR / SP - Spaghetti Floating Window Controls And View Modes`
-    - [ ] `Decision Coverage` `[2.1D]`
-    - [x] `Plan.md Status` `[2.1D]`
-  - [x] `Roadmap Breakdown` `[2.1E] VR / SP - Dockable Left Panels And In-App Floating Panel Shell`
-    - [x] `Decision Coverage` `[2.1E]`
-    - [x] `Plan.md Status` `[2.1E]`
-- [x] `Roadmap Breakdown` `[2.2] AS - Phase 5 - Browser-Facing Graph Output Structure`
-  - [ ] `Decision Coverage` `[2.2]`
-  - [ ] `Plan.md Status` `[2.2]`
-- [x] `Roadmap Breakdown` `[2.3] AS - Phase 6 - Project Content Inspection And Build Control Surface`
-  - [ ] `Decision Coverage` `[2.3]`
-  - [ ] `Plan.md Status` `[2.3]`
-- [x] `Roadmap Breakdown` `[2.4] VR - Phase 5 - Reference Asset Workspace And Project View Layers`
-  - [ ] `Decision Coverage` `[2.4]`
-  - [ ] `Plan.md Status` `[2.4]`
-- [x] `Roadmap Breakdown` `[2.5] VR - Phase 6 - Browser Controls, Materials, And Rich Visibility`
-  - [ ] `Decision Coverage` `[2.5]`
-  - [ ] `Plan.md Status` `[2.5]`
-
-##### Bucket 3 - Lane [3] Control, Build, And Workspace Systems
-
-- [ ] `Roadmap Breakdown` `[3.1] DR / JK - Control Viz And Graph-Driven Control Surfaces`
-  - [ ] `Decision Coverage` `[3.1]`
-  - [ ] `Plan.md Status` `[3.1]`
-- [ ] `Roadmap Breakdown` `[3.2] AS / SP - Build Sequencing, Build Bars, And Output Build Control`
-  - [ ] `Decision Coverage` `[3.2]`
-  - [ ] `Plan.md Status` `[3.2]`
-- [ ] `Roadmap Breakdown` `[3.3] VR / SP - Workspace Presentation Modes`
-  - [ ] `Decision Coverage` `[3.3]`
-  - [ ] `Plan.md Status` `[3.3]`
-- [ ] `Roadmap Breakdown` `[3.4] AS / VR - Advanced Output Types And Later Project Packaging`
-  - [ ] `Decision Coverage` `[3.4]`
-  - [ ] `Plan.md Status` `[3.4]`
-- [ ] `Roadmap Breakdown` `[3.5] GE / SP / AS - Publish / Receive Execution`
-  - [ ] `Decision Coverage` `[3.5]`
-  - [ ] `Plan.md Status` `[3.5]`
-
-##### Master Totals
-
-- `Roadmap Breakdown`
-  - done enough: `28`
-  - still needs roadmap planning: `5`
-- `Decision Coverage`
-  - captured enough: `22`
-  - still needs decision write-up: `11`
-- `Plan.md Status`
-  - dedicated docs already made: `16`
-  - still needs dedicated docs: `17`
-
-
-##### RoadMap CheckList Total
-
-Use this as the one-glance planning tracker for the roadmap itself.
-
-Meaning:
-- `Roadmap breakdown`
-  - `[x]` = this item is already broken down enough inside the roadmap/current notes to count as planned at a roadmap level
-  - `[ ]` = this item still needs dedicated planning work even at the roadmap level
-- `Plan.md status`
-  - `[x]` = this item already has its own dedicated plan/task doc
-  - `[ ]` = this item still needs its own dedicated `Plan.md`-style doc, even if roadmap info already exists
-
-##### Lane [1] - Browser Foundations And Single-Graph Cleanup
-
-- [x] `[1.1] SP - Phase 9 - Graph Document Foundations`
-  - [x] `[1.1A] SP - Phase 9A - Graph Document Core`
-    - [x] `[1.1A.1] SP - Phase 9A.1 - Graph Document Shape And Identity`
-    - [x] `[1.1A.2] SP - Phase 9A.2 - Graph-Owned Authored Canvas State`
-    - [x] `[1.1A.3] SP - Phase 9A.3 - Viewport Binding And First Singleton Split`
-  - [x] `[1.1B] SP - Phase 9B - Multi-Editor Browser Foundation`
-  - [x] `[1.1C] SP - Phase 9C - Graph-Local Compile / Preview Preparation`
-- [x] `[1.2] GE - Phase 11 - Graph Persistence And Save Load`
-  - [x] `[1.2A] GE - Phase 11A - Graph Document Persistence Core`
-  - [x] `[1.2B] GE - Phase 11B - Cached Graph Lifecycle`
-  - [x] `[1.2C] GE - Phase 11C - Save/Load Interaction With Editors`
-- [x] `[1.3] SP - Phase 10 - Graph Aware Worker And Preview Routing`
-  - [x] `[1.3A] SP - Phase 10A - Graph-Aware Build Identity And Routing`
-  - [x] `[1.3B] SP - Phase 10B - Graph-Local Preview And Build Memory`
-  - [x] `[1.3C] SP - Phase 10C - Graph Output Handoff Surface`
-- [x] `[1.4] GE - Phase 12 - Multi-Document Graph Ownership`
-  - [x] `[1.4A] GE - Phase 12A - Project File Core And Graph Collection Ownership`
-  - [x] `[1.4B] GE - Phase 12B - Project Content Tree Ownership`
-  - [x] `[1.4C] GE - Phase 12C - Cross-Graph Ownership Rules`
-- [x] `[1.5] SP - Phase 11 - Graphs Panel And Nested Parts`
-- [x] `[1.6] SP - Phase 12 - Shared Viewport Composition`
-
-##### Lane [2] - Browser Workspace And Project Content Expansion
-
-- [x] `[2.1] VR / SP - Browser Workspace Shell And Item Interaction`
-  - [x] `[2.1A] VR - Browser Workspace Shell And Row Interaction`
-  - [x] `[2.1B] SP / VR - Browser, Editor, And Shared Viewer Coordination`
-  - [x] `[2.1C] VR / SP - Browser Row Action Cleanup And Context Menus`
-  - [~] `[2.1D] VR / SP - Spaghetti Floating Window Controls And View Modes`
-  - [~] `[2.1E] VR / SP - Dockable Left Panels And In-App Floating Panel Shell`
-- [ ] `[2.2] AS - Phase 5 - Browser-Facing Graph Output Structure`
-- [~] `[2.3] AS - Phase 6 - Project Content Inspection And Build Control Surface`
-- [ ] `[2.4] VR - Phase 5 - Reference Asset Workspace And Project View Layers`
-- [ ] `[2.5] VR - Phase 6 - Browser Controls, Materials, And Rich Visibility`
-
-##### Lane [3] - Control, Build, And Workspace Systems
-
-- [ ] `[3.1] DR / JK - Control Viz And Graph-Driven Control Surfaces`
-- [ ] `[3.2] AS / SP - Build Sequencing, Build Bars, And Output Build Control`
-- [~] `[3.3] VR / SP - Workspace Presentation Modes`
-- [ ] `[3.4] AS / VR - Advanced Output Types And Later Project Packaging`
-- [ ] `[3.5] GE / SP / AS - Publish / Receive Execution`
-
-##### Dedicated Plan.md CheckList Total
-
-- [ ] `[1.1] SP - Phase 9 - Graph Document Foundations`
-  - [ ] `[1.1A] SP - Phase 9A - Graph Document Core`
-    - [x] `[1.1A.1] SP - Phase 9A.1 - Graph Document Shape And Identity`
-    - [x] `[1.1A.2] SP - Phase 9A.2 - Graph-Owned Authored Canvas State`
-    - [x] `[1.1A.3] SP - Phase 9A.3 - Viewport Binding And First Singleton Split`
-  - [x] `[1.1B] SP - Phase 9B - Multi-Editor Browser Foundation`
-  - [x] `[1.1C] SP - Phase 9C - Graph-Local Compile / Preview Preparation`
-- [ ] `[1.2] GE - Phase 11 - Graph Persistence And Save Load`
-  - [x] `[1.2A] GE - Phase 11A - Graph Document Persistence Core`
-  - [x] `[1.2B] GE - Phase 11B - Cached Graph Lifecycle`
-  - [x] `[1.2C] GE - Phase 11C - Save/Load Interaction With Editors`
-- [ ] `[1.3] SP - Phase 10 - Graph Aware Worker And Preview Routing`
-  - [x] `[1.3A] SP - Phase 10A - Graph-Aware Build Identity And Routing`
-  - [x] `[1.3B] SP - Phase 10B - Graph-Local Preview And Build Memory`
-  - [x] `[1.3C] SP - Phase 10C - Graph Output Handoff Surface`
-- [ ] `[1.4] GE - Phase 12 - Multi-Document Graph Ownership`
-  - [x] `[1.4A] GE - Phase 12A - Project File Core And Graph Collection Ownership`
-  - [x] `[1.4B] GE - Phase 12B - Project Content Tree Ownership`
-  - [x] `[1.4C] GE - Phase 12C - Cross-Graph Ownership Rules`
-- [x] `[1.5] SP - Phase 11 - Graphs Panel And Nested Parts`
-- [x] `[1.6] SP - Phase 12 - Shared Viewport Composition`
-- [x] `[2.1] VR / SP - Browser Workspace Shell And Item Interaction`
-  - [x] `[2.1A] VR - Browser Workspace Shell And Row Interaction`
-  - [x] `[2.1B] SP / VR - Browser, Editor, And Shared Viewer Coordination`
-  - [ ] `[2.1C] VR / SP - Browser Row Action Cleanup And Context Menus`
-  - [x] `[2.1D] VR / SP - Spaghetti Floating Window Controls And View Modes`
-  - [x] `[2.1E] VR / SP - Dockable Left Panels And In-App Floating Panel Shell`
-- [ ] `[2.2] AS - Phase 5 - Browser-Facing Graph Output Structure`
-- [ ] `[2.3] AS - Phase 6 - Project Content Inspection And Build Control Surface`
-- [ ] `[2.4] VR - Phase 5 - Reference Asset Workspace And Project View Layers`
-- [ ] `[2.5] VR - Phase 6 - Browser Controls, Materials, And Rich Visibility`
-- [ ] `[3.1] DR / JK - Control Viz And Graph-Driven Control Surfaces`
-- [ ] `[3.2] AS / SP - Build Sequencing, Build Bars, And Output Build Control`
-- [ ] `[3.3] VR / SP - Workspace Presentation Modes`
-- [ ] `[3.4] AS / VR - Advanced Output Types And Later Project Packaging`
-- [ ] `[3.5] GE / SP / AS - Publish / Receive Execution`
-
-##### Roadmap Breakdown Totals
-
-- Planned enough to count as broken down: `28`
-- Still needing dedicated planning: `5`
-- Grand total roadmap items tracked here: `33`
-
-##### Dedicated Plan.md Totals
-
-- Already has its own dedicated plan/task doc: `16`
-- Still needs its own dedicated plan/task doc: `17`
-- Grand total roadmap items tracked here: `33`
-
-
-
-##### Current State
-
-The family `Phase-Plans.md` buildout is now far enough along that the project has a readable map of:
-- what already landed
-- where the current architecture really is
-- which systems are still partial
-- which future work already fits the existing prefix system
-
-The app itself is no longer in the "invent the architecture" stage.
-
-The project is now in the "lock the ownership model, build the Browser foundations, and stop polishing the wrong single-graph assumptions" stage.
-
-### `Now`
-#### Fold Hack 4
-##### 1. Build Browser / Multi-Graph Foundations First
-
-
-This is now the main live lane.
-
-Primary phase targets:
-- `SP - Phase 9 - Graph Document Foundations`
-- `SP - Phase 10 - Graph Aware Worker And Preview Routing`
-- `SP - Phase 11 - Graphs Panel And Nested Parts`
-- `GE - Phase 11 - Graph Persistence And Save Load`
-- `GE - Phase 12 - Multi-Document Graph Ownership`
-
-###### 1. Info 
-
-Primary phase families:
-- `SP`
-- `GE`
-
-Why this comes first:
-- the Browser is becoming a core ownership and navigation system, not a small UI add-on
-- the app truth is now defined as a `list of graphs`
-- graphs own their authored truth and their produced outputs
-- the user-facing hierarchy panel is likely the future `Browser`
-- broad canvas polish on top of the wrong single-graph model would create more rework later
-
-Immediate product goals:
-- make graphs first-class document-like objects
-- support a higher-level Browser surface above graph-local output structure
-- prepare the current editor so one file can own multiple graphs
-- allow later support for working across multiple files/projects
-- keep the project-content direction honest:
-  - `Project File -> Assembly tree -> Components / Objects -> Parts`
-- keep external reference assets outside project-owned truth in the first pass
-
-##### 2. Clean The Single-Graph Editor Only Where It Helps The Browser
-
-This still matters, but it is no longer the first independent lane.
-
-Use cleanup work to support the Browser lane:
-- remove or reduce single-graph assumptions that block graph-document ownership
-- clean the current `OutputPreview` and parts-list seams that will need to become graph-local
-- clean node/editor behavior only where the current structure fights the next ownership model
-
-This is mostly:
-- `SP`
-- `VM`
-- `NI`
-
-But it should stay subordinate to the Browser foundations rather than replace them.
-
-##### 3. Keep The Part / Param Object Model Moving Toward The New Truth
-
-The planning pass clarified several object-model rules that should guide near-term cleanup:
-- `Part node` is the host, not the hard-coded final identity
-- `Part type` and `preset` are separate layers
-- graphs own authored param truth
-- `Publish / Receive` is the future same-graph and cross-graph reuse path
-- full authored truth should remain inspectable even if the main canvas stays clean
-
-This work belongs across:
-- `PT`
-- `DR`
-- `FS`
-- `SP`
-
-### `Next`
-#### Fold Hack 4
-##### 4. Make Outputs Graph-Aware And Browser-Aware
-
-Once Browser foundations are in place, the next lane is output structure.
-
-Primary phase family:
-- `AS`
-
-Primary phase targets:
-- `AS - Phase 5 - OutputPreview Render Path Stabilization`
-- `AS - Phase 6 - Graph Aware Parts And Preview Inspection`
-
-What this should lock:
-- `OutputPreview` is graph-local
-- one graph may produce multiple visible outputs
-- a graph may own multiple `objects` and/or `assemblies`
-- the old global parts list should continue evolving into a nested Browser/scene structure
-- current useful depth stays:
-  - `graph -> assembly -> object -> part`
-
-This is where the app moves from "graph-aware authoring exists" toward "graph-aware outputs are actually legible and trustworthy."
-
-##### 5. Strengthen The Part / Feature / Driver Stack Toward Production Shape
-
-After Browser foundations and graph-aware outputs are clearer:
-- harden `PT`
-- harden `FS`
-- harden `DR`
-- tighten the contract between graph compile output and runtime execution
-- continue clarifying how `Part`, drivers, inputs, feature stacks, and outputs should relate
-
-This is the lane that turns the newer object model into a more production-credible system.
-
-### `Later`
-
-#### Fold Hack 4
-##### 6. Build The Browser-Side Viewer Workspace
-
-Once graph/document ownership and graph-aware outputs are stable:
-- push `VR`
-- add richer Browser/viewer controls
-- support reference assets like `.obj`, `.glb`, and `.stl`
-- restore stronger layer/material/reference workspace behavior
-
-Likely later targets:
-- `VR - Phase 5 - Section Cut Reference Workspace And Layer Material Controls`
-- `VR - Phase 6 - Multi Part Rendering And Highlighting`
-
-This is where the Browser becomes a stronger Fusion-like navigation and inspection surface rather than only a graph list.
-
-##### 7. Build The Real Legacy Removal Plan
-
-`LEG` should follow the roadmap, not lead it.
-
-Do this after the Browser and graph-aware output lanes are materially established.
-
-At that point:
-- identify which legacy paths are truly blocking the roadmap
-- mark which ones are only compatibility seams
-- remove the ones that no longer support the chosen product direction
-
-##### 8. Return To Broader Vision Expansion
-
-Only after the working lanes above are healthier:
-- export depth
-- advanced systems
-- richer part families
-- cleaner workbench / studio feel
-- dedicated decision work such as `Collapsed / Essentials / Expanded`
-
-
-
-### Roadmap Lanes
-#### Fold Hack 4
-##### Fold Hack 5
-Use this section as the larger chronological view.
-
-Each lane can group multiple phase parts across different prefixes.
-
-Keep each lane at `##` so later planning can fold deeper underneath without running out of heading depth too early.
-
-# [1] `Browser Foundations And Single-Graph Cleanup`
+# [1] `Graph-Native Foundation And Ownership`
 
 Summary:
-- Turn the current single-graph app into a real graph-document and Browser-ready foundation before deeper editor polish goes any further.
-- This lane establishes the file, graph, and ownership model that later output, Browser, and viewer work will depend on.
+- Turn the old hybrid single-graph app into an explicit graph-document, project, and Browser-ready foundation before deeper workspace or authoring growth goes further.
+- This lane establishes the graph/document/project ownership model that later output publication, Browser content, and worker/runtime truth will depend on.
 
 ### Lane Header 
 #### Fold Hack 4
 ##### Fold Hack 5
 
 Purpose:
-- turn the current single-graph editor into the right foundation for the future `Browser`
-- establish graph/document ownership before broad editor polish goes further
-- clean the current editor only where that cleanup helps the Browser path
+- turn the old single-graph editor into the right graph/project foundation for the future `Browser`
+- establish graph/document/project ownership before broad workspace or authoring polish goes further
+- clean the current editor only where that cleanup helps the ownership transition
 
 Primary phase families:
 - `SP`
@@ -612,7 +153,7 @@ Likely phase parts:
 
 Lane notes:
 - this lane may include some single-graph editor cleanup
-- that cleanup should stay in service of Browser readiness
+- that cleanup should stay in service of graph/project/browser ownership readiness
 - this is the lane where file / graph / Browser ownership becomes real enough to guide later work
 
 Expected outcome:
@@ -772,7 +313,7 @@ Deferred lane map:
   - Browser UI work
 - later `GE` / project work
   - project ownership refinement
-- `Lane [2]` / `Lane [3]`
+- `Lane [2]` / `Lane [5]`
   - build bars
   - build-control UX
   - rich viewer reference/material systems
@@ -1055,11 +596,11 @@ Carry-forward note:
     - `[2.2] AS - Phase 5 - Browser-Facing Graph Output Structure`
   - build bars and richer Browser build-status surfaces
     - `[2.3] AS - Phase 6 - Project Content Inspection And Build Control Surface`
-    - later `[3.2] AS / SP - Build Sequencing, Build Bars, And Output Build Control`
+    - later `[5.3] AS / SP - Build Sequencing, Build Bars, And Output Build Control`
   - materials and richer visibility controls
     - `[2.5] VR - Phase 6 - Browser Controls, Materials, And Rich Visibility`
   - broader workspace presentation polish
-    - `[3.3] VR / SP - Workspace Presentation Modes`
+    - `[5.1] VR / SP - Workspace Modes`
 
 #### 1.5 Checklist & Files
 ##### Checklist
@@ -1111,7 +652,7 @@ Likely Files:
 
 Summary:
 - Lane `[1]` finished the graph/project/browser/viewer foundations.
-- It intentionally did not try to finish the richer Browser workspace, final output hierarchy, build-control systems, or final cleanup work.
+- It intentionally did not try to finish the richer Browser workspace, final output hierarchy, build-control systems, authoring hardening, or final cleanup work.
 - Use this list as the explicit handoff from Lane `[1]` into the next lanes.
 
 Deferred out of Lane `[1]` into Lane `[2]`:
@@ -1119,7 +660,7 @@ Deferred out of Lane `[1]` into Lane `[2]`:
   - `[2.1] VR / SP - Browser Workspace Shell And Item Interaction`
 - deeper Browser-facing output/content structure beyond one thin published graph-output row level
   - `[2.2] AS - Phase 5 - Browser-Facing Graph Output Structure`
-- project-content inspection, build-status rows, build bars, and Browser build-control surfaces
+- published-content row meaning, build-status rows, row-level policy surfaces, and first honest Browser build-control surfaces
   - `[2.3] AS - Phase 6 - Project Content Inspection And Build Control Surface`
 - external reference-asset workspace layers kept outside first-pass `Project File` ownership
   - `[2.4] VR - Phase 5 - Reference Asset Workspace And Project View Layers`
@@ -1127,37 +668,42 @@ Deferred out of Lane `[1]` into Lane `[2]`:
   - `[2.5] VR - Phase 6 - Browser Controls, Materials, And Rich Visibility`
 
 Deferred out of Lane `[1]` into Lane `[3]`:
+- node-system cleanup, wire readability, driver/value growth, part-node hardening, and feature-stack growth
+  - `[3] Node, Wire, Driver, Part, And Feature Authoring Hardening`
+
+Deferred out of Lane `[1]` into Lane `[5]`:
+- broader workspace modes, pane-based hybrid layout, and later panel/tool layout cleanup
+  - `[5.1] VR / SP - Workspace Modes`
 - graph-driven control-viz and Jake/control-surface convergence
-  - `[3.1] DR / JK - Control Viz And Graph-Driven Control Surfaces`
-- staged build sequencing, per-output build bars, and the eventual graph-native worker contract
-  - `[3.2] AS / SP - Build Sequencing, Build Bars, And Output Build Control`
-- broader workspace presentation modes and later panel/tool layout cleanup
-  - `[3.3] VR / SP - Workspace Presentation Modes`
+  - `[5.2] DR / JK - Control Viz And Graph-Driven Control Surfaces`
+- staged build sequencing, truthful per-output build bars, and the eventual graph-native worker contract
+  - `[5.3] AS / SP - Build Sequencing, Build Bars, And Output Build Control`
 - advanced output types and later project packaging/export behavior
-  - `[3.4] AS / VR - Advanced Output Types And Later Project Packaging`
+  - `[5.4] AS / VR - Advanced Output Types And Later Project Packaging`
 - full `Publish / Receive` execution behavior above the shipped ownership rules from `12C`
-  - `[3.5] GE / SP / AS - Publish / Receive Execution`
+  - `[5.5] GE / SP / AS - Publish / Receive Execution`
 - final removal of the remaining legacy compatibility path after the graph-native workspace fully replaces it
-  - `[3.6] GE / SP / VR - Final Legacy Phase-Out And Compatibility Cleanup`
+  - `[5.6] GE / SP / VR - Final Legacy Phase-Out And Compatibility Cleanup`
 
 Plain-English rule:
 - Lane `[1]` made the app structurally honest.
-- Lane `[2]` should make that structure usable.
-- Lane `[3]` should add the deeper control, build, packaging, execution, and cleanup systems on top.
+- Lane `[2]` should make that structure usable as a Browser/project workspace.
+- Lane `[3]` should make graph authoring strong enough to deserve that workspace.
+- Lane `[4]` should add the deeper build/runtime, control-surface, packaging, execution, and cleanup systems on top.
 
-# [2] `Browser Workspace And Project Content Expansion`
+# [2] `Browser Workspace And Project Content Structure`
 
 
 Summary:
-- Turn the new ownership model into a usable Browser workspace with visible project content, graph outputs, and richer viewer-side controls.
-- This lane expands into Browser structure, output hierarchy, build/view controls, reference assets, and later material-oriented workflow surfaces.
+- Turn the new ownership model into a usable Browser/project workspace with visible `Graph Documents`, published `Content`, and clearer project-content structure.
+- This lane owns the split between authoring/document rows and published build-chunk rows before the later runtime/build-contract lane makes every lower-level chunk fully honest.
 
 ### Lane Header
 #### Fold Hack 4
 
 Purpose:
 - take the work explicitly deferred out of `GE - Phase 12` and turn it into real Browser-facing project/content features
-- expand from ownership definitions into usable project navigation, output structure, visibility control, and reference workspace behavior
+- expand from ownership definitions into usable project navigation, output publication, `Graph Documents` versus `Content`, and later reference/visibility behavior
 
 Primary phase families:
 - `SP`
@@ -1174,7 +720,7 @@ Expected outcome:
 - graph outputs become legible as `Components`, `Assemblies`, `Objects`, and `Parts`
 - viewer-side reference/material/visibility systems start attaching to the correct project structure
 
-## Lane [2] Body - `Browser/project expansion`
+## Lane [2] Body - `Browser/project workspace and content structure`
 
 ### [2.1] [~] - `VR / SP` - `Browser Workspace Shell And Item Interaction`
 
@@ -1187,7 +733,8 @@ Summary:
 - one `VR / SP` cleanup cut for turning the current row-action-heavy Browser into a calmer tree-first workspace surface
 - one `VR / SP` shell/window-state cut for making the floating `Spaghetti Editor` header behave like a real editor window with in-app minimize/maximize/close controls, now partially landed as the active Spaghetti shell and toolbar cleanup wave
 - one `VR / SP` shared left-dock shell cut for letting `Browser` and the docked `meatball editor` use the same in-app docked/floating/ghost-preview movement system
-- keep all four cuts anchored to the finished Lane `[1]` ownership model instead of re-fighting graph/project truth
+- one `VR / SP` graph-documents child-section cut for giving graph rows a later `Needs Rebuild` plus `Nodes` expansion shape without collapsing them back into published `Content`
+- keep all five cuts anchored to the finished Lane `[1]` ownership model instead of re-fighting graph/project truth
 
 CheckList:
 - [x] land `[2.1A]` as the first Browser workspace shell and row-interaction cut
@@ -1195,9 +742,10 @@ CheckList:
 - [x] land `[2.1C]` as the Browser row-action cleanup and context-menu cut
 - [~] land `[2.1D]` as the Spaghetti floating window-controls and view-mode cut
 - [~] land `[2.1E]` as the shared dockable left-panel shell cut for `Browser` and `meatball editor`
+- [x] land `[2.1F]` as the later `Graph Documents` child-section split for `Needs Rebuild` and `Nodes`
 - [x] keep Browser interaction state separate from graph/project ownership truth
 - [x] keep Browser selection separate from editor focus and shared-composition membership
-- [ ] reduce Browser/workspace behavior that still depends on the old `Legacy` versus `Spaghetti` split once the graph-native workspace can stand on its own
+- [ ] leave only the non-blocking shell/polish tail here and keep the next real work moving into `[2.2]` / `[2.3]`
 
 Likely Files:
 - `src/app/AppShell.tsx`
@@ -1348,6 +896,36 @@ Likely Files:
 - `src/app/panels/BrowserPanel.tsx`
 - `src/app/theme/v15Theme.css`
 
+### [2.1F] [x] - `VR / SP` - `Graph Documents Child Sections`
+
+##### Summary
+
+Summary:
+- give `Graph Documents` a later child-section shape that is more useful than the current raw publish-entry list without collapsing graph rows into a second `Content` tree
+- keep graph rows as the authoring/document surface, but let them later expand into two clearly different child sections:
+  - `Needs Rebuild`
+  - `Nodes`
+- keep this as Browser/graph-documents behavior, not as a rewrite of the completed `[2.3]` `Content` build-control surface
+
+CheckList:
+- [x] add a `Needs Rebuild` child section under each graph document
+- [x] keep `Needs Rebuild` first and normally open
+- [x] show only produced graph-owned published objects/outputs that currently need rebuild
+- [x] hide empty/non-producing rows such as `s002`
+- [x] remove rows from `Needs Rebuild` once they are rebuilt and clean
+- [x] add a `Nodes` child section under each graph document
+- [x] keep `Nodes` second and normally closed
+- [x] let `Nodes` act as the authored node inventory for the current graph canvas
+- [x] avoid mixing authored node inventory and pending rebuild work into one flat child list
+- [x] keep this graph-side expansion separate from the published `Content` hierarchy
+
+Likely Files:
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/panels/selectBrowserTreeRows.ts`
+- `src/app/panels/selectBrowserTreeRows.test.ts`
+- `src/app/store/useAppStore.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+
 ### [2.1B] [x] - `SP / VR` - `Browser, Editor, And Shared Viewer Coordination`
 
 ##### Summary
@@ -1407,23 +985,49 @@ Likely Files:
 - `src/app/panels/selectBrowserTreeRows.test.ts`
 - `src/app/theme/v15Theme.css`
 
-### [2.2] [ ] - `AS` - Phase 5 - `Browser-Facing Graph Output Structure`
+### [2.2] [x] - `AS` - Phase 5 - `Browser-Facing Graph Output Structure`
 
 ##### Summary
 
 Summary:
-- turn graph output handoff into a clearer Browser-facing content structure built around `Component`, `Assembly`, `Object`, and `Part`
-- keep `Component` as the graph-produced bundle that the project composes upward
-- this is the later home for the deeper nesting and final Browser-facing structure that the first `SP - Phase 11` pass should not have to lock yet
+- turn graph output handoff into a clearer Browser-facing content structure with a real split between `Graph Documents` and published `Content`
+- keep graph-owned authored publication metadata separate from project-owned assembly/content placement
+- make the first honest content hierarchy conditional:
+  - singleton `Assembly -> Object`
+  - multi-object `Assembly -> Component -> Object`
+- leave `Part` for the later lane that can make it a truthful independent build chunk
+- shipped through closeout:
+  - the graph-owned publish seam, project lift, and Browser tree now tell the same singleton-collapse truth
+  - later row policy/build bars stay in `[2.3]`
+
+Sub-phase labels for the current closeout split:
+- `[2.2A] [x] - First shipped Browser-facing content structure cut`
+- `[2.2B] [x] - Graph-owned publish seam cleanup and final closeout proof`
 
 CheckList:
-- [ ] map graph output declarations into Browser-visible project content
-- [ ] define first-pass `Component -> Object -> Part` display structure
-- [ ] decide the deeper/final nesting direction after the first `SP - Phase 11` Browser tree exists
-- [ ] support optional `Assembly` grouping above components/objects
-- [ ] keep later `Sub-Parts` and `Sub-Components` out of first implementation
-- [ ] treat later `Sub-Parts` as a derived split layer under `Part`, not as a first-pass top-level Browser concept
-- [ ] replace the older flat legacy parts-list mental model with the real project-content hierarchy once that structure exists
+- [x] evolve `OutputPreview` from a slot-only seam into a structured publish payload
+- [x] map graph-authored publish declarations into Browser-visible project content without inferring structure from final meshes alone
+- [x] define the first-pass published hierarchy as:
+  - singleton `Assembly -> Object`
+  - multi-object `Assembly -> Component -> Object`
+- [x] keep singleton publish groups object-native and only create real `Component` rows when a publish group has two or more objects
+- [x] preserve `objectId` when a singleton publish group later becomes multi-object and gains a new parent `componentId`
+- [x] let multiple separate singleton publish groups from one graph document lift as separate direct object rows under the root assembly
+- [x] keep stable published ids explicit:
+  - `assemblyId`
+  - conditional `componentId`
+  - `objectId`
+  - later `partId`
+- [x] keep root/sub assembly differences in hierarchy relationships instead of creating different id kinds
+- [x] defer full `Part` rows until the publish contract and worker/runtime can represent them honestly
+- [x] replace the older flat legacy parts-list mental model with the real project-content hierarchy once that structure exists
+
+Closeout CheckList For `[2.2] -> [x]`:
+- [x] make the graph-owned publish seam tell the same singleton-versus-grouped truth as the project/browser lift instead of always reading as a published-component surface
+- [x] tighten the authored `OutputPreview` seam so the structured publish payload reads as the canonical Phase 5 publish contract, not just a compatibility bridge
+- [x] verify the remaining `02.2` acceptance claims end-to-end at the graph seam, project lift, and Browser read-model layers
+- [x] add/adjust direct tests around the graph-owned publish seam so the final `02.2` closeout truth is covered above the app-store lift
+- [x] after the closeout pass, flip `[2.2]` from `[~]` to `[x]` and keep later row policy/build bars in `[2.3]`
 
 Likely Files:
 - `src/app/spaghetti/selectors/`
@@ -1432,19 +1036,24 @@ Likely Files:
 - `src/shared/buildTypes.ts`
 - `src/shared/partsTypes.ts`
 
-### [2.3] [~] - `AS` - Phase 6 - `Project Content Inspection And Build Control Surface`
+### [2.3] [x] - `AS` - Phase 6 - `Project Content Inspection And Build Control Surface`
 
 ##### Summary
 
-Summary:
-- expose project-content inspection and build-oriented controls for Browser rows without collapsing back into one flat parts list
-- this is the better later home for richer Browser row loading/build bars after `11B` only establishes simple dirty/saved cached-entry state
-- this is also the main later home for build-oriented Browser row surfaces intentionally deferred out of the first `SP - Phase 11` Browser hierarchy pass
+  Summary:
+  - turn published `Content` into the first honest build-surface model without collapsing it back into `Graph Documents`
+  - keep `Graph Documents` as the authoring/document surface while `Content` becomes the published-entity execution and policy surface
+  - this is the later home for the first real `Assembly` / `Component` / `Object` row meaning after `11B` only established simple dirty/saved cached-entry state
+  - shipped through closeout:
+    - content rows now own `Select + Rebuild`, Browser-facing build bars, inline policy chips, and calmer secondary source-trace actions
+    - graph rows stay simple and document-oriented instead of inheriting published build-control behavior
 
-Sub-phase labels for the shipped cleanup wave:
-- `[2.3A] [x] - Browser graph-row one-line policy/status shell`
-- `[2.3B] [x] - Graph-row save/export split and runtime-owned build freshness`
-- `[2.3C] [ ] - Deeper project-content inspection and per-object/per-part build control`
+  Sub-phase labels for the shipped cleanup wave:
+  - `[2.3A] [x] - Graph-row one-line policy/status groundwork`
+  - `[2.3B] [x] - Graph-row save/export split and runtime-owned build freshness`
+  - `[2.3C] [x] - Published content row interaction model and `Graph Documents` versus `Content` split`
+  - `[2.3D] [x] - First dominant parent bars and slimmer real `Object` bars`
+  - `[2.3E] [x] - Row policy versus view-control separation and calmer source-trace language`
 
 Carry-forward note:
 - `11B`
@@ -1452,28 +1061,39 @@ Carry-forward note:
 - `[1.5]`
   - the first Browser hierarchy pass should not try to finish build bars or richer build-status rows
 - `[2.3]`
-  - this is where richer Browser row loading/build bars should live later
-  - treat those bars as build/runtime inspection UI, not cached-graph lifecycle UI
+  - this is where published `Content` rows should gain real row meaning, policy surfaces, and first honest build/loading bars
+  - keep those rows separate from graph-document save/export/readiness UI
+  - treat those bars as published build/runtime inspection UI, not cached-graph lifecycle UI
 
-CheckList:
-- [ ] show graph/component/object/part build state in the Browser
-- [x] prepare first graph-row build bars and build-status surfaces without pulling them back into `11B`
-- [x] carry richer Browser row loading/build bars into a Browser/build-control lane instead of keeping them inside cached-graph lifecycle semantics
-- [x] separate graph-row save/export state from graph-row build/runtime state
-- [ ] separate build controls from view controls in the Browser
-- [ ] keep `generate/build on-off` separate from `view on-off`
-- [ ] leave room for later item actions like isolate, rename, and export
+  CheckList:
+  - [x] make `Content` read as published project structure instead of a second graph list
+  - [x] keep `Graph Documents` as the authoring/document surface and `Content` as the published build-chunk surface
+  - [x] make primary row click on `Content` mean `Select + Rebuild` for that published row/branch
+  - [x] move graph/source traceability into secondary actions such as `view in graph` and right-click instead of primary row text
+  - [x] show assembly/component/object build state in the Browser
+  - [x] prepare first graph-row build bars and build-status surfaces without pulling them back into `11B`
+  - [x] carry richer Browser row loading/build bars into a Browser/build-control lane instead of keeping them inside cached-graph lifecycle semantics
+  - [x] separate graph-row save/export state from graph-row build/runtime state
+  - [x] make `Assembly` and `Component` the first dominant bar rows while giving `Object` a real but slimmer bar
+  - [x] keep row policy controls separate from viewer/material/presentation controls
+  - [x] default published content rows to `Live` on load as the target model
+  - [x] place the first build-policy control on published `Content` rows as an inline row chip
+  - [x] leave room for parent-driven policy, mixed child state, and later `SEQ / ALL` execution mode
+  - [x] separate build controls from view controls in the Browser
+  - [x] keep `generate/build on-off` separate from `view on-off`
+  - [x] leave room for later item actions like isolate, rename, and export
 
 Likely Files:
 - `src/app/panels/BrowserPanel.tsx`
 - `src/app/panels/selectBrowserGraphRows.ts`
+- `src/app/panels/selectBrowserTreeRows.ts`
 - `src/app/spaghetti/store/useSpaghettiStore.ts`
 - `src/app/components/BuildStatsDrawer.tsx`
 - `src/app/panels/PartsListPanel.tsx`
 - `src/app/store/useAppStore.ts`
 - `src/shared/buildStatsKeys.ts`
 
-### [2.4] [ ] - `VR` - Phase 5 - `Reference Asset Workspace And Project View Layers`
+### [2.4] [x] - `VR` - Phase 5 - `Reference Asset Workspace And Project View Layers`
 
 ##### Summary
 
@@ -1481,10 +1101,42 @@ Summary:
 - bring reference assets back into the viewer/Browser workspace as clearly separate non-project-owned context layers
 
 CheckList:
-- [ ] add Browser/viewer sections for external reference assets
-- [ ] keep references outside `Project File` ownership in the first pass
-- [ ] support `.obj`, `.glb`, and `.stl` reference loading as workspace context
-- [ ] add basic project-versus-reference visibility separation
+- [x] add Browser/viewer sections for external reference assets
+- [x] keep references outside `Project File` ownership in the first pass
+- [x] support `.obj`, `.glb`, and `.stl` reference loading as workspace context
+- [x] add basic project-versus-reference visibility separation
+- [x] keep the first shipped cut as static-manifest reference workspace support before later import-system growth
+- [x] leave `.step` reference loading as a later follow-up inside `[2.4]`, not a hidden out-of-scope orphan
+- [x] leave user-added reference import from disk as a later follow-up inside `[2.4]`, not a separate forgotten system
+- [x] leave reference transform controls as a later follow-up inside `[2.4]`, with a right-click `Transform Object` entrypoint and a floating transform toolbar instead of burying that work inside import flow
+
+Later follow-up shape inside `[2.4]`:
+- `[2.4A]` static-manifest reference workspace
+  - first Browser `References` subtree
+  - static checked-in manifest
+  - lazy load on first toggle
+  - blue/gray viewer-state rows
+- `[2.4B]` expanded reference file support
+  - add `.step` reference loading
+  - deepen loader coverage and error handling for more real-world reference assets
+- `[2.4C]` user reference import from disk
+  - let users bring in their own reference models
+  - first as workspace/viewer imports rather than project-owned content
+  - later persistence/project-management decisions can stay separate if needed
+- `[2.4D]` reference transform controls
+  - right-click reference rows to enter `Transform Object`
+  - show a floating transform toolbar on screen
+  - first toolbar actions: `Move`, `Rotate`, `Scale`, `Reset Transform`
+  - keep this separate from the first user-import flow
+- `[2.4E]` reference transform timelines
+  - shipped the first per-value `Basic / Timeline` mode inside the reference transform toolbar
+  - timeline mode now expands that value into a boxed section with a `Speed` slider and editable motion graph
+  - shipped first cycle modes: `Left to Right`, `Bounce`, and `Right to Left`
+  - keeps animated value behavior separate from the shipped manual-only `02.4D` control surface
+- `[2.4F]` general content transform toolbar
+  - generalize the shipped reference transform toolbar into a viewer-side transform session for any eligible `Content` object
+  - keep this viewer/runtime-owned and separate from Replicad/source-authoring transforms
+  - likely becomes the lane where Browser-selected `m / r / s` can open the shared transform session outside the reference-only flow
 
 Likely Files:
 - `src/app/components/ViewerHost.tsx`
@@ -1513,10 +1165,231 @@ Likely Files:
 - `src/viewer/Viewer.ts`
 - `src/app/store/useAppStore.ts`
 
-# [3] `Control, Build, And Workspace Systems`
+# [3] `Node, Wire, Driver, Part, And Feature Authoring Hardening`
 
 Summary:
-- capture the deeper control, build orchestration, and workspace features that were discussed during planning but do not belong inside the Browser foundation lanes yet
+- make the graph editor itself strong enough to act like a real authoring tool instead of only a structurally honest shell
+- keep this lane visible now that the newer vision split made it clear the execution roadmap was missing the post-workspace authoring hardening lane
+
+### Lane Header
+#### Fold Hack 4
+
+Purpose:
+- harden the graph authoring system after the ownership/workspace foundations are honest
+- improve node, wire, driver, part, and feature-stack surfaces without pushing those concerns into the Browser/content lanes
+- keep generic node/editor behavior in the node system instead of solving authoring problems through one-off workspace chrome
+
+Primary phase families:
+- `NI`
+- `DR`
+- `PT`
+- `FS`
+
+Expected outcome:
+- the roadmap keeps room for the systems that make ParaHook a stronger authoring environment:
+  - clearer node families
+  - more legible wire flow
+  - richer driver/value systems
+  - stronger part-node contracts
+  - a deeper feature-stack authoring surface
+
+## Lane [3] Body - `authoring-system hardening`
+
+### [3.1] [ ] - `NI` - Phase 6 - `Node System Cleanup And Growth`
+
+##### Summary
+
+Summary:
+- later lane for clearer node families, stronger generic node rendering rules, and a better spawn/palette model that does not depend on one-off panel behavior
+
+CheckList:
+- [ ] clarify node-family boundaries and intended registry ownership
+- [ ] improve palette/spawn ergonomics without hard-coding product-specific paths
+- [ ] strengthen generic node rendering contracts so future node growth does not require one-off UI branches
+
+### [3.2] [ ] - `SP / NI / FS / GE` - `Foundational Geometry Node System`
+
+##### Summary
+
+Summary:
+- give the first real geometry-authoring nodes a dedicated roadmap home instead of burying them under generic node cleanup or much later feature-stack growth
+- turn the current architecture work in `Spaghetti-Types.md` into an explicit staged lane slice for:
+  - `Data Types`
+  - `Sketch`
+  - `Extrude`
+  - `Loft`
+- keep this cluster ahead of the broader wire/driver/part/feature hardening work because it defines the first honest graph-native geometry-authoring contract
+
+Sub-phase labels for the current temporary draft:
+- `[3.2A] [ ] - Data Types And Sketch Foundation`
+- `[3.2B] [ ] - Sketch Operation Authoring`
+- `[3.2C] [ ] - Extrude Foundation`
+- `[3.2D] [ ] - Loft Foundation`
+
+CheckList:
+- [ ] `[3.2A] Data Types And Sketch Foundation`
+  - [ ] lock the minimum honest geometry type language needed to support the first real authored-node path
+  - [ ] explicitly lock the first real graph data types needed for geometry authoring:
+    - `[Float]`
+    - `[Boolean]`
+    - `[Enum]`
+    - `[Vec2]`
+    - `[Vec3]`
+    - `[Transform2D]`
+    - `[Plane]`
+    - `[SketchCurve]`
+    - `[SketchCurves]`
+    - `[SketchProfiles]`
+    - `[SketchProfile]`
+    - `[SolidBody]`
+  - [ ] ship the first real `Sketch` node shell with honest top-level inputs and outputs
+  - [ ] keep this phase focused on the type vocabulary plus the `Sketch` seam, not deep sketch authoring breadth yet
+- [ ] `[3.2B] Sketch Operation Authoring`
+  - [ ] ship the first real sketch operation flow inside the `Sketch` system:
+    - `Line`
+    - `Arc3Point`
+    - `BezierSpline`
+    - `CloseProfile`
+    - `ProfileSelect`
+  - [ ] make the first sketch-operation set sufficient to produce one honest selected closed profile for downstream body features
+  - [ ] leave wider sketch-command parity, constraint solving, and full builder polish out of the first pass
+- [ ] `[3.2C] Extrude Foundation`
+  - [ ] prove the first body-producing authored-node path:
+    - `Sketch -> Extrude -> SolidBody`
+  - [ ] ship the first real `Extrude` node as a user-facing mode-based surface rather than a low-level helper wrapper
+  - [ ] keep the first shipped `Extrude` contract small and honest around profile input plus the minimum distance/direction-style controls
+  - [ ] avoid dragging later feature-stack, boolean, shell, or manufacturing semantics into this first extrusion cut
+- [ ] `[3.2D] Loft Foundation`
+  - [ ] add `Loft` as the next real profile-based body feature after extrusion
+  - [ ] keep the first `Loft` surface mode-based and user-facing rather than exposing low-level engine helper outputs directly
+  - [ ] start with the smallest honest `StartProfile / EndProfile -> SolidBody` contract before taking on richer rails, intermediates, or advanced continuity controls
+  - [ ] use this phase to prove ParaHook can support the next more organic profile-to-body step after prismatic extrusion
+
+### [3.3] [ ] - `NI` - Phase 7 / 8 - `Wire UX And Flow Readability`
+
+##### Summary
+
+Summary:
+- later lane for making wire flow easier to read and debug once the ownership/workspace foundation is in place
+
+CheckList:
+- [ ] improve wire rendering readability
+- [ ] improve validation readability around broken or mismatched flows
+- [ ] decide whether active-path or read-flow overlays help enough to earn a permanent place
+
+### [3.4] [ ] - `DR` - Phase 13 / 14 / 16 - `Driver And Param System Expansion`
+
+##### Summary
+
+Summary:
+- later lane for richer driver/value flow, grouped param systems, and stronger downstream control contracts
+
+CheckList:
+- [ ] strengthen driver contracts above today’s narrower value-flow seams
+- [ ] add richer param-node capability where the current graph still feels too shell-like
+- [ ] leave room for grouped and equation-ready value flow later
+
+### [3.5] [ ] - `PT` - Phase TBD - `Part Node Hardening`
+
+##### Summary
+
+Summary:
+- later lane for making the `Part` node a stronger host contract instead of leaving it as a thin transitional wrapper
+
+CheckList:
+- [ ] strengthen part definition and metadata seams
+- [ ] keep presets and part type as separate layers instead of one fused identity
+- [ ] improve part-facing inputs/outputs without hard-coding product-specific assumptions
+
+### [3.6] [ ] - `FS` - Phase TBD - `Feature Stack Growth`
+
+##### Summary
+
+Summary:
+- later lane for adding more feature operations and making feature-stack authoring feel more trustworthy as a real CAD authoring surface
+
+CheckList:
+- [ ] expand feature operations beyond the current thin stack
+- [ ] improve feature diagnostics and failure readability
+- [ ] clean up feature-stack authoring ergonomics where the flow still feels like scaffolding
+
+# [4] `Console, Debug, And Workspace Feedback`
+
+Summary:
+- pull the app-wide `Console` and its related debug/feedback surfaces into their own lane so they can move sooner without being buried under later control/build/package systems
+- treat the `Console` as a first-class workspace feedback surface for commands, shortcuts, worker/app notes, diagnostics, and layered transcript output
+
+### Lane Header
+#### Fold Hack 4
+
+Purpose:
+- hold the cross-cutting workspace feedback systems around:
+  - command feedback
+  - shortcut feedback
+  - worker/app transcript output
+  - layered debug text and later inspection handoff
+
+Primary phase families:
+- `VR`
+- `SP`
+- `DBG`
+
+Expected outcome:
+- the roadmap has one clear home for:
+  - the bottom console line
+  - the expanded debug/transcript panel
+  - future layered debug output
+  - shared keyboard-routing and feedback presentation
+
+## Lane [4] Body - `console and debug workspace feedback`
+
+### [4.1] [~] - `VR / SP / DBG` - `Console And Layered Transcript`
+
+##### Summary
+
+Summary:
+- the app-wide `Console` is now real as a shared workspace feedback surface instead of debug text being stranded inside local tools
+- shipped work now covers the bottom collapsed row, the expanded transcript shell, layered feedback lines, console appearance/tools controls, and the first alternate presentation modes
+- the remaining `4.1` work is no longer the shell itself; it is the later command-routing, richer filtering, result UX, inspector bridge, and hotkey-customization follow-through
+
+CheckList:
+- [x] `[4.1A]` `Console Shell And Transcript Core`
+  - collapsed bottom-row `Console`
+  - expanded resizable black-panel `Console`
+  - app-global shared transcript/state seam
+  - visible layer row
+  - appearance/tools controls in the `i` menu
+- [x] `[4.1B]` `Console Floating And Pop-Out Modes`
+  - `Floating`
+  - `Pop-Out`
+  - `List`
+- [x] `[4.1C]` `Command Input And Keyboard Routing`
+  - narrow-core typed commands
+  - `/` focus entry
+  - strict command parsing
+  - command history recall
+  - immediate `M / R / S` and secondary-only `X / Y / Z` routing
+- [x] `[4.1D]` `Layered Event Feeds And Filtering`
+  - added `View`, `Browser`, and `Transforms` layers
+  - isolate mode
+  - subset mode
+  - diagnostics pin
+  - broader Browser / View / Transform publishers
+- [ ] `[4.1E]` `Command Results, Errors, And Follow-Up UX`
+  - richer command result formatting
+  - clearer follow-up/help/error presentation
+- [ ] `[4.1F]` `Debug Inspector Bridge And Richer Later Diagnostics`
+  - stronger console-to-inspector bridge
+  - deeper structured diagnostics
+- [ ] `[4.1G]` `Hotkey Customization And Shortcut Profiles`
+  - user hotkey rebinding
+  - conflict detection
+  - restore-default behavior
+
+# [5] `Control, Build, And Workspace Systems`
+
+Summary:
+- capture the deeper control, build orchestration, and workspace features that were discussed during planning but do not belong inside the Browser, authoring-hardening, or the newly promoted console/debug lane
 - keep these systems visible on the roadmap so they can become real later phases instead of staying as scattered notes
 
 ### Lane Header
@@ -1524,9 +1397,9 @@ Summary:
 
 Purpose:
 - hold the bigger deferred systems around:
+  - workspace modes and hybrid pane layout
   - control-viz and Jake-style control surfaces
-  - build sequencing and build bars
-  - workspace presentation modes
+  - build sequencing and truthful build bars
   - advanced output/project packaging
 
 Primary phase families:
@@ -1537,16 +1410,54 @@ Primary phase families:
 
 Expected outcome:
 - the roadmap keeps room for the systems that govern:
+  - workspace modes and shared layout
   - control surfaces
   - build sequencing
-  - workspace presentation
   - richer output/export behavior
 
-## Lane [3] Body - `later control/build/workspace placeholder`
+## Lane [5] Body - `later control/build/workspace placeholder`
 
-### [3.1] [ ] - `DR / JK` - `Control Viz And Graph-Driven Control Surfaces`
+### [5.1] [~] - `VR / SP` - `Workspace Modes`
 
-##### Summary
+Summary:
+- later lane for the shared hybrid workspace system:
+  - `Windowed` plus `Tiled` presentation
+  - left-dock split entry
+  - pane-tree layout
+  - divider authoring
+  - hybrid tiled/windowed tool-surface hosting
+  - persistence and saved workspace modes
+- this is now the real roadmap home for the broader workspace-mode architecture in `docs/Human-Plans/Architecture/Workspace-Modes.md`
+- the older smaller workspace-presentation cleanup wave stays recorded here as already-landed groundwork, but no longer owns the future execution numbering
+
+CheckList:
+- [x] create the dedicated `[5.1A]` through `[5.1D]` task-doc family for workspace modes
+- [ ] lock one shared workspace-layout owner near `AppShell`
+- [ ] lock the canonical tile-tree model:
+  - branch node = split direction + ratio + priority
+  - leaf node = hosted tool-surface instance
+- [ ] reuse the existing left-dock `[]` button as the first tiled-entry control
+- [ ] lock divider-line authoring, resize, merge, and row/column priority rules
+- [ ] lock hybrid tool-surface hosting and tiled/windowed transitions for:
+  - `Model Viewer`
+  - `Browser`
+  - `Console`
+  - `Gizmo/View`
+  - `Spaghetti Editor`
+- [ ] lock persistence, saved workspace-mode follow-up, and migration off the old special-case Spaghetti split path
+
+Shipped groundwork already landed:
+- [x] per-window appearance shell and per-viewport style controls
+- [x] para slider/select presentation primitives and clamp-edit mode
+- [x] compact/expanded `View` gizmo and right-dock presentation
+
+Planned subphase family:
+- `[5.1A] [ ] - Workspace Layout Foundation And Left-Dock Entry`
+- `[5.1B] [ ] - Split Pane Authoring And Divider Controls`
+- `[5.1C] [ ] - Hybrid Tool Surface Hosting And Floating-Tiled Transitions`
+- `[5.1D] [ ] - Workspace Persistence, Saved Modes, And Migration`
+
+### [5.2] [ ] - `DR / JK` - `Control Viz And Graph-Driven Control Surfaces`
 
 Summary:
 - later lane for control-viz spheres, graph-linked controls, driver authority rules, and the deeper convergence between Spaghetti and Jake mode
@@ -1556,45 +1467,32 @@ CheckList:
 - [ ] define source control vs downstream offset rules
 - [ ] define how control surfaces drive graph params cleanly
 
-### [3.2] [ ] - `AS / SP` - `Build Sequencing, Build Bars, And Output Build Control`
-
-##### Summary
+### [5.3] [ ] - `AS / SP` - `Build Sequencing, Build Bars, And Output Build Control`
 
 Summary:
-- later lane for per-part build bars, staged build sequencing, rebuild policies, and mesh/combine control above the current graph-local build memory work
-- this is also the first credible home for replacing the old `BoxParams`-centric worker contract with a graph-native build contract once graph/project ownership is mature enough
+- later lane for truthful per-object/per-part build bars, staged build sequencing, rebuild policies, and mesh/combine control above the current graph-local build memory work
+- this is the first credible home for replacing the old `BoxParams`-centric worker contract with a graph-native build contract once Lane `[2]` has already made the published `Content` hierarchy honest
 
 CheckList:
 - [ ] expose per-part/per-object build progress
 - [ ] define build-sequence control surfaces
+- [ ] make sibling published rows real independent build chunks in worker/runtime instead of graph-scoped UI abstractions
+- [ ] keep unaffected sibling published rows clean/cached when another object changes
+- [ ] derive `Content` rebuild bars from runtime chunk truth instead of graph-level rebuild fallback state
+- [ ] distinguish clearly between:
+  - never built
+  - stale / needs rebuild
+  - building
+  - clean / cached
+- [ ] define invalidation boundaries so only downstream affected published rows are marked stale
+- [ ] define policy/execution truth split clearly:
+  - project/app state owns row policy
+  - worker/runtime owns row execution truth
 - [ ] define deferred mesh/combine behavior across objects/assemblies
 - [ ] define the graph-native worker request/result contract that should replace the current legacy compatibility path
 - [ ] remove dependence on graph-to-legacy request translation once the graph-native contract is real
 
-### [3.3] [~] - `VR / SP` - `Workspace Presentation Modes`
-
-Summary:
-- later lane for `Collapsed / Essentials / Expanded`, cleaner inspectors/toolbars, and other ways to keep the main canvas clean while preserving deep inspectability
-- this is the longer-range home for broader workspace-presentation polish after the first Browser hierarchy surface and the first richer Browser workspace pass exist
-
-Sub-phase labels for the shipped cleanup wave:
-- `[3.3A] [x] - Spaghetti window appearance shell and per-viewport style controls`
-- `[3.3B] [x] - Para slider/select presentation primitives and clamp-edit mode`
-- `[3.3C] [x] - Compact/expanded `View` gizmo and right-dock presentation`
-- `[3.3D] [ ] - Saved workspace modes and broader later workspace cleanup`
-
-CheckList:
-- [ ] define `Collapsed / Essentials / Expanded`
-- [ ] define what stays in canvas vs separate panels
-- [x] prove the first reusable workspace-presentation systems in shipped code:
-  - per-window appearance/settings
-  - clamp-aware sliders/selects
-  - compact/expanded `View` presentation
-- [ ] carry broader workspace-presentation polish here instead of forcing it into the first `SP - Phase 11` Browser pass
-- [ ] define saved workspace/presentation modes later if still useful
-- [ ] remove legacy-only panels and workspace affordances once graph-native Browser/workspace coverage makes them redundant
-
-### [3.4] [ ] - `AS / VR` - `Advanced Output Types And Later Project Packaging`
+### [5.4] [ ] - `AS / VR` - `Advanced Output Types And Later Project Packaging`
 
 Summary:
 - later lane for non-solid outputs, richer project-file export packaging, and optional inclusion of imported assets in project export
@@ -1604,7 +1502,7 @@ CheckList:
 - [ ] define project-file packaging/export behavior
 - [ ] define when imported assets can become project-owned export content
 
-### [3.5] [ ] - `GE / SP / AS` - `Publish / Receive Execution`
+### [5.5] [ ] - `GE / SP / AS` - `Publish / Receive Execution`
 
 Summary:
 - later lane for turning the locked `Publish / Receive` ownership model into real graph-to-graph behavior with clear link versus hard-copy execution rules
@@ -1615,7 +1513,7 @@ CheckList:
 - [ ] keep Browser/project ownership coherent when received data is nested into project content
 - [ ] define export restrictions or conversion requirements for linked receive-data
 
-### [3.6] [ ] - `GE / SP / VR` - `Final Legacy Phase-Out And Compatibility Cleanup`
+### [5.6] [ ] - `GE / SP / VR` - `Final Legacy Phase-Out And Compatibility Cleanup`
 
 Summary:
 - final cleanup lane for removing the old hybrid-app branches after graph-native authoring, Browser/project hierarchy, build execution, and workspace presentation fully replace them

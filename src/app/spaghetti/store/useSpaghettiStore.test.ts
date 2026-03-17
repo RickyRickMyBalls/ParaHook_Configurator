@@ -114,7 +114,7 @@ describe('useSpaghettiStore graph normalization', () => {
     expect(outputPreviewNodes[0].params).toEqual({
       componentLabel: 'Published Component',
       objects: [
-        { objectId: 'output-object:s001', slotId: 's001', label: 's001', orderIndex: 0 },
+        { objectId: 'output-object:s001', slotId: 's001', label: 'Object 1', orderIndex: 0 },
       ],
       slots: [{ slotId: 's001' }],
       nextSlotIndex: 2,
@@ -1629,7 +1629,7 @@ describe('useSpaghettiStore graph normalization', () => {
           type: OUTPUT_PREVIEW_NODE_TYPE,
           params: {
             componentLabel: 'Published Component',
-            objects: [{ objectId: 'output-object:s001', slotId: 's001', label: 's001' }],
+            objects: [{ objectId: 'output-object:s001', slotId: 's001', label: 'Object 1' }],
             slots: [{ slotId: 's001' }],
             nextSlotIndex: 2,
           },
@@ -1639,7 +1639,7 @@ describe('useSpaghettiStore graph normalization', () => {
           type: OUTPUT_PREVIEW_NODE_TYPE,
           params: {
             componentLabel: 'Published Component',
-            objects: [{ objectId: 'output-object:s001', slotId: 's001', label: 's001' }],
+            objects: [{ objectId: 'output-object:s001', slotId: 's001', label: 'Object 1' }],
             slots: [{ slotId: 's001' }],
             nextSlotIndex: 2,
           },
@@ -1704,7 +1704,7 @@ describe('useSpaghettiStore graph normalization', () => {
           type: OUTPUT_PREVIEW_NODE_TYPE,
           params: {
             componentLabel: 'Published Component',
-            objects: [{ objectId: 'output-object:s001', slotId: 's001', label: 's001' }],
+            objects: [{ objectId: 'output-object:s001', slotId: 's001', label: 'Object 1' }],
             slots: [{ slotId: 's001' }],
             nextSlotIndex: 2,
           },
@@ -1733,8 +1733,8 @@ describe('useSpaghettiStore graph normalization', () => {
     expect(outputPreviewNode?.params).toEqual({
       componentLabel: 'Published Component',
       objects: [
-        { objectId: 'output-object:s001', slotId: 's001', label: 's001', orderIndex: 0 },
-        { objectId: 'output-object:s002', slotId: 's002', label: 's002', orderIndex: 1 },
+        { objectId: 'output-object:s001', slotId: 's001', label: 'Object 1', orderIndex: 0 },
+        { objectId: 'output-object:s002', slotId: 's002', label: 'Object 2', orderIndex: 1 },
       ],
       slots: [{ slotId: 's001' }, { slotId: 's002' }],
       nextSlotIndex: 3,

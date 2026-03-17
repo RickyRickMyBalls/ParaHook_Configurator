@@ -111,6 +111,67 @@ export class CameraController {
     this.frameBox(bounds)
   }
 
+  public trackScaledObject(
+    obj: Object3D,
+    previousCenter: Vector3 | null,
+    previousMaxDim: number | null,
+    targetCenter: Vector3 | null = previousCenter,
+  ): { center: Vector3 | null; maxDim: number | null } {
+    const bounds = new Box3().setFromObject(obj, true)
+    if (bounds.isEmpty()) {
+      return { center: previousCenter, maxDim: previousMaxDim }
+    }
+
+    bounds.getSize(this.tmpSize)
+    bounds.getCenter(this.tmpCenter)
+    const nextMaxDim = Math.max(this.tmpSize.x, this.tmpSize.y, this.tmpSize.z, 0.001)
+    if (previousCenter === null || previousMaxDim === null || previousMaxDim <= 0.000001) {
+      this.frameBox(bounds)
+      return { center: this.tmpCenter.clone(), maxDim: nextMaxDim }
+    }
+
+    const nextTargetCenter = targetCenter ?? previousCenter
+    const currentDistance = Math.max(this.camera.position.distanceTo(nextTargetCenter), 0.001)
+    const nextDistance = currentDistance * (nextMaxDim / previousMaxDim)
+
+    this.tmpDirection.copy(this.camera.position).sub(nextTargetCenter).normalize()
+    if (!Number.isFinite(this.tmpDirection.lengthSq()) || this.tmpDirection.lengthSq() < 1e-8) {
+      this.tmpDirection.set(1, 1, 1).normalize()
+    }
+
+    this.controls.target.copy(nextTargetCenter)
+    this.camera.position.copy(nextTargetCenter).addScaledVector(this.tmpDirection, nextDistance)
+    this.camera.near = Math.max(nextDistance / 100, 0.01)
+    this.camera.far = Math.max(nextDistance * 100, 100)
+    this.camera.updateProjectionMatrix()
+    this.controls.update()
+    return { center: previousCenter.clone(), maxDim: nextMaxDim }
+  }
+
+  public trackObject(obj: Object3D, previousCenter: Vector3 | null = null): Vector3 | null {
+    const bounds = new Box3().setFromObject(obj, true)
+    if (bounds.isEmpty()) {
+      return previousCenter
+    }
+
+    bounds.getCenter(this.tmpCenter)
+    if (previousCenter === null) {
+      const offset = this.camera.position.clone().sub(this.controls.target)
+      this.controls.target.copy(this.tmpCenter)
+      this.camera.position.copy(this.tmpCenter).add(offset)
+      this.camera.updateProjectionMatrix()
+      this.controls.update()
+      return this.tmpCenter.clone()
+    }
+
+    const delta = this.tmpCenter.clone().sub(previousCenter)
+    this.controls.target.add(delta)
+    this.camera.position.add(delta)
+    this.camera.updateProjectionMatrix()
+    this.controls.update()
+    return this.tmpCenter.clone()
+  }
+
   public setPreset(preset: CameraPreset): void {
     const direction = new Vector3(1, 1, 1).normalize()
 

@@ -1,6 +1,8 @@
 # Decisions
 
 ## Doc History
+3. 2026-03-16 16:58: Added the now-locked `[2.4B] VR - Expanded Reference File Support` decisions after promoting its execution spec, so the decision tracker now captures the `.step` scope lock, `occt-import-js` browser-side importer choice, visible retryable error rows, and the first real `Premade Foothooks` population alongside the earlier `[2.4]` reference-workspace rules
+2. 2026-03-16 15:25: Expanded this file beyond the original Lane `[1]` scope just enough to record the now-locked `[2.4] VR - Phase 5 - Reference Asset Workspace And Project View Layers` decisions, so the decision tracker can honestly mark that phase as covered
 1. 2026-03-09 00:00: Rebuilt this file from the roadmap and recent `CodexNotes` so it now acts as a clean Lane `[1]` decision register instead of an older unresolved backlog
 
 ## Purpose
@@ -11,6 +13,7 @@ Current scope:
 - base this file on `Lane [1]` of the roadmap first
 - capture phase-by-phase decisions already made
 - keep the focus on locked direction, not open brainstorming
+- later lanes may be added selectively once a phase has truly settled enough to count as locked
 
 This file is now for:
 - decisions already made
@@ -31,9 +34,11 @@ Active source of truth for this file:
 
 Current coverage:
 - `Lane [1] Browser Foundations And Single-Graph Cleanup`
+- `[2.4] VR - Phase 5 - Reference Asset Workspace And Project View Layers`
+- `[2.4B] VR - Expanded Reference File Support`
 
 Later, this file can grow to include:
-- Lane `[2]` decisions once those phases are planned
+- later Lane `[2]` decisions once those phases are planned and truly locked
 - Lane `[3]` decisions once those systems are planned
 
 ## Master Decision CheckList
@@ -173,11 +178,72 @@ Meaning:
     - first-pass nested object/part display behavior
     - Browser action surface and focus/view/generate rules at the row level
 
+### Bucket 2 - Selected Later-Lane Locked Decisions
+
+- [x] `[2.4] VR - Phase 5 - Reference Asset Workspace And Project View Layers`
+  - decisions captured:
+    - `References` lives visually inside `Content` above the first assembly row
+    - references stay viewer/workspace context rather than project-owned published `Content`
+    - Browser should move toward `Project Browser` framing and remove the redundant inner `Project` header in this phase
+    - `Content`, `References`, and reference categories use normal Browser tree `+/-` controls and connector lines
+    - first category parents are:
+      - `Footpads`
+      - `Shoes`
+      - `Premade Foothooks`
+    - v1 uses a static checked-in manifest rather than runtime folder scanning
+    - supported v1 file types are:
+      - `.obj`
+      - `.glb`
+      - `.stl`
+    - `.step` stays out of scope for `[2.4]`
+    - current asset roots stay:
+      - `public/ReferenceModels/footpads/`
+      - `public/ReferenceModels/shoes/`
+      - `public/ReferenceModels/hooks/`
+    - `Premade Foothooks` stays visible as an empty placeholder category in v1 because current hook assets are `.step`
+    - child reference row click toggles one item on/off in the viewer
+    - category row click toggles the whole category on/off in the viewer
+    - `+/-` remains expand/collapse only
+    - references start hidden by default and lazy-load on first toggle-on
+    - turning a reference off hides it but keeps it loaded
+    - reference rows use calm viewer-state bars:
+      - `blue` = visible/on
+      - `gray` = hidden/off
+      - failed loads remain visible with muted/error state
+    - references are passive viewer context in v1:
+      - no build/rebuild bars
+      - no remove/unload actions
+      - no selection/editing semantics
+
+- [x] `[2.4B] VR - Expanded Reference File Support`
+  - decisions captured:
+    - `2.4B` keeps the shipped `02.4A` static-manifest reference workspace instead of replacing it
+    - the first expanded file-support cut adds only:
+      - `.step`
+    - `occt-import-js` is the locked browser-side STEP importer
+    - STEP import stays in the existing async viewer-side reference load/cache path
+    - static manifest ownership remains unchanged:
+      - no folder scanning
+      - no user import
+    - `Premade Foothooks` becomes fully real in this phase using:
+      - `large.step`
+      - `medium.step`
+      - `small.step`
+      - `xl.step`
+    - failed STEP rows stay visible in the Browser with `Error` state
+    - clicking the same errored row retries loading
+    - category aggregate state should read:
+      - `Loading`
+      - `Error`
+      - `On`
+      - `Off`
+    - existing `Footpads` and `Shoes` behavior should remain unchanged
+
 ### Master Totals
 
-- fully decision-covered phases/sub-phases: `16`
+- fully decision-covered phases/sub-phases: `17`
 - partially covered / still-open decision targets: `1`
-- total roadmap items tracked here: `17`
+- total roadmap items tracked here: `18`
 
 ## Lane [1] - Foundation Decisions
 

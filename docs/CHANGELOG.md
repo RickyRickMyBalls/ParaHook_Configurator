@@ -65,6 +65,2434 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 300 -->
+### [300] - 2026-03-16 19:31 - `VR - Phase 5 - 02.4C User References Bucket Locked`
+<!-- ENTRY 300 -->
+HUMAN SUMMARY: `Locked the first \`02.4C\` Browser placement answer so imported files live under \`References\` in a dedicated \`User References\` child category instead of being mixed into the built-in library groups.`
+
+#### Scope / Constraints Honored
+- Kept the change limited to the `02.4C` planning doc plus the required changelog update.
+- Did not promote `02.4C` or change any runtime Browser code yet.
+- Preserved the existing built-in reference categories while giving user-imported files a separate first-pass home.
+
+#### Summary of Implementation
+- Added a new local `Doc History` entry in `docs/Phase-Plans/Tasks/Future/02.4C - VR - User Reference Import From Disk.md`.
+- Extended `Current Understanding` to record the first Browser placement answer:
+  - imported references live under `References`
+  - in a dedicated `User References` child category
+  - not inside `Footpads`, `Shoes`, or `Premade Foothooks`
+- Updated the `Browser placement` block under `Decisions Still Needed` so the first answer is now explicitly locked.
+
+#### Files Changed
+- `docs/Phase-Plans/Tasks/Future/02.4C - VR - User Reference Import From Disk.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- No runtime behavior changes; this locks the first `2.4C` Browser placement direction at the planning level.
+
+#### Verification Steps
+- Not run; this was a docs-only planning update.
+
+<!-- ENTRY 299 -->
+### [299] - 2026-03-16 19:29 - `VR - Phase 5 - 02.4C GLB Import Added To First Pass`
+<!-- ENTRY 299 -->
+HUMAN SUMMARY: `Updated the \`02.4C\` planning doc so `.glb` is now included alongside `.step`, `.stl`, and `.obj` in the likely first-pass user import menu under the `References` row overflow/right-click surface.`
+
+#### Scope / Constraints Honored
+- Kept the change limited to the `02.4C` planning doc plus the required changelog update.
+- Did not promote `02.4C` or change any runtime import code yet.
+- Preserved the existing `2.4C` scope while tightening the likely first-pass file-type list.
+
+#### Summary of Implementation
+- Added a new local `Doc History` entry in `docs/Phase-Plans/Tasks/Future/02.4C - VR - User Reference Import From Disk.md`.
+- Updated `Current Understanding` so the likely first import menu now includes `Import .glb`.
+- Updated the `File-type scope` block under `Decisions Still Needed` so `.glb` is part of the likely first answer instead of remaining an open maybe.
+
+#### Files Changed
+- `docs/Phase-Plans/Tasks/Future/02.4C - VR - User Reference Import From Disk.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- No runtime behavior changes; this expands the likely first-pass `2.4C` import scope at the planning level.
+
+#### Verification Steps
+- Not run; this was a docs-only planning update.
+
+<!-- ENTRY 298 -->
+### [298] - 2026-03-16 19:28 - `VR - Phase 5 - 02.4C Workspace Only Persistence Locked`
+<!-- ENTRY 298 -->
+HUMAN SUMMARY: `Locked the first \`02.4C\` persistence answer in the future task doc so user-imported references remain workspace-only in the first pass and do not survive reload by default.`
+
+#### Scope / Constraints Honored
+- Kept the change limited to the `02.4C` planning doc plus the required changelog update.
+- Did not promote `02.4C` or change any runtime import behavior yet.
+- Preserved `2.4C` as a user-import planning surface while tightening one specific product decision.
+
+#### Summary of Implementation
+- Added a new local `Doc History` entry in `docs/Phase-Plans/Tasks/Future/02.4C - VR - User Reference Import From Disk.md`.
+- Extended `Current Understanding` to record that imported references stay workspace-only in the first pass.
+- Updated the `Persistence model` block under `Decisions Still Needed` so the first answer is now explicitly locked instead of remaining an open either/or branch.
+
+#### Files Changed
+- `docs/Phase-Plans/Tasks/Future/02.4C - VR - User Reference Import From Disk.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- No runtime behavior changes; this locks the first `2.4C` persistence direction at the planning level.
+
+#### Verification Steps
+- Not run; this was a docs-only planning update.
+
+<!-- ENTRY 297 -->
+### [297] - 2026-03-16 19:27 - `VR - Phase 5 - 02.4C Import Menu Direction Added`
+<!-- ENTRY 297 -->
+HUMAN SUMMARY: `Updated the \`02.4C\` planning doc with the first concrete import-entry direction: the `References` row should get an overflow \`...\` button, that button should open the same menu as right-click, and the first import actions should live in that shared menu surface.`
+
+#### Scope / Constraints Honored
+- Kept the change limited to the future `02.4C` task doc plus the required changelog update.
+- Did not promote `02.4C` or change any runtime Browser code yet.
+- Preserved `2.4C` as the user-import phase while only tightening one part of its UX direction.
+
+#### Summary of Implementation
+- Added a new local `Doc History` entry in `docs/Phase-Plans/Tasks/Future/02.4C - VR - User Reference Import From Disk.md`.
+- Extended the `Current Understanding` section to record the likely import-entry model:
+  - overflow `...` button on the `References` row
+  - same menu surface as right-click
+  - import actions for `.step`, `.stl`, and `.obj`
+- Updated the `Decisions Still Needed` section so the `Import entrypoint` and `File-type scope` blocks now include these likely first answers while still leaving the remaining open decisions visible.
+
+#### Files Changed
+- `docs/Phase-Plans/Tasks/Future/02.4C - VR - User Reference Import From Disk.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- No runtime behavior changes; this clarifies the intended first `2.4C` Browser import UX in the planning doc.
+
+#### Verification Steps
+- Not run; this was a docs-only planning clarification update.
+
+<!-- ENTRY 296 -->
+### [296] - 2026-03-16 19:23 - `VR - Phase 5 - 02.4C Decision Checklist Added`
+<!-- ENTRY 296 -->
+HUMAN SUMMARY: `Expanded the \`02.4C\` future task doc with an explicit decision checklist so the remaining user-reference-import product calls are visible as concrete unresolved decisions instead of being buried only in the planning questions.`
+
+#### Scope / Constraints Honored
+- Kept the change limited to the `02.4C` planning doc plus the required changelog update.
+- Did not promote `02.4C` or change any runtime code.
+- Preserved the existing `2.4C` scope as user-import flow, not transform tooling or richer reference controls.
+
+#### Summary of Implementation
+- Added a new `Decisions Still Needed` section to `docs/Phase-Plans/Tasks/Future/02.4C - VR - User Reference Import From Disk.md`.
+- Broke the remaining unresolved calls into explicit categories:
+  - import entrypoint
+  - persistence model
+  - Browser placement
+  - file-type scope
+  - duplicate handling
+  - error handling
+  - remove behavior
+- Added a new local `Doc History` entry in the `02.4C` task doc to record that clarification pass.
+
+#### Files Changed
+- `docs/Phase-Plans/Tasks/Future/02.4C - VR - User Reference Import From Disk.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- No runtime behavior changes; this makes the remaining `02.4C` product decisions easier to scan and answer.
+
+#### Verification Steps
+- Not run; this was a docs-only clarification update.
+
+<!-- ENTRY 295 -->
+### [295] - 2026-03-16 19:21 - `VR - Phase 5 - 02.4D Reference Transform Controls Added To Roadmap`
+<!-- ENTRY 295 -->
+HUMAN SUMMARY: `Added a new \`[2.4D]\` follow-up under the reference-workspace lane so reference transform controls have a clean roadmap home with a right-click \`Transform Object\` entrypoint and a floating transform toolbar instead of being mixed into \`2.4C\` user import flow.`
+
+#### Scope / Constraints Honored
+- Kept the change limited to roadmap and tracker surfaces.
+- Preserved `2.4C` as the user-import follow-up without mixing transform tooling into that phase.
+- Updated the required changelog in the same change set.
+
+#### Summary of Implementation
+- Extended the main `[2.4]` roadmap entry to explicitly keep reference transform controls as a separate later follow-up.
+- Added `[2.4D]` to the `Later follow-up shape inside [2.4]` list with the intended first interaction model:
+  - right-click reference row
+  - `Transform Object`
+  - floating toolbar
+  - `Move`, `Rotate`, `Scale`, `Reset Transform`
+- Updated `roadmapCHECKLISTS.md` so `[2.4D]` now appears in the decision/plan tracker and lane totals.
+
+#### Files Changed
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/Human-Plans/roadmap/roadmapCHECKLISTS.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- No runtime behavior changes; this gives the future reference-transform toolset a formal roadmap slot.
+
+#### Verification Steps
+- Not run; this was a docs/tracking update only.
+
+<!-- ENTRY 294 -->
+### [294] - 2026-03-16 19:08 - `VR - Phase 5 - Viewer Double Major Grid Set To 50`
+<!-- ENTRY 294 -->
+HUMAN SUMMARY: `Changed the top grid cadence from 100-unit guides to 50-unit guides so the stronger workspace reference lines appear more frequently across the 300 x 300 viewer area.`
+
+#### Scope / Constraints Honored
+- Kept the change limited to the viewer grid cadence constant.
+- Left the existing 1-unit and 10-unit layers unchanged.
+- Updated the required changelog in the same change set.
+
+#### Summary of Implementation
+- Changed the double-major grid step from `100` to `50`.
+- Kept the same non-overlapping ownership model so the 50-unit lines remain the sole top cadence over the major and minor layers.
+
+#### Files Changed
+- `src/viewer/Viewer.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- The strongest grid lines now appear every `50` units instead of every `100`.
+
+#### Verification Steps
+- Not run; this was a small viewer constant adjustment.
+
+<!-- ENTRY 293 -->
+### [293] - 2026-03-16 19:06 - `VR - Phase 5 - Viewer Grid Opacity Softened`
+<!-- ENTRY 293 -->
+HUMAN SUMMARY: `Softened the 10-unit and 1-unit grid layers again so the workspace reads more quietly, with major lines now at 30% white and minor lines at 10% white under the full-white 100-unit guides.`
+
+#### Scope / Constraints Honored
+- Kept the change limited to viewer grid opacity tuning.
+- Left grid spacing, overlap filtering, and viewer behavior unchanged.
+- Updated the required changelog in the same change set.
+
+#### Summary of Implementation
+- Lowered the major grid opacity from `0.6` to `0.3`.
+- Lowered the minor grid opacity from `0.3` to `0.1`.
+- Left the double-major grid at full white.
+
+#### Files Changed
+- `src/viewer/Viewer.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- 10-unit guides now render at `30%` white.
+- 1-unit guides now render at `10%` white.
+
+#### Verification Steps
+- Not run; this was a small viewer style adjustment.
+
+<!-- ENTRY 292 -->
+### [292] - 2026-03-16 19:04 - `VR - Phase 5 - Viewer Grid White Opacity Rebalance`
+<!-- ENTRY 292 -->
+HUMAN SUMMARY: `Reverted the 100-unit guides back to clean lines and rebalanced the whole grid to a white-opacity hierarchy so the double-major lines stay crisp while the 10-unit and 1-unit lines fade behind them.`
+
+#### Scope / Constraints Honored
+- Kept the change limited to the viewer grid rendering setup.
+- Preserved the current non-overlapping 1-unit, 10-unit, and 100-unit cadence ownership.
+- Updated the required changelog in the same change set.
+
+#### Summary of Implementation
+- Removed the band-based 100-unit grid layer and returned the double-major cadence to a line-based layer.
+- Updated the custom grid-layer helper to accept explicit opacity values.
+- Set the grid hierarchy to:
+  - double-major: white at `1.0`
+  - major: white at `0.6`
+  - minor: white at `0.3`
+
+#### Files Changed
+- `src/viewer/Viewer.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- The 100-unit guides are thin white lines again instead of thicker bands.
+- The 10-unit and 1-unit guides now fade behind them using the new white-opacity hierarchy.
+
+#### Verification Steps
+- Ran `cmd /c npx tsc -p tsconfig.json --noEmit`
+
+<!-- ENTRY 291 -->
+### [291] - 2026-03-16 19:01 - `VR - Phase 5 - Viewer Double Major Grid Thickened`
+<!-- ENTRY 291 -->
+HUMAN SUMMARY: `Changed the 100-unit double-major guides from another thin line layer into actual narrow floor bands so they read thicker and more intentional across the workspace.`
+
+#### Scope / Constraints Honored
+- Kept the change limited to the viewer grid rendering system.
+- Preserved the same 1-unit, 10-unit, and 100-unit cadence structure.
+- Updated the required changelog in the same change set.
+
+#### Summary of Implementation
+- Added origin-centered grid coordinate generation so grid layers are built symmetrically around `0`.
+- Kept the minor and major cadences as custom line layers with overlap filtering.
+- Replaced the double-major line layer with a band-based mesh layer using thin plane strips at each 100-unit guide.
+
+#### Files Changed
+- `src/viewer/Viewer.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- The 100-unit guides now render as visibly thicker bands instead of thin lines.
+- The double-major cadence now centers cleanly on `0` and extends to `-100`, `0`, and `100` within the `300 x 300` workspace.
+
+#### Verification Steps
+- Ran `cmd /c npx tsc -p tsconfig.json --noEmit`
+
+<!-- ENTRY 290 -->
+### [290] - 2026-03-16 18:59 - `VR - Phase 5 - Viewer Grid Overlap Removed`
+<!-- ENTRY 290 -->
+HUMAN SUMMARY: `Rebuilt the layered viewer grid so the 1-unit, 10-unit, and 100-unit cadences no longer draw on top of each other, which keeps the stronger guide lines clean instead of stacking brightness at shared intervals.`
+
+#### Scope / Constraints Honored
+- Kept the change limited to the viewer grid rendering implementation.
+- Preserved the existing grid spacing and visibility toggle behavior.
+- Updated the required changelog in the same change set.
+
+#### Summary of Implementation
+- Replaced the layered `GridHelper` setup with custom generated `LineSegments` grid layers.
+- Filtered the minor layer to skip coordinates owned by the 10-unit and 100-unit layers.
+- Filtered the major layer to skip coordinates owned by the 100-unit layer.
+- Left the double-major layer as the sole owner of the 100-unit cadence.
+
+#### Files Changed
+- `src/viewer/Viewer.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- Grid lines at `10` and `100` units no longer overlap with the finer layers.
+- The 100-unit and 10-unit guides should now read cleaner without additive brightness from stacked lines.
+
+#### Verification Steps
+- Not run; this was a viewer rendering implementation change.
+
+<!-- ENTRY 289 -->
+### [289] - 2026-03-16 18:58 - `VR - Phase 5 - Viewer Double Major Grid Contrast Raised`
+<!-- ENTRY 289 -->
+HUMAN SUMMARY: `Raised the contrast of the 100-unit double-major grid so the long-range workspace cadence stands out more clearly over the softer 1-unit and 10-unit layers.`
+
+#### Scope / Constraints Honored
+- Kept the change limited to the top grid-layer styling.
+- Left grid spacing, viewer controls, and model behavior unchanged.
+- Updated the required changelog in the same change set.
+
+#### Summary of Implementation
+- Increased the two colors used by the double-major `GridHelper` layer.
+- Kept the existing minor and major grid colors unchanged so only the 100-unit cadence becomes more prominent.
+
+#### Files Changed
+- `src/viewer/Viewer.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- The 100-unit grid lines now render brighter and stand out more clearly against the other two grid layers.
+
+#### Verification Steps
+- Not run; this was a small viewer rendering adjustment.
+
+<!-- ENTRY 288 -->
+### [288] - 2026-03-16 18:57 - `VR - Phase 5 - Viewer Double Major Grid Added`
+<!-- ENTRY 288 -->
+HUMAN SUMMARY: `Added a third stronger grid cadence every 100 units so the enlarged workspace has a clearer long-range reference beyond the existing 1-unit minor grid and 10-unit major grid.`
+
+#### Scope / Constraints Honored
+- Kept the change limited to the viewer grid rendering layers.
+- Left camera behavior, model transforms, and view controls unchanged.
+- Updated the required changelog in the same change set.
+
+#### Summary of Implementation
+- Added a third `GridHelper` layer above the existing major/minor grids.
+- Configured the new layer to divide the `300 x 300` workspace into `3` sections, creating a `100`-unit cadence.
+- Offset the new layer slightly in `Y` so it renders cleanly above the other two grid layers.
+
+#### Files Changed
+- `src/viewer/Viewer.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- The viewer grid now has three levels:
+  - minor lines every `1` unit
+  - major lines every `10` units
+  - stronger double-major lines every `100` units
+
+#### Verification Steps
+- Not run; this was a small viewer grid rendering adjustment.
+
+<!-- ENTRY 287 -->
+### [287] - 2026-03-16 18:55 - `VR - Phase 5 - Viewer Minor Grid Dimmed`
+<!-- ENTRY 287 -->
+HUMAN SUMMARY: `Dimmed the viewer’s minor grid layer so the fine workspace lines recede further into the background while the major grid remains readable.`
+
+#### Scope / Constraints Honored
+- Kept the change limited to the viewer grid color tuning.
+- Left grid size, spacing, major-grid behavior, and all viewer interactions unchanged.
+- Updated the required changelog in the same change set.
+
+#### Summary of Implementation
+- Reduced the brightness of both minor-grid colors used by the layered `GridHelper` setup.
+- Preserved the existing major-grid colors so only the fine line noise was reduced.
+
+#### Files Changed
+- `src/viewer/Viewer.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- Minor grid lines now render darker than before across the same `300 x 300` workspace.
+
+#### Verification Steps
+- Not run; this was a small viewer color adjustment.
+
+<!-- ENTRY 286 -->
+### [286] - 2026-03-16 18:54 - `VR - Phase 5 - Viewer Major Minor Grid Pass`
+<!-- ENTRY 286 -->
+HUMAN SUMMARY: `Reworked the viewer grid into a calmer layered major/minor setup so the workspace reads less bright and less noisy while keeping the larger 300 x 300 footprint.`
+
+#### Scope / Constraints Honored
+- Kept the change inside the shared viewer grid setup only.
+- Left camera behavior, model transforms, and view controls unchanged.
+- Updated the required changelog in the same change set.
+
+#### Summary of Implementation
+- Replaced the single bright `GridHelper` with two layered helpers inside one grid group.
+- Added a dimmer `300`-division minor grid and a calmer `30`-division major grid.
+- Kept both layers under the same existing `gridVisible` view toggle.
+
+#### Files Changed
+- `src/viewer/Viewer.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- The viewer now shows a darker fine grid plus a clearer but less bright major grid.
+- Major spacing is `10` units and minor spacing is `1` unit across the same `300 x 300` area.
+
+#### Verification Steps
+- Not run; this was a small viewer grid rendering adjustment.
+
+<!-- ENTRY 285 -->
+### [285] - 2026-03-16 18:53 - `VR - Phase 5 - Viewer Grid Expanded To 300`
+<!-- ENTRY 285 -->
+HUMAN SUMMARY: `Expanded the main viewer workspace grid from the old small default to a fixed 300 x 300 grid so larger references and assemblies sit inside a much broader visible work area.`
+
+#### Scope / Constraints Honored
+- Limited the change to the shared Three.js viewer grid setup.
+- Left camera, model placement, and other viewer behavior unchanged.
+- Updated the required tracking doc in the same change set.
+
+#### Summary of Implementation
+- Replaced the old hard-coded `GridHelper(10, 20, ...)` setup with named constants for a `300`-unit grid and `300` divisions.
+- Kept the existing grid colors unchanged while expanding the work area.
+
+#### Files Changed
+- `src/viewer/Viewer.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- The viewer grid now spans `300 x 300` units instead of `10 x 10`.
+- With `300` divisions, the cell spacing is now `1` unit per square.
+
+#### Verification Steps
+- Not run; this was a small constant update in the viewer grid helper setup.
+
+<!-- ENTRY 284 -->
+### [284] - 2026-03-16 17:18 - `VR - Phase 5 - 02.4B STEP Reference Support`
+<!-- ENTRY 284 -->
+HUMAN SUMMARY: `Implemented \`02.4B\` by extending the shipped reference workspace with real browser-side `.step` support through \`occt-import-js\`, populating `Premade Foothooks` with the four current hook assets, and tightening the reference error path so failed rows stay retryable instead of silently looping or disappearing.` 
+
+#### Scope / Constraints Honored
+- Kept this phase narrow to the first real `.step` reference cut on top of the existing `02.4A` static-manifest workspace.
+- Preserved the existing `References` Browser placement and left user-imported references, richer controls, and broader file-type growth out of scope.
+- Updated the required tracking docs in the same change set after implementation and verification.
+
+#### Summary of Implementation
+- Added `occt-import-js` to the repo and introduced `src/viewer/stepReferenceLoader.ts` plus `src/types/occt-import-js.d.ts` so the viewer can import STEP files in-browser and convert them into Three.js objects.
+- Extended `src/app/references/referenceManifest.ts` to support `fileType: 'step'` and populated `Premade Foothooks` with `large.step`, `medium.step`, `small.step`, and `xl.step`.
+- Updated `src/viewer/Viewer.ts` to branch STEP references through the new loader while leaving the existing `.obj`, `.glb`, and `.stl` paths intact.
+- Tightened `src/app/components/ViewerHost.tsx` so failed reference loads clear viewer visibility and leave rows in a retryable `error` state instead of auto-retrying in a loop.
+- Updated `src/app/panels/selectBrowserTreeRows.ts` so reference aggregate states now prefer `Loading` over `Error`, show `On` only for visible loaded items, and continue surfacing per-item `STEP` rows normally.
+
+#### Files Changed
+- `package.json`
+- `package-lock.json`
+- `src/types/occt-import-js.d.ts`
+- `src/viewer/stepReferenceLoader.ts`
+- `src/viewer/stepReferenceLoader.test.ts`
+- `src/app/references/referenceManifest.ts`
+- `src/viewer/Viewer.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `src/app/store/useAppStore.ts`
+- `src/app/store/useAppStore.test.ts`
+- `src/app/panels/selectBrowserTreeRows.ts`
+- `src/app/panels/selectBrowserTreeRows.test.ts`
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `src/app/panels/browserRowActions.test.ts`
+- `docs/Phase-Plans/Tasks/Old/02.4B - VR - Expanded Reference File Support.md`
+- `docs/Phase-Plans/Tasks/Future/02.4C - VR - User Reference Import From Disk.md`
+- `docs/Phase-Plans/08_VR - Phase-Plans.md`
+- `docs/Human-Plans/roadmap/roadmapCHECKLISTS.md`
+- `docs/Doc-Index.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- `Premade Foothooks` is no longer a placeholder-only Browser category; its four `.step` assets now exist as real reference rows.
+- STEP references can load in the viewer through the same manifest-driven reference workspace used by footpads and shoes.
+- Failed reference loads now settle into a visible `Error` row state and can be retried by clicking the row again.
+
+#### Verification Steps
+- Ran `cmd /c npx tsc -p tsconfig.app.json --noEmit`.
+- Ran `cmd /c npx vitest run src/app/store/useAppStore.test.ts src/app/panels/selectBrowserTreeRows.test.ts src/app/components/ViewerHost.test.tsx src/viewer/stepReferenceLoader.test.ts src/app/panels/BrowserPanel.test.tsx src/app/panels/browserRowActions.test.ts`.
+
+<!-- ENTRY 283 -->
+### [283] - 2026-03-16 17:08 - `OO - Phase 13 - 02.4B Active Spec Promotion`
+<!-- ENTRY 283 -->
+HUMAN SUMMARY: `Promoted \`02.4B - VR - Expanded Reference File Support.md\` into the active task area as the next reference-workspace execution spec, moved shipped \`02.4A\` into \`Tasks/Old/\`, and synced the `VR` family, decisions, checklist, and docs-index surfaces so the lane now reads as one completed prerequisite, one active `.step` follow-up, and one later user-import follow-up.` 
+
+#### Scope / Constraints Honored
+- Kept this pass to docs/system promotion work only; no runtime reference-loader code changed here.
+- Preserved the `2.4` roadmap umbrella while making `02.4B` the active execution-spec cut and `02.4A` the completed prerequisite.
+- Synced the required project-tracking docs in the same change set, including the permanent changelog entry.
+
+#### Summary of Implementation
+- Moved `docs/Phase-Plans/Tasks/02.4A - VR - Static Manifest Reference Workspace.md` into `docs/Phase-Plans/Tasks/Old/` to preserve the shipped static-manifest reference workspace as completed history.
+- Promoted `docs/Phase-Plans/Tasks/Future/02.4B - VR - Expanded Reference File Support.md` into `docs/Phase-Plans/Tasks/02.4B - VR - Expanded Reference File Support.md` and rewrote it as the active implementation-ready spec for the first real `.step` reference cut.
+- Updated `docs/Phase-Plans/08_VR - Phase-Plans.md` so `VR - Phase 5` points at `02.4B` as the active execution surface, treats `02.4A` as the shipped prerequisite, and keeps only `02.4C` as the later user-import follow-up.
+- Updated `docs/Human-Plans/Decisions.MD`, `docs/Human-Plans/roadmap/roadmapCHECKLISTS.md`, and `docs/Doc-Index.md` so decision coverage, docs presence, and the docs map all reflect the new `02.4A / 02.4B / 02.4C` state.
+
+#### Files Changed
+- `docs/Phase-Plans/Tasks/Old/02.4A - VR - Static Manifest Reference Workspace.md`
+- `docs/Phase-Plans/Tasks/02.4B - VR - Expanded Reference File Support.md`
+- `docs/Phase-Plans/08_VR - Phase-Plans.md`
+- `docs/Human-Plans/Decisions.MD`
+- `docs/Human-Plans/roadmap/roadmapCHECKLISTS.md`
+- `docs/Doc-Index.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- The active reference-workspace execution target is now `02.4B`, not `02.4A`.
+- `02.4A` now reads as completed task history, and `02.4C` remains the later user-import follow-up.
+- The `VR` family/question surfaces now treat `.step` support as the active follow-up instead of a future placeholder.
+
+#### Verification Steps
+- Ran `rg` across `docs/` for stale active/future `02.4A` / `02.4B` references after the promotion pass.
+- Read back the active `02.4B` task doc, `docs/Phase-Plans/08_VR - Phase-Plans.md`, `docs/Human-Plans/Decisions.MD`, `docs/Human-Plans/roadmap/roadmapCHECKLISTS.md`, and `docs/Doc-Index.md` for consistency.
+
+<!-- ENTRY 282 -->
+### [282] - 2026-03-16 16:55 - `VR - Phase 5 - Footpad Reference Axis Flip Adjustment`
+<!-- ENTRY 282 -->
+HUMAN SUMMARY: `Updated the shipped PubPad footpad reference to use a single `180` flip on the `Y` axis instead of the previous `Z` flip, matching the newer Blender-origin setup so the model orientation can be corrected without reintroducing the earlier placement problems.` 
+
+#### Scope / Constraints Honored
+- Kept this pass to the immediate footpad orientation tweak after the Blender-origin correction.
+- Changed only the manifest-driven rotation metadata and the matching proof expectation.
+- Left the rest of the reference-loading and placement path unchanged.
+
+#### Summary of Implementation
+- Updated `src/app/references/referenceManifest.ts` so the shipped PubPad footpad reference now uses `rotationDeg: { y: 180 }`.
+- Removed the previous `rotationDeg: { z: 180 }` expectation from the matching store test and replaced it with the new `Y`-axis flip in `src/app/store/useAppStore.test.ts`.
+
+#### Files Changed
+- `src/app/references/referenceManifest.ts`
+- `src/app/store/useAppStore.test.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- The footpad reference should now flip on `Y` instead of `Z`, which should better match the corrected Blender origin/orientation.
+- If the visible result still needs the other axis, the manifest can be switched to `X` without more viewer plumbing.
+
+#### Verification Steps
+- Ran `cmd /c npx tsc -p tsconfig.json --noEmit`.
+- Ran `cmd /c npx vitest run src/app/store/useAppStore.test.ts src/app/components/ViewerHost.test.tsx`.
+
+<!-- ENTRY 281 -->
+### [281] - 2026-03-16 16:46 - `VR - Phase 5 - Footpad Reference Scale Correction`
+<!-- ENTRY 281 -->
+HUMAN SUMMARY: `Corrected the new footpad reference scale after re-reading the old `17.0` pipeline: the earlier `1 / 25.4` OBJ import scale had been paired with a later `25.4` unit-scale multiplier, so carrying only the import scale into `20` had shrunk the footpad out of view.` 
+
+#### Scope / Constraints Honored
+- Kept this pass to the immediate footpad visibility regression only.
+- Re-used the already-added manifest transform path instead of changing the viewer plumbing again.
+- Updated the matching store proof and changelog in the same pass.
+
+#### Summary of Implementation
+- Updated `src/app/references/referenceManifest.ts` so the shipped PubPad footpad reference now uses `scale: 1` instead of the incorrectly ported `1 / 25.4`.
+- Preserved the current `rotationDeg.z: 180` and `centerUnderPivot: true` behavior.
+- Updated `src/app/store/useAppStore.test.ts` to match the corrected manifest transform.
+
+#### Files Changed
+- `src/app/references/referenceManifest.ts`
+- `src/app/store/useAppStore.test.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- The footpad reference should now be visible again instead of being shrunk out of the scene.
+- This keeps the newer centered placement path while undoing the accidental over-shrink.
+
+#### Verification Steps
+- Ran `cmd /c npx tsc -p tsconfig.json --noEmit`.
+- Ran `cmd /c npx vitest run src/app/store/useAppStore.test.ts src/app/components/ViewerHost.test.tsx`.
+
+<!-- ENTRY 280 -->
+### [280] - 2026-03-16 16:42 - `VR - Phase 5 - Footpad Reference Recentering Adjustment`
+<!-- ENTRY 280 -->
+HUMAN SUMMARY: `Adjusted the new footpad reference transform so the scaled PubPad model stays centered near the origin instead of inheriting the old hardcoded x/z placement from the legacy footpad-only viewer flow, which had pushed the now-scaled model out of the useful view area.` 
+
+#### Scope / Constraints Honored
+- Kept this pass narrowly focused on the first follow-up after the new footpad transform landed.
+- Preserved the shrink and centering behavior while removing only the legacy placement offset that did not port cleanly.
+- Updated tests and changelog in the same adjustment pass.
+
+#### Summary of Implementation
+- Updated `src/app/references/referenceManifest.ts` so the shipped PubPad footpad transform no longer carries the old `{ x: -15, z: 5 }` offset.
+- Kept the manifest-driven `scale: 1 / 25.4`, `rotationDeg.z: 180`, and `centerUnderPivot: true` behavior in place.
+- Updated `src/app/store/useAppStore.test.ts` to match the simplified centered transform shape.
+
+#### Files Changed
+- `src/app/references/referenceManifest.ts`
+- `src/app/store/useAppStore.test.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- The footpad reference should now appear much closer to the origin instead of being shifted away after scaling down.
+- This does not change shoe placement or the general reference-loading lifecycle.
+
+#### Verification Steps
+- Ran `cmd /c npx tsc -p tsconfig.json --noEmit`.
+- Ran `cmd /c npx vitest run src/app/store/useAppStore.test.ts src/app/components/ViewerHost.test.tsx`.
+
+<!-- ENTRY 279 -->
+### [279] - 2026-03-16 16:37 - `VR - Phase 5 - Footpad Reference Transform Alignment`
+<!-- ENTRY 279 -->
+HUMAN SUMMARY: `Aligned the shipped PubPad footpad reference with the old proven viewer transform by adding manifest-driven reference display transforms and applying them through a pivot in the new viewer, so the footpad now uses the old scale-down, rotation, centering, and offset instead of the raw oversized OBJ placement.` 
+
+#### Scope / Constraints Honored
+- Kept this pass focused on the visible footpad placement problem after `02.4A` references started loading.
+- Reused the old `17.0` transform values instead of inventing new ones by trial and error.
+- Stored the transform as manifest metadata so the behavior stays explicit and extensible for later references.
+
+#### Summary of Implementation
+- Updated `src/app/references/referenceManifest.ts` to add optional `displayTransform` metadata to manifest items.
+- Added the old PubPad footpad transform to the manifest:
+  - `scale: 1 / 25.4`
+  - `rotationDeg.z: 180`
+  - `offset: { x: -15, z: 5 }`
+  - `centerUnderPivot: true`
+- Updated `src/app/store/useAppStore.ts` so the viewer-facing reference item model carries the manifest transform through the reference workspace selector.
+- Updated `src/viewer/Viewer.ts` so reference assets load into a pivot, can be centered under that pivot, and apply manifest-defined scale / rotation / offset before being cached and shown.
+- Updated `src/app/store/useAppStore.test.ts` to prove the footpad transform metadata survives into the viewer-facing reference workspace tree.
+
+#### Files Changed
+- `src/app/references/referenceManifest.ts`
+- `src/app/store/useAppStore.ts`
+- `src/viewer/Viewer.ts`
+- `src/app/store/useAppStore.test.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- The PubPad footpad reference should now appear scaled down and placed much closer to the old expected position instead of rendering as a huge raw OBJ slab.
+- The transform path is now manifest-driven so future reference assets can carry their own placement defaults without more viewer-specific branching.
+
+#### Verification Steps
+- Ran `cmd /c npx tsc -p tsconfig.json --noEmit`.
+- Ran `cmd /c npx vitest run src/app/store/useAppStore.test.ts src/app/components/ViewerHost.test.tsx src/app/panels/BrowserPanel.test.tsx src/app/panels/selectBrowserTreeRows.test.ts`.
+
+<!-- ENTRY 278 -->
+### [278] - 2026-03-16 16:31 - `VR - Phase 5 - Reference Workspace Loading-State Fix`
+<!-- ENTRY 278 -->
+HUMAN SUMMARY: `Fixed the reference workspace loading-state bug that left shoes stuck on the loading bar by removing the effect-local cancellation path in \`ViewerHost\`; visible references can now complete their async viewer load and transition from \`loading\` to \`loaded\` instead of getting stranded after the first rerender.` 
+
+#### Scope / Constraints Honored
+- Kept this pass focused on the runtime reference-loading lifecycle bug uncovered while closing out `02.4A`.
+- Preserved the existing reference workspace structure and only changed the viewer-load completion logic.
+- Added a direct regression test for the `loading -> loaded` transition in the same pass.
+
+#### Summary of Implementation
+- Updated `src/app/components/ViewerHost.tsx` so reference loads are no longer cancelled by effect reruns caused by `setReferenceItemLoadState(..., 'loading')`.
+- Replaced the effect-local `didCancel` guard with a mounted/viewer-instance safety check so async loads can complete across rerenders while still staying safe on unmount.
+- Added `src/app/components/ViewerHost.test.tsx` to prove a visible shoe reference transitions from `unloaded` to `loading` to `loaded` after the mocked viewer load resolves.
+
+#### Files Changed
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- Supported reference items should no longer stay indefinitely on the loading bar once the viewer loader resolves.
+- This fix applies to the general reference workspace load path, including the shoe rows that were previously getting stuck in `loading`.
+
+#### Verification Steps
+- Ran `cmd /c npx tsc -p tsconfig.json --noEmit`.
+- Ran `cmd /c npx vitest run src/app/components/ViewerHost.test.tsx src/app/store/useAppStore.test.ts src/app/panels/BrowserPanel.test.tsx src/app/panels/selectBrowserTreeRows.test.ts`.
+
+<!-- ENTRY 277 -->
+### [277] - 2026-03-16 16:28 - `VR - Phase 5 - Reference Workspace Asset Base-Path Fix`
+<!-- ENTRY 277 -->
+HUMAN SUMMARY: `Fixed the first real reference-loading blocker in \`02.4A\` by wiring the Browser/viewer reference items through the manifest's base-aware asset-path resolver, so reference models now use URLs under the app's \`/ParaHook_Configurator/\` base instead of raw root-relative paths that missed the deployed asset location.` 
+
+#### Scope / Constraints Honored
+- Kept this pass focused on why supported reference models were not loading at all.
+- Reused the existing manifest base-path helper instead of adding a second URL-resolution path.
+- Updated the required changelog entry in the same implementation pass.
+
+#### Summary of Implementation
+- Updated `src/app/store/useAppStore.ts` to import and use `resolveReferenceAssetPath(...)` when building `ReferenceWorkspaceBrowserItemVm` rows.
+- Ensured the viewer-facing reference items now carry base-aware URLs instead of raw `ReferenceModels/...` paths.
+- Updated `src/app/store/useAppStore.test.ts` to prove the reference workspace tree now emits the resolved asset URL for the shipped footpad item.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/store/useAppStore.test.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- Supported `Footpads` and `Shoes` references should now resolve against the app base path and become loadable in the viewer when toggled on.
+- This does not add new file-type support; `.step` remains deferred to `2.4B`.
+
+#### Verification Steps
+- Ran `cmd /c npx tsc -p tsconfig.json --noEmit`.
+- Ran `cmd /c npx vitest run src/app/store/useAppStore.test.ts src/app/panels/BrowserPanel.test.tsx src/app/panels/selectBrowserTreeRows.test.ts`.
+
+<!-- ENTRY 263 -->
+### [276] - 2026-03-16 16:19 - `VR - Phase 5 - Reference Workspace Black Screen Regression Fix`
+<!-- ENTRY 276 -->
+HUMAN SUMMARY: `Fixed the new post-\`02.4A\` black-screen regression by removing the direct derived-selector Zustand subscriptions from \`BrowserPanel\` and \`ViewerHost\`, switching both back to stable \`referenceWorkspace\` slice reads, and rebuilding the derived reference tree/item arrays in \`useMemo\` so the app no longer re-enters the earlier Browser selector-crash family.` 
+
+#### Scope / Constraints Honored
+- Kept this pass scoped to the new reference-workspace black-screen regression.
+- Preserved the shipped `02.4A` Browser/reference behavior while changing only the selector subscription pattern.
+- Updated the dedicated bug note and changelog together in the same fix pass.
+
+#### Summary of Implementation
+- Updated `src/app/panels/BrowserPanel.tsx` so it no longer subscribes directly to `selectReferenceWorkspaceBrowserTree`.
+- Updated `src/app/components/ViewerHost.tsx` so it no longer subscribes directly to `selectReferenceWorkspaceItems`.
+- Switched both surfaces to read the stable `referenceWorkspace` slice from `useAppStore`.
+- Rebuilt the reference Browser tree and the visible reference item array locally in `useMemo`.
+- Updated `src/app/panels/BrowserPanel.test.tsx` so the mocked app-store state now includes a stable `referenceWorkspace` slice and still proves the `References` row behavior.
+- Updated `docs/Bugs/3_ReferenceWorkspace-BlackScreen-Regression.md` to mark the bug resolved and record the confirmed cause/fix.
+
+#### Files Changed
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `docs/Bugs/3_ReferenceWorkspace-BlackScreen-Regression.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- No intended product behavior changed.
+- The app should no longer collapse to the dark/black-screen startup failure introduced by the initial `02.4A` selector wiring.
+
+#### Verification Steps
+- Ran `cmd /c npx tsc -p tsconfig.json --noEmit`.
+- Ran `cmd /c npx vitest run src/app/panels/BrowserPanel.test.tsx src/app/store/useAppStore.test.ts src/app/panels/selectBrowserTreeRows.test.ts`.
+
+<!-- ENTRY 263 -->
+### [275] - 2026-03-16 16:14 - `DOC - Phase 14 - Reference Workspace Black Screen Bug Note`
+<!-- ENTRY 275 -->
+HUMAN SUMMARY: `Read the earlier Browser selector-crash note for Bug 2, then added a new dedicated bug document for the post-\`02.4A\` black-screen regression so the new reference-workspace startup failure now has its own concrete likely-cause writeup pointing at the freshly added unstable reference selectors.` 
+
+#### Scope / Constraints Honored
+- Kept this pass to bug-document capture only.
+- Did not change runtime code or attempt a fix in the same pass.
+- Updated the required changelog and docs map together with the new bug note.
+
+#### Summary of Implementation
+- Read `docs/Bugs/2_BrowserPanel-ProjectContent-Selector-Crash.md` as the pattern reference for the current regression.
+- Added `docs/Bugs/3_ReferenceWorkspace-BlackScreen-Regression.md` as the new dedicated bug note for the post-`02.4A` black-screen regression.
+- Recorded the most likely technical cause in that note:
+  - `BrowserPanel` direct subscription to `selectReferenceWorkspaceBrowserTree`
+  - `ViewerHost` direct subscription to `selectReferenceWorkspaceItems`
+  - both selectors returning fresh object/array snapshots under React 19 + Zustand
+- Updated `docs/Doc-Index.md` so the Bugs section now lists the dedicated Browser crash notes, including the new Bug 3 doc.
+
+#### Files Changed
+- `docs/Bugs/3_ReferenceWorkspace-BlackScreen-Regression.md`
+- `docs/Doc-Index.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- No runtime behavior changed.
+- The new black-screen regression now has a dedicated bug note and a likely-cause record for the next fix pass.
+
+#### Verification Steps
+- Confirmed the new bug note exists at `docs/Bugs/3_ReferenceWorkspace-BlackScreen-Regression.md`.
+- Confirmed `docs/Doc-Index.md` now lists the dedicated Browser crash notes under the Bugs section.
+- Confirmed the bug note explicitly points back to the same selector-instability family documented by Bug 2.
+
+<!-- ENTRY 263 -->
+### [274] - 2026-03-16 16:10 - `VR - Phase 5 - Static Manifest Reference Workspace`
+<!-- ENTRY 274 -->
+HUMAN SUMMARY: `Implemented the first `02.4A` reference workspace cut by adding a checked-in reference manifest, rendering `References` inside `Content`, wiring blue/gray reference visibility rows and category toggles into the Browser, and adding viewer-side lazy loading/caching for the supported `.obj` and `.glb` assets while keeping `.step` and user import as later work.` 
+
+#### Scope / Constraints Honored
+- Kept this pass scoped to `02.4A` static-manifest reference workspace behavior.
+- Left `.step` support and user-imported references out of this implementation and in their later roadmap homes.
+- Updated the required changelog and task/checklist tracking docs in the same change set.
+
+#### Summary of Implementation
+- Added `src/app/references/referenceManifest.ts` as the checked-in v1 reference source of truth for `Footpads`, `Shoes`, and the placeholder `Premade Foothooks` category.
+- Extended `src/app/store/useAppStore.ts` with reference workspace state, Browser-tree selectors, visibility toggles, category toggles, and per-item load/error state.
+- Extended `src/app/panels/selectBrowserTreeRows.ts` so the Browser now emits `References`, category, and reference-item rows inside the `Content` area.
+- Updated `src/app/panels/BrowserPanel.tsx` to render the new reference rows, rename the inner root to `Project Browser`, and route row clicks so:
+  - `References` toggles expansion
+  - category row click toggles the whole category on/off
+  - `+/-` stays the expand/collapse control
+  - child reference row click toggles one reference on/off
+- Updated `src/app/components/ViewerHost.tsx` and `src/viewer/Viewer.ts` so supported reference assets lazy-load on first toggle, remain cached after load, and show/hide without unloading.
+- Updated `docs/Phase-Plans/Tasks/02.4A - VR - Static Manifest Reference Workspace.md` and `docs/Human-Plans/roadmap/roadmapCHECKLISTS.md` to record the first shipped cut.
+
+#### Files Changed
+- `src/app/references/referenceManifest.ts`
+- `src/app/store/useAppStore.ts`
+- `src/app/panels/selectBrowserTreeRows.ts`
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/components/ViewerHost.tsx`
+- `src/viewer/Viewer.ts`
+- `src/app/theme/v15Theme.css`
+- `src/app/panels/selectBrowserTreeRows.test.ts`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `src/app/store/useAppStore.test.ts`
+- `docs/Phase-Plans/Tasks/02.4A - VR - Static Manifest Reference Workspace.md`
+- `docs/Human-Plans/roadmap/roadmapCHECKLISTS.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- The Browser now shows a `References` subtree above published assemblies inside `Content`.
+- `Footpads`, `Shoes`, and `Premade Foothooks` now exist as category parents in the Browser, with category-row click toggling whole-category viewer visibility.
+- Supported reference assets are hidden by default, lazy-load on first toggle, and then switch between blue `on` and gray `off` row states without unloading.
+
+#### Verification Steps
+- Ran `cmd /c npx tsc -p tsconfig.json --noEmit`.
+- Ran `cmd /c npx vitest run src/app/panels/selectBrowserTreeRows.test.ts src/app/panels/BrowserPanel.test.tsx src/app/store/useAppStore.test.ts`.
+
+<!-- ENTRY 263 -->
+### [273] - 2026-03-16 15:37 - `VR - Phase 5 - Reference Asset Workspace And Project View Layers`
+<!-- ENTRY 273 -->
+HUMAN SUMMARY: `Split the active `2.4` docs into one specific active cut plus two future follow-ups by renaming the live execution spec to `02.4A`, creating `02.4B` for expanded file support and `02.4C` for user reference import from disk, and syncing the `VR` family doc, docs map, and checklist tracker to that new structure.` 
+
+#### Scope / Constraints Honored
+- Kept this pass to phase-doc structure and tracker alignment only.
+- Preserved `[2.4]` as the roadmap umbrella while making the active task doc specifically `02.4A`.
+- Updated the required changelog in the same change set.
+
+#### Summary of Implementation
+- Renamed the active execution spec from `docs/Phase-Plans/Tasks/02.4 - VR - Reference Asset Workspace And Project View Layers.md` to `docs/Phase-Plans/Tasks/02.4A - VR - Static Manifest Reference Workspace.md`.
+- Updated the active spec wording so it clearly reads as the static-manifest cut and points later work to `02.4B` and `02.4C`.
+- Created two new future task docs:
+  - `docs/Phase-Plans/Tasks/Future/02.4B - VR - Expanded Reference File Support.md`
+  - `docs/Phase-Plans/Tasks/Future/02.4C - VR - User Reference Import From Disk.md`
+- Updated `docs/Phase-Plans/08_VR - Phase-Plans.md` so `VR - Phase 5` now points at `02.4A` as the active spec and names `02.4B` plus `02.4C` as the later follow-up docs.
+- Updated `docs/Doc-Index.md` so the active `Tasks` list shows `02.4A` and the `Tasks/Future` list shows `02.4B` and `02.4C`.
+- Updated `docs/Human-Plans/roadmap/roadmapCHECKLISTS.md` so the `2.4A / 2.4B / 2.4C` split now also reflects plan-doc presence for the new docs.
+
+#### Files Changed
+- `docs/Phase-Plans/Tasks/02.4A - VR - Static Manifest Reference Workspace.md`
+- `docs/Phase-Plans/Tasks/Future/02.4B - VR - Expanded Reference File Support.md`
+- `docs/Phase-Plans/Tasks/Future/02.4C - VR - User Reference Import From Disk.md`
+- `docs/Phase-Plans/08_VR - Phase-Plans.md`
+- `docs/Doc-Index.md`
+- `docs/Human-Plans/roadmap/roadmapCHECKLISTS.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- No runtime or product behavior changed.
+- The phase-doc system now treats `2.4A` as the active cut and `2.4B / 2.4C` as explicit future follow-ups.
+
+#### Verification Steps
+- Confirmed the active spec now exists at `docs/Phase-Plans/Tasks/02.4A - VR - Static Manifest Reference Workspace.md`.
+- Confirmed new future docs exist for `02.4B` and `02.4C`.
+- Confirmed `docs/Phase-Plans/08_VR - Phase-Plans.md`, `docs/Doc-Index.md`, and `docs/Human-Plans/roadmap/roadmapCHECKLISTS.md` all reflect the split.
+
+### [272] - 2026-03-16 15:31 - `VR - Phase 5 - Reference Asset Workspace And Project View Layers`
+<!-- ENTRY 272 -->
+HUMAN SUMMARY: `Expanded the roadmap home for deferred reference-system work by splitting later `2.4` follow-up into `2.4A` static-manifest workspace support, `2.4B` expanded reference file support such as `.step`, and `2.4C` user-imported reference models from disk, so those future upgrades are visible instead of being left implicit.` 
+
+#### Scope / Constraints Honored
+- Kept this pass to roadmap and tracker documentation only.
+- Preserved `2.4` as the reference-workspace home instead of creating a new top-level lane.
+- Updated the required changelog in the same change set.
+
+#### Summary of Implementation
+- Expanded `[2.4]` in `docs/Human-Plans/roadmap/roadmap.md` with explicit carry-forward structure:
+  - `[2.4A]` static-manifest reference workspace
+  - `[2.4B]` expanded reference file support
+  - `[2.4C]` user reference import from disk
+- Added checklist notes under `[2.4]` so `.step` loading and user-added references are now called out as later follow-up work inside the same phase family.
+- Mirrored the new `2.4A / 2.4B / 2.4C` breakdown into `docs/Human-Plans/roadmap/roadmapCHECKLISTS.md` so the scan surfaces reflect that future split.
+
+#### Files Changed
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/Human-Plans/roadmap/roadmapCHECKLISTS.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- No runtime or product behavior changed.
+- The roadmap now gives `.step` support and user-imported references an explicit future home under `[2.4]`.
+
+#### Verification Steps
+- Re-read `[2.4]` in `docs/Human-Plans/roadmap/roadmap.md` to confirm the new `2.4A / 2.4B / 2.4C` follow-up structure.
+- Re-read the `[2.4]` entries in `docs/Human-Plans/roadmap/roadmapCHECKLISTS.md` to confirm the new sub-items appear in the tracker lists.
+
+### [271] - 2026-03-16 15:25 - `VR - Phase 5 - Reference Asset Workspace And Project View Layers`
+<!-- ENTRY 271 -->
+HUMAN SUMMARY: `Promoted `02.4` into the active implementation-ready execution-spec stage, moving it out of `Tasks/Future/` and locking the first reference-asset workspace layer around a static manifest, lazy loading, Browser `References` placement inside `Content`, blue/gray viewer-state rows, and the current `footpads / shoes / hooks` asset reality.` 
+
+#### Scope / Constraints Honored
+- Kept this pass to docs/spec promotion and tracker alignment only.
+- Grounded the spec in the current repo seams and current public asset folders before locking the execution details.
+- Left runtime/product behavior unchanged.
+- Updated the required changelog in the same change set.
+
+#### Summary of Implementation
+- Rewrote and promoted `docs/Phase-Plans/Tasks/02.4 - VR - Reference Asset Workspace And Project View Layers.md` as the active execution spec for `[2.4]`.
+- Locked the active `02.4` spec around:
+  - `Project Browser > Content > References`
+  - `Footpads / Shoes / Premade Foothooks`
+  - static manifest source model
+  - lazy load on first toggle
+  - hidden by default on app load
+  - blue/gray viewer-state bars
+  - `.step` remaining out of scope, leaving foothooks as a placeholder category in v1
+- Updated `docs/Phase-Plans/08_VR - Phase-Plans.md` so `VR - Phase 5` now points at the active execution spec instead of the future planning doc.
+- Updated `docs/Doc-Index.md` so `02.4` moves from the `Tasks/Future` listing into the live `Tasks` area.
+- Updated `docs/Human-Plans/roadmap/roadmapCHECKLISTS.md` so `[2.4]` now reads as decision-complete as well as plan-doc-present.
+- Expanded `docs/Human-Plans/Decisions.MD` just enough to honestly capture the now-locked `[2.4]` decisions.
+
+#### Files Changed
+- `docs/Phase-Plans/Tasks/02.4 - VR - Reference Asset Workspace And Project View Layers.md`
+- `docs/Phase-Plans/08_VR - Phase-Plans.md`
+- `docs/Doc-Index.md`
+- `docs/Human-Plans/roadmap/roadmapCHECKLISTS.md`
+- `docs/Human-Plans/Decisions.MD`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- No runtime or product behavior changed.
+- The docs system now treats `02.4` as the active implementation-ready execution spec.
+
+#### Verification Steps
+- Confirmed the active spec now lives at `docs/Phase-Plans/Tasks/02.4 - VR - Reference Asset Workspace And Project View Layers.md`.
+- Confirmed `docs/Phase-Plans/08_VR - Phase-Plans.md` now points Phase 5 at the active `Tasks/` path.
+- Confirmed `docs/Doc-Index.md` now shows `02.4` under active `Tasks` instead of `Tasks/Future`.
+- Confirmed `docs/Human-Plans/roadmap/roadmapCHECKLISTS.md` now marks `[2.4]` `Decision Coverage` and `Plan.md Status` as present.
+- Confirmed `docs/Human-Plans/Decisions.MD` now contains a dedicated `[2.4]` locked-decision block.
+
+### [270] - 2026-03-16 15:19 - `VR - Phase 5 - Reference Asset Workspace And Project View Layers`
+<!-- ENTRY 270 -->
+HUMAN SUMMARY: `Updated the `2.4` suggested-answer block so category parents like `Footpads` now use row click to toggle the whole category on/off, while the normal `+/-` control remains responsible for expanding and collapsing the subtree.` 
+
+#### Scope / Constraints Honored
+- Kept this pass to the `2.4` planning doc only.
+- Changed only the suggested-answer direction for category-parent behavior.
+- Updated the required changelog in the same change set.
+
+#### Summary of Implementation
+- Added a new local doc-history entry to `docs/Phase-Plans/Tasks/Future/02.4 - VR - Reference Asset Workspace And Project View Layers.md`.
+- Updated `Q9` in the `Questions And Suggested Answers` section so:
+  - category parents keep normal `+/-` expand/collapse controls
+  - clicking the category row toggles the whole category on/off in the viewer
+
+#### Files Changed
+- `docs/Phase-Plans/Tasks/Future/02.4 - VR - Reference Asset Workspace And Project View Layers.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- No runtime or product behavior changed.
+- The `2.4` planning doc now prefers category-row click as the whole-category visibility toggle.
+
+#### Verification Steps
+- Re-read `Q9` in the updated `2.4` planning doc to confirm row click now means category on/off while `+/-` remains the expand/collapse control.
+
+### [269] - 2026-03-16 15:16 - `VR - Phase 5 - Reference Asset Workspace And Project View Layers`
+<!-- ENTRY 269 -->
+HUMAN SUMMARY: `Expanded the `2.4` task doc with an explicit question list and suggested answers, consolidating the current planning direction for Browser placement, ownership, row behavior, visibility rules, and tree presentation into one readable decision block.` 
+
+#### Scope / Constraints Honored
+- Kept this pass to the `2.4` planning doc only.
+- Converted existing discussion direction into suggested answers without claiming the phase is implementation-ready yet.
+- Updated the required changelog in the same change set.
+
+#### Summary of Implementation
+- Added a new local doc-history entry to `docs/Phase-Plans/Tasks/Future/02.4 - VR - Reference Asset Workspace And Project View Layers.md`.
+- Added a `Questions And Suggested Answers` section covering:
+  - Browser placement for `References`
+  - first Browser tree shape
+  - first ownership model
+  - reference row face and click behavior
+  - blue/gray viewer-state bars
+  - first-pass actions
+  - passive viewer-context scope
+  - category-parent behavior
+  - tree controls and connector lines
+  - first-pass filesystem root
+  - minimum project-versus-reference visibility separation
+
+#### Files Changed
+- `docs/Phase-Plans/Tasks/Future/02.4 - VR - Reference Asset Workspace And Project View Layers.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- No runtime or product behavior changed.
+- The `2.4` planning doc now has one consolidated suggested-answer block for the main open questions.
+
+#### Verification Steps
+- Re-read the updated `2.4` planning doc to confirm the new `Questions And Suggested Answers` section is present and matches the current preferred direction.
+
+### [268] - 2026-03-16 15:12 - `VR - Phase 5 - Reference Asset Workspace And Project View Layers`
+<!-- ENTRY 268 -->
+HUMAN SUMMARY: `Updated the `2.4` planning doc with the newer Browser-tree presentation rule: `References` should use normal `+/-` tree controls and connector lines, and the `Content` section should adopt that same connected subtree style instead of looking like a special-case header block.` 
+
+#### Scope / Constraints Honored
+- Kept this pass to the `2.4` planning doc only.
+- Recorded Browser-tree presentation expectations without changing runtime UI behavior.
+- Updated the required changelog in the same change set.
+
+#### Summary of Implementation
+- Added a new local doc-history entry to `docs/Phase-Plans/Tasks/Future/02.4 - VR - Reference Asset Workspace And Project View Layers.md`.
+- Expanded the emerging `2.4` reference-tree direction with:
+  - normal `+/-` tree buttons for `References` and its category parents
+  - normal Browser connector lines through the reference subtree
+  - a matching rule that `Content` should use the same subtree-control style and connecting line into its children
+
+#### Files Changed
+- `docs/Phase-Plans/Tasks/Future/02.4 - VR - Reference Asset Workspace And Project View Layers.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- No runtime or product behavior changed.
+- The `2.4` planning surface now includes the preferred Browser tree-control presentation for `Content` and `References`.
+
+#### Verification Steps
+- Re-read the updated `2.4` planning doc to confirm the new `+/-` control and connector-line notes are present.
+
+### [267] - 2026-03-16 15:06 - `VR - Phase 5 - Reference Asset Workspace And Project View Layers`
+<!-- ENTRY 267 -->
+HUMAN SUMMARY: `Expanded the `VR` family phase-plan doc so `VR - Phase 5` now has a real home for the live `[2.4]` reference-asset planning work, including the current clean Browser-tree direction, the calm blue/gray reference-row behavior, and the main open questions still needed before implementation.` 
+
+#### Scope / Constraints Honored
+- Kept this pass to the `VR` family phase-plan doc only.
+- Aligned the family-level `VR - Phase 5` section to the live `02.4` task doc instead of changing runtime behavior.
+- Updated the required changelog in the same change set.
+
+#### Summary of Implementation
+- Added a new local doc-history entry to `docs/Phase-Plans/08_VR - Phase-Plans.md`.
+- Reframed `VR - Phase 5` from a bare future placeholder into an active family planning surface.
+- Pointed the family section at `docs/Phase-Plans/Tasks/Future/02.4 - VR - Reference Asset Workspace And Project View Layers.md`.
+- Expanded the Phase 5 summary with the current preferred Browser/reference direction:
+  - `Project Browser > Content > References`
+  - `Footpads / Shoes / Premade Foothooks`
+  - blue/gray viewer-state rows with click-to-toggle visibility
+- Added a Phase 5 question surface listing the remaining Browser/viewer decisions for references.
+
+#### Files Changed
+- `docs/Phase-Plans/08_VR - Phase-Plans.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- No runtime or product behavior changed.
+- The `VR` family doc now has a real planning home for `[2.4]`.
+
+#### Verification Steps
+- Re-read the updated `VR - Phase 5` section in `docs/Phase-Plans/08_VR - Phase-Plans.md`.
+- Confirmed it now points at the `02.4` task doc and includes the Phase 5 question surface.
+
+### [266] - 2026-03-16 15:03 - `VR - Phase 5 - Reference Asset Workspace And Project View Layers`
+<!-- ENTRY 266 -->
+HUMAN SUMMARY: `Updated the `2.4` planning doc with the first reference-model path convention, using `public/ReferenceModels/` as the default asset root and matching the planned Browser `References` categories with `Footpads`, `Shoes`, and `PremadeFoothooks` subfolders.` 
+
+#### Scope / Constraints Honored
+- Kept this pass to the `2.4` planning doc only.
+- Recorded a filesystem/path convention for reference assets without changing runtime loading behavior.
+- Updated the required changelog in the same change set.
+
+#### Summary of Implementation
+- Added a new local doc-history entry to `docs/Phase-Plans/Tasks/Future/02.4 - VR - Reference Asset Workspace And Project View Layers.md`.
+- Added a `Reference asset path convention so far` note under the emerging `2.4` direction.
+- Recorded `public/ReferenceModels/` as the first-pass root and matched the subfolders to:
+  - `Footpads`
+  - `Shoes`
+  - `PremadeFoothooks`
+
+#### Files Changed
+- `docs/Phase-Plans/Tasks/Future/02.4 - VR - Reference Asset Workspace And Project View Layers.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- No runtime or product behavior changed.
+- The `2.4` planning surface now has a concrete reference-model folder convention.
+
+#### Verification Steps
+- Re-read the updated `2.4` planning doc to confirm the new `public/ReferenceModels/` note and the three category subfolders are present.
+
+### [265] - 2026-03-16 15:00 - `VR - Phase 5 - Reference Asset Workspace And Project View Layers`
+<!-- ENTRY 265 -->
+HUMAN SUMMARY: `Expanded the new `[2.4]` planning doc with the first concrete Browser/reference-tree direction: `References` should live visually inside `Content` above the first assembly, split into `Footpads`, `Shoes`, and `Premade Foothooks`, with calm blue/gray viewer-state bars and click-to-toggle visibility behavior.` 
+
+#### Scope / Constraints Honored
+- Kept this pass to the `2.4` planning doc only.
+- Recorded the newer reference-tree direction as planning guidance, not shipped behavior.
+- Updated the required changelog in the same change set.
+
+#### Summary of Implementation
+- Added a new local doc-history entry to `docs/Phase-Plans/Tasks/Future/02.4 - VR - Reference Asset Workspace And Project View Layers.md`.
+- Updated the `First-Pass Assumptions` block so references now read as visually inside `Content` for the clean Browser tree while still remaining non-published workspace context.
+- Added an `Emerging Direction From Follow-Up Notes` section capturing:
+  - `Project Browser > Content > References`
+  - the first `Footpads / Shoes / Premade Foothooks` parent split
+  - blue/gray viewer-state bars instead of content build bars
+  - click-to-toggle viewer visibility behavior for reference rows
+
+#### Files Changed
+- `docs/Phase-Plans/Tasks/Future/02.4 - VR - Reference Asset Workspace And Project View Layers.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- No runtime or product behavior changed.
+- The `2.4` planning surface now reflects the newer preferred Browser/reference-tree layout and row-behavior direction.
+
+#### Verification Steps
+- Re-read the updated `2.4` planning doc to confirm the new tree shape, category split, and viewer-state row behavior are present.
+
+### [264] - 2026-03-16 14:55 - `VR - Phase 5 - Reference Asset Workspace And Project View Layers`
+<!-- ENTRY 264 -->
+HUMAN SUMMARY: `Created the dedicated future task doc for roadmap item `[2.4]`, confirming the reference-asset workspace phase as the next major untouched task and wiring that new planning surface into the docs map and roadmap checklist tracker.`
+
+#### Scope / Constraints Honored
+- Kept this pass to docs/task-planning setup only.
+- Treated `[2.4]` as the next major untouched roadmap task after the shipped `[2.2]`, `[2.3]`, and `[2.1F]` work.
+- Updated the required changelog in the same change set.
+
+#### Summary of Implementation
+- Created `docs/Phase-Plans/Tasks/Future/02.4 - VR - Reference Asset Workspace And Project View Layers.md` as the new future planning surface for:
+  - Browser/viewer sections for external reference assets
+  - first-pass `.obj`, `.glb`, and `.stl` support as workspace context
+  - basic project-versus-reference visibility separation
+  - the still-open planning questions needed before `[2.4]` becomes implementation-ready
+- Marked `[2.4]` `Plan.md Status` complete in `docs/Human-Plans/roadmap/roadmapCHECKLISTS.md`.
+- Updated `docs/Doc-Index.md` so the new future task doc appears in the foldable `Tasks/Future` docs map and is recorded in local doc history.
+
+#### Files Changed
+- `docs/Phase-Plans/Tasks/Future/02.4 - VR - Reference Asset Workspace And Project View Layers.md`
+- `docs/Human-Plans/roadmap/roadmapCHECKLISTS.md`
+- `docs/Doc-Index.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- No runtime or product behavior changed.
+- The docs system now has a dedicated future task surface for `[2.4]`.
+
+#### Verification Steps
+- Confirmed `[2.4]` is still the next major untouched roadmap item in `docs/Human-Plans/roadmap/roadmap.md`.
+- Confirmed `docs/Human-Plans/roadmap/roadmapCHECKLISTS.md` now marks `[2.4]` `Plan.md Status` as present.
+- Confirmed `docs/Doc-Index.md` now lists the new `02.4` task doc under `Tasks/Future`.
+
+### [263] - 2026-03-16 14:53 - `DOC - Phase 4.2 - Selective Build Notes Added To Roadmap`
+<!-- ENTRY 263 -->
+HUMAN SUMMARY: `Expanded roadmap lane `[4.2]` so the later build/runtime lane now explicitly captures the selective-sibling-cache requirement: unaffected published rows must stay clean when another object changes, content rebuild bars must come from runtime chunk truth instead of graph-level fallback state, and first-build versus stale-after-change must be distinguished.` 
+
+#### Scope / Constraints Honored
+- Kept this pass to roadmap documentation only.
+- Added the new selective-build notes directly under the existing `[4.2]` lane rather than creating a new lane.
+- Updated the required changelog in the same change set.
+
+#### Summary of Implementation
+- Added a roadmap doc-history line describing the `[4.2]` clarification.
+- Expanded the `[4.2]` checklist with explicit notes for:
+  - unaffected sibling rows staying clean/cached
+  - `Content` rebuild bars coming from runtime chunk truth
+  - distinguishing never-built versus stale/building/clean
+  - invalidation boundaries only marking downstream affected rows stale
+
+#### Files Changed
+- `docs/Human-Plans/roadmap/roadmap.md`
+
+#### Behavior Changes
+- No application behavior changes.
+- The roadmap now places the “Object 2 changed but Object 1 should remain cached” requirement explicitly in `[4.2]`.
+
+#### Verification Steps
+- Read back `[4.2]` in `docs/Human-Plans/roadmap/roadmap.md` after the edit and confirmed the new selective-build bullets are present.
+
+<!-- ENTRY 262 -->
+### [262] - 2026-03-16 14:47 - `AS / VR - Phase 2.3 - Content Rebuild Rows Yellow`
+<!-- ENTRY 262 -->
+HUMAN SUMMARY: `Updated the published `Content` row styling so rows in the `rebuild` state now render with a yellow bar fill instead of staying visually neutral, making stale content easier to scan in the Browser.` 
+
+#### Scope / Constraints Honored
+- Scoped this change to published `Content` rows only.
+- Left `Graph Documents` row styling unchanged.
+- Updated the required changelog in the same implementation pass.
+
+#### Summary of Implementation
+- Changed the `BrowserContentStateBar--rebuild` fill styling to use the same yellow family already associated with in-progress or attention-needed states instead of leaving rebuild rows transparent.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+
+#### Behavior Changes
+- Published `Content` rows with `buildState: rebuild` now show a yellow fill bar in the Browser.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/panels/BrowserPanel.test.tsx`
+
+<!-- ENTRY 261 -->
+### [261] - 2026-03-16 14:44 - `VR / SP - Phase 2.1F - Graph Nodes Click-To-Fit`
+<!-- ENTRY 261 -->
+HUMAN SUMMARY: `Updated the Browser graph-node click path so clicking a node under `Graph Documents > Nodes` now opens or focuses the right Spaghetti editor and issues a viewport-targeted fit request, causing the editor canvas to zoom to fit that node without changing `Needs Rebuild` or `Content` row behavior.` 
+
+#### Scope / Constraints Honored
+- Scoped this change only to clicks on graph-node rows under `Graph Documents > Nodes`.
+- Left `Needs Rebuild`, `Content`, and `View In Graph` behavior unchanged.
+- Updated the required changelog in the same implementation pass.
+
+#### Summary of Implementation
+- Added a small store-level `editorViewportNodeFitRequest` channel in `useSpaghettiStore` so Browser-originated node-fit requests can target one specific editor viewport.
+- Updated `BrowserPanel` so graph-node clicks now request a viewport-targeted node fit after opening or focusing the graph and selecting the source node.
+- Updated `SpaghettiPanel` so it listens for the targeted fit request and forwards it into the existing canvas fit-node path already used inside the editor.
+- Added targeted Browser and Spaghetti-panel test coverage for the new scoped behavior.
+
+#### Files Changed
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/panels/SpaghettiPanel.tsx`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `src/app/panels/SpaghettiPanel.test.tsx`
+
+#### Behavior Changes
+- Clicking a row inside `Graph Documents > Nodes` now:
+  - opens or focuses the matching graph editor
+  - selects the source node
+  - zooms the Spaghetti editor to fit that node
+- Clicking `Needs Rebuild` rows does not issue this fit request.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/panels/BrowserPanel.test.tsx src/app/panels/SpaghettiPanel.test.tsx`
+- `cmd /c npx tsc -p tsconfig.json --noEmit`
+
+<!-- ENTRY 260 -->
+### [260] - 2026-03-16 14:40 - `VR / SP - Phase 2.1F - Needs Rebuild Empty-State Cleanup`
+<!-- ENTRY 260 -->
+HUMAN SUMMARY: `Removed the visible \`No pending rebuild objects.\` helper text from the empty `Needs Rebuild` graph-child section so the Browser stays cleaner when there is no pending graph-side rebuild work.` 
+
+#### Scope / Constraints Honored
+- Kept this pass to a small Browser UI cleanup only.
+- Did not change graph-child ordering, filtering, or click behavior.
+- Updated the required changelog in the same implementation pass.
+
+#### Summary of Implementation
+- Cleared the `Needs Rebuild` section empty label in the Browser tree selector.
+- Tightened the nested empty-state render path so graph child sections only show helper text when a non-empty empty-state label is intentionally provided.
+
+#### Files Changed
+- `src/app/panels/selectBrowserTreeRows.ts`
+- `src/app/panels/selectBrowserTreeRows.test.ts`
+- `src/app/panels/BrowserPanel.tsx`
+
+#### Behavior Changes
+- Empty `Needs Rebuild` sections no longer show the `No pending rebuild objects.` helper line.
+- Other graph child sections can still render nested empty text if they have an explicit empty-state label.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/panels/selectBrowserTreeRows.test.ts src/app/panels/BrowserPanel.test.tsx`
+
+<!-- ENTRY 259 -->
+### [259] - 2026-03-16 14:39 - `VR / SP - Phase 2.1F - Browser Plain-Row Bar Cleanup`
+<!-- ENTRY 259 -->
+HUMAN SUMMARY: `Cleaned up the Browser row-shell styling for `Needs Rebuild`, `Nodes`, and `Open Editors` rows so their bars now use the full row surface instead of looking like nested inset pills inside the row shell.` 
+
+#### Scope / Constraints Honored
+- Kept this pass to Browser UI-shell cleanup only.
+- Did not change row meaning, interaction, or graph/content behavior.
+- Updated the required changelog in the same implementation pass.
+
+#### Summary of Implementation
+- Updated `BrowserPanel` row-main class assignment so plain graph-section and viewport rows use the same outer row-shell pattern as the graph/content build bars.
+- Adjusted `v15Theme.css` so the plain-row bar fills the full clickable row width and height instead of reading like a smaller inner pill.
+
+#### Files Changed
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/theme/v15Theme.css`
+
+#### Behavior Changes
+- `Needs Rebuild`
+- `Nodes`
+- `Open Editors`
+
+These rows now render as one clean full-row bar surface instead of an inset inner bar.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/panels/BrowserPanel.test.tsx`
+
+<!-- ENTRY 258 -->
+### [258] - 2026-03-16 14:31 - `VR / SP - Phase 2.1F - Graph Documents Child Sections`
+<!-- ENTRY 258 -->
+HUMAN SUMMARY: `Implemented `[2.1F]` by replacing the old graph child \`published-output\` list with `Needs Rebuild` plus `Nodes`, filtering the rebuild list down to produced stale or unresolved graph-owned objects, wiring graph-child click back to authoring reveal, and syncing the task/roadmap/docs index surfaces to the completed state.` 
+
+#### Scope / Constraints Honored
+- Kept this pass graph-side and Browser-side instead of rewriting the completed `Content` surface from `[2.3]`.
+- Replaced the main graph child list instead of keeping the old slot/output-entry rows alive beside the new sections.
+- Updated the required task, roadmap, docs-index, and changelog surfaces in the same change set.
+
+#### Summary of Implementation
+- Reworked `selectBrowserTreeRows` so graph rows now expand into `Needs Rebuild` and `Nodes` section rows instead of `published-output` rows.
+- Made `Needs Rebuild` object-based, ordered by published `Content`, and filtered to produced rows that are stale or unresolved.
+- Added flat graph-native `Nodes` rows ordered by graph node order.
+- Updated `BrowserPanel` so graph child sections remember per-graph expand state, graph child row click reveals graph authoring context, and empty nested section messages render under the section rows.
+- Updated `browserRowActions` and the Browser tests to follow the new graph child row kinds.
+- Moved `02.1F - VR-SP - Graph Documents Child Sections.md` from `Tasks/Future` into `Tasks/Old` and marked the roadmap/checklist entry complete.
+
+#### Files Changed
+- `src/app/panels/selectBrowserTreeRows.ts`
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/panels/browserRowActions.ts`
+- `src/app/panels/selectBrowserTreeRows.test.ts`
+- `src/app/panels/browserRowActions.test.ts`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `src/app/theme/v15Theme.css`
+- `docs/Phase-Plans/Tasks/Old/02.1F - VR-SP - Graph Documents Child Sections.md`
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/Human-Plans/roadmap/roadmapCHECKLISTS.md`
+- `docs/Doc-Index.md`
+
+#### Behavior Changes
+- `Graph Documents` no longer shows the old raw graph child publish-entry list in the main Browser tree.
+- Each expanded graph row now shows:
+  - `Needs Rebuild` first and default-open
+  - `Nodes` second and default-closed
+- `Needs Rebuild` now hides empty/non-producing rows and already-clean rows.
+- Clicking a graph child rebuild row or node row now focuses the graph authoring context instead of behaving like a published `Content` row.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/panels/selectBrowserTreeRows.test.ts src/app/panels/browserRowActions.test.ts src/app/panels/BrowserPanel.test.tsx`
+- `cmd /c npx vitest run src/app/panels/selectBrowserGraphRows.test.ts src/app/store/useAppStore.test.ts`
+- `cmd /c npx tsc -p tsconfig.json --noEmit`
+
+<!-- ENTRY 257 -->
+### [257] - 2026-03-16 14:16 - `DOC - Phase 11 - Future Task Doc For 2.1F`
+<!-- ENTRY 257 -->
+HUMAN SUMMARY: `Set up the new future task doc for `[2.1F] VR / SP - Graph Documents Child Sections`, turning the post-\`2.3\` \`Needs Rebuild\` plus \`Nodes\` idea into a real planning surface with scope, open implementation questions, likely files, and tracker updates so the roadmap now counts `[2.1F]` as having a dedicated task doc.` 
+
+#### Scope / Constraints Honored
+- Kept this pass documentation-only.
+- Created `2.1F` as a future planning surface, not an implementation-ready execution spec yet.
+- Updated the docs index and roadmap tracker status in the same change set.
+
+#### Summary of Implementation
+- Created `docs/Phase-Plans/Tasks/Future/02.1F - VR-SP - Graph Documents Child Sections.md`.
+- Recorded the current locked later shape:
+  - `Needs Rebuild` first/open
+  - `Nodes` second/closed
+  - no empty/non-producing rows in the rebuild list
+- Captured the remaining implementation questions around:
+  - exact rebuild-list data source
+  - rebuild-row identity
+  - node-list scope
+  - default expand-state persistence
+  - row interaction rules
+- Updated `docs/Human-Plans/roadmap/roadmapCHECKLISTS.md` so `[2.1F]` now counts as having its own dedicated task doc.
+- Updated `docs/Doc-Index.md` so the new future task file appears in the docs map.
+
+#### Files Changed
+- `docs/Phase-Plans/Tasks/Future/02.1F - VR-SP - Graph Documents Child Sections.md`
+- `docs/Human-Plans/roadmap/roadmapCHECKLISTS.md`
+- `docs/Doc-Index.md`
+
+#### Behavior Changes
+- No code behavior changed in this pass.
+- The repo now has a dedicated future task-planning surface for `[2.1F]`.
+
+#### Verification Steps
+- Read back the new `02.1F` task doc header, checklist, and open-question sections.
+- Confirmed `roadmapCHECKLISTS.md` now marks `[2.1F]` plan-doc status as present.
+- Confirmed `Doc-Index.md` now lists `02.1F` under `Tasks/Future`.
+
+<!-- ENTRY 256 -->
+### [256] - 2026-03-16 14:13 - `DOC - Phase 11 - Roadmap Home For Graph Documents Child Sections`
+<!-- ENTRY 256 -->
+HUMAN SUMMARY: `Added the post-\`2.3\` \`Graph Documents\` follow-up into the live roadmap as a new `[2.1F]` Browser/workspace subphase, so the later \`Needs Rebuild\` plus \`Nodes\` split now has a clear home in Lane `[2.1]` instead of being confused with \`2.4\` reference-asset work.` 
+
+#### Scope / Constraints Honored
+- Kept this pass documentation-only.
+- Added the new roadmap slot under Lane `[2.1]` instead of rewriting completed `AS6` answers or misplacing the work under `[2.4]`.
+- Synced the roadmap tracker totals after adding the new item.
+
+#### Summary of Implementation
+- Added `[2.1F] VR / SP - Graph Documents Child Sections` to `docs/Human-Plans/roadmap/roadmap.md`.
+- Defined the roadmap checklist for the later `Needs Rebuild` plus `Nodes` split:
+  - `Needs Rebuild` first/open
+  - `Nodes` second/closed
+  - no empty/non-producing rows in the rebuild list
+- Updated `docs/Human-Plans/roadmap/roadmapCHECKLISTS.md` so the new item appears in the lane breakdown, lane status list, dedicated-plan list, and the rolled-up totals.
+
+#### Files Changed
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/Human-Plans/roadmap/roadmapCHECKLISTS.md`
+
+#### Behavior Changes
+- No code behavior changed in this pass.
+- The roadmap now gives the later `Graph Documents` child-section cleanup a clear home as `[2.1F]`.
+
+#### Verification Steps
+- Read back the new `[2.1F]` block in `docs/Human-Plans/roadmap/roadmap.md`.
+- Read back the updated Lane `[2]` tracker rows and totals in `docs/Human-Plans/roadmap/roadmapCHECKLISTS.md`.
+
+<!-- ENTRY 255 -->
+### [255] - 2026-03-16 14:12 - `DOC - Phase 11 - Graph Documents Child-Section Outline Note`
+<!-- ENTRY 255 -->
+HUMAN SUMMARY: `Expanded the new active Codex-notes file with a more concrete outline for the later \`Graph Documents\` child-section idea, spelling out the exact \`Needs Rebuild\` plus \`Nodes\` structure, their default open/closed behavior, and the rule that empty or already-clean rows should not appear in the rebuild list.` 
+
+#### Scope / Constraints Honored
+- Kept this pass documentation-only.
+- Added detail to the new Codex-notes surface without changing the already-locked `AS6` answers.
+- Logged the notes-file update in the changelog.
+
+#### Summary of Implementation
+- Added `[173]` to `docs/Human-Plans/CodexNotes/11_CodexChatNotes.md`.
+- Captured the concrete proposed structure:
+  - `Needs Rebuild` first and normally open
+  - `Nodes` second and normally closed
+- Clarified what each section should and should not show.
+
+#### Files Changed
+- `docs/Human-Plans/CodexNotes/11_CodexChatNotes.md`
+
+#### Behavior Changes
+- No code behavior changed in this pass.
+- The active Codex notes now contain a more implementation-usable outline of the later `Graph Documents` child-section idea.
+
+#### Verification Steps
+- Read back the new `[173]` entry in `docs/Human-Plans/CodexNotes/11_CodexChatNotes.md`.
+
+<!-- ENTRY 254 -->
+### [254] - 2026-03-16 14:04 - `DOC - Phase 11 - New Codex Notes File For Post-2.3 Follow-Up`
+<!-- ENTRY 254 -->
+HUMAN SUMMARY: `Started a new active Codex-notes file at \`11_CodexChatNotes.md\` and recorded the post-\`2.3\` roadmap discovery that the newer \`Graph Documents\` child-section idea should live as a small later Browser workspace follow-up rather than being folded into \`2.4\` or retroactively changing the locked Phase 6 answers.` 
+
+#### Scope / Constraints Honored
+- Kept this pass documentation-only.
+- Started a fresh Codex-notes file instead of appending more raw planning notes into `10_CodexChatNotes.md`.
+- Updated the docs index and changelog alongside the new notes file.
+
+#### Summary of Implementation
+- Created `docs/Human-Plans/CodexNotes/11_CodexChatNotes.md` as the new active Codex notes surface.
+- Added the first entry as `[172]`, continuing the absolute numbering path from `10_CodexChatNotes.md`.
+- Recorded the planning conclusion that the newer `Graph Documents` child-section idea should likely become a small Lane `[2.1]` follow-up such as `[2.1F]`, with `Needs Rebuild` first/open and `Nodes` second/closed.
+- Updated `docs/Doc-Index.md` so the new notes file appears in the foldable docs map.
+
+#### Files Changed
+- `docs/Human-Plans/CodexNotes/11_CodexChatNotes.md`
+- `docs/Doc-Index.md`
+
+#### Behavior Changes
+- No code behavior changed in this pass.
+- The repo now has a new active Codex-notes file for follow-up planning after the completed `2.3` work.
+
+#### Verification Steps
+- Read back the new `11_CodexChatNotes.md` header and first `[172]` entry.
+- Confirmed `docs/Doc-Index.md` now lists `11_CodexChatNotes.md` under `Human-Plans/CodexNotes`.
+
+<!-- ENTRY 253 -->
+### [253] - 2026-03-16 14:02 - `AS - Phase 6 - Post-Phase-6 Entry Framing Cleanup`
+<!-- ENTRY 253 -->
+HUMAN SUMMARY: `Tightened the new \`Graph Documents\` note in the \`AS\` family doc so it now reads explicitly as a post-Phase-6 entry, preserving the original locked \`AS6.Q2\` answer as the canonical Phase 6 answer instead of looking like a retroactive rewrite.` 
+
+#### Scope / Constraints Honored
+- Kept this pass documentation-only.
+- Changed only the framing of the new note, not the locked `AS6.Q2` answer itself.
+- Added the required changelog entry for the docs clarification.
+
+#### Summary of Implementation
+- Updated `docs/Phase-Plans/07_AS - Phase-Plans.md` so the new graph-child direction is labeled as a `Post-Phase-6 Entry`.
+- Added explicit wording that the locked `AS6.Q2` answer above remains unchanged.
+
+#### Files Changed
+- `docs/Phase-Plans/07_AS - Phase-Plans.md`
+
+#### Behavior Changes
+- No code behavior changed in this pass.
+- The docs now distinguish between the canonical Phase 6 answer and later carry-forward discovery more clearly.
+
+#### Verification Steps
+- Read back the updated `AS6.Q2` section in `docs/Phase-Plans/07_AS - Phase-Plans.md`.
+
+<!-- ENTRY 252 -->
+### [252] - 2026-03-16 14:01 - `AS - Phase 6 - Graph Documents Carry-Forward Clarification`
+<!-- ENTRY 252 -->
+HUMAN SUMMARY: `Updated the \`AS\` family doc after the shipped \`2.3\` work to record the newly clarified later direction for \`Graph Documents\`: a normally-open \`Needs Rebuild\` section above a normally-closed \`Nodes\` section, with empty/non-producing entries like \`s002\` excluded from the rebuild list.` 
+
+#### Scope / Constraints Honored
+- Kept this pass documentation-only.
+- Recorded the new `Graph Documents` direction as later carry-forward rather than rewriting the completed Phase 6 scope.
+- Updated the required changelog entry for the docs change.
+
+#### Summary of Implementation
+- Added a post-Phase-6 carry-forward note under `AS6.Q2` in the `AS` family doc.
+- Captured the preferred later `Graph Documents` child ordering:
+  - `Needs Rebuild` first and normally open
+  - `Nodes` second and normally closed
+- Locked the rule that the future rebuild list should only show producing rows that actually need work, excluding empty rows like `s002`.
+
+#### Files Changed
+- `docs/Phase-Plans/07_AS - Phase-Plans.md`
+
+#### Behavior Changes
+- No code behavior changed in this pass.
+- Documentation now records the preferred later expansion shape for graph-document child rows after the shipped `2.3` task.
+
+#### Verification Steps
+- Read back the updated `AS6.Q2` section in `docs/Phase-Plans/07_AS - Phase-Plans.md`.
+
+<!-- ENTRY 251 -->
+### [251] - 2026-03-16 13:54 - `AS - Phase 6 - Content Policy Icon Integration Cleanup`
+<!-- ENTRY 251 -->
+HUMAN SUMMARY: `Folded the separate \`L / R / M\` content policy chip into the existing \`A / C / O\` row icon so the icon now stays semantically tied to the row type while its color carries the current build-policy state, and the content build bar now starts immediately after that icon like the graph rows.` 
+
+#### Scope / Constraints Honored
+- Kept this pass narrowly focused on the `2.3` content-row layout/policy-control cleanup.
+- Reused the existing content-row icon slot instead of introducing another control.
+- Verified the Browser panel behavior with the focused Browser test suite.
+
+#### Summary of Implementation
+- Updated `BrowserPanel` so published content rows no longer render a separate policy-chip column.
+- Turned the existing content-row icon into the build-policy control for `Assembly`, `Component`, and `Object`, while keeping the displayed letter as the row-type marker.
+- Updated the Browser row test and icon styling so policy color now lives on the row-type icon itself.
+
+#### Files Changed
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `src/app/theme/v15Theme.css`
+
+#### Behavior Changes
+- Published content rows no longer show a separate `L / R / M` chip.
+- The `A / C / O` icon now cycles build policy and changes color to represent `Live / Release / Manual`.
+- The content build/loading bar now starts immediately after the icon/lead area.
+
+#### Verification Steps
+- Ran `cmd /c npx vitest run src/app/panels/BrowserPanel.test.tsx`
+- Verified `1` file passed with `26` tests.
+
+<!-- ENTRY 250 -->
+### [250] - 2026-03-16 13:51 - `AS - Phase 6 - Content Policy Chip Row Placement Cleanup`
+<!-- ENTRY 250 -->
+HUMAN SUMMARY: `Adjusted the Browser \`Content\` row layout again so the inline build-policy chip now sits to the left of the build/loading bar, matching the intended reading order more closely while keeping the rest of the Phase 6 row behavior intact.` 
+
+#### Scope / Constraints Honored
+- Kept this pass narrowly focused on the `2.3` content-row layout cleanup.
+- Changed only the Browser row-shell order needed to move the content policy chip.
+- Verified the Browser panel behavior with the focused Browser test suite.
+
+#### Summary of Implementation
+- Reordered the content-row shell in `BrowserPanel` so the content build-policy chip now renders before the row-main build/loading surface.
+- Left graph-row save/build controls unchanged so this remains a content-row-only cleanup.
+
+#### Files Changed
+- `src/app/panels/BrowserPanel.tsx`
+
+#### Behavior Changes
+- Published content rows now show the `L / R / M` policy chip to the left of the loading/build bar instead of to the right.
+
+#### Verification Steps
+- Ran `cmd /c npx vitest run src/app/panels/BrowserPanel.test.tsx`
+- Verified `1` file passed with `26` tests.
+
+<!-- ENTRY 249 -->
+### [249] - 2026-03-16 13:45 - `AS - Phase 6 - Content Row Build-Bar Presentation Cleanup`
+<!-- ENTRY 249 -->
+HUMAN SUMMARY: `Cleaned up the just-shipped \`2.3\` Browser content-row presentation so published build bars now read like the full-row graph-document bars instead of smaller inset sub-bars, keeping the content rows visually consistent with the rest of the Browser.` 
+
+#### Scope / Constraints Honored
+- Kept this pass narrowly focused on the `2.3` Browser row presentation cleanup.
+- Changed only the content-row markup/CSS needed to make the build-state surface read like the graph-document rows.
+- Verified the Browser panel behavior with the focused Browser test suite.
+
+#### Summary of Implementation
+- Updated `BrowserPanel` so content-row status text now renders inside the content build-state surface instead of outside a nested sub-bar.
+- Updated the Browser row styling so content rows use the full row-main surface, matching the graph-document bar treatment more closely.
+- Added content-row bar padding and inline status grouping so `Assembly`, `Component`, and `Object` rows read as one coherent bar rather than a bar inside a separate row shell.
+
+#### Files Changed
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/theme/v15Theme.css`
+
+#### Behavior Changes
+- Published content build bars now visually fill the row-main surface instead of appearing as inset sub-bars.
+- Build-state text and readiness/status text now sit inside the same content-row bar.
+
+#### Verification Steps
+- Ran `cmd /c npx vitest run src/app/panels/BrowserPanel.test.tsx`
+- Verified `1` file passed with `26` tests.
+
+<!-- ENTRY 248 -->
+### [248] - 2026-03-16 13:35 - `AS - Phase 6 - Project Content Inspection And Build Control Surface`
+<!-- ENTRY 248 -->
+HUMAN SUMMARY: `Implemented Phase 6 of the Browser-facing content surface so published \`Content\` rows now behave like the first honest build/control layer: content rows rebuild on click, parent and object build bars render in the Browser, inline policy chips stay separate from view controls, and secondary \`View In Graph\` traceability is available without collapsing back into graph-row language.`
+
+#### Scope / Constraints Honored
+- Kept this pass focused on `02.3` implementation rather than later runtime/build-truth work.
+- Preserved the `Graph Documents` versus `Content` split by keeping graph rows document-oriented while moving build/policy behavior onto published content rows.
+- Updated the required roadmap/phase/changelog tracking docs in the same change set.
+
+#### Summary of Implementation
+- Extended project-content Browser rows in `useAppStore` so `Assembly`, `Component`, and `Object` rows now carry first-pass build state, rebuild-target graph ids, and row status labels derived from the owning graph runtime.
+- Updated the Browser tree/read model so content rows expose real build bars, slimmer object-row treatment, secondary `View In Graph` actions, and the data needed for content-row rebuild behavior.
+- Changed `BrowserPanel` so published content rows use `Select + Rebuild`, parent rebuild stays selective, inline content policy chips default from the current build policy, and graph rows no longer own that policy-chip surface.
+- Added the first Browser-side content build-bar styling and verified the new behavior with focused store, Browser-tree, Browser-panel, and row-action tests.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/store/useAppStore.test.ts`
+- `src/app/panels/selectBrowserTreeRows.ts`
+- `src/app/panels/selectBrowserTreeRows.test.ts`
+- `src/app/panels/browserRowActions.ts`
+- `src/app/panels/browserRowActions.test.ts`
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `src/app/theme/v15Theme.css`
+- `docs/Phase-Plans/Tasks/Old/02.3 - AS - Project Content Inspection And Build Control Surface.md`
+- `docs/Phase-Plans/07_AS - Phase-Plans.md`
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/Human-Plans/roadmap/roadmapCHECKLISTS.md`
+- `docs/Phase-Plans/00_Phase-Setup.md`
+- `docs/Doc-Index.md`
+
+#### Behavior Changes
+- Clicking published `Assembly`, `Component`, and `Object` rows now selects that row and requests rebuild only for the graph-owned descendants that still need work.
+- Published content rows now show the first Browser-facing build/loading treatment:
+  - dominant bars for `Assembly` / `Component`
+  - slimmer real bars for `Object`
+- Published content rows now expose inline `Live / Release / Manual` policy chips without merging them with view controls.
+- Published `Component` and `Object` rows now expose `View In Graph` as a secondary traceability action.
+
+#### Verification Steps
+- Ran `cmd /c npx vitest run src/app/store/useAppStore.test.ts src/app/panels/selectBrowserTreeRows.test.ts src/app/panels/BrowserPanel.test.tsx src/app/panels/browserRowActions.test.ts`
+- Verified all targeted test files passed: `4` files, `46` tests.
+
+<!-- ENTRY 247 -->
+### [247] - 2026-03-16 13:17 - `DOC - Phase 11 - 02.3 Execution Spec Promotion`
+<!-- ENTRY 247 -->
+HUMAN SUMMARY: `Promoted \`02.3\` from a future planning surface into the active execution spec, aligned the `AS - Phase 6` family guidance to feed that spec directly, and refreshed the roadmap/index tracker docs so the repo now has one clear active source of truth for the first honest \`Content\` build/control layer.` 
+
+#### Scope / Constraints Honored
+- Kept this pass documentation-only.
+- Promoted `02.3` into `docs/Phase-Plans/Tasks/` without drifting into code implementation.
+- Aligned the nearby family/tracker docs so the new spec is the active source of truth instead of leaving stale future-task references behind.
+
+#### Summary of Implementation
+- Rewrote `docs/Phase-Plans/Tasks/02.3 - AS - Project Content Inspection And Build Control Surface.md` as the active implementation-ready execution spec with:
+  - `Spec Target`
+  - `Problem Statement`
+  - `Reasonable Phase Cut`
+  - locked interaction/build/policy/source-trace rules
+  - `Implementation Order`
+  - `Deferred / Out Of Scope`
+  - `Acceptance / Proof Bar`
+- Removed the old future-copy of `02.3` from `docs/Phase-Plans/Tasks/Future/`.
+- Updated `docs/Phase-Plans/07_AS - Phase-Plans.md` so the locked `AS6.Q1` through `AS6.Q6` answers explicitly feed the active `02.3` spec and the remaining definition checklist reads complete at the family-guidance level.
+- Updated `docs/Doc-Index.md` so `02.3` now appears under active `Tasks` instead of `Tasks/Future`.
+- Refreshed the roadmap/tracker surfaces so the `02.3` language now matches the locked Phase 6 defaults and the `[2.3]` decision coverage line is no longer stale.
+
+#### Files Changed
+- `docs/Phase-Plans/Tasks/02.3 - AS - Project Content Inspection And Build Control Surface.md`
+- `docs/Phase-Plans/Tasks/Future/02.3 - AS - Project Content Inspection And Build Control Surface.md`
+- `docs/Phase-Plans/07_AS - Phase-Plans.md`
+- `docs/Doc-Index.md`
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/Human-Plans/roadmap/roadmapCHECKLISTS.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- No runtime or app behavior changed.
+- The active documentation source of truth for `[2.3]` is now `docs/Phase-Plans/Tasks/02.3 - AS - Project Content Inspection And Build Control Surface.md`.
+
+#### Verification Steps
+- Read back the promoted `02.3` spec to confirm it now reads as an implementation-ready execution doc instead of a future planning note.
+- Checked `docs/Phase-Plans/07_AS - Phase-Plans.md` so the locked Phase 6 answers match the promoted spec.
+- Checked `docs/Doc-Index.md` and `docs/Human-Plans/roadmap/roadmapCHECKLISTS.md` so `02.3` no longer points at `Tasks/Future/`.
+
+<!-- ENTRY 246 -->
+### [246] - 2026-03-16 13:12 - `DOC - Phase 11 - 02.3 Reasonable Phase Cut And Later Work`
+<!-- ENTRY 246 -->
+HUMAN SUMMARY: `Tightened the future \`02.3\` task doc into a more reasonable first implementation cut, added a separate later-work section so the phase boundary is explicit, and locked \`AS6.Q6\` in the family doc so Phase 6 now clearly stops at the first honest \`Content\` build/control surface instead of absorbing later runtime/build-truth work.` 
+
+#### Scope / Constraints Honored
+- Kept this pass documentation-only.
+- Narrowed `02.3` into a realistic first ship cut instead of letting it expand toward later runtime/build lanes.
+- Added an explicit later-work section rather than leaving deferred systems implied.
+
+#### Summary of Implementation
+- Updated `docs/Phase-Plans/Tasks/Future/02.3 - AS - Project Content Inspection And Build Control Surface.md` to:
+  - align with the locked `AS6.Q1` through `AS6.Q6` answers
+  - replace the outdated lighter-`Object` guidance
+  - add a `Reasonable Phase Cut` section describing what `02.3` should actually ship
+  - add a `Later Carry-Forward` section describing what should remain outside the first `02.3` cut
+  - clarify that the remaining work is now mostly implementation-order and acceptance-proof definition
+- Updated `docs/Phase-Plans/07_AS - Phase-Plans.md` to lock `AS6.Q6`.
+- The new `AS6.Q6` answer now states that Phase 6 owns the first honest `Content` build/control surface, but explicitly defers:
+  - full `Part` truth
+  - revisions
+  - later `SEQ / ALL`
+  - deeper worker/runtime chunk truth
+  - graph-native worker-contract replacement
+  - nested assembly/package systems
+  - richer viewer/material/reference systems
+
+#### Files Changed
+- `docs/Phase-Plans/Tasks/Future/02.3 - AS - Project Content Inspection And Build Control Surface.md`
+- `docs/Phase-Plans/07_AS - Phase-Plans.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- No application behavior changed.
+- The planning docs now distinguish much more clearly between:
+  - what `02.3` should actually ship
+  - what must wait for later lanes
+
+#### Verification Steps
+- Read back the new `Reasonable Phase Cut` and `Later Carry-Forward` sections in `docs/Phase-Plans/Tasks/Future/02.3 - AS - Project Content Inspection And Build Control Surface.md`.
+- Read back the `AS6.Q6` section and the Phase 6 question checklist in `docs/Phase-Plans/07_AS - Phase-Plans.md`.
+
+<!-- ENTRY 245 -->
+### [245] - 2026-03-16 13:08 - `DOC - Phase 11 - AS6 Q5 Policy Versus View Rule`
+<!-- ENTRY 245 -->
+HUMAN SUMMARY: `Locked \`AS6.Q5\` in the \`AS - Phase-Plans\` family doc so build/policy controls stay separate from view controls on published \`Content\`, with rows defaulting to \`Live\` on load and later mixed child state deferred as an extension of policy rather than a reason to merge policy and view behavior.` 
+
+#### Scope / Constraints Honored
+- Kept this pass documentation-only.
+- Locked the separation between build/policy controls and view controls at the family-guidance level for later `02.3` execution work.
+- Preserved later mixed-child policy state as future layering instead of overcomplicating the first Phase 6 rule.
+
+#### Summary of Implementation
+- Updated `docs/Phase-Plans/07_AS - Phase-Plans.md` so:
+  - `AS6.Q5` is now marked complete
+  - the Phase 6 question checklist reflects that completion
+  - the question now has a `Locked Answer` block defining the control split
+- The locked rule now states:
+  - build/policy controls and view controls are different surfaces
+  - `generate/build on-off` should not be merged with `view on-off`
+  - published `Content` defaults to `Live` on load
+  - later mixed child policy state extends the policy surface instead of merging policy and view behavior
+
+#### Files Changed
+- `docs/Phase-Plans/07_AS - Phase-Plans.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- No application behavior changed.
+- The `AS` family planning guidance now has a locked answer for `AS6.Q5`.
+
+#### Verification Steps
+- Read back the `AS6.Q5` section and the Phase 6 question checklist in `docs/Phase-Plans/07_AS - Phase-Plans.md`.
+
+<!-- ENTRY 244 -->
+### [244] - 2026-03-16 13:07 - `DOC - Phase 11 - AS6 Q4 Real Object Rows Rule`
+<!-- ENTRY 244 -->
+HUMAN SUMMARY: `Locked \`AS6.Q4\` in the \`AS - Phase-Plans\` family doc so \`Assembly\`, \`Component\`, and \`Object\` are all real build/loading rows in Phase 6, and later \`Part\` truth is explicitly treated as an extension of \`Object\` rather than a replacement.` 
+
+#### Scope / Constraints Honored
+- Kept this pass documentation-only.
+- Locked the Phase 6 row-presentation rule in a way that avoids redoing `Object` row meaning later.
+- Preserved later `Part` growth as deeper detail instead of forcing `Object` to stay artificially weak.
+
+#### Summary of Implementation
+- Updated `docs/Phase-Plans/07_AS - Phase-Plans.md` so:
+  - `AS6.Q4` is now marked complete
+  - the Phase 6 question checklist reflects that completion
+  - the question now has a `Locked Answer` block defining row truth
+- The locked rule now states:
+  - `Assembly`, `Component`, and `Object` are all real build/loading rows in Phase 6
+  - `Object` should not stay artificially light
+  - later `Part` detail extends `Object` rather than replacing it
+
+#### Files Changed
+- `docs/Phase-Plans/07_AS - Phase-Plans.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- No application behavior changed.
+- The `AS` family planning guidance now has a locked answer for `AS6.Q4`.
+
+#### Verification Steps
+- Read back the `AS6.Q4` section and the Phase 6 question checklist in `docs/Phase-Plans/07_AS - Phase-Plans.md`.
+
+<!-- ENTRY 243 -->
+### [243] - 2026-03-16 13:04 - `DOC - Phase 11 - AS6 Q3 Source Traceability Rule`
+<!-- ENTRY 243 -->
+HUMAN SUMMARY: `Locked \`AS6.Q3\` in the \`AS - Phase-Plans\` family doc so graph/source traceability stays available on published \`Content\`, but moves into secondary actions such as \`View In Graph\`, right-click authoring jumps, and reveal/highlight behavior instead of defining the main row face.` 
+
+#### Scope / Constraints Honored
+- Kept this pass documentation-only.
+- Preserved source traceability for published `Content` without collapsing `Content` rows back into graph-looking rows.
+- Locked the rule at the family-guidance level for the later `02.3` execution spec.
+
+#### Summary of Implementation
+- Updated `docs/Phase-Plans/07_AS - Phase-Plans.md` so:
+  - `AS6.Q3` is now marked complete
+  - the Phase 6 question checklist reflects that completion
+  - the question now has a `Locked Answer` block defining where source traceability lives
+- The locked rule now states:
+  - published `Content` rows keep primary language about the published entity
+  - graph/source traceability moves into `View In Graph`, right-click/context actions, reveal/highlight behavior, and internal row metadata
+  - graph names, node ids, and slot ids should not dominate the main row face unless temporary disambiguation is needed
+
+#### Files Changed
+- `docs/Phase-Plans/07_AS - Phase-Plans.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- No application behavior changed.
+- The `AS` family planning guidance now has a locked answer for `AS6.Q3`.
+
+#### Verification Steps
+- Read back the `AS6.Q3` section and the Phase 6 question checklist in `docs/Phase-Plans/07_AS - Phase-Plans.md`.
+
+<!-- ENTRY 242 -->
+### [242] - 2026-03-16 13:02 - `DOC - Phase 11 - AS6 Q2 Graph Documents Simplicity Rule`
+<!-- ENTRY 242 -->
+HUMAN SUMMARY: `Locked \`AS6.Q2\` in the \`AS - Phase-Plans\` family doc so \`Graph Documents\` stays intentionally simple in Phase 6 as the authoring/document surface, while published build/policy behavior remains on \`Content\`; a later graph-node list under \`Graph Documents\` is now explicitly deferred.` 
+
+#### Scope / Constraints Honored
+- Kept this pass documentation-only.
+- Locked the Phase 6 split so `Graph Documents` and `Content` stay separate Browser surfaces.
+- Preserved the possibility of later graph-node listing under `Graph Documents` without pulling that into the current phase.
+
+#### Summary of Implementation
+- Updated `docs/Phase-Plans/07_AS - Phase-Plans.md` so:
+  - `AS6.Q2` is now marked complete
+  - the Phase 6 question checklist reflects that completion
+  - the question now has a `Locked Answer` block defining the surface split
+- The locked rule now states:
+  - `Graph Documents` stays simple and document-oriented in Phase 6
+  - published build/loading/policy behavior belongs on `Content`
+  - any later graph-node list under `Graph Documents` is future work, not part of this phase
+
+#### Files Changed
+- `docs/Phase-Plans/07_AS - Phase-Plans.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- No application behavior changed.
+- The `AS` family planning guidance now has a locked answer for `AS6.Q2`.
+
+#### Verification Steps
+- Read back the `AS6.Q2` section and the Phase 6 question checklist in `docs/Phase-Plans/07_AS - Phase-Plans.md`.
+
+<!-- ENTRY 241 -->
+### [241] - 2026-03-16 12:58 - `DOC - Phase 11 - AS6 Q1 Row Click Rule`
+<!-- ENTRY 241 -->
+HUMAN SUMMARY: `Locked \`AS6.Q1\` in the \`AS - Phase-Plans\` family doc so primary click on published \`Content\` rows now means rebuild that row scope, while parent-row rebuilds such as `Assembly` still only rebuild the descendant content that actually needs work.` 
+
+#### Scope / Constraints Honored
+- Kept this pass documentation-only.
+- Locked the interaction rule specifically for published `Content` rows, not all Browser rows.
+- Preserved incremental rebuild truth by stating that parent-scope rebuilds should still rebuild only what actually needs work.
+
+#### Summary of Implementation
+- Updated `docs/Phase-Plans/07_AS - Phase-Plans.md` so:
+  - `AS6.Q1` is now marked complete
+  - the Phase 6 question checklist reflects that completion
+  - the question now has a `Locked Answer` block defining row click behavior
+- The locked rule now states:
+  - primary click on published `Content` rows means rebuild that row scope
+  - `Assembly` / `Component` / `Object` are in scope
+  - parent rows still rebuild selectively rather than forcing unnecessary descendant rebuilds
+
+#### Files Changed
+- `docs/Phase-Plans/07_AS - Phase-Plans.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- No application behavior changed.
+- The `AS` family planning guidance now has a locked answer for `AS6.Q1`.
+
+#### Verification Steps
+- Read back the `AS6.Q1` section and the Phase 6 question checklist in `docs/Phase-Plans/07_AS - Phase-Plans.md`.
+
+<!-- ENTRY 240 -->
+### [240] - 2026-03-16 12:54 - `DOC - Phase 11 - AS Phase 5 Complete And Phase 6 Questions`
+<!-- ENTRY 240 -->
+HUMAN SUMMARY: `Updated the \`AS - Phase-Plans\` family doc so Phase 5 now consistently reads as completed family guidance after the shipped \`02.2\` work, and expanded Phase 6 into the new family-level question surface for \`2.3\` around content row meaning, build-state presentation, graph-versus-content separation, source-trace secondary actions, and policy-versus-view controls.` 
+
+#### Scope / Constraints Honored
+- Kept this pass documentation-only.
+- Reflected the shipped `02.2` state in the family doc instead of leaving Phase 5 framed like an open lock pass.
+- Turned Phase 6 into the next family-level question surface without pretending the `02.3` implementation-ready spec already exists.
+
+#### Summary of Implementation
+- Updated `docs/Phase-Plans/07_AS - Phase-Plans.md` so:
+  - `AS - Phase 5` now reads as `[x]`
+  - Phase 5 summary language now reflects completed family guidance rather than future placeholder wording
+  - the Phase 5 checklist is now marked complete
+- Expanded `AS - Phase 6` from a placeholder into the new family question surface.
+- Added a family-level `AS6.Q1` through `AS6.Q6` question set covering:
+  - content row click and primary interaction meaning
+  - `Graph Documents` versus `Content` surface separation
+  - source-trace secondary actions
+  - first assembly/component/object build-state presentation
+  - policy-versus-view-control separation
+  - explicit defers to later runtime/build-truth lanes
+- Updated the Phase 6 checklist so it now matches the new `2.3` planning surface instead of the older generic placeholder text.
+
+#### Files Changed
+- `docs/Phase-Plans/07_AS - Phase-Plans.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- No application behavior changed.
+- The `AS` family doc now treats:
+  - Phase 5 as completed family guidance
+  - Phase 6 as the active family question surface for `2.3`
+
+#### Verification Steps
+- Read back the Phase 5 and Phase 6 sections in `docs/Phase-Plans/07_AS - Phase-Plans.md`.
+- Confirmed the new Phase 6 questions align with the `02.3` future task doc and roadmap `[2.3]`.
+
+<!-- ENTRY 239 -->
+### [239] - 2026-03-16 12:45 - `DOC - Phase 11 - 02.3 Future Task Setup`
+<!-- ENTRY 239 -->
+HUMAN SUMMARY: `Set up the next post-\`02.2\` task-plan surface as \`02.3 - AS - Project Content Inspection And Build Control Surface\` in \`Tasks/Future/\`, moved the completed \`02.2\` spec into \`Tasks/Old/\`, and updated the doc index plus roadmap-checklist tracker so the task lifecycle now points at the right next planning doc.` 
+
+#### Scope / Constraints Honored
+- Kept this pass documentation-only.
+- Treated completed `02.2` as a finished task doc that belongs in `Tasks/Old/`.
+- Kept `02.3` in `Tasks/Future/` because it is the next planning surface, not yet an implementation-ready execution spec.
+
+#### Summary of Implementation
+- Moved `docs/Phase-Plans/Tasks/02.2 - AS - Browser-Facing Graph Output Structure.md` to `docs/Phase-Plans/Tasks/Old/`.
+- Added a local doc-history entry inside the moved `02.2` file explaining the lifecycle move.
+- Created `docs/Phase-Plans/Tasks/Future/02.3 - AS - Project Content Inspection And Build Control Surface.md`.
+- Set up the new `02.3` future task doc with:
+  - a progress checklist
+  - scope boundaries
+  - source inputs
+  - current carry-forward from `02.2`
+  - the main unresolved planning questions
+  - likely spec-rewrite buckets for the later implementation-ready promotion
+- Updated `docs/Human-Plans/roadmap/roadmapCHECKLISTS.md` so `[2.3]` now shows a dedicated plan/task doc exists.
+- Updated `docs/Doc-Index.md` so:
+  - `02.3` appears under `Tasks/Future`
+  - `02.2` appears under `Tasks/Old`
+
+#### Files Changed
+- `docs/Phase-Plans/Tasks/Old/02.2 - AS - Browser-Facing Graph Output Structure.md`
+- `docs/Phase-Plans/Tasks/Future/02.3 - AS - Project Content Inspection And Build Control Surface.md`
+- `docs/Human-Plans/roadmap/roadmapCHECKLISTS.md`
+- `docs/Doc-Index.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- No application behavior changed.
+- The docs task lifecycle now treats `02.2` as completed history and `02.3` as the next planning surface.
+
+#### Verification Steps
+- Read back the new `02.3` future task doc.
+- Read back the moved `02.2` doc under `docs/Phase-Plans/Tasks/Old/`.
+- Read back the `Tasks/Future` / `Tasks/Old` entries in `docs/Doc-Index.md`.
+- Confirmed `roadmapCHECKLISTS.md` now marks `[2.3]` plan-doc status as present.
+
+<!-- ENTRY 238 -->
+### [238] - 2026-03-16 12:42 - `AS - Phase 5 - Browser-Facing Graph Output Structure Closeout`
+<!-- ENTRY 238 -->
+HUMAN SUMMARY: `Closed out \`02.2\` by replacing the last component-shaped graph publish seam with a graph-owned content surface that already tells the singleton-versus-grouped truth, adding direct graph-seam and canonical \`OutputPreview\` contract tests, and updating the roadmap/task docs so \`[2.2]\` now reads as fully complete.` 
+
+#### Scope / Constraints Honored
+- Kept this pass inside the remaining `02.2` closeout scope:
+  - graph-owned publish seam truth
+  - canonical authored contract read path
+  - direct graph-seam proof
+- Left later row policy/build bars and `Part` truth in `[2.3]` and later lanes.
+- Worked around unrelated in-flight repo edits without reverting user changes.
+
+#### Summary of Implementation
+- Replaced the old graph-owned published-component seam in `src/app/spaghetti/outputSurface.ts` with a graph-owned published-content seam that emits:
+  - direct object rows for singleton publish groups
+  - component rows for grouped multi-object publish groups
+- Added a canonical `readNormalizedOutputPreviewParams(...)` helper in `src/app/spaghetti/system/outputPreviewNode.ts` so graph-owned publish derivation reads the authored `objects[] + slots[] + nextSlotIndex` contract directly from one normalized path.
+- Updated `src/app/store/useAppStore.ts` so the project-content lift consumes the new graph-owned content seam directly instead of applying singleton-collapse truth on top of a component-shaped graph seam.
+- Added direct graph-seam tests in `src/app/spaghetti/outputSurface.test.ts` and a canonical contract-read test in `src/app/spaghetti/system/outputPreviewNode.test.ts`.
+- Closed the remaining `02.2` status docs by marking:
+  - `docs/Phase-Plans/Tasks/02.2 - AS - Browser-Facing Graph Output Structure.md`
+  - `docs/Human-Plans/roadmap/roadmap.md`
+  - `docs/Human-Plans/roadmap/roadmapCHECKLISTS.md`
+  as fully complete for `02.2`.
+
+#### Files Changed
+- `src/app/spaghetti/outputSurface.ts`
+- `src/app/spaghetti/outputSurface.test.ts`
+- `src/app/spaghetti/system/outputPreviewNode.ts`
+- `src/app/spaghetti/system/outputPreviewNode.test.ts`
+- `src/app/store/useAppStore.ts`
+- `docs/Phase-Plans/Tasks/02.2 - AS - Browser-Facing Graph Output Structure.md`
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/Human-Plans/roadmap/roadmapCHECKLISTS.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- The graph-owned publish seam now reflects the same structure truth as the Browser/project-content surface instead of always shaping publication as a component.
+- `02.2` is now complete at the roadmap/task level; later content-row build/control work remains in `[2.3]`.
+
+#### Verification Steps
+- Ran:
+  - `cmd /c npx vitest run src/app/spaghetti/outputSurface.test.ts src/app/spaghetti/system/outputPreviewNode.test.ts src/app/store/useAppStore.test.ts src/app/panels/selectBrowserTreeRows.test.ts src/app/panels/BrowserPanel.test.tsx src/app/panels/browserRowActions.test.ts src/app/spaghetti/store/useSpaghettiStore.test.ts src/app/spaghetti/system/ensureOutputPreviewSlots.test.ts src/app/spaghetti/system/ensureOutputPreviewSingleton.test.ts`
+- Verified:
+  - `9` test files passed
+  - `115` tests passed
+- Read back the updated `02.2` task doc, roadmap `[2.2]`, and roadmap-checklist tracker.
+
+<!-- ENTRY 237 -->
+### [237] - 2026-03-16 12:37 - `DOC - Phase 11 - 02.2 Task Closeout Checklist`
+<!-- ENTRY 237 -->
+HUMAN SUMMARY: `Added the remaining \`02.2\` closeout tasks directly to the active task/spec doc so the final work needed to move roadmap \`[2.2]\` from \`[~]\` to \`[x]\` now lives in the same execution surface as the shipped first implementation cut.` 
+
+#### Scope / Constraints Honored
+- Kept this pass documentation-only.
+- Mirrored the existing roadmap closeout work into the active `02.2` task/spec doc instead of inventing a second task surface.
+- Preserved the current implementation state as “first cut shipped, closeout remaining.”
+
+#### Summary of Implementation
+- Updated `docs/Phase-Plans/Tasks/02.2 - AS - Browser-Facing Graph Output Structure.md` to add:
+  - a final unfinished `Done Check` item for the `02.2` closeout pass
+  - a `Doc History` entry explaining the new closeout checklist
+  - a dedicated `Closeout CheckList` section under the implementation/acceptance area
+- The new closeout list now explicitly tracks:
+  - graph-owned publish seam cleanup
+  - authored `OutputPreview` contract tightening
+  - end-to-end acceptance verification
+  - direct graph-seam test coverage
+  - the final roadmap `[2.2]` flip from `[~]` to `[x]`
+
+#### Files Changed
+- `docs/Phase-Plans/Tasks/02.2 - AS - Browser-Facing Graph Output Structure.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- No application behavior changed.
+- The active `02.2` task/spec now contains the remaining closeout work instead of leaving it only in the roadmap.
+
+#### Verification Steps
+- Read back the `Done Check`, `Doc History`, and `Closeout CheckList` sections in `docs/Phase-Plans/Tasks/02.2 - AS - Browser-Facing Graph Output Structure.md`.
+- Confirmed the new closeout items match the roadmap `[2.2]` closeout checklist.
+
+<!-- ENTRY 236 -->
+### [236] - 2026-03-16 12:36 - `DOC - Phase 11 - Roadmap 2.2 Closeout Checklist`
+<!-- ENTRY 236 -->
+HUMAN SUMMARY: `Updated roadmap \`[2.2]\` to show that the first Browser-facing graph output structure cut is shipped but not fully closed, and added an explicit closeout checklist in both the roadmap and roadmap-checklist tracker so the remaining work to reach \`[x]\` is visible.` 
+
+#### Scope / Constraints Honored
+- Kept this pass documentation-only.
+- Reflected the current implementation state without overstating `02.2` as fully complete.
+- Added the remaining-closeout work as explicit checklist items instead of leaving it implied in chat context.
+
+#### Summary of Implementation
+- Updated `docs/Human-Plans/roadmap/roadmap.md` so `[2.2]` now reads as `[~]` instead of `[ ]`.
+- Added a short current-state summary under `[2.2]` explaining that the first ship cut is done and one closeout pass remains.
+- Added a sub-phase split under `[2.2]`:
+  - `[2.2A] [x]` first shipped Browser-facing content structure cut
+  - `[2.2B] [ ]` graph-owned publish seam cleanup and final closeout proof
+- Marked the shipped `02.2` checklist items complete in the roadmap and added a dedicated `Closeout CheckList For [2.2] -> [x]`.
+- Updated `docs/Human-Plans/roadmap/roadmapCHECKLISTS.md` so `[2.2]` now shows:
+  - decision coverage present
+  - dedicated task/spec doc present
+  - the remaining closeout tasks needed before `[2.2]` can flip to `[x]`
+
+#### Files Changed
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/Human-Plans/roadmap/roadmapCHECKLISTS.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- No application behavior changed.
+- The roadmap now explicitly distinguishes:
+  - shipped `02.2` structure work
+  - the remaining closeout work before full completion
+
+#### Verification Steps
+- Read back roadmap `[2.2]` in `docs/Human-Plans/roadmap/roadmap.md`.
+- Read back the `[2.2]` bucket in `docs/Human-Plans/roadmap/roadmapCHECKLISTS.md`.
+- Confirmed the checklist language matches the current `02.2` implementation state and remaining closeout seam.
+
+<!-- ENTRY 235 -->
+### [235] - 2026-03-16 12:31 - `AS - Phase 5 - Browser-Facing Graph Output Structure`
+<!-- ENTRY 235 -->
+HUMAN SUMMARY: `Implemented the first Phase 5 \`02.2\` content-structure cut so singleton published outputs and receive links now lift as direct root objects, grouped publish sets keep real component rows, and the Browser tree reads from stable project-owned content with the new source-trace/status fields carried through.` 
+
+#### Scope / Constraints Honored
+- Kept this implementation focused on the `02.2` structure contract:
+  - singleton `Assembly -> Object`
+  - grouped `Assembly -> Component -> Object`
+- Left later build-surface behavior, row policy, revisions, and `Part` truth out of scope.
+- Worked within existing in-flight Browser/theme/test edits without reverting unrelated user changes.
+
+#### Summary of Implementation
+- Updated `src/app/store/useAppStore.ts` so project content now lifts:
+  - singleton published outputs as direct root object rows
+  - grouped published outputs as real component rows with child objects
+  - receive links as direct root object rows instead of synthetic receive-link components
+- Preserved the locked Phase 5 identity rules by:
+  - keeping `objectId` as the stable object identity
+  - making `componentId` conditional for grouped publish sets only
+  - widening object records/browser rows for root-level objects and receive-link objects
+- Carried forward the Phase 5 source-trace/read-model fields through Browser content rows, including:
+  - `ownerGraphDocumentId`
+  - `parentComponentId`
+  - `objectSourceKind`
+  - `slotId`
+  - passive readiness/unresolved status labels
+- Updated `src/app/panels/selectBrowserTreeRows.ts` so the Browser content tree can render mixed root ordering of:
+  - grouped components
+  - direct singleton published objects
+  - direct receive-link objects
+- Expanded the selector/store/panel tests to cover:
+  - singleton root objects
+  - direct receive-link objects
+  - preserved Browser nesting/tree guides
+  - the new object/browser row shape
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/panels/selectBrowserTreeRows.ts`
+- `src/app/store/useAppStore.test.ts`
+- `src/app/panels/selectBrowserTreeRows.test.ts`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `docs/Phase-Plans/Tasks/02.2 - AS - Browser-Facing Graph Output Structure.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- Browser `Content` no longer forces every published output or receive link through a component row.
+- Root-level `Content` can now contain either:
+  - a direct object row
+  - a grouped component row
+- Receive-link content now appears as a direct object row under the root assembly.
+
+#### Verification Steps
+- Ran:
+  - `cmd /c npx vitest run src/app/store/useAppStore.test.ts src/app/panels/selectBrowserTreeRows.test.ts src/app/panels/BrowserPanel.test.tsx src/app/panels/browserRowActions.test.ts src/app/spaghetti/store/useSpaghettiStore.test.ts src/app/spaghetti/system/outputPreviewNode.test.ts src/app/spaghetti/system/ensureOutputPreviewSlots.test.ts src/app/spaghetti/system/ensureOutputPreviewSingleton.test.ts`
+- Verified:
+  - `8` test files passed
+  - `111` tests passed
+
+<!-- ENTRY 234 -->
+### [234] - 2026-03-16 12:17 - `DOC - Phase 11 - AS Phase 5 Execution Spec Promotion`
+<!-- ENTRY 234 -->
+HUMAN SUMMARY: `Promoted \`02.2 - AS - Browser-Facing Graph Output Structure\` into the active task/spec area, rewrote it into an implementation-ready execution spec, and aligned the \`AS - Phase 5\` family doc plus roadmap \`[2.2]\` wording to the locked singleton-collapse and conditional-component rules.` 
+
+#### Scope / Constraints Honored
+- Promoted the existing `02.2` planning doc into the canonical active task location instead of creating a second competing spec.
+- Used the current Phase 5 defaults as final locked guidance for the spec, as planned.
+- Kept this pass documentation-only; no application code changed.
+
+#### Summary of Implementation
+- Moved `docs/Phase-Plans/Tasks/Future/02.2 - AS - Browser-Facing Graph Output Structure.md` into `docs/Phase-Plans/Tasks/`.
+- Rewrote `02.2` into an execution spec with:
+  - explicit `Spec Target`
+  - `Problem Statement`
+  - locked publish contract, hierarchy, id, lift, and source-trace rules
+  - `Implementation Order`
+  - `Deferred / Out Of Scope`
+  - `Acceptance / Proof Bar`
+- Updated `docs/Phase-Plans/07_AS - Phase-Plans.md` so the Phase 5 question surface now reads as locked family guidance rather than a provisional suggested-answer pass.
+- Updated `docs/Human-Plans/roadmap/roadmap.md` `[2.2]` so it now reflects:
+  - singleton `Assembly -> Object`
+  - multi-object `Assembly -> Component -> Object`
+  - conditional `componentId`
+  - no mandatory one-component-per-preview simplification
+- Updated `docs/Doc-Index.md` so the promoted `02.2` task now appears under the live `Tasks` area instead of `Tasks/Future`.
+
+#### Files Changed
+- `docs/Phase-Plans/Tasks/02.2 - AS - Browser-Facing Graph Output Structure.md`
+- `docs/Phase-Plans/07_AS - Phase-Plans.md`
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/Doc-Index.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- Planning behavior changed only at the documentation level:
+  - `02.2` is now the active implementation-ready spec for `AS - Phase 5`.
+
+#### Verification Steps
+- Read back the promoted `02.2` execution spec in `docs/Phase-Plans/Tasks/`.
+- Read back the aligned `AS - Phase 5` question/answer section in `docs/Phase-Plans/07_AS - Phase-Plans.md`.
+- Read back roadmap `[2.2]` in `docs/Human-Plans/roadmap/roadmap.md`.
+- Read back the `Tasks` and `Tasks/Future` listing in `docs/Doc-Index.md`.
+
+<!-- ENTRY 233 -->
+### [233] - 2026-03-16 12:05 - `DOC - Phase 11 - AS Phase 5 Future Task Doc Setup`
+<!-- ENTRY 233 -->
+HUMAN SUMMARY: `Created the dedicated future task doc for \`[2.2] AS - Browser-Facing Graph Output Structure\` and refreshed \`docs/Doc-Index.md\` so the phase-task lifecycle paths and current \`Tasks/Future\` listing now point at the real live task-doc set.` 
+
+#### Scope / Constraints Honored
+- Used the existing phase-task workflow in `docs/Phase-Plans/Tasks/Future/` instead of inventing a parallel planning location.
+- Kept the new file as a future planning/task surface, not a premature implementation-ready execution spec.
+- Left this as docs/planning work only; no application code changed.
+
+#### Summary of Implementation
+- Created `docs/Phase-Plans/Tasks/Future/02.2 - AS - Browser-Facing Graph Output Structure.md`.
+- Set up the new task doc with:
+  - a progress checklist
+  - purpose and scope boundaries
+  - source inputs
+  - current locked direction from `AS - Phase 5`
+  - seam findings from the current code
+  - likely files and next-spec rewrite buckets
+- Updated `docs/Doc-Index.md` so:
+  - the phase-plan lifecycle paths use the current `Tasks/Future`, `Tasks`, and `Tasks/Old` folders
+  - the foldable `Tasks/Future` listing reflects the current task-doc set and includes the new `02.2` file
+
+#### Files Changed
+- `docs/Phase-Plans/Tasks/Future/02.2 - AS - Browser-Facing Graph Output Structure.md`
+- `docs/Doc-Index.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- Planning behavior changed only at the documentation level:
+  - `AS - Phase 5` now has a dedicated future task-doc surface ready for the next spec rewrite pass.
+
+#### Verification Steps
+- Read back the new `02.2 - AS - Browser-Facing Graph Output Structure.md` task doc.
+- Read back the updated `Phase-Plan Lifecycle Rule` and `Tasks/Future` section in `docs/Doc-Index.md`.
+- Confirmed the new changelog entry was added at the top of the live entry list.
+
+<!-- ENTRY 232 -->
+### [232] - 2026-03-16 12:03 - `DOC - Phase 11 - AS Phase 5 Remaining Questions With Suggested Answers`
+<!-- ENTRY 232 -->
+HUMAN SUMMARY: `Updated \`AS - Phase 5\` so every remaining open sub-question now has an explicit suggested answer, and synced those recommendations into the main \`AS5.Q4\` through \`AS5.Q6\` answer blocks.` 
+
+#### Scope / Constraints Honored
+- Kept the refinement inside the canonical `AS` family phase-plan file instead of starting a parallel note.
+- Preserved the `AS5.Q1` through `AS5.Q6` structure while making the remaining unresolved items easier to resolve.
+- Left this as docs/planning work only; no application code changed.
+
+#### Summary of Implementation
+- Added a new local `Doc History` entry to `docs/Phase-Plans/07_AS - Phase-Plans.md`.
+- Renamed the open-items section to `Remaining Decision Questions With Suggested Answers`.
+- Added explicit recommended answers for:
+  - empty authored `objects[]` entries
+  - multiple separate singleton publish groups in one graph document
+  - accepting `slotId`-based highlight identity in Phase 5
+  - receive-link content following the singleton-collapse rule on the visible Browser surface
+- Synced those same recommendations into the `Suggested Answer` blocks for `AS5.Q4`, `AS5.Q5`, and `AS5.Q6`.
+
+#### Files Changed
+- `docs/Phase-Plans/07_AS - Phase-Plans.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- Planning behavior changed only at the documentation level:
+  - every remaining Phase 5 sub-decision now has a concrete recommendation attached to it.
+
+#### Verification Steps
+- Read back the `Remaining Decision Questions With Suggested Answers` block in `docs/Phase-Plans/07_AS - Phase-Plans.md`.
+- Read back the updated `AS5.Q4`, `AS5.Q5`, and `AS5.Q6` suggested answer blocks in `docs/Phase-Plans/07_AS - Phase-Plans.md`.
+- Confirmed the new changelog entry was added at the top of the live entry list.
+
+<!-- ENTRY 231 -->
+### [231] - 2026-03-16 11:58 - `DOC - Phase 11 - AS Phase 5 Singleton Component Label Rule`
+<!-- ENTRY 231 -->
+HUMAN SUMMARY: `Locked the \`AS - Phase 5\` rule that \`componentLabel\` is ignored for singleton publish groups and only becomes meaningful when a real multi-object component grouping exists.` 
+
+#### Scope / Constraints Honored
+- Kept the decision inside the canonical `AS` family phase-plan file instead of scattering it across ad hoc notes.
+- Updated the existing Phase 5 answer surface and remaining-question list rather than creating a competing rule section elsewhere.
+- Left this as docs/planning work only; no application code changed.
+
+#### Summary of Implementation
+- Added a new local `Doc History` entry to `docs/Phase-Plans/07_AS - Phase-Plans.md`.
+- Updated the `Locked Decisions So Far` block so singleton groups now explicitly ignore `componentLabel`.
+- Removed the singleton `componentLabel` item from the `Remaining Decision Questions` block because it is now settled.
+- Updated the `AS5.Q1` suggested answer so the singleton-versus-multi-object meaning of `componentLabel` is recorded in the main contract guidance.
+
+#### Files Changed
+- `docs/Phase-Plans/07_AS - Phase-Plans.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- Planning behavior changed only at the documentation level:
+  - singleton publish groups now have no latent component-label meaning in the suggested Phase 5 model.
+
+#### Verification Steps
+- Read back the updated `Locked Decisions So Far`, `Remaining Decision Questions`, and `AS5.Q1` sections in `docs/Phase-Plans/07_AS - Phase-Plans.md`.
+- Confirmed the new changelog entry was added at the top of the live entry list.
+
+<!-- ENTRY 230 -->
+### [230] - 2026-03-16 11:56 - `DOC - Phase 11 - AS Phase 5 Object Identity Promotion Rule`
+<!-- ENTRY 230 -->
+HUMAN SUMMARY: `Locked the \`AS - Phase 5\` promotion rule for singleton publish groups so an original object keeps its existing \`objectId\` if the group later becomes multi-object, while the new parent component gets its own new grouping identity.` 
+
+#### Scope / Constraints Honored
+- Kept the decision inside the canonical `AS` family phase-plan file rather than moving it into a separate scratch note.
+- Updated the existing `AS5.Q1` and `AS5.Q2` answer surface instead of creating a competing rule block elsewhere.
+- Left this as docs/planning work only; no application code changed.
+
+#### Summary of Implementation
+- Added a new local `Doc History` entry to `docs/Phase-Plans/07_AS - Phase-Plans.md`.
+- Added the singleton-to-multi-object promotion rule to the `Locked Decisions So Far` block.
+- Removed that item from the `Remaining Decision Questions` block because it is now settled.
+- Updated the `Suggested Answer` blocks for `AS5.Q1` and `AS5.Q2` so the preserved `objectId` rule is written where the implementation guidance lives.
+
+#### Files Changed
+- `docs/Phase-Plans/07_AS - Phase-Plans.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- Planning behavior changed only at the documentation level:
+  - singleton publish groups now have an explicit non-churning object-identity promotion rule for later expansion into multi-object groups.
+
+#### Verification Steps
+- Read back the updated `Locked Decisions So Far`, `Remaining Decision Questions`, `AS5.Q1`, and `AS5.Q2` sections in `docs/Phase-Plans/07_AS - Phase-Plans.md`.
+- Confirmed the new changelog entry was added at the top of the live entry list.
+
+<!-- ENTRY 229 -->
+### [229] - 2026-03-16 11:52 - `DOC - Phase 11 - AS Phase 5 Locked Decisions And Remaining Questions`
+<!-- ENTRY 229 -->
+HUMAN SUMMARY: `Added a compact locked-decisions block and a remaining-questions block to \`AS - Phase 5\`, recording the settled singleton-object rule and making the last unresolved implementation-readiness decisions explicit as sub-decisions under \`AS5.Q1\` through \`AS5.Q6\`.` 
+
+#### Scope / Constraints Honored
+- Kept the additions inside the canonical `AS` family phase-plan file instead of starting a separate scratch doc.
+- Clarified the existing Phase 5 question surface without replacing the `AS5.Q1` through `AS5.Q6` structure.
+- Left this as docs/planning work only; no application code changed.
+
+#### Summary of Implementation
+- Added a new local `Doc History` entry to `docs/Phase-Plans/07_AS - Phase-Plans.md`.
+- Added a `Locked Decisions So Far` block that records:
+  - singleton publish groups are truly object-native
+  - multi-object groups create real component hierarchy only when needed
+  - `objects[]` is the first-pass authored publish seam
+  - `Part` remains deferred
+- Added a `Remaining Decision Questions` block that makes the last unresolved Phase 5 decisions explicit and maps them back to `AS5.Q1` through `AS5.Q6`.
+
+#### Files Changed
+- `docs/Phase-Plans/07_AS - Phase-Plans.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- Planning behavior changed only at the documentation level:
+  - the last open Phase 5 decisions are now written down as explicit sub-decisions instead of remaining implicit in chat context.
+
+#### Verification Steps
+- Read back the new `Locked Decisions So Far` and `Remaining Decision Questions` blocks in `docs/Phase-Plans/07_AS - Phase-Plans.md`.
+- Confirmed the new changelog entry was added at the top of the live entry list.
+
+<!-- ENTRY 228 -->
+### [228] - 2026-03-16 11:48 - `DOC - Phase 11 - AS Phase 5 Singleton Object Hierarchy Refinement`
+<!-- ENTRY 228 -->
+HUMAN SUMMARY: `Refined the \`AS - Phase 5\` suggested answers so single-object \`OutputPreview\` groups no longer require a visible parent component row, while multi-object publish groups still lift through a component when Browser hierarchy is actually needed.` 
+
+#### Scope / Constraints Honored
+- Kept the refinement inside the canonical `AS` family phase-plan file instead of introducing a parallel note.
+- Adjusted only the suggested Phase 5 structure answers; no application code changed.
+- Preserved the earlier answer blocks while tightening them to reflect the singleton-object rule.
+
+#### Summary of Implementation
+- Added a new local `Doc History` entry to `docs/Phase-Plans/07_AS - Phase-Plans.md`.
+- Updated `AS5.Q1` so `componentLabel` now reads as conditional metadata rather than a mandatory visible parent for every publish group.
+- Updated `AS5.Q2` so the suggested Browser hierarchy is now:
+  - `Assembly -> Object` for single-object publish groups
+  - `Assembly -> Component -> Object` for multi-object publish groups
+- Updated `AS5.Q3` and `AS5.Q4` so `componentId` and component lift are treated as conditional structure only when a real grouping row is needed.
+
+#### Files Changed
+- `docs/Phase-Plans/07_AS - Phase-Plans.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- Planning behavior changed only at the documentation level:
+  - the suggested Phase 5 Browser content model now collapses redundant singleton component rows.
+
+#### Verification Steps
+- Read back the updated `AS5.Q1` through `AS5.Q4` suggested answers in `docs/Phase-Plans/07_AS - Phase-Plans.md`.
+- Confirmed the new changelog entry was added at the top of the live entry list.
+
+<!-- ENTRY 227 -->
+### [227] - 2026-03-16 11:45 - `DOC - Phase 11 - AS Phase 5 Suggested Answers For Q1 Through Q6`
+<!-- ENTRY 227 -->
+HUMAN SUMMARY: `Added concrete suggested answers to \`AS5.Q1\` through \`AS5.Q6\` in \`docs/Phase-Plans/07_AS - Phase-Plans.md\`, locking the current code-backed Phase 5 direction around the first-pass publish contract, \`Assembly -> Component -> Object\` hierarchy, stable ids, lift shape, source-trace carry-forward, and explicit defers to later build/runtime work.` 
+
+#### Scope / Constraints Honored
+- Kept the work inside the canonical `AS` family phase-plan file instead of creating a separate answer doc.
+- Treated the additions as suggested answers rather than prematurely marking the questions as permanently settled.
+- Left the change in documentation only; no application code changed.
+
+#### Summary of Implementation
+- Added a new local `Doc History` entry to `docs/Phase-Plans/07_AS - Phase-Plans.md`.
+- Expanded each Phase 5 question section with a `Suggested Answer` block.
+- Locked the suggested Phase 5 authored publish contract around `componentLabel + objects[] + slots[] + nextSlotIndex`.
+- Locked the suggested first-pass Browser `Content` hierarchy around `Assembly -> Component -> Object` while keeping `Part` as an explicit later extension.
+- Documented the suggested stable id families, graph-to-project lift path, required source-trace fields, and explicit phase defers.
+
+#### Files Changed
+- `docs/Phase-Plans/07_AS - Phase-Plans.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- Planning behavior changed only at the documentation level:
+  - `AS - Phase 5` now contains concrete proposed answers for the implementation-readiness questions instead of only the question prompts.
+
+#### Verification Steps
+- Read back the updated `AS5.Q1` through `AS5.Q6` sections in `docs/Phase-Plans/07_AS - Phase-Plans.md`.
+- Confirmed the new changelog entry was added at the top of the live entry list.
+
+<!-- ENTRY 226 -->
+### [226] - 2026-03-16 11:37 - `DOC - Phase 11 - AS Phase 5 Implementation-Readiness Question Surface`
+<!-- ENTRY 226 -->
+HUMAN SUMMARY: `Expanded \`docs/Phase-Plans/07_AS - Phase-Plans.md\` so \`AS - Phase 5\` is no longer a thin placeholder and now acts as the active family question surface for getting Browser-facing graph output structure implementation-ready.` 
+
+#### Scope / Constraints Honored
+- Kept the work inside the canonical `AS` family phase-plan file instead of creating a competing planning doc.
+- Followed the existing family phase-plan format and kept the phase focused on `AS - Phase 5` structure questions rather than pulling in `AS - Phase 6` build-surface work.
+- Left this as docs/planning work only; no application code changed.
+
+#### Summary of Implementation
+- Added a new local `Doc History` entry to `docs/Phase-Plans/07_AS - Phase-Plans.md`.
+- Reframed `AS - Phase 5` from a generic future placeholder into the active planning surface for implementation readiness.
+- Added a Phase 5 question checklist covering:
+  - authored publish contract shape above `OutputPreview`
+  - first-pass `Assembly -> Component -> Object` hierarchy
+  - stable published ids and ownership split
+  - graph-to-project lift shape
+  - source mapping / highlight carry-forward
+  - explicit scope defers to later phases
+- Updated the top Phase 5 checklist so it now reflects the concrete questions that must be answered before a dedicated task doc is written.
+
+#### Files Changed
+- `docs/Phase-Plans/07_AS - Phase-Plans.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- Planning behavior changed only at the documentation level:
+  - `AS - Phase 5` now has a concrete implementation-readiness question surface instead of only a placeholder summary.
+
+#### Verification Steps
+- Read back the updated `AS - Phase 5` heading, summary, planning notes, question checklist, and expanded checklist in `docs/Phase-Plans/07_AS - Phase-Plans.md`.
+
+<!-- ENTRY 225 -->
+### [225] - 2026-03-16 11:32 - `DOC - Phase 11 - Roadmap Lane Realignment To Vision`
+<!-- ENTRY 225 -->
+HUMAN SUMMARY: `Realigned the live roadmap and roadmap checklist to the newer vision split by renaming the foundation lane around graph-native ownership, re-scoping Lane \`[2]\` around \`Graph Documents\` versus \`Content\`, adding the missing authoring-hardening lane, and moving the later build/control/workspace placeholder systems into Lane \`[4]\`.` 
+
+#### Scope / Constraints Honored
+- Updated the execution roadmap against the current vision roadmap instead of introducing a separate parallel planning surface.
+- Preserved shipped work history and existing subphase progress where it still fit the newer lane boundaries.
+- Kept this as docs/planning restructuring only; no source-code behavior changed.
+
+#### Summary of Implementation
+- Updated `docs/Human-Plans/roadmap/roadmap.md` so Lane `[1]` now reads as graph-native foundation/ownership work instead of single-graph cleanup.
+- Re-scoped Lane `[2]` around Browser/project content structure, with `[2.2]` and `[2.3]` now explicitly grounded in the `Graph Documents` versus `Content` split and the staged `Assembly -> Component -> Object` build-surface model.
+- Added a new Lane `[3]` for node/wire/driver/part/feature authoring hardening so the execution roadmap now has a clear home for the vision lane that was previously missing.
+- Renumbered the later control/build/workspace placeholder lane to Lane `[4]` and refreshed its build/runtime language so the graph-native worker-contract and truthful build-chunk work now read as the post-workspace follow-up.
+- Synced `docs/Human-Plans/roadmap/roadmapCHECKLISTS.md` so the tracker headings, lane items, and totals follow the same lane map as the updated roadmap.
+
+#### Files Changed
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/Human-Plans/roadmap/roadmapCHECKLISTS.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- Planning behavior changed only at the documentation level:
+  - Lane `[2]` is now the explicit home for the `Content` publish/build-surface work.
+  - Lane `[3]` is now the explicit home for post-workspace authoring hardening.
+  - Lane `[4]` is now the explicit home for later build/runtime/control/workspace replacement work.
+
+#### Verification Steps
+- Read back the updated lane handoff, Lane `[2]` content phases, new Lane `[3]`, and renumbered Lane `[4]` sections in `docs/Human-Plans/roadmap/roadmap.md`.
+- Read back the corresponding bucket headings and totals in `docs/Human-Plans/roadmap/roadmapCHECKLISTS.md`.
+
 <!-- ENTRY 224 -->
 ### [224] - 2026-03-16 00:33 - `DOC - Phase 11 - Condensed Now Next Later Planning Surface`
 <!-- ENTRY 224 -->

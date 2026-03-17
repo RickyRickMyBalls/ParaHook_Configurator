@@ -1,4 +1,5 @@
 import type { ViewSettings } from '../shared/viewSettingsTypes'
+import type { ReferenceTransformOverride } from './references/referenceManifest'
 
 export type CameraPreset = 'iso' | 'top' | 'front' | 'left' | 'right'
 export type GizmoMode = 'translate' | 'rotate' | 'scale'
@@ -9,6 +10,7 @@ export interface ViewerApi {
   setCameraPreset: (preset: CameraPreset) => void
   frameAll: () => void
   frameSelected: (partId: string | null) => void
+  frameReference: (referenceId: string) => void
   snapCameraToDirection: (dir: SnapDirection) => void
   beginTemporaryOrbitDrag: (startClientX: number, startClientY: number) => void
   updateTemporaryOrbitDrag: (clientX: number, clientY: number) => void
@@ -16,6 +18,15 @@ export interface ViewerApi {
   applyViewSettings: (settings: ViewSettings) => void
   setGizmoEnabled: (enabled: boolean) => void
   setGizmoMode: (mode: GizmoMode) => void
+  completeReferenceTransformDrag: () => void
+  cancelReferenceTransformDrag: () => void
+  clearReferenceTransformHandle: () => void
+  activateTranslateCenterHandle: () => void
+  activateTranslateHandle: (axis: 'X' | 'Y' | 'Z' | 'XYZ') => void
+  activateRotateCenterHandle: () => void
+  activateRotateHandle: (axis: 'X' | 'Y' | 'Z') => void
+  activateScaleCenterHandle: () => void
+  activateScaleHandle: (axis: 'X' | 'Y' | 'Z') => void
   setGizmoSpace: (space: GizmoSpace) => void
   setGizmoSnap: (opts: {
     translateMm?: number
@@ -23,6 +34,22 @@ export interface ViewerApi {
     scale?: number
   }) => void
   setSelectedPart: (partId: string | null) => void
+  setReferenceTransformSession: (session: {
+    referenceId: string
+    mode: GizmoMode
+    space: GizmoSpace
+  } | null) => void
+  setReferenceCameraLock: (referenceId: string | null) => void
+  setReferenceTransformOverride: (
+    referenceId: string,
+    transformOverride: ReferenceTransformOverride | null,
+  ) => void
+  setOnReferenceTransformChange: (
+    handler: ((referenceId: string, transform: ReferenceTransformOverride) => void) | null,
+  ) => void
+  setOnReferenceTransformExit: (handler: (() => void) | null) => void
+  setOnReferenceTransformModeChange: ((handler: ((mode: GizmoMode) => void) | null) => void)
+  setOnReferenceTransformSpaceChange: ((handler: ((space: GizmoSpace) => void) | null) => void)
   setAxisOverlayEnabled: (enabled: boolean) => void
   setAxisOverlayCanvas: (canvas: HTMLCanvasElement | null) => void
 }

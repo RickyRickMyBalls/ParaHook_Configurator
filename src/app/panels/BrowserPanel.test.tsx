@@ -3,9 +3,11 @@
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { ReferenceWorkspaceBrowserTreeVm } from '../store/useAppStore'
 
 let currentSpaghettiState: any
 let currentAppState: any
+let importReferenceFileFromDiskMock: ReturnType<typeof vi.fn>
 
 vi.mock('../spaghetti/store/useSpaghettiStore', () => ({
   useSpaghettiStore: (selector: (state: any) => unknown) => selector(currentSpaghettiState),
@@ -18,6 +20,17 @@ vi.mock('../spaghetti/store/useSpaghettiStore', () => ({
 vi.mock('../store/useAppStore', () => ({
   useAppStore: (selector: (state: any) => unknown) => selector(currentAppState),
   selectCurrentProjectContentBrowserRows: () => currentAppState.projectContentRows,
+  selectReferenceWorkspaceBrowserTree: () => currentAppState.referenceWorkspaceTree,
+}))
+
+vi.mock('../references/importReferenceFile', () => ({
+  REFERENCE_IMPORT_LABEL_BY_FILE_TYPE: {
+    step: 'Import .step',
+    stl: 'Import .stl',
+    obj: 'Import .obj',
+    glb: 'Import .glb',
+  },
+  importReferenceFileFromDisk: (...args: unknown[]) => importReferenceFileFromDiskMock(...args),
 }))
 
 import { BrowserPanel } from './BrowserPanel'
@@ -79,6 +92,102 @@ const renderBrowserPanel = async (props?: Record<string, unknown>) => {
   return { container, root }
 }
 
+const emptyReferenceWorkspaceTree: ReferenceWorkspaceBrowserTreeVm = {
+  rowId: 'reference-root',
+  label: 'References',
+  isExpanded: true,
+  categories: [
+    {
+      rowId: 'reference-category-row:footpads',
+      categoryId: 'footpads',
+      label: 'Footpads',
+      isExpanded: true,
+      itemCount: 0,
+      visibleItemCount: 0,
+      hasLoadingItem: false,
+      hasErrorItem: false,
+      emptyLabel: 'No loadable references yet.',
+      items: [],
+    },
+    {
+      rowId: 'reference-category-row:shoes',
+      categoryId: 'shoes',
+      label: 'Shoes',
+      isExpanded: true,
+      itemCount: 0,
+      visibleItemCount: 0,
+      hasLoadingItem: false,
+      hasErrorItem: false,
+      emptyLabel: 'No loadable references yet.',
+      items: [],
+    },
+    {
+      rowId: 'reference-category-row:premade-foothooks',
+      categoryId: 'premade-foothooks',
+      label: 'Premade Foothooks',
+      isExpanded: true,
+      itemCount: 0,
+      visibleItemCount: 0,
+      hasLoadingItem: false,
+      hasErrorItem: false,
+      emptyLabel: 'No loadable references yet.',
+      items: [],
+    },
+    {
+      rowId: 'reference-category-row:user-references',
+      categoryId: 'user-references',
+      label: 'User References',
+      isExpanded: true,
+      itemCount: 0,
+      visibleItemCount: 0,
+      hasLoadingItem: false,
+      hasErrorItem: false,
+      emptyLabel: 'No imported references yet.',
+      items: [],
+    },
+  ],
+}
+
+const referenceWorkspaceStateFromTree = (tree: typeof emptyReferenceWorkspaceTree) => ({
+  referencesExpanded: tree.isExpanded,
+  categoryExpandedById: Object.fromEntries(
+    tree.categories.map((category) => [category.categoryId, category.isExpanded]),
+  ),
+  visibilityById: Object.fromEntries(
+    tree.categories.flatMap((category) =>
+      category.items.map((item) => [item.referenceId, item.isVisible] as const),
+    ),
+  ),
+  loadStateById: Object.fromEntries(
+    tree.categories.flatMap((category) =>
+      category.items.map((item) => [item.referenceId, item.loadState] as const),
+    ),
+  ),
+  errorById: Object.fromEntries(
+    tree.categories.flatMap((category) =>
+      category.items.map((item) => [item.referenceId, item.errorMessage] as const),
+    ),
+  ),
+  importedReferencesById: Object.fromEntries(
+    tree.categories
+      .flatMap((category) => category.items)
+      .filter((item) => item.sourceKind === 'imported')
+      .map((item) => [
+        item.referenceId,
+        {
+          referenceId: item.referenceId,
+          label: item.label,
+          fileType: item.fileType,
+          assetPath: item.assetPath,
+        },
+      ]),
+  ),
+  importedReferenceOrder: tree.categories
+    .flatMap((category) => category.items)
+    .filter((item) => item.sourceKind === 'imported')
+    .map((item) => item.referenceId),
+})
+
 const click = async (element: Element) => {
   await act(async () => {
     element.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
@@ -119,6 +228,7 @@ describe('BrowserPanel', () => {
   let container: HTMLDivElement | null = null
 
   beforeEach(() => {
+    importReferenceFileFromDiskMock = vi.fn()
     currentSpaghettiState = {
       graphDocumentsById: {
         'graph-document-1': graphDocument,
@@ -150,6 +260,7 @@ describe('BrowserPanel', () => {
       setEditorViewportPosition: vi.fn(),
       setViewerTargetGraphDocumentId: vi.fn(),
       setSelectedNodeId: vi.fn(),
+      requestEditorViewportNodeFit: vi.fn(),
       sharedViewerComposition: null,
       sharedViewerCompositionGraphDocumentIds: [],
     }
@@ -158,9 +269,21 @@ describe('BrowserPanel', () => {
       currentProject: null,
       projectContent: null,
       projectContentRows: [],
+      referenceWorkspaceTree: emptyReferenceWorkspaceTree,
+      referenceWorkspace: referenceWorkspaceStateFromTree(emptyReferenceWorkspaceTree),
       buildPolicy: 'live',
+      requestGraphDocumentBuild: vi.fn(),
       selectPart: vi.fn(),
       setInputMode: vi.fn(),
+      toggleReferenceWorkspaceExpanded: vi.fn(),
+      toggleReferenceCategoryExpanded: vi.fn(),
+      toggleReferenceItemVisibility: vi.fn(),
+      setReferenceItemVisibility: vi.fn(),
+      toggleReferenceCategoryVisibility: vi.fn(),
+      addImportedReference: vi.fn(() => 'reference-import:1'),
+      retryReferenceItemLoad: vi.fn(),
+      removeImportedReference: vi.fn(),
+      beginReferenceTransform: vi.fn(),
     }
   })
 
@@ -248,15 +371,55 @@ describe('BrowserPanel', () => {
     expect(document.querySelector('.BrowserTreeContextMenu')).toBeNull()
   })
 
-  it('replaces the graph icon with a local build-policy cycle button and keeps the row one-line', async () => {
+  it('keeps graph rows document-oriented and shows the first build-policy chip on content rows', async () => {
+    currentAppState = {
+      ...currentAppState,
+      projectContentRows: [
+        {
+          rowId: 'assembly-root:project-file-1',
+          kind: 'assembly',
+          label: 'Assembly 1',
+          meta: '',
+          buildState: 'done',
+          buildStateLabel: 'Built',
+          rebuildGraphDocumentIds: ['graph-document-1'],
+        },
+        {
+          rowId: 'project-component:project-file-1:graph-document-1:published',
+          kind: 'component',
+          label: 'Pedal Component',
+          meta: 'Graph 1',
+          buildState: 'rebuild',
+          buildStateLabel: 'Rebuild',
+          rebuildGraphDocumentIds: ['graph-document-1'],
+          ownerGraphDocumentId: 'graph-document-1',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry:slot-baseplate:node-baseplate-1',
+          componentSourceKind: 'published-component',
+          resolutionState: 'resolved',
+          receiveId: null,
+          childObjectCount: 1,
+          slotId: 'slot-baseplate',
+          sourceNodeId: 'node-baseplate-1',
+          highlightViewerKey: 'slot-baseplate',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-baseplate-1',
+        },
+      ],
+    }
+
     ;({ container, root } = await renderBrowserPanel())
 
-    const policyButton = findButtonByLabel('Cycle build policy for Graph 1. Current policy Live')
+    const graphPolicyButton = findButtonByLabel('Cycle build policy for Graph 1. Current policy Live')
+    expect(graphPolicyButton).toBeNull()
+
+    const policyButton = findButtonByLabel('Cycle build policy for Pedal Component. Current policy Live')
     const saveButton = findButtonByLabel('Graph save options for Graph 1')
     expect(policyButton).not.toBeNull()
     expect(saveButton).not.toBeNull()
-    expect(policyButton?.textContent).toBe('L')
+    expect(policyButton?.textContent).toBe('C')
     expect(container?.querySelector('.BrowserGraphStateBar--rebuild')).not.toBeNull()
+    expect(container?.querySelector('.BrowserContentStateBar--rebuild')).not.toBeNull()
     expect(container?.querySelector('.BrowserTreeRowQuickAction--save.BrowserTreeRowQuickAction--unsaved')).not.toBeNull()
     expect(container?.querySelector('.BrowserTreeRow.isOpen')).not.toBeNull()
     expect(container?.querySelector('.BrowserTreeRow.isActiveEditor')).not.toBeNull()
@@ -265,10 +428,10 @@ describe('BrowserPanel', () => {
     expect(container?.textContent).not.toContain('Saved')
 
     await click(policyButton!)
-    expect(findButtonByLabel('Cycle build policy for Graph 1. Current policy Release')).not.toBeNull()
+    expect(findButtonByLabel('Cycle build policy for Pedal Component. Current policy Release')).not.toBeNull()
 
-    await click(findButtonByLabel('Cycle build policy for Graph 1. Current policy Release')!)
-    expect(findButtonByLabel('Cycle build policy for Graph 1. Current policy Manual')).not.toBeNull()
+    await click(findButtonByLabel('Cycle build policy for Pedal Component. Current policy Release')!)
+    expect(findButtonByLabel('Cycle build policy for Pedal Component. Current policy Manual')).not.toBeNull()
   })
 
   it('keeps the right-click path available for the same row menu', async () => {
@@ -539,21 +702,24 @@ describe('BrowserPanel', () => {
     expect(currentSpaghettiState.closeEditorViewport).toHaveBeenCalledWith('editor-viewport-2')
   })
 
-  it('single-clicking a component row selects it and highlights the viewport target when shared composition is inactive', async () => {
+  it('single-clicking a component row selects it, requests rebuild, and highlights the viewport target when shared composition is inactive', async () => {
     currentAppState = {
       ...currentAppState,
       projectContentRows: [
         {
           rowId: 'assembly-root:project-file-1',
           kind: 'assembly',
-          label: 'Assembly Root',
-          meta: '1 Component',
+          label: 'Assembly 1',
+          meta: '',
         },
         {
           rowId: 'project-component:project-file-1:graph-document-1:published',
           kind: 'component',
           label: 'Pedal Component',
           meta: '1 Object',
+          buildState: 'rebuild',
+          buildStateLabel: 'Rebuild',
+          rebuildGraphDocumentIds: ['graph-document-1'],
           ownerGraphDocumentId: 'graph-document-1',
           sourceGraphDocumentId: 'graph-document-1',
           sourceOutputEntryId: 'output-entry:slot-baseplate:node-baseplate-1',
@@ -577,6 +743,7 @@ describe('BrowserPanel', () => {
 
     await click(componentRow!)
 
+    expect(currentAppState.requestGraphDocumentBuild).toHaveBeenCalledWith('graph-document-1')
     expect(currentAppState.selectPart).toHaveBeenCalledWith('slot-baseplate')
     expect(currentSpaghettiState.swapFocusedEditorViewportToGraphDocument).not.toHaveBeenCalled()
     expect(componentRow?.getAttribute('aria-pressed')).toBe('true')
@@ -589,8 +756,8 @@ describe('BrowserPanel', () => {
         {
           rowId: 'assembly-root:project-file-1',
           kind: 'assembly',
-          label: 'Assembly Root',
-          meta: '1 Component',
+          label: 'Assembly 1',
+          meta: '',
         },
         {
           rowId: 'project-component:project-file-1:graph-document-1:published',
@@ -615,7 +782,9 @@ describe('BrowserPanel', () => {
           kind: 'object',
           label: 'Pedal Body',
           meta: '',
+          ownerGraphDocumentId: 'graph-document-1',
           parentComponentId: 'project-component:project-file-1:graph-document-1:published',
+          objectSourceKind: 'published-object',
           sourceGraphDocumentId: 'graph-document-1',
           sourceOutputEntryId: 'output-entry:slot-baseplate:node-baseplate-1',
           slotId: 'slot-baseplate',
@@ -633,11 +802,11 @@ describe('BrowserPanel', () => {
     expect(findRowMainByLabel('Pedal Component')).not.toBeNull()
     expect(findRowMainByLabel('Pedal Body')).not.toBeNull()
 
-    await click(findButtonByLabel('Collapse Assembly Root children')!)
+    await click(findButtonByLabel('Collapse Assembly 1 children')!)
 
     expect(findRowMainByLabel('Pedal Component')).toBeNull()
     expect(findRowMainByLabel('Pedal Body')).toBeNull()
-    expect(container?.textContent).toContain('Assembly Root')
+    expect(container?.textContent).toContain('Assembly 1')
   })
 
   it('lets a component row collapse and hide its object children', async () => {
@@ -647,8 +816,8 @@ describe('BrowserPanel', () => {
         {
           rowId: 'assembly-root:project-file-1',
           kind: 'assembly',
-          label: 'Assembly Root',
-          meta: '1 Component',
+          label: 'Assembly 1',
+          meta: '',
         },
         {
           rowId: 'project-component:project-file-1:graph-document-1:published',
@@ -673,7 +842,9 @@ describe('BrowserPanel', () => {
           kind: 'object',
           label: 'Pedal Body',
           meta: '',
+          ownerGraphDocumentId: 'graph-document-1',
           parentComponentId: 'project-component:project-file-1:graph-document-1:published',
+          objectSourceKind: 'published-object',
           sourceGraphDocumentId: 'graph-document-1',
           sourceOutputEntryId: 'output-entry:slot-baseplate:node-baseplate-1',
           slotId: 'slot-baseplate',
@@ -694,10 +865,128 @@ describe('BrowserPanel', () => {
 
     expect(findRowMainByLabel('Pedal Body')).toBeNull()
     expect(findRowMainByLabel('Pedal Component')).not.toBeNull()
-    expect(container?.textContent).toContain('Assembly Root')
+    expect(container?.textContent).toContain('Assembly 1')
   })
 
-  it('single-clicking a component row becomes selection-only when shared composition is active', async () => {
+  it('renders simple tree-guide cells for nested content rows', async () => {
+    currentAppState = {
+      ...currentAppState,
+      projectContentRows: [
+        {
+          rowId: 'assembly-root:project-file-1',
+          kind: 'assembly',
+          label: 'Assembly 1',
+          meta: '',
+        },
+        {
+          rowId: 'project-component:project-file-1:graph-document-1:published',
+          kind: 'component',
+          label: 'Pedal Component',
+          meta: '1 Object',
+          ownerGraphDocumentId: 'graph-document-1',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry:slot-baseplate:node-baseplate-1',
+          componentSourceKind: 'published-component',
+          resolutionState: 'resolved',
+          receiveId: null,
+          childObjectCount: 1,
+          slotId: 'slot-baseplate',
+          sourceNodeId: 'node-baseplate-1',
+          highlightViewerKey: 'slot-baseplate',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-baseplate-1',
+        },
+        {
+          rowId: 'project-object:project-file-1:graph-document-1:pedal-body',
+          kind: 'object',
+          label: 'Pedal Body',
+          meta: '',
+          parentComponentId: 'project-component:project-file-1:graph-document-1:published',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry:slot-baseplate:node-baseplate-1',
+          slotId: 'slot-baseplate',
+          sourceNodeId: 'node-baseplate-1',
+          resolutionState: 'resolved',
+          highlightViewerKey: 'slot-baseplate',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-baseplate-1',
+        },
+      ],
+    }
+
+    ;({ container, root } = await renderBrowserPanel())
+
+    const guideCells = container?.querySelectorAll('.BrowserTreeRowGuide') ?? []
+    expect(guideCells.length).toBeGreaterThanOrEqual(3)
+    expect(container?.querySelector('.BrowserTreeRowGuide--tee')).not.toBeNull()
+    expect(container?.querySelector('.BrowserTreeRowGuide--elbow')).not.toBeNull()
+  })
+
+  it('renders passive right-side readiness status for content rows', async () => {
+    currentAppState = {
+      ...currentAppState,
+      projectContentRows: [
+        {
+          rowId: 'assembly-root:project-file-1',
+          kind: 'assembly',
+          label: 'Assembly 1',
+          meta: '',
+          statusLabel: 'Ready',
+          statusTone: 'ready',
+        },
+        {
+          rowId: 'project-component:project-file-1:graph-document-1:published',
+          kind: 'component',
+          label: 'Pedal Component',
+          meta: 'Graph 1',
+          statusLabel: 'Ready',
+          statusTone: 'ready',
+          ownerGraphDocumentId: 'graph-document-1',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry:slot-baseplate:node-baseplate-1',
+          componentSourceKind: 'published-component',
+          resolutionState: 'resolved',
+          receiveId: null,
+          childObjectCount: 1,
+          slotId: 'slot-baseplate',
+          sourceNodeId: 'node-baseplate-1',
+          highlightViewerKey: 'slot-baseplate',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-baseplate-1',
+        },
+        {
+          rowId: 'project-object:project-file-1:graph-document-1:pedal-body',
+          kind: 'object',
+          label: 'Pedal Body',
+          meta: '',
+          statusLabel: 'Unresolved',
+          statusTone: 'warning',
+          ownerGraphDocumentId: 'graph-document-1',
+          parentComponentId: 'project-component:project-file-1:graph-document-1:published',
+          objectSourceKind: 'published-object',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry:slot-baseplate:node-baseplate-1',
+          slotId: 'slot-baseplate',
+          sourceNodeId: 'node-baseplate-1',
+          resolutionState: 'unresolved',
+          highlightViewerKey: null,
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-baseplate-1',
+        },
+      ],
+    }
+
+    ;({ container, root } = await renderBrowserPanel())
+
+    const readyStatuses = container?.querySelectorAll('.BrowserTreeRowStatus--ready') ?? []
+    const warningStatuses = container?.querySelectorAll('.BrowserTreeRowStatus--warning') ?? []
+
+    expect(Array.from(readyStatuses).some((element) => element.textContent === 'Ready')).toBe(true)
+    expect(Array.from(warningStatuses).some((element) => element.textContent === 'Unresolved')).toBe(true)
+    expect(findRowMainByLabel('Pedal Component')?.textContent).toContain('Graph 1')
+  })
+
+  it('single-clicking a component row still requests rebuild while shared composition suppresses highlight selection', async () => {
     currentSpaghettiState = {
       ...currentSpaghettiState,
       sharedViewerComposition: {
@@ -712,14 +1001,17 @@ describe('BrowserPanel', () => {
         {
           rowId: 'assembly-root:project-file-1',
           kind: 'assembly',
-          label: 'Assembly Root',
-          meta: '1 Component',
+          label: 'Assembly 1',
+          meta: '',
         },
         {
           rowId: 'project-component:project-file-1:graph-document-1:published',
           kind: 'component',
           label: 'Pedal Component',
           meta: '1 Object',
+          buildState: 'rebuild',
+          buildStateLabel: 'Rebuild',
+          rebuildGraphDocumentIds: ['graph-document-1'],
           ownerGraphDocumentId: 'graph-document-1',
           sourceGraphDocumentId: 'graph-document-1',
           sourceOutputEntryId: 'output-entry:slot-baseplate:node-baseplate-1',
@@ -743,6 +1035,7 @@ describe('BrowserPanel', () => {
 
     await click(componentRow!)
 
+    expect(currentAppState.requestGraphDocumentBuild).toHaveBeenCalledWith('graph-document-1')
     expect(currentAppState.selectPart).not.toHaveBeenCalled()
     expect(componentRow?.getAttribute('aria-pressed')).toBe('true')
   })
@@ -761,8 +1054,8 @@ describe('BrowserPanel', () => {
         {
           rowId: 'assembly-root:project-file-1',
           kind: 'assembly',
-          label: 'Assembly Root',
-          meta: '1 Component',
+          label: 'Assembly 1',
+          meta: '',
         },
         {
           rowId: 'project-component:project-file-1:graph-document-1:published',
@@ -803,6 +1096,60 @@ describe('BrowserPanel', () => {
     expect(currentAppState.setInputMode).toHaveBeenCalledWith('spaghetti')
   })
 
+  it('shows View In Graph as a secondary action for content rows', async () => {
+    currentSpaghettiState = {
+      ...currentSpaghettiState,
+      activeEditorViewportId: '',
+      editorViewportsById: {},
+      editorViewportOrder: [],
+      openGraphDocumentInViewport: vi.fn(() => 'editor-viewport-2'),
+    }
+    currentAppState = {
+      ...currentAppState,
+      projectContentRows: [
+        {
+          rowId: 'assembly-root:project-file-1',
+          kind: 'assembly',
+          label: 'Assembly 1',
+          meta: '',
+        },
+        {
+          rowId: 'project-component:project-file-1:graph-document-1:published',
+          kind: 'component',
+          label: 'Pedal Component',
+          meta: '1 Object',
+          ownerGraphDocumentId: 'graph-document-1',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry:slot-baseplate:node-baseplate-1',
+          componentSourceKind: 'published-component',
+          resolutionState: 'resolved',
+          receiveId: null,
+          childObjectCount: 1,
+          slotId: 'slot-baseplate',
+          sourceNodeId: 'node-baseplate-1',
+          highlightViewerKey: 'slot-baseplate',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-baseplate-1',
+        },
+      ],
+    }
+
+    ;({ root } = await renderBrowserPanel({
+      newEditorSpawnPosition: { x: 405, y: 16 },
+    }))
+
+    const overflowButton = findButtonByLabel('More options for Pedal Component')
+    expect(overflowButton).not.toBeNull()
+
+    await click(overflowButton!)
+    expect(findButtonByLabel('View In Graph')).not.toBeNull()
+
+    await click(findButtonByLabel('View In Graph')!)
+    expect(currentSpaghettiState.openGraphDocumentInViewport).toHaveBeenCalledWith('graph-document-1')
+    expect(currentSpaghettiState.setSelectedNodeId).toHaveBeenCalledWith('node-baseplate-1')
+    expect(currentAppState.setInputMode).toHaveBeenCalledWith('spaghetti')
+  })
+
   it('double-clicking a component row without a source node opens the source graph only', async () => {
     currentSpaghettiState = {
       ...currentSpaghettiState,
@@ -817,8 +1164,8 @@ describe('BrowserPanel', () => {
         {
           rowId: 'assembly-root:project-file-1',
           kind: 'assembly',
-          label: 'Assembly Root',
-          meta: '1 Component',
+          label: 'Assembly 1',
+          meta: '',
         },
         {
           rowId: 'project-component:project-file-1:receive:graph-document-1:receive-1',
@@ -854,15 +1201,15 @@ describe('BrowserPanel', () => {
     expect(currentSpaghettiState.setSelectedNodeId).not.toHaveBeenCalled()
   })
 
-  it('single-clicking an object row selects it and highlights the viewport target when shared composition is inactive', async () => {
+  it('single-clicking an object row selects it, requests rebuild, and highlights the viewport target when shared composition is inactive', async () => {
     currentAppState = {
       ...currentAppState,
       projectContentRows: [
         {
           rowId: 'assembly-root:project-file-1',
           kind: 'assembly',
-          label: 'Assembly Root',
-          meta: '1 Component',
+          label: 'Assembly 1',
+          meta: '',
         },
         {
           rowId: 'project-component:project-file-1:graph-document-1:published',
@@ -887,7 +1234,12 @@ describe('BrowserPanel', () => {
           kind: 'object',
           label: 'Pedal Body',
           meta: 'Graph 1',
+          buildState: 'rebuild',
+          buildStateLabel: 'Rebuild',
+          rebuildGraphDocumentIds: ['graph-document-1'],
+          ownerGraphDocumentId: 'graph-document-1',
           parentComponentId: 'project-component:project-file-1:graph-document-1:published',
+          objectSourceKind: 'published-object',
           sourceGraphDocumentId: 'graph-document-1',
           sourceOutputEntryId: 'output-entry:slot-baseplate:node-baseplate-1',
           slotId: 'slot-baseplate',
@@ -907,6 +1259,7 @@ describe('BrowserPanel', () => {
 
     await click(objectRow!)
 
+    expect(currentAppState.requestGraphDocumentBuild).toHaveBeenCalledWith('graph-document-1')
     expect(currentAppState.selectPart).toHaveBeenCalledWith('slot-baseplate')
     expect(currentSpaghettiState.swapFocusedEditorViewportToGraphDocument).not.toHaveBeenCalled()
     expect(objectRow?.getAttribute('aria-pressed')).toBe('true')
@@ -926,8 +1279,8 @@ describe('BrowserPanel', () => {
         {
           rowId: 'assembly-root:project-file-1',
           kind: 'assembly',
-          label: 'Assembly Root',
-          meta: '1 Component',
+          label: 'Assembly 1',
+          meta: '',
         },
         {
           rowId: 'project-component:project-file-1:graph-document-1:published',
@@ -952,7 +1305,9 @@ describe('BrowserPanel', () => {
           kind: 'object',
           label: 'Pedal Body',
           meta: 'Graph 1',
+          ownerGraphDocumentId: 'graph-document-1',
           parentComponentId: 'project-component:project-file-1:graph-document-1:published',
+          objectSourceKind: 'published-object',
           sourceGraphDocumentId: 'graph-document-1',
           sourceOutputEntryId: 'output-entry:slot-baseplate:node-baseplate-1',
           slotId: 'slot-baseplate',
@@ -983,48 +1338,331 @@ describe('BrowserPanel', () => {
     expect(currentAppState.setInputMode).toHaveBeenCalledWith('spaghetti')
   })
 
-  it('single-clicking a published output row highlights it and double click focuses its source graph node', async () => {
+  it('shows Needs Rebuild and Nodes under graph documents and remembers section expand state per graph', async () => {
     currentSpaghettiState = {
       ...currentSpaghettiState,
       activeEditorViewportId: '',
       editorViewportsById: {},
       editorViewportOrder: [],
       openGraphDocumentInViewport: vi.fn(() => 'editor-viewport-2'),
-      graphRuntimeByDocumentId: {
+      graphDocumentsById: {
         'graph-document-1': {
-          outputSurface: {
-            graphDocumentId: 'graph-document-1',
-            publishedAtBuildSeq: 7,
-            surfaceVersion: 1,
-            entries: [
+          ...graphDocument,
+          graph: {
+            ...graphDocument.graph,
+            nodes: [
               {
-                outputEntryId: 'output-entry:slot-baseplate:node-baseplate-1',
-                slotId: 'slot-baseplate',
-                sourceNodeId: 'node-baseplate-1',
-                label: 'slot-baseplate',
-                state: 'resolved',
-                acceptedArtifactKey: 'baseplate',
+                nodeId: 'node-baseplate-1',
+                type: 'Part/Cube',
+                params: {},
+              },
+              {
+                nodeId: 'node-output-1',
+                type: 'System/OutputPreview',
+                params: {},
               },
             ],
           },
         },
       },
     }
+    currentAppState = {
+      ...currentAppState,
+      projectContentRows: [
+        {
+          rowId: 'assembly-root:project-file-1',
+          kind: 'assembly',
+          label: 'Assembly 1',
+          meta: '',
+        },
+        {
+          rowId: 'project-object:project-file-1:graph-document-1:object-a',
+          kind: 'object',
+          label: 'Object A',
+          meta: '',
+          buildState: 'rebuild',
+          buildStateLabel: 'Rebuild',
+          rebuildGraphDocumentIds: ['graph-document-1'],
+          ownerGraphDocumentId: 'graph-document-1',
+          parentComponentId: null,
+          objectSourceKind: 'published-object',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry:s001:node-baseplate-1',
+          slotId: 's001',
+          sourceNodeId: 'node-baseplate-1',
+          resolutionState: 'resolved',
+          highlightViewerKey: 's001',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-baseplate-1',
+        },
+      ],
+    }
 
     ;({ root } = await renderBrowserPanel({
       newEditorSpawnPosition: { x: 405, y: 16 },
     }))
 
-    await click(findButtonByLabel('Expand Graph 1 published outputs')!)
+    await click(findButtonByLabel('Expand Graph 1 child sections')!)
 
-    const outputRow = findRowMainByLabel('Resolved | baseplate | Build 7')
-    expect(outputRow).not.toBeNull()
+    expect(findRowMainByLabel('Needs Rebuild')).not.toBeNull()
+    expect(findRowMainByLabel('Nodes')).not.toBeNull()
+    expect(findRowMainByLabel('Object A')).not.toBeNull()
+    expect(findRowMainByLabel('Cube')).toBeNull()
 
-    await click(outputRow!)
-    expect(currentAppState.selectPart).toHaveBeenCalledWith('slot-baseplate')
+    const rebuildObjectRow = Array.from(document.querySelectorAll('.BrowserTreeRowMain')).filter(
+      (element) => element.textContent?.includes('Object A'),
+    ).at(-1)
+    expect(rebuildObjectRow).not.toBeNull()
 
-    await doubleClick(outputRow!)
+    await click(rebuildObjectRow!)
     expect(currentSpaghettiState.openGraphDocumentInViewport).toHaveBeenCalledWith('graph-document-1')
     expect(currentSpaghettiState.setSelectedNodeId).toHaveBeenCalledWith('node-baseplate-1')
+    expect(currentSpaghettiState.requestEditorViewportNodeFit).not.toHaveBeenCalled()
+    expect(currentAppState.selectPart).not.toHaveBeenCalled()
+
+    await click(findButtonByLabel('Expand Nodes')!)
+    expect(findRowMainByLabel('Cube')).not.toBeNull()
+
+    await click(findButtonByLabel('Collapse Graph 1 child sections')!)
+    await click(findButtonByLabel('Expand Graph 1 child sections')!)
+    expect(findRowMainByLabel('Cube')).not.toBeNull()
+
+    await click(findRowMainByLabel('OutputPreview')!)
+    expect(currentSpaghettiState.setSelectedNodeId).toHaveBeenCalledWith('node-output-1')
+    expect(currentSpaghettiState.requestEditorViewportNodeFit).toHaveBeenCalledWith(
+      'editor-viewport-2',
+      'node-output-1',
+    )
+  })
+
+  it('renders References inside Content and keeps category toggle separate from +/- expansion', async () => {
+    currentAppState = {
+      ...currentAppState,
+      referenceWorkspaceTree: {
+        rowId: 'reference-root',
+        label: 'References',
+        isExpanded: true,
+        categories: [
+          {
+            rowId: 'reference-category-row:footpads',
+            categoryId: 'footpads',
+            label: 'Footpads',
+            isExpanded: true,
+            itemCount: 1,
+            visibleItemCount: 0,
+            hasLoadingItem: false,
+            hasErrorItem: false,
+            emptyLabel: 'No loadable references yet.',
+            items: [
+              {
+                rowId: 'reference-item-row:footpad:pubpad-full-assembly',
+                referenceId: 'footpad:pubpad-full-assembly',
+                sourceKind: 'manifest',
+                label: 'PubPad Full Assembly',
+                categoryId: 'footpads',
+                fileType: 'obj',
+                assetPath: '/ReferenceModels/footpads/XR_Footpad_PubPad_Full_Assembly.obj',
+                isVisible: false,
+                loadState: 'unloaded',
+                errorMessage: null,
+              },
+            ],
+          },
+          {
+            rowId: 'reference-category-row:shoes',
+            categoryId: 'shoes',
+            label: 'Shoes',
+            isExpanded: false,
+            itemCount: 1,
+            visibleItemCount: 1,
+            hasLoadingItem: false,
+            hasErrorItem: false,
+            emptyLabel: 'No loadable references yet.',
+            items: [
+              {
+                rowId: 'reference-item-row:shoe:shoe-1',
+                referenceId: 'shoe:shoe-1',
+                sourceKind: 'manifest',
+                label: 'Shoe 1',
+                categoryId: 'shoes',
+                fileType: 'glb',
+                assetPath: '/ReferenceModels/shoes/Shoe_1.glb',
+                isVisible: true,
+                loadState: 'loaded',
+                errorMessage: null,
+              },
+            ],
+          },
+          emptyReferenceWorkspaceTree.categories[2],
+          emptyReferenceWorkspaceTree.categories[3],
+        ],
+      },
+    }
+    currentAppState.referenceWorkspace = referenceWorkspaceStateFromTree(
+      currentAppState.referenceWorkspaceTree,
+    )
+
+    ;({ container, root } = await renderBrowserPanel())
+
+    expect(container?.textContent).toContain('References')
+    expect(findRowMainByLabel('Footpads')).not.toBeNull()
+    expect(findRowMainByLabel('PubPad Full Assembly')).not.toBeNull()
+    expect(findRowMainByLabel('Shoes')).not.toBeNull()
+    expect(findRowMainByLabel('Shoe 1')).toBeNull()
+
+    await click(findRowMainByLabel('Footpads')!)
+    expect(currentAppState.toggleReferenceCategoryVisibility).toHaveBeenCalledWith('footpads')
+
+    await click(findButtonByLabel('Expand Shoes children')!)
+    expect(currentAppState.toggleReferenceCategoryExpanded).toHaveBeenCalledWith('shoes')
+
+    await click(findRowMainByLabel('PubPad Full Assembly')!)
+    expect(currentAppState.toggleReferenceItemVisibility).toHaveBeenCalledWith(
+      'footpad:pubpad-full-assembly',
+    )
+  })
+
+  it('opens the Content import menu from the header + button and imports a single accepted file type into User References', async () => {
+    importReferenceFileFromDiskMock.mockResolvedValue({
+      fileName: 'shoe.glb',
+      fileType: 'glb',
+      objectUrl: 'blob:shoe-1',
+    })
+
+    ;({ root } = await renderBrowserPanel())
+
+    const importButton = findButtonByLabel('Import reference file')
+    expect(importButton).not.toBeNull()
+
+    await click(importButton!)
+    expect(document.querySelector('.BrowserTreeContextMenuHeader')?.textContent).toBe('Import Reference')
+    expect(findButtonByLabel('Import .step')).not.toBeNull()
+    expect(findButtonByLabel('Import .glb')).not.toBeNull()
+
+    await click(findButtonByLabel('Import .glb')!)
+
+    expect(importReferenceFileFromDiskMock).toHaveBeenCalledWith('glb')
+    expect(currentAppState.addImportedReference).toHaveBeenCalledWith({
+      fileName: 'shoe.glb',
+      fileType: 'glb',
+      objectUrl: 'blob:shoe-1',
+    })
+    expect(document.querySelector('.BrowserTreeContextMenu')).toBeNull()
+  })
+
+  it('shows Transform Object on reference item right-click and starts reference transform mode', async () => {
+    currentAppState = {
+      ...currentAppState,
+      referenceWorkspaceTree: {
+        rowId: 'reference-root',
+        label: 'References',
+        isExpanded: true,
+        categories: [
+          {
+            rowId: 'reference-category-row:footpads',
+            categoryId: 'footpads',
+            label: 'Footpads',
+            isExpanded: true,
+            itemCount: 1,
+            visibleItemCount: 0,
+            hasLoadingItem: false,
+            hasErrorItem: false,
+            emptyLabel: 'No loadable references yet.',
+            items: [
+              {
+                rowId: 'reference-item-row:footpad:pubpad-full-assembly',
+                referenceId: 'footpad:pubpad-full-assembly',
+                sourceKind: 'manifest',
+                label: 'PubPad Full Assembly',
+                categoryId: 'footpads',
+                fileType: 'obj',
+                assetPath: '/ReferenceModels/footpads/XR_Footpad_PubPad_Full_Assembly.obj',
+                isVisible: false,
+                loadState: 'unloaded',
+                errorMessage: null,
+              },
+            ],
+          },
+          ...emptyReferenceWorkspaceTree.categories.slice(1),
+        ],
+      },
+    }
+    currentAppState.referenceWorkspace = referenceWorkspaceStateFromTree(
+      currentAppState.referenceWorkspaceTree,
+    )
+
+    ;({ root } = await renderBrowserPanel())
+
+    const referenceRow = findRowMainByLabel('PubPad Full Assembly')
+    expect(referenceRow).not.toBeNull()
+
+    await contextMenu(referenceRow!)
+
+    expect(document.querySelector('.BrowserTreeContextMenuHeader')?.textContent).toBe(
+      'PubPad Full Assembly',
+    )
+    await click(findButtonByLabel('Transform Object')!)
+
+    expect(currentAppState.setReferenceItemVisibility).toHaveBeenCalledWith(
+      'footpad:pubpad-full-assembly',
+      true,
+    )
+    expect(currentAppState.beginReferenceTransform).toHaveBeenCalledWith(
+      'footpad:pubpad-full-assembly',
+    )
+  })
+
+  it('shows retry and remove inline actions for imported error rows without using an overflow menu', async () => {
+    currentAppState = {
+      ...currentAppState,
+      referenceWorkspaceTree: {
+        rowId: 'reference-root',
+        label: 'References',
+        isExpanded: true,
+        categories: [
+          ...emptyReferenceWorkspaceTree.categories.slice(0, 3),
+          {
+            rowId: 'reference-category-row:user-references',
+            categoryId: 'user-references',
+            label: 'User References',
+            isExpanded: true,
+            itemCount: 1,
+            visibleItemCount: 0,
+            hasLoadingItem: false,
+            hasErrorItem: true,
+            emptyLabel: 'No imported references yet.',
+            items: [
+              {
+                rowId: 'reference-item-row:reference-import:1',
+                referenceId: 'reference-import:1',
+                sourceKind: 'imported',
+                label: 'shoe.glb',
+                categoryId: 'user-references',
+                fileType: 'glb',
+                assetPath: 'blob:shoe-1',
+                isVisible: false,
+                loadState: 'error',
+                errorMessage: 'Load failed',
+              },
+            ],
+          },
+        ],
+      },
+    }
+    currentAppState.referenceWorkspace = referenceWorkspaceStateFromTree(
+      currentAppState.referenceWorkspaceTree,
+    )
+
+    ;({ root } = await renderBrowserPanel())
+
+    expect(findButtonByLabel('More options for shoe.glb')).toBeNull()
+    expect(findButtonByLabel('Retry shoe.glb')).not.toBeNull()
+    expect(findButtonByLabel('Remove shoe.glb')).not.toBeNull()
+
+    await click(findButtonByLabel('Retry shoe.glb')!)
+    expect(currentAppState.retryReferenceItemLoad).toHaveBeenCalledWith('reference-import:1')
+
+    await click(findButtonByLabel('Remove shoe.glb')!)
+    expect(currentAppState.removeImportedReference).toHaveBeenCalledWith('reference-import:1')
   })
 })

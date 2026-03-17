@@ -16,14 +16,18 @@ export function ParaSelect({ label, value, options, onChange }: ParaSelectProps)
     options.findIndex((option) => option.value === value),
   )
   const selectedOption = options[selectedIndex] ?? options[0] ?? { value: '', label: '' }
-  const canDecrement = selectedIndex > 0
-  const canIncrement = selectedIndex >= 0 && selectedIndex < options.length - 1
+  const canCycle = options.length > 1
+  const fillPercent =
+    options.length <= 1 ? 100 : (selectedIndex / Math.max(1, options.length - 1)) * 100
 
   const changeByStep = (direction: -1 | 1) => {
     if (options.length === 0) {
       return
     }
-    const nextIndex = Math.min(options.length - 1, Math.max(0, selectedIndex + direction))
+    const nextIndex =
+      direction === -1
+        ? (selectedIndex - 1 + options.length) % options.length
+        : (selectedIndex + 1) % options.length
     const nextOption = options[nextIndex]
     if (nextOption !== undefined && nextOption.value !== value) {
       onChange(nextOption.value)
@@ -37,11 +41,13 @@ export function ParaSelect({ label, value, options, onChange }: ParaSelectProps)
         className="ParaSelectCap ParaSelectCap--left"
         aria-label={`Previous ${label}`}
         onClick={() => changeByStep(-1)}
-        disabled={!canDecrement}
+        disabled={!canCycle}
       >
         {'<'}
       </button>
       <label className="ParaSelectTrack">
+        <div className="ParaSelectFill" style={{ width: `${fillPercent}%` }} />
+        <div className="ParaSelectValueMarker" style={{ left: `${fillPercent}%` }} />
         <span className="ParaSelectContent">
           <span className="ParaSelectLabel">{label}</span>
           <span className="ParaSelectValue">
@@ -67,7 +73,7 @@ export function ParaSelect({ label, value, options, onChange }: ParaSelectProps)
         className="ParaSelectCap ParaSelectCap--right"
         aria-label={`Next ${label}`}
         onClick={() => changeByStep(1)}
-        disabled={!canIncrement}
+        disabled={!canCycle}
       >
         {'>'}
       </button>

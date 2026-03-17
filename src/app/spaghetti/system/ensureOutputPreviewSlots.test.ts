@@ -45,7 +45,7 @@ describe('ensureOutputPreviewSlotsPatch', () => {
       expect(outputPreviewNode?.params).toEqual({
         componentLabel: 'Published Component',
         objects: [
-          { objectId: 'output-object:s001', slotId: 's001', label: 's001', orderIndex: 0 },
+          { objectId: 'output-object:s001', slotId: 's001', label: 'Object 1', orderIndex: 0 },
         ],
         slots: [{ slotId: 's001' }],
         nextSlotIndex: 2,
@@ -76,8 +76,8 @@ describe('ensureOutputPreviewSlotsPatch', () => {
     expect(outputPreviewNode?.params).toEqual({
       componentLabel: 'Published Component',
       objects: [
-        { objectId: 'output-object:s001', slotId: 's001', label: 's001', orderIndex: 0 },
-        { objectId: 'output-object:s002', slotId: 's002', label: 's002', orderIndex: 1 },
+        { objectId: 'output-object:s001', slotId: 's001', label: 'Object 1', orderIndex: 0 },
+        { objectId: 'output-object:s002', slotId: 's002', label: 'Object 2', orderIndex: 1 },
       ],
       slots: [{ slotId: 's001' }, { slotId: 's002' }],
       nextSlotIndex: 3,
@@ -98,7 +98,7 @@ describe('ensureOutputPreviewSlotsPatch', () => {
     expect(outputPreviewNode?.params).toEqual({
       componentLabel: 'Published Component',
       objects: [
-        { objectId: 'output-object:s001', slotId: 's001', label: 's001', orderIndex: 0 },
+        { objectId: 'output-object:s001', slotId: 's001', label: 'Object 1', orderIndex: 0 },
       ],
       slots: [{ slotId: 's001' }],
       nextSlotIndex: 4,
@@ -130,9 +130,9 @@ describe('ensureOutputPreviewSlotsPatch', () => {
     expect(outputPreviewNode?.params).toEqual({
       componentLabel: 'Published Component',
       objects: [
-        { objectId: 'output-object:s001', slotId: 's001', label: 's001', orderIndex: 0 },
-        { objectId: 'output-object:s002', slotId: 's002', label: 's002', orderIndex: 1 },
-        { objectId: 'output-object:s003', slotId: 's003', label: 's003', orderIndex: 2 },
+        { objectId: 'output-object:s001', slotId: 's001', label: 'Object 1', orderIndex: 0 },
+        { objectId: 'output-object:s002', slotId: 's002', label: 'Object 2', orderIndex: 1 },
+        { objectId: 'output-object:s003', slotId: 's003', label: 'Object 3', orderIndex: 2 },
       ],
       slots: [{ slotId: 's001' }, { slotId: 's002' }, { slotId: 's003' }],
       nextSlotIndex: 4,

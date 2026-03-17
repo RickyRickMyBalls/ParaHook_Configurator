@@ -3,10 +3,13 @@
 ## Doc Header
 
 ### Doc History
-1. 2026-03-11 13:15: Added explicit prefix-and-phase labels across the rough lane draft, using canonical ids where they already exist and visible `Phase TBD` markers where the vision lane is real but the family/phase numbering is not locked yet
-2. 2026-03-11 13:11: Added a compact core data-flow section, strengthened the `OutputPreview` wording, clarified the Lane `[1]` finish condition, split the distance read into `Tier 1` versus `Tier 2`, and added a lightweight contracts/IR note without turning the vision doc into an implementation spec
-3. 2026-03-11 12:43: Added a rough first-pass lane-and-phase completion draft so this vision doc now also shows the major work clusters still needed to reach the long-term product, including Browser, node/wire, part, build-contract, Jake-mode, and cleanup lanes
-4. 2026-03-11 12:34: Rebuilt this file as the canonical big-picture vision and decision-check surface so the execution roadmap can stay sequencing-focused while major Codex decision questions can be checked against one stable north-star doc
+7. 2026-03-16 12:31: Added a short feature-stack direction note under `Architecture Shape` so the vision now explicitly says Feature Stack should not be permanently trapped as embedded part-node data and should leave room for first-class graph/composite ownership later
+6. 2026-03-16 12:24: Added a short Replicad rationale under the build/generate section so the vision now explicitly explains why chunk-level row rebuild control, sibling independence, and future `SEQ / ALL` matter given the current engine constraints; also normalized this local `Doc History` block to newest-first numbering with the highest number at the top
+5. 2026-03-16 11:13: Compiled the answered `Content`-row reset questions into the vision doc, clarifying the Root/Sub Assembly hierarchy, the `Graph Documents` versus `Content` split, per-row build-chunk policy/execution ownership, `SEQ / ALL` parent execution mode, calmer row-language rules, and the next-lane goal of making `Part` rebuilds real before full `Part` rows land
+4. 2026-03-11 13:15: Added explicit prefix-and-phase labels across the rough lane draft, using canonical ids where they already exist and visible `Phase TBD` markers where the vision lane is real but the family/phase numbering is not locked yet
+3. 2026-03-11 13:11: Added a compact core data-flow section, strengthened the `OutputPreview` wording, clarified the Lane `[1]` finish condition, split the distance read into `Tier 1` versus `Tier 2`, and added a lightweight contracts/IR note without turning the vision doc into an implementation spec
+2. 2026-03-11 12:43: Added a rough first-pass lane-and-phase completion draft so this vision doc now also shows the major work clusters still needed to reach the long-term product, including Browser, node/wire, part, build-contract, Jake-mode, and cleanup lanes
+1. 2026-03-11 12:34: Rebuilt this file as the canonical big-picture vision and decision-check surface so the execution roadmap can stay sequencing-focused while major Codex decision questions can be checked against one stable north-star doc
 
 ### Purpose
 
@@ -125,8 +128,36 @@ not the other way around
 
 - The Browser should grow toward a real project-content hierarchy, not remain a dressed-up flat parts list.
 - The long-range direction is:
-  - `Project File -> Assemblies -> Components / Objects -> Parts`
+  - `Project File -> Root Assembly -> Sub Assemblies -> Components -> Objects -> Parts`
+  - with later room for `Sub Part` when the lower-level build contract supports it honestly
 - First passes may stay simpler, but they should not block that direction.
+- The Browser should keep two distinct surfaces:
+  - `Graph Documents`
+    - authoring identity
+    - build/save/export controls
+    - editor routing
+    - graph-scoped rebuild impact trace of which downstream chunks now need rebuild
+  - `Content`
+    - published project structure
+    - published build-chunk hierarchy
+    - chunk-scoped rebuild and policy surface
+    - later assembly/sub-assembly organization
+- `Content` should not read like a second graph list.
+- The first-pass content hierarchy should stay honest and small:
+  - `Assembly -> Component -> Object`
+  - with `Part` added only when the publish contract and worker/runtime can represent it truthfully as a real independent build chunk.
+- Long-term, every `Content` row should become a status/loading bar, not just a static label row.
+- That bar should represent the published entity itself:
+  - `Root Assembly` / `Sub Assembly`
+  - `Component`
+  - `Object`
+  - later `Part`
+- Published entities should keep one stable id family per entity type:
+  - `assemblyId`
+  - `componentId`
+  - `objectId`
+  - later `partId`
+- Root/sub differences should come from hierarchy relationships, not different id kinds.
 
 #### 4. Explicit Output Handoff
 
@@ -134,12 +165,54 @@ not the other way around
 - `OutputPreview` is the first pass of the graph-owned output declaration surface.
 - It should keep pointing toward graph-owned published outputs instead of staying a vague viewer-only trick forever.
 - Output structure should become clearer over time, not more implicit.
+- `OutputPreview` should evolve from a slot-only seam into a structured publish payload.
+- The Browser should not infer project hierarchy from final meshes alone.
+- The intended handoff direction is:
+  - graph-owned authored output declaration
+  - published `Component -> Object -> later Part` structure
+  - project-owned assembly placement above that
+- First-pass simplification is still valid:
+  - `1 graph -> 1 OutputPreview -> 1 published Component`
+- The longer-range direction should still leave room for:
+  - one graph publishing multiple components
+  - assembly-level objects that may later live without a component wrapper
 
 #### 5. Build And View Are Different Systems
 
 - Build/generate controls are not the same thing as visibility/material/presentation controls.
 - Viewer-only changes should remain rebuild-free whenever possible.
 - Geometry truth should stay out of viewer presentation state.
+- `Content` rows are part of the build/generate surface, not just passive viewer-selection rows.
+- Replicad is the current worker-side geometry engine.
+- Because Replicad is not reliable enough for one giant opaque rebuild flow, ParaHook should expose chunked rebuild control instead of pretending one global `Build` button is always the right model.
+- That is one reason row-level policy, sibling chunk independence, and later parent `SEQ / ALL` execution mode matter in the long-range product shape.
+- The intended end state is:
+  - on load, all published content rows default to `Live`
+  - connecting a wire into `OutputPreview` should update published content without forcing a manual top-level `Build` click
+  - each row can be set to `Live`, `Release`, or `Manual`
+  - parent rows can push policy downward into child rows
+  - child overrides are allowed and must be reflected back upward in the parent aggregate state
+- Parent rows may later also need an explicit execution-mode control:
+  - `SEQ` = run child rebuilds one-by-one in current `Content` order
+  - `ALL` = run child rebuilds together
+- Example policy rule:
+  - if a `Component` is switched to `Live`, its child `Object` rows become `Live`
+  - if one child is later switched back to `Release`, the parent remains a mixed aggregate rather than erasing that child override
+- Clicking a `Content` row should rebuild that row's published branch.
+- Sibling rows should become true independent build chunks in worker/runtime rather than graph-scoped UI abstractions.
+- This means row interaction in `Content` ultimately becomes execution-first, while `Graph Documents` remains the authoring/document surface.
+- Source traceability should stay out of the main row text:
+  - hierarchy lines and indentation should carry the tree context
+  - `view in graph` and right-click should carry secondary source/reveal actions
+  - double click does not need to be part of the long-term `Content` interaction model
+- Policy truth and execution truth should stay separate:
+  - policy truth lives in project/app state
+  - execution truth lives in worker/runtime
+  - the Browser renders that truth instead of inventing it locally
+- Truthful bars require revision comparison, not decorative fill:
+  - `authoredRevision`
+  - `publishedRevision`
+  - `acceptedBuildRevision`
 
 #### 6. Shared Services, Local Ownership
 
@@ -181,12 +254,33 @@ not the other way around
 - Worker request/result contracts are graph-native.
 - Compile/build/preview memory is routed by explicit identity.
 - Viewer presentation reads from explicit project/graph output surfaces instead of ad hoc global buckets.
+- Published build-chunk identity is explicit enough that row-level policy and row-level execution truth can attach honestly to assemblies, components, objects, and later parts.
+- Feature Stack should not be permanently trapped as embedded part-node data.
+- The long-range architecture should leave room for Feature Stack to become a first-class graph/composite authoring object later rather than assuming part-node-internal ownership is the final shape.
 
 #### User Experience Shape
 
 - The user can browse project content, open graphs, edit nodes, inspect outputs, and build deterministic geometry from one coherent workspace.
 - The Browser, editor, worker, and viewer feel like coordinated parts of one system rather than separate modes stitched together.
 - The graph-native path becomes good enough that the old legacy path can be removed.
+- Browser content interaction should evolve toward a build-surface model:
+  - row click = rebuild that published row/branch
+  - row policy control = set `Live / Release / Manual`
+  - parent rows can drive children
+  - parent rows can choose `SEQ / ALL` child execution mode
+  - child overrides remain visible and meaningful
+- authoring jumps should still exist, but not by forcing `Content` to behave like a second graph list.
+- graph/source context should come from explicit secondary actions such as `view in graph` and right-click surfaces, not by cluttering the main row label area.
+- Browser rows should stay calm, compact, and one-line by default.
+- Louder fill bars and stronger status surfaces should appear only when the underlying row meaning is clear:
+  - the bar is the published row itself
+  - the fill/state is tied to row-level build/update truth
+  - the control language is `Live / Release / Manual`, not generic selection chrome
+- The staged path should stay honest:
+  - first, stronger bars on `Assembly` and `Component`
+  - next, lighter but real `Object` rows
+  - next lane, make `Part` rebuilds real in the publish contract and worker/runtime
+  - then add full `Part` rows and let `Object` settle into the clearer parent/orchestration role
 
 ### Decision Filter
 
@@ -206,6 +300,8 @@ Be cautious when an option:
 - treats viewer presentation state as geometry truth
 - conflates build state with visibility state
 - locks the Browser into a flat parts-list mental model
+- turns `Content` into a duplicate `Graph Documents` list
+- makes `Content` row bars look interactive without giving them real row-level build truth and policy semantics
 - solves a generic node/editor problem with a custom one-off UI branch
 - deepens `BoxParams` or `Legacy` mode as if they are the long-term core
 

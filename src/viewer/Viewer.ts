@@ -2,14 +2,18 @@ import {
   ACESFilmicToneMapping,
   AmbientLight,
   AxesHelper,
+  Box3,
   BoxGeometry,
+  BufferGeometry,
   Clock,
   Color,
   DirectionalLight,
+  Float32BufferAttribute,
   Group,
-  GridHelper,
   HemisphereLight,
   Light,
+  LineBasicMaterial,
+  LineSegments,
   MathUtils,
   Mesh,
   MeshStandardMaterial,
@@ -24,6 +28,9 @@ import {
   WebGLRenderer,
 } from 'three'
 import type { TransformControlsMode } from 'three/examples/jsm/controls/TransformControls.js'
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
+import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js'
+import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js'
 import type { AssembleResult, ViewerRenderablePart } from '../shared/buildTypes'
 import {
   DEFAULT_VIEW_SETTINGS,
@@ -32,18 +39,82 @@ import {
   type MaterialPreset,
   type ViewSettings,
 } from '../shared/viewSettingsTypes'
+import type { ReferenceLoadableItem } from '../app/references/referenceManifest'
+import type { ReferenceTransformOverride } from '../app/references/referenceManifest'
+import { appendConsoleEntry } from '../app/console/useConsoleStore'
+import { loadStepReferenceObject } from './stepReferenceLoader'
 import { TransformGizmo } from './gizmo/TransformGizmo'
 import { AxisGizmo, type SnapDirection } from './overlay/AxisGizmo'
 import { CameraController, type CameraPreset } from './scene/CameraController'
 
 type GizmoSpace = 'local' | 'world'
 type MaterialPresetId = string
+type ReferenceTransformBase = ReferenceTransformOverride
+type ReferenceTransformSession = {
+  referenceId: string
+  mode: TransformControlsMode
+  space: GizmoSpace
+}
 
 const DEFAULT_BACKGROUND = '#0b0b0f'
 const STUDIO_BACKGROUND = '#151922'
+const GRID_SIZE = 300
+const GRID_MINOR_STEP = 1
+const GRID_MAJOR_STEP = 10
+const GRID_DOUBLE_MAJOR_STEP = 50
 
 const clamp = (value: number, min: number, max: number): number =>
   Math.min(max, Math.max(min, value))
+
+const isMultipleOf = (value: number, step: number): boolean => Math.abs(value % step) < 1e-6
+
+const shouldExcludeGridCoordinate = (coordinate: number, excludedSteps: readonly number[]): boolean =>
+  excludedSteps.some((step) => isMultipleOf(coordinate, step))
+
+const getGridCoordinates = (size: number, step: number): number[] => {
+  const halfSize = size / 2
+  const coordinates = new Set<number>([0])
+
+  for (let coordinate = step; coordinate <= halfSize + 1e-6; coordinate += step) {
+    const normalizedCoordinate = Math.round(coordinate * 1_000) / 1_000
+    coordinates.add(normalizedCoordinate)
+    coordinates.add(-normalizedCoordinate)
+  }
+
+  return [...coordinates].sort((left, right) => left - right)
+}
+
+const createGridLayer = (
+  size: number,
+  step: number,
+  color: number,
+  opacity: number,
+  excludedSteps: readonly number[] = [],
+): LineSegments => {
+  const halfSize = size / 2
+  const positions: number[] = []
+
+  for (const coordinate of getGridCoordinates(size, step)) {
+    if (shouldExcludeGridCoordinate(coordinate, excludedSteps)) {
+      continue
+    }
+
+    positions.push(-halfSize, 0, coordinate, halfSize, 0, coordinate)
+    positions.push(coordinate, 0, -halfSize, coordinate, 0, halfSize)
+  }
+
+  const geometry = new BufferGeometry()
+  geometry.setAttribute('position', new Float32BufferAttribute(positions, 3))
+
+  const material = new LineBasicMaterial({
+    color,
+    transparent: true,
+    opacity,
+    toneMapped: false,
+  })
+
+  return new LineSegments(geometry, material)
+}
 
 const cloneViewSettings = (settings: ViewSettings): ViewSettings => ({
   ...settings,
@@ -107,7 +178,10 @@ export class Viewer {
   private readonly renderer: WebGLRenderer
   private readonly clock: Clock
   private readonly rootGroup: Group
-  private readonly gridHelper: GridHelper
+  private readonly gridGroup: Group
+  private readonly minorGridHelper: LineSegments
+  private readonly majorGridHelper: LineSegments
+  private readonly doubleMajorGridHelper: LineSegments
   private readonly axesHelper: AxesHelper
   private readonly cameraController: CameraController
   private readonly transformGizmo: TransformGizmo
@@ -116,6 +190,21 @@ export class Viewer {
   private axisOverlayEnabled = true
   private frameId: number | null = null
   private readonly partMeshes = new Map<string, Mesh>()
+  private readonly referenceGroup: Group
+  private readonly referenceObjects = new Map<string, Object3D>()
+  private readonly referenceLoadPromises = new Map<string, Promise<void>>()
+  private readonly removedReferenceIds = new Set<string>()
+  private activeReferenceTransformReferenceId: string | null = null
+  private cameraLockedReferenceId: string | null = null
+  private cameraLockedReferenceCenter: Vector3 | null = null
+  private cameraLockedReferenceMaxDim: number | null = null
+  private cameraLockedReferenceTargetOffset: Vector3 | null = null
+  private onReferenceTransformChange:
+    | ((referenceId: string, transform: ReferenceTransformOverride) => void)
+    | null = null
+  private onReferenceTransformExit: (() => void) | null = null
+  private onReferenceTransformModeChange: ((mode: TransformControlsMode) => void) | null = null
+  private onReferenceTransformSpaceChange: ((space: GizmoSpace) => void) | null = null
   private assembledMesh: Mesh | null = null
   private selectedPartKey: string | null = null
   private gizmoEnabled = false
@@ -147,8 +236,33 @@ export class Viewer {
     this.renderer.domElement.style.height = '100%'
     this.container.appendChild(this.renderer.domElement)
 
-    this.gridHelper = new GridHelper(10, 20, 0xc8c8c8, 0xe1e1e1)
-    this.scene.add(this.gridHelper)
+    this.gridGroup = new Group()
+    this.minorGridHelper = createGridLayer(
+      GRID_SIZE,
+      GRID_MINOR_STEP,
+      0xffffff,
+      0.1,
+      [GRID_MAJOR_STEP, GRID_DOUBLE_MAJOR_STEP],
+    )
+    this.majorGridHelper = createGridLayer(
+      GRID_SIZE,
+      GRID_MAJOR_STEP,
+      0xffffff,
+      0.3,
+      [GRID_DOUBLE_MAJOR_STEP],
+    )
+    this.doubleMajorGridHelper = createGridLayer(
+      GRID_SIZE,
+      GRID_DOUBLE_MAJOR_STEP,
+      0xffffff,
+      1,
+    )
+    this.majorGridHelper.position.y = 0.001
+    this.doubleMajorGridHelper.position.y = 0.002
+    this.gridGroup.add(this.minorGridHelper)
+    this.gridGroup.add(this.majorGridHelper)
+    this.gridGroup.add(this.doubleMajorGridHelper)
+    this.scene.add(this.gridGroup)
 
     this.axesHelper = new AxesHelper(1.5)
     this.axesHelper.visible = false
@@ -156,6 +270,8 @@ export class Viewer {
 
     this.rootGroup = new Group()
     this.scene.add(this.rootGroup)
+    this.referenceGroup = new Group()
+    this.rootGroup.add(this.referenceGroup)
 
     this.cameraController = new CameraController(this.camera, this.renderer.domElement)
     this.transformGizmo = new TransformGizmo(
@@ -163,9 +279,10 @@ export class Viewer {
       this.renderer.domElement,
       this.cameraController.getControls(),
     )
+    this.transformGizmo.setOnObjectChange(this.handleReferenceTransformObjectChange)
     this.transformGizmo.setMode(this.gizmoMode)
     this.transformGizmo.setSpace(this.gizmoSpace)
-    this.transformGizmo.setEnabled(this.gizmoEnabled)
+    this.syncGizmoEnabledState()
     this.scene.add(this.transformGizmo.getHelper())
 
     this.resizeObserver = new ResizeObserver(this.handleResize)
@@ -239,7 +356,7 @@ export class Viewer {
     this.currentViewSettings = cloneViewSettings(settings)
 
     this.cameraController.setEnabled(settings.orbitEnabled)
-    this.gridHelper.visible = settings.gridVisible
+    this.gridGroup.visible = settings.gridVisible
     this.axesHelper.visible = settings.axesVisible
 
     this.renderer.shadowMap.enabled = settings.shadowsEnabled
@@ -265,6 +382,162 @@ export class Viewer {
   public snapCameraToDirection(dir: SnapDirection): void {
     const direction = this.mapSnapDirectionToVector(dir)
     this.cameraController.snapToDirection(direction)
+    appendConsoleEntry({
+      layer: 'View',
+      text: `Snap camera: ${dir}`,
+      source: 'viewer',
+      severity: 'info',
+    })
+  }
+
+  public async ensureReferenceLoaded(reference: ReferenceLoadableItem): Promise<void> {
+    this.removedReferenceIds.delete(reference.referenceId)
+    if (this.referenceObjects.has(reference.referenceId)) {
+      return
+    }
+    const existingPromise = this.referenceLoadPromises.get(reference.referenceId)
+    if (existingPromise !== undefined) {
+      return existingPromise
+    }
+
+    const loadPromise = this.loadReferenceObject(reference)
+      .then((object) => {
+        if (this.removedReferenceIds.has(reference.referenceId)) {
+          this.disposeObjectTree(object)
+          return
+        }
+        object.name = reference.referenceId
+        this.applyReferenceObjectDefaults(object)
+        this.referenceObjects.set(reference.referenceId, object)
+      })
+      .finally(() => {
+        this.referenceLoadPromises.delete(reference.referenceId)
+      })
+    this.referenceLoadPromises.set(reference.referenceId, loadPromise)
+    return loadPromise
+  }
+
+  public setReferenceVisible(referenceId: string, visible: boolean): void {
+    const object = this.referenceObjects.get(referenceId)
+    if (!visible && this.activeReferenceTransformReferenceId === referenceId) {
+      this.requestReferenceTransformExit()
+    }
+    if (!visible && this.cameraLockedReferenceId === referenceId) {
+      this.cameraLockedReferenceId = null
+      this.cameraLockedReferenceCenter = null
+      this.cameraLockedReferenceMaxDim = null
+      this.cameraLockedReferenceTargetOffset = null
+    }
+    if (object === undefined) {
+      return
+    }
+    if (visible) {
+      if (object.parent !== this.referenceGroup) {
+        this.referenceGroup.add(object)
+      }
+      object.visible = true
+      this.refreshGizmoAttachment()
+      return
+    }
+    if (object.parent === this.referenceGroup) {
+      this.referenceGroup.remove(object)
+    }
+    object.visible = false
+    this.refreshGizmoAttachment()
+  }
+
+  public removeReference(referenceId: string): void {
+    this.removedReferenceIds.add(referenceId)
+    if (this.activeReferenceTransformReferenceId === referenceId) {
+      this.requestReferenceTransformExit()
+    }
+    if (this.cameraLockedReferenceId === referenceId) {
+      this.cameraLockedReferenceId = null
+      this.cameraLockedReferenceCenter = null
+      this.cameraLockedReferenceMaxDim = null
+      this.cameraLockedReferenceTargetOffset = null
+    }
+    const object = this.referenceObjects.get(referenceId)
+    if (object === undefined) {
+      return
+    }
+    if (object.parent === this.referenceGroup) {
+      this.referenceGroup.remove(object)
+    }
+    this.disposeObjectTree(object)
+    this.referenceObjects.delete(referenceId)
+    this.refreshGizmoAttachment()
+  }
+
+  public setReferenceTransformSession(session: ReferenceTransformSession | null): void {
+    this.activeReferenceTransformReferenceId = session?.referenceId ?? null
+    if (session !== null) {
+      this.gizmoMode = session.mode
+      this.gizmoSpace = session.space
+      this.transformGizmo.setMode(session.mode)
+      this.transformGizmo.setSpace(session.space)
+    }
+    this.syncGizmoEnabledState()
+    this.refreshGizmoAttachment()
+  }
+
+  public setReferenceCameraLock(referenceId: string | null): void {
+    this.cameraLockedReferenceId = referenceId
+    if (referenceId !== null) {
+      const object = this.referenceObjects.get(referenceId)
+      if (object !== undefined) {
+        const metrics = this.readReferenceBoundsMetrics(object)
+        const scaleAnchor = this.readReferenceScaleAnchor(object)
+        this.cameraLockedReferenceCenter = metrics?.center ?? null
+        this.cameraLockedReferenceMaxDim = metrics?.maxDim ?? null
+        this.cameraLockedReferenceTargetOffset = this.cameraController
+          .getControls()
+          .target.clone()
+          .sub(scaleAnchor)
+        return
+      }
+      this.cameraLockedReferenceCenter = null
+      this.cameraLockedReferenceMaxDim = null
+      this.cameraLockedReferenceTargetOffset = null
+      return
+    }
+    this.cameraLockedReferenceCenter = null
+    this.cameraLockedReferenceMaxDim = null
+    this.cameraLockedReferenceTargetOffset = null
+  }
+
+  public setReferenceTransformOverride(
+    referenceId: string,
+    transformOverride: ReferenceTransformOverride | null,
+  ): void {
+    const object = this.referenceObjects.get(referenceId)
+    if (object === undefined) {
+      return
+    }
+    this.applyReferenceTransformOverride(object, transformOverride)
+    if (this.cameraLockedReferenceId === referenceId) {
+      this.syncLockedReferenceCamera(object)
+    }
+  }
+
+  public setOnReferenceTransformChange(
+    handler: ((referenceId: string, transform: ReferenceTransformOverride) => void) | null,
+  ): void {
+    this.onReferenceTransformChange = handler
+  }
+
+  public setOnReferenceTransformExit(handler: (() => void) | null): void {
+    this.onReferenceTransformExit = handler
+  }
+
+  public setOnReferenceTransformModeChange(
+    handler: ((mode: TransformControlsMode) => void) | null,
+  ): void {
+    this.onReferenceTransformModeChange = handler
+  }
+
+  public setOnReferenceTransformSpaceChange(handler: ((space: GizmoSpace) => void) | null): void {
+    this.onReferenceTransformSpaceChange = handler
   }
 
   public beginTemporaryOrbitDrag(startClientX: number, startClientY: number): void {
@@ -281,6 +554,12 @@ export class Viewer {
 
   public frameAll(): void {
     this.cameraController.frameAll(this.rootGroup)
+    appendConsoleEntry({
+      layer: 'View',
+      text: 'Frame all',
+      source: 'viewer',
+      severity: 'info',
+    })
   }
 
   public frameSelected(partId: string | null): void {
@@ -294,17 +573,98 @@ export class Viewer {
       return
     }
     this.cameraController.frameObject(obj)
+    appendConsoleEntry({
+      layer: 'View',
+      text: `Zoom selected: ${partId}`,
+      source: 'viewer',
+      severity: 'info',
+    })
+  }
+
+  public frameReference(referenceId: string): void {
+    const obj = this.referenceObjects.get(referenceId)
+    if (obj === undefined) {
+      this.frameAll()
+      return
+    }
+    this.cameraController.frameObject(obj)
+    appendConsoleEntry({
+      layer: 'View',
+      text: `Zoom reference: ${referenceId}`,
+      source: 'viewer',
+      severity: 'info',
+    })
   }
 
   public setGizmoEnabled(enabled: boolean): void {
     this.gizmoEnabled = enabled
-    this.transformGizmo.setEnabled(enabled)
+    this.syncGizmoEnabledState()
     this.refreshGizmoAttachment()
   }
 
   public setGizmoMode(mode: TransformControlsMode): void {
     this.gizmoMode = mode
     this.transformGizmo.setMode(mode)
+  }
+
+  public completeReferenceTransformDrag(): void {
+    this.transformGizmo.completeActiveDrag()
+  }
+
+  public cancelReferenceTransformDrag(): void {
+    this.transformGizmo.cancelActiveDrag()
+  }
+
+  public clearReferenceTransformHandle(): void {
+    this.transformGizmo.clearActiveHandle()
+  }
+
+  public activateTranslateCenterHandle(): void {
+    this.gizmoMode = 'translate'
+    const startedDrag = this.transformGizmo.beginTranslateCenterHandleDragFromGizmoCenter()
+    if (!startedDrag) {
+      this.transformGizmo.activateHandle('translate', 'XYZ')
+    }
+  }
+
+  public activateTranslateHandle(axis: 'X' | 'Y' | 'Z' | 'XYZ'): void {
+    this.gizmoMode = 'translate'
+    const startedDrag = this.transformGizmo.beginHandleDrag('translate', axis)
+    if (!startedDrag) {
+      this.transformGizmo.activateHandle('translate', axis)
+    }
+  }
+
+  public activateRotateHandle(axis: 'X' | 'Y' | 'Z'): void {
+    this.gizmoMode = 'rotate'
+    const startedDrag = this.transformGizmo.beginHandleDrag('rotate', axis)
+    if (!startedDrag) {
+      this.transformGizmo.activateHandle('rotate', axis)
+    }
+  }
+
+  public activateScaleHandle(axis: 'X' | 'Y' | 'Z'): void {
+    this.gizmoMode = 'scale'
+    const startedDrag = this.transformGizmo.beginHandleDrag('scale', axis)
+    if (!startedDrag) {
+      this.transformGizmo.activateHandle('scale', axis)
+    }
+  }
+
+  public activateRotateCenterHandle(): void {
+    this.gizmoMode = 'rotate'
+    const startedDrag = this.transformGizmo.beginHandleDrag('rotate', 'E')
+    if (!startedDrag) {
+      this.transformGizmo.activateHandle('rotate', 'E')
+    }
+  }
+
+  public activateScaleCenterHandle(): void {
+    this.gizmoMode = 'scale'
+    const startedDrag = this.transformGizmo.beginHandleDrag('scale', 'XYZ')
+    if (!startedDrag) {
+      this.transformGizmo.activateHandle('scale', 'XYZ')
+    }
   }
 
   public setGizmoSpace(space: GizmoSpace): void {
@@ -353,6 +713,7 @@ export class Viewer {
     window.removeEventListener('keydown', this.handleKeyDown)
 
     this.clearPartMeshes()
+    this.clearReferenceObjects()
     this.clearAssembledMesh()
     this.clearAllLights()
 
@@ -624,6 +985,16 @@ export class Viewer {
       this.assembledMesh.castShadow = this.currentViewSettings.shadowsEnabled
       this.assembledMesh.receiveShadow = this.currentViewSettings.shadowsEnabled
     }
+
+    for (const referenceObject of this.referenceObjects.values()) {
+      referenceObject.traverse((child) => {
+        if (!(child instanceof Mesh)) {
+          return
+        }
+        child.castShadow = this.currentViewSettings.shadowsEnabled
+        child.receiveShadow = this.currentViewSettings.shadowsEnabled
+      })
+    }
   }
 
   private removeLight(id: string): void {
@@ -658,6 +1029,18 @@ export class Viewer {
     this.partMeshes.clear()
   }
 
+  private clearReferenceObjects(): void {
+    for (const object of this.referenceObjects.values()) {
+      if (object.parent === this.referenceGroup) {
+        this.referenceGroup.remove(object)
+      }
+      this.disposeObjectTree(object)
+    }
+    this.referenceObjects.clear()
+    this.referenceLoadPromises.clear()
+    this.removedReferenceIds.clear()
+  }
+
   private clearAssembledMesh(): void {
     if (this.assembledMesh === null) {
       return
@@ -668,6 +1051,194 @@ export class Viewer {
     this.assembledMesh = null
   }
 
+  private applyReferenceObjectDefaults(object: Object3D): void {
+    object.visible = false
+    object.traverse((child) => {
+      if (!(child instanceof Mesh)) {
+        return
+      }
+      if (Array.isArray(child.material)) {
+        child.material = child.material.map((material) =>
+          material instanceof MeshStandardMaterial
+            ? material
+            : new MeshStandardMaterial({ color: '#7f8fae' }),
+        )
+      } else if (!(child.material instanceof MeshStandardMaterial)) {
+        child.material = new MeshStandardMaterial({ color: '#7f8fae' })
+      }
+      child.castShadow = this.currentViewSettings.shadowsEnabled
+      child.receiveShadow = this.currentViewSettings.shadowsEnabled
+    })
+  }
+
+  private createReferencePivot(reference: ReferenceLoadableItem, object: Object3D): Object3D {
+    const transform = reference.displayTransform
+    if (transform?.centerUnderPivot) {
+      this.centerObjectUnderPivot(object)
+    }
+
+    const scale = transform?.scale
+    if (scale !== undefined) {
+      object.scale.setScalar(scale)
+    }
+
+    object.rotation.set(
+      MathUtils.degToRad(transform?.rotationDeg?.x ?? 0),
+      MathUtils.degToRad(transform?.rotationDeg?.y ?? 0),
+      MathUtils.degToRad(transform?.rotationDeg?.z ?? 0),
+    )
+
+    const pivot = new Group()
+    pivot.name = `${reference.referenceId}:pivot`
+    pivot.position.set(
+      transform?.offset?.x ?? 0,
+      transform?.offset?.y ?? 0,
+      transform?.offset?.z ?? 0,
+    )
+    pivot.userData.referenceTransformBase = {
+      position: {
+        x: transform?.offset?.x ?? 0,
+        y: transform?.offset?.y ?? 0,
+        z: transform?.offset?.z ?? 0,
+      },
+      rotationDeg: { x: 0, y: 0, z: 0 },
+      scale: { x: 1, y: 1, z: 1 },
+    } satisfies ReferenceTransformBase
+    this.applyReferenceTransformOverride(pivot, reference.transformOverride ?? null)
+    pivot.add(object)
+    return pivot
+  }
+
+  private applyReferenceTransformOverride(
+    object: Object3D,
+    transformOverride: ReferenceTransformOverride | null,
+  ): void {
+    const baseTransform = this.getReferenceTransformBase(object)
+    object.position.set(
+      baseTransform.position.x + (transformOverride?.position.x ?? 0),
+      baseTransform.position.y + (transformOverride?.position.y ?? 0),
+      baseTransform.position.z + (transformOverride?.position.z ?? 0),
+    )
+    object.rotation.set(
+      MathUtils.degToRad(baseTransform.rotationDeg.x + (transformOverride?.rotationDeg.x ?? 0)),
+      MathUtils.degToRad(baseTransform.rotationDeg.y + (transformOverride?.rotationDeg.y ?? 0)),
+      MathUtils.degToRad(baseTransform.rotationDeg.z + (transformOverride?.rotationDeg.z ?? 0)),
+    )
+    object.scale.set(
+      baseTransform.scale.x * (transformOverride?.scale.x ?? 1),
+      baseTransform.scale.y * (transformOverride?.scale.y ?? 1),
+      baseTransform.scale.z * (transformOverride?.scale.z ?? 1),
+    )
+  }
+
+  private getReferenceTransformBase(object: Object3D): ReferenceTransformBase {
+    const baseTransform = object.userData.referenceTransformBase as ReferenceTransformBase | undefined
+    return (
+      baseTransform ?? {
+        position: { x: 0, y: 0, z: 0 },
+        rotationDeg: { x: 0, y: 0, z: 0 },
+        scale: { x: 1, y: 1, z: 1 },
+      }
+    )
+  }
+
+  private readReferenceTransformOverride(object: Object3D): ReferenceTransformOverride {
+    const baseTransform = this.getReferenceTransformBase(object)
+    return {
+      position: {
+        x: object.position.x - baseTransform.position.x,
+        y: object.position.y - baseTransform.position.y,
+        z: object.position.z - baseTransform.position.z,
+      },
+      rotationDeg: {
+        x: MathUtils.radToDeg(object.rotation.x) - baseTransform.rotationDeg.x,
+        y: MathUtils.radToDeg(object.rotation.y) - baseTransform.rotationDeg.y,
+        z: MathUtils.radToDeg(object.rotation.z) - baseTransform.rotationDeg.z,
+      },
+      scale: {
+        x: object.scale.x / baseTransform.scale.x,
+        y: object.scale.y / baseTransform.scale.y,
+        z: object.scale.z / baseTransform.scale.z,
+      },
+    }
+  }
+
+  private centerObjectUnderPivot(object: Object3D): void {
+    object.updateMatrixWorld(true)
+    const bounds = new Box3().setFromObject(object)
+    if (bounds.isEmpty()) {
+      return
+    }
+    const center = bounds.getCenter(new Vector3())
+    object.position.sub(center)
+    object.position.y -= bounds.min.y - center.y
+  }
+
+  private async loadReferenceObject(reference: ReferenceLoadableItem): Promise<Object3D> {
+    if (reference.fileType === 'glb') {
+      const loader = new GLTFLoader()
+      return new Promise<Object3D>((resolve, reject) => {
+        loader.load(
+          reference.assetPath,
+          (result) => resolve(this.createReferencePivot(reference, result.scene)),
+          undefined,
+          reject,
+        )
+      })
+    }
+
+    if (reference.fileType === 'obj') {
+      const loader = new OBJLoader()
+      return new Promise<Object3D>((resolve, reject) => {
+        loader.load(
+          reference.assetPath,
+          (object) => resolve(this.createReferencePivot(reference, object)),
+          undefined,
+          reject,
+        )
+      })
+    }
+
+    if (reference.fileType === 'stl') {
+      const loader = new STLLoader()
+      return new Promise<Object3D>((resolve, reject) => {
+        loader.load(
+          reference.assetPath,
+          (geometry) => {
+            const mesh = new Mesh(
+              geometry,
+              new MeshStandardMaterial({
+                color: '#7f8fae',
+                metalness: 0.08,
+                roughness: 0.86,
+              }),
+            )
+            resolve(this.createReferencePivot(reference, mesh))
+          },
+          undefined,
+          reject,
+        )
+      })
+    }
+
+    const object = await loadStepReferenceObject(reference)
+    return this.createReferencePivot(reference, object)
+  }
+
+  private disposeObjectTree(object: Object3D): void {
+    object.traverse((child) => {
+      if (!(child instanceof Mesh)) {
+        return
+      }
+      child.geometry.dispose()
+      if (Array.isArray(child.material)) {
+        child.material.forEach((material) => material.dispose())
+        return
+      }
+      child.material.dispose()
+    })
+  }
+
   private refreshSelectionStyling(): void {
     for (const [partKeyStr, mesh] of this.partMeshes.entries()) {
       mesh.scale.setScalar(partKeyStr === this.selectedPartKey ? 1.05 : 1)
@@ -675,6 +1246,16 @@ export class Viewer {
   }
 
   private refreshGizmoAttachment(): void {
+    if (this.activeReferenceTransformReferenceId !== null) {
+      const referenceObject = this.referenceObjects.get(this.activeReferenceTransformReferenceId)
+      if (referenceObject === undefined || !referenceObject.visible) {
+        this.transformGizmo.detach()
+        return
+      }
+      this.transformGizmo.attach(referenceObject)
+      return
+    }
+
     if (!this.gizmoEnabled || this.selectedPartKey === null) {
       this.transformGizmo.detach()
       return
@@ -687,6 +1268,89 @@ export class Viewer {
     }
 
     this.transformGizmo.attach(selected)
+  }
+
+  private syncGizmoEnabledState(): void {
+    this.transformGizmo.setEnabled(this.gizmoEnabled || this.activeReferenceTransformReferenceId !== null)
+  }
+
+  private requestReferenceTransformExit(): void {
+    if (this.activeReferenceTransformReferenceId === null) {
+      return
+    }
+    this.activeReferenceTransformReferenceId = null
+    this.syncGizmoEnabledState()
+    this.refreshGizmoAttachment()
+    this.onReferenceTransformExit?.()
+  }
+
+  private readonly handleReferenceTransformObjectChange = (object: Object3D): void => {
+    if (this.activeReferenceTransformReferenceId === null) {
+      return
+    }
+    const activeObject = this.referenceObjects.get(this.activeReferenceTransformReferenceId)
+    if (activeObject === undefined || activeObject !== object) {
+      return
+    }
+    this.onReferenceTransformChange?.(
+      this.activeReferenceTransformReferenceId,
+      this.readReferenceTransformOverride(object),
+    )
+    if (this.cameraLockedReferenceId === this.activeReferenceTransformReferenceId) {
+      this.syncLockedReferenceCamera(object)
+    }
+  }
+
+  private syncLockedReferenceCamera(object: Object3D): void {
+    if (this.gizmoMode === 'translate') {
+      this.cameraLockedReferenceCenter = this.cameraController.trackObject(
+        object,
+        this.cameraLockedReferenceCenter,
+      )
+      const metrics = this.readReferenceBoundsMetrics(object)
+      this.cameraLockedReferenceMaxDim = metrics?.maxDim ?? null
+      return
+    }
+    if (this.gizmoMode === 'scale') {
+      const scaleAnchor = this.readReferenceScaleAnchor(object)
+      const scaleTarget =
+        this.cameraLockedReferenceTargetOffset === null
+          ? scaleAnchor
+          : scaleAnchor.clone().add(this.cameraLockedReferenceTargetOffset)
+      const nextMetrics = this.cameraController.trackScaledObject(
+        object,
+        scaleAnchor,
+        this.cameraLockedReferenceMaxDim,
+        scaleTarget,
+      )
+      const boundsMetrics = this.readReferenceBoundsMetrics(object)
+      this.cameraLockedReferenceCenter = boundsMetrics?.center ?? nextMetrics.center
+      this.cameraLockedReferenceMaxDim = nextMetrics.maxDim
+      return
+    }
+    this.cameraController.frameObject(object)
+    const metrics = this.readReferenceBoundsMetrics(object)
+    this.cameraLockedReferenceCenter = metrics?.center ?? null
+    this.cameraLockedReferenceMaxDim = metrics?.maxDim ?? null
+  }
+
+  private readReferenceBoundsMetrics(
+    object: Object3D,
+  ): { center: Vector3; maxDim: number } | null {
+    const bounds = new Box3().setFromObject(object, true)
+    if (bounds.isEmpty()) {
+      return null
+    }
+    const size = bounds.getSize(new Vector3())
+    const center = bounds.getCenter(new Vector3())
+    return {
+      center,
+      maxDim: Math.max(size.x, size.y, size.z, 0.001),
+    }
+  }
+
+  private readReferenceScaleAnchor(object: Object3D): Vector3 {
+    return object.getWorldPosition(new Vector3())
   }
 
   private syncAxisOverlay(): void {
@@ -715,6 +1379,9 @@ export class Viewer {
   }
 
   private readonly handleKeyDown = (event: KeyboardEvent): void => {
+    if (event.defaultPrevented) {
+      return
+    }
     const target = event.target as HTMLElement | null
     if (
       target !== null &&
@@ -727,27 +1394,46 @@ export class Viewer {
     }
 
     const key = event.key.toLowerCase()
+    if (
+      this.activeReferenceTransformReferenceId !== null &&
+      (key === 'w' || key === 'e' || key === 'r')
+    ) {
+      return
+    }
     if (key === 'w') {
       event.preventDefault()
       this.setGizmoMode('translate')
+      if (this.activeReferenceTransformReferenceId !== null) {
+        this.onReferenceTransformModeChange?.('translate')
+      }
       return
     }
     if (key === 'e') {
       event.preventDefault()
       this.setGizmoMode('rotate')
+      if (this.activeReferenceTransformReferenceId !== null) {
+        this.onReferenceTransformModeChange?.('rotate')
+      }
       return
     }
     if (key === 'r') {
       event.preventDefault()
       this.setGizmoMode('scale')
+      if (this.activeReferenceTransformReferenceId !== null) {
+        this.onReferenceTransformModeChange?.('scale')
+      }
       return
     }
     if (key === 'q') {
       event.preventDefault()
-      this.setGizmoSpace(this.gizmoSpace === 'local' ? 'world' : 'local')
+      const nextSpace = this.gizmoSpace === 'local' ? 'world' : 'local'
+      this.setGizmoSpace(nextSpace)
+      if (this.activeReferenceTransformReferenceId !== null) {
+        this.onReferenceTransformSpaceChange?.(nextSpace)
+      }
       return
     }
-    if (key === 'f') {
+    if (key === 'f' || key === 'z') {
       event.preventDefault()
       this.frameSelected(this.selectedPartKey)
       return
@@ -759,6 +1445,10 @@ export class Viewer {
     }
     if (event.key === 'Escape') {
       event.preventDefault()
+      if (this.activeReferenceTransformReferenceId !== null) {
+        this.requestReferenceTransformExit()
+        return
+      }
       this.transformGizmo.detach()
     }
   }

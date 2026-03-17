@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } f
 import { useAppStore } from '../store/useAppStore'
 import { getViewer, subscribeViewer, type ViewerApi } from '../viewerBridge'
 import { useUiPrefsStore } from '../store/uiPrefsStore'
+import { ReferenceTransformToolbar } from './ReferenceTransformToolbar'
 import {
   COMPACT_AXIS_WIDGET_SIZE,
   DEFAULT_EXPANDED_AXIS_WIDGET_SIZE,
@@ -147,6 +148,7 @@ export function ViewportOverlay() {
 
   return (
     <div className="ViewportOverlayRoot">
+      <ReferenceTransformToolbar />
       {axisOverlayEnabled ? (
         <div
           ref={axisWidgetRef}

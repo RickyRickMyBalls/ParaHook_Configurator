@@ -615,3 +615,852 @@ Proof bar:
 - Browser selection remains local and stable while expanding/collapsing
 - single-click/double-click behavior for `Component` / `Object` still works
 - `Content` no longer reads like a second graph list
+
+##### [162] Suggested tree-guide pass: draw hierarchy lines in the Browser as selector-owned presentation metadata
+
+Goal:
+
+- visually connect `Assembly Root -> Component -> Object` with tree guide lines
+- strengthen the new hierarchy without changing ownership or content records
+
+Recommended approach:
+
+- keep this as Browser-only presentation work
+- do **not** move tree-guide ownership into `useAppStore`
+- extend `selectBrowserTreeRows` with minimal tree-guide metadata derived from visible row order, for example:
+  - `isLastSibling`
+  - `hasChildren`
+  - maybe an `ancestorGuideColumns` array or equivalent
+- let `BrowserPanel` / row-shell rendering use that metadata to draw:
+  - vertical continuation lines
+  - elbow connectors into child rows
+  - correct stop points for last-child rows
+
+Why this way:
+
+- the store should keep owning flat content truth
+- the Browser selector already owns visible tree order, depth, and collapse filtering
+- tree connector lines depend on visible siblings and collapsed state, which are presentation concerns
+
+Render direction:
+
+- use the existing left tree gutter / lead area
+- draw guides behind the row affordances instead of mixing them into content labels
+- `Assembly Root` should show the main vertical trunk when expanded
+- `Component` rows should show elbows from the assembly trunk
+- `Object` rows should show elbows from their parent component branch
+
+Non-goals:
+
+- no new content data model
+- no drag/drop tree lines yet
+- no graph-row connector lines in `Graph Documents`
+- no attempt to make this a generic tree framework beyond current `Content`
+
+##### [163] Suggested content-row naming polish: use content-native component fallback labels and source-traceability meta
+
+Goal:
+
+- make `Content` rows read less like implementation output language and more like actual project structure
+- keep graph traceability available without turning `Content` into a second graph list
+
+Recommended label/meta rule:
+
+- `Component` primary label:
+  - keep the authored output-node component label if the user renamed it
+  - otherwise use a fallback label like `Component 1`, `Component 2`, etc.
+- `Component` secondary meta:
+  - replace weak count meta like `1 Object` with quiet source traceability such as `Graph 1`
+- `Object` rows:
+  - keep object/native labels as the primary identity
+  - do not add loud graph wording unless traceability is missing elsewhere
+
+Why this way:
+
+- `Published Component` is implementation language, not user-facing content language
+- object counts are less useful than source traceability right now
+- `Graph Documents` already owns graph identity and document controls, so `Content` should stay content-first while still answering “where did this come from?”
+
+Suggested implementation shape:
+
+- change the default fallback component label generation from `Published Component` to numbered `Component N`
+- keep authored custom component labels untouched
+- change component-row meta in `useAppStore` / Browser selectors to use source graph label instead of object-count meta
+- if needed later, object count can return in a quieter tertiary/hover treatment rather than the main meta slot
+
+Non-goals:
+
+- no graph-row controls on `Content`
+- no renaming of graph documents themselves
+- no extra chips/buttons/tooltips in this first naming pass unless the plain meta treatment is still too ambiguous
+
+##### [164] Suggested content-row naming polish: use content-native object fallback labels
+
+Goal:
+
+- finish the first-pass content naming cleanup so object rows stop reading like slot/runtime ids
+- keep `Content` user-facing and structural instead of exposing `s001`-style implementation labels by default
+
+Recommended label/meta rule:
+
+- `Object` primary label:
+  - keep the authored output-node object label if the user renamed it
+  - otherwise use a fallback label like `Object 1`, `Object 2`, etc., in component-local order
+- `Object` secondary meta:
+  - keep resolved rows quiet by default
+  - keep unresolved state as small secondary text like `Unresolved`
+  - do not move graph/source wording into the main object identity
+
+Why this way:
+
+- default slot ids like `s001` are useful internally but poor Browser-facing content labels
+- `Assembly 1` and `Component 1` already moved the tree toward content-native naming, so object rows should follow the same rule
+- source traceability is already covered better at the component/meta layer than in the object primary label
+
+Suggested implementation shape:
+
+- change the default fallback object label generation from slot-id-like labels to numbered `Object N`
+- keep authored custom object labels untouched
+- derive numbering from visible published object order inside each component, not from global app state
+- leave object-row secondary meta as:
+  - `''` when resolved
+  - `Unresolved` when unresolved
+
+Non-goals:
+
+- no new object/part data model
+- no object build bars yet
+- no graph-source suffixes in the main object label
+- no change to single-click/double-click behavior
+
+##### [165] Implementation-ready content-row status pass: add passive right-side readiness state to `Assembly`, `Component`, and unresolved `Object` rows
+
+Goal:
+
+- start giving the `Content` tree a truthful status surface without dragging graph-document controls into it
+- use the right side of content rows for calm readiness/build-state language instead of more subtext under the main label
+
+Scope:
+
+- `Assembly` row:
+  - show aggregate content readiness on the right
+- `Component` row:
+  - show published readiness derived from its child objects on the right
+- `Object` row:
+  - stay quiet when resolved
+  - show `Unresolved` on the right when unresolved
+
+Recommended status rule:
+
+- `Assembly`:
+  - `Unresolved` if any descendant component/object is unresolved
+  - `Ready` if it has at least one component and all visible published content is resolved
+  - `''` if the assembly has no content yet
+- `Component`:
+  - `Unresolved` if any child object is unresolved
+  - `Ready` if it has one or more child objects and all are resolved
+  - `Linked` / `Unresolved Link` can stay for receive-link rows until a later pass decides whether they should join the same status vocabulary
+- `Object`:
+  - `''` when resolved
+  - `Unresolved` when unresolved
+
+Important rendering rule:
+
+- move this status to a right-aligned passive slot in the content row shell
+- do not overload the current main `meta` text slot with both source traceability and readiness at the same time
+- for first pass:
+  - keep `Component` source traceability like `Graph 1` in the existing secondary text slot
+  - put `Ready` / `Unresolved` in a new right-side status slot
+
+Suggested implementation shape:
+
+- extend `ProjectContentBrowserRowVm` with optional passive status fields, for example:
+  - `statusLabel: string`
+  - maybe `statusTone: 'quiet' | 'ready' | 'warning'`
+- derive those values in `useAppStore` / `selectCurrentProjectContentBrowserRows`
+- let `selectBrowserTreeRows` carry the status through without inventing new content truth
+- render the new right-side status span in `BrowserPanel.tsx`
+- add small content-row CSS in `v15Theme.css` so:
+  - status sits on the far right
+  - resolved/ready is subtle
+  - unresolved is more visible but still calmer than graph build bars
+
+Non-goals:
+
+- no `Live / Release / Manual`
+- no content-row save button
+- no content-row `...` menu
+- no graph-style loading bars in this pass
+- no new build-policy semantics for `Content`
+- no assembly/component export controls yet
+
+Proof bar:
+
+- `Assembly 1` shows no status when content is empty
+- `Assembly 1` shows `Ready` when all content is resolved
+- `Assembly 1` shows `Unresolved` when any descendant is unresolved
+- published `Component` rows show `Ready` / `Unresolved` on the right while still keeping source traceability like `Graph 1` in their normal meta slot
+- resolved `Object` rows stay visually quiet
+- unresolved `Object` rows show `Unresolved` on the right
+- graph-document rows remain unchanged
+
+##### [166] Reset question list: what must be decided before `Content` becomes a row-level build surface
+
+Use this as the focused design-question list before more Browser/content implementation.
+
+#### Row Meaning
+
+1. What does each `Content` row fundamentally represent in the target ParaHook content model?
+- `Root Assembly`
+- `Sub Assembly`
+- `Component`
+- `Object`
+- `Part`
+- later `Sub Part`
+
+Clarification:
+
+- this question means the app's own long-term Browser/content truth
+- not just the temporary first-pass implementation
+- and not necessarily a 1:1 mirror of a final `.step` export file
+- the exported assembly structure should eventually align with this model, but the Browser/content hierarchy should first be defined as ParaHook's honest internal content model
+
+Current first-pass read:
+
+- in basic terms, `Component` is the publish unit produced by one graph's `OutputPreview`
+- current simplest rule:
+  - `1 graph`
+  - `1 OutputPreview`
+  - `1 published Component`
+
+Future graph-output vision to keep open:
+
+- one graph may later publish multiple `Component`s
+- an `Object` may later be allowed to live directly under an `Assembly` with no `Component` wrapper
+- those are valid future expansions, but they should not blur the current first-pass rule while row-level build policy and rebuild semantics are still being defined
+
+2. Is every `Content` row really intended to be a build/loading bar, or are some rows still structural containers with lighter aggregate bars?
+
+3. What is the one-sentence meaning of the bar fill for each row type?
+
+Suggested answer:
+
+- the bar fill represents the row's current execution/readiness state for that build chunk
+- `Live / Release / Manual` is a separate control state, not the bar fill itself
+
+Practical reading:
+
+- empty / partial / full fill = how current that row's built chunk is
+- color / animation = unresolved vs building vs ready
+- policy chip/control = how that row should behave in the future (`Live / Release / Manual`)
+
+Important distinction:
+
+- `policy` = rule
+- `fill/state` = current result
+
+#### Row Interaction
+
+4. Does single click on a `Content` row now mean `rebuild this row` instead of `inspect/highlight`?
+
+Suggested answer:
+
+- yes, single click on a `Content` row should now mean `rebuild this row` for that build chunk
+- inspect/highlight should move out of the primary row click and into the row's right-click menu
+- this keeps `Content` execution-first while still preserving a secondary inspect/reveal path
+
+5. If row click becomes rebuild, where does inspect/highlight move?
+
+Suggested answer:
+
+- into the row's right-click menu on the fill-bar area
+- do not keep inspect/highlight as the primary visible click behavior once `Content` becomes a build-chunk control surface
+
+6. What should double click on a `Content` row do in the new model?
+
+Suggested answer:
+
+- remove double click from the `Content` row interaction model
+- do not rely on double click for graph-jump behavior once the primary row click becomes rebuild
+- instead, add an explicit `view in graph` action/button for the row kinds that have a meaningful graph source
+
+Row-kind rule:
+
+- `Part` / `Object`: `view in graph` should open the owning graph and focus the source node when that source mapping exists
+- `Component`: `view in graph` should open the owning graph, but does not need to focus a specific source node in the first pass
+- `Assembly`: no `view in graph` action for now, because an assembly may span multiple graphs; later this could evolve into an `open all related graphs` behavior once multi-graph editor opening is real
+
+7. Should `Graph Documents` keep the current document/open/build role while `Content` becomes the published-entity execution surface?
+
+Suggested answer:
+
+- yes, keep the split
+- `Graph Documents` should remain the authoring/document surface:
+  - open graph
+  - edit graph
+  - save/export graph
+  - graph-level document/build tools
+- `Content` should become the published-entity execution surface:
+  - rebuild chunks
+  - control `Live / Release / Manual`
+  - control build sequence
+  - later material/color and other chunk-level controls
+- both surfaces may show status, but they should not collapse into the same role
+
+#### Policy Model
+
+8. Should every row default to `Live` on load with no explicit user setup?
+
+Suggested answer:
+
+- yes, every `Content` row should default to `Live` on load with no explicit user setup
+- this keeps first-time publish behavior automatic instead of making the user press a separate build button after wiring output
+
+9. Are `Live / Release / Manual` true per-row policies for:
+- `Assembly`
+- `Component`
+- `Object`
+- later `Part`
+
+Suggested answer:
+
+- yes, these are true per-row policies
+- the user should have direct control over every row's build mode
+- first-pass target:
+  - `Assembly`
+  - `Component`
+  - `Object`
+- later:
+  - `Part`
+
+10. Are parent rows allowed to push policy downward into all descendants in one action?
+
+Suggested answer:
+
+- yes, a parent row should be allowed to push its selected policy downward into all descendants in one action
+
+11. Are child rows allowed to override parent policy afterward?
+
+Suggested answer:
+
+- yes, child rows should be allowed to override parent policy afterward
+- parent push-down is a convenience action, not a permanent lock
+
+12. When children disagree, what does the parent show?
+- mixed?
+- strongest child wins?
+- weakest child wins?
+- parent stays explicit while children show local override?
+
+Suggested answer:
+
+- the parent should show `Mixed` when children disagree
+- do not collapse the parent back to strongest/weakest-child-wins behavior
+
+13. If a parent is switched to `Live`, does that always overwrite all child policies immediately?
+
+Suggested answer:
+
+- yes, switching a parent to `Live` should immediately overwrite all child policies in that branch at that moment
+- after that, children may still be changed back to `Release` or `Manual` individually
+
+14. After a child is changed back to `Release` or `Manual`, should the parent show:
+- `Live`
+- `Mixed`
+- aggregate derived state only
+
+Suggested answer:
+
+- the parent should show `Mixed`
+- this keeps the parent honest once descendants no longer share one policy
+
+#### Rebuild Semantics
+
+15. What exactly does `rebuild this row` mean for an `Assembly`?
+- rebuild all descendants?
+- rebuild only stale descendants?
+- force everything regardless of policy?
+
+Suggested answer:
+
+- rebuilding an `Assembly` means rebuilding that row and its entire descendant branch
+- the parent row should later support two execution strategies for its children:
+  - rebuild children all at once
+  - rebuild children in sequence, one by one, using the current `Content` list order
+- this execution strategy should be user-controlled at the parent row
+
+16. What exactly does `rebuild this row` mean for a `Component`?
+- rerun the owning graph publication for that component?
+- rebuild only that published entity?
+
+Suggested answer:
+
+- rebuilding a `Component` means rebuilding that component row and its child rows for that branch
+- it should follow the same parent execution-strategy idea when the component owns multiple child objects:
+  - all at once
+  - or in sequence by visible child order
+
+17. What exactly does `rebuild this row` mean for an `Object`?
+- rerun the owning graph and target only the object output?
+- rebuild the whole component but focus the object row?
+
+Suggested answer:
+
+- rebuilding an `Object` means rebuilding that object row as its own build chunk
+- later, when `Part` rows are real, object rebuild should also include that object's child parts
+
+18. Can two sibling rows build independently, or is row-level rebuild really graph-scoped under the hood?
+
+Suggested answer:
+
+- two sibling rows should be able to build independently
+- row-level rebuild should become real engine/runtime truth, not just a graph-scoped UI abstraction
+- this is the whole point of the `Content` build-chunk model:
+  - `Object 1` can rebuild by itself
+  - `Object 2` does not rebuild unless needed or explicitly targeted
+- long-range goal:
+  - each sibling row is a real independent build chunk in the worker/runtime
+  - row bars and row rebuild controls should be honest reflections of that chunk truth
+
+#### Ownership / Truth
+
+19. What new stable published ids do we need so worker/runtime truth can be attached to rows honestly?
+- `assemblyId`
+- `componentId`
+- `objectId`
+- later `partId`
+
+Suggested answer:
+
+- use one stable id family per entity type:
+  - `assemblyId`
+  - `componentId`
+  - `objectId`
+  - later `partId`
+- do not introduce separate id types for root/sub variants
+- `Root Assembly` and `Sub Assembly` should both use `assemblyId`
+- `Part` and later `Sub Part` should both use `partId`
+- root vs sub should come from hierarchy/relationship fields, not from different id kinds
+
+Why this matters:
+
+- it keeps the worker/runtime contract simpler
+- it avoids creating extra entity types just for tree position
+- it lets the same entity move between root/sub positions later without changing its id family
+
+20. Where should row policy truth live?
+- project/app state?
+- graph-owned publish contract?
+- worker/runtime?
+
+Suggested answer:
+
+- row policy truth should live in project/app state
+- `Live / Release / Manual` is a user-controlled workspace/project behavior, so it should belong to the assembled `Content` tree rather than to one graph's authored geometry contract
+- it also should not live in worker/runtime, because the worker should execute policy, not own the user's policy decisions
+
+Suggested ownership split:
+
+- `graph-owned publish contract` owns:
+  - what entities exist
+  - their labels
+  - their hierarchy contributions
+  - source graph/node mappings
+  - stable published ids
+- `project/app state` owns:
+  - row policy (`Live / Release / Manual`)
+  - parent/child policy inheritance
+  - child overrides
+  - `SEQ / ALL`
+  - row order / build sequence
+  - later organization choices
+- `worker/runtime` owns:
+  - current execution truth
+  - actual rebuild execution
+  - revision acceptance
+
+21. Where should row execution truth live?
+- building
+- ready
+- unresolved
+- stale
+- last built revision
+
+Suggested answer:
+
+- row execution truth should live in worker/runtime
+- the worker/runtime should own:
+  - `building`
+  - `ready`
+  - `unresolved`
+  - `stale`
+  - current executing chunk
+  - last accepted build revision
+- this is actual execution truth, not user preference, so it should not be invented locally by the Browser or app selectors
+
+Important distinction:
+
+- `project/app state` owns what the user wants:
+  - row policy
+  - row order
+  - parent/child execution mode
+- `worker/runtime` owns what is actually happening and what build result was actually accepted
+- the Browser should only render that worker/runtime-derived truth
+
+Practical note:
+
+- app/project may still keep a convenient mirrored summary for selector use
+- but the source of truth should still be worker/runtime-derived rather than UI-invented
+
+22. What revisions need to exist so bars are truthful instead of decorative?
+- authored revision
+- published revision
+- accepted build revision
+
+Suggested answer:
+
+- we need at least three revisions per published row/build chunk:
+  - `authoredRevision`
+  - `publishedRevision`
+  - `acceptedBuildRevision`
+
+What each means:
+
+- `authoredRevision`
+  - increments when the source graph/object/chunk definition changes
+  - answers: has the authored source changed?
+- `publishedRevision`
+  - increments when the graph/output publish contract for that row changes
+  - answers: has the published chunk definition changed?
+- `acceptedBuildRevision`
+  - records the last revision the worker/runtime successfully built and accepted for that row
+  - answers: what build is actually current in runtime?
+
+Why this matters:
+
+- if `acceptedBuildRevision === publishedRevision`, the row is current/ready
+- if `publishedRevision > acceptedBuildRevision`, the row is stale / needs rebuild
+- if source changed before publish/build caught up, `authoredRevision` explains that upstream authoring moved first
+
+Practical note:
+
+- the simplest first pass could start with:
+  - `publishedRevision`
+  - `acceptedBuildRevision`
+- then add `authoredRevision` when upstream invalidation needs to be more precise
+
+#### Browser Language
+
+23. How do we keep `Content` from becoming a duplicate of `Graph Documents` once rows become bars with policies?
+
+Suggested answer:
+
+- keep `Content` and `Graph Documents` focused on different kinds of truth
+- `Content` should remain the chunk-scoped execution surface:
+  - what chunks exist
+  - how each chunk should behave
+  - rebuild this exact row/branch
+- `Graph Documents` should become the graph-scoped authoring/impact surface:
+  - what source graph changed
+  - which downstream chunks from that graph now need rebuild
+  - rebuild everything this graph is responsible for
+
+Practical reading:
+
+- `Content` = chunk tree with row-level policy and row-level rebuild
+- `Graph Documents` = graph source plus rebuild-impact trace of affected downstream chunks
+
+Important separation:
+
+- do not duplicate the whole `Content` tree under `Graph Documents`
+- show only the affected published chunks for that graph
+- this keeps `Graph Documents` graph-scoped and `Content` chunk-scoped
+
+24. Which row types should show source traceability like `Graph 1`, and where should that live once bars/policies are present?
+
+Suggested answer:
+
+- do not show source traceability like `Graph 1` on the primary row surface
+- the main row should stay focused on:
+  - build bar
+  - row policy
+  - rebuild action
+  - later core row controls
+- hierarchy lines already carry the structural context the user needs in the tree
+- graph/source access should stay in secondary actions instead:
+  - `view in graph`
+  - right-click menu
+  - later tooltip only if truly needed
+
+Important separation:
+
+- `Graph Documents` remains the main visible graph-identity surface
+- `Content` should stay visually clean and build-focused rather than turning back into a graph-labeled list
+
+End product description:
+
+- in the end product, a `Content` row should read as a clean build chunk, not as a graph-labeled document row
+- the user should understand structure from:
+  - hierarchy lines
+  - indentation
+  - row placement in the tree
+- the user should access graph/source context through explicit secondary actions rather than row text clutter
+
+Likely phase steps:
+
+- first: keep visible graph/source labels off the primary `Content` row surface
+- next: provide explicit `view in graph` access for the row kinds that support it
+- later: use the right-click menu for deeper source/reveal actions
+- only add tooltip-level source hints later if the cleaner row still leaves a real usability gap
+
+25. Should `Assembly` and `Component` both get full bars first, while `Object` stays lighter until part-level truth exists?
+
+Suggested answer:
+
+- yes, `Assembly` and `Component` should get the first full bars
+- `Object` should stay lighter until part-level truth is real enough to make lower-level chunk behavior honest
+
+Why this likely helps:
+
+- `Assembly` and `Component` are the clearest parent execution/control rows
+- they map most cleanly to:
+  - branch rebuild
+  - `Live / Release / Manual`
+  - `SEQ / ALL`
+  - aggregate child state
+- `Object` is important, but its full bar semantics stay somewhat ambiguous until `Part` exists as the clearer lower-level independent chunk
+
+End product description:
+
+- in the end product, all major `Content` rows should still belong to the same build-row family
+- but parent rows and leaf rows do not need to be identical in behavior
+- `Assembly` / `Component` / later `Object` can act as stronger orchestration rows
+- `Part` should likely become the clearest true leaf build row
+
+Likely phase steps:
+
+- first: full bars on `Assembly` and `Component`
+- next: keep `Object` meaningful but lighter while part-level truth is still missing
+- later: once `Part` rows are real, make `Object` a fuller parent/orchestration row and let `Part` become the true lower-level leaf bar
+
+26. When do we introduce `Part` rows so row-level policies stop being ambiguous at the object/component layer?
+
+Suggested answer:
+
+- introduce `Part` rows when the worker/runtime can treat parts as real independent build chunks with stable ids and truthful revision/build state
+- this should be the next lane's system goal, not just a later UI garnish
+
+Minimum truth needed first:
+
+- stable `partId`
+- independent sibling part rebuild
+- truthful worker/runtime part-level state:
+  - `building`
+  - `ready`
+  - `unresolved`
+  - `stale`
+  - accepted build revision
+- clear source mapping for `view in graph`
+- `Object` can honestly act as the parent/orchestration row over child parts
+
+Why this matters:
+
+- until `Part` is real in the engine/runtime, `Object` is doing double duty as both a lower-level build row and a future parent row
+- once `Part` exists, the model gets cleaner:
+  - `Object` = parent/orchestration row
+  - `Part` = true lower-level leaf build row
+
+Likely phase steps:
+
+- first: full bars on `Assembly` and `Component`
+- next: keep `Object` real but lighter
+- next lane: make part-level rebuild real in the publish contract and worker/runtime
+- after that: add Browser `Part` rows and let `Object` become the clearer parent row over parts
+
+##### [167] Locked direction: `Content` is a build-chunk hierarchy, not just a Browser tree
+
+This is the clarified long-range direction after the vision reset.
+
+Core answer:
+
+- yes, every `Content` row is intended to become a real build/loading bar
+- `Content` is not just a visual hierarchy
+- `Content` is the user's build-chunk orchestration surface
+
+What that means:
+
+- each row is a build chunk the user can control separately:
+  - `Root Assembly`
+  - `Sub Assembly`
+  - `Component`
+  - `Object`
+  - later `Part`
+- list order in `Content` is also the intended build sequence
+- this exists because the geometry engine is not reliable enough to force whole-model opaque rebuilds all the time
+
+Policy direction:
+
+- on load, all published rows default to `Live`
+- if the user connects a wire into `OutputPreview`, the affected published content should update without requiring a separate top-level manual `Build` click
+- every row can eventually carry:
+  - `Live`
+  - `Release`
+  - `Manual`
+- parent rows can push policy downward into children
+- child overrides remain allowed afterward
+- child overrides must be reflected back upward in the parent aggregate policy/state instead of being silently erased
+
+Concrete example:
+
+- `Object 1` is `Live`
+- `Object 2` is `Release`
+- if the parent `Component` is switched to `Live`, both children become `Live`
+- if the user then switches `Object 2` back to `Release`, the parent must honor that mixed child state instead of pretending everything is uniformly `Live`
+
+Row interaction direction:
+
+- clicking a `Content` row should rebuild that row's build chunk
+- this means `Content` is execution-first, while `Graph Documents` stays the authoring/document surface
+
+Important consequence:
+
+- the Browser `Content` tree should now be designed around:
+  - chunk identity
+  - build sequence
+  - row policy
+  - row rebuild targeting
+  - truthful row-level build/update state
+- not around passive selection-first tree behavior alone
+
+##### [168] Future control note: each `Content` row may later need a separate material/color button
+
+Future UX direction:
+
+- besides build policy and build-state surfaces, each `Content` row may later need its own material/color control on the right side
+- this would let the user color:
+  - `Part`
+  - `Object`
+  - `Component`
+  - maybe `Assembly`
+
+Important separation:
+
+- material/color is not the same system as build policy
+- material/color is not the same system as build-state fill
+- if this lands later, it should remain a separate button/control from:
+  - `Live / Release / Manual`
+  - row rebuild click
+  - row loading/status bar
+
+Why this matters:
+
+- users will likely want to visually distinguish different build chunks in the viewport
+- that is especially useful once the Browser/content tree becomes the main chunk-orchestration surface
+
+Scope note:
+
+- this is a later Browser/content control pass
+- do not fold it into the first row-policy/build-surface implementation
+
+##### [169] Future control note: every `Content` row should later have a right-click menu on the fill-bar area
+
+Future UX direction:
+
+- every `Content` row should later support a right-click menu
+- the intended target is the row/fill-bar area itself, not just a tiny overflow button
+- this menu should hold the deeper controls that cannot fit directly in the compact one-line row
+
+Why this matters:
+
+- the row needs to stay calm and compact
+- but the user will still need access to more than:
+  - row rebuild
+  - row build policy
+  - later material/color
+- right click gives each build chunk a richer control surface without bloating the main row
+
+Likely future menu content:
+
+- row-specific build actions
+- policy actions
+- material/color actions
+- reveal/inspect actions
+- later export or organization actions when appropriate
+
+Important separation:
+
+- the main row should stay focused on:
+  - build state bar
+  - primary row interaction
+  - a very small set of visible controls
+- the right-click menu is the overflow surface for deeper row-specific features
+
+Scope note:
+
+- this is a later Browser/content interaction pass
+- do not rely on the menu to define the core row interaction model
+- the primary visible row language still has to make sense on its own
+
+##### [170] Deferred idea: let `Graph Documents` later show a lightweight rebuild trace of affected content rows
+
+Future UX direction:
+
+- under `Graph Documents`, each graph may later show a lightweight trace of the published chunks that currently need rebuild because of that graph
+- this should not become a second full `Content` tree
+- it should stay a graph-side impact/readiness trace tied to the authoring source
+
+Why this might help:
+
+- `Content` will become the build-chunk execution surface
+- `Graph Documents` will still be the authoring/document surface
+- a lightweight trace under the graph can answer:
+  - what changed here?
+  - which published chunks are now affected?
+  - what downstream objects/parts/components now need rebuild?
+
+Suggested shape:
+
+- keep the graph row itself compact
+- later expose a short affected-entities list through:
+  - row expand
+  - or a right-click/overflow surface
+- show only the impacted published rows, not the entire content hierarchy
+
+Scope note:
+
+- this is useful, but it does not look like a near-term priority
+- do not pull it ahead of the row-policy / build-state / chunk-identity work that `Content` still needs first
+
+##### [171] Future control note: parent `Content` rows may need a visible `SEQ / ALL` execution-mode button
+
+Future UX direction:
+
+- parent rows may later need a small explicit child-execution-mode button
+- suggested labels:
+  - `SEQ` = rebuild child rows one-by-one in current `Content` order
+  - `ALL` = rebuild child rows together
+
+Why this matters:
+
+- this is not the same thing as `Live / Release / Manual`
+- `Live / Release / Manual` controls when a row rebuilds
+- `SEQ / ALL` controls how that parent row runs its children when that branch rebuilds
+- because the engine may be sensitive to larger all-at-once rebuilds, this execution mode likely needs to be visible and easy to change
+
+Suggested row scope:
+
+- show this only on rows that actually own child build chunks:
+  - `Root Assembly`
+  - `Sub Assembly`
+  - `Component`
+- do not show it on leaf rows
+- later, if `Object` rows own real `Part` children, they may also qualify
+
+Suggested default:
+
+- default to `SEQ` first if the engine/runtime remains more reliable with incremental child rebuilds
+
+Scope note:
+
+- this is a later Browser/content control pass
+- do not fold it into the earliest row-policy/build-surface implementation until the rebuild execution model is more locked
