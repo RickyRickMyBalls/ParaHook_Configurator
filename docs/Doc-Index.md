@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+51. 2026-03-17 13:05: Added `docs/Phase-Plans/Tasks/Future/05.0 - VR-SP - Pre-Workspace Shell Cleanup And Legacy Panel Reduction.md` to the docs map as the new bridge planning surface ahead of the `05.1A-D` workspace-mode family, so the immediate reduction of `Preview Mode`, `Parts List`, and `Box Params` now has its own dedicated future task doc instead of living only as a roadmap row
 50. 2026-03-17 12:43: Added the new `05.1A` through `05.1D` workspace-mode future task-doc family to the docs map, updated the future-task listing so the hybrid workspace split now has dedicated planning surfaces under the re-homed `[5.1]` roadmap slot, and refreshed the architecture-doc read so `Workspace-Modes.md` stays the umbrella architecture source instead of acting like one giant execution spec
 49. 2026-03-17 12:23: Added `docs/Phase-Plans/Tasks/Future/04.1D - VR-SP-DBG - Layered Event Feeds And Filtering.md` to the docs map as the next dedicated console subphase planning surface after `4.1C`, so richer event publishing, expanded layer ownership, and stronger transcript filtering now have a stable future task-doc home under the `4.1` console lane
 48. 2026-03-17 11:41: Added `docs/Phase-Plans/Tasks/Future/04.1C - VR-SP-DBG - Command Input And Keyboard Routing.md` to the docs map as the next dedicated console subphase planning surface, so typed command input, history, and keyboard-routing ownership now have their own future task doc after the shipped shell/transcript work and the later window-mode expansion
@@ -453,6 +454,7 @@ Rule notes:
             - `04.1B - VR-SP-DBG - Console Floating And Pop-Out Modes.md`
             - `04.1C - VR-SP-DBG - Command Input And Keyboard Routing.md`
             - `04.1D - VR-SP-DBG - Layered Event Feeds And Filtering.md`
+            - `05.0 - VR-SP - Pre-Workspace Shell Cleanup And Legacy Panel Reduction.md`
             - `05.1A - VR-SP - Workspace Layout Foundation And Left-Dock Entry.md`
             - `05.1B - VR-SP - Split Pane Authoring And Divider Controls.md`
             - `05.1C - VR-SP - Hybrid Tool Surface Hosting And Floating-Tiled Transitions.md`

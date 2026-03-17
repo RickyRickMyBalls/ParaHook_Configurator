@@ -4,6 +4,9 @@
 ### Fold Hack 3
 #### FOld Hack 4
 ###### Doc History
+80. 2026-03-17 13:28: Expanded `[5.0]` into real foldable roadmap subphases by adding dedicated `###` sections for `[5.0A]`, `[5.0B]`, and `[5.0C]`, so the pre-workspace cleanup lane now matches the structure used elsewhere instead of only listing a suggested subphase family inline
+79. 2026-03-17 13:26: Expanded `[5.0]` into an explicit cleanup-family read by adding a recommended `[5.0A-C]` breakdown, separating `spaghetti`-by-default startup and visible shell cleanup from the later `legacy input-mode branch removal` code cleanup so the roadmap no longer treats hiding old UI and deleting old logic as one step
+78. 2026-03-17 13:00: Added a new `[5.0] VR / SP - Pre-Workspace Shell Cleanup And Legacy Panel Reduction` bridge lane ahead of `[5.1]`, giving the immediate cleanup of `Preview Mode`, `Parts List`, and `Box Params` a real roadmap home before the broader workspace-mode system starts replacing shell layout behavior
 77. 2026-03-17 12:40: Re-homed the broader workspace-layout family from `[5.3]` to `[5.1]`, shifted the old control-viz and build-control placeholders to `[5.2]` and `[5.3]`, and expanded the new `[5.1] VR / SP - Workspace Modes` lane body around the dedicated `05.1A` through `05.1D` future task-doc split while keeping the earlier shipped workspace-presentation groundwork visible as landed history instead of consuming the new execution slots
 76. 2026-03-17 11:11: Refreshed the `[4.1]` roadmap row so it now matches the real shipped console state after `4.1A` and `4.1B`, marking the collapsed/expanded shell, layer transcript, tools, floating/pop-out/list modes, and shared styling work as landed while explicitly carrying the remaining command-routing, richer filtering, result UX, inspector bridge, and hotkey-customization work forward into later `4.1C+` subphases
 75. 2026-03-17 00:41: Reworked the roadmap lane structure so the console/debug system now owns the new Lane `[4]` as a first-class cross-cutting workspace-feedback lane, and shifted the older deferred control/build/workspace systems out to the new Lane `[5]` so later build orchestration and packaging work no longer hide the pulled-forward console direction
@@ -1353,43 +1356,58 @@ Summary:
 - the remaining `4.1` work is no longer the shell itself; it is the later command-routing, richer filtering, result UX, inspector bridge, and hotkey-customization follow-through
 
 CheckList:
-- [x] `[4.1A]` `Console Shell And Transcript Core`
-  - collapsed bottom-row `Console`
-  - expanded resizable black-panel `Console`
-  - app-global shared transcript/state seam
-  - visible layer row
-  - appearance/tools controls in the `i` menu
-- [x] `[4.1B]` `Console Floating And Pop-Out Modes`
-  - `Floating`
-  - `Pop-Out`
-  - `List`
-- [x] `[4.1C]` `Command Input And Keyboard Routing`
-  - narrow-core typed commands
-  - `/` focus entry
-  - strict command parsing
-  - command history recall
-  - immediate `M / R / S` and secondary-only `X / Y / Z` routing
-- [x] `[4.1D]` `Layered Event Feeds And Filtering`
-  - added `View`, `Browser`, and `Transforms` layers
-  - isolate mode
-  - subset mode
-  - diagnostics pin
-  - broader Browser / View / Transform publishers
-- [ ] `[4.1E]` `Command Results, Errors, And Follow-Up UX`
-  - richer command result formatting
-  - clearer follow-up/help/error presentation
-- [ ] `[4.1F]` `Debug Inspector Bridge And Richer Later Diagnostics`
-  - stronger console-to-inspector bridge
-  - deeper structured diagnostics
-- [ ] `[4.1G]` `Hotkey Customization And Shortcut Profiles`
-  - user hotkey rebinding
-  - conflict detection
-  - restore-default behavior
+
+### [4.1A] [x] - `Console Shell And Transcript Core`
+
+- collapsed bottom-row `Console`
+- expanded resizable black-panel `Console`
+- app-global shared transcript/state seam
+- visible layer row
+- appearance/tools controls in the `i` menu
+
+### [4.1B] [x] - `Console Floating And Pop-Out Modes`
+
+- `Floating`
+- `Pop-Out`
+- `List`
+
+### [4.1C] [x] - `Command Input And Keyboard Routing`
+
+- narrow-core typed commands
+- `/` focus entry
+- strict command parsing
+- command history recall
+- immediate `M / R / S` and secondary-only `X / Y / Z` routing
+
+### [4.1D] [x] - `Layered Event Feeds And Filtering`
+
+- added `View`, `Browser`, and `Transforms` layers
+- isolate mode
+- subset mode
+- diagnostics pin
+- broader Browser / View / Transform publishers
+
+### [4.1E] [ ] - `Command Results, Errors, And Follow-Up UX`
+
+- richer command result formatting
+- clearer follow-up/help/error presentation
+
+### [4.1F] [ ] - `Debug Inspector Bridge And Richer Later Diagnostics`
+
+- stronger console-to-inspector bridge
+- deeper structured diagnostics
+
+### [4.1G] [ ] - `Hotkey Customization And Shortcut Profiles`
+
+- user hotkey rebinding
+- conflict detection
+- restore-default behavior
 
 # [5] `Control, Build, And Workspace Systems`
 
 Summary:
 - capture the deeper control, build orchestration, and workspace features that were discussed during planning but do not belong inside the Browser, authoring-hardening, or the newly promoted console/debug lane
+- leave room for one narrow shell-cleanup bridge before the broader workspace-mode system starts
 - keep these systems visible on the roadmap so they can become real later phases instead of staying as scattered notes
 
 ### Lane Header
@@ -1397,6 +1415,7 @@ Summary:
 
 Purpose:
 - hold the bigger deferred systems around:
+  - pre-workspace shell cleanup and legacy panel reduction
   - workspace modes and hybrid pane layout
   - control-viz and Jake-style control surfaces
   - build sequencing and truthful build bars
@@ -1410,12 +1429,69 @@ Primary phase families:
 
 Expected outcome:
 - the roadmap keeps room for the systems that govern:
+  - shell cleanup before workspace replacement
   - workspace modes and shared layout
   - control surfaces
   - build sequencing
   - richer output/export behavior
 
 ## Lane [5] Body - `later control/build/workspace placeholder`
+
+### [5.0] [ ] - `VR / SP` - `Pre-Workspace Shell Cleanup And Legacy Panel Reduction`
+
+Summary:
+- narrow bridge lane for reducing the shell clutter that is currently consuming the left dock before `[5.1] Workspace Modes` tries to replace layout behavior more broadly
+- this is the right home for shrinking or removing the always-open legacy-style panels that are taking up space without yet doing a broad final legacy purge
+
+CheckList:
+- [ ] shrink, demote, or remove the current `Preview Mode` card from the always-open left-dock stack
+- [ ] decide whether `Parts List` should:
+  - merge into `Browser`
+  - become a later hosted tool surface
+  - or be reduced as legacy shell clutter
+- [ ] shrink, hide, or phase down `Box Params` if it is still acting as large always-open legacy UI
+- [ ] make `spaghetti` the default startup/input path before hiding the visible legacy branch UI
+- [ ] plan one later cleanup cut that actually removes the `legacy` input-mode branch from code after the shell no longer depends on it
+- [ ] preserve any still-needed behavior while reducing permanent left-dock footprint
+- [ ] keep this lane narrow:
+  - do not turn it into the final broad legacy purge
+  - do not absorb the real hybrid workspace system from `[5.1]`
+
+### [5.0A] [ ] - `Spaghetti Default Startup And Preview-Mode Shell Removal`
+
+Summary:
+- make `spaghetti` the default startup/input path before the visible `Preview Mode` branch UI disappears
+- remove the visible `Legacy / Spaghetti` chooser from the left dock once the app no longer needs that branch as the primary entry seam
+
+CheckList:
+- [ ] change startup so the app lands in `spaghetti` by default
+- [ ] verify the main viewer/build flow still behaves correctly without the user touching `Preview Mode`
+- [ ] hide or remove the `Preview Mode` card from the default left-dock stack
+- [ ] preserve any still-needed non-branch preview behavior in a lighter surface if needed
+
+### [5.0B] [ ] - `Legacy Left-Dock Panel Reduction`
+
+Summary:
+- remove the remaining large transitional left-dock cards that are still competing with `Browser` for shell space
+- keep any still-needed behavior, but stop letting `Parts List` and `Box Params` consume permanent left-dock real estate
+
+CheckList:
+- [ ] hide `Parts List` from the default left-dock stack
+- [ ] hide `Box Params` from the default left-dock stack
+- [ ] decide whether surviving `Parts List` behavior belongs in `Browser`, a lighter shell entry, or a later hosted tool surface
+- [ ] preserve any still-needed `Box Params` behavior somewhere lighter if it is still needed temporarily
+
+### [5.0C] [ ] - `Legacy Input-Mode Branch Removal`
+
+Summary:
+- remove the `legacy` versus `spaghetti` input-mode branch from code after the shell no longer depends on it
+- treat this as a real cleanup cut, not just an implied side effect of hiding old panels
+
+CheckList:
+- [ ] remove the visible `setInputMode('legacy' | 'spaghetti')` branch UI completely
+- [ ] remove `inputMode: 'legacy' | 'spaghetti'` branching once `spaghetti` is the only real startup path
+- [ ] clean up remaining legacy-conditionals in viewer routing, build routing, panel rendering, and left-dock behavior
+- [ ] verify the app no longer depends on hidden `legacy` mode to remain usable
 
 ### [5.1] [~] - `VR / SP` - `Workspace Modes`
 
