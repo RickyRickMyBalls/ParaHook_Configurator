@@ -65,6 +65,35 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 308 -->
+### [308] - 2026-03-17 16:59 - `VR / SP - Worker Error Console Null Guard Build Fix`
+<!-- ENTRY 308 -->
+HUMAN SUMMARY: `Fixed the current TypeScript build break in \`useAppStore\` by guarding the console append inside \`setWorkerError\` so clearing the worker error no longer passes \`null\` into the console transcript text field.`
+
+#### Scope / Constraints Honored
+- Kept the fix minimal and local to the failing nullability seam in `useAppStore`.
+- Preserved the existing behavior where real worker errors still flow into the `Console`.
+- Did not change any broader `5.0C` runtime-branch behavior.
+
+#### Summary of Implementation
+- Added a null guard in `setWorkerError`.
+- `workerError` still stores `string | null`.
+- Console publishing now only happens when the incoming worker error message is a real string.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- Clearing `workerError` no longer tries to create a console entry with `null` text.
+- Actual worker error strings still publish to the `Worker` console layer.
+
+#### Verification Steps
+- Ran:
+  - `npm run build`
+- Result:
+  - build completed successfully
+
 <!-- ENTRY 307 -->
 ### [307] - 2026-03-17 16:56 - `DOC - Phase 10 - 5.0C Implementation-Ready Spec Locked`
 <!-- ENTRY 307 -->

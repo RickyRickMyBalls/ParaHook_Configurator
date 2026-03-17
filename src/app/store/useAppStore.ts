@@ -1098,6 +1098,9 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
   setWorkerError: (message) => {
     set({ workerError: message })
+    if (message === null) {
+      return
+    }
     appendConsoleEntry({
       layer: 'Worker',
       text: message,
