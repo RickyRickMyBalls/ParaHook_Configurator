@@ -65,6 +65,276 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 307 -->
+### [307] - 2026-03-17 16:56 - `DOC - Phase 10 - 5.0C Implementation-Ready Spec Locked`
+<!-- ENTRY 307 -->
+HUMAN SUMMARY: `Tightened the \`05.0C\` task doc into a decision-complete execution spec by explicitly removing both \`inputMode\` and \`viewMode\`, locking the death of the old \`Parts / Assembled\` viewer split, and separating runtime branch collapse in \`5.0C\` from dead-file cleanup in \`5.0D\`.`
+
+#### Scope / Constraints Honored
+- Kept the change in the planning/task-doc layer only.
+- Locked the remaining `5.0C` runtime decisions against the live store/viewer seams instead of broadening the phase into a full residue purge.
+- Left actual code removal for the later implementation pass.
+
+#### Summary of Implementation
+- Added a new `Doc History` entry to `05.0C`.
+- Updated the task purpose, scope, and outcome so the phase now explicitly removes:
+  - `InputMode`
+  - `setInputMode`
+  - `ViewMode`
+  - `setViewMode`
+- Reworked the removal-order section so `5.0C` now has a six-step runtime-collapse sequence.
+- Added an explicit `Locked Viewer Rule` that removes the old `Parts / Assembled` concept with the legacy branch.
+- Added an explicit `Locked Cleanup Boundary` so dead-file pruning remains deferred to `5.0D`.
+- Updated the proof bar and important-interface list to match the now-locked runtime behavior.
+
+#### Files Changed
+- `docs/Phase-Plans/Tasks/Future/05.0C - VR-SP - Legacy Input-Mode Branch Removal.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- No runtime behavior changed.
+- The `5.0C` planning surface is now implementation-ready and decision-complete.
+
+#### Verification Steps
+- Verified the current task doc against the live seams in:
+  - `src/app/store/useAppStore.ts`
+  - `src/app/components/ViewerHost.tsx`
+  - `src/app/components/Toolbar.tsx`
+- No code tests were needed because this was a docs-only change.
+
+<!-- ENTRY 306 -->
+### [306] - 2026-03-17 16:45 - `VR / SP - Phase 5.0B - Legacy Left-Dock Panel Reduction`
+<!-- ENTRY 306 -->
+HUMAN SUMMARY: `Implemented \`5.0B\` by removing the old \`Parts List\` and \`Box Params\` cards from the default left dock in \`AppShell\`, leaving their deeper cleanup for later phases while restoring the Browser/meatball host stack as the simpler shell composition.`
+
+#### Scope / Constraints Honored
+- Kept `5.0B` as a narrow shell-subtraction cut:
+  - removed `Parts List` from the default left-dock mount path
+  - removed `Box Params` from normal user shell flow
+- Did not introduce a replacement card, drawer, or mini inspector.
+- Did not delete `PartsListPanel.tsx`, `BoxPanel.tsx`, or the remaining legacy/input-mode code paths; that remains later `5.0C` and `5.0D` work.
+
+#### Summary of Implementation
+- Removed `PartsListPanel` mounting from the `AppShell` left-dock stack.
+- Removed the old `BoxPanel` mount path from `AppShell`.
+- Simplified the left dock so it now reads as:
+  - `Browser`
+  - optional docked `Spaghetti` meatball host
+  - dock resize/split controls
+- Updated the focused `AppShell` test that previously expected the `Parts List` card in the meatball layout.
+
+#### Files Changed
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+- `docs/Phase-Plans/Tasks/Old/05.0B - VR-SP - Legacy Left-Dock Panel Reduction.md`
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/Doc-Index.md`
+
+#### Behavior Changes (if any)
+- The default left dock no longer renders the `Parts List` card.
+- The default left dock no longer renders the `Box Params` card.
+- `Browser` and the optional docked meatball editor host are now the only major surfaces left in that dock stack.
+
+#### Verification Steps
+- Ran:
+  - `cmd /c npm test -- src/app/AppShell.test.tsx`
+- Result:
+  - `31` tests passed
+
+<!-- ENTRY 305 -->
+### [305] - 2026-03-17 15:05 - `VR / SP - Phase 5.1B - Split Pane Authoring And Divider Controls`
+<!-- ENTRY 305 -->
+HUMAN SUMMARY: `Implemented \`5.1B\` on top of the current AppShell/Spaghetti split proof by adding stored split direction and split priority state, floating-titlebar split entry, divider context-menu actions, and horizontal/vertical divider resizing while keeping the larger shared workspace tree for later phases.`
+
+#### Scope / Constraints Honored
+- Implemented the real split-authoring work that the current shell can honestly support today:
+  - split direction
+  - split priority
+  - divider menu actions
+  - floating Spaghetti titlebar split entry
+- Kept the implementation inside the existing AppShell/Spaghetti split proof instead of inventing the later shared pane-tree system from `5.1A` / `5.1C`.
+- Left broader hybrid tool-surface hosting, clone policy, and persistence work to later `5.1` phases.
+
+#### Summary of Implementation
+- Added shared split direction and split priority types under `src/app/workspace/`.
+- Extended Spaghetti editor viewport state so split view now carries:
+  - ratio
+  - direction
+  - priority
+- Added store setters for split direction and split priority.
+- Updated `AppShell` split rendering so the current split proof can render:
+  - horizontal top/bottom splits
+  - vertical side-by-side splits
+- Added a floating Spaghetti titlebar context menu with:
+  - `Split Horizontal`
+  - `Split Vertical`
+- Added a divider context menu with:
+  - `Split Horizontal`
+  - `Split Vertical`
+  - `Reset Ratio`
+  - `Balanced Priority`
+  - `Favor First Pane`
+  - `Favor Second Pane`
+  - `Close Split`
+  - `Merge With Neighbor`
+- Added divider double-click ratio reset and divider drag support for both horizontal and vertical split directions.
+- Updated focused AppShell and Spaghetti-store tests around the new split behavior.
+
+#### Files Changed
+- `src/app/workspace/workspaceSplitTypes.ts`
+- `src/app/spaghetti/schema/spaghettiTypes.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/AppShell.tsx`
+- `src/app/theme/v15Theme.css`
+- `src/app/AppShell.test.tsx`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `docs/Phase-Plans/Tasks/Old/05.1B - VR-SP - Split Pane Authoring And Divider Controls.md`
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/Doc-Index.md`
+
+#### Behavior Changes (if any)
+- Split view is no longer locked to one top/bottom layout; the current Spaghetti split proof can now switch between horizontal and vertical orientations.
+- Floating Spaghetti windows can now create split view directly from a titlebar context menu.
+- The split divider is now a first-class control with resize, reset, and split-priority actions.
+- Split priority is now an explicit stored mode instead of a local boolean toggle.
+
+#### Verification Steps
+- Ran:
+  - `cmd /c npm test -- src/app/AppShell.test.tsx src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- Result:
+  - `88` tests passed
+
+<!-- ENTRY 304 -->
+### [304] - 2026-03-17 14:48 - `DOC - Phase 10 - Workspace Modes 5.1E Roadmap Slot Added`
+<!-- ENTRY 304 -->
+HUMAN SUMMARY: `Added explicit roadmap slot \`[5.1E]\` for multi-window editor surfaces and detached/browser pop-out under the existing \`[5.1] Workspace Modes\` family, and synchronized the Human-Plans architecture plus roadmap checklist tracker to match that placement.`
+
+#### Scope / Constraints Honored
+- Kept the change inside Human-Plans architecture and roadmap docs plus the required permanent changelog entry.
+- Preserved the existing `[5.1A-D]` workspace foundation family instead of renumbering later lane `[5]` items.
+- Did not change runtime code, active task files, or the current `2.1D` execution boundary.
+
+#### Summary of Implementation
+- Added a new local `Doc History` entry in `docs/Human-Plans/roadmap/roadmap.md`.
+- Extended the `[5.1] Workspace Modes` lane summary so later multi-window editor growth and detached/browser pop-out are now explicitly described as follow-through on the same shared host model.
+- Added `[5.1E] [ ] - Multi-Window Editor Surfaces And Detached Pop-Out` to the roadmap subphase family and reinforced that later multi-window `Spaghetti Editor` work should stay attached to the same workspace lane.
+- Updated `docs/Human-Plans/Architecture/Workspace-Modes.md` so its roadmap relationship text, architecture boundary, and future-extension block all point to `[5.1E]` as the planned workspace-family home.
+- Synced `docs/Human-Plans/roadmap/roadmapCHECKLISTS.md` so Bucket `[5]`, Lane `[5]`, and the dedicated-plan mirror now include `[5.1E]` and keep the later `[5.2+]` labels aligned.
+- Cleaned up the duplicated roadmap-breakdown total created during that checklist renumber pass.
+
+#### Files Changed
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes.md`
+- `docs/Human-Plans/roadmap/roadmapCHECKLISTS.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- Planning docs now give multi-window `Spaghetti Editor` surfaces and detached/browser pop-out an explicit roadmap home under `[5.1]` instead of leaving that work only implied by deferred `SP - Phase 13` references.
+
+#### Verification Steps
+- Read back the `[5.1]` section in `docs/Human-Plans/roadmap/roadmap.md` to confirm `[5.1E]` appears in the summary, checklist, and subphase family.
+- Read back `docs/Human-Plans/Architecture/Workspace-Modes.md` to confirm the workspace architecture now maps later multi-window growth to `[5.1E]`.
+- Read back `docs/Human-Plans/roadmap/roadmapCHECKLISTS.md` to confirm the Bucket `[5]` mirrors and totals remain internally consistent after the new slot was added.
+
+<!-- ENTRY 303 -->
+### [303] - 2026-03-17 14:35 - `OO - Phase 13 - AGENTS Active Task Changelog Requirement`
+<!-- ENTRY 303 -->
+HUMAN SUMMARY: `Updated \`AGENTS.md\` so code-changing work implemented from active task docs in \`docs/Phase-Plans/Tasks/\` must receive a full permanent \`docs/CHANGELOG.md\` entry in the same change set instead of relying only on task-doc maintenance.`
+
+#### Scope / Constraints Honored
+- Kept the change limited to repository process/rules docs plus the required permanent changelog entry.
+- Did not change runtime code, phase-plan content, or chill-mode behavior.
+- Preserved the existing general changelog requirement while making the active task-implementation case explicit.
+
+#### Summary of Implementation
+- Added an `Active task implementation rule` block to `AGENTS.md`.
+- Clarified that code-changing work implemented from `docs/Phase-Plans/Tasks/` must receive a proper permanent `docs/CHANGELOG.md` entry in the same change set.
+- Clarified that local task-doc checklist/status/`Doc History` updates do not replace the required shipped-work changelog entry.
+- Extended the `Required Sequence` section so active task implementations explicitly require a full permanent changelog entry, not just task-doc maintenance.
+
+#### Files Changed
+- `AGENTS.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- Codex should now treat active phase-task implementation as an explicit permanent-changelog event, reducing the chance of shipped code changes being recorded only in local task docs.
+
+#### Verification Steps
+- Read back `AGENTS.md` to confirm the new active-task rule and required-sequence step align with the existing changelog and phase-doc rules.
+
+<!-- ENTRY 302 -->
+### [302] - 2026-03-17 14:30 - `VR / SP - Phase 5.0A - Spaghetti Default Startup And Preview-Mode Shell Removal`
+<!-- ENTRY 302 -->
+HUMAN SUMMARY: `Implemented \`5.0A\` by making \`spaghetti\` the default startup/input path, removing the visible left-dock \`Preview Mode\` card, routing worker errors into the \`Console\`, and switching bootstrap build startup onto the spaghetti-first path while leaving deeper legacy-branch deletion for later cleanup.`
+
+#### Scope / Constraints Honored
+- Kept the implementation focused on the `5.0A` runtime scope:
+  - spaghetti-first startup
+  - preview-panel shell removal
+  - worker-error console routing
+- Did not remove `Parts List` or `Box Params`; that remains `5.0B`.
+- Did not delete the remaining legacy input branch from code; that remains `5.0C`.
+
+#### Summary of Implementation
+- Changed `useAppStore` so normal startup now defaults `inputMode` to `spaghetti`.
+- Removed the old `Toolbar` / `Preview Mode` surface from the left-dock stack in `AppShell`.
+- Updated bootstrap build wiring so startup uses the spaghetti build path when the app is in spaghetti mode instead of always forcing the legacy box build request.
+- Routed `workerError` reporting into the layered `Console` transcript as `Worker` error entries.
+- Updated focused tests to cover:
+  - spaghetti-first startup default
+  - worker-error console publishing
+  - the left-dock shell after preview-panel removal
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/AppShell.tsx`
+- `src/app/bootstrapBuildWiring.ts`
+- `src/app/store/useAppStore.test.ts`
+- `src/app/AppShell.test.tsx`
+
+#### Behavior Changes (if any)
+- The app now opens in `spaghetti` by default instead of `legacy`.
+- The visible `Preview Mode` card no longer appears in the left dock.
+- Worker/build errors now surface through the `Console` instead of depending on the removed preview card.
+- Startup build bootstrapping now respects the spaghetti-first path.
+
+#### Verification Steps
+- Ran:
+  - `cmd /c npm test -- src/app/AppShell.test.tsx src/app/store/useAppStore.test.ts`
+- Result:
+  - `41` tests passed
+
+<!-- ENTRY 301 -->
+### [301] - 2026-03-17 14:21 - `DOC - Phase 10 - Workspace Modes Multi-Editor Growth Clarified`
+<!-- ENTRY 301 -->
+HUMAN SUMMARY: `Tightened \`docs/Human-Plans/Architecture/Workspace-Modes.md\` so the Human-Plans architecture now distinguishes current single-visible-editor shell truth from the next in-app multi-editor step and the later detached/browser-pop-out step.`
+
+#### Scope / Constraints Honored
+- Kept the change inside the Human-Plans workspace architecture doc plus the required changelog update.
+- Did not change runtime code, roadmap sequencing, or the `05.1A-D` execution docs.
+- Preserved the existing hybrid workspace direction while removing ambiguity around multi-instance versus detached editor growth.
+
+#### Summary of Implementation
+- Added a new local `Doc History` entry in `docs/Human-Plans/Architecture/Workspace-Modes.md`.
+- Expanded the architecture purpose so the doc now explicitly covers how later multi-editor and detached-window growth should fit the same shell model.
+- Added a new `Surface Instance Rule` section clarifying that the workspace model should separate surface kind, instance, and placement style instead of staying singleton-only forever.
+- Reworked the `Surface Switching Rule` so first-pass workspace UX can stay move/swap-first for shared app tools without hard-locking the underlying architecture against later multi-instance `Spaghetti Editor` hosting.
+- Added a new `Current Multi-Editor Truth And Growth Path` section that locks the recommended order as:
+  - current single visible editor truth
+  - later multiple in-app floating editor windows
+  - later detached or browser-pop-out placement
+- Tightened `First-Pass Non-Goals` and `Relationship To The Roadmap` so `5.1` no longer reads like it should finish detached-window work, while later `SP - Phase 13` is explicitly expected to reuse the shared workspace surface model.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Workspace-Modes.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- No runtime behavior changes; this is a Human-Plans architecture clarification for later workspace and multi-window editor work.
+
+#### Verification Steps
+- Not run; this was a docs-only update.
+
 <!-- ENTRY 300 -->
 ### [300] - 2026-03-16 19:31 - `VR - Phase 5 - 02.4C User References Bucket Locked`
 <!-- ENTRY 300 -->

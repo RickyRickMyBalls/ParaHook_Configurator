@@ -3,6 +3,8 @@
 ## Doc Header
 
 ### Doc History
+15. 2026-03-17 14:45: Extended the `5.1` workspace-family read so later multi-window `Spaghetti Editor` surfaces and detached/browser pop-out now have an explicit planned home as `[5.1E]` inside the same shared workspace model, instead of floating only as a separate `SP - Phase 13` family placeholder
+14. 2026-03-17 14:21: Tightened the workspace architecture around multi-editor growth by clarifying that current shipped shell truth is still one visible active `Spaghetti Editor`, the next honest upgrade is multiple in-app floating editor windows, and real detached/new-browser pop-out remains a later placement mode that should reuse the same surface-instance model instead of becoming a separate editor concept
 13. 2026-03-17 12:53: Added the Browser preservation rule to the umbrella workspace architecture so dragging `Browser` into the model viewport is still expected to keep the current floating-in-viewport behavior, clarifying that the hybrid system must preserve that existing shell interaction instead of treating Browser as tiled-only once workspace modes arrive
 12. 2026-03-17 12:48: Reworked this file back into the umbrella architecture surface after splitting the implementation detail into the dedicated `05.1A` through `05.1D` future task-doc family, updated the roadmap read from the older `[5.3]` placeholder to the re-homed `[5.1] VR / SP - Workspace Modes` lane, and removed the long execution-spec tail so this doc now points at the subphase docs instead of trying to hold every lock itself
 11. 2026-03-17 12:25: Generalized the split-entry rule so all standalone floating tool surfaces can right-click their title bars to `Split Horizontal` or `Split Vertical`, with the split created against the current model viewport; deeper subdivisions should then come from divider-line actions rather than more one-off panel rules
@@ -26,6 +28,7 @@ Use it to answer:
 - how the current Spaghetti-only split should evolve into a workspace-wide layout system
 - what kind of tool surfaces should be eligible for split panes
 - how floating and tiled surfaces should coexist in one hybrid workspace
+- how later multiple-editor and detached-window growth should fit the same shell model
 - how pane switching should work when the user wants one pane to become another tool surface
 - where shell ownership should live versus feature ownership
 
@@ -191,6 +194,24 @@ Example:
 - `Console` still owns transcript/input behavior whether it is floating or tiled
 - the workspace layout system only decides where the surface is shown
 
+### Surface Instance Rule
+
+The workspace should separate:
+- tool-surface kind
+- tool-surface instance
+- placement style
+
+Important rule:
+- do not hard-lock the architecture to singleton-only surfaces just because the current shell is still narrow
+
+Practical read:
+- `Browser`, `Console`, and `Gizmo/View` can still behave as move-existing/swap-first surfaces in the first shared workspace pass
+- `Spaghetti Editor` is the strongest early candidate for multiple instances because editor viewport/session records already exist in store even though the shell still mostly shows one visible active editor surface at a time
+
+Plain-English rule:
+- first-pass workspace UX can stay simple
+- the underlying surface model should still stay honest enough for later multi-editor growth
+
 ### Split Pane Rules
 
 Each split pane should be able to:
@@ -262,17 +283,24 @@ Plain-English read:
 The user should be able to switch the current pane to any supported tool surface.
 
 Recommended first-pass rule:
-- keep each major tool surface singleton
-- do not create duplicate hidden copies of `Browser`, `Console`, or `Spaghetti Editor`
-- if the user switches a pane to a surface that is already visible elsewhere, swap the two pane assignments instead of cloning the feature
+- keep the first-pass user interaction simple
+- for `Browser`, `Console`, and similar app-level tools, prefer move-existing or swap behavior before clone-heavy UX
+- do not require the first shared workspace pass to support multiple visible copies of every tool surface
+- do not design the underlying host model as permanently singleton-only either
+- if the user switches a pane to a surface that is already visible elsewhere, swap or move it by default unless that surface explicitly supports multi-instance hosting
 
 Why this is the safest first read:
-- it preserves one honest source of UI truth per major surface
-- it avoids fake duplicate `Browser` or `Console` instances
+- it keeps the first workspace rollout simpler
+- it avoids fake duplicate `Browser` or `Console` instances before instance policy is mature
+- it still leaves room for later multi-instance `Spaghetti Editor` growth
 - it still gives the user the practical freedom to say:
   - "make this pane the Browser"
   - "move the Console here"
   - "put Spaghetti in this pane instead"
+
+Important follow-up rule:
+- later multi-window `Spaghetti Editor` work should grow by adding real editor-surface instances to this same host model
+- it should not require inventing a second editor-shell concept outside the workspace system
 
 ### Relationship To The Current Split Experiment
 
@@ -315,6 +343,31 @@ Important rule:
   - hybrid behavior already exists
   - but only in a narrow Spaghetti-specific form
   - and the new architecture is the broader shared version of that idea
+
+### Current Multi-Editor Truth And Growth Path
+
+Current honest shell read:
+- the store can already track multiple editor viewport/session records
+- the visible app shell still mostly renders one active `Spaghetti Editor` surface at a time
+
+Important rule:
+- do not describe the current shell as if literal multiple visible spaghetti windows already ship
+
+Recommended growth order:
+- first:
+  - keep the current single-visible-editor truth explicit
+- next:
+  - allow multiple visible in-app floating `Spaghetti Editor` windows
+- later:
+  - allow true detached or `Pop-Out` editor placement in a new browser/window
+
+Important architecture rule:
+- detached or pop-out editor windows should be another placement/host mode of the same editor-surface instance model
+- they should not become a separate editor concept with separate Browser tracking or separate graph-editor semantics
+
+Plain-English read:
+- first make multiple in-app editor windows real
+- then let later browser-pop-out reuse that same surface truth instead of skipping straight to a disconnected detached-window path
 
 ### Relationship To The Current Left Dock
 
@@ -406,7 +459,8 @@ Good likely next additions:
 
 Do not let the first pass absorb:
 - detached OS-native docking systems
-- multiple independent copies of every tool surface
+- true browser-pop-out / detached editor-window behavior
+- multiple independent copies of every tool surface as a mandatory day-one requirement
 - saved layout libraries and presets
 - full arbitrary panel/plugin ecosystems
 - one-off feature-specific split rules that bypass the shared pane system
@@ -414,6 +468,10 @@ Do not let the first pass absorb:
 Plain-English rule:
 - prove one shared split workspace model first
 - do not turn v1 into a full window manager
+
+Important nuance:
+- first-pass non-goal does not mean the model should be singleton-only forever
+- it means the first rollout should not require finishing multi-instance hosting and detached-window placement before the shared workspace architecture is honest
 
 ### Default Layout Direction
 
@@ -458,11 +516,13 @@ This architecture sits closest to:
 - the current shipped `2.1D` editor split proof
 - the current `2.1E` dock/floating shell work
 - the later broader `[5.1] VR / SP - Workspace Modes` direction
+- the later `[5.1E]` workspace-family follow-through for multi-window editor surfaces and detached/browser pop-out
 
 Practical read:
 - `2.1D` proved split presentation is useful
 - shipped code also proved that one surface can move between floating, split, and docked/minimized shell states
-- this doc defines the larger shell model that should now be implemented through the dedicated `[5.1A]` through `[5.1D]` task-doc family
+- this doc defines the larger shell model that should now be implemented through the dedicated `[5.1A]` through `[5.1D]` task-doc family, with later multi-window editor follow-through planned as `[5.1E]`
+- later `SP - Phase 13` should use that shared surface model for real multiple visible spaghetti-editor windows and later detached/new-browser editor placement instead of bypassing the workspace architecture with a second shell system
 
 ### Execution Doc Family
 
@@ -494,6 +554,13 @@ Use the dedicated future task docs for implementation detail:
   - migration from the old Spaghetti-only split path
   - deprecation path for the special-case renderer
 
+Later planned extension inside the same roadmap family:
+
+- `[5.1E] [ ] - Multi-Window Editor Surfaces And Detached Pop-Out`
+  - multiple visible in-app `Spaghetti Editor` surfaces
+  - detached/browser `Pop-Out` growth on top of the same shared surface-instance model
+  - keep this as workspace-family follow-through rather than a separate detached-window shell system
+
 ### Architecture Boundary
 
 Keep this file focused on:
@@ -502,11 +569,12 @@ Keep this file focused on:
 - ownership boundaries
 - the relationship between current shipped proof and long-range direction
 
-Push detailed implementation locks into the `05.1A` through `05.1D` task docs.
+Push detailed implementation locks into the `05.1A` through `05.1D` task docs, then later `05.1E` once that follow-through gets its own execution doc.
 
 Important rule:
 - `Workspace-Modes.md` is the umbrella architecture doc
-- the `05.1A-D` files are the execution-planning docs
+- the `05.1A-D` files are the current execution-planning docs
+- later multi-window follow-through should extend that same family as `05.1E`, not start a disconnected shell track
 
 ### Suggested Code Shape
 
@@ -536,5 +604,6 @@ The right mental model is:
 - some surfaces should be allowed to stay floating while others are tiled
 - panes host supported tool surfaces such as `Browser`, `Spaghetti Editor`, `Console`, and the `Model Viewer`
 - if the user drags `Browser` into the model viewport, it should still keep the current floating-in-viewport Browser behavior
+- the current shell still mostly shows one visible `Spaghetti Editor` at a time, so later multi-editor and pop-out work should grow from one shared surface-instance model instead of inventing a separate detached editor concept
 - the split system owns placement and layout, while each tool surface keeps its own feature ownership
-- the detailed implementation now lives in the `05.1A` through `05.1D` task-doc family
+- the detailed implementation now lives in the `05.1A` through `05.1D` task-doc family, with later multi-window editor growth planned as `[5.1E]`

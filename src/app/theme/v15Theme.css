@@ -3675,13 +3675,21 @@ body {
 .ViewportSplitDividerShell {
   position: relative;
   width: 100%;
+  height: 100%;
 }
 
 .ViewportSplitPane--viewer {
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.ViewportSplitLayout.isLeftDockSplit .ViewportSplitPane--viewer {
+.ViewportSplitLayout.isVertical .ViewportSplitPane--viewer {
+  border-bottom: none;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ViewportSplitLayout.isHorizontal.isLeftDockSplit.isBalanced .ViewportSplitPane--viewer,
+.ViewportSplitLayout.isHorizontal.isLeftDockSplit.isBalanced .ViewportSplitPane--editor,
+.ViewportSplitLayout.isHorizontal.isLeftDockSplit.isBalanced .ViewportSplitDivider {
   margin-left: var(--split-left-offset);
   width: calc(100% - var(--split-left-offset));
   justify-self: start;
@@ -3690,65 +3698,6 @@ body {
 .ViewportSplitPane--editor {
   padding: 12px;
   box-sizing: border-box;
-}
-
-.ViewportSplitPriorityToggle,
-.ViewportSplitPriorityToggle:hover {
-  position: absolute;
-  top: 18px;
-  left: calc(var(--split-left-offset, 0px) + 6px);
-  z-index: 5;
-  min-width: 24px;
-  width: 24px;
-  height: 24px;
-  padding: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.08);
-  color: #eef2ff;
-  font-size: 10px;
-  line-height: 1;
-  transition:
-    left 180ms ease,
-    background 140ms ease,
-    border-color 140ms ease;
-}
-
-.ViewportSplitPriorityToggle:hover,
-.ViewportSplitPriorityToggle.isEditorPriority {
-  background: rgba(96, 142, 255, 0.22);
-  border-color: rgba(96, 142, 255, 0.45);
-}
-
-.ViewportSplitLayout.isLeftDockSplit.isEditorPriority .ViewportSplitPriorityToggle {
-  left: 6px;
-}
-
-.ViewportSplitPriorityToggle--divider,
-.ViewportSplitPriorityToggle--divider:hover {
-  top: auto;
-  left: calc(var(--split-left-offset, 0px) + 12px);
-  bottom: -7px;
-  z-index: 6;
-}
-
-.ViewportSplitPriorityToggle--divider.isEditorPriority,
-.ViewportSplitPriorityToggle--divider.isEditorPriority:hover {
-  left: 6px;
-}
-
-.ViewportSplitLayout.isLeftDockSplit .ViewportSplitPane--editor {
-  margin-left: var(--split-left-offset);
-  width: calc(100% - var(--split-left-offset));
-  justify-self: start;
-}
-
-.ViewportSplitLayout.isLeftDockSplit.isEditorPriority .ViewportSplitPane--editor {
-  margin-left: 0;
-  width: 100%;
 }
 
 .ViewportSplitDivider,
@@ -3769,15 +3718,53 @@ body {
   cursor: row-resize;
 }
 
-.ViewportSplitLayout.isLeftDockSplit .ViewportSplitDivider {
+.ViewportSplitLayout.isVertical .ViewportSplitDivider,
+.ViewportSplitLayout.isVertical .ViewportSplitDivider:hover {
+  width: 10px;
+  min-width: 10px;
+  height: 100%;
+  min-height: 100%;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(255, 255, 255, 0.18) 50%,
+    rgba(255, 255, 255, 0.08) 100%
+  );
+  cursor: col-resize;
+}
+
+.ViewportSplitLayout.isVertical.isLeftDockSplit {
+  padding-left: var(--split-left-offset);
+  box-sizing: border-box;
+}
+
+.ViewportSplitLayout.isHorizontal.isLeftDockSplit.isFavorSecond .ViewportSplitPane--viewer {
   margin-left: var(--split-left-offset);
   width: calc(100% - var(--split-left-offset));
   justify-self: start;
 }
 
-.ViewportSplitLayout.isLeftDockSplit.isEditorPriority .ViewportSplitDivider {
+.ViewportSplitLayout.isHorizontal.isLeftDockSplit.isFavorSecond .ViewportSplitPane--editor,
+.ViewportSplitLayout.isHorizontal.isLeftDockSplit.isFavorSecond .ViewportSplitDivider {
   margin-left: 0;
   width: 100%;
+}
+
+.ViewportSplitLayout.isHorizontal.isLeftDockSplit.isFavorFirst .ViewportSplitPane--viewer,
+.ViewportSplitLayout.isHorizontal.isLeftDockSplit.isFavorFirst .ViewportSplitDivider {
+  margin-left: 0;
+  width: 100%;
+}
+
+.ViewportSplitLayout.isHorizontal.isLeftDockSplit.isFavorFirst .ViewportSplitPane--editor {
+  margin-left: var(--split-left-offset);
+  width: calc(100% - var(--split-left-offset));
+  justify-self: start;
+}
+
+.WorkspaceSplitMenu .LeftDockResizeMenuAction.isActive {
+  background: rgba(96, 142, 255, 0.22);
+  border-color: rgba(96, 142, 255, 0.45);
 }
 
 .ViewportBottomSplitDockGhost {

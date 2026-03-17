@@ -3,6 +3,11 @@
 ## Doc Header
 
 ### Doc History
+56. 2026-03-17 16:45: Moved `05.0B - VR-SP - Legacy Left-Dock Panel Reduction.md` from `Tasks/Future` to `Tasks/Old` after the shell-reduction implementation landed, so the docs map now matches the shipped removal of the `Parts List` and `Box Params` left-dock cards instead of leaving that cleanup subphase in the future queue
+55. 2026-03-17 15:10: Moved `05.0A - VR-SP - Spaghetti Default Startup And Preview-Mode Shell Removal.md` from `Tasks/Future` to `Tasks/Old` after the runtime cleanup landed, so the docs map now matches the shipped `5.0A` state instead of continuing to list that task as pending future work
+54. 2026-03-17 15:05: Moved `05.1B - VR-SP - Split Pane Authoring And Divider Controls.md` from `Tasks/Future` to `Tasks/Old` after shipping the current AppShell/Spaghetti split-authoring cut, and updated the task inventory so the workspace-mode family now shows `05.1B` as landed history instead of pending execution
+53. 2026-03-17 14:28: Added the new `05.0D` deferred cleanup doc to the future-task map, so the `5.0` family now has an explicit planning surface for post-`5.0C` residue such as dead shell surfaces, stale panel-era files, and leftover viewer concepts that do not need to block `[5.1]`
+52. 2026-03-17 13:31: Added the new `05.0A`, `05.0B`, and `05.0C` cleanup subphase docs to the future-task map, so the `5.0` bridge lane now has dedicated planning surfaces for `spaghetti`-default startup, left-dock panel removal, and the later removal of the `legacy` input-mode branch from code
 51. 2026-03-17 13:05: Added `docs/Phase-Plans/Tasks/Future/05.0 - VR-SP - Pre-Workspace Shell Cleanup And Legacy Panel Reduction.md` to the docs map as the new bridge planning surface ahead of the `05.1A-D` workspace-mode family, so the immediate reduction of `Preview Mode`, `Parts List`, and `Box Params` now has its own dedicated future task doc instead of living only as a roadmap row
 50. 2026-03-17 12:43: Added the new `05.1A` through `05.1D` workspace-mode future task-doc family to the docs map, updated the future-task listing so the hybrid workspace split now has dedicated planning surfaces under the re-homed `[5.1]` roadmap slot, and refreshed the architecture-doc read so `Workspace-Modes.md` stays the umbrella architecture source instead of acting like one giant execution spec
 49. 2026-03-17 12:23: Added `docs/Phase-Plans/Tasks/Future/04.1D - VR-SP-DBG - Layered Event Feeds And Filtering.md` to the docs map as the next dedicated console subphase planning surface after `4.1C`, so richer event publishing, expanded layer ownership, and stronger transcript filtering now have a stable future task-doc home under the `4.1` console lane
@@ -455,11 +460,15 @@ Rule notes:
             - `04.1C - VR-SP-DBG - Command Input And Keyboard Routing.md`
             - `04.1D - VR-SP-DBG - Layered Event Feeds And Filtering.md`
             - `05.0 - VR-SP - Pre-Workspace Shell Cleanup And Legacy Panel Reduction.md`
+            - `05.0C - VR-SP - Legacy Input-Mode Branch Removal.md`
+            - `05.0D - VR-SP - Deferred Legacy Residue And Dead-Surface Cleanup.md`
             - `05.1A - VR-SP - Workspace Layout Foundation And Left-Dock Entry.md`
-            - `05.1B - VR-SP - Split Pane Authoring And Divider Controls.md`
             - `05.1C - VR-SP - Hybrid Tool Surface Hosting And Floating-Tiled Transitions.md`
             - `05.1D - VR-SP - Workspace Persistence, Saved Modes, And Migration.md`
 #### -------Old
+            - `05.0A - VR-SP - Spaghetti Default Startup And Preview-Mode Shell Removal.md`
+            - `05.0B - VR-SP - Legacy Left-Dock Panel Reduction.md`
+            - `05.1B - VR-SP - Split Pane Authoring And Divider Controls.md`
             - `04.1A - VR-SP-DBG - Console Shell And Transcript Core.md`
             - `02.4E - VR - Reference Transform Timelines.md`
             - `02.4D - VR - Reference Transform Controls.md`

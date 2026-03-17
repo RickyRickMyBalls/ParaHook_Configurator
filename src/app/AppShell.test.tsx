@@ -38,10 +38,6 @@ vi.mock('./components/TitleStatusBar', () => ({
   TitleStatusBar: () => <div>Title Status</div>,
 }))
 
-vi.mock('./components/Toolbar', () => ({
-  Toolbar: () => <div>Toolbar Panel</div>,
-}))
-
 vi.mock('./components/ViewToolbar', () => ({
   ViewToolbar: () => <div>View Toolbar</div>,
 }))
@@ -88,14 +84,6 @@ vi.mock('./panels/BrowserPanel', () => ({
   ),
 }))
 
-vi.mock('./panels/PartsListPanel', () => ({
-  PartsListPanel: () => <div>Parts List Panel</div>,
-}))
-
-vi.mock('./panels/BoxPanel', () => ({
-  BoxPanel: () => <div>Legacy Box Panel</div>,
-}))
-
 vi.mock('./panels/SpaghettiPanel', () => ({
   SpaghettiPanel: ({
     editorViewportId,
@@ -128,6 +116,8 @@ const viewport = (windowMode: string) => ({
   position: { x: 24, y: 28 },
   size: { width: 800, height: 600 },
   splitRatio: 0.6,
+  splitDirection: 'horizontal',
+  splitPriority: 'balanced',
   restoreFromCollapsed: null,
   restoreFromSplit: null,
   zOrder: 5,
@@ -255,6 +245,26 @@ describe('AppShell', () => {
         }
       }),
       setEditorViewportSplitRatio: vi.fn(),
+      setEditorViewportSplitDirection: vi.fn((editorViewportId: string, splitDirection: string) => {
+        const currentViewport = currentSpaghettiState.editorViewportsById[editorViewportId]
+        if (currentViewport === undefined) {
+          return
+        }
+        currentSpaghettiState.editorViewportsById[editorViewportId] = {
+          ...currentViewport,
+          splitDirection,
+        }
+      }),
+      setEditorViewportSplitPriority: vi.fn((editorViewportId: string, splitPriority: string) => {
+        const currentViewport = currentSpaghettiState.editorViewportsById[editorViewportId]
+        if (currentViewport === undefined) {
+          return
+        }
+        currentSpaghettiState.editorViewportsById[editorViewportId] = {
+          ...currentViewport,
+          splitPriority,
+        }
+      }),
       closeEditorViewport: vi.fn(),
       setEditorViewportPosition: vi.fn((editorViewportId: string, position: { x: number; y: number }) => {
         const currentViewport = currentSpaghettiState.editorViewportsById[editorViewportId]
@@ -381,12 +391,12 @@ describe('AppShell', () => {
     )
   })
 
-  it('renders split view as a non-overlay top/bottom layout', async () => {
+  it('renders split view as a non-overlay horizontal layout by default', async () => {
     currentSpaghettiState.editorViewportsById['editor-viewport-1'] = viewport('split view')
 
     ;({ container, root } = await renderAppShell())
 
-    expect(container?.querySelector('.ViewportSplitLayout')).not.toBeNull()
+    expect(container?.querySelector('.ViewportSplitLayout.isHorizontal')).not.toBeNull()
     expect(container?.querySelector('.ViewportSplitDivider')).not.toBeNull()
     expect((container?.querySelector('.LeftDock') as HTMLElement | null)?.style.bottom).toContain(
       'calc(',
@@ -396,23 +406,33 @@ describe('AppShell', () => {
     expect(container?.querySelector('.SpaghettiFloatingDock')).toBeNull()
   })
 
-  it('lets split view give the lower spaghetti editor full-width priority when the left dock is also split', async () => {
+  it('renders split view as a side-by-side layout when the viewport direction is vertical', async () => {
+    currentSpaghettiState.editorViewportsById['editor-viewport-1'] = {
+      ...viewport('split view'),
+      splitDirection: 'vertical',
+    }
+
+    ;({ container, root } = await renderAppShell())
+
+    const splitLayout = container?.querySelector('.ViewportSplitLayout') as HTMLDivElement | null
+    expect(splitLayout?.classList.contains('isVertical')).toBe(true)
+    expect(splitLayout?.style.gridTemplateColumns).toContain('0.6fr 10px 0.4fr')
+  })
+
+  it('opens the divider context menu and lets split view change priority mode', async () => {
     currentSpaghettiState.editorViewportsById['editor-viewport-1'] = viewport('split view')
 
     ;({ container, root } = await renderAppShell())
-    mockShellGeometry(container)
 
-    const leftDockSplitButton = container?.querySelector(
-      'button[aria-label=\"Toggle left dock viewport split\"]',
-    ) as HTMLButtonElement | null
-    expect(leftDockSplitButton).not.toBeNull()
+    const divider = container?.querySelector('.ViewportSplitDivider') as HTMLButtonElement | null
+    expect(divider).not.toBeNull()
 
     await act(async () => {
-      leftDockSplitButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+      divider?.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }))
     })
 
-    const priorityButton = Array.from(container?.querySelectorAll('button') ?? []).find(
-      (button) => button.getAttribute('aria-label') === 'Give spaghetti editor bottom priority in split view',
+    const priorityButton = Array.from(container?.querySelectorAll('.WorkspaceSplitMenu button') ?? []).find(
+      (button) => button.textContent === 'Favor Second Pane',
     )
     expect(priorityButton).not.toBeNull()
 
@@ -420,10 +440,71 @@ describe('AppShell', () => {
       priorityButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
     })
 
-    expect(container?.querySelector('.ViewportSplitLayout')?.classList.contains('isEditorPriority')).toBe(
+    expect(currentSpaghettiState.setEditorViewportSplitPriority).toHaveBeenCalledWith(
+      'editor-viewport-1',
+      'favorSecond',
+    )
+    expect(container?.querySelector('.ViewportSplitLayout')?.classList.contains('isFavorSecond')).toBe(
       true,
     )
-    expect((container?.querySelector('.LeftDock') as HTMLElement | null)?.style.bottom).toContain('calc(')
+  })
+
+  it('opens the floating spaghetti titlebar context menu and creates a vertical split', async () => {
+    ;({ container, root } = await renderAppShell())
+
+    const floatingTitleBar = container?.querySelector(
+      '.SpaghettiFloatingDock .SpaghettiFloatingHandle',
+    ) as HTMLDivElement | null
+    expect(floatingTitleBar).not.toBeNull()
+
+    await act(async () => {
+      floatingTitleBar?.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }))
+    })
+
+    const splitVerticalButton = Array.from(container?.querySelectorAll('.WorkspaceSplitMenu button') ?? []).find(
+      (button) => button.textContent === 'Split Vertical',
+    )
+    expect(splitVerticalButton).not.toBeNull()
+
+    await act(async () => {
+      splitVerticalButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(currentSpaghettiState.setEditorViewportSplitDirection).toHaveBeenCalledWith(
+      'editor-viewport-1',
+      'vertical',
+    )
+    expect(currentSpaghettiState.setEditorViewportWindowMode).toHaveBeenCalledWith(
+      'editor-viewport-1',
+      'split view',
+    )
+  })
+
+  it('resets the split ratio from the divider context menu', async () => {
+    currentSpaghettiState.editorViewportsById['editor-viewport-1'] = viewport('split view')
+
+    ;({ container, root } = await renderAppShell())
+
+    const divider = container?.querySelector('.ViewportSplitDivider') as HTMLButtonElement | null
+    expect(divider).not.toBeNull()
+
+    await act(async () => {
+      divider?.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }))
+    })
+
+    const resetButton = Array.from(container?.querySelectorAll('.WorkspaceSplitMenu button') ?? []).find(
+      (button) => button.textContent === 'Reset Ratio',
+    )
+    expect(resetButton).not.toBeNull()
+
+    await act(async () => {
+      resetButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(currentSpaghettiState.setEditorViewportSplitRatio).toHaveBeenCalledWith(
+      'editor-viewport-1',
+      0.5,
+    )
   })
 
   it('ctrl-clicking the split spaghetti title bar detaches back to the floating editor', async () => {
@@ -601,12 +682,13 @@ describe('AppShell', () => {
     )
   })
 
-  it('renders meatball editor view in the left dock below parts list', async () => {
+  it('renders meatball editor view in the left dock without the old parts list panel', async () => {
     currentSpaghettiState.editorViewportsById['editor-viewport-1'] = viewport('meatball editor view')
 
     ;({ container, root } = await renderAppShell())
 
-    expect(container?.textContent).toContain('Parts List Panel')
+    expect(container?.textContent).not.toContain('Parts List Panel')
+    expect(container?.textContent).not.toContain('Legacy Box Panel')
     expect(container?.querySelector('.SpaghettiMeatballHost')).not.toBeNull()
     expect(container?.querySelector('.SpaghettiMeatballHost .SpaghettiFloatingHandle')).not.toBeNull()
     expect(container?.textContent).toContain('Spaghetti Panel editor-viewport-1')

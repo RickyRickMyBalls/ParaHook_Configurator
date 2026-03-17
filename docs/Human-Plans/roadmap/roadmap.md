@@ -4,6 +4,11 @@
 ### Fold Hack 3
 #### FOld Hack 4
 ###### Doc History
+85. 2026-03-17 16:45: Marked `[5.0B]` complete after removing `Parts List` and `Box Params` from the default AppShell left-dock stack, updated the parent `5.0` bridge-lane checklist to reflect the landed shell subtraction, and kept the remaining deeper legacy/input cleanup deferred to `[5.0C]` and `[5.0D]`
+84. 2026-03-17 15:05: Marked `[5.1B]` complete after shipping the current split-pane authoring cut on top of the AppShell/Spaghetti split proof, updated the workspace-mode lane checklist to reflect landed divider authoring controls, and synced the subphase family status now that the task doc has moved to `Tasks/Old`
+83. 2026-03-17 14:45: Added `[5.1E]` under `[5.1] Workspace Modes` as the explicit later home for multi-window `Spaghetti Editor` surfaces and detached/browser pop-out growth, keeping that work attached to the shared workspace-model family instead of renumbering the rest of Lane `[5]`
+82. 2026-03-17 14:34: Marked `[5.0A]` complete in the roadmap after the runtime implementation landed, flipped the matching parent `[5.0]` checklist items for `spaghetti`-first startup and `Preview Mode` shell removal, and moved the parent lane itself to partial status now that the `5.0` cleanup family has begun shipping
+81. 2026-03-17 14:28: Added `[5.0D]` as a deferred post-`5.0C` cleanup cut, so Lane `[5.0]` now has an explicit home for dead shell surfaces, stale panel-era files, and leftover viewer residue that should be classified later without blocking `[5.1] Workspace Modes`
 80. 2026-03-17 13:28: Expanded `[5.0]` into real foldable roadmap subphases by adding dedicated `###` sections for `[5.0A]`, `[5.0B]`, and `[5.0C]`, so the pre-workspace cleanup lane now matches the structure used elsewhere instead of only listing a suggested subphase family inline
 79. 2026-03-17 13:26: Expanded `[5.0]` into an explicit cleanup-family read by adding a recommended `[5.0A-C]` breakdown, separating `spaghetti`-by-default startup and visible shell cleanup from the later `legacy input-mode branch removal` code cleanup so the roadmap no longer treats hiding old UI and deleting old logic as one step
 78. 2026-03-17 13:00: Added a new `[5.0] VR / SP - Pre-Workspace Shell Cleanup And Legacy Panel Reduction` bridge lane ahead of `[5.1]`, giving the immediate cleanup of `Preview Mode`, `Parts List`, and `Box Params` a real roadmap home before the broader workspace-mode system starts replacing shell layout behavior
@@ -165,7 +170,7 @@ Expected outcome:
 - later `AS` output work can attach to the correct ownership structure
 - the spaghetti editor is treated as one or more Browser-coordinated viewports into graph documents rather than one app-wide mode/panel
 
-## Lane [1] Body - `Restructure`
+## Lane [1] Body - `Graph-Native Foundation And Ownership`
 
 ### [1.1] [x] - `SP` - Phase 9 - `Graph Document Foundations`
 
@@ -1437,49 +1442,49 @@ Expected outcome:
 
 ## Lane [5] Body - `later control/build/workspace placeholder`
 
-### [5.0] [ ] - `VR / SP` - `Pre-Workspace Shell Cleanup And Legacy Panel Reduction`
+### [5.0] [~] - `VR / SP` - `Pre-Workspace Shell Cleanup And Legacy Panel Reduction`
 
 Summary:
 - narrow bridge lane for reducing the shell clutter that is currently consuming the left dock before `[5.1] Workspace Modes` tries to replace layout behavior more broadly
 - this is the right home for shrinking or removing the always-open legacy-style panels that are taking up space without yet doing a broad final legacy purge
 
 CheckList:
-- [ ] shrink, demote, or remove the current `Preview Mode` card from the always-open left-dock stack
-- [ ] decide whether `Parts List` should:
+- [x] shrink, demote, or remove the current `Preview Mode` card from the always-open left-dock stack
+- [x] decide whether `Parts List` should:
   - merge into `Browser`
   - become a later hosted tool surface
   - or be reduced as legacy shell clutter
-- [ ] shrink, hide, or phase down `Box Params` if it is still acting as large always-open legacy UI
-- [ ] make `spaghetti` the default startup/input path before hiding the visible legacy branch UI
-- [ ] plan one later cleanup cut that actually removes the `legacy` input-mode branch from code after the shell no longer depends on it
-- [ ] preserve any still-needed behavior while reducing permanent left-dock footprint
+- [x] shrink, hide, or phase down `Box Params` if it is still acting as large always-open legacy UI
+- [x] make `spaghetti` the default startup/input path before hiding the visible legacy branch UI
+- [x] plan one later cleanup cut that actually removes the `legacy` input-mode branch from code after the shell no longer depends on it
+- [x] preserve any still-needed behavior while reducing permanent left-dock footprint
 - [ ] keep this lane narrow:
   - do not turn it into the final broad legacy purge
   - do not absorb the real hybrid workspace system from `[5.1]`
 
-### [5.0A] [ ] - `Spaghetti Default Startup And Preview-Mode Shell Removal`
+### [5.0A] [x] - `Spaghetti Default Startup And Preview-Mode Shell Removal`
 
 Summary:
 - make `spaghetti` the default startup/input path before the visible `Preview Mode` branch UI disappears
 - remove the visible `Legacy / Spaghetti` chooser from the left dock once the app no longer needs that branch as the primary entry seam
 
 CheckList:
-- [ ] change startup so the app lands in `spaghetti` by default
-- [ ] verify the main viewer/build flow still behaves correctly without the user touching `Preview Mode`
-- [ ] hide or remove the `Preview Mode` card from the default left-dock stack
-- [ ] preserve any still-needed non-branch preview behavior in a lighter surface if needed
+- [x] change startup so the app lands in `spaghetti` by default
+- [x] verify the main viewer/build flow still behaves correctly without the user touching `Preview Mode`
+- [x] hide or remove the `Preview Mode` card from the default left-dock stack
+- [x] preserve any still-needed non-branch preview behavior in a lighter surface if needed
 
-### [5.0B] [ ] - `Legacy Left-Dock Panel Reduction`
+### [5.0B] [x] - `Legacy Left-Dock Panel Reduction`
 
 Summary:
 - remove the remaining large transitional left-dock cards that are still competing with `Browser` for shell space
 - keep any still-needed behavior, but stop letting `Parts List` and `Box Params` consume permanent left-dock real estate
 
 CheckList:
-- [ ] hide `Parts List` from the default left-dock stack
-- [ ] hide `Box Params` from the default left-dock stack
-- [ ] decide whether surviving `Parts List` behavior belongs in `Browser`, a lighter shell entry, or a later hosted tool surface
-- [ ] preserve any still-needed `Box Params` behavior somewhere lighter if it is still needed temporarily
+- [x] hide `Parts List` from the default left-dock stack
+- [x] hide `Box Params` from the default left-dock stack
+- [x] decide whether surviving `Parts List` behavior belongs in `Browser`, a lighter shell entry, or a later hosted tool surface
+- [x] preserve any still-needed `Box Params` behavior somewhere lighter if it is still needed temporarily
 
 ### [5.0C] [ ] - `Legacy Input-Mode Branch Removal`
 
@@ -1493,6 +1498,20 @@ CheckList:
 - [ ] clean up remaining legacy-conditionals in viewer routing, build routing, panel rendering, and left-dock behavior
 - [ ] verify the app no longer depends on hidden `legacy` mode to remain usable
 
+### [5.0D] [ ] - `Deferred Legacy Residue And Dead-Surface Cleanup`
+
+Summary:
+- deferred cleanup cut for whatever is still left behind after the real `5.0A-C` shell and input-branch work lands
+- use this to prune dead surface files, stale styling, panel-era tests, and leftover viewer residue without pretending that all of it must block `[5.1]`
+
+CheckList:
+- [ ] remove dead shell-surface files that no longer have a real future owner
+- [ ] clean up stale CSS, tests, imports, and mocks from removed `Preview Mode`, `Parts List`, and `Box Params` surfaces
+- [ ] decide whether `parts` versus `assembled` is still a real viewer concept or post-panel residue
+- [ ] keep or remove spaghetti output-list helpers based on whether they still have a real next owner
+- [ ] keep this phase deferred by default:
+  - do not block `[5.1]` unless one of these leftovers becomes a direct workspace blocker
+
 ### [5.1] [~] - `VR / SP` - `Workspace Modes`
 
 Summary:
@@ -1503,6 +1522,7 @@ Summary:
   - divider authoring
   - hybrid tiled/windowed tool-surface hosting
   - persistence and saved workspace modes
+  - later multi-window editor-surface growth and detached/browser pop-out on top of the same shared host model
 - this is now the real roadmap home for the broader workspace-mode architecture in `docs/Human-Plans/Architecture/Workspace-Modes.md`
 - the older smaller workspace-presentation cleanup wave stays recorded here as already-landed groundwork, but no longer owns the future execution numbering
 
@@ -1513,7 +1533,7 @@ CheckList:
   - branch node = split direction + ratio + priority
   - leaf node = hosted tool-surface instance
 - [ ] reuse the existing left-dock `[]` button as the first tiled-entry control
-- [ ] lock divider-line authoring, resize, merge, and row/column priority rules
+- [x] lock divider-line authoring, resize, merge, and row/column priority rules
 - [ ] lock hybrid tool-surface hosting and tiled/windowed transitions for:
   - `Model Viewer`
   - `Browser`
@@ -1521,6 +1541,7 @@ CheckList:
   - `Gizmo/View`
   - `Spaghetti Editor`
 - [ ] lock persistence, saved workspace-mode follow-up, and migration off the old special-case Spaghetti split path
+- [ ] keep later multi-window `Spaghetti Editor` growth attached to this same workspace family so in-app duplicate editor surfaces and detached/browser pop-out reuse the shared surface-instance model instead of bypassing it
 
 Shipped groundwork already landed:
 - [x] per-window appearance shell and per-viewport style controls
@@ -1529,9 +1550,10 @@ Shipped groundwork already landed:
 
 Planned subphase family:
 - `[5.1A] [ ] - Workspace Layout Foundation And Left-Dock Entry`
-- `[5.1B] [ ] - Split Pane Authoring And Divider Controls`
+- `[5.1B] [x] - Split Pane Authoring And Divider Controls`
 - `[5.1C] [ ] - Hybrid Tool Surface Hosting And Floating-Tiled Transitions`
 - `[5.1D] [ ] - Workspace Persistence, Saved Modes, And Migration`
+- `[5.1E] [ ] - Multi-Window Editor Surfaces And Detached Pop-Out`
 
 ### [5.2] [ ] - `DR / JK` - `Control Viz And Graph-Driven Control Surfaces`
 

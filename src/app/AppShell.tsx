@@ -10,14 +10,11 @@ import {
 } from 'react'
 import { BuildStatsDrawer } from './components/BuildStatsDrawer'
 import { TitleStatusBar } from './components/TitleStatusBar'
-import { Toolbar } from './components/Toolbar'
 import { ViewToolbar } from './components/ViewToolbar'
 import { ViewerHost } from './components/ViewerHost'
 import { ViewportOverlay } from './components/ViewportOverlay'
 import { ConsoleDock } from './console/ConsoleDock'
-import { BoxPanel } from './panels/BoxPanel'
 import { BrowserPanel } from './panels/BrowserPanel'
-import { PartsListPanel } from './panels/PartsListPanel'
 import { SpaghettiPanel } from './panels/SpaghettiPanel'
 import {
   defaultSpaghettiWindowAppearance,
@@ -33,6 +30,12 @@ import {
 } from './spaghetti/store/useSpaghettiStore'
 import { useAppStore } from './store/useAppStore'
 import { useBuildStatsStore } from './store/buildStatsStore'
+import {
+  defaultWorkspaceSplitDirection,
+  defaultWorkspaceSplitPriority,
+  type WorkspaceSplitDirection,
+  type WorkspaceSplitPriority,
+} from './workspace/workspaceSplitTypes'
 
 type FloatingPosition = {
   x: number
@@ -56,6 +59,12 @@ type DockTargetRect = {
 type LeftDockResizeMenuState = {
   x: number
   y: number
+}
+
+type WorkspaceSplitMenuState = {
+  x: number
+  y: number
+  scope: 'floating-titlebar' | 'divider'
 }
 
 const initialFloatingPosition: FloatingPosition = defaultViewportPosition
@@ -102,6 +111,7 @@ function SpaghettiWindowTitleBar(props: {
   onClose: () => void
   onDragStart?: (event: ReactPointerEvent<HTMLDivElement>) => void
   onShellClick?: (event: ReactMouseEvent<HTMLDivElement>) => void
+  onContextMenu?: (event: ReactMouseEvent<HTMLDivElement>) => void
   isCollapsed: boolean
   isActionTrayExpanded: boolean
   isWindowSettingsOpen: boolean
@@ -132,6 +142,7 @@ function SpaghettiWindowTitleBar(props: {
     onMeatball,
     onSplitToggle,
     onShellClick,
+    onContextMenu,
   } = props
   const requestGraphDocumentBuild = useAppStore((state) => state.requestGraphDocumentBuild)
   const setActiveEditorViewportId = useSpaghettiStore((state) => state.setActiveEditorViewportId)
@@ -186,6 +197,7 @@ function SpaghettiWindowTitleBar(props: {
       className={`SpaghettiFloatingHandle ${isMeatball ? 'isMeatball' : ''}`}
       onPointerDown={onDragStart}
       onClick={onShellClick}
+      onContextMenu={onContextMenu}
     >
       <span className="SpaghettiFloatingHandleTitle">
         {isMeatball ? 'Meatball Editor' : 'Spaghetti Editor'}
@@ -338,6 +350,12 @@ export function AppShell() {
   const setActiveEditorViewportId = useSpaghettiStore((state) => state.setActiveEditorViewportId)
   const setEditorViewportWindowMode = useSpaghettiStore((state) => state.setEditorViewportWindowMode)
   const setEditorViewportSplitRatio = useSpaghettiStore((state) => state.setEditorViewportSplitRatio)
+  const setEditorViewportSplitDirection = useSpaghettiStore(
+    (state) => state.setEditorViewportSplitDirection,
+  )
+  const setEditorViewportSplitPriority = useSpaghettiStore(
+    (state) => state.setEditorViewportSplitPriority,
+  )
   const closeEditorViewport = useSpaghettiStore((state) => state.closeEditorViewport)
   const setEditorViewportPosition = useSpaghettiStore((state) => state.setEditorViewportPosition)
   const setEditorViewportSize = useSpaghettiStore((state) => state.setEditorViewportSize)
@@ -374,15 +392,13 @@ export function AppShell() {
   const [windowClampEditingByViewportId, setWindowClampEditingByViewportId] = useState<
     Record<string, boolean>
   >({})
-  const [splitEditorPriorityByViewportId, setSplitEditorPriorityByViewportId] = useState<
-    Record<string, boolean>
-  >({})
   const [canvasToolbarVisibleByViewportId, setCanvasToolbarVisibleByViewportId] = useState<
     Record<string, boolean>
   >({})
   const [headerToggleRevisionByViewportId, setHeaderToggleRevisionByViewportId] = useState<
     Record<string, number>
   >({})
+  const [workspaceSplitMenu, setWorkspaceSplitMenu] = useState<WorkspaceSplitMenuState | null>(null)
   const floatingPosRef = useRef<FloatingPosition>(initialFloatingPosition)
   const floatingSizeRef = useRef<FloatingSize>(initialFloatingSize)
   const browserFloatingPosRef = useRef<FloatingPosition>(defaultBrowserFloatingPosition)
@@ -453,6 +469,16 @@ export function AppShell() {
     activeWindowMode === 'expanded' || activeWindowMode === 'collapsed'
   const canResizeFloatingWindow = activeWindowMode === 'expanded'
   const splitRatio = activeEditorViewport?.splitRatio ?? 0.5
+  const splitDirection = activeEditorViewport?.splitDirection ?? defaultWorkspaceSplitDirection
+  const splitPriority = activeEditorViewport?.splitPriority ?? defaultWorkspaceSplitPriority
+  const splitDirectionClass =
+    splitDirection === 'vertical' ? 'isVertical' : 'isHorizontal'
+  const splitPriorityClass =
+    splitPriority === 'favorFirst'
+      ? 'isFavorFirst'
+      : splitPriority === 'favorSecond'
+        ? 'isFavorSecond'
+        : 'isBalanced'
   const isBrowserDockPreviewActive = activeLeftDockPreviewPanelId === 'browser'
   const isMeatballDockPreviewActive = activeLeftDockPreviewPanelId === 'meatball-editor'
   const isWindowSettingsOpen =
@@ -473,10 +499,6 @@ export function AppShell() {
     activeEditorViewport === null
       ? false
       : (windowClampEditingByViewportId[activeEditorViewport.editorViewportId] ?? false)
-  const isSplitEditorPriority =
-    activeEditorViewport === null
-      ? false
-      : (splitEditorPriorityByViewportId[activeEditorViewport.editorViewportId] ?? false)
 
   const getViewportLimits = useCallback(() => {
     const viewportElement = viewportRef.current
@@ -848,6 +870,45 @@ export function AppShell() {
       window.removeEventListener('blur', handleWindowChange)
     }
   }, [leftDockResizeMenu])
+
+  useEffect(() => {
+    if (workspaceSplitMenu === null) {
+      return
+    }
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target
+      if (target instanceof Element && target.closest('.WorkspaceSplitMenu') !== null) {
+        return
+      }
+      setWorkspaceSplitMenu(null)
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented) {
+        return
+      }
+      if (event.key === 'Escape') {
+        setWorkspaceSplitMenu(null)
+      }
+    }
+
+    const handleWindowChange = () => {
+      setWorkspaceSplitMenu(null)
+    }
+
+    window.addEventListener('pointerdown', handlePointerDown)
+    window.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('resize', handleWindowChange)
+    window.addEventListener('blur', handleWindowChange)
+
+    return () => {
+      window.removeEventListener('pointerdown', handlePointerDown)
+      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('resize', handleWindowChange)
+      window.removeEventListener('blur', handleWindowChange)
+    }
+  }, [workspaceSplitMenu])
 
   useEffect(() => {
     if (
@@ -1366,7 +1427,14 @@ export function AppShell() {
         if (state === null) {
           return
         }
-        const nextRatio = (moveEvent.clientY - state.viewportTop) / Math.max(1, state.viewportHeight)
+        const viewportRect = viewportRef.current?.getBoundingClientRect()
+        if (viewportRect === undefined) {
+          return
+        }
+        const nextRatio =
+          splitDirection === 'vertical'
+            ? (moveEvent.clientX - viewportRect.left) / Math.max(1, viewportRect.width - splitDividerHeight)
+            : (moveEvent.clientY - state.viewportTop) / Math.max(1, state.viewportHeight)
         setEditorViewportSplitRatio(activeEditorViewport.editorViewportId, nextRatio)
       }
 
@@ -1381,7 +1449,7 @@ export function AppShell() {
       event.preventDefault()
       event.stopPropagation()
     },
-    [activeEditorViewport, activeWindowMode, setEditorViewportSplitRatio],
+    [activeEditorViewport, activeWindowMode, setEditorViewportSplitRatio, splitDirection],
   )
 
   const handleCollapseToggle = useCallback(() => {
@@ -1462,6 +1530,60 @@ export function AppShell() {
     setEditorViewportWindowMode(activeEditorViewport.editorViewportId, 'split view')
   }, [activeEditorViewport, setEditorViewportWindowMode])
 
+  const handleFloatingSplitMenu = useCallback(
+    (event: ReactMouseEvent<HTMLDivElement>) => {
+      if (activeEditorViewport === null || activeWindowMode === 'split view') {
+        return
+      }
+      event.preventDefault()
+      event.stopPropagation()
+      setWorkspaceSplitMenu({
+        x: event.clientX,
+        y: event.clientY,
+        scope: 'floating-titlebar',
+      })
+    },
+    [activeEditorViewport, activeWindowMode],
+  )
+
+  const handleDividerSplitMenu = useCallback((event: ReactMouseEvent<HTMLElement>) => {
+    event.preventDefault()
+    event.stopPropagation()
+    setWorkspaceSplitMenu({
+      x: event.clientX,
+      y: event.clientY,
+      scope: 'divider',
+    })
+  }, [])
+
+  const handleSetSplitDirection = useCallback(
+    (nextDirection: WorkspaceSplitDirection) => {
+      if (activeEditorViewport === null) {
+        return
+      }
+      const editorViewportId = activeEditorViewport.editorViewportId
+      setEditorViewportSplitDirection(editorViewportId, nextDirection)
+      if (activeWindowMode !== 'split view') {
+        setEditorViewportWindowMode(editorViewportId, 'split view')
+      }
+      setWorkspaceSplitMenu(null)
+    },
+    [
+      activeEditorViewport,
+      activeWindowMode,
+      setEditorViewportSplitDirection,
+      setEditorViewportWindowMode,
+    ],
+  )
+
+  const handleResetSplitRatio = useCallback(() => {
+    if (activeEditorViewport === null) {
+      return
+    }
+    setEditorViewportSplitRatio(activeEditorViewport.editorViewportId, 0.5)
+    setWorkspaceSplitMenu(null)
+  }, [activeEditorViewport, setEditorViewportSplitRatio])
+
   const handleSplitTitleBarClick = useCallback(
     (event: ReactMouseEvent<HTMLDivElement>) => {
       if (!event.ctrlKey || activeEditorViewport === null || activeWindowMode !== 'split view') {
@@ -1521,16 +1643,21 @@ export function AppShell() {
     ],
   )
 
-  const handleSplitPriorityToggle = useCallback(() => {
+  const handleSetSplitPriority = useCallback((nextPriority: WorkspaceSplitPriority) => {
     if (activeEditorViewport === null) {
       return
     }
-    setSplitEditorPriorityByViewportId((current) => ({
-      ...current,
-      [activeEditorViewport.editorViewportId]:
-        !(current[activeEditorViewport.editorViewportId] ?? false),
-    }))
-  }, [activeEditorViewport])
+    setEditorViewportSplitPriority(activeEditorViewport.editorViewportId, nextPriority)
+    setWorkspaceSplitMenu(null)
+  }, [activeEditorViewport, setEditorViewportSplitPriority])
+
+  const handleCloseSplitFromMenu = useCallback(() => {
+    if (activeEditorViewport === null || activeWindowMode !== 'split view') {
+      return
+    }
+    setEditorViewportWindowMode(activeEditorViewport.editorViewportId, 'split view')
+    setWorkspaceSplitMenu(null)
+  }, [activeEditorViewport, activeWindowMode, setEditorViewportWindowMode])
 
   const handleCloseEditor = useCallback(() => {
     if (activeEditorViewport === null) {
@@ -1550,10 +1677,17 @@ export function AppShell() {
 
   const splitLayoutStyle = useMemo(
     () => ({
-      gridTemplateRows: `${splitRatio}fr ${splitDividerHeight}px ${1 - splitRatio}fr`,
+      gridTemplateColumns:
+        splitDirection === 'vertical'
+          ? `${splitRatio}fr ${splitDividerHeight}px ${1 - splitRatio}fr`
+          : 'minmax(0, 1fr)',
+      gridTemplateRows:
+        splitDirection === 'vertical'
+          ? 'minmax(0, 1fr)'
+          : `${splitRatio}fr ${splitDividerHeight}px ${1 - splitRatio}fr`,
       ['--left-dock-split-width' as const]: `${leftDockWidth}px`,
     }),
-    [leftDockWidth, splitRatio],
+    [leftDockWidth, splitDirection, splitRatio],
   )
 
   const newEditorSpawnPosition = useMemo(
@@ -1680,6 +1814,26 @@ export function AppShell() {
           )}px`,
         }
 
+  const workspaceSplitMenuStyle =
+    workspaceSplitMenu === null
+      ? undefined
+      : {
+          left: `${Math.max(
+            12,
+            Math.min(
+              workspaceSplitMenu.x,
+              (typeof window === 'undefined' ? workspaceSplitMenu.x : window.innerWidth) - 240,
+            ),
+          )}px`,
+          top: `${Math.max(
+            12,
+            Math.min(
+              workspaceSplitMenu.y,
+              (typeof window === 'undefined' ? workspaceSplitMenu.y : window.innerHeight) - 280,
+            ),
+          )}px`,
+        }
+
   const consoleListLeftOffset =
     isLeftDockViewportSplit && !showSplitLayout ? 0 : leftDockWidth
 
@@ -1692,7 +1846,9 @@ export function AppShell() {
           minWidth: `${leftDockWidth}px`,
           maxWidth: `${leftDockWidth}px`,
           bottom:
-            showSplitLayout && (!isLeftDockViewportSplit || isSplitEditorPriority)
+            showSplitLayout &&
+            splitDirection === 'horizontal' &&
+            (!isLeftDockViewportSplit || splitPriority !== 'favorFirst')
               ? `calc(${((1 - splitRatio) * 100).toFixed(4)}% + ${splitDividerHeight}px)`
               : '0px',
         }}
@@ -1725,8 +1881,6 @@ export function AppShell() {
                   <div className="LeftDockPanelGhost">Browser Dock Target</div>
                 </div>
               </div>
-              <Toolbar />
-              <PartsListPanel />
               <div
                 ref={dockedMeatballHostRef}
                 className={`LeftDockPanelTarget LeftDockPanelTarget--meatball-editor ${
@@ -1782,7 +1936,6 @@ export function AppShell() {
                   <div className="LeftDockPanelGhost">Meatball Dock Target</div>
                 </div>
               </div>
-              {inputMode === 'legacy' ? <BoxPanel /> : null}
             </div>
             <div
               className={`LeftDockResizeHandle ${
@@ -1816,8 +1969,8 @@ export function AppShell() {
       >
         {showSplitLayout && activeEditorViewport !== null ? (
           <div
-            className={`ViewportSplitLayout ${isLeftDockViewportSplit ? 'isLeftDockSplit' : ''} ${
-              isSplitEditorPriority ? 'isEditorPriority' : ''
+            className={`ViewportSplitLayout ${splitDirectionClass} ${splitPriorityClass} ${
+              isLeftDockViewportSplit ? 'isLeftDockSplit' : ''
             }`}
             style={splitLayoutStyle}
           >
@@ -1830,30 +1983,11 @@ export function AppShell() {
                 type="button"
                 className="ViewportSplitDivider"
                 onPointerDown={handleSplitResizeStart}
+                onContextMenu={handleDividerSplitMenu}
+                onDoubleClick={handleResetSplitRatio}
                 aria-label="Resize split view"
                 title="Drag to resize viewport and editor"
               />
-              {isLeftDockViewportSplit ? (
-                <button
-                  type="button"
-                  className={`ViewportSplitPriorityToggle ViewportSplitPriorityToggle--divider ${
-                    isSplitEditorPriority ? 'isEditorPriority' : ''
-                  }`}
-                  onClick={handleSplitPriorityToggle}
-                  aria-label={
-                    isSplitEditorPriority
-                      ? 'Return left toolbar priority in split view'
-                      : 'Give spaghetti editor bottom priority in split view'
-                  }
-                  title={
-                    isSplitEditorPriority
-                      ? 'Return left toolbar priority in split view'
-                      : 'Give spaghetti editor bottom priority in split view'
-                  }
-                >
-                  {isSplitEditorPriority ? '>' : '<'}
-                </button>
-              ) : null}
             </div>
             <div className="ViewportSplitPane ViewportSplitPane--editor">
               <div
@@ -1872,9 +2006,10 @@ export function AppShell() {
                   onSplitToggle={handleSplitToggle}
                   onDragStart={handleSplitTitleBarDragStart}
                   onShellClick={handleSplitTitleBarClick}
+                  onContextMenu={handleDividerSplitMenu}
                   onClose={handleCloseEditor}
                   isCollapsed={false}
-                    isActionTrayExpanded={isActionTrayExpanded}
+                  isActionTrayExpanded={isActionTrayExpanded}
                   isWindowSettingsOpen={isWindowSettingsOpen}
                   isHeaderCollapsed={isHeaderCollapsed}
                   isCanvasToolbarVisible={isCanvasToolbarVisible}
@@ -1910,7 +2045,7 @@ export function AppShell() {
             {showFloatingShell && isBottomSplitDockPreviewActive ? (
               <div
                 className={`ViewportBottomSplitDockGhost ${
-                  isLeftDockViewportSplit && !isSplitEditorPriority ? 'isLeftDockShifted' : ''
+                  isLeftDockViewportSplit && splitPriority !== 'favorSecond' ? 'isLeftDockShifted' : ''
                 }`}
                 style={{
                   top: `calc(${(splitRatio * 100).toFixed(4)}% + ${splitDividerHeight}px)`,
@@ -1961,6 +2096,7 @@ export function AppShell() {
                 onSplitToggle={handleSplitToggle}
                 onClose={handleCloseEditor}
                 onDragStart={handleSpaghettiDragStart}
+                onContextMenu={handleFloatingSplitMenu}
                 isCollapsed={activeWindowMode === 'collapsed'}
                 isActionTrayExpanded={isActionTrayExpanded}
                 isWindowSettingsOpen={isWindowSettingsOpen}
@@ -2039,6 +2175,76 @@ export function AppShell() {
           >
             {isLeftDockViewportSplit ? 'Unsplit Viewport' : 'Split Viewport'}
           </button>
+        </div>
+      ) : null}
+      {workspaceSplitMenu !== null ? (
+        <div className="WorkspaceSplitMenu LeftDockResizeMenu" style={workspaceSplitMenuStyle}>
+          <button
+            type="button"
+            className="LeftDockResizeMenuAction"
+            onClick={() => handleSetSplitDirection('horizontal')}
+          >
+            Split Horizontal
+          </button>
+          <button
+            type="button"
+            className="LeftDockResizeMenuAction"
+            onClick={() => handleSetSplitDirection('vertical')}
+          >
+            Split Vertical
+          </button>
+          {workspaceSplitMenu.scope === 'divider' ? (
+            <>
+              <button
+                type="button"
+                className="LeftDockResizeMenuAction"
+                onClick={handleResetSplitRatio}
+              >
+                Reset Ratio
+              </button>
+              <button
+                type="button"
+                className={`LeftDockResizeMenuAction ${
+                  splitPriority === 'balanced' ? 'isActive' : ''
+                }`}
+                onClick={() => handleSetSplitPriority('balanced')}
+              >
+                Balanced Priority
+              </button>
+              <button
+                type="button"
+                className={`LeftDockResizeMenuAction ${
+                  splitPriority === 'favorFirst' ? 'isActive' : ''
+                }`}
+                onClick={() => handleSetSplitPriority('favorFirst')}
+              >
+                Favor First Pane
+              </button>
+              <button
+                type="button"
+                className={`LeftDockResizeMenuAction ${
+                  splitPriority === 'favorSecond' ? 'isActive' : ''
+                }`}
+                onClick={() => handleSetSplitPriority('favorSecond')}
+              >
+                Favor Second Pane
+              </button>
+              <button
+                type="button"
+                className="LeftDockResizeMenuAction"
+                onClick={handleCloseSplitFromMenu}
+              >
+                Close Split
+              </button>
+              <button
+                type="button"
+                className="LeftDockResizeMenuAction"
+                onClick={handleCloseSplitFromMenu}
+              >
+                Merge With Neighbor
+              </button>
+            </>
+          ) : null}
         </div>
       ) : null}
       <ViewToolbar />

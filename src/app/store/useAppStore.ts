@@ -844,7 +844,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   buildPolicy: 'live',
   isInteracting: false,
   pendingBuildAfterRelease: false,
-  inputMode: 'legacy',
+  inputMode: 'spaghetti',
   viewMode: 'parts',
   assembled: null,
   assembledSignature: null,
@@ -1098,6 +1098,12 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
   setWorkerError: (message) => {
     set({ workerError: message })
+    appendConsoleEntry({
+      layer: 'Worker',
+      text: message,
+      source: 'worker',
+      severity: 'error',
+    })
   },
   toggleReferenceWorkspaceExpanded: () => {
     set((state) => ({

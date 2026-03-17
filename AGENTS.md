@@ -106,6 +106,11 @@ Current phase-plan workspace:
 
 If phase-system instructions in another file conflict with `docs/Phase-Plans/00_Phase-Setup.md`, prefer `00_Phase-Setup.md`.
 
+Active task implementation rule:
+- when Codex implements code-changing work from a task doc in `docs/Phase-Plans/Tasks/`, that work must receive a proper permanent `docs/CHANGELOG.md` entry in the same change set
+- updating only the task doc's local checklist, status text, or `Doc History` is not enough for completed implementation work
+- prefer using the task's canonical phase prefix/title in the changelog entry so the shipped work stays tied to the execution spec that drove it
+
 ## Codex Chat Capture Rule
 
 When a new long-form Codex working session begins, use the next
@@ -129,5 +134,6 @@ When Codex performs implementation work:
 1. Implement the requested change.
 2. Run verification when requested or when it is reasonably needed.
 3. Update `docs/CHANGELOG.md` unless chill mode is active or the user explicitly says not to.
+4. If the implementation came from an active task in `docs/Phase-Plans/Tasks/`, make sure the changelog entry is a full permanent entry, not just task-doc maintenance.
 
 Do not skip required maintenance updates silently.

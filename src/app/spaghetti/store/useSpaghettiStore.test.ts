@@ -1516,6 +1516,8 @@ describe('useSpaghettiStore graph normalization', () => {
     let viewport = selectActiveEditorViewport(useSpaghettiStore.getState())
     expect(viewport?.windowMode).toBe('split view')
     expect(viewport?.splitRatio).toBe(0.5)
+    expect(viewport?.splitDirection).toBe('horizontal')
+    expect(viewport?.splitPriority).toBe('balanced')
     expect(viewport?.restoreFromSplit).toEqual({
       windowMode: 'expanded',
       position: { x: 60, y: 90 },
@@ -1554,6 +1556,18 @@ describe('useSpaghettiStore graph normalization', () => {
     expect(viewport?.windowMode).toBe('split view')
     expect(viewport?.splitRatio).toBe(0.7)
     expect(viewport?.restoreFromCollapsed).toBeNull()
+  })
+
+  it('stores split direction and priority per editor viewport', () => {
+    const viewportId = useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
+    expect(viewportId).not.toBeNull()
+
+    useSpaghettiStore.getState().setEditorViewportSplitDirection(viewportId ?? '', 'vertical')
+    useSpaghettiStore.getState().setEditorViewportSplitPriority(viewportId ?? '', 'favorSecond')
+
+    const viewport = selectActiveEditorViewport(useSpaghettiStore.getState())
+    expect(viewport?.splitDirection).toBe('vertical')
+    expect(viewport?.splitPriority).toBe('favorSecond')
   })
 
   it('only keeps one meatball editor view alive at a time', () => {

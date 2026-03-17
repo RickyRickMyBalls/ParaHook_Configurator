@@ -59,6 +59,12 @@ import type {
 import { newId } from '../utils/id'
 import { makeComponentId, makeRowId } from '../utils/id'
 import type { BuildRoutingIdentity, PartArtifact } from '../../../shared/buildTypes'
+import {
+  defaultWorkspaceSplitDirection,
+  defaultWorkspaceSplitPriority,
+  type WorkspaceSplitDirection,
+  type WorkspaceSplitPriority,
+} from '../../workspace/workspaceSplitTypes'
 
 export type ConnectionDragState = {
   anchorDirection: 'in' | 'out'
@@ -265,6 +271,14 @@ export type SpaghettiStoreState = {
     windowMode: EditorViewport['windowMode'],
   ) => void
   setEditorViewportSplitRatio: (editorViewportId: string, splitRatio: number) => void
+  setEditorViewportSplitDirection: (
+    editorViewportId: string,
+    splitDirection: WorkspaceSplitDirection,
+  ) => void
+  setEditorViewportSplitPriority: (
+    editorViewportId: string,
+    splitPriority: WorkspaceSplitPriority,
+  ) => void
   setEditorViewportPosition: (
     editorViewportId: string,
     position: EditorViewportPosition,
@@ -1248,6 +1262,8 @@ const createEditorViewport = (
   position: options?.position ?? defaultViewportPosition,
   size: options?.size ?? defaultViewportSize,
   splitRatio: defaultViewportSplitRatio,
+  splitDirection: defaultWorkspaceSplitDirection,
+  splitPriority: defaultWorkspaceSplitPriority,
   restoreFromCollapsed: null,
   restoreFromSplit: null,
   zOrder: options?.zOrder ?? 1,
@@ -1255,6 +1271,12 @@ const createEditorViewport = (
 
 const clampViewportSplitRatio = (splitRatio: number): number =>
   Math.min(maxViewportSplitRatio, Math.max(minViewportSplitRatio, splitRatio))
+
+const withViewportSplitDefaults = (viewport: EditorViewport): EditorViewport => ({
+  ...viewport,
+  splitDirection: viewport.splitDirection ?? defaultWorkspaceSplitDirection,
+  splitPriority: viewport.splitPriority ?? defaultWorkspaceSplitPriority,
+})
 
 const snapshotExpandedRestoreState = (
   viewport: EditorViewport,
@@ -2753,42 +2775,42 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
       const resolveRestoreFromCollapsed = (): EditorViewport => {
         const restore = viewport.restoreFromCollapsed
         if (restore === null) {
-          return {
+          return withViewportSplitDefaults({
             ...viewport,
             windowMode: 'expanded',
             position: defaultViewportPosition,
             size: defaultViewportSize,
             restoreFromCollapsed: null,
-          }
+          })
         }
-        return {
+        return withViewportSplitDefaults({
           ...viewport,
           windowMode: restore.windowMode,
           position: restore.position ?? viewport.position,
           size: restore.size ?? viewport.size,
           splitRatio: restore.splitRatio ?? viewport.splitRatio,
           restoreFromCollapsed: null,
-        }
+        })
       }
 
       const resolveRestoreFromSplit = (): EditorViewport => {
         const restore = viewport.restoreFromSplit
         if (restore === null) {
-          return {
+          return withViewportSplitDefaults({
             ...viewport,
             windowMode: 'expanded',
             position: defaultViewportPosition,
             size: defaultViewportSize,
             restoreFromSplit: null,
-          }
+          })
         }
-        return {
+        return withViewportSplitDefaults({
           ...viewport,
           windowMode: restore.windowMode,
           position: restore.position ?? viewport.position,
           size: restore.size ?? viewport.size,
           restoreFromSplit: null,
-        }
+        })
       }
 
       let nextViewport: EditorViewport
@@ -2869,6 +2891,8 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
         }
       }
 
+      nextViewport = withViewportSplitDefaults(nextViewport)
+
       const nextViewportsById: Record<string, EditorViewport> = {}
       for (const [currentViewportId, currentViewport] of Object.entries(state.editorViewportsById)) {
         if (
@@ -2906,8 +2930,50 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
         editorViewportsById: {
           ...state.editorViewportsById,
           [editorViewportId]: {
-            ...viewport,
+            ...withViewportSplitDefaults(viewport),
             splitRatio: nextSplitRatio,
+          },
+        },
+      }
+    })
+  },
+  setEditorViewportSplitDirection: (editorViewportId, splitDirection) => {
+    set((state) => {
+      const viewport = state.editorViewportsById[editorViewportId]
+      if (viewport === undefined) {
+        return state
+      }
+      const currentSplitDirection = viewport.splitDirection ?? defaultWorkspaceSplitDirection
+      if (currentSplitDirection === splitDirection) {
+        return state
+      }
+      return {
+        editorViewportsById: {
+          ...state.editorViewportsById,
+          [editorViewportId]: {
+            ...withViewportSplitDefaults(viewport),
+            splitDirection,
+          },
+        },
+      }
+    })
+  },
+  setEditorViewportSplitPriority: (editorViewportId, splitPriority) => {
+    set((state) => {
+      const viewport = state.editorViewportsById[editorViewportId]
+      if (viewport === undefined) {
+        return state
+      }
+      const currentSplitPriority = viewport.splitPriority ?? defaultWorkspaceSplitPriority
+      if (currentSplitPriority === splitPriority) {
+        return state
+      }
+      return {
+        editorViewportsById: {
+          ...state.editorViewportsById,
+          [editorViewportId]: {
+            ...withViewportSplitDefaults(viewport),
+            splitPriority,
           },
         },
       }

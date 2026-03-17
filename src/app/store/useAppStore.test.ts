@@ -77,9 +77,11 @@ const createPreviewPreparation = (
 describe('useAppStore spaghetti compatibility wrappers', () => {
   const originalWorker = globalThis.Worker
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.resetModules()
     globalThis.Worker = MockWorker as unknown as typeof Worker
+    const { useConsoleStore } = await import('../console/useConsoleStore')
+    useConsoleStore.setState(useConsoleStore.getInitialState(), true)
   })
 
   afterEach(async () => {
@@ -114,6 +116,32 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     expect(selectGraphCompileResultByDocumentId(useSpaghettiStore.getState(), secondGraphId)?.ok).toBe(
       true,
     )
+  })
+
+  it('defaults the app into spaghetti input mode', async () => {
+    const { useAppStore } = await import('./useAppStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+
+    expect(useAppStore.getState().inputMode).toBe('spaghetti')
+  })
+
+  it('publishes worker errors into the console transcript', async () => {
+    const { useAppStore } = await import('./useAppStore')
+    const { useConsoleStore } = await import('../console/useConsoleStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useConsoleStore.setState(useConsoleStore.getInitialState(), true)
+
+    useAppStore.getState().setWorkerError('Build failed')
+
+    expect(useAppStore.getState().workerError).toBe('Build failed')
+    expect(useConsoleStore.getState().entries.at(-1)).toMatchObject({
+      layer: 'Worker',
+      text: 'Build failed',
+      source: 'worker',
+      severity: 'error',
+    })
   })
 
   it('owns one current project whose graph membership stays separate from viewport and viewer state', async () => {

@@ -61,6 +61,11 @@ export const bootstrapBuildWiring = (): void => {
     return [...LEGACY_BUILD_STATS_PART_ORDER]
   })
 
-  buildDispatcher.requestBuild(useAppStore.getState().box)
+  const appState = useAppStore.getState()
+  if (appState.inputMode === 'spaghetti') {
+    appState.requestSpaghettiBuild()
+  } else {
+    buildDispatcher.requestBuild(appState.box)
+  }
   wired = true
 }

@@ -224,13 +224,16 @@ Meaning:
 
 ##### Bucket 5 - Lane [5] Control, Build, And Workspace Systems
 
-- [x] `Roadmap Breakdown` `[5.1] DR / JK - Control Viz And Graph-Driven Control Surfaces`
+- [x] `Roadmap Breakdown` `[5.1] VR / SP - Workspace Modes`
   - [ ] `Decision Coverage` `[5.1]`
   - [ ] `Plan.md Status` `[5.1]`
-- [x] `Roadmap Breakdown` `[5.2] AS / SP - Build Sequencing, Build Bars, And Output Build Control`
+- [x] `Roadmap Breakdown` `[5.1E] VR / SP - Multi-Window Editor Surfaces And Detached Pop-Out`
+  - [ ] `Decision Coverage` `[5.1E]`
+  - [ ] `Plan.md Status` `[5.1E]`
+- [x] `Roadmap Breakdown` `[5.2] DR / JK - Control Viz And Graph-Driven Control Surfaces`
   - [ ] `Decision Coverage` `[5.2]`
   - [ ] `Plan.md Status` `[5.2]`
-- [x] `Roadmap Breakdown` `[5.3] VR / SP - Workspace Presentation Modes`
+- [x] `Roadmap Breakdown` `[5.3] AS / SP - Build Sequencing, Build Bars, And Output Build Control`
   - [ ] `Decision Coverage` `[5.3]`
   - [ ] `Plan.md Status` `[5.3]`
 - [x] `Roadmap Breakdown` `[5.4] AS / VR - Advanced Output Types And Later Project Packaging`
@@ -246,14 +249,14 @@ Meaning:
 ##### Master Totals
 
 - `Roadmap Breakdown`
-  - done enough: `42`
+  - done enough: `43`
   - still needs roadmap planning: `0`
 - `Decision Coverage`
   - captured enough: `26`
-  - still needs decision write-up: `16`
+  - still needs decision write-up: `17`
 - `Plan.md Status`
   - dedicated docs already made: `19`
-  - still needs dedicated docs: `23`
+  - still needs dedicated docs: `24`
 
 
 ##### RoadMap CheckList Total
@@ -326,9 +329,10 @@ Meaning:
 
 ##### Lane [5] - Control, Build, And Workspace Systems
 
-- [ ] `[5.1] DR / JK - Control Viz And Graph-Driven Control Surfaces`
-- [ ] `[5.2] AS / SP - Build Sequencing, Build Bars, And Output Build Control`
-- [~] `[5.3] VR / SP - Workspace Presentation Modes`
+- [~] `[5.1] VR / SP - Workspace Modes`
+- [ ] `[5.1E] VR / SP - Multi-Window Editor Surfaces And Detached Pop-Out`
+- [ ] `[5.2] DR / JK - Control Viz And Graph-Driven Control Surfaces`
+- [ ] `[5.3] AS / SP - Build Sequencing, Build Bars, And Output Build Control`
 - [ ] `[5.4] AS / VR - Advanced Output Types And Later Project Packaging`
 - [ ] `[5.5] GE / SP / AS - Publish / Receive Execution`
 - [ ] `[5.6] GE / SP / VR - Final Legacy Phase-Out And Compatibility Cleanup`
@@ -379,24 +383,25 @@ Meaning:
 - [ ] `[3.4] PT - Phase TBD - Part Node Hardening`
 - [ ] `[3.5] FS - Phase TBD - Feature Stack Growth`
 - [x] `[4.1] VR / SP / DBG - Console And Layered Transcript`
-- [ ] `[5.1] DR / JK - Control Viz And Graph-Driven Control Surfaces`
-- [ ] `[5.2] AS / SP - Build Sequencing, Build Bars, And Output Build Control`
-- [ ] `[5.3] VR / SP - Workspace Presentation Modes`
+- [ ] `[5.1] VR / SP - Workspace Modes`
+- [ ] `[5.1E] VR / SP - Multi-Window Editor Surfaces And Detached Pop-Out`
+- [ ] `[5.2] DR / JK - Control Viz And Graph-Driven Control Surfaces`
+- [ ] `[5.3] AS / SP - Build Sequencing, Build Bars, And Output Build Control`
 - [ ] `[5.4] AS / VR - Advanced Output Types And Later Project Packaging`
 - [ ] `[5.5] GE / SP / AS - Publish / Receive Execution`
 - [ ] `[5.6] GE / SP / VR - Final Legacy Phase-Out And Compatibility Cleanup`
 
 ##### Roadmap Breakdown Totals
 
-- Planned enough to count as broken down: `42`
+- Planned enough to count as broken down: `43`
 - Still needing dedicated planning: `0`
-- Grand total roadmap items tracked here: `42`
+- Grand total roadmap items tracked here: `43`
 
 ##### Dedicated Plan.md Totals
 
 - Already has its own dedicated plan/task doc: `20`
-- Still needs its own dedicated plan/task doc: `22`
-- Grand total roadmap items tracked here: `42`
+- Still needs its own dedicated plan/task doc: `23`
+- Grand total roadmap items tracked here: `43`
 
 
 

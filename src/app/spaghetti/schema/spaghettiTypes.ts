@@ -1,3 +1,8 @@
+import type {
+  WorkspaceSplitDirection,
+  WorkspaceSplitPriority,
+} from '../../workspace/workspaceSplitTypes'
+
 export type SpaghettiSchemaVersion = 1
 
 export type PortKind =
@@ -161,6 +166,8 @@ export type EditorViewport = {
   position: EditorViewportPosition
   size: EditorViewportSize
   splitRatio: number
+  splitDirection?: WorkspaceSplitDirection
+  splitPriority?: WorkspaceSplitPriority
   restoreFromCollapsed: EditorViewportRestoreFromCollapsed | null
   restoreFromSplit: EditorViewportRestoreFromSplit | null
   zOrder: number
