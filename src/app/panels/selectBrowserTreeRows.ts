@@ -58,10 +58,11 @@ type BrowserTreeRowBaseVm = {
   showOverflowButton?: boolean
 }
 
-export type BrowserReferenceRowState = 'visible' | 'hidden' | 'loading' | 'error'
+export type BrowserReferenceRowState = 'highlighted' | 'idle' | 'loading' | 'error'
 
 export type BrowserReferencesRootTreeRowVm = BrowserTreeRowBaseVm & {
   rowKind: 'references-root'
+  isVisible: boolean
   state: BrowserReferenceRowState
   stateLabel: string
 }
@@ -71,6 +72,7 @@ export type BrowserReferenceCategoryTreeRowVm = BrowserTreeRowBaseVm & {
   categoryId: ReferenceWorkspaceBrowserCategoryVm['categoryId']
   itemCount: number
   emptyLabel: string
+  isVisible: boolean
   state: BrowserReferenceRowState
   stateLabel: string
 }
@@ -82,6 +84,7 @@ export type BrowserReferenceItemTreeRowVm = BrowserTreeRowBaseVm & {
   categoryId: ReferenceWorkspaceBrowserItemVm['categoryId']
   fileType: ReferenceWorkspaceBrowserItemVm['fileType']
   assetPath: string
+  isVisible: boolean
   state: BrowserReferenceRowState
   stateLabel: string
   errorMessage: string | null
@@ -273,7 +276,15 @@ const formatReferenceItemMeta = (fileType: string): string => fileType.toUpperCa
 
 const selectReferenceCategoryState = (
   items: ReferenceWorkspaceBrowserCategoryVm['items'],
+  activeTransformReferenceId: string | null,
 ): BrowserReferenceRowState => {
+  const hasHighlightedItem =
+    activeTransformReferenceId !== null &&
+    items.some((item) => item.referenceId === activeTransformReferenceId)
+  if (hasHighlightedItem) {
+    return 'highlighted'
+  }
+
   const hasVisibleLoadingItem = items.some((item) => item.isVisible && item.loadState === 'loading')
   if (hasVisibleLoadingItem) {
     return 'loading'
@@ -286,14 +297,15 @@ const selectReferenceCategoryState = (
 
   const hasVisibleLoadedItem = items.some((item) => item.isVisible && item.loadState === 'loaded')
   if (hasVisibleLoadedItem) {
-    return 'visible'
+    return 'idle'
   }
 
-  return 'hidden'
+  return 'idle'
 }
 
 export const selectBrowserTreeRows = (options: {
   referenceWorkspaceTree: ReferenceWorkspaceBrowserTreeVm
+  activeTransformReferenceId?: string | null
   contentRows: ProjectContentBrowserRowVm[]
   graphRows: BrowserGraphRowVm[]
   editorViewports: EditorViewport[]
@@ -308,6 +320,7 @@ export const selectBrowserTreeRows = (options: {
 }): BrowserTreeRowsVm => {
   const {
     referenceWorkspaceTree,
+    activeTransformReferenceId = null,
     contentRows,
     editorViewports,
     expandedGraphDocumentIds,
@@ -536,6 +549,9 @@ export const selectBrowserTreeRows = (options: {
 
   const referenceCategories = referenceWorkspaceTree.categories
   const allReferenceItems = referenceCategories.flatMap((category) => category.items)
+  const hasHighlightedReference =
+    activeTransformReferenceId !== null &&
+    allReferenceItems.some((item) => item.referenceId === activeTransformReferenceId)
   const hasLoadingReference = allReferenceItems.some(
     (item) => item.isVisible && item.loadState === 'loading',
   )
@@ -544,13 +560,13 @@ export const selectBrowserTreeRows = (options: {
     (item) => item.isVisible && item.loadState === 'loaded',
   )
   const referenceRootState: BrowserReferenceRowState =
-    hasLoadingReference
+    hasHighlightedReference
+      ? 'highlighted'
+      : hasLoadingReference
       ? 'loading'
       : hasReferenceError
         ? 'error'
-        : hasVisibleLoadedReference
-          ? 'visible'
-          : 'hidden'
+        : 'idle'
 
   visibleReferenceRows.push({
     rowId: referenceWorkspaceTree.rowId,
@@ -568,21 +584,23 @@ export const selectBrowserTreeRows = (options: {
     isExpandable: true,
     isExpanded: referenceWorkspaceTree.isExpanded,
     actions: [],
+    isVisible: hasVisibleLoadedReference,
     state: referenceRootState,
     stateLabel:
       referenceRootState === 'error'
         ? 'Error'
         : referenceRootState === 'loading'
           ? 'Loading'
-          : hasVisibleLoadedReference
-            ? 'On'
-            : 'Off',
+          : referenceRootState === 'highlighted'
+            ? 'Highlight'
+            : 'Idle',
   } satisfies BrowserReferencesRootTreeRowVm)
 
   if (referenceWorkspaceTree.isExpanded) {
     referenceCategories.forEach((category, categoryIndex) => {
       const hasMoreCategories = categoryIndex < referenceCategories.length - 1
-      const categoryState = selectReferenceCategoryState(category.items)
+      const categoryState = selectReferenceCategoryState(category.items, activeTransformReferenceId)
+      const categoryVisible = category.items.some((item) => item.isVisible && item.loadState === 'loaded')
       const categoryIconLabel =
         category.categoryId === 'footpads'
           ? 'F'
@@ -606,15 +624,16 @@ export const selectBrowserTreeRows = (options: {
         categoryId: category.categoryId,
         itemCount: category.itemCount,
         emptyLabel: category.emptyLabel,
+        isVisible: categoryVisible,
         state: categoryState,
         stateLabel:
           categoryState === 'error'
             ? 'Error'
             : categoryState === 'loading'
               ? 'Loading'
-              : category.items.some((item) => item.isVisible && item.loadState === 'loaded')
-                ? 'On'
-                : 'Off',
+              : categoryState === 'highlighted'
+                ? 'Highlight'
+                : 'Idle',
       } satisfies BrowserReferenceCategoryTreeRowVm)
 
       if (!category.isExpanded) {
@@ -625,11 +644,11 @@ export const selectBrowserTreeRows = (options: {
         const itemState: BrowserReferenceRowState =
           item.loadState === 'error'
             ? 'error'
+            : activeTransformReferenceId === item.referenceId
+              ? 'highlighted'
             : item.isVisible && item.loadState === 'loading'
               ? 'loading'
-              : item.isVisible
-                ? 'visible'
-                : 'hidden'
+              : 'idle'
         visibleReferenceRows.push({
           rowId: item.rowId,
           rowKind: 'reference-item',
@@ -657,15 +676,16 @@ export const selectBrowserTreeRows = (options: {
           categoryId: item.categoryId,
           fileType: item.fileType,
           assetPath: item.assetPath,
+          isVisible: item.isVisible,
           state: itemState,
           stateLabel:
             itemState === 'error'
               ? 'Error'
               : itemState === 'loading'
                 ? 'Loading'
-                : item.isVisible
-                  ? 'On'
-                  : 'Off',
+                : itemState === 'highlighted'
+                  ? 'Highlight'
+                  : 'Idle',
           errorMessage: item.errorMessage,
         } satisfies BrowserReferenceItemTreeRowVm)
       })

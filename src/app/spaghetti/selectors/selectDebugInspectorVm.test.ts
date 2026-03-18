@@ -85,8 +85,6 @@ describe('selectDebugInspectorVm', () => {
           resolvedParts: {},
         },
       },
-      inputMode: 'spaghetti',
-      viewMode: 'parts',
     })
 
     expect(vm.compile.compiledArtifactsCount).toBe(2)
@@ -155,7 +153,7 @@ describe('selectDebugInspectorVm', () => {
     ])
   })
 
-  it('shows viewer input as inactive outside spaghetti parts mode', () => {
+  it('always reports the viewer as receiving preview input', () => {
     const vm = selectDebugInspectorVm({
       graph: cubeGraph,
       outputSurface: buildGraphOutputSurface({
@@ -166,13 +164,11 @@ describe('selectDebugInspectorVm', () => {
       }),
       buildOutputs: [cubeArtifact2, cubeArtifact1],
       compileResult: null,
-      inputMode: 'spaghetti',
-      viewMode: 'assembled',
     })
 
-    expect(vm.viewer.receivesPreviewInput).toBe(false)
-    expect(vm.viewer.renderableEntryCount).toBe(0)
-    expect(vm.viewer.reason).toBe('ViewerHost is in assembled mode.')
+    expect(vm.viewer.receivesPreviewInput).toBe(true)
+    expect(vm.viewer.renderableEntryCount).toBe(2)
+    expect(vm.viewer.reason).toBe('ViewerHost is receiving spaghetti preview input.')
   })
 
   it('is deterministic across repeated calls with identical inputs', () => {
@@ -187,16 +183,12 @@ describe('selectDebugInspectorVm', () => {
       outputSurface,
       buildOutputs: [cubeArtifact2, cubeArtifact1],
       compileResult: null,
-      inputMode: 'spaghetti',
-      viewMode: 'parts',
     })
     const second = selectDebugInspectorVm({
       graph: cubeGraph,
       outputSurface,
       buildOutputs: [cubeArtifact2, cubeArtifact1],
       compileResult: null,
-      inputMode: 'spaghetti',
-      viewMode: 'parts',
     })
 
     expect(second).toEqual(first)

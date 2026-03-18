@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { act } from 'react'
+import { act, useState } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ParaSelect } from './ParaSelect'
@@ -116,5 +116,172 @@ describe('ParaSelect', () => {
 
     expect(fill?.style.width).toBe('100%')
     expect(marker?.style.left).toBe('100%')
+  })
+
+  it('opens a styled menu and selects an option from the track button', async () => {
+    const onChange = vi.fn()
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(
+        <ParaSelect
+          label="Graph"
+          value="graph-1"
+          options={[
+            { value: 'graph-1', label: 'Graph 1' },
+            { value: 'graph-2', label: 'Graph 2' },
+          ]}
+          onChange={onChange}
+          menuMode="custom"
+        />,
+      )
+    })
+
+    const trackButton = container.querySelector(
+      'button.ParaSelectTrackButton[aria-label="Graph"]',
+    ) as HTMLButtonElement | null
+
+    await act(async () => {
+      trackButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    const menu = container.querySelector('.ParaSelectMenu') as HTMLDivElement | null
+    const nextOption = Array.from(container.querySelectorAll('.ParaSelectMenuOption')).find(
+      (button) => button.textContent === 'Graph 2',
+    ) as HTMLButtonElement | undefined
+
+    expect(menu).not.toBeNull()
+    expect(nextOption).not.toBeUndefined()
+
+    await act(async () => {
+      nextOption?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(onChange).toHaveBeenCalledWith('graph-2')
+    expect(container.querySelector('.ParaSelectMenu')).toBeNull()
+  })
+
+  it('runs a custom menu action from the styled menu', async () => {
+    const onAction = vi.fn()
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(
+        <ParaSelect
+          label="Graph"
+          value="graph-1"
+          options={[{ value: 'graph-1', label: 'Graph 1' }]}
+          onChange={() => {}}
+          menuMode="custom"
+          menuActions={[{ label: 'Add New Graph', onSelect: onAction }]}
+        />,
+      )
+    })
+
+    const trackButton = container.querySelector(
+      'button.ParaSelectTrackButton[aria-label="Graph"]',
+    ) as HTMLButtonElement | null
+
+    await act(async () => {
+      trackButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    const actionButton = Array.from(container.querySelectorAll('.ParaSelectMenuAction')).find(
+      (button) => button.textContent === 'Add New Graph',
+    ) as HTMLButtonElement | undefined
+
+    expect(actionButton).not.toBeUndefined()
+
+    await act(async () => {
+      actionButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(onAction).toHaveBeenCalledTimes(1)
+    expect(container.querySelector('.ParaSelectMenu')).toBeNull()
+  })
+
+  it('drags the custom value handle to scrub selection without opening the menu', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    const ControlledSelect = () => {
+      const [value, setValue] = useState('graph-2')
+      return (
+        <ParaSelect
+          label="Graph"
+          value={value}
+          options={[
+            { value: 'graph-1', label: 'Graph 1' },
+            { value: 'graph-2', label: 'Graph 2' },
+            { value: 'graph-3', label: 'Graph 3' },
+          ]}
+          onChange={setValue}
+          menuMode="custom"
+        />
+      )
+    }
+
+    await act(async () => {
+      root?.render(<ControlledSelect />)
+    })
+
+    const track = container.querySelector('.ParaSelectTrack') as HTMLDivElement | null
+    const handle = container.querySelector(
+      'button.ParaSelectValueHandle[aria-label="Drag Graph selection"]',
+    ) as HTMLButtonElement | null
+    const fill = container.querySelector('.ParaSelectFill') as HTMLDivElement | null
+
+    Object.defineProperty(track, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => ({
+        x: 0,
+        y: 0,
+        left: 0,
+        top: 0,
+        width: 120,
+        height: 30,
+        right: 120,
+        bottom: 30,
+        toJSON: () => '',
+      }),
+    })
+
+    expect(handle).not.toBeNull()
+    expect(fill).not.toBeNull()
+    expect(container.textContent).toContain('Graph 2')
+    expect(fill?.style.width).toBe('50%')
+    expect(handle?.style.left).toBe('50%')
+
+    await act(async () => {
+      handle?.dispatchEvent(
+        new PointerEvent('pointerdown', { bubbles: true, cancelable: true, button: 0, clientX: 60 }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', { bubbles: true, cancelable: true, clientX: 70 }),
+      )
+    })
+
+    expect(container.textContent).toContain('Graph 2')
+    expect(fill?.style.width).toBe('58.333333333333336%')
+    expect(handle?.style.left).toBe('50%')
+
+    await act(async () => {
+      window.dispatchEvent(
+        new PointerEvent('pointermove', { bubbles: true, cancelable: true, clientX: 120 }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointerup', { bubbles: true, cancelable: true, clientX: 120 }),
+      )
+    })
+
+    expect(container.textContent).toContain('Graph 3')
+    expect(fill?.style.width).toBe('100%')
+    expect(handle?.style.left).toBe('100%')
+    expect(container.querySelector('.ParaSelectMenu')).toBeNull()
   })
 })

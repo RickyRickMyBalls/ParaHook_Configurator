@@ -118,12 +118,12 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     )
   })
 
-  it('defaults the app into spaghetti input mode', async () => {
+  it('defaults the app into the spaghetti-era runtime path', async () => {
     const { useAppStore } = await import('./useAppStore')
 
     useAppStore.setState(useAppStore.getInitialState(), true)
 
-    expect(useAppStore.getState().inputMode).toBe('spaghetti')
+    expect(useAppStore.getState().parts).toEqual([])
   })
 
   it('publishes worker errors into the console transcript', async () => {
@@ -642,7 +642,6 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
       .getState()
       .createGraphDocument(createValidBaseplateGraph(), 'Graph 2')
     useSpaghettiStore.getState().openGraphDocumentInViewport(secondGraphId)
-    useAppStore.setState({ inputMode: 'spaghetti' })
 
     const requestBuildSpy = vi.spyOn(buildDispatcher, 'requestBuild').mockReturnValue(41)
 

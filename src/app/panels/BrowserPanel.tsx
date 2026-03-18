@@ -95,6 +95,7 @@ function BrowserTreeRowShell(props: {
   isOverflowMenuOpen: boolean
   isSaveMenuOpen: boolean
   onSelect: (row: BrowserRenderableRowVm) => void
+  onToggleReferenceVisibility?: (row: BrowserRenderableRowVm) => void
   onDoubleSelect?: (row: BrowserRenderableRowVm) => void
   onToggleExpand?: (row: BrowserRenderableRowVm) => void
   onCycleContentBuildPolicy?: (rowId: string) => void
@@ -127,6 +128,7 @@ function BrowserTreeRowShell(props: {
     onRemoveImportedReferenceRow,
     onRetryReferenceRow,
     onSelect,
+    onToggleReferenceVisibility,
     onToggleExpand,
     row,
   } = props
@@ -148,6 +150,9 @@ function BrowserTreeRowShell(props: {
   const isGraphRebuildRow = row.rowKind === 'graph-rebuild-object'
   const isGraphChildPlainRow = row.rowKind === 'graph-section' || row.rowKind === 'graph-node'
   const isReferenceRow = referenceRow !== null
+  const isReferenceVisibilityRow =
+    row.rowKind === 'reference-category' || row.rowKind === 'reference-item'
+  const isReferenceVisible = referenceRow !== null ? referenceRow.isVisible : false
   const isViewportRow = row.rowKind === 'viewport'
   const buildSurfaceRow =
     isContentRow || isGraphRebuildRow
@@ -248,6 +253,26 @@ function BrowserTreeRowShell(props: {
             {row.iconLabel}
           </span>
         )}
+        {isReferenceVisibilityRow ? (
+          <button
+            type="button"
+            className={`BrowserTreeRowVisibilityToggle ${isReferenceVisible ? 'isVisible' : 'isHidden'}`}
+            onClick={(event) => {
+              event.preventDefault()
+              event.stopPropagation()
+              onToggleReferenceVisibility?.(row)
+            }}
+            aria-label={`${isReferenceVisible ? 'Hide' : 'Show'} ${row.label}`}
+            title={`${isReferenceVisible ? 'Hide' : 'Show'} ${row.label}`}
+          >
+            <span className="BrowserTreeRowVisibilityToggleEye" aria-hidden="true">
+              <span className="BrowserTreeRowVisibilityTogglePupil" />
+            </span>
+            {!isReferenceVisible ? (
+              <span className="BrowserTreeRowVisibilityToggleSlash" aria-hidden="true" />
+            ) : null}
+          </button>
+        ) : null}
       </div>
 
       <button
@@ -481,7 +506,6 @@ export function BrowserPanel({
   const referenceWorkspace = useAppStore((state) => state.referenceWorkspace)
   const defaultBuildPolicy = useAppStore((state) => state.buildPolicy)
   const requestGraphDocumentBuild = useAppStore((state) => state.requestGraphDocumentBuild)
-  const setInputMode = useAppStore((state) => state.setInputMode)
   const selectPart = useAppStore((state) => state.selectPart)
   const toggleReferenceWorkspaceExpanded = useAppStore(
     (state) => state.toggleReferenceWorkspaceExpanded,
@@ -500,6 +524,9 @@ export function BrowserPanel({
   const retryReferenceItemLoad = useAppStore((state) => state.retryReferenceItemLoad)
   const removeImportedReference = useAppStore((state) => state.removeImportedReference)
   const beginReferenceTransform = useAppStore((state) => state.beginReferenceTransform)
+  const activeTransformReferenceId = useAppStore(
+    (state) => state.referenceWorkspace.activeTransformReferenceId,
+  )
   const [expandedGraphDocumentIds, setExpandedGraphDocumentIds] = useState<string[]>([])
   const [graphSectionExpandedByRowId, setGraphSectionExpandedByRowId] = useState<
     Record<string, boolean>
@@ -583,6 +610,7 @@ export function BrowserPanel({
     () =>
       selectBrowserTreeRows({
         referenceWorkspaceTree,
+        activeTransformReferenceId,
         contentRows: projectContentRows,
         graphRows,
         editorViewports,
@@ -605,6 +633,7 @@ export function BrowserPanel({
       graphRows,
       projectContentRows,
       referenceWorkspaceTree,
+      activeTransformReferenceId,
       selectedBrowserRowId,
       sharedViewerComposition,
       sharedViewerCompositionGraphDocumentIds,
@@ -619,7 +648,6 @@ export function BrowserPanel({
     if (editorViewportId !== null && existingViewport === undefined) {
       setEditorViewportPosition(editorViewportId, newEditorSpawnPosition)
     }
-    setInputMode('spaghetti')
     return editorViewportId
   }
 
@@ -755,23 +783,11 @@ export function BrowserPanel({
       return
     }
     if (row.rowKind === 'reference-category') {
-      appendConsoleEntry({
-        layer: 'Browser',
-        text: `${row.label} visibility toggled`,
-        source: 'browser',
-        severity: 'info',
-      })
-      toggleReferenceCategoryVisibility(row.categoryId)
+      handleToggleReferenceVisibility(row)
       return
     }
     if (row.rowKind === 'reference-item') {
-      appendConsoleEntry({
-        layer: 'Browser',
-        text: `${row.label} visibility toggled`,
-        source: 'browser',
-        severity: 'info',
-      })
-      toggleReferenceItemVisibility(row.referenceId)
+      handleHighlightReferenceRow(row.referenceId, row.label)
       return
     }
     if (row.rowKind === 'viewport') {
@@ -782,7 +798,6 @@ export function BrowserPanel({
         severity: 'info',
       })
       setActiveEditorViewportId(row.editorViewportId)
-      setInputMode('spaghetti')
       return
     }
     if (row.rowKind === 'assembly' || row.rowKind === 'component' || row.rowKind === 'object') {
@@ -845,7 +860,6 @@ export function BrowserPanel({
         source: 'browser',
         severity: 'info',
       })
-      setInputMode('spaghetti')
     }
   }
 
@@ -918,12 +932,50 @@ export function BrowserPanel({
     }
   }
 
+  const handleToggleReferenceVisibility = (row: BrowserRenderableRowVm) => {
+    setSelectedBrowserRowId(row.rowId)
+    setContextMenu(null)
+    setImportMenu(null)
+    if (row.rowKind === 'reference-category') {
+      appendConsoleEntry({
+        layer: 'Browser',
+        text: `${row.label} visibility toggled`,
+        source: 'browser',
+        severity: 'info',
+      })
+      toggleReferenceCategoryVisibility(row.categoryId)
+      return
+    }
+    if (row.rowKind === 'reference-item') {
+      appendConsoleEntry({
+        layer: 'Browser',
+        text: `${row.label} visibility toggled`,
+        source: 'browser',
+        severity: 'info',
+      })
+      toggleReferenceItemVisibility(row.referenceId)
+    }
+  }
+
+  const handleHighlightReferenceRow = (referenceId: string, label: string) => {
+    setSelectedBrowserRowId(`reference-item-row:${referenceId}`)
+    setContextMenu(null)
+    setImportMenu(null)
+    setReferenceItemVisibility(referenceId, true)
+    appendConsoleEntry({
+      layer: 'Browser',
+      text: `Highlight ${label}`,
+      source: 'browser',
+      severity: 'info',
+    })
+    beginReferenceTransform(referenceId)
+  }
+
   const handleCreateGraph = () => {
     const graphDocumentId = createGraphDocument()
     const editorViewportId = openGraphDocumentInViewport(graphDocumentId)
     if (editorViewportId !== null) {
       setEditorViewportPosition(editorViewportId, newEditorSpawnPosition)
-      setInputMode('spaghetti')
     }
   }
 
@@ -932,7 +984,6 @@ export function BrowserPanel({
     const editorViewportId = openGraphDocumentInViewport(graphDocumentId)
     if (editorViewportId !== null) {
       setEditorViewportPosition(editorViewportId, newEditorSpawnPosition)
-      setInputMode('spaghetti')
     }
   }
 
@@ -943,7 +994,6 @@ export function BrowserPanel({
     const editorViewportId = openGraphDocumentInNewViewport(activeGraphDocumentId)
     if (editorViewportId !== null) {
       setEditorViewportPosition(editorViewportId, newEditorSpawnPosition)
-      setInputMode('spaghetti')
     }
   }
 
@@ -958,7 +1008,6 @@ export function BrowserPanel({
       return
     }
     setViewerTargetGraphDocumentId(graphDocumentId)
-    setInputMode('spaghetti')
   }
 
   const handleViewInGraph = (graphDocumentId: string, nodeId: string | null) => {
@@ -996,17 +1045,7 @@ export function BrowserPanel({
   }
 
   const handleTransformReferenceRow = (referenceId: string) => {
-    setContextMenu(null)
-    setImportMenu(null)
-    setSelectedBrowserRowId(`reference-item-row:${referenceId}`)
-    setReferenceItemVisibility(referenceId, true)
-    appendConsoleEntry({
-      layer: 'Browser',
-      text: `Transform reference ${referenceId}`,
-      source: 'browser',
-      severity: 'info',
-    })
-    beginReferenceTransform(referenceId)
+    handleHighlightReferenceRow(referenceId, referenceId)
   }
 
   const requestContentRowBuild = (
@@ -1053,19 +1092,15 @@ export function BrowserPanel({
         const editorViewportId = openGraphDocumentInNewViewport(graphDocumentId)
         if (editorViewportId !== null) {
           setEditorViewportPosition(editorViewportId, newEditorSpawnPosition)
-          setInputMode('spaghetti')
         }
       },
       onSwapFocusedEditorViewportToGraphDocument: (graphDocumentId) => {
         const viewportId = swapFocusedEditorViewportToGraphDocument(graphDocumentId)
-        if (viewportId !== null) {
-          setInputMode('spaghetti')
-        }
+        void viewportId
       },
       onRevealGraph: handleRevealGraph,
       onFocusViewport: (editorViewportId) => {
         setActiveEditorViewportId(editorViewportId)
-        setInputMode('spaghetti')
       },
       onCloseViewport: closeEditorViewport,
     })
@@ -1251,6 +1286,7 @@ export function BrowserPanel({
                           isOverflowMenuOpen={false}
                           isSaveMenuOpen={false}
                           onSelect={handleSelectBrowserRow}
+                          onToggleReferenceVisibility={handleToggleReferenceVisibility}
                           onDoubleSelect={handleDoubleSelectBrowserRow}
                           onToggleExpand={handleToggleBrowserRowExpand}
                           onContextMenu={handleRowContextMenu}
@@ -1285,6 +1321,7 @@ export function BrowserPanel({
                             }
                             isSaveMenuOpen={false}
                             onSelect={handleSelectBrowserRow}
+                            onToggleReferenceVisibility={handleToggleReferenceVisibility}
                             onDoubleSelect={handleDoubleSelectBrowserRow}
                             onToggleExpand={handleToggleBrowserRowExpand}
                             onCycleContentBuildPolicy={handleCycleContentBuildPolicy}
@@ -1360,6 +1397,7 @@ export function BrowserPanel({
                                 contextMenu.source === 'save-button'
                               }
                               onSelect={handleSelectBrowserRow}
+                              onToggleReferenceVisibility={handleToggleReferenceVisibility}
                               onDoubleSelect={handleDoubleSelectBrowserRow}
                               onToggleExpand={handleToggleBrowserRowExpand}
                               onContextMenu={handleRowContextMenu}
@@ -1385,6 +1423,7 @@ export function BrowserPanel({
                                         }
                                         isSaveMenuOpen={false}
                                         onSelect={handleSelectBrowserRow}
+                                        onToggleReferenceVisibility={handleToggleReferenceVisibility}
                                         onDoubleSelect={handleDoubleSelectBrowserRow}
                                         onToggleExpand={handleToggleBrowserRowExpand}
                                         onContextMenu={handleRowContextMenu}
@@ -1451,6 +1490,7 @@ export function BrowserPanel({
                           }
                           isSaveMenuOpen={false}
                           onSelect={handleSelectBrowserRow}
+                          onToggleReferenceVisibility={handleToggleReferenceVisibility}
                           onDoubleSelect={handleDoubleSelectBrowserRow}
                           onContextMenu={handleRowContextMenu}
                           onOpenMenu={handleRowOverflowMenu}

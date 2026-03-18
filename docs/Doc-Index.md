@@ -3,6 +3,9 @@
 ## Doc Header
 
 ### Doc History
+59. 2026-03-17 18:39: Added `05.0E - VR-SP - Spaghetti Editor Surface Standardization And Viewport-Type Cleanup.md` to the future-task map, so the `5.0` family now has an explicit bridge planning surface for editor/meatball terminology cleanup before the shared workspace lane normalizes viewport types and pane switching
+58. 2026-03-17 17:58: Moved `05.0D - VR-SP - Deferred Legacy Residue And Dead-Surface Cleanup.md` from `Tasks/Future` to `Tasks/Old` after shipping the deferred residue pass, and updated the task inventory so the full `5.0` cleanup family now reads as landed history instead of leaving the last dead-surface cleanup cut pending
+57. 2026-03-17 17:09: Moved `05.0C - VR-SP - Legacy Input-Mode Branch Removal.md` from `Tasks/Future` to `Tasks/Old` after shipping the runtime branch-collapse cut, and updated the task inventory so the `5.0` cleanup family now shows the legacy input-mode removal as landed instead of still pending
 56. 2026-03-17 16:45: Moved `05.0B - VR-SP - Legacy Left-Dock Panel Reduction.md` from `Tasks/Future` to `Tasks/Old` after the shell-reduction implementation landed, so the docs map now matches the shipped removal of the `Parts List` and `Box Params` left-dock cards instead of leaving that cleanup subphase in the future queue
 55. 2026-03-17 15:10: Moved `05.0A - VR-SP - Spaghetti Default Startup And Preview-Mode Shell Removal.md` from `Tasks/Future` to `Tasks/Old` after the runtime cleanup landed, so the docs map now matches the shipped `5.0A` state instead of continuing to list that task as pending future work
 54. 2026-03-17 15:05: Moved `05.1B - VR-SP - Split Pane Authoring And Divider Controls.md` from `Tasks/Future` to `Tasks/Old` after shipping the current AppShell/Spaghetti split-authoring cut, and updated the task inventory so the workspace-mode family now shows `05.1B` as landed history instead of pending execution
@@ -460,12 +463,13 @@ Rule notes:
             - `04.1C - VR-SP-DBG - Command Input And Keyboard Routing.md`
             - `04.1D - VR-SP-DBG - Layered Event Feeds And Filtering.md`
             - `05.0 - VR-SP - Pre-Workspace Shell Cleanup And Legacy Panel Reduction.md`
-            - `05.0C - VR-SP - Legacy Input-Mode Branch Removal.md`
-            - `05.0D - VR-SP - Deferred Legacy Residue And Dead-Surface Cleanup.md`
+            - `05.0E - VR-SP - Spaghetti Editor Surface Standardization And Viewport-Type Cleanup.md`
             - `05.1A - VR-SP - Workspace Layout Foundation And Left-Dock Entry.md`
             - `05.1C - VR-SP - Hybrid Tool Surface Hosting And Floating-Tiled Transitions.md`
             - `05.1D - VR-SP - Workspace Persistence, Saved Modes, And Migration.md`
 #### -------Old
+            - `05.0D - VR-SP - Deferred Legacy Residue And Dead-Surface Cleanup.md`
+            - `05.0C - VR-SP - Legacy Input-Mode Branch Removal.md`
             - `05.0A - VR-SP - Spaghetti Default Startup And Preview-Mode Shell Removal.md`
             - `05.0B - VR-SP - Legacy Left-Dock Panel Reduction.md`
             - `05.1B - VR-SP - Split Pane Authoring And Divider Controls.md`

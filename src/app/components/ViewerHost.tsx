@@ -17,7 +17,6 @@ import {
   type PreviewRenderVm,
 } from '../spaghetti/selectors/selectPreviewRenderVm'
 import { selectSharedPreviewRenderVm } from '../spaghetti/selectors/selectSharedPreviewRenderVm'
-import { toViewerRenderablePart } from '../../shared/buildTypes'
 import {
   evaluateReferenceTimelineChannelValue,
   evaluateReferenceTransformOverrideWithTimelines,
@@ -34,13 +33,9 @@ export function ViewerHost() {
   const mountRef = useRef<HTMLDivElement | null>(null)
   const viewerRef = useRef<Viewer | null>(null)
   const isMountedRef = useRef(false)
-  const parts = useAppStore((state) => state.parts)
   const partsVisibility = useAppStore((state) => state.partsVisibility)
   const selectedPartKey = useAppStore((state) => state.selectedPartKey)
-  const assembled = useAppStore((state) => state.assembled)
   const referenceWorkspace = useAppStore((state) => state.referenceWorkspace)
-  const viewMode = useAppStore((state) => state.viewMode)
-  const inputMode = useAppStore((state) => state.inputMode)
   const setReferenceItemLoadState = useAppStore((state) => state.setReferenceItemLoadState)
   const setReferenceItemVisibility = useAppStore((state) => state.setReferenceItemVisibility)
   const endReferenceTransform = useAppStore((state) => state.endReferenceTransform)
@@ -55,9 +50,6 @@ export function ViewerHost() {
 
   const previewList = useMemo(
     () => {
-      if (inputMode !== 'spaghetti') {
-        return EMPTY_PREVIEW_LIST
-      }
       if (sharedViewerComposition !== null) {
         return selectSharedPreviewRenderVm(
           sharedViewerComposition.graphDocumentIds.map((graphDocumentId) => ({
@@ -78,7 +70,6 @@ export function ViewerHost() {
     },
     [
       graphRuntimeByDocumentId,
-      inputMode,
       sharedViewerComposition,
       viewerTargetBuildOutputs,
       viewerTargetPreviewPreparation,
@@ -199,32 +190,12 @@ export function ViewerHost() {
       return
     }
 
-    if (viewMode === 'parts') {
-      viewer.setAssembled(null)
-      if (
-        inputMode === 'spaghetti' &&
-        (sharedViewerComposition !== null || viewerTargetPreviewPreparation !== null)
-      ) {
-        viewer.setParts(previewList.viewerParts, partsVisibility, selectedPartKey)
-        return
-      }
-      // Legacy parts use their canonical artifact key as viewer identity.
-      viewer.setParts(parts.map((part) => toViewerRenderablePart(part)), partsVisibility, selectedPartKey)
-      return
-    }
-
-    viewer.setParts([], partsVisibility, selectedPartKey)
-    viewer.setAssembled(assembled)
+    viewer.setAssembled(null)
+    viewer.setParts(previewList.viewerParts, partsVisibility, selectedPartKey)
   }, [
-    assembled,
-    inputMode,
-    parts,
     partsVisibility,
     previewList,
     selectedPartKey,
-    sharedViewerComposition,
-    viewerTargetPreviewPreparation,
-    viewMode,
   ])
 
   useEffect(() => {

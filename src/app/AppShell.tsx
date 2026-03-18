@@ -8,7 +8,6 @@ import {
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
 } from 'react'
-import { BuildStatsDrawer } from './components/BuildStatsDrawer'
 import { TitleStatusBar } from './components/TitleStatusBar'
 import { ViewToolbar } from './components/ViewToolbar'
 import { ViewerHost } from './components/ViewerHost'
@@ -17,11 +16,6 @@ import { ConsoleDock } from './console/ConsoleDock'
 import { BrowserPanel } from './panels/BrowserPanel'
 import { SpaghettiPanel } from './panels/SpaghettiPanel'
 import {
-  defaultSpaghettiWindowAppearance,
-  mergeSpaghettiWindowAppearance,
-  type SpaghettiWindowAppearance,
-} from './panels/spaghettiWindowAppearance'
-import {
   defaultViewportPosition,
   defaultViewportSize,
   selectActiveEditorViewport,
@@ -29,7 +23,11 @@ import {
   useSpaghettiStore,
 } from './spaghetti/store/useSpaghettiStore'
 import { useAppStore } from './store/useAppStore'
-import { useBuildStatsStore } from './store/buildStatsStore'
+import {
+  defaultSpaghettiWindowAppearance,
+  mergeSpaghettiWindowAppearance,
+  type SpaghettiWindowAppearance,
+} from './panels/spaghettiWindowAppearance'
 import {
   defaultWorkspaceSplitDirection,
   defaultWorkspaceSplitPriority,
@@ -67,6 +65,8 @@ type WorkspaceSplitMenuState = {
   scope: 'floating-titlebar' | 'divider'
 }
 
+type ActiveFloatingShell = 'spaghetti' | 'browser' | null
+
 const initialFloatingPosition: FloatingPosition = defaultViewportPosition
 const initialFloatingSize: FloatingSize = defaultViewportSize
 
@@ -100,7 +100,7 @@ function isPointInsideRect(clientX: number, clientY: number, rect: DockTargetRec
 
 function SpaghettiWindowTitleBar(props: {
   editorViewportId: string
-  onCollapseToggle: () => void
+  onPrimaryViewModeCycle: () => void
   onActionTrayToggle: () => void
   onWindowSettingsToggle: () => void
   onHeaderToggle: () => void
@@ -133,7 +133,7 @@ function SpaghettiWindowTitleBar(props: {
     isSplit,
     onClose,
     onActionTrayToggle,
-    onCollapseToggle,
+    onPrimaryViewModeCycle,
     onWindowSettingsToggle,
     onCanvasToolbarToggle,
     onDragStart,
@@ -145,35 +145,22 @@ function SpaghettiWindowTitleBar(props: {
     onContextMenu,
   } = props
   const requestGraphDocumentBuild = useAppStore((state) => state.requestGraphDocumentBuild)
-  const setActiveEditorViewportId = useSpaghettiStore((state) => state.setActiveEditorViewportId)
-  const bindEditorViewportToGraphDocument = useSpaghettiStore(
-    (state) => state.bindEditorViewportToGraphDocument,
-  )
   const viewport = useSpaghettiStore((state) => selectEditorViewportById(state, editorViewportId))
-  const graphDocumentsById = useSpaghettiStore((state) => state.graphDocumentsById)
-  const graphDocumentOrder = useSpaghettiStore((state) => state.graphDocumentOrder)
   const graphDocumentId = viewport?.graphDocumentId ?? ''
-  const orderedGraphDocuments = useMemo(
-    () =>
-      graphDocumentOrder
-        .map((nextGraphDocumentId) => graphDocumentsById[nextGraphDocumentId] ?? null)
-        .filter((document) => document !== null),
-    [graphDocumentOrder, graphDocumentsById],
-  )
-  const selectedGraphName =
-    orderedGraphDocuments.find((document) => document.graphDocumentId === graphDocumentId)?.name ??
-    'Graph'
-  const graphSelectWidth = `${Math.min(36, Math.max(13, selectedGraphName.length + 7))}ch`
+  const isEssentials = !isCollapsed && isHeaderCollapsed && !isCanvasToolbarVisible
+  const primaryModeButtonLabel = isCollapsed ? '+' : isEssentials ? 'e' : '-'
+  const primaryModeButtonAriaLabel = isCollapsed
+    ? 'Restore expanded editor'
+    : isEssentials
+      ? 'Collapse editor from essentials mode'
+      : 'Switch editor to essentials mode'
+  const primaryModeButtonTitle = isCollapsed
+    ? 'Restore expanded editor'
+    : isEssentials
+      ? 'Collapse editor from essentials mode'
+      : 'Switch editor to essentials mode'
 
   const stopPointer = (event: ReactPointerEvent<HTMLButtonElement>) => {
-    event.stopPropagation()
-  }
-
-  const stopShellDrag = (event: ReactPointerEvent<HTMLElement>) => {
-    event.stopPropagation()
-  }
-
-  const stopShellClick = (event: ReactMouseEvent<HTMLElement>) => {
     event.stopPropagation()
   }
 
@@ -184,14 +171,6 @@ function SpaghettiWindowTitleBar(props: {
     requestGraphDocumentBuild(graphDocumentId)
   }
 
-  const handleGraphChange = (nextGraphDocumentId: string) => {
-    if (viewport === null || nextGraphDocumentId.length === 0) {
-      return
-    }
-    setActiveEditorViewportId(viewport.editorViewportId)
-    bindEditorViewportToGraphDocument(viewport.editorViewportId, nextGraphDocumentId)
-  }
-
   return (
     <div
       className={`SpaghettiFloatingHandle ${isMeatball ? 'isMeatball' : ''}`}
@@ -199,28 +178,26 @@ function SpaghettiWindowTitleBar(props: {
       onClick={onShellClick}
       onContextMenu={onContextMenu}
     >
-      <span className="SpaghettiFloatingHandleTitle">
-        {isMeatball ? 'Meatball Editor' : 'Spaghetti Editor'}
-      </span>
-      <div className="SpaghettiFloatingHandleRow">
-        <div
-          className="SpaghettiFloatingHandleGraph"
-          onPointerDown={stopShellDrag}
-          onClick={stopShellClick}
+      <div className="SpaghettiFloatingHandleStart">
+        <button
+          type="button"
+          className={`SpaghettiWindowAction SpaghettiWindowAction--collapse ${
+            isCollapsed || isEssentials ? 'isActive' : ''
+          }`}
+          onPointerDown={stopPointer}
+          onClick={onPrimaryViewModeCycle}
+          aria-label={primaryModeButtonAriaLabel}
+          aria-expanded={!isCollapsed}
+          title={primaryModeButtonTitle}
         >
-          <select
-            className="SpaghettiGraphDocumentSelect SpaghettiGraphDocumentSelect--titlebar"
-            value={graphDocumentId}
-            onChange={(event) => handleGraphChange(event.target.value)}
-            aria-label="Select graph document for this viewport"
-            style={{ width: graphSelectWidth }}
-          >
-            {orderedGraphDocuments.map((document) => (
-              <option key={document.graphDocumentId} value={document.graphDocumentId}>
-                {document.name}
-              </option>
-            ))}
-          </select>
+          {primaryModeButtonLabel}
+        </button>
+        <span className="SpaghettiFloatingHandleTitle">
+          {isMeatball ? 'Meatball Editor' : 'Spaghetti Editor'}
+        </span>
+      </div>
+      <div className="SpaghettiFloatingHandleRow">
+        <div className="SpaghettiFloatingHandleActions">
           <button
             type="button"
             className="SpaghettiWindowAction SpaghettiWindowAction--build"
@@ -232,8 +209,6 @@ function SpaghettiWindowTitleBar(props: {
           >
             []
           </button>
-        </div>
-        <div className="SpaghettiFloatingHandleActions">
           <div
             className={`SpaghettiFloatingHandleAdvancedActions ${
               isActionTrayExpanded ? 'isExpanded' : ''
@@ -298,16 +273,6 @@ function SpaghettiWindowTitleBar(props: {
           <div className="SpaghettiFloatingHandleCoreActions">
             <button
               type="button"
-              className={`SpaghettiWindowAction ${isCollapsed ? 'isActive' : ''}`}
-              onPointerDown={stopPointer}
-              onClick={onCollapseToggle}
-              aria-label={isCollapsed ? 'Expand editor' : 'Collapse editor'}
-              title={isCollapsed ? 'Expand editor' : 'Collapse editor'}
-            >
-              __
-            </button>
-            <button
-              type="button"
               className={`SpaghettiWindowAction ${isMaximized ? 'isActive' : ''}`}
               onPointerDown={stopPointer}
               onClick={onMaximizeToggle}
@@ -344,8 +309,6 @@ function SpaghettiWindowTitleBar(props: {
 }
 
 export function AppShell() {
-  const statsExpanded = useBuildStatsStore((state) => state.statsExpanded)
-  const inputMode = useAppStore((state) => state.inputMode)
   const activeEditorViewport = useSpaghettiStore(selectActiveEditorViewport)
   const setActiveEditorViewportId = useSpaghettiStore((state) => state.setActiveEditorViewportId)
   const setEditorViewportWindowMode = useSpaghettiStore((state) => state.setEditorViewportWindowMode)
@@ -359,11 +322,12 @@ export function AppShell() {
   const closeEditorViewport = useSpaghettiStore((state) => state.closeEditorViewport)
   const setEditorViewportPosition = useSpaghettiStore((state) => state.setEditorViewportPosition)
   const setEditorViewportSize = useSpaghettiStore((state) => state.setEditorViewportSize)
-  const showEditorSurface = inputMode === 'spaghetti' && activeEditorViewport !== null
+  const showEditorSurface = activeEditorViewport !== null
   const appShellRef = useRef<HTMLDivElement | null>(null)
   const viewportRef = useRef<HTMLElement | null>(null)
   const dockedBrowserHostRef = useRef<HTMLDivElement | null>(null)
   const dockedMeatballHostRef = useRef<HTMLDivElement | null>(null)
+  const browserFloatingWindowRef = useRef<HTMLDivElement | null>(null)
   const [isBrowserFloating, setIsBrowserFloating] = useState(false)
   const [isBrowserCollapsed, setIsBrowserCollapsed] = useState(false)
   const [activeLeftDockPreviewPanelId, setActiveLeftDockPreviewPanelId] = useState<LeftDockPanelId | null>(
@@ -398,6 +362,7 @@ export function AppShell() {
   const [headerToggleRevisionByViewportId, setHeaderToggleRevisionByViewportId] = useState<
     Record<string, number>
   >({})
+  const [activeFloatingShell, setActiveFloatingShell] = useState<ActiveFloatingShell>(null)
   const [workspaceSplitMenu, setWorkspaceSplitMenu] = useState<WorkspaceSplitMenuState | null>(null)
   const floatingPosRef = useRef<FloatingPosition>(initialFloatingPosition)
   const floatingSizeRef = useRef<FloatingSize>(initialFloatingSize)
@@ -540,24 +505,24 @@ export function AppShell() {
       { start: [number, number, number]; end: [number, number, number] }
     > = {
       default: {
-        start: [39, 48, 68],
-        end: [31, 37, 54],
+        start: [24, 28, 36],
+        end: [6, 8, 12],
       },
       slate: {
-        start: [56, 62, 76],
-        end: [39, 44, 56],
+        start: [32, 36, 44],
+        end: [10, 12, 16],
       },
       blue: {
-        start: [28, 66, 132],
-        end: [23, 50, 102],
+        start: [20, 34, 62],
+        end: [6, 10, 18],
       },
       green: {
-        start: [30, 88, 74],
-        end: [21, 62, 52],
+        start: [20, 44, 38],
+        end: [6, 14, 12],
       },
       red: {
-        start: [122, 43, 52],
-        end: [88, 30, 37],
+        start: [64, 24, 28],
+        end: [16, 6, 8],
       },
     }
     const bodyTintById: Record<
@@ -615,6 +580,8 @@ export function AppShell() {
     const bodyTint = bodyTintById[appearance.bodyTint]
     const titlebarTint = titlebarTintById[appearance.titlebarTint]
     const paddingScale = paddingScaleById[appearance.paddingScale]
+    const shellInsetX = `${Math.round(appearance.bodyInsetX * 12)}px`
+    const shellInsetY = `${Math.round(appearance.bodyInsetY * 12)}px`
     const titlebarAlpha = Math.max(0.2, Math.min(1, appearance.titlebarOpacity * 0.96))
     const bodyAlpha = Math.max(0.2, Math.min(1, bodyTint.backgroundAlpha * appearance.windowOpacity))
     const borderAlpha = Math.max(0.08, Math.min(0.6, bodyTint.borderAlpha * appearance.windowOpacity))
@@ -633,6 +600,8 @@ export function AppShell() {
       '--sp-window-pad-x': paddingScale.x,
       '--sp-window-pad-y': paddingScale.y,
       '--sp-window-gap': paddingScale.gap,
+      '--sp-window-shell-pad-x': shellInsetX,
+      '--sp-window-shell-pad-y': shellInsetY,
     } as CSSProperties
   }, [])
 
@@ -760,7 +729,7 @@ export function AppShell() {
     if (shellRect !== undefined && dockedRect !== undefined) {
       const nextSize = clampBrowserFloatingSize({
         width: dockedRect.width,
-        height: dockedRect.height,
+        height: Math.min(dockedRect.height, defaultBrowserFloatingSize.height),
       })
       browserFloatingSizeRef.current = nextSize
       setBrowserFloatingSize(nextSize)
@@ -827,6 +796,37 @@ export function AppShell() {
   useEffect(() => {
     browserFloatingSizeRef.current = browserFloatingSize
   }, [browserFloatingSize])
+
+  useEffect(() => {
+    if (!isBrowserFloating || typeof ResizeObserver === 'undefined') {
+      return
+    }
+    const element = browserFloatingWindowRef.current
+    if (element === null) {
+      return
+    }
+
+    const syncBrowserFloatingHeight = () => {
+      const nextHeight = Math.round(element.getBoundingClientRect().height)
+      if (nextHeight <= 0) {
+        return
+      }
+      browserFloatingSizeRef.current = {
+        ...browserFloatingSizeRef.current,
+        height: nextHeight,
+      }
+    }
+
+    syncBrowserFloatingHeight()
+    const observer = new ResizeObserver(() => {
+      syncBrowserFloatingHeight()
+    })
+    observer.observe(element)
+
+    return () => {
+      observer.disconnect()
+    }
+  }, [isBrowserFloating])
 
   useEffect(() => {
     isBottomSplitDockPreviewActiveRef.current = isBottomSplitDockPreviewActive
@@ -936,6 +936,37 @@ export function AppShell() {
       setIsBottomSplitDockPreviewActive(false)
     }
   }, [isBottomSplitDockPreviewActive, showFloatingShell])
+
+  useEffect(() => {
+    if (!showFloatingShell && activeFloatingShell === 'spaghetti') {
+      setActiveFloatingShell(null)
+    }
+  }, [activeFloatingShell, showFloatingShell])
+
+  useEffect(() => {
+    if (!isBrowserFloating && activeFloatingShell === 'browser') {
+      setActiveFloatingShell(null)
+    }
+  }, [activeFloatingShell, isBrowserFloating])
+
+  useEffect(() => {
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target
+      if (
+        target instanceof Element &&
+        (target.closest('.SpaghettiFloatingWindow') !== null ||
+          target.closest('.BrowserFloatingWindow') !== null)
+      ) {
+        return
+      }
+      setActiveFloatingShell(null)
+    }
+
+    window.addEventListener('pointerdown', handlePointerDown)
+    return () => {
+      window.removeEventListener('pointerdown', handlePointerDown)
+    }
+  }, [])
 
   useEffect(() => {
     if (
@@ -1452,12 +1483,47 @@ export function AppShell() {
     [activeEditorViewport, activeWindowMode, setEditorViewportSplitRatio, splitDirection],
   )
 
-  const handleCollapseToggle = useCallback(() => {
+  const handlePrimaryViewModeCycle = useCallback(() => {
     if (activeEditorViewport === null) {
       return
     }
-    setEditorViewportWindowMode(activeEditorViewport.editorViewportId, 'collapsed')
-  }, [activeEditorViewport, setEditorViewportWindowMode])
+    const editorViewportId = activeEditorViewport.editorViewportId
+    const headerCollapsed = headerCollapsedByViewportId[editorViewportId] ?? false
+    const canvasToolbarVisible = canvasToolbarVisibleByViewportId[editorViewportId] ?? true
+    const isEssentials = activeEditorViewport.windowMode !== 'collapsed' && headerCollapsed && !canvasToolbarVisible
+
+    if (activeEditorViewport.windowMode === 'collapsed') {
+      setEditorViewportWindowMode(editorViewportId, 'collapsed')
+      setHeaderCollapsedByViewportId((current) => ({
+        ...current,
+        [editorViewportId]: false,
+      }))
+      setCanvasToolbarVisibleByViewportId((current) => ({
+        ...current,
+        [editorViewportId]: true,
+      }))
+      return
+    }
+
+    if (isEssentials) {
+      setEditorViewportWindowMode(editorViewportId, 'collapsed')
+      return
+    }
+
+    setHeaderCollapsedByViewportId((current) => ({
+      ...current,
+      [editorViewportId]: true,
+    }))
+    setCanvasToolbarVisibleByViewportId((current) => ({
+      ...current,
+      [editorViewportId]: false,
+    }))
+  }, [
+    activeEditorViewport,
+    canvasToolbarVisibleByViewportId,
+    headerCollapsedByViewportId,
+    setEditorViewportWindowMode,
+  ])
 
   const handleHeaderToggle = useCallback(() => {
     if (activeEditorViewport === null) {
@@ -1675,6 +1741,14 @@ export function AppShell() {
     openBrowserFloatingFromDock()
   }, [isBrowserFloating, openBrowserFloatingFromDock])
 
+  const handleActivateSpaghettiFloatingWindow = useCallback(() => {
+    setActiveFloatingShell('spaghetti')
+  }, [])
+
+  const handleActivateBrowserFloatingWindow = useCallback(() => {
+    setActiveFloatingShell('browser')
+  }, [])
+
   const splitLayoutStyle = useMemo(
     () => ({
       gridTemplateColumns:
@@ -1855,7 +1929,6 @@ export function AppShell() {
       >
         <div className="LeftDockContent">
           <TitleStatusBar />
-          {statsExpanded ? <BuildStatsDrawer /> : null}
           <div
             className={`LeftDockPanelStackShell ${
               isLeftDockViewportSplit || showSplitLayout ? 'isConstrained' : ''
@@ -1894,7 +1967,7 @@ export function AppShell() {
                   >
                     <SpaghettiWindowTitleBar
                       editorViewportId={activeEditorViewport.editorViewportId}
-                      onCollapseToggle={handleCollapseToggle}
+                      onPrimaryViewModeCycle={handlePrimaryViewModeCycle}
                       onActionTrayToggle={handleActionTrayToggle}
                       onWindowSettingsToggle={handleWindowSettingsToggle}
                       onHeaderToggle={handleHeaderToggle}
@@ -1996,7 +2069,7 @@ export function AppShell() {
               >
                 <SpaghettiWindowTitleBar
                   editorViewportId={activeEditorViewport.editorViewportId}
-                  onCollapseToggle={handleCollapseToggle}
+                  onPrimaryViewModeCycle={handlePrimaryViewModeCycle}
                   onActionTrayToggle={handleActionTrayToggle}
                   onWindowSettingsToggle={handleWindowSettingsToggle}
                   onHeaderToggle={handleHeaderToggle}
@@ -2066,7 +2139,8 @@ export function AppShell() {
                   : activeWindowMode === 'collapsed'
                     ? 'isCollapsed'
                     : ''
-              }`}
+              } ${activeFloatingShell === 'spaghetti' ? 'isActiveWindow' : ''}`}
+              onPointerDown={handleActivateSpaghettiFloatingWindow}
               style={{
                 left:
                   activeWindowMode === 'maximized' ? '0px' : `${activeEditorViewport.position.x}px`,
@@ -2086,7 +2160,7 @@ export function AppShell() {
             >
               <SpaghettiWindowTitleBar
                 editorViewportId={activeEditorViewport.editorViewportId}
-                onCollapseToggle={handleCollapseToggle}
+                onPrimaryViewModeCycle={handlePrimaryViewModeCycle}
                 onActionTrayToggle={handleActionTrayToggle}
                 onWindowSettingsToggle={handleWindowSettingsToggle}
                 onHeaderToggle={handleHeaderToggle}
@@ -2141,7 +2215,11 @@ export function AppShell() {
       {isBrowserFloating ? (
         <aside className="BrowserFloatingDock">
           <div
-            className={`BrowserFloatingWindow ${isBrowserCollapsed ? 'isCollapsed' : ''}`}
+            ref={browserFloatingWindowRef}
+            className={`BrowserFloatingWindow ${isBrowserCollapsed ? 'isCollapsed' : ''} ${
+              activeFloatingShell === 'browser' ? 'isActiveWindow' : ''
+            }`}
+            onPointerDown={handleActivateBrowserFloatingWindow}
             style={{
               left: `${browserFloatingPos.x}px`,
               top: `${browserFloatingPos.y}px`,

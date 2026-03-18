@@ -23,9 +23,13 @@ export type SpaghettiWindowAppearance = {
   titlebarOpacity: number
   windowOpacity: number
   graphContentOpacity: number
+  bodyInsetX: number
+  bodyInsetY: number
   titlebarClamp: SpaghettiWindowSliderClamp
   windowClamp: SpaghettiWindowSliderClamp
   graphContentClamp: SpaghettiWindowSliderClamp
+  bodyInsetXClamp: SpaghettiWindowSliderClamp
+  bodyInsetYClamp: SpaghettiWindowSliderClamp
   titlebarTint: SpaghettiWindowTitlebarTint
   bodyTint: SpaghettiWindowBodyTint
   fontScale: SpaghettiWindowFontScale
@@ -37,9 +41,19 @@ export const defaultSpaghettiWindowAppearance: SpaghettiWindowAppearance = {
   titlebarOpacity: 0.92,
   windowOpacity: 0.92,
   graphContentOpacity: 1,
+  bodyInsetX: 0,
+  bodyInsetY: 0,
   titlebarClamp: defaultSpaghettiWindowSliderClamp,
   windowClamp: defaultSpaghettiWindowSliderClamp,
   graphContentClamp: defaultSpaghettiWindowSliderClamp,
+  bodyInsetXClamp: {
+    min: 0,
+    max: 1,
+  },
+  bodyInsetYClamp: {
+    min: 0,
+    max: 1,
+  },
   titlebarTint: 'default',
   bodyTint: 'default',
   fontScale: 'md',
@@ -73,17 +87,31 @@ export const normalizeSpaghettiWindowAppearance = (
   const titlebarClamp = normalizeSliderClamp(appearance.titlebarClamp)
   const windowClamp = normalizeSliderClamp(appearance.windowClamp)
   const graphContentClamp = normalizeSliderClamp(appearance.graphContentClamp)
+  const bodyInsetXClamp = normalizeSliderClamp(appearance.bodyInsetXClamp)
+  const bodyInsetYClamp = normalizeSliderClamp(appearance.bodyInsetYClamp)
   return {
     ...appearance,
     titlebarClamp,
     windowClamp,
     graphContentClamp,
+    bodyInsetXClamp,
+    bodyInsetYClamp,
     titlebarOpacity: clampNumber(normalizeSliderValue(appearance.titlebarOpacity), titlebarClamp.min, titlebarClamp.max),
     windowOpacity: clampNumber(normalizeSliderValue(appearance.windowOpacity), windowClamp.min, windowClamp.max),
     graphContentOpacity: clampNumber(
       normalizeSliderValue(appearance.graphContentOpacity),
       graphContentClamp.min,
       graphContentClamp.max,
+    ),
+    bodyInsetX: clampNumber(
+      normalizeSliderValue(appearance.bodyInsetX),
+      bodyInsetXClamp.min,
+      bodyInsetXClamp.max,
+    ),
+    bodyInsetY: clampNumber(
+      normalizeSliderValue(appearance.bodyInsetY),
+      bodyInsetYClamp.min,
+      bodyInsetYClamp.max,
     ),
   }
 }
@@ -98,4 +126,6 @@ export const mergeSpaghettiWindowAppearance = (
     titlebarClamp: patch.titlebarClamp ?? current.titlebarClamp,
     windowClamp: patch.windowClamp ?? current.windowClamp,
     graphContentClamp: patch.graphContentClamp ?? current.graphContentClamp,
+    bodyInsetXClamp: patch.bodyInsetXClamp ?? current.bodyInsetXClamp,
+    bodyInsetYClamp: patch.bodyInsetYClamp ?? current.bodyInsetYClamp,
   })

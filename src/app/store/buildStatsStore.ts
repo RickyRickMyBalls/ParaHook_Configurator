@@ -12,14 +12,12 @@ type PartStats = {
 }
 
 type BuildStatsState = {
-  statsExpanded: boolean
   activeSeq: number | null
   overallState: OverallBuildState
   partOrder: string[]
   partStatsByKey: Record<string, PartStats>
   pulseNonce: number
   pulseKind: 'cache_hit' | null
-  toggleStatsExpanded: () => void
   resetStatsForSeq: (seq: number, partKeys: string[]) => void
   applyProgress: (message: BuildProgress) => void
   setOverallState: (state: OverallBuildState) => void
@@ -45,16 +43,12 @@ const clampProgress = (value: number): number => {
 }
 
 export const useBuildStatsStore = create<BuildStatsState>((set, get) => ({
-  statsExpanded: false,
   activeSeq: null,
   overallState: 'idle',
   partOrder: [],
   partStatsByKey: {},
   pulseNonce: 0,
   pulseKind: null,
-  toggleStatsExpanded: () => {
-    set((state) => ({ statsExpanded: !state.statsExpanded }))
-  },
   resetStatsForSeq: (seq, partKeys) => {
     const nextStats: Record<string, PartStats> = {}
     for (const key of partKeys) {

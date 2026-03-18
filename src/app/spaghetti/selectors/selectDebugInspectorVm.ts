@@ -179,13 +179,10 @@ export const selectDebugInspectorVm = (options: {
   outputSurface: GraphOutputSurface | null
   buildOutputs: PartArtifact[]
   compileResult: CompileSpaghettiGraphResult | null
-  inputMode: 'legacy' | 'spaghetti'
-  viewMode: 'parts' | 'assembled'
 }): DebugInspectorVm => {
-  const { graph, outputSurface, buildOutputs, compileResult, inputMode, viewMode } = options
+  const { graph, outputSurface, buildOutputs, compileResult } = options
   const previewVm = selectPreviewRenderVm(graph, buildOutputs)
-  const viewerParts =
-    inputMode === 'spaghetti' && viewMode === 'parts' ? previewVm.viewerParts : []
+  const viewerParts = previewVm.viewerParts
 
   return {
     compile: {
@@ -201,13 +198,8 @@ export const selectDebugInspectorVm = (options: {
       entries: buildPreviewRows(previewVm),
     },
     viewer: {
-      receivesPreviewInput: inputMode === 'spaghetti' && viewMode === 'parts',
-      reason:
-        inputMode !== 'spaghetti'
-          ? 'ViewerHost is using legacy part input.'
-          : viewMode !== 'parts'
-            ? 'ViewerHost is in assembled mode.'
-            : 'ViewerHost is receiving spaghetti preview input.',
+      receivesPreviewInput: true,
+      reason: 'ViewerHost is receiving spaghetti preview input.',
       renderableEntryCount: viewerParts.length,
       entries: buildViewerRows(viewerParts),
     },

@@ -3,6 +3,8 @@
 ## Doc Header
 
 ### Doc History
+17. 2026-03-17 18:31: Added the single-owner browser-pop-out rule so when a viewport/tool surface is popped out into a new browser window its in-app pane collapses in the main app instead of remaining duplicated, aligning the later workspace-family behavior with the already-shipped `Console` pop-out ownership model
+16. 2026-03-17 18:28: Broadened the later pop-out read so the workspace-family follow-through is no longer only about `Spaghetti Editor` detachment, but about any supported viewport/tool surface being able to `Pop-Out` into a new browser window on top of the same shared surface-instance model, with the shipped `Console` pop-out treated as the first real proof
 15. 2026-03-17 14:45: Extended the `5.1` workspace-family read so later multi-window `Spaghetti Editor` surfaces and detached/browser pop-out now have an explicit planned home as `[5.1E]` inside the same shared workspace model, instead of floating only as a separate `SP - Phase 13` family placeholder
 14. 2026-03-17 14:21: Tightened the workspace architecture around multi-editor growth by clarifying that current shipped shell truth is still one visible active `Spaghetti Editor`, the next honest upgrade is multiple in-app floating editor windows, and real detached/new-browser pop-out remains a later placement mode that should reuse the same surface-instance model instead of becoming a separate editor concept
 13. 2026-03-17 12:53: Added the Browser preservation rule to the umbrella workspace architecture so dragging `Browser` into the model viewport is still expected to keep the current floating-in-viewport behavior, clarifying that the hybrid system must preserve that existing shell interaction instead of treating Browser as tiled-only once workspace modes arrive
@@ -28,7 +30,7 @@ Use it to answer:
 - how the current Spaghetti-only split should evolve into a workspace-wide layout system
 - what kind of tool surfaces should be eligible for split panes
 - how floating and tiled surfaces should coexist in one hybrid workspace
-- how later multiple-editor and detached-window growth should fit the same shell model
+- how later multiple-surface and browser-pop-out growth should fit the same shell model
 - how pane switching should work when the user wants one pane to become another tool surface
 - where shell ownership should live versus feature ownership
 
@@ -211,6 +213,32 @@ Practical read:
 Plain-English rule:
 - first-pass workspace UX can stay simple
 - the underlying surface model should still stay honest enough for later multi-editor growth
+
+### Later Browser Pop-Out Rule
+
+Later in the same workspace family, any supported viewport/tool surface should be able to `Pop-Out` into a new browser window.
+
+Important rule:
+- this should not become a second shell system just because `Console` got there first
+- browser pop-out should be another placement/host mode of the same shared surface-instance model
+- browser pop-out should use single-owner behavior:
+  - when the surface pops out into a new browser window
+  - the in-app pane/view should collapse in the main app instead of staying duplicated there
+
+Current proof:
+- `Console` already proves browser pop-out behavior in the app
+
+Target direction:
+- `Model Viewer`
+- `Browser`
+- `Meatball Editor`
+- `Spaghetti Editor`
+- `Gizmo/View`
+- later other supported tool surfaces
+
+Plain-English rule:
+- a pane should be able to move from tiled or windowed in-app presentation to browser-pop-out presentation without becoming a different feature concept
+- the pop-out window becomes the active owner of that surface while it is detached
 
 ### Split Pane Rules
 
@@ -556,9 +584,10 @@ Use the dedicated future task docs for implementation detail:
 
 Later planned extension inside the same roadmap family:
 
-- `[5.1E] [ ] - Multi-Window Editor Surfaces And Detached Pop-Out`
-  - multiple visible in-app `Spaghetti Editor` surfaces
-  - detached/browser `Pop-Out` growth on top of the same shared surface-instance model
+- `[5.1E] [ ] - Multi-Window Surfaces And Detached Browser Pop-Out`
+  - multiple visible in-app surface instances where needed
+  - later browser `Pop-Out` support for any supported viewport/tool surface on top of the same shared surface-instance model
+  - use shipped `Console` pop-out as the first proof that browser-window hosting can stay attached to shared shell ownership
   - keep this as workspace-family follow-through rather than a separate detached-window shell system
 
 ### Architecture Boundary
@@ -569,7 +598,7 @@ Keep this file focused on:
 - ownership boundaries
 - the relationship between current shipped proof and long-range direction
 
-Push detailed implementation locks into the `05.1A` through `05.1D` task docs, then later `05.1E` once that follow-through gets its own execution doc.
+Push detailed implementation locks into the `05.1A` through `05.1D` task docs, then later `05.1E` once that broader browser-pop-out follow-through gets its own execution doc.
 
 Important rule:
 - `Workspace-Modes.md` is the umbrella architecture doc

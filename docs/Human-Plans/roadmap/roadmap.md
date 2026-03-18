@@ -4,6 +4,10 @@
 ### Fold Hack 3
 #### FOld Hack 4
 ###### Doc History
+89. 2026-03-17 18:39: Re-opened the parent `[5.0]` cleanup family by adding a new `[5.0E]` pre-workspace standardization cut for the `Spaghetti Editor` surface model, so editor-view cleanup and viewport-type normalization have an explicit bridge phase before the deeper `[5.1]` workspace lane locks pane-hosting vocabulary and surface switching
+88. 2026-03-17 18:28: Broadened the `[5.1]` workspace-family read so later browser `Pop-Out` is now a shared viewport/surface capability for the whole lane instead of sounding editor-only, renamed `[5.1E]` accordingly, and treated the shipped `Console` pop-out as the first proof of that later host mode
+87. 2026-03-17 17:58: Marked `[5.0D]` complete after removing the old title-bar `Build Stats` drawer path, deleting dead shell/panel files and unowned output-list selectors, pruning the dead app-store `assembled` residue, moving the task doc to `Tasks/Old`, and closing the parent `[5.0]` cleanup family as fully shipped
+86. 2026-03-17 17:09: Marked `[5.0C]` complete after removing the live app-level `legacy` input and `Parts / Assembled` viewer split from the store/viewer/build/runtime path, moved the task doc to `Tasks/Old`, and kept `[5.0D]` as the deferred residue-cleanup cut instead of stretching `5.0C` into the full final purge
 85. 2026-03-17 16:45: Marked `[5.0B]` complete after removing `Parts List` and `Box Params` from the default AppShell left-dock stack, updated the parent `5.0` bridge-lane checklist to reflect the landed shell subtraction, and kept the remaining deeper legacy/input cleanup deferred to `[5.0C]` and `[5.0D]`
 84. 2026-03-17 15:05: Marked `[5.1B]` complete after shipping the current split-pane authoring cut on top of the AppShell/Spaghetti split proof, updated the workspace-mode lane checklist to reflect landed divider authoring controls, and synced the subphase family status now that the task doc has moved to `Tasks/Old`
 83. 2026-03-17 14:45: Added `[5.1E]` under `[5.1] Workspace Modes` as the explicit later home for multi-window `Spaghetti Editor` surfaces and detached/browser pop-out growth, keeping that work attached to the shared workspace-model family instead of renumbering the rest of Lane `[5]`
@@ -1458,9 +1462,10 @@ CheckList:
 - [x] make `spaghetti` the default startup/input path before hiding the visible legacy branch UI
 - [x] plan one later cleanup cut that actually removes the `legacy` input-mode branch from code after the shell no longer depends on it
 - [x] preserve any still-needed behavior while reducing permanent left-dock footprint
-- [ ] keep this lane narrow:
+- [x] keep this lane narrow:
   - do not turn it into the final broad legacy purge
   - do not absorb the real hybrid workspace system from `[5.1]`
+- [ ] standardize the `Spaghetti Editor` surface model enough that `5.1` can normalize viewport types and pane switching without inheriting ambiguous editor-specific shell vocabulary
 
 ### [5.0A] [x] - `Spaghetti Default Startup And Preview-Mode Shell Removal`
 
@@ -1486,31 +1491,49 @@ CheckList:
 - [x] decide whether surviving `Parts List` behavior belongs in `Browser`, a lighter shell entry, or a later hosted tool surface
 - [x] preserve any still-needed `Box Params` behavior somewhere lighter if it is still needed temporarily
 
-### [5.0C] [ ] - `Legacy Input-Mode Branch Removal`
+### [5.0C] [x] - `Legacy Input-Mode Branch Removal`
 
 Summary:
 - remove the `legacy` versus `spaghetti` input-mode branch from code after the shell no longer depends on it
 - treat this as a real cleanup cut, not just an implied side effect of hiding old panels
 
 CheckList:
-- [ ] remove the visible `setInputMode('legacy' | 'spaghetti')` branch UI completely
-- [ ] remove `inputMode: 'legacy' | 'spaghetti'` branching once `spaghetti` is the only real startup path
-- [ ] clean up remaining legacy-conditionals in viewer routing, build routing, panel rendering, and left-dock behavior
-- [ ] verify the app no longer depends on hidden `legacy` mode to remain usable
+- [x] remove the visible `setInputMode('legacy' | 'spaghetti')` branch UI completely
+- [x] remove `inputMode: 'legacy' | 'spaghetti'` branching once `spaghetti` is the only real startup path
+- [x] clean up remaining legacy-conditionals in viewer routing, build routing, panel rendering, and left-dock behavior
+- [x] verify the app no longer depends on hidden `legacy` mode to remain usable
 
-### [5.0D] [ ] - `Deferred Legacy Residue And Dead-Surface Cleanup`
+### [5.0D] [x] - `Deferred Legacy Residue And Dead-Surface Cleanup`
 
 Summary:
 - deferred cleanup cut for whatever is still left behind after the real `5.0A-C` shell and input-branch work lands
 - use this to prune dead surface files, stale styling, panel-era tests, and leftover viewer residue without pretending that all of it must block `[5.1]`
 
 CheckList:
-- [ ] remove dead shell-surface files that no longer have a real future owner
-- [ ] clean up stale CSS, tests, imports, and mocks from removed `Preview Mode`, `Parts List`, and `Box Params` surfaces
-- [ ] decide whether `parts` versus `assembled` is still a real viewer concept or post-panel residue
-- [ ] keep or remove spaghetti output-list helpers based on whether they still have a real next owner
-- [ ] keep this phase deferred by default:
+- [x] remove dead shell-surface files that no longer have a real future owner
+- [x] clean up stale CSS, tests, imports, and mocks from removed `Preview Mode`, `Parts List`, and `Box Params` surfaces
+- [x] remove the remaining dead `parts` / `assembled` app-level residue instead of keeping it as a half-live viewer concept
+- [x] keep or remove spaghetti output-list helpers based on whether they still have a real next owner
+- [x] keep this phase deferred by default:
   - do not block `[5.1]` unless one of these leftovers becomes a direct workspace blocker
+
+### [5.0E] [x] - `Spaghetti Editor Surface Standardization And Viewport-Type Cleanup`
+
+Summary:
+- narrow bridge cut for cleaning up the `Spaghetti Editor` surface model before the deeper workspace lane starts standardizing viewport types and pane switching
+- use this to decide what the full `Spaghetti Editor` is, what the `meatball editor` is, and which editor presentation should count as the canonical first-class viewport type
+
+CheckList:
+- [ ] decide whether `Spaghetti Editor` is the canonical graph-editor viewport type
+- [ ] decide whether `meatball editor` is:
+  - a compact editor presentation
+  - a separate viewport type
+  - or a temporary shell bridge that should be phased down later
+- [ ] standardize the editor-family naming so `5.1` can use one honest viewport-type list
+- [ ] clean up leftover editor-specific shell terminology that would make pane switching or viewport-type menus ambiguous
+- [ ] keep this cut narrow:
+  - do not absorb the whole workspace hosting system from `[5.1]`
+  - do not turn it into detached/browser pop-out implementation
 
 ### [5.1] [~] - `VR / SP` - `Workspace Modes`
 
@@ -1522,7 +1545,7 @@ Summary:
   - divider authoring
   - hybrid tiled/windowed tool-surface hosting
   - persistence and saved workspace modes
-  - later multi-window editor-surface growth and detached/browser pop-out on top of the same shared host model
+  - later multi-window surface growth and detached/browser pop-out on top of the same shared host model
 - this is now the real roadmap home for the broader workspace-mode architecture in `docs/Human-Plans/Architecture/Workspace-Modes.md`
 - the older smaller workspace-presentation cleanup wave stays recorded here as already-landed groundwork, but no longer owns the future execution numbering
 
@@ -1542,6 +1565,7 @@ CheckList:
   - `Spaghetti Editor`
 - [ ] lock persistence, saved workspace-mode follow-up, and migration off the old special-case Spaghetti split path
 - [ ] keep later multi-window `Spaghetti Editor` growth attached to this same workspace family so in-app duplicate editor surfaces and detached/browser pop-out reuse the shared surface-instance model instead of bypassing it
+- [ ] expand later browser `Pop-Out` beyond `Console` so any supported viewport/tool surface can move into a new browser window on top of the same shared workspace host model
 
 Shipped groundwork already landed:
 - [x] per-window appearance shell and per-viewport style controls
@@ -1553,7 +1577,7 @@ Planned subphase family:
 - `[5.1B] [x] - Split Pane Authoring And Divider Controls`
 - `[5.1C] [ ] - Hybrid Tool Surface Hosting And Floating-Tiled Transitions`
 - `[5.1D] [ ] - Workspace Persistence, Saved Modes, And Migration`
-- `[5.1E] [ ] - Multi-Window Editor Surfaces And Detached Pop-Out`
+- `[5.1E] [ ] - Multi-Window Surfaces And Detached Browser Pop-Out`
 
 ### [5.2] [ ] - `DR / JK` - `Control Viz And Graph-Driven Control Surfaces`
 

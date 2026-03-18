@@ -385,7 +385,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
         case 'status':
           appendConsoleEntry({
             layer: 'App',
-            text: `Status: input=${appState.inputMode}, view=${appState.viewMode}`,
+            text: 'Status: spaghetti preview active',
             source: 'console',
             severity: 'info',
           })

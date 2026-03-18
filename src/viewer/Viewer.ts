@@ -55,9 +55,16 @@ type ReferenceTransformSession = {
   mode: TransformControlsMode
   space: GizmoSpace
 }
+type ReferenceHighlightMaterialState = {
+  colorHex: number
+  emissiveHex: number
+  emissiveIntensity: number
+}
 
 const DEFAULT_BACKGROUND = '#0b0b0f'
 const STUDIO_BACKGROUND = '#151922'
+const ACTIVE_REFERENCE_HIGHLIGHT_COLOR = '#fff4c2'
+const ACTIVE_REFERENCE_HIGHLIGHT_EMISSIVE = '#ffd66b'
 const GRID_SIZE = 300
 const GRID_MINOR_STEP = 1
 const GRID_MAJOR_STEP = 10
@@ -409,6 +416,7 @@ export class Viewer {
         object.name = reference.referenceId
         this.applyReferenceObjectDefaults(object)
         this.referenceObjects.set(reference.referenceId, object)
+        this.refreshReferenceHighlightStyling()
       })
       .finally(() => {
         this.referenceLoadPromises.delete(reference.referenceId)
@@ -436,6 +444,7 @@ export class Viewer {
         this.referenceGroup.add(object)
       }
       object.visible = true
+      this.refreshReferenceHighlightStyling()
       this.refreshGizmoAttachment()
       return
     }
@@ -443,6 +452,7 @@ export class Viewer {
       this.referenceGroup.remove(object)
     }
     object.visible = false
+    this.refreshReferenceHighlightStyling()
     this.refreshGizmoAttachment()
   }
 
@@ -466,6 +476,7 @@ export class Viewer {
     }
     this.disposeObjectTree(object)
     this.referenceObjects.delete(referenceId)
+    this.refreshReferenceHighlightStyling()
     this.refreshGizmoAttachment()
   }
 
@@ -478,6 +489,7 @@ export class Viewer {
       this.transformGizmo.setSpace(session.space)
     }
     this.syncGizmoEnabledState()
+    this.refreshReferenceHighlightStyling()
     this.refreshGizmoAttachment()
   }
 
@@ -1060,15 +1072,57 @@ export class Viewer {
       if (Array.isArray(child.material)) {
         child.material = child.material.map((material) =>
           material instanceof MeshStandardMaterial
-            ? material
+            ? material.clone()
             : new MeshStandardMaterial({ color: '#7f8fae' }),
         )
-      } else if (!(child.material instanceof MeshStandardMaterial)) {
+      } else if (child.material instanceof MeshStandardMaterial) {
+        child.material = child.material.clone()
+      } else {
         child.material = new MeshStandardMaterial({ color: '#7f8fae' })
       }
       child.castShadow = this.currentViewSettings.shadowsEnabled
       child.receiveShadow = this.currentViewSettings.shadowsEnabled
     })
+  }
+
+  private refreshReferenceHighlightStyling(): void {
+    const highlightTint = new Color(ACTIVE_REFERENCE_HIGHLIGHT_COLOR)
+    const highlightEmissive = new Color(ACTIVE_REFERENCE_HIGHLIGHT_EMISSIVE)
+    for (const [referenceId, object] of this.referenceObjects.entries()) {
+      const isHighlighted =
+        referenceId === this.activeReferenceTransformReferenceId && object.visible
+      object.traverse((child) => {
+        if (!(child instanceof Mesh)) {
+          return
+        }
+        const materials = Array.isArray(child.material) ? child.material : [child.material]
+        for (const material of materials) {
+          if (!(material instanceof MeshStandardMaterial)) {
+            continue
+          }
+          const storedBase =
+            material.userData.referenceHighlightBase as ReferenceHighlightMaterialState | undefined
+          const baseState: ReferenceHighlightMaterialState =
+            storedBase ?? {
+              colorHex: material.color.getHex(),
+              emissiveHex: material.emissive.getHex(),
+              emissiveIntensity: material.emissiveIntensity,
+            }
+          if (storedBase === undefined) {
+            material.userData.referenceHighlightBase = baseState
+          }
+          material.color.setHex(baseState.colorHex)
+          material.emissive.setHex(baseState.emissiveHex)
+          material.emissiveIntensity = baseState.emissiveIntensity
+          if (isHighlighted) {
+            material.color.lerp(highlightTint, 0.18)
+            material.emissive.copy(highlightEmissive)
+            material.emissiveIntensity = Math.max(baseState.emissiveIntensity, 0.9)
+          }
+          material.needsUpdate = true
+        }
+      })
+    }
   }
 
   private createReferencePivot(reference: ReferenceLoadableItem, object: Object3D): Object3D {
@@ -1280,6 +1334,7 @@ export class Viewer {
     }
     this.activeReferenceTransformReferenceId = null
     this.syncGizmoEnabledState()
+    this.refreshReferenceHighlightStyling()
     this.refreshGizmoAttachment()
     this.onReferenceTransformExit?.()
   }

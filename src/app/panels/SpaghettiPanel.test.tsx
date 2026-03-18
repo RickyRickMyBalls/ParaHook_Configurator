@@ -111,6 +111,7 @@ describe('SpaghettiPanel', () => {
       },
       sharedViewerComposition: null,
       applyGraphCommand: vi.fn(),
+      createGraphDocument: vi.fn(() => 'graph-document-3'),
       setActiveEditorViewportId: vi.fn(),
       bindEditorViewportToGraphDocument: vi.fn(),
       addEditorViewportGraphToSharedViewerComposition: vi.fn(),
@@ -174,22 +175,121 @@ describe('SpaghettiPanel', () => {
     expect(headerBlock?.style.height).toBe('150px')
   })
 
-  it('cycles the focus node forward from the row buttons', async () => {
+  it('uses the default expanded window-settings height on first render so the i-menu scroll area is bounded', async () => {
+    const settingsContainer = document.createElement('div')
+    document.body.appendChild(settingsContainer)
+    root = createRoot(settingsContainer)
+
+    await act(async () => {
+      root?.render(
+        <SpaghettiPanel
+          editorViewportId="editor-viewport-1"
+          isWindowSettingsOpen
+          windowAppearance={defaultSpaghettiWindowAppearance}
+        />,
+      )
+    })
+
+    container = settingsContainer
+
+    const settingsGroups = container.querySelector(
+      '.SpaghettiWindowSettingsGroups',
+    ) as HTMLDivElement | null
+    const settingsResizeBar = container.querySelector(
+      '.SpaghettiWindowSettingsResizeBar',
+    ) as HTMLButtonElement | null
+
+    expect(settingsGroups?.style.height).toBe('180px')
+    expect(settingsResizeBar).not.toBeNull()
+  })
+
+  it('renders the new body side-padding slider in window settings', async () => {
+    const settingsContainer = document.createElement('div')
+    document.body.appendChild(settingsContainer)
+    root = createRoot(settingsContainer)
+
+    await act(async () => {
+      root?.render(
+        <SpaghettiPanel
+          editorViewportId="editor-viewport-1"
+          isWindowSettingsOpen
+          windowAppearance={defaultSpaghettiWindowAppearance}
+        />,
+      )
+    })
+
+    container = settingsContainer
+
+    expect(container.textContent).toContain('Side Padding')
+    expect(container.textContent).toContain('Top Bottom Padding')
+    expect(container.textContent).toContain('0px')
+  })
+
+  it('cycles the focus node forward from the focus ParaSelect caps', async () => {
     ;({ container, root } = await renderSpaghettiPanel())
 
     const nextButton = container?.querySelector(
-      'button[aria-label="Focus next node"]',
+      'button[aria-label="Next Focus Node"]',
     ) as HTMLButtonElement | null
-    const select = container?.querySelector('.SpaghettiEditorFocusField select') as HTMLSelectElement | null
+    const focusTrack = container?.querySelector(
+      '.SpaghettiFocusRow button.ParaSelectTrackButton[aria-label="Focus Node"]',
+    ) as HTMLButtonElement | null
 
     expect(nextButton).not.toBeNull()
-    expect(select?.value).toBe('node-1')
+    expect(focusTrack?.textContent).toContain('node-1')
+    expect(container?.textContent).toContain('Spaghetti Editor Canvas expanded node-1 no-fit 0')
 
     await act(async () => {
       nextButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
     })
 
-    expect(select?.value).toBe('node-2')
+    expect(focusTrack?.textContent).toContain('node-2')
+    expect(container?.textContent).toContain('Spaghetti Editor Canvas expanded node-2 node-2 1')
+  })
+
+  it('renders the graph picker beside the focus-node picker in the pinned row', async () => {
+    ;({ container, root } = await renderSpaghettiPanel())
+
+    const graphPicker = container?.querySelector(
+      '.SpaghettiFocusRow .ParaSelectNative[aria-label="Graph"]',
+    ) as HTMLSelectElement | null
+    const focusPicker = container?.querySelector(
+      '.SpaghettiFocusRow .ParaSelectNative[aria-label="Focus Node"]',
+    ) as HTMLSelectElement | null
+
+    expect(graphPicker).not.toBeNull()
+    expect(graphPicker?.value).toBe('graph-document-1')
+    expect(focusPicker).not.toBeNull()
+    expect(focusPicker?.value).toBe('node-1')
+  })
+
+  it('offers an add new graph shortcut in the pinned graph picker menu', async () => {
+    ;({ container, root } = await renderSpaghettiPanel())
+
+    const trackButton = container?.querySelector(
+      '.SpaghettiFocusRow .ParaSelectTrackButton[aria-label="Graph"]',
+    ) as HTMLButtonElement | null
+
+    await act(async () => {
+      trackButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    const addNewGraphButton = Array.from(
+      container?.querySelectorAll('.SpaghettiFocusRow .ParaSelectMenuAction') ?? [],
+    ).find((button) => button.textContent === 'Add New Graph') as HTMLButtonElement | undefined
+
+    expect(addNewGraphButton).not.toBeUndefined()
+
+    await act(async () => {
+      addNewGraphButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(currentSpaghettiState.createGraphDocument).toHaveBeenCalledTimes(1)
+    expect(currentSpaghettiState.setActiveEditorViewportId).toHaveBeenCalledWith('editor-viewport-1')
+    expect(currentSpaghettiState.bindEditorViewportToGraphDocument).toHaveBeenCalledWith(
+      'editor-viewport-1',
+      'graph-document-3',
+    )
   })
 
   it('forwards an external viewport-targeted node-fit request into the editor canvas props', async () => {
@@ -247,6 +347,151 @@ describe('SpaghettiPanel', () => {
     ).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
   })
 
+  it('lets the user collapse and expand the whole window-settings section', async () => {
+    const settingsContainer = document.createElement('div')
+    document.body.appendChild(settingsContainer)
+    root = createRoot(settingsContainer)
+
+    await act(async () => {
+      root?.render(
+        <SpaghettiPanel
+          editorViewportId="editor-viewport-1"
+          isWindowSettingsOpen
+          windowAppearance={defaultSpaghettiWindowAppearance}
+        />,
+      )
+    })
+
+    container = settingsContainer
+
+    const sectionToggle = container.querySelector(
+      '.SpaghettiWindowSettingsHeaderToggle',
+    ) as HTMLButtonElement | null
+
+    expect(sectionToggle).not.toBeNull()
+    expect(sectionToggle?.getAttribute('aria-expanded')).toBe('true')
+    expect(container.textContent).toContain('Title bar')
+    expect(container.textContent).toContain('Body')
+    expect(container.textContent).toContain('Text')
+    expect(container.querySelector('.SpaghettiWindowSettingsResizeBar')).not.toBeNull()
+
+    await act(async () => {
+      sectionToggle?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(sectionToggle?.getAttribute('aria-expanded')).toBe('false')
+    expect(container.querySelector('.SpaghettiWindowSettingsGroups')).toBeNull()
+    expect(container.querySelector('.SpaghettiWindowSettingsResizeBar')).toBeNull()
+    expect(container.textContent).toContain('Window Settings')
+
+    await act(async () => {
+      sectionToggle?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(sectionToggle?.getAttribute('aria-expanded')).toBe('true')
+    expect(container.querySelector('.SpaghettiWindowSettingsGroups')).not.toBeNull()
+    expect(container.querySelector('.SpaghettiWindowSettingsResizeBar')).not.toBeNull()
+    expect(container.textContent).toContain('Title bar')
+    expect(container.textContent).toContain('Body')
+    expect(container.textContent).toContain('Text')
+  })
+
+  it('lets the user collapse and expand window-settings subsections', async () => {
+    const settingsContainer = document.createElement('div')
+    document.body.appendChild(settingsContainer)
+    root = createRoot(settingsContainer)
+
+    await act(async () => {
+      root?.render(
+        <SpaghettiPanel
+          editorViewportId="editor-viewport-1"
+          isWindowSettingsOpen
+          windowAppearance={defaultSpaghettiWindowAppearance}
+        />,
+      )
+    })
+
+    container = settingsContainer
+
+    const titlebarToggle = container.querySelector(
+      '.SpaghettiWindowSettingsGroup[data-section-id="titlebar"] .SpaghettiWindowSettingsGroupToggle',
+    ) as HTMLButtonElement | null
+    const titlebarFields = container.querySelector(
+      '.SpaghettiWindowSettingsGroup[data-section-id="titlebar"] .SpaghettiWindowSettingsGroupFields',
+    ) as HTMLDivElement | null
+
+    expect(titlebarToggle).not.toBeNull()
+    expect(titlebarToggle?.getAttribute('aria-expanded')).toBe('true')
+    expect(titlebarToggle?.textContent).toContain('-')
+    expect(titlebarFields?.textContent).toContain('Opacity')
+    expect(titlebarFields?.textContent).toContain('Color')
+
+    await act(async () => {
+      titlebarToggle?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    const collapsedTitlebarFields = container.querySelector(
+      '.SpaghettiWindowSettingsGroup[data-section-id="titlebar"] .SpaghettiWindowSettingsGroupFields',
+    ) as HTMLDivElement | null
+
+    expect(titlebarToggle?.getAttribute('aria-expanded')).toBe('false')
+    expect(titlebarToggle?.textContent).toContain('+')
+    expect(collapsedTitlebarFields).toBeNull()
+
+    await act(async () => {
+      titlebarToggle?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    const expandedTitlebarFields = container.querySelector(
+      '.SpaghettiWindowSettingsGroup[data-section-id="titlebar"] .SpaghettiWindowSettingsGroupFields',
+    ) as HTMLDivElement | null
+
+    expect(titlebarToggle?.getAttribute('aria-expanded')).toBe('true')
+    expect(titlebarToggle?.textContent).toContain('-')
+    expect(expandedTitlebarFields?.className).toContain('isExpanded')
+    expect(expandedTitlebarFields?.textContent).toContain('Opacity')
+    expect(expandedTitlebarFields?.textContent).toContain('Color')
+  })
+
+  it('opens the text-size ParaSelect menu from the middle track in window settings', async () => {
+    const settingsContainer = document.createElement('div')
+    document.body.appendChild(settingsContainer)
+    root = createRoot(settingsContainer)
+
+    await act(async () => {
+      root?.render(
+        <SpaghettiPanel
+          editorViewportId="editor-viewport-1"
+          isWindowSettingsOpen
+          windowAppearance={defaultSpaghettiWindowAppearance}
+        />,
+      )
+    })
+
+    container = settingsContainer
+
+    const sizeTrackButton = container.querySelector(
+      '.SpaghettiWindowSettingsGroup[data-section-id="text"] button.ParaSelectTrackButton[aria-label="Size"]',
+    ) as HTMLButtonElement | null
+
+    expect(sizeTrackButton).not.toBeNull()
+    expect(sizeTrackButton?.textContent).toContain('Size')
+    expect(sizeTrackButton?.textContent).toContain('Normal')
+
+    await act(async () => {
+      sizeTrackButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    const sizeMenu = container.querySelector(
+      '.SpaghettiWindowSettingsGroup[data-section-id="text"] .ParaSelectMenu[aria-label="Size options"]',
+    ) as HTMLDivElement | null
+
+    expect(sizeMenu).not.toBeNull()
+    expect(sizeMenu?.textContent).toContain('Small')
+    expect(sizeMenu?.textContent).toContain('Normal')
+    expect(sizeMenu?.textContent).toContain('Large')
+  })
+
   it('resets the window appearance controls back to defaults', async () => {
     const handleWindowAppearanceChange = vi.fn()
     const handleResetWindowAppearance = vi.fn()
@@ -285,9 +530,15 @@ describe('SpaghettiPanel', () => {
     const sliders = Array.from(
       container.querySelectorAll('.ParaSliderTrack[role="slider"]'),
     ) as HTMLDivElement[]
+    const settingsSection = container.querySelector(
+      '.SpaghettiWindowSettingsSection',
+    ) as HTMLDivElement | null
     const selectTracks = Array.from(
-      container.querySelectorAll('.ParaSelectNative'),
+      settingsSection?.querySelectorAll('.ParaSelectNative') ?? [],
     ) as HTMLSelectElement[]
+    const settingGroups = Array.from(
+      container.querySelectorAll('.SpaghettiWindowSettingsGroup'),
+    ) as HTMLDivElement[]
     const incrementButtons = Array.from(
       container.querySelectorAll('button[aria-label^="Increase "]'),
     ) as HTMLButtonElement[]
@@ -295,26 +546,31 @@ describe('SpaghettiPanel', () => {
       button.textContent?.includes('Edit Clamp'),
     ) as HTMLButtonElement | undefined
     const nextFontTypeButton = container.querySelector(
-      'button[aria-label="Next Font Type"]',
+      'button[aria-label="Next Type"]',
     ) as HTMLButtonElement | null
     const resetButton = Array.from(container.querySelectorAll('button')).find((button) =>
       button.textContent?.includes('Reset Window Style'),
     ) as HTMLButtonElement | undefined
 
-    expect(container.textContent).toContain('Window Fill')
-    expect(container.textContent).toContain('Graph Content')
-    expect(container.textContent).toContain('Title Bar')
-    expect(container.textContent).toContain('Title Bar Color')
-    expect(container.textContent).toContain('Body Color')
-    expect(container.textContent).toContain('Font Size')
-    expect(container.textContent).toContain('Font Type')
+    expect(container.textContent).toContain('Title bar')
+    expect(container.textContent).toContain('Body')
+    expect(container.textContent).toContain('Text')
+    expect(container.textContent).toContain('Opacity')
+    expect(container.textContent).toContain('Color')
+    expect(container.textContent).toContain('Side Padding')
+    expect(container.textContent).toContain('Top Bottom Padding')
+    expect(container.textContent).toContain('Size')
+    expect(container.textContent).toContain('Type')
     expect(container.textContent).toContain('Padding')
-    expect(sliders).toHaveLength(3)
+    expect(settingGroups).toHaveLength(3)
+    expect(sliders).toHaveLength(5)
     expect(selectTracks).toHaveLength(5)
     expect(sliders[0]?.getAttribute('aria-valuetext')).toBe('75%')
     expect(sliders[1]?.getAttribute('aria-valuetext')).toBe('65%')
-    expect(sliders[2]?.getAttribute('aria-valuetext')).toBe('70%')
-    expect(incrementButtons).toHaveLength(3)
+    expect(sliders[2]?.getAttribute('aria-valuetext')).toBe('0px')
+    expect(sliders[3]?.getAttribute('aria-valuetext')).toBe('0px')
+    expect(sliders[4]?.getAttribute('aria-valuetext')).toBe('70%')
+    expect(incrementButtons).toHaveLength(5)
     expect(editClampButton).not.toBeUndefined()
     expect(nextFontTypeButton).not.toBeNull()
     expect(resetButton).not.toBeUndefined()

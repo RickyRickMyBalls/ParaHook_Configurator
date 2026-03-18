@@ -11,15 +11,11 @@ export const bootstrapBuildWiring = (): void => {
   }
 
   buildDispatcher.setChangedParamIdsProvider(() =>
-    useAppStore.getState().inputMode === 'spaghetti'
-      ? (selectActiveGraphPendingBuildState(useSpaghettiStore.getState())?.pendingChangedParamIds ?? [])
-      : selectChangedGeomParamIds(useAppStore.getState()),
+    selectActiveGraphPendingBuildState(useSpaghettiStore.getState())?.pendingChangedParamIds ??
+    selectChangedGeomParamIds(useAppStore.getState()),
   )
   buildDispatcher.setBuildResultHandler((result) => {
     useAppStore.getState().acceptBuildResult(result)
-  })
-  buildDispatcher.setAssembleResultHandler((result) => {
-    useAppStore.getState().setAssembled(result)
   })
   buildDispatcher.setWorkerErrorHandler((error) => {
     if (
@@ -38,34 +34,21 @@ export const bootstrapBuildWiring = (): void => {
     useAppStore.getState().setWorkerError(error.message)
   })
   buildDispatcher.setBuildInstancesProvider(() => {
-    const state = useAppStore.getState()
-    if (state.inputMode === 'spaghetti') {
-      const pendingBuildState = selectActiveGraphPendingBuildState(useSpaghettiStore.getState())
-      return (
-        pendingBuildState?.pendingInstances ?? {
-          heelKickInstances: [1],
-          toeHookInstances: [1],
-        }
-      )
-    }
-    return {
-      heelKickInstances: state.heelKickInstances,
-      toeHookInstances: state.toeHookInstances,
-    }
+    const pendingBuildState = selectActiveGraphPendingBuildState(useSpaghettiStore.getState())
+    return (
+      pendingBuildState?.pendingInstances ?? {
+        heelKickInstances: [1],
+        toeHookInstances: [1],
+      }
+    )
   })
   buildDispatcher.setBuildStatsPartKeysProvider(() => {
-    const state = useAppStore.getState()
-    if (state.inputMode === 'spaghetti') {
-      return selectActiveGraphPendingBuildState(useSpaghettiStore.getState())?.pendingStatsPartKeys ?? []
-    }
-    return [...LEGACY_BUILD_STATS_PART_ORDER]
+    return (
+      selectActiveGraphPendingBuildState(useSpaghettiStore.getState())?.pendingStatsPartKeys ??
+      [...LEGACY_BUILD_STATS_PART_ORDER]
+    )
   })
 
-  const appState = useAppStore.getState()
-  if (appState.inputMode === 'spaghetti') {
-    appState.requestSpaghettiBuild()
-  } else {
-    buildDispatcher.requestBuild(appState.box)
-  }
+  useAppStore.getState().requestSpaghettiBuild()
   wired = true
 }

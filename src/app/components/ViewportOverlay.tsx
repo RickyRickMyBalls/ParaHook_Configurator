@@ -14,7 +14,6 @@ export function ViewportOverlay() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const axisWidgetRef = useRef<HTMLDivElement | null>(null)
   const selectedPartKey = useAppStore((state) => state.selectedPartKey)
-  const viewMode = useAppStore((state) => state.viewMode)
   const axisOverlayEnabled = useUiPrefsStore((state) => state.view.axisOverlayEnabled)
   const viewToolbarOpen = useUiPrefsStore((state) => state.viewToolbarOpen)
   const expandedAxisWidgetSize = useUiPrefsStore(
@@ -162,7 +161,7 @@ export function ViewportOverlay() {
         </div>
       ) : null}
       <div className="ViewportOverlayWidget ViewportHud">
-        <span className="HudLine">Mode: {viewMode}</span>
+        <span className="HudLine">Mode: preview</span>
         <span className="HudLine">
           Selected: {selectedPartKey === null ? 'none' : selectedPartKey}
         </span>

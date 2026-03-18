@@ -7,7 +7,6 @@ import {
   useSpaghettiStore,
 } from '../store/useSpaghettiStore'
 import { selectDebugInspectorVm } from '../selectors/selectDebugInspectorVm'
-import { useAppStore } from '../../store/useAppStore'
 
 type DebugInspectorDrawerProps = {
   isOpen: boolean
@@ -22,8 +21,6 @@ export function DebugInspectorDrawer({ isOpen, onToggle, style }: DebugInspector
   const buildOutputs = useSpaghettiStore(selectViewerTargetGraphAcceptedBuildOutputs)
   const compileResult = useSpaghettiStore(selectViewerTargetGraphCompileResult)
   const outputSurface = useSpaghettiStore(selectViewerTargetGraphOutputSurface)
-  const inputMode = useAppStore((state) => state.inputMode)
-  const viewMode = useAppStore((state) => state.viewMode)
 
   const debugVm = useMemo(
     () =>
@@ -33,14 +30,12 @@ export function DebugInspectorDrawer({ isOpen, onToggle, style }: DebugInspector
             schemaVersion: 1,
             nodes: [],
             edges: [],
-          },
+        },
         outputSurface,
         buildOutputs,
         compileResult,
-        inputMode,
-        viewMode,
       }),
-    [buildOutputs, compileResult, graph, inputMode, outputSurface, viewMode],
+    [buildOutputs, compileResult, graph, outputSurface],
   )
 
   return (

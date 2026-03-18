@@ -38,7 +38,6 @@ const resetBuildStatsStore = (
   useBuildStatsStore: typeof import('./store/buildStatsStore').useBuildStatsStore,
 ): void => {
   useBuildStatsStore.setState({
-    statsExpanded: false,
     activeSeq: null,
     overallState: 'idle',
     partOrder: [],

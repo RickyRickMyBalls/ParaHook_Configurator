@@ -10,7 +10,6 @@ import { useConsoleStore } from './console/useConsoleStore'
 
 let currentSpaghettiState: any
 let currentAppState: any
-let currentBuildStatsState: any
 
 vi.mock('./spaghetti/store/useSpaghettiStore', () => ({
   defaultViewportPosition: { x: 12, y: 12 },
@@ -24,14 +23,6 @@ vi.mock('./spaghetti/store/useSpaghettiStore', () => ({
 
 vi.mock('./store/useAppStore', () => ({
   useAppStore: (selector: (state: any) => unknown) => selector(currentAppState),
-}))
-
-vi.mock('./store/buildStatsStore', () => ({
-  useBuildStatsStore: (selector: (state: any) => unknown) => selector(currentBuildStatsState),
-}))
-
-vi.mock('./components/BuildStatsDrawer', () => ({
-  BuildStatsDrawer: () => <div>Build Stats Drawer</div>,
 }))
 
 vi.mock('./components/TitleStatusBar', () => ({
@@ -233,7 +224,32 @@ describe('AppShell', () => {
         },
       },
       graphDocumentOrder: ['graph-document-1'],
+      createGraphDocument: vi.fn(() => {
+        const nextGraphDocumentId = `graph-document-${currentSpaghettiState.graphDocumentOrder.length + 1}`
+        const nextGraphName = `Graph ${currentSpaghettiState.graphDocumentOrder.length + 1}`
+        currentSpaghettiState.graphDocumentsById[nextGraphDocumentId] = {
+          graphDocumentId: nextGraphDocumentId,
+          name: nextGraphName,
+        }
+        currentSpaghettiState.graphDocumentOrder = [
+          ...currentSpaghettiState.graphDocumentOrder,
+          nextGraphDocumentId,
+        ]
+        return nextGraphDocumentId
+      }),
       setActiveEditorViewportId: vi.fn(),
+      bindEditorViewportToGraphDocument: vi.fn(
+        (editorViewportId: string, graphDocumentId: string) => {
+          const currentViewport = currentSpaghettiState.editorViewportsById[editorViewportId]
+          if (currentViewport === undefined) {
+            return
+          }
+          currentSpaghettiState.editorViewportsById[editorViewportId] = {
+            ...currentViewport,
+            graphDocumentId,
+          }
+        },
+      ),
       setEditorViewportWindowMode: vi.fn((editorViewportId: string, windowMode: string) => {
         const currentViewport = currentSpaghettiState.editorViewportsById[editorViewportId]
         if (currentViewport === undefined) {
@@ -289,12 +305,7 @@ describe('AppShell', () => {
     }
 
     currentAppState = {
-      inputMode: 'spaghetti',
       requestGraphDocumentBuild: vi.fn(),
-    }
-
-    currentBuildStatsState = {
-      statsExpanded: false,
     }
   })
 
@@ -320,6 +331,125 @@ describe('AppShell', () => {
     expect(container?.textContent).toContain('Viewer Host')
     expect(container?.querySelector('.ConsoleBar')).not.toBeNull()
     expect(container?.textContent).not.toContain('Spaghetti Panel editor-viewport-1')
+  })
+
+  it('highlights the floating spaghetti window when clicked and clears the highlight outside it', async () => {
+    ;({ container, root } = await renderAppShell())
+
+    const floatingShell = container?.querySelector('.SpaghettiFloatingWindow') as HTMLDivElement | null
+    expect(floatingShell).not.toBeNull()
+    expect(floatingShell?.classList.contains('isActiveWindow')).toBe(false)
+
+    await act(async () => {
+      floatingShell?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+        }),
+      )
+    })
+
+    expect(floatingShell?.classList.contains('isActiveWindow')).toBe(true)
+
+    await act(async () => {
+      document.body.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+        }),
+      )
+    })
+
+    expect(floatingShell?.classList.contains('isActiveWindow')).toBe(false)
+  })
+
+  it('highlights the floating browser window and hands active highlight off from spaghetti', async () => {
+    ;({ container, root } = await renderAppShell())
+
+    const spaghettiShell = container?.querySelector('.SpaghettiFloatingWindow') as HTMLDivElement | null
+    expect(spaghettiShell).not.toBeNull()
+
+    await act(async () => {
+      spaghettiShell?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+        }),
+      )
+    })
+
+    expect(spaghettiShell?.classList.contains('isActiveWindow')).toBe(true)
+
+    const popoutButton = container?.querySelector(
+      'button[aria-label="Mock browser popout"]',
+    ) as HTMLButtonElement | null
+    expect(popoutButton).not.toBeNull()
+
+    await act(async () => {
+      popoutButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    const browserShell = container?.querySelector('.BrowserFloatingWindow') as HTMLDivElement | null
+    expect(browserShell).not.toBeNull()
+    expect(browserShell?.classList.contains('isActiveWindow')).toBe(false)
+
+    await act(async () => {
+      browserShell?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+        }),
+      )
+    })
+
+    expect(browserShell?.classList.contains('isActiveWindow')).toBe(true)
+    expect(spaghettiShell?.classList.contains('isActiveWindow')).toBe(false)
+  })
+
+  it('keeps the floating browser wrapper width pinned when the browser is popped out', async () => {
+    ;({ container, root } = await renderAppShell())
+    mockShellGeometry(container)
+
+    const popoutButton = container?.querySelector(
+      'button[aria-label="Mock browser popout"]',
+    ) as HTMLButtonElement | null
+    expect(popoutButton).not.toBeNull()
+
+    await act(async () => {
+      popoutButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    const browserShell = container?.querySelector('.BrowserFloatingWindow') as HTMLDivElement | null
+    expect(browserShell).not.toBeNull()
+    expect(browserShell?.style.width).toBe('320px')
+  })
+
+  it('caps browser popout width from the dock host measurement path', async () => {
+    ;({ container, root } = await renderAppShell())
+    mockShellGeometry(container)
+    mockRect(container?.querySelector('.LeftDockPanelTarget--browser'), {
+      left: 16,
+      top: 88,
+      width: 840,
+      height: 840,
+    })
+
+    const popoutButton = container?.querySelector(
+      'button[aria-label="Mock browser popout"]',
+    ) as HTMLButtonElement | null
+    expect(popoutButton).not.toBeNull()
+
+    await act(async () => {
+      popoutButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    const browserShell = container?.querySelector('.BrowserFloatingWindow') as HTMLDivElement | null
+    expect(browserShell).not.toBeNull()
+    expect(browserShell?.style.width).toBe('840px')
   })
 
   it('keeps a persistent bottom console row and expands it from the shell', async () => {
@@ -1257,6 +1387,103 @@ describe('AppShell', () => {
       'editor-viewport-1',
       'maximized',
     )
+  })
+
+  it('moves the spaghetti first button to the far left and cycles minus, essentials, and plus', async () => {
+    ;({ container, root } = await renderAppShell())
+
+    const titleBar = container?.querySelector('.SpaghettiFloatingHandle') as HTMLDivElement | null
+    const title = titleBar?.querySelector('.SpaghettiFloatingHandleTitle') as HTMLSpanElement | null
+    const collapseButton = title?.previousElementSibling as HTMLButtonElement | null
+
+    expect(collapseButton?.getAttribute('aria-label')).toBe('Switch editor to essentials mode')
+    expect(collapseButton?.textContent).toBe('-')
+    expect(collapseButton?.getAttribute('aria-expanded')).toBe('true')
+    expect(container?.textContent).toContain('header-expanded')
+    expect(container?.textContent).toContain('canvas-toolbar-visible')
+
+    await act(async () => {
+      collapseButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(currentSpaghettiState.setEditorViewportWindowMode).not.toHaveBeenCalledWith(
+      'editor-viewport-1',
+      'collapsed',
+    )
+    expect(container?.textContent).toContain('header-collapsed')
+    expect(container?.textContent).toContain('canvas-toolbar-hidden')
+
+    await rerenderAppShell(root!)
+
+    const updatedTitleBar = container?.querySelector('.SpaghettiFloatingHandle') as HTMLDivElement | null
+    const updatedTitle = updatedTitleBar?.querySelector(
+      '.SpaghettiFloatingHandleTitle',
+    ) as HTMLSpanElement | null
+    const essentialsButton = updatedTitle?.previousElementSibling as HTMLButtonElement | null
+
+    expect(essentialsButton?.getAttribute('aria-label')).toBe(
+      'Collapse editor from essentials mode',
+    )
+    expect(essentialsButton?.textContent).toBe('e')
+    expect(essentialsButton?.getAttribute('aria-expanded')).toBe('true')
+
+    await act(async () => {
+      essentialsButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(currentSpaghettiState.setEditorViewportWindowMode).toHaveBeenCalledWith(
+      'editor-viewport-1',
+      'collapsed',
+    )
+
+    await rerenderAppShell(root!)
+
+    const collapsedTitleBar = container?.querySelector('.SpaghettiFloatingHandle') as HTMLDivElement | null
+    const collapsedTitle = collapsedTitleBar?.querySelector(
+      '.SpaghettiFloatingHandleTitle',
+    ) as HTMLSpanElement | null
+    const expandButton = collapsedTitle?.previousElementSibling as HTMLButtonElement | null
+
+    expect(expandButton?.getAttribute('aria-label')).toBe('Restore expanded editor')
+    expect(expandButton?.textContent).toBe('+')
+    expect(expandButton?.getAttribute('aria-expanded')).toBe('false')
+
+    await act(async () => {
+      expandButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(currentSpaghettiState.setEditorViewportWindowMode).toHaveBeenLastCalledWith(
+      'editor-viewport-1',
+      'collapsed',
+    )
+
+    currentSpaghettiState.editorViewportsById['editor-viewport-1'] = viewport('expanded')
+
+    await rerenderAppShell(root!)
+
+    expect(container?.textContent).toContain('header-expanded')
+    expect(container?.textContent).toContain('canvas-toolbar-visible')
+  })
+
+  it('no longer renders the spaghetti graph picker in the titlebar', async () => {
+    ;({ container, root } = await renderAppShell())
+
+    const titlebarGraphPicker = container?.querySelector(
+      '.SpaghettiFloatingHandleGraph .ParaSelectNative[aria-label="Graph"]',
+    ) as HTMLSelectElement | null
+
+    expect(titlebarGraphPicker).toBeNull()
+  })
+
+  it('keeps the titlebar build button after moving the graph picker out of the titlebar', async () => {
+    ;({ container, root } = await renderAppShell())
+
+    const buildButton = container?.querySelector(
+      '.SpaghettiFloatingHandleActions .SpaghettiWindowAction--build',
+    ) as HTMLButtonElement | null
+
+    expect(buildButton).not.toBeNull()
+    expect(buildButton?.getAttribute('aria-label')).toBe('Compile and build graph')
   })
 
   it('starts with a compact titlebar tray and expands the advanced actions on demand', async () => {

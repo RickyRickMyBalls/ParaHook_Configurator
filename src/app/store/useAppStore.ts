@@ -1,6 +1,5 @@
 import { create } from 'zustand'
 import { buildDispatcher } from '../buildDispatcher'
-import { artifactToPartKeyStr } from '../parts/partKeyResolver'
 import {
   selectActiveGraphDocument,
   selectGraphByDocumentId,
@@ -19,17 +18,7 @@ import {
 import { buildRequestFromBuildInputs } from '../spaghetti/integration/buildInputsToRequest'
 import { buildGraphPublishedContentSurface } from '../spaghetti/outputSurface'
 import { OUTPUT_PREVIEW_DEFAULT_COMPONENT_LABEL } from '../spaghetti/system/outputPreviewNode'
-import type {
-  AssembleResult,
-  BoxParams,
-  BuildResult,
-  PartArtifact,
-  ViewMode,
-} from '../../shared/buildTypes'
-import {
-  LEGACY_RUNTIME_GRAPH_DOCUMENT_ID,
-  LEGACY_RUNTIME_PROJECT_FILE_ID,
-} from '../../shared/buildTypes'
+import type { BoxParams, BuildResult, PartArtifact } from '../../shared/buildTypes'
 import { newId } from '../spaghetti/utils/id'
 import {
   REFERENCE_MANIFEST_CATEGORIES,
@@ -60,9 +49,7 @@ import { appendConsoleEntry } from '../console/useConsoleStore'
 
 type BoxParamKey = keyof BoxParams
 type PartsVisibility = Record<string, boolean>
-type AssembledMesh = AssembleResult['assembled']
 type BuildPolicy = 'live' | 'release' | 'manual'
-type InputMode = 'legacy' | 'spaghetti'
 type ProjectFileVersion = 1
 export type ProjectContentBuildState = 'rebuild' | 'building' | 'done'
 export type ReferenceItemLoadState = 'unloaded' | 'loading' | 'loaded' | 'error'
@@ -262,16 +249,11 @@ export type AppState = {
   buildPolicy: BuildPolicy
   isInteracting: boolean
   pendingBuildAfterRelease: boolean
-  inputMode: InputMode
-  viewMode: ViewMode
-  assembled: AssembledMesh | null
-  assembledSignature: string | null
   currentProject: ProjectFile
   projectContent: ProjectContentState
   referenceWorkspace: ReferenceWorkspaceState
   workerError: string | null
   setBoxParam: (key: BoxParamKey, value: number) => void
-  setInputMode: (mode: InputMode) => void
   setSpaghettiGraph: (graph: SpaghettiGraph) => void
   compileGraphDocument: (graphDocumentId: string) => CompileSpaghettiGraphResult
   requestGraphDocumentBuild: (graphDocumentId: string) => CompileSpaghettiGraphResult
@@ -281,9 +263,7 @@ export type AppState = {
   beginInteraction: () => void
   endInteraction: () => void
   requestManualBuild: () => void
-  setViewMode: (mode: ViewMode) => void
   acceptBuildResult: (result: BuildResult) => void
-  setAssembled: (result: AssembleResult) => void
   setWorkerError: (message: string | null) => void
   toggleReferenceWorkspaceExpanded: () => void
   toggleReferenceCategoryExpanded: (categoryId: ReferenceCategoryId) => void
@@ -359,7 +339,6 @@ const defaultVisibility: PartsVisibility = {
   baseplate: true,
   'heelKick#1': true,
   'toeHook#1': true,
-  assembled: true,
 }
 
 const PROJECT_FILE_VERSION: ProjectFileVersion = 1
@@ -367,12 +346,20 @@ const INITIAL_PROJECT_FILE_ID = 'project-file-1'
 const ROOT_ASSEMBLY_LABEL = 'Assembly 1'
 const REFERENCE_ROOT_ROW_ID = 'reference-root'
 const IMPORTED_REFERENCE_ROW_ID_PREFIX = 'reference-import'
+const DEFAULT_COLLAPSED_REFERENCE_CATEGORY_IDS: ReferenceCategoryId[] = [
+  'footpads',
+  'shoes',
+  'premade-foothooks',
+]
 
 const createInitialReferenceWorkspaceState = (): ReferenceWorkspaceState => ({
   referencesExpanded: true,
   categoryExpandedById: Object.fromEntries(
     [...REFERENCE_MANIFEST_CATEGORIES.map((category) => category.categoryId), USER_REFERENCE_CATEGORY_ID].map(
-      (categoryId) => [categoryId, true],
+      (categoryId) => [
+        categoryId,
+        !DEFAULT_COLLAPSED_REFERENCE_CATEGORY_IDS.includes(categoryId),
+      ],
     ),
   ) as Record<ReferenceCategoryId, boolean>,
   visibilityById: Object.fromEntries(
@@ -844,10 +831,6 @@ export const useAppStore = create<AppState>((set, get) => ({
   buildPolicy: 'live',
   isInteracting: false,
   pendingBuildAfterRelease: false,
-  inputMode: 'spaghetti',
-  viewMode: 'parts',
-  assembled: null,
-  assembledSignature: null,
   currentProject: createInitialProjectFile(),
   projectContent: createInitialProjectContentState(),
   referenceWorkspace: createInitialReferenceWorkspaceState(),
@@ -872,28 +855,6 @@ export const useAppStore = create<AppState>((set, get) => ({
       layer: 'Params',
       text: `${key} = ${value}`,
       source: 'legacy-box',
-    })
-    if (state.inputMode === 'spaghetti') {
-      return
-    }
-    if (state.buildPolicy === 'live') {
-      buildDispatcher.requestBuild(nextBox)
-      return
-    }
-    if (state.buildPolicy === 'release') {
-      if (state.isInteracting) {
-        if (!state.pendingBuildAfterRelease) {
-          set({ pendingBuildAfterRelease: true })
-        }
-        return
-      }
-      buildDispatcher.requestBuild(nextBox)
-    }
-  },
-  setInputMode: (mode) => {
-    set({
-      inputMode: mode,
-      pendingBuildAfterRelease: false,
     })
   },
   setSpaghettiGraph: (graph) => {
@@ -975,126 +936,52 @@ export const useAppStore = create<AppState>((set, get) => ({
     set((state) => (state.isInteracting ? state : { isInteracting: true }))
   },
   endInteraction: () => {
-    let shouldRequestBuild = false
     set((state) => {
       if (!state.isInteracting) {
         return state
       }
-      shouldRequestBuild =
-        state.buildPolicy === 'release' && state.pendingBuildAfterRelease
       return {
         isInteracting: false,
         pendingBuildAfterRelease: false,
       }
     })
-    if (shouldRequestBuild && get().inputMode === 'legacy') {
-      buildDispatcher.requestBuild(get().box)
-    }
   },
   requestManualBuild: () => {
-    if (get().inputMode === 'spaghetti') {
-      const activeGraphDocument = selectActiveGraphDocument(useSpaghettiStore.getState())
-      appendConsoleEntry({
-        layer: 'App',
-        text: `Manual build requested for ${activeGraphDocument.graphDocumentId}`,
-        source: activeGraphDocument.graphDocumentId,
-        severity: 'info',
-      })
-      get().requestGraphDocumentBuild(activeGraphDocument.graphDocumentId)
-      return
-    }
+    const activeGraphDocument = selectActiveGraphDocument(useSpaghettiStore.getState())
     set({ pendingBuildAfterRelease: false })
     appendConsoleEntry({
       layer: 'App',
-      text: 'Manual legacy build requested',
-      source: 'legacy-build',
+      text: `Manual build requested for ${activeGraphDocument.graphDocumentId}`,
+      source: activeGraphDocument.graphDocumentId,
       severity: 'info',
     })
-    buildDispatcher.requestBuild(get().box)
-  },
-  setViewMode: (mode) => {
-    set({ viewMode: mode })
-    appendConsoleEntry({
-      layer: 'View',
-      text: `View mode: ${mode}`,
-      source: 'view-mode',
-      severity: 'info',
-    })
+    get().requestGraphDocumentBuild(activeGraphDocument.graphDocumentId)
   },
   acceptBuildResult: (result) => {
     const currentProjectId = get().currentProject.projectFileId
-    const isLegacyRoutingResult =
-      result.projectFileId === LEGACY_RUNTIME_PROJECT_FILE_ID &&
-      result.graphDocumentId === LEGACY_RUNTIME_GRAPH_DOCUMENT_ID
-    if (!isLegacyRoutingResult && result.projectFileId !== currentProjectId) {
+    if (result.projectFileId !== currentProjectId) {
       return
     }
-    const acceptedSpaghettiResult = isLegacyRoutingResult
-      ? false
-      : useSpaghettiStore.getState().acceptGraphBuildResult({
-          projectFileId: result.projectFileId,
-          graphDocumentId: result.graphDocumentId,
-          buildRequestId: result.buildRequestId,
-          buildSeq: result.seq,
-          buildOutputs: result.parts,
-        })
-    if (!isLegacyRoutingResult && !acceptedSpaghettiResult) {
+    const acceptedSpaghettiResult = useSpaghettiStore.getState().acceptGraphBuildResult({
+      projectFileId: result.projectFileId,
+      graphDocumentId: result.graphDocumentId,
+      buildRequestId: result.buildRequestId,
+      buildSeq: result.seq,
+      buildOutputs: result.parts,
+    })
+    if (!acceptedSpaghettiResult) {
       return
     }
 
-    set((state) => {
-      if (result.seq <= state.lastBuildSeq) {
-        if (!isLegacyRoutingResult) {
-          return {
+    set((state) =>
+      result.seq <= state.lastBuildSeq
+        ? {
             lastBuildSeq: state.lastBuildSeq,
           }
-        }
-        return state
-      }
-
-      if (!isLegacyRoutingResult) {
-        return {
-          lastBuildSeq: result.seq,
-        }
-      }
-
-      const nextGeomBuilt = { ...state.geomBuilt }
-      for (const id of result.changedParamIds ?? []) {
-        nextGeomBuilt[id] = state.geomDirty[id] ?? state.geomBuilt[id] ?? 0
-      }
-      const incomingPartKeys = result.parts.map((part) => artifactToPartKeyStr(part))
-      const incomingPartKeySet = new Set(incomingPartKeys)
-      const nextVisibility = { ...state.partsVisibility }
-      for (const key of incomingPartKeys) {
-        if (nextVisibility[key] === undefined) {
-          nextVisibility[key] = true
-        }
-      }
-
-      let selectedPartKey = state.selectedPartKey
-      if (selectedPartKey !== null && !incomingPartKeySet.has(selectedPartKey)) {
-        if (incomingPartKeySet.has('baseplate')) {
-          selectedPartKey = 'baseplate'
-        } else {
-          const firstVisible = incomingPartKeys.find((key) => nextVisibility[key] ?? true)
-          selectedPartKey = firstVisible ?? incomingPartKeys[0] ?? null
-        }
-      }
-      return {
-        lastBuildSeq: result.seq,
-        parts: result.parts,
-        geomBuilt: nextGeomBuilt,
-        partsVisibility: nextVisibility,
-        selectedPartKey,
-      }
-    })
-  },
-  setAssembled: (result) => {
-    set({
-      assembled: result.assembled,
-      assembledSignature: result.signature,
-      workerError: null,
-    })
+        : {
+            lastBuildSeq: result.seq,
+          },
+    )
   },
   setWorkerError: (message) => {
     set({ workerError: message })
@@ -1642,16 +1529,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   addHeelKickInstance: () => {
     const next = [...get().heelKickInstances, nextInstanceId(get().heelKickInstances)]
     set({ heelKickInstances: next })
-    if (get().inputMode === 'legacy') {
-      buildDispatcher.requestBuild(get().box)
-    }
   },
   addToeHookInstance: () => {
     const next = [...get().toeHookInstances, nextInstanceId(get().toeHookInstances)]
     set({ toeHookInstances: next })
-    if (get().inputMode === 'legacy') {
-      buildDispatcher.requestBuild(get().box)
-    }
   },
   removeHeelKickInstance: (instance) => {
     const current = get().heelKickInstances
@@ -1670,9 +1551,6 @@ export const useAppStore = create<AppState>((set, get) => ({
           state.selectedPartKey === removedKey ? null : state.selectedPartKey,
       }
     })
-    if (get().inputMode === 'legacy') {
-      buildDispatcher.requestBuild(get().box)
-    }
   },
   removeToeHookInstance: (instance) => {
     const current = get().toeHookInstances
@@ -1691,9 +1569,6 @@ export const useAppStore = create<AppState>((set, get) => ({
           state.selectedPartKey === removedKey ? null : state.selectedPartKey,
       }
     })
-    if (get().inputMode === 'legacy') {
-      buildDispatcher.requestBuild(get().box)
-    }
   },
 }))
 
@@ -2085,18 +1960,22 @@ export const selectReferenceWorkspaceBrowserTree = (
 
   const categories = [
     ...manifestCategories,
-    {
-      rowId: `reference-category-row:${USER_REFERENCE_CATEGORY_ID}`,
-      categoryId: USER_REFERENCE_CATEGORY_ID,
-      label: USER_REFERENCE_CATEGORY_LABEL,
-      isExpanded: state.referenceWorkspace.categoryExpandedById[USER_REFERENCE_CATEGORY_ID] ?? true,
-      itemCount: importedItems.length,
-      visibleItemCount: importedItems.filter((item) => item.isVisible).length,
-      hasLoadingItem: importedItems.some((item) => item.isVisible && item.loadState === 'loading'),
-      hasErrorItem: importedItems.some((item) => item.loadState === 'error'),
-      emptyLabel: 'No imported references yet.',
-      items: importedItems,
-    },
+    ...(importedItems.length > 0
+      ? [
+          {
+            rowId: `reference-category-row:${USER_REFERENCE_CATEGORY_ID}`,
+            categoryId: USER_REFERENCE_CATEGORY_ID,
+            label: USER_REFERENCE_CATEGORY_LABEL,
+            isExpanded: state.referenceWorkspace.categoryExpandedById[USER_REFERENCE_CATEGORY_ID] ?? true,
+            itemCount: importedItems.length,
+            visibleItemCount: importedItems.filter((item) => item.isVisible).length,
+            hasLoadingItem: importedItems.some((item) => item.isVisible && item.loadState === 'loading'),
+            hasErrorItem: importedItems.some((item) => item.loadState === 'error'),
+            emptyLabel: '',
+            items: importedItems,
+          },
+        ]
+      : []),
   ]
 
   return {

@@ -65,6 +65,2075 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 384 -->
+### [384] - 2026-03-17 22:00 - `VR / Browser - Make Reference Row Click Highlight In Viewer`
+<!-- ENTRY 384 -->
+HUMAN SUMMARY: `Changed browser reference item clicks so they no longer act like visibility toggles; instead they ensure the reference is visible, make it the active viewer target, and apply a warm white/yellow glow in the viewport.` 
+
+#### Scope / Constraints Honored
+- Kept this pass focused on browser reference item click behavior and viewer-side reference highlighting.
+- Preserved the eye toggle as the dedicated visibility control.
+- Reused the existing active reference transform target rather than introducing a second competing viewer-selection state.
+
+#### Summary of Implementation
+- Changed browser reference item row clicks to use the highlight/active-reference path instead of toggling visibility.
+- Kept right-click transform actions on the same underlying reference activation flow.
+- Added a warm white/yellow material highlight treatment in the viewer for the active reference object and refresh hooks so the glow tracks load/visibility/session changes.
+
+#### Files Changed
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `src/viewer/Viewer.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- Clicking a browser reference item now highlights that reference in the viewport instead of turning visibility on or off.
+- The highlighted reference gets a warm white/yellow glow treatment in the viewer.
+
+#### Verification Steps
+- `npm.cmd test -- src/app/panels/BrowserPanel.test.tsx src/app/components/ViewerHost.test.tsx`
+
+<!-- ENTRY 383 -->
+### [383] - 2026-03-17 21:51 - `VR / Browser - Make Active Reference Eye Toggle Green`
+<!-- ENTRY 383 -->
+HUMAN SUMMARY: `Changed the browser reference eye toggle so visible rows read green when they are on, making the visibility control easier to distinguish from the blue reference highlight bar.` 
+
+#### Scope / Constraints Honored
+- Kept this pass limited to the browser reference visibility toggle styling.
+- Preserved the current reference highlight bar behavior.
+- Adjusted only the active eye-toggle color language.
+
+#### Summary of Implementation
+- Updated the visible-state eye toggle border, fill, and glow from blue to green.
+- Kept the eye glyph itself readable while shifting the active emphasis to the new green on-state.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- Browser reference eye toggles now read green when the reference layer is visible.
+
+#### Verification Steps
+- `npm.cmd test -- src/app/panels/BrowserPanel.test.tsx`
+
+<!-- ENTRY 382 -->
+### [382] - 2026-03-17 21:49 - `VR / Browser - Darken Reference Row Idle And Highlighted States`
+<!-- ENTRY 382 -->
+HUMAN SUMMARY: `Darkened both the idle and highlighted browser reference-row bars so the new reference highlight styling reads deeper and less washed-out against the browser tree.` 
+
+#### Scope / Constraints Honored
+- Kept this pass limited to browser reference-row styling.
+- Preserved the existing highlight-vs-visibility behavior split.
+- Tuned both idle and highlighted states together for a more consistent darker treatment.
+
+#### Summary of Implementation
+- Darkened the base reference row shell background and border.
+- Shifted the highlighted fill to a deeper blue treatment.
+- Shifted the idle fill to a darker neutral treatment so both states sit closer together visually.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- Browser reference rows now read darker in both idle and highlighted states.
+
+#### Verification Steps
+- `npm.cmd test -- src/app/panels/BrowserPanel.test.tsx`
+
+<!-- ENTRY 381 -->
+### [381] - 2026-03-17 21:48 - `VR / Browser - Move Reference Fill State To Highlight`
+<!-- ENTRY 381 -->
+HUMAN SUMMARY: `Separated browser reference visibility from the main reference fill bar so the eye toggle now owns on/off state while the row fill bar reflects whether a reference is the actively highlighted transform target.` 
+
+#### Scope / Constraints Honored
+- Kept this pass limited to browser reference row state semantics.
+- Preserved the new eye toggle as the visibility control.
+- Reused the existing active reference transform target instead of inventing a new highlight system.
+
+#### Summary of Implementation
+- Added an explicit `isVisible` field to browser reference row VMs for the eye-toggle state.
+- Changed the reference row bar state model from visible/hidden to highlighted/idle, while retaining loading and error states.
+- Wired the browser tree selector to use `referenceWorkspace.activeTransformReferenceId` as the reference highlight source and updated selector/browser-row tests to the new semantics.
+
+#### Files Changed
+- `src/app/panels/selectBrowserTreeRows.ts`
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/theme/v15Theme.css`
+- `src/app/panels/selectBrowserTreeRows.test.ts`
+- `src/app/panels/browserRowActions.test.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- Reference eye buttons now indicate visibility, while the main reference fill bar indicates the currently highlighted reference target.
+
+#### Verification Steps
+- `npm.cmd test -- src/app/panels/BrowserPanel.test.tsx src/app/panels/selectBrowserTreeRows.test.ts src/app/panels/browserRowActions.test.ts`
+
+<!-- ENTRY 380 -->
+### [380] - 2026-03-17 21:40 - `VR / Browser - Fix Reference Eye Toggle Rendering`
+<!-- ENTRY 380 -->
+HUMAN SUMMARY: `Reworked the new browser reference eye toggle into a reliably rendered icon and gave the visible state a blue active highlight so the control reads clearly when a reference layer is on.` 
+
+#### Scope / Constraints Honored
+- Kept this pass limited to the new browser reference visibility control.
+- Preserved the same underlying reference visibility behavior.
+- Focused only on the eye icon rendering and active-state readability.
+
+#### Summary of Implementation
+- Replaced the pseudo-element-only eye icon with a small explicit DOM eye/pupil/slash shape.
+- Added a stronger blue active treatment to the visible state so it aligns with the browser reference fill-bar color language.
+- Kept the hidden state dimmer with a clear slash overlay.
+
+#### Files Changed
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- The browser reference visibility control now reads as a clearer eye icon, and visible rows show a blue active button state.
+
+#### Verification Steps
+- `npm.cmd test -- src/app/panels/BrowserPanel.test.tsx`
+
+<!-- ENTRY 379 -->
+### [379] - 2026-03-17 21:36 - `VR / Browser - Add Reference Visibility Eye Toggle`
+<!-- ENTRY 379 -->
+HUMAN SUMMARY: `Added a dedicated eye toggle beside the reference-row type icon in the browser so visibility state is explicit and users can turn reference layers on or off without relying only on the main row click.` 
+
+#### Scope / Constraints Honored
+- Kept this pass limited to browser reference-row UI and its existing visibility-toggle behavior.
+- Added the new control beside the existing reference icon instead of reshaping the broader row action layout.
+- Reused the current category/item visibility actions rather than introducing a separate visibility model.
+
+#### Summary of Implementation
+- Added a dedicated inline visibility toggle to browser reference category and item rows.
+- Reused the existing reference visibility handler so the new eye button performs the same toggle action as the current row interaction.
+- Styled the new control as an eye-state button with visible/hidden states and added a focused browser-panel regression.
+
+#### Files Changed
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/theme/v15Theme.css`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- Reference category and item rows now show a dedicated eye toggle beside their existing icon to indicate and control visibility.
+
+#### Verification Steps
+- `npm.cmd test -- src/app/panels/BrowserPanel.test.tsx`
+
+<!-- ENTRY 378 -->
+### [378] - 2026-03-17 21:28 - `VR / Spaghetti - Add Body Top Bottom Padding Slider`
+<!-- ENTRY 378 -->
+HUMAN SUMMARY: `Added a second body-padding slider for top/bottom spacing in the spaghetti editor window-settings menu, so the main shell inset can now be tuned independently on both axes.` 
+
+#### Scope / Constraints Honored
+- Kept this pass limited to the existing spaghetti window appearance pipeline.
+- Added the new control under `Body` alongside the side-padding slider.
+- Reused the same slider/clamp model as the other appearance settings.
+
+#### Summary of Implementation
+- Extended `SpaghettiWindowAppearance` with `bodyInsetY` and its clamp range.
+- Added a new `--sp-window-shell-pad-y` CSS variable in `AppShell`.
+- Updated the main spaghetti panel shell padding to use both horizontal and vertical inset variables.
+- Added a `Top Bottom Padding` slider in the `Body` settings group and updated the panel tests.
+
+#### Files Changed
+- `src/app/panels/spaghettiWindowAppearance.ts`
+- `src/app/AppShell.tsx`
+- `src/app/theme/v15Theme.css`
+- `src/app/panels/SpaghettiPanel.tsx`
+- `src/app/panels/SpaghettiPanel.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- The spaghetti editor main shell now has separate sliders for side padding and top/bottom padding.
+
+#### Verification Steps
+- `npm.cmd test -- src/app/panels/SpaghettiPanel.test.tsx`
+
+<!-- ENTRY 377 -->
+### [377] - 2026-03-17 21:23 - `VR / Spaghetti - Add Body Side Padding Slider`
+<!-- ENTRY 377 -->
+HUMAN SUMMARY: `Added a new Body > Side Padding slider to the spaghetti editor window-settings menu so the main shell’s left/right inset is now a real per-window appearance control instead of a hardcoded CSS tweak.` 
+
+#### Scope / Constraints Honored
+- Kept this pass limited to the spaghetti window appearance model and the existing `i`-menu settings surface.
+- Added the new control under `Body`, directly below `Color`, as requested.
+- Reused the existing appearance-variable pipeline rather than introducing a one-off DOM mutation path.
+
+#### Summary of Implementation
+- Extended `SpaghettiWindowAppearance` with a new `bodyInsetX` slider value and clamp range.
+- Exposed that value in `AppShell` as a new `--sp-window-shell-pad-x` CSS variable.
+- Updated the spaghetti panel shell CSS to use the new variable for main-box left/right padding.
+- Added a `Body > Side Padding` `ParaSlider` to the spaghetti `i` menu and covered its presence in `SpaghettiPanel.test.tsx`.
+
+#### Files Changed
+- `src/app/panels/spaghettiWindowAppearance.ts`
+- `src/app/AppShell.tsx`
+- `src/app/theme/v15Theme.css`
+- `src/app/panels/SpaghettiPanel.tsx`
+- `src/app/panels/SpaghettiPanel.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- The spaghetti editor main-box left/right inset can now be adjusted from the `i` menu under `Body`.
+
+#### Verification Steps
+- `npm.cmd test -- src/app/panels/SpaghettiPanel.test.tsx`
+
+<!-- ENTRY 376 -->
+### [376] - 2026-03-17 21:23 - `VR / Spaghetti - Move Flush Spacing To Main Panel Shell`
+<!-- ENTRY 376 -->
+HUMAN SUMMARY: `Corrected the spaghetti spacing pass by restoring the subsection header/body padding and instead removing the outer left/right padding from the main spaghetti panel shell. This targets the actual gap between the editor box and the Window Settings/toolbar boxes.` 
+
+#### Scope / Constraints Honored
+- Kept this corrective pass limited to spaghetti panel spacing.
+- Restored the subsection internals rather than continuing to flatten them.
+- Applied the flush treatment at the main panel shell level where the user actually wanted the spacing removed.
+
+#### Summary of Implementation
+- Set the main `SpaghettiPanelRoot` padding to `0` so pinned boxes sit flush against the editor shell.
+- Restored horizontal padding on the `Window Settings` subsection toggles.
+- Restored horizontal padding on the `t` toolbar section summaries and bodies.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- The space between the spaghetti editor shell and the top-level `Window Settings` / toolbar boxes is removed, while subsection internals keep their original padding.
+
+#### Verification Steps
+- `npm.cmd test -- src/app/panels/SpaghettiPanel.test.tsx`
+
+<!-- ENTRY 375 -->
+### [375] - 2026-03-17 21:21 - `VR / Spaghetti - Remove Horizontal Section Gutters`
+<!-- ENTRY 375 -->
+HUMAN SUMMARY: `Removed the left/right section gutters inside the spaghetti editor’s subsection shells so the section headers and bodies now sit flush to the shell edges more like the browser treatment.` 
+
+#### Scope / Constraints Honored
+- Kept this pass limited to spaghetti section-level padding.
+- Left the controls themselves intact instead of flattening their internal layout.
+- Applied the flush treatment to the spaghetti settings/toolbar subsection shells.
+
+#### Summary of Implementation
+- Removed horizontal padding from the `Window Settings` subsection toggles.
+- Removed horizontal padding from the `t` toolbar section summaries and bodies.
+- Kept the vertical spacing intact so the sections do not collapse visually.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- Spaghetti subsection headers and bodies now align flush to the left/right shell edges instead of sitting inside horizontal gutters.
+
+#### Verification Steps
+- Pending visual verification in the running app.
+
+<!-- ENTRY 374 -->
+### [374] - 2026-03-17 21:18 - `VR / Browser - Scope Wide Row Layout To Content Area`
+<!-- ENTRY 374 -->
+HUMAN SUMMARY: `Scoped the wider browser row layout back down to the content/reference area only. Graph Documents and Open Editors now keep their original trailing action-column structure, while reference/content rows still let their bars extend farther right.` 
+
+#### Scope / Constraints Honored
+- Kept this pass limited to browser row-grid scoping.
+- Restored the old graph/open-editor row structure without reverting the content/reference row improvement.
+- Left row action behavior untouched.
+
+#### Summary of Implementation
+- Restored the browser row shell’s original multi-column grid as the default.
+- Added a narrower two-column grid override only for reference/content row kinds: references root, reference categories/items, and assembly/component/object rows.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- Graph Documents and Open Editors regain their original right-side action layout, while content/reference rows keep the wider fill-bar span.
+
+#### Verification Steps
+- `npm.cmd test -- src/app/panels/BrowserPanel.test.tsx`
+
+<!-- ENTRY 373 -->
+### [373] - 2026-03-17 21:16 - `VR / Browser - Let Row Bars Reach The Right Edge`
+<!-- ENTRY 373 -->
+HUMAN SUMMARY: `Reworked the browser row grid so reference/content bars can actually extend farther right instead of stopping early because of always-reserved empty action columns. This replaces the earlier text-only padding tweak with a real row-width fix.` 
+
+#### Scope / Constraints Honored
+- Kept this pass limited to the browser row shell/layout and state-bar padding reset.
+- Left the outer row shells and selection/highlight states unchanged.
+- Focused on the shared row surfaces used by reference rows through assembly/content rows.
+
+#### Summary of Implementation
+- Removed the browser row’s always-present trailing empty action columns so rows without actions no longer reserve dead space on the right.
+- Restored the inner state-bar padding after the earlier text-only shift, since the actual fix was to widen the row surface itself.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- Browser reference/content bars can now dock farther right because the row shell no longer reserves unused action slots.
+
+#### Verification Steps
+- Pending visual verification in the running app.
+
+<!-- ENTRY 372 -->
+### [372] - 2026-03-17 21:14 - `VR / Browser - Hide Empty User References Section`
+<!-- ENTRY 372 -->
+HUMAN SUMMARY: `Stopped rendering the browser’s User References category when there are no imported references, which also removes the stray \`No imported references yet.\` empty-state text from the tree.` 
+
+#### Scope / Constraints Honored
+- Kept this pass limited to the browser reference-tree view model and its direct panel coverage.
+- Left imported-reference rendering intact once the user actually has imported items.
+- Did not alter the manifest-backed reference categories.
+
+#### Summary of Implementation
+- Updated the reference workspace browser-tree selector to omit the `User References` category when its item list is empty.
+- Removed the imported-reference empty-state copy by not rendering that empty category at all.
+- Added a BrowserPanel regression to ensure both the row label and the empty string stay absent when there are no imported references.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- The browser no longer shows an empty `User References` row or the `No imported references yet.` message when there are no imported references.
+
+#### Verification Steps
+- `npm.cmd test -- src/app/panels/BrowserPanel.test.tsx`
+
+<!-- ENTRY 371 -->
+### [371] - 2026-03-17 21:11 - `VR / Browser - Darken Reference And Object Rows`
+<!-- ENTRY 371 -->
+HUMAN SUMMARY: `Darkened the browser’s main row-button surface so reference rows, object rows, and the other BrowserTreeRow items no longer read like the lighter generic panel-button slab, while keeping the existing selected and active states intact.` 
+
+#### Scope / Constraints Honored
+- Kept this pass limited to the browser row-button surface styling.
+- Left the generic shared button template untouched.
+- Preserved the existing selected, active-editor, and hover state structure.
+
+#### Summary of Implementation
+- Added a darker dedicated base background for `BrowserTreeRowMain`.
+- Slightly darkened the open-row background treatment.
+- Darkened the hover state so it still reads interactive without jumping back to the lighter generic panel-button look.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- Browser reference/object rows and related tree rows now read darker at rest and on hover.
+
+#### Verification Steps
+- Pending visual verification in the running app.
+
+<!-- ENTRY 370 -->
+### [370] - 2026-03-17 21:09 - `VR / Browser - Collapse Reference Categories On Load`
+<!-- ENTRY 370 -->
+HUMAN SUMMARY: `Changed the browser’s initial reference workspace defaults so Footpads, Shoes, and Premade Foothooks now start collapsed on app load, which makes the browser land in a cleaner state without hiding the User References section.` 
+
+#### Scope / Constraints Honored
+- Kept this pass limited to the initial reference workspace expansion defaults.
+- Left the top-level references root expanded.
+- Left category toggling behavior unchanged after startup.
+
+#### Summary of Implementation
+- Added an explicit default-collapsed category list for the browser reference workspace.
+- Updated the initial reference workspace state builder so `footpads`, `shoes`, and `premade-foothooks` start collapsed while other categories keep their previous startup behavior.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- On user load, the browser now starts with Footpads, Shoes, and Premade Foothooks collapsed by default.
+
+#### Verification Steps
+- `npm.cmd test -- src/app/panels/BrowserPanel.test.tsx`
+
+<!-- ENTRY 369 -->
+### [369] - 2026-03-17 21:07 - `VR / Browser - Remove Floating Browser Min-Height Floor`
+<!-- ENTRY 369 -->
+HUMAN SUMMARY: `Removed the remaining floating-browser minimum-height floor so the floating browser can now collapse down to the visible Project Browser content height instead of stopping at a hidden 220px shell minimum.` 
+
+#### Scope / Constraints Honored
+- Kept this corrective pass limited to the floating browser wrapper CSS.
+- Left browser width behavior, active highlight, and popout sizing logic unchanged.
+- Did not change the docked browser path.
+
+#### Summary of Implementation
+- Removed the hard `220px` minimum height from the floating browser wrapper.
+- Dropped the now-redundant collapsed override for that same minimum-height rule.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- Floating browser height can now collapse fully to match the visible Project Browser content instead of stopping at an artificial shell minimum.
+
+#### Verification Steps
+- Pending visual verification in the running app.
+
+<!-- ENTRY 368 -->
+### [368] - 2026-03-17 21:06 - `VR / Browser - Return Floating Height To Content`
+<!-- ENTRY 368 -->
+HUMAN SUMMARY: `Reworked the floating browser sizing again so the shell now follows the visible browser content height, which lets it collapse down with the Project Browser section instead of holding onto a stale taller wrapper height.` 
+
+#### Scope / Constraints Honored
+- Kept this corrective pass limited to floating browser sizing behavior.
+- Left browser width seeding and floating activation styling intact.
+- Preserved a synced floating-height ref so drag bounds can still track the actual shell height.
+
+#### Summary of Implementation
+- Removed the explicit floating browser height style so the shell can size to its content again.
+- Added a floating browser `ResizeObserver` sync path so the stored floating height follows the real rendered shell height.
+- Updated the floating browser shell/body CSS to support content-height sizing with clipped overflow and internal body scrolling when needed.
+- Adjusted the AppShell regression coverage to match the restored content-height behavior.
+
+#### Files Changed
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- Floating browser height now shrinks with the visible browser content again, including when the Project Browser section is collapsed.
+
+#### Verification Steps
+- `npm.cmd test -- src/app/AppShell.test.tsx`
+
+<!-- ENTRY 367 -->
+### [367] - 2026-03-17 20:59 - `VR / Browser - Cap Popout Height Seed`
+<!-- ENTRY 367 -->
+HUMAN SUMMARY: `Capped the browser popout height seed so the floating browser no longer inherits an oversized dock-host height and open much taller than expected after the recent height-lock fix.` 
+
+#### Scope / Constraints Honored
+- Kept this pass limited to the browser popout sizing seed.
+- Left floating browser drag and dock return behavior unchanged.
+- Preserved the restored floating height lock once the browser is already open.
+
+#### Summary of Implementation
+- Changed the dock-to-floating browser sizing seed to cap its height at the default floating browser height.
+- Added an AppShell regression covering tall dock-host popout sizing.
+
+#### Files Changed
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- Floating browser popout now opens at a saner capped height instead of inheriting a too-tall dock host.
+
+#### Verification Steps
+- `npm.cmd test -- src/app/AppShell.test.tsx`
+
+<!-- ENTRY 366 -->
+### [366] - 2026-03-17 20:56 - `VR / Browser - Preserve Floating Height When Body Collapses`
+<!-- ENTRY 366 -->
+HUMAN SUMMARY: `Restored the floating browser window height lock so collapsing inner browser sections no longer causes the whole floating browser shell to shrink down to its content height.` 
+
+#### Scope / Constraints Honored
+- Kept this pass limited to the floating browser sizing path.
+- Left docked browser sizing unchanged.
+- Preserved the browser header-only collapsed state behavior.
+
+#### Summary of Implementation
+- Restored the saved floating browser height onto the floating wrapper style.
+- Updated the floating browser panel root to fill the wrapper height instead of sizing to content.
+- Added an AppShell regression covering the floating browser wrapper height after popout.
+
+#### Files Changed
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- The floating browser now keeps its window height while inner browser sections are collapsed.
+
+#### Verification Steps
+- `npm.cmd test -- src/app/AppShell.test.tsx`
+
+<!-- ENTRY 365 -->
+### [365] - 2026-03-17 20:55 - `VR / Browser - Remove Outer Browser Body Padding`
+<!-- ENTRY 365 -->
+HUMAN SUMMARY: `Removed the outer browser body inset so the Project Browser surface can sit flush against the browser panel shell instead of floating inside a padded gutter.` 
+
+#### Scope / Constraints Honored
+- Kept this pass limited to the outer browser panel body spacing.
+- Left the inner browser tree row spacing and section content structure unchanged.
+- Did not change browser interactions or tree behavior.
+
+#### Summary of Implementation
+- Removed the outer body padding on the browser panel shell.
+- Removed the extra shell gap so the root Project Browser section can attach directly to the browser body edges.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- The Project Browser section now sits flush to the browser panel body instead of being inset by an outer margin.
+
+#### Verification Steps
+- `npm.cmd test -- src/app/panels/BrowserPanel.test.tsx`
+
+<!-- ENTRY 364 -->
+### [364] - 2026-03-17 20:52 - `VR / Browser - Floating Window Active Highlight`
+<!-- ENTRY 364 -->
+HUMAN SUMMARY: `Added the same click-to-activate highlight treatment to the floating browser window and unified floating-shell focus so the browser and spaghetti shells now hand the active border/glow state back and forth cleanly.` 
+
+#### Scope / Constraints Honored
+- Kept this pass limited to floating-window active highlighting.
+- Reused the AppShell floating-shell focus path instead of adding browser-local state inside the browser panel.
+- Left docked browser styling unchanged.
+
+#### Summary of Implementation
+- Replaced the spaghetti-only floating highlight flag with a shared active-floating-shell state.
+- Added active highlight styling to the floating browser shell.
+- Wired floating browser pointer-down to activate its shell and clear the spaghetti active state.
+- Extended AppShell coverage so the active highlight can move from spaghetti to browser.
+
+#### Files Changed
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- Clicking the floating browser window now highlights it, and whichever floating shell is clicked most recently becomes the active highlighted one.
+
+#### Verification Steps
+- `npm.cmd test -- src/app/AppShell.test.tsx`
+
+<!-- ENTRY 363 -->
+### [363] - 2026-03-17 20:51 - `VR / Spaghetti - Floating Window Active Highlight`
+<!-- ENTRY 363 -->
+HUMAN SUMMARY: `Added a focused-window highlight to the floating spaghetti editor so clicking the shell now lights the window border and body seam, making the active floating editor read more clearly against the rest of the workspace.` 
+
+#### Scope / Constraints Honored
+- Kept this pass limited to the floating spaghetti window shell.
+- Used the existing AppShell floating-window path instead of creating a separate focus model inside the panel.
+- Left split-view and meatball-view shells unchanged for now.
+
+#### Summary of Implementation
+- Added AppShell state that tracks whether the floating spaghetti shell is active.
+- Wired the floating shell to activate on pointer-down and clear when the user clicks outside it.
+- Added a subtle active border/glow treatment on the floating shell, titlebar frame, and body seam.
+- Added an AppShell regression test covering activation and outside-click clearing.
+
+#### Files Changed
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- Clicking the floating spaghetti editor now highlights the window until focus moves elsewhere.
+
+#### Verification Steps
+- `npm.cmd test -- src/app/AppShell.test.tsx`
+
+<!-- ENTRY 362 -->
+### [362] - 2026-03-17 20:49 - `VR / Browser - Match Browser Title Bar To Spaghetti Shell`
+<!-- ENTRY 362 -->
+HUMAN SUMMARY: `Shifted the browser panel onto the same darker titlebar language as the spaghetti editor by swapping in a near-black shell gradient, matching chrome-button treatment, and cleaning the seam where the browser body attaches under the titlebar.` 
+
+#### Scope / Constraints Honored
+- Kept this pass focused on the browser panel titlebar shell and its immediate body seam.
+- Matched the browser titlebar to the darker spaghetti-editor look without rewriting the browser panel component structure.
+- Left browser tree content, row interactions, and floating/docked behavior unchanged.
+
+#### Summary of Implementation
+- Replaced the old brighter blue browser titlebar gradient with a darker spaghetti-style shell gradient.
+- Changed the browser titlebar frame to use a full shell border with no bottom border, matching the spaghetti window handle treatment.
+- Adjusted the browser panel body so it attaches directly under the new titlebar without the old overlap gap.
+- Kept the browser chrome buttons on the same compact dark glass treatment used by the spaghetti titlebar buttons.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- The browser panel now reads visually like the spaghetti floating window family instead of using its older brighter blue titlebar template.
+
+#### Verification Steps
+- Pending visual verification in the running app.
+
+<!-- ENTRY 361 -->
+### [361] - 2026-03-17 20:45 - `VR / Shell - Generator Title Bar Fill Deepen`
+<!-- ENTRY 361 -->
+HUMAN SUMMARY: `Darkened the main ParaHook Generator v20 title bar fill further so the shell now carries a stronger near-black base instead of staying too blue-gray throughout, while keeping the recent glow and animated border treatment layered on top.` 
+
+#### Scope / Constraints Honored
+- Kept this pass limited to the shared generator title/status bar base fill.
+- Left the recent sheen, border animation, and title/status layout fixes intact.
+- Did not claim automated verification because the current `AppShell` test harness mocks `TitleStatusBar`.
+
+#### Summary of Implementation
+- Deepened the title bar shell gradient.
+- Added a stronger near-black stop into the lower portion of the shell fill.
+- Left the border, glow, and progress styling unchanged.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- The main generator title bar should now read with a darker fill and a more pronounced black base.
+
+#### Verification Steps
+- No automated test run for this visual fix; `AppShell.test.tsx` currently mocks `TitleStatusBar`.
+
+<!-- ENTRY 360 -->
+### [360] - 2026-03-17 20:43 - `VR / Shell - Generator Title Bar Animated Border Highlight`
+<!-- ENTRY 360 -->
+HUMAN SUMMARY: `Added a subtle animated border highlight to the main ParaHook Generator v20 title bar so the shell edge now catches the same motion language as the moving sheen, giving the title bar a more intentional lit-border feel without becoming noisy.` 
+
+#### Scope / Constraints Honored
+- Kept this pass limited to the shared generator title/status bar shell visuals.
+- Matched the border motion to the existing sheen timing instead of introducing a separate competing animation rhythm.
+- Did not claim automated verification because the current `AppShell` test harness mocks `TitleStatusBar`.
+
+#### Summary of Implementation
+- Added title bar shell variables for rest/peak border and glow colors.
+- Added a synchronized border/glow animation that pulses in the same rhythm as the title bar sheen.
+- Tuned the building, assembling, and error states with their own animated border/glow color sets.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- The main generator title bar border should now carry a subtle animated highlight that moves in sync with the shell’s sheen/glow treatment.
+
+#### Verification Steps
+- No automated test run for this visual fix; `AppShell.test.tsx` currently mocks `TitleStatusBar`.
+
+<!-- ENTRY 359 -->
+### [359] - 2026-03-17 20:41 - `VR / Shell - Generator Title Bar Glow And Sheen Pass`
+<!-- ENTRY 359 -->
+HUMAN SUMMARY: `Added a subtle animated glow/sheen treatment to the main ParaHook Generator v20 title bar so the shell feels more alive and intentional, with a restrained moving highlight and a soft state-aware ambient glow rather than a flat static slab.` 
+
+#### Scope / Constraints Honored
+- Kept this pass limited to the shared generator title/status bar shell visuals.
+- Left the title bar text, status content, and progress behavior unchanged.
+- Did not claim automated verification because the current `AppShell` test harness mocks `TitleStatusBar`.
+
+#### Summary of Implementation
+- Added a layered ambient glow inside the title bar shell.
+- Added a slow animated sheen pass across the title bar surface.
+- Strengthened the shell shadow slightly and made the state-specific building/assembling/error shells glow a bit more.
+- Kept the text and progress row above the animation layers with explicit stacking.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- The main generator title bar should now have a subtle animated glow/sheen instead of reading as a static flat panel.
+
+#### Verification Steps
+- No automated test run for this visual fix; `AppShell.test.tsx` currently mocks `TitleStatusBar`.
+
+<!-- ENTRY 358 -->
+### [358] - 2026-03-17 20:38 - `VR / Shell - Generator Title Bar Width Overflow Fix`
+<!-- ENTRY 358 -->
+HUMAN SUMMARY: `Fixed the remaining right-edge clipping on the main ParaHook Generator v20 title bar by constraining the shell to true border-box sizing, so its padding and border no longer push it wider than the dock slot and get cut off on the right.` 
+
+#### Scope / Constraints Honored
+- Kept this pass limited to the shared generator title/status bar shell sizing.
+- Left the previous background-fill and text-flex cleanup intact.
+- Did not claim automated verification because the current `AppShell` test harness mocks `TitleStatusBar`.
+
+#### Summary of Implementation
+- Added `box-sizing: border-box` to the shared title bar shell.
+- Added an explicit `max-width: 100%` guard to keep the shell inside its parent width.
+- Left the title row, status text, and progress bar behavior unchanged.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- The main generator title bar shell should no longer clip on the right edge from width overflow.
+
+#### Verification Steps
+- No automated test run for this visual fix; `AppShell.test.tsx` currently mocks `TitleStatusBar`.
+
+<!-- ENTRY 357 -->
+### [357] - 2026-03-17 20:36 - `VR / Shell - Generator Title Bar Fill And Text Clamp Fix`
+<!-- ENTRY 357 -->
+HUMAN SUMMARY: `Cleaned up the main ParaHook Generator v20 title bar so it now paints a proper filled surface instead of reading as transparent, and the app title now flexes cleanly against the right-side status label instead of getting cut off.` 
+
+#### Scope / Constraints Honored
+- Kept this pass limited to the shared generator title/status bar styling.
+- Left the title bar content, state text, and progress logic unchanged.
+- Did not claim automated verification because the current `AppShell` test harness mocks `TitleStatusBar`.
+
+#### Summary of Implementation
+- Replaced the too-transparent title bar shell background with a stronger filled dark surface.
+- Allowed the title row to shrink correctly by giving the row and title label proper `min-width: 0` behavior.
+- Added overflow handling to the main title text so it truncates cleanly instead of colliding with the right-side status text.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- The main generator title bar should now have a visible filled background and the `ParaHook Generator v20` text should no longer clip awkwardly against the right-side status.
+
+#### Verification Steps
+- No automated test run for this visual fix; `AppShell.test.tsx` currently mocks `TitleStatusBar`.
+
+<!-- ENTRY 356 -->
+### [356] - 2026-03-17 20:34 - `VR / SP - Focus Node ParaSelect Auto-Fit Restore`
+<!-- ENTRY 356 -->
+HUMAN SUMMARY: `Restored the canvas auto-fit behavior when users cycle the spaghetti editor \`Focus Node\` picker left or right, so the new \`ParaSelect\`-owned focus control now triggers the same node-fit request the old custom step buttons used to send.` 
+
+#### Scope / Constraints Honored
+- Kept this pass limited to focus-node change behavior in the spaghetti editor pinned row.
+- Preserved the recent `Focus Node` `ParaSelect` conversion and row layout changes.
+- Re-ran the focused spaghetti panel suite after the behavior fix.
+
+#### Summary of Implementation
+- Consolidated focus-node selection changes through a shared handler.
+- Wired `Focus Node` `ParaSelect` changes to increment the existing canvas fit-request state.
+- Extended the focus-cycle regression test so it now verifies both the selected label change and the forwarded `fitNodeId`.
+
+#### Files Changed
+- `src/app/panels/SpaghettiPanel.tsx`
+- `src/app/panels/SpaghettiPanel.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Cycling the spaghetti editor `Focus Node` control now automatically fits the selected node in the canvas again.
+
+#### Verification Steps
+- Ran `npm.cmd test -- src/app/panels/SpaghettiPanel.test.tsx`
+
+<!-- ENTRY 355 -->
+### [355] - 2026-03-17 20:31 - `VR / SP - Move Graph Picker Into Shared Focus Row`
+<!-- ENTRY 355 -->
+HUMAN SUMMARY: `Moved the spaghetti editor graph picker out of the titlebar and into the same pinned row as the \`Focus Node\` picker, with the two \`ParaSelect\` controls now sharing that row at an even 50/50 split while the titlebar keeps only the build/action chrome.` 
+
+#### Scope / Constraints Honored
+- Kept this pass focused on relocating the graph picker and rebalancing the pinned control row.
+- Preserved the graph-binding behavior and the `Add New Graph` shortcut while changing ownership from the titlebar to the panel.
+- Re-ran the focused spaghetti panel and app shell suites after the structural move.
+
+#### Summary of Implementation
+- Moved graph-document selection and graph-creation behavior from the titlebar component into `SpaghettiPanel`.
+- Reworked the pinned `Focus Node` row into a two-cell layout so `Graph` and `Focus Node` now each occupy half the row width.
+- Removed the titlebar graph picker while keeping the titlebar build button in place.
+- Updated panel tests to cover the new pinned-row graph picker and graph-create shortcut, and updated app-shell tests to reflect that the titlebar no longer owns the picker.
+
+#### Files Changed
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+- `src/app/panels/SpaghettiPanel.tsx`
+- `src/app/panels/SpaghettiPanel.test.tsx`
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- The spaghetti editor `Graph` picker now lives beside `Focus Node` in one shared pinned row, and the titlebar no longer displays the graph `ParaSelect`.
+
+#### Verification Steps
+- Ran `npm.cmd test -- src/app/panels/SpaghettiPanel.test.tsx src/app/AppShell.test.tsx`
+
+<!-- ENTRY 354 -->
+### [354] - 2026-03-17 20:26 - `VR / SP - Focus Node ParaSelect Middle-Track Style Fix`
+<!-- ENTRY 354 -->
+HUMAN SUMMARY: `Fixed a follow-up style regression from the spaghetti editor \`Focus Node\` \`ParaSelect\` conversion so the middle track no longer repaints as a gray rounded default-button slab; the center track is back to the intended transparent embedded treatment.` 
+
+#### Scope / Constraints Honored
+- Kept this pass limited to the spaghetti editor `Focus Node` row styling.
+- Left the new `ParaSelect`-owned focus-node behavior and control layout unchanged.
+- Re-ran the focused spaghetti panel suite after the style correction.
+
+#### Summary of Implementation
+- Added a focus-row-specific `ParaSelectTrackButton` override.
+- Removed the inherited default button padding, border, radius, background, and box shadow from the focus row's middle track.
+- Left the caps, fill, handle, and menu behavior intact.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- The spaghetti editor `Focus Node` `ParaSelect` should no longer show the gray rounded middle-button slab.
+
+#### Verification Steps
+- Ran `npm.cmd test -- src/app/panels/SpaghettiPanel.test.tsx`
+
+<!-- ENTRY 353 -->
+### [353] - 2026-03-17 20:24 - `VR / SP - Focus Node Row Converted To ParaSelect`
+<!-- ENTRY 353 -->
+HUMAN SUMMARY: `Replaced the spaghetti editor \`Focus Node\` row's old split responsibility of custom step buttons plus native \`select\` with a single \`ParaSelect\`, so that picker now owns the left/right stepping, selected-value track, and node menu in one consistent control.` 
+
+#### Scope / Constraints Honored
+- Kept this pass limited to the spaghetti editor pinned `Focus Node` row.
+- Reused the shared `ParaSelect` interaction model instead of creating another one-off picker variant.
+- Re-ran the focused spaghetti panel suite after the markup, styling, and test updates.
+
+#### Summary of Implementation
+- Replaced the `Focus Node` row's old custom button pair and native `select` with a `ParaSelect`.
+- Mapped the current graph node list into `ParaSelect` options, with a fallback `No nodes` option when the graph is empty.
+- Updated the focus-row styling to fit the shared `ParaSelect` shell and removed the now-unused native-select and step-button CSS.
+- Updated the panel tests to target the new `ParaSelect` caps/track and narrowed one existing window-settings select-count assertion so it ignores the new focus picker.
+
+#### Files Changed
+- `src/app/panels/SpaghettiPanel.tsx`
+- `src/app/panels/SpaghettiPanel.test.tsx`
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- The spaghetti editor `Focus Node` picker now behaves like a standard `ParaSelect`, including integrated left/right stepping and the shared middle-track dropdown.
+
+#### Verification Steps
+- Ran `npm.cmd test -- src/app/panels/SpaghettiPanel.test.tsx`
+
+<!-- ENTRY 352 -->
+### [352] - 2026-03-17 20:21 - `VR / SP - Shared Default Button Tone Deepen`
+<!-- ENTRY 352 -->
+HUMAN SUMMARY: `Pushed the shared default \`V15Panel\` button tone darker one more step so standard controls sit on a deeper neutral surface, following the user's feedback after the first button-darkening pass.` 
+
+#### Scope / Constraints Honored
+- Kept this pass limited to the shared default button background tokens.
+- Left the shared button border, typography, spacing, and specialized button variants unchanged.
+- Re-ran the focused spaghetti panel suite after the token adjustment.
+
+#### Summary of Implementation
+- Darkened the shared default button base token again.
+- Darkened the shared default button hover token to stay aligned with the deeper rest state.
+- Left the rest of the button system untouched.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Default `V15Panel` buttons should now render darker than the previous pass at rest and on hover.
+
+#### Verification Steps
+- Ran `npm.cmd test -- src/app/panels/SpaghettiPanel.test.tsx`
+
+<!-- ENTRY 351 -->
+### [351] - 2026-03-17 20:20 - `VR / SP - Darker Shared Default Button Style`
+<!-- ENTRY 351 -->
+HUMAN SUMMARY: `Darkened the shared default \`V15Panel\` button surface tokens slightly so standard buttons like the spaghetti editor \`Edit Clamp\` and \`Reset Window Style\` controls sit on a deeper base tone without changing their size, layout, or interaction model.` 
+
+#### Scope / Constraints Honored
+- Kept this pass limited to the shared default button color tokens.
+- Left specialized button variants and local button sizing overrides unchanged.
+- Re-ran the focused spaghetti panel suite after the token update.
+
+#### Summary of Implementation
+- Darkened the shared default button background token.
+- Darkened the shared default button hover token to match the new base tone.
+- Left the shared border, radius, typography, and spacing rules intact.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Default `V15Panel` buttons should now render slightly darker at rest and on hover across surfaces that use the shared button style.
+
+#### Verification Steps
+- Ran `npm.cmd test -- src/app/panels/SpaghettiPanel.test.tsx`
+
+<!-- ENTRY 350 -->
+### [350] - 2026-03-17 20:18 - `VR / SP - Spaghetti I-Menu Row Shrink Fix`
+<!-- ENTRY 350 -->
+HUMAN SUMMARY: `Corrected the new resizable spaghetti editor \`i\`-menu so shrinking the \`Window Settings\` area no longer compresses the \`Title bar / Body / Text\` rows themselves; those rows now keep their natural height and the scroll bar takes over when the area becomes too small.` 
+
+#### Scope / Constraints Honored
+- Kept this pass limited to the flex/overflow behavior of the resizable `Window Settings` scroll region.
+- Preserved the new resize seam, bounded height behavior, and dark scrollbar styling.
+- Re-ran the focused spaghetti panel suite after the overflow fix.
+
+#### Summary of Implementation
+- Prevented the `Window Settings` subsection rows, headers, and field stacks from flex-shrinking inside the bounded scroll region.
+- Kept the scroll container stretch behavior so the rows still fill the available width.
+- Left the rest of the `i`-menu layout and resize interaction unchanged.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Shrinking the `Window Settings` area should now preserve the normal row heights and reveal a scrollbar instead of squeezing the subsection rows.
+
+#### Verification Steps
+- Ran `npm.cmd test -- src/app/panels/SpaghettiPanel.test.tsx`
+
+<!-- ENTRY 349 -->
+### [349] - 2026-03-17 20:16 - `VR / SP - Resizable Spaghetti I-Menu Window Settings`
+<!-- ENTRY 349 -->
+HUMAN SUMMARY: `Added a dedicated horizontal resize seam under the spaghetti editor \`i\`-menu \`Window Settings\` block so users can stretch that settings area up and down independently, with the controls now living inside a bounded scroll region that reuses the same dark scrollbar styling as the \`t\` toolbar.` 
+
+#### Scope / Constraints Honored
+- Kept this pass scoped to the spaghetti editor `Window Settings` area and its local resize behavior.
+- Reused the existing spaghetti panel height/drag pattern instead of introducing a separate resize system.
+- Re-ran the focused spaghetti panel suite after the structural and styling updates.
+
+#### Summary of Implementation
+- Added dedicated height state, max-height clamping, drag-to-resize handling, and double-click reset behavior for the `Window Settings` content area.
+- Wrapped the `Window Settings` subsection stack in its own bounded scroll container so larger `i`-menu settings can scroll independently above the pinned focus row.
+- Added a matching horizontal resize bar under the `i` menu and reused the toolbar dark-theme scrollbar treatment for the new scroll area.
+- Added focused test coverage for the default bounded `Window Settings` height and the visibility of the new resize seam when the section is expanded or collapsed.
+
+#### Files Changed
+- `src/app/panels/SpaghettiPanel.tsx`
+- `src/app/panels/SpaghettiPanel.test.tsx`
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- The spaghetti editor `i`-menu `Window Settings` area can now be resized vertically with its own horizontal seam, and overflowing settings now scroll inside a dark-themed bounded region.
+
+#### Verification Steps
+- Ran `npm.cmd test -- src/app/panels/SpaghettiPanel.test.tsx`
+
+<!-- ENTRY 348 -->
+### [348] - 2026-03-17 20:11 - `VR / SP - Spaghetti T-Menu Section Hover And Active Match`
+<!-- ENTRY 348 -->
+HUMAN SUMMARY: `Brought the spaghetti editor \`t\` toolbar sections in line with the new \`i\`-menu interaction styling by adding a subtle active shell highlight when a section is open and a darker summary-row hover state across the toolbar section stack.` 
+
+#### Scope / Constraints Honored
+- Kept this pass limited to the visual states of the spaghetti editor toolbar sections.
+- Left the `details/summary` structure, content, and open/close behavior unchanged.
+- Re-ran the focused spaghetti panel suite after the styling update.
+
+#### Summary of Implementation
+- Added a light active border/background treatment to open toolbar sections.
+- Added a darker hover/focus background to toolbar section summary rows.
+- Tuned the hover state on already-open sections to stay compatible with the active shell highlight.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Open `t`-menu sections should now show a clearer active shell, and hovering toolbar section headers should darken the row before click.
+
+#### Verification Steps
+- Ran `npm.cmd test -- src/app/panels/SpaghettiPanel.test.tsx`
+
+<!-- ENTRY 347 -->
+### [347] - 2026-03-17 20:09 - `VR / SP - Spaghetti I-Menu Edge-To-Edge Section Controls`
+<!-- ENTRY 347 -->
+HUMAN SUMMARY: `Removed the inner body padding from expanded spaghetti editor \`Window Settings\` subsections so the \`ParaSlider\` and \`ParaSelect\` rows now stretch edge to edge inside \`Title bar\`, \`Body\`, and \`Text\` instead of sitting inset inside those shells.` 
+
+#### Scope / Constraints Honored
+- Kept this pass limited to the spacing inside expanded `Window Settings` subsection bodies.
+- Left the subsection shells, hover states, and active highlight behavior unchanged.
+- Re-ran the focused spaghetti panel suite after the spacing change.
+
+#### Summary of Implementation
+- Removed the inner body padding from `Window Settings` subsection content containers.
+- Removed the internal vertical gap so the control rows now stack tightly from edge to edge.
+- Left the top divider between each subsection header and its controls intact.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Expanded `Title bar`, `Body`, and `Text` sections should now let their slider/select rows stretch flush to the subsection edges.
+
+#### Verification Steps
+- Ran `npm.cmd test -- src/app/panels/SpaghettiPanel.test.tsx`
+
+<!-- ENTRY 346 -->
+### [346] - 2026-03-17 20:07 - `VR / SP - Spaghetti I-Menu Subsection Hover Darken`
+<!-- ENTRY 346 -->
+HUMAN SUMMARY: `Added a darker hover state to the spaghetti editor \`Window Settings\` subsection headers so rows like \`Title bar\`, \`Body\`, and \`Text\` give clearer rollover feedback before click, with a slightly softer version when the subsection is already expanded.` 
+
+#### Scope / Constraints Honored
+- Kept this pass limited to hover/focus styling on the `Window Settings` subsection headers.
+- Preserved the existing expanded-state highlight and subsection layout.
+- Re-ran the focused spaghetti panel suite after the visual-state tweak.
+
+#### Summary of Implementation
+- Added a darker hover/focus background to the subsection toggle rows.
+- Tuned the hover state for already-expanded subsections so it stays readable without overpowering the active shell highlight.
+- Left the controls, collapse behavior, and section structure unchanged.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Hovering the `Title bar`, `Body`, and `Text` subsection headers now darkens the row for clearer interaction feedback.
+
+#### Verification Steps
+- Ran `npm.cmd test -- src/app/panels/SpaghettiPanel.test.tsx`
+
+<!-- ENTRY 345 -->
+### [345] - 2026-03-17 20:06 - `VR / SP - Spaghetti I-Menu Expanded Section Highlight`
+<!-- ENTRY 345 -->
+HUMAN SUMMARY: `Added a subtle active-state treatment to expanded spaghetti editor \`Window Settings\` subsections so open groups like \`Title bar\`, \`Body\`, and \`Text\` read as selected through a slight border/background highlight instead of blending into the collapsed rows.` 
+
+#### Scope / Constraints Honored
+- Kept this pass limited to the visual state of expanded `Window Settings` subsections.
+- Left the subgroup layout, controls, and collapse behavior unchanged.
+- Re-ran the focused spaghetti panel suite after the styling update.
+
+#### Summary of Implementation
+- Marked expanded `Title bar`, `Body`, and `Text` subsection shells with an explicit expanded-state class.
+- Added a light active border tint, slight surface lift, and a restrained inset highlight for expanded subgroup shells.
+- Kept the effect subtle so it supports the existing sliders and selects instead of overpowering them.
+
+#### Files Changed
+- `src/app/panels/SpaghettiPanel.tsx`
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Expanded `Window Settings` subsections should now show a clearer active state through a slightly highlighted shell.
+
+#### Verification Steps
+- Ran `npm.cmd test -- src/app/panels/SpaghettiPanel.test.tsx`
+
+<!-- ENTRY 344 -->
+### [344] - 2026-03-17 20:04 - `VR / SP - Spaghetti I-Menu Subsection Fillet Restore`
+<!-- ENTRY 344 -->
+HUMAN SUMMARY: `Restored the rounded fillets on the spaghetti editor \`Window Settings\` subsection rows so \`Title bar\`, \`Body\`, and \`Text\` visually match the rounded section shells used by \`Build\`, \`Viewer\`, and \`Diagnostics\`, without bringing back the earlier inset padding gap.` 
+
+#### Scope / Constraints Honored
+- Kept this pass focused on the subsection shell treatment inside the spaghetti editor `Window Settings` area.
+- Preserved the recent flush parent-child spacing cleanup.
+- Re-ran the focused spaghetti panel suite after the fillet restore.
+
+#### Summary of Implementation
+- Reintroduced rounded bordered subsection shells for `Title bar`, `Body`, and `Text`.
+- Kept the subsection rows visually attached inside the parent `Window Settings` section by overlapping adjacent borders instead of re-adding inset padding.
+- Left the existing `+ / -` toggles, controls, and menu behavior unchanged.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- The spaghetti editor `i`-menu subsection rows should now show rounded fillets similar to the lower toolbar sections while still sitting flush inside `Window Settings`.
+
+#### Verification Steps
+- Ran `npm.cmd test -- src/app/panels/SpaghettiPanel.test.tsx`
+
+<!-- ENTRY 343 -->
+### [343] - 2026-03-17 20:03 - `VR / SP - Spaghetti I-Menu Window Settings Seam Cleanup`
+<!-- ENTRY 343 -->
+HUMAN SUMMARY: `Removed the extra inner gap between the spaghetti editor \`Window Settings\` shell and its \`Title bar / Body / Text\` rows so those subsections now sit directly against the parent section instead of reading like floating cards with leftover padding.` 
+
+#### Scope / Constraints Honored
+- Kept this pass limited to the inner spacing and border treatment of the spaghetti editor `Window Settings` section.
+- Preserved the current collapse behavior, controls, and toolbar-style header treatment.
+- Re-ran the focused spaghetti panel suite after the spacing cleanup.
+
+#### Summary of Implementation
+- Removed the inner `Window Settings` group padding and inter-group gap.
+- Flattened the nested group shells so they no longer draw as separate inset cards.
+- Kept the section separation by using simple divider lines between `Title bar`, `Body`, and `Text`.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- The spaghetti editor `i`-menu `Window Settings` subsection stack should now sit flush against the parent box with no extra inset spacing around the `Title bar / Body / Text` rows.
+
+#### Verification Steps
+- Ran `npm.cmd test -- src/app/panels/SpaghettiPanel.test.tsx`
+
+<!-- ENTRY 342 -->
+### [342] - 2026-03-17 20:01 - `VR / SP - Spaghetti I-Menu Section Box Styling Match`
+<!-- ENTRY 342 -->
+HUMAN SUMMARY: `Restyled the spaghetti editor \`i\`-menu \`Window Settings\` area to follow the same clean boxed summary/body treatment as the \`t\` toolbar sections, including matching fillets, padding rhythm, and \`+ / -\` section toggles so the two surfaces feel like the same UI system.` 
+
+#### Scope / Constraints Honored
+- Kept this pass focused on the `Window Settings` shell and subsection presentation.
+- Preserved the existing `Title bar`, `Body`, and `Text` controls and their current interactions.
+- Re-ran the focused spaghetti panel suite after the style and toggle updates.
+
+#### Summary of Implementation
+- Restyled the top-level `Window Settings` shell to use the same boxed toolbar-section surface, border radius, and summary/body spacing rhythm as the `t` toolbar sections.
+- Restyled the nested `Title bar`, `Body`, and `Text` groups into their own boxed rows with padded headers and indented bodies.
+- Replaced the old `V / >` affordance with `- / +` so the toggle language matches the toolbar sections the user referenced.
+
+#### Files Changed
+- `src/app/panels/SpaghettiPanel.tsx`
+- `src/app/panels/SpaghettiPanel.test.tsx`
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- The spaghetti editor `i`-menu `Window Settings` area should now visually read much closer to the `t` toolbar section stack, including the cleaner boxed shells and `+ / -` toggles.
+
+#### Verification Steps
+- Ran `npm.cmd test -- src/app/panels/SpaghettiPanel.test.tsx`
+
+<!-- ENTRY 341 -->
+### [341] - 2026-03-17 19:57 - `VR / SP - Spaghetti I-Menu Header Typography Match`
+<!-- ENTRY 341 -->
+HUMAN SUMMARY: `Matched the spaghetti editor \`i\`-menu \`Window Settings\` header and subgroup label typography to the \`t\` toolbar section-summary font style, replacing the brighter uppercase treatment with the same calmer toolbar-label family, weight, size, and tone the user preferred.` 
+
+#### Scope / Constraints Honored
+- Kept this pass limited to the `Window Settings` header and subgroup label typography.
+- Left the control layout, spacing, and interaction behavior unchanged.
+- Re-ran the focused spaghetti panel suite after the typography update.
+
+#### Summary of Implementation
+- Aligned the `Window Settings` header font treatment with the spaghetti toolbar summary style.
+- Aligned the subgroup chevrons and group labels with the same toolbar-label font size, family, weight, and dimmer text tone.
+- Removed the uppercase and extra letter-spacing treatment from the subgroup titles.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- The spaghetti editor `i`-menu `Window Settings`, `Title bar`, `Body`, and `Text` labels should now read with the same font styling feel as the `t` toolbar section headers.
+
+#### Verification Steps
+- Ran `npm.cmd test -- src/app/panels/SpaghettiPanel.test.tsx`
+
+<!-- ENTRY 340 -->
+### [340] - 2026-03-17 19:55 - `VR / SP - Spaghetti Window Settings Top-Level Collapse`
+<!-- ENTRY 340 -->
+HUMAN SUMMARY: `Added a top-level collapse toggle to the spaghetti editor \`Window Settings\` section so the whole \`Title bar / Body / Text\` stack can be hidden without closing the \`i\` menu itself, making it easier to keep the settings surface available while reclaiming vertical space.` 
+
+#### Scope / Constraints Honored
+- Kept this pass limited to the spaghetti editor `Window Settings` section shell.
+- Preserved the existing subsection toggles and settings controls inside the section.
+- Re-ran the focused spaghetti panel suite after the structural change.
+
+#### Summary of Implementation
+- Added local top-level expand/collapse state for the whole `Window Settings` block.
+- Turned the `Window Settings` header into a chevron toggle that folds the grouped settings stack open and closed.
+- Left the header action buttons available in the section header while hiding the grouped `Title bar`, `Body`, and `Text` content when collapsed.
+
+#### Files Changed
+- `src/app/panels/SpaghettiPanel.tsx`
+- `src/app/panels/SpaghettiPanel.test.tsx`
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Users can now collapse the whole spaghetti editor `Window Settings` section independently from the `i`-menu open state.
+
+#### Verification Steps
+- Ran `npm.cmd test -- src/app/panels/SpaghettiPanel.test.tsx`
+
+<!-- ENTRY 339 -->
+### [339] - 2026-03-17 19:53 - `VR / SP - Spaghetti Window Settings Zero Padding Pass`
+<!-- ENTRY 339 -->
+HUMAN SUMMARY: `Set the spaghetti editor \`Window Settings\` container padding to zero as a tighter layout experiment, while leaving the inner control structure and spacing rules otherwise intact so the user can judge the denser section framing directly.` 
+
+#### Scope / Constraints Honored
+- Kept this change limited to the outer `Window Settings` container padding.
+- Left the grouped controls, subsection toggles, and interaction behavior untouched.
+- Re-ran the focused spaghetti panel suite after the spacing change.
+
+#### Summary of Implementation
+- Changed the `SpaghettiWindowSettingsSection` outer padding to `0`.
+- Kept the previously tightened internal gaps so the zero-padding pass is isolated to the section frame.
+- Preserved the existing settings controls and behavior while removing the section inset.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- The spaghetti editor `Window Settings` section now sits flush to its border with no outer padding.
+
+#### Verification Steps
+- Ran `npm.cmd test -- src/app/panels/SpaghettiPanel.test.tsx`
+
+<!-- ENTRY 338 -->
+### [338] - 2026-03-17 19:53 - `VR / SP - Spaghetti Window Settings Padding Tighten`
+<!-- ENTRY 338 -->
+HUMAN SUMMARY: `Tightened the spaghetti editor \`Window Settings\` section by reducing the container padding and internal group gaps, so the settings block reads denser and wastes less vertical space without changing the controls themselves.` 
+
+#### Scope / Constraints Honored
+- Kept this pass limited to spacing inside the spaghetti editor `Window Settings` section.
+- Left the control behavior, grouping structure, and subsection toggles unchanged.
+- Re-ran the focused spaghetti panel suite after the CSS spacing change.
+
+#### Summary of Implementation
+- Reduced the outer `Window Settings` padding.
+- Tightened the header action gap, inter-group gap, and per-group spacing.
+- Preserved the existing subsection dividers and control layout while making the section more compact overall.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- The spaghetti editor `Window Settings` block should now look more compact with less padding around and between its grouped controls.
+
+#### Verification Steps
+- Ran `npm.cmd test -- src/app/panels/SpaghettiPanel.test.tsx`
+
+<!-- ENTRY 337 -->
+### [337] - 2026-03-17 19:52 - `VR / SP - ParaSlider Clamp Band Hidden Outside Clamp Mode`
+<!-- ENTRY 337 -->
+HUMAN SUMMARY: `Removed the darker clamp-range background from normal \`ParaSlider\` rendering so the control now shows only the blue fill bar until clamp mode is explicitly enabled, matching the console slider cleanup the user referenced while preserving the clamp visuals for edit-clamp mode.` 
+
+#### Scope / Constraints Honored
+- Kept the fix limited to the shared `ParaSlider` clamp-range visual baseline.
+- Preserved the existing clamp-edit mode behavior and clamp handles.
+- Re-ran the focused spaghetti panel suite after the shared slider CSS change.
+
+#### Summary of Implementation
+- Changed the default `ParaSliderClampRange` background from a visible tinted band to transparent.
+- Left the `isClampEditing` override in place so the clamp-range highlight still appears when clamp mode is active.
+- Preserved the normal fill bar, marker, and clamp-edit behavior while removing the always-on darker background layer.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Normal `ParaSlider` rows now show only the blue fill bar; the darker clamp band appears only when clamp editing is active.
+
+#### Verification Steps
+- Ran `npm.cmd test -- src/app/panels/SpaghettiPanel.test.tsx`
+
+<!-- ENTRY 336 -->
+### [336] - 2026-03-17 19:48 - `VR / SP - Spaghetti I-Menu Dropdown Opaque Readability Pass`
+<!-- ENTRY 336 -->
+HUMAN SUMMARY: `Made the open spaghetti editor \`i\`-menu dropdown rows opaque so the menu no longer shows the shell and graph lines through it when a window-opacity setting is active, which restores basic readability while the menu is open.` 
+
+#### Scope / Constraints Honored
+- Kept this pass limited to the open spaghetti settings dropdown menu surfaces.
+- Left the closed control-row opacity behavior and the rest of the floating window translucency model unchanged.
+- Re-ran the focused spaghetti panel suite after the visual change.
+
+#### Summary of Implementation
+- Replaced the transparent open-menu background in the spaghetti settings `ParaSelect` popup with an opaque menu surface.
+- Switched the option rows onto fully opaque backgrounds so the selected and unselected rows remain readable over the shell.
+- Kept the attached dropdown structure and the current custom-menu interaction model intact.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- When a spaghetti `i`-menu dropdown is open, the menu rows should now render solid instead of letting the shell content show through them.
+
+#### Verification Steps
+- Ran `npm.cmd test -- src/app/panels/SpaghettiPanel.test.tsx`
+
+<!-- ENTRY 335 -->
+### [335] - 2026-03-17 19:46 - `VR / SP - Phase 5.0E - ParaSelect Snap Handle With Free Preview Fill`
+<!-- ENTRY 335 -->
+HUMAN SUMMARY: `Refined the new \`ParaSelect\` drag model so the blue fill now follows the mouse continuously as a live preview, while the white vertical handle stays snapped to the currently selected discrete option and only jumps when the drag crosses the next option threshold.` 
+
+#### Scope / Constraints Honored
+- Kept this refinement on the shared custom `ParaSelect` drag path.
+- Preserved the existing split interaction model: white-bar drag for scrubbing, middle-track click for menu, side arrows for stepping.
+- Verified the shared control plus both spaghetti surfaces that use custom `ParaSelect` still pass their focused suites.
+
+#### Summary of Implementation
+- Added a separate drag-preview fill state so the blue band can cling to the mouse independently of the snapped selected index.
+- Kept the white handle anchored to the snapped option position, updating only when the drag crosses the discrete rounding threshold.
+- Extended the `ParaSelect` drag regression test to prove the fill can move ahead of the handle before the selected option changes.
+
+#### Files Changed
+- `src/app/components/ParaSelect.tsx`
+- `src/app/components/ParaSelect.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- During white-bar drags in custom `ParaSelect` controls, the blue fill now previews the live mouse position while the white handle remains snapped on the current selected option until the next threshold is crossed.
+
+#### Verification Steps
+- Ran `npm.cmd test -- src/app/components/ParaSelect.test.tsx src/app/panels/SpaghettiPanel.test.tsx src/app/AppShell.test.tsx`
+
+<!-- ENTRY 334 -->
+### [334] - 2026-03-17 19:43 - `VR / SP - Phase 5.0E - ParaSelect White-Bar Drag Handle`
+<!-- ENTRY 334 -->
+HUMAN SUMMARY: `Implemented the split \`ParaSelect\` interaction model so the white vertical bar is now a real drag handle for scrubbing discrete selections, while plain clicks on the middle track still open the dropdown menu.` 
+
+#### Scope / Constraints Honored
+- Kept the new drag interaction on the shared custom `ParaSelect` path only, so it aligns with the surfaces already using the styled popup menu.
+- Preserved the existing side-arrow step behavior and the existing center-click menu behavior.
+- Verified the shared control, spaghetti settings surface, and spaghetti titlebar graph picker all still pass their focused tests.
+
+#### Summary of Implementation
+- Replaced the custom-mode static white marker with a real draggable handle layered over the track.
+- Added discrete track-position scrubbing logic so dragging the white handle snaps between option indices without opening the dropdown menu.
+- Kept the custom track button underneath for normal menu-open clicks and added focused regression coverage for handle dragging.
+
+#### Files Changed
+- `src/app/components/ParaSelect.tsx`
+- `src/app/components/ParaSelect.test.tsx`
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- In custom `ParaSelect` controls, users can now drag the white vertical handle left or right to change selection, while clicking the rest of the middle track still opens the dropdown.
+
+#### Verification Steps
+- Ran `npm.cmd test -- src/app/components/ParaSelect.test.tsx src/app/panels/SpaghettiPanel.test.tsx src/app/AppShell.test.tsx`
+
+<!-- ENTRY 333 -->
+### [333] - 2026-03-17 19:39 - `VR / SP - Phase 5.0E - Spaghetti I-Menu ParaSelect Track Button Reset`
+<!-- ENTRY 333 -->
+HUMAN SUMMARY: `Removed the last big gray button slab from the spaghetti editor \`i\`-menu \`ParaSelect\` rows by resetting the middle track button against the broad \`.V15Panel button\` theme rule that was still painting that area like a normal button.` 
+
+#### Scope / Constraints Honored
+- Kept this fix limited to the spaghetti editor `i`-menu `ParaSelect` middle-track styling.
+- Left the working custom-menu interaction and the dropdown-row styling intact.
+- Re-ran the focused spaghetti panel suite after the CSS reset.
+
+#### Summary of Implementation
+- Identified that the shared `.V15Panel button` rule was still skinning the `ParaSelect` middle track button in the spaghetti settings surface.
+- Added a spaghetti-settings-specific reset for the `ParaSelectTrackButton` so it no longer draws inherited button border, radius, background, or shadow chrome.
+- Preserved the select fill, marker, and value styling while removing the unwanted giant gray button layer.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- The spaghetti `i`-menu `ParaSelect` rows should no longer show the large gray button bar across the middle track area.
+
+#### Verification Steps
+- Ran `npm.cmd test -- src/app/panels/SpaghettiPanel.test.tsx`
+
+<!-- ENTRY 332 -->
+### [332] - 2026-03-17 19:37 - `VR / SP - Phase 5.0E - Spaghetti I-Menu ParaSelect Fill And Marker Restore`
+<!-- ENTRY 332 -->
+HUMAN SUMMARY: `Finished bringing the spaghetti editor \`i\`-menu \`ParaSelect\` rows back toward the slider look by restoring the real track fill and value marker, instead of relying on the earlier flat fake-background approximation that still left the selects reading as different controls.` 
+
+#### Scope / Constraints Honored
+- Kept this pass local to the spaghetti editor `i`-menu `ParaSelect` row styling.
+- Preserved the working custom popup behavior and attached dropdown styling from the previous fixes.
+- Re-ran the focused spaghetti panel test suite after the visual adjustment.
+
+#### Summary of Implementation
+- Replaced the fixed gray/blue select-track approximation with the real `ParaSelect` fill and marker visuals in the spaghetti settings surface.
+- Matched the settings `ParaSelect` fill, marker, and selected-value stacking more closely to the `ParaSlider` track language.
+- Left the compact right-side value treatment in place while restoring the moving visual track cues that make the selects read like related controls.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- The spaghetti `i`-menu `ParaSelect` rows should now look much closer to the `ParaSlider` rows because they again show a fill band and white marker instead of a mostly flat bar.
+
+#### Verification Steps
+- Ran `npm.cmd test -- src/app/panels/SpaghettiPanel.test.tsx`
+
+<!-- ENTRY 331 -->
+### [331] - 2026-03-17 19:35 - `VR / SP - Phase 5.0E - Spaghetti I-Menu ParaSelect Row Chrome Match`
+<!-- ENTRY 331 -->
+HUMAN SUMMARY: `Brought the spaghetti editor \`i\`-menu \`ParaSelect\` rows closer to the \`ParaSlider\` rows by giving them the same blue-leaning track feel, removing the mismatched progress marker, and styling the right-side selected value like the slider's compact value area.` 
+
+#### Scope / Constraints Honored
+- Kept this pass local to the spaghetti editor `i`-menu `ParaSelect` row styling.
+- Preserved the custom-menu behavior and the already-restored attached dropdown styling.
+- Verified the spaghetti panel settings interactions still pass the focused test suite.
+
+#### Summary of Implementation
+- Added a spaghetti-settings-specific `ParaSelect` track background that visually matches the slider track more closely.
+- Hid the `ParaSelect` fill and value marker in that settings surface so the row no longer fights the slider visual language.
+- Styled the selected-value area to behave more like the slider's compact right-side value chip on hover, focus, and open states.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- The spaghetti `i`-menu `ParaSelect` rows should now read much closer to the `ParaSlider` rows in the same settings stack.
+
+#### Verification Steps
+- Ran `npm.cmd test -- src/app/panels/SpaghettiPanel.test.tsx`
+
+<!-- ENTRY 330 -->
+### [330] - 2026-03-17 19:33 - `VR / SP - Phase 5.0E - Spaghetti I-Menu Dropdown Slab Removal`
+<!-- ENTRY 330 -->
+HUMAN SUMMARY: `Removed the extra dark dropdown slab that was still sitting behind the spaghetti editor \`i\`-menu custom \`ParaSelect\` rows, so the restored attached-menu style no longer reads like a separate gray popup bar under the control.` 
+
+#### Scope / Constraints Honored
+- Kept this follow-up limited to the spaghetti editor `i`-menu dropdown styling.
+- Left the working custom-menu interaction path intact.
+- Verified the spaghetti panel settings controls still pass their focused test suite after the visual adjustment.
+
+#### Summary of Implementation
+- Removed the visible popup-container fill from the spaghetti settings `ParaSelect` menus.
+- Moved the dropdown surface styling onto the rows themselves so the menu reads as attached stacked rows instead of a dark slab with rows inside it.
+- Tightened the attached-menu border so it joins the control more cleanly without the extra top seam.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- The spaghetti `i`-menu dropdowns should no longer show an extra gray/dark bar behind the menu rows.
+
+#### Verification Steps
+- Ran `npm.cmd test -- src/app/panels/SpaghettiPanel.test.tsx`
+
+<!-- ENTRY 329 -->
+### [329] - 2026-03-17 19:31 - `VR / SP - Phase 5.0E - Spaghetti I-Menu ParaSelect Style Restore`
+<!-- ENTRY 329 -->
+HUMAN SUMMARY: `Restored the spaghetti editor \`i\`-menu dropdowns to a flatter attached dropdown look after the middle-click bug fix had forced them onto the generic popup-card style, so they behave correctly without looking like a different menu system.` 
+
+#### Scope / Constraints Honored
+- Kept this pass local to the spaghetti editor `i`-menu `ParaSelect` dropdown styling.
+- Preserved the custom-menu behavior needed for reliable middle-track opening.
+- Avoided changing the titlebar graph picker styling or the shared generic popup menu baseline.
+
+#### Summary of Implementation
+- Added spaghetti-settings-specific overrides for the custom `ParaSelect` popup menu.
+- Flattened the popup into an attached dropdown with tighter edges, no inset card rows, and row highlighting that better matches the original settings-control feel.
+- Left the working custom popup interaction path untouched while restoring the older visual language in that one settings surface.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- The spaghetti `i`-menu appearance dropdowns now open with a flatter attached style that reads closer to the prior settings-menu look.
+
+#### Verification Steps
+- Ran `npm.cmd test -- src/app/panels/SpaghettiPanel.test.tsx`
+
+<!-- ENTRY 328 -->
+### [328] - 2026-03-17 19:30 - `VR / SP - Phase 5.0E - Spaghetti I-Menu ParaSelect Middle-Click Fix`
+<!-- ENTRY 328 -->
+HUMAN SUMMARY: `Fixed the spaghetti editor \`i\`-menu \`ParaSelect\` controls so clicking the middle track opens a real popup menu again, instead of blanking the center content while only the side arrows still worked.` 
+
+#### Scope / Constraints Honored
+- Kept the fix limited to the spaghetti editor `i`-menu appearance selects.
+- Left the spaghetti titlebar graph picker on its own custom path and did not change unrelated shared-panel select behavior.
+- Added focused panel coverage for the exact `Text > Size` middle-click regression the user reported.
+
+#### Summary of Implementation
+- Switched the spaghetti `i`-menu appearance `ParaSelect` controls onto the explicit custom-menu path instead of relying on the hidden native-select click behavior.
+- Covered the `Text > Size` control with a test that clicks the middle track and verifies the popup menu renders its options.
+- Preserved the existing side-arrow cycling behavior while restoring a working center-click menu path.
+
+#### Files Changed
+- `src/app/panels/SpaghettiPanel.tsx`
+- `src/app/panels/SpaghettiPanel.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- The spaghetti `i`-menu appearance selects now open their dropdown menus reliably from the middle track area.
+
+#### Verification Steps
+- Ran `npm.cmd test -- src/app/panels/SpaghettiPanel.test.tsx`
+
+<!-- ENTRY 327 -->
+### [327] - 2026-03-17 19:25 - `VR / SP - Phase 5.0E - Spaghetti I-Menu Section Collapse Toggles`
+<!-- ENTRY 327 -->
+HUMAN SUMMARY: `Added per-section expand/collapse toggles to the spaghetti editor \`i\` menu so the new \`Title bar\`, \`Body\`, and \`Text\` groups can be folded closed with \`>\` and reopened with \`V\` without changing the underlying settings model.` 
+
+#### Scope / Constraints Honored
+- Kept the work limited to the spaghetti editor `i`-menu subsection chrome and local expand/collapse state.
+- Preserved the appearance-control grouping added in the previous pass and did not alter the actual appearance values or wiring.
+- Added focused panel-test coverage for collapsing and re-expanding one subsection.
+
+#### Summary of Implementation
+- Added local per-section expansion state for the `Title bar`, `Body`, and `Text` groups.
+- Replaced the static subsection headings with clickable row toggles that show `V` when open and `>` when closed.
+- Unmounted collapsed subsection contents so folded groups truly remove their controls from the rendered settings stack.
+
+#### Files Changed
+- `src/app/panels/SpaghettiPanel.tsx`
+- `src/app/panels/SpaghettiPanel.test.tsx`
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Users can now collapse and re-expand each spaghetti `i`-menu appearance subsection independently from its own heading row.
+
+#### Verification Steps
+- Ran `npm.cmd test -- src/app/panels/SpaghettiPanel.test.tsx`
+
+<!-- ENTRY 326 -->
+### [326] - 2026-03-17 19:23 - `VR / SP - Phase 5.0E - Spaghetti I-Menu Appearance Sections`
+<!-- ENTRY 326 -->
+HUMAN SUMMARY: `Reorganized the spaghetti editor \`i\` menu appearance controls into full-width grouped rows under \`Title bar\`, \`Body\`, and \`Text\`, so the sliders and selects read as a cleaner settings stack instead of a mixed auto-fit grid.` 
+
+#### Scope / Constraints Honored
+- Kept this pass limited to the spaghetti editor `i`-menu appearance layout and labeling.
+- Preserved the existing appearance state model and control wiring while only changing grouping, row structure, and section presentation.
+- Added focused panel-test coverage to confirm the grouped settings layout still renders and behaves correctly.
+
+#### Summary of Implementation
+- Replaced the old auto-fit settings grid with three stacked appearance groups: `Title bar`, `Body`, and `Text`.
+- Moved every `ParaSlider` and `ParaSelect` to its own full-width row and shortened the row labels so they read naturally inside each subsection.
+- Added subsection title and divider styling so the settings sheet has clearer visual grouping without affecting the actual appearance-setting behavior.
+
+#### Files Changed
+- `src/app/panels/SpaghettiPanel.tsx`
+- `src/app/panels/SpaghettiPanel.test.tsx`
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- The spaghetti editor `i` menu now shows the appearance controls as grouped one-control-per-row sections instead of a multi-column mix of sliders and selects.
+
+#### Verification Steps
+- Ran `npm.cmd test -- src/app/panels/SpaghettiPanel.test.tsx`
+
+<!-- ENTRY 325 -->
+### [325] - 2026-03-17 19:20 - `VR / SP - Phase 5.0E - Spaghetti Titlebar Add New Graph Shortcut`
+<!-- ENTRY 325 -->
+HUMAN SUMMARY: `Added an \`Add New Graph\` action to the spaghetti titlebar graph picker so users can create and bind a fresh graph directly from that menu without detouring into another surface.` 
+
+#### Scope / Constraints Honored
+- Kept the work limited to the spaghetti titlebar graph picker and its custom `ParaSelect` menu.
+- Reused the existing spaghetti-store graph creation and viewport-binding actions instead of inventing a separate creation path.
+- Added focused test coverage for both the shared custom-menu action support and the spaghetti titlebar integration path.
+
+#### Summary of Implementation
+- Extended `ParaSelect` custom-menu mode with optional action rows that can live under the normal option list.
+- Added an `Add New Graph` action to the spaghetti titlebar graph picker that creates a new graph document, focuses the current editor viewport, and binds that viewport to the new graph.
+- Updated the `AppShell` test harness so the mocked spaghetti store supports viewport-to-graph rebinding during the new shortcut flow.
+
+#### Files Changed
+- `src/app/components/ParaSelect.tsx`
+- `src/app/AppShell.tsx`
+- `src/app/components/ParaSelect.test.tsx`
+- `src/app/AppShell.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- The spaghetti titlebar graph picker menu now includes an `Add New Graph` shortcut that immediately switches the current editor viewport onto the newly created graph.
+
+#### Verification Steps
+- Ran `npm.cmd test -- src/app/components/ParaSelect.test.tsx src/app/AppShell.test.tsx`
+
+<!-- ENTRY 324 -->
+### [324] - 2026-03-17 19:15 - `VR / SP - Phase 5.0E - Spaghetti Titlebar Menu Text Style Match`
+<!-- ENTRY 324 -->
+HUMAN SUMMARY: `Forced the spaghetti titlebar graph-picker popup rows to use the same explicit text styling as the top selected-value line, so the open menu no longer looks like it belongs to a different font/weight/padding system than the control above it.` 
+
+#### Scope / Constraints Honored
+- Kept this pass limited to the spaghetti-titlebar popup text styling.
+- Left the restored shared `ParaSelect` baseline untouched and only refined the titlebar-specific overrides.
+- Verified the shared component and spaghetti shell integration still pass their focused tests.
+
+#### Summary of Implementation
+- Applied explicit titlebar typography rules to the selected-value line in the graph picker so its font contract is not left to inheritance.
+- Applied the same font family, size, weight, letter-spacing, case, and color rules to the titlebar popup menu rows.
+- Kept the popup row inset aligned with the compact titlebar control while flattening the selected-row text treatment to match the top line.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- The spaghetti titlebar graph-picker popup text should now match the top selected-value text much more closely in weight, font, and padding feel.
+
+#### Verification Steps
+- Ran `npm.cmd test -- src/app/components/ParaSelect.test.tsx src/app/AppShell.test.tsx`
+
+<!-- ENTRY 323 -->
+### [323] - 2026-03-17 19:13 - `VR / SP - Phase 5.0E - ParaSelect Titlebar Custom Mode Isolation`
+<!-- ENTRY 323 -->
+HUMAN SUMMARY: `Isolated the custom popup-menu behavior to the spaghetti titlebar graph picker so the normal shared \`ParaSelect\` controls in the spaghetti editor's \`i\` menu and other panels return to their original baseline appearance.` 
+
+#### Scope / Constraints Honored
+- Corrected the earlier overreach by restoring the default shared `ParaSelect` path for normal panel usage.
+- Kept the custom popup/menu behavior only where it was actually needed: the spaghetti titlebar graph picker.
+- Verified the shared control, spaghetti settings panel, and spaghetti shell integration together.
+
+#### Summary of Implementation
+- Added a `menuMode` seam to `ParaSelect` with `native` as the default shared behavior and `custom` only for the titlebar use case.
+- Restored the default shared `ParaSelect` track/layout CSS path so the spaghetti `i`-menu controls go back to the baseline styling instead of inheriting the custom titlebar behavior.
+- Updated the spaghetti titlebar graph picker in `AppShell` to opt into `menuMode="custom"`.
+- Updated the component test so the custom popup assertion now explicitly targets the titlebar-style custom mode.
+
+#### Files Changed
+- `src/app/components/ParaSelect.tsx`
+- `src/app/components/ParaSelect.test.tsx`
+- `src/app/AppShell.tsx`
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Regular shared `ParaSelect` controls now use the original baseline appearance again.
+- The spaghetti titlebar graph picker keeps the custom popup/menu behavior and titlebar-specific styling.
+
+#### Verification Steps
+- Ran `npm.cmd test -- src/app/components/ParaSelect.test.tsx src/app/panels/SpaghettiPanel.test.tsx src/app/AppShell.test.tsx`
+
+<!-- ENTRY 322 -->
+### [322] - 2026-03-17 19:11 - `VR / SP - Phase 5.0E - ParaSelect Label Value Truncation Fix`
+<!-- ENTRY 322 -->
+HUMAN SUMMARY: `Fixed the shared \`ParaSelect\` track layout so longer control labels no longer collide with the selected value text, which restores the spaghetti editor's \`i\`-menu selects after the earlier popup/menu refactor.` 
+
+#### Scope / Constraints Honored
+- Kept this pass focused on the shared `ParaSelect` track text layout instead of reopening the popup behavior or titlebar-specific menu skin.
+- Fixed the regression at the shared-control layer so the spaghetti settings panel and other uses recover together.
+- Verified both the shared component and the spaghetti settings panel with focused tests.
+
+#### Summary of Implementation
+- Added `min-width: 0` to the shared `ParaSelectContent` container so its children can shrink predictably.
+- Made the left-side `ParaSelectLabel` a truncating flex item with ellipsis instead of a non-shrinking inline span.
+- Limited the selected-value segment width and added ellipsis handling to its text span so the label and selected value no longer overlap in narrow controls.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Shared `ParaSelect` controls now truncate cleanly when the label and current value compete for space.
+- The spaghetti editor's `i`-menu selects should no longer show merged label/value text.
+
+#### Verification Steps
+- Ran `npm.cmd test -- src/app/components/ParaSelect.test.tsx src/app/panels/SpaghettiPanel.test.tsx`
+
+<!-- ENTRY 321 -->
+### [321] - 2026-03-17 19:09 - `VR / SP - Phase 5.0E - Spaghetti Titlebar ParaSelect Menu Typography Match`
+<!-- ENTRY 321 -->
+HUMAN SUMMARY: `Adjusted the spaghetti titlebar popup rows so their text now matches the top selected-value styling more closely, replacing the heavier generic menu typography with the same lighter compact titlebar treatment.` 
+
+#### Scope / Constraints Honored
+- Kept this pass limited to titlebar-specific popup row typography and inset styling.
+- Left the shared `ParaSelect` component behavior unchanged and only refined the spaghetti-titlebar variant.
+- Verified the shared control and shell integration still pass their focused tests.
+
+#### Summary of Implementation
+- Changed the titlebar popup menu rows to use the compact titlebar font size and family explicitly.
+- Lowered the popup row weight from the heavier generic menu style to match the top selected-value text more closely.
+- Kept the titlebar popup row padding aligned with the compact top control and flattened the selected-row styling so it no longer reads like a different menu family.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- The spaghetti titlebar graph-picker popup text now matches the top control more closely in size, weight, and general visual tone.
+
+#### Verification Steps
+- Ran `npm.cmd test -- src/app/components/ParaSelect.test.tsx src/app/AppShell.test.tsx`
+
+<!-- ENTRY 320 -->
+### [320] - 2026-03-17 19:08 - `VR / SP - Phase 5.0E - Spaghetti Titlebar ParaSelect Compact Menu Rows`
+<!-- ENTRY 320 -->
+HUMAN SUMMARY: `Tightened the spaghetti titlebar's popup option rows so the opened \`ParaSelect\` menu now uses the same compact row height as the top titlebar control instead of reading like a larger panel menu.` 
+
+#### Scope / Constraints Honored
+- Kept this pass limited to the compact spaghetti-titlebar `ParaSelect` popup row sizing.
+- Left the shared popup behavior and general app-level `ParaSelect` menu sizing unchanged.
+- Verified the shared control and shell integration still pass their focused tests.
+
+#### Summary of Implementation
+- Reduced the titlebar-specific `ParaSelectMenuOption` row height from the larger panel-menu size to the compact titlebar control height.
+- Tightened the titlebar popup row padding and line-height so the menu visually matches the top selected-value track.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- The spaghetti titlebar graph-picker menu rows are now shorter and visually aligned with the compact top control.
+
+#### Verification Steps
+- Ran `npm.cmd test -- src/app/components/ParaSelect.test.tsx src/app/AppShell.test.tsx`
+
+<!-- ENTRY 319 -->
+### [319] - 2026-03-17 19:07 - `VR / SP - Phase 5.0E - Spaghetti Titlebar ParaSelect Menu Alignment`
+<!-- ENTRY 319 -->
+HUMAN SUMMARY: `Polished the spaghetti titlebar's compact \`ParaSelect\` skin so the side arrows and center track now share the same height, and the opened popup menu attaches flush to the center track with square edges instead of looking like a separate rounded card.` 
+
+#### Scope / Constraints Honored
+- Kept this follow-up limited to titlebar-specific `ParaSelect` presentation polish in the spaghetti editor shell.
+- Left the shared popup/menu behavior intact and only adjusted the compact titlebar overrides.
+- Verified the shared `ParaSelect` component and spaghetti shell integration still pass their focused tests.
+
+#### Summary of Implementation
+- Added box-sizing and unified track/button sizing so the titlebar caps and center track render at the same visual height.
+- Applied the titlebar menu-open focus state consistently to the center track.
+- Anchored the titlebar popup menu directly to the center track edges with `left` and `right` attachment instead of a floating inset card.
+- Removed the titlebar popup/menu fillets and internal gaps so the opened list reads as one continuous control with the center track.
+- Flattened the titlebar menu option row styling so the list items align edge-to-edge beneath the track.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- The spaghetti titlebar graph picker now looks like one cohesive three-part control.
+- Its popup menu now aligns directly with the middle track and uses square edges instead of rounded card corners.
+
+#### Verification Steps
+- Ran `npm.cmd test -- src/app/components/ParaSelect.test.tsx src/app/AppShell.test.tsx`
+
+<!-- ENTRY 318 -->
+### [318] - 2026-03-17 19:00 - `VR / SP - Phase 5.0E - Shared ParaSelect Styled Popup`
+<!-- ENTRY 318 -->
+HUMAN SUMMARY: `Reworked the shared \`ParaSelect\` control to open an app-styled popup menu instead of relying on the browser's native select dropdown, which fixes the mismatched spaghetti-editor titlebar graph picker and makes the menu styling consistent with the rest of ParaHook.` 
+
+#### Scope / Constraints Honored
+- Fixed the underlying shared `ParaSelect` menu behavior instead of stacking more spaghetti-titlebar-only CSS on top of the native browser dropdown.
+- Kept the existing previous/next cap behavior and hidden native select seam so current tests and programmatic change paths still work.
+- Verified both the shared component and the spaghetti shell integration with focused tests.
+
+#### Summary of Implementation
+- Replaced the visible `ParaSelect` track interaction with an app-controlled track button and styled popup option list.
+- Kept a hidden native `.ParaSelectNative` element in the DOM so existing tests and select-based change paths remain intact.
+- Added click-outside and `Escape` close behavior for the shared popup menu.
+- Added generic `ParaSelectMenu` and `ParaSelectMenuOption` styles so the opened menu now matches the app's other control surfaces.
+- Let the spaghetti titlebar picker inherit that shared popup behavior automatically instead of opening the old native Windows-style dropdown.
+
+#### Files Changed
+- `src/app/components/ParaSelect.tsx`
+- `src/app/components/ParaSelect.test.tsx`
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Opening a `ParaSelect` now shows a styled in-app popup list instead of the browser-native select menu.
+- The spaghetti editor graph picker now opens with the same menu language as the other shared `ParaSelect` controls.
+
+#### Verification Steps
+- Ran `npm.cmd test -- src/app/components/ParaSelect.test.tsx src/app/AppShell.test.tsx`
+
+<!-- ENTRY 317 -->
+### [317] - 2026-03-17 18:55 - `VR / SP - Phase 5.0E - Spaghetti Titlebar Graph Picker Width Fix`
+<!-- ENTRY 317 -->
+HUMAN SUMMARY: `Relaxed the spaghetti titlebar graph picker sizing so the shared \`ParaSelect\` no longer looks cramped, giving the selected graph name more width and dropping the extra visible \`Graph\` label inside the compact titlebar variant.` 
+
+#### Scope / Constraints Honored
+- Kept this change narrowly focused on the titlebar graph picker layout without changing the picker behavior itself.
+- Preserved the shared `ParaSelect` component and only adjusted the compact spaghetti-titlebar presentation.
+- Verified the shell still passes its focused regression suite after the sizing change.
+
+#### Summary of Implementation
+- Increased the computed width budget for the spaghetti titlebar graph picker in `AppShell`.
+- Added a real minimum width and maximum width guard for the titlebar picker wrapper.
+- Hid the extra `ParaSelectLabel` in the titlebar-specific variant so the selected graph name gets the available horizontal space.
+- Added ellipsis-safe value styling so longer graph names clip cleanly instead of visually colliding with the caps and chevron.
+
+#### Files Changed
+- `src/app/AppShell.tsx`
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- The titlebar graph picker is wider and less visually squashed.
+- The compact titlebar variant now prioritizes showing the selected graph name rather than the extra `Graph` label.
+
+#### Verification Steps
+- Ran `npm.cmd test -- AppShell.test.tsx`
+
+<!-- ENTRY 316 -->
+### [316] - 2026-03-17 18:53 - `VR / SP - Phase 5.0E - Spaghetti Titlebar Graph ParaSelect`
+<!-- ENTRY 316 -->
+HUMAN SUMMARY: `Replaced the spaghetti titlebar's native graph-document dropdown with the shared \`ParaSelect\` control so the editor shell now uses the same select chrome language as the rest of the app.` 
+
+#### Scope / Constraints Honored
+- Kept this change narrow to the spaghetti titlebar graph picker without broadening into unrelated `5.0E` viewport-type work.
+- Reused the existing shared `ParaSelect` component instead of introducing another one-off titlebar select style.
+- Verified the titlebar swap with the focused `AppShell` regression suite.
+
+#### Summary of Implementation
+- Replaced the native titlebar graph `<select>` in `AppShell` with `ParaSelect`.
+- Added a dedicated `SpaghettiGraphDocumentPicker` wrapper and titlebar-scoped `ParaSelect` chrome styles so the shared control fits the compact editor header.
+- Added a focused `AppShell` regression asserting the spaghetti graph picker now renders as `.ParaSelectNative`.
+
+#### Files Changed
+- `src/app/AppShell.tsx`
+- `src/app/theme/v15Theme.css`
+- `src/app/AppShell.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- The `Graph 1` titlebar selector now uses the app's shared `ParaSelect` appearance and interaction chrome.
+- Graph document switching behavior remains the same.
+
+#### Verification Steps
+- Ran `npm.cmd test -- AppShell.test.tsx`
+
+<!-- ENTRY 315 -->
+### [315] - 2026-03-17 18:49 - `VR / SP - Phase 5.0E - Spaghetti Titlebar Essentials Cycle`
+<!-- ENTRY 315 -->
+HUMAN SUMMARY: `Extended the spaghetti editor's leftmost titlebar control from a simple \`- / +\` toggle into a three-state \`- / e / +\` cycle, with the new essentials state forcing the titlebar's \`c\` and \`t\` feature toggles off for that viewport.` 
+
+#### Scope / Constraints Honored
+- Kept this change inside the existing spaghetti shell/titlebar behavior without broadening into the larger `5.0E` viewport-type standardization work.
+- Preserved the current right-side `c` and `t` controls while making the new `e` state drive them off automatically.
+- Verified the shell change with the focused `AppShell` regression suite.
+
+#### Summary of Implementation
+- Replaced the old first-button collapse-only behavior with a primary-view-mode cycle in `SpaghettiWindowTitleBar`.
+- Added a computed `essentials` state when the editor is not collapsed, the header toolbar is collapsed, and the canvas toolbar is hidden.
+- Wired the cycle so:
+  - `-` switches the viewport into essentials by turning the header and canvas toolbar off
+  - `e` collapses the editor
+  - `+` restores the editor and turns the header and canvas toolbar back on
+- Updated the `AppShell` regression to verify the left-side button cycles through `-`, `e`, and `+` and that the essentials state leaves the header collapsed and canvas toolbar hidden.
+
+#### Files Changed
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- The spaghetti editor's first titlebar button now has three visible states instead of two.
+- Entering essentials through the first button now guarantees the `t` and `c` titlebar controls read as off for that viewport.
+
+#### Verification Steps
+- Ran `npm.cmd test -- AppShell.test.tsx`
+
+<!-- ENTRY 314 -->
+### [314] - 2026-03-17 18:45 - `VR / SP - Phase 5.0E - Spaghetti Titlebar First-Button Standard`
+<!-- ENTRY 314 -->
+HUMAN SUMMARY: `Implemented the first concrete \`5.0E\` spaghetti-shell tweak by moving the editor collapse control to the far-left title position, changing its glyph cycle to \`-\` and \`+\` like Browser, and marking the roadmap's \`5.0E\` title status as complete for that entry.` 
+
+#### Scope / Constraints Honored
+- Kept this cut limited to the concrete `5.0E` entry-1 titlebar tweak instead of broadening into viewport-type model refactors.
+- Preserved the existing spaghetti shell actions and collapse behavior while only changing the control position and visible symbol cycle.
+- Updated the required roadmap/changelog maintenance in the same change set.
+
+#### Summary of Implementation
+- Moved the spaghetti collapse button out of the right-side core action cluster and into a new left-side title cluster ahead of the `Spaghetti Editor` / `Meatball Editor` title.
+- Replaced the old `__` glyph with a Browser-style `-` when expanded and `+` when collapsed, while keeping the same collapse/expand action wiring.
+- Added `aria-expanded` on the first button so the new visual cycle is reflected in the titlebar control semantics.
+- Added regression coverage proving the button now sits to the left of the title text and cycles from `-` to `+` after collapsing.
+- Flipped the roadmap title marker for `[5.0E]` from `[ ]` to `[x]` after landing entry `[1]`.
+
+#### Files Changed
+- `src/app/AppShell.tsx`
+- `src/app/theme/v15Theme.css`
+- `src/app/AppShell.test.tsx`
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- The spaghetti editor's first titlebar button now visually matches the Browser pattern more closely by living on the far left and cycling between `-` and `+`.
+- The rest of the spaghetti titlebar actions remain on the right-side action cluster.
+
+#### Verification Steps
+- Ran `npm test -- AppShell.test.tsx`
+
+<!-- ENTRY 313 -->
+### [313] - 2026-03-17 17:58 - `VR / SP - Phase 5.0D - Deferred Legacy Residue And Dead-Surface Cleanup`
+<!-- ENTRY 313 -->
+HUMAN SUMMARY: `Implemented \`5.0D\` by removing the old title-bar \`Build Stats\` drawer path, deleting dead shell surfaces left behind by the panel-era cleanup, stripping the unowned spaghetti output-list selector family, and pruning the last dead app-store \`assembled\` residue so the \`5.0\` cleanup family is fully closed.` 
+
+#### Scope / Constraints Honored
+- Kept the runtime cleanup focused on deferred residue after the shipped `5.0A-C` work.
+- Removed dead shell surfaces and unowned state/selectors without broadening the cut into new feature re-homing.
+- Preserved the live title-bar progress strip and dispatcher-side build bookkeeping instead of deleting still-used diagnostics/state blindly.
+
+#### Summary of Implementation
+- Removed the click-to-open title-bar `Build Stats` drawer path from `TitleStatusBar` and `AppShell`, and deleted `BuildStatsDrawer.tsx`.
+- Removed `statsExpanded` / `toggleStatsExpanded` from `buildStatsStore` while keeping the still-live build progress/pulse state.
+- Deleted dead shell files left behind after the earlier cleanup wave:
+  - `Toolbar.tsx`
+  - `PartsListPanel.tsx`
+  - `BoxPanel.tsx`
+- Removed the unowned spaghetti output-list selector family and its stale barrel/test coverage.
+- Removed the dead app-store `assembled` / `assembledSignature` / `setAssembled` path and the now-unused bootstrap assemble-result wiring.
+- Cleaned related stale CSS, imports, mocks, and tests so the deleted surfaces no longer leave residue in the shell or selector layer.
+- Moved `05.0D` from `Tasks/Future` to `Tasks/Old`, updated the roadmap, and closed the `5.0` lane bookkeeping.
+
+#### Files Changed
+- `src/app/AppShell.tsx`
+- `src/app/components/TitleStatusBar.tsx`
+- `src/app/store/buildStatsStore.ts`
+- `src/app/store/useAppStore.ts`
+- `src/app/bootstrapBuildWiring.ts`
+- `src/app/AppShell.test.tsx`
+- `src/app/buildDispatcher.test.ts`
+- `src/app/store/useAppStore.test.ts`
+- `src/app/spaghetti/selectors/index.ts`
+- `src/app/spaghetti/selectors/index.test.ts`
+- `src/app/theme/v15Theme.css`
+- `docs/Phase-Plans/Tasks/Old/05.0D - VR-SP - Deferred Legacy Residue And Dead-Surface Cleanup.md`
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/Doc-Index.md`
+- `docs/CHANGELOG.md`
+
+#### Deleted Files
+- `src/app/components/BuildStatsDrawer.tsx`
+- `src/app/components/Toolbar.tsx`
+- `src/app/panels/PartsListPanel.tsx`
+- `src/app/panels/BoxPanel.tsx`
+- `src/app/spaghetti/partsList/selectPartsListItems.ts`
+- `src/app/spaghetti/partsList/selectPartsListItems.test.ts`
+
+#### Behavior Changes (if any)
+- Clicking `ParaHook Generator` no longer opens the old `Build Stats` drawer.
+- The dead left-dock/panel-era shell files are now removed instead of lingering unused in the repo.
+- The app no longer carries the dead app-store `assembled` state path that the live viewer stopped using.
+
+#### Verification Steps
+- Ran:
+  - `cmd /c npm run build`
+  - `cmd /c npm test -- src/app/AppShell.test.tsx src/app/buildDispatcher.test.ts src/app/spaghetti/selectors/index.test.ts src/app/store/useAppStore.test.ts`
+- Result:
+  - production build passed
+  - `50` tests passed
+
+<!-- ENTRY 312 -->
+### [312] - 2026-03-17 17:47 - `DOC - Phase 14 - 5.0D Implementation-Ready Spec`
+<!-- ENTRY 312 -->
+HUMAN SUMMARY: `Reworked the deferred \`5.0D\` cleanup doc into an implementation-ready execution spec, locking the remaining residue decisions around deleting dead shell files, removing the title-bar \`Build Stats\` drawer, classifying leftover viewer state, and removing unowned spaghetti output-list selectors.` 
+
+#### Scope / Constraints Honored
+- Kept this change limited to docs/planning specification work.
+- Did not change runtime residue behavior yet.
+- Preserved `5.0D` as a deferred cleanup lane rather than turning it into a new feature or re-home plan.
+
+#### Summary of Implementation
+- Added a new doc-history entry marking `05.0D` implementation-ready.
+- Replaced the remaining open-question posture with locked cleanup rules and a locked removal order.
+- Added a stronger current-state framing tied to the live residue seams in `AppShell`, `TitleStatusBar`, `BuildStatsDrawer`, `buildStatsStore`, dead shell panels, and the spaghetti output-list selector family.
+- Added explicit residue/interface locks for:
+  - `statsExpanded`
+  - title-bar build-stats UI
+  - `assembled` / `assembledSignature`
+  - output-list selectors
+  - stale shell styling
+- Added a concrete verification/proof bar for the eventual `5.0D` implementation pass.
+
+#### Files Changed
+- `docs/Phase-Plans/Tasks/Future/05.0D - VR-SP - Deferred Legacy Residue And Dead-Surface Cleanup.md`
+
+#### Behavior Changes (if any)
+- None. This was a planning/doc readiness update only.
+
+#### Verification Steps
+- Verified the updated `05.0D` doc now reads as a decision-complete cleanup spec rather than an open-question holding doc.
+- Verified the locked spec matches the current repo read:
+  - remove the title-bar `Build Stats` drawer
+  - delete dead panel files instead of keeping stubs
+  - remove unowned output-list helpers
+  - keep `5.0D` deferred and non-blocking for `[5.1]`
+
+<!-- ENTRY 311 -->
+### [311] - 2026-03-17 17:43 - `DOC - Phase 14 - 5.0D Build Stats Residue Note`
+<!-- ENTRY 311 -->
+HUMAN SUMMARY: `Extended the deferred \`5.0D\` cleanup doc to explicitly track the title-bar \`Build Stats\` drawer as likely legacy shell residue, so the old \`ParaHook Generator\` click-to-open loading bars now have a named later remove-versus-rehome decision instead of staying implicit.` 
+
+#### Scope / Constraints Honored
+- Kept this as a docs/planning update only.
+- Did not change runtime title-bar or build-stats behavior yet.
+- Preserved `5.0D` as the deferred home for non-blocking legacy residue after the shipped `5.0A-C` work.
+
+#### Summary of Implementation
+- Added `TitleStatusBar`, `BuildStatsDrawer`, and `buildStatsStore` to the `5.0D` likely residue seams.
+- Added a dedicated inventory block for the title-bar legacy drawer behavior.
+- Added a new explicit decision question for whether the `Build Stats` drawer should be removed or re-homed.
+- Expanded the likely-files list so the deferred cleanup phase now tracks that title-bar build-stats surface directly.
+
+#### Files Changed
+- `docs/Phase-Plans/Tasks/Future/05.0D - VR-SP - Deferred Legacy Residue And Dead-Surface Cleanup.md`
+
+#### Behavior Changes (if any)
+- None. This was a planning/doc update only.
+
+#### Verification Steps
+- Verified the updated `05.0D` doc now explicitly names the title-bar `Build Stats` drawer as deferred legacy residue tied to:
+  - `TitleStatusBar`
+  - `BuildStatsDrawer`
+  - `buildStatsStore`
+
+<!-- ENTRY 310 -->
+### [310] - 2026-03-17 17:41 - `DOC - Phase 14 - 5.0D Deferred Cleanup Doc Sync`
+<!-- ENTRY 310 -->
+HUMAN SUMMARY: `Updated the deferred \`5.0D\` cleanup doc after shipping \`5.0C\`, so it now reflects the real post-branch-collapse residue still left in ParaHook instead of the older assumption that the app-level \`parts / assembled\` split was still a live runtime decision.` 
+
+#### Scope / Constraints Honored
+- Kept this change limited to docs/planning alignment.
+- Did not change runtime code or roadmap status.
+- Preserved `5.0D` as the deferred non-blocking cleanup lane after the shipped `5.0A-C` work.
+
+#### Summary of Implementation
+- Updated `05.0D` doc history to record the sync pass.
+- Re-pointed the source references from the old `Tasks/Future` `05.0A-C` docs to their landed `Tasks/Old` locations.
+- Reframed the residue inventory so it now reflects the shipped `5.0C` state:
+  - dead files
+  - selector ownership
+  - wording cleanup
+  - remaining viewer/state residue
+- Replaced the stale `parts / assembled` open question with a more accurate post-`5.0C` residue-classification question.
+
+#### Files Changed
+- `docs/Phase-Plans/Tasks/Future/05.0D - VR-SP - Deferred Legacy Residue And Dead-Surface Cleanup.md`
+
+#### Behavior Changes (if any)
+- None. This was a planning/doc sync only.
+
+#### Verification Steps
+- Verified the updated `05.0D` doc now points at the landed `05.0A-C` task-doc locations and no longer treats the removed app-level `parts / assembled` split as an unresolved runtime decision.
+
+<!-- ENTRY 309 -->
+### [309] - 2026-03-17 17:09 - `VR / SP - Phase 5.0C - Legacy Input-Mode Branch Removal`
+<!-- ENTRY 309 -->
+HUMAN SUMMARY: `Implemented \`5.0C\` by removing the live app-level \`inputMode\` and \`Parts / Assembled\` viewer split from the runtime path, collapsing the viewer/build/browser shell onto one spaghetti-era flow, and then moving the task doc to \`Tasks/Old\` with the roadmap/docs index updated to match.` 
+
+#### Scope / Constraints Honored
+- Kept this change focused on the real runtime branch collapse promised by `5.0C`.
+- Removed the live store/viewer/build-routing dependence on `legacy` mode without turning this into the full dead-file purge.
+- Left broader residue cleanup deferred to `5.0D`.
+
+#### Summary of Implementation
+- Removed app-level `inputMode`, `setInputMode`, `viewMode`, and `setViewMode` usage from the live runtime/store path.
+- Collapsed `useAppStore`, `bootstrapBuildWiring`, `ViewerHost`, `ViewToolbar`, `ViewportOverlay`, `ConsoleDock`, `AppShell`, and `BrowserPanel` onto a single spaghetti-era preview/build flow.
+- Simplified dead-shell leftovers like `Toolbar.tsx`, `PartsListPanel.tsx`, and the debug-inspector selector contract so they no longer preserve the removed branch behavior.
+- Updated focused tests for the store, Browser panel, AppShell, console publishers, and debug inspector selector.
+- Moved `05.0C` from `docs/Phase-Plans/Tasks/Future/` to `docs/Phase-Plans/Tasks/Old/` and synced the roadmap/docs inventory.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/bootstrapBuildWiring.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewToolbar.tsx`
+- `src/app/components/ViewportOverlay.tsx`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/AppShell.tsx`
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/components/Toolbar.tsx`
+- `src/app/panels/PartsListPanel.tsx`
+- `src/app/spaghetti/ui/DebugInspectorDrawer.tsx`
+- `src/app/spaghetti/selectors/selectDebugInspectorVm.ts`
+- `src/app/store/useAppStore.test.ts`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `src/app/AppShell.test.tsx`
+- `src/app/console/consolePublishers.test.ts`
+- `src/app/spaghetti/selectors/selectDebugInspectorVm.test.ts`
+- `docs/Phase-Plans/Tasks/Old/05.0C - VR-SP - Legacy Input-Mode Branch Removal.md`
+- `docs/Phase-Plans/Tasks/Future/05.0 - VR-SP - Pre-Workspace Shell Cleanup And Legacy Panel Reduction.md`
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/Doc-Index.md`
+
+#### Behavior Changes (if any)
+- The app no longer carries a live `legacy` versus `spaghetti` input-mode fork in normal runtime behavior.
+- The old `Parts / Assembled` viewer split no longer exists in the live app path.
+- Browser/editor/viewer/build routing now assumes the spaghetti-era preview path directly.
+- Console `status` output now reports the spaghetti preview path instead of the removed mode pair.
+
+#### Verification Steps
+- Ran:
+  - `cmd /c npm run build`
+  - `cmd /c npm test -- src/app/store/useAppStore.test.ts src/app/panels/BrowserPanel.test.tsx src/app/AppShell.test.tsx src/app/console/consolePublishers.test.ts src/app/spaghetti/selectors/selectDebugInspectorVm.test.ts`
+- Result:
+  - build passed
+  - `79` tests passed
+
 <!-- ENTRY 308 -->
 ### [308] - 2026-03-17 16:59 - `VR / SP - Worker Error Console Null Guard Build Fix`
 <!-- ENTRY 308 -->

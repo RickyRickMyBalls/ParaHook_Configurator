@@ -120,11 +120,9 @@ const lightTypeLabel = (type: LightType): string => {
 }
 
 export function ViewToolbar() {
-  const legacyParts = useAppStore((state) => state.parts)
-  const inputMode = useAppStore((state) => state.inputMode)
   const viewerTargetParts = useSpaghettiStore(selectViewerTargetGraphAcceptedBuildOutputs)
   const selectedPartKey = useAppStore((state) => state.selectedPartKey)
-  const parts = inputMode === 'spaghetti' ? viewerTargetParts : legacyParts
+  const parts = viewerTargetParts
 
   const view = useUiPrefsStore((state) => state.view)
   const setViewKey = useUiPrefsStore((state) => state.setViewKey)

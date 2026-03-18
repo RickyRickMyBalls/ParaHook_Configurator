@@ -54,6 +54,8 @@ const minDebugDrawerHeight = 160
 const defaultDebugDrawerHeight = 360
 const collapsedToolbarHeight = 10
 const defaultExpandedToolbarHeight = 150
+const minWindowSettingsHeight = 72
+const defaultExpandedWindowSettingsHeight = 180
 
 type SpaghettiEditorViewMode = 'expanded' | 'collapsed'
 type PartNodeType = Extract<NodeTypeId, 'Part/Baseplate' | 'Part/ToeHook' | 'Part/HeelKick'>
@@ -144,6 +146,8 @@ type ResizeState = {
   maxHeight: number
 }
 
+type WindowSettingsSectionId = 'titlebar' | 'body' | 'text'
+
 type SpaghettiPanelProps = {
   editorViewportId: string
   isWindowSettingsOpen?: boolean
@@ -173,9 +177,18 @@ export function SpaghettiPanel({
 }: SpaghettiPanelProps) {
   const [isDebugVisible, setIsDebugVisible] = useState(false)
   const [toolbarHeight, setToolbarHeight] = useState<number | null>(null)
+  const [windowSettingsHeight, setWindowSettingsHeight] = useState<number | null>(null)
   const [debugHeight, setDebugHeight] = useState<number | null>(null)
   const [viewMode, setViewMode] = useState<SpaghettiEditorViewMode>('expanded')
   const [newPartType, setNewPartType] = useState<PartNodeType>('Part/Baseplate')
+  const [isWindowSettingsExpanded, setIsWindowSettingsExpanded] = useState(true)
+  const [expandedWindowSettingsSections, setExpandedWindowSettingsSections] = useState<
+    Record<WindowSettingsSectionId, boolean>
+  >({
+    titlebar: true,
+    body: true,
+    text: true,
+  })
   const [fitNodeRequest, setFitNodeRequest] = useState<{ nodeId: string | null; key: number }>({
     nodeId: null,
     key: 0,
@@ -184,11 +197,17 @@ export function SpaghettiPanel({
   const setSpaghettiGraph = useAppStore((state) => state.setSpaghettiGraph)
   const uiMessage = useSpaghettiStore((state) => state.uiMessage)
   const viewport = useSpaghettiStore((state) => selectEditorViewportById(state, editorViewportId))
+  const graphDocumentsById = useSpaghettiStore((state) => state.graphDocumentsById)
+  const graphDocumentOrder = useSpaghettiStore((state) => state.graphDocumentOrder)
   const graph = useSpaghettiStore((state) =>
     viewport === null ? null : selectGraphByDocumentId(state, viewport.graphDocumentId),
   )
   const selectedNodeId = useSpaghettiStore((state) => state.selectedNodeId)
   const setActiveEditorViewportId = useSpaghettiStore((state) => state.setActiveEditorViewportId)
+  const createGraphDocument = useSpaghettiStore((state) => state.createGraphDocument)
+  const bindEditorViewportToGraphDocument = useSpaghettiStore(
+    (state) => state.bindEditorViewportToGraphDocument,
+  )
   const applyGraphCommand = useSpaghettiStore((state) => state.applyGraphCommand)
   const addEditorViewportGraphToSharedViewerComposition = useSpaghettiStore(
     (state) => state.addEditorViewportGraphToSharedViewerComposition,
@@ -205,8 +224,10 @@ export function SpaghettiPanel({
   )
   const panelRef = useRef<HTMLElement | null>(null)
   const titleRef = useRef<HTMLDivElement | null>(null)
+  const windowSettingsScrollRef = useRef<HTMLDivElement | null>(null)
   const toolbarScrollRef = useRef<HTMLDivElement | null>(null)
   const resizeStateRef = useRef<ResizeState | null>(null)
+  const expandedWindowSettingsHeightRef = useRef<number | null>(null)
   const expandedToolbarHeightRef = useRef<number | null>(null)
   const lastHeaderToggleRevisionRef = useRef<number>(headerToggleRevision)
   const lastExternalFitRequestKeyRef = useRef<number>(-1)
@@ -216,6 +237,31 @@ export function SpaghettiPanel({
     graphDocumentId === null ? null : selectGraphCompileResultByDocumentId(state, graphDocumentId),
   )
   const sortedNodes = useMemo(() => [...(graph?.nodes ?? [])].sort(compareNodes), [graph?.nodes])
+  const orderedGraphDocuments = useMemo(
+    () =>
+      graphDocumentOrder
+        .map((nextGraphDocumentId) => graphDocumentsById[nextGraphDocumentId] ?? null)
+        .filter((document) => document !== null),
+    [graphDocumentOrder, graphDocumentsById],
+  )
+  const graphDocumentOptions = useMemo(
+    () =>
+      orderedGraphDocuments.map((document) => ({
+        value: document.graphDocumentId,
+        label: document.name,
+      })),
+    [orderedGraphDocuments],
+  )
+  const focusNodeOptions = useMemo(
+    () =>
+      sortedNodes.length === 0
+        ? [{ value: '', label: 'No nodes' }]
+        : sortedNodes.map((node) => ({
+            value: node.nodeId,
+            label: node.nodeId,
+          })),
+    [sortedNodes],
+  )
   const availableNodeIds = useMemo(() => new Set(sortedNodes.map((node) => node.nodeId)), [sortedNodes])
   const [focusNodeId, setFocusNodeId] = useState<string | null>(selectedNodeId)
 
@@ -226,6 +272,17 @@ export function SpaghettiPanel({
     graphDocumentId !== null &&
     (sharedViewerComposition?.graphDocumentIds.includes(graphDocumentId) ?? false)
   const sharedViewerCompositionSize = sharedViewerComposition?.graphDocumentIds.length ?? 0
+
+  const toggleWindowSettingsExpanded = useCallback(() => {
+    setIsWindowSettingsExpanded((current) => !current)
+  }, [])
+
+  const toggleWindowSettingsSection = useCallback((sectionId: WindowSettingsSectionId) => {
+    setExpandedWindowSettingsSections((current) => ({
+      ...current,
+      [sectionId]: !current[sectionId],
+    }))
+  }, [])
 
   const getMaxToolbarHeight = useCallback(() => {
     const panel = panelRef.current
@@ -257,6 +314,41 @@ export function SpaghettiPanel({
     )
   }, [toolbarHeight])
 
+  const getMaxWindowSettingsHeight = useCallback(() => {
+    const panel = panelRef.current
+    const windowSettingsScroll = windowSettingsScrollRef.current
+    if (panel === null) {
+      return defaultExpandedWindowSettingsHeight
+    }
+
+    const panelHeight = Math.round(panel.getBoundingClientRect().height)
+    if (panelHeight <= 0) {
+      return defaultExpandedWindowSettingsHeight
+    }
+    const windowSettingsCurrentHeight = Math.round(
+      windowSettingsScroll?.getBoundingClientRect().height ??
+        windowSettingsHeight ??
+        defaultExpandedWindowSettingsHeight,
+    )
+    const headerShell = panel.querySelector<HTMLElement>('.SpaghettiPanelHeaderShell')
+    const canvasResizeBar = panel.querySelector<HTMLElement>('.SpaghettiCanvasResizeBar')
+    const debugResizeBar = panel.querySelector<HTMLElement>('.SpaghettiDebugResizeBar')
+    const debugDrawer = panel.querySelector<HTMLElement>('.SpaghettiDebugDrawer')
+    const fixedChromeHeight =
+      Math.max(
+        0,
+        Math.round(headerShell?.getBoundingClientRect().height ?? 0) - windowSettingsCurrentHeight,
+      ) +
+      Math.round(canvasResizeBar?.getBoundingClientRect().height ?? 0) +
+      Math.round(debugResizeBar?.getBoundingClientRect().height ?? 0) +
+      Math.round(debugDrawer?.getBoundingClientRect().height ?? 0)
+
+    return Math.max(
+      minWindowSettingsHeight,
+      panelHeight - fixedChromeHeight - minCanvasHeight,
+    )
+  }, [windowSettingsHeight])
+
   const clampToolbarToAvailableSpace = useCallback(() => {
     const maxHeight = getMaxToolbarHeight()
     setToolbarHeight((current) => {
@@ -267,6 +359,20 @@ export function SpaghettiPanel({
       return Math.min(maxHeight, Math.max(collapsedToolbarHeight, desiredHeight))
     })
   }, [getMaxToolbarHeight, isHeaderCollapsed])
+
+  const clampWindowSettingsToAvailableSpace = useCallback(() => {
+    if (!isWindowSettingsOpen || !isWindowSettingsExpanded) {
+      return
+    }
+    const maxHeight = getMaxWindowSettingsHeight()
+    setWindowSettingsHeight((current) => {
+      const desiredHeight =
+        expandedWindowSettingsHeightRef.current ??
+        current ??
+        defaultExpandedWindowSettingsHeight
+      return Math.min(maxHeight, Math.max(minWindowSettingsHeight, desiredHeight))
+    })
+  }, [getMaxWindowSettingsHeight, isWindowSettingsExpanded, isWindowSettingsOpen])
 
   useEffect(() => {
     if (toolbarHeight === null) {
@@ -289,6 +395,33 @@ export function SpaghettiPanel({
       resizeObserver?.disconnect()
     }
   }, [clampToolbarToAvailableSpace, toolbarHeight])
+
+  useEffect(() => {
+    if (windowSettingsHeight === null || !isWindowSettingsOpen || !isWindowSettingsExpanded) {
+      return
+    }
+
+    window.addEventListener('resize', clampWindowSettingsToAvailableSpace)
+
+    const observedPanel = panelRef.current
+    let resizeObserver: ResizeObserver | null = null
+    if (observedPanel !== null && typeof ResizeObserver !== 'undefined') {
+      resizeObserver = new ResizeObserver(() => {
+        clampWindowSettingsToAvailableSpace()
+      })
+      resizeObserver.observe(observedPanel)
+    }
+
+    return () => {
+      window.removeEventListener('resize', clampWindowSettingsToAvailableSpace)
+      resizeObserver?.disconnect()
+    }
+  }, [
+    clampWindowSettingsToAvailableSpace,
+    isWindowSettingsExpanded,
+    isWindowSettingsOpen,
+    windowSettingsHeight,
+  ])
 
   useEffect(() => {
     if (selectedNodeId !== null && availableNodeIds.has(selectedNodeId)) {
@@ -349,6 +482,36 @@ export function SpaghettiPanel({
     setToolbarHeight(Math.min(nextExpandedHeight, getMaxToolbarHeight()))
   }, [getMaxToolbarHeight, headerToggleRevision, isHeaderCollapsed])
 
+  useEffect(() => {
+    if (!isWindowSettingsOpen || !isWindowSettingsExpanded) {
+      return
+    }
+
+    const nextExpandedHeight =
+      expandedWindowSettingsHeightRef.current ?? defaultExpandedWindowSettingsHeight
+    expandedWindowSettingsHeightRef.current = nextExpandedHeight
+    setWindowSettingsHeight(Math.min(nextExpandedHeight, getMaxWindowSettingsHeight()))
+  }, [getMaxWindowSettingsHeight, isWindowSettingsExpanded, isWindowSettingsOpen])
+
+  useEffect(() => {
+    if (windowSettingsHeight === null) {
+      return
+    }
+    clampToolbarToAvailableSpace()
+  }, [clampToolbarToAvailableSpace, windowSettingsHeight])
+
+  useEffect(() => {
+    if (!isWindowSettingsOpen || !isWindowSettingsExpanded || toolbarHeight === null) {
+      return
+    }
+    clampWindowSettingsToAvailableSpace()
+  }, [
+    clampWindowSettingsToAvailableSpace,
+    isWindowSettingsExpanded,
+    isWindowSettingsOpen,
+    toolbarHeight,
+  ])
+
   const handleResizeStart = (event: ReactPointerEvent<HTMLButtonElement>) => {
     if (event.button !== 0) {
       return
@@ -400,6 +563,54 @@ export function SpaghettiPanel({
     expandedToolbarHeightRef.current = defaultExpandedToolbarHeight
     setToolbarHeight(Math.min(defaultExpandedToolbarHeight, getMaxToolbarHeight()))
     onSetHeaderCollapsed?.(false)
+  }
+
+  const handleWindowSettingsResizeStart = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    if (event.button !== 0 || !isWindowSettingsOpen || !isWindowSettingsExpanded) {
+      return
+    }
+
+    const startHeight = Math.round(
+      windowSettingsScrollRef.current?.getBoundingClientRect().height ??
+        windowSettingsHeight ??
+        defaultExpandedWindowSettingsHeight,
+    )
+    resizeStateRef.current = {
+      startClientY: event.clientY,
+      startHeight,
+      maxHeight: getMaxWindowSettingsHeight(),
+    }
+
+    const handlePointerMove = (moveEvent: PointerEvent) => {
+      const resizeState = resizeStateRef.current
+      if (resizeState === null) {
+        return
+      }
+      const deltaY = moveEvent.clientY - resizeState.startClientY
+      const nextHeight = Math.max(
+        minWindowSettingsHeight,
+        Math.min(resizeState.maxHeight, resizeState.startHeight + deltaY),
+      )
+      setWindowSettingsHeight(nextHeight)
+      expandedWindowSettingsHeightRef.current = nextHeight
+    }
+
+    const handlePointerUp = () => {
+      resizeStateRef.current = null
+      window.removeEventListener('pointermove', handlePointerMove)
+      window.removeEventListener('pointerup', handlePointerUp)
+    }
+
+    window.addEventListener('pointermove', handlePointerMove)
+    window.addEventListener('pointerup', handlePointerUp)
+    event.preventDefault()
+  }
+
+  const handleResetWindowSettingsHeight = () => {
+    expandedWindowSettingsHeightRef.current = defaultExpandedWindowSettingsHeight
+    setWindowSettingsHeight(
+      Math.min(defaultExpandedWindowSettingsHeight, getMaxWindowSettingsHeight()),
+    )
   }
 
   const handleDebugResizeStart = (event: ReactPointerEvent<HTMLButtonElement>) => {
@@ -496,20 +707,30 @@ export function SpaghettiPanel({
     })
   }
 
-  const handleCycleFocusNode = (direction: -1 | 1) => {
-    if (sortedNodes.length === 0) {
-      return
-    }
-    const currentIndex = focusNodeId === null ? -1 : sortedNodes.findIndex((node) => node.nodeId === focusNodeId)
-    const baseIndex = currentIndex < 0 ? 0 : currentIndex
-    const nextIndex = (baseIndex + direction + sortedNodes.length) % sortedNodes.length
-    const nextNodeId = sortedNodes[nextIndex]?.nodeId ?? null
+  const handleFocusNodeChange = (nextNodeId: string | null) => {
     setFocusNodeId(nextNodeId)
     setSelectedNodeId(nextNodeId)
     setFitNodeRequest((current) => ({
       nodeId: nextNodeId,
       key: current.key + 1,
     }))
+  }
+
+  const handleGraphChange = (nextGraphDocumentId: string) => {
+    if (viewport === null || nextGraphDocumentId.length === 0) {
+      return
+    }
+    setActiveEditorViewportId(viewport.editorViewportId)
+    bindEditorViewportToGraphDocument(viewport.editorViewportId, nextGraphDocumentId)
+  }
+
+  const handleCreateGraph = () => {
+    if (viewport === null) {
+      return
+    }
+    const nextGraphDocumentId = createGraphDocument()
+    setActiveEditorViewportId(viewport.editorViewportId)
+    bindEditorViewportToGraphDocument(viewport.editorViewportId, nextGraphDocumentId)
   }
 
   const toolbarScrollStyle: CSSProperties | undefined =
@@ -520,6 +741,16 @@ export function SpaghettiPanel({
           minHeight: `${toolbarHeight}px`,
           maxHeight: `${toolbarHeight}px`,
           flex: `0 0 ${toolbarHeight}px`,
+        }
+
+  const windowSettingsScrollStyle: CSSProperties | undefined =
+    !isWindowSettingsOpen || !isWindowSettingsExpanded || windowSettingsHeight === null
+      ? undefined
+      : {
+          height: `${windowSettingsHeight}px`,
+          minHeight: `${windowSettingsHeight}px`,
+          maxHeight: `${windowSettingsHeight}px`,
+          flex: `0 0 ${windowSettingsHeight}px`,
         }
 
   const debugDrawerStyle: CSSProperties | undefined =
@@ -539,194 +770,318 @@ export function SpaghettiPanel({
     >
       <div ref={titleRef} className="SpaghettiPanelHeaderShell">
         {isWindowSettingsOpen ? (
-          <div className="SpaghettiPanelPinnedRow SpaghettiWindowSettingsSection">
-            <div className="SpaghettiWindowSettingsHeader">
-              <span>Window Settings</span>
-              <div className="SpaghettiWindowSettingsActions">
+          <>
+            <div className="SpaghettiPanelPinnedRow SpaghettiWindowSettingsSection">
+              <div className="SpaghettiWindowSettingsHeader">
                 <button
                   type="button"
-                  className={`SpaghettiWindowSettingsClampToggle ${
-                    isClampEditing ? 'isActive' : ''
+                  className="SpaghettiWindowSettingsHeaderToggle"
+                  aria-expanded={isWindowSettingsExpanded}
+                  onClick={toggleWindowSettingsExpanded}
+                >
+                  <span className="SpaghettiWindowSettingsGroupChevron">
+                    {isWindowSettingsExpanded ? '-' : '+'}
+                  </span>
+                  <span>Window Settings</span>
+                </button>
+                <div className="SpaghettiWindowSettingsActions">
+                  <button
+                    type="button"
+                    className={`SpaghettiWindowSettingsClampToggle ${
+                      isClampEditing ? 'isActive' : ''
+                    }`}
+                    onClick={() => onToggleClampEditing?.()}
+                  >
+                    {isClampEditing ? 'Done Clamp' : 'Edit Clamp'}
+                  </button>
+                  <button
+                    type="button"
+                    className="SpaghettiWindowSettingsReset"
+                    onClick={() => onResetWindowAppearance?.()}
+                  >
+                    Reset Window Style
+                  </button>
+                </div>
+              </div>
+              {isWindowSettingsExpanded ? (
+                <div
+                  ref={windowSettingsScrollRef}
+                  className="SpaghettiWindowSettingsGroups"
+                  style={windowSettingsScrollStyle}
+                >
+                <section
+                  className={`SpaghettiWindowSettingsGroup ${
+                    expandedWindowSettingsSections.titlebar ? 'isExpanded' : ''
                   }`}
-                  onClick={() => onToggleClampEditing?.()}
+                  aria-label="Title bar settings"
+                  data-section-id="titlebar"
                 >
-                  {isClampEditing ? 'Done Clamp' : 'Edit Clamp'}
-                </button>
-                <button
-                  type="button"
-                  className="SpaghettiWindowSettingsReset"
-                  onClick={() => onResetWindowAppearance?.()}
+                  <button
+                    type="button"
+                    className="SpaghettiWindowSettingsGroupToggle"
+                    aria-expanded={expandedWindowSettingsSections.titlebar}
+                    onClick={() => toggleWindowSettingsSection('titlebar')}
+                  >
+                    <span className="SpaghettiWindowSettingsGroupChevron">
+                      {expandedWindowSettingsSections.titlebar ? '-' : '+'}
+                    </span>
+                    <span className="SpaghettiWindowSettingsGroupTitle">Title bar</span>
+                  </button>
+                  {expandedWindowSettingsSections.titlebar ? (
+                    <div className="SpaghettiWindowSettingsGroupFields isExpanded">
+                      <div className="SpaghettiWindowSettingsField">
+                        <ParaSlider
+                          label="Opacity"
+                          min={spaghettiWindowSliderBounds.min}
+                          max={spaghettiWindowSliderBounds.max}
+                          step={spaghettiWindowSliderBounds.step}
+                          value={windowAppearance.titlebarOpacity}
+                          clampMin={windowAppearance.titlebarClamp.min}
+                          clampMax={windowAppearance.titlebarClamp.max}
+                          isEditingClamp={isClampEditing}
+                          onChange={(nextValue) =>
+                            onWindowAppearanceChange?.({ titlebarOpacity: nextValue })
+                          }
+                          onClampChange={(nextRange) =>
+                            onWindowAppearanceChange?.({ titlebarClamp: nextRange })
+                          }
+                          formatValue={(nextValue) => `${Math.round(nextValue * 100)}%`}
+                        />
+                      </div>
+                      <div className="SpaghettiWindowSettingsField">
+                      <ParaSelect
+                        label="Color"
+                        value={windowAppearance.titlebarTint}
+                        options={titlebarTintOptions}
+                        menuMode="custom"
+                        onChange={(nextValue) =>
+                          onWindowAppearanceChange?.({
+                            titlebarTint: nextValue as SpaghettiWindowAppearance['titlebarTint'],
+                            })
+                          }
+                        />
+                      </div>
+                    </div>
+                  ) : null}
+                </section>
+                <section
+                  className={`SpaghettiWindowSettingsGroup ${
+                    expandedWindowSettingsSections.body ? 'isExpanded' : ''
+                  }`}
+                  aria-label="Body settings"
+                  data-section-id="body"
                 >
-                  Reset Window Style
-                </button>
+                  <button
+                    type="button"
+                    className="SpaghettiWindowSettingsGroupToggle"
+                    aria-expanded={expandedWindowSettingsSections.body}
+                    onClick={() => toggleWindowSettingsSection('body')}
+                  >
+                    <span className="SpaghettiWindowSettingsGroupChevron">
+                      {expandedWindowSettingsSections.body ? '-' : '+'}
+                    </span>
+                    <span className="SpaghettiWindowSettingsGroupTitle">Body</span>
+                  </button>
+                  {expandedWindowSettingsSections.body ? (
+                    <div className="SpaghettiWindowSettingsGroupFields isExpanded">
+                      <div className="SpaghettiWindowSettingsField">
+                        <ParaSlider
+                          label="Opacity"
+                          min={spaghettiWindowSliderBounds.min}
+                          max={spaghettiWindowSliderBounds.max}
+                          step={spaghettiWindowSliderBounds.step}
+                          value={windowAppearance.windowOpacity}
+                          clampMin={windowAppearance.windowClamp.min}
+                          clampMax={windowAppearance.windowClamp.max}
+                          isEditingClamp={isClampEditing}
+                          onChange={(nextValue) =>
+                            onWindowAppearanceChange?.({ windowOpacity: nextValue })
+                          }
+                          onClampChange={(nextRange) =>
+                            onWindowAppearanceChange?.({ windowClamp: nextRange })
+                          }
+                          formatValue={(nextValue) => `${Math.round(nextValue * 100)}%`}
+                        />
+                      </div>
+                      <div className="SpaghettiWindowSettingsField">
+                      <ParaSelect
+                        label="Color"
+                        value={windowAppearance.bodyTint}
+                        options={bodyTintOptions}
+                        menuMode="custom"
+                        onChange={(nextValue) =>
+                          onWindowAppearanceChange?.({
+                            bodyTint: nextValue as SpaghettiWindowAppearance['bodyTint'],
+                            })
+                          }
+                        />
+                      </div>
+                      <div className="SpaghettiWindowSettingsField">
+                        <ParaSlider
+                          label="Side Padding"
+                          min={spaghettiWindowSliderBounds.min}
+                          max={spaghettiWindowSliderBounds.max}
+                          step={spaghettiWindowSliderBounds.step}
+                          value={windowAppearance.bodyInsetX}
+                          clampMin={windowAppearance.bodyInsetXClamp.min}
+                          clampMax={windowAppearance.bodyInsetXClamp.max}
+                          isEditingClamp={isClampEditing}
+                          onChange={(nextValue) =>
+                            onWindowAppearanceChange?.({ bodyInsetX: nextValue })
+                          }
+                          onClampChange={(nextRange) =>
+                            onWindowAppearanceChange?.({ bodyInsetXClamp: nextRange })
+                          }
+                          formatValue={(nextValue) => `${Math.round(nextValue * 12)}px`}
+                        />
+                      </div>
+                      <div className="SpaghettiWindowSettingsField">
+                        <ParaSlider
+                          label="Top Bottom Padding"
+                          min={spaghettiWindowSliderBounds.min}
+                          max={spaghettiWindowSliderBounds.max}
+                          step={spaghettiWindowSliderBounds.step}
+                          value={windowAppearance.bodyInsetY}
+                          clampMin={windowAppearance.bodyInsetYClamp.min}
+                          clampMax={windowAppearance.bodyInsetYClamp.max}
+                          isEditingClamp={isClampEditing}
+                          onChange={(nextValue) =>
+                            onWindowAppearanceChange?.({ bodyInsetY: nextValue })
+                          }
+                          onClampChange={(nextRange) =>
+                            onWindowAppearanceChange?.({ bodyInsetYClamp: nextRange })
+                          }
+                          formatValue={(nextValue) => `${Math.round(nextValue * 12)}px`}
+                        />
+                      </div>
+                    </div>
+                  ) : null}
+                </section>
+                <section
+                  className={`SpaghettiWindowSettingsGroup ${
+                    expandedWindowSettingsSections.text ? 'isExpanded' : ''
+                  }`}
+                  aria-label="Text settings"
+                  data-section-id="text"
+                >
+                  <button
+                    type="button"
+                    className="SpaghettiWindowSettingsGroupToggle"
+                    aria-expanded={expandedWindowSettingsSections.text}
+                    onClick={() => toggleWindowSettingsSection('text')}
+                  >
+                    <span className="SpaghettiWindowSettingsGroupChevron">
+                      {expandedWindowSettingsSections.text ? '-' : '+'}
+                    </span>
+                    <span className="SpaghettiWindowSettingsGroupTitle">Text</span>
+                  </button>
+                  {expandedWindowSettingsSections.text ? (
+                    <div className="SpaghettiWindowSettingsGroupFields isExpanded">
+                      <div className="SpaghettiWindowSettingsField">
+                        <ParaSlider
+                          label="Opacity"
+                          min={spaghettiWindowSliderBounds.min}
+                          max={spaghettiWindowSliderBounds.max}
+                          step={spaghettiWindowSliderBounds.step}
+                          value={windowAppearance.graphContentOpacity}
+                          clampMin={windowAppearance.graphContentClamp.min}
+                          clampMax={windowAppearance.graphContentClamp.max}
+                          isEditingClamp={isClampEditing}
+                          onChange={(nextValue) =>
+                            onWindowAppearanceChange?.({ graphContentOpacity: nextValue })
+                          }
+                          onClampChange={(nextRange) =>
+                            onWindowAppearanceChange?.({ graphContentClamp: nextRange })
+                          }
+                          formatValue={(nextValue) => `${Math.round(nextValue * 100)}%`}
+                        />
+                      </div>
+                      <div className="SpaghettiWindowSettingsField">
+                      <ParaSelect
+                        label="Size"
+                        value={windowAppearance.fontScale}
+                        options={fontScaleOptions}
+                        menuMode="custom"
+                        onChange={(nextValue) =>
+                          onWindowAppearanceChange?.({
+                            fontScale: nextValue as SpaghettiWindowAppearance['fontScale'],
+                          })
+                        }
+                      />
+                    </div>
+                    <div className="SpaghettiWindowSettingsField">
+                      <ParaSelect
+                        label="Type"
+                        value={windowAppearance.fontFamily}
+                        options={fontFamilyOptions}
+                        menuMode="custom"
+                        onChange={(nextValue) =>
+                          onWindowAppearanceChange?.({
+                            fontFamily: nextValue as SpaghettiWindowAppearance['fontFamily'],
+                          })
+                        }
+                      />
+                    </div>
+                    <div className="SpaghettiWindowSettingsField">
+                      <ParaSelect
+                        label="Padding"
+                        value={windowAppearance.paddingScale}
+                        options={paddingScaleOptions}
+                        menuMode="custom"
+                        onChange={(nextValue) =>
+                          onWindowAppearanceChange?.({
+                            paddingScale: nextValue as SpaghettiWindowAppearance['paddingScale'],
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+                ) : null}
+              </section>
               </div>
+            ) : null}
             </div>
-            <div className="SpaghettiWindowSettingsGrid">
-              <div className="SpaghettiWindowSettingsField">
-                <ParaSlider
-                  label="Title Bar"
-                  min={spaghettiWindowSliderBounds.min}
-                  max={spaghettiWindowSliderBounds.max}
-                  step={spaghettiWindowSliderBounds.step}
-                  value={windowAppearance.titlebarOpacity}
-                  clampMin={windowAppearance.titlebarClamp.min}
-                  clampMax={windowAppearance.titlebarClamp.max}
-                  isEditingClamp={isClampEditing}
-                  onChange={(nextValue) =>
-                    onWindowAppearanceChange?.({ titlebarOpacity: nextValue })
-                  }
-                  onClampChange={(nextRange) =>
-                    onWindowAppearanceChange?.({ titlebarClamp: nextRange })
-                  }
-                  formatValue={(nextValue) => `${Math.round(nextValue * 100)}%`}
-                />
-              </div>
-              <div className="SpaghettiWindowSettingsField">
-                <ParaSlider
-                  label="Window Fill"
-                  min={spaghettiWindowSliderBounds.min}
-                  max={spaghettiWindowSliderBounds.max}
-                  step={spaghettiWindowSliderBounds.step}
-                  value={windowAppearance.windowOpacity}
-                  clampMin={windowAppearance.windowClamp.min}
-                  clampMax={windowAppearance.windowClamp.max}
-                  isEditingClamp={isClampEditing}
-                  onChange={(nextValue) =>
-                    onWindowAppearanceChange?.({ windowOpacity: nextValue })
-                  }
-                  onClampChange={(nextRange) =>
-                    onWindowAppearanceChange?.({ windowClamp: nextRange })
-                  }
-                  formatValue={(nextValue) => `${Math.round(nextValue * 100)}%`}
-                />
-              </div>
-              <div className="SpaghettiWindowSettingsField">
-                <ParaSlider
-                  label="Graph Content"
-                  min={spaghettiWindowSliderBounds.min}
-                  max={spaghettiWindowSliderBounds.max}
-                  step={spaghettiWindowSliderBounds.step}
-                  value={windowAppearance.graphContentOpacity}
-                  clampMin={windowAppearance.graphContentClamp.min}
-                  clampMax={windowAppearance.graphContentClamp.max}
-                  isEditingClamp={isClampEditing}
-                  onChange={(nextValue) =>
-                    onWindowAppearanceChange?.({ graphContentOpacity: nextValue })
-                  }
-                  onClampChange={(nextRange) =>
-                    onWindowAppearanceChange?.({ graphContentClamp: nextRange })
-                  }
-                  formatValue={(nextValue) => `${Math.round(nextValue * 100)}%`}
-                />
-              </div>
-              <div className="SpaghettiWindowSettingsField">
-                <ParaSelect
-                  label="Title Bar Color"
-                  value={windowAppearance.titlebarTint}
-                  options={titlebarTintOptions}
-                  onChange={(nextValue) =>
-                    onWindowAppearanceChange?.({
-                      titlebarTint: nextValue as SpaghettiWindowAppearance['titlebarTint'],
-                    })
-                  }
-                />
-              </div>
-              <div className="SpaghettiWindowSettingsField">
-                <ParaSelect
-                  label="Body Color"
-                  value={windowAppearance.bodyTint}
-                  options={bodyTintOptions}
-                  onChange={(nextValue) =>
-                    onWindowAppearanceChange?.({
-                      bodyTint: nextValue as SpaghettiWindowAppearance['bodyTint'],
-                    })
-                  }
-                />
-              </div>
-              <div className="SpaghettiWindowSettingsField">
-                <ParaSelect
-                  label="Font Size"
-                  value={windowAppearance.fontScale}
-                  options={fontScaleOptions}
-                  onChange={(nextValue) =>
-                    onWindowAppearanceChange?.({
-                      fontScale: nextValue as SpaghettiWindowAppearance['fontScale'],
-                    })
-                  }
-                />
-              </div>
-              <div className="SpaghettiWindowSettingsField">
-                <ParaSelect
-                  label="Font Type"
-                  value={windowAppearance.fontFamily}
-                  options={fontFamilyOptions}
-                  onChange={(nextValue) =>
-                    onWindowAppearanceChange?.({
-                      fontFamily: nextValue as SpaghettiWindowAppearance['fontFamily'],
-                    })
-                  }
-                />
-              </div>
-              <div className="SpaghettiWindowSettingsField">
-                <ParaSelect
-                  label="Padding"
-                  value={windowAppearance.paddingScale}
-                  options={paddingScaleOptions}
-                  onChange={(nextValue) =>
-                    onWindowAppearanceChange?.({
-                      paddingScale: nextValue as SpaghettiWindowAppearance['paddingScale'],
-                    })
-                  }
-                />
-              </div>
-            </div>
-          </div>
+            {isWindowSettingsExpanded ? (
+              <button
+                type="button"
+                className="SpaghettiWindowSettingsResizeBar"
+                onPointerDown={handleWindowSettingsResizeStart}
+                onDoubleClick={handleResetWindowSettingsHeight}
+                aria-label="Resize window settings area"
+              >
+                <span className="SpaghettiCanvasResizeGrip" />
+              </button>
+            ) : null}
+          </>
         ) : null}
         <div className="SpaghettiPanelPinnedRow SpaghettiToolbarRow SpaghettiFocusRow">
-          <label className="SpaghettiEditorFocusField">
-            <span>Focus Node</span>
-            <div className="SpaghettiFocusNodeControls">
-              <button
-                type="button"
-                className="SpaghettiFocusNodeCycle"
-                onClick={() => handleCycleFocusNode(-1)}
-                disabled={sortedNodes.length === 0}
-                aria-label="Focus previous node"
-                title="Focus previous node"
-              >
-                {'<'}
-              </button>
-              <button
-                type="button"
-                className="SpaghettiFocusNodeCycle"
-                onClick={() => handleCycleFocusNode(1)}
-                disabled={sortedNodes.length === 0}
-                aria-label="Focus next node"
-                title="Focus next node"
-              >
-                {'>'}
-              </button>
-            </div>
-            <select
+          <div className="SpaghettiFocusPickerCell SpaghettiFocusPickerCell--graph">
+            <ParaSelect
+              label="Graph"
+              value={graphDocumentId ?? ''}
+              options={graphDocumentOptions}
+              menuMode="custom"
+              onChange={handleGraphChange}
+              menuActions={[
+                {
+                  label: 'Add New Graph',
+                  onSelect: handleCreateGraph,
+                },
+              ]}
+            />
+          </div>
+          <div className="SpaghettiFocusPickerCell SpaghettiFocusPickerCell--node">
+            <ParaSelect
+              label="Focus Node"
               value={focusNodeId ?? ''}
-              onChange={(event) => {
-                const next = event.target.value.trim()
-                const nextNodeId = next.length > 0 ? next : null
-                setFocusNodeId(nextNodeId)
-                setSelectedNodeId(nextNodeId)
+              options={focusNodeOptions}
+              menuMode="custom"
+              onChange={(nextValue) => {
+                const nextNodeId = nextValue.trim().length > 0 ? nextValue : null
+                handleFocusNodeChange(nextNodeId)
               }}
-            >
-              {sortedNodes.length === 0 ? (
-                <option value="">No nodes</option>
-              ) : (
-                sortedNodes.map((node) => (
-                  <option key={node.nodeId} value={node.nodeId}>
-                    {node.nodeId}
-                  </option>
-                ))
-              )}
-            </select>
-          </label>
+            />
+          </div>
         </div>
         <div
           ref={toolbarScrollRef}

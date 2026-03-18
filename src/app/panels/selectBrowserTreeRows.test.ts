@@ -938,21 +938,21 @@ describe('selectBrowserTreeRows', () => {
     expect(rows.referenceRows).toEqual([
       expect.objectContaining({
         rowId: 'reference-root',
-        state: 'visible',
-        stateLabel: 'On',
+        state: 'idle',
+        stateLabel: 'Idle',
       }),
       expect.objectContaining({
         rowId: 'reference-category-row:user-references',
         label: 'User References',
-        state: 'visible',
-        stateLabel: 'On',
+        state: 'idle',
+        stateLabel: 'Idle',
       }),
       expect.objectContaining({
         rowId: 'reference-item-row:reference-import:1',
         sourceKind: 'imported',
         meta: 'GLB',
-        state: 'visible',
-        stateLabel: 'On',
+        state: 'idle',
+        stateLabel: 'Idle',
         isSelected: true,
         showOverflowButton: false,
       }),

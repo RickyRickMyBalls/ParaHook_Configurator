@@ -274,7 +274,6 @@ describe('BrowserPanel', () => {
       buildPolicy: 'live',
       requestGraphDocumentBuild: vi.fn(),
       selectPart: vi.fn(),
-      setInputMode: vi.fn(),
       toggleReferenceWorkspaceExpanded: vi.fn(),
       toggleReferenceCategoryExpanded: vi.fn(),
       toggleReferenceItemVisibility: vi.fn(),
@@ -329,6 +328,24 @@ describe('BrowserPanel', () => {
     expect(container?.textContent).toContain('Graph Documents')
   })
 
+  it('does not render User References or its empty string when no imported references exist', async () => {
+    currentAppState = {
+      ...currentAppState,
+      referenceWorkspaceTree: {
+        ...emptyReferenceWorkspaceTree,
+        categories: emptyReferenceWorkspaceTree.categories.slice(0, 3),
+      },
+    }
+    currentAppState.referenceWorkspace = referenceWorkspaceStateFromTree(
+      currentAppState.referenceWorkspaceTree,
+    )
+
+    ;({ container, root } = await renderBrowserPanel())
+
+    expect(container?.textContent).not.toContain('User References')
+    expect(container?.textContent).not.toContain('No imported references yet.')
+  })
+
   it('runs the graph document header icon actions from the summary row', async () => {
     ;({ root } = await renderBrowserPanel())
 
@@ -343,7 +360,6 @@ describe('BrowserPanel', () => {
     await click(createButton!)
     expect(currentSpaghettiState.createGraphDocument).toHaveBeenCalledTimes(1)
     expect(currentSpaghettiState.openGraphDocumentInViewport).toHaveBeenCalledWith('graph-document-2')
-    expect(currentAppState.setInputMode).toHaveBeenCalledWith('spaghetti')
 
     await click(duplicateButton!)
     expect(currentSpaghettiState.duplicateActiveGraphDocument).toHaveBeenCalledTimes(1)
@@ -367,7 +383,6 @@ describe('BrowserPanel', () => {
     await click(findButtonByLabel('New Editor')!)
 
     expect(currentSpaghettiState.openGraphDocumentInNewViewport).toHaveBeenCalledWith('graph-document-1')
-    expect(currentAppState.setInputMode).toHaveBeenCalledWith('spaghetti')
     expect(document.querySelector('.BrowserTreeContextMenu')).toBeNull()
   })
 
@@ -581,7 +596,6 @@ describe('BrowserPanel', () => {
       'graph-document-2',
     )
     expect(currentSpaghettiState.openGraphDocumentInViewport).not.toHaveBeenCalled()
-    expect(currentAppState.setInputMode).toHaveBeenCalledWith('spaghetti')
     expect(graphTwoRow?.getAttribute('aria-pressed')).toBe('true')
 
     const graphTwoShell = graphTwoRow?.closest('.BrowserTreeRow')
@@ -607,7 +621,6 @@ describe('BrowserPanel', () => {
       x: 405,
       y: 16,
     })
-    expect(currentAppState.setInputMode).toHaveBeenCalledWith('spaghetti')
   })
 
   it('uses the provided spawn anchor when a graph row opens a new editor without an active editor', async () => {
@@ -633,7 +646,6 @@ describe('BrowserPanel', () => {
       x: 405,
       y: 16,
     })
-    expect(currentAppState.setInputMode).toHaveBeenCalledWith('spaghetti')
   })
 
   it('clicking an open editor row focuses that editor and the direct close button closes it', async () => {
@@ -690,7 +702,6 @@ describe('BrowserPanel', () => {
     await click(graphTwoEditorRow!)
 
     expect(currentSpaghettiState.setActiveEditorViewportId).toHaveBeenCalledWith('editor-viewport-2')
-    expect(currentAppState.setInputMode).toHaveBeenCalledWith('spaghetti')
     expect(graphTwoEditorRow?.getAttribute('aria-pressed')).toBe('true')
 
     const graphTwoEditorShell = graphTwoEditorRow?.closest('.BrowserTreeRow')
@@ -1093,7 +1104,6 @@ describe('BrowserPanel', () => {
       y: 16,
     })
     expect(currentSpaghettiState.setSelectedNodeId).toHaveBeenCalledWith('node-baseplate-1')
-    expect(currentAppState.setInputMode).toHaveBeenCalledWith('spaghetti')
   })
 
   it('shows View In Graph as a secondary action for content rows', async () => {
@@ -1147,7 +1157,6 @@ describe('BrowserPanel', () => {
     await click(findButtonByLabel('View In Graph')!)
     expect(currentSpaghettiState.openGraphDocumentInViewport).toHaveBeenCalledWith('graph-document-1')
     expect(currentSpaghettiState.setSelectedNodeId).toHaveBeenCalledWith('node-baseplate-1')
-    expect(currentAppState.setInputMode).toHaveBeenCalledWith('spaghetti')
   })
 
   it('double-clicking a component row without a source node opens the source graph only', async () => {
@@ -1335,7 +1344,6 @@ describe('BrowserPanel', () => {
       y: 16,
     })
     expect(currentSpaghettiState.setSelectedNodeId).toHaveBeenCalledWith('node-baseplate-1')
-    expect(currentAppState.setInputMode).toHaveBeenCalledWith('spaghetti')
   })
 
   it('shows Needs Rebuild and Nodes under graph documents and remembers section expand state per graph', async () => {
@@ -1509,15 +1517,30 @@ describe('BrowserPanel', () => {
     expect(findRowMainByLabel('PubPad Full Assembly')).not.toBeNull()
     expect(findRowMainByLabel('Shoes')).not.toBeNull()
     expect(findRowMainByLabel('Shoe 1')).toBeNull()
+    const footpadsVisibilityButton =
+      findButtonByLabel('Hide Footpads') ?? findButtonByLabel('Show Footpads')
+    const pubPadVisibilityButton =
+      findButtonByLabel('Hide PubPad Full Assembly') ??
+      findButtonByLabel('Show PubPad Full Assembly')
 
-    await click(findRowMainByLabel('Footpads')!)
+    expect(footpadsVisibilityButton).not.toBeNull()
+    expect(pubPadVisibilityButton).not.toBeNull()
+
+    await click(footpadsVisibilityButton!)
     expect(currentAppState.toggleReferenceCategoryVisibility).toHaveBeenCalledWith('footpads')
 
     await click(findButtonByLabel('Expand Shoes children')!)
     expect(currentAppState.toggleReferenceCategoryExpanded).toHaveBeenCalledWith('shoes')
 
     await click(findRowMainByLabel('PubPad Full Assembly')!)
-    expect(currentAppState.toggleReferenceItemVisibility).toHaveBeenCalledWith(
+    expect(currentAppState.toggleReferenceItemVisibility).not.toHaveBeenCalledWith(
+      'footpad:pubpad-full-assembly',
+    )
+    expect(currentAppState.setReferenceItemVisibility).toHaveBeenCalledWith(
+      'footpad:pubpad-full-assembly',
+      true,
+    )
+    expect(currentAppState.beginReferenceTransform).toHaveBeenCalledWith(
       'footpad:pubpad-full-assembly',
     )
   })

@@ -54,11 +54,6 @@ describe('console publishers', () => {
   it('publishes param and selection lines from useAppStore', async () => {
     const { useAppStore } = await import('../store/useAppStore')
 
-    useAppStore.setState({
-      ...useAppStore.getState(),
-      inputMode: 'spaghetti',
-    })
-
     useAppStore.getState().setBoxParam('width', 24)
     useAppStore.getState().selectPart('baseplate')
 
