@@ -7,6 +7,73 @@ import {
 import { OUTPUT_PREVIEW_NODE_TYPE } from '../system/outputPreviewNode'
 
 describe('OutputPreview node registry contract', () => {
+  it('registers Geometry/Extrude as a user-addable extrude template node', () => {
+    const nodeDef = getNodeDef('Geometry/Extrude')
+    const addableTypes = listUserAddableNodeTypes().map((entry) => entry.type)
+
+    expect(nodeDef).toBeDefined()
+    expect(nodeDef?.label).toBe('Extrude')
+    expect(nodeDef?.template).toBe('extrude')
+    expect(nodeDef?.inputs).toEqual([
+      {
+        portId: 'ExtrusionProfile',
+        label: 'ExtrusionProfile',
+        type: { kind: 'sketchProfile' },
+        optional: true,
+      },
+      {
+        portId: 'Depth',
+        label: 'Depth',
+        type: { kind: 'number', unit: 'mm' },
+        optional: true,
+      },
+    ])
+    expect(nodeDef?.outputs).toEqual([
+      {
+        portId: 'SolidBody',
+        label: 'SolidBody',
+        type: { kind: 'solidBody' },
+      },
+    ])
+    expect(addableTypes).toContain('Geometry/Extrude')
+  })
+
+  it('registers Geometry/Sketch as a user-addable sketch template node', () => {
+    const nodeDef = getNodeDef('Geometry/Sketch')
+    const addableTypes = listUserAddableNodeTypes().map((entry) => entry.type)
+
+    expect(nodeDef).toBeDefined()
+    expect(nodeDef?.label).toBe('Sketch')
+    expect(nodeDef?.template).toBe('sketch')
+    expect(nodeDef?.inputs).toEqual([
+      {
+        portId: 'SketchPlane',
+        label: 'SketchPlane',
+        type: { kind: 'plane' },
+        optional: true,
+      },
+      {
+        portId: 'SketchEntities',
+        label: 'SketchDraw',
+        type: { kind: 'sketchEntities' },
+        optional: true,
+      },
+    ])
+    expect(nodeDef?.outputs).toEqual([
+      {
+        portId: 'SketchProfiles',
+        label: 'SketchProfiles',
+        type: { kind: 'sketchProfiles' },
+      },
+      {
+        portId: 'SketchProfile',
+        label: 'SketchProfile',
+        type: { kind: 'sketchProfile' },
+      },
+    ])
+    expect(addableTypes).toContain('Geometry/Sketch')
+  })
+
   it('resolves System/OutputPreview with no declared inputs or outputs', () => {
     const nodeDef = getNodeDef(OUTPUT_PREVIEW_NODE_TYPE)
     expect(nodeDef).toBeDefined()

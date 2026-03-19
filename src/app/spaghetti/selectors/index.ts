@@ -23,6 +23,8 @@ export {
   type FeatureDependencyEdge,
   type FeatureDependencyRow,
   type NodeInputCompositeState,
+  type ExtrudeNodeVm,
+  type SketchNodeVm,
   type NodeVm,
   type OutputPreviewSlotRowVm,
   type UtilityNodeVm,

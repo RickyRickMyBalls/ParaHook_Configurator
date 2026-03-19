@@ -86,6 +86,9 @@ const isVec2Like = (value: unknown): value is { x: number; y: number } => {
 
 const isBooleanLike = (value: unknown): value is boolean => typeof value === 'boolean'
 
+const isSketchPlaneLike = (value: unknown): value is 'XY' | 'YZ' | 'XZ' =>
+  value === 'XY' || value === 'YZ' || value === 'XZ'
+
 const isSpline2Like = (value: unknown): value is { points: Array<{ x: number; y: number }>; closed: boolean } => {
   if (typeof value !== 'object' || value === null) {
     return false
@@ -102,6 +105,35 @@ const isSpline2Like = (value: unknown): value is { points: Array<{ x: number; y:
     return typeof vec.x === 'number' && Number.isFinite(vec.x) && typeof vec.y === 'number' && Number.isFinite(vec.y)
   })
 }
+
+const isProfileOutputLike = (
+  value: unknown,
+): value is {
+  profileId: string
+  profileIndex: number
+  area: number
+} => {
+  if (typeof value !== 'object' || value === null) {
+    return false
+  }
+  const candidate = value as { profileId?: unknown; profileIndex?: unknown; area?: unknown }
+  return (
+    typeof candidate.profileId === 'string' &&
+    candidate.profileId.length > 0 &&
+    typeof candidate.profileIndex === 'number' &&
+    Number.isFinite(candidate.profileIndex) &&
+    typeof candidate.area === 'number' &&
+    Number.isFinite(candidate.area)
+  )
+}
+
+const isSketchProfilesLike = (
+  value: unknown,
+): value is Array<{
+  profileId: string
+  profileIndex: number
+  area: number
+}> => Array.isArray(value) && value.every((entry) => isProfileOutputLike(entry))
 
 const getValueAtPath = (value: unknown, path: string[] | undefined): unknown => {
   if (path === undefined || path.length === 0) {
@@ -178,6 +210,24 @@ export type UtilityNodeVm =
       value: { x: number; y: number }
       outputPort: PortSpec
     }
+
+export type SketchNodeVm = {
+  localPlane: 'XY' | 'YZ' | 'XZ'
+  effectivePlane: 'XY' | 'YZ' | 'XZ'
+  planeDriven: boolean
+  profileCount: number
+  hasSelectedProfile: boolean
+}
+
+export type ExtrudeNodeVm = {
+  extrudeType: 'Basic' | 'Twist'
+  effectiveDepthMm: number
+  depthDriven: boolean
+  hasProfile: boolean
+  profileId?: string
+  profileArea?: number
+  bodyId?: string
+}
 
 const buildOutputPreviewSlotRows = (params: {
   node: SpaghettiNode
@@ -298,8 +348,10 @@ const toOutputEndpointIndexById = (
 export type NodeVm = {
   nodeId: string
   title: string
-  template?: 'part'
+  template?: 'part' | 'sketch' | 'extrude'
   utilityVm?: UtilityNodeVm
+  sketchVm?: SketchNodeVm
+  extrudeVm?: ExtrudeNodeVm
   uiSections?: NodeUiSection[]
   presetOptions?: string[]
   allInputs: PortSpec[]
@@ -495,6 +547,80 @@ const buildNodeVm = (
         return [port.portId, lines]
       }),
     )
+    const sketchVm = (() : SketchNodeVm | undefined => {
+      if (node.type !== 'Geometry/Sketch') {
+        return undefined
+      }
+
+      const rawSketch = node.params.sketch
+      const localPlane =
+        typeof rawSketch === 'object' &&
+        rawSketch !== null &&
+        isSketchPlaneLike((rawSketch as { plane?: unknown }).plane)
+          ? (rawSketch as { plane: 'XY' | 'YZ' | 'XZ' }).plane
+          : 'XY'
+      const planeInput = evaluation.inputsByNodeId[node.nodeId]?.SketchPlane
+      const effectivePlane = isSketchPlaneLike(planeInput) ? planeInput : localPlane
+      const profileOutput = evaluation.outputsByNodeId[node.nodeId]?.SketchProfiles
+      const selectedProfile = evaluation.outputsByNodeId[node.nodeId]?.SketchProfile
+      const wholeIncomingForPlane = incoming.filter(
+        (edge) =>
+          edge.to.portId === 'SketchPlane' &&
+          (edge.to.path === undefined || edge.to.path.length === 0),
+      )
+
+      return {
+        localPlane,
+        effectivePlane,
+        planeDriven: wholeIncomingForPlane.length > 0,
+        profileCount: isSketchProfilesLike(profileOutput) ? profileOutput.length : 0,
+        hasSelectedProfile: isProfileOutputLike(selectedProfile),
+      }
+    })()
+    const extrudeVm = (() : ExtrudeNodeVm | undefined => {
+      if (node.type !== 'Geometry/Extrude') {
+        return undefined
+      }
+
+      const rawType =
+        typeof node.params.extrudeType === 'string' &&
+        (node.params.extrudeType === 'Basic' || node.params.extrudeType === 'Twist')
+          ? node.params.extrudeType
+          : 'Basic'
+      const rawDepth = node.params.depthMm
+      const localDepthMm =
+        typeof rawDepth === 'number' && Number.isFinite(rawDepth) ? rawDepth : 20
+      const depthInput = evaluation.inputsByNodeId[node.nodeId]?.Depth
+      const effectiveDepthMm =
+        typeof depthInput === 'number' && Number.isFinite(depthInput) ? depthInput : localDepthMm
+      const profileInput = evaluation.inputsByNodeId[node.nodeId]?.ExtrusionProfile
+      const profileOutput = evaluation.outputsByNodeId[node.nodeId]?.SolidBody
+      const wholeIncomingForDepth = incoming.filter(
+        (edge) =>
+          edge.to.portId === 'Depth' &&
+          (edge.to.path === undefined || edge.to.path.length === 0),
+      )
+
+      return {
+        extrudeType: rawType,
+        effectiveDepthMm,
+        depthDriven: wholeIncomingForDepth.length > 0,
+        hasProfile: isProfileOutputLike(profileInput),
+        ...(isProfileOutputLike(profileInput)
+          ? {
+              profileId: profileInput.profileId,
+              profileArea: profileInput.area,
+            }
+          : {}),
+        ...(
+          typeof profileOutput === 'object' &&
+          profileOutput !== null &&
+          typeof (profileOutput as { bodyId?: unknown }).bodyId === 'string'
+            ? { bodyId: (profileOutput as { bodyId: string }).bodyId }
+            : {}
+        ),
+      }
+    })()
     const utilityVm = (() : UtilityNodeVm | undefined => {
       const valuePort = nodeOutputs.find((port) => port.portId === 'value')
       if (valuePort === undefined) {
@@ -688,6 +814,8 @@ const buildNodeVm = (
       title: nodeDef?.label ?? node.type,
       template: nodeDef?.template,
       utilityVm,
+      sketchVm,
+      extrudeVm,
       uiSections: nodeDef?.uiSections,
       presetOptions: nodeDef?.presetOptions,
       allInputs: node.type === OUTPUT_PREVIEW_NODE_TYPE ? effectiveInputPorts : nodeInputs,

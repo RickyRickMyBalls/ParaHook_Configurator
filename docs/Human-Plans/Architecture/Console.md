@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+4. 2026-03-18 21:19: Expanded the console architecture with a larger long-term command-language vision, describing how the app-wide console could eventually support hierarchical navigation/action flows such as selecting graphs, entering node scope, finding or adding nodes, and later driving sketch-specific operations entirely from console input
 3. 2026-03-17 10:35: Added a console layer color rule and a suggested first color palette so each internal layer is both filterable and visually distinct in the transcript
 2. 2026-03-17 10:31: Renamed this architecture surface from `Command Line` to `Console` and rewrote it around one unified console with collapsed/expanded modes plus internal layers for commands, shortcuts, worker/app notes, params, and diagnostics
 1. 2026-03-17 10:15: Created this architecture doc to define an app-wide `Command Line` / `Command Console` direction for ParaHook, including the bottom-row command surface, keyboard-routing ownership, and its relationship to the existing read-only debug inspector
@@ -535,6 +536,409 @@ This also matches the current pain point:
 Important rule:
 - shortcut-driven use should still produce readable transcript lines
 
+### Longer-Term Command Language Vision
+
+Long term, the `Console` should be capable of driving much more than a few global commands or transform shortcuts.
+
+It should eventually support a real command-navigation grammar that lets the user move through app/workspace domains and act on them entirely from console input.
+
+This system should be named clearly.
+
+Recommended naming:
+- product/user-facing name:
+  - the ParaHook `Console` command language
+- architecture name:
+  - a hierarchical command grammar
+- implementation name:
+  - a command router plus command state machine
+
+Why this name fits:
+- the user is not only issuing one flat command like `save`
+- the console can accept staged follow-up input that moves deeper into a domain/action path
+- short aliases can stand in for larger command words as long as the console makes the current state visible
+
+AutoCAD-style mental model:
+- the user can type a short mnemonic, press `Enter`, and then answer the next prompt with another short token
+- each accepted token moves the session deeper into the active command path
+- the console should always show what scope/action is now active and what input is expected next
+
+Example shape:
+- `s` `Enter`
+  - `select`
+- `g` `Enter`
+  - while inside `select`, resolve to `graph`
+- `1` `Enter`
+  - while inside `select > graph`, resolve to graph `1`
+
+This is not just a shortcut list.
+
+It is a stateful, hierarchical command system with mnemonic aliases and visible follow-up prompts.
+
+This means the console should be able to express workflows such as:
+- selecting a workspace/domain
+- entering graph scope
+- selecting a specific graph
+- entering node scope
+- finding a node
+- adding a node
+- later drilling into node-specific subcommands such as sketch actions
+
+Example future shape:
+- `s`
+  - select
+- `g`
+  - graph
+- `1`
+  - graph `1`
+- `n`
+  - nodes
+- `f`
+  - find
+- `a`
+  - add
+- `sketch`
+  - target the `Sketch` node type
+
+Plain-English read:
+- the console should eventually let the user navigate:
+  - app
+  - workspace
+  - graph
+  - node
+  - node-specific sub-surfaces
+
+This is bigger than a shortcut bar.
+
+It is a future command language for ParaHook.
+
+Important rule:
+- this should still remain one command system
+- not one separate mini-language per feature
+
+That means:
+- `Console.md` should own the command-language architecture
+- workspace/feature docs should define their command domains and actions
+- graph and node docs should plug into the console grammar rather than inventing separate command systems
+
+Recommended long-term command-domain stack:
+- app commands
+- workspace commands
+- graph commands
+- node commands
+- feature/node-specific commands
+
+Examples:
+- app
+  - `save`
+  - `build`
+  - `console`
+- graph
+  - select graph
+  - list graphs
+  - add node
+  - find node
+- node
+  - select node
+  - open node
+  - rename node
+- sketch
+  - enter source-pick
+  - confirm source
+  - cancel source
+  - inspect sketch-plane status
+
+#### Example Hierarchical Menus
+
+The command language should eventually be describable as one shared command tree.
+
+The cleanest way to think about menus is:
+- each menu is one visible slice of that tree
+- the console shows only the current slice plus the current path
+- entering a token either:
+  - executes an action
+  - or moves deeper into the next menu/context
+
+Recommended shared control tokens:
+- `?`
+  - show the current menu/help
+- `b`
+  - go back one level
+- `x`
+  - cancel the current command/session
+- `Enter`
+  - accept the current token
+
+#### Level 1
+
+The first visible menu from `Ready` should stay small, general, and easy to memorize.
+
+Recommended `level 1` options:
+- `s`
+  - select
+- `o`
+  - open
+- `a`
+  - add
+- `f`
+  - find
+- `build`
+  - build current target
+- `save`
+  - save current project/workspace
+- `?`
+  - show root help/menu
+- `x`
+  - cancel/clear current command state
+
+Why these belong at `level 1`:
+- they are app-wide actions, not feature-specific actions
+- they give the user a clean first fork into navigation, editing, creation, or app execution
+- they avoid overloading the first menu with sketch-only or deep graph-only commands too early
+
+Example first-load console read:
+- `Ready`
+- `Level 1: [s] Select  [o] Open  [a] Add  [f] Find  [build] Build  [save] Save  [?] Help  [x] Cancel`
+
+Recommended first menu shape:
+
+- root
+  - `s`
+    - select
+  - `o`
+    - open
+  - `a`
+    - add
+  - `f`
+    - find
+  - `r`
+    - rename
+  - `build`
+    - build current target
+  - `save`
+    - save current project/workspace
+  - `console`
+    - focus/toggle the console
+
+- `select`
+  - `g`
+    - graph
+  - `n`
+    - node
+  - `r`
+    - reference
+  - `v`
+    - viewport
+
+- `select > graph`
+  - `1`
+    - graph `1`
+  - `2`
+    - graph `2`
+  - `3`
+    - graph `3`
+  - `l`
+    - list graphs
+
+- `graph`
+  - `s`
+    - select graph
+  - `o`
+    - open graph
+  - `r`
+    - rename graph
+  - `n`
+    - graph nodes
+  - `build`
+    - build graph
+
+- `graph > nodes`
+  - `s`
+    - select node
+  - `o`
+    - open node
+  - `a`
+    - add node
+  - `f`
+    - find node
+
+- `node`
+  - `o`
+    - open node
+  - `r`
+    - rename node
+  - `d`
+    - delete node
+  - `sketch`
+    - enter sketch-specific commands when relevant
+
+- `sketch`
+  - `p`
+    - source pick
+  - `c`
+    - confirm
+  - `x`
+    - cancel
+  - `status`
+    - inspect sketch status
+
+Example flows:
+- `s` `Enter`
+  - open `select`
+- `g` `Enter`
+  - inside `select`, open `select > graph`
+- `1` `Enter`
+  - select graph `1`
+- `n` `Enter`
+  - inside `graph`, open `graph > nodes`
+- `a` `Enter`
+  - inside `graph > nodes`, start `add node`
+
+Console rendering should stay clean and hierarchical:
+- show the current path such as `Select > Graph`
+- show the current prompt such as `Choose graph`
+- show the currently valid tokens for this level
+- keep back/cancel/help commands visible and consistent across menus
+
+Important rule:
+- these are not separate feature-specific menus with separate syntax
+- they are different visible states of one shared command language
+- feature docs can define their branch of the tree, but the console owns the overall grammar and navigation rules
+
+#### Future AutoCAD Command Carry-Over
+
+Long term, the console should leave room for partial AutoCAD command carry-over.
+
+This does not mean ParaHook should become an AutoCAD clone or inherit AutoCAD command behavior blindly.
+
+The real goal is:
+- reduce friction for users who already think in AutoCAD command language
+- let familiar aliases and habits carry over where the ParaHook action is truly equivalent
+- make mismatches explicit where ParaHook has no honest equivalent yet
+
+Possible future compatibility layers:
+- built-in support for a small set of common AutoCAD-style aliases that map cleanly onto real ParaHook commands
+- optional user-defined alias mapping so one user can prefer `s` while another prefers a different token
+- later import support for an AutoCAD command/alias file as a starting point for review, not as an automatic blind migration
+
+Example starter carry-over set from real AutoCAD usage:
+
+- sketch / drawing
+  - `pl`
+    - `polyline`
+  - `l`
+    - `line`
+  - `rec`
+    - `rectangle`
+  - `cc`
+    - `circle`
+  - `tr`
+    - `trim`
+  - `f`
+    - `fillet`
+
+- geometry/edit
+  - `c`
+    - `copy`
+  - `r`
+    - `rotate`
+  - `e`
+    - `extend`
+  - `t`
+    - `trim`
+  - `ch`
+    - `chamfer`
+  - `ll`
+    - `xline`
+  - `cc`
+    - `circle`
+
+- dimensions
+  - `d`
+    - `dimlinear`
+  - `da`
+    - `dimaligned`
+  - `das`
+    - `dimangular`
+
+- layers
+  - `lc`
+    - `laymcur`
+  - `ltl`
+    - `laylck`
+  - `ul`
+    - `layulk`
+  - `ff`
+    - `layfrz`
+  - `fdf`
+    - `layiso`
+  - `as`
+    - `layuniso`
+  - `aa`
+    - `laythw`
+
+Sketch should likely become the first serious home for many of the drawing-style carry-over commands.
+
+Examples:
+- `pl`, `l`, `rec`, `cc`, `tr`, and `f` are more likely to map honestly inside a future sketch/domain-specific command branch than as app-global commands
+- the console grammar should still treat them as part of the same overall command language, even when their execution only makes sense while a sketch session or sketch node is active
+
+These should be treated as candidate carry-over aliases, not assumed one-to-one mappings.
+
+Some may eventually map cleanly onto ParaHook behavior.
+
+Others may need:
+- a renamed ParaHook command
+- a narrower scoped action
+- a multi-step menu path instead of one flat alias
+- or an explicit `unsupported / no equivalent yet` result
+
+Possible future import flow:
+- user uploads an AutoCAD command/alias file
+- ParaHook opens a separate review window/dialog
+- the review surface shows:
+  - aliases that map cleanly to an existing ParaHook command
+  - aliases that are ambiguous and need user choice
+  - aliases that cannot carry over because ParaHook has no matching command/domain yet
+- the user can sort/filter that list and choose which aliases to keep, rename, or ignore
+- accepted aliases become user-level console preferences, not hard-coded global product defaults
+
+Important rules:
+- imported aliases should plug into the same command registry and command router as native ParaHook commands
+- aliases should never create a second execution path with different behavior
+- the import/review experience is long-range work and should stay out of the first honest console implementation
+- the core command language should stand on its own even if AutoCAD import never ships
+
+Design consequence:
+- the command registry should eventually separate canonical command identity from user-facing aliases
+- the console should be able to explain both:
+  - the canonical ParaHook command
+  - the currently active alias that invoked it
+
+Architectural consequence:
+- the command router should eventually support hierarchical follow-up state, not just one-shot commands
+- the command registry should support domain/context transitions
+- object addressing needs to be stable enough that the console can talk about:
+  - graph ids
+  - node ids
+  - reference ids
+  - later sketch ids or sketch sub-surfaces
+
+Important rule:
+- this is not required for the first honest console implementation
+- but the first implementation should avoid painting the console into a corner that only supports flat one-shot commands
+
+Practical implication for early work:
+- the first console should prove:
+  - transcript
+  - routing
+  - follow-up state
+  - small command vocabulary
+- later phases can expand that into graph/node/sketch command navigation
+
+Relationship to future sketch work:
+- sketch-specific console actions should eventually live inside this larger grammar
+- the sketch-plane viewport-pick commands in `Sketch.md` should be treated as one future node-domain slice of the app-wide console, not as a separate console product
+
 #### Flow C. Param feedback
 
 - user changes `Width`
@@ -567,3 +971,59 @@ The right mental model is:
 - it should support internal layers for commands, shortcuts, worker/app notes, params, and diagnostics
 - it should centralize command routing without stealing real feature ownership
 - it should coexist with the current read-only `Debug Inspector`, not replace it
+
+
+# ParaHook Console Commands:
+
+# `s` > [Select]
+## `SELECT` Choose target [Graph, Node, Reference, Viewport]:
+## `SELECT > GRAPH` Choose graph [1, 2, 3, List]:
+### `SELECT > GRAPH > graph_[1]` Choose next action [Nodes, References, Open, Build]:
+#### `SELECT > GRAPH > graph_[1] > NODES` Choose node type [Sketches]:
+##### `SELECT > GRAPH > graph_[1] > NODES > SKETCHES` Choose sketch [1, 2, 3, List]:
+###### `SELECT > GRAPH > graph_[1] > NODES > SKETCHES > sketch_[1]` Choose item [SketchPlane, SketchProfiles, Open, Inspect]:
+####### `SELECT > GRAPH > graph_[1] > NODES > SKETCHES > sketch_[1] > SKETCHPLANE` Choose item [Origin, Plane, Rotation]:
+######## `SELECT > GRAPH > graph_[1] > NODES > SKETCHES > sketch_[1] > SKETCHPLANE > ORIGIN` Current [x, y, z] Options [Change]:
+######## `SELECT > GRAPH > graph_[1] > NODES > SKETCHES > sketch_[1] > SKETCHPLANE > PLANE` Current [XY] Options [Change]:
+######### `SELECT > GRAPH > graph_[1] > NODES > SKETCHES > sketch_[1] > SKETCHPLANE > PLANE > CHANGE` Choose plane [XY, XZ, YZ]:
+######## `SELECT > GRAPH > graph_[1] > NODES > SKETCHES > sketch_[1] > SKETCHPLANE > ROTATION` Current [x, y, z] Options [Change]:
+## `SELECT > NODE` Choose node [1, 2, 3, List]:
+## `SELECT > REFERENCE` Choose reference [1, 2, 3, List]:
+## `SELECT > VIEWPORT` Choose viewport [1, 2, Active]:
+
+# `o` > [Open]
+## `OPEN` Choose target [Graph, Node, Reference, Viewport]:
+## `OPEN > GRAPH` Choose graph [1, 2, Recent]:
+## `OPEN > NODE` Choose node [1, 2, Selected]:
+## `OPEN > REFERENCE` Choose reference [1, 2, Selected]:
+## `OPEN > VIEWPORT` Choose viewport [1, 2, Active]:
+
+# `a` > [Add]
+## `ADD` Choose target [Graph, Node, Reference, Sketch]:
+## `ADD > GRAPH` Choose option [New, Import]:
+## `ADD > NODE` Choose node type [Sketch, Part, Ref]:
+## `ADD > REFERENCE` Choose option [New, Link]:
+## `ADD > SKETCH` Choose item [Line, Polyline, Rectangle, Circle]:
+
+# `f` > [Find]
+## `FIND` Choose target [Graph, Node, Reference, Sketch]:
+## `FIND > GRAPH` Find graph by [Name, Id, Tag]:
+## `FIND > NODE` Find node by [Name, Id, Type]:
+## `FIND > REFERENCE` Find reference by [Name, Id]:
+## `FIND > SKETCH` Find sketch item [Line, Circle, Profile]:
+
+# `build` > [Build]
+## `BUILD` Choose target [Graph, All]:
+## `BUILD > GRAPH` Choose graph [Selected, Active]:
+## `BUILD > ALL` Choose option [Now]:
+
+# `save` > [Save]
+## `SAVE` Choose target [Project, Workspace]:
+## `SAVE > PROJECT` Choose option [Current]:
+## `SAVE > WORKSPACE` Choose option [Current]:
+
+# `?` > [Help]
+## `HELP` Show the current prompt and valid options
+
+# `x` > [Cancel]
+## `CANCEL` Cancel the current command or picker

@@ -11,6 +11,7 @@ import { createPortal } from 'react-dom'
 import { DEFAULT_REFERENCE_ROTATE_SNAP } from '../references/referenceTimeline'
 import { getViewer } from '../viewerBridge'
 import { useAppStore } from '../store/useAppStore'
+import { useSpaghettiStore } from '../spaghetti/store/useSpaghettiStore'
 import { ConsoleBar } from './ConsoleBar'
 import { ConsolePanel } from './ConsolePanel'
 import { appendConsoleEntry, isConsoleEntryVisible, useConsoleStore } from './useConsoleStore'
@@ -255,6 +256,17 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
 
   const handleSubmitCommand = useCallback(
     (inputText: string) => {
+      const trimmedInput = inputText.trim().toLowerCase()
+      if (trimmedInput === 'x' && useSpaghettiStore.getState().sketchPlanePickSession !== null) {
+        appendConsoleEntry({
+          layer: 'Commands',
+          text: '> x',
+        })
+        pushCommandHistory('x')
+        useSpaghettiStore.getState().cancelSketchPlanePick()
+        return
+      }
+
       const parsed = parseConsoleCommand(inputText)
       if (parsed === null) {
         useConsoleStore.getState().setInputText('')

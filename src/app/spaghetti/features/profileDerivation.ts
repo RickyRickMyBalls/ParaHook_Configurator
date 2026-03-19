@@ -13,6 +13,11 @@ type DeriveProfilesResult = {
   diagnostics: SketchDerivationDiagnostic[]
 }
 
+type ExpandedSketchComponent = {
+  componentId: string
+  segments: Segment2[]
+}
+
 const CANON_PRECISION = 6
 const CANON_SCALE = 10 ** CANON_PRECISION
 
@@ -80,29 +85,102 @@ const toSegmentEnd = (segment: Segment2): Point2 => {
   return segment.end
 }
 
-const resolveSketchComponentToSegment = (component: SketchComponent): Segment2 => {
+const resolveSketchComponentToSegments = (component: SketchComponent): Segment2[] => {
   if (component.type === 'line') {
-    return {
-      kind: 'line2',
-      a: canonPoint(component.a),
-      b: canonPoint(component.b),
-    }
+    return [
+      {
+        kind: 'line2',
+        a: canonPoint(component.a),
+        b: canonPoint(component.b),
+      },
+    ]
   }
   if (component.type === 'spline') {
-    return {
-      kind: 'bezier2',
-      p0: canonPoint(component.p0),
-      p1: canonPoint(component.p1),
-      p2: canonPoint(component.p2),
-      p3: canonPoint(component.p3),
-    }
+    return [
+      {
+        kind: 'bezier2',
+        p0: canonPoint(component.p0),
+        p1: canonPoint(component.p1),
+        p2: canonPoint(component.p2),
+        p3: canonPoint(component.p3),
+      },
+    ]
   }
-  return {
-    kind: 'arc3pt2',
-    start: canonPoint(component.start),
-    mid: canonPoint(component.mid),
-    end: canonPoint(component.end),
+  if (component.type === 'arc3pt') {
+    return [
+      {
+        kind: 'arc3pt2',
+        start: canonPoint(component.start),
+        mid: canonPoint(component.mid),
+        end: canonPoint(component.end),
+      },
+    ]
   }
+
+  if (component.type === 'rectangle') {
+    const a = canonPoint(component.a)
+    const b = canonPoint(component.b)
+    const minX = Math.min(a.x, b.x)
+    const maxX = Math.max(a.x, b.x)
+    const minY = Math.min(a.y, b.y)
+    const maxY = Math.max(a.y, b.y)
+    const p0 = { x: minX, y: minY }
+    const p1 = { x: maxX, y: minY }
+    const p2 = { x: maxX, y: maxY }
+    const p3 = { x: minX, y: maxY }
+    return [
+      { kind: 'line2', a: p0, b: p1 },
+      { kind: 'line2', a: p1, b: p2 },
+      { kind: 'line2', a: p2, b: p3 },
+      { kind: 'line2', a: p3, b: p0 },
+    ]
+  }
+
+  const center = canonPoint(component.center)
+  const edge = canonPoint(component.edge)
+  const dx = edge.x - center.x
+  const dy = edge.y - center.y
+  const radius = Math.hypot(dx, dy)
+  if (radius <= 1e-9) {
+    return [
+      {
+        kind: 'arc3pt2',
+        start: edge,
+        mid: edge,
+        end: edge,
+      },
+    ]
+  }
+  const opposite = {
+    x: center.x - dx,
+    y: center.y - dy,
+  }
+  const perpUnit = {
+    x: -dy / radius,
+    y: dx / radius,
+  }
+  const upper = canonPoint({
+    x: center.x + perpUnit.x * radius,
+    y: center.y + perpUnit.y * radius,
+  })
+  const lower = canonPoint({
+    x: center.x - perpUnit.x * radius,
+    y: center.y - perpUnit.y * radius,
+  })
+  return [
+    {
+      kind: 'arc3pt2',
+      start: edge,
+      mid: upper,
+      end: opposite,
+    },
+    {
+      kind: 'arc3pt2',
+      start: opposite,
+      mid: lower,
+      end: edge,
+    },
+  ]
 }
 
 const normalizeLegacyEntities = (entities: readonly SketchEntity[]): SketchComponent[] =>
@@ -166,53 +244,97 @@ export const deriveProfilesWithDiagnostics = (
     return { profiles: [], diagnostics: [] }
   }
 
-  const segments = components.map(resolveSketchComponentToSegment)
-  const firstStart = toSegmentStart(segments[0])
-  const lastEnd = toSegmentEnd(segments[segments.length - 1])
-  if (!pointsEqual(firstStart, lastEnd)) {
-    return {
-      profiles: [],
-      diagnostics: [
-        {
+  const expandedComponents: ExpandedSketchComponent[] = components.map((component) => ({
+    componentId: component.componentId,
+    segments: resolveSketchComponentToSegments(component),
+  }))
+
+  const profiles: ProfileOutput[] = []
+  const diagnostics: SketchDerivationDiagnostic[] = []
+  let currentSegments: Segment2[] = []
+  let currentComponentIds: string[] = []
+
+  const finalizeCurrentChain = (): void => {
+    if (currentSegments.length === 0) {
+      return
+    }
+    const firstStart = toSegmentStart(currentSegments[0])
+    const lastEnd = toSegmentEnd(currentSegments[currentSegments.length - 1])
+    if (!pointsEqual(firstStart, lastEnd)) {
+      diagnostics.push({
+        code: 'SKETCH_PROFILE_NOT_CLOSED',
+        message: 'Sketch chain is not closed (first start does not match last end).',
+      })
+      currentSegments = []
+      currentComponentIds = []
+      return
+    }
+
+    const proxyVertices = buildProxyVertices(currentSegments)
+    const areaSigned = signedShoelaceArea(proxyVertices)
+    if (Math.abs(areaSigned) <= 1e-9) {
+      diagnostics.push({
+        code: 'SKETCH_PROFILE_DEGENERATE',
+        message: 'Sketch chain is closed but degenerate (zero proxy area).',
+      })
+      currentSegments = []
+      currentComponentIds = []
+      return
+    }
+
+    const winding: 'CCW' | 'CW' = areaSigned >= 0 ? 'CCW' : 'CW'
+    const canonicalSig = currentComponentIds.join('|')
+    profiles.push({
+      profileId: profileIdFromSignature(canonicalSig),
+      profileIndex: profiles.length,
+      area: Math.abs(areaSigned),
+      loop: {
+        segments: currentSegments,
+        winding,
+      },
+      verticesProxy: proxyVertices,
+    })
+    currentSegments = []
+    currentComponentIds = []
+  }
+
+  for (const component of expandedComponents) {
+    const nextSegments = component.segments
+    if (nextSegments.length === 0) {
+      continue
+    }
+
+    if (currentSegments.length > 0) {
+      const currentStart = toSegmentStart(currentSegments[0])
+      const currentEnd = toSegmentEnd(currentSegments[currentSegments.length - 1])
+      const nextStart = toSegmentStart(nextSegments[0])
+      if (pointsEqual(currentStart, currentEnd) && !pointsEqual(currentEnd, nextStart)) {
+        finalizeCurrentChain()
+      }
+    }
+
+    if (currentSegments.length > 0) {
+      const currentEnd = toSegmentEnd(currentSegments[currentSegments.length - 1])
+      const nextStart = toSegmentStart(nextSegments[0])
+      if (!pointsEqual(currentEnd, nextStart)) {
+        diagnostics.push({
           code: 'SKETCH_PROFILE_NOT_CLOSED',
-          message: 'Sketch chain is not closed (first start does not match last end).',
-        },
-      ],
+          message: 'Sketch chain is not closed (adjacent component endpoints do not connect).',
+        })
+        currentSegments = []
+        currentComponentIds = []
+      }
     }
+
+    currentSegments = [...currentSegments, ...nextSegments]
+    currentComponentIds = [...currentComponentIds, component.componentId]
   }
 
-  const proxyVertices = buildProxyVertices(segments)
-  const areaSigned = signedShoelaceArea(proxyVertices)
-  if (Math.abs(areaSigned) <= 1e-9) {
-    return {
-      profiles: [],
-      diagnostics: [
-        {
-          code: 'SKETCH_PROFILE_DEGENERATE',
-          message: 'Sketch chain is closed but degenerate (zero proxy area).',
-        },
-      ],
-    }
-  }
-
-  const winding: 'CCW' | 'CW' = areaSigned >= 0 ? 'CCW' : 'CW'
-  const canonicalSig = components.map((component) => component.componentId).join('|')
-  const profileId = profileIdFromSignature(canonicalSig)
+  finalizeCurrentChain()
 
   return {
-    profiles: [
-      {
-        profileId,
-        profileIndex: 0,
-        area: Math.abs(areaSigned),
-        loop: {
-          segments,
-          winding,
-        },
-        verticesProxy: proxyVertices,
-      },
-    ],
-    diagnostics: [],
+    profiles,
+    diagnostics,
   }
 }
 

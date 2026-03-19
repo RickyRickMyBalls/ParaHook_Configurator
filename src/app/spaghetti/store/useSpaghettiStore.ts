@@ -13,10 +13,20 @@ import { pickDefaultProfileRef } from '../features/autoLink'
 import {
   moveFeatureInStack,
 } from '../features/featureDependencies'
-import { readFeatureStack } from '../features/featureSchema'
+import {
+  readFeatureStack,
+  sketchFeatureSchema,
+} from '../features/featureSchema'
 import { deriveProfilesWithDiagnostics } from '../features/profileDerivation'
 import type { NumberExpression, Vec2Expression } from '../features/expressions'
-import type { FeatureStack, SketchComponent, SketchFeature } from '../features/featureTypes'
+import type {
+  FeatureStack,
+  SketchComponent,
+  SketchFeature,
+  SketchPlane,
+  SketchPlaneTransform,
+} from '../features/featureTypes'
+import { createDefaultSketchPlaneTransform } from '../features/featureTypes'
 import { isFeatureEnabled as isFeatureEnabledInStack } from '../features/featureTypes'
 import type { FeatureStackIR } from '../features/compileFeatureStack'
 import { parseDriverVirtualInputPortId } from '../features/driverVirtualPorts'
@@ -59,6 +69,7 @@ import type {
 import { newId } from '../utils/id'
 import { makeComponentId, makeRowId } from '../utils/id'
 import type { BuildRoutingIdentity, PartArtifact } from '../../../shared/buildTypes'
+import { appendConsoleEntry } from '../../console/useConsoleStore'
 import {
   defaultWorkspaceSplitDirection,
   defaultWorkspaceSplitPriority,
@@ -149,6 +160,26 @@ export type EditorViewportNodeFitRequest = {
   key: number
 }
 
+export type SketchPlanePickSession = {
+  nodeId: string
+  editorViewportId: string | null
+  shouldRestoreViewportWindowMode: boolean
+  stage: 'pick' | 'adjust'
+  gizmoMode: 'translate' | 'rotate'
+  draftPlane: SketchPlane
+  draftTransform: SketchPlaneTransform
+}
+
+export type GeometrySketchTool = 'line' | 'arc3pt' | 'spline' | 'rectangle' | 'circle'
+
+export type GeometrySketchSession = {
+  nodeId: string
+  mode: 'draw' | 'review'
+  activeTool: GeometrySketchTool
+  editorViewportId: string | null
+  shouldRestoreViewportWindowMode: boolean
+}
+
 export type SpaghettiStoreState = {
   graph: SpaghettiGraph
   graphDocumentsById: Record<string, GraphDocument>
@@ -171,6 +202,8 @@ export type SpaghettiStoreState = {
   selectedEdgeId: string | null
   hoveredEdgeId: string | null
   connectionDrag: ConnectionDragState | null
+  sketchPlanePickSession: SketchPlanePickSession | null
+  geometrySketchSession: GeometrySketchSession | null
   uiMessage: CanvasUiMessage | null
   setGraph: (next: SpaghettiGraph) => void
   applyGraphCommand: (cmd: GraphCommand) => void
@@ -192,6 +225,54 @@ export type SpaghettiStoreState = {
   setHoveredEdgeId: (edgeId: string | null) => void
   setConnectionDrag: (drag: ConnectionDragState | null) => void
   clearConnectionDrag: () => void
+  startSketchPlanePick: (nodeId: string) => void
+  cancelSketchPlanePick: () => void
+  confirmSketchPlanePick: () => void
+  setSketchPlanePickDraftPlane: (plane: SketchPlane) => void
+  reopenSketchPlanePickPlaneSelection: () => void
+  setSketchPlanePickGizmoMode: (mode: 'translate' | 'rotate') => void
+  resetSketchPlanePickDraftTransform: () => void
+  setSketchPlanePickDraftTransform: (transform: SketchPlaneTransform) => void
+  setSketchPlanePickTranslationAxis: (axis: 'x' | 'y' | 'z', value: number) => void
+  setSketchPlanePickRotationAxis: (axis: 'x' | 'y' | 'z', value: number) => void
+  setGeometrySketchPlane: (nodeId: string, plane: SketchPlane) => void
+  setGeometrySketchPlaneOffset: (nodeId: string, offsetMm: number) => void
+  setGeometrySketchPlaneTranslationAxis: (
+    nodeId: string,
+    axis: 'x' | 'y' | 'z',
+    value: number,
+  ) => void
+  setGeometrySketchPlaneRotationAxis: (
+    nodeId: string,
+    axis: 'x' | 'y' | 'z',
+    value: number,
+  ) => void
+  setGeometrySketchPlaneInPlaneRotation: (nodeId: string, rotationDeg: number) => void
+  startGeometrySketchSession: (nodeId: string, mode: GeometrySketchSession['mode']) => void
+  closeGeometrySketchSession: () => void
+  setGeometrySketchSessionTool: (tool: GeometrySketchTool) => void
+  appendGeometrySketchComponent: (nodeId: string, component: SketchComponent) => void
+  updateGeometrySketchComponentPoint: (
+    nodeId: string,
+    rowId: string,
+    pointKey:
+      | 'a'
+      | 'b'
+      | 'p0'
+      | 'p1'
+      | 'p2'
+      | 'p3'
+      | 'start'
+      | 'mid'
+      | 'end'
+      | 'center'
+      | 'edge',
+    value: Vec2Expression,
+  ) => void
+  moveGeometrySketchComponentUp: (nodeId: string, rowId: string) => void
+  moveGeometrySketchComponentDown: (nodeId: string, rowId: string) => void
+  removeGeometrySketchComponent: (nodeId: string, rowId: string) => void
+  setGeometrySketchSelectedProfile: (nodeId: string, profileId: string | null) => void
   setUiMessage: (message: CanvasUiMessage | null) => void
   clearUiMessage: () => void
   createGraphDocument: (graph?: SpaghettiGraph, name?: string) => string
@@ -300,7 +381,18 @@ export type SpaghettiStoreState = {
     nodeId: string,
     featureId: string,
     rowId: string,
-    pointKey: 'a' | 'b' | 'p0' | 'p1' | 'p2' | 'p3' | 'start' | 'mid' | 'end',
+    pointKey:
+      | 'a'
+      | 'b'
+      | 'p0'
+      | 'p1'
+      | 'p2'
+      | 'p3'
+      | 'start'
+      | 'mid'
+      | 'end'
+      | 'center'
+      | 'edge',
     value: Vec2Expression,
   ) => void
   moveSketchComponentUp: (nodeId: string, featureId: string, rowId: string) => void
@@ -441,6 +533,19 @@ const normalizeInputEndpointPortAlias = (
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
+
+const isSketchPlane = (value: unknown): value is SketchPlane =>
+  value === 'XY' || value === 'YZ' || value === 'XZ'
+
+const isGeometrySketchNode = (node: SpaghettiNode): boolean => node.type === 'Geometry/Sketch'
+
+const readManagedSketchFeature = (value: unknown): SketchFeature | null => {
+  const parsed = sketchFeatureSchema.safeParse(value)
+  return parsed.success ? parsed.data : null
+}
+
+const ensureSketchPlaneTransform = (feature: SketchFeature) =>
+  feature.planeTransform ?? createDefaultSketchPlaneTransform()
 
 const isGraphReceiveReference = (value: unknown): value is GraphReceiveReference => {
   if (!isRecord(value)) {
@@ -813,17 +918,45 @@ const setPartFeatureStack = (node: SpaghettiNode, stack: FeatureStack): Spaghett
   },
 })
 
-const recomputeSketchFeature = (feature: SketchFeature): SketchFeature => ({
-  ...feature,
-  outputs: {
-    ...deriveProfilesWithDiagnostics(feature.components),
-  },
-})
+const reconcileSketchSelectionId = (
+  selectedProfileId: string | undefined,
+  profiles: SketchFeature['outputs']['profiles'],
+): string | undefined => {
+  if (
+    selectedProfileId !== undefined &&
+    profiles.some((profile) => profile.profileId === selectedProfileId)
+  ) {
+    return selectedProfileId
+  }
+  if (profiles.length === 1) {
+    return profiles[0].profileId
+  }
+  return undefined
+}
+
+const recomputeSketchFeature = (feature: SketchFeature): SketchFeature => {
+  const nextOutputs = deriveProfilesWithDiagnostics(feature.components)
+  const selectedProfileId = reconcileSketchSelectionId(
+    feature.uiState.selectedProfileId,
+    nextOutputs.profiles,
+  )
+  return {
+    ...feature,
+    outputs: {
+      ...nextOutputs,
+    },
+    uiState: {
+      collapsed: feature.uiState.collapsed,
+      ...(selectedProfileId === undefined ? {} : { selectedProfileId }),
+    },
+  }
+}
 
 const createSketchFeature = (): SketchFeature => ({
   type: 'sketch',
   featureId: newId('feature'),
   plane: 'XY',
+  planeTransform: createDefaultSketchPlaneTransform(),
   components: [],
   outputs: {
     profiles: [],
@@ -832,6 +965,11 @@ const createSketchFeature = (): SketchFeature => ({
   uiState: {
     collapsed: false,
   },
+})
+
+const createManagedGeometrySketchFeature = (): SketchFeature => ({
+  ...createSketchFeature(),
+  featureId: 'sketch-1',
 })
 
 const createDefaultLineComponent = (): SketchComponent => ({
@@ -869,9 +1007,27 @@ const createDefaultArcComponent = (): SketchComponent => ({
   end: { kind: 'lit', x: 100, y: 0 },
 })
 
+const createDefaultRectangleComponent = (): SketchComponent => ({
+  rowId: makeRowId(),
+  componentId: makeComponentId(),
+  type: 'rectangle',
+  a: { kind: 'lit', x: 0, y: 0 },
+  b: { kind: 'lit', x: 100, y: 60 },
+})
+
+const createDefaultCircleComponent = (): SketchComponent => ({
+  rowId: makeRowId(),
+  componentId: makeComponentId(),
+  type: 'circle',
+  center: { kind: 'lit', x: 0, y: 0 },
+  edge: { kind: 'lit', x: 40, y: 0 },
+})
+
 const createDefaultComponent = (
   componentType: SketchComponent['type'],
 ): SketchComponent => {
+  if (componentType === 'rectangle') return createDefaultRectangleComponent()
+  if (componentType === 'circle') return createDefaultCircleComponent()
   if (componentType === 'spline') return createDefaultSplineComponent()
   if (componentType === 'arc3pt') return createDefaultArcComponent()
   return createDefaultLineComponent()
@@ -1078,6 +1234,60 @@ const upsertNodePos = (
       nodes: nextPos,
     },
   }
+}
+
+const updateGeometrySketchNode = (
+  graph: SpaghettiGraph,
+  nodeId: string,
+  updateFn: (feature: SketchFeature) => SketchFeature,
+): SpaghettiGraph => {
+  let changed = false
+  const nodes = graph.nodes.map((node) => {
+    if (node.nodeId !== nodeId || !isGeometrySketchNode(node)) {
+      return node
+    }
+    const currentSketch = readManagedSketchFeature(node.params.sketch) ?? createManagedGeometrySketchFeature()
+    const nextSketch = updateFn(currentSketch)
+    if (nextSketch === currentSketch) {
+      return node
+    }
+    changed = true
+    return {
+      ...node,
+      params: {
+        ...node.params,
+        sketch: nextSketch,
+      },
+    }
+  })
+  return changed
+    ? {
+        ...graph,
+        nodes,
+      }
+    : graph
+}
+
+const pruneSketchPlanePickSession = (
+  graph: SpaghettiGraph,
+  session: SketchPlanePickSession | null,
+): SketchPlanePickSession | null => {
+  if (session === null) {
+    return null
+  }
+  const node = graph.nodes.find((candidate) => candidate.nodeId === session.nodeId)
+  return node !== undefined && isGeometrySketchNode(node) ? session : null
+}
+
+const pruneGeometrySketchSession = (
+  graph: SpaghettiGraph,
+  session: GeometrySketchSession | null,
+): GeometrySketchSession | null => {
+  if (session === null) {
+    return null
+  }
+  const node = graph.nodes.find((candidate) => candidate.nodeId === session.nodeId)
+  return node !== undefined && isGeometrySketchNode(node) ? session : null
 }
 
 export const selectNodeMode = (
@@ -1947,6 +2157,8 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
   selectedEdgeId: null,
   hoveredEdgeId: null,
   connectionDrag: null,
+  sketchPlanePickSession: null,
+  geometrySketchSession: null,
   uiMessage: null,
   setGraph: (next) => {
     const nextGraph = normalizeGraphForStoreCommit(next)
@@ -1957,6 +2169,11 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
         selectedEdgeId: null,
         hoveredEdgeId: null,
         connectionDrag: null,
+        sketchPlanePickSession: pruneSketchPlanePickSession(nextGraph, state.sketchPlanePickSession),
+        geometrySketchSession: pruneGeometrySketchSession(
+          nextGraph,
+          state.geometrySketchSession,
+        ),
         edgeWaypoints: {},
         uiMessage: null,
       }
@@ -1968,6 +2185,7 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
       nextGraph = normalizeGraphForStoreCommit(nextGraph)
       return {
         ...withUpdatedActiveGraphDocumentState(state, nextGraph),
+        sketchPlanePickSession: pruneSketchPlanePickSession(nextGraph, state.sketchPlanePickSession),
         edgeWaypoints: pruneEdgeWaypoints(nextGraph, state.edgeWaypoints),
       }
     })
@@ -1978,6 +2196,7 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
       nextGraph = normalizeGraphForStoreCommit(nextGraph)
       return {
         ...withUpdatedActiveGraphDocumentState(state, nextGraph),
+        sketchPlanePickSession: pruneSketchPlanePickSession(nextGraph, state.sketchPlanePickSession),
         edgeWaypoints: pruneEdgeWaypoints(nextGraph, state.edgeWaypoints),
       }
     })
@@ -2208,6 +2427,688 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
   },
   clearConnectionDrag: () => {
     set({ connectionDrag: null })
+  },
+  startSketchPlanePick: (nodeId) => {
+    let didStart = false
+    set((state) => {
+      const node = state.graph.nodes.find((candidate) => candidate.nodeId === nodeId)
+      if (node === undefined || !isGeometrySketchNode(node)) {
+        return state
+      }
+      const feature = readManagedSketchFeature(node.params.sketch)
+      if (feature === null) {
+        return state
+      }
+      const activeViewport = selectActiveEditorViewport(state)
+      const shouldRestoreViewportWindowMode =
+        activeViewport !== null && activeViewport.windowMode !== 'collapsed'
+      const editorViewportId = activeViewport?.editorViewportId ?? null
+      const nextEditorViewportsById: typeof state.editorViewportsById =
+        shouldRestoreViewportWindowMode && activeViewport !== null
+          ? (() => {
+              const collapsedViewport: EditorViewport = {
+                ...activeViewport,
+                windowMode: 'collapsed',
+                restoreFromCollapsed: snapshotCollapsedRestoreState(activeViewport),
+              }
+              return {
+                ...state.editorViewportsById,
+                [activeViewport.editorViewportId]: collapsedViewport,
+              }
+            })()
+          : state.editorViewportsById
+      didStart = true
+      return {
+        ...(nextEditorViewportsById === state.editorViewportsById
+          ? {}
+          : { editorViewportsById: nextEditorViewportsById }),
+        sketchPlanePickSession: {
+          nodeId,
+          editorViewportId,
+          shouldRestoreViewportWindowMode,
+          stage: 'pick',
+          gizmoMode: 'translate',
+          draftPlane: feature.plane,
+          draftTransform: ensureSketchPlaneTransform(feature),
+        },
+        geometrySketchSession:
+          state.geometrySketchSession?.nodeId === nodeId ? null : state.geometrySketchSession,
+      }
+    })
+    if (didStart) {
+      appendConsoleEntry({
+        layer: 'Commands',
+        text: `Sketch plane pick started: ${nodeId}`,
+        source: 'sketch-plane',
+        severity: 'info',
+      })
+    }
+  },
+  cancelSketchPlanePick: () => {
+    const session = get().sketchPlanePickSession
+    set({ sketchPlanePickSession: null })
+    if (
+      session?.shouldRestoreViewportWindowMode === true &&
+      session.editorViewportId !== null &&
+      selectEditorViewportById(get(), session.editorViewportId)?.windowMode === 'collapsed'
+    ) {
+      get().setEditorViewportWindowMode(session.editorViewportId, 'collapsed')
+    }
+    if (session !== null) {
+      appendConsoleEntry({
+        layer: 'Commands',
+        text: `Sketch plane pick cancelled: ${session.nodeId}`,
+        source: 'sketch-plane',
+        severity: 'info',
+      })
+    }
+  },
+  confirmSketchPlanePick: () => {
+    const session = get().sketchPlanePickSession
+    if (session === null) {
+      return
+    }
+    set((state) => {
+      const nextGraph = updateGeometrySketchNode(state.graph, session.nodeId, (feature) => {
+        const currentTransform = ensureSketchPlaneTransform(feature)
+        const nextTransform = session.draftTransform
+        if (
+          feature.plane === session.draftPlane &&
+          currentTransform.offsetMm === nextTransform.offsetMm &&
+          currentTransform.translation.x === nextTransform.translation.x &&
+          currentTransform.translation.y === nextTransform.translation.y &&
+          currentTransform.translation.z === nextTransform.translation.z &&
+          currentTransform.rotationDeg.x === nextTransform.rotationDeg.x &&
+          currentTransform.rotationDeg.y === nextTransform.rotationDeg.y &&
+          currentTransform.rotationDeg.z === nextTransform.rotationDeg.z &&
+          currentTransform.inPlaneRotationDeg === nextTransform.inPlaneRotationDeg
+        ) {
+          return feature
+        }
+        return {
+          ...feature,
+          plane: session.draftPlane,
+          planeTransform: {
+            ...nextTransform,
+            translation: { ...nextTransform.translation },
+            rotationDeg: { ...nextTransform.rotationDeg },
+          },
+        }
+      })
+      return {
+        ...withUpdatedActiveGraphDocumentState(state, nextGraph),
+        sketchPlanePickSession: null,
+      }
+    })
+    if (
+      session.shouldRestoreViewportWindowMode === true &&
+      session.editorViewportId !== null &&
+      selectEditorViewportById(get(), session.editorViewportId)?.windowMode === 'collapsed'
+    ) {
+      get().setEditorViewportWindowMode(session.editorViewportId, 'collapsed')
+    }
+    appendConsoleEntry({
+      layer: 'Commands',
+      text: `Sketch plane pick confirmed: ${session.draftPlane}`,
+      source: 'sketch-plane',
+      severity: 'info',
+    })
+  },
+  setSketchPlanePickDraftPlane: (plane) => {
+    if (!isSketchPlane(plane)) {
+      return
+    }
+    set((state) => {
+      const session = state.sketchPlanePickSession
+      if (session === null) {
+        return state
+      }
+      return {
+        sketchPlanePickSession: {
+          ...session,
+          draftPlane: plane,
+          stage: 'adjust',
+        },
+      }
+    })
+    appendConsoleEntry({
+      layer: 'Commands',
+      text: `Sketch plane selected: ${plane}`,
+      source: 'sketch-plane',
+      severity: 'info',
+    })
+  },
+  reopenSketchPlanePickPlaneSelection: () => {
+    set((state) => {
+      const session = state.sketchPlanePickSession
+      if (session === null || session.stage === 'pick') {
+        return state
+      }
+      return {
+        sketchPlanePickSession: {
+          ...session,
+          stage: 'pick',
+        },
+      }
+    })
+    appendConsoleEntry({
+      layer: 'Commands',
+      text: 'Sketch plane reselecting origin plane',
+      source: 'sketch-plane',
+      severity: 'info',
+    })
+  },
+  setSketchPlanePickGizmoMode: (mode) => {
+    set((state) => {
+      const session = state.sketchPlanePickSession
+      if (session === null || session.gizmoMode === mode) {
+        return state
+      }
+      return {
+        sketchPlanePickSession: {
+          ...session,
+          gizmoMode: mode,
+        },
+      }
+    })
+  },
+  resetSketchPlanePickDraftTransform: () => {
+    set((state) => {
+      const session = state.sketchPlanePickSession
+      if (session === null) {
+        return state
+      }
+      const nextTransform = createDefaultSketchPlaneTransform()
+      if (
+        session.draftTransform.offsetMm === nextTransform.offsetMm &&
+        session.draftTransform.inPlaneRotationDeg === nextTransform.inPlaneRotationDeg &&
+        session.draftTransform.translation.x === nextTransform.translation.x &&
+        session.draftTransform.translation.y === nextTransform.translation.y &&
+        session.draftTransform.translation.z === nextTransform.translation.z &&
+        session.draftTransform.rotationDeg.x === nextTransform.rotationDeg.x &&
+        session.draftTransform.rotationDeg.y === nextTransform.rotationDeg.y &&
+        session.draftTransform.rotationDeg.z === nextTransform.rotationDeg.z
+      ) {
+        return state
+      }
+      return {
+        sketchPlanePickSession: {
+          ...session,
+          draftTransform: nextTransform,
+        },
+      }
+    })
+    appendConsoleEntry({
+      layer: 'Transforms',
+      text: 'Sketch plane transform reset',
+      source: 'sketch-plane',
+      severity: 'info',
+    })
+  },
+  setSketchPlanePickDraftTransform: (transform) => {
+    const normalizedTransform: SketchPlaneTransform = {
+      offsetMm: Number.isFinite(transform.offsetMm) ? transform.offsetMm : 0,
+      inPlaneRotationDeg: Number.isFinite(transform.inPlaneRotationDeg)
+        ? transform.inPlaneRotationDeg
+        : 0,
+      translation: {
+        x: Number.isFinite(transform.translation.x) ? transform.translation.x : 0,
+        y: Number.isFinite(transform.translation.y) ? transform.translation.y : 0,
+        z: Number.isFinite(transform.translation.z) ? transform.translation.z : 0,
+      },
+      rotationDeg: {
+        x: Number.isFinite(transform.rotationDeg.x) ? transform.rotationDeg.x : 0,
+        y: Number.isFinite(transform.rotationDeg.y) ? transform.rotationDeg.y : 0,
+        z: Number.isFinite(transform.rotationDeg.z) ? transform.rotationDeg.z : 0,
+      },
+    }
+    set((state) => {
+      const session = state.sketchPlanePickSession
+      if (
+        session === null ||
+        (
+          session.draftTransform.offsetMm === normalizedTransform.offsetMm &&
+          session.draftTransform.inPlaneRotationDeg === normalizedTransform.inPlaneRotationDeg &&
+          session.draftTransform.translation.x === normalizedTransform.translation.x &&
+          session.draftTransform.translation.y === normalizedTransform.translation.y &&
+          session.draftTransform.translation.z === normalizedTransform.translation.z &&
+          session.draftTransform.rotationDeg.x === normalizedTransform.rotationDeg.x &&
+          session.draftTransform.rotationDeg.y === normalizedTransform.rotationDeg.y &&
+          session.draftTransform.rotationDeg.z === normalizedTransform.rotationDeg.z
+        )
+      ) {
+        return state
+      }
+      return {
+        sketchPlanePickSession: {
+          ...session,
+          draftTransform: {
+            ...normalizedTransform,
+            translation: { ...normalizedTransform.translation },
+            rotationDeg: { ...normalizedTransform.rotationDeg },
+          },
+        },
+      }
+    })
+    appendConsoleEntry({
+      layer: 'Transforms',
+      text:
+        `Sketch plane draft transform: ` +
+        `move (${normalizedTransform.translation.x.toFixed(1)}, ${normalizedTransform.translation.y.toFixed(1)}, ${normalizedTransform.translation.z.toFixed(1)}) ` +
+        `rotate (${normalizedTransform.rotationDeg.x.toFixed(0)}, ${normalizedTransform.rotationDeg.y.toFixed(0)}, ${normalizedTransform.rotationDeg.z.toFixed(0)})`,
+      source: 'sketch-plane',
+      severity: 'info',
+    })
+  },
+  setSketchPlanePickTranslationAxis: (axis, value) => {
+    if (!Number.isFinite(value)) {
+      return
+    }
+    set((state) => {
+      const session = state.sketchPlanePickSession
+      if (session === null || session.draftTransform.translation[axis] === value) {
+        return state
+      }
+      return {
+        sketchPlanePickSession: {
+          ...session,
+          draftTransform: {
+            ...session.draftTransform,
+            translation: {
+              ...session.draftTransform.translation,
+              [axis]: value,
+            },
+          },
+        },
+      }
+    })
+    appendConsoleEntry({
+      layer: 'Transforms',
+      text: `Sketch plane moved: ${axis.toUpperCase()} ${value.toFixed(1)}`,
+      source: 'sketch-plane',
+      severity: 'info',
+    })
+  },
+  setSketchPlanePickRotationAxis: (axis, value) => {
+    if (!Number.isFinite(value)) {
+      return
+    }
+    set((state) => {
+      const session = state.sketchPlanePickSession
+      if (session === null || session.draftTransform.rotationDeg[axis] === value) {
+        return state
+      }
+      return {
+        sketchPlanePickSession: {
+          ...session,
+          draftTransform: {
+            ...session.draftTransform,
+            rotationDeg: {
+              ...session.draftTransform.rotationDeg,
+              [axis]: value,
+            },
+          },
+        },
+      }
+    })
+    appendConsoleEntry({
+      layer: 'Transforms',
+      text: `Sketch plane rotated: ${axis.toUpperCase()} ${value.toFixed(0)}`,
+      source: 'sketch-plane',
+      severity: 'info',
+    })
+  },
+  setGeometrySketchPlane: (nodeId, plane) => {
+    if (!isSketchPlane(plane)) {
+      return
+    }
+    set((state) => {
+      const nextGraph = updateGeometrySketchNode(state.graph, nodeId, (feature) => {
+        if (feature.plane === plane) {
+          return feature
+        }
+        return {
+          ...feature,
+          plane,
+        }
+      })
+      const nextSession =
+        state.sketchPlanePickSession?.nodeId === nodeId
+          ? null
+          : pruneSketchPlanePickSession(nextGraph, state.sketchPlanePickSession)
+      if (nextGraph === state.graph && nextSession === state.sketchPlanePickSession) {
+        return state
+      }
+      return {
+        ...withUpdatedActiveGraphDocumentState(state, nextGraph),
+        sketchPlanePickSession: nextSession,
+      }
+    })
+  },
+  setGeometrySketchPlaneOffset: (nodeId, offsetMm) => {
+    if (!Number.isFinite(offsetMm)) {
+      return
+    }
+    set((state) => {
+      const nextGraph = updateGeometrySketchNode(state.graph, nodeId, (feature) => {
+        const currentTransform = ensureSketchPlaneTransform(feature)
+        if (currentTransform.offsetMm === offsetMm) {
+          return feature
+        }
+        return {
+          ...feature,
+          planeTransform: {
+            ...currentTransform,
+            offsetMm,
+          },
+        }
+      })
+      if (nextGraph === state.graph) {
+        return state
+      }
+      return withUpdatedActiveGraphDocumentState(state, nextGraph)
+    })
+  },
+  setGeometrySketchPlaneTranslationAxis: (nodeId, axis, value) => {
+    if (!Number.isFinite(value)) {
+      return
+    }
+    set((state) => {
+      const nextGraph = updateGeometrySketchNode(state.graph, nodeId, (feature) => {
+        const currentTransform = ensureSketchPlaneTransform(feature)
+        if (currentTransform.translation[axis] === value) {
+          return feature
+        }
+        return {
+          ...feature,
+          planeTransform: {
+            ...currentTransform,
+            translation: {
+              ...currentTransform.translation,
+              [axis]: value,
+            },
+          },
+        }
+      })
+      if (nextGraph === state.graph) {
+        return state
+      }
+      return withUpdatedActiveGraphDocumentState(state, nextGraph)
+    })
+  },
+  setGeometrySketchPlaneRotationAxis: (nodeId, axis, value) => {
+    if (!Number.isFinite(value)) {
+      return
+    }
+    set((state) => {
+      const nextGraph = updateGeometrySketchNode(state.graph, nodeId, (feature) => {
+        const currentTransform = ensureSketchPlaneTransform(feature)
+        if (currentTransform.rotationDeg[axis] === value) {
+          return feature
+        }
+        return {
+          ...feature,
+          planeTransform: {
+            ...currentTransform,
+            rotationDeg: {
+              ...currentTransform.rotationDeg,
+              [axis]: value,
+            },
+          },
+        }
+      })
+      if (nextGraph === state.graph) {
+        return state
+      }
+      return withUpdatedActiveGraphDocumentState(state, nextGraph)
+    })
+  },
+  setGeometrySketchPlaneInPlaneRotation: (nodeId, rotationDeg) => {
+    if (!Number.isFinite(rotationDeg)) {
+      return
+    }
+    set((state) => {
+      const nextGraph = updateGeometrySketchNode(state.graph, nodeId, (feature) => {
+        const currentTransform = ensureSketchPlaneTransform(feature)
+        if (currentTransform.inPlaneRotationDeg === rotationDeg) {
+          return feature
+        }
+        return {
+          ...feature,
+          planeTransform: {
+            ...currentTransform,
+            inPlaneRotationDeg: rotationDeg,
+          },
+        }
+      })
+      if (nextGraph === state.graph) {
+        return state
+      }
+      return withUpdatedActiveGraphDocumentState(state, nextGraph)
+    })
+  },
+  startGeometrySketchSession: (nodeId, mode) => {
+    set((state) => {
+      const node = state.graph.nodes.find((candidate) => candidate.nodeId === nodeId)
+      if (node === undefined || !isGeometrySketchNode(node)) {
+        return state
+      }
+      const current = state.geometrySketchSession
+      if (
+        current !== null &&
+        current.nodeId === nodeId &&
+        current.mode === mode
+      ) {
+        return state
+      }
+      const shouldCollapseViewport = mode === 'draw'
+      const activeViewport = shouldCollapseViewport ? selectActiveEditorViewport(state) : null
+      const shouldRestoreViewportWindowMode =
+        shouldCollapseViewport &&
+        activeViewport !== null &&
+        activeViewport.windowMode !== 'collapsed'
+      const editorViewportId =
+        shouldCollapseViewport
+          ? (current?.editorViewportId ?? activeViewport?.editorViewportId ?? null)
+          : null
+      const nextEditorViewportsById: typeof state.editorViewportsById =
+        shouldRestoreViewportWindowMode && activeViewport !== null
+          ? (() => {
+              const collapsedViewport: EditorViewport = {
+                ...activeViewport,
+                windowMode: 'collapsed',
+                restoreFromCollapsed: snapshotCollapsedRestoreState(activeViewport),
+              }
+              return {
+                ...state.editorViewportsById,
+                [activeViewport.editorViewportId]: collapsedViewport,
+              }
+            })()
+          : state.editorViewportsById
+      return {
+        ...(nextEditorViewportsById === state.editorViewportsById
+          ? {}
+          : { editorViewportsById: nextEditorViewportsById }),
+        geometrySketchSession: {
+          nodeId,
+          mode,
+          activeTool:
+            current?.nodeId === nodeId ? current.activeTool : 'line',
+          editorViewportId,
+          shouldRestoreViewportWindowMode:
+            current?.nodeId === nodeId
+              ? current.shouldRestoreViewportWindowMode || shouldRestoreViewportWindowMode
+              : shouldRestoreViewportWindowMode,
+        },
+        sketchPlanePickSession: null,
+      }
+    })
+  },
+  closeGeometrySketchSession: () => {
+    const session = get().geometrySketchSession
+    set({ geometrySketchSession: null })
+    if (
+      session?.shouldRestoreViewportWindowMode === true &&
+      session.editorViewportId !== null &&
+      selectEditorViewportById(get(), session.editorViewportId)?.windowMode === 'collapsed'
+    ) {
+      get().setEditorViewportWindowMode(session.editorViewportId, 'collapsed')
+    }
+  },
+  setGeometrySketchSessionTool: (tool) => {
+    set((state) => {
+      if (state.geometrySketchSession === null || state.geometrySketchSession.activeTool === tool) {
+        return state
+      }
+      return {
+        geometrySketchSession: {
+          ...state.geometrySketchSession,
+          activeTool: tool,
+        },
+      }
+    })
+  },
+  appendGeometrySketchComponent: (nodeId, component) => {
+    set((state) => {
+      const nextGraph = updateGeometrySketchNode(state.graph, nodeId, (feature) =>
+        recomputeSketchFeature({
+          ...feature,
+          components: [...feature.components, component],
+        }),
+      )
+      if (nextGraph === state.graph) {
+        return state
+      }
+      return {
+        ...withUpdatedActiveGraphDocumentState(state, nextGraph),
+        geometrySketchSession: pruneGeometrySketchSession(nextGraph, state.geometrySketchSession),
+      }
+    })
+  },
+  updateGeometrySketchComponentPoint: (nodeId, rowId, pointKey, value) => {
+    set((state) => {
+      const nextGraph = updateGeometrySketchNode(state.graph, nodeId, (feature) => {
+        const components = feature.components.map((component) => {
+          if (component.rowId !== rowId || !(pointKey in component)) {
+            return component
+          }
+          return {
+            ...component,
+            [pointKey]: value,
+          } as SketchComponent
+        })
+        return recomputeSketchFeature({
+          ...feature,
+          components,
+        })
+      })
+      if (nextGraph === state.graph) {
+        return state
+      }
+      return {
+        ...withUpdatedActiveGraphDocumentState(state, nextGraph),
+      }
+    })
+  },
+  moveGeometrySketchComponentUp: (nodeId, rowId) => {
+    set((state) => {
+      const nextGraph = updateGeometrySketchNode(state.graph, nodeId, (feature) => {
+        const index = feature.components.findIndex((component) => component.rowId === rowId)
+        if (index <= 0) {
+          return feature
+        }
+        const nextComponents = feature.components.slice()
+        const temp = nextComponents[index - 1]
+        nextComponents[index - 1] = nextComponents[index]
+        nextComponents[index] = temp
+        return recomputeSketchFeature({
+          ...feature,
+          components: nextComponents,
+        })
+      })
+      if (nextGraph === state.graph) {
+        return state
+      }
+      return {
+        ...withUpdatedActiveGraphDocumentState(state, nextGraph),
+      }
+    })
+  },
+  moveGeometrySketchComponentDown: (nodeId, rowId) => {
+    set((state) => {
+      const nextGraph = updateGeometrySketchNode(state.graph, nodeId, (feature) => {
+        const index = feature.components.findIndex((component) => component.rowId === rowId)
+        if (index < 0 || index >= feature.components.length - 1) {
+          return feature
+        }
+        const nextComponents = feature.components.slice()
+        const temp = nextComponents[index + 1]
+        nextComponents[index + 1] = nextComponents[index]
+        nextComponents[index] = temp
+        return recomputeSketchFeature({
+          ...feature,
+          components: nextComponents,
+        })
+      })
+      if (nextGraph === state.graph) {
+        return state
+      }
+      return {
+        ...withUpdatedActiveGraphDocumentState(state, nextGraph),
+      }
+    })
+  },
+  removeGeometrySketchComponent: (nodeId, rowId) => {
+    set((state) => {
+      const nextGraph = updateGeometrySketchNode(state.graph, nodeId, (feature) => {
+        const nextComponents = feature.components.filter((component) => component.rowId !== rowId)
+        if (nextComponents.length === feature.components.length) {
+          return feature
+        }
+        return recomputeSketchFeature({
+          ...feature,
+          components: nextComponents,
+        })
+      })
+      if (nextGraph === state.graph) {
+        return state
+      }
+      return {
+        ...withUpdatedActiveGraphDocumentState(state, nextGraph),
+      }
+    })
+  },
+  setGeometrySketchSelectedProfile: (nodeId, profileId) => {
+    set((state) => {
+      const nextGraph = updateGeometrySketchNode(state.graph, nodeId, (feature) => {
+        const nextSelectedProfileId =
+          profileId === null || profileId.length === 0 ? undefined : profileId
+        const nextFeature = recomputeSketchFeature({
+          ...feature,
+          uiState: {
+            ...feature.uiState,
+            ...(nextSelectedProfileId === undefined
+              ? {}
+              : { selectedProfileId: nextSelectedProfileId }),
+          },
+        })
+        if (nextSelectedProfileId === undefined && nextFeature.uiState.selectedProfileId !== undefined) {
+          return {
+            ...nextFeature,
+            uiState: {
+              collapsed: nextFeature.uiState.collapsed,
+            },
+          }
+        }
+        return nextFeature
+      })
+      if (nextGraph === state.graph) {
+        return state
+      }
+      return {
+        ...withUpdatedActiveGraphDocumentState(state, nextGraph),
+      }
+    })
   },
   setUiMessage: (uiMessage) => {
     set({ uiMessage })

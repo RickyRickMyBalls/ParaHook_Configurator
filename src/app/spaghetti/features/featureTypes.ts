@@ -6,6 +6,26 @@ export type Feature = SketchFeature | CloseProfileFeature | ExtrudeFeature
 
 export type SketchPlane = 'XY' | 'YZ' | 'XZ'
 
+export type Vec3Literal = {
+  x: number
+  y: number
+  z: number
+}
+
+export type SketchPlaneTransform = {
+  offsetMm: number
+  translation: Vec3Literal
+  rotationDeg: Vec3Literal
+  inPlaneRotationDeg: number
+}
+
+export const createDefaultSketchPlaneTransform = (): SketchPlaneTransform => ({
+  offsetMm: 0,
+  translation: { x: 0, y: 0, z: 0 },
+  rotationDeg: { x: 0, y: 0, z: 0 },
+  inPlaneRotationDeg: 0,
+})
+
 export type Line2Component = {
   rowId: string
   componentId: string
@@ -33,7 +53,28 @@ export type Arc3pt2Component = {
   end: Vec2Expression
 }
 
-export type SketchComponent = Line2Component | Bezier2Component | Arc3pt2Component
+export type RectangleComponent = {
+  rowId: string
+  componentId: string
+  type: 'rectangle'
+  a: Vec2Expression
+  b: Vec2Expression
+}
+
+export type CircleComponent = {
+  rowId: string
+  componentId: string
+  type: 'circle'
+  center: Vec2Expression
+  edge: Vec2Expression
+}
+
+export type SketchComponent =
+  | Line2Component
+  | Bezier2Component
+  | Arc3pt2Component
+  | RectangleComponent
+  | CircleComponent
 
 export type Segment2Line = {
   kind: 'line2'
@@ -77,6 +118,7 @@ export type SketchFeature = {
   featureId: string
   enabled?: boolean
   plane: SketchPlane
+  planeTransform?: SketchPlaneTransform
   components: SketchComponent[]
   outputs: {
     profiles: ProfileOutput[]
@@ -84,6 +126,7 @@ export type SketchFeature = {
   }
   uiState: {
     collapsed: boolean
+    selectedProfileId?: string
   }
   // Legacy read-only compatibility.
   entities?: SketchEntity[]

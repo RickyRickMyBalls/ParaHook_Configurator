@@ -2240,3 +2240,321 @@ describe('useSpaghettiStore feature stack editing semantics', () => {
     expect((baseplate?.params.featureStack as Array<{ enabled?: boolean }>)[0]?.enabled).toBe(true)
   })
 })
+
+describe('useSpaghettiStore Geometry/Sketch editing semantics', () => {
+  afterEach(() => {
+    useSpaghettiStore.getState().setGraph(emptyGraph)
+  })
+
+  it('appends managed sketch components and recomputes profiles for Geometry/Sketch nodes', () => {
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: {
+              type: 'sketch',
+              featureId: 'sketch-1',
+              plane: 'XY',
+              components: [],
+              outputs: { profiles: [], diagnostics: [] },
+              uiState: { collapsed: false },
+            },
+          },
+        },
+      ],
+      edges: [],
+    })
+
+    useSpaghettiStore.getState().appendGeometrySketchComponent('node-sketch-1', {
+      rowId: 'row-1',
+      componentId: 'rect-1',
+      type: 'rectangle',
+      a: { kind: 'lit', x: 0, y: 0 },
+      b: { kind: 'lit', x: 40, y: 20 },
+    })
+
+    const sketchNode = useSpaghettiStore.getState().graph.nodes.find((node) => node.nodeId === 'node-sketch-1')
+    const sketch = sketchNode?.params.sketch as {
+      components: Array<{ type: string }>
+      outputs: { profiles: Array<{ area: number }> }
+    }
+
+    expect(sketch.components).toHaveLength(1)
+    expect(sketch.components[0]?.type).toBe('rectangle')
+    expect(sketch.outputs.profiles).toHaveLength(1)
+    expect(sketch.outputs.profiles[0]?.area).toBe(800)
+  })
+
+  it('tracks draw/review session state and closes plane-pick when sketch editing begins', () => {
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: {
+              type: 'sketch',
+              featureId: 'sketch-1',
+              plane: 'XY',
+              components: [],
+              outputs: { profiles: [], diagnostics: [] },
+              uiState: { collapsed: false },
+            },
+          },
+        },
+      ],
+      edges: [],
+    })
+
+    useSpaghettiStore.getState().startSketchPlanePick('node-sketch-1')
+    useSpaghettiStore.getState().startGeometrySketchSession('node-sketch-1', 'draw')
+
+    let state = useSpaghettiStore.getState()
+    expect(state.sketchPlanePickSession).toBeNull()
+    expect(state.geometrySketchSession).toMatchObject({
+      nodeId: 'node-sketch-1',
+      mode: 'draw',
+      activeTool: 'line',
+    })
+
+    useSpaghettiStore.getState().setGeometrySketchSessionTool('circle')
+    useSpaghettiStore.getState().startGeometrySketchSession('node-sketch-1', 'review')
+
+    state = useSpaghettiStore.getState()
+    expect(state.geometrySketchSession).toMatchObject({
+      nodeId: 'node-sketch-1',
+      mode: 'review',
+      activeTool: 'circle',
+    })
+  })
+
+  it('collapses the active editor viewport while draw sketch is open and restores it on close', () => {
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: {
+              type: 'sketch',
+              featureId: 'sketch-1',
+              plane: 'XY',
+              components: [],
+              outputs: { profiles: [], diagnostics: [] },
+              uiState: { collapsed: false },
+            },
+          },
+        },
+      ],
+      edges: [],
+    })
+
+    const viewportId = useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
+    expect(viewportId).not.toBeNull()
+    expect(selectActiveEditorViewport(useSpaghettiStore.getState())?.windowMode).toBe('expanded')
+
+    useSpaghettiStore.getState().startGeometrySketchSession('node-sketch-1', 'draw')
+
+    let state = useSpaghettiStore.getState()
+    expect(selectActiveEditorViewport(state)?.windowMode).toBe('collapsed')
+    expect(state.geometrySketchSession).toMatchObject({
+      nodeId: 'node-sketch-1',
+      mode: 'draw',
+      shouldRestoreViewportWindowMode: true,
+      editorViewportId: viewportId,
+    })
+
+    useSpaghettiStore.getState().closeGeometrySketchSession()
+
+    state = useSpaghettiStore.getState()
+    expect(state.geometrySketchSession).toBeNull()
+    expect(selectActiveEditorViewport(state)?.windowMode).toBe('expanded')
+  })
+
+  it('keeps sketch-plane draft edits temporary until confirm and restores the collapsed viewport shell', () => {
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: {
+              type: 'sketch',
+              featureId: 'sketch-1',
+              plane: 'XY',
+              planeTransform: {
+                offsetMm: 0,
+                translation: { x: 0, y: 0, z: 0 },
+                rotationDeg: { x: 0, y: 0, z: 0 },
+                inPlaneRotationDeg: 0,
+              },
+              components: [],
+              outputs: { profiles: [], diagnostics: [] },
+              uiState: { collapsed: false },
+            },
+          },
+        },
+      ],
+      edges: [],
+    })
+
+    const viewportId = useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
+    expect(viewportId).not.toBeNull()
+
+    useSpaghettiStore.getState().startSketchPlanePick('node-sketch-1')
+
+    let state = useSpaghettiStore.getState()
+    expect(selectActiveEditorViewport(state)?.windowMode).toBe('collapsed')
+    expect(state.sketchPlanePickSession).toMatchObject({
+      nodeId: 'node-sketch-1',
+      stage: 'pick',
+      gizmoMode: 'translate',
+      draftPlane: 'XY',
+    })
+
+    useSpaghettiStore.getState().setSketchPlanePickDraftPlane('XZ')
+    useSpaghettiStore.getState().setSketchPlanePickTranslationAxis('x', 12.5)
+    useSpaghettiStore.getState().setSketchPlanePickRotationAxis('z', 45)
+
+    const beforeCommit = useSpaghettiStore.getState().graph.nodes.find(
+      (node) => node.nodeId === 'node-sketch-1',
+    )?.params.sketch as {
+      plane: string
+      planeTransform?: { translation: { x: number }; rotationDeg: { z: number } }
+    }
+    expect(beforeCommit.plane).toBe('XY')
+    expect(beforeCommit.planeTransform?.translation.x).toBe(0)
+    expect(beforeCommit.planeTransform?.rotationDeg.z).toBe(0)
+
+    useSpaghettiStore.getState().confirmSketchPlanePick()
+
+    state = useSpaghettiStore.getState()
+    const sketch = state.graph.nodes.find((node) => node.nodeId === 'node-sketch-1')?.params.sketch as {
+      plane: string
+      planeTransform?: { translation: { x: number }; rotationDeg: { z: number } }
+    }
+    expect(state.sketchPlanePickSession).toBeNull()
+    expect(selectActiveEditorViewport(state)?.windowMode).toBe('expanded')
+    expect(sketch.plane).toBe('XZ')
+    expect(sketch.planeTransform?.translation.x).toBe(12.5)
+    expect(sketch.planeTransform?.rotationDeg.z).toBe(45)
+  })
+
+  it('cancels sketch-plane picks without committing the draft and restores the prior viewport shell', () => {
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: {
+              type: 'sketch',
+              featureId: 'sketch-1',
+              plane: 'XY',
+              planeTransform: {
+                offsetMm: 0,
+                translation: { x: 0, y: 0, z: 0 },
+                rotationDeg: { x: 0, y: 0, z: 0 },
+                inPlaneRotationDeg: 0,
+              },
+              components: [],
+              outputs: { profiles: [], diagnostics: [] },
+              uiState: { collapsed: false },
+            },
+          },
+        },
+      ],
+      edges: [],
+    })
+
+    const viewportId = useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
+    expect(viewportId).not.toBeNull()
+
+    useSpaghettiStore.getState().startSketchPlanePick('node-sketch-1')
+    useSpaghettiStore.getState().setSketchPlanePickDraftPlane('YZ')
+    useSpaghettiStore.getState().setSketchPlanePickTranslationAxis('y', 18)
+    useSpaghettiStore.getState().cancelSketchPlanePick()
+
+    const state = useSpaghettiStore.getState()
+    const sketch = state.graph.nodes.find((node) => node.nodeId === 'node-sketch-1')?.params.sketch as {
+      plane: string
+      planeTransform?: { translation: { y: number } }
+    }
+    expect(state.sketchPlanePickSession).toBeNull()
+    expect(selectActiveEditorViewport(state)?.windowMode).toBe('expanded')
+    expect(sketch.plane).toBe('XY')
+    expect(sketch.planeTransform?.translation.y).toBe(0)
+  })
+
+  it('replaces the whole sketch-plane draft transform without committing until confirm', () => {
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: {
+              type: 'sketch',
+              featureId: 'sketch-1',
+              plane: 'XY',
+              planeTransform: {
+                offsetMm: 0,
+                translation: { x: 0, y: 0, z: 0 },
+                rotationDeg: { x: 0, y: 0, z: 0 },
+                inPlaneRotationDeg: 0,
+              },
+              components: [],
+              outputs: { profiles: [], diagnostics: [] },
+              uiState: { collapsed: false },
+            },
+          },
+        },
+      ],
+      edges: [],
+    })
+
+    useSpaghettiStore.getState().startSketchPlanePick('node-sketch-1')
+    useSpaghettiStore.getState().setSketchPlanePickDraftPlane('XZ')
+    useSpaghettiStore.getState().setSketchPlanePickDraftTransform({
+      offsetMm: 0,
+      inPlaneRotationDeg: 0,
+      translation: { x: 16, y: -6, z: 3 },
+      rotationDeg: { x: 12, y: 24, z: 48 },
+    })
+
+    expect(useSpaghettiStore.getState().sketchPlanePickSession).toMatchObject({
+      draftTransform: {
+        translation: { x: 16, y: -6, z: 3 },
+        rotationDeg: { x: 12, y: 24, z: 48 },
+      },
+    })
+
+    const beforeCommit = useSpaghettiStore.getState().graph.nodes.find(
+      (node) => node.nodeId === 'node-sketch-1',
+    )?.params.sketch as {
+      planeTransform?: { translation: { x: number; y: number; z: number }; rotationDeg: { x: number; y: number; z: number } }
+    }
+    expect(beforeCommit.planeTransform?.translation).toEqual({ x: 0, y: 0, z: 0 })
+    expect(beforeCommit.planeTransform?.rotationDeg).toEqual({ x: 0, y: 0, z: 0 })
+
+    useSpaghettiStore.getState().confirmSketchPlanePick()
+
+    const afterCommit = useSpaghettiStore.getState().graph.nodes.find(
+      (node) => node.nodeId === 'node-sketch-1',
+    )?.params.sketch as {
+      plane: string
+      planeTransform?: { translation: { x: number; y: number; z: number }; rotationDeg: { x: number; y: number; z: number } }
+    }
+    expect(afterCommit.plane).toBe('XZ')
+    expect(afterCommit.planeTransform?.translation).toEqual({ x: 16, y: -6, z: 3 })
+    expect(afterCommit.planeTransform?.rotationDeg).toEqual({ x: 12, y: 24, z: 48 })
+  })
+})

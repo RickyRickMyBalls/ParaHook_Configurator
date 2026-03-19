@@ -30,17 +30,23 @@ type SketchFeatureViewProps = {
 
 const POINT_KEYS_BY_COMPONENT: Record<
   SketchComponent['type'],
-  ReadonlyArray<'a' | 'b' | 'p0' | 'p1' | 'p2' | 'p3' | 'start' | 'mid' | 'end'>
+  ReadonlyArray<
+    'a' | 'b' | 'p0' | 'p1' | 'p2' | 'p3' | 'start' | 'mid' | 'end' | 'center' | 'edge'
+  >
 > = {
   line: ['a', 'b'],
   spline: ['p0', 'p1', 'p2', 'p3'],
   arc3pt: ['start', 'mid', 'end'],
+  rectangle: ['a', 'b'],
+  circle: ['center', 'edge'],
 }
 
 const componentTitle = (component: SketchComponent): string => {
   if (component.type === 'line') return 'Line'
   if (component.type === 'spline') return 'Spline'
-  return 'Arc'
+  if (component.type === 'arc3pt') return 'Arc'
+  if (component.type === 'rectangle') return 'Rectangle'
+  return 'Circle'
 }
 
 const isCubeSeedRectangleSketch = (feature: SketchFeature): boolean =>
@@ -85,10 +91,21 @@ export function SketchFeatureView({
       ? lengthVirtualInputState.drivenValue
       : rectangleDimensions.length
 
-  const renderPointEditor = (
-    component: SketchComponent,
-    pointKey: 'a' | 'b' | 'p0' | 'p1' | 'p2' | 'p3' | 'start' | 'mid' | 'end',
-  ) => {
+const renderPointEditor = (
+  component: SketchComponent,
+  pointKey:
+    | 'a'
+    | 'b'
+    | 'p0'
+    | 'p1'
+    | 'p2'
+    | 'p3'
+    | 'start'
+    | 'mid'
+    | 'end'
+    | 'center'
+    | 'edge',
+) => {
     if (!(pointKey in component)) {
       return null
     }

@@ -33,7 +33,7 @@ type FeatureStackIRPayload = {
   parts: RuntimeFeatureStackParts
 }
 
-type BasePartId = 'baseplate' | 'cube' | 'cubeProof' | 'toeHook' | 'heelKick'
+type BasePartId = 'baseplate' | 'cube' | 'cubeProof' | 'toeHook' | 'heelKick' | 'extrude'
 type OwnedPartKey = string
 
 type PartNodeSpec = {
@@ -58,6 +58,7 @@ type RuntimeFeatureOp =
   | {
       op: 'sketch'
       featureId: string
+      plane?: 'XY' | 'XZ' | 'YZ'
       profilesResolved: Array<{
         profileId: string
         area: number
@@ -71,6 +72,7 @@ type RuntimeFeatureOp =
       depthResolved: number
       taperResolved: number
       offsetResolved: number
+      plane?: 'XY' | 'XZ' | 'YZ'
       bodyId?: string
     }
 
@@ -102,10 +104,16 @@ const toRuntimeFeatureStackParts = (parts: FeatureStackIrParts): RuntimeFeatureS
         runtimeOps.push({
           op: 'sketch',
           featureId: operation.featureId,
+          ...('plane' in operation && operation.plane !== undefined
+            ? { plane: operation.plane }
+            : {}),
           profilesResolved: operation.profilesResolved.map((profile) => ({
             profileId: profile.profileId,
             area: profile.area,
-            vertices: tessellateProfileLoop(profile.loop.segments),
+            vertices:
+              profile.loop.segments.length > 0
+                ? tessellateProfileLoop(profile.loop.segments)
+                : profile.verticesProxy,
           })),
         })
         continue
@@ -126,6 +134,9 @@ const toRuntimeFeatureStackParts = (parts: FeatureStackIrParts): RuntimeFeatureS
         depthResolved: operation.depthResolved,
         taperResolved: operation.taperResolved,
         offsetResolved: operation.offsetResolved,
+        ...('plane' in operation && operation.plane !== undefined
+          ? { plane: operation.plane }
+          : {}),
         bodyId: operation.bodyId,
       })
     }
@@ -166,6 +177,111 @@ const getHeelKickAnchorPortMapping = (): HeelKickAnchorPortMapping => ({
   uiPortId: 'anchorSpline',
   payloadKey: 'anchorSpline2',
 })
+
+const isSketchPlane = (value: unknown): value is 'XY' | 'XZ' | 'YZ' =>
+  value === 'XY' || value === 'XZ' || value === 'YZ'
+
+const isProfileInputLike = (
+  value: unknown,
+): value is {
+  profileId: string
+  area: number
+  verticesProxy: Array<{ x: number; y: number }>
+} =>
+  typeof value === 'object' &&
+  value !== null &&
+  typeof (value as { profileId?: unknown }).profileId === 'string' &&
+  typeof (value as { area?: unknown }).area === 'number' &&
+  Array.isArray((value as { verticesProxy?: unknown }).verticesProxy)
+
+const readGeometrySketchPlaneFromNode = (
+  node: SpaghettiGraph['nodes'][number] | undefined,
+): 'XY' | 'XZ' | 'YZ' => {
+  const rawPlane =
+    typeof node?.params === 'object' &&
+    node.params !== null &&
+    typeof (node.params as { sketch?: unknown }).sketch === 'object' &&
+    (node.params as { sketch?: unknown }).sketch !== null
+      ? ((node.params as { sketch: { plane?: unknown } }).sketch.plane)
+      : undefined
+  return isSketchPlane(rawPlane) ? rawPlane : 'XY'
+}
+
+const findWholeIncomingEdge = (
+  graph: SpaghettiGraph,
+  nodeId: string,
+  portId: string,
+): SpaghettiGraph['edges'][number] | undefined =>
+  [...graph.edges]
+    .sort((a, b) => a.edgeId.localeCompare(b.edgeId))
+    .find(
+      (edge) =>
+        edge.to.nodeId === nodeId &&
+        edge.to.portId === portId &&
+        (edge.to.path === undefined || edge.to.path.length === 0),
+    )
+
+const buildGeometryExtrudeOps = (
+  graph: SpaghettiGraph,
+  node: SpaghettiGraph['nodes'][number],
+  resolvedInputsByNodeId: Record<string, Record<string, unknown>> | undefined,
+): FeatureStackIR => {
+  const resolvedInputs = resolvedInputsByNodeId?.[node.nodeId] ?? {}
+  const profileInput = resolvedInputs.ExtrusionProfile
+  const depthInput = resolvedInputs.Depth
+  const sourceProfileEdge = findWholeIncomingEdge(graph, node.nodeId, 'ExtrusionProfile')
+  const sourceSketchNode = graph.nodes.find(
+    (candidate) =>
+      candidate.nodeId === sourceProfileEdge?.from.nodeId && candidate.type === 'Geometry/Sketch',
+  )
+  const plane = readGeometrySketchPlaneFromNode(sourceSketchNode)
+  const depthParam =
+    typeof node.params.depthMm === 'number' && Number.isFinite(node.params.depthMm)
+      ? node.params.depthMm
+      : 20
+  const depthResolved =
+    typeof depthInput === 'number' && Number.isFinite(depthInput) ? depthInput : depthParam
+  const profileRef =
+    sourceSketchNode !== undefined && isProfileInputLike(profileInput)
+      ? {
+          sketchFeatureId: sourceSketchNode.nodeId,
+          profileId: profileInput.profileId,
+          profileIndex: 0,
+        }
+      : null
+
+  const ops: FeatureStackIR = []
+  if (sourceSketchNode !== undefined && isProfileInputLike(profileInput)) {
+    ops.push({
+      op: 'sketch',
+      featureId: sourceSketchNode.nodeId,
+      plane,
+      profilesResolved: [
+        {
+          profileId: profileInput.profileId,
+          profileIndex: 0,
+          area: profileInput.area,
+          loop: {
+            segments: [],
+            winding: 'CCW',
+          },
+          verticesProxy: profileInput.verticesProxy,
+        },
+      ],
+    })
+  }
+  ops.push({
+    op: 'extrude',
+    featureId: node.nodeId,
+    profileRef,
+    depthResolved,
+    taperResolved: 0,
+    offsetResolved: 0,
+    plane,
+    bodyId: `${node.nodeId}:body`,
+  })
+  return ops
+}
 
 const resolveInputValue = (
   graph: SpaghettiGraph,
@@ -304,6 +420,16 @@ export const computeFeatureStackIrParts = (
         hasNonEmptyFeatureStack = true
       }
     }
+  }
+
+  const geometryExtrudes = sortedNodes.filter((node) => node.type === 'Geometry/Extrude')
+  for (const [index, node] of geometryExtrudes.entries()) {
+    const partKey = buildOwnedPartKey('extrude', index, geometryExtrudes.length)
+    orderedPartKeys.push(partKey)
+    partNodesByPartKey[partKey] = node
+    nodeIdToPartKey[node.nodeId] = partKey
+    parts[partKey] = buildGeometryExtrudeOps(graph, node, options?.resolvedInputsByNodeId)
+    hasNonEmptyFeatureStack = true
   }
 
   return {

@@ -26,6 +26,7 @@ type ParaSliderProps = {
   displayLabel?: string
   displayValue?: string
   onContextMenu?: (event: ReactMouseEvent<HTMLElement>) => void
+  hideCaps?: boolean
 }
 
 const clamp = (value: number, min: number, max: number): number =>
@@ -91,6 +92,7 @@ export function ParaSlider({
   displayLabel,
   displayValue,
   onContextMenu,
+  hideCaps = false,
 }: ParaSliderProps) {
   const trackRef = useRef<HTMLDivElement | null>(null)
   const valueInputRef = useRef<HTMLInputElement | null>(null)
@@ -423,16 +425,18 @@ export function ParaSlider({
   }
 
   return (
-    <div className="ParaSlider" onContextMenu={onContextMenu}>
-      <button
-        type="button"
-        className="ParaSliderCap ParaSliderCap--left"
-        aria-label={`Decrease ${label}`}
-        onClick={() => changeByStep(-1)}
-        onContextMenu={onContextMenu}
-      >
-        {'<'}
-      </button>
+    <div className={`ParaSlider${hideCaps ? ' isCapless' : ''}`} onContextMenu={onContextMenu}>
+      {hideCaps ? null : (
+        <button
+          type="button"
+          className="ParaSliderCap ParaSliderCap--left"
+          aria-label={`Decrease ${label}`}
+          onClick={() => changeByStep(-1)}
+          onContextMenu={onContextMenu}
+        >
+          {'<'}
+        </button>
+      )}
       <div
         ref={trackRef}
         className={`ParaSliderTrack ${isEditingClamp ? 'isClampEditing' : ''}`}
@@ -538,15 +542,17 @@ export function ParaSlider({
           )}
         </div>
       </div>
-      <button
-        type="button"
-        className="ParaSliderCap ParaSliderCap--right"
-        aria-label={`Increase ${label}`}
-        onClick={() => changeByStep(1)}
-        onContextMenu={onContextMenu}
-      >
-        {'>'}
-      </button>
+      {hideCaps ? null : (
+        <button
+          type="button"
+          className="ParaSliderCap ParaSliderCap--right"
+          aria-label={`Increase ${label}`}
+          onClick={() => changeByStep(1)}
+          onContextMenu={onContextMenu}
+        >
+          {'>'}
+        </button>
+      )}
     </div>
   )
 }

@@ -3,6 +3,7 @@
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { useSpaghettiStore } from '../spaghetti/store/useSpaghettiStore'
 import { useConsoleStore } from './useConsoleStore'
 
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
@@ -41,6 +42,7 @@ describe('ConsoleDock', () => {
 
   beforeEach(async () => {
     useConsoleStore.setState(useConsoleStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
     window.open = originalWindowOpen
     globalThis.Worker = MockWorker as unknown as typeof Worker
     ;({ ConsoleDock } = await import('./ConsoleDock'))
@@ -735,7 +737,7 @@ describe('ConsoleDock', () => {
     expect(
       useConsoleStore
         .getState()
-        .entries.some((entry) => entry.text.includes('Status: input=legacy, view=parts')),
+        .entries.some((entry) => entry.text.includes('Status: spaghetti preview active')),
     ).toBe(true)
 
     await act(async () => {
@@ -750,5 +752,49 @@ describe('ConsoleDock', () => {
     const lastEntry = useConsoleStore.getState().entries.at(-1)
     expect(lastEntry?.layer).toBe('Diagnostics')
     expect(lastEntry?.text).toBe('Unknown command: mirror')
+  })
+
+  it('routes temporary x through the sketch-plane cancel path while a pick session is active', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+    })
+
+    await act(async () => {
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-sketch-1',
+            type: 'Geometry/Sketch',
+            params: {
+              sketch: {
+                type: 'sketch',
+                featureId: 'sketch-1',
+                plane: 'XY',
+                components: [],
+                outputs: { profiles: [], diagnostics: [] },
+                uiState: { collapsed: false },
+              },
+            },
+          },
+        ],
+        edges: [],
+      })
+      useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
+      useSpaghettiStore.getState().startSketchPlanePick('node-sketch-1')
+      useConsoleStore.getState().setInputText('x')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useSpaghettiStore.getState().sketchPlanePickSession).toBeNull()
+    expect(useConsoleStore.getState().entries.some((entry) => entry.text === '> x')).toBe(true)
   })
 })

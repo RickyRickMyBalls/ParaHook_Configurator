@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { createDefaultSketchPlaneTransform } from './featureTypes'
 import type {
   FeatureStack,
   ProfileOutput,
@@ -23,6 +24,23 @@ const vec2ExpressionSchema = z
   .strict()
 
 const sketchPlaneSchema = z.enum(['XY', 'YZ', 'XZ'])
+
+const vec3LiteralSchema = z
+  .object({
+    x: z.number(),
+    y: z.number(),
+    z: z.number(),
+  })
+  .strict()
+
+const sketchPlaneTransformSchema = z
+  .object({
+    offsetMm: z.number(),
+    translation: vec3LiteralSchema,
+    rotationDeg: vec3LiteralSchema,
+    inPlaneRotationDeg: z.number(),
+  })
+  .strict()
 
 const segmentLineSchema = z
   .object({
@@ -115,10 +133,32 @@ const arc3ptComponentSchema = z
   })
   .strict()
 
+const rectangleComponentSchema = z
+  .object({
+    rowId: z.string().min(1),
+    componentId: z.string().min(1),
+    type: z.literal('rectangle'),
+    a: vec2ExpressionSchema,
+    b: vec2ExpressionSchema,
+  })
+  .strict()
+
+const circleComponentSchema = z
+  .object({
+    rowId: z.string().min(1),
+    componentId: z.string().min(1),
+    type: z.literal('circle'),
+    center: vec2ExpressionSchema,
+    edge: vec2ExpressionSchema,
+  })
+  .strict()
+
 const sketchComponentSchema = z.discriminatedUnion('type', [
   lineComponentSchema,
   splineComponentSchema,
   arc3ptComponentSchema,
+  rectangleComponentSchema,
+  circleComponentSchema,
 ])
 
 const legacyLineEntitySchema = z
@@ -146,12 +186,13 @@ const closeProfileOutputRefSchema = z
   })
   .strict()
 
-const sketchFeatureSchema = z
+export const sketchFeatureSchema = z
   .object({
     type: z.literal('sketch'),
     featureId: z.string().min(1),
     enabled: z.boolean().optional(),
     plane: sketchPlaneSchema.optional(),
+    planeTransform: sketchPlaneTransformSchema.optional(),
     components: z.array(sketchComponentSchema).optional(),
     // Legacy input shape
     entities: z.array(legacyLineEntitySchema).optional(),
@@ -173,6 +214,7 @@ const sketchFeatureSchema = z
     uiState: z
       .object({
         collapsed: z.boolean(),
+        selectedProfileId: z.string().min(1).optional(),
       })
       .strict(),
   })
@@ -192,6 +234,7 @@ const sketchFeatureSchema = z
       featureId: feature.featureId,
       enabled: feature.enabled ?? true,
       plane: (feature.plane ?? 'XY') as SketchPlane,
+      planeTransform: feature.planeTransform ?? createDefaultSketchPlaneTransform(),
       components,
       outputs: {
         profiles: feature.outputs?.profiles ?? [],
@@ -201,7 +244,12 @@ const sketchFeatureSchema = z
               diagnostics: feature.outputs.diagnostics,
             }),
       },
-      uiState: feature.uiState,
+      uiState: {
+        collapsed: feature.uiState.collapsed,
+        ...(feature.uiState.selectedProfileId === undefined
+          ? {}
+          : { selectedProfileId: feature.uiState.selectedProfileId }),
+      },
     }
   })
 

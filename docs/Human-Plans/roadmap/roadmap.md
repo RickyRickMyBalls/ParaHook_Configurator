@@ -4,6 +4,11 @@
 ### Fold Hack 3
 #### FOld Hack 4
 ###### Doc History
+94. 2026-03-18 21:20: Expanded the Lane `[4]` console roadmap summary with one explicit long-term command-language sentence, so the live roadmap now acknowledges that the app-wide `Console` should eventually navigate and act across workspace, graph, node, and feature domains instead of remaining only a shell/transcript surface
+93. 2026-03-18 14:15: Marked `[3.2B] Sketch Operation Authoring` and `[3.2C] Extrude Foundation` complete in the live roadmap after the graph-native sketch authoring, main-viewport sketch rendering split, and first `Geometry/Extrude -> SolidBody` implementation landed, while keeping the parent `[3.2]` lane partial because `[3.2D] Loft Foundation` remains open
+92. 2026-03-18 11:05: Added a compact top-level roadmap checklist grouped by lane so `roadmap.md` now has one quick scan surface that mirrors the numbered `###` phase entries below, and normalized `[5.0E]` to partial status so the new checklist matches the still-open lane body
+91. 2026-03-18 10:36: Marked `[3.2A] Data Types And Sketch Foundation` complete in the live roadmap after the `Geometry/Sketch` shell, geometry port kinds, and in-app sketch-plane picker landed, and moved the parent `[3.2]` foundational geometry lane to partial status now that the first subphase is shipped while `[3.2B-D]` remain open
+90. 2026-03-18 10:21: Expanded the `[3.2]` foundational geometry lane into real `###` roadmap subsections for `[3.2A]` through `[3.2D]`, so each geometry subphase now has its own foldable summary/checklist block instead of living only as inline labels under the parent lane
 89. 2026-03-17 18:39: Re-opened the parent `[5.0]` cleanup family by adding a new `[5.0E]` pre-workspace standardization cut for the `Spaghetti Editor` surface model, so editor-view cleanup and viewport-type normalization have an explicit bridge phase before the deeper `[5.1]` workspace lane locks pane-hosting vocabulary and surface switching
 88. 2026-03-17 18:28: Broadened the `[5.1]` workspace-family read so later browser `Pop-Out` is now a shared viewport/surface capability for the whole lane instead of sounding editor-only, renamed `[5.1E]` accordingly, and treated the shipped `Console` pop-out as the first proof of that later host mode
 87. 2026-03-17 17:58: Marked `[5.0D]` complete after removing the old title-bar `Build Stats` drawer path, deleting dead shell/panel files and unowned output-list selectors, pruning the dead app-store `assembled` residue, moving the task doc to `Tasks/Old`, and closing the parent `[5.0]` cleanup family as fully shipped
@@ -135,6 +140,79 @@ Preferred pattern:
     - complete
 
 Keep this pattern consistent where possible so `Ctrl+2`, `Ctrl+3`, and `Ctrl+4` views remain useful.
+
+## Quick Checklist
+
+This is the one-glance checklist view.
+
+It mirrors the numbered `###` roadmap entries below without replacing the detailed lane bodies.
+
+Status legend:
+- `[x]` shipped
+- `[~]` active / partial
+- `[ ]` not started
+
+### Lane [1] - `Graph-Native Foundation And Ownership`
+
+- [x] `[1.1]` `Graph Document Foundations`
+- [x] `[1.2]` `Graph Persistence And Save Load`
+- [x] `[1.3]` `Graph Aware Worker And Preview Routing`
+- [x] `[1.4]` `Multi-Document Graph Ownership`
+- [x] `[1.5]` `Graphs Panel And Nested Parts`
+- [x] `[1.6]` `Shared Viewport Composition`
+
+### Lane [2] - `Browser Workspace And Project Content Structure`
+
+- [~] `[2.1]` `Browser Workspace Shell And Item Interaction`
+- [x] `[2.1A]` `Browser Workspace Shell And Row Interaction`
+- [x] `[2.1B]` `Browser, Editor, And Shared Viewer Coordination`
+- [x] `[2.1C]` `Browser Row Action Cleanup And Context Menus`
+- [~] `[2.1D]` `Spaghetti Floating Window Controls And View Modes`
+- [~] `[2.1E]` `Dockable Left Panels And In-App Floating Panel Shell`
+- [x] `[2.1F]` `Graph Documents Child Sections`
+- [x] `[2.2]` `Browser-Facing Graph Output Structure`
+- [x] `[2.3]` `Project Content Inspection And Build Control Surface`
+- [x] `[2.4]` `Reference Asset Workspace And Project View Layers`
+- [ ] `[2.5]` `Browser Controls, Materials, And Rich Visibility`
+
+### Lane [3] - `Node, Wire, Driver, Part, And Feature Authoring Hardening`
+
+- [ ] `[3.1]` `Node System Cleanup And Growth`
+- [~] `[3.2]` `Foundational Geometry Node System`
+- [x] `[3.2A]` `Data Types And Sketch Foundation`
+- [x] `[3.2B]` `Sketch Operation Authoring`
+- [x] `[3.2C]` `Extrude Foundation`
+- [ ] `[3.2D]` `Loft Foundation`
+- [ ] `[3.3]` `Wire UX And Flow Readability`
+- [ ] `[3.4]` `Driver And Param System Expansion`
+- [ ] `[3.5]` `Part Node Hardening`
+- [ ] `[3.6]` `Feature Stack Growth`
+
+### Lane [4] - `Console, Debug, And Workspace Feedback`
+
+- [~] `[4.1]` `Console And Layered Transcript`
+- [x] `[4.1A]` `Console Shell And Transcript Core`
+- [x] `[4.1B]` `Console Floating And Pop-Out Modes`
+- [x] `[4.1C]` `Command Input And Keyboard Routing`
+- [x] `[4.1D]` `Layered Event Feeds And Filtering`
+- [ ] `[4.1E]` `Command Results, Errors, And Follow-Up UX`
+- [ ] `[4.1F]` `Debug Inspector Bridge And Richer Later Diagnostics`
+- [ ] `[4.1G]` `Hotkey Customization And Shortcut Profiles`
+
+### Lane [5] - `Control, Build, And Workspace Systems`
+
+- [~] `[5.0]` `Pre-Workspace Shell Cleanup And Legacy Panel Reduction`
+- [x] `[5.0A]` `Spaghetti Default Startup And Preview-Mode Shell Removal`
+- [x] `[5.0B]` `Legacy Left-Dock Panel Reduction`
+- [x] `[5.0C]` `Legacy Input-Mode Branch Removal`
+- [x] `[5.0D]` `Deferred Legacy Residue And Dead-Surface Cleanup`
+- [~] `[5.0E]` `Spaghetti Editor Surface Standardization And Viewport-Type Cleanup`
+- [~] `[5.1]` `Workspace Modes`
+- [ ] `[5.2]` `Control Viz And Graph-Driven Control Surfaces`
+- [ ] `[5.3]` `Build Sequencing, Build Bars, And Output Build Control`
+- [ ] `[5.4]` `Advanced Output Types And Later Project Packaging`
+- [ ] `[5.5]` `Publish / Receive Execution`
+- [ ] `[5.6]` `Final Legacy Phase-Out And Compatibility Cleanup`
 
 
 # [1] `Graph-Native Foundation And Ownership`
@@ -1219,7 +1297,7 @@ CheckList:
 - [ ] improve palette/spawn ergonomics without hard-coding product-specific paths
 - [ ] strengthen generic node rendering contracts so future node growth does not require one-off UI branches
 
-### [3.2] [ ] - `SP / NI / FS / GE` - `Foundational Geometry Node System`
+### [3.2] [~] - `SP / NI / FS / GE` - `Foundational Geometry Node System`
 
 ##### Summary
 
@@ -1232,50 +1310,163 @@ Summary:
   - `Loft`
 - keep this cluster ahead of the broader wire/driver/part/feature hardening work because it defines the first honest graph-native geometry-authoring contract
 
-Sub-phase labels for the current temporary draft:
-- `[3.2A] [ ] - Data Types And Sketch Foundation`
-- `[3.2B] [ ] - Sketch Operation Authoring`
-- `[3.2C] [ ] - Extrude Foundation`
-- `[3.2D] [ ] - Loft Foundation`
+CheckList:
+- [ ] keep `[3.2A]` through `[3.2D]` as the staged execution split for the first graph-native geometry path
+- [ ] keep `Sketch`, `Extrude`, and `Loft` user-facing and mode-based instead of collapsing back into hidden helper seams
+- [ ] land the foundational geometry path ahead of the broader wire/driver/part/feature hardening wave
+
+### [3.2A] [x] - `Data Types And Sketch Foundation`
+
+Summary:
+- lock the minimum honest geometry type language needed to support the first real authored-node path
+- ship the first real `Sketch` node shell with honest top-level inputs and outputs
+- keep this phase focused on the type vocabulary plus the `Sketch` seam, not deep sketch authoring breadth yet
 
 CheckList:
-- [ ] `[3.2A] Data Types And Sketch Foundation`
-  - [ ] lock the minimum honest geometry type language needed to support the first real authored-node path
-  - [ ] explicitly lock the first real graph data types needed for geometry authoring:
-    - `[Float]`
-    - `[Boolean]`
-    - `[Enum]`
-    - `[Vec2]`
-    - `[Vec3]`
-    - `[Transform2D]`
-    - `[Plane]`
-    - `[SketchCurve]`
-    - `[SketchCurves]`
-    - `[SketchProfiles]`
-    - `[SketchProfile]`
-    - `[SolidBody]`
-  - [ ] ship the first real `Sketch` node shell with honest top-level inputs and outputs
-  - [ ] keep this phase focused on the type vocabulary plus the `Sketch` seam, not deep sketch authoring breadth yet
-- [ ] `[3.2B] Sketch Operation Authoring`
-  - [ ] ship the first real sketch operation flow inside the `Sketch` system:
-    - `Line`
-    - `Arc3Point`
-    - `BezierSpline`
-    - `CloseProfile`
-    - `ProfileSelect`
-  - [ ] make the first sketch-operation set sufficient to produce one honest selected closed profile for downstream body features
-  - [ ] leave wider sketch-command parity, constraint solving, and full builder polish out of the first pass
-- [ ] `[3.2C] Extrude Foundation`
-  - [ ] prove the first body-producing authored-node path:
-    - `Sketch -> Extrude -> SolidBody`
-  - [ ] ship the first real `Extrude` node as a user-facing mode-based surface rather than a low-level helper wrapper
-  - [ ] keep the first shipped `Extrude` contract small and honest around profile input plus the minimum distance/direction-style controls
-  - [ ] avoid dragging later feature-stack, boolean, shell, or manufacturing semantics into this first extrusion cut
-- [ ] `[3.2D] Loft Foundation`
-  - [ ] add `Loft` as the next real profile-based body feature after extrusion
-  - [ ] keep the first `Loft` surface mode-based and user-facing rather than exposing low-level engine helper outputs directly
-  - [ ] start with the smallest honest `StartProfile / EndProfile -> SolidBody` contract before taking on richer rails, intermediates, or advanced continuity controls
-  - [ ] use this phase to prove ParaHook can support the next more organic profile-to-body step after prismatic extrusion
+- [x] lock the minimum honest geometry type language needed to support the first real authored-node path
+- [x] explicitly lock the first real graph data types needed for geometry authoring:
+  - `[Float]`
+  - `[Boolean]`
+  - `[Enum]`
+  - `[Vec2]`
+  - `[Vec3]`
+  - `[Transform2D]`
+  - `[Plane]`
+  - `[SketchCurve]`
+  - `[SketchCurves]`
+  - `[SketchProfiles]`
+  - `[SketchProfile]`
+  - `[SolidBody]`
+- [x] ship the first real `Sketch` node shell with honest top-level inputs and outputs
+- [x] keep this phase focused on the type vocabulary plus the `Sketch` seam, not deep sketch authoring breadth yet
+
+### [3.2B] [x] - `Sketch Operation Authoring`
+#### FoldHack 4
+Summary:
+- ship the first real sketch operation flow inside the `Sketch` system
+- make the first sketch-operation set sufficient to produce one honest selected closed profile for downstream body features
+- leave wider sketch-command parity, constraint solving, and full builder polish out of the first pass
+
+CheckList:
+- [x] ship the first real sketch operation flow inside the `Sketch` system:
+  - `Line`
+  - `Arc3Point`
+  - `BezierSpline`
+  - `CloseProfile`
+  - `ProfileSelect`
+- [x] make the first sketch-operation set sufficient to produce one honest selected closed profile for downstream body features
+- [x] leave wider sketch-command parity, constraint solving, and full builder polish out of the first pass
+
+#### [x] `3.2B-SketchPlane-1` - `Source And Transform Surface`
+
+Summary:
+- turn `SketchPlane` into a real authored setup surface instead of a thin plane row
+- give the sketch a clear `Source + Transform` seam before deeper viewport-driven setup and drawing flows
+- keep this first cut row-owned and parameter-surface-driven
+
+CheckList:
+- [x] ship the first honest `SketchPlane` source/setup row
+- [x] support richer `Source + Transform` controls in the sketch node surface
+- [x] keep the first pass honest around authored setup values without dragging geometry-derived picking in yet
+
+#### [~] `3.2B-SketchPlane-2` - `Viewport-First Source Pick And Sketch Origin Gizmo`
+
+Summary:
+- move sketch-plane setup into a real viewport-first source-pick flow
+- use the main model viewport for origin-plane selection, ghost planes, and the sketch-origin gizmo
+- keep this origin-plane-focused while the cleanup work makes the first real viewport flow fully honest
+
+CheckList:
+- [x] replace the older overlay-style plane picker with a real viewport-first source-pick session
+- [x] collapse the spaghetti editor out of the way during active sketch-plane placement
+- [x] ship the first real origin-plane pick plus move/rotate gizmo loop
+- [~] finish the follow-on cleanup so the main viewport, toolbar chrome, and viewer-owned helper behavior all read as one honest interaction surface
+- [ ] keep geometry-driven face/edge setup deferred to the next sketch-plane cut
+
+#### [ ] `3.2B-SketchPlane-3` - `Geometry-Driven Auto-Setup And Selection Highlighting`
+
+Summary:
+- extend sketch-plane setup beyond origin planes into geometry-driven placement
+- let planar model faces and later valid sketch-derived geometry help define plane placement and orientation
+- add the viewer-side hover/selection/highlight rules that make those picks understandable
+
+CheckList:
+- [ ] allow first useful geometry-driven sketch-plane setup beyond `XY / XZ / YZ`
+- [ ] infer sketch-plane placement/orientation from selected planar geometry
+- [ ] add clear hover, active, and committed source-highlighting feedback
+- [ ] keep this as a sketch-plane/source family step rather than pushing it into later Browser or workspace lanes
+
+#### [ ] `3.2B-DrawSketch-1` - `Viewer-Owned Live Draw Preview`
+
+Summary:
+- move the first honest `Draw Sketch` interaction into the real Three model viewport instead of treating the floating toolbar as the drawing surface
+- keep the toolbar as the control surface while the viewer owns hover preview, point capture, and temporary draw geometry
+- start with the smallest honest viewport-draw set:
+  - `Line`
+  - `Rectangle`
+  - `Circle`
+
+CheckList:
+- [ ] let `SketchDraw -> Draw` open a real viewer-owned draw session
+- [ ] render temporary active-tool preview directly in the Three viewport
+- [ ] let viewport point picks drive the first committed sketch entities
+- [ ] keep the floating `Draw Sketch` toolbar as the session-control surface, not the canvas
+
+#### [ ] `3.2B-DrawSketch-2` - `Multi-Step Tool Sessions And Commit Rules`
+
+Summary:
+- turn viewport drawing into real multi-step tool sessions instead of one-click point drops
+- keep temporary entity state session-local until the current tool step is accepted cleanly
+- make commit/cancel behavior honest before taking on richer editing breadth
+
+CheckList:
+- [ ] add explicit multi-step progression for the first viewport draw tools
+- [ ] keep live draft geometry temporary until the current entity is accepted
+- [ ] define clean accept/cancel behavior for in-progress draw sessions
+- [ ] extend the viewport draw flow to:
+  - `Arc3Point`
+  - `BezierSpline`
+
+#### [ ] `3.2B-DrawSketch-3` - `Selection, Editing, And Richer Sketch Feedback`
+
+Summary:
+- deepen `Draw Sketch` from raw placement into a fuller sketch authoring surface
+- add viewport-side entity selection, editing, and richer sketch feedback states
+- keep this attached to the sketch authoring family instead of pushing it into later Browser or workspace lanes
+
+CheckList:
+- [ ] add viewport hover/selected/active feedback for sketch entities
+- [ ] allow editing existing sketch entities from the real viewport
+- [ ] add richer snapping/inference aids for sketch drawing
+- [ ] keep committed sketch components graph/store-owned while temporary interaction remains viewer-owned
+
+### [3.2C] [x] - `Extrude Foundation`
+
+Summary:
+- prove the first body-producing authored-node path:
+  - `Sketch -> Extrude -> SolidBody`
+- ship the first real `Extrude` node as a user-facing mode-based surface rather than a low-level helper wrapper
+- keep the first shipped `Extrude` contract small and honest around profile input plus the minimum distance/direction-style controls
+
+CheckList:
+- [x] prove the first body-producing authored-node path:
+  - `Sketch -> Extrude -> SolidBody`
+- [x] ship the first real `Extrude` node as a user-facing mode-based surface rather than a low-level helper wrapper
+- [x] keep the first shipped `Extrude` contract small and honest around profile input plus the minimum distance/direction-style controls
+- [x] avoid dragging later feature-stack, boolean, shell, or manufacturing semantics into this first extrusion cut
+
+### [3.2D] [ ] - `Loft Foundation`
+
+Summary:
+- add `Loft` as the next real profile-based body feature after extrusion
+- keep the first `Loft` surface mode-based and user-facing rather than exposing low-level engine helper outputs directly
+- start with the smallest honest `StartProfile / EndProfile -> SolidBody` contract before taking on richer rails, intermediates, or advanced continuity controls
+
+CheckList:
+- [ ] add `Loft` as the next real profile-based body feature after extrusion
+- [ ] keep the first `Loft` surface mode-based and user-facing rather than exposing low-level engine helper outputs directly
+- [ ] start with the smallest honest `StartProfile / EndProfile -> SolidBody` contract before taking on richer rails, intermediates, or advanced continuity controls
+- [ ] use this phase to prove ParaHook can support the next more organic profile-to-body step after prismatic extrusion
 
 ### [3.3] [ ] - `NI` - Phase 7 / 8 - `Wire UX And Flow Readability`
 
@@ -1330,6 +1521,7 @@ CheckList:
 Summary:
 - pull the app-wide `Console` and its related debug/feedback surfaces into their own lane so they can move sooner without being buried under later control/build/package systems
 - treat the `Console` as a first-class workspace feedback surface for commands, shortcuts, worker/app notes, diagnostics, and layered transcript output
+- long term, evolve the `Console` into an app-wide command language that can navigate and act across workspace, graph, node, and feature domains instead of remaining only a shell/transcript surface
 
 ### Lane Header
 #### Fold Hack 4
@@ -1517,7 +1709,7 @@ CheckList:
 - [x] keep this phase deferred by default:
   - do not block `[5.1]` unless one of these leftovers becomes a direct workspace blocker
 
-### [5.0E] [x] - `Spaghetti Editor Surface Standardization And Viewport-Type Cleanup`
+### [5.0E] [~] - `Spaghetti Editor Surface Standardization And Viewport-Type Cleanup`
 
 Summary:
 - narrow bridge cut for cleaning up the `Spaghetti Editor` surface model before the deeper workspace lane starts standardizing viewport types and pane switching

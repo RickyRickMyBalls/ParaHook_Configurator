@@ -1,10 +1,43 @@
 import type { ViewSettings } from '../shared/viewSettingsTypes'
 import type { ReferenceTransformOverride } from './references/referenceManifest'
+import type {
+  SketchComponent,
+  SketchPlane,
+  SketchPlaneTransform,
+} from './spaghetti/features/featureTypes'
 
 export type CameraPreset = 'iso' | 'top' | 'front' | 'left' | 'right'
 export type GizmoMode = 'translate' | 'rotate' | 'scale'
 export type GizmoSpace = 'local' | 'world'
 export type SnapDirection = '+X' | '-X' | '+Y' | '-Y' | '+Z' | '-Z'
+
+export type GeometrySketchOverlayProfileVm = {
+  profileId: string
+  vertices: Array<{ x: number; y: number }>
+}
+
+export type GeometrySketchOverlayVm = {
+  mode: 'draw' | 'review'
+  plane: SketchPlane
+  components: SketchComponent[]
+  profiles: GeometrySketchOverlayProfileVm[]
+  selectedProfileId?: string
+}
+
+export type SketchPlanePickOverlayVm = {
+  stage: 'pick' | 'adjust'
+  gizmoMode: 'translate' | 'rotate'
+  draftPlane: SketchPlane
+  draftTransform: SketchPlaneTransform
+  snap: {
+    translateMm: number | null
+    rotateDeg: number | null
+  }
+  ui: {
+    gizmoScale: number
+    ghostPlaneScale: number
+  }
+}
 
 export interface ViewerApi {
   setCameraPreset: (preset: CameraPreset) => void
@@ -52,6 +85,14 @@ export interface ViewerApi {
   setOnReferenceTransformSpaceChange: ((handler: ((space: GizmoSpace) => void) | null) => void)
   setAxisOverlayEnabled: (enabled: boolean) => void
   setAxisOverlayCanvas: (canvas: HTMLCanvasElement | null) => void
+  setGeometrySketchOverlay: (overlay: GeometrySketchOverlayVm | null) => void
+  setSketchPlanePickOverlay: (overlay: SketchPlanePickOverlayVm | null) => void
+  setOnSketchPlanePickPlaneSelect: (
+    handler: ((plane: SketchPlane) => void) | null,
+  ) => void
+  setOnSketchPlanePickTransformChange: (
+    handler: ((transform: SketchPlaneTransform) => void) | null,
+  ) => void
 }
 
 let viewer: ViewerApi | null = null

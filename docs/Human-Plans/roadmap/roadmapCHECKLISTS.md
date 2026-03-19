@@ -202,19 +202,34 @@ Meaning:
 
 - [x] `Roadmap Breakdown` `[3.1] NI - Phase 6 - Node System Cleanup And Growth`
   - [ ] `Decision Coverage` `[3.1]`
-  - [ ] `Plan.md Status` `[3.1]`
-- [x] `Roadmap Breakdown` `[3.2] NI - Phase 7 / 8 - Wire UX And Flow Readability`
+  - [x] `Plan.md Status` `[3.1]`
+- [x] `Roadmap Breakdown` `[3.2] SP / NI / FS / GE - Foundational Geometry Node System`
   - [ ] `Decision Coverage` `[3.2]`
-  - [ ] `Plan.md Status` `[3.2]`
-- [x] `Roadmap Breakdown` `[3.3] DR - Phase 13 / 14 / 16 - Driver And Param System Expansion`
+  - [x] `Plan.md Status` `[3.2]`
+  - [x] `Roadmap Breakdown` `[3.2A] Data Types And Sketch Foundation`
+    - [x] `Decision Coverage` `[3.2A]`
+    - [x] `Plan.md Status` `[3.2A]`
+  - [x] `Roadmap Breakdown` `[3.2B] Sketch Operation Authoring`
+    - [x] `Decision Coverage` `[3.2B]`
+    - [x] `Plan.md Status` `[3.2B]`
+  - [x] `Roadmap Breakdown` `[3.2C] Extrude Foundation`
+    - [x] `Decision Coverage` `[3.2C]`
+    - [x] `Plan.md Status` `[3.2C]`
+  - [x] `Roadmap Breakdown` `[3.2D] Loft Foundation`
+    - [ ] `Decision Coverage` `[3.2D]`
+    - [x] `Plan.md Status` `[3.2D]`
+- [x] `Roadmap Breakdown` `[3.3] NI - Phase 7 / 8 - Wire UX And Flow Readability`
   - [ ] `Decision Coverage` `[3.3]`
   - [ ] `Plan.md Status` `[3.3]`
-- [x] `Roadmap Breakdown` `[3.4] PT - Phase TBD - Part Node Hardening`
+- [x] `Roadmap Breakdown` `[3.4] DR - Phase 13 / 14 / 16 - Driver And Param System Expansion`
   - [ ] `Decision Coverage` `[3.4]`
   - [ ] `Plan.md Status` `[3.4]`
-- [x] `Roadmap Breakdown` `[3.5] FS - Phase TBD - Feature Stack Growth`
+- [x] `Roadmap Breakdown` `[3.5] PT - Phase TBD - Part Node Hardening`
   - [ ] `Decision Coverage` `[3.5]`
   - [ ] `Plan.md Status` `[3.5]`
+- [x] `Roadmap Breakdown` `[3.6] FS - Phase TBD - Feature Stack Growth`
+  - [ ] `Decision Coverage` `[3.6]`
+  - [ ] `Plan.md Status` `[3.6]`
 
 ##### Bucket 4 - Lane [4] Console, Debug, And Workspace Feedback
 
@@ -249,14 +264,14 @@ Meaning:
 ##### Master Totals
 
 - `Roadmap Breakdown`
-  - done enough: `43`
+  - done enough: `48`
   - still needs roadmap planning: `0`
 - `Decision Coverage`
-  - captured enough: `26`
-  - still needs decision write-up: `17`
+  - captured enough: `29`
+  - still needs decision write-up: `19`
 - `Plan.md Status`
-  - dedicated docs already made: `19`
-  - still needs dedicated docs: `24`
+  - dedicated docs already made: `25`
+  - still needs dedicated docs: `23`
 
 
 ##### RoadMap CheckList Total

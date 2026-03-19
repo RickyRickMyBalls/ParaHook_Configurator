@@ -14,6 +14,10 @@ let viewerSetOnReferenceTransformExit: ReturnType<typeof vi.fn>
 let viewerSetOnReferenceTransformModeChange: ReturnType<typeof vi.fn>
 let viewerSetOnReferenceTransformSpaceChange: ReturnType<typeof vi.fn>
 let viewerSetGizmoSnap: ReturnType<typeof vi.fn>
+let viewerSetGeometrySketchOverlay: ReturnType<typeof vi.fn>
+let viewerSetSketchPlanePickOverlay: ReturnType<typeof vi.fn>
+let viewerSetOnSketchPlanePickPlaneSelect: ReturnType<typeof vi.fn>
+let viewerSetOnSketchPlanePickTransformChange: ReturnType<typeof vi.fn>
 
 vi.mock('../viewerBridge', () => ({
   setViewer: vi.fn(),
@@ -43,6 +47,13 @@ vi.mock('../../viewer/Viewer', () => ({
     public setOnReferenceTransformSpaceChange = (...args: unknown[]) =>
       viewerSetOnReferenceTransformSpaceChange(...args)
     public setGizmoSnap = (...args: unknown[]) => viewerSetGizmoSnap(...args)
+    public setGeometrySketchOverlay = (...args: unknown[]) => viewerSetGeometrySketchOverlay(...args)
+    public setSketchPlanePickOverlay = (...args: unknown[]) =>
+      viewerSetSketchPlanePickOverlay(...args)
+    public setOnSketchPlanePickPlaneSelect = (...args: unknown[]) =>
+      viewerSetOnSketchPlanePickPlaneSelect(...args)
+    public setOnSketchPlanePickTransformChange = (...args: unknown[]) =>
+      viewerSetOnSketchPlanePickTransformChange(...args)
   },
 }))
 
@@ -100,6 +111,10 @@ describe('ViewerHost reference loading', () => {
     viewerSetOnReferenceTransformModeChange = vi.fn()
     viewerSetOnReferenceTransformSpaceChange = vi.fn()
     viewerSetGizmoSnap = vi.fn()
+    viewerSetGeometrySketchOverlay = vi.fn()
+    viewerSetSketchPlanePickOverlay = vi.fn()
+    viewerSetOnSketchPlanePickPlaneSelect = vi.fn()
+    viewerSetOnSketchPlanePickTransformChange = vi.fn()
     globalThis.Worker = MockWorker as unknown as typeof Worker
     const { useAppStore } = await import('../store/useAppStore')
     const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
@@ -280,5 +295,251 @@ describe('ViewerHost reference loading', () => {
     })
 
     expect(viewerSetGizmoSnap).toHaveBeenCalledWith({ rotateDeg: 22.5 })
+  })
+
+  it('pushes the active geometry sketch session into the viewer overlay and clears it when closed', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+
+    act(() => {
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-sketch-1',
+            type: 'Geometry/Sketch',
+            params: {
+              sketch: {
+                type: 'sketch',
+                featureId: 'sketch-1',
+                plane: 'XZ',
+                components: [
+                  {
+                    rowId: 'row-line-1',
+                    componentId: 'cmp-line-1',
+                    type: 'line',
+                    a: { kind: 'lit', x: 0, y: 0 },
+                    b: { kind: 'lit', x: 25, y: 10 },
+                  },
+                ],
+                outputs: {
+                  profiles: [],
+                },
+                uiState: {
+                  collapsed: false,
+                },
+              },
+            },
+          },
+        ],
+        edges: [],
+      })
+      useSpaghettiStore.getState().startGeometrySketchSession('node-sketch-1', 'draw')
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost />)
+    })
+
+    expect(viewerSetGeometrySketchOverlay).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mode: 'draw',
+        plane: 'XZ',
+        components: expect.any(Array),
+      }),
+    )
+
+    act(() => {
+      useSpaghettiStore.getState().closeGeometrySketchSession()
+    })
+
+    expect(viewerSetGeometrySketchOverlay).toHaveBeenLastCalledWith(null)
+  })
+
+  it('updates the viewer overlay mode and selected profile when sketch review becomes active', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+
+    act(() => {
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-sketch-1',
+            type: 'Geometry/Sketch',
+            params: {
+              sketch: {
+                type: 'sketch',
+                featureId: 'sketch-1',
+                plane: 'XY',
+                components: [],
+                outputs: {
+                  profiles: [
+                    {
+                      profileId: 'profile-a',
+                      profileIndex: 0,
+                      area: 100,
+                      loop: {
+                        winding: 'CCW',
+                        segments: [],
+                      },
+                      verticesProxy: [
+                        { x: 0, y: 0 },
+                        { x: 10, y: 0 },
+                        { x: 10, y: 10 },
+                        { x: 0, y: 10 },
+                      ],
+                    },
+                    {
+                      profileId: 'profile-b',
+                      profileIndex: 1,
+                      area: 64,
+                      loop: {
+                        winding: 'CCW',
+                        segments: [],
+                      },
+                      verticesProxy: [
+                        { x: 20, y: 0 },
+                        { x: 28, y: 0 },
+                        { x: 28, y: 8 },
+                        { x: 20, y: 8 },
+                      ],
+                    },
+                  ],
+                },
+                uiState: {
+                  collapsed: false,
+                  selectedProfileId: 'profile-b',
+                },
+              },
+            },
+          },
+        ],
+        edges: [],
+      })
+      useSpaghettiStore.getState().startGeometrySketchSession('node-sketch-1', 'review')
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost />)
+    })
+
+    expect(viewerSetGeometrySketchOverlay).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mode: 'review',
+        selectedProfileId: 'profile-b',
+        profiles: expect.arrayContaining([
+          expect.objectContaining({ profileId: 'profile-a' }),
+          expect.objectContaining({ profileId: 'profile-b' }),
+        ]),
+      }),
+    )
+  })
+
+  it('pushes the active sketch-plane pick session into the viewer and routes plane picks back into the store', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+
+    act(() => {
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-sketch-1',
+            type: 'Geometry/Sketch',
+            params: {
+              sketch: {
+                type: 'sketch',
+                featureId: 'sketch-1',
+                plane: 'XY',
+                planeTransform: {
+                  offsetMm: 0,
+                  translation: { x: 0, y: 0, z: 0 },
+                  rotationDeg: { x: 0, y: 0, z: 0 },
+                  inPlaneRotationDeg: 0,
+                },
+                components: [],
+                outputs: {
+                  profiles: [],
+                },
+                uiState: {
+                  collapsed: false,
+                },
+              },
+            },
+          },
+        ],
+        edges: [],
+      })
+      useSpaghettiStore.getState().startSketchPlanePick('node-sketch-1')
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost />)
+    })
+
+    expect(viewerSetSketchPlanePickOverlay).toHaveBeenCalledWith(
+      expect.objectContaining({
+        stage: 'pick',
+        gizmoMode: 'translate',
+        draftPlane: 'XY',
+        draftTransform: expect.objectContaining({
+          translation: expect.objectContaining({ x: 0, y: 0, z: 0 }),
+        }),
+      }),
+    )
+    expect(viewerSetOnSketchPlanePickPlaneSelect).toHaveBeenCalledWith(expect.any(Function))
+    expect(viewerSetOnSketchPlanePickTransformChange).toHaveBeenCalledWith(expect.any(Function))
+
+    const planeSelectHandler = viewerSetOnSketchPlanePickPlaneSelect.mock.calls.at(-1)?.[0] as
+      | ((plane: 'XY' | 'XZ' | 'YZ') => void)
+      | null
+
+    act(() => {
+      planeSelectHandler?.('YZ')
+    })
+
+    expect(useSpaghettiStore.getState().sketchPlanePickSession).toMatchObject({
+      draftPlane: 'YZ',
+      stage: 'adjust',
+    })
+
+    const transformChangeHandler =
+      viewerSetOnSketchPlanePickTransformChange.mock.calls.at(-1)?.[0] as
+        | ((transform: {
+            offsetMm: number
+            inPlaneRotationDeg: number
+            translation: { x: number; y: number; z: number }
+            rotationDeg: { x: number; y: number; z: number }
+          }) => void)
+        | null
+
+    act(() => {
+      transformChangeHandler?.({
+        offsetMm: 0,
+        inPlaneRotationDeg: 0,
+        translation: { x: 12, y: -4, z: 8 },
+        rotationDeg: { x: 0, y: 30, z: 45 },
+      })
+    })
+
+    expect(useSpaghettiStore.getState().sketchPlanePickSession).toMatchObject({
+      draftTransform: {
+        translation: { x: 12, y: -4, z: 8 },
+        rotationDeg: { x: 0, y: 30, z: 45 },
+      },
+    })
   })
 })

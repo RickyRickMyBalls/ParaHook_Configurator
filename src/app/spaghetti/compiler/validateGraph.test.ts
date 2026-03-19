@@ -1130,6 +1130,47 @@ describe('validateGraph OutputPreview dynamic slot inputs', () => {
     expect(result.errors).toHaveLength(0)
   })
 
+  it('accepts graph-native solidBody output wired into OutputPreview in:solid slot port', () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'n-extrude',
+          type: 'Geometry/Extrude',
+          params: {
+            extrudeType: 'Basic',
+            depthMm: 25,
+          },
+        },
+        {
+          nodeId: 'n-output-preview',
+          type: OUTPUT_PREVIEW_NODE_TYPE,
+          params: {
+            slots: [{ slotId: 's001' }],
+            nextSlotIndex: 2,
+          },
+        },
+      ],
+      edges: [
+        {
+          edgeId: 'e-output-preview-slot-solid-body',
+          from: {
+            nodeId: 'n-extrude',
+            portId: 'SolidBody',
+          },
+          to: {
+            nodeId: 'n-output-preview',
+            portId: 'in:solid:s001',
+          },
+        },
+      ],
+    }
+
+    const result = validateGraph(graph)
+    expect(result.ok).toBe(true)
+    expect(result.errors).toHaveLength(0)
+  })
+
   it('enforces maxConnectionsIn = 1 on OutputPreview in:solid slot ports', () => {
     const graph: SpaghettiGraph = {
       schemaVersion: 1,

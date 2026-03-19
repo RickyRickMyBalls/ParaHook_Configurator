@@ -1,5 +1,7 @@
 import type { Face, MeshPack, Point2, Shape3D, Wire } from './cadTypes'
 
+type SketchPlane = 'XY' | 'XZ' | 'YZ'
+
 const pointKey = (point: Point2): string => `${String(point.x)}|${String(point.y)}`
 
 const dedupeClosingVertex = (vertices: readonly Point2[]): Point2[] => {
@@ -51,7 +53,17 @@ export const faceFromWire = (wire: Wire): Face => ({
   wire,
 })
 
-const extrudeMesh = (wire: Wire, depth: number): MeshPack => {
+const toPlanePoint3 = (plane: SketchPlane, point: Point2, depth = 0): [number, number, number] => {
+  if (plane === 'XZ') {
+    return [point.x, depth, point.y]
+  }
+  if (plane === 'YZ') {
+    return [depth, point.x, point.y]
+  }
+  return [point.x, point.y, depth]
+}
+
+const extrudeMesh = (wire: Wire, plane: SketchPlane, depth: number): MeshPack => {
   if (!Number.isFinite(depth) || depth <= 0) {
     throw new Error('Extrude depth must be positive and finite.')
   }
@@ -62,10 +74,12 @@ const extrudeMesh = (wire: Wire, depth: number): MeshPack => {
   const indices: number[] = []
 
   for (const point of loop) {
-    vertices.push(point.x, point.y, 0)
+    const [x, y, z] = toPlanePoint3(plane, point, 0)
+    vertices.push(x, y, z)
   }
   for (const point of loop) {
-    vertices.push(point.x, point.y, depth)
+    const [x, y, z] = toPlanePoint3(plane, point, depth)
+    vertices.push(x, y, z)
   }
 
   for (let index = 1; index < n - 1; index += 1) {
@@ -90,7 +104,18 @@ export const extrudeFaceAlongZ = (
 ): Shape3D => ({
   kind: 'extrusion',
   ...metadata,
-  mesh: extrudeMesh(face.wire, depth),
+  mesh: extrudeMesh(face.wire, 'XY', depth),
+})
+
+export const extrudeFaceOnPlane = (
+  face: Face,
+  plane: SketchPlane,
+  depth: number,
+  metadata: Pick<Shape3D, 'bodyId' | 'featureId' | 'op' | 'partKey'>,
+): Shape3D => ({
+  kind: 'extrusion',
+  ...metadata,
+  mesh: extrudeMesh(face.wire, plane, depth),
 })
 
 export const mergeMeshPacks = (meshes: readonly MeshPack[]): MeshPack => {

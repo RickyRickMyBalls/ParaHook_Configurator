@@ -172,10 +172,22 @@ type UiPrefsState = {
   view: ViewSettings
   viewToolbarOpen: boolean
   viewToolbarExpandedAxisWidgetSize: number | null
+  sketchPlaneToolbarGhostPlaneScale: number
+  sketchPlaneToolbarGizmoScale: number
+  sketchPlaneToolbarTranslateSnapEnabled: boolean
+  sketchPlaneToolbarTranslateSnapValue: number
+  sketchPlaneToolbarRotateSnapEnabled: boolean
+  sketchPlaneToolbarRotateSnapValue: number
   setView: (patch: Partial<ViewSettings>) => void
   setViewKey: <K extends keyof ViewSettings>(key: K, value: ViewSettings[K]) => void
   setViewToolbarOpen: (open: boolean) => void
   setViewToolbarExpandedAxisWidgetSize: (size: number | null) => void
+  setSketchPlaneToolbarGhostPlaneScale: (scale: number) => void
+  setSketchPlaneToolbarGizmoScale: (scale: number) => void
+  setSketchPlaneToolbarTranslateSnapEnabled: (enabled: boolean) => void
+  setSketchPlaneToolbarTranslateSnapValue: (value: number) => void
+  setSketchPlaneToolbarRotateSnapEnabled: (enabled: boolean) => void
+  setSketchPlaneToolbarRotateSnapValue: (value: number) => void
   selectLight: (id: string | null) => void
   addLight: (spec?: Partial<LightSpec>) => void
   deleteLight: (id: string) => void
@@ -194,6 +206,12 @@ export const useUiPrefsStore = create<UiPrefsState>((set, get) => ({
   view: createDefaultView(),
   viewToolbarOpen: false,
   viewToolbarExpandedAxisWidgetSize: null,
+  sketchPlaneToolbarGhostPlaneScale: 1,
+  sketchPlaneToolbarGizmoScale: 1,
+  sketchPlaneToolbarTranslateSnapEnabled: false,
+  sketchPlaneToolbarTranslateSnapValue: 10,
+  sketchPlaneToolbarRotateSnapEnabled: false,
+  sketchPlaneToolbarRotateSnapValue: 15,
   setView: (patch) => {
     set({ view: { ...get().view, ...patch } })
   },
@@ -205,6 +223,24 @@ export const useUiPrefsStore = create<UiPrefsState>((set, get) => ({
   },
   setViewToolbarExpandedAxisWidgetSize: (size) => {
     set({ viewToolbarExpandedAxisWidgetSize: size })
+  },
+  setSketchPlaneToolbarGhostPlaneScale: (scale) => {
+    set({ sketchPlaneToolbarGhostPlaneScale: clamp(scale, 0.4, 3) })
+  },
+  setSketchPlaneToolbarGizmoScale: (scale) => {
+    set({ sketchPlaneToolbarGizmoScale: clamp(scale, 0.4, 3) })
+  },
+  setSketchPlaneToolbarTranslateSnapEnabled: (enabled) => {
+    set({ sketchPlaneToolbarTranslateSnapEnabled: enabled })
+  },
+  setSketchPlaneToolbarTranslateSnapValue: (value) => {
+    set({ sketchPlaneToolbarTranslateSnapValue: clamp(value, 0.1, 100) })
+  },
+  setSketchPlaneToolbarRotateSnapEnabled: (enabled) => {
+    set({ sketchPlaneToolbarRotateSnapEnabled: enabled })
+  },
+  setSketchPlaneToolbarRotateSnapValue: (value) => {
+    set({ sketchPlaneToolbarRotateSnapValue: clamp(value, 1, 90) })
   },
   selectLight: (id) => {
     set({

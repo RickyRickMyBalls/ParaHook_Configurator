@@ -1,12 +1,19 @@
 import { z } from 'zod'
-import { featureStackSchema } from '../features/featureSchema'
+import {
+  featureStackSchema,
+  sketchFeatureSchema,
+} from '../features/featureSchema'
+import { deriveProfilesWithDiagnostics } from '../features/profileDerivation'
 import {
   cloneOutputPreviewDefaultParams,
   OUTPUT_PREVIEW_NODE_TYPE,
 } from '../system/outputPreviewNode'
 import type { PortSpec, Unit } from '../schema/spaghettiTypes'
+import type { SketchFeature } from '../features/featureTypes'
 
 export type NodeTypeId =
+  | 'Geometry/Extrude'
+  | 'Geometry/Sketch'
   | 'Part/Baseplate'
   | 'Part/Cube'
   | 'Part/CubeProof'
@@ -127,7 +134,7 @@ export type NodeDefinition = {
   inputs: PortSpec[]
   outputs: PortSpec[]
   compute: (ctx: NodeComputeContext) => NodeComputeResult
-  template?: 'part'
+  template?: 'part' | 'sketch' | 'extrude'
   inputDrivers?: NodeInputDriverSpec[]
   outputDrivers?: NodeOutputDriverSpec[]
   legacyInputPortAliases?: Record<string, string>
@@ -231,6 +238,17 @@ const paramVec2ParamsSchema = z
     value: vec2Schema,
   })
   .strict()
+const geometrySketchParamsSchema = z
+  .object({
+    sketch: sketchFeatureSchema,
+  })
+  .strict()
+const geometryExtrudeParamsSchema = z
+  .object({
+    extrudeType: z.enum(['Basic', 'Twist']).optional(),
+    depthMm: z.number().finite().optional(),
+  })
+  .strict()
 const defaultBaseplateWidth = 30
 const defaultBaseplateLength = 200
 const defaultCubeLength = 20
@@ -239,6 +257,7 @@ const defaultCubeHeight = 20
 const defaultCubeProofLength = 20
 const defaultCubeProofWidth = 10
 const defaultCubeProofHeight = 12
+const defaultGeometryExtrudeDepthMm = 20
 const defaultToeHookWidth = 24
 const defaultToeHookThickness = 4
 const defaultToeHookTrim = 2
@@ -268,6 +287,47 @@ const isVec2Like = (value: unknown): value is { x: number; y: number } =>
   Number.isFinite((value as { x: number }).x) &&
   typeof (value as { y?: unknown }).y === 'number' &&
   Number.isFinite((value as { y: number }).y)
+
+const createManagedSketchFeature = (): SketchFeature => ({
+  type: 'sketch' as const,
+  featureId: 'sketch-1',
+  plane: 'XY' as const,
+  planeTransform: {
+    offsetMm: 0,
+    translation: { x: 0, y: 0, z: 0 },
+    rotationDeg: { x: 0, y: 0, z: 0 },
+    inPlaneRotationDeg: 0,
+  },
+  components: [],
+  outputs: {
+    profiles: [],
+    diagnostics: [],
+  },
+  uiState: {
+    collapsed: false,
+  },
+})
+
+const readManagedSketchFeatureFromParams = (params: Record<string, unknown>): SketchFeature => {
+  const parsed = geometrySketchParamsSchema.safeParse(params)
+  return parsed.success ? parsed.data.sketch : createManagedSketchFeature()
+}
+
+const readGeometryExtrudeTypeFromParams = (
+  params: Record<string, unknown>,
+): 'Basic' | 'Twist' => {
+  const parsed = geometryExtrudeParamsSchema.safeParse(params)
+  return parsed.success && parsed.data.extrudeType !== undefined
+    ? parsed.data.extrudeType
+    : 'Basic'
+}
+
+const readGeometryExtrudeDepthMmFromParams = (params: Record<string, unknown>): number => {
+  const parsed = geometryExtrudeParamsSchema.safeParse(params)
+  return parsed.success && typeof parsed.data.depthMm === 'number' && Number.isFinite(parsed.data.depthMm)
+    ? parsed.data.depthMm
+    : defaultGeometryExtrudeDepthMm
+}
 
 const buildRectangleExtrudeFeatureStack = (config: {
   prefix: string
@@ -370,6 +430,101 @@ const cubeProofFeatureStack = buildRectangleExtrudeFeatureStack({
 })
 
 export const registry: Record<NodeTypeId, NodeDefinition> = {
+  'Geometry/Extrude': {
+    type: 'Geometry/Extrude',
+    label: 'Extrude',
+    paramsSchema: geometryExtrudeParamsSchema,
+    defaultParams: {
+      extrudeType: 'Basic',
+      depthMm: defaultGeometryExtrudeDepthMm,
+    },
+    template: 'extrude',
+    inputs: [
+      {
+        portId: 'ExtrusionProfile',
+        label: 'ExtrusionProfile',
+        type: { kind: 'sketchProfile' },
+        optional: true,
+      },
+      {
+        portId: 'Depth',
+        label: 'Depth',
+        type: { kind: 'number', unit: 'mm' },
+        optional: true,
+      },
+    ],
+    outputs: [
+      {
+        portId: 'SolidBody',
+        label: 'SolidBody',
+        type: { kind: 'solidBody' },
+      },
+    ],
+    compute: ({ nodeId, params, inputs }) => {
+      const extrudeType = readGeometryExtrudeTypeFromParams(params)
+      const depth =
+        typeof inputs.Depth === 'number' && Number.isFinite(inputs.Depth)
+          ? inputs.Depth
+          : readGeometryExtrudeDepthMmFromParams(params)
+      const profile = inputs.ExtrusionProfile
+      const hasProfile =
+        typeof profile === 'object' &&
+        profile !== null &&
+        typeof (profile as { profileId?: unknown }).profileId === 'string'
+      const canPublishBody = extrudeType === 'Basic' && hasProfile && depth > 0
+      return {
+        SolidBody: canPublishBody ? { bodyId: `${nodeId}:body` } : null,
+      }
+    },
+  },
+  'Geometry/Sketch': {
+    type: 'Geometry/Sketch',
+    label: 'Sketch',
+    paramsSchema: geometrySketchParamsSchema,
+    defaultParams: {
+      sketch: createManagedSketchFeature(),
+    },
+    template: 'sketch',
+    inputs: [
+      {
+        portId: 'SketchPlane',
+        label: 'SketchPlane',
+        type: { kind: 'plane' },
+        optional: true,
+      },
+      {
+        portId: 'SketchEntities',
+        label: 'SketchDraw',
+        type: { kind: 'sketchEntities' },
+        optional: true,
+      },
+    ],
+    outputs: [
+      {
+        portId: 'SketchProfiles',
+        label: 'SketchProfiles',
+        type: { kind: 'sketchProfiles' },
+      },
+      {
+        portId: 'SketchProfile',
+        label: 'SketchProfile',
+        type: { kind: 'sketchProfile' },
+      },
+    ],
+    compute: ({ params }) => {
+      const sketch = readManagedSketchFeatureFromParams(params)
+      const derivation = deriveProfilesWithDiagnostics(sketch.components)
+      const selectedProfile =
+        derivation.profiles.find(
+          (profile) => profile.profileId === sketch.uiState.selectedProfileId,
+        ) ??
+        (derivation.profiles.length === 1 ? derivation.profiles[0] : null)
+      return {
+        SketchProfiles: derivation.profiles,
+        SketchProfile: selectedProfile,
+      }
+    },
+  },
   'Part/Baseplate': {
     type: 'Part/Baseplate',
     label: 'Baseplate',

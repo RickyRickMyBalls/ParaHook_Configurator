@@ -54,6 +54,9 @@ export class TransformGizmo {
   }
 
   public attach(object: Object3D): void {
+    if (this.attachedObject === object && this.enabled && this.helper.visible) {
+      return
+    }
     this.attachedObject = object
     if (!this.enabled) {
       return
@@ -69,6 +72,14 @@ export class TransformGizmo {
   }
 
   public setMode(mode: TransformControlsMode): void {
+    const currentMode =
+      typeof (this.controls as TransformControls & { getMode?: () => TransformControlsMode }).getMode ===
+      'function'
+        ? (this.controls as TransformControls & { getMode: () => TransformControlsMode }).getMode()
+        : null
+    if (currentMode === mode) {
+      return
+    }
     this.controls.setMode(mode)
     this.controls.axis = null
   }
@@ -105,6 +116,10 @@ export class TransformGizmo {
       rotateDeg === undefined ? null : MathUtils.degToRad(rotateDeg),
     )
     this.controls.setScaleSnap(scale ?? null)
+  }
+
+  public setSize(size: number): void {
+    ;(this.controls as TransformControls & { setSize: (nextSize: number) => void }).setSize(size)
   }
 
   public activateHandle(mode: TransformControlsMode, axis: GizmoAxis): void {

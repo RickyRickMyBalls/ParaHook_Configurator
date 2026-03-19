@@ -266,6 +266,7 @@ describe('compileSpaghettiGraph determinism', () => {
       {
         op: 'sketch',
         featureId: 'cube-sketch-1',
+        plane: 'XY',
         profilesResolved: [
           {
             area: 450,
@@ -406,6 +407,7 @@ describe('compileSpaghettiGraph determinism', () => {
       {
         op: 'sketch',
         featureId: 'cube-sketch-1',
+        plane: 'XY',
         profilesResolved: [
           {
             area: 240,
@@ -898,5 +900,145 @@ describe('compileSpaghettiGraph determinism', () => {
     const vertices = sketchOp?.profilesResolved?.[0]?.vertices ?? []
     expect(vertices.length).toBeGreaterThan(2)
     expect(signedAreaOpenLoop(vertices)).toBeGreaterThanOrEqual(0)
+  })
+
+  it('compiles Geometry/Sketch -> Geometry/Extrude into graph-native runtime IR with a selected SketchProfile', () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'n-sketch',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: {
+              type: 'sketch',
+              featureId: 'sketch-1',
+              plane: 'XZ',
+              components: [
+                {
+                  rowId: 'row-1',
+                  componentId: 'line-1',
+                  type: 'line',
+                  a: { kind: 'lit', x: 0, y: 0 },
+                  b: { kind: 'lit', x: 40, y: 0 },
+                },
+                {
+                  rowId: 'row-2',
+                  componentId: 'line-2',
+                  type: 'line',
+                  a: { kind: 'lit', x: 40, y: 0 },
+                  b: { kind: 'lit', x: 40, y: 20 },
+                },
+                {
+                  rowId: 'row-3',
+                  componentId: 'line-3',
+                  type: 'line',
+                  a: { kind: 'lit', x: 40, y: 20 },
+                  b: { kind: 'lit', x: 0, y: 20 },
+                },
+                {
+                  rowId: 'row-4',
+                  componentId: 'line-4',
+                  type: 'line',
+                  a: { kind: 'lit', x: 0, y: 20 },
+                  b: { kind: 'lit', x: 0, y: 0 },
+                },
+              ],
+              outputs: {
+                profiles: [],
+                diagnostics: [],
+              },
+              uiState: {
+                collapsed: false,
+              },
+            },
+          },
+        },
+        {
+          nodeId: 'n-extrude',
+          type: 'Geometry/Extrude',
+          params: {
+            extrudeType: 'Basic',
+            depthMm: 30,
+          },
+        },
+        {
+          nodeId: 'n-output-preview',
+          type: OUTPUT_PREVIEW_NODE_TYPE,
+          params: {
+            slots: [{ slotId: 's001' }],
+            nextSlotIndex: 2,
+          },
+        },
+      ],
+      edges: [
+        {
+          edgeId: 'e-sketch-profile',
+          from: {
+            nodeId: 'n-sketch',
+            portId: 'SketchProfile',
+          },
+          to: {
+            nodeId: 'n-extrude',
+            portId: 'ExtrusionProfile',
+          },
+        },
+        {
+          edgeId: 'e-extrude-preview',
+          from: {
+            nodeId: 'n-extrude',
+            portId: 'SolidBody',
+          },
+          to: {
+            nodeId: 'n-output-preview',
+            portId: 'in:solid:s001',
+          },
+        },
+      ],
+    }
+
+    const result = compileSpaghettiGraph(graph)
+    expect(result.ok).toBe(true)
+    expect(result.buildInputs?.orderedPartKeys).toEqual(['extrude'])
+
+    const featureIr = result.buildInputs?.resolvedShared?.sp_featureStackIR as
+      | {
+          schemaVersion: 1
+          parts?: Record<string, Array<Record<string, unknown>>>
+        }
+      | undefined
+
+    expect(featureIr?.parts?.extrude).toEqual([
+      {
+        op: 'sketch',
+        featureId: 'n-sketch',
+        plane: 'XZ',
+        profilesResolved: [
+          {
+            profileId: expect.any(String),
+            area: 800,
+            vertices: [
+              { x: 0, y: 0 },
+              { x: 40, y: 0 },
+              { x: 40, y: 20 },
+              { x: 0, y: 20 },
+            ],
+          },
+        ],
+      },
+      {
+        op: 'extrude',
+        featureId: 'n-extrude',
+        profileRef: {
+          sketchFeatureId: 'n-sketch',
+          profileId: expect.any(String),
+        },
+        depthResolved: 30,
+        taperResolved: 0,
+        offsetResolved: 0,
+        plane: 'XZ',
+        bodyId: 'n-extrude:body',
+      },
+    ])
   })
 })

@@ -11,10 +11,12 @@ import type {
 import { NodeView } from './NodeView'
 import type {
   DriverRowWarningVm,
+  ExtrudeNodeVm,
   FeatureDependencyEdge,
   FeatureDependencyRow,
   NodeInputCompositeState,
   OutputPreviewSlotRowVm,
+  SketchNodeVm,
   UtilityNodeVm,
 } from '../selectors'
 import {
@@ -402,6 +404,174 @@ const renderUtilityNode = (options: {
   )
 }
 
+const renderSketchNode = (options: {
+  node: SpaghettiNode
+  sketchVm: SketchNodeVm
+  allInputs: PortSpec[]
+  allOutputs: PortSpec[]
+}): string => {
+  seedGraphForRender(options.node)
+  return renderToStaticMarkup(
+    <NodeView
+      node={options.node}
+      x={0}
+      y={0}
+      title="Sketch"
+      nodeMode="essentials"
+      template="sketch"
+      sketchVm={options.sketchVm}
+      allInputs={options.allInputs}
+      allOutputs={options.allOutputs}
+      inputCompositeState={emptyCompositeState}
+      compositeExpansionRevision={0}
+      getCompositeExpanded={() => false}
+      setCompositeExpanded={() => {
+        // no-op in static render test
+      }}
+      selected={false}
+      getInputDropState={() => null}
+      getOutputDropState={() => null}
+      onPresetChange={() => {
+        // no-op in static render test
+      }}
+      onDriverNumberChange={() => {
+        // no-op in static render test
+      }}
+      onUtilityNumberValueChange={() => {
+        // no-op in static render test
+      }}
+      onUtilityBooleanValueChange={() => {
+        // no-op in static render test
+      }}
+      onUtilityVec2AxisChange={() => {
+        // no-op in static render test
+      }}
+      outputRowMinHeight={40}
+      onOutputRowMinHeightChange={() => {
+        // no-op in static render test
+      }}
+      pinDotSize={8}
+      onPinDotSizeChange={() => {
+        // no-op in static render test
+      }}
+      onNodeHeaderPointerDown={() => {
+        // no-op in static render test
+      }}
+      onNodeBodyPointerDown={() => {
+        // no-op in static render test
+      }}
+      onNodeTitleClick={() => {
+        // no-op in static render test
+      }}
+      onRegisterPortElement={() => {
+        // no-op in static render test
+      }}
+      onOutputPointerDown={() => {
+        // no-op in static render test
+      }}
+      onOutputPointerEnter={() => {
+        // no-op in static render test
+      }}
+      onOutputPointerLeave={() => {
+        // no-op in static render test
+      }}
+      onInputPointerDown={() => {
+        // no-op in static render test
+      }}
+      onInputPointerEnter={() => {
+        // no-op in static render test
+      }}
+      onInputPointerLeave={() => {
+        // no-op in static render test
+      }}
+    />,
+  )
+}
+
+const renderExtrudeNode = (options: {
+  node: SpaghettiNode
+  extrudeVm: ExtrudeNodeVm
+  allInputs: PortSpec[]
+  allOutputs: PortSpec[]
+}): string => {
+  seedGraphForRender(options.node)
+  return renderToStaticMarkup(
+    <NodeView
+      node={options.node}
+      x={0}
+      y={0}
+      title="Extrude"
+      nodeMode="essentials"
+      template="extrude"
+      extrudeVm={options.extrudeVm}
+      allInputs={options.allInputs}
+      allOutputs={options.allOutputs}
+      inputCompositeState={emptyCompositeState}
+      compositeExpansionRevision={0}
+      getCompositeExpanded={() => false}
+      setCompositeExpanded={() => {
+        // no-op in static render test
+      }}
+      selected={false}
+      getInputDropState={() => null}
+      getOutputDropState={() => null}
+      onPresetChange={() => {
+        // no-op in static render test
+      }}
+      onDriverNumberChange={() => {
+        // no-op in static render test
+      }}
+      onUtilityNumberValueChange={() => {
+        // no-op in static render test
+      }}
+      onUtilityBooleanValueChange={() => {
+        // no-op in static render test
+      }}
+      onUtilityVec2AxisChange={() => {
+        // no-op in static render test
+      }}
+      outputRowMinHeight={40}
+      onOutputRowMinHeightChange={() => {
+        // no-op in static render test
+      }}
+      pinDotSize={8}
+      onPinDotSizeChange={() => {
+        // no-op in static render test
+      }}
+      onNodeHeaderPointerDown={() => {
+        // no-op in static render test
+      }}
+      onNodeBodyPointerDown={() => {
+        // no-op in static render test
+      }}
+      onNodeTitleClick={() => {
+        // no-op in static render test
+      }}
+      onRegisterPortElement={() => {
+        // no-op in static render test
+      }}
+      onOutputPointerDown={() => {
+        // no-op in static render test
+      }}
+      onOutputPointerEnter={() => {
+        // no-op in static render test
+      }}
+      onOutputPointerLeave={() => {
+        // no-op in static render test
+      }}
+      onInputPointerDown={() => {
+        // no-op in static render test
+      }}
+      onInputPointerEnter={() => {
+        // no-op in static render test
+      }}
+      onInputPointerLeave={() => {
+        // no-op in static render test
+      }}
+    />,
+  )
+}
+
 describe('NodeView part section order', () => {
   afterEach(() => {
     useSpaghettiUiStore.setState({ collapsed: {} })
@@ -423,6 +593,9 @@ describe('NodeView part section order', () => {
     const html = renderPartNode(baseNode({}))
 
     expect(html.includes('data-sp-node-title-cycle="1"')).toBe(true)
+    expect(html.includes('SpaghettiNodeTitleText')).toBe(true)
+    expect(html.includes('>e<')).toBe(true)
+    expect(html.includes('>i<')).toBe(false)
   })
 
   it('renders nodes using their own stored mode', () => {
@@ -1237,6 +1410,152 @@ describe('NodeView part section order', () => {
     expect(html.includes('value="3"')).toBe(true)
     expect(html.includes('value="8"')).toBe(true)
     expect(html.includes('vec2:mm')).toBe(true)
+  })
+
+  it('renders the dedicated sketch template with plane-pick control and draw/review actions', () => {
+    const html = renderSketchNode({
+      node: {
+        nodeId: 'node-sketch-1',
+        type: 'Geometry/Sketch',
+        params: {
+          sketch: {
+            type: 'sketch',
+            featureId: 'sketch-1',
+            plane: 'XY',
+            components: [],
+            outputs: {
+              profiles: [],
+              diagnostics: [],
+            },
+            uiState: {
+              collapsed: false,
+            },
+          },
+        },
+      },
+      sketchVm: {
+        localPlane: 'XY',
+        effectivePlane: 'XY',
+        planeDriven: false,
+        profileCount: 0,
+        hasSelectedProfile: false,
+      },
+      allInputs: [
+        {
+          portId: 'SketchPlane',
+          label: 'SketchPlane',
+          type: { kind: 'plane' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+        {
+          portId: 'SketchEntities',
+          label: 'SketchDraw',
+          type: { kind: 'sketchEntities' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+      ],
+      allOutputs: [
+        {
+          portId: 'SketchProfiles',
+          label: 'SketchProfiles',
+          type: { kind: 'sketchProfiles' },
+        },
+        {
+          portId: 'SketchProfile',
+          label: 'SketchProfile',
+          type: { kind: 'sketchProfile' },
+        },
+      ],
+    })
+
+    expect(html.includes('SpaghettiSketchNodeTemplate')).toBe(true)
+    expect(html.includes('SpaghettiGeometryNodeShell')).toBe(true)
+    expect(html.includes('data-sp-geometry-block="inputs"')).toBe(true)
+    expect(html.includes('data-sp-geometry-block-open="1"')).toBe(true)
+    expect(html.includes('data-sp-geometry-block="outputs"')).toBe(true)
+    expect(html.includes('data-sp-geometry-port-row="in:SketchPlane"')).toBe(false)
+    expect(html.includes('data-sp-geometry-port-row="out:SketchProfiles"')).toBe(false)
+    expect(html.includes('data-sp-geometry-port-row="out:SketchProfile"')).toBe(false)
+    expect(html.includes('SpaghettiPort--in')).toBe(true)
+    expect(html.includes('SpaghettiPortChevron--leading')).toBe(true)
+    expect(html.includes('data-sp-port-row-open="1"')).toBe(true)
+    expect(html.includes('SketchPlane')).toBe(true)
+    expect(html.includes('SketchDraw')).toBe(true)
+    expect(html.includes('>XY<')).toBe(true)
+    expect(html.includes('Source')).toBe(true)
+    expect(html.includes('Transform')).toBe(true)
+    expect(html.includes('Origin Plane')).toBe(true)
+    expect(html.includes('ParaSelect')).toBe(true)
+    expect(html.includes('ParaSlider')).toBe(true)
+    expect(html.includes('SpaghettiGeometryNodeRailLabel">Inputs<')).toBe(true)
+    expect(html.includes('SpaghettiGeometryNodeRailLabel">Sketch<')).toBe(true)
+    expect(html.includes('SpaghettiGeometryNodeRailLabel">Outputs<')).toBe(true)
+    expect(html.includes('Geometry')).toBe(true)
+    expect(html.includes('Plane')).toBe(true)
+    expect(html.includes('Draw')).toBe(true)
+    expect(html.includes('data-sp-sketch-plane-row="1"')).toBe(true)
+    expect(html.includes('Expand SketchDraw input row')).toBe(true)
+    expect(html.includes('Open the viewer-side sketch toolbar')).toBe(true)
+    expect(html.includes('No sketch entities yet')).toBe(true)
+    expect(html.includes('Review')).toBe(true)
+    expect(html.includes('No closed profiles detected yet.')).toBe(false)
+    expect(html.includes('Draw/Edit Curves Inside')).toBe(false)
+    expect(html.includes('Close/Select Profile')).toBe(false)
+  })
+
+  it('renders the dedicated extrude template with profile summary, depth control, and body output summary', () => {
+    const html = renderExtrudeNode({
+      node: {
+        nodeId: 'node-extrude-1',
+        type: 'Geometry/Extrude',
+        params: {
+          extrudeType: 'Basic',
+          depthMm: 30,
+        },
+      },
+      extrudeVm: {
+        extrudeType: 'Basic',
+        effectiveDepthMm: 30,
+        depthDriven: false,
+        hasProfile: true,
+        profileId: 'profile-1',
+        profileArea: 5000,
+        bodyId: 'node-extrude-1:body',
+      },
+      allInputs: [
+        {
+          portId: 'ExtrusionProfile',
+          label: 'ExtrusionProfile',
+          type: { kind: 'sketchProfile' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+        {
+          portId: 'Depth',
+          label: 'Depth',
+          type: { kind: 'number', unit: 'mm' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+      ],
+      allOutputs: [
+        {
+          portId: 'SolidBody',
+          label: 'SolidBody',
+          type: { kind: 'solidBody' },
+        },
+      ],
+    })
+
+    expect(html.includes('SpaghettiExtrudeNodeTemplate')).toBe(true)
+    expect(html.includes('ExtrusionProfile')).toBe(true)
+    expect(html.includes('Depth')).toBe(true)
+    expect(html.includes('Extrude Type')).toBe(true)
+    expect(html.includes('Basic')).toBe(true)
+    expect(html.includes('Twist')).toBe(true)
+    expect(html.includes('Body ready: node-extrude-1:body')).toBe(true)
   })
 })
 

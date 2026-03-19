@@ -5,7 +5,7 @@ import {
   deriveProfilesFromLines,
   profileIdFromSignature,
 } from './profileDerivation'
-import type { LineEntity } from './featureTypes'
+import type { LineEntity, SketchComponent } from './featureTypes'
 
 const line = (
   entityId: string,
@@ -24,6 +24,30 @@ const line = (
     x: end.x,
     y: end.y,
   },
+})
+
+const rectangle = (
+  componentId: string,
+  a: { x: number; y: number },
+  b: { x: number; y: number },
+): SketchComponent => ({
+  rowId: `row-${componentId}`,
+  componentId,
+  type: 'rectangle',
+  a: { kind: 'lit', x: a.x, y: a.y },
+  b: { kind: 'lit', x: b.x, y: b.y },
+})
+
+const circle = (
+  componentId: string,
+  center: { x: number; y: number },
+  edge: { x: number; y: number },
+): SketchComponent => ({
+  rowId: `row-${componentId}`,
+  componentId,
+  type: 'circle',
+  center: { kind: 'lit', x: center.x, y: center.y },
+  edge: { kind: 'lit', x: edge.x, y: edge.y },
 })
 
 describe('deriveProfiles', () => {
@@ -75,5 +99,31 @@ describe('deriveProfiles', () => {
       line('e4', { x: 0, y: 50 }, { x: 0, y: 0 }),
     ]
     expect(deriveProfilesFromLines(entities)).toEqual(deriveProfiles(entities))
+  })
+
+  it('derives one profile from a first-class rectangle sketch component', () => {
+    const profiles = deriveProfiles([rectangle('rect-1', { x: 0, y: 0 }, { x: 100, y: 50 })])
+
+    expect(profiles).toHaveLength(1)
+    expect(profiles[0].area).toBe(5000)
+    expect(profiles[0].loop.segments).toHaveLength(4)
+  })
+
+  it('derives one profile from a first-class circle sketch component', () => {
+    const profiles = deriveProfiles([circle('circle-1', { x: 0, y: 0 }, { x: 20, y: 0 })])
+
+    expect(profiles).toHaveLength(1)
+    expect(profiles[0].loop.segments).toHaveLength(2)
+    expect(profiles[0].area).toBeGreaterThan(0)
+  })
+
+  it('derives multiple profiles from ordered closed chains', () => {
+    const profiles = deriveProfiles([
+      rectangle('rect-a', { x: 0, y: 0 }, { x: 40, y: 20 }),
+      rectangle('rect-b', { x: 60, y: 0 }, { x: 90, y: 30 }),
+    ])
+
+    expect(profiles).toHaveLength(2)
+    expect(profiles.map((profile) => profile.area)).toEqual([800, 900])
   })
 })

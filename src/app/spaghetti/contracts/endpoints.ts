@@ -278,6 +278,22 @@ const fail = (
   details,
 })
 
+const arePortTypesCompatible = (
+  fromType: PortSpec['type'] | undefined,
+  toType: PortSpec['type'] | undefined,
+): boolean => {
+  if (fromType === undefined || toType === undefined) {
+    return false
+  }
+  if (fromType.kind === toType.kind && fromType.unit === toType.unit) {
+    return true
+  }
+  const solidPreviewCompat =
+    (fromType.kind === 'solidBody' && toType.kind === 'toeLoft') ||
+    (fromType.kind === 'toeLoft' && toType.kind === 'solidBody')
+  return solidPreviewCompat && fromType.unit === toType.unit
+}
+
 type ValidateConnectionContractOptions = {
   incrementalState?: ConnectionContractIncrementalState
 }
@@ -346,10 +362,7 @@ export const validateConnectionContract = (
     return fail('EDGE_TO_PATH_NOT_LEAF', baseDetails)
   }
   if (
-    fromResolved.type === undefined ||
-    toResolved.type === undefined ||
-    fromResolved.type.kind !== toResolved.type.kind ||
-    fromResolved.type.unit !== toResolved.type.unit
+    !arePortTypesCompatible(fromResolved.type, toResolved.type)
   ) {
     return fail('EDGE_TYPE_MISMATCH', baseDetails)
   }

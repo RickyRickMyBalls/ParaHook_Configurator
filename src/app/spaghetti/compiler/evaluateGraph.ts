@@ -61,6 +61,9 @@ const isVec3 = (value: unknown): value is { x: number; y: number; z: number } =>
   isFiniteNumber(value.y) &&
   isFiniteNumber(value.z)
 
+const isSketchPlane = (value: unknown): value is 'XY' | 'YZ' | 'XZ' =>
+  value === 'XY' || value === 'YZ' || value === 'XZ'
+
 const isSpline2 = (
   value: unknown,
 ): value is { points: { x: number; y: number }[]; closed: boolean } =>
@@ -82,6 +85,28 @@ const isOpaqueRefToken = (value: unknown): value is { __opaqueRef: string } =>
   Object.keys(value).length === 1 &&
   typeof value.__opaqueRef === 'string'
 
+const isProfileOutputLike = (
+  value: unknown,
+): value is {
+  profileId: string
+  profileIndex: number
+  area: number
+} =>
+  isRecord(value) &&
+  typeof value.profileId === 'string' &&
+  value.profileId.length > 0 &&
+  isFiniteNumber(value.profileIndex) &&
+  isFiniteNumber(value.area)
+
+const isSketchProfiles = (value: unknown): value is Array<{
+  profileId: string
+  profileIndex: number
+  area: number
+}> => Array.isArray(value) && value.every((entry) => isProfileOutputLike(entry))
+
+const isSolidBody = (value: unknown): value is { bodyId: string } =>
+  isRecord(value) && typeof value.bodyId === 'string' && value.bodyId.length > 0
+
 const isValidForPortType = (value: unknown, type: PortType): boolean => {
   switch (type.kind) {
     case 'number':
@@ -92,11 +117,20 @@ const isValidForPortType = (value: unknown, type: PortType): boolean => {
       return isVec2(value)
     case 'vec3':
       return isVec3(value)
+    case 'plane':
+      return value === null || isSketchPlane(value)
     case 'spline2':
       return isSpline2(value)
     case 'spline3':
       return isSpline3(value)
     case 'profileLoop':
+      return true
+    case 'sketchProfiles':
+      return isSketchProfiles(value)
+    case 'sketchProfile':
+      return value === null || isProfileOutputLike(value)
+    case 'solidBody':
+      return value === null || isSolidBody(value) || isOpaqueRefToken(value)
     case 'stations':
       return true
     case 'railMath':
@@ -179,11 +213,18 @@ const defaultValueForLeafType = (type: PortType): unknown => {
       return { x: 0, y: 0 }
     case 'vec3':
       return { x: 0, y: 0, z: 0 }
+    case 'plane':
+      return null
     case 'spline2':
       return { points: [], closed: false }
     case 'spline3':
       return { points: [], closed: false }
     case 'profileLoop':
+      return null
+    case 'sketchProfiles':
+      return []
+    case 'sketchProfile':
+    case 'solidBody':
       return null
     case 'stations':
       return []

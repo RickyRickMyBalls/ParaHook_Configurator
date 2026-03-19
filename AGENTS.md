@@ -1,31 +1,56 @@
 ## Purpose
 
-This file defines the repository maintenance rules Codex must follow when making implementation changes.
+This file defines the repository maintenance rules Codex must follow when making implementation changes and document changes.
 
 Implementation changes include:
 - source code
 - configuration
 - schema
-- architecture
 - UI behavior
+
+Document changes include:
+- architecture docs
+- planning docs
+- README/docs structure
 - repository process/rules docs
 
 ## Core Rule
 
-For every implementation change, Codex must update the required project-tracking docs in the same change set unless the user explicitly says otherwise.
+For every implementation change or document change, Codex must update the required project-tracking docs in the same change set unless the user explicitly says otherwise.
 
 Canonical tracking files:
-- `docs/CHANGELOG.md`
+- `docs/CHANGELOG.md` for code and shipped implementation work
+- `docs/Doc-Log.md` for document changes
 - `docs/Chill-Log.md` when chill mode is active
 
 Canonical docs-structure references:
 - `docs/Doc-Index.md`
 - `docs/Phase-Plans/00_Phase-Setup.md`
 
+## File Reference Rule
+
+When Codex references repo files in responses:
+- prefer clickable markdown links for local repo files in chat responses
+- prefer workspace-root-relative links when the client resolves them correctly
+- use absolute filesystem paths only as a fallback when a relative markdown link is known not to work
+- when pointing to a specific location, prefer the repo's clickable markdown-link format if the client supports it
+- do not assume the repo root and the current workspace root are different unless the environment clearly shows that they are
+
+Examples:
+- valid in this workspace chat client: `[Chill Log](./docs/Chill-Log.md)`
+- valid in this workspace chat client: `[AGENTS.md](./AGENTS.md)`
+- fallback only if needed: `C:\Users\Rubbe\Desktop\ParaHookConfig\20\parahook\docs\Chill-Log.md`
+
 ## CHANGELOG Rule
 
 Primary file:
 - `docs/CHANGELOG.md`
+
+Use it for:
+- source-code changes
+- configuration/schema changes
+- runtime behavior changes
+- shipped implementation work
 
 Requirements:
 1. Never delete or rewrite previous entries unless the user explicitly asks for changelog cleanup.
@@ -39,20 +64,43 @@ Non-destructive policy:
 - never silently merge or remove old entries
 - prefer appending new truth rather than rewriting history
 
+## Doc-Log Rule
+
+Primary file:
+- `docs/Doc-Log.md`
+
+Use it for:
+- docs under `docs/`
+- `README.md`
+- architecture/planning/rules documentation
+- repo documentation structure changes
+
+Do not use it for:
+- shipped code or runtime behavior changes that belong in `docs/CHANGELOG.md`
+- temporary chill-mode batch logging
+
+Requirements:
+1. Never delete or rewrite previous entries unless the user explicitly asks for doc-log cleanup.
+2. Add new entries at the top of the live entry list.
+3. Preserve the existing formatting style already used in the file.
+4. Use the current system time.
+5. Keep wording deterministic so diffs remain stable.
+
 ## Chill Mode Rule
 
 The user may explicitly switch the repo into `chill mode`.
 
 While chill mode is active:
 - log small rapid edits in `docs/Chill-Log.md`
-- do not add a full `docs/CHANGELOG.md` entry for every small edit
+- do not add a full `docs/CHANGELOG.md` entry for every small code/doc edit
 - keep the chill log clear enough that it can be consolidated later
 
 Chill mode ends only when the user explicitly asks to update the changelog or gives a clearly equivalent instruction.
 
 When chill mode ends:
 - read the active chill batch
-- consolidate it into one new `docs/CHANGELOG.md` entry unless the user asks for a different treatment
+- consolidate code/system work into one new `docs/CHANGELOG.md` entry unless the user asks for a different treatment
+- consolidate document-only work into `docs/Doc-Log.md` unless the user asks for a different treatment
 
 ## Planning Mode Rule
 
@@ -64,9 +112,9 @@ While planning mode is active:
 - stay focused on architecture, product direction, salvageable systems, refactor candidates, new objects, and retirement candidates
 - avoid drifting into implementation unless the user explicitly asks for code or file edits
 - do not add `docs/CHANGELOG.md` entries for planning-mode work
-- record planning-mode batch progress in the active `docs/Archive/CodexContext/History-Chats/N_CodexChat.md` file under its top-of-file `Planning-Batch` section
+- record planning-mode batch progress in the active `docs/Human-Plans/CodexNotes/N_CodexChatNotes.md` file under its top-of-file `Planning-Batch` section
 - keep `Planning-Batch` entries numbered newest-first
-- when a doc is created or edited during planning mode, follow normal `docs/Doc-Index.md` local doc-history rules in that doc instead of creating a changelog entry
+- when a doc is created or edited during planning mode, follow normal `docs/Doc-Index.md` local doc-history rules in that doc and log the change in `docs/Doc-Log.md` unless chill mode is active
 
 Planning mode ends only when the user explicitly exits it or clearly switches back to normal implementation work.
 
@@ -114,7 +162,7 @@ Active task implementation rule:
 ## Codex Chat Capture Rule
 
 When a new long-form Codex working session begins, use the next
-`docs/Archive/CodexContext/History-Chats/N_CodexChat.md` file as the running
+`docs/Human-Plans/CodexNotes/N_CodexChatNotes.md` file as the running
 notes surface for:
 - key project decisions
 - important architecture clarifications
@@ -122,8 +170,8 @@ notes surface for:
 - docs workflow decisions
 - strong conclusions about current direction
 
-`N_CodexChat.md` is the conversation-facing working capture.
-`N_CodexContext.md` is the later distilled handoff summary.
+`N_CodexChatNotes.md` is the conversation-facing working capture.
+`N_CodexContext.md` in `docs/Archive/CodexContext/` is the later distilled handoff summary.
 
 Do not wait until the end of the session to record major reusable decisions if
 the chat is clearly producing project knowledge that should survive the session.
@@ -133,7 +181,8 @@ the chat is clearly producing project knowledge that should survive the session.
 When Codex performs implementation work:
 1. Implement the requested change.
 2. Run verification when requested or when it is reasonably needed.
-3. Update `docs/CHANGELOG.md` unless chill mode is active or the user explicitly says not to.
-4. If the implementation came from an active task in `docs/Phase-Plans/Tasks/`, make sure the changelog entry is a full permanent entry, not just task-doc maintenance.
+3. If code/system behavior changed, update `docs/CHANGELOG.md` unless chill mode is active or the user explicitly says not to.
+4. If docs changed, update `docs/Doc-Log.md` unless chill mode is active or the user explicitly says not to.
+5. If the implementation came from an active task in `docs/Phase-Plans/Tasks/`, make sure the changelog entry is a full permanent entry, not just task-doc maintenance.
 
 Do not skip required maintenance updates silently.

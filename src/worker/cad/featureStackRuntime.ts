@@ -1,5 +1,6 @@
 import { compareSpaghettiSourcePartKeys } from '../../shared/buildStatsKeys'
 import {
+  extrudeFaceOnPlane,
   extrudeFaceAlongZ,
   faceFromWire,
   mergeMeshPacks,
@@ -23,6 +24,7 @@ type IRProfileResolved = {
 type IRSketch = {
   op: 'sketch'
   featureId: string
+  plane?: 'XY' | 'XZ' | 'YZ'
   profilesResolved: IRProfileResolved[]
 }
 
@@ -37,6 +39,7 @@ type IRExtrude = {
   featureId: string
   profileRef: IRProfileRef | null
   depthResolved: number
+  plane?: 'XY' | 'XZ' | 'YZ'
   bodyId?: string
 }
 
@@ -48,6 +51,7 @@ export type FeatureStackIRPayload = {
 }
 
 type SketchRuntime = {
+  plane: 'XY' | 'XZ' | 'YZ'
   profiles: Map<string, Wire>
 }
 
@@ -82,6 +86,7 @@ const isSketchOp = (value: unknown): value is IRSketch =>
   isRecord(value) &&
   value.op === 'sketch' &&
   typeof value.featureId === 'string' &&
+  (value.plane === undefined || value.plane === 'XY' || value.plane === 'XZ' || value.plane === 'YZ') &&
   Array.isArray(value.profilesResolved) &&
   value.profilesResolved.every(isProfileResolved)
 
@@ -96,6 +101,7 @@ const isExtrudeOp = (value: unknown): value is IRExtrude =>
   value.op === 'extrude' &&
   typeof value.featureId === 'string' &&
   typeof value.depthResolved === 'number' &&
+  (value.plane === undefined || value.plane === 'XY' || value.plane === 'XZ' || value.plane === 'YZ') &&
   (value.bodyId === undefined || typeof value.bodyId === 'string') &&
   (value.profileRef === null || isProfileRef(value.profileRef))
 
@@ -185,6 +191,7 @@ const runSketch = (
   }
 
   context.sketches.set(feature.featureId, {
+    plane: feature.plane ?? 'XY',
     profiles: sketchProfiles,
   })
 }
@@ -213,6 +220,8 @@ const runExtrude = (
     sketchFeatureId === undefined
       ? undefined
       : context.sketches.get(sketchFeatureId)?.profiles.get(profileId)
+  const planeFromSketch =
+    sketchFeatureId === undefined ? undefined : context.sketches.get(sketchFeatureId)?.plane
   const wire = wireFromSketch ?? context.profiles.get(profileId)
 
   if (wire === undefined) {
@@ -241,12 +250,21 @@ const runExtrude = (
 
   try {
     const face = faceFromWire(wire)
-    const shape = extrudeFaceAlongZ(face, feature.depthResolved, {
-      bodyId,
-      featureId: feature.featureId,
-      op: 'extrude',
-      partKey,
-    })
+    const sketchPlane = feature.plane ?? planeFromSketch ?? 'XY'
+    const shape =
+      sketchPlane === 'XY'
+        ? extrudeFaceAlongZ(face, feature.depthResolved, {
+            bodyId,
+            featureId: feature.featureId,
+            op: 'extrude',
+            partKey,
+          })
+        : extrudeFaceOnPlane(face, sketchPlane, feature.depthResolved, {
+            bodyId,
+            featureId: feature.featureId,
+            op: 'extrude',
+            partKey,
+          })
     context.bodies.set(bodyKey, shape)
     context.bodyTrace.push({
       bodyKey,

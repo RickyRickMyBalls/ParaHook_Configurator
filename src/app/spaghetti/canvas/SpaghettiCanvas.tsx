@@ -2477,6 +2477,7 @@ export function SpaghettiCanvas({
                 nodeMode={nodeMode}
                 template={nodeVm?.template}
                 utilityVm={nodeVm?.utilityVm}
+                sketchVm={nodeVm?.sketchVm}
                 allInputs={nodeVm?.allInputs ?? []}
                 allOutputs={nodeVm?.allOutputs ?? []}
                 uiSections={nodeVm?.uiSections}

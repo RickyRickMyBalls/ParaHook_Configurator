@@ -50,7 +50,7 @@ export const useSpaghettiUiStore = create<SpaghettiUiStoreState>((set, get) => (
       if (collapsed) {
         next[key] = true
       } else {
-        delete next[key]
+        next[key] = false
       }
       return { collapsed: next }
     })

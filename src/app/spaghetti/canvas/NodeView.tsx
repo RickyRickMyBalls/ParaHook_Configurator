@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from 'react'
 import type { PortSpec, SpaghettiNode } from '../schema/spaghettiTypes'
+import type { SketchComponent, SketchFeature } from '../features/featureTypes'
 import type { PartRowOrderSection } from '../parts/partRowOrder'
 import {
   getFieldTree,
@@ -16,11 +17,17 @@ import {
 } from '../types/fieldTree'
 import { SpaghettiContextMenu } from '../ui/SpaghettiContextMenu'
 import { FeatureStackView } from '../ui/FeatureStackView'
+import {
+  GeometryNodeShell,
+  type GeometryNodeShellChip,
+} from './GeometryNodeShell'
 import { PortView, type PortDetailLine } from './PortView'
 import type { CompositeExpansionDirection } from './compositeExpansion'
 import { NumberField } from './fields/NumberField'
 import { Vec2Field } from './fields/Vec2Field'
 import { getTypeColor } from './typeColors'
+import { ParaSelect } from '../../components/ParaSelect'
+import { ParaSlider } from '../../components/ParaSlider'
 import type {
   DriverControlRowVm,
   DriverEndpointRowVm,
@@ -29,7 +36,7 @@ import type {
   OutputPinnedRowVm,
 } from './driverVm'
 import type { PortDirection } from './types'
-import { getRowViewFlags, type ViewMode } from './rowViewMode'
+import { getNextViewMode, getRowViewFlags, type ViewMode } from './rowViewMode'
 import {
   buildCompositeCollapseKey,
   buildGroupCollapseKey,
@@ -41,12 +48,16 @@ import { OUTPUT_PREVIEW_NODE_TYPE } from '../system/outputPreviewNode'
 import type {
   DriverRowWarningVm,
   DriverSectionGroupVm,
+  ExtrudeNodeVm,
   FeatureDependencyEdge,
   FeatureDependencyRow,
   NodeInputCompositeState,
   OutputPreviewSlotRowVm,
+  SketchNodeVm,
   UtilityNodeVm,
 } from '../selectors'
+import { useSpaghettiStore } from '../store/useSpaghettiStore'
+import { setNodeParams as setNodeParamsCommand } from '../graphCommands/setNodeParams'
 
 const DEV = import.meta.env.DEV
 const DEV_PROBE_NODE_ID_KEY = '__SP_PROBE_NODE_ID'
@@ -57,6 +68,11 @@ const SECTION_IDS = {
   inputs: 'inputs',
   featureStack: 'featureStack',
   outputs: 'outputs',
+  sketchPlane: 'sketch-plane',
+  sketchDraw: 'sketch-draw',
+  sketchEntities: 'sketch-entities',
+  sketchReview: 'sketch-review',
+  sketchProfile: 'sketch-profile',
   legacy: 'legacy',
   legacySectionPrefix: 'legacy-section',
   otherOutputs: 'otherOutputs',
@@ -76,6 +92,8 @@ type CompositeContextMenuState = {
   portId: string
 }
 
+type GeometryBlockId = 'inputs' | 'content' | 'outputs'
+
 export type FeatureVirtualInputStateByPortId = Record<
   string,
   {
@@ -92,8 +110,10 @@ type NodeViewProps = {
   y: number
   title: string
   nodeMode?: ViewMode
-  template?: 'part'
+  template?: 'part' | 'sketch' | 'extrude'
   utilityVm?: UtilityNodeVm
+  sketchVm?: SketchNodeVm
+  extrudeVm?: ExtrudeNodeVm
   allInputs: PortSpec[]
   allOutputs: PortSpec[]
   drivers?: DriverControlRowVm[]
@@ -233,6 +253,56 @@ const formatPinValue = (value: number): string => {
   return Number.isInteger(rounded) ? rounded.toString() : rounded.toString()
 }
 
+const formatSketchPoint = (point: { x: number; y: number }): string =>
+  `(${formatPinValue(point.x)}, ${formatPinValue(point.y)})`
+
+const formatSketchComponentSummary = (component: SketchComponent): string => {
+  if (component.type === 'line') {
+    return `${formatSketchPoint(component.a)} -> ${formatSketchPoint(component.b)}`
+  }
+  if (component.type === 'spline') {
+    return `${formatSketchPoint(component.p0)} -> ${formatSketchPoint(component.p3)}`
+  }
+  if (component.type === 'arc3pt') {
+    return `${formatSketchPoint(component.start)} -> ${formatSketchPoint(component.end)}`
+  }
+  if (component.type === 'rectangle') {
+    return `${formatPinValue(Math.abs(component.b.x - component.a.x))} x ${formatPinValue(
+      Math.abs(component.b.y - component.a.y),
+    )}`
+  }
+  const radius = Math.hypot(
+    component.edge.x - component.center.x,
+    component.edge.y - component.center.y,
+  )
+  return `r ${formatPinValue(radius)} @ ${formatSketchPoint(component.center)}`
+}
+
+const sketchComponentTitle = (component: SketchComponent): string => {
+  if (component.type === 'line') return 'Line'
+  if (component.type === 'spline') return 'BezierSpline'
+  if (component.type === 'arc3pt') return 'Arc3Point'
+  if (component.type === 'rectangle') return 'Rectangle'
+  return 'Circle'
+}
+
+const sketchProfileSummaryLabel = (
+  profileCount: number,
+  hasSelectedProfile: boolean,
+  selectedProfile: { profileId: string; area: number } | null,
+): string => {
+  if (profileCount === 0) {
+    return 'no profiles'
+  }
+  if (hasSelectedProfile) {
+    if (selectedProfile === null) {
+      return '1 ready'
+    }
+    return `selected ${selectedProfile.profileId.slice(0, 8)}`
+  }
+  return `${profileCount} profiles`
+}
+
 const buildDependencyPath = (
   fromX: number,
   fromY: number,
@@ -262,6 +332,8 @@ function NodeViewComponent({
   nodeMode = 'essentials',
   template,
   utilityVm,
+  sketchVm,
+  extrudeVm,
   allInputs,
   allOutputs,
   drivers,
@@ -332,6 +404,8 @@ function NodeViewComponent({
   const showEditors = rowFlags.showEditors
   const canMutateCompositeExpansion = nodeMode === 'essentials'
   const isPartTemplate = template === 'part'
+  const isSketchTemplate = template === 'sketch'
+  const isExtrudeTemplate = template === 'extrude'
   const showPresetPicker = isPartTemplate
 
   const nodeElementRef = useRef<HTMLElement | null>(null)
@@ -351,9 +425,53 @@ function NodeViewComponent({
   const [compositeContextMenu, setCompositeContextMenu] =
     useState<CompositeContextMenuState | null>(null)
 
+  const collapsedState = useSpaghettiUiStore((state) => state.collapsed)
   const isCollapsed = useSpaghettiUiStore((state) => state.isCollapsed)
   const toggleCollapsed = useSpaghettiUiStore((state) => state.toggleCollapsed)
   const setCollapsed = useSpaghettiUiStore((state) => state.setCollapsed)
+  const activeSketchPlanePickSession = useSpaghettiStore((state) => state.sketchPlanePickSession)
+  const activeSketchPlanePickNodeId = useSpaghettiStore(
+    (state) => state.sketchPlanePickSession?.nodeId ?? null,
+  )
+  const activeGeometrySketchSession = useSpaghettiStore((state) => state.geometrySketchSession)
+  const startSketchPlanePick = useSpaghettiStore((state) => state.startSketchPlanePick)
+  const cancelSketchPlanePick = useSpaghettiStore((state) => state.cancelSketchPlanePick)
+  const setSketchPlanePickDraftPlane = useSpaghettiStore(
+    (state) => state.setSketchPlanePickDraftPlane,
+  )
+  const setSketchPlanePickTranslationAxis = useSpaghettiStore(
+    (state) => state.setSketchPlanePickTranslationAxis,
+  )
+  const setSketchPlanePickRotationAxis = useSpaghettiStore(
+    (state) => state.setSketchPlanePickRotationAxis,
+  )
+  const setGeometrySketchPlane = useSpaghettiStore((state) => state.setGeometrySketchPlane)
+  const setGeometrySketchPlaneOffset = useSpaghettiStore(
+    (state) => state.setGeometrySketchPlaneOffset,
+  )
+  const setGeometrySketchPlaneTranslationAxis = useSpaghettiStore(
+    (state) => state.setGeometrySketchPlaneTranslationAxis,
+  )
+  const setGeometrySketchPlaneRotationAxis = useSpaghettiStore(
+    (state) => state.setGeometrySketchPlaneRotationAxis,
+  )
+  const setGeometrySketchPlaneInPlaneRotation = useSpaghettiStore(
+    (state) => state.setGeometrySketchPlaneInPlaneRotation,
+  )
+  const startGeometrySketchSession = useSpaghettiStore(
+    (state) => state.startGeometrySketchSession,
+  )
+  const moveGeometrySketchComponentUp = useSpaghettiStore(
+    (state) => state.moveGeometrySketchComponentUp,
+  )
+  const moveGeometrySketchComponentDown = useSpaghettiStore(
+    (state) => state.moveGeometrySketchComponentDown,
+  )
+  const removeGeometrySketchComponent = useSpaghettiStore(
+    (state) => state.removeGeometrySketchComponent,
+  )
+  const graph = useSpaghettiStore((state) => state.graph)
+  const setGraph = useSpaghettiStore((state) => state.setGraph)
 
   const sectionKey = (sectionId: string): string =>
     buildSectionCollapseKey(node.nodeId, sectionId)
@@ -361,6 +479,10 @@ function NodeViewComponent({
     buildGroupCollapseKey(node.nodeId, sectionId, groupId)
   const compositeKey = (sectionId: string, portId: string): string =>
     buildCompositeCollapseKey(node.nodeId, sectionId, portId)
+  const geometryPortRowKey = (direction: 'in' | 'out', portId: string): string =>
+    `spGeomPort|${node.nodeId}|${direction}|${portId}`
+  const geometryBlockKey = (blockId: GeometryBlockId): string =>
+    `spGeomBlock|${node.nodeId}|${blockId}`
 
   const isSectionCollapsed = (sectionId: string): boolean =>
     isCollapsed(sectionKey(sectionId))
@@ -370,6 +492,134 @@ function NodeViewComponent({
 
   const isCompositeCollapsed = (sectionId: string, portId: string): boolean =>
     isCollapsed(compositeKey(sectionId, portId))
+
+  const isGeometrySketchManagedSection = (sectionId: string): boolean =>
+    isSketchTemplate &&
+    (sectionId === SECTION_IDS.sketchPlane ||
+      sectionId === SECTION_IDS.sketchDraw ||
+      sectionId === SECTION_IDS.sketchEntities ||
+      sectionId === SECTION_IDS.sketchReview)
+
+  const getSectionOverride = (sectionId: string): boolean | undefined => {
+    const key = sectionKey(sectionId)
+    return Object.prototype.hasOwnProperty.call(collapsedState, key) ? collapsedState[key] : undefined
+  }
+
+  const getGeometryPortRowOverride = (
+    direction: 'in' | 'out',
+    portId: string,
+  ): boolean | undefined => {
+    const key = geometryPortRowKey(direction, portId)
+    return Object.prototype.hasOwnProperty.call(collapsedState, key)
+      ? collapsedState[key]
+      : undefined
+  }
+
+  const getGeometryBlockOverride = (blockId: GeometryBlockId): boolean | undefined => {
+    const key = geometryBlockKey(blockId)
+    return Object.prototype.hasOwnProperty.call(collapsedState, key)
+      ? collapsedState[key]
+      : undefined
+  }
+
+  const isGeometrySectionVisibleForMode = (sectionId: string): boolean => {
+    if (!isGeometrySketchManagedSection(sectionId)) {
+      return true
+    }
+    return true
+  }
+
+  const isGeometrySectionOpenByDefault = (sectionId: string): boolean => {
+    if (!isGeometrySketchManagedSection(sectionId)) {
+      return !isCollapsedMode
+    }
+    if (nodeMode === 'expanded') {
+      return true
+    }
+    if (nodeMode === 'essentials') {
+      return sectionId === SECTION_IDS.sketchPlane || sectionId === SECTION_IDS.sketchDraw
+    }
+    return false
+  }
+
+  const isGeometrySectionOpen = (sectionId: string): boolean => {
+    const override = getSectionOverride(sectionId)
+    if (override !== undefined) {
+      return override === false
+    }
+    return isGeometrySectionOpenByDefault(sectionId)
+  }
+
+  const isGeometryPortRowManaged = (direction: 'in' | 'out', portId: string): boolean =>
+    isSketchTemplate &&
+    ((direction === 'in' && (portId === 'SketchPlane' || portId === 'SketchEntities')) ||
+      (direction === 'out' && (portId === 'SketchProfiles' || portId === 'SketchProfile')))
+
+  const isGeometryBlockManaged = (blockId: GeometryBlockId): boolean =>
+    isSketchTemplate && (blockId === 'inputs' || blockId === 'content' || blockId === 'outputs')
+
+  const isGeometryBlockOpenByDefault = (blockId: GeometryBlockId): boolean => {
+    if (!isGeometryBlockManaged(blockId)) {
+      return true
+    }
+    if (blockId === 'content') {
+      return true
+    }
+    if (nodeMode === 'expanded') {
+      return true
+    }
+    if (nodeMode === 'essentials') {
+      return blockId === 'inputs'
+    }
+    return false
+  }
+
+  const isGeometryBlockOpen = (blockId: GeometryBlockId): boolean => {
+    const override = getGeometryBlockOverride(blockId)
+    if (override !== undefined) {
+      return override === false
+    }
+    return isGeometryBlockOpenByDefault(blockId)
+  }
+
+  const toggleGeometryBlock = (blockId: GeometryBlockId) => {
+    const nextCollapsed = isGeometryBlockOpen(blockId)
+    setCollapsed(geometryBlockKey(blockId), nextCollapsed)
+  }
+
+  const isGeometryPortRowVisibleForMode = (
+    direction: 'in' | 'out',
+    portId: string,
+  ): boolean => {
+    if (!isGeometryPortRowManaged(direction, portId)) {
+      return true
+    }
+    return true
+  }
+
+  const isGeometryPortRowOpenByDefault = (
+    direction: 'in' | 'out',
+    portId: string,
+  ): boolean => {
+    if (!isGeometryPortRowManaged(direction, portId)) {
+      return true
+    }
+    if (nodeMode === 'expanded') {
+      return true
+    }
+    if (nodeMode === 'essentials') {
+      return direction === 'in' && (portId === 'SketchPlane' || portId === 'SketchEntities')
+    }
+    return false
+  }
+
+  const isGeometryPortRowOpen = (direction: 'in' | 'out', portId: string): boolean => {
+    const override = getGeometryPortRowOverride(direction, portId)
+    if (override !== undefined) {
+      return override === false
+    }
+    return isGeometryPortRowOpenByDefault(direction, portId)
+  }
 
   const toggleSection = (sectionId: string, forceAllGroupIds?: readonly string[]) => {
     const sectionCollapsed = isSectionCollapsed(sectionId)
@@ -388,6 +638,16 @@ function NodeViewComponent({
   ) => {
     return (event: MouseEvent<HTMLDivElement>) => {
       event.stopPropagation()
+      if (isGeometrySketchManagedSection(sectionId)) {
+        const nextCollapsed = isGeometrySectionOpen(sectionId)
+        setCollapsed(sectionKey(sectionId), nextCollapsed)
+        if (forceAllGroupIds !== undefined && forceAllGroupIds.length > 0) {
+          for (const groupId of forceAllGroupIds) {
+            setCollapsed(groupKey(sectionId, groupId), nextCollapsed)
+          }
+        }
+        return
+      }
       if (event.altKey && forceAllGroupIds !== undefined) {
         toggleSection(sectionId, forceAllGroupIds)
         return
@@ -438,6 +698,10 @@ function NodeViewComponent({
     onNodeTitleClick(node.nodeId)
   }
 
+  const nextNodeMode = getNextViewMode(nodeMode)
+  const nodeModeButtonLabel = nodeMode === 'expanded' ? '+' : nodeMode === 'essentials' ? 'e' : '-'
+  const nodeModeButtonTitle = `Switch node to ${nextNodeMode} mode`
+
   const openCompositeContextMenu = (
     event: MouseEvent<HTMLElement>,
     portId: string,
@@ -467,7 +731,9 @@ function NodeViewComponent({
     sectionId: string,
     forceGroupIds: readonly string[] = [],
   ) => {
-    const collapsed = isSectionCollapsed(sectionId)
+    const collapsed = isGeometrySketchManagedSection(sectionId)
+      ? !isGeometrySectionOpen(sectionId)
+      : isSectionCollapsed(sectionId)
     return (
       <div
         className="SpaghettiNodeSectionLabel SpaghettiNodeSectionHeaderHitArea"
@@ -483,7 +749,34 @@ function NodeViewComponent({
   }
 
   const isSectionBodyVisible = (sectionId: string): boolean =>
-    !isCollapsedMode && !isSectionCollapsed(sectionId)
+    isGeometrySketchManagedSection(sectionId)
+      ? isGeometrySectionVisibleForMode(sectionId) && isGeometrySectionOpen(sectionId)
+      : !isCollapsedMode && !isSectionCollapsed(sectionId)
+
+  const renderTemplateSection = (
+    sectionId: string,
+    label: string,
+    body: ReactNode,
+    options?: {
+      className?: string
+      forceGroupIds?: readonly string[]
+    },
+  ) => {
+    if (isGeometrySketchManagedSection(sectionId) && !isGeometrySectionVisibleForMode(sectionId)) {
+      return null
+    }
+    const bodyVisible = isSectionBodyVisible(sectionId)
+    return (
+      <section
+        className={options?.className ?? 'SpaghettiNodeSection SpaghettiTemplateSection'}
+        data-sp-section-id={sectionId}
+        data-sp-section-body-visible={bodyVisible ? '1' : '0'}
+      >
+        {renderSectionHeader(label, sectionId, options?.forceGroupIds)}
+        {bodyVisible ? body : null}
+      </section>
+    )
+  }
 
   const renderPartSection = (
     sectionId: 'drivers' | 'inputs' | 'featureStack' | 'outputs',
@@ -493,19 +786,7 @@ function NodeViewComponent({
       className?: string
       forceGroupIds?: readonly string[]
     },
-  ) => {
-    const bodyVisible = isSectionBodyVisible(SECTION_IDS[sectionId])
-    return (
-      <section
-        className={options?.className ?? 'SpaghettiNodeSection SpaghettiTemplateSection'}
-        data-sp-section-id={SECTION_IDS[sectionId]}
-        data-sp-section-body-visible={bodyVisible ? '1' : '0'}
-      >
-        {renderSectionHeader(label, SECTION_IDS[sectionId], options?.forceGroupIds)}
-        {bodyVisible ? body : null}
-      </section>
-    )
-  }
+  ) => renderTemplateSection(SECTION_IDS[sectionId], label, body, options)
 
   const renderGroupHeader = (
     label: string,
@@ -629,11 +910,19 @@ function NodeViewComponent({
         event: MouseEvent<HTMLElement>,
         payload: EndpointPayload,
       ) => void
+      rowChevronState?: 'collapsed' | 'essentials' | 'expanded'
+      onCycleRowChevron?: () => void
+      rowExpanded?: boolean
+      onToggleRowExpanded?: () => void
+      rowToggleAriaLabel?: string
+      hideDetailsToggle?: boolean
       inputWiringDisabled?: boolean
       drivenMessage?: string
       editDisabled?: boolean
       suppressEditors?: boolean
       resolvedValueLabel?: string
+      detailsTitle?: string
+      attachedBodyContent?: ReactNode
       valueInput?: {
         value: number
         min?: number
@@ -683,7 +972,12 @@ function NodeViewComponent({
         }
         dropState={getInputDropState(payload)}
         details={inputPortDetails?.[endpointPortId]}
-        detailsExpanded={showDebugInfo && expandedDetails[detailsKey] === true}
+        detailsTitle={options?.detailsTitle}
+        attachedBodyContent={options?.attachedBodyContent}
+        detailsExpanded={
+          options?.rowChevronState === 'expanded' ||
+          (showDebugInfo && expandedDetails[detailsKey] === true)
+        }
         onToggleDetails={
           !showDebugInfo || options?.showDetailsToggle === false
             ? undefined
@@ -693,11 +987,17 @@ function NodeViewComponent({
                   [detailsKey]: !current[detailsKey],
                 }))
         }
+        rowChevronState={options?.rowChevronState}
+        onCycleRowChevron={options?.onCycleRowChevron}
         valueInput={valueInput}
         valueBarTone={options?.valueBarTone ?? 'blue'}
         childTone={path !== undefined}
         compositeExpanded={options?.compositeExpanded}
         onToggleComposite={options?.onToggleComposite}
+        rowExpanded={options?.rowExpanded}
+        onToggleRowExpanded={options?.onToggleRowExpanded}
+        rowToggleAriaLabel={options?.rowToggleAriaLabel}
+        hideDetailsToggle={options?.hideDetailsToggle}
         onContextMenu={options?.onContextMenu}
         inputWiringDisabled={options?.inputWiringDisabled}
         drivenMessage={options?.drivenMessage}
@@ -834,9 +1134,17 @@ function NodeViewComponent({
     options?: {
       endpointPortId?: string
       labelOverride?: string
+      rowChevronState?: 'collapsed' | 'essentials' | 'expanded'
+      onCycleRowChevron?: () => void
+      rowExpanded?: boolean
+      onToggleRowExpanded?: () => void
+      rowToggleAriaLabel?: string
+      hideDetailsToggle?: boolean
       inputWiringDisabled?: boolean
       drivenMessage?: string
       resolvedValueLabel?: string
+      detailsTitle?: string
+      attachedBodyContent?: ReactNode
       valueInput?: {
         value: number
         min?: number
@@ -856,9 +1164,17 @@ function NodeViewComponent({
     return renderInputPort(port, {
       endpointPortId: options?.endpointPortId,
       labelOverride: options?.labelOverride,
+      rowChevronState: options?.rowChevronState,
+      onCycleRowChevron: options?.onCycleRowChevron,
+      rowExpanded: options?.rowExpanded,
+      onToggleRowExpanded: options?.onToggleRowExpanded,
+      rowToggleAriaLabel: options?.rowToggleAriaLabel,
+      hideDetailsToggle: options?.hideDetailsToggle,
       inputWiringDisabled: options?.inputWiringDisabled,
       drivenMessage: options?.drivenMessage,
       resolvedValueLabel: options?.resolvedValueLabel,
+      detailsTitle: options?.detailsTitle,
+      attachedBodyContent: options?.attachedBodyContent,
       valueInput: options?.valueInput,
       showDetailsToggle: showDebugInfo,
       suppressEditors: !showEditors,
@@ -875,6 +1191,14 @@ function NodeViewComponent({
       onToggleComposite?: () => void
       showDetailsToggle?: boolean
       details?: PortDetailLine[]
+      rowChevronState?: 'collapsed' | 'essentials' | 'expanded'
+      onCycleRowChevron?: () => void
+      rowExpanded?: boolean
+      onToggleRowExpanded?: () => void
+      rowToggleAriaLabel?: string
+      hideDetailsToggle?: boolean
+      resolvedValueLabel?: string
+      detailsTitle?: string
     },
   ) => {
     const endpointPortId = options?.endpointPortId ?? port.portId
@@ -904,7 +1228,11 @@ function NodeViewComponent({
           options?.details ??
           (isRootPort ? outputPortDetails?.[endpointPortId] : undefined)
         }
-        detailsExpanded={showDebugInfo && expandedDetails[detailsKey] === true}
+        detailsTitle={options?.detailsTitle}
+        detailsExpanded={
+          options?.rowChevronState === 'expanded' ||
+          (showDebugInfo && expandedDetails[detailsKey] === true)
+        }
         onToggleDetails={
           !showDebugInfo || options?.showDetailsToggle === false
             ? undefined
@@ -914,9 +1242,16 @@ function NodeViewComponent({
                   [detailsKey]: !current[detailsKey],
                 }))
         }
+        rowChevronState={options?.rowChevronState}
+        onCycleRowChevron={options?.onCycleRowChevron}
         compositeExpanded={options?.compositeExpanded}
         onToggleComposite={options?.onToggleComposite}
+        rowExpanded={options?.rowExpanded}
+        onToggleRowExpanded={options?.onToggleRowExpanded}
+        rowToggleAriaLabel={options?.rowToggleAriaLabel}
+        hideDetailsToggle={options?.hideDetailsToggle}
         childTone={path !== undefined}
+        resolvedValueLabel={options?.resolvedValueLabel}
         scrubSpeed={scrubSensitivity}
         onOutputPointerDown={onOutputPointerDown}
         onOutputPointerEnter={onOutputPointerEnter}
@@ -990,6 +1325,13 @@ function NodeViewComponent({
       endpointPortId?: string
       labelOverride?: string
       path?: string[]
+      rowChevronState?: 'collapsed' | 'essentials' | 'expanded'
+      onCycleRowChevron?: () => void
+      rowExpanded?: boolean
+      onToggleRowExpanded?: () => void
+      rowToggleAriaLabel?: string
+      hideDetailsToggle?: boolean
+      resolvedValueLabel?: string
     },
   ) => {
     if (options?.path !== undefined && options.path.length > 0) {
@@ -997,6 +1339,13 @@ function NodeViewComponent({
         endpointPortId: options.endpointPortId,
         labelOverride: options.labelOverride,
         path: options.path,
+        rowChevronState: options.rowChevronState,
+        onCycleRowChevron: options.onCycleRowChevron,
+        rowExpanded: options.rowExpanded,
+        onToggleRowExpanded: options.onToggleRowExpanded,
+        rowToggleAriaLabel: options.rowToggleAriaLabel,
+        hideDetailsToggle: options.hideDetailsToggle,
+        resolvedValueLabel: options.resolvedValueLabel,
       })
     }
     const tree = getFieldTree(port.type)
@@ -1009,6 +1358,13 @@ function NodeViewComponent({
     return renderOutputPort(port, {
       endpointPortId: options?.endpointPortId,
       labelOverride: options?.labelOverride,
+      rowChevronState: options?.rowChevronState,
+      onCycleRowChevron: options?.onCycleRowChevron,
+      rowExpanded: options?.rowExpanded,
+      onToggleRowExpanded: options?.onToggleRowExpanded,
+      rowToggleAriaLabel: options?.rowToggleAriaLabel,
+      hideDetailsToggle: options?.hideDetailsToggle,
+      resolvedValueLabel: options?.resolvedValueLabel,
     })
   }
 
@@ -1760,6 +2116,720 @@ function NodeViewComponent({
     )
   }
 
+  const renderSketchTemplate = () => {
+    const planePort = allInputs.find((port) => port.portId === 'SketchPlane')
+    const entitiesPort = allInputs.find((port) => port.portId === 'SketchEntities')
+    const planePickActive = activeSketchPlanePickNodeId === node.nodeId
+    const activeSketchSession =
+      activeGeometrySketchSession?.nodeId === node.nodeId ? activeGeometrySketchSession : null
+    const managedSketch = (node.params.sketch as SketchFeature | undefined) ?? undefined
+    const sketchComponents = managedSketch?.components ?? []
+    const sketchProfiles = managedSketch?.outputs.profiles ?? []
+    const sketchDiagnostics = managedSketch?.outputs.diagnostics ?? []
+    const selectedProfile =
+      sketchProfiles.find(
+        (profile) => profile.profileId === managedSketch?.uiState.selectedProfileId,
+      ) ??
+      (sketchProfiles.length === 1 ? sketchProfiles[0] : null)
+    const effectivePlaneLabel = sketchVm?.planeDriven === true
+      ? `${sketchVm.effectivePlane} (wired)`
+      : sketchVm?.effectivePlane ?? 'Unassigned'
+    const profileSummary =
+      sketchVm === undefined
+        ? 'Profile review unavailable.'
+        : sketchVm.profileCount === 0
+          ? 'No closed profiles detected yet.'
+          : sketchVm.hasSelectedProfile
+            ? selectedProfile === null
+              ? '1 profile ready for downstream use.'
+              : `Selected ${selectedProfile.profileId.slice(0, 8)} | area ${formatPinValue(selectedProfile.area)}`
+            : `${sketchVm.profileCount} profiles detected; choose one in Review.`
+    const headerChips: GeometryNodeShellChip[] = [
+      {
+        label: sketchVm?.planeDriven === true ? 'wired plane' : 'local plane',
+        tone: sketchVm?.planeDriven === true ? 'accent' : 'default',
+      },
+      ...(activeSketchSession !== null
+        ? [
+            {
+              label: activeSketchSession.mode === 'draw' ? 'draw session' : 'review session',
+              tone: 'success' as const,
+            },
+          ]
+        : []),
+    ]
+    const summaryChips: GeometryNodeShellChip[] = [
+      {
+        label: `plane ${sketchVm?.effectivePlane ?? 'XY'}`,
+        tone: sketchVm?.planeDriven === true ? 'accent' : 'default',
+      },
+      {
+        label: `${sketchComponents.length} entities`,
+      },
+      {
+        label: sketchProfileSummaryLabel(
+          sketchVm?.profileCount ?? 0,
+          sketchVm?.hasSelectedProfile ?? false,
+          selectedProfile,
+        ),
+        tone:
+          (sketchVm?.hasSelectedProfile ?? false) || (sketchVm?.profileCount ?? 0) === 1
+            ? 'success'
+            : sketchVm !== undefined && sketchVm.profileCount > 1
+              ? 'warn'
+              : 'default',
+      },
+    ]
+    const diagnosticsContent =
+      sketchDiagnostics.length > 0 ? (
+        <div className="SpaghettiSketchDiagnostics">
+          {sketchDiagnostics.map((diagnostic, index) => (
+            <div
+              key={`${diagnostic.code}-${index}`}
+              className="SpaghettiSketchDiagnosticRow"
+            >
+              {diagnostic.code}: {diagnostic.message}
+            </div>
+          ))}
+        </div>
+      ) : undefined
+    const planeDetailsKey = endpointKey('in', 'SketchPlane')
+    const planeRowOpen = isGeometryPortRowOpen('in', 'SketchPlane')
+    const planeRowExpanded = expandedDetails[planeDetailsKey] === true
+    const sessionForNode =
+      activeSketchPlanePickSession?.nodeId === node.nodeId ? activeSketchPlanePickSession : null
+    const localPlane = sessionForNode?.draftPlane ?? managedSketch?.plane ?? 'XY'
+    const planeTransform = sessionForNode?.draftTransform ?? managedSketch?.planeTransform ?? {
+      offsetMm: 0,
+      translation: { x: 0, y: 0, z: 0 },
+      rotationDeg: { x: 0, y: 0, z: 0 },
+      inPlaneRotationDeg: 0,
+    }
+    const planeRowChevronState: 'collapsed' | 'essentials' | 'expanded' = !planeRowOpen
+      ? 'collapsed'
+      : planeRowExpanded
+        ? 'expanded'
+        : 'essentials'
+    const entitiesDetailsKey = endpointKey('in', 'SketchEntities')
+    const entitiesRowOpen = isGeometryPortRowOpen('in', 'SketchEntities')
+    const entitiesRowExpanded = expandedDetails[entitiesDetailsKey] === true
+    const entitiesRowChevronState: 'collapsed' | 'essentials' | 'expanded' = !entitiesRowOpen
+      ? 'collapsed'
+      : entitiesRowExpanded
+        ? 'expanded'
+        : 'essentials'
+    const cycleSketchPlaneRowMode = () => {
+      if (planeRowChevronState === 'collapsed') {
+        setCollapsed(geometryPortRowKey('in', 'SketchPlane'), false)
+        setExpandedDetails((current) => ({
+          ...current,
+          [planeDetailsKey]: false,
+        }))
+        return
+      }
+      if (planeRowChevronState === 'essentials') {
+        setExpandedDetails((current) => ({
+          ...current,
+          [planeDetailsKey]: true,
+        }))
+        return
+      }
+      setExpandedDetails((current) => ({
+        ...current,
+        [planeDetailsKey]: false,
+      }))
+      setCollapsed(geometryPortRowKey('in', 'SketchPlane'), true)
+    }
+    const cycleSketchEntitiesRowMode = () => {
+      if (entitiesRowChevronState === 'collapsed') {
+        setCollapsed(geometryPortRowKey('in', 'SketchEntities'), false)
+        setExpandedDetails((current) => ({
+          ...current,
+          [entitiesDetailsKey]: false,
+        }))
+        return
+      }
+      if (entitiesRowChevronState === 'essentials') {
+        setExpandedDetails((current) => ({
+          ...current,
+          [entitiesDetailsKey]: true,
+        }))
+        return
+      }
+      setExpandedDetails((current) => ({
+        ...current,
+        [entitiesDetailsKey]: false,
+      }))
+      setCollapsed(geometryPortRowKey('in', 'SketchEntities'), true)
+    }
+    const renderSketchPlaneSectionTitle = (title: string, hint?: string) => (
+      <div className="SpaghettiSketchPlaneControlHeader">
+        <div className="SpaghettiSketchPlaneControlTitle">{title}</div>
+        {hint !== undefined ? (
+          <div className="SpaghettiSketchPlaneControlHint">{hint}</div>
+        ) : null}
+      </div>
+    )
+    const renderSketchPlaneAttachedBody = (mode: 'essentials' | 'expanded') => (
+      <div className="SpaghettiSketchPlaneControlStack">
+        <div className="SpaghettiSketchPlaneControlSection">
+          {renderSketchPlaneSectionTitle(
+            'Source',
+            sketchVm?.planeDriven === true
+              ? 'Wire drives the effective plane; local choice stays as fallback.'
+              : 'Choose the base origin plane for this sketch.',
+          )}
+          <div className="SpaghettiSketchPlaneControlRows">
+            <ParaSelect
+              label="Origin Plane"
+              value={localPlane}
+              options={[
+                { value: 'XY', label: 'XY' },
+                { value: 'XZ', label: 'XZ' },
+                { value: 'YZ', label: 'YZ' },
+              ]}
+              onChange={(nextValue) => {
+                if (nextValue === 'XY' || nextValue === 'XZ' || nextValue === 'YZ') {
+                  if (sessionForNode !== null) {
+                    setSketchPlanePickDraftPlane(nextValue)
+                    return
+                  }
+                  setGeometrySketchPlane(node.nodeId, nextValue)
+                }
+              }}
+            />
+            <div className="SpaghettiSketchPlaneControlActionRow">
+              <button
+                type="button"
+                className={`SpaghettiSketchPlaneMiniAction ${planePickActive ? 'isActive' : ''}`}
+                {...SP_INTERACTIVE_PROPS}
+                onClick={(event) => {
+                  event.stopPropagation()
+                  if (planePickActive) {
+                    cancelSketchPlanePick()
+                    return
+                  }
+                  startSketchPlanePick(node.nodeId)
+                }}
+              >
+                {planePickActive ? 'Cancel Viewer Pick' : 'Pick In Viewport'}
+              </button>
+            </div>
+          </div>
+        </div>
+        <div className="SpaghettiSketchPlaneControlSection">
+          {renderSketchPlaneSectionTitle(
+            'Transform',
+            mode === 'expanded'
+              ? 'Adjust offset, translation, orientation, and local sketch rotation.'
+              : 'Use compact transform controls for the first-pass setup.',
+          )}
+          <div className="SpaghettiSketchPlaneControlRows">
+            <ParaSlider
+              label="Offset"
+              value={planeTransform.offsetMm}
+              min={-200}
+              max={200}
+              step={0.1}
+              onChange={(value) => setGeometrySketchPlaneOffset(node.nodeId, value)}
+              formatValue={(value) => `${value.toFixed(1)} mm`}
+            />
+            <ParaSlider
+              label={mode === 'expanded' ? 'In-Plane Rotation' : 'Rotation'}
+              value={planeTransform.inPlaneRotationDeg}
+              min={-180}
+              max={180}
+              step={1}
+              allowWrap
+              onChange={(value) => setGeometrySketchPlaneInPlaneRotation(node.nodeId, value)}
+              formatValue={(value) => `${value.toFixed(0)} deg`}
+            />
+            {mode === 'expanded' ? (
+              <>
+                <ParaSlider
+                  label="Translate X"
+                  value={planeTransform.translation.x}
+                  min={-200}
+                  max={200}
+                  step={0.1}
+                  onChange={(value) =>
+                    sessionForNode !== null
+                      ? setSketchPlanePickTranslationAxis('x', value)
+                      : setGeometrySketchPlaneTranslationAxis(node.nodeId, 'x', value)
+                  }
+                  formatValue={(value) => `${value.toFixed(1)} mm`}
+                />
+                <ParaSlider
+                  label="Translate Y"
+                  value={planeTransform.translation.y}
+                  min={-200}
+                  max={200}
+                  step={0.1}
+                  onChange={(value) =>
+                    sessionForNode !== null
+                      ? setSketchPlanePickTranslationAxis('y', value)
+                      : setGeometrySketchPlaneTranslationAxis(node.nodeId, 'y', value)
+                  }
+                  formatValue={(value) => `${value.toFixed(1)} mm`}
+                />
+                <ParaSlider
+                  label="Translate Z"
+                  value={planeTransform.translation.z}
+                  min={-200}
+                  max={200}
+                  step={0.1}
+                  onChange={(value) =>
+                    sessionForNode !== null
+                      ? setSketchPlanePickTranslationAxis('z', value)
+                      : setGeometrySketchPlaneTranslationAxis(node.nodeId, 'z', value)
+                  }
+                  formatValue={(value) => `${value.toFixed(1)} mm`}
+                />
+                <ParaSlider
+                  label="Rotate X"
+                  value={planeTransform.rotationDeg.x}
+                  min={-180}
+                  max={180}
+                  step={1}
+                  allowWrap
+                  onChange={(value) =>
+                    sessionForNode !== null
+                      ? setSketchPlanePickRotationAxis('x', value)
+                      : setGeometrySketchPlaneRotationAxis(node.nodeId, 'x', value)
+                  }
+                  formatValue={(value) => `${value.toFixed(0)} deg`}
+                />
+                <ParaSlider
+                  label="Rotate Y"
+                  value={planeTransform.rotationDeg.y}
+                  min={-180}
+                  max={180}
+                  step={1}
+                  allowWrap
+                  onChange={(value) =>
+                    sessionForNode !== null
+                      ? setSketchPlanePickRotationAxis('y', value)
+                      : setGeometrySketchPlaneRotationAxis(node.nodeId, 'y', value)
+                  }
+                  formatValue={(value) => `${value.toFixed(0)} deg`}
+                />
+                <ParaSlider
+                  label="Rotate Z"
+                  value={planeTransform.rotationDeg.z}
+                  min={-180}
+                  max={180}
+                  step={1}
+                  allowWrap
+                  onChange={(value) =>
+                    sessionForNode !== null
+                      ? setSketchPlanePickRotationAxis('z', value)
+                      : setGeometrySketchPlaneRotationAxis(node.nodeId, 'z', value)
+                  }
+                  formatValue={(value) => `${value.toFixed(0)} deg`}
+                />
+              </>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    )
+    const renderSketchEntitiesAttachedBody = (mode: 'essentials' | 'expanded') => (
+      <div className="SpaghettiSketchSectionBody">
+        <div className="SpaghettiSketchActionRow">
+          <div className="SpaghettiSketchActionMeta">
+            <div className="SpaghettiSketchActionTitle">Draw</div>
+            <div className="SpaghettiSketchActionHint">
+              Open the viewer-side sketch toolbar and author primitives on this managed sketch.
+            </div>
+          </div>
+          <button
+            type="button"
+            className={`SpaghettiSketchActionButton ${
+              activeSketchSession?.mode === 'draw' ? 'isActive' : ''
+            }`}
+            {...SP_INTERACTIVE_PROPS}
+            onClick={(event) => {
+              event.stopPropagation()
+              startGeometrySketchSession(node.nodeId, 'draw')
+            }}
+          >
+            {activeSketchSession?.mode === 'draw' ? 'Resume Draw' : 'Draw'}
+          </button>
+        </div>
+        {mode === 'expanded' ? (
+          sketchComponents.length === 0 ? (
+            <div className="SpaghettiSketchPlaceholder" data-sp-sketch-placeholder="draw">
+              <div className="SpaghettiSketchPlaceholderTitle">No sketch entities yet</div>
+              <div className="SpaghettiSketchPlaceholderBody">
+                Use Draw to add `Line`, `Arc3Point`, `BezierSpline`, `Rectangle`, or `Circle`.
+              </div>
+            </div>
+          ) : (
+            <div className="SpaghettiSketchEntityList" data-sp-sketch-entity-list="1">
+              {sketchComponents.map((component, index) => (
+                <div
+                  key={component.rowId}
+                  className="SpaghettiSketchEntityRow"
+                  data-sp-sketch-entity-row={component.type}
+                >
+                  <div className="SpaghettiSketchEntityMeta">
+                    <div className="SpaghettiSketchEntityTitle">
+                      {sketchComponentTitle(component)} {index + 1}
+                    </div>
+                    <div className="SpaghettiSketchEntitySummary">
+                      {formatSketchComponentSummary(component)}
+                    </div>
+                  </div>
+                  <div className="SpaghettiSketchEntityActions">
+                    <button
+                      type="button"
+                      {...SP_INTERACTIVE_PROPS}
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        moveGeometrySketchComponentUp(node.nodeId, component.rowId)
+                      }}
+                      aria-label="Move sketch entity up"
+                    >
+                      Up
+                    </button>
+                    <button
+                      type="button"
+                      {...SP_INTERACTIVE_PROPS}
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        moveGeometrySketchComponentDown(node.nodeId, component.rowId)
+                      }}
+                      aria-label="Move sketch entity down"
+                    >
+                      Down
+                    </button>
+                    <button
+                      type="button"
+                      {...SP_INTERACTIVE_PROPS}
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        removeGeometrySketchComponent(node.nodeId, component.rowId)
+                      }}
+                      aria-label="Delete sketch entity"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )
+        ) : null}
+      </div>
+    )
+    const renderManagedSketchOutputPort = (port: PortSpec) => {
+      if (!isGeometryPortRowManaged('out', port.portId)) {
+        return renderOutputPortByType(port)
+      }
+      if (!isGeometryPortRowVisibleForMode('out', port.portId)) {
+        return null
+      }
+      const detailsKey = endpointKey('out', port.portId)
+      const rowOpen = isGeometryPortRowOpen('out', port.portId)
+      const rowExpanded = expandedDetails[detailsKey] === true
+      const rowChevronState: 'collapsed' | 'essentials' | 'expanded' = !rowOpen
+        ? 'collapsed'
+        : rowExpanded
+          ? 'expanded'
+          : 'essentials'
+      const cycleRowMode = () => {
+        if (rowChevronState === 'collapsed') {
+          setCollapsed(geometryPortRowKey('out', port.portId), false)
+          setExpandedDetails((current) => ({
+            ...current,
+            [detailsKey]: false,
+          }))
+          return
+        }
+        if (rowChevronState === 'essentials') {
+          setExpandedDetails((current) => ({
+            ...current,
+            [detailsKey]: true,
+          }))
+          return
+        }
+        setExpandedDetails((current) => ({
+          ...current,
+          [detailsKey]: false,
+        }))
+        setCollapsed(geometryPortRowKey('out', port.portId), true)
+      }
+
+      return renderOutputPortByType(port, {
+        rowChevronState,
+        onCycleRowChevron: cycleRowMode,
+        rowToggleAriaLabel:
+          rowChevronState === 'collapsed'
+            ? `Open ${port.label} output row`
+            : rowChevronState === 'essentials'
+              ? `Expand ${port.label} output row`
+              : `Collapse ${port.label} output row`,
+        hideDetailsToggle: true,
+      })
+    }
+
+    return (
+      <GeometryNodeShell
+        className="SpaghettiSketchNodeTemplate"
+        title="Sketch"
+        badge="Geometry"
+        headerChips={headerChips}
+        summaryChips={summaryChips}
+        contentLabel="Sketch"
+        inputRailOpen={isGeometryBlockOpen('inputs')}
+        onInputRailToggle={() => toggleGeometryBlock('inputs')}
+        contentOpen={isGeometryBlockOpen('content')}
+        onContentToggle={() => toggleGeometryBlock('content')}
+        outputRailOpen={isGeometryBlockOpen('outputs')}
+        onOutputRailToggle={() => toggleGeometryBlock('outputs')}
+        inputRail={
+          <div className="SpaghettiNodePortColumn SpaghettiNodePortColumn--in">
+            {planePort !== undefined
+              ? renderInputPortByType(planePort, {
+                  endpointPortId: planePort.portId,
+                  resolvedValueLabel: effectivePlaneLabel,
+                  rowChevronState: planeRowChevronState,
+                  onCycleRowChevron: cycleSketchPlaneRowMode,
+                  rowToggleAriaLabel:
+                    planeRowChevronState === 'collapsed'
+                      ? 'Open SketchPlane input row'
+                      : planeRowChevronState === 'essentials'
+                        ? 'Expand SketchPlane input row'
+                        : 'Collapse SketchPlane input row',
+                  hideDetailsToggle: true,
+                  attachedBodyContent:
+                    planeRowChevronState === 'collapsed'
+                      ? undefined
+                      : renderSketchPlaneAttachedBody(planeRowChevronState),
+                })
+              : null}
+            {entitiesPort !== undefined
+              ? renderInputPortByType(entitiesPort, {
+                  endpointPortId: entitiesPort.portId,
+                  resolvedValueLabel:
+                    sketchComponents.length === 0
+                      ? 'No sketch entities yet'
+                      : `${sketchComponents.length} entities`,
+                  rowChevronState: entitiesRowChevronState,
+                  onCycleRowChevron: cycleSketchEntitiesRowMode,
+                  rowToggleAriaLabel:
+                    entitiesRowChevronState === 'collapsed'
+                      ? 'Open SketchDraw input row'
+                      : entitiesRowChevronState === 'essentials'
+                        ? 'Expand SketchDraw input row'
+                        : 'Collapse SketchDraw input row',
+                  hideDetailsToggle: true,
+                  attachedBodyContent:
+                    entitiesRowChevronState === 'collapsed'
+                      ? undefined
+                      : renderSketchEntitiesAttachedBody(entitiesRowChevronState),
+                })
+              : null}
+          </div>
+        }
+        outputRail={
+          <div className="SpaghettiNodePortColumn SpaghettiNodePortColumn--out">
+            {allOutputs.map((port) => renderManagedSketchOutputPort(port))}
+          </div>
+        }
+        diagnostics={diagnosticsContent}
+      >
+        {renderTemplateSection(
+          SECTION_IDS.sketchPlane,
+          'Plane',
+          <div className="SpaghettiSketchSectionBody">
+            <div className="SpaghettiSketchPlaneRow" data-sp-sketch-plane-row="1">
+              <div className="SpaghettiSketchPlaneRowPort">
+                <div className="SpaghettiSketchActionMeta">
+                  <div className="SpaghettiSketchActionTitle">Sketch Plane</div>
+                  <div className="SpaghettiSketchActionHint">
+                    {planePickActive
+                      ? 'Choose XY, XZ, or YZ in the viewer overlay.'
+                      : `Current plane: ${effectivePlaneLabel}.`}
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                className={`SpaghettiSketchPlaneAction ${planePickActive ? 'isActive' : ''}`}
+                {...SP_INTERACTIVE_PROPS}
+                onClick={(event) => {
+                  event.stopPropagation()
+                  if (planePickActive) {
+                    cancelSketchPlanePick()
+                    return
+                  }
+                  startSketchPlanePick(node.nodeId)
+                }}
+                aria-label={planePickActive ? 'Cancel plane pick' : 'Pick sketch plane'}
+                title={planePickActive ? 'Cancel plane pick' : 'Pick sketch plane'}
+              >
+                {planePickActive ? 'x' : '+'}
+              </button>
+            </div>
+          </div>,
+        )}
+
+        {renderTemplateSection(
+          SECTION_IDS.sketchReview,
+          'Review',
+          <div className="SpaghettiSketchSectionBody">
+            <div className="SpaghettiSketchActionRow">
+              <div className="SpaghettiSketchActionMeta">
+                <div className="SpaghettiSketchActionTitle">Review</div>
+                <div className="SpaghettiSketchActionHint">{profileSummary}</div>
+              </div>
+              <button
+                type="button"
+                className={`SpaghettiSketchActionButton ${
+                  activeSketchSession?.mode === 'review' ? 'isActive' : ''
+                }`}
+                {...SP_INTERACTIVE_PROPS}
+                disabled={sketchProfiles.length === 0}
+                onClick={(event) => {
+                  event.stopPropagation()
+                  startGeometrySketchSession(node.nodeId, 'review')
+                }}
+              >
+                {activeSketchSession?.mode === 'review' ? 'Resume Review' : 'Review'}
+              </button>
+            </div>
+          </div>,
+        )}
+      </GeometryNodeShell>
+    )
+  }
+
+  const renderExtrudeTemplate = () => {
+    const profilePort = allInputs.find((port) => port.portId === 'ExtrusionProfile')
+    const depthPort = allInputs.find((port) => port.portId === 'Depth')
+    const solidBodyPort = allOutputs.find((port) => port.portId === 'SolidBody')
+    const extrudeType = extrudeVm?.extrudeType ?? 'Basic'
+    const effectiveDepthMm = extrudeVm?.effectiveDepthMm ?? 20
+    const profileSummary =
+      extrudeVm?.hasProfile === true
+        ? `${extrudeVm.profileId?.slice(0, 8) ?? 'profile'} | area ${formatPinValue(
+            extrudeVm.profileArea ?? 0,
+          )}`
+        : 'Connect one selected SketchProfile from Geometry/Sketch.'
+    const bodySummary =
+      extrudeVm?.bodyId !== undefined
+        ? `Body ready: ${extrudeVm.bodyId}`
+        : extrudeType === 'Twist'
+          ? 'Twist is visible but deferred in this phase.'
+          : 'Waiting for one profile and positive depth.'
+    const updateExtrudeParams = (nextParams: Record<string, unknown>) => {
+      setGraph(
+        setNodeParamsCommand({
+          nodeId: node.nodeId,
+          params: nextParams,
+        })(graph),
+      )
+    }
+
+    return (
+      <div className="SpaghettiNodeTemplate SpaghettiExtrudeNodeTemplate">
+        {renderTemplateSection(
+          SECTION_IDS.inputs,
+          'Inputs',
+          <div className="SpaghettiNodePortColumn SpaghettiNodePortColumn--in">
+            {profilePort !== undefined
+              ? renderInputPortByType(profilePort, {
+                  endpointPortId: profilePort.portId,
+                  resolvedValueLabel: profileSummary,
+                })
+              : null}
+            {depthPort !== undefined
+              ? renderInputPortByType(depthPort, {
+                  endpointPortId: depthPort.portId,
+                  resolvedValueLabel: `${formatPinValue(effectiveDepthMm)} mm`,
+                  valueInput: {
+                    value: effectiveDepthMm,
+                    min: 0.1,
+                    max: 2000,
+                    step: 0.1,
+                    disabled: extrudeVm?.depthDriven === true || !showEditors,
+                    driven: extrudeVm?.depthDriven === true,
+                    onChange: (value) => {
+                      updateExtrudeParams({
+                        ...node.params,
+                        depthMm: value,
+                      })
+                    },
+                  },
+                })
+              : null}
+          </div>,
+        )}
+
+        {renderTemplateSection(
+          SECTION_IDS.legacy,
+          'Feature',
+          <div className="SpaghettiSketchSectionBody">
+            <div className="SpaghettiSketchActionRow">
+              <div className="SpaghettiSketchActionMeta">
+                <div className="SpaghettiSketchActionTitle">Extrude Type</div>
+                <div className="SpaghettiSketchActionHint">
+                  `Basic` is executable now; `Twist` stays visible but deferred.
+                </div>
+              </div>
+              <div className="SpaghettiSketchToolbarButtonRow">
+                <button
+                  type="button"
+                  className={`SpaghettiSketchActionButton ${
+                    extrudeType === 'Basic' ? 'isActive' : ''
+                  }`}
+                  {...SP_INTERACTIVE_PROPS}
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    updateExtrudeParams({
+                      ...node.params,
+                      extrudeType: 'Basic',
+                    })
+                  }}
+                >
+                  Basic
+                </button>
+                <button
+                  type="button"
+                  className={`SpaghettiSketchActionButton ${
+                    extrudeType === 'Twist' ? 'isActive' : ''
+                  }`}
+                  {...SP_INTERACTIVE_PROPS}
+                  disabled={true}
+                  title="Twist is deferred"
+                >
+                  Twist
+                </button>
+              </div>
+            </div>
+          </div>,
+        )}
+
+        {renderTemplateSection(
+          SECTION_IDS.outputs,
+          'Outputs',
+          <div className="SpaghettiNodePortColumn SpaghettiNodePortColumn--out">
+            {solidBodyPort !== undefined ? renderOutputPortByType(solidBodyPort) : null}
+            <div className="SpaghettiSketchPlaceholder" data-sp-extrude-body-summary="1">
+              <div className="SpaghettiSketchPlaceholderTitle">SolidBody</div>
+              <div className="SpaghettiSketchPlaceholderBody">{bodySummary}</div>
+            </div>
+          </div>,
+          {
+            className:
+              'SpaghettiNodeSection SpaghettiTemplateSection SpaghettiTemplateSection--outputs',
+          },
+        )}
+      </div>
+    )
+  }
+
   const renderOutputPreviewTemplate = () => (
     <div className="SpaghettiNodeTemplate SpaghettiOutputPreviewTemplate">
       <section className="SpaghettiNodeSection SpaghettiTemplateSection SpaghettiOutputPreviewSection">
@@ -1966,16 +3036,21 @@ function NodeViewComponent({
         data-sp-node-header-zone="1"
         onPointerDown={handleNodeHeaderPointerDown}
       >
-        <button
-          type="button"
-          className="SpaghettiNodeTitleButton"
-          data-sp-node-title-cycle="1"
-          {...SP_INTERACTIVE_PROPS}
-          onPointerDown={handleNodeTitlePointerDown}
-          onClick={handleNodeTitleClick}
-        >
-          <strong>{title}</strong>
-        </button>
+        <div className="SpaghettiNodeHeaderMain">
+          <button
+            type="button"
+            className="SpaghettiWindowAction SpaghettiNodeModeButton"
+            data-sp-node-title-cycle="1"
+            aria-label={nodeModeButtonTitle}
+            title={nodeModeButtonTitle}
+            {...SP_INTERACTIVE_PROPS}
+            onPointerDown={handleNodeTitlePointerDown}
+            onClick={handleNodeTitleClick}
+          >
+            {nodeModeButtonLabel}
+          </button>
+          <strong className="SpaghettiNodeTitleText">{title}</strong>
+        </div>
         <span className="SpaghettiNodeType">{node.type}</span>
       </header>
 
@@ -2090,6 +3165,10 @@ function NodeViewComponent({
           ? renderOutputPreviewTemplate()
           : isPartTemplate
             ? renderPartTemplate()
+            : isSketchTemplate
+              ? renderSketchTemplate()
+              : isExtrudeTemplate
+                ? renderExtrudeTemplate()
             : utilityVm !== undefined
               ? renderUtilityNodeTemplate()
               : renderLegacyNodePorts()}

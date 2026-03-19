@@ -11,6 +11,7 @@ const PART_LABELS: Record<string, string> = {
   baseplate: 'Baseplate',
   cube: 'Cube',
   cubeProof: 'Cube Proof',
+  extrude: 'Extrude',
   heelKick: 'Heel Kick',
   toeHook: 'Toe Hook',
 }

@@ -418,6 +418,46 @@ describe('executeFeatureStack', () => {
       result.diagnostics.some((item) => item.reason === 'duplicate_body_id'),
     ).toBe(true)
   })
+
+  it('extrudes along the referenced sketch plane normal for non-XY graph-native extrudes', () => {
+    const payload: FeatureStackIRPayload = {
+      schemaVersion: 1,
+      parts: {
+        extrude: [
+          {
+            op: 'sketch',
+            featureId: 'graph-sketch',
+            plane: 'XZ',
+            profilesResolved: [
+              {
+                profileId: 'prof-xz',
+                area: 50,
+                vertices: rectangleVertices,
+              },
+            ],
+          },
+          {
+            op: 'extrude',
+            featureId: 'graph-extrude',
+            profileRef: {
+              sketchFeatureId: 'graph-sketch',
+              profileId: 'prof-xz',
+            },
+            plane: 'XZ',
+            depthResolved: 4,
+            bodyId: 'body-xz',
+          },
+        ],
+      },
+    }
+
+    const result = executeFeatureStack(payload)
+    const shape = result.bodies['extrude:body-xz']
+
+    expect(shape).toBeDefined()
+    expect(shape?.mesh.vertices.slice(0, 6)).toEqual([0, 0, 0, 10, 0, 0])
+    expect(shape?.mesh.vertices).toContain(4)
+  })
 })
 
 describe('buildModel diagnostics flush', () => {
@@ -532,6 +572,131 @@ describe('buildModel diagnostics flush', () => {
     )
     expect(parts.find((part) => part.partKeyStr === 'cube#1')?.label).toBe('Cube #1')
     expect(parts.find((part) => part.partKeyStr === 'cube#2')?.label).toBe('Cube #2')
+  })
+
+  it('emits a graph-native Extrude PartArtifact from Geometry/Sketch -> Geometry/Extrude IR', () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'n-sketch',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: {
+              type: 'sketch',
+              featureId: 'sketch-1',
+              plane: 'YZ',
+              components: [
+                {
+                  rowId: 'row-1',
+                  componentId: 'line-1',
+                  type: 'line',
+                  a: { kind: 'lit', x: 0, y: 0 },
+                  b: { kind: 'lit', x: 20, y: 0 },
+                },
+                {
+                  rowId: 'row-2',
+                  componentId: 'line-2',
+                  type: 'line',
+                  a: { kind: 'lit', x: 20, y: 0 },
+                  b: { kind: 'lit', x: 20, y: 10 },
+                },
+                {
+                  rowId: 'row-3',
+                  componentId: 'line-3',
+                  type: 'line',
+                  a: { kind: 'lit', x: 20, y: 10 },
+                  b: { kind: 'lit', x: 0, y: 10 },
+                },
+                {
+                  rowId: 'row-4',
+                  componentId: 'line-4',
+                  type: 'line',
+                  a: { kind: 'lit', x: 0, y: 10 },
+                  b: { kind: 'lit', x: 0, y: 0 },
+                },
+              ],
+              outputs: {
+                profiles: [],
+                diagnostics: [],
+              },
+              uiState: {
+                collapsed: false,
+              },
+            },
+          },
+        },
+        {
+          nodeId: 'n-extrude',
+          type: 'Geometry/Extrude',
+          params: {
+            extrudeType: 'Basic',
+            depthMm: 5,
+          },
+        },
+        {
+          nodeId: 'n-output-preview',
+          type: OUTPUT_PREVIEW_NODE_TYPE,
+          params: {
+            slots: [{ slotId: 's001' }],
+            nextSlotIndex: 2,
+          },
+        },
+      ],
+      edges: [
+        {
+          edgeId: 'e-sketch-profile',
+          from: {
+            nodeId: 'n-sketch',
+            portId: 'SketchProfile',
+          },
+          to: {
+            nodeId: 'n-extrude',
+            portId: 'ExtrusionProfile',
+          },
+        },
+        {
+          edgeId: 'e-extrude-preview',
+          from: {
+            nodeId: 'n-extrude',
+            portId: 'SolidBody',
+          },
+          to: {
+            nodeId: 'n-output-preview',
+            portId: 'in:solid:s001',
+          },
+        },
+      ],
+    }
+
+    const compileResult = compileSpaghettiGraph(graph)
+    expect(compileResult.ok).toBe(true)
+
+    const parts = buildModel({
+      payload: {
+        width: 1,
+        length: 2,
+        height: 3,
+        ...(compileResult.buildInputs?.resolvedShared ?? {}),
+      } as unknown as { width: number; length: number; height: number },
+      instances: {},
+    })
+
+    expect(parts.find((part) => part.partKeyStr === 'extrude')).toEqual({
+      id: 'extrude',
+      label: 'Extrude',
+      kind: 'box',
+      params: {
+        length: 5,
+        width: 20,
+        height: 10,
+      },
+      partKeyStr: 'extrude',
+      partKey: {
+        id: 'extrude',
+        instance: null,
+      },
+    })
   })
 
   it('keeps cube unresolved at runtime when the extrude feature is disabled', () => {

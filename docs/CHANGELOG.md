@@ -1,4 +1,4 @@
-﻿# CHANGELOG
+# CHANGELOG
 
 ## Doc Header
 Numbering rule for major entries:
@@ -64,6 +64,2586 @@ Do not use it for:
 
 
 ## Doc Body
+
+<!-- ENTRY 474 -->
+### [474] - 2026-03-19 00:13 - `SP - Phase 12 - SketchPlane Transform ParaSlider Hard Font-Size Override`
+<!-- ENTRY 474 -->
+HUMAN SUMMARY: `Applied a stronger local font-size override to the sketch-plane transform slider rows after the previous reductions were still not visibly changing the toolbar. The transform `ParaSlider` section now uses a direct local slider font-size and explicit `9px` text for labels, inline values, and arrow caps.` 
+
+#### Scope / Constraints Honored
+- Kept this as a sketch-plane transform-only typography correction.
+- Used a local row-scoped override instead of shrinking the global shared slider typography again.
+- Focused only on making the visible transform toolbar text actually read smaller.
+
+#### Summary of Implementation
+- Set a local `--sp-window-font-size` override on `.ViewportOverlaySketchPlaneGizmoRows`.
+- Replaced the earlier subtle inherited subtraction with explicit `9px` text on:
+  - slider labels
+  - inline values
+  - inline value buttons/inputs
+  - arrow-cap buttons
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- The sketch-plane transform sliders now render visibly smaller text than before.
+- The stronger reduction is isolated to the sketch-plane transform section.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/components/ViewportOverlay.test.tsx`
+- `cmd /c npx tsc -p tsconfig.json --noEmit`
+
+<!-- ENTRY 473 -->
+### [473] - 2026-03-19 00:11 - `SP - Phase 12 - SketchPlane Transform ParaSlider Typography Reduction`
+<!-- ENTRY 473 -->
+HUMAN SUMMARY: `Added a stronger sketch-plane-scoped typography reduction for the transform `ParaSlider` rows so the change is actually visible in that toolbar section. The transform labels, inline values, and arrow caps now render smaller inside the sketch-plane gizmo rows.` 
+
+#### Scope / Constraints Honored
+- Kept this as a sketch-plane transform-section typography cleanup.
+- Avoided another global `ParaSlider` reduction after the previous shared pass proved too subtle.
+- Limited the change to the sketch-plane gizmo rows so other slider consumers keep their current sizing.
+
+#### Summary of Implementation
+- Added sketch-plane-specific font-size overrides for:
+  - `ParaSlider` labels
+  - inline values
+  - inline value button/input
+  - arrow-cap buttons
+- Scoped the change to `.ViewportOverlaySketchPlaneGizmoRows`.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- The sketch-plane transform sliders now show clearly smaller text than before.
+- The reduction is local to the sketch-plane transform area instead of affecting every shared slider surface again.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/components/ViewportOverlay.test.tsx`
+- `cmd /c npx tsc -p tsconfig.json --noEmit`
+
+<!-- ENTRY 472 -->
+### [472] - 2026-03-19 00:10 - `SP - Phase 12 - Overlay Tool Panel ParaSlider Text Tightening`
+<!-- ENTRY 472 -->
+HUMAN SUMMARY: `Reduced the shared `ParaSlider` text size slightly so the sketch-plane transform section reads tighter overall. The slider label and inline value text now sit a little smaller inside the compacted slider chrome.` 
+
+#### Scope / Constraints Honored
+- Kept this as a visual typography cleanup on the shared `ParaSlider` shell used by the overlay toolbar.
+- Avoided changing slider structure, behavior, or button layout.
+- Applied the change through shared CSS so the transform section tightens up without a sketch-only override.
+
+#### Summary of Implementation
+- Reduced the shared `ParaSlider` label text size slightly.
+- Reduced the shared inline value button/input text size slightly to match.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- The sketch-plane transform sliders now render slightly smaller text inside the slider row.
+- The shared overlay-tool slider typography reads tighter without changing the interaction model.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/components/ViewportOverlay.test.tsx`
+- `cmd /c npx tsc -p tsconfig.json --noEmit`
+
+<!-- ENTRY 471 -->
+### [471] - 2026-03-19 00:10 - `SP - Phase 12 - Overlay Tool Panel ParaSlider Density Tightening`
+<!-- ENTRY 471 -->
+HUMAN SUMMARY: `Tightened the shared `ParaSlider` chrome slightly so the sketch-plane transform section reads less tall and more compact. The slider caps, track, fill area, and inline value field now take up less vertical space while keeping the same overall control structure.` 
+
+#### Scope / Constraints Honored
+- Kept this as a visual density cleanup on the shared `ParaSlider` shell used by the overlay toolbar.
+- Avoided changing slider behavior, value mapping, or button layout.
+- Applied the change through the shared CSS so the transform section tightens up without adding a sketch-only slider variant.
+
+#### Summary of Implementation
+- Reduced the shared `ParaSlider` cap and track height from `30px` to `26px`.
+- Tightened the fill/marker/clamp inset spacing to match the shorter track.
+- Reduced the inline value button/input height and slightly tightened the content gap.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- The sketch-plane transform sliders now render slightly shorter and more compact.
+- The shared overlay-tool slider chrome reads tighter without changing the slider interaction model.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/components/ViewportOverlay.test.tsx`
+- `cmd /c npx tsc -p tsconfig.json --noEmit`
+
+<!-- ENTRY 470 -->
+### [470] - 2026-03-19 00:09 - `SP - Phase 12 - Overlay Tool Panel ParaSlider Skin Fix`
+<!-- ENTRY 470 -->
+HUMAN SUMMARY: `Fixed the sketch-plane transform `ParaSlider` chrome so its arrow caps and value field use the same dark control skin as the rest of the editor surfaces instead of falling back to default white browser buttons. The toolbar now reads much closer to the spaghetti/editor control language.` 
+
+#### Scope / Constraints Honored
+- Kept this focused on the shared `ParaSlider` skin selectors used inside the overlay toolbar shell.
+- Avoided changing slider behavior or value logic.
+- Fixed the visual issue by extending the existing styling path rather than inventing a sketch-only slider variant.
+
+#### Summary of Implementation
+- Extended the shared `ParaSlider` button/input selector set so `ViewportOverlayToolPanel` gets the same dark slider-cap and value-button treatment as the existing editor surfaces.
+- Brought the sketch-plane transform-section arrow caps and value field into line with the current ParaHook control language.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- The sketch-plane transform sliders no longer render default white browser-style cap buttons.
+- The transform-section slider arrows and value field now inherit the intended dark styled shell inside the overlay toolbar.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/components/ViewportOverlay.test.tsx`
+- `cmd /c npx tsc -p tsconfig.json --noEmit`
+
+<!-- ENTRY 469 -->
+### [469] - 2026-03-19 00:06 - `SP - Phase 12 - Overlay Tool Split Section Resize`
+<!-- ENTRY 469 -->
+HUMAN SUMMARY: `Added a reusable horizontal split bar to the shared overlay toolbar template so stacked subsections can be resized vertically. The expanded sketch-plane toolbar now uses one divider between `Plane Selection` and `Transform`, letting the user adjust the first subsection height directly.` 
+
+#### Scope / Constraints Honored
+- Kept this focused on the shared overlay toolbar template and the sketch-plane toolbar as its first split-layout consumer.
+- Limited the first split implementation to the two-section vertical case the sketch-plane tool actually needs now.
+- Preserved the existing toolbar density modes and floating-window shell behavior.
+
+#### Summary of Implementation
+- Added a reusable `ViewportOverlayToolSplitLayout` component to the shared overlay tool shell.
+- Added a draggable horizontal split handle with accent-tinted divider styling.
+- Swapped the expanded sketch-plane toolbar body onto that shared split layout.
+- Kept `essentials` mode as a single-section body and `collapsed` mode as body-hidden.
+- Added focused overlay coverage that verifies the top subsection height changes when the split bar is dragged.
+
+#### Files Changed
+- `src/app/components/ViewportOverlayToolPanel.tsx`
+- `src/app/components/ViewportOverlay.tsx`
+- `src/app/components/ViewportOverlay.test.tsx`
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- Expanded overlay toolbars can now expose a horizontal divider between stacked sections.
+- The expanded sketch-plane toolbar now lets the user resize the top `Plane Selection` subsection relative to the `Transform` subsection.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/components/ViewportOverlay.test.tsx`
+- `cmd /c npx tsc -p tsconfig.json --noEmit`
+
+<!-- ENTRY 468 -->
+### [468] - 2026-03-19 00:02 - `SP - Phase 12 - SketchPlane Toolbar Density Modes`
+<!-- ENTRY 468 -->
+HUMAN SUMMARY: `Added a compact `-/e/+` density control beside the sketch-plane toolbar close button so the tool can switch between collapsed, essentials, and expanded body states. The sketch-plane dock now supports a lighter setup view without dropping the shared floating-window shell.` 
+
+#### Scope / Constraints Honored
+- Kept this focused on the sketch-plane toolbar behavior inside the shared overlay tool shell.
+- Added one density-cycle control instead of introducing a larger toolbar settings surface.
+- Preserved the existing sketch-plane workflow, drag/resize shell, and title-bar close behavior.
+
+#### Summary of Implementation
+- Added a new sketch-plane toolbar density state with:
+  - `collapsed`
+  - `essentials`
+  - `expanded`
+- Added a title-bar density button beside `X` that cycles the toolbar through `- / e / +`.
+- Mapped the body states so:
+  - `collapsed` hides the body
+  - `essentials` shows `Plane Selection` only
+  - `expanded` shows both `Plane Selection` and `Transform`
+- Added overlay coverage that verifies the cycle and visible sections for each state.
+
+#### Files Changed
+- `src/app/components/ViewportOverlay.tsx`
+- `src/app/components/ViewportOverlay.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- The sketch-plane toolbar now has a `-/e/+` title-bar button to cycle body density.
+- The toolbar can now collapse fully, show an essentials-only body, or show the full expanded body.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/components/ViewportOverlay.test.tsx`
+- `cmd /c npx tsc -p tsconfig.json --noEmit`
+
+<!-- ENTRY 467 -->
+### [467] - 2026-03-18 23:56 - `SP - Phase 12 - Overlay Tool Panel Trailing Close And Accent Scrollbar`
+<!-- ENTRY 467 -->
+HUMAN SUMMARY: `Moved the sketch-plane tool close action back to the top-right of the shared title bar and added a dark accent-tinted scrollbar style to the reusable overlay tool body. The sketch-plane dock now keeps the expected title-bar layout while its scrolling body reads as part of the orange tool family.` 
+
+#### Scope / Constraints Honored
+- Kept this as a small overlay-tool shell cleanup without changing the sketch-plane workflow itself.
+- Applied the scrollbar styling at the shared tool-panel body layer so future overlay tools inherit the same treatment from their accent color.
+- Limited the button move to how the sketch-plane dock consumes the existing shared title-bar slots.
+
+#### Summary of Implementation
+- Swapped the sketch-plane close button from the leading slot back to the shared trailing title-bar action slot.
+- Added dark-mode scrollbar styling to the shared overlay tool body with thumb colors derived from `--overlay-tool-accent`.
+- Kept the sketch-plane tool as the first visible consumer, which now renders an orange-aligned body scrollbar.
+
+#### Files Changed
+- `src/app/components/ViewportOverlay.tsx`
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- The sketch-plane toolbar close button now renders in the top-right of the title bar.
+- The sketch-plane toolbar body scrollbar now uses a dark theme with accent-tinted thumb colors aligned to the tool color.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/components/ViewportOverlay.test.tsx`
+- `cmd /c npx tsc -p tsconfig.json --noEmit`
+
+<!-- ENTRY 466 -->
+### [466] - 2026-03-18 23:53 - `SP - Phase 12 - Overlay Tool Panel Drag And Resize Template`
+<!-- ENTRY 466 -->
+HUMAN SUMMARY: `Upgraded the reusable viewport overlay tool shell into a real floating-window template with a draggable title bar, a top-left close slot, and all 8 edge/corner resize handles. The sketch-plane tool now uses that shared window behavior directly instead of relying on a static shell.` 
+
+#### Scope / Constraints Honored
+- Kept this focused on the overlay-tool template and the sketch-plane dock as its first floating-window consumer.
+- Reused the existing overlay drag/resize mechanics already proven by the sketch session window instead of inventing a separate window system.
+- Preserved the sketch-plane workflow itself while changing the shared window chrome and interaction model.
+
+#### Summary of Implementation
+- Extended `ViewportOverlayToolPanel` with leading-actions support, draggable title-bar hooks, and reusable edge/corner resize handles.
+- Wired the sketch-plane dock to that shared template so the title bar drags the floating tool window and all edges/corners resize it.
+- Moved the sketch-plane close action into the new top-left title-bar slot and updated the shared overlay CSS to support the new floating-window layout.
+- Added overlay coverage that verifies the sketch-plane dock exposes the shared drag/resize shell behavior.
+
+#### Files Changed
+- `src/app/components/ViewportOverlayToolPanel.tsx`
+- `src/app/components/ViewportOverlay.tsx`
+- `src/app/components/ViewportOverlay.test.tsx`
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- The sketch-plane toolbar title bar now drags the floating tool window.
+- The sketch-plane toolbar close button now lives in the top-left of the title bar.
+- The sketch-plane toolbar now supports resizing from all edges and all corners.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/components/ViewportOverlay.test.tsx`
+- `cmd /c npx tsc -p tsconfig.json --noEmit`
+
+<!-- ENTRY 465 -->
+### [465] - 2026-03-18 23:49 - `SP - Phase 12 - Reusable Overlay Tool Panel Template`
+<!-- ENTRY 465 -->
+HUMAN SUMMARY: `Extracted the sketch-plane dock shell into a reusable overlay-tool panel template so future viewport tools can reuse the same title-bar, body, and section layout instead of rebuilding the format from scratch.` 
+
+#### Scope / Constraints Honored
+- Kept this as a structural refactor without changing sketch-plane tool behavior.
+- Limited the extraction to the shared overlay shell format: panel, title bar, body, and sections.
+- Preserved the existing sketch-plane-specific controls and styling language on top of the new shared shell.
+
+#### Summary of Implementation
+- Added a new reusable `ViewportOverlayToolPanel` component with a title-bar/body shell and reusable labeled sections.
+- Swapped the sketch-plane dock over to the new shared component so it becomes the first consumer of the template.
+- Aliased the shared shell classes into the theme so future overlay tools can opt into the same layout without inheriting sketch-specific class names.
+
+#### Files Changed
+- `src/app/components/ViewportOverlayToolPanel.tsx`
+- `src/app/components/ViewportOverlay.tsx`
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- No intended behavior change for the sketch-plane tool.
+- The sketch-plane toolbar now sits on a reusable overlay-tool shell that future toolbars can reuse directly.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/components/ViewportOverlay.test.tsx`
+- `cmd /c npx tsc -p tsconfig.json --noEmit`
+
+<!-- ENTRY 464 -->
+### [464] - 2026-03-18 23:46 - `SP - Phase 12 - SketchPlane Tighter Title Bar`
+<!-- ENTRY 464 -->
+HUMAN SUMMARY: `Tightened the sketch-plane title bar so it reads closer to the Browser header language, with reduced height, tighter vertical padding, and a smaller close-button footprint.` 
+
+#### Scope / Constraints Honored
+- Kept this as a pure visual cleanup on the sketch-plane dock header.
+- Left the title-bar structure, body sections, and tool behavior unchanged.
+- Limited the pass to title-bar spacing and button sizing in theme CSS.
+
+#### Summary of Implementation
+- Reduced the sketch-plane title bar gap, min-height, and vertical padding.
+- Tightened the title block spacing so the header reads more like the Browser chrome.
+- Reduced the close-button footprint to better fit the shorter header.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- The sketch-plane title bar is now visibly shorter and denser.
+- The top header reads closer to the Browser/header chrome instead of the earlier taller tool style.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/components/ViewportOverlay.test.tsx`
+- `cmd /c npx tsc -p tsconfig.json --noEmit`
+
+<!-- ENTRY 463 -->
+### [463] - 2026-03-18 23:45 - `SP - Phase 12 - SketchPlane Body Status Meta`
+<!-- ENTRY 463 -->
+HUMAN SUMMARY: `Moved the sketch-plane session-specific `node id / stage` text out of the title bar and into the dock body so the tool header stays cleaner and the live state reads from the first body section instead.`
+
+#### Scope / Constraints Honored
+- Kept this as a small sketch-plane dock presentation cleanup.
+- Left the underlying pick / adjust session model and controls unchanged.
+- Limited the pass to overlay markup and dock styling.
+
+#### Summary of Implementation
+- Removed the session-specific subtitle content from the sketch-plane title bar.
+- Added a body-level status/meta row above the `Plane Selection` section that shows the active node id and current stage label.
+- Added styling so the node id truncates cleanly and the stage text picks up the sketch-plane accent.
+
+#### Files Changed
+- `src/app/components/ViewportOverlay.tsx`
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- The sketch-plane title bar now reads as a cleaner static tool header.
+- The active `node id / stage` text now lives in the first body section instead of the title bar.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/components/ViewportOverlay.test.tsx`
+- `cmd /c npx tsc -p tsconfig.json --noEmit`
+
+<!-- ENTRY 462 -->
+### [462] - 2026-03-18 23:44 - `SP - Phase 12 - SketchPlane Title Bar And Sectioned Body`
+<!-- ENTRY 462 -->
+HUMAN SUMMARY: `Reorganized the sketch-plane dock into a clearer tool layout with a real title bar on top, the close action in the title bar, and two body sections underneath: plane selection first and transform second.`
+
+#### Scope / Constraints Honored
+- Kept this as a sketch-plane dock structure cleanup without changing the underlying pick / adjust session model.
+- Preserved the existing stage action, plane chips, confirm button, and transform controls.
+- Limited the pass to overlay structure and dock styling.
+
+#### Summary of Implementation
+- Replaced the old single toolbar row with a dedicated title bar that now owns the sketch-plane title, subtitle, and the top-right close action.
+- Split the dock body into two labeled sections:
+  - `Plane Selection`
+  - `Transform`
+- Moved plane-stage and plane-choice controls into the first section and kept move / rotate controls in the second section.
+
+#### Files Changed
+- `src/app/components/ViewportOverlay.tsx`
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- The `X` close action now lives in the top-right of the sketch-plane title bar.
+- The sketch-plane tool now reads as a title/header plus two body sections instead of one mixed toolbar row.
+- Plane selection and transform controls are separated visually to make the tool easier to scan.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/components/ViewportOverlay.test.tsx`
+- `cmd /c npx tsc -p tsconfig.json --noEmit`
+
+<!-- ENTRY 461 -->
+### [461] - 2026-03-18 23:41 - `SP - Phase 12 - SketchPlane Pick Stage Hover-Only Highlight`
+<!-- ENTRY 461 -->
+HUMAN SUMMARY: `Adjusted the sketch-plane pick visuals so entering `Selecting Plane` no longer keeps the previous draft plane visually active; during plane-pick, only the hovered plane gets the active-looking highlight.` 
+
+#### Scope / Constraints Honored
+- Kept this as a small viewer-helper visual cleanup on top of the shipped ghost-plane hover highlight.
+- Left draft plane ownership, plane reselection, and confirm / cancel behavior unchanged.
+- Limited the change to pick-stage visual emphasis only.
+
+#### Summary of Implementation
+- Changed the sketch-plane helper so `draftPlane` is only treated as visually active during `adjust`, not during `pick`.
+- Kept hovered-plane highlight behavior intact so the hovered ghost plane becomes the only active-looking plane while the user is selecting.
+- Extended the helper test to verify that the previous draft plane stays visually inactive during pick while the hovered plane highlights.
+
+#### Files Changed
+- `src/viewer/sketch/SketchPlanePickHelper.ts`
+- `src/viewer/sketch/SketchPlanePickHelper.test.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- When the session is in `Selecting Plane`, the previous draft plane no longer overrides the hover feedback.
+- The user now sees only the hovered plane look active until they click a new plane.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/viewer/sketch/SketchPlanePickHelper.test.ts`
+- `cmd /c npx tsc -p tsconfig.json --noEmit`
+
+<!-- ENTRY 460 -->
+### [460] - 2026-03-18 23:39 - `SP - Phase 12 - SketchPlane Ghost Plane Hover Highlight`
+<!-- ENTRY 460 -->
+HUMAN SUMMARY: `Added a real viewer-side hover highlight for the sketch-plane ghost planes so the user can see which origin plane is currently under the pointer before clicking it.`
+
+#### Scope / Constraints Honored
+- Kept this as a narrow viewport-pick affordance cleanup on top of the shipped Three-rendered ghost planes.
+- Left plane selection, reselection, draft transform ownership, and confirm / cancel behavior unchanged.
+- Kept the hover state in the real viewer helper instead of adding a fake DOM-only hover effect.
+
+#### Summary of Implementation
+- Added hovered-plane state to the sketch-plane pick helper and used it to strengthen the hovered plane fill and outline during `pick`.
+- Added a viewer pointer-move handler that raycasts the real ghost planes and updates the helper hover state live.
+- Added a focused helper test to lock the hovered-plane visual state.
+
+#### Files Changed
+- `src/viewer/Viewer.ts`
+- `src/viewer/sketch/SketchPlanePickHelper.ts`
+- `src/viewer/sketch/SketchPlanePickHelper.test.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- While the sketch-plane session is in plane-pick, moving the pointer over a ghost plane now makes that plane look active before click.
+- The user can now see which origin plane they are about to select in the main model viewport.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/viewer/sketch/SketchPlanePickHelper.test.ts`
+- `cmd /c npx tsc -p tsconfig.json --noEmit`
+
+<!-- ENTRY 459 -->
+### [459] - 2026-03-18 23:33 - `SP - Phase 12 - SketchPlane Plane Reselect Stage Action`
+<!-- ENTRY 459 -->
+HUMAN SUMMARY: `Added a stage action to the sketch-plane dock so the user can explicitly jump back into plane selection, show all three origin planes again, and reselect the base plane without wiping the current draft move / rotate values.`
+
+#### Scope / Constraints Honored
+- Kept this as a small sketch-plane session cleanup on top of the shipped single-dock toolbar.
+- Preserved the existing draft transform, confirm / cancel behavior, and viewer-owned ghost plane logic.
+- Did not change how selecting a new plane enters `adjust`; this pass only adds a return path back to `pick`.
+
+#### Summary of Implementation
+- Added a store action that returns the live sketch-plane session to the `pick` stage without resetting the draft transform or draft plane.
+- Added a stage button in the sketch-plane dock that reads as `Selecting Plane` during plane-pick and `Reselect Plane` during adjust.
+- Kept the button non-destructive so clicking it only reopens plane selection and lets the viewer show all three planes again.
+- Added a focused overlay test to prove reselection preserves the current draft translation while returning the session to `pick`.
+
+#### Files Changed
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/components/ViewportOverlay.tsx`
+- `src/app/components/ViewportOverlay.test.tsx`
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- The sketch-plane toolbar now has an explicit stage button that tells the user whether they are selecting a plane or adjusting it.
+- Clicking `Reselect Plane` sends the session back to plane-pick so the three origin planes become available again.
+- Returning to plane-pick does not reset the current draft move / rotate values.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/components/ViewportOverlay.test.tsx`
+- `cmd /c npx vitest run src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `cmd /c npx tsc -p tsconfig.json --noEmit`
+
+<!-- ENTRY 458 -->
+### [458] - 2026-03-18 23:28 - `SP - Phase 12 - SketchPlane Single Dock Toolbar Cleanup`
+<!-- ENTRY 458 -->
+HUMAN SUMMARY: `Collapsed the sketch-plane session chrome into one usable dock so the plane header, plane chips, Done / X, and sketch-origin gizmo controls all live in a single toolbar surface instead of two floating cards.`
+
+#### Scope / Constraints Honored
+- Kept the existing `sketchPlanePickSession`, viewer-owned ghost planes, and attached `TransformGizmo` behavior intact.
+- Limited this pass to overlay markup and dock styling cleanup without expanding source-pick scope.
+- Preserved the right-side dock placement and the existing move / rotate slider mirror controls.
+
+#### Summary of Implementation
+- Merged the sketch-plane session toolbar and the sketch-origin gizmo controls into one dock container in the viewport overlay.
+- Removed the detached second gizmo panel layout and moved the gizmo section into the main dock body.
+- Tightened the dock styling so it renders as one card with a shared chrome surface and internal section break.
+
+#### Files Changed
+- `src/app/components/ViewportOverlay.tsx`
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- The sketch-plane session now reads as one unified toolbar instead of a top title bar plus a second floating gizmo panel.
+- Plane selection, cancel, confirm, gizmo mode switching, and slider editing all remain available from the same dock surface.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/components/ViewportOverlay.test.tsx`
+- `cmd /c npx tsc -p tsconfig.json --noEmit`
+
+<!-- ENTRY 457 -->
+### [457] - 2026-03-18 23:17 - `SP - Phase 12 - Hide Inactive Ghost Planes During Adjust`
+<!-- ENTRY 457 -->
+HUMAN SUMMARY: `Tightened the sketch-plane pick flow so the three ghost plane previews only stay visible during plane selection; once the session is in adjust, only the active plane remains visible with the gizmo and grid.` 
+
+#### Scope / Constraints Honored
+- Kept this as a small viewer-helper cleanup on top of the shipped `2B` flow.
+- Left gizmo attachment, draft transform ownership, and confirm / cancel behavior unchanged.
+- Kept the active plane visible during `adjust` instead of hiding all plane context.
+
+#### Summary of Implementation
+- Updated the sketch-plane viewer helper so inactive ghost planes hide as soon as the session enters `adjust`.
+- Kept all three ghost planes visible during `pick`.
+- Added a focused helper test to lock the stage-based visibility behavior.
+
+#### Files Changed
+- `src/viewer/sketch/SketchPlanePickHelper.ts`
+- `src/viewer/sketch/SketchPlanePickHelper.test.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- During `pick`, the user still sees all three origin plane previews.
+- During `adjust`, only the active plane stays visible alongside the gizmo and active grid.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/viewer/sketch/SketchPlanePickHelper.test.ts`
+- `cmd /c npx tsc -p tsconfig.json --noEmit`
+
+<!-- ENTRY 456 -->
+### [456] - 2026-03-18 23:14 - `SP - Phase 12 - SketchPlane Ghost Planes At Origin`
+<!-- ENTRY 456 -->
+HUMAN SUMMARY: `Removed the default ghost-plane separation so the `XY / XZ / YZ` sketch-plane pick helpers now intersect at the true origin instead of floating off their normal axes by default.` 
+
+#### Scope / Constraints Honored
+- Kept this as a narrow viewer-behavior cleanup on top of the shipped `2B` flow.
+- Left active draft translation, rotation, and confirm / cancel behavior unchanged.
+- Kept real plane offset behavior tied to `offsetMm` instead of the old preview-only separation constant.
+
+#### Summary of Implementation
+- Removed the default ghost-plane offset constant from the sketch-plane viewer helper.
+- Stopped applying a built-in normal-axis translation to the three ghost origin planes.
+- Kept active grid offset driven only by the authored `offsetMm` value.
+
+#### Files Changed
+- `src/viewer/sketch/SketchPlanePickHelper.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- The `XZ` and `YZ` ghost origin planes no longer float away from `0,0,0` by default.
+- The three sketch-plane pick helpers now intersect at the real origin, matching the intended origin-gizmo layout.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/components/ViewerHost.test.tsx`
+- `cmd /c npx vitest run src/app/components/ViewportOverlay.test.tsx`
+- `cmd /c npx tsc -p tsconfig.json --noEmit`
+
+<!-- ENTRY 455 -->
+### [455] - 2026-03-18 23:06 - `SP - Phase 12 - Reused TransformGizmo SketchPlane Draft Transform`
+<!-- ENTRY 455 -->
+HUMAN SUMMARY: `Attached the existing viewer `TransformGizmo` to the real sketch-plane preview pivot so `SketchPlane > Pick In Viewport` now supports live viewer-driven move / rotate draft editing while keeping the right-side controls as an editable mirror.` 
+
+#### Scope / Constraints Honored
+- Reused the existing viewer `TransformGizmo` instead of building a second sketch-only manipulator.
+- Kept `sketchPlanePickSession` as the only source of truth and left confirm / cancel ownership unchanged.
+- Kept this pass world-space only and did not add face picking, edge picking, `Flip`, `offsetMm`, or `inPlaneRotationDeg` gizmo control.
+
+#### Summary of Implementation
+- Extended the sketch-plane viewer bridge payload with `gizmoMode` and added a viewer-to-app draft-transform callback.
+- Added a store action for whole-draft transform replacement so viewer object-change events can update translation and rotation together without faking axis-by-axis slider edits.
+- Refactored the sketch-plane viewer helper so the preview pivot now owns draft translation and rotation, while plane roots keep only base plane orientation, offset placement, and active-plane highlighting.
+- Attached the existing `TransformGizmo` to the preview pivot only during the `adjust` stage and routed its object-change events back through the new sketch-plane draft-transform callback.
+- Kept the right-side move / rotate sliders fully editable and synchronized through the same session state, and restricted real viewport plane-click picking to the `pick` stage so the gizmo owns viewport interaction during `adjust`.
+
+#### Files Changed
+- `src/app/viewerBridge.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `src/viewer/Viewer.ts`
+- `src/viewer/sketch/SketchPlanePickHelper.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- `SketchPlane > Pick In Viewport` now attaches the real viewer `TransformGizmo` to the sketch-plane preview pivot once the session enters `adjust`.
+- Viewer gizmo motion now updates `draftTransform.translation` and `draftTransform.rotationDeg` live without committing the authored sketch plane until `Done` / `Enter`.
+- The dock sliders remain editable and mirror gizmo-driven changes through the same session state.
+- Plane switching remains available from the dock during `adjust`, while viewport plane clicking is limited to the `pick` stage.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/components/ViewerHost.test.tsx`
+- `cmd /c npx vitest run src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `cmd /c npx vitest run src/app/components/ViewportOverlay.test.tsx`
+- `cmd /c npx tsc -p tsconfig.json --noEmit`
+
+<!-- ENTRY 454 -->
+### [454] - 2026-03-18 22:54 - `SP - Phase 12 - Real Three Ghost Planes And Preview Pivot`
+<!-- ENTRY 454 -->
+HUMAN SUMMARY: `Moved the first `SketchPlane` ghost-plane pass out of the DOM overlay and into the real viewer scene so origin-plane preview now lives in Three, with the compact dock left as chrome only.` 
+
+#### Scope / Constraints Honored
+- Kept `3.2B-2-Cleanup Part 2A` origin-plane only and did not expand into face or edge picking.
+- Kept `sketchPlanePickSession` as the single source of truth and left confirm / cancel ownership unchanged.
+- Kept move / rotate editing in the right-side dock for now and did not attach the reusable `TransformGizmo` yet.
+
+#### Summary of Implementation
+- Added a dedicated viewer-side `SketchPlanePickHelper` that owns the temporary preview pivot, three ghost origin-plane meshes, axis/origin cues, and the active-plane grid.
+- Extended the viewer bridge so `ViewerHost` now pushes the active sketch-plane pick session into the real viewer and routes viewer plane picks back into the existing store session.
+- Added viewer-side raycast plane picking so selecting `XY`, `XZ`, or `YZ` can come from the real viewport scene instead of DOM overlay buttons.
+- Removed the fake viewport ghost-plane rendering from `ViewportOverlay` while keeping the compact dock, plane chips, and draft move / rotate controls intact.
+- Added focused host coverage for the new viewer bridge session and updated overlay expectations to reflect that the ghost planes are no longer DOM-owned.
+
+#### Files Changed
+- `src/app/viewerBridge.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `src/app/components/ViewportOverlay.tsx`
+- `src/app/components/ViewportOverlay.test.tsx`
+- `src/viewer/Viewer.ts`
+- `src/viewer/sketch/SketchPlanePickHelper.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- `SketchPlane > Pick In Viewport` now renders its ghost origin planes, axis/origin cues, and active plane grid in the real Three viewer scene.
+- Plane picks from the main viewport now flow back through the existing `sketchPlanePickSession` reducer instead of relying on overlay-owned origin-plane buttons.
+- The compact sketch-plane dock remains visible, but the overlay no longer pretends to own the viewport visuals.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/components/ViewerHost.test.tsx`
+- `cmd /c npx vitest run src/app/components/ViewportOverlay.test.tsx`
+- `cmd /c npx vitest run src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `cmd /c npx tsc -p tsconfig.json --noEmit`
+
+<!-- ENTRY 453 -->
+### [453] - 2026-03-18 22:30 - `SP - Phase 12 - Main Viewport SketchPlane Cleanup`
+<!-- ENTRY 453 -->
+HUMAN SUMMARY: `Cleaned up the first `SketchPlane` viewport-pick pass so it now reads as one honest main-model-viewport workflow by removing the faux inner stage/preview card, keeping the real viewport as the picking surface, and tightening the session chrome into compact right-side controls.` 
+
+#### Scope / Constraints Honored
+- Kept the single `sketchPlanePickSession` model and left draft-until-confirm ownership unchanged.
+- Preserved the collapsed `Spaghetti Editor` shell plus `Done` / `X`, `Enter` / `Esc`, and hidden console `x` behavior from the first `3.2B-2` pass.
+- Kept this cleanup origin-plane only and did not expand into face picking, edge picking, browser exposure, or generic transform-tool work.
+
+#### Summary of Implementation
+- Removed the rendered sketch-plane stage/preview composition from the viewport overlay.
+- Shifted the visible origin anchor, axis cues, and three ghost origin-plane click targets onto a viewport-covering overlay layer so the main model viewport remains the clear working surface.
+- Tightened the sketch-plane session chrome into compact right-side controls with the restored sketch-plane accent color instead of the larger detached stage presentation.
+- Kept move / rotate as side controls for this cleanup pass and left the viewport gizmo as a first-pass origin/plane overlay rather than a generalized transform manipulator.
+- Updated viewport-overlay tests to assert the stage/preview removal and the new dock plus ghost-plane composition.
+
+#### Files Changed
+- `src/app/components/ViewportOverlay.tsx`
+- `src/app/components/ViewportOverlay.test.tsx`
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- `SketchPlane > Pick In Viewport` no longer renders the faux boxed stage/preview card inside the overlay session.
+- The active sketch-plane pick session now presents the origin anchor, axis cues, and three clickable ghost planes directly over the main model viewport.
+- The session controls now read as compact right-side chrome with the sketch-plane accent instead of a larger detached preview surface.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/components/ViewportOverlay.test.tsx`
+- `cmd /c npx vitest run src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `cmd /c npx vitest run src/app/console/ConsoleDock.test.tsx`
+- `cmd /c npx vitest run src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+
+<!-- ENTRY 451 -->
+### [452] - 2026-03-18 22:07 - `SP - Phase 12 - Viewport-First Source Pick And Sketch Origin Gizmo`
+<!-- ENTRY 452 -->
+HUMAN SUMMARY: `Implemented the first `3.2B-2` viewport-first `SketchPlane` pick flow by replacing the old overlay-only plane picker with one live pick session that collapses the active `Spaghetti Editor` shell, shows origin-plane preview controls, opens immediate move/rotate adjustment, and commits or cancels through one temporary draft session.` 
+
+#### Scope / Constraints Honored
+- Kept this pass origin-plane only and deferred model-face or geometry-derived picking to the later sketch phase.
+- Reused the existing AppShell collapsed-window mode instead of inventing a second compact spaghetti shell.
+- Rooted the flow in the existing `sketchPlanePickSession` seam and extended it into a richer draft/confirm/cancel session model.
+- Limited the first viewport adjustment tool to move plus rotate in world space and kept `Flip` out of the gizmo.
+
+#### Summary of Implementation
+- Expanded `sketchPlanePickSession` in the spaghetti store to track draft plane, draft transform, stage, gizmo mode, and the active viewport shell that must be restored after the session ends.
+- Wired `startSketchPlanePick`, `confirmSketchPlanePick`, and `cancelSketchPlanePick` to collapse the active editor viewport into the real header-only shell, keep sketch-plane edits temporary until confirm, and restore the prior viewport window mode after confirm or cancel.
+- Reworked the sketch input row so active pick sessions read from the draft plane/transform values while the session is live instead of committing immediately.
+- Replaced the old draggable `XY / XZ / YZ` popup in the viewport overlay with a viewport-first sketch-plane session surface that shows:
+  - origin-plane buttons
+  - stage-aware title/status
+  - origin-plane preview content
+  - move / rotate draft controls
+  - `Done` and `X` actions
+- Added `Enter` and `Esc` handling inside the viewport-first sketch-plane session.
+- Added temporary console support for `x` so the active sketch-plane pick session can cancel from the app console while the workflow is still being debugged.
+- Added focused tests for:
+  - temporary draft commit/cancel behavior
+  - viewport shell collapse/restore
+  - viewport-first session rendering and `Done` / `X`
+  - console `x` cancellation
+
+#### Files Changed
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/components/ViewportOverlay.tsx`
+- `src/app/components/ViewportOverlay.test.tsx`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- `SketchPlane > Pick In Viewport` now starts one live sketch-plane draft session instead of only showing the older overlay-based plane-button popup.
+- Starting that session forces the active `Spaghetti Editor` window into the existing collapsed shell so the viewport becomes the primary working surface.
+- Picking `XY`, `XZ`, or `YZ` now immediately advances the same session into sketch-plane adjustment with move / rotate controls.
+- `Done` and `Enter` commit the draft sketch-plane values, while `X`, `Esc`, and temporary console `x` all cancel through the same session cleanup path.
+- While the session is active, the managed `SketchPlane` row reflects draft plane/transform values without committing them until confirm.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `cmd /c npx vitest run src/app/components/ViewportOverlay.test.tsx`
+- `cmd /c npx vitest run src/app/console/ConsoleDock.test.tsx`
+- `cmd /c npx vitest run src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+
+<!-- ENTRY 451 -->
+### [451] - 2026-03-18 19:07 - `SP - Phase 11 - SketchPlane Source And Transform V1 Surface`
+HUMAN SUMMARY: `Implemented the first real `SketchPlane` v1 authoring surface inside the managed sketch input row by replacing the temporary generic details block with grouped `Source` and `Transform` controls, wiring `Origin Plane` through the shared `ParaSelect` control and the first transform values through shared `ParaSlider` rows backed by sketch params.` 
+
+#### Scope / Constraints Honored
+- Limited this pass to the managed `SketchPlane` input row and the schema/store seams needed to back its first transform values.
+- Kept the stable top-row port presentation intact while moving the editable controls into the attached lower box.
+- Reused the repo-standard `ParaSelect` and `ParaSlider` controls instead of introducing sketch-specific numeric widgets.
+- Left output-row behavior and deeper sketch-plane runtime geometry mapping unchanged in this pass.
+
+#### Summary of Implementation
+- Extended the sketch feature model with an optional `planeTransform` payload and normalized it to a zeroed default shape during schema reads.
+- Added store setters for sketch-plane offset, translation axes, rotation axes, and in-plane rotation.
+- Extended the shared `PortView` surface so managed rows can render attached custom body content without regressing the stable top row.
+- Replaced the temporary `Offset` details presentation in the `SketchPlane` row with a real `Source` section and a real `Transform` section.
+- Wired `Source > Origin Plane` to a `ParaSelect` for `XY / XZ / YZ`.
+- Wired `Transform` to shared `ParaSlider` controls, with compact `Offset` and `Rotation` in `essentials` and the fuller translation / rotation surface in `expanded`.
+- Added new theme rules for the grouped sketch-plane control sections and the compact viewport-pick action button inside the attached row body.
+
+#### Files Changed
+- `src/app/spaghetti/features/featureTypes.ts`
+- `src/app/spaghetti/features/featureSchema.ts`
+- `src/app/spaghetti/registry/nodeRegistry.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/canvas/PortView.tsx`
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- Opening `SketchPlane` from `collapsed` to `essentials` now shows a real attached lower control box instead of only the temporary generic metadata/details treatment.
+- `SketchPlane` now exposes `Source > Origin Plane` as a `ParaSelect` and keeps the viewport-pick action inside the same attached control surface.
+- `SketchPlane` now stores first-pass transform values in sketch params for:
+  - `offset`
+  - `translation x/y/z`
+  - `rotation x/y/z`
+  - `in-plane rotation`
+- `essentials` shows the compact transform surface, while `expanded` shows the fuller transform surface.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+- `cmd /c npx vitest run src/app/spaghetti/canvas/NodeView.test.tsx`
+- `cmd /c npx vitest run src/app/spaghetti/store/useSpaghettiStore.test.ts`
+
+<!-- ENTRY 450 -->
+### [450] - 2026-03-18 18:30 - `SP - Phase 11 - SketchPlane Offset Details Group Title`
+<!-- ENTRY 450 -->
+HUMAN SUMMARY: `Grouped the expanded \`SketchPlane\` details area under a new visible \`Offset\` subsection title so that row now reads like a named control group rather than an unlabeled metadata dump, while still using the existing generic detail lines until a real sketch-plane offset parameter exists.`
+
+#### Scope / Constraints Honored
+- Kept this pass limited to the expanded `SketchPlane` details presentation.
+- Did not invent or persist a new sketch-plane offset parameter in the graph schema.
+- Left output rows and underlying detail data generation unchanged.
+
+#### Summary of Implementation
+- Extended the shared port details surface to support an optional section title.
+- Passed `Offset` as the details title for the managed `SketchPlane` input row.
+- Added lightweight styling for titled details groups and a focused geometry-mode assertion covering the new heading.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/PortView.tsx`
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/theme/v15Theme.css`
+- `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+
+#### Behavior Changes
+- Expanding `SketchPlane` now shows the details content under an `Offset` subsection title.
+- This is a presentation grouping only; there is still no real sketch-plane offset field wired into the node schema yet.
+
+#### Verification Steps
+- Run `cmd /c npx vitest run src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+- Run `cmd /c npx vitest run src/app/spaghetti/canvas/NodeView.test.tsx`
+
+<!-- ENTRY 449 -->
+### [449] - 2026-03-18 18:34 - `SP - Phase 11 - Sketch Port Detail Box Full-Width Border Restore`
+<!-- ENTRY 449 -->
+HUMAN SUMMARY: `Reverted the last two sketch port details-box inset-frame experiments and restored the managed input/output details borders to full-width left/right alignment under the top row, so the lower box reads as one continuous attached shape again.`
+
+#### Scope / Constraints Honored
+- Kept this pass limited to the managed sketch input/output details-box border treatment.
+- Preserved the current port-color accents, top-row geometry, and row-mode behavior.
+- Did not change any state or interaction logic.
+
+#### Summary of Implementation
+- Removed the inset pseudo-frame override from managed sketch input/output details boxes.
+- Restored direct border-color styling on the attached lower details box for both managed inputs and outputs.
+- Returned the lower box to full-width left/right alignment under the top row.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+
+#### Behavior Changes
+- The sketch input/output details boxes now align their left and right edges directly with the top row again.
+- The lower box no longer uses the inset-frame treatment from the previous two visual passes.
+
+#### Verification Steps
+- Visual verification in the sketch node `Inputs` and `Outputs` blocks.
+
+<!-- ENTRY 448 -->
+### [448] - 2026-03-18 18:31 - `SP - Phase 11 - Sketch Port Detail Box Inset Frame Repair`
+<!-- ENTRY 448 -->
+HUMAN SUMMARY: `Repaired the managed sketch input/output details-box shape after the first inset-line pass by replacing the separate inset side strokes with one inset lower-frame shape, so the lower box now keeps coherent corners and bottom edge while still starting inward under the top-row fillets.`
+
+#### Scope / Constraints Honored
+- Kept this pass limited to the managed sketch port details-box geometry.
+- Preserved the current top-row surface, port-color accents, and row-mode behavior.
+- Did not change any port-row state or interaction logic.
+
+#### Summary of Implementation
+- Restored the shared details-box default side borders for generic use.
+- Removed the earlier generic inset side-line pseudo-element approach.
+- Switched managed sketch input/output details boxes to an inset lower-frame pseudo-element with left, right, and bottom borders plus its own lower corner radius.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+
+#### Behavior Changes
+- The managed sketch input/output details boxes now keep a coherent lower frame instead of broken inset side lines.
+- The lower frame still begins inward under the top-row fillets rather than hugging the outer row edges.
+
+#### Verification Steps
+- Visual verification in the sketch node `Inputs` and `Outputs` blocks.
+
+<!-- ENTRY 447 -->
+### [447] - 2026-03-18 18:28 - `SP - Phase 11 - Sketch Port Detail Line Inset Cleanup`
+<!-- ENTRY 447 -->
+HUMAN SUMMARY: `Adjusted the attached sketch input/output details boxes so the side guide lines are now thinner inset vertical lines rather than full edge borders, which makes them read as continuations from under the top-row fillets instead of outer box walls.`
+
+#### Scope / Constraints Honored
+- Kept this pass limited to the attached managed port details-box styling.
+- Preserved the current top-row geometry, port-color accents, and row-mode interactions.
+- Did not change any row state or render structure.
+
+#### Summary of Implementation
+- Removed the full left/right side borders from the shared details box.
+- Replaced them with inset `::before` and `::after` vertical lines using a configurable inset and bottom offset.
+- Bound the managed sketch input/output details-box guide lines to the live port color so they stay aligned with the existing colored border treatment.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+
+#### Behavior Changes
+- The sketch input/output details-box side lines now sit farther inward and read as vertical continuations from the top-row fillet area.
+- The details-box side lines are thinner and less boxy than the previous full-height side borders.
+
+#### Verification Steps
+- Visual verification in the sketch node `Inputs` and `Outputs` blocks.
+
+<!-- ENTRY 446 -->
+### [446] - 2026-03-18 18:23 - `SP - Phase 11 - Sketch Port Label Click Row Cycling`
+<!-- ENTRY 446 -->
+HUMAN SUMMARY: `Updated the managed sketch input and output rows so clicking the visible port label text, not just the chevron, now cycles the same \`collapsed -> essentials -> expanded\` row states for \`SketchPlane\`, \`SketchProfiles\`, and \`SketchProfile\`.`
+
+#### Scope / Constraints Honored
+- Kept this pass limited to managed sketch port-row interaction behavior.
+- Reused the existing row-cycle handler instead of adding a second state path.
+- Left pin dragging and the rest of the shared port-row logic unchanged.
+
+#### Summary of Implementation
+- Wired the managed shared port-row left header cluster to call the same cycle handler already used by the leading chevron.
+- Added a small pointer cursor treatment for managed row labels so the clickable area reads correctly.
+- Added focused geometry-mode tests proving that both the sketch input label and a sketch output label cycle through the same three row states as the chevron.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/PortView.tsx`
+- `src/app/theme/v15Theme.css`
+- `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+
+#### Behavior Changes
+- Clicking `SketchPlane`, `SketchProfiles`, or `SketchProfile` text now cycles the managed row mode.
+- Users no longer need to hit only the chevron to open essentials or expanded row states for those sketch rows.
+
+#### Verification Steps
+- Run `cmd /c npx vitest run src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+- Run `cmd /c npx vitest run src/app/spaghetti/canvas/NodeView.test.tsx`
+
+<!-- ENTRY 445 -->
+### [445] - 2026-03-18 18:08 - `SP - Phase 11 - Sketch Output Row Shared Port Migration`
+<!-- ENTRY 445 -->
+HUMAN SUMMARY: `Migrated the managed \`Geometry/Sketch\` output rows off the older outer geometry-row wrapper and onto the same shared \`PortView\` row surface as the cleaned-up input, giving \`SketchProfiles\` and \`SketchProfile\` the same direct chevron cycle, colored border treatment, and connected lower details box behavior.`
+
+#### Scope / Constraints Honored
+- Kept this pass limited to managed `Geometry/Sketch` output rows.
+- Reused the existing shared port-row surface and state model instead of inventing a separate output widget.
+- Left `Geometry/Extrude` and legacy node output rows unchanged in this cut.
+
+#### Summary of Implementation
+- Removed the sketch output rows from the older `renderGeometryPortRow(...)` wrapper path in `NodeView`.
+- Wired `SketchProfiles` and `SketchProfile` directly into the shared output-row surface with the same `collapsed -> essentials -> expanded` chevron cycle used by the cleaned-up input row.
+- Extended the shared output-port render path to accept row-chevron state, row-toggle callbacks, and managed resolved-value/detail behavior.
+- Added geometry-output-specific CSS so managed sketch outputs now get:
+  - port-color top-row borders
+  - direct row chevrons
+  - connected lower details boxes
+  - mirrored geometry-shell padding/indent treatment
+- Updated focused geometry-mode tests to validate direct output-row behavior instead of the removed outer wrapper.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/theme/v15Theme.css`
+- `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+
+#### Behavior Changes
+- `SketchProfiles` and `SketchProfile` now render as direct managed output rows instead of older wrapped geometry rows.
+- Sketch output rows now use the same three-state chevron cycle as the cleaned-up input row.
+- The managed sketch output rows now visually match the shared input-row treatment more closely, including colored borders and attached details boxes.
+
+#### Verification Steps
+- Run `cmd /c npx vitest run src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+- Run `cmd /c npx vitest run src/app/spaghetti/canvas/NodeView.test.tsx`
+
+<!-- ENTRY 444 -->
+### [444] - 2026-03-18 18:00 - `SP - Phase 11 - SketchPlane Left Gutter Tightening`
+<!-- ENTRY 444 -->
+HUMAN SUMMARY: `Tightened the managed \`SketchPlane\` input row further on the left side by reducing the remaining outer left gutter directly, instead of trying to span extra columns, so the port row sits closer to the sketch-node edge while preserving the recent text alignment and right-side width.`
+
+#### Scope / Constraints Honored
+- Kept this pass limited to the managed geometry input-row outer gutter.
+- Preserved the current text placement, right-side width, and row/detail behavior.
+- Did not change row structure or introduce a multi-column layout change.
+
+#### Summary of Implementation
+- Reduced the managed geometry input-row outer left padding to `2px`.
+- Left the current tighter right-side gutter unchanged.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+
+#### Behavior Changes
+- The SketchPlane row now sits closer to the left edge of the `Inputs` section without changing the recent arrow/text placement.
+
+#### Verification Steps
+- Visual verification in the sketch node `Inputs` block.
+
+<!-- ENTRY 443 -->
+### [443] - 2026-03-18 17:55 - `SP - Phase 11 - SketchPlane Input Row Width Increase`
+<!-- ENTRY 443 -->
+HUMAN SUMMARY: `Widened the managed \`SketchPlane\` input row by tightening the outer left/right gutter inside the \`Inputs\` rail, so the row reads closer to the full sketch-node width while keeping the recent text alignment changes intact.`
+
+#### Scope / Constraints Honored
+- Kept this pass limited to the geometry input-row wrapper gutter.
+- Preserved the current text alignment, color binding, and row/detail interaction behavior.
+- Did not change row structure or detail content.
+
+#### Summary of Implementation
+- Reduced the managed geometry input-row left/right padding from the full pin gutter to a tighter inset using `calc(var(--sp-pin-gutter) - 4px)`.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+
+#### Behavior Changes
+- The SketchPlane managed input row now spans wider inside the `Inputs` section and sits closer to the sketch node width.
+
+#### Verification Steps
+- Visual verification in the sketch node `Inputs` block.
+
+<!-- ENTRY 442 -->
+### [442] - 2026-03-18 17:53 - `SP - Phase 11 - SketchPlane Input Row Gutter Alignment Pass`
+<!-- ENTRY 442 -->
+HUMAN SUMMARY: `Adjusted the managed \`SketchPlane\` input-row layout so the top-row chevron/label cluster sits farther left toward the pin column, and the input-row wrapper now uses matching left/right gutters for a more balanced box width inside the \`Inputs\` rail.`
+
+#### Scope / Constraints Honored
+- Kept this pass limited to geometry input-row layout CSS.
+- Preserved the current color binding, row height, chevron behavior, and connected details-box structure.
+- Did not change any row logic or detail content.
+
+#### Summary of Implementation
+- Updated the geometry `Inputs` rail managed input-row wrapper to use symmetric left and right `var(--sp-pin-gutter)` padding.
+- Shifted the top-row left header cluster farther left so the chevron/label aligns more closely with the pin column.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+
+#### Behavior Changes
+- The SketchPlane row now has matched left/right horizontal gutters inside the `Inputs` section.
+- The top-row arrow and `SketchPlane` label sit farther left and read more in line with the left-side pin column.
+
+#### Verification Steps
+- Visual verification in the sketch node `Inputs` block.
+
+<!-- ENTRY 441 -->
+### [441] - 2026-03-18 17:49 - `SP - Phase 11 - SketchPlane Detail Box Accent And Indent Pass`
+<!-- ENTRY 441 -->
+HUMAN SUMMARY: `Updated the managed \`SketchPlane\` input presentation so the lower info box now uses the same live port color on its border, the detail lines sit slightly inset, and the top-row chevron/label cluster is nudged a bit left for tighter alignment against the pin.`
+
+#### Scope / Constraints Honored
+- Kept this pass limited to geometry input-row presentation CSS.
+- Preserved the current three-state row behavior, top-row height, and connected details-box structure.
+- Did not change any row logic or detail content.
+
+#### Summary of Implementation
+- Bound the managed input details-box border color to the live `var(--sp-port-color)`.
+- Added a small horizontal inset to the lower details box and shifted the input detail lines/dots inward slightly.
+- Nudged the top-row left header cluster slightly left and tightened its internal gap.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+
+#### Behavior Changes
+- The SketchPlane lower info box now carries the same port-color accent as the pin and top row.
+- The lower detail lines are slightly indented, and the top-row arrow/text sits a bit farther left.
+
+#### Verification Steps
+- Visual verification in the sketch node `Inputs` block.
+
+<!-- ENTRY 440 -->
+### [440] - 2026-03-18 17:51 - `SP - Phase 11 - SketchPlane Live Port Color Inheritance Fix`
+<!-- ENTRY 440 -->
+HUMAN SUMMARY: `Fixed the managed \`SketchPlane\` top row so it now inherits the actual live port color instead of the neutral fallback color that \`SpaghettiPortMain\` was shadowing locally, which restores the orange border and orange resolved plane label.`
+
+#### Scope / Constraints Honored
+- Kept this pass limited to the geometry input-row color inheritance path.
+- Preserved the current row layout, height, chevron behavior, and details-box treatment.
+- Did not change the underlying row/state logic.
+
+#### Summary of Implementation
+- Overrode the managed geometry input-row `SpaghettiPortMain` surface to inherit `--sp-port-color` from the outer port row.
+- Left the existing border-color and resolved value color bindings pointed at `var(--sp-port-color)`.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+
+#### Behavior Changes
+- The SketchPlane top-row border and `XY` resolved value now use the real pin/socket color instead of the neutral fallback color.
+
+#### Verification Steps
+- Visual verification in the sketch node `Inputs` block.
+
+<!-- ENTRY 439 -->
+### [439] - 2026-03-18 17:47 - `SP - Phase 11 - SketchPlane Port Color Binding Cleanup`
+<!-- ENTRY 439 -->
+HUMAN SUMMARY: `Bound the managed \`SketchPlane\` top-row accenting more explicitly to the live port color so the row border and resolved plane label both render in the same pin/socket color.`
+
+#### Scope / Constraints Honored
+- Kept this pass limited to the geometry-node input-row color styling.
+- Preserved the current row layout, height, chevron behavior, and details-box treatment.
+- Did not change any interaction or state logic.
+
+#### Summary of Implementation
+- Retained the geometry input-row top border on `var(--sp-port-color)`.
+- Explicitly forced the resolved value label in the geometry input row to use the same port color at full opacity.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+
+#### Behavior Changes
+- The SketchPlane top-row border and the `XY` resolved value label now both follow the pin color.
+
+#### Verification Steps
+- Visual verification in the sketch node `Inputs` block.
+
+<!-- ENTRY 438 -->
+### [438] - 2026-03-18 17:45 - `SP - Phase 11 - SketchPlane Top Row Border Color Match`
+<!-- ENTRY 438 -->
+HUMAN SUMMARY: `Updated the managed geometry input top row so its border now uses the same resolved port color as the input pin, keeping the \`SketchPlane\` row visually tied to its plane socket color.`
+
+#### Scope / Constraints Honored
+- Kept this pass limited to the geometry input-row top surface styling.
+- Preserved the current row height, chevron behavior, and connected lower details box treatment.
+- Did not change any row structure or interaction logic.
+
+#### Summary of Implementation
+- Updated the geometry `Inputs` rail top-row surface to use `var(--sp-port-color)` for its border color.
+- Left the rest of the managed port-row styling unchanged.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+
+#### Behavior Changes
+- The SketchPlane top-row border now matches the pin/port color instead of using the neutral shared border color.
+
+#### Verification Steps
+- Visual verification in the sketch node `Inputs` block.
+
+<!-- ENTRY 437 -->
+### [437] - 2026-03-18 17:52 - `SP - Phase 11 - SketchPlane Input Row Regression Rollback`
+<!-- ENTRY 437 -->
+HUMAN SUMMARY: `Rolled back the recent \`SketchPlane\` input-row visual regressions by removing the new outer row fill, zeroing the added side padding, tightening the top-row height again, and pulling the lower details box back up so it reconnects under the main row.`
+
+#### Scope / Constraints Honored
+- Kept this pass limited to geometry-node input-row presentation CSS.
+- Preserved the current SketchPlane three-state chevron cycle and existing row/detail logic.
+- Did not alter the underlying `PortView` JSX structure or interaction handlers.
+
+#### Summary of Implementation
+- Scoped the geometry `Inputs` rail to render its shared input port wrapper with no extra outer background or horizontal padding.
+- Reduced the managed input top-row vertical padding and header min-height so the SketchPlane row returns to its prior tighter height.
+- Hid the extra inner accent line on the managed input top row.
+- Pulled the lower details box upward with matching top padding so it visually reconnects beneath the stable rounded top row.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+
+#### Behavior Changes
+- The SketchPlane managed input row no longer paints an extra filled shell around the top row and details area.
+- The top row is shorter again, with no extra inner white line, and the expanded details reconnect directly underneath it.
+
+#### Verification Steps
+- Visual verification in the sketch node `Inputs` block.
+
+<!-- ENTRY 436 -->
+### [436] - 2026-03-18 17:40 - `SP - Phase 11 - SketchPlane Detail Box Connection Cleanup`
+<!-- ENTRY 436 -->
+HUMAN SUMMARY: `Adjusted the split \`SketchPlane\` port surface so the lower details box no longer adds its own dark fill or horizontal inset, and now reconnects directly under the stable top row while leaving the top row visually unchanged.`
+
+#### Scope / Constraints Honored
+- Kept this pass limited to the sketch-facing shared port CSS.
+- Preserved the current three-state SketchPlane chevron cycle and top-row pin anchoring.
+- Did not change the actual details content or interaction logic.
+
+#### Summary of Implementation
+- Raised the top-row port box above the lower details box with a small z-index.
+- Removed the lower details-box fill and horizontal padding.
+- Pulled the lower details box up by one border pixel and removed its top border so it visually reconnects to the top row.
+- Kept only the lower box side and bottom borders plus the lower rounded corners.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+
+#### Behavior Changes
+- The lower SketchPlane details box now connects directly to the top row again.
+- The lower box no longer introduces a separate dark background fill or extra horizontal inset.
+
+#### Verification Steps
+- Visual verification in the sketch node `Inputs` block.
+
+<!-- ENTRY 435 -->
+### [435] - 2026-03-18 17:34 - `SP - Phase 11 - Stable SketchPlane Top Row Box`
+<!-- ENTRY 435 -->
+HUMAN SUMMARY: `Restructured the shared port surface so the \`SketchPlane\` top row now remains its own fully rounded box at all times, with the input pin anchored to that top row and the expanded details rendered as a separate lower box below it.`
+
+#### Scope / Constraints Honored
+- Kept this pass limited to the shared port-row surface structure and its sketch-facing presentation.
+- Preserved the current SketchPlane three-state chevron behavior and details content.
+- Left the actual graph/port behavior unchanged.
+
+#### Summary of Implementation
+- Split `PortView` into a `SpaghettiPortMain` top-row box plus the existing lower details box.
+- Moved the port anchor/pin onto the new top-row box so it remains visually attached there.
+- Shifted the border/background/radius styling from the outer port wrapper to the new top-row box.
+- Restyled the lower details box to sit below the top row without stealing the top row’s rounded corners.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/PortView.tsx`
+- `src/app/theme/v15Theme.css`
+
+#### Behavior Changes
+- The SketchPlane top row now keeps its full top and bottom fillets even when details are expanded.
+- The input pin remains on the top-row line rather than feeling attached to the full expanded stack.
+
+#### Verification Steps
+- Run `cmd /c npx vitest run src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+
+<!-- ENTRY 434 -->
+### [434] - 2026-03-18 17:34 - `SP - Phase 11 - SketchPlane Attached Details Box`
+<!-- ENTRY 434 -->
+HUMAN SUMMARY: `Changed the expanded \`SketchPlane\` detail presentation so the top input row stays visually unchanged and any extra info now opens into a connected lower box instead of making the row itself feel like it morphs shape.`
+
+#### Scope / Constraints Honored
+- Kept this pass limited to the visual presentation of expanded port details.
+- Preserved the current three-state SketchPlane chevron cycle and resolved-value label behavior.
+- Did not change the underlying details content or row-mode logic.
+
+#### Summary of Implementation
+- Wrapped expanded port-detail content in a dedicated `SpaghettiPortDetailsBox` container.
+- Styled that container as an attached lower section with a divider, shared width, and matching lower corners.
+- Left the top port header row structure unchanged so it remains visually stable when details open.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/PortView.tsx`
+- `src/app/theme/v15Theme.css`
+
+#### Behavior Changes
+- Expanded SketchPlane details now appear in a connected box below the unchanged top row.
+
+#### Verification Steps
+- Visual verification in the sketch node `Inputs` block.
+
+<!-- ENTRY 433 -->
+### [433] - 2026-03-18 17:33 - `SP - Phase 11 - SketchPlane Essentials Chevron Direction`
+<!-- ENTRY 433 -->
+HUMAN SUMMARY: `Adjusted the integrated \`SketchPlane\` left chevron so the middle \`essentials\` state now points left, while the row still uses right for collapsed and down for expanded.`
+
+#### Scope / Constraints Honored
+- Kept this pass limited to the SketchPlane row chevron glyph mapping.
+- Preserved the existing three-state row cycle behavior.
+- Left other port chevrons unchanged.
+
+#### Summary of Implementation
+- Added an explicit glyph mapping for `collapsed`, `essentials`, and `expanded` row-chevron states in `PortView`.
+- Changed the `essentials` state from the generic open/down glyph to a left-pointing caret.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/PortView.tsx`
+
+#### Behavior Changes
+- The SketchPlane left chevron now points left in the `essentials` state.
+
+#### Verification Steps
+- Run `cmd /c npx vitest run src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+
+<!-- ENTRY 432 -->
+### [432] - 2026-03-18 17:23 - `SP - Phase 11 - SketchPlane Three-State Chevron Cycle`
+<!-- ENTRY 432 -->
+HUMAN SUMMARY: `Moved the old port-details expansion behavior into the left \`SketchPlane\` chevron so that one control now cycles the input row through \`collapsed -> essentials -> expanded\`, while keeping the resolved plane label visible in every state and removing the old trailing details chevron from that row.`
+
+#### Scope / Constraints Honored
+- Kept this pass limited to the managed `SketchPlane` input row in the `Geometry/Sketch` node.
+- Reused the existing underlying port-details payload and expansion state instead of inventing a separate duplicate details system.
+- Left output-row behavior and non-sketch port-detail toggles unchanged.
+
+#### Summary of Implementation
+- Added a left-chevron row state in `PortView` that can represent `collapsed`, `essentials`, and `expanded`.
+- Updated `NodeView` so the `SketchPlane` row cycles through those three states by combining the existing row-open state with the existing port-details expansion state.
+- Kept the resolved `XY / XZ / YZ` plane label visible even when the row is collapsed.
+- Hid the old trailing details chevron for `SketchPlane` because the left chevron now owns that cycle.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/PortView.tsx`
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+
+#### Behavior Changes
+- The `SketchPlane` left chevron now cycles `collapsed -> essentials -> expanded -> collapsed`.
+- The resolved plane label remains visible in every state.
+- The old trailing details chevron no longer appears on the `SketchPlane` row.
+
+#### Verification Steps
+- Run `cmd /c npx vitest run src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+- Run `cmd /c npx vitest run src/app/spaghetti/canvas/NodeView.test.tsx`
+
+<!-- ENTRY 431 -->
+### [431] - 2026-03-18 17:25 - `SP - Phase 11 - SketchPlane Chevron Box Removal`
+<!-- ENTRY 431 -->
+HUMAN SUMMARY: `Removed the remaining button box around the integrated \`SketchPlane\` left chevron by overriding the shared panel-button chrome at the actual \`button.SpaghettiPortChevron--leading\` selector level.`
+
+#### Scope / Constraints Honored
+- Kept this pass limited to the leading `SketchPlane` chevron button styling.
+- Preserved the integrated input-row toggle behavior.
+- Left the other port chevrons and shell buttons unchanged.
+
+#### Summary of Implementation
+- Replaced the earlier low-specificity leading-chevron style rule with a `V15Panel button.SpaghettiPortChevron--leading` override.
+- Applied the chrome removal across normal, hover, focus-visible, and active states.
+- Kept the chevron as a plain colored caret with no surrounding box.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+
+#### Behavior Changes
+- The leading `SketchPlane` chevron no longer shows a boxed button background or border.
+
+#### Verification Steps
+- Visual verification in the sketch node `Inputs` block.
+
+<!-- ENTRY 430 -->
+### [430] - 2026-03-18 17:24 - `SP - Phase 11 - SketchPlane Chevron Visual Cleanup`
+<!-- ENTRY 430 -->
+HUMAN SUMMARY: `Cleaned up the integrated \`SketchPlane\` left chevron so it no longer renders as a chunky button and instead reads like the older small plain port-row caret while keeping the managed row-mode behavior intact.`
+
+#### Scope / Constraints Honored
+- Kept this pass limited to the visual styling of the integrated `SketchPlane` row chevron.
+- Preserved the managed input-row behavior and its tie-in to the sketch node’s row-mode defaults.
+- Left the other port chevrons and output-row controls unchanged.
+
+#### Summary of Implementation
+- Removed the inherited button chrome from the leading input-row chevron.
+- Reset the leading chevron to auto sizing with no border, radius, fill, or shadow.
+- Switched the glyph color to the port color so the control reads like a native port affordance instead of a generic capsule button.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+
+#### Behavior Changes
+- The `SketchPlane` left chevron now appears as a plain small caret instead of a large rounded button.
+
+#### Verification Steps
+- Visual verification in the sketch node `Inputs` block.
+
+<!-- ENTRY 429 -->
+### [429] - 2026-03-18 17:20 - `SP - Phase 11 - SketchPlane Input Chevron Integration`
+<!-- ENTRY 429 -->
+HUMAN SUMMARY: `Added a left-side chevron directly into the real \`SketchPlane\` input row so the sketch input pin can be opened and collapsed from the pin row itself without bringing back the old extra wrapper section.`
+
+#### Scope / Constraints Honored
+- Kept this pass limited to the managed `Geometry/Sketch` input row behavior.
+- Preserved the flatter `Inputs -> SketchPlane -> PortView` structure requested in the previous pass.
+- Left the existing output-row wrapper behavior unchanged.
+
+#### Summary of Implementation
+- Reintroduced managed row-open state for `SketchPlane`, but rendered the toggle inside `PortView` instead of in a separate outer accordion row.
+- Added a leading chevron button between the input pin anchor and the input label.
+- Hid the right-side input metadata when the input row is collapsed, and restored it when the row is expanded.
+- Expanded the focused geometry tests and render test to cover the integrated input-row chevron behavior.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/PortView.tsx`
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+- `src/app/theme/v15Theme.css`
+
+#### Behavior Changes
+- `SketchPlane` now has a left-side chevron directly on the input row.
+- The input row can be expanded or collapsed without using a separate nested wrapper section.
+
+#### Verification Steps
+- Run `cmd /c npx vitest run src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+- Run `cmd /c npx vitest run src/app/spaghetti/canvas/NodeView.test.tsx`
+
+<!-- ENTRY 428 -->
+### [428] - 2026-03-18 17:17 - `SP - Phase 11 - Node Mode Button Fixed 10x10 Size`
+<!-- ENTRY 428 -->
+HUMAN SUMMARY: `Locked the standalone node mode button to a true \`10x10\` size across normal, hover, focus, and active states so the shared action-button styling can no longer make the resting state appear larger than the hovered state.`
+
+#### Scope / Constraints Honored
+- Kept this pass limited to the shared node-header mode button sizing override.
+- Preserved the existing node-mode labels and click behavior.
+- Left the rest of the shared `SpaghettiWindowAction` controls unchanged.
+
+#### Summary of Implementation
+- Increased the specificity of the node-mode button sizing rule to target the real `button.SpaghettiNodeModeButton` inside the panel.
+- Applied the same `10x10` size override across normal, hover, focus-visible, and active states.
+- Kept the explicit centering and reduced font sizing on the button.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+
+#### Behavior Changes
+- The shared node mode button now stays `10x10` both normally and on hover.
+
+#### Verification Steps
+- Visual verification in the spaghetti node header.
+
+<!-- ENTRY 427 -->
+### [427] - 2026-03-18 17:15 - `SP - Phase 11 - Node Mode Button Size Reduction`
+<!-- ENTRY 427 -->
+HUMAN SUMMARY: `Reduced the standalone node mode button again so it now reads as a tighter square control, with a smaller centered glyph and matched width/height.`
+
+#### Scope / Constraints Honored
+- Kept this pass limited to the shared node-header mode button sizing.
+- Preserved the existing header split, labels, and centering behavior.
+- Did not change any node-mode logic or click behavior.
+
+#### Summary of Implementation
+- Reduced the node mode button width and height to the same smaller square size.
+- Reduced the button font size so the glyph remains legible without crowding the control.
+- Left the explicit centering rules in place so the smaller button still aligns cleanly.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+
+#### Behavior Changes
+- The shared node mode button now renders smaller with equal width and height.
+
+#### Verification Steps
+- Visual verification in the spaghetti node header.
+
+<!-- ENTRY 426 -->
+### [426] - 2026-03-18 17:14 - `SP - Phase 11 - Node Mode Button Tightening`
+<!-- ENTRY 426 -->
+HUMAN SUMMARY: `Tightened the new node mode button by changing the collapsed label from \`i\` to \`-\`, explicitly centering the glyph in all states, and reducing the button size so it reads more like a compact shell control than a full titlebar button.`
+
+#### Scope / Constraints Honored
+- Kept this pass limited to the shared node-header mode button.
+- Preserved the same node-mode cycling behavior and header layout split.
+- Left the title text and node-type text unchanged.
+
+#### Summary of Implementation
+- Changed the collapsed-mode button label to `-`.
+- Added explicit flex centering and line-height alignment to the node mode button so the glyph stays centered even when not hovered.
+- Reduced the button width, height, and font size for a smaller header control footprint.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+- `src/app/theme/v15Theme.css`
+
+#### Behavior Changes
+- The node mode button now shows `-`, `e`, and `+` instead of `i`, `e`, and `+`.
+- The button glyph is visually centered in its resting state.
+- The button is smaller than the first split-header version.
+
+#### Verification Steps
+- Run `cmd /c npx vitest run src/app/spaghetti/canvas/NodeView.test.tsx`
+
+<!-- ENTRY 425 -->
+### [425] - 2026-03-18 17:11 - `SP - Phase 11 - Node Header Title And Mode Button Split`
+<!-- ENTRY 425 -->
+HUMAN SUMMARY: `Split the spaghetti node header so the node title is now plain text and the row-mode cycle control is a separate compact \`+ / e / i\` button, matching the smaller control language already used elsewhere in the workspace shell.`
+
+#### Scope / Constraints Honored
+- Kept this change limited to node-header presentation and the existing row-mode cycle control.
+- Preserved the same click behavior for cycling node view modes.
+- Left node-body layout and geometry-shell block behavior unchanged.
+
+#### Summary of Implementation
+- Separated the old title-button header into a small dedicated mode-cycle button plus a static title label.
+- Reused the compact workspace action-button styling language for the new node mode button.
+- Added header-layout styles so the button, title, and node type remain aligned cleanly.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+- `src/app/theme/v15Theme.css`
+
+#### Behavior Changes
+- The node name is no longer inside the mode-cycle button.
+- The row-mode control now appears as a small standalone `+`, `e`, or `i` button beside the title.
+
+#### Verification Steps
+- Run `cmd /c npx vitest run src/app/spaghetti/canvas/NodeView.test.tsx`
+
+<!-- ENTRY 424 -->
+### [424] - 2026-03-18 17:08 - `SP - Phase 11 - Sketch Input Block Simplification`
+<!-- ENTRY 424 -->
+HUMAN SUMMARY: `Simplified the \`Geometry/Sketch\` input shell so the \`Inputs\` block now opens directly to the real \`SketchPlane\` input port view instead of nesting one more collapsible parent row above it.`
+
+#### Scope / Constraints Honored
+- Kept this change limited to the sketch-node input presentation.
+- Preserved the top-level `Inputs` block toggle and the existing collapsible output rows.
+- Did not change the sketch content sections or output-row behavior.
+
+#### Summary of Implementation
+- Stopped treating `SketchPlane` as a managed geometry port-row wrapper.
+- Let the `Inputs` block render the direct input `PortView` content for `SketchPlane`.
+- Updated the geometry-mode and render tests to reflect the flatter input hierarchy.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+
+#### Behavior Changes
+- Opening `Inputs` in `Geometry/Sketch` now shows the actual `SketchPlane` input row directly.
+- The extra nested `SketchPlane` collapse header inside `Inputs` is gone.
+
+#### Verification Steps
+- Run `cmd /c npx vitest run src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+- Run `cmd /c npx vitest run src/app/spaghetti/canvas/NodeView.test.tsx`
+
+<!-- ENTRY 423 -->
+### [423] - 2026-03-18 17:06 - `SP - Phase 11 - Sketch Shell Header Button Chrome Removal`
+<!-- ENTRY 423 -->
+HUMAN SUMMARY: `Removed the remaining shared panel-button chrome from the top-level \`Geometry/Sketch\` shell headers so \`Inputs\`, \`Sketch\`, and \`Outputs\` no longer show the grey rounded box behind the arrow-and-text label.`
+
+#### Scope / Constraints Honored
+- Kept this fix limited to the sketch shell header toggles.
+- Preserved the shared `V15Panel` button styling for every other control in the panel.
+- Did not change collapse behavior or shell block layout.
+
+#### Summary of Implementation
+- Identified the shared `.V15Panel button` theme rule as the source of the remaining grey button capsule.
+- Added a targeted override for `.SpaghettiGeometryNodeRailToggle` across normal, hover, focus-visible, and active states.
+- Removed the inherited padding, border, radius, background, and box-shadow from that specific shell-header button class only.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+
+#### Behavior Changes
+- `Geometry/Sketch` top-level block headers now render without the shared rounded grey button box.
+
+#### Verification Steps
+- Visual verification in the spaghetti editor sketch node shell.
+
+<!-- ENTRY 422 -->
+### [422] - 2026-03-18 17:05 - `SP - Phase 11 - Sketch Shell Header Styling Cleanup`
+<!-- ENTRY 422 -->
+HUMAN SUMMARY: `Refined the new top-level \`Geometry/Sketch\` shell headers so the collapse chevron now sits on the left and the \`Inputs\`, \`Sketch\`, and \`Outputs\` labels read like plain arrow-plus-text titles instead of filled control bars.`
+
+#### Scope / Constraints Honored
+- Kept this pass limited to visual styling and header markup for the sketch shell block toggles.
+- Did not change the existing block open/close behavior, row-mode defaults, or nested section and port-row interaction rules.
+- Left other node templates and non-geometry header treatments unchanged.
+
+#### Summary of Implementation
+- Reordered the shell-header markup so the chevron renders before the section label.
+- Simplified the block-toggle button styling to remove any bar-like filled or bordered appearance.
+- Kept the full header row clickable while making the visual treatment read as plain text plus icon.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/GeometryNodeShell.tsx`
+- `src/app/theme/v15Theme.css`
+
+#### Behavior Changes
+- `Geometry/Sketch` top-level block headers now show their collapse/expand arrow on the left side.
+- `Inputs`, `Sketch`, and `Outputs` headers no longer look like filled or bordered bars.
+
+#### Verification Steps
+- Run `cmd /c npx vitest run src/app/spaghetti/canvas/NodeView.test.tsx`
+
+<!-- ENTRY 421 -->
+### [421] - 2026-03-18 17:00 - `SP - Phase 11 - Sketch Node Top-Level Block Toggles`
+<!-- ENTRY 421 -->
+HUMAN SUMMARY: `Made the top-level \`Geometry/Sketch\` shell blocks interactive so \`Inputs\`, \`Sketch\`, and \`Outputs\` can each be collapsed or reopened directly without changing node row mode, while preserving the existing nested row and section behavior inside those blocks.`
+
+#### Scope / Constraints Honored
+- Kept this change limited to the forward `Geometry/Sketch` shell in the spaghetti editor.
+- Preserved the existing geometry section and port-row open/default logic inside each block once the block body is visible.
+- Left `Geometry/Extrude` and legacy node templates unchanged.
+
+#### Summary of Implementation
+- Added geometry-shell block-level toggle state in `NodeView` for `inputs`, `content`, and `outputs`.
+- Applied row-mode defaults so the sketch shell opens `Inputs` in `essentials`, opens both `Inputs` and `Outputs` in `expanded`, and keeps the `Sketch` block open by default while still allowing manual collapse.
+- Extended `GeometryNodeShell` to render clickable block headers with chevrons and block open-state data attributes.
+- Added focused interaction tests covering block defaults, manual toggles, persistence, and compatibility with the existing sketch port-row behavior.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/GeometryNodeShell.tsx`
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+- `src/app/theme/v15Theme.css`
+
+#### Behavior Changes
+- `Geometry/Sketch` now lets users collapse and reopen the top-level `Inputs`, `Sketch`, and `Outputs` shell blocks directly.
+- Clicking those block headers no longer depends on or changes the node row mode.
+- Nested sketch sections and sketch port rows still use their existing default-open and manual-override behavior after the surrounding block is reopened.
+
+#### Verification Steps
+- Run `vitest src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+
+<!-- ENTRY 420 -->
+### [420] - 2026-03-18 16:01 - `OO - Phase 13 - Geometry Node Default-Open Mode Notes Entry`
+<!-- ENTRY 420 -->
+HUMAN SUMMARY: `Added a new Codex note locking the cleaner forward model for geometry nodes: row mode should only choose default-open sections and shell density, while manual section toggles must always be allowed to win after interaction.`
+
+#### Scope / Constraints Honored
+- Kept this change limited to planning notes and permanent docs-history tracking.
+- Did not change runtime node-mode logic or section-toggle behavior yet.
+- Captured the stronger replacement model immediately after the row-mode conflict became clear in live use.
+
+#### Summary of Implementation
+- Added note `[178]` to `12_CodexChatNotes.md` describing the double-gating problem between row mode and per-section collapse state.
+- Locked the recommended simplification for forward `Geometry/*` nodes: row mode sets defaults, section state controls actual open/closed behavior.
+- Recorded the proposed implementation shape, first-pass `Geometry/Sketch` defaults, and the order for replacing the temporary promotion behavior with the new model.
+
+#### Files Changed
+- `docs/Human-Plans/CodexNotes/12_CodexChatNotes.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- None. This was a docs-only implementation-planning entry.
+
+#### Verification Steps
+- Confirmed note `[178]` appears above `[177]` in `12_CodexChatNotes.md`.
+- Confirmed the note records the chosen “defaults only” row-mode contract and the implementation order for replacing the temporary geometry promotion patch.
+- Confirmed this permanent changelog entry records the new planning note.
+
+<!-- ENTRY 419 -->
+### [419] - 2026-03-18 15:37 - `SP - Phase 11 - Geometry Node Section Click Promotion Fix`
+<!-- ENTRY 419 -->
+HUMAN SUMMARY: `Implemented the first geometry node-mode fix so clicking a `Geometry/*` section header while the node is in `collapsed` mode now promotes it back to `essentials` and reveals the target section body instead of looking like a dead toggle.`
+
+#### Scope / Constraints Honored
+- Kept the fix targeted to forward geometry templates without changing the legacy part-node mode behavior.
+- Preserved the existing local section-collapse store instead of replacing the row-mode system wholesale.
+- Added focused interaction coverage for the new geometry-shell behavior.
+
+#### Summary of Implementation
+- Updated `NodeView` so `sketch` and `extrude` section-header clicks detect `collapsed` node mode and first switch the node back to `essentials`.
+- Ensured the clicked section is explicitly uncollapsed during that promotion path so the user sees an open body immediately after the click.
+- Added a jsdom interaction test that renders a real `Geometry/Sketch` node off store state and proves a `Plane` click promotes the node and reveals the section body.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- `Geometry/Sketch` and `Geometry/Extrude` no longer keep visible-but-non-opening section shells when the node is in `collapsed` mode and the user clicks a section header.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx src/app/spaghetti/canvas/NodeView.test.tsx`
+- `cmd /c npx tsc --noEmit`
+
+<!-- ENTRY 418 -->
+### [418] - 2026-03-18 15:37 - `OO - Phase 13 - Geometry Node Mode Fix Recommendation Notes Update`
+<!-- ENTRY 418 -->
+HUMAN SUMMARY: `Extended the active geometry node-mode notes with the stronger root-cause read that sketch section clicks are running into old `collapsed` node-mode behavior, and recorded the recommended forward fix: promote `Geometry/*` nodes out of `collapsed` before applying section toggles.`
+
+#### Scope / Constraints Honored
+- Kept this change limited to planning notes and permanent docs-history tracking.
+- Did not change runtime code, node-mode logic, or section-toggle behavior.
+- Recorded the likely root cause and recommended implementation path while the current geometry-shell behavior is still fresh.
+
+#### Summary of Implementation
+- Updated note `[177]` in `12_CodexChatNotes.md` with the current-code diagnosis that section toggles are present but suppressed by `collapsed` node mode.
+- Added a concrete suggested fix path for forward `Geometry/*` nodes, including promoting the node to `essentials` before applying section toggles.
+- Captured the recommended semantic split of `collapsed` as summary-only, `essentials` as the normal working mode, and `expanded` as the future fuller-detail mode.
+
+#### Files Changed
+- `docs/Human-Plans/CodexNotes/12_CodexChatNotes.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- None. This was a docs-only diagnosis and fix-planning update.
+
+#### Verification Steps
+- Confirmed note `[177]` now includes both the root-cause read and the code-level suggested fix path.
+- Confirmed the note still keeps the earlier defaults for geometry section behavior and now ties them to the inherited row-mode system.
+- Confirmed this permanent changelog entry records the updated planning note.
+
+<!-- ENTRY 417 -->
+### [417] - 2026-03-18 15:31 - `OO - Phase 13 - Geometry Node Mode Cleanup Notes Entry`
+<!-- ENTRY 417 -->
+HUMAN SUMMARY: `Added a new `12_CodexChatNotes.md` `entry capturing the next cleanup surface after the first sketch-shell layout pass: normalizing `expanded` / `essentials` / `collapsed` behavior for forward geometry nodes and fixing the non-expanding `Plane` / `Draw` / `Entities` / `Review` sections.` 
+
+#### Scope / Constraints Honored
+- Kept this change limited to planning notes and permanent docs-history tracking.
+- Did not change runtime code, section-toggle behavior, or geometry implementation.
+- Recorded the current-code truth before any later node-mode refactor changes it.
+
+#### Summary of Implementation
+- Added a new top note in `12_CodexChatNotes.md` describing the current mismatch between the new geometry shell and the inherited section-collapse system.
+- Captured the relevant live section ids and the shared `NodeView` collapse path that still owns geometry-section visibility.
+- Added recommended defaults for how `expanded`, `essentials`, `collapsed`, and section-header clicks should work for forward `Geometry/*` nodes.
+
+#### Files Changed
+- `docs/Human-Plans/CodexNotes/12_CodexChatNotes.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- None. This was a docs-only planning-note addition.
+
+#### Verification Steps
+- Confirmed the new `[177]` note appears above `[176]` in `12_CodexChatNotes.md`.
+- Confirmed the note records both the observed sketch-section symptom and the current shared `NodeView` collapse-path ownership.
+- Confirmed this permanent changelog entry records the new planning note.
+
+<!-- ENTRY 416 -->
+### [416] - 2026-03-18 15:28 - `SP - Phase 11 - Geometry Sketch Input Row Padding Clamp`
+<!-- ENTRY 416 -->
+HUMAN SUMMARY: `Added one more geometry-shell clamp for the `Geometry/Sketch` input row by forcing the stacked input port to use border-box sizing and a slightly larger right padding, addressing the last few pixels of visible overflow on the `SketchPlane` row.` 
+
+#### Scope / Constraints Honored
+- Kept this tweak limited to geometry-shell input row sizing.
+- Left graph behavior, schema, `Geometry/Extrude`, and legacy nodes unchanged.
+- Did not alter the already-landed single-column shell structure.
+
+#### Summary of Implementation
+- Added a geometry-shell-specific `border-box` sizing clamp for stacked input rows.
+- Increased the right padding on geometry-shell input ports to keep the right-side plane/value text fully inside the visible row box.
+- Preserved the prior header/value clamping overrides.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- The `SketchPlane` input row should now stay fully inside the sketch node bounds instead of hanging a few pixels past the right edge.
+
+#### Verification Steps
+- Ran `cmd /c npx vitest run src/app/spaghetti/canvas/NodeView.test.tsx`
+- Ran `cmd /c npx tsc --noEmit`
+
+<!-- ENTRY 415 -->
+### [415] - 2026-03-18 15:25 - `SP - Phase 11 - Geometry Sketch Port Header Clamp Fix`
+<!-- ENTRY 415 -->
+HUMAN SUMMARY: `Fixed the remaining `Geometry/Sketch` input-row overflow by overriding the inherited templated input-pin grid inside the new geometry shell, so the `SketchPlane` row now uses a normal single-line header with the right-side value label clamped inside the port bounds.` 
+
+#### Scope / Constraints Honored
+- Kept this fix limited to geometry-shell input-port header styling.
+- Left `Geometry/Extrude`, legacy nodes, and graph behavior unchanged.
+- Did not change node contracts, schema, or runtime logic.
+
+#### Summary of Implementation
+- Overrode the inherited templated input-port header grid inside the geometry shell.
+- Switched geometry-shell input rows to a normal single-line header layout with constrained right-side value text.
+- Added truncation and width clamps so the `SketchPlane` value label no longer extends past the port edge.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- The `SketchPlane` input port row now keeps its right-side plane/value label inside the visible row bounds.
+
+#### Verification Steps
+- Ran `cmd /c npx vitest run src/app/spaghetti/canvas/NodeView.test.tsx`
+- Ran `cmd /c npx tsc --noEmit`
+
+<!-- ENTRY 414 -->
+### [414] - 2026-03-18 15:19 - `SP - Phase 11 - Geometry Sketch Input Width Overflow Fix`
+<!-- ENTRY 414 -->
+HUMAN SUMMARY: `Fixed the new `Geometry/Sketch` shell so the stacked input/output port rows no longer inherit the older half-width template sizing, which was causing the `SketchPlane` row to overflow past the node edge.` 
+
+#### Scope / Constraints Honored
+- Kept this fix limited to geometry-shell sizing overrides.
+- Left `Geometry/Extrude`, legacy nodes, and graph behavior unchanged.
+- Did not change schema, ports, or node contracts.
+
+#### Summary of Implementation
+- Added geometry-shell-specific width overrides so stacked input and output port columns use the full node width.
+- Applied the same full-width override to the port rows themselves to stop the inherited half-width template rule from leaking into the new sketch shell.
+- Preserved the single-column geometry shell layout from the prior follow-up.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- The `SketchPlane` input row now stays inside the sketch node bounds instead of visually overflowing to the right.
+
+#### Verification Steps
+- Ran `cmd /c npx vitest run src/app/spaghetti/canvas/NodeView.test.tsx`
+- Ran `cmd /c npx tsc --noEmit`
+
+<!-- ENTRY 413 -->
+### [413] - 2026-03-18 15:16 - `SP - Phase 11 - Geometry Sketch Shell Single-Column Follow-Up`
+<!-- ENTRY 413 -->
+HUMAN SUMMARY: `Collapsed the new `GeometryNodeShell` follow-up layout into a single-column stacked flow so `Geometry/Sketch` items stop competing for narrow left/right rails and each major item gets its own full row.` 
+
+#### Scope / Constraints Honored
+- Kept this follow-up limited to the new geometry shell layout.
+- Left `Geometry/Extrude` and legacy node families unchanged.
+- Did not alter graph behavior, ports, or schema.
+
+#### Summary of Implementation
+- Reworked `GeometryNodeShell` from a three-column rail layout into a stacked single-column shell.
+- Kept the same header, summary strip, content sections, and diagnostics footer, but gave inputs and outputs their own full-width rows.
+- Preserved the first-cut `Geometry/Sketch` migration while removing the cramped side-by-side presentation that did not fit current node widths.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/GeometryNodeShell.tsx`
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- `Geometry/Sketch` now presents inputs, workflow sections, and outputs in a full-width stacked order instead of narrow side rails.
+
+#### Verification Steps
+- Ran `cmd /c npx vitest run src/app/spaghetti/canvas/NodeView.test.tsx`
+- Ran `cmd /c npx tsc --noEmit`
+
+<!-- ENTRY 412 -->
+### [412] - 2026-03-18 15:13 - `SP - Phase 11 - Geometry Node Shell And Sketch Layout Cleanup`
+<!-- ENTRY 412 -->
+HUMAN SUMMARY: `Implemented the first graph-native node-shell cleanup cut by adding a reusable `GeometryNodeShell`, migrating `Geometry/Sketch` onto the new rail-based layout, and leaving `Geometry/Extrude` plus older node families visually unchanged as legacy.` 
+
+#### Scope / Constraints Honored
+- Kept this implementation to the first cleanup cut from note `[176]`: shared shell plus `Geometry/Sketch`.
+- Left `Geometry/Extrude` functionally and visually unchanged in this pass.
+- Did not change graph schema, node ids, or public port contracts.
+
+#### Summary of Implementation
+- Added a reusable `GeometryNodeShell` component for the forward `Geometry/*` node family.
+- Moved `Geometry/Sketch` onto the new shell with a header, summary strip, left/right rails, content-column sections, and a diagnostics footer.
+- Replaced the old forward sketch section labels with the new structural labels: `Plane`, `Draw`, `Entities`, and `Review`.
+- Kept sketch viewer/session behavior intact while freezing older node layouts as the legacy presentation model.
+- Updated the sketch renderer test to assert the new shell and the removal of the old prose labels.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/GeometryNodeShell.tsx`
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- `Geometry/Sketch` now renders through the new shared geometry shell instead of its older bespoke top/bottom section layout.
+- Sketch ports now sit in left/right rails, and sketch diagnostics render in a dedicated footer area.
+- Older non-geometry nodes continue to render through their existing layouts.
+
+#### Verification Steps
+- Ran `cmd /c npx vitest run src/app/spaghetti/canvas/NodeView.test.tsx`
+- Ran `cmd /c npx tsc --noEmit`
+
+<!-- ENTRY 411 -->
+### [411] - 2026-03-18 15:07 - `OO - Phase 13 - Geometry Node-Shell Notes Made Implementation-Ready`
+<!-- ENTRY 411 -->
+HUMAN SUMMARY: `Rewrote note `[176]` in `docs/Human-Plans/CodexNotes/12_CodexChatNotes.md` `into a decision-complete implementation spec for the first graph-native node-shell cleanup cut, locking the shared `GeometryNodeShell` contract, the first `Geometry/Sketch` migration, and legacy-node treatment.` 
+
+#### Scope / Constraints Honored
+- Kept this change limited to planning/docs and permanent project-history tracking.
+- Did not change runtime code, schemas, or the active geometry implementation.
+- Preserved the existing Codex-notes numbering by rewriting the contents of `[176]` instead of creating a duplicate decision note.
+
+#### Summary of Implementation
+- Reframed note `[176]` from a directional “what I would do next” entry into an executable cleanup spec.
+- Locked the first cleanup cut as `shared shell + Geometry/Sketch`, with `Geometry/Extrude` explicitly deferred to the next follow-up.
+- Defined the shared `GeometryNodeShell` structure, the exact first `Sketch` migration layout, the legacy/frozen treatment for older nodes, and the implementation order and acceptance criteria.
+
+#### Files Changed
+- `docs/Human-Plans/CodexNotes/12_CodexChatNotes.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- None. This was a docs-only planning-spec rewrite.
+
+#### Verification Steps
+- Confirmed note `[176]` now contains current-code truth, chosen contract, implementation order, acceptance criteria, and explicit defers.
+- Confirmed the note now locks `GeometryNodeShell` and the first `Geometry/Sketch` migration instead of leaving those as open design suggestions.
+- Confirmed this permanent changelog entry records the planning-spec rewrite.
+
+<!-- ENTRY 410 -->
+### [410] - 2026-03-18 14:38 - `OO - Phase 13 - Geometry Node-Shell Cleanup Notes Expansion`
+<!-- ENTRY 410 -->
+HUMAN SUMMARY: `Expanded the active `12_CodexChatNotes.md` `planning surface with a concrete next-step sequence for rebuilding the graph-native geometry node shell, including suggested answers for how to treat `Sketch`, `Extrude`, and the older part-style layout.` 
+
+#### Scope / Constraints Honored
+- Kept this change limited to planning notes and permanent docs-history tracking.
+- Did not change runtime code, task execution specs, or the current geometry implementation.
+- Preserved the existing Codex-notes numbering flow by adding a new top entry instead of rewriting older notes.
+
+#### Summary of Implementation
+- Added a new numbered note to `12_CodexChatNotes.md` describing the recommended order for geometry-node cleanup work.
+- Recorded suggested answers for where the cleanup spec should live, what the shared shell contract should look like, how to classify the older node layout, and why `Sketch` should move before `Extrude`.
+- Kept the guidance framed around a reusable future `GeometryNodeShell` instead of continuing ad hoc `NodeView` branching.
+
+#### Files Changed
+- `docs/Human-Plans/CodexNotes/12_CodexChatNotes.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- None. This was a docs-only planning-note expansion.
+
+#### Verification Steps
+- Confirmed the new `[176]` note appears at the top of `12_CodexChatNotes.md`.
+- Confirmed the note includes the requested next-step list plus concrete suggested answers.
+- Confirmed this permanent changelog entry records the notes expansion.
+
+<!-- ENTRY 409 -->
+### [409] - 2026-03-18 14:24 - `OO - Phase 13 - Codex Notes Surface For Node-Template Cleanup`
+<!-- ENTRY 409 -->
+HUMAN SUMMARY: `Created the new active `docs/Human-Plans/CodexNotes/12_CodexChatNotes.md` `notes surface for post-`3.2B` / `3.2C` node-template cleanup planning, and updated the docs map so that new planning scratchpad is discoverable.` 
+
+#### Scope / Constraints Honored
+- Kept this change limited to documentation surfaces and permanent docs-history tracking.
+- Did not change runtime code, tests, or the existing geometry implementation.
+- Preserved the existing numbered Codex-notes sequence instead of rewriting older note files.
+
+#### Summary of Implementation
+- Created `12_CodexChatNotes.md` as the new active Codex-notes file for pre-`3.2D` node-template cleanup planning.
+- Seeded the file with initial notes about stabilizing `Geometry/Sketch` and `Geometry/Extrude` before moving on to `Loft`.
+- Updated `docs/Doc-Index.md` so the new notes file appears in both local doc history and the foldable `CodexNotes` tree.
+
+#### Files Changed
+- `docs/Human-Plans/CodexNotes/12_CodexChatNotes.md`
+- `docs/Doc-Index.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- None. This was a docs-only planning-surface addition.
+
+#### Verification Steps
+- Confirmed `docs/Human-Plans/CodexNotes/12_CodexChatNotes.md` exists and follows the current Codex-notes structure.
+- Confirmed `docs/Doc-Index.md` now lists `12_CodexChatNotes.md` under the foldable `CodexNotes` section.
+- Confirmed this permanent changelog entry records the new active notes surface.
+
+<!-- ENTRY 408 -->
+### [408] - 2026-03-18 14:15 - `SP - Phase 11 - 3.2 Roadmap Status Sync After 3.2B And 3.2C`
+<!-- ENTRY 408 -->
+HUMAN SUMMARY: `Updated the live roadmap so shipped `3.2B` sketch authoring and `3.2C` graph-native extrude work now read as complete, while keeping the parent `[3.2]` lane partial because `3.2D` loft is still open.` 
+
+#### Scope / Constraints Honored
+- Kept this change limited to roadmap status tracking and permanent changelog maintenance.
+- Did not change runtime code, tests, or task-doc implementation specs.
+- Kept the parent `[3.2]` family marker honest instead of force-closing the whole geometry lane early.
+
+#### Summary of Implementation
+- Added a new roadmap doc-history note recording the `3.2B` and `3.2C` status promotion.
+- Flipped the compact Lane `[3]` checklist rows for `[3.2B]` and `[3.2C]` from open to complete.
+- Marked the `### [3.2B]` and `### [3.2C]` title rows complete.
+- Flipped the `3.2B` and `3.2C` checklist bodies to shipped state while leaving `[3.2D]` and the parent `[3.2]` family still open/partial.
+
+#### Files Changed
+- `docs/Human-Plans/roadmap/roadmap.md`
+
+#### Behavior Changes (if any)
+- No runtime behavior changes. This is roadmap tracking only.
+
+#### Verification Steps
+- Read back the live Lane `[3]` summary checklist in `roadmap.md`.
+- Read back the `[3.2B]` and `[3.2C]` roadmap sections to confirm their title and checklist markers now match shipped implementation state.
+
+<!-- ENTRY 407 -->
+### [407] - 2026-03-18 14:12 - `SP - Phase 11 - 3.2C Graph-Native Geometry/Extrude Implementation`
+<!-- ENTRY 407 -->
+HUMAN SUMMARY: `Implemented the first graph-native \`Geometry/Extrude\` slice on top of \`Geometry/Sketch\`, including the new extrude node template, selected-\`SketchProfile\` input contract, plane-aware compile/runtime lowering, and Output Preview compatibility for published \`solidBody\` results.` 
+
+#### Scope / Constraints Honored
+- Implemented `3.2C` on the graph-native geometry path instead of reviving the old feature-stack UI as the primary host.
+- Kept the first public node surface narrow: selected profile input, depth, `Basic` extrude, and one `SolidBody` output.
+- Preserved legacy part-node/feature-stack behavior while extending shared compile/runtime seams to carry graph-native extrude bodies.
+
+#### Summary of Implementation
+- Added a user-addable `Geometry/Extrude` node in the registry with a dedicated `extrude` template, `ExtrusionProfile` plus `Depth` inputs, and `SolidBody` output behavior gated to valid `Basic` extrudes.
+- Added selector/view-model support and a dedicated canvas template so the extrude node now renders its own graph-native UI surface with profile summary, editable local depth fallback, `Basic` mode, visible deferred `Twist`, and body summary.
+- Extended graph compilation so `Geometry/Extrude` is lowered into owned runtime feature-stack IR as its own build part, carrying selected-profile sketch data and sketch-plane orientation from the upstream `Geometry/Sketch`.
+- Extended the worker CAD runtime so extrudes can follow `XY`, `XZ`, and `YZ` sketch planes instead of assuming global `+Z`.
+- Widened Output Preview connection compatibility so dynamic `in:solid:*` slots accept graph-native `solidBody` sources while remaining compatible with legacy `toeLoft` publishers.
+- Added focused tests covering registry/evaluator contracts, validation, node rendering, compile IR, plane-aware runtime execution, and build artifact output.
+
+#### Files Changed
+- `src/app/spaghetti/registry/nodeRegistry.ts`
+- `src/app/spaghetti/registry/nodeRegistry.test.ts`
+- `src/app/spaghetti/selectors/selectNodeVm.ts`
+- `src/app/spaghetti/selectors/index.ts`
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+- `src/app/spaghetti/compiler/evaluateGraph.test.ts`
+- `src/app/spaghetti/compiler/validateGraph.test.ts`
+- `src/app/spaghetti/compiler/compileGraph.ts`
+- `src/app/spaghetti/compiler/compileGraph.test.ts`
+- `src/app/spaghetti/contracts/endpoints.ts`
+- `src/app/spaghetti/features/compileFeatureStack.ts`
+- `src/app/parts/partKeyResolver.ts`
+- `src/worker/cad/cadKernelAdapter.ts`
+- `src/worker/cad/featureStackRuntime.ts`
+- `src/worker/cad/featureStackRuntime.test.ts`
+- `src/worker/buildModel.ts`
+
+#### Behavior Changes (if any)
+- The node palette now includes a graph-native `Geometry/Extrude` node.
+- `Geometry/Extrude` can publish `SolidBody` into Output Preview slots.
+- Graph-native extrudes now build preview/runtime bodies that respect `XY`, `XZ`, and `YZ` sketch-plane orientation.
+
+#### Verification Steps
+- Ran `cmd /c npx vitest run src/app/spaghetti/registry/nodeRegistry.test.ts src/app/spaghetti/compiler/evaluateGraph.test.ts src/app/spaghetti/compiler/validateGraph.test.ts src/app/spaghetti/canvas/NodeView.test.tsx src/app/spaghetti/compiler/compileGraph.test.ts src/worker/cad/featureStackRuntime.test.ts`
+- Ran `cmd /c npx tsc --noEmit`
+
+<!-- ENTRY 406 -->
+### [406] - 2026-03-18 13:11 - `SP - Phase 11 - 3.2C Graph-Native Extrude Spec Rewrite`
+<!-- ENTRY 406 -->
+HUMAN SUMMARY: `Rewrote the \`3.2C\` extrude task doc into a decision-complete graph-native implementation spec, locking \`Geometry/Extrude\`, selected-\`SketchProfile\` input, all-three-plane runtime honesty, and preview-pipeline participation for the first body-producing node.` 
+
+#### Scope / Constraints Honored
+- Kept this change limited to the `3.2C` task doc and permanent changelog tracking.
+- Did not change runtime code, tests, roadmap status, or neighboring task files.
+- Replaced remaining implementation decisions in the doc instead of adding another planning-only appendix.
+
+#### Summary of Implementation
+- Reworked `03.2C - SP-NI-FS-GE - Extrude Foundation.md` around the shipped graph-native geometry path from `Geometry/Sketch`.
+- Locked `Geometry/Extrude` as the primary user-facing host, with public input restricted to selected `SketchProfile` and a minimal first-pass node surface.
+- Locked runtime honesty so extrusion must follow `XY`, `XZ`, and `YZ` sketch-plane normal rather than staying on global `+Z`.
+- Locked evaluator-facing `SolidBody` success/null output behavior and made preview/body visibility part of `3.2C`, not a later follow-up.
+- Replaced the old prep-question tail section with concrete implementation seams, implementation order, acceptance criteria, and tests for the graph-native extrude slice.
+
+#### Files Changed
+- `docs/Phase-Plans/Tasks/Future/03.2C - SP-NI-FS-GE - Extrude Foundation.md`
+
+#### Behavior Changes (if any)
+- No runtime behavior changes. This is documentation-only.
+
+#### Verification Steps
+- Read back the updated `docs/Phase-Plans/Tasks/Future/03.2C - SP-NI-FS-GE - Extrude Foundation.md` to confirm it now locks:
+  - graph-native `Geometry/Extrude`
+  - selected-`SketchProfile` public input
+  - `XY/XZ/YZ` plane-normal runtime requirement
+  - preview/body visibility as part of `3.2C`
+
+<!-- ENTRY 405 -->
+### [405] - 2026-03-18 12:56 - `SP - Phase 11 - 3.2C Prep Decisions Restructured Into Sections`
+<!-- ENTRY 405 -->
+HUMAN SUMMARY: `Reworked the bottom prep block in the \`3.2C\` extrude task doc into foldable `###` decision sections, each with explicit current-code truth, the decision to lock, and a suggested default.` 
+
+#### Scope / Constraints Honored
+- Kept this change limited to task-document structure and wording.
+- Did not change runtime code, tests, or roadmap status.
+- Preserved the same prep topics while making them easier to execute against one by one.
+
+#### Summary of Implementation
+- Replaced the flat `Prep Questions / Decisions To Lock Before Implementation` bullet list in `03.2C - SP-NI-FS-GE - Extrude Foundation.md` with dedicated `###` subsections.
+- Broke each prep topic into:
+  - current code truth
+  - the specific decision to lock
+  - a suggested default
+- Kept the sections focused on the real `3.2C` tensions:
+  - graph-native `Geometry/Extrude` host shape
+  - public profile-source model
+  - sketch-plane normal versus current global-`Z` runtime
+  - taper/offset compatibility handling
+  - `SolidBody` output seam
+  - first-pass node surface scope
+  - failure semantics
+
+#### Files Changed
+- `docs/Phase-Plans/Tasks/Future/03.2C - SP-NI-FS-GE - Extrude Foundation.md`
+
+#### Behavior Changes (if any)
+- No runtime behavior changes. This is documentation-only.
+
+#### Verification Steps
+- Read back the bottom of `docs/Phase-Plans/Tasks/Future/03.2C - SP-NI-FS-GE - Extrude Foundation.md` to confirm the prep topics now appear as their own `###` sections with suggested defaults.
+
+<!-- ENTRY 404 -->
+### [404] - 2026-03-18 12:53 - `SP - Phase 11 - 3.2C Extrude Prep Decision Addendum`
+<!-- ENTRY 404 -->
+HUMAN SUMMARY: `Appended a bottom prep-decision section to the \`3.2C\` task doc so the first graph-native extrude implementation is blocked on the real code-backed questions, especially node-host shape and the current global-\`Z\` runtime limitation.` 
+
+#### Scope / Constraints Honored
+- Kept this as task-doc preparation only.
+- Did not change runtime code, tests, or roadmap status.
+- Grounded the added questions in the current feature-stack extrude code and worker runtime instead of adding generic CAD planning.
+
+#### Summary of Implementation
+- Added a new `Prep Questions / Decisions To Lock Before Implementation` section at the bottom of `03.2C - SP-NI-FS-GE - Extrude Foundation.md`.
+- Recorded the main implementation-prep questions around:
+  - whether `3.2C` ships as a real `Geometry/Extrude` node or only reuses old feature-stack host surfaces
+  - whether the public contract consumes only selected `SketchProfile`
+  - whether extrusion must follow sketch-plane normal now or may temporarily stay `XY -> +Z`
+  - how taper/offset remain compatibility-only
+  - how the public `SolidBody` output maps to internal `bodyId`
+  - how failure diagnostics should surface in the graph-native path
+
+#### Files Changed
+- `docs/Phase-Plans/Tasks/Future/03.2C - SP-NI-FS-GE - Extrude Foundation.md`
+
+#### Behavior Changes (if any)
+- No runtime behavior changes. This is documentation-only.
+
+#### Verification Steps
+- Read back the bottom of `docs/Phase-Plans/Tasks/Future/03.2C - SP-NI-FS-GE - Extrude Foundation.md` to confirm the new prep-decision section landed with the intended code-backed questions and defaults.
+
+<!-- ENTRY 403 -->
+### [403] - 2026-03-18 12:44 - `SP - Phase 11 - Sketch Session Positioned Overlay Fix`
+<!-- ENTRY 403 -->
+HUMAN SUMMARY: `Made the floating sketch session window a positioned overlay element so its existing inline \`left\` / \`top\` coordinates now move it correctly instead of leaving it stuck under the Browser area.` 
+
+#### Scope / Constraints Honored
+- Kept the fix limited to the sketch session window CSS positioning path.
+- Did not change sketch tool behavior, viewer rendering, or overlay state management.
+- Reused the existing drag/spawn logic instead of introducing a second movement implementation.
+
+#### Summary of Implementation
+- Added `position: absolute` to `.ViewportOverlaySketchSessionWindow` in `src/app/theme/v15Theme.css`.
+- This allows the existing inline `left` / `top` values from `ViewportOverlay.tsx` to take visual effect in layout.
+- The change addresses both the apparent spawn-under-Browser issue and the non-moving titlebar drag behavior caused by the window still being in normal flow.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+
+#### Behavior Changes (if any)
+- The sketch draw/review window now behaves like a true floating overlay window and should visually move when dragged.
+- Initial spawn positioning should now honor the existing overlay placement math instead of appearing pinned under the left Browser area.
+
+#### Verification Steps
+- No automated tests were run for this CSS-only positioning fix.
+- Recommended manual check: open `Geometry/Sketch`, enter sketch draw, verify the window appears as a floating overlay and moves when dragging the title bar.
+
+<!-- ENTRY 402 -->
+### [402] - 2026-03-18 12:39 - `SP - Phase 11 - 3.2B Close-Out Drag Diagnosis Note`
+<!-- ENTRY 402 -->
+HUMAN SUMMARY: `Added a bottom-of-doc close-out note to the \`3.2B\` task spec capturing the current sketch session titlebar drag diagnosis and the likely missing positioned-window rule.` 
+
+#### Scope / Constraints Honored
+- Kept this update limited to task-document maintenance.
+- Did not change runtime code, tests, or roadmap status.
+- Recorded the current diagnosis in the phase doc rather than leaving it only in chat context.
+
+#### Summary of Implementation
+- Added a new `Close-Out Notes` section at the bottom of `03.2B - SP-NI-FS-GE - Sketch Operation Authoring.md`.
+- Captured that the sketch session window still appears non-draggable in the live app because its inline `left` / `top` positioning may not take visual effect without a `position: absolute` rule.
+- Noted that the current test only verifies inline style mutation and does not yet prove visible repositioning.
+
+#### Files Changed
+- `docs/Phase-Plans/Tasks/Future/03.2B - SP-NI-FS-GE - Sketch Operation Authoring.md`
+
+#### Behavior Changes (if any)
+- No runtime behavior changes. This is documentation-only.
+
+#### Verification Steps
+- Read back the bottom of `docs/Phase-Plans/Tasks/Future/03.2B - SP-NI-FS-GE - Sketch Operation Authoring.md` to confirm the new `Close-Out Notes` section landed with the intended diagnosis text.
+
+<!-- ENTRY 401 -->
+### [401] - 2026-03-18 12:49 - `SP - Phase 11 - Sketch Session Overlay Dock-Aware Spawn And Stack Fix`
+<!-- ENTRY 401 -->
+HUMAN SUMMARY: `Raised the sketch session overlay above Browser chrome and corrected its spawn math so the window opens relative to the live viewer overlay host instead of raw page coordinates.` 
+
+#### Scope / Constraints Honored
+- Kept the existing sketch session window model and tool flow intact.
+- Focused this fix on initial placement, drag clamping, and overlay stacking without changing sketch data, viewer rendering, or tool definitions.
+- Reused the existing viewport overlay component instead of introducing a second floating-window host.
+
+#### Summary of Implementation
+- Updated `ViewportOverlay.tsx` so sketch overlay spawn and drag math now resolve against the local `ViewportOverlayRoot` bounds.
+- Switched the browser anchor lookup to the dock target container and corrected the computed spawn position to viewer-local coordinates.
+- Reused the overlay-host bounds for sketch plane picker movement and sketch session resize clamping so these windows stay inside the active viewer pane.
+- Raised `.ViewportOverlayRoot` above the left dock/browser layer in `v15Theme.css`.
+- Added a `ViewportOverlay.test.tsx` regression case that exercises dock-aware spawn behavior when the overlay host does not start at page `x = 0`.
+
+#### Files Changed
+- `src/app/components/ViewportOverlay.tsx`
+- `src/app/components/ViewportOverlay.test.tsx`
+- `src/app/theme/v15Theme.css`
+
+#### Behavior Changes (if any)
+- The sketch session window now opens above Browser chrome instead of behind it.
+- Initial sketch session placement now respects the viewer overlay host coordinate space, so it opens to the right of the docked Browser more reliably.
+- Dragging and resizing now clamp to the actual overlay host dimensions instead of the full page window.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/components/ViewportOverlay.test.tsx`
+- `cmd /c npx tsc --noEmit`
+
+<!-- ENTRY 400 -->
+### [400] - 2026-03-18 12:27 - `SP - Phase 11 - Sketch Session Titlebar Mouse Drag Fix`
+<!-- ENTRY 400 -->
+HUMAN SUMMARY: `Hardened the sketch session titlebar drag path for real desktop interaction by adding an explicit mouse-drag fallback and stopping the header close button from participating in drag starts.` 
+
+#### Scope / Constraints Honored
+- Kept the existing sketch session window movement and resize model intact.
+- Focused this fix on the live titlebar-drag interaction path instead of changing viewer rendering, sketch tools, or session state.
+- Reused the existing drag state and viewport clamping logic rather than creating a second movement system.
+
+#### Summary of Implementation
+- Refactored sketch session window dragging in `ViewportOverlay.tsx` behind a shared `beginSketchSessionWindowDrag(...)` path.
+- Added a `mousedown` drag fallback on the titlebar so desktop mouse interaction works even when the pointer-only path is insufficient in the live app.
+- Prevented the sketch session close button from bubbling both pointer and mouse down events into the draggable titlebar surface.
+- Updated the overlay test to exercise the titlebar move path with mouse events instead of only synthetic pointer events.
+
+#### Files Changed
+- `src/app/components/ViewportOverlay.tsx`
+- `src/app/components/ViewportOverlay.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Dragging the sketch session titlebar with a desktop mouse now moves the window reliably.
+- Clicking the header close button no longer risks starting a drag interaction.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/components/ViewportOverlay.test.tsx`
+- `cmd /c npx tsc --noEmit`
+
+<!-- ENTRY 399 -->
+### [399] - 2026-03-18 12:22 - `SP - Phase 11 - Sketch Session Window Drag And Resize`
+<!-- ENTRY 399 -->
+HUMAN SUMMARY: `Made the floating sketch draw/review window behave like a proper movable tool window by keeping titlebar dragging active, preventing header chrome from stealing drag starts, and adding resize handles on every edge and corner.` 
+
+#### Scope / Constraints Honored
+- Kept the existing sketch session flow, ParaSlider controls, and viewer-rendered sketch geometry intact.
+- Limited this change to window movement and resize behavior for the floating sketch session overlay.
+- Reused the repo’s existing floating-toolbar resize pattern rather than inventing a separate windowing system.
+
+#### Summary of Implementation
+- Added full edge and corner resize handles to the sketch session window in `ViewportOverlay.tsx` with viewport-clamped width, height, and position updates.
+- Preserved titlebar dragging and improved it by making the titlebar explicitly non-selectable and by stopping the close button from bubbling `pointerdown` into the drag surface.
+- Added overlay test coverage that verifies the resize handles render and that dragging/resizing updates the window position and size.
+
+#### Files Changed
+- `src/app/components/ViewportOverlay.tsx`
+- `src/app/components/ViewportOverlay.test.tsx`
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- The floating sketch draw/review window can now be moved by dragging its title bar.
+- The same window can now be resized from all four edges and all four corners.
+- Window position is no longer reset on draw/review mode switches for the same active sketch session.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/components/ViewportOverlay.test.tsx`
+- `cmd /c npx tsc --noEmit`
+
+<!-- ENTRY 398 -->
+### [398] - 2026-03-18 12:17 - `SP - Phase 11 - Sketch Draw ParaSlider Theme Scope Fix`
+<!-- ENTRY 398 -->
+HUMAN SUMMARY: `Extended the existing \`ParaSlider\` theme selectors into the floating sketch session window so the left/right cap buttons and value field now visually match the rest of the app's slider styling.` 
+
+#### Scope / Constraints Honored
+- Kept this fix purely in theme scoping instead of changing sketch behavior or replacing the `ParaSlider` component.
+- Reused the existing ParaSlider visual system and only expanded the selector coverage to the sketch overlay container.
+- Left the slider interaction model and viewer-rendered sketch behavior untouched.
+
+#### Summary of Implementation
+- Added `.ViewportOverlaySketchSessionWindow` to the existing `ParaSlider` cap, clamp-handle, and value-button theme selector groups in `v15Theme.css`.
+- This makes the floating sketch draw window inherit the same cap-button borders, transparent value button styling, and hover/focus treatment already used in panels and toolbars.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- The sketch draw `ParaSlider` controls now visually match the rest of the app instead of showing unthemed white cap buttons and mismatched value-field chrome.
+
+#### Verification Steps
+- CSS readback only; no runtime tests were run for this styling-only selector update.
+
+<!-- ENTRY 397 -->
+### [397] - 2026-03-18 12:08 - `SP - Phase 11 - Sketch Draw ParaSlider Controls`
+<!-- ENTRY 397 -->
+HUMAN SUMMARY: `Replaced the raw numeric draft inputs in the floating sketch draw window with repo-standard \`ParaSlider\` controls so every sketch draw value now uses the same slider-plus-direct-edit interaction model used elsewhere in the app.` 
+
+#### Scope / Constraints Honored
+- Kept the existing `3.2B` / `3.2B-2` sketch session flow, store draft state, and viewer rendering behavior intact.
+- Limited this change to the draw-window numeric control surface instead of redesigning tool behavior or adding new sketch commands.
+- Reused the existing `ParaSlider` component rather than introducing a one-off sketch-only slider.
+
+#### Summary of Implementation
+- Swapped the sketch draw draft rows in `ViewportOverlay.tsx` from plain number inputs to `ParaSlider` controls for line, arc, spline, rectangle, and circle fields.
+- Applied a broad first-pass draft range with the existing `0.1` precision so slider control works across normal sketch-entry values without changing stored geometry semantics.
+- Updated the overlay test to assert that the sketch draw window now renders `ParaSlider` controls.
+
+#### Files Changed
+- `src/app/components/ViewportOverlay.tsx`
+- `src/app/components/ViewportOverlay.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- All numeric draft values in sketch draw now use `ParaSlider` controls with direct value editing built into the slider.
+- The old raw number inputs are no longer the primary sketch draw control surface.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/components/ViewportOverlay.test.tsx`
+- `cmd /c npx tsc --noEmit`
+
+<!-- ENTRY 396 -->
+### [396] - 2026-03-18 12:04 - `SP - Phase 11 - 3.2B-2 Viewer Sketch Overlay Implementation`
+<!-- ENTRY 396 -->
+HUMAN SUMMARY: `Implemented the \`3.2B-2\` correction by moving sketch draw/review rendering out of the floating panel and into a real \`Viewer\` overlay path, while keeping the floating sketch session window as controls-only UI.` 
+
+#### Scope / Constraints Honored
+- Kept the existing `Geometry/Sketch` node, store-owned sketch data, and `3.2B` draw/review flow intact instead of redesigning sketch authoring.
+- Added a real viewer-backed render path through `viewerBridge`, `ViewerHost`, and `Viewer`, and removed the old embedded sketch preview card from the floating session window.
+- Left direct viewport drawing, entity hit-testing, and richer snapping explicitly out of this cut.
+
+#### Summary of Implementation
+- Added a `GeometrySketchOverlayVm` viewer contract and a render helper that maps `XY`, `XZ`, and `YZ` sketch data into world-space overlay polylines with distinct component, profile, and selected-profile layers.
+- Synced active sketch session state from `ViewerHost` into `Viewer`, where lightweight line overlay geometry is now created and cleared as sessions open, close, and switch between draw and review.
+- Simplified `ViewportOverlay` so the floating sketch session window is controls-only and no longer renders the primary sketch canvas internally.
+
+#### Files Changed
+- `src/app/viewerBridge.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `src/app/components/ViewportOverlay.tsx`
+- `src/app/components/ViewportOverlay.test.tsx`
+- `src/app/theme/v15Theme.css`
+- `src/viewer/Viewer.ts`
+- `src/viewer/geometrySketchOverlay.ts`
+- `src/viewer/geometrySketchOverlay.test.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Active sketch geometry now renders in the shared `Viewer` scene instead of inside the floating sketch session window.
+- Review mode now highlights detected and selected profiles in the `Viewer`.
+- The floating sketch session window now presents commands, numeric inputs, review controls, and entity summaries without an embedded primary preview card.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/components/ViewerHost.test.tsx src/app/components/ViewportOverlay.test.tsx src/viewer/geometrySketchOverlay.test.ts`
+- `cmd /c npx tsc --noEmit`
+
+<!-- ENTRY 395 -->
+### [395] - 2026-03-18 11:52 - `SP - Phase 11 - 3.2B-2 Viewer-Backed Sketch Overlay Spec Lock`
+<!-- ENTRY 395 -->
+HUMAN SUMMARY: `Rewrote the \`3.2B-2\` follow-up doc into a decision-complete implementation spec that explicitly chooses a real \`Viewer\` overlay API, removes the large embedded preview card as a requirement, and locks the bridge between store state, \`ViewerHost\`, \`viewerBridge\`, and \`Viewer\`.` 
+
+#### Scope / Constraints Honored
+- Kept this as a docs-only refinement of the existing `3.2B-2` follow-up instead of implementing the viewer overlay itself.
+- Replaced the old generic “main viewport overlay path” wording with a concrete architectural choice so the implementer no longer needs to decide between HTML overlay rendering and viewer-layer rendering.
+- Kept direct viewport drawing, hit-testing, snapping upgrades, and broader workspace/window architecture explicitly deferred.
+
+#### Summary of Implementation
+- Updated the `3.2B-2` task doc to lock `ViewerHost -> viewerBridge -> Viewer` as the canonical render path for sketch overlay state.
+- Added the explicit `GeometrySketchOverlayVm` plus `setGeometrySketchOverlay(...)` contract, the required 2D-to-3D plane mapping rules, the tightened implementation order, and viewer-focused verification coverage.
+- Converted “remove the large preview card” from a preference into a hard requirement for this follow-up.
+
+#### Files Changed
+- `docs/Phase-Plans/Tasks/Future/03.2B-2 - SP-NI-FS-GE - Main Viewport Sketch Rendering And Toolbar Split.md`
+- `docs/CHANGELOG.md`
+
+#### Verification Steps
+- Read back the current `3.2B-2` doc and the live sketch-render seam in `src/app/components/ViewportOverlay.tsx`.
+- Confirmed `Viewer` currently exposes no sketch overlay API and that `viewerBridge.ts` is the correct public seam to extend.
+- Performed a docs readback after patching; no runtime code or automated tests were run.
+
+<!-- ENTRY 394 -->
+### [394] - 2026-03-18 11:35 - `SP - Phase 11 - 3.2B-2 Main Viewport Sketch Rendering And Toolbar Split`
+<!-- ENTRY 394 -->
+HUMAN SUMMARY: `Created a new future task doc for \`3.2B-2\` `to capture the follow-up correction where the floating sketch window stays controls-only and the actual sketch geometry moves into the main model viewport.` 
+
+#### Scope / Constraints Honored
+- Kept this as a narrow follow-up planning doc under the existing `3.2B` geometry lane instead of reopening the broader sketch-authoring spec.
+- Locked the current shipped problem against the real code seam in `ViewportOverlay.tsx` where the embedded preview card is still acting as the active render surface.
+- Left later direct viewport drawing depth, richer snapping, and broader workspace/window architecture explicitly deferred.
+
+#### Summary of Implementation
+- Added `docs/Phase-Plans/Tasks/Future/03.2B-2 - SP-NI-FS-GE - Main Viewport Sketch Rendering And Toolbar Split.md` as an implementation-ready execution spec.
+- Defined the corrected surface split so the floating sketch window owns commands/context while the main model viewport owns visible sketch and review rendering.
+- Locked implementation order, acceptance criteria, manual checks, and deferred items around this render-surface correction.
+
+#### Files Changed
+- `docs/Phase-Plans/Tasks/Future/03.2B-2 - SP-NI-FS-GE - Main Viewport Sketch Rendering And Toolbar Split.md`
+- `docs/CHANGELOG.md`
+
+#### Verification Steps
+- Read back the live `3.2B` task doc format and neighboring geometry task docs for consistency before creating the new subtask file.
+- Confirmed the current shipped seam with `rg -n "renderSketchPreview|ViewportOverlaySketchPreviewCard" src/app/components/ViewportOverlay.tsx`.
+- Performed a docs readback after creation; no runtime code or automated tests were involved in this change.
+
+<!-- ENTRY 393 -->
+### [393] - 2026-03-18 11:18 - `SP - Phase 11 - 3.2B Sketch Operation Authoring`
+<!-- ENTRY 393 -->
+HUMAN SUMMARY: `Implemented the first real \`3.2B\` `Geometry/Sketch` `authoring slice by replacing the old placeholder shell with draw/review actions, a viewport-side sketch session window, managed rectangle/circle sketch data, and explicit selected-profile output behavior for downstream geometry work.` 
+
+#### Scope / Constraints Honored
+- Kept this cut on the graph-native `Geometry/Sketch` path instead of reviving the part feature-stack UI as the primary editor.
+- Limited the implementation to the first-pass `Line / Arc3Point / BezierSpline / Rectangle / Circle` draw/review flow and selected-profile handoff.
+- Preserved the existing `3.2A` plane-pick foundation and the compatibility seams already in place for later `3.2C` downstream work.
+
+#### Summary of Implementation
+- Extended managed sketch data with first-class `rectangle` and `circle` components plus selected-profile state in the sketch UI payload.
+- Upgraded profile derivation so ordered closed chains can resolve multiple profiles and so `Geometry/Sketch` can publish either the explicit selected profile or the only resolved profile when there is just one.
+- Added new geometry-sketch store APIs for draw/review session state, component mutation, ordering, removal, and selected-profile updates.
+- Replaced the old sketch placeholders in `NodeView` with real `Draw` and `Review` rows, entity summaries, diagnostics, and review-state summaries.
+- Added a viewport overlay sketch session window with draggable title bar, draw-tool switching, numeric authoring inputs, primitive preview rendering, and profile-review cards.
+
+#### Files Changed
+- `src/app/spaghetti/features/featureTypes.ts`
+- `src/app/spaghetti/features/featureSchema.ts`
+- `src/app/spaghetti/features/profileDerivation.ts`
+- `src/app/spaghetti/registry/nodeRegistry.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/components/ViewportOverlay.tsx`
+- `src/app/theme/v15Theme.css`
+- `src/app/spaghetti/ui/features/SketchFeatureView.tsx`
+- `src/app/spaghetti/features/profileDerivation.test.ts`
+- `src/app/spaghetti/compiler/evaluateGraph.test.ts`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- `Geometry/Sketch` now supports real in-app draw/review authoring instead of only plane selection and placeholders.
+- `SketchProfile` now honors explicit selected-profile state for multi-profile sketches while still auto-resolving the only profile when there is exactly one.
+- The viewport overlay now hosts a draggable sketch draw/review window in addition to the earlier sketch-plane picker.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/spaghetti/features/profileDerivation.test.ts src/app/spaghetti/compiler/evaluateGraph.test.ts src/app/spaghetti/canvas/NodeView.test.tsx src/app/spaghetti/store/useSpaghettiStore.test.ts src/app/spaghetti/registry/nodeRegistry.test.ts`
+- `cmd /c npx tsc --noEmit`
+
+<!-- ENTRY 392 -->
+### [392] - 2026-03-18 11:01 - `SP - Phase 11 - 3.2B Implementation-Ready Spec Refresh`
+<!-- ENTRY 392 -->
+HUMAN SUMMARY: `Refreshed the \`03.2B - SP-NI-FS-GE - Sketch Operation Authoring.md\` task doc so it now matches the shipped \`3.2A\` `Geometry/Sketch` `reality, making the next sketch-authoring phase explicitly build on the landed node shell, store session state, and viewport overlay flow instead of older feature-stack-first ownership.` 
+
+#### Scope / Constraints Honored
+- Kept this pass to docs-only implementation-planning maintenance.
+- Updated only the live `03.2B` execution spec and this permanent changelog.
+- Preserved the already-landed `3.2A` substrate and rewrote `03.2B` only to align it with current code truth.
+
+#### Summary of Implementation
+- Reframed `03.2B` around the shipped `Geometry/Sketch` node, its existing `Inputs / Draw/Edit Curves Inside / Close / Select Profile / Outputs` shell, and the `3.2A` plane-pick foundation.
+- Replaced stale feature-stack-first ownership language with the modern primary seam set: `nodeRegistry`, `selectNodeVm`, `NodeView`, `useSpaghettiStore`, and `ViewportOverlay`.
+- Demoted `SketchFeatureView`, `CloseProfileFeatureView`, and `FeatureStackView` to compatibility/reference seams only.
+- Tightened the locked workflow, implementation order, interfaces, acceptance criteria, and test plan so `03.2B` now reads as the next executable draw/review phase instead of mixed old/new planning language.
+
+#### Files Changed
+- `docs/Phase-Plans/Tasks/Future/03.2B - SP-NI-FS-GE - Sketch Operation Authoring.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- No runtime behavior changed. This was a docs-only implementation-readiness refresh.
+
+#### Verification Steps
+- Read back the refreshed `03.2B` task doc after editing to verify the ownership model, seam list, workflow, and test plan all align with the shipped `3.2A` `Geometry/Sketch` path.
+
+<!-- ENTRY 391 -->
+### [391] - 2026-03-18 10:54 - `OO - Phase 13 - 3.2A Task Lifecycle Move To Old`
+<!-- ENTRY 391 -->
+HUMAN SUMMARY: `Moved the completed \`03.2A - SP-NI-FS-GE - Data Types And Sketch Foundation.md\` phase doc from \`Tasks/Future\` to \`Tasks/Old\`, added a local doc-history note inside the moved file, and re-pointed the neighboring `3.2` family docs so they now reference the landed `3.2A` spec at its completed-history location.` 
+
+#### Scope / Constraints Honored
+- Kept this pass to phase-doc lifecycle maintenance only.
+- Preserved the completed `3.2A` execution spec content and added only the small local history note needed to explain the move.
+- Updated only the live neighboring phase-doc references that still pointed at the stale `Tasks/Future` location.
+
+#### Summary of Implementation
+- Added a local `Doc History` entry to `03.2A` recording that the phase shipped and was moved into completed history.
+- Moved `03.2A` from `docs/Phase-Plans/Tasks/Future/` to `docs/Phase-Plans/Tasks/Old/`.
+- Updated the `03.2` parent doc plus the `03.2B` and `03.2C` child docs so their source-input references now point at the `Tasks/Old` `03.2A` path.
+
+#### Files Changed
+- `docs/Phase-Plans/Tasks/Old/03.2A - SP-NI-FS-GE - Data Types And Sketch Foundation.md`
+- `docs/Phase-Plans/Tasks/Future/03.2 - SP-NI-FS-GE - Foundational Geometry Node System.md`
+- `docs/Phase-Plans/Tasks/Future/03.2B - SP-NI-FS-GE - Sketch Operation Authoring.md`
+- `docs/Phase-Plans/Tasks/Future/03.2C - SP-NI-FS-GE - Extrude Foundation.md`
+
+#### Behavior Changes (if any)
+- The `3.2A` phase doc now lives in `Tasks/Old` instead of `Tasks/Future`, matching its shipped status.
+
+#### Verification Steps
+- Confirmed `docs/Phase-Plans/Tasks/Old/03.2A - SP-NI-FS-GE - Data Types And Sketch Foundation.md` exists and the old `Tasks/Future` path no longer exists.
+- Re-ran a docs search to confirm the live `03.2` family docs now point at the `Tasks/Old` `3.2A` path.
+
+<!-- ENTRY 390 -->
+### [390] - 2026-03-18 10:36 - `OO - Phase 13 - Roadmap 3.2A Closeout Status Refresh`
+<!-- ENTRY 390 -->
+HUMAN SUMMARY: `Updated the live roadmap to reflect the shipped `3.2A` geometry-foundation work, marking `[3.2A]` complete and moving the parent `[3.2]` lane to partial status now that the first foundational-geometry subphase is landed while `[3.2B-D]` remain open.` 
+
+#### Scope / Constraints Honored
+- Kept this pass limited to the live roadmap status markers and checklist state for the shipped `3.2A` slice.
+- Did not reclassify task-doc file locations or broaden the update into `3.2B-D` planning changes.
+- Left the checklist mirror unchanged because its `3.2A` breakdown, decision, and plan-doc tracking were already aligned.
+
+#### Summary of Implementation
+- Added a new roadmap history note recording the `3.2A` closeout status change.
+- Flipped the parent `[3.2]` lane from not-started to partial.
+- Marked `[3.2A] Data Types And Sketch Foundation` complete.
+- Marked the `3.2A` checklist items complete so the live roadmap now matches the shipped `Geometry/Sketch` shell and sketch-plane picker work.
+
+#### Files Changed
+- `docs/Human-Plans/roadmap/roadmap.md`
+
+#### Behavior Changes (if any)
+- The live roadmap now reports `3.2A` as shipped instead of still open.
+
+#### Verification Steps
+- Read back the edited `[3.2]` and `[3.2A]` roadmap block to confirm the parent lane, subphase status marker, and checklist markers are internally consistent.
+
+<!-- ENTRY 389 -->
+### [389] - 2026-03-18 10:22 - `OO - Phase 13 - Roadmap 3.2 Subphase Breakdown And Lane 3 Checklist Sync`
+<!-- ENTRY 389 -->
+HUMAN SUMMARY: `Expanded the live roadmap so `[3.2A]` through `[3.2D]` now each have their own foldable `###` section under the foundational geometry lane, and synced the roadmap checklist mirror so Lane `[3]` numbering plus `3.2` subphase tracking match the live roadmap again.` 
+
+#### Scope / Constraints Honored
+- Kept this pass limited to roadmap structure and tracker alignment.
+- Preserved the existing `3.2A-D` intent and checklist content instead of rewriting the actual phase decisions.
+- Synced the checklist mirror only where Lane `[3]` numbering and subphase tracking were stale.
+
+#### Summary of Implementation
+- Added a new roadmap history note for the `3.2` structure change.
+- Reworked the parent `[3.2]` lane so its detailed `3.2A-D` acceptance bullets now live under dedicated `###` subsections with their own `Summary` and `CheckList` blocks.
+- Simplified the parent `[3.2]` checklist to lane-level staging rules now that the subphase detail lives under the dedicated subsection blocks.
+- Updated `roadmapCHECKLISTS.md` so Lane `[3]` now reflects the live `3.2` foundational-geometry lane, tracks `[3.2A-D]` individually, restores the missing `[3.6]` entry, and corrects the stale plan-status markers for the existing `03.1` and `03.2*` task docs.
+
+#### Files Changed
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/Human-Plans/roadmap/roadmapCHECKLISTS.md`
+
+#### Behavior Changes (if any)
+- The roadmap now folds `3.2A`, `3.2B`, `3.2C`, and `3.2D` as separate visible roadmap sections instead of burying their detail under one combined parent checklist.
+
+#### Verification Steps
+- Read back the edited `[3.2]` roadmap block and the Lane `[3]` checklist mirror to confirm numbering, subphase labels, and tracker counts stayed internally consistent.
+
+<!-- ENTRY 388 -->
+### [388] - 2026-03-18 10:17 - `SP - Phase 3.2A - Data Types And Sketch Foundation`
+<!-- ENTRY 388 -->
+HUMAN SUMMARY: `Adjusted the sketch-plane picker spawn logic so it now opens to the right of the docked Browser/left-dock column instead of defaulting underneath that shell area when first shown.` 
+
+#### Scope / Constraints Honored
+- Kept this change limited to the picker's first-open placement logic.
+- Reused the existing draggable overlay window instead of changing broader workspace layout behavior.
+- Did not alter plane-selection behavior or sketch-node semantics.
+
+#### Summary of Implementation
+- Added a viewport-overlay spawn helper that reads the actual docked Browser or LeftDock bounds from the current shell DOM.
+- Changed the initial picker position to anchor just to the right of that left-side shell area.
+- Kept the existing fallback spawn location when the docked Browser host is not present.
+
+#### Files Changed
+- `src/app/components/ViewportOverlay.tsx`
+
+#### Behavior Changes (if any)
+- The sketch-plane picker should now open beside the Browser instead of behind it.
+
+#### Verification Steps
+- Ran `cmd /c npx tsc --noEmit`
+
+<!-- ENTRY 387 -->
+### [387] - 2026-03-18 10:15 - `SP - Phase 3.2A - Data Types And Sketch Foundation`
+<!-- ENTRY 387 -->
+HUMAN SUMMARY: `Promoted the temporary sketch-plane picker into a draggable overlay window with a real title bar, so the `SketchPlane` chooser no longer starts trapped against the lower console strip and can be moved around the viewport while picking `XY`, `XZ`, or `YZ`.` 
+
+#### Scope / Constraints Honored
+- Kept this follow-up limited to the existing `3.2A` in-app sketch-plane picker.
+- Did not expand the picker into face-pick, custom planes, or `3.2B` drawing tools.
+- Preserved the current spaghetti-store plane assignment flow and only improved the overlay host behavior.
+
+#### Summary of Implementation
+- Added a proper title bar and close button to the sketch-plane picker overlay.
+- Added pointer-driven drag handling so the picker can be repositioned inside the viewport.
+- Changed the picker spawn position from the lower-left edge to a safer upper-left position to avoid the console strip by default.
+- Kept the `XY` / `XZ` / `YZ` selection flow unchanged while improving window usability.
+
+#### Files Changed
+- `src/app/components/ViewportOverlay.tsx`
+- `src/app/theme/v15Theme.css`
+
+#### Behavior Changes (if any)
+- The sketch-plane picker now opens as a movable window instead of a fixed bottom-corner widget.
+- Users can drag the picker by its title bar and close it from the window chrome.
+
+#### Verification Steps
+- Ran `cmd /c npx tsc --noEmit`
+
+<!-- ENTRY 386 -->
+### [386] - 2026-03-18 09:39 - `SP - Phase 3.2A - Data Types And Sketch Foundation`
+<!-- ENTRY 386 -->
+HUMAN SUMMARY: `Implemented the first graph-facing `Geometry/Sketch` node slice with new geometry port kinds, a dedicated sketch template, evaluator-derived sketch profile outputs, and the initial in-app sketch-plane pick flow through the spaghetti store and viewport overlay.` 
+
+#### Scope / Constraints Honored
+- Kept this implementation bounded to the first executable `3.2A` sketch shell instead of drifting into `3.2B` draw/review tooling.
+- Reused the existing managed `SketchFeature` schema and profile-derivation helper instead of creating a second geometry-evaluation path.
+- Left compile/build/runtime graph-native geometry execution out of scope for this phase.
+
+#### Summary of Implementation
+- Added `plane`, `sketchProfiles`, `sketchProfile`, and `solidBody` as first-class port kinds in the spaghetti schema, evaluator defaults, and canvas color mapping.
+- Registered `Geometry/Sketch` as a new user-addable node with a dedicated `sketch` template, a managed `sketch` payload in params, a `SketchPlane` input, and evaluator outputs for `SketchProfiles` plus only-single `SketchProfile`.
+- Extended selector and canvas rendering so sketch nodes expose sketch-specific VM state and render a dedicated shell with the locked `Inputs`, `Draw/Edit Curves Inside`, `Close/Select Profile`, and `Outputs` sections.
+- Added the first sketch-plane pick session path in the spaghetti store and viewport overlay so the `SketchPlane` row `+` opens an in-app `XY` / `XZ` / `YZ` picker and persists the chosen local plane.
+- Added focused test coverage for the sketch registry contract, evaluator behavior, and dedicated sketch node rendering.
+
+#### Files Changed
+- `src/app/spaghetti/features/featureSchema.ts`
+- `src/app/spaghetti/schema/spaghettiTypes.ts`
+- `src/app/spaghetti/schema/spaghettiSchema.ts`
+- `src/app/spaghetti/compiler/evaluateGraph.ts`
+- `src/app/spaghetti/registry/nodeRegistry.ts`
+- `src/app/spaghetti/selectors/selectNodeVm.ts`
+- `src/app/spaghetti/selectors/index.ts`
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
+- `src/app/spaghetti/canvas/typeColors.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/components/ViewportOverlay.tsx`
+- `src/app/theme/v15Theme.css`
+- `src/app/spaghetti/registry/nodeRegistry.test.ts`
+- `src/app/spaghetti/compiler/evaluateGraph.test.ts`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+
+#### Behavior Changes (if any)
+- The node palette now includes a first-class `Geometry/Sketch` node.
+- Sketch nodes render through their own dedicated shell instead of the part template path.
+- The viewport overlay can now enter a lightweight sketch-plane pick mode for active sketch nodes.
+
+#### Verification Steps
+- Ran `cmd /c npx vitest run src/app/spaghetti/registry/nodeRegistry.test.ts src/app/spaghetti/compiler/evaluateGraph.test.ts src/app/spaghetti/canvas/NodeView.test.tsx`
+- Ran `cmd /c npx tsc --noEmit`
+
+<!-- ENTRY 385 -->
+### [385] - 2026-03-18 08:39 - `SP - Phase 3.2A - Data Types And Sketch Foundation`
+<!-- ENTRY 385 -->
+HUMAN SUMMARY: `Rewrote the future `03.2A` task doc into a decision-complete implementation spec for the first graph-facing `Geometry/Sketch` shell, locking the dedicated sketch template, managed `SketchFeature` payload, evaluator-only profile semantics, and the viewer-side plane-pick boundary.` 
+
+#### Scope / Constraints Honored
+- Kept this pass focused on the future `03.2A` execution doc and its implementation boundary.
+- Locked the current-code seams and output semantics without spilling `3.2B` draw/review work into this phase.
+- Kept graph compile/build/runtime geometry execution explicitly out of scope for `3.2A`.
+
+#### Summary of Implementation
+- Reframed `03.2A` around a first-class `Geometry/Sketch` node and a dedicated `sketch` template instead of a generic or part-wrapper shell.
+- Locked the node-owned managed `SketchFeature` payload model, the evaluator-driven `SketchProfiles` plus only-single `SketchProfile` output rule, and the viewer-side `SketchPlane` pick flow through store plus overlay seams.
+- Expanded the doc to name the exact schema, evaluator, node-shell, viewer-session, and non-goal seams, then added implementation order, acceptance criteria, test coverage, and assumptions so the phase no longer leaves product or architecture decisions open.
+
+#### Files Changed
+- `docs/Phase-Plans/Tasks/Future/03.2A - SP-NI-FS-GE - Data Types And Sketch Foundation.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- No runtime behavior changed; this was a docs-only implementation-planning pass.
+
+#### Verification Steps
+- Reviewed the rewritten `03.2A` doc against the current code seams already used by `SketchFeature`, evaluator validation, node rendering, and viewport overlay hosting.
+- Confirmed the new doc now includes explicit implementation order, acceptance criteria, test plan, and assumptions.
 
 <!-- ENTRY 384 -->
 ### [384] - 2026-03-17 22:00 - `VR / Browser - Make Reference Row Click Highlight In Viewer`
@@ -13177,4 +15757,5 @@ HUMAN SUMMARY: `Initialized the new /20/parahook stack with Vite, React, TypeScr
 #### Verification Steps
 - Review restored `GE - Phase 1` in the history task log and the canonical phase log.
 - Confirm the draft reflects the original restart architecture, repo layout, worker skeleton, and viewer skeleton.
+
 

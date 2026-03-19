@@ -25,6 +25,7 @@ export type IRSketchProfileResolved = {
 export type IRSketch = {
   op: 'sketch'
   featureId: string
+  plane?: 'XY' | 'XZ' | 'YZ'
   profilesResolved: IRSketchProfileResolved[]
 }
 
@@ -42,6 +43,7 @@ export type IRExtrude = {
   depthResolved: number
   taperResolved: number
   offsetResolved: number
+  plane?: 'XY' | 'XZ' | 'YZ'
   bodyId?: string
 }
 
@@ -94,6 +96,7 @@ export const compileFeatureStack = (stack: FeatureStack): FeatureStackIR => {
       out.push({
         op: 'sketch',
         featureId: feature.featureId,
+        plane: feature.plane,
         profilesResolved,
       })
       continue

@@ -1,7 +1,9 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { z } from 'zod'
 import type { SpaghettiGraph } from '../schema/spaghettiTypes'
+import type { SketchFeature } from '../features/featureTypes'
 import { evaluateSpaghettiGraph } from './evaluateGraph'
+import { profileIdFromSignature } from '../features/profileDerivation'
 import {
   registry,
   type NodeDefinition,
@@ -17,6 +19,7 @@ const testToeLoftSourceType = 'Test/ToeLoftSource'
 const testToeLoftSinkType = 'Test/ToeLoftSink'
 const testBrokenNumberSourceType = 'Test/BrokenNumberMm'
 const testNumberDegSourceType = 'Test/NumberDeg'
+const testPlaneSourceType = 'Test/PlaneSource'
 
 const registryWithTests = registry as unknown as Record<string, NodeDefinition>
 
@@ -226,6 +229,27 @@ beforeAll(() => {
       value: params.value,
     }),
   }
+
+  registryWithTests[testPlaneSourceType] = {
+    type: testPlaneSourceType as never,
+    label: 'Test Plane Source',
+    paramsSchema: z
+      .object({
+        value: z.enum(['XY', 'YZ', 'XZ']),
+      })
+      .strict(),
+    inputs: [],
+    outputs: [
+      {
+        portId: 'value',
+        label: 'Value',
+        type: { kind: 'plane' },
+      },
+    ],
+    compute: ({ params }) => ({
+      value: params.value,
+    }),
+  }
 })
 
 afterAll(() => {
@@ -238,6 +262,53 @@ afterAll(() => {
   delete registryWithTests[testToeLoftSinkType]
   delete registryWithTests[testBrokenNumberSourceType]
   delete registryWithTests[testNumberDegSourceType]
+  delete registryWithTests[testPlaneSourceType]
+})
+
+const createSketchFeature = (
+  components: SketchFeature['components'] = [],
+  options?: { selectedProfileId?: string },
+): SketchFeature => ({
+  type: 'sketch',
+  featureId: 'sketch-1',
+  plane: 'XY',
+  components,
+  outputs: {
+    profiles: [],
+    diagnostics: [],
+  },
+  uiState: {
+    collapsed: false,
+    ...(options?.selectedProfileId === undefined
+      ? {}
+      : { selectedProfileId: options.selectedProfileId }),
+  },
+})
+
+const lineComponent = (
+  rowId: string,
+  componentId: string,
+  start: { x: number; y: number },
+  end: { x: number; y: number },
+): SketchFeature['components'][number] => ({
+  rowId,
+  componentId,
+  type: 'line',
+  a: { kind: 'lit', x: start.x, y: start.y },
+  b: { kind: 'lit', x: end.x, y: end.y },
+})
+
+const rectangleComponent = (
+  rowId: string,
+  componentId: string,
+  a: { x: number; y: number },
+  b: { x: number; y: number },
+): SketchFeature['components'][number] => ({
+  rowId,
+  componentId,
+  type: 'rectangle',
+  a: { kind: 'lit', x: a.x, y: a.y },
+  b: { kind: 'lit', x: b.x, y: b.y },
 })
 
 const baseNodes = () => [
@@ -937,5 +1008,215 @@ describe('evaluateSpaghettiGraph OutputPreview inertness', () => {
     expect(resultWith.diagnostics.warnings).toEqual(resultWithout.diagnostics.warnings)
     expect(resultWith.inputsByNodeId['n-baseplate']).toEqual(resultWithout.inputsByNodeId['n-baseplate'])
     expect(resultWith.outputsByNodeId['n-baseplate']).toEqual(resultWithout.outputsByNodeId['n-baseplate'])
+  })
+})
+
+describe('evaluateSpaghettiGraph Geometry/Sketch', () => {
+  it('emits empty SketchProfiles and null SketchProfile for an empty managed sketch', () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'n-sketch',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: createSketchFeature(),
+          },
+        },
+      ],
+      edges: [],
+    }
+
+    const result = evaluateSpaghettiGraph(graph)
+
+    expect(result.ok).toBe(true)
+    expect(result.outputsByNodeId['n-sketch']?.SketchProfiles).toEqual([])
+    expect(result.outputsByNodeId['n-sketch']?.SketchProfile).toBeNull()
+  })
+
+  it('derives one downstream-ready profile from a valid closed rectangle sketch', () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'n-sketch',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: createSketchFeature([
+              lineComponent('row-1', 'e1', { x: 0, y: 0 }, { x: 100, y: 0 }),
+              lineComponent('row-2', 'e2', { x: 100, y: 0 }, { x: 100, y: 50 }),
+              lineComponent('row-3', 'e3', { x: 100, y: 50 }, { x: 0, y: 50 }),
+              lineComponent('row-4', 'e4', { x: 0, y: 50 }, { x: 0, y: 0 }),
+            ]),
+          },
+        },
+      ],
+      edges: [],
+    }
+
+    const result = evaluateSpaghettiGraph(graph)
+    const profiles = result.outputsByNodeId['n-sketch']?.SketchProfiles
+    const selectedProfile = result.outputsByNodeId['n-sketch']?.SketchProfile
+
+    expect(result.ok).toBe(true)
+    expect(Array.isArray(profiles)).toBe(true)
+    expect(profiles).toHaveLength(1)
+    expect((profiles as Array<{ area: number }>)[0]?.area).toBe(5000)
+    expect(selectedProfile).toMatchObject({
+      profileIndex: 0,
+      area: 5000,
+    })
+  })
+
+  it('uses an explicit selectedProfileId when multiple sketch profiles are resolved', () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'n-sketch',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: createSketchFeature(
+              [
+                rectangleComponent('row-1', 'rect-a', { x: 0, y: 0 }, { x: 40, y: 20 }),
+                rectangleComponent('row-2', 'rect-b', { x: 60, y: 0 }, { x: 90, y: 30 }),
+              ],
+              {
+                selectedProfileId: profileIdFromSignature('rect-b'),
+              },
+            ),
+          },
+        },
+      ],
+      edges: [],
+    }
+
+    const result = evaluateSpaghettiGraph(graph)
+    const profiles = result.outputsByNodeId['n-sketch']?.SketchProfiles as Array<{
+      profileId: string
+      area: number
+    }>
+
+    expect(result.ok).toBe(true)
+    expect(profiles).toHaveLength(2)
+    expect(result.outputsByNodeId['n-sketch']?.SketchProfile).toMatchObject({
+      profileId: profileIdFromSignature('rect-b'),
+      area: 900,
+    })
+  })
+
+  it('lets a wired plane input override the locally stored sketch plane for evaluation', () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'n-plane',
+          type: testPlaneSourceType,
+          params: {
+            value: 'YZ',
+          },
+        },
+        {
+          nodeId: 'n-sketch',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: {
+              ...createSketchFeature(),
+              plane: 'XY',
+            },
+          },
+        },
+      ],
+      edges: [
+        {
+          edgeId: 'e-plane-sketch',
+          from: {
+            nodeId: 'n-plane',
+            portId: 'value',
+          },
+          to: {
+            nodeId: 'n-sketch',
+            portId: 'SketchPlane',
+          },
+        },
+      ],
+    }
+
+    const result = evaluateSpaghettiGraph(graph)
+
+    expect(result.ok).toBe(true)
+    expect(result.inputsByNodeId['n-sketch']?.SketchPlane).toBe('YZ')
+  })
+})
+
+describe('evaluateSpaghettiGraph Geometry/Extrude', () => {
+  it('publishes one SolidBody when a selected SketchProfile and positive depth are available', () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'n-sketch',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: createSketchFeature([
+              lineComponent('row-1', 'e1', { x: 0, y: 0 }, { x: 100, y: 0 }),
+              lineComponent('row-2', 'e2', { x: 100, y: 0 }, { x: 100, y: 50 }),
+              lineComponent('row-3', 'e3', { x: 100, y: 50 }, { x: 0, y: 50 }),
+              lineComponent('row-4', 'e4', { x: 0, y: 50 }, { x: 0, y: 0 }),
+            ]),
+          },
+        },
+        {
+          nodeId: 'n-extrude',
+          type: 'Geometry/Extrude',
+          params: {
+            extrudeType: 'Basic',
+            depthMm: 25,
+          },
+        },
+      ],
+      edges: [
+        {
+          edgeId: 'e-sketch-profile',
+          from: {
+            nodeId: 'n-sketch',
+            portId: 'SketchProfile',
+          },
+          to: {
+            nodeId: 'n-extrude',
+            portId: 'ExtrusionProfile',
+          },
+        },
+      ],
+    }
+
+    const result = evaluateSpaghettiGraph(graph)
+
+    expect(result.ok).toBe(true)
+    expect(result.outputsByNodeId['n-extrude']?.SolidBody).toEqual({
+      bodyId: 'n-extrude:body',
+    })
+  })
+
+  it('publishes null SolidBody when the selected profile input is missing', () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'n-extrude',
+          type: 'Geometry/Extrude',
+          params: {
+            extrudeType: 'Basic',
+            depthMm: 25,
+          },
+        },
+      ],
+      edges: [],
+    }
+
+    const result = evaluateSpaghettiGraph(graph)
+
+    expect(result.ok).toBe(true)
+    expect(result.outputsByNodeId['n-extrude']?.SolidBody).toBeNull()
   })
 })

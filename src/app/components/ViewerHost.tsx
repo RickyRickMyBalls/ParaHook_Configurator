@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { setViewer } from '../viewerBridge'
+import {
+  setViewer,
+  type GeometrySketchOverlayVm,
+  type SketchPlanePickOverlayVm,
+} from '../viewerBridge'
 import { Viewer } from '../../viewer/Viewer'
 import {
   selectReferenceWorkspaceItems,
@@ -12,6 +16,7 @@ import {
   selectViewerTargetGraphPreviewPreparation,
   useSpaghettiStore,
 } from '../spaghetti/store/useSpaghettiStore'
+import type { SketchFeature } from '../spaghetti/features/featureTypes'
 import {
   selectPreviewRenderVmFromPreparation,
   type PreviewRenderVm,
@@ -43,10 +48,39 @@ export function ViewerHost() {
   const setReferenceTransformSpace = useAppStore((state) => state.setReferenceTransformSpace)
   const setReferenceTransformOverride = useAppStore((state) => state.setReferenceTransformOverride)
   const graphRuntimeByDocumentId = useSpaghettiStore((state) => state.graphRuntimeByDocumentId)
+  const sketchPlanePickSession = useSpaghettiStore((state) => state.sketchPlanePickSession)
+  const geometrySketchSession = useSpaghettiStore((state) => state.geometrySketchSession)
   const sharedViewerComposition = useSpaghettiStore(selectSharedViewerComposition)
   const viewerTargetPreviewPreparation = useSpaghettiStore(selectViewerTargetGraphPreviewPreparation)
   const viewerTargetBuildOutputs = useSpaghettiStore(selectViewerTargetGraphAcceptedPreviewBuildOutputs)
   const view = useUiPrefsStore((state) => state.view)
+  const sketchPlaneToolbarGhostPlaneScale = useUiPrefsStore(
+    (state) => state.sketchPlaneToolbarGhostPlaneScale,
+  )
+  const sketchPlaneToolbarGizmoScale = useUiPrefsStore(
+    (state) => state.sketchPlaneToolbarGizmoScale,
+  )
+  const sketchPlaneToolbarTranslateSnapEnabled = useUiPrefsStore(
+    (state) => state.sketchPlaneToolbarTranslateSnapEnabled,
+  )
+  const sketchPlaneToolbarTranslateSnapValue = useUiPrefsStore(
+    (state) => state.sketchPlaneToolbarTranslateSnapValue,
+  )
+  const sketchPlaneToolbarRotateSnapEnabled = useUiPrefsStore(
+    (state) => state.sketchPlaneToolbarRotateSnapEnabled,
+  )
+  const sketchPlaneToolbarRotateSnapValue = useUiPrefsStore(
+    (state) => state.sketchPlaneToolbarRotateSnapValue,
+  )
+  const activeGeometrySketchNode = useSpaghettiStore((state) => {
+    const nodeId = state.geometrySketchSession?.nodeId
+    if (nodeId === undefined) {
+      return null
+    }
+    return state.graph.nodes.find(
+      (node) => node.nodeId === nodeId && node.type === 'Geometry/Sketch',
+    ) ?? null
+  })
 
   const previewList = useMemo(
     () => {
@@ -75,6 +109,69 @@ export function ViewerHost() {
       viewerTargetPreviewPreparation,
     ],
   )
+
+  const geometrySketchOverlay = useMemo<GeometrySketchOverlayVm | null>(() => {
+    if (geometrySketchSession === null || activeGeometrySketchNode === null) {
+      return null
+    }
+
+    const sketchFeature = activeGeometrySketchNode.params.sketch as SketchFeature | undefined
+    if (sketchFeature === undefined) {
+      return null
+    }
+
+    const profiles = (sketchFeature.outputs.profiles ?? []).map((profile) => ({
+      profileId: profile.profileId,
+      vertices: profile.verticesProxy,
+    }))
+    const selectedProfileId =
+      sketchFeature.uiState.selectedProfileId ??
+      (profiles.length === 1 ? profiles[0].profileId : undefined)
+
+    return {
+      mode: geometrySketchSession.mode,
+      plane: sketchFeature.plane ?? 'XY',
+      components: sketchFeature.components ?? [],
+      profiles,
+      selectedProfileId,
+    }
+  }, [activeGeometrySketchNode, geometrySketchSession])
+
+  const sketchPlanePickOverlay = useMemo<SketchPlanePickOverlayVm | null>(() => {
+    if (sketchPlanePickSession === null) {
+      return null
+    }
+    return {
+      stage: sketchPlanePickSession.stage,
+      gizmoMode: sketchPlanePickSession.gizmoMode,
+      draftPlane: sketchPlanePickSession.draftPlane,
+      draftTransform: {
+        ...sketchPlanePickSession.draftTransform,
+        translation: { ...sketchPlanePickSession.draftTransform.translation },
+        rotationDeg: { ...sketchPlanePickSession.draftTransform.rotationDeg },
+      },
+      snap: {
+        translateMm: sketchPlaneToolbarTranslateSnapEnabled
+          ? sketchPlaneToolbarTranslateSnapValue
+          : null,
+        rotateDeg: sketchPlaneToolbarRotateSnapEnabled
+          ? sketchPlaneToolbarRotateSnapValue
+          : null,
+      },
+      ui: {
+        ghostPlaneScale: sketchPlaneToolbarGhostPlaneScale,
+        gizmoScale: sketchPlaneToolbarGizmoScale,
+      },
+    }
+  }, [
+    sketchPlanePickSession,
+    sketchPlaneToolbarGhostPlaneScale,
+    sketchPlaneToolbarGizmoScale,
+    sketchPlaneToolbarRotateSnapEnabled,
+    sketchPlaneToolbarRotateSnapValue,
+    sketchPlaneToolbarTranslateSnapEnabled,
+    sketchPlaneToolbarTranslateSnapValue,
+  ])
 
   const referenceWorkspaceItems = useMemo(
     () => selectReferenceWorkspaceItems({ referenceWorkspace }),
@@ -224,12 +321,20 @@ export function ViewerHost() {
     viewer.setOnReferenceTransformSpaceChange((space) => {
       useAppStore.getState().setReferenceTransformSpace(space)
     })
+    viewer.setOnSketchPlanePickPlaneSelect((plane) => {
+      useSpaghettiStore.getState().setSketchPlanePickDraftPlane(plane)
+    })
+    viewer.setOnSketchPlanePickTransformChange((transform) => {
+      useSpaghettiStore.getState().setSketchPlanePickDraftTransform(transform)
+    })
 
     return () => {
       viewer.setOnReferenceTransformChange(null)
       viewer.setOnReferenceTransformExit(null)
       viewer.setOnReferenceTransformModeChange(null)
       viewer.setOnReferenceTransformSpaceChange(null)
+      viewer.setOnSketchPlanePickPlaneSelect(null)
+      viewer.setOnSketchPlanePickTransformChange(null)
     }
   }, [endReferenceTransform, setReferenceTransformMode, setReferenceTransformOverride, setReferenceTransformSpace])
 
@@ -323,6 +428,14 @@ export function ViewerHost() {
   useEffect(() => {
     viewerRef.current?.setReferenceTransformSession(activeReferenceTransformSession)
   }, [activeReferenceTransformSession])
+
+  useEffect(() => {
+    viewerRef.current?.setGeometrySketchOverlay(geometrySketchOverlay)
+  }, [geometrySketchOverlay])
+
+  useEffect(() => {
+    viewerRef.current?.setSketchPlanePickOverlay(sketchPlanePickOverlay)
+  }, [sketchPlanePickOverlay])
 
   return (
     <div className="ViewportRoot">
