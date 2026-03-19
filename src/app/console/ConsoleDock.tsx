@@ -8,14 +8,33 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from 'react'
 import { createPortal } from 'react-dom'
+import { isEditableTarget, routeKeyboardInput } from '../inputRouting'
 import { DEFAULT_REFERENCE_ROTATE_SNAP } from '../references/referenceTimeline'
 import { getViewer } from '../viewerBridge'
 import { useAppStore } from '../store/useAppStore'
-import { useSpaghettiStore } from '../spaghetti/store/useSpaghettiStore'
+import { addNode as addNodeCommand } from '../spaghetti/graphCommands'
+import { getDefaultNodeParams } from '../spaghetti/registry/nodeRegistry'
+import type {
+  EditorViewportWindowMode,
+  GraphNodePos,
+  SpaghettiGraph,
+} from '../spaghetti/schema/spaghettiTypes'
+import {
+  selectGraphDocumentById,
+  selectOrderedGraphDocuments,
+  useSpaghettiStore,
+} from '../spaghetti/store/useSpaghettiStore'
 import { ConsoleBar } from './ConsoleBar'
 import { ConsolePanel } from './ConsolePanel'
 import { appendConsoleEntry, isConsoleEntryVisible, useConsoleStore } from './useConsoleStore'
 import type { ConsoleFloatingRect } from './consoleTypes'
+import {
+  cancelConsoleStagedNavigationSession,
+  createConsoleStagedNavigationContext,
+  isConsoleStagedNavigationRootToken,
+  submitConsoleStagedNavigationToken,
+  type ConsoleStagedNavigationChoice,
+} from './stagedNavigation'
 
 const FLOATING_MIN_WIDTH = 420
 const FLOATING_MIN_HEIGHT = 220
@@ -119,18 +138,6 @@ const copyDocumentStyles = (sourceDocument: Document, targetDocument: Document) 
   targetDocument.head.appendChild(fragment)
 }
 
-const isEditableTarget = (target: EventTarget | null): boolean => {
-  if (!(target instanceof HTMLElement)) {
-    return false
-  }
-  return (
-    target.tagName === 'INPUT' ||
-    target.tagName === 'TEXTAREA' ||
-    target.tagName === 'SELECT' ||
-    target.isContentEditable
-  )
-}
-
 const parseConsoleCommand = (
   inputText: string,
 ): {
@@ -175,6 +182,120 @@ const parseConsoleCommand = (
   }
 }
 
+const formatStagedBreadcrumb = (breadcrumb: string[]): string => breadcrumb.join(' > ')
+
+const formatStagedChoiceSummary = (choices: ConsoleStagedNavigationChoice[]): string =>
+  choices.map((choice) => choice.label).join(', ')
+
+const buildStagedPromptText = (choices: ConsoleStagedNavigationChoice[]): string =>
+  choices.length === 0
+    ? 'No further choices in this staged scope yet'
+    : `Choose next [${formatStagedChoiceSummary(choices)}]`
+
+type GraphRootEditorRevealRestore =
+  | {
+      kind: 'close-opened-viewport'
+      editorViewportId: string
+      previousActiveEditorViewportId: string
+    }
+  | {
+      kind: 'restore-window-mode'
+      editorViewportId: string
+      windowMode: Extract<EditorViewportWindowMode, 'collapsed' | 'meatball editor view'>
+      previousActiveEditorViewportId: string
+    }
+
+const ensureSpaghettiEditorVisibleForGraphRoot = (): GraphRootEditorRevealRestore | null => {
+  const spaghettiState = useSpaghettiStore.getState()
+  const previousActiveEditorViewportId = spaghettiState.activeEditorViewportId
+  const existingViewport =
+    Object.values(spaghettiState.editorViewportsById).find(
+      (viewport) => viewport.graphDocumentId === spaghettiState.activeGraphDocumentId,
+    ) ?? null
+  const viewportId =
+    spaghettiState.openGraphDocumentInViewport(spaghettiState.activeGraphDocumentId) ??
+    spaghettiState.activeEditorViewportId
+  if (viewportId.length === 0) {
+    return null
+  }
+  const updatedState = useSpaghettiStore.getState()
+  const activeViewport = updatedState.editorViewportsById[viewportId] ?? null
+  if (activeViewport === null) {
+    return null
+  }
+  if (existingViewport === null) {
+    return {
+      kind: 'close-opened-viewport',
+      editorViewportId: viewportId,
+      previousActiveEditorViewportId,
+    }
+  }
+  if (
+    activeViewport.windowMode === 'collapsed' ||
+    activeViewport.windowMode === 'meatball editor view'
+  ) {
+    updatedState.setEditorViewportWindowMode(activeViewport.editorViewportId, 'expanded')
+    return {
+      kind: 'restore-window-mode',
+      editorViewportId: activeViewport.editorViewportId,
+      windowMode: activeViewport.windowMode,
+      previousActiveEditorViewportId,
+    }
+  }
+  return null
+}
+
+const buildStagedNavigationContextFromStoreState = (
+  spaghettiState: ReturnType<typeof useSpaghettiStore.getState>,
+) =>
+  createConsoleStagedNavigationContext(
+    selectOrderedGraphDocuments(spaghettiState).map((document) => ({
+      graphDocumentId: document.graphDocumentId,
+      name: document.name,
+      sketchOptions: document.graph.nodes
+        .filter((node) => node.type === 'Geometry/Sketch')
+        .map((node) => ({
+          nodeId: node.nodeId,
+        })),
+    })),
+  )
+
+let fallbackConsoleSketchNodeIdCounter = 0
+
+const buildTentativeConsoleSketchNodeId = (): string => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return `node-${crypto.randomUUID()}`
+  }
+  fallbackConsoleSketchNodeIdCounter += 1
+  return `node-console-fallback-${fallbackConsoleSketchNodeIdCounter}`
+}
+
+const generateUniqueConsoleSketchNodeId = (graph: SpaghettiGraph): string => {
+  const existing = new Set(graph.nodes.map((node) => node.nodeId))
+  let candidate = buildTentativeConsoleSketchNodeId()
+  let suffix = 2
+  while (existing.has(candidate)) {
+    candidate = `${buildTentativeConsoleSketchNodeId()}-${suffix}`
+    suffix += 1
+  }
+  return candidate
+}
+
+const buildDefaultCreatedSketchPosition = (graph: SpaghettiGraph): GraphNodePos => {
+  const positions = graph.nodes
+    .map((node) => graph.ui?.nodes?.[node.nodeId] ?? node.ui ?? null)
+    .filter((position): position is GraphNodePos => position !== null)
+  if (positions.length === 0) {
+    return { x: 160, y: 140 }
+  }
+  const maxX = Math.max(...positions.map((position) => position.x))
+  const minY = Math.min(...positions.map((position) => position.y))
+  return {
+    x: Math.round(maxX + 240),
+    y: Math.round(minY),
+  }
+}
+
 export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
   const dockRef = useRef<HTMLDivElement | null>(null)
   const floatingWindowRef = useRef<HTMLDivElement | null>(null)
@@ -183,6 +304,8 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
   const floatingInputRef = useRef<HTMLInputElement | null>(null)
   const popoutInputRef = useRef<HTMLInputElement | null>(null)
   const suppressPopoutCloseRef = useRef(false)
+  const suppressAutoCaptureRef = useRef(false)
+  const graphRootEditorRevealRestoreRef = useRef<GraphRootEditorRevealRestore | null>(null)
   const [popoutHost, setPopoutHost] = useState<HTMLElement | null>(null)
 
   const isExpanded = useConsoleStore((state) => state.isExpanded)
@@ -210,6 +333,10 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
   const handlePopoutWindowClosed = useConsoleStore((state) => state.handlePopoutWindowClosed)
   const setExpanded = useConsoleStore((state) => state.setExpanded)
   const pushCommandHistory = useConsoleStore((state) => state.pushCommandHistory)
+  const seedInputText = useConsoleStore((state) => state.seedInputText)
+  const stagedNavigationSession = useConsoleStore((state) => state.stagedNavigationSession)
+  const setStagedNavigationSession = useConsoleStore((state) => state.setStagedNavigationSession)
+  const clearStagedNavigationSession = useConsoleStore((state) => state.clearStagedNavigationSession)
   const visibleEntries = useMemo(
     () =>
       entries
@@ -245,18 +372,441 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
   }, [])
 
   const dispatchImmediateShortcut = useCallback((key: 'm' | 'r' | 's') => {
-    window.dispatchEvent(
-      new KeyboardEvent('keydown', {
-        key,
-        bubbles: true,
-        cancelable: true,
+    suppressAutoCaptureRef.current = true
+    try {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key,
+          bubbles: true,
+          cancelable: true,
+        }),
+      )
+    } finally {
+      suppressAutoCaptureRef.current = false
+    }
+  }, [])
+
+  const routeConsoleGlobalKey = useCallback((event: KeyboardEvent) => {
+    const spaghettiState = useSpaghettiStore.getState()
+    const appState = useAppStore.getState()
+    return routeKeyboardInput({
+      event,
+      sketchPlanePickStage: spaghettiState.sketchPlanePickSession?.stage ?? null,
+      geometrySketchMode: spaghettiState.geometrySketchSession?.mode ?? null,
+      referenceTransformActive: appState.referenceWorkspace.activeTransformReferenceId !== null,
+      stagedConsoleActive: useConsoleStore.getState().stagedNavigationSession !== null,
+      allowFlatConsoleCapture: true,
+    })
+  }, [])
+
+  const cancelActiveStagedNavigationSession = useCallback(() => {
+    if (useConsoleStore.getState().stagedNavigationSession === null) {
+      return false
+    }
+    const cancelled = cancelConsoleStagedNavigationSession()
+    clearStagedNavigationSession()
+    const revealRestore = graphRootEditorRevealRestoreRef.current
+    graphRootEditorRevealRestoreRef.current = null
+    if (revealRestore !== null) {
+      const spaghettiState = useSpaghettiStore.getState()
+      if (revealRestore.kind === 'close-opened-viewport') {
+        if (spaghettiState.editorViewportsById[revealRestore.editorViewportId] !== undefined) {
+          spaghettiState.closeEditorViewport(revealRestore.editorViewportId)
+        }
+      } else if (spaghettiState.editorViewportsById[revealRestore.editorViewportId] !== undefined) {
+        spaghettiState.setEditorViewportWindowMode(
+          revealRestore.editorViewportId,
+          revealRestore.windowMode,
+        )
+      }
+      if (
+        revealRestore.previousActiveEditorViewportId.length > 0 &&
+        useSpaghettiStore.getState().editorViewportsById[
+          revealRestore.previousActiveEditorViewportId
+        ] !== undefined
+      ) {
+        useSpaghettiStore
+          .getState()
+          .setActiveEditorViewportId(revealRestore.previousActiveEditorViewportId)
+      }
+    }
+    appendConsoleEntry({
+      layer: 'App',
+      text: 'Staged navigation cancelled',
+      source: 'console',
+      severity: 'info',
+    })
+    appendConsoleEntry({
+      layer: 'Commands',
+      text: `Available roots [${formatStagedChoiceSummary(cancelled.validChoices)}]`,
+      source: 'console',
+      severity: 'info',
+    })
+    return true
+  }, [clearStagedNavigationSession])
+
+  const createMissingSketchNodeInGraphDocument = useCallback((graphDocumentId: string) => {
+    const initialState = useSpaghettiStore.getState()
+    if (initialState.activeGraphDocumentId !== graphDocumentId) {
+      initialState.openGraphDocumentInViewport(graphDocumentId)
+    }
+    const mutationState = useSpaghettiStore.getState()
+    const targetDocument = selectGraphDocumentById(mutationState, graphDocumentId)
+    if (targetDocument === null) {
+      return null
+    }
+    const existingSketchCount = targetDocument.graph.nodes.filter(
+      (node) => node.type === 'Geometry/Sketch',
+    ).length
+    const nodeId = generateUniqueConsoleSketchNodeId(targetDocument.graph)
+    mutationState.applyGraphCommand(
+      addNodeCommand({
+        node: {
+          nodeId,
+          type: 'Geometry/Sketch',
+          params: getDefaultNodeParams('Geometry/Sketch'),
+        },
+        position: buildDefaultCreatedSketchPosition(targetDocument.graph),
       }),
     )
+    const updatedState = useSpaghettiStore.getState()
+    updatedState.setSelectedNodeId(nodeId)
+    updatedState.requestEditorViewportNodeFit(updatedState.activeEditorViewportId, nodeId)
+    return {
+      nodeId,
+      sketchLabel: `sketch_[${existingSketchCount + 1}]`,
+      stagedContext: buildStagedNavigationContextFromStoreState(updatedState),
+    }
   }, [])
 
   const handleSubmitCommand = useCallback(
     (inputText: string) => {
       const trimmedInput = inputText.trim().toLowerCase()
+      const spaghettiState = useSpaghettiStore.getState()
+      const activeStagedSession = useConsoleStore.getState().stagedNavigationSession
+      const stagedContext = buildStagedNavigationContextFromStoreState(spaghettiState)
+      if (activeStagedSession !== null || isConsoleStagedNavigationRootToken(inputText)) {
+        const rawToken = inputText.trim()
+        if (activeStagedSession === null && isConsoleStagedNavigationRootToken(inputText)) {
+          graphRootEditorRevealRestoreRef.current = ensureSpaghettiEditorVisibleForGraphRoot()
+          useAppStore.getState().requestFloatingShellActivation('spaghetti')
+        }
+        appendConsoleEntry({
+          layer: 'Commands',
+          text: `> ${rawToken}`,
+        })
+        pushCommandHistory(rawToken)
+        const stagedResult = submitConsoleStagedNavigationToken(
+          activeStagedSession,
+          inputText,
+          stagedContext,
+        )
+        if (stagedResult.kind === 'advance') {
+          if (
+            activeStagedSession?.scopeId === 'graphSelected' &&
+            stagedResult.session.scopeId === 'graphSketchList' &&
+            stagedResult.validChoices.every((choice) => choice.canonicalToken === 'BACK') &&
+            stagedResult.selections.graphDocumentId !== null
+          ) {
+            const createdSketch = createMissingSketchNodeInGraphDocument(
+              stagedResult.selections.graphDocumentId,
+            )
+            if (createdSketch !== null) {
+              const resumedResult = submitConsoleStagedNavigationToken(
+                activeStagedSession,
+                inputText,
+                createdSketch.stagedContext,
+              )
+              if (resumedResult.kind === 'advance') {
+                setStagedNavigationSession(resumedResult.session)
+                const preAutoBreadcrumb =
+                  resumedResult.autoSelections.length === 0
+                    ? resumedResult.breadcrumb
+                    : resumedResult.breadcrumb.slice(
+                        0,
+                        Math.max(0, resumedResult.breadcrumb.length - resumedResult.autoSelections.length),
+                      )
+                appendConsoleEntry({
+                  layer: 'Commands',
+                  text: formatStagedBreadcrumb(preAutoBreadcrumb),
+                  source: 'console',
+                  severity: 'info',
+                })
+                appendConsoleEntry({
+                  layer: 'App',
+                  text: `Created ${createdSketch.sketchLabel}`,
+                  source: 'console',
+                  severity: 'info',
+                })
+                resumedResult.autoSelections.forEach((choice) => {
+                  appendConsoleEntry({
+                    layer: 'Commands',
+                    text: `Auto-selected ${choice.label}`,
+                    source: 'console',
+                    severity: 'info',
+                  })
+                })
+                if (resumedResult.autoSelections.length > 0) {
+                  appendConsoleEntry({
+                    layer: 'Commands',
+                    text: formatStagedBreadcrumb(resumedResult.breadcrumb),
+                    source: 'console',
+                    severity: 'info',
+                  })
+                }
+                appendConsoleEntry({
+                  layer: 'Commands',
+                  text: buildStagedPromptText(resumedResult.validChoices),
+                  source: 'console',
+                  severity: 'info',
+                })
+                return
+              }
+            }
+          }
+          setStagedNavigationSession(stagedResult.session)
+          const preAutoBreadcrumb =
+            stagedResult.autoSelections.length === 0
+              ? stagedResult.breadcrumb
+              : stagedResult.breadcrumb.slice(
+                  0,
+                  Math.max(0, stagedResult.breadcrumb.length - stagedResult.autoSelections.length),
+                )
+          appendConsoleEntry({
+            layer: 'Commands',
+            text: formatStagedBreadcrumb(preAutoBreadcrumb),
+            source: 'console',
+            severity: 'info',
+          })
+          stagedResult.autoSelections.forEach((choice) => {
+            appendConsoleEntry({
+              layer: 'Commands',
+              text: `Auto-selected ${choice.label}`,
+              source: 'console',
+              severity: 'info',
+            })
+          })
+          if (stagedResult.autoSelections.length > 0) {
+            appendConsoleEntry({
+              layer: 'Commands',
+              text: formatStagedBreadcrumb(stagedResult.breadcrumb),
+              source: 'console',
+              severity: 'info',
+            })
+          }
+          appendConsoleEntry({
+            layer: 'Commands',
+            text: buildStagedPromptText(stagedResult.validChoices),
+            source: 'console',
+            severity: 'info',
+          })
+          return
+        }
+        if (stagedResult.kind === 'execute') {
+          if (
+            (stagedResult.actionId === 'graph.editor.collapsed' ||
+              stagedResult.actionId === 'graph.editor.essentials' ||
+              stagedResult.actionId === 'graph.editor.expanded') &&
+            stagedResult.selections.graphDocumentId !== null
+          ) {
+            setStagedNavigationSession(stagedResult.session)
+            const targetViewportId =
+              spaghettiState.openGraphDocumentInViewport(stagedResult.selections.graphDocumentId) ??
+              useSpaghettiStore.getState().activeEditorViewportId
+            if (targetViewportId.length > 0) {
+              const presentationMode =
+                stagedResult.actionId === 'graph.editor.collapsed'
+                  ? 'collapsed'
+                  : stagedResult.actionId === 'graph.editor.essentials'
+                    ? 'essentials'
+                    : 'expanded'
+              useSpaghettiStore
+                .getState()
+                .setEditorViewportPresentationMode(targetViewportId, presentationMode)
+            }
+            appendConsoleEntry({
+              layer: 'Commands',
+              text: formatStagedBreadcrumb(stagedResult.breadcrumb),
+              source: 'console',
+              severity: 'info',
+            })
+            appendConsoleEntry({
+              layer: 'App',
+              text: `Editor mode: ${stagedResult.matchedChoice.label}`,
+              source: 'console',
+              severity: 'info',
+            })
+            appendConsoleEntry({
+              layer: 'Commands',
+              text: buildStagedPromptText(stagedResult.session.validChoices),
+              source: 'console',
+              severity: 'info',
+            })
+            return
+          }
+          graphRootEditorRevealRestoreRef.current = null
+          clearStagedNavigationSession()
+          if (
+            (stagedResult.actionId === 'sketch.draw' ||
+              stagedResult.actionId === 'sketch.plane') &&
+            stagedResult.selections.graphDocumentId !== null &&
+            stagedResult.selections.sketchNodeId !== null
+          ) {
+            if (spaghettiState.activeGraphDocumentId !== stagedResult.selections.graphDocumentId) {
+              spaghettiState.openGraphDocumentInViewport(stagedResult.selections.graphDocumentId)
+            }
+            appendConsoleEntry({
+              layer: 'Commands',
+              text: formatStagedBreadcrumb(stagedResult.breadcrumb),
+              source: 'console',
+              severity: 'info',
+            })
+            if (stagedResult.actionId === 'sketch.plane') {
+              useSpaghettiStore.getState().startSketchPlanePick(stagedResult.selections.sketchNodeId)
+              appendConsoleEntry({
+                layer: 'App',
+                text: 'Sketch Plane started',
+                source: 'console',
+                severity: 'info',
+              })
+              return
+            }
+            useSpaghettiStore
+              .getState()
+              .startGeometrySketchSession(stagedResult.selections.sketchNodeId, 'draw')
+            appendConsoleEntry({
+              layer: 'App',
+              text: 'Sketch Draw started',
+              source: 'console',
+              severity: 'info',
+            })
+            return
+          }
+          appendConsoleEntry({
+            layer: 'Commands',
+            text: formatStagedBreadcrumb(stagedResult.breadcrumb),
+            source: 'console',
+            severity: 'info',
+          })
+          appendConsoleEntry({
+            layer: 'App',
+            text: `Staged action: ${stagedResult.matchedChoice.label}`,
+            source: 'console',
+            severity: 'info',
+          })
+          return
+        }
+        if (stagedResult.kind === 'invalid') {
+          if (stagedResult.session !== null) {
+            setStagedNavigationSession(stagedResult.session)
+          }
+          appendConsoleEntry({
+            layer: 'Commands',
+            text:
+              stagedResult.breadcrumb.length === 0
+                ? 'Select'
+                : formatStagedBreadcrumb(stagedResult.breadcrumb),
+            source: 'console',
+            severity: 'info',
+          })
+          appendConsoleEntry({
+            layer: 'Diagnostics',
+            text: `Invalid token for current scope: ${rawToken}`,
+            source: 'console',
+            severity: 'warn',
+          })
+          appendConsoleEntry({
+            layer: 'Commands',
+            text: buildStagedPromptText(stagedResult.validChoices),
+            source: 'console',
+            severity: 'info',
+          })
+          return
+        }
+      }
+      graphRootEditorRevealRestoreRef.current = null
+      const geometrySketchSession = spaghettiState.geometrySketchSession
+      if (geometrySketchSession?.mode === 'draw') {
+        if (trimmedInput === 'line' || trimmedInput === 'l') {
+          appendConsoleEntry({
+            layer: 'Commands',
+            text: `> ${trimmedInput}`,
+          })
+          pushCommandHistory(trimmedInput)
+          spaghettiState.setGeometrySketchSessionTool('line')
+          return
+        }
+        if (trimmedInput === 'pline' || trimmedInput === 'pl') {
+          appendConsoleEntry({
+            layer: 'Commands',
+            text: `> ${trimmedInput}`,
+          })
+          pushCommandHistory(trimmedInput)
+          spaghettiState.setGeometrySketchSessionTool('pline')
+          return
+        }
+        if (trimmedInput === 'enter') {
+          appendConsoleEntry({
+            layer: 'Commands',
+            text: '> enter',
+          })
+          pushCommandHistory('enter')
+          spaghettiState.finishGeometrySketchDrawDraft()
+          return
+        }
+        if (trimmedInput === 'esc') {
+          appendConsoleEntry({
+            layer: 'Commands',
+            text: '> esc',
+          })
+          pushCommandHistory('esc')
+          spaghettiState.cancelGeometrySketchDrawDraft()
+          return
+        }
+        if (trimmedInput === 'x') {
+          appendConsoleEntry({
+            layer: 'Commands',
+            text: '> x',
+          })
+          pushCommandHistory('x')
+          spaghettiState.closeGeometrySketchSession()
+          return
+        }
+        if (trimmedInput === 'status') {
+          appendConsoleEntry({
+            layer: 'Commands',
+            text: '> status',
+          })
+          pushCommandHistory('status')
+          appendConsoleEntry({
+            layer: 'App',
+            text:
+              `Draw Sketch ${geometrySketchSession.activeTool.toUpperCase()} ` +
+              `points=${geometrySketchSession.drawDraft?.points.length ?? 0} ` +
+              `hover=${
+                geometrySketchSession.drawDraft?.hoverPoint === null
+                  ? 'none'
+                  : `${geometrySketchSession.drawDraft?.hoverPoint.x.toFixed(1)},${geometrySketchSession.drawDraft?.hoverPoint.y.toFixed(1)}`
+              }`,
+            source: 'console',
+            severity: 'info',
+          })
+          return
+        }
+        if (trimmedInput === 'help') {
+          appendConsoleEntry({
+            layer: 'Commands',
+            text: '> help',
+          })
+          pushCommandHistory('help')
+          appendConsoleEntry({
+            layer: 'Commands',
+            text: 'Draw Sketch commands: line (l), pline (pl), enter, esc, x, status, help',
+            severity: 'info',
+          })
+          return
+        }
+      }
       if (trimmedInput === 'x' && useSpaghettiStore.getState().sketchPlanePickSession !== null) {
         appendConsoleEntry({
           layer: 'Commands',
@@ -426,7 +976,13 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
           })
       }
     },
-    [dispatchImmediateShortcut, pushCommandHistory],
+    [
+      clearStagedNavigationSession,
+      createMissingSketchNodeInGraphDocument,
+      dispatchImmediateShortcut,
+      pushCommandHistory,
+      setStagedNavigationSession,
+    ],
   )
 
   useEffect(() => {
@@ -519,23 +1075,41 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (
         event.defaultPrevented ||
-        event.key !== '/' ||
-        event.ctrlKey ||
-        event.altKey ||
-        event.metaKey ||
         isEditableTarget(event.target)
       ) {
         return
       }
+      if (event.key === '/' && !event.ctrlKey && !event.altKey && !event.metaKey) {
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        focusMainConsoleInput()
+        return
+      }
+      const routing = routeConsoleGlobalKey(event)
+      if (routing.owner === 'staged-console' && event.key === 'Escape') {
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        cancelActiveStagedNavigationSession()
+        return
+      }
+      if (
+        suppressAutoCaptureRef.current ||
+        routing.decision !== 'handle' ||
+        (routing.owner !== 'flat-console' && routing.owner !== 'staged-console')
+      ) {
+        return
+      }
       event.preventDefault()
+      event.stopImmediatePropagation()
       focusMainConsoleInput()
+      seedInputText(event.key)
     }
 
-    window.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('keydown', handleKeyDown, true)
     return () => {
-      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('keydown', handleKeyDown, true)
     }
-  }, [focusMainConsoleInput])
+  }, [cancelActiveStagedNavigationSession, focusMainConsoleInput, routeConsoleGlobalKey, seedInputText])
 
   useEffect(() => {
     const popoutWindow = popoutWindowRef.current
@@ -546,23 +1120,48 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
     const handlePopoutKeyDown = (event: KeyboardEvent) => {
       if (
         event.defaultPrevented ||
-        event.key !== '/' ||
-        event.ctrlKey ||
-        event.altKey ||
-        event.metaKey ||
         isEditableTarget(event.target)
       ) {
         return
       }
+      if (event.key === '/' && !event.ctrlKey && !event.altKey && !event.metaKey) {
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        focusPopoutConsoleInput()
+        return
+      }
+      const routing = routeConsoleGlobalKey(event)
+      if (routing.owner === 'staged-console' && event.key === 'Escape') {
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        cancelActiveStagedNavigationSession()
+        return
+      }
+      if (
+        suppressAutoCaptureRef.current ||
+        routing.decision !== 'handle' ||
+        (routing.owner !== 'flat-console' && routing.owner !== 'staged-console')
+      ) {
+        return
+      }
       event.preventDefault()
+      event.stopImmediatePropagation()
       focusPopoutConsoleInput()
+      seedInputText(event.key)
     }
 
-    popoutWindow.addEventListener('keydown', handlePopoutKeyDown)
+    popoutWindow.addEventListener('keydown', handlePopoutKeyDown, true)
     return () => {
-      popoutWindow.removeEventListener('keydown', handlePopoutKeyDown)
+      popoutWindow.removeEventListener('keydown', handlePopoutKeyDown, true)
     }
-  }, [focusPopoutConsoleInput, popoutHost, windowMode])
+  }, [
+    cancelActiveStagedNavigationSession,
+    focusPopoutConsoleInput,
+    popoutHost,
+    routeConsoleGlobalKey,
+    seedInputText,
+    windowMode,
+  ])
 
   const handleFloatingHeaderPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
     const target = event.target as HTMLElement | null
@@ -709,6 +1308,8 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
         showExpandToggle={false}
         inputRef={floatingInputRef}
         onSubmitCommand={handleSubmitCommand}
+        onCancelCommand={cancelActiveStagedNavigationSession}
+        treatSpaceAsSubmit={stagedNavigationSession !== null}
       />
     </div>
   ) : null
@@ -734,6 +1335,8 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
               showExpandToggle={false}
               inputRef={popoutInputRef}
               onSubmitCommand={handleSubmitCommand}
+              onCancelCommand={cancelActiveStagedNavigationSession}
+              treatSpaceAsSubmit={stagedNavigationSession !== null}
             />
           </div>,
           popoutHost,
@@ -800,6 +1403,8 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
             showExpandToggle
             inputRef={dockedInputRef}
             onSubmitCommand={handleSubmitCommand}
+            onCancelCommand={cancelActiveStagedNavigationSession}
+            treatSpaceAsSubmit={stagedNavigationSession !== null}
           />
         ) : null}
         {floatingWindow}

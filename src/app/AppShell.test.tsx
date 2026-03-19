@@ -217,6 +217,8 @@ describe('AppShell', () => {
       editorViewportsById: {
         'editor-viewport-1': viewport('expanded'),
       },
+      editorViewportHeaderCollapsedById: {},
+      editorViewportCanvasToolbarVisibleById: {},
       graphDocumentsById: {
         'graph-document-1': {
           graphDocumentId: 'graph-document-1',
@@ -260,6 +262,40 @@ describe('AppShell', () => {
           windowMode,
         }
       }),
+      setEditorViewportHeaderCollapsed: vi.fn((editorViewportId: string, collapsed: boolean) => {
+        if (currentSpaghettiState.editorViewportsById[editorViewportId] === undefined) {
+          return
+        }
+        currentSpaghettiState.editorViewportHeaderCollapsedById[editorViewportId] = collapsed
+      }),
+      setEditorViewportCanvasToolbarVisible: vi.fn((editorViewportId: string, visible: boolean) => {
+        if (currentSpaghettiState.editorViewportsById[editorViewportId] === undefined) {
+          return
+        }
+        currentSpaghettiState.editorViewportCanvasToolbarVisibleById[editorViewportId] = visible
+      }),
+      setEditorViewportPresentationMode: vi.fn(
+        (editorViewportId: string, mode: 'collapsed' | 'essentials' | 'expanded') => {
+          const currentViewport = currentSpaghettiState.editorViewportsById[editorViewportId]
+          if (currentViewport === undefined) {
+            return
+          }
+          if (mode === 'collapsed') {
+            currentSpaghettiState.setEditorViewportWindowMode(editorViewportId, 'collapsed')
+            currentSpaghettiState.setEditorViewportHeaderCollapsed(editorViewportId, false)
+            currentSpaghettiState.setEditorViewportCanvasToolbarVisible(editorViewportId, true)
+            return
+          }
+          currentSpaghettiState.setEditorViewportWindowMode(editorViewportId, 'expanded')
+          if (mode === 'essentials') {
+            currentSpaghettiState.setEditorViewportHeaderCollapsed(editorViewportId, true)
+            currentSpaghettiState.setEditorViewportCanvasToolbarVisible(editorViewportId, false)
+            return
+          }
+          currentSpaghettiState.setEditorViewportHeaderCollapsed(editorViewportId, false)
+          currentSpaghettiState.setEditorViewportCanvasToolbarVisible(editorViewportId, true)
+        },
+      ),
       setEditorViewportSplitRatio: vi.fn(),
       setEditorViewportSplitDirection: vi.fn((editorViewportId: string, splitDirection: string) => {
         const currentViewport = currentSpaghettiState.editorViewportsById[editorViewportId]
@@ -305,6 +341,16 @@ describe('AppShell', () => {
     }
 
     currentAppState = {
+      floatingShellActivationRequest: null,
+      requestFloatingShellActivation: vi.fn((target: 'spaghetti' | 'browser') => {
+        currentAppState = {
+          ...currentAppState,
+          floatingShellActivationRequest: {
+            target,
+            seq: (currentAppState.floatingShellActivationRequest?.seq ?? 0) + 1,
+          },
+        }
+      }),
       requestGraphDocumentBuild: vi.fn(),
     }
   })
@@ -408,6 +454,21 @@ describe('AppShell', () => {
 
     expect(browserShell?.classList.contains('isActiveWindow')).toBe(true)
     expect(spaghettiShell?.classList.contains('isActiveWindow')).toBe(false)
+  })
+
+  it('activates the floating spaghetti highlight when a shared activation request targets it', async () => {
+    ;({ container, root } = await renderAppShell())
+
+    const floatingShell = container?.querySelector('.SpaghettiFloatingWindow') as HTMLDivElement | null
+    expect(floatingShell).not.toBeNull()
+    expect(floatingShell?.classList.contains('isActiveWindow')).toBe(false)
+
+    await act(async () => {
+      currentAppState.requestFloatingShellActivation('spaghetti')
+      await rerenderAppShell(root!)
+    })
+
+    expect(floatingShell?.classList.contains('isActiveWindow')).toBe(true)
   })
 
   it('keeps the floating browser wrapper width pinned when the browser is popped out', async () => {
@@ -1406,6 +1467,8 @@ describe('AppShell', () => {
       collapseButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
     })
 
+    await rerenderAppShell(root!)
+
     expect(currentSpaghettiState.setEditorViewportWindowMode).not.toHaveBeenCalledWith(
       'editor-viewport-1',
       'collapsed',
@@ -1454,7 +1517,7 @@ describe('AppShell', () => {
 
     expect(currentSpaghettiState.setEditorViewportWindowMode).toHaveBeenLastCalledWith(
       'editor-viewport-1',
-      'collapsed',
+      'expanded',
     )
 
     currentSpaghettiState.editorViewportsById['editor-viewport-1'] = viewport('expanded')
@@ -1650,6 +1713,8 @@ describe('AppShell', () => {
     await act(async () => {
       canvasToggleButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
     })
+
+    await rerenderAppShell(root!)
 
     expect(container?.textContent).toContain('canvas-toolbar-hidden')
   })

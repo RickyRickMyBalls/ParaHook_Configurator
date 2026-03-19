@@ -424,6 +424,27 @@ describe('ReferenceTransformToolbar', () => {
     expect(useConsoleStore.getState().entries.at(-1)?.text).toBe('Translate canceled')
   })
 
+  it('ends an active reference transform on Escape when no keyboard transform is pending', async () => {
+    const { ReferenceTransformToolbar } = await import('./ReferenceTransformToolbar')
+    const { useAppStore } = await import('../store/useAppStore')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ReferenceTransformToolbar />)
+    })
+
+    expect(useAppStore.getState().referenceWorkspace.activeTransformReferenceId).toBe('shoe:shoe-1')
+
+    await act(async () => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    })
+
+    expect(useAppStore.getState().referenceWorkspace.activeTransformReferenceId).toBeNull()
+  })
+
   it('cancels an uncommitted move when m is pressed a second time', async () => {
     const { ReferenceTransformToolbar } = await import('./ReferenceTransformToolbar')
     const { useAppStore } = await import('../store/useAppStore')

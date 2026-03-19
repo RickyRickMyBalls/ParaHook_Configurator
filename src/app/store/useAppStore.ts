@@ -236,6 +236,13 @@ export type ReferenceWorkspaceBrowserTreeVm = {
   categories: ReferenceWorkspaceBrowserCategoryVm[]
 }
 
+export type FloatingShellActivationTarget = 'spaghetti' | 'browser'
+
+export type FloatingShellActivationRequest = {
+  target: FloatingShellActivationTarget
+  seq: number
+}
+
 export type AppState = {
   box: BoxParams
   lastBuildSeq: number
@@ -252,6 +259,7 @@ export type AppState = {
   currentProject: ProjectFile
   projectContent: ProjectContentState
   referenceWorkspace: ReferenceWorkspaceState
+  floatingShellActivationRequest: FloatingShellActivationRequest | null
   workerError: string | null
   setBoxParam: (key: BoxParamKey, value: number) => void
   setSpaghettiGraph: (graph: SpaghettiGraph) => void
@@ -319,6 +327,7 @@ export type AppState = {
   ) => void
   setReferenceRotateSnapEnabled: (referenceId: string, enabled: boolean) => void
   setReferenceRotateSnapValue: (referenceId: string, value: number) => void
+  requestFloatingShellActivation: (target: FloatingShellActivationTarget) => void
   ensureVisibilityForPartKeys: (keys: string[], defaultValue?: boolean) => void
   togglePartVisibility: (partKeyStr: string) => void
   setPartVisibility: (partKeyStr: string, visible: boolean) => void
@@ -834,6 +843,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   currentProject: createInitialProjectFile(),
   projectContent: createInitialProjectContentState(),
   referenceWorkspace: createInitialReferenceWorkspaceState(),
+  floatingShellActivationRequest: null,
   workerError: null,
   setBoxParam: (key, value) => {
     const state = get()
@@ -1485,6 +1495,14 @@ export const useAppStore = create<AppState>((set, get) => ({
         },
       }
     })
+  },
+  requestFloatingShellActivation: (target) => {
+    set((state) => ({
+      floatingShellActivationRequest: {
+        target,
+        seq: (state.floatingShellActivationRequest?.seq ?? 0) + 1,
+      },
+    }))
   },
   ensureVisibilityForPartKeys: (keys, defaultValue = true) => {
     set((state) => {

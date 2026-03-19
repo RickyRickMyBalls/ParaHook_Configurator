@@ -16,12 +16,32 @@ export type GeometrySketchOverlayProfileVm = {
   vertices: Array<{ x: number; y: number }>
 }
 
+export type GeometrySketchDrawDraftVm = {
+  points: Array<{ x: number; y: number }>
+  hoverPoint: { x: number; y: number } | null
+  hoverSnapTarget: 'origin' | null
+}
+
 export type GeometrySketchOverlayVm = {
   mode: 'draw' | 'review'
   plane: SketchPlane
+  planeTransform: SketchPlaneTransform
+  activeTool: 'line' | 'pline' | 'arc3pt' | 'spline' | 'rectangle' | 'circle'
   components: SketchComponent[]
   profiles: GeometrySketchOverlayProfileVm[]
   selectedProfileId?: string
+  drawDraft: GeometrySketchDrawDraftVm | null
+  ui: {
+    snapEnabled: boolean
+    snapDistancePx: number
+    crosshairSize: number
+    startPointVisible: boolean
+    startPointSymbolSize: number
+    startPointSymbolType: 'crosshair' | 'circle'
+    plinePointVisible: boolean
+    plinePointSymbolSize: number
+    plinePointSymbolType: 'crosshair' | 'circle'
+  }
 }
 
 export type SketchPlanePickOverlayVm = {
@@ -86,6 +106,14 @@ export interface ViewerApi {
   setAxisOverlayEnabled: (enabled: boolean) => void
   setAxisOverlayCanvas: (canvas: HTMLCanvasElement | null) => void
   setGeometrySketchOverlay: (overlay: GeometrySketchOverlayVm | null) => void
+  setOnGeometrySketchHoverPoint: (
+    handler: ((point: { x: number; y: number } | null, snapTarget: 'origin' | null) => void) | null,
+  ) => void
+  setOnGeometrySketchConfirmPoint: (
+    handler: ((point: { x: number; y: number }, snapTarget: 'origin' | null) => void) | null,
+  ) => void
+  setOnGeometrySketchFinishDraft: (handler: (() => void) | null) => void
+  setOnGeometrySketchCancelDraft: (handler: (() => void) | null) => void
   setSketchPlanePickOverlay: (overlay: SketchPlanePickOverlayVm | null) => void
   setOnSketchPlanePickPlaneSelect: (
     handler: ((plane: SketchPlane) => void) | null,

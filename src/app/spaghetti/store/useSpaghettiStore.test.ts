@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
+import { useConsoleStore } from '../../console/useConsoleStore'
 import {
   loadGraphDocumentFromFile,
   saveGraphDocumentToFile,
@@ -2243,7 +2244,8 @@ describe('useSpaghettiStore feature stack editing semantics', () => {
 
 describe('useSpaghettiStore Geometry/Sketch editing semantics', () => {
   afterEach(() => {
-    useSpaghettiStore.getState().setGraph(emptyGraph)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+    useConsoleStore.setState(useConsoleStore.getInitialState(), true)
   })
 
   it('appends managed sketch components and recomputes profiles for Geometry/Sketch nodes', () => {
@@ -2332,6 +2334,48 @@ describe('useSpaghettiStore Geometry/Sketch editing semantics', () => {
     })
   })
 
+  it('appends rich draw prompts when sketch draw starts, switches to PLine, and finishes', () => {
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: {
+              type: 'sketch',
+              featureId: 'sketch-1',
+              plane: 'XY',
+              components: [],
+              outputs: { profiles: [], diagnostics: [] },
+              uiState: { collapsed: false },
+            },
+          },
+        },
+      ],
+      edges: [],
+    })
+
+    useSpaghettiStore.getState().startGeometrySketchSession('node-sketch-1', 'draw')
+    useSpaghettiStore.getState().setGeometrySketchSessionTool('pline')
+    useSpaghettiStore.getState().confirmGeometrySketchDrawPoint({ x: 0, y: 0 }, 'origin')
+    useSpaghettiStore.getState().confirmGeometrySketchDrawPoint({ x: 10, y: 0 }, null)
+    useSpaghettiStore.getState().finishGeometrySketchDrawDraft()
+
+    const promptEntries = useConsoleStore
+      .getState()
+      .entries.filter((entry) => entry.source === 'sketch-draw')
+      .map((entry) => entry.text)
+
+    expect(promptEntries).toEqual([
+      'LINE Specify start point:',
+      'PLINE Specify start point:',
+      'PLINE Specify point 2:',
+      'PLINE Specify point 3 or [Enter Finish]:',
+      'PLINE Specify start point:',
+    ])
+  })
+
   it('collapses the active editor viewport while draw sketch is open and restores it on close', () => {
     useSpaghettiStore.getState().setGraph({
       schemaVersion: 1,
@@ -2374,6 +2418,154 @@ describe('useSpaghettiStore Geometry/Sketch editing semantics', () => {
     state = useSpaghettiStore.getState()
     expect(state.geometrySketchSession).toBeNull()
     expect(selectActiveEditorViewport(state)?.windowMode).toBe('expanded')
+  })
+
+  it('tracks viewer-owned Line draft points and commits a line on the second point', () => {
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: {
+              type: 'sketch',
+              featureId: 'sketch-1',
+              plane: 'XY',
+              components: [],
+              outputs: { profiles: [], diagnostics: [] },
+              uiState: { collapsed: false },
+            },
+          },
+        },
+      ],
+      edges: [],
+    })
+
+    useSpaghettiStore.getState().startGeometrySketchSession('node-sketch-1', 'draw')
+    useSpaghettiStore.getState().setGeometrySketchDrawHoverPoint({ x: 0, y: 0 }, 'origin')
+    useSpaghettiStore.getState().confirmGeometrySketchDrawPoint({ x: 0, y: 0 }, 'origin')
+    useSpaghettiStore.getState().setGeometrySketchDrawHoverPoint({ x: 20, y: 10 }, null)
+    useSpaghettiStore.getState().confirmGeometrySketchDrawPoint({ x: 20, y: 10 }, null)
+
+    const state = useSpaghettiStore.getState()
+    const sketch = state.graph.nodes.find((node) => node.nodeId === 'node-sketch-1')?.params.sketch as {
+      components: Array<{ type: string; a?: { x: number; y: number }; b?: { x: number; y: number } }>
+    }
+
+    expect(sketch.components).toHaveLength(1)
+    expect(sketch.components[0]).toMatchObject({
+      type: 'line',
+      a: { x: 0, y: 0 },
+      b: { x: 20, y: 10 },
+    })
+    expect(state.geometrySketchSession?.drawDraft).toEqual({
+      points: [],
+      hoverPoint: null,
+      hoverSnapTarget: null,
+    })
+    expect(useConsoleStore.getState().entries.at(-1)?.text).toBe('LINE Specify start point:')
+  })
+
+  it('uses cancelGeometrySketchDrawDraft as a two-step escape: clear draft, then close draw session', () => {
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: {
+              type: 'sketch',
+              featureId: 'sketch-1',
+              plane: 'XY',
+              components: [],
+              outputs: { profiles: [], diagnostics: [] },
+              uiState: { collapsed: false },
+            },
+          },
+        },
+      ],
+      edges: [],
+    })
+
+    const viewportId = useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
+    expect(viewportId).not.toBeNull()
+
+    useSpaghettiStore.getState().startGeometrySketchSession('node-sketch-1', 'draw')
+    useSpaghettiStore.getState().confirmGeometrySketchDrawPoint({ x: 0, y: 0 }, 'origin')
+
+    let state = useSpaghettiStore.getState()
+    expect(state.geometrySketchSession?.drawDraft?.points).toEqual([{ x: 0, y: 0 }])
+
+    useSpaghettiStore.getState().cancelGeometrySketchDrawDraft()
+
+    state = useSpaghettiStore.getState()
+    expect(state.geometrySketchSession).not.toBeNull()
+    expect(state.geometrySketchSession?.drawDraft).toEqual({
+      points: [],
+      hoverPoint: null,
+      hoverSnapTarget: null,
+    })
+
+    useSpaghettiStore.getState().cancelGeometrySketchDrawDraft()
+
+    state = useSpaghettiStore.getState()
+    expect(state.geometrySketchSession).toBeNull()
+    expect(selectActiveEditorViewport(state)?.windowMode).toBe('expanded')
+  })
+
+  it('keeps PLine as one temporary chain until finish and commits the whole chain as line segments', () => {
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: {
+              type: 'sketch',
+              featureId: 'sketch-1',
+              plane: 'XY',
+              components: [],
+              outputs: { profiles: [], diagnostics: [] },
+              uiState: { collapsed: false },
+            },
+          },
+        },
+      ],
+      edges: [],
+    })
+
+    useSpaghettiStore.getState().startGeometrySketchSession('node-sketch-1', 'draw')
+    useSpaghettiStore.getState().setGeometrySketchSessionTool('pline')
+    useSpaghettiStore.getState().confirmGeometrySketchDrawPoint({ x: 0, y: 0 }, 'origin')
+    useSpaghettiStore.getState().confirmGeometrySketchDrawPoint({ x: 10, y: 0 }, null)
+    useSpaghettiStore.getState().confirmGeometrySketchDrawPoint({ x: 10, y: 12 }, null)
+
+    expect(useSpaghettiStore.getState().graph.nodes.find((node) => node.nodeId === 'node-sketch-1')?.params.sketch).toMatchObject({
+      components: [],
+    })
+
+    useSpaghettiStore.getState().finishGeometrySketchDrawDraft()
+
+    const state = useSpaghettiStore.getState()
+    const sketch = state.graph.nodes.find((node) => node.nodeId === 'node-sketch-1')?.params.sketch as {
+      components: Array<{ type: string; a?: { x: number; y: number }; b?: { x: number; y: number } }>
+    }
+
+    expect(sketch.components).toHaveLength(2)
+    expect(sketch.components[0]).toMatchObject({
+      type: 'line',
+      a: { x: 0, y: 0 },
+      b: { x: 10, y: 0 },
+    })
+    expect(sketch.components[1]).toMatchObject({
+      type: 'line',
+      a: { x: 10, y: 0 },
+      b: { x: 10, y: 12 },
+    })
+    expect(state.geometrySketchSession?.drawDraft?.points).toEqual([])
   })
 
   it('keeps sketch-plane draft edits temporary until confirm and restores the collapsed viewport shell', () => {
@@ -2440,7 +2632,11 @@ describe('useSpaghettiStore Geometry/Sketch editing semantics', () => {
       planeTransform?: { translation: { x: number }; rotationDeg: { z: number } }
     }
     expect(state.sketchPlanePickSession).toBeNull()
-    expect(selectActiveEditorViewport(state)?.windowMode).toBe('expanded')
+    expect(state.geometrySketchSession).toMatchObject({
+      nodeId: 'node-sketch-1',
+      mode: 'draw',
+    })
+    expect(selectActiveEditorViewport(state)?.windowMode).toBe('collapsed')
     expect(sketch.plane).toBe('XZ')
     expect(sketch.planeTransform?.translation.x).toBe(12.5)
     expect(sketch.planeTransform?.rotationDeg.z).toBe(45)
@@ -2553,6 +2749,10 @@ describe('useSpaghettiStore Geometry/Sketch editing semantics', () => {
       plane: string
       planeTransform?: { translation: { x: number; y: number; z: number }; rotationDeg: { x: number; y: number; z: number } }
     }
+    expect(useSpaghettiStore.getState().geometrySketchSession).toMatchObject({
+      nodeId: 'node-sketch-1',
+      mode: 'draw',
+    })
     expect(afterCommit.plane).toBe('XZ')
     expect(afterCommit.planeTransform?.translation).toEqual({ x: 16, y: -6, z: 3 })
     expect(afterCommit.planeTransform?.rotationDeg).toEqual({ x: 12, y: 24, z: 48 })

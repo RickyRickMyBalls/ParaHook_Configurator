@@ -41,6 +41,37 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 056 -->
+### [056] - 2026-03-19 13:41 - `DOC - Add Sketch Plane Section Map To Sketch Architecture Doc`
+<!-- ENTRY 056 -->
+HUMAN SUMMARY: `Updated the sketch architecture note so the new bottom-of-file section map now breaks `Sketch plane` into the real current toolbar parts instead of leaving it blank. The same pass also cleaned the adjacent `Sketch Draw` placeholder labels so the two maps read consistently.`
+
+#### Scope
+- Updated the existing `Sketch.md` architecture note only.
+- Kept the change focused on document structure and planning readability, not runtime code.
+- Recorded the doc change in the canonical permanent doc log.
+
+#### Summary
+- Added a new bottom-of-file heading map for `Sketch plane`.
+- Broke the sketch-plane placeholder into:
+  - `Title Bar`
+  - `I Menu`
+  - `Toolbar Window`
+  - `Sketch Plane UI`
+  - `Plane Selection`
+  - `Transform`
+  - `Move`
+  - `Rotate`
+- Cleaned the adjacent `Sketch Draw` placeholder headings to `Title Bar` and `Section`.
+- Added the corresponding local `Doc History` entry inside `Sketch.md`.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- The new sketch-plane map matches the current overlay surface more closely than the prior blank placeholder, so later detail work can hang off the real section names already used by the toolbar.
+
 <!-- ENTRY 055 -->
 ### [055] - 2026-03-19 00:07 - `DOC - Update Toolbar Template Doc With New Shared Features`
 <!-- ENTRY 055 -->

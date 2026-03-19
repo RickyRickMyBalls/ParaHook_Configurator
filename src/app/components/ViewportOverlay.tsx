@@ -6,6 +6,7 @@ import {
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
 } from 'react'
+import { routeKeyboardInput } from '../inputRouting'
 import { useAppStore } from '../store/useAppStore'
 import { getViewer, subscribeViewer, type ViewerApi } from '../viewerBridge'
 import { useUiPrefsStore } from '../store/uiPrefsStore'
@@ -34,7 +35,6 @@ import {
   labelProfilesForPreview,
   renderProfilePreview,
 } from '../spaghetti/ui/features/profilePreview'
-import { makeComponentId, makeRowId } from '../spaghetti/utils/id'
 import {
   COMPACT_AXIS_WIDGET_SIZE,
   DEFAULT_EXPANDED_AXIS_WIDGET_SIZE,
@@ -72,9 +72,6 @@ const MIN_OVERLAY_TOOL_PANEL_HEIGHT = 240
 const MIN_SKETCH_SESSION_WINDOW_WIDTH = 360
 const MIN_SKETCH_SESSION_WINDOW_HEIGHT = 320
 const SKETCH_SESSION_WINDOW_VIEWPORT_MARGIN = 12
-const SKETCH_DRAFT_SLIDER_MIN = -2000
-const SKETCH_DRAFT_SLIDER_MAX = 2000
-const SKETCH_DRAFT_SLIDER_STEP = 0.1
 const overlayToolDensityOrder: readonly OverlayToolDensity[] = [
   'collapsed',
   'essentials',
@@ -114,7 +111,9 @@ const formatPoint = (point: { x: number; y: number }): string =>
   `(${formatStableNumber(point.x)}, ${formatStableNumber(point.y)})`
 
 const getGeometrySketchToolLabel = (tool: GeometrySketchTool): string =>
-  tool === 'arc3pt'
+  tool === 'pline'
+    ? 'PLine'
+    : tool === 'arc3pt'
     ? 'Arc3Point'
     : tool === 'spline'
       ? 'BezierSpline'
@@ -127,6 +126,17 @@ const renderGeometrySketchToolIcon = (tool: GeometrySketchTool) => {
         <path d="M4 15L16 5" />
         <circle cx="4" cy="15" r="1.35" fill="currentColor" stroke="none" />
         <circle cx="16" cy="5" r="1.35" fill="currentColor" stroke="none" />
+      </svg>
+    )
+  }
+  if (tool === 'pline') {
+    return (
+      <svg viewBox="0 0 20 20" className="ViewportOverlaySketchToolIcon" aria-hidden="true">
+        <path d="M4 15L9 10L14 12L16 5" />
+        <circle cx="4" cy="15" r="1.2" fill="currentColor" stroke="none" />
+        <circle cx="9" cy="10" r="1.1" fill="currentColor" stroke="none" opacity="0.88" />
+        <circle cx="14" cy="12" r="1.1" fill="currentColor" stroke="none" opacity="0.88" />
+        <circle cx="16" cy="5" r="1.2" fill="currentColor" stroke="none" />
       </svg>
     )
   }
@@ -253,8 +263,11 @@ export function ViewportOverlay() {
   const setGeometrySketchSessionTool = useSpaghettiStore(
     (state) => state.setGeometrySketchSessionTool,
   )
-  const appendGeometrySketchComponent = useSpaghettiStore(
-    (state) => state.appendGeometrySketchComponent,
+  const finishGeometrySketchDrawDraft = useSpaghettiStore(
+    (state) => state.finishGeometrySketchDrawDraft,
+  )
+  const cancelGeometrySketchDrawDraft = useSpaghettiStore(
+    (state) => state.cancelGeometrySketchDrawDraft,
   )
   const setGeometrySketchSelectedProfile = useSpaghettiStore(
     (state) => state.setGeometrySketchSelectedProfile,
@@ -302,6 +315,50 @@ export function ViewportOverlay() {
   )
   const setSketchPlaneToolbarRotateSnapValue = useUiPrefsStore(
     (state) => state.setSketchPlaneToolbarRotateSnapValue,
+  )
+  const sketchDrawSnapEnabled = useUiPrefsStore((state) => state.sketchDrawSnapEnabled)
+  const sketchDrawSnapDistancePx = useUiPrefsStore((state) => state.sketchDrawSnapDistancePx)
+  const sketchDrawCrosshairSize = useUiPrefsStore((state) => state.sketchDrawCrosshairSize)
+  const sketchDrawStartPointVisible = useUiPrefsStore(
+    (state) => state.sketchDrawStartPointVisible,
+  )
+  const sketchDrawStartPointSymbolSize = useUiPrefsStore(
+    (state) => state.sketchDrawStartPointSymbolSize,
+  )
+  const sketchDrawStartPointSymbolType = useUiPrefsStore(
+    (state) => state.sketchDrawStartPointSymbolType,
+  )
+  const sketchDrawPlinePointVisible = useUiPrefsStore(
+    (state) => state.sketchDrawPlinePointVisible,
+  )
+  const sketchDrawPlinePointSymbolSize = useUiPrefsStore(
+    (state) => state.sketchDrawPlinePointSymbolSize,
+  )
+  const sketchDrawPlinePointSymbolType = useUiPrefsStore(
+    (state) => state.sketchDrawPlinePointSymbolType,
+  )
+  const setSketchDrawSnapEnabled = useUiPrefsStore((state) => state.setSketchDrawSnapEnabled)
+  const setSketchDrawSnapDistancePx = useUiPrefsStore(
+    (state) => state.setSketchDrawSnapDistancePx,
+  )
+  const setSketchDrawCrosshairSize = useUiPrefsStore((state) => state.setSketchDrawCrosshairSize)
+  const setSketchDrawStartPointVisible = useUiPrefsStore(
+    (state) => state.setSketchDrawStartPointVisible,
+  )
+  const setSketchDrawStartPointSymbolSize = useUiPrefsStore(
+    (state) => state.setSketchDrawStartPointSymbolSize,
+  )
+  const setSketchDrawStartPointSymbolType = useUiPrefsStore(
+    (state) => state.setSketchDrawStartPointSymbolType,
+  )
+  const setSketchDrawPlinePointVisible = useUiPrefsStore(
+    (state) => state.setSketchDrawPlinePointVisible,
+  )
+  const setSketchDrawPlinePointSymbolSize = useUiPrefsStore(
+    (state) => state.setSketchDrawPlinePointSymbolSize,
+  )
+  const setSketchDrawPlinePointSymbolType = useUiPrefsStore(
+    (state) => state.setSketchDrawPlinePointSymbolType,
   )
   const [axisWidgetSize, setAxisWidgetSize] = useState<number>(COMPACT_AXIS_WIDGET_SIZE)
   const [sketchPlaneToolPanelPosition, setSketchPlaneToolPanelPosition] = useState<OverlayPosition>(
@@ -356,6 +413,10 @@ export function ViewportOverlay() {
   } | null>(null)
   const [sketchSessionIMenuOpen, setSketchSessionIMenuOpen] = useState(false)
   const [sketchSessionIMenuExpanded, setSketchSessionIMenuExpanded] = useState(true)
+  const [sketchSessionToolbarWindowExpanded, setSketchSessionToolbarWindowExpanded] =
+    useState(true)
+  const [sketchSessionSketchDrawSettingsExpanded, setSketchSessionSketchDrawSettingsExpanded] =
+    useState(true)
   const [sketchSessionToolSelectionExpanded, setSketchSessionToolSelectionExpanded] =
     useState(true)
   const [sketchSessionActiveToolExpanded, setSketchSessionActiveToolExpanded] =
@@ -366,20 +427,6 @@ export function ViewportOverlay() {
     useState(true)
   const [sketchSessionSessionExpanded, setSketchSessionSessionExpanded] =
     useState(true)
-  const [lineDraft, setLineDraft] = useState({ ax: 0, ay: 0, bx: 100, by: 0 })
-  const [arcDraft, setArcDraft] = useState({ sx: 0, sy: 0, mx: 50, my: 25, ex: 100, ey: 0 })
-  const [splineDraft, setSplineDraft] = useState({
-    p0x: 0,
-    p0y: 0,
-    p1x: 25,
-    p1y: 0,
-    p2x: 75,
-    p2y: 0,
-    p3x: 100,
-    p3y: 0,
-  })
-  const [rectangleDraft, setRectangleDraft] = useState({ ax: 0, ay: 0, bx: 100, by: 60 })
-  const [circleDraft, setCircleDraft] = useState({ cx: 0, cy: 0, ex: 40, ey: 0 })
   const resizeStateRef = useRef({
     active: false,
     pointerId: -1,
@@ -843,14 +890,11 @@ export function ViewportOverlay() {
       if (event.defaultPrevented) {
         return
       }
-      const target = event.target as HTMLElement | null
-      if (
-        target !== null &&
-        (target.tagName === 'INPUT' ||
-          target.tagName === 'TEXTAREA' ||
-          target.tagName === 'SELECT' ||
-          target.isContentEditable)
-      ) {
+      const routing = routeKeyboardInput({
+        event,
+        sketchPlanePickStage: sketchPlanePickSession.stage,
+      })
+      if (routing.owner !== 'sketch-plane' || routing.decision !== 'handle') {
         return
       }
       if (event.key === 'Escape') {
@@ -1355,67 +1399,32 @@ export function ViewportOverlay() {
   const selectedProfile =
     previewProfiles.find((profile) => profile.profileId === selectedProfileId) ?? null
   const activeTool = geometrySketchSession?.activeTool ?? 'line'
-
-  const submitComponent = (tool: GeometrySketchTool) => {
-    if (activeGeometrySketchNode === null) {
-      return
-    }
-
-    if (tool === 'line') {
-      appendGeometrySketchComponent(activeGeometrySketchNode.nodeId, {
-        rowId: makeRowId(),
-        componentId: makeComponentId(),
-        type: 'line',
-        a: { kind: 'lit', x: lineDraft.ax, y: lineDraft.ay },
-        b: { kind: 'lit', x: lineDraft.bx, y: lineDraft.by },
-      })
-      return
-    }
-
-    if (tool === 'arc3pt') {
-      appendGeometrySketchComponent(activeGeometrySketchNode.nodeId, {
-        rowId: makeRowId(),
-        componentId: makeComponentId(),
-        type: 'arc3pt',
-        start: { kind: 'lit', x: arcDraft.sx, y: arcDraft.sy },
-        mid: { kind: 'lit', x: arcDraft.mx, y: arcDraft.my },
-        end: { kind: 'lit', x: arcDraft.ex, y: arcDraft.ey },
-      })
-      return
-    }
-
-    if (tool === 'spline') {
-      appendGeometrySketchComponent(activeGeometrySketchNode.nodeId, {
-        rowId: makeRowId(),
-        componentId: makeComponentId(),
-        type: 'spline',
-        p0: { kind: 'lit', x: splineDraft.p0x, y: splineDraft.p0y },
-        p1: { kind: 'lit', x: splineDraft.p1x, y: splineDraft.p1y },
-        p2: { kind: 'lit', x: splineDraft.p2x, y: splineDraft.p2y },
-        p3: { kind: 'lit', x: splineDraft.p3x, y: splineDraft.p3y },
-      })
-      return
-    }
-
-    if (tool === 'rectangle') {
-      appendGeometrySketchComponent(activeGeometrySketchNode.nodeId, {
-        rowId: makeRowId(),
-        componentId: makeComponentId(),
-        type: 'rectangle',
-        a: { kind: 'lit', x: rectangleDraft.ax, y: rectangleDraft.ay },
-        b: { kind: 'lit', x: rectangleDraft.bx, y: rectangleDraft.by },
-      })
-      return
-    }
-
-    appendGeometrySketchComponent(activeGeometrySketchNode.nodeId, {
-      rowId: makeRowId(),
-      componentId: makeComponentId(),
-      type: 'circle',
-      center: { kind: 'lit', x: circleDraft.cx, y: circleDraft.cy },
-      edge: { kind: 'lit', x: circleDraft.ex, y: circleDraft.ey },
-    })
-  }
+  const activeDrawDraft = geometrySketchSession?.drawDraft ?? null
+  const activeLineStartPoint = activeDrawDraft?.points[0] ?? null
+  const activePlineLastPoint =
+    activeDrawDraft === null || activeDrawDraft.points.length === 0
+      ? null
+      : activeDrawDraft.points[activeDrawDraft.points.length - 1]
+  const activeHoverPoint = activeDrawDraft?.hoverPoint ?? null
+  const activePreviewStartPoint =
+    activeTool === 'pline' ? activePlineLastPoint : activeLineStartPoint
+  const activePreviewLength =
+    activePreviewStartPoint !== null && activeHoverPoint !== null
+      ? Math.hypot(
+          activeHoverPoint.x - activePreviewStartPoint.x,
+          activeHoverPoint.y - activePreviewStartPoint.y,
+        )
+      : null
+  const activeDrawPrompt =
+    geometrySketchSession?.mode !== 'draw'
+      ? ''
+      : activeTool === 'pline'
+        ? activeDrawDraft === null || activeDrawDraft.points.length === 0
+          ? 'Click the first point in the main viewport to start PLine.'
+          : 'Click the next point in the main viewport. Enter finishes the chain.'
+        : activeLineStartPoint === null
+          ? 'Click the first point in the main viewport to start Line.'
+          : 'Move the mouse to preview the endpoint, then click to place the line.'
 
   const setSketchSessionWindowSizeAxis = (axis: 'width' | 'height', nextValue: number) => {
     const overlayHost = getOverlayHostMetrics()
@@ -1446,112 +1455,6 @@ export function ViewportOverlay() {
     })
   }
 
-  const renderNumberField = (
-    label: string,
-    value: number,
-    onChange: (next: number) => void,
-  ) => (
-    <div className="ViewportOverlaySketchField">
-      <ParaSlider
-        label={label}
-        value={value}
-        min={SKETCH_DRAFT_SLIDER_MIN}
-        max={SKETCH_DRAFT_SLIDER_MAX}
-        step={SKETCH_DRAFT_SLIDER_STEP}
-        onChange={onChange}
-        displayLabel={label}
-        displayValue={formatStableNumber(value)}
-        formatValue={(nextValue) => formatStableNumber(nextValue)}
-      />
-    </div>
-  )
-
-  const renderToolInputs = (tool: GeometrySketchTool) => {
-    if (tool === 'line') {
-      return (
-        <div className="ViewportOverlaySketchFieldGrid">
-          {renderNumberField('AX', lineDraft.ax, (next) =>
-            setLineDraft((current) => ({ ...current, ax: next })))}
-          {renderNumberField('AY', lineDraft.ay, (next) =>
-            setLineDraft((current) => ({ ...current, ay: next })))}
-          {renderNumberField('BX', lineDraft.bx, (next) =>
-            setLineDraft((current) => ({ ...current, bx: next })))}
-          {renderNumberField('BY', lineDraft.by, (next) =>
-            setLineDraft((current) => ({ ...current, by: next })))}
-        </div>
-      )
-    }
-
-    if (tool === 'arc3pt') {
-      return (
-        <div className="ViewportOverlaySketchFieldGrid">
-          {renderNumberField('SX', arcDraft.sx, (next) =>
-            setArcDraft((current) => ({ ...current, sx: next })))}
-          {renderNumberField('SY', arcDraft.sy, (next) =>
-            setArcDraft((current) => ({ ...current, sy: next })))}
-          {renderNumberField('MX', arcDraft.mx, (next) =>
-            setArcDraft((current) => ({ ...current, mx: next })))}
-          {renderNumberField('MY', arcDraft.my, (next) =>
-            setArcDraft((current) => ({ ...current, my: next })))}
-          {renderNumberField('EX', arcDraft.ex, (next) =>
-            setArcDraft((current) => ({ ...current, ex: next })))}
-          {renderNumberField('EY', arcDraft.ey, (next) =>
-            setArcDraft((current) => ({ ...current, ey: next })))}
-        </div>
-      )
-    }
-
-    if (tool === 'spline') {
-      return (
-        <div className="ViewportOverlaySketchFieldGrid">
-          {renderNumberField('P0X', splineDraft.p0x, (next) =>
-            setSplineDraft((current) => ({ ...current, p0x: next })))}
-          {renderNumberField('P0Y', splineDraft.p0y, (next) =>
-            setSplineDraft((current) => ({ ...current, p0y: next })))}
-          {renderNumberField('P1X', splineDraft.p1x, (next) =>
-            setSplineDraft((current) => ({ ...current, p1x: next })))}
-          {renderNumberField('P1Y', splineDraft.p1y, (next) =>
-            setSplineDraft((current) => ({ ...current, p1y: next })))}
-          {renderNumberField('P2X', splineDraft.p2x, (next) =>
-            setSplineDraft((current) => ({ ...current, p2x: next })))}
-          {renderNumberField('P2Y', splineDraft.p2y, (next) =>
-            setSplineDraft((current) => ({ ...current, p2y: next })))}
-          {renderNumberField('P3X', splineDraft.p3x, (next) =>
-            setSplineDraft((current) => ({ ...current, p3x: next })))}
-          {renderNumberField('P3Y', splineDraft.p3y, (next) =>
-            setSplineDraft((current) => ({ ...current, p3y: next })))}
-        </div>
-      )
-    }
-
-    if (tool === 'rectangle') {
-      return (
-        <div className="ViewportOverlaySketchFieldGrid">
-          {renderNumberField('AX', rectangleDraft.ax, (next) =>
-            setRectangleDraft((current) => ({ ...current, ax: next })))}
-          {renderNumberField('AY', rectangleDraft.ay, (next) =>
-            setRectangleDraft((current) => ({ ...current, ay: next })))}
-          {renderNumberField('BX', rectangleDraft.bx, (next) =>
-            setRectangleDraft((current) => ({ ...current, bx: next })))}
-          {renderNumberField('BY', rectangleDraft.by, (next) =>
-            setRectangleDraft((current) => ({ ...current, by: next })))}
-        </div>
-      )
-    }
-
-    return (
-      <div className="ViewportOverlaySketchFieldGrid">
-        {renderNumberField('CX', circleDraft.cx, (next) =>
-          setCircleDraft((current) => ({ ...current, cx: next })))}
-        {renderNumberField('CY', circleDraft.cy, (next) =>
-          setCircleDraft((current) => ({ ...current, cy: next })))}
-        {renderNumberField('EX', circleDraft.ex, (next) =>
-          setCircleDraft((current) => ({ ...current, ex: next })))}
-        {renderNumberField('EY', circleDraft.ey, (next) =>
-          setCircleDraft((current) => ({ ...current, ey: next })))}
-      </div>
-    )
-  }
 
   return (
     <div ref={overlayRootRef} className="ViewportOverlayRoot">
@@ -2481,34 +2384,173 @@ export function ViewportOverlay() {
                     <div className="ViewportOverlayToolPanelCustomizationNote">
                       Tune the floating sketch draw toolbar window.
                     </div>
-                    <ParaSlider
-                      label="Toolbar Width"
-                      value={
-                        sketchSessionWindowSize?.width ?? DEFAULT_SKETCH_SESSION_WINDOW_SIZE.width
-                      }
-                      min={MIN_SKETCH_SESSION_WINDOW_WIDTH}
-                      max={Math.max(
-                        MIN_SKETCH_SESSION_WINDOW_WIDTH,
-                        getOverlayHostMetrics().width - SKETCH_SESSION_WINDOW_VIEWPORT_MARGIN * 2,
-                      )}
-                      step={1}
-                      onChange={(value) => setSketchSessionWindowSizeAxis('width', value)}
-                      formatValue={(value) => `${value.toFixed(0)} px`}
-                    />
-                    <ParaSlider
-                      label="Toolbar Height"
-                      value={
-                        sketchSessionWindowSize?.height ?? DEFAULT_SKETCH_SESSION_WINDOW_SIZE.height
-                      }
-                      min={MIN_SKETCH_SESSION_WINDOW_HEIGHT}
-                      max={Math.max(
-                        MIN_SKETCH_SESSION_WINDOW_HEIGHT,
-                        getOverlayHostMetrics().height - SKETCH_SESSION_WINDOW_VIEWPORT_MARGIN * 2,
-                      )}
-                      step={1}
-                      onChange={(value) => setSketchSessionWindowSizeAxis('height', value)}
-                      formatValue={(value) => `${value.toFixed(0)} px`}
-                    />
+                    <div className="ViewportOverlayToolPanelCustomizationSubsection">
+                      <button
+                        type="button"
+                        className="ViewportOverlayToolPanelTextToggle"
+                        onClick={() =>
+                          setSketchSessionToolbarWindowExpanded(
+                            (currentExpanded) => !currentExpanded,
+                          )
+                        }
+                      >
+                        <span
+                          className={`ViewportOverlayToolPanelChevron ${
+                            sketchSessionToolbarWindowExpanded ? 'isExpanded' : ''
+                          }`}
+                          aria-hidden="true"
+                        >
+                          ›
+                        </span>
+                        <span>Toolbar Window</span>
+                      </button>
+                      {sketchSessionToolbarWindowExpanded ? (
+                        <div className="ViewportOverlayToolPanelCustomizationRows">
+                          <ParaSlider
+                            label="Toolbar Width"
+                            value={
+                              sketchSessionWindowSize?.width ?? DEFAULT_SKETCH_SESSION_WINDOW_SIZE.width
+                            }
+                            min={MIN_SKETCH_SESSION_WINDOW_WIDTH}
+                            max={Math.max(
+                              MIN_SKETCH_SESSION_WINDOW_WIDTH,
+                              getOverlayHostMetrics().width - SKETCH_SESSION_WINDOW_VIEWPORT_MARGIN * 2,
+                            )}
+                            step={1}
+                            onChange={(value) => setSketchSessionWindowSizeAxis('width', value)}
+                            formatValue={(value) => `${value.toFixed(0)} px`}
+                          />
+                          <ParaSlider
+                            label="Toolbar Height"
+                            value={
+                              sketchSessionWindowSize?.height ?? DEFAULT_SKETCH_SESSION_WINDOW_SIZE.height
+                            }
+                            min={MIN_SKETCH_SESSION_WINDOW_HEIGHT}
+                            max={Math.max(
+                              MIN_SKETCH_SESSION_WINDOW_HEIGHT,
+                              getOverlayHostMetrics().height - SKETCH_SESSION_WINDOW_VIEWPORT_MARGIN * 2,
+                            )}
+                            step={1}
+                            onChange={(value) => setSketchSessionWindowSizeAxis('height', value)}
+                            formatValue={(value) => `${value.toFixed(0)} px`}
+                          />
+                        </div>
+                      ) : null}
+                    </div>
+                    <div className="ViewportOverlayToolPanelCustomizationSubsection">
+                      <button
+                        type="button"
+                        className="ViewportOverlayToolPanelTextToggle"
+                        onClick={() =>
+                          setSketchSessionSketchDrawSettingsExpanded(
+                            (currentExpanded) => !currentExpanded,
+                          )
+                        }
+                      >
+                        <span
+                          className={`ViewportOverlayToolPanelChevron ${
+                            sketchSessionSketchDrawSettingsExpanded ? 'isExpanded' : ''
+                          }`}
+                          aria-hidden="true"
+                        >
+                          ›
+                        </span>
+                        <span>Sketch Draw Settings</span>
+                      </button>
+                      {sketchSessionSketchDrawSettingsExpanded ? (
+                        <div className="ViewportOverlayToolPanelCustomizationRows">
+                          <ParaSelect
+                            label="Snap"
+                            value={sketchDrawSnapEnabled ? 'on' : 'off'}
+                            options={[
+                              { value: 'off', label: 'Off' },
+                              { value: 'on', label: 'On' },
+                            ]}
+                            onChange={(value) => setSketchDrawSnapEnabled(value === 'on')}
+                          />
+                          <ParaSlider
+                            label="Snap Distance"
+                            value={sketchDrawSnapDistancePx}
+                            min={4}
+                            max={64}
+                            step={1}
+                            onChange={setSketchDrawSnapDistancePx}
+                            formatValue={(value) => `${value.toFixed(0)} px`}
+                          />
+                          <ParaSlider
+                            label="Crosshair Size"
+                            value={sketchDrawCrosshairSize}
+                            min={0.5}
+                            max={3}
+                            step={0.05}
+                            onChange={setSketchDrawCrosshairSize}
+                            formatValue={(value) => `${value.toFixed(2)}x`}
+                          />
+                          <ParaSelect
+                            label="Start Point"
+                            value={sketchDrawStartPointVisible ? 'on' : 'off'}
+                            options={[
+                              { value: 'off', label: 'Off' },
+                              { value: 'on', label: 'On' },
+                            ]}
+                            onChange={(value) => setSketchDrawStartPointVisible(value === 'on')}
+                          />
+                          <ParaSelect
+                            label="Start Point Symbol"
+                            value={sketchDrawStartPointSymbolType}
+                            options={[
+                              { value: 'crosshair', label: 'Crosshair' },
+                              { value: 'circle', label: 'Circle' },
+                            ]}
+                            onChange={(value) =>
+                              setSketchDrawStartPointSymbolType(
+                                value as 'crosshair' | 'circle',
+                              )
+                            }
+                          />
+                          <ParaSlider
+                            label="Start Point Symbol Size"
+                            value={sketchDrawStartPointSymbolSize}
+                            min={0.01}
+                            max={3}
+                            step={0.05}
+                            onChange={setSketchDrawStartPointSymbolSize}
+                            formatValue={(value) => `${value.toFixed(2)}x`}
+                          />
+                          <ParaSelect
+                            label="PLine Point Symbols"
+                            value={sketchDrawPlinePointVisible ? 'on' : 'off'}
+                            options={[
+                              { value: 'off', label: 'Off' },
+                              { value: 'on', label: 'On' },
+                            ]}
+                            onChange={(value) => setSketchDrawPlinePointVisible(value === 'on')}
+                          />
+                          <ParaSelect
+                            label="PLine Point Symbol"
+                            value={sketchDrawPlinePointSymbolType}
+                            options={[
+                              { value: 'crosshair', label: 'Crosshair' },
+                              { value: 'circle', label: 'Circle' },
+                            ]}
+                            onChange={(value) =>
+                              setSketchDrawPlinePointSymbolType(
+                                value as 'crosshair' | 'circle',
+                              )
+                            }
+                          />
+                          <ParaSlider
+                            label="PLine Point Size"
+                            value={sketchDrawPlinePointSymbolSize}
+                            min={0.01}
+                            max={3}
+                            step={0.05}
+                            onChange={setSketchDrawPlinePointSymbolSize}
+                            formatValue={(value) => `${value.toFixed(2)}x`}
+                          />
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
                 ) : null}
               </ViewportOverlayToolSection>
@@ -2578,7 +2620,7 @@ export function ViewportOverlay() {
               >
                 {sketchSessionToolSelectionExpanded ? (
                   <div className="ViewportOverlaySketchToolbar">
-                    {(['line', 'arc3pt', 'spline', 'rectangle', 'circle'] as const).map((tool) => (
+                    {(['line', 'pline'] as const).map((tool) => (
                       <button
                         key={tool}
                         type="button"
@@ -2624,13 +2666,57 @@ export function ViewportOverlay() {
                 {sketchSessionActiveToolExpanded ? (
                   <div className="ViewportOverlaySketchDraftCard">
                     <div className="ViewportOverlaySketchDraftTitle">
-                      Add{' '}
                       {getGeometrySketchToolLabel(activeTool)}
                     </div>
-                    {renderToolInputs(activeTool)}
+                    <div className="ViewportOverlaySketchEntitySummary">
+                      {activeDrawPrompt}
+                    </div>
+                    <div className="ViewportOverlaySketchEntityList">
+                      <div className="ViewportOverlaySketchEntityItem">
+                        <span>Plane</span>
+                        <span>{sketchFeature?.plane ?? 'XY'}</span>
+                      </div>
+                      <div className="ViewportOverlaySketchEntityItem">
+                        <span>Points</span>
+                        <span>{activeDrawDraft?.points.length ?? 0}</span>
+                      </div>
+                      <div className="ViewportOverlaySketchEntityItem">
+                        <span>Hover</span>
+                        <span>
+                          {activeHoverPoint === null ? 'none' : formatPoint(activeHoverPoint)}
+                        </span>
+                      </div>
+                      <div className="ViewportOverlaySketchEntityItem">
+                        <span>Origin Snap</span>
+                        <span>
+                          {activeDrawDraft?.hoverSnapTarget === 'origin' ? 'armed' : 'off'}
+                        </span>
+                      </div>
+                      {activePreviewStartPoint !== null ? (
+                        <div className="ViewportOverlaySketchEntityItem">
+                          <span>{activeTool === 'pline' ? 'Last Point' : 'Start Point'}</span>
+                          <span>{formatPoint(activePreviewStartPoint)}</span>
+                        </div>
+                      ) : null}
+                      {activePreviewLength !== null ? (
+                        <div className="ViewportOverlaySketchEntityItem">
+                          <span>Preview Length</span>
+                          <span>{formatStableNumber(activePreviewLength)}</span>
+                        </div>
+                      ) : null}
+                    </div>
                     <div className="ViewportOverlaySketchSessionActions">
-                      <button type="button" onClick={() => submitComponent(activeTool)}>
-                        Add Entity
+                      <button type="button" onClick={() => finishGeometrySketchDrawDraft()}>
+                        {activeTool === 'pline' ? 'Finish PLine' : 'Accept Line'}
+                      </button>
+                      <button
+                        type="button"
+                        className="isGhost"
+                        onClick={() => {
+                          cancelGeometrySketchDrawDraft()
+                        }}
+                      >
+                        Cancel Draft
                       </button>
                       <button
                         type="button"

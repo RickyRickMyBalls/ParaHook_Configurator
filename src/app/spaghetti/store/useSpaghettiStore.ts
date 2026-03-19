@@ -170,7 +170,23 @@ export type SketchPlanePickSession = {
   draftTransform: SketchPlaneTransform
 }
 
-export type GeometrySketchTool = 'line' | 'arc3pt' | 'spline' | 'rectangle' | 'circle'
+export type GeometrySketchTool = 'line' | 'pline' | 'arc3pt' | 'spline' | 'rectangle' | 'circle'
+
+export type GeometrySketchDraftPoint = {
+  x: number
+  y: number
+}
+
+export type GeometrySketchDrawDraft = {
+  points: GeometrySketchDraftPoint[]
+  hoverPoint: GeometrySketchDraftPoint | null
+  hoverSnapTarget: 'origin' | null
+}
+
+type GeometrySketchConsolePrompt = {
+  tool: GeometrySketchTool
+  draft: GeometrySketchDrawDraft | null
+}
 
 export type GeometrySketchSession = {
   nodeId: string
@@ -178,6 +194,7 @@ export type GeometrySketchSession = {
   activeTool: GeometrySketchTool
   editorViewportId: string | null
   shouldRestoreViewportWindowMode: boolean
+  drawDraft: GeometrySketchDrawDraft | null
 }
 
 export type SpaghettiStoreState = {
@@ -194,6 +211,8 @@ export type SpaghettiStoreState = {
   editorViewportsById: Record<string, EditorViewport>
   editorViewportOrder: string[]
   activeEditorViewportId: string
+  editorViewportHeaderCollapsedById: Record<string, boolean>
+  editorViewportCanvasToolbarVisibleById: Record<string, boolean>
   partFeatureStackIrByPartKey: FeatureStackIrParts
   partKeyByNodeId: Record<string, string>
   edgeWaypoints: Record<string, EdgeWaypoint[]>
@@ -251,6 +270,16 @@ export type SpaghettiStoreState = {
   startGeometrySketchSession: (nodeId: string, mode: GeometrySketchSession['mode']) => void
   closeGeometrySketchSession: () => void
   setGeometrySketchSessionTool: (tool: GeometrySketchTool) => void
+  setGeometrySketchDrawHoverPoint: (
+    point: GeometrySketchDraftPoint | null,
+    snapTarget: 'origin' | null,
+  ) => void
+  confirmGeometrySketchDrawPoint: (
+    point: GeometrySketchDraftPoint,
+    snapTarget: 'origin' | null,
+  ) => void
+  finishGeometrySketchDrawDraft: () => void
+  cancelGeometrySketchDrawDraft: () => void
   appendGeometrySketchComponent: (nodeId: string, component: SketchComponent) => void
   updateGeometrySketchComponentPoint: (
     nodeId: string,
@@ -351,6 +380,12 @@ export type SpaghettiStoreState = {
     editorViewportId: string,
     windowMode: EditorViewport['windowMode'],
   ) => void
+  setEditorViewportHeaderCollapsed: (editorViewportId: string, collapsed: boolean) => void
+  setEditorViewportCanvasToolbarVisible: (editorViewportId: string, visible: boolean) => void
+  setEditorViewportPresentationMode: (
+    editorViewportId: string,
+    mode: 'collapsed' | 'essentials' | 'expanded',
+  ) => void
   setEditorViewportSplitRatio: (editorViewportId: string, splitRatio: number) => void
   setEditorViewportSplitDirection: (
     editorViewportId: string,
@@ -447,7 +482,11 @@ type CachedGraphStateSlice = Pick<
 
 type ViewportStateSlice = Pick<
   SpaghettiStoreState,
-  'editorViewportsById' | 'editorViewportOrder' | 'activeEditorViewportId'
+  | 'editorViewportsById'
+  | 'editorViewportOrder'
+  | 'activeEditorViewportId'
+  | 'editorViewportHeaderCollapsedById'
+  | 'editorViewportCanvasToolbarVisibleById'
 >
 
 const defaultGridColumns = 4
@@ -1032,6 +1071,94 @@ const createDefaultComponent = (
   if (componentType === 'arc3pt') return createDefaultArcComponent()
   return createDefaultLineComponent()
 }
+
+const isGeometrySketchDrawTool = (tool: GeometrySketchTool): tool is 'line' | 'pline' =>
+  tool === 'line' || tool === 'pline'
+
+const getGeometrySketchConsoleToolLabel = (tool: GeometrySketchTool): string =>
+  tool === 'pline' ? 'PLINE' : tool.toUpperCase()
+
+const roundGeometrySketchDraftCoordinate = (value: number): number =>
+  Math.round(value * 1_000) / 1_000
+
+const normalizeGeometrySketchDraftPoint = (
+  point: GeometrySketchDraftPoint,
+): GeometrySketchDraftPoint => ({
+  x: roundGeometrySketchDraftCoordinate(point.x),
+  y: roundGeometrySketchDraftCoordinate(point.y),
+})
+
+const areGeometrySketchDraftPointsEqual = (
+  left: GeometrySketchDraftPoint | null,
+  right: GeometrySketchDraftPoint | null,
+): boolean =>
+  left === right ||
+  (left !== null &&
+    right !== null &&
+    left.x === right.x &&
+    left.y === right.y)
+
+const createEmptyGeometrySketchDrawDraft = (): GeometrySketchDrawDraft => ({
+  points: [],
+  hoverPoint: null,
+  hoverSnapTarget: null,
+})
+
+const buildGeometrySketchConsolePrompt = (
+  tool: GeometrySketchTool,
+  draft: GeometrySketchDrawDraft | null,
+): string | null => {
+  if (!isGeometrySketchDrawTool(tool)) {
+    return null
+  }
+  const toolLabel = getGeometrySketchConsoleToolLabel(tool)
+  if (tool === 'line') {
+    return (draft?.points[0] ?? null) === null
+      ? `${toolLabel} Specify start point:`
+      : `${toolLabel} Specify end point:`
+  }
+  const pointCount = draft?.points.length ?? 0
+  if (pointCount === 0) {
+    return `${toolLabel} Specify start point:`
+  }
+  if (pointCount === 1) {
+    return `${toolLabel} Specify point 2:`
+  }
+  return `${toolLabel} Specify point ${pointCount + 1} or [Enter Finish]:`
+}
+
+const appendGeometrySketchConsolePrompt = (
+  tool: GeometrySketchTool,
+  draft: GeometrySketchDrawDraft | null,
+) => {
+  const prompt = buildGeometrySketchConsolePrompt(tool, draft)
+  if (prompt === null) {
+    return
+  }
+  appendConsoleEntry({
+    layer: 'App',
+    text: prompt,
+    source: 'sketch-draw',
+    severity: 'info',
+  })
+}
+
+const buildGeometrySketchSessionDraft = (
+  mode: GeometrySketchSession['mode'],
+  tool: GeometrySketchTool,
+): GeometrySketchDrawDraft | null =>
+  mode === 'draw' && isGeometrySketchDrawTool(tool) ? createEmptyGeometrySketchDrawDraft() : null
+
+const buildGeometrySketchLineComponent = (
+  start: GeometrySketchDraftPoint,
+  end: GeometrySketchDraftPoint,
+): SketchComponent => ({
+  rowId: makeRowId(),
+  componentId: makeComponentId(),
+  type: 'line',
+  a: { kind: 'lit', x: start.x, y: start.y },
+  b: { kind: 'lit', x: end.x, y: end.y },
+})
 
 const isCubeSeedRectangleSketch = (feature: SketchFeature): boolean =>
   feature.featureId === 'cube-sketch-1' &&
@@ -1671,7 +1798,19 @@ type BrowserViewportState = Pick<
   | 'editorViewportsById'
   | 'editorViewportOrder'
   | 'activeEditorViewportId'
+  | 'editorViewportHeaderCollapsedById'
+  | 'editorViewportCanvasToolbarVisibleById'
 >
+
+const pruneViewportBooleanRecord = (
+  record: Record<string, boolean> | undefined,
+  editorViewportsById: Record<string, EditorViewport>,
+): Record<string, boolean> =>
+  Object.fromEntries(
+    Object.entries(record ?? {}).filter(
+      ([editorViewportId]) => editorViewportsById[editorViewportId] !== undefined,
+    ),
+  )
 
 const getGraphDocumentForViewportBridge = (
   state: BrowserViewportState,
@@ -1700,6 +1839,8 @@ const withBrowserViewportState = (
     editorViewportsById?: Record<string, EditorViewport>
     editorViewportOrder?: string[]
     activeEditorViewportId?: string
+    editorViewportHeaderCollapsedById?: Record<string, boolean>
+    editorViewportCanvasToolbarVisibleById?: Record<string, boolean>
     viewerTargetGraphDocumentId?: string | null
     fallbackGraphDocumentId?: string
   },
@@ -1716,6 +1857,14 @@ const withBrowserViewportState = (
   const editorViewportsById = next.editorViewportsById ?? state.editorViewportsById
   const editorViewportOrder = next.editorViewportOrder ?? state.editorViewportOrder
   const activeEditorViewportId = next.activeEditorViewportId ?? state.activeEditorViewportId
+  const editorViewportHeaderCollapsedById = pruneViewportBooleanRecord(
+    next.editorViewportHeaderCollapsedById ?? state.editorViewportHeaderCollapsedById,
+    editorViewportsById,
+  )
+  const editorViewportCanvasToolbarVisibleById = pruneViewportBooleanRecord(
+    next.editorViewportCanvasToolbarVisibleById ?? state.editorViewportCanvasToolbarVisibleById,
+    editorViewportsById,
+  )
   const activeDocument =
     getGraphDocumentForViewportBridge(
       {
@@ -1752,6 +1901,8 @@ const withBrowserViewportState = (
     editorViewportsById,
     editorViewportOrder,
     activeEditorViewportId,
+    editorViewportHeaderCollapsedById,
+    editorViewportCanvasToolbarVisibleById,
   }
 }
 
@@ -1845,6 +1996,8 @@ const withInitialGraphDocumentState = (
       editorViewportsById: {},
       editorViewportOrder: [],
       activeEditorViewportId: '',
+      editorViewportHeaderCollapsedById: {},
+      editorViewportCanvasToolbarVisibleById: {},
     },
     {
       fallbackGraphDocumentId: document.graphDocumentId,
@@ -1867,6 +2020,8 @@ const withUpdatedActiveGraphDocumentState = (
     | 'editorViewportsById'
     | 'editorViewportOrder'
     | 'activeEditorViewportId'
+    | 'editorViewportHeaderCollapsedById'
+    | 'editorViewportCanvasToolbarVisibleById'
   >,
   graph: SpaghettiGraph,
 ): GraphDocumentStateSlice & CachedGraphStateSlice & ViewportStateSlice & FeatureStackIrCacheSlice => {
@@ -1888,6 +2043,8 @@ const withUpdatedGraphDocumentState = (
     | 'editorViewportsById'
     | 'editorViewportOrder'
     | 'activeEditorViewportId'
+    | 'editorViewportHeaderCollapsedById'
+    | 'editorViewportCanvasToolbarVisibleById'
   >,
   graphDocumentId: string,
   graph: SpaghettiGraph,
@@ -2154,6 +2311,8 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
   edgeWaypoints: {},
   selectedNodeId: null,
   editorViewportNodeFitRequest: null,
+  editorViewportHeaderCollapsedById: {},
+  editorViewportCanvasToolbarVisibleById: {},
   selectedEdgeId: null,
   hoveredEdgeId: null,
   connectionDrag: null,
@@ -2553,6 +2712,7 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
       source: 'sketch-plane',
       severity: 'info',
     })
+    get().startGeometrySketchSession(session.nodeId, 'draw')
   },
   setSketchPlanePickDraftPlane: (plane) => {
     if (!isSketchPlane(plane)) {
@@ -2888,6 +3048,7 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
     })
   },
   startGeometrySketchSession: (nodeId, mode) => {
+    const nextPromptRef: { current: GeometrySketchConsolePrompt | null } = { current: null }
     set((state) => {
       const node = state.graph.nodes.find((candidate) => candidate.nodeId === nodeId)
       if (node === undefined || !isGeometrySketchNode(node)) {
@@ -2925,6 +3086,14 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
               }
             })()
           : state.editorViewportsById
+      const activeTool = current?.nodeId === nodeId ? current.activeTool : 'line'
+      const drawDraft = buildGeometrySketchSessionDraft(mode, activeTool)
+      if (mode === 'draw') {
+        nextPromptRef.current = {
+          tool: activeTool,
+          draft: drawDraft,
+        }
+      }
       return {
         ...(nextEditorViewportsById === state.editorViewportsById
           ? {}
@@ -2932,17 +3101,20 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
         geometrySketchSession: {
           nodeId,
           mode,
-          activeTool:
-            current?.nodeId === nodeId ? current.activeTool : 'line',
+          activeTool,
           editorViewportId,
           shouldRestoreViewportWindowMode:
             current?.nodeId === nodeId
               ? current.shouldRestoreViewportWindowMode || shouldRestoreViewportWindowMode
               : shouldRestoreViewportWindowMode,
+          drawDraft,
         },
         sketchPlanePickSession: null,
       }
     })
+    if (nextPromptRef.current !== null) {
+      appendGeometrySketchConsolePrompt(nextPromptRef.current.tool, nextPromptRef.current.draft)
+    }
   },
   closeGeometrySketchSession: () => {
     const session = get().geometrySketchSession
@@ -2956,17 +3128,271 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
     }
   },
   setGeometrySketchSessionTool: (tool) => {
+    const nextPromptRef: { current: GeometrySketchConsolePrompt | null } = { current: null }
     set((state) => {
-      if (state.geometrySketchSession === null || state.geometrySketchSession.activeTool === tool) {
+      if (state.geometrySketchSession === null) {
+        return state
+      }
+      if (state.geometrySketchSession.mode === 'draw') {
+        nextPromptRef.current = {
+          tool,
+          draft:
+            state.geometrySketchSession.activeTool === tool
+              ? state.geometrySketchSession.drawDraft
+              : buildGeometrySketchSessionDraft(state.geometrySketchSession.mode, tool),
+        }
+      }
+      if (state.geometrySketchSession.activeTool === tool) {
         return state
       }
       return {
         geometrySketchSession: {
           ...state.geometrySketchSession,
           activeTool: tool,
+          drawDraft: buildGeometrySketchSessionDraft(state.geometrySketchSession.mode, tool),
         },
       }
     })
+    if (nextPromptRef.current !== null) {
+      appendGeometrySketchConsolePrompt(nextPromptRef.current.tool, nextPromptRef.current.draft)
+    }
+  },
+  setGeometrySketchDrawHoverPoint: (point, snapTarget) => {
+    set((state) => {
+      const session = state.geometrySketchSession
+      if (session === null || session.mode !== 'draw' || session.drawDraft === null) {
+        return state
+      }
+      const normalizedPoint = point === null ? null : normalizeGeometrySketchDraftPoint(point)
+      const nextSnapTarget = normalizedPoint === null ? null : snapTarget
+      if (
+        areGeometrySketchDraftPointsEqual(session.drawDraft.hoverPoint, normalizedPoint) &&
+        session.drawDraft.hoverSnapTarget === nextSnapTarget
+      ) {
+        return state
+      }
+      return {
+        geometrySketchSession: {
+          ...session,
+          drawDraft: {
+            ...session.drawDraft,
+            hoverPoint: normalizedPoint,
+            hoverSnapTarget: nextSnapTarget,
+          },
+        },
+      }
+    })
+  },
+  confirmGeometrySketchDrawPoint: (point, snapTarget) => {
+    const nextPromptRef: { current: GeometrySketchConsolePrompt | null } = { current: null }
+    set((state) => {
+      const session = state.geometrySketchSession
+      if (
+        session === null ||
+        session.mode !== 'draw' ||
+        session.drawDraft === null ||
+        !isGeometrySketchDrawTool(session.activeTool)
+      ) {
+        return state
+      }
+
+      const nextPoint = normalizeGeometrySketchDraftPoint(point)
+      if (session.activeTool === 'line') {
+        const startPoint = session.drawDraft.points[0] ?? null
+        if (startPoint === null) {
+          const nextDraft = {
+            points: [nextPoint],
+            hoverPoint: nextPoint,
+            hoverSnapTarget: snapTarget,
+          }
+          nextPromptRef.current = {
+            tool: session.activeTool,
+            draft: nextDraft,
+          }
+          return {
+            geometrySketchSession: {
+              ...session,
+              drawDraft: nextDraft,
+            },
+          }
+        }
+        if (areGeometrySketchDraftPointsEqual(startPoint, nextPoint)) {
+          return state
+        }
+        const nextGraph = updateGeometrySketchNode(state.graph, session.nodeId, (feature) =>
+          recomputeSketchFeature({
+            ...feature,
+            components: [...feature.components, buildGeometrySketchLineComponent(startPoint, nextPoint)],
+          }),
+        )
+        if (nextGraph === state.graph) {
+          return state
+        }
+        nextPromptRef.current = {
+          tool: session.activeTool,
+          draft: createEmptyGeometrySketchDrawDraft(),
+        }
+        return {
+          ...withUpdatedActiveGraphDocumentState(state, nextGraph),
+          geometrySketchSession: {
+            ...session,
+            drawDraft: createEmptyGeometrySketchDrawDraft(),
+          },
+        }
+      }
+
+      const previousPoint = session.drawDraft.points[session.drawDraft.points.length - 1] ?? null
+      if (previousPoint !== null && areGeometrySketchDraftPointsEqual(previousPoint, nextPoint)) {
+        return state
+      }
+      const nextDraft = {
+        points: [...session.drawDraft.points, nextPoint],
+        hoverPoint: nextPoint,
+        hoverSnapTarget: snapTarget,
+      }
+      nextPromptRef.current = {
+        tool: session.activeTool,
+        draft: nextDraft,
+      }
+      return {
+        geometrySketchSession: {
+          ...session,
+          drawDraft: nextDraft,
+        },
+      }
+    })
+    if (nextPromptRef.current !== null) {
+      appendGeometrySketchConsolePrompt(nextPromptRef.current.tool, nextPromptRef.current.draft)
+    }
+  },
+  finishGeometrySketchDrawDraft: () => {
+    const nextPromptRef: { current: GeometrySketchConsolePrompt | null } = { current: null }
+    set((state) => {
+      const session = state.geometrySketchSession
+      if (
+        session === null ||
+        session.mode !== 'draw' ||
+        session.drawDraft === null ||
+        !isGeometrySketchDrawTool(session.activeTool)
+      ) {
+        return state
+      }
+
+      if (session.activeTool === 'line') {
+        const startPoint = session.drawDraft.points[0] ?? null
+        const hoverPoint = session.drawDraft.hoverPoint
+        if (
+          startPoint === null ||
+          hoverPoint === null ||
+          areGeometrySketchDraftPointsEqual(startPoint, hoverPoint)
+        ) {
+          return state
+        }
+        const nextGraph = updateGeometrySketchNode(state.graph, session.nodeId, (feature) =>
+          recomputeSketchFeature({
+            ...feature,
+            components: [...feature.components, buildGeometrySketchLineComponent(startPoint, hoverPoint)],
+          }),
+        )
+        if (nextGraph === state.graph) {
+          return state
+        }
+        nextPromptRef.current = {
+          tool: session.activeTool,
+          draft: createEmptyGeometrySketchDrawDraft(),
+        }
+        return {
+          ...withUpdatedActiveGraphDocumentState(state, nextGraph),
+          geometrySketchSession: {
+            ...session,
+            drawDraft: createEmptyGeometrySketchDrawDraft(),
+          },
+        }
+      }
+
+      if (session.drawDraft.points.length < 2) {
+        nextPromptRef.current = {
+          tool: session.activeTool,
+          draft: createEmptyGeometrySketchDrawDraft(),
+        }
+        return {
+          geometrySketchSession: {
+            ...session,
+            drawDraft: createEmptyGeometrySketchDrawDraft(),
+          },
+        }
+      }
+
+      const nextComponents = session.drawDraft.points
+        .slice(1)
+        .map((point, index) =>
+          buildGeometrySketchLineComponent(session.drawDraft!.points[index], point),
+        )
+      const nextGraph = updateGeometrySketchNode(state.graph, session.nodeId, (feature) =>
+        recomputeSketchFeature({
+          ...feature,
+          components: [...feature.components, ...nextComponents],
+        }),
+      )
+      if (nextGraph === state.graph) {
+        return state
+      }
+      nextPromptRef.current = {
+        tool: session.activeTool,
+        draft: createEmptyGeometrySketchDrawDraft(),
+      }
+      return {
+        ...withUpdatedActiveGraphDocumentState(state, nextGraph),
+        geometrySketchSession: {
+          ...session,
+          drawDraft: createEmptyGeometrySketchDrawDraft(),
+        },
+      }
+    })
+    if (nextPromptRef.current !== null) {
+      appendGeometrySketchConsolePrompt(nextPromptRef.current.tool, nextPromptRef.current.draft)
+    }
+  },
+  cancelGeometrySketchDrawDraft: () => {
+    const currentSession = get().geometrySketchSession
+    if (currentSession === null || currentSession.drawDraft === null) {
+      return
+    }
+    if (
+      currentSession.drawDraft.points.length === 0 &&
+      currentSession.drawDraft.hoverPoint === null &&
+      currentSession.drawDraft.hoverSnapTarget === null
+    ) {
+      get().closeGeometrySketchSession()
+      return
+    }
+    const nextPromptRef: { current: GeometrySketchConsolePrompt | null } = { current: null }
+    set((state) => {
+      const session = state.geometrySketchSession
+      if (session === null || session.drawDraft === null) {
+        return state
+      }
+      if (
+        session.drawDraft.points.length === 0 &&
+        session.drawDraft.hoverPoint === null &&
+        session.drawDraft.hoverSnapTarget === null
+      ) {
+        return state
+      }
+      nextPromptRef.current = {
+        tool: session.activeTool,
+        draft: createEmptyGeometrySketchDrawDraft(),
+      }
+      return {
+        geometrySketchSession: {
+          ...session,
+          drawDraft: createEmptyGeometrySketchDrawDraft(),
+        },
+      }
+    })
+    if (nextPromptRef.current !== null) {
+      appendGeometrySketchConsolePrompt(nextPromptRef.current.tool, nextPromptRef.current.draft)
+    }
   },
   appendGeometrySketchComponent: (nodeId, component) => {
     set((state) => {
@@ -3816,6 +4242,59 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
         editorViewportsById: nextViewportsById,
       })
     })
+  },
+  setEditorViewportHeaderCollapsed: (editorViewportId, collapsed) => {
+    set((state) => {
+      if (state.editorViewportsById[editorViewportId] === undefined) {
+        return state
+      }
+      return {
+        editorViewportHeaderCollapsedById: {
+          ...state.editorViewportHeaderCollapsedById,
+          [editorViewportId]: collapsed,
+        },
+      }
+    })
+  },
+  setEditorViewportCanvasToolbarVisible: (editorViewportId, visible) => {
+    set((state) => {
+      if (state.editorViewportsById[editorViewportId] === undefined) {
+        return state
+      }
+      return {
+        editorViewportCanvasToolbarVisibleById: {
+          ...state.editorViewportCanvasToolbarVisibleById,
+          [editorViewportId]: visible,
+        },
+      }
+    })
+  },
+  setEditorViewportPresentationMode: (editorViewportId, mode) => {
+    const state = get()
+    const viewport = state.editorViewportsById[editorViewportId]
+    if (viewport === undefined) {
+      return
+    }
+
+    if (mode === 'collapsed') {
+      if (viewport.windowMode !== 'collapsed') {
+        get().setEditorViewportWindowMode(editorViewportId, 'collapsed')
+      }
+      get().setEditorViewportHeaderCollapsed(editorViewportId, false)
+      get().setEditorViewportCanvasToolbarVisible(editorViewportId, true)
+      return
+    }
+
+    if (viewport.windowMode !== 'expanded') {
+      get().setEditorViewportWindowMode(editorViewportId, 'expanded')
+    }
+    if (mode === 'essentials') {
+      get().setEditorViewportHeaderCollapsed(editorViewportId, true)
+      get().setEditorViewportCanvasToolbarVisible(editorViewportId, false)
+      return
+    }
+    get().setEditorViewportHeaderCollapsed(editorViewportId, false)
+    get().setEditorViewportCanvasToolbarVisible(editorViewportId, true)
   },
   setEditorViewportSplitRatio: (editorViewportId, splitRatio) => {
     set((state) => {

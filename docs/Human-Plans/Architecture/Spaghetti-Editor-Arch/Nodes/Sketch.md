@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+27. 2026-03-19 13:41: Added a bottom-of-file section map for the real sketch-plane toolbar parts, aligning the new placeholders to the live overlay structure with `Title Bar`, `I Menu`, `Toolbar Window`, `Sketch Plane UI`, `Plane Selection`, `Transform`, `Move`, and `Rotate`, and cleaned the new `Sketch Draw` placeholder headings to `Title Bar` / `Section`
 26. 2026-03-18 22:19: Expanded the `3.2B-2-Cleanup` phase with two concrete visual/product requirements: restore the sketch-plane toolbar to the earlier compact title-bar language keyed off the sketch-plane pin color, and move the source-pick interaction fully into the main model viewport with a central origin gizmo plus three clickable ghost origin planes instead of a faux embedded viewport panel
 25. 2026-03-18 22:14: Added a real `3.2B-2-Cleanup` phase section that captures the post-implementation cleanup work needed after the first viewport-first source-pick cut, including removing the faux mini-viewport treatment, moving preview responsibility back onto the main model viewport, tightening draft-versus-committed ownership, and clearing remaining prototype/dev seams
 24. 2026-03-18 21:54: Revised the `3.2B-2` phase section itself into an implementation-ready spec, adding the locked viewport-first source-pick flow, explicit implementation seams, acceptance checks, and out-of-scope boundaries, and then answered the remaining `3.2B-2` decision items by promoting their standing suggestions into explicit defaults for this phase
@@ -477,14 +478,34 @@ Important rule:
 - do not collapse all of these into one implementation task
 - keep the setup work and content-family work related, but distinct
 
-## [x] - `3.2B-N` Sketch Subphase Map
+# Sub-Phases
+
+## [x] - `3.2B` - `Sketch Operation Authoring Family Map`
+
+### Header
 
 For this doc, treat the current shipped roadmap phase `[3.2B] Sketch Operation Authoring` as:
 - `3.2B-0`
 
 Use the next sketch follow-ons as:
 
+### Questions / Decisions
+
+#### [x] - `q1` Keep one clear `3.2B` family map in this doc.
+
+##### Suggestion
+- yes
+- use this section as the scan-friendly phase inventory
+- keep the deeper detailed planning in the later decision sections below
+
+### Implementation Spec
+
+- use this section to see the full sketch family at a glance
+- use the later `Sketch plane` and `3.2B-DrawSketch` sections as the detailed decision surfaces
+
 ## [x] - `3.2B-0` - `Existing Sketch Operation Authoring`
+
+### Header
 
 Purpose:
 - the already-landed first real graph-native sketch authoring cut
@@ -495,7 +516,22 @@ Owns:
 - profile derivation
 - first honest sketch review/output flow
 
-## [x] - `3.2B-1` - `SketchPlane Source And Transform Surface`
+### Questions / Decisions
+
+#### [x] - `q1` Treat this as shipped history, not the next planning surface.
+
+##### Suggestion
+- yes
+- keep it here as the baseline phase that later sketch work builds on
+
+### Implementation Spec
+
+- already landed
+- keep this phase as the historical foundation for the later `SketchPlane` and `Draw Sketch` families
+
+## [x] - `3.2B-SketchPlane-1` - `Source And Transform Surface`
+
+### Header
 
 Purpose:
 - turn `SketchPlane` into a richer setup surface instead of a thin plane row
@@ -507,7 +543,22 @@ Owns:
 - `ParaSlider` for numeric transform values
 - simple orientation actions like `Flip`
 
-## [ ] - `3.2B-2` - `Viewport-First Source Pick And Sketch Origin Gizmo`
+### Questions / Decisions
+
+#### [x] - `q1` Treat this as the shipped row-surface foundation for later viewport-first work.
+
+##### Suggestion
+- yes
+- keep later `SketchPlane` planning focused on viewport-first placement instead of reopening the basic row-surface contract
+
+### Implementation Spec
+
+- already landed
+- this phase remains the source/setup row foundation that later viewport-first sketch-plane work builds on
+
+## [ ] - `3.2B-SketchPlane-2` - `Viewport-First Source Pick And Sketch Origin Gizmo`
+
+### Header
 
 Purpose:
 - make sketch-plane picking a real viewport-first placement workflow
@@ -519,6 +570,17 @@ Owns:
 - ghost plane boxes
 - ghost sketch grids
 - spatial reference aids around the origin gizmo
+
+### Questions / Decisions
+
+#### [ ] - `q1` Use the detailed `### 3.2b-2` decision block below as the working planning surface for this phase.
+
+##### Suggestion
+- yes
+- keep the numbered `3.2b-2` questions below as the detailed decision checklist
+- keep this subphase section focused on scope and implementation-readiness
+
+### Implementation Spec
 
 Implementation-ready spec:
 - `3.2B-2` replaces the old overlay-based `Sketch Plane` picker with one canonical viewport-first source-pick session
@@ -587,7 +649,9 @@ Out of scope for this phase:
 - hover/selection highlighting for geometry-derived source references
 - viewport `Flip`
 
-## [ ] - `3.2B-2-Cleanup` - `Main Viewport Integration And First-Pass Workflow Cleanup`
+## [ ] - `3.2B-SketchPlane-2-Cleanup` - `Main Viewport Integration And First-Pass Workflow Cleanup`
+
+### Header
 
 Purpose:
 - clean up the first `3.2B-2` implementation so the sketch-plane pick flow reads as one honest main-model-viewport workflow instead of a mixed prototype with leftover faux-viewport UI
@@ -646,8 +710,20 @@ Important rule:
 - do not let it absorb `3.2B-3` geometry-driven face/edge picking
 - do not let it absorb the later generic transform-tool architecture either
 - the goal here is to make the first viewport-first origin-plane workflow honest, not to expand scope
-### Implemented cleanup plan
-#### `3.2B-2-Cleanup` — Main Viewport Integration And First-Pass Workflow Cleanup
+
+### Questions / Decisions
+
+#### [ ] - `q1` Keep this cleanup phase focused on honesty and integration, not scope expansion.
+
+##### Suggestion
+- yes
+- use this phase to clean up the real viewer ownership, toolbar honesty, and draft-versus-committed behavior
+- do not let it absorb `3.2B-SketchPlane-3` geometry-pick scope
+
+### Implementation Spec
+
+### `3.2B-SketchPlane-2-Cleanup` - `Implemented Cleanup Plan`
+#### `3.2B-SketchPlane-2-Cleanup` - `Main Viewport Integration And First-Pass Workflow Cleanup`
 
 ##### Summary
 Refactor the shipped `3.2B-2` sketch-plane pick flow so it reads as one honest main-model-viewport workflow.
@@ -732,7 +808,9 @@ Keep the current single `sketchPlanePickSession`, the collapsed `Spaghetti Edito
 - “Gizmo now” means a viewport-resident origin/plane overlay now, not full transform-tool unification now.
 
 
-## [ ] - `3.2B-3` - `Geometry-Driven Auto-Setup And Selection Highlighting`
+## [ ] - `3.2B-SketchPlane-3` - `Geometry-Driven Auto-Setup And Selection Highlighting`
+
+### Header
 
 Purpose:
 - allow model geometry to help drive sketch-plane setup
@@ -745,7 +823,479 @@ Owns:
 - filled/tinted selection feedback
 - hover versus committed source feedback
 
+### Questions / Decisions
+
+#### [ ] - `q1` Use the later `### 3.2B-3` section as the detailed working decision surface for this phase.
+
+##### Suggestion
+- yes
+- keep this phase centered on geometry-driven source inference and highlight language
+- keep the deeper source-type questions in the later dedicated decision block
+
+### Implementation Spec
+
+- implementation spec should be derived from the later `### 3.2B-3` decision block once its open questions are locked
+- keep this phase centered on:
+  - geometry-driven source inference
+  - hover / selected / committed highlight states
+  - preserved geometry-source metadata
+
+## [x] - `3.2B-DrawSketch-1` - `Viewer-Owned Live Draw Preview`
+### Header
+
+Purpose:
+- prove the first honest viewer-owned sketch drawing session in the real model viewport
+
+Owns:
+- first active draw preview in the real Three viewport
+- first click-to-place draw flow for:
+  - `Line`
+  - `PLine`
+- first draw-session toolbar / viewport ownership split
+
+### Questions / Decisions
+
+#### [x] - `q1` Keep the first real viewer-owned draw cut limited to `Line` and `PLine`.
+
+##### Suggestion
+- locked
+- `DrawSketch-1` is limited to `Line` and `PLine`
+- use `Line` and `PLine` as the first honest pair because they prove the shared point-projection and live-preview seam without pulling in more complex tool families too early
+
+#### [x] - `q2` Treat the first sketch-draw console commands as local session commands, not a second permanent workflow.
+
+##### Suggestion
+- locked
+- use temporary local commands like `line`, `pline`, `status`, and `help`
+- treat them as local session commands, not a second permanent workflow
+- model them as a future branch of the deeper graph/node/sketch/draw command tree
+
+#### [x] - `q3` Decide how viewport clicks project onto the active sketch plane in the first honest cut.
+
+##### Suggestion
+- locked
+- when the user enters `Draw Sketch`, align the camera to the active sketch-plane normal or its opposite so the user is looking at the sketch plane directly
+- move the active working grid onto the chosen sketch plane
+- keep the origin point visible at the center of that grid
+- project viewport clicks directly onto the current resolved sketch plane from `SketchPlane`
+- use one canonical viewer-side plane-intersection helper for both `Line` and `PLine`
+- allow the drawing cursor/pen to snap to the visible sketch origin so the user can use it as a first point or later endpoint
+- do not add alternate geometry-derived projection rules in this phase
+
+#### [x] - `q4` Decide whether the first `DrawSketch-1` cut is click-first only, or whether typed numeric entry must already work during the live tool session.
+
+##### Suggestion
+- locked
+- make the first honest cut click-first
+- after the camera aligns to the sketch plane, the user should feel like they are drawing directly into a 2D drafting plane similar to AutoCAD
+- the active `Line` tool should let the user click a first point on the chosen sketch plane, then move the mouse to preview a ghost line from that first point to the live cursor projection
+- the line stays snapped to the chosen sketch plane while the user moves the mouse
+- left click confirms the second point and completes the line
+- allow the toolbar to reflect live point values, but defer true typed numeric-entry workflow until the viewer-owned draw seam is stable
+
+#### [x] - `q5` Decide what the live preview must show for `Line` and `PLine`.
+
+##### Suggestion
+- locked
+- `Line`
+  - before the first click, show the projected current cursor point on the active sketch plane
+  - after the first click, show one ghost line from the locked start point to the live cursor projection
+  - show the live endpoint marker at the cursor
+  - keep the visible origin point available as a snap target
+- `PLine`
+  - show the current temporary chain so far
+  - show one ghost next segment from the last active endpoint to the live cursor projection
+  - show the live endpoint marker at the cursor
+- keep committed geometry visually stronger than the live ghost segment
+- keep the preview viewer-owned and do not fake it with toolbar-only fields
+
+#### [x] - `q6` Decide the minimum commit boundary for the first viewer-owned draw cut.
+
+##### Suggestion
+- locked
+- `DrawSketch-1` should already be able to commit first-pass `Line` and `PLine` entities into sketch component state
+- keep the commit rules minimal and defer deeper lifecycle polish to `3.2B-DrawSketch-2`
+- do not let `DrawSketch-1` become preview-only, because that would leave the first viewer-owned draw seam structurally incomplete
+
+#### [x] - `q7` Decide whether `PLine` commits segment-by-segment immediately in `DrawSketch-1`, or stays one temporary chain until the command finishes.
+
+##### Suggestion
+- locked
+- keep one temporary live `PLine` chain during the active command
+- commit the chain as authored sketch content only when the user finishes it
+- defer partial-segment commit complexity until a later pass unless implementation forces it sooner
+
+#### [x] - `q8` Decide what active draw-session state the toolbar must mirror while the viewer owns the live geometry.
+
+##### Suggestion
+- locked
+- toolbar should mirror:
+  - active tool
+  - current step/prompt
+  - current point values if available
+  - simple finish/cancel hints
+- but the toolbar should not become the drawing surface or own the temporary geometry
+
+#### [x] - `q9` Decide what first-pass hover and snapping aids belong in `DrawSketch-1`.
+
+##### Suggestion
+- locked
+- keep first-pass hover simple:
+  - projected current point
+  - current temporary segment
+- keep origin snap in scope from day one
+- defer richer endpoint/object snapping, inference guides, and constraint-like feedback until later unless one tiny snap rule is needed to make `Line`/`PLine` usable
+
+#### [x] - `q10` Decide what temporary console commands are required on day one for the first viewer-owned draw cut.
+
+##### Suggestion
+- locked
+- require:
+  - `line`
+  - `pline`
+  - `status`
+  - `help`
+- keep them dev-oriented and session-local
+- make them call the same underlying draw-session actions as the toolbar
+
+#### [x] - `q11` Decide what viewer-side helper/module should own the temporary draw preview.
+
+##### Suggestion
+- locked
+- add a dedicated viewer-side helper module for sketch draw preview, parallel to the sketch-plane helper direction
+- keep temporary geometry viewer-owned
+- keep committed sketch entities store-owned
+- bridge the draw session through one clear viewer/app seam instead of scattering draw logic across toolbar-only components
+
+#### [x] - `q12` Decide the exact out-of-scope boundary for `DrawSketch-1`.
+
+##### Suggestion
+- locked
+- keep out of scope:
+  - `Arc3Point`
+  - `BezierSpline`
+  - `Rectangle`
+  - `Circle`
+  - rich snapping/inference
+  - entity editing
+  - browser/deeper expose work
+  - final global console grammar
+- use `DrawSketch-1` only to prove the first honest viewer-owned `Line` / `PLine` seam
+
+#### [x] - `q13` Decide whether entering `Draw Sketch` should always collapse the active `Spaghetti Editor` for this phase.
+
+##### Suggestion
+- locked
+- yes
+- keep the same compact-shell behavior used by the current sketch draw session and the sketch-plane viewport workflow
+- make the real model viewport the clear drawing surface from the start
+
+### Implementation Spec
+
+#### Summary
+
+`3.2B-DrawSketch-1` should make `Draw Sketch` the first honest viewer-owned sketch authoring workflow.
+
+The toolbar remains the control surface, but the real interaction happens in the main Three viewport. The first cut is intentionally narrow and proves only:
+- `Line`
+- `PLine`
+
+This phase must already be able to commit first-pass authored sketch entities. It is not a preview-only phase.
+
+#### Locked Workflow
+
+1. the user clicks `Draw` inside `SketchDraw`
+2. the active `Spaghetti Editor` collapses into the compact shell
+3. the `Sketch Draw` toolbar opens
+4. the camera aligns to the active sketch-plane normal or its opposite so the user is looking at the sketch directly
+5. the working grid moves onto the chosen sketch plane
+6. the origin point stays visible at the center of that grid
+7. the user chooses:
+   - `Line`
+   - `PLine`
+8. the viewer projects cursor movement directly onto the resolved sketch plane
+9. the active tool shows viewer-owned ghost preview geometry as the user moves the mouse
+10. left click confirms the next point on the sketch plane
+11. `Line` completes after the second point
+12. `PLine` stays alive as one temporary chain until the user finishes it
+
+#### Viewer Ownership
+
+- add a dedicated viewer-side draw-preview helper/module for sketch drawing
+- keep temporary draw geometry viewer-owned
+- keep committed sketch entities store-owned
+- use one canonical plane-intersection/projection helper for both `Line` and `PLine`
+- do not add alternate geometry-derived projection rules in this phase
+
+Viewer must render:
+- active sketch-plane grid
+- visible origin point at the grid center
+- current projected cursor point
+- origin snap feedback
+- ghost `Line` preview after the first point
+- ghost `PLine` next-segment preview from the last active endpoint
+- stronger committed geometry than live ghost geometry
+- live endpoint marker at the cursor
+
+#### Tool Behavior
+
+`Line`
+- first click sets the start point on the sketch plane
+- mouse movement updates one ghost preview segment
+- left click confirms the second point
+- the line commits into sketch component state
+- the command ends
+
+`PLine`
+- first click sets the start point on the sketch plane
+- each next click extends the temporary chain
+- mouse movement updates one ghost next segment from the last active endpoint
+- keep one temporary live chain during the command
+- commit the chain as authored sketch content only when the user finishes it
+
+#### Toolbar / Session Behavior
+
+The toolbar should mirror:
+- active tool
+- current step/prompt
+- live point values if available
+- simple finish/cancel hints
+
+The toolbar must not:
+- become the drawing surface
+- own temporary draw geometry
+
+The first cut is click-first:
+- do not require typed numeric entry yet
+- allow later toolbar reflection of point values
+- defer true typed numeric-entry workflow until a later phase
+
+#### Console Commands
+
+Temporary day-one local session commands:
+- `line`
+- `pline`
+- `status`
+- `help`
+
+Rules:
+- they are local session commands, not a second permanent workflow
+- they must call the same underlying session/tool actions as the toolbar
+- they should be modeled as a future branch of the deeper `graph > node > sketch > draw` command tree
+
+#### Commit / State Rules
+
+- `DrawSketch-1` must already commit first-pass `Line` and `PLine` entities into sketch component state
+- keep commit rules minimal in this phase
+- defer deeper lifecycle polish to `3.2B-DrawSketch-2`
+- do not let this phase become preview-only
+
+#### Required First-Pass Aids
+
+Keep in scope:
+- projected current point
+- current temporary segment/chain preview
+- origin snap
+
+Keep out of scope:
+- `Arc3Point`
+- `BezierSpline`
+- `Rectangle`
+- `Circle`
+- rich snapping/inference
+- entity editing
+- browser/deeper expose work
+- final global console grammar
+
+#### Implementation Seams
+
+- extend the existing geometry-sketch session so `draw` mode can own an active viewer-backed draft tool session
+- add a dedicated viewer-side helper module for temporary sketch draw preview
+- bridge active tool/session state from app/store into the viewer
+- send viewer-picked sketch-plane points back through one canonical draw-session seam
+- commit authored `Line` / `PLine` output back into sketch component state through the existing sketch feature/store path
+- keep the active `Spaghetti Editor` collapsed while the draw session is active
+
+#### Acceptance Checks
+
+- clicking `Draw` collapses the active `Spaghetti Editor`
+- the camera aligns to the sketch plane
+- the working grid moves onto the chosen sketch plane
+- the origin point is visible at the center of the grid
+- the cursor can snap to the origin
+- `Line` works as:
+  - first click start
+  - ghost preview while moving
+  - second click commit
+- `PLine` works as:
+  - first click start
+  - live temporary chain while moving
+  - next clicks extend the chain
+- committed geometry is visually stronger than ghost geometry
+- toolbar mirrors active tool and prompt state without becoming the drawing surface
+- local console commands `line`, `pline`, `status`, and `help` work against the active draw session
+
+#### Assumptions And Defaults
+
+- first implementation target is the real main model viewport
+- first implementation target is the current active sketch plane chosen through `SketchPlane`
+- first implementation target is `Line` and `PLine` only
+- first implementation target is click-first, not typed-entry-first
+
+## [x] - `3.2B-DrawSketch-1-Cleanup` - `Viewport Draw Workflow Cleanup`
+
+### Header
+
+Purpose:
+- clean up the first shipped `DrawSketch-1` pass so the line/polyline workflow reads as one honest drafting session in the main model viewport instead of a first-cut prototype with leftover seams
+
+Owns:
+- draw-session visual cleanup after the first viewer-owned `Line` / `PLine` cut
+- toolbar wording and section cleanup for `SketchDraw`
+- camera / grid / origin polish for the aligned sketch-draw view
+- ghost preview readability and temporary-chain clarity
+- cleanup of first-pass local console/dev seams that should stay explicitly temporary
+- draft-versus-committed honesty during an active draw session
+
+### Questions / Decisions
+
+#### [x] - `q1` Keep this cleanup phase focused on honesty and polish, not on expanding tool scope.
+
+##### Suggestion
+- yes
+- use this phase to clean up:
+  - viewport drafting feel
+  - toolbar/session clarity
+  - preview readability
+  - confirm/cancel polish
+- do not let this phase absorb:
+  - new draw tools
+  - richer snapping/inference
+  - editing of existing entities
+  - browser/deeper expose work
+
+### Implementation Spec
+
+Implemented cleanup from the shipped `DrawSketch-1` pass:
+
+- tightened the real viewer-owned ghost preview so `Line` and `PLine` both show honest in-progress geometry in the main viewport instead of feeling like they only appear on commit
+- stabilized the draft-to-committed handoff so the ghost preview and final committed line render on the same effective sketch plane without a visible jump on second click
+- removed start/end/cursor marker drift by moving the drafting markers into the sketch-plane local frame so they stay visually locked to the same surface as the drawn geometry
+- kept the active aligned sketch grid centered and readable while preserving the chosen sketch-plane view as the drafting surface
+- expanded the `Sketch Draw` `i Menu` with first-pass real draw-visual controls for:
+  - snap on/off
+  - snap distance
+  - crosshair size
+  - start point on/off
+  - start point symbol type
+  - start point symbol size
+- improved start-point defaults so the first loaded drafting marker is smaller and calmer:
+  - default symbol is `circle`
+  - default size is reduced
+  - min clamp is low enough for fine tuning
+- added `PLine` point-symbol controls in the `i Menu` for:
+  - on/off
+  - point size
+  - symbol type
+- added visible historical `PLine` point markers so prior polyline points remain readable in a muted color while the active last point still reads as the live endpoint
+
+Cleanup boundaries that were kept intact:
+
+- no new draw tools were added
+- no richer snapping/inference system was added beyond first-pass origin behavior and visibility controls
+- no selection/editing of existing entities was pulled forward
+- no browser/expose work was mixed into this cleanup
+
+Result:
+
+- `3.2B-DrawSketch-1` now reads as a more honest first drafting loop
+- `3.2B-DrawSketch-2` remains the next deeper session/lifecycle phase
+- `3.2B-DrawSketch-3` remains the later selection/editing/richer-feedback phase
+
+## [ ] - `3.2B-DrawSketch-2` - `Multi-Step Tool Sessions And Commit Rules`
+
+### Header
+
+Purpose:
+- make `Line` and `PLine` feel like real interactive command sessions instead of one-off point drops
+
+Owns:
+- start / continue / finish rules
+- explicit accept / cancel behavior
+- temporary entity draft state before commit
+- early draw-session console command hooks
+
+### Questions / Decisions
+
+#### [ ] - `q1` Decide the exact finish / continue / cancel behavior for `Line` versus `PLine`.
+
+##### Suggestion
+- `Line`
+  - pick start
+  - pick end
+  - commit
+  - command ends
+- `PLine`
+  - pick start
+  - pick next point
+  - stay alive
+  - `Enter` finishes
+  - `Esc` cancels the live command
+
+#### [ ] - `q2` Decide which temporary console lifecycle commands should mirror the draw session in this phase.
+
+##### Suggestion
+- use:
+  - `enter`
+  - `esc`
+  - `x`
+  - `undo`
+- keep them as temporary command seams that mirror the real draw-session actions
+
+### Implementation Spec
+
+- detailed open questions live in the later `### 3.2B-DrawSketch` section
+- first implementation should prove:
+  - multi-step draft state machines
+  - explicit finish / cancel rules
+  - commit-on-finish behavior
+  - temporary console-assisted lifecycle hooks
+
+## [ ] - `3.2B-DrawSketch-3` - `Selection, Editing, And Richer Sketch Feedback`
+
+### Header
+
+Purpose:
+- move beyond raw first-pass drawing into a fuller sketch authoring workflow
+
+Owns:
+- hover / selected / active draw feedback
+- editing of existing sketch entities
+- richer snapping and later inference aids
+
+### Questions / Decisions
+
+#### [ ] - `q1` Decide the first honest editing scope after raw drawing is stable.
+
+##### Suggestion
+- start with:
+  - hover
+  - selected
+  - active
+  - simple entity editing
+- defer richer constraints and deeper inferencing until the raw draw session feels stable
+
+### Implementation Spec
+
+- detailed open questions live in the later `### 3.2B-DrawSketch` section
+- first implementation should prove:
+  - viewport hover / selected language
+  - editing of existing line-based entities
+  - richer draw feedback without overloading the first draw-session seam
+
 ## [ ] - `3.2B-4` - `Sketch Exposure And Browser Structure`
+
+### Header
 
 Purpose:
 - give sketches a truthful authored-content presence before downstream body consumption
@@ -759,7 +1309,25 @@ Owns:
     - `Assembly`
     - `Sketches`
 
+### Questions / Decisions
+
+#### [ ] - `q1` Decide the first honest expose/browser cut once the core sketch interaction seams are stable.
+
+##### Suggestion
+- expose sketch preview in the viewport
+- add the first `Content > Sketches` browser family
+- keep this phase separate from the core `SketchPlane` and `Draw Sketch` interaction work
+
+### Implementation Spec
+
+- first implementation should focus on:
+  - expose toggle behavior
+  - viewport visibility for exposed sketches
+  - first browser family structure for `Sketches`
+
 ## [ ] - `3.2B-5` - `Sketch Browser Depth And Authored Content Surfaces`
+
+### Header
 
 Purpose:
 - deepen the browser and content model once sketches are already visible as a family
@@ -773,7 +1341,27 @@ Owns:
 - richer browser participation in sketch-source workflow
 - better authored sketch-content readability
 
+### Questions / Decisions
+
+#### [ ] - `q1` Decide the first browser child surfaces once sketches already exist as a visible family.
+
+##### Suggestion
+- start with:
+  - `Source`
+  - `Curves`
+  - `Profiles`
+- leave later `Export` as a future child surface
+
+### Implementation Spec
+
+- first implementation should focus on:
+  - browser readability
+  - authored sketch-content visibility
+  - child surface structure under each sketch entry
+
 ## [ ] - `3.2B-6` - `Sketch Content Ownership And Later Export`
+
+### Header
 
 Purpose:
 - let sketch stand on its own as authored vector content, not just as a body-feature feeder
@@ -782,6 +1370,22 @@ Owns:
 - stronger `Sketches` content-family identity
 - later vector-export direction like `.dxf`
 - richer sketch-content ownership beyond the node-only editing surface
+
+### Questions / Decisions
+
+#### [ ] - `q1` Decide how far sketch should stand on its own as authored vector content beyond body-feature use.
+
+##### Suggestion
+- strengthen `Sketches` as a content family
+- leave concrete export details like `.dxf` to a later deeper spec
+- use this phase to lock the ownership direction first
+
+### Implementation Spec
+
+- first implementation should focus on:
+  - stronger sketch-content ownership language
+  - later vector-export direction
+  - keeping sketch meaningful even without immediate downstream solid consumption
 
 Important rule:
 - `3.2B-1` through `3.2B-3` are primarily about sketch-plane/source workflow
@@ -1190,615 +1794,20 @@ This section intentionally does not fully decide:
 - the exact runtime geometry interpretation of all authored transform values
 - the final browser-child layout once `Sketches` becomes a full content family
 
-## Decisions
 
-### 3.2b-1
-
-- No major blocking product questions remain here.
-- Treat `3.2B-1` as done for planning purposes:
-  - `SketchPlane` has a real `Source + Transform` surface
-  - the row has `collapsed / essentials / expanded`
-  - shared `ParaSelect` / `ParaSlider` language is established
-- Follow-on refinements can still happen, but they should not re-open the phase boundary.
-
-### 3.2b-2
-
-`3.2B-2` is now decision-complete for implementation planning. These checklist items capture the locked defaults:
-
-#### [x] `1.` `Pick In Viewport` should stay live until the user confirms with an explicit accept action.
-
-##### Decision
-- add a confirm action in the `SketchPlane` / source-pick surface
-- allow `Enter` as the keyboard confirm shortcut
-- record the active pick-session steps/actions in the console so the workflow is easier to inspect while this system is still being developed
-
-##### Suggestion
-- keep confirm visible both in the compact pick surface and in the expanded `SketchPlane` context so there is one obvious completion action
-
-#### [x] `2.` Decide the exact exit model for viewport-pick.
-
-##### Decision
-- the `X` action in the `SketchPlane` / source-pick surface exits the active pick session
-- `Esc` exits the active pick session
-- typing `x` in the console should also exit while this workflow is still being actively debugged/built
-
-##### Suggestion
-- treat all three exit paths as the same underlying cancel action so the session does not branch into different cleanup behavior
-
-#### [x] `3.` Decide what controls must remain visible in the compact collapsed spaghetti-editor bar during pick.
-
-##### Decision
-- `Pick In Viewport` should force the `Spaghetti Editor` into its preset `collapsed mode`
-- that `collapsed mode` should hide the body of the `Spaghetti Editor`
-- the compact pick surface should reuse that remaining top bar as the visible shell during active source pick
-- this specifically means the existing window-level `collapsed mode`, not the separate header-collapse behavior inside the panel
-
-##### Suggestion
-- keep the first cut narrow:
-  - reuse the existing `collapsed mode` top bar
-  - keep the body hidden for the duration of the pick session
-  - surface only the minimum pick-session controls in that bar instead of inventing a second compact-shell system
-
-#### [x] `4.` Decide whether the first `3.2B-2` cut allows clicking only origin planes, or also planar model faces and existing sketch geometry.
-
-##### Decision
-- keep `3.2B-2` to origin-plane picking only
-- let `3.2B-3` own model-face and sketch-geometry-driven picks
-
-##### Suggestion
-- keep `3.2B-2` to origin-plane picking only
-- let `3.2B-3` own model-face and sketch-geometry-driven picks
-
-#### [x] `5.` If existing sketch geometry is allowed in `3.2B-2`, decide which geometry counts as valid.
-
-Current options:
-- whole sketch plane only
-- planar profiles
-- individual curves/edges
-
-##### Decision
-- defer this whole decision to `3.2B-3`
-- if it must come forward later, start with whole planar references before individual curves/edges
-
-##### Suggestion
-- defer this whole decision to `3.2B-3`
-- if it must come forward later, start with whole planar references before individual curves/edges
-
-#### [x] `6.` Decide whether the sketch-origin gizmo appears immediately in the same session after the first reference is chosen, or whether the first cut commits source first and opens transform second.
-
-##### Decision
-- `3.2B-2` should use one continuous live placement session
-- the user picks the initial origin plane reference
-- the sketch-origin gizmo appears immediately in that same live session
-- the user adjusts placement/orientation before commit
-- the user confirms with `Done` or `Enter`
-
-##### Suggestion
-- show the sketch-origin gizmo immediately in the same session after the first reference is chosen
-- keep source pick and first transform adjustment as one continuous viewport workflow
-
-#### [x] `7.` Decide what transform controls belong directly in the viewport gizmo for the first cut.
-
-Current options:
-- move only
-- move + rotate
-- move + rotate + flip
-
-##### Decision
-- the first viewport gizmo cut should support `move + rotate`
-- `Flip` should stay out of the gizmo for now
-- `Flip` remains in the row/control surface until later
-
-##### Suggestion
-- first cut should support `move + rotate`
-- keep `Flip` out of the gizmo for now and leave it in the row/control surface until later
-
-#### [x] `8.` Decide whether the first viewport gizmo operates in world space only, or whether it needs a local sketch-plane space toggle immediately.
-
-##### Decision
-- keep the first cut in world space only
-- defer local sketch-plane space toggles until the base pick/preview/gizmo loop feels stable
-
-##### Suggestion
-- keep the first cut in world space only
-- defer local sketch-plane space toggles until the base pick/preview/gizmo loop feels stable
-
-#### [x] `9.` Decide the minimum ghost-preview set for the first cut.
-
-Current options:
-- three origin plane boxes only
-- active candidate plane fill
-- active candidate grid
-- axis labels / orientation cues
-
-##### Decision
-- minimum first cut should include:
-  - three origin plane boxes on entry
-  - active candidate plane fill
-  - active candidate grid
-  - basic axis/orientation cues
-
-##### Suggestion
-- minimum first cut should include:
-  - three origin plane boxes on entry
-  - active candidate plane fill
-  - active candidate grid
-  - basic axis/orientation cues
-
-#### [x] `10.` Decide whether the preview remains visible while the user is still editing the sketch node, or only exists inside the active pick session.
-
-##### Decision
-- keep the richer ghost/source preview scoped to the active pick session only
-- once the session closes, return to the normal sketch-preview model rather than leaving the picker preview half-live
-
-##### Suggestion
-- keep the richer ghost/source preview scoped to the active pick session only
-- once the session closes, return to the normal sketch-preview model rather than leaving the picker preview half-live
-
-#### [x] `11.` Decide whether the `SketchPlane` expanded row updates live while the viewport session is open, or only updates on commit.
-
-##### Decision
-- show temporary live session state in the UI while the session is open
-- only commit the authored sketch-plane values when the user confirms
-
-##### Suggestion
-- show temporary live session state in the UI while the session is open
-- only commit the authored sketch-plane values when the user confirms
-
-#### [x] `12.` Decide whether `Flip` is available inside the viewport-first session in `3.2B-2`, or remains row-only until later.
-
-##### Decision
-- keep `Flip` row-only in `3.2B-2`
-- add it to the viewport session later only if the move/rotate workflow proves insufficient
-
-##### Suggestion
-- keep `Flip` row-only in `3.2B-2`
-- add it to the viewport session later only if the move/rotate workflow proves insufficient
-
-#### [x] `13.` Decide whether `3.2B-2` includes true model-face picking on day one, or defers that so `3.2B-2` ships with origin-plane picking plus gizmo and `3.2B-3` owns geometry-driven picks.
-
-##### Decision
-- defer true model-face picking to `3.2B-3`
-- let `3.2B-2` ship the cleaner origin-plane plus gizmo loop first
-
-##### Suggestion
-- defer true model-face picking to `3.2B-3`
-- let `3.2B-2` ship the cleaner origin-plane plus gizmo loop first
-
-#### [x] `14.` Decide whether `3.2B-2` fully replaces the current overlay-based `XY / XZ / YZ` picker, or temporarily keeps both paths alive.
-
-##### Decision
-- `3.2B-2` should expand the existing sketch-plane picker path into the newer viewport-first source-pick tool
-- this newer tool should become the canonical replacement path for `Pick In Viewport`
-- the product should not keep two equal long-term picker systems alive
-- if a short transition period is needed during implementation, the viewport-first flow should still be the only intended user-facing direction
-
-##### Suggestion
-- treat `3.2B-2` as the replacement path for the current draggable overlay picker
-- keep one canonical `Pick In Viewport` workflow so the product does not split into an older popup path and a newer viewport-first path
-- if a temporary overlap is unavoidable during implementation, make the viewport-first path the only user-facing entry and treat the old overlay as transitional code only
-
-#### [x] `15.` Decide whether the first `3.2B-2` implementation can reuse the current `sketchPlanePickSession` seam and extend it, or whether it should introduce a richer dedicated viewport-pick session model immediately.
-
-##### Decision
-- extend the existing `sketchPlanePickSession` seam first if that keeps the first cut smaller
-- only introduce a separate richer session object immediately if the current shape cannot honestly represent preview, temporary transform, confirm, and cancel state
-- do not let the first implementation split source-pick truth across multiple competing session models
-
-##### Suggestion
-- extend the existing `sketchPlanePickSession` seam first if that keeps the first cut smaller
-- only introduce a separate richer session object immediately if the current shape cannot honestly represent preview, temporary transform, confirm, and cancel state
-- do not let the first implementation split source-pick truth across multiple competing session models
-
-Recommended default if we want to reduce risk:
-- `3.2B-2` ships with origin-plane picking, compact editor collapse, live ghost plane/grid preview, immediate gizmo-based move/rotate, and explicit `Done / Cancel`
-- planar-face and sketch-geometry-driven picking move to `3.2B-3`
-
-
-
-### `3.2B-2-Cleanup Part 2` - `Real Three-Rendered Ghost Planes And Gizmo`
-
-This section exists to plan the next cleanup pass after the first main-viewport integration.
-
-The goal is to stop faking the origin gizmo and the three ghost origin planes with DOM/CSS overlay elements and instead render them as real viewer-owned Three content that lives in the same world/camera space as the model viewport.
-
-This cleanup part should:
-- move the origin anchor, axis cues, and three ghost origin planes into the actual viewer scene
-- make those visuals rotate correctly with the camera
-- keep the compact right-side sketch-plane dock as UI chrome only
-- keep one canonical `sketchPlanePickSession`
-- keep `Done` / `X`, `Enter` / `Esc`, and hidden console `x`
-
-This cleanup part should not:
-- expand into model-face picking
-- expand into edge picking
-- introduce a second picker session model
-- fully generalize the transform tool for all content types
-
-#### Locked Decisions
-
-- reuse the existing viewer-side `TransformGizmo` path for `move + rotate`
-- do not build a second custom sketch-only move/rotate gizmo
-- add three new real Three-rendered ghost origin planes:
-  - `XY`
-  - `XZ`
-  - `YZ`
-- create one temporary sketch-plane preview pivot/root object in the viewer and attach the reused gizmo to that pivot
-- render the origin anchor, axis cues, ghost planes, and active draft grid as real viewer-owned Three content
-- keep `ViewportOverlay` responsible only for compact dock chrome, buttons, and status text
-- keep `sketchPlanePickSession` as the single source of truth for draft plane, draft transform, stage, and confirm/cancel lifecycle
-- use real viewer raycasting against the temporary origin-plane meshes for `XY / XZ / YZ` picking
-- keep this pass origin-plane only; do not add model-face or edge picking here
-- create and destroy all temporary preview objects strictly with the active pick session
-- keep labels optional; if they hurt readability, rely on plane fill/edge emphasis instead
-- use a dedicated sketch-plane viewer helper/module rather than burying this logic inside `ViewportOverlay`
-
-### `3.2B-2-Cleanup Part 2A` - `Real Three Ghost Planes And Preview Pivot`
-
-#### Summary
-- replace the DOM/CSS ghost planes and origin cues with real viewer-owned Three preview content
-- create the real sketch-plane preview pivot/helper set in the viewer
-- do not attach the reused `TransformGizmo` yet in this subphase
-
-#### Locked Decisions
-- viewer owns all temporary sketch-plane preview visuals
-- `ViewportOverlay` keeps only compact dock chrome, status, `Done`, and `X`
-- `sketchPlanePickSession` stays the single source of truth
-- add a dedicated viewer helper module for this work
-- create one temporary sketch-plane preview pivot/root object in the viewer
-- add three temporary ghost origin-plane meshes:
-  - `XY`
-  - `XZ`
-  - `YZ`
-- add lightweight axis/origin cues in the same helper set
-- add a real active-plane grid/helper aligned to the selected draft plane
-- use real viewer raycasting against the three plane meshes
-- origin-plane only; no face/edge/model picking
-- labels are optional and not required in `2A`
-- helper set exists only during active `sketchPlanePickSession`
-
-#### Implementation Changes
-- add a viewer-side module, e.g. `SketchPlanePickHelper`
-- create/destroy the helper from the viewer based on session lifecycle
-- render:
-  - preview pivot/root
-  - 3 ghost plane meshes
-  - axis/origin cues
-  - active plane grid/helper
-- map `draftPlane` from `sketchPlanePickSession` to:
-  - active plane highlight
-  - active grid orientation
-- raycast plane clicks in the viewer and update `draftPlane`
-- remove all remaining fake ghost-plane/axis rendering from `ViewportOverlay`
-
-#### Visual Defaults
-- inactive planes: faint fill, readable outline, clearly clickable
-- active plane: stronger fill plus stronger edge emphasis
-- grid: viewer-aligned and tied to the active draft plane
-- no text labels required for the first pass if readability is weak
-
-#### Test Targets
-- starting `Pick In Viewport` creates the viewer helper set
-- helper set contains preview pivot, 3 planes, and active grid/helper
-- clicking `XY / XZ / YZ` updates draft plane through viewer picking
-- active plane highlight updates immediately
-- confirm/cancel fully tears down the helper set
-- `ViewportOverlay` no longer owns ghost plane rendering
-
-### `3.2B-2-Cleanup Part 2B` - `Reused TransformGizmo Attachment And Live Draft Transform`
-
-#### Summary
-- reuse the existing viewer `TransformGizmo` by attaching it to the temporary sketch-plane preview pivot
-- drive live draft move/rotate from that viewer-owned pivot
-- keep the plane-picking visuals from `2A` active while the gizmo is attached
-
-#### Locked Decisions
-- reuse the existing viewer-side `TransformGizmo`
-- do not build a second sketch-specific move/rotate gizmo
-- attach the reused gizmo to the temporary sketch-plane preview pivot from `2A`
-- keep this pass to `move + rotate`
-- keep `Flip` out
-- keep confirm/cancel lifecycle unchanged:
-  - `Done` / `Enter` commit
-  - `X` / `Esc` / hidden console `x` cancel
-- keep world-space behavior as the default for this pass
-- do not generalize this into the whole-app transform architecture yet
-
-#### Implementation Changes
-- add viewer-side sketch-plane transform session wiring using the existing gizmo seam
-- attach/detach `TransformGizmo` to the preview pivot only while the sketch-plane pick session is active
-- map gizmo object changes back into sketch-plane draft transform state
-- keep draft translation/rotation live in the viewer without committing until confirm
-- keep the compact right-side dock for:
-  - stage/status
-  - `Done`
-  - `X`
-  - any remaining non-gizmo controls still needed during transition
-- keep the plane-selection visuals from `2A` active while the gizmo is attached
-
-#### Test Targets
-- active pick session attaches the reused `TransformGizmo` to the preview pivot
-- gizmo move updates draft translation live
-- gizmo rotate updates draft rotation live
-- draft transform updates do not commit authored state until confirm
-- confirm commits draft plane + transform and removes helper/gizmo
-- cancel removes helper/gizmo without committing
-- previous `Done` / `X` / `Enter` / `Esc` / console `x` behavior still works
-
-#### Assumptions / Defaults
-- `2A` should ship before `2B`
-- `2A` is implementation-ready on its own and leaves the current side move/rotate controls intact if needed temporarily
-- `2B` depends on the preview pivot/helper lifecycle from `2A`
-- both subphases remain origin-plane only and keep geometry-derived picking deferred to `3.2B-3`
-- the current `3.2B-2-Cleanup Part 2` section should be replaced by these two sections, not kept alongside them
-
-### `3.2B-3` - `Geometry-Driven Auto-Setup And Selection Highlighting`
-
-- Treat `3.2B-3` as intentionally dependent on `3.2B-2`.
-- Main later decisions belong here instead of blocking `3.2B-2`:
-  - which geometry types are valid source references
-  - how edge/curve-derived orientation is inferred
-  - how hover versus committed highlight states look
-  - whether sketch-derived picks and model-derived picks use identical preview styling
-- If we want the first viewport-pick cut to stay implementation-safe, these should remain out of `3.2B-2`.
-
-#### Decision list
-
-#### [ ] `1.` Decide the first allowed geometry source types for `3.2B-3`.
-
-##### Suggestion
-- start with planar model faces and existing sketch planes/profiles only
-- defer edge-only and arbitrary curved-surface picks until a later follow-on
-
-#### [ ] `2.` Decide whether planar model faces and existing sketch-derived picks ship together or in two smaller cuts.
-
-##### Suggestion
-- if we want lower implementation risk, ship planar model faces first and add sketch-derived geometry as the second cut inside `3.2B-3`
-
-#### [ ] `3.` Decide what minimum data a picked geometry source must provide.
-
-##### Suggestion
-- require enough information to infer:
-  - origin
-  - normal
-  - stable in-plane orientation
-- reject geometry that cannot provide those three things honestly
-
-#### [ ] `4.` Decide how in-plane orientation is inferred when the picked source does not already expose an obvious `X` direction.
-
-##### Suggestion
-- prefer a deterministic fallback order
-- if no honest stable direction exists, require one extra user correction step rather than guessing silently
-
-#### [ ] `5.` Decide whether edge or curve picks are valid as primary sketch-plane sources or only as orientation helpers.
-
-##### Suggestion
-- treat edges/curves as later orientation helpers, not as first primary sources
-
-#### [ ] `6.` Decide how hover, preview, selected, and committed highlight states should differ in the viewport.
-
-##### Suggestion
-- use four explicit visual states:
-  - hover candidate
-  - active preview source
-  - committed source
-  - invalid source
-
-#### [ ] `7.` Decide whether sketch-derived picks and model-derived picks use one shared highlight language or visibly different styling.
-
-##### Suggestion
-- keep one shared highlight language first
-- only add source-type-specific styling later if users actually need the distinction
-
-#### [ ] `8.` Decide whether geometry-derived picks immediately auto-place the sketch plane and open adjust mode, or pause in a preview state first.
-
-##### Suggestion
-- preview the inferred result first, then let the user confirm and continue into adjust mode
-
-#### [ ] `9.` Decide what happens when geometry-derived auto-setup is ambiguous.
-
-##### Suggestion
-- prefer explicit ambiguity handling:
-  - show the inferred result
-  - explain what is missing
-  - offer one correction path
-- do not silently choose a weak orientation guess
-
-#### [ ] `10.` Decide whether model-face and sketch-derived source picks should reuse the same `sketchPlanePickSession` shape or require a richer geometry-pick payload.
-
-##### Suggestion
-- keep one canonical session seam if possible
-- extend the payload with geometry-source metadata rather than forking into a second picker system
-
-#### [ ] `11.` Decide what geometry-derived source metadata must be preserved after confirm.
-
-##### Suggestion
-- persist enough metadata to:
-  - re-identify the source
-  - explain the inferred setup
-  - rebuild preview/highlight later
-
-#### [ ] `12.` Decide whether `3.2B-3` includes browser-visible source provenance or keeps that hidden until later.
-
-##### Suggestion
-- keep provenance visible in the expanded `SketchPlane` surface first
-- defer deeper browser exposure until the later sketch/browser phases
-
-### `3.2B-DrawSketch`
-
-#### `3.2B-DrawSketch-1` - `Viewer-Owned Live Draw Preview`
-
-##### [ ] `1.` Decide the first viewport-draw tool set for the first honest Three-viewer cut.
-
-###### Suggestion
-- start with:
-  - `Line`
-  - `PLine`
-- use `3.2B-DrawSketch-1` to prove the real viewer-owned draw session seam with the smallest honest pair of segment-based tools
-- keep the behavioral split explicit:
-  - `Line`
-    - pick start
-    - pick end
-    - commit
-    - command ends
-  - `PLine`
-    - pick start
-    - pick next point
-    - keep the command alive
-    - each new point extends from the last endpoint until the user explicitly finishes
-- defer:
-  - `Rectangle`
-  - `Circle`
-  - `Arc3Point`
-  - `BezierSpline`
-  until later `Draw Sketch` cuts
-
-##### [ ] `2.` Decide whether the active draw preview is fully viewer-owned or partly faked in overlay DOM.
-
-###### Suggestion
-- keep the active draw preview fully viewer-owned in the Three scene
-- do not repeat the earlier fake-overlay pattern from the first sketch-plane prototype
-
-##### [ ] `3.` Decide how viewport clicks are projected into sketch-local draw points.
-
-###### Suggestion
-- project viewport picks onto the current committed sketch plane
-- convert those hit points into sketch-local coordinates before authoring component values
-- keep the viewer preview world-space and the committed component values sketch-space
-
-##### [ ] `4.` Decide whether `Draw Sketch` should collapse the spaghetti editor the same way `SketchPlane` viewport pick does.
-
-###### Suggestion
-- yes
-- keep `Draw Sketch` as a viewport-first session and collapse the editor out of the way while the draw toolbar remains visible
-
-##### [ ] `5.` Decide whether the first viewport-draw cut commits one entity at a time or keeps the whole draw session as one giant draft.
-
-###### Suggestion
-- commit one entity at a time
-- keep only the currently in-progress entity as temporary viewer-owned draft state
-
-##### [ ] `6.` Decide what temporary console commands should exist for `Draw Sketch` during early viewport-first development.
-
-###### Suggestion
-- keep the console seam temporary and debugging-oriented, just like early `SketchPlane`
-- first useful commands should mirror real draw-session actions:
-  - `line`
-    - switch the active tool to `Line`
-  - `pline`
-    - switch the active tool to `PLine`
-  - `status`
-    - print the current draw-session state
-  - `help`
-    - print the temporary `Draw Sketch` command list
-- do not let console commands become a second conflicting drawing workflow
-- console commands should always trigger the same underlying tool/session actions as the visible toolbar
-
-##### [ ] `7.` Decide whether `Draw Sketch` console commands are app-global or only valid inside resolved graph/node scope.
-
-###### Suggestion
-- `Draw Sketch` commands should eventually live inside graph/node scope, not as a totally separate top-level console system
-- the intended command-depth should read more like:
-  - `graph`
-  - `node`
-  - `sketch`
-  - `draw`
-- that matches the real ownership model:
-  - the sketch belongs to a node
-  - the node belongs to a graph
-- later convenience aliases can exist, but they should be sugar on top of the deeper graph/node-scoped truth
-- the temporary early `Draw Sketch` commands should already be modeled as one local command branch that can later plug into the larger app-wide console grammar instead of becoming a separate sketch-only console product
-
-#### `3.2B-DrawSketch-2` - `Multi-Step Tool Sessions And Commit Rules`
-
-##### [ ] `1.` Decide whether every draw tool should become an explicit multi-step state machine.
-
-###### Suggestion
-- yes
-- make each tool honest about its own click progression instead of pretending all sketch tools behave like single-step placement
-
-##### [ ] `2.` Decide the first accept/cancel keyboard model for the in-progress entity.
-
-###### Suggestion
-- `Enter`
-  - for `Line`, accept the current in-progress entity when it is valid
-  - for `PLine`, finish the current polyline command
-- `Esc`
-  - cancel the current in-progress entity or active `PLine` command without necessarily closing the whole `Draw Sketch` session
-- `X`
-  - still exits the overall `Draw Sketch` session
-
-##### [ ] `3.` Decide whether the active tool stays selected after an entity is committed or resets to neutral.
-
-###### Suggestion
-- keep the active tool selected after commit
-- let the user place repeated lines without re-picking the tool every time in the first cut
-- let `PLine` stay active as one continuous command until the user explicitly finishes it
-- extend that same rule to later tools once they enter scope
-
-##### [ ] `4.` Decide the first honest spline progression model.
-
-###### Suggestion
-- do not pull spline into `3.2B-DrawSketch-2` unless the first `Line`-based viewer/session seam is already stable
-- when spline does enter, start with click-to-add-point progression plus explicit finish
-- defer deeper tangent/control-handle editing until later instead of overloading the first spline pass
-
-##### [ ] `5.` Decide whether the toolbar should mirror the in-progress draft geometry values while the viewport session is active.
-
-###### Suggestion
-- yes, when the current tool has meaningful current-step values
-- but keep those values clearly temporary until the current entity is accepted
-
-##### [ ] `6.` Decide the first confirm/cancel/continue console verbs for active `Line` and `PLine` sessions.
-
-###### Suggestion
-- keep the first command set small and mirror the real session lifecycle:
-  - `enter`
-    - accept the current `Line`
-    - finish the current `PLine`
-  - `esc`
-    - cancel the current in-progress entity or active `PLine`
-  - `x`
-    - exit the overall `Draw Sketch` session
-  - `undo`
-    - remove the last temporary `PLine` segment/point when a polyline is still in progress
-- keep these as development/debug hooks first
-- visible toolbar/session actions should remain the primary product surface
-
-#### `3.2B-DrawSketch-3` - `Selection, Editing, And Richer Sketch Feedback`
-
-##### [ ] `1.` Decide whether the first editing cut selects whole entities first or jumps immediately to per-point editing handles.
-
-###### Suggestion
-- select whole entities first
-- add point/handle editing as the next layer once base selection behavior is stable
-
-##### [ ] `2.` Decide the first hover/active/selected/invalid visual language for sketch entities in the viewer.
-
-###### Suggestion
-- use explicit distinct viewer states for:
-  - hovered candidate
-  - active in-progress entity
-  - selected committed entity
-  - invalid draft/operation
-
-##### [ ] `3.` Decide the first snapping/inference set for viewport sketch drawing.
-
-###### Suggestion
-- start with:
-  - grid
-  - axis
-  - endpoint
-- defer midpoint/intersection/tangent inference until later follow-ons
-
-##### [ ] `4.` Decide whether editing existing entities stays inside `Draw Sketch` or later becomes a separate toolbar/session.
-
-###### Suggestion
-- keep editing inside `Draw Sketch`
-- extend the same toolbar/session rather than spawning a second competing sketch-edit surface
-
-##### [ ] `5.` Decide whether `Draw Sketch-3` should include browser-facing entity selection/provenance or stay viewer/session-focused.
-
-###### Suggestion
-- keep `Draw Sketch-3` viewer/session-focused first
-- defer deeper browser-facing entity structure to the later sketch browser/content phases
+# Sketch plane
+## Title Bar
+## I Menu
+### Toolbar Window
+### Sketch Plane UI
+## Plane Selection
+## Transform
+### Move
+### Rotate
+
+# Sketch Draw
+## Title Bar
+## Section
+## Tool Selection
+## Active Tool
+## Entities

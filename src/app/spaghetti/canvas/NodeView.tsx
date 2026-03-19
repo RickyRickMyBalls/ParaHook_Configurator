@@ -2461,7 +2461,7 @@ function NodeViewComponent({
             <div className="SpaghettiSketchPlaceholder" data-sp-sketch-placeholder="draw">
               <div className="SpaghettiSketchPlaceholderTitle">No sketch entities yet</div>
               <div className="SpaghettiSketchPlaceholderBody">
-                Use Draw to add `Line`, `Arc3Point`, `BezierSpline`, `Rectangle`, or `Circle`.
+                Use Draw to add `Line` or `PLine` in the main viewport.
               </div>
             </div>
           ) : (

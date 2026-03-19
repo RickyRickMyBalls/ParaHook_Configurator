@@ -18,6 +18,10 @@ let viewerSetGeometrySketchOverlay: ReturnType<typeof vi.fn>
 let viewerSetSketchPlanePickOverlay: ReturnType<typeof vi.fn>
 let viewerSetOnSketchPlanePickPlaneSelect: ReturnType<typeof vi.fn>
 let viewerSetOnSketchPlanePickTransformChange: ReturnType<typeof vi.fn>
+let viewerSetOnGeometrySketchHoverPoint: ReturnType<typeof vi.fn>
+let viewerSetOnGeometrySketchConfirmPoint: ReturnType<typeof vi.fn>
+let viewerSetOnGeometrySketchFinishDraft: ReturnType<typeof vi.fn>
+let viewerSetOnGeometrySketchCancelDraft: ReturnType<typeof vi.fn>
 
 vi.mock('../viewerBridge', () => ({
   setViewer: vi.fn(),
@@ -48,6 +52,14 @@ vi.mock('../../viewer/Viewer', () => ({
       viewerSetOnReferenceTransformSpaceChange(...args)
     public setGizmoSnap = (...args: unknown[]) => viewerSetGizmoSnap(...args)
     public setGeometrySketchOverlay = (...args: unknown[]) => viewerSetGeometrySketchOverlay(...args)
+    public setOnGeometrySketchHoverPoint = (...args: unknown[]) =>
+      viewerSetOnGeometrySketchHoverPoint(...args)
+    public setOnGeometrySketchConfirmPoint = (...args: unknown[]) =>
+      viewerSetOnGeometrySketchConfirmPoint(...args)
+    public setOnGeometrySketchFinishDraft = (...args: unknown[]) =>
+      viewerSetOnGeometrySketchFinishDraft(...args)
+    public setOnGeometrySketchCancelDraft = (...args: unknown[]) =>
+      viewerSetOnGeometrySketchCancelDraft(...args)
     public setSketchPlanePickOverlay = (...args: unknown[]) =>
       viewerSetSketchPlanePickOverlay(...args)
     public setOnSketchPlanePickPlaneSelect = (...args: unknown[]) =>
@@ -115,6 +127,10 @@ describe('ViewerHost reference loading', () => {
     viewerSetSketchPlanePickOverlay = vi.fn()
     viewerSetOnSketchPlanePickPlaneSelect = vi.fn()
     viewerSetOnSketchPlanePickTransformChange = vi.fn()
+    viewerSetOnGeometrySketchHoverPoint = vi.fn()
+    viewerSetOnGeometrySketchConfirmPoint = vi.fn()
+    viewerSetOnGeometrySketchFinishDraft = vi.fn()
+    viewerSetOnGeometrySketchCancelDraft = vi.fn()
     globalThis.Worker = MockWorker as unknown as typeof Worker
     const { useAppStore } = await import('../store/useAppStore')
     const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
@@ -349,6 +365,25 @@ describe('ViewerHost reference loading', () => {
       expect.objectContaining({
         mode: 'draw',
         plane: 'XZ',
+        planeTransform: expect.objectContaining({
+          translation: expect.objectContaining({ x: 0, y: 0, z: 0 }),
+        }),
+        activeTool: 'line',
+        drawDraft: expect.objectContaining({
+          points: [],
+          hoverPoint: null,
+        }),
+        ui: expect.objectContaining({
+          snapEnabled: true,
+          snapDistancePx: 14,
+          crosshairSize: 1,
+          startPointVisible: true,
+          startPointSymbolSize: 0.1,
+          startPointSymbolType: 'circle',
+          plinePointVisible: true,
+          plinePointSymbolSize: 0.05,
+          plinePointSymbolType: 'circle',
+        }),
         components: expect.any(Array),
       }),
     )

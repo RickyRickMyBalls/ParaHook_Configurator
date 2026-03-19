@@ -178,6 +178,15 @@ type UiPrefsState = {
   sketchPlaneToolbarTranslateSnapValue: number
   sketchPlaneToolbarRotateSnapEnabled: boolean
   sketchPlaneToolbarRotateSnapValue: number
+  sketchDrawSnapEnabled: boolean
+  sketchDrawSnapDistancePx: number
+  sketchDrawCrosshairSize: number
+  sketchDrawStartPointVisible: boolean
+  sketchDrawStartPointSymbolSize: number
+  sketchDrawStartPointSymbolType: 'crosshair' | 'circle'
+  sketchDrawPlinePointVisible: boolean
+  sketchDrawPlinePointSymbolSize: number
+  sketchDrawPlinePointSymbolType: 'crosshair' | 'circle'
   setView: (patch: Partial<ViewSettings>) => void
   setViewKey: <K extends keyof ViewSettings>(key: K, value: ViewSettings[K]) => void
   setViewToolbarOpen: (open: boolean) => void
@@ -188,6 +197,15 @@ type UiPrefsState = {
   setSketchPlaneToolbarTranslateSnapValue: (value: number) => void
   setSketchPlaneToolbarRotateSnapEnabled: (enabled: boolean) => void
   setSketchPlaneToolbarRotateSnapValue: (value: number) => void
+  setSketchDrawSnapEnabled: (enabled: boolean) => void
+  setSketchDrawSnapDistancePx: (value: number) => void
+  setSketchDrawCrosshairSize: (value: number) => void
+  setSketchDrawStartPointVisible: (enabled: boolean) => void
+  setSketchDrawStartPointSymbolSize: (value: number) => void
+  setSketchDrawStartPointSymbolType: (value: 'crosshair' | 'circle') => void
+  setSketchDrawPlinePointVisible: (enabled: boolean) => void
+  setSketchDrawPlinePointSymbolSize: (value: number) => void
+  setSketchDrawPlinePointSymbolType: (value: 'crosshair' | 'circle') => void
   selectLight: (id: string | null) => void
   addLight: (spec?: Partial<LightSpec>) => void
   deleteLight: (id: string) => void
@@ -212,6 +230,15 @@ export const useUiPrefsStore = create<UiPrefsState>((set, get) => ({
   sketchPlaneToolbarTranslateSnapValue: 10,
   sketchPlaneToolbarRotateSnapEnabled: false,
   sketchPlaneToolbarRotateSnapValue: 15,
+  sketchDrawSnapEnabled: true,
+  sketchDrawSnapDistancePx: 14,
+  sketchDrawCrosshairSize: 1,
+  sketchDrawStartPointVisible: true,
+  sketchDrawStartPointSymbolSize: 0.1,
+  sketchDrawStartPointSymbolType: 'circle',
+  sketchDrawPlinePointVisible: true,
+  sketchDrawPlinePointSymbolSize: 0.05,
+  sketchDrawPlinePointSymbolType: 'circle',
   setView: (patch) => {
     set({ view: { ...get().view, ...patch } })
   },
@@ -241,6 +268,33 @@ export const useUiPrefsStore = create<UiPrefsState>((set, get) => ({
   },
   setSketchPlaneToolbarRotateSnapValue: (value) => {
     set({ sketchPlaneToolbarRotateSnapValue: clamp(value, 1, 90) })
+  },
+  setSketchDrawSnapEnabled: (enabled) => {
+    set({ sketchDrawSnapEnabled: enabled })
+  },
+  setSketchDrawSnapDistancePx: (value) => {
+    set({ sketchDrawSnapDistancePx: clamp(value, 4, 64) })
+  },
+  setSketchDrawCrosshairSize: (value) => {
+    set({ sketchDrawCrosshairSize: clamp(value, 0.5, 3) })
+  },
+  setSketchDrawStartPointVisible: (enabled) => {
+    set({ sketchDrawStartPointVisible: enabled })
+  },
+  setSketchDrawStartPointSymbolSize: (value) => {
+    set({ sketchDrawStartPointSymbolSize: clamp(value, 0.01, 3) })
+  },
+  setSketchDrawStartPointSymbolType: (value) => {
+    set({ sketchDrawStartPointSymbolType: value })
+  },
+  setSketchDrawPlinePointVisible: (enabled) => {
+    set({ sketchDrawPlinePointVisible: enabled })
+  },
+  setSketchDrawPlinePointSymbolSize: (value) => {
+    set({ sketchDrawPlinePointSymbolSize: clamp(value, 0.01, 3) })
+  },
+  setSketchDrawPlinePointSymbolType: (value) => {
+    set({ sketchDrawPlinePointSymbolType: value })
   },
   selectLight: (id) => {
     set({

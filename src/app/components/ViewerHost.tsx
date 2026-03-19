@@ -72,6 +72,27 @@ export function ViewerHost() {
   const sketchPlaneToolbarRotateSnapValue = useUiPrefsStore(
     (state) => state.sketchPlaneToolbarRotateSnapValue,
   )
+  const sketchDrawSnapEnabled = useUiPrefsStore((state) => state.sketchDrawSnapEnabled)
+  const sketchDrawSnapDistancePx = useUiPrefsStore((state) => state.sketchDrawSnapDistancePx)
+  const sketchDrawCrosshairSize = useUiPrefsStore((state) => state.sketchDrawCrosshairSize)
+  const sketchDrawStartPointVisible = useUiPrefsStore(
+    (state) => state.sketchDrawStartPointVisible,
+  )
+  const sketchDrawStartPointSymbolSize = useUiPrefsStore(
+    (state) => state.sketchDrawStartPointSymbolSize,
+  )
+  const sketchDrawStartPointSymbolType = useUiPrefsStore(
+    (state) => state.sketchDrawStartPointSymbolType,
+  )
+  const sketchDrawPlinePointVisible = useUiPrefsStore(
+    (state) => state.sketchDrawPlinePointVisible,
+  )
+  const sketchDrawPlinePointSymbolSize = useUiPrefsStore(
+    (state) => state.sketchDrawPlinePointSymbolSize,
+  )
+  const sketchDrawPlinePointSymbolType = useUiPrefsStore(
+    (state) => state.sketchDrawPlinePointSymbolType,
+  )
   const activeGeometrySketchNode = useSpaghettiStore((state) => {
     const nodeId = state.geometrySketchSession?.nodeId
     if (nodeId === undefined) {
@@ -131,11 +152,60 @@ export function ViewerHost() {
     return {
       mode: geometrySketchSession.mode,
       plane: sketchFeature.plane ?? 'XY',
+      planeTransform: {
+        ...(sketchFeature.planeTransform ?? {
+          offsetMm: 0,
+          inPlaneRotationDeg: 0,
+          translation: { x: 0, y: 0, z: 0 },
+          rotationDeg: { x: 0, y: 0, z: 0 },
+        }),
+        translation: {
+          ...(sketchFeature.planeTransform?.translation ?? { x: 0, y: 0, z: 0 }),
+        },
+        rotationDeg: {
+          ...(sketchFeature.planeTransform?.rotationDeg ?? { x: 0, y: 0, z: 0 }),
+        },
+      },
+      activeTool: geometrySketchSession.activeTool,
       components: sketchFeature.components ?? [],
       profiles,
       selectedProfileId,
+      drawDraft:
+        geometrySketchSession.drawDraft === null
+          ? null
+          : {
+              points: geometrySketchSession.drawDraft.points.map((point) => ({ ...point })),
+              hoverPoint:
+                geometrySketchSession.drawDraft.hoverPoint === null
+                  ? null
+                  : { ...geometrySketchSession.drawDraft.hoverPoint },
+              hoverSnapTarget: geometrySketchSession.drawDraft.hoverSnapTarget,
+            },
+      ui: {
+        snapEnabled: sketchDrawSnapEnabled,
+        snapDistancePx: sketchDrawSnapDistancePx,
+        crosshairSize: sketchDrawCrosshairSize,
+        startPointVisible: sketchDrawStartPointVisible,
+        startPointSymbolSize: sketchDrawStartPointSymbolSize,
+        startPointSymbolType: sketchDrawStartPointSymbolType,
+        plinePointVisible: sketchDrawPlinePointVisible,
+        plinePointSymbolSize: sketchDrawPlinePointSymbolSize,
+        plinePointSymbolType: sketchDrawPlinePointSymbolType,
+      },
     }
-  }, [activeGeometrySketchNode, geometrySketchSession])
+  }, [
+    activeGeometrySketchNode,
+    geometrySketchSession,
+    sketchDrawCrosshairSize,
+    sketchDrawSnapDistancePx,
+    sketchDrawSnapEnabled,
+    sketchDrawPlinePointSymbolSize,
+    sketchDrawPlinePointSymbolType,
+    sketchDrawPlinePointVisible,
+    sketchDrawStartPointSymbolType,
+    sketchDrawStartPointVisible,
+    sketchDrawStartPointSymbolSize,
+  ])
 
   const sketchPlanePickOverlay = useMemo<SketchPlanePickOverlayVm | null>(() => {
     if (sketchPlanePickSession === null) {
@@ -327,6 +397,18 @@ export function ViewerHost() {
     viewer.setOnSketchPlanePickTransformChange((transform) => {
       useSpaghettiStore.getState().setSketchPlanePickDraftTransform(transform)
     })
+    viewer.setOnGeometrySketchHoverPoint((point, snapTarget) => {
+      useSpaghettiStore.getState().setGeometrySketchDrawHoverPoint(point, snapTarget)
+    })
+    viewer.setOnGeometrySketchConfirmPoint((point, snapTarget) => {
+      useSpaghettiStore.getState().confirmGeometrySketchDrawPoint(point, snapTarget)
+    })
+    viewer.setOnGeometrySketchFinishDraft(() => {
+      useSpaghettiStore.getState().finishGeometrySketchDrawDraft()
+    })
+    viewer.setOnGeometrySketchCancelDraft(() => {
+      useSpaghettiStore.getState().cancelGeometrySketchDrawDraft()
+    })
 
     return () => {
       viewer.setOnReferenceTransformChange(null)
@@ -335,6 +417,10 @@ export function ViewerHost() {
       viewer.setOnReferenceTransformSpaceChange(null)
       viewer.setOnSketchPlanePickPlaneSelect(null)
       viewer.setOnSketchPlanePickTransformChange(null)
+      viewer.setOnGeometrySketchHoverPoint(null)
+      viewer.setOnGeometrySketchConfirmPoint(null)
+      viewer.setOnGeometrySketchFinishDraft(null)
+      viewer.setOnGeometrySketchCancelDraft(null)
     }
   }, [endReferenceTransform, setReferenceTransformMode, setReferenceTransformOverride, setReferenceTransformSpace])
 

@@ -13,6 +13,7 @@ import type {
   ConsoleToolsPreset,
   ConsoleWindowMode,
 } from './consoleTypes'
+import type { ConsoleStagedNavigationSession } from './stagedNavigation'
 
 const CONSOLE_LAYERS: ConsoleLayer[] = [
   'Commands',
@@ -75,9 +76,11 @@ type ConsoleState = {
   isolatedLayer: ConsoleLayer | null
   subsetLayers: ConsoleLayerVisibility
   isDiagnosticsPinned: boolean
+  stagedNavigationSession: ConsoleStagedNavigationSession | null
   appendEntry: (entry: ConsoleAppendEntryInput) => void
   clearEntries: () => void
   setInputText: (value: string) => void
+  seedInputText: (value: string) => void
   pushCommandHistory: (value: string) => void
   recallPreviousHistory: () => void
   recallNextHistory: () => void
@@ -108,6 +111,8 @@ type ConsoleState = {
   setIsolatedLayer: (layer: ConsoleLayer) => void
   toggleSubsetLayer: (layer: ConsoleLayer) => void
   setDiagnosticsPinned: (value: boolean) => void
+  setStagedNavigationSession: (session: ConsoleStagedNavigationSession | null) => void
+  clearStagedNavigationSession: () => void
 }
 
 const formatTimestamp = (createdAtMs: number): string => {
@@ -209,6 +214,7 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
   isolatedLayer: 'Commands',
   subsetLayers: createVisibleLayers(),
   isDiagnosticsPinned: false,
+  stagedNavigationSession: null,
   appendEntry: (entry) => {
     const nextSequence = (get().entries.at(-1)?.sequence ?? 0) + 1
     set((state) => ({
@@ -224,6 +230,13 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
       historyIndex: null,
       historyDraft: '',
     })
+  },
+  seedInputText: (value) => {
+    set((state) => ({
+      inputText: `${state.inputText}${value}`,
+      historyIndex: null,
+      historyDraft: '',
+    }))
   },
   pushCommandHistory: (value) => {
     const trimmed = value.trim()
@@ -465,6 +478,12 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
   },
   setDiagnosticsPinned: (isDiagnosticsPinned) => {
     set({ isDiagnosticsPinned })
+  },
+  setStagedNavigationSession: (stagedNavigationSession) => {
+    set({ stagedNavigationSession })
+  },
+  clearStagedNavigationSession: () => {
+    set({ stagedNavigationSession: null })
   },
 }))
 

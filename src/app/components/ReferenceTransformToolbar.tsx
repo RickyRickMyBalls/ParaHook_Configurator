@@ -6,6 +6,7 @@ import {
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
 } from 'react'
+import { routeKeyboardInput } from '../inputRouting'
 import { ParaSlider } from './ParaSlider'
 import { ReferenceTimelineGraph } from './ReferenceTimelineGraph'
 import { selectReferenceWorkspaceItems, useAppStore } from '../store/useAppStore'
@@ -484,22 +485,19 @@ export function ReferenceTransformToolbar() {
       if (event.defaultPrevented) {
         return
       }
-      const target = event.target as HTMLElement | null
-      if (
-        target !== null &&
-        (target.tagName === 'INPUT' ||
-          target.tagName === 'TEXTAREA' ||
-          target.tagName === 'SELECT' ||
-          target.isContentEditable)
-      ) {
-        return
-      }
-
       const key = event.key.toLowerCase()
       const pendingKeyboardMode =
         pendingKeyboardTransformRef.current?.referenceId === activeReferenceId
           ? pendingKeyboardTransformRef.current.mode
           : null
+      const routing = routeKeyboardInput({
+        event,
+        referenceTransformActive: activeReferenceId !== null,
+        referenceTransformHasPendingKeyboardTransform: pendingKeyboardMode !== null,
+      })
+      if (routing.owner !== 'reference-transform' || routing.decision !== 'handle') {
+        return
+      }
       if (event.key === 'Enter') {
         if (pendingKeyboardTransformRef.current !== null) {
           event.preventDefault()
@@ -508,8 +506,8 @@ export function ReferenceTransformToolbar() {
         return
       }
       if (event.key === 'Escape') {
+        event.preventDefault()
         if (pendingKeyboardMode !== null) {
-          event.preventDefault()
           if (cancelPendingKeyboardTransform(pendingKeyboardMode)) {
             appendConsoleEntry({
               layer: 'Shortcuts',
@@ -518,6 +516,10 @@ export function ReferenceTransformToolbar() {
               severity: 'info',
             })
           }
+          return
+        }
+        if (activeReferenceId !== null) {
+          endReferenceTransform()
         }
         return
       }
@@ -695,7 +697,7 @@ export function ReferenceTransformToolbar() {
     return () => {
       window.removeEventListener('keydown', handleKeyDown)
     }
-  }, [activeMode, setReferenceTransformMode])
+  }, [activeMode, endReferenceTransform, setReferenceTransformMode])
 
   const updateTransformAxis = (
     group: TransformChannelGroup,

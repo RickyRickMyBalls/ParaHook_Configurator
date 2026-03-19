@@ -2,6 +2,11 @@ import { Box3, MathUtils, Object3D, PerspectiveCamera, Vector3 } from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 
 export type CameraPreset = 'iso' | 'top' | 'front' | 'left' | 'right'
+export type CameraPose = {
+  position: Vector3
+  target: Vector3
+  up: Vector3
+}
 
 export class CameraController {
   private readonly camera: PerspectiveCamera
@@ -9,6 +14,18 @@ export class CameraController {
   private readonly tmpSize = new Vector3()
   private readonly tmpCenter = new Vector3()
   private readonly tmpDirection = new Vector3()
+  private readonly transitionFromPosition = new Vector3()
+  private readonly transitionFromTarget = new Vector3()
+  private readonly transitionFromUp = new Vector3()
+  private readonly transitionToPosition = new Vector3()
+  private readonly transitionToTarget = new Vector3()
+  private readonly transitionToUp = new Vector3()
+  private cameraTransition:
+    | {
+        elapsed: number
+        duration: number
+      }
+    | null = null
   private temporaryOrbitDrag:
     | {
         lastClientX: number
@@ -32,6 +49,35 @@ export class CameraController {
   }
 
   public update(dt: number): void {
+    if (this.cameraTransition !== null) {
+      this.cameraTransition.elapsed = Math.min(
+        this.cameraTransition.elapsed + Math.max(dt, 0),
+        this.cameraTransition.duration,
+      )
+      const linearT =
+        this.cameraTransition.duration <= 1e-6
+          ? 1
+          : this.cameraTransition.elapsed / this.cameraTransition.duration
+      const easedT =
+        linearT < 0.5
+          ? 4 * linearT * linearT * linearT
+          : 1 - Math.pow(-2 * linearT + 2, 3) / 2
+      this.controls.target.lerpVectors(
+        this.transitionFromTarget,
+        this.transitionToTarget,
+        easedT,
+      )
+      this.camera.position.lerpVectors(
+        this.transitionFromPosition,
+        this.transitionToPosition,
+        easedT,
+      )
+      this.camera.up.lerpVectors(this.transitionFromUp, this.transitionToUp, easedT).normalize()
+      this.camera.lookAt(this.controls.target)
+      if (linearT >= 1) {
+        this.cameraTransition = null
+      }
+    }
     this.controls.update(dt)
   }
 
@@ -40,6 +86,7 @@ export class CameraController {
   }
 
   public beginTemporaryOrbitDrag(startClientX: number, startClientY: number): void {
+    this.cameraTransition = null
     this.temporaryOrbitDrag = {
       lastClientX: startClientX,
       lastClientY: startClientY,
@@ -73,6 +120,7 @@ export class CameraController {
   }
 
   public frameBox(box3: Box3): void {
+    this.cameraTransition = null
     if (box3.isEmpty()) {
       return
     }
@@ -117,6 +165,7 @@ export class CameraController {
     previousMaxDim: number | null,
     targetCenter: Vector3 | null = previousCenter,
   ): { center: Vector3 | null; maxDim: number | null } {
+    this.cameraTransition = null
     const bounds = new Box3().setFromObject(obj, true)
     if (bounds.isEmpty()) {
       return { center: previousCenter, maxDim: previousMaxDim }
@@ -149,6 +198,7 @@ export class CameraController {
   }
 
   public trackObject(obj: Object3D, previousCenter: Vector3 | null = null): Vector3 | null {
+    this.cameraTransition = null
     const bounds = new Box3().setFromObject(obj, true)
     if (bounds.isEmpty()) {
       return previousCenter
@@ -197,7 +247,66 @@ export class CameraController {
     this.snapToDirection(direction)
   }
 
+  public getPose(): CameraPose {
+    return {
+      position: this.camera.position.clone(),
+      target: this.controls.target.clone(),
+      up: this.camera.up.clone(),
+    }
+  }
+
+  public animateToDirection(
+    direction: Vector3,
+    options?: {
+      target?: Vector3
+      durationMs?: number
+    },
+  ): void {
+    const normalized = direction.clone().normalize()
+    if (!Number.isFinite(normalized.lengthSq()) || normalized.lengthSq() < 1e-8) {
+      return
+    }
+
+    const nextTarget = options?.target?.clone() ?? this.controls.target.clone()
+    const currentDistance = Math.max(this.camera.position.distanceTo(this.controls.target), 0.5)
+    const nextUp =
+      Math.abs(normalized.dot(new Vector3(0, 1, 0))) > 0.98
+        ? new Vector3(0, 0, -1)
+        : new Vector3(0, 1, 0)
+    const nextPosition = nextTarget.clone().addScaledVector(normalized, currentDistance)
+
+    this.transitionFromPosition.copy(this.camera.position)
+    this.transitionFromTarget.copy(this.controls.target)
+    this.transitionFromUp.copy(this.camera.up)
+    this.transitionToPosition.copy(nextPosition)
+    this.transitionToTarget.copy(nextTarget)
+    this.transitionToUp.copy(nextUp)
+    this.cameraTransition = {
+      elapsed: 0,
+      duration: Math.max((options?.durationMs ?? 320) / 1000, 0.001),
+    }
+  }
+
+  public animateToPose(
+    pose: CameraPose,
+    options?: {
+      durationMs?: number
+    },
+  ): void {
+    this.transitionFromPosition.copy(this.camera.position)
+    this.transitionFromTarget.copy(this.controls.target)
+    this.transitionFromUp.copy(this.camera.up)
+    this.transitionToPosition.copy(pose.position)
+    this.transitionToTarget.copy(pose.target)
+    this.transitionToUp.copy(pose.up)
+    this.cameraTransition = {
+      elapsed: 0,
+      duration: Math.max((options?.durationMs ?? 320) / 1000, 0.001),
+    }
+  }
+
   public snapToDirection(direction: Vector3): void {
+    this.cameraTransition = null
     const target = this.controls.target.clone()
     const currentDistance = Math.max(this.camera.position.distanceTo(target), 0.5)
     const normalized = direction.clone().normalize()

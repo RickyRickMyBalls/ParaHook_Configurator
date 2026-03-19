@@ -37,6 +37,7 @@ describe('ConsoleDock', () => {
   let root: Root | null = null
   let container: HTMLDivElement | null = null
   let ConsoleDock: typeof import('./ConsoleDock').ConsoleDock
+  let useAppStore: typeof import('../store/useAppStore').useAppStore
   const originalWindowOpen = window.open
   const originalWorker = globalThis.Worker
 
@@ -45,6 +46,8 @@ describe('ConsoleDock', () => {
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
     window.open = originalWindowOpen
     globalThis.Worker = MockWorker as unknown as typeof Worker
+    ;({ useAppStore } = await import('../store/useAppStore'))
+    useAppStore.setState(useAppStore.getInitialState(), true)
     ;({ ConsoleDock } = await import('./ConsoleDock'))
   })
 
@@ -716,6 +719,199 @@ describe('ConsoleDock', () => {
     expect(useConsoleStore.getState().inputText).toBe('help')
   })
 
+  it('auto-captures printable typing into the console without slash', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+    })
+
+    await act(async () => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'b', bubbles: true, cancelable: true }),
+      )
+    })
+
+    const input = container.querySelector(
+      'input[aria-label="Console input"]',
+    ) as HTMLInputElement | null
+    expect(document.activeElement).toBe(input)
+    expect(useConsoleStore.getState().inputText).toBe('b')
+  })
+
+  it('does not steal typing from protected text inputs during hybrid capture', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    const paramInput = document.createElement('input')
+    document.body.appendChild(paramInput)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+    })
+
+    paramInput.focus()
+
+    await act(async () => {
+      paramInput.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'm', bubbles: true, cancelable: true }),
+      )
+    })
+
+    expect(document.activeElement).toBe(paramInput)
+    expect(useConsoleStore.getState().inputText).toBe('')
+  })
+
+  it('does not auto-capture a global space key into the console', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+    })
+
+    await act(async () => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true }),
+      )
+    })
+
+    expect(useConsoleStore.getState().inputText).toBe('')
+  })
+
+  it('does not auto-capture printable keys into the console while sketch draw is active', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-sketch-1',
+            type: 'Geometry/Sketch',
+            params: {
+              sketch: {
+                type: 'sketch',
+                featureId: 'sketch-1',
+                plane: 'XY',
+                components: [],
+                outputs: { profiles: [], diagnostics: [] },
+                uiState: { collapsed: false },
+              },
+            },
+          },
+        ],
+        edges: [],
+      })
+      useSpaghettiStore.getState().startGeometrySketchSession('node-sketch-1', 'draw')
+    })
+
+    await act(async () => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'b', bubbles: true, cancelable: true }),
+      )
+    })
+
+    expect(useConsoleStore.getState().inputText).toBe('')
+  })
+
+  it('does not auto-capture printable keys into the console while sketch-plane pick is active', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-sketch-1',
+            type: 'Geometry/Sketch',
+            params: {
+              sketch: {
+                type: 'sketch',
+                featureId: 'sketch-1',
+                plane: 'XY',
+                components: [],
+                outputs: { profiles: [], diagnostics: [] },
+                uiState: { collapsed: false },
+              },
+            },
+          },
+        ],
+        edges: [],
+      })
+      useSpaghettiStore.getState().startSketchPlanePick('node-sketch-1')
+    })
+
+    await act(async () => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'b', bubbles: true, cancelable: true }),
+      )
+    })
+
+    expect(useConsoleStore.getState().inputText).toBe('')
+  })
+
+  it('resumes flat console capture after sketch draw ends', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-sketch-1',
+            type: 'Geometry/Sketch',
+            params: {
+              sketch: {
+                type: 'sketch',
+                featureId: 'sketch-1',
+                plane: 'XY',
+                components: [],
+                outputs: { profiles: [], diagnostics: [] },
+                uiState: { collapsed: false },
+              },
+            },
+          },
+        ],
+        edges: [],
+      })
+      useSpaghettiStore.getState().startGeometrySketchSession('node-sketch-1', 'draw')
+    })
+
+    await act(async () => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'b', bubbles: true, cancelable: true }),
+      )
+    })
+
+    expect(useConsoleStore.getState().inputText).toBe('')
+
+    await act(async () => {
+      useSpaghettiStore.getState().closeGeometrySketchSession()
+    })
+
+    await act(async () => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'b', bubbles: true, cancelable: true }),
+      )
+    })
+
+    expect(useConsoleStore.getState().inputText).toBe('b')
+  })
+
   it('runs narrow-core typed commands and reports unknown commands strictly', async () => {
     container = document.createElement('div')
     document.body.appendChild(container)
@@ -752,6 +948,33 @@ describe('ConsoleDock', () => {
     const lastEntry = useConsoleStore.getState().entries.at(-1)
     expect(lastEntry?.layer).toBe('Diagnostics')
     expect(lastEntry?.text).toBe('Unknown command: mirror')
+  })
+
+  it('treats m as typed-first command entry and resolves it on submit', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+    })
+
+    await act(async () => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'm', bubbles: true, cancelable: true }),
+      )
+    })
+
+    expect(useConsoleStore.getState().inputText).toBe('m')
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().inputText).toBe('')
+    expect(useConsoleStore.getState().commandHistory.at(-1)).toBe('m')
+    expect(useConsoleStore.getState().entries.some((entry) => entry.text === '> m')).toBe(true)
   })
 
   it('routes temporary x through the sketch-plane cancel path while a pick session is active', async () => {
@@ -796,5 +1019,779 @@ describe('ConsoleDock', () => {
 
     expect(useSpaghettiStore.getState().sketchPlanePickSession).toBeNull()
     expect(useConsoleStore.getState().entries.some((entry) => entry.text === '> x')).toBe(true)
+  })
+
+  it('shows richer sketch draw prompts when pline is submitted from the console', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-sketch-1',
+            type: 'Geometry/Sketch',
+            params: {
+              sketch: {
+                type: 'sketch',
+                featureId: 'sketch-1',
+                plane: 'XY',
+                components: [],
+                outputs: { profiles: [], diagnostics: [] },
+                uiState: { collapsed: false },
+              },
+            },
+          },
+        ],
+        edges: [],
+      })
+      useSpaghettiStore.getState().startGeometrySketchSession('node-sketch-1', 'draw')
+      useConsoleStore.getState().setInputText('pline')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    const texts = useConsoleStore.getState().entries.map((entry) => entry.text)
+    expect(texts).toContain('> pline')
+    expect(texts).toContain('PLINE Specify start point:')
+  })
+
+  it('accepts l as a sketch-local alias for line on submit', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-sketch-1',
+            type: 'Geometry/Sketch',
+            params: {
+              sketch: {
+                type: 'sketch',
+                featureId: 'sketch-1',
+                plane: 'XY',
+                components: [],
+                outputs: { profiles: [], diagnostics: [] },
+                uiState: { collapsed: false },
+              },
+            },
+          },
+        ],
+        edges: [],
+      })
+      useSpaghettiStore.getState().startGeometrySketchSession('node-sketch-1', 'draw')
+      useSpaghettiStore.getState().setGeometrySketchSessionTool('pline')
+      useConsoleStore.getState().setInputText('l')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useSpaghettiStore.getState().geometrySketchSession?.activeTool).toBe('line')
+    expect(useConsoleStore.getState().entries.some((entry) => entry.text === '> l')).toBe(true)
+    expect(
+      useConsoleStore.getState().entries.some((entry) => entry.text === 'LINE Specify start point:'),
+    ).toBe(true)
+  })
+
+  it('uses esc twice in sketch draw to clear the draft and then exit the draw session', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-sketch-1',
+            type: 'Geometry/Sketch',
+            params: {
+              sketch: {
+                type: 'sketch',
+                featureId: 'sketch-1',
+                plane: 'XY',
+                components: [],
+                outputs: { profiles: [], diagnostics: [] },
+                uiState: { collapsed: false },
+              },
+            },
+          },
+        ],
+        edges: [],
+      })
+      useSpaghettiStore.getState().startGeometrySketchSession('node-sketch-1', 'draw')
+      useSpaghettiStore.getState().confirmGeometrySketchDrawPoint({ x: 0, y: 0 }, 'origin')
+      useConsoleStore.getState().setInputText('esc')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useSpaghettiStore.getState().geometrySketchSession).not.toBeNull()
+    expect(useSpaghettiStore.getState().geometrySketchSession?.drawDraft).toEqual({
+      points: [],
+      hoverPoint: null,
+      hoverSnapTarget: null,
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('esc')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useSpaghettiStore.getState().geometrySketchSession).toBeNull()
+    expect(
+      useConsoleStore.getState().entries.filter((entry) => entry.text === '> esc'),
+    ).toHaveLength(2)
+  })
+
+  it('starts a staged graph session, auto-selects the only graph, and shows next choices', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useConsoleStore.getState().setInputText('g')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('graphSelected')
+    expect(useConsoleStore.getState().entries.some((entry) => entry.text === '> g')).toBe(true)
+    expect(
+      useConsoleStore.getState().entries.some((entry) => entry.text === 'Select > Graph'),
+    ).toBe(true)
+    expect(
+      useConsoleStore.getState().entries.some(
+        (entry) => entry.text === 'Auto-selected graph_[1]',
+      ),
+    ).toBe(true)
+    expect(
+      useConsoleStore.getState().entries.some(
+        (entry) =>
+          entry.text ===
+          'Choose next [Sketch, Collapsed, Essentials, Expanded, References, Open, Build, Back]',
+      ),
+    ).toBe(true)
+  })
+
+  it('opens a spaghetti editor viewport when graph root is entered and none exists yet', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useConsoleStore.getState().setInputText('g')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    const state = useSpaghettiStore.getState()
+    expect(state.activeEditorViewportId.length).toBeGreaterThan(0)
+    expect(state.editorViewportsById[state.activeEditorViewportId]).toBeDefined()
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('graphSelected')
+    expect(useAppStore.getState().floatingShellActivationRequest?.target).toBe('spaghetti')
+  })
+
+  it('reopens the spaghetti editor when graph root is entered from meatball mode', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      const viewportId = useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
+      if (viewportId === null) {
+        throw new Error('Expected graph viewport to open')
+      }
+      useSpaghettiStore.getState().setEditorViewportWindowMode(viewportId, 'meatball editor view')
+      useConsoleStore.getState().setInputText('g')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    const state = useSpaghettiStore.getState()
+    expect(state.editorViewportsById[state.activeEditorViewportId]?.windowMode).toBe('expanded')
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('graphSelected')
+  })
+
+  it('keeps staged navigation active and scoped after invalid tokens', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useConsoleStore.getState().setInputText('graph')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('graphSelected')
+    expect(
+      useConsoleStore.getState().entries.some(
+        (entry) =>
+          entry.text ===
+          'Choose next [Sketch, Collapsed, Essentials, Expanded, References, Open, Build, Back]',
+      ),
+    ).toBe(true)
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('q')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('graphSelected')
+    expect(
+      useConsoleStore
+        .getState()
+        .entries.some((entry) => entry.text === 'Invalid token for current scope: q'),
+    ).toBe(true)
+  })
+
+  it('executes graph editor essentials mode from staged navigation', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      const viewportId = useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
+      if (viewportId === null) {
+        throw new Error('Expected graph viewport to open')
+      }
+      useSpaghettiStore.getState().setEditorViewportPresentationMode(viewportId, 'expanded')
+      useConsoleStore.getState().setInputText('g')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('e')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    const state = useSpaghettiStore.getState()
+    const editorViewportId = state.activeEditorViewportId
+    expect(state.editorViewportsById[editorViewportId]?.windowMode).toBe('expanded')
+    expect(state.editorViewportHeaderCollapsedById[editorViewportId]).toBe(true)
+    expect(state.editorViewportCanvasToolbarVisibleById[editorViewportId]).toBe(false)
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('graphSelected')
+    expect(
+      useConsoleStore.getState().entries.some((entry) => entry.text === 'Editor mode: Essentials'),
+    ).toBe(true)
+    expect(
+      useConsoleStore.getState().entries.some(
+        (entry) =>
+          entry.text ===
+          'Choose next [Sketch, Collapsed, Essentials, Expanded, References, Open, Build, Back]',
+      ),
+    ).toBe(true)
+  })
+
+  it('uses b to go back one level from graph selected scope', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useConsoleStore.getState().setInputText('g')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('graphSelected')
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('b')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('graphRoot')
+    expect(
+      useConsoleStore.getState().entries.some((entry) => entry.text === 'Select > Graph'),
+    ).toBe(true)
+    expect(
+      useConsoleStore
+        .getState()
+        .entries.some((entry) => entry.text === 'Choose next [graph_[1], List]'),
+    ).toBe(true)
+  })
+
+  it('uses b to go back one level inside sketch staged scopes', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-sketch-1',
+            type: 'Geometry/Sketch',
+            params: {
+              sketch: {
+                type: 'sketch',
+                featureId: 'sketch-1',
+                plane: 'XY',
+                components: [],
+                outputs: { profiles: [], diagnostics: [] },
+                uiState: { collapsed: false },
+              },
+            },
+          },
+          {
+            nodeId: 'node-sketch-2',
+            type: 'Geometry/Sketch',
+            params: {
+              sketch: {
+                type: 'sketch',
+                featureId: 'sketch-2',
+                plane: 'XY',
+                components: [],
+                outputs: { profiles: [], diagnostics: [] },
+                uiState: { collapsed: false },
+              },
+            },
+          },
+        ],
+        edges: [],
+      })
+      useConsoleStore.getState().setInputText('g')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('s')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('graphSketchList')
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('1')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('graphSketchSelected')
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('b')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('graphSketchList')
+    expect(
+      useConsoleStore.getState().entries.some(
+        (entry) => entry.text === 'Choose next [sketch_[1], sketch_[2], Back]',
+      ),
+    ).toBe(true)
+  })
+
+  it('creates a sketch node when graph sketch scope is empty and continues into that sketch', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [],
+        edges: [],
+      })
+      useConsoleStore.getState().setInputText('g')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('s')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    const sketchNodes = useSpaghettiStore
+      .getState()
+      .graph.nodes.filter((node) => node.type === 'Geometry/Sketch')
+
+    expect(sketchNodes).toHaveLength(1)
+    expect(useSpaghettiStore.getState().selectedNodeId).toBe(sketchNodes[0]?.nodeId ?? null)
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('graphSketchSelected')
+    expect(
+      useConsoleStore.getState().entries.some((entry) => entry.text === 'Created sketch_[1]'),
+    ).toBe(true)
+    expect(
+      useConsoleStore.getState().entries.some((entry) => entry.text === 'Auto-selected sketch_[1]'),
+    ).toBe(true)
+    expect(
+      useConsoleStore.getState().entries.some(
+        (entry) => entry.text === 'Choose next [Sketch Plane, Sketch Draw, Back]',
+      ),
+    ).toBe(true)
+  })
+
+  it('executes sketch draw from staged navigation and clears the staged session', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-sketch-1',
+            type: 'Geometry/Sketch',
+            params: {
+              sketch: {
+                type: 'sketch',
+                featureId: 'sketch-1',
+                plane: 'XY',
+                components: [],
+                outputs: { profiles: [], diagnostics: [] },
+                uiState: { collapsed: false },
+              },
+            },
+          },
+        ],
+        edges: [],
+      })
+      useConsoleStore.getState().setInputText('g')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('s')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('graphSketchSelected')
+    expect(
+      useConsoleStore.getState().entries.some((entry) => entry.text === 'Auto-selected sketch_[1]'),
+    ).toBe(true)
+    expect(
+      useConsoleStore.getState().entries.some(
+        (entry) => entry.text === 'Choose next [Sketch Plane, Sketch Draw, Back]',
+      ),
+    ).toBe(true)
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('sd')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession).toBeNull()
+    expect(useSpaghettiStore.getState().geometrySketchSession).toMatchObject({
+      nodeId: 'node-sketch-1',
+      mode: 'draw',
+    })
+    expect(
+      useConsoleStore.getState().entries.some((entry) => entry.text === 'Sketch Draw started'),
+    ).toBe(true)
+  })
+
+  it('executes sketch plane from staged navigation and clears the staged session', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-sketch-1',
+            type: 'Geometry/Sketch',
+            params: {
+              sketch: {
+                type: 'sketch',
+                featureId: 'sketch-1',
+                plane: 'XY',
+                components: [],
+                outputs: { profiles: [], diagnostics: [] },
+                uiState: { collapsed: false },
+              },
+            },
+          },
+        ],
+        edges: [],
+      })
+      useConsoleStore.getState().setInputText('g')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('s')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('graphSketchSelected')
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('sp')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession).toBeNull()
+    expect(useSpaghettiStore.getState().sketchPlanePickSession).toMatchObject({
+      nodeId: 'node-sketch-1',
+      stage: 'pick',
+    })
+    expect(
+      useConsoleStore.getState().entries.some((entry) => entry.text === 'Sketch Plane started'),
+    ).toBe(true)
+  })
+
+  it('cancels the active staged session from escape and returns to flat command mode', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useConsoleStore.getState().setInputText('g')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    const input = container.querySelector(
+      'input[aria-label="Console input"]',
+    ) as HTMLInputElement | null
+
+    await act(async () => {
+      input?.focus()
+      input?.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
+      )
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession).toBeNull()
+    expect(useSpaghettiStore.getState().activeEditorViewportId).toBe('')
+    expect(Object.keys(useSpaghettiStore.getState().editorViewportsById)).toHaveLength(0)
+    expect(
+      useConsoleStore
+        .getState()
+        .entries.some((entry) => entry.text === 'Staged navigation cancelled'),
+    ).toBe(true)
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('status')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(
+      useConsoleStore
+        .getState()
+        .entries.some((entry) => entry.text.includes('Status: spaghetti preview active')),
+    ).toBe(true)
+  })
+
+  it('restores meatball editor view when graph root is cancelled from escape', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+    let viewportId = ''
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      viewportId = useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1') ?? ''
+      if (viewportId.length === 0) {
+        throw new Error('Expected graph viewport to open')
+      }
+      useSpaghettiStore.getState().setEditorViewportWindowMode(viewportId, 'meatball editor view')
+      useConsoleStore.getState().setInputText('g')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useSpaghettiStore.getState().editorViewportsById[viewportId]?.windowMode).toBe('expanded')
+
+    const input = container.querySelector(
+      'input[aria-label="Console input"]',
+    ) as HTMLInputElement | null
+
+    await act(async () => {
+      input?.focus()
+      input?.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
+      )
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession).toBeNull()
+    expect(useSpaghettiStore.getState().editorViewportsById[viewportId]?.windowMode).toBe(
+      'meatball editor view',
+    )
+  })
+
+  it('treats space as submit while a staged session is active', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-sketch-1',
+            type: 'Geometry/Sketch',
+            params: {
+              sketch: {
+                type: 'sketch',
+                featureId: 'sketch-1',
+                plane: 'XY',
+                components: [],
+                outputs: { profiles: [], diagnostics: [] },
+                uiState: { collapsed: false },
+              },
+            },
+          },
+        ],
+        edges: [],
+      })
+      useConsoleStore.getState().setInputText('g')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('s')
+    })
+
+    const input = container.querySelector(
+      'input[aria-label="Console input"]',
+    ) as HTMLInputElement | null
+
+    await act(async () => {
+      input?.focus()
+      input?.dispatchEvent(
+        new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true }),
+      )
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('graphSketchSelected')
+    expect(
+      useConsoleStore
+        .getState()
+        .entries.some((entry) => entry.text === 'Select > Graph > graph_[1] > Sketch > sketch_[1]'),
+    ).toBe(true)
   })
 })

@@ -234,7 +234,7 @@ Meaning:
 ##### Bucket 4 - Lane [4] Console, Debug, And Workspace Feedback
 
 - [x] `Roadmap Breakdown` `[4.1] VR / SP / DBG - Console And Layered Transcript`
-  - [ ] `Decision Coverage` `[4.1]`
+  - [x] `Decision Coverage` `[4.1]`
   - [x] `Plan.md Status` `[4.1]`
 
 ##### Bucket 5 - Lane [5] Control, Build, And Workspace Systems

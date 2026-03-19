@@ -1,19 +1,21 @@
-import type { SketchComponent, SketchPlane } from '../app/spaghetti/features/featureTypes'
+import type { SketchComponent, SketchPlane, SketchPlaneTransform } from '../app/spaghetti/features/featureTypes'
 import { resolveVec2Expression } from '../app/spaghetti/features/expressions'
 import type { GeometrySketchOverlayVm } from '../app/viewerBridge'
+import {
+  projectSketchPointToWorld as projectSketchPointToWorldWithTransform,
+  type SketchPoint2,
+  type SketchPoint3,
+} from './sketch/sketchPlaneMath'
 
-type Point2 = {
-  x: number
-  y: number
-}
+type Point2 = SketchPoint2
+export type Point3 = SketchPoint3
 
-export type Point3 = {
-  x: number
-  y: number
-  z: number
-}
-
-export type GeometrySketchRenderLayer = 'component' | 'profile' | 'selectedProfile'
+export type GeometrySketchRenderLayer =
+  | 'component'
+  | 'profile'
+  | 'selectedProfile'
+  | 'draftChain'
+  | 'draftGhost'
 
 export type GeometrySketchRenderPolyline = {
   layer: GeometrySketchRenderLayer
@@ -26,6 +28,8 @@ const CIRCLE_STEPS = 48
 const COMPONENT_ELEVATION = 0.02
 const PROFILE_ELEVATION = 0.04
 const SELECTED_PROFILE_ELEVATION = 0.06
+const DRAFT_CHAIN_ELEVATION = COMPONENT_ELEVATION
+const DRAFT_GHOST_ELEVATION = COMPONENT_ELEVATION
 
 const sampleBezier = (
   p0: Point2,
@@ -177,23 +181,20 @@ const componentToPolyline2 = (component: SketchComponent): Point2[] => {
 
 export const projectSketchPointToWorld = (
   plane: SketchPlane,
+  planeTransform: SketchPlaneTransform | undefined,
   point: Point2,
   elevation = 0,
 ): Point3 => {
-  if (plane === 'XY') {
-    return { x: point.x, y: point.y, z: elevation }
-  }
-  if (plane === 'XZ') {
-    return { x: point.x, y: elevation, z: point.y }
-  }
-  return { x: elevation, y: point.x, z: point.y }
+  return projectSketchPointToWorldWithTransform(plane, planeTransform, point, elevation)
 }
 
 const polyline2To3 = (
   plane: SketchPlane,
+  planeTransform: SketchPlaneTransform | undefined,
   points: readonly Point2[],
   elevation: number,
-): Point3[] => points.map((point) => projectSketchPointToWorld(plane, point, elevation))
+): Point3[] =>
+  points.map((point) => projectSketchPointToWorld(plane, planeTransform, point, elevation))
 
 const ensureClosedLoop = (points: readonly Point2[]): Point2[] => {
   if (points.length < 2) {
@@ -217,9 +218,55 @@ export const buildGeometrySketchRenderPolylines = (
   const componentPolylines = overlay.components
     .map((component) => ({
       layer: 'component' as const,
-      points: polyline2To3(overlay.plane, componentToPolyline2(component), COMPONENT_ELEVATION),
+      points: polyline2To3(
+        overlay.plane,
+        overlay.planeTransform,
+        componentToPolyline2(component),
+        COMPONENT_ELEVATION,
+      ),
     }))
     .filter((polyline) => polyline.points.length >= 2)
+
+  if (overlay.mode === 'draw') {
+    const drawDraftPolylines: GeometrySketchRenderPolyline[] = []
+    const draft = overlay.drawDraft
+    if (draft !== null) {
+      if (draft.points.length >= 2) {
+        drawDraftPolylines.push({
+          layer: 'draftChain',
+          points: polyline2To3(
+            overlay.plane,
+            overlay.planeTransform,
+            draft.points,
+            DRAFT_CHAIN_ELEVATION,
+          ),
+        })
+      }
+
+      const ghostStart =
+        overlay.activeTool === 'line'
+          ? draft.points[0] ?? null
+          : draft.points[draft.points.length - 1] ?? null
+      const ghostEnd = draft.hoverPoint
+      if (
+        ghostStart !== null &&
+        ghostEnd !== null &&
+        (ghostStart.x !== ghostEnd.x || ghostStart.y !== ghostEnd.y)
+      ) {
+        drawDraftPolylines.push({
+          layer: 'draftGhost',
+          points: polyline2To3(
+            overlay.plane,
+            overlay.planeTransform,
+            [ghostStart, ghostEnd],
+            DRAFT_GHOST_ELEVATION,
+          ),
+        })
+      }
+    }
+
+    return [...componentPolylines, ...drawDraftPolylines]
+  }
 
   if (overlay.mode !== 'review') {
     return componentPolylines
@@ -231,11 +278,12 @@ export const buildGeometrySketchRenderPolylines = (
         profile.profileId === overlay.selectedProfileId
           ? ('selectedProfile' as const)
           : ('profile' as const),
-      points: polyline2To3(
-        overlay.plane,
-        ensureClosedLoop(profile.vertices),
-        profile.profileId === overlay.selectedProfileId
-          ? SELECTED_PROFILE_ELEVATION
+        points: polyline2To3(
+          overlay.plane,
+          overlay.planeTransform,
+          ensureClosedLoop(profile.vertices),
+          profile.profileId === overlay.selectedProfileId
+            ? SELECTED_PROFILE_ELEVATION
           : PROFILE_ELEVATION,
       ),
     }))

@@ -11,6 +11,8 @@ type ConsoleBarProps = {
   showExpandToggle?: boolean
   inputRef?: RefObject<HTMLInputElement | null>
   onSubmitCommand?: (commandText: string) => void
+  onCancelCommand?: () => void
+  treatSpaceAsSubmit?: boolean
 }
 
 export function ConsoleBar({
@@ -18,6 +20,8 @@ export function ConsoleBar({
   showExpandToggle = true,
   inputRef,
   onSubmitCommand,
+  onCancelCommand,
+  treatSpaceAsSubmit = false,
 }: ConsoleBarProps) {
   const isExpanded = useConsoleStore((state) => state.isExpanded)
   const expandedHeight = useConsoleStore((state) => state.expandedHeight)
@@ -41,6 +45,15 @@ export function ConsoleBar({
   }
 
   const handleInputKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
+    if (treatSpaceAsSubmit && event.key === ' ') {
+      event.preventDefault()
+      if (inputText.trim().length === 0) {
+        return
+      }
+      onSubmitCommand?.(inputText)
+      resetHistoryNavigation()
+      return
+    }
     if (event.key === 'ArrowUp') {
       event.preventDefault()
       recallPreviousHistory()
@@ -57,6 +70,7 @@ export function ConsoleBar({
         setInputText('')
         return
       }
+      onCancelCommand?.()
       resetHistoryNavigation()
       inputRef?.current?.blur()
     }

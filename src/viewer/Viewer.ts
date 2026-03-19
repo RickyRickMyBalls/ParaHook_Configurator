@@ -43,6 +43,7 @@ import {
 import type { ReferenceLoadableItem } from '../app/references/referenceManifest'
 import type { ReferenceTransformOverride } from '../app/references/referenceManifest'
 import { appendConsoleEntry } from '../app/console/useConsoleStore'
+import { isEditableTarget, routeKeyboardInput } from '../app/inputRouting'
 import type { GeometrySketchOverlayVm, SketchPlanePickOverlayVm } from '../app/viewerBridge'
 import { loadStepReferenceObject } from './stepReferenceLoader'
 import {
@@ -51,8 +52,10 @@ import {
 } from './geometrySketchOverlay'
 import { TransformGizmo } from './gizmo/TransformGizmo'
 import { AxisGizmo, type SnapDirection } from './overlay/AxisGizmo'
-import { CameraController, type CameraPreset } from './scene/CameraController'
+import { CameraController, type CameraPose, type CameraPreset } from './scene/CameraController'
 import { SketchPlanePickHelper } from './sketch/SketchPlanePickHelper'
+import { GeometrySketchDrawHelper } from './sketch/GeometrySketchDrawHelper'
+import { getSketchPlaneWorldNormal, getSketchPlaneWorldOrigin } from './sketch/sketchPlaneMath'
 import type { SketchPlane, SketchPlaneTransform } from '../app/spaghetti/features/featureTypes'
 
 type GizmoSpace = 'local' | 'world'
@@ -205,8 +208,14 @@ export class Viewer {
   private axisOverlayCanvas: HTMLCanvasElement | null = null
   private axisOverlayEnabled = true
   private readonly sketchPlanePickHelper: SketchPlanePickHelper
+  private readonly geometrySketchDrawHelper: GeometrySketchDrawHelper
+  private geometrySketchOverlay: GeometrySketchOverlayVm | null = null
+  private geometrySketchCameraAlignKey: string | null = null
+  private geometrySketchRestoreCameraPose: CameraPose | null = null
   private sketchPlanePickOverlay: SketchPlanePickOverlayVm | null = null
   private readonly geometrySketchComponentMaterial: LineBasicMaterial
+  private readonly geometrySketchDraftChainMaterial: LineBasicMaterial
+  private readonly geometrySketchDraftGhostMaterial: LineBasicMaterial
   private readonly geometrySketchProfileMaterial: LineBasicMaterial
   private readonly geometrySketchSelectedProfileMaterial: LineBasicMaterial
   private frameId: number | null = null
@@ -228,6 +237,14 @@ export class Viewer {
   private onReferenceTransformSpaceChange: ((space: GizmoSpace) => void) | null = null
   private onSketchPlanePickPlaneSelect: ((plane: SketchPlane) => void) | null = null
   private onSketchPlanePickTransformChange: ((transform: SketchPlaneTransform) => void) | null = null
+  private onGeometrySketchHoverPoint:
+    | ((point: { x: number; y: number } | null, snapTarget: 'origin' | null) => void)
+    | null = null
+  private onGeometrySketchConfirmPoint:
+    | ((point: { x: number; y: number }, snapTarget: 'origin' | null) => void)
+    | null = null
+  private onGeometrySketchFinishDraft: (() => void) | null = null
+  private onGeometrySketchCancelDraft: (() => void) | null = null
   private assembledMesh: Mesh | null = null
   private selectedPartKey: string | null = null
   private gizmoEnabled = false
@@ -295,10 +312,26 @@ export class Viewer {
     this.scene.add(this.geometrySketchOverlayGroup)
     this.sketchPlanePickHelper = new SketchPlanePickHelper()
     this.scene.add(this.sketchPlanePickHelper.getGroup())
+    this.geometrySketchDrawHelper = new GeometrySketchDrawHelper()
+    this.scene.add(this.geometrySketchDrawHelper.getGroup())
     this.geometrySketchComponentMaterial = new LineBasicMaterial({
       color: new Color('#8bbdff'),
       transparent: true,
       opacity: 0.96,
+      toneMapped: false,
+      depthTest: false,
+    })
+    this.geometrySketchDraftChainMaterial = new LineBasicMaterial({
+      color: new Color('#8bbdff'),
+      transparent: true,
+      opacity: 0.98,
+      toneMapped: false,
+      depthTest: false,
+    })
+    this.geometrySketchDraftGhostMaterial = new LineBasicMaterial({
+      color: new Color('#c7ffd5'),
+      transparent: true,
+      opacity: 1,
       toneMapped: false,
       depthTest: false,
     })
@@ -415,7 +448,8 @@ export class Viewer {
     this.currentViewSettings = cloneViewSettings(settings)
 
     this.cameraController.setEnabled(settings.orbitEnabled)
-    this.gridGroup.visible = settings.gridVisible
+    this.gridGroup.visible =
+      this.geometrySketchOverlay?.mode === 'draw' ? false : settings.gridVisible
     this.axesHelper.visible = settings.axesVisible
 
     this.renderer.shadowMap.enabled = settings.shadowsEnabled
@@ -767,8 +801,24 @@ export class Viewer {
   }
 
   public setGeometrySketchOverlay(overlay: GeometrySketchOverlayVm | null): void {
+    const previousOverlayMode = this.geometrySketchOverlay?.mode ?? null
+    this.geometrySketchOverlay = overlay
     this.clearGeometrySketchOverlay()
+    this.geometrySketchDrawHelper.setOverlay(overlay)
+    this.gridGroup.visible =
+      overlay?.mode === 'draw' ? false : this.currentViewSettings.gridVisible
+    if (
+      previousOverlayMode === 'draw' &&
+      overlay?.mode !== 'draw' &&
+      this.geometrySketchRestoreCameraPose !== null
+    ) {
+      this.cameraController.animateToPose(this.geometrySketchRestoreCameraPose, {
+        durationMs: 320,
+      })
+      this.geometrySketchRestoreCameraPose = null
+    }
     if (overlay === null) {
+      this.geometrySketchCameraAlignKey = null
       return
     }
 
@@ -786,6 +836,42 @@ export class Viewer {
         polyline.layer === 'selectedProfile' ? 98 : polyline.layer === 'profile' ? 97 : 96
       this.geometrySketchOverlayGroup.add(line)
     }
+
+    if (overlay.mode === 'draw') {
+      const nextAlignKey = JSON.stringify({
+        plane: overlay.plane,
+        planeTransform: overlay.planeTransform,
+      })
+      if (this.geometrySketchCameraAlignKey !== nextAlignKey) {
+        if (this.geometrySketchCameraAlignKey === null) {
+          this.geometrySketchRestoreCameraPose = this.cameraController.getPose()
+        }
+        this.alignCameraToGeometrySketchPlane(overlay)
+        this.geometrySketchCameraAlignKey = nextAlignKey
+      }
+    } else {
+      this.geometrySketchCameraAlignKey = null
+    }
+  }
+
+  public setOnGeometrySketchHoverPoint(
+    handler: ((point: { x: number; y: number } | null, snapTarget: 'origin' | null) => void) | null,
+  ): void {
+    this.onGeometrySketchHoverPoint = handler
+  }
+
+  public setOnGeometrySketchConfirmPoint(
+    handler: ((point: { x: number; y: number }, snapTarget: 'origin' | null) => void) | null,
+  ): void {
+    this.onGeometrySketchConfirmPoint = handler
+  }
+
+  public setOnGeometrySketchFinishDraft(handler: (() => void) | null): void {
+    this.onGeometrySketchFinishDraft = handler
+  }
+
+  public setOnGeometrySketchCancelDraft(handler: (() => void) | null): void {
+    this.onGeometrySketchCancelDraft = handler
   }
 
   public setSketchPlanePickOverlay(overlay: SketchPlanePickOverlayVm | null): void {
@@ -853,6 +939,7 @@ export class Viewer {
     this.axisGizmo?.dispose()
     this.axisGizmo = null
     this.sketchPlanePickHelper.dispose()
+    this.geometrySketchDrawHelper.dispose()
     this.geometrySketchComponentMaterial.dispose()
     this.geometrySketchProfileMaterial.dispose()
     this.geometrySketchSelectedProfileMaterial.dispose()
@@ -1580,6 +1667,12 @@ export class Viewer {
   }
 
   private getGeometrySketchMaterial(layer: GeometrySketchRenderLayer): LineBasicMaterial {
+    if (layer === 'draftGhost') {
+      return this.geometrySketchDraftGhostMaterial
+    }
+    if (layer === 'draftChain') {
+      return this.geometrySketchDraftChainMaterial
+    }
     if (layer === 'selectedProfile') {
       return this.geometrySketchSelectedProfileMaterial
     }
@@ -1597,6 +1690,22 @@ export class Viewer {
     this.geometrySketchOverlayGroup.clear()
   }
 
+  private alignCameraToGeometrySketchPlane(overlay: GeometrySketchOverlayVm): void {
+    const planeOrigin = getSketchPlaneWorldOrigin(overlay.plane, overlay.planeTransform)
+    const planeNormal = getSketchPlaneWorldNormal(overlay.plane, overlay.planeTransform)
+    const controls = this.cameraController.getControls()
+    const currentViewDirection = this.camera.position.clone().sub(controls.target).normalize()
+    const oppositeNormal = planeNormal.clone().multiplyScalar(-1)
+    const preferredDirection =
+      currentViewDirection.dot(planeNormal) >= currentViewDirection.dot(oppositeNormal)
+        ? planeNormal
+        : oppositeNormal
+    this.cameraController.animateToDirection(preferredDirection, {
+      target: planeOrigin,
+      durationMs: 320,
+    })
+  }
+
   private readonly handleResize = (): void => {
     const width = Math.max(this.container.clientWidth, 1)
     const height = Math.max(this.container.clientHeight, 1)
@@ -1606,57 +1715,89 @@ export class Viewer {
   }
 
   private readonly handleSketchPlanePickPointerDown = (event: PointerEvent): void => {
-    if (
-      event.button !== 0 ||
-      this.sketchPlanePickOverlay === null ||
-      this.sketchPlanePickOverlay.stage !== 'pick'
-    ) {
+    if (event.button !== 0) {
       return
     }
-    const plane = this.sketchPlanePickHelper.pickPlane(
+    if (
+      this.sketchPlanePickOverlay !== null &&
+      this.sketchPlanePickOverlay.stage === 'pick'
+    ) {
+      const plane = this.sketchPlanePickHelper.pickPlane(
+        this.camera,
+        this.renderer.domElement,
+        event.clientX,
+        event.clientY,
+      )
+      if (plane === null) {
+        return
+      }
+      event.preventDefault()
+      event.stopPropagation()
+      this.onSketchPlanePickPlaneSelect?.(plane)
+      return
+    }
+    const drawHit = this.geometrySketchDrawHelper.projectPointerToSketch(
       this.camera,
       this.renderer.domElement,
       event.clientX,
       event.clientY,
     )
-    if (plane === null) {
+    if (drawHit === null) {
       return
     }
     event.preventDefault()
     event.stopPropagation()
-    this.onSketchPlanePickPlaneSelect?.(plane)
+    this.onGeometrySketchConfirmPoint?.(drawHit.point, drawHit.snapTarget)
   }
 
   private readonly handleSketchPlanePickPointerMove = (event: PointerEvent): void => {
     if (
-      this.sketchPlanePickOverlay === null ||
-      this.sketchPlanePickOverlay.stage !== 'pick'
+      this.sketchPlanePickOverlay !== null &&
+      this.sketchPlanePickOverlay.stage === 'pick'
     ) {
-      this.sketchPlanePickHelper.setHoveredPlane(null)
+      const plane = this.sketchPlanePickHelper.pickPlane(
+        this.camera,
+        this.renderer.domElement,
+        event.clientX,
+        event.clientY,
+      )
+      this.sketchPlanePickHelper.setHoveredPlane(plane)
       return
     }
-    const plane = this.sketchPlanePickHelper.pickPlane(
+    this.sketchPlanePickHelper.setHoveredPlane(null)
+    const drawHit = this.geometrySketchDrawHelper.projectPointerToSketch(
       this.camera,
       this.renderer.domElement,
       event.clientX,
       event.clientY,
     )
-    this.sketchPlanePickHelper.setHoveredPlane(plane)
+    this.onGeometrySketchHoverPoint?.(drawHit?.point ?? null, drawHit?.snapTarget ?? null)
   }
 
   private readonly handleKeyDown = (event: KeyboardEvent): void => {
     if (event.defaultPrevented) {
       return
     }
-    const target = event.target as HTMLElement | null
-    if (
-      target !== null &&
-      (target.tagName === 'INPUT' ||
-        target.tagName === 'TEXTAREA' ||
-        target.tagName === 'SELECT' ||
-        target.isContentEditable)
-    ) {
+    if (isEditableTarget(event.target)) {
       return
+    }
+    const routing = routeKeyboardInput({
+      event,
+      geometrySketchMode: this.geometrySketchOverlay?.mode ?? null,
+      referenceTransformActive: this.activeReferenceTransformReferenceId !== null,
+    })
+
+    if (routing.owner === 'sketch-draw' && this.geometrySketchOverlay?.mode === 'draw') {
+      if (event.key === 'Enter') {
+        event.preventDefault()
+        this.onGeometrySketchFinishDraft?.()
+        return
+      }
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        this.onGeometrySketchCancelDraft?.()
+        return
+      }
     }
 
     const key = event.key.toLowerCase()
@@ -1714,14 +1855,6 @@ export class Viewer {
       event.preventDefault()
       this.frameAll()
       return
-    }
-    if (event.key === 'Escape') {
-      event.preventDefault()
-      if (this.activeReferenceTransformReferenceId !== null) {
-        this.requestReferenceTransformExit()
-        return
-      }
-      this.transformGizmo.detach()
     }
   }
 

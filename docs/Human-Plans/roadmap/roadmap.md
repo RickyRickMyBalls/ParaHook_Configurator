@@ -4,6 +4,13 @@
 ### Fold Hack 3
 #### FOld Hack 4
 ###### Doc History
+101. 2026-03-19 18:33: Marked `[4.1J4] Cleanup And Hardening` complete after collapsing reference-transform `Escape` exit onto one real session seam, proving flat console capture resumes predictably after higher-priority sessions end, and adding the extra routing regressions that guard against accidental precedence drift for the hardened command/input model
+100. 2026-03-19 18:27: Marked `[4.1J3] Session Migration` complete after moving the busiest conflicting sessions onto the shared routing seam, preventing staged/flat console capture from reclaiming printable token input while higher-priority feature sessions are active, and proving the migrated precedence with targeted console/input-routing regressions
+99. 2026-03-19 18:15: Marked `[4.1J2] Shared Input Routing Seam` complete after adding one shared keyboard owner-selection seam, routing the first real precedence checks through it, and wiring console capture, sketch-plane, sketch-draw, and reference-transform listeners through the same `owner + decision` contract without pulling broader workspace-selection coordination into the phase
+98. 2026-03-19 15:05: Synced the console roadmap with the shipped staged-command and input-ownership work by adding `[4.1I]` and `[4.1J]`, marking `[4.1I1-I4]` and `[4.1J1]` complete, and leaving `[4.1I5]` plus `[4.1J2-J4]` open as the next real follow-ons
+97. 2026-03-19 13:31: Marked `[4.1H] Hybrid Command Capture And Shortcut Unification` complete after the console input now auto-captures printable typing without requiring `/`, keeps `/` as optional explicit focus, protects real text fields, routes typed aliases like `m` through visible command submission, and keeps the parent `[4.1]` lane partial only because `[4.1E-G]` still remain
+96. 2026-03-19 11:24: Tightened the new console follow-on `[4.1H]` so the live roadmap now explicitly treats `/` as optional, `m / r / s` as typed-first command entry in that phase, and the shared-dispatcher/protected-field rules as the real acceptance shape rather than leaving hybrid capture vague
+95. 2026-03-19 11:12: Added a new console follow-on subphase `[4.1H] Hybrid Command Capture And Shortcut Unification` so the roadmap now has an explicit home for the post-`4.1C` direction where printable typing can auto-enter the console without `/`, shortcut aliases can flow through the same command dispatcher, and real text fields still keep keyboard ownership
 94. 2026-03-18 21:20: Expanded the Lane `[4]` console roadmap summary with one explicit long-term command-language sentence, so the live roadmap now acknowledges that the app-wide `Console` should eventually navigate and act across workspace, graph, node, and feature domains instead of remaining only a shell/transcript surface
 93. 2026-03-18 14:15: Marked `[3.2B] Sketch Operation Authoring` and `[3.2C] Extrude Foundation` complete in the live roadmap after the graph-native sketch authoring, main-viewport sketch rendering split, and first `Geometry/Extrude -> SolidBody` implementation landed, while keeping the parent `[3.2]` lane partial because `[3.2D] Loft Foundation` remains open
 92. 2026-03-18 11:05: Added a compact top-level roadmap checklist grouped by lane so `roadmap.md` now has one quick scan surface that mirrors the numbered `###` phase entries below, and normalized `[5.0E]` to partial status so the new checklist matches the still-open lane body
@@ -198,6 +205,18 @@ Status legend:
 - [ ] `[4.1E]` `Command Results, Errors, And Follow-Up UX`
 - [ ] `[4.1F]` `Debug Inspector Bridge And Richer Later Diagnostics`
 - [ ] `[4.1G]` `Hotkey Customization And Shortcut Profiles`
+- [x] `[4.1H]` `Hybrid Command Capture And Shortcut Unification`
+- [~] `[4.1I]` `Staged Scoped Command Navigation`
+- [x] `[4.1I1]` `Staged Grammar Core`
+- [x] `[4.1I2]` `Console Session Integration`
+- [x] `[4.1I3]` `First Executable Vertical Slice`
+- [x] `[4.1I4]` `Missing-Branch Recovery And Node Creation`
+- [ ] `[4.1I5]` `Robustness And Prompt Quality`
+- [x] `[4.1J]` `Input Ownership And Coordination Cleanup`
+- [x] `[4.1J1]` `Input Ownership Audit`
+- [x] `[4.1J2]` `Shared Input Routing Seam`
+- [x] `[4.1J3]` `Session Migration`
+- [x] `[4.1J4]` `Cleanup And Hardening`
 
 ### Lane [5] - `Control, Build, And Workspace Systems`
 
@@ -1553,8 +1572,8 @@ Expected outcome:
 
 Summary:
 - the app-wide `Console` is now real as a shared workspace feedback surface instead of debug text being stranded inside local tools
-- shipped work now covers the bottom collapsed row, the expanded transcript shell, layered feedback lines, console appearance/tools controls, and the first alternate presentation modes
-- the remaining `4.1` work is no longer the shell itself; it is the later command-routing, richer filtering, result UX, inspector bridge, and hotkey-customization follow-through
+- shipped work now covers the bottom collapsed row, the expanded transcript shell, layered feedback lines, console appearance/tools controls, the first alternate presentation modes, the hybrid command-capture follow-on, the first staged graph/sketch command tree, and the input-ownership audit
+- the remaining `4.1` work is no longer command entry itself; it is now the later result UX, inspector bridge, and hotkey-customization follow-through
 
 CheckList:
 
@@ -1603,6 +1622,95 @@ CheckList:
 - user hotkey rebinding
 - conflict detection
 - restore-default behavior
+
+### [4.1H] [x] - `Hybrid Command Capture And Shortcut Unification`
+
+- printable-key auto-capture into the console when no normal text-editing field owns focus
+- `/` remains optional for explicit console focus/open, but is no longer required to start typing
+- explicit real-text-field guards so parameter fields and other editors never leak typing into the console
+- one shared dispatcher for typed commands, auto-captured command text, and shortcut aliases
+- standalone `m / r / s` become typed-first command entry in this phase instead of silent immediate hotkeys
+
+### [4.1I] [~] - `Staged Scoped Command Navigation`
+
+- extend the console beyond flat command submission into staged scoped navigation one token at a time
+- shipped work now covers:
+  - `Graph` as the first staged root
+  - live staged console session state
+  - real `Graph -> Sketch -> Sketch Plane / Sketch Draw` navigation
+  - missing-sketch recovery by creating a real sketch node when the branch is empty
+- remaining work stays in:
+  - `[4.1I5]` prompt quality and robustness
+
+### [4.1I1] [x] - `Staged Grammar Core`
+
+- dedicated staged grammar seam outside the UI component
+- scoped alias resolution and deterministic numeric selection
+- structured staged results for `advance / execute / invalid / cancelled`
+
+### [4.1I2] [x] - `Console Session Integration`
+
+- staged session state now lives at the console layer
+- accepted staged tokens show transcript breadcrumb and next-prompt feedback
+- staged cancel/reset is wired into the live console session
+
+### [4.1I3] [x] - `First Executable Vertical Slice`
+
+- real navigation from `Graph` into a selected sketch
+- real `Sketch Draw` and `Sketch Plane` execution from the staged tree
+- single-choice auto-advance works for graph and sketch entity scopes
+
+### [4.1I4] [x] - `Missing-Branch Recovery And Node Creation`
+
+- if `Graph > Sketch` finds no sketches, create one real `Geometry/Sketch` node
+- place it deterministically in the graph canvas
+- select/focus it and continue the staged session into that created sketch
+
+### [4.1I5] [ ] - `Robustness And Prompt Quality`
+
+- better scoped error copy
+- better next-choice prompts
+- clearer breadcrumb labels
+- stronger recovery when graphs or sketches disappear during an active staged session
+
+### [4.1J] [x] - `Input Ownership And Coordination Cleanup`
+
+- clean up key ownership across:
+  - console capture
+  - staged console
+  - sketch-plane pick
+  - sketch draw
+  - reference transform
+  - viewer / overlay seams
+- shipped work now covers the audit, target ownership contract, shared routing seam, session migration, and hardening pass
+- the console/input ownership model now has one real precedence path instead of depending on scattered accidental listener order
+
+### [4.1J1] [x] - `Input Ownership Audit`
+
+- explicit current-owner table for `Esc`, `Enter`, `Space`, `m / r / s`, `x`, and `b / back`
+- explicit target-owner table and input-priority contract
+- locked token rule that keeps command input space-free where practical so `Space` and `Enter` can both submit in token-based command contexts
+
+### [4.1J2] [x] - `Shared Input Routing Seam`
+
+- add one shared seam that decides which active owner gets a key before feature logic runs
+- route the first real precedence checks through an explicit `owner + decision` contract
+- wire console capture, sketch-plane pick, sketch-draw, and reference-transform listeners through that seam without turning `ConsoleDock` or `AppShell` into a god object
+
+### [4.1J3] [x] - `Session Migration`
+
+- move sketch-plane pick, sketch draw, staged console, and reference transform onto the shared routing seam
+- stop staged/flat console capture from reclaiming printable token input while higher-priority feature sessions are active
+- keep migrated session listeners as delegates/no-ops for routed keys instead of independent precedence systems
+
+### [4.1J4] [x] - `Cleanup And Hardening`
+
+- remove or simplify redundant routed-key listeners where safe
+- add regression tests for priority conflicts and routed-session resume
+- harden cancel/exit/focus edge cases
+- keep real text-entry ownership and command-scoped `Space` behavior stable
+- a narrower reserved immediate-key set outside the typed-first path
+- transcript/history visibility for the actual typed token or alias instead of silent shortcut-only side paths
 
 # [5] `Control, Build, And Workspace Systems`
 

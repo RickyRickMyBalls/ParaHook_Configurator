@@ -310,8 +310,18 @@ function SpaghettiWindowTitleBar(props: {
 
 export function AppShell() {
   const activeEditorViewport = useSpaghettiStore(selectActiveEditorViewport)
+  const floatingShellActivationRequest = useAppStore((state) => state.floatingShellActivationRequest)
   const setActiveEditorViewportId = useSpaghettiStore((state) => state.setActiveEditorViewportId)
   const setEditorViewportWindowMode = useSpaghettiStore((state) => state.setEditorViewportWindowMode)
+  const setEditorViewportHeaderCollapsed = useSpaghettiStore(
+    (state) => state.setEditorViewportHeaderCollapsed,
+  )
+  const setEditorViewportCanvasToolbarVisible = useSpaghettiStore(
+    (state) => state.setEditorViewportCanvasToolbarVisible,
+  )
+  const setEditorViewportPresentationMode = useSpaghettiStore(
+    (state) => state.setEditorViewportPresentationMode,
+  )
   const setEditorViewportSplitRatio = useSpaghettiStore((state) => state.setEditorViewportSplitRatio)
   const setEditorViewportSplitDirection = useSpaghettiStore(
     (state) => state.setEditorViewportSplitDirection,
@@ -343,7 +353,9 @@ export function AppShell() {
   const [leftDockWidth, setLeftDockWidth] = useState(defaultLeftDockWidth)
   const [isLeftDockViewportSplit, setIsLeftDockViewportSplit] = useState(false)
   const [leftDockResizeMenu, setLeftDockResizeMenu] = useState<LeftDockResizeMenuState | null>(null)
-  const [headerCollapsedByViewportId, setHeaderCollapsedByViewportId] = useState<Record<string, boolean>>({})
+  const headerCollapsedByViewportId = useSpaghettiStore(
+    (state) => state.editorViewportHeaderCollapsedById,
+  ) ?? {}
   const [windowSettingsOpenByViewportId, setWindowSettingsOpenByViewportId] = useState<
     Record<string, boolean>
   >({})
@@ -356,14 +368,15 @@ export function AppShell() {
   const [windowClampEditingByViewportId, setWindowClampEditingByViewportId] = useState<
     Record<string, boolean>
   >({})
-  const [canvasToolbarVisibleByViewportId, setCanvasToolbarVisibleByViewportId] = useState<
-    Record<string, boolean>
-  >({})
+  const canvasToolbarVisibleByViewportId = useSpaghettiStore(
+    (state) => state.editorViewportCanvasToolbarVisibleById,
+  ) ?? {}
   const [headerToggleRevisionByViewportId, setHeaderToggleRevisionByViewportId] = useState<
     Record<string, number>
   >({})
   const [activeFloatingShell, setActiveFloatingShell] = useState<ActiveFloatingShell>(null)
   const [workspaceSplitMenu, setWorkspaceSplitMenu] = useState<WorkspaceSplitMenuState | null>(null)
+  const lastHandledFloatingShellActivationSeqRef = useRef(0)
   const floatingPosRef = useRef<FloatingPosition>(initialFloatingPosition)
   const floatingSizeRef = useRef<FloatingSize>(initialFloatingSize)
   const browserFloatingPosRef = useRef<FloatingPosition>(defaultBrowserFloatingPosition)
@@ -950,6 +963,25 @@ export function AppShell() {
   }, [activeFloatingShell, isBrowserFloating])
 
   useEffect(() => {
+    if (
+      floatingShellActivationRequest === null ||
+      floatingShellActivationRequest.seq === lastHandledFloatingShellActivationSeqRef.current
+    ) {
+      return
+    }
+    lastHandledFloatingShellActivationSeqRef.current = floatingShellActivationRequest.seq
+    if (floatingShellActivationRequest.target === 'spaghetti') {
+      if (showFloatingShell) {
+        setActiveFloatingShell('spaghetti')
+      }
+      return
+    }
+    if (isBrowserFloating) {
+      setActiveFloatingShell('browser')
+    }
+  }, [floatingShellActivationRequest, isBrowserFloating, showFloatingShell])
+
+  useEffect(() => {
     const handlePointerDown = (event: PointerEvent) => {
       const target = event.target
       if (
@@ -1118,10 +1150,7 @@ export function AppShell() {
         if (shouldDockToSplit) {
           setEditorViewportWindowMode(editorViewportId, 'split view')
         } else if (shouldDockToMeatball) {
-          setHeaderCollapsedByViewportId((current) => ({
-            ...current,
-            [editorViewportId]: true,
-          }))
+          setEditorViewportHeaderCollapsed(editorViewportId, true)
           setEditorViewportWindowMode(editorViewportId, 'meatball editor view')
         }
         window.removeEventListener('pointermove', handleMove)
@@ -1139,7 +1168,7 @@ export function AppShell() {
       setActiveEditorViewportId,
       setEditorViewportPosition,
       setEditorViewportWindowMode,
-      setHeaderCollapsedByViewportId,
+      setEditorViewportHeaderCollapsed,
     ],
   )
 
@@ -1493,36 +1522,21 @@ export function AppShell() {
     const isEssentials = activeEditorViewport.windowMode !== 'collapsed' && headerCollapsed && !canvasToolbarVisible
 
     if (activeEditorViewport.windowMode === 'collapsed') {
-      setEditorViewportWindowMode(editorViewportId, 'collapsed')
-      setHeaderCollapsedByViewportId((current) => ({
-        ...current,
-        [editorViewportId]: false,
-      }))
-      setCanvasToolbarVisibleByViewportId((current) => ({
-        ...current,
-        [editorViewportId]: true,
-      }))
+      setEditorViewportPresentationMode(editorViewportId, 'expanded')
       return
     }
 
     if (isEssentials) {
-      setEditorViewportWindowMode(editorViewportId, 'collapsed')
+      setEditorViewportPresentationMode(editorViewportId, 'collapsed')
       return
     }
 
-    setHeaderCollapsedByViewportId((current) => ({
-      ...current,
-      [editorViewportId]: true,
-    }))
-    setCanvasToolbarVisibleByViewportId((current) => ({
-      ...current,
-      [editorViewportId]: false,
-    }))
+    setEditorViewportPresentationMode(editorViewportId, 'essentials')
   }, [
     activeEditorViewport,
     canvasToolbarVisibleByViewportId,
     headerCollapsedByViewportId,
-    setEditorViewportWindowMode,
+    setEditorViewportPresentationMode,
   ])
 
   const handleHeaderToggle = useCallback(() => {
@@ -1534,36 +1548,31 @@ export function AppShell() {
       [activeEditorViewport.editorViewportId]:
         (current[activeEditorViewport.editorViewportId] ?? 0) + 1,
     }))
-    setHeaderCollapsedByViewportId((current) => ({
-      ...current,
-      [activeEditorViewport.editorViewportId]:
-        !(current[activeEditorViewport.editorViewportId] ?? false),
-    }))
-  }, [activeEditorViewport])
+    setEditorViewportHeaderCollapsed(
+      activeEditorViewport.editorViewportId,
+      !(headerCollapsedByViewportId[activeEditorViewport.editorViewportId] ?? false),
+    )
+  }, [activeEditorViewport, headerCollapsedByViewportId, setEditorViewportHeaderCollapsed])
 
   const handleSetHeaderCollapsed = useCallback(
     (collapsed: boolean) => {
       if (activeEditorViewport === null) {
         return
       }
-      setHeaderCollapsedByViewportId((current) => ({
-        ...current,
-        [activeEditorViewport.editorViewportId]: collapsed,
-      }))
+      setEditorViewportHeaderCollapsed(activeEditorViewport.editorViewportId, collapsed)
     },
-    [activeEditorViewport],
+    [activeEditorViewport, setEditorViewportHeaderCollapsed],
   )
 
   const handleCanvasToolbarToggle = useCallback(() => {
     if (activeEditorViewport === null) {
       return
     }
-    setCanvasToolbarVisibleByViewportId((current) => ({
-      ...current,
-      [activeEditorViewport.editorViewportId]:
-        !(current[activeEditorViewport.editorViewportId] ?? true),
-    }))
-  }, [activeEditorViewport])
+    setEditorViewportCanvasToolbarVisible(
+      activeEditorViewport.editorViewportId,
+      !(canvasToolbarVisibleByViewportId[activeEditorViewport.editorViewportId] ?? true),
+    )
+  }, [activeEditorViewport, canvasToolbarVisibleByViewportId, setEditorViewportCanvasToolbarVisible])
 
   const handleMeatballMode = useCallback(() => {
     if (activeEditorViewport === null) {
@@ -1571,16 +1580,13 @@ export function AppShell() {
     }
     setActiveLeftDockPreviewPanelId(null)
     if (activeEditorViewport.windowMode !== 'meatball editor view') {
-      setHeaderCollapsedByViewportId((current) => ({
-        ...current,
-        [activeEditorViewport.editorViewportId]: true,
-      }))
+      setEditorViewportHeaderCollapsed(activeEditorViewport.editorViewportId, true)
     }
     setEditorViewportWindowMode(
       activeEditorViewport.editorViewportId,
       activeEditorViewport.windowMode === 'meatball editor view' ? 'expanded' : 'meatball editor view',
     )
-  }, [activeEditorViewport, setEditorViewportWindowMode])
+  }, [activeEditorViewport, setEditorViewportHeaderCollapsed, setEditorViewportWindowMode])
 
   const handleMaximizeToggle = useCallback(() => {
     if (activeEditorViewport === null) {
