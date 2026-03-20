@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+62. 2026-03-20 16:57: Added `docs/Human-Plans/Architecture/Sampler.md` to the architecture docs map as the new focused planning surface for the simple single-row sequencer direction, separating the first sampler UI and note-repeat vision from the broader `Radio` architecture doc
 61. 2026-03-20 12:42: Added `docs/Human-Plans/Architecture/Radio.md` to the architecture docs map as the new implementation-facing planning surface for the optional `Radio` subsystem, translating the older wish-feature memory into a concrete ownership, runtime, and first-scope architecture note
 60. 2026-03-18 14:24: Added `docs/Human-Plans/CodexNotes/12_CodexChatNotes.md` to the foldable docs map as the new active Codex-notes file for pre-`3.2D` node-template cleanup planning, continuing the running numbered planning-notes sequence after `11_CodexChatNotes.md`
 59. 2026-03-17 18:39: Added `05.0E - VR-SP - Spaghetti Editor Surface Standardization And Viewport-Type Cleanup.md` to the future-task map, so the `5.0` family now has an explicit bridge planning surface for editor/meatball terminology cleanup before the shared workspace lane normalizes viewport types and pane switching
@@ -395,6 +396,7 @@ Rule notes:
         - `Engine-Architecture.md`
         - `Glossary.md`
         - `Radio.md`
+        - `Sampler.md`
         - `Spaghetti-Types.md`
         - `System-Map.md`
         - `Terminology-Decisions.md`

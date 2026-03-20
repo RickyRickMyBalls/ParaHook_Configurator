@@ -24,6 +24,57 @@
 
 ## Session 1 Notes
 
+##### [ ] [191] 2026-03-20 17:24 - Radio sampler toolbar idea: keep the sequencer inside the shared `Radio` toolbar as a collapsible tree with global controls, track lanes, and expandable step detail
+
+Context block:
+
+- keep the future sampler UI inside the shared `Radio` toolbar rather than splitting it into a separate unrelated panel
+- use the app's existing `collapsed / essentials / expanded` pattern for sampler rows and child rows
+- keep `Radio` and `Sampler` as sibling top-level sections inside the toolbar
+
+Proposed toolbar tree:
+
+- `Radio`
+  - `URL`
+- `Sampler`
+  - `Global BPM`
+  - `Note Repeat`
+    - `Enabled`
+    - later repeat options like count/rate
+  - lane strip / track row
+    - `Track 1`
+    - `Track 2`
+    - `Add New Track`
+  - inside each track:
+    - `Steps ParaSlider`
+    - `Step 1`
+      - cue time from the lane URL/source
+      - volume
+      - later step-level overrides
+    - `Step 2`
+    - `Step 3`
+    - and so on
+
+Decision direction:
+
+- `Global BPM` should stay sampler-global, not duplicated per track
+- `Note Repeat` should begin as a sampler-global default block and only later grow per-track or per-step overrides if needed
+- tracks should read as horizontally selectable lanes, but their detail can still expand vertically through the same tree/disclosure system
+- steps should stay lightweight in `collapsed` and `essentials`, then reveal cue/volume/override controls only in `expanded`
+
+Why this shape is good:
+
+- it matches the app's existing disclosure system instead of inventing a special sampler-only panel pattern
+- it keeps radio source controls and sampler controls in one coherent toolbar
+- it supports growth from one track to multiple tracks without losing the simple top-down mental model
+- it avoids showing every per-step control at once when the sequence gets long
+
+Important implementation read:
+
+- the first honest sampler can still start with one track
+- this note mainly locks the future toolbar/container shape so later multi-track growth does not force a full UI rethink
+- use `steps`, `tracks`, and `lanes` carefully in code/docs so the UI can stay friendly without making the state model vague
+
 ##### [ ] [190] 2026-03-18 19:09 - Upgrade `Pick In Viewport` and the floating sketch-plane picker so they match the new `SketchPlane > Source` model
 
 ###### `190 Phase 1 - Source Framing And Picker Cleanup`

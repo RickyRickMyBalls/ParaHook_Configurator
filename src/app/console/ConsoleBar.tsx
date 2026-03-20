@@ -156,6 +156,19 @@ export function ConsoleBar({
           }
       : parsePromptSummary(summaryText)
 
+  const guidedInputText =
+    stagedNavigationSession !== null && stagedNavigationSession.validChoices.length > 0
+      ? stagedNavigationSession.validChoices[stagedChoiceIndex ?? 0]?.label ??
+        stagedNavigationSession.validChoices[0]?.label ??
+        null
+      : consolePromptSession !== null
+        ? consolePromptSession.prefill
+      : featureAssistDescriptor !== null && featureAssistDescriptor.choices.length > 0
+        ? featureAssistDescriptor.choices[stagedChoiceIndex ?? 0]?.label ??
+          featureAssistDescriptor.choices[0]?.label ??
+          featureAssistDescriptor.prefill
+        : featureAssistDescriptor?.prefill ?? null
+
   useEffect(() => {
     const viewport = summaryChoicesViewportRef.current
     if (viewport === null) {
@@ -271,7 +284,10 @@ export function ConsoleBar({
       !event.metaKey
     ) {
       event.preventDefault()
-      setInputText(event.key)
+      const shouldReplaceGuidedInput =
+        guidedInputText !== null &&
+        normalizeChoiceToken(inputText) === normalizeChoiceToken(guidedInputText)
+      setInputText(shouldReplaceGuidedInput ? event.key : `${inputText}${event.key}`)
       return
     }
     if (isGuidedInputActive && event.key === 'ArrowUp') {

@@ -23,12 +23,21 @@ const mockSoundCloudPlayWindow = vi.fn(async () => {
     throw new Error('SoundCloud playback unavailable')
   }
 })
+const mockSoundCloudGetTransportState = vi.fn(async () => ({
+  currentTimeSec: 0,
+  durationSec: 120,
+  isSeekable: true as const,
+  isPlaying: false,
+}))
+const mockSoundCloudSeekTo = vi.fn(async () => undefined)
 const mockSoundCloudStop = vi.fn(() => undefined)
 const mockSoundCloudDispose = vi.fn(() => undefined)
 
 vi.mock('../runtime/audio/SoundCloudWidgetClient', () => ({
   createBrowserSoundCloudWidgetClient: () => ({
     ensureSourceReady: mockSoundCloudEnsureSourceReady,
+    getTransportState: mockSoundCloudGetTransportState,
+    seekTo: mockSoundCloudSeekTo,
     playWindow: mockSoundCloudPlayWindow,
     stop: mockSoundCloudStop,
     dispose: mockSoundCloudDispose,
@@ -292,6 +301,8 @@ describe('AppShell', () => {
     resetAudioSamplerStore()
     mockSoundCloudPlaybackMode = 'ready'
     mockSoundCloudEnsureSourceReady.mockClear()
+    mockSoundCloudGetTransportState.mockClear()
+    mockSoundCloudSeekTo.mockClear()
     mockSoundCloudPlayWindow.mockClear()
     mockSoundCloudStop.mockClear()
     mockSoundCloudDispose.mockClear()
@@ -2000,5 +2011,67 @@ describe('AppShell', () => {
     expect(useAudioSamplerStore.getState().radioRuntimeMessage).toBe(
       'SoundCloud playback unavailable, using fallback generated tone',
     )
+  })
+
+  it('renders the radio panel when the toolbar is opened and hides it when closed', async () => {
+    ;({ container, root } = await renderAppShell())
+    mockShellGeometry(container)
+
+    await act(async () => {
+      useAudioSamplerStore.getState().openRadioToolbar()
+    })
+
+    expect(container?.querySelector('.RadioPanel')).not.toBeNull()
+
+    await act(async () => {
+      useAudioSamplerStore.getState().closeRadioToolbar()
+    })
+
+    expect(container?.querySelector('.RadioPanel')).toBeNull()
+  })
+
+  it('renders the sampler panel alongside the radio toolbar when the toolbar is opened', async () => {
+    ;({ container, root } = await renderAppShell())
+    mockShellGeometry(container)
+
+    await act(async () => {
+      useAudioSamplerStore.getState().openRadioToolbar()
+    })
+
+    expect(container?.querySelector('.RadioPanel')).not.toBeNull()
+    expect(container?.querySelector('.AudioSamplerPanel')).not.toBeNull()
+  })
+
+  it('advances the sampler playhead through the app-level loop using the current radio source', async () => {
+    vi.useFakeTimers()
+    ;({ container, root } = await renderAppShell())
+    mockShellGeometry(container)
+
+    await act(async () => {
+      useAudioSamplerStore.getState().turnRadioOn()
+      useAudioSamplerStore.getState().setRadioRuntimeState({
+        status: 'fallback',
+        sourceKind: 'generated-tone',
+      })
+      useAudioSamplerStore.getState().setSamplerStepCount(4)
+      useAudioSamplerStore.getState().setSamplerBpm(120)
+      useAudioSamplerStore.getState().playSampler()
+    })
+
+    expect(useAudioSamplerStore.getState().samplerPlayheadStepIndex).toBe(0)
+
+    await act(async () => {
+      vi.advanceTimersByTime(520)
+    })
+
+    expect(useAudioSamplerStore.getState().samplerPlayheadStepIndex).toBe(1)
+    expect(useAudioSamplerStore.getState().radioRuntimeSourceKind).toBe('generated-tone')
+
+    await act(async () => {
+      useAudioSamplerStore.getState().stopSampler()
+      vi.runOnlyPendingTimers()
+    })
+
+    vi.useRealTimers()
   })
 })

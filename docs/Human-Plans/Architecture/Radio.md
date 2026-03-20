@@ -3,6 +3,16 @@
 ## Doc Header
 
 ### Doc History
+33. 2026-03-20 17:34: Tightened `Phase 10` into an implementation-ready shared-toolbar execution spec by locking the separate-panel end-state decision, mapping the merge onto the current live `RadioPanel` / `AudioSamplerPanel` / store / shell seams, and defining the disclosure-state, migration, test, and completion targets for the next sampler UI refactor
+32. 2026-03-20 17:27: Added a new post-sampler phase for folding the sequencer back into the shared `Radio` toolbar as a disclosure-tree surface with sibling `Radio` / `Sampler` sections, a collapsible steps area above `Note Repeat`, and expandable per-step detail rows
+31. 2026-03-20 17:18: Marked `Phase 9` complete after the first sampler sequencer slice landed as a hosted panel with one-row pattern state, BPM and step-count controls, rerollable per-step cues, a narrow note-repeat block, and an app-level loop that reuses the current radio source/runtime path
+30. 2026-03-20 17:16: Tightened `Phase 9` into an implementation-ready execution spec by locking the first sampler ownership decision, mapping the sequencer onto the current live radio/runtime code seams, and adding a clearer baseline-versus-delta read plus concrete state, timing, file, and test targets
+29. 2026-03-20 17:12: Added a new post-radio sampler phase to this architecture doc so the next major build step is now spelled out as a simple one-row sequencer that reuses the current radio source/runtime seams, with one locked ownership question plus an implementation-ready spec
+28. 2026-03-20 17:03: Marked `Phase 7` complete after the radio toolbar/control surface landed as a real hosted panel with console `OpenToolbar` / `CloseToolbar` commands, live transport/status readout, seek/reload control seams, and focused store/console/panel/app-shell regressions
+27. 2026-03-20 15:28: Extended the `Phase 7` toolbar spec so the radio toolbar is opened and closed from the console `Radio` scope through new sibling commands `OpenToolbar` and `CloseToolbar`, with aliases `OT` and `CT`
+26. 2026-03-20 15:24: Aligned `Phase 7` to the shared toolbar template direction in `Toolbar.md`, so the first visible radio UI now explicitly reuses the floating toolbar shell/layout contract instead of being described as a generic custom panel
+25. 2026-03-20 15:21: Raised the `Phase 7` toolbar/control-surface bar so it now explicitly requires a real time-position readout plus a seekable `ParaSlider`, making transport truth and user time adjustment part of the first visible radio UI instead of a deferred later control
+24. 2026-03-20 15:18: Reworked `Phase 7` into an implementation-ready toolbar/control-surface spec by locking the first visible-surface decisions, mapping the work onto the current radio runtime/store seams, and defining the first control set, placement rule, test targets, and completion order for the post-console radio UI
 23. 2026-03-20 14:40: Marked `Phase 6` complete after the runtime now resolves supported SoundCloud URLs into a real-link path, reports unsupported custom links explicitly, and preserves the generated-tone bridge as an honest fallback when supported real-link playback is unavailable
 22. 2026-03-20 14:34: Reworked `Phase 6` into an implementation-ready execution spec by locking the first real-link playback direction, keeping source-resolution ownership in the runtime audio layer, and defining how supported, fallback, and unsupported links should behave without reopening the earlier console phases
 21. 2026-03-20 14:30: Expanded the post-fallback radio roadmap inside this doc by inserting a dedicated real-link playback phase after the fallback runtime bridge, then a toolbar/control-surface phase after that, and pushing the old hardening pass down so the later work now matches the intended implementation order
@@ -2922,104 +2932,443 @@ Not owned here:
 - do not collapse unsupported or failed real-link playback into silent fallback without status
 - do not delete or destabilize the working fallback bridge before the supported real-link path is proven
 
-## [ ] Phase 7 - Radio Toolbar And Control Surface
+## [x] Phase 7 - Radio Toolbar And Control Surface
 
 ### Header
-- add a visible radio toolbar/control surface after real-link playback exists
-- let the user inspect and control the radio without going through the console for everything
-- keep the toolbar/control surface app-side and optional
+- add one visible radio toolbar/control surface now that real-link playback exists
+- let the user inspect and control the radio without relying on the console for every basic action
+- keep the surface app-side, optional, and clearly bound to the already-landed radio store/runtime seams
 
 First intended controls:
 - enabled / disabled state
 - current source readout
-- play / pause
-- seek readout or transport position
-- burst duration
-- current playback mode/status
+- runtime/source status
+- current time readout
+- total duration readout
+- one seekable `ParaSlider` for time position
+- sample burst time
 - randomize sample times
+- reload / retry source
+- play / pause only if the runtime can expose it honestly in this cut
 
 Later possible controls:
-- fallback versus real-link status badge
-- reload source
+- seek readout or scrubber
 - volume
 - mute
+- fallback versus real-link badge styling
 
 Important rule:
 - this phase should visualize and control the existing radio runtime
-- not invent a second radio system separate from the console/store/runtime seam
+- not invent a second radio system beside the console/store/runtime seam
 
 Acceptance shape:
-- the user can inspect radio state from a visible control surface
-- the user can perform the main radio controls without using the console
-- the toolbar reflects whether the system is on fallback playback, real-link playback, blocked, or error
+- the user can see live radio state from a visible control surface
+- the user can toggle radio, inspect source/status, adjust time position, adjust burst time, and randomize sample times without using the console
+- the surface reflects whether the runtime is using real-link playback, fallback playback, blocked playback, unsupported URL state, or error state
+- the console `Radio` scope exposes explicit toolbar visibility commands instead of relying on a shell-only toggle
 
-### Main Questions
+### [x] Q1 - Should The First Visible Surface Be A Toolbar Strip Or A Small Panel?
 
-#### [ ] `Q1` - Should The First Visible Surface Be A Toolbar Strip Or A Small Panel?
+#### Suggestion
+- start as a compact hosted panel that reads visually like a toolbar strip
+- use the existing `RadioPanel.tsx` seam so the first UI can live in the normal app host model instead of inventing a one-off shell strip
+- keep it compact, always legible, and easy to move later if the shell hosting changes
 
-##### Suggestion
-- start with a compact toolbar/small hosted surface
-- keep it lightweight and always understandable
-- do not jump straight to a complex dock/panel workstation
+#### Locked Read
+- the first visible radio UI should be a compact hosted panel built from the shared toolbar template layout
+- it should use the existing panel seam plus the shared toolbar shell contract, not a brand-new shell-only special case
+- the panel should stay visually lightweight enough that it still reads like a toolbar/control surface instead of a workstation panel
 
-#### [ ] `Q2` - Which Controls Must Be Visible In The First UI Cut?
+### [x] Q2 - Which Controls Must Be Visible In The First UI Cut?
 
-##### Suggestion
+#### Suggestion
 - minimum first controls:
   - on / off
-  - source/status readout
+  - source readout
+  - runtime/source status readout
   - sample burst time
   - randomize sample times
-  - play/pause if the runtime supports it honestly
-- add seek/volume only if the first real-link bridge can support them clearly
+  - reload / retry source
+- include play / pause only if `Phase 6` exposes an honest transport command seam
+- defer seek and volume unless the runtime exposes real state/commands for them
+
+#### Locked Read
+- the first shipped toolbar/panel must show:
+  - on / off
+  - current URL/source readout
+  - runtime/source status
+  - current time readout
+  - total duration readout
+  - one seekable `ParaSlider`
+  - sample burst time
+  - randomize sample times
+  - reload / retry source
+- play / pause is allowed only if the runtime exposes a true control seam during this phase
+- volume and mute stay deferred unless the runtime already supports them honestly
+- the toolbar should be opened and closed from the console `Radio` scope through:
+  - `OpenToolbar`
+  - `CloseToolbar`
+- aliases:
+  - `OpenToolbar -> OT`
+  - `CloseToolbar -> CT`
 
 ### Implementation Spec
 
 Purpose:
-- expose the radio subsystem as a visible, debuggable, user-controllable tool after the actual playback path exists
+- expose the radio subsystem as a visible, debuggable, user-controllable tool after real-link playback now exists
 
 #### Scope
 
 Owned here:
-- one visible toolbar or small control surface
-- binding the surface to canonical radio store/runtime state
-- user-facing controls for the most important radio actions
+- one visible hosted radio panel with toolbar-style controls
+- binding the panel to canonical radio store/runtime state
+- adding only the minimum store/runtime command seams required for honest user-facing controls
 
 Not owned here:
-- broad styling polish beyond what is needed to ship
+- broad visual polish beyond a solid first ship
 - advanced media browsing
 - timeline editing
+- a second parallel radio state model
 
-#### Recommended Direction
+#### Main Decisions
 
-- use the existing placeholder seam:
-  - `src/app/panels/RadioPanel.tsx`
-- keep `audioSamplerStore.ts` as the source of truth
-- let the toolbar/panel read:
+- use `src/app/panels/RadioPanel.tsx` as the first concrete UI seam
+- use the shared toolbar template from `Toolbar.md` as the visual/layout contract
+- keep `audioSamplerStore.ts` as the canonical state surface
+- allow this phase to add narrow runtime/store control seams only where the UI truly needs them
+- keep the first visible surface compact, readable, and obviously status-driven
+
+#### Current Code-To-Target Mapping
+
+- `src/app/console/stagedNavigation.ts`
+  - current owner of the `Radio` scope grammar
+  - needs to extend the `Radio` choice list with:
+    - `OpenToolbar`
+    - `CloseToolbar`
+  - needs aliases:
+    - `OT`
+    - `CT`
+- `src/app/console/ConsoleDock.tsx`
+  - current owner of radio command execution routing
+  - needs to route:
+    - `radio.openToolbar`
+    - `radio.closeToolbar`
+  - and keep console transcript behavior honest
+- `src/app/panels/RadioPanel.tsx`
+  - current placeholder seam for the first visible radio UI
+  - should become the compact hosted radio toolbar consumer for this phase
+- `src/app/components/ViewportOverlayToolPanel.tsx`
+  - current shared toolbar shell/template owner
+  - should provide the title bar, drag/resize, body section, and split-layout contract for the first radio toolbar when feasible
+- `src/app/AppShell.tsx`
+  - current app/runtime bridge host
+  - should mount the first radio panel in an optional visible location
+- `src/app/store/audioSamplerStore.ts`
+  - current canonical owner for:
+    - enabled state
+    - active URL
+    - sample burst time
+    - runtime status
+    - runtime source kind
+  - needs first-class transport view state for:
+    - current time
+    - duration
+    - seek in progress / pending if needed
+  - may need a few narrow UI-facing actions such as:
+    - toggle on/off
+    - reload/retry request marker
+    - transport seek/play/pause controls if they are truly supported
+- `src/runtime/audio/AudioEngine.ts`
+  - current playback execution owner
+  - needs one narrow transport read/control seam if the panel is going to expose:
+    - current time
+    - duration
+    - seek
+    - play/pause
+- `src/runtime/audio/SoundCloudWidgetClient.ts`
+  - likely first owner for any honest real-link:
+    - current-time polling/subscription
+    - duration readback
+    - seek
+    - retry/load/play/pause control
+    - that is specific to the SoundCloud path
+
+#### Current Landed Baseline
+
+- `Phase 6` is complete.
+- Radio can already be controlled from the console.
+- Real-link playback now exists for the supported SoundCloud path.
+- The runtime/store already expose meaningful status such as:
+  - fallback
+  - loading
+  - blocked
+  - unsupported
+  - error
+- The main missing capability is a visible non-console control surface.
+
+#### Remaining Delta To Close This Phase
+
+- mount a real visible radio panel in the app shell
+- read live radio state from the store without duplicating ownership
+- expose the first minimum UI controls
+- add explicit console actions for opening and closing the toolbar from `> Radio >`
+- add only the missing narrow action seams needed for:
+  - retry/reload
+  - transport readback
+  - seek
+  - optional play/pause if honest
+- keep panel state synchronized with console-driven radio changes
+
+#### Placement Rule
+
+- the first panel should live in the normal app/panel host model
+- do not special-case a floating overlay just for radio
+- if the current shell makes placement ambiguous, prefer one simple always-available hosted location over a more clever but less stable layout experiment
+- when possible, placement and chrome should still follow the shared toolbar template contract from `Toolbar.md`
+- the user-facing way to reveal or hide that surface should still come from the console `Radio` scope, not only from a shell-local button
+
+#### Console Toolbar Visibility Rule
+
+- once `Phase 7` starts, the `Radio` console scope should gain two new sibling actions:
+  - `OpenToolbar`
+  - `CloseToolbar`
+- these belong beside the existing radio actions like:
+  - `On`
+  - `Off`
+  - `Url`
+  - `SampleBurstTime`
+  - `RandomizeSampleTimes`
+- aliases:
+  - `OpenToolbar -> OT`
+  - `CloseToolbar -> CT`
+- `OpenToolbar` should reveal the visible radio toolbar if it is not already open
+- `CloseToolbar` should hide the visible radio toolbar if it is open
+- this should use one canonical visibility state, not separate panel-local and console-local visibility flags
+
+#### Radio Scope Extension Rule
+
+- `Phase 7` extends the landed `Radio` scope grammar rather than replacing it
+- the intended `Radio` scope for the toolbar phase becomes:
+  - `On`
+  - `Off`
+  - `Url`
+  - `SampleBurstTime`
+  - `RandomizeSampleTimes`
+  - `OpenToolbar`
+  - `CloseToolbar`
+- important rule:
+  - `OpenToolbar` and `CloseToolbar` are visibility commands for the toolbar surface
+  - they are not substitutes for `On` / `Off`
+
+#### Toolbar Template Rule
+
+- `Phase 7` should reuse the shared toolbar template layout described in `docs/Human-Plans/Architecture/Toolbar.md`
+- that means the first radio UI should inherit the same shell expectations for:
+  - title bar
+  - close action area
+  - drag behavior
+  - resize behavior
+  - sectioned body
+  - optional split-body layout if the content honestly needs it
+- the radio toolbar should not introduce a one-off shell language if the shared toolbar template already fits
+
+#### Toolbar Layout Shape
+
+- the first radio toolbar should read as one compact floating tool window or hosted toolbar panel using the shared shell
+- recommended first body structure:
+  - `Transport`
+  - `Sampler`
+  - optional later `Status / Source`
+- if two body regions compete for height, use the shared toolbar split-layout pattern rather than inventing a radio-only divider
+
+#### Title Bar Rule
+
+- the radio toolbar should use the shared toolbar title-bar structure:
+  - title
+  - optional title meta/status
+  - trailing actions
+- if the radio surface exposes quick actions in the title bar, keep them consistent with the shared toolbar language instead of inventing custom chrome
+
+#### Canonical State Rule
+
+- `RadioPanel.tsx` should read directly from `audioSamplerStore.ts`
+- it may use small derived view helpers, but it must not become a second owner of:
   - enabled state
-  - active URL
+  - URL
   - runtime status
   - burst duration
-  - latest handled request / playback status if useful
+- toolbar visibility should also use one canonical owner rather than panel-local toggles
 
-#### Likely File Targets
+#### First Control Set
 
-- `src/app/panels/RadioPanel.tsx`
-- optionally `src/app/panels/AudioSamplerPanel.tsx` only if a split is truly warranted
-- `src/app/AppShell.tsx`
-- `src/app/store/audioSamplerStore.ts`
+- required first controls:
+  - on
+  - off
+  - source URL readout
+  - runtime/source-kind status readout
+  - current time readout
+  - total duration readout
+  - one `ParaSlider` seek control for time position
+  - sample burst time control
+  - randomize sample times
+  - reload / retry source
+- optional first controls:
+  - play / pause only if the runtime already exposes real commands and real state
+
+#### Toolbar Visibility State Rule
+
+- the toolbar must have one canonical visible/hidden state
+- `OpenToolbar` and `CloseToolbar` from the console must read and write that same state
+- if the shell later adds a direct UI button, that button must use the same state instead of introducing a second visibility model
+
+#### Section Ownership Rule
+
+- the transport controls should live in one shared-labeled body section
+- the sampler controls should live in a separate labeled body section
+- the panel should not become one undifferentiated block of controls if the shared toolbar section model already fits
+
+#### Transport Truth Rule
+
+- the panel must not fake transport position
+- if `Phase 7` ships a time readout and `ParaSlider`, the runtime must expose:
+  - current time
+  - total duration
+  - seek success/failure truth
+- if one source kind cannot support seek honestly, the UI must show that clearly instead of pretending the slider works
+
+#### ParaSlider Rule
+
+- the first visible transport control should be a `ParaSlider`
+- it should bind to normalized time position derived from:
+  - current time
+  - total duration
+- user adjustment must request a real seek in the runtime, not just move UI state locally
+- if the source is loading, blocked, unsupported, or otherwise not seekable, the slider should disable or reject interaction clearly
+
+#### Sample Burst Time Control Rule
+
+- the toolbar/panel may use a compact numeric input or stepper-style control
+- edits must write back to `audioSamplerStore.ts`
+- invalid values should be rejected or clamped clearly instead of creating silent broken state
+
+#### Randomize Rule
+
+- the panel must expose the same `RandomizeSampleTimes` action the console already owns
+- invoking it from the panel must update the same session map the console uses
+- do not introduce a second panel-only randomization path
+
+#### Reload / Retry Rule
+
+- the panel should expose one explicit retry/reload action so the user can recover from:
+  - blocked
+  - unsupported after URL change
+  - transient real-link load failure
+- the first implementation may be narrow:
+  - reload the current source
+  - retry the supported provider path
+- do not widen this into general media management
+
+#### Play / Pause Rule
+
+- only ship play / pause if the runtime can answer both of these honestly:
+  - is playback currently active
+  - can the runtime actually honor play or pause for the active source kind
+- if the runtime cannot do that yet, show status only and defer play/pause to `Phase 8` or a follow-on
+
+#### Seek Rule
+
+- seek is now required in this phase
+- the panel must let the user move to another time position through the `ParaSlider`
+- the runtime/store path must report enough truth that the panel can show:
+  - current time
+  - duration
+  - whether the seek target actually became active
+
+#### Status Readout Rule
+
+- the visible surface should clearly show:
+  - whether radio is enabled
+  - what URL/source is active
+  - current time and duration
+  - whether the runtime is:
+    - real-link
+    - fallback
+    - loading
+    - blocked
+    - unsupported
+    - error
+- prefer plain readable labels over overly visual-only status chrome in the first cut
 
 #### Test Targets
 
-- one UI test for rendering the toolbar/panel from store state
-- one interaction test for on/off and randomize controls
-- one status-readout test for fallback/real-link/blocked/error states
+- one panel render test proving the visible surface reflects store state
+- one console-routing test for:
+  - `OpenToolbar`
+  - `CloseToolbar`
+- one interaction test for:
+  - on / off
+  - transport slider seek
+  - sample burst time change
+  - randomize sample times
+- one status-readout test for:
+  - fallback
+  - soundcloud real-link
+  - blocked
+  - unsupported
+  - error
+- one transport-state test proving the panel reads:
+  - current time
+  - duration
+  - disabled/non-seekable state correctly
+- one app-shell test proving the panel mounts in the intended host surface
+- one sync test proving console-driven open/close and direct panel close stay on the same visibility state
+
+#### Likely File Edits
+
+- `src/app/panels/RadioPanel.tsx`
+  - first actual radio toolbar implementation
+- `src/app/components/ViewportOverlayToolPanel.tsx`
+  - reuse directly if the current shell allows, or extend narrowly if radio needs one missing shared-shell capability
+- `src/app/AppShell.tsx`
+  - mount the panel
+- `src/app/console/stagedNavigation.ts`
+  - add `OpenToolbar` / `CloseToolbar` radio grammar
+- `src/app/console/ConsoleDock.tsx`
+  - add console execution routing for toolbar visibility
+- `src/app/store/audioSamplerStore.ts`
+  - add only any missing UI-facing transport/action seams
+  - and likely one canonical toolbar visibility field/action seam
+- optional runtime audio files only if reload/play/pause truly need a narrow new control seam
+  - and now transport readback / seek support almost certainly will
+
+#### Implementation Order
+
+1. Lock the first host location in `AppShell.tsx`.
+2. Confirm the shared toolbar template layout from `Toolbar.md` is the shell contract for this panel.
+3. Add one canonical toolbar visibility state and wire `OpenToolbar` / `CloseToolbar` into the console `Radio` scope.
+4. Add the missing runtime/store transport truth for current time, duration, and seek.
+5. Implement `RadioPanel.tsx` as a compact toolbar-template consumer with the `ParaSlider`.
+6. Reuse or extend `ViewportOverlayToolPanel.tsx` only where the shared shell needs a narrow radio-friendly host adaptation.
+7. Add any missing narrow store actions for UI-driven on/off, seek, burst time edit, randomize, and retry.
+8. Add optional runtime/store play/pause only if the current real-link path can support it honestly.
+9. Add focused render and interaction tests.
+
+#### Completion Check
+
+- the user can inspect live radio status without opening the console
+- the user can perform the main radio controls, including time adjustment, from the visible panel
+- console-driven and panel-driven radio actions stay synchronized through one canonical store/runtime path
+- the toolbar can be opened and closed from the console `Radio` scope through `OpenToolbar` and `CloseToolbar`
+- the first visible radio UI is honest about fallback, real-link, blocked, unsupported, and error state
 
 #### Hard Rules
 
-- do not fork the radio state into panel-local state
-- do not require the toolbar to ship before real-link playback exists
-- do not widen the toolbar into a DAW-like surface
+- do not fork radio state into panel-local ownership
+- do not build a second independent transport model in the panel
+- do not ship fake play/pause or seek controls that the runtime cannot really honor
+- do not invent a radio-only shell layout if the shared toolbar template already fits
+- do not invent a second toolbar visibility state separate from the console-owned radio command path
+- do not widen this phase into a DAW-like control surface
 
 ## [ ] Phase 8 - Hardening And Follow-Through
 
@@ -3040,3 +3389,702 @@ Acceptance shape:
 - the console-first radio flow feels deterministic and debuggable
 - invalid radio inputs do not leave the console in a broken scope
 - the first pass is strong enough to act as the template for later non-console triggers
+
+## [x] Phase 9 - Sampler Sequencer Surface
+
+### Header
+- add one simple sampler surface that reuses the current radio/url source
+- keep the first sampler deliberately narrow:
+  - one row
+  - one bar
+  - one current source
+  - one BPM control
+  - one step-count control
+  - one play loop
+  - one optional note-repeat block
+- use the current radio runtime/store seams as the source-of-truth foundation instead of inventing a second disconnected audio system
+
+First intended sampler controls:
+- source/status readout for the current radio/url source
+- step-count `ParaSlider`
+  - locked values:
+    - `4`
+    - `8`
+    - `16`
+    - `32`
+- BPM `ParaSlider`
+- one horizontal row of step cells
+- per-step enabled/disabled state
+- per-step stable cue assignment into the current source
+- `Play`
+- `Stop`
+- `Reroll Step`
+- `Reroll All`
+- one narrow `Note Repeat` block:
+  - enabled
+  - repeat count
+  - repeat rate
+
+Acceptance shape:
+- the user can see one row of step cells driven by the current radio/url source
+- the user can pick `4`, `8`, `16`, or `32` steps and the row resizes correctly
+- each step holds a stable cue until rerolled or regenerated
+- the user can set BPM and hear the pattern loop as one bar
+- `Note Repeat` can retrigger inside a step window without spilling into the next step accidentally
+
+### [x] Q1 - Should The First Sampler Reuse Radio Source Ownership Or Create A Separate Sampler Source Model?
+
+#### Suggestion
+- reuse the current radio source/runtime ownership
+- treat the first sampler as a sequencer surface over the active radio source, not as a second source-management subsystem
+- keep source identity, provider support, fallback state, and runtime status canonical in the already-landed radio seams
+
+#### Locked Read
+- the first sampler should reuse the current radio source/runtime seams
+- `Radio` remains the owner of:
+  - active URL/source
+  - runtime/source-kind status
+  - real-link versus fallback status
+  - transport/provider truth
+- `Sampler` should own only:
+  - pattern state
+  - step list
+  - BPM
+  - play/stop loop state
+  - note-repeat settings
+- do not create a second parallel source-management model in the first sampler pass
+
+### Implementation Spec
+
+Purpose:
+- add one honest simple sequencer that makes the current radio source musically explorable without widening immediately into a DAW or multi-lane audio workstation
+
+#### Scope
+
+Owned here:
+- one simple single-row step sequencer surface
+- one canonical sampler pattern store
+- one scheduling/transport loop for a one-bar repeating pattern
+- per-step stable cue assignment into the current active radio source
+- one narrow note-repeat block
+
+Not owned here:
+- multi-track arrangement
+- waveform editing
+- imported sample-library management
+- MIDI
+- offline render/export
+- effects chains
+
+#### Main Decisions
+
+- reuse the current radio source/runtime seams as the source owner
+- keep the first sampler to one bar and one row
+- lock the first step-count choices to:
+  - `4`
+  - `8`
+  - `16`
+  - `32`
+- keep each step bound to one stable cue into the current source until rerolled
+- keep the first playback model to:
+  - `Play`
+  - `Stop`
+- keep `Note Repeat` narrow:
+  - enabled
+  - repeat count
+  - repeat rate
+
+#### Current Landed Baseline
+
+- `Phase 7` shipped the first visible radio toolbar in `RadioPanel.tsx`.
+- `audioSamplerStore.ts` already owns the canonical radio source, runtime/source-kind status, and transport truth.
+- `AppShell.tsx` already owns the app-level runtime bridge for:
+  - burst requests
+  - reload requests
+  - seek requests
+- `AudioEngine.ts` already knows how to:
+  - resolve supported/fallback radio sources
+  - play one-off bursts
+  - report transport state
+  - perform seek for the supported SoundCloud path
+- `TimelineTransport.ts` currently only exposes `resolveBurstWindow(...)`, so the sampler timing math is still mostly missing.
+- `AudioSamplerPanel.tsx` exists but is still empty.
+
+Plain-English baseline:
+- the repo already has enough source/runtime truth to drive a sequencer
+- what is missing is the actual sampler pattern state, timing helpers, loop scheduler, and visible sampler surface
+
+#### Remaining Delta To Close This Phase
+
+- define one canonical sampler state slice
+- add one-bar and per-step timing helpers
+- add stable per-step cue assignment and reroll behavior
+- add one scheduler/loop seam that advances the playhead and fires step bursts
+- implement the first visible sampler panel
+- mount it in the shell without bloating the radio toolbar
+- prove the loop, reroll, BPM, and note-repeat behavior with focused tests
+
+#### Current Code-To-Target Mapping
+
+- `src/app/store/audioSamplerStore.ts`
+  - current owner of radio state and runtime transport truth
+  - should stay the owner of:
+    - active source URL
+    - runtime/source-kind status
+    - transport/provider truth
+  - may provide the source/status readout the sampler consumes
+- `src/runtime/audio/AudioEngine.ts`
+  - current owner of burst playback
+  - likely needs one narrow scheduled-trigger seam that can fire repeated cue bursts on transport timing instead of only one-off UI-triggered bursts
+- `src/runtime/audio/TimelineTransport.ts`
+  - current best seam for sampler timing math and burst-window scheduling
+  - today it only contains `resolveBurstWindow(...)`
+  - should own the first sampler timing helpers instead of pushing timing math into React components
+- `src/runtime/audio/ClipLibrary.ts`
+  - current owner of source descriptor resolution
+  - should stay the owner of supported versus fallback source resolution
+- `src/app/panels/RadioPanel.tsx`
+  - current visible radio toolbar
+  - should not absorb the first sampler row directly if that makes the radio toolbar bloated
+- `src/app/panels/AudioSamplerPanel.tsx`
+  - current empty seam
+  - recommended first concrete UI host for the sampler surface in this phase
+- `src/app/AppShell.tsx`
+  - current host for radio/runtime surfaces
+  - should mount the sampler panel once the canonical visibility and state seams exist
+
+#### Recommended New Sampler Seams
+
+- `src/app/store/audioSamplerStore.ts`
+  - if kept as the shared radio+sampler store, add a clearly separated sampler slice for:
+    - `stepCount`
+    - `bpm`
+    - `steps`
+    - `isPlaying`
+    - `playheadStepIndex`
+    - `noteRepeat`
+  - or add a dedicated sampler store only if the shared file becomes too muddy
+- `src/runtime/audio/TimelineTransport.ts`
+  - add helpers for:
+    - one-bar duration from BPM
+    - step duration from BPM plus step count
+    - repeat timing inside a step window
+- `src/runtime/audio/AudioEngine.ts`
+  - add one narrow scheduled burst API for sampler playback such as:
+    - trigger cue burst now
+    - or queue one immediate step burst from a cue ratio plus burst duration
+- `src/app/panels/AudioSamplerPanel.tsx`
+  - implement the first visible sampler row and controls here
+
+#### First Honest Runtime Direction
+
+- the first loop scheduler should favor the already-honest generated/fallback burst path
+- the supported SoundCloud path may be allowed, but the sampler must not promise drum-machine-tight timing if the widget path cannot hold that standard
+- if needed, the first sampler can explicitly say:
+  - generated/fallback sources are the most timing-stable
+  - supported real-link sources are best-effort for the first pass
+
+That keeps the sampler honest:
+- useful immediately
+- but not pretending every source provider has the same transport tightness
+
+#### First Data Shape
+
+- sampler state should minimally hold:
+  - `stepCount`
+  - `bpm`
+  - `isPlaying`
+  - `playheadStepIndex`
+  - `steps`
+  - `noteRepeat`
+- each step should minimally hold:
+  - `id`
+  - `index`
+  - `enabled`
+  - `cueRatio` or `cueSeconds`
+- note-repeat state should minimally hold:
+  - `enabled`
+  - `count`
+  - `rate`
+
+Recommended first concrete names:
+- `samplerStepCount`
+- `samplerBpm`
+- `samplerIsPlaying`
+- `samplerPlayheadStepIndex`
+- `samplerSteps`
+- `samplerNoteRepeat`
+
+Recommended first step shape:
+- `id`
+- `index`
+- `enabled`
+- `cueRatio`
+
+Reason:
+- `cueRatio` stays source-agnostic and fits the current radio burst model better than hard-storing absolute seconds in the first pass
+
+#### Cue Assignment Rule
+
+- each step gets a random cue assignment from the current active radio source
+- cue assignments should be:
+  - random across the row
+  - stable until rerolled
+- changing step count should:
+  - preserve leading existing steps where possible
+  - generate fresh cues only for newly created steps
+  - drop steps that fall outside the new active length
+- the randomizer should avoid the extreme end tail so a burst still produces audible content
+
+#### Playback Rule
+
+- the first sampler pattern is one bar long
+- BPM defines the bar duration
+- step count defines the subdivision inside that bar
+- `Play` starts looping from step `1`
+- each enabled step triggers its stored cue at the correct transport boundary
+- after the last active step, playback loops back to the first step
+- `Stop` halts the loop and resets the visible playhead
+
+Implementation boundary:
+- the scheduler should publish or invoke the same narrow burst path the repo already trusts, rather than inventing a second playback system just for sampler steps
+- the sampler’s new work is:
+  - deciding when the next step fires
+  - which cue ratio it uses
+  - how note-repeat subdivides that step window
+- not replacing the existing runtime source-resolution stack
+
+#### Note Repeat Rule
+
+- when `Note Repeat` is off:
+  - a step triggers once
+- when `Note Repeat` is on:
+  - the same step can retrigger multiple times inside the current step window
+- retriggers must fit inside that step duration instead of drifting into the next step
+- recommended first visible values:
+  - count:
+    - `1`
+    - `2`
+    - `4`
+    - `8`
+  - rate:
+    - derived from the current step window or a small fixed multiplier family
+
+#### Source Truth Rule
+
+- the sampler must not pretend it owns source loading
+- if the current radio source is:
+  - unsupported
+  - blocked
+  - loading
+  - fallback
+  - error
+  the sampler surface must show that honestly and behave accordingly
+- if one source kind cannot hold tight enough timing for dense sequencing, the sampler should say so rather than pretending all sources are equally reliable
+
+#### UI Rule
+
+- the first sampler UI should stay visually compact and scannable
+- prefer:
+  - source/status strip
+  - step-count slider
+  - BPM slider
+  - one row of cells
+  - transport buttons
+  - note-repeat block
+- avoid:
+  - nested editors
+  - heavy popovers
+  - per-step inspector panels in the first pass
+
+Recommended first host rule:
+- mount the sampler in `AudioSamplerPanel.tsx`
+- keep it visually sibling to `RadioPanel.tsx`, not embedded inside it
+- reuse the same toolbar/panel shell language when possible, but let the sampler own its own row-oriented body layout
+
+#### Test Targets
+
+- one store test for:
+  - step-count resize behavior
+  - cue preservation on shrink/grow
+  - reroll one step
+  - reroll all
+- one transport math test for:
+  - bar duration from BPM
+  - step duration from BPM plus step count
+  - repeat timing inside a step window
+- one runtime scheduling test proving the loop walks left-to-right and restarts at step `1`
+- one UI test for:
+  - step-count slider updates visible cell count
+  - BPM slider updates state
+  - play/stop controls update playback state
+- one note-repeat test proving retriggers stay within the owning step window
+- one status test proving unsupported/blocked/fallback source states remain visible in the sampler surface
+
+#### Likely First Missing Helpers
+
+- in `TimelineTransport.ts`:
+  - `resolveBarDurationSec(bpm)`
+  - `resolveStepDurationSec(bpm, stepCount)`
+  - `resolveStepStartTimeSec(stepIndex, bpm, stepCount)`
+  - `resolveRepeatOffsetsSec(stepDurationSec, repeatCount, repeatRate)`
+- in `audioSamplerStore.ts`:
+  - `setSamplerStepCount(...)`
+  - `setSamplerBpm(...)`
+  - `toggleSamplerPlayback(...)` or explicit `playSampler()` / `stopSampler()`
+  - `rerollSamplerStep(...)`
+  - `rerollAllSamplerSteps()`
+  - `setSamplerStepEnabled(...)`
+
+#### Likely File Edits
+
+- `src/app/panels/AudioSamplerPanel.tsx`
+  - first real sampler panel implementation
+- `src/app/store/audioSamplerStore.ts`
+  - sampler slice or shared sampler additions
+- `src/runtime/audio/TimelineTransport.ts`
+  - step/bar timing helpers
+- `src/runtime/audio/AudioEngine.ts`
+  - narrow scheduled/trigger seam for sampler steps
+- `src/app/AppShell.tsx`
+  - mount the sampler panel and connect it to runtime/store state
+- optional:
+  - `src/runtime/audio/SamplerKeys.ts`
+  - if sampler-specific key normalization or scheduler event ids help keep runtime logic clean
+
+#### Implementation Order
+
+1. Lock the sampler slice shape and ownership boundary inside the current store/runtime model.
+2. Add the first bar/step timing helpers in `TimelineTransport.ts`.
+3. Add step generation, stable cue assignment, and reroll behavior in store state.
+4. Add one narrow playhead/scheduler seam in `AppShell.tsx` or the runtime host layer that can walk the row and fire step bursts.
+5. Keep the first scheduler bound to the existing burst path instead of inventing a second playback route.
+6. Implement `AudioSamplerPanel.tsx` with source/status strip, step-count slider, BPM slider, one row, and `Play` / `Stop`.
+7. Add the first `Note Repeat` block after the plain loop is stable.
+8. Add focused tests for timing, row resize/reroll behavior, scheduler looping, and status truth.
+
+#### Completion Check
+
+- the user can see and edit one step row tied to the current radio source
+- the user can change step count and BPM
+- the pattern loops as one bar
+- each step keeps a stable cue until rerolled
+- the sampler remains honest about current source/runtime state
+- the implementation still reads like a simple sequencer, not an accidental mini-DAW
+
+#### Hard Rules
+
+- do not create a second independent source-management model beside radio in the first pass
+- do not widen the first sampler into multi-track or arranger behavior
+- do not hide provider/runtime limitations behind fake tightness claims
+- do not randomize every step again on every loop unless the user explicitly rerolls
+- do not let note-repeat spill into the next step window
+
+## [ ] Phase 10 - Shared Radio Toolbar Tree And Step Detail Expansion
+
+### Header
+- fold the sampler surface back into the shared `Radio` toolbar instead of keeping it as a separate unrelated panel
+- make `Radio` and `Sampler` sibling top-level sections inside one shared toolbar tree
+- add a collapsible `Steps` section above `Note Repeat`
+- make each step row expandable so step-level detail can grow without flooding the toolbar all at once
+
+First intended top-level toolbar tree:
+- `Radio`
+  - `URL`
+- `Sampler`
+  - `Global BPM`
+  - `Steps`
+    - `Step 1`
+    - `Step 2`
+    - `Step 3`
+    - ...
+  - `Note Repeat`
+
+First intended per-step detail:
+- cue time or cue ratio from the current source
+- enabled / disabled state
+- volume
+- later step-level overrides
+
+Acceptance shape:
+- the shared toolbar has sibling `Radio` and `Sampler` sections
+- `Steps` appears above `Note Repeat`
+- `Steps` can collapse/expand as one block
+- each step row can collapse/expand independently
+- collapsed rows stay lightweight while expanded rows reveal deeper controls
+
+### [x] Q1 - Should The Shared Toolbar Tree Replace The Separate Sampler Panel Or Mirror It Temporarily?
+
+#### Suggestion
+- replace the separate sampler panel once the shared-toolbar version is functional
+- keep one canonical visible sampler surface inside the shared `Radio` toolbar instead of maintaining two parallel UIs
+- if a short transition is needed during implementation, keep it temporary and remove it before closing the phase
+
+#### Locked Read
+- the target end state is one shared toolbar
+- `Radio` and `Sampler` should be sibling sections inside that shared surface
+- the separate sampler panel from `Phase 9` should be treated as transitional once this phase lands
+
+### Implementation Spec
+
+Purpose:
+- evolve the first sampler UI into the long-term shared-toolbar shape without reopening the source/runtime model that already landed in `Phase 9`
+
+#### Scope
+
+Owned here:
+- shared toolbar container shape for `Radio` plus `Sampler`
+- disclosure-tree layout for sampler global controls and step rows
+- collapsible `Steps` section above `Note Repeat`
+- expandable per-step detail rows
+
+Not owned here:
+- multi-track sequencing yet
+- deep per-step modulation yet
+- a second independent sampler runtime
+
+#### Main Decisions
+
+- `Radio` and `Sampler` become sibling top-level sections in one toolbar
+- `Global BPM` stays sampler-global
+- `Note Repeat` stays sampler-global in this phase
+- `Steps` should appear above `Note Repeat`
+- steps remain lightweight when collapsed and reveal controls only when expanded
+- one track is still enough for the first honest implementation inside this new layout
+- the separate sampler panel is allowed only as a temporary migration seam, not as a lasting second primary surface
+
+#### Current Landed Baseline
+
+- `Phase 7` already shipped one shared radio toolbar surface in `RadioPanel.tsx`
+- `Phase 9` already shipped sampler state, timing helpers, and a separate `AudioSamplerPanel.tsx`
+- runtime/store ownership is already in place for:
+  - current source
+  - sampler state
+  - BPM
+  - loop playback
+  - note-repeat state
+
+Plain-English baseline:
+- the missing work is mostly surface composition and disclosure-state shape
+- not a rewrite of the sampler runtime
+
+Implementation-ready read:
+- `Phase 10` should mostly be a UI and state-ownership refactor
+- sampler playback logic from `Phase 9` should survive intact
+- the main work is moving the visible controls into one canonical toolbar tree without forking the sampler state model
+
+#### Remaining Delta To Close This Phase
+
+- merge the visible sampler controls into the shared radio toolbar surface
+- add one disclosure-tree layout for:
+  - `Radio`
+  - `Sampler`
+  - `Steps`
+  - per-step rows
+- add per-step expand/collapse state
+- add step detail controls without overwhelming the compact default view
+- remove the separate sampler panel if the shared surface fully replaces it
+- keep the same playback and sequencing actions reachable after the migration:
+  - play
+  - stop
+  - BPM
+  - step count
+  - per-step enabled state
+  - per-step reroll
+  - note repeat
+
+#### Current Code-To-Target Mapping
+
+- `src/app/panels/RadioPanel.tsx`
+  - current shared toolbar surface
+  - likely becomes the host for both `Radio` and `Sampler` sections
+- `src/app/panels/AudioSamplerPanel.tsx`
+  - current separate sampler surface
+  - should either be retired or reduced to a temporary implementation seam once the shared-toolbar version lands
+- `src/app/components/ViewportOverlayToolPanel.tsx`
+  - current shared toolbar shell and disclosure-friendly section model
+  - should stay the shell contract
+- `src/app/store/audioSamplerStore.ts`
+  - current owner of sampler state
+  - likely needs UI-facing disclosure state for:
+    - `Radio` section open/closed
+    - `Sampler` section open/closed
+    - `Steps` section open/closed
+    - per-step expanded rows
+- `src/app/AppShell.tsx`
+  - current mount owner for `RadioPanel` and `AudioSamplerPanel`
+  - should be simplified back toward one shared visible toolbar surface when this phase closes
+
+Recommended ownership read:
+- `RadioPanel.tsx`
+  - owns the merged visible toolbar tree
+- `audioSamplerStore.ts`
+  - owns both sampler runtime state and toolbar disclosure state if the disclosure state must survive toolbar reopen/close
+- `AudioSamplerPanel.tsx`
+  - should not become the long-term owner of any new sampler behavior in this phase
+- `AppShell.tsx`
+  - should mount only one primary radio/sampler toolbar surface by phase close
+
+#### First Disclosure State Shape
+
+- one shared toolbar disclosure slice should minimally hold:
+  - `isRadioSectionExpanded`
+  - `isSamplerSectionExpanded`
+  - `isSamplerStepsExpanded`
+  - `expandedSamplerStepIds`
+
+Recommended first actions:
+- `setRadioSectionExpanded(isExpanded)`
+- `setSamplerSectionExpanded(isExpanded)`
+- `setSamplerStepsExpanded(isExpanded)`
+- `toggleSamplerStepExpanded(stepId)`
+- one narrow reset helper if the toolbar tree should restore defaults on first open
+
+Important rule:
+- use the app’s existing collapsed/essentials/expanded thinking where it helps
+- but keep the first state names explicit instead of over-abstracting too early
+
+Recommendation:
+- keep this disclosure state in the canonical store if the toolbar should reopen in the same disclosure shape
+- keep it local to `RadioPanel.tsx` only if we intentionally want disclosure state to reset each time the toolbar remounts
+
+Locked read:
+- prefer store-owned disclosure state for this phase so console open/close and toolbar reopen do not feel lossy
+
+#### First Visible Toolbar Tree Rule
+
+The first merged toolbar should read in this order:
+- `Radio`
+- `Sampler`
+  - `Global BPM`
+  - `Steps`
+  - `Note Repeat`
+
+Inside `Steps`, each row should read:
+- `Step N`
+  - collapsed summary row
+  - expanded cue / volume detail
+
+Important rule:
+- do not keep the old separate sampler panel layout as the mental model and merely embed it whole inside `RadioPanel.tsx`
+- recompose it into the toolbar tree structure directly
+
+#### Step Row Presentation Rule
+
+- collapsed step row should show:
+  - step index
+  - enabled state
+  - cue summary
+- expanded step row should reveal:
+  - cue time or cue ratio
+  - volume
+  - later override slots
+
+Important rule:
+- the first expanded step should reveal only a few honest controls
+- do not dump every imagined future control into the first expanded row
+
+#### Steps Section Rule
+
+- `Steps` must sit above `Note Repeat`
+- the whole `Steps` block should be collapsible
+- inside that block, each step row should have its own disclosure state
+- the top collapsed `Steps` block should still give a compact readable summary:
+  - step count
+  - maybe enabled step count
+  - maybe quick reroll-all access
+
+Recommended first collapsed summary:
+- current step count
+- enabled step count
+- one `Reroll All` action if it already exists cleanly in sampler state
+
+#### Future Track Rule
+
+- this phase should prepare for later track growth without implementing full multi-track behavior yet
+- acceptable first read:
+  - one track implicitly exists
+  - the UI tree is shaped so later `Track 1`, `Track 2`, and `Add New Track` can slot in without a full redesign
+- do not force real multi-track runtime/state work into this phase unless it is required for the container shape
+
+#### Migration Rule
+
+The migration should happen in two honest steps:
+1. make the shared `RadioPanel.tsx` capable of rendering the full sampler tree while keeping `AudioSamplerPanel.tsx` temporarily available for reference or overlap testing
+2. remove or demote `AudioSamplerPanel.tsx` from primary mounting once the shared tree reaches feature parity for the first one-track sampler
+
+Important rule:
+- do not close the phase while both surfaces are still acting like equal first-class user entry points
+
+#### State And Behavior Preservation Rule
+
+The following already-landed sampler behaviors must still work after the UI migration:
+- step count changes
+- BPM changes
+- play / stop
+- playhead readout
+- note repeat enable / count / rate
+- per-step enabled toggles
+- per-step cue reroll
+
+This phase can add:
+- per-step volume control
+- richer step disclosure
+
+But it should not regress the `Phase 9` sampler path just because the controls moved into a new container
+
+#### Test Targets
+
+- one toolbar render test proving `Radio` and `Sampler` appear as sibling sections
+- one disclosure test for:
+  - `Steps` collapse/expand
+  - per-step expand/collapse
+- one step-detail render test proving expanded rows reveal cue plus volume controls
+- one migration/sync test proving the shared-toolbar sampler controls still drive the same sampler state from `Phase 9`
+- one shell test proving the separate sampler panel is removed or no longer acts like a parallel primary surface once this phase closes
+- one reopen test proving disclosure state behaves according to the chosen ownership rule
+
+#### Likely File Edits
+
+- `src/app/panels/RadioPanel.tsx`
+  - shared toolbar tree host
+- `src/app/panels/AudioSamplerPanel.tsx`
+  - likely reduced, retired, or used only as a temporary transition seam
+- `src/app/store/audioSamplerStore.ts`
+  - add disclosure state for sampler tree rows if kept canonical there
+- `src/app/theme/v15Theme.css`
+  - disclosure-tree and step-detail styling
+- `src/app/AppShell.tsx`
+  - simplify visible mounting once one shared toolbar becomes the canonical surface
+- `src/app/panels/RadioPanel.test.tsx`
+  - expand render/disclosure assertions for the merged tree
+- `src/app/panels/AudioSamplerPanel.test.tsx`
+  - retire or reduce tests if the panel stops being primary
+
+#### Implementation Order
+
+1. Lock the merged-toolbar end state and treat `AudioSamplerPanel.tsx` as temporary.
+2. Add or normalize disclosure state for top-level sections, `Steps`, and per-step rows.
+3. Move the already-landed sampler global controls into `RadioPanel.tsx` under `Sampler`.
+4. Rebuild the step list as a collapsible `Steps` block above `Note Repeat`.
+5. Add expandable per-step rows that preserve existing step enable/reroll behavior and add cue plus volume detail.
+6. Confirm the shared toolbar still drives the same sampler runtime/store behavior from `Phase 9`.
+7. Remove or demote the separate sampler panel from primary shell mounting.
+8. Add focused render, disclosure, and migration tests.
+
+#### Completion Check
+
+- one shared toolbar contains both `Radio` and `Sampler`
+- `Steps` is above `Note Repeat`
+- step rows stay compact by default and reveal detail only when expanded
+- sampler controls still drive the same canonical sampler runtime/state
+- the existing sampler controls from `Phase 9` are all reachable from the shared toolbar
+- the UI is clearly ready for later track growth without already being a multi-track workstation
+- `AudioSamplerPanel.tsx` no longer acts like a competing primary sampler surface
+
+#### Hard Rules
+
+- do not create a second parallel sampler state model for the shared toolbar
+- do not keep two competing primary sampler surfaces after the phase closes
+- do not widen this phase into real multi-track runtime work unless the container shape genuinely requires it
+- do not expose so many per-step controls that the default toolbar stops being readable

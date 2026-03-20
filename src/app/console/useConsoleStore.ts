@@ -318,6 +318,31 @@ const getActiveAssistDescriptor = (
   return state.featureAssistDescriptor
 }
 
+const getDescriptorDrivenInputText = (
+  state: Pick<
+    ConsoleState,
+    'stagedNavigationSession' | 'consolePromptSession' | 'featureAssistDescriptor' | 'stagedChoiceIndex'
+  >,
+): string | null => {
+  if (state.stagedNavigationSession !== null && state.stagedNavigationSession.validChoices.length > 0) {
+    const choiceIndex = state.stagedChoiceIndex ?? 0
+    const choice = state.stagedNavigationSession.validChoices[choiceIndex] ?? state.stagedNavigationSession.validChoices[0]
+    return choice === undefined ? null : getStagedChoiceInputText(choice)
+  }
+  if (state.consolePromptSession !== null) {
+    return state.consolePromptSession.prefill
+  }
+  if (state.featureAssistDescriptor !== null && state.featureAssistDescriptor.choices.length > 0) {
+    const choiceIndex = state.stagedChoiceIndex ?? 0
+    const choice =
+      state.featureAssistDescriptor.choices[choiceIndex] ?? state.featureAssistDescriptor.choices[0]
+    return choice === undefined
+      ? state.featureAssistDescriptor.prefill
+      : getAssistChoiceInputText(choice)
+  }
+  return state.featureAssistDescriptor?.prefill ?? null
+}
+
 const resolveStagedChoiceTracking = (
   descriptor: ConsoleAssistDescriptor | null,
   inputText: string,
@@ -458,8 +483,12 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
   seedInputText: (value) => {
     set((state) => {
       const activeDescriptor = getActiveAssistDescriptor(state)
+      const descriptorDrivenInputText = getDescriptorDrivenInputText(state)
       const nextInputText =
-        activeDescriptor !== null && !state.isStagedChoiceManualOverride
+        activeDescriptor !== null &&
+        !state.isStagedChoiceManualOverride &&
+        descriptorDrivenInputText !== null &&
+        normalizeChoiceToken(state.inputText) === normalizeChoiceToken(descriptorDrivenInputText)
           ? value
           : `${state.inputText}${value}`
 

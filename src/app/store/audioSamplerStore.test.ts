@@ -20,6 +20,25 @@ describe('audioSamplerStore', () => {
     expect(state.latestBurstRequest).toBeNull()
     expect(state.radioRuntimeStatus).toBe('idle')
     expect(state.radioRuntimeSourceKind).toBe('none')
+    expect(state.isRadioToolbarOpen).toBe(false)
+    expect(state.radioTransport).toEqual({
+      currentTimeSec: 0,
+      durationSec: 0,
+      isSeekable: false,
+      isPlaying: false,
+    })
+    expect(state.latestSeekRequest).toBeNull()
+    expect(state.latestReloadRequestId).toBeNull()
+    expect(state.samplerStepCount).toBe(16)
+    expect(state.samplerBpm).toBe(96)
+    expect(state.samplerIsPlaying).toBe(false)
+    expect(state.samplerPlayheadStepIndex).toBeNull()
+    expect(state.samplerSteps).toHaveLength(16)
+    expect(state.samplerNoteRepeat).toEqual({
+      enabled: false,
+      count: 1,
+      rate: 1,
+    })
   })
 
   it('turns radio on when a custom url is set', () => {
@@ -103,5 +122,86 @@ describe('audioSamplerStore', () => {
     expect(state.radioRuntimeMessage).toBe('Using fallback generated tone')
     expect(state.radioRuntimeSourceKind).toBe('generated-tone')
     expect(state.lastHandledBurstRequestId).toBe(3)
+  })
+
+  it('tracks toolbar visibility, transport state, seek requests, and reload requests', () => {
+    useAudioSamplerStore.getState().openRadioToolbar()
+    useAudioSamplerStore.getState().setRadioTransportState({
+      currentTimeSec: 12,
+      durationSec: 120,
+      isSeekable: true,
+      isPlaying: true,
+    })
+
+    const seekRequest = useAudioSamplerStore.getState().requestRadioSeek(33.5)
+    const reloadRequestId = useAudioSamplerStore.getState().requestRadioReload()
+    useAudioSamplerStore.getState().markRadioSeekHandled(seekRequest?.requestId ?? null)
+    useAudioSamplerStore.getState().markRadioReloadHandled(reloadRequestId)
+    useAudioSamplerStore.getState().closeRadioToolbar()
+
+    const state = useAudioSamplerStore.getState()
+    expect(state.isRadioToolbarOpen).toBe(false)
+    expect(state.radioTransport).toEqual({
+      currentTimeSec: 12,
+      durationSec: 120,
+      isSeekable: true,
+      isPlaying: true,
+    })
+    expect(seekRequest).toEqual({
+      requestId: 1,
+      timeSec: 33.5,
+    })
+    expect(state.lastHandledSeekRequestId).toBe(1)
+    expect(reloadRequestId).toBe(1)
+    expect(state.lastHandledReloadRequestId).toBe(1)
+  })
+
+  it('resizes sampler steps while preserving leading cues and rerolls individual or all step cues', () => {
+    const initialSteps = useAudioSamplerStore.getState().samplerSteps
+    const firstCue = initialSteps[0]?.cueRatio
+    const secondCue = initialSteps[1]?.cueRatio
+
+    useAudioSamplerStore.getState().setSamplerStepCount(8)
+    expect(useAudioSamplerStore.getState().samplerSteps).toHaveLength(8)
+    expect(useAudioSamplerStore.getState().samplerSteps[0]?.cueRatio).toBe(firstCue)
+    expect(useAudioSamplerStore.getState().samplerSteps[1]?.cueRatio).toBe(secondCue)
+
+    useAudioSamplerStore.getState().setSamplerStepCount(32)
+    expect(useAudioSamplerStore.getState().samplerSteps).toHaveLength(32)
+    expect(useAudioSamplerStore.getState().samplerSteps[0]?.cueRatio).toBe(firstCue)
+
+    const targetStepId = useAudioSamplerStore.getState().samplerSteps[0]?.id ?? ''
+    useAudioSamplerStore.getState().rerollSamplerStep(targetStepId)
+    const rerolledCue = useAudioSamplerStore.getState().samplerSteps[0]?.cueRatio
+    expect(rerolledCue).not.toBe(firstCue)
+
+    const beforeRerollAll = useAudioSamplerStore.getState().samplerSteps.map((step) => step.cueRatio)
+    useAudioSamplerStore.getState().rerollAllSamplerSteps()
+    const afterRerollAll = useAudioSamplerStore.getState().samplerSteps.map((step) => step.cueRatio)
+    expect(afterRerollAll).not.toEqual(beforeRerollAll)
+  })
+
+  it('tracks sampler playback, enabled steps, and note-repeat settings', () => {
+    const targetStepId = useAudioSamplerStore.getState().samplerSteps[0]?.id ?? ''
+
+    useAudioSamplerStore.getState().playSampler()
+    useAudioSamplerStore.getState().setSamplerPlayheadStepIndex(3)
+    useAudioSamplerStore.getState().toggleSamplerStepEnabled(targetStepId)
+    useAudioSamplerStore.getState().setSamplerNoteRepeatEnabled(true)
+    useAudioSamplerStore.getState().setSamplerNoteRepeatCount(4)
+    useAudioSamplerStore.getState().setSamplerNoteRepeatRate(8)
+    useAudioSamplerStore.getState().setSamplerBpm(128)
+    useAudioSamplerStore.getState().stopSampler()
+
+    const state = useAudioSamplerStore.getState()
+    expect(state.samplerBpm).toBe(128)
+    expect(state.samplerIsPlaying).toBe(false)
+    expect(state.samplerPlayheadStepIndex).toBeNull()
+    expect(state.samplerSteps[0]?.enabled).toBe(false)
+    expect(state.samplerNoteRepeat).toEqual({
+      enabled: true,
+      count: 4,
+      rate: 8,
+    })
   })
 })

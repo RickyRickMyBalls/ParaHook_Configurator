@@ -50,10 +50,12 @@ describe('stagedNavigation', () => {
       'URL',
       'SAMPLEBURSTTIME',
       'RANDOMIZESAMPLETIMES',
+      'OPENTOOLBAR',
+      'CLOSETOOLBAR',
     ])
   })
 
-  it('accepts the cleaned radio aliases o, off, u, sb, and rs', () => {
+  it('accepts the cleaned radio aliases o, off, u, sb, rs, ot, and ct', () => {
     const context = createConsoleStagedNavigationContext([
       { graphDocumentId: 'graph-document-1', name: 'Graph 1' },
     ])
@@ -83,6 +85,14 @@ describe('stagedNavigation', () => {
     expect(submitConsoleStagedNavigationToken(rootResult.session, 'rs', context)).toMatchObject({
       kind: 'execute',
       actionId: 'radio.randomizeSampleTimes',
+    })
+    expect(submitConsoleStagedNavigationToken(rootResult.session, 'ot', context)).toMatchObject({
+      kind: 'execute',
+      actionId: 'radio.openToolbar',
+    })
+    expect(submitConsoleStagedNavigationToken(rootResult.session, 'ct', context)).toMatchObject({
+      kind: 'execute',
+      actionId: 'radio.closeToolbar',
     })
   })
 

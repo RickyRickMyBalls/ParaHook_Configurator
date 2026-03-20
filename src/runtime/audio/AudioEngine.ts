@@ -84,6 +84,13 @@ export type AudioEnginePlayback = {
   durationSec: number
 }
 
+export type AudioEngineTransportState = {
+  currentTimeSec: number
+  durationSec: number
+  isSeekable: boolean
+  isPlaying: boolean
+}
+
 export class AudioEngine {
   private readonly createAudioContext: () => AudioContextLike
   private readonly createSoundCloudWidgetClient: (() => SoundCloudWidgetPlaybackClient) | null
@@ -92,6 +99,8 @@ export class AudioEngine {
   private activeBuffer: AudioBufferLike | null = null
   private activeSource: AudioBufferSourceNodeLike | null = null
   private soundCloudWidgetClient: SoundCloudWidgetPlaybackClient | null = null
+  private fallbackCurrentTimeSec = 0
+  private fallbackIsPlaying = false
 
   public constructor(options: AudioEngineOptions = {}) {
     this.createAudioContext = options.createAudioContext ?? createBrowserAudioContext
@@ -107,6 +116,8 @@ export class AudioEngine {
       const widgetClient = this.getSoundCloudWidgetClient()
       const ready = await widgetClient.ensureSourceReady(descriptor)
       this.activeDescriptor = descriptor
+      this.fallbackCurrentTimeSec = 0
+      this.fallbackIsPlaying = false
       return {
         durationSec: ready.durationSec,
       }
@@ -187,6 +198,9 @@ export class AudioEngine {
     source.connect(this.audioContext.destination)
     source.start(0, burstWindow.startTimeSec, burstWindow.durationSec)
     this.activeSource = source
+    this.activeDescriptor = input.descriptor
+    this.fallbackCurrentTimeSec = burstWindow.startTimeSec
+    this.fallbackIsPlaying = true
 
     return {
       sourceId: input.descriptor.sourceId,
@@ -198,6 +212,7 @@ export class AudioEngine {
 
   public stopBurst(): void {
     this.soundCloudWidgetClient?.stop()
+    this.fallbackIsPlaying = false
     if (this.activeSource === null) {
       return
     }
@@ -210,10 +225,68 @@ export class AudioEngine {
     this.activeSource = null
   }
 
+  public async getTransportState(
+    descriptor: RadioSourceDescriptor,
+  ): Promise<AudioEngineTransportState> {
+    if (descriptor.kind === 'unsupported-url') {
+      return {
+        currentTimeSec: 0,
+        durationSec: 0,
+        isSeekable: false,
+        isPlaying: false,
+      }
+    }
+
+    if (descriptor.kind === 'soundcloud-widget') {
+      const widgetClient = this.getSoundCloudWidgetClient()
+      this.activeDescriptor = descriptor
+      return widgetClient.getTransportState(descriptor)
+    }
+
+    const ready = await this.ensureSourceReady(descriptor)
+    return {
+      currentTimeSec: Math.min(this.fallbackCurrentTimeSec, ready.durationSec),
+      durationSec: ready.durationSec,
+      isSeekable: false,
+      isPlaying: this.fallbackIsPlaying,
+    }
+  }
+
+  public async seekTo(input: {
+    descriptor: RadioSourceDescriptor
+    timeSec: number
+  }): Promise<AudioEngineTransportState> {
+    if (input.descriptor.kind === 'unsupported-url') {
+      throw new AudioEngineError('unsupported', 'Radio URL does not support seeking')
+    }
+
+    if (input.descriptor.kind === 'soundcloud-widget') {
+      const widgetClient = this.getSoundCloudWidgetClient()
+      await widgetClient.seekTo({
+        descriptor: input.descriptor,
+        timeSec: input.timeSec,
+      })
+      this.activeDescriptor = input.descriptor
+      return widgetClient.getTransportState(input.descriptor)
+    }
+
+    const ready = await this.ensureSourceReady(input.descriptor)
+    this.fallbackCurrentTimeSec = Math.min(Math.max(0, input.timeSec), ready.durationSec)
+    this.fallbackIsPlaying = false
+    return {
+      currentTimeSec: this.fallbackCurrentTimeSec,
+      durationSec: ready.durationSec,
+      isSeekable: false,
+      isPlaying: false,
+    }
+  }
+
   public dispose(): void {
     this.stopBurst()
     this.activeBuffer = null
     this.activeDescriptor = null
+    this.fallbackCurrentTimeSec = 0
+    this.fallbackIsPlaying = false
     this.soundCloudWidgetClient?.dispose()
     this.soundCloudWidgetClient = null
   }

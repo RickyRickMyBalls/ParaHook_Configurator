@@ -113,9 +113,97 @@ describe('ConsoleDock', () => {
     expect(useConsoleStore.getState().inputText).toBe('On')
     expect(
       useConsoleStore.getState().entries.some((entry) =>
-        entry.text === 'Radio > Choose next [On, Off, Url, SampleBurstTime, RandomizeSampleTimes]',
+        entry.text ===
+          'Radio > Choose next [On, Off, Url, SampleBurstTime, RandomizeSampleTimes, OpenToolbar, CloseToolbar]',
       ),
     ).toBe(true)
+  })
+
+  it('opens and closes the radio toolbar from the radio scope', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useConsoleStore.getState().setInputText('r')
+    })
+
+    const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('OpenToolbar')
+    })
+
+    expect(useConsoleStore.getState().inputText).toBe('OpenToolbar')
+
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useAudioSamplerStore.getState().isRadioToolbarOpen).toBe(true)
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('radioRoot')
+    expect(
+      useConsoleStore.getState().entries.some((entry) => entry.text === 'Radio toolbar opened'),
+    ).toBe(true)
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('CloseToolbar')
+    })
+
+    expect(useConsoleStore.getState().inputText).toBe('CloseToolbar')
+
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useAudioSamplerStore.getState().isRadioToolbarOpen).toBe(false)
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('radioRoot')
+    expect(
+      useConsoleStore.getState().entries.some((entry) => entry.text === 'Radio toolbar closed'),
+    ).toBe(true)
+  })
+
+  it('keeps accumulating guided typing so multi-letter radio aliases like OT can be entered from the input', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useConsoleStore.getState().setInputText('r')
+    })
+
+    const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+    const input = container?.querySelector('.ConsoleInput') as HTMLInputElement | null
+
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().inputText).toBe('On')
+
+    await act(async () => {
+      input?.dispatchEvent(new KeyboardEvent('keydown', { key: 'o', bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().inputText).toBe('o')
+
+    await act(async () => {
+      input?.dispatchEvent(new KeyboardEvent('keydown', { key: 't', bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().inputText).toBe('ot')
+
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useAudioSamplerStore.getState().isRadioToolbarOpen).toBe(true)
   })
 
   it('accepts a custom radio url prompt, turns radio on, and returns to the radio scope', async () => {

@@ -3,6 +3,16 @@
 ## Doc Header
 
 ### Doc History
+11. 2026-03-20 17:34: Logged the `Radio.md` follow-up that tightens `Phase 10` into an implementation-ready shared-toolbar execution spec for merging the sampler UI back into the radio toolbar without forking the existing sampler runtime/state model
+10. 2026-03-20 17:27: Logged the `Radio.md` follow-up that adds a new shared-toolbar sampler expansion phase for merging `Sampler` back into the `Radio` toolbar as a disclosure tree with sibling sections, a collapsible steps block, and expandable per-step detail rows
+9. 2026-03-20 17:24: Logged the new Codex context note that captures the collapsible `Radio` toolbar tree for the future sampler, including global BPM, note-repeat defaults, track lanes, and expandable per-step controls
+8. 2026-03-20 17:16: Logged the `Radio.md` follow-up that tightens `Phase 9` into an implementation-ready sampler execution spec tied to the current live store/runtime/UI seams
+7. 2026-03-20 17:12: Logged the `Radio.md` follow-up that adds a new sampler phase with one locked ownership question plus an implementation-ready spec, so the next radio-adjacent build step is now spelled out inside the main radio architecture note
+6. 2026-03-20 16:57: Logged the new `Sampler.md` architecture note and updated the docs map so the simple sequencer plus note-repeat direction now has a dedicated canonical planning surface under `docs/Human-Plans/Architecture/`
+5. 2026-03-20 15:28: Logged the `Radio.md` follow-up that adds console-driven `OpenToolbar` / `CloseToolbar` commands to the `Phase 7` radio toolbar plan
+4. 2026-03-20 15:24: Logged the `Radio.md` follow-up that aligns `Phase 7` to the shared toolbar template layout from `Toolbar.md`
+3. 2026-03-20 15:21: Logged the `Radio.md` follow-up that makes the `Phase 7` toolbar spec explicitly require real transport readout and a seekable `ParaSlider`
+2. 2026-03-20 15:18: Logged the `Radio.md` update that turns `Phase 7` from a placeholder into an implementation-ready toolbar/control-surface spec
 1. 2026-03-18 16:09: Created this file as the canonical permanent log for document changes and split docs tracking away from `docs/CHANGELOG.md`
 
 ### Purpose
@@ -40,6 +50,247 @@ Do not use it for:
 - keep numbering sequential unless the user explicitly asks for a renumber pass
 
 ## Doc Body
+
+<!-- ENTRY 097 -->
+### [097] - 2026-03-20 17:34 - `DOC - Tighten Radio Phase 10 Into Implementation-Ready Shared Toolbar Spec`
+<!-- ENTRY 097 -->
+HUMAN SUMMARY: Tightened `Phase 10` in `Radio.md` so the shared-toolbar sampler follow-on now reads like a real execution target instead of a general UI direction note. The update locks the end-state decision, maps the merge onto the current live `RadioPanel` / `AudioSamplerPanel` / store / shell seams, and adds clearer disclosure-state, migration, preservation, test, and completion rules for the sampler UI refactor.
+
+#### Scope
+- Updated `docs/Human-Plans/Architecture/Radio.md`.
+- Recorded the document-only change in the permanent doc log.
+
+#### Summary
+- Marked the `Phase 10` ownership/migration question as decided.
+- Added stronger implementation-ready language around:
+  - merged-toolbar ownership
+  - disclosure-state actions and persistence
+  - preserved sampler behavior from `Phase 9`
+  - migration away from the separate sampler panel
+- Expanded the file targets, tests, implementation order, and completion checks so the next phase can be implemented directly from the doc.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Radio.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was a doc-only planning update. No runtime code or tests changed in this step.
+
+<!-- ENTRY 096 -->
+### [096] - 2026-03-20 17:27 - `DOC - Add Shared Radio Toolbar Sampler Expansion Phase`
+<!-- ENTRY 096 -->
+HUMAN SUMMARY: Added a new `Phase 10` to `Radio.md` for the next sampler UI expansion: folding `Sampler` back into the shared `Radio` toolbar as a disclosure-tree surface with sibling `Radio` / `Sampler` sections, a collapsible `Steps` block above `Note Repeat`, and expandable per-step rows. The new phase also locks the end-state direction that the separate sampler panel from `Phase 9` should be transitional once the shared-toolbar version is complete.
+
+#### Scope
+- Updated `docs/Human-Plans/Architecture/Radio.md`.
+- Recorded the document-only change in the permanent doc log.
+
+#### Summary
+- Added `Phase 10 - Shared Radio Toolbar Tree And Step Detail Expansion`.
+- Structured the phase with:
+  - `Header`
+  - `Q1`
+  - `Suggestion`
+  - `Locked Read`
+  - `Implementation Spec`
+- Locked the intended shared-toolbar tree shape:
+  - `Radio`
+  - `Sampler`
+  - `Steps`
+  - `Note Repeat`
+- Added disclosure-state guidance, step-row presentation rules, future-track direction, file targets, tests, and implementation order.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Radio.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was a doc-only planning update. No runtime code or tests changed in this step.
+
+<!-- ENTRY 095 -->
+### [095] - 2026-03-20 17:24 - `DOC - Capture Radio Sampler Toolbar Tree In Codex Notes`
+<!-- ENTRY 095 -->
+HUMAN SUMMARY: Added a new active Codex-notes context block for the radio sampler idea so the current chat preserves the intended toolbar tree shape: `Radio` plus `Sampler`, global BPM and note-repeat controls, track lanes, and expandable per-step settings using the existing `collapsed / essentials / expanded` app pattern.
+
+#### Scope
+- Updated `docs/Human-Plans/CodexNotes/12_CodexChatNotes.md`.
+- Recorded the document-only notes update in the permanent doc log.
+
+#### Summary
+- Added a new numbered Codex-notes entry that captures the desired radio-toolbar structure for the future sampler.
+- Locked the high-level rule that the sampler should live inside the shared radio toolbar as a collapsible tree rather than as a separate unrelated panel.
+- Recorded the intended ownership split between sampler-global controls, track/lane rows, and deeper per-step settings that open only when expanded.
+
+#### Files Changed
+- `docs/Human-Plans/CodexNotes/12_CodexChatNotes.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This is a documentation/working-context update only; no runtime, toolbar, or sampler code changed in this step.
+
+<!-- ENTRY 094 -->
+### [094] - 2026-03-20 17:16 - `DOC - Tighten Radio Phase 9 Into Implementation-Ready Sampler Spec`
+<!-- ENTRY 094 -->
+HUMAN SUMMARY: Tightened `Phase 9` in `Radio.md` so the sampler follow-on now reads as a true implementation-ready execution spec instead of a broad architecture note. The update locks the ownership question, maps the work onto the current live radio/runtime files, and adds a baseline-versus-delta read plus concrete helper, state, timing, file, and test targets.
+
+#### Scope
+- Updated `docs/Human-Plans/Architecture/Radio.md`.
+- Recorded the document-only change in the permanent doc log.
+
+#### Summary
+- Marked the Phase 9 ownership question as decided.
+- Added a `Current Landed Baseline` section tied to the already-shipped radio toolbar/runtime work.
+- Added a clearer `Remaining Delta To Close This Phase` section.
+- Tightened the file mapping for `AudioSamplerPanel.tsx`, `TimelineTransport.ts`, `AudioEngine.ts`, `AppShell.tsx`, and `audioSamplerStore.ts`.
+- Added a first honest runtime direction, recommended concrete state/helper names, and a more execution-oriented implementation order.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Radio.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was a doc-only planning update. No runtime code or tests changed in this step.
+
+<!-- ENTRY 093 -->
+### [093] - 2026-03-20 17:12 - `DOC - Add Sampler Phase To Radio Architecture`
+<!-- ENTRY 093 -->
+HUMAN SUMMARY: Added a new `Phase 9 - Sampler Sequencer Surface` block to `Radio.md` so the radio architecture now includes the first concrete sequencer follow-on: a simple one-row sampler that reuses the current radio source/runtime seams. The new phase includes one locked ownership question plus a full implementation-ready spec covering state, timing, UI, runtime, and test targets.
+
+#### Scope
+- Updated `docs/Human-Plans/Architecture/Radio.md`.
+- Recorded the document-only change in the permanent doc log.
+
+#### Summary
+- Added a new post-hardening sampler phase after the existing radio toolbar and hardening phases.
+- Structured the new phase with:
+  - `Header`
+  - one `Q1` section
+  - `Suggestion`
+  - `Locked Read`
+  - `Implementation Spec`
+- Locked the first sampler to reuse current radio source/runtime ownership while giving sampler its own pattern, BPM, step, playback, and note-repeat state.
+- Added file targets, state shape, timing rules, playback rules, note-repeat rules, test targets, and implementation order for the first honest sequencer pass.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Radio.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This is a planning-only update. No runtime code or tests changed in this step.
+
+<!-- ENTRY 092 -->
+### [092] - 2026-03-20 16:57 - `DOC - Add Sampler Architecture Vision`
+<!-- ENTRY 092 -->
+HUMAN SUMMARY: Created `Sampler.md` as a dedicated architecture note for a simple one-row sequencer driven by the current radio/url source, including the first locked controls for step count, BPM, looping playback, and a narrow note-repeat block. Updated `Doc-Index.md` so the new sampler planning surface is discoverable beside the broader `Radio` architecture doc.
+
+#### Scope
+- Created `docs/Human-Plans/Architecture/Sampler.md`.
+- Updated `docs/Doc-Index.md` to list the new architecture doc in the foldable docs map.
+- Recorded the document-only change in the permanent doc log.
+
+#### Summary
+- Added a new `Sampler` architecture note that captures the first simple sequencer vision as one horizontal row of `4`, `8`, `16`, or `32` steps over one bar.
+- Locked the current-source rule so each step points at a stable random cue time inside the current radio/url source rather than acting like a separate imported sample file.
+- Defined the first user-facing control set around sequence length, BPM, play/stop transport, and a compact `Note Repeat` block with `Enabled`, `Repeat Count`, and `Repeat Rate`.
+- Updated the docs map so future work can reference `Sampler.md` directly instead of overloading `Radio.md` with every sequencer-specific decision.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Sampler.md`
+- `docs/Doc-Index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This is a documentation/spec update only; no runtime, store, or UI code changed in this step.
+
+<!-- ENTRY 091 -->
+### [091] - 2026-03-20 15:28 - `DOC - Add Console OpenToolbar CloseToolbar To Radio 7`
+<!-- ENTRY 091 -->
+HUMAN SUMMARY: Updated `Phase 7` in `Radio.md` so the radio toolbar is explicitly opened and closed from the console `Radio` scope instead of being treated as shell-only UI. The spec now adds `OpenToolbar` and `CloseToolbar` as sibling radio commands with aliases `OT` and `CT`, plus the matching canonical visibility-state rule.
+
+#### Scope
+- Updated `docs/Human-Plans/Architecture/Radio.md` only.
+- Kept the change limited to the `Phase 7` radio-toolbar planning layer.
+- Recorded the document-only follow-up in the permanent doc log.
+
+#### Summary
+- Added one local `Doc History` line describing the new console-driven toolbar visibility plan.
+- Extended `Phase 7` with explicit `OpenToolbar` and `CloseToolbar` radio-scope commands.
+- Added the `OT` and `CT` aliases, the canonical toolbar-visibility-state rule, and the file/test targets for console execution plus visibility sync.
+- Updated the implementation order and completion shape so console-driven toolbar visibility is part of the first toolbar phase.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Radio.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This is a documentation/spec update only; no runtime or console code changed in this step.
+
+<!-- ENTRY 090 -->
+### [090] - 2026-03-20 15:24 - `DOC - Align Radio 7 To Shared Toolbar Template`
+<!-- ENTRY 090 -->
+HUMAN SUMMARY: Updated `Phase 7` in `Radio.md` so the first visible radio UI is no longer described as a generic custom panel. It now explicitly reuses the shared toolbar template direction from `Toolbar.md`, including the shell/layout contract centered on `ViewportOverlayToolPanel.tsx`.
+
+#### Scope
+- Updated `docs/Human-Plans/Architecture/Radio.md` only.
+- Kept the change limited to the `Phase 7` toolbar/control-surface planning layer.
+- Recorded the document-only follow-up in the permanent doc log.
+
+#### Summary
+- Added one local `Doc History` line describing the toolbar-template alignment.
+- Updated `Phase 7` so the locked read now requires the shared toolbar template layout.
+- Added explicit toolbar-template, layout-shape, title-bar, and section-ownership rules.
+- Expanded the file targets and implementation order so `ViewportOverlayToolPanel.tsx` is the shared shell/template seam for the radio toolbar where feasible.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Radio.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This is a documentation/spec update only; no runtime or UI code changed in this step.
+
+<!-- ENTRY 089 -->
+### [089] - 2026-03-20 15:21 - `DOC - Raise Radio 7 To Require Real Transport And ParaSlider Seek`
+<!-- ENTRY 089 -->
+HUMAN SUMMARY: Reworked `Phase 7` in `Radio.md` again so the first visible radio UI must now expose real transport truth: current time, duration, and a seekable `ParaSlider` for time position. This makes user-adjustable time position part of the first toolbar/control-surface phase instead of leaving seek deferred.
+
+#### Scope
+- Updated `docs/Human-Plans/Architecture/Radio.md` only.
+- Kept the change limited to the `Phase 7` toolbar/control-surface spec.
+- Recorded the document-only follow-up in the permanent doc log.
+
+#### Summary
+- Added one local `Doc History` line describing the raised `Phase 7` transport bar.
+- Updated the `Phase 7` header, locked control set, and acceptance shape to require current-time readout, duration readout, and a seekable `ParaSlider`.
+- Added explicit `Transport Truth`, `ParaSlider`, and `Seek` rules plus the needed store/runtime seams, file targets, test targets, and completion order changes.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Radio.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This is a documentation/spec update only; no runtime or UI code changed in this step.
+
+<!-- ENTRY 088 -->
+### [088] - 2026-03-20 15:18 - `DOC - Make Radio 7 Implementation Ready`
+<!-- ENTRY 088 -->
+HUMAN SUMMARY: Reworked `Phase 7` in `Radio.md` into an implementation-ready spec for the first visible radio toolbar/control surface. The doc now locks the compact hosted-panel direction, defines the first required control set, and maps the work onto the current app-shell, panel, store, and runtime seams.
+
+#### Scope
+- Updated `docs/Human-Plans/Architecture/Radio.md` only.
+- Kept the change limited to the post-`Phase 6` planning/spec layer.
+- Recorded the document-only update in the permanent doc log.
+
+#### Summary
+- Added one local `Doc History` line describing the new `Phase 7` planning pass.
+- Replaced the old placeholder `Phase 7` block with a structured implementation-ready spec.
+- Locked the first visible-surface decision, first required controls, file targets, test targets, implementation order, and hard rules for the radio toolbar/control surface.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Radio.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This is a documentation/planning update only; no runtime or UI code changed in this step.
 
 <!-- ENTRY 087 -->
 ### [087] - 2026-03-20 14:40 - `DOC - Mark Radio 6 Complete`

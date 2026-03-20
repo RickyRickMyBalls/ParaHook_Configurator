@@ -69,6 +69,8 @@ export type ConsoleStagedNavigationExecuteResult = {
     | 'radio.url'
     | 'radio.sampleBurstTime'
     | 'radio.randomizeSampleTimes'
+    | 'radio.openToolbar'
+    | 'radio.closeToolbar'
     | 'graph.list'
     | 'graph.editor.collapsed'
     | 'graph.editor.essentials'
@@ -161,6 +163,20 @@ const RADIO_RANDOMIZE_SAMPLE_TIMES_CHOICE: ConsoleStagedNavigationChoice = {
   canonicalToken: 'RANDOMIZESAMPLETIMES',
   aliases: ['RS'],
   label: 'RandomizeSampleTimes',
+  kind: 'action',
+}
+
+const RADIO_OPEN_TOOLBAR_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'OPENTOOLBAR',
+  aliases: ['OT'],
+  label: 'OpenToolbar',
+  kind: 'action',
+}
+
+const RADIO_CLOSE_TOOLBAR_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'CLOSETOOLBAR',
+  aliases: ['CT'],
+  label: 'CloseToolbar',
   kind: 'action',
 }
 
@@ -275,6 +291,8 @@ const buildRadioRootChoices = (): ConsoleStagedNavigationChoice[] => [
   RADIO_URL_CHOICE,
   RADIO_SAMPLE_BURST_TIME_CHOICE,
   RADIO_RANDOMIZE_SAMPLE_TIMES_CHOICE,
+  RADIO_OPEN_TOOLBAR_CHOICE,
+  RADIO_CLOSE_TOOLBAR_CHOICE,
 ]
 
 const buildGraphRootChoices = (
@@ -781,12 +799,16 @@ export const submitConsoleStagedNavigationToken = (
       | 'radio.url'
       | 'radio.sampleBurstTime'
       | 'radio.randomizeSampleTimes'
+      | 'radio.openToolbar'
+      | 'radio.closeToolbar'
     >> = {
       ON: 'radio.on',
       OFF: 'radio.off',
       URL: 'radio.url',
       SAMPLEBURSTTIME: 'radio.sampleBurstTime',
       RANDOMIZESAMPLETIMES: 'radio.randomizeSampleTimes',
+      OPENTOOLBAR: 'radio.openToolbar',
+      CLOSETOOLBAR: 'radio.closeToolbar',
     }
 
     return {

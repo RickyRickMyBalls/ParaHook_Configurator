@@ -114,6 +114,13 @@ describe('AudioEngine', () => {
   it('uses the injected SoundCloud widget client for supported real-link playback', async () => {
     const soundCloudClient = {
       ensureSourceReady: async () => ({ durationSec: 120 }),
+      getTransportState: async () => ({
+        currentTimeSec: 0,
+        durationSec: 120,
+        isSeekable: true as const,
+        isPlaying: false,
+      }),
+      seekTo: async () => undefined,
       playWindow: async () => undefined,
       stop: () => undefined,
       dispose: () => undefined,

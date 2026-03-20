@@ -5452,6 +5452,289 @@ button.ParaSelectMenuAction:hover {
   cursor: nesw-resize;
 }
 
+.RadioPanelHost {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: calc(var(--overlay-tool-z-index, 1) + 1);
+}
+
+.RadioPanel {
+  --overlay-tool-accent: rgb(214, 151, 72);
+  --overlay-tool-bg-rgb: 14, 11, 8;
+  width: min(440px, calc(100vw - 32px));
+  min-width: 360px;
+  min-height: 280px;
+}
+
+.RadioPanelTitleActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.RadioPanelSectionBody {
+  display: grid;
+  gap: 12px;
+}
+
+.RadioPanelStatusGrid {
+  display: grid;
+  gap: 8px;
+}
+
+.RadioPanelField,
+.RadioPanelBurstField {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.RadioPanelFieldLabel {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 229, 193, 0.72);
+}
+
+.RadioPanelFieldValue {
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: rgba(244, 239, 228, 0.96);
+  overflow-wrap: anywhere;
+}
+
+.RadioPanelActionsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ViewportOverlayToolPanel button.RadioPanelActionButton,
+.RadioPanelActionButton {
+  appearance: none;
+  min-height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(247, 241, 230, 0.92);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition:
+    border-color 120ms ease,
+    background-color 120ms ease,
+    color 120ms ease,
+    transform 120ms ease;
+}
+
+.ViewportOverlayToolPanel button.RadioPanelActionButton:hover,
+.RadioPanelActionButton:hover {
+  border-color: rgba(255, 214, 166, 0.34);
+  background: rgba(255, 214, 166, 0.12);
+}
+
+.ViewportOverlayToolPanel button.RadioPanelActionButton.isActive,
+.RadioPanelActionButton.isActive {
+  border-color: rgba(255, 188, 106, 0.52);
+  background: rgba(255, 188, 106, 0.18);
+  color: rgba(255, 243, 212, 0.98);
+}
+
+.RadioPanelSliderShell {
+  display: grid;
+  gap: 6px;
+}
+
+.RadioPanelSliderShell.isDisabled {
+  opacity: 0.56;
+}
+
+.RadioPanelInput {
+  min-height: 30px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(10, 10, 12, 0.6);
+  color: rgba(248, 242, 232, 0.96);
+  padding: 0 10px;
+  font: inherit;
+}
+
+.RadioPanelInput:focus {
+  outline: none;
+  border-color: rgba(255, 196, 118, 0.56);
+  box-shadow: 0 0 0 1px rgba(255, 196, 118, 0.3);
+}
+
+.RadioPanelHint {
+  font-size: 11px;
+  line-height: 1.45;
+  color: rgba(233, 221, 201, 0.74);
+}
+
+.AudioSamplerPanelHost {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: calc(var(--overlay-tool-z-index, 1) + 1);
+}
+
+.AudioSamplerPanel {
+  --overlay-tool-accent: rgb(124, 190, 130);
+  --overlay-tool-bg-rgb: 10, 14, 11;
+  width: min(620px, calc(100vw - 32px));
+  min-width: 480px;
+  min-height: 240px;
+}
+
+.AudioSamplerPanelSectionBody,
+.AudioSamplerPanelNoteRepeat {
+  display: grid;
+  gap: 12px;
+}
+
+.AudioSamplerPanelStatusRow,
+.AudioSamplerPanelSliderGrid {
+  display: grid;
+  gap: 10px;
+}
+
+.AudioSamplerPanelField {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.AudioSamplerPanelFieldLabel {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(210, 244, 214, 0.72);
+}
+
+.AudioSamplerPanelFieldValue {
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: rgba(236, 244, 236, 0.96);
+  overflow-wrap: anywhere;
+}
+
+.AudioSamplerPanelActionsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ViewportOverlayToolPanel button.AudioSamplerPanelActionButton,
+.AudioSamplerPanelActionButton {
+  appearance: none;
+  min-height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(235, 247, 236, 0.92);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+}
+
+.ViewportOverlayToolPanel button.AudioSamplerPanelActionButton:hover,
+.AudioSamplerPanelActionButton:hover {
+  border-color: rgba(162, 225, 170, 0.36);
+  background: rgba(162, 225, 170, 0.12);
+}
+
+.ViewportOverlayToolPanel button.AudioSamplerPanelActionButton.isActive,
+.AudioSamplerPanelActionButton.isActive {
+  border-color: rgba(126, 214, 136, 0.52);
+  background: rgba(126, 214, 136, 0.18);
+  color: rgba(244, 255, 244, 0.98);
+}
+
+.AudioSamplerPanelStepsRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(44px, 1fr));
+  gap: 8px;
+}
+
+.AudioSamplerStepCell {
+  display: grid;
+  gap: 4px;
+}
+
+.ViewportOverlayToolPanel button.AudioSamplerStepMain,
+.AudioSamplerStepMain,
+.ViewportOverlayToolPanel button.AudioSamplerStepReroll,
+.AudioSamplerStepReroll {
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(236, 244, 236, 0.94);
+  cursor: pointer;
+}
+
+.AudioSamplerStepMain {
+  min-height: 56px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  gap: 3px;
+  padding: 6px 4px;
+}
+
+.AudioSamplerStepReroll {
+  min-height: 22px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.AudioSamplerStepCell.isEnabled .AudioSamplerStepMain {
+  border-color: rgba(142, 224, 152, 0.28);
+}
+
+.AudioSamplerStepCell.isDisabled .AudioSamplerStepMain {
+  opacity: 0.45;
+}
+
+.AudioSamplerStepCell.isActive .AudioSamplerStepMain {
+  border-color: rgba(194, 248, 198, 0.62);
+  background: rgba(126, 214, 136, 0.16);
+  box-shadow: 0 0 0 1px rgba(126, 214, 136, 0.18);
+}
+
+.AudioSamplerStepIndex {
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.AudioSamplerStepCue {
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: rgba(212, 236, 214, 0.76);
+}
+
+@media (max-width: 640px) {
+  .RadioPanel {
+    min-width: 0;
+    width: calc(100vw - 24px);
+  }
+
+  .AudioSamplerPanel {
+    min-width: 0;
+    width: calc(100vw - 24px);
+  }
+}
+
 .ViewportOverlaySketchSessionTitleBar {
   touch-action: none;
 }

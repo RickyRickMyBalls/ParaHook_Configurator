@@ -46,6 +46,22 @@ describe('radioCommandIdentity', () => {
         actionId: 'radio.url',
       }),
     ).toBe('Console.Radio.Url')
+
+    expect(
+      resolveConsoleRadioCommandIdentity({
+        kind: 'stagedExecute',
+        activeScopeId: 'radioRoot',
+        actionId: 'radio.openToolbar',
+      }),
+    ).toBe('Console.Radio.OpenToolbar')
+
+    expect(
+      resolveConsoleRadioCommandIdentity({
+        kind: 'stagedExecute',
+        activeScopeId: 'radioRoot',
+        actionId: 'radio.closeToolbar',
+      }),
+    ).toBe('Console.Radio.CloseToolbar')
   })
 
   it('resolves staged highlighted choices onto the same semantic identity family as accept', () => {
@@ -57,6 +73,15 @@ describe('radioCommandIdentity', () => {
         matchedLabel: 'On',
       }),
     ).toBe('Console.Radio.On')
+
+    expect(
+      resolveConsoleRadioCommandIdentity({
+        kind: 'stagedChoice',
+        activeScopeId: 'radioRoot',
+        matchedCanonicalToken: 'OPENTOOLBAR',
+        matchedLabel: 'OpenToolbar',
+      }),
+    ).toBe('Console.Radio.OpenToolbar')
 
     expect(
       resolveConsoleRadioCommandIdentity({

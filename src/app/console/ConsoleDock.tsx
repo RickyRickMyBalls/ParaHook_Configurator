@@ -1432,7 +1432,9 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
           if (
             stagedResult.actionId === 'radio.on' ||
             stagedResult.actionId === 'radio.off' ||
-            stagedResult.actionId === 'radio.randomizeSampleTimes'
+            stagedResult.actionId === 'radio.randomizeSampleTimes' ||
+            stagedResult.actionId === 'radio.openToolbar' ||
+            stagedResult.actionId === 'radio.closeToolbar'
           ) {
             let radioStateAfterAction = null as ReturnType<typeof useAudioSamplerStore.getState> | null
             if (stagedResult.actionId === 'radio.on') {
@@ -1445,6 +1447,12 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
               clearStagedNavigationSession()
               useConsoleStore.getState().setInputText('')
               useAudioSamplerStore.getState().turnRadioOff()
+            } else if (stagedResult.actionId === 'radio.openToolbar') {
+              setStagedNavigationSession(stagedResult.session)
+              useAudioSamplerStore.getState().openRadioToolbar()
+            } else if (stagedResult.actionId === 'radio.closeToolbar') {
+              setStagedNavigationSession(stagedResult.session)
+              useAudioSamplerStore.getState().closeRadioToolbar()
             } else {
               setStagedNavigationSession(stagedResult.session)
               useAudioSamplerStore.getState().randomizeSampleTimes()
@@ -1463,7 +1471,11 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
                   ? 'Radio on'
                   : stagedResult.actionId === 'radio.off'
                     ? 'Radio off'
-                    : 'randomized sample times',
+                    : stagedResult.actionId === 'radio.openToolbar'
+                      ? 'Radio toolbar opened'
+                      : stagedResult.actionId === 'radio.closeToolbar'
+                        ? 'Radio toolbar closed'
+                        : 'randomized sample times',
               source: 'console',
               severity: 'info',
             })

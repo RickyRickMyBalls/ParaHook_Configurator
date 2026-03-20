@@ -10,6 +10,7 @@ type SoundCloudWidgetLike = {
   play: () => void
   pause: () => void
   getDuration: (callback: (durationMs: number) => void) => void
+  getPosition?: (callback: (positionMs: number) => void) => void
 }
 
 type SoundCloudWidgetFactory = ((iframe: HTMLIFrameElement) => SoundCloudWidgetLike) & {
@@ -35,6 +36,18 @@ export type SoundCloudWidgetPlaybackClient = {
   ensureSourceReady: (
     descriptor: SoundCloudWidgetRadioSourceDescriptor,
   ) => Promise<{ durationSec: number }>
+  getTransportState: (
+    descriptor: SoundCloudWidgetRadioSourceDescriptor,
+  ) => Promise<{
+    currentTimeSec: number
+    durationSec: number
+    isSeekable: true
+    isPlaying: boolean
+  }>
+  seekTo: (input: {
+    descriptor: SoundCloudWidgetRadioSourceDescriptor
+    timeSec: number
+  }) => Promise<void>
   playWindow: (input: {
     descriptor: SoundCloudWidgetRadioSourceDescriptor
     startTimeSec: number
@@ -175,6 +188,17 @@ const getWidgetDurationSec = (widget: SoundCloudWidgetLike): Promise<number> =>
     })
   })
 
+const getWidgetPositionSec = (widget: SoundCloudWidgetLike): Promise<number> =>
+  new Promise<number>((resolve) => {
+    if (widget.getPosition === undefined) {
+      resolve(0)
+      return
+    }
+    widget.getPosition((positionMs) => {
+      resolve(Math.max(0, positionMs / 1000))
+    })
+  })
+
 const waitForPlaybackStart = (input: {
   widget: SoundCloudWidgetLike
   playEventName: string
@@ -231,6 +255,7 @@ export const createBrowserSoundCloudWidgetClient = (
   let widget: SoundCloudWidgetLike | null = null
   let loadedSourceId: string | null = null
   let activePauseTimeoutId: ReturnType<typeof setTimeout> | null = null
+  let isPlaying = false
 
   const clearPauseTimeout = (): void => {
     if (activePauseTimeoutId === null) {
@@ -262,31 +287,61 @@ export const createBrowserSoundCloudWidgetClient = (
     return { api, widget }
   }
 
+  const ensureDescriptorLoaded = async (
+    descriptor: SoundCloudWidgetRadioSourceDescriptor,
+  ): Promise<{
+    api: SoundCloudApiGlobal
+    widget: SoundCloudWidgetLike
+    durationSec: number
+  }> => {
+    const { api, widget: currentWidget } = await getOrCreateWidget()
+    if (loadedSourceId !== descriptor.sourceId) {
+      const readyPromise = waitForWidgetReady({
+        widget: currentWidget,
+        readyEventName: getReadyEventName(api),
+        errorEventName: getErrorEventName(api),
+        timeoutMs: 3000,
+      })
+      currentWidget.load(descriptor.trackUrl, {
+        auto_play: false,
+        hide_related: true,
+        show_comments: false,
+        show_reposts: false,
+        show_teaser: false,
+        visual: false,
+      })
+      await readyPromise
+      loadedSourceId = descriptor.sourceId
+    }
+
+    return {
+      api,
+      widget: currentWidget,
+      durationSec: await getWidgetDurationSec(currentWidget),
+    }
+  }
+
   return {
     ensureSourceReady: async (descriptor) => {
-      const { api, widget: currentWidget } = await getOrCreateWidget()
-      if (loadedSourceId !== descriptor.sourceId) {
-        const readyPromise = waitForWidgetReady({
-          widget: currentWidget,
-          readyEventName: getReadyEventName(api),
-          errorEventName: getErrorEventName(api),
-          timeoutMs: 3000,
-        })
-        currentWidget.load(descriptor.trackUrl, {
-          auto_play: false,
-          hide_related: true,
-          show_comments: false,
-          show_reposts: false,
-          show_teaser: false,
-          visual: false,
-        })
-        await readyPromise
-        loadedSourceId = descriptor.sourceId
-      }
+      const ready = await ensureDescriptorLoaded(descriptor)
+      return { durationSec: ready.durationSec }
+    },
+    getTransportState: async (descriptor) => {
+      const ready = await ensureDescriptorLoaded(descriptor)
 
       return {
-        durationSec: await getWidgetDurationSec(currentWidget),
+        currentTimeSec: await getWidgetPositionSec(ready.widget),
+        durationSec: ready.durationSec,
+        isSeekable: true as const,
+        isPlaying,
       }
+    },
+    seekTo: async ({ descriptor, timeSec }) => {
+      const ready = await ensureDescriptorLoaded(descriptor)
+      clearPauseTimeout()
+      ready.widget.seekTo(Math.max(0, Math.round(timeSec * 1000)))
+      ready.widget.pause()
+      isPlaying = false
     },
     playWindow: async ({ startTimeSec, durationSec }) => {
       const { api, widget: currentWidget } = await getOrCreateWidget()
@@ -301,18 +356,22 @@ export const createBrowserSoundCloudWidgetClient = (
       currentWidget.seekTo(Math.max(0, Math.round(startTimeSec * 1000)))
       currentWidget.play()
       await playbackStartPromise
+      isPlaying = true
       activePauseTimeoutId = setTimeout(() => {
         currentWidget.pause()
+        isPlaying = false
         activePauseTimeoutId = null
       }, Math.max(10, Math.round(durationSec * 1000)))
     },
     stop: () => {
       clearPauseTimeout()
       widget?.pause()
+      isPlaying = false
     },
     dispose: () => {
       clearPauseTimeout()
       widget?.pause()
+      isPlaying = false
       widget = null
       widgetApi = null
       loadedSourceId = null

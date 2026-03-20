@@ -65,6 +65,103 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 504 -->
+### [504] - 2026-03-20 17:18 - `VR - Phase 9 - Sampler Sequencer Surface`
+<!-- ENTRY 504 -->
+HUMAN SUMMARY: `Landed the first sampler sequencer slice as a hosted panel that reuses the current radio source/runtime seams, with one-row step state, BPM and step-count controls, stable rerollable cue slots, a narrow note-repeat block, and an app-level loop that walks the row and triggers cue bursts through the existing audio engine path.` 
+
+#### Scope / Constraints Honored
+- Reused the existing radio source/runtime ownership instead of creating a second sampler source model.
+- Kept the first sampler narrow to one row, one bar, one current source, and simple play/stop plus note-repeat controls.
+- Preserved the current radio playback bridge and built the loop on top of the same `AudioEngine.playBurst(...)` behavior.
+
+#### Summary of Implementation
+- Extended `src/app/store/audioSamplerStore.ts` with a sampler slice for step count, BPM, play state, playhead state, step cues, and note-repeat settings.
+- Expanded `src/runtime/audio/TimelineTransport.ts` with bar/step duration helpers and repeat-offset timing helpers for the sequencer loop.
+- Implemented the first visible sampler surface in `src/app/panels/AudioSamplerPanel.tsx` using the shared toolbar shell language and a single row of step cells.
+- Mounted the sampler panel from `src/app/AppShell.tsx` alongside the radio toolbar and added the first app-level sampler loop that advances the playhead and fires cue bursts through the existing audio runtime.
+- Added sampler-specific styling in `src/app/theme/v15Theme.css`.
+- Added focused regressions for transport timing, sampler store state, sampler panel interactions, and the app-shell loop.
+
+#### Files Changed
+- `src/app/store/audioSamplerStore.ts`
+- `src/runtime/audio/TimelineTransport.ts`
+- `src/app/panels/AudioSamplerPanel.tsx`
+- `src/app/AppShell.tsx`
+- `src/app/theme/v15Theme.css`
+- `src/runtime/audio/TimelineTransport.test.ts`
+- `src/app/store/audioSamplerStore.test.ts`
+- `src/app/panels/AudioSamplerPanel.test.tsx`
+- `src/app/AppShell.test.tsx`
+- `docs/Human-Plans/Architecture/Radio.md`
+
+#### Behavior Changes (if any)
+- The app now shows a separate sampler panel when the radio toolbar is open.
+- The sampler panel exposes:
+  - step-count control
+  - BPM control
+  - one row of step cells
+  - per-step enable/disable
+  - per-step reroll
+  - `Play` / `Stop`
+  - `Reroll All`
+  - a narrow `Note Repeat` block
+- Starting the sampler now advances a visible playhead and triggers step cues against the current radio source through the existing runtime burst path.
+
+#### Verification Steps
+- Ran `cmd /c npx vitest run src/runtime/audio/TimelineTransport.test.ts src/app/store/audioSamplerStore.test.ts src/app/panels/AudioSamplerPanel.test.tsx src/app/AppShell.test.tsx`.
+- Confirmed the focused sampler suite passed with `64` tests green.
+- Ran `cmd /c npm run build`.
+- Confirmed the full `tsc -b && vite build` path completed successfully.
+
+<!-- ENTRY 503 -->
+### [503] - 2026-03-20 17:03 - `VR - Phase 7 - Radio Toolbar And Control Surface`
+<!-- ENTRY 503 -->
+HUMAN SUMMARY: `Landed the first visible radio toolbar as a hosted overlay panel driven by the canonical radio store/runtime seams, with console-open/close commands, live status and transport readout, seek/reload plumbing, and focused regressions across the console, panel, app shell, and audio runtime. This makes the post-console radio system actually inspectable and controllable without reopening the earlier console-phase design.` 
+
+#### Scope / Constraints Honored
+- Reused the shared toolbar shell/panel path instead of inventing a radio-only container.
+- Kept console grammar, radio store ownership, and runtime playback ownership intact while only adding the narrow visibility, transport, seek, and reload seams the toolbar actually needs.
+- Preserved the existing fallback and SoundCloud runtime paths instead of replacing them during the UI pass.
+
+#### Summary of Implementation
+- Extended `src/app/store/audioSamplerStore.ts` with canonical toolbar visibility state, live radio transport state, seek requests, and reload requests.
+- Extended the `Radio` staged console scope in `src/app/console/stagedNavigation.ts` with `OpenToolbar` / `CloseToolbar` and wired those actions through `src/app/console/ConsoleDock.tsx`.
+- Added toolbar-aware semantic ids in `src/app/console/radioCommandIdentity.ts` so the new console radio actions stay inside the same canonical command-identity family.
+- Finished the runtime control bridge by exposing transport readback and seek support through `src/runtime/audio/SoundCloudWidgetClient.ts`, `src/runtime/audio/AudioEngine.ts`, and the app-level radio effects in `src/app/AppShell.tsx`.
+- Shipped the visible hosted toolbar in `src/app/panels/RadioPanel.tsx`, mounted it from `AppShell`, and added panel-specific styling in `src/app/theme/v15Theme.css`.
+- Added and updated focused regressions covering store state, staged grammar, console toolbar commands, radio identities, the visible panel, and app-shell/runtime integration.
+
+#### Files Changed
+- `src/app/store/audioSamplerStore.ts`
+- `src/app/console/stagedNavigation.ts`
+- `src/app/console/radioCommandIdentity.ts`
+- `src/app/console/ConsoleDock.tsx`
+- `src/runtime/audio/SoundCloudWidgetClient.ts`
+- `src/runtime/audio/AudioEngine.ts`
+- `src/app/AppShell.tsx`
+- `src/app/panels/RadioPanel.tsx`
+- `src/app/theme/v15Theme.css`
+- `src/app/store/audioSamplerStore.test.ts`
+- `src/app/console/stagedNavigation.test.ts`
+- `src/app/console/radioCommandIdentity.test.ts`
+- `src/app/console/ConsoleDock.test.tsx`
+- `src/runtime/audio/AudioEngine.test.ts`
+- `src/app/AppShell.test.tsx`
+- `src/app/panels/RadioPanel.test.tsx`
+- `docs/Human-Plans/Architecture/Radio.md`
+
+#### Behavior Changes (if any)
+- `Radio` now exposes `OpenToolbar` / `CloseToolbar` in the console scope, with aliases `OT` and `CT`.
+- The radio toolbar shows live source URL, runtime/source status, current time, duration, a seekable `ParaSlider` when the source supports seeking, sample burst time, and reload/randomize/on/off controls.
+- The app now keeps live transport state in sync while the toolbar is open and routes toolbar seek/reload actions through the same canonical runtime bridge used by console-driven radio playback.
+
+#### Verification Steps
+- Ran `cmd /c npx vitest run src/app/panels/RadioPanel.test.tsx src/app/store/audioSamplerStore.test.ts src/app/console/stagedNavigation.test.ts src/app/console/radioCommandIdentity.test.ts src/app/console/ConsoleDock.test.tsx src/runtime/audio/AudioEngine.test.ts src/app/AppShell.test.tsx`.
+- Confirmed the focused Phase 7 radio suite passed with `171` tests green.
+- Ran `cmd /c npm run build`.
+- Confirmed the full `tsc -b && vite build` path completed successfully.
+
 <!-- ENTRY 502 -->
 ### [502] - 2026-03-20 15:14 - `VR - Phase 6 - Build Fixes For Sketch Plane Session Shape`
 <!-- ENTRY 502 -->

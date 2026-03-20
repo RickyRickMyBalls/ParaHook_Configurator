@@ -218,6 +218,10 @@ const resolveStagedChoiceIdentity = ({
           return buildIdentity('Console', 'Radio', 'SampleBurstTime')
         case 'RANDOMIZESAMPLETIMES':
           return buildIdentity('Console', 'Radio', 'RandomizeSampleTimes')
+        case 'OPENTOOLBAR':
+          return buildIdentity('Console', 'Radio', 'OpenToolbar')
+        case 'CLOSETOOLBAR':
+          return buildIdentity('Console', 'Radio', 'CloseToolbar')
         case 'BACK':
           return buildIdentity('Console', 'Radio', 'Back')
         default:
@@ -295,6 +299,10 @@ const resolveStagedExecuteIdentity = ({
       return buildIdentity('Console', 'Radio', 'SampleBurstTime')
     case 'radio.randomizeSampleTimes':
       return buildIdentity('Console', 'Radio', 'RandomizeSampleTimes')
+    case 'radio.openToolbar':
+      return buildIdentity('Console', 'Radio', 'OpenToolbar')
+    case 'radio.closeToolbar':
+      return buildIdentity('Console', 'Radio', 'CloseToolbar')
     case 'graph.list':
       return buildIdentity('Console', 'Graph', 'List')
     case 'graph.editor.collapsed':

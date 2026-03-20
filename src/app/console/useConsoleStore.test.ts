@@ -395,6 +395,40 @@ describe('useConsoleStore', () => {
     expect(useConsoleStore.getState().isStagedChoiceManualOverride).toBe(false)
   })
 
+  it('appends subsequent seeded printable keys after the first guided replacement so multi-letter aliases can continue typing', () => {
+    useConsoleStore.getState().setStagedNavigationSession({
+      scopeId: 'radioRoot',
+      breadcrumb: ['Select', 'Radio'],
+      selections: {
+        graphDocumentId: null,
+        selectedNodeId: null,
+        sketchNodeId: null,
+      },
+      validChoices: [
+        {
+          canonicalToken: 'ON',
+          aliases: ['O'],
+          label: 'On',
+          kind: 'action',
+        },
+        {
+          canonicalToken: 'OPENTOOLBAR',
+          aliases: ['OT'],
+          label: 'OpenToolbar',
+          kind: 'action',
+        },
+      ],
+    })
+
+    expect(useConsoleStore.getState().inputText).toBe('On')
+
+    useConsoleStore.getState().seedInputText('o')
+    expect(useConsoleStore.getState().inputText).toBe('o')
+
+    useConsoleStore.getState().seedInputText('t')
+    expect(useConsoleStore.getState().inputText).toBe('ot')
+  })
+
   it('prefills, cycles, and respects manual override for feature assist descriptors', () => {
     const descriptor: ConsoleAssistDescriptor = {
       label: 'Sketch Draw',
