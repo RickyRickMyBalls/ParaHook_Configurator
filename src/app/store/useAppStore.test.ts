@@ -170,8 +170,12 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
         editorViewportId: null,
         shouldRestoreViewportWindowMode: false,
         stage: 'pick',
+        adjustScope: 'root',
+        activeTransformAxis: null,
         gizmoMode: 'translate',
         draftPlane: 'XY',
+        previewPlane: null,
+        transformCommandOrigin: null,
         draftTransform: {
           offsetMm: 0,
           translation: { x: 0, y: 0, z: 0 },

@@ -65,6 +65,488 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 502 -->
+### [502] - 2026-03-20 15:14 - `VR - Phase 6 - Build Fixes For Sketch Plane Session Shape`
+<!-- ENTRY 502 -->
+HUMAN SUMMARY: `Cleared the current production build break by removing one dead local in the sketch-plane store command path and updating the stale sketch-plane session fixture in `useAppStore.test.ts` to match the current session type. This brings `npm run build` back to green after the recent radio / sketch-plane work.` 
+
+#### Scope / Constraints Honored
+- Kept the fix limited to the two concrete TypeScript failures from the reported build output.
+- Did not change runtime behavior beyond removing an unused local and correcting the test fixture shape.
+
+#### Summary of Implementation
+- Removed the unused `snapSession` local from the `move-snap` sketch-plane command path in `src/app/spaghetti/store/useSpaghettiStore.ts`.
+- Updated the `SketchPlanePickSession` fixture in `src/app/store/useAppStore.test.ts` to include `adjustScope`, `activeTransformAxis`, `previewPlane`, and `transformCommandOrigin`.
+
+#### Files Changed
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/store/useAppStore.test.ts`
+
+#### Behavior Changes (if any)
+- No intended runtime behavior change.
+- The repo now builds successfully through the full `tsc -b && vite build` path again.
+
+#### Verification Steps
+- Ran `npm run build`.
+- Confirmed the full TypeScript build and Vite production build completed successfully.
+
+<!-- ENTRY 501 -->
+### [501] - 2026-03-20 15:12 - `VR - Phase 6 - Sketch Plane Feature Assist Radio Coverage`
+<!-- ENTRY 501 -->
+HUMAN SUMMARY: `Extended the radio identity and burst wiring through the sketch-plane feature-assist path, so the `XY/XZ/YZ` plane picker and the deeper sketch-plane assist scopes now publish radio bursts the same way the staged console menus already do. This closes the gap where radio preview stopped once the console left staged navigation and entered sketch-plane assist mode.` 
+
+#### Scope / Constraints Honored
+- Kept the fix inside the console radio resolver and sketch-plane assist submit/preview wiring.
+- Preserved the existing staged-navigation radio behavior and alias grammar.
+- Added focused regressions for sketch-plane feature-assist preview and submit identities.
+
+#### Summary of Implementation
+- Added `featureAssistChoice` and `featureAssistSubmit` semantic identity paths in `src/app/console/radioCommandIdentity.ts`.
+- Mapped sketch-plane assist scopes for plane selection, move, move snap, rotate, rotate snap, and sketch-draw assist choices onto canonical radio identities.
+- Updated `src/app/console/ConsoleDock.tsx` so arrow-preview bursts and submit bursts also resolve from the active feature-assist descriptor when the console is inside sketch-plane assist mode.
+- Added resolver coverage in `src/app/console/radioCommandIdentity.test.ts`.
+- Added an end-to-end console regression in `src/app/console/ConsoleDock.test.tsx` proving radio bursts fire for sketch-plane `XY/XZ/YZ` preview/submit and continue working in the deeper sketch-plane adjust scope.
+
+#### Files Changed
+- `src/app/console/radioCommandIdentity.ts`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/radioCommandIdentity.test.ts`
+- `src/app/console/ConsoleDock.test.tsx`
+
+#### Behavior Changes (if any)
+- With radio on, `ArrowUp` / `ArrowDown` now preview sketch-plane assist choices such as `XY`, `XZ`, `YZ`, and the later sketch-plane adjust choices.
+- Submitting sketch-plane assist commands now publishes the corresponding radio burst request instead of going silent in that branch.
+
+#### Verification Steps
+- Ran `npx vitest run src/app/console/radioCommandIdentity.test.ts src/app/console/ConsoleDock.test.tsx`.
+- Confirmed `97` focused console tests passed after the sketch-plane feature-assist radio wiring landed.
+
+<!-- ENTRY 500 -->
+### [500] - 2026-03-20 14:58 - `VR - Phase 6 - Radio Alias Cleanup`
+<!-- ENTRY 500 -->
+HUMAN SUMMARY: `Cleaned up the `Radio` staged-menu shorthand so the shorter aliases now read more naturally in use: `O` for `On`, full `off` for `Off`, `U` for `Url`, `SB` for `SampleBurstTime`, and `RS` for `RandomizeSampleTimes`. This keeps the canonical commands unchanged while tightening the actual console tokens the user types in the radio scope.` 
+
+#### Scope / Constraints Honored
+- Kept the change inside the staged console grammar for the `Radio` scope only.
+- Preserved the existing canonical radio command names and action ids.
+- Added a focused grammar regression for the cleaned alias set.
+
+#### Summary of Implementation
+- Removed the older single-letter `Off` alias.
+- Changed the `SampleBurstTime` alias from `SBT` to `SB`.
+- Changed the `RandomizeSampleTimes` alias from `RST` to `RS`.
+- Added staged-navigation assertions proving `o`, `off`, `u`, `sb`, and `rs` all resolve to the intended radio actions.
+
+#### Files Changed
+- `src/app/console/stagedNavigation.ts`
+- `src/app/console/stagedNavigation.test.ts`
+
+#### Behavior Changes
+- Inside `Radio`, the cleaned shorthand now is:
+  - `O` -> `On`
+  - `off` -> `Off`
+  - `U` -> `Url`
+  - `SB` -> `SampleBurstTime`
+  - `RS` -> `RandomizeSampleTimes`
+
+#### Verification Steps
+- Ran `cmd /c "cd /d c:\Users\Rubbe\Desktop\ParaHookConfig\20\parahook && npx vitest run src/app/console/stagedNavigation.test.ts"`
+
+<!-- ENTRY 499 -->
+### [499] - 2026-03-20 14:56 - `VR - Phase 6 - Graph Execute Choice Preview Identity Fix`
+<!-- ENTRY 499 -->
+HUMAN SUMMARY: `Fixed another console-radio preview gap by teaching the staged-choice identity resolver about the execute-style graph menu items such as \`Collapsed\`, \`Essentials\`, \`Expanded\`, \`References\`, \`Open\`, and \`Build\`. Those items already existed as real graph actions, but their highlighted preview path returned no radio identity, so some graph-menu arrow cycles stayed silent even when the earlier items played correctly.` 
+
+#### Scope / Constraints Honored
+- Kept the fix inside the semantic radio command-identity resolver.
+- Did not reopen the runtime audio bridge or console arrow-key plumbing.
+- Focused on highlighted staged-choice preview identities only.
+
+#### Summary of Implementation
+- Extended `radioCommandIdentity.ts` so `graphSelected` staged-choice preview now resolves:
+  - `References`
+  - `Collapsed`
+  - `Essentials`
+  - `Expanded`
+  - `Open`
+  - `Build`
+- Added identity regressions proving at least the missing `Collapsed` and `Build` cases now resolve to canonical radio identities.
+
+#### Files Changed
+- `src/app/console/radioCommandIdentity.ts`
+- `src/app/console/radioCommandIdentity.test.ts`
+
+#### Behavior Changes
+- Cycling through execute-style items in the `Graph` menu now publishes real radio burst identities instead of staying silent for unmapped choices like `Collapsed`.
+
+#### Verification Steps
+- Ran `cmd /c "cd /d c:\Users\Rubbe\Desktop\ParaHookConfig\20\parahook && npx vitest run src/app/console/radioCommandIdentity.test.ts src/app/console/ConsoleDock.test.tsx"`
+
+<!-- ENTRY 498 -->
+### [498] - 2026-03-20 14:55 - `VR - Phase 6 - Guided Arrow Preview Burst Fix`
+<!-- ENTRY 498 -->
+HUMAN SUMMARY: `Fixed the console radio preview path so pressing \`ArrowUp\` or \`ArrowDown\` inside the focused console input now triggers the same radio burst behavior as the older global staged-navigation path. This closes the live bug where the highlighted choice changed visually but no sound played because the input-owned arrow-key handler only cycled choices without publishing a burst request.` 
+
+#### Scope / Constraints Honored
+- Kept the fix inside the guided console-input path and did not reopen the broader trigger/runtime design.
+- Reused the existing burst-aware staged-choice callback already present in `ConsoleDock`.
+- Added a regression that exercises the real input element instead of only dispatching synthetic window-level key events.
+
+#### Summary of Implementation
+- Extended `ConsoleBar.tsx` with one optional guided-choice cycle callback prop.
+- Updated `ConsoleDock.tsx` so all console surfaces now route guided input arrow cycling through the existing burst-aware `cycleStagedChoiceWithRadioBurst(...)` path.
+- Added a focused `ConsoleDock` regression proving that `ArrowUp` and `ArrowDown` dispatched from the actual `.ConsoleInput` element publish radio burst requests when radio is enabled.
+
+#### Files Changed
+- `src/app/console/ConsoleBar.tsx`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+
+#### Behavior Changes
+- Pressing `ArrowUp` / `ArrowDown` in the focused guided console input now plays the next highlighted radio sample instead of only moving the highlighted choice silently.
+- The older window-level staged arrow-preview behavior remains intact.
+
+#### Verification Steps
+- Ran `cmd /c "cd /d c:\Users\Rubbe\Desktop\ParaHookConfig\20\parahook && npx vitest run src/app/console/ConsoleDock.test.tsx src/app/console/useConsoleStore.test.ts src/app/store/audioSamplerStore.test.ts"`
+
+<!-- ENTRY 497 -->
+### [497] - 2026-03-20 14:49 - `VR - Phase 6 - SoundCloud Ready Timeout And Autoplay Permission`
+<!-- ENTRY 497 -->
+HUMAN SUMMARY: `Fixed another real-link failure path in the SoundCloud radio bridge by preventing widget source preparation from hanging forever and by explicitly granting autoplay permission to the hidden SoundCloud iframe. This means the runtime can now fail over more honestly when the widget never becomes ready, instead of getting stuck in a silent loading state.` 
+
+#### Scope / Constraints Honored
+- Kept the patch inside the existing SoundCloud runtime bridge and app-shell host.
+- Preserved the earlier preload, playback-confirmation, and generated-tone fallback behavior.
+- Focused only on the remaining no-sound hang path instead of widening into toolbar work or console redesign.
+
+#### Summary of Implementation
+- Updated `SoundCloudWidgetClient.ts` so `ensureSourceReady(...)` now waits for:
+  - widget `READY`
+  - widget `ERROR`
+  - or a hard timeout
+- This removes the old indefinite-wait path where the widget could stay silent forever and never reach the later fallback logic.
+- Updated the hidden SoundCloud iframe in `AppShell.tsx` to use `allow="autoplay"` so the embedded player has explicit autoplay permission when the widget attempts real-link playback.
+
+#### Files Changed
+- `src/runtime/audio/SoundCloudWidgetClient.ts`
+- `src/app/AppShell.tsx`
+
+#### Behavior Changes
+- Supported SoundCloud source preparation now times out instead of hanging forever.
+- The runtime can now move on to honest failure/fallback behavior when the widget never becomes ready.
+- The hidden SoundCloud host iframe now advertises autoplay permission explicitly.
+
+#### Verification Steps
+- Ran `cmd /c "cd /d c:\Users\Rubbe\Desktop\ParaHookConfig\20\parahook && npx vitest run src/runtime/audio/ClipLibrary.test.ts src/runtime/audio/TimelineTransport.test.ts src/runtime/audio/AudioEngine.test.ts src/app/store/audioSamplerStore.test.ts src/app/console/radioCommandIdentity.test.ts src/app/console/ConsoleDock.test.tsx src/app/AppShell.test.tsx"`
+
+<!-- ENTRY 496 -->
+### [496] - 2026-03-20 14:47 - `VR - Phase 6 - SoundCloud Warmup And Playback Confirmation`
+<!-- ENTRY 496 -->
+HUMAN SUMMARY: `Tightened the SoundCloud radio bridge so the app no longer trusts a bare widget \`play()\` call as proof of audible playback. The runtime now preloads supported SoundCloud sources when radio is enabled, warms the bridge from the console enable flow, and waits for a real widget play/progress signal before treating the link path as successful.` 
+
+#### Scope / Constraints Honored
+- Kept the follow-up inside the existing Phase 6 runtime/audio seam instead of widening into toolbar work.
+- Preserved the existing console trigger model and the generated-tone fallback path.
+- Focused the patch on real-link reliability rather than redesigning radio state or UI.
+
+#### Summary of Implementation
+- Added one shared runtime warmup seam in `radioRuntimeWarmup.ts` so console `On` and URL-submit flows can request eager SoundCloud preparation.
+- Updated `ConsoleDock.tsx` to request runtime warmup when radio is turned on or when a new radio URL is accepted.
+- Updated `AppShell.tsx` to:
+  - register the warmup handler
+  - preload supported SoundCloud sources when radio becomes enabled
+  - keep the later burst path as the canonical status-reporting path
+- Tightened `SoundCloudWidgetClient.ts` so `playWindow(...)` now waits for a real SoundCloud widget `PLAY` / `PLAY_PROGRESS` signal, and times out instead of silently pretending playback started.
+- Updated `AppShell` test expectations to account for the eager-preload pass before the burst playback call.
+
+#### Files Changed
+- `src/runtime/audio/SoundCloudWidgetClient.ts`
+- `src/runtime/audio/radioRuntimeWarmup.ts`
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+- `src/app/console/ConsoleDock.tsx`
+
+#### Behavior Changes
+- Turning radio on now eagerly prepares supported SoundCloud playback before the first later burst request.
+- The real-link path now waits for actual widget playback confirmation instead of marking `ready` immediately after `play()`.
+- If the widget stays silent, the runtime can now fall back more honestly instead of reporting a false success state.
+
+#### Verification Steps
+- Ran `cmd /c "cd /d c:\Users\Rubbe\Desktop\ParaHookConfig\20\parahook && npx vitest run src/runtime/audio/ClipLibrary.test.ts src/runtime/audio/TimelineTransport.test.ts src/runtime/audio/AudioEngine.test.ts src/app/store/audioSamplerStore.test.ts src/app/console/radioCommandIdentity.test.ts src/app/console/ConsoleDock.test.tsx src/app/AppShell.test.tsx"`
+
+<!-- ENTRY 495 -->
+### [495] - 2026-03-20 14:41 - `VR - Phase 6 - Radio On Transcript State Readout`
+<!-- ENTRY 495 -->
+HUMAN SUMMARY: `Updated the console radio-on transcript so enabling radio now immediately prints the active URL, the current sample burst time, and the on confirmation before returning to root. This keeps the `On` action lightweight while making the active radio state visible at the moment the user enables it.` 
+
+#### Scope / Constraints Honored
+- Kept the change limited to the `radio.on` console execute transcript path.
+- Preserved the existing `On` behavior of enabling radio, requesting playback, and returning to root.
+- Reused the canonical radio state already stored in `audioSamplerStore` instead of duplicating console-only state.
+
+#### Summary of Implementation
+- Updated `ConsoleDock.tsx` so `radio.on` now reads the post-enable radio state and appends:
+  - `Radio on`
+  - `Radio url: ...`
+  - `Sample burst time: ...`
+- Extended the existing `radio.on` console regression to assert the new transcript lines alongside the existing root-return behavior.
+
+#### Files Changed
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+
+#### Behavior Changes
+- Accepting `On` from the `Radio` scope now prints the active radio URL and current sample burst time in the transcript before the existing `Returned to root` readout.
+- `Off` behavior is unchanged.
+
+#### Verification Steps
+- Ran `cmd /c "cd /d c:\Users\Rubbe\Desktop\ParaHookConfig\20\parahook && npx vitest run src/app/console/ConsoleDock.test.tsx src/app/store/audioSamplerStore.test.ts"`
+
+<!-- ENTRY 494 -->
+### [494] - 2026-03-20 14:40 - `VR - Phase 6 - Real Link Playback Bridge`
+<!-- ENTRY 494 -->
+HUMAN SUMMARY: `Implemented the Phase 6 radio real-link bridge by teaching the runtime to resolve supported SoundCloud URLs, adding a SoundCloud widget playback path beside the generated-tone fallback, and surfacing unsupported custom links as explicit runtime state. The default \`Gusano\` link can now drive a real provider-backed playback path, while the app still falls back honestly if SoundCloud playback is unavailable in the current environment.` 
+
+#### Scope / Constraints Honored
+- Kept the console trigger system unchanged and limited the work to runtime/audio, app-bridge, and status/reporting seams.
+- Added one provider-aware real-link family first instead of pretending arbitrary URLs are generically supported.
+- Preserved the existing generated-tone bridge as an explicit fallback safety net instead of deleting it.
+
+#### Summary of Implementation
+- Extended `ClipLibrary.ts` so radio URLs now resolve into:
+  - `soundcloud-widget` for supported SoundCloud links
+  - `unsupported-url` for unsupported custom links
+  - explicit generated-tone fallback descriptors when the runtime needs to degrade honestly
+- Added `SoundCloudWidgetClient.ts` as the browser-side SoundCloud widget bridge and expanded `AudioEngine.ts` so it can execute either:
+  - generated-tone Web Audio bursts
+  - SoundCloud widget burst windows
+- Updated `AppShell.tsx` to:
+  - host a hidden SoundCloud iframe bridge
+  - route supported links through the real-link path
+  - mark unsupported custom links explicitly
+  - fall back to generated tone with visible status if SoundCloud playback fails at runtime
+- Extended runtime status typing in `audioSamplerStore.ts` for:
+  - `unsupported`
+  - `soundcloud-widget`
+  - `unsupported-url`
+- Added focused tests for source classification, real-link engine playback, unsupported-url status, and runtime fallback behavior.
+
+#### Files Changed
+- `src/runtime/audio/ClipLibrary.ts`
+- `src/runtime/audio/ClipLibrary.test.ts`
+- `src/runtime/audio/SoundCloudWidgetClient.ts`
+- `src/runtime/audio/AudioEngine.ts`
+- `src/runtime/audio/AudioEngine.test.ts`
+- `src/app/store/audioSamplerStore.ts`
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+
+#### Behavior Changes
+- The default `https://soundcloud.com/keota-us/gusano` radio URL now resolves to a real SoundCloud playback path instead of always mapping straight to the generated beep source.
+- Unsupported custom URLs now report `unsupported` / `unsupported-url` runtime state instead of silently pretending to play.
+- If SoundCloud runtime playback is unavailable, the app now degrades visibly to the generated-tone fallback instead of going silent.
+- The generated-tone path remains intact and reusable as the explicit safety net.
+
+#### Verification Steps
+- Ran `cmd /c "cd /d c:\Users\Rubbe\Desktop\ParaHookConfig\20\parahook && npx vitest run src/runtime/audio/ClipLibrary.test.ts src/runtime/audio/AudioEngine.test.ts src/app/store/audioSamplerStore.test.ts src/app/AppShell.test.tsx"`
+- Ran `cmd /c "cd /d c:\Users\Rubbe\Desktop\ParaHookConfig\20\parahook && npx vitest run src/runtime/audio/ClipLibrary.test.ts src/runtime/audio/TimelineTransport.test.ts src/runtime/audio/AudioEngine.test.ts src/app/store/audioSamplerStore.test.ts src/app/console/radioCommandIdentity.test.ts src/app/console/ConsoleDock.test.tsx src/app/AppShell.test.tsx"`
+
+<!-- ENTRY 493 -->
+### [493] - 2026-03-20 14:25 - `VR - [4.1O3] Runtime Source Bridge`
+<!-- ENTRY 493 -->
+HUMAN SUMMARY: `Implemented the Phase 5 radio playback bridge by filling the empty runtime-audio seams, adding one app-level subscriber in \`AppShell\`, and making console burst requests audible through a fallback generated clip source. The radio now has a real runtime path from \`requestRadioBurst(...)\` to actual playback, with lightweight runtime status reporting for fallback, blocked, and error cases instead of silent no-op behavior.` 
+
+#### Scope / Constraints Honored
+- Kept the first audible bridge inside the app/runtime layer instead of moving playback into `ConsoleDock`.
+- Used an honest fallback local/generated source path instead of claiming full direct SoundCloud control.
+- Kept the work narrow to one source bridge, one runtime subscriber, and one playback engine contract.
+
+#### Summary of Implementation
+- Filled the empty runtime audio placeholders with real first-pass implementations:
+  - `ClipLibrary.ts`
+  - `TimelineTransport.ts`
+  - `SamplerKeys.ts`
+  - `AudioEngine.ts`
+- Added runtime-facing radio status to `audioSamplerStore`, including:
+  - `radioRuntimeStatus`
+  - `radioRuntimeMessage`
+  - `radioRuntimeSourceKind`
+  - `lastHandledBurstRequestId`
+- Added one app-level runtime consumer in `AppShell` that observes new `latestBurstRequest` ids, resolves the active source through the clip library, and plays bursts through the audio engine.
+- Implemented fallback generated-tone playback so the default `Gusano` URL and custom URLs both have an honest first audible bridge while still reporting fallback mode.
+- Added focused tests for burst-window timing math, audio-engine burst playback, store runtime-status tracking, and app-level request consumption.
+
+#### Files Changed
+- `src/runtime/audio/SamplerKeys.ts`
+- `src/runtime/audio/ClipLibrary.ts`
+- `src/runtime/audio/TimelineTransport.ts`
+- `src/runtime/audio/AudioEngine.ts`
+- `src/runtime/audio/TimelineTransport.test.ts`
+- `src/runtime/audio/AudioEngine.test.ts`
+- `src/app/store/audioSamplerStore.ts`
+- `src/app/store/audioSamplerStore.test.ts`
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+
+#### Behavior Changes
+- Radio burst requests now have a real runtime consumer and can produce audible output through a fallback generated source.
+- The app now reports radio runtime state as `loading`, `fallback`, `blocked`, or `error` instead of silently doing nothing when playback cannot proceed normally.
+- New burst requests are consumed once by request id, so the same request does not replay on every render.
+- Turning radio off stops the runtime bridge from treating the session as active and resets runtime status back to `idle`.
+
+#### Verification Steps
+- Ran `cmd /c "cd /d c:\Users\Rubbe\Desktop\ParaHookConfig\20\parahook && npx vitest run src/runtime/audio/TimelineTransport.test.ts src/runtime/audio/AudioEngine.test.ts src/app/store/audioSamplerStore.test.ts src/app/console/radioCommandIdentity.test.ts src/app/console/ConsoleDock.test.tsx src/app/AppShell.test.tsx"`
+
+<!-- ENTRY 492 -->
+### [492] - 2026-03-20 14:15 - `VR - [4.1O3] Radio On Off Return To Root`
+<!-- ENTRY 492 -->
+HUMAN SUMMARY: `Fixed the console radio flow so accepting \`On\` or \`Off\` now exits the \`Radio\` scope and returns cleanly to root instead of leaving the user inside the radio menu. The root prompt is restored after the action, and the focused radio trigger-wiring tests still pass.` 
+
+#### Scope / Constraints Honored
+- Kept the change limited to the staged `radio.on` / `radio.off` execute path in `ConsoleDock`.
+- Preserved the existing `RandomizeSampleTimes` behavior inside the `Radio` scope.
+- Kept the recent Phase 4 burst-request wiring intact while fixing the navigation behavior.
+
+#### Summary of Implementation
+- Changed the `radio.on` and `radio.off` execute branch so those actions now:
+  - clear the staged radio session
+  - clear the input text
+  - append `Returned to root`
+  - append the root prompt `Root > Choose next [Graph, Radio]`
+- Left `radio.randomizeSampleTimes` in the `Radio` scope as before.
+- Added focused console regressions proving both `On` and `Off` now return to root after submit.
+
+#### Files Changed
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+
+#### Behavior Changes
+- Accepting `On` from the `Radio` scope now enables radio and returns the console to root.
+- Accepting `Off` from the `Radio` scope now disables radio and returns the console to root.
+- The root-return transcript now matches the existing console pattern used elsewhere.
+
+#### Verification Steps
+- Ran `cmd /c "cd /d c:\Users\Rubbe\Desktop\ParaHookConfig\20\parahook && npx vitest run src/app/store/audioSamplerStore.test.ts src/app/console/radioCommandIdentity.test.ts src/app/console/ConsoleDock.test.tsx"`
+
+<!-- ENTRY 491 -->
+### [491] - 2026-03-20 14:10 - `VR - [4.1O3] Radio 3 - Console Trigger Wiring`
+<!-- ENTRY 491 -->
+HUMAN SUMMARY: `Implemented the Phase 4 radio trigger-wiring pass by adding one transient burst-request seam to the radio sampler store and routing accepted console submits plus staged \`ArrowUp\` / \`ArrowDown\` preview changes through it. The console now publishes canonical radio burst requests with semantic command identities, stable sample positions, current source URL, and burst duration, while \`Off\` stays a real silence gate because disabled radio no longer emits requests.`
+
+#### Scope / Constraints Honored
+- Kept the work inside the console trigger-wiring seam and did not widen into real browser-audio or SoundCloud playback.
+- Reused the canonical radio command-identity system from `[4.1O2]` instead of introducing highlight-only ids or raw key-based mapping.
+- Preserved the existing staged console, prompt, and assist behavior while making only the intended trigger boundaries audible.
+
+#### Summary of Implementation
+- Extended `audioSamplerStore` with one narrow transient `requestRadioBurst(...)` contract plus `latestBurstRequest` state, so later playback work can consume radio burst intent without reopening console routing policy.
+- Rewired `ConsoleDock` so accepted console outcomes now publish burst requests for:
+  - valid radio prompt submits
+  - staged advances
+  - staged executes
+  - valid flat commands
+- Added arrow-preview burst wiring so staged `ArrowUp` and `ArrowDown` now resolve the newly highlighted staged choice through the semantic radio command-identity helper and publish `arrowUp` / `arrowDown` burst requests when radio is enabled.
+- Extended `radioCommandIdentity.ts` with one `stagedChoice` path so highlighted choices like `On`, `Sketch`, and `Sketch Plane` reuse the same semantic identity family as accepted command outcomes.
+- Added focused tests for disabled-radio request suppression, enabled burst-request payloads, canonical highlighted-choice identity resolution, prompt-submit burst publication, and staged arrow-preview trigger behavior.
+
+#### Files Changed
+- `src/app/store/audioSamplerStore.ts`
+- `src/app/store/audioSamplerStore.test.ts`
+- `src/app/console/radioCommandIdentity.ts`
+- `src/app/console/radioCommandIdentity.test.ts`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+
+#### Behavior Changes
+- Accepted console submits can now publish one canonical radio burst request carrying:
+  - `commandIdentity`
+  - `samplePosition`
+  - `sourceUrl`
+  - `sampleBurstTime`
+  - `triggerKind`
+- Staged `ArrowUp` and `ArrowDown` now publish preview burst requests for the newly highlighted staged choice when radio is enabled.
+- Turning radio off now suppresses console burst requests without clearing the session-stable command-to-sample mapping.
+- Selecting `Url` prompt submit can now turn radio on and immediately publish a burst request for `Console.Radio.Url.PromptSubmit`.
+
+#### Verification Steps
+- Ran `cmd /c "cd /d c:\Users\Rubbe\Desktop\ParaHookConfig\20\parahook && npx vitest run src/app/store/audioSamplerStore.test.ts src/app/console/radioCommandIdentity.test.ts src/app/console/ConsoleDock.test.tsx"`
+
+<!-- ENTRY 487 -->
+### [487] - 2026-03-20 13:56 - `VR - [4.1O2] Command Identity Template System`
+<!-- ENTRY 487 -->
+HUMAN SUMMARY: `Implemented the Phase 3 radio command-identity pass by replacing the old ad hoc \`staged:/prompt:/flat:/invalid:\` sampler keys with one canonical console command-identity resolver seam. The radio sampler store now receives semantic identities like \`Console.Root.Radio\` and \`Console.Radio.Url.PromptSubmit\`, so aliases collapse cleanly, prompt submits no longer depend on literal entered values, and the session-stable mapping has a real contract for later trigger wiring.`
+
+#### Scope / Constraints Honored
+- Kept the work inside the Phase 3 identity/template seam and did not widen it into playback or browser-audio wiring.
+- Reused the existing `audioSamplerStore.ensureSamplePosition(...)` mapping seam instead of inventing a second allocation system.
+- Avoided tracking invalid prompt values or unknown flat commands as first-class sampler identities in this pass.
+
+#### Summary of Implementation
+- Added a dedicated console-side resolver in `src/app/console/radioCommandIdentity.ts` that maps valid console outcomes onto canonical semantic identities for:
+  - root commands
+  - staged graph/radio actions
+  - prompt submits
+  - flat command names
+- Rewired `ConsoleDock` so radio sampler tracking now goes through that resolver instead of inline transitional strings like `staged:...`, `prompt:...`, `flat:...`, and `invalid:...`.
+- Changed prompt-submit tracking so valid `Url` and `SampleBurstTime` submits allocate canonical identities like `Console.Radio.Url.PromptSubmit` without depending on the literal submitted URL or float text.
+- Kept `audioSamplerStore` as the owner of stable identity-to-sample-position mapping, and updated store tests to use canonical identity examples instead of the old temporary flat-key style.
+- Added focused tests that prove the resolver output, canonical key usage in the real radio URL flow, and prompt-submit identity stability across multiple submitted values.
+
+#### Files Changed
+- `src/app/console/radioCommandIdentity.ts`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/radioCommandIdentity.test.ts`
+- `src/app/console/ConsoleDock.test.tsx`
+- `src/app/store/audioSamplerStore.test.ts`
+
+#### Behavior Changes
+- The radio sampler mapping now stores canonical semantic identities such as `Console.Root.Radio`, `Console.Radio.Url`, and `Console.Radio.Url.PromptSubmit` instead of temporary internal key formats.
+- Aliases and equivalent command outcomes now collapse onto the same mapping key because tracking happens after command normalization rather than on raw user text.
+- Valid prompt submits keep one stable sampler identity even when the entered URL text changes between submits.
+- Invalid prompt submits and unknown flat commands no longer create first-class sampler mapping entries in this phase.
+
+#### Verification Steps
+- Ran `cmd /c "cd /d c:\Users\Rubbe\Desktop\ParaHookConfig\20\parahook && npx vitest run src/app/console/radioCommandIdentity.test.ts src/app/store/audioSamplerStore.test.ts src/app/console/ConsoleDock.test.tsx"`
+- Ran `cmd /c "cd /d c:\Users\Rubbe\Desktop\ParaHookConfig\20\parahook && npx vitest run src/app/console/stagedNavigation.test.ts src/app/console/useConsoleStore.test.ts"`
+
+<!-- ENTRY 486 -->
+### [486] - 2026-03-20 13:26 - `VR - [4.1O1] Radio 1 - Console Radio Grammar And Scope`
+<!-- ENTRY 486 -->
+HUMAN SUMMARY: `Implemented the first console-radio slice by adding a real \`Root > Radio\` staged branch, radio prompt handling for \`Url\` and \`SampleBurstTime\`, and a session-stable radio sampler state store. This ships the console grammar/state side of \`[4.1O1]\` now, while leaving actual SoundCloud playback for the later playback-bridge cut.`
+
+#### Scope / Constraints Honored
+- Kept the implementation inside the console-first radio seam instead of widening into browser audio playback.
+- Preserved the existing staged-console and feature-assist behavior for graph, sketch, and transcript flows.
+- Added session-stable radio sample-position mapping without requiring manual per-command assignment.
+
+#### Summary of Implementation
+- Extended staged console navigation so root now exposes `Graph` and `Radio`, and added the `Radio` scope actions `On`, `Off`, `Url`, `SampleBurstTime`, and `RandomizeSampleTimes`.
+- Added a narrow console prompt-session seam so `Url` and `SampleBurstTime` can prefill a suggested value, accept typed override input, validate on submit, and return cleanly to the `Radio` scope on success or `Esc`.
+- Added `audioSamplerStore` with default radio settings, radio on/off/url state, sample-burst-time state, `RandomizeSampleTimes`, and session-stable command-to-sample-position assignment.
+- Wired the console submit/cancel flow so radio actions write transcript feedback, restore the staged radio menu, and keep the root prompt updated as `Root > Choose next [Graph, Radio]`.
+
+#### Files Changed
+- `src/app/console/stagedNavigation.ts`
+- `src/app/console/useConsoleStore.ts`
+- `src/app/console/ConsoleBar.tsx`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/store/audioSamplerStore.ts`
+- `src/app/console/stagedNavigation.test.ts`
+- `src/app/console/useConsoleStore.test.ts`
+- `src/app/console/ConsoleDock.test.tsx`
+- `src/app/store/audioSamplerStore.test.ts`
+
+#### Behavior Changes
+- Typing `r` / `radio` at console root now enters the staged `Radio` branch instead of the old flat `rotate` alias path; flat `rotate` still remains available by its full command token.
+- `Radio > Url` now opens a guided prompt seeded with the current/default SoundCloud URL and valid submission turns radio on with that URL.
+- `Radio > SampleBurstTime` now opens a guided prompt seeded with the current float value and valid submission stores the new burst time before returning to `Radio`.
+- `RandomizeSampleTimes` now resets the current session’s stable command-to-sample mapping and reports that refresh in the transcript.
+- Actual SoundCloud playback is still not wired in this entry; this patch only ships the console grammar/state/template side.
+
+#### Verification Steps
+- Ran `cmd /c "cd /d c:\Users\Rubbe\Desktop\ParaHookConfig\20\parahook && npx vitest run src/app/console/stagedNavigation.test.ts src/app/console/useConsoleStore.test.ts src/app/store/audioSamplerStore.test.ts src/app/console/ConsoleDock.test.tsx"`
+- Attempted `cmd /c "cd /d c:\Users\Rubbe\Desktop\ParaHookConfig\20\parahook && npx tsc --noEmit ..."` for changed-file typechecking, but the repo currently has pre-existing TypeScript blockers outside this radio patch, including `src/app/references/referenceManifest.ts` and `src/app/spaghetti/store/useSpaghettiStore.ts`
+
 <!-- ENTRY 485 -->
 ### [485] - 2026-03-20 00:25 - `SK - [3.2B-S1] Sketch Session Hierarchy Model`
 <!-- ENTRY 485 -->
@@ -204,6 +686,55 @@ HUMAN SUMMARY: `Extended the console’s assisted staged-choice seam into active
 - `src/app/console/ConsoleDock.tsx`
 - `src/app/console/ConsoleDock.test.tsx`
 - `docs/Human-Plans/Architecture/Console.md`
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/CHANGELOG.md`
+
+<!-- ENTRY 490 -->
+### [490] - 2026-03-20 09:20 - `SK - [3.2B-S5] Sketch Toolbar / Console Command Alignment`
+<!-- ENTRY 490 -->
+HUMAN SUMMARY: `Finished the first sketch toolbar/console alignment pass by adding one shared sketch command seam in the store and routing the overlapping `SketchPlane` and `SketchDraw` toolbar actions plus console tokens through those same command verbs instead of leaving duplicate behavior ownership split between `ViewportOverlay` and `ConsoleDock`.`
+
+#### Scope / Constraints Honored
+- Kept the change inside sketch-local command ownership instead of widening into a whole-app command registry.
+- Reused the existing sketch-session store verbs instead of introducing a second sketch command state model.
+- Left non-overlapping sketch actions like `Done`, `Reset Transform`, and `Review Profiles` outside this phase.
+
+#### Summary of Implementation
+- Added `runSketchPlaneCommand(...)` and `runGeometrySketchDrawCommand(...)` to the sketch store.
+- Mapped overlapping `SketchPlane` commands through that seam:
+  - `xy`
+  - `xz`
+  - `yz`
+  - `back`
+  - `x`
+  - `move`
+  - `rotate`
+- Mapped overlapping `SketchDraw` commands through that seam:
+  - `line`
+  - `l`
+  - `pline`
+  - `pl`
+  - `enter`
+  - `back`
+  - `b`
+  - `esc`
+  - `x`
+- Updated `ConsoleDock` so sketch-local console token handling now delegates to those shared sketch command seams.
+- Updated `ViewportOverlay` so overlapping toolbar actions and sketch-session keyboard shortcuts use the same shared sketch command seams.
+- Added focused store coverage proving the new command seams drive the same sketch-session mutations as the previous direct calls.
+
+#### Validation
+- `npm.cmd test -- src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `npm.cmd test -- src/app/console/ConsoleDock.test.tsx`
+- `npm.cmd test -- src/app/components/ViewportOverlay.test.tsx`
+- `cmd /c npx tsc -p tsconfig.json --noEmit`
+
+#### Files Changed
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/components/ViewportOverlay.tsx`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch.md`
 - `docs/Human-Plans/roadmap/roadmap.md`
 - `docs/CHANGELOG.md`
 - `src/app/console/ConsoleDock.tsx`

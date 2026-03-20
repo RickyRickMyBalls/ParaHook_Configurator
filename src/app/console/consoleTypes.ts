@@ -57,6 +57,7 @@ export type ConsoleAssistChoice = {
 
 export type ConsoleAssistDescriptor = {
   label: string
+  breadcrumb?: string[]
   choices: ConsoleAssistChoice[]
   prefill: string | null
 }

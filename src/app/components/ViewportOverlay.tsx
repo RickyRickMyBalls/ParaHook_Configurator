@@ -240,13 +240,10 @@ export function ViewportOverlay() {
       (node) => node.nodeId === nodeId && node.type === 'Geometry/Sketch',
     ) ?? null
   })
-  const cancelSketchPlanePick = useSpaghettiStore((state) => state.cancelSketchPlanePick)
-  const confirmSketchPlanePick = useSpaghettiStore((state) => state.confirmSketchPlanePick)
-  const setSketchPlanePickDraftPlane = useSpaghettiStore((state) => state.setSketchPlanePickDraftPlane)
+  const runSketchPlaneCommand = useSpaghettiStore((state) => state.runSketchPlaneCommand)
   const reopenSketchPlanePickPlaneSelection = useSpaghettiStore(
     (state) => state.reopenSketchPlanePickPlaneSelection,
   )
-  const setSketchPlanePickGizmoMode = useSpaghettiStore((state) => state.setSketchPlanePickGizmoMode)
   const resetSketchPlanePickDraftTransform = useSpaghettiStore(
     (state) => state.resetSketchPlanePickDraftTransform,
   )
@@ -260,17 +257,8 @@ export function ViewportOverlay() {
     (state) => state.startGeometrySketchSession,
   )
   const closeGeometrySketchSession = useSpaghettiStore((state) => state.closeGeometrySketchSession)
-  const returnActiveSketchSessionOneLevel = useSpaghettiStore(
-    (state) => state.returnActiveSketchSessionOneLevel,
-  )
-  const setGeometrySketchSessionTool = useSpaghettiStore(
-    (state) => state.setGeometrySketchSessionTool,
-  )
-  const finishGeometrySketchDrawDraft = useSpaghettiStore(
-    (state) => state.finishGeometrySketchDrawDraft,
-  )
-  const cancelGeometrySketchDrawDraft = useSpaghettiStore(
-    (state) => state.cancelGeometrySketchDrawDraft,
+  const runGeometrySketchDrawCommand = useSpaghettiStore(
+    (state) => state.runGeometrySketchDrawCommand,
   )
   const setGeometrySketchSelectedProfile = useSpaghettiStore(
     (state) => state.setGeometrySketchSelectedProfile,
@@ -475,6 +463,7 @@ export function ViewportOverlay() {
     startWidth: number
     startHeight: number
   } | null>(null)
+  const sketchPlaneLiveTransformActivationKeyRef = useRef<string | null>(null)
 
   const resolvedAxisWidgetSize = viewToolbarOpen
     ? expandedAxisWidgetSize ?? DEFAULT_EXPANDED_AXIS_WIDGET_SIZE
@@ -498,6 +487,25 @@ export function ViewportOverlay() {
 
   const activePickPlane = sketchPlanePickSession?.draftPlane ?? 'XY'
   const activePickTransform = sketchPlanePickSession?.draftTransform ?? null
+  const activeSketchPlaneTransformAxis = sketchPlanePickSession?.activeTransformAxis ?? null
+  const moveSnapScopeActive = sketchPlanePickSession?.adjustScope === 'move-snap'
+  const rotateSnapScopeActive = sketchPlanePickSession?.adjustScope === 'rotate-snap'
+  const moveRowsHighlighted =
+    sketchPlanePickSession?.adjustScope === 'move' &&
+    (activeSketchPlaneTransformAxis === 'free' || activeSketchPlaneTransformAxis === null)
+  const rotateRowsHighlighted =
+    sketchPlanePickSession?.adjustScope === 'rotate' &&
+    (activeSketchPlaneTransformAxis === 'free' || activeSketchPlaneTransformAxis === null)
+  const moveAxisHighlighted =
+    sketchPlanePickSession?.adjustScope === 'move' &&
+    activeSketchPlaneTransformAxis !== 'free'
+      ? activeSketchPlaneTransformAxis
+      : null
+  const rotateAxisHighlighted =
+    sketchPlanePickSession?.adjustScope === 'rotate' &&
+    activeSketchPlaneTransformAxis !== 'free'
+      ? activeSketchPlaneTransformAxis
+      : null
   const sketchPlaneAccent = getTypeColor('plane')
   const sketchSessionAccent = getTypeColor('sketchEntities')
   const sketchPlaneToolPreset = useMemo(
@@ -841,6 +849,90 @@ export function ViewportOverlay() {
   }, [activeGeometrySketchNode?.nodeId])
 
   useEffect(() => {
+    const stopActiveSketchPlaneTransformInteraction = () => {
+      if (sketchPlaneLiveTransformActivationKeyRef.current === null) {
+        return
+      }
+      sketchPlaneLiveTransformActivationKeyRef.current = null
+      const viewer = getViewer()
+      if (viewer === null) {
+        return
+      }
+      viewer.completeReferenceTransformDrag()
+      viewer.clearReferenceTransformHandle()
+    }
+
+    if (sketchPlanePickSession?.stage !== 'adjust') {
+      stopActiveSketchPlaneTransformInteraction()
+      return
+    }
+    if (sketchPlanePickSession.adjustScope === 'move') {
+      setSketchPlaneMoveExpanded(true)
+    }
+    if (sketchPlanePickSession.adjustScope === 'rotate') {
+      setSketchPlaneRotateExpanded(true)
+    }
+    if (
+      sketchPlanePickSession.adjustScope === 'root' ||
+      (sketchPlanePickSession.adjustScope !== 'move' &&
+        sketchPlanePickSession.adjustScope !== 'rotate')
+    ) {
+      stopActiveSketchPlaneTransformInteraction()
+      return
+    }
+
+    const activationKey = `${sketchPlanePickSession.adjustScope}:${activeSketchPlaneTransformAxis ?? 'none'}`
+    if (sketchPlaneLiveTransformActivationKeyRef.current === activationKey) {
+      return
+    }
+    sketchPlaneLiveTransformActivationKeyRef.current = activationKey
+
+    const frame = window.requestAnimationFrame(() => {
+      const viewer = getViewer()
+      if (viewer === null) {
+        return
+      }
+      if (sketchPlanePickSession.adjustScope === 'move') {
+        if (activeSketchPlaneTransformAxis === 'x') {
+          viewer.activateTranslateHandle('X')
+          return
+        }
+        if (activeSketchPlaneTransformAxis === 'y') {
+          viewer.activateTranslateHandle('Y')
+          return
+        }
+        if (activeSketchPlaneTransformAxis === 'z') {
+          viewer.activateTranslateHandle('Z')
+          return
+        }
+        viewer.activateTranslateCenterHandle()
+        return
+      }
+      if (activeSketchPlaneTransformAxis === 'x') {
+        viewer.activateRotateHandle('X')
+        return
+      }
+      if (activeSketchPlaneTransformAxis === 'y') {
+        viewer.activateRotateHandle('Y')
+        return
+      }
+      if (activeSketchPlaneTransformAxis === 'z') {
+        viewer.activateRotateHandle('Z')
+        return
+      }
+      viewer.activateRotateCenterHandle()
+    })
+
+    return () => {
+      window.cancelAnimationFrame(frame)
+    }
+  }, [
+    activeSketchPlaneTransformAxis,
+    sketchPlanePickSession?.adjustScope,
+    sketchPlanePickSession?.stage,
+  ])
+
+  useEffect(() => {
     if (
       activePlanePickNode === null ||
       sketchPlaneToolPanelHeightMode !== 'auto' ||
@@ -902,12 +994,12 @@ export function ViewportOverlay() {
       }
       if (event.key === 'Escape') {
         event.preventDefault()
-        returnActiveSketchSessionOneLevel()
+        runSketchPlaneCommand('esc')
         return
       }
       if (event.key === 'Enter' && sketchPlanePickSession.stage === 'adjust') {
         event.preventDefault()
-        confirmSketchPlanePick()
+        runSketchPlaneCommand('confirm-to-sketch')
         return
       }
       if (sketchPlanePickSession.stage !== 'adjust') {
@@ -917,7 +1009,7 @@ export function ViewportOverlay() {
       if (key === 'm') {
         event.preventDefault()
         if (sketchPlanePickSession.gizmoMode !== 'translate') {
-          setSketchPlanePickGizmoMode('translate')
+          runSketchPlaneCommand('move')
         }
         setSketchPlaneMoveExpanded(true)
         setSketchPlaneRotateExpanded(false)
@@ -926,7 +1018,7 @@ export function ViewportOverlay() {
       if (key === 'r') {
         event.preventDefault()
         if (sketchPlanePickSession.gizmoMode !== 'rotate') {
-          setSketchPlanePickGizmoMode('rotate')
+          runSketchPlaneCommand('rotate')
         }
         setSketchPlaneRotateExpanded(true)
         setSketchPlaneMoveExpanded(false)
@@ -938,10 +1030,7 @@ export function ViewportOverlay() {
       window.removeEventListener('keydown', handleKeyDown)
     }
   }, [
-    confirmSketchPlanePick,
-    reopenSketchPlanePickPlaneSelection,
-    returnActiveSketchSessionOneLevel,
-    setSketchPlanePickGizmoMode,
+    runSketchPlaneCommand,
     sketchPlanePickSession,
   ])
 
@@ -963,12 +1052,12 @@ export function ViewportOverlay() {
       }
       if (event.key === 'Escape') {
         event.preventDefault()
-        returnActiveSketchSessionOneLevel()
+        runGeometrySketchDrawCommand('esc')
         return
       }
       if (event.key === 'Enter') {
         event.preventDefault()
-        finishGeometrySketchDrawDraft()
+        runGeometrySketchDrawCommand('enter')
       }
     }
 
@@ -976,7 +1065,7 @@ export function ViewportOverlay() {
     return () => {
       window.removeEventListener('keydown', handleKeyDown)
     }
-  }, [finishGeometrySketchDrawDraft, geometrySketchSession, returnActiveSketchSessionOneLevel])
+  }, [geometrySketchSession, runGeometrySketchDrawCommand])
 
   const beginSketchSessionWindowDrag = (
     pointerId: number | null,
@@ -1781,10 +1870,10 @@ export function ViewportOverlay() {
                     event.preventDefault()
                     event.stopPropagation()
                   }}
-                  onClick={() => confirmSketchPlanePick()}
+                  onClick={() => runSketchPlaneCommand('done')}
                   disabled={sketchPlanePickSession.stage !== 'adjust'}
-                  aria-label="Confirm sketch plane pick"
-                  title="Confirm sketch plane pick"
+                  aria-label="Finish sketch plane and return to sketch"
+                  title="Finish sketch plane and return to sketch"
                 >
                   Done
                 </button>
@@ -1799,7 +1888,25 @@ export function ViewportOverlay() {
                     event.preventDefault()
                     event.stopPropagation()
                   }}
-                  onClick={() => returnActiveSketchSessionOneLevel()}
+                  onClick={() => runSketchPlaneCommand('confirm-to-sketch')}
+                  disabled={sketchPlanePickSession.stage !== 'adjust'}
+                  aria-label="Confirm sketch plane and continue into sketch draw"
+                  title="Confirm sketch plane and continue into sketch draw"
+                >
+                  ConfirmToSketch
+                </button>
+                <button
+                  type="button"
+                  className="ViewportOverlaySketchPlaneSessionAction"
+                  onPointerDown={(event) => {
+                    event.preventDefault()
+                    event.stopPropagation()
+                  }}
+                  onMouseDown={(event) => {
+                    event.preventDefault()
+                    event.stopPropagation()
+                  }}
+                  onClick={() => runSketchPlaneCommand('back')}
                   aria-label="Back one sketch plane level"
                   title="Back one sketch plane level"
                 >
@@ -1838,7 +1945,7 @@ export function ViewportOverlay() {
                     event.preventDefault()
                     event.stopPropagation()
                   }}
-                  onClick={() => cancelSketchPlanePick()}
+                  onClick={() => runSketchPlaneCommand('x')}
                   aria-label="Close sketch plane tool"
                   title="Close sketch plane tool"
                 >
@@ -1916,7 +2023,7 @@ export function ViewportOverlay() {
                         options={[...sketchPlanePlaneOptions]}
                         menuMode="custom"
                         onChange={(value) =>
-                          setSketchPlanePickDraftPlane(value as 'XY' | 'XZ' | 'YZ')
+                          runSketchPlaneCommand(value.toLowerCase() as 'xy' | 'xz' | 'yz')
                         }
                       />
                     </div>
@@ -1996,7 +2103,7 @@ export function ViewportOverlay() {
                             options={[...sketchPlanePlaneOptions]}
                             menuMode="custom"
                             onChange={(value) =>
-                              setSketchPlanePickDraftPlane(value as 'XY' | 'XZ' | 'YZ')
+                              runSketchPlaneCommand(value.toLowerCase() as 'xy' | 'xz' | 'yz')
                             }
                           />
                         </div>
@@ -2055,7 +2162,7 @@ export function ViewportOverlay() {
                               onClick={() => {
                                 resetSketchPlaneToolPanelToAutoHeight()
                                 if (sketchPlanePickSession.gizmoMode !== 'translate') {
-                                  setSketchPlanePickGizmoMode('translate')
+                                  runSketchPlaneCommand('move')
                                   setSketchPlaneMoveExpanded(true)
                                   return
                                 }
@@ -2075,21 +2182,21 @@ export function ViewportOverlay() {
                             <button
                               type="button"
                               className={`ViewportOverlaySketchPlaneSessionAction ViewportOverlaySketchPlaneInlineAction ${
-                                sketchPlaneToolbarTranslateSnapEnabled ? 'isPrimary' : ''
+                                sketchPlaneToolbarTranslateSnapEnabled || moveSnapScopeActive
+                                  ? 'isPrimary'
+                                  : ''
                               }`}
                               onClick={() => {
                                 resetSketchPlaneToolPanelToAutoHeight()
-                                setSketchPlaneToolbarTranslateSnapEnabled(
-                                  !sketchPlaneToolbarTranslateSnapEnabled,
-                                )
+                                runSketchPlaneCommand('move-snap')
                               }}
-                              title="Toggle move snap"
-                              aria-label="Toggle move snap"
+                              title="Configure move snap"
+                              aria-label="Configure move snap"
                             >
                               Snap
                             </button>
                           </div>
-                          {sketchPlaneToolbarTranslateSnapEnabled ? (
+                          {sketchPlaneToolbarTranslateSnapEnabled || moveSnapScopeActive ? (
                             <ParaSlider
                               label="Move Snap"
                               value={sketchPlaneToolbarTranslateSnapValue}
@@ -2102,54 +2209,78 @@ export function ViewportOverlay() {
                           ) : null}
                           {sketchPlaneMoveExpanded ? (
                             <>
-                              <ParaSlider
-                                label="Move X"
-                                value={activePickTransform.translation.x}
-                                min={-200}
-                                max={200}
-                                step={
-                                  sketchPlaneToolbarTranslateSnapEnabled
-                                    ? sketchPlaneToolbarTranslateSnapValue
-                                    : 0.1
-                                }
-                                showContinuousDragPreview={
-                                  sketchPlaneToolbarTranslateSnapEnabled
-                                }
-                                onChange={(value) => setSketchPlanePickTranslationAxis('x', value)}
-                                formatValue={(value) => `${value.toFixed(1)} mm`}
-                              />
-                              <ParaSlider
-                                label="Move Y"
-                                value={activePickTransform.translation.y}
-                                min={-200}
-                                max={200}
-                                step={
-                                  sketchPlaneToolbarTranslateSnapEnabled
-                                    ? sketchPlaneToolbarTranslateSnapValue
-                                    : 0.1
-                                }
-                                showContinuousDragPreview={
-                                  sketchPlaneToolbarTranslateSnapEnabled
-                                }
-                                onChange={(value) => setSketchPlanePickTranslationAxis('y', value)}
-                                formatValue={(value) => `${value.toFixed(1)} mm`}
-                              />
-                              <ParaSlider
-                                label="Move Z"
-                                value={activePickTransform.translation.z}
-                                min={-200}
-                                max={200}
-                                step={
-                                  sketchPlaneToolbarTranslateSnapEnabled
-                                    ? sketchPlaneToolbarTranslateSnapValue
-                                    : 0.1
-                                }
-                                showContinuousDragPreview={
-                                  sketchPlaneToolbarTranslateSnapEnabled
-                                }
-                                onChange={(value) => setSketchPlanePickTranslationAxis('z', value)}
-                                formatValue={(value) => `${value.toFixed(1)} mm`}
-                              />
+                              <div
+                                className={`ViewportOverlaySketchPlaneAxisRow ${
+                                  moveRowsHighlighted || moveAxisHighlighted === 'x'
+                                    ? 'isActive'
+                                    : ''
+                                }`}
+                              >
+                                <ParaSlider
+                                  label="Move X"
+                                  value={activePickTransform.translation.x}
+                                  min={-200}
+                                  max={200}
+                                  step={
+                                    sketchPlaneToolbarTranslateSnapEnabled
+                                      ? sketchPlaneToolbarTranslateSnapValue
+                                      : 0.1
+                                  }
+                                  showContinuousDragPreview={
+                                    sketchPlaneToolbarTranslateSnapEnabled
+                                  }
+                                  onChange={(value) => setSketchPlanePickTranslationAxis('x', value)}
+                                  formatValue={(value) => `${value.toFixed(1)} mm`}
+                                />
+                              </div>
+                              <div
+                                className={`ViewportOverlaySketchPlaneAxisRow ${
+                                  moveRowsHighlighted || moveAxisHighlighted === 'y'
+                                    ? 'isActive'
+                                    : ''
+                                }`}
+                              >
+                                <ParaSlider
+                                  label="Move Y"
+                                  value={activePickTransform.translation.y}
+                                  min={-200}
+                                  max={200}
+                                  step={
+                                    sketchPlaneToolbarTranslateSnapEnabled
+                                      ? sketchPlaneToolbarTranslateSnapValue
+                                      : 0.1
+                                  }
+                                  showContinuousDragPreview={
+                                    sketchPlaneToolbarTranslateSnapEnabled
+                                  }
+                                  onChange={(value) => setSketchPlanePickTranslationAxis('y', value)}
+                                  formatValue={(value) => `${value.toFixed(1)} mm`}
+                                />
+                              </div>
+                              <div
+                                className={`ViewportOverlaySketchPlaneAxisRow ${
+                                  moveRowsHighlighted || moveAxisHighlighted === 'z'
+                                    ? 'isActive'
+                                    : ''
+                                }`}
+                              >
+                                <ParaSlider
+                                  label="Move Z"
+                                  value={activePickTransform.translation.z}
+                                  min={-200}
+                                  max={200}
+                                  step={
+                                    sketchPlaneToolbarTranslateSnapEnabled
+                                      ? sketchPlaneToolbarTranslateSnapValue
+                                      : 0.1
+                                  }
+                                  showContinuousDragPreview={
+                                    sketchPlaneToolbarTranslateSnapEnabled
+                                  }
+                                  onChange={(value) => setSketchPlanePickTranslationAxis('z', value)}
+                                  formatValue={(value) => `${value.toFixed(1)} mm`}
+                                />
+                              </div>
                             </>
                           ) : (
                             <>
@@ -2184,7 +2315,7 @@ export function ViewportOverlay() {
                               onClick={() => {
                                 resetSketchPlaneToolPanelToAutoHeight()
                                 if (sketchPlanePickSession.gizmoMode !== 'rotate') {
-                                  setSketchPlanePickGizmoMode('rotate')
+                                  runSketchPlaneCommand('rotate')
                                   setSketchPlaneRotateExpanded(true)
                                   return
                                 }
@@ -2204,21 +2335,21 @@ export function ViewportOverlay() {
                             <button
                               type="button"
                               className={`ViewportOverlaySketchPlaneSessionAction ViewportOverlaySketchPlaneInlineAction ${
-                                sketchPlaneToolbarRotateSnapEnabled ? 'isPrimary' : ''
+                                sketchPlaneToolbarRotateSnapEnabled || rotateSnapScopeActive
+                                  ? 'isPrimary'
+                                  : ''
                               }`}
                               onClick={() => {
                                 resetSketchPlaneToolPanelToAutoHeight()
-                                setSketchPlaneToolbarRotateSnapEnabled(
-                                  !sketchPlaneToolbarRotateSnapEnabled,
-                                )
+                                runSketchPlaneCommand('rotate-snap')
                               }}
-                              title="Toggle rotate snap"
-                              aria-label="Toggle rotate snap"
+                              title="Configure rotate snap"
+                              aria-label="Configure rotate snap"
                             >
                               Snap
                             </button>
                           </div>
-                          {sketchPlaneToolbarRotateSnapEnabled ? (
+                          {sketchPlaneToolbarRotateSnapEnabled || rotateSnapScopeActive ? (
                             <ParaSlider
                               label="Rotate Snap"
                               value={sketchPlaneToolbarRotateSnapValue}
@@ -2231,51 +2362,75 @@ export function ViewportOverlay() {
                           ) : null}
                           {sketchPlaneRotateExpanded ? (
                             <>
-                              <ParaSlider
-                                label="Rotate X"
-                                value={activePickTransform.rotationDeg.x}
-                                min={-180}
-                                max={180}
-                                step={
-                                  sketchPlaneToolbarRotateSnapEnabled
-                                    ? sketchPlaneToolbarRotateSnapValue
-                                    : 1
-                                }
-                                allowWrap
-                                showContinuousDragPreview={sketchPlaneToolbarRotateSnapEnabled}
-                                onChange={(value) => setSketchPlanePickRotationAxis('x', value)}
-                                formatValue={(value) => `${value.toFixed(0)} deg`}
-                              />
-                              <ParaSlider
-                                label="Rotate Y"
-                                value={activePickTransform.rotationDeg.y}
-                                min={-180}
-                                max={180}
-                                step={
-                                  sketchPlaneToolbarRotateSnapEnabled
-                                    ? sketchPlaneToolbarRotateSnapValue
-                                    : 1
-                                }
-                                allowWrap
-                                showContinuousDragPreview={sketchPlaneToolbarRotateSnapEnabled}
-                                onChange={(value) => setSketchPlanePickRotationAxis('y', value)}
-                                formatValue={(value) => `${value.toFixed(0)} deg`}
-                              />
-                              <ParaSlider
-                                label="Rotate Z"
-                                value={activePickTransform.rotationDeg.z}
-                                min={-180}
-                                max={180}
-                                step={
-                                  sketchPlaneToolbarRotateSnapEnabled
-                                    ? sketchPlaneToolbarRotateSnapValue
-                                    : 1
-                                }
-                                allowWrap
-                                showContinuousDragPreview={sketchPlaneToolbarRotateSnapEnabled}
-                                onChange={(value) => setSketchPlanePickRotationAxis('z', value)}
-                                formatValue={(value) => `${value.toFixed(0)} deg`}
-                              />
+                              <div
+                                className={`ViewportOverlaySketchPlaneAxisRow ${
+                                  rotateRowsHighlighted || rotateAxisHighlighted === 'x'
+                                    ? 'isActive'
+                                    : ''
+                                }`}
+                              >
+                                <ParaSlider
+                                  label="Rotate X"
+                                  value={activePickTransform.rotationDeg.x}
+                                  min={-180}
+                                  max={180}
+                                  step={
+                                    sketchPlaneToolbarRotateSnapEnabled
+                                      ? sketchPlaneToolbarRotateSnapValue
+                                      : 1
+                                  }
+                                  allowWrap
+                                  showContinuousDragPreview={sketchPlaneToolbarRotateSnapEnabled}
+                                  onChange={(value) => setSketchPlanePickRotationAxis('x', value)}
+                                  formatValue={(value) => `${value.toFixed(0)} deg`}
+                                />
+                              </div>
+                              <div
+                                className={`ViewportOverlaySketchPlaneAxisRow ${
+                                  rotateRowsHighlighted || rotateAxisHighlighted === 'y'
+                                    ? 'isActive'
+                                    : ''
+                                }`}
+                              >
+                                <ParaSlider
+                                  label="Rotate Y"
+                                  value={activePickTransform.rotationDeg.y}
+                                  min={-180}
+                                  max={180}
+                                  step={
+                                    sketchPlaneToolbarRotateSnapEnabled
+                                      ? sketchPlaneToolbarRotateSnapValue
+                                      : 1
+                                  }
+                                  allowWrap
+                                  showContinuousDragPreview={sketchPlaneToolbarRotateSnapEnabled}
+                                  onChange={(value) => setSketchPlanePickRotationAxis('y', value)}
+                                  formatValue={(value) => `${value.toFixed(0)} deg`}
+                                />
+                              </div>
+                              <div
+                                className={`ViewportOverlaySketchPlaneAxisRow ${
+                                  rotateRowsHighlighted || rotateAxisHighlighted === 'z'
+                                    ? 'isActive'
+                                    : ''
+                                }`}
+                              >
+                                <ParaSlider
+                                  label="Rotate Z"
+                                  value={activePickTransform.rotationDeg.z}
+                                  min={-180}
+                                  max={180}
+                                  step={
+                                    sketchPlaneToolbarRotateSnapEnabled
+                                      ? sketchPlaneToolbarRotateSnapValue
+                                      : 1
+                                  }
+                                  allowWrap
+                                  showContinuousDragPreview={sketchPlaneToolbarRotateSnapEnabled}
+                                  onChange={(value) => setSketchPlanePickRotationAxis('z', value)}
+                                  formatValue={(value) => `${value.toFixed(0)} deg`}
+                                />
+                              </div>
                             </>
                           ) : (
                             <>
@@ -2384,7 +2539,7 @@ export function ViewportOverlay() {
                   event.stopPropagation()
                 }}
                 onClick={() => {
-                  returnActiveSketchSessionOneLevel()
+                  runGeometrySketchDrawCommand('back')
                 }}
                 disabled={
                   geometrySketchSession.mode !== 'draw' || activeDrawStage === 'sessionIdle'
@@ -2431,7 +2586,7 @@ export function ViewportOverlay() {
                 event.stopPropagation()
               }}
               onClick={() => {
-                closeGeometrySketchSession()
+                runGeometrySketchDrawCommand('x')
               }}
               aria-label="Close sketch session"
               title="Close sketch session"
@@ -2715,7 +2870,7 @@ export function ViewportOverlay() {
                         aria-label={getGeometrySketchToolLabel(tool)}
                         title={getGeometrySketchToolLabel(tool)}
                         onClick={() => {
-                          setGeometrySketchSessionTool(tool)
+                          runGeometrySketchDrawCommand(tool)
                         }}
                       >
                         {renderGeometrySketchToolIcon(tool)}
@@ -2805,7 +2960,7 @@ export function ViewportOverlay() {
                     <div className="ViewportOverlaySketchSessionActions">
                       <button
                         type="button"
-                        onClick={() => finishGeometrySketchDrawDraft()}
+                        onClick={() => runGeometrySketchDrawCommand('enter')}
                         disabled={activeTool === null}
                       >
                         {activeTool === 'pline'
@@ -2818,7 +2973,7 @@ export function ViewportOverlay() {
                         type="button"
                         className="isGhost"
                         onClick={() => {
-                          cancelGeometrySketchDrawDraft()
+                          runGeometrySketchDrawCommand('back')
                         }}
                         disabled={activeTool === null}
                       >

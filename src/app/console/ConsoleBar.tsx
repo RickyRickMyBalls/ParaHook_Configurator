@@ -15,6 +15,7 @@ type ConsoleBarProps = {
   inputRef?: RefObject<HTMLInputElement | null>
   onSubmitCommand?: (commandText: string) => void
   onCancelCommand?: () => void
+  onCycleGuidedChoice?: (direction: 'previous' | 'next') => void
   treatSpaceAsSubmit?: boolean
 }
 
@@ -24,6 +25,7 @@ export function ConsoleBar({
   inputRef,
   onSubmitCommand,
   onCancelCommand,
+  onCycleGuidedChoice,
   treatSpaceAsSubmit = false,
 }: ConsoleBarProps) {
   const barRef = useRef<HTMLDivElement | null>(null)
@@ -35,6 +37,7 @@ export function ConsoleBar({
   const entries = useConsoleStore((state) => state.entries)
   const visibleLayers = useConsoleStore((state) => state.visibleLayers)
   const stagedNavigationSession = useConsoleStore((state) => state.stagedNavigationSession)
+  const consolePromptSession = useConsoleStore((state) => state.consolePromptSession)
   const featureAssistDescriptor = useConsoleStore((state) => state.featureAssistDescriptor)
   const stagedChoiceIndex = useConsoleStore((state) => state.stagedChoiceIndex)
   const isStagedChoiceManualOverride = useConsoleStore(
@@ -53,41 +56,52 @@ export function ConsoleBar({
 
   const normalizeChoiceToken = (value: string): string => value.trim().toUpperCase()
 
-  const buildStagedSummaryPrefix = (session: ConsoleStagedNavigationSession): string => {
+  const buildStagedSummaryBreadcrumb = (session: ConsoleStagedNavigationSession): string[] => {
     switch (session.scopeId) {
       case 'graphRoot':
-        return 'Graph > Choose next'
       case 'graphSelected':
-        return 'Graph > Choose next'
+        return ['Graph']
+      case 'radioRoot':
+        return ['Radio']
+      case 'graphNodeList':
+      case 'graphNodeSelected':
+        return ['Graph', 'Focus Node']
       case 'graphSketchList':
       case 'graphSketchSelected':
-        return 'Sketch > Choose next'
+        return ['Graph', 'Sketch']
       case 'graphExtrudeList':
       case 'graphExtrudeSelected':
-        return 'Extrude > Choose next'
+        return ['Graph', 'Extrude']
       case 'graphOutputPreviewList':
       case 'graphOutputPreviewSelected':
-        return 'Output Preview > Choose next'
+        return ['Graph', 'Output Preview']
       default:
-        return 'Choose next'
+        return ['Choose next']
     }
   }
 
   const parsePromptSummary = (
     text: string,
   ): {
-    prefix: string
+    breadcrumb: string[]
+    leadText: string
     choices: string[]
     activeChoiceIndex: number | null
   } | null => {
-    const matchedPrompt = text.match(/^(.*?Choose next)\s*\[(.*)\]$/)
+    const matchedPrompt = text.match(/^(.*?)\s*>\s*(Choose next)\s*\[(.*)\]$/)
     if (matchedPrompt === null) {
       return null
     }
 
-    const prefix = matchedPrompt[1]?.trim()
-    const rawChoices = matchedPrompt[2]?.trim()
-    if (prefix === undefined || rawChoices === undefined || rawChoices.length === 0) {
+    const breadcrumbText = matchedPrompt[1]?.trim()
+    const leadText = matchedPrompt[2]?.trim()
+    const rawChoices = matchedPrompt[3]?.trim()
+    if (
+      breadcrumbText === undefined ||
+      leadText === undefined ||
+      rawChoices === undefined ||
+      rawChoices.length === 0
+    ) {
       return null
     }
 
@@ -107,7 +121,8 @@ export function ConsoleBar({
         : choices.findIndex((choice) => normalizeChoiceToken(choice) === normalizedInput)
 
     return {
-      prefix,
+      breadcrumb: breadcrumbText.split('>').map((segment) => segment.trim()).filter(Boolean),
+      leadText: ` > ${leadText}`,
       choices,
       activeChoiceIndex: activeChoiceIndex === -1 ? null : activeChoiceIndex,
     }
@@ -116,13 +131,26 @@ export function ConsoleBar({
   const activeSummary =
     stagedNavigationSession !== null && stagedNavigationSession.validChoices.length > 0
       ? {
-          prefix: buildStagedSummaryPrefix(stagedNavigationSession),
+          breadcrumb: buildStagedSummaryBreadcrumb(stagedNavigationSession),
+          leadText: ' > Choose next',
           choices: stagedNavigationSession.validChoices.map((choice) => choice.label),
           activeChoiceIndex: stagedChoiceIndex ?? 0,
         }
+      : consolePromptSession !== null
+        ? {
+            breadcrumb: consolePromptSession.breadcrumb,
+            leadText: ' > Enter value',
+            choices: [consolePromptSession.prefill],
+            activeChoiceIndex:
+              isStagedChoiceManualOverride || inputText.trim() !== consolePromptSession.prefill.trim()
+                ? null
+                : 0,
+          }
       : featureAssistDescriptor !== null && featureAssistDescriptor.choices.length > 0
         ? {
-            prefix: `${featureAssistDescriptor.label} >`,
+            breadcrumb:
+              featureAssistDescriptor.breadcrumb ?? [featureAssistDescriptor.label],
+            leadText: ' > Choose next',
             choices: featureAssistDescriptor.choices.map((choice) => choice.label),
             activeChoiceIndex: stagedChoiceIndex ?? 0,
           }
@@ -147,32 +175,44 @@ export function ConsoleBar({
 
   const summary =
     activeSummary !== null ? (
-      <>
-        <span className="ConsoleBarSummaryPrefix">{activeSummary.prefix}</span>
-        <span
-          ref={summaryChoicesViewportRef}
-          className="ConsoleBarSummaryChoicesViewport"
-          aria-label="Console staged choices"
-        >
-          <span className="ConsoleBarSummaryChoices">
-            <span className="ConsoleBarSummaryBracket">[</span>
-            {activeSummary.choices.map((choice, index) => (
-              <span
-                key={`${choice}-${index}`}
-                className={`ConsoleBarSummaryChoice ${
-                  index === activeSummary.activeChoiceIndex ? 'isActive' : ''
-                }`}
-              >
-                {choice}
-                {index < activeSummary.choices.length - 1 ? (
-                  <span className="ConsoleBarSummarySeparator">, </span>
-                ) : null}
-              </span>
-            ))}
-            <span className="ConsoleBarSummaryBracket">]</span>
+      <span className="ConsoleBarSummaryPrompt">
+        <span className="ConsoleBarSummaryBreadcrumbRow">
+          {activeSummary.breadcrumb.map((segment, index) => (
+            <span key={`${segment}-${index}`} className="ConsoleBarSummaryBreadcrumbSegment">
+              {segment}
+              {index < activeSummary.breadcrumb.length - 1 ? (
+                <span className="ConsoleBarSummaryBreadcrumbSeparator"> &gt; </span>
+              ) : null}
+            </span>
+          ))}
+        </span>
+        <span className="ConsoleBarSummaryChoicesRow">
+          <span className="ConsoleBarSummaryLead">{activeSummary.leadText}</span>
+          <span
+            ref={summaryChoicesViewportRef}
+            className="ConsoleBarSummaryChoicesViewport"
+            aria-label="Console staged choices"
+          >
+            <span className="ConsoleBarSummaryChoices">
+              <span className="ConsoleBarSummaryBracket">[</span>
+              {activeSummary.choices.map((choice, index) => (
+                <span
+                  key={`${choice}-${index}`}
+                  className={`ConsoleBarSummaryChoice ${
+                    index === activeSummary.activeChoiceIndex ? 'isActive' : ''
+                  }`}
+                >
+                  {choice}
+                  {index < activeSummary.choices.length - 1 ? (
+                    <span className="ConsoleBarSummarySeparator">, </span>
+                  ) : null}
+                </span>
+              ))}
+              <span className="ConsoleBarSummaryBracket">]</span>
+            </span>
           </span>
         </span>
-      </>
+      </span>
     ) : (
       summaryText
     )
@@ -189,7 +229,11 @@ export function ConsoleBar({
 
       const nextState = useConsoleStore.getState()
       if (
-        (nextState.stagedNavigationSession !== null || nextState.featureAssistDescriptor !== null) &&
+        (
+          nextState.stagedNavigationSession !== null ||
+          nextState.consolePromptSession !== null ||
+          nextState.featureAssistDescriptor !== null
+        ) &&
         !nextState.isStagedChoiceManualOverride &&
         nextState.inputText.length > 0
       ) {
@@ -204,6 +248,11 @@ export function ConsoleBar({
   }
 
   const handleInputKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
+    const isGuidedInputActive =
+      stagedNavigationSession !== null ||
+      consolePromptSession !== null ||
+      featureAssistDescriptor !== null
+
     if (treatSpaceAsSubmit && event.key === ' ') {
       event.preventDefault()
       if (inputText.trim().length === 0) {
@@ -214,7 +263,7 @@ export function ConsoleBar({
       return
     }
     if (
-      (stagedNavigationSession !== null || featureAssistDescriptor !== null) &&
+      isGuidedInputActive &&
       !isStagedChoiceManualOverride &&
       event.key.length === 1 &&
       !event.ctrlKey &&
@@ -225,14 +274,14 @@ export function ConsoleBar({
       setInputText(event.key)
       return
     }
-    if ((stagedNavigationSession !== null || featureAssistDescriptor !== null) && event.key === 'ArrowUp') {
+    if (isGuidedInputActive && event.key === 'ArrowUp') {
       event.preventDefault()
-      cycleStagedChoice('previous')
+      ;(onCycleGuidedChoice ?? cycleStagedChoice)('previous')
       return
     }
-    if ((stagedNavigationSession !== null || featureAssistDescriptor !== null) && event.key === 'ArrowDown') {
+    if (isGuidedInputActive && event.key === 'ArrowDown') {
       event.preventDefault()
-      cycleStagedChoice('next')
+      ;(onCycleGuidedChoice ?? cycleStagedChoice)('next')
       return
     }
     if (event.key === 'ArrowUp') {
@@ -247,14 +296,26 @@ export function ConsoleBar({
     }
     if (event.key === 'Escape') {
       event.preventDefault()
-      if (inputText.length > 0) {
-        setInputText('')
-        return
-      }
-      if ((stagedNavigationSession !== null || featureAssistDescriptor !== null) && !isStagedChoiceManualOverride) {
+      if (
+        isGuidedInputActive &&
+        !isStagedChoiceManualOverride
+      ) {
         onCancelCommand?.()
         resetHistoryNavigation()
-        inputRef?.current?.blur()
+        queueMicrotask(() => {
+          const input = inputRef?.current
+          if (input === null || input === undefined) {
+            return
+          }
+          input.focus()
+          const nextInputText = useConsoleStore.getState().inputText
+          const caretOffset = nextInputText.length
+          input.setSelectionRange(caretOffset, caretOffset)
+        })
+        return
+      }
+      if (inputText.length > 0) {
+        setInputText('')
         return
       }
       onCancelCommand?.()

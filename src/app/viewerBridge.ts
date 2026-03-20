@@ -50,6 +50,7 @@ export type SketchPlanePickOverlayVm = {
   stage: 'pick' | 'adjust'
   gizmoMode: 'translate' | 'rotate'
   draftPlane: SketchPlane
+  previewPlane: SketchPlane | null
   draftTransform: SketchPlaneTransform
   snap: {
     translateMm: number | null

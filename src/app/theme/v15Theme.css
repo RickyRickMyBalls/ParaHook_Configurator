@@ -3308,11 +3308,24 @@ button.ParaSelectMenuAction:hover {
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: 6px;
   color: var(--console-text-dim-color, var(--v15-text-dim));
   font-size: 11px;
   font-weight: 700;
   overflow: hidden;
+}
+
+.ConsoleBarSummaryPrompt {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.ConsoleBarSummaryBreadcrumbRow,
+.ConsoleBarSummaryChoicesRow {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .ConsoleBarDivider {
@@ -3344,7 +3357,11 @@ button.ParaSelectMenuAction:hover {
   box-shadow: 0 0 0 3px rgba(124, 160, 255, 0.12);
 }
 
-.ConsoleBarSummaryPrefix,
+.ConsoleBarSummaryPrompt,
+.ConsoleBarSummaryBreadcrumbRow,
+.ConsoleBarSummaryBreadcrumbSegment,
+.ConsoleBarSummaryBreadcrumbSeparator,
+.ConsoleBarSummaryLead,
 .ConsoleBarSummaryChoicesViewport,
 .ConsoleBarSummaryChoices,
 .ConsoleBarSummaryChoice,
@@ -3353,11 +3370,21 @@ button.ParaSelectMenuAction:hover {
   white-space: nowrap;
 }
 
-.ConsoleBarSummaryPrefix {
-  flex: 0 1 auto;
-  min-width: 0;
+.ConsoleBarSummaryBreadcrumbRow {
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.ConsoleBarSummaryBreadcrumbSegment {
+  color: color-mix(in srgb, var(--console-layer-color-app, var(--v15-console-app)) 72%, white);
+}
+
+.ConsoleBarSummaryBreadcrumbSeparator {
+  color: rgba(245, 248, 255, 0.34);
+}
+
+.ConsoleBarSummaryLead {
+  flex: 0 0 auto;
   color: var(--console-text-dim-color, var(--v15-text-dim));
 }
 
@@ -5284,6 +5311,23 @@ button.ParaSelectMenuAction:hover {
 
 .ViewportOverlaySketchPlaneGizmoSliderGroup.isActive {
   border-color: rgba(255, 168, 44, 0.46);
+}
+
+.ViewportOverlaySketchPlaneAxisRow {
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 2px 4px 4px;
+  transition:
+    border-color 120ms ease,
+    background-color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.ViewportOverlaySketchPlaneAxisRow.isActive {
+  border-color: color-mix(in srgb, var(--sketch-plane-accent) 72%, rgba(255, 255, 255, 0.12));
+  background: color-mix(in srgb, var(--sketch-plane-accent) 12%, rgba(255, 255, 255, 0.03));
+  box-shadow: inset 0 0 0 1px
+    color-mix(in srgb, var(--sketch-plane-accent) 18%, rgba(255, 255, 255, 0.04));
 }
 
 .ViewportOverlaySketchPlaneGizmoSliderGroupLabel {
@@ -7303,6 +7347,16 @@ button.ParaSelectMenuAction:hover {
     0 12px 24px rgba(0, 0, 0, 0.5);
   transform: translateY(-1px);
   z-index: 8;
+}
+
+.SpaghettiNode--previewed {
+  border-color: rgba(255, 193, 94, 0.96);
+  box-shadow:
+    0 0 0 2px rgba(255, 193, 94, 0.52),
+    0 0 22px rgba(255, 193, 94, 0.24),
+    0 12px 24px rgba(0, 0, 0, 0.44);
+  transform: translateY(-1px);
+  z-index: 7;
 }
 
 .SpaghettiNodeHeader {

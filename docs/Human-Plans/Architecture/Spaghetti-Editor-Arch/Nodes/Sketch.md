@@ -2016,6 +2016,55 @@ Acceptance checks:
 - camera adjustment from viewport clicks does not collapse the active sketch-plane command surface
 - no second sketch-plane session model is introduced in this phase
 
+### SketchPlane Live Transform Follow-On
+
+Now that `SketchPlane` has a cleaner session hierarchy, `Move` and `Rotate` should stop being menu-only commands and become real live viewport transform commands.
+
+Locked direction:
+- `g > s > sp > xy > move` should activate live sketch-plane translation immediately
+- `g > s > sp > xy > rotate` should activate live sketch-plane rotation immediately
+- child axis commands like `Move X` or `Rotate Z` should narrow that same live session to one axis only
+
+Implementation-ready behavior:
+
+1. `Move` activates live sketch-plane translation
+- when the user confirms `Sketch Plane > Move`, the sketch-plane gizmo/origin should immediately begin a live move session
+- the move should begin relative to the mouse position at activation time so the gizmo does not jump or fly away
+- this should follow the same interaction lesson as the reference transform `M` flow
+
+2. whole `Move` highlights all translation rows
+- while whole `Move` is active, the `X`, `Y`, and `Z` move rows should all read as active
+- that communicates that the user is moving the sketch plane freely across all three translation axes
+
+3. `Move X` narrows the live session to one axis
+- when the user goes into `Move > Move X`, only the `Move X` row should remain highlighted
+- in the viewport, the gizmo should move with the mouse on the `X` axis only
+- this should feel like a constrained version of the wider move session, not a detached new tool
+
+4. `Move Y` and `Move Z` follow the same rule
+- each command should highlight only its own row
+- each command should constrain the viewport move session to its own axis only
+
+5. `Rotate` mirrors the same structure
+- whole `Rotate` should activate live sketch-plane rotation
+- whole `Rotate` should highlight all rotation rows
+- `Rotate X`, `Rotate Y`, and `Rotate Z` should each narrow the live session to a single rotation axis
+- this should follow the same overall interaction pattern as the move family
+
+Hard rules:
+- do not treat `Move`, `Move X`, `Move Y`, `Move Z`, `Rotate`, `Rotate X`, `Rotate Y`, and `Rotate Z` as transcript-only commands
+- each command must correspond to real live gizmo behavior in the viewport
+- row highlight state and viewport constraint state must be driven from the same sketch-plane command/session truth
+- entering an axis command should refine the current live transform session, not create a disconnected parallel mode
+
+Acceptance checks:
+- `Move` starts live translation without a gizmo jump
+- `Move` highlights `X`, `Y`, and `Z`
+- `Move X` highlights only `Move X` and constrains translation to `X`
+- `Move Y` and `Move Z` behave the same way for their axes
+- `Rotate` starts live rotation and highlights all rotation rows
+- `Rotate X`, `Rotate Y`, and `Rotate Z` each constrain the live rotation session to their own axis
+
 ## [x] [3.2B-S3] - `SketchDraw Session Cleanup`
 
 `SketchDraw` should be cleaned into explicit levels instead of only implicit tool/draft state:
@@ -2280,7 +2329,7 @@ Acceptance checks:
 - selected sketch-node scope remains the parent handoff target when sketch-local return leaves `SketchPlane`
 - this phase does not introduce a second sketch session model or broaden into whole-app back-navigation architecture
 
-## [ ] [3.2B-S5] - `Sketch Toolbar / Console Command Alignment`
+## [x] [3.2B-S5] - `Sketch Toolbar / Console Command Alignment`
 
 The toolbar structure, console structure, and sketch session structure should describe the same hierarchy.
 
@@ -2299,6 +2348,23 @@ Current code truth:
   - active tool
   - draft points
   - draw versus review mode
+- current shared sketch-session verbs already exist in the store seam:
+  - `setSketchPlanePickDraftPlane(...)`
+  - `returnActiveSketchSessionOneLevel()`
+  - `cancelSketchPlanePick()`
+  - `setGeometrySketchSessionTool(...)`
+  - `finishGeometrySketchDrawDraft()`
+  - `closeGeometrySketchSession()`
+- current split problem:
+  - the toolbar surface in `ViewportOverlay.tsx` already calls several of those verbs directly
+  - the console surface in `ConsoleDock.tsx` still hard-codes token branches like:
+    - `xy / xz / yz`
+    - `line / l`
+    - `pline / pl`
+    - `back / b / esc`
+    - `x`
+    - `enter`
+  - that means the same sketch action still has two owner surfaces and duplicated intent knowledge
 
 So the next cleanup direction is not a new product direction.
 
@@ -2327,12 +2393,163 @@ It is:
 
 ### Implementation Spec
 
-- treat toolbar and console as two surfaces over one sketch command model
-- first examples already visible in the current direction:
-  - `Sketch Plane > [XY, XZ, YZ]`
-  - `Sketch > Choose next [Sketch Plane, Sketch Draw, Delete, Back]`
-- future cleanup should prefer shared verbs over surface-local bespoke handlers
-- success means adding a toolbar row or console token does not require inventing a second behavior path for the same sketch action
+Purpose:
+- make toolbar clicks and console commands read as two input surfaces over one sketch command model instead of parallel behavior trees
+
+#### Current Code-To-Target Mapping
+
+- current toolbar-side ownership lives mostly in:
+  - `src/app/components/ViewportOverlay.tsx`
+  - visible title-bar and section actions already call store verbs for:
+    - `Back`
+    - `X`
+    - `Move`
+    - `Rotate`
+    - `Line`
+    - `PLine`
+    - draw finish/cancel actions
+- current console-side ownership lives mostly in:
+  - `src/app/console/ConsoleDock.tsx`
+  - sketch-local token parsing still decides behavior in feature-specific branches
+- current target:
+  - toolbar and console should both resolve into one sketch command layer
+  - that command layer should call the existing store verbs instead of either surface owning the real behavior
+
+#### Scope
+
+Owned here:
+- one shared sketch command mapping layer for:
+  - `SketchPlane`
+  - `SketchDraw`
+- explicit mapping from:
+  - toolbar actions
+  - console tokens
+  to:
+  - shared sketch-session verbs
+- alignment between visible toolbar grouping and visible console prompt grouping
+
+Not owned here:
+- a whole-app generic command registry for every future feature
+- freeform fuzzy command search
+- redesign of staged graph navigation
+- broader workspace-surface selection sync
+- deep toolbar visual redesign outside what is needed to expose the shared command structure honestly
+
+#### First Command Families To Align
+
+`SketchPlane`
+- scope:
+  - `Sketch Plane`
+- group:
+  - `Plane Selection`
+    - `XY`
+    - `XZ`
+    - `YZ`
+- group:
+  - `Session Controls`
+    - `Back`
+    - `X`
+- group:
+  - `Adjust`
+    - `Move`
+    - `Rotate`
+
+`SketchDraw`
+- scope:
+  - `Sketch Draw`
+- group:
+  - `Tool Selection`
+    - `Line`
+    - `PLine`
+- group:
+  - `Session Controls`
+    - `Back`
+    - `X`
+    - `Enter`
+- group:
+  - `Active Tool`
+    - tool-specific status/prompt reads
+
+Important rule:
+- `Move` and `Rotate` remain subtools inside `SketchPlane > Adjust`
+- `Line` and `PLine` remain tool-selection actions inside `SketchDraw`
+- this phase is about command ownership alignment, not inventing new sketch hierarchy levels
+
+#### Recommended First Implementation Cut
+
+- add one shared sketch-command mapping seam close to the sketch/session layer
+- first scope of that seam should stay narrow and explicit:
+  - `SketchPlane`
+    - `xy`
+    - `xz`
+    - `yz`
+    - `back`
+    - `x`
+    - `move`
+    - `rotate`
+  - `SketchDraw`
+    - `line`
+    - `l`
+    - `pline`
+    - `pl`
+    - `back`
+    - `b`
+    - `esc`
+    - `x`
+    - `enter`
+- the console should submit sketch-local tokens through that shared seam
+- the toolbar should call that same seam or the same underlying store verbs behind it
+- do not keep `ConsoleDock` as the place that permanently owns sketch behavior branching
+
+#### Ownership Rule
+
+- `ViewportOverlay`
+  - should own presentation, button layout, and visible grouping
+- `ConsoleDock`
+  - should own token submission and transcript echo
+- shared sketch command layer
+  - should own token-to-verb resolution for sketch-local commands
+- `useSpaghettiStore`
+  - should remain the owner of the real sketch-session mutations
+
+Avoid:
+- toolbar buttons directly deciding business behavior in one way while console tokens decide it in another
+- prompt text and visible toolbar grouping drifting away from the real sketch command families
+- adding a new toolbar row or console alias that requires copying behavior into two separate surfaces
+
+#### Hard Rules
+
+- do not let toolbar clicks and console tokens keep separate implementations for the same sketch action
+- do not make `ConsoleDock` the permanent sketch command registry
+- do not widen this phase into all-node command alignment
+- do not redesign freeform command grammar here
+- do not replace the current store verbs with a second sketch command state model
+
+#### Acceptance Shape
+
+- [x] a reader can point to one shared sketch command mapping seam in code
+- [x] `SketchPlane` and `SketchDraw` both route toolbar actions and console tokens through that same mapping seam or the same underlying store verbs
+- [x] `ViewportOverlay` no longer needs bespoke behavior branches for actions that also exist in console token form
+- [x] `ConsoleDock` no longer needs bespoke behavior branches for actions that already exist as toolbar actions
+- [x] the visible toolbar sections read like command groups for the same scope the console is describing
+- [x] adding a sketch command alias or toolbar action no longer requires inventing a second behavior path for the same action
+
+#### Shipped Summary
+
+- `useSpaghettiStore` now exposes:
+  - `runSketchPlaneCommand(...)`
+  - `runGeometrySketchDrawCommand(...)`
+- `ConsoleDock` now routes overlapping sketch-local console tokens through those shared sketch command seams instead of owning the real behavior branches directly
+- `ViewportOverlay` now routes overlapping toolbar actions through those same shared sketch command seams for:
+  - `Back`
+  - `X`
+  - `XY / XZ / YZ`
+  - `Move`
+  - `Rotate`
+  - `Line`
+  - `PLine`
+  - `Enter`
+- non-overlapping actions like `Done`, `Reset Transform`, and `Review Profiles` remain outside this phase
 
 #### V1 Boundary
 

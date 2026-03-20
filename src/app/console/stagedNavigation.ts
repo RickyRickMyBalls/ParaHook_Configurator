@@ -1,10 +1,12 @@
 export type ConsoleStagedNodeOption = {
   nodeId: string
+  label?: string
 }
 
 export type ConsoleStagedGraphOption = {
   graphDocumentId: string
   name: string
+  allNodeOptions?: ConsoleStagedNodeOption[]
   sketchOptions?: ConsoleStagedNodeOption[]
   extrudeOptions?: ConsoleStagedNodeOption[]
   outputPreviewOptions?: ConsoleStagedNodeOption[]
@@ -14,6 +16,7 @@ export type ConsoleStagedNavigationContext = {
   graphOptions: Array<{
     graphDocumentId: string
     name: string
+    allNodeOptions: ConsoleStagedNodeOption[]
     sketchOptions: ConsoleStagedNodeOption[]
     extrudeOptions: ConsoleStagedNodeOption[]
     outputPreviewOptions: ConsoleStagedNodeOption[]
@@ -30,8 +33,11 @@ export type ConsoleStagedNavigationChoice = {
 }
 
 export type ConsoleStagedNavigationScopeId =
+  | 'radioRoot'
   | 'graphRoot'
   | 'graphSelected'
+  | 'graphNodeList'
+  | 'graphNodeSelected'
   | 'graphSketchList'
   | 'graphSketchSelected'
   | 'graphExtrudeList'
@@ -58,6 +64,11 @@ export type ConsoleStagedNavigationExecuteResult = {
   submittedToken: string
   matchedChoice: ConsoleStagedNavigationChoice
   actionId:
+    | 'radio.on'
+    | 'radio.off'
+    | 'radio.url'
+    | 'radio.sampleBurstTime'
+    | 'radio.randomizeSampleTimes'
     | 'graph.list'
     | 'graph.editor.collapsed'
     | 'graph.editor.essentials'
@@ -111,6 +122,48 @@ const ROOT_GRAPH_CHOICE: ConsoleStagedNavigationChoice = {
   kind: 'scope',
 }
 
+const ROOT_RADIO_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'RADIO',
+  aliases: ['R'],
+  label: 'Radio',
+  kind: 'scope',
+}
+
+const RADIO_ON_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'ON',
+  aliases: ['O'],
+  label: 'On',
+  kind: 'action',
+}
+
+const RADIO_OFF_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'OFF',
+  aliases: [],
+  label: 'Off',
+  kind: 'action',
+}
+
+const RADIO_URL_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'URL',
+  aliases: ['U'],
+  label: 'Url',
+  kind: 'action',
+}
+
+const RADIO_SAMPLE_BURST_TIME_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'SAMPLEBURSTTIME',
+  aliases: ['SB'],
+  label: 'SampleBurstTime',
+  kind: 'action',
+}
+
+const RADIO_RANDOMIZE_SAMPLE_TIMES_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'RANDOMIZESAMPLETIMES',
+  aliases: ['RS'],
+  label: 'RandomizeSampleTimes',
+  kind: 'action',
+}
+
 const GRAPH_SKETCH_CHOICE: ConsoleStagedNavigationChoice = {
   canonicalToken: 'SKETCH',
   aliases: ['S'],
@@ -129,6 +182,13 @@ const GRAPH_OUTPUT_PREVIEW_CHOICE: ConsoleStagedNavigationChoice = {
   canonicalToken: 'OUTPUT PREVIEW',
   aliases: ['OUTPUTPREVIEW', 'OP'],
   label: 'Output Preview',
+  kind: 'scope',
+}
+
+const GRAPH_FOCUS_NODE_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'FOCUS NODE',
+  aliases: ['FOCUSNODE', 'FN', 'FIND NODE', 'FINDNODE'],
+  label: 'Focus Node',
   kind: 'scope',
 }
 
@@ -207,7 +267,15 @@ const normalizeToken = (value: string): string => value.trim().toUpperCase()
 const matchesChoice = (choice: ConsoleStagedNavigationChoice, normalizedToken: string): boolean =>
   normalizedToken === choice.canonicalToken || choice.aliases.includes(normalizedToken)
 
-const buildRootChoices = (): ConsoleStagedNavigationChoice[] => [ROOT_GRAPH_CHOICE]
+const buildRootChoices = (): ConsoleStagedNavigationChoice[] => [ROOT_GRAPH_CHOICE, ROOT_RADIO_CHOICE]
+
+const buildRadioRootChoices = (): ConsoleStagedNavigationChoice[] => [
+  RADIO_ON_CHOICE,
+  RADIO_OFF_CHOICE,
+  RADIO_URL_CHOICE,
+  RADIO_SAMPLE_BURST_TIME_CHOICE,
+  RADIO_RANDOMIZE_SAMPLE_TIMES_CHOICE,
+]
 
 const buildGraphRootChoices = (
   graphOptions: ConsoleStagedNavigationContext['graphOptions'],
@@ -230,6 +298,7 @@ const buildGraphSelectedChoices = (): ConsoleStagedNavigationChoice[] => [
   GRAPH_SKETCH_CHOICE,
   GRAPH_EXTRUDE_CHOICE,
   GRAPH_OUTPUT_PREVIEW_CHOICE,
+  GRAPH_FOCUS_NODE_CHOICE,
   GRAPH_EDITOR_COLLAPSED_CHOICE,
   GRAPH_EDITOR_ESSENTIALS_CHOICE,
   GRAPH_EDITOR_EXPANDED_CHOICE,
@@ -278,6 +347,19 @@ const buildGraphOutputPreviewListChoices = (
     createBackChoice(),
   ]
 
+const buildGraphNodeListChoices = (
+  allNodeOptions: ConsoleStagedNodeOption[],
+): ConsoleStagedNavigationChoice[] =>
+  [
+    ...allNodeOptions.map((option, index) => ({
+      canonicalToken: `${index + 1}`,
+      aliases: [],
+      label: option.label ?? `node_[${index + 1}]`,
+      kind: 'scope' as const,
+    })),
+    createBackChoice(),
+  ]
+
 const buildGraphSketchSelectedChoices = (): ConsoleStagedNavigationChoice[] => [
   SKETCH_PLANE_CHOICE,
   SKETCH_DRAW_CHOICE,
@@ -301,6 +383,17 @@ const createGraphRootSession = (
     sketchNodeId: null,
   },
   validChoices: buildGraphRootChoices(context.graphOptions),
+})
+
+const createRadioRootSession = (): ConsoleStagedNavigationSession => ({
+  scopeId: 'radioRoot',
+  breadcrumb: ['Select', 'Radio'],
+  selections: {
+    graphDocumentId: null,
+    selectedNodeId: null,
+    sketchNodeId: null,
+  },
+  validChoices: buildRadioRootChoices(),
 })
 
 const createAdvanceResult = (
@@ -445,6 +538,22 @@ export const resolveConsoleWorkspaceContextSync = (
     }
   }
 
+  const allNodeIndex = selectedGraph.allNodeOptions.findIndex((option) => option.nodeId === target.nodeId)
+  if (allNodeIndex !== -1) {
+    const label = selectedGraph.allNodeOptions[allNodeIndex]?.label ?? `node_[${allNodeIndex + 1}]`
+    return {
+      session: createGraphNodeSelectedSession(
+        ['Select', 'Graph', `graph_[${graphIndex}]`, 'Focus Node', label],
+        {
+          graphDocumentId: target.graphDocumentId,
+          selectedNodeId: target.nodeId,
+          sketchNodeId: null,
+        },
+      ),
+      selectedLabel: label,
+    }
+  }
+
   return {
     session: createGraphSelectedSession(graphIndex, target.graphDocumentId),
     selectedLabel: `graph_[${graphIndex}]`,
@@ -460,6 +569,27 @@ const createGraphSketchListSession = (
   breadcrumb,
   selections,
   validChoices: buildGraphSketchListChoices(sketchOptions),
+})
+
+const createGraphNodeListSession = (
+  breadcrumb: string[],
+  selections: ConsoleStagedNavigationSelection,
+  allNodeOptions: ConsoleStagedNodeOption[],
+): ConsoleStagedNavigationSession => ({
+  scopeId: 'graphNodeList',
+  breadcrumb,
+  selections,
+  validChoices: buildGraphNodeListChoices(allNodeOptions),
+})
+
+const createGraphNodeSelectedSession = (
+  breadcrumb: string[],
+  selections: ConsoleStagedNavigationSelection,
+): ConsoleStagedNavigationSession => ({
+  scopeId: 'graphNodeSelected',
+  breadcrumb,
+  selections,
+  validChoices: buildGraphNodeSelectedChoices(),
 })
 
 const createGraphSketchSelectedSession = (
@@ -578,20 +708,29 @@ export const createConsoleStagedNavigationContext = (
   graphOptions: graphOptions.map((option) => ({
     graphDocumentId: option.graphDocumentId,
     name: option.name,
+    allNodeOptions: (option.allNodeOptions ?? []).map((nodeOption) => ({
+      nodeId: nodeOption.nodeId,
+      label: nodeOption.label,
+    })),
     sketchOptions: (option.sketchOptions ?? []).map((sketchOption) => ({
       nodeId: sketchOption.nodeId,
+      label: sketchOption.label,
     })),
     extrudeOptions: (option.extrudeOptions ?? []).map((extrudeOption) => ({
       nodeId: extrudeOption.nodeId,
+      label: extrudeOption.label,
     })),
     outputPreviewOptions: (option.outputPreviewOptions ?? []).map((outputPreviewOption) => ({
       nodeId: outputPreviewOption.nodeId,
+      label: outputPreviewOption.label,
     })),
   })),
 })
 
-export const isConsoleStagedNavigationRootToken = (submittedToken: string): boolean =>
-  matchesChoice(ROOT_GRAPH_CHOICE, normalizeToken(submittedToken))
+export const isConsoleStagedNavigationRootToken = (submittedToken: string): boolean => {
+  const normalizedToken = normalizeToken(submittedToken)
+  return buildRootChoices().some((choice) => matchesChoice(choice, normalizedToken))
+}
 
 export const submitConsoleStagedNavigationToken = (
   session: ConsoleStagedNavigationSession | null,
@@ -604,8 +743,15 @@ export const submitConsoleStagedNavigationToken = (
   }
 
   if (session === null) {
-    if (!matchesChoice(ROOT_GRAPH_CHOICE, normalizedToken)) {
+    const matchedRootChoice = buildRootChoices().find((choice) =>
+      matchesChoice(choice, normalizedToken),
+    )
+    if (matchedRootChoice === undefined) {
       return createInvalidResult(null, submittedToken, buildRootChoices())
+    }
+    if (matchedRootChoice.canonicalToken === ROOT_RADIO_CHOICE.canonicalToken) {
+      const radioRootSession = createRadioRootSession()
+      return createAdvanceResult(radioRootSession, submittedToken, matchedRootChoice)
     }
     const rootSession = createGraphRootSession(context)
     const graphAutoAdvance = resolveSingleGraphAutoAdvance(context)
@@ -613,11 +759,48 @@ export const submitConsoleStagedNavigationToken = (
       return createAdvanceResult(
         graphAutoAdvance.session,
         submittedToken,
-        ROOT_GRAPH_CHOICE,
+        matchedRootChoice,
         graphAutoAdvance.autoSelections,
       )
     }
-    return createAdvanceResult(rootSession, submittedToken, ROOT_GRAPH_CHOICE)
+    return createAdvanceResult(rootSession, submittedToken, matchedRootChoice)
+  }
+
+  if (session.scopeId === 'radioRoot') {
+    const radioChoices = buildRadioRootChoices()
+    const matchedChoice =
+      radioChoices.find((choice) => matchesChoice(choice, normalizedToken)) ?? null
+    if (matchedChoice === null) {
+      return createInvalidResult({ ...session, validChoices: radioChoices }, submittedToken, radioChoices)
+    }
+
+    const actionIdByToken: Record<string, Extract<
+      ConsoleStagedNavigationExecuteResult['actionId'],
+      | 'radio.on'
+      | 'radio.off'
+      | 'radio.url'
+      | 'radio.sampleBurstTime'
+      | 'radio.randomizeSampleTimes'
+    >> = {
+      ON: 'radio.on',
+      OFF: 'radio.off',
+      URL: 'radio.url',
+      SAMPLEBURSTTIME: 'radio.sampleBurstTime',
+      RANDOMIZESAMPLETIMES: 'radio.randomizeSampleTimes',
+    }
+
+    return {
+      kind: 'execute',
+      session: {
+        ...session,
+        validChoices: radioChoices,
+      },
+      submittedToken,
+      matchedChoice,
+      actionId: actionIdByToken[matchedChoice.canonicalToken],
+      breadcrumb: [...session.breadcrumb, matchedChoice.label],
+      selections: session.selections,
+    }
   }
 
   if (session.scopeId === 'graphRoot') {
@@ -761,6 +944,32 @@ export const submitConsoleStagedNavigationToken = (
       return createAdvanceResult(extrudeListSession, submittedToken, matchedChoice)
     }
 
+    if (matchedChoice.canonicalToken === GRAPH_FOCUS_NODE_CHOICE.canonicalToken) {
+      const allNodeOptions = selectedGraph?.allNodeOptions ?? []
+      const nodeChoices = buildGraphNodeListChoices(allNodeOptions)
+      const nodeListSession = createGraphNodeListSession(
+        [...session.breadcrumb, matchedChoice.label],
+        session.selections,
+        allNodeOptions,
+      )
+      if (allNodeOptions.length === 1) {
+        return createAdvanceResult(
+          createGraphNodeSelectedSession(
+            [...nodeListSession.breadcrumb, allNodeOptions[0]?.label ?? 'node_[1]'],
+            {
+              ...session.selections,
+              selectedNodeId: allNodeOptions[0]?.nodeId ?? null,
+              sketchNodeId: null,
+            },
+          ),
+          submittedToken,
+          matchedChoice,
+          [nodeChoices[0]!],
+        )
+      }
+      return createAdvanceResult(nodeListSession, submittedToken, matchedChoice)
+    }
+
     const outputPreviewOptions = selectedGraph?.outputPreviewOptions ?? []
     const outputPreviewChoices = buildGraphOutputPreviewListChoices(outputPreviewOptions)
     const outputPreviewListSession = createGraphOutputPreviewListSession(
@@ -838,6 +1047,128 @@ export const submitConsoleStagedNavigationToken = (
       }),
       submittedToken,
       matchedChoice,
+    )
+  }
+
+  if (session.scopeId === 'graphNodeList') {
+    const selectedGraph = context.graphOptions.find(
+      (graphOption) => graphOption.graphDocumentId === session.selections.graphDocumentId,
+    )
+    const allNodeOptions = selectedGraph?.allNodeOptions ?? []
+    const nodeChoices = buildGraphNodeListChoices(allNodeOptions)
+    const backChoice = nodeChoices.find((choice) => choice.canonicalToken === 'BACK') ?? null
+    if (backChoice !== null && matchesChoice(backChoice, normalizedToken)) {
+      const graphIndex = findGraphIndexByDocumentId(context, session.selections.graphDocumentId)
+      if (graphIndex === null || session.selections.graphDocumentId === null) {
+        return createInvalidResult({ ...session, validChoices: nodeChoices }, submittedToken, nodeChoices)
+      }
+      return createAdvanceResult(
+        createGraphSelectedSession(graphIndex, session.selections.graphDocumentId),
+        submittedToken,
+        backChoice,
+      )
+    }
+
+    const nodeIndex = Number.parseInt(normalizedToken, 10)
+    if (!Number.isInteger(nodeIndex) || `${nodeIndex}` !== normalizedToken) {
+      return createInvalidResult(
+        { ...session, validChoices: nodeChoices },
+        submittedToken,
+        nodeChoices,
+      )
+    }
+
+    const nodeOption = allNodeOptions[nodeIndex - 1] ?? null
+    if (nodeOption === null) {
+      return createInvalidResult(
+        { ...session, validChoices: nodeChoices },
+        submittedToken,
+        nodeChoices,
+      )
+    }
+
+    const sketchIndex = selectedGraph?.sketchOptions.findIndex((option) => option.nodeId === nodeOption.nodeId) ?? -1
+    if (sketchIndex !== -1) {
+      return createAdvanceResult(
+        createGraphSketchSelectedSession(
+          [...session.breadcrumb, selectedGraph?.sketchOptions[sketchIndex]?.label ?? `sketch_[${sketchIndex + 1}]`],
+          {
+            ...session.selections,
+            selectedNodeId: nodeOption.nodeId,
+            sketchNodeId: nodeOption.nodeId,
+          },
+        ),
+        submittedToken,
+        nodeChoices.find((choice) => choice.canonicalToken === normalizedToken) ?? {
+          canonicalToken: normalizedToken,
+          aliases: [],
+          label: nodeOption.label ?? `node_[${nodeIndex}]`,
+          kind: 'scope' as const,
+        },
+      )
+    }
+
+    const extrudeIndex =
+      selectedGraph?.extrudeOptions.findIndex((option) => option.nodeId === nodeOption.nodeId) ?? -1
+    if (extrudeIndex !== -1) {
+      return createAdvanceResult(
+        createGraphExtrudeSelectedSession(
+          [...session.breadcrumb, selectedGraph?.extrudeOptions[extrudeIndex]?.label ?? `extrude_[${extrudeIndex + 1}]`],
+          {
+            ...session.selections,
+            selectedNodeId: nodeOption.nodeId,
+            sketchNodeId: null,
+          },
+        ),
+        submittedToken,
+        nodeChoices.find((choice) => choice.canonicalToken === normalizedToken) ?? {
+          canonicalToken: normalizedToken,
+          aliases: [],
+          label: nodeOption.label ?? `node_[${nodeIndex}]`,
+          kind: 'scope' as const,
+        },
+      )
+    }
+
+    const outputPreviewIndex =
+      selectedGraph?.outputPreviewOptions.findIndex((option) => option.nodeId === nodeOption.nodeId) ?? -1
+    if (outputPreviewIndex !== -1) {
+      return createAdvanceResult(
+        createGraphOutputPreviewSelectedSession(
+          [
+            ...session.breadcrumb,
+            selectedGraph?.outputPreviewOptions[outputPreviewIndex]?.label ??
+              `outputPreview_[${outputPreviewIndex + 1}]`,
+          ],
+          {
+            ...session.selections,
+            selectedNodeId: nodeOption.nodeId,
+            sketchNodeId: null,
+          },
+        ),
+        submittedToken,
+        nodeChoices.find((choice) => choice.canonicalToken === normalizedToken) ?? {
+          canonicalToken: normalizedToken,
+          aliases: [],
+          label: nodeOption.label ?? `node_[${nodeIndex}]`,
+          kind: 'scope' as const,
+        },
+      )
+    }
+
+    return createAdvanceResult(
+      createGraphNodeSelectedSession([...session.breadcrumb, nodeOption.label ?? `node_[${nodeIndex}]`], {
+        ...session.selections,
+        selectedNodeId: nodeOption.nodeId,
+        sketchNodeId: null,
+      }),
+      submittedToken,
+      nodeChoices.find((choice) => choice.canonicalToken === normalizedToken) ?? {
+        canonicalToken: normalizedToken,
+        aliases: [],
+        label: nodeOption.label ?? `node_[${nodeIndex}]`,
+        kind: 'scope' as const,
+      },
     )
   }
 
@@ -1018,7 +1349,7 @@ export const submitConsoleStagedNavigationToken = (
     )
   }
 
-  if (session.scopeId === 'graphExtrudeSelected') {
+  if (session.scopeId === 'graphExtrudeSelected' || session.scopeId === 'graphNodeSelected') {
     if (matchedChoice.canonicalToken !== 'BACK') {
       return {
         kind: 'execute',

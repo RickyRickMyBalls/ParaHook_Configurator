@@ -510,10 +510,10 @@ describe('ViewportOverlay sketch session window', () => {
       '.ViewportOverlaySketchPlaneGizmoSliderGroupLabel',
     )[1] as HTMLButtonElement | undefined
     const moveSnapToggle = container.querySelector(
-      'button[aria-label="Toggle move snap"]',
+      'button[aria-label="Configure move snap"]',
     ) as HTMLButtonElement | null
     const rotateSnapToggle = container.querySelector(
-      'button[aria-label="Toggle rotate snap"]',
+      'button[aria-label="Configure rotate snap"]',
     ) as HTMLButtonElement | null
     expect(sliderGroups[0]?.classList.contains('isActive')).toBe(true)
     expect(sliderGroups[1]?.classList.contains('isActive')).toBe(false)
@@ -527,6 +527,7 @@ describe('ViewportOverlay sketch session window', () => {
     })
 
     expect(container.textContent).toContain('Move Snap')
+    expect(useSpaghettiStore.getState().sketchPlanePickSession?.adjustScope).toBe('move-snap')
 
     const moveXTrack = container.querySelector(
       '.ParaSliderTrack[aria-label="Move X"]',
@@ -565,7 +566,7 @@ describe('ViewportOverlay sketch session window', () => {
       window.dispatchEvent(new PointerEvent('pointerup', {}))
     })
 
-    expect(useSpaghettiStore.getState().sketchPlanePickSession?.draftTransform.translation.x).toBe(10)
+    expect(useSpaghettiStore.getState().sketchPlanePickSession?.draftTransform.translation.x).toBe(6)
 
     await act(async () => {
       moveLabel?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
@@ -586,14 +587,14 @@ describe('ViewportOverlay sketch session window', () => {
 
     expect(sliderGroups[0]?.classList.contains('isActive')).toBe(false)
     expect(sliderGroups[1]?.classList.contains('isActive')).toBe(true)
-    expect(container.querySelectorAll('.ViewportOverlaySketchPlaneGizmoRows .ParaVec3Slider').length).toBe(1)
+    expect(container.querySelectorAll('.ViewportOverlaySketchPlaneGizmoRows .ParaVec3Slider').length).toBe(2)
 
     await act(async () => {
       rotateLabel?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
     })
 
-    expect(container.querySelectorAll('.ViewportOverlaySketchPlaneGizmoRows .ParaVec3Slider').length).toBe(2)
-    expect(container.textContent).not.toContain('Rotate X')
+    expect(container.querySelectorAll('.ViewportOverlaySketchPlaneGizmoRows .ParaVec3Slider').length).toBe(1)
+    expect(container.textContent).toContain('Rotate X')
 
     await act(async () => {
       moveLabel?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
@@ -654,6 +655,98 @@ describe('ViewportOverlay sketch session window', () => {
     const sketch = useSpaghettiStore.getState().graph.nodes.find((node) => node.nodeId === 'node-sketch-1')
       ?.params.sketch as { plane: string }
     expect(sketch.plane).toBe('XZ')
+  })
+
+  it('activates live sketch-plane transform handles and highlights the matching rows', async () => {
+    const { ViewportOverlay } = await import('./ViewportOverlay')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    const { getViewer } = await import('../viewerBridge')
+    const viewer = {
+      setAxisOverlayCanvas: vi.fn(),
+      completeReferenceTransformDrag: vi.fn(),
+      clearReferenceTransformHandle: vi.fn(),
+      activateTranslateCenterHandle: vi.fn(),
+      activateTranslateHandle: vi.fn(),
+      activateRotateCenterHandle: vi.fn(),
+      activateRotateHandle: vi.fn(),
+    }
+    vi.mocked(getViewer).mockReturnValue(viewer as never)
+    const requestAnimationFrameSpy = vi
+      .spyOn(window, 'requestAnimationFrame')
+      .mockImplementation((callback: FrameRequestCallback) => {
+        callback(0)
+        return 1
+      })
+
+    await seedSketchPlanePickSession()
+    act(() => {
+      useSpaghettiStore.getState().runSketchPlaneCommand('xy')
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewportOverlay />)
+    })
+
+    await act(async () => {
+      useSpaghettiStore.getState().runSketchPlaneCommand('move')
+    })
+
+    expect(viewer.activateTranslateCenterHandle).toHaveBeenCalled()
+    expect(container.querySelectorAll('.ViewportOverlaySketchPlaneAxisRow.isActive')).toHaveLength(3)
+    expect(
+      container.querySelector('.ViewportOverlaySketchPlaneAxisRow.isActive .ParaSliderTrack[aria-label="Move X"]'),
+    ).not.toBeNull()
+    expect(
+      container.querySelector('.ViewportOverlaySketchPlaneAxisRow.isActive .ParaSliderTrack[aria-label="Move Y"]'),
+    ).not.toBeNull()
+    expect(
+      container.querySelector('.ViewportOverlaySketchPlaneAxisRow.isActive .ParaSliderTrack[aria-label="Move Z"]'),
+    ).not.toBeNull()
+
+    await act(async () => {
+      useSpaghettiStore.getState().runSketchPlaneCommand('move-x')
+    })
+
+    expect(viewer.activateTranslateHandle).toHaveBeenLastCalledWith('X')
+    expect(container.querySelectorAll('.ViewportOverlaySketchPlaneAxisRow.isActive')).toHaveLength(1)
+    expect(
+      container.querySelector('.ViewportOverlaySketchPlaneAxisRow.isActive .ParaSliderTrack[aria-label="Move X"]'),
+    ).not.toBeNull()
+
+    await act(async () => {
+      useSpaghettiStore.getState().runSketchPlaneCommand('rotate')
+    })
+
+    expect(viewer.activateRotateCenterHandle).toHaveBeenCalled()
+    expect(container.querySelectorAll('.ViewportOverlaySketchPlaneAxisRow.isActive')).toHaveLength(3)
+    expect(
+      container.querySelector('.ViewportOverlaySketchPlaneAxisRow.isActive .ParaSliderTrack[aria-label="Rotate X"]'),
+    ).not.toBeNull()
+
+    await act(async () => {
+      useSpaghettiStore.getState().runSketchPlaneCommand('rotate-z')
+    })
+
+    expect(viewer.activateRotateHandle).toHaveBeenLastCalledWith('Z')
+    expect(container.querySelectorAll('.ViewportOverlaySketchPlaneAxisRow.isActive')).toHaveLength(1)
+    expect(
+      container.querySelector('.ViewportOverlaySketchPlaneAxisRow.isActive .ParaSliderTrack[aria-label="Rotate Z"]'),
+    ).not.toBeNull()
+
+    await act(async () => {
+      useSpaghettiStore.getState().acceptActiveSketchPlaneTransformCommand()
+    })
+
+    expect(viewer.completeReferenceTransformDrag).toHaveBeenCalled()
+    expect(viewer.clearReferenceTransformHandle).toHaveBeenCalled()
+    expect(container.querySelectorAll('.ViewportOverlaySketchPlaneAxisRow.isActive')).toHaveLength(0)
+
+    vi.mocked(getViewer).mockReturnValue(null)
+    requestAnimationFrameSpy.mockRestore()
   })
 
   it('opens the titlebar right-click menu and reveals the hidden i-menu customization section', async () => {

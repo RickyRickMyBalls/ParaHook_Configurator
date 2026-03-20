@@ -41,6 +41,657 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 087 -->
+### [087] - 2026-03-20 14:40 - `DOC - Mark Radio 6 Complete`
+<!-- ENTRY 087 -->
+HUMAN SUMMARY: Updated `Radio.md` after the Phase 6 real-link runtime work landed. The doc now marks `Phase 6` complete, records that supported SoundCloud playback is active, and moves the next-work read forward to the toolbar and hardening phases.
+
+#### Scope
+- Updated `docs/Human-Plans/Architecture/Radio.md` only.
+- Kept the change limited to implementation-status sync after the landed real-link bridge work.
+- Recorded the document-only update in the permanent doc log.
+
+#### Summary
+- Added one local `Doc History` line describing the shipped Phase 6 runtime behavior.
+- Marked `Phase 6 - Real Link Playback Bridge` complete.
+- Updated the `Current read` block so the next open radio work starts at `Phase 7`.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Radio.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This is a documentation/status sync only; the shipped runtime changes are logged separately in `docs/CHANGELOG.md`.
+
+<!-- ENTRY 086 -->
+### [086] - 2026-03-20 14:34 - `DOC - Make Radio 6 Implementation Ready`
+<!-- ENTRY 086 -->
+HUMAN SUMMARY: Reworked `Phase 6` in `Radio.md` from a placeholder into an implementation-ready real-link playback spec. The doc now locks a provider-aware first real-link path, keeps the fallback bridge as the safety net, and defines unsupported custom links as explicit runtime state instead of silent fallback success.
+
+#### Scope
+- Updated `docs/Human-Plans/Architecture/Radio.md` only.
+- Kept the change focused on the next radio execution phase after the landed fallback bridge.
+- Recorded the document-only update in the permanent doc log.
+
+#### Summary
+- Locked the first real-link direction as provider-aware, not generic arbitrary URL playback.
+- Kept `ClipLibrary.ts` as the source-resolution owner and `AudioEngine.ts` as the runtime execution owner.
+- Added current-baseline, remaining-delta, source-descriptor, runtime-status, test-target, and implementation-order sections for `Phase 6`.
+- Defined unsupported custom links as an explicit runtime/source state instead of a hidden fallback downgrade.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Radio.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This is a documentation/spec update only; no runtime code changed in this step.
+
+<!-- ENTRY 085 -->
+### [085] - 2026-03-20 14:30 - `DOC - Add Real Link And Toolbar Follow-On Radio Phases`
+<!-- ENTRY 085 -->
+HUMAN SUMMARY: Expanded the later radio phase ladder in `Radio.md` now that fallback playback is working. The doc now inserts a dedicated real-link playback phase first, then a toolbar/control-surface phase after that, and moves the older hardening block down so the post-fallback implementation order matches the intended product direction.
+
+#### Scope
+- Updated `docs/Human-Plans/Architecture/Radio.md` only.
+- Kept the change focused on the later radio phase ladder after the landed fallback bridge.
+- Recorded the document-only update in the permanent doc log.
+
+#### Summary
+- Added `Phase 6 - Real Link Playback Bridge`.
+- Added `Phase 7 - Radio Toolbar And Control Surface`.
+- Renamed the old hardening block to `Phase 8 - Hardening And Follow-Through`.
+- Updated the local `Current read` summary so the next radio work order is now:
+  - real-link playback
+  - toolbar/control surface
+  - hardening
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Radio.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was a documentation-only planning update; no code changed in this step.
+
+<!-- ENTRY 084 -->
+### [084] - 2026-03-20 14:25 - `DOC - Mark Radio 5 And 4.1O Family Complete`
+<!-- ENTRY 084 -->
+HUMAN SUMMARY: Updated the radio planning docs after the fallback playback bridge landed. `Radio.md` now marks `Phase 5` complete, and `roadmap.md` now marks `[4.1O2]`, `[4.1O3]`, and the parent `[4.1O]` complete so the live planning surfaces finally match the shipped console-first radio family end to end.
+
+#### Scope
+- Updated `docs/Human-Plans/Architecture/Radio.md` and `docs/Human-Plans/roadmap/roadmap.md`.
+- Kept the change limited to implementation-status sync after the landed Phase 5 runtime work.
+- Recorded the document-only status update in the permanent doc log.
+
+#### Summary
+- Marked `Phase 5 - [4.1O3] - Runtime Source Bridge` complete in `Radio.md`.
+- Added one local `Doc History` line to `Radio.md` describing the landed runtime bridge.
+- Marked `[4.1O2]`, `[4.1O3]`, and the parent `[4.1O]` complete in `roadmap.md`.
+- Added one local `Doc History` line to `roadmap.md` describing the completed radio mini-family.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Radio.md`
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was a documentation-only status sync after the code implementation; no additional runtime behavior changed in this step.
+
+<!-- ENTRY 083 -->
+### [083] - 2026-03-20 14:19 - `DOC - Make Radio 5 Implementation Ready`
+<!-- ENTRY 083 -->
+HUMAN SUMMARY: Reworked `Phase 5` in `Radio.md` from a short placeholder into an implementation-ready runtime playback spec. The phase now locks the first playback bridge to an honest fallback local source, ties the work to the landed `requestRadioBurst(...)` store seam plus the empty `src/runtime/audio/*` placeholders, and defines one app-level runtime subscriber path that can make the console radio audible without moving playback into `ConsoleDock`.
+
+#### Scope
+- Updated `docs/Human-Plans/Architecture/Radio.md` only.
+- Kept the change focused on making `Phase 5` directly actionable against the current repo.
+- Recorded the document-only update in the permanent doc log.
+
+#### Summary
+- Renamed the phase heading to `Phase 5 - [4.1O3] - Runtime Source Bridge`.
+- Added two locked question blocks:
+  - one for using a practical fallback local source instead of requiring direct SoundCloud control first
+  - one for keeping the runtime consumer app-level instead of console-local
+- Added a full implementation spec covering:
+  - current code-to-target mapping
+  - current landed baseline versus remaining delta
+  - source resolution, runtime subscriber, audio-engine, transport, and store-status rules
+  - likely file edits, tests, implementation order, and completion checks
+- Removed the stale bottom `Questions / Decisions` block once those decisions were absorbed into the implementation-ready phase structure.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Radio.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was a documentation-only implementation-planning update; no code changed in this step.
+
+<!-- ENTRY 082 -->
+### [082] - 2026-03-20 14:14 - `DOC - Mark Radio 4 Complete And Set 4.1O3 Partial`
+<!-- ENTRY 082 -->
+HUMAN SUMMARY: Updated the radio planning docs after the Phase 4 implementation landed. `Radio.md` now marks `Phase 4` complete, and `roadmap.md` now marks `[4.1O3]` partial so the live planning surfaces match the shipped trigger-wiring half while still leaving playback bridging open.
+
+#### Scope
+- Updated `docs/Human-Plans/Architecture/Radio.md` and `docs/Human-Plans/roadmap/roadmap.md`.
+- Kept the change limited to implementation-status sync after the landed Phase 4 code work.
+- Recorded the document-only status update in the permanent doc log.
+
+#### Summary
+- Marked `Phase 4 - [4.1O3] - Radio 3 - Console Trigger Wiring` complete in `Radio.md`.
+- Added one local `Doc History` line to `Radio.md` describing the landed trigger-wiring implementation.
+- Marked `[4.1O3]` partial in `roadmap.md` because trigger wiring is now implemented while the playback bridge remains open.
+- Added one local `Doc History` line to `roadmap.md` describing the new `[4.1O3]` partial status.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Radio.md`
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was a documentation-only status sync after the code implementation; no additional runtime behavior changed in this step.
+
+<!-- ENTRY 081 -->
+### [081] - 2026-03-20 14:12 - `DOC - Make Radio 4 Implementation Ready`
+<!-- ENTRY 081 -->
+HUMAN SUMMARY: Reworked `Phase 4` in `Radio.md` from a short idea block into an implementation-ready execution spec for the console trigger-wiring pass. The phase now has a `[4.1O3]` heading, locked decisions for highlight identity and arrow-trigger scope, concrete code targets in `ConsoleDock`, `useConsoleStore`, `radioCommandIdentity`, and `audioSamplerStore`, plus a narrow burst-request seam that cleanly hands off to the later playback bridge.
+
+#### Scope
+- Updated `docs/Human-Plans/Architecture/Radio.md` only.
+- Kept the change focused on making `Phase 4` directly actionable against the current repo.
+- Recorded the document-only update in the permanent doc log.
+
+#### Summary
+- Renamed the phase heading to `Phase 4 - [4.1O3] - Radio 3 - Console Trigger Wiring`.
+- Added two locked question blocks:
+  - one for using the same semantic identity for highlight and accept
+  - one for limiting arrow-trigger sound to real staged-choice cycling
+- Added a full implementation spec covering:
+  - current code-to-target mapping
+  - current landed baseline versus remaining delta
+  - trigger-boundary rules for `Enter`, `ArrowUp`, and `ArrowDown`
+  - the recommended `requestRadioBurst(...)` handoff seam
+  - likely file edits, tests, implementation order, and completion checks
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Radio.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was a documentation-only implementation-planning update; no code changed in this step.
+
+<!-- ENTRY 080 -->
+### [080] - 2026-03-20 14:03 - `DOC - Check Off Radio 2 And Radio 3 Phase Titles`
+<!-- ENTRY 080 -->
+HUMAN SUMMARY: Updated the phase-title checklist state in `Radio.md` so the document now reflects the radio work that already landed in code. `Phase 2` and `Phase 3` are now marked complete at the heading level, while the later playback-oriented phases remain open.
+
+#### Scope
+- Updated `docs/Human-Plans/Architecture/Radio.md` only.
+- Limited the change to phase-title checklist status plus one matching local doc-history line.
+- Recorded the document-only update in the permanent doc log.
+
+#### Summary
+- Marked `Phase 2 - [4.1O2] - Radio 2 - Canonical Session State And Defaults` complete.
+- Marked `Phase 3 - [4.1O2] - Command Identity Template System` complete.
+- Added one `Doc History` line inside `Radio.md` so the local history matches the permanent doc-log entry.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Radio.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was a documentation-only status sync; no code changed in this step.
+
+<!-- ENTRY 079 -->
+### [079] - 2026-03-20 13:52 - `DOC - Make Radio 3 Implementation Ready`
+<!-- ENTRY 079 -->
+HUMAN SUMMARY: Tightened `Phase 3` in `Radio.md` from a well-structured planning block into an implementation-ready execution spec. The updated phase now inventories the current live command-id strings emitted by `ConsoleDock.tsx`, marks those formats as transitional, names one concrete `resolveConsoleRadioCommandIdentity(...)` seam to add, and gives a direct file-edit and completion-check read for normalizing the radio command-template identity system.
+
+#### Scope
+- Updated `docs/Human-Plans/Architecture/Radio.md` only.
+- Kept the change focused on making `Phase 3` directly actionable against the current repo.
+- Recorded the document-only update in the permanent doc log.
+
+#### Summary
+- Marked the two `Phase 3` question blocks as locked decisions rather than still-open design questions.
+- Added `Current Live Identity Inventory` for the existing `prompt:`, `staged:`, `invalid:`, and `flat:` tracking strings already used in `ConsoleDock.tsx`.
+- Added a `Canonical Versus Transitional Identity Rule` so the doc now clearly separates the current temporary formats from the intended final command-identity grammar.
+- Added a concrete `resolveConsoleRadioCommandIdentity(...)` seam, recommended inputs/outputs, likely file edits, and a direct completion check for the phase.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Radio.md`
+
+#### Notes
+- This was a documentation-only implementation-planning update; no code changed in this step.
+
+<!-- ENTRY 078 -->
+### [078] - 2026-03-20 13:48 - `DOC - Structure Radio 3 As An Execution Spec`
+<!-- ENTRY 078 -->
+HUMAN SUMMARY: Reworked `Phase 3` in `Radio.md` from a short concept block into the same execution-spec format used by the earlier radio phases. The phase now has a `[4.1O2]` heading, explicit question blocks about semantic identities and allocation boundaries, and a code-targeted implementation spec tied to the current `ConsoleDock` tracking strings and `audioSamplerStore` sample-position seam.
+
+#### Scope
+- Updated `docs/Human-Plans/Architecture/Radio.md` only.
+- Kept the change focused on making `Phase 3` implementation-ready.
+- Recorded the document-only update in the permanent doc log.
+
+#### Summary
+- Renamed the phase heading to `Phase 3 - [4.1O2] - Command Identity Template System`.
+- Added `Q1` for semantic identity versus raw typed text.
+- Added `Q2` for where sample-time allocation should occur in the console flow.
+- Added an `Implementation Spec` that defines:
+  - current code-to-target mapping
+  - current landed baseline versus remaining delta
+  - the recommended canonical identity grammar
+  - alias normalization rules
+  - prompt-submit identity rules
+  - store/resolver ownership
+  - test targets and implementation order
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Radio.md`
+
+#### Notes
+- This change only structures the planning doc; it does not change runtime radio behavior.
+
+<!-- ENTRY 077 -->
+### [077] - 2026-03-20 13:43 - `DOC - Make Radio 2 Implementation Ready`
+<!-- ENTRY 077 -->
+HUMAN SUMMARY: Expanded `Phase 2` in `Radio.md` from a mostly product-level state spec into an implementation-ready execution spec tied directly to the current console-radio code. The updated phase now names the concrete code seams already carrying radio state, distinguishes the landed baseline from the remaining `[4.1O2]` delta, and adds explicit command-routing, test-target, and completion-order sections so the next radio state pass can be implemented without reopening ownership questions.
+
+#### Scope
+- Updated `docs/Human-Plans/Architecture/Radio.md` only.
+- Kept the change focused on making `[4.1O2]` implementation-ready against the current repo.
+- Recorded the document-only update in the permanent doc log.
+
+#### Summary
+- Marked the `Off` decision block as a locked `Q1` instead of an open question.
+- Added `Current Code-To-Target Mapping` for:
+  - `audioSamplerStore.ts`
+  - `ConsoleDock.tsx`
+  - `useConsoleStore.ts`
+  - `stagedNavigation.ts`
+- Added a `Current Landed Baseline` section and a `Remaining Delta To Close [4.1O2]` section so the doc reflects the real current code state.
+- Added explicit command-routing ownership, prompt seeding rules, transcript-read rules, concrete test targets, and a direct completion order for the remaining Phase 2 work.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Radio.md`
+
+#### Notes
+- This change does not alter runtime behavior; it only makes the next radio-state phase executable against the current codebase.
+
+<!-- ENTRY 076 -->
+### [076] - 2026-03-20 13:39 - `DOC - Make Radio Off Return To Root And Rename Its Alias`
+<!-- ENTRY 076 -->
+HUMAN SUMMARY: Updated `Radio.md` so `Off` now mirrors `On` as an apply-and-return-to-root action in the console-radio flow. The same doc pass also corrected the first alias read from the older `Off -> F` wording to `Off -> FF`, so the spec now consistently reads `On -> O` and `Off -> FF`.
+
+#### Scope
+- Updated `docs/Human-Plans/Architecture/Radio.md` only.
+- Kept the change focused on the `Off` command flow and alias wording.
+- Recorded the document-only update in the permanent doc log.
+
+#### Summary
+- Changed the `Phase 1` alias read from `Off -> F` to `Off -> FF`.
+- Added the `Off -> return to root after submit` rule to the `Radio 1` header, staged result behavior, submit rules, and acceptance shape.
+- Updated the local `Radio` scope alias read to `FF`.
+- Synced `Phase 2` command ownership so `Off` also carries the same return-to-root behavior after submit.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Radio.md`
+
+#### Notes
+- This was a documentation-only behavior clarification and alias correction; no code changed in this step.
+
+<!-- ENTRY 075 -->
+### [075] - 2026-03-20 13:37 - `DOC - Make Radio On Return To Root`
+<!-- ENTRY 075 -->
+HUMAN SUMMARY: Updated `Radio.md` so the console-radio flow now explicitly says `On` should return the user to root after submit. The change aligns the `Radio 1` header, staged-result behavior, submit rules, acceptance shape, and the `Phase 2` command-ownership read so `On` consistently behaves as an apply-and-exit action rather than a stay-in-radio command.
+
+#### Scope
+- Updated `docs/Human-Plans/Architecture/Radio.md` only.
+- Kept the change focused on the `On` command flow and state-ownership wording.
+- Recorded the document-only update in the permanent doc log.
+
+#### Summary
+- Added the `On -> return to root after submit` rule to the `Radio 1` header.
+- Updated the staged result/read sections in `Phase 1` so `On` executes and then returns to root.
+- Added explicit `Submit Rule` wording that `On` is an apply-and-exit action.
+- Updated the local acceptance shape to require root return after successful `On`.
+- Synced `Phase 2` command ownership so the `On` state change also carries the same return-to-root behavior.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Radio.md`
+
+#### Notes
+- This was a documentation-only behavior clarification; no code changed in this step.
+
+<!-- ENTRY 074 -->
+### [074] - 2026-03-20 13:35 - `DOC - Structure Radio 2 As An Execution Spec`
+<!-- ENTRY 074 -->
+HUMAN SUMMARY: Reworked `Phase 2` in `Radio.md` from a loose bullet list into the same execution-spec format used by the shipped `Radio 1` section. The phase now has a dedicated `[4.1O2]` title, a `Header`, one explicit `Q1` decision about what `Off` should clear, and a concrete implementation spec for the canonical radio session-state seam.
+
+#### Scope
+- Updated `docs/Human-Plans/Architecture/Radio.md` only.
+- Kept the change focused on Phase 2 structure and implementation-readiness.
+- Recorded the document-only update in the permanent doc log.
+
+#### Summary
+- Renamed the local phase heading to `Phase 2 - [4.1O2] - Radio 2 - Canonical Session State And Defaults`.
+- Added a structured `Header` block and acceptance shape.
+- Added `Q1` for the `Off`-as-silence-gate versus destructive-reset decision and locked the recommendation.
+- Added an `Implementation Spec` that defines:
+  - the canonical owner in `audioSamplerStore.ts`
+  - the first state shape and defaults
+  - command ownership for `On`, `Off`, `Url`, `SampleBurstTime`, and `RandomizeSampleTimes`
+  - transcript behavior
+  - implementation order and hard rules
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Radio.md`
+
+#### Notes
+- This change does not alter code or roadmap status; it only makes the next radio phase easier to execute directly.
+
+<!-- ENTRY 073 -->
+### [073] - 2026-03-20 13:29 - `DOC - Sync Radio 1 Titles With The Shipped Console Cut`
+<!-- ENTRY 073 -->
+HUMAN SUMMARY: Updated the radio architecture doc and the live roadmap so the first shipped radio cut no longer uses the too-narrow `Grammar And Scope` label. The docs now call `[4.1O1]` `Radio 1 - Root, Scope, And Guided Prompt Sessions`, mark that cut shipped in the roadmap, and keep the local `Radio.md` checklist titles aligned with the implemented console behavior.
+
+#### Scope
+- Updated `docs/Human-Plans/Architecture/Radio.md`.
+- Updated `docs/Human-Plans/roadmap/roadmap.md`.
+- Recorded the document-only sync in the permanent doc log.
+
+#### Summary
+- Renamed `Phase 1 / [4.1O1]` in `Radio.md` to `Radio 1 - Root, Scope, And Guided Prompt Sessions`.
+- Marked the local `Phase 1` read complete and renamed the resolved `Q1` block so it reads as a locked decision instead of an open design question.
+- Renamed the matching `[4.1O1]` roadmap item to the same title.
+- Marked the parent `[4.1O]` roadmap family partial and `[4.1O1]` complete so the roadmap status matches the shipped console-radio first cut.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Radio.md`
+- `docs/Human-Plans/roadmap/roadmap.md`
+
+#### Notes
+- This change only updates documentation labels/status reads; it does not change the shipped radio code or phase breakdown beyond naming/status alignment.
+
+<!-- ENTRY 072 -->
+### [072] - 2026-03-20 13:13 - `DOC - Make Radio 1 Implementation Ready`
+<!-- ENTRY 072 -->
+HUMAN SUMMARY: Expanded `Radio 1 - Grammar And Scope` in `Radio.md` into an implementation-ready phase spec by mapping it directly onto the current console code. The updated phase now names the concrete staged-navigation and console-store seams to extend, introduces one narrow prompt-session concept for `Url` and `SampleBurstTime`, and gives a direct first implementation order that can be carried into code without reopening the whole radio architecture.
+
+#### Scope
+- Updated the existing `docs/Human-Plans/Architecture/Radio.md` note only.
+- Kept the change focused on making `[4.1O1] Radio 1` concrete enough to implement directly against the current console architecture.
+- Recorded the document change in the permanent doc log.
+
+#### Summary
+- Added `Current Code-To-Target Mapping` for the current console files:
+  - `stagedNavigation.ts`
+  - `useConsoleStore.ts`
+  - `ConsoleBar.tsx`
+- Added a concrete prompt-session seam for the first radio prompt handoff behavior.
+- Defined likely first data shapes for the new `radioRoot` staged scope, radio action ids, and prompt-session payload.
+- Added explicit validation rules and a direct first implementation order aimed at the current codebase.
+- Tightened the phase acceptance shape so `Radio 1` now reads as a true implementation-ready cut instead of only a product/UX note.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Radio.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This update still keeps real radio state, sample-time mapping, and playback/runtime bridging in later `[4.1O2]` and `[4.1O3]` cuts.
+
+<!-- ENTRY 071 -->
+### [071] - 2026-03-20 13:11 - `DOC - Align Radio Phase 1 Heading With 4.1O1 Roadmap Id`
+<!-- ENTRY 071 -->
+HUMAN SUMMARY: Updated `Radio.md` so the first phase heading now includes its live roadmap id and label, making the architecture note read consistently with the new `[4.1O1]` roadmap entry. The local roadmap-mapping block now points at the same `Radio 1 - Grammar And Scope` wording instead of the older phase-only title.
+
+#### Scope
+- Updated the existing `docs/Human-Plans/Architecture/Radio.md` note only.
+- Kept the change focused on naming alignment between the radio architecture doc and the live roadmap.
+- Recorded the document change in the permanent doc log.
+
+#### Summary
+- Renamed the first radio phase heading to:
+  - `Phase 1 - [4.1O1] - Radio 1 - Grammar And Scope`
+- Updated the `Roadmap Mapping` block so the `[4.1O1]` mapping line now uses the same phase title.
+- Kept the underlying phase content unchanged.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Radio.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This update is naming-only and does not change the scope or acceptance shape of the phase.
+
+<!-- ENTRY 070 -->
+### [070] - 2026-03-20 13:06 - `DOC - Add Console Radio Mini-Family To Roadmap And Sync Radio Mapping`
+<!-- ENTRY 070 -->
+HUMAN SUMMARY: Added a new `[4.1O]` console-radio mini-family to the live roadmap so the first implementation path for `VR - Phase 4 - Radio Sampler Return` now has an explicit home under the console lane instead of requiring a new roadmap lane. Synced `Radio.md` with that structure by mapping the first implementation trio to `[4.1O1]`, `[4.1O2]`, and `[4.1O3]`.
+
+#### Scope
+- Updated the live roadmap to add the new console-radio mini-family under `[4.1]`.
+- Updated `Radio.md` so its local phase ladder points at the same `[4.1O]` roadmap structure.
+- Recorded the document change in the permanent doc log.
+
+#### Summary
+- Added `[4.1O]`, `[4.1O1]`, `[4.1O2]`, and `[4.1O3]` to the Lane `[4]` quick checklist and the detailed `[4.1]` body in `roadmap.md`.
+- Kept the canonical product home for the feature as `VR - Phase 4 - Radio Sampler Return`, while making the first technical path explicitly console-first under the live console roadmap family.
+- Added a `Roadmap Mapping` block to `Radio.md` so the architecture spec now clearly maps:
+  - `Phase 1` -> `[4.1O1]`
+  - `Phase 2 + Phase 3` -> `[4.1O2]`
+  - `Phase 4 + Phase 5` -> `[4.1O3]`
+- Left `Phase 6` in `Radio.md` as later hardening follow-through after the first roadmap trio.
+
+#### Files Changed
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/Human-Plans/Architecture/Radio.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This update changes planning structure only; it does not yet create a task doc or runtime implementation for the radio system.
+
+<!-- ENTRY 069 -->
+### [069] - 2026-03-20 13:01 - `DOC - Revise Radio Phase 1 Q1 To Use Normal Console Suggestion Flow`
+<!-- ENTRY 069 -->
+HUMAN SUMMARY: Revised `Phase 1` `Q1` in `Radio.md` so `Url` and `SampleBurstTime` now follow the normal console suggestion model instead of being described as special freeform prompt states. The updated spec now says each command should prefill a suggested answer, and if the user types something different, that new typed value replaces the autosuggested answer cleanly.
+
+#### Scope
+- Updated the existing `docs/Human-Plans/Architecture/Radio.md` note only.
+- Kept the change focused on the `Phase 1` command/prompt behavior for `Url` and `SampleBurstTime`.
+- Recorded the document change in the permanent doc log.
+
+#### Summary
+- Rewrote the `Q1` suggestion so `Url` and `SampleBurstTime` stay inside the normal console suggestion flow.
+- Updated the `Implementation Spec` to replace the earlier special freeform-prompt framing with suggested-answer behavior.
+- Locked the direction that each of those commands should prefill a current/default value and let normal typing override that suggestion.
+- Updated the acceptance shape so the phase now explicitly expects autosuggest replacement when the user types a different value.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Radio.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This update changes the interaction design only; it still does not add runtime playback or source-loading behavior.
+
+<!-- ENTRY 068 -->
+### [068] - 2026-03-20 12:57 - `DOC - Expand Radio Phase 1 Into Structured Mini Spec`
+<!-- ENTRY 068 -->
+HUMAN SUMMARY: Expanded `Phase 1 - Console Radio Grammar And Scope` in `Radio.md` into a fuller mini spec and aligned it with the new question-heading rule, so the phase now uses its own `### [ ] Q1` block and records the first concrete prompt-state behavior for `Url` and `SampleBurstTime`.
+
+#### Scope
+- Updated the existing `docs/Human-Plans/Architecture/Radio.md` note only.
+- Kept the change focused on making `Phase 1` implementation-ready and matching the new question-section format.
+- Recorded the document change in the permanent doc log.
+
+#### Summary
+- Added a dedicated `### [ ] Q1` section under `Phase 1`.
+- Locked the direction that `Url` and `SampleBurstTime` should behave as temporary inline prompt states inside the normal console flow rather than deeper nested radio submenus.
+- Expanded the `Implementation Spec` with the first root/radio scope shape, alias normalization rule, invalid-input behavior, and `Back` / `Esc` recovery behavior.
+- Added suggested prompt-read examples and a recommended implementation order for the first console-radio grammar cut.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Radio.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This update still does not decide runtime playback mechanics; it only makes the first console grammar phase concrete enough to implement directly.
+
+<!-- ENTRY 067 -->
+### [067] - 2026-03-20 12:54 - `DOC - Add Radio Phase Ladder And Open Decisions`
+<!-- ENTRY 067 -->
+HUMAN SUMMARY: Expanded `Radio.md` with a bottom `phases` section so the console-first radio idea now reads as a real execution ladder instead of only a concept note. The new section breaks the work into narrow cuts, adds acceptance shape per phase, and records the two main unresolved decisions around command-identity mapping and SoundCloud fallback behavior.
+
+#### Scope
+- Updated the existing `docs/Human-Plans/Architecture/Radio.md` note only.
+- Kept the change focused on execution planning and remaining decision capture for the console-first radio idea.
+- Recorded the document change in the permanent doc log.
+
+#### Summary
+- Added a bottom `# phases` section to `Radio.md`.
+- Broke the console-first radio work into six narrow phases covering grammar/scope, session state/defaults, command-identity template mapping, console trigger wiring, runtime source bridging, and hardening.
+- Added acceptance shape under each phase so the document now reads more like an implementation spec than a high-level wishlist note.
+- Recorded the key remaining decisions around:
+  - what exact semantic command identity should own stable sample-time mapping
+  - what fallback playback bridge should be used if direct SoundCloud control is not practical in-browser
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Radio.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This update still does not choose the final playback mechanism; it only makes the staged implementation order and decision points explicit.
+
+<!-- ENTRY 066 -->
+### [066] - 2026-03-20 12:52 - `DOC - Add Console-First Radio Command Template Direction`
+<!-- ENTRY 066 -->
+HUMAN SUMMARY: Expanded `Radio.md` with a concrete console-first implementation direction so the first radio cut now has a defined root command entry, radio command menu, default `Gusano` URL behavior, and a session-stable per-command sample-time template rule instead of staying only at the broader subsystem level.
+
+#### Scope
+- Updated the existing `docs/Human-Plans/Architecture/Radio.md` note only.
+- Kept the change focused on the first console-driven implementation shape for radio behavior.
+- Recorded the document change in the permanent doc log.
+
+#### Summary
+- Added a new `Console-First Implementation Direction` section to `Radio.md`.
+- Locked the intended root command expansion from `[Graph]` to `[Graph, Radio]` with `G` / `R` aliases.
+- Defined the first `Radio` scope commands as `On`, `Off`, `Url`, `SampleBurstTime`, and `RandomizeSampleTimes`, including the intended aliases and behavior.
+- Recorded the default SoundCloud source as `https://soundcloud.com/keota-us/gusano`.
+- Captured the first trigger rule that `Enter`, `ArrowUp`, and `ArrowDown` in the console should fire radio bursts when radio is enabled.
+- Locked the key design direction that sample times should be assigned automatically per console command identity and remain stable throughout the session until re-randomized.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Radio.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This update records the console-command template direction only and does not yet decide the exact SoundCloud integration mechanism or fallback behavior if the external source is not ready.
+
+<!-- ENTRY 065 -->
+### [065] - 2026-03-20 12:42 - `DOC - Add Radio Architecture Planning Surface`
+<!-- ENTRY 065 -->
+HUMAN SUMMARY: Added a new `Radio.md` architecture doc so the old `radio sampler` idea now has an implementation-facing home under `docs/Human-Plans/Architecture/`. The new doc translates the older `Gusano` / `Keota Radio` wish-feature memory into concrete ownership, runtime, trigger, and first-scope rules, and the docs index now lists it as a canonical architecture surface.
+
+#### Scope
+- Added a new architecture doc for the modern `Radio` subsystem.
+- Updated the docs index so the new architecture surface is discoverable in the architecture map.
+- Recorded the change in the permanent doc log.
+
+#### Summary
+- Created `docs/Human-Plans/Architecture/Radio.md` as the implementation-facing architecture counterpart to the older `docs/Human-Plans/Wish-Features/10 - radio-Sampler.md` note.
+- Defined the modern `Radio` as an optional app/runtime personality subsystem rather than a worker or build feature.
+- Locked the first ownership split across shell placement, app/store state, runtime audio execution, and feature-owned trigger publishing.
+- Recorded the stable-random cue-map rule, the narrow first-pass trigger allowlist direction, and the first honest implementation boundaries.
+- Updated `docs/Doc-Index.md` so `Radio.md` appears in the live architecture-doc listing.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Radio.md`
+- `docs/Doc-Index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This update defines architecture direction only and does not yet wire any runtime audio code or UI into `src/`.
+
+<!-- ENTRY 064 -->
+### [064] - 2026-03-20 12:24 - `DOC - Add User Controlled Worker Cost And Preview Direction`
+<!-- ENTRY 064 -->
+HUMAN SUMMARY: `Updated the worker architecture note to explicitly plan for user-controlled execution cost. The new direction says heavy geometry should not force one exact slow rebuild path for every edit, and records the likely need for preview versus final modes, per-part detail controls, execution toggles, and a possible fast Three.js preview path alongside slower exact worker builds.` 
+
+#### Scope
+- Updated the existing `Worker.md` architecture note only.
+- Kept the change focused on worker architecture direction and execution-policy planning, not runtime code.
+- Recorded the document change in the canonical permanent doc log.
+
+#### Summary
+- Added a new local `Doc History` line in `docs/Human-Plans/Architecture/Worker.md`.
+- Expanded the short version and target worker contract to say the user should eventually control worker cost explicitly.
+- Added recommended control families covering:
+- `preview` versus `final` style execution intent
+- per-part detail level
+- render/update toggles for expensive work
+- Added the possible direction that heavy exact geometry may stay worker-side while fast interactive preview could use simplified runtime geometry or a viewer-side Three.js preview surface.
+- Expanded cleanup goals, open questions, and `Phase 3` / `Phase 5` / `Phase 6` so preview-versus-final semantics become part of the worker roadmap instead of staying an implicit performance concern.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Worker.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This update records the architectural direction only; it does not yet choose whether the first fast-preview path should live primarily in the worker, in the viewer, or in a hybrid preview/final split.
+
+<!-- ENTRY 063 -->
+### [063] - 2026-03-20 12:13 - `DOC - Add Parent Versus Child Rebuild Ownership Rule To Worker Architecture`
+<!-- ENTRY 063 -->
+HUMAN SUMMARY: `Updated the worker architecture note to make rebuild ownership explicit: rebuilding a child must not automatically mean the parent component or assembly rebuilt. The new wording clarifies that parent rows may aggregate child dirtiness or rebuild activity without implying a real parent-owned rebuild, and ties that rule into the worker planning phases.` 
+
+#### Scope
+- Updated the existing `Worker.md` architecture note only.
+- Kept the change focused on rebuild semantics and planning clarity, not runtime code.
+- Recorded the document change in the canonical permanent doc log.
+
+#### Summary
+- Added a new local `Doc History` line in `docs/Human-Plans/Architecture/Worker.md`.
+- Added an explicit rebuild-ownership rule under the worker ownership split.
+- Added a new current-problem subsection explaining that rebuild ownership is still too blurry in the present architecture.
+- Expanded cleanup goals and the phase roadmap so `Phase 3`, `Phase 5`, and `Phase 6` now directly cover:
+- child rebuilds not implying parent rebuilds
+- preserving unaffected siblings and parent structure
+- distinguishing aggregate parent status from true parent rebuild results
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Worker.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This update locks the architectural rule, but the live worker/runtime and browser semantics still need follow-through implementation before the behavior fully matches the new wording.
+
+<!-- ENTRY 062 -->
+### [062] - 2026-03-20 10:12 - `DOC - Add Worker Cleanup Phases Roadmap`
+<!-- ENTRY 062 -->
+HUMAN SUMMARY: `Updated the worker architecture note with a dedicated phases roadmap so the current hybrid worker can be planned as explicit cleanup and migration slices instead of staying only as high-level direction. The new section breaks the worker follow-through into contract, lanes, dispatcher, runtime, result-semantics, and cutover phases.` 
+
+#### Scope
+- Updated the existing `Worker.md` architecture note only.
+- Kept the change focused on planning structure and execution sequencing, not runtime code.
+- Recorded the document change in the canonical permanent doc log.
+
+#### Summary
+- Added a new local `Doc History` line in `docs/Human-Plans/Architecture/Worker.md`.
+- Added a dedicated `phases` section to the worker architecture doc.
+- Broke the worker cleanup into explicit checkbox phases covering:
+- current-state audit
+- graph-native request contract
+- lane definition
+- dispatcher thinning
+- legacy-versus-target runtime separation
+- result semantics
+- final contract cutover
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Worker.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- The new phased roadmap is planning guidance only; it does not yet resolve the open design questions around the final graph-native request shape or the permanent worker lane set.
+
 <!-- ENTRY 061 -->
 ### [061] - 2026-03-19 23:48 - `DOC - Update vi2 Console Spec From Left Right To Up Down Cycling`
 <!-- ENTRY 061 -->

@@ -9,6 +9,7 @@ const makeOverlay = (
   stage: 'pick',
   gizmoMode: 'translate',
   draftPlane: 'XY',
+  previewPlane: null,
   draftTransform: {
     offsetMm: 0,
     inPlaneRotationDeg: 0,
@@ -79,6 +80,27 @@ describe('SketchPlanePickHelper', () => {
     expect(((inactiveDraftPlaneMesh as Mesh).material as MeshBasicMaterial).opacity).toBe(0.12)
     expect(((planeMesh as Mesh).material as MeshBasicMaterial).opacity).toBe(0.2)
     expect(((planeOutline as LineSegments).material as LineBasicMaterial).opacity).toBe(0.9)
+
+    helper.dispose()
+  })
+
+  it('uses the overlay preview plane as a hover-equivalent during pick', () => {
+    const helper = new SketchPlanePickHelper()
+    helper.setOverlay(makeOverlay({ stage: 'pick', draftPlane: 'XY', previewPlane: 'YZ' }))
+
+    const previewPlaneRoot = helper
+      .getPreviewPivot()
+      .children.find((child) => child.userData.sketchPlaneId === 'YZ')
+    const previewPlaneMesh = previewPlaneRoot?.children[0]
+    const previewPlaneOutline = previewPlaneRoot?.children[1]
+
+    expect(previewPlaneRoot?.visible).toBe(true)
+    expect(((previewPlaneMesh as Mesh).material as MeshBasicMaterial).opacity).toBe(0.2)
+    expect(((previewPlaneOutline as LineSegments).material as LineBasicMaterial).opacity).toBe(0.9)
+    const activeGrid = helper.getPreviewPivot().children.find(
+      (child) => child.name === 'SketchPlaneActiveGrid',
+    )
+    expect(activeGrid?.rotation.y).toBeCloseTo(Math.PI / 2, 6)
 
     helper.dispose()
   })

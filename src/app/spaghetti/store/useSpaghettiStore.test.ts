@@ -2845,6 +2845,15 @@ describe('useSpaghettiStore Geometry/Sketch editing semantics', () => {
     useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
     useSpaghettiStore.getState().startSketchPlanePick('node-sketch-1')
     useSpaghettiStore.getState().setSketchPlanePickDraftPlane('XZ')
+    useSpaghettiStore.getState().runSketchPlaneCommand('move')
+
+    useSpaghettiStore.getState().returnActiveSketchSessionOneLevel()
+    expect(useSpaghettiStore.getState().sketchPlanePickSession).toMatchObject({
+      nodeId: 'node-sketch-1',
+      stage: 'adjust',
+      adjustScope: 'root',
+      draftPlane: 'XZ',
+    })
 
     useSpaghettiStore.getState().returnActiveSketchSessionOneLevel()
     expect(useSpaghettiStore.getState().sketchPlanePickSession).toMatchObject({
@@ -2885,5 +2894,153 @@ describe('useSpaghettiStore Geometry/Sketch editing semantics', () => {
       drawStage: 'sessionIdle',
       drawDraft: null,
     })
+  })
+
+  it('routes shared sketch commands through the same sketch-session verbs', () => {
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: {
+              type: 'sketch',
+              featureId: 'sketch-1',
+              plane: 'XY',
+              planeTransform: {
+                offsetMm: 0,
+                translation: { x: 0, y: 0, z: 0 },
+                rotationDeg: { x: 0, y: 0, z: 0 },
+                inPlaneRotationDeg: 0,
+              },
+              components: [],
+              outputs: { profiles: [], diagnostics: [] },
+              uiState: { collapsed: false },
+            },
+          },
+        },
+      ],
+      edges: [],
+    })
+
+    useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
+    useSpaghettiStore.getState().startSketchPlanePick('node-sketch-1')
+    useSpaghettiStore.getState().runSketchPlaneCommand('xz')
+
+    expect(useSpaghettiStore.getState().sketchPlanePickSession).toMatchObject({
+      nodeId: 'node-sketch-1',
+      stage: 'adjust',
+      adjustScope: 'root',
+      draftPlane: 'XZ',
+      gizmoMode: 'translate',
+    })
+
+    useSpaghettiStore.getState().runSketchPlaneCommand('move')
+    expect(useSpaghettiStore.getState().sketchPlanePickSession).toMatchObject({
+      nodeId: 'node-sketch-1',
+      stage: 'adjust',
+      adjustScope: 'move',
+      activeTransformAxis: 'free',
+      transformCommandOrigin: {
+        offsetMm: 0,
+        translation: { x: 0, y: 0, z: 0 },
+        rotationDeg: { x: 0, y: 0, z: 0 },
+        inPlaneRotationDeg: 0,
+      },
+      draftPlane: 'XZ',
+      gizmoMode: 'translate',
+    })
+
+    useSpaghettiStore.getState().setSketchPlanePickTranslationAxis('x', 22)
+    useSpaghettiStore.getState().runSketchPlaneCommand('move-x')
+    expect(useSpaghettiStore.getState().sketchPlanePickSession).toMatchObject({
+      nodeId: 'node-sketch-1',
+      stage: 'adjust',
+      adjustScope: 'move',
+      activeTransformAxis: 'x',
+      transformCommandOrigin: {
+        offsetMm: 0,
+        translation: { x: 0, y: 0, z: 0 },
+        rotationDeg: { x: 0, y: 0, z: 0 },
+        inPlaneRotationDeg: 0,
+      },
+      draftTransform: {
+        offsetMm: 0,
+        translation: { x: 0, y: 0, z: 0 },
+        rotationDeg: { x: 0, y: 0, z: 0 },
+        inPlaneRotationDeg: 0,
+      },
+      draftPlane: 'XZ',
+      gizmoMode: 'translate',
+    })
+
+    useSpaghettiStore.getState().runSketchPlaneCommand('rotate')
+    expect(useSpaghettiStore.getState().sketchPlanePickSession).toMatchObject({
+      nodeId: 'node-sketch-1',
+      stage: 'adjust',
+      adjustScope: 'rotate',
+      activeTransformAxis: 'free',
+      draftPlane: 'XZ',
+      gizmoMode: 'rotate',
+    })
+
+    useSpaghettiStore.getState().runSketchPlaneCommand('rotate-z')
+    expect(useSpaghettiStore.getState().sketchPlanePickSession).toMatchObject({
+      nodeId: 'node-sketch-1',
+      stage: 'adjust',
+      adjustScope: 'rotate',
+      activeTransformAxis: 'z',
+      draftPlane: 'XZ',
+      gizmoMode: 'rotate',
+    })
+
+    useSpaghettiStore.getState().runSketchPlaneCommand('back')
+    expect(useSpaghettiStore.getState().sketchPlanePickSession).toMatchObject({
+      nodeId: 'node-sketch-1',
+      stage: 'adjust',
+      adjustScope: 'root',
+      draftPlane: 'XZ',
+    })
+
+    useSpaghettiStore.getState().runSketchPlaneCommand('back')
+    expect(useSpaghettiStore.getState().sketchPlanePickSession).toMatchObject({
+      nodeId: 'node-sketch-1',
+      stage: 'pick',
+      draftPlane: 'XZ',
+    })
+
+    useSpaghettiStore.getState().runSketchPlaneCommand('x')
+    expect(useSpaghettiStore.getState().sketchPlanePickSession).toBeNull()
+
+    useSpaghettiStore.getState().startGeometrySketchSession('node-sketch-1', 'draw')
+    useSpaghettiStore.getState().runGeometrySketchDrawCommand('pl')
+    expect(useSpaghettiStore.getState().geometrySketchSession).toMatchObject({
+      nodeId: 'node-sketch-1',
+      mode: 'draw',
+      activeTool: 'pline',
+      drawStage: 'toolSelected',
+    })
+
+    useSpaghettiStore.getState().confirmGeometrySketchDrawPoint({ x: 1, y: 2 }, null)
+    useSpaghettiStore.getState().runGeometrySketchDrawCommand('back')
+    expect(useSpaghettiStore.getState().geometrySketchSession).toMatchObject({
+      nodeId: 'node-sketch-1',
+      mode: 'draw',
+      activeTool: 'pline',
+      drawStage: 'toolSelected',
+    })
+
+    useSpaghettiStore.getState().runGeometrySketchDrawCommand('b')
+    expect(useSpaghettiStore.getState().geometrySketchSession).toMatchObject({
+      nodeId: 'node-sketch-1',
+      mode: 'draw',
+      activeTool: null,
+      drawStage: 'sessionIdle',
+      drawDraft: null,
+    })
+
+    useSpaghettiStore.getState().runGeometrySketchDrawCommand('x')
+    expect(useSpaghettiStore.getState().geometrySketchSession).toBeNull()
   })
 })

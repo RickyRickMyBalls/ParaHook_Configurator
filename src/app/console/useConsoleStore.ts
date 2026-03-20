@@ -21,6 +21,16 @@ import type {
   ConsoleStagedNavigationSession,
 } from './stagedNavigation'
 
+export type ConsolePromptSessionKind = 'radio.url' | 'radio.sampleBurstTime'
+
+export type ConsolePromptSession = {
+  kind: ConsolePromptSessionKind
+  breadcrumb: string[]
+  label: string
+  prefill: string
+  returnSession: ConsoleStagedNavigationSession
+}
+
 const CONSOLE_LAYERS: ConsoleLayer[] = [
   'Commands',
   'Shortcuts',
@@ -87,6 +97,7 @@ type ConsoleState = {
   subsetLayers: ConsoleLayerVisibility
   isDiagnosticsPinned: boolean
   stagedNavigationSession: ConsoleStagedNavigationSession | null
+  consolePromptSession: ConsolePromptSession | null
   featureAssistDescriptor: ConsoleAssistDescriptor | null
   stagedChoiceIndex: number | null
   isStagedChoiceManualOverride: boolean
@@ -126,8 +137,10 @@ type ConsoleState = {
   toggleSubsetLayer: (layer: ConsoleLayer) => void
   setDiagnosticsPinned: (value: boolean) => void
   setStagedNavigationSession: (session: ConsoleStagedNavigationSession | null) => void
+  setConsolePromptSession: (session: ConsolePromptSession | null) => void
   setFeatureAssistDescriptor: (descriptor: ConsoleAssistDescriptor | null) => void
   clearStagedNavigationSession: () => void
+  clearConsolePromptSession: () => void
   cycleStagedChoice: (direction: 'previous' | 'next') => void
 }
 
@@ -243,7 +256,39 @@ const isInputDrivenByDescriptor = (
   })
 }
 
-const getActiveAssistDescriptor = (state: Pick<ConsoleState, 'stagedNavigationSession' | 'featureAssistDescriptor'>): ConsoleAssistDescriptor | null => {
+const areAssistDescriptorsEqual = (
+  left: ConsoleAssistDescriptor | null,
+  right: ConsoleAssistDescriptor | null,
+): boolean => {
+  if (left === right) {
+    return true
+  }
+  if (left === null || right === null) {
+    return false
+  }
+  if (left.label !== right.label || left.prefill !== right.prefill) {
+    return false
+  }
+  if (left.choices.length !== right.choices.length) {
+    return false
+  }
+  return left.choices.every((choice, index) => {
+    const other = right.choices[index]
+    if (other === undefined) {
+      return false
+    }
+    return (
+      choice.canonicalToken === other.canonicalToken &&
+      choice.label === other.label &&
+      choice.aliases.length === other.aliases.length &&
+      choice.aliases.every((alias, aliasIndex) => alias === other.aliases[aliasIndex])
+    )
+  })
+}
+
+const getActiveAssistDescriptor = (
+  state: Pick<ConsoleState, 'stagedNavigationSession' | 'consolePromptSession' | 'featureAssistDescriptor'>,
+): ConsoleAssistDescriptor | null => {
   if (state.stagedNavigationSession !== null && state.stagedNavigationSession.validChoices.length > 0) {
     return {
       label:
@@ -254,6 +299,20 @@ const getActiveAssistDescriptor = (state: Pick<ConsoleState, 'stagedNavigationSe
         state.stagedNavigationSession.validChoices[0] === undefined
           ? null
           : getStagedChoiceInputText(state.stagedNavigationSession.validChoices[0]),
+    }
+  }
+  if (state.consolePromptSession !== null) {
+    return {
+      label: state.consolePromptSession.label,
+      breadcrumb: state.consolePromptSession.breadcrumb,
+      choices: [
+        {
+          canonicalToken: state.consolePromptSession.prefill,
+          aliases: [],
+          label: state.consolePromptSession.prefill,
+        },
+      ],
+      prefill: state.consolePromptSession.prefill,
     }
   }
   return state.featureAssistDescriptor
@@ -360,6 +419,7 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
   subsetLayers: createVisibleLayers(),
   isDiagnosticsPinned: false,
   stagedNavigationSession: null,
+  consolePromptSession: null,
   featureAssistDescriptor: null,
   stagedChoiceIndex: null,
   isStagedChoiceManualOverride: false,
@@ -672,6 +732,7 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
           const inputText = fallbackDescriptor.prefill ?? getAssistChoiceInputText(fallbackDescriptor.choices[stagedChoiceIndex])
           return {
             stagedNavigationSession,
+            consolePromptSession: null,
             stagedChoiceIndex,
             isStagedChoiceManualOverride: false,
             inputText,
@@ -681,6 +742,7 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
         }
         return {
           stagedNavigationSession,
+          consolePromptSession: null,
           stagedChoiceIndex: null,
           isStagedChoiceManualOverride: false,
         }
@@ -690,9 +752,58 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
       const inputText = getStagedChoiceInputText(stagedNavigationSession.validChoices[stagedChoiceIndex])
       return {
         stagedNavigationSession,
+        consolePromptSession: null,
         stagedChoiceIndex,
         isStagedChoiceManualOverride: false,
         inputText,
+        historyIndex: null,
+        historyDraft: '',
+      }
+    })
+  },
+  setConsolePromptSession: (consolePromptSession) => {
+    set((state) => {
+      if (consolePromptSession === null) {
+        const fallbackDescriptor =
+          state.stagedNavigationSession !== null && state.stagedNavigationSession.validChoices.length > 0
+            ? {
+                label:
+                  state.stagedNavigationSession.breadcrumb.at(-1) ??
+                  state.stagedNavigationSession.scopeId,
+                choices: descriptorChoicesFromStagedChoices(state.stagedNavigationSession.validChoices),
+                prefill:
+                  state.stagedNavigationSession.validChoices[0] === undefined
+                    ? null
+                    : getStagedChoiceInputText(state.stagedNavigationSession.validChoices[0]),
+              }
+            : state.featureAssistDescriptor
+        if (fallbackDescriptor !== null && fallbackDescriptor.choices.length > 0) {
+          const stagedChoiceIndex = 0
+          const inputText =
+            fallbackDescriptor.prefill ??
+            getAssistChoiceInputText(fallbackDescriptor.choices[stagedChoiceIndex]!)
+          return {
+            consolePromptSession: null,
+            stagedChoiceIndex,
+            isStagedChoiceManualOverride: false,
+            inputText,
+            historyIndex: null,
+            historyDraft: '',
+          }
+        }
+        return {
+          consolePromptSession: null,
+          stagedChoiceIndex: null,
+          isStagedChoiceManualOverride: false,
+        }
+      }
+
+      return {
+        consolePromptSession,
+        stagedNavigationSession: null,
+        stagedChoiceIndex: 0,
+        isStagedChoiceManualOverride: false,
+        inputText: consolePromptSession.prefill,
         historyIndex: null,
         historyDraft: '',
       }
@@ -716,6 +827,40 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
       }
       return {
         stagedNavigationSession: null,
+        consolePromptSession: null,
+        stagedChoiceIndex: null,
+        isStagedChoiceManualOverride: false,
+      }
+    })
+  },
+  clearConsolePromptSession: () => {
+    set((state) => {
+      if (state.stagedNavigationSession !== null && state.stagedNavigationSession.validChoices.length > 0) {
+        const stagedChoiceIndex = 0
+        return {
+          consolePromptSession: null,
+          stagedChoiceIndex,
+          isStagedChoiceManualOverride: false,
+          inputText: getStagedChoiceInputText(state.stagedNavigationSession.validChoices[stagedChoiceIndex]!),
+          historyIndex: null,
+          historyDraft: '',
+        }
+      }
+      if (state.featureAssistDescriptor !== null && state.featureAssistDescriptor.choices.length > 0) {
+        const stagedChoiceIndex = 0
+        return {
+          consolePromptSession: null,
+          stagedChoiceIndex,
+          isStagedChoiceManualOverride: false,
+          inputText:
+            state.featureAssistDescriptor.prefill ??
+            getAssistChoiceInputText(state.featureAssistDescriptor.choices[stagedChoiceIndex]!),
+          historyIndex: null,
+          historyDraft: '',
+        }
+      }
+      return {
+        consolePromptSession: null,
         stagedChoiceIndex: null,
         isStagedChoiceManualOverride: false,
       }
@@ -726,7 +871,10 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
       const nextState = {
         featureAssistDescriptor,
       }
-      if (state.stagedNavigationSession !== null) {
+      if (state.stagedNavigationSession !== null || state.consolePromptSession !== null) {
+        return nextState
+      }
+      if (areAssistDescriptorsEqual(state.featureAssistDescriptor, featureAssistDescriptor)) {
         return nextState
       }
       if (featureAssistDescriptor === null || featureAssistDescriptor.choices.length === 0) {

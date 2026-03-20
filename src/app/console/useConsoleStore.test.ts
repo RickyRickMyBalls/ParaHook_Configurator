@@ -447,6 +447,30 @@ describe('useConsoleStore', () => {
     expect(useConsoleStore.getState().stagedChoiceIndex).toBeNull()
   })
 
+  it('keeps manual feature-assist input when the same descriptor is re-published', () => {
+    const descriptor: ConsoleAssistDescriptor = {
+      label: 'Sketch Plane',
+      prefill: 'X',
+      choices: [
+        { canonicalToken: 'X', aliases: ['MOVE X', 'MX'], label: 'X' },
+        { canonicalToken: 'Y', aliases: ['MOVE Y', 'MY'], label: 'Y' },
+        { canonicalToken: 'Z', aliases: ['MOVE Z', 'MZ'], label: 'Z' },
+        { canonicalToken: '3,3,3', aliases: [], label: '3,3,3' },
+      ],
+    }
+
+    useConsoleStore.getState().setFeatureAssistDescriptor(descriptor)
+    useConsoleStore.getState().setInputText('3,3,3')
+    useConsoleStore.getState().setFeatureAssistDescriptor({
+      ...descriptor,
+      choices: [...descriptor.choices],
+    })
+
+    expect(useConsoleStore.getState().inputText).toBe('3,3,3')
+    expect(useConsoleStore.getState().stagedChoiceIndex).toBe(3)
+    expect(useConsoleStore.getState().isStagedChoiceManualOverride).toBe(false)
+  })
+
   it('restores feature assist after staged navigation clears', () => {
     const descriptor: ConsoleAssistDescriptor = {
       label: 'Sketch Plane',
@@ -484,5 +508,41 @@ describe('useConsoleStore', () => {
     expect(useConsoleStore.getState().inputText).toBe('XY')
     expect(useConsoleStore.getState().stagedChoiceIndex).toBe(0)
     expect(useConsoleStore.getState().isStagedChoiceManualOverride).toBe(false)
+  })
+
+  it('prefills and respects manual override for console prompt sessions', () => {
+    useConsoleStore.getState().setConsolePromptSession({
+      kind: 'radio.sampleBurstTime',
+      breadcrumb: ['Select', 'Radio', 'SampleBurstTime'],
+      label: 'Radio SampleBurstTime',
+      prefill: '0.1',
+      returnSession: {
+        scopeId: 'radioRoot',
+        breadcrumb: ['Select', 'Radio'],
+        selections: {
+          graphDocumentId: null,
+          selectedNodeId: null,
+          sketchNodeId: null,
+        },
+        validChoices: [
+          {
+            canonicalToken: 'ON',
+            aliases: ['O'],
+            label: 'On',
+            kind: 'action',
+          },
+        ],
+      },
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession).toBeNull()
+    expect(useConsoleStore.getState().inputText).toBe('0.1')
+    expect(useConsoleStore.getState().stagedChoiceIndex).toBe(0)
+    expect(useConsoleStore.getState().isStagedChoiceManualOverride).toBe(false)
+
+    useConsoleStore.getState().setInputText('0.25')
+
+    expect(useConsoleStore.getState().inputText).toBe('0.25')
+    expect(useConsoleStore.getState().isStagedChoiceManualOverride).toBe(true)
   })
 })

@@ -4,6 +4,11 @@
 ### Fold Hack 3
 #### FOld Hack 4
 ###### Doc History
+110. 2026-03-20 14:25: Marked `[4.1O2]`, `[4.1O3]`, and the parent `[4.1O]` complete after the radio state/template work, trigger wiring, and fallback runtime playback bridge all landed, so the live roadmap now matches the fully shipped console-first radio mini-family
+109. 2026-03-20 14:14: Marked `[4.1O3]` partial after the console-radio trigger-wiring half landed, so the roadmap now reflects that accepted submits plus staged `ArrowUp` / `ArrowDown` preview requests are implemented while the playback bridge portion of that same mini-phase is still open
+108. 2026-03-20 13:29: Renamed `[4.1O1]` from the narrower `Radio 1 - Grammar And Scope` label to `Radio 1 - Root, Scope, And Guided Prompt Sessions` and marked both `[4.1O1]` and the parent `[4.1O]` mini-family active/partial so the live roadmap matches the shipped console-radio first cut
+107. 2026-03-20 13:06: Added a new `[4.1O]` console-radio mini-family under the live console lane, so the first implementation path for `VR - Phase 4 - Radio Sampler Return` now has an explicit roadmap home as three narrow console-first cuts covering grammar/scope, radio state plus command-template mapping, and trigger wiring plus playback bridging instead of needing a whole separate lane
+106. 2026-03-20 09:20: Marked `[3.2B-S5] Sketch Toolbar / Console Command Alignment` complete after adding shared sketch command seams in the sketch store and routing overlapping `SketchPlane` / `SketchDraw` toolbar actions plus console tokens through those same command verbs instead of keeping duplicate behavior ownership in `ViewportOverlay` and `ConsoleDock`
 105. 2026-03-20 01:16: Added `[4.1N] Feature Session Prompt Descriptors` to the live console roadmap as the shipped follow-on that extends the assisted staged-choice seam into active feature sessions, so `Sketch Plane` and idle `Sketch Draw` now publish shared prompt/choice/prefill descriptors instead of relying on one-off input seeding
 104. 2026-03-20 00:58: Added `vi1` and `vi2` into the live console roadmap as shipped follow-ons `[4.1L] Command Transcript Sublayers` and `[4.1M] Staged Choice Prefill And Arrow Cycling`, so the console lane now has a real roadmap home for the `Commands.User / Commands.System` transcript split and the staged-choice prefill/cycling refinement instead of leaving them only as bottom-of-file architecture vision notes
 103. 2026-03-20 00:50: Marked `[3.2B-S4] Sketch Return One Level` complete after adding one shared sketch-local back-step seam in the store, routing sketch `Escape` and console `back` through it, and exposing visible sketch-plane / sketch-draw toolbar `Back` actions without widening the work into whole-app navigation architecture
@@ -196,7 +201,7 @@ Status legend:
 - [x] `[3.2B-S2]` `SketchPlane Session Cleanup`
 - [x] `[3.2B-S3]` `SketchDraw Session Cleanup`
 - [x] `[3.2B-S4]` `Sketch Return One Level`
-- [ ] `[3.2B-S5]` `Sketch Toolbar / Console Command Alignment`
+- [x] `[3.2B-S5]` `Sketch Toolbar / Console Command Alignment`
 - [x] `[3.2C]` `Extrude Foundation`
 - [ ] `[3.2D]` `Loft Foundation`
 - [ ] `[3.3]` `Wire UX And Flow Readability`
@@ -230,6 +235,10 @@ Status legend:
 - [x] `[4.1L]` `Command Transcript Sublayers`
 - [x] `[4.1M]` `Staged Choice Prefill And Arrow Cycling`
 - [x] `[4.1N]` `Feature Session Prompt Descriptors`
+- [x] `[4.1O]` `Console-First Radio Sampler Return`
+- [x] `[4.1O1]` `Radio 1 - Root, Scope, And Guided Prompt Sessions`
+- [x] `[4.1O2]` `Radio 2 - State, Defaults, And Command Template Mapping`
+- [x] `[4.1O3]` `Radio 3 - Trigger Wiring And Playback Bridge`
 
 ### Lane [5] - `Control, Build, And Workspace Systems`
 
@@ -1834,6 +1843,73 @@ CheckList:
   - targeted choice tracking
   - `ArrowUp / ArrowDown` choice cycling
   - manual typing override
+
+### [4.1O] [x] - `Console-First Radio Sampler Return`
+
+- first implementation path for `VR - Phase 4 - Radio Sampler Return`
+- keep the canonical product home under `VR - Phase 4`, but land the first technical cut inside the live console family because the first user-facing seam is command-driven
+- keep this mini-family narrow:
+  - do not widen immediately into a full app-wide audio system
+  - do not require a new roadmap lane
+  - do not require non-console trigger coverage in the first cut
+- the first execution shape should be:
+  - `[4.1O1]` root, scope, and guided prompt sessions
+  - `[4.1O2]` radio state, defaults, and command-template mapping
+  - `[4.1O3]` trigger wiring and playback bridge
+
+### [4.1O1] [x] - `Radio 1 - Root, Scope, And Guided Prompt Sessions`
+
+- add `Radio` as a peer root branch beside `Graph`
+- root should read:
+  - `[Graph, Radio]`
+  - aliases:
+    - `[G, R]`
+- entering `Radio` should expose:
+  - `On`
+  - `Off`
+  - `Url`
+  - `SampleBurstTime`
+  - `RandomizeSampleTimes`
+  - `Back`
+- keep `Url` and `SampleBurstTime` inside the normal console suggestion flow:
+  - prefill a suggested answer
+  - let typed input override it
+  - return to `Radio` after valid submit
+- keep `Back` / `Esc` recovery aligned with the normal console model
+
+### [4.1O2] [x] - `Radio 2 - State, Defaults, And Command Template Mapping`
+
+- add one canonical console-radio state surface for:
+  - `isEnabled`
+  - `activeUrl`
+  - `sampleBurstTime`
+  - session-stable console-command sample times
+- use the default source:
+  - `https://soundcloud.com/keota-us/gusano`
+- use the first default burst time:
+  - `0.1`
+- `On`
+  - enables radio and ensures a source exists
+- `Off`
+  - disables radio-triggered console sound
+- `Url`
+  - accepts a new source and turns radio on
+- `RandomizeSampleTimes`
+  - regenerates the session mapping and prints:
+    - `randomized sample times`
+- key the mapping by semantic console command identity rather than raw typed alias spelling
+
+### [4.1O3] [x] - `Radio 3 - Trigger Wiring And Playback Bridge`
+
+- when radio is enabled:
+  - `Enter` should trigger the accepted command's sample burst
+  - staged `ArrowUp` should trigger the newly highlighted choice's sample burst
+  - staged `ArrowDown` should trigger the newly highlighted choice's sample burst
+- when radio is disabled:
+  - those console actions should remain silent
+- connect the console-command template mapping to one real playback bridge
+- keep browser-gesture, not-ready, and fallback playback behavior explicit
+- stop before broadening into non-console trigger coverage or a fuller multi-surface sampler system
 
 # [5] `Control, Build, And Workspace Systems`
 

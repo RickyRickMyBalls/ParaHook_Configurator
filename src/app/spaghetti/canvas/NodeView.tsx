@@ -161,6 +161,7 @@ type NodeViewProps = {
     expanded: boolean,
   ) => void
   selected: boolean
+  previewed?: boolean
   getInputDropState: (payload: EndpointPayload) => PortDropState
   getOutputDropState: (payload: EndpointPayload) => PortDropState
   onPresetChange: (nodeId: string, presetId: string) => void
@@ -364,6 +365,7 @@ function NodeViewComponent({
   getCompositeExpanded,
   setCompositeExpanded,
   selected,
+  previewed = false,
   getInputDropState,
   getOutputDropState,
   onPresetChange,
@@ -3027,6 +3029,8 @@ function NodeViewComponent({
       ref={nodeElementRef}
       data-sp-node-id={node.nodeId}
       className={`SpaghettiNode ${selected ? 'SpaghettiNode--selected' : ''} ${
+        previewed ? 'SpaghettiNode--previewed' : ''
+      } ${
         showInternalWiring ? 'SpaghettiNode--showInternalWiring' : ''
       }`}
       style={{ left: `${x}px`, top: `${y}px` }}

@@ -15,6 +15,15 @@ import { ViewportOverlay } from './components/ViewportOverlay'
 import { ConsoleDock } from './console/ConsoleDock'
 import { BrowserPanel } from './panels/BrowserPanel'
 import { SpaghettiPanel } from './panels/SpaghettiPanel'
+import { AudioEngine, AudioEngineError } from '../runtime/audio/AudioEngine'
+import {
+  buildSoundCloudPlayerUrl,
+  createFallbackRadioSourceDescriptor,
+  DEFAULT_GUSANO_URL,
+  resolveRadioSourceDescriptor,
+} from '../runtime/audio/ClipLibrary'
+import { registerRadioRuntimeWarmupHandler } from '../runtime/audio/radioRuntimeWarmup'
+import { createBrowserSoundCloudWidgetClient } from '../runtime/audio/SoundCloudWidgetClient'
 import {
   defaultViewportPosition,
   defaultViewportSize,
@@ -22,6 +31,7 @@ import {
   selectEditorViewportById,
   useSpaghettiStore,
 } from './spaghetti/store/useSpaghettiStore'
+import { useAudioSamplerStore } from './store/audioSamplerStore'
 import { useAppStore } from './store/useAppStore'
 import {
   defaultSpaghettiWindowAppearance,
@@ -309,6 +319,9 @@ function SpaghettiWindowTitleBar(props: {
 export function AppShell() {
   const activeEditorViewport = useSpaghettiStore(selectActiveEditorViewport)
   const sketchPlanePickSession = useSpaghettiStore((state) => state.sketchPlanePickSession ?? null)
+  const latestRadioBurstRequest = useAudioSamplerStore((state) => state.latestBurstRequest)
+  const isRadioEnabled = useAudioSamplerStore((state) => state.isRadioEnabled)
+  const radioSourceUrl = useAudioSamplerStore((state) => state.sourceUrl)
   const floatingShellActivationRequest = useAppStore((state) => state.floatingShellActivationRequest)
   const workspaceActiveSurface = useAppStore((state) => state.workspaceSelection.activeSurface)
   const setActiveSurface = useAppStore((state) => state.setActiveSurface)
@@ -336,6 +349,9 @@ export function AppShell() {
   const setEditorViewportSize = useSpaghettiStore((state) => state.setEditorViewportSize)
   const showEditorSurface = activeEditorViewport !== null
   const appShellRef = useRef<HTMLDivElement | null>(null)
+  const radioAudioEngineRef = useRef<AudioEngine | null>(null)
+  const radioSoundCloudIframeRef = useRef<HTMLIFrameElement | null>(null)
+  const lastHandledRadioBurstRequestIdRef = useRef<number | null>(null)
   const viewportRef = useRef<HTMLElement | null>(null)
   const dockedBrowserHostRef = useRef<HTMLDivElement | null>(null)
   const dockedMeatballHostRef = useRef<HTMLDivElement | null>(null)
@@ -378,6 +394,196 @@ export function AppShell() {
   >({})
   const [, setActiveFloatingShell] = useState<'spaghetti' | 'browser' | null>(null)
   const [workspaceSplitMenu, setWorkspaceSplitMenu] = useState<WorkspaceSplitMenuState | null>(null)
+
+  useEffect(() => {
+    return () => {
+      radioAudioEngineRef.current?.dispose()
+      radioAudioEngineRef.current = null
+    }
+  }, [])
+
+  useEffect(() => {
+    if (isRadioEnabled) {
+      return
+    }
+    radioAudioEngineRef.current?.stopBurst()
+    useAudioSamplerStore.getState().setRadioRuntimeState({
+      status: 'idle',
+      message: null,
+      sourceKind: 'none',
+    })
+  }, [isRadioEnabled])
+
+  useEffect(() => {
+    const createRadioAudioEngine = () =>
+      radioAudioEngineRef.current ??
+      new AudioEngine({
+        createSoundCloudWidgetClient: () =>
+          createBrowserSoundCloudWidgetClient({
+            getIframe: () => radioSoundCloudIframeRef.current,
+          }),
+      })
+
+    const unregisterWarmupHandler = registerRadioRuntimeWarmupHandler((nextSourceUrl) => {
+      const nextDescriptor = resolveRadioSourceDescriptor(nextSourceUrl)
+      if (nextDescriptor.kind !== 'soundcloud-widget') {
+        return
+      }
+      const engine = createRadioAudioEngine()
+      radioAudioEngineRef.current = engine
+      void engine.ensureSourceReady(nextDescriptor).catch(() => {
+        // Ignore eager warmup failures. The later burst path reports runtime status honestly.
+      })
+    })
+
+    return unregisterWarmupHandler
+  }, [])
+
+  useEffect(() => {
+    if (!isRadioEnabled) {
+      return
+    }
+    const nextDescriptor = resolveRadioSourceDescriptor(radioSourceUrl)
+    if (nextDescriptor.kind !== 'soundcloud-widget') {
+      return
+    }
+    const engine =
+      radioAudioEngineRef.current ??
+      new AudioEngine({
+        createSoundCloudWidgetClient: () =>
+          createBrowserSoundCloudWidgetClient({
+            getIframe: () => radioSoundCloudIframeRef.current,
+          }),
+      })
+    radioAudioEngineRef.current = engine
+    void engine.ensureSourceReady(nextDescriptor).catch(() => {
+      // Ignore background preload failures. The active burst path reports runtime status honestly.
+    })
+  }, [isRadioEnabled, radioSourceUrl])
+
+  useEffect(() => {
+    if (latestRadioBurstRequest === null) {
+      return
+    }
+    if (latestRadioBurstRequest.requestId === lastHandledRadioBurstRequestIdRef.current) {
+      return
+    }
+
+    lastHandledRadioBurstRequestIdRef.current = latestRadioBurstRequest.requestId
+    useAudioSamplerStore.getState().markRadioBurstHandled(latestRadioBurstRequest.requestId)
+
+    const sourceDescriptor = resolveRadioSourceDescriptor(latestRadioBurstRequest.sourceUrl)
+    if (sourceDescriptor.kind === 'unsupported-url') {
+      useAudioSamplerStore.getState().setRadioRuntimeState({
+        status: 'unsupported',
+        message: `Radio url is not supported yet: ${sourceDescriptor.sourceUrl}`,
+        sourceKind: sourceDescriptor.kind,
+      })
+      return
+    }
+
+    useAudioSamplerStore.getState().setRadioRuntimeState({
+      status: 'loading',
+      message: 'Preparing radio source',
+      sourceKind: sourceDescriptor.kind,
+    })
+
+    const engine =
+      radioAudioEngineRef.current ??
+      new AudioEngine({
+        createSoundCloudWidgetClient: () =>
+          createBrowserSoundCloudWidgetClient({
+            getIframe: () => radioSoundCloudIframeRef.current,
+          }),
+      })
+    radioAudioEngineRef.current = engine
+
+    let cancelled = false
+    const playDescriptor = async (descriptor: typeof sourceDescriptor) =>
+      engine.playBurst({
+        descriptor,
+        normalizedSamplePosition: latestRadioBurstRequest.samplePosition,
+        sampleBurstTime: latestRadioBurstRequest.sampleBurstTime,
+      })
+
+    void playDescriptor(sourceDescriptor)
+      .then(() => {
+        if (cancelled) {
+          return
+        }
+        useAudioSamplerStore.getState().setRadioRuntimeState({
+          status: sourceDescriptor.isFallback ? 'fallback' : 'ready',
+          message: sourceDescriptor.isFallback ? 'Radio using fallback generated tone' : null,
+          sourceKind: sourceDescriptor.kind,
+        })
+      })
+      .catch((error) => {
+        if (cancelled) {
+          return
+        }
+        if (error instanceof AudioEngineError && error.reason === 'blocked') {
+          useAudioSamplerStore.getState().setRadioRuntimeState({
+            status: 'blocked',
+            message: error.message,
+            sourceKind: sourceDescriptor.kind,
+          })
+          return
+        }
+        if (sourceDescriptor.kind === 'soundcloud-widget') {
+          const fallbackDescriptor = createFallbackRadioSourceDescriptor(
+            sourceDescriptor.sourceUrl,
+            'supported-url-runtime-fallback',
+          )
+          useAudioSamplerStore.getState().setRadioRuntimeState({
+            status: 'loading',
+            message: 'SoundCloud playback unavailable, using fallback generated tone',
+            sourceKind: fallbackDescriptor.kind,
+          })
+          void playDescriptor(fallbackDescriptor)
+            .then(() => {
+              if (cancelled) {
+                return
+              }
+              useAudioSamplerStore.getState().setRadioRuntimeState({
+                status: 'fallback',
+                message: 'SoundCloud playback unavailable, using fallback generated tone',
+                sourceKind: fallbackDescriptor.kind,
+              })
+            })
+            .catch((fallbackError) => {
+              if (cancelled) {
+                return
+              }
+              if (fallbackError instanceof AudioEngineError && fallbackError.reason === 'blocked') {
+                useAudioSamplerStore.getState().setRadioRuntimeState({
+                  status: 'blocked',
+                  message: fallbackError.message,
+                  sourceKind: fallbackDescriptor.kind,
+                })
+                return
+              }
+              useAudioSamplerStore.getState().setRadioRuntimeState({
+                status: 'error',
+                message:
+                  fallbackError instanceof Error
+                    ? fallbackError.message
+                    : 'Radio playback failed',
+                sourceKind: fallbackDescriptor.kind,
+              })
+            })
+          return
+        }
+        useAudioSamplerStore.getState().setRadioRuntimeState({
+          status: 'error',
+          message: error instanceof Error ? error.message : 'Radio playback failed',
+          sourceKind: sourceDescriptor.kind,
+        })
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [latestRadioBurstRequest])
   const lastHandledFloatingShellActivationSeqRef = useRef(0)
   const floatingPosRef = useRef<FloatingPosition>(initialFloatingPosition)
   const floatingSizeRef = useRef<FloatingSize>(initialFloatingSize)
@@ -2368,6 +2574,22 @@ export function AppShell() {
           ) : null}
         </div>
       ) : null}
+      <iframe
+        ref={radioSoundCloudIframeRef}
+        title="Radio SoundCloud Bridge"
+        src={buildSoundCloudPlayerUrl(DEFAULT_GUSANO_URL)}
+        allow="autoplay"
+        aria-hidden="true"
+        tabIndex={-1}
+        style={{
+          position: 'absolute',
+          width: '0px',
+          height: '0px',
+          border: '0',
+          opacity: 0,
+          pointerEvents: 'none',
+        }}
+      />
       <ViewToolbar />
     </div>
   )

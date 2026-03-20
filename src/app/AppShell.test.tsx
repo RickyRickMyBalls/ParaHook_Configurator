@@ -4,12 +4,36 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useConsoleStore } from './console/useConsoleStore'
+import { resetAudioSamplerStore, useAudioSamplerStore } from './store/audioSamplerStore'
 
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
   true
 
 let currentSpaghettiState: any
 let currentAppState: any
+let mockSoundCloudPlaybackMode: 'ready' | 'throw' = 'ready'
+const mockSoundCloudEnsureSourceReady = vi.fn(async () => {
+  if (mockSoundCloudPlaybackMode === 'throw') {
+    throw new Error('SoundCloud playback unavailable')
+  }
+  return { durationSec: 120 }
+})
+const mockSoundCloudPlayWindow = vi.fn(async () => {
+  if (mockSoundCloudPlaybackMode === 'throw') {
+    throw new Error('SoundCloud playback unavailable')
+  }
+})
+const mockSoundCloudStop = vi.fn(() => undefined)
+const mockSoundCloudDispose = vi.fn(() => undefined)
+
+vi.mock('../runtime/audio/SoundCloudWidgetClient', () => ({
+  createBrowserSoundCloudWidgetClient: () => ({
+    ensureSourceReady: mockSoundCloudEnsureSourceReady,
+    playWindow: mockSoundCloudPlayWindow,
+    stop: mockSoundCloudStop,
+    dispose: mockSoundCloudDispose,
+  }),
+}))
 
 vi.mock('./spaghetti/store/useSpaghettiStore', () => {
   const store = ((selector: (state: any) => unknown) => selector(currentSpaghettiState)) as any
@@ -223,19 +247,73 @@ const mockShellGeometry = (container: HTMLDivElement | null) => {
 describe('AppShell', () => {
   let root: Root | null = null
   let container: HTMLDivElement | null = null
+  const originalAudioContext = window.AudioContext
+
+  class MockAudioBuffer {
+    public readonly duration = 12
+    private readonly channel = new Float32Array(1200)
+
+    public getChannelData(): Float32Array {
+      return this.channel
+    }
+  }
+
+  class MockAudioBufferSource {
+    public buffer: MockAudioBuffer | null = null
+    public connect(_destination: unknown): void {}
+    public disconnect(): void {}
+    public start(_when = 0, _offset = 0, _duration = 0): void {}
+    public stop(_when = 0): void {}
+  }
+
+  class MockAudioContext {
+    public readonly state = 'running'
+    public readonly currentTime = 0
+    public readonly sampleRate = 100
+    public readonly destination = {}
+
+    public async resume(): Promise<void> {}
+
+    public createBuffer(
+      _channels: number,
+      _length: number,
+      _sampleRate: number,
+    ): MockAudioBuffer {
+      return new MockAudioBuffer()
+    }
+
+    public createBufferSource(): MockAudioBufferSource {
+      return new MockAudioBufferSource()
+    }
+  }
 
   beforeEach(() => {
     useConsoleStore.setState(useConsoleStore.getInitialState(), true)
+    resetAudioSamplerStore()
+    mockSoundCloudPlaybackMode = 'ready'
+    mockSoundCloudEnsureSourceReady.mockClear()
+    mockSoundCloudPlayWindow.mockClear()
+    mockSoundCloudStop.mockClear()
+    mockSoundCloudDispose.mockClear()
+    window.AudioContext = MockAudioContext as unknown as typeof AudioContext
     currentSpaghettiState = {
       activeGraphDocumentId: 'graph-document-1',
       activeEditorViewportId: 'editor-viewport-1',
       selectedNodeId: null,
+      consolePreviewNodeId: null,
+      sketchPlanePickPreviewPlane: null,
       sketchPlanePickSession: null,
       editorViewportsById: {
         'editor-viewport-1': viewport('expanded'),
       },
       editorViewportHeaderCollapsedById: {},
       editorViewportCanvasToolbarVisibleById: {},
+      setConsolePreviewNodeId: vi.fn((nodeId: string | null) => {
+        currentSpaghettiState.consolePreviewNodeId = nodeId
+      }),
+      setSketchPlanePickPreviewPlane: vi.fn((plane: string | null) => {
+        currentSpaghettiState.sketchPlanePickPreviewPlane = plane
+      }),
       graphDocumentsById: {
         'graph-document-1': {
           graphDocumentId: 'graph-document-1',
@@ -424,6 +502,7 @@ describe('AppShell', () => {
     root = null
     container = null
     document.body.innerHTML = ''
+    window.AudioContext = originalAudioContext
   })
 
   it('renders a true header-only shell in collapsed mode', async () => {
@@ -1869,5 +1948,57 @@ describe('AppShell', () => {
     await rerenderAppShell(root!)
 
     expect(container?.textContent).toContain('canvas-toolbar-hidden')
+  })
+
+  it('consumes a supported SoundCloud radio burst request and updates runtime status through the app-level bridge', async () => {
+    ;({ container, root } = await renderAppShell())
+    mockShellGeometry(container)
+
+    await act(async () => {
+      useAudioSamplerStore.getState().turnRadioOn()
+      useAudioSamplerStore.getState().requestRadioBurst('Console.Root.Radio', 'enter')
+    })
+
+    expect(useAudioSamplerStore.getState().lastHandledBurstRequestId).toBe(1)
+    expect(useAudioSamplerStore.getState().radioRuntimeStatus).toBe('ready')
+    expect(useAudioSamplerStore.getState().radioRuntimeSourceKind).toBe('soundcloud-widget')
+    expect(useAudioSamplerStore.getState().radioRuntimeMessage).toBeNull()
+    expect(mockSoundCloudEnsureSourceReady).toHaveBeenCalledTimes(2)
+    expect(mockSoundCloudPlayWindow).toHaveBeenCalledTimes(1)
+  })
+
+  it('marks unsupported custom radio urls explicitly instead of pretending they played', async () => {
+    ;({ container, root } = await renderAppShell())
+    mockShellGeometry(container)
+
+    await act(async () => {
+      useAudioSamplerStore.getState().setRadioUrl('https://example.com/not-supported')
+      useAudioSamplerStore.getState().requestRadioBurst('Console.Root.Radio', 'enter')
+    })
+
+    expect(useAudioSamplerStore.getState().lastHandledBurstRequestId).toBe(1)
+    expect(useAudioSamplerStore.getState().radioRuntimeStatus).toBe('unsupported')
+    expect(useAudioSamplerStore.getState().radioRuntimeSourceKind).toBe('unsupported-url')
+    expect(useAudioSamplerStore.getState().radioRuntimeMessage).toBe(
+      'Radio url is not supported yet: https://example.com/not-supported',
+    )
+    expect(mockSoundCloudEnsureSourceReady).not.toHaveBeenCalled()
+  })
+
+  it('falls back to the generated tone bridge if SoundCloud playback fails at runtime', async () => {
+    mockSoundCloudPlaybackMode = 'throw'
+    ;({ container, root } = await renderAppShell())
+    mockShellGeometry(container)
+
+    await act(async () => {
+      useAudioSamplerStore.getState().turnRadioOn()
+      useAudioSamplerStore.getState().requestRadioBurst('Console.Root.Radio', 'enter')
+    })
+
+    expect(useAudioSamplerStore.getState().radioRuntimeStatus).toBe('fallback')
+    expect(useAudioSamplerStore.getState().radioRuntimeSourceKind).toBe('generated-tone')
+    expect(useAudioSamplerStore.getState().radioRuntimeMessage).toBe(
+      'SoundCloud playback unavailable, using fallback generated tone',
+    )
   })
 })

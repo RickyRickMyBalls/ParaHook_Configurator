@@ -433,6 +433,7 @@ export function SpaghettiCanvas({
 }: SpaghettiCanvasProps) {
   const graph = useSpaghettiStore((state) => selectGraphByDocumentId(state, graphDocumentId))
   const selectedNodeId = useSpaghettiStore((state) => state.selectedNodeId)
+  const consolePreviewNodeId = useSpaghettiStore((state) => state.consolePreviewNodeId)
   const selectedEdgeId = useSpaghettiStore((state) => state.selectedEdgeId)
   const hoveredEdgeId = useSpaghettiStore((state) => state.hoveredEdgeId)
   const connectionDrag = useSpaghettiStore((state) => state.connectionDrag)
@@ -2514,6 +2515,9 @@ export function SpaghettiCanvas({
                 getCompositeExpanded={getCompositeExpanded}
                 setCompositeExpanded={setCompositeExpanded}
                 selected={selectedNodeId === node.nodeId}
+                previewed={
+                  consolePreviewNodeId === node.nodeId && selectedNodeId !== node.nodeId
+                }
                 getInputDropState={getInputDropState}
                 getOutputDropState={getOutputDropState}
                 onPresetChange={handlePresetChange}

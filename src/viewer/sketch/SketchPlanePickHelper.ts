@@ -327,7 +327,8 @@ export class SketchPlanePickHelper {
       visual.outline.position.copy(positiveQuadrantOffset)
 
       const isActive = overlay.stage !== 'pick' && plane === overlay.draftPlane
-      const isHovered = overlay.stage === 'pick' && plane === this.hoveredPlane
+      const isHovered =
+        overlay.stage === 'pick' && plane === (overlay.previewPlane ?? this.hoveredPlane)
       visual.root.visible = overlay.stage === 'pick' || isActive
       ;(visual.mesh.material as MeshBasicMaterial).color.copy(
         isActive ? ACTIVE_FILL : isHovered ? HOVER_FILL : INACTIVE_FILL,
@@ -339,11 +340,13 @@ export class SketchPlanePickHelper {
       ;(visual.outline.material as LineBasicMaterial).opacity = isActive ? 0.94 : isHovered ? 0.9 : 0.68
     }
 
+    const previewedPlane =
+      overlay.stage === 'pick' ? overlay.previewPlane ?? this.hoveredPlane ?? overlay.draftPlane : overlay.draftPlane
     this.activeGrid.position.set(0, 0, 0)
     this.activeGrid.rotation.set(0, 0, 0)
-    setPlaneBaseRotation(this.activeGrid, overlay.draftPlane)
+    setPlaneBaseRotation(this.activeGrid, previewedPlane)
     this.activeGrid.rotateZ(MathUtils.degToRad(overlay.draftTransform.inPlaneRotationDeg))
-    this.activeGrid.position.copy(getPlaneOffsetVector(overlay.draftPlane, overlay))
+    this.activeGrid.position.copy(getPlaneOffsetVector(previewedPlane, overlay))
   }
 
   public readDraftTransform(): SketchPlanePickOverlayVm['draftTransform'] | null {

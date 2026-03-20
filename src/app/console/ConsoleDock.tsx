@@ -11,7 +11,13 @@ import { createPortal } from 'react-dom'
 import { isEditableTarget, routeKeyboardInput } from '../inputRouting'
 import { DEFAULT_REFERENCE_ROTATE_SNAP } from '../references/referenceTimeline'
 import { getViewer } from '../viewerBridge'
+import { requestRadioRuntimeWarmup } from '../../runtime/audio/radioRuntimeWarmup'
+import {
+  type RadioBurstTriggerKind,
+  useAudioSamplerStore,
+} from '../store/audioSamplerStore'
 import { useAppStore } from '../store/useAppStore'
+import { useUiPrefsStore } from '../store/uiPrefsStore'
 import {
   activateGraphDocumentIntent,
   activateGraphNodeIntent,
@@ -21,7 +27,7 @@ import {
   type WorkspaceIntentDeps,
 } from '../store/workspaceIntents'
 import { addNode as addNodeCommand, removeNode as removeNodeCommand } from '../spaghetti/graphCommands'
-import { getDefaultNodeParams } from '../spaghetti/registry/nodeRegistry'
+import { getDefaultNodeParams, getNodeDef } from '../spaghetti/registry/nodeRegistry'
 import type {
   EditorViewportWindowMode,
   GraphNodePos,
@@ -29,16 +35,19 @@ import type {
 } from '../spaghetti/schema/spaghettiTypes'
 import {
   type GeometrySketchDrawStage,
+  type SketchPlaneCommand,
   selectGraphDocumentById,
   selectOrderedGraphDocuments,
   useSpaghettiStore,
 } from '../spaghetti/store/useSpaghettiStore'
 import { ConsoleBar } from './ConsoleBar'
 import { ConsolePanel } from './ConsolePanel'
+import { resolveConsoleRadioCommandIdentity } from './radioCommandIdentity'
 import {
   appendConsoleEntry,
   formatConsoleEntryLayerLabel,
   isConsoleEntryVisible,
+  type ConsolePromptSession,
   useConsoleStore,
 } from './useConsoleStore'
 import type { ConsoleAssistDescriptor, ConsoleFloatingRect } from './consoleTypes'
@@ -218,18 +227,125 @@ const formatAssistChoiceSummary = (descriptor: ConsoleAssistDescriptor): string 
 const buildFeatureAssistPromptText = (descriptor: ConsoleAssistDescriptor): string =>
   `${descriptor.label} > [${formatAssistChoiceSummary(descriptor)}]`
 
-const buildSketchPlaneFeatureAssistDescriptor = (): ConsoleAssistDescriptor => ({
-  label: 'Sketch Plane',
-  prefill: 'XY',
-  choices: [
-    { canonicalToken: 'XY', aliases: [], label: 'XY' },
-    { canonicalToken: 'XZ', aliases: [], label: 'XZ' },
-    { canonicalToken: 'YZ', aliases: [], label: 'YZ' },
-  ],
-})
+const formatSketchPlaneVec3ChoiceLabel = (values: {
+  x: number
+  y: number
+  z: number
+}): string =>
+  `Vec3(${values.x.toFixed(1)}, ${values.y.toFixed(1)}, ${values.z.toFixed(1)})`
+
+const buildSketchPlaneFeatureAssistDescriptor = (
+  sketchPlanePickSession: NonNullable<
+    ReturnType<typeof useSpaghettiStore.getState>['sketchPlanePickSession']
+  >,
+): ConsoleAssistDescriptor => {
+  if (sketchPlanePickSession.stage === 'pick') {
+    return {
+      label: 'Sketch Plane',
+      breadcrumb: ['Graph', 'Sketch', 'Sketch Plane'],
+      prefill: 'XY',
+      choices: [
+        { canonicalToken: 'XY', aliases: [], label: 'XY' },
+        { canonicalToken: 'XZ', aliases: [], label: 'XZ' },
+        { canonicalToken: 'YZ', aliases: [], label: 'YZ' },
+      ],
+    }
+  }
+  if (sketchPlanePickSession.adjustScope === 'move') {
+    const translation = sketchPlanePickSession.draftTransform.translation
+    const vec3Token = `${translation.x.toFixed(1)},${translation.y.toFixed(1)},${translation.z.toFixed(1)}`
+    return {
+      label: 'Sketch Plane > Move',
+      breadcrumb: ['Graph', 'Sketch', 'Sketch Plane', 'Move'],
+      prefill: vec3Token,
+      choices: [
+        {
+          canonicalToken: vec3Token,
+          aliases: [],
+          label: formatSketchPlaneVec3ChoiceLabel(translation),
+        },
+        { canonicalToken: 'MOVE X', aliases: ['X', 'MX'], label: 'Move X' },
+        { canonicalToken: 'MOVE Y', aliases: ['Y', 'MY'], label: 'Move Y' },
+        { canonicalToken: 'MOVE Z', aliases: ['Z', 'MZ'], label: 'Move Z' },
+        { canonicalToken: 'SNAP', aliases: [], label: 'Snap' },
+        { canonicalToken: 'BACK', aliases: ['B'], label: 'Back' },
+      ],
+    }
+  }
+  if (sketchPlanePickSession.adjustScope === 'move-snap') {
+    const prefs = useUiPrefsStore.getState()
+    const snapValue = prefs.sketchPlaneToolbarTranslateSnapValue
+    const snapToken = snapValue.toFixed(1)
+    return {
+      label: 'Sketch Plane > Move > Snap',
+      breadcrumb: ['Graph', 'Sketch', 'Sketch Plane', 'Move', 'Snap'],
+      prefill: snapToken,
+      choices: [
+        { canonicalToken: snapToken, aliases: [], label: snapToken },
+        { canonicalToken: 'ON', aliases: [], label: 'On' },
+        { canonicalToken: 'OFF', aliases: [], label: 'Off' },
+        { canonicalToken: 'BACK', aliases: ['B'], label: 'Back' },
+      ],
+    }
+  }
+  if (sketchPlanePickSession.adjustScope === 'rotate') {
+    const rotation = sketchPlanePickSession.draftTransform.rotationDeg
+    const vec3Token = `${rotation.x.toFixed(1)},${rotation.y.toFixed(1)},${rotation.z.toFixed(1)}`
+    return {
+      label: 'Sketch Plane > Rotate',
+      breadcrumb: ['Graph', 'Sketch', 'Sketch Plane', 'Rotate'],
+      prefill: vec3Token,
+      choices: [
+        {
+          canonicalToken: vec3Token,
+          aliases: [],
+          label: formatSketchPlaneVec3ChoiceLabel(rotation),
+        },
+        { canonicalToken: 'ROTATE X', aliases: ['X', 'RX'], label: 'Rotate X' },
+        { canonicalToken: 'ROTATE Y', aliases: ['Y', 'RY'], label: 'Rotate Y' },
+        { canonicalToken: 'ROTATE Z', aliases: ['Z', 'RZ'], label: 'Rotate Z' },
+        { canonicalToken: 'SNAP', aliases: [], label: 'Snap' },
+        { canonicalToken: 'BACK', aliases: ['B'], label: 'Back' },
+      ],
+    }
+  }
+  if (sketchPlanePickSession.adjustScope === 'rotate-snap') {
+    const prefs = useUiPrefsStore.getState()
+    const snapValue = prefs.sketchPlaneToolbarRotateSnapValue
+    const snapToken = snapValue.toFixed(0)
+    return {
+      label: 'Sketch Plane > Rotate > Snap',
+      breadcrumb: ['Graph', 'Sketch', 'Sketch Plane', 'Rotate', 'Snap'],
+      prefill: snapToken,
+      choices: [
+        { canonicalToken: snapToken, aliases: [], label: snapToken },
+        { canonicalToken: 'ON', aliases: [], label: 'On' },
+        { canonicalToken: 'OFF', aliases: [], label: 'Off' },
+        { canonicalToken: 'BACK', aliases: ['B'], label: 'Back' },
+      ],
+    }
+  }
+  return {
+    label: 'Sketch Plane',
+    breadcrumb: ['Graph', 'Sketch', 'Sketch Plane'],
+    prefill: 'Move',
+    choices: [
+      { canonicalToken: 'MOVE', aliases: ['M'], label: 'Move' },
+      { canonicalToken: 'ROTATE', aliases: ['R'], label: 'Rotate' },
+      { canonicalToken: 'DONE', aliases: ['D'], label: 'Done' },
+      {
+        canonicalToken: 'CONFIRMTOSKETCH',
+        aliases: ['C'],
+        label: 'ConfirmToSketch',
+      },
+      { canonicalToken: 'BACK', aliases: ['B'], label: 'Back' },
+    ],
+  }
+}
 
 const buildSketchDrawFeatureAssistDescriptor = (): ConsoleAssistDescriptor => ({
   label: 'Sketch Draw',
+  breadcrumb: ['Graph', 'Sketch', 'Sketch Draw'],
   prefill: 'Line',
   choices: [
     { canonicalToken: 'LINE', aliases: ['L'], label: 'Line' },
@@ -246,7 +362,7 @@ const getActiveFeatureAssistDescriptor = ({
   geometrySketchSession: ReturnType<typeof useSpaghettiStore.getState>['geometrySketchSession']
 }): ConsoleAssistDescriptor | null => {
   if (sketchPlanePickSession !== null) {
-    return buildSketchPlaneFeatureAssistDescriptor()
+    return buildSketchPlaneFeatureAssistDescriptor(sketchPlanePickSession)
   }
   if (
     geometrySketchSession?.mode === 'draw' &&
@@ -262,9 +378,14 @@ const getStagedScopeLabel = (session: ConsoleStagedNavigationSession | null): st
     return null
   }
   switch (session.scopeId) {
+    case 'radioRoot':
+      return 'Radio'
     case 'graphRoot':
     case 'graphSelected':
       return 'Graph'
+    case 'graphNodeList':
+    case 'graphNodeSelected':
+      return 'Focus Node'
     case 'graphSketchList':
     case 'graphSketchSelected':
       return 'Sketch'
@@ -291,10 +412,94 @@ const buildStagedPromptText = (
   return scopeLabel === null ? baseText : `${scopeLabel} > ${baseText}`
 }
 
-const buildRootPromptText = (choices: string[] = ['Graph']): string =>
+const buildConsolePromptSessionText = (promptSession: Pick<
+  ConsolePromptSession,
+  'breadcrumb' | 'prefill'
+>): string => `${formatStagedBreadcrumb(promptSession.breadcrumb)} > Enter value [${promptSession.prefill}]`
+
+const buildRootPromptText = (choices: string[] = ['Graph', 'Radio']): string =>
   `Root > Choose next [${choices.join(', ')}]`
 
 const ROOT_PROMPT_TEXT = buildRootPromptText()
+
+const normalizeRadioCommandIdentity = (rawToken: string): string =>
+  rawToken.trim().toUpperCase().replace(/\s+/g, ' ')
+
+const getFeatureAssistChoiceInputText = (choice: ConsoleAssistDescriptor['choices'][number]): string => {
+  const normalizedLabel = normalizeRadioCommandIdentity(choice.label)
+  if (
+    normalizedLabel === choice.canonicalToken ||
+    choice.aliases.includes(normalizedLabel)
+  ) {
+    return choice.label
+  }
+  return choice.canonicalToken
+}
+
+const findFeatureAssistChoiceByInput = (
+  descriptor: ConsoleAssistDescriptor,
+  inputText: string,
+): ConsoleAssistDescriptor['choices'][number] | null => {
+  const normalizedInput = normalizeRadioCommandIdentity(inputText)
+  if (normalizedInput.length === 0) {
+    return null
+  }
+  return (
+    descriptor.choices.find((choice) => {
+      const normalizedChoiceInput = normalizeRadioCommandIdentity(
+        getFeatureAssistChoiceInputText(choice),
+      )
+      return (
+        normalizedInput === normalizedChoiceInput ||
+        normalizedInput === choice.canonicalToken ||
+        choice.aliases.includes(normalizedInput)
+      )
+    }) ?? null
+  )
+}
+
+const isValidRadioUrl = (input: string): boolean => {
+  try {
+    const url = new URL(input)
+    return url.protocol === 'http:' || url.protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
+const parseRadioSampleBurstTime = (input: string): number | null => {
+  const value = Number(input.trim())
+  if (!Number.isFinite(value) || value <= 0) {
+    return null
+  }
+  return value
+}
+
+const formatRadioSampleBurstTime = (value: number): string => {
+  if (Number.isInteger(value)) {
+    return `${value}`
+  }
+  return `${value}`.replace(/(\.\d*?[1-9])0+$/u, '$1').replace(/\.0$/u, '')
+}
+
+const parseConsoleVec3Literal = (
+  input: string,
+): { x: number; y: number; z: number } | null => {
+  const match = input.match(
+    /^\s*\(?\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\)?\s*$/,
+  )
+  if (match === null) {
+    return null
+  }
+  const [, xText, yText, zText] = match
+  const x = Number(xText)
+  const y = Number(yText)
+  const z = Number(zText)
+  if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z)) {
+    return null
+  }
+  return { x, y, z }
+}
 
 const areConsoleStagedNavigationSessionsEqual = (
   left: ConsoleStagedNavigationSession | null,
@@ -374,20 +579,27 @@ const buildStagedNavigationContextFromStoreState = (
     selectOrderedGraphDocuments(spaghettiState).map((document) => ({
       graphDocumentId: document.graphDocumentId,
       name: document.name,
+      allNodeOptions: document.graph.nodes.map((node, index) => ({
+        nodeId: node.nodeId,
+        label: `node_[${index + 1}] ${getNodeDef(node.type)?.label ?? node.type}`,
+      })),
       sketchOptions: document.graph.nodes
         .filter((node) => node.type === 'Geometry/Sketch')
-        .map((node) => ({
+        .map((node, index) => ({
           nodeId: node.nodeId,
+          label: `sketch_[${index + 1}]`,
         })),
       extrudeOptions: document.graph.nodes
         .filter((node) => node.type === 'Geometry/Extrude')
-        .map((node) => ({
+        .map((node, index) => ({
           nodeId: node.nodeId,
+          label: `extrude_[${index + 1}]`,
         })),
       outputPreviewOptions: document.graph.nodes
         .filter((node) => node.type === 'System/OutputPreview')
-        .map((node) => ({
+        .map((node, index) => ({
           nodeId: node.nodeId,
+          label: `outputPreview_[${index + 1}]`,
         })),
     })),
   )
@@ -471,6 +683,13 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
     ReturnType<typeof useSpaghettiStore.getState>['sketchPlanePickSession']
   >(null)
   const [popoutHost, setPopoutHost] = useState<HTMLElement | null>(null)
+  const appendEscUserEntry = useCallback(() => {
+    appendConsoleEntry({
+      layer: 'Commands',
+      commandLineKind: 'user',
+      text: '> esc',
+    })
+  }, [])
 
   const isExpanded = useConsoleStore((state) => state.isExpanded)
   const windowMode = useConsoleStore((state) => state.windowMode)
@@ -497,13 +716,20 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
   const handlePopoutWindowClosed = useConsoleStore((state) => state.handlePopoutWindowClosed)
   const setExpanded = useConsoleStore((state) => state.setExpanded)
   const pushCommandHistory = useConsoleStore((state) => state.pushCommandHistory)
+  const consoleInputText = useConsoleStore((state) => state.inputText)
   const seedInputText = useConsoleStore((state) => state.seedInputText)
   const stagedNavigationSession = useConsoleStore((state) => state.stagedNavigationSession)
+  const consolePromptSession = useConsoleStore((state) => state.consolePromptSession)
   const featureAssistDescriptor = useConsoleStore((state) => state.featureAssistDescriptor)
   const setStagedNavigationSession = useConsoleStore((state) => state.setStagedNavigationSession)
+  const setConsolePromptSession = useConsoleStore((state) => state.setConsolePromptSession)
   const setFeatureAssistDescriptor = useConsoleStore((state) => state.setFeatureAssistDescriptor)
   const clearStagedNavigationSession = useConsoleStore((state) => state.clearStagedNavigationSession)
   const cycleStagedChoice = useConsoleStore((state) => state.cycleStagedChoice)
+  const stagedChoiceIndex = useConsoleStore((state) => state.stagedChoiceIndex)
+  const isStagedChoiceManualOverride = useConsoleStore(
+    (state) => state.isStagedChoiceManualOverride,
+  )
   const workspaceSelectedTarget = useAppStore((state) => state.workspaceSelection.selectedTarget)
   const workspaceActiveSurface = useAppStore((state) => state.workspaceSelection.activeSurface)
   const consoleContextSyncRequest = useAppStore((state) => state.consoleContextSyncRequest)
@@ -525,6 +751,10 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
         .reverse(),
     [entries, filterMode, isDiagnosticsPinned, isolatedLayer, subsetLayers, visibleLayers],
   )
+  const treatSpaceAsSubmit =
+    stagedNavigationSession !== null ||
+    consolePromptSession !== null ||
+    isConsoleStagedNavigationRootToken(consoleInputText)
 
   const sharedStyle = useMemo(
     () => buildConsoleStyle(backgroundOpacity, textOpacity, fontSize, zIndex, backgroundColorMode),
@@ -542,6 +772,106 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
   const focusPopoutConsoleInput = useCallback(() => {
     popoutInputRef.current?.focus()
   }, [])
+
+  const trackRadioCommandIdentity = useCallback((commandIdentity: string | null) => {
+    if (commandIdentity === null) {
+      return
+    }
+    useAudioSamplerStore.getState().ensureSamplePosition(commandIdentity)
+  }, [])
+
+  const requestRadioBurst = useCallback((
+    commandIdentity: string | null,
+    triggerKind: RadioBurstTriggerKind,
+  ) => {
+    if (commandIdentity === null) {
+      return null
+    }
+    return useAudioSamplerStore.getState().requestRadioBurst(commandIdentity, triggerKind)
+  }, [])
+
+  const triggerBurstForActiveStagedChoice = useCallback(
+    (triggerKind: Extract<RadioBurstTriggerKind, 'arrowUp' | 'arrowDown'>) => {
+      const state = useConsoleStore.getState()
+      const activeSession = state.stagedNavigationSession
+      if (activeSession !== null) {
+        const activeChoice =
+          activeSession.validChoices[state.stagedChoiceIndex ?? 0] ?? null
+        if (activeChoice === null) {
+          return
+        }
+        requestRadioBurst(
+          resolveConsoleRadioCommandIdentity({
+            kind: 'stagedChoice',
+            activeScopeId: activeSession.scopeId,
+            matchedCanonicalToken: activeChoice.canonicalToken,
+            matchedLabel: activeChoice.label,
+          }),
+          triggerKind,
+        )
+        return
+      }
+
+      if (state.consolePromptSession !== null) {
+        return
+      }
+
+      const activeDescriptor = state.featureAssistDescriptor
+      if (activeDescriptor === null) {
+        return
+      }
+
+      const activeChoice = activeDescriptor.choices[state.stagedChoiceIndex ?? 0] ?? null
+      if (activeChoice === null) {
+        return
+      }
+
+      requestRadioBurst(
+        resolveConsoleRadioCommandIdentity({
+          kind: 'featureAssistChoice',
+          breadcrumb: activeDescriptor.breadcrumb,
+          matchedCanonicalToken: activeChoice.canonicalToken,
+          matchedLabel: activeChoice.label,
+        }),
+        triggerKind,
+      )
+    },
+    [requestRadioBurst],
+  )
+
+  const resolveFeatureAssistSubmitIdentity = useCallback((inputText: string): string | null => {
+    const descriptor = useConsoleStore.getState().featureAssistDescriptor
+    if (descriptor === null) {
+      return null
+    }
+
+    const matchedChoice = findFeatureAssistChoiceByInput(descriptor, inputText)
+    return resolveConsoleRadioCommandIdentity({
+      kind: 'featureAssistSubmit',
+      breadcrumb: descriptor.breadcrumb,
+      submittedToken: normalizeRadioCommandIdentity(inputText),
+      matchedCanonicalToken: matchedChoice?.canonicalToken ?? null,
+      matchedLabel: matchedChoice?.label ?? null,
+    })
+  }, [])
+
+  const cycleStagedChoiceWithRadioBurst = useCallback(
+    (direction: 'previous' | 'next', triggerKind: Extract<RadioBurstTriggerKind, 'arrowUp' | 'arrowDown'>) => {
+      cycleStagedChoice(direction)
+      triggerBurstForActiveStagedChoice(triggerKind)
+    },
+    [cycleStagedChoice, triggerBurstForActiveStagedChoice],
+  )
+
+  const handleGuidedChoiceCycle = useCallback(
+    (direction: 'previous' | 'next') => {
+      cycleStagedChoiceWithRadioBurst(
+        direction,
+        direction === 'previous' ? 'arrowUp' : 'arrowDown',
+      )
+    },
+    [cycleStagedChoiceWithRadioBurst],
+  )
 
   const dispatchImmediateShortcut = useCallback((key: 'm' | 'r' | 's') => {
     suppressAutoCaptureRef.current = true
@@ -566,7 +896,9 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
       sketchPlanePickStage: spaghettiState.sketchPlanePickSession?.stage ?? null,
       geometrySketchMode: spaghettiState.geometrySketchSession?.mode ?? null,
       referenceTransformActive: appState.referenceWorkspace.activeTransformReferenceId !== null,
-      stagedConsoleActive: useConsoleStore.getState().stagedNavigationSession !== null,
+      stagedConsoleActive:
+        useConsoleStore.getState().stagedNavigationSession !== null ||
+        useConsoleStore.getState().consolePromptSession !== null,
       allowFlatConsoleCapture: true,
     })
   }, [])
@@ -617,6 +949,116 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
     return true
   }, [clearStagedNavigationSession])
 
+  const stepActiveStagedNavigationSessionOneLevel = useCallback(() => {
+    const activeSession = useConsoleStore.getState().stagedNavigationSession
+    if (activeSession === null) {
+      return false
+    }
+
+    appendEscUserEntry()
+
+    if (activeSession.scopeId === 'graphRoot' || activeSession.scopeId === 'radioRoot') {
+      cancelActiveStagedNavigationSession()
+      return true
+    }
+
+    const spaghettiState = useSpaghettiStore.getState()
+    const stagedResult = submitConsoleStagedNavigationToken(
+      activeSession,
+      'BACK',
+      buildStagedNavigationContextFromStoreState(spaghettiState),
+    )
+
+    if (stagedResult.kind !== 'advance') {
+      cancelActiveStagedNavigationSession()
+      return true
+    }
+
+    if (
+      stagedResult.selections.selectedNodeId !== null &&
+      stagedResult.selections.graphDocumentId !== null
+    ) {
+      activateGraphNodeIntent(
+        buildWorkspaceIntentDepsFromStoreState(),
+        stagedResult.selections.graphDocumentId,
+        stagedResult.selections.selectedNodeId,
+        {
+          strategy: 'open-or-focus',
+        },
+      )
+    } else if (stagedResult.selections.graphDocumentId !== null) {
+      activateGraphDocumentIntent(
+        buildWorkspaceIntentDepsFromStoreState(),
+        stagedResult.selections.graphDocumentId,
+        {
+          strategy: 'open-or-focus',
+        },
+      )
+    }
+
+    setStagedNavigationSession(stagedResult.session)
+    appendConsoleEntry({
+      layer: 'Commands',
+      text: formatStagedBreadcrumb(stagedResult.breadcrumb),
+      source: 'console',
+      severity: 'info',
+    })
+    appendConsoleEntry({
+      layer: 'Commands',
+      text: buildStagedPromptText(stagedResult.session, stagedResult.validChoices),
+      source: 'console',
+      severity: 'info',
+    })
+    return true
+  }, [
+    appendEscUserEntry,
+    cancelActiveStagedNavigationSession,
+    setStagedNavigationSession,
+  ])
+
+  const stepActiveConsolePromptSessionBack = useCallback(() => {
+    const activePromptSession = useConsoleStore.getState().consolePromptSession
+    if (activePromptSession === null) {
+      return false
+    }
+
+    appendEscUserEntry()
+    setStagedNavigationSession(activePromptSession.returnSession)
+    appendConsoleEntry({
+      layer: 'Commands',
+      text: formatStagedBreadcrumb(activePromptSession.returnSession.breadcrumb),
+      source: 'console',
+      severity: 'info',
+    })
+    appendConsoleEntry({
+      layer: 'Commands',
+      text: buildStagedPromptText(
+        activePromptSession.returnSession,
+        activePromptSession.returnSession.validChoices,
+      ),
+      source: 'console',
+      severity: 'info',
+    })
+    return true
+  }, [appendEscUserEntry, setStagedNavigationSession])
+
+  const handleEscCancelCommand = useCallback(() => {
+    if (stepActiveConsolePromptSessionBack()) {
+      return
+    }
+    if (stepActiveStagedNavigationSessionOneLevel()) {
+      return
+    }
+    const spaghettiState = useSpaghettiStore.getState()
+    if (spaghettiState.sketchPlanePickSession !== null) {
+      spaghettiState.runSketchPlaneCommand('esc')
+      return
+    }
+    if (spaghettiState.geometrySketchSession?.mode === 'draw') {
+      spaghettiState.runGeometrySketchDrawCommand('esc')
+    }
+  }, [stepActiveConsolePromptSessionBack, stepActiveStagedNavigationSessionOneLevel])
+
   const createMissingGraphNodeInGraphDocument = useCallback((
     graphDocumentId: string,
     nodeType: 'Geometry/Sketch' | 'Geometry/Extrude' | 'System/OutputPreview',
@@ -659,11 +1101,146 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
     (inputText: string) => {
       const trimmedInput = inputText.trim().toLowerCase()
       const spaghettiState = useSpaghettiStore.getState()
+      const activePromptSession = useConsoleStore.getState().consolePromptSession
       const activeStagedSession = useConsoleStore.getState().stagedNavigationSession
       const stagedContext = buildStagedNavigationContextFromStoreState(spaghettiState)
+
+      if (activePromptSession !== null) {
+        const rawToken = inputText.trim()
+        appendConsoleEntry({
+          layer: 'Commands',
+          commandLineKind: 'user',
+          text: `> ${rawToken}`,
+        })
+        pushCommandHistory(rawToken)
+
+        if (activePromptSession.kind === 'radio.url') {
+          if (!isValidRadioUrl(rawToken)) {
+            appendConsoleEntry({
+              layer: 'Commands',
+              text: formatStagedBreadcrumb(activePromptSession.breadcrumb),
+              source: 'console',
+              severity: 'info',
+            })
+            appendConsoleEntry({
+              layer: 'Diagnostics',
+              text: `Invalid radio url: ${rawToken}`,
+              source: 'console',
+              severity: 'warn',
+            })
+            appendConsoleEntry({
+              layer: 'Commands',
+              text: buildConsolePromptSessionText(activePromptSession),
+              source: 'console',
+              severity: 'info',
+            })
+            useConsoleStore.getState().setInputText(rawToken)
+            return
+          }
+
+          const commandIdentity = resolveConsoleRadioCommandIdentity({
+            kind: 'promptSubmit',
+            promptKind: activePromptSession.kind,
+          })
+          trackRadioCommandIdentity(commandIdentity)
+          useAudioSamplerStore.getState().setRadioUrl(rawToken)
+          requestRadioRuntimeWarmup(rawToken)
+          requestRadioBurst(commandIdentity, 'enter')
+          setStagedNavigationSession(activePromptSession.returnSession)
+          appendConsoleEntry({
+            layer: 'Commands',
+            text: formatStagedBreadcrumb(activePromptSession.breadcrumb),
+            source: 'console',
+            severity: 'info',
+          })
+          appendConsoleEntry({
+            layer: 'App',
+            text: `Radio url: ${rawToken}`,
+            source: 'console',
+            severity: 'info',
+          })
+          appendConsoleEntry({
+            layer: 'App',
+            text: 'Radio on',
+            source: 'console',
+            severity: 'info',
+          })
+          appendConsoleEntry({
+            layer: 'Commands',
+            text: buildStagedPromptText(
+              activePromptSession.returnSession,
+              activePromptSession.returnSession.validChoices,
+            ),
+            source: 'console',
+            severity: 'info',
+          })
+          return
+        }
+
+        const sampleBurstTime = parseRadioSampleBurstTime(rawToken)
+        if (sampleBurstTime === null) {
+          appendConsoleEntry({
+            layer: 'Commands',
+            text: formatStagedBreadcrumb(activePromptSession.breadcrumb),
+            source: 'console',
+            severity: 'info',
+          })
+          appendConsoleEntry({
+            layer: 'Diagnostics',
+            text: `Invalid sample burst time: ${rawToken}`,
+            source: 'console',
+            severity: 'warn',
+          })
+          appendConsoleEntry({
+            layer: 'Commands',
+            text: buildConsolePromptSessionText(activePromptSession),
+            source: 'console',
+            severity: 'info',
+          })
+          useConsoleStore.getState().setInputText(rawToken)
+          return
+        }
+
+        const commandIdentity = resolveConsoleRadioCommandIdentity({
+          kind: 'promptSubmit',
+          promptKind: activePromptSession.kind,
+        })
+        trackRadioCommandIdentity(commandIdentity)
+        useAudioSamplerStore.getState().setSampleBurstTime(sampleBurstTime)
+        requestRadioBurst(commandIdentity, 'enter')
+        setStagedNavigationSession(activePromptSession.returnSession)
+        appendConsoleEntry({
+          layer: 'Commands',
+          text: formatStagedBreadcrumb(activePromptSession.breadcrumb),
+          source: 'console',
+          severity: 'info',
+        })
+        appendConsoleEntry({
+          layer: 'App',
+          text: `Sample burst time: ${formatRadioSampleBurstTime(sampleBurstTime)}`,
+          source: 'console',
+          severity: 'info',
+        })
+        appendConsoleEntry({
+          layer: 'Commands',
+          text: buildStagedPromptText(
+            activePromptSession.returnSession,
+            activePromptSession.returnSession.validChoices,
+          ),
+          source: 'console',
+          severity: 'info',
+        })
+        return
+      }
+
       if (activeStagedSession !== null || isConsoleStagedNavigationRootToken(inputText)) {
         const rawToken = inputText.trim()
-        if (activeStagedSession === null && isConsoleStagedNavigationRootToken(inputText)) {
+        if (
+          activeStagedSession === null &&
+          isConsoleStagedNavigationRootToken(inputText) &&
+          normalizeRadioCommandIdentity(rawToken) !== 'RADIO' &&
+          normalizeRadioCommandIdentity(rawToken) !== 'R'
+        ) {
           graphRootEditorRevealRestoreRef.current = ensureSpaghettiEditorVisibleForGraphRoot()
           if (spaghettiState.activeGraphDocumentId.length > 0) {
             activateGraphDocumentIntent(
@@ -687,6 +1264,14 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
           stagedContext,
         )
         if (stagedResult.kind === 'advance') {
+          const commandIdentity = resolveConsoleRadioCommandIdentity({
+            kind: 'stagedAdvance',
+            activeScopeId: activeStagedSession?.scopeId ?? null,
+            matchedCanonicalToken: stagedResult.matchedChoice.canonicalToken,
+            matchedLabel: stagedResult.matchedChoice.label,
+          })
+          trackRadioCommandIdentity(commandIdentity)
+          requestRadioBurst(commandIdentity, 'enter')
           if (
             activeStagedSession?.selections.selectedNodeId !== null &&
             stagedResult.selections.selectedNodeId === null &&
@@ -838,6 +1423,124 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
           return
         }
         if (stagedResult.kind === 'execute') {
+          const commandIdentity = resolveConsoleRadioCommandIdentity({
+            kind: 'stagedExecute',
+            activeScopeId: activeStagedSession?.scopeId ?? null,
+            actionId: stagedResult.actionId,
+          })
+          trackRadioCommandIdentity(commandIdentity)
+          if (
+            stagedResult.actionId === 'radio.on' ||
+            stagedResult.actionId === 'radio.off' ||
+            stagedResult.actionId === 'radio.randomizeSampleTimes'
+          ) {
+            let radioStateAfterAction = null as ReturnType<typeof useAudioSamplerStore.getState> | null
+            if (stagedResult.actionId === 'radio.on') {
+              clearStagedNavigationSession()
+              useConsoleStore.getState().setInputText('')
+              useAudioSamplerStore.getState().turnRadioOn()
+              radioStateAfterAction = useAudioSamplerStore.getState()
+              requestRadioRuntimeWarmup(radioStateAfterAction.sourceUrl)
+            } else if (stagedResult.actionId === 'radio.off') {
+              clearStagedNavigationSession()
+              useConsoleStore.getState().setInputText('')
+              useAudioSamplerStore.getState().turnRadioOff()
+            } else {
+              setStagedNavigationSession(stagedResult.session)
+              useAudioSamplerStore.getState().randomizeSampleTimes()
+            }
+            requestRadioBurst(commandIdentity, 'enter')
+            appendConsoleEntry({
+              layer: 'Commands',
+              text: formatStagedBreadcrumb(stagedResult.breadcrumb),
+              source: 'console',
+              severity: 'info',
+            })
+            appendConsoleEntry({
+              layer: 'App',
+              text:
+                stagedResult.actionId === 'radio.on'
+                  ? 'Radio on'
+                  : stagedResult.actionId === 'radio.off'
+                    ? 'Radio off'
+                    : 'randomized sample times',
+              source: 'console',
+              severity: 'info',
+            })
+            if (stagedResult.actionId === 'radio.on' && radioStateAfterAction !== null) {
+              appendConsoleEntry({
+                layer: 'App',
+                text: `Radio url: ${radioStateAfterAction.sourceUrl}`,
+                source: 'console',
+                severity: 'info',
+              })
+              appendConsoleEntry({
+                layer: 'App',
+                text: `Sample burst time: ${radioStateAfterAction.sampleBurstTime}`,
+                source: 'console',
+                severity: 'info',
+              })
+            }
+            if (stagedResult.actionId === 'radio.on' || stagedResult.actionId === 'radio.off') {
+              appendConsoleEntry({
+                layer: 'Commands',
+                text: 'Returned to root',
+                source: 'console',
+                severity: 'info',
+              })
+              appendConsoleEntry({
+                layer: 'Commands',
+                text: ROOT_PROMPT_TEXT,
+                source: 'console',
+                severity: 'info',
+              })
+            } else {
+              appendConsoleEntry({
+                layer: 'Commands',
+                text: buildStagedPromptText(stagedResult.session, stagedResult.session.validChoices),
+                source: 'console',
+                severity: 'info',
+              })
+            }
+            return
+          }
+          if (
+            stagedResult.actionId === 'radio.url' ||
+            stagedResult.actionId === 'radio.sampleBurstTime'
+          ) {
+            const audioSamplerState = useAudioSamplerStore.getState()
+            const promptSession: ConsolePromptSession = {
+              kind:
+                stagedResult.actionId === 'radio.url'
+                  ? 'radio.url'
+                  : 'radio.sampleBurstTime',
+              breadcrumb: stagedResult.breadcrumb,
+              label:
+                stagedResult.actionId === 'radio.url'
+                  ? 'Radio Url'
+                  : 'Radio SampleBurstTime',
+              prefill:
+                stagedResult.actionId === 'radio.url'
+                  ? audioSamplerState.sourceUrl
+                  : formatRadioSampleBurstTime(audioSamplerState.sampleBurstTime),
+              returnSession: stagedResult.session,
+            }
+            setConsolePromptSession(promptSession)
+            appendConsoleEntry({
+              layer: 'Commands',
+              text: formatStagedBreadcrumb(stagedResult.breadcrumb),
+              source: 'console',
+              severity: 'info',
+            })
+            appendConsoleEntry({
+              layer: 'Commands',
+              text: buildConsolePromptSessionText(promptSession),
+              source: 'console',
+              severity: 'info',
+            })
+            requestRadioBurst(commandIdentity, 'enter')
+            return
+          }
           if (
             stagedResult.actionId === 'node.delete' &&
             stagedResult.selections.graphDocumentId !== null &&
@@ -895,6 +1598,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
                 severity: 'info',
               })
             }
+            requestRadioBurst(commandIdentity, 'enter')
             return
           }
           if (
@@ -940,6 +1644,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
               source: 'console',
               severity: 'info',
             })
+            requestRadioBurst(commandIdentity, 'enter')
             return
           }
           graphRootEditorRevealRestoreRef.current = null
@@ -962,12 +1667,19 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
                 stagedResult.selections.graphDocumentId,
                 stagedResult.selections.sketchNodeId,
               )
-              appendConsoleEntry({
-                layer: 'Commands',
-                text: buildFeatureAssistPromptText(buildSketchPlaneFeatureAssistDescriptor()),
-                source: 'console',
-                severity: 'info',
+              const sketchPlaneDescriptor = getActiveFeatureAssistDescriptor({
+                sketchPlanePickSession: useSpaghettiStore.getState().sketchPlanePickSession,
+                geometrySketchSession: useSpaghettiStore.getState().geometrySketchSession,
               })
+              if (sketchPlaneDescriptor !== null) {
+                appendConsoleEntry({
+                  layer: 'Commands',
+                  text: buildFeatureAssistPromptText(sketchPlaneDescriptor),
+                  source: 'console',
+                  severity: 'info',
+                })
+              }
+              requestRadioBurst(commandIdentity, 'enter')
               return
             }
             startSketchDrawIntent(
@@ -975,6 +1687,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
               stagedResult.selections.graphDocumentId,
               stagedResult.selections.sketchNodeId,
             )
+            requestRadioBurst(commandIdentity, 'enter')
             return
           }
           appendConsoleEntry({
@@ -989,6 +1702,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
             source: 'console',
             severity: 'info',
           })
+          requestRadioBurst(commandIdentity, 'enter')
           return
         }
         if (stagedResult.kind === 'invalid') {
@@ -1022,24 +1736,188 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
       graphRootEditorRevealRestoreRef.current = null
       const sketchPlanePickSession = useSpaghettiStore.getState().sketchPlanePickSession
       if (sketchPlanePickSession !== null) {
-        if (trimmedInput === 'xy' || trimmedInput === 'xz' || trimmedInput === 'yz') {
+        if (
+          sketchPlanePickSession.adjustScope === 'move-snap' ||
+          sketchPlanePickSession.adjustScope === 'rotate-snap'
+        ) {
+          const numericValue = Number(trimmedInput)
+          if (Number.isFinite(numericValue)) {
+            const commandIdentity = resolveFeatureAssistSubmitIdentity(trimmedInput)
+            appendConsoleEntry({
+              layer: 'Commands',
+              commandLineKind: 'user',
+              text: `> ${trimmedInput}`,
+            })
+            pushCommandHistory(trimmedInput)
+            requestRadioBurst(commandIdentity, 'enter')
+            const prefsState = useUiPrefsStore.getState()
+            if (sketchPlanePickSession.adjustScope === 'move-snap') {
+              prefsState.setSketchPlaneToolbarTranslateSnapValue(numericValue)
+              prefsState.setSketchPlaneToolbarTranslateSnapEnabled(true)
+            } else {
+              prefsState.setSketchPlaneToolbarRotateSnapValue(numericValue)
+              prefsState.setSketchPlaneToolbarRotateSnapEnabled(true)
+            }
+            useSpaghettiStore.getState().runSketchPlaneCommand('back')
+            return
+          }
+          if (trimmedInput === 'on' || trimmedInput === 'off') {
+            const commandIdentity = resolveFeatureAssistSubmitIdentity(trimmedInput)
+            appendConsoleEntry({
+              layer: 'Commands',
+              commandLineKind: 'user',
+              text: `> ${trimmedInput}`,
+            })
+            pushCommandHistory(trimmedInput)
+            requestRadioBurst(commandIdentity, 'enter')
+            const prefsState = useUiPrefsStore.getState()
+            const enabled = trimmedInput === 'on'
+            if (sketchPlanePickSession.adjustScope === 'move-snap') {
+              prefsState.setSketchPlaneToolbarTranslateSnapEnabled(enabled)
+            } else {
+              prefsState.setSketchPlaneToolbarRotateSnapEnabled(enabled)
+            }
+            useSpaghettiStore.getState().runSketchPlaneCommand('back')
+            return
+          }
+        }
+        if (sketchPlanePickSession.adjustScope === 'move') {
+          const moveVector = parseConsoleVec3Literal(trimmedInput)
+          if (moveVector !== null) {
+            const commandIdentity = resolveFeatureAssistSubmitIdentity(trimmedInput)
+            appendConsoleEntry({
+              layer: 'Commands',
+              commandLineKind: 'user',
+              text: `> ${trimmedInput}`,
+            })
+            pushCommandHistory(trimmedInput)
+            requestRadioBurst(commandIdentity, 'enter')
+            const store = useSpaghettiStore.getState()
+            store.setSketchPlanePickTranslationAxis('x', moveVector.x)
+            store.setSketchPlanePickTranslationAxis('y', moveVector.y)
+            store.setSketchPlanePickTranslationAxis('z', moveVector.z)
+            store.acceptActiveSketchPlaneTransformCommand()
+            return
+          }
+        }
+        if (sketchPlanePickSession.adjustScope === 'rotate') {
+          const rotateVector = parseConsoleVec3Literal(trimmedInput)
+          if (rotateVector !== null) {
+            const commandIdentity = resolveFeatureAssistSubmitIdentity(trimmedInput)
+            appendConsoleEntry({
+              layer: 'Commands',
+              commandLineKind: 'user',
+              text: `> ${trimmedInput}`,
+            })
+            pushCommandHistory(trimmedInput)
+            requestRadioBurst(commandIdentity, 'enter')
+            const store = useSpaghettiStore.getState()
+            store.setSketchPlanePickRotationAxis('x', rotateVector.x)
+            store.setSketchPlanePickRotationAxis('y', rotateVector.y)
+            store.setSketchPlanePickRotationAxis('z', rotateVector.z)
+            store.acceptActiveSketchPlaneTransformCommand()
+            return
+          }
+        }
+        if (
+          trimmedInput === 'xy' ||
+          trimmedInput === 'xz' ||
+          trimmedInput === 'yz' ||
+          trimmedInput === 'move' ||
+          trimmedInput === 'm' ||
+          trimmedInput === 'rotate' ||
+          trimmedInput === 'r' ||
+          trimmedInput === 'done' ||
+          trimmedInput === 'd' ||
+          trimmedInput === 'confirmtosketch' ||
+          trimmedInput === 'c' ||
+          ((sketchPlanePickSession.adjustScope === 'move' ||
+            sketchPlanePickSession.adjustScope === 'rotate') &&
+            trimmedInput === 'snap') ||
+          (sketchPlanePickSession.adjustScope === 'move' && trimmedInput === 'x') ||
+          (sketchPlanePickSession.adjustScope === 'move' && trimmedInput === 'y') ||
+          (sketchPlanePickSession.adjustScope === 'move' && trimmedInput === 'z') ||
+          (sketchPlanePickSession.adjustScope === 'rotate' && trimmedInput === 'x') ||
+          (sketchPlanePickSession.adjustScope === 'rotate' && trimmedInput === 'y') ||
+          (sketchPlanePickSession.adjustScope === 'rotate' && trimmedInput === 'z') ||
+          trimmedInput === 'move x' ||
+          trimmedInput === 'mx' ||
+          trimmedInput === 'move y' ||
+          trimmedInput === 'my' ||
+          trimmedInput === 'move z' ||
+          trimmedInput === 'mz' ||
+          trimmedInput === 'rotate x' ||
+          trimmedInput === 'rx' ||
+          trimmedInput === 'rotate y' ||
+          trimmedInput === 'ry' ||
+          trimmedInput === 'rotate z' ||
+          trimmedInput === 'rz'
+        ) {
+          const commandIdentity = resolveFeatureAssistSubmitIdentity(trimmedInput)
           appendConsoleEntry({
             layer: 'Commands',
             commandLineKind: 'user',
             text: `> ${trimmedInput}`,
           })
           pushCommandHistory(trimmedInput)
-          useSpaghettiStore.getState().setSketchPlanePickDraftPlane(trimmedInput.toUpperCase() as 'XY' | 'XZ' | 'YZ')
+          requestRadioBurst(commandIdentity, 'enter')
+          let command: SketchPlaneCommand
+          if (trimmedInput === 'xy' || trimmedInput === 'xz' || trimmedInput === 'yz') {
+            command = trimmedInput
+          } else if (trimmedInput === 'move' || trimmedInput === 'm') {
+            command = 'move'
+          } else if (trimmedInput === 'rotate' || trimmedInput === 'r') {
+            command = 'rotate'
+          } else if (trimmedInput === 'done' || trimmedInput === 'd') {
+            command = 'done'
+          } else if (trimmedInput === 'confirmtosketch' || trimmedInput === 'c') {
+            command = 'confirm-to-sketch'
+          } else if (trimmedInput === 'snap') {
+            command =
+              sketchPlanePickSession.adjustScope === 'rotate' ? 'rotate-snap' : 'move-snap'
+          } else if (
+            (sketchPlanePickSession.adjustScope === 'rotate' && trimmedInput === 'x') ||
+            trimmedInput === 'rotate x' ||
+            trimmedInput === 'rx'
+          ) {
+            command = 'rotate-x'
+          } else if (
+            (sketchPlanePickSession.adjustScope === 'rotate' && trimmedInput === 'y') ||
+            trimmedInput === 'rotate y' ||
+            trimmedInput === 'ry'
+          ) {
+            command = 'rotate-y'
+          } else if (
+            (sketchPlanePickSession.adjustScope === 'rotate' && trimmedInput === 'z') ||
+            trimmedInput === 'rotate z' ||
+            trimmedInput === 'rz'
+          ) {
+            command = 'rotate-z'
+          } else if (trimmedInput === 'x' || trimmedInput === 'move x' || trimmedInput === 'mx') {
+            command = 'move-x'
+          } else if (trimmedInput === 'y' || trimmedInput === 'move y' || trimmedInput === 'my') {
+            command = 'move-y'
+          } else {
+            command = 'move-z'
+          }
+          useSpaghettiStore.getState().runSketchPlaneCommand(command)
           return
         }
         if (trimmedInput === 'esc' || trimmedInput === 'back' || trimmedInput === 'b') {
-          appendConsoleEntry({
-            layer: 'Commands',
-            commandLineKind: 'user',
-            text: `> ${trimmedInput}`,
-          })
+          const commandIdentity =
+            trimmedInput === 'esc' ? null : resolveFeatureAssistSubmitIdentity(trimmedInput)
+          if (trimmedInput !== 'esc') {
+            appendConsoleEntry({
+              layer: 'Commands',
+              commandLineKind: 'user',
+              text: `> ${trimmedInput}`,
+            })
+          }
           pushCommandHistory(trimmedInput)
-          useSpaghettiStore.getState().returnActiveSketchSessionOneLevel()
+          requestRadioBurst(commandIdentity, 'enter')
+          useSpaghettiStore
+            .getState()
+            .runSketchPlaneCommand(trimmedInput === 'esc' ? 'esc' : 'back')
           return
         }
       }
@@ -1052,7 +1930,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
             text: `> ${trimmedInput}`,
           })
           pushCommandHistory(trimmedInput)
-          spaghettiState.setGeometrySketchSessionTool('line')
+          spaghettiState.runGeometrySketchDrawCommand(trimmedInput as 'line' | 'l')
           return
         }
         if (trimmedInput === 'pline' || trimmedInput === 'pl') {
@@ -1062,7 +1940,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
             text: `> ${trimmedInput}`,
           })
           pushCommandHistory(trimmedInput)
-          spaghettiState.setGeometrySketchSessionTool('pline')
+          spaghettiState.runGeometrySketchDrawCommand(trimmedInput as 'pline' | 'pl')
           return
         }
         if (trimmedInput === 'enter') {
@@ -1072,17 +1950,21 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
             text: '> enter',
           })
           pushCommandHistory('enter')
-          spaghettiState.finishGeometrySketchDrawDraft()
+          spaghettiState.runGeometrySketchDrawCommand('enter')
           return
         }
         if (trimmedInput === 'esc' || trimmedInput === 'back' || trimmedInput === 'b') {
-          appendConsoleEntry({
-            layer: 'Commands',
-            commandLineKind: 'user',
-            text: `> ${trimmedInput}`,
-          })
+          if (trimmedInput !== 'esc') {
+            appendConsoleEntry({
+              layer: 'Commands',
+              commandLineKind: 'user',
+              text: `> ${trimmedInput}`,
+            })
+          }
           pushCommandHistory(trimmedInput)
-          spaghettiState.returnActiveSketchSessionOneLevel()
+          spaghettiState.runGeometrySketchDrawCommand(
+            trimmedInput as 'esc' | 'back' | 'b',
+          )
           return
         }
         if (trimmedInput === 'x') {
@@ -1092,7 +1974,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
             text: '> x',
           })
           pushCommandHistory('x')
-          spaghettiState.closeGeometrySketchSession()
+          spaghettiState.runGeometrySketchDrawCommand('x')
           return
         }
         if (trimmedInput === 'status') {
@@ -1144,7 +2026,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
           text: '> x',
         })
         pushCommandHistory('x')
-        useSpaghettiStore.getState().cancelSketchPlanePick()
+        useSpaghettiStore.getState().runSketchPlaneCommand('x')
         return
       }
 
@@ -1160,6 +2042,11 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
         text: `> ${parsed.raw}`,
       })
       pushCommandHistory(parsed.raw)
+      const flatCommandIdentity = resolveConsoleRadioCommandIdentity({
+        kind: 'flatCommand',
+        commandName: parsed.name,
+      })
+      trackRadioCommandIdentity(flatCommandIdentity)
 
       const viewer = getViewer()
       const appState = useAppStore.getState()
@@ -1172,6 +2059,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
 
       switch (parsed.name) {
         case 'help':
+          requestRadioBurst(flatCommandIdentity, 'enter')
           appendConsoleEntry({
             layer: 'Commands',
             text: 'Commands: help, console, clear, history, frame, zoom, move, rotate, scale, snap, echo, status',
@@ -1181,6 +2069,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
         case 'console': {
           useConsoleStore.getState().toggleExpanded()
           const nextState = useConsoleStore.getState()
+          requestRadioBurst(flatCommandIdentity, 'enter')
           appendConsoleEntry({
             layer: 'App',
             text:
@@ -1193,6 +2082,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
           return
         }
         case 'clear':
+          requestRadioBurst(flatCommandIdentity, 'enter')
           appendConsoleEntry({
             layer: 'Diagnostics',
             text: 'Console clear is disabled for now',
@@ -1201,6 +2091,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
           })
           return
         case 'history':
+          requestRadioBurst(flatCommandIdentity, 'enter')
           if (useConsoleStore.getState().commandHistory.length === 0) {
             appendConsoleEntry({
               layer: 'Commands',
@@ -1222,6 +2113,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
           return
         case 'frame':
           viewer?.frameAll()
+          requestRadioBurst(flatCommandIdentity, 'enter')
           appendConsoleEntry({
             layer: 'View',
             text: 'Frame all',
@@ -1231,6 +2123,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
           return
         case 'zoom':
           viewer?.frameSelected(appState.selectedPartKey)
+          requestRadioBurst(flatCommandIdentity, 'enter')
           appendConsoleEntry({
             layer: 'View',
             text:
@@ -1242,16 +2135,20 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
           })
           return
         case 'move':
+          requestRadioBurst(flatCommandIdentity, 'enter')
           dispatchImmediateShortcut('m')
           return
         case 'rotate':
+          requestRadioBurst(flatCommandIdentity, 'enter')
           dispatchImmediateShortcut('r')
           return
         case 'scale':
+          requestRadioBurst(flatCommandIdentity, 'enter')
           dispatchImmediateShortcut('s')
           return
         case 'snap':
           if (activeReferenceId === null) {
+            requestRadioBurst(flatCommandIdentity, 'enter')
             appendConsoleEntry({
               layer: 'Diagnostics',
               text: 'Snap requires an active reference transform session',
@@ -1261,6 +2158,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
             return
           }
           appState.setReferenceRotateSnapEnabled(activeReferenceId, !rotateSnapState.enabled)
+          requestRadioBurst(flatCommandIdentity, 'enter')
           appendConsoleEntry({
             layer: 'Transforms',
             text: `Rotate snap ${rotateSnapState.enabled ? 'disabled' : 'enabled'}`,
@@ -1269,6 +2167,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
           })
           return
         case 'echo':
+          requestRadioBurst(flatCommandIdentity, 'enter')
           appendConsoleEntry({
             layer: 'Commands',
             text: parsed.argumentText.length === 0 ? '(empty)' : parsed.argumentText,
@@ -1277,6 +2176,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
           })
           return
         case 'status':
+          requestRadioBurst(flatCommandIdentity, 'enter')
           appendConsoleEntry({
             layer: 'App',
             text: 'Status: spaghetti preview active',
@@ -1313,9 +2213,41 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
       createMissingGraphNodeInGraphDocument,
       dispatchImmediateShortcut,
       pushCommandHistory,
+      requestRadioBurst,
       setStagedNavigationSession,
+      trackRadioCommandIdentity,
     ],
   )
+
+  useEffect(() => {
+    const spaghettiState = useSpaghettiStore.getState()
+    if (
+      stagedNavigationSession?.scopeId !== 'graphNodeList' ||
+      stagedNavigationSession.selections.graphDocumentId === null
+    ) {
+      if (spaghettiState.consolePreviewNodeId !== null) {
+        spaghettiState.setConsolePreviewNodeId(null)
+      }
+      return
+    }
+
+    const graphDocument = selectGraphDocumentById(
+      spaghettiState,
+      stagedNavigationSession.selections.graphDocumentId,
+    )
+    const nodeChoiceIndex = stagedChoiceIndex ?? 0
+    const targetedNode =
+      graphDocument?.graph.nodes[nodeChoiceIndex] ?? null
+    const nextPreviewNodeId =
+      targetedNode !== null &&
+      stagedNavigationSession.validChoices[nodeChoiceIndex]?.canonicalToken !== 'BACK'
+        ? targetedNode.nodeId
+        : null
+
+    if (spaghettiState.consolePreviewNodeId !== nextPreviewNodeId) {
+      spaghettiState.setConsolePreviewNodeId(nextPreviewNodeId)
+    }
+  }, [stagedChoiceIndex, stagedNavigationSession])
 
   useEffect(() => {
     const previousSession = previousSketchPlanePickSessionRef.current
@@ -1576,21 +2508,31 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
       if (routing.owner === 'staged-console' && event.key === 'Escape') {
         event.preventDefault()
         event.stopImmediatePropagation()
-        cancelActiveStagedNavigationSession()
+        handleEscCancelCommand()
         return
       }
-      if ((routing.owner === 'staged-console' || featureAssistDescriptor !== null) && event.key === 'ArrowUp') {
+      if (
+        (routing.owner === 'staged-console' ||
+          consolePromptSession !== null ||
+          featureAssistDescriptor !== null) &&
+        event.key === 'ArrowUp'
+      ) {
         event.preventDefault()
         event.stopImmediatePropagation()
         focusMainConsoleInput()
-        cycleStagedChoice('previous')
+        cycleStagedChoiceWithRadioBurst('previous', 'arrowUp')
         return
       }
-      if ((routing.owner === 'staged-console' || featureAssistDescriptor !== null) && event.key === 'ArrowDown') {
+      if (
+        (routing.owner === 'staged-console' ||
+          consolePromptSession !== null ||
+          featureAssistDescriptor !== null) &&
+        event.key === 'ArrowDown'
+      ) {
         event.preventDefault()
         event.stopImmediatePropagation()
         focusMainConsoleInput()
-        cycleStagedChoice('next')
+        cycleStagedChoiceWithRadioBurst('next', 'arrowDown')
         return
       }
       if (
@@ -1611,10 +2553,11 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
       window.removeEventListener('keydown', handleKeyDown, true)
     }
   }, [
-    cancelActiveStagedNavigationSession,
-    cycleStagedChoice,
+    cycleStagedChoiceWithRadioBurst,
+    consolePromptSession,
     featureAssistDescriptor,
     focusMainConsoleInput,
+    handleEscCancelCommand,
     routeConsoleGlobalKey,
     seedInputText,
   ])
@@ -1642,21 +2585,31 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
       if (routing.owner === 'staged-console' && event.key === 'Escape') {
         event.preventDefault()
         event.stopImmediatePropagation()
-        cancelActiveStagedNavigationSession()
+        handleEscCancelCommand()
         return
       }
-      if ((routing.owner === 'staged-console' || featureAssistDescriptor !== null) && event.key === 'ArrowUp') {
+      if (
+        (routing.owner === 'staged-console' ||
+          consolePromptSession !== null ||
+          featureAssistDescriptor !== null) &&
+        event.key === 'ArrowUp'
+      ) {
         event.preventDefault()
         event.stopImmediatePropagation()
         focusPopoutConsoleInput()
-        cycleStagedChoice('previous')
+        cycleStagedChoiceWithRadioBurst('previous', 'arrowUp')
         return
       }
-      if ((routing.owner === 'staged-console' || featureAssistDescriptor !== null) && event.key === 'ArrowDown') {
+      if (
+        (routing.owner === 'staged-console' ||
+          consolePromptSession !== null ||
+          featureAssistDescriptor !== null) &&
+        event.key === 'ArrowDown'
+      ) {
         event.preventDefault()
         event.stopImmediatePropagation()
         focusPopoutConsoleInput()
-        cycleStagedChoice('next')
+        cycleStagedChoiceWithRadioBurst('next', 'arrowDown')
         return
       }
       if (
@@ -1677,10 +2630,11 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
       popoutWindow.removeEventListener('keydown', handlePopoutKeyDown, true)
     }
   }, [
-    cancelActiveStagedNavigationSession,
-    cycleStagedChoice,
+    cycleStagedChoiceWithRadioBurst,
+    consolePromptSession,
     featureAssistDescriptor,
     focusPopoutConsoleInput,
+    handleEscCancelCommand,
     popoutHost,
     routeConsoleGlobalKey,
     seedInputText,
@@ -1688,7 +2642,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
   ])
 
   useEffect(() => {
-    if (stagedNavigationSession !== null) {
+    if (stagedNavigationSession !== null || consolePromptSession !== null) {
       return
     }
     setFeatureAssistDescriptor(
@@ -1697,7 +2651,36 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
         geometrySketchSession,
       }),
     )
-  }, [geometrySketchSession, setFeatureAssistDescriptor, sketchPlanePickSession, stagedNavigationSession])
+  }, [
+    consolePromptSession,
+    geometrySketchSession,
+    setFeatureAssistDescriptor,
+    sketchPlanePickSession,
+    stagedNavigationSession,
+  ])
+
+  useEffect(() => {
+    if (sketchPlanePickSession?.stage !== 'pick') {
+      useSpaghettiStore.getState().setSketchPlanePickPreviewPlane(null)
+      return
+    }
+    const normalizedInput = consoleInputText.trim().toUpperCase()
+    const previewToken =
+      isStagedChoiceManualOverride === true
+        ? normalizedInput
+        : featureAssistDescriptor?.choices[stagedChoiceIndex ?? 0]?.canonicalToken ?? normalizedInput
+    useSpaghettiStore.getState().setSketchPlanePickPreviewPlane(
+      previewToken === 'XY' || previewToken === 'XZ' || previewToken === 'YZ'
+        ? previewToken
+        : null,
+    )
+  }, [
+    consoleInputText,
+    featureAssistDescriptor,
+    isStagedChoiceManualOverride,
+    sketchPlanePickSession?.stage,
+    stagedChoiceIndex,
+  ])
 
   const handleFloatingHeaderPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
     const target = event.target as HTMLElement | null
@@ -1844,8 +2827,9 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
         showExpandToggle={false}
         inputRef={floatingInputRef}
         onSubmitCommand={handleSubmitCommand}
-        onCancelCommand={cancelActiveStagedNavigationSession}
-        treatSpaceAsSubmit={stagedNavigationSession !== null}
+        onCancelCommand={handleEscCancelCommand}
+        onCycleGuidedChoice={handleGuidedChoiceCycle}
+        treatSpaceAsSubmit={treatSpaceAsSubmit}
       />
     </div>
   ) : null
@@ -1871,8 +2855,9 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
               showExpandToggle={false}
               inputRef={popoutInputRef}
               onSubmitCommand={handleSubmitCommand}
-              onCancelCommand={cancelActiveStagedNavigationSession}
-              treatSpaceAsSubmit={stagedNavigationSession !== null}
+              onCancelCommand={handleEscCancelCommand}
+              onCycleGuidedChoice={handleGuidedChoiceCycle}
+              treatSpaceAsSubmit={treatSpaceAsSubmit}
             />
           </div>,
           popoutHost,
@@ -1939,8 +2924,9 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
             showExpandToggle
             inputRef={dockedInputRef}
             onSubmitCommand={handleSubmitCommand}
-            onCancelCommand={cancelActiveStagedNavigationSession}
-            treatSpaceAsSubmit={stagedNavigationSession !== null}
+            onCancelCommand={handleEscCancelCommand}
+            onCycleGuidedChoice={handleGuidedChoiceCycle}
+            treatSpaceAsSubmit={treatSpaceAsSubmit}
           />
         ) : null}
         {floatingWindow}

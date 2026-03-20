@@ -28,6 +28,64 @@ describe('stagedNavigation', () => {
     expect(graphResult.validChoices.map((choice) => choice.canonicalToken)).toEqual(['1', '2', 'LIST'])
   })
 
+  it('accepts both radio and r as the same staged root token', () => {
+    const context = createConsoleStagedNavigationContext([
+      { graphDocumentId: 'graph-document-1', name: 'Graph 1' },
+    ])
+
+    const radioResult = submitConsoleStagedNavigationToken(null, 'radio', context)
+    const aliasResult = submitConsoleStagedNavigationToken(null, 'r', context)
+
+    expect(radioResult.kind).toBe('advance')
+    expect(aliasResult.kind).toBe('advance')
+    if (radioResult.kind !== 'advance' || aliasResult.kind !== 'advance') {
+      throw new Error('Expected radio root token to advance')
+    }
+
+    expect(radioResult.session.scopeId).toBe('radioRoot')
+    expect(aliasResult.session.scopeId).toBe('radioRoot')
+    expect(radioResult.validChoices.map((choice) => choice.canonicalToken)).toEqual([
+      'ON',
+      'OFF',
+      'URL',
+      'SAMPLEBURSTTIME',
+      'RANDOMIZESAMPLETIMES',
+    ])
+  })
+
+  it('accepts the cleaned radio aliases o, off, u, sb, and rs', () => {
+    const context = createConsoleStagedNavigationContext([
+      { graphDocumentId: 'graph-document-1', name: 'Graph 1' },
+    ])
+
+    const rootResult = submitConsoleStagedNavigationToken(null, 'r', context)
+    expect(rootResult.kind).toBe('advance')
+    if (rootResult.kind !== 'advance') {
+      throw new Error('Expected radio root token to advance')
+    }
+
+    expect(submitConsoleStagedNavigationToken(rootResult.session, 'o', context)).toMatchObject({
+      kind: 'execute',
+      actionId: 'radio.on',
+    })
+    expect(submitConsoleStagedNavigationToken(rootResult.session, 'off', context)).toMatchObject({
+      kind: 'execute',
+      actionId: 'radio.off',
+    })
+    expect(submitConsoleStagedNavigationToken(rootResult.session, 'u', context)).toMatchObject({
+      kind: 'execute',
+      actionId: 'radio.url',
+    })
+    expect(submitConsoleStagedNavigationToken(rootResult.session, 'sb', context)).toMatchObject({
+      kind: 'execute',
+      actionId: 'radio.sampleBurstTime',
+    })
+    expect(submitConsoleStagedNavigationToken(rootResult.session, 'rs', context)).toMatchObject({
+      kind: 'execute',
+      actionId: 'radio.randomizeSampleTimes',
+    })
+  })
+
   it('auto-selects the only graph when graph root has one real entity choice', () => {
     const context = createConsoleStagedNavigationContext([
       { graphDocumentId: 'graph-document-1', name: 'Graph 1' },
@@ -46,6 +104,7 @@ describe('stagedNavigation', () => {
       'SKETCH',
       'EXTRUDE',
       'OUTPUT PREVIEW',
+      'FOCUS NODE',
       'COLLAPSED',
       'ESSENTIALS',
       'EXPANDED',
@@ -81,6 +140,7 @@ describe('stagedNavigation', () => {
       'SKETCH',
       'EXTRUDE',
       'OUTPUT PREVIEW',
+      'FOCUS NODE',
       'COLLAPSED',
       'ESSENTIALS',
       'EXPANDED',
@@ -166,6 +226,7 @@ describe('stagedNavigation', () => {
       'SKETCH',
       'EXTRUDE',
       'OUTPUT PREVIEW',
+      'FOCUS NODE',
       'COLLAPSED',
       'ESSENTIALS',
       'EXPANDED',
@@ -299,6 +360,56 @@ describe('stagedNavigation', () => {
     expect(extrudeResult.validChoices.map((choice) => choice.label)).toEqual(['Delete', 'Back'])
   })
 
+  it('lists all nodes from focus node scope and can focus a generic node', () => {
+    const context = createConsoleStagedNavigationContext([
+      {
+        graphDocumentId: 'graph-document-1',
+        name: 'Graph 1',
+        allNodeOptions: [
+          { nodeId: 'node-part-1', label: 'node_[1] Cube' },
+          { nodeId: 'node-sketch-1', label: 'node_[2] Sketch' },
+        ],
+        sketchOptions: [{ nodeId: 'node-sketch-1', label: 'sketch_[1]' }],
+      },
+    ])
+
+    const rootResult = submitConsoleStagedNavigationToken(null, 'G', context)
+    expect(rootResult.kind).toBe('advance')
+    if (rootResult.kind !== 'advance') {
+      throw new Error('Expected graph root token to advance')
+    }
+
+    const focusNodeResult = submitConsoleStagedNavigationToken(rootResult.session, 'FN', context)
+    expect(focusNodeResult.kind).toBe('advance')
+    if (focusNodeResult.kind !== 'advance') {
+      throw new Error('Expected focus node token to advance')
+    }
+
+    expect(focusNodeResult.session.scopeId).toBe('graphNodeList')
+    expect(focusNodeResult.validChoices.map((choice) => choice.label)).toEqual([
+      'node_[1] Cube',
+      'node_[2] Sketch',
+      'Back',
+    ])
+
+    const selectedNodeResult = submitConsoleStagedNavigationToken(
+      focusNodeResult.session,
+      '1',
+      context,
+    )
+    expect(selectedNodeResult.kind).toBe('advance')
+    if (selectedNodeResult.kind !== 'advance') {
+      throw new Error('Expected focus node selection to advance')
+    }
+
+    expect(selectedNodeResult.session.scopeId).toBe('graphNodeSelected')
+    expect(selectedNodeResult.selections.selectedNodeId).toBe('node-part-1')
+    expect(selectedNodeResult.validChoices.map((choice) => choice.label)).toEqual([
+      'Delete',
+      'Back',
+    ])
+  })
+
   it('returns execute metadata for graph editor modes, sketch plane, sketch draw, and graph action nodes', () => {
     const context = createConsoleStagedNavigationContext([
       {
@@ -391,7 +502,10 @@ describe('stagedNavigation', () => {
     expect(cancelledResult.kind).toBe('cancelled')
     expect(cancelledResult.session).toBeNull()
     expect(cancelledResult.breadcrumb).toEqual([])
-    expect(cancelledResult.validChoices.map((choice) => choice.canonicalToken)).toEqual(['GRAPH'])
+    expect(cancelledResult.validChoices.map((choice) => choice.canonicalToken)).toEqual([
+      'GRAPH',
+      'RADIO',
+    ])
   })
 
   it('exposes delete as a node-local action for selected node scopes', () => {

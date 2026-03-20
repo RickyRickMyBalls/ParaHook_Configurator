@@ -216,6 +216,7 @@ export function ViewerHost() {
       stage: sketchPlanePickSession.stage,
       gizmoMode: sketchPlanePickSession.gizmoMode,
       draftPlane: sketchPlanePickSession.draftPlane,
+      previewPlane: sketchPlanePickSession.previewPlane,
       draftTransform: {
         ...sketchPlanePickSession.draftTransform,
         translation: { ...sketchPlanePickSession.draftTransform.translation },
