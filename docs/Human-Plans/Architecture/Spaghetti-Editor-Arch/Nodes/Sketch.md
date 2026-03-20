@@ -3,6 +3,12 @@
 ## Doc Header
 
 ### Doc History
+33. 2026-03-20 00:49: Tightened `[3.2B-S4] Sketch Return One Level` into an implementation-ready spec by grounding it in the current sketch-plane and sketch-draw cancel seams, locking the first shared `returnOneLevel()` target behavior, and adding explicit current-code mapping, phase boundaries, and acceptance checks for the later shared back-step cleanup
+32. 2026-03-20 00:37: Implemented the first `[3.2B-S3] SketchDraw Session Cleanup` pass in code and updated this doc to match the shipped behavior: `SketchDraw` now announces an explicit idle prompt (`Sketch Draw > [Line, PLine, X]`) instead of `Sketch Draw started`, console status reads the named draw stage directly, and idle `Esc` remains inside the durable draw session while `x` stays the explicit exit
+31. 2026-03-20 00:08: Expanded the new `[3.2B-S1]` through `[3.2B-S5]` sketch hierarchy-cleanup subphases with concrete `Questions / Decisions` and `Implementation Spec` blocks, recording what is already known now about sketch-node parent scope, one-level return behavior, sketch-plane cancel/adjust flow, sketch-draw durability, and toolbar/console shared-command alignment
+30. 2026-03-19 23:39: Restructured the hierarchy-cleanup vision into separate sketch cleanup subphase sections, keeping the first hierarchy-model heading and splitting the remaining vision into dedicated `Return One Level`, `SketchPlane Cleanup`, `SketchDraw Cleanup`, and `Toolbar / Console Unification` sections
+29. 2026-03-19 23:31: Added a new `Hierarchy Cleanup Vision` section to the sketch architecture, defining the intended clean session/scope structure for `SketchPlane` and `SketchDraw`, clarifying that `Esc` / `Back` should return one level through shared sketch-session rules, and locking the direction that sketch feature sessions should eventually sit as explicit levels under the selected sketch-node command scope instead of remaining scattered special cases
+28. 2026-03-19 23:03: Added an explicit toolbar-to-console mapping note to the sketch architecture so `SketchPlane` and `Sketch Draw` now lock the direction that toolbar sections should mirror the same command scopes, groups, and actions the console will use as those node surfaces become increasingly command-driven
 27. 2026-03-19 13:41: Added a bottom-of-file section map for the real sketch-plane toolbar parts, aligning the new placeholders to the live overlay structure with `Title Bar`, `I Menu`, `Toolbar Window`, `Sketch Plane UI`, `Plane Selection`, `Transform`, `Move`, and `Rotate`, and cleaned the new `Sketch Draw` placeholder headings to `Title Bar` / `Section`
 26. 2026-03-18 22:19: Expanded the `3.2B-2-Cleanup` phase with two concrete visual/product requirements: restore the sketch-plane toolbar to the earlier compact title-bar language keyed off the sketch-plane pin color, and move the source-pick interaction fully into the main model viewport with a central origin gizmo plus three clickable ghost origin planes instead of a faux embedded viewport panel
 25. 2026-03-18 22:14: Added a real `3.2B-2-Cleanup` phase section that captures the post-implementation cleanup work needed after the first viewport-first source-pick cut, including removing the faux mini-viewport treatment, moving preview responsibility back onto the main model viewport, tightening draft-versus-committed ownership, and clearing remaining prototype/dev seams
@@ -1751,12 +1757,584 @@ Important rules:
 - if a console command exists, it should trigger the same underlying session behavior as the visible UI action
 - the active session trace should be readable enough that we can reconstruct what the user did while debugging viewport-pick issues
 
+Toolbar / command alignment rule:
+- the visible sketch toolbar structure should map to the same underlying command structure the console uses
+- toolbar parent surfaces like `Sketch Plane` or `Sketch Draw` should map to command scopes
+- toolbar sections like `Plane Selection`, `Transform`, `Move`, `Rotate`, or `Tool Selection` should map to command groups
+- concrete actions like `XY`, `XZ`, `YZ`, `Line`, `PLine`, `Enter`, `Esc`, and `X` should map to commands or valid follow-up tokens inside those scopes
+
+Important rule:
+- do not let sketch toolbar clicks and console commands drift into two separate behavior systems
+- both should dispatch to the same underlying sketch-session verbs and state transitions
+- the toolbar is the visible grouped control surface
+- the console is the typed command surface
+- both should reflect one shared sketch interaction model
+
 For `3.2B-2`, this means:
 - the viewport-pick session should emit a readable action trace
 - confirm and cancel should both be reachable from the console during development
 - the console should help verify that source pick, gizmo movement, and commit/cancel semantics are stable before deeper browser or geometry-driven integration work begins
 
-### V1 Boundary
+### [ ]Hierarchy Cleanup Vision - `3.2B-S`
+
+This vision should now be treated as a parent bucket with its own subphases.
+
+Use these subphases:
+- `[3.2B-S1]`
+  - `Sketch Session Hierarchy Model`
+- `[3.2B-S2]`
+  - `SketchPlane Session Cleanup`
+- `[3.2B-S3]`
+  - `SketchDraw Session Cleanup`
+- `[3.2B-S4]`
+  - `Sketch Return One Level`
+- `[3.2B-S5]`
+  - `Sketch Toolbar / Console Command Alignment`
+
+## [x] [3.2B-S1] - `Sketch Session Hierarchy Model`
+
+The sketch interaction model should be cleaned up into one readable hierarchy instead of a mix of staged-console scopes, feature-local session branches, and special-case `Esc` behavior.
+
+The intended long-term shape is:
+
+```text
+Graph
+└─ Sketch node selected
+   ├─ SketchPlane
+   │  ├─ Plane Selection
+   │  └─ Adjust
+   └─ SketchDraw
+      ├─ Session Idle
+      ├─ Tool Selected
+      └─ Draft Active
+```
+
+Important rule:
+- the selected sketch node should remain the parent scope
+- `SketchPlane` and `SketchDraw` should become explicit child levels under that sketch-node scope
+- do not treat them as detached one-off modes that discard the parent command context
+
+Current code-to-target mapping:
+- current staged-console parent scope:
+  - `graphSketchSelected`
+  - this should remain the user-facing parent sketch-node scope
+- current `SketchPlane` session seam:
+  - `sketchPlanePickSession`
+  - `pick` should map to `SketchPlane > Plane Selection`
+  - `adjust` should map to `SketchPlane > Adjust`
+- current `SketchDraw` session seam:
+  - `geometrySketchSession`
+  - `drawStage: sessionIdle`
+    - maps to `SketchDraw > Session Idle`
+  - `drawStage: toolSelected`
+    - maps to `SketchDraw > Tool Selected`
+  - `drawStage: draftActive`
+    - maps to `SketchDraw > Draft Active`
+  - `activeTool: null`
+    - means the draw session is open with no armed tool
+
+Phase boundary:
+- `[3.2B-S1]` is only responsible for naming and locking the hierarchy
+- this phase does not yet need to fully implement:
+  - one-level `Esc` behavior
+  - command routing cleanup
+  - toolbar/console shared dispatch
+- those belong to:
+  - `[3.2B-S4]`
+  - `[3.2B-S2]`
+  - `[3.2B-S3]`
+  - `[3.2B-S5]`
+
+### Questions / Decisions
+
+#### [x] `q1` Decide what the stable parent scope should be for sketch-local command work.
+
+##### Suggestion
+- locked direction:
+- the selected sketch node should remain the stable parent scope
+- `SketchPlane` and `SketchDraw` should become child levels under that selected sketch scope, not detached parallel products
+
+#### [x] `q2` Decide whether `SketchPlane` and `SketchDraw` should be modeled as deeper levels or as unrelated modes.
+
+##### Suggestion
+- locked direction:
+- treat both as deeper sketch-node levels
+- this keeps prompt restoration, `Back`, and `Esc` behavior coherent
+
+### Implementation Spec
+
+- first cleanup pass should make the hierarchy explicit in code/doc terms:
+  - `graphSketchSelected`
+    - parent sketch-node scope
+  - `SketchPlane`
+    - `Plane Selection`
+    - `Adjust`
+  - `SketchDraw`
+    - `Session Idle`
+    - `Tool Selected`
+    - `Draft Active`
+- implementation should prefer explicit named levels over inferring hierarchy from scattered booleans and feature-local branches
+- the first honest code target is not a global app-wide hierarchy rewrite
+- the first honest code target is:
+  - keep the existing selected sketch-node staged scope
+  - make `SketchPlane` levels explicit against that parent
+  - make `SketchDraw` levels explicit against that parent
+- the first implemented state seam should read as:
+  - draw session opens with:
+    - `activeTool: null`
+    - `drawStage: sessionIdle`
+  - choosing a tool transitions to:
+    - `drawStage: toolSelected`
+  - beginning a draft transitions to:
+    - `drawStage: draftActive`
+- prompt restoration and next-step prompts should always resolve back through the selected sketch-node scope instead of skipping around it
+- this phase does not require every other node family to adopt the same model yet
+- success means later `Esc` / `Back` work can target named levels instead of vague local feature states
+
+Acceptance checks:
+- a reader can point to one stable parent sketch-node scope in both doc language and code language
+- `SketchPlane` and `SketchDraw` are described as child levels under that parent, not as detached modes
+- later phases can reference named levels directly:
+  - `SketchPlane > Plane Selection`
+  - `SketchPlane > Adjust`
+  - `SketchDraw > Session Idle`
+  - `SketchDraw > Tool Selected`
+  - `SketchDraw > Draft Active`
+- no additional hierarchy levels are invented in this phase unless they are needed by a real current code seam
+
+## [x] [3.2B-S2] - `SketchPlane Session Cleanup`
+
+`SketchPlane` should cleanly read as:
+- `Sketch node selected`
+  - parent scope
+- `SketchPlane > Plane Selection`
+  - choose `XY / XZ / YZ` or later other source references
+- `SketchPlane > Adjust`
+  - refine move / rotate / later other transform actions
+
+Recommended `Esc` / `Back` behavior:
+- from `Adjust`
+  - return to `Plane Selection`
+- from `Plane Selection`
+  - cancel `SketchPlane` and return to the selected sketch-node scope
+
+Important rule:
+- do not force the user to explicitly choose `Pick Plane` versus `Transform` as a separate menu step up front
+- plane selection should be the natural first level
+- transform should become active after a plane/source is chosen
+
+Current code-to-target mapping:
+- current canonical session seam:
+  - `sketchPlanePickSession`
+  - this should remain the only source of truth for `SketchPlane`
+- current stage mapping:
+  - `stage: 'pick'`
+    - maps to `SketchPlane > Plane Selection`
+  - `stage: 'adjust'`
+    - maps to `SketchPlane > Adjust`
+- current console seam:
+  - entering `SP` prints:
+    - `Sketch Plane > [XY, XZ, YZ]`
+  - direct typed `XY / XZ / YZ` already routes into `setSketchPlanePickDraftPlane(...)`
+- current cancel/handoff seam:
+  - canceling `SketchPlane` already restores the staged console to the selected sketch-node scope
+  - viewport clicks during `SketchPlane` already keep the command context alive so camera adjustment does not collapse the session
+
+Phase boundary:
+- `[3.2B-S2]` is responsible for making the existing two-level `SketchPlane` session read cleanly and consistently
+- this phase should not invent a second sketch-plane session model
+- this phase does not need to redesign:
+  - full toolbar/console command unification
+  - generic one-level return across every sketch surface
+  - face-pick or broader source families beyond the current plane-selection seam
+- those belong to later work in:
+  - `[3.2B-S4]`
+  - `[3.2B-S5]`
+  - later sketch-plane source-expansion phases
+
+### Questions / Decisions
+
+#### [x] `q1` Decide the first honest `SketchPlane` levels.
+
+##### Suggestion
+- locked direction:
+- `Plane Selection`
+- `Adjust`
+
+#### [x] `q2` Decide what `Esc` should do from each level.
+
+##### Suggestion
+- locked direction:
+- from `Adjust`
+  - return to `Plane Selection`
+- from `Plane Selection`
+  - cancel `SketchPlane` and return to the selected sketch-node scope
+
+#### [x] `q3` Decide whether the user should explicitly choose `Pick Plane` versus `Transform` as a separate first prompt.
+
+##### Suggestion
+- locked direction:
+- no
+- `Plane Selection` should be the natural entry level
+- `Adjust` should become available after a plane/source is chosen
+
+### Implementation Spec
+
+- keep the first `SketchPlane` cleanup narrow:
+  - one stable plane-selection level
+  - one stable adjust level
+  - one-level `Esc` return between them
+  - cancel from plane-selection returns to the selected sketch-node scope
+- console prompt/state should reflect whichever of those two levels is active
+- clicking the viewport to adjust the camera should not collapse the active sketch-plane command context
+- implementation should keep one canonical `sketchPlanePickSession` model instead of splitting plane choice, transform, and confirm/cancel into separate temporary seams
+- the first honest code target is:
+  - entering `SP` opens `SketchPlane > Plane Selection`
+  - choosing `XY / XZ / YZ` transitions into `SketchPlane > Adjust`
+  - `Adjust` owns move / rotate gizmo and draft transform edits
+  - cancel from `Adjust` returns to `Plane Selection`
+  - cancel from `Plane Selection` exits back to the selected sketch-node scope
+- the console and overlay should both describe the same current level:
+  - `Plane Selection`
+    - plane choices active
+    - transform controls not yet primary
+  - `Adjust`
+    - transform controls active
+    - plane reselection still possible only through an intentional back/reopen step
+- viewer interaction should remain compatible with camera movement while the sketch-plane session stays active
+- success means `SketchPlane` feels like one session with two readable depths instead of several disconnected hacks
+
+Acceptance checks:
+- a reader can point to one canonical sketch-plane session seam in code:
+  - `sketchPlanePickSession`
+- `pick` and `adjust` are explicitly understood as:
+  - `SketchPlane > Plane Selection`
+  - `SketchPlane > Adjust`
+- entering `SP` exposes plane-selection state first, not a separate mode chooser
+- choosing `XY / XZ / YZ` advances into adjust state instead of behaving like a detached action
+- cancel from plane selection returns to the selected sketch-node scope
+- camera adjustment from viewport clicks does not collapse the active sketch-plane command surface
+- no second sketch-plane session model is introduced in this phase
+
+## [x] [3.2B-S3] - `SketchDraw Session Cleanup`
+
+`SketchDraw` should be cleaned into explicit levels instead of only implicit tool/draft state:
+- `Sketch node selected`
+  - parent scope
+- `SketchDraw > Session Idle`
+  - draw session is open but no active tool is running
+- `SketchDraw > Tool Selected`
+  - a tool like `Line` or `PLine` is armed
+- `SketchDraw > Draft Active`
+  - the current tool has temporary authored points/geometry in progress
+
+Recommended `Esc` / `Back` behavior:
+- from `Draft Active`
+  - clear/cancel the current draft and return to `Tool Selected`
+- from `Tool Selected`
+  - return to `Session Idle`
+- from `Session Idle`
+  - return to the selected sketch-node scope only if the product still wants `Esc` to leave `SketchDraw`
+  - otherwise keep exit as explicit `X` / `Back`
+
+Important rule:
+- `SketchDraw` should feel like a durable authoring surface, not a fragile one-shot command that collapses on the first extra `Esc`
+
+Current code-to-target mapping:
+- current canonical session seam:
+  - `geometrySketchSession`
+  - this should remain the only source of truth for `SketchDraw`
+- current stage mapping:
+  - `drawStage: 'sessionIdle'`
+    - maps to `SketchDraw > Session Idle`
+  - `drawStage: 'toolSelected'`
+    - maps to `SketchDraw > Tool Selected`
+  - `drawStage: 'draftActive'`
+    - maps to `SketchDraw > Draft Active`
+  - `activeTool: null`
+    - means the draw session is open with no armed tool
+- current console seam:
+  - entering `SketchDraw` now prints the explicit idle-session prompt:
+    - `Sketch Draw > [Line, PLine, X]`
+  - local sketch-draw commands already exist for:
+    - `line / l`
+    - `pline / pl`
+    - `enter`
+    - `esc`
+    - `x`
+    - `status`
+    - `help`
+- current cancel/handoff seam:
+  - draft cancel already clears active draft state first
+  - a second cancel from an armed tool now returns the draw session to idle instead of relying on the old implicit-line default
+  - `Esc` from `Session Idle` now keeps `SketchDraw` open instead of exiting the session
+
+Phase boundary:
+- `[3.2B-S3]` is responsible for making the current three-level `SketchDraw` session read cleanly and consistently
+- this phase should not invent a second sketch-draw session model
+- this phase does not need to redesign:
+  - full toolbar/console command unification
+  - broad staged-console architecture changes
+  - every future sketch tool family beyond the current line / pline seam
+- those belong to later work in:
+  - `[3.2B-S4]`
+  - `[3.2B-S5]`
+  - later richer `SketchDraw` tool phases
+
+### Questions / Decisions
+
+#### [x] `q1` Decide the first honest `SketchDraw` levels.
+
+##### Suggestion
+- locked direction:
+- `Session Idle`
+- `Tool Selected`
+- `Draft Active`
+
+#### [x] `q2` Decide whether entering `SketchDraw` should auto-arm a tool.
+
+##### Suggestion
+- locked direction:
+- no
+- entering `SketchDraw` should open the durable draw session without auto-selecting a tool
+
+#### [x] `q3` Decide how `Esc` should step back through those levels.
+
+##### Suggestion
+- locked direction:
+- from `Draft Active`
+  - clear/cancel current draft and return to `Tool Selected`
+- from `Tool Selected`
+  - return to `Session Idle`
+- from `Session Idle`
+  - only leave `SketchDraw` if the product still wants that behavior; otherwise keep exit explicit
+
+### Implementation Spec
+
+- the first cleanup pass should make `SketchDraw` read like a durable command surface:
+  - session can stay open without an armed tool
+  - tool selection is explicit
+  - draft state is distinct from tool selection
+- avoid treating `SketchDraw` as one big anonymous mode where tool, draft, and exit behavior are all mixed together
+- implementation should keep one canonical `geometrySketchSession` model instead of splitting idle state, active tool, draft state, and session exit into separate temporary seams
+- the first honest code target is:
+  - entering `SketchDraw` opens `Session Idle`
+  - choosing `Line` or `PLine` transitions into `Tool Selected`
+  - beginning point placement transitions into `Draft Active`
+  - cancel from `Draft Active` returns to `Tool Selected`
+  - cancel from `Tool Selected` returns to `Session Idle`
+  - explicit close/exit remains separate from that one-level stepback behavior
+- the console and overlay should both describe the same current level:
+  - `Session Idle`
+    - no armed tool
+    - prompt should tell the user to choose a tool
+  - `Tool Selected`
+    - armed tool present
+    - prompt should describe the next point/action for that tool
+  - `Draft Active`
+    - temporary geometry in progress
+    - prompt and status should describe the live draft honestly
+- viewer interaction should remain compatible with an idle draw session that has no active tool instead of silently coercing idle back to `Line`
+- success means the user can enter `SketchDraw`, stay there comfortably, and use `Esc` to step back through draw depth instead of falling out of the session unexpectedly
+
+Acceptance checks:
+- a reader can point to one canonical sketch-draw session seam in code:
+  - `geometrySketchSession`
+- `drawStage` and `activeTool` are explicitly understood as:
+  - `Session Idle`
+  - `Tool Selected`
+  - `Draft Active`
+- entering `SketchDraw` no longer depends on a fake default `Line` tool to represent the session
+- overlay and console status reads can describe idle draw state honestly
+- draft cancel and tool cancel read as one-level stepback inside the same session instead of collapsing straight out of draw
+- no second sketch-draw session model is introduced in this phase
+
+## [x] [3.2B-S4] - `Sketch Return One Level`
+
+To make the hierarchy honest:
+- `Esc` should mean `return one level`
+- `Back` should call the same underlying one-level return behavior
+- toolbar back/cancel buttons should call that same underlying behavior when they mean “go one level up”
+- explicit close/exit actions like `X` may still exist, but they should remain distinct from one-level return
+
+Important rule:
+- do not keep programming unrelated bespoke `Esc` outcomes in every sketch surface forever
+- the sketch system should eventually expose one shared sketch-session `returnOneLevel()` style behavior and let:
+  - keyboard `Esc`
+  - console `Back`
+  - toolbar `Back`
+  all dispatch to it
+
+Current code-to-target mapping:
+- current parent scope:
+  - `graphSketchSelected`
+  - this remains the selected sketch-node parent scope that one-level return should eventually resolve back into
+- current `SketchPlane` return seam:
+  - `reopenSketchPlanePickPlaneSelection()`
+    - already performs:
+      - `SketchPlane > Adjust`
+      - to `SketchPlane > Plane Selection`
+  - `cancelSketchPlanePick()`
+    - already performs:
+      - `SketchPlane > Plane Selection`
+      - to selected sketch-node scope
+- current `SketchDraw` return seam:
+  - `cancelGeometrySketchDrawDraft()`
+    - already performs:
+      - `SketchDraw > Draft Active`
+      - to `SketchDraw > Tool Selected`
+    - and:
+      - `SketchDraw > Tool Selected`
+      - to `SketchDraw > Session Idle`
+  - idle draw currently stays open
+    - explicit exit remains:
+      - `closeGeometrySketchSession()`
+      - console `x`
+      - toolbar/window close
+- current dispatch surfaces:
+  - viewport keyboard `Escape`
+    - still routes through feature-local branches
+  - console typed `esc`
+    - still routes through feature-local branches
+  - toolbar cancel/back-style buttons
+    - still call feature-local methods directly
+
+Phase boundary:
+- `[3.2B-S4]` is responsible for introducing one shared sketch-local one-level-return seam
+- this phase should not replace the existing sketch session types
+- this phase should not redesign:
+  - app-wide console dispatcher architecture
+  - toolbar / console command-group alignment as a whole
+  - full workspace-surface context sync
+- those belong to:
+  - `[3.2B-S5]`
+  - later console/workspace phases
+- this phase should stay inside sketch-local behavior:
+  - `SketchPlane`
+  - `SketchDraw`
+  - selected sketch-node handoff
+
+### Questions / Decisions
+
+#### [x] `q1` Decide what `Esc` should mean inside the sketch hierarchy.
+
+##### Suggestion
+- locked direction:
+- `Esc` should mean `return one level`
+- it should not mean `jump to root`
+
+#### [x] `q2` Decide how `Back` should relate to `Esc`.
+
+##### Suggestion
+- locked direction:
+- `Back` should call the same underlying one-level return behavior as `Esc`
+- `Back` is the visible command
+- `Esc` is the keyboard shortcut
+
+#### [x] `q3` Decide whether `X` should remain distinct.
+
+##### Suggestion
+- locked direction:
+- yes
+- explicit close/exit actions like `X` may still exist, but they should stay distinct from one-level return
+
+### Implementation Spec
+
+- first cleanup pass should expose one shared sketch-local `returnOneLevel()` style action instead of continuing to answer each sketch `Esc` path independently
+- the first honest code target is:
+  - `SketchPlane > Adjust`
+    - return one level to:
+      - `SketchPlane > Plane Selection`
+  - `SketchPlane > Plane Selection`
+    - return one level to:
+      - selected sketch-node scope
+  - `SketchDraw > Draft Active`
+    - return one level to:
+      - `SketchDraw > Tool Selected`
+  - `SketchDraw > Tool Selected`
+    - return one level to:
+      - `SketchDraw > Session Idle`
+  - `SketchDraw > Session Idle`
+    - stay in `SketchDraw` for now
+    - explicit exit remains separate
+- the first callers should be:
+  - keyboard `Esc`
+  - console `Back`
+  - toolbar `Back`
+- `esc` in the console may continue to call the same one-level-return seam during active sketch sessions, but visible `Back` should become the clearer command surface name
+- feature-local close/cancel actions that truly mean full exit may keep separate verbs such as:
+  - `X`
+  - close button
+  - explicit session close
+- implementation should prefer one shared sketch-local reducer/action that delegates based on active sketch scope instead of copy-pasting parent-step logic into:
+  - `ConsoleDock`
+  - `ViewportOverlay`
+  - feature-local button handlers
+- success means sketch behavior no longer depends on scattered bespoke `Esc` branches to answer simple parent/child navigation
+
+Acceptance checks:
+- a reader can point to one shared sketch-local one-level-return seam in code
+- `SketchPlane` and `SketchDraw` both use that seam for parent-step behavior instead of each surface inventing new `Esc` rules
+- `Back` and keyboard `Esc` read as two triggers for the same underlying behavior
+- explicit close/exit paths like `X` remain distinct from one-level return
+- selected sketch-node scope remains the parent handoff target when sketch-local return leaves `SketchPlane`
+- this phase does not introduce a second sketch session model or broaden into whole-app back-navigation architecture
+
+## [ ] [3.2B-S5] - `Sketch Toolbar / Console Command Alignment`
+
+The toolbar structure, console structure, and sketch session structure should describe the same hierarchy.
+
+Important rule:
+- toolbar parent surfaces like `Sketch Plane` and `Sketch Draw` should map to scopes
+- toolbar sections should map to command groups
+- toolbar actions should map to commands or follow-up tokens
+- console commands and toolbar clicks should dispatch to the same underlying sketch-session verbs
+
+Current code truth:
+- the selected sketch node already exists as a staged console scope
+- `SketchPlane` already has the beginnings of explicit levels:
+  - `pick`
+  - `adjust`
+- `SketchDraw` still has mostly implicit levels expressed through:
+  - active tool
+  - draft points
+  - draw versus review mode
+
+So the next cleanup direction is not a new product direction.
+
+It is:
+- formalize the already-emerging sketch levels
+- reduce special-case `Esc` handling
+- keep the selected sketch node as the stable parent scope
+- make toolbar structure, console structure, and sketch session structure describe the same hierarchy
+
+### Questions / Decisions
+
+#### [x] `q1` Decide how toolbar structure should relate to console structure.
+
+##### Suggestion
+- locked direction:
+- toolbar parent surfaces map to scopes
+- toolbar sections map to groups
+- toolbar actions map to commands or follow-up tokens
+
+#### [x] `q2` Decide whether toolbar clicks and console commands may own separate behavior implementations.
+
+##### Suggestion
+- locked direction:
+- no
+- both should dispatch to the same underlying sketch-session verbs
+
+### Implementation Spec
+
+- treat toolbar and console as two surfaces over one sketch command model
+- first examples already visible in the current direction:
+  - `Sketch Plane > [XY, XZ, YZ]`
+  - `Sketch > Choose next [Sketch Plane, Sketch Draw, Delete, Back]`
+- future cleanup should prefer shared verbs over surface-local bespoke handlers
+- success means adding a toolbar row or console token does not require inventing a second behavior path for the same sketch action
+
+#### V1 Boundary
 
 The first implementation boundary for `SketchPlane` should be:
 
@@ -1774,7 +2352,7 @@ V1 should not try to solve all of these at once:
 - final multi-sketch viewer overlay model
 - final runtime transformed-plane geometry behavior
 
-### What This Section Locks
+#### What This Section Locks
 
 This `Sketch plane` section locks these decisions:
 - `SketchPlane` is the sketch's nested source/setup surface
@@ -1785,7 +2363,7 @@ This `Sketch plane` section locks these decisions:
 - viewport-first source picking is the right long-term direction
 - `SketchPlane` stays nested under each sketch, not lifted above `Sketches`
 
-### What Still Needs To Be Decided
+#### What Still Needs To Be Decided
 
 This section intentionally does not fully decide:
 - exactly when face-pick enters the product
@@ -1795,19 +2373,23 @@ This section intentionally does not fully decide:
 - the final browser-child layout once `Sketches` becomes a full content family
 
 
-# Sketch plane
-## Title Bar
-## I Menu
-### Toolbar Window
-### Sketch Plane UI
-## Plane Selection
-## Transform
-### Move
-### Rotate
+The sketch interaction model should be cleaned up into one readable hierarchy instead of a mix of staged-console scopes, feature-local session branches, and special-case `Esc` behavior.
 
-# Sketch Draw
-## Title Bar
-## Section
-## Tool Selection
-## Active Tool
-## Entities
+The intended long-term shape is:
+
+```text
+Graph
+└─ Sketch node selected
+   ├─ SketchPlane
+   │  ├─ Plane Selection
+   │  └─ Adjust
+   └─ SketchDraw
+      ├─ Session Idle
+      ├─ Tool Selected
+      └─ Draft Active
+```
+
+Important rule:
+- the selected sketch node should remain the parent scope
+- `SketchPlane` and `SketchDraw` should become explicit child levels under that sketch-node scope
+- do not treat them as detached one-off modes that discard the parent command context

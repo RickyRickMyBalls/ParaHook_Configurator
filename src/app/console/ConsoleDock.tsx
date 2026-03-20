@@ -12,7 +12,15 @@ import { isEditableTarget, routeKeyboardInput } from '../inputRouting'
 import { DEFAULT_REFERENCE_ROTATE_SNAP } from '../references/referenceTimeline'
 import { getViewer } from '../viewerBridge'
 import { useAppStore } from '../store/useAppStore'
-import { addNode as addNodeCommand } from '../spaghetti/graphCommands'
+import {
+  activateGraphDocumentIntent,
+  activateGraphNodeIntent,
+  selectTargetIntent,
+  startSketchDrawIntent,
+  startSketchPlaneIntent,
+  type WorkspaceIntentDeps,
+} from '../store/workspaceIntents'
+import { addNode as addNodeCommand, removeNode as removeNodeCommand } from '../spaghetti/graphCommands'
 import { getDefaultNodeParams } from '../spaghetti/registry/nodeRegistry'
 import type {
   EditorViewportWindowMode,
@@ -20,20 +28,28 @@ import type {
   SpaghettiGraph,
 } from '../spaghetti/schema/spaghettiTypes'
 import {
+  type GeometrySketchDrawStage,
   selectGraphDocumentById,
   selectOrderedGraphDocuments,
   useSpaghettiStore,
 } from '../spaghetti/store/useSpaghettiStore'
 import { ConsoleBar } from './ConsoleBar'
 import { ConsolePanel } from './ConsolePanel'
-import { appendConsoleEntry, isConsoleEntryVisible, useConsoleStore } from './useConsoleStore'
-import type { ConsoleFloatingRect } from './consoleTypes'
+import {
+  appendConsoleEntry,
+  formatConsoleEntryLayerLabel,
+  isConsoleEntryVisible,
+  useConsoleStore,
+} from './useConsoleStore'
+import type { ConsoleAssistDescriptor, ConsoleFloatingRect } from './consoleTypes'
 import {
   cancelConsoleStagedNavigationSession,
   createConsoleStagedNavigationContext,
   isConsoleStagedNavigationRootToken,
+  resolveConsoleWorkspaceContextSync,
   submitConsoleStagedNavigationToken,
   type ConsoleStagedNavigationChoice,
+  type ConsoleStagedNavigationSession,
 } from './stagedNavigation'
 
 const FLOATING_MIN_WIDTH = 420
@@ -60,6 +76,15 @@ type ConsoleCommandName =
   | 'snap'
   | 'echo'
   | 'status'
+
+const getGeometrySketchDrawStageLabel = (drawStage: GeometrySketchDrawStage | null): string =>
+  drawStage === 'sessionIdle'
+    ? 'Session Idle'
+    : drawStage === 'toolSelected'
+      ? 'Tool Selected'
+      : drawStage === 'draftActive'
+        ? 'Draft Active'
+        : 'n/a'
 
 const backgroundColorByMode = {
   midnight: '5, 7, 11',
@@ -187,10 +212,107 @@ const formatStagedBreadcrumb = (breadcrumb: string[]): string => breadcrumb.join
 const formatStagedChoiceSummary = (choices: ConsoleStagedNavigationChoice[]): string =>
   choices.map((choice) => choice.label).join(', ')
 
-const buildStagedPromptText = (choices: ConsoleStagedNavigationChoice[]): string =>
-  choices.length === 0
-    ? 'No further choices in this staged scope yet'
-    : `Choose next [${formatStagedChoiceSummary(choices)}]`
+const formatAssistChoiceSummary = (descriptor: ConsoleAssistDescriptor): string =>
+  descriptor.choices.map((choice) => choice.label).join(', ')
+
+const buildFeatureAssistPromptText = (descriptor: ConsoleAssistDescriptor): string =>
+  `${descriptor.label} > [${formatAssistChoiceSummary(descriptor)}]`
+
+const buildSketchPlaneFeatureAssistDescriptor = (): ConsoleAssistDescriptor => ({
+  label: 'Sketch Plane',
+  prefill: 'XY',
+  choices: [
+    { canonicalToken: 'XY', aliases: [], label: 'XY' },
+    { canonicalToken: 'XZ', aliases: [], label: 'XZ' },
+    { canonicalToken: 'YZ', aliases: [], label: 'YZ' },
+  ],
+})
+
+const buildSketchDrawFeatureAssistDescriptor = (): ConsoleAssistDescriptor => ({
+  label: 'Sketch Draw',
+  prefill: 'Line',
+  choices: [
+    { canonicalToken: 'LINE', aliases: ['L'], label: 'Line' },
+    { canonicalToken: 'PLINE', aliases: ['PL'], label: 'PLine' },
+    { canonicalToken: 'X', aliases: [], label: 'X' },
+  ],
+})
+
+const getActiveFeatureAssistDescriptor = ({
+  sketchPlanePickSession,
+  geometrySketchSession,
+}: {
+  sketchPlanePickSession: ReturnType<typeof useSpaghettiStore.getState>['sketchPlanePickSession']
+  geometrySketchSession: ReturnType<typeof useSpaghettiStore.getState>['geometrySketchSession']
+}): ConsoleAssistDescriptor | null => {
+  if (sketchPlanePickSession !== null) {
+    return buildSketchPlaneFeatureAssistDescriptor()
+  }
+  if (
+    geometrySketchSession?.mode === 'draw' &&
+    geometrySketchSession.drawStage === 'sessionIdle'
+  ) {
+    return buildSketchDrawFeatureAssistDescriptor()
+  }
+  return null
+}
+
+const getStagedScopeLabel = (session: ConsoleStagedNavigationSession | null): string | null => {
+  if (session === null) {
+    return null
+  }
+  switch (session.scopeId) {
+    case 'graphRoot':
+    case 'graphSelected':
+      return 'Graph'
+    case 'graphSketchList':
+    case 'graphSketchSelected':
+      return 'Sketch'
+    case 'graphExtrudeList':
+    case 'graphExtrudeSelected':
+      return 'Extrude'
+    case 'graphOutputPreviewList':
+    case 'graphOutputPreviewSelected':
+      return 'Output Preview'
+    default:
+      return null
+  }
+}
+
+const buildStagedPromptText = (
+  session: ConsoleStagedNavigationSession | null,
+  choices: ConsoleStagedNavigationChoice[],
+): string => {
+  const scopeLabel = getStagedScopeLabel(session)
+  const baseText =
+    choices.length === 0
+      ? 'No further choices in this staged scope yet'
+      : `Choose next [${formatStagedChoiceSummary(choices)}]`
+  return scopeLabel === null ? baseText : `${scopeLabel} > ${baseText}`
+}
+
+const buildRootPromptText = (choices: string[] = ['Graph']): string =>
+  `Root > Choose next [${choices.join(', ')}]`
+
+const ROOT_PROMPT_TEXT = buildRootPromptText()
+
+const areConsoleStagedNavigationSessionsEqual = (
+  left: ConsoleStagedNavigationSession | null,
+  right: ConsoleStagedNavigationSession | null,
+): boolean => {
+  if (left === right) {
+    return true
+  }
+  if (left === null || right === null) {
+    return false
+  }
+  return (
+    left.scopeId === right.scopeId &&
+    left.selections.graphDocumentId === right.selections.graphDocumentId &&
+    left.selections.selectedNodeId === right.selections.selectedNodeId &&
+    left.selections.sketchNodeId === right.selections.sketchNodeId
+  )
+}
 
 type GraphRootEditorRevealRestore =
   | {
@@ -257,8 +379,46 @@ const buildStagedNavigationContextFromStoreState = (
         .map((node) => ({
           nodeId: node.nodeId,
         })),
+      extrudeOptions: document.graph.nodes
+        .filter((node) => node.type === 'Geometry/Extrude')
+        .map((node) => ({
+          nodeId: node.nodeId,
+        })),
+      outputPreviewOptions: document.graph.nodes
+        .filter((node) => node.type === 'System/OutputPreview')
+        .map((node) => ({
+          nodeId: node.nodeId,
+        })),
     })),
   )
+
+const buildWorkspaceIntentDepsFromStoreState = (): WorkspaceIntentDeps => {
+  const appState = useAppStore.getState()
+  const spaghettiState = useSpaghettiStore.getState()
+  return {
+    app: {
+      setWorkspaceSelectedTarget: appState.setWorkspaceSelectedTarget,
+      setActiveSurface: appState.setActiveSurface,
+      requestFloatingShellActivation: appState.requestFloatingShellActivation,
+      setReferenceItemVisibility: appState.setReferenceItemVisibility,
+      beginReferenceTransform: appState.beginReferenceTransform,
+      selectPart: appState.selectPart,
+    },
+    spaghetti: {
+      activeEditorViewportId: spaghettiState.activeEditorViewportId,
+      editorViewportsById: spaghettiState.editorViewportsById,
+      openGraphDocumentInViewport: spaghettiState.openGraphDocumentInViewport,
+      swapFocusedEditorViewportToGraphDocument:
+        spaghettiState.swapFocusedEditorViewportToGraphDocument,
+      setActiveEditorViewportId: spaghettiState.setActiveEditorViewportId,
+      setEditorViewportPosition: spaghettiState.setEditorViewportPosition,
+      setSelectedNodeId: spaghettiState.setSelectedNodeId,
+      requestEditorViewportNodeFit: spaghettiState.requestEditorViewportNodeFit,
+      startSketchPlanePick: spaghettiState.startSketchPlanePick,
+      startGeometrySketchSession: spaghettiState.startGeometrySketchSession,
+    },
+  }
+}
 
 let fallbackConsoleSketchNodeIdCounter = 0
 
@@ -306,6 +466,10 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
   const suppressPopoutCloseRef = useRef(false)
   const suppressAutoCaptureRef = useRef(false)
   const graphRootEditorRevealRestoreRef = useRef<GraphRootEditorRevealRestore | null>(null)
+  const lastHandledConsoleContextSyncSeqRef = useRef(0)
+  const previousSketchPlanePickSessionRef = useRef<
+    ReturnType<typeof useSpaghettiStore.getState>['sketchPlanePickSession']
+  >(null)
   const [popoutHost, setPopoutHost] = useState<HTMLElement | null>(null)
 
   const isExpanded = useConsoleStore((state) => state.isExpanded)
@@ -335,8 +499,16 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
   const pushCommandHistory = useConsoleStore((state) => state.pushCommandHistory)
   const seedInputText = useConsoleStore((state) => state.seedInputText)
   const stagedNavigationSession = useConsoleStore((state) => state.stagedNavigationSession)
+  const featureAssistDescriptor = useConsoleStore((state) => state.featureAssistDescriptor)
   const setStagedNavigationSession = useConsoleStore((state) => state.setStagedNavigationSession)
+  const setFeatureAssistDescriptor = useConsoleStore((state) => state.setFeatureAssistDescriptor)
   const clearStagedNavigationSession = useConsoleStore((state) => state.clearStagedNavigationSession)
+  const cycleStagedChoice = useConsoleStore((state) => state.cycleStagedChoice)
+  const workspaceSelectedTarget = useAppStore((state) => state.workspaceSelection.selectedTarget)
+  const workspaceActiveSurface = useAppStore((state) => state.workspaceSelection.activeSurface)
+  const consoleContextSyncRequest = useAppStore((state) => state.consoleContextSyncRequest)
+  const sketchPlanePickSession = useSpaghettiStore((state) => state.sketchPlanePickSession)
+  const geometrySketchSession = useSpaghettiStore((state) => state.geometrySketchSession)
   const visibleEntries = useMemo(
     () =>
       entries
@@ -438,14 +610,18 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
     })
     appendConsoleEntry({
       layer: 'Commands',
-      text: `Available roots [${formatStagedChoiceSummary(cancelled.validChoices)}]`,
+      text: buildRootPromptText(cancelled.validChoices.map((choice) => choice.label)),
       source: 'console',
       severity: 'info',
     })
     return true
   }, [clearStagedNavigationSession])
 
-  const createMissingSketchNodeInGraphDocument = useCallback((graphDocumentId: string) => {
+  const createMissingGraphNodeInGraphDocument = useCallback((
+    graphDocumentId: string,
+    nodeType: 'Geometry/Sketch' | 'Geometry/Extrude' | 'System/OutputPreview',
+    labelPrefix: 'sketch' | 'extrude' | 'outputPreview',
+  ) => {
     const initialState = useSpaghettiStore.getState()
     if (initialState.activeGraphDocumentId !== graphDocumentId) {
       initialState.openGraphDocumentInViewport(graphDocumentId)
@@ -455,26 +631,26 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
     if (targetDocument === null) {
       return null
     }
-    const existingSketchCount = targetDocument.graph.nodes.filter(
-      (node) => node.type === 'Geometry/Sketch',
-    ).length
+    const existingNodeCount = targetDocument.graph.nodes.filter((node) => node.type === nodeType).length
     const nodeId = generateUniqueConsoleSketchNodeId(targetDocument.graph)
     mutationState.applyGraphCommand(
       addNodeCommand({
         node: {
           nodeId,
-          type: 'Geometry/Sketch',
-          params: getDefaultNodeParams('Geometry/Sketch'),
+          type: nodeType,
+          params: getDefaultNodeParams(nodeType),
         },
         position: buildDefaultCreatedSketchPosition(targetDocument.graph),
       }),
     )
     const updatedState = useSpaghettiStore.getState()
-    updatedState.setSelectedNodeId(nodeId)
-    updatedState.requestEditorViewportNodeFit(updatedState.activeEditorViewportId, nodeId)
+    activateGraphNodeIntent(buildWorkspaceIntentDepsFromStoreState(), graphDocumentId, nodeId, {
+      strategy: 'open-or-focus',
+      fitNodeInViewport: true,
+    })
     return {
       nodeId,
-      sketchLabel: `sketch_[${existingSketchCount + 1}]`,
+      nodeLabel: `${labelPrefix}_[${existingNodeCount + 1}]`,
       stagedContext: buildStagedNavigationContextFromStoreState(updatedState),
     }
   }, [])
@@ -489,10 +665,19 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
         const rawToken = inputText.trim()
         if (activeStagedSession === null && isConsoleStagedNavigationRootToken(inputText)) {
           graphRootEditorRevealRestoreRef.current = ensureSpaghettiEditorVisibleForGraphRoot()
-          useAppStore.getState().requestFloatingShellActivation('spaghetti')
+          if (spaghettiState.activeGraphDocumentId.length > 0) {
+            activateGraphDocumentIntent(
+              buildWorkspaceIntentDepsFromStoreState(),
+              spaghettiState.activeGraphDocumentId,
+              {
+                strategy: 'open-or-focus',
+              },
+            )
+          }
         }
         appendConsoleEntry({
           layer: 'Commands',
+          commandLineKind: 'user',
           text: `> ${rawToken}`,
         })
         pushCommandHistory(rawToken)
@@ -503,19 +688,68 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
         )
         if (stagedResult.kind === 'advance') {
           if (
+            activeStagedSession?.selections.selectedNodeId !== null &&
+            stagedResult.selections.selectedNodeId === null &&
+            stagedResult.selections.graphDocumentId !== null
+          ) {
+            selectTargetIntent(buildWorkspaceIntentDepsFromStoreState(), {
+              kind: 'graph-document',
+              graphDocumentId: stagedResult.selections.graphDocumentId,
+            })
+          } else if (
+            stagedResult.selections.selectedNodeId !== null &&
+            stagedResult.selections.graphDocumentId !== null
+          ) {
+            activateGraphNodeIntent(
+              buildWorkspaceIntentDepsFromStoreState(),
+              stagedResult.selections.graphDocumentId,
+              stagedResult.selections.selectedNodeId,
+              {
+                strategy: 'open-or-focus',
+              },
+            )
+          } else if (stagedResult.selections.graphDocumentId !== null) {
+            activateGraphDocumentIntent(
+              buildWorkspaceIntentDepsFromStoreState(),
+              stagedResult.selections.graphDocumentId,
+              {
+                strategy: 'open-or-focus',
+              },
+            )
+          }
+          if (
             activeStagedSession?.scopeId === 'graphSelected' &&
-            stagedResult.session.scopeId === 'graphSketchList' &&
             stagedResult.validChoices.every((choice) => choice.canonicalToken === 'BACK') &&
             stagedResult.selections.graphDocumentId !== null
           ) {
-            const createdSketch = createMissingSketchNodeInGraphDocument(
-              stagedResult.selections.graphDocumentId,
-            )
-            if (createdSketch !== null) {
+            const missingNodeRequest =
+              stagedResult.session.scopeId === 'graphSketchList'
+                ? {
+                    nodeType: 'Geometry/Sketch' as const,
+                    labelPrefix: 'sketch' as const,
+                  }
+                : stagedResult.session.scopeId === 'graphExtrudeList'
+                  ? {
+                      nodeType: 'Geometry/Extrude' as const,
+                      labelPrefix: 'extrude' as const,
+                    }
+                  : stagedResult.session.scopeId === 'graphOutputPreviewList'
+                    ? {
+                        nodeType: 'System/OutputPreview' as const,
+                        labelPrefix: 'outputPreview' as const,
+                      }
+                    : null
+            if (missingNodeRequest !== null) {
+              const createdNode = createMissingGraphNodeInGraphDocument(
+                stagedResult.selections.graphDocumentId,
+                missingNodeRequest.nodeType,
+                missingNodeRequest.labelPrefix,
+              )
+              if (createdNode !== null) {
               const resumedResult = submitConsoleStagedNavigationToken(
                 activeStagedSession,
                 inputText,
-                createdSketch.stagedContext,
+                createdNode.stagedContext,
               )
               if (resumedResult.kind === 'advance') {
                 setStagedNavigationSession(resumedResult.session)
@@ -534,7 +768,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
                 })
                 appendConsoleEntry({
                   layer: 'App',
-                  text: `Created ${createdSketch.sketchLabel}`,
+                  text: `Created ${createdNode.nodeLabel}`,
                   source: 'console',
                   severity: 'info',
                 })
@@ -556,12 +790,13 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
                 }
                 appendConsoleEntry({
                   layer: 'Commands',
-                  text: buildStagedPromptText(resumedResult.validChoices),
+                  text: buildStagedPromptText(resumedResult.session, resumedResult.validChoices),
                   source: 'console',
                   severity: 'info',
                 })
                 return
               }
+            }
             }
           }
           setStagedNavigationSession(stagedResult.session)
@@ -596,7 +831,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
           }
           appendConsoleEntry({
             layer: 'Commands',
-            text: buildStagedPromptText(stagedResult.validChoices),
+            text: buildStagedPromptText(stagedResult.session, stagedResult.validChoices),
             source: 'console',
             severity: 'info',
           })
@@ -604,16 +839,79 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
         }
         if (stagedResult.kind === 'execute') {
           if (
+            stagedResult.actionId === 'node.delete' &&
+            stagedResult.selections.graphDocumentId !== null &&
+            stagedResult.selections.selectedNodeId !== null
+          ) {
+            const deletedNodeLabel = stagedResult.session.breadcrumb.at(-1) ?? 'node'
+            useSpaghettiStore
+              .getState()
+              .applyGraphCommand(removeNodeCommand(stagedResult.selections.selectedNodeId))
+            activateGraphDocumentIntent(
+              buildWorkspaceIntentDepsFromStoreState(),
+              stagedResult.selections.graphDocumentId,
+              {
+                strategy: 'open-or-focus',
+              },
+            )
+            const resumedHandoff = resolveConsoleWorkspaceContextSync(
+              buildStagedNavigationContextFromStoreState(useSpaghettiStore.getState()),
+              {
+                graphDocumentId: stagedResult.selections.graphDocumentId,
+                nodeId: null,
+              },
+            )
+            if (resumedHandoff.session !== null) {
+              setStagedNavigationSession(resumedHandoff.session)
+            } else {
+              clearStagedNavigationSession()
+            }
+            appendConsoleEntry({
+              layer: 'Commands',
+              text: formatStagedBreadcrumb(stagedResult.breadcrumb),
+              source: 'console',
+              severity: 'info',
+            })
+            appendConsoleEntry({
+              layer: 'App',
+              text: `Deleted ${deletedNodeLabel}`,
+              source: 'console',
+              severity: 'info',
+            })
+            if (resumedHandoff.session !== null) {
+              appendConsoleEntry({
+                layer: 'Commands',
+                text: formatStagedBreadcrumb(resumedHandoff.session.breadcrumb),
+                source: 'console',
+                severity: 'info',
+              })
+              appendConsoleEntry({
+                layer: 'Commands',
+                text: buildStagedPromptText(
+                  resumedHandoff.session,
+                  resumedHandoff.session.validChoices,
+                ),
+                source: 'console',
+                severity: 'info',
+              })
+            }
+            return
+          }
+          if (
             (stagedResult.actionId === 'graph.editor.collapsed' ||
               stagedResult.actionId === 'graph.editor.essentials' ||
               stagedResult.actionId === 'graph.editor.expanded') &&
             stagedResult.selections.graphDocumentId !== null
           ) {
             setStagedNavigationSession(stagedResult.session)
-            const targetViewportId =
-              spaghettiState.openGraphDocumentInViewport(stagedResult.selections.graphDocumentId) ??
-              useSpaghettiStore.getState().activeEditorViewportId
-            if (targetViewportId.length > 0) {
+            const targetViewportId = activateGraphDocumentIntent(
+              buildWorkspaceIntentDepsFromStoreState(),
+              stagedResult.selections.graphDocumentId,
+              {
+                strategy: 'open-or-focus',
+              },
+            ).editorViewportId
+            if (targetViewportId !== null && targetViewportId.length > 0) {
               const presentationMode =
                 stagedResult.actionId === 'graph.editor.collapsed'
                   ? 'collapsed'
@@ -638,7 +936,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
             })
             appendConsoleEntry({
               layer: 'Commands',
-              text: buildStagedPromptText(stagedResult.session.validChoices),
+              text: buildStagedPromptText(stagedResult.session, stagedResult.session.validChoices),
               source: 'console',
               severity: 'info',
             })
@@ -652,9 +950,6 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
             stagedResult.selections.graphDocumentId !== null &&
             stagedResult.selections.sketchNodeId !== null
           ) {
-            if (spaghettiState.activeGraphDocumentId !== stagedResult.selections.graphDocumentId) {
-              spaghettiState.openGraphDocumentInViewport(stagedResult.selections.graphDocumentId)
-            }
             appendConsoleEntry({
               layer: 'Commands',
               text: formatStagedBreadcrumb(stagedResult.breadcrumb),
@@ -662,24 +957,24 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
               severity: 'info',
             })
             if (stagedResult.actionId === 'sketch.plane') {
-              useSpaghettiStore.getState().startSketchPlanePick(stagedResult.selections.sketchNodeId)
+              startSketchPlaneIntent(
+                buildWorkspaceIntentDepsFromStoreState(),
+                stagedResult.selections.graphDocumentId,
+                stagedResult.selections.sketchNodeId,
+              )
               appendConsoleEntry({
-                layer: 'App',
-                text: 'Sketch Plane started',
+                layer: 'Commands',
+                text: buildFeatureAssistPromptText(buildSketchPlaneFeatureAssistDescriptor()),
                 source: 'console',
                 severity: 'info',
               })
               return
             }
-            useSpaghettiStore
-              .getState()
-              .startGeometrySketchSession(stagedResult.selections.sketchNodeId, 'draw')
-            appendConsoleEntry({
-              layer: 'App',
-              text: 'Sketch Draw started',
-              source: 'console',
-              severity: 'info',
-            })
+            startSketchDrawIntent(
+              buildWorkspaceIntentDepsFromStoreState(),
+              stagedResult.selections.graphDocumentId,
+              stagedResult.selections.sketchNodeId,
+            )
             return
           }
           appendConsoleEntry({
@@ -717,7 +1012,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
           })
           appendConsoleEntry({
             layer: 'Commands',
-            text: buildStagedPromptText(stagedResult.validChoices),
+            text: buildStagedPromptText(stagedResult.session, stagedResult.validChoices),
             source: 'console',
             severity: 'info',
           })
@@ -725,11 +1020,35 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
         }
       }
       graphRootEditorRevealRestoreRef.current = null
+      const sketchPlanePickSession = useSpaghettiStore.getState().sketchPlanePickSession
+      if (sketchPlanePickSession !== null) {
+        if (trimmedInput === 'xy' || trimmedInput === 'xz' || trimmedInput === 'yz') {
+          appendConsoleEntry({
+            layer: 'Commands',
+            commandLineKind: 'user',
+            text: `> ${trimmedInput}`,
+          })
+          pushCommandHistory(trimmedInput)
+          useSpaghettiStore.getState().setSketchPlanePickDraftPlane(trimmedInput.toUpperCase() as 'XY' | 'XZ' | 'YZ')
+          return
+        }
+        if (trimmedInput === 'esc' || trimmedInput === 'back' || trimmedInput === 'b') {
+          appendConsoleEntry({
+            layer: 'Commands',
+            commandLineKind: 'user',
+            text: `> ${trimmedInput}`,
+          })
+          pushCommandHistory(trimmedInput)
+          useSpaghettiStore.getState().returnActiveSketchSessionOneLevel()
+          return
+        }
+      }
       const geometrySketchSession = spaghettiState.geometrySketchSession
       if (geometrySketchSession?.mode === 'draw') {
         if (trimmedInput === 'line' || trimmedInput === 'l') {
           appendConsoleEntry({
             layer: 'Commands',
+            commandLineKind: 'user',
             text: `> ${trimmedInput}`,
           })
           pushCommandHistory(trimmedInput)
@@ -739,6 +1058,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
         if (trimmedInput === 'pline' || trimmedInput === 'pl') {
           appendConsoleEntry({
             layer: 'Commands',
+            commandLineKind: 'user',
             text: `> ${trimmedInput}`,
           })
           pushCommandHistory(trimmedInput)
@@ -748,24 +1068,27 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
         if (trimmedInput === 'enter') {
           appendConsoleEntry({
             layer: 'Commands',
+            commandLineKind: 'user',
             text: '> enter',
           })
           pushCommandHistory('enter')
           spaghettiState.finishGeometrySketchDrawDraft()
           return
         }
-        if (trimmedInput === 'esc') {
+        if (trimmedInput === 'esc' || trimmedInput === 'back' || trimmedInput === 'b') {
           appendConsoleEntry({
             layer: 'Commands',
-            text: '> esc',
+            commandLineKind: 'user',
+            text: `> ${trimmedInput}`,
           })
-          pushCommandHistory('esc')
-          spaghettiState.cancelGeometrySketchDrawDraft()
+          pushCommandHistory(trimmedInput)
+          spaghettiState.returnActiveSketchSessionOneLevel()
           return
         }
         if (trimmedInput === 'x') {
           appendConsoleEntry({
             layer: 'Commands',
+            commandLineKind: 'user',
             text: '> x',
           })
           pushCommandHistory('x')
@@ -775,13 +1098,19 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
         if (trimmedInput === 'status') {
           appendConsoleEntry({
             layer: 'Commands',
+            commandLineKind: 'user',
             text: '> status',
           })
           pushCommandHistory('status')
           appendConsoleEntry({
             layer: 'App',
             text:
-              `Draw Sketch ${geometrySketchSession.activeTool.toUpperCase()} ` +
+              `Draw Sketch ${getGeometrySketchDrawStageLabel(geometrySketchSession.drawStage)} ` +
+              `tool=${
+                geometrySketchSession.activeTool === null
+                  ? 'none'
+                  : geometrySketchSession.activeTool.toUpperCase()
+              } ` +
               `points=${geometrySketchSession.drawDraft?.points.length ?? 0} ` +
               `hover=${
                 geometrySketchSession.drawDraft?.hoverPoint === null
@@ -796,12 +1125,13 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
         if (trimmedInput === 'help') {
           appendConsoleEntry({
             layer: 'Commands',
+            commandLineKind: 'user',
             text: '> help',
           })
           pushCommandHistory('help')
           appendConsoleEntry({
             layer: 'Commands',
-            text: 'Draw Sketch commands: line (l), pline (pl), enter, esc, x, status, help',
+            text: 'Draw Sketch commands: line (l), pline (pl), enter, esc, back (b), x, status, help',
             severity: 'info',
           })
           return
@@ -810,6 +1140,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
       if (trimmedInput === 'x' && useSpaghettiStore.getState().sketchPlanePickSession !== null) {
         appendConsoleEntry({
           layer: 'Commands',
+          commandLineKind: 'user',
           text: '> x',
         })
         pushCommandHistory('x')
@@ -825,6 +1156,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
 
       appendConsoleEntry({
         layer: 'Commands',
+        commandLineKind: 'user',
         text: `> ${parsed.raw}`,
       })
       pushCommandHistory(parsed.raw)
@@ -978,12 +1310,167 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
     },
     [
       clearStagedNavigationSession,
-      createMissingSketchNodeInGraphDocument,
+      createMissingGraphNodeInGraphDocument,
       dispatchImmediateShortcut,
       pushCommandHistory,
       setStagedNavigationSession,
     ],
   )
+
+  useEffect(() => {
+    const previousSession = previousSketchPlanePickSessionRef.current
+    previousSketchPlanePickSessionRef.current = sketchPlanePickSession
+
+    if (previousSession === null || sketchPlanePickSession !== null) {
+      return
+    }
+
+    const spaghettiState = useSpaghettiStore.getState()
+    const activeDrawSession = spaghettiState.geometrySketchSession
+    const didAdvanceIntoSketchDraw =
+      activeDrawSession?.mode === 'draw' && activeDrawSession.nodeId === previousSession.nodeId
+
+    if (didAdvanceIntoSketchDraw || spaghettiState.activeGraphDocumentId.length === 0) {
+      return
+    }
+
+    const resumedHandoff = resolveConsoleWorkspaceContextSync(
+      buildStagedNavigationContextFromStoreState(spaghettiState),
+      {
+        graphDocumentId: spaghettiState.activeGraphDocumentId,
+        nodeId: spaghettiState.selectedNodeId ?? previousSession.nodeId,
+      },
+    )
+
+    if (resumedHandoff.session === null) {
+      return
+    }
+
+    setStagedNavigationSession(resumedHandoff.session)
+    appendConsoleEntry({
+      layer: 'Commands',
+      text: buildStagedPromptText(resumedHandoff.session, resumedHandoff.session.validChoices),
+      source: 'console',
+      severity: 'info',
+    })
+  }, [setStagedNavigationSession, sketchPlanePickSession])
+
+  useEffect(() => {
+    if (consoleContextSyncRequest === null) {
+      return
+    }
+    if (consoleContextSyncRequest.seq === lastHandledConsoleContextSyncSeqRef.current) {
+      return
+    }
+    lastHandledConsoleContextSyncSeqRef.current = consoleContextSyncRequest.seq
+
+    const isForcedRootSync = consoleContextSyncRequest.reason === 'surface-clear'
+    const spaghettiState = useSpaghettiStore.getState()
+    const resolvedTarget =
+      isForcedRootSync
+        ? null
+        : workspaceActiveSurface === 'spaghetti'
+        ? {
+            graphDocumentId:
+              spaghettiState.activeGraphDocumentId.length > 0
+                ? spaghettiState.activeGraphDocumentId
+                : null,
+            nodeId: spaghettiState.selectedNodeId,
+          }
+        : workspaceSelectedTarget?.kind === 'graph-document'
+          ? {
+              graphDocumentId: workspaceSelectedTarget.graphDocumentId,
+              nodeId: null,
+            }
+          : workspaceSelectedTarget?.kind === 'graph-node'
+            ? {
+                graphDocumentId: workspaceSelectedTarget.graphDocumentId,
+                nodeId: workspaceSelectedTarget.nodeId,
+              }
+            : null
+
+    const resolvedHandoff =
+      resolvedTarget === null
+        ? {
+            session: null,
+            selectedLabel: null,
+          }
+        : resolveConsoleWorkspaceContextSync(
+            buildStagedNavigationContextFromStoreState(spaghettiState),
+            resolvedTarget,
+          )
+
+    const currentSession = useConsoleStore.getState().stagedNavigationSession
+    const isForcedRootAvailabilitySync =
+      isForcedRootSync && currentSession === null && resolvedHandoff.session === null
+
+    if (
+      areConsoleStagedNavigationSessionsEqual(currentSession, resolvedHandoff.session) &&
+      !isForcedRootAvailabilitySync
+    ) {
+      return
+    }
+
+    if (resolvedHandoff.session === null) {
+      if (currentSession === null) {
+        if (isForcedRootAvailabilitySync) {
+          const lastEntry = useConsoleStore.getState().entries.at(-1)
+          if (lastEntry?.text !== ROOT_PROMPT_TEXT) {
+            appendConsoleEntry({
+              layer: 'Commands',
+              text: ROOT_PROMPT_TEXT,
+              source: 'console',
+              severity: 'info',
+            })
+          }
+        }
+        return
+      }
+      graphRootEditorRevealRestoreRef.current = null
+      clearStagedNavigationSession()
+      appendConsoleEntry({
+        layer: 'Commands',
+        text: 'Returned to root',
+        source: 'console',
+        severity: 'info',
+      })
+      appendConsoleEntry({
+        layer: 'Commands',
+        text: ROOT_PROMPT_TEXT,
+        source: 'console',
+        severity: 'info',
+      })
+      return
+    }
+
+    setStagedNavigationSession(resolvedHandoff.session)
+    if (resolvedHandoff.selectedLabel !== null) {
+      appendConsoleEntry({
+        layer: 'Selection',
+        text: `Selected target: ${resolvedHandoff.selectedLabel}`,
+        source: 'console',
+        severity: 'info',
+      })
+    }
+    appendConsoleEntry({
+      layer: 'Commands',
+      text: formatStagedBreadcrumb(resolvedHandoff.session.breadcrumb),
+      source: 'console',
+      severity: 'info',
+    })
+    appendConsoleEntry({
+      layer: 'Commands',
+      text: buildStagedPromptText(resolvedHandoff.session, resolvedHandoff.session.validChoices),
+      source: 'console',
+      severity: 'info',
+    })
+  }, [
+    clearStagedNavigationSession,
+    consoleContextSyncRequest,
+    setStagedNavigationSession,
+    workspaceActiveSurface,
+    workspaceSelectedTarget,
+  ])
 
   useEffect(() => {
     if (windowMode !== 'floating') {
@@ -1092,6 +1579,20 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
         cancelActiveStagedNavigationSession()
         return
       }
+      if ((routing.owner === 'staged-console' || featureAssistDescriptor !== null) && event.key === 'ArrowUp') {
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        focusMainConsoleInput()
+        cycleStagedChoice('previous')
+        return
+      }
+      if ((routing.owner === 'staged-console' || featureAssistDescriptor !== null) && event.key === 'ArrowDown') {
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        focusMainConsoleInput()
+        cycleStagedChoice('next')
+        return
+      }
       if (
         suppressAutoCaptureRef.current ||
         routing.decision !== 'handle' ||
@@ -1109,7 +1610,14 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
     return () => {
       window.removeEventListener('keydown', handleKeyDown, true)
     }
-  }, [cancelActiveStagedNavigationSession, focusMainConsoleInput, routeConsoleGlobalKey, seedInputText])
+  }, [
+    cancelActiveStagedNavigationSession,
+    cycleStagedChoice,
+    featureAssistDescriptor,
+    focusMainConsoleInput,
+    routeConsoleGlobalKey,
+    seedInputText,
+  ])
 
   useEffect(() => {
     const popoutWindow = popoutWindowRef.current
@@ -1137,6 +1645,20 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
         cancelActiveStagedNavigationSession()
         return
       }
+      if ((routing.owner === 'staged-console' || featureAssistDescriptor !== null) && event.key === 'ArrowUp') {
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        focusPopoutConsoleInput()
+        cycleStagedChoice('previous')
+        return
+      }
+      if ((routing.owner === 'staged-console' || featureAssistDescriptor !== null) && event.key === 'ArrowDown') {
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        focusPopoutConsoleInput()
+        cycleStagedChoice('next')
+        return
+      }
       if (
         suppressAutoCaptureRef.current ||
         routing.decision !== 'handle' ||
@@ -1156,12 +1678,26 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
     }
   }, [
     cancelActiveStagedNavigationSession,
+    cycleStagedChoice,
+    featureAssistDescriptor,
     focusPopoutConsoleInput,
     popoutHost,
     routeConsoleGlobalKey,
     seedInputText,
     windowMode,
   ])
+
+  useEffect(() => {
+    if (stagedNavigationSession !== null) {
+      return
+    }
+    setFeatureAssistDescriptor(
+      getActiveFeatureAssistDescriptor({
+        sketchPlanePickSession,
+        geometrySketchSession,
+      }),
+    )
+  }, [geometrySketchSession, setFeatureAssistDescriptor, sketchPlanePickSession, stagedNavigationSession])
 
   const handleFloatingHeaderPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
     const target = event.target as HTMLElement | null
@@ -1360,7 +1896,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
               className={`ConsoleListViewLine layer-${entry.layer.toLowerCase()} severity-${entry.severity}`}
             >
               <span className="ConsoleListViewTimestamp">{entry.timestampLabel}</span>
-              <span className="ConsoleListViewLayer">[{entry.layer}]</span>
+              <span className="ConsoleListViewLayer">[{formatConsoleEntryLayerLabel(entry)}]</span>
               <span className="ConsoleListViewText">{entry.text}</span>
               {entry.source !== null ? (
                 <span className="ConsoleListViewSource">{entry.source}</span>

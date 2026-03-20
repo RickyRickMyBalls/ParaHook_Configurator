@@ -5,6 +5,7 @@ import type {
   SketchPlane,
   SketchPlaneTransform,
 } from './spaghetti/features/featureTypes'
+import type { GeometrySketchDrawStage } from './spaghetti/store/useSpaghettiStore'
 
 export type CameraPreset = 'iso' | 'top' | 'front' | 'left' | 'right'
 export type GizmoMode = 'translate' | 'rotate' | 'scale'
@@ -26,7 +27,8 @@ export type GeometrySketchOverlayVm = {
   mode: 'draw' | 'review'
   plane: SketchPlane
   planeTransform: SketchPlaneTransform
-  activeTool: 'line' | 'pline' | 'arc3pt' | 'spline' | 'rectangle' | 'circle'
+  drawStage: GeometrySketchDrawStage | null
+  activeTool: 'line' | 'pline' | 'arc3pt' | 'spline' | 'rectangle' | 'circle' | null
   components: SketchComponent[]
   profiles: GeometrySketchOverlayProfileVm[]
   selectedProfileId?: string

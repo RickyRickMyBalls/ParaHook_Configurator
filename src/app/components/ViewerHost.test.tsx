@@ -368,11 +368,9 @@ describe('ViewerHost reference loading', () => {
         planeTransform: expect.objectContaining({
           translation: expect.objectContaining({ x: 0, y: 0, z: 0 }),
         }),
-        activeTool: 'line',
-        drawDraft: expect.objectContaining({
-          points: [],
-          hoverPoint: null,
-        }),
+        drawStage: 'sessionIdle',
+        activeTool: null,
+        drawDraft: null,
         ui: expect.objectContaining({
           snapEnabled: true,
           snapDistancePx: 14,

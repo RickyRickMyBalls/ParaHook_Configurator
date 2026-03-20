@@ -183,15 +183,18 @@ export type GeometrySketchDrawDraft = {
   hoverSnapTarget: 'origin' | null
 }
 
+export type GeometrySketchDrawStage = 'sessionIdle' | 'toolSelected' | 'draftActive'
+
 type GeometrySketchConsolePrompt = {
-  tool: GeometrySketchTool
+  tool: GeometrySketchTool | null
   draft: GeometrySketchDrawDraft | null
 }
 
 export type GeometrySketchSession = {
   nodeId: string
   mode: 'draw' | 'review'
-  activeTool: GeometrySketchTool
+  activeTool: GeometrySketchTool | null
+  drawStage: GeometrySketchDrawStage | null
   editorViewportId: string | null
   shouldRestoreViewportWindowMode: boolean
   drawDraft: GeometrySketchDrawDraft | null
@@ -269,6 +272,7 @@ export type SpaghettiStoreState = {
   setGeometrySketchPlaneInPlaneRotation: (nodeId: string, rotationDeg: number) => void
   startGeometrySketchSession: (nodeId: string, mode: GeometrySketchSession['mode']) => void
   closeGeometrySketchSession: () => void
+  returnActiveSketchSessionOneLevel: () => void
   setGeometrySketchSessionTool: (tool: GeometrySketchTool) => void
   setGeometrySketchDrawHoverPoint: (
     point: GeometrySketchDraftPoint | null,
@@ -1072,8 +1076,9 @@ const createDefaultComponent = (
   return createDefaultLineComponent()
 }
 
-const isGeometrySketchDrawTool = (tool: GeometrySketchTool): tool is 'line' | 'pline' =>
-  tool === 'line' || tool === 'pline'
+const isGeometrySketchDrawTool = (
+  tool: GeometrySketchTool | null,
+): tool is 'line' | 'pline' => tool === 'line' || tool === 'pline'
 
 const getGeometrySketchConsoleToolLabel = (tool: GeometrySketchTool): string =>
   tool === 'pline' ? 'PLINE' : tool.toUpperCase()
@@ -1104,10 +1109,30 @@ const createEmptyGeometrySketchDrawDraft = (): GeometrySketchDrawDraft => ({
   hoverSnapTarget: null,
 })
 
+const resolveGeometrySketchDrawStage = (
+  mode: GeometrySketchSession['mode'],
+  tool: GeometrySketchTool | null,
+  draft: GeometrySketchDrawDraft | null,
+): GeometrySketchDrawStage | null => {
+  if (mode !== 'draw') {
+    return null
+  }
+  if (tool === null) {
+    return 'sessionIdle'
+  }
+  if (draft !== null && (draft.points.length > 0 || draft.hoverPoint !== null)) {
+    return 'draftActive'
+  }
+  return 'toolSelected'
+}
+
 const buildGeometrySketchConsolePrompt = (
-  tool: GeometrySketchTool,
+  tool: GeometrySketchTool | null,
   draft: GeometrySketchDrawDraft | null,
 ): string | null => {
+  if (tool === null) {
+    return 'Sketch Draw > [Line, PLine, X]'
+  }
   if (!isGeometrySketchDrawTool(tool)) {
     return null
   }
@@ -1128,7 +1153,7 @@ const buildGeometrySketchConsolePrompt = (
 }
 
 const appendGeometrySketchConsolePrompt = (
-  tool: GeometrySketchTool,
+  tool: GeometrySketchTool | null,
   draft: GeometrySketchDrawDraft | null,
 ) => {
   const prompt = buildGeometrySketchConsolePrompt(tool, draft)
@@ -1145,7 +1170,7 @@ const appendGeometrySketchConsolePrompt = (
 
 const buildGeometrySketchSessionDraft = (
   mode: GeometrySketchSession['mode'],
-  tool: GeometrySketchTool,
+  tool: GeometrySketchTool | null,
 ): GeometrySketchDrawDraft | null =>
   mode === 'draw' && isGeometrySketchDrawTool(tool) ? createEmptyGeometrySketchDrawDraft() : null
 
@@ -2753,7 +2778,7 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
     })
     appendConsoleEntry({
       layer: 'Commands',
-      text: 'Sketch plane reselecting origin plane',
+      text: 'Sketch Plane > [XY, XZ, YZ]',
       source: 'sketch-plane',
       severity: 'info',
     })
@@ -3086,7 +3111,10 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
               }
             })()
           : state.editorViewportsById
-      const activeTool = current?.nodeId === nodeId ? current.activeTool : 'line'
+      const activeTool =
+        mode === 'draw' && current?.nodeId === nodeId && current.mode === 'draw'
+          ? current.activeTool
+          : null
       const drawDraft = buildGeometrySketchSessionDraft(mode, activeTool)
       if (mode === 'draw') {
         nextPromptRef.current = {
@@ -3102,6 +3130,7 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
           nodeId,
           mode,
           activeTool,
+          drawStage: resolveGeometrySketchDrawStage(mode, activeTool, drawDraft),
           editorViewportId,
           shouldRestoreViewportWindowMode:
             current?.nodeId === nodeId
@@ -3127,6 +3156,20 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
       get().setEditorViewportWindowMode(session.editorViewportId, 'collapsed')
     }
   },
+  returnActiveSketchSessionOneLevel: () => {
+    const state = get()
+    if (state.sketchPlanePickSession !== null) {
+      if (state.sketchPlanePickSession.stage === 'adjust') {
+        state.reopenSketchPlanePickPlaneSelection()
+        return
+      }
+      state.cancelSketchPlanePick()
+      return
+    }
+    if (state.geometrySketchSession?.mode === 'draw') {
+      state.cancelGeometrySketchDrawDraft()
+    }
+  },
   setGeometrySketchSessionTool: (tool) => {
     const nextPromptRef: { current: GeometrySketchConsolePrompt | null } = { current: null }
     set((state) => {
@@ -3134,12 +3177,13 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
         return state
       }
       if (state.geometrySketchSession.mode === 'draw') {
+        const nextDraft =
+          state.geometrySketchSession.activeTool === tool
+            ? state.geometrySketchSession.drawDraft
+            : buildGeometrySketchSessionDraft(state.geometrySketchSession.mode, tool)
         nextPromptRef.current = {
           tool,
-          draft:
-            state.geometrySketchSession.activeTool === tool
-              ? state.geometrySketchSession.drawDraft
-              : buildGeometrySketchSessionDraft(state.geometrySketchSession.mode, tool),
+          draft: nextDraft,
         }
       }
       if (state.geometrySketchSession.activeTool === tool) {
@@ -3149,6 +3193,11 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
         geometrySketchSession: {
           ...state.geometrySketchSession,
           activeTool: tool,
+          drawStage: resolveGeometrySketchDrawStage(
+            state.geometrySketchSession.mode,
+            tool,
+            buildGeometrySketchSessionDraft(state.geometrySketchSession.mode, tool),
+          ),
           drawDraft: buildGeometrySketchSessionDraft(state.geometrySketchSession.mode, tool),
         },
       }
@@ -3174,6 +3223,15 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
       return {
         geometrySketchSession: {
           ...session,
+          drawStage: resolveGeometrySketchDrawStage(
+            session.mode,
+            session.activeTool,
+            {
+              ...session.drawDraft,
+              hoverPoint: normalizedPoint,
+              hoverSnapTarget: nextSnapTarget,
+            },
+          ),
           drawDraft: {
             ...session.drawDraft,
             hoverPoint: normalizedPoint,
@@ -3212,6 +3270,7 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
           return {
             geometrySketchSession: {
               ...session,
+              drawStage: resolveGeometrySketchDrawStage(session.mode, session.activeTool, nextDraft),
               drawDraft: nextDraft,
             },
           }
@@ -3236,6 +3295,11 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
           ...withUpdatedActiveGraphDocumentState(state, nextGraph),
           geometrySketchSession: {
             ...session,
+            drawStage: resolveGeometrySketchDrawStage(
+              session.mode,
+              session.activeTool,
+              createEmptyGeometrySketchDrawDraft(),
+            ),
             drawDraft: createEmptyGeometrySketchDrawDraft(),
           },
         }
@@ -3257,6 +3321,7 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
       return {
         geometrySketchSession: {
           ...session,
+          drawStage: resolveGeometrySketchDrawStage(session.mode, session.activeTool, nextDraft),
           drawDraft: nextDraft,
         },
       }
@@ -3305,6 +3370,11 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
           ...withUpdatedActiveGraphDocumentState(state, nextGraph),
           geometrySketchSession: {
             ...session,
+            drawStage: resolveGeometrySketchDrawStage(
+              session.mode,
+              session.activeTool,
+              createEmptyGeometrySketchDrawDraft(),
+            ),
             drawDraft: createEmptyGeometrySketchDrawDraft(),
           },
         }
@@ -3318,6 +3388,11 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
         return {
           geometrySketchSession: {
             ...session,
+            drawStage: resolveGeometrySketchDrawStage(
+              session.mode,
+              session.activeTool,
+              createEmptyGeometrySketchDrawDraft(),
+            ),
             drawDraft: createEmptyGeometrySketchDrawDraft(),
           },
         }
@@ -3345,6 +3420,11 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
         ...withUpdatedActiveGraphDocumentState(state, nextGraph),
         geometrySketchSession: {
           ...session,
+          drawStage: resolveGeometrySketchDrawStage(
+            session.mode,
+            session.activeTool,
+            createEmptyGeometrySketchDrawDraft(),
+          ),
           drawDraft: createEmptyGeometrySketchDrawDraft(),
         },
       }
@@ -3355,7 +3435,13 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
   },
   cancelGeometrySketchDrawDraft: () => {
     const currentSession = get().geometrySketchSession
-    if (currentSession === null || currentSession.drawDraft === null) {
+    if (currentSession === null || currentSession.mode !== 'draw') {
+      return
+    }
+    if (currentSession.activeTool === null) {
+      return
+    }
+    if (currentSession.drawDraft === null) {
       return
     }
     if (
@@ -3363,7 +3449,33 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
       currentSession.drawDraft.hoverPoint === null &&
       currentSession.drawDraft.hoverSnapTarget === null
     ) {
-      get().closeGeometrySketchSession()
+      const nextPromptRef: { current: GeometrySketchConsolePrompt | null } = {
+        current: {
+          tool: null,
+          draft: null,
+        },
+      }
+      set((state) => {
+        const session = state.geometrySketchSession
+        if (
+          session === null ||
+          session.mode !== 'draw' ||
+          session.activeTool === null
+        ) {
+          return state
+        }
+        return {
+          geometrySketchSession: {
+            ...session,
+            activeTool: null,
+            drawStage: resolveGeometrySketchDrawStage(session.mode, null, null),
+            drawDraft: null,
+          },
+        }
+      })
+      if (nextPromptRef.current !== null) {
+        appendGeometrySketchConsolePrompt(nextPromptRef.current.tool, nextPromptRef.current.draft)
+      }
       return
     }
     const nextPromptRef: { current: GeometrySketchConsolePrompt | null } = { current: null }
@@ -3386,6 +3498,11 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
       return {
         geometrySketchSession: {
           ...session,
+          drawStage: resolveGeometrySketchDrawStage(
+            session.mode,
+            session.activeTool,
+            createEmptyGeometrySketchDrawDraft(),
+          ),
           drawDraft: createEmptyGeometrySketchDrawDraft(),
         },
       }

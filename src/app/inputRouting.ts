@@ -97,6 +97,10 @@ export const routeKeyboardInput = ({
     return { owner: 'none', decision: 'ignore' }
   }
 
+  if ((event.key === 'ArrowUp' || event.key === 'ArrowDown') && stagedConsoleActive) {
+    return { owner: 'staged-console', decision: 'handle' }
+  }
+
   if (key === 'm' || key === 'r') {
     if (sketchPlanePickStage === 'adjust') {
       return { owner: 'sketch-plane', decision: 'handle' }
@@ -114,7 +118,7 @@ export const routeKeyboardInput = ({
   }
 
   const higherPriorityFeatureSessionActive =
-    sketchPlanePickStage !== null || geometrySketchMode !== null || referenceTransformActive
+    geometrySketchMode !== null || referenceTransformActive
 
   if (allowFlatConsoleCapture && higherPriorityFeatureSessionActive && isConsoleCapturePrintableKey(event)) {
     return {

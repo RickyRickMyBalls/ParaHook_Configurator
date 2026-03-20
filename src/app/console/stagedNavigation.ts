@@ -1,18 +1,22 @@
-export type ConsoleStagedSketchOption = {
+export type ConsoleStagedNodeOption = {
   nodeId: string
 }
 
 export type ConsoleStagedGraphOption = {
   graphDocumentId: string
   name: string
-  sketchOptions?: ConsoleStagedSketchOption[]
+  sketchOptions?: ConsoleStagedNodeOption[]
+  extrudeOptions?: ConsoleStagedNodeOption[]
+  outputPreviewOptions?: ConsoleStagedNodeOption[]
 }
 
 export type ConsoleStagedNavigationContext = {
   graphOptions: Array<{
     graphDocumentId: string
     name: string
-    sketchOptions: ConsoleStagedSketchOption[]
+    sketchOptions: ConsoleStagedNodeOption[]
+    extrudeOptions: ConsoleStagedNodeOption[]
+    outputPreviewOptions: ConsoleStagedNodeOption[]
   }>
 }
 
@@ -30,9 +34,14 @@ export type ConsoleStagedNavigationScopeId =
   | 'graphSelected'
   | 'graphSketchList'
   | 'graphSketchSelected'
+  | 'graphExtrudeList'
+  | 'graphExtrudeSelected'
+  | 'graphOutputPreviewList'
+  | 'graphOutputPreviewSelected'
 
 export type ConsoleStagedNavigationSelection = {
   graphDocumentId: string | null
+  selectedNodeId: string | null
   sketchNodeId: string | null
 }
 
@@ -58,6 +67,7 @@ export type ConsoleStagedNavigationExecuteResult = {
     | 'graph.build'
     | 'sketch.plane'
     | 'sketch.draw'
+    | 'node.delete'
   breadcrumb: string[]
   selections: ConsoleStagedNavigationSelection
 }
@@ -108,6 +118,20 @@ const GRAPH_SKETCH_CHOICE: ConsoleStagedNavigationChoice = {
   kind: 'scope',
 }
 
+const GRAPH_EXTRUDE_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'EXTRUDE',
+  aliases: ['E'],
+  label: 'Extrude',
+  kind: 'scope',
+}
+
+const GRAPH_OUTPUT_PREVIEW_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'OUTPUT PREVIEW',
+  aliases: ['OUTPUTPREVIEW', 'OP'],
+  label: 'Output Preview',
+  kind: 'scope',
+}
+
 const GRAPH_REFERENCES_CHOICE: ConsoleStagedNavigationChoice = {
   canonicalToken: 'REFERENCES',
   aliases: ['R'],
@@ -124,7 +148,7 @@ const GRAPH_EDITOR_COLLAPSED_CHOICE: ConsoleStagedNavigationChoice = {
 
 const GRAPH_EDITOR_ESSENTIALS_CHOICE: ConsoleStagedNavigationChoice = {
   canonicalToken: 'ESSENTIALS',
-  aliases: ['E'],
+  aliases: ['ES'],
   label: 'Essentials',
   kind: 'action',
 }
@@ -164,6 +188,13 @@ const SKETCH_PLANE_CHOICE: ConsoleStagedNavigationChoice = {
   kind: 'action',
 }
 
+const NODE_DELETE_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'DELETE',
+  aliases: ['D'],
+  label: 'Delete',
+  kind: 'action',
+}
+
 const createBackChoice = (): ConsoleStagedNavigationChoice => ({
   canonicalToken: 'BACK',
   aliases: ['B'],
@@ -197,6 +228,8 @@ const buildGraphRootChoices = (
 
 const buildGraphSelectedChoices = (): ConsoleStagedNavigationChoice[] => [
   GRAPH_SKETCH_CHOICE,
+  GRAPH_EXTRUDE_CHOICE,
+  GRAPH_OUTPUT_PREVIEW_CHOICE,
   GRAPH_EDITOR_COLLAPSED_CHOICE,
   GRAPH_EDITOR_ESSENTIALS_CHOICE,
   GRAPH_EDITOR_EXPANDED_CHOICE,
@@ -207,7 +240,7 @@ const buildGraphSelectedChoices = (): ConsoleStagedNavigationChoice[] => [
 ]
 
 const buildGraphSketchListChoices = (
-  sketchOptions: ConsoleStagedSketchOption[],
+  sketchOptions: ConsoleStagedNodeOption[],
 ): ConsoleStagedNavigationChoice[] =>
   [
     ...sketchOptions.map((_, index) => ({
@@ -219,9 +252,41 @@ const buildGraphSketchListChoices = (
     createBackChoice(),
   ]
 
+const buildGraphExtrudeListChoices = (
+  extrudeOptions: ConsoleStagedNodeOption[],
+): ConsoleStagedNavigationChoice[] =>
+  [
+    ...extrudeOptions.map((_, index) => ({
+      canonicalToken: `${index + 1}`,
+      aliases: [],
+      label: `extrude_[${index + 1}]`,
+      kind: 'scope' as const,
+    })),
+    createBackChoice(),
+  ]
+
+const buildGraphOutputPreviewListChoices = (
+  outputPreviewOptions: ConsoleStagedNodeOption[],
+): ConsoleStagedNavigationChoice[] =>
+  [
+    ...outputPreviewOptions.map((_, index) => ({
+      canonicalToken: `${index + 1}`,
+      aliases: [],
+      label: `outputPreview_[${index + 1}]`,
+      kind: 'scope' as const,
+    })),
+    createBackChoice(),
+  ]
+
 const buildGraphSketchSelectedChoices = (): ConsoleStagedNavigationChoice[] => [
   SKETCH_PLANE_CHOICE,
   SKETCH_DRAW_CHOICE,
+  NODE_DELETE_CHOICE,
+  createBackChoice(),
+]
+
+const buildGraphNodeSelectedChoices = (): ConsoleStagedNavigationChoice[] => [
+  NODE_DELETE_CHOICE,
   createBackChoice(),
 ]
 
@@ -232,6 +297,7 @@ const createGraphRootSession = (
   breadcrumb: ['Select', 'Graph'],
   selections: {
     graphDocumentId: null,
+    selectedNodeId: null,
     sketchNodeId: null,
   },
   validChoices: buildGraphRootChoices(context.graphOptions),
@@ -273,6 +339,7 @@ const createGraphSelectedSession = (
   breadcrumb: ['Select', 'Graph', `graph_[${graphIndex}]`],
   selections: {
     graphDocumentId,
+    selectedNodeId: null,
     sketchNodeId: null,
   },
   validChoices: buildGraphSelectedChoices(),
@@ -291,10 +358,103 @@ const findGraphIndexByDocumentId = (
   return graphIndex === -1 ? null : graphIndex + 1
 }
 
+export type ConsoleWorkspaceContextSyncResolution = {
+  session: ConsoleStagedNavigationSession | null
+  selectedLabel: string | null
+}
+
+export const resolveConsoleWorkspaceContextSync = (
+  context: ConsoleStagedNavigationContext,
+  target: {
+    graphDocumentId: string | null
+    nodeId: string | null
+  },
+): ConsoleWorkspaceContextSyncResolution => {
+  const graphIndex = findGraphIndexByDocumentId(context, target.graphDocumentId)
+  if (graphIndex === null || target.graphDocumentId === null) {
+    return {
+      session: null,
+      selectedLabel: null,
+    }
+  }
+
+  if (target.nodeId === null) {
+    return {
+      session: createGraphSelectedSession(graphIndex, target.graphDocumentId),
+      selectedLabel: `graph_[${graphIndex}]`,
+    }
+  }
+
+  const selectedGraph = context.graphOptions[graphIndex - 1] ?? null
+  if (selectedGraph === null) {
+    return {
+      session: createGraphSelectedSession(graphIndex, target.graphDocumentId),
+      selectedLabel: `graph_[${graphIndex}]`,
+    }
+  }
+
+  const sketchIndex = selectedGraph.sketchOptions.findIndex((option) => option.nodeId === target.nodeId)
+  if (sketchIndex !== -1) {
+    const label = `sketch_[${sketchIndex + 1}]`
+    return {
+      session: createGraphSketchSelectedSession(
+        ['Select', 'Graph', `graph_[${graphIndex}]`, 'Sketch', label],
+        {
+          graphDocumentId: target.graphDocumentId,
+          selectedNodeId: target.nodeId,
+          sketchNodeId: target.nodeId,
+        },
+      ),
+      selectedLabel: label,
+    }
+  }
+
+  const extrudeIndex = selectedGraph.extrudeOptions.findIndex(
+    (option) => option.nodeId === target.nodeId,
+  )
+  if (extrudeIndex !== -1) {
+    const label = `extrude_[${extrudeIndex + 1}]`
+    return {
+      session: createGraphExtrudeSelectedSession(
+        ['Select', 'Graph', `graph_[${graphIndex}]`, 'Extrude', label],
+        {
+          graphDocumentId: target.graphDocumentId,
+          selectedNodeId: target.nodeId,
+          sketchNodeId: null,
+        },
+      ),
+      selectedLabel: label,
+    }
+  }
+
+  const outputPreviewIndex = selectedGraph.outputPreviewOptions.findIndex(
+    (option) => option.nodeId === target.nodeId,
+  )
+  if (outputPreviewIndex !== -1) {
+    const label = `outputPreview_[${outputPreviewIndex + 1}]`
+    return {
+      session: createGraphOutputPreviewSelectedSession(
+        ['Select', 'Graph', `graph_[${graphIndex}]`, 'Output Preview', label],
+        {
+          graphDocumentId: target.graphDocumentId,
+          selectedNodeId: target.nodeId,
+          sketchNodeId: null,
+        },
+      ),
+      selectedLabel: label,
+    }
+  }
+
+  return {
+    session: createGraphSelectedSession(graphIndex, target.graphDocumentId),
+    selectedLabel: `graph_[${graphIndex}]`,
+  }
+}
+
 const createGraphSketchListSession = (
   breadcrumb: string[],
   selections: ConsoleStagedNavigationSelection,
-  sketchOptions: ConsoleStagedSketchOption[],
+  sketchOptions: ConsoleStagedNodeOption[],
 ): ConsoleStagedNavigationSession => ({
   scopeId: 'graphSketchList',
   breadcrumb,
@@ -310,6 +470,48 @@ const createGraphSketchSelectedSession = (
   breadcrumb,
   selections,
   validChoices: buildGraphSketchSelectedChoices(),
+})
+
+const createGraphExtrudeListSession = (
+  breadcrumb: string[],
+  selections: ConsoleStagedNavigationSelection,
+  extrudeOptions: ConsoleStagedNodeOption[],
+): ConsoleStagedNavigationSession => ({
+  scopeId: 'graphExtrudeList',
+  breadcrumb,
+  selections,
+  validChoices: buildGraphExtrudeListChoices(extrudeOptions),
+})
+
+const createGraphExtrudeSelectedSession = (
+  breadcrumb: string[],
+  selections: ConsoleStagedNavigationSelection,
+): ConsoleStagedNavigationSession => ({
+  scopeId: 'graphExtrudeSelected',
+  breadcrumb,
+  selections,
+  validChoices: buildGraphNodeSelectedChoices(),
+})
+
+const createGraphOutputPreviewListSession = (
+  breadcrumb: string[],
+  selections: ConsoleStagedNavigationSelection,
+  outputPreviewOptions: ConsoleStagedNodeOption[],
+): ConsoleStagedNavigationSession => ({
+  scopeId: 'graphOutputPreviewList',
+  breadcrumb,
+  selections,
+  validChoices: buildGraphOutputPreviewListChoices(outputPreviewOptions),
+})
+
+const createGraphOutputPreviewSelectedSession = (
+  breadcrumb: string[],
+  selections: ConsoleStagedNavigationSelection,
+): ConsoleStagedNavigationSession => ({
+  scopeId: 'graphOutputPreviewSelected',
+  breadcrumb,
+  selections,
+  validChoices: buildGraphNodeSelectedChoices(),
 })
 
 const resolveSingleGraphAutoAdvance = (
@@ -363,6 +565,7 @@ const resolveSingleSketchAutoAdvance = (
   return {
     session: createGraphSketchSelectedSession([...session.breadcrumb, 'sketch_[1]'], {
       ...session.selections,
+      selectedNodeId: sketchNodeId,
       sketchNodeId,
     }),
     autoSelections: [autoChoice],
@@ -377,6 +580,12 @@ export const createConsoleStagedNavigationContext = (
     name: option.name,
     sketchOptions: (option.sketchOptions ?? []).map((sketchOption) => ({
       nodeId: sketchOption.nodeId,
+    })),
+    extrudeOptions: (option.extrudeOptions ?? []).map((extrudeOption) => ({
+      nodeId: extrudeOption.nodeId,
+    })),
+    outputPreviewOptions: (option.outputPreviewOptions ?? []).map((outputPreviewOption) => ({
+      nodeId: outputPreviewOption.nodeId,
     })),
   })),
 })
@@ -507,22 +716,74 @@ export const submitConsoleStagedNavigationToken = (
     const selectedGraph = context.graphOptions.find(
       (graphOption) => graphOption.graphDocumentId === session.selections.graphDocumentId,
     )
-    const sketchOptions = selectedGraph?.sketchOptions ?? []
-    const sketchListSession = createGraphSketchListSession(
+    if (matchedChoice.canonicalToken === GRAPH_SKETCH_CHOICE.canonicalToken) {
+      const sketchOptions = selectedGraph?.sketchOptions ?? []
+      const sketchListSession = createGraphSketchListSession(
+        [...session.breadcrumb, matchedChoice.label],
+        session.selections,
+        sketchOptions,
+      )
+      const sketchAutoAdvance = resolveSingleSketchAutoAdvance(sketchListSession, context)
+      if (sketchAutoAdvance !== null) {
+        return createAdvanceResult(
+          sketchAutoAdvance.session,
+          submittedToken,
+          matchedChoice,
+          sketchAutoAdvance.autoSelections,
+        )
+      }
+      return createAdvanceResult(sketchListSession, submittedToken, matchedChoice)
+    }
+
+    if (matchedChoice.canonicalToken === GRAPH_EXTRUDE_CHOICE.canonicalToken) {
+      const extrudeOptions = selectedGraph?.extrudeOptions ?? []
+      const extrudeChoices = buildGraphExtrudeListChoices(extrudeOptions)
+      const extrudeListSession = createGraphExtrudeListSession(
+        [...session.breadcrumb, matchedChoice.label],
+        session.selections,
+        extrudeOptions,
+      )
+      if (extrudeOptions.length === 1) {
+        return createAdvanceResult(
+          createGraphExtrudeSelectedSession(
+            [...extrudeListSession.breadcrumb, 'extrude_[1]'],
+            {
+              ...session.selections,
+              selectedNodeId: extrudeOptions[0]?.nodeId ?? null,
+              sketchNodeId: null,
+            },
+          ),
+          submittedToken,
+          matchedChoice,
+          [extrudeChoices[0]!],
+        )
+      }
+      return createAdvanceResult(extrudeListSession, submittedToken, matchedChoice)
+    }
+
+    const outputPreviewOptions = selectedGraph?.outputPreviewOptions ?? []
+    const outputPreviewChoices = buildGraphOutputPreviewListChoices(outputPreviewOptions)
+    const outputPreviewListSession = createGraphOutputPreviewListSession(
       [...session.breadcrumb, matchedChoice.label],
       session.selections,
-      sketchOptions,
+      outputPreviewOptions,
     )
-    const sketchAutoAdvance = resolveSingleSketchAutoAdvance(sketchListSession, context)
-    if (sketchAutoAdvance !== null) {
+    if (outputPreviewOptions.length === 1) {
       return createAdvanceResult(
-        sketchAutoAdvance.session,
+        createGraphOutputPreviewSelectedSession(
+          [...outputPreviewListSession.breadcrumb, 'outputPreview_[1]'],
+          {
+            ...session.selections,
+            selectedNodeId: outputPreviewOptions[0]?.nodeId ?? null,
+            sketchNodeId: null,
+          },
+        ),
         submittedToken,
         matchedChoice,
-        sketchAutoAdvance.autoSelections,
+        [outputPreviewChoices[0]!],
       )
     }
-    return createAdvanceResult(sketchListSession, submittedToken, matchedChoice)
+    return createAdvanceResult(outputPreviewListSession, submittedToken, matchedChoice)
   }
 
   if (session.scopeId === 'graphSketchList') {
@@ -572,6 +833,7 @@ export const submitConsoleStagedNavigationToken = (
     return createAdvanceResult(
       createGraphSketchSelectedSession([...session.breadcrumb, `sketch_[${sketchIndex}]`], {
         ...session.selections,
+        selectedNodeId: sketchOption.nodeId,
         sketchNodeId: sketchOption.nodeId,
       }),
       submittedToken,
@@ -579,47 +841,240 @@ export const submitConsoleStagedNavigationToken = (
     )
   }
 
-  const sketchSelectedChoices = buildGraphSketchSelectedChoices()
-  const matchedChoice =
-    sketchSelectedChoices.find((choice) => matchesChoice(choice, normalizedToken)) ?? null
-  if (matchedChoice === null) {
-    return createInvalidResult(
-      { ...session, validChoices: sketchSelectedChoices },
-      submittedToken,
-      sketchSelectedChoices,
-    )
-  }
-
-  if (matchedChoice.canonicalToken === 'BACK') {
+  if (session.scopeId === 'graphExtrudeList') {
     const selectedGraph = context.graphOptions.find(
       (graphOption) => graphOption.graphDocumentId === session.selections.graphDocumentId,
     )
-    const sketchOptions = selectedGraph?.sketchOptions ?? []
+    const extrudeOptions = selectedGraph?.extrudeOptions ?? []
+    const extrudeChoices = buildGraphExtrudeListChoices(extrudeOptions)
+    const backChoice = extrudeChoices.find((choice) => choice.canonicalToken === 'BACK') ?? null
+    if (backChoice !== null && matchesChoice(backChoice, normalizedToken)) {
+      const graphIndex = findGraphIndexByDocumentId(context, session.selections.graphDocumentId)
+      if (graphIndex === null || session.selections.graphDocumentId === null) {
+        return createInvalidResult({ ...session, validChoices: extrudeChoices }, submittedToken, extrudeChoices)
+      }
+      return createAdvanceResult(
+        createGraphSelectedSession(graphIndex, session.selections.graphDocumentId),
+        submittedToken,
+        backChoice,
+      )
+    }
+
+    const extrudeIndex = Number.parseInt(normalizedToken, 10)
+    if (!Number.isInteger(extrudeIndex) || `${extrudeIndex}` !== normalizedToken) {
+      return createInvalidResult(
+        { ...session, validChoices: extrudeChoices },
+        submittedToken,
+        extrudeChoices,
+      )
+    }
+
+    const extrudeOption = extrudeOptions[extrudeIndex - 1] ?? null
+    if (extrudeOption === null) {
+      return createInvalidResult(
+        { ...session, validChoices: extrudeChoices },
+        submittedToken,
+        extrudeChoices,
+      )
+    }
+
+    const matchedChoice = extrudeChoices.find((choice) => choice.canonicalToken === normalizedToken) ?? {
+      canonicalToken: normalizedToken,
+      aliases: [],
+      label: `extrude_[${extrudeIndex}]`,
+      kind: 'scope' as const,
+    }
+
     return createAdvanceResult(
-      createGraphSketchListSession(session.breadcrumb.slice(0, -1), {
+      createGraphExtrudeSelectedSession([...session.breadcrumb, `extrude_[${extrudeIndex}]`], {
         ...session.selections,
+        selectedNodeId: extrudeOption.nodeId,
         sketchNodeId: null,
-      }, sketchOptions),
+      }),
       submittedToken,
       matchedChoice,
     )
   }
 
-  return {
-    kind: 'execute',
-    session: {
-      ...session,
-      validChoices: sketchSelectedChoices,
-    },
+  if (session.scopeId === 'graphOutputPreviewList') {
+    const selectedGraph = context.graphOptions.find(
+      (graphOption) => graphOption.graphDocumentId === session.selections.graphDocumentId,
+    )
+    const outputPreviewOptions = selectedGraph?.outputPreviewOptions ?? []
+    const outputPreviewChoices = buildGraphOutputPreviewListChoices(outputPreviewOptions)
+    const backChoice =
+      outputPreviewChoices.find((choice) => choice.canonicalToken === 'BACK') ?? null
+    if (backChoice !== null && matchesChoice(backChoice, normalizedToken)) {
+      const graphIndex = findGraphIndexByDocumentId(context, session.selections.graphDocumentId)
+      if (graphIndex === null || session.selections.graphDocumentId === null) {
+        return createInvalidResult(
+          { ...session, validChoices: outputPreviewChoices },
+          submittedToken,
+          outputPreviewChoices,
+        )
+      }
+      return createAdvanceResult(
+        createGraphSelectedSession(graphIndex, session.selections.graphDocumentId),
+        submittedToken,
+        backChoice,
+      )
+    }
+
+    const outputPreviewIndex = Number.parseInt(normalizedToken, 10)
+    if (!Number.isInteger(outputPreviewIndex) || `${outputPreviewIndex}` !== normalizedToken) {
+      return createInvalidResult(
+        { ...session, validChoices: outputPreviewChoices },
+        submittedToken,
+        outputPreviewChoices,
+      )
+    }
+
+    const outputPreviewOption = outputPreviewOptions[outputPreviewIndex - 1] ?? null
+    if (outputPreviewOption === null) {
+      return createInvalidResult(
+        { ...session, validChoices: outputPreviewChoices },
+        submittedToken,
+        outputPreviewChoices,
+      )
+    }
+
+    const matchedChoice =
+      outputPreviewChoices.find((choice) => choice.canonicalToken === normalizedToken) ?? {
+        canonicalToken: normalizedToken,
+        aliases: [],
+        label: `outputPreview_[${outputPreviewIndex}]`,
+        kind: 'scope' as const,
+      }
+
+    return createAdvanceResult(
+      createGraphOutputPreviewSelectedSession(
+        [...session.breadcrumb, `outputPreview_[${outputPreviewIndex}]`],
+        {
+          ...session.selections,
+          selectedNodeId: outputPreviewOption.nodeId,
+          sketchNodeId: null,
+        },
+      ),
+      submittedToken,
+      matchedChoice,
+    )
+  }
+
+  if (session.scopeId === 'graphSketchSelected') {
+    const sketchSelectedChoices = buildGraphSketchSelectedChoices()
+    const matchedChoice =
+      sketchSelectedChoices.find((choice) => matchesChoice(choice, normalizedToken)) ?? null
+    if (matchedChoice === null) {
+      return createInvalidResult(
+        { ...session, validChoices: sketchSelectedChoices },
+        submittedToken,
+        sketchSelectedChoices,
+      )
+    }
+
+    if (matchedChoice.canonicalToken === 'BACK') {
+      const graphIndex = findGraphIndexByDocumentId(context, session.selections.graphDocumentId)
+      if (graphIndex === null || session.selections.graphDocumentId === null) {
+        return createInvalidResult(
+          { ...session, validChoices: sketchSelectedChoices },
+          submittedToken,
+          sketchSelectedChoices,
+        )
+      }
+      return createAdvanceResult(
+        createGraphSelectedSession(graphIndex, session.selections.graphDocumentId),
+        submittedToken,
+        matchedChoice,
+      )
+    }
+
+    return {
+      kind: 'execute',
+      session: {
+        ...session,
+        validChoices: sketchSelectedChoices,
+      },
+      submittedToken,
+      matchedChoice,
+      actionId:
+        matchedChoice.canonicalToken === SKETCH_PLANE_CHOICE.canonicalToken
+          ? 'sketch.plane'
+          : matchedChoice.canonicalToken === SKETCH_DRAW_CHOICE.canonicalToken
+            ? 'sketch.draw'
+            : 'node.delete',
+      breadcrumb: [...session.breadcrumb, matchedChoice.label],
+      selections: session.selections,
+    }
+  }
+
+  const nodeSelectedChoices = buildGraphNodeSelectedChoices()
+  const matchedChoice =
+    nodeSelectedChoices.find((choice) => matchesChoice(choice, normalizedToken)) ?? null
+  if (matchedChoice === null) {
+    return createInvalidResult(
+      { ...session, validChoices: nodeSelectedChoices },
+      submittedToken,
+      nodeSelectedChoices,
+    )
+  }
+
+  if (session.scopeId === 'graphExtrudeSelected') {
+    if (matchedChoice.canonicalToken !== 'BACK') {
+      return {
+        kind: 'execute',
+        session: {
+          ...session,
+          validChoices: nodeSelectedChoices,
+        },
+        submittedToken,
+        matchedChoice,
+        actionId: 'node.delete',
+        breadcrumb: [...session.breadcrumb, matchedChoice.label],
+        selections: session.selections,
+      }
+    }
+    const graphIndex = findGraphIndexByDocumentId(context, session.selections.graphDocumentId)
+    if (graphIndex === null || session.selections.graphDocumentId === null) {
+      return createInvalidResult(
+        { ...session, validChoices: nodeSelectedChoices },
+        submittedToken,
+        nodeSelectedChoices,
+      )
+    }
+    return createAdvanceResult(
+      createGraphSelectedSession(graphIndex, session.selections.graphDocumentId),
+      submittedToken,
+      matchedChoice,
+    )
+  }
+
+  if (matchedChoice.canonicalToken !== 'BACK') {
+    return {
+      kind: 'execute',
+      session: {
+        ...session,
+        validChoices: nodeSelectedChoices,
+      },
+      submittedToken,
+      matchedChoice,
+      actionId: 'node.delete',
+      breadcrumb: [...session.breadcrumb, matchedChoice.label],
+      selections: session.selections,
+    }
+  }
+  const graphIndex = findGraphIndexByDocumentId(context, session.selections.graphDocumentId)
+  if (graphIndex === null || session.selections.graphDocumentId === null) {
+    return createInvalidResult(
+      { ...session, validChoices: nodeSelectedChoices },
+      submittedToken,
+      nodeSelectedChoices,
+    )
+  }
+  return createAdvanceResult(
+    createGraphSelectedSession(graphIndex, session.selections.graphDocumentId),
     submittedToken,
     matchedChoice,
-    actionId:
-      matchedChoice.canonicalToken === SKETCH_PLANE_CHOICE.canonicalToken
-        ? 'sketch.plane'
-        : 'sketch.draw',
-    breadcrumb: [...session.breadcrumb, matchedChoice.label],
-    selections: session.selections,
-  }
+  )
 }
 
 export const cancelConsoleStagedNavigationSession = (): ConsoleStagedNavigationCancelledResult => ({

@@ -11,19 +11,33 @@ import { useConsoleStore } from './console/useConsoleStore'
 let currentSpaghettiState: any
 let currentAppState: any
 
-vi.mock('./spaghetti/store/useSpaghettiStore', () => ({
-  defaultViewportPosition: { x: 12, y: 12 },
-  defaultViewportSize: { width: 980, height: 760 },
-  useSpaghettiStore: (selector: (state: any) => unknown) => selector(currentSpaghettiState),
-  selectActiveEditorViewport: (state: any) =>
-    state.editorViewportsById[state.activeEditorViewportId] ?? null,
-  selectEditorViewportById: (state: any, editorViewportId: string) =>
-    state.editorViewportsById[editorViewportId] ?? null,
-}))
+vi.mock('./spaghetti/store/useSpaghettiStore', () => {
+  const store = ((selector: (state: any) => unknown) => selector(currentSpaghettiState)) as any
+  store.getState = () => currentSpaghettiState
+  return {
+    defaultViewportPosition: { x: 12, y: 12 },
+    defaultViewportSize: { width: 980, height: 760 },
+    useSpaghettiStore: store,
+    selectActiveEditorViewport: (state: any) =>
+      state.editorViewportsById[state.activeEditorViewportId] ?? null,
+    selectEditorViewportById: (state: any, editorViewportId: string) =>
+      state.editorViewportsById[editorViewportId] ?? null,
+    selectOrderedGraphDocuments: (state: any) =>
+      (state.graphDocumentOrder ?? [])
+        .map((graphDocumentId: string) => state.graphDocumentsById[graphDocumentId] ?? null)
+        .filter((document: unknown) => document !== null),
+    selectGraphDocumentById: (state: any, graphDocumentId: string) =>
+      state.graphDocumentsById[graphDocumentId] ?? null,
+  }
+})
 
-vi.mock('./store/useAppStore', () => ({
-  useAppStore: (selector: (state: any) => unknown) => selector(currentAppState),
-}))
+vi.mock('./store/useAppStore', () => {
+  const store = ((selector: (state: any) => unknown) => selector(currentAppState)) as any
+  store.getState = () => currentAppState
+  return {
+    useAppStore: store,
+  }
+})
 
 vi.mock('./components/TitleStatusBar', () => ({
   TitleStatusBar: () => <div>Title Status</div>,
@@ -213,7 +227,10 @@ describe('AppShell', () => {
   beforeEach(() => {
     useConsoleStore.setState(useConsoleStore.getInitialState(), true)
     currentSpaghettiState = {
+      activeGraphDocumentId: 'graph-document-1',
       activeEditorViewportId: 'editor-viewport-1',
+      selectedNodeId: null,
+      sketchPlanePickSession: null,
       editorViewportsById: {
         'editor-viewport-1': viewport('expanded'),
       },
@@ -223,6 +240,11 @@ describe('AppShell', () => {
         'graph-document-1': {
           graphDocumentId: 'graph-document-1',
           name: 'Graph 1',
+          graph: {
+            schemaVersion: 1,
+            nodes: [],
+            edges: [],
+          },
         },
       },
       graphDocumentOrder: ['graph-document-1'],
@@ -232,6 +254,11 @@ describe('AppShell', () => {
         currentSpaghettiState.graphDocumentsById[nextGraphDocumentId] = {
           graphDocumentId: nextGraphDocumentId,
           name: nextGraphName,
+          graph: {
+            schemaVersion: 1,
+            nodes: [],
+            edges: [],
+          },
         }
         currentSpaghettiState.graphDocumentOrder = [
           ...currentSpaghettiState.graphDocumentOrder,
@@ -341,7 +368,39 @@ describe('AppShell', () => {
     }
 
     currentAppState = {
+      workspaceSelection: {
+        selectedTarget: null,
+        activeSurface: null,
+      },
       floatingShellActivationRequest: null,
+      consoleContextSyncRequest: null,
+      setWorkspaceSelectedTarget: vi.fn((target: unknown) => {
+        currentAppState = {
+          ...currentAppState,
+          workspaceSelection: {
+            ...currentAppState.workspaceSelection,
+            selectedTarget: target,
+          },
+        }
+      }),
+      setActiveSurface: vi.fn((surface: 'spaghetti' | 'browser' | 'console' | 'viewer' | null) => {
+        currentAppState = {
+          ...currentAppState,
+          workspaceSelection: {
+            ...currentAppState.workspaceSelection,
+            activeSurface: surface,
+          },
+        }
+      }),
+      requestConsoleContextSync: vi.fn((reason: string) => {
+        currentAppState = {
+          ...currentAppState,
+          consoleContextSyncRequest: {
+            reason,
+            seq: (currentAppState.consoleContextSyncRequest?.seq ?? 0) + 1,
+          },
+        }
+      }),
       requestFloatingShellActivation: vi.fn((target: 'spaghetti' | 'browser') => {
         currentAppState = {
           ...currentAppState,
@@ -397,6 +456,7 @@ describe('AppShell', () => {
     })
 
     expect(floatingShell?.classList.contains('isActiveWindow')).toBe(true)
+    expect(currentAppState.setActiveSurface).toHaveBeenCalledWith('spaghetti')
 
     await act(async () => {
       document.body.dispatchEvent(
@@ -454,6 +514,7 @@ describe('AppShell', () => {
 
     expect(browserShell?.classList.contains('isActiveWindow')).toBe(true)
     expect(spaghettiShell?.classList.contains('isActiveWindow')).toBe(false)
+    expect(currentAppState.setActiveSurface).toHaveBeenCalledWith('browser')
   })
 
   it('activates the floating spaghetti highlight when a shared activation request targets it', async () => {
@@ -469,6 +530,97 @@ describe('AppShell', () => {
     })
 
     expect(floatingShell?.classList.contains('isActiveWindow')).toBe(true)
+  })
+
+  it('renders floating-window highlight from the shared active surface truth', async () => {
+    ;({ container, root } = await renderAppShell())
+
+    const popoutButton = container?.querySelector(
+      'button[aria-label="Mock browser popout"]',
+    ) as HTMLButtonElement | null
+    expect(popoutButton).not.toBeNull()
+
+    await act(async () => {
+      popoutButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    const spaghettiShell = container?.querySelector('.SpaghettiFloatingWindow') as HTMLDivElement | null
+    const browserShell = container?.querySelector('.BrowserFloatingWindow') as HTMLDivElement | null
+    expect(spaghettiShell).not.toBeNull()
+    expect(browserShell).not.toBeNull()
+
+    await act(async () => {
+      currentAppState.setActiveSurface('browser')
+      await rerenderAppShell(root!)
+    })
+
+    expect(browserShell?.classList.contains('isActiveWindow')).toBe(true)
+    expect(spaghettiShell?.classList.contains('isActiveWindow')).toBe(false)
+
+    await act(async () => {
+      currentAppState.setActiveSurface('spaghetti')
+      await rerenderAppShell(root!)
+    })
+
+    expect(spaghettiShell?.classList.contains('isActiveWindow')).toBe(true)
+    expect(browserShell?.classList.contains('isActiveWindow')).toBe(false)
+  })
+
+  it('treats a model viewport click as viewer activation and requests console root sync', async () => {
+    ;({ container, root } = await renderAppShell())
+
+    await act(async () => {
+      currentAppState.setActiveSurface('spaghetti')
+      await rerenderAppShell(root!)
+    })
+
+    const viewerSurface = container?.querySelector('.ViewportViewerSurface') as HTMLDivElement | null
+    expect(viewerSurface).not.toBeNull()
+
+    await act(async () => {
+      viewerSurface?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }))
+    })
+
+    expect(currentAppState.workspaceSelection.activeSurface).toBe('viewer')
+    expect(currentAppState.requestConsoleContextSync).toHaveBeenCalledWith('surface-clear')
+    expect(currentAppState.consoleContextSyncRequest?.reason).toBe('surface-clear')
+  })
+
+  it('does not request console root sync from a viewport click while sketch-plane pick is active', async () => {
+    ;({ container, root } = await renderAppShell())
+
+    await act(async () => {
+      currentAppState.setActiveSurface('spaghetti')
+      currentSpaghettiState = {
+        ...currentSpaghettiState,
+        sketchPlanePickSession: {
+          nodeId: 'node-sketch-1',
+          editorViewportId: 'editor-viewport-1',
+          shouldRestoreViewportWindowMode: false,
+          stage: 'pick',
+          gizmoMode: 'translate',
+          draftPlane: 'XY',
+          draftTransform: {
+            offsetMm: 0,
+            translation: { x: 0, y: 0, z: 0 },
+            rotationDeg: { x: 0, y: 0, z: 0 },
+            inPlaneRotationDeg: 0,
+          },
+        },
+      }
+      await rerenderAppShell(root!)
+    })
+
+    const viewerSurface = container?.querySelector('.ViewportViewerSurface') as HTMLDivElement | null
+    expect(viewerSurface).not.toBeNull()
+
+    await act(async () => {
+      viewerSurface?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }))
+    })
+
+    expect(currentAppState.workspaceSelection.activeSurface).toBe('viewer')
+    expect(currentAppState.requestConsoleContextSync).not.toHaveBeenCalledWith('surface-clear')
+    expect(currentAppState.consoleContextSyncRequest?.reason).not.toBe('surface-clear')
   })
 
   it('keeps the floating browser wrapper width pinned when the browser is popped out', async () => {

@@ -100,6 +100,19 @@ describe('routeKeyboardInput', () => {
     })
   })
 
+  it('allows console capture while sketch-plane pick is active', () => {
+    const result = routeKeyboardInput({
+      event: createEvent('b'),
+      sketchPlanePickStage: 'pick',
+      allowFlatConsoleCapture: true,
+    })
+
+    expect(result).toEqual({
+      owner: 'flat-console',
+      decision: 'handle',
+    })
+  })
+
   it('does not let console capture win while reference transform is active', () => {
     const result = routeKeyboardInput({
       event: createEvent('b'),
@@ -124,6 +137,30 @@ describe('routeKeyboardInput', () => {
     expect(result).toEqual({
       owner: 'none',
       decision: 'ignore',
+    })
+  })
+
+  it('routes arrow up and down to staged console while a staged session is active', () => {
+    expect(
+      routeKeyboardInput({
+        event: createEvent('ArrowUp'),
+        stagedConsoleActive: true,
+        allowFlatConsoleCapture: true,
+      }),
+    ).toEqual({
+      owner: 'staged-console',
+      decision: 'handle',
+    })
+
+    expect(
+      routeKeyboardInput({
+        event: createEvent('ArrowDown'),
+        stagedConsoleActive: true,
+        allowFlatConsoleCapture: true,
+      }),
+    ).toEqual({
+      owner: 'staged-console',
+      decision: 'handle',
     })
   })
 })

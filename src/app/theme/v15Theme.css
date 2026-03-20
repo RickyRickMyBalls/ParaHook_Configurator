@@ -3279,7 +3279,7 @@ button.ParaSelectMenuAction:hover {
   min-height: 34px;
   padding: 6px 8px;
   display: grid;
-  grid-template-columns: minmax(120px, 280px) minmax(0, 1fr) auto;
+  grid-template-columns: minmax(180px, 360px) 8px minmax(0, 1fr) auto;
   align-items: center;
   gap: 8px;
   border-radius: 0;
@@ -3305,12 +3305,99 @@ button.ParaSelectMenuAction:hover {
 }
 
 .ConsoleBarSummary {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
   color: var(--console-text-dim-color, var(--v15-text-dim));
   font-size: 11px;
   font-weight: 700;
+  overflow: hidden;
+}
+
+.ConsoleBarDivider {
+  position: relative;
+  width: 8px;
+  align-self: stretch;
+  cursor: ew-resize;
+  touch-action: none;
+}
+
+.ConsoleBarDivider::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  left: 50%;
+  width: 1px;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  transition:
+    background 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.ConsoleBarDivider:hover::before,
+.ConsoleBarDivider:focus-visible::before {
+  background: rgba(124, 160, 255, 0.62);
+  box-shadow: 0 0 0 3px rgba(124, 160, 255, 0.12);
+}
+
+.ConsoleBarSummaryPrefix,
+.ConsoleBarSummaryChoicesViewport,
+.ConsoleBarSummaryChoices,
+.ConsoleBarSummaryChoice,
+.ConsoleBarSummaryBracket,
+.ConsoleBarSummarySeparator {
   white-space: nowrap;
+}
+
+.ConsoleBarSummaryPrefix {
+  flex: 0 1 auto;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+  color: var(--console-text-dim-color, var(--v15-text-dim));
+}
+
+.ConsoleBarSummaryChoicesViewport {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+
+.ConsoleBarSummaryChoicesViewport::-webkit-scrollbar {
+  display: none;
+}
+
+.ConsoleBarSummaryChoices {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: max-content;
+}
+
+.ConsoleBarSummaryBracket,
+.ConsoleBarSummarySeparator {
+  color: rgba(245, 248, 255, 0.48);
+}
+
+.ConsoleBarSummarySeparator {
+  margin-right: 4px;
+}
+
+.ConsoleBarSummaryChoice {
+  color: rgba(245, 248, 255, 0.6);
+  font-weight: 500;
+}
+
+.ConsoleBarSummaryChoice.isActive {
+  color: var(--console-layer-color-commands, var(--v15-console-commands));
+  font-weight: 700;
+  text-shadow: 0 0 12px rgba(124, 160, 255, 0.26);
 }
 
 .ConsoleInputRow {
@@ -4441,6 +4528,11 @@ button.ParaSelectMenuAction:hover {
   position: absolute;
   inset: 0;
   background: #0b0b0f;
+}
+
+.ViewportViewerSurface {
+  position: absolute;
+  inset: 0;
 }
 
 .ViewportCanvasLayer {

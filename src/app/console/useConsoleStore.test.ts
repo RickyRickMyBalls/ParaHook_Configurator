@@ -1,10 +1,13 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import {
   CONSOLE_DEFAULT_EXPANDED_HEIGHT,
+  CONSOLE_MAX_SUMMARY_WIDTH,
+  CONSOLE_MIN_SUMMARY_WIDTH,
   getConsoleToolsPreset,
   isConsoleEntryVisible,
   useConsoleStore,
 } from './useConsoleStore'
+import type { ConsoleAssistDescriptor } from './consoleTypes'
 
 describe('useConsoleStore', () => {
   beforeEach(() => {
@@ -66,6 +69,17 @@ describe('useConsoleStore', () => {
 
     expect(useConsoleStore.getState().isExpanded).toBe(false)
     expect(useConsoleStore.getState().expandedHeight).toBe(CONSOLE_DEFAULT_EXPANDED_HEIGHT)
+  })
+
+  it('clamps the console summary width into the supported range', () => {
+    useConsoleStore.getState().setSummaryWidth(40)
+    expect(useConsoleStore.getState().summaryWidth).toBe(CONSOLE_MIN_SUMMARY_WIDTH)
+
+    useConsoleStore.getState().setSummaryWidth(420)
+    expect(useConsoleStore.getState().summaryWidth).toBe(420)
+
+    useConsoleStore.getState().setSummaryWidth(2000)
+    expect(useConsoleStore.getState().summaryWidth).toBe(CONSOLE_MAX_SUMMARY_WIDTH)
   })
 
   it('clamps console opacity controls into a 0-100 range', () => {
@@ -215,6 +229,7 @@ describe('useConsoleStore', () => {
       createdAtMs: 1,
       timestampLabel: '00:00:01',
       layer: 'Browser' as const,
+      commandLineKind: null,
       text: 'Browser event',
       source: 'test',
       severity: 'info' as const,
@@ -260,6 +275,7 @@ describe('useConsoleStore', () => {
       createdAtMs: 1,
       timestampLabel: '00:00:01',
       layer: 'Browser' as const,
+      commandLineKind: null,
       text: 'Browser event',
       source: 'test',
       severity: 'info' as const,
@@ -273,5 +289,200 @@ describe('useConsoleStore', () => {
 
     expect(isConsoleEntryVisible(browserEntry, useConsoleStore.getState())).toBe(true)
     expect(isConsoleEntryVisible(viewEntry, useConsoleStore.getState())).toBe(false)
+  })
+
+  it('defaults command entries to system and preserves explicit command user entries', () => {
+    useConsoleStore.getState().appendEntry({
+      layer: 'Commands',
+      text: 'Help text',
+      source: 'console',
+      severity: 'info',
+    })
+    useConsoleStore.getState().appendEntry({
+      layer: 'Commands',
+      commandLineKind: 'user',
+      text: '> help',
+    })
+
+    expect(useConsoleStore.getState().entries[0]?.commandLineKind).toBe('system')
+    expect(useConsoleStore.getState().entries[1]?.commandLineKind).toBe('user')
+  })
+
+  it('prefills, cycles, and respects manual override for staged choices', () => {
+    useConsoleStore.getState().setStagedNavigationSession({
+      scopeId: 'graphSketchSelected',
+      breadcrumb: ['Select', 'Graph', 'graph_[1]', 'Sketch', 'sketch_[1]'],
+      selections: {
+        graphDocumentId: 'graph-1',
+        selectedNodeId: 'node-1',
+        sketchNodeId: 'node-1',
+      },
+      validChoices: [
+        {
+          canonicalToken: 'SKETCH PLANE',
+          aliases: ['SKETCHPLANE', 'SP'],
+          label: 'Sketch Plane',
+          kind: 'action',
+        },
+        {
+          canonicalToken: 'SKETCH DRAW',
+          aliases: ['SKETCHDRAW', 'SD'],
+          label: 'Sketch Draw',
+          kind: 'action',
+        },
+        {
+          canonicalToken: 'BACK',
+          aliases: ['B'],
+          label: 'Back',
+          kind: 'scope',
+        },
+      ],
+    })
+
+    expect(useConsoleStore.getState().inputText).toBe('Sketch Plane')
+    expect(useConsoleStore.getState().stagedChoiceIndex).toBe(0)
+    expect(useConsoleStore.getState().isStagedChoiceManualOverride).toBe(false)
+
+    useConsoleStore.getState().cycleStagedChoice('next')
+
+    expect(useConsoleStore.getState().inputText).toBe('Sketch Draw')
+    expect(useConsoleStore.getState().stagedChoiceIndex).toBe(1)
+    expect(useConsoleStore.getState().isStagedChoiceManualOverride).toBe(false)
+
+    useConsoleStore.getState().setInputText('B')
+
+    expect(useConsoleStore.getState().inputText).toBe('B')
+    expect(useConsoleStore.getState().stagedChoiceIndex).toBe(2)
+    expect(useConsoleStore.getState().isStagedChoiceManualOverride).toBe(false)
+
+    useConsoleStore.getState().setInputText('custom token')
+
+    expect(useConsoleStore.getState().isStagedChoiceManualOverride).toBe(true)
+    expect(useConsoleStore.getState().stagedChoiceIndex).toBe(0)
+  })
+
+  it('replaces staged assist prefill on the first seeded printable key', () => {
+    useConsoleStore.getState().setStagedNavigationSession({
+      scopeId: 'graphSelected',
+      breadcrumb: ['Select', 'Graph', 'graph_[1]'],
+      selections: {
+        graphDocumentId: 'graph-1',
+        selectedNodeId: null,
+        sketchNodeId: null,
+      },
+      validChoices: [
+        {
+          canonicalToken: 'SKETCH',
+          aliases: ['S'],
+          label: 'Sketch',
+          kind: 'scope',
+        },
+        {
+          canonicalToken: 'EXTRUDE',
+          aliases: ['E'],
+          label: 'Extrude',
+          kind: 'scope',
+        },
+      ],
+    })
+
+    expect(useConsoleStore.getState().inputText).toBe('Sketch')
+
+    useConsoleStore.getState().seedInputText('s')
+
+    expect(useConsoleStore.getState().inputText).toBe('s')
+    expect(useConsoleStore.getState().stagedChoiceIndex).toBe(0)
+    expect(useConsoleStore.getState().isStagedChoiceManualOverride).toBe(false)
+  })
+
+  it('prefills, cycles, and respects manual override for feature assist descriptors', () => {
+    const descriptor: ConsoleAssistDescriptor = {
+      label: 'Sketch Draw',
+      prefill: 'Line',
+      choices: [
+        { canonicalToken: 'LINE', aliases: ['L'], label: 'Line' },
+        { canonicalToken: 'PLINE', aliases: ['PL'], label: 'PLine' },
+        { canonicalToken: 'X', aliases: [], label: 'X' },
+      ],
+    }
+
+    useConsoleStore.getState().setFeatureAssistDescriptor(descriptor)
+
+    expect(useConsoleStore.getState().inputText).toBe('Line')
+    expect(useConsoleStore.getState().stagedChoiceIndex).toBe(0)
+    expect(useConsoleStore.getState().isStagedChoiceManualOverride).toBe(false)
+
+    useConsoleStore.getState().cycleStagedChoice('next')
+
+    expect(useConsoleStore.getState().inputText).toBe('PLine')
+    expect(useConsoleStore.getState().stagedChoiceIndex).toBe(1)
+
+    useConsoleStore.getState().setInputText('custom token')
+
+    expect(useConsoleStore.getState().isStagedChoiceManualOverride).toBe(true)
+
+    useConsoleStore.getState().setFeatureAssistDescriptor(null)
+
+    expect(useConsoleStore.getState().inputText).toBe('custom token')
+    expect(useConsoleStore.getState().stagedChoiceIndex).toBeNull()
+  })
+
+  it('clears stale feature-assist prefill when the descriptor disappears', () => {
+    const descriptor: ConsoleAssistDescriptor = {
+      label: 'Sketch Draw',
+      prefill: 'Line',
+      choices: [
+        { canonicalToken: 'LINE', aliases: ['L'], label: 'Line' },
+        { canonicalToken: 'PLINE', aliases: ['PL'], label: 'PLine' },
+        { canonicalToken: 'X', aliases: [], label: 'X' },
+      ],
+    }
+
+    useConsoleStore.getState().setFeatureAssistDescriptor(descriptor)
+    expect(useConsoleStore.getState().inputText).toBe('Line')
+
+    useConsoleStore.getState().setFeatureAssistDescriptor(null)
+
+    expect(useConsoleStore.getState().inputText).toBe('')
+    expect(useConsoleStore.getState().stagedChoiceIndex).toBeNull()
+  })
+
+  it('restores feature assist after staged navigation clears', () => {
+    const descriptor: ConsoleAssistDescriptor = {
+      label: 'Sketch Plane',
+      prefill: 'XY',
+      choices: [
+        { canonicalToken: 'XY', aliases: [], label: 'XY' },
+        { canonicalToken: 'XZ', aliases: [], label: 'XZ' },
+        { canonicalToken: 'YZ', aliases: [], label: 'YZ' },
+      ],
+    }
+
+    useConsoleStore.getState().setFeatureAssistDescriptor(descriptor)
+    useConsoleStore.getState().setStagedNavigationSession({
+      scopeId: 'graphSelected',
+      breadcrumb: ['Select', 'Graph', 'graph_[1]'],
+      selections: {
+        graphDocumentId: 'graph-1',
+        selectedNodeId: null,
+        sketchNodeId: null,
+      },
+      validChoices: [
+        {
+          canonicalToken: 'SKETCH',
+          aliases: ['S'],
+          label: 'Sketch',
+          kind: 'scope',
+        },
+      ],
+    })
+
+    expect(useConsoleStore.getState().inputText).toBe('Sketch')
+
+    useConsoleStore.getState().clearStagedNavigationSession()
+
+    expect(useConsoleStore.getState().inputText).toBe('XY')
+    expect(useConsoleStore.getState().stagedChoiceIndex).toBe(0)
+    expect(useConsoleStore.getState().isStagedChoiceManualOverride).toBe(false)
   })
 })

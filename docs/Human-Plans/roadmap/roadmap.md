@@ -4,6 +4,10 @@
 ### Fold Hack 3
 #### FOld Hack 4
 ###### Doc History
+105. 2026-03-20 01:16: Added `[4.1N] Feature Session Prompt Descriptors` to the live console roadmap as the shipped follow-on that extends the assisted staged-choice seam into active feature sessions, so `Sketch Plane` and idle `Sketch Draw` now publish shared prompt/choice/prefill descriptors instead of relying on one-off input seeding
+104. 2026-03-20 00:58: Added `vi1` and `vi2` into the live console roadmap as shipped follow-ons `[4.1L] Command Transcript Sublayers` and `[4.1M] Staged Choice Prefill And Arrow Cycling`, so the console lane now has a real roadmap home for the `Commands.User / Commands.System` transcript split and the staged-choice prefill/cycling refinement instead of leaving them only as bottom-of-file architecture vision notes
+103. 2026-03-20 00:50: Marked `[3.2B-S4] Sketch Return One Level` complete after adding one shared sketch-local back-step seam in the store, routing sketch `Escape` and console `back` through it, and exposing visible sketch-plane / sketch-draw toolbar `Back` actions without widening the work into whole-app navigation architecture
+102. 2026-03-20 00:44: Added a new `[3.2B-S1]` through `[3.2B-S5]` sketch-session cleanup family under `[3.2B] Sketch Operation Authoring`, giving the shipped sketch hierarchy/session cleanup work and the remaining return-level / toolbar-console alignment follow-ons a real roadmap home instead of leaving them only as local `Sketch.md` architecture labels
 101. 2026-03-19 18:33: Marked `[4.1J4] Cleanup And Hardening` complete after collapsing reference-transform `Escape` exit onto one real session seam, proving flat console capture resumes predictably after higher-priority sessions end, and adding the extra routing regressions that guard against accidental precedence drift for the hardened command/input model
 100. 2026-03-19 18:27: Marked `[4.1J3] Session Migration` complete after moving the busiest conflicting sessions onto the shared routing seam, preventing staged/flat console capture from reclaiming printable token input while higher-priority feature sessions are active, and proving the migrated precedence with targeted console/input-routing regressions
 99. 2026-03-19 18:15: Marked `[4.1J2] Shared Input Routing Seam` complete after adding one shared keyboard owner-selection seam, routing the first real precedence checks through it, and wiring console capture, sketch-plane, sketch-draw, and reference-transform listeners through the same `owner + decision` contract without pulling broader workspace-selection coordination into the phase
@@ -188,6 +192,11 @@ Status legend:
 - [~] `[3.2]` `Foundational Geometry Node System`
 - [x] `[3.2A]` `Data Types And Sketch Foundation`
 - [x] `[3.2B]` `Sketch Operation Authoring`
+- [x] `[3.2B-S1]` `Sketch Session Hierarchy Model`
+- [x] `[3.2B-S2]` `SketchPlane Session Cleanup`
+- [x] `[3.2B-S3]` `SketchDraw Session Cleanup`
+- [x] `[3.2B-S4]` `Sketch Return One Level`
+- [ ] `[3.2B-S5]` `Sketch Toolbar / Console Command Alignment`
 - [x] `[3.2C]` `Extrude Foundation`
 - [ ] `[3.2D]` `Loft Foundation`
 - [ ] `[3.3]` `Wire UX And Flow Readability`
@@ -217,6 +226,10 @@ Status legend:
 - [x] `[4.1J2]` `Shared Input Routing Seam`
 - [x] `[4.1J3]` `Session Migration`
 - [x] `[4.1J4]` `Cleanup And Hardening`
+- [x] `[4.1K]` `Surface-Driven Console Context Sync`
+- [x] `[4.1L]` `Command Transcript Sublayers`
+- [x] `[4.1M]` `Staged Choice Prefill And Arrow Cycling`
+- [x] `[4.1N]` `Feature Session Prompt Descriptors`
 
 ### Lane [5] - `Control, Build, And Workspace Systems`
 
@@ -1459,6 +1472,71 @@ CheckList:
 - [ ] add richer snapping/inference aids for sketch drawing
 - [ ] keep committed sketch components graph/store-owned while temporary interaction remains viewer-owned
 
+#### [x] `[3.2B-S1]` - `Sketch Session Hierarchy Model`
+
+Summary:
+- define the selected sketch node as the stable parent scope for sketch-local sessions
+- make `SketchPlane` and `SketchDraw` read as explicit child session levels instead of detached one-off modes
+- lock the named hierarchy so later `Esc`, prompt, and toolbar/console cleanup work can target stable levels
+
+CheckList:
+- [x] keep the selected sketch node as the stable parent scope
+- [x] define `SketchPlane` as `Plane Selection -> Adjust`
+- [x] define `SketchDraw` as `Session Idle -> Tool Selected -> Draft Active`
+- [x] remove the fake default-tool assumption for representing an open draw session
+
+#### [x] `[3.2B-S2]` - `SketchPlane Session Cleanup`
+
+Summary:
+- clean up `SketchPlane` so it reads like one session with two depths
+- keep plane selection, adjust, cancel, and console prompt behavior aligned across the store, overlay, and console
+- preserve camera-adjust compatibility while the active sketch-plane command surface stays alive
+
+CheckList:
+- [x] enter `SketchPlane` at `Plane Selection`
+- [x] let `XY / XZ / YZ` advance into `Adjust`
+- [x] let `Esc` from `Adjust` return to `Plane Selection`
+- [x] keep cancel from `Plane Selection` restoring the selected sketch-node scope
+
+#### [x] `[3.2B-S3]` - `SketchDraw Session Cleanup`
+
+Summary:
+- clean up `SketchDraw` so the console and overlay describe the explicit idle/tool/draft hierarchy honestly
+- keep `SketchDraw` durable instead of falling out of the session on extra `Esc`
+- preserve explicit exit on `x` or the close button
+
+CheckList:
+- [x] enter `SketchDraw` at `Session Idle`
+- [x] print an idle-session prompt instead of `Sketch Draw started`
+- [x] let `Esc` step back `Draft Active -> Tool Selected -> Session Idle`
+- [x] keep idle `Esc` inside `SketchDraw`
+
+#### [x] `[3.2B-S4]` - `Sketch Return One Level`
+
+Summary:
+- unify one-level return behavior across sketch surfaces instead of continuing to hand-code unrelated `Esc` branches
+- make `Esc`, visible `Back`, and toolbar back/cancel actions call the same underlying one-level-return behavior where appropriate
+- keep full close/exit actions like `X` distinct from one-level return
+
+CheckList:
+- [x] expose one shared sketch-local return-one-level seam
+- [x] route keyboard `Esc` through that seam
+- [x] route console `Back` through that seam
+- [x] route toolbar back/cancel actions through that seam when they mean one-level return
+
+#### [ ] `[3.2B-S5]` - `Sketch Toolbar / Console Command Alignment`
+
+Summary:
+- make the sketch toolbar hierarchy, console command hierarchy, and sketch session hierarchy describe the same structure
+- keep toolbar sections as visible command groups instead of letting toolbar clicks and console tokens grow separate behavior
+- reuse the same sketch-session verbs underneath both surfaces
+
+CheckList:
+- [ ] map toolbar parent surfaces like `Sketch Plane` and `Sketch Draw` to command scopes
+- [ ] map toolbar sections to command groups
+- [ ] map toolbar actions and console tokens to the same underlying sketch-session verbs
+- [ ] keep toolbar and console prompt/state reads aligned with the active sketch session level
+
 ### [3.2C] [x] - `Extrude Foundation`
 
 Summary:
@@ -1573,7 +1651,11 @@ Expected outcome:
 Summary:
 - the app-wide `Console` is now real as a shared workspace feedback surface instead of debug text being stranded inside local tools
 - shipped work now covers the bottom collapsed row, the expanded transcript shell, layered feedback lines, console appearance/tools controls, the first alternate presentation modes, the hybrid command-capture follow-on, the first staged graph/sketch command tree, and the input-ownership audit
-- the remaining `4.1` work is no longer command entry itself; it is now the later result UX, inspector bridge, and hotkey-customization follow-through
+- the remaining `4.1` work is now:
+  - later result UX
+  - inspector bridge
+  - hotkey customization
+  - surface-driven console context sync on top of the shared workspace-selection seams from `[5.1F]`
 
 CheckList:
 
@@ -1712,6 +1794,47 @@ CheckList:
 - a narrower reserved immediate-key set outside the typed-first path
 - transcript/history visibility for the actual typed token or alias instead of silent shortcut-only side paths
 
+### [4.1K] [x] - `Surface-Driven Console Context Sync`
+
+- keep UI workspace context and staged console scope visibly synchronized
+- clicking `Spaghetti Editor` should move the console into the nearest graph scope when a graph is active
+- clicking a graph-family node like `Sketch` should move the console into the matching node-family scope without auto-running child commands
+- clicking away from the active authoring surface should return the console to the nearest valid parent/root context
+- `Browser` and `Spaghetti` interactions should produce the same console scope when they resolve to the same shared target
+- this phase should consume shared `activeSurface` and `selectedTarget` truth from `[5.1F]` instead of inventing panel-local command state again
+
+### [4.1L] [x] - `Command Transcript Sublayers`
+
+- split command transcript meaning into:
+  - `Commands.User`
+  - `Commands.System`
+- keep the `Commands` family filter behaving as one command-layer family
+- make it easier to visually distinguish what the user typed from what the console returned without inventing a second transcript product
+
+### [4.1M] [x] - `Staged Choice Prefill And Arrow Cycling`
+
+- prefill the first valid staged choice directly into the input row
+- highlight the current targeted staged choice in the bottom summary strip
+- let `ArrowUp` and `ArrowDown` cycle sibling staged choices while preserving manual typing override
+- keep this as a narrow staged-navigation usability refinement instead of turning the console into a chooser-only palette
+
+### [4.1N] [x] - `Feature Session Prompt Descriptors`
+
+- extend the assisted prompt seam beyond staged navigation so active feature sessions can publish:
+  - `label`
+  - `choices`
+  - `prefill`
+- keep staged navigation higher priority, but let the console fall back to the active feature-session descriptor when no staged session is alive
+- first shipped consumers are:
+  - `Sketch Plane`
+  - idle `Sketch Draw`
+- the console now uses that shared descriptor seam for:
+  - prompt rendering
+  - input prefill
+  - targeted choice tracking
+  - `ArrowUp / ArrowDown` choice cycling
+  - manual typing override
+
 # [5] `Control, Build, And Workspace Systems`
 
 Summary:
@@ -1836,7 +1959,7 @@ CheckList:
   - do not turn it into detached/browser pop-out implementation
 
 ### [5.1] [~] - `VR / SP` - `Workspace Modes`
-
+#### Header
 Summary:
 - later lane for the shared hybrid workspace system:
   - `Windowed` plus `Tiled` presentation
@@ -1844,9 +1967,12 @@ Summary:
   - pane-tree layout
   - divider authoring
   - hybrid tiled/windowed tool-surface hosting
+  - canonical workspace selection and active-surface truth
+  - shared cross-surface intent routing for major workspace domains
   - persistence and saved workspace modes
   - later multi-window surface growth and detached/browser pop-out on top of the same shared host model
 - this is now the real roadmap home for the broader workspace-mode architecture in `docs/Human-Plans/Architecture/Workspace-Modes.md`
+- this is also the right family for the newer canonical workspace-selection / surface-activation seam now described in `docs/Human-Plans/Architecture/Console.md`, because that work is broader than console routing and should unify `Console`, `Browser`, `Spaghetti Editor`, and `Viewer` as workspace surfaces over shared truth
 - the older smaller workspace-presentation cleanup wave stays recorded here as already-landed groundwork, but no longer owns the future execution numbering
 
 CheckList:
@@ -1863,6 +1989,12 @@ CheckList:
   - `Console`
   - `Gizmo/View`
   - `Spaghetti Editor`
+- [x] lock one canonical workspace-selection seam for:
+  - `activeGraphDocumentId`
+  - `activeEditorViewportId`
+  - `selectedTarget`
+  - `activeSurface`
+- [x] lock one canonical cross-surface intent layer so `Console`, `Browser`, `Spaghetti Editor`, and `Viewer` can produce the same outcomes through the same intents instead of panel-local glue
 - [ ] lock persistence, saved workspace-mode follow-up, and migration off the old special-case Spaghetti split path
 - [ ] keep later multi-window `Spaghetti Editor` growth attached to this same workspace family so in-app duplicate editor surfaces and detached/browser pop-out reuse the shared surface-instance model instead of bypassing it
 - [ ] expand later browser `Pop-Out` beyond `Console` so any supported viewport/tool surface can move into a new browser window on top of the same shared workspace host model
@@ -1878,6 +2010,7 @@ Planned subphase family:
 - `[5.1C] [ ] - Hybrid Tool Surface Hosting And Floating-Tiled Transitions`
 - `[5.1D] [ ] - Workspace Persistence, Saved Modes, And Migration`
 - `[5.1E] [ ] - Multi-Window Surfaces And Detached Browser Pop-Out`
+- `[5.1F] [x] - Workspace Selection, Surface Activation, And Canonical Intents`
 
 ### [5.2] [ ] - `DR / JK` - `Control Viz And Graph-Driven Control Surfaces`
 

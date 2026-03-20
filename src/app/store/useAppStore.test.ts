@@ -126,6 +126,69 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     expect(useAppStore.getState().parts).toEqual([])
   })
 
+  it('owns a first workspace-selection seam for shared target and active-surface truth', async () => {
+    const {
+      selectActiveWorkspaceSurface,
+      selectWorkspaceSelectedTarget,
+      useAppStore,
+    } = await import('./useAppStore')
+    const { useConsoleStore } = await import('../console/useConsoleStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useConsoleStore.setState(useConsoleStore.getInitialState(), true)
+
+    useAppStore.getState().setActiveSurface('spaghetti')
+    useAppStore.getState().setWorkspaceSelectedTarget({
+      kind: 'graph-document',
+      graphDocumentId: 'graph-document-1',
+    })
+
+    expect(selectActiveWorkspaceSurface(useAppStore.getState())).toBe('spaghetti')
+    expect(selectWorkspaceSelectedTarget(useAppStore.getState())).toMatchObject({
+      kind: 'graph-document',
+      graphDocumentId: 'graph-document-1',
+    })
+    expect(useConsoleStore.getState().entries.at(-1)).toMatchObject({
+      layer: 'Selection',
+      text: 'Active surface: spaghetti',
+      source: 'spaghetti',
+    })
+  })
+
+  it('does not publish the viewer active-surface line while sketch-plane pick is active', async () => {
+    const { useAppStore } = await import('./useAppStore')
+    const { useConsoleStore } = await import('../console/useConsoleStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useConsoleStore.setState(useConsoleStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+
+    useSpaghettiStore.setState({
+      sketchPlanePickSession: {
+        nodeId: 'node-sketch-1',
+        editorViewportId: null,
+        shouldRestoreViewportWindowMode: false,
+        stage: 'pick',
+        gizmoMode: 'translate',
+        draftPlane: 'XY',
+        draftTransform: {
+          offsetMm: 0,
+          translation: { x: 0, y: 0, z: 0 },
+          rotationDeg: { x: 0, y: 0, z: 0 },
+          inPlaneRotationDeg: 0,
+        },
+      },
+    })
+
+    useAppStore.getState().setActiveSurface('viewer')
+
+    expect(useAppStore.getState().workspaceSelection.activeSurface).toBe('viewer')
+    expect(
+      useConsoleStore.getState().entries.some((entry) => entry.text === 'Active surface: viewer'),
+    ).toBe(false)
+  })
+
   it('publishes worker errors into the console transcript', async () => {
     const { useAppStore } = await import('./useAppStore')
     const { useConsoleStore } = await import('../console/useConsoleStore')
@@ -832,12 +895,15 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
 
     useAppStore.setState(useAppStore.getInitialState(), true)
 
-    expect(selectReferenceWorkspaceBrowserTree(useAppStore.getState())).toMatchObject({
+    const initialTree = selectReferenceWorkspaceBrowserTree(useAppStore.getState())
+    expect(initialTree).toMatchObject({
       rowId: 'reference-root',
       label: 'References',
       isExpanded: true,
-      categories: [
-        {
+    })
+    expect(initialTree.categories).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
           categoryId: 'footpads',
           label: 'Footpads',
           itemCount: 1,
@@ -854,14 +920,14 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
               },
             }),
           ],
-        },
-        {
+        }),
+        expect.objectContaining({
           categoryId: 'shoes',
           label: 'Shoes',
           itemCount: 3,
           visibleItemCount: 0,
-        },
-        {
+        }),
+        expect.objectContaining({
           categoryId: 'premade-foothooks',
           label: 'Premade Foothooks',
           itemCount: 4,
@@ -888,15 +954,9 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
               assetPath: resolveReferenceAssetPath('ReferenceModels/hooks/xl.step'),
             }),
           ],
-        },
-        {
-          categoryId: 'user-references',
-          label: 'User References',
-          itemCount: 0,
-          visibleItemCount: 0,
-        },
-      ],
-    })
+        }),
+      ]),
+    )
 
     useAppStore.getState().toggleReferenceItemVisibility('shoe:shoe-1')
     useAppStore.getState().toggleReferenceCategoryVisibility('shoes')

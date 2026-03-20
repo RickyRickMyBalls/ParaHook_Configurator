@@ -122,8 +122,22 @@ describe('SpaghettiPanel', () => {
     }
 
     currentAppState = {
+      workspaceSelection: {
+        selectedTarget: null,
+        activeSurface: 'spaghetti',
+      },
       buildPolicy: 'manual',
       setSpaghettiGraph: vi.fn(),
+      setWorkspaceSelectedTarget: vi.fn((target: unknown) => {
+        currentAppState = {
+          ...currentAppState,
+          workspaceSelection: {
+            ...currentAppState.workspaceSelection,
+            selectedTarget: target,
+          },
+        }
+      }),
+      requestConsoleContextSync: vi.fn(),
       compileGraphDocument: vi.fn(),
       requestGraphDocumentBuild: vi.fn(),
     }
@@ -305,6 +319,44 @@ describe('SpaghettiPanel', () => {
     ;({ container, root } = await renderSpaghettiPanel())
 
     expect(container?.textContent).toContain('Spaghetti Editor Canvas expanded node-1 node-2 7')
+  })
+
+  it('clears the focused node when shared selection returns to the graph level', async () => {
+    ;({ container, root } = await renderSpaghettiPanel())
+
+    expect(container?.textContent).toContain('Spaghetti Editor Canvas expanded node-1 no-fit 0')
+
+    currentSpaghettiState = {
+      ...currentSpaghettiState,
+      selectedNodeId: null,
+    }
+
+    await act(async () => {
+      root?.render(<SpaghettiPanel editorViewportId="editor-viewport-1" />)
+    })
+
+    expect(container?.textContent).toContain('Spaghetti Editor Canvas expanded no-focus no-fit 0')
+  })
+
+  it('syncs spaghetti node clicks into the shared workspace target on the first change', async () => {
+    ;({ container, root } = await renderSpaghettiPanel())
+
+    currentSpaghettiState = {
+      ...currentSpaghettiState,
+      selectedNodeId: 'node-2',
+    }
+
+    await act(async () => {
+      root?.render(<SpaghettiPanel editorViewportId="editor-viewport-1" />)
+    })
+
+    expect(currentAppState.workspaceSelection.selectedTarget).toEqual({
+      kind: 'graph-node',
+      graphDocumentId: 'graph-document-1',
+      nodeId: 'node-2',
+    })
+    expect(currentAppState.requestConsoleContextSync).toHaveBeenCalledWith('target-selection')
+    expect(container?.textContent).toContain('Spaghetti Editor Canvas expanded node-2 no-fit 0')
   })
 
   it('keeps the focus node row outside the scrollable toolbar block', async () => {

@@ -65,8 +65,6 @@ type WorkspaceSplitMenuState = {
   scope: 'floating-titlebar' | 'divider'
 }
 
-type ActiveFloatingShell = 'spaghetti' | 'browser' | null
-
 const initialFloatingPosition: FloatingPosition = defaultViewportPosition
 const initialFloatingSize: FloatingSize = defaultViewportSize
 
@@ -310,7 +308,11 @@ function SpaghettiWindowTitleBar(props: {
 
 export function AppShell() {
   const activeEditorViewport = useSpaghettiStore(selectActiveEditorViewport)
+  const sketchPlanePickSession = useSpaghettiStore((state) => state.sketchPlanePickSession ?? null)
   const floatingShellActivationRequest = useAppStore((state) => state.floatingShellActivationRequest)
+  const workspaceActiveSurface = useAppStore((state) => state.workspaceSelection.activeSurface)
+  const setActiveSurface = useAppStore((state) => state.setActiveSurface)
+  const requestConsoleContextSync = useAppStore((state) => state.requestConsoleContextSync)
   const setActiveEditorViewportId = useSpaghettiStore((state) => state.setActiveEditorViewportId)
   const setEditorViewportWindowMode = useSpaghettiStore((state) => state.setEditorViewportWindowMode)
   const setEditorViewportHeaderCollapsed = useSpaghettiStore(
@@ -374,7 +376,7 @@ export function AppShell() {
   const [headerToggleRevisionByViewportId, setHeaderToggleRevisionByViewportId] = useState<
     Record<string, number>
   >({})
-  const [activeFloatingShell, setActiveFloatingShell] = useState<ActiveFloatingShell>(null)
+  const [, setActiveFloatingShell] = useState<'spaghetti' | 'browser' | null>(null)
   const [workspaceSplitMenu, setWorkspaceSplitMenu] = useState<WorkspaceSplitMenuState | null>(null)
   const lastHandledFloatingShellActivationSeqRef = useRef(0)
   const floatingPosRef = useRef<FloatingPosition>(initialFloatingPosition)
@@ -951,16 +953,20 @@ export function AppShell() {
   }, [isBottomSplitDockPreviewActive, showFloatingShell])
 
   useEffect(() => {
-    if (!showFloatingShell && activeFloatingShell === 'spaghetti') {
+    if (!showFloatingShell && workspaceActiveSurface === 'spaghetti') {
       setActiveFloatingShell(null)
+      setActiveSurface(null)
+      requestConsoleContextSync('surface-clear')
     }
-  }, [activeFloatingShell, showFloatingShell])
+  }, [requestConsoleContextSync, setActiveSurface, showFloatingShell, workspaceActiveSurface])
 
   useEffect(() => {
-    if (!isBrowserFloating && activeFloatingShell === 'browser') {
+    if (!isBrowserFloating && workspaceActiveSurface === 'browser') {
       setActiveFloatingShell(null)
+      setActiveSurface(null)
+      requestConsoleContextSync('surface-clear')
     }
-  }, [activeFloatingShell, isBrowserFloating])
+  }, [isBrowserFloating, requestConsoleContextSync, setActiveSurface, workspaceActiveSurface])
 
   useEffect(() => {
     if (
@@ -973,13 +979,15 @@ export function AppShell() {
     if (floatingShellActivationRequest.target === 'spaghetti') {
       if (showFloatingShell) {
         setActiveFloatingShell('spaghetti')
+        setActiveSurface('spaghetti')
       }
       return
     }
     if (isBrowserFloating) {
       setActiveFloatingShell('browser')
+      setActiveSurface('browser')
     }
-  }, [floatingShellActivationRequest, isBrowserFloating, showFloatingShell])
+  }, [floatingShellActivationRequest, isBrowserFloating, setActiveSurface, showFloatingShell])
 
   useEffect(() => {
     const handlePointerDown = (event: PointerEvent) => {
@@ -987,18 +995,23 @@ export function AppShell() {
       if (
         target instanceof Element &&
         (target.closest('.SpaghettiFloatingWindow') !== null ||
-          target.closest('.BrowserFloatingWindow') !== null)
+          target.closest('.BrowserFloatingWindow') !== null ||
+          target.closest('.ViewportViewerSurface') !== null)
       ) {
         return
       }
-      setActiveFloatingShell(null)
+      if (workspaceActiveSurface === 'spaghetti' || workspaceActiveSurface === 'browser') {
+        setActiveFloatingShell(null)
+        setActiveSurface(null)
+        requestConsoleContextSync('surface-clear')
+      }
     }
 
     window.addEventListener('pointerdown', handlePointerDown)
     return () => {
       window.removeEventListener('pointerdown', handlePointerDown)
     }
-  }, [])
+  }, [requestConsoleContextSync, setActiveSurface, workspaceActiveSurface])
 
   useEffect(() => {
     if (
@@ -1749,11 +1762,28 @@ export function AppShell() {
 
   const handleActivateSpaghettiFloatingWindow = useCallback(() => {
     setActiveFloatingShell('spaghetti')
-  }, [])
+    setActiveSurface('spaghetti')
+    requestConsoleContextSync('surface-activation')
+  }, [requestConsoleContextSync, setActiveSurface])
+
+  const handleActivateSpaghettiSurface = useCallback(() => {
+    setActiveSurface('spaghetti')
+    requestConsoleContextSync('surface-activation')
+  }, [requestConsoleContextSync, setActiveSurface])
+
+  const handleActivateViewerSurface = useCallback(() => {
+    setActiveFloatingShell(null)
+    setActiveSurface('viewer')
+    if (sketchPlanePickSession !== null) {
+      return
+    }
+    requestConsoleContextSync('surface-clear')
+  }, [requestConsoleContextSync, setActiveSurface, sketchPlanePickSession])
 
   const handleActivateBrowserFloatingWindow = useCallback(() => {
     setActiveFloatingShell('browser')
-  }, [])
+    setActiveSurface('browser')
+  }, [setActiveSurface])
 
   const splitLayoutStyle = useMemo(
     () => ({
@@ -1969,6 +1999,7 @@ export function AppShell() {
                 {showMeatballDock && activeEditorViewport !== null ? (
                   <div
                     className="SpaghettiMeatballHost SpaghettiWindowShell"
+                    onPointerDownCapture={handleActivateSpaghettiSurface}
                     style={getWindowAppearanceStyle(activeWindowAppearance)}
                   >
                     <SpaghettiWindowTitleBar
@@ -2054,7 +2085,9 @@ export function AppShell() {
             style={splitLayoutStyle}
           >
             <div className="ViewportSplitPane ViewportSplitPane--viewer">
-              <ViewerHost />
+              <div className="ViewportViewerSurface" onPointerDownCapture={handleActivateViewerSurface}>
+                <ViewerHost />
+              </div>
               <ViewportOverlay />
             </div>
             <div className="ViewportSplitDividerShell">
@@ -2071,6 +2104,7 @@ export function AppShell() {
             <div className="ViewportSplitPane ViewportSplitPane--editor">
               <div
                 className="SpaghettiSplitWindow SpaghettiWindowShell"
+                onPointerDownCapture={handleActivateSpaghettiSurface}
                 style={getWindowAppearanceStyle(activeWindowAppearance)}
               >
                 <SpaghettiWindowTitleBar
@@ -2120,7 +2154,9 @@ export function AppShell() {
           </div>
         ) : (
           <>
-            <ViewerHost />
+            <div className="ViewportViewerSurface" onPointerDownCapture={handleActivateViewerSurface}>
+              <ViewerHost />
+            </div>
             {showFloatingShell && isBottomSplitDockPreviewActive ? (
               <div
                 className={`ViewportBottomSplitDockGhost ${
@@ -2145,8 +2181,9 @@ export function AppShell() {
                   : activeWindowMode === 'collapsed'
                     ? 'isCollapsed'
                     : ''
-              } ${activeFloatingShell === 'spaghetti' ? 'isActiveWindow' : ''}`}
+              } ${workspaceActiveSurface === 'spaghetti' ? 'isActiveWindow' : ''}`}
               onPointerDown={handleActivateSpaghettiFloatingWindow}
+              onPointerDownCapture={handleActivateSpaghettiSurface}
               style={{
                 left:
                   activeWindowMode === 'maximized' ? '0px' : `${activeEditorViewport.position.x}px`,
@@ -2223,7 +2260,7 @@ export function AppShell() {
           <div
             ref={browserFloatingWindowRef}
             className={`BrowserFloatingWindow ${isBrowserCollapsed ? 'isCollapsed' : ''} ${
-              activeFloatingShell === 'browser' ? 'isActiveWindow' : ''
+              workspaceActiveSurface === 'browser' ? 'isActiveWindow' : ''
             }`}
             onPointerDown={handleActivateBrowserFloatingWindow}
             style={{

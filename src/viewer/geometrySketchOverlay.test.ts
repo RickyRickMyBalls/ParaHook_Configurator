@@ -51,6 +51,7 @@ describe('geometrySketchOverlay helpers', () => {
         translation: { x: 0, y: 0, z: 0 },
         rotationDeg: { x: 0, y: 0, z: 0 },
       },
+      drawStage: null,
       activeTool: 'line',
       components: [
         {
@@ -115,6 +116,7 @@ describe('geometrySketchOverlay helpers', () => {
         translation: { x: 0, y: 0, z: 0 },
         rotationDeg: { x: 0, y: 0, z: 0 },
       },
+      drawStage: 'draftActive',
       activeTool: 'pline',
       components: [],
       profiles: [],

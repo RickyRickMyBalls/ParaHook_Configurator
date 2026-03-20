@@ -165,7 +165,8 @@ describe('ViewportOverlay sketch session window', () => {
     expect(container.querySelector('button[aria-label="Line"]')).not.toBeNull()
     expect(container.querySelector('button[aria-label="PLine"]')).not.toBeNull()
     expect(container.textContent).toContain('Sketch Draw')
-    expect(container.textContent).toContain('Click the first point in the main viewport to start Line.')
+    expect(container.textContent).toContain('No Tool Selected')
+    expect(container.textContent).toContain('Choose a sketch tool to begin drawing in the main viewport.')
     expect(container.textContent).toContain('Review Profiles')
     expect(container.textContent).toContain('entities staged on this sketch')
   })
@@ -968,6 +969,124 @@ describe('ViewportOverlay sketch session window', () => {
     })
 
     expect(toolPanel?.style.height).toBe('')
+  })
+
+  it('uses Escape from adjust to return to plane selection without closing the sketch-plane session', async () => {
+    const { ViewportOverlay } = await import('./ViewportOverlay')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    await seedSketchPlanePickSession()
+
+    act(() => {
+      useSpaghettiStore.getState().setSketchPlanePickDraftPlane('XZ')
+      useSpaghettiStore.getState().setSketchPlanePickTranslationAxis('x', 24.5)
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewportOverlay />)
+    })
+
+    expect(container.textContent).toContain('Adjust Sketch Plane')
+
+    await act(async () => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
+      )
+    })
+
+    expect(useSpaghettiStore.getState().sketchPlanePickSession).toMatchObject({
+      stage: 'pick',
+      draftPlane: 'XZ',
+      draftTransform: {
+        translation: { x: 24.5, y: 0, z: 0 },
+      },
+    })
+    expect(container.textContent).toContain('Pick Origin Plane')
+    expect(container.textContent).toContain('Selecting Plane')
+  })
+
+  it('uses Escape in sketch draw to return one level without closing the draw session', async () => {
+    const { ViewportOverlay } = await import('./ViewportOverlay')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    await seedSketchSession()
+
+    act(() => {
+      useSpaghettiStore.getState().setGeometrySketchSessionTool('line')
+      useSpaghettiStore.getState().confirmGeometrySketchDrawPoint({ x: 0, y: 0 }, 'origin')
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewportOverlay />)
+    })
+
+    await act(async () => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
+      )
+    })
+
+    expect(useSpaghettiStore.getState().geometrySketchSession).toMatchObject({
+      mode: 'draw',
+      activeTool: 'line',
+      drawStage: 'toolSelected',
+    })
+
+    await act(async () => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
+      )
+    })
+
+    expect(useSpaghettiStore.getState().geometrySketchSession).toMatchObject({
+      mode: 'draw',
+      activeTool: null,
+      drawStage: 'sessionIdle',
+      drawDraft: null,
+    })
+    expect(container.textContent).toContain('No Tool Selected')
+  })
+
+  it('uses the sketch draw Back toolbar action to return one level', async () => {
+    const { ViewportOverlay } = await import('./ViewportOverlay')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    await seedSketchSession()
+
+    act(() => {
+      useSpaghettiStore.getState().setGeometrySketchSessionTool('line')
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewportOverlay />)
+    })
+
+    const backButton = Array.from(
+      container.querySelectorAll('.ViewportOverlayToolPanelTrailingActions button'),
+    ).find((button) => button.textContent?.trim() === 'Back') as HTMLButtonElement | undefined
+
+    expect(backButton).not.toBeUndefined()
+    expect(backButton?.disabled).toBe(false)
+
+    await act(async () => {
+      backButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useSpaghettiStore.getState().geometrySketchSession).toMatchObject({
+      mode: 'draw',
+      activeTool: null,
+      drawStage: 'sessionIdle',
+      drawDraft: null,
+    })
   })
 
   it('cycles the sketch-plane toolbar through collapsed, essentials, and expanded body states', async () => {

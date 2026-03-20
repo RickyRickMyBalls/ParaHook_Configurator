@@ -195,6 +195,10 @@ export function SpaghettiPanel({
   })
   const buildPolicy = useAppStore((state) => state.buildPolicy)
   const setSpaghettiGraph = useAppStore((state) => state.setSpaghettiGraph)
+  const workspaceSelectedTarget = useAppStore((state) => state.workspaceSelection.selectedTarget)
+  const workspaceActiveSurface = useAppStore((state) => state.workspaceSelection.activeSurface)
+  const setWorkspaceSelectedTarget = useAppStore((state) => state.setWorkspaceSelectedTarget)
+  const requestConsoleContextSync = useAppStore((state) => state.requestConsoleContextSync)
   const uiMessage = useSpaghettiStore((state) => state.uiMessage)
   const viewport = useSpaghettiStore((state) => selectEditorViewportById(state, editorViewportId))
   const graphDocumentsById = useSpaghettiStore((state) => state.graphDocumentsById)
@@ -424,10 +428,53 @@ export function SpaghettiPanel({
   ])
 
   useEffect(() => {
-    if (selectedNodeId !== null && availableNodeIds.has(selectedNodeId)) {
-      setFocusNodeId(selectedNodeId)
+    if (selectedNodeId === null) {
+      setFocusNodeId(null)
+      return
     }
+    if (availableNodeIds.has(selectedNodeId)) {
+      setFocusNodeId(selectedNodeId)
+      return
+    }
+    setFocusNodeId(null)
   }, [availableNodeIds, selectedNodeId])
+
+  useEffect(() => {
+    if (graphDocumentId === null || workspaceActiveSurface !== 'spaghetti') {
+      return
+    }
+    const nextTarget =
+      selectedNodeId === null
+        ? {
+            kind: 'graph-document' as const,
+            graphDocumentId,
+          }
+        : {
+            kind: 'graph-node' as const,
+            graphDocumentId,
+            nodeId: selectedNodeId,
+          }
+
+    const isAlreadySynced =
+      workspaceSelectedTarget?.kind === nextTarget.kind &&
+      workspaceSelectedTarget.graphDocumentId === nextTarget.graphDocumentId &&
+      (workspaceSelectedTarget.kind !== 'graph-node' ||
+        workspaceSelectedTarget.nodeId === nextTarget.nodeId)
+
+    if (isAlreadySynced) {
+      return
+    }
+
+    setWorkspaceSelectedTarget(nextTarget)
+    requestConsoleContextSync('target-selection')
+  }, [
+    graphDocumentId,
+    requestConsoleContextSync,
+    selectedNodeId,
+    setWorkspaceSelectedTarget,
+    workspaceActiveSurface,
+    workspaceSelectedTarget,
+  ])
 
   useEffect(() => {
     if (editorViewportNodeFitRequest === null) {
@@ -450,8 +497,8 @@ export function SpaghettiPanel({
     if (focusNodeId !== null && availableNodeIds.has(focusNodeId)) {
       return
     }
-    setFocusNodeId(sortedNodes[0]?.nodeId ?? null)
-  }, [availableNodeIds, focusNodeId, sortedNodes])
+    setFocusNodeId(null)
+  }, [availableNodeIds, focusNodeId])
 
   useEffect(() => {
     const toolbar = toolbarScrollRef.current
@@ -710,6 +757,21 @@ export function SpaghettiPanel({
   const handleFocusNodeChange = (nextNodeId: string | null) => {
     setFocusNodeId(nextNodeId)
     setSelectedNodeId(nextNodeId)
+    if (graphDocumentId !== null) {
+      setWorkspaceSelectedTarget(
+        nextNodeId === null
+          ? {
+              kind: 'graph-document',
+              graphDocumentId,
+            }
+          : {
+              kind: 'graph-node',
+              graphDocumentId,
+              nodeId: nextNodeId,
+            },
+      )
+      requestConsoleContextSync('target-selection')
+    }
     setFitNodeRequest((current) => ({
       nodeId: nextNodeId,
       key: current.key + 1,

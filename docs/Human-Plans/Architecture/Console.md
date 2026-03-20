@@ -3,6 +3,12 @@
 ## Doc Header
 
 ### Doc History
+12. 2026-03-19 23:48: Updated the active `[4.1M]` console guidance from left/right cycling to up/down cycling, so staged choice assist now preserves normal caret movement while the app-wide staged-console keyboard path can still cycle sibling choices even before the input is focused
+11. 2026-03-19 23:34: Expanded `[4.1M]` staged-choice prefill and arrow cycling into an implementation-ready console spec, locking the first-pass input-prefill rules, bottom-row highlighted-choice read, left/right cycling behavior, free-typing override boundaries, and acceptance shape as one narrow staged-navigation refinement task
+10. 2026-03-19 23:26: Added a new bottom-of-file vision note for staged-choice prefill and left/right option cycling, so the console can expose the first valid choice directly in the input row, let `Enter` or `Space` advance faster, and visibly highlight/cycle the current choice set in the single-row summary area without replacing free typing
+9. 2026-03-19 23:12: Expanded the new `Command Transcript Sublayers` vision note into an implementation-ready spec, locking the first-pass `Commands.User` versus `Commands.System` entry model, ownership boundaries, filtering behavior, and acceptance shape as one narrow transcript refinement task
+8. 2026-03-19 23:08: Added a new bottom-of-file vision idea for splitting the `Commands` transcript layer into `Commands.User` and `Commands.System`, so future console scans can distinguish typed command input from returned prompts/results without inventing a separate logging product
+7. 2026-03-19 23:03: Added an explicit toolbar-to-console alignment rule, locking the direction that toolbar sections and their parent/child boxes should map to the same underlying command scopes, groups, and actions used by the console rather than becoming a second separate interaction model
 6. 2026-03-19 11:24: Locked the new `4.1H` hybrid command-capture phase so the console architecture now explicitly treats printable-key auto-capture as the follow-on direction after `4.1C`, keeps `/` as an optional focus affordance, makes `m / r / s` typed-first instead of silent immediate hotkeys in that phase, and tightens the routing/protected-field/transcript rules into a decision-complete implementation spec
 5. 2026-03-19 11:05: Added a concrete hybrid-input plan for the console, locking the direction that users should not need `/` to begin typing commands and describing how printable-key auto-capture, immediate shortcuts, and one shared command dispatcher should fit together without stealing focus from real text fields
 4. 2026-03-18 21:19: Expanded the console architecture with a larger long-term command-language vision, describing how the app-wide console could eventually support hierarchical navigation/action flows such as selecting graphs, entering node scope, finding or adding nodes, and later driving sketch-specific operations entirely from console input
@@ -620,6 +626,42 @@ Suggested invocation metadata:
 Important rule:
 - `line` typed in the console and a shortcut alias that resolves to `line` must hit the same underlying command/session action
 
+#### Toolbar Alignment Rule
+
+Toolbar surfaces should not become a second separate command product.
+
+If a feature has a visible toolbar made of parent/child boxes, sections, rows, or grouped controls, that visible hierarchy should map onto the same underlying command hierarchy the console uses.
+
+Recommended mapping:
+- toolbar surface
+  - command scope
+- toolbar section/group
+  - command group
+- toolbar button/row/action
+  - command or follow-up token
+
+Examples:
+- `Sketch Plane`
+  - scope
+- `Plane Selection`
+  - group
+- `XY / XZ / YZ`
+  - commands or valid follow-up tokens inside that scope
+- `Sketch Draw`
+  - scope
+- `Tool Selection`
+  - group
+- `Line / PLine`
+  - commands
+
+Important rules:
+- toolbar clicks and console typing should dispatch to the same underlying session verbs
+- do not let toolbar widgets own bespoke behavior that the console cannot also reach
+- do not let console commands own bespoke behavior that the toolbar cannot also reflect
+- the toolbar is the visible structured control surface
+- the console is the typed command-and-feedback surface
+- both should sit on one shared command/session model
+
 #### Suggested Routing Order
 
 When a keydown arrives, the router should decide in this order:
@@ -1124,7 +1166,7 @@ This section should reflect the real shipped command surface, not only the long-
 ## [x] > `Choose graph [1, 2, 3, ..., List]`
 ## [x] `1, 2, 3, ...`
 ### [x] > `Choose next [Sketch, Collapsed, Essentials, Expanded, References, Open, Build, Back]`
-### [x] `sketch` - alias: `s`
+### [x] `sketch` - alias: `s
 #### [x] > `Choose sketch [1, 2, 3, ..., Back]`
 #### [x] `1, 2, 3, ...`
 ##### [x] > `Choose next [Sketch Plane, Sketch Draw, Back]`
@@ -1437,6 +1479,7 @@ Because `Esc` is currently the clearest cross-system coordination pressure point
 #### [x] `q1` Decide whether printable typing should auto-enter the console when no real text field owns focus.
 
 ##### Suggestion
+- locked direction:
 - locked direction:
 - yes
 - do not require `/` as the only honest way to start typing
@@ -2458,7 +2501,7 @@ Keep these out of `4.1I2`:
   - the submitted token
   - the resolved breadcrumb
   - an action-result line such as:
-  - `Sketch Draw started`
+  - `Sketch Draw > [Line, PLine, X]`
 - do not immediately hide execution behind silent state changes
 
 ##### [x] `q7` Decide how single-choice auto-advance should behave inside the first executable slice.
@@ -2588,7 +2631,7 @@ At the final execution step, the transcript should show:
 - `[Commands] Select > Graph > graph_[1] > Sketch > sketch_[1] > Sketch Draw`
 
 3. action result
-- `[App] Sketch Draw started`
+- `[App] Sketch Draw > [Line, PLine, X]`
 
 This should make the staged path feel real and inspectable rather than invisible.
 
@@ -4127,8 +4170,242 @@ Reason:
 - it is the clearest cross-system pressure point
 - it already touches staged console, sketch plane pick, sketch draw, viewer, and transform behavior
 
-## Canonical Workspace Unification
+### [x] `4.1K` Surface-Driven Console Context Sync
 
+#### Questions / Decisions
+
+##### [x] `q1` Decide whether UI interaction should move the console into the matching staged scope.
+
+##### Suggestion
+- locked direction:
+- yes
+- clicking a surface or selected target should move the console into the nearest matching staged scope
+- this should be treated as context sync, not as a special shortcut hack
+- important rule:
+  - the handoff updates context
+  - the handoff does not auto-run the next deeper command
+
+##### [x] `q2` Decide which shared seams should drive console context handoff.
+
+##### Suggestion
+- locked direction:
+- console handoff should resolve from shared workspace truth:
+  - `activeSurface`
+  - `selectedTarget`
+  - current staged session state
+- do not derive console scope from panel-local assumptions in:
+  - `BrowserPanel`
+  - `SpaghettiPanel`
+  - `ConsoleDock`
+- important rule:
+  - the same selected target should resolve to the same console scope no matter which surface produced it
+
+##### [x] `q3` Decide what a plain `Spaghetti` surface click should do.
+
+##### Suggestion
+- locked direction:
+- clicking into `Spaghetti Editor` should move the console into the nearest stable graph-family scope
+- first target behavior:
+  - if an active graph document exists:
+    - enter `Graph > graph_[n]`
+  - if a graph-family node target is already selected:
+    - enter the matching node-family scope
+- do not leave the console at root if the workspace already has enough truth to enter a stable graph scope
+
+##### [x] `q4` Decide what a node click should do from either `Browser` or `Spaghetti`.
+
+##### Suggestion
+- locked direction:
+- clicking the same node target from either surface should produce the same console scope
+- examples:
+  - click `Sketch` node in `Spaghetti`
+    - console enters sketch scope
+  - click the same `Sketch` node in `Browser`
+    - console enters the same sketch scope
+- important rule:
+  - surface choice may affect `Selection` reporting
+  - surface choice should not create different staged command scopes for the same selected target
+
+##### [x] `q5` Decide what should happen when the user clicks away from the active authoring surface.
+
+##### Suggestion
+- locked direction:
+- clicking away should return the console to the nearest valid parent scope
+- first target behavior:
+  - leaving a node-family target returns to graph scope
+  - leaving graph-family authoring returns to root-ready scope if no active graph-family target remains
+- important rule:
+  - this should feel like backing out of context
+  - not like losing command state randomly
+
+##### [x] `q6` Decide whether surface-driven handoff is allowed to overwrite partially typed command text.
+
+##### Suggestion
+- locked direction:
+- do not silently discard partially typed command text
+- prefer:
+  - preserve the draft text when possible
+  - update staged scope, breadcrumb, and visible choices around it
+- if a handoff must clear draft text for correctness, it should be explicit and visibly reported
+
+##### [x] `q7` Decide what the console should report when UI-driven handoff occurs.
+
+##### Suggestion
+- locked direction:
+- the console should visibly report:
+  - active surface changes
+  - selected target changes
+  - resulting staged scope handoff
+- the transcript should make the state transition understandable, for example:
+  - `[Selection] Active surface: Spaghetti Editor`
+  - `[Selection] Selected target: Sketch`
+  - `[Commands] Graph > Sketch`
+- do not leave the user to infer the new command scope from prompt changes alone
+
+##### [x] `q8` Decide what the first implementation cut should prove.
+
+##### Suggestion
+- locked direction:
+- the first cut should prove:
+  - clicking `Spaghetti` with an active graph moves the console into graph scope
+  - clicking a `Sketch` node in `Spaghetti` moves the console into sketch scope
+  - clicking the same `Sketch` node in `Browser` moves the console into the same sketch scope
+  - clicking away backs the console out to the nearest valid parent/root
+- do not widen to every node family in the first cut
+
+### Implementation Spec
+
+Purpose:
+- keep the staged console visibly synchronized with workspace interaction
+
+#### Summary
+
+`4.1K` should make the `Console` follow workspace context instead of acting like a separate navigation universe.
+
+By this point:
+- `4.1J` already cleaned up input ownership
+- `5.1F` already established:
+  - shared `activeSurface`
+  - shared `selectedTarget`
+  - canonical workspace intents
+
+So `4.1K` should consume those seams and turn them into visible staged-console context handoff.
+
+This phase is working when:
+- clicking a surface reports what became active
+- clicking a target reports what became selected
+- the console enters the matching staged scope automatically
+- the next valid commands for that scope are immediately visible
+
+Important rule:
+- UI interaction should update command context
+- UI interaction should not auto-run the next deeper command
+
+#### Main Decision
+
+The main decision in `4.1K` is:
+
+- should the console remain mostly typed-only, or should it become context-aware and follow shared workspace state?
+
+Locked direction:
+- make the console context-aware
+- keep explicit command submission for the actual action
+
+#### First Implementation Cut
+
+The first cut should stay narrow:
+
+1. `Spaghetti` surface click
+- if an active graph exists:
+  - console enters `Graph > graph_[n]`
+
+2. `Sketch` node click in `Spaghetti`
+- console enters the matching sketch scope
+
+3. `Sketch` node click in `Browser`
+- console enters the same sketch scope
+
+4. click away / leave authoring context
+- console returns to the nearest valid parent/root scope
+
+Do not widen the first cut to every node family yet.
+
+#### Likely Integration Seams
+
+Primary seams:
+
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/store/useAppStore.ts`
+- `src/app/store/workspaceIntents.ts`
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/AppShell.tsx`
+- staged grammar / staged session utilities already in:
+  - `src/app/console/stagedNavigation.ts`
+
+Likely responsibilities:
+
+- shared workspace seams:
+  - remain the source of truth for:
+    - `activeSurface`
+    - `selectedTarget`
+- console handoff seam:
+  - maps shared workspace truth to nearest valid staged scope
+  - updates visible command choices
+  - reports the handoff in transcript/status output
+- surfaces:
+  - continue to publish surface activation and target selection through shared seams
+  - do not invent private console-only handoff logic
+
+#### First Implementation Steps
+
+`4.1K` should likely be completed in this order:
+
+1. add one console-context handoff seam above local console parsing
+2. map shared graph-first targets to the nearest staged scopes
+3. wire `Spaghetti` activation into graph-scope handoff
+4. wire `Browser` and `Spaghetti` node selection into the same node-family handoff
+5. add parent/root fallback when the user clicks away from the authoring surface
+6. add transcript/status reporting so the handoff is visible and understandable
+7. lock regressions proving that the same selected target produces the same console scope from both surfaces
+
+#### Hard Rules
+
+- do not auto-run child commands during handoff
+- do not create different console scopes for the same `selectedTarget`
+- do not let panel-local state become the real source of console context truth
+- do not silently erase partially typed command text unless explicit cancel semantics require it
+- keep the first cut graph-first and node-family narrow
+
+#### Scope Boundary
+
+Keep `4.1K` focused.
+
+Owned here:
+- UI-driven staged-console context sync
+- surface/target-to-scope mapping
+- visible console reporting of handoff
+- parent/root fallback when context is left
+
+Not owned here:
+- deeper command-language redesign
+- full transcript redesign
+- new workspace-selection seams
+- every node family in one pass
+- auto-running authoring actions from clicks
+
+#### Acceptance Shape
+
+- clicking `Spaghetti` with an active graph moves the console into graph scope
+- clicking the same graph-family node in `Browser` or `Spaghetti` produces the same console scope
+- clicking away returns the console to the nearest valid parent/root scope
+- the transcript makes the handoff understandable to the user
+- the console still requires explicit user submission for deeper authoring commands
+
+
+# [5.1F] Workspace Selection, Surface Activation, And Canonical Intents
+
+## Canonical Workspace Unification
+### Fold hack 3
 #### Summary
 
 The next major step after `4.1J` is not more key-routing cleanup.
@@ -4300,48 +4577,103 @@ Important rule:
   - `activeSurface` = which surface is foregrounded
   - `selectedTarget` = what thing is selected
 
-##### [ ] `q4` Decide where the canonical workspace-selection state should live.
+##### [x] `q4` Decide where the canonical workspace-selection state should live.
 
 ##### Suggestion
-- it should live in a shared app/workspace seam
-- not inside `ConsoleDock`
-- not inside `BrowserPanel`
-- not inside `SpaghettiPanel`
-- likely in a shared store seam adjacent to existing app/spaghetti state
+- locked direction:
+- the canonical workspace-selection seam should live above the current surfaces and adjacent to the existing stores
+- first implementation home:
+  - add a dedicated `workspaceSelection` slice in `useAppStore.ts`
+- it should not live:
+  - in `ConsoleDock.tsx`
+  - in `BrowserPanel.tsx`
+  - in `SpaghettiPanel.tsx`
+- reason from the current code:
+  - graph/editor mechanics already live in `useSpaghettiStore.ts`
+    - `activeGraphDocumentId`
+    - `activeEditorViewportId`
+    - `selectedNodeId`
+  - cross-surface state already lives in `useAppStore.ts`
+    - reference workspace
+    - selected part
+    - floating shell activation request
+  - `BrowserPanel.tsx` already has to read both stores, which is a sign that the canonical coordination seam should sit above the panels, not inside one of them
+- recommended implementation shape:
+  - keep graph/editor mechanics in `useSpaghettiStore`
+  - add a shared `workspaceSelection` slice in `useAppStore`
+  - let that slice own cross-surface active-target truth such as:
+    - `selectedTarget`
+    - `activeSurface`
+    - later other workspace-selection state as needed
+  - expose selectors/intents that coordinate with `useSpaghettiStore` instead of duplicating local selection logic in console/browser/editor
+- important rules:
+  - do not immediately copy all Spaghetti state into `useAppStore`
+  - do not let `useAppStore` become a mirror of `useSpaghettiStore`
+  - the workspace-selection seam owns coordination truth
+  - the domain stores still own their real mechanics
+  - migrate additional state only when a real cross-surface coordination need proves it
 
-##### [ ] `q5` Decide what counts as a canonical intent.
+##### [x] `q5` Decide what counts as a canonical intent.
 
 ##### Suggestion
-- first canonical intents should include:
-  - open graph document
-  - focus editor viewport
-  - select node
-  - start sketch plane
-  - start sketch draw
-  - activate surface
-- if two surfaces can produce the same outcome, they should call the same intent
+- locked direction:
+- canonical intents are the shared outcome-level actions that every surface should call when they want the same result
+- the first canonical intents should include:
+  - `openGraphDocument`
+  - `focusEditorViewport`
+  - `selectTarget`
+  - `startSketchPlane`
+  - `startSketchDraw`
+  - `activateSurface`
+- if `Console`, `Browser`, and `Spaghetti Editor` can produce the same user outcome, they should call the same canonical intent
+- do not create separate:
+  - console-only execution paths
+  - browser-only execution paths
+  - editor-only execution paths
+- important rule:
+  - canonical intents should stay small and outcome-based at first
+  - do not widen them into every possible local UI action
 
-##### [ ] `q6` Decide which current behaviors are only bridges and should later become canonical.
+##### [x] `q6` Decide which current behaviors are only bridges and should later become canonical.
 
 ##### Suggestion
-- examples:
-  - `g` opening/focusing spaghetti editor
-  - browser row clicks focusing editor viewport
-  - console selecting graph/sketch scope
-  - floating window highlight changes
-- these are useful today, but they should eventually become shared-state effects rather than one-off bridges
+- locked direction:
+- this question should distinguish between:
+  - real canonical domain-entry behavior
+  - temporary cross-surface glue
+- examples of real canonical domain-entry behavior:
+  - `Graph`
+  - `Reference`
+  - `Assembly`
+- these are legitimate root workspace domains, not suspect bridges
+- if a root command enters one of those domains, it is correct for that command to:
+  - make the right surface visible
+  - activate the right surface
+  - sync browser/editor selection state
+- examples of behavior that may still be temporary glue today:
+  - local floating-window activation requests
+  - panel-local selection sync that exists only because the canonical workspace-selection seam is not complete yet
+  - surface-specific fallback logic that manually pokes another surface instead of dispatching a shared canonical intent
+- important rule:
+  - do not label high-level domain entry as “just a bridge”
+  - only treat a behavior as temporary glue if it exists because the canonical shared selection/intent system is still incomplete
 
-##### [ ] `q7` Decide what should remain local component state.
+##### [x] `q7` Decide what should remain local component state.
 
 ##### Suggestion
+- locked direction:
 - keep these local unless there is a proven need to share them:
   - menu open/closed
   - hover state
   - popover visibility
   - cosmetic tray expansion
   - appearance tuning values that do not affect cross-surface coordination
+- only promote state when multiple surfaces truly need to agree on it
+- important rule:
+  - presentation-only behavior stays local
+  - workspace-selection and cross-surface coordination truth become canonical
 
-##### [ ] `q8` Decide what success looks like.
+##### [x] `q8` Decide what success looks like.
 
 ##### Suggestion
 - success is not “all state lives in one mega-store”
@@ -4360,3 +4692,1846 @@ This likely deserves its own follow-on family after `4.1J`, for example:
 - browser/editor/console reflection hardening
 
 It should not be silently folded into more console-only cleanup.
+
+
+
+
+## [5.1F]
+### Summary
+#### Summary
+##### Summary
+`5.1F` should unify the shared workspace truth across:
+- `Console`
+- `Browser`
+- `Spaghetti Editor`
+- `Viewer`
+
+This phase is not about keyboard routing.
+`4.1J` already handled input ownership.
+
+This phase is about:
+- one canonical workspace-selection seam
+- one canonical active-surface model
+- one canonical intent layer for shared cross-surface outcomes
+
+Important rule:
+- do not turn `ConsoleDock` into the owner of workspace truth
+- do not turn `BrowserPanel` into the owner of workspace truth
+- do not mirror all domain state into one mega-store
+
+#### Target Outcome
+
+`5.1F` should establish:
+- one shared workspace-selection seam above the current surfaces
+- one shared `selectedTarget` model
+- one shared `activeSurface` model
+- one shared canonical intent layer for common outcomes
+- surfaces rendering from shared truth instead of syncing each other through one-off glue
+
+In practical terms:
+- selecting a graph should consistently drive:
+  - browser selection
+  - spaghetti editor visibility/open state when appropriate
+  - spaghetti active-window highlight
+- selecting a target should consistently drive:
+  - browser selection state
+  - editor selection state
+  - viewer highlight state where relevant
+- typed commands and clicks should be able to produce the same outcome through the same intent
+
+#### Canonical Seams
+
+`5.1F` should tighten three seams:
+
+1. Workspace-selection seam
+- `activeGraphDocumentId`
+- `activeEditorViewportId`
+- `selectedTarget`
+- `activeSurface`
+
+2. Session/tool seam
+- existing feature sessions stay in their domain stores
+- sketch-plane pick
+- sketch draw / review
+- reference transform
+- future tool sessions
+
+3. Canonical intent seam
+- `openGraphDocument`
+- `focusEditorViewport`
+- `selectTarget`
+- `startSketchPlane`
+- `startSketchDraw`
+- `activateSurface`
+
+Important rule:
+- the workspace-selection seam owns coordination truth
+- the domain seams still own their real mechanics
+
+### Questions / Decisions
+
+#### [x] `q1` Decide what the minimum canonical workspace-selection state should include.
+
+#### Suggestion
+- locked direction:
+- the minimum canonical workspace-selection state should include:
+  - `activeGraphDocumentId`
+  - `activeEditorViewportId`
+  - `selectedTarget`
+  - `activeSurface`
+- `selectedTarget` should be one shared selection model that can cover:
+  - graph node
+  - reference
+  - object
+  - part
+- selecting a graph should be enough to drive:
+  - browser selection
+  - spaghetti window visibility/open state
+  - spaghetti active highlight
+
+#### [x] `q2` Decide whether selection should be specialized per domain or unified as one shared selected-target model.
+
+#### Suggestion
+- locked direction:
+- use one shared `selectedTarget` model first
+- do not create a separate canonical `selectedSketchNodeId`
+- treat `Sketch` as one node family inside graph scope
+- deeper branches should belong to node-family command systems, not to separate selection types
+
+#### [x] `q3` Decide what `activeSurface` means.
+
+#### Suggestion
+- locked direction:
+- `activeSurface` should mean the surface currently foregrounded for the user
+- first valid surface ids may be:
+  - `console`
+  - `browser`
+  - `spaghetti`
+  - `viewer`
+- `activeSurface` should drive:
+  - floating-window active highlight
+  - visible foreground emphasis
+  - light coordination with input ownership
+- important distinction:
+  - `activeSurface` = which surface is foregrounded
+  - `selectedTarget` = what thing is selected
+
+#### [x] `q4` Decide where the canonical workspace-selection state should live.
+
+#### Suggestion
+- locked direction:
+- the canonical workspace-selection seam should live above the current surfaces and adjacent to the existing stores
+- first implementation home:
+  - add a dedicated `workspaceSelection` slice in `useAppStore.ts`
+- keep graph/editor mechanics in `useSpaghettiStore.ts`
+- do not let `useAppStore` become a mirror of `useSpaghettiStore`
+
+#### [x] `q5` Decide what counts as a canonical intent.
+
+#### Suggestion
+- locked direction:
+- canonical intents are the shared outcome-level actions that every surface should call when they want the same result
+- the first canonical intents should include:
+  - `openGraphDocument`
+  - `focusEditorViewport`
+  - `selectTarget`
+  - `startSketchPlane`
+  - `startSketchDraw`
+  - `activateSurface`
+- if `Console`, `Browser`, and `Spaghetti Editor` can produce the same user outcome, they should call the same canonical intent
+
+#### [x] `q6` Decide which current behaviors are only bridges and should later become canonical.
+
+#### Suggestion
+- locked direction:
+- distinguish between:
+  - real canonical domain-entry behavior
+  - temporary cross-surface glue
+- examples of real canonical domain-entry behavior:
+  - `Graph`
+  - `Reference`
+  - `Assembly`
+- only treat a behavior as temporary glue if it exists because the canonical shared selection/intent system is still incomplete
+
+#### [x] `q7` Decide what should remain local component state.
+
+#### Suggestion
+- locked direction:
+- keep presentation-only state local unless there is a proven need to share it
+- examples:
+  - menu open/closed
+  - hover state
+  - popover visibility
+  - cosmetic tray expansion
+  - appearance tuning values that do not affect cross-surface coordination
+
+#### [x] `q8` Decide what success looks like.
+
+#### Suggestion
+- locked direction:
+- success is not “all state lives in one mega-store”
+- success is:
+  - console, browser, and editor agree on active graph/node/surface
+  - identical user outcomes go through identical intents
+  - browser and editor highlights reflect shared truth
+  - console navigation resolves against the same shared workspace truth
+
+### Implementation Spec
+
+Purpose:
+- create one canonical cross-surface workspace-selection and intent layer for the main workspace domains
+
+#### Scope
+
+Owned here:
+- one shared `workspaceSelection` seam in app-level state
+- one shared `selectedTarget` model
+- one shared `activeSurface` model
+- one first canonical intent layer for common graph/reference/editor outcomes
+- surface migration onto those shared intents and selectors
+
+Not owned here:
+- input-routing precedence
+- full session/tool-state redesign
+- full browser hierarchy redesign
+- large transcript redesign
+- every local UI state migration
+
+#### First Implementation Cut
+
+`5.1F` should likely start narrow:
+
+1. create the `workspaceSelection` seam
+- likely in `useAppStore.ts`
+- first fields:
+  - `selectedTarget`
+  - `activeSurface`
+
+2. define canonical selectors and intents
+- read shared selection truth
+- dispatch shared outcome-level actions
+
+3. migrate the highest-value graph path first
+- graph selection from console
+- graph selection from browser
+- graph/editor highlight reflection
+
+4. prove shared target reflection
+- selecting the same thing from different surfaces should yield the same browser/editor/viewer result
+
+5. then extend to more domains
+- `Reference`
+- `Assembly`
+- later node families and deeper authoring branches
+
+#### Likely Integration Seams
+
+Primary seams:
+- `src/app/store/useAppStore.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/AppShell.tsx`
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/panels/SpaghettiPanel.tsx`
+- viewer selection/highlight seams
+
+Likely responsibilities:
+- `useAppStore`
+  - workspace-selection coordination truth
+  - canonical surface activation
+  - cross-surface selection model
+- `useSpaghettiStore`
+  - graph/editor mechanics
+  - node/session mechanics
+  - graph-domain execution details
+- surfaces
+  - render from shared truth
+  - dispatch shared intents
+  - stop inventing panel-local coordination truth
+
+#### First Implementation Steps
+
+`5.1F` should likely be completed in this order:
+
+1. add the app-level `workspaceSelection` seam
+2. define the initial `selectedTarget` shape
+3. define the first canonical intents
+4. route graph-domain entry through those intents
+5. make browser/editor/highlight reflection read shared truth
+6. add regressions proving identical outcomes from console and browser entry paths
+7. extend to additional domains only after graph flow is honest
+
+#### Hard Rules
+
+- do not copy all spaghetti/editor state into `useAppStore`
+- do not let panels own canonical workspace truth
+- do not make canonical intents so broad that they become UI-script buckets
+- do not confuse `activeSurface` with actual selection truth
+- do not widen the first cut beyond the highest-value shared outcomes
+
+#### Acceptance Shape
+
+- there is one explicit workspace-selection seam above the current surfaces
+- `selectedTarget` and `activeSurface` are shared cross-surface truth
+- graph selection can produce the same result from console and browser entry
+- browser selection, editor visibility/highlight, and viewer highlight no longer depend on panel-local sync glue for the migrated paths
+- the canonical layer coordinates surfaces without becoming a mega-store that owns every feature detail
+
+## [x] `5.1F1` Workspace-Selection Seam
+
+### Summary
+#### Summary
+
+`5.1F1` should create the first canonical workspace-selection seam above the current surfaces.
+
+This cut should stay narrow:
+- define the first shared workspace-selection state
+- place it in the right store seam
+- prove one shared source of truth exists for the graph-first flow
+
+### Questions / Decisions
+
+#### [x] `q1` Decide what the first canonical workspace-selection fields should be.
+
+#### Suggestion
+- locked direction:
+- the first shared fields should be:
+  - `selectedTarget`
+  - `activeSurface`
+- `activeGraphDocumentId` and `activeEditorViewportId` should remain graph/editor mechanics in `useSpaghettiStore` until a real cross-surface coordination need proves they should move
+
+#### [x] `q2` Decide where the first seam should live.
+
+#### Suggestion
+- locked direction:
+- the first `workspaceSelection` seam should live in `useAppStore.ts`
+- do not place it in:
+  - `ConsoleDock`
+  - `BrowserPanel`
+  - `SpaghettiPanel`
+
+#### [x] `q3` Decide what should explicitly stay out of the first seam.
+
+#### Suggestion
+- locked direction:
+- keep these out of the first seam:
+  - local menu state
+  - hover state
+  - popover visibility
+  - local panel presentation toggles
+  - full domain/session mechanics
+
+#### [x] `q4` Decide what first proof should count as success.
+
+#### Suggestion
+- locked direction:
+- the first proof should be:
+  - one shared `selectedTarget`
+  - one shared `activeSurface`
+  - enough selectors to let graph-first flows read the same truth from more than one surface
+- do not require every domain in the first cut
+
+### Implementation Spec
+
+Purpose:
+- add the app-level `workspaceSelection` seam without turning `useAppStore` into a mirror of `useSpaghettiStore`
+
+Owned here:
+- first `workspaceSelection` slice in `useAppStore.ts`
+- initial shared fields:
+  - `selectedTarget`
+  - `activeSurface`
+- coordination selectors that can read current graph/editor context honestly
+
+Not owned here:
+- broad surface migration
+- canonical intent rewiring
+- full viewer/browser reflection cleanup
+
+Acceptance shape:
+- there is one explicit `workspaceSelection` seam
+- `selectedTarget` and `activeSurface` have one shared home
+- graph/editor mechanics still stay in `useSpaghettiStore`
+
+## [x] `5.1F2` Canonical Intent Layer
+
+### Summary
+#### Summary
+
+`5.1F2` should define the first shared outcome-level intents that multiple surfaces can call to produce the same result.
+
+This is the seam that should stop console/browser/editor from each inventing their own execution path for the same user outcome.
+
+This phase should stay narrow:
+- prove the graph-first path first
+- define one shared outcome-level intent seam
+- make that seam callable from more than one surface
+- do not try to migrate every domain or every panel in the same cut
+
+### Questions / Decisions
+
+#### [x] `q1` Decide what should count as a canonical intent in the first pass.
+
+#### Suggestion
+- locked direction:
+- canonical intents should be outcome-level actions shared by more than one surface
+- the first set should include:
+  - `openGraphDocument`
+  - `focusEditorViewport`
+  - `selectTarget`
+  - `activateSurface`
+- keep `startSketchPlane` and `startSketchDraw` in the vocabulary, but graph-first outcomes should be the first implementation proof
+
+#### [x] `q2` Decide how broad canonical intents should be.
+
+#### Suggestion
+- locked direction:
+- canonical intents should stay small and outcome-based
+- do not turn them into UI-script buckets that encode panel-specific sequencing
+
+#### [x] `q3` Decide who should call the canonical intents.
+
+#### Suggestion
+- locked direction:
+- `Console`, `Browser`, and `Spaghetti Editor` should all call the same shared intents when they want the same outcome
+- do not keep separate console-only or browser-only execution paths for migrated outcomes
+
+#### [x] `q4` Decide what should stay outside the first intent layer.
+
+#### Suggestion
+- locked direction:
+- keep these out of the first intent layer:
+  - panel-local UI actions
+  - transcript wording
+  - deep browser hierarchy behavior
+  - unrelated tool-session mechanics
+
+#### [x] `q5` Decide what the first implementation proof should be.
+
+#### Suggestion
+- locked direction:
+- the first implementation proof should be the graph-first outcome set:
+  - `openGraphDocument`
+  - `focusEditorViewport`
+  - `selectTarget`
+  - `activateSurface`
+- this should be enough to prove that:
+  - `Console`
+  - `Browser`
+  - later `Spaghetti Editor`
+  can produce the same workspace result through the same shared intents
+- keep:
+  - `startSketchPlane`
+  - `startSketchDraw`
+  in the vocabulary
+- but do not require them to be the first migrated proof inside `5.1F2`
+
+#### [x] `q6` Decide where the canonical intent layer should live.
+
+#### Suggestion
+- locked direction:
+- the canonical intent layer should live above the surfaces and adjacent to the current stores
+- the first practical home should be:
+  - a shared workspace-intents seam in `src/app/store`
+- it should coordinate:
+  - `useAppStore`
+  - `useSpaghettiStore`
+- it should not live:
+  - inside `ConsoleDock`
+  - inside `BrowserPanel`
+  - inside `SpaghettiPanel`
+
+#### [x] `q7` Decide what each canonical intent should return.
+
+#### Suggestion
+- locked direction:
+- canonical intents should return small inspectable results where useful
+- examples:
+  - opened graph id
+  - focused viewport id
+  - selected target
+  - activated surface
+- do not make the intent layer fire-and-forget when the caller needs to continue deterministic flow
+- especially for console-driven staged paths, the caller should be able to continue with clear outcome data
+
+#### [x] `q8` Decide what should count as success for `5.1F2`.
+
+#### Suggestion
+- locked direction:
+- `5.1F2` is complete when:
+  - there is one explicit canonical intent seam
+  - graph-first workspace outcomes no longer require separate console-only and browser-only execution logic
+  - the first migrated callers can use the same shared outcome-level intents
+  - the intent layer remains small and outcome-based rather than turning into a UI-script bucket
+
+### Implementation Spec
+
+Purpose:
+- define one canonical intent vocabulary and one first shared dispatch seam for common workspace outcomes
+
+#### Main Decision
+
+The main decision in `5.1F2` is:
+- where should shared workspace outcomes be executed so multiple surfaces can call the same behavior?
+
+Locked answer:
+- execute those outcomes through one canonical intent seam above the surfaces
+- let domain stores still own their real mechanics underneath
+
+#### First Implementation Cut
+
+The first implementation cut should be intentionally narrow:
+- graph-first selection/open/focus/activation only
+
+First intents to make real:
+- `openGraphDocument`
+- `focusEditorViewport`
+- `selectTarget`
+- `activateSurface`
+
+First outcomes to prove:
+- console `g` / staged graph selection
+- browser graph-row selection
+- spaghetti/window activation for the selected graph path
+
+Important rule:
+- do not try to solve:
+  - all node families
+  - every browser click path
+  - every viewer reflection path
+  in the same cut
+
+Owned here:
+- first canonical intents such as:
+  - `openGraphDocument`
+  - `focusEditorViewport`
+  - `selectTarget`
+  - `startSketchPlane`
+  - `startSketchDraw`
+  - `activateSurface`
+- shared dispatch helpers/selectors that coordinate `useAppStore` and `useSpaghettiStore`
+
+Likely first real seam:
+- a shared workspace-intents utility/module in `src/app/store`
+- or a neighboring seam with a similarly narrow home
+
+Likely responsibilities:
+- canonical intent layer:
+  - accept simple outcome-level calls
+  - coordinate `useAppStore` and `useSpaghettiStore`
+  - return enough outcome data for deterministic callers
+- domain stores:
+  - still perform the actual graph/editor/session mechanics
+- surfaces:
+  - dispatch canonical intents instead of open-coding their own equivalent execution path
+
+#### First Intent Contract
+
+The first canonical intents should conceptually behave like:
+
+1. `openGraphDocument(graphDocumentId)`
+- ensure the graph is open in a usable editor viewport
+- return the resolved viewport id when available
+
+2. `focusEditorViewport(editorViewportId)`
+- make the target viewport the active viewport
+- return the resolved active viewport id
+
+3. `selectTarget(target)`
+- write the canonical workspace target into shared selection state
+- return the selected target
+
+4. `activateSurface(surface)`
+- write the canonical active surface
+- return the active surface
+
+Important rule:
+- these should remain outcome-level and composable
+- do not collapse them immediately into one mega-intent that scripts every UI detail
+
+#### Likely Integration Seams
+
+Primary seams:
+- `src/app/store/useAppStore.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/panels/BrowserPanel.tsx`
+
+Secondary follow-on callers:
+- `AppShell`
+- later `Spaghetti Editor` interactions
+
+#### First Implementation Steps
+
+`5.1F2` should likely be completed in this order:
+
+1. create the shared canonical intent seam
+2. define the first graph-first intent vocabulary
+3. wire those intents to `useAppStore` + `useSpaghettiStore`
+4. migrate the existing console graph-first path to call that seam
+5. migrate the matching browser graph-row path to call that same seam
+6. verify that both surfaces produce the same workspace outcome
+7. stop before broadening into deeper node-family or tool-session work
+
+#### Hard Rules
+
+- do not let `ConsoleDock` remain a private owner of graph-first open/select/focus behavior
+- do not let `BrowserPanel` retain a parallel custom execution path for the same migrated outcome
+- do not make the canonical intent layer so broad that it becomes a panel-script engine
+- keep the first migrated intent set narrow enough to verify directly
+
+Not owned here:
+- migrating every surface in one pass
+- broad browser hierarchy redesign
+- local UI state cleanup
+- staged-console choice assist
+- full viewer reflection cleanup
+- large command-taxonomy expansion
+
+Acceptance shape:
+- common outcomes have one shared intent path
+- console, browser, and spaghetti can call the same outcome-level intents
+- canonical intents remain small and outcome-based
+- graph-first workspace outcomes are no longer relying on separate console-only and browser-only execution logic
+- `5.1F3` can migrate visible reflection paths without redesigning the intent seam
+
+## [x] `5.1F3` Surface Migration And Reflection
+
+### Summary
+
+`5.1F3` should migrate the highest-value surfaces onto the canonical workspace-selection seam and canonical intents.
+
+This is where shared truth should start visibly driving browser selection, spaghetti activation/highlight, and related viewer/editor reflection.
+
+This cut should stay narrow:
+- migrate the graph-first path first
+- prove visible reflection from shared truth
+- remove only the panel-local glue that the migrated path truly replaces
+- do not widen into full workspace unification in the same pass
+
+### Questions / Decisions
+
+#### [x] `q1` Decide which migrated path should go first.
+
+#### Suggestion
+- locked direction:
+- the first migrated path should be the graph-first flow:
+  - graph selection from `Console`
+  - graph selection from `Browser`
+  - spaghetti visibility/open reflection
+  - spaghetti active highlight
+
+#### [x] `q2` Decide what reflection should be considered in scope first.
+
+#### Suggestion
+- locked direction:
+- first reflection targets should be:
+  - browser selection
+  - spaghetti visibility/open state for migrated graph paths
+  - spaghetti active-window highlight
+  - viewer/editor target reflection where it already has a real backing seam
+
+#### [x] `q3` Decide what should not be required in the first migration wave.
+
+#### Suggestion
+- locked direction:
+- do not require:
+  - every root domain
+  - every node family
+  - full browser redesign
+  - broad transcript changes
+
+#### [x] `q4` Decide what counts as truly migrated.
+
+#### Suggestion
+- locked direction:
+- a path is only truly migrated when:
+  - different surfaces can produce the same outcome through the same canonical intent
+  - reflection reads shared truth
+  - panel-local sync glue is no longer the reason the path works
+
+#### [x] `q5` Decide when staged-console choice assist should land.
+
+#### Suggestion
+- locked direction:
+- do not block `5.1F2` on staged-console choice assist
+- finish the canonical intent layer first
+- treat staged-console choice assist as a `5.1F3`-adjacent surface refinement that can land once the graph-first path is already migrating through shared truth
+- this keeps:
+  - `5.1F2` focused on canonical intent definition
+  - `5.1F3` focused on visible surface behavior and reflection
+- the assist should improve staged-node selection without becoming the reason the underlying path works
+
+#### [x] `q6` Decide what the first migrated proof should visibly show.
+
+#### Suggestion
+- locked direction:
+- the first migrated proof should visibly show:
+  - browser graph selection reflecting the shared target
+  - spaghetti opening/highlighting from the same shared graph-first outcome
+  - graph-node selection reflecting in browser + spaghetti from the same shared target
+- the user should be able to see that the surfaces are synced because of shared truth, not because each panel is manually poking the others
+
+#### [x] `q7` Decide which local glue is allowed to remain temporarily.
+
+#### Suggestion
+- locked direction:
+- local glue may remain temporarily only when:
+  - it is outside the migrated graph-first path
+  - or it serves a purely local presentation responsibility
+- migrated graph-first reflection should not keep separate panel-local sync code once the shared truth is already available
+
+#### [x] `q8` Decide what should count as success for `5.1F3`.
+
+#### Suggestion
+- locked direction:
+- `5.1F3` is complete when:
+  - the graph-first path visibly reflects shared workspace truth across browser and spaghetti
+  - shared graph/node selection no longer depends on panel-local sync glue for the migrated paths
+  - spaghetti open/highlight behavior is driven through the shared outcome path
+  - the intent seam from `5.1F2` did not need redesign during migration
+
+### Implementation Spec
+
+Purpose:
+- make the first real surfaces render from shared workspace truth instead of panel-local sync glue
+
+#### Main Decision
+
+The main decision in `5.1F3` is:
+- which visible surface paths should now trust the shared workspace-selection seam and canonical intents instead of local synchronization?
+
+Locked answer:
+- start with the graph-first path
+- migrate only enough visible reflection to prove the shared model is real
+
+#### First Implementation Cut
+
+The first implementation cut should be:
+- graph selection from console and browser
+- graph-node selection where the current shared target already exists
+- spaghetti visibility/highlight reflection for those migrated paths
+
+First visible outcomes to prove:
+- selecting a graph from console highlights/opens spaghetti and selects the same graph in browser
+- selecting a graph from browser produces the same spaghetti/open/highlight outcome
+- selecting a graph node through the migrated graph-first flow reflects the same selected node in browser and spaghetti
+
+Important rule:
+- do not broaden the first cut into:
+  - every browser row type
+  - every node family
+  - every viewer highlight mode
+  - every detached/floating surface case
+  unless the migrated graph-first path truly needs it
+
+Owned here:
+- graph selection from `Console`
+- graph selection from `Browser`
+- spaghetti visibility/open-state reflection for migrated paths
+- spaghetti active-window highlight from shared `activeSurface`
+- first shared selected-target reflection in browser/editor/viewer where relevant
+
+Likely first migrated surfaces:
+- `ConsoleDock`
+- `BrowserPanel`
+- `AppShell`
+- existing browser/spaghetti selection/highlight read paths
+
+Likely responsibilities:
+- canonical seams from `5.1F1-F2`:
+  - stay the source of shared truth and shared outcomes
+- migrated surfaces:
+  - read shared target/active-surface truth
+  - stop re-implementing migrated graph-first sync behavior locally
+- remaining local UI:
+  - keep presentation-only details that do not compete with shared truth
+
+#### First Migration Steps
+
+`5.1F3` should likely be completed in this order:
+
+1. identify the graph-first browser/spaghetti reflection paths already using shared truth only partially
+2. migrate browser graph selection to read/write the shared target cleanly
+3. migrate spaghetti open/highlight reflection to read shared graph-first outcomes cleanly
+4. migrate graph-node reflection for the same narrow path
+5. remove only the local sync glue that the migrated path truly replaced
+6. verify the same visible result from:
+  - console path
+  - browser path
+7. stop before expanding into broader workspace reflection work
+
+#### Hard Rules
+
+- do not reopen the canonical intent design from `5.1F2`
+- do not migrate every browser/content/reference row type in the same cut
+- do not turn `5.1F3` into a transcript redesign or command-language phase
+- do not keep migrated graph-first reflection working through duplicated panel-local state once the shared target already exists
+
+Not owned here:
+- every domain family
+- full workspace-wide UI unification
+- transcript redesign
+- full viewer reflection redesign
+- browser hierarchy redesign beyond the migrated graph-first path
+
+Planned console-surface refinement after the first migrated graph path is stable:
+- staged choice assist in the console input
+- prefill the current input with the first valid staged choice where appropriate
+- allow `ArrowUp` / `ArrowDown` to cycle sibling staged choices
+- visually highlight the currently targeted staged choice in the console prompt/summary area
+- keep free typing available:
+  - arrow cycling should help selection
+  - it should not replace normal token entry
+
+Acceptance shape:
+- the same graph selection outcome works from console and browser
+- migrated surface reflection reads shared truth
+- panel-local selection glue is reduced for the migrated graph-first paths
+- graph-node reflection for the first migrated path reads the shared target instead of duplicated local sync state
+- `5.1F4` can harden and widen the model without redesigning the migrated graph-first contract
+
+## [x] `5.1F4` Hardening And Expansion
+
+### Summary
+
+`5.1F4` should harden the canonical workspace-selection model after the first migrated paths are working, then extend it to more root domains and deeper authoring branches.
+
+This is the phase that should turn the graph-first proof into a reusable pattern.
+
+It should:
+- lock regression coverage around the seams introduced in `5.1F1-F3`
+- remove leftover migrated-path glue where the shared seam already covers the outcome
+- widen the model to the next root domains without redesigning the underlying selection/intent contract
+
+It should not:
+- reopen the canonical seam design
+- fold back into input-routing work from `4.1J`
+- turn into broad shell placement or visual polish work
+
+#### Questions / Decisions
+
+##### [x] `q1` Decide what hardening should focus on first.
+
+##### Suggestion
+- locked direction:
+- hardening should focus on:
+  - regression coverage for shared selection truth
+  - regression coverage for canonical-intent behavior
+  - removal of leftover migrated-path bridge glue where safe
+
+##### [x] `q2` Decide which domains should expand next.
+
+##### Suggestion
+- locked direction:
+- after the graph-first proof, the next root domains should be:
+  - `Reference`
+  - `Assembly`
+- later node-family expansion should follow only after those root-domain paths are honest
+
+##### [x] `q3` Decide what should stay out of expansion.
+
+##### Suggestion
+- locked direction:
+- keep these out:
+  - unrelated shell placement work
+  - input-routing ownership work already handled by `4.1J`
+  - broad app-wide UI restyling
+
+##### [x] `q4` Decide what the stop condition should be.
+
+##### Suggestion
+- locked direction:
+- stop when:
+  - migrated paths no longer depend on one-off cross-surface glue
+  - the canonical seam can absorb the next root domain without redesign
+  - regression coverage protects the shared selection and intent contract
+
+### Implementation Spec
+
+Purpose:
+- stabilize the canonical seam and expand it beyond the first graph-first proof
+
+#### Main Decision
+
+The main decision in `5.1F4` is:
+- how far should the team widen the canonical workspace-selection model before stopping and hardening it?
+
+Locked answer:
+- harden the graph-first contract first
+- then widen the same contract to the next root domains:
+  - `Reference`
+  - `Assembly`
+- stop before widening into every node family or every viewer/browser behavior
+
+#### First Hardening Cut
+
+The first hardening cut should be:
+- graph-first regression coverage
+- removal of leftover graph-first bridge glue where the canonical seam already owns the outcome
+- reference and assembly planning hooks only where the same seam can absorb them without redesign
+
+First concrete outcomes to prove:
+- graph selection stays consistent across console, browser, and spaghetti under continued edits
+- graph-node reflection keeps reading shared target truth
+- spaghetti/browser active-state reflection stays driven by shared `activeSurface`
+- the next root-domain path can plug into the same seam shape instead of creating a second coordination model
+
+Important rule:
+- do not widen expansion faster than hardening
+- if a new root-domain path requires seam redesign, stop and fix the seam before expanding further
+
+Owned here:
+- regression coverage for shared workspace-selection and intent behavior
+- cleanup of leftover bridge logic in migrated paths
+- extension to additional root domains:
+- `Reference`
+- `Assembly`
+- later extension to more node-family branches as needed
+
+Likely first hardening/expansion surfaces:
+- `ConsoleDock`
+- `BrowserPanel`
+- `AppShell`
+- shared workspace seams in:
+  - `useAppStore`
+  - `workspaceIntents`
+
+Likely responsibilities:
+- canonical seams:
+  - remain the source of selection truth and shared outcomes
+- migrated surfaces:
+  - shed leftover one-off graph-first glue where safe
+  - adopt the same canonical verbs for the next root domains
+- tests:
+  - lock the current contract before expansion continues
+
+#### First Implementation Steps
+
+`5.1F4` should likely be completed in this order:
+
+1. identify leftover migrated graph-first glue still surviving outside the canonical seam
+2. remove or reduce that glue one narrow path at a time
+3. add regression coverage around:
+  - shared `selectedTarget`
+  - shared `activeSurface`
+  - canonical graph-first intents
+4. prove the same seam shape can absorb `Reference`
+5. prove the same seam shape can absorb `Assembly`
+6. stop before widening into deeper node-family branches unless the root-domain expansion is already honest
+
+#### Hard Rules
+
+- do not redesign `workspaceSelection` unless a real contradiction appears
+- do not create root-domain-specific intent systems that bypass the canonical seam
+- do not widen into every node family in the same pass
+- do not turn `5.1F4` into a browser redesign, transcript redesign, or shell-mode redesign
+- do not keep migrated graph-first behavior alive through duplicate fallback glue once tests prove the seam already owns it
+
+Not owned here:
+- unrelated shell placement work already covered by other `5.1` phases
+- input-routing ownership, already covered by `4.1J`
+- broad browser hierarchy redesign
+- full viewer-highlight redesign
+- unrelated command-language polish
+
+Acceptance shape:
+- migrated paths no longer depend on one-off cross-surface glue
+- canonical workspace truth remains stable under continued feature growth
+- additional root domains can adopt the same seam without redesigning it
+- graph-first regressions are covered tightly enough that later expansion cannot quietly fork the model
+- `Reference` and `Assembly` have a clear path onto the canonical seam without inventing parallel coordination systems
+
+## Surface-Driven Console Context Handoff
+### Summary
+
+Yes, this makes sense.
+
+The cleaner long-term model is:
+- surface interaction should be able to hand the `Console` into the nearest valid staged scope
+- but a click should not silently execute deeper commands
+- the console should become context-aware, not auto-authoring
+
+Example:
+- user clicks the `Spaghetti Editor`
+- active graph is `graph_[1]`
+- console should be forwarded into:
+  - `Graph > graph_[1]`
+- then the next graph-scope commands should be ready immediately
+
+This same pattern should later work for other root domains:
+- `Reference`
+- `Assembly`
+
+Important rule:
+- clicking a surface should move the console to the nearest stable command scope
+- it should not auto-run a child command unless the user explicitly submits that next command
+
+### Vision
+
+The full vision is:
+- `Console` is not only a place where commands start
+- it is also the place where the current workspace context becomes command-ready
+
+That means:
+- command entry can begin from typing
+- or it can begin from workspace focus/selection
+
+If the user clicks into a surface and the app already knows:
+- active surface
+- active graph
+- selected target
+
+then the console should be able to say:
+- "you are here now"
+- "these are the next valid commands"
+
+That should make the command system feel less separate from the workspace.
+
+### Handoff Shape
+
+The clean handoff order should be:
+
+1. determine active root domain
+- `Graph`
+- `Reference`
+- `Assembly`
+
+2. determine nearest stable staged scope
+- active graph document
+- selected node/object/reference if that target already maps cleanly to a known command scope
+
+3. move the console into that staged scope
+- update breadcrumb/session
+- show next valid commands
+- do not auto-run one of them
+
+4. preserve explicit user intent for deeper steps
+- user still chooses:
+  - `Sketch`
+  - `Extrude`
+  - `Output Preview`
+  - etc.
+
+### First Intended Behavior
+
+First good version:
+
+- click floating or split `Spaghetti Editor`
+  - if active graph is known:
+    - console enters `Graph > graph_[n]`
+
+- click browser graph row
+  - console enters `Graph > graph_[n]`
+
+- click browser graph node row
+  - if that node maps to a known graph-scope family:
+    - console enters the corresponding staged node scope
+  - otherwise:
+    - console stops at graph scope with the node selected
+
+Important rule:
+- start with graph-first handoff
+- do not try to hand every possible browser row into a console scope in the first cut
+
+### Questions / Decisions
+
+#### [ ] `q1` Decide whether surface clicks should automatically move the console into a staged scope.
+
+#### Suggestion
+- locked direction:
+- yes, when the clicked/focused surface maps cleanly to a known command domain
+- this should feel like context handoff, not implicit command execution
+
+#### [ ] `q2` Decide what the nearest stable scope should be for a `Spaghetti Editor` click.
+
+#### Suggestion
+- locked direction:
+- clicking the `Spaghetti Editor` should first hand off to:
+  - `Graph > graph_[n]`
+- not deeper by default
+- deeper node-family scopes should require either:
+  - an already selected target with a clean mapping
+  - or an explicit next command from the user
+
+#### [ ] `q3` Decide whether selecting a graph node should enter a node-family scope automatically.
+
+#### Suggestion
+- locked direction:
+- only when that node clearly belongs to a known command family
+- examples:
+  - `Sketch`
+  - later `Extrude`
+  - later `Output Preview`
+- if the mapping is unclear, stay at graph scope and keep the node selected
+
+#### [ ] `q4` Decide whether surface-driven handoff may overwrite current console input.
+
+#### Suggestion
+- locked direction:
+- no, not when the user is actively typing
+- if the console has draft input, preserve it
+- surface-driven handoff should update staged context/prompt only when:
+  - console is idle
+  - or the current session can be safely retargeted
+
+#### [ ] `q5` Decide how the console should report the handoff.
+
+#### Suggestion
+- locked direction:
+- publish a short `Selection` or `App` line such as:
+  - `Context: Graph > graph_[1]`
+- do not spam repeated messages when the same scope is already active
+
+#### [ ] `q6` Decide how this should relate to `activeSurface` and `selectedTarget`.
+
+#### Suggestion
+- locked direction:
+- `activeSurface` chooses the foreground domain
+- `selectedTarget` chooses the nearest specific scope inside that domain
+- console handoff should resolve from those shared seams instead of panel-local guesses
+
+### Implementation Shape
+
+This should likely become:
+- one console-context handoff seam above `ConsoleDock`
+- driven by:
+  - shared `activeSurface`
+  - shared `selectedTarget`
+  - current staged session state
+
+Likely first implementation cut:
+- graph-only
+- spaghetti click -> `Graph > graph_[n]`
+- browser graph click -> `Graph > graph_[n]`
+- browser graph-node click -> graph scope or mapped node-family scope
+
+Important rule:
+- this is not a replacement for typed commands
+- it is a shortcut into the correct staged context
+
+### Success Shape
+
+This vision is working when:
+- clicking into `Spaghetti Editor` with `graph_[1]` active makes graph commands immediately available
+- browser and spaghetti can both move the console into the same graph scope
+- the console feels like it is attached to the workspace state
+- but deeper authoring actions still require explicit user submission
+
+## UI / Console Sync Vision
+### Summary
+
+The UI workspace and the `Console` command line should stay visibly synchronized.
+
+This means:
+- if the user clicks into a surface, the console should say so
+- if the user selects a target, the console should say so
+- the console should then move into the matching staged command scope
+- the next valid commands for that scope should become visible immediately
+
+This should work the same way from:
+- `Spaghetti Editor`
+- `Browser`
+
+Important rule:
+- UI interaction should update command context
+- UI interaction should not silently execute the next deeper command
+
+### Core Behavior
+
+The intended behavior is:
+
+- click `Spaghetti Editor`
+  - console reports that `Spaghetti` is active
+  - console enters the active graph scope
+  - example:
+    - `Graph > graph_[1]`
+
+- click off `Spaghetti Editor`
+  - console reports that the editor is no longer active
+  - console returns to the nearest parent/root scope
+
+- click `Sketch` node in `Spaghetti`
+  - console reports the sketch selection
+  - console enters the sketch node scope
+  - sketch-local next commands become visible
+
+- click `Sketch` node in `Browser`
+  - same console result
+  - same staged scope
+  - same next commands
+
+This should not depend on which surface the user used.
+
+### Shared-State Rule
+
+This sync should resolve from shared workspace truth:
+
+- `activeSurface`
+  - which domain is foregrounded
+- `selectedTarget`
+  - which specific target is selected
+
+The console should derive its staged scope from those seams instead of from panel-local assumptions.
+
+Important rule:
+- `Browser` and `Spaghetti` should not create different command states for the same selected target
+
+### Example Outcomes
+
+Examples:
+
+- user clicks `Spaghetti`
+  - console:
+    - reports `Spaghetti` active
+    - shows graph-scope choices
+
+- user clicks `Sketch`
+  - console:
+    - reports sketch selected
+    - shows sketch-scope choices such as:
+      - `Sketch Plane`
+      - `Sketch Draw`
+      - `Back`
+
+- user clicks away to no active authoring surface
+  - console:
+    - reports context change
+    - returns to root-ready state
+
+### Main Rule
+
+The best mental model is:
+
+- the workspace chooses context
+- the console reflects context
+- the user still explicitly chooses the next command
+
+So:
+- clicking `Sketch` should enter `Sketch`
+- but it should not auto-run `Sketch Plane` or `Sketch Draw`
+
+That keeps the system synchronized without making clicks feel like hidden command execution.
+
+## [x] [4.1L] - `Command Transcript Sublayers`
+
+The `Commands` layer may need one more level of meaning inside the same transcript system.
+
+Recommended refinement:
+- keep `Commands` as the top-level family
+- split the visible line meaning into:
+  - `Commands.User`
+  - `Commands.System`
+
+Purpose:
+- let the user scan what they typed separately from what the console returned
+- make staged command flows easier to read without turning the console into separate logging products
+
+Suggested read:
+- `Commands.User`
+  - exact typed command text
+  - accepted token path
+  - staged choice text the user explicitly committed
+- `Commands.System`
+  - accepted command summary
+  - follow-up prompt
+  - validation result
+  - completion text
+  - error text that belongs to command execution rather than broader diagnostics
+
+Important rule:
+- this should remain one transcript system
+- do not turn command input and command response into detached consoles
+- layer filtering should still treat both as part of the `Commands` family
+
+Example shape:
+- `Commands.User`
+  - `g box`
+- `Commands.System`
+  - `Selected graph: box`
+- `Commands.User`
+  - `m`
+- `Commands.System`
+  - `Move: specify axis`
+
+Why this likely helps:
+- users can see the command conversation as a clearer back-and-forth
+- typed aliases such as `m / r / s` remain visible as user actions instead of disappearing into system-only result lines
+- staged command chains become easier to audit when debugging whether the user entered the wrong thing or the console resolved the right thing poorly
+
+Boundary:
+- this is a transcript/detail refinement
+- it should not require a second command model
+- it should not replace the broader existing layers such as `Shortcuts`, `Worker`, `App`, `Params`, or `Diagnostics`
+
+### Implementation spec
+
+Purpose:
+- make command back-and-forth easier to scan by separating user-entered command lines from system-returned command lines inside the existing `Commands` family
+
+#### Scope
+
+Owned here:
+- one implementation-ready split of command transcript entries into:
+  - `Commands.User`
+  - `Commands.System`
+- transcript rendering changes needed to show that distinction
+- filtering/grouping behavior that keeps both meanings inside the existing `Commands` family
+- first-pass emission rules for which command events land in each subtype
+
+Not owned here:
+- broader transcript redesign
+- new top-level layer families
+- result-history grouping or collapse trees
+- changes to `Shortcuts`, `Worker`, `App`, `Params`, or `Diagnostics`
+- command-language redesign
+
+#### Main Decision
+
+The main decision in this refinement is:
+- should command input and command return text become separate top-level layers or remain one command family with finer subtype meaning?
+
+Locked answer:
+- keep one top-level `Commands` family
+- implement two first subtypes inside it:
+  - `Commands.User`
+  - `Commands.System`
+- do not split them into detached consoles or unrelated layer products
+
+#### First Implementation Cut
+
+The first implementation cut should stay narrow:
+- keep current command behavior
+- change only transcript semantics and line labeling
+- make typed-versus-returned command lines visibly distinguishable
+
+First command events to classify:
+- `Commands.User`
+  - exact typed command submission
+  - accepted staged token text the user explicitly committed
+  - typed aliases such as `m`, `r`, or `s` when submitted through the command path
+- `Commands.System`
+  - accepted command summary
+  - follow-up prompt
+  - validation message
+  - completion message
+  - command-scoped error text
+
+Important rule:
+- only classify text as `Commands.User` when it represents explicit user-submitted command input
+- do not move unrelated app events or shortcut telemetry into `Commands.User`
+
+#### Rendering And Filtering Rule
+
+The transcript should still behave as one layered console system.
+
+Rules:
+- `Commands.User` and `Commands.System` both remain part of the `Commands` family
+- filtering `Commands` on should show both
+- future fine-grain filtering may allow showing one subtype without the other, but that is optional in the first pass
+- if the collapsed console only shows one latest command-family line, it may still display whichever subtype produced the latest visible command entry
+
+Important rule:
+- the user should be able to understand that these are two meanings inside one command transcript flow, not two separate consoles
+
+#### Ownership Rule
+
+Ownership should stay with the existing console transcript model.
+
+Recommended read:
+- the console transcript/event model should own the subtype field
+- command dispatch/command submission paths should emit the correct subtype
+- transcript rendering should read subtype meaning instead of inferring typed-versus-returned text from ad hoc string patterns
+
+Avoid:
+- duplicating one command exchange into multiple transcript entries just to fake subtype meaning
+- pushing transcript classification logic down into unrelated feature panels
+
+#### Likely First Data Shape
+
+The first implementation should likely extend the current command transcript entry shape with one narrow field such as:
+- `commandLineKind`
+  - `user`
+  - `system`
+
+Or an equivalent field under the existing layer/event model.
+
+Important rule:
+- keep the added field narrow and transcript-focused
+- do not redesign the whole console event schema unless the current type shape truly blocks the change
+
+#### Example Outcome Shape
+
+Example:
+- `Commands.User`
+  - `g box`
+- `Commands.System`
+  - `Selected graph: box`
+- `Commands.User`
+  - `m`
+- `Commands.System`
+  - `Move: specify axis`
+- `Commands.User`
+  - `x`
+- `Commands.System`
+  - `Unknown axis`
+
+This should make it easy to see:
+- what the user asked for
+- what the console returned
+
+#### First Implementation Steps
+
+This refinement should likely be completed in this order:
+
+1. identify the existing transcript entry shape for command lines
+2. add one narrow subtype field for user-versus-system command meaning
+3. update command submission paths to emit `Commands.User`
+4. update command result/prompt/error paths to emit `Commands.System`
+5. update transcript rendering so the distinction is visible
+6. verify `Commands` family filtering still works as one command family
+7. stop before broadening into richer history UX or larger transcript redesign
+
+#### Hard Rules
+
+- do not create a second command transcript product
+- do not move shortcut-only telemetry into `Commands.User` unless it truly flowed through command submission
+- do not redefine `Diagnostics` errors as `Commands.System` unless they are specifically command-scoped
+- do not turn this refinement into a full message-threading or grouped-history feature
+- do not require command-scope redesign before landing the subtype distinction
+
+#### Acceptance Shape
+
+- the transcript can visibly distinguish command input from command return text
+- user-submitted command lines read as `Commands.User`
+- command prompts/results/validation/completion lines read as `Commands.System`
+- the `Commands` family still behaves as one console layer family
+- the change lands as one narrow transcript refinement rather than a broad console redesign
+
+## [x] [4.1M] - `Staged Choice Prefill And Arrow Cycling`
+
+The staged console should become easier to advance when the user is already inside a constrained choice list.
+
+Recommended refinement:
+- when the console presents staged choices
+- the first valid choice should automatically appear in the input field
+- `Enter` or command-scoped `Space` should accept the currently shown choice immediately
+
+This should make staged navigation feel less like repeated blank-field typing and more like guided progression.
+
+### Suggestion
+
+- locked direction:
+- treat the staged choice list as a lightweight chooser layered on top of normal command entry
+- prefill the first valid choice in the input row whenever the console enters a staged choice state
+- highlight the currently targeted choice in the bottom-left single-row summary/status area
+- allow `ArrowUp` and `ArrowDown` to cycle the targeted choice without removing free typing
+
+### Purpose
+
+- reduce friction when the next valid command is already known
+- make `Enter` and command-scoped `Space` useful shortcuts for drilling deeper into staged command trees
+- help the user see which choice is currently targeted before submitting it
+
+### Intended Behavior
+
+When the console enters a staged choice state such as:
+- `Root > Choose next [Graph]`
+- `Sketch > Choose next [Sketch Plane, Sketch Draw, Delete, Back]`
+
+It should:
+- place the first valid choice into the input field automatically
+- visually distinguish the currently targeted choice in the bottom-left summary area
+- let `ArrowUp` and `ArrowDown` move that target across sibling choices
+- let `Enter` or command-scoped `Space` submit the currently targeted choice directly
+
+### Example Shape
+
+Example:
+- staged scope shows:
+  - `Sketch > Choose next [Sketch Plane, Sketch Draw, Delete, Back]`
+- input field initially contains:
+  - `Sketch Plane`
+- highlighted bottom-left choice:
+  - `Sketch Plane`
+- user presses `ArrowDown`
+  - input field changes to `Sketch Draw`
+  - highlighted bottom-left choice changes to `Sketch Draw`
+- user presses `Enter`
+  - `Sketch Draw` submits
+  - the console advances to the deeper staged result
+
+### Important Rule
+
+- arrow cycling should assist staged choices
+- it should not replace normal free typing
+
+That means:
+- the user must still be able to overwrite the prefilled choice by typing
+- direct typed tokens should still work even if they do not match the currently highlighted suggestion
+- this should remain a helper for constrained staged scopes, not a global command palette behavior
+
+### Scope Boundary
+
+Owned by this vision:
+- staged choice prefill in the input row
+- visible targeted-choice highlight in the single-row summary area
+- `ArrowUp` and `ArrowDown` cycling for staged sibling choices
+- `Enter` / command-scoped `Space` submission of the currently targeted staged choice
+
+Not owned here:
+- broad command-history redesign
+- replacing freeform command entry
+- full autocomplete/search behavior
+- non-staged global suggestion systems
+
+### Suggested UI Read
+
+The bottom-left single-row console summary area should do more than repeat the raw prompt.
+
+Recommended read:
+- keep the staged scope text visible
+- render the available choices with one clearly highlighted current target
+- update that highlight when the user cycles up/down
+
+Plain-English read:
+- the summary should feel like a compact staged-choice strip
+- not just passive status text
+
+### Likely Value
+
+- the user can advance through common staged flows with less typing
+- the current choice becomes more visually obvious before submission
+- staged console navigation starts to feel closer to a real guided command surface instead of a plain prompt log
+
+### Hard Rule
+
+- do not let prefill/cycling become the reason staged navigation works
+- the underlying staged command model must still remain valid when the user types manually
+
+This should be a visible usability refinement on top of the existing staged-command contract, not a replacement for it.
+
+### Implementation Spec
+
+Purpose:
+- make staged console navigation faster and easier to read by prefilling the current best next choice, exposing that choice visibly in the single-row console summary, and letting the user cycle sibling choices with arrow keys before submitting
+
+#### Scope
+
+Owned here:
+- first valid staged-choice prefill in the input row
+- one current targeted-choice model for staged choice sets
+- bottom-left single-row summary rendering that highlights the currently targeted choice
+- `ArrowUp` and `ArrowDown` cycling across sibling staged choices
+- `Enter` and command-scoped `Space` submission of the current targeted choice
+
+Not owned here:
+- broad autocomplete or global suggestion systems
+- replacing freeform command typing
+- larger transcript-history redesign
+- command-language redesign
+- non-staged search/palette behavior
+
+#### Main Decision
+
+The main decision in `[4.1M]` is:
+- should staged choices remain only passive text in the prompt, or should the console actively surface and cycle a current targeted choice while preserving manual typing?
+
+Locked answer:
+- keep staged choices as a real typed command flow
+- add one lightweight targeted-choice assist layer on top:
+  - prefill the first valid choice
+  - highlight the current targeted choice in the summary area
+  - cycle sibling choices with `ArrowUp` and `ArrowDown`
+- do not replace manual command entry with chooser-only behavior
+
+#### First Implementation Cut
+
+The first implementation cut should stay narrow:
+- only affect staged choice states that already expose a finite list of valid next tokens
+- do not change how non-staged freeform command entry behaves
+
+First behavior to make real:
+- when a staged session exposes valid choices, prefill the input with the first valid choice label/token
+- mark that first choice as the current targeted choice in the bottom-left summary strip
+- allow `ArrowDown` to move to the next sibling choice
+- allow `ArrowUp` to move to the previous sibling choice
+- let `Enter` or command-scoped `Space` submit the currently targeted choice if the input is still aligned to that suggestion path
+
+Important rule:
+- if the user begins typing a manual override, the console should respect that typed input instead of forcing the cycled suggestion back into the field on every keypress
+
+#### Input And Override Rule
+
+The input field should support two clearly different states during staged choice assist:
+- assisted staged choice state
+  - input is prefilled from the current targeted choice
+  - up/down cycling updates the input text to the targeted sibling
+- manual override state
+  - user has typed away from the prefilled suggestion
+  - free typing takes priority until the user returns to a recognized staged choice or the staged state refreshes explicitly
+
+Important rule:
+- the system may prefill on staged-state entry
+- it should not continuously fight the user after they begin manual typing
+
+#### Summary-Area Read
+
+The bottom-left single-row summary area should become a compact staged-choice strip when staged choices exist.
+
+Recommended first read:
+- keep the current staged scope text visible
+- render the available choices inline
+- visually highlight the current targeted choice
+- update that highlight immediately when up/down cycling changes the target
+
+Important rule:
+- the summary strip should show which choice is targeted now
+- not just list choices as flat passive text
+
+#### Likely First Data Shape
+
+The first implementation will likely need one narrow staged-choice targeting seam such as:
+- current staged choice index
+- current staged choice token/label
+- whether the input is still following the assisted suggestion or has entered manual override
+
+Important rule:
+- keep this state attached to staged navigation or console input state
+- do not invent a second parallel command model for the same staged scope
+
+#### Example Outcome Shape
+
+Example:
+- staged session:
+  - `Sketch > Choose next [Sketch Plane, Sketch Draw, Delete, Back]`
+- first render:
+  - input = `Sketch Plane`
+  - summary highlights `Sketch Plane`
+- user presses `ArrowDown`
+  - input = `Sketch Draw`
+  - summary highlights `Sketch Draw`
+- user presses `Enter`
+  - `Sketch Draw` is submitted
+  - staged navigation advances
+
+Manual override example:
+- prefilled input = `Sketch Plane`
+- user types `Back`
+- console should submit `Back` if valid
+- the assist layer should not force the input back to `Sketch Plane`
+
+#### First Implementation Steps
+
+`[4.1M]` should likely be completed in this order:
+
+1. identify the staged-navigation seam that already exposes valid choices
+2. add one targeted-choice state for the current staged sibling choice
+3. prefill the input field with the first valid choice on staged-state entry
+4. update the bottom-left summary area to render and highlight the targeted choice
+5. add `ArrowUp` / `ArrowDown` cycling across sibling choices
+6. submit the targeted choice through existing staged command submission on `Enter` / command-scoped `Space`
+7. verify manual typing still overrides the assist behavior cleanly
+
+#### Hard Rules
+
+- do not make up/down cycling the only way to select a staged choice
+- do not prevent the user from typing a different valid token manually
+- do not widen this into broad autocomplete/search UX
+- do not let the assist layer become the source of truth for staged navigation validity
+- do not alter non-staged command entry behavior in the same pass unless a direct conflict forces it
+
+#### Acceptance Shape
+
+- entering a staged choice state prefills the input with the first valid choice
+- the bottom-left single-row summary area clearly highlights the current targeted choice
+- `ArrowUp` and `ArrowDown` cycle sibling staged choices visibly
+- `Enter` and command-scoped `Space` can submit the currently targeted staged choice
+- manual typing still works as an override without the assist layer fighting the user
+- the change lands as one narrow staged-navigation usability refinement rather than a broad command-entry redesign
+
+### [4.1N] [x] - Feature Session Prompt Descriptor Follow-On
+
+The same prefill behavior should not remain staged-navigation-only forever.
+
+Active feature sessions that expose a small finite command set should be able to publish one shared prompt descriptor so the console can:
+- render the prompt text from one source
+- prefill the input from the first suggested choice
+- highlight the current assisted choice
+- avoid per-feature manual input seeding
+
+Recommended first prompt descriptor shape:
+- `label`
+  - the active command surface name such as `Sketch Plane` or `Sketch Draw`
+- `choices`
+  - the currently valid command choices for that surface
+- `prefill`
+  - the first suggested choice token when assisted input should begin aligned to a choice
+
+First intended sketch examples:
+- `Sketch Plane`
+  - `choices: [XY, XZ, YZ]`
+  - `prefill: XY`
+- `Sketch Draw`
+  - `choices: [Line, PLine, X]`
+  - `prefill: Line`
+
+Important rule:
+- do not keep hardcoding prompt text and input seeding separately in each feature path
+- feature sessions and staged navigation should eventually feed the same console-assisted prompt model
+
+This should be implemented as one shared console seam:
+- staged navigation may continue to produce prompt/choice/prefill state
+- active feature sessions may also produce prompt/choice/prefill state
+- the console should consume that shared shape instead of remembering feature-specific prefill logic
+
+### Questions / Decisions
+
+#### [x] `q1` Decide whether feature-session prompt assist should reuse the staged-choice model or invent a second assist system.
+
+##### Suggestion
+- locked direction:
+- reuse one shared console-assisted prompt shape
+- do not invent a second per-feature assist system beside staged navigation
+
+#### [x] `q2` Decide the first feature-session consumers.
+
+##### Suggestion
+- locked direction:
+- first consumers should be:
+  - `Sketch Plane`
+  - `Sketch Draw`
+- they already expose small finite command sets and are the current feature paths most likely to drift into hand-seeded prompt logic
+
+#### [x] `q3` Decide whether this phase should redesign non-staged freeform command entry.
+
+##### Suggestion
+- locked direction:
+- no
+- keep this phase focused on shared prompt/choice/prefill state for constrained active sessions
+
+### Implementation Spec
+
+Purpose:
+- extend the existing console-assisted choice model beyond staged navigation so active feature sessions can publish prompt, choice, and prefill state through one shared seam
+
+#### Current Code-To-Target Mapping
+
+- current staged-choice assist seam already exists in:
+  - `useConsoleStore`
+  - `stagedNavigationSession`
+  - `cycleStagedChoice(...)`
+  - `seedInputText(...)`
+- current feature-session prompt seam is still fragmented:
+  - `Sketch Plane`
+    - prompt text is currently pushed as hardcoded transcript lines such as:
+      - `Sketch Plane > [XY, XZ, YZ]`
+  - `Sketch Draw`
+    - prompt text is currently built in the sketch store and pushed as transcript text such as:
+      - `Sketch Draw > [Line, PLine, X]`
+- current gap:
+  - feature sessions can show prompt text
+  - but they do not yet publish a shared assisted prompt descriptor that the console can use for:
+    - input prefill
+    - targeted choice highlight
+    - future arrow cycling
+
+#### Scope
+
+Owned here:
+- one shared console prompt-descriptor seam for constrained active sessions
+- a shared descriptor shape that can be produced by:
+  - staged navigation
+  - feature sessions
+- console-side consumption of that shape for:
+  - prompt rendering
+  - input prefill
+  - assisted current-choice tracking
+- first feature-session adoption for:
+  - `Sketch Plane`
+  - `Sketch Draw`
+
+Not owned here:
+- broad autocomplete or search behavior
+- freeform command redesign
+- full toolbar / console command unification
+- larger transcript-history redesign
+- whole-app session modeling outside the console prompt seam
+
+#### Recommended First Data Shape
+
+The first prompt descriptor should stay narrow.
+
+Recommended shape:
+- `label`
+  - active prompt surface name
+- `choices`
+  - current finite valid choices
+- `prefill`
+  - first suggested token for assisted input alignment
+
+Example first reads:
+- `Sketch Plane`
+  - `choices: [XY, XZ, YZ]`
+  - `prefill: XY`
+- `Sketch Draw`
+  - `choices: [Line, PLine, X]`
+  - `prefill: Line`
+
+Important rule:
+- keep this as a console prompt-assist descriptor
+- do not broaden it into a second feature-command state model
+
+#### First Implementation Cut
+
+The first implementation cut should stay narrow:
+- staged navigation keeps its current behavior
+- add one shared prompt-descriptor seam the console can read from either:
+  - staged navigation
+  - active feature sessions
+- migrate only the first two active feature-session families:
+  - `Sketch Plane`
+  - `Sketch Draw`
+
+First behavior to make real:
+- when a constrained active feature session starts, the console should be able to:
+  - render the prompt from the descriptor
+  - prefill the input from the descriptor
+  - treat the first choice as the initial assisted target
+- feature sessions should no longer need to remember both:
+  - prompt transcript copy
+  - manual input seeding
+
+#### Ownership Rule
+
+Ownership should stay with the console seam, not feature-local glue.
+
+Recommended read:
+- active feature sessions publish descriptor state
+- console store owns:
+  - current assisted input text
+  - targeted choice tracking
+  - manual-override behavior
+- console UI renders from that state
+
+Avoid:
+- each feature calling ad hoc input seeding directly
+- each feature inventing its own choice-cycling logic
+- transcript-only prompt copy being treated as the source of truth for assisted choice state
+
+#### Hard Rules
+
+- do not create one assist model for staged navigation and a separate assist model for feature sessions
+- do not require feature sessions to remember to seed input manually
+- do not widen this phase into global autocomplete/search UX
+- do not make feature-session assist the reason command validity works
+- do not alter unconstrained flat command behavior in the same pass unless required by the shared prompt seam
+
+#### Acceptance Shape
+
+- a reader can point to one shared console prompt-descriptor seam in code
+- staged navigation and active feature sessions can both publish prompt/choice/prefill state through that seam
+- `Sketch Plane` and `Sketch Draw` no longer rely on separate manual input seeding to get assisted first-choice behavior
+- the console can render prompt text and prefill input from the same source for constrained sessions
+- manual typing still overrides the assisted suggestion cleanly
+- the change lands as one shared console-prompt refinement rather than a second feature-local assist system

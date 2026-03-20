@@ -243,6 +243,46 @@ export type FloatingShellActivationRequest = {
   seq: number
 }
 
+export type WorkspaceSurface = 'console' | 'browser' | 'spaghetti' | 'viewer'
+
+export type WorkspaceSelectedTarget =
+  | {
+      kind: 'graph-document'
+      graphDocumentId: string
+    }
+  | {
+      kind: 'graph-node'
+      graphDocumentId: string
+      nodeId: string
+    }
+  | {
+      kind: 'reference-item'
+      referenceId: string
+    }
+  | {
+      kind: 'object'
+      objectId: string
+    }
+  | {
+      kind: 'part'
+      partKey: string
+    }
+
+export type WorkspaceSelectionState = {
+  selectedTarget: WorkspaceSelectedTarget | null
+  activeSurface: WorkspaceSurface | null
+}
+
+export type ConsoleContextSyncReason =
+  | 'surface-activation'
+  | 'target-selection'
+  | 'surface-clear'
+
+export type ConsoleContextSyncRequest = {
+  reason: ConsoleContextSyncReason
+  seq: number
+}
+
 export type AppState = {
   box: BoxParams
   lastBuildSeq: number
@@ -259,7 +299,9 @@ export type AppState = {
   currentProject: ProjectFile
   projectContent: ProjectContentState
   referenceWorkspace: ReferenceWorkspaceState
+  workspaceSelection: WorkspaceSelectionState
   floatingShellActivationRequest: FloatingShellActivationRequest | null
+  consoleContextSyncRequest: ConsoleContextSyncRequest | null
   workerError: string | null
   setBoxParam: (key: BoxParamKey, value: number) => void
   setSpaghettiGraph: (graph: SpaghettiGraph) => void
@@ -327,6 +369,9 @@ export type AppState = {
   ) => void
   setReferenceRotateSnapEnabled: (referenceId: string, enabled: boolean) => void
   setReferenceRotateSnapValue: (referenceId: string, value: number) => void
+  setWorkspaceSelectedTarget: (target: WorkspaceSelectedTarget | null) => void
+  setActiveSurface: (surface: WorkspaceSurface | null) => void
+  requestConsoleContextSync: (reason: ConsoleContextSyncReason) => void
   requestFloatingShellActivation: (target: FloatingShellActivationTarget) => void
   ensureVisibilityForPartKeys: (keys: string[], defaultValue?: boolean) => void
   togglePartVisibility: (partKeyStr: string) => void
@@ -843,7 +888,12 @@ export const useAppStore = create<AppState>((set, get) => ({
   currentProject: createInitialProjectFile(),
   projectContent: createInitialProjectContentState(),
   referenceWorkspace: createInitialReferenceWorkspaceState(),
+  workspaceSelection: {
+    selectedTarget: null,
+    activeSurface: null,
+  },
   floatingShellActivationRequest: null,
+  consoleContextSyncRequest: null,
   workerError: null,
   setBoxParam: (key, value) => {
     const state = get()
@@ -1496,6 +1546,44 @@ export const useAppStore = create<AppState>((set, get) => ({
       }
     })
   },
+  setWorkspaceSelectedTarget: (target) => {
+    set((state) => ({
+      workspaceSelection: {
+        ...state.workspaceSelection,
+        selectedTarget: target,
+      },
+    }))
+  },
+  setActiveSurface: (surface) => {
+    const currentSurface = get().workspaceSelection.activeSurface
+    if (currentSurface === surface) {
+      return
+    }
+    set((state) => ({
+      workspaceSelection: {
+        ...state.workspaceSelection,
+        activeSurface: surface,
+      },
+    }))
+    const shouldSuppressSurfaceEntry =
+      surface === 'viewer' && useSpaghettiStore.getState().sketchPlanePickSession !== null
+    if (surface !== null && !shouldSuppressSurfaceEntry) {
+      appendConsoleEntry({
+        layer: 'Selection',
+        text: `Active surface: ${surface}`,
+        source: surface,
+        severity: 'info',
+      })
+    }
+  },
+  requestConsoleContextSync: (reason) => {
+    set((state) => ({
+      consoleContextSyncRequest: {
+        reason,
+        seq: (state.consoleContextSyncRequest?.seq ?? 0) + 1,
+      },
+    }))
+  },
   requestFloatingShellActivation: (target) => {
     set((state) => ({
       floatingShellActivationRequest: {
@@ -1592,6 +1680,18 @@ export const useAppStore = create<AppState>((set, get) => ({
 
 export const selectCurrentProject = (state: Pick<AppState, 'currentProject'>): ProjectFile =>
   state.currentProject
+
+export const selectWorkspaceSelection = (
+  state: Pick<AppState, 'workspaceSelection'>,
+): WorkspaceSelectionState => state.workspaceSelection
+
+export const selectWorkspaceSelectedTarget = (
+  state: Pick<AppState, 'workspaceSelection'>,
+): WorkspaceSelectedTarget | null => state.workspaceSelection.selectedTarget
+
+export const selectActiveWorkspaceSurface = (
+  state: Pick<AppState, 'workspaceSelection'>,
+): WorkspaceSurface | null => state.workspaceSelection.activeSurface
 
 export const selectCurrentProjectId = (state: Pick<AppState, 'currentProject'>): string =>
   state.currentProject.projectFileId

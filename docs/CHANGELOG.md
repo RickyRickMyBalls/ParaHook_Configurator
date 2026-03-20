@@ -65,6 +65,495 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 485 -->
+### [485] - 2026-03-20 00:25 - `SK - [3.2B-S1] Sketch Session Hierarchy Model`
+<!-- ENTRY 485 -->
+HUMAN SUMMARY: `Implemented the first real `[3.2B-S1]` sketch hierarchy cleanup by making `SketchDraw` expose an explicit idle/tool/draft state seam instead of auto-arming `Line` on session start. This gives the sketch system a named hierarchy that later `Esc`, `Back`, and toolbar/console cleanup phases can build on without relying on fake default-tool assumptions.`
+
+#### Scope / Constraints Honored
+- Kept the change focused on the sketch hierarchy state seam, not a broad command-routing rewrite.
+- Preserved the selected sketch node as the parent scope and kept `SketchPlane` on its existing two-level seam.
+- Avoided widening the pass into `[3.2B-S4]`, `[3.2B-S2]`, `[3.2B-S3]`, or toolbar/console alignment work beyond the reader updates required by the new session shape.
+
+#### Summary of Implementation
+- Added an explicit `drawStage` seam to `GeometrySketchSession` and allowed `activeTool: null` so draw sessions can exist honestly in an idle state.
+- Removed the old default-`line` assumption for fresh draw sessions and updated draft-cancel behavior to step back to idle instead of relying on an implicit armed tool.
+- Updated the viewer bridge, viewer host, viewport overlay, and console status reads so idle draw sessions no longer silently coerce back to `line`.
+- Tightened the sketch architecture doc so `[3.2B-S1] - Sketch Session Hierarchy Model` now matches the shipped hierarchy state seam.
+
+#### Files Changed
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/viewerBridge.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewportOverlay.tsx`
+- `src/app/console/ConsoleDock.tsx`
+- `src/viewer/geometrySketchOverlay.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `src/app/console/ConsoleDock.test.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `src/viewer/geometrySketchOverlay.test.ts`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- Fresh `SketchDraw` sessions now open idle with no selected tool instead of auto-starting in `Line`.
+- `SketchDraw` now exposes explicit `sessionIdle`, `toolSelected`, and `draftActive` depth through store state.
+- Readers that display sketch-draw state now report idle honestly instead of treating idle as implicit `Line`.
+
+#### Verification Steps
+- `npm.cmd test -- src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `npm.cmd test -- src/app/console/ConsoleDock.test.tsx`
+- `npm.cmd test -- src/app/components/ViewerHost.test.tsx src/viewer/geometrySketchOverlay.test.ts`
+- `cmd /c npx tsc -p tsconfig.json --noEmit`
+
+<!-- ENTRY 486 -->
+### [486] - 2026-03-20 00:35 - `SP - Phase 9 - SketchPlane Adjust Escape Stepback`
+<!-- ENTRY 486 -->
+HUMAN SUMMARY: `Cleaned up the first real `SketchPlane` two-level session behavior so `Escape` and typed `esc` now step back from `Adjust` to `Plane Selection` instead of cancelling the whole session. This keeps `SketchPlane` reading like one session with two depths, while preserving the existing full-cancel `X` path and the selected-sketch-node restore handoff on actual exit.`
+
+#### Scope / Constraints Honored
+- Kept the change inside the existing single `sketchPlanePickSession` seam.
+- Preserved the existing `X` / full cancel path and the current confirm flow into `SketchDraw`.
+- Kept the viewport camera-adjust exception intact so touching the viewer still does not collapse the active sketch-plane context.
+
+#### Summary of Implementation
+- Changed the sketch-plane overlay keyboard handler so `Escape` now reopens plane selection from `adjust` instead of hard-cancelling the session.
+- Added the matching sketch-plane console command behavior so typed `esc` mirrors the same `adjust -> pick` stepback.
+- Updated `reopenSketchPlanePickPlaneSelection()` to republish the `Sketch Plane > [XY, XZ, YZ]` prompt so the console surface stays aligned with the restored `pick` stage.
+- Added focused store, console, and overlay regressions covering `adjust -> pick` without losing the current draft plane or transform.
+- Updated the sketch architecture doc so `[3.2B-S2] - SketchPlane Session Cleanup` now reflects the current shipped two-level session truth.
+
+#### Files Changed
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/components/ViewportOverlay.tsx`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `src/app/console/ConsoleDock.test.tsx`
+- `src/app/components/ViewportOverlay.test.tsx`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- While `SketchPlane` is in `adjust`, `Escape` now returns to `Plane Selection` instead of exiting the session.
+- Typed console `esc` during active `SketchPlane` now mirrors the same `adjust -> pick` stepback.
+- Reopening plane selection now reprints `Sketch Plane > [XY, XZ, YZ]` so the console keeps the correct active prompt.
+
+#### Verification Steps
+- `npm.cmd test -- src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `npm.cmd test -- src/app/console/ConsoleDock.test.tsx`
+- `npm.cmd test -- src/app/components/ViewportOverlay.test.tsx`
+- `cmd /c npx tsc -p tsconfig.json --noEmit`
+
+<!-- ENTRY 488 -->
+### [488] - 2026-03-20 00:50 - `SK - [3.2B-S4] Sketch Return One Level`
+<!-- ENTRY 488 -->
+HUMAN SUMMARY: `Implemented the first shared sketch-local back-step seam so `SketchPlane` and `SketchDraw` now use one real `return one level` action instead of carrying separate parent-step logic in each surface. Keyboard `Escape`, console `back`, and the visible sketch toolbar `Back` actions now route through the same underlying sketch-local behavior while explicit close/exit remains on `X`.`
+
+#### Scope / Constraints Honored
+- Kept the change inside sketch-local behavior instead of widening into whole-app back-navigation architecture.
+- Preserved the existing sketch session models and explicit exit paths like `X`.
+- Reused the already-shipped sketch-plane and sketch-draw level behavior instead of inventing a second session seam.
+
+#### Summary of Implementation
+- Added a shared `returnActiveSketchSessionOneLevel()` action to the sketch store.
+- Routed active `SketchPlane` and `SketchDraw` console `esc` plus visible `back / b` through that same shared action.
+- Added sketch-draw keyboard `Escape` handling in the viewport overlay and switched sketch-plane keyboard `Escape` over to the same shared seam.
+- Added visible `Back` title-bar actions for sketch-plane and sketch-draw toolbars, with draw-idle back disabled so the control does not present a misleading no-op.
+- Tightened the sketch architecture doc so `[3.2B-S4] - Sketch Return One Level` now matches the shipped shared-return seam.
+
+#### Files Changed
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+
+<!-- ENTRY 489 -->
+### [489] - 2026-03-20 01:16 - `CS - [4.1N] Feature Session Prompt Descriptors`
+<!-- ENTRY 489 -->
+HUMAN SUMMARY: `Extended the console’s assisted staged-choice seam into active feature sessions so `Sketch Plane` and idle `Sketch Draw` can publish one shared prompt descriptor for prompt rendering, input prefill, targeted choice tracking, arrow cycling, and manual-typing override without relying on feature-local input seeding.`
+
+#### Why
+- The staged-choice prefill/cycling work in `[4.1M]` solved assisted choice handling only for staged navigation.
+- Active feature sessions were still pushing hardcoded transcript prompt text and relying on one-off input seeding behavior.
+- `Sketch Plane` and idle `Sketch Draw` are the first constrained feature-session states that need the same assisted prompt treatment as staged scopes.
+
+#### What Changed
+- Added shared `ConsoleAssistChoice` and `ConsoleAssistDescriptor` types in the console layer.
+- Extended `useConsoleStore` so the console can track either:
+  - a staged navigation assist source, or
+  - a feature-session assist source
+- Kept staged navigation higher priority, but added feature-assist fallback when no staged session is active.
+- Added stale-assist cleanup so old feature-prefill tokens do not linger after the constrained feature prompt disappears.
+- Updated `ConsoleBar` so feature-session descriptors participate in:
+  - summary-strip prompt rendering
+  - input prefill
+  - `ArrowUp / ArrowDown` cycling
+  - first-key manual override
+- Updated `ConsoleDock` so:
+  - `Sketch Plane` publishes `XY / XZ / YZ`
+  - idle `Sketch Draw` publishes `Line / PLine / X`
+  - sketch prompt text and feature assist descriptors now come from the same descriptor helpers instead of duplicated hardcoded strings
+
+#### Validation
+- `npm.cmd test -- src/app/console/useConsoleStore.test.ts`
+- `npm.cmd test -- src/app/console/ConsoleDock.test.tsx`
+- `cmd /c npx tsc -p tsconfig.json --noEmit`
+
+#### Files Changed
+- `src/app/console/consoleTypes.ts`
+- `src/app/console/useConsoleStore.ts`
+- `src/app/console/useConsoleStore.test.ts`
+- `src/app/console/ConsoleBar.tsx`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+- `docs/Human-Plans/Architecture/Console.md`
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/CHANGELOG.md`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/components/ViewportOverlay.tsx`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `src/app/console/ConsoleDock.test.tsx`
+- `src/app/components/ViewportOverlay.test.tsx`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch.md`
+- `docs/Chill-Log.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- Active sketch sessions now share one sketch-local one-level-return action.
+- Console `back` / `b` now works inside active `SketchPlane` and `SketchDraw` sessions.
+- Viewport `Escape` now steps `SketchDraw` back through `Draft Active -> Tool Selected -> Session Idle`.
+- Sketch-plane and sketch-draw toolbars now expose visible `Back` actions for one-level return.
+
+#### Verification Steps
+- `npm.cmd test -- src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `npm.cmd test -- src/app/console/ConsoleDock.test.tsx`
+- `npm.cmd test -- src/app/components/ViewportOverlay.test.tsx`
+- `cmd /c npx tsc -p tsconfig.json --noEmit`
+
+<!-- ENTRY 487 -->
+### [487] - 2026-03-20 00:37 - `SK - [3.2B-S3] SketchDraw Session Cleanup`
+<!-- ENTRY 487 -->
+HUMAN SUMMARY: `Cleaned up the first real user-facing `SketchDraw` session surface so the console and overlay now describe the explicit idle/tool/draft hierarchy honestly. `SketchDraw` now opens with an idle prompt instead of the stale `Sketch Draw started` message, repeated `Esc` steps back only to idle, and idle `Esc` keeps the draw session open while `x` remains the explicit exit path.`
+
+#### Scope / Constraints Honored
+- Kept `geometrySketchSession` as the only `SketchDraw` session model.
+- Preserved the existing one-level draft cancel behavior instead of widening into a broader `returnOneLevel()` rewrite.
+- Kept `SketchDraw` as a durable child session under the selected sketch node and left explicit exit on `x` / close.
+
+#### Summary of Implementation
+- Extended the existing sketch-draw prompt helper so idle draw sessions now publish `Sketch Draw > [Line, PLine, X]` as the real session prompt.
+- Removed the stale staged-launch transcript `Sketch Draw started` and let the draw prompt surface speak for the active session state.
+- Updated console `status` to report the named draw stage directly alongside tool/point/hover status.
+- Republished the idle draw prompt when a second cancel steps `Tool Selected -> Session Idle`, keeping the console aligned with the durable draw session.
+- Updated the sketch architecture doc so `[3.2B-S3] - SketchDraw Session Cleanup` now reflects the shipped console/session truth.
+
+#### Files Changed
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `src/app/console/ConsoleDock.test.tsx`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch.md`
+- `docs/Chill-Log.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- Entering `SketchDraw` now prints `Sketch Draw > [Line, PLine, X]` instead of `Sketch Draw started`.
+- Returning to draw idle now republishes that idle prompt so the console still reflects the live session.
+- Console `status` for `SketchDraw` now reports the named draw stage directly.
+- Idle `Esc` leaves the `SketchDraw` session open; explicit exit remains `x` or the close button.
+
+#### Verification Steps
+- `npm.cmd test -- src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `npm.cmd test -- src/app/console/ConsoleDock.test.tsx`
+- `npm.cmd test -- src/app/components/ViewportOverlay.test.tsx`
+- `cmd /c npx tsc -p tsconfig.json --noEmit`
+
+<!-- ENTRY 484 -->
+### [484] - 2026-03-20 00:08 - `DBG - Phase 4.1 - Staged Enter Caret Placement Cleanup`
+<!-- ENTRY 484 -->
+HUMAN SUMMARY: `Adjusted chained staged assisted submission so the console keeps focus after submit but places the caret at the end of the assisted token instead of selecting the full text. This keeps the fast `Enter` chaining while making the input feel less visually heavy.`
+
+#### Scope / Constraints Honored
+- Kept the change limited to post-submit caret placement for staged assisted prompts.
+- Preserved the staged focus-retention and enter-chaining behavior added in the previous step.
+
+#### Summary of Implementation
+- Replaced the post-submit full-text selection with caret placement at the end of the assisted input.
+- Updated the staged chained-enter regression test to assert the new caret position.
+
+#### Files Changed
+- `src/app/console/ConsoleBar.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- After a staged assisted submit, the next assisted token keeps focus with the caret at the end instead of highlighting the whole token.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/console/useConsoleStore.test.ts src/app/console/ConsoleDock.test.tsx`
+- `cmd /c npx tsc -p tsconfig.json --noEmit`
+
+<!-- ENTRY 483 -->
+### [483] - 2026-03-20 00:07 - `DBG - Phase 4.1 - Staged Enter Chaining Focus Retention`
+<!-- ENTRY 483 -->
+HUMAN SUMMARY: `Updated staged assisted submission so the console keeps focus and reselects the next assisted choice after a staged submit. This allows chained flows like `g`, `Enter`, `Enter` to continue directly into the next staged option without manually re-focusing or reselecting the autofilled text.`
+
+#### Scope / Constraints Honored
+- Kept the change limited to staged submit focus/selection handoff.
+- Preserved normal blur behavior when a submit does not land in another staged assisted prompt.
+
+#### Summary of Implementation
+- Changed `ConsoleBar` submit handling to inspect the post-submit console state before deciding whether to blur or keep focus.
+- When the next console state is another assisted staged prompt, the input now regains focus and selects the assisted text automatically.
+- Added a focused regression test for the `g`, `Enter`, `Enter` chained staged-navigation path.
+
+#### Files Changed
+- `src/app/console/ConsoleBar.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- Staged assisted prompts can now chain through repeated `Enter` presses without manual re-focus.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/console/useConsoleStore.test.ts src/app/console/ConsoleDock.test.tsx`
+- `cmd /c npx tsc -p tsconfig.json --noEmit`
+
+<!-- ENTRY 482 -->
+### [482] - 2026-03-20 00:04 - `DBG - Phase 4.1 - Staged Prefill First-Key Override`
+<!-- ENTRY 482 -->
+HUMAN SUMMARY: `Changed staged assisted prefills so the first real printable key replaces the suggested input instead of appending to it. This lets users immediately override the default staged choice by typing a different token, while preserving staged `Space` submit behavior.`
+
+#### Scope / Constraints Honored
+- Kept the change limited to staged assisted input entry behavior.
+- Preserved arrow-choice cycling, staged highlighting, and staged `Space` submission.
+
+#### Summary of Implementation
+- Updated staged seeded input capture so the first printable key replaces the active assisted prefill when no manual override is active yet.
+- Added matching direct-input key handling so typing inside the focused console input follows the same replacement rule.
+- Added focused store and console UI coverage for the first-key override behavior.
+
+#### Files Changed
+- `src/app/console/useConsoleStore.ts`
+- `src/app/console/ConsoleBar.tsx`
+- `src/app/console/useConsoleStore.test.ts`
+- `src/app/console/ConsoleDock.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- During a staged assisted prefill, the first printable typed key now replaces the suggested option text instead of appending to it.
+- Staged `Space` still submits the current assisted choice.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/console/useConsoleStore.test.ts src/app/console/ConsoleDock.test.tsx`
+- `cmd /c npx tsc -p tsconfig.json --noEmit`
+
+<!-- ENTRY 481 -->
+### [481] - 2026-03-20 00:01 - `DBG - Phase 4.1 - Console Choice Spacing And Equal Split Default`
+<!-- ENTRY 481 -->
+HUMAN SUMMARY: `Adjusted the collapsed console bar so staged choices have more breathing room between them, and changed the untouched default split to start as an even 50/50 share between the status area and the typed-input area. The divider still takes over with a pixel width once you drag it.`
+
+#### Scope / Constraints Honored
+- Kept the change limited to collapsed console bar layout and staged-choice readability.
+- Preserved the existing draggable divider behavior after manual resize.
+
+#### Summary of Implementation
+- Changed the default summary-width state to use the equal-share layout path until the divider is dragged.
+- Updated `ConsoleBar` to render a 50/50 summary/input split by default and keep the current pixel-based split after manual resize.
+- Added extra spacing around staged-choice separators so options are easier to scan in the status strip.
+
+#### Files Changed
+- `src/app/console/useConsoleStore.ts`
+- `src/app/console/ConsoleBar.tsx`
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- The collapsed bar now starts with the status and input sections split evenly by default.
+- Staged options in the status strip now have more visual spacing between them.
+
+<!-- ENTRY 480 -->
+### [480] - 2026-03-20 00:00 - `DBG - Phase 4.1 - Console Staged Choice Emphasis Styling Cleanup`
+<!-- ENTRY 480 -->
+HUMAN SUMMARY: `Reduced the visual weight of inactive staged choices in the collapsed console bar so the active choice reads as the clear target. Non-active options now render darker and no longer share the bold emphasis used by the active option.`
+
+#### Scope / Constraints Honored
+- Kept the change purely visual inside the collapsed console staged-choice strip.
+- Left staged navigation behavior and highlight targeting unchanged.
+
+#### Summary of Implementation
+- Updated the inactive staged-choice color and font weight in the console theme.
+- Kept the active staged choice at the stronger command color and bold weight.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- Inactive staged choices now appear dimmer and no longer look bold.
+
+<!-- ENTRY 479 -->
+### [479] - 2026-03-19 23:58 - `DBG - Phase 4.1 - Console Staged Summary Choice Strip Rendering Fix`
+<!-- ENTRY 479 -->
+HUMAN SUMMARY: `Changed the collapsed console status row from a single truncating text label into a structured prompt-plus-choice strip so `Choose next [...]` options stay visible in the bar and the currently targeted option remains highlighted. The bar now also falls back to parsing prompt transcript lines when it needs to reconstruct the live choice strip from prompt text alone.`
+
+#### Scope / Constraints Honored
+- Kept the change limited to collapsed-bar staged summary rendering.
+- Preserved existing staged navigation, input prefill, and highlight semantics.
+- Added focused UI coverage for the parsed prompt fallback path.
+
+#### Summary of Implementation
+- Refactored `ConsoleBar` staged summary rendering into a prefix plus horizontally scrollable choice viewport instead of one truncating summary string.
+- Added a parsed prompt fallback so `Choose next [...]` transcript lines can still render as a live choice strip with active-choice highlighting based on the current input token.
+- Added a guarded active-choice auto-scroll path for browsers that expose `scrollIntoView`.
+- Extended console UI tests to verify visible prompt choices and highlighted fallback rendering.
+
+#### Files Changed
+- `src/app/console/ConsoleBar.tsx`
+- `src/app/theme/v15Theme.css`
+- `src/app/console/ConsoleDock.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- The collapsed status row now renders staged options as a visible choice strip instead of collapsing them into a single truncated text node.
+- The currently targeted choice stays highlighted in that strip.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/console/ConsoleDock.test.tsx src/app/console/useConsoleStore.test.ts`
+- `cmd /c npx tsc -p tsconfig.json --noEmit`
+
+<!-- ENTRY 478 -->
+### [478] - 2026-03-19 23:55 - `DBG - Phase 4.1 - Console Bar Summary Width And Divider Resize Cleanup`
+<!-- ENTRY 478 -->
+HUMAN SUMMARY: `Relaxed the collapsed console bar summary cap so staged status text stays visible longer, and added a draggable vertical divider between the summary and input sections so the split can be adjusted directly in the bar.`
+
+#### Scope / Constraints Honored
+- Kept the cleanup narrow to the collapsed console bar layout and resize behavior.
+- Preserved the existing staged summary text, input flow, and expand/collapse behavior.
+- Added only focused store and UI coverage for the new summary-width state and divider drag path.
+
+#### Summary of Implementation
+- Added store-backed console summary width state with clamp limits so the collapsed bar can remember a wider preferred status area.
+- Updated `ConsoleBar` to render a vertical separator and drive the bar grid from the preferred summary width instead of the previous hard 280px cap.
+- Styled the new divider and widened the default summary track so status text truncates later even before manual adjustment.
+- Added focused tests for summary-width clamping and divider dragging.
+
+#### Files Changed
+- `src/app/console/useConsoleStore.ts`
+- `src/app/console/ConsoleBar.tsx`
+- `src/app/theme/v15Theme.css`
+- `src/app/console/useConsoleStore.test.ts`
+- `src/app/console/ConsoleDock.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- The collapsed console bar now shows more status text by default.
+- A vertical divider now sits between the summary and input sections and can be dragged left or right to adjust the split.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/console/useConsoleStore.test.ts src/app/console/ConsoleDock.test.tsx`
+- `cmd /c npx tsc -p tsconfig.json --noEmit`
+
+<!-- ENTRY 477 -->
+### [477] - 2026-03-19 23:48 - `DBG - Phase 4.1 - vi2 Arrow Up Down Cycling And Global Staged Routing`
+<!-- ENTRY 477 -->
+HUMAN SUMMARY: `Adjusted the new `vi2` staged-choice assist so sibling cycling now uses `ArrowUp` and `ArrowDown` instead of `Left` and `Right`, preserving normal caret movement in the console input while also wiring staged-choice cycling through the app-wide staged-console keyboard path so it works even when the input is not already focused.` 
+
+#### Scope / Constraints Honored
+- Kept the change narrow to staged console keyboard behavior and matching focused tests.
+- Preserved free typing and normal left/right caret movement inside the input.
+- Avoided broader command-entry or transcript redesign.
+
+#### Summary of Implementation
+- Updated staged input handling in `ConsoleBar` so active staged sessions use `ArrowUp` / `ArrowDown` for sibling-choice cycling before falling back to normal history recall.
+- Added staged-console handling for `ArrowUp` / `ArrowDown` in `inputRouting.ts`.
+- Wired the global docked and pop-out console key handlers to cycle staged choices on routed `ArrowUp` / `ArrowDown` even when the input is not already focused.
+- Updated focused input-routing and console UI tests to cover the new key choice and the global staged-routing path.
+
+#### Files Changed
+- `src/app/inputRouting.ts`
+- `src/app/console/ConsoleBar.tsx`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/inputRouting.test.ts`
+- `src/app/console/ConsoleDock.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- `ArrowUp` and `ArrowDown` now cycle staged sibling choices.
+- `Left` and `Right` are no longer used for staged-choice cycling, so normal caret movement stays available in the console input.
+- Staged-choice cycling now works through the global staged-console routing path even before the input is focused.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/console/useConsoleStore.test.ts src/app/console/ConsoleDock.test.tsx src/app/console/stagedNavigation.test.ts src/app/inputRouting.test.ts`
+- `cmd /c npx tsc -p tsconfig.json --noEmit`
+
+<!-- ENTRY 476 -->
+### [476] - 2026-03-19 23:40 - `DBG - Phase 4.1 - vi2 Staged Choice Prefill And Arrow Cycling`
+<!-- ENTRY 476 -->
+HUMAN SUMMARY: `Implemented the first `vi2` staged-choice assist pass in the console, so staged sessions now prefill the first valid choice into the input row, highlight the current choice in the single-row summary area, and let left/right arrows cycle sibling choices without breaking manual typing or staged-session escape behavior.` 
+
+#### Scope / Constraints Honored
+- Kept the change narrow to staged console navigation, the single-row summary, and supporting store state.
+- Preserved free typing as an explicit override instead of turning staged navigation into a chooser-only flow.
+- Avoided broader transcript redesign, autocomplete, or non-staged command-entry changes.
+
+#### Summary of Implementation
+- Added narrow staged-choice tracking state in the console store for the current targeted choice index and manual-override status.
+- Prefilled the input row with the first valid staged choice when a staged session becomes active.
+- Updated the single-row console summary to render staged choices inline and visibly highlight the current targeted choice.
+- Added `Left Arrow` / `Right Arrow` cycling in the input for staged sibling choices.
+- Kept `Escape` cancel behavior correct by cancelling assisted staged sessions directly while still allowing manual-override input to clear normally.
+- Added focused store and console UI regression coverage for prefill, cycling, highlight state, and preserved staged-session behavior.
+
+#### Files Changed
+- `src/app/console/useConsoleStore.ts`
+- `src/app/console/ConsoleBar.tsx`
+- `src/app/theme/v15Theme.css`
+- `src/app/console/useConsoleStore.test.ts`
+- `src/app/console/ConsoleDock.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- Entering a staged choice scope now prefills the input with the first valid choice.
+- The bottom-left single-row console summary now highlights the current staged choice.
+- `Left Arrow` and `Right Arrow` now cycle staged sibling choices in the input row.
+- Manual typing still overrides the assist layer, and `Escape` still cancels assisted staged sessions cleanly.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/console/useConsoleStore.test.ts src/app/console/ConsoleDock.test.tsx src/app/console/stagedNavigation.test.ts`
+- `cmd /c npx tsc -p tsconfig.json --noEmit`
+
+<!-- ENTRY 475 -->
+### [475] - 2026-03-19 23:17 - `DBG - Phase 4.1 - Command Transcript Sublayers`
+<!-- ENTRY 475 -->
+HUMAN SUMMARY: `Implemented the first narrow `Commands.User` versus `Commands.System` console transcript split, so user-submitted command lines now render separately from returned command prompts/results while still staying inside the existing `Commands` layer family.` 
+
+#### Scope / Constraints Honored
+- Kept the change narrow to console transcript semantics and rendering.
+- Preserved the existing top-level `Commands` layer instead of inventing a second command console or new layer family.
+- Avoided broader transcript-history redesign, grouping, or command-language changes.
+
+#### Summary of Implementation
+- Extended the console transcript entry model with a narrow command-line subtype field for `user` versus `system`.
+- Defaulted `Commands` entries to `system` so existing non-user command prompts and returns stay classified without broad publisher churn.
+- Tagged user-submitted command lines in `ConsoleDock` as `commandLineKind: 'user'`.
+- Updated both expanded transcript and list-mode transcript rendering to show `[commands.user]` and `[commands.system]` labels for `Commands` entries.
+- Added focused store and console UI coverage for the new subtype behavior and rendered labels.
+
+#### Files Changed
+- `src/app/console/consoleTypes.ts`
+- `src/app/console/useConsoleStore.ts`
+- `src/app/console/ConsolePanel.tsx`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/useConsoleStore.test.ts`
+- `src/app/console/ConsoleDock.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- The console transcript now visually distinguishes command input lines from command return lines as `[commands.user]` and `[commands.system]`.
+- Existing command-family filtering still works through the same top-level `Commands` layer.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/console/useConsoleStore.test.ts src/app/console/ConsoleDock.test.tsx`
+- `cmd /c npx tsc -p tsconfig.json --noEmit`
+
 <!-- ENTRY 474 -->
 ### [474] - 2026-03-19 00:13 - `SP - Phase 12 - SketchPlane Transform ParaSlider Hard Font-Size Override`
 <!-- ENTRY 474 -->

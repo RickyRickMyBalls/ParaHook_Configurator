@@ -1,4 +1,5 @@
 import {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -20,8 +21,16 @@ import {
 import {
   selectCurrentProjectContentBrowserRows,
   selectReferenceWorkspaceBrowserTree,
+  type WorkspaceSelectedTarget,
   useAppStore,
 } from '../store/useAppStore'
+import {
+  activateObjectIntent,
+  activateReferenceItemIntent,
+  activateGraphDocumentIntent,
+  activateGraphNodeIntent,
+  type WorkspaceIntentDeps,
+} from '../store/workspaceIntents'
 import { selectBrowserGraphRows } from './selectBrowserGraphRows'
 import { runBrowserRowAction } from './browserRowActions'
 import {
@@ -504,6 +513,7 @@ export function BrowserPanel({
   const currentProject = useAppStore((state) => state.currentProject)
   const projectContent = useAppStore((state) => state.projectContent)
   const referenceWorkspace = useAppStore((state) => state.referenceWorkspace)
+  const workspaceSelectedTarget = useAppStore((state) => state.workspaceSelection?.selectedTarget ?? null)
   const defaultBuildPolicy = useAppStore((state) => state.buildPolicy)
   const requestGraphDocumentBuild = useAppStore((state) => state.requestGraphDocumentBuild)
   const selectPart = useAppStore((state) => state.selectPart)
@@ -524,6 +534,12 @@ export function BrowserPanel({
   const retryReferenceItemLoad = useAppStore((state) => state.retryReferenceItemLoad)
   const removeImportedReference = useAppStore((state) => state.removeImportedReference)
   const beginReferenceTransform = useAppStore((state) => state.beginReferenceTransform)
+  const setWorkspaceSelectedTarget = useAppStore((state) => state.setWorkspaceSelectedTarget)
+  const setActiveSurface = useAppStore((state) => state.setActiveSurface)
+  const requestConsoleContextSync = useAppStore((state) => state.requestConsoleContextSync)
+  const requestFloatingShellActivation = useAppStore(
+    (state) => state.requestFloatingShellActivation,
+  )
   const activeTransformReferenceId = useAppStore(
     (state) => state.referenceWorkspace.activeTransformReferenceId,
   )
@@ -532,7 +548,7 @@ export function BrowserPanel({
     Record<string, boolean>
   >({})
   const [collapsedContentRowIds, setCollapsedContentRowIds] = useState<string[]>([])
-  const [selectedBrowserRowId, setSelectedBrowserRowId] = useState<string | null>(null)
+  const [localSelectedBrowserRowId, setLocalSelectedBrowserRowId] = useState<string | null>(null)
   const [contextMenu, setContextMenu] = useState<BrowserContextMenuState | null>(null)
   const [importMenu, setImportMenu] = useState<BrowserImportMenuState | null>(null)
   const [localIsBrowserCollapsed, setLocalIsBrowserCollapsed] = useState(false)
@@ -606,6 +622,70 @@ export function BrowserPanel({
     ],
   )
 
+  const resolveSelectedBrowserRowIdFromTarget = useCallback(
+    (target: WorkspaceSelectedTarget | null): string | null => {
+      if (target === null) {
+        return null
+      }
+      if (target.kind === 'graph-document') {
+        return `graph-row:${target.graphDocumentId}`
+      }
+      if (target.kind === 'graph-node') {
+        return `graph-node-row:${target.graphDocumentId}:${target.nodeId}`
+      }
+      if (target.kind === 'reference-item') {
+        return `reference-item-row:${target.referenceId}`
+      }
+      if (target.kind === 'object') {
+        return target.objectId
+      }
+      return null
+    },
+    [],
+  )
+
+  const selectedBrowserRowId =
+    resolveSelectedBrowserRowIdFromTarget(workspaceSelectedTarget) ?? localSelectedBrowserRowId
+
+  const workspaceIntentDeps = useMemo<WorkspaceIntentDeps>(
+    () => ({
+      app: {
+        setWorkspaceSelectedTarget,
+        setActiveSurface,
+        requestFloatingShellActivation,
+        setReferenceItemVisibility,
+        beginReferenceTransform,
+        selectPart,
+      },
+      spaghetti: {
+        activeEditorViewportId,
+        editorViewportsById,
+        openGraphDocumentInViewport,
+        swapFocusedEditorViewportToGraphDocument,
+        setActiveEditorViewportId,
+        setEditorViewportPosition,
+        setSelectedNodeId,
+        requestEditorViewportNodeFit,
+      },
+    }),
+    [
+      activeEditorViewportId,
+      editorViewportsById,
+      openGraphDocumentInViewport,
+      requestEditorViewportNodeFit,
+      requestFloatingShellActivation,
+      selectPart,
+      setActiveEditorViewportId,
+      setActiveSurface,
+      setEditorViewportPosition,
+      setSelectedNodeId,
+      setReferenceItemVisibility,
+      setWorkspaceSelectedTarget,
+      swapFocusedEditorViewportToGraphDocument,
+      beginReferenceTransform,
+    ],
+  )
+
   const browserTreeRows = useMemo(
     () =>
       selectBrowserTreeRows({
@@ -641,14 +721,31 @@ export function BrowserPanel({
   )
 
   const handleOpenOrFocusGraph = (graphDocumentId: string): string | null => {
-    const existingViewport = Object.values(editorViewportsById).find(
-      (viewport) => viewport.graphDocumentId === graphDocumentId,
-    )
-    const editorViewportId = openGraphDocumentInViewport(graphDocumentId)
-    if (editorViewportId !== null && existingViewport === undefined) {
-      setEditorViewportPosition(editorViewportId, newEditorSpawnPosition)
+    return activateGraphDocumentIntent(workspaceIntentDeps, graphDocumentId, {
+      strategy: 'open-or-focus',
+      spawnPosition: newEditorSpawnPosition,
+    }).editorViewportId
+  }
+
+  const handleActivateGraphTarget = (
+    graphDocumentId: string,
+    nodeId: string | null,
+    options: {
+      strategy?: 'open-or-focus' | 'swap-focused-or-open'
+      fitNodeInViewport?: boolean
+    } = {},
+  ): string | null => {
+    if (nodeId === null) {
+      return activateGraphDocumentIntent(workspaceIntentDeps, graphDocumentId, {
+        strategy: options.strategy ?? 'open-or-focus',
+        spawnPosition: newEditorSpawnPosition,
+      }).editorViewportId
     }
-    return editorViewportId
+    return activateGraphNodeIntent(workspaceIntentDeps, graphDocumentId, nodeId, {
+      strategy: options.strategy ?? 'open-or-focus',
+      spawnPosition: newEditorSpawnPosition,
+      fitNodeInViewport: options.fitNodeInViewport ?? false,
+    }).editorViewportId
   }
 
   const handleCycleContentBuildPolicy = (rowId: string) => {
@@ -693,6 +790,10 @@ export function BrowserPanel({
       action()
     }
 
+  const handleActivateBrowserSurface = useCallback(() => {
+    setActiveSurface('browser')
+  }, [setActiveSurface])
+
   const handleOpenContentImportMenu = (event: ReactMouseEvent<HTMLButtonElement>) => {
     event.preventDefault()
     event.stopPropagation()
@@ -713,7 +814,7 @@ export function BrowserPanel({
     void importReferenceFileFromDisk(fileType)
       .then((file) => {
         const referenceId = addImportedReference(file)
-        setSelectedBrowserRowId(`reference-item-row:${referenceId}`)
+        setLocalSelectedBrowserRowId(`reference-item-row:${referenceId}`)
       })
       .catch((error: unknown) => {
         if (error instanceof Error && error.message === 'No reference file selected.') {
@@ -768,8 +869,29 @@ export function BrowserPanel({
     }
   }, [contextMenu, importMenu])
 
+  useEffect(() => {
+    if (workspaceSelectedTarget?.kind === 'graph-document' || workspaceSelectedTarget?.kind === 'graph-node') {
+      setExpandedGraphDocumentIds((currentIds) =>
+        currentIds.includes(workspaceSelectedTarget.graphDocumentId)
+          ? currentIds
+          : [...currentIds, workspaceSelectedTarget.graphDocumentId],
+      )
+    }
+    if (workspaceSelectedTarget?.kind === 'graph-node') {
+      const nodesSectionRowId = `graph-section-row:${workspaceSelectedTarget.graphDocumentId}:nodes`
+      setGraphSectionExpandedByRowId((current) =>
+        current[nodesSectionRowId] === true
+          ? current
+          : {
+              ...current,
+              [nodesSectionRowId]: true,
+            },
+      )
+    }
+  }, [workspaceSelectedTarget])
+
   const handleSelectBrowserRow = (row: BrowserRenderableRowVm) => {
-    setSelectedBrowserRowId(row.rowId)
+    setLocalSelectedBrowserRowId(row.rowId)
     setContextMenu(null)
     setImportMenu(null)
     if (row.rowKind === 'references-root') {
@@ -808,11 +930,16 @@ export function BrowserPanel({
         severity: 'info',
       })
       requestContentRowBuild(row)
-      if (
-        row.rowKind !== 'assembly' &&
-        sharedViewerComposition === null &&
-        row.highlightViewerKey !== null
-      ) {
+      if (row.rowKind === 'object') {
+        activateObjectIntent(workspaceIntentDeps, row.rowId, {
+          partKey:
+            sharedViewerComposition === null
+              ? row.highlightViewerKey
+              : undefined,
+        })
+        return
+      }
+      if (row.rowKind !== 'assembly' && sharedViewerComposition === null && row.highlightViewerKey !== null) {
         selectPart(row.highlightViewerKey)
       }
       return
@@ -837,23 +964,36 @@ export function BrowserPanel({
         source: 'browser',
         severity: 'info',
       })
-      const editorViewportId = handleOpenOrFocusGraph(row.authoringGraphDocumentId)
-      setSelectedNodeId(row.authoringNodeId)
-      if (row.rowKind === 'graph-node' && editorViewportId !== null) {
-        requestEditorViewportNodeFit(editorViewportId, row.authoringNodeId)
+      if (row.authoringNodeId === null) {
+        activateGraphDocumentIntent(workspaceIntentDeps, row.authoringGraphDocumentId, {
+          strategy: 'open-or-focus',
+          spawnPosition: newEditorSpawnPosition,
+        })
+      } else {
+        activateGraphNodeIntent(
+          workspaceIntentDeps,
+          row.authoringGraphDocumentId,
+          row.authoringNodeId,
+          {
+            strategy: 'open-or-focus',
+            spawnPosition: newEditorSpawnPosition,
+            fitNodeInViewport: row.rowKind === 'graph-node',
+          },
+        )
       }
+      requestConsoleContextSync('target-selection')
       return
     }
-    let editorViewportId: string | null = null
-    if (activeEditorViewportId.length > 0) {
-      editorViewportId = swapFocusedEditorViewportToGraphDocument(row.graphDocumentId)
-    } else {
-      editorViewportId = openGraphDocumentInViewport(row.graphDocumentId)
-      if (editorViewportId !== null) {
-        setEditorViewportPosition(editorViewportId, newEditorSpawnPosition)
-      }
-    }
+    const editorViewportId = activateGraphDocumentIntent(
+      workspaceIntentDeps,
+      row.graphDocumentId,
+      {
+        strategy: 'swap-focused-or-open',
+        spawnPosition: newEditorSpawnPosition,
+      },
+    ).editorViewportId
     if (editorViewportId !== null) {
+      requestConsoleContextSync('target-selection')
       appendConsoleEntry({
         layer: 'Browser',
         text: `Opened ${describeBrowserRow(row)}`,
@@ -875,10 +1015,10 @@ export function BrowserPanel({
     if (row.authoringGraphDocumentId === null) {
       return
     }
-    handleOpenOrFocusGraph(row.authoringGraphDocumentId)
-    if (row.authoringNodeId !== null) {
-      setSelectedNodeId(row.authoringNodeId)
-    }
+    handleActivateGraphTarget(row.authoringGraphDocumentId, row.authoringNodeId, {
+      fitNodeInViewport: row.authoringNodeId !== null,
+    })
+    requestConsoleContextSync('target-selection')
   }
 
   const toggleGraphExpanded = (graphDocumentId: string) => {
@@ -933,7 +1073,7 @@ export function BrowserPanel({
   }
 
   const handleToggleReferenceVisibility = (row: BrowserRenderableRowVm) => {
-    setSelectedBrowserRowId(row.rowId)
+    setLocalSelectedBrowserRowId(row.rowId)
     setContextMenu(null)
     setImportMenu(null)
     if (row.rowKind === 'reference-category') {
@@ -958,33 +1098,32 @@ export function BrowserPanel({
   }
 
   const handleHighlightReferenceRow = (referenceId: string, label: string) => {
-    setSelectedBrowserRowId(`reference-item-row:${referenceId}`)
+    setLocalSelectedBrowserRowId(`reference-item-row:${referenceId}`)
     setContextMenu(null)
     setImportMenu(null)
-    setReferenceItemVisibility(referenceId, true)
     appendConsoleEntry({
       layer: 'Browser',
       text: `Highlight ${label}`,
       source: 'browser',
       severity: 'info',
     })
-    beginReferenceTransform(referenceId)
+    activateReferenceItemIntent(workspaceIntentDeps, referenceId)
   }
 
   const handleCreateGraph = () => {
     const graphDocumentId = createGraphDocument()
-    const editorViewportId = openGraphDocumentInViewport(graphDocumentId)
-    if (editorViewportId !== null) {
-      setEditorViewportPosition(editorViewportId, newEditorSpawnPosition)
-    }
+    activateGraphDocumentIntent(workspaceIntentDeps, graphDocumentId, {
+      strategy: 'open-or-focus',
+      spawnPosition: newEditorSpawnPosition,
+    })
   }
 
   const handleDuplicateFocusedGraph = () => {
     const graphDocumentId = duplicateActiveGraphDocument()
-    const editorViewportId = openGraphDocumentInViewport(graphDocumentId)
-    if (editorViewportId !== null) {
-      setEditorViewportPosition(editorViewportId, newEditorSpawnPosition)
-    }
+    activateGraphDocumentIntent(workspaceIntentDeps, graphDocumentId, {
+      strategy: 'open-or-focus',
+      spawnPosition: newEditorSpawnPosition,
+    })
   }
 
   const handleOpenNewEditor = () => {
@@ -1011,10 +1150,9 @@ export function BrowserPanel({
   }
 
   const handleViewInGraph = (graphDocumentId: string, nodeId: string | null) => {
-    handleOpenOrFocusGraph(graphDocumentId)
-    if (nodeId !== null) {
-      setSelectedNodeId(nodeId)
-    }
+    handleActivateGraphTarget(graphDocumentId, nodeId, {
+      fitNodeInViewport: nodeId !== null,
+    })
   }
 
   const handleRetryImportedReferenceRow = (referenceId: string) => {
@@ -1039,7 +1177,7 @@ export function BrowserPanel({
       severity: 'info',
     })
     removeImportedReference(referenceId)
-    setSelectedBrowserRowId((current) =>
+    setLocalSelectedBrowserRowId((current) =>
       current === `reference-item-row:${referenceId}` ? null : current,
     )
   }
@@ -1111,7 +1249,7 @@ export function BrowserPanel({
     event: ReactMouseEvent<HTMLDivElement | HTMLButtonElement>,
   ) => {
     event.preventDefault()
-    setSelectedBrowserRowId(row.rowId)
+    setLocalSelectedBrowserRowId(row.rowId)
     setImportMenu(null)
     if (row.actions.length === 0) {
       setContextMenu(null)
@@ -1142,7 +1280,7 @@ export function BrowserPanel({
       return
     }
     const rect = event.currentTarget.getBoundingClientRect()
-    setSelectedBrowserRowId(row.rowId)
+    setLocalSelectedBrowserRowId(row.rowId)
     setContextMenu({
       row,
       x: rect.right - 8,
@@ -1169,7 +1307,7 @@ export function BrowserPanel({
       return
     }
     const rect = event.currentTarget.getBoundingClientRect()
-    setSelectedBrowserRowId(row.rowId)
+    setLocalSelectedBrowserRowId(row.rowId)
     setContextMenu({
       row,
       x: rect.right - 8,
@@ -1224,6 +1362,7 @@ export function BrowserPanel({
       className={`V15Panel BrowserPanelRoot ${isFloating ? 'isFloating' : ''} ${
         isBrowserCollapsed ? 'isCollapsed' : ''
       }`}
+      onPointerDownCapture={handleActivateBrowserSurface}
     >
       <div
         className={`BrowserPanelTitleBar ${isBrowserCollapsed ? 'isCollapsed' : ''}`}

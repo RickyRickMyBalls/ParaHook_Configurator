@@ -41,6 +41,132 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 061 -->
+### [061] - 2026-03-19 23:48 - `DOC - Update vi2 Console Spec From Left Right To Up Down Cycling`
+<!-- ENTRY 061 -->
+HUMAN SUMMARY: `Updated the active `vi2` console architecture guidance so staged choice assist now uses `ArrowUp` and `ArrowDown` instead of `Left` and `Right`. The revised spec keeps normal caret movement intact while matching the shipped keyboard-routing fix that allows staged sibling cycling to work even before the input is focused.` 
+
+#### Scope
+- Updated the existing `Console.md` architecture note only.
+- Kept the change focused on active staged-console input guidance and implementation-spec accuracy, not runtime code.
+- Recorded the document change in the canonical permanent doc log.
+
+#### Summary
+- Added a new local `Doc History` line in `docs/Human-Plans/Architecture/Console.md`.
+- Updated the active staged-choice assist wording from `Left Arrow` / `Right Arrow` to `ArrowUp` / `ArrowDown`.
+- Synced the planned refinement note, the `vi2` vision section, and the `### Implementation Spec` acceptance/steps language to the new key choice.
+- Preserved the earlier history entries instead of rewriting them, while making the active architecture text match the shipped behavior.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Console.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- The active console spec now better reflects the intended typing model because `ArrowUp` / `ArrowDown` can act as staged-choice cycling keys without stealing normal left/right caret movement inside the input field.
+
+<!-- ENTRY 060 -->
+### [060] - 2026-03-19 23:34 - `DOC - Make vi2 Staged Choice Prefill And Arrow Cycling Implementation Ready`
+<!-- ENTRY 060 -->
+HUMAN SUMMARY: `Expanded the new console `vi2` staged-choice prefill and arrow-cycling note into an implementation-ready spec. The console architecture doc now locks the first-pass prefill, highlighted-choice summary strip, left/right cycling, manual-typing override behavior, and acceptance shape as one narrow staged-navigation refinement task.` 
+
+#### Scope
+- Updated the existing `Console.md` architecture note only.
+- Kept the change focused on implementation-ready staged-console UX behavior and task scoping, not runtime code.
+- Recorded the document change in the canonical permanent doc log.
+
+#### Summary
+- Added a new local `Doc History` line in `docs/Human-Plans/Architecture/Console.md`.
+- Expanded `## [ ]Vision Idea `vi2` - Staged Choice Prefill And Arrow Cycling` with a real `### Implementation Spec` block.
+- Locked the first-pass behavior around:
+  - input prefill from the first valid staged choice
+  - bottom-left summary highlighting of the targeted choice
+  - `Left Arrow` / `Right Arrow` sibling cycling
+  - `Enter` / command-scoped `Space` submission of the targeted choice
+  - manual typing as an explicit override
+- Added scope boundaries, likely state shape, implementation steps, hard rules, and acceptance criteria.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Console.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- The updated `vi2` section now reads as a single implementation task spec and stays aligned with the earlier rule that staged-choice assist should improve navigation speed and visibility without replacing the underlying typed staged-command model.
+
+<!-- ENTRY 059 -->
+### [059] - 2026-03-19 23:26 - `DOC - Add Staged Choice Prefill And Arrow Cycling Vision To Console Architecture`
+<!-- ENTRY 059 -->
+HUMAN SUMMARY: `Updated the console architecture doc with a new vision note for staged-choice prefill and left/right cycling. The new section records the direction that staged command scopes should prefill the first valid choice into the input row, highlight the current choice in the single-row summary area, and let arrow keys cycle sibling options while preserving free typing.`
+
+#### Scope
+- Updated the existing `Console.md` architecture note only.
+- Kept the change focused on future staged-console UX direction and suggestion-level guidance, not runtime code.
+- Recorded the document change in the canonical permanent doc log.
+
+#### Summary
+- Added a new local `Doc History` line in `docs/Human-Plans/Architecture/Console.md`.
+- Added a new `## Vision Idea - Staged Choice Prefill And Arrow Cycling` section at the bottom of the console architecture doc.
+- Described the suggested behavior for:
+  - input prefill with the first valid staged choice
+  - bottom-left summary highlighting of the current staged choice
+  - `Left Arrow` / `Right Arrow` cycling across sibling choices
+  - `Enter` / command-scoped `Space` submission of the targeted choice
+- Kept explicit boundaries so the idea remains a staged-navigation refinement rather than a replacement for freeform command entry.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Console.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- The new note stays aligned with the earlier console direction that staged-choice assist should improve visibility and speed without becoming the underlying reason the command model works.
+
+<!-- ENTRY 058 -->
+### [058] - 2026-03-19 23:12 - `DOC - Make Command Transcript Sublayers Vision Implementation Ready`
+<!-- ENTRY 058 -->
+HUMAN SUMMARY: `Expanded the new console `Command Transcript Sublayers` idea into an implementation-ready spec. The console architecture doc now locks the first-pass `Commands.User` versus `Commands.System` model, the narrow ownership and filtering rules, and the acceptance shape for landing that change as one transcript refinement task instead of a broader console redesign.`
+
+#### Scope
+- Updated the existing `Console.md` architecture note only.
+- Kept the change focused on implementation-ready console transcript semantics and task scoping, not runtime code.
+- Recorded the document change in the canonical permanent doc log.
+
+#### Summary
+- Added a new local `Doc History` line in `docs/Human-Plans/Architecture/Console.md`.
+- Expanded the new `### Implementation spec` section under `## Vision Idea - Command Transcript Sublayers`.
+- Locked the first implementation cut around one `Commands` family with two subtypes:
+  - `Commands.User`
+  - `Commands.System`
+- Added scope boundaries, ownership guidance, likely data-shape guidance, implementation steps, hard rules, and acceptance criteria.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Console.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- The updated section now reads like a single implementation task specification rather than only a loose future UX note, while still keeping the change narrow and separate from broader transcript-history redesign work.
+
+<!-- ENTRY 057 -->
+### [057] - 2026-03-19 23:08 - `DOC - Add Commands User/System Transcript Vision To Console Architecture`
+<!-- ENTRY 057 -->
+HUMAN SUMMARY: `Updated the console architecture doc with a new bottom-of-file vision idea for splitting the existing `Commands` transcript layer into `Commands.User` and `Commands.System`. The note keeps that refinement inside the same layered transcript model so typed input and returned prompts/results become easier to scan without inventing a separate logging product.`
+
+#### Scope
+- Updated the existing `Console.md` architecture note only.
+- Kept the change focused on console transcript semantics and future UX clarity, not runtime code.
+- Recorded the document change in the canonical permanent doc log.
+
+#### Summary
+- Added a new local `Doc History` line in `docs/Human-Plans/Architecture/Console.md`.
+- Added a new `## Vision Idea - Command Transcript Sublayers` section at the bottom of the console architecture doc.
+- Defined the proposed `Commands.User` and `Commands.System` split as a refinement inside the existing `Commands` family.
+- Added purpose, boundaries, and short transcript examples showing typed input separated from returned prompts/results.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Console.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- The new idea stays consistent with the current one-transcript layered-console direction by making command back-and-forth easier to read without turning command input and command output into detached console products.
+
 <!-- ENTRY 056 -->
 ### [056] - 2026-03-19 13:41 - `DOC - Add Sketch Plane Section Map To Sketch Architecture Doc`
 <!-- ENTRY 056 -->

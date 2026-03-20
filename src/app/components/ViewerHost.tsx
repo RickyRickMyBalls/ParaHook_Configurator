@@ -166,6 +166,7 @@ export function ViewerHost() {
           ...(sketchFeature.planeTransform?.rotationDeg ?? { x: 0, y: 0, z: 0 }),
         },
       },
+      drawStage: geometrySketchSession.drawStage,
       activeTool: geometrySketchSession.activeTool,
       components: sketchFeature.components ?? [],
       profiles,

@@ -38,20 +38,61 @@ While chill mode is active:
 ## Doc Body
 
 <!-- ============================================================ -->
-### Chill Batch #8
+### Chill Batch #9
 <!-- ============================================================ -->
 
 Status:
 - active
 
 Started:
-- 2026-03-19 00:15
+- 2026-03-19 22:56
 
 Ended:
 - active
 
 Mode:
 - chill mode active
+
+Consolidated To:
+- pending
+
+Current Goal:
+- track the next small sketch and console follow-up adjustments in chill mode without promoting each one directly into `docs/CHANGELOG.md`
+
+Entries:
+17. 2026-03-20 01:16 - Implemented `[4.1N] Feature Session Prompt Descriptors`: the console now supports one shared assisted prompt descriptor seam for both staged navigation and active feature sessions, `Sketch Plane` and idle `Sketch Draw` publish real `label / choices / prefill` descriptors, `ConsoleBar` now uses those descriptors for summary rendering, prefill, arrow cycling, and manual override, stale assist-prefill clears when the constrained feature prompt disappears, and the focused console store/dock regressions plus `npx tsc --noEmit` all pass.
+16. 2026-03-20 00:50 - Implemented `[3.2B-S4] Sketch Return One Level`: `useSpaghettiStore` now exposes one shared `returnActiveSketchSessionOneLevel()` seam, `ConsoleDock` routes sketch-local `esc` plus `back / b` through that shared action, `ViewportOverlay` now uses the same seam for sketch-plane `Escape`, new sketch-draw `Escape`, and visible `Back` title-bar actions, and the focused store/console/overlay regressions plus `npx tsc --noEmit` all pass.
+15. 2026-03-20 00:37 - Implemented the first `S.vi 1D` sketch-draw cleanup pass: the existing sketch-draw prompt helper now emits the explicit idle prompt `Sketch Draw > [Line, PLine, X]`, staged `SketchDraw` launch no longer prints the stale `Sketch Draw started` message, console `status` now reports the named draw stage directly, a second draw cancel republishes the idle prompt instead of silently dropping to null, and the focused sketch-draw store/console/overlay regressions plus `npx tsc --noEmit` all pass.
+14. 2026-03-20 00:42 - Tightened `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch.md` so `S.vi 1D - SketchDraw Cleanup` is now spec-ready: the section now records the real current seam (`geometrySketchSession`), maps `drawStage` and `activeTool` onto `Session Idle / Tool Selected / Draft Active`, locks the current draw-session cancel/tool/status truths into the implementation boundary, and adds concrete acceptance checks for the three-level `SketchDraw` cleanup.
+13. 2026-03-20 00:35 - Implemented the first `S.vi 1C` sketch-plane cleanup pass: `Escape` and typed `esc` now return `SketchPlane` from `adjust` back to `pick` instead of cancelling the whole session, `reopenSketchPlanePickPlaneSelection()` now republishes the `Sketch Plane > [XY, XZ, YZ]` plane-selection prompt so the console stays aligned with the reopened stage, and the focused sketch-plane store/console/overlay regressions plus `npx tsc --noEmit` all pass.
+12. 2026-03-20 00:31 - Tightened `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch.md` so `S.vi 1C - SketchPlane Cleanup` is now spec-ready: the section now records the real current seam (`sketchPlanePickSession`), maps `pick/adjust` onto `Plane Selection/Adjust`, locks the current console/cancel/camera-adjust truths into the implementation boundary, and adds concrete acceptance checks for the two-level `SketchPlane` cleanup.
+11. 2026-03-20 00:25 - Implemented `S.vi 1A` as a sketch state-seam cleanup: `src/app/spaghetti/store/useSpaghettiStore.ts` now gives `GeometrySketchSession` an explicit `drawStage` (`sessionIdle`, `toolSelected`, `draftActive`) and allows `activeTool: null`, fresh draw sessions no longer auto-arm `Line`, draft cancel now steps back to idle instead of using the old implicit-line session shape, and the dependent console/viewer/overlay readers plus focused sketch tests were updated to honor the new idle/tool/draft hierarchy; `npx tsc --noEmit` and the focused store/console/viewer tests all pass.
+10. 2026-03-20 00:20 - Tightened `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch.md` to make `S.vi 1A - Hierarchy Model` implementation-ready by adding explicit current-code-to-target mapping (`graphSketchSelected`, `sketchPlanePickSession`, `geometrySketchSession`), a clear phase boundary for what `1A` does and does not own, and concrete acceptance checks for the named sketch hierarchy.
+9. 2026-03-20 11:37 - Changed the focused console-input `Escape` behavior so it now clears any current input text, including staged-choice prefill, before it performs deeper cancel/back behavior; `src/app/console/ConsoleBar.tsx` now clears `inputText` first and only cancels the staged session on a second `Escape` when the field is already empty, and `src/app/console/ConsoleDock.test.tsx` now covers the new two-step staged behavior.
+8. 2026-03-20 00:08 - Expanded `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch.md` so the new `S.vi 1A-E` hierarchy-cleanup subphases now each have concrete `Questions / Decisions` and `Implementation Spec` blocks, recording the current known direction for sketch-node parent scope, one-level `Esc` / `Back`, `SketchPlane` `Plane Selection -> Adjust`, `SketchDraw` `Session Idle -> Tool Selected -> Draft Active`, and toolbar/console shared-command ownership.
+7. 2026-03-19 23:29 - Expanded `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch.md` with a new `Hierarchy Cleanup Vision` section that formalizes the intended sketch command/session hierarchy under the selected sketch node, defining `SketchPlane` as `Plane Selection -> Adjust`, defining `SketchDraw` as `Session Idle -> Tool Selected -> Draft Active`, and locking the direction that `Esc` / `Back` should return one level through a shared sketch-session behavior instead of remaining scattered special cases.
+6. 2026-03-19 23:27 - Corrected the sketch-plane cancel handoff so `SketchPlane` now restores the staged console to the still-selected sketch node scope instead of the broader graph scope; `src/app/console/ConsoleDock.tsx` now resumes staged navigation with the selected sketch node id, and `src/app/console/ConsoleDock.test.tsx` now expects `Sketch > Choose next [Sketch Plane, Sketch Draw, Delete, Back]` after cancel. `npm.cmd test -- src/app/console/ConsoleDock.test.tsx` passes.
+5. 2026-03-19 23:24 - Added a `ConsoleDock`-level sketch-plane session-exit handoff so cancelling `SketchPlane` now restores the staged console to graph scope and reprints `Graph > Choose next [Sketch, Extrude, Output Preview, Collapsed, Essentials, Expanded, References, Open, Build, Back]` instead of leaving the console without a next-step prompt; `src/app/console/ConsoleDock.tsx` now watches `sketchPlanePickSession` transitions and restores graph scope on cancel unless the session advanced directly into `Sketch Draw`, and the new regression in `src/app/console/ConsoleDock.test.tsx` passes with `npm.cmd test -- src/app/console/ConsoleDock.test.tsx`.
+4. 2026-03-19 23:10 - Suppressed the transient `Active surface: viewer` console transcript line during active sketch-plane pick in `src/app/store/useAppStore.ts`, so clicking the viewport to adjust the camera no longer pushes the active `Sketch Plane` prompt off the console surface while the command context remains alive; added the matching regression in `src/app/store/useAppStore.test.ts`, and `npm.cmd test -- src/app/store/useAppStore.test.ts` passes.
+3. 2026-03-19 23:06 - Added a sketch-plane viewer-click exception in `src/app/AppShell.tsx` so clicking the main viewport during an active `sketchPlanePickSession` still activates the viewer but no longer requests console `surface-clear` / root-sync, allowing camera adjustment without collapsing the active sketch-plane command context; added the matching regression in `src/app/AppShell.test.tsx`, and `npm.cmd test -- src/app/AppShell.test.tsx` passes.
+2. 2026-03-19 22:58 - Updated the sketch-plane console path so `SP` no longer blocks printable console capture, letting the user type `XY`, `XZ`, or `YZ` directly without `/`; `src/app/console/ConsoleDock.tsx` now routes those submitted tokens into `setSketchPlanePickDraftPlane(...)`, `src/app/inputRouting.ts` now allows flat-console capture during active sketch-plane pick, and the focused router/console tests in `src/app/inputRouting.test.ts` and `src/app/console/ConsoleDock.test.tsx` were updated and pass via `npm.cmd test -- src/app/inputRouting.test.ts src/app/console/ConsoleDock.test.tsx`.
+1. 2026-03-19 22:56 - Chill mode re-entered and `Chill Batch #9` started for the next sketch and console follow-up pass.
+
+<!-- ============================================================ -->
+### Chill Batch #8
+<!-- ============================================================ -->
+
+Status:
+- inactive
+
+Started:
+- 2026-03-19 00:15
+
+Ended:
+- 2026-03-19 22:56
+
+Mode:
+- chill mode inactive
 
 Consolidated To:
 - pending

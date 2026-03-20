@@ -13,6 +13,7 @@ export type ConsoleLayer =
 export type ConsoleFilterMode = 'normal' | 'isolate' | 'subset'
 
 export type ConsoleSeverity = 'normal' | 'info' | 'warn' | 'error'
+export type ConsoleCommandLineKind = 'user' | 'system'
 
 export type ConsoleTranscriptEntry = {
   id: string
@@ -20,6 +21,7 @@ export type ConsoleTranscriptEntry = {
   createdAtMs: number
   timestampLabel: string
   layer: ConsoleLayer
+  commandLineKind: ConsoleCommandLineKind | null
   text: string
   source: string | null
   severity: ConsoleSeverity
@@ -41,7 +43,20 @@ export type ConsoleFloatingRect = {
 
 export type ConsoleAppendEntryInput = {
   layer: ConsoleLayer
+  commandLineKind?: ConsoleCommandLineKind
   text: string
   source?: string | null
   severity?: ConsoleSeverity
+}
+
+export type ConsoleAssistChoice = {
+  canonicalToken: string
+  aliases: string[]
+  label: string
+}
+
+export type ConsoleAssistDescriptor = {
+  label: string
+  choices: ConsoleAssistChoice[]
+  prefill: string | null
 }

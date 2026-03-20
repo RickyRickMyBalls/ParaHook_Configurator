@@ -44,6 +44,8 @@ describe('stagedNavigation', () => {
     expect(result.autoSelections.map((choice) => choice.label)).toEqual(['graph_[1]'])
     expect(result.validChoices.map((choice) => choice.canonicalToken)).toEqual([
       'SKETCH',
+      'EXTRUDE',
+      'OUTPUT PREVIEW',
       'COLLAPSED',
       'ESSENTIALS',
       'EXPANDED',
@@ -77,6 +79,8 @@ describe('stagedNavigation', () => {
     expect(graphChoiceResult.selections.graphDocumentId).toBe('graph-document-3')
     expect(graphChoiceResult.validChoices.map((choice) => choice.canonicalToken)).toEqual([
       'SKETCH',
+      'EXTRUDE',
+      'OUTPUT PREVIEW',
       'COLLAPSED',
       'ESSENTIALS',
       'EXPANDED',
@@ -128,6 +132,7 @@ describe('stagedNavigation', () => {
     expect(sketchResult.validChoices.map((choice) => choice.label)).toEqual([
       'Sketch Plane',
       'Sketch Draw',
+      'Delete',
       'Back',
     ])
   })
@@ -159,6 +164,8 @@ describe('stagedNavigation', () => {
     expect(invalidResult.session?.breadcrumb).toEqual(['Select', 'Graph', 'graph_[1]'])
     expect(invalidResult.validChoices.map((choice) => choice.canonicalToken)).toEqual([
       'SKETCH',
+      'EXTRUDE',
+      'OUTPUT PREVIEW',
       'COLLAPSED',
       'ESSENTIALS',
       'EXPANDED',
@@ -212,7 +219,7 @@ describe('stagedNavigation', () => {
     expect(backResult.breadcrumb).toEqual(['Select', 'Graph'])
   })
 
-  it('uses b to go back one level inside sketch scopes', () => {
+  it('uses b to return directly to graph scope from a selected sketch node', () => {
     const context = createConsoleStagedNavigationContext([
       {
         graphDocumentId: 'graph-document-1',
@@ -249,21 +256,47 @@ describe('stagedNavigation', () => {
       throw new Error('Expected sketch selection to advance')
     }
 
-    const backToSketchList = submitConsoleStagedNavigationToken(selectedSketchResult.session, 'b', context)
-    expect(backToSketchList.kind).toBe('advance')
-    if (backToSketchList.kind !== 'advance') {
-      throw new Error('Expected b to go back to sketch list')
-    }
-    expect(backToSketchList.session.scopeId).toBe('graphSketchList')
-    expect(backToSketchList.breadcrumb).toEqual(['Select', 'Graph', 'graph_[1]', 'Sketch'])
-
-    const backToGraph = submitConsoleStagedNavigationToken(backToSketchList.session, 'b', context)
+    const backToGraph = submitConsoleStagedNavigationToken(selectedSketchResult.session, 'b', context)
     expect(backToGraph.kind).toBe('advance')
     if (backToGraph.kind !== 'advance') {
       throw new Error('Expected b to go back to graph selected')
     }
     expect(backToGraph.session.scopeId).toBe('graphSelected')
     expect(backToGraph.breadcrumb).toEqual(['Select', 'Graph', 'graph_[1]'])
+  })
+
+  it('auto-selects the only extrude after entering extrude scope', () => {
+    const context = createConsoleStagedNavigationContext([
+      {
+        graphDocumentId: 'graph-document-1',
+        name: 'Graph 1',
+        extrudeOptions: [{ nodeId: 'node-extrude-1' }],
+      },
+    ])
+
+    const rootResult = submitConsoleStagedNavigationToken(null, 'G', context)
+    expect(rootResult.kind).toBe('advance')
+    if (rootResult.kind !== 'advance') {
+      throw new Error('Expected graph root token to advance')
+    }
+
+    const extrudeResult = submitConsoleStagedNavigationToken(rootResult.session, 'E', context)
+    expect(extrudeResult.kind).toBe('advance')
+    if (extrudeResult.kind !== 'advance') {
+      throw new Error('Expected extrude token to advance')
+    }
+
+    expect(extrudeResult.session.scopeId).toBe('graphExtrudeSelected')
+    expect(extrudeResult.breadcrumb).toEqual([
+      'Select',
+      'Graph',
+      'graph_[1]',
+      'Extrude',
+      'extrude_[1]',
+    ])
+    expect(extrudeResult.selections.selectedNodeId).toBe('node-extrude-1')
+    expect(extrudeResult.selections.sketchNodeId).toBeNull()
+    expect(extrudeResult.validChoices.map((choice) => choice.label)).toEqual(['Delete', 'Back'])
   })
 
   it('returns execute metadata for graph editor modes, sketch plane, sketch draw, and graph action nodes', () => {
@@ -299,7 +332,7 @@ describe('stagedNavigation', () => {
     }
     expect(buildResult.actionId).toBe('graph.build')
 
-    const essentialsResult = submitConsoleStagedNavigationToken(graphChoiceResult.session, 'E', context)
+    const essentialsResult = submitConsoleStagedNavigationToken(graphChoiceResult.session, 'ES', context)
     expect(essentialsResult.kind).toBe('execute')
     if (essentialsResult.kind !== 'execute') {
       throw new Error('Expected essentials token to execute')
@@ -315,6 +348,7 @@ describe('stagedNavigation', () => {
     expect(sketchResult.validChoices.map((choice) => choice.label)).toEqual([
       'Sketch Plane',
       'Sketch Draw',
+      'Delete',
       'Back',
     ])
 
@@ -358,5 +392,47 @@ describe('stagedNavigation', () => {
     expect(cancelledResult.session).toBeNull()
     expect(cancelledResult.breadcrumb).toEqual([])
     expect(cancelledResult.validChoices.map((choice) => choice.canonicalToken)).toEqual(['GRAPH'])
+  })
+
+  it('exposes delete as a node-local action for selected node scopes', () => {
+    const context = createConsoleStagedNavigationContext([
+      {
+        graphDocumentId: 'graph-document-1',
+        name: 'Graph 1',
+        extrudeOptions: [{ nodeId: 'node-extrude-1' }],
+        outputPreviewOptions: [{ nodeId: 'node-output-1' }],
+        sketchOptions: [{ nodeId: 'node-sketch-1' }],
+      },
+    ])
+
+    const rootResult = submitConsoleStagedNavigationToken(null, 'g', context)
+    expect(rootResult.kind).toBe('advance')
+    if (rootResult.kind !== 'advance') {
+      throw new Error('Expected graph root token to advance')
+    }
+
+    const sketchResult = submitConsoleStagedNavigationToken(rootResult.session, 's', context)
+    expect(sketchResult.kind).toBe('advance')
+    if (sketchResult.kind !== 'advance') {
+      throw new Error('Expected sketch token to advance')
+    }
+    const sketchDeleteResult = submitConsoleStagedNavigationToken(sketchResult.session, 'd', context)
+    expect(sketchDeleteResult.kind).toBe('execute')
+    if (sketchDeleteResult.kind !== 'execute') {
+      throw new Error('Expected sketch delete token to execute')
+    }
+    expect(sketchDeleteResult.actionId).toBe('node.delete')
+
+    const extrudeResult = submitConsoleStagedNavigationToken(rootResult.session, 'e', context)
+    expect(extrudeResult.kind).toBe('advance')
+    if (extrudeResult.kind !== 'advance') {
+      throw new Error('Expected extrude token to advance')
+    }
+    const extrudeDeleteResult = submitConsoleStagedNavigationToken(extrudeResult.session, 'd', context)
+    expect(extrudeDeleteResult.kind).toBe('execute')
+    if (extrudeDeleteResult.kind !== 'execute') {
+      throw new Error('Expected extrude delete token to execute')
+    }
+    expect(extrudeDeleteResult.actionId).toBe('node.delete')
   })
 })

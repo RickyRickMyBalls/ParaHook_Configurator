@@ -260,6 +260,9 @@ export function ViewportOverlay() {
     (state) => state.startGeometrySketchSession,
   )
   const closeGeometrySketchSession = useSpaghettiStore((state) => state.closeGeometrySketchSession)
+  const returnActiveSketchSessionOneLevel = useSpaghettiStore(
+    (state) => state.returnActiveSketchSessionOneLevel,
+  )
   const setGeometrySketchSessionTool = useSpaghettiStore(
     (state) => state.setGeometrySketchSessionTool,
   )
@@ -899,7 +902,7 @@ export function ViewportOverlay() {
       }
       if (event.key === 'Escape') {
         event.preventDefault()
-        cancelSketchPlanePick()
+        returnActiveSketchSessionOneLevel()
         return
       }
       if (event.key === 'Enter' && sketchPlanePickSession.stage === 'adjust') {
@@ -935,11 +938,45 @@ export function ViewportOverlay() {
       window.removeEventListener('keydown', handleKeyDown)
     }
   }, [
-    cancelSketchPlanePick,
     confirmSketchPlanePick,
+    reopenSketchPlanePickPlaneSelection,
+    returnActiveSketchSessionOneLevel,
     setSketchPlanePickGizmoMode,
     sketchPlanePickSession,
   ])
+
+  useEffect(() => {
+    if (geometrySketchSession?.mode !== 'draw') {
+      return
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented) {
+        return
+      }
+      const routing = routeKeyboardInput({
+        event,
+        geometrySketchMode: geometrySketchSession.mode,
+      })
+      if (routing.owner !== 'sketch-draw' || routing.decision !== 'handle') {
+        return
+      }
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        returnActiveSketchSessionOneLevel()
+        return
+      }
+      if (event.key === 'Enter') {
+        event.preventDefault()
+        finishGeometrySketchDrawDraft()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [finishGeometrySketchDrawDraft, geometrySketchSession, returnActiveSketchSessionOneLevel])
 
   const beginSketchSessionWindowDrag = (
     pointerId: number | null,
@@ -1398,7 +1435,8 @@ export function ViewportOverlay() {
     (previewProfiles.length === 1 ? previewProfiles[0].profileId : undefined)
   const selectedProfile =
     previewProfiles.find((profile) => profile.profileId === selectedProfileId) ?? null
-  const activeTool = geometrySketchSession?.activeTool ?? 'line'
+  const activeTool = geometrySketchSession?.activeTool ?? null
+  const activeDrawStage = geometrySketchSession?.drawStage ?? null
   const activeDrawDraft = geometrySketchSession?.drawDraft ?? null
   const activeLineStartPoint = activeDrawDraft?.points[0] ?? null
   const activePlineLastPoint =
@@ -1407,7 +1445,11 @@ export function ViewportOverlay() {
       : activeDrawDraft.points[activeDrawDraft.points.length - 1]
   const activeHoverPoint = activeDrawDraft?.hoverPoint ?? null
   const activePreviewStartPoint =
-    activeTool === 'pline' ? activePlineLastPoint : activeLineStartPoint
+    activeTool === 'pline'
+      ? activePlineLastPoint
+      : activeTool === 'line'
+        ? activeLineStartPoint
+        : null
   const activePreviewLength =
     activePreviewStartPoint !== null && activeHoverPoint !== null
       ? Math.hypot(
@@ -1418,13 +1460,17 @@ export function ViewportOverlay() {
   const activeDrawPrompt =
     geometrySketchSession?.mode !== 'draw'
       ? ''
+      : activeDrawStage === 'sessionIdle'
+        ? 'Choose a sketch tool to begin drawing in the main viewport.'
       : activeTool === 'pline'
         ? activeDrawDraft === null || activeDrawDraft.points.length === 0
           ? 'Click the first point in the main viewport to start PLine.'
           : 'Click the next point in the main viewport. Enter finishes the chain.'
-        : activeLineStartPoint === null
+        : activeTool === 'line' && activeLineStartPoint === null
           ? 'Click the first point in the main viewport to start Line.'
-          : 'Move the mouse to preview the endpoint, then click to place the line.'
+          : activeTool === 'line'
+            ? 'Move the mouse to preview the endpoint, then click to place the line.'
+            : 'Choose a sketch tool to begin drawing in the main viewport.'
 
   const setSketchSessionWindowSizeAxis = (axis: 'width' | 'height', nextValue: number) => {
     const overlayHost = getOverlayHostMetrics()
@@ -1741,6 +1787,23 @@ export function ViewportOverlay() {
                   title="Confirm sketch plane pick"
                 >
                   Done
+                </button>
+                <button
+                  type="button"
+                  className="ViewportOverlaySketchPlaneSessionAction"
+                  onPointerDown={(event) => {
+                    event.preventDefault()
+                    event.stopPropagation()
+                  }}
+                  onMouseDown={(event) => {
+                    event.preventDefault()
+                    event.stopPropagation()
+                  }}
+                  onClick={() => returnActiveSketchSessionOneLevel()}
+                  aria-label="Back one sketch plane level"
+                  title="Back one sketch plane level"
+                >
+                  Back
                 </button>
                 <button
                   type="button"
@@ -2311,6 +2374,28 @@ export function ViewportOverlay() {
               </button>
               <button
                 type="button"
+                className="ViewportOverlaySketchPlaneSessionAction"
+                onPointerDown={(event) => {
+                  event.preventDefault()
+                  event.stopPropagation()
+                }}
+                onMouseDown={(event) => {
+                  event.preventDefault()
+                  event.stopPropagation()
+                }}
+                onClick={() => {
+                  returnActiveSketchSessionOneLevel()
+                }}
+                disabled={
+                  geometrySketchSession.mode !== 'draw' || activeDrawStage === 'sessionIdle'
+                }
+                aria-label="Back one sketch draw level"
+                title="Back one sketch draw level"
+              >
+                Back
+              </button>
+              <button
+                type="button"
                 className="ViewportOverlaySketchPlaneSessionAction ViewportOverlayToolPanelDensityAction"
                 onPointerDown={(event) => {
                   event.preventDefault()
@@ -2666,12 +2751,24 @@ export function ViewportOverlay() {
                 {sketchSessionActiveToolExpanded ? (
                   <div className="ViewportOverlaySketchDraftCard">
                     <div className="ViewportOverlaySketchDraftTitle">
-                      {getGeometrySketchToolLabel(activeTool)}
+                      {activeTool === null ? 'No Tool Selected' : getGeometrySketchToolLabel(activeTool)}
                     </div>
                     <div className="ViewportOverlaySketchEntitySummary">
                       {activeDrawPrompt}
                     </div>
                     <div className="ViewportOverlaySketchEntityList">
+                      <div className="ViewportOverlaySketchEntityItem">
+                        <span>Draw Stage</span>
+                        <span>
+                          {activeDrawStage === 'sessionIdle'
+                            ? 'Session Idle'
+                            : activeDrawStage === 'toolSelected'
+                              ? 'Tool Selected'
+                              : activeDrawStage === 'draftActive'
+                                ? 'Draft Active'
+                                : 'n/a'}
+                        </span>
+                      </div>
                       <div className="ViewportOverlaySketchEntityItem">
                         <span>Plane</span>
                         <span>{sketchFeature?.plane ?? 'XY'}</span>
@@ -2706,8 +2803,16 @@ export function ViewportOverlay() {
                       ) : null}
                     </div>
                     <div className="ViewportOverlaySketchSessionActions">
-                      <button type="button" onClick={() => finishGeometrySketchDrawDraft()}>
-                        {activeTool === 'pline' ? 'Finish PLine' : 'Accept Line'}
+                      <button
+                        type="button"
+                        onClick={() => finishGeometrySketchDrawDraft()}
+                        disabled={activeTool === null}
+                      >
+                        {activeTool === 'pline'
+                          ? 'Finish PLine'
+                          : activeTool === 'line'
+                            ? 'Accept Line'
+                            : 'Finish Draft'}
                       </button>
                       <button
                         type="button"
@@ -2715,6 +2820,7 @@ export function ViewportOverlay() {
                         onClick={() => {
                           cancelGeometrySketchDrawDraft()
                         }}
+                        disabled={activeTool === null}
                       >
                         Cancel Draft
                       </button>

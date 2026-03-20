@@ -5,6 +5,7 @@ import {
   getConsoleToolsPreset,
   CONSOLE_MAX_EXPANDED_HEIGHT,
   CONSOLE_LAYERS_IN_ORDER,
+  formatConsoleEntryLayerLabel,
   isConsoleEntryVisible,
   useConsoleStore,
 } from './useConsoleStore'
@@ -393,7 +394,7 @@ export function ConsolePanel({
               className={`ConsoleTranscriptLine layer-${entry.layer.toLowerCase()} severity-${entry.severity}`}
             >
               <span className="ConsoleTranscriptTimestamp">{entry.timestampLabel}</span>
-              <span className="ConsoleTranscriptLayer">[{entry.layer}]</span>
+              <span className="ConsoleTranscriptLayer">[{formatConsoleEntryLayerLabel(entry)}]</span>
               <span className="ConsoleTranscriptText">{entry.text}</span>
               {entry.source !== null ? (
                 <span className="ConsoleTranscriptSource">{entry.source}</span>

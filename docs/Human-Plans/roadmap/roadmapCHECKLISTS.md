@@ -341,11 +341,13 @@ Meaning:
 ##### Lane [4] - Console, Debug, And Workspace Feedback
 
 - [x] `[4.1] VR / SP / DBG - Console And Layered Transcript`
+- [x] `[4.1K] Surface-Driven Console Context Sync`
 
 ##### Lane [5] - Control, Build, And Workspace Systems
 
 - [~] `[5.1] VR / SP - Workspace Modes`
 - [ ] `[5.1E] VR / SP - Multi-Window Editor Surfaces And Detached Pop-Out`
+- [x] `[5.1F] Workspace Selection, Surface Activation, And Canonical Intents`
 - [ ] `[5.2] DR / JK - Control Viz And Graph-Driven Control Surfaces`
 - [ ] `[5.3] AS / SP - Build Sequencing, Build Bars, And Output Build Control`
 - [ ] `[5.4] AS / VR - Advanced Output Types And Later Project Packaging`
@@ -398,8 +400,10 @@ Meaning:
 - [ ] `[3.4] PT - Phase TBD - Part Node Hardening`
 - [ ] `[3.5] FS - Phase TBD - Feature Stack Growth`
 - [x] `[4.1] VR / SP / DBG - Console And Layered Transcript`
+- [x] `[4.1K] Surface-Driven Console Context Sync`
 - [ ] `[5.1] VR / SP - Workspace Modes`
 - [ ] `[5.1E] VR / SP - Multi-Window Editor Surfaces And Detached Pop-Out`
+- [ ] `[5.1F] Workspace Selection, Surface Activation, And Canonical Intents`
 - [ ] `[5.2] DR / JK - Control Viz And Graph-Driven Control Surfaces`
 - [ ] `[5.3] AS / SP - Build Sequencing, Build Bars, And Output Build Control`
 - [ ] `[5.4] AS / VR - Advanced Output Types And Later Project Packaging`
@@ -408,15 +412,15 @@ Meaning:
 
 ##### Roadmap Breakdown Totals
 
-- Planned enough to count as broken down: `43`
+- Planned enough to count as broken down: `45`
 - Still needing dedicated planning: `0`
-- Grand total roadmap items tracked here: `43`
+- Grand total roadmap items tracked here: `45`
 
 ##### Dedicated Plan.md Totals
 
 - Already has its own dedicated plan/task doc: `20`
-- Still needs its own dedicated plan/task doc: `23`
-- Grand total roadmap items tracked here: `43`
+- Still needs its own dedicated plan/task doc: `25`
+- Grand total roadmap items tracked here: `45`
 
 
 

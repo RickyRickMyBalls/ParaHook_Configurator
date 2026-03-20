@@ -2,8 +2,11 @@ import { create } from 'zustand'
 import { newId } from '../spaghetti/utils/id'
 import type {
   ConsoleAppendEntryInput,
+  ConsoleAssistChoice,
+  ConsoleAssistDescriptor,
   ConsoleBackgroundColorMode,
   ConsoleBackgroundFillMode,
+  ConsoleCommandLineKind,
   ConsoleFilterMode,
   ConsoleFloatingRect,
   ConsoleLayer,
@@ -13,7 +16,10 @@ import type {
   ConsoleToolsPreset,
   ConsoleWindowMode,
 } from './consoleTypes'
-import type { ConsoleStagedNavigationSession } from './stagedNavigation'
+import type {
+  ConsoleStagedNavigationChoice,
+  ConsoleStagedNavigationSession,
+} from './stagedNavigation'
 
 const CONSOLE_LAYERS: ConsoleLayer[] = [
   'Commands',
@@ -32,6 +38,9 @@ const DEFAULT_EXPANDED_HEIGHT = 280
 const MIN_EXPANDED_HEIGHT = 10
 const MAX_EXPANDED_HEIGHT = 10000
 const COLLAPSE_SNAP_HEIGHT = 44
+const DEFAULT_SUMMARY_WIDTH: number | null = null
+const MIN_SUMMARY_WIDTH = 180
+const MAX_SUMMARY_WIDTH = 720
 const DEFAULT_BACKGROUND_OPACITY = 96
 const DEFAULT_TEXT_OPACITY = 100
 const DEFAULT_FONT_SIZE = 12
@@ -55,6 +64,7 @@ type ConsoleState = {
   windowMode: ConsoleWindowMode
   isListMode: boolean
   expandedHeight: number
+  summaryWidth: number | null
   inputText: string
   commandHistory: string[]
   historyIndex: number | null
@@ -77,9 +87,12 @@ type ConsoleState = {
   subsetLayers: ConsoleLayerVisibility
   isDiagnosticsPinned: boolean
   stagedNavigationSession: ConsoleStagedNavigationSession | null
+  featureAssistDescriptor: ConsoleAssistDescriptor | null
+  stagedChoiceIndex: number | null
+  isStagedChoiceManualOverride: boolean
   appendEntry: (entry: ConsoleAppendEntryInput) => void
   clearEntries: () => void
-  setInputText: (value: string) => void
+  setInputText: (value: string, options?: { fromAssist?: boolean }) => void
   seedInputText: (value: string) => void
   pushCommandHistory: (value: string) => void
   recallPreviousHistory: () => void
@@ -92,6 +105,7 @@ type ConsoleState = {
   setExpanded: (expanded: boolean) => void
   setExpandedHeight: (height: number) => void
   setExpandedHeightFromDrag: (height: number) => void
+  setSummaryWidth: (width: number) => void
   setBackgroundOpacity: (value: number) => void
   setTextOpacity: (value: number) => void
   setFontSize: (value: number) => void
@@ -112,8 +126,19 @@ type ConsoleState = {
   toggleSubsetLayer: (layer: ConsoleLayer) => void
   setDiagnosticsPinned: (value: boolean) => void
   setStagedNavigationSession: (session: ConsoleStagedNavigationSession | null) => void
+  setFeatureAssistDescriptor: (descriptor: ConsoleAssistDescriptor | null) => void
   clearStagedNavigationSession: () => void
+  cycleStagedChoice: (direction: 'previous' | 'next') => void
 }
+
+const descriptorChoicesFromStagedChoices = (
+  choices: ConsoleStagedNavigationChoice[],
+): ConsoleAssistChoice[] =>
+  choices.map((choice) => ({
+    canonicalToken: choice.canonicalToken,
+    aliases: choice.aliases,
+    label: choice.label,
+  }))
 
 const formatTimestamp = (createdAtMs: number): string => {
   const date = new Date(createdAtMs)
@@ -165,10 +190,119 @@ const resolveConsoleEntryVisibility = (
 const clampExpandedHeight = (height: number): number =>
   Math.min(MAX_EXPANDED_HEIGHT, Math.max(MIN_EXPANDED_HEIGHT, Math.round(height)))
 
+const clampSummaryWidth = (width: number): number =>
+  Math.min(MAX_SUMMARY_WIDTH, Math.max(MIN_SUMMARY_WIDTH, Math.round(width)))
+
 const clampPercent = (value: number): number => Math.min(100, Math.max(0, Math.round(value)))
 const clampFontSize = (value: number): number => Math.min(24, Math.max(1, Math.round(value)))
 const clampZIndex = (value: number): number =>
   Math.min(MAX_Z_INDEX, Math.max(MIN_Z_INDEX, Math.round(value)))
+
+const normalizeChoiceToken = (value: string): string => value.trim().toUpperCase()
+
+const getStagedChoiceInputText = (choice: ConsoleStagedNavigationChoice): string => {
+  const normalizedLabel = normalizeChoiceToken(choice.label)
+  if (
+    normalizedLabel === choice.canonicalToken ||
+    choice.aliases.includes(normalizedLabel)
+  ) {
+    return choice.label
+  }
+  return choice.canonicalToken
+}
+
+const getAssistChoiceInputText = (choice: ConsoleAssistChoice): string => {
+  const normalizedLabel = normalizeChoiceToken(choice.label)
+  if (
+    normalizedLabel === choice.canonicalToken ||
+    choice.aliases.includes(normalizedLabel)
+  ) {
+    return choice.label
+  }
+  return choice.canonicalToken
+}
+
+const isInputDrivenByDescriptor = (
+  descriptor: ConsoleAssistDescriptor,
+  inputText: string,
+): boolean => {
+  const normalizedInput = normalizeChoiceToken(inputText)
+  if (normalizedInput.length === 0) {
+    return false
+  }
+  if (descriptor.prefill !== null && normalizeChoiceToken(descriptor.prefill) === normalizedInput) {
+    return true
+  }
+  return descriptor.choices.some((choice) => {
+    const choiceInputText = getAssistChoiceInputText(choice)
+    return (
+      normalizeChoiceToken(choiceInputText) === normalizedInput ||
+      choice.canonicalToken === normalizedInput ||
+      choice.aliases.includes(normalizedInput)
+    )
+  })
+}
+
+const getActiveAssistDescriptor = (state: Pick<ConsoleState, 'stagedNavigationSession' | 'featureAssistDescriptor'>): ConsoleAssistDescriptor | null => {
+  if (state.stagedNavigationSession !== null && state.stagedNavigationSession.validChoices.length > 0) {
+    return {
+      label:
+        state.stagedNavigationSession.breadcrumb.at(-1) ??
+        state.stagedNavigationSession.scopeId,
+      choices: descriptorChoicesFromStagedChoices(state.stagedNavigationSession.validChoices),
+      prefill:
+        state.stagedNavigationSession.validChoices[0] === undefined
+          ? null
+          : getStagedChoiceInputText(state.stagedNavigationSession.validChoices[0]),
+    }
+  }
+  return state.featureAssistDescriptor
+}
+
+const resolveStagedChoiceTracking = (
+  descriptor: ConsoleAssistDescriptor | null,
+  inputText: string,
+): {
+  stagedChoiceIndex: number | null
+  isStagedChoiceManualOverride: boolean
+} => {
+  if (descriptor === null || descriptor.choices.length === 0) {
+    return {
+      stagedChoiceIndex: null,
+      isStagedChoiceManualOverride: false,
+    }
+  }
+
+  const normalizedInput = normalizeChoiceToken(inputText)
+  if (normalizedInput.length === 0) {
+    return {
+      stagedChoiceIndex: 0,
+      isStagedChoiceManualOverride: false,
+    }
+  }
+
+  const matchedIndex = descriptor.choices.findIndex((choice) => {
+    const choiceInputText = getAssistChoiceInputText(choice)
+    const normalizedChoiceInput = normalizeChoiceToken(choiceInputText)
+    return (
+      normalizedInput === normalizedChoiceInput ||
+      normalizedInput === choice.canonicalToken ||
+      choice.aliases.includes(normalizedInput)
+    )
+  })
+
+  if (matchedIndex !== -1) {
+    return {
+      stagedChoiceIndex: matchedIndex,
+      isStagedChoiceManualOverride: false,
+    }
+  }
+
+  return {
+    stagedChoiceIndex: 0,
+    isStagedChoiceManualOverride: true,
+  }
+}
 
 const createEntry = (
   sequence: number,
@@ -176,16 +310,26 @@ const createEntry = (
 ): ConsoleTranscriptEntry => {
   const createdAtMs = Date.now()
   const severity: ConsoleSeverity = input.severity ?? 'normal'
+  const commandLineKind: ConsoleCommandLineKind | null =
+    input.layer === 'Commands' ? (input.commandLineKind ?? 'system') : null
   return {
     id: newId('console-entry'),
     sequence,
     createdAtMs,
     timestampLabel: formatTimestamp(createdAtMs),
     layer: input.layer,
+    commandLineKind,
     text: input.text,
     source: input.source ?? null,
     severity,
   }
+}
+
+export const formatConsoleEntryLayerLabel = (entry: ConsoleTranscriptEntry): string => {
+  if (entry.layer === 'Commands' && entry.commandLineKind !== null) {
+    return `commands.${entry.commandLineKind}`
+  }
+  return entry.layer
 }
 
 export const useConsoleStore = create<ConsoleState>((set, get) => ({
@@ -193,6 +337,7 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
   windowMode: DEFAULT_WINDOW_MODE,
   isListMode: false,
   expandedHeight: DEFAULT_EXPANDED_HEIGHT,
+  summaryWidth: DEFAULT_SUMMARY_WIDTH,
   inputText: '',
   commandHistory: [],
   historyIndex: null,
@@ -215,6 +360,9 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
   subsetLayers: createVisibleLayers(),
   isDiagnosticsPinned: false,
   stagedNavigationSession: null,
+  featureAssistDescriptor: null,
+  stagedChoiceIndex: null,
+  isStagedChoiceManualOverride: false,
   appendEntry: (entry) => {
     const nextSequence = (get().entries.at(-1)?.sequence ?? 0) + 1
     set((state) => ({
@@ -224,19 +372,49 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
   clearEntries: () => {
     set({ entries: [] })
   },
-  setInputText: (inputText) => {
-    set({
-      inputText,
-      historyIndex: null,
-      historyDraft: '',
+  setInputText: (inputText, options) => {
+    set((state) => {
+      const activeDescriptor = getActiveAssistDescriptor(state)
+      const nextTracking =
+        activeDescriptor === null
+          ? {
+              stagedChoiceIndex: null,
+              isStagedChoiceManualOverride: false,
+            }
+          : options?.fromAssist === true
+            ? resolveStagedChoiceTracking(activeDescriptor, inputText)
+            : resolveStagedChoiceTracking(activeDescriptor, inputText)
+
+      return {
+        inputText,
+        historyIndex: null,
+        historyDraft: '',
+        stagedChoiceIndex: nextTracking.stagedChoiceIndex,
+        isStagedChoiceManualOverride:
+          activeDescriptor === null ? false : nextTracking.isStagedChoiceManualOverride,
+      }
     })
   },
   seedInputText: (value) => {
-    set((state) => ({
-      inputText: `${state.inputText}${value}`,
-      historyIndex: null,
-      historyDraft: '',
-    }))
+    set((state) => {
+      const activeDescriptor = getActiveAssistDescriptor(state)
+      const nextInputText =
+        activeDescriptor !== null && !state.isStagedChoiceManualOverride
+          ? value
+          : `${state.inputText}${value}`
+
+      return {
+        inputText: nextInputText,
+        historyIndex: null,
+        historyDraft: '',
+        ...(activeDescriptor === null
+          ? {
+              stagedChoiceIndex: null,
+              isStagedChoiceManualOverride: false,
+            }
+          : resolveStagedChoiceTracking(activeDescriptor, nextInputText)),
+      }
+    })
   },
   pushCommandHistory: (value) => {
     const trimmed = value.trim()
@@ -245,6 +423,7 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
         inputText: '',
         historyIndex: null,
         historyDraft: '',
+        isStagedChoiceManualOverride: false,
       })
       return
     }
@@ -253,6 +432,7 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
       inputText: '',
       historyIndex: null,
       historyDraft: '',
+      isStagedChoiceManualOverride: false,
     }))
   },
   recallPreviousHistory: () => {
@@ -348,6 +528,9 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
       isExpanded: true,
       expandedHeight: clampExpandedHeight(expandedHeight),
     })
+  },
+  setSummaryWidth: (summaryWidth) => {
+    set({ summaryWidth: clampSummaryWidth(summaryWidth) })
   },
   setBackgroundOpacity: (backgroundOpacity) => {
     set({ backgroundOpacity: clampPercent(backgroundOpacity) })
@@ -480,10 +663,128 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
     set({ isDiagnosticsPinned })
   },
   setStagedNavigationSession: (stagedNavigationSession) => {
-    set({ stagedNavigationSession })
+    set((state) => {
+      if (stagedNavigationSession === null || stagedNavigationSession.validChoices.length === 0) {
+        const fallbackDescriptor =
+          stagedNavigationSession === null ? state.featureAssistDescriptor : state.featureAssistDescriptor
+        if (fallbackDescriptor !== null && fallbackDescriptor.choices.length > 0) {
+          const stagedChoiceIndex = 0
+          const inputText = fallbackDescriptor.prefill ?? getAssistChoiceInputText(fallbackDescriptor.choices[stagedChoiceIndex])
+          return {
+            stagedNavigationSession,
+            stagedChoiceIndex,
+            isStagedChoiceManualOverride: false,
+            inputText,
+            historyIndex: null,
+            historyDraft: '',
+          }
+        }
+        return {
+          stagedNavigationSession,
+          stagedChoiceIndex: null,
+          isStagedChoiceManualOverride: false,
+        }
+      }
+
+      const stagedChoiceIndex = 0
+      const inputText = getStagedChoiceInputText(stagedNavigationSession.validChoices[stagedChoiceIndex])
+      return {
+        stagedNavigationSession,
+        stagedChoiceIndex,
+        isStagedChoiceManualOverride: false,
+        inputText,
+        historyIndex: null,
+        historyDraft: '',
+      }
+    })
   },
   clearStagedNavigationSession: () => {
-    set({ stagedNavigationSession: null })
+    set((state) => {
+      if (state.featureAssistDescriptor !== null && state.featureAssistDescriptor.choices.length > 0) {
+        const stagedChoiceIndex = 0
+        const inputText =
+          state.featureAssistDescriptor.prefill ??
+          getAssistChoiceInputText(state.featureAssistDescriptor.choices[stagedChoiceIndex]!)
+        return {
+          stagedNavigationSession: null,
+          stagedChoiceIndex,
+          isStagedChoiceManualOverride: false,
+          inputText,
+          historyIndex: null,
+          historyDraft: '',
+        }
+      }
+      return {
+        stagedNavigationSession: null,
+        stagedChoiceIndex: null,
+        isStagedChoiceManualOverride: false,
+      }
+    })
+  },
+  setFeatureAssistDescriptor: (featureAssistDescriptor) => {
+    set((state) => {
+      const nextState = {
+        featureAssistDescriptor,
+      }
+      if (state.stagedNavigationSession !== null) {
+        return nextState
+      }
+      if (featureAssistDescriptor === null || featureAssistDescriptor.choices.length === 0) {
+        const shouldClearStaleAssistInput =
+          state.featureAssistDescriptor !== null &&
+          !state.isStagedChoiceManualOverride &&
+          isInputDrivenByDescriptor(state.featureAssistDescriptor, state.inputText)
+        return {
+          ...nextState,
+          ...(shouldClearStaleAssistInput
+            ? {
+                inputText: '',
+                historyIndex: null,
+                historyDraft: '',
+              }
+            : {}),
+          stagedChoiceIndex: null,
+          isStagedChoiceManualOverride: false,
+        }
+      }
+      const stagedChoiceIndex = 0
+      const inputText =
+        featureAssistDescriptor.prefill ??
+        getAssistChoiceInputText(featureAssistDescriptor.choices[stagedChoiceIndex]!)
+      return {
+        ...nextState,
+        stagedChoiceIndex,
+        isStagedChoiceManualOverride: false,
+        inputText,
+        historyIndex: null,
+        historyDraft: '',
+      }
+    })
+  },
+  cycleStagedChoice: (direction) => {
+    set((state) => {
+      const activeDescriptor = getActiveAssistDescriptor(state)
+      if (activeDescriptor === null || activeDescriptor.choices.length === 0) {
+        return {}
+      }
+
+      const currentIndex = state.stagedChoiceIndex ?? 0
+      const delta = direction === 'next' ? 1 : -1
+      const nextIndex =
+        (currentIndex + delta + activeDescriptor.choices.length) % activeDescriptor.choices.length
+      const nextChoice = activeDescriptor.choices[nextIndex]
+      if (nextChoice === undefined) {
+        return {}
+      }
+
+      return {
+        stagedChoiceIndex: nextIndex,
+        isStagedChoiceManualOverride: false,
+        inputText: getAssistChoiceInputText(nextChoice),
+        historyIndex: null,
+        historyDraft: '',
+      }
+    })
   },
 }))
 
@@ -498,6 +799,9 @@ export const CONSOLE_DEFAULT_EXPANDED_HEIGHT = DEFAULT_EXPANDED_HEIGHT
 export const CONSOLE_MIN_EXPANDED_HEIGHT = MIN_EXPANDED_HEIGHT
 export const CONSOLE_MAX_EXPANDED_HEIGHT = MAX_EXPANDED_HEIGHT
 export const CONSOLE_COLLAPSE_SNAP_HEIGHT = COLLAPSE_SNAP_HEIGHT
+export const CONSOLE_DEFAULT_SUMMARY_WIDTH = DEFAULT_SUMMARY_WIDTH
+export const CONSOLE_MIN_SUMMARY_WIDTH = MIN_SUMMARY_WIDTH
+export const CONSOLE_MAX_SUMMARY_WIDTH = MAX_SUMMARY_WIDTH
 export const CONSOLE_DEFAULT_BACKGROUND_OPACITY = DEFAULT_BACKGROUND_OPACITY
 export const CONSOLE_DEFAULT_TEXT_OPACITY = DEFAULT_TEXT_OPACITY
 export const CONSOLE_DEFAULT_FONT_SIZE = DEFAULT_FONT_SIZE

@@ -246,7 +246,9 @@ export const buildGeometrySketchRenderPolylines = (
       const ghostStart =
         overlay.activeTool === 'line'
           ? draft.points[0] ?? null
-          : draft.points[draft.points.length - 1] ?? null
+          : overlay.activeTool === 'pline'
+            ? draft.points[draft.points.length - 1] ?? null
+            : null
       const ghostEnd = draft.hoverPoint
       if (
         ghostStart !== null &&
