@@ -52,11 +52,15 @@ describe('RadioPanel', () => {
   it('renders the transport and sampler sections from canonical radio state', async () => {
     await renderPanel()
 
-    expect(container?.textContent).toContain('Transport')
+    expect(container?.textContent).toContain('Radio')
     expect(container?.textContent).toContain('Sampler')
     expect(container?.textContent).toContain('https://soundcloud.com/keota-us/gusano')
     expect(container?.textContent).toContain('Ready')
     expect(container?.textContent).toContain('0:30 / 2:00')
+    expect(container?.querySelectorAll('.AudioSamplerStepCell')).toHaveLength(16)
+    expect(container?.querySelectorAll('.AudioSamplerStepLock')).toHaveLength(16)
+    expect(container?.textContent).toContain('Play')
+    expect(container?.textContent).toContain('Stop')
   })
 
   it('closes the toolbar and publishes reload requests from panel actions', async () => {
@@ -92,5 +96,67 @@ describe('RadioPanel', () => {
     const burstInput = container?.querySelector('.RadioPanelInput') as HTMLInputElement | null
     expect(burstInput).not.toBeNull()
     expect(burstInput?.value).toBe('0.1')
+  })
+
+  it('renders expandable step detail rows with time-position controls inside the merged toolbar', async () => {
+    await renderPanel()
+
+    await act(async () => {
+      useAudioSamplerStore.getState().setSamplerStepsSectionExpanded(true)
+      const firstStepId = useAudioSamplerStore.getState().samplerSteps[0]?.id ?? ''
+      useAudioSamplerStore.getState().toggleSamplerStepExpanded(firstStepId)
+      root?.render(<RadioPanel />)
+    })
+
+    expect(container?.textContent).toContain('Step Details')
+    expect(container?.textContent).toContain('Step 1 Time Position')
+    expect(container?.textContent).toContain('Cue Position')
+  })
+
+  it('publishes a sampler step preview request from the expanded step play button', async () => {
+    await renderPanel()
+
+    await act(async () => {
+      useAudioSamplerStore.getState().setSamplerStepsSectionExpanded(true)
+      const firstStepId = useAudioSamplerStore.getState().samplerSteps[0]?.id ?? ''
+      useAudioSamplerStore.getState().toggleSamplerStepExpanded(firstStepId)
+      root?.render(<RadioPanel />)
+    })
+
+    const stepPlayButtons = Array.from(container?.querySelectorAll('button') ?? []).filter(
+      (button) => button.textContent?.trim() === 'Play',
+    )
+    const stepPlayButton = stepPlayButtons.at(-1) ?? null
+    expect(stepPlayButton).not.toBeNull()
+
+    await act(async () => {
+      stepPlayButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useAudioSamplerStore.getState().latestSamplerStepPreviewRequest?.requestId).toBe(1)
+  })
+
+  it('locks a sampler step from the horizontal row and reflects that in step detail', async () => {
+    await renderPanel()
+
+    const lockButtons = Array.from(container?.querySelectorAll('.AudioSamplerStepLock') ?? [])
+    const firstLockButton = (lockButtons[0] ?? null) as HTMLButtonElement | null
+    expect(firstLockButton).not.toBeNull()
+
+    await act(async () => {
+      firstLockButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    const firstStepId = useAudioSamplerStore.getState().samplerSteps[0]?.id ?? ''
+    expect(useAudioSamplerStore.getState().samplerSteps[0]?.isLocked).toBe(true)
+
+    await act(async () => {
+      useAudioSamplerStore.getState().setSamplerStepsSectionExpanded(true)
+      useAudioSamplerStore.getState().toggleSamplerStepExpanded(firstStepId)
+      root?.render(<RadioPanel />)
+    })
+
+    expect(container?.textContent).toContain('Locked')
+    expect(container?.textContent).toContain('Yes')
   })
 })

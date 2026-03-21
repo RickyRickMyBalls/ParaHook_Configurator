@@ -3,6 +3,11 @@
 ## Doc Header
 
 ### Doc History
+16. 2026-03-21 09:41: Logged the `Audio-Patchbay.md` follow-up that locks the naming split so `Audio Patchbay` stays the umbrella system name while `Spaghetti Sounds` becomes the preferred UI-level toolbar label
+15. 2026-03-21 09:31: Logged the new `Audio-Patchbay.md` architecture idea doc and updated the docs map so the broader post-`Radio` node-and-wire audio editor vision now has a dedicated canonical planning surface under `docs/Human-Plans/Architecture/`
+14. 2026-03-21 08:46: Logged the `Radio.md` follow-up that marks `Phase 10` complete after the shared toolbar absorbed the horizontal sampler row, its shipped controls, step disclosure state, and per-step time-position editing into one merged green radio/sampler surface
+13. 2026-03-21 08:34: Logged the `Radio.md` follow-up that tightens `Phase 10` so the primary per-step control in the vertical detail section is a time-position `ParaSlider` for moving each step to another point in the song
+12. 2026-03-21 08:33: Logged the `Radio.md` follow-up that tightens `Phase 10` again so the merged toolbar must preserve the current horizontal sampler pattern and shipped controls/buttons, while also adopting the sampler's green visual language
 11. 2026-03-20 17:34: Logged the `Radio.md` follow-up that tightens `Phase 10` into an implementation-ready shared-toolbar execution spec for merging the sampler UI back into the radio toolbar without forking the existing sampler runtime/state model
 10. 2026-03-20 17:27: Logged the `Radio.md` follow-up that adds a new shared-toolbar sampler expansion phase for merging `Sampler` back into the `Radio` toolbar as a disclosure tree with sibling sections, a collapsible steps block, and expandable per-step detail rows
 9. 2026-03-20 17:24: Logged the new Codex context note that captures the collapsible `Radio` toolbar tree for the future sampler, including global BPM, note-repeat defaults, track lanes, and expandable per-step controls
@@ -50,6 +55,171 @@ Do not use it for:
 - keep numbering sequential unless the user explicitly asks for a renumber pass
 
 ## Doc Body
+
+<!-- ENTRY 103 -->
+### [103] - 2026-03-21 09:41 - `DOC - Lock Audio Patchbay Versus Spaghetti Sounds Naming Split`
+<!-- ENTRY 103 -->
+HUMAN SUMMARY: Updated `Audio-Patchbay.md` to lock the naming split between the broader system and the friendlier UI label. `Audio Patchbay` now stays as the umbrella architecture name, while `Spaghetti Sounds` is explicitly positioned as the preferred toolbar-level surface name.
+
+#### Scope
+- Updated `docs/Human-Plans/Architecture/Audio-Patchbay.md`.
+- Recorded the document-only change in the permanent doc log.
+
+#### Summary
+- Added one new local `Doc History` line to the audio architecture note.
+- Added `Spaghetti Sounds` as an explicit naming option with a clearer recommendation boundary.
+- Added a dedicated `Naming Split` section so the repo now has one canonical read for system name versus UI-facing toolbar label.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Audio-Patchbay.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This is a docs-only naming clarification. It does not rename any current runtime surface in code.
+
+<!-- ENTRY 103 -->
+### [103] - 2026-03-21 09:36 - `DOC - Tighten Radio_Phase 11 Into An Implementation-Ready Waveform Spec`
+<!-- ENTRY 103 -->
+HUMAN SUMMARY: Reworked the new split-out `Radio_Phase 11` file under `docs/Human-Plans/Architecture/Radio/` into an implementation-ready waveform phase spec, locking the first fidelity decisions, first exact-source target, file seams, state shape, test bar, and completion criteria for a future waveform pass. This also carries the radio planning workflow into the new per-phase folder structure instead of relying only on the older giant umbrella doc.
+
+#### Scope
+- Updated `docs/Human-Plans/Architecture/Radio/Radio_Phase 11`.
+- Recorded the document-only change in the permanent doc log.
+
+#### Summary
+- Promoted `Phase 11 - Source Waveform Visualization` from a general idea note into a concrete execution spec.
+- Locked the two key decisions:
+  - the first waveform must be provider-aware and honest
+  - `generated-tone` should be the first exact waveform source
+- Added:
+  - concrete code targets
+  - canonical waveform state shape
+  - recommended helper names
+  - rendering and marker rules
+  - implementation order
+  - completion check
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Radio/Radio_Phase 11`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This is a doc-only change.
+- The new phase file now matches the same implementation-ready bar used earlier in the radio planning workflow.
+
+<!-- ENTRY 102 -->
+### [102] - 2026-03-21 09:33 - `DOC - Add Radio Waveform Visualization Phase`
+<!-- ENTRY 102 -->
+HUMAN SUMMARY: Added a new waveform-visualization phase to `Radio.md` so the radio/sampler planning surface now explicitly answers how a detailed waveform could fit into the merged toolbar without faking exact waveform data for sources like the current SoundCloud widget path. The new phase locks a provider-aware fidelity model and gives the work a concrete question, suggestion, and implementation spec.
+
+#### Scope
+- Updated `docs/Human-Plans/Architecture/Radio.md`.
+- Recorded the document-only change in the permanent doc log.
+
+#### Summary
+- Added `Phase 11 - Source Waveform Visualization` at the end of the radio architecture note.
+- Locked the main design answer:
+  - yes, detailed waveform UI is possible
+  - but it should be provider-aware and honest about exact versus limited waveform data
+- Added the first-pass state model, ownership split, rendering rules, marker rules, test targets, and likely file seams for a future implementation pass.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Radio.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This is a planning/doc-only change.
+- The new phase explicitly treats `SoundCloud widget` as waveform-limited until a trustworthy waveform-data path exists.
+
+<!-- ENTRY 101 -->
+### [101] - 2026-03-21 09:31 - `DOC - Add Audio Patchbay Umbrella Architecture Note`
+<!-- ENTRY 101 -->
+HUMAN SUMMARY: Added a new architecture idea doc for the broader post-`Radio` audio direction, framing the current `Radio` and `Sampler` work as one branch of a future node-and-wire audio editor that could grow toward a DAW-like ParaHook subsystem. The docs map was updated so this new umbrella planning surface is discoverable beside the existing architecture docs.
+
+#### Scope
+- Added `docs/Human-Plans/Architecture/Audio-Patchbay.md`.
+- Updated `docs/Doc-Index.md`.
+- Recorded the document-only change in the permanent doc log.
+
+#### Summary
+- Created a new canonical architecture note for the bigger audio-graph vision beyond the current `Radio` toolbar and simple sequencer scope.
+- Recommended `Audio Patchbay` as the current working name while keeping the naming decision explicitly open inside the doc.
+- Captured the relationship to `Radio`, `Sampler`, and `Spaghetti`, plus likely node families, wire types, guardrails, and an honest first expansion path.
+- Added the new file to the architecture docs map so it is easy to find later.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Audio-Patchbay.md`
+- `docs/Doc-Index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This is an architecture-only planning surface; it does not change the current implementation scope in `Radio.md` or `Sampler.md`.
+
+<!-- ENTRY 100 -->
+### [100] - 2026-03-21 08:46 - `DOC - Mark Radio Phase 10 Complete After Shared Toolbar Merge`
+<!-- ENTRY 100 -->
+HUMAN SUMMARY: Marked `Phase 10` complete in `Radio.md` after the live UI stopped using the separate sampler panel as the primary toolbar surface and moved the sampler into the shared radio toolbar. The phase now reflects the shipped state: preserved horizontal pattern row, preserved sampler controls, store-backed disclosure state, per-step time-position editing, and the merged sampler-green styling direction.
+
+#### Scope
+- Updated `docs/Human-Plans/Architecture/Radio.md`.
+- Recorded the document-only sync in the permanent doc log.
+
+#### Summary
+- Marked the `Phase 10` title checkbox complete.
+- Added one new local `Doc History` line describing the shipped merged-toolbar state.
+- Synced the architecture doc to the actual live implementation outcome.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Radio.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was a documentation sync after the implementation landed and verified successfully.
+
+<!-- ENTRY 099 -->
+### [099] - 2026-03-21 08:34 - `DOC - Prioritize Per-Step Time Position ParaSlider In Radio Phase 10`
+<!-- ENTRY 099 -->
+HUMAN SUMMARY: Tightened `Phase 10` in `Radio.md` so the most important per-step control in the expanded vertical detail area is now an explicit time-position `ParaSlider`. The phase now treats manual cue placement for each step as the primary step-detail editing action, ahead of extra per-step modulation or lower-priority controls.
+
+#### Scope
+- Updated `docs/Human-Plans/Architecture/Radio.md`.
+- Recorded the document-only change in the permanent doc log.
+
+#### Summary
+- Updated the Phase 10 header/detail language so per-step detail is centered on a time-position `ParaSlider`.
+- Added a dedicated `Per-Step Time Position Rule`.
+- Expanded the test targets so the phase now requires proving that moving a step's `ParaSlider` updates the stored cue assignment.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Radio.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was a doc-only planning update. No runtime code or tests changed in this step.
+
+<!-- ENTRY 098 -->
+### [098] - 2026-03-21 08:33 - `DOC - Preserve Horizontal Sampler And Green Styling In Radio Phase 10`
+<!-- ENTRY 098 -->
+HUMAN SUMMARY: Tightened `Phase 10` in `Radio.md` again so the shared-toolbar merge now explicitly preserves the already-shipped horizontal sampler row and existing sampler buttons/controls instead of replacing them with a purely vertical disclosure UI. The update also locks the visual direction that the merged `Radio` toolbar should adopt the sampler's green styling language.
+
+#### Scope
+- Updated `docs/Human-Plans/Architecture/Radio.md`.
+- Recorded the document-only change in the permanent doc log.
+
+#### Summary
+- Updated the `Phase 10` header, main decisions, baseline, remaining delta, and completion shape.
+- Added explicit rules for:
+  - preserving the horizontal sampler pattern
+  - preserving the existing `Phase 9` sampler controls/buttons
+  - styling the merged toolbar with the sampler-green direction
+- Expanded the tests, likely file edits, and implementation order so the next UI refactor keeps the current sampler interaction model intact while merging it into the shared radio toolbar.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Radio.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was a doc-only planning update. No runtime code or tests changed in this step.
 
 <!-- ENTRY 097 -->
 ### [097] - 2026-03-20 17:34 - `DOC - Tighten Radio Phase 10 Into Implementation-Ready Shared Toolbar Spec`

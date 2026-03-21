@@ -49,11 +49,22 @@ export type RadioSeekRequest = {
   timeSec: number
 }
 
+export type SamplerStepPreviewRequest = {
+  requestId: number
+  stepId: string
+  cueRatio: number
+}
+
 export type SamplerStep = {
   id: string
   index: number
   enabled: boolean
   cueRatio: number
+  isLocked: boolean
+  fadeInSec: number
+  fadeOutSec: number
+  startScoochSec: number
+  endScoochSec: number
 }
 
 export type SamplerNoteRepeatState = {
@@ -83,12 +94,19 @@ export type AudioSamplerState = {
   latestReloadRequestId: number | null
   nextReloadRequestId: number
   lastHandledReloadRequestId: number | null
+  latestSamplerStepPreviewRequest: SamplerStepPreviewRequest | null
+  nextSamplerStepPreviewRequestId: number
+  lastHandledSamplerStepPreviewRequestId: number | null
   samplerStepCount: SamplerStepCount
   samplerBpm: number
   samplerIsPlaying: boolean
   samplerPlayheadStepIndex: number | null
   samplerSteps: SamplerStep[]
   samplerNoteRepeat: SamplerNoteRepeatState
+  isRadioToolbarSectionExpanded: boolean
+  isSamplerToolbarSectionExpanded: boolean
+  isSamplerStepsSectionExpanded: boolean
+  expandedSamplerStepIds: string[]
   turnRadioOn: (url?: string) => void
   turnRadioOff: () => void
   openRadioToolbar: () => void
@@ -112,17 +130,29 @@ export type AudioSamplerState = {
   requestRadioReload: () => number | null
   markRadioReloadHandled: (requestId: number | null) => void
   markRadioBurstHandled: (requestId: number | null) => void
+  requestSamplerStepPreview: (stepId: string) => SamplerStepPreviewRequest | null
+  markSamplerStepPreviewHandled: (requestId: number | null) => void
   setSamplerStepCount: (stepCount: SamplerStepCount) => void
   setSamplerBpm: (bpm: number) => void
   playSampler: () => void
   stopSampler: () => void
   setSamplerPlayheadStepIndex: (stepIndex: number | null) => void
+  setSamplerStepCueRatio: (stepId: string, cueRatio: number) => void
+  setSamplerStepPlaybackShape: (
+    stepId: string,
+    next: Partial<Pick<SamplerStep, 'fadeInSec' | 'fadeOutSec' | 'startScoochSec' | 'endScoochSec'>>,
+  ) => void
   rerollSamplerStep: (stepId: string) => void
   rerollAllSamplerSteps: () => void
   toggleSamplerStepEnabled: (stepId: string) => void
+  toggleSamplerStepLocked: (stepId: string) => void
   setSamplerNoteRepeatEnabled: (enabled: boolean) => void
   setSamplerNoteRepeatCount: (count: SamplerNoteRepeatValue) => void
   setSamplerNoteRepeatRate: (rate: SamplerNoteRepeatValue) => void
+  setRadioToolbarSectionExpanded: (expanded: boolean) => void
+  setSamplerToolbarSectionExpanded: (expanded: boolean) => void
+  setSamplerStepsSectionExpanded: (expanded: boolean) => void
+  toggleSamplerStepExpanded: (stepId: string) => void
 }
 
 const createSampleSlotOrder = (): number[] => {
@@ -165,6 +195,11 @@ const createSamplerSteps = (
       index,
       enabled: true,
       cueRatio: createSamplerCueRatio(),
+      isLocked: false,
+      fadeInSec: 0,
+      fadeOutSec: 0,
+      startScoochSec: 0,
+      endScoochSec: 0,
     }
   })
 
@@ -186,17 +221,26 @@ const createInitialState = (): Omit<
   | 'requestRadioReload'
   | 'markRadioReloadHandled'
   | 'markRadioBurstHandled'
+  | 'requestSamplerStepPreview'
+  | 'markSamplerStepPreviewHandled'
   | 'setSamplerStepCount'
   | 'setSamplerBpm'
   | 'playSampler'
   | 'stopSampler'
   | 'setSamplerPlayheadStepIndex'
+  | 'setSamplerStepCueRatio'
+  | 'setSamplerStepPlaybackShape'
   | 'rerollSamplerStep'
   | 'rerollAllSamplerSteps'
   | 'toggleSamplerStepEnabled'
+  | 'toggleSamplerStepLocked'
   | 'setSamplerNoteRepeatEnabled'
   | 'setSamplerNoteRepeatCount'
   | 'setSamplerNoteRepeatRate'
+  | 'setRadioToolbarSectionExpanded'
+  | 'setSamplerToolbarSectionExpanded'
+  | 'setSamplerStepsSectionExpanded'
+  | 'toggleSamplerStepExpanded'
 > => ({
   isRadioEnabled: false,
   isRadioToolbarOpen: false,
@@ -223,6 +267,9 @@ const createInitialState = (): Omit<
   latestReloadRequestId: null,
   nextReloadRequestId: 1,
   lastHandledReloadRequestId: null,
+  latestSamplerStepPreviewRequest: null,
+  nextSamplerStepPreviewRequestId: 1,
+  lastHandledSamplerStepPreviewRequestId: null,
   samplerStepCount: 16,
   samplerBpm: DEFAULT_SAMPLER_BPM,
   samplerIsPlaying: false,
@@ -233,6 +280,10 @@ const createInitialState = (): Omit<
     count: 1,
     rate: 1,
   },
+  isRadioToolbarSectionExpanded: true,
+  isSamplerToolbarSectionExpanded: true,
+  isSamplerStepsSectionExpanded: false,
+  expandedSamplerStepIds: [],
 })
 
 export const useAudioSamplerStore = create<AudioSamplerState>((set, get) => ({
@@ -390,6 +441,35 @@ export const useAudioSamplerStore = create<AudioSamplerState>((set, get) => ({
       lastHandledBurstRequestId: requestId,
     })
   },
+  requestSamplerStepPreview: (stepId) => {
+    const normalizedStepId = stepId.trim()
+    if (normalizedStepId.length === 0) {
+      return null
+    }
+    const state = get()
+    if (!state.isRadioEnabled) {
+      return null
+    }
+    const step = state.samplerSteps.find((currentStep) => currentStep.id === normalizedStepId)
+    if (step === undefined) {
+      return null
+    }
+    const request: SamplerStepPreviewRequest = {
+      requestId: state.nextSamplerStepPreviewRequestId,
+      stepId: normalizedStepId,
+      cueRatio: step.cueRatio,
+    }
+    set({
+      latestSamplerStepPreviewRequest: request,
+      nextSamplerStepPreviewRequestId: state.nextSamplerStepPreviewRequestId + 1,
+    })
+    return request
+  },
+  markSamplerStepPreviewHandled: (requestId) => {
+    set({
+      lastHandledSamplerStepPreviewRequestId: requestId,
+    })
+  },
   setSamplerStepCount: (stepCount) => {
     const normalizedStepCount = isSamplerStepCount(stepCount) ? stepCount : 16
     set((state) => ({
@@ -426,6 +506,67 @@ export const useAudioSamplerStore = create<AudioSamplerState>((set, get) => ({
           : Math.min(Math.max(0, Math.floor(stepIndex)), state.samplerStepCount - 1),
     }))
   },
+  setSamplerStepCueRatio: (stepId, cueRatio) => {
+    const normalizedStepId = stepId.trim()
+    if (normalizedStepId.length === 0) {
+      return
+    }
+    const normalizedCueRatio = Number.isFinite(cueRatio)
+      ? Math.min(1, Math.max(0, Number(cueRatio.toFixed(4))))
+      : 0
+    set((state) => ({
+      samplerSteps: state.samplerSteps.map((step) =>
+        step.id === normalizedStepId && !step.isLocked
+          ? {
+              ...step,
+              cueRatio: normalizedCueRatio,
+            }
+          : step,
+      ),
+    }))
+  },
+  setSamplerStepPlaybackShape: (stepId, next) => {
+    const normalizedStepId = stepId.trim()
+    if (normalizedStepId.length === 0) {
+      return
+    }
+    set((state) => ({
+      samplerSteps: state.samplerSteps.map((step) => {
+        if (step.id !== normalizedStepId) {
+          return step
+        }
+        return {
+          ...step,
+          fadeInSec:
+            next.fadeInSec === undefined
+              ? step.fadeInSec
+              : Math.max(0, Number.isFinite(next.fadeInSec) ? Number(next.fadeInSec.toFixed(4)) : 0),
+          fadeOutSec:
+            next.fadeOutSec === undefined
+              ? step.fadeOutSec
+              : Math.max(0, Number.isFinite(next.fadeOutSec) ? Number(next.fadeOutSec.toFixed(4)) : 0),
+          startScoochSec:
+            next.startScoochSec === undefined
+              ? step.startScoochSec
+              : Math.max(
+                  0,
+                  Number.isFinite(next.startScoochSec)
+                    ? Number(next.startScoochSec.toFixed(4))
+                    : 0,
+                ),
+          endScoochSec:
+            next.endScoochSec === undefined
+              ? step.endScoochSec
+              : Math.max(
+                  0,
+                  Number.isFinite(next.endScoochSec)
+                    ? Number(next.endScoochSec.toFixed(4))
+                    : 0,
+                ),
+        }
+      }),
+    }))
+  },
   rerollSamplerStep: (stepId) => {
     const normalizedStepId = stepId.trim()
     if (normalizedStepId.length === 0) {
@@ -433,7 +574,7 @@ export const useAudioSamplerStore = create<AudioSamplerState>((set, get) => ({
     }
     set((state) => ({
       samplerSteps: state.samplerSteps.map((step) =>
-        step.id === normalizedStepId
+        step.id === normalizedStepId && !step.isLocked
           ? {
               ...step,
               cueRatio: createSamplerCueRatio(),
@@ -446,7 +587,7 @@ export const useAudioSamplerStore = create<AudioSamplerState>((set, get) => ({
     set((state) => ({
       samplerSteps: state.samplerSteps.map((step) => ({
         ...step,
-        cueRatio: createSamplerCueRatio(),
+        cueRatio: step.isLocked ? step.cueRatio : createSamplerCueRatio(),
       })),
     }))
   },
@@ -461,6 +602,22 @@ export const useAudioSamplerStore = create<AudioSamplerState>((set, get) => ({
           ? {
               ...step,
               enabled: !step.enabled,
+            }
+          : step,
+      ),
+    }))
+  },
+  toggleSamplerStepLocked: (stepId) => {
+    const normalizedStepId = stepId.trim()
+    if (normalizedStepId.length === 0) {
+      return
+    }
+    set((state) => ({
+      samplerSteps: state.samplerSteps.map((step) =>
+        step.id === normalizedStepId
+          ? {
+              ...step,
+              isLocked: !step.isLocked,
             }
           : step,
       ),
@@ -490,6 +647,32 @@ export const useAudioSamplerStore = create<AudioSamplerState>((set, get) => ({
         ...state.samplerNoteRepeat,
         rate: normalizedRate,
       },
+    }))
+  },
+  setRadioToolbarSectionExpanded: (expanded) => {
+    set({
+      isRadioToolbarSectionExpanded: expanded,
+    })
+  },
+  setSamplerToolbarSectionExpanded: (expanded) => {
+    set({
+      isSamplerToolbarSectionExpanded: expanded,
+    })
+  },
+  setSamplerStepsSectionExpanded: (expanded) => {
+    set({
+      isSamplerStepsSectionExpanded: expanded,
+    })
+  },
+  toggleSamplerStepExpanded: (stepId) => {
+    const normalizedStepId = stepId.trim()
+    if (normalizedStepId.length === 0) {
+      return
+    }
+    set((state) => ({
+      expandedSamplerStepIds: state.expandedSamplerStepIds.includes(normalizedStepId)
+        ? state.expandedSamplerStepIds.filter((currentStepId) => currentStepId !== normalizedStepId)
+        : [...state.expandedSamplerStepIds, normalizedStepId],
     }))
   },
 }))

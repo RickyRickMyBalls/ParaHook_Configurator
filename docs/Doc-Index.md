@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+63. 2026-03-21 09:31: Added `docs/Human-Plans/Architecture/Audio-Patchbay.md` to the architecture docs map as the new umbrella idea note for the post-`Radio` audio vision, separating the future node-and-wire DAW direction from the narrower current `Radio.md` and `Sampler.md` implementation docs
 62. 2026-03-20 16:57: Added `docs/Human-Plans/Architecture/Sampler.md` to the architecture docs map as the new focused planning surface for the simple single-row sequencer direction, separating the first sampler UI and note-repeat vision from the broader `Radio` architecture doc
 61. 2026-03-20 12:42: Added `docs/Human-Plans/Architecture/Radio.md` to the architecture docs map as the new implementation-facing planning surface for the optional `Radio` subsystem, translating the older wish-feature memory into a concrete ownership, runtime, and first-scope architecture note
 60. 2026-03-18 14:24: Added `docs/Human-Plans/CodexNotes/12_CodexChatNotes.md` to the foldable docs map as the new active Codex-notes file for pre-`3.2D` node-template cleanup planning, continuing the running numbered planning-notes sequence after `11_CodexChatNotes.md`
@@ -392,6 +393,7 @@ Rule notes:
         - `11_CodexChatNotes.md`
         - `12_CodexChatNotes.md`
 ### ----Architecture
+        - `Audio-Patchbay.md`
         - `Console.md`
         - `Engine-Architecture.md`
         - `Glossary.md`

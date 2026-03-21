@@ -98,6 +98,61 @@ describe('AudioEngine', () => {
     })
   })
 
+  it('applies a start scooch offset to the resolved burst window', async () => {
+    const fakeContext = new FakeAudioContext()
+    const engine = new AudioEngine({
+      createAudioContext: () => fakeContext,
+    })
+    const descriptor = createFallbackRadioSourceDescriptor(DEFAULT_GUSANO_URL)
+
+    const playback = await engine.playBurst({
+      descriptor,
+      normalizedSamplePosition: 0.5,
+      sampleBurstTime: 0.25,
+      startOffsetSec: 0.1,
+    })
+
+    const activeSource = fakeContext.sources.at(-1)
+    expect(activeSource?.startCalls).toEqual([
+      {
+        when: 0,
+        offset: 6.1,
+        duration: 0.25,
+      },
+    ])
+    expect(playback).toEqual({
+      sourceId: descriptor.sourceId,
+      startTimeSec: 6.1,
+      endTimeSec: 6.35,
+      durationSec: 0.25,
+    })
+  })
+
+  it('renders generated-tone fades into a dedicated burst buffer when fade settings are present', async () => {
+    const fakeContext = new FakeAudioContext()
+    const engine = new AudioEngine({
+      createAudioContext: () => fakeContext,
+    })
+    const descriptor = createFallbackRadioSourceDescriptor(DEFAULT_GUSANO_URL)
+
+    await engine.playBurst({
+      descriptor,
+      normalizedSamplePosition: 0.5,
+      sampleBurstTime: 0.25,
+      fadeInSec: 0.05,
+      fadeOutSec: 0.05,
+    })
+
+    const activeSource = fakeContext.sources.at(-1)
+    expect(activeSource?.startCalls).toEqual([
+      {
+        when: 0,
+        offset: 0,
+        duration: 0.25,
+      },
+    ])
+  })
+
   it('raises a blocked error when audio resume fails', async () => {
     const engine = new AudioEngine({
       createAudioContext: () => new FakeAudioContext({ state: 'suspended', shouldFailResume: true }),

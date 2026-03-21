@@ -162,6 +162,9 @@ export class AudioEngine {
     descriptor: RadioSourceDescriptor
     normalizedSamplePosition: number
     sampleBurstTime: number
+    startOffsetSec?: number
+    fadeInSec?: number
+    fadeOutSec?: number
   }): Promise<AudioEnginePlayback> {
     const ready = await this.ensureSourceReady(input.descriptor)
 
@@ -171,6 +174,9 @@ export class AudioEngine {
       ready.durationSec,
       input.normalizedSamplePosition,
       input.sampleBurstTime,
+      {
+        startOffsetSec: input.startOffsetSec,
+      },
     )
 
     if (input.descriptor.kind === 'soundcloud-widget') {
@@ -194,9 +200,62 @@ export class AudioEngine {
     }
 
     const source = this.audioContext.createBufferSource()
-    source.buffer = this.activeBuffer
-    source.connect(this.audioContext.destination)
-    source.start(0, burstWindow.startTimeSec, burstWindow.durationSec)
+    const safeFadeInSec = Math.max(0, Number.isFinite(input.fadeInSec) ? input.fadeInSec ?? 0 : 0)
+    const safeFadeOutSec = Math.max(
+      0,
+      Number.isFinite(input.fadeOutSec) ? input.fadeOutSec ?? 0 : 0,
+    )
+    if (safeFadeInSec > 0 || safeFadeOutSec > 0) {
+      const sourceChannel = this.activeBuffer.getChannelData(0)
+      const startSampleIndex = Math.max(
+        0,
+        Math.round(burstWindow.startTimeSec * this.audioContext.sampleRate),
+      )
+      const burstSampleLength = Math.max(
+        1,
+        Math.round(burstWindow.durationSec * this.audioContext.sampleRate),
+      )
+      const burstBuffer = this.audioContext.createBuffer(
+        1,
+        burstSampleLength,
+        this.audioContext.sampleRate,
+      )
+      const burstChannel = burstBuffer.getChannelData(0)
+      const fadeInSampleLength = Math.max(
+        0,
+        Math.min(burstSampleLength, Math.round(safeFadeInSec * this.audioContext.sampleRate)),
+      )
+      const fadeOutSampleLength = Math.max(
+        0,
+        Math.min(burstSampleLength, Math.round(safeFadeOutSec * this.audioContext.sampleRate)),
+      )
+
+      for (let sampleIndex = 0; sampleIndex < burstSampleLength; sampleIndex += 1) {
+        const sourceIndex = Math.min(
+          sourceChannel.length - 1,
+          startSampleIndex + sampleIndex,
+        )
+        let envelope = 1
+        if (fadeInSampleLength > 0) {
+          envelope = Math.min(envelope, Math.min(1, sampleIndex / fadeInSampleLength))
+        }
+        if (fadeOutSampleLength > 0) {
+          envelope = Math.min(
+            envelope,
+            Math.min(1, (burstSampleLength - sampleIndex - 1) / fadeOutSampleLength),
+          )
+        }
+        burstChannel[sampleIndex] = (sourceChannel[sourceIndex] ?? 0) * Math.max(0, envelope)
+      }
+
+      source.buffer = burstBuffer
+      source.connect(this.audioContext.destination)
+      source.start(0, 0, burstWindow.durationSec)
+    } else {
+      source.buffer = this.activeBuffer
+      source.connect(this.audioContext.destination)
+      source.start(0, burstWindow.startTimeSec, burstWindow.durationSec)
+    }
     this.activeSource = source
     this.activeDescriptor = input.descriptor
     this.fallbackCurrentTimeSec = burstWindow.startTimeSec

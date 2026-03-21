@@ -1,0 +1,359 @@
+## [ ] Phase 11 - Source Waveform Visualization
+
+### Header
+- add a waveform surface to the merged `Radio` toolbar so the user can see detailed source shape over time
+- the waveform should help with:
+  - transport awareness
+  - sampler cue placement
+  - `Start Scooch` / `End Scooch` edits
+  - future step-region editing
+- the waveform should support:
+  - a live playhead readout
+  - the current transport position
+  - step cue markers
+  - future draggable in/out overlays if the runtime becomes honest enough
+- keep the first waveform inside the existing merged toolbar rather than inventing a second audio editor surface
+- the waveform must stay honest about source capability:
+  - analyzable sources can show real waveform detail
+  - non-analyzable sources must not fake precise waveform data
+
+Acceptance shape:
+- the toolbar has a visible waveform area tied to the active radio source
+- the playhead and current transport time can be seen against that waveform
+- sampler step cue positions can be drawn on top of that waveform
+- unsupported sources do not pretend to have exact waveform detail
+
+### [x] Q1 - Should The First Waveform Be Exact For Every Source Or Provider-Aware And Honest?
+
+#### Suggestion
+
+Make the first waveform provider-aware and honest.
+
+That means:
+- show a true detailed waveform only when we have real analyzable sample data or trusted waveform data
+- do not synthesize a fake "wiggle line" for `SoundCloud` just to fill space
+- allow the first phase to support mixed fidelity:
+  - exact waveform for generated-tone or future local/analyzable sources
+  - provider summary or explicit unsupported/limited message for sources that do not expose exact waveform data yet
+
+#### Locked Read
+
+The first waveform should be honest, not decorative.
+
+So:
+- exact waveform detail is allowed only when the runtime has real waveform data
+- `SoundCloud widget` playback should be treated as waveform-limited until we add a real waveform-data path
+- the UI can still show:
+  - playhead
+  - duration
+  - cue markers
+  - transport overlays
+  without pretending the underlying waveform is exact
+
+### [x] Q2 - What Should The First Exact Waveform Source Be?
+
+#### Suggestion
+
+Make `generated-tone` the first exact waveform source.
+
+That gives us:
+- one honest source we already control end-to-end
+- deterministic waveform data without network fetches
+- a clean first rendering target for:
+  - playhead
+  - cue markers
+  - future drag overlays
+
+Then keep `SoundCloud widget` in `limited` mode until a real waveform-data path exists.
+
+#### Locked Read
+
+The first exact waveform implementation should target:
+- `generated-tone`
+
+The first limited waveform implementation should target:
+- `soundcloud-widget`
+
+Important rule:
+- do not block the whole phase on exact `SoundCloud` waveform extraction
+- ship the fidelity split honestly instead
+
+### Implementation Spec
+
+#### Current Landed Baseline
+
+- `RadioPanel.tsx` already owns the merged radio/sampler toolbar surface
+- `audioSamplerStore.ts` already owns:
+  - source URL
+  - transport state
+  - sampler step cue positions
+- `AppShell.tsx` already polls and syncs transport state
+- `AppShell.tsx` already has one source-change/runtime subscription pattern for:
+  - transport polling
+  - reload
+  - sampler-step preview playback
+- `AudioEngine.ts` and `ClipLibrary.ts` already distinguish source kinds such as:
+  - `generated-tone`
+  - `soundcloud-widget`
+  - `unsupported-url`
+- sampler cue positions and active step state already exist and can be drawn as waveform markers today
+
+So the repo already has the right source/runtime separation to add waveform state without rebuilding the radio system again.
+
+#### Remaining Delta To Close This Phase
+
+- add a canonical waveform-data shape to store/runtime state
+- add one provider-aware waveform resolution path keyed off the resolved source kind
+- render one waveform strip inside `RadioPanel.tsx`
+- draw transport and step markers on top of that waveform
+- define explicit degraded behavior for `SoundCloud widget` sources
+- add one focused waveform render seam instead of inflating `RadioPanel.tsx` inline
+
+#### First Honest Waveform Rule
+
+The first waveform phase should separate:
+- exact waveform data
+- limited provider waveform data
+- no waveform data
+
+Recommended first source states:
+- `exact`
+  - generated tone
+  - future local decoded assets
+- `limited`
+  - provider-backed sources where we can show timing overlays but not true PCM detail yet
+- `none`
+  - unsupported or unresolved sources
+
+Important rule:
+- do not blur `limited` into `exact`
+- the user should be able to tell whether they are seeing real waveform detail or only a placeholder/limited transport lane
+
+#### Current Code Targets
+
+The first honest implementation should target these live seams:
+
+- `src/app/store/audioSamplerStore.ts`
+  - canonical waveform state
+- `src/app/AppShell.tsx`
+  - source-change subscription and waveform refresh
+- `src/runtime/audio/AudioEngine.ts`
+  - exact waveform envelope extraction for `generated-tone`
+- `src/runtime/audio/ClipLibrary.ts`
+  - source waveform capability classification
+- `src/app/panels/RadioPanel.tsx`
+  - waveform placement inside the top `Radio` section
+- `src/app/components/RadioWaveformStrip.tsx`
+  - new focused waveform render component
+- `src/app/theme/v15Theme.css`
+  - waveform strip, marker, and playhead styling
+
+Important rule:
+- add one focused waveform render component instead of writing all waveform drawing logic inline inside `RadioPanel.tsx`
+
+#### First State Shape
+
+Add one canonical waveform slice to `audioSamplerStore.ts`.
+
+Recommended first read:
+- `radioWaveformState`
+  - `kind: 'none' | 'limited' | 'exact'`
+  - `sourceId: string | null`
+  - `sourceKind: RadioRuntimeSourceKind | 'none'`
+  - `durationSec: number`
+  - `sampleCount: number`
+  - `samples: number[]`
+  - `message: string | null`
+  - `lastResolvedAt: number | null`
+
+Recommended first helper actions:
+- `setRadioWaveformState(next)`
+- `clearRadioWaveformState()`
+
+Recommended first type names:
+- `RadioWaveformKind`
+- `RadioWaveformState`
+
+Recommended first constant:
+- `DEFAULT_RADIO_WAVEFORM_SAMPLE_COUNT = 512`
+
+Important rule:
+- waveform state should key off the resolved runtime source, not just the raw pasted URL
+
+#### First Resolution Ownership Rule
+
+Waveform resolution should not live in `RadioPanel.tsx`.
+
+Recommended ownership:
+- `ClipLibrary.ts`
+  - classify whether the current source kind can provide waveform data
+- `AudioEngine.ts` or a nearby runtime helper
+  - produce exact waveform samples for analyzable/generated sources
+- `AppShell.tsx`
+  - subscribe to source changes and push waveform data into canonical store state
+
+Recommended first helper names:
+- `resolveRadioWaveformCapability(descriptor)`
+- `extractWaveformEnvelope(descriptor, sampleCount)`
+- `refreshRadioWaveformState()`
+
+Important rule:
+- React UI should render waveform data
+- runtime/source seams should produce waveform data
+
+#### First Rendering Rule
+
+The waveform should render inside the top `Radio` section of the merged toolbar.
+
+Recommended first visible stack:
+- transport readout
+- waveform strip
+- source / status fields
+- transport controls
+
+The waveform strip should minimally show:
+- waveform line or filled envelope
+- current playhead position
+- duration grid ticks when helpful
+- sampler step markers from the current step list
+
+Recommended first render component:
+- `RadioWaveformStrip`
+
+Recommended first props:
+- `waveform`
+- `transport`
+- `stepMarkers`
+- `activeStepIndex`
+
+Important rule:
+- keep the waveform readable at toolbar scale
+- do not let it become a giant DAW canvas in this phase
+
+#### First Marker Rule
+
+Sampler cues should be visible on the waveform.
+
+Recommended first marker set:
+- one thin marker for each step cue
+- optional highlight for the active sampler playhead step
+- optional different color for locked steps
+
+Recommended first marker math:
+- `left = cueRatio * 100%`
+- playhead overlay should use:
+  - `transport.currentTimeSec / transport.durationSec`
+- active step marker should reuse:
+  - `samplerPlayheadStepIndex`
+
+Important rule:
+- markers should use the same canonical cue positions already stored in sampler state
+- do not create a second hidden cue coordinate system just for drawing
+
+#### Exact Generated-Tone Read
+
+The `generated-tone` path should be the first exact waveform source.
+
+Recommended first implementation:
+- extract one compact waveform envelope array from the existing generated-tone buffer shape
+- store it in canonical waveform state
+- draw that envelope directly in `RadioWaveformStrip`
+
+Important rule:
+- do not over-engineer a generic PCM decoding pipeline just to ship the first exact waveform
+- generated tone is enough to prove the full end-to-end rendering seam
+
+#### SoundCloud Read
+
+`SoundCloud widget` playback is the hardest case.
+
+So the first honest rule should be:
+- if we do not have exact waveform data for the active `SoundCloud` source, render a `limited` waveform lane instead of fake detail
+
+That limited lane can still show:
+- total duration
+- playhead
+- cue markers
+- message such as `Detailed waveform unavailable for current source`
+
+If later we add a trustworthy waveform-data fetch or provider waveform API path, the phase can be revisited and promoted from `limited` to `exact`.
+
+#### First UI Fallback Read
+
+The user should always see an intentional waveform area, even when the current source is not exact.
+
+So:
+- `exact`
+  - draw the waveform line/fill plus playhead and step markers
+- `limited`
+  - draw a bounded timing lane with grid, playhead, and step markers
+  - show a short message that exact waveform detail is unavailable
+- `none`
+  - show a compact empty-state read instead of a broken container
+
+Important rule:
+- do not let unsupported waveform states collapse the layout height or make the toolbar jump
+
+#### Test Targets
+
+- one store test for waveform state ownership/reset
+- one runtime test for generated-tone waveform extraction or envelope generation
+- one panel render test proving the waveform strip appears in `RadioPanel.tsx`
+- one component test for `RadioWaveformStrip.tsx`
+- one panel render test proving cue markers appear from canonical sampler step state
+- one shell/runtime test proving source changes refresh waveform state
+- one degraded-mode test proving `SoundCloud widget` shows `limited` instead of fake exact waveform detail
+- one marker test proving step cue markers use the current canonical cue ratios
+- one transport test proving the waveform playhead uses current transport state rather than stale local UI state
+
+#### Likely File Edits
+
+- `src/app/components/RadioWaveformStrip.tsx`
+  - focused waveform render component
+- `src/app/panels/RadioPanel.tsx`
+  - waveform strip render and marker overlay
+- `src/app/store/audioSamplerStore.ts`
+  - canonical waveform state
+- `src/app/AppShell.tsx`
+  - source-driven waveform resolution/subscription
+- `src/runtime/audio/AudioEngine.ts`
+  - exact waveform extraction for analyzable/generated sources
+- `src/runtime/audio/ClipLibrary.ts`
+  - source waveform capability classification
+- `src/app/theme/v15Theme.css`
+  - waveform strip styling and marker overlays
+- `src/app/panels/RadioPanel.test.tsx`
+- `src/app/store/audioSamplerStore.test.ts`
+- `src/app/components/RadioWaveformStrip.test.tsx`
+- runtime waveform tests near `AudioEngine.test.ts`
+
+#### Implementation Order
+
+1. Lock the first waveform fidelity model: `exact`, `limited`, or `none`.
+2. Add canonical waveform state and constants to the radio/sampler store seam.
+3. Add source-capability helpers in runtime audio code.
+4. Add exact envelope extraction for `generated-tone`.
+5. Add `AppShell.tsx` source-change refresh logic for waveform state.
+6. Build `RadioWaveformStrip.tsx`.
+7. Mount the waveform strip in `RadioPanel.tsx`.
+8. Draw playhead and sampler cue markers.
+9. Add explicit `limited` mode for `SoundCloud widget`.
+10. Add focused store/runtime/component/panel tests.
+
+#### Completion Check
+
+- the merged toolbar shows one waveform strip tied to the active source
+- transport playhead is visible on the waveform
+- sampler cue markers appear in waveform coordinates
+- `generated-tone` can show real waveform detail
+- `SoundCloud widget` does not fake exact waveform detail if no real waveform data exists yet
+- the waveform surface helps cue editing instead of acting like decoration
+- the waveform render path is separated enough that later exact-source support can grow without rewriting `RadioPanel.tsx`
+
+#### Hard Rules
+
+- do not fake an exact waveform for sources that do not expose exact waveform data
+- do not move waveform resolution logic into React UI components
+- do not create a second sampler cue coordinate system just for waveform drawing
+- do not widen this phase into a full timeline editor or DAW canvas
+- do not block the phase on exact `SoundCloud` waveform extraction

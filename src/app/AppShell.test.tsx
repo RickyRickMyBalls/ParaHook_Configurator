@@ -2030,7 +2030,7 @@ describe('AppShell', () => {
     expect(container?.querySelector('.RadioPanel')).toBeNull()
   })
 
-  it('renders the sampler panel alongside the radio toolbar when the toolbar is opened', async () => {
+  it('renders only the merged radio toolbar surface when the toolbar is opened', async () => {
     ;({ container, root } = await renderAppShell())
     mockShellGeometry(container)
 
@@ -2039,7 +2039,36 @@ describe('AppShell', () => {
     })
 
     expect(container?.querySelector('.RadioPanel')).not.toBeNull()
-    expect(container?.querySelector('.AudioSamplerPanel')).not.toBeNull()
+    expect(container?.querySelector('.AudioSamplerPanel')).toBeNull()
+  })
+
+  it('consumes sampler step preview requests through the shared radio runtime path', async () => {
+    ;({ container, root } = await renderAppShell())
+    mockShellGeometry(container)
+
+    await act(async () => {
+      useAudioSamplerStore.getState().turnRadioOn()
+      useAudioSamplerStore.getState().setSampleBurstTime(0.1)
+      useAudioSamplerStore.getState().setSamplerBpm(120)
+      useAudioSamplerStore.getState().setRadioRuntimeState({
+        status: 'ready',
+        sourceKind: 'soundcloud-widget',
+      })
+      const firstStepId = useAudioSamplerStore.getState().samplerSteps[0]?.id ?? ''
+      useAudioSamplerStore.getState().setSamplerStepPlaybackShape(firstStepId, {
+        startScoochSec: 0.05,
+        endScoochSec: 0.1,
+      })
+      useAudioSamplerStore.getState().requestSamplerStepPreview(firstStepId)
+    })
+
+    expect(useAudioSamplerStore.getState().lastHandledSamplerStepPreviewRequestId).toBe(1)
+    expect(useAudioSamplerStore.getState().radioRuntimeSourceKind).toBe('soundcloud-widget')
+    const samplerPreviewCalls = mockSoundCloudPlayWindow.mock.calls as unknown as Array<
+      [{ durationSec: number }]
+    >
+    const latestSamplerPreviewWindow = samplerPreviewCalls.at(-1)?.[0] ?? null
+    expect(latestSamplerPreviewWindow?.durationSec).toBeCloseTo(0.35, 5)
   })
 
   it('advances the sampler playhead through the app-level loop using the current radio source', async () => {

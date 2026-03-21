@@ -29,16 +29,27 @@ describe('audioSamplerStore', () => {
     })
     expect(state.latestSeekRequest).toBeNull()
     expect(state.latestReloadRequestId).toBeNull()
+    expect(state.latestSamplerStepPreviewRequest).toBeNull()
     expect(state.samplerStepCount).toBe(16)
     expect(state.samplerBpm).toBe(96)
     expect(state.samplerIsPlaying).toBe(false)
     expect(state.samplerPlayheadStepIndex).toBeNull()
     expect(state.samplerSteps).toHaveLength(16)
+    expect(state.samplerSteps[0]?.isLocked).toBe(false)
+    expect(state.samplerSteps[0]?.fadeInSec).toBe(0)
+    expect(state.samplerSteps[0]?.fadeOutSec).toBe(0)
+    expect(state.samplerSteps[0]?.startScoochSec).toBe(0)
+    expect(state.samplerSteps[0]?.endScoochSec).toBe(0)
     expect(state.samplerNoteRepeat).toEqual({
       enabled: false,
       count: 1,
       rate: 1,
     })
+    expect(state.isRadioToolbarSectionExpanded).toBe(true)
+    expect(state.isSamplerToolbarSectionExpanded).toBe(true)
+    expect(state.isSamplerStepsSectionExpanded).toBe(false)
+    expect(state.expandedSamplerStepIds).toEqual([])
+    expect(state.lastHandledSamplerStepPreviewRequestId).toBeNull()
   })
 
   it('turns radio on when a custom url is set', () => {
@@ -156,6 +167,40 @@ describe('audioSamplerStore', () => {
     expect(state.lastHandledReloadRequestId).toBe(1)
   })
 
+  it('publishes sampler step preview requests only when radio is enabled', () => {
+    const firstStepId = useAudioSamplerStore.getState().samplerSteps[0]?.id ?? ''
+
+    expect(useAudioSamplerStore.getState().requestSamplerStepPreview(firstStepId)).toBeNull()
+
+    useAudioSamplerStore.getState().turnRadioOn()
+    const previewRequest = useAudioSamplerStore.getState().requestSamplerStepPreview(firstStepId)
+    useAudioSamplerStore.getState().markSamplerStepPreviewHandled(previewRequest?.requestId ?? null)
+
+    expect(previewRequest).toEqual({
+      requestId: 1,
+      stepId: firstStepId,
+      cueRatio: useAudioSamplerStore.getState().samplerSteps[0]?.cueRatio,
+    })
+    expect(useAudioSamplerStore.getState().lastHandledSamplerStepPreviewRequestId).toBe(1)
+  })
+
+  it('tracks merged toolbar disclosure state in the canonical store', () => {
+    const firstStepId = useAudioSamplerStore.getState().samplerSteps[0]?.id ?? ''
+
+    useAudioSamplerStore.getState().setRadioToolbarSectionExpanded(false)
+    useAudioSamplerStore.getState().setSamplerToolbarSectionExpanded(false)
+    useAudioSamplerStore.getState().setSamplerStepsSectionExpanded(true)
+    useAudioSamplerStore.getState().toggleSamplerStepExpanded(firstStepId)
+    useAudioSamplerStore.getState().toggleSamplerStepExpanded(firstStepId)
+    useAudioSamplerStore.getState().toggleSamplerStepExpanded(firstStepId)
+
+    const state = useAudioSamplerStore.getState()
+    expect(state.isRadioToolbarSectionExpanded).toBe(false)
+    expect(state.isSamplerToolbarSectionExpanded).toBe(false)
+    expect(state.isSamplerStepsSectionExpanded).toBe(true)
+    expect(state.expandedSamplerStepIds).toEqual([firstStepId])
+  })
+
   it('resizes sampler steps while preserving leading cues and rerolls individual or all step cues', () => {
     const initialSteps = useAudioSamplerStore.getState().samplerSteps
     const firstCue = initialSteps[0]?.cueRatio
@@ -179,6 +224,59 @@ describe('audioSamplerStore', () => {
     useAudioSamplerStore.getState().rerollAllSamplerSteps()
     const afterRerollAll = useAudioSamplerStore.getState().samplerSteps.map((step) => step.cueRatio)
     expect(afterRerollAll).not.toEqual(beforeRerollAll)
+  })
+
+  it('keeps locked sampler steps fixed across reroll and direct cue edits', () => {
+    const [firstStep, secondStep] = useAudioSamplerStore.getState().samplerSteps
+    const firstStepId = firstStep?.id ?? ''
+    const secondStepId = secondStep?.id ?? ''
+    const firstCue = firstStep?.cueRatio
+    const secondCue = secondStep?.cueRatio
+
+    useAudioSamplerStore.getState().toggleSamplerStepLocked(firstStepId)
+    useAudioSamplerStore.getState().rerollSamplerStep(firstStepId)
+    useAudioSamplerStore.getState().setSamplerStepCueRatio(firstStepId, 0.8123)
+    useAudioSamplerStore.getState().rerollAllSamplerSteps()
+
+    const state = useAudioSamplerStore.getState()
+    expect(state.samplerSteps[0]?.isLocked).toBe(true)
+    expect(state.samplerSteps[0]?.cueRatio).toBe(firstCue)
+    expect(state.samplerSteps[1]?.cueRatio).not.toBe(secondCue)
+
+    useAudioSamplerStore.getState().toggleSamplerStepLocked(firstStepId)
+    useAudioSamplerStore.getState().setSamplerStepCueRatio(firstStepId, 0.8123)
+    useAudioSamplerStore.getState().rerollSamplerStep(secondStepId)
+
+    const unlockedState = useAudioSamplerStore.getState()
+    expect(unlockedState.samplerSteps[0]?.isLocked).toBe(false)
+    expect(unlockedState.samplerSteps[0]?.cueRatio).toBe(0.8123)
+    expect(unlockedState.samplerSteps[1]?.cueRatio).not.toBe(secondCue)
+  })
+
+  it('updates a step cue ratio directly for the merged toolbar time-position slider', () => {
+    const targetStepId = useAudioSamplerStore.getState().samplerSteps[0]?.id ?? ''
+
+    useAudioSamplerStore.getState().setSamplerStepCueRatio(targetStepId, 0.7321)
+
+    expect(useAudioSamplerStore.getState().samplerSteps[0]?.cueRatio).toBe(0.7321)
+  })
+
+  it('stores per-step fade and scooch settings for sampler playback shaping', () => {
+    const targetStepId = useAudioSamplerStore.getState().samplerSteps[0]?.id ?? ''
+
+    useAudioSamplerStore.getState().setSamplerStepPlaybackShape(targetStepId, {
+      fadeInSec: 0.05,
+      fadeOutSec: 0.07,
+      startScoochSec: 0.02,
+      endScoochSec: 0.03,
+    })
+
+    expect(useAudioSamplerStore.getState().samplerSteps[0]).toMatchObject({
+      fadeInSec: 0.05,
+      fadeOutSec: 0.07,
+      startScoochSec: 0.02,
+      endScoochSec: 0.03,
+    })
   })
 
   it('tracks sampler playback, enabled steps, and note-repeat settings', () => {

@@ -13,7 +13,6 @@ import { ViewToolbar } from './components/ViewToolbar'
 import { ViewerHost } from './components/ViewerHost'
 import { ViewportOverlay } from './components/ViewportOverlay'
 import { ConsoleDock } from './console/ConsoleDock'
-import { AudioSamplerPanel } from './panels/AudioSamplerPanel'
 import { BrowserPanel } from './panels/BrowserPanel'
 import { RadioPanel } from './panels/RadioPanel'
 import { SpaghettiPanel } from './panels/SpaghettiPanel'
@@ -24,7 +23,12 @@ import {
   DEFAULT_GUSANO_URL,
   resolveRadioSourceDescriptor,
 } from '../runtime/audio/ClipLibrary'
-import { resolveRepeatOffsetsSec, resolveStepDurationSec } from '../runtime/audio/TimelineTransport'
+import {
+  resolveRepeatOffsetsSec,
+  resolveSamplerStepFadeEnvelope,
+  resolveSamplerStepPlaybackWindow,
+  resolveStepDurationSec,
+} from '../runtime/audio/TimelineTransport'
 import { registerRadioRuntimeWarmupHandler } from '../runtime/audio/radioRuntimeWarmup'
 import { createBrowserSoundCloudWidgetClient } from '../runtime/audio/SoundCloudWidgetClient'
 import {
@@ -119,12 +123,42 @@ const resolveActiveRadioDescriptor = (
   return resolveRadioSourceDescriptor(sourceUrl)
 }
 
+const resolveSamplerStepPlaybackInput = (input: {
+  cueRatio: number
+  stepDurationSec: number
+  startScoochSec: number
+  endScoochSec: number
+  fadeInSec: number
+  fadeOutSec: number
+}) => {
+  const playbackWindow = resolveSamplerStepPlaybackWindow(
+    input.stepDurationSec,
+    input.startScoochSec,
+    input.endScoochSec,
+  )
+  const fadeEnvelope = resolveSamplerStepFadeEnvelope(
+    playbackWindow.durationSec,
+    input.fadeInSec,
+    input.fadeOutSec,
+  )
+  return {
+    normalizedSamplePosition: input.cueRatio,
+    sampleBurstTime: playbackWindow.durationSec,
+    startOffsetSec: playbackWindow.startOffsetSec,
+    fadeInSec: fadeEnvelope.fadeInSec,
+    fadeOutSec: fadeEnvelope.fadeOutSec,
+  }
+}
+
 const playRadioBurstFromSource = async (input: {
   engine: AudioEngine
   sourceUrl: string
   runtimeSourceKind: RadioRuntimeSourceKind
   normalizedSamplePosition: number
   sampleBurstTime: number
+  startOffsetSec?: number
+  fadeInSec?: number
+  fadeOutSec?: number
 }): Promise<void> => {
   const sourceDescriptor = resolveActiveRadioDescriptor(input.sourceUrl, input.runtimeSourceKind)
 
@@ -154,6 +188,9 @@ const playRadioBurstFromSource = async (input: {
       descriptor,
       normalizedSamplePosition: input.normalizedSamplePosition,
       sampleBurstTime: input.sampleBurstTime,
+      startOffsetSec: input.startOffsetSec,
+      fadeInSec: input.fadeInSec,
+      fadeOutSec: input.fadeOutSec,
     })
 
   try {
@@ -459,6 +496,9 @@ export function AppShell() {
   const radioRuntimeSourceKind = useAudioSamplerStore((state) => state.radioRuntimeSourceKind)
   const latestRadioSeekRequest = useAudioSamplerStore((state) => state.latestSeekRequest)
   const latestRadioReloadRequestId = useAudioSamplerStore((state) => state.latestReloadRequestId)
+  const latestSamplerStepPreviewRequest = useAudioSamplerStore(
+    (state) => state.latestSamplerStepPreviewRequest,
+  )
   const samplerStepCount = useAudioSamplerStore((state) => state.samplerStepCount)
   const samplerBpm = useAudioSamplerStore((state) => state.samplerBpm)
   const samplerIsPlaying = useAudioSamplerStore((state) => state.samplerIsPlaying)
@@ -496,6 +536,7 @@ export function AppShell() {
   const lastHandledRadioBurstRequestIdRef = useRef<number | null>(null)
   const lastHandledRadioSeekRequestIdRef = useRef<number | null>(null)
   const lastHandledRadioReloadRequestIdRef = useRef<number | null>(null)
+  const lastHandledSamplerStepPreviewRequestIdRef = useRef<number | null>(null)
   const samplerLoopTimeoutRef = useRef<number | null>(null)
   const samplerRepeatTimeoutIdsRef = useRef<number[]>([])
   const viewportRef = useRef<HTMLElement | null>(null)
@@ -758,6 +799,52 @@ export function AppShell() {
   }, [latestRadioReloadRequestId, radioRuntimeSourceKind, radioSourceUrl])
 
   useEffect(() => {
+    if (latestSamplerStepPreviewRequest === null) {
+      return
+    }
+    if (
+      latestSamplerStepPreviewRequest.requestId ===
+      lastHandledSamplerStepPreviewRequestIdRef.current
+    ) {
+      return
+    }
+
+    lastHandledSamplerStepPreviewRequestIdRef.current = latestSamplerStepPreviewRequest.requestId
+    useAudioSamplerStore
+      .getState()
+      .markSamplerStepPreviewHandled(latestSamplerStepPreviewRequest.requestId)
+
+    const engine = createRadioAudioEngine(radioAudioEngineRef, radioSoundCloudIframeRef)
+    radioAudioEngineRef.current = engine
+
+    const state = useAudioSamplerStore.getState()
+    const previewStep = state.samplerSteps.find(
+      (currentStep) => currentStep.id === latestSamplerStepPreviewRequest.stepId,
+    )
+    if (previewStep === undefined) {
+      return
+    }
+    const stepDurationSec = resolveStepDurationSec(state.samplerBpm, state.samplerStepCount)
+    const samplerPlaybackInput = resolveSamplerStepPlaybackInput({
+      cueRatio: previewStep.cueRatio,
+      stepDurationSec,
+      startScoochSec: previewStep.startScoochSec,
+      endScoochSec: previewStep.endScoochSec,
+      fadeInSec: previewStep.fadeInSec,
+      fadeOutSec: previewStep.fadeOutSec,
+    })
+
+    void playRadioBurstFromSource({
+      engine,
+      sourceUrl: state.sourceUrl,
+      runtimeSourceKind: state.radioRuntimeSourceKind,
+      ...samplerPlaybackInput,
+    }).catch(() => {
+      // The shared helper already reports runtime status honestly.
+    })
+  }, [latestSamplerStepPreviewRequest])
+
+  useEffect(() => {
     if (!isRadioEnabled || !isRadioToolbarOpen) {
       return
     }
@@ -858,8 +945,14 @@ export function AppShell() {
               engine,
               sourceUrl: useAudioSamplerStore.getState().sourceUrl,
               runtimeSourceKind: useAudioSamplerStore.getState().radioRuntimeSourceKind,
-              normalizedSamplePosition: step.cueRatio,
-              sampleBurstTime: useAudioSamplerStore.getState().sampleBurstTime,
+              ...resolveSamplerStepPlaybackInput({
+                cueRatio: step.cueRatio,
+                stepDurationSec,
+                startScoochSec: step.startScoochSec,
+                endScoochSec: step.endScoochSec,
+                fadeInSec: step.fadeInSec,
+                fadeOutSec: step.fadeOutSec,
+              }),
             }).catch(() => {
               // The shared helper already writes runtime status.
             })
@@ -2888,7 +2981,6 @@ export function AppShell() {
         </div>
       ) : null}
       {isRadioToolbarOpen ? <RadioPanel /> : null}
-      {isRadioToolbarOpen ? <AudioSamplerPanel /> : null}
       <iframe
         ref={radioSoundCloudIframeRef}
         title="Radio SoundCloud Bridge"

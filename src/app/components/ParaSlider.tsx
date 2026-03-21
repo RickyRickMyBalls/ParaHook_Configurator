@@ -27,6 +27,7 @@ type ParaSliderProps = {
   displayValue?: string
   onContextMenu?: (event: ReactMouseEvent<HTMLElement>) => void
   hideCaps?: boolean
+  onChangeEnd?: (value: number) => void
 }
 
 const clamp = (value: number, min: number, max: number): number =>
@@ -93,6 +94,7 @@ export function ParaSlider({
   displayValue,
   onContextMenu,
   hideCaps = false,
+  onChangeEnd,
 }: ParaSliderProps) {
   const trackRef = useRef<HTMLDivElement | null>(null)
   const valueInputRef = useRef<HTMLInputElement | null>(null)
@@ -334,6 +336,7 @@ export function ParaSlider({
     }
     const handlePointerUp = () => {
       setDragPreviewValue(null)
+      onChangeEnd?.(dragValue)
       window.removeEventListener('pointermove', handlePointerMove)
       window.removeEventListener('pointerup', handlePointerUp)
       window.removeEventListener('pointercancel', handlePointerUp)
@@ -364,15 +367,16 @@ export function ParaSlider({
   }
 
   const changeByStep = (direction: -1 | 1) => {
-    onChange(
+    const nextValue =
       allowWrap && !isEditingClamp
         ? wrapValue(normalizedValue + direction * step, min, max)
         : clamp(
             clampValue(normalizedValue + direction * step, min, max),
             effectiveClampMin,
             effectiveClampMax,
-          ),
-    )
+          )
+    onChange(nextValue)
+    onChangeEnd?.(nextValue)
   }
 
   const commitValueInput = () => {
@@ -383,6 +387,15 @@ export function ParaSlider({
       return
     }
     onChange(
+      allowWrap && !isEditingClamp
+        ? wrapValue(parsedValue, min, max)
+        : clamp(
+            normalizeValue(parsedValue, min, max, fineStep),
+            effectiveClampMin,
+            effectiveClampMax,
+          ),
+    )
+    onChangeEnd?.(
       allowWrap && !isEditingClamp
         ? wrapValue(parsedValue, min, max)
         : clamp(

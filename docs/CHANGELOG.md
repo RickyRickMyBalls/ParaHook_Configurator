@@ -65,6 +65,290 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 512 -->
+### [512] - 2026-03-21 09:32 - `VR - Phase 10 - Sampler Step-Length Playback And Per-Step Shaping`
+<!-- ENTRY 512 -->
+HUMAN SUMMARY: `Unlinked sampler-step playback from the global radio burst-time setting so each step now fills its BPM-sized window instead of borrowing the console burst length. Added per-step fade and scooch controls in the expanded step settings, with start and end scooch shaping the sampled window and generated-tone playback honoring fade in/out directly.` 
+
+#### Scope / Constraints Honored
+- Kept the console/radio burst-time control intact for console command playback.
+- Moved only sampler-step playback onto its own BPM-sized timing path and step-local shaping state.
+
+#### Summary of Implementation
+- Extended `src/app/store/audioSamplerStore.ts` so each sampler step now stores:
+  - `fadeInSec`
+  - `fadeOutSec`
+  - `startScoochSec`
+  - `endScoochSec`
+- Added transport helpers in `src/runtime/audio/TimelineTransport.ts` to:
+  - derive sampler step playback duration from the BPM-sized step window
+  - clamp start/end scooch into a valid playback window
+  - scale fades so they stay inside the resolved playback duration
+- Updated `src/app/AppShell.tsx` so sampler preview and loop playback now use:
+  - step duration from BPM
+  - step-local scooch values
+  - step-local fade values
+  instead of the global `sampleBurstTime`
+- Updated `src/runtime/audio/AudioEngine.ts` so generated-tone bursts can render fade in/out into a dedicated burst buffer when needed.
+- Extended the merged toolbar step detail UI in `src/app/panels/RadioPanel.tsx` with new controls for:
+  - `Fade In`
+  - `Fade Out`
+  - `Start Scooch`
+  - `End Scooch`
+
+#### Files Changed
+- `src/runtime/audio/TimelineTransport.ts`
+- `src/runtime/audio/TimelineTransport.test.ts`
+- `src/runtime/audio/AudioEngine.ts`
+- `src/runtime/audio/AudioEngine.test.ts`
+- `src/app/store/audioSamplerStore.ts`
+- `src/app/store/audioSamplerStore.test.ts`
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+- `src/app/panels/RadioPanel.tsx`
+
+#### Behavior Changes (if any)
+- Sampler steps no longer use the top-level radio `Sample Burst Time`.
+- Each sampler step now defaults to a burst that fills the BPM-sized step window.
+- `Start Scooch` and `End Scooch` trim and shift the sampled window for a step.
+- `Fade In` and `Fade Out` are now stored per step and applied on the generated-tone playback path.
+
+#### Verification Steps
+- Ran `cmd /c npx vitest run src/runtime/audio/TimelineTransport.test.ts src/runtime/audio/AudioEngine.test.ts src/app/store/audioSamplerStore.test.ts src/app/panels/RadioPanel.test.tsx src/app/AppShell.test.tsx`.
+- Confirmed the focused sampler/runtime suite passed with `81` tests green.
+- Ran `cmd /c npm run build`.
+- Confirmed the full `tsc -b && vite build` path completed successfully.
+
+<!-- ENTRY 511 -->
+### [511] - 2026-03-21 09:20 - `VR - Phase 10 - Sampler Step Lock Controls`
+<!-- ENTRY 511 -->
+HUMAN SUMMARY: `Added per-step lock controls to the horizontal sampler row so individual steps can be protected from reroll and cue edits. Locked steps now keep their sample position during both single-step and global rerolls, and their detail-slider time position is visibly locked as well.`
+
+#### Scope / Constraints Honored
+- Kept the change inside the existing merged `Phase 10` radio/sampler toolbar surface and canonical sampler store.
+- Preserved the current preview and playback flow, only adding step-level protection around reroll and cue editing.
+
+#### Summary of Implementation
+- Extended `src/app/store/audioSamplerStore.ts` so each sampler step now carries `isLocked` state.
+- Added a canonical `toggleSamplerStepLocked(...)` action and made locked steps ignore:
+  - direct cue-ratio edits
+  - single-step reroll
+  - global reroll
+- Updated `src/app/panels/RadioPanel.tsx` so each horizontal step cell now includes a third `L` lock button.
+- Mirrored lock state in step detail with:
+  - a `Lock / Locked` action
+  - a locked-state readout
+  - a disabled time-position slider shell
+- Added focused regressions for the new store and toolbar behavior.
+
+#### Files Changed
+- `src/app/store/audioSamplerStore.ts`
+- `src/app/store/audioSamplerStore.test.ts`
+- `src/app/panels/RadioPanel.tsx`
+- `src/app/panels/RadioPanel.test.tsx`
+- `src/app/theme/v15Theme.css`
+
+#### Behavior Changes (if any)
+- Each sampler step now has a lock control in the horizontal row.
+- Locked steps keep their current cue when the user clicks either `R` or `Reroll All`.
+- Locked steps also ignore edits from the per-step time-position slider until unlocked.
+
+#### Verification Steps
+- Ran `cmd /c npx vitest run src/app/store/audioSamplerStore.test.ts src/app/panels/RadioPanel.test.tsx`.
+- Confirmed the focused sampler store/panel suite passed with `19` tests green.
+- Ran `cmd /c npm run build`.
+- Confirmed the full `tsc -b && vite build` path completed successfully.
+
+<!-- ENTRY 510 -->
+### [510] - 2026-03-21 09:13 - `VR - Phase 9 - Fixed-Step Sampler BPM Timing`
+<!-- ENTRY 510 -->
+HUMAN SUMMARY: `Changed the sampler timing model so BPM now defines the duration of one step instead of defining a fixed one-bar loop that shrinks as step count rises. This makes longer step counts produce longer loops while keeping each step length stable at \`60 / bpm\`, which matches the intended sampler feel.`
+
+#### Scope / Constraints Honored
+- Kept the fix narrow to the sampler timing helper and its current app-shell consumer.
+- Preserved the existing note-repeat and loop scheduler flow, only changing the step-duration rule.
+
+#### Summary of Implementation
+- Updated `src/runtime/audio/TimelineTransport.ts` so sampler step duration now resolves to `60 / bpm`.
+- Kept sampler step start time tied to `stepIndex * stepDuration`.
+- Updated the transport tests to lock the new fixed-step behavior instead of the old fixed-bar behavior.
+
+#### Files Changed
+- `src/runtime/audio/TimelineTransport.ts`
+- `src/runtime/audio/TimelineTransport.test.ts`
+
+#### Behavior Changes (if any)
+- Increasing `Step Count` now makes the loop longer instead of making each step shorter.
+- Example:
+  - `150 BPM` now means `0.4s` per step
+  - `8` steps now loop in `3.2s`
+  - `16` steps now loop in `6.4s`
+
+#### Verification Steps
+- Ran `cmd /c npx vitest run src/runtime/audio/TimelineTransport.test.ts src/app/AppShell.test.tsx`.
+- Confirmed the focused sampler/runtime suite passed with `53` tests green.
+- Ran `cmd /c npm run build`.
+- Confirmed the full `tsc -b && vite build` path completed successfully.
+
+<!-- ENTRY 509 -->
+### [509] - 2026-03-21 08:58 - `VR - Phase 10 - Step Detail Preview Controls`
+<!-- ENTRY 509 -->
+HUMAN SUMMARY: `Refined the merged sampler detail area by renaming \`Steps\` to \`Step Details\`, adding a per-step \`Play\` preview action, and making step time-position edits preview on slider release. This keeps cue editing legible and gives the user immediate audio feedback when dialing in a step's position in the song.`
+
+#### Scope / Constraints Honored
+- Kept the change inside the merged `Phase 10` radio/sampler surface and the existing shared audio runtime path.
+- Reused the current radio playback helper instead of inventing a second preview engine just for step editing.
+
+#### Summary of Implementation
+- Added a canonical sampler-step preview request seam to `src/app/store/audioSamplerStore.ts`.
+- Extended `src/app/AppShell.tsx` so step-preview requests are consumed through the existing `playRadioBurstFromSource(...)` runtime path.
+- Updated `src/app/panels/RadioPanel.tsx` so:
+  - `Steps` is now labeled `Step Details`
+  - each expanded step row has a `Play` button
+  - releasing the per-step time-position `ParaSlider` previews the current cue
+- Extended `src/app/components/ParaSlider.tsx` with an optional end-of-change callback so release-driven preview can happen cleanly after dragging.
+- Added focused regressions for the store, merged panel, and app-shell subscriber path.
+
+#### Files Changed
+- `src/app/components/ParaSlider.tsx`
+- `src/app/store/audioSamplerStore.ts`
+- `src/app/panels/RadioPanel.tsx`
+- `src/app/AppShell.tsx`
+- `src/app/store/audioSamplerStore.test.ts`
+- `src/app/panels/RadioPanel.test.tsx`
+- `src/app/AppShell.test.tsx`
+
+#### Behavior Changes (if any)
+- The nested sampler disclosure now reads `Step Details`.
+- Each expanded step detail row now includes a `Play` button for direct preview.
+- Releasing the step time-position slider now previews the step's current cue.
+
+#### Verification Steps
+- Ran `cmd /c npx vitest run src/app/store/audioSamplerStore.test.ts src/app/panels/RadioPanel.test.tsx src/app/AppShell.test.tsx`.
+- Confirmed the focused suite passed with `66` tests green.
+- Ran `cmd /c npm run build`.
+- Confirmed the full `tsc -b && vite build` path completed successfully.
+
+<!-- ENTRY 508 -->
+### [508] - 2026-03-21 08:53 - `VR - Phase 10 - Resizable Radio Sampler Section Divider`
+<!-- ENTRY 508 -->
+HUMAN SUMMARY: `Added a draggable horizontal divider between the merged \`Radio\` and \`Sampler\` sections so the user can manually resize how much height the top radio section gets. This keeps the combined toolbar flexible without splitting it back into two separate panels.`
+
+#### Scope / Constraints Honored
+- Kept the change inside the merged `RadioPanel` seam and its styling.
+- Preserved the single-surface `Phase 10` toolbar direction.
+
+#### Summary of Implementation
+- Added local split-drag state in `src/app/panels/RadioPanel.tsx` for resizing the top `Radio` section when both top-level sections are expanded.
+- Added clamped minimum heights for both sections so the divider cannot collapse either side into an unusable state.
+- Styled a visible horizontal split handle in `src/app/theme/v15Theme.css`.
+
+#### Files Changed
+- `src/app/panels/RadioPanel.tsx`
+- `src/app/theme/v15Theme.css`
+
+#### Behavior Changes (if any)
+- The merged toolbar now shows a horizontal divider between `Radio` and `Sampler` when both sections are expanded.
+- Dragging that divider changes the amount of height allocated to the `Radio` section.
+
+#### Verification Steps
+- Ran `cmd /c npm run build`.
+- Confirmed the full `tsc -b && vite build` path completed successfully.
+
+<!-- ENTRY 507 -->
+### [507] - 2026-03-21 08:51 - `VR - Phase 10 - Stabilize Merged Toolbar Section Scroll Layout`
+<!-- ENTRY 507 -->
+HUMAN SUMMARY: `Stabilized the new merged-toolbar section scroll areas so the \`Radio\` and \`Sampler\` panes no longer jump around as runtime text and sampler state change. The fix moves the merged panel to fixed row distribution with stable internal scroll regions instead of max-height-driven reflow.`
+
+#### Scope / Constraints Honored
+- Kept the fix narrow to merged-toolbar layout CSS.
+- Preserved the current merged `RadioPanel` structure and section scroll behavior.
+
+#### Summary of Implementation
+- Updated `src/app/theme/v15Theme.css` so the merged toolbar body now uses fixed grid row distribution between the `Radio` and `Sampler` sections.
+- Changed the section bodies from max-height-based auto scroll to stable full-height internal scroll regions.
+- Disabled outer panel-body scrolling for `RadioPanel` so only the intended section interiors handle overflow.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+
+#### Behavior Changes (if any)
+- The `Radio` and `Sampler` sections should now feel visually stable while status text, transport state, and sampler playhead state update.
+- The merged toolbar should no longer reflow as aggressively when the internal scrollbars are present.
+
+#### Verification Steps
+- CSS-only change; no automated tests were run for this step.
+
+<!-- ENTRY 506 -->
+### [506] - 2026-03-21 08:50 - `VR - Phase 10 - Section Scrollbars For Merged Radio Toolbar`
+<!-- ENTRY 506 -->
+HUMAN SUMMARY: `Added internal scrollbars to the merged \`Radio\` and \`Sampler\` sections so the shared toolbar stays usable when its option list grows taller than the panel. This keeps the combined radio/sampler surface readable without forcing the whole floating toolbar to become excessively large.`
+
+#### Scope / Constraints Honored
+- Kept the fix narrow to the merged toolbar styling layer.
+- Preserved the current merged `RadioPanel` structure and controls.
+
+#### Summary of Implementation
+- Updated `src/app/theme/v15Theme.css` so each merged section body now has its own bounded vertical scroll area.
+- Added green-styled scrollbar treatment that matches the sampler-forward visual direction.
+- Increased the sampler section’s internal max-height so it can show more of the horizontal row plus step detail before clipping.
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+
+#### Behavior Changes (if any)
+- The `Radio` section now scrolls internally when its controls exceed the section height.
+- The `Sampler` section now scrolls internally when the horizontal row, `Steps`, and `Note Repeat` controls exceed the section height.
+
+#### Verification Steps
+- CSS-only change; no automated tests were run for this step.
+
+<!-- ENTRY 505 -->
+### [505] - 2026-03-21 08:46 - `VR - Phase 10 - Shared Radio Toolbar Tree And Step Detail Expansion`
+<!-- ENTRY 505 -->
+HUMAN SUMMARY: `Merged the sampler into the shared radio toolbar so the app now presents one primary green radio/sampler surface instead of two competing panels. The shipped toolbar preserves the working horizontal sampler row and existing controls, adds store-backed disclosure state plus expandable step detail, and lets each step edit its song position through a per-step time slider inside the merged panel.`
+
+#### Scope / Constraints Honored
+- Preserved the current horizontal sampler row and existing `Phase 9` controls instead of redesigning the sequencer into a purely vertical UI.
+- Kept the radio transport/source controls visible at the top of the merged toolbar.
+- Avoided creating a second sampler state model by keeping disclosure and cue editing bound to the canonical `audioSamplerStore.ts` seam.
+
+#### Summary of Implementation
+- Extended `src/app/store/audioSamplerStore.ts` with canonical disclosure state for the merged toolbar plus direct per-step cue editing.
+- Rebuilt `src/app/panels/RadioPanel.tsx` as the single primary radio/sampler surface, preserving the horizontal sampler row while adding collapsible `Radio`, `Sampler`, `Steps`, and per-step detail sections.
+- Added per-step time-position editing through a `ParaSlider` in expanded step rows, backed by direct updates to each step's stored cue ratio.
+- Restyled the merged toolbar in `src/app/theme/v15Theme.css` so it adopts the sampler-green visual language.
+- Simplified `src/app/AppShell.tsx` so opening the radio toolbar mounts only the merged `RadioPanel` instead of mounting a second primary `AudioSamplerPanel`.
+- Added focused regressions around merged-toolbar disclosure state, preserved sampler controls, step-detail rendering, and single-surface mounting.
+
+#### Files Changed
+- `src/app/store/audioSamplerStore.ts`
+- `src/app/panels/RadioPanel.tsx`
+- `src/app/AppShell.tsx`
+- `src/app/theme/v15Theme.css`
+- `src/app/store/audioSamplerStore.test.ts`
+- `src/app/panels/RadioPanel.test.tsx`
+- `src/app/AppShell.test.tsx`
+- `docs/Human-Plans/Architecture/Radio.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+- Opening the radio toolbar now shows one merged radio/sampler surface.
+- The separate sampler panel no longer mounts alongside the radio toolbar as a competing primary surface.
+- The merged toolbar now includes:
+  - top-level collapsible `Radio` and `Sampler` sections
+  - the preserved horizontal sampler step row
+  - the preserved sampler `Play` / `Stop`, BPM, step-count, reroll, and note-repeat controls
+  - a collapsible `Steps` detail section
+  - expandable per-step rows with direct time-position editing
+- The shared toolbar now uses the sampler-green visual direction instead of the older amber radio styling.
+
+#### Verification Steps
+- Ran `cmd /c npx vitest run src/app/store/audioSamplerStore.test.ts src/app/panels/RadioPanel.test.tsx src/app/AppShell.test.tsx src/app/panels/AudioSamplerPanel.test.tsx`.
+- Confirmed the focused merged-toolbar suite passed with `65` tests green.
+- Ran `cmd /c npm run build`.
+- Confirmed the full `tsc -b && vite build` path completed successfully.
+
 <!-- ENTRY 504 -->
 ### [504] - 2026-03-20 17:18 - `VR - Phase 9 - Sampler Sequencer Surface`
 <!-- ENTRY 504 -->

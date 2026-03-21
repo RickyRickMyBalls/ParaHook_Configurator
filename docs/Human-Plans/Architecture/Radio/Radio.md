@@ -3,6 +3,9 @@
 ## Doc Header
 
 ### Doc History
+36. 2026-03-21 08:46: Marked `Phase 10` complete after the separate sampler panel stopped being the primary mounted surface and the shared `Radio` toolbar absorbed the horizontal sampler row, the existing sampler controls, store-backed disclosure state, and expandable per-step time-position editing inside one green merged panel
+35. 2026-03-21 08:34: Tightened `Phase 10` so the most important per-step control in the vertical detail section is now an explicit time-position `ParaSlider`, making manual step cue placement in the song the primary expanded-row editing surface
+34. 2026-03-21 08:33: Tightened `Phase 10` again so the shared-toolbar sampler refactor now explicitly preserves the current horizontal sequencer row and existing sampler controls/buttons, while also making the merged `Radio` toolbar adopt the sampler's green visual language instead of falling back to the older radio styling
 33. 2026-03-20 17:34: Tightened `Phase 10` into an implementation-ready shared-toolbar execution spec by locking the separate-panel end-state decision, mapping the merge onto the current live `RadioPanel` / `AudioSamplerPanel` / store / shell seams, and defining the disclosure-state, migration, test, and completion targets for the next sampler UI refactor
 32. 2026-03-20 17:27: Added a new post-sampler phase for folding the sequencer back into the shared `Radio` toolbar as a disclosure-tree surface with sibling `Radio` / `Sampler` sections, a collapsible steps area above `Note Repeat`, and expandable per-step detail rows
 31. 2026-03-20 17:18: Marked `Phase 9` complete after the first sampler sequencer slice landed as a hosted panel with one-row pattern state, BPM and step-count controls, rerollable per-step cues, a narrow note-repeat block, and an app-level loop that reuses the current radio source/runtime path
@@ -3780,18 +3783,22 @@ Recommended first host rule:
 - do not randomize every step again on every loop unless the user explicitly rerolls
 - do not let note-repeat spill into the next step window
 
-## [ ] Phase 10 - Shared Radio Toolbar Tree And Step Detail Expansion
+## [x] Phase 10 - Shared Radio Toolbar Tree And Step Detail Expansion
 
 ### Header
 - fold the sampler surface back into the shared `Radio` toolbar instead of keeping it as a separate unrelated panel
 - make `Radio` and `Sampler` sibling top-level sections inside one shared toolbar tree
+- keep the current horizontal sampler pattern visible as part of the shared toolbar instead of replacing it with a purely vertical list
+- keep the sampler buttons and controls that already shipped in `Phase 9`
 - add a collapsible `Steps` section above `Note Repeat`
 - make each step row expandable so step-level detail can grow without flooding the toolbar all at once
+- make the merged `Radio` toolbar adopt the sampler's green visual language
 
 First intended top-level toolbar tree:
 - `Radio`
   - `URL`
 - `Sampler`
+  - horizontal pattern row
   - `Global BPM`
   - `Steps`
     - `Step 1`
@@ -3801,17 +3808,21 @@ First intended top-level toolbar tree:
   - `Note Repeat`
 
 First intended per-step detail:
-- cue time or cue ratio from the current source
+- one `ParaSlider` for the step's time position in the song
+- cue time or cue ratio readout from the current source
 - enabled / disabled state
 - volume
 - later step-level overrides
 
 Acceptance shape:
 - the shared toolbar has sibling `Radio` and `Sampler` sections
+- the horizontal sampler pattern is still visible and usable
+- the existing sampler buttons are still present
 - `Steps` appears above `Note Repeat`
 - `Steps` can collapse/expand as one block
 - each step row can collapse/expand independently
 - collapsed rows stay lightweight while expanded rows reveal deeper controls
+- the merged toolbar uses the sampler's green visual language
 
 ### [x] Q1 - Should The Shared Toolbar Tree Replace The Separate Sampler Panel Or Mirror It Temporarily?
 
@@ -3848,10 +3859,13 @@ Not owned here:
 - `Radio` and `Sampler` become sibling top-level sections in one toolbar
 - `Global BPM` stays sampler-global
 - `Note Repeat` stays sampler-global in this phase
+- the current horizontal sampler row stays visible as the main immediate interaction surface
+- the existing sampler controls from `Phase 9` stay present in the merged toolbar
 - `Steps` should appear above `Note Repeat`
 - steps remain lightweight when collapsed and reveal controls only when expanded
 - one track is still enough for the first honest implementation inside this new layout
 - the separate sampler panel is allowed only as a temporary migration seam, not as a lasting second primary surface
+- the merged toolbar should use the sampler's green styling direction as the dominant visual theme
 
 #### Current Landed Baseline
 
@@ -3867,6 +3881,7 @@ Not owned here:
 Plain-English baseline:
 - the missing work is mostly surface composition and disclosure-state shape
 - not a rewrite of the sampler runtime
+- the current horizontal pattern row and sampler controls already define the interaction baseline that must survive the merge
 
 Implementation-ready read:
 - `Phase 10` should mostly be a UI and state-ownership refactor
@@ -3876,6 +3891,7 @@ Implementation-ready read:
 #### Remaining Delta To Close This Phase
 
 - merge the visible sampler controls into the shared radio toolbar surface
+- preserve the current horizontal pattern row as a first-class visible section inside the shared toolbar
 - add one disclosure-tree layout for:
   - `Radio`
   - `Sampler`
@@ -3883,6 +3899,7 @@ Implementation-ready read:
   - per-step rows
 - add per-step expand/collapse state
 - add step detail controls without overwhelming the compact default view
+- make per-step time-position editing the primary expanded-row control
 - remove the separate sampler panel if the shared surface fully replaces it
 - keep the same playback and sequencing actions reachable after the migration:
   - play
@@ -3892,6 +3909,7 @@ Implementation-ready read:
   - per-step enabled state
   - per-step reroll
   - note repeat
+- restyle the merged toolbar to use the sampler's green visual language without losing radio transport clarity
 
 #### Current Code-To-Target Mapping
 
@@ -3956,6 +3974,7 @@ Locked read:
 The first merged toolbar should read in this order:
 - `Radio`
 - `Sampler`
+  - horizontal pattern row
   - `Global BPM`
   - `Steps`
   - `Note Repeat`
@@ -3968,6 +3987,25 @@ Inside `Steps`, each row should read:
 Important rule:
 - do not keep the old separate sampler panel layout as the mental model and merely embed it whole inside `RadioPanel.tsx`
 - recompose it into the toolbar tree structure directly
+- but do keep the already-shipped horizontal pattern row and immediate sampler controls as the core interactive face of `Sampler`
+
+#### Horizontal Pattern Preservation Rule
+
+The existing `Phase 9` horizontal sampler row should remain visible in the merged toolbar.
+
+It should continue to expose the already-landed immediate controls, including:
+- the horizontal step pattern
+- `Play`
+- `Stop`
+- BPM control
+- step-count control
+- note-repeat controls
+- per-step enable/reroll interactions that are already part of the row experience
+
+Important rule:
+- `Steps` disclosure and per-step detail rows are additive
+- they should not replace or hide the core horizontal pattern that already works
+- the merged toolbar should feel like the current sampler got folded into `Radio`, not like the sampler was redesigned into a totally different UI
 
 #### Step Row Presentation Rule
 
@@ -3976,13 +4014,28 @@ Important rule:
   - enabled state
   - cue summary
 - expanded step row should reveal:
-  - cue time or cue ratio
+  - one `ParaSlider` for the step's time position in the song
+  - cue time or cue ratio readout
   - volume
   - later override slots
 
 Important rule:
 - the first expanded step should reveal only a few honest controls
+- the time-position `ParaSlider` is the most important control in the expanded vertical detail section
 - do not dump every imagined future control into the first expanded row
+
+#### Per-Step Time Position Rule
+
+The most important per-step control in the vertical detail section should be a `ParaSlider` that lets the user move that step's cue point to another time position in the song.
+
+That means:
+- every expanded step row should expose one time-position `ParaSlider`
+- the slider should bind to the step's actual cue position in the current source
+- moving the slider should update the step's stored cue assignment directly instead of acting like a temporary preview-only control
+
+Important rule:
+- this is more important than adding extra per-step modulation controls in this phase
+- if the expanded row must stay small, preserve the time-position `ParaSlider` first and defer lower-priority controls
 
 #### Steps Section Rule
 
@@ -4028,10 +4081,23 @@ The following already-landed sampler behaviors must still work after the UI migr
 - per-step cue reroll
 
 This phase can add:
+- per-step time-position `ParaSlider`
 - per-step volume control
 - richer step disclosure
 
 But it should not regress the `Phase 9` sampler path just because the controls moved into a new container
+
+#### Visual Direction Rule
+
+The merged toolbar should inherit the sampler's green visual language.
+
+That means:
+- the shared `RadioPanel.tsx` should visually move toward the sampler palette instead of keeping the older radio styling
+- the merged surface should read as one green radio/sampler instrument, not as a gray radio panel with a sampler bolted onto it
+
+Important rule:
+- keep transport/readout clarity and accessibility intact
+- do not introduce green styling that makes state, text, or active controls harder to read
 
 #### Test Targets
 
@@ -4039,10 +4105,13 @@ But it should not regress the `Phase 9` sampler path just because the controls m
 - one disclosure test for:
   - `Steps` collapse/expand
   - per-step expand/collapse
-- one step-detail render test proving expanded rows reveal cue plus volume controls
+- one step-detail render test proving expanded rows reveal the time-position `ParaSlider` plus cue/volume detail
+- one state test proving moving a step's time-position `ParaSlider` updates that step's stored cue assignment
 - one migration/sync test proving the shared-toolbar sampler controls still drive the same sampler state from `Phase 9`
 - one shell test proving the separate sampler panel is removed or no longer acts like a parallel primary surface once this phase closes
 - one reopen test proving disclosure state behaves according to the chosen ownership rule
+- one preservation test proving the horizontal pattern row and existing sampler buttons still render in the merged toolbar
+- one visual test or snapshot proving the merged toolbar uses the sampler-green styling tokens/classes
 
 #### Likely File Edits
 
@@ -4053,7 +4122,7 @@ But it should not regress the `Phase 9` sampler path just because the controls m
 - `src/app/store/audioSamplerStore.ts`
   - add disclosure state for sampler tree rows if kept canonical there
 - `src/app/theme/v15Theme.css`
-  - disclosure-tree and step-detail styling
+  - disclosure-tree, step-detail, and green merged-toolbar styling
 - `src/app/AppShell.tsx`
   - simplify visible mounting once one shared toolbar becomes the canonical surface
 - `src/app/panels/RadioPanel.test.tsx`
@@ -4066,21 +4135,26 @@ But it should not regress the `Phase 9` sampler path just because the controls m
 1. Lock the merged-toolbar end state and treat `AudioSamplerPanel.tsx` as temporary.
 2. Add or normalize disclosure state for top-level sections, `Steps`, and per-step rows.
 3. Move the already-landed sampler global controls into `RadioPanel.tsx` under `Sampler`.
-4. Rebuild the step list as a collapsible `Steps` block above `Note Repeat`.
-5. Add expandable per-step rows that preserve existing step enable/reroll behavior and add cue plus volume detail.
-6. Confirm the shared toolbar still drives the same sampler runtime/store behavior from `Phase 9`.
-7. Remove or demote the separate sampler panel from primary shell mounting.
-8. Add focused render, disclosure, and migration tests.
+4. Move the current horizontal pattern row and existing sampler controls into the shared toolbar without changing their behavior.
+5. Rebuild the step list as a collapsible `Steps` block above `Note Repeat`.
+6. Add expandable per-step rows that preserve existing step enable/reroll behavior and add cue plus volume detail.
+7. Restyle the merged toolbar to use the sampler-green direction while keeping radio clarity.
+8. Confirm the shared toolbar still drives the same sampler runtime/store behavior from `Phase 9`.
+9. Remove or demote the separate sampler panel from primary shell mounting.
+10. Add focused render, disclosure, preservation, and migration tests.
 
 #### Completion Check
 
 - one shared toolbar contains both `Radio` and `Sampler`
+- the existing horizontal sampler pattern is still visible and usable
+- the existing sampler buttons from `Phase 9` are still present
 - `Steps` is above `Note Repeat`
 - step rows stay compact by default and reveal detail only when expanded
 - sampler controls still drive the same canonical sampler runtime/state
 - the existing sampler controls from `Phase 9` are all reachable from the shared toolbar
 - the UI is clearly ready for later track growth without already being a multi-track workstation
 - `AudioSamplerPanel.tsx` no longer acts like a competing primary sampler surface
+- the merged toolbar reads visually as the green sampler/radio instrument rather than the older radio styling
 
 #### Hard Rules
 
@@ -4088,3 +4162,239 @@ But it should not regress the `Phase 9` sampler path just because the controls m
 - do not keep two competing primary sampler surfaces after the phase closes
 - do not widen this phase into real multi-track runtime work unless the container shape genuinely requires it
 - do not expose so many per-step controls that the default toolbar stops being readable
+
+## [ ] Phase 11 - Source Waveform Visualization
+
+### Header
+- add a waveform surface to the merged `Radio` toolbar so the user can see detailed source shape over time
+- the waveform should help with:
+  - transport awareness
+  - sampler cue placement
+  - `Start Scooch` / `End Scooch` edits
+  - future step-region editing
+- the waveform should support:
+  - a live playhead readout
+  - the current transport position
+  - step cue markers
+  - future draggable in/out overlays if the runtime becomes honest enough
+- keep the first waveform inside the existing merged toolbar rather than inventing a second audio editor surface
+- the waveform must stay honest about source capability:
+  - analyzable sources can show real waveform detail
+  - non-analyzable sources must not fake precise waveform data
+
+Acceptance shape:
+- the toolbar has a visible waveform area tied to the active radio source
+- the playhead and current transport time can be seen against that waveform
+- sampler step cue positions can be drawn on top of the waveform
+- unsupported sources do not pretend to have exact waveform detail
+
+### [ ] Q1 - Should The First Waveform Be Exact For Every Source Or Provider-Aware And Honest?
+
+#### Suggestion
+
+Make the first waveform provider-aware and honest.
+
+That means:
+- show a true detailed waveform only when we have real analyzable sample data or trusted waveform data
+- do not synthesize a fake “wiggle line” for `SoundCloud` just to fill space
+- allow the first phase to support mixed fidelity:
+  - exact waveform for generated-tone or future local/analyzable sources
+  - provider summary or explicit unsupported/limited message for sources that do not expose exact waveform data yet
+
+#### Locked Read
+
+The first waveform should be honest, not decorative.
+
+So:
+- exact waveform detail is allowed only when the runtime has real waveform data
+- `SoundCloud widget` playback should be treated as waveform-limited until we add a real waveform-data path
+- the UI can still show:
+  - playhead
+  - duration
+  - cue markers
+  - transport overlays
+  without pretending the underlying waveform is exact
+
+### Implementation Spec
+
+#### Current Landed Baseline
+
+- `RadioPanel.tsx` already owns the merged radio/sampler toolbar surface
+- `audioSamplerStore.ts` already owns:
+  - source URL
+  - transport state
+  - sampler step cue positions
+- `AppShell.tsx` already polls and syncs transport state
+- `AudioEngine.ts` and `ClipLibrary.ts` already distinguish source kinds such as:
+  - `generated-tone`
+  - `soundcloud-widget`
+  - `unsupported-url`
+
+So the repo already has the right source/runtime separation to add waveform state without rebuilding the radio system again.
+
+#### Remaining Delta To Close This Phase
+
+- add a canonical waveform-data shape
+- add a provider-aware waveform resolution path
+- render one waveform strip inside `RadioPanel.tsx`
+- draw transport and step markers on top of that waveform
+- define explicit degraded behavior for `SoundCloud widget` sources
+
+#### First Honest Waveform Rule
+
+The first waveform phase should separate:
+- exact waveform data
+- coarse provider waveform data
+- no waveform data
+
+Recommended first source states:
+- `exact`
+  - generated tone
+  - future local decoded assets
+- `limited`
+  - provider-backed sources where we can show timing overlays but not true PCM detail yet
+- `none`
+  - unsupported or unresolved sources
+
+Important rule:
+- do not blur `limited` into `exact`
+- the user should be able to tell whether they are seeing real waveform detail or only a placeholder/limited transport lane
+
+#### First State Shape
+
+Add one canonical waveform slice to `audioSamplerStore.ts` or a nearby runtime-owned seam.
+
+Recommended first read:
+- `radioWaveformState`
+  - `kind: 'none' | 'limited' | 'exact'`
+  - `sourceId`
+  - `durationSec`
+  - `sampleCount`
+  - `samples`
+  - `message`
+  - `lastResolvedAt`
+
+Recommended first helper actions:
+- `setRadioWaveformState(next)`
+- `clearRadioWaveformState()`
+
+Important rule:
+- waveform state should key off the resolved runtime source, not just the raw pasted URL
+
+#### First Resolution Ownership Rule
+
+Waveform resolution should not live in `RadioPanel.tsx`.
+
+Recommended ownership:
+- `ClipLibrary.ts`
+  - classify whether the current source kind can provide waveform data
+- `AudioEngine.ts` or a nearby runtime helper
+  - produce exact waveform samples for analyzable/generated sources
+- `AppShell.tsx`
+  - subscribe to source changes and push waveform data into canonical store state
+
+Important rule:
+- React UI should render waveform data
+- runtime/source seams should produce waveform data
+
+#### First Rendering Rule
+
+The waveform should render inside the top `Radio` section of the merged toolbar.
+
+Recommended first visible stack:
+- transport readout
+- waveform strip
+- source / status fields
+- transport controls
+
+The waveform strip should minimally show:
+- waveform line or filled envelope
+- current playhead position
+- duration grid ticks when helpful
+- sampler step markers from the current step list
+
+Important rule:
+- keep the waveform readable at toolbar scale
+- do not let it become a giant DAW canvas in this phase
+
+#### First Marker Rule
+
+Sampler cues should be visible on the waveform.
+
+Recommended first marker set:
+- one thin marker for each step cue
+- optional highlight for the active sampler playhead step
+- optional different color for locked steps
+
+Important rule:
+- markers should use the same canonical cue positions already stored in sampler state
+- do not create a second hidden cue coordinate system just for drawing
+
+#### SoundCloud Read
+
+`SoundCloud widget` playback is the hardest case.
+
+So the first honest rule should be:
+- if we do not have exact waveform data for the active `SoundCloud` source, render a limited waveform lane instead of fake detail
+
+That limited lane can still show:
+- total duration
+- playhead
+- cue markers
+- message such as `Detailed waveform unavailable for current source`
+
+If later we add a trustworthy waveform-data fetch or provider waveform API path, the phase can be revisited and promoted from `limited` to `exact`.
+
+#### Test Targets
+
+- one store test for waveform state ownership/reset
+- one runtime test for generated-tone waveform extraction or envelope generation
+- one panel render test proving the waveform strip appears in `RadioPanel.tsx`
+- one panel render test proving cue markers appear from canonical sampler step state
+- one shell/runtime test proving source changes refresh waveform state
+- one degraded-mode test proving `SoundCloud widget` shows `limited` instead of fake exact waveform detail
+
+#### Likely File Edits
+
+- `src/app/panels/RadioPanel.tsx`
+  - waveform strip render and marker overlay
+- `src/app/store/audioSamplerStore.ts`
+  - canonical waveform state
+- `src/app/AppShell.tsx`
+  - source-driven waveform resolution/subscription
+- `src/runtime/audio/AudioEngine.ts`
+  - exact waveform extraction for analyzable/generated sources
+- `src/runtime/audio/ClipLibrary.ts`
+  - source waveform capability classification
+- `src/app/theme/v15Theme.css`
+  - waveform strip styling and marker overlays
+- `src/app/panels/RadioPanel.test.tsx`
+- `src/app/store/audioSamplerStore.test.ts`
+- runtime waveform tests near `AudioEngine.test.ts`
+
+#### Implementation Order
+
+1. Lock the first waveform fidelity model: `exact`, `limited`, or `none`.
+2. Add canonical waveform state to the radio/sampler store seam.
+3. Add runtime/source helpers that can resolve waveform data for analyzable/generated sources.
+4. Teach `AppShell.tsx` to refresh waveform state when the active source changes.
+5. Render the waveform strip in `RadioPanel.tsx`.
+6. Draw playhead and sampler cue markers.
+7. Add explicit limited-mode behavior for `SoundCloud widget`.
+8. Add focused store/runtime/panel tests.
+
+#### Completion Check
+
+- the merged toolbar shows one waveform strip tied to the active source
+- transport playhead is visible on the waveform
+- sampler cue markers appear in waveform coordinates
+- generated or analyzable sources can show real waveform detail
+- `SoundCloud widget` does not fake exact waveform detail if no real waveform data exists yet
+- the waveform surface helps cue editing instead of acting like decoration
+
+#### Hard Rules
+
+- do not fake an exact waveform for sources that do not expose exact waveform data
+- do not move waveform resolution logic into React UI components
+- do not create a second sampler cue coordinate system just for waveform drawing
+- do not widen this phase into a full timeline editor or DAW canvas
