@@ -12,6 +12,7 @@ import { getViewer, subscribeViewer, type ViewerApi } from '../viewerBridge'
 import { useUiPrefsStore } from '../store/uiPrefsStore'
 import { ParaSlider } from './ParaSlider'
 import { ParaSelect } from './ParaSelect'
+import { ParaVec2Slider } from './ParaVec2Slider'
 import { ParaVec3Slider } from './ParaVec3Slider'
 import { ReferenceTransformToolbar } from './ReferenceTransformToolbar'
 import {
@@ -29,7 +30,11 @@ import type {
   ConsoleToolsPreset,
 } from '../console/consoleTypes'
 import type { GeometrySketchTool } from '../spaghetti/store/useSpaghettiStore'
-import type { SketchFeature } from '../spaghetti/features/featureTypes'
+import type {
+  Line2Component,
+  SketchComponent,
+  SketchFeature,
+} from '../spaghetti/features/featureTypes'
 import {
   formatStableNumber,
   labelProfilesForPreview,
@@ -59,6 +64,53 @@ const defaultOverlayPosition: OverlayPosition = {
   left: 24,
   top: 72,
 }
+
+const formatSketchPlaneHistorySignedValue = (value: number): string => {
+  const rounded = Math.round(value * 10) / 10
+  if (Object.is(rounded, -0)) {
+    return '+0'
+  }
+  const literal = Number.isInteger(rounded) ? `${rounded}` : rounded.toFixed(1)
+  return rounded >= 0 ? `+${literal}` : literal
+}
+
+type SketchPlaneTransformHistoryRowVm = {
+  entryId: string
+  label: string
+  locked: boolean
+}
+type SketchEntityListRowVm =
+  | {
+      kind: 'component'
+      key: string
+      label: string
+      detail: string
+      expandable: false
+    }
+  | {
+      kind: 'line'
+      key: string
+      label: string
+      detail: string
+      rowId: string
+      component: Line2Component
+      expandable: true
+    }
+  | {
+      kind: 'group'
+      key: string
+      label: string
+      detail: string
+      groupId: string
+      children: Array<{
+        key: string
+        label: string
+        detail: string
+        rowId: string
+        component: Line2Component
+      }>
+    }
+
 const DEFAULT_OVERLAY_TOOL_PANEL_SIZE: OverlaySize = {
   width: 340,
   height: 360,
@@ -109,6 +161,82 @@ const clampOverlayPosition = (
 })
 const formatPoint = (point: { x: number; y: number }): string =>
   `(${formatStableNumber(point.x)}, ${formatStableNumber(point.y)})`
+
+const formatSketchComponentDetail = (component: SketchComponent): string =>
+  component.type === 'circle'
+    ? `${formatPoint(component.center)} -> ${formatPoint(component.edge)}`
+    : component.type === 'rectangle'
+      ? `${formatPoint(component.a)} -> ${formatPoint(component.b)}`
+      : component.type === 'line'
+        ? `${formatPoint(component.a)} -> ${formatPoint(component.b)}`
+        : component.type === 'arc3pt'
+          ? `${formatPoint(component.start)} -> ${formatPoint(component.end)}`
+          : `${formatPoint(component.p0)} -> ${formatPoint(component.p3)}`
+
+const buildSketchEntityListRows = (
+  components: readonly SketchComponent[],
+): SketchEntityListRowVm[] => {
+  const rows: SketchEntityListRowVm[] = []
+  let polylineIndex = 1
+  for (let index = 0; index < components.length; index += 1) {
+    const component = components[index]
+    if (component === undefined) {
+      continue
+    }
+    if (component.type === 'line' && typeof component.drawGroupId === 'string') {
+      const groupedLines: typeof component[] = [component]
+      let nextIndex = index + 1
+      while (nextIndex < components.length) {
+        const nextComponent = components[nextIndex]
+        if (
+          nextComponent?.type !== 'line' ||
+          nextComponent.drawGroupId !== component.drawGroupId
+        ) {
+          break
+        }
+        groupedLines.push(nextComponent)
+        nextIndex += 1
+      }
+      rows.push({
+        kind: 'group',
+        key: component.drawGroupId,
+        label: `PLine ${polylineIndex}`,
+        detail: `${groupedLines.length} lines`,
+        groupId: component.drawGroupId,
+        children: groupedLines.map((line, lineIndex) => ({
+          key: line.rowId,
+          label: `Line ${lineIndex + 1}`,
+          detail: formatSketchComponentDetail(line),
+          rowId: line.rowId,
+          component: line,
+        })),
+      })
+      polylineIndex += 1
+      index = nextIndex - 1
+      continue
+    }
+    if (component.type === 'line') {
+      rows.push({
+        kind: 'line',
+        key: component.rowId,
+        label: 'Line',
+        detail: formatSketchComponentDetail(component),
+        rowId: component.rowId,
+        component,
+        expandable: true,
+      })
+      continue
+    }
+    rows.push({
+      kind: 'component',
+      key: component.rowId,
+      label: component.type,
+      detail: formatSketchComponentDetail(component),
+      expandable: false,
+    })
+  }
+  return rows
+}
 
 const getGeometrySketchToolLabel = (tool: GeometrySketchTool): string =>
   tool === 'pline'
@@ -253,6 +381,15 @@ export function ViewportOverlay() {
   const setSketchPlanePickRotationAxis = useSpaghettiStore(
     (state) => state.setSketchPlanePickRotationAxis,
   )
+  const toggleSketchPlaneTransformHistoryLock = useSpaghettiStore(
+    (state) => state.toggleSketchPlaneTransformHistoryLock,
+  )
+  const mergeSketchPlaneTransformHistory = useSpaghettiStore(
+    (state) => state.mergeSketchPlaneTransformHistory,
+  )
+  const updateGeometrySketchComponentPoint = useSpaghettiStore(
+    (state) => state.updateGeometrySketchComponentPoint,
+  )
   const startGeometrySketchSession = useSpaghettiStore(
     (state) => state.startGeometrySketchSession,
   )
@@ -386,6 +523,8 @@ export function ViewportOverlay() {
   const [sketchPlaneTransformExpanded, setSketchPlaneTransformExpanded] = useState(true)
   const [sketchPlaneMoveExpanded, setSketchPlaneMoveExpanded] = useState(true)
   const [sketchPlaneRotateExpanded, setSketchPlaneRotateExpanded] = useState(true)
+  const [sketchPlaneTransformHistoryExpanded, setSketchPlaneTransformHistoryExpanded] =
+    useState(true)
   const [sketchPlaneToolbarWindowExpanded, setSketchPlaneToolbarWindowExpanded] = useState(true)
   const [sketchPlaneToolbarSketchUiExpanded, setSketchPlaneToolbarSketchUiExpanded] =
     useState(true)
@@ -414,6 +553,12 @@ export function ViewportOverlay() {
     useState(true)
   const [sketchSessionEntitiesExpanded, setSketchSessionEntitiesExpanded] =
     useState(true)
+  const [sketchSessionEntityGroupsExpanded, setSketchSessionEntityGroupsExpanded] = useState<
+    Record<string, boolean>
+  >({})
+  const [sketchSessionEntityLineRowsExpanded, setSketchSessionEntityLineRowsExpanded] = useState<
+    Record<string, boolean>
+  >({})
   const [sketchSessionProfilesExpanded, setSketchSessionProfilesExpanded] =
     useState(true)
   const [sketchSessionSessionExpanded, setSketchSessionSessionExpanded] =
@@ -487,6 +632,7 @@ export function ViewportOverlay() {
 
   const activePickPlane = sketchPlanePickSession?.draftPlane ?? 'XY'
   const activePickTransform = sketchPlanePickSession?.draftTransform ?? null
+  const sketchPlaneTransformHistoryEntries = sketchPlanePickSession?.transformHistory ?? []
   const activeSketchPlaneTransformAxis = sketchPlanePickSession?.activeTransformAxis ?? null
   const moveSnapScopeActive = sketchPlanePickSession?.adjustScope === 'move-snap'
   const rotateSnapScopeActive = sketchPlanePickSession?.adjustScope === 'rotate-snap'
@@ -497,7 +643,8 @@ export function ViewportOverlay() {
     sketchPlanePickSession?.adjustScope === 'rotate' &&
     (activeSketchPlaneTransformAxis === 'free' || activeSketchPlaneTransformAxis === null)
   const moveAxisHighlighted =
-    sketchPlanePickSession?.adjustScope === 'move' &&
+    (sketchPlanePickSession?.adjustScope === 'move' ||
+      sketchPlanePickSession?.adjustScope === 'move-axis') &&
     activeSketchPlaneTransformAxis !== 'free'
       ? activeSketchPlaneTransformAxis
       : null
@@ -536,6 +683,34 @@ export function ViewportOverlay() {
       ] as const),
     [],
   )
+  const sketchPlaneTransformHistoryRows = useMemo<SketchPlaneTransformHistoryRowVm[]>(
+    () => {
+      let previousPoint = { x: 0, y: 0, z: 0 }
+      return sketchPlaneTransformHistoryEntries.map((entry) => {
+        const diff = {
+          x: entry.point.x - previousPoint.x,
+          y: entry.point.y - previousPoint.y,
+          z: entry.point.z - previousPoint.z,
+        }
+        previousPoint = entry.point
+        return {
+          entryId: entry.entryId,
+          label: `Vec(${formatSketchPlaneHistorySignedValue(diff.x)}, ${formatSketchPlaneHistorySignedValue(diff.y)}, ${formatSketchPlaneHistorySignedValue(diff.z)})`,
+          locked: entry.locked,
+        }
+      })
+    },
+    [sketchPlaneTransformHistoryEntries],
+  )
+  const canMergeSketchPlaneTransformHistory = useMemo(() => {
+    if (sketchPlaneTransformHistoryEntries.length <= 1) {
+      return false
+    }
+    const lastIndex = sketchPlaneTransformHistoryEntries.length - 1
+    return sketchPlaneTransformHistoryEntries.some(
+      (entry, index) => index !== lastIndex && !entry.locked,
+    )
+  }, [sketchPlaneTransformHistoryEntries])
   const sketchPlaneToolDensityButtonLabel =
     sketchPlaneToolPanelDensity === 'collapsed'
       ? '-'
@@ -814,6 +989,7 @@ export function ViewportOverlay() {
     setSketchPlaneTransformExpanded(true)
     setSketchPlaneMoveExpanded(true)
     setSketchPlaneRotateExpanded(true)
+    setSketchPlaneTransformHistoryExpanded(true)
     setSketchPlaneToolbarWindowExpanded(true)
     setSketchPlaneToolbarSketchUiExpanded(true)
     setSketchPlaneToolbarTranslateSnapEnabled(false)
@@ -866,7 +1042,10 @@ export function ViewportOverlay() {
       stopActiveSketchPlaneTransformInteraction()
       return
     }
-    if (sketchPlanePickSession.adjustScope === 'move') {
+    if (
+      sketchPlanePickSession.adjustScope === 'move' ||
+      sketchPlanePickSession.adjustScope === 'move-axis'
+    ) {
       setSketchPlaneMoveExpanded(true)
     }
     if (sketchPlanePickSession.adjustScope === 'rotate') {
@@ -875,13 +1054,16 @@ export function ViewportOverlay() {
     if (
       sketchPlanePickSession.adjustScope === 'root' ||
       (sketchPlanePickSession.adjustScope !== 'move' &&
+        sketchPlanePickSession.adjustScope !== 'move-axis' &&
         sketchPlanePickSession.adjustScope !== 'rotate')
     ) {
       stopActiveSketchPlaneTransformInteraction()
       return
     }
 
-    const activationKey = `${sketchPlanePickSession.adjustScope}:${activeSketchPlaneTransformAxis ?? 'none'}`
+    const activationKey = `${sketchPlanePickSession.adjustScope}:${
+      activeSketchPlaneTransformAxis ?? 'none'
+    }:${sketchPlanePickSession.liveTransformActivationNonce}`
     if (sketchPlaneLiveTransformActivationKeyRef.current === activationKey) {
       return
     }
@@ -892,7 +1074,10 @@ export function ViewportOverlay() {
       if (viewer === null) {
         return
       }
-      if (sketchPlanePickSession.adjustScope === 'move') {
+      if (
+        sketchPlanePickSession.adjustScope === 'move' ||
+        sketchPlanePickSession.adjustScope === 'move-axis'
+      ) {
         if (activeSketchPlaneTransformAxis === 'x') {
           viewer.activateTranslateHandle('X')
           return
@@ -928,6 +1113,7 @@ export function ViewportOverlay() {
     }
   }, [
     activeSketchPlaneTransformAxis,
+    sketchPlanePickSession?.liveTransformActivationNonce,
     sketchPlanePickSession?.adjustScope,
     sketchPlanePickSession?.stage,
   ])
@@ -997,18 +1183,15 @@ export function ViewportOverlay() {
         runSketchPlaneCommand('esc')
         return
       }
-      if (event.key === 'Enter' && sketchPlanePickSession.stage === 'adjust') {
-        event.preventDefault()
-        runSketchPlaneCommand('confirm-to-sketch')
-        return
-      }
       if (sketchPlanePickSession.stage !== 'adjust') {
         return
       }
       const key = event.key.toLowerCase()
       if (key === 'm') {
         event.preventDefault()
-        if (sketchPlanePickSession.gizmoMode !== 'translate') {
+        if (sketchPlanePickSession.adjustScope === 'move') {
+          runSketchPlaneCommand('move-again')
+        } else {
           runSketchPlaneCommand('move')
         }
         setSketchPlaneMoveExpanded(true)
@@ -1512,6 +1695,58 @@ export function ViewportOverlay() {
 
   const sketchFeature = activeGeometrySketchNode?.params.sketch as SketchFeature | undefined
   const sketchComponents = sketchFeature?.components ?? []
+  const sketchEntityRows = useMemo(
+    () => buildSketchEntityListRows(sketchComponents),
+    [sketchComponents],
+  )
+  const renderSketchLineEntityEditors = (
+    lineRowId: string,
+    component: Line2Component,
+  ) => {
+    if (activeGeometrySketchNode === null) {
+      return null
+    }
+    return (
+      <div className="ViewportOverlaySketchEntityEditors">
+        <div className="ViewportOverlaySketchEntityEditorRow">
+          <span className="ViewportOverlaySketchEntityEditorLabel">A</span>
+          <ParaVec2Slider
+            value={{ x: component.a.x, y: component.a.y }}
+            min={-2000}
+            max={2000}
+            step={0.1}
+            onChangeAxis={(axis, nextValue) =>
+              updateGeometrySketchComponentPoint(activeGeometrySketchNode.nodeId, lineRowId, 'a', {
+                kind: 'lit',
+                x: axis === 'x' ? nextValue : component.a.x,
+                y: axis === 'y' ? nextValue : component.a.y,
+              })
+            }
+            formatValue={(_axis, value) => formatStableNumber(value)}
+            displayValue={(_axis, value) => formatStableNumber(value)}
+          />
+        </div>
+        <div className="ViewportOverlaySketchEntityEditorRow">
+          <span className="ViewportOverlaySketchEntityEditorLabel">B</span>
+          <ParaVec2Slider
+            value={{ x: component.b.x, y: component.b.y }}
+            min={-2000}
+            max={2000}
+            step={0.1}
+            onChangeAxis={(axis, nextValue) =>
+              updateGeometrySketchComponentPoint(activeGeometrySketchNode.nodeId, lineRowId, 'b', {
+                kind: 'lit',
+                x: axis === 'x' ? nextValue : component.b.x,
+                y: axis === 'y' ? nextValue : component.b.y,
+              })
+            }
+            formatValue={(_axis, value) => formatStableNumber(value)}
+            displayValue={(_axis, value) => formatStableNumber(value)}
+          />
+        </div>
+      </div>
+    )
+  }
   const previewProfiles = labelProfilesForPreview(
     (sketchFeature?.outputs.profiles ?? []).map((profile) => ({
       profileId: profile.profileId,
@@ -1546,6 +1781,21 @@ export function ViewportOverlay() {
           activeHoverPoint.y - activePreviewStartPoint.y,
         )
       : null
+  const activeDrawPointTargetLabel =
+    activeTool === 'line'
+      ? activeLineStartPoint === null
+        ? 'P1'
+        : 'P2'
+      : activeTool === 'pline'
+        ? `P${(activeDrawDraft?.points.length ?? 0) + 1}`
+        : 'n/a'
+  const canAcceptLine =
+    activeTool === 'line' &&
+    activeLineStartPoint !== null &&
+    activeHoverPoint !== null &&
+    (activeLineStartPoint.x !== activeHoverPoint.x || activeLineStartPoint.y !== activeHoverPoint.y)
+  const canFinishPline =
+    activeTool === 'pline' && (activeDrawDraft?.points.length ?? 0) >= 2
   const activeDrawPrompt =
     geometrySketchSession?.mode !== 'draw'
       ? ''
@@ -1553,12 +1803,12 @@ export function ViewportOverlay() {
         ? 'Choose a sketch tool to begin drawing in the main viewport.'
       : activeTool === 'pline'
         ? activeDrawDraft === null || activeDrawDraft.points.length === 0
-          ? 'Click the first point in the main viewport to start PLine.'
-          : 'Click the next point in the main viewport. Enter finishes the chain.'
+          ? 'Click or type the first point to start PLine.'
+          : 'Click or type the next point. Empty Enter finishes once two points exist.'
         : activeTool === 'line' && activeLineStartPoint === null
-          ? 'Click the first point in the main viewport to start Line.'
+          ? 'Click or type the first point to start Line.'
           : activeTool === 'line'
-            ? 'Move the mouse to preview the endpoint, then click to place the line.'
+            ? 'Move the mouse to preview P2, then click or press Enter to place the line.'
             : 'Choose a sketch tool to begin drawing in the main viewport.'
 
   const setSketchSessionWindowSizeAxis = (axis: 'width' | 'height', nextValue: number) => {
@@ -1889,7 +2139,10 @@ export function ViewportOverlay() {
                     event.stopPropagation()
                   }}
                   onClick={() => runSketchPlaneCommand('confirm-to-sketch')}
-                  disabled={sketchPlanePickSession.stage !== 'adjust'}
+                  disabled={
+                    sketchPlanePickSession.stage !== 'adjust' ||
+                    sketchPlanePickSession.adjustScope !== 'root'
+                  }
                   aria-label="Confirm sketch plane and continue into sketch draw"
                   title="Confirm sketch plane and continue into sketch draw"
                 >
@@ -2182,6 +2435,23 @@ export function ViewportOverlay() {
                             <button
                               type="button"
                               className={`ViewportOverlaySketchPlaneSessionAction ViewportOverlaySketchPlaneInlineAction ${
+                                sketchPlanePickSession.gizmoMode === 'translate' &&
+                                sketchPlanePickSession.adjustScope === 'move'
+                                  ? 'isPrimary'
+                                  : ''
+                              }`}
+                              onClick={() => {
+                                resetSketchPlaneToolPanelToAutoHeight()
+                                runSketchPlaneCommand('move-again')
+                              }}
+                              title="Re-arm move from the current sketch-plane position"
+                              aria-label="Move Again"
+                            >
+                              Move Again
+                            </button>
+                            <button
+                              type="button"
+                              className={`ViewportOverlaySketchPlaneSessionAction ViewportOverlaySketchPlaneInlineAction ${
                                 sketchPlaneToolbarTranslateSnapEnabled || moveSnapScopeActive
                                   ? 'isPrimary'
                                   : ''
@@ -2229,6 +2499,7 @@ export function ViewportOverlay() {
                                   showContinuousDragPreview={
                                     sketchPlaneToolbarTranslateSnapEnabled
                                   }
+                                  onActivate={() => runSketchPlaneCommand('move-x')}
                                   onChange={(value) => setSketchPlanePickTranslationAxis('x', value)}
                                   formatValue={(value) => `${value.toFixed(1)} mm`}
                                 />
@@ -2253,6 +2524,7 @@ export function ViewportOverlay() {
                                   showContinuousDragPreview={
                                     sketchPlaneToolbarTranslateSnapEnabled
                                   }
+                                  onActivate={() => runSketchPlaneCommand('move-y')}
                                   onChange={(value) => setSketchPlanePickTranslationAxis('y', value)}
                                   formatValue={(value) => `${value.toFixed(1)} mm`}
                                 />
@@ -2277,6 +2549,7 @@ export function ViewportOverlay() {
                                   showContinuousDragPreview={
                                     sketchPlaneToolbarTranslateSnapEnabled
                                   }
+                                  onActivate={() => runSketchPlaneCommand('move-z')}
                                   onChange={(value) => setSketchPlanePickTranslationAxis('z', value)}
                                   formatValue={(value) => `${value.toFixed(1)} mm`}
                                 />
@@ -2452,6 +2725,68 @@ export function ViewportOverlay() {
                             </>
                           )}
                         </div>
+                        <div className="ViewportOverlaySketchPlaneGizmoSliderGroup ViewportOverlaySketchPlaneTransformHistoryGroup">
+                          <div className="ViewportOverlaySketchPlaneSectionHeaderRow">
+                            <button
+                              type="button"
+                              className="ViewportOverlaySketchPlaneTextToggle ViewportOverlaySketchPlaneGizmoSliderGroupLabel"
+                              onClick={() => {
+                                resetSketchPlaneToolPanelToAutoHeight()
+                                setSketchPlaneTransformHistoryExpanded(
+                                  (currentExpanded) => !currentExpanded,
+                                )
+                              }}
+                            >
+                              <span
+                                className={`ViewportOverlaySketchPlaneChevron ${
+                                  sketchPlaneTransformHistoryExpanded ? 'isExpanded' : ''
+                                }`}
+                                aria-hidden="true"
+                              >
+                                ›
+                              </span>
+                              <span>Transform History</span>
+                            </button>
+                            <button
+                              type="button"
+                              className="ViewportOverlaySketchPlaneSessionAction ViewportOverlaySketchPlaneInlineAction"
+                              onClick={() => mergeSketchPlaneTransformHistory()}
+                              disabled={!canMergeSketchPlaneTransformHistory}
+                              title="Merge unlocked transform-history entries"
+                              aria-label="Merge History"
+                            >
+                              Merge History
+                            </button>
+                          </div>
+                          {sketchPlaneTransformHistoryExpanded ? (
+                            <>
+                              <div className="ViewportOverlaySketchPlaneSectionRow">
+                                <span>Origin</span>
+                              </div>
+                              {sketchPlaneTransformHistoryRows.map((row) => (
+                                <div
+                                  key={row.entryId}
+                                  className="ViewportOverlaySketchPlaneSectionRow"
+                                >
+                                  <span>{row.label}</span>
+                                  <button
+                                    type="button"
+                                    className={`ViewportOverlaySketchPlaneSessionAction ViewportOverlaySketchPlaneInlineAction ${
+                                      row.locked ? 'isPrimary' : ''
+                                    }`}
+                                    onClick={() =>
+                                      toggleSketchPlaneTransformHistoryLock(row.entryId)
+                                    }
+                                    title={row.locked ? 'Unlock history row' : 'Lock history row'}
+                                    aria-label={row.locked ? 'Unlock history row' : 'Lock history row'}
+                                  >
+                                    {row.locked ? 'Unlock' : 'Lock'}
+                                  </button>
+                                </div>
+                              ))}
+                            </>
+                          ) : null}
+                        </div>
                       </div>
                     ) : null}
                   </ViewportOverlayToolSection>
@@ -2505,6 +2840,25 @@ export function ViewportOverlay() {
               </div>
             </div>
             <div className="ViewportOverlayToolPanelTrailingActions">
+              <button
+                type="button"
+                className="ViewportOverlaySketchPlaneSessionAction"
+                onPointerDown={(event) => {
+                  event.preventDefault()
+                  event.stopPropagation()
+                }}
+                onMouseDown={(event) => {
+                  event.preventDefault()
+                  event.stopPropagation()
+                }}
+                onClick={() => {
+                  getViewer()?.alignCameraToGeometrySketchPlane()
+                }}
+                aria-label="Align view to sketch plane"
+                title="Align view to sketch plane"
+              >
+                Align View
+              </button>
               <button
                 type="button"
                 className="ViewportOverlaySketchPlaneSessionAction isPrimary ViewportOverlayToolPanelTitleDone"
@@ -2576,7 +2930,7 @@ export function ViewportOverlay() {
               </button>
             <button
               type="button"
-              className="ViewportOverlaySketchSessionClose ViewportOverlayToolPanelClose"
+              className="ViewportOverlaySketchSessionClose ViewportOverlayToolPanelClose ViewportOverlaySketchPlaneSessionAction"
               onPointerDown={(event) => {
                 event.preventDefault()
                 event.stopPropagation()
@@ -2933,6 +3287,10 @@ export function ViewportOverlay() {
                         <span>{activeDrawDraft?.points.length ?? 0}</span>
                       </div>
                       <div className="ViewportOverlaySketchEntityItem">
+                        <span>Target</span>
+                        <span>{activeDrawPointTargetLabel}</span>
+                      </div>
+                      <div className="ViewportOverlaySketchEntityItem">
                         <span>Hover</span>
                         <span>
                           {activeHoverPoint === null ? 'none' : formatPoint(activeHoverPoint)}
@@ -2961,7 +3319,11 @@ export function ViewportOverlay() {
                       <button
                         type="button"
                         onClick={() => runGeometrySketchDrawCommand('enter')}
-                        disabled={activeTool === null}
+                        disabled={
+                          activeTool === null ||
+                          (activeTool === 'line' && !canAcceptLine) ||
+                          (activeTool === 'pline' && !canFinishPline)
+                        }
                       >
                         {activeTool === 'pline'
                           ? 'Finish PLine'
@@ -3026,22 +3388,105 @@ export function ViewportOverlay() {
                     </div>
                     {sketchComponents.length > 0 ? (
                       <div className="ViewportOverlaySketchEntityList">
-                        {sketchComponents.map((component) => (
-                          <div key={component.rowId} className="ViewportOverlaySketchEntityItem">
-                            <span>{component.type}</span>
-                            <span>
-                              {component.type === 'circle'
-                                ? `${formatPoint(component.center)} -> ${formatPoint(component.edge)}`
-                                : component.type === 'rectangle'
-                                  ? `${formatPoint(component.a)} -> ${formatPoint(component.b)}`
-                                  : component.type === 'line'
-                                    ? `${formatPoint(component.a)} -> ${formatPoint(component.b)}`
-                                    : component.type === 'arc3pt'
-                                      ? `${formatPoint(component.start)} -> ${formatPoint(component.end)}`
-                                      : `${formatPoint(component.p0)} -> ${formatPoint(component.p3)}`}
-                            </span>
-                          </div>
-                        ))}
+                        {sketchEntityRows.map((row) =>
+                          row.kind === 'component' ? (
+                            <div key={row.key} className="ViewportOverlaySketchEntityItem">
+                              <span>{row.label}</span>
+                              <span>{row.detail}</span>
+                            </div>
+                          ) : row.kind === 'line' ? (
+                            <div key={row.key} className="ViewportOverlaySketchEntityGroup">
+                              <button
+                                type="button"
+                                className="ViewportOverlaySketchEntityGroupHeader"
+                                onClick={() =>
+                                  setSketchSessionEntityLineRowsExpanded((currentExpanded) => ({
+                                    ...currentExpanded,
+                                    [row.rowId]: currentExpanded[row.rowId] !== true,
+                                  }))
+                                }
+                              >
+                                <span
+                                  className={`ViewportOverlaySketchPlaneChevron ${
+                                    sketchSessionEntityLineRowsExpanded[row.rowId] ? 'isExpanded' : ''
+                                  }`}
+                                  aria-hidden="true"
+                                >
+                                  â€º
+                                </span>
+                                <span className="ViewportOverlaySketchEntityGroupTitle">
+                                  {row.label}
+                                </span>
+                                <span>{row.detail}</span>
+                              </button>
+                              {sketchSessionEntityLineRowsExpanded[row.rowId]
+                                ? renderSketchLineEntityEditors(row.rowId, row.component)
+                                : null}
+                            </div>
+                          ) : (
+                            <div key={row.key} className="ViewportOverlaySketchEntityGroup">
+                              <button
+                                type="button"
+                                className="ViewportOverlaySketchEntityGroupHeader"
+                                onClick={() =>
+                                  setSketchSessionEntityGroupsExpanded((currentExpanded) => ({
+                                    ...currentExpanded,
+                                    [row.groupId]: currentExpanded[row.groupId] !== true,
+                                  }))
+                                }
+                              >
+                                <span
+                                  className={`ViewportOverlaySketchPlaneChevron ${
+                                    sketchSessionEntityGroupsExpanded[row.groupId] ? 'isExpanded' : ''
+                                  }`}
+                                  aria-hidden="true"
+                                >
+                                  â€º
+                                </span>
+                                <span className="ViewportOverlaySketchEntityGroupTitle">
+                                  {row.label}
+                                </span>
+                                <span>{row.detail}</span>
+                              </button>
+                              {sketchSessionEntityGroupsExpanded[row.groupId] ? (
+                                <div className="ViewportOverlaySketchEntityGroupChildren">
+                                  {row.children.map((child) => (
+                                    <div key={child.key} className="ViewportOverlaySketchEntityGroup">
+                                      <button
+                                        type="button"
+                                        className="ViewportOverlaySketchEntityGroupHeader ViewportOverlaySketchEntityGroupHeader--child"
+                                        onClick={() =>
+                                          setSketchSessionEntityLineRowsExpanded((currentExpanded) => ({
+                                            ...currentExpanded,
+                                            [child.rowId]: currentExpanded[child.rowId] !== true,
+                                          }))
+                                        }
+                                      >
+                                        <span
+                                          className={`ViewportOverlaySketchPlaneChevron ${
+                                            sketchSessionEntityLineRowsExpanded[child.rowId]
+                                              ? 'isExpanded'
+                                              : ''
+                                          }`}
+                                          aria-hidden="true"
+                                        >
+                                          â€º
+                                        </span>
+                                        <span className="ViewportOverlaySketchEntityGroupTitle">
+                                          {child.label}
+                                        </span>
+                                        <span>{child.detail}</span>
+                                      </button>
+                                      {sketchSessionEntityLineRowsExpanded[child.rowId]
+                                        ? renderSketchLineEntityEditors(child.rowId, child.component)
+                                        : null}
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : null}
+                            </div>
+                          ),
+                        )}
                       </div>
                     ) : null}
                   </>

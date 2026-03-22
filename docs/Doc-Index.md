@@ -3,6 +3,9 @@
 ## Doc Header
 
 ### Doc History
+66. 2026-03-21 18:24: Added `docs/Human-Plans/Architecture/AppShell/AppShell-Index.md` to the architecture docs map as the new canonical planning surface for the current overloaded `AppShell`, separating its current-state ownership read, target shell vision, and first phased extraction path from the broader workspace and radio docs
+65. 2026-03-21 12:35: Added `docs/index.md` to the docs map as the new MkDocs landing page, so the first published docs-site surface is represented in the canonical docs index instead of existing only in site config
+64. 2026-03-21 12:15: Added `docs/Phase-Plans/mkDocs.md` to the docs map as a simple planning note for a possible MkDocs documentation layer, so the repo now has one dedicated place to capture setup expectations before any live site config lands
 63. 2026-03-21 09:31: Added `docs/Human-Plans/Architecture/Audio-Patchbay.md` to the architecture docs map as the new umbrella idea note for the post-`Radio` audio vision, separating the future node-and-wire DAW direction from the narrower current `Radio.md` and `Sampler.md` implementation docs
 62. 2026-03-20 16:57: Added `docs/Human-Plans/Architecture/Sampler.md` to the architecture docs map as the new focused planning surface for the simple single-row sequencer direction, separating the first sampler UI and note-repeat vision from the broader `Radio` architecture doc
 61. 2026-03-20 12:42: Added `docs/Human-Plans/Architecture/Radio.md` to the architecture docs map as the new implementation-facing planning surface for the optional `Radio` subsystem, translating the older wish-feature memory into a concrete ownership, runtime, and first-scope architecture note
@@ -327,6 +330,7 @@ Rule notes:
 - `CHANGELOG.md`
 - `Chill-Log.md`
 - `Doc-Index.md`
+- `index.md`
 - Agents
 ## -Agents
     - `Agents-Planning.md`
@@ -403,6 +407,8 @@ Rule notes:
         - `System-Map.md`
         - `Terminology-Decisions.md`
         - `Workspace-Modes.md`
+#### -------AppShell
+            - `AppShell-Index.md`
 #### -------Spaghetti-Editor-Arch
             - `Spaghetti-Editor-Explained.md`
 ### ----Bugs
@@ -452,6 +458,7 @@ Rule notes:
     - `13_ADV - Phase-Plans.md`
     - `14_DOC - Phase-Plans.md`
     - `15_LEG - Phase Plan.md`
+    - `mkDocs.md`
 ### ----History-Chats
         - `1-CodexChat.md`
         - `5_CodexChatNotes.md`

@@ -131,9 +131,12 @@ describe('ViewportOverlay sketch session window', () => {
     const { useAppStore } = await import('../store/useAppStore')
     const { useUiPrefsStore } = await import('../store/uiPrefsStore')
     const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    const { getViewer, subscribeViewer } = await import('../viewerBridge')
     useAppStore.setState(useAppStore.getInitialState(), true)
     useUiPrefsStore.setState(useUiPrefsStore.getInitialState(), true)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+    vi.mocked(getViewer).mockReturnValue(null)
+    vi.mocked(subscribeViewer).mockReturnValue(() => {})
   })
 
   afterEach(async () => {
@@ -169,6 +172,119 @@ describe('ViewportOverlay sketch session window', () => {
     expect(container.textContent).toContain('Choose a sketch tool to begin drawing in the main viewport.')
     expect(container.textContent).toContain('Review Profiles')
     expect(container.textContent).toContain('entities staged on this sketch')
+  })
+
+  it('groups pline-authored segments into one expandable entities row', async () => {
+    const { ViewportOverlay } = await import('./ViewportOverlay')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+
+    act(() => {
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-sketch-1',
+            type: 'Geometry/Sketch',
+            params: {
+              sketch: {
+                type: 'sketch',
+                featureId: 'sketch-1',
+                plane: 'XY',
+                components: [
+                  {
+                    rowId: 'row-line-1',
+                    componentId: 'cmp-line-1',
+                    type: 'line',
+                    a: { kind: 'lit', x: 0, y: 0 },
+                    b: { kind: 'lit', x: 100, y: 0 },
+                  },
+                  {
+                    rowId: 'row-pline-1',
+                    componentId: 'cmp-pline-1',
+                    type: 'line',
+                    drawGroupId: 'pline:1',
+                    a: { kind: 'lit', x: 0, y: 0 },
+                    b: { kind: 'lit', x: 10, y: 10 },
+                  },
+                  {
+                    rowId: 'row-pline-2',
+                    componentId: 'cmp-pline-2',
+                    type: 'line',
+                    drawGroupId: 'pline:1',
+                    a: { kind: 'lit', x: 10, y: 10 },
+                    b: { kind: 'lit', x: 20, y: 10 },
+                  },
+                ],
+                outputs: {
+                  profiles: [],
+                },
+                uiState: {
+                  collapsed: false,
+                },
+              },
+            },
+          },
+        ],
+        edges: [],
+      })
+      useSpaghettiStore.getState().startGeometrySketchSession('node-sketch-1', 'draw')
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewportOverlay />)
+    })
+
+    const groupHeader = Array.from(
+      container.querySelectorAll('.ViewportOverlaySketchEntityGroupHeader'),
+    ).find((element) => element.textContent?.includes('PLine 1')) as HTMLButtonElement | undefined
+
+    expect(groupHeader).toBeDefined()
+    expect(groupHeader?.textContent).toContain('2 lines')
+    expect(container.querySelectorAll('.ViewportOverlaySketchEntityGroupHeader--child')).toHaveLength(0)
+    expect(container.querySelectorAll('.ParaVec2Slider')).toHaveLength(0)
+
+    await act(async () => {
+      groupHeader?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(container.querySelectorAll('.ViewportOverlaySketchEntityGroupHeader--child')).toHaveLength(2)
+    expect(container.textContent).toContain('Line 1')
+    expect(container.textContent).toContain('Line 2')
+
+    const childLineHeader = Array.from(
+      container.querySelectorAll('.ViewportOverlaySketchEntityGroupHeader--child'),
+    ).find((element) => element.textContent?.includes('Line 1')) as HTMLButtonElement | undefined
+    const standaloneLineHeader = Array.from(
+      container.querySelectorAll('.ViewportOverlaySketchEntityGroupHeader'),
+    ).find(
+      (element) =>
+        !element.classList.contains('ViewportOverlaySketchEntityGroupHeader--child') &&
+        element.textContent?.includes('Line') &&
+        !element.textContent?.includes('PLine'),
+    ) as HTMLButtonElement | undefined
+
+    expect(childLineHeader).toBeDefined()
+    expect(standaloneLineHeader).toBeDefined()
+
+    await act(async () => {
+      childLineHeader?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(container.querySelectorAll('.ParaVec2Slider')).toHaveLength(2)
+    expect(container.textContent).toContain('A')
+    expect(container.textContent).toContain('B')
+
+    await act(async () => {
+      standaloneLineHeader?.dispatchEvent(
+        new MouseEvent('click', { bubbles: true, cancelable: true }),
+      )
+    })
+
+    expect(container.querySelectorAll('.ParaVec2Slider')).toHaveLength(4)
   })
 
   it('opens the shared i menu from sketch draw titlebar right click', async () => {
@@ -245,6 +361,38 @@ describe('ViewportOverlay sketch session window', () => {
     expect(container.textContent).toContain('PLine Point Symbols')
     expect(container.textContent).toContain('PLine Point Symbol')
     expect(container.textContent).toContain('PLine Point Size')
+  })
+
+  it('aligns the camera back to the sketch plane from the titlebar action', async () => {
+    const { ViewportOverlay } = await import('./ViewportOverlay')
+    const { getViewer } = await import('../viewerBridge')
+    const alignCameraToGeometrySketchPlane = vi.fn()
+    vi.mocked(getViewer).mockReturnValue({
+      setAxisOverlayCanvas: vi.fn(),
+      alignCameraToGeometrySketchPlane,
+    } as never)
+    await seedSketchSession()
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewportOverlay />)
+    })
+
+    const alignButton = Array.from(container.querySelectorAll('button')).find(
+      (button) => button.textContent === 'Align View',
+    ) as HTMLButtonElement | undefined
+
+    expect(alignButton).toBeDefined()
+
+    await act(async () => {
+      alignButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(alignCameraToGeometrySketchPlane).toHaveBeenCalledTimes(1)
+    vi.mocked(getViewer).mockReturnValue(null)
   })
 
   it('supports titlebar dragging and renders all edge/corner resize handles', async () => {
@@ -512,12 +660,16 @@ describe('ViewportOverlay sketch session window', () => {
     const moveSnapToggle = container.querySelector(
       'button[aria-label="Configure move snap"]',
     ) as HTMLButtonElement | null
+    const moveAgainButton = container.querySelector(
+      'button[aria-label="Move Again"]',
+    ) as HTMLButtonElement | null
     const rotateSnapToggle = container.querySelector(
       'button[aria-label="Configure rotate snap"]',
     ) as HTMLButtonElement | null
     expect(sliderGroups[0]?.classList.contains('isActive')).toBe(true)
     expect(sliderGroups[1]?.classList.contains('isActive')).toBe(false)
     expect(moveSnapToggle).not.toBeNull()
+    expect(moveAgainButton).not.toBeNull()
     expect(rotateSnapToggle).not.toBeNull()
     expect(container.textContent).not.toContain('Move Snap')
     expect(container.textContent).not.toContain('Rotate Snap')
@@ -567,6 +719,10 @@ describe('ViewportOverlay sketch session window', () => {
     })
 
     expect(useSpaghettiStore.getState().sketchPlanePickSession?.draftTransform.translation.x).toBe(6)
+    expect(useSpaghettiStore.getState().sketchPlanePickSession).toMatchObject({
+      adjustScope: 'move-axis',
+      activeTransformAxis: 'x',
+    })
 
     await act(async () => {
       moveLabel?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
@@ -745,8 +901,155 @@ describe('ViewportOverlay sketch session window', () => {
     expect(viewer.clearReferenceTransformHandle).toHaveBeenCalled()
     expect(container.querySelectorAll('.ViewportOverlaySketchPlaneAxisRow.isActive')).toHaveLength(0)
 
+    await act(async () => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 'm',
+          bubbles: true,
+          cancelable: true,
+        }),
+      )
+    })
+
+    expect(useSpaghettiStore.getState().sketchPlanePickSession).toMatchObject({
+      adjustScope: 'move',
+      activeTransformAxis: 'free',
+      gizmoMode: 'translate',
+    })
+    expect(viewer.activateTranslateCenterHandle).toHaveBeenCalledTimes(2)
+
     vi.mocked(getViewer).mockReturnValue(null)
     requestAnimationFrameSpy.mockRestore()
+  })
+
+  it('re-arms whole move from the same move scope after a gizmo release when move-again runs', async () => {
+    const { ViewportOverlay } = await import('./ViewportOverlay')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    const { getViewer } = await import('../viewerBridge')
+    const viewer = {
+      setAxisOverlayCanvas: vi.fn(),
+      completeReferenceTransformDrag: vi.fn(),
+      clearReferenceTransformHandle: vi.fn(),
+      activateTranslateCenterHandle: vi.fn(),
+      activateTranslateHandle: vi.fn(),
+      activateRotateCenterHandle: vi.fn(),
+      activateRotateHandle: vi.fn(),
+    }
+    vi.mocked(getViewer).mockReturnValue(viewer as never)
+    const requestAnimationFrameSpy = vi
+      .spyOn(window, 'requestAnimationFrame')
+      .mockImplementation((callback: FrameRequestCallback) => {
+        callback(0)
+        return 1
+      })
+
+    await seedSketchPlanePickSession()
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewportOverlay />)
+    })
+
+    await act(async () => {
+      useSpaghettiStore.getState().runSketchPlaneCommand('move')
+    })
+
+    expect(viewer.activateTranslateCenterHandle).toHaveBeenCalledTimes(1)
+
+    await act(async () => {
+      useSpaghettiStore.getState().setSketchPlanePickTranslationAxis('x', 18)
+      useSpaghettiStore.getState().commitSketchPlaneTransformHistoryFromDraftRelease()
+      useSpaghettiStore.getState().runSketchPlaneCommand('move-again')
+    })
+
+    expect(useSpaghettiStore.getState().sketchPlanePickSession).toMatchObject({
+      adjustScope: 'move',
+      activeTransformAxis: 'free',
+      gizmoMode: 'translate',
+      transformCommandOrigin: {
+        translation: { x: 18, y: 0, z: 0 },
+      },
+    })
+    expect(viewer.activateTranslateCenterHandle).toHaveBeenCalledTimes(2)
+
+    vi.mocked(getViewer).mockReturnValue(null)
+    requestAnimationFrameSpy.mockRestore()
+  })
+
+  it('does not use Enter as a sketch-plane shortcut inside move', async () => {
+    const { ViewportOverlay } = await import('./ViewportOverlay')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    await seedSketchPlanePickSession()
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewportOverlay />)
+    })
+
+    act(() => {
+      useSpaghettiStore.getState().runSketchPlaneCommand('xy')
+      useSpaghettiStore.getState().runSketchPlaneCommand('move')
+      useSpaghettiStore.getState().setSketchPlanePickTranslationAxis('x', 14)
+    })
+
+    expect(useSpaghettiStore.getState().sketchPlanePickSession?.adjustScope).toBe('move')
+    expect(useSpaghettiStore.getState().geometrySketchSession).toBeNull()
+
+    await act(async () => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 'Enter',
+          bubbles: true,
+          cancelable: true,
+        }),
+      )
+    })
+
+    expect(useSpaghettiStore.getState().sketchPlanePickSession?.adjustScope).toBe('move')
+    expect(useSpaghettiStore.getState().sketchPlanePickSession?.draftTransform.translation.x).toBe(14)
+    expect(useSpaghettiStore.getState().geometrySketchSession).toBeNull()
+    expect(container.querySelector('.ViewportOverlaySketchSessionWindow')).toBeNull()
+    expect(container.querySelector('.ViewportOverlaySketchPlaneSession')).not.toBeNull()
+  })
+
+  it('disables ConfirmToSketch unless sketch-plane is back at the root adjust level', async () => {
+    const { ViewportOverlay } = await import('./ViewportOverlay')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    await seedSketchPlanePickSession()
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewportOverlay />)
+    })
+
+    await act(async () => {
+      useSpaghettiStore.getState().runSketchPlaneCommand('xy')
+    })
+
+    const confirmButtonAtRoot = container.querySelector(
+      'button[aria-label="Confirm sketch plane and continue into sketch draw"]',
+    ) as HTMLButtonElement | null
+    expect(confirmButtonAtRoot?.disabled).toBe(false)
+
+    await act(async () => {
+      useSpaghettiStore.getState().runSketchPlaneCommand('xy')
+      useSpaghettiStore.getState().runSketchPlaneCommand('move')
+    })
+
+    const confirmButtonInMove = container.querySelector(
+      'button[aria-label="Confirm sketch plane and continue into sketch draw"]',
+    ) as HTMLButtonElement | null
+    expect(useSpaghettiStore.getState().sketchPlanePickSession?.adjustScope).toBe('move')
+    expect(confirmButtonInMove?.disabled).toBe(true)
   })
 
   it('opens the titlebar right-click menu and reveals the hidden i-menu customization section', async () => {
@@ -1101,7 +1404,7 @@ describe('ViewportOverlay sketch session window', () => {
     expect(container.textContent).toContain('Selecting Plane')
   })
 
-  it('uses Escape in sketch draw to return one level without closing the draw session', async () => {
+  it('uses Escape in sketch draw to cancel the active tool without closing the draw session', async () => {
     const { ViewportOverlay } = await import('./ViewportOverlay')
     const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
     await seedSketchSession()
@@ -1127,19 +1430,8 @@ describe('ViewportOverlay sketch session window', () => {
 
     expect(useSpaghettiStore.getState().geometrySketchSession).toMatchObject({
       mode: 'draw',
-      activeTool: 'line',
-      drawStage: 'toolSelected',
-    })
-
-    await act(async () => {
-      window.dispatchEvent(
-        new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
-      )
-    })
-
-    expect(useSpaghettiStore.getState().geometrySketchSession).toMatchObject({
-      mode: 'draw',
       activeTool: null,
+      lastUsedTool: 'line',
       drawStage: 'sessionIdle',
       drawDraft: null,
     })
@@ -1281,6 +1573,53 @@ describe('ViewportOverlay sketch session window', () => {
     expect(container.textContent).toContain('Selecting Plane')
     expect(container.querySelector('button.ParaSelectTrackButton[aria-label="Plane"]')).not.toBeNull()
     expect(planeSelectionChevron?.classList.contains('isExpanded')).toBe(true)
+  })
+
+  it('renders transform history rows and merges them down to origin plus final', async () => {
+    const { ViewportOverlay } = await import('./ViewportOverlay')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    await seedSketchPlanePickSession()
+
+    await act(async () => {
+      useSpaghettiStore.getState().runSketchPlaneCommand('xy')
+      useSpaghettiStore.getState().runSketchPlaneCommand('move')
+      useSpaghettiStore.getState().setSketchPlanePickTranslationAxis('x', 3)
+      useSpaghettiStore.getState().acceptActiveSketchPlaneTransformCommand()
+      useSpaghettiStore.getState().runSketchPlaneCommand('move')
+      useSpaghettiStore.getState().setSketchPlanePickTranslationAxis('y', 6)
+      useSpaghettiStore.getState().acceptActiveSketchPlaneTransformCommand()
+      useSpaghettiStore.getState().runSketchPlaneCommand('move')
+      useSpaghettiStore.getState().setSketchPlanePickTranslationAxis('z', -5)
+      useSpaghettiStore.getState().acceptActiveSketchPlaneTransformCommand()
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewportOverlay />)
+    })
+
+    expect(container.textContent).toContain('Transform History')
+    expect(container.textContent).toContain('Origin')
+    expect(container.textContent).toContain('Vec(+3, +0, +0)')
+    expect(container.textContent).toContain('Vec(+0, +6, +0)')
+    expect(container.textContent).toContain('Vec(+0, +0, -5)')
+
+    const mergeButton = container.querySelector(
+      'button[aria-label="Merge History"]',
+    ) as HTMLButtonElement | null
+    expect(mergeButton?.disabled).toBe(false)
+
+    await act(async () => {
+      mergeButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(container.textContent).toContain('Origin')
+    expect(container.textContent).toContain('Vec(+3, +6, -5)')
+    expect(container.textContent).not.toContain('Vec(+0, +6, +0)')
+    expect(container.textContent).not.toContain('Vec(+0, +0, -5)')
   })
 
   it('lets the expanded sketch-plane toolbar resize the top subsection with one horizontal split bar', async () => {

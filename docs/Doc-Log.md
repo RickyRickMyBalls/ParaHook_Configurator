@@ -3,6 +3,42 @@
 ## Doc Header
 
 ### Doc History
+52. 2026-03-21 23:38: Logged the shipped `3.2B-DrawSketch-2` implementation, moved the standalone phase record into `Sketch/Shipped/`, and synced `Sketch.md` plus `roadmap.md` so the docs now treat multi-step `Line` / `PLine` command sessions, live `P1 / P2 / P3` console status, and local `Previous` / `undo` as landed runtime behavior instead of future planning
+51. 2026-03-21 22:24: Logged the shipped `3.2B-S7` transform-history implementation and moved the phase record into `Sketch/Shipped/`, so the sketch docs now record persistent toolbar-visible move history, viewport history segments, and the shipped `Merge History` / `Lock` behavior instead of leaving `S7` in future planning
+50. 2026-03-21 22:00: Logged the shipped `3.2B-S8` viewport shortcut follow-up in `CHANGELOG.md`, so the `M` key now re-enters move correctly after mouse-driven sketch-plane move accepts instead of staying stuck when the session returns to root with translate still active
+49. 2026-03-21 19:29: Logged the shipped `3.2B-S8` move follow-up in `CHANGELOG.md`, so the new local `Move Again` action and `M` alias under `SketchPlane > Move` now have a permanent completed-work record alongside the runtime tests
+48. 2026-03-21 19:14: Logged the new standalone `Future/Sketch_Phase 3.2B-S8 - SketchPlane Move Again Re-Arm.md`, so the local `Move Again` choice and `M` alias under `SketchPlane > Move` now have a clean future phase home instead of being mixed into shipped `S6` or transform-history planning
+47. 2026-03-21 19:08: Logged the `3.2B-S7` follow-up that makes `Merge History` destructive in the first cut with no dedicated unmerge action, and keeps locked-entry meaning in the toolbar/path logic only without special viewport styling
+46. 2026-03-21 19:04: Logged the `3.2B-S7` row-label clarification that transform-history entries should print signed per-step diffs like `Vec(+3, +6, -5)`, so the toolbar reads as a move path explanation instead of only a list of absolute landed points
+45. 2026-03-21 19:00: Logged the `3.2B-S7` wording clarification that the top-right compaction action should be called `Merge History`, separating it cleanly from the section chevron collapse/expand behavior in the `Transform History` toolbar section
+44. 2026-03-21 18:56: Logged the `3.2B-S7` origin-anchor clarification, so `Origin` is now explicitly treated as a persistent always-preserved first history point that survives collapse without acting like a normal lock-toggle row
+43. 2026-03-21 18:54: Logged the `3.2B-S7` persistence clarification, so sketch-plane transform history is now explicitly treated as kept placement state that restores when the user leaves and later re-enters `SketchPlane` instead of resetting as a temporary session-only chain
+42. 2026-03-21 18:49: Logged the new standalone `Future/Sketch_Phase 3.2B-S7 - SketchPlane Transform History.md`, so the committed sketch-plane point-chain, toolbar history section, collapse rules, and locked-entry behavior now have their own implementation-ready phase doc instead of living only inside the parent sketch architecture index
+41. 2026-03-21 18:46: Logged the `3.2B-S7` clarification that sketch-plane transform history should read as a committed point-to-point path, so the toolbar rows and viewport guide lines now explicitly preserve the full landed sequence `origin -> p1 -> p2 -> ...` instead of only implying separate translation diffs
+40. 2026-03-21 18:37: Logged the roadmap follow-up that adds `[5.0F] AppShell Cleanup And Host Seam Extraction` plus the new `[5.0F-1]` and `[5.0F-2]` subphases, so AppShell overload cleanup now has a real bridge-phase home under the pre-workspace shell lane instead of being left implicit between `[5.0E]` and `[5.1]`
+39. 2026-03-21 18:41: Logged the new `3.2B-S7` sketch follow-on in `Sketch.md`, so the sketch architecture now records a toolbar-visible `Transform History` direction for committed sketch-plane move steps, matching viewport path lines plus later collapse and locked-entry behavior
+38. 2026-03-21 18:24: Logged the new `AppShell-Index.md` architecture note and updated the docs map so the repo now has one canonical planning surface for the current `AppShell` overload, the target shell vision, and the first extraction phases before any standalone AppShell phase docs exist
+37. 2026-03-21 18:18: Logged the `Radio.md` follow-up that clarifies `Phase 11` so trustworthy provider-backed waveform display is allowed for `SoundCloud` as a limited visual aid, meaning the toolbar may show a SoundCloud-style waveform/fill/progress strip without claiming exact analyzable waveform data
+36. 2026-03-21 17:50: Logged the shipped sketch-plane move-guide follow-up in the permanent changelog, so the new command-origin marker and guide-line behavior now has a canonical completed-work record instead of living only in code and tests
+35. 2026-03-21 13:17: Logged the shipped `3.2B-S6` sketch move-axis implementation, moving the phase record into `Shipped/` and syncing `Sketch.md` plus `roadmap.md` so the docs now treat `SketchPlane > Move > X / Y / Z` as landed runtime behavior instead of an open follow-on
+34. 2026-03-21 13:11: Logged the MkDocs follow-up that moves the current-page heading tree to the right-side TOC, so the left sidebar can stay dedicated to the browseable docs tree
+33. 2026-03-21 13:06: Logged the MkDocs follow-up that publishes the full non-archive `/docs` tree in the inferred sidebar, so the live site now behaves like a browseable docs tree instead of a two-page starter shell
+32. 2026-03-21 13:03: Logged the `3.2B-S6` sketch follow-up that locks the phase as implementation-ready, so the doc now calls out the current runtime gap precisely, defines a first recommended axis-leaf state shape, adds concrete store/console/overlay implementation steps, and records a targeted verification matrix
+31. 2026-03-21 13:01: Logged the `3.2B-S6` sketch follow-up that locks the first off-snap confirm prompt shape, so the phase now uses `confirm <value> off snap` with `[confirm, deny]` choices and an assisted `confirm` prefill instead of a looser warning sentence
+30. 2026-03-21 12:56: Logged the `3.2B-S6` sketch follow-up that locks snap behavior inside move-axis leaves, so the phase now says axis-leaf dragging must still honor move snap and typed off-snap values require one extra confirmation message before the exact number can be applied
+29. 2026-03-21 12:52: Logged the `3.2B-S6` sketch follow-up that locks the first accepted axis-entry float grammar, so the phase now explicitly accepts signed numbers plus shorthand decimal forms like `.1` and `-.1` for `Move > X / Y / Z`
+28. 2026-03-21 12:51: Logged the `3.2B-S6` sketch follow-up that clarifies axis-leaf interaction, so the phase now states directly that `Move > X / Y / Z` should keep live mouse dragging active while first typed input still clears and replaces the current assisted value for direct numeric entry
+27. 2026-03-21 12:35: Logged the live MkDocs Phase 1 setup, covering the new root config, docs landing page, dependency file, and the planning/doc-index updates that mark the baseline docs-site pass complete
+26. 2026-03-21 12:33: Logged the `mkDocs.md` follow-up that turns `Phase 1` into an implementation-ready execution spec, locking the minimal first-pass config, commands, files, and verification steps
+25. 2026-03-21 12:41: Logged the `3.2B-6` sketch follow-up that makes the browser hierarchy explicit, so the phase doc now states directly that `Sketches` is a sibling family beside `Assembly` under `Content` rather than an assembly child
+24. 2026-03-21 12:36: Logged the sketch-doc reorganization that splits standalone sketch phase docs into `Shipped/` and `Future/` subfolders, so the sketch architecture index now has a clearer status-based phase layout instead of one mixed planning/history folder
+23. 2026-03-21 12:25: Logged the `mkDocs.md` follow-up that adds a bounded one-phase rollout plan, so the repo now treats the first MkDocs adoption step as baseline setup rather than a mixed setup-plus-polish migration
+22. 2026-03-21 12:23: Logged the `mkDocs.md` follow-up that records the current-page heading-tree decision and the native navigation limits, so the plan now distinguishes practical TOC navigation from true editor-style folding
+21. 2026-03-21 12:23: Logged the first shipped `[3.2B-6]` sketch ownership/browser cut, updating the sketch architecture/phase docs and roadmap so they now record that browser-visible `Sketches` rows are implemented while later export remains deferred
+20. 2026-03-21 12:18: Logged the `mkDocs.md` follow-up that adds a Material for MkDocs starter config block and notes the current `tags_file` deprecation so the planning doc now captures a safer modern baseline
+19. 2026-03-21 12:15: Logged the new `mkDocs.md` planning note under `docs/Phase-Plans/` and updated the docs map so the repo has a dedicated place to capture a future MkDocs setup
+18. 2026-03-21 10:04: Logged the `Audio-Patchbay.md` follow-up that adds `FM Voice` as a first-class early node candidate and explains why FM synthesis is a strong flagship generated-source direction that matches ParaHook's broader generator identity and the shared node-and-wire model
+17. 2026-03-21 09:59: Logged the `Audio-Patchbay.md` follow-up that docks the tempting `SoundCloud proxy into full effects graph` idea, documenting both the technical limitation and the policy-risk warning so the repo has a permanent note against using SoundCloud as the main legal/technical basis for patchbay FX processing
 16. 2026-03-21 09:41: Logged the `Audio-Patchbay.md` follow-up that locks the naming split so `Audio Patchbay` stays the umbrella system name while `Spaghetti Sounds` becomes the preferred UI-level toolbar label
 15. 2026-03-21 09:31: Logged the new `Audio-Patchbay.md` architecture idea doc and updated the docs map so the broader post-`Radio` node-and-wire audio editor vision now has a dedicated canonical planning surface under `docs/Human-Plans/Architecture/`
 14. 2026-03-21 08:46: Logged the `Radio.md` follow-up that marks `Phase 10` complete after the shared toolbar absorbed the horizontal sampler row, its shipped controls, step disclosure state, and per-step time-position editing into one merged green radio/sampler surface
@@ -55,6 +91,721 @@ Do not use it for:
 - keep numbering sequential unless the user explicitly asks for a renumber pass
 
 ## Doc Body
+
+<!-- ENTRY 134 -->
+### [134] - 2026-03-21 23:05 - `DOC - Tighten DrawSketch-2 PLine Status And Finish Rules`
+<!-- ENTRY 134 -->
+HUMAN SUMMARY: Tightened the open `DrawSketch-2` phase again so `PLine` now follows an AutoCAD-like progressive point-entry model with explicit `P1 / P2 / P3` status labels and a live `Vec(N,N)` readout in the top command path. The phase now also says the real input should stay empty by default once `PLine` is finishable so empty `Enter` can cleanly mean `Finish` while typed `Vec2` remains a first-class point-entry override.
+
+#### Scope
+- Kept the update local to the open `DrawSketch-2` phase doc.
+- Clarified `PLine` finish behavior and the split between top-path live point display versus real typed input.
+- Recorded the document-only change in the permanent doc log.
+
+#### Summary
+- Added the progressive AutoCAD-style `PLine` point-entry flow.
+- Added explicit `P1 / P2 / P3` current-target labels for the top command/status path.
+- Added the rule that live candidate `Vec(N,N)` should display in the top path rather than permanently occupying the real input field.
+- Added the rule that once `PLine` is finishable, empty `Enter` should mean `Finish` while additional clicks or typed `Vec2` submissions continue the chain.
+- Clarified that `PLine` should use the same canonical hybrid point-submission seam as `Line`.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Future/Sketch_Phase 3.2B-DrawSketch-2 - Multi-Step Tool Sessions And Commit Rules.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This pass still leaves some `DrawSketch-2` lifecycle details open, but the point-entry display and finish model are now much more implementation-ready.
+
+<!-- ENTRY 133 -->
+### [133] - 2026-03-21 23:00 - `DOC - Add DrawSketch-2 Previous Tool Re-Arm Decision`
+<!-- ENTRY 133 -->
+HUMAN SUMMARY: Tightened the open `DrawSketch-2` phase doc again so `Line` now explicitly ends back at idle after commit and a new local `Previous` convenience command is recorded for re-selecting the last draw tool. The phase now states that `Previous` uses shortcut `P` and only re-arms the last tool without auto-chaining from the prior endpoint.
+
+#### Scope
+- Kept the update local to the open `DrawSketch-2` phase doc.
+- Clarified post-commit `Line` behavior and the first `Previous` tool-rearm rule.
+- Recorded the document-only change in the permanent doc log.
+
+#### Summary
+- Added the explicit rule that `Line` ends and returns to idle `Sketch Draw` after commit.
+- Added `Previous` as a local draw-session convenience command.
+- Added shortcut `P` for `Previous`.
+- Locked the first-cut behavior so `Previous` only re-selects the most recently used draw tool and does not continue from the last endpoint.
+- Added `previous` to the temporary console lifecycle command list for this phase.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Future/Sketch_Phase 3.2B-DrawSketch-2 - Multi-Step Tool Sessions And Commit Rules.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This pass only locks the `Previous` direction in planning; no runtime draw-tool behavior changed yet.
+
+<!-- ENTRY 132 -->
+### [132] - 2026-03-21 22:55 - `DOC - Tighten DrawSketch-2 Hybrid Line Session Flow`
+<!-- ENTRY 132 -->
+HUMAN SUMMARY: Updated the open `DrawSketch-2` phase doc so `Line` is now explicitly defined as a hybrid console-and-viewport command session. The phase now records the normal `L -> Enter -> click point 1 -> click point 2` mouse path, the `Vec2` console fallback path, and the rule that live viewport hover should mirror an assisted `Vec2` into the console input without blocking typed override.
+
+#### Scope
+- Kept the update local to the open `DrawSketch-2` phase doc.
+- Clarified `Line` session behavior without widening the change into `PLine` runtime or deeper editing work.
+- Recorded the document-only change in the permanent doc log.
+
+#### Summary
+- Promoted the `Line` interaction flow from suggestion-level wording into an explicit decision.
+- Added the viewport-first `Line` path using two mouse clicks after console tool-arm.
+- Added the console-first fallback path using two `Vec2` submissions.
+- Added the rule that mouse hover should mirror the current point into the console as assisted `Vec2` text, with first typed input replacing that mirrored value.
+- Clarified in the implementation spec that `Line` should use one canonical two-point session state machine rather than separate mouse and console workflows.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Future/Sketch_Phase 3.2B-DrawSketch-2 - Multi-Step Tool Sessions And Commit Rules.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This pass only tightened the planning spec for `Line`. `PLine` and the remaining `DrawSketch-2` console-lifecycle decisions are still open.
+
+<!-- ENTRY 131 -->
+### [131] - 2026-03-21 22:24 - `DOC - Mark Sketch Phase 3.2B-S7 Shipped`
+<!-- ENTRY 131 -->
+HUMAN SUMMARY: Moved `Sketch_Phase 3.2B-S7 - SketchPlane Transform History.md` into `Sketch/Shipped/` and updated the sketch tracking docs so `S7` now reads as landed instead of future planning. The sketch index and roadmap now both reflect that transform history is implemented with toolbar rows, viewport path segments, and `Merge History` / `Lock` behavior.
+
+#### Scope
+- Updated the shipped sketch phase record and the main sketch index.
+- Synced the live roadmap to include `S7` as completed.
+- Logged the shipped runtime work in the permanent changelog.
+
+#### Summary
+- Moved the standalone `S7` phase doc from `Future/` to `Shipped/`.
+- Updated the `S7` phase heading/status markers to shipped.
+- Added a new `Sketch.md` history line and switched the parent sketch index summary/section read from open to shipped.
+- Added a new `[3.2B-S7]` completed checklist block in `roadmap.md`.
+- Added the permanent shipped-code entry to `CHANGELOG.md`.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Shipped/Sketch_Phase 3.2B-S7 - SketchPlane Transform History.md`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Sketch.md`
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This doc sync covers `S7`. I left the separate `S8` future planning file alone in this pass even though `Move Again` runtime work has already landed.
+
+<!-- ENTRY 130 -->
+### [130] - 2026-03-21 18:37 - `DOC - Add AppShell Cleanup Bridge Phase To Roadmap`
+<!-- ENTRY 130 -->
+HUMAN SUMMARY: Updated `roadmap.md` to add `[5.0F] AppShell Cleanup And Host Seam Extraction` as a new pre-workspace bridge phase under Lane `[5.0]`. The roadmap now also includes two narrow subphases so AppShell cleanup can be tracked as prep work without absorbing the broader `[5.1] Workspace Modes` architecture.
+
+#### Scope
+- Updated the live roadmap under the existing Lane `[5]` shell/workspace family.
+- Recorded the roadmap-only change in the permanent doc log.
+
+#### Summary
+- Added one new local `Doc History` line to `roadmap.md`.
+- Added `[5.0F]` to the top roadmap lane checklist.
+- Expanded the parent `[5.0]` checklist with a direct AppShell-cleanup bridge item.
+- Added the new `[5.0F]` section plus `[5.0F-1] AppShell Runtime Host Extraction` and `[5.0F-2] AppShell Window And Dock Host Extraction`.
+
+#### Files Changed
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This keeps `AppShell` cleanup in the prep/cleanup lane while leaving final workspace-host architecture in `[5.1]`.
+
+<!-- ENTRY 128 -->
+### [128] - 2026-03-21 18:24 - `DOC - Add AppShell Architecture Index`
+<!-- ENTRY 128 -->
+HUMAN SUMMARY: Created a new `AppShell-Index.md` architecture note under `docs/Human-Plans/Architecture/AppShell/` so the repo now has one canonical place to describe what `AppShell` owns today, what it should own later, and which extraction phases should cleanly reduce the current overload. The docs map was updated in the same change so the new AppShell planning surface is discoverable.
+
+#### Scope
+- Created a new AppShell architecture doc under `docs/Human-Plans/Architecture/AppShell/`.
+- Updated the canonical docs map to include the new AppShell entry.
+- Recorded the document-only change in the permanent doc log.
+
+#### Summary
+- Added one new local `Doc History` line to the new AppShell doc.
+- Documented the current `AppShell` state as a mixed composition root, window manager, and feature-runtime host.
+- Defined the target vision as a thinner shell that mounts explicit host seams instead of directly owning large amounts of feature logic.
+- Added a first phase index for auditing seams, extracting radio runtime hosting, browser docking logic, spaghetti window-shell logic, and final shell normalization.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/AppShell/AppShell-Index.md`
+- `docs/Doc-Index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This is a docs-only planning change. No `AppShell` code moved in this pass.
+
+<!-- ENTRY 127 -->
+### [127] - 2026-03-21 18:18 - `DOC - Clarify Limited SoundCloud Waveform Display In Radio Phase 11`
+<!-- ENTRY 127 -->
+HUMAN SUMMARY: Updated `Radio.md` so `Phase 11 - Source Waveform Visualization` now explicitly allows a trustworthy provider-backed `SoundCloud` waveform strip as a limited visual aid. The phase still keeps the honesty rule intact: a SoundCloud-style waveform/fill/progress surface may be shown for display, but it must not be treated as exact analyzable audio data.
+
+#### Scope
+- Updated `docs/Human-Plans/Architecture/Radio/Radio.md`.
+- Recorded the document-only clarification in the permanent doc log.
+
+#### Summary
+- Added one new local `Doc History` line to `Radio.md`.
+- Clarified the locked waveform-fidelity read so provider-backed waveform display is allowed while still classified as `limited`.
+- Expanded the `limited` source-state definition to include provider waveform images/summary data.
+- Tightened the `SoundCloud Read` section so the doc now explicitly allows a SoundCloud-style waveform strip/fill/progress display without allowing loudness analysis or exact waveform claims.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Radio/Radio.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This is a docs-only clarification. It does not change the current waveform implementation in code.
+
+<!-- ENTRY 126 -->
+### [126] - 2026-03-21 17:50 - `DOC - Log SketchPlane Move Command Origin Guide`
+<!-- ENTRY 126 -->
+HUMAN SUMMARY: Added the permanent changelog record for the sketch-plane move-guide follow-up that keeps the last committed move point visible as the active move baseline. This doc-side entry exists only to track that shipped-history update.
+
+#### Scope
+- Updated the permanent completed-work changelog.
+- Recorded that changelog update in the permanent doc log.
+
+#### Summary
+- Added one new changelog entry for the `3.2B-S6` follow-up that carries the move command origin forward visually inside `SketchPlane > Move`.
+
+#### Files Changed
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- No architecture or roadmap docs changed in this follow-up; the behavior record belongs in shipped history.
+
+<!-- ENTRY 125 -->
+### [125] - 2026-03-21 13:17 - `DOC - Mark Sketch Phase 3.2B-S6 Shipped`
+<!-- ENTRY 125 -->
+HUMAN SUMMARY: Updated the sketch planning docs so `[3.2B-S6] SketchPlane Move Axis Numeric Entry` is now treated as shipped instead of future work. The sketch index, roadmap, and standalone phase-doc layout now match the landed runtime state.
+
+#### Scope
+- Updated the sketch architecture index.
+- Updated the roadmap status for `[3.2B-S6]`.
+- Refiled the standalone phase doc from `Future/` to `Shipped/`.
+
+#### Summary
+- Added local `Doc History` lines in `Sketch.md` and `roadmap.md` describing the landed move-axis child-leaf behavior.
+- Updated the sketch continuation order so it no longer lists `[3.2B-S6]` as a pending next step.
+- Marked the roadmap checklist and detailed `[3.2B-S6]` section complete.
+- Logged the standalone phase doc as shipped and moved it into the sketch `Shipped/` folder.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Sketch.md`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Shipped/Sketch_Phase 3.2B-S6 - SketchPlane Move Axis Numeric Entry.md`
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- Earlier `Doc-Log.md` entries that referenced the `Future/` path remain valid historical records of where the phase doc lived during planning.
+
+<!-- ENTRY 124 -->
+### [124] - 2026-03-21 13:11 - `DOC - Move MkDocs Current-Page TOC To Right Sidebar`
+<!-- ENTRY 124 -->
+HUMAN SUMMARY: Updated the live MkDocs setup so the current page heading tree now appears in the standard right-side table of contents instead of being merged into the left sidebar. The planning note now records that split too, so the left side stays focused on page browsing while the right side handles in-page section jumps.
+
+#### Scope
+- Updated the live MkDocs config.
+- Updated the MkDocs planning note to reflect the live TOC placement.
+- Recorded the document-side follow-up in the permanent doc log.
+
+#### Summary
+- Removed `toc.integrate` from `mkdocs.yml`.
+- Kept `toc.follow` so the current page TOC still follows the active heading.
+- Updated the `Live Nav Note` in `docs/Phase-Plans/mkDocs.md` so it now describes the right-side TOC behavior.
+
+#### Files Changed
+- `mkdocs.yml`
+- `docs/Phase-Plans/mkDocs.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This is a navigation-layout follow-up only. It does not change which docs are published in the site tree.
+
+<!-- ENTRY 123 -->
+### [123] - 2026-03-21 13:06 - `DOC - Expand MkDocs Site To All Non-Archive Docs`
+<!-- ENTRY 123 -->
+HUMAN SUMMARY: Updated the live MkDocs setup so the site now publishes the full non-archive `/docs` tree. The planning note now records that live behavior too, so the docs site is browseable through the sidebar instead of acting like a tiny two-page shell.
+
+#### Scope
+- Updated the live MkDocs config.
+- Updated the MkDocs planning note to reflect the new live nav behavior.
+- Recorded the document-side follow-up in the permanent doc log.
+
+#### Summary
+- Removed the earlier hand-written tiny nav from `mkdocs.yml`.
+- Added archive exclusion patterns so everything else under `docs/` can appear in the inferred site tree.
+- Added a `Live Nav Note` to `docs/Phase-Plans/mkDocs.md` explaining the current published behavior and its inferred ordering tradeoff.
+
+#### Files Changed
+- `mkdocs.yml`
+- `docs/Phase-Plans/mkDocs.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This is the nav/publication-scope follow-up after the baseline MkDocs setup. It does not add branding, deployment, or custom navigation code.
+
+<!-- ENTRY 122 -->
+### [122] - 2026-03-21 13:03 - `DOC - Make Sketch Move Axis Phase Implementation-Ready`
+<!-- ENTRY 122 -->
+HUMAN SUMMARY: Tightened the open `3.2B-S6` sketch move-axis phase into a locked implementation-ready execution spec. The phase now identifies the exact current runtime gap, recommends the first narrow axis-leaf state shape inside the existing sketch-plane session, and spells out concrete changes across the store, console, viewport overlay, and targeted test coverage.
+
+#### Scope
+- Updated `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Future/Sketch_Phase 3.2B-S6 - SketchPlane Move Axis Numeric Entry.md`.
+- Recorded the document-only tightening in the permanent doc log.
+
+#### Summary
+- Marked the phase as locked and implementation-ready.
+- Added current-code truth that `Move X / Y / Z` already exist as commands but still route through the parent move scope instead of a true axis leaf.
+- Added a first recommended state shape for the move-axis leaf inside `sketchPlanePickSession`.
+- Added concrete implementation steps covering `useSpaghettiStore`, `ConsoleDock`, `ViewportOverlay`, and targeted tests.
+- Added a verification matrix for breadcrumb depth, float parsing, snap drag behavior, and off-snap confirm handling.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Future/Sketch_Phase 3.2B-S6 - SketchPlane Move Axis Numeric Entry.md`
+
+#### Notes
+- This is a documentation tightening only; it does not change runtime behavior yet.
+- The phase remains open until the deeper `Graph > Sketch > SketchPlane > Move > X / Y / Z` runtime path is implemented and verified.
+
+<!-- ENTRY 121 -->
+### [121] - 2026-03-21 13:01 - `DOC - Lock First Off-Snap Confirm Prompt For Sketch Move Axis Leaves`
+<!-- ENTRY 121 -->
+HUMAN SUMMARY: Tightened the open `3.2B-S6` sketch move-axis phase so the first off-snap confirm prompt is explicit instead of freeform. The phase now says typed off-snap values should transition into `confirm <value> off snap` with `[confirm, deny]` choices and an assisted `confirm` prefill so the user can press `Enter` immediately to allow the exact value.
+
+#### Scope
+- Updated `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Future/Sketch_Phase 3.2B-S6 - SketchPlane Move Axis Numeric Entry.md`.
+- Recorded the document-only clarification in the permanent doc log.
+
+#### Summary
+- Added a locked decision for the first exact off-snap confirm prompt shape.
+- Replaced the looser warning example with a constrained `confirm / deny` choice flow.
+- Clarified that `confirm` should be prefilled so a second `Enter` is enough to accept the off-snap value.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Future/Sketch_Phase 3.2B-S6 - SketchPlane Move Axis Numeric Entry.md`
+
+#### Notes
+- This is a documentation clarification only; it does not change runtime behavior yet.
+- The phase remains open because the deeper `Graph > Sketch > SketchPlane > Move > X / Y / Z` runtime path is still not implemented.
+
+<!-- ENTRY 120 -->
+### [120] - 2026-03-21 12:56 - `DOC - Lock Snap And Off-Snap Confirm Rules For Sketch Move Axis Leaves`
+<!-- ENTRY 120 -->
+HUMAN SUMMARY: Tightened the open `3.2B-S6` sketch move-axis phase so snap behavior inside `Move > X / Y / Z` is explicit instead of implied. The phase now says live axis dragging must still honor move snap, and typed values that do not line up to the active snap interval require one extra confirmation message before the exact off-snap number can be applied.
+
+#### Scope
+- Updated `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Future/Sketch_Phase 3.2B-S6 - SketchPlane Move Axis Numeric Entry.md`.
+- Recorded the document-only clarification in the permanent doc log.
+
+#### Summary
+- Added a locked decision that axis-leaf dragging still participates in move snap.
+- Added a locked decision that typed off-snap values remain allowed after one extra confirmation step.
+- Expanded the implementation spec with explicit snap inheritance and off-snap confirm behavior.
+- Added acceptance checks covering snap-aligned drag and exact off-snap numeric entry.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Future/Sketch_Phase 3.2B-S6 - SketchPlane Move Axis Numeric Entry.md`
+
+#### Notes
+- This is a documentation clarification only; it does not change runtime behavior yet.
+- The phase remains open because the deeper `Graph > Sketch > SketchPlane > Move > X / Y / Z` runtime path is still not implemented.
+
+<!-- ENTRY 119 -->
+### [119] - 2026-03-21 12:52 - `DOC - Lock First Sketch Move Axis Float Grammar`
+<!-- ENTRY 119 -->
+HUMAN SUMMARY: Tightened the open `3.2B-S6` sketch move-axis phase so the first accepted numeric grammar is explicit instead of implied. The phase now says `Move > X / Y / Z` should accept signed integer and decimal forms including shorthand decimals like `.1` and `-.1`.
+
+#### Scope
+- Updated `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Future/Sketch_Phase 3.2B-S6 - SketchPlane Move Axis Numeric Entry.md`.
+- Recorded the document-only clarification in the permanent doc log.
+
+#### Summary
+- Added a locked decision for the first accepted float grammar in sketch move-axis leaves.
+- Added explicit accepted examples for positive, negative, and shorthand decimal input.
+- Clarified that axis-leaf parsing allows an optional leading sign and does not require a leading zero before the decimal point.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Future/Sketch_Phase 3.2B-S6 - SketchPlane Move Axis Numeric Entry.md`
+
+#### Notes
+- This is a documentation clarification only; it does not change runtime behavior yet.
+- The phase remains open because the deeper `Graph > Sketch > SketchPlane > Move > X / Y / Z` runtime path is still not implemented.
+
+<!-- ENTRY 118 -->
+### [118] - 2026-03-21 12:51 - `DOC - Clarify Drag And Type Interop For Sketch Move Axis Leaves`
+<!-- ENTRY 118 -->
+HUMAN SUMMARY: Tightened the open `3.2B-S6` sketch move-axis phase so the axis leaf interaction model is explicit instead of implied. The phase now says `Move > X / Y / Z` should keep live mouse dragging active for the selected axis while first typed input still clears and replaces the current assisted value for direct numeric entry.
+
+#### Scope
+- Updated `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Future/Sketch_Phase 3.2B-S6 - SketchPlane Move Axis Numeric Entry.md`.
+- Recorded the document-only clarification in the permanent doc log.
+
+#### Summary
+- Added a locked decision that axis-leaf entry should preserve live active-axis dragging.
+- Clarified that typed input from the same leaf still uses replace-on-type behavior.
+- Expanded the implementation spec with explicit drag-versus-typing interop rules.
+- Added acceptance checks covering live drag continuity and typed overwrite behavior.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Future/Sketch_Phase 3.2B-S6 - SketchPlane Move Axis Numeric Entry.md`
+
+#### Notes
+- This is a documentation clarification only; it does not change runtime behavior yet.
+- The phase remains open because the deeper `Graph > Sketch > SketchPlane > Move > X / Y / Z` runtime path is still not implemented.
+
+<!-- ENTRY 117 -->
+### [117] - 2026-03-21 12:35 - `DOC - Land MkDocs Phase 1 Setup`
+<!-- ENTRY 117 -->
+HUMAN SUMMARY: Added the live Phase 1 MkDocs setup to the repo, including the root `mkdocs.yml`, the first `docs/index.md` landing page, a small docs dependency file, and a `site/` ignore rule for generated output. Updated the planning note and docs map too, so the implementation and the docs tracking now agree that the baseline MkDocs pass is complete.
+
+#### Scope
+- Added the live MkDocs config and first published docs page.
+- Updated the MkDocs planning note to mark Phase 1 complete after verification.
+- Updated the canonical docs map for the new `docs/index.md` page.
+- Recorded the docs-side maintenance in the permanent doc log.
+
+#### Summary
+- Added `mkdocs.yml` with the locked minimal Material baseline from the planning doc.
+- Added `docs/index.md` as the first site landing page.
+- Added `requirements-docs.txt` to document the docs-site dependency install path.
+- Added `site` to `.gitignore` so MkDocs build output stays out of normal repo changes.
+- Updated `docs/Phase-Plans/mkDocs.md` to mark the Phase 1 completion checklist complete.
+
+#### Files Changed
+- `mkdocs.yml`
+- `requirements-docs.txt`
+- `.gitignore`
+- `docs/index.md`
+- `docs/Phase-Plans/mkDocs.md`
+- `docs/Doc-Index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This doc-log entry covers the documentation and docs-structure side of the same implemented Phase 1 setup. The config/runtime-side change is recorded in `docs/CHANGELOG.md`.
+
+<!-- ENTRY 116 -->
+### [116] - 2026-03-21 12:33 - `DOC - Make MkDocs Phase 1 Implementation Ready`
+<!-- ENTRY 116 -->
+HUMAN SUMMARY: Tightened `docs/Phase-Plans/mkDocs.md` so `Phase 1 - MkDocs Baseline Setup` now reads as an implementation-ready execution spec instead of a loose setup idea. The phase now locks the minimal first-pass decisions, names the exact files and commands, and narrows the config baseline so the first implementation can succeed without getting blocked by branding assets, tags, or deployment work.
+
+#### Scope
+- Updated `docs/Phase-Plans/mkDocs.md`.
+- Recorded the document-only follow-up in the permanent doc log.
+
+#### Summary
+- Added locked decisions for `Phase 1`, including `mkdocs.yml`, `mkdocs-material`, curated nav, and `toc.follow` plus `toc.integrate`.
+- Added explicit Phase 1 file targets, install/build commands, and a smaller exact baseline config.
+- Added a content rule that keeps the first published surface to `docs/index.md` plus `docs/Phase-Plans/mkDocs.md`.
+- Replaced the older generic completion list with a more implementation-facing verification sequence and tighter completion checklist.
+
+#### Files Changed
+- `docs/Phase-Plans/mkDocs.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This is still planning-only documentation. No live `mkdocs.yml`, `docs/index.md`, or package install was added in this change.
+
+<!-- ENTRY 115 -->
+### [115] - 2026-03-21 12:41 - `DOC - Clarify Sketches As A Sibling Of Assembly`
+<!-- ENTRY 115 -->
+HUMAN SUMMARY: Tightened the open `3.2B-6` sketch ownership phase doc so the browser hierarchy is explicit instead of implied. The phase now says directly that `Sketches` belongs beside `Assembly` under `Content`, while per-sketch authored rows and `SketchPlane` stay below that family boundary.
+
+#### Scope
+- Updated `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Future/Sketch_Phase 3.2B-6 - Sketch Content Ownership And Later Export.md`.
+- Recorded the document-only clarification in the permanent doc log.
+
+#### Summary
+- Added a direct hierarchy rule to the `3.2B-6` phase doc.
+- Clarified that `Sketches` is a sibling family of `Assembly` under `Content`.
+- Clarified that authored sketches live under `Sketches` and `SketchPlane` stays nested inside each sketch.
+- Tightened the current-code wording so it matches that same hierarchy model.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Future/Sketch_Phase 3.2B-6 - Sketch Content Ownership And Later Export.md`
+
+#### Notes
+- This is a documentation clarification only; it does not change runtime behavior.
+- The phase remains partial because later export and deeper sketch-owned child surfaces are still future work.
+
+<!-- ENTRY 114 -->
+### [114] - 2026-03-21 12:36 - `DOC - Split Sketch Phase Docs Into Shipped And Future`
+<!-- ENTRY 114 -->
+HUMAN SUMMARY: Reorganized the standalone sketch phase docs under the sketch architecture folder so fully shipped phases now live in `Shipped/` and open or partial phases live in `Future/`. Updated the main `Sketch.md` index text to describe that status-based layout as the new canonical structure for sketch phase planning/history docs.
+
+#### Scope
+- Moved standalone sketch phase docs under `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/`.
+- Updated the sketch architecture index to describe the new `Shipped/` and `Future/` layout.
+- Recorded the document-only reorganization in the permanent doc log.
+
+#### Summary
+- Moved all fully shipped `[x]` sketch phase docs into `Sketch/Shipped/`.
+- Moved all open `[ ]` and partial `[~]` sketch phase docs into `Sketch/Future/`.
+- Added a new sketch doc-history note so the canonical architecture doc records when the phase-doc structure changed.
+- Replaced the old “same folder” wording in `Sketch.md` with an explicit status-based folder rule.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Sketch.md`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Shipped/Sketch_Phase 3.2B - Sketch Operation Authoring Family Map.md`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Shipped/Sketch_Phase 3.2B-0 - Existing Sketch Operation Authoring.md`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Shipped/Sketch_Phase 3.2B-DrawSketch-1 - Viewer-Owned Live Draw Preview.md`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Shipped/Sketch_Phase 3.2B-DrawSketch-1-Cleanup - Viewport Draw Workflow Cleanup.md`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Shipped/Sketch_Phase 3.2B-S1 - Sketch Session Hierarchy Model.md`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Shipped/Sketch_Phase 3.2B-S2 - SketchPlane Session Cleanup.md`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Shipped/Sketch_Phase 3.2B-S3 - SketchDraw Session Cleanup.md`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Shipped/Sketch_Phase 3.2B-S4 - Sketch Return One Level.md`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Shipped/Sketch_Phase 3.2B-S5 - Sketch Toolbar and Console Command Alignment.md`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Shipped/Sketch_Phase 3.2B-SketchPlane-1 - Source And Transform Surface.md`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Future/Sketch_Phase 3.2B-4 - Sketch Exposure And Browser Structure.md`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Future/Sketch_Phase 3.2B-5 - Sketch Browser Depth And Authored Content Surfaces.md`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Future/Sketch_Phase 3.2B-6 - Sketch Content Ownership And Later Export.md`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Future/Sketch_Phase 3.2B-DrawSketch-2 - Multi-Step Tool Sessions And Commit Rules.md`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Future/Sketch_Phase 3.2B-DrawSketch-3 - Selection, Editing, And Richer Sketch Feedback.md`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Future/Sketch_Phase 3.2B-S6 - SketchPlane Move Axis Numeric Entry.md`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Future/Sketch_Phase 3.2B-SketchPlane-2 - Viewport-First Source Pick And Sketch Origin Gizmo.md`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Future/Sketch_Phase 3.2B-SketchPlane-2-Cleanup - Main Viewport Integration And First-Pass Workflow Cleanup.md`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Future/Sketch_Phase 3.2B-SketchPlane-3 - Geometry-Driven Auto-Setup And Selection Highlighting.md`
+
+#### Notes
+- This is a document-organization change only; it does not change shipped runtime behavior.
+- `Future/` intentionally includes partial phases like `[~] [3.2B-6]` so active follow-on work stays with the planning surface instead of being mixed into the historical shipped bucket.
+
+<!-- ENTRY 113 -->
+### [113] - 2026-03-21 12:25 - `DOC - Add One-Phase MkDocs Rollout Plan`
+<!-- ENTRY 113 -->
+HUMAN SUMMARY: Updated `docs/Phase-Plans/mkDocs.md` with a final `Phases` section that keeps the first MkDocs adoption pass to one bounded setup phase. The new section defines what belongs in that phase, what stays out of scope, and why one phase is safe if the repo treats deployment, branding, and broader docs curation as later follow-ons.
+
+#### Scope
+- Updated `docs/Phase-Plans/mkDocs.md`.
+- Recorded the document-only follow-up in the permanent doc log.
+
+#### Summary
+- Added a final `## Phases` section to the MkDocs planning note.
+- Defined `Phase 1 - MkDocs Baseline Setup` as the current recommended rollout shape.
+- Added explicit in-scope and out-of-scope boundaries so the phase remains implementation-safe.
+- Added a short completion checklist centered on config, dependencies, local serve/build, nav reachability, and section-tree behavior.
+
+#### Files Changed
+- `docs/Phase-Plans/mkDocs.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This is still planning-only documentation. No live MkDocs setup files or dependencies were added yet.
+
+<!-- ENTRY 112 -->
+### [112] - 2026-03-21 12:23 - `DOC - Add MkDocs Section Tree And Navigation Decision Notes`
+<!-- ENTRY 112 -->
+HUMAN SUMMARY: Updated `docs/Phase-Plans/mkDocs.md` so the MkDocs plan now captures the practical section-tree decision for this repo. The doc now distinguishes built-in current-page heading navigation from the editor-style folding that Material for MkDocs does not natively provide, and it records `toc.follow` / `toc.integrate` as the current recommended baseline.
+
+#### Scope
+- Updated `docs/Phase-Plans/mkDocs.md`.
+- Recorded the document-only follow-up in the permanent doc log.
+
+#### Summary
+- Added `theme.features` guidance for `toc.follow`, `toc.integrate`, and optional `navigation.expand`.
+- Added a new section that records the repo decision to keep normal Markdown headings and avoid per-doc HTML wrappers for collapsible content.
+- Added a limits section explaining what Material can and cannot collapse natively.
+- Added a short recommended baseline showing the current-page heading tree setup.
+
+#### Files Changed
+- `docs/Phase-Plans/mkDocs.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This remains planning-only documentation. No live MkDocs config or theme behavior changed in the repo yet.
+
+<!-- ENTRY 111 -->
+### [111] - 2026-03-21 12:23 - `DOC - Mark First 3.2B-6 Sketch Ownership Browser Cut Shipped`
+<!-- ENTRY 111 -->
+HUMAN SUMMARY: Updated the sketch planning docs after the first `3.2B-6` implementation landed in code. The sketch architecture, the standalone `3.2B-6` phase doc, and the roadmap now all record that browser-visible `Sketches` rows are shipped while the later vector-export portion remains deferred.
+
+#### Scope
+- Updated the sketch architecture and roadmap docs to match the shipped browser/content ownership cut.
+- Kept the documentation honest about what landed now versus what remains for a later export follow-on.
+- Recorded the doc maintenance in the permanent doc log.
+
+#### Summary
+- Marked the standalone `3.2B-6` sketch phase doc partial and added the shipped browser/content summary.
+- Updated `Sketch.md` so the main sketch architecture now records the first shipped `Sketches` browser-family cut.
+- Added a matching partial `3.2B-6` entry to the roadmap.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Sketch.md`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Sketch_Phase 3.2B-6 - Sketch Content Ownership And Later Export.md`
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This is documentation maintenance for already-shipped code behavior. It does not add new runtime behavior beyond the implementation recorded in `docs/CHANGELOG.md`.
+
+<!-- ENTRY 110 -->
+### [110] - 2026-03-21 12:18 - `DOC - Add Material MkDocs Starter Config To Planning Note`
+<!-- ENTRY 110 -->
+HUMAN SUMMARY: Updated `docs/Phase-Plans/mkDocs.md` with the friend-sent Material for MkDocs starter block so the repo now has a concrete candidate theme and extension baseline. Also added implementation-safe notes about required assets, built-in Material plugins, and the current deprecation of `tags_file`.
+
+#### Scope
+- Updated `docs/Phase-Plans/mkDocs.md`.
+- Recorded the document-only follow-up in the permanent doc log.
+
+#### Summary
+- Added a `Material Starter Config Candidate` section with a planning-safe Material theme, palette, Markdown extension, and plugin block.
+- Kept the tags plugin in the candidate config, but removed `tags_file` from the main recommended block.
+- Added notes explaining that the favicon/logo paths require matching assets and that the listed plugins are built into Material for MkDocs.
+- Added an open question about whether the current `head-fi` branding filenames should be replaced by ParaHook-specific assets.
+
+#### Files Changed
+- `docs/Phase-Plans/mkDocs.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This remains a docs-only planning update. No root `mkdocs.yml`, packages, or site assets were added to the repo yet.
+
+<!-- ENTRY 109 -->
+### [109] - 2026-03-21 12:15 - `DOC - Add MkDocs Planning Note Under Phase-Plans`
+<!-- ENTRY 109 -->
+HUMAN SUMMARY: Added `docs/Phase-Plans/mkDocs.md` as a lightweight planning note for a possible MkDocs documentation layer in this repo. Updated the docs map too, so the new file is discoverable from the canonical docs index instead of existing as an untracked one-off.
+
+#### Scope
+- Added `docs/Phase-Plans/mkDocs.md`.
+- Updated `docs/Doc-Index.md`.
+- Recorded the document-only change in the permanent doc log.
+
+#### Summary
+- Created a new fold-friendly doc with local `Doc History`, `Purpose`, and a simple MkDocs setup outline.
+- Captured the default `mkdocs.yml` path plus the repo-specific note that a custom `mkdocs.yaml` filename would require `-f`.
+- Added the new file to the `docs/Phase-Plans` branch of the canonical docs map.
+
+#### Files Changed
+- `docs/Phase-Plans/mkDocs.md`
+- `docs/Doc-Index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This is a docs-only planning surface. It does not add MkDocs to the repo or create a live site configuration yet.
+
+<!-- ENTRY 108 -->
+### [108] - 2026-03-21 11:33 - `DOC - Mark Console Phase 4.1P Complete After Implementation`
+<!-- ENTRY 108 -->
+HUMAN SUMMARY: Updated the console planning docs after the `4.1P` implementation landed in code. The parent console architecture, the standalone `4.1P` phase doc, and the roadmap now all reflect that assisted prefills replace on first printable typing, preserve manual override until explicit assisted re-entry, and support the focused paste case.
+
+#### Scope
+- Updated `docs/Human-Plans/Architecture/Console/Console.md`.
+- Updated `docs/Human-Plans/Architecture/Console/Console_Phase 4.1P - Assisted Prefill Replace-On-Type Across Levels.md`.
+- Updated `docs/Human-Plans/roadmap/roadmap.md`.
+- Recorded the document-only sync in the permanent doc log.
+
+#### Summary
+- Marked the standalone `4.1P` phase file complete.
+- Added a new `Console.md` doc-history line recording the shipped implementation.
+- Marked the `4.1P` console phase index entry complete and checked off its checklist items.
+- Added a new roadmap doc-history line for the shipped `4.1P` implementation.
+- Marked both the short roadmap lane list and the detailed console-lane section complete for `[4.1P]`.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Console/Console.md`
+- `docs/Human-Plans/Architecture/Console/Console_Phase 4.1P - Assisted Prefill Replace-On-Type Across Levels.md`
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This is the docs sync for already-landed runtime behavior. The code implementation itself is tracked in `docs/CHANGELOG.md`.
+
+<!-- ENTRY 107 -->
+### [107] - 2026-03-21 11:24 - `DOC - Tighten Console Phase 4.1P Into A Safer Input-Override Spec`
+<!-- ENTRY 107 -->
+HUMAN SUMMARY: Tightened `Console_Phase 4.1P - Assisted Prefill Replace-On-Type Across Levels.md` so the new overwrite follow-on is more implementation-safe. The phase doc now explicitly covers first-key replacement versus append behavior, paste handling, assisted-follow state transitions, caret semantics, and a small verification matrix instead of leaving those edge cases implicit.
+
+#### Scope
+- Updated `docs/Human-Plans/Architecture/Console/Console_Phase 4.1P - Assisted Prefill Replace-On-Type Across Levels.md`.
+- Recorded the document-only refinement in the permanent doc log.
+
+#### Summary
+- Added an explicit replace-trigger definition for printable input and paste.
+- Added a compact assisted-follow state transition table.
+- Added caret/selection semantics so the implementation reads as full-value replacement rather than append-after-caret editing.
+- Added extra edge rules for paste and manual override behavior.
+- Added a small verification matrix covering staged replacement, paste replacement, assisted cycling, re-entry into assisted-follow, and unchanged unconstrained typing.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Console/Console_Phase 4.1P - Assisted Prefill Replace-On-Type Across Levels.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This is a docs-only implementation-spec refinement. It does not change the current console runtime yet.
+
+<!-- ENTRY 106 -->
+### [106] - 2026-03-21 10:04 - `DOC - Add FM Voice As A Flagship Audio Patchbay Node`
+<!-- ENTRY 106 -->
+HUMAN SUMMARY: Updated `Audio-Patchbay.md` to promote `FM Voice` into the first real generated-sound node shortlist and explain why FM synthesis is a particularly good fit for ParaHook. The new note ties FM directly to the app's broader generator identity and the desire to reuse the same node-and-wire authoring language across both 3D and audio generation.
+
+#### Scope
+- Updated `docs/Human-Plans/Architecture/Audio-Patchbay.md`.
+- Recorded the document-only change in the permanent doc log.
+
+#### Summary
+- Added `FM Voice` to the early node-family list.
+- Added a dedicated section explaining why FM synthesis is a strong first flagship generated-source direction.
+- Captured the conceptual symmetry between:
+  - `Spaghetti` as graph-driven model generation
+  - `Audio Patchbay` as graph-driven sound generation
+- Added a first-pass control/routing read for how an early `FM Voice` node could fit beside `Sequencer`, `Gain`, and later effects.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Audio-Patchbay.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This is a docs-only architecture direction update. It does not implement any audio-synthesis code yet.
+
+<!-- ENTRY 105 -->
+### [105] - 2026-03-21 09:59 - `DOC - Dock SoundCloud Proxy Effects Path In Audio Patchbay`
+<!-- ENTRY 105 -->
+HUMAN SUMMARY: Updated `Audio-Patchbay.md` to permanently dock the tempting idea of resolving a `SoundCloud` link into a direct stream, proxying it for CORS, and then running it through the full `Audio Patchbay` effects graph. The new note explains why the DSP architecture is technically plausible in general, why it is still the wrong product path for `SoundCloud`, and why the repo should treat it as policy-risk rather than a future hidden workaround.
+
+#### Scope
+- Updated `docs/Human-Plans/Architecture/Audio-Patchbay.md`.
+- Recorded the document-only change in the permanent doc log.
+
+#### Summary
+- Added one new local `Doc History` line to the audio architecture note.
+- Added a dedicated docked-idea section explaining:
+  - the attractive proxy-based architecture
+  - the current widget/raw-stream limitation
+  - why full effect nodes need source ownership
+  - why `SoundCloud` policy risk makes this a docked path
+- Added a lasting warning to re-check `SoundCloud` policy before revisiting the idea later.
+- Clarified that the real first-class source targets for future effect nodes should be imported, self-hosted, or generated audio.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Audio-Patchbay.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This is a docs-only architecture and policy clarification. It does not change the current runtime or `Radio` implementation.
+
+<!-- ENTRY 104 -->
+### [104] - 2026-03-21 09:57 - `DOC - Mark Radio_Phase 11 Complete After Waveform Implementation`
+<!-- ENTRY 104 -->
+HUMAN SUMMARY: Marked the split-out `Radio_Phase 11` file complete after the waveform implementation landed in code, so the new per-phase radio doc folder now reflects the shipped state for exact generated-tone waveforms, limited SoundCloud waveform mode, and merged-toolbar playhead plus cue markers.
+
+#### Scope
+- Updated `docs/Human-Plans/Architecture/Radio/Radio_Phase 11`.
+- Recorded the document-only sync in the permanent doc log.
+
+#### Summary
+- Marked `Phase 11 - Source Waveform Visualization` complete.
+- Kept the phase file aligned with the now-shipped implementation outcome in code.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Radio/Radio_Phase 11`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was a documentation sync after the implementation landed and verified successfully.
 
 <!-- ENTRY 103 -->
 ### [103] - 2026-03-21 09:41 - `DOC - Lock Audio Patchbay Versus Spaghetti Sounds Naming Split`
@@ -2511,6 +3262,30 @@ HUMAN SUMMARY: `Added a new active Codex-notes entry documenting the current ske
 
 #### Files Changed
 - `docs/Human-Plans/CodexNotes/12_CodexChatNotes.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This is documentation/planning capture only; no implementation work was performed in this change.
+
+<!-- ENTRY 012 -->
+### [012] - 2026-03-21 12:06 - `DOC - Add Sketch Follow-On For Move Axis Numeric Console Depth`
+<!-- ENTRY 012 -->
+HUMAN SUMMARY: `Added a new open sketch phase for \`SketchPlane > Move > X / Y / Z\` so axis-specific movement now has a dedicated planning home with float-only console entry, return-to-\`Move\` behavior, and matching sketch/roadmap index references.` 
+
+#### Scope
+- Limited this change to active sketch and roadmap planning docs under `docs/`.
+- Did not change any runtime code or console behavior.
+- Kept the new phase narrow to `SketchPlane > Move` child-depth and numeric entry behavior.
+
+#### Summary
+- Added `[3.2B-S6] SketchPlane Move Axis Numeric Entry` to the sketch architecture doc history and hierarchy-cleanup index.
+- Created the standalone phase doc for `[3.2B-S6]`.
+- Added the new open phase to the roadmap and corrected the stale `[3.2B-S5]` detailed roadmap status/checklist so it matches shipped reality.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Sketch.md`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Sketch_Phase 3.2B-S6 - SketchPlane Move Axis Numeric Entry.md`
+- `docs/Human-Plans/roadmap/roadmap.md`
 - `docs/Doc-Log.md`
 
 #### Notes

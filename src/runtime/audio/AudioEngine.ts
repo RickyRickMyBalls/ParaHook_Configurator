@@ -72,6 +72,35 @@ const fillGeneratedToneBuffer = (
   }
 }
 
+export const extractGeneratedToneWaveformEnvelope = (
+  descriptor: GeneratedToneRadioSourceDescriptor,
+  sampleCount: number,
+): number[] => {
+  const safeSampleCount = Math.max(1, Math.floor(sampleCount))
+  const values = Array.from({ length: safeSampleCount }, (_, bucketIndex) => {
+    const startTimeSec = (bucketIndex / safeSampleCount) * descriptor.durationSec
+    const endTimeSec = ((bucketIndex + 1) / safeSampleCount) * descriptor.durationSec
+    const sampleSpan = Math.max(4, Math.round((endTimeSec - startTimeSec) * 64))
+    let peak = 0
+    for (let sampleIndex = 0; sampleIndex < sampleSpan; sampleIndex += 1) {
+      const ratio = sampleSpan <= 1 ? 0 : sampleIndex / (sampleSpan - 1)
+      const time =
+        startTimeSec +
+        ratio * Math.max(0.0001, endTimeSec - startTimeSec)
+      const envelope =
+        0.55 +
+        0.25 * Math.sin(Math.PI * 2 * descriptor.toneProfile.modulationHz * time) +
+        0.12 * Math.sin(Math.PI * 2 * 0.125 * time)
+      const primary = Math.sin(Math.PI * 2 * descriptor.toneProfile.primaryHz * time)
+      const accent = Math.sin(Math.PI * 2 * descriptor.toneProfile.accentHz * time)
+      const amplitude = Math.abs((0.28 * primary + 0.14 * accent) * envelope)
+      peak = Math.max(peak, amplitude)
+    }
+    return Number(Math.min(1, peak / 0.42).toFixed(4))
+  })
+  return values
+}
+
 export type AudioEngineOptions = {
   createAudioContext?: () => AudioContextLike
   createSoundCloudWidgetClient?: () => SoundCloudWidgetPlaybackClient

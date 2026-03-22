@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import {
+  DEFAULT_RADIO_WAVEFORM_SAMPLE_COUNT,
   DEFAULT_RADIO_SAMPLE_BURST_TIME,
   DEFAULT_RADIO_URL,
   resetAudioSamplerStore,
@@ -26,6 +27,16 @@ describe('audioSamplerStore', () => {
       durationSec: 0,
       isSeekable: false,
       isPlaying: false,
+    })
+    expect(state.radioWaveform).toEqual({
+      kind: 'none',
+      sourceId: null,
+      sourceKind: 'none',
+      durationSec: 0,
+      sampleCount: DEFAULT_RADIO_WAVEFORM_SAMPLE_COUNT,
+      samples: [],
+      message: null,
+      lastResolvedAt: null,
     })
     expect(state.latestSeekRequest).toBeNull()
     expect(state.latestReloadRequestId).toBeNull()
@@ -133,6 +144,42 @@ describe('audioSamplerStore', () => {
     expect(state.radioRuntimeMessage).toBe('Using fallback generated tone')
     expect(state.radioRuntimeSourceKind).toBe('generated-tone')
     expect(state.lastHandledBurstRequestId).toBe(3)
+  })
+
+  it('stores and clears canonical radio waveform state', () => {
+    useAudioSamplerStore.getState().setRadioWaveformState({
+      kind: 'limited',
+      sourceId: 'radio-soundcloud:test',
+      sourceKind: 'soundcloud-widget',
+      durationSec: 120,
+      sampleCount: 128,
+      samples: [],
+      message: 'Detailed waveform unavailable for current source',
+      lastResolvedAt: 1234,
+    })
+
+    expect(useAudioSamplerStore.getState().radioWaveform).toMatchObject({
+      kind: 'limited',
+      sourceId: 'radio-soundcloud:test',
+      sourceKind: 'soundcloud-widget',
+      durationSec: 120,
+      sampleCount: 128,
+      message: 'Detailed waveform unavailable for current source',
+      lastResolvedAt: 1234,
+    })
+
+    useAudioSamplerStore.getState().clearRadioWaveformState()
+
+    expect(useAudioSamplerStore.getState().radioWaveform).toEqual({
+      kind: 'none',
+      sourceId: null,
+      sourceKind: 'none',
+      durationSec: 0,
+      sampleCount: DEFAULT_RADIO_WAVEFORM_SAMPLE_COUNT,
+      samples: [],
+      message: null,
+      lastResolvedAt: null,
+    })
   })
 
   it('tracks toolbar visibility, transport state, seek requests, and reload requests', () => {

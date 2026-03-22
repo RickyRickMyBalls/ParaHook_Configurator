@@ -34,6 +34,20 @@ describe('routeKeyboardInput', () => {
     })
   })
 
+  it('routes Enter to staged console while a guided session is active', () => {
+    const result = routeKeyboardInput({
+      event: createEvent('Enter'),
+      sketchPlanePickStage: 'adjust',
+      stagedConsoleActive: true,
+      allowFlatConsoleCapture: true,
+    })
+
+    expect(result).toEqual({
+      owner: 'staged-console',
+      decision: 'handle',
+    })
+  })
+
   it('gives Escape to sketch draw before reference transform and staged console', () => {
     const result = routeKeyboardInput({
       event: createEvent('Escape'),

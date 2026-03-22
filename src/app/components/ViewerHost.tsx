@@ -222,6 +222,25 @@ export function ViewerHost() {
         translation: { ...sketchPlanePickSession.draftTransform.translation },
         rotationDeg: { ...sketchPlanePickSession.draftTransform.rotationDeg },
       },
+      commandOriginTransform:
+        sketchPlanePickSession.transformCommandOrigin === null
+          ? null
+          : {
+              ...sketchPlanePickSession.transformCommandOrigin,
+              translation: { ...sketchPlanePickSession.transformCommandOrigin.translation },
+              rotationDeg: { ...sketchPlanePickSession.transformCommandOrigin.rotationDeg },
+            },
+      transformHistoryPoints: [
+        { x: 0, y: 0, z: 0 },
+        ...sketchPlanePickSession.transformHistory.map((entry) => ({
+          x: entry.point.x,
+          y: entry.point.y,
+          z: entry.point.z,
+        })),
+      ],
+      showMoveCommandGuide:
+        sketchPlanePickSession.adjustScope === 'move' ||
+        sketchPlanePickSession.adjustScope === 'move-axis',
       snap: {
         translateMm: sketchPlaneToolbarTranslateSnapEnabled
           ? sketchPlaneToolbarTranslateSnapValue
@@ -399,6 +418,9 @@ export function ViewerHost() {
     viewer.setOnSketchPlanePickTransformChange((transform) => {
       useSpaghettiStore.getState().setSketchPlanePickDraftTransform(transform)
     })
+    viewer.setOnSketchPlanePickTransformCommit(() => {
+      useSpaghettiStore.getState().commitSketchPlaneTransformHistoryFromDraftRelease()
+    })
     viewer.setOnGeometrySketchHoverPoint((point, snapTarget) => {
       useSpaghettiStore.getState().setGeometrySketchDrawHoverPoint(point, snapTarget)
     })
@@ -419,6 +441,7 @@ export function ViewerHost() {
       viewer.setOnReferenceTransformSpaceChange(null)
       viewer.setOnSketchPlanePickPlaneSelect(null)
       viewer.setOnSketchPlanePickTransformChange(null)
+      viewer.setOnSketchPlanePickTransformCommit(null)
       viewer.setOnGeometrySketchHoverPoint(null)
       viewer.setOnGeometrySketchConfirmPoint(null)
       viewer.setOnGeometrySketchFinishDraft(null)

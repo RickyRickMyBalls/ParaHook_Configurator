@@ -16,6 +16,9 @@ const makeOverlay = (
     translation: { x: 0, y: 0, z: 0 },
     rotationDeg: { x: 0, y: 0, z: 0 },
   },
+  commandOriginTransform: null,
+  transformHistoryPoints: [],
+  showMoveCommandGuide: false,
   snap: {
     translateMm: null,
     rotateDeg: null,
@@ -174,6 +177,77 @@ describe('SketchPlanePickHelper', () => {
     expect(xyMesh?.scale.x).toBeCloseTo(2, 6)
     expect(xyMesh?.position.x).toBeGreaterThan(25)
     expect(xyMesh?.position.y).toBeGreaterThan(25)
+
+    helper.dispose()
+  })
+
+  it('shows the move command origin marker and guide from the last committed translation instead of world origin', () => {
+    const helper = new SketchPlanePickHelper()
+    helper.setOverlay(
+      makeOverlay({
+        stage: 'adjust',
+        draftPlane: 'XY',
+        showMoveCommandGuide: true,
+        commandOriginTransform: {
+          offsetMm: 0,
+          inPlaneRotationDeg: 0,
+          translation: { x: 12, y: -3, z: 4 },
+          rotationDeg: { x: 0, y: 0, z: 0 },
+        },
+        draftTransform: {
+          offsetMm: 0,
+          inPlaneRotationDeg: 0,
+          translation: { x: 18, y: 5, z: 4 },
+          rotationDeg: { x: 0, y: 0, z: 0 },
+        },
+      }),
+    )
+
+    const guideLine = helper.getGroup().children.find(
+      (child) => child.name === 'SketchPlaneMoveCommandGuide',
+    ) as LineSegments | undefined
+    const originMarker = helper.getGroup().children.find(
+      (child) => child.name === 'SketchPlaneMoveCommandOrigin',
+    ) as LineSegments | undefined
+
+    expect(guideLine?.visible).toBe(true)
+    expect(originMarker?.visible).toBe(true)
+    expect(originMarker?.position.x).toBeCloseTo(12, 6)
+    expect(originMarker?.position.y).toBeCloseTo(-3, 6)
+    expect(originMarker?.position.z).toBeCloseTo(4, 6)
+
+    const positions = (
+      guideLine?.geometry.getAttribute('position') as { array: ArrayLike<number> } | undefined
+    )?.array
+    expect(positions).toBeDefined()
+    expect(Array.from(positions ?? [])).toEqual([12, -3, 4, 18, 5, 4])
+
+    helper.dispose()
+  })
+
+  it('draws committed sketch-plane transform history as point-to-point segments', () => {
+    const helper = new SketchPlanePickHelper()
+    helper.setOverlay(
+      makeOverlay({
+        stage: 'adjust',
+        draftPlane: 'XY',
+        transformHistoryPoints: [
+          { x: 0, y: 0, z: 0 },
+          { x: 3, y: 0, z: 0 },
+          { x: 3, y: 6, z: -5 },
+        ],
+      }),
+    )
+
+    const historyGuide = helper.getGroup().children.find(
+      (child) => child.name === 'SketchPlaneTransformHistoryGuide',
+    ) as LineSegments | undefined
+
+    expect(historyGuide?.visible).toBe(true)
+    const positions = (
+      historyGuide?.geometry.getAttribute('position') as { array: ArrayLike<number> } | undefined
+    )?.array
+    expect(Array.from(positions ?? [])).toEqual([0, 0, 0, 3, 0, 0, 3, 0, 0, 3, 6, -5])
 
     helper.dispose()
   })

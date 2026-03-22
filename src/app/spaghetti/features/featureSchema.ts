@@ -42,6 +42,14 @@ const sketchPlaneTransformSchema = z
   })
   .strict()
 
+const sketchPlaneTransformHistoryEntrySchema = z
+  .object({
+    entryId: z.string().min(1),
+    point: vec3LiteralSchema,
+    locked: z.boolean(),
+  })
+  .strict()
+
 const segmentLineSchema = z
   .object({
     kind: z.literal('line2'),
@@ -105,6 +113,7 @@ const lineComponentSchema = z
     rowId: z.string().min(1),
     componentId: z.string().min(1),
     type: z.literal('line'),
+    drawGroupId: z.string().min(1).optional(),
     a: vec2ExpressionSchema,
     b: vec2ExpressionSchema,
   })
@@ -215,6 +224,7 @@ export const sketchFeatureSchema = z
       .object({
         collapsed: z.boolean(),
         selectedProfileId: z.string().min(1).optional(),
+        sketchPlaneTransformHistory: z.array(sketchPlaneTransformHistoryEntrySchema).optional(),
       })
       .strict(),
   })
@@ -249,6 +259,15 @@ export const sketchFeatureSchema = z
         ...(feature.uiState.selectedProfileId === undefined
           ? {}
           : { selectedProfileId: feature.uiState.selectedProfileId }),
+        ...(feature.uiState.sketchPlaneTransformHistory === undefined
+          ? {}
+          : {
+              sketchPlaneTransformHistory: feature.uiState.sketchPlaneTransformHistory.map((entry) => ({
+                entryId: entry.entryId,
+                point: { ...entry.point },
+                locked: entry.locked,
+              })),
+            }),
       },
     }
   })

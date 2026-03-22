@@ -13,6 +13,8 @@ export type BrowserTreeRowKind =
   | 'reference-category'
   | 'reference-item'
   | 'assembly'
+  | 'sketches-root'
+  | 'sketch'
   | 'component'
   | 'object'
   | 'graph-document'
@@ -105,6 +107,30 @@ export type BrowserAssemblyTreeRowVm = BrowserTreeRowBaseVm & {
   rebuildGraphDocumentIds: string[]
   statusLabel?: string
   statusTone?: 'quiet' | 'ready' | 'warning'
+}
+
+export type BrowserSketchesRootTreeRowVm = BrowserTreeRowBaseVm & {
+  rowKind: 'sketches-root'
+  sketchCount: number
+}
+
+export type BrowserSketchTreeRowVm = BrowserTreeRowBaseVm & {
+  rowKind: 'sketch'
+  buildState: ProjectContentBuildState
+  buildStateLabel: string
+  rebuildGraphDocumentIds: string[]
+  statusLabel?: string
+  statusTone?: 'quiet' | 'ready' | 'warning'
+  ownerGraphDocumentId: string
+  graphDocumentId: string
+  nodeId: string
+  featureId: string
+  plane: 'XY' | 'YZ' | 'XZ'
+  componentCount: number
+  profileCount: number
+  diagnosticsCount: number
+  authoringGraphDocumentId: string
+  authoringNodeId: string
 }
 
 export type BrowserComponentTreeRowVm = BrowserTreeRowBaseVm & {
@@ -220,6 +246,8 @@ export type BrowserRenderableRowVm =
   | BrowserReferenceCategoryTreeRowVm
   | BrowserReferenceItemTreeRowVm
   | BrowserAssemblyTreeRowVm
+  | BrowserSketchesRootTreeRowVm
+  | BrowserSketchTreeRowVm
   | BrowserComponentTreeRowVm
   | BrowserObjectTreeRowVm
   | BrowserGraphTreeRowVm
@@ -238,7 +266,11 @@ export type BrowserTreeRowsVm = {
     BrowserReferencesRootTreeRowVm | BrowserReferenceCategoryTreeRowVm | BrowserReferenceItemTreeRowVm
   >
   contentRows: Array<
-    BrowserAssemblyTreeRowVm | BrowserComponentTreeRowVm | BrowserObjectTreeRowVm
+    | BrowserAssemblyTreeRowVm
+    | BrowserSketchesRootTreeRowVm
+    | BrowserSketchTreeRowVm
+    | BrowserComponentTreeRowVm
+    | BrowserObjectTreeRowVm
   >
   graphRows: BrowserGraphTreeRowVm[]
   viewportRows: BrowserViewportTreeRowVm[]
@@ -349,6 +381,13 @@ export const selectBrowserTreeRows = (options: {
   const orderedObjectRows = contentRows.filter(
     (row): row is Extract<ProjectContentBrowserRowVm, { kind: 'object' }> => row.kind === 'object',
   )
+  const orderedSketchRoots = contentRows.filter(
+    (row): row is Extract<ProjectContentBrowserRowVm, { kind: 'sketches-root' }> =>
+      row.kind === 'sketches-root',
+  )
+  const orderedSketchRows = contentRows.filter(
+    (row): row is Extract<ProjectContentBrowserRowVm, { kind: 'sketch' }> => row.kind === 'sketch',
+  )
   orderedObjectRows.forEach((row) => {
     if (row.parentComponentId === null) {
       return
@@ -362,7 +401,11 @@ export const selectBrowserTreeRows = (options: {
   })
 
   const visibleContentRows: Array<
-    BrowserAssemblyTreeRowVm | BrowserComponentTreeRowVm | BrowserObjectTreeRowVm
+    | BrowserAssemblyTreeRowVm
+    | BrowserSketchesRootTreeRowVm
+    | BrowserSketchTreeRowVm
+    | BrowserComponentTreeRowVm
+    | BrowserObjectTreeRowVm
   > = []
   const visibleReferenceRows: Array<
     BrowserReferencesRootTreeRowVm | BrowserReferenceCategoryTreeRowVm | BrowserReferenceItemTreeRowVm
@@ -544,6 +587,69 @@ export const selectBrowserTreeRows = (options: {
           ],
         } satisfies BrowserObjectTreeRowVm)
       })
+    })
+  })
+
+  orderedSketchRoots.forEach((row) => {
+    const isExpanded = !collapsedContentRowIds.includes(row.rowId)
+    visibleContentRows.push({
+      rowId: row.rowId,
+      rowKind: 'sketches-root',
+      depth: 0,
+      treeGuides: [],
+      sketchCount: row.sketchCount,
+      iconLabel: 'S',
+      label: row.label,
+      meta: row.meta,
+      isSelected: selectedRowId === row.rowId,
+      isExpandable: orderedSketchRows.length > 0,
+      isExpanded,
+      actions: [],
+    } satisfies BrowserSketchesRootTreeRowVm)
+
+    if (!isExpanded) {
+      return
+    }
+
+    orderedSketchRows.forEach((sketchRow, sketchIndex) => {
+      visibleContentRows.push({
+        rowId: sketchRow.rowId,
+        rowKind: 'sketch',
+        depth: 1,
+        treeGuides: [sketchIndex < orderedSketchRows.length - 1 ? 'tee' : 'elbow'],
+        buildState: sketchRow.buildState ?? 'done',
+        buildStateLabel: sketchRow.buildStateLabel ?? '',
+        rebuildGraphDocumentIds: sketchRow.rebuildGraphDocumentIds ?? [],
+        ownerGraphDocumentId: sketchRow.ownerGraphDocumentId,
+        graphDocumentId: sketchRow.graphDocumentId,
+        nodeId: sketchRow.nodeId,
+        featureId: sketchRow.featureId,
+        plane: sketchRow.plane,
+        componentCount: sketchRow.componentCount,
+        profileCount: sketchRow.profileCount,
+        diagnosticsCount: sketchRow.diagnosticsCount,
+        authoringGraphDocumentId: sketchRow.authoringGraphDocumentId,
+        authoringNodeId: sketchRow.authoringNodeId,
+        iconLabel: 'S',
+        label: sketchRow.label,
+        meta: sketchRow.meta,
+        ...(sketchRow.statusLabel !== undefined
+          ? {
+              statusLabel: sketchRow.statusLabel,
+              statusTone: sketchRow.statusTone ?? 'quiet',
+            }
+          : {}),
+        isSelected: selectedRowId === sketchRow.rowId,
+        isExpandable: false,
+        isExpanded: false,
+        actions: [
+          {
+            actionId: 'view-in-graph',
+            label: 'View In Graph',
+            ariaLabel: `View ${sketchRow.label} in graph`,
+          },
+        ],
+      } satisfies BrowserSketchTreeRowVm)
     })
   })
 

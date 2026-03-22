@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+37. 2026-03-21 18:18: Clarified `Phase 11` so provider-backed waveform display is explicitly allowed for `SoundCloud` as a limited visual aid, meaning the radio toolbar may show a SoundCloud-style waveform/fill/progress surface when trustworthy provider waveform data exists without claiming that lane is exact analyzable audio data
 36. 2026-03-21 08:46: Marked `Phase 10` complete after the separate sampler panel stopped being the primary mounted surface and the shared `Radio` toolbar absorbed the horizontal sampler row, the existing sampler controls, store-backed disclosure state, and expandable per-step time-position editing inside one green merged panel
 35. 2026-03-21 08:34: Tightened `Phase 10` so the most important per-step control in the vertical detail section is now an explicit time-position `ParaSlider`, making manual step cue placement in the song the primary expanded-row editing surface
 34. 2026-03-21 08:33: Tightened `Phase 10` again so the shared-toolbar sampler refactor now explicitly preserves the current horizontal sequencer row and existing sampler controls/buttons, while also making the merged `Radio` toolbar adopt the sampler's green visual language instead of falling back to the older radio styling
@@ -4208,6 +4209,7 @@ The first waveform should be honest, not decorative.
 So:
 - exact waveform detail is allowed only when the runtime has real waveform data
 - `SoundCloud widget` playback should be treated as waveform-limited until we add a real waveform-data path
+- trusted provider-backed waveform display data can still be shown for `SoundCloud` as a limited visual surface
 - the UI can still show:
   - playhead
   - duration
@@ -4253,6 +4255,7 @@ Recommended first source states:
   - future local decoded assets
 - `limited`
   - provider-backed sources where we can show timing overlays but not true PCM detail yet
+  - provider waveform images or trusted provider summary waveform data
 - `none`
   - unsupported or unresolved sources
 
@@ -4338,10 +4341,16 @@ So the first honest rule should be:
 - if we do not have exact waveform data for the active `SoundCloud` source, render a limited waveform lane instead of fake detail
 
 That limited lane can still show:
+- a provider-backed waveform strip or filled envelope if `SoundCloud` exposes trustworthy waveform display data for that track
 - total duration
 - playhead
 - cue markers
 - message such as `Detailed waveform unavailable for current source`
+
+Important rule:
+- a provider-backed `SoundCloud` waveform strip is allowed as a visual display aid
+- it must still remain classified as `limited`
+- do not treat it as exact analyzable source data for loudness scanning, transient finding, or precise slice derivation
 
 If later we add a trustworthy waveform-data fetch or provider waveform API path, the phase can be revisited and promoted from `limited` to `exact`.
 

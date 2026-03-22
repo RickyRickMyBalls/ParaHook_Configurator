@@ -958,4 +958,89 @@ describe('selectBrowserTreeRows', () => {
       }),
     ])
   })
+
+  it('renders the authored Sketches content family as a collapsible browser root with sketch rows', () => {
+    const rows = selectBrowserTreeRows({
+      referenceWorkspaceTree: emptyReferenceWorkspaceTree,
+      contentRows: [
+        {
+          rowId: 'assembly-root:project-file-1',
+          kind: 'assembly',
+          label: 'Assembly 1',
+          meta: '',
+        },
+        {
+          rowId: 'project-sketches-root:project-file-1',
+          kind: 'sketches-root',
+          label: 'Sketches',
+          meta: '1 sketch',
+          sketchCount: 1,
+        },
+        {
+          rowId: 'project-sketch:graph-document-1:node-sketch-1:sketch-1',
+          kind: 'sketch',
+          label: 'Sketch 1',
+          meta: 'Graph 1 | XY | 4 comps | 1 profile',
+          buildState: 'rebuild',
+          buildStateLabel: 'Rebuild',
+          rebuildGraphDocumentIds: ['graph-document-1'],
+          statusLabel: 'Ready',
+          statusTone: 'ready',
+          ownerGraphDocumentId: 'graph-document-1',
+          graphDocumentId: 'graph-document-1',
+          nodeId: 'node-sketch-1',
+          featureId: 'sketch-1',
+          plane: 'XY',
+          componentCount: 4,
+          profileCount: 1,
+          diagnosticsCount: 0,
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-sketch-1',
+        },
+      ],
+      graphRows: [],
+      editorViewports: [],
+      graphDocumentsById: {
+        'graph-document-1': graphDocument('graph-document-1', 'Graph 1'),
+      },
+      selectedRowId: 'project-sketch:graph-document-1:node-sketch-1:sketch-1',
+      collapsedContentRowIds: [],
+      expandedGraphDocumentIds: [],
+      hasActiveEditorViewport: true,
+      sharedViewerCompositionGraphDocumentIds: [],
+      sharedViewerCompositionActive: false,
+    })
+
+    expect(rows.contentRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowId: 'project-sketches-root:project-file-1',
+          rowKind: 'sketches-root',
+          iconLabel: 'S',
+          label: 'Sketches',
+          meta: '1 sketch',
+          treeGuides: ['elbow'],
+          isExpandable: true,
+          isExpanded: true,
+        }),
+        expect.objectContaining({
+          rowId: 'project-sketch:graph-document-1:node-sketch-1:sketch-1',
+          rowKind: 'sketch',
+          depth: 1,
+          treeGuides: ['none', 'elbow'],
+          iconLabel: 'S',
+          label: 'Sketch 1',
+          meta: 'Graph 1 | XY | 4 comps | 1 profile',
+          isSelected: true,
+          actions: [
+            {
+              actionId: 'view-in-graph',
+              label: 'View In Graph',
+              ariaLabel: 'View Sketch 1 in graph',
+            },
+          ],
+        }),
+      ]),
+    )
+  })
 })

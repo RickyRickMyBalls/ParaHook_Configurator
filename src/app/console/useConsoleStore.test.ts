@@ -361,7 +361,46 @@ describe('useConsoleStore', () => {
     expect(useConsoleStore.getState().stagedChoiceIndex).toBe(0)
   })
 
-  it('replaces staged assist prefill on the first seeded printable key', () => {
+  it('prefills and cycles the guided root session like other staged layers', () => {
+    useConsoleStore.getState().setStagedNavigationSession({
+      scopeId: 'root',
+      breadcrumb: ['Root'],
+      selections: {
+        graphDocumentId: null,
+        selectedNodeId: null,
+        sketchNodeId: null,
+      },
+      validChoices: [
+        {
+          canonicalToken: 'GRAPH',
+          aliases: ['G'],
+          label: 'Graph',
+          kind: 'scope',
+        },
+        {
+          canonicalToken: 'RADIO',
+          aliases: ['R'],
+          label: 'Radio',
+          kind: 'scope',
+        },
+      ],
+    })
+
+    expect(useConsoleStore.getState().inputText).toBe('Graph')
+    expect(useConsoleStore.getState().stagedChoiceIndex).toBe(0)
+
+    useConsoleStore.getState().cycleStagedChoice('next')
+
+    expect(useConsoleStore.getState().inputText).toBe('Radio')
+    expect(useConsoleStore.getState().stagedChoiceIndex).toBe(1)
+
+    useConsoleStore.getState().seedInputText('g')
+
+    expect(useConsoleStore.getState().inputText).toBe('g')
+    expect(useConsoleStore.getState().isStagedChoiceManualOverride).toBe(true)
+  })
+
+  it('replaces staged assist prefill on the first seeded printable key and keeps manual override active', () => {
     useConsoleStore.getState().setStagedNavigationSession({
       scopeId: 'graphSelected',
       breadcrumb: ['Select', 'Graph', 'graph_[1]'],
@@ -392,7 +431,7 @@ describe('useConsoleStore', () => {
 
     expect(useConsoleStore.getState().inputText).toBe('s')
     expect(useConsoleStore.getState().stagedChoiceIndex).toBe(0)
-    expect(useConsoleStore.getState().isStagedChoiceManualOverride).toBe(false)
+    expect(useConsoleStore.getState().isStagedChoiceManualOverride).toBe(true)
   })
 
   it('appends subsequent seeded printable keys after the first guided replacement so multi-letter aliases can continue typing', () => {
@@ -424,9 +463,34 @@ describe('useConsoleStore', () => {
 
     useConsoleStore.getState().seedInputText('o')
     expect(useConsoleStore.getState().inputText).toBe('o')
+    expect(useConsoleStore.getState().isStagedChoiceManualOverride).toBe(true)
 
     useConsoleStore.getState().seedInputText('t')
     expect(useConsoleStore.getState().inputText).toBe('ot')
+    expect(useConsoleStore.getState().isStagedChoiceManualOverride).toBe(true)
+  })
+
+  it('preserves manual override after the first typed replacement even if the text matches a valid assisted token', () => {
+    useConsoleStore.getState().setFeatureAssistDescriptor({
+      label: 'Sketch Plane > Move',
+      prefill: 'Vec3(0.0, 0.0, 0.0)',
+      choices: [
+        { canonicalToken: 'X', aliases: ['MOVE X', 'MX'], label: 'Move X' },
+        { canonicalToken: 'Y', aliases: ['MOVE Y', 'MY'], label: 'Move Y' },
+        { canonicalToken: 'Z', aliases: ['MOVE Z', 'MZ'], label: 'Move Z' },
+      ],
+    })
+
+    useConsoleStore.getState().setInputText('x', { startManualOverride: true })
+
+    expect(useConsoleStore.getState().inputText).toBe('x')
+    expect(useConsoleStore.getState().stagedChoiceIndex).toBe(0)
+    expect(useConsoleStore.getState().isStagedChoiceManualOverride).toBe(true)
+
+    useConsoleStore.getState().setInputText('xy')
+
+    expect(useConsoleStore.getState().inputText).toBe('xy')
+    expect(useConsoleStore.getState().isStagedChoiceManualOverride).toBe(true)
   })
 
   it('prefills, cycles, and respects manual override for feature assist descriptors', () => {

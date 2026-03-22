@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { AudioEngine } from './AudioEngine'
+import { AudioEngine, extractGeneratedToneWaveformEnvelope } from './AudioEngine'
 import {
   createFallbackRadioSourceDescriptor,
   DEFAULT_GUSANO_URL,
@@ -69,6 +69,15 @@ class FakeAudioContext {
 }
 
 describe('AudioEngine', () => {
+  it('extracts a bounded generated-tone waveform envelope', () => {
+    const descriptor = createFallbackRadioSourceDescriptor(DEFAULT_GUSANO_URL)
+
+    const waveform = extractGeneratedToneWaveformEnvelope(descriptor, 16)
+
+    expect(waveform).toHaveLength(16)
+    expect(waveform.every((value) => value >= 0 && value <= 1)).toBe(true)
+  })
+
   it('plays a burst at the requested normalized position and duration', async () => {
     const fakeContext = new FakeAudioContext()
     const engine = new AudioEngine({

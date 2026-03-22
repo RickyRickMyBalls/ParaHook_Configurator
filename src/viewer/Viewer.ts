@@ -237,6 +237,7 @@ export class Viewer {
   private onReferenceTransformSpaceChange: ((space: GizmoSpace) => void) | null = null
   private onSketchPlanePickPlaneSelect: ((plane: SketchPlane) => void) | null = null
   private onSketchPlanePickTransformChange: ((transform: SketchPlaneTransform) => void) | null = null
+  private onSketchPlanePickTransformCommit: (() => void) | null = null
   private onGeometrySketchHoverPoint:
     | ((point: { x: number; y: number } | null, snapTarget: 'origin' | null) => void)
     | null = null
@@ -362,6 +363,7 @@ export class Viewer {
       this.cameraController.getControls(),
     )
     this.transformGizmo.setOnObjectChange(this.handleTransformGizmoObjectChange)
+    this.transformGizmo.setOnDragComplete(this.handleTransformGizmoDragComplete)
     this.transformGizmo.setMode(this.gizmoMode)
     this.transformGizmo.setSpace(this.gizmoSpace)
     this.syncGizmoEnabledState()
@@ -470,6 +472,19 @@ export class Viewer {
 
   public setCameraPreset(preset: CameraPreset): void {
     this.cameraController.setPreset(preset)
+  }
+
+  public alignCameraToGeometrySketchPlane(): void {
+    if (this.geometrySketchOverlay === null) {
+      return
+    }
+    this.alignCameraToGeometrySketchPlaneInternal(this.geometrySketchOverlay)
+    appendConsoleEntry({
+      layer: 'View',
+      text: 'Align camera: sketch plane',
+      source: 'viewer',
+      severity: 'info',
+    })
   }
 
   public snapCameraToDirection(dir: SnapDirection): void {
@@ -846,7 +861,7 @@ export class Viewer {
         if (this.geometrySketchCameraAlignKey === null) {
           this.geometrySketchRestoreCameraPose = this.cameraController.getPose()
         }
-        this.alignCameraToGeometrySketchPlane(overlay)
+        this.alignCameraToGeometrySketchPlaneInternal(overlay)
         this.geometrySketchCameraAlignKey = nextAlignKey
       }
     } else {
@@ -901,6 +916,10 @@ export class Viewer {
     handler: ((transform: SketchPlaneTransform) => void) | null,
   ): void {
     this.onSketchPlanePickTransformChange = handler
+  }
+
+  public setOnSketchPlanePickTransformCommit(handler: (() => void) | null): void {
+    this.onSketchPlanePickTransformCommit = handler
   }
 
   public dispose(): void {
@@ -1586,6 +1605,16 @@ export class Viewer {
     this.onSketchPlanePickTransformChange?.(nextTransform)
   }
 
+  private readonly handleSketchPlanePickTransformDragComplete = (object: Object3D): void => {
+    if (
+      this.sketchPlanePickOverlay?.stage !== 'adjust' ||
+      object !== this.sketchPlanePickHelper.getPreviewPivot()
+    ) {
+      return
+    }
+    this.onSketchPlanePickTransformCommit?.()
+  }
+
   private readonly handleTransformGizmoObjectChange = (object: Object3D): void => {
     if (
       this.activeReferenceTransformReferenceId !== null &&
@@ -1595,6 +1624,16 @@ export class Viewer {
       return
     }
     this.handleSketchPlanePickTransformObjectChange(object)
+  }
+
+  private readonly handleTransformGizmoDragComplete = (object: Object3D): void => {
+    if (
+      this.activeReferenceTransformReferenceId !== null &&
+      this.referenceObjects.get(this.activeReferenceTransformReferenceId) === object
+    ) {
+      return
+    }
+    this.handleSketchPlanePickTransformDragComplete(object)
   }
 
   private syncLockedReferenceCamera(object: Object3D): void {
@@ -1690,7 +1729,7 @@ export class Viewer {
     this.geometrySketchOverlayGroup.clear()
   }
 
-  private alignCameraToGeometrySketchPlane(overlay: GeometrySketchOverlayVm): void {
+  private alignCameraToGeometrySketchPlaneInternal(overlay: GeometrySketchOverlayVm): void {
     const planeOrigin = getSketchPlaneWorldOrigin(overlay.plane, overlay.planeTransform)
     const planeNormal = getSketchPlaneWorldNormal(overlay.plane, overlay.planeTransform)
     const controls = this.cameraController.getControls()

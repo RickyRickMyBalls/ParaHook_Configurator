@@ -103,7 +103,10 @@ type ConsoleState = {
   isStagedChoiceManualOverride: boolean
   appendEntry: (entry: ConsoleAppendEntryInput) => void
   clearEntries: () => void
-  setInputText: (value: string, options?: { fromAssist?: boolean }) => void
+  setInputText: (
+    value: string,
+    options?: { fromAssist?: boolean; startManualOverride?: boolean },
+  ) => void
   seedInputText: (value: string) => void
   pushCommandHistory: (value: string) => void
   recallPreviousHistory: () => void
@@ -269,6 +272,12 @@ const areAssistDescriptorsEqual = (
   if (left.label !== right.label || left.prefill !== right.prefill) {
     return false
   }
+  if ((left.breadcrumb?.length ?? 0) !== (right.breadcrumb?.length ?? 0)) {
+    return false
+  }
+  if ((left.breadcrumb ?? []).some((segment, index) => segment !== right.breadcrumb?.[index])) {
+    return false
+  }
   if (left.choices.length !== right.choices.length) {
     return false
   }
@@ -346,6 +355,7 @@ const getDescriptorDrivenInputText = (
 const resolveStagedChoiceTracking = (
   descriptor: ConsoleAssistDescriptor | null,
   inputText: string,
+  options?: { forceManualOverride?: boolean },
 ): {
   stagedChoiceIndex: number | null
   isStagedChoiceManualOverride: boolean
@@ -361,7 +371,7 @@ const resolveStagedChoiceTracking = (
   if (normalizedInput.length === 0) {
     return {
       stagedChoiceIndex: 0,
-      isStagedChoiceManualOverride: false,
+      isStagedChoiceManualOverride: options?.forceManualOverride ?? false,
     }
   }
 
@@ -378,7 +388,7 @@ const resolveStagedChoiceTracking = (
   if (matchedIndex !== -1) {
     return {
       stagedChoiceIndex: matchedIndex,
-      isStagedChoiceManualOverride: false,
+      isStagedChoiceManualOverride: options?.forceManualOverride ?? false,
     }
   }
 
@@ -460,15 +470,19 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
   setInputText: (inputText, options) => {
     set((state) => {
       const activeDescriptor = getActiveAssistDescriptor(state)
+      const shouldForceManualOverride =
+        activeDescriptor !== null &&
+        options?.fromAssist !== true &&
+        (options?.startManualOverride === true || state.isStagedChoiceManualOverride)
       const nextTracking =
         activeDescriptor === null
           ? {
               stagedChoiceIndex: null,
               isStagedChoiceManualOverride: false,
             }
-          : options?.fromAssist === true
-            ? resolveStagedChoiceTracking(activeDescriptor, inputText)
-            : resolveStagedChoiceTracking(activeDescriptor, inputText)
+          : resolveStagedChoiceTracking(activeDescriptor, inputText, {
+              forceManualOverride: shouldForceManualOverride,
+            })
 
       return {
         inputText,
@@ -484,13 +498,12 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
     set((state) => {
       const activeDescriptor = getActiveAssistDescriptor(state)
       const descriptorDrivenInputText = getDescriptorDrivenInputText(state)
-      const nextInputText =
+      const shouldReplaceAssistedInput =
         activeDescriptor !== null &&
         !state.isStagedChoiceManualOverride &&
         descriptorDrivenInputText !== null &&
         normalizeChoiceToken(state.inputText) === normalizeChoiceToken(descriptorDrivenInputText)
-          ? value
-          : `${state.inputText}${value}`
+      const nextInputText = shouldReplaceAssistedInput ? value : `${state.inputText}${value}`
 
       return {
         inputText: nextInputText,
@@ -501,7 +514,10 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
               stagedChoiceIndex: null,
               isStagedChoiceManualOverride: false,
             }
-          : resolveStagedChoiceTracking(activeDescriptor, nextInputText)),
+          : resolveStagedChoiceTracking(activeDescriptor, nextInputText, {
+              forceManualOverride:
+                shouldReplaceAssistedInput || state.isStagedChoiceManualOverride,
+            })),
       }
     })
   },

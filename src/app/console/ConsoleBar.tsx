@@ -1,6 +1,8 @@
 import {
+  type ClipboardEvent as ReactClipboardEvent,
   useEffect,
   useRef,
+  Fragment,
   type FormEvent,
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
@@ -17,6 +19,7 @@ type ConsoleBarProps = {
   onCancelCommand?: () => void
   onCycleGuidedChoice?: (direction: 'previous' | 'next') => void
   treatSpaceAsSubmit?: boolean
+  onInputFocus?: () => void
 }
 
 export function ConsoleBar({
@@ -27,6 +30,7 @@ export function ConsoleBar({
   onCancelCommand,
   onCycleGuidedChoice,
   treatSpaceAsSubmit = false,
+  onInputFocus,
 }: ConsoleBarProps) {
   const barRef = useRef<HTMLDivElement | null>(null)
   const summaryChoicesViewportRef = useRef<HTMLSpanElement | null>(null)
@@ -56,8 +60,66 @@ export function ConsoleBar({
 
   const normalizeChoiceToken = (value: string): string => value.trim().toUpperCase()
 
+  type SummaryChoice = {
+    label: string
+    aliasHint: string | null
+  }
+
+  const normalizeCompactChoiceToken = (value: string): string =>
+    value.replace(/[^A-Za-z0-9]/g, '').toUpperCase()
+
+  const selectPreferredAliasHint = (label: string, aliases: string[]): string | null => {
+    const aliasCandidates = [...new Set(aliases.map(normalizeCompactChoiceToken).filter(Boolean))].sort(
+      (left, right) => left.length - right.length || left.localeCompare(right),
+    )
+
+    if (aliasCandidates.length > 0) {
+      return aliasCandidates[0] ?? null
+    }
+
+    const compactLabel = normalizeCompactChoiceToken(label)
+    if (compactLabel.length > 0 && compactLabel.length <= 3 && compactLabel === label.toUpperCase()) {
+      return compactLabel
+    }
+
+    return null
+  }
+
+  const renderChoiceLabelWithAliasHint = (choice: SummaryChoice) => {
+    const aliasHint = choice.aliasHint
+    if (aliasHint === null || aliasHint.length === 0) {
+      return choice.label
+    }
+
+    let aliasIndex = 0
+
+    return Array.from(choice.label).map((character, index) => {
+      const normalizedCharacter = /[A-Za-z0-9]/.test(character) ? character.toUpperCase() : null
+      const highlightCharacter =
+        normalizedCharacter !== null &&
+        aliasIndex < aliasHint.length &&
+        normalizedCharacter === aliasHint[aliasIndex]
+
+      if (highlightCharacter) {
+        aliasIndex += 1
+      }
+
+      return (
+      <Fragment key={`${choice}-${character}-${index}`}>
+        {highlightCharacter ? (
+          <span className="ConsoleBarSummaryChoiceAlias">{character}</span>
+        ) : (
+          character
+        )}
+      </Fragment>
+      )
+    })
+  }
+
   const buildStagedSummaryBreadcrumb = (session: ConsoleStagedNavigationSession): string[] => {
     switch (session.scopeId) {
+      case 'root':
+        return ['Root']
       case 'graphRoot':
       case 'graphSelected':
         return ['Graph']
@@ -85,7 +147,7 @@ export function ConsoleBar({
   ): {
     breadcrumb: string[]
     leadText: string
-    choices: string[]
+    choices: SummaryChoice[]
     activeChoiceIndex: number | null
   } | null => {
     const matchedPrompt = text.match(/^(.*?)\s*>\s*(Choose next)\s*\[(.*)\]$/)
@@ -123,7 +185,10 @@ export function ConsoleBar({
     return {
       breadcrumb: breadcrumbText.split('>').map((segment) => segment.trim()).filter(Boolean),
       leadText: ` > ${leadText}`,
-      choices,
+      choices: choices.map((choice) => ({
+        label: choice,
+        aliasHint: selectPreferredAliasHint(choice, []),
+      })),
       activeChoiceIndex: activeChoiceIndex === -1 ? null : activeChoiceIndex,
     }
   }
@@ -133,41 +198,40 @@ export function ConsoleBar({
       ? {
           breadcrumb: buildStagedSummaryBreadcrumb(stagedNavigationSession),
           leadText: ' > Choose next',
-          choices: stagedNavigationSession.validChoices.map((choice) => choice.label),
+          choices: stagedNavigationSession.validChoices.map((choice) => ({
+            label: choice.label,
+            aliasHint: selectPreferredAliasHint(choice.label, choice.aliases),
+          })),
           activeChoiceIndex: stagedChoiceIndex ?? 0,
         }
       : consolePromptSession !== null
         ? {
             breadcrumb: consolePromptSession.breadcrumb,
             leadText: ' > Enter value',
-            choices: [consolePromptSession.prefill],
+            choices: [
+              {
+                label: consolePromptSession.prefill,
+                aliasHint: selectPreferredAliasHint(consolePromptSession.prefill, []),
+              },
+            ],
             activeChoiceIndex:
               isStagedChoiceManualOverride || inputText.trim() !== consolePromptSession.prefill.trim()
                 ? null
                 : 0,
           }
-      : featureAssistDescriptor !== null && featureAssistDescriptor.choices.length > 0
+      : featureAssistDescriptor !== null
         ? {
             breadcrumb:
               featureAssistDescriptor.breadcrumb ?? [featureAssistDescriptor.label],
-            leadText: ' > Choose next',
-            choices: featureAssistDescriptor.choices.map((choice) => choice.label),
-            activeChoiceIndex: stagedChoiceIndex ?? 0,
+            leadText: featureAssistDescriptor.choices.length > 0 ? ' > Choose next' : '',
+            choices: featureAssistDescriptor.choices.map((choice) => ({
+              label: choice.label,
+              aliasHint: selectPreferredAliasHint(choice.label, choice.aliases),
+            })),
+            activeChoiceIndex:
+              featureAssistDescriptor.choices.length > 0 ? stagedChoiceIndex ?? 0 : null,
           }
       : parsePromptSummary(summaryText)
-
-  const guidedInputText =
-    stagedNavigationSession !== null && stagedNavigationSession.validChoices.length > 0
-      ? stagedNavigationSession.validChoices[stagedChoiceIndex ?? 0]?.label ??
-        stagedNavigationSession.validChoices[0]?.label ??
-        null
-      : consolePromptSession !== null
-        ? consolePromptSession.prefill
-      : featureAssistDescriptor !== null && featureAssistDescriptor.choices.length > 0
-        ? featureAssistDescriptor.choices[stagedChoiceIndex ?? 0]?.label ??
-          featureAssistDescriptor.choices[0]?.label ??
-          featureAssistDescriptor.prefill
-        : featureAssistDescriptor?.prefill ?? null
 
   useEffect(() => {
     const viewport = summaryChoicesViewportRef.current
@@ -184,7 +248,10 @@ export function ConsoleBar({
       block: 'nearest',
       inline: 'nearest',
     })
-  }, [activeSummary?.activeChoiceIndex, activeSummary?.choices.join('|')])
+  }, [
+    activeSummary?.activeChoiceIndex,
+    activeSummary?.choices.map((choice) => `${choice.label}:${choice.aliasHint ?? ''}`).join('|'),
+  ])
 
   const summary =
     activeSummary !== null ? (
@@ -210,12 +277,12 @@ export function ConsoleBar({
               <span className="ConsoleBarSummaryBracket">[</span>
               {activeSummary.choices.map((choice, index) => (
                 <span
-                  key={`${choice}-${index}`}
+                  key={`${choice.label}-${index}`}
                   className={`ConsoleBarSummaryChoice ${
                     index === activeSummary.activeChoiceIndex ? 'isActive' : ''
                   }`}
                 >
-                  {choice}
+                  {renderChoiceLabelWithAliasHint(choice)}
                   {index < activeSummary.choices.length - 1 ? (
                     <span className="ConsoleBarSummarySeparator">, </span>
                   ) : null}
@@ -284,10 +351,7 @@ export function ConsoleBar({
       !event.metaKey
     ) {
       event.preventDefault()
-      const shouldReplaceGuidedInput =
-        guidedInputText !== null &&
-        normalizeChoiceToken(inputText) === normalizeChoiceToken(guidedInputText)
-      setInputText(shouldReplaceGuidedInput ? event.key : `${inputText}${event.key}`)
+      setInputText(event.key, { startManualOverride: true })
       return
     }
     if (isGuidedInputActive && event.key === 'ArrowUp') {
@@ -338,6 +402,22 @@ export function ConsoleBar({
       resetHistoryNavigation()
       inputRef?.current?.blur()
     }
+  }
+
+  const handleInputPaste = (event: ReactClipboardEvent<HTMLInputElement>) => {
+    const isGuidedInputActive =
+      stagedNavigationSession !== null ||
+      consolePromptSession !== null ||
+      featureAssistDescriptor !== null
+    if (!isGuidedInputActive || isStagedChoiceManualOverride) {
+      return
+    }
+    const pastedText = event.clipboardData.getData('text')
+    if (pastedText.length === 0) {
+      return
+    }
+    event.preventDefault()
+    setInputText(pastedText, { startManualOverride: true })
   }
 
   const handleResizeStart = (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -430,6 +510,8 @@ export function ConsoleBar({
           value={inputText}
           onChange={(event) => setInputText(event.target.value)}
           onKeyDown={handleInputKeyDown}
+          onPaste={handleInputPaste}
+          onFocus={onInputFocus}
           onBlur={resetHistoryNavigation}
           placeholder="Type a command"
         />

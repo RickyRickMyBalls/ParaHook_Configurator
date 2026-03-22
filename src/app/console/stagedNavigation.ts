@@ -33,6 +33,7 @@ export type ConsoleStagedNavigationChoice = {
 }
 
 export type ConsoleStagedNavigationScopeId =
+  | 'root'
   | 'radioRoot'
   | 'graphRoot'
   | 'graphSelected'
@@ -284,6 +285,17 @@ const matchesChoice = (choice: ConsoleStagedNavigationChoice, normalizedToken: s
   normalizedToken === choice.canonicalToken || choice.aliases.includes(normalizedToken)
 
 const buildRootChoices = (): ConsoleStagedNavigationChoice[] => [ROOT_GRAPH_CHOICE, ROOT_RADIO_CHOICE]
+
+export const createConsoleRootSession = (): ConsoleStagedNavigationSession => ({
+  scopeId: 'root',
+  breadcrumb: ['Root'],
+  selections: {
+    graphDocumentId: null,
+    selectedNodeId: null,
+    sketchNodeId: null,
+  },
+  validChoices: buildRootChoices(),
+})
 
 const buildRadioRootChoices = (): ConsoleStagedNavigationChoice[] => [
   RADIO_ON_CHOICE,
@@ -782,6 +794,30 @@ export const submitConsoleStagedNavigationToken = (
       )
     }
     return createAdvanceResult(rootSession, submittedToken, matchedRootChoice)
+  }
+
+  if (session.scopeId === 'root') {
+    const rootChoices = buildRootChoices()
+    const matchedChoice =
+      rootChoices.find((choice) => matchesChoice(choice, normalizedToken)) ?? null
+    if (matchedChoice === null) {
+      return createInvalidResult({ ...session, validChoices: rootChoices }, submittedToken, rootChoices)
+    }
+    if (matchedChoice.canonicalToken === ROOT_RADIO_CHOICE.canonicalToken) {
+      const radioRootSession = createRadioRootSession()
+      return createAdvanceResult(radioRootSession, submittedToken, matchedChoice)
+    }
+    const rootSession = createGraphRootSession(context)
+    const graphAutoAdvance = resolveSingleGraphAutoAdvance(context)
+    if (graphAutoAdvance !== null) {
+      return createAdvanceResult(
+        graphAutoAdvance.session,
+        submittedToken,
+        matchedChoice,
+        graphAutoAdvance.autoSelections,
+      )
+    }
+    return createAdvanceResult(rootSession, submittedToken, matchedChoice)
   }
 
   if (session.scopeId === 'radioRoot') {

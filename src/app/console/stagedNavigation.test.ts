@@ -1,11 +1,43 @@
 import { describe, expect, it } from 'vitest'
 import {
   cancelConsoleStagedNavigationSession,
+  createConsoleRootSession,
   createConsoleStagedNavigationContext,
   submitConsoleStagedNavigationToken,
 } from './stagedNavigation'
 
 describe('stagedNavigation', () => {
+  it('creates a root staged session with Graph and Radio choices', () => {
+    const result = createConsoleRootSession()
+
+    expect(result.scopeId).toBe('root')
+    expect(result.breadcrumb).toEqual(['Root'])
+    expect(result.validChoices.map((choice) => choice.canonicalToken)).toEqual(['GRAPH', 'RADIO'])
+  })
+
+  it('advances from the explicit root session into graph and radio scopes', () => {
+    const context = createConsoleStagedNavigationContext([
+      { graphDocumentId: 'graph-document-1', name: 'Graph 1' },
+      { graphDocumentId: 'graph-document-2', name: 'Graph 2' },
+    ])
+
+    const graphResult = submitConsoleStagedNavigationToken(createConsoleRootSession(), 'graph', context)
+    const radioResult = submitConsoleStagedNavigationToken(createConsoleRootSession(), 'radio', context)
+
+    expect(graphResult).toMatchObject({
+      kind: 'advance',
+      session: {
+        scopeId: 'graphRoot',
+      },
+    })
+    expect(radioResult).toMatchObject({
+      kind: 'advance',
+      session: {
+        scopeId: 'radioRoot',
+      },
+    })
+  })
+
   it('accepts both graph and g as the same staged root token', () => {
     const context = createConsoleStagedNavigationContext([
       { graphDocumentId: 'graph-document-1', name: 'Graph 1' },

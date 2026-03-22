@@ -47,6 +47,16 @@ describe('RadioPanel', () => {
       isSeekable: true,
       isPlaying: true,
     })
+    useAudioSamplerStore.getState().setRadioWaveformState({
+      kind: 'limited',
+      sourceId: 'radio-soundcloud:https://soundcloud.com/keota-us/gusano',
+      sourceKind: 'soundcloud-widget',
+      durationSec: 120,
+      sampleCount: 512,
+      samples: [],
+      message: 'Detailed waveform unavailable for current source',
+      lastResolvedAt: 1,
+    })
   })
 
   it('renders the transport and sampler sections from canonical radio state', async () => {
@@ -57,6 +67,8 @@ describe('RadioPanel', () => {
     expect(container?.textContent).toContain('https://soundcloud.com/keota-us/gusano')
     expect(container?.textContent).toContain('Ready')
     expect(container?.textContent).toContain('0:30 / 2:00')
+    expect(container?.querySelector('.RadioWaveformStrip')).not.toBeNull()
+    expect(container?.querySelectorAll('.RadioWaveformStepMarker')).toHaveLength(16)
     expect(container?.querySelectorAll('.AudioSamplerStepCell')).toHaveLength(16)
     expect(container?.querySelectorAll('.AudioSamplerStepLock')).toHaveLength(16)
     expect(container?.textContent).toContain('Play')

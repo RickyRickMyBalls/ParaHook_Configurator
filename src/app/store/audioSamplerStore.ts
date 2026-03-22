@@ -9,6 +9,7 @@ import {
 export const DEFAULT_RADIO_URL = 'https://soundcloud.com/keota-us/gusano'
 export const DEFAULT_RADIO_SAMPLE_BURST_TIME = 0.1
 export const DEFAULT_SAMPLER_BPM = 96
+export const DEFAULT_RADIO_WAVEFORM_SAMPLE_COUNT = 512
 
 const SAMPLE_SLOT_COUNT = 2048
 
@@ -42,6 +43,19 @@ export type RadioTransportState = {
   durationSec: number
   isSeekable: boolean
   isPlaying: boolean
+}
+
+export type RadioWaveformKind = 'none' | 'limited' | 'exact'
+
+export type RadioWaveformState = {
+  kind: RadioWaveformKind
+  sourceId: string | null
+  sourceKind: RadioRuntimeSourceKind | 'none'
+  durationSec: number
+  sampleCount: number
+  samples: number[]
+  message: string | null
+  lastResolvedAt: number | null
 }
 
 export type RadioSeekRequest = {
@@ -87,6 +101,7 @@ export type AudioSamplerState = {
   radioRuntimeMessage: string | null
   radioRuntimeSourceKind: RadioRuntimeSourceKind
   radioTransport: RadioTransportState
+  radioWaveform: RadioWaveformState
   lastHandledBurstRequestId: number | null
   latestSeekRequest: RadioSeekRequest | null
   nextSeekRequestId: number
@@ -125,6 +140,8 @@ export type AudioSamplerState = {
     sourceKind?: RadioRuntimeSourceKind
   }) => void
   setRadioTransportState: (next: Partial<RadioTransportState>) => void
+  setRadioWaveformState: (next: RadioWaveformState) => void
+  clearRadioWaveformState: () => void
   requestRadioSeek: (timeSec: number) => RadioSeekRequest | null
   markRadioSeekHandled: (requestId: number | null) => void
   requestRadioReload: () => number | null
@@ -216,6 +233,8 @@ const createInitialState = (): Omit<
   | 'requestRadioBurst'
   | 'setRadioRuntimeState'
   | 'setRadioTransportState'
+  | 'setRadioWaveformState'
+  | 'clearRadioWaveformState'
   | 'requestRadioSeek'
   | 'markRadioSeekHandled'
   | 'requestRadioReload'
@@ -259,6 +278,16 @@ const createInitialState = (): Omit<
     durationSec: 0,
     isSeekable: false,
     isPlaying: false,
+  },
+  radioWaveform: {
+    kind: 'none',
+    sourceId: null,
+    sourceKind: 'none',
+    durationSec: 0,
+    sampleCount: DEFAULT_RADIO_WAVEFORM_SAMPLE_COUNT,
+    samples: [],
+    message: null,
+    lastResolvedAt: null,
   },
   lastHandledBurstRequestId: null,
   latestSeekRequest: null,
@@ -403,6 +432,32 @@ export const useAudioSamplerStore = create<AudioSamplerState>((set, get) => ({
         ...next,
       },
     }))
+  },
+  setRadioWaveformState: (next) => {
+    set({
+      radioWaveform: {
+        ...next,
+        sampleCount:
+          Number.isFinite(next.sampleCount) && next.sampleCount > 0
+            ? Math.max(1, Math.floor(next.sampleCount))
+            : DEFAULT_RADIO_WAVEFORM_SAMPLE_COUNT,
+        samples: Array.isArray(next.samples) ? next.samples : [],
+      },
+    })
+  },
+  clearRadioWaveformState: () => {
+    set({
+      radioWaveform: {
+        kind: 'none',
+        sourceId: null,
+        sourceKind: 'none',
+        durationSec: 0,
+        sampleCount: DEFAULT_RADIO_WAVEFORM_SAMPLE_COUNT,
+        samples: [],
+        message: null,
+        lastResolvedAt: null,
+      },
+    })
   },
   requestRadioSeek: (timeSec) => {
     const normalizedTimeSec = Number.isFinite(timeSec) ? Math.max(0, timeSec) : 0

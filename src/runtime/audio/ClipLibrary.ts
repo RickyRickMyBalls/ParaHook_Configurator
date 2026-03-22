@@ -39,6 +39,8 @@ export type RadioSourceDescriptor =
   | SoundCloudWidgetRadioSourceDescriptor
   | UnsupportedRadioSourceDescriptor
 
+export type RadioWaveformCapability = 'exact' | 'limited' | 'none'
+
 const normalizeSourceUrl = (sourceUrl: string): string =>
   sourceUrl.trim().length > 0 ? sourceUrl.trim() : DEFAULT_GUSANO_URL
 
@@ -121,5 +123,19 @@ export const resolveRadioSourceDescriptor = (sourceUrl: string): RadioSourceDesc
     kind: 'unsupported-url',
     isFallback: false,
     unsupportedReason: 'custom-url-unsupported',
+  }
+}
+
+export const resolveRadioWaveformCapability = (
+  descriptor: RadioSourceDescriptor,
+): RadioWaveformCapability => {
+  switch (descriptor.kind) {
+    case 'generated-tone':
+      return 'exact'
+    case 'soundcloud-widget':
+      return 'limited'
+    case 'unsupported-url':
+    default:
+      return 'none'
   }
 }

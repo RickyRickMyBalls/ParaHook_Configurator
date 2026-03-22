@@ -15,6 +15,7 @@ import {
   compileSpaghettiGraph,
   type CompileSpaghettiGraphResult,
 } from '../spaghetti/compiler/compileGraph'
+import { sketchFeatureSchema } from '../spaghetti/features/featureSchema'
 import { buildRequestFromBuildInputs } from '../spaghetti/integration/buildInputsToRequest'
 import { buildGraphPublishedContentSurface } from '../spaghetti/outputSurface'
 import { OUTPUT_PREVIEW_DEFAULT_COMPONENT_LABEL } from '../spaghetti/system/outputPreviewNode'
@@ -127,6 +128,34 @@ export type ProjectContentBrowserRowVm =
       rebuildGraphDocumentIds?: string[]
       statusLabel?: string
       statusTone?: 'quiet' | 'ready' | 'warning'
+    }
+  | {
+      rowId: string
+      kind: 'sketches-root'
+      label: string
+      meta: string
+      sketchCount: number
+    }
+  | {
+      rowId: string
+      kind: 'sketch'
+      label: string
+      meta: string
+      buildState?: ProjectContentBuildState
+      buildStateLabel?: string
+      rebuildGraphDocumentIds?: string[]
+      statusLabel?: string
+      statusTone?: 'quiet' | 'ready' | 'warning'
+      ownerGraphDocumentId: string
+      graphDocumentId: string
+      nodeId: string
+      featureId: string
+      plane: 'XY' | 'YZ' | 'XZ'
+      componentCount: number
+      profileCount: number
+      diagnosticsCount: number
+      authoringGraphDocumentId: string
+      authoringNodeId: string
     }
   | {
       rowId: string
@@ -400,6 +429,13 @@ const INITIAL_PROJECT_FILE_ID = 'project-file-1'
 const ROOT_ASSEMBLY_LABEL = 'Assembly 1'
 const REFERENCE_ROOT_ROW_ID = 'reference-root'
 const IMPORTED_REFERENCE_ROW_ID_PREFIX = 'reference-import'
+export const buildProjectSketchesRootRowId = (projectFileId: string): string =>
+  `project-sketches-root:${projectFileId}`
+export const buildProjectSketchBrowserRowId = (
+  graphDocumentId: string,
+  nodeId: string,
+  featureId: string,
+): string => `project-sketch:${graphDocumentId}:${nodeId}:${featureId}`
 const DEFAULT_COLLAPSED_REFERENCE_CATEGORY_IDS: ReferenceCategoryId[] = [
   'footpads',
   'shoes',
@@ -1802,6 +1838,7 @@ const selectProjectContentBuildState = (options: {
 export const selectCurrentProjectContentBrowserRows = (
   state: Pick<AppState, 'currentProject' | 'projectContent'> & {
     graphRuntimeByDocumentId: Record<string, GraphRuntimeState>
+    graphDocumentsById: Record<string, GraphDocument>
   },
 ): ProjectContentBrowserRowVm[] => {
   const rootAssembly = selectCurrentProjectRootAssembly(state)
@@ -2014,8 +2051,9 @@ export const selectCurrentProjectContentBrowserRows = (
     hasUnresolvedContent: assemblyHasUnresolvedContent,
     hasContent: assemblyHasContent,
   })
+  const rootAssemblyRow = rows[0] as Extract<ProjectContentBrowserRowVm, { kind: 'assembly' }>
   rows[0] = {
-    ...rows[0],
+    ...rootAssemblyRow,
     buildState: assemblyBuildState.buildState,
     buildStateLabel: assemblyBuildState.buildStateLabel,
     rebuildGraphDocumentIds: [...assemblyRebuildGraphDocumentIds],
@@ -2023,6 +2061,88 @@ export const selectCurrentProjectContentBrowserRows = (
     statusTone:
       !assemblyHasContent ? 'quiet' : assemblyHasUnresolvedContent ? 'warning' : 'ready',
   }
+
+  const sketchRows: Array<Extract<ProjectContentBrowserRowVm, { kind: 'sketch' }>> = []
+  state.currentProject.graphDocuments.forEach((documentEntry) => {
+    const graphDocument = state.graphDocumentsById[documentEntry.graphDocumentId]
+    if (graphDocument === undefined) {
+      return
+    }
+
+    let sketchIndex = 0
+    graphDocument.graph.nodes.forEach((node) => {
+      if (node.type !== 'Geometry/Sketch') {
+        return
+      }
+
+      const parsedSketch = sketchFeatureSchema.safeParse(node.params.sketch)
+      if (!parsedSketch.success) {
+        return
+      }
+
+      sketchIndex += 1
+      const feature = parsedSketch.data
+      const profileCount = feature.outputs.profiles.length
+      const diagnosticsCount = feature.outputs.diagnostics?.length ?? 0
+      const sketchBuildState = selectProjectContentBuildState({
+        graphRuntimeByDocumentId: state.graphRuntimeByDocumentId,
+        ownerGraphDocumentIds: [documentEntry.graphDocumentId],
+        hasUnresolvedContent: diagnosticsCount > 0,
+        hasContent: true,
+      })
+
+      const componentCount = feature.components.length
+      const statusLabel =
+        diagnosticsCount > 0 ? 'Diagnostics' : profileCount > 0 ? 'Ready' : 'Draft'
+      const statusTone =
+        diagnosticsCount > 0 ? 'warning' : profileCount > 0 ? 'ready' : 'quiet'
+      const sketchMeta = [
+        documentEntry.label,
+        feature.plane,
+        `${componentCount} comp${componentCount === 1 ? '' : 's'}`,
+        `${profileCount} profile${profileCount === 1 ? '' : 's'}`,
+      ].join(' | ')
+
+      sketchRows.push({
+        rowId: buildProjectSketchBrowserRowId(
+          documentEntry.graphDocumentId,
+          node.nodeId,
+          feature.featureId,
+        ),
+        kind: 'sketch',
+        label: `Sketch ${sketchIndex}`,
+        meta: sketchMeta,
+        buildState: sketchBuildState.buildState,
+        buildStateLabel: sketchBuildState.buildStateLabel,
+        rebuildGraphDocumentIds:
+          sketchBuildState.buildState === 'rebuild' ? [documentEntry.graphDocumentId] : [],
+        statusLabel,
+        statusTone,
+        ownerGraphDocumentId: documentEntry.graphDocumentId,
+        graphDocumentId: documentEntry.graphDocumentId,
+        nodeId: node.nodeId,
+        featureId: feature.featureId,
+        plane: feature.plane,
+        componentCount,
+        profileCount,
+        diagnosticsCount,
+        authoringGraphDocumentId: documentEntry.graphDocumentId,
+        authoringNodeId: node.nodeId,
+      })
+    })
+  })
+
+  if (sketchRows.length > 0) {
+    rows.push({
+      rowId: buildProjectSketchesRootRowId(state.currentProject.projectFileId),
+      kind: 'sketches-root',
+      label: 'Sketches',
+      meta: `${sketchRows.length} sketch${sketchRows.length === 1 ? '' : 'es'}`,
+      sketchCount: sketchRows.length,
+    })
+    rows.push(...sketchRows)
+  }
+
   return rows
 }
 

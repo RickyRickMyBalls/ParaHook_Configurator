@@ -3,6 +3,8 @@
 ## Doc Header
 
 ### Doc History
+4. 2026-03-21 10:04: Added `FM Voice` as a first-class early node candidate and documented why FM synthesis is a strong flagship generated-source direction for `Audio Patchbay`, especially because it matches ParaHook's broader generator identity and can reuse the same node-and-wire mental model as `Spaghetti`
+3. 2026-03-21 09:59: Added a docked-idea note explaining why the tempting `SoundCloud link -> direct stream -> proxy -> Audio Patchbay effects graph` path is not the current recommended direction, including the technical reason, the product/policy risk, and the reminder that mixing/transformation through SoundCloud public APIs appears to conflict with SoundCloud policy
 2. 2026-03-21 09:41: Locked the naming split so `Audio Patchbay` stays the umbrella architecture/system name while `Spaghetti Sounds` becomes the preferred UI-facing toolbar label inside that broader audio direction
 1. 2026-03-21 09:31: Created this architecture idea doc as the bigger umbrella vision beyond `Radio.md`, reframing the current radio/sampler work as one branch of a future node-and-wire audio editor that can grow toward a DAW-like ParaHook subsystem
 
@@ -197,6 +199,9 @@ The first likely node families are:
   - current radio/url source
   - generated tone/noise
   - later imported clips
+- `FM Voice`
+  - generated synth voice with carrier/modulator relationships
+  - strong first flagship sound-generation node
 - `Cue / Slice`
   - choose or randomize time regions inside a source
 - `Trigger`
@@ -232,6 +237,71 @@ The first likely node families are:
   - preview bus
   - analysis or meter node
 
+### FM Synth As A Flagship Generated Node
+
+`FM Voice` is one of the strongest first real patchbay nodes.
+
+Why it fits this project especially well:
+- it is generated sound, not borrowed media
+- we fully own the synthesis path
+- it matches ParaHook's broader generator identity
+- it creates a clean conceptual pairing with `Spaghetti`
+
+That pairing matters:
+- `Spaghetti` is graph-driven 3D/model generation
+- `Audio Patchbay` can become graph-driven sound generation
+- both systems then share the same core read:
+  - nodes create signals
+  - nodes transform signals
+  - wires route typed flow
+  - inspectors expose local controls
+
+This makes FM synthesis more than just "a cool instrument."
+
+It becomes proof that ParaHook can host multiple generator domains through one familiar authoring language.
+
+#### Why FM Is Better Than Chasing External Audio First
+
+Compared with trying to force third-party media into a deep effect graph, FM synthesis is cleaner because:
+- there is no provider policy problem
+- there is no widget/iframe ownership problem
+- there is no CORS/proxy dependency
+- timing and routing stay app-owned
+- the node graph remains honest from the first version
+
+This is a much better flagship path for `Audio Patchbay` than building around constrained external stream sources.
+
+#### First FM Node Read
+
+The first honest FM node does not need to be a full workstation synth.
+
+Good first controls:
+- carrier frequency
+- modulator ratio
+- modulation index
+- attack
+- decay
+- sustain
+- release
+- output gain
+
+Good first routing read:
+- `Sequencer` or trigger node sends note/event input
+- `FM Voice` generates the sound
+- `Gain` / `Mixer` shapes level
+- later `Filter`, `Delay`, or `Reverb` can sit after it
+- `Output` sends it to the master bus
+
+#### Product Direction Rule
+
+If `Audio Patchbay` needs one early node that proves the system is more than a toy, `FM Voice` is a strong candidate.
+
+Reason:
+- it demonstrates real sound generation
+- it reinforces the generator identity of the app
+- it benefits directly from the node-and-wire UI grammar
+- it avoids the policy and source-ownership traps of third-party streaming audio
+
 ### Wire Types
 
 The audio graph should not treat every wire the same.
@@ -249,6 +319,126 @@ Likely first wire classes:
 Important rule:
 - typed wire color/language should be obvious
 - audio wires should not be confused with control-rate values
+
+### Docked Idea - SoundCloud Link Through Proxy Into Full Effects Graph
+
+This idea is attractive on paper:
+- take a `SoundCloud` link
+- resolve it to a direct stream
+- pass that stream through a small proxy that adds permissive CORS headers
+- load it into our own `<audio>` / `AudioContext` path
+- then run `Filter`, `EQ`, `Delay`, `Pitch Shift`, `Phaser`, `Reverb`, and later nodes inside `Audio Patchbay`
+
+Technically, that general architecture can work for sources we honestly control.
+
+For example:
+- imported files
+- self-hosted audio
+- generated sources
+- direct streams that we are actually allowed to fetch and process in our own graph
+
+The problem is that `SoundCloud` is not just "any remote mp3."
+
+#### Why The Idea Seems Plausible
+
+The browser/audio-engine logic is real:
+- if we own the media element or decoded buffer
+- and the source is CORS-usable
+- and we can route it into our own `AudioContext`
+
+Then the normal Web Audio effect chain becomes possible.
+
+That means the DSP part is not the blocker.
+
+The blocker is source ownership and platform policy.
+
+#### Current Technical Limitation
+
+The current repo `SoundCloud` path is widget-style playback, not raw-source ownership.
+
+That means:
+- we can control transport-like behavior
+- we can ask the widget to play or seek
+- we do not honestly own the raw sample stream for a normal in-engine effect graph
+
+So the current `Radio`/`SoundCloud` seam is acceptable for:
+- playback
+- seek
+- burst/sampler-style triggering
+
+It is not the right foundation for:
+- a true filter chain
+- real EQ
+- delay feedback routing
+- phaser modulation
+- convolver reverb
+- true pitch-shift processing
+
+#### Why The Proxy Version Is Docked
+
+Even if we later find an API path that exposes a direct stream URL, the proposed proxy approach is currently docked.
+
+Reason:
+- the moment we resolve a `SoundCloud` stream into our own graph and process it through our own effects chain, we are no longer doing simple embedded player control
+- we are effectively transforming or remixing third-party streamed content through our own audio engine
+- that appears to conflict with `SoundCloud` public-API policy boundaries
+
+Important reminder for future-me:
+- `SoundCloud` public-API policy explicitly warns that the APIs cannot be used for some cases including mixing music from `SoundCloud` with other content, and also warns against downloading or storing content
+- a proxy that re-serves the stream to make it usable in our own effects graph is close enough to that risk that we should treat it as out-of-bounds unless `SoundCloud` explicitly authorizes it
+
+Current decision:
+- do not build `SoundCloud -> proxy -> Audio Patchbay FX graph` as a planned product path
+- do not treat it as an acceptable hidden workaround
+- if it ever comes up again, re-read this section first
+
+#### What This Means For Node Planning
+
+For `SoundCloud` sources:
+- `Radio` playback is still fine
+- sampler/sequencer behavior tied to transport windows is still fine
+- exact waveform detail may still be limited depending on provider data
+- full effect nodes should not assume `SoundCloud` is a controllable source
+
+For real `Audio Patchbay` nodes:
+- `Filter`
+- `EQ`
+- `Delay`
+- `Pitch Shift`
+- `Phaser`
+- `Reverb`
+
+These are still valid node goals.
+
+But they should be planned first against sources we truly control:
+- imported file source
+- self-hosted stream/source
+- generated/internal source
+
+#### Preferred Source Rule
+
+If `Audio Patchbay` grows into a real effects graph, the first-class effect-capable source types should be:
+- imported audio files
+- self-hosted or otherwise explicitly controllable streams
+- generated synth/noise/tone sources
+
+`SoundCloud` should remain:
+- a `Radio` personality/input source
+- a playback-oriented source
+- a constrained source with explicit provider limitations
+
+Not:
+- the primary legal/technical foundation for the patchbay effect graph
+
+#### Policy Warning
+
+As of `2026-03-21`, treat this as a policy-risk idea, not merely a technical TODO.
+
+If this idea is reconsidered later:
+- verify the current `SoundCloud` API terms again
+- verify whether direct stream access for this use case is explicitly allowed
+- verify whether proxying/re-serving the stream is allowed
+- do not assume that "possible in code" means "allowed as a product"
 
 ### Relationship To Spaghetti
 

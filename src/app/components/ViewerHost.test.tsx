@@ -18,6 +18,7 @@ let viewerSetGeometrySketchOverlay: ReturnType<typeof vi.fn>
 let viewerSetSketchPlanePickOverlay: ReturnType<typeof vi.fn>
 let viewerSetOnSketchPlanePickPlaneSelect: ReturnType<typeof vi.fn>
 let viewerSetOnSketchPlanePickTransformChange: ReturnType<typeof vi.fn>
+let viewerSetOnSketchPlanePickTransformCommit: ReturnType<typeof vi.fn>
 let viewerSetOnGeometrySketchHoverPoint: ReturnType<typeof vi.fn>
 let viewerSetOnGeometrySketchConfirmPoint: ReturnType<typeof vi.fn>
 let viewerSetOnGeometrySketchFinishDraft: ReturnType<typeof vi.fn>
@@ -66,6 +67,8 @@ vi.mock('../../viewer/Viewer', () => ({
       viewerSetOnSketchPlanePickPlaneSelect(...args)
     public setOnSketchPlanePickTransformChange = (...args: unknown[]) =>
       viewerSetOnSketchPlanePickTransformChange(...args)
+    public setOnSketchPlanePickTransformCommit = (...args: unknown[]) =>
+      viewerSetOnSketchPlanePickTransformCommit(...args)
   },
 }))
 
@@ -127,6 +130,7 @@ describe('ViewerHost reference loading', () => {
     viewerSetSketchPlanePickOverlay = vi.fn()
     viewerSetOnSketchPlanePickPlaneSelect = vi.fn()
     viewerSetOnSketchPlanePickTransformChange = vi.fn()
+    viewerSetOnSketchPlanePickTransformCommit = vi.fn()
     viewerSetOnGeometrySketchHoverPoint = vi.fn()
     viewerSetOnGeometrySketchConfirmPoint = vi.fn()
     viewerSetOnGeometrySketchFinishDraft = vi.fn()
@@ -535,6 +539,7 @@ describe('ViewerHost reference loading', () => {
     )
     expect(viewerSetOnSketchPlanePickPlaneSelect).toHaveBeenCalledWith(expect.any(Function))
     expect(viewerSetOnSketchPlanePickTransformChange).toHaveBeenCalledWith(expect.any(Function))
+    expect(viewerSetOnSketchPlanePickTransformCommit).toHaveBeenCalledWith(expect.any(Function))
 
     const planeSelectHandler = viewerSetOnSketchPlanePickPlaneSelect.mock.calls.at(-1)?.[0] as
       | ((plane: 'XY' | 'XZ' | 'YZ') => void)
@@ -574,5 +579,20 @@ describe('ViewerHost reference loading', () => {
         rotationDeg: { x: 0, y: 30, z: 45 },
       },
     })
+
+    const transformCommitHandler =
+      viewerSetOnSketchPlanePickTransformCommit.mock.calls.at(-1)?.[0] as (() => void) | null
+
+    act(() => {
+      transformCommitHandler?.()
+    })
+
+    expect(useSpaghettiStore.getState().sketchPlanePickSession?.transformHistory).toEqual([
+      {
+        entryId: 'sketch-plane-history-1',
+        point: { x: 12, y: -4, z: 8 },
+        locked: false,
+      },
+    ])
   })
 })

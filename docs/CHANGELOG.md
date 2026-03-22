@@ -65,6 +65,527 @@ Do not use it for:
 
 ## Doc Body
 
+### [528] - 2026-03-21 23:38 - `SP - Phase 3.2B-DrawSketch-2 - Multi-Step Tool Sessions And Commit Rules`
+<!-- ENTRY 528 -->
+HUMAN SUMMARY: Landed the first real multi-step `Sketch Draw` command pass for `Line` and `PLine`. Draw sessions now support hybrid viewport-plus-console point entry, live `P1 / P2 / P3` status readout in the console summary, local `Previous` / `undo`, and direct cancel-to-idle behavior instead of the older one-off point-drop flow.
+
+#### Scope / Constraints Honored
+- Kept the implementation scoped to `Line` and `PLine`.
+- Preserved viewer-owned hover and preview geometry.
+- Did not broaden this phase into later editing breadth, endpoint chaining, or additional geometry tools.
+
+#### Summary of Implementation
+- Extended sketch draw session state to remember the last used draw tool and support local `previous` / `p` and `undo` commands.
+- Reworked `Line` so the second confirmed point or empty `Enter` after `P1` commits the line and returns the draw session to idle.
+- Reworked `PLine` so point picks remain temporary until explicit finish, and empty `Enter` only finishes once at least two points exist.
+- Added typed `Vec2` console submission for active `Line` and `PLine` commands so numeric points and viewport clicks share one point-confirm seam.
+- Updated the console top summary to show live draw breadcrumbs like `... > P2 > Vec(N,N)` without forcing hovered values into the real input field.
+- Updated the draw overlay prompt/action state to reflect the new `Line` / `PLine` finish rules.
+
+#### Files Changed
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+- `src/app/console/ConsoleBar.tsx`
+- `src/app/console/useConsoleStore.ts`
+- `src/app/components/ViewportOverlay.tsx`
+- `src/app/components/ViewportOverlay.test.tsx`
+
+#### Behavior Changes (if any)
+- `Line` now ends back at idle `Sketch Draw` after commit instead of staying armed.
+- `PLine` now finishes on empty `Enter` only after at least two committed points.
+- `Esc` and `Back` now cancel the active draw tool directly to idle instead of stepping through the older two-stage clear path.
+- `Previous` / `P` now re-arms the last used draw tool with a fresh draft.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- Ran `npm.cmd test -- --run src/app/console/ConsoleDock.test.tsx`
+- Ran `npm.cmd test -- --run src/app/components/ViewportOverlay.test.tsx`
+
+### [527] - 2026-03-21 22:46 - `SP - Phase 3.2B-S8 - Move Again Same-Scope Gizmo Re-Arm Fix`
+<!-- ENTRY 527 -->
+HUMAN SUMMARY: Fixed `Move Again` after a mouse-driven sketch-plane move release when the session was still already inside `Sketch Plane > Move`. The viewport now treats re-arm as an explicit activation request instead of assuming the existing `move/free` state means the gizmo is already active. 
+
+#### Scope / Constraints Honored
+- Kept the fix local to sketch-plane live transform re-arming.
+- Preserved the existing `Move Again` command surface and history behavior.
+- Did not change console focus rules or broaden the input-routing model.
+
+#### Summary of Implementation
+- Added a sketch-plane live transform activation nonce to the session state.
+- Incremented that nonce whenever move/rotate live transform modes are explicitly re-armed.
+- Updated the viewport live transform activation effect to key off the nonce in addition to scope and axis.
+- Added a regression covering `move -> gizmo release -> move-again` from the same move scope.
+
+#### Files Changed
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/components/ViewportOverlay.tsx`
+- `src/app/components/ViewportOverlay.test.tsx`
+
+#### Behavior Changes (if any)
+- After `G > S > SP > M`, dragging and releasing the gizmo no longer prevents `Move Again` from re-arming whole move in the same scope.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/components/ViewportOverlay.test.tsx src/app/spaghetti/store/useSpaghettiStore.test.ts`
+
+### [526] - 2026-03-21 23:18 - `SP - Phase 3.2B-S7 - Gizmo Release History Append`
+<!-- ENTRY 526 -->
+HUMAN SUMMARY: Sketch-plane transform history now records mouse/gizmo move releases in addition to explicit move accepts. Releasing a moved sketch-plane gizmo appends the landed point to history and advances the next active move baseline without duplicating unchanged drafts or canceled drags.
+
+#### Scope / Constraints Honored
+- Kept the change local to the existing sketch-plane transform-history seam.
+- Reused the viewer-host and transform-gizmo callback path instead of inventing a second mouse history system.
+- Preserved explicit accept behavior while avoiding duplicate history rows for the same landed draft.
+
+#### Summary of Implementation
+- Added a transform-gizmo drag-complete callback that fires only when the attached object actually changed and the drag was not canceled.
+- Routed sketch-plane gizmo drag completion through the viewer and viewer-host into a store action that appends transform-history from the current draft translation.
+- Advanced the sketch-plane move baseline to the released draft transform so subsequent guide segments start from the new landed point.
+- Added direct store and viewer-host regressions covering release-appended history and duplicate suppression.
+
+#### Files Changed
+- `src/viewer/gizmo/TransformGizmo.ts`
+- `src/viewer/Viewer.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/components/ViewerHost.test.tsx`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+
+#### Behavior Changes (if any)
+- Releasing a moved sketch-plane gizmo now creates a transform-history entry even before an explicit console/toolbar accept.
+- Canceled or unchanged gizmo drags do not create history rows.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/spaghetti/store/useSpaghettiStore.test.ts src/app/components/ViewerHost.test.tsx src/app/components/ViewportOverlay.test.tsx`
+
+### [525] - 2026-03-21 22:24 - `SP - Phase 3.2B-S7 - SketchPlane Transform History`
+<!-- ENTRY 525 -->
+HUMAN SUMMARY: Added persistent sketch-plane transform history so committed move accepts now build a readable path from origin instead of only showing the latest guide segment. The sketch-plane toolbar now shows signed-diff history rows with `Lock` and destructive `Merge History`, while the viewport draws the same committed point-to-point path and restores it when the user re-enters `SketchPlane`.
+
+#### Scope / Constraints Honored
+- Kept the phase focused on committed sketch-plane translation history.
+- Reused the existing sketch-plane session, overlay, and viewer-helper seams instead of adding a separate history system.
+- Did not widen the work into rotation history, authored export/browser metadata, or undo/redo redesign.
+
+#### Summary of Implementation
+- Added sketch-plane transform-history storage to sketch feature `uiState` and the live `sketchPlanePickSession`.
+- Appended one committed history point per accepted move command, while skipping no-op accepts.
+- Persisted and restored transform history when finishing/re-entering the sketch-plane workflow.
+- Added a `Transform History` toolbar section with `Origin`, signed diff rows, `Lock` toggles, and a disabled-when-trivial `Merge History` action.
+- Published committed history points to the viewer overlay and drew point-to-point committed path segments alongside the existing active move guide.
+
+#### Files Changed
+- `src/app/spaghetti/features/featureTypes.ts`
+- `src/app/spaghetti/features/featureSchema.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/viewerBridge.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewportOverlay.tsx`
+- `src/viewer/sketch/SketchPlanePickHelper.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `src/app/components/ViewportOverlay.test.tsx`
+- `src/viewer/sketch/SketchPlanePickHelper.test.ts`
+
+#### Behavior Changes (if any)
+- `SketchPlane` now keeps a persistent committed transform-history chain instead of only the latest move baseline.
+- The sketch-plane toolbar now shows `Transform History` rows and supports `Lock` plus `Merge History`.
+- Re-entering `SketchPlane` restores the same committed history path for the current placement.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/spaghetti/store/useSpaghettiStore.test.ts src/app/components/ViewportOverlay.test.tsx src/viewer/sketch/SketchPlanePickHelper.test.ts`
+
+### [524] - 2026-03-21 22:00 - `SP - Phase 3.2B-S8 - Viewport Move Again Shortcut Scope Fix`
+<!-- ENTRY 524 -->
+HUMAN SUMMARY: Fixed the viewport `M` shortcut so it respects the current sketch-plane move scope after a mouse-driven transform commit. After clicking to finish a move, pressing `M` now re-enters whole move correctly instead of silently doing nothing when the session is back at sketch-plane root with translate still active.
+
+#### Scope / Constraints Honored
+- Kept the fix local to the sketch-plane viewport shortcut path.
+- Preserved the new `Move Again` behavior inside `Sketch Plane > Move`.
+- Did not change console parsing or the shared move-session store semantics beyond the viewport trigger condition.
+
+#### Summary of Implementation
+- Made the sketch-plane viewport `m` key handler scope-aware.
+- When already inside `Sketch Plane > Move`, `m` now triggers `move-again`.
+- When back at sketch-plane root after an accepted move, `m` now reliably re-enters `move` even if translate remains the last gizmo mode.
+- Added a viewport regression covering `accept transform -> press m -> move re-arms`.
+
+#### Files Changed
+- `src/app/components/ViewportOverlay.tsx`
+- `src/app/components/ViewportOverlay.test.tsx`
+
+#### Behavior Changes (if any)
+- After a mouse-driven move accept/click, viewport `M` now re-arms move correctly from sketch-plane root.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/components/ViewportOverlay.test.tsx src/app/console/ConsoleDock.test.tsx src/app/spaghetti/store/useSpaghettiStore.test.ts`
+
+### [523] - 2026-03-21 19:29 - `SP - Phase 3.2B-S8 - SketchPlane Move Again Re-Arm`
+<!-- ENTRY 523 -->
+HUMAN SUMMARY: Added a local `Move Again` action inside `Sketch Plane > Move`, with `M` as the in-scope console alias. Whole-vector move can now be re-armed from the current committed sketch-plane position without backing out of the move scope or resetting to origin.
+
+#### Scope / Constraints Honored
+- Kept the change local to the existing sketch-plane move family instead of folding it into transform history work.
+- Preserved the existing root-level `m -> move` behavior outside the `Sketch Plane > Move` scope.
+- Reused the same move re-arm path for toolbar and console entry instead of splitting behavior by surface.
+
+#### Summary of Implementation
+- Added `move-again` as a sketch-plane command and routed it through the same move-session setup used by the existing whole-vector move command.
+- Exposed `Move Again` in the sketch-plane move console choices and taught the move-scope parser to treat `m` as `move-again` only while already inside `Sketch Plane > Move`.
+- Added a `Move Again` toolbar action beside the move controls so the viewport surface and console both re-arm the same live move behavior.
+
+#### Files Changed
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/components/ViewportOverlay.tsx`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `src/app/console/ConsoleDock.test.tsx`
+- `src/app/components/ViewportOverlay.test.tsx`
+
+#### Behavior Changes (if any)
+- `Sketch Plane > Move` now shows `Move Again` as an explicit local choice.
+- Inside `Sketch Plane > Move`, `M` now re-arms whole-vector move from the current committed point.
+- The move prompt now includes `Move Again` alongside `Vec3`, `Move X`, `Move Y`, `Move Z`, `Snap`, and `Back`.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/console/ConsoleDock.test.tsx src/app/components/ViewportOverlay.test.tsx src/app/spaghetti/store/useSpaghettiStore.test.ts`
+
+<!-- ENTRY 522 -->
+### [522] - 2026-03-21 18:27 - `CONSOLE - Phase 4.1P - Guided Root Session`
+<!-- ENTRY 522 -->
+HUMAN SUMMARY: Promoted console root into a real guided layer with immediate `Graph` prefill, root-level cycling, and shared guided submit behavior. Root now returns as a real staged scope instead of dropping back to a transcript-only null state, while `Esc` at root still allows a temporary plain-root opt-out.
+
+#### Scope / Constraints Honored
+- Kept root behavior inside the existing staged-navigation, console store, and dock seams.
+- Preserved plain-root fallback after `Esc` instead of forcing root to stay guided forever.
+- Kept root compatible with flat typed commands so manual entries like `help`, `status`, and `m` still work from root.
+
+#### Summary of Implementation
+- Added a first-class `root` staged session with `Graph` and `Radio` choices in the staged-navigation model.
+- Reworked dock root hydration so the console re-seeds guided root when it is truly idle, but does not overwrite active feature sessions, prompt sessions, or manual input.
+- Updated root return paths from graph/radio/workspace sync to restore the guided root session instead of clearing back to `null`.
+- Let root coexist with flat command entry by only treating root submissions as staged navigation when the input matches a real root choice.
+
+#### Files Changed
+- `src/app/console/stagedNavigation.ts`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/ConsoleBar.tsx`
+- `src/app/console/stagedNavigation.test.ts`
+- `src/app/console/useConsoleStore.test.ts`
+- `src/app/console/ConsoleDock.test.tsx`
+
+#### Behavior Changes (if any)
+- Root now behaves like other guided layers: it pre-fills `Graph`, supports arrow cycling, and can be committed with `Enter` or `Space`.
+- Returning to root from graph/radio/session-clear paths now lands on a real guided root scope.
+- `Esc` from guided root still exits to a plain prompt, and refocusing the console rehydrates guided root.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/console/ConsoleDock.test.tsx src/app/console/useConsoleStore.test.ts src/app/console/stagedNavigation.test.ts src/app/inputRouting.test.ts src/app/components/ViewportOverlay.test.tsx src/app/spaghetti/store/useSpaghettiStore.test.ts`
+
+<!-- ENTRY 521 -->
+### [521] - 2026-03-21 18:12 - `CONSOLE - Phase 4.1P - Guided Viewport Commit Keys`
+<!-- ENTRY 521 -->
+HUMAN SUMMARY: `Enter` and `Space` now commit the active guided console choice even after focus moves back into the viewport. This keeps staged console flows in-line without restoring the old sketch-plane viewport shortcut behavior.
+
+#### Scope / Constraints Honored
+- Kept submit ownership in the shared console path instead of reintroducing a sketch-plane-only viewport `Enter` shortcut.
+- Limited the change to guided console commit routing and its targeted regressions.
+- Preserved the store-side `ConfirmToSketch` root guard that blocks accidental transitions from child sketch-plane scopes.
+
+#### Summary of Implementation
+- Extended global console key handling so guided submit remains available when a staged session, console prompt, or feature-assist descriptor is active and viewport focus has left the input.
+- Wired `Space` into the same viewport-focus guided submit path as `Enter`.
+- Fixed the staged-navigation regressions by advancing the new tests stepwise through the real guided selection flow.
+
+#### Files Changed
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+- `src/app/inputRouting.ts`
+- `src/app/inputRouting.test.ts`
+
+#### Behavior Changes (if any)
+- Pressing `Enter` after clicking back into the viewport now submits the current guided console choice when an in-line guided console session is active.
+- Pressing `Space` does the same guided submit for staged and assisted console choices.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/console/ConsoleDock.test.tsx src/app/inputRouting.test.ts src/app/components/ViewportOverlay.test.tsx src/app/spaghetti/store/useSpaghettiStore.test.ts`
+
+<!-- ENTRY 520 -->
+### [520] - 2026-03-21 17:50 - `SP - Phase 3.2B-S6 - Move Command Origin Guide`
+<!-- ENTRY 520 -->
+HUMAN SUMMARY: Kept the sketch-plane move baseline from visually falling back to origin after each accepted move. The viewer now carries the last committed move point forward as a visible start marker and guide line while the user stays inside `SketchPlane > Move`.
+
+#### Scope / Constraints Honored
+- Kept the fix inside the existing sketch-plane move session and viewer overlay seams.
+- Reused the shipped `transformCommandOrigin` store state instead of inventing a second move-baseline model.
+- Limited the change to move-guide visualization and did not widen it into new command grammar or transform-session behavior.
+
+#### Summary of Implementation
+- Extended the sketch-plane viewer overlay VM so the viewer receives the current move command origin transform and whether the move guide should be shown.
+- Updated the sketch-plane pick helper to render a dedicated move-origin marker plus a guide line from the last committed move point to the current draft translation.
+- Scoped that guide to the move and move-axis adjust surfaces so it appears where repeated move edits happen and stays hidden elsewhere.
+- Added a focused helper regression test covering non-origin move anchors.
+
+#### Files Changed
+- `src/app/viewerBridge.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/viewer/sketch/SketchPlanePickHelper.ts`
+- `src/viewer/sketch/SketchPlanePickHelper.test.ts`
+
+#### Behavior Changes (if any)
+- After finishing one move and returning to `SketchPlane > Move`, the visible move start anchor now stays at the last committed translation instead of implying origin.
+- While the user continues moving the sketch plane, the viewport now shows a start marker and guide line from that committed move point to the current draft position.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/viewer/sketch/SketchPlanePickHelper.test.ts src/app/components/ViewportOverlay.test.tsx src/app/console/ConsoleDock.test.tsx`
+
+<!-- ENTRY 519 -->
+### [519] - 2026-03-21 13:17 - `SP - Phase 3.2B-S6 - SketchPlane Move Axis Numeric Entry`
+<!-- ENTRY 519 -->
+HUMAN SUMMARY: Deepened `SketchPlane > Move` into real axis child leaves instead of shallow aliases. `Move > X / Y / Z` now have honest console breadcrumbs, float-only entry, shared overlay activation, snap-aware off-snap confirmation, and automatic return to the parent `Move` scope after commit.
+
+#### Scope / Constraints Honored
+- Kept the work inside the existing sketch-plane session family instead of widening into broader transform grammar redesign.
+- Reused the shipped shared sketch-command and assisted-prefill seams instead of forking new console-only behavior.
+- Limited the new child-leaf behavior to move-axis entry and did not widen the pass into rotate-axis hierarchy work.
+
+#### Summary of Implementation
+- Added a real `move-axis` adjust scope in the sketch-plane session store with pending off-snap confirmation state and one-level return behavior back to `Move`.
+- Extended the console feature-assist descriptor and submit path so `Sketch Plane > Move > X / Y / Z` render as float-entry leaves that accept signed and shorthand decimal literals.
+- Added one extra `confirm / deny` prompt for typed off-snap values instead of silently rounding or rejecting them.
+- Kept live axis dragging active while inside axis leaves and routed overlay `Move X / Y / Z` slider activation through that same leaf state.
+
+#### Files Changed
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+- `src/app/components/ViewportOverlay.tsx`
+- `src/app/components/ViewportOverlay.test.tsx`
+- `src/app/components/ParaSlider.tsx`
+
+#### Behavior Changes (if any)
+- `Move X / Y / Z` now enter real child levels under `SketchPlane > Move` instead of acting as shallow axis shortcuts.
+- Typing a float inside one of those leaves applies that axis value on `Enter` and returns to the parent `Move` scope.
+- When move snap is enabled, typed off-snap axis values now require one extra `confirm / deny` step before the exact number is applied.
+- Starting drag or value edit from the overlay `Move X / Y / Z` rows now enters the same move-axis leaf state as console navigation.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/spaghetti/store/useSpaghettiStore.test.ts src/app/console/ConsoleDock.test.tsx src/app/components/ViewportOverlay.test.tsx src/app/components/ParaSlider.test.tsx`
+
+<!-- ENTRY 518 -->
+### [518] - 2026-03-21 13:11 - `DOC - Phase 14 - Move Current Page Header Tree To Right Sidebar`
+<!-- ENTRY 518 -->
+HUMAN SUMMARY: `Moved the current-page heading tree out of the left navigation and back into Material's standard right-side table of contents. The left sidebar now stays focused on the browseable docs tree, while the right sidebar provides the in-page header jump list down through the deeper heading levels.` 
+
+#### Scope / Constraints Honored
+- Kept the change narrowly focused on TOC placement instead of changing the docs tree publication scope.
+- Preserved the full non-archive inferred docs navigation in the left sidebar.
+- Kept `toc.follow` so the active in-page heading still tracks while scrolling.
+
+#### Summary of Implementation
+- Removed `toc.integrate` from `mkdocs.yml`.
+- Left `toc.follow` enabled so the standard page TOC continues to follow the active section.
+- Updated `docs/Phase-Plans/mkDocs.md` so the planning note reflects the live right-side TOC behavior.
+
+#### Files Changed
+- `mkdocs.yml`
+- `docs/Phase-Plans/mkDocs.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+- The left sidebar now shows the docs tree only.
+- The current page's headings and subheadings appear in the standard right-side table of contents.
+- Users can browse pages from the left and jump within the current page from the right.
+
+#### Verification Steps
+- Ran `python -m mkdocs build`.
+- Verified the generated page HTML includes the secondary sidebar/table-of-contents surface for the current page.
+
+<!-- ENTRY 517 -->
+### [517] - 2026-03-21 13:06 - `DOC - Phase 14 - Expand MkDocs Nav To All Non-Archive Docs`
+<!-- ENTRY 517 -->
+HUMAN SUMMARY: `Expanded the live MkDocs site from the tiny two-page starter nav to the full non-archive \`/docs\` tree, excluding both top-level and nested archive folders from publication. The sidebar can now be used as the primary browse surface for the repo docs instead of forcing navigation through search or a minimal hand-written nav.` 
+
+#### Scope / Constraints Honored
+- Kept the change focused on site navigation and publication scope instead of mixing it with theme, branding, or hosting work.
+- Excluded archive folders from publication while leaving the rest of the `docs` tree publishable.
+- Preserved the existing heading-tree behavior for long-form pages.
+
+#### Summary of Implementation
+- Removed the tiny hand-written `nav` block from `mkdocs.yml`.
+- Added archive exclusion patterns so the site publishes the full inferred `/docs` tree except archive folders.
+- Updated `docs/Phase-Plans/mkDocs.md` so the planning note records the live navigation behavior rather than leaving the old tiny-nav description unqualified.
+
+#### Files Changed
+- `mkdocs.yml`
+- `docs/Phase-Plans/mkDocs.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+- The MkDocs sidebar now exposes the full non-archive docs tree.
+- Users can browse pages through the left navigation instead of relying on search or only two curated entries.
+- Navigation order is now inferred from the docs folder structure rather than manually curated in `mkdocs.yml`.
+
+#### Verification Steps
+- Ran `python -m mkdocs build`.
+- Ran `python -m mkdocs serve --dev-addr 127.0.0.1:8001` and confirmed the site started with the expanded inferred navigation.
+
+<!-- ENTRY 516 -->
+### [516] - 2026-03-21 12:35 - `DOC - Phase 14 - MkDocs Baseline Setup`
+<!-- ENTRY 516 -->
+HUMAN SUMMARY: `Landed the first working MkDocs documentation surface for the repo, adding a root \`mkdocs.yml\`, a small docs landing page, a reproducible docs dependency file, and a \`site/\` ignore rule for generated output. The initial site intentionally publishes only \`Home\` plus the long-form \`MkDocs Plan\` page, while Material's integrated current-page heading tree now provides section jumping without requiring HTML wrappers in every doc.` 
+
+#### Scope / Constraints Honored
+- Kept the rollout to the bounded Phase 1 baseline instead of expanding into full docs-tree publication, branding, or hosting work.
+- Used the smaller locked config baseline from the planning doc rather than the richer candidate block that would have required extra assets and decisions.
+- Preserved the repo tracking rules by recording both the implementation/config change and the associated docs maintenance.
+
+#### Summary of Implementation
+- Added `mkdocs.yml` at the repo root with a curated nav, Material theme, `toc.follow`, `toc.integrate`, and a minimal Markdown/plugin baseline.
+- Added `docs/index.md` as the first published landing page for the docs site.
+- Added `requirements-docs.txt` so the docs-site dependency install path is reproducible.
+- Added `site` to `.gitignore` so local MkDocs build output does not pollute the repo worktree.
+- Updated `docs/Phase-Plans/mkDocs.md` to mark Phase 1 complete after implementation and verification.
+
+#### Files Changed
+- `mkdocs.yml`
+- `requirements-docs.txt`
+- `.gitignore`
+- `docs/index.md`
+- `docs/Phase-Plans/mkDocs.md`
+- `docs/Doc-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+- The repo now has a working MkDocs site configuration rooted at `mkdocs.yml`.
+- The initial site nav exposes `Home` and `Phase Plans > MkDocs Plan`.
+- The current page heading tree can be integrated into the left sidebar for long-form docs like `mkDocs.md`.
+
+#### Verification Steps
+- Ran `python -m pip install -r requirements-docs.txt`.
+- Ran `python -m mkdocs build`.
+- Ran `python -m mkdocs serve --dev-addr 127.0.0.1:8001` and confirmed the local dev server started successfully.
+
+<!-- ENTRY 515 -->
+### [515] - 2026-03-21 12:23 - `SP - Phase 3.2B-6 - Sketch Content Ownership And Later Export`
+<!-- ENTRY 515 -->
+HUMAN SUMMARY: `Landed the first browser/content ownership cut for sketches, so authored \`Geometry/Sketch\` nodes now surface under a real \`Sketches\` browser family instead of only living inside node-local editing UI. Each sketch row now carries authored-content summary state and can jump back to its source graph node, while later vector export such as \`.dxf\` remains intentionally deferred.` 
+
+#### Scope / Constraints Honored
+- Kept the implementation to the first honest ownership/browser cut instead of pretending the later export story was ready.
+- Reused the existing Browser tree, workspace-intent, and graph-node focus seams instead of inventing a separate sketch-only browser system.
+- Left `.dxf` and other concrete vector export behavior out of this pass.
+
+#### Summary of Implementation
+- Extended `src/app/store/useAppStore.ts` so project content rows now derive authored sketch content from `Geometry/Sketch` nodes and publish a top-level `Sketches` family plus per-sketch rows.
+- Extended `src/app/panels/selectBrowserTreeRows.ts` so the Browser renders those sketch rows as a real collapsible content tree instead of ignoring them.
+- Updated `src/app/panels/BrowserPanel.tsx` and `src/app/panels/browserRowActions.ts` so selecting or opening a sketch row routes back through the shared graph-node focus path.
+- Added targeted regressions covering derived sketch browser rows, rendered `Sketches` tree structure, and Browser row selection behavior.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/panels/selectBrowserTreeRows.ts`
+- `src/app/panels/browserRowActions.ts`
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/store/useAppStore.test.ts`
+- `src/app/panels/selectBrowserTreeRows.test.ts`
+- `src/app/panels/BrowserPanel.test.tsx`
+
+#### Behavior Changes (if any)
+- The Browser now shows a `Sketches` content family for authored `Geometry/Sketch` nodes.
+- Each sketch row shows authored-content summary state such as graph, plane, component/profile counts, and diagnostics-driven status.
+- Sketch rows no longer act like hidden internal authoring state; clicking them can return the user directly to the source graph node.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/store/useAppStore.test.ts src/app/panels/selectBrowserTreeRows.test.ts src/app/panels/BrowserPanel.test.tsx`.
+
+<!-- ENTRY 514 -->
+### [514] - 2026-03-21 11:33 - `CO - Phase 4.1P - Assisted Prefill Replace-On-Type Across Levels`
+<!-- ENTRY 514 -->
+HUMAN SUMMARY: `Landed the shared assisted-follow override rule in the console input seam, so staged choices and feature-session descriptors now replace assisted prefill on the first printable key instead of appending to it. The console also keeps manual override active until explicit assisted re-entry, supports focused paste replacement, and treats idle feature-assist sessions like real guided console input instead of blocking typing entirely.`
+
+#### Scope / Constraints Honored
+- Kept the change inside the shared console input/store seam instead of patching sketch-plane and sketch-draw flows separately.
+- Preserved the existing `[4.1M]` staged prefill/cycling behavior and `[4.1N]` prompt-descriptor model while refining only the override semantics.
+- Left unconstrained flat command typing unchanged.
+
+#### Summary of Implementation
+- Extended `src/app/console/useConsoleStore.ts` so assisted input now tracks explicit manual override across staged navigation, prompt sessions, and feature-session descriptors instead of resetting back to assist-follow just because the typed text happens to match a valid token.
+- Updated `src/app/console/ConsoleBar.tsx` so the first focused-input printable key or paste replaces assisted prefill through the shared store path.
+- Updated `src/app/console/ConsoleDock.tsx` so idle feature-assist descriptors participate in guided console capture, allowing global printable typing to replace assisted prefill in those sessions as well.
+- Added and updated focused regressions covering staged replacement, continued manual typing after the first replacement, feature-assist capture, paste replacement, and the adjusted post-draw capture behavior.
+
+#### Files Changed
+- `src/app/console/useConsoleStore.ts`
+- `src/app/console/ConsoleBar.tsx`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/useConsoleStore.test.ts`
+- `src/app/console/ConsoleDock.test.tsx`
+
+#### Behavior Changes (if any)
+- Guided staged and feature-assist prefills now replace on the first printable typed key instead of appending.
+- Once manual override begins, the console keeps normal manual typing until explicit assisted re-entry via cycling or a fresh constrained prompt.
+- Focused paste now replaces assisted prefill when assisted-follow is still active.
+- Idle feature-assist sessions such as guided `Sketch Draw` prompt states now accept printable typing as guided console input instead of leaving the prefill untouched.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/console/useConsoleStore.test.ts src/app/console/ConsoleDock.test.tsx`.
+
+<!-- ENTRY 513 -->
+### [513] - 2026-03-21 09:56 - `VR - Phase 11 - Radio Waveform Visualization`
+<!-- ENTRY 513 -->
+HUMAN SUMMARY: `Added the first honest waveform surface to the merged radio toolbar, with exact waveform bars for generated-tone sources and a limited timing lane for SoundCloud sources. The waveform now shows playhead plus sampler step markers inside the radio section without pretending that all providers expose exact waveform data.`
+
+#### Scope / Constraints Honored
+- Kept the waveform inside the existing merged `Radio` toolbar instead of creating a separate editor surface.
+- Preserved an honest fidelity split:
+  - exact for generated-tone
+  - limited for SoundCloud widget
+  - no fake exact waveform for unsupported sources
+
+#### Summary of Implementation
+- Added canonical waveform state to `src/app/store/audioSamplerStore.ts`.
+- Added runtime waveform capability classification in `src/runtime/audio/ClipLibrary.ts`.
+- Added generated-tone envelope extraction in `src/runtime/audio/AudioEngine.ts`.
+- Taught `src/app/AppShell.tsx` to refresh waveform state from the active source/runtime seam.
+- Added `src/app/components/RadioWaveformStrip.tsx` and mounted it in `src/app/panels/RadioPanel.tsx`.
+- Drew:
+  - waveform bars or limited timing lane
+  - transport playhead
+  - sampler cue markers
+  - active-step and locked-step marker variants
+- Added focused store, component, panel, app-shell, and runtime tests.
+
+#### Files Changed
+- `src/app/store/audioSamplerStore.ts`
+- `src/app/store/audioSamplerStore.test.ts`
+- `src/runtime/audio/ClipLibrary.ts`
+- `src/runtime/audio/AudioEngine.ts`
+- `src/runtime/audio/AudioEngine.test.ts`
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+- `src/app/components/RadioWaveformStrip.tsx`
+- `src/app/components/RadioWaveformStrip.test.tsx`
+- `src/app/panels/RadioPanel.tsx`
+- `src/app/panels/RadioPanel.test.tsx`
+- `src/app/theme/v15Theme.css`
+
+#### Behavior Changes (if any)
+- The top `Radio` section now shows a waveform strip.
+- Generated-tone sources render exact waveform bars.
+- SoundCloud sources render a limited waveform/timing lane with a truthful message.
+- Sampler cue positions, active step, and locked steps are now visible against the waveform.
+
+#### Verification Steps
+- Ran `cmd /c npx vitest run src/app/components/RadioWaveformStrip.test.tsx src/runtime/audio/AudioEngine.test.ts src/app/store/audioSamplerStore.test.ts src/app/panels/RadioPanel.test.tsx src/app/AppShell.test.tsx`.
+- Confirmed the focused waveform/runtime/UI suite passed.
+- Ran `cmd /c npm run build`.
+- Confirmed the full `tsc -b && vite build` path completed successfully.
+
 <!-- ENTRY 512 -->
 ### [512] - 2026-03-21 09:32 - `VR - Phase 10 - Sampler Step-Length Playback And Per-Step Shaping`
 <!-- ENTRY 512 -->

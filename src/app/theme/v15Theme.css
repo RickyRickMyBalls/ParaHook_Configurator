@@ -818,6 +818,8 @@ body {
 .BrowserTreeRow--reference-category .BrowserTreeRowGuide:first-child,
 .BrowserTreeRow--reference-item .BrowserTreeRowGuide:first-child,
 .BrowserTreeRow--assembly .BrowserTreeRowGuide:first-child,
+.BrowserTreeRow--sketches-root .BrowserTreeRowGuide:first-child,
+.BrowserTreeRow--sketch .BrowserTreeRowGuide:first-child,
 .BrowserTreeRow--component .BrowserTreeRowGuide:first-child,
 .BrowserTreeRow--object .BrowserTreeRowGuide:first-child {
   --browser-tree-guide-center: 1.5px;
@@ -1049,6 +1051,14 @@ body {
   padding: 0;
 }
 
+.V15Panel button.BrowserTreeRowMain.isSketchesRootRow {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+  padding: 0;
+  background: transparent;
+  border-color: transparent;
+}
+
 .V15Panel button.BrowserTreeRowMain.isGraphChildBuildRow {
   grid-template-columns: minmax(0, 1fr);
   gap: 0;
@@ -1065,6 +1075,15 @@ body {
 .V15Panel button.BrowserTreeRowMain:hover {
   border-color: var(--v15-panel-border-soft);
   background: rgba(20, 22, 30, 0.98);
+}
+
+.V15Panel button.BrowserTreeRowMain.isSketchesRootRow:hover,
+.BrowserTreeRow.isSelected .BrowserTreeRowMain.isSketchesRootRow,
+.BrowserTreeRow.isOpen .BrowserTreeRowMain.isSketchesRootRow,
+.BrowserTreeRow.isActiveEditor .BrowserTreeRowMain.isSketchesRootRow {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
 }
 
 .V15Panel button.BrowserTreeRowMain.isGraphRow .BrowserTreeRowLabel {
@@ -2175,11 +2194,28 @@ body {
   min-width: 0;
 }
 
+.ParaVec2Slider {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+}
+
 .ParaVec3SliderAxis {
   min-width: 0;
 }
 
+.ParaVec2SliderAxis {
+  min-width: 0;
+}
+
 .ParaVec3SliderAxis .ParaSliderContent {
+  gap: 4px;
+  padding: 0 6px;
+}
+
+.ParaVec2SliderAxis .ParaSliderContent {
   gap: 4px;
   padding: 0 6px;
 }
@@ -2191,13 +2227,32 @@ body {
   font-size: calc(var(--sp-window-font-size) - 2px);
 }
 
+.ParaVec2SliderAxis .ParaSliderLabel,
+.ParaVec2SliderAxis .ParaSliderValue,
+.ParaVec2SliderAxis .ParaSliderValueInput,
+.ParaVec2SliderAxis button.ParaSliderValueButton {
+  font-size: calc(var(--sp-window-font-size) - 2px);
+}
+
 .ParaVec3SliderAxis .ParaSliderLabel {
+  font-weight: 800;
+}
+
+.ParaVec2SliderAxis .ParaSliderLabel {
   font-weight: 800;
 }
 
 .ParaVec3SliderAxis .ParaSliderValue,
 .ParaVec3SliderAxis .ParaSliderValueInput,
 .ParaVec3SliderAxis button.ParaSliderValueButton {
+  min-width: 0;
+  width: auto;
+  padding: 0;
+}
+
+.ParaVec2SliderAxis .ParaSliderValue,
+.ParaVec2SliderAxis .ParaSliderValueInput,
+.ParaVec2SliderAxis button.ParaSliderValueButton {
   min-width: 0;
   width: auto;
   padding: 0;
@@ -3421,10 +3476,19 @@ button.ParaSelectMenuAction:hover {
   font-weight: 500;
 }
 
+.ConsoleBarSummaryChoiceAlias {
+  color: rgba(123, 193, 255, 0.98);
+  font-weight: inherit;
+}
+
 .ConsoleBarSummaryChoice.isActive {
   color: var(--console-layer-color-commands, var(--v15-console-commands));
   font-weight: 700;
   text-shadow: 0 0 12px rgba(124, 160, 255, 0.26);
+}
+
+.ConsoleBarSummaryChoice.isActive .ConsoleBarSummaryChoiceAlias {
+  color: rgba(255, 210, 136, 0.98);
 }
 
 .ConsoleInputRow {
@@ -5303,6 +5367,10 @@ button.ParaSelectMenuAction:hover {
   padding: 6px 8px 8px;
 }
 
+.ViewportOverlaySketchPlaneTransformHistoryGroup {
+  order: -1;
+}
+
 .ViewportOverlaySketchPlaneGizmoSliderGroup + .ViewportOverlaySketchPlaneGizmoSliderGroup {
   margin-top: 4px;
   padding-top: 10px;
@@ -5688,6 +5756,97 @@ button.ParaSelectMenuAction:hover {
   pointer-events: none;
 }
 
+.RadioWaveformStrip {
+  display: grid;
+  gap: 6px;
+}
+
+.RadioWaveformStripCanvas {
+  position: relative;
+  min-height: 88px;
+  border-radius: 10px;
+  border: 1px solid rgba(126, 214, 136, 0.16);
+  background:
+    linear-gradient(180deg, rgba(17, 31, 20, 0.94) 0%, rgba(10, 18, 12, 0.96) 100%);
+  overflow: hidden;
+}
+
+.RadioWaveformBars {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(1px, 1fr);
+  align-items: center;
+  gap: 1px;
+  padding: 8px 6px;
+}
+
+.RadioWaveformBar {
+  align-self: center;
+  border-radius: 999px;
+  background: linear-gradient(
+    180deg,
+    rgba(244, 164, 74, 0.96) 0%,
+    rgba(214, 126, 40, 0.92) 100%
+  );
+  box-shadow: 0 0 0 1px rgba(255, 196, 124, 0.06);
+}
+
+.RadioWaveformLimitedLane {
+  position: absolute;
+  inset: 0;
+}
+
+.RadioWaveformLimitedGrid {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(247, 170, 79, 0.14) 0%, rgba(247, 170, 79, 0.02) 100%),
+    repeating-linear-gradient(
+      90deg,
+      rgba(214, 226, 255, 0.14) 0,
+      rgba(214, 226, 255, 0.14) 1px,
+      transparent 1px,
+      transparent 16.666%
+    );
+}
+
+.RadioWaveformPlayhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: rgba(238, 246, 255, 0.9);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+.RadioWaveformStepMarker {
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  width: 1px;
+  margin-left: -0.5px;
+  background: rgba(126, 214, 136, 0.62);
+}
+
+.RadioWaveformStepMarker.isActive {
+  width: 2px;
+  margin-left: -1px;
+  background: rgba(208, 255, 214, 0.96);
+}
+
+.RadioWaveformStepMarker.isLocked {
+  background: rgba(152, 222, 255, 0.78);
+}
+
+.RadioWaveformMessage {
+  font-size: 10px;
+  line-height: 1.4;
+  color: rgba(210, 244, 214, 0.7);
+}
+
 .RadioPanelInput {
   min-height: 30px;
   border-radius: 8px;
@@ -6043,6 +6202,8 @@ button.ParaSelectMenuAction:hover {
 
 .ViewportOverlaySketchSessionClose {
   min-width: 22px;
+  justify-content: center;
+  padding: 0 8px;
 }
 
 .ViewportOverlaySketchSessionBody {
@@ -6050,6 +6211,25 @@ button.ParaSelectMenuAction:hover {
   flex-direction: column;
   gap: 12px;
   padding: 12px;
+}
+
+.ViewportOverlaySketchSessionBody > .ViewportOverlayToolSection + .ViewportOverlayToolSection {
+  position: relative;
+  padding-top: 14px;
+}
+
+.ViewportOverlaySketchSessionBody > .ViewportOverlayToolSection + .ViewportOverlayToolSection::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: color-mix(
+    in srgb,
+    var(--overlay-tool-accent, var(--sketch-plane-accent)) 22%,
+    rgba(255, 255, 255, 0.12)
+  );
 }
 
 .ViewportOverlaySketchSessionPlane,
@@ -6253,6 +6433,89 @@ button.ParaSelectMenuAction:hover {
 .ViewportOverlaySketchEntityItem > span:first-child {
   text-transform: capitalize;
   color: rgba(242, 246, 255, 0.95);
+}
+
+.ViewportOverlaySketchEntityGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ViewportOverlaySketchEntityGroupHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 8px;
+  background: color-mix(
+    in srgb,
+    var(--overlay-tool-accent, var(--sketch-plane-accent)) 10%,
+    rgba(255, 255, 255, 0.035)
+  );
+  font-size: 10px;
+  color: rgba(212, 222, 240, 0.88);
+  text-align: left;
+  cursor: pointer;
+}
+
+.ViewportOverlaySketchEntityGroupHeader .ViewportOverlaySketchPlaneChevron {
+  flex: 0 0 auto;
+}
+
+.ViewportOverlaySketchEntityGroupTitle {
+  min-width: 0;
+  font-weight: 600;
+  color: rgba(242, 246, 255, 0.95);
+}
+
+.ViewportOverlaySketchEntityGroupHeader > span:last-child {
+  margin-left: auto;
+}
+
+.ViewportOverlaySketchEntityGroupChildren {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-left: 18px;
+}
+
+.ViewportOverlaySketchEntityGroupHeader--child {
+  background: color-mix(
+    in srgb,
+    var(--overlay-tool-accent, var(--sketch-plane-accent)) 6%,
+    rgba(255, 255, 255, 0.025)
+  );
+}
+
+.ViewportOverlaySketchEntityItem--child {
+  background: color-mix(
+    in srgb,
+    var(--overlay-tool-accent, var(--sketch-plane-accent)) 4%,
+    rgba(255, 255, 255, 0.02)
+  );
+}
+
+.ViewportOverlaySketchEntityEditors {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 0 0 18px;
+}
+
+.ViewportOverlaySketchEntityEditorRow {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+
+.ViewportOverlaySketchEntityEditorLabel {
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(242, 246, 255, 0.95);
+  text-transform: uppercase;
 }
 
 .ViewportOverlaySketchEmptyState {

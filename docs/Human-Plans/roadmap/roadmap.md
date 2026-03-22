@@ -4,6 +4,13 @@
 ### Fold Hack 3
 #### FOld Hack 4
 ###### Doc History
+117. 2026-03-21 22:24: Marked `[3.2B-S7] SketchPlane Transform History` complete after shipping persistent sketch-plane move history in the toolbar and viewport, so committed move accepts now append signed-diff history rows, `Merge History` compacts unlocked spans, and re-entering `SketchPlane` restores the same committed path
+116. 2026-03-21 18:37: Added a new open `[5.0F] AppShell Cleanup And Host Seam Extraction` bridge phase under the pre-workspace shell lane, along with two narrow `[5.0F-1]` and `[5.0F-2]` subphases so `AppShell` overload cleanup now has a real roadmap home without absorbing the broader `[5.1] Workspace Modes` architecture
+115. 2026-03-21 13:17: Marked `[3.2B-S6] SketchPlane Move Axis Numeric Entry` complete after deepening `SketchPlane > Move` into real `X / Y / Z` child leaves with float-only console entry, off-snap confirm/deny handling, shared overlay activation, and post-commit return to the parent `Move` scope
+114. 2026-03-21 12:23: Landed the first `[3.2B-6] Sketch Content Ownership And Later Export` browser/content cut, so authored `Geometry/Sketch` nodes now surface under a real `Sketches` browser family with per-sketch rows that can jump back to their source graph node while the later vector-export portion remains deferred
+113. 2026-03-21 12:06: Added a new open sketch follow-on `[3.2B-S6] SketchPlane Move Axis Numeric Entry`, so the sketch cleanup family now has a real roadmap home for deepening `SketchPlane > Move` into explicit `X / Y / Z` console/session leaves with float-only entry and return-to-`Move` behavior after each axis commit
+112. 2026-03-21 11:33: Marked `[4.1P] Assisted Prefill Replace-On-Type Across Levels` complete after landing one shared assisted-follow override rule in the console input seam, so staged and feature-session assisted prefills now replace on first printable typing, preserve manual override until explicit assisted re-entry, and support focused paste replacement without rewriting the older shipped `[4.1M]` and `[4.1N]` records
+111. 2026-03-21 11:20: Added a new open console follow-on `[4.1P] Assisted Prefill Replace-On-Type Across Levels`, so the intended rule that first printable typing should replace assisted prefill at any constrained assisted level now has a real roadmap home instead of being baked retroactively into the already-shipped `[4.1M]` and `[4.1N]` records
 110. 2026-03-20 14:25: Marked `[4.1O2]`, `[4.1O3]`, and the parent `[4.1O]` complete after the radio state/template work, trigger wiring, and fallback runtime playback bridge all landed, so the live roadmap now matches the fully shipped console-first radio mini-family
 109. 2026-03-20 14:14: Marked `[4.1O3]` partial after the console-radio trigger-wiring half landed, so the roadmap now reflects that accepted submits plus staged `ArrowUp` / `ArrowDown` preview requests are implemented while the playback bridge portion of that same mini-phase is still open
 108. 2026-03-20 13:29: Renamed `[4.1O1]` from the narrower `Radio 1 - Grammar And Scope` label to `Radio 1 - Root, Scope, And Guided Prompt Sessions` and marked both `[4.1O1]` and the parent `[4.1O]` mini-family active/partial so the live roadmap matches the shipped console-radio first cut
@@ -202,6 +209,9 @@ Status legend:
 - [x] `[3.2B-S3]` `SketchDraw Session Cleanup`
 - [x] `[3.2B-S4]` `Sketch Return One Level`
 - [x] `[3.2B-S5]` `Sketch Toolbar / Console Command Alignment`
+- [x] `[3.2B-S6]` `SketchPlane Move Axis Numeric Entry`
+- [x] `[3.2B-S7]` `SketchPlane Transform History`
+- [~] `[3.2B-6]` `Sketch Content Ownership And Later Export`
 - [x] `[3.2C]` `Extrude Foundation`
 - [ ] `[3.2D]` `Loft Foundation`
 - [ ] `[3.3]` `Wire UX And Flow Readability`
@@ -239,6 +249,7 @@ Status legend:
 - [x] `[4.1O1]` `Radio 1 - Root, Scope, And Guided Prompt Sessions`
 - [x] `[4.1O2]` `Radio 2 - State, Defaults, And Command Template Mapping`
 - [x] `[4.1O3]` `Radio 3 - Trigger Wiring And Playback Bridge`
+- [x] `[4.1P]` `Assisted Prefill Replace-On-Type Across Levels`
 
 ### Lane [5] - `Control, Build, And Workspace Systems`
 
@@ -248,6 +259,7 @@ Status legend:
 - [x] `[5.0C]` `Legacy Input-Mode Branch Removal`
 - [x] `[5.0D]` `Deferred Legacy Residue And Dead-Surface Cleanup`
 - [~] `[5.0E]` `Spaghetti Editor Surface Standardization And Viewport-Type Cleanup`
+- [ ] `[5.0F]` `AppShell Cleanup And Host Seam Extraction`
 - [~] `[5.1]` `Workspace Modes`
 - [ ] `[5.2]` `Control Viz And Graph-Driven Control Surfaces`
 - [ ] `[5.3]` `Build Sequencing, Build Bars, And Output Build Control`
@@ -1453,7 +1465,7 @@ CheckList:
 - [ ] let viewport point picks drive the first committed sketch entities
 - [ ] keep the floating `Draw Sketch` toolbar as the session-control surface, not the canvas
 
-#### [ ] `3.2B-DrawSketch-2` - `Multi-Step Tool Sessions And Commit Rules`
+#### [x] `3.2B-DrawSketch-2` - `Multi-Step Tool Sessions And Commit Rules`
 
 Summary:
 - turn viewport drawing into real multi-step tool sessions instead of one-click point drops
@@ -1461,9 +1473,9 @@ Summary:
 - make commit/cancel behavior honest before taking on richer editing breadth
 
 CheckList:
-- [ ] add explicit multi-step progression for the first viewport draw tools
-- [ ] keep live draft geometry temporary until the current entity is accepted
-- [ ] define clean accept/cancel behavior for in-progress draw sessions
+- [x] add explicit multi-step progression for the first viewport draw tools
+- [x] keep live draft geometry temporary until the current entity is accepted
+- [x] define clean accept/cancel behavior for in-progress draw sessions
 - [ ] extend the viewport draw flow to:
   - `Arc3Point`
   - `BezierSpline`
@@ -1533,7 +1545,7 @@ CheckList:
 - [x] route console `Back` through that seam
 - [x] route toolbar back/cancel actions through that seam when they mean one-level return
 
-#### [ ] `[3.2B-S5]` - `Sketch Toolbar / Console Command Alignment`
+#### [x] `[3.2B-S5]` - `Sketch Toolbar / Console Command Alignment`
 
 Summary:
 - make the sketch toolbar hierarchy, console command hierarchy, and sketch session hierarchy describe the same structure
@@ -1541,10 +1553,52 @@ Summary:
 - reuse the same sketch-session verbs underneath both surfaces
 
 CheckList:
-- [ ] map toolbar parent surfaces like `Sketch Plane` and `Sketch Draw` to command scopes
-- [ ] map toolbar sections to command groups
-- [ ] map toolbar actions and console tokens to the same underlying sketch-session verbs
-- [ ] keep toolbar and console prompt/state reads aligned with the active sketch session level
+- [x] map toolbar parent surfaces like `Sketch Plane` and `Sketch Draw` to command scopes
+- [x] map toolbar sections to command groups
+- [x] map toolbar actions and console tokens to the same underlying sketch-session verbs
+- [x] keep toolbar and console prompt/state reads aligned with the active sketch session level
+
+#### [x] `[3.2B-S6]` - `SketchPlane Move Axis Numeric Entry`
+
+Summary:
+- deepen `SketchPlane > Move` so axis-specific movement becomes a real child hierarchy instead of a shallow action
+- let `Move > X / Y / Z` open float-only value-entry leaves in the console/session model
+- return to `Move` after each accepted axis value so repeated adjustment stays inside the same move subtree
+
+CheckList:
+- [x] make `Move X / Y / Z` real child levels under `SketchPlane > Move`
+- [x] make each axis leaf expect one float value
+- [x] apply the entered value to the active axis on `Enter`
+- [x] return to `SketchPlane > Move` after successful axis commit
+- [x] let `Back` / `Esc` leave the axis leaf without committing
+
+#### [x] `[3.2B-S7]` - `SketchPlane Transform History`
+
+Summary:
+- keep a persistent sketch-plane move history so the user can read how the plane reached its current placement from origin
+- show the same committed path in both the sketch-plane toolbar and the viewport overlay
+- let the user preserve checkpoints with `Lock` and destructively compact unlocked spans with `Merge History`
+
+CheckList:
+- [x] append one committed history entry per accepted sketch-plane move result
+- [x] persist history with the sketch-plane placement and restore it when re-entering `SketchPlane`
+- [x] render signed per-step diff rows like `Vec(+3, +6, -5)` inside a `Transform History` toolbar section
+- [x] draw committed point-to-point history segments in the viewport overlay
+- [x] support per-entry `Lock` toggles plus destructive `Merge History` compaction that preserves `Origin`, locked entries, and final placement
+
+#### [~] `[3.2B-6]` - `Sketch Content Ownership And Later Export`
+
+Summary:
+- let sketch stand on its own as authored browser-visible content instead of remaining only a body-feature feeder
+- ship the first `Sketches` browser family cut with per-sketch authored rows
+- keep later vector export such as `.dxf` explicitly deferred beyond this first ownership pass
+
+CheckList:
+- [x] surface a real `Sketches` browser family
+- [x] show authored `Geometry/Sketch` nodes there as per-sketch rows
+- [x] let sketch rows jump back into their authoring graph node
+- [x] keep sketches visible even without immediate downstream solid consumption
+- [ ] add later vector export such as `.dxf`
 
 ### [3.2C] [x] - `Extrude Foundation`
 
@@ -1911,6 +1965,20 @@ CheckList:
 - keep browser-gesture, not-ready, and fallback playback behavior explicit
 - stop before broadening into non-console trigger coverage or a fuller multi-surface sampler system
 
+### [4.1P] [x] - `Assisted Prefill Replace-On-Type Across Levels`
+
+- corrective follow-on after shipped `[4.1M]` and `[4.1N]`
+- lock one shared console rule:
+  - when assisted prefill is active
+  - the first printable typed key replaces the assisted value instead of appending to it
+- apply that read at every constrained assisted level, including:
+  - staged navigation
+  - feature-session prompt descriptors
+  - flows like `Graph > Sketch > SketchPlane > Move`
+- preserve existing prefill and choice-cycling behavior until manual typing begins
+- once manual override starts, keep normal typing rules until a real assisted refresh or explicit cycle re-enters assisted-follow mode
+- keep this as one shared console-input refinement rather than separate feature-local override glue
+
 # [5] `Control, Build, And Workspace Systems`
 
 Summary:
@@ -1965,6 +2033,7 @@ CheckList:
   - do not turn it into the final broad legacy purge
   - do not absorb the real hybrid workspace system from `[5.1]`
 - [ ] standardize the `Spaghetti Editor` surface model enough that `5.1` can normalize viewport types and pane switching without inheriting ambiguous editor-specific shell vocabulary
+- [ ] reduce `AppShell` overload and extract the first host seams cleanly before `[5.1]` turns the workspace host model into a broader architecture lane
 
 ### [5.0A] [x] - `Spaghetti Default Startup And Preview-Mode Shell Removal`
 
@@ -2033,6 +2102,56 @@ CheckList:
 - [ ] keep this cut narrow:
   - do not absorb the whole workspace hosting system from `[5.1]`
   - do not turn it into detached/browser pop-out implementation
+
+### [5.0F] [ ] - `AppShell Cleanup And Host Seam Extraction`
+
+Summary:
+- narrow bridge cut for reducing `src/app/AppShell.tsx` overload before `[5.1] Workspace Modes` asks that same area to become the shared workspace host
+- use this to separate legitimate shell composition concerns from leaked feature runtime and inline window-manager logic
+- keep this cleanup/prep-oriented rather than turning it into the full final workspace architecture
+
+CheckList:
+- [ ] define the current `AppShell` ownership split clearly:
+  - shell composition
+  - shell window-management
+  - feature runtime hosting
+- [ ] extract the first app-level runtime host seams so `AppShell` stops directly owning radio/sampler runtime orchestration
+- [ ] group browser and editor shell-control logic behind clearer host seams instead of leaving the top-level shell body as the default owner of every pointer/drag/runtime detail
+- [ ] keep this cut narrow:
+  - do not absorb the tile-tree model from `[5.1]`
+  - do not absorb workspace persistence from `[5.1]`
+  - do not turn it into the final multi-window host system
+- [ ] use the AppShell cleanup pass to prepare, not replace, the later workspace family
+
+Sub-phase labels for the current cleanup split:
+- `[5.0F-1]` AppShell Runtime Host Extraction
+- `[5.0F-2]` AppShell Window And Dock Host Extraction
+
+### [5.0F-1] [ ] - `AppShell Runtime Host Extraction`
+
+Summary:
+- move feature-specific app-level runtime behavior out of the top-level shell body first
+- start with the radio and sampler runtime seams because they are the clearest examples of feature logic currently living directly in `AppShell`
+- leave the shell as the mount point, but stop making it the direct owner of burst playback, seek/reload handling, waveform refresh, transport polling, and sampler scheduling
+
+CheckList:
+- [ ] extract radio runtime orchestration behind one mounted host seam
+- [ ] move sampler preview and loop scheduling behind that same runtime host boundary or a sibling host if needed
+- [ ] keep the hidden SoundCloud bridge attached to the runtime host instead of scattering it across the shell body
+- [ ] verify `AppShell` still mounts the runtime seam without continuing to own the runtime transitions directly
+
+### [5.0F-2] [ ] - `AppShell Window And Dock Host Extraction`
+
+Summary:
+- group the remaining browser/editor shell behavior behind clearer shell-host seams after the runtime host cleanup starts reducing the file
+- use this to separate composition from the heavier inline browser dock, floating editor, split shell, and pointer/resize mechanics
+- keep the result preparatory for `[5.1]`, not a substitute for the later shared workspace host model
+
+CheckList:
+- [ ] group browser dock/floating ownership behind a dedicated shell host seam
+- [ ] group editor floating/split/titlebar shell behavior behind a dedicated shell host seam
+- [ ] reduce the number of shell-wide pointer and resize effects living inline in the top-level `AppShell` body
+- [ ] leave the later canonical tile-tree and workspace-surface hosting rules to `[5.1]`
 
 ### [5.1] [~] - `VR / SP` - `Workspace Modes`
 #### Header

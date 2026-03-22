@@ -1978,6 +1978,48 @@ describe('AppShell', () => {
     expect(mockSoundCloudPlayWindow).toHaveBeenCalledTimes(1)
   })
 
+  it('refreshes limited waveform state for the active SoundCloud source', async () => {
+    ;({ container, root } = await renderAppShell())
+    mockShellGeometry(container)
+
+    await act(async () => {
+      useAudioSamplerStore.getState().turnRadioOn()
+      useAudioSamplerStore.getState().setRadioRuntimeState({
+        status: 'ready',
+        sourceKind: 'soundcloud-widget',
+      })
+      useAudioSamplerStore.getState().setRadioTransportState({
+        currentTimeSec: 12,
+        durationSec: 120,
+        isSeekable: true,
+        isPlaying: true,
+      })
+    })
+
+    expect(useAudioSamplerStore.getState().radioWaveform.kind).toBe('limited')
+    expect(useAudioSamplerStore.getState().radioWaveform.sourceKind).toBe('soundcloud-widget')
+    expect(useAudioSamplerStore.getState().radioWaveform.message).toBe(
+      'Detailed waveform unavailable for current source',
+    )
+  })
+
+  it('refreshes exact waveform state for the generated-tone runtime source', async () => {
+    ;({ container, root } = await renderAppShell())
+    mockShellGeometry(container)
+
+    await act(async () => {
+      useAudioSamplerStore.getState().turnRadioOn()
+      useAudioSamplerStore.getState().setRadioRuntimeState({
+        status: 'fallback',
+        sourceKind: 'generated-tone',
+      })
+    })
+
+    expect(useAudioSamplerStore.getState().radioWaveform.kind).toBe('exact')
+    expect(useAudioSamplerStore.getState().radioWaveform.sourceKind).toBe('generated-tone')
+    expect(useAudioSamplerStore.getState().radioWaveform.samples.length).toBeGreaterThan(0)
+  })
+
   it('marks unsupported custom radio urls explicitly instead of pretending they played', async () => {
     ;({ container, root } = await renderAppShell())
     mockShellGeometry(container)

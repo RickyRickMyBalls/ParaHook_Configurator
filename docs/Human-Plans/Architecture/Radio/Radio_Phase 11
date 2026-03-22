@@ -1,4 +1,4 @@
-## [ ] Phase 11 - Source Waveform Visualization
+## [x] Phase 11 - Source Waveform Visualization
 
 ### Header
 - add a waveform surface to the merged `Radio` toolbar so the user can see detailed source shape over time

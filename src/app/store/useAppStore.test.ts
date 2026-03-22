@@ -170,6 +170,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
         editorViewportId: null,
         shouldRestoreViewportWindowMode: false,
         stage: 'pick',
+        liveTransformActivationNonce: 0,
         adjustScope: 'root',
         activeTransformAxis: null,
         gizmoMode: 'translate',
@@ -182,6 +183,14 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
           rotationDeg: { x: 0, y: 0, z: 0 },
           inPlaneRotationDeg: 0,
         },
+        transformHistory: [
+          {
+            entryId: 'origin',
+            point: { x: 0, y: 0, z: 0 },
+            locked: false,
+          },
+        ],
+        pendingMoveAxisOffSnapConfirmation: null,
       },
     })
 
@@ -415,6 +424,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
         currentProject: useAppStore.getState().currentProject,
         projectContent: useAppStore.getState().projectContent,
         graphRuntimeByDocumentId: useSpaghettiStore.getState().graphRuntimeByDocumentId,
+        graphDocumentsById: useSpaghettiStore.getState().graphDocumentsById,
       }),
       ).toEqual([
         {
@@ -562,6 +572,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
         currentProject: useAppStore.getState().currentProject,
         projectContent: useAppStore.getState().projectContent,
         graphRuntimeByDocumentId: useSpaghettiStore.getState().graphRuntimeByDocumentId,
+        graphDocumentsById: useSpaghettiStore.getState().graphDocumentsById,
       }),
     ).toEqual(
         expect.arrayContaining([
@@ -656,6 +667,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
         currentProject: useAppStore.getState().currentProject,
         projectContent: useAppStore.getState().projectContent,
         graphRuntimeByDocumentId: useSpaghettiStore.getState().graphRuntimeByDocumentId,
+        graphDocumentsById: useSpaghettiStore.getState().graphDocumentsById,
       }),
     ).toEqual(
         expect.arrayContaining([
@@ -692,6 +704,91 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
           authoringGraphDocumentId: secondGraphId,
           authoringNodeId: null,
         },
+      ]),
+    )
+  })
+
+  it('surfaces authored geometry sketches as browser-visible sketch content rows', async () => {
+    const { selectCurrentProjectContentBrowserRows, useAppStore } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+
+    useSpaghettiStore.setState((state) => ({
+      graphDocumentsById: {
+        ...state.graphDocumentsById,
+        'graph-document-1': {
+          ...state.graphDocumentsById['graph-document-1'],
+          graph: {
+            ...state.graphDocumentsById['graph-document-1'].graph,
+            nodes: [
+              {
+                nodeId: 'node-sketch-1',
+                type: 'Geometry/Sketch',
+                params: {
+                  sketch: {
+                    type: 'sketch',
+                    featureId: 'sketch-1',
+                    plane: 'YZ',
+                    components: [
+                      {
+                        rowId: 'row-1',
+                        componentId: 'line-1',
+                        type: 'line',
+                        a: { kind: 'lit', x: 0, y: 0 },
+                        b: { kind: 'lit', x: 20, y: 0 },
+                      },
+                    ],
+                    outputs: {
+                      profiles: [],
+                    },
+                    uiState: {
+                      collapsed: false,
+                    },
+                  },
+                },
+              },
+            ],
+            edges: [],
+          },
+        },
+      },
+    }))
+
+    expect(
+      selectCurrentProjectContentBrowserRows({
+        currentProject: useAppStore.getState().currentProject,
+        projectContent: useAppStore.getState().projectContent,
+        graphRuntimeByDocumentId: useSpaghettiStore.getState().graphRuntimeByDocumentId,
+        graphDocumentsById: useSpaghettiStore.getState().graphDocumentsById,
+      }),
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowId: 'project-sketches-root:project-file-1',
+          kind: 'sketches-root',
+          label: 'Sketches',
+          meta: '1 sketch',
+          sketchCount: 1,
+        }),
+        expect.objectContaining({
+          rowId: 'project-sketch:graph-document-1:node-sketch-1:sketch-1',
+          kind: 'sketch',
+          label: 'Sketch 1',
+          meta: 'Graph 1 | YZ | 1 comp | 0 profiles',
+          statusLabel: 'Draft',
+          ownerGraphDocumentId: 'graph-document-1',
+          graphDocumentId: 'graph-document-1',
+          nodeId: 'node-sketch-1',
+          featureId: 'sketch-1',
+          plane: 'YZ',
+          componentCount: 1,
+          profileCount: 0,
+          diagnosticsCount: 0,
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-sketch-1',
+        }),
       ]),
     )
   })

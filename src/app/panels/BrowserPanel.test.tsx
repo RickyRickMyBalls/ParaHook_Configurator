@@ -1888,4 +1888,92 @@ describe('BrowserPanel', () => {
     await click(findButtonByLabel('Remove shoe.glb')!)
     expect(currentAppState.removeImportedReference).toHaveBeenCalledWith('reference-import:1')
   })
+
+  it('focuses authored sketch content rows back into their graph node authoring surface', async () => {
+    currentSpaghettiState = {
+      ...currentSpaghettiState,
+      graphDocumentsById: {
+        'graph-document-1': {
+          ...graphDocument,
+          graph: {
+            ...graphDocument.graph,
+            nodes: [
+              {
+                nodeId: 'node-sketch-1',
+                type: 'Geometry/Sketch',
+                params: {
+                  sketch: {
+                    featureId: 'sketch-1',
+                  },
+                },
+              },
+            ],
+          },
+        },
+      },
+    }
+    currentAppState = {
+      ...currentAppState,
+      projectContentRows: [
+        {
+          rowId: 'assembly-root:project-file-1',
+          kind: 'assembly',
+          label: 'Assembly 1',
+          meta: '',
+        },
+        {
+          rowId: 'project-sketches-root:project-file-1',
+          kind: 'sketches-root',
+          label: 'Sketches',
+          meta: '1 sketch',
+          sketchCount: 1,
+        },
+        {
+          rowId: 'project-sketch:graph-document-1:node-sketch-1:sketch-1',
+          kind: 'sketch',
+          label: 'Sketch 1',
+          meta: 'Graph 1 | XY | 1 comp | 0 profiles',
+          buildState: 'rebuild',
+          buildStateLabel: 'Rebuild',
+          rebuildGraphDocumentIds: ['graph-document-1'],
+          statusLabel: 'Draft',
+          statusTone: 'quiet',
+          ownerGraphDocumentId: 'graph-document-1',
+          graphDocumentId: 'graph-document-1',
+          nodeId: 'node-sketch-1',
+          featureId: 'sketch-1',
+          plane: 'XY',
+          componentCount: 1,
+          profileCount: 0,
+          diagnosticsCount: 0,
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-sketch-1',
+        },
+      ],
+    }
+
+    ;({ root } = await renderBrowserPanel())
+
+    const sketchesRootRow = findRowMainByLabel('Sketches')
+    expect(sketchesRootRow).not.toBeNull()
+    expect(sketchesRootRow?.classList.contains('isSketchesRootRow')).toBe(true)
+    expect(sketchesRootRow?.classList.contains('isContentRow')).toBe(false)
+
+    const sketchRow = findRowMainByLabel('Sketch 1')
+    expect(sketchRow).not.toBeNull()
+
+    await click(sketchRow!)
+
+    expect(currentSpaghettiState.openGraphDocumentInViewport).toHaveBeenCalledWith('graph-document-1')
+    expect(currentSpaghettiState.setSelectedNodeId).toHaveBeenCalledWith('node-sketch-1')
+    expect(currentSpaghettiState.requestEditorViewportNodeFit).toHaveBeenCalledWith(
+      'editor-viewport-1',
+      'node-sketch-1',
+    )
+    expect(currentAppState.setWorkspaceSelectedTarget).toHaveBeenCalledWith({
+      kind: 'graph-node',
+      graphDocumentId: 'graph-document-1',
+      nodeId: 'node-sketch-1',
+    })
+  })
 })

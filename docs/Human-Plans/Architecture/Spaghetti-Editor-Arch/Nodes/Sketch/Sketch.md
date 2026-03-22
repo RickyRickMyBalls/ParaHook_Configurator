@@ -3,6 +3,18 @@
 ## Doc Header
 
 ### Doc History
+45. 2026-03-21 23:38: Landed `[3.2B-DrawSketch-2] Multi-Step Tool Sessions And Commit Rules`, so `Line` and `PLine` now behave like real hybrid multi-step draw commands with typed `Vec2` fallback, dynamic `P1 / P2 / P3` status readout, local `Previous` / `undo`, and direct cancel-to-idle behavior instead of the older one-off point-drop flow
+44. 2026-03-21 22:24: Landed `[3.2B-S7] SketchPlane Transform History`, so the sketch-plane toolbar now ships a persistent `Transform History` section with per-commit signed diff rows, `Lock` toggles, destructive `Merge History`, and matching committed viewport path segments that restore when the user re-enters `SketchPlane`
+43. 2026-03-21 19:14: Added a new open `[3.2B-S8] SketchPlane Move Again Re-Arm` follow-on, locking the direction that `SketchPlane > Move` should gain a local `Move Again` choice with alias `M` so repeated whole-vector move re-entry can happen from the current committed point without backing out of the move scope
+42. 2026-03-21 18:49: Split the new `[3.2B-S7] SketchPlane Transform History` direction into its own standalone future phase doc, turning the toolbar history and viewport path idea into an implementation-ready planning surface under `Future/`
+41. 2026-03-21 18:46: Tightened `[3.2B-S7] SketchPlane Transform History` so the phase now explicitly records a point-to-point committed path, meaning the toolbar history and viewport lines should preserve each landed sketch-plane point in sequence rather than reading only as independent translation diffs
+40. 2026-03-21 18:41: Added a new open `[3.2B-S7] SketchPlane Transform History` follow-on, locking the direction that committed sketch-plane move/transform steps should accumulate into a toolbar-visible history list plus viewport guide lines so the user can read how the plane reached its current placement from the origin and later collapse or lock parts of that path
+39. 2026-03-21 13:17: Landed `[3.2B-S6] SketchPlane Move Axis Numeric Entry`, so `SketchPlane > Move > X / Y / Z` now exist as real sketch-plane child levels with float-only console entry, shared overlay activation, off-snap confirm/deny handling, and post-commit return to the parent `Move` scope
+38. 2026-03-21 12:36: Reorganized the standalone sketch phase docs into `Shipped/` and `Future/` subfolders, so fully shipped phase records now live separately from open or partial follow-ons and the main `Sketch.md` can describe one cleaner status-based phase-doc structure
+37. 2026-03-21 12:23: Landed the first `[3.2B-6] Sketch Content Ownership And Later Export` browser/content cut, so authored `Geometry/Sketch` nodes now surface under a real `Sketches` browser family with per-sketch authored rows that can return to the source graph node even before later vector-export work exists
+36. 2026-03-21 12:06: Added a new open sketch follow-on `[3.2B-S6] SketchPlane Move Axis Numeric Entry`, locking the direction that `SketchPlane > Move > X / Y / Z` should become real child console/session levels with float-only value entry and post-commit return to `Move` instead of leaving axis motion as a shallower implied action
+35. 2026-03-21 10:18: Split the sketch phase sections into standalone phase-doc copies in this same folder using the `Sketch_Phase <phase id> - <title>.md` naming pattern, so the main `Sketch.md` can stay the architecture/index surface while each execution phase now also has its own dedicated planning file similar to the newer `Radio` phase split
+34. 2026-03-21 09:10: Added a clearer post-cleanup sketch continuation order after the shipped sketch-session and console-assist work, then expanded `[3.2B-SketchPlane-3] Geometry-Driven Auto-Setup And Selection Highlighting` into an implementation-ready direction grounded in the current `sketchPlanePickSession`, shared sketch command routing, and feature-assist prompt seams so the next source/setup step is easier to continue cleanly
 33. 2026-03-20 00:49: Tightened `[3.2B-S4] Sketch Return One Level` into an implementation-ready spec by grounding it in the current sketch-plane and sketch-draw cancel seams, locking the first shared `returnOneLevel()` target behavior, and adding explicit current-code mapping, phase boundaries, and acceptance checks for the later shared back-step cleanup
 32. 2026-03-20 00:37: Implemented the first `[3.2B-S3] SketchDraw Session Cleanup` pass in code and updated this doc to match the shipped behavior: `SketchDraw` now announces an explicit idle prompt (`Sketch Draw > [Line, PLine, X]`) instead of `Sketch Draw started`, console status reads the named draw stage directly, and idle `Esc` remains inside the durable draw session while `x` stays the explicit exit
 31. 2026-03-20 00:08: Expanded the new `[3.2B-S1]` through `[3.2B-S5]` sketch hierarchy-cleanup subphases with concrete `Questions / Decisions` and `Implementation Spec` blocks, recording what is already known now about sketch-node parent scope, one-level return behavior, sketch-plane cancel/adjust flow, sketch-draw durability, and toolbar/console shared-command alignment
@@ -484,6 +496,53 @@ Important rule:
 - do not collapse all of these into one implementation task
 - keep the setup work and content-family work related, but distinct
 
+### Post-Cleanup Continuation Order
+
+With the sketch-local session cleanup work now shipped in:
+- `[3.2B-S1]` through `[3.2B-S5]`
+
+And the console-side assist/routing work now shipped in:
+- `[4.1J]`
+- `[4.1N]`
+
+The next honest continuation order should be:
+1. finish `3.2B-SketchPlane-2-Cleanup`
+2. land `3.2B-SketchPlane-3`
+3. return to `3.2B-DrawSketch-2`
+4. only then deepen `3.2B-4` through `3.2B-6`
+
+Reason:
+- `SketchPlane` still defines the spatial contract that `SketchDraw` depends on
+- the current shared sketch-session, return-one-level, and console-assist seams are now stable enough that deeper source-pick work can stay inside one command model
+- browser/expose depth becomes easier to design once source semantics are honest for:
+  - origin planes
+  - geometry-derived setup
+
+Important rule:
+- the next continuation should not jump straight to browser depth just because the command/session cleanup family is now in good shape
+- source/setup remains the right next frontier
+
+### Phase Docs
+
+Each sketch phase below now also has a standalone phase-doc copy in a status-based subfolder.
+
+Naming pattern:
+- `Sketch_Phase <phase id> - <title>.md`
+
+Folder layout:
+- `Shipped/`
+  - fully shipped phase docs marked `[x]`
+- `Future/`
+  - open `[ ]` and partial `[~]` phase docs
+
+Use `Sketch.md` as the architecture/index surface.
+
+Use the standalone `Sketch_Phase ... .md` files when a single phase needs its own execution/planning surface.
+
+Use `Shipped/` when you need the historical implementation record for a completed sketch phase.
+
+Use `Future/` when you need the active planning surface for work that is still open or only partially shipped.
+
 # Sub-Phases
 
 ## [x] - `3.2B` - `Sketch Operation Authoring Family Map`
@@ -838,13 +897,254 @@ Owns:
 - keep this phase centered on geometry-driven source inference and highlight language
 - keep the deeper source-type questions in the later dedicated decision block
 
+#### [x] - `q2` Decide the first qualifying geometry-source set for the first honest cut.
+
+##### Suggestion
+- locked direction:
+- keep origin planes available
+- add planar-face picking as the first geometry-derived source path
+- do not open first-pass source inference to:
+  - arbitrary edges as standalone source owners
+  - vertices / points
+  - curved faces
+  - free multi-reference inference
+
+Reason:
+- planar faces are the first geometry class that already carries a clear sketch-plane answer:
+  - plane orientation
+  - stable normal
+  - obvious surface highlight language
+- this keeps `3.2B-SketchPlane-3` as a real source/setup follow-on instead of a general geometry-picking research phase
+
+#### [x] - `q3` Decide whether geometry-driven setup should create a second pick/session model.
+
+##### Suggestion
+- locked direction:
+- no
+- geometry-derived source picking should stay inside the current `sketchPlanePickSession`
+- do not invent a second `facePickSession` or separate geometry-only sketch-plane mode
+
+Reason:
+- the repo already has the right broad seams for this work:
+  - one canonical `sketchPlanePickSession`
+  - shared `runSketchPlaneCommand(...)`
+  - shared `returnActiveSketchSessionOneLevel()`
+  - shared console feature-assist descriptors for sketch-plane prompt/choice state
+- this phase should deepen the pick inputs and source metadata, not replace the session model
+
+#### [x] - `q4` Decide the first honest highlight language for geometry-derived source pick.
+
+##### Suggestion
+- locked direction:
+- use three visible source states:
+  - `Hover Candidate`
+  - `Draft Selected Source`
+  - `Committed Source`
+- first-pass viewport reads should be:
+  - `Hover Candidate`
+    - face tint plus edge outline
+  - `Draft Selected Source`
+    - stronger tint plus edge outline plus candidate sketch grid/plane read
+  - `Committed Source`
+    - normal authored sketch preview after the session ends
+
+Important rule:
+- edge highlighting belongs here primarily as feedback around a hovered or selected planar face
+- do not treat "highlighted edge" as meaning that loose edge selection itself is already a supported authored source type
+
+#### [x] - `q5` Decide what face selection should do to the current sketch-plane session.
+
+##### Suggestion
+- locked direction:
+- clicking a qualifying planar face should:
+  - update draft source metadata
+  - derive a draft sketch plane from that face
+  - transition the existing session into `adjust`
+  - keep `Move`, `Rotate`, `Back`, `Done`, `Enter`, `X`, and `Esc` working through the same current sketch-plane session verbs
+- authored sketch values should still commit only on confirm
+
+Default derivation:
+- use a stable face-derived plane frame
+- use a stable face-space anchor for the initial draft origin
+  - default: face center / centroid unless a stronger existing face-frame seam already exists in code
+- let the user refine that result immediately with the current draft move/rotate controls
+
+#### [x] - `q6` Decide how much source metadata this phase must preserve.
+
+##### Suggestion
+- locked direction:
+- preserve enough geometry-source metadata that the sketch can honestly report where the draft plane came from
+- but do not block the phase on full long-term associativity or face-topology persistence
+
+First preserved metadata target:
+- source kind:
+  - `origin-plane`
+  - `planar-face`
+- owning object/reference identity when available
+- stable face key when available
+- sampled face-plane frame used to derive the draft plane
+
+Important rule:
+- if stable downstream face identity is not fully trustworthy yet, this phase may still ship with:
+  - authored plane + transform as the canonical committed geometry truth
+  - geometry-source metadata as advisory/source-trace data
+- do not stall the UX phase waiting for the final long-term parametric reattachment model
+
+#### [x] - `q7` Decide what console/support behavior must remain aligned during this phase.
+
+##### Suggestion
+- locked direction:
+- keep using the same sketch-plane command/prompt seam
+- geometry-derived picking should extend session trace/status reads, not create a second console language
+
+First new trace/status events:
+- `geometry hover`
+- `geometry selected`
+- `draft source updated`
+- `draft plane derived from face`
+
 ### Implementation Spec
 
-- implementation spec should be derived from the later `### 3.2B-3` decision block once its open questions are locked
-- keep this phase centered on:
-  - geometry-driven source inference
-  - hover / selected / committed highlight states
-  - preserved geometry-source metadata
+Purpose:
+- turn the cleaned-up viewport-first origin-plane session into one broader source-pick session that can also consume qualifying model geometry honestly
+
+Current code-to-target mapping:
+- current canonical sketch-plane session seam:
+  - `sketchPlanePickSession`
+- current stable depth model already exists as:
+  - `stage: 'pick'`
+  - `stage: 'adjust'`
+- current deeper adjust scopes already exist as:
+  - `adjustScope: 'root'`
+  - `adjustScope: 'move'`
+  - `adjustScope: 'move-snap'`
+  - `adjustScope: 'rotate'`
+  - `adjustScope: 'rotate-snap'`
+- current draft ownership already exists as:
+  - `draftPlane`
+  - `previewPlane`
+  - `draftTransform`
+- current command/routing seams already exist as:
+  - `runSketchPlaneCommand(...)`
+  - `returnActiveSketchSessionOneLevel()`
+- current console assist seam already exists as:
+  - feature-assist prompt descriptors in `ConsoleDock`
+  - staged/feature shared prefill + choice cycling from `[4.1N]`
+
+Phase boundary:
+- `[3.2B-SketchPlane-3]` should extend the current sketch-plane source session so it can derive draft setup from planar geometry
+- this phase should not redesign:
+  - the sketch-plane session hierarchy
+  - the sketch command routing model
+  - the console assist model
+  - the generic viewer transform-tool architecture
+  - browser/expose ownership
+- those are already handled elsewhere or belong to later phases
+
+First supported source set:
+- existing origin planes:
+  - `XY`
+  - `XZ`
+  - `YZ`
+- qualifying planar model faces
+
+Not supported yet:
+- curved faces
+- loose edge-as-source authoring
+- point/vertex source picking
+- multi-reference plane solving
+- final live-associative source reattachment rules
+
+Locked user flow:
+1. user enters `Pick In Viewport`
+2. the same cleaned-up sketch-plane source session opens
+3. user may still choose:
+   - `XY`
+   - `XZ`
+   - `YZ`
+4. user may instead hover a qualifying planar face in the main viewport
+5. hovered face shows:
+   - tinted face fill
+   - highlighted boundary edges
+6. clicking that face updates the active draft source to `planar-face`
+7. the session derives a draft sketch plane from the selected face
+8. the session transitions into the existing `adjust` depth
+9. the user refines the result with the existing controls:
+   - `Move`
+   - `Rotate`
+10. `Done` or `Enter` commits the authored sketch-plane values
+11. `Back`, `X`, and `Esc` continue to use the same existing sketch-plane session return/exit behavior
+
+Ownership rule:
+- face hover and face selection are pick-stage inputs into the existing sketch-plane session
+- `Move` and `Rotate` remain adjust-stage tools inside that same session
+- do not split "geometry pick" and "plane adjust" into separate feature products
+
+First data/model target:
+- extend the temporary session state so it can remember:
+  - draft source kind
+  - draft source reference metadata
+  - derived face-plane frame
+- keep authored sketch truth compatible with the current committed feature fields:
+  - plane
+  - plane transform
+- if source-reference metadata is available at commit time, preserve it as source-trace metadata
+- if not, still allow commit of the derived plane/transform result
+
+Highlight language:
+- `Hover Candidate`
+  - face tint plus edge outline
+- `Draft Selected Source`
+  - stronger tint
+  - stronger edge outline
+  - candidate sketch grid / plane preview
+- `Committed Source`
+  - normal authored sketch preview after session close
+
+Console / prompt alignment:
+- keep the existing sketch-plane feature-assist descriptor as the prompt owner
+- do not invent a second feature-session prompt system for geometry pick
+- extend console/session tracing so the debug read can report:
+  - whether the active draft source is `origin-plane` or `planar-face`
+  - the currently hovered candidate when useful
+  - the currently selected draft source
+- shared sketch commands remain:
+  - `Back`
+  - `Done`
+  - `Enter`
+  - `X`
+  - `Move`
+  - `Rotate`
+- geometry hover itself remains viewport-driven, not a typed console action
+
+Implementation seams:
+- extend `sketchPlanePickSession` instead of replacing it
+- add viewer hit-testing for qualifying planar faces during `SketchPlane > Plane Selection`
+- derive one stable draft plane frame from the selected planar face
+- transition into the existing adjust/root state after selection
+- keep `runSketchPlaneCommand(...)` as the owner for post-selection sketch-plane actions
+- keep `returnActiveSketchSessionOneLevel()` as the owner for one-level back behavior after geometry-derived selection
+- publish readable command/session trace lines when geometry-derived source state changes
+
+Acceptance checks:
+- origin-plane picking still works through the same session after this phase lands
+- hovering a qualifying planar face shows a clear candidate read in the main viewport
+- clicking a qualifying planar face updates draft source state and opens the existing adjust depth instead of a second special-case mode
+- `Move` and `Rotate` continue to operate on draft state only
+- `Back` from adjust returns to pick/selection without committing authored values
+- `X` and `Esc` still cancel through the existing sketch-plane cleanup path
+- `Done` and `Enter` still commit through the existing confirm path
+- the session can report whether the active source came from:
+  - origin-plane
+  - planar-face
+- no second sketch-plane pick session or second console-prompt system is introduced
+
+Out of scope for this phase:
+- non-planar geometry inference
+- standalone edge source authoring
+- full constraint/inference solving between multiple references
+- browser/expose work
+- final source associativity/rebuild behavior across topology changes
 
 ## [x] - `3.2B-DrawSketch-1` - `Viewer-Owned Live Draw Preview`
 ### Header
@@ -1215,10 +1515,10 @@ Cleanup boundaries that were kept intact:
 Result:
 
 - `3.2B-DrawSketch-1` now reads as a more honest first drafting loop
-- `3.2B-DrawSketch-2` remains the next deeper session/lifecycle phase
+- `3.2B-DrawSketch-2` is now shipped as the real multi-step session/commit pass for `Line` and `PLine`
 - `3.2B-DrawSketch-3` remains the later selection/editing/richer-feedback phase
 
-## [ ] - `3.2B-DrawSketch-2` - `Multi-Step Tool Sessions And Commit Rules`
+## [x] - `3.2B-DrawSketch-2` - `Multi-Step Tool Sessions And Commit Rules`
 
 ### Header
 
@@ -1231,41 +1531,16 @@ Owns:
 - temporary entity draft state before commit
 - early draw-session console command hooks
 
-### Questions / Decisions
-
-#### [ ] - `q1` Decide the exact finish / continue / cancel behavior for `Line` versus `PLine`.
-
-##### Suggestion
-- `Line`
-  - pick start
-  - pick end
-  - commit
-  - command ends
-- `PLine`
-  - pick start
-  - pick next point
-  - stay alive
-  - `Enter` finishes
-  - `Esc` cancels the live command
-
-#### [ ] - `q2` Decide which temporary console lifecycle commands should mirror the draw session in this phase.
-
-##### Suggestion
-- use:
-  - `enter`
-  - `esc`
-  - `x`
-  - `undo`
-- keep them as temporary command seams that mirror the real draw-session actions
-
 ### Implementation Spec
 
-- detailed open questions live in the later `### 3.2B-DrawSketch` section
-- first implementation should prove:
-  - multi-step draft state machines
-  - explicit finish / cancel rules
-  - commit-on-finish behavior
-  - temporary console-assisted lifecycle hooks
+- shipped in runtime:
+  - `Line` now commits on `P2` and returns to idle `Sketch Draw`
+  - `PLine` now stays alive across progressive point entry and finishes on empty `Enter` once it has at least 2 points
+  - click and typed `Vec2` submissions now share one canonical point-confirm seam
+  - the top console status path now shows the current draw target like `... > P2 > Vec(N,N)` while the real input stays free for typed `Vec2`
+  - `Previous` / `P` now re-arms the last used draw tool with a fresh draft
+  - `undo` now removes only the last live point in the active uncommitted chain
+  - `Esc` and `Back` now cancel the active tool directly back to idle `Sketch Draw`
 
 ## [ ] - `3.2B-DrawSketch-3` - `Selection, Editing, And Richer Sketch Feedback`
 
@@ -1365,7 +1640,7 @@ Owns:
   - authored sketch-content visibility
   - child surface structure under each sketch entry
 
-## [ ] - `3.2B-6` - `Sketch Content Ownership And Later Export`
+## [~] - `3.2B-6` - `Sketch Content Ownership And Later Export`
 
 ### Header
 
@@ -1376,6 +1651,16 @@ Owns:
 - stronger `Sketches` content-family identity
 - later vector-export direction like `.dxf`
 - richer sketch-content ownership beyond the node-only editing surface
+
+Current shipped cut:
+- the Browser now exposes a real `Sketches` root with per-sketch child rows derived from authored `Geometry/Sketch` nodes
+- those rows make sketch content visible even without immediate downstream solid consumption
+- selecting or opening a sketch row returns the user to the authoring graph node instead of leaving sketch truth stranded inside node-local editing UI
+
+Still later:
+- `.dxf` export
+- deeper browser child surfaces under each sketch
+- fuller sketch exposure policy outside the first browser/content identity cut
 
 ### Questions / Decisions
 
@@ -1790,6 +2075,15 @@ Use these subphases:
   - `Sketch Return One Level`
 - `[3.2B-S5]`
   - `Sketch Toolbar / Console Command Alignment`
+- `[3.2B-S6]`
+  - `SketchPlane Move Axis Numeric Entry`
+  - shipped runtime follow-on for real `Move > X / Y / Z` child levels
+- `[3.2B-S7]`
+  - `SketchPlane Transform History`
+  - shipped runtime follow-on for persistent toolbar-visible committed move history, `Merge History`, and preserved locked path segments
+- `[3.2B-S8]`
+  - `SketchPlane Move Again Re-Arm`
+  - open follow-on for local `Move Again` / `M` whole-move re-entry inside `SketchPlane > Move`
 
 ## [x] [3.2B-S1] - `Sketch Session Hierarchy Model`
 
@@ -2064,6 +2358,68 @@ Acceptance checks:
 - `Move Y` and `Move Z` behave the same way for their axes
 - `Rotate` starts live rotation and highlights all rotation rows
 - `Rotate X`, `Rotate Y`, and `Rotate Z` each constrain the live rotation session to their own axis
+
+## [x] [3.2B-S7] - `SketchPlane Transform History`
+
+Once `SketchPlane > Move` is a stable live command family, the sketch-plane toolbar should begin recording how the plane actually reached its current placement instead of only showing the latest draft/final transform.
+
+Goal:
+- let the user read the committed move path from the origin to the current sketch-plane placement
+- make the toolbar and viewport explain the same transform history
+- allow the user to collapse redundant intermediate diffs without losing intentionally preserved checkpoints
+
+First user-facing shape:
+- add a new collapsible `Transform History` section inside the `SketchPlane` toolbar
+- every time the user commits a sketch-plane move/transform change, record the newly landed sketch-plane point as a history entry
+- the first committed path still begins from the origin
+- example:
+  - user enters `G > S > SP > M`
+  - user commits `Vec3(3,3,3)`
+  - `Transform History` records that committed step and the viewport draws the corresponding path segment from the origin to that committed point
+
+History model:
+- each entry should represent one committed transform step, not a transient drag sample
+- each entry should preserve the landed point reached by that committed step
+- the list should be readable in order from earliest to latest
+- the latest committed sketch-plane position should still remain the active final placement
+- the first honest cut should focus on committed translation `Vec3` history, even if the underlying model later grows into broader sketch-plane transform history
+- conceptually, this should read like a committed point chain:
+  - `origin -> p1 -> p2 -> p3`
+  - not like isolated unrelated values
+
+Viewport direction:
+- draw a history line for each committed segment, similar in spirit to the current live move guide line
+- each line segment should connect the previously committed point to the newly committed point
+- the full visible path should show how the plane got from the origin to the current final placement
+- the viewport should therefore read as one accumulated polyline/path through all committed sketch-plane positions
+- the active live move guide can still sit on top of that history while a new move command is in progress
+
+Toolbar controls:
+- `Transform History` should be collapsible like a normal toolbar section
+- add a `Merge History` control that folds unlocked intermediate steps into accumulated diffs and leaves a shorter readable list
+- merged output should still preserve the final resulting `Vec3`
+
+Locked-entry rule:
+- the user can `Lock` any history entry
+- locked entries must survive `Merge History`
+- collapsing should add together only the unlocked spans between preserved locked entries
+- if the user locks the last committed `Vec3`, collapsing can reduce the later span entirely into that locked final entry
+
+Implementation direction:
+- build this from committed sketch-plane move acceptance, not from per-frame drag updates
+- keep the history attached to the active sketch-plane placement/session truth so toolbar rows and viewport lines read from the same source
+- store enough information to reconstruct the committed point chain in order, not only the latest final value
+- do not let collapse delete the actual final placement; collapse is only a history presentation/aggregation action
+- keep the first cut local to `SketchPlane`; later browser/export surfaces can decide if this history becomes authored sketch metadata
+- the shipped first cut is implemented through persistent sketch `uiState` history, toolbar `Transform History` rows, `Lock` toggles, destructive `Merge History`, and viewer-side committed history segments
+
+Acceptance checks:
+- first committed move after entering `SketchPlane > Move` records a history step from the origin
+- later committed move steps append in order and draw matching path segments
+- `Transform History` can be expanded/collapsed in the toolbar
+- `Merge History` reduces unlocked intermediate rows while preserving the final resulting `Vec3`
+- locked entries remain visible after collapse
+- viewport history lines match the visible toolbar history order
 
 ## [x] [3.2B-S3] - `SketchDraw Session Cleanup`
 

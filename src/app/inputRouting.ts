@@ -85,14 +85,14 @@ export const routeKeyboardInput = ({
   }
 
   if (event.key === 'Enter') {
-    if (sketchPlanePickStage === 'adjust') {
-      return { owner: 'sketch-plane', decision: 'handle' }
-    }
     if (geometrySketchMode === 'draw') {
       return { owner: 'sketch-draw', decision: 'handle' }
     }
     if (referenceTransformHasPendingKeyboardTransform) {
       return { owner: 'reference-transform', decision: 'handle' }
+    }
+    if (stagedConsoleActive) {
+      return { owner: 'staged-console', decision: 'handle' }
     }
     return { owner: 'none', decision: 'ignore' }
   }

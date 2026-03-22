@@ -16,11 +16,16 @@ import { ConsoleDock } from './console/ConsoleDock'
 import { BrowserPanel } from './panels/BrowserPanel'
 import { RadioPanel } from './panels/RadioPanel'
 import { SpaghettiPanel } from './panels/SpaghettiPanel'
-import { AudioEngine, AudioEngineError } from '../runtime/audio/AudioEngine'
+import {
+  AudioEngine,
+  AudioEngineError,
+  extractGeneratedToneWaveformEnvelope,
+} from '../runtime/audio/AudioEngine'
 import {
   buildSoundCloudPlayerUrl,
   createFallbackRadioSourceDescriptor,
   DEFAULT_GUSANO_URL,
+  resolveRadioWaveformCapability,
   resolveRadioSourceDescriptor,
 } from '../runtime/audio/ClipLibrary'
 import {
@@ -38,7 +43,11 @@ import {
   selectEditorViewportById,
   useSpaghettiStore,
 } from './spaghetti/store/useSpaghettiStore'
-import { useAudioSamplerStore, type RadioRuntimeSourceKind } from './store/audioSamplerStore'
+import {
+  DEFAULT_RADIO_WAVEFORM_SAMPLE_COUNT,
+  useAudioSamplerStore,
+  type RadioRuntimeSourceKind,
+} from './store/audioSamplerStore'
 import { useAppStore } from './store/useAppStore'
 import {
   defaultSpaghettiWindowAppearance,
@@ -494,6 +503,7 @@ export function AppShell() {
   const radioSourceUrl = useAudioSamplerStore((state) => state.sourceUrl)
   const radioRuntimeStatus = useAudioSamplerStore((state) => state.radioRuntimeStatus)
   const radioRuntimeSourceKind = useAudioSamplerStore((state) => state.radioRuntimeSourceKind)
+  const radioTransport = useAudioSamplerStore((state) => state.radioTransport)
   const latestRadioSeekRequest = useAudioSamplerStore((state) => state.latestSeekRequest)
   const latestRadioReloadRequestId = useAudioSamplerStore((state) => state.latestReloadRequestId)
   const latestSamplerStepPreviewRequest = useAudioSamplerStore(
@@ -593,6 +603,20 @@ export function AppShell() {
     if (isRadioEnabled) {
       return
     }
+    const currentState = useAudioSamplerStore.getState()
+    const isAlreadyIdle =
+      currentState.radioRuntimeStatus === 'idle' &&
+      currentState.radioRuntimeSourceKind === 'none' &&
+      currentState.radioRuntimeMessage === null &&
+      currentState.radioTransport.currentTimeSec === 0 &&
+      currentState.radioTransport.durationSec === 0 &&
+      currentState.radioTransport.isSeekable === false &&
+      currentState.radioTransport.isPlaying === false &&
+      currentState.radioWaveform.kind === 'none'
+
+    if (isAlreadyIdle) {
+      return
+    }
     radioAudioEngineRef.current?.stopBurst()
     useAudioSamplerStore.getState().setRadioRuntimeState({
       status: 'idle',
@@ -605,6 +629,7 @@ export function AppShell() {
       isSeekable: false,
       isPlaying: false,
     })
+    useAudioSamplerStore.getState().clearRadioWaveformState()
   }, [isRadioEnabled])
 
   useEffect(() => {
@@ -647,6 +672,61 @@ export function AppShell() {
         // Ignore background preload failures. The active burst path reports runtime status honestly.
       })
   }, [isRadioEnabled, radioSourceUrl])
+
+  useEffect(() => {
+    if (!isRadioEnabled) {
+      return
+    }
+
+    const descriptor = resolveActiveRadioDescriptor(radioSourceUrl, radioRuntimeSourceKind)
+    const capability = resolveRadioWaveformCapability(descriptor)
+    const now = Date.now()
+
+    if (capability === 'exact' && descriptor.kind === 'generated-tone') {
+      useAudioSamplerStore.getState().setRadioWaveformState({
+        kind: 'exact',
+        sourceId: descriptor.sourceId,
+        sourceKind: descriptor.kind,
+        durationSec: descriptor.durationSec,
+        sampleCount: DEFAULT_RADIO_WAVEFORM_SAMPLE_COUNT,
+        samples: extractGeneratedToneWaveformEnvelope(
+          descriptor,
+          DEFAULT_RADIO_WAVEFORM_SAMPLE_COUNT,
+        ),
+        message: null,
+        lastResolvedAt: now,
+      })
+      return
+    }
+
+    if (capability === 'limited') {
+      useAudioSamplerStore.getState().setRadioWaveformState({
+        kind: 'limited',
+        sourceId: descriptor.sourceId,
+        sourceKind: descriptor.kind,
+        durationSec: radioTransport.durationSec,
+        sampleCount: DEFAULT_RADIO_WAVEFORM_SAMPLE_COUNT,
+        samples: [],
+        message: 'Detailed waveform unavailable for current source',
+        lastResolvedAt: now,
+      })
+      return
+    }
+
+    useAudioSamplerStore.getState().setRadioWaveformState({
+      kind: 'none',
+      sourceId: descriptor.sourceId,
+      sourceKind: descriptor.kind,
+      durationSec: 0,
+      sampleCount: DEFAULT_RADIO_WAVEFORM_SAMPLE_COUNT,
+      samples: [],
+      message:
+        descriptor.kind === 'unsupported-url'
+          ? 'Waveform unavailable for unsupported source'
+          : null,
+      lastResolvedAt: now,
+    })
+  }, [isRadioEnabled, radioRuntimeSourceKind, radioSourceUrl, radioTransport.durationSec])
 
   useEffect(() => {
     if (latestRadioBurstRequest === null) {

@@ -34,6 +34,9 @@ const INACTIVE_EDGE = new Color('#cfd9ff')
 const ORIGIN_COLOR = new Color('#ffffff')
 const HOVER_FILL = new Color('#f6c67d')
 const HOVER_EDGE = new Color('#fff0c6')
+const MOVE_GUIDE_COLOR = new Color('#ffd66b')
+const MOVE_GUIDE_START_COLOR = new Color('#7cd4ff')
+const HISTORY_GUIDE_COLOR = new Color('#ff9f7a')
 
 const PLANE_IDS: readonly SketchPlane[] = ['XY', 'XZ', 'YZ'] as const
 
@@ -135,6 +138,70 @@ const createOriginCross = (): LineSegments => {
   cross.frustumCulled = false
   cross.renderOrder = 113
   return cross
+}
+
+const createMoveGuideLine = (): LineSegments => {
+  const geometry = new BufferGeometry()
+  geometry.setAttribute('position', new Float32BufferAttribute([0, 0, 0, 0, 0, 0], 3))
+  const material = new LineBasicMaterial({
+    color: MOVE_GUIDE_COLOR,
+    transparent: true,
+    opacity: 0.92,
+    toneMapped: false,
+    depthTest: false,
+  })
+  const line = new LineSegments(geometry, material)
+  line.name = 'SketchPlaneMoveCommandGuide'
+  line.frustumCulled = false
+  line.renderOrder = 111
+  line.visible = false
+  return line
+}
+
+const createMoveGuideStartMarker = (): LineSegments => {
+  const geometry = new BufferGeometry()
+  geometry.setAttribute(
+    'position',
+    new Float32BufferAttribute(
+      [
+        -0.8, 0, 0, 0.8, 0, 0,
+        0, -0.8, 0, 0, 0.8, 0,
+        0, 0, -0.8, 0, 0, 0.8,
+      ],
+      3,
+    ),
+  )
+  const material = new LineBasicMaterial({
+    color: MOVE_GUIDE_START_COLOR,
+    transparent: true,
+    opacity: 0.95,
+    toneMapped: false,
+    depthTest: false,
+  })
+  const marker = new LineSegments(geometry, material)
+  marker.name = 'SketchPlaneMoveCommandOrigin'
+  marker.frustumCulled = false
+  marker.renderOrder = 112
+  marker.visible = false
+  return marker
+}
+
+const createHistoryGuideLine = (): LineSegments => {
+  const geometry = new BufferGeometry()
+  geometry.setAttribute('position', new Float32BufferAttribute([], 3))
+  const material = new LineBasicMaterial({
+    color: HISTORY_GUIDE_COLOR,
+    transparent: true,
+    opacity: 0.7,
+    toneMapped: false,
+    depthTest: false,
+  })
+  const line = new LineSegments(geometry, material)
+  line.name = 'SketchPlaneTransformHistoryGuide'
+  line.frustumCulled = false
+  line.renderOrder = 110
+  line.visible = false
+  return line
 }
 
 const createGridLayer = (
@@ -249,6 +316,9 @@ export class SketchPlanePickHelper {
   private readonly axesGroup = new Group()
   private readonly planeVisuals = new Map<SketchPlane, PlaneVisual>()
   private readonly activeGrid = createPlaneGrid()
+  private readonly historyGuideLine = createHistoryGuideLine()
+  private readonly moveGuideLine = createMoveGuideLine()
+  private readonly moveGuideStartMarker = createMoveGuideStartMarker()
   private readonly raycaster = new Raycaster()
   private readonly pointer = new Vector2()
   private overlay: SketchPlanePickOverlayVm | null = null
@@ -274,6 +344,9 @@ export class SketchPlanePickHelper {
     this.previewPivot.add(this.axesGroup)
     this.previewPivot.add(this.activeGrid)
     this.group.add(this.previewPivot)
+    this.group.add(this.historyGuideLine)
+    this.group.add(this.moveGuideLine)
+    this.group.add(this.moveGuideStartMarker)
   }
 
   public getGroup(): Group {
@@ -291,6 +364,9 @@ export class SketchPlanePickHelper {
     if (overlay === null) {
       this.previewPivot.position.set(0, 0, 0)
       this.previewPivot.rotation.set(0, 0, 0)
+      this.historyGuideLine.visible = false
+      this.moveGuideLine.visible = false
+      this.moveGuideStartMarker.visible = false
       return
     }
 
@@ -347,6 +423,41 @@ export class SketchPlanePickHelper {
     setPlaneBaseRotation(this.activeGrid, previewedPlane)
     this.activeGrid.rotateZ(MathUtils.degToRad(overlay.draftTransform.inPlaneRotationDeg))
     this.activeGrid.position.copy(getPlaneOffsetVector(previewedPlane, overlay))
+
+    if (overlay.transformHistoryPoints.length >= 2) {
+      const positions: number[] = []
+      for (let index = 1; index < overlay.transformHistoryPoints.length; index += 1) {
+        const previous = overlay.transformHistoryPoints[index - 1]!
+        const current = overlay.transformHistoryPoints[index]!
+        positions.push(previous.x, previous.y, previous.z, current.x, current.y, current.z)
+      }
+      this.historyGuideLine.geometry.setAttribute(
+        'position',
+        new Float32BufferAttribute(positions, 3),
+      )
+      this.historyGuideLine.geometry.computeBoundingSphere()
+      this.historyGuideLine.visible = true
+    } else {
+      this.historyGuideLine.visible = false
+    }
+
+    if (overlay.showMoveCommandGuide && overlay.commandOriginTransform !== null) {
+      const origin = overlay.commandOriginTransform.translation
+      const draft = overlay.draftTransform.translation
+      const positionAttribute = this.moveGuideLine.geometry.getAttribute(
+        'position',
+      ) as Float32BufferAttribute
+      positionAttribute.setXYZ(0, origin.x, origin.y, origin.z)
+      positionAttribute.setXYZ(1, draft.x, draft.y, draft.z)
+      positionAttribute.needsUpdate = true
+      this.moveGuideLine.geometry.computeBoundingSphere()
+      this.moveGuideStartMarker.position.set(origin.x, origin.y, origin.z)
+      this.moveGuideLine.visible = true
+      this.moveGuideStartMarker.visible = true
+    } else {
+      this.moveGuideLine.visible = false
+      this.moveGuideStartMarker.visible = false
+    }
   }
 
   public readDraftTransform(): SketchPlanePickOverlayVm['draftTransform'] | null {
@@ -427,5 +538,11 @@ export class SketchPlanePickHelper {
         ;(child.material as LineBasicMaterial).dispose()
       }
     })
+    this.historyGuideLine.geometry.dispose()
+    ;(this.historyGuideLine.material as LineBasicMaterial).dispose()
+    this.moveGuideLine.geometry.dispose()
+    ;(this.moveGuideLine.material as LineBasicMaterial).dispose()
+    this.moveGuideStartMarker.geometry.dispose()
+    ;(this.moveGuideStartMarker.material as LineBasicMaterial).dispose()
   }
 }

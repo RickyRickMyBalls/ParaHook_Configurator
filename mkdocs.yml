@@ -1,0 +1,30 @@
+site_name: ParaHook Docs
+docs_dir: docs
+
+exclude_docs: |
+  Archive/
+  Human-Plans/roadmap/archive/
+  Phase-Plans/Tasks/Archive/
+
+theme:
+  name: material
+  features:
+    - toc.follow
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+
+plugins:
+  - search

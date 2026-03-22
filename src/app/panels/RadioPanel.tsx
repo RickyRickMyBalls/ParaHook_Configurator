@@ -6,6 +6,7 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from 'react'
 import { ParaSlider } from '../components/ParaSlider'
+import { RadioWaveformStrip } from '../components/RadioWaveformStrip'
 import {
   ViewportOverlayToolPanel,
   ViewportOverlayToolSection,
@@ -104,6 +105,7 @@ export function RadioPanel() {
   const radioRuntimeMessage = useAudioSamplerStore((state) => state.radioRuntimeMessage)
   const radioRuntimeSourceKind = useAudioSamplerStore((state) => state.radioRuntimeSourceKind)
   const radioTransport = useAudioSamplerStore((state) => state.radioTransport)
+  const radioWaveform = useAudioSamplerStore((state) => state.radioWaveform)
   const isRadioToolbarSectionExpanded = useAudioSamplerStore(
     (state) => state.isRadioToolbarSectionExpanded,
   )
@@ -325,6 +327,10 @@ export function RadioPanel() {
     () => resolveStepDurationSec(samplerBpm, samplerStepCount),
     [samplerBpm, samplerStepCount],
   )
+  const visibleSamplerMarkers = useMemo(
+    () => samplerSteps.slice(0, samplerStepCount),
+    [samplerStepCount, samplerSteps],
+  )
   const hasResizableSplit = isRadioToolbarSectionExpanded && isSamplerToolbarSectionExpanded
 
   useEffect(() => {
@@ -509,6 +515,12 @@ export function RadioPanel() {
                     }}
                   />
                 </div>
+                <RadioWaveformStrip
+                  waveform={radioWaveform}
+                  transport={radioTransport}
+                  stepMarkers={visibleSamplerMarkers}
+                  activeStepIndex={samplerPlayheadStepIndex}
+                />
                 {!radioTransport.isSeekable ? (
                   <div className="RadioPanelHint">Seek is unavailable for the current radio source.</div>
                 ) : null}

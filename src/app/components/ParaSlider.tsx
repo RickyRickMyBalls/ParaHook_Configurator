@@ -25,6 +25,7 @@ type ParaSliderProps = {
   formatValue?: (value: number) => string
   displayLabel?: string
   displayValue?: string
+  onActivate?: () => void
   onContextMenu?: (event: ReactMouseEvent<HTMLElement>) => void
   hideCaps?: boolean
   onChangeEnd?: (value: number) => void
@@ -92,6 +93,7 @@ export function ParaSlider({
   formatValue = (nextValue) => `${nextValue}`,
   displayLabel,
   displayValue,
+  onActivate,
   onContextMenu,
   hideCaps = false,
   onChangeEnd,
@@ -348,6 +350,7 @@ export function ParaSlider({
   }
 
   const handleTrackPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    onActivate?.()
     if (isEditingClamp && onClampChange !== undefined) {
       const trackElement = trackRef.current
       if (trackElement === null) {
@@ -545,6 +548,7 @@ export function ParaSlider({
                 event.stopPropagation()
               }}
               onClick={() => {
+                onActivate?.()
                 setValueInput(editableValueText)
                 setIsValueEditing(true)
               }}

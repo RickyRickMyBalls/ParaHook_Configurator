@@ -60,7 +60,7 @@ export const runBrowserRowAction = (
     return
   }
 
-  if (row.rowKind === 'component' || row.rowKind === 'object') {
+  if (row.rowKind === 'component' || row.rowKind === 'object' || row.rowKind === 'sketch') {
     if (action.actionId === 'view-in-graph' && row.authoringGraphDocumentId !== null) {
       handlers.onViewInGraph(row.authoringGraphDocumentId, row.authoringNodeId)
     }

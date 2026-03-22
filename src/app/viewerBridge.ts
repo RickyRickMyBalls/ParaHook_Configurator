@@ -52,6 +52,9 @@ export type SketchPlanePickOverlayVm = {
   draftPlane: SketchPlane
   previewPlane: SketchPlane | null
   draftTransform: SketchPlaneTransform
+  commandOriginTransform: SketchPlaneTransform | null
+  transformHistoryPoints: Array<{ x: number; y: number; z: number }>
+  showMoveCommandGuide: boolean
   snap: {
     translateMm: number | null
     rotateDeg: number | null
@@ -64,6 +67,7 @@ export type SketchPlanePickOverlayVm = {
 
 export interface ViewerApi {
   setCameraPreset: (preset: CameraPreset) => void
+  alignCameraToGeometrySketchPlane: () => void
   frameAll: () => void
   frameSelected: (partId: string | null) => void
   frameReference: (referenceId: string) => void

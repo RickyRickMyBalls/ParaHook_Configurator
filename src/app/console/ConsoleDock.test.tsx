@@ -195,6 +195,7 @@ describe('ConsoleDock', () => {
 
     await act(async () => {
       input?.dispatchEvent(new KeyboardEvent('keydown', { key: 't', bubbles: true, cancelable: true }))
+      useConsoleStore.getState().setInputText('ot')
     })
 
     expect(useConsoleStore.getState().inputText).toBe('ot')
@@ -320,8 +321,8 @@ describe('ConsoleDock', () => {
       form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
     })
 
-    expect(useConsoleStore.getState().stagedNavigationSession).toBeNull()
-    expect(useConsoleStore.getState().inputText).toBe('')
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('root')
+    expect(useConsoleStore.getState().inputText).toBe('Graph')
     expect(useAudioSamplerStore.getState().isRadioEnabled).toBe(true)
     expect(
       useConsoleStore.getState().entries.some((entry) => entry.text === 'Radio on'),
@@ -371,8 +372,8 @@ describe('ConsoleDock', () => {
       form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
     })
 
-    expect(useConsoleStore.getState().stagedNavigationSession).toBeNull()
-    expect(useConsoleStore.getState().inputText).toBe('')
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('root')
+    expect(useConsoleStore.getState().inputText).toBe('Graph')
     expect(useAudioSamplerStore.getState().isRadioEnabled).toBe(false)
     expect(
       useConsoleStore.getState().entries.some((entry) => entry.text === 'Radio off'),
@@ -753,7 +754,10 @@ describe('ConsoleDock', () => {
       form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
     })
 
-    expect(useConsoleStore.getState().entries).toHaveLength(2)
+    expect(useConsoleStore.getState().entries.some((entry) => entry.text === '> help')).toBe(true)
+    expect(
+      useConsoleStore.getState().entries.some((entry) => entry.text.includes('help')),
+    ).toBe(true)
 
     const toggle = container.querySelector(
       'button[aria-label="Expand console"]',
@@ -770,7 +774,7 @@ describe('ConsoleDock', () => {
     ) as HTMLButtonElement | undefined
 
     expect(clear?.disabled).toBe(true)
-    expect(useConsoleStore.getState().entries).toHaveLength(2)
+    expect(useConsoleStore.getState().entries.some((entry) => entry.text === '> help')).toBe(true)
   })
 
   it('can expand the console by dragging up from the bottom bar', async () => {
@@ -1411,7 +1415,7 @@ describe('ConsoleDock', () => {
       )
     })
 
-    expect(useConsoleStore.getState().inputText).toBe('help')
+    expect(useConsoleStore.getState().inputText).toBe('Radio')
   })
 
   it('auto-captures printable typing into the console without slash', async () => {
@@ -1457,7 +1461,7 @@ describe('ConsoleDock', () => {
     })
 
     expect(document.activeElement).toBe(paramInput)
-    expect(useConsoleStore.getState().inputText).toBe('')
+    expect(useConsoleStore.getState().inputText).toBe('Graph')
   })
 
   it('does not auto-capture a global space key into the console', async () => {
@@ -1475,10 +1479,10 @@ describe('ConsoleDock', () => {
       )
     })
 
-    expect(useConsoleStore.getState().inputText).toBe('')
+    expect(useConsoleStore.getState().inputText).toBe('Sketch')
   })
 
-  it('keeps sketch draw feature-assist prefill stable instead of flat auto-capturing printable keys', async () => {
+  it('replaces sketch draw feature-assist prefill from global printable typing and keeps subsequent typing manual', async () => {
     container = document.createElement('div')
     document.body.appendChild(container)
     root = createRoot(container)
@@ -1514,7 +1518,17 @@ describe('ConsoleDock', () => {
       )
     })
 
-    expect(useConsoleStore.getState().inputText).toBe('Line')
+    expect(useConsoleStore.getState().inputText).toBe('b')
+    expect(useConsoleStore.getState().isStagedChoiceManualOverride).toBe(true)
+
+    await act(async () => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'a', bubbles: true, cancelable: true }),
+      )
+    })
+
+    expect(useConsoleStore.getState().inputText).toBe('ba')
+    expect(useConsoleStore.getState().isStagedChoiceManualOverride).toBe(true)
   })
 
   it('auto-captures printable keys into the console while sketch-plane pick is active', async () => {
@@ -1592,7 +1606,7 @@ describe('ConsoleDock', () => {
       )
     })
 
-    expect(useConsoleStore.getState().inputText).toBe('Line')
+    expect(useConsoleStore.getState().inputText).toBe('b')
 
     await act(async () => {
       useSpaghettiStore.getState().closeGeometrySketchSession()
@@ -1604,7 +1618,7 @@ describe('ConsoleDock', () => {
       )
     })
 
-    expect(useConsoleStore.getState().inputText).toBe('b')
+    expect(useConsoleStore.getState().inputText).toBe('bb')
   })
 
   it('runs narrow-core typed commands and reports unknown commands strictly', async () => {
@@ -1841,7 +1855,73 @@ describe('ConsoleDock', () => {
         .entries.some(
           (entry) =>
             entry.text ===
-            'Sketch Plane > Move > [Vec3(0.0, 0.0, 0.0), Move X, Move Y, Move Z, Snap, Back]',
+            'Sketch Plane > Move > [Vec3(0.0, 0.0, 0.0), Move Again, Move X, Move Y, Move Z, Snap, Back]',
+        ),
+    ).toBe(true)
+  })
+
+  it('treats m as move again inside sketch-plane move scope', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-sketch-1',
+            type: 'Geometry/Sketch',
+            params: {
+              sketch: {
+                type: 'sketch',
+                featureId: 'sketch-1',
+                plane: 'XY',
+                components: [],
+                outputs: { profiles: [], diagnostics: [] },
+                uiState: { collapsed: false },
+              },
+            },
+          },
+        ],
+        edges: [],
+      })
+      useSpaghettiStore.getState().startSketchPlanePick('node-sketch-1')
+      useSpaghettiStore.getState().setSketchPlanePickDraftPlane('XZ')
+      useSpaghettiStore.getState().runSketchPlaneCommand('move')
+      useSpaghettiStore.getState().setSketchPlanePickTranslationAxis('x', 12)
+      useSpaghettiStore.getState().acceptActiveSketchPlaneTransformCommand()
+      useSpaghettiStore.getState().runSketchPlaneCommand('move')
+      useSpaghettiStore.getState().setSketchPlanePickTranslationAxis('y', 7)
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('m')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useSpaghettiStore.getState().sketchPlanePickSession).toMatchObject({
+      adjustScope: 'move',
+      activeTransformAxis: 'free',
+      draftTransform: {
+        translation: { x: 12, y: 7, z: 0 },
+      },
+      transformCommandOrigin: {
+        translation: { x: 12, y: 7, z: 0 },
+      },
+    })
+    expect(
+      useConsoleStore
+        .getState()
+        .entries.some(
+          (entry) =>
+            entry.text ===
+            'Sketch Plane > Move > [Vec3(12.0, 7.0, 0.0), Move Again, Move X, Move Y, Move Z, Snap, Back]',
         ),
     ).toBe(true)
   })
@@ -1890,16 +1970,143 @@ describe('ConsoleDock', () => {
 
     expect(useSpaghettiStore.getState().sketchPlanePickSession).toMatchObject({
       stage: 'adjust',
-      adjustScope: 'move',
+      adjustScope: 'move-axis',
       activeTransformAxis: 'x',
       gizmoMode: 'translate',
       draftTransform: {
         offsetMm: 0,
-        translation: { x: 0, y: 0, z: 0 },
+        translation: { x: 18, y: 0, z: 0 },
         rotationDeg: { x: 0, y: 0, z: 0 },
         inPlaneRotationDeg: 0,
       },
     })
+    expect(useConsoleStore.getState().inputText).toBe('18.0')
+  })
+
+  it('accepts a move-axis float submit and returns to move', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-sketch-1',
+            type: 'Geometry/Sketch',
+            params: {
+              sketch: {
+                type: 'sketch',
+                featureId: 'sketch-1',
+                plane: 'XY',
+                components: [],
+                outputs: { profiles: [], diagnostics: [] },
+                uiState: { collapsed: false },
+              },
+            },
+          },
+        ],
+        edges: [],
+      })
+      useSpaghettiStore.getState().startSketchPlanePick('node-sketch-1')
+      useSpaghettiStore.getState().setSketchPlanePickDraftPlane('XZ')
+      useSpaghettiStore.getState().runSketchPlaneCommand('move')
+      useSpaghettiStore.getState().runSketchPlaneCommand('move-x')
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('.1')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useSpaghettiStore.getState().sketchPlanePickSession).toMatchObject({
+      stage: 'adjust',
+      adjustScope: 'move',
+      activeTransformAxis: 'free',
+      draftTransform: {
+        translation: { x: 0.1, y: 0, z: 0 },
+      },
+    })
+    expect(useConsoleStore.getState().inputText).toBe('0.1,0.0,0.0')
+  })
+
+  it('requires confirm or deny before applying an off-snap move-axis value', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-sketch-1',
+            type: 'Geometry/Sketch',
+            params: {
+              sketch: {
+                type: 'sketch',
+                featureId: 'sketch-1',
+                plane: 'XY',
+                components: [],
+                outputs: { profiles: [], diagnostics: [] },
+                uiState: { collapsed: false },
+              },
+            },
+          },
+        ],
+        edges: [],
+      })
+      useSpaghettiStore.getState().startSketchPlanePick('node-sketch-1')
+      useSpaghettiStore.getState().setSketchPlanePickDraftPlane('XZ')
+      useSpaghettiStore.getState().runSketchPlaneCommand('move')
+      useSpaghettiStore.getState().runSketchPlaneCommand('move-x')
+      useUiPrefsStore.getState().setSketchPlaneToolbarTranslateSnapEnabled(true)
+      useUiPrefsStore.getState().setSketchPlaneToolbarTranslateSnapValue(1)
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('0.3')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useSpaghettiStore.getState().sketchPlanePickSession).toMatchObject({
+      adjustScope: 'move-axis',
+      activeTransformAxis: 'x',
+      pendingMoveAxisOffSnapConfirmation: {
+        axis: 'x',
+        value: 0.3,
+        literal: '0.3',
+      },
+      draftTransform: {
+        translation: { x: 0, y: 0, z: 0 },
+      },
+    })
+    expect(useConsoleStore.getState().inputText).toBe('confirm')
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useSpaghettiStore.getState().sketchPlanePickSession).toMatchObject({
+      adjustScope: 'move',
+      activeTransformAxis: 'free',
+      draftTransform: {
+        translation: { x: 0.3, y: 0, z: 0 },
+      },
+    })
+    expect(useConsoleStore.getState().inputText).toBe('0.3,0.0,0.0')
   })
 
   it('accepts the live vec3 move choice and returns to sketch-plane adjust root', async () => {
@@ -2334,7 +2541,7 @@ describe('ConsoleDock', () => {
 
     const texts = useConsoleStore.getState().entries.map((entry) => entry.text)
     expect(texts).toContain('> pline')
-    expect(texts).toContain('PLINE Specify start point:')
+    expect(texts).toContain('PLINE Specify point 1:')
   })
 
   it('accepts l as a sketch-local alias for line on submit', async () => {
@@ -2377,11 +2584,226 @@ describe('ConsoleDock', () => {
     expect(useSpaghettiStore.getState().geometrySketchSession?.activeTool).toBe('line')
     expect(useConsoleStore.getState().entries.some((entry) => entry.text === '> l')).toBe(true)
     expect(
-      useConsoleStore.getState().entries.some((entry) => entry.text === 'LINE Specify start point:'),
+      useConsoleStore.getState().entries.some((entry) => entry.text === 'LINE Specify point 1:'),
     ).toBe(true)
   })
 
-  it('uses esc twice in sketch draw to clear the draft and then return to session idle', async () => {
+  it('accepts typed vec2 submissions during an active Line command and returns to idle after the second point', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-sketch-1',
+            type: 'Geometry/Sketch',
+            params: {
+              sketch: {
+                type: 'sketch',
+                featureId: 'sketch-1',
+                plane: 'XY',
+                components: [],
+                outputs: { profiles: [], diagnostics: [] },
+                uiState: { collapsed: false },
+              },
+            },
+          },
+        ],
+        edges: [],
+      })
+      useSpaghettiStore.getState().startGeometrySketchSession('node-sketch-1', 'draw')
+      useConsoleStore.getState().setInputText('line')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('1,1')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('5,5')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useSpaghettiStore.getState().geometrySketchSession).toMatchObject({
+      mode: 'draw',
+      activeTool: null,
+      lastUsedTool: 'line',
+      drawStage: 'sessionIdle',
+      drawDraft: null,
+    })
+    expect(
+      (useSpaghettiStore.getState().graph.nodes.find((node) => node.nodeId === 'node-sketch-1')
+        ?.params.sketch as { components: Array<{ type: string }> }).components,
+    ).toHaveLength(1)
+    expect(useConsoleStore.getState().entries.some((entry) => entry.text === '> 1,1')).toBe(true)
+    expect(useConsoleStore.getState().entries.some((entry) => entry.text === '> 5,5')).toBe(true)
+  })
+
+  it('re-arms the last draw tool when enter is pressed again from idle sketch draw', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-sketch-1',
+            type: 'Geometry/Sketch',
+            params: {
+              sketch: {
+                type: 'sketch',
+                featureId: 'sketch-1',
+                plane: 'XY',
+                components: [],
+                outputs: { profiles: [], diagnostics: [] },
+                uiState: { collapsed: false },
+              },
+            },
+          },
+        ],
+        edges: [],
+      })
+      useSpaghettiStore.getState().startGeometrySketchSession('node-sketch-1', 'draw')
+      useSpaghettiStore.getState().setGeometrySketchSessionTool('pline')
+      useSpaghettiStore.getState().confirmGeometrySketchDrawPoint({ x: 1, y: 1 }, null)
+      useSpaghettiStore.getState().confirmGeometrySketchDrawPoint({ x: 5, y: 5 }, null)
+    })
+
+    const submit = async () => {
+      await act(async () => {
+        const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+        form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+      })
+    }
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('')
+    })
+    await submit()
+
+    expect(useConsoleStore.getState().inputText).toBe('PLine')
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('')
+    })
+    await submit()
+
+    expect(useSpaghettiStore.getState().geometrySketchSession).toMatchObject({
+      mode: 'draw',
+      activeTool: 'pline',
+      lastUsedTool: 'pline',
+      drawStage: 'toolSelected',
+      drawDraft: {
+        points: [],
+        hoverPoint: null,
+        hoverSnapTarget: null,
+      },
+    })
+    expect(useConsoleStore.getState().entries.filter((entry) => entry.text === '> enter')).toHaveLength(2)
+  })
+
+  it('publishes live draw target status in the top feature-assist breadcrumb while a tool is active', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-sketch-1',
+            type: 'Geometry/Sketch',
+            params: {
+              sketch: {
+                type: 'sketch',
+                featureId: 'sketch-1',
+                plane: 'XY',
+                components: [],
+                outputs: { profiles: [], diagnostics: [] },
+                uiState: { collapsed: false },
+              },
+            },
+          },
+        ],
+        edges: [],
+      })
+      useSpaghettiStore.getState().startGeometrySketchSession('node-sketch-1', 'draw')
+      useSpaghettiStore.getState().setGeometrySketchSessionTool('line')
+      useSpaghettiStore.getState().setGeometrySketchDrawHoverPoint({ x: 1.5, y: -2.25 }, null)
+    })
+
+    expect(useConsoleStore.getState().featureAssistDescriptor).toMatchObject({
+      breadcrumb: ['Graph', 'Sketch', 'Sketch Draw', 'L', 'P1', 'Vec(1.5,-2.25)'],
+      choices: [],
+      prefill: null,
+    })
+  })
+
+  it('does not re-enter guided root after the first committed draw point', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-sketch-1',
+            type: 'Geometry/Sketch',
+            params: {
+              sketch: {
+                type: 'sketch',
+                featureId: 'sketch-1',
+                plane: 'XY',
+                components: [],
+                outputs: { profiles: [], diagnostics: [] },
+                uiState: { collapsed: false },
+              },
+            },
+          },
+        ],
+        edges: [],
+      })
+      useSpaghettiStore.getState().startGeometrySketchSession('node-sketch-1', 'draw')
+      useSpaghettiStore.getState().setGeometrySketchSessionTool('line')
+      useSpaghettiStore.getState().confirmGeometrySketchDrawPoint({ x: 0, y: 0 }, 'origin')
+    })
+
+    expect(useConsoleStore.getState().inputText).not.toBe('Graph')
+    expect(useConsoleStore.getState().stagedNavigationSession).toBeNull()
+    expect(useConsoleStore.getState().featureAssistDescriptor).toMatchObject({
+      breadcrumb: ['Graph', 'Sketch', 'Sketch Draw', 'L', 'P2', 'Vec(0,0)'],
+      choices: [],
+      prefill: null,
+    })
+  })
+
+  it('uses esc in sketch draw to cancel the active tool back to session idle', async () => {
     container = document.createElement('div')
     document.body.appendChild(container)
     root = createRoot(container)
@@ -2420,36 +2842,19 @@ describe('ConsoleDock', () => {
     })
 
     expect(useSpaghettiStore.getState().geometrySketchSession).not.toBeNull()
-    expect(useSpaghettiStore.getState().geometrySketchSession?.drawDraft).toEqual({
-      points: [],
-      hoverPoint: null,
-      hoverSnapTarget: null,
-    })
-    expect(useSpaghettiStore.getState().geometrySketchSession?.activeTool).toBe('line')
-
-    await act(async () => {
-      useConsoleStore.getState().setInputText('esc')
-    })
-
-    await act(async () => {
-      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
-      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
-    })
-
     expect(useSpaghettiStore.getState().geometrySketchSession).toMatchObject({
       nodeId: 'node-sketch-1',
       mode: 'draw',
       activeTool: null,
+      lastUsedTool: 'line',
       drawStage: 'sessionIdle',
       drawDraft: null,
     })
-    expect(
-      useConsoleStore.getState().entries.filter((entry) => entry.text === '> esc'),
-    ).toHaveLength(2)
+    expect(useConsoleStore.getState().entries.filter((entry) => entry.text === '> esc')).toHaveLength(1)
     expect(
       useConsoleStore
         .getState()
-        .entries.some((entry) => entry.text === 'Sketch Draw > [Line, PLine, X]'),
+        .entries.some((entry) => entry.text === 'Sketch Draw > [Line, PLine, Previous, X]'),
     ).toBe(true)
   })
 
@@ -3409,7 +3814,7 @@ describe('ConsoleDock', () => {
       useAppStore.getState().requestConsoleContextSync('surface-clear')
     })
 
-    expect(useConsoleStore.getState().stagedNavigationSession).toBeNull()
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('root')
     expect(
       useConsoleStore.getState().entries.some((entry) => entry.text === 'Returned to root'),
     ).toBe(true)
@@ -3463,7 +3868,7 @@ describe('ConsoleDock', () => {
       useAppStore.getState().requestConsoleContextSync('surface-clear')
     })
 
-    expect(useConsoleStore.getState().stagedNavigationSession).toBeNull()
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('root')
     expect(
       useConsoleStore.getState().entries.some((entry) => entry.text === 'Returned to root'),
     ).toBe(true)
@@ -3480,7 +3885,7 @@ describe('ConsoleDock', () => {
       useAppStore.getState().requestConsoleContextSync('surface-clear')
     })
 
-    expect(useConsoleStore.getState().stagedNavigationSession).toBeNull()
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('root')
     expect(
       useConsoleStore
         .getState()
@@ -3948,12 +4353,28 @@ describe('ConsoleDock', () => {
       )
     })
 
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('root')
+    expect(
+      useConsoleStore.getState().entries.filter((entry) => entry.text === '> esc'),
+    ).toHaveLength(2)
+    expect(
+      useConsoleStore
+        .getState()
+        .entries.some((entry) => entry.text === 'Staged navigation cancelled'),
+    ).toBe(false)
+
+    await act(async () => {
+      input?.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
+      )
+    })
+
     expect(useConsoleStore.getState().stagedNavigationSession).toBeNull()
     expect(useSpaghettiStore.getState().activeEditorViewportId).toBe('')
     expect(Object.keys(useSpaghettiStore.getState().editorViewportsById)).toHaveLength(0)
     expect(
       useConsoleStore.getState().entries.filter((entry) => entry.text === '> esc'),
-    ).toHaveLength(2)
+    ).toHaveLength(3)
     expect(
       useConsoleStore
         .getState()
@@ -4012,6 +4433,14 @@ describe('ConsoleDock', () => {
 
     expect(useConsoleStore.getState().inputText).toBe('1')
     expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('graphRoot')
+
+    await act(async () => {
+      input?.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
+      )
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('root')
 
     await act(async () => {
       input?.dispatchEvent(
@@ -4209,6 +4638,122 @@ describe('ConsoleDock', () => {
     ).toBe(true)
   })
 
+  it('submits the active guided console choice on Enter even after focus leaves the input', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-sketch-1',
+            type: 'Geometry/Sketch',
+            params: {
+              sketch: {
+                type: 'sketch',
+                featureId: 'sketch-1',
+                plane: 'XY',
+                components: [],
+                outputs: { profiles: [], diagnostics: [] },
+                uiState: { collapsed: false },
+              },
+            },
+          },
+        ],
+        edges: [],
+      })
+      useConsoleStore.getState().setInputText('g')
+    })
+
+    const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('graphSketchSelected')
+    expect(useConsoleStore.getState().inputText).toBe('Sketch Plane')
+
+    const viewportButton = document.createElement('button')
+    document.body.appendChild(viewportButton)
+    viewportButton.focus()
+    expect(document.activeElement).toBe(viewportButton)
+
+    await act(async () => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }),
+      )
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession).toBeNull()
+    expect(useSpaghettiStore.getState().sketchPlanePickSession?.nodeId).toBe('node-sketch-1')
+  })
+
+  it('submits the active guided console choice on Space even after focus leaves the input', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-sketch-1',
+            type: 'Geometry/Sketch',
+            params: {
+              sketch: {
+                type: 'sketch',
+                featureId: 'sketch-1',
+                plane: 'XY',
+                components: [],
+                outputs: { profiles: [], diagnostics: [] },
+                uiState: { collapsed: false },
+              },
+            },
+          },
+        ],
+        edges: [],
+      })
+      useConsoleStore.getState().setInputText('g')
+    })
+
+    const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('graphSketchSelected')
+    expect(useConsoleStore.getState().inputText).toBe('Sketch Plane')
+
+    const viewportButton = document.createElement('button')
+    document.body.appendChild(viewportButton)
+    viewportButton.focus()
+    expect(document.activeElement).toBe(viewportButton)
+
+    await act(async () => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true }),
+      )
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession).toBeNull()
+    expect(useSpaghettiStore.getState().sketchPlanePickSession?.nodeId).toBe('node-sketch-1')
+  })
+
   it('treats space as submit for the root graph token before staged navigation starts', async () => {
     container = document.createElement('div')
     document.body.appendChild(container)
@@ -4339,9 +4884,63 @@ describe('ConsoleDock', () => {
     })
 
     expect(useConsoleStore.getState().inputText).toBe('s')
+    expect(useConsoleStore.getState().isStagedChoiceManualOverride).toBe(true)
     expect(container.querySelector('.ConsoleBarSummaryChoice.isActive')?.textContent).toContain(
       'Sketch',
     )
+  })
+
+  it('replaces assisted prefill with pasted text in the focused input', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-sketch-1',
+            type: 'Geometry/Sketch',
+            params: {
+              sketch: {
+                type: 'sketch',
+                featureId: 'sketch-1',
+                plane: 'XY',
+                components: [],
+                outputs: { profiles: [], diagnostics: [] },
+                uiState: { collapsed: false },
+              },
+            },
+          },
+        ],
+        edges: [],
+      })
+      useSpaghettiStore.getState().startSketchPlanePick('node-sketch-1')
+      useSpaghettiStore.getState().setSketchPlanePickDraftPlane('XZ')
+      useSpaghettiStore.getState().runSketchPlaneCommand('move')
+    })
+
+    const input = container?.querySelector('input[aria-label="Console input"]') as
+      | HTMLInputElement
+      | null
+
+    expect(useConsoleStore.getState().inputText).toBe('0.0,0.0,0.0')
+
+    await act(async () => {
+      input?.focus()
+      const pasteEvent = new Event('paste', { bubbles: true, cancelable: true })
+      Object.defineProperty(pasteEvent, 'clipboardData', {
+        value: {
+          getData: (type: string) => (type === 'text' ? '1,2,3' : ''),
+        },
+      })
+      input?.dispatchEvent(pasteEvent)
+    })
+
+    expect(useConsoleStore.getState().inputText).toBe('1,2,3')
+    expect(useConsoleStore.getState().isStagedChoiceManualOverride).toBe(true)
   })
 
   it('cycles staged choices from global up/down keys even when the input is not already focused', async () => {

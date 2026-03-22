@@ -19,6 +19,7 @@ import {
   useSpaghettiStore,
 } from '../spaghetti/store/useSpaghettiStore'
 import {
+  buildProjectSketchBrowserRowId,
   selectCurrentProjectContentBrowserRows,
   selectReferenceWorkspaceBrowserTree,
   type WorkspaceSelectedTarget,
@@ -81,6 +82,10 @@ const describeBrowserRow = (row: BrowserRenderableRowVm): string => {
       return `Category ${row.label}`
     case 'references-root':
       return row.label
+    case 'sketches-root':
+      return row.label
+    case 'sketch':
+      return `Sketch ${row.label}`
     case 'graph-document':
       return `Graph ${row.label}`
     case 'graph-node':
@@ -155,6 +160,11 @@ function BrowserTreeRowShell(props: {
   const referenceRow = referenceRootRow ?? referenceCategoryRow ?? referenceItemRow
   const isImportedReferenceRow = referenceItemRow?.sourceKind === 'imported'
   const isContentRow =
+    row.rowKind === 'assembly' ||
+    row.rowKind === 'component' ||
+    row.rowKind === 'object' ||
+    row.rowKind === 'sketch'
+  const isBuildPolicyRow =
     row.rowKind === 'assembly' || row.rowKind === 'component' || row.rowKind === 'object'
   const isGraphRebuildRow = row.rowKind === 'graph-rebuild-object'
   const isGraphChildPlainRow = row.rowKind === 'graph-section' || row.rowKind === 'graph-node'
@@ -188,6 +198,7 @@ function BrowserTreeRowShell(props: {
     'BrowserTreeRowMain',
     graphRow !== null ? 'isGraphRow' : '',
     isContentRow ? 'isContentRow' : '',
+    row.rowKind === 'sketches-root' ? 'isSketchesRootRow' : '',
     isGraphRebuildRow ? 'isGraphChildBuildRow' : '',
     isReferenceRow ? 'isReferenceRow' : '',
     isGraphChildPlainRow ? 'isGraphChildPlainRow' : '',
@@ -243,7 +254,7 @@ function BrowserTreeRowShell(props: {
             .
           </span>
         )}
-        {isContentRow && contentBuildPolicy !== null ? (
+        {isBuildPolicyRow && contentBuildPolicy !== null ? (
           <button
             type="button"
             className={`BrowserTreeRowIcon BrowserTreeRowIcon--policy BrowserTreeRowIcon--${contentBuildPolicy}`}
@@ -565,8 +576,9 @@ export function BrowserPanel({
         currentProject,
         projectContent,
         graphRuntimeByDocumentId,
+        graphDocumentsById,
       }),
-    [currentProject, graphRuntimeByDocumentId, projectContent],
+    [currentProject, graphDocumentsById, graphRuntimeByDocumentId, projectContent],
   )
 
   const referenceWorkspaceTree = useMemo(
@@ -631,6 +643,19 @@ export function BrowserPanel({
         return `graph-row:${target.graphDocumentId}`
       }
       if (target.kind === 'graph-node') {
+        const graphNode = graphDocumentsById[target.graphDocumentId]?.graph.nodes.find(
+          (node) => node.nodeId === target.nodeId,
+        )
+        if (graphNode?.type === 'Geometry/Sketch') {
+          const rawSketch = graphNode.params.sketch as { featureId?: unknown } | undefined
+          if (typeof rawSketch?.featureId === 'string' && rawSketch.featureId.length > 0) {
+            return buildProjectSketchBrowserRowId(
+              target.graphDocumentId,
+              target.nodeId,
+              rawSketch.featureId,
+            )
+          }
+        }
         return `graph-node-row:${target.graphDocumentId}:${target.nodeId}`
       }
       if (target.kind === 'reference-item') {
@@ -641,7 +666,7 @@ export function BrowserPanel({
       }
       return null
     },
-    [],
+    [graphDocumentsById],
   )
 
   const selectedBrowserRowId =
@@ -904,6 +929,16 @@ export function BrowserPanel({
       toggleReferenceWorkspaceExpanded()
       return
     }
+    if (row.rowKind === 'sketches-root') {
+      appendConsoleEntry({
+        layer: 'Browser',
+        text: `${row.isExpanded ? 'Collapse' : 'Expand'} ${describeBrowserRow(row)}`,
+        source: 'browser',
+        severity: 'info',
+      })
+      toggleContentRowExpanded(row.rowId)
+      return
+    }
     if (row.rowKind === 'reference-category') {
       handleToggleReferenceVisibility(row)
       return
@@ -942,6 +977,21 @@ export function BrowserPanel({
       if (row.rowKind !== 'assembly' && sharedViewerComposition === null && row.highlightViewerKey !== null) {
         selectPart(row.highlightViewerKey)
       }
+      return
+    }
+    if (row.rowKind === 'sketch') {
+      appendConsoleEntry({
+        layer: 'Browser',
+        text: `Focused ${describeBrowserRow(row)}`,
+        source: 'browser',
+        severity: 'info',
+      })
+      activateGraphNodeIntent(workspaceIntentDeps, row.authoringGraphDocumentId, row.authoringNodeId, {
+        strategy: 'open-or-focus',
+        spawnPosition: newEditorSpawnPosition,
+        fitNodeInViewport: true,
+      })
+      requestConsoleContextSync('target-selection')
       return
     }
     if (row.rowKind === 'graph-section') {
@@ -1007,6 +1057,7 @@ export function BrowserPanel({
     if (
       row.rowKind !== 'component' &&
       row.rowKind !== 'object' &&
+      row.rowKind !== 'sketch' &&
       row.rowKind !== 'graph-rebuild-object' &&
       row.rowKind !== 'graph-node'
     ) {
@@ -1067,7 +1118,11 @@ export function BrowserPanel({
       toggleGraphSectionExpanded(row.rowId, row.isExpanded)
       return
     }
-    if (row.rowKind === 'assembly' || row.rowKind === 'component') {
+    if (
+      row.rowKind === 'assembly' ||
+      row.rowKind === 'component' ||
+      row.rowKind === 'sketches-root'
+    ) {
       toggleContentRowExpanded(row.rowId)
     }
   }

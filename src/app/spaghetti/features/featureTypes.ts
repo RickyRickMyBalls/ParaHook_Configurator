@@ -19,6 +19,12 @@ export type SketchPlaneTransform = {
   inPlaneRotationDeg: number
 }
 
+export type SketchPlaneTransformHistoryEntry = {
+  entryId: string
+  point: Vec3Literal
+  locked: boolean
+}
+
 export const createDefaultSketchPlaneTransform = (): SketchPlaneTransform => ({
   offsetMm: 0,
   translation: { x: 0, y: 0, z: 0 },
@@ -30,6 +36,7 @@ export type Line2Component = {
   rowId: string
   componentId: string
   type: 'line'
+  drawGroupId?: string
   a: Vec2Expression
   b: Vec2Expression
 }
@@ -127,6 +134,7 @@ export type SketchFeature = {
   uiState: {
     collapsed: boolean
     selectedProfileId?: string
+    sketchPlaneTransformHistory?: SketchPlaneTransformHistoryEntry[]
   }
   // Legacy read-only compatibility.
   entities?: SketchEntity[]

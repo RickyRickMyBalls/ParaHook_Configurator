@@ -24,7 +24,10 @@ export class TransformGizmo {
   private enabled = true
   private attachedObject: Object3D | null = null
   private onObjectChange: ((object: Object3D) => void) | null = null
+  private onDragComplete: ((object: Object3D) => void) | null = null
   private lastPointerClient: { clientX: number; clientY: number; pointerId: number } | null = null
+  private dragDidMutateObject = false
+  private suppressNextDragComplete = false
 
   public constructor(
     camera: Camera,
@@ -110,6 +113,10 @@ export class TransformGizmo {
     this.onObjectChange = handler
   }
 
+  public setOnDragComplete(handler: ((object: Object3D) => void) | null): void {
+    this.onDragComplete = handler
+  }
+
   public setSnap(translateMm?: number, rotateDeg?: number, scale?: number): void {
     this.controls.setTranslationSnap(translateMm ?? null)
     this.controls.setRotationSnap(
@@ -169,6 +176,7 @@ export class TransformGizmo {
     if (!controls.dragging) {
       return
     }
+    this.suppressNextDragComplete = true
     controls.reset()
     this.domElement.removeEventListener('pointermove', controls._onPointerMove)
     controls.pointerUp(null)
@@ -235,12 +243,27 @@ export class TransformGizmo {
   private readonly onDraggingChanged = (event: { value?: unknown }): void => {
     const dragging = event.value === true
     this.orbitControls.enabled = !dragging
+    if (dragging) {
+      this.dragDidMutateObject = false
+      this.suppressNextDragComplete = false
+      return
+    }
+    if (this.suppressNextDragComplete) {
+      this.dragDidMutateObject = false
+      this.suppressNextDragComplete = false
+      return
+    }
+    if (this.attachedObject !== null && this.dragDidMutateObject) {
+      this.onDragComplete?.(this.attachedObject)
+    }
+    this.dragDidMutateObject = false
   }
 
   private readonly onObjectChanged = (): void => {
     if (this.attachedObject === null) {
       return
     }
+    this.dragDidMutateObject = true
     this.onObjectChange?.(this.attachedObject)
   }
 }

@@ -25,7 +25,9 @@ import type {
   SketchComponent,
   SketchFeature,
   SketchPlane,
+  SketchPlaneTransformHistoryEntry,
   SketchPlaneTransform,
+  Vec3Literal,
 } from '../features/featureTypes'
 import { createDefaultSketchPlaneTransform } from '../features/featureTypes'
 import { isFeatureEnabled as isFeatureEnabledInStack } from '../features/featureTypes'
@@ -166,13 +168,20 @@ export type SketchPlanePickSession = {
   editorViewportId: string | null
   shouldRestoreViewportWindowMode: boolean
   stage: 'pick' | 'adjust'
-  adjustScope: 'root' | 'move' | 'move-snap' | 'rotate' | 'rotate-snap'
+  liveTransformActivationNonce: number
+  adjustScope: 'root' | 'move' | 'move-axis' | 'move-snap' | 'rotate' | 'rotate-snap'
   activeTransformAxis: 'free' | 'x' | 'y' | 'z' | null
   gizmoMode: 'translate' | 'rotate'
   draftPlane: SketchPlane
   previewPlane: SketchPlane | null
   transformCommandOrigin: SketchPlaneTransform | null
   draftTransform: SketchPlaneTransform
+  transformHistory: SketchPlaneTransformHistoryEntry[]
+  pendingMoveAxisOffSnapConfirmation: {
+    axis: 'x' | 'y' | 'z'
+    value: number
+    literal: string
+  } | null
 }
 
 export type GeometrySketchTool = 'line' | 'pline' | 'arc3pt' | 'spline' | 'rectangle' | 'circle'
@@ -199,6 +208,7 @@ export type SketchPlaneCommand =
   | 'confirm-to-sketch'
   | 'x'
   | 'move'
+  | 'move-again'
   | 'move-snap'
   | 'rotate'
   | 'rotate-snap'
@@ -213,6 +223,9 @@ export type GeometrySketchDrawCommand =
   | 'l'
   | 'pline'
   | 'pl'
+  | 'previous'
+  | 'p'
+  | 'undo'
   | 'enter'
   | 'back'
   | 'b'
@@ -222,12 +235,14 @@ export type GeometrySketchDrawCommand =
 type GeometrySketchConsolePrompt = {
   tool: GeometrySketchTool | null
   draft: GeometrySketchDrawDraft | null
+  lastUsedTool: GeometrySketchTool | null
 }
 
 export type GeometrySketchSession = {
   nodeId: string
   mode: 'draw' | 'review'
   activeTool: GeometrySketchTool | null
+  lastUsedTool: GeometrySketchTool | null
   drawStage: GeometrySketchDrawStage | null
   editorViewportId: string | null
   shouldRestoreViewportWindowMode: boolean
@@ -293,10 +308,19 @@ export type SpaghettiStoreState = {
   runSketchPlaneCommand: (command: SketchPlaneCommand) => void
   setSketchPlanePickPreviewPlane: (plane: SketchPlane | null) => void
   acceptActiveSketchPlaneTransformCommand: () => void
+  commitSketchPlaneTransformHistoryFromDraftRelease: () => void
+  toggleSketchPlaneTransformHistoryLock: (entryId: string) => void
+  mergeSketchPlaneTransformHistory: () => void
   resetSketchPlanePickDraftTransform: () => void
   setSketchPlanePickDraftTransform: (transform: SketchPlaneTransform) => void
   setSketchPlanePickTranslationAxis: (axis: 'x' | 'y' | 'z', value: number) => void
   setSketchPlanePickRotationAxis: (axis: 'x' | 'y' | 'z', value: number) => void
+  setSketchPlaneMoveAxisOffSnapConfirmation: (
+    axis: 'x' | 'y' | 'z',
+    value: number,
+    literal: string,
+  ) => void
+  clearSketchPlaneMoveAxisOffSnapConfirmation: () => void
   setGeometrySketchPlane: (nodeId: string, plane: SketchPlane) => void
   setGeometrySketchPlaneOffset: (nodeId: string, offsetMm: number) => void
   setGeometrySketchPlaneTranslationAxis: (
@@ -319,6 +343,7 @@ export type SpaghettiStoreState = {
     point: GeometrySketchDraftPoint | null,
     snapTarget: 'origin' | null,
   ) => void
+  undoGeometrySketchDrawDraftPoint: () => void
   confirmGeometrySketchDrawPoint: (
     point: GeometrySketchDraftPoint,
     snapTarget: 'origin' | null,
@@ -630,6 +655,117 @@ const readManagedSketchFeature = (value: unknown): SketchFeature | null => {
 
 const ensureSketchPlaneTransform = (feature: SketchFeature) =>
   feature.planeTransform ?? createDefaultSketchPlaneTransform()
+
+const isVec3Equal = (left: Vec3Literal, right: Vec3Literal): boolean =>
+  left.x === right.x && left.y === right.y && left.z === right.z
+
+const cloneVec3Literal = (value: Vec3Literal): Vec3Literal => ({
+  x: value.x,
+  y: value.y,
+  z: value.z,
+})
+
+const cloneSketchPlaneTransformHistoryEntries = (
+  entries: readonly SketchPlaneTransformHistoryEntry[],
+): SketchPlaneTransformHistoryEntry[] =>
+  entries.map((entry) => ({
+    entryId: entry.entryId,
+    point: cloneVec3Literal(entry.point),
+    locked: entry.locked,
+  }))
+
+const buildDefaultSketchPlaneTransformHistory = (
+  transform: SketchPlaneTransform,
+): SketchPlaneTransformHistoryEntry[] =>
+  isVec3Equal(transform.translation, { x: 0, y: 0, z: 0 })
+    ? []
+    : [
+        {
+          entryId: 'sketch-plane-history-1',
+          point: cloneVec3Literal(transform.translation),
+          locked: false,
+        },
+      ]
+
+const ensureSketchPlaneTransformHistory = (
+  feature: SketchFeature,
+): SketchPlaneTransformHistoryEntry[] =>
+  feature.uiState.sketchPlaneTransformHistory === undefined
+    ? buildDefaultSketchPlaneTransformHistory(ensureSketchPlaneTransform(feature))
+    : cloneSketchPlaneTransformHistoryEntries(feature.uiState.sketchPlaneTransformHistory)
+
+const appendSketchPlaneTransformHistoryEntry = (
+  entries: readonly SketchPlaneTransformHistoryEntry[],
+  point: Vec3Literal,
+): SketchPlaneTransformHistoryEntry[] => {
+  const nextPoint = cloneVec3Literal(point)
+  const previousPoint =
+    entries.length > 0 ? entries[entries.length - 1]!.point : { x: 0, y: 0, z: 0 }
+  if (isVec3Equal(previousPoint, nextPoint)) {
+    return cloneSketchPlaneTransformHistoryEntries(entries)
+  }
+  return [
+    ...cloneSketchPlaneTransformHistoryEntries(entries),
+    {
+      entryId: nextOrdinalId(
+        'sketch-plane-history',
+        entries.map((entry) => entry.entryId),
+      ),
+      point: nextPoint,
+      locked: false,
+    },
+  ]
+}
+
+const resolvePersistedSketchPlaneTransformHistory = (
+  entries: readonly SketchPlaneTransformHistoryEntry[],
+  transform: SketchPlaneTransform,
+): SketchPlaneTransformHistoryEntry[] =>
+  entries.length > 0
+    ? cloneSketchPlaneTransformHistoryEntries(entries)
+    : buildDefaultSketchPlaneTransformHistory(transform)
+
+const areSketchPlaneTransformHistoryEntriesEqual = (
+  left: readonly SketchPlaneTransformHistoryEntry[] | undefined,
+  right: readonly SketchPlaneTransformHistoryEntry[],
+): boolean => {
+  const normalizedLeft = left ?? []
+  if (normalizedLeft.length !== right.length) {
+    return false
+  }
+  return normalizedLeft.every((entry, index) => {
+    const other = right[index]
+    return (
+      other !== undefined &&
+      entry.entryId === other.entryId &&
+      entry.locked === other.locked &&
+      isVec3Equal(entry.point, other.point)
+    )
+  })
+}
+
+const mergeSketchPlaneTransformHistoryEntries = (
+  entries: readonly SketchPlaneTransformHistoryEntry[],
+): SketchPlaneTransformHistoryEntry[] => {
+  if (entries.length <= 1) {
+    return cloneSketchPlaneTransformHistoryEntries(entries)
+  }
+  const preservedIndexes = new Set<number>()
+  const lastIndex = entries.length - 1
+  preservedIndexes.add(lastIndex)
+  entries.forEach((entry, index) => {
+    if (entry.locked) {
+      preservedIndexes.add(index)
+    }
+  })
+  return entries
+    .filter((_entry, index) => preservedIndexes.has(index))
+    .map((entry) => ({
+      entryId: entry.entryId,
+      point: cloneVec3Literal(entry.point),
+      locked: entry.locked,
+    }))
+}
 
 const isGraphReceiveReference = (value: unknown): value is GraphReceiveReference => {
   if (!isRecord(value)) {
@@ -1032,6 +1168,13 @@ const recomputeSketchFeature = (feature: SketchFeature): SketchFeature => {
     uiState: {
       collapsed: feature.uiState.collapsed,
       ...(selectedProfileId === undefined ? {} : { selectedProfileId }),
+      ...(feature.uiState.sketchPlaneTransformHistory === undefined
+        ? {}
+        : {
+            sketchPlaneTransformHistory: cloneSketchPlaneTransformHistoryEntries(
+              feature.uiState.sketchPlaneTransformHistory,
+            ),
+          }),
     },
   }
 }
@@ -1170,9 +1313,12 @@ const resolveGeometrySketchDrawStage = (
 const buildGeometrySketchConsolePrompt = (
   tool: GeometrySketchTool | null,
   draft: GeometrySketchDrawDraft | null,
+  lastUsedTool: GeometrySketchTool | null,
 ): string | null => {
   if (tool === null) {
-    return 'Sketch Draw > [Line, PLine, X]'
+    return lastUsedTool !== null
+      ? 'Sketch Draw > [Line, PLine, Previous, X]'
+      : 'Sketch Draw > [Line, PLine, X]'
   }
   if (!isGeometrySketchDrawTool(tool)) {
     return null
@@ -1180,12 +1326,12 @@ const buildGeometrySketchConsolePrompt = (
   const toolLabel = getGeometrySketchConsoleToolLabel(tool)
   if (tool === 'line') {
     return (draft?.points[0] ?? null) === null
-      ? `${toolLabel} Specify start point:`
-      : `${toolLabel} Specify end point:`
+      ? `${toolLabel} Specify point 1:`
+      : `${toolLabel} Specify point 2 or [Enter Accept]:`
   }
   const pointCount = draft?.points.length ?? 0
   if (pointCount === 0) {
-    return `${toolLabel} Specify start point:`
+    return `${toolLabel} Specify point 1:`
   }
   if (pointCount === 1) {
     return `${toolLabel} Specify point 2:`
@@ -1196,8 +1342,9 @@ const buildGeometrySketchConsolePrompt = (
 const appendGeometrySketchConsolePrompt = (
   tool: GeometrySketchTool | null,
   draft: GeometrySketchDrawDraft | null,
+  lastUsedTool: GeometrySketchTool | null,
 ) => {
-  const prompt = buildGeometrySketchConsolePrompt(tool, draft)
+  const prompt = buildGeometrySketchConsolePrompt(tool, draft, lastUsedTool)
   if (prompt === null) {
     return
   }
@@ -1214,7 +1361,28 @@ const buildSketchPlaneMovePrompt = (translation: {
   y: number
   z: number
 }): string =>
-  `Sketch Plane > Move > [Vec3(${translation.x.toFixed(1)}, ${translation.y.toFixed(1)}, ${translation.z.toFixed(1)}), Move X, Move Y, Move Z, Snap, Back]`
+  `Sketch Plane > Move > [Vec3(${translation.x.toFixed(1)}, ${translation.y.toFixed(1)}, ${translation.z.toFixed(1)}), Move Again, Move X, Move Y, Move Z, Snap, Back]`
+
+const buildSketchPlaneMoveAxisPrompt = (axis: 'x' | 'y' | 'z', value: number): string =>
+  `Sketch Plane > Move > ${axis.toUpperCase()} > [${value.toFixed(1)}, Back]`
+
+const buildSketchPlaneMoveAxisOffSnapConfirmPrompt = (
+  axis: 'x' | 'y' | 'z',
+  literal: string,
+): string => `Sketch Plane > Move > ${axis.toUpperCase()} > confirm ${literal} off snap > [confirm, deny]`
+
+const buildSketchPlaneMoveSessionState = (
+  session: SketchPlanePickSession,
+): SketchPlanePickSession => ({
+  ...session,
+  stage: 'adjust',
+  liveTransformActivationNonce: session.liveTransformActivationNonce + 1,
+  adjustScope: 'move',
+  activeTransformAxis: 'free',
+  gizmoMode: 'translate',
+  transformCommandOrigin: cloneSketchPlaneTransform(session.draftTransform),
+  pendingMoveAxisOffSnapConfirmation: null,
+})
 
 const buildSketchPlaneRotatePrompt = (rotationDeg: {
   x: number
@@ -1249,10 +1417,12 @@ const buildGeometrySketchSessionDraft = (
 const buildGeometrySketchLineComponent = (
   start: GeometrySketchDraftPoint,
   end: GeometrySketchDraftPoint,
+  options?: { drawGroupId?: string },
 ): SketchComponent => ({
   rowId: makeRowId(),
   componentId: makeComponentId(),
   type: 'line',
+  ...(options?.drawGroupId !== undefined ? { drawGroupId: options.drawGroupId } : {}),
   a: { kind: 'lit', x: start.x, y: start.y },
   b: { kind: 'lit', x: end.x, y: end.y },
 })
@@ -2728,6 +2898,7 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
           editorViewportId,
           shouldRestoreViewportWindowMode,
           stage: 'pick',
+          liveTransformActivationNonce: 0,
           adjustScope: 'root',
           activeTransformAxis: null,
           gizmoMode: 'translate',
@@ -2735,6 +2906,8 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
           previewPlane: feature.plane,
           transformCommandOrigin: null,
           draftTransform: ensureSketchPlaneTransform(feature),
+          transformHistory: ensureSketchPlaneTransformHistory(feature),
+          pendingMoveAxisOffSnapConfirmation: null,
         },
         geometrySketchSession:
           state.geometrySketchSession?.nodeId === nodeId ? null : state.geometrySketchSession,
@@ -2777,6 +2950,10 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
       const nextGraph = updateGeometrySketchNode(state.graph, session.nodeId, (feature) => {
         const currentTransform = ensureSketchPlaneTransform(feature)
         const nextTransform = session.draftTransform
+        const nextTransformHistory = resolvePersistedSketchPlaneTransformHistory(
+          session.transformHistory,
+          nextTransform,
+        )
         if (
           feature.plane === session.draftPlane &&
           currentTransform.offsetMm === nextTransform.offsetMm &&
@@ -2786,7 +2963,11 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
           currentTransform.rotationDeg.x === nextTransform.rotationDeg.x &&
           currentTransform.rotationDeg.y === nextTransform.rotationDeg.y &&
           currentTransform.rotationDeg.z === nextTransform.rotationDeg.z &&
-          currentTransform.inPlaneRotationDeg === nextTransform.inPlaneRotationDeg
+          currentTransform.inPlaneRotationDeg === nextTransform.inPlaneRotationDeg &&
+          areSketchPlaneTransformHistoryEntriesEqual(
+            feature.uiState.sketchPlaneTransformHistory,
+            nextTransformHistory,
+          )
         ) {
           return feature
         }
@@ -2797,6 +2978,10 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
             ...nextTransform,
             translation: { ...nextTransform.translation },
             rotationDeg: { ...nextTransform.rotationDeg },
+          },
+          uiState: {
+            ...feature.uiState,
+            sketchPlaneTransformHistory: nextTransformHistory,
           },
         }
       })
@@ -2821,13 +3006,17 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
   },
   confirmSketchPlanePick: () => {
     const session = get().sketchPlanePickSession
-    if (session === null) {
+    if (session === null || session.stage !== 'adjust' || session.adjustScope !== 'root') {
       return
     }
     set((state) => {
       const nextGraph = updateGeometrySketchNode(state.graph, session.nodeId, (feature) => {
         const currentTransform = ensureSketchPlaneTransform(feature)
         const nextTransform = session.draftTransform
+        const nextTransformHistory = resolvePersistedSketchPlaneTransformHistory(
+          session.transformHistory,
+          nextTransform,
+        )
         if (
           feature.plane === session.draftPlane &&
           currentTransform.offsetMm === nextTransform.offsetMm &&
@@ -2837,7 +3026,11 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
           currentTransform.rotationDeg.x === nextTransform.rotationDeg.x &&
           currentTransform.rotationDeg.y === nextTransform.rotationDeg.y &&
           currentTransform.rotationDeg.z === nextTransform.rotationDeg.z &&
-          currentTransform.inPlaneRotationDeg === nextTransform.inPlaneRotationDeg
+          currentTransform.inPlaneRotationDeg === nextTransform.inPlaneRotationDeg &&
+          areSketchPlaneTransformHistoryEntriesEqual(
+            feature.uiState.sketchPlaneTransformHistory,
+            nextTransformHistory,
+          )
         ) {
           return feature
         }
@@ -2848,6 +3041,10 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
             ...nextTransform,
             translation: { ...nextTransform.translation },
             rotationDeg: { ...nextTransform.rotationDeg },
+          },
+          uiState: {
+            ...feature.uiState,
+            sketchPlaneTransformHistory: nextTransformHistory,
           },
         }
       })
@@ -2966,12 +3163,40 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
     if (session === null || session.stage !== 'adjust' || session.adjustScope === 'root') {
       return
     }
+    const nextTransformHistory =
+      session.adjustScope === 'move' || session.adjustScope === 'move-axis'
+        ? appendSketchPlaneTransformHistoryEntry(
+            session.transformHistory,
+            session.draftTransform.translation,
+          )
+        : cloneSketchPlaneTransformHistoryEntries(session.transformHistory)
+    if (session.adjustScope === 'move-axis') {
+      set({
+        sketchPlanePickSession: {
+          ...session,
+          adjustScope: 'move',
+          activeTransformAxis: 'free',
+          transformCommandOrigin: cloneSketchPlaneTransform(session.draftTransform),
+          transformHistory: nextTransformHistory,
+          pendingMoveAxisOffSnapConfirmation: null,
+        },
+      })
+      appendConsoleEntry({
+        layer: 'Commands',
+        text: buildSketchPlaneMovePrompt(session.draftTransform.translation),
+        source: 'sketch-plane',
+        severity: 'info',
+      })
+      return
+    }
     set({
       sketchPlanePickSession: {
         ...session,
         adjustScope: 'root',
         activeTransformAxis: null,
         transformCommandOrigin: null,
+        transformHistory: nextTransformHistory,
+        pendingMoveAxisOffSnapConfirmation: null,
       },
     })
     appendConsoleEntry({
@@ -2979,6 +3204,96 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
       text: SKETCH_PLANE_ROOT_PROMPT,
       source: 'sketch-plane',
       severity: 'info',
+    })
+  },
+  commitSketchPlaneTransformHistoryFromDraftRelease: () => {
+    set((state) => {
+      const session = state.sketchPlanePickSession
+      if (session === null || session.stage !== 'adjust') {
+        return state
+      }
+      const nextHistory = appendSketchPlaneTransformHistoryEntry(
+        session.transformHistory,
+        session.draftTransform.translation,
+      )
+      if (
+        areSketchPlaneTransformHistoryEntriesEqual(session.transformHistory, nextHistory) &&
+        session.transformCommandOrigin !== null &&
+        session.transformCommandOrigin.offsetMm === session.draftTransform.offsetMm &&
+        session.transformCommandOrigin.translation.x === session.draftTransform.translation.x &&
+        session.transformCommandOrigin.translation.y === session.draftTransform.translation.y &&
+        session.transformCommandOrigin.translation.z === session.draftTransform.translation.z &&
+        session.transformCommandOrigin.rotationDeg.x === session.draftTransform.rotationDeg.x &&
+        session.transformCommandOrigin.rotationDeg.y === session.draftTransform.rotationDeg.y &&
+        session.transformCommandOrigin.rotationDeg.z === session.draftTransform.rotationDeg.z &&
+        session.transformCommandOrigin.inPlaneRotationDeg ===
+          session.draftTransform.inPlaneRotationDeg
+      ) {
+        return state
+      }
+      return {
+        ...state,
+        sketchPlanePickSession: {
+          ...session,
+          transformCommandOrigin: {
+            ...session.draftTransform,
+            translation: { ...session.draftTransform.translation },
+            rotationDeg: { ...session.draftTransform.rotationDeg },
+          },
+          transformHistory: nextHistory,
+        },
+      }
+    })
+  },
+  toggleSketchPlaneTransformHistoryLock: (entryId) => {
+    set((state) => {
+      const session = state.sketchPlanePickSession
+      if (session === null) {
+        return state
+      }
+      let changed = false
+      const nextHistory = session.transformHistory.map((entry) => {
+        if (entry.entryId !== entryId) {
+          return entry
+        }
+        changed = true
+        return {
+          ...entry,
+          locked: !entry.locked,
+        }
+      })
+      if (!changed) {
+        return state
+      }
+      return {
+        sketchPlanePickSession: {
+          ...session,
+          transformHistory: nextHistory,
+        },
+      }
+    })
+  },
+  mergeSketchPlaneTransformHistory: () => {
+    set((state) => {
+      const session = state.sketchPlanePickSession
+      if (session === null) {
+        return state
+      }
+      const nextHistory = mergeSketchPlaneTransformHistoryEntries(session.transformHistory)
+      if (
+        areSketchPlaneTransformHistoryEntriesEqual(
+          session.transformHistory,
+          nextHistory,
+        )
+      ) {
+        return state
+      }
+      return {
+        sketchPlanePickSession: {
+          ...session,
+          transformHistory: nextHistory,
+        },
+      }
     })
   },
   runSketchPlaneCommand: (command) => {
@@ -3014,6 +3329,7 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
         state.cancelSketchPlanePick()
         return
       case 'move':
+      case 'move-again':
         const moveSession = get().sketchPlanePickSession
         set((currentState) => {
           const session = currentState.sketchPlanePickSession
@@ -3021,14 +3337,7 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
             return currentState
           }
           return {
-            sketchPlanePickSession: {
-              ...session,
-              stage: 'adjust',
-              adjustScope: 'move',
-              activeTransformAxis: 'free',
-              gizmoMode: 'translate',
-              transformCommandOrigin: cloneSketchPlaneTransform(session.draftTransform),
-            },
+            sketchPlanePickSession: buildSketchPlaneMoveSessionState(session),
           }
         })
         appendConsoleEntry({
@@ -3050,9 +3359,11 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
             sketchPlanePickSession: {
               ...session,
               stage: 'adjust',
+              liveTransformActivationNonce: session.liveTransformActivationNonce + 1,
               adjustScope: 'move-snap',
               activeTransformAxis: null,
               gizmoMode: 'translate',
+              pendingMoveAxisOffSnapConfirmation: null,
             },
           }
         })
@@ -3076,9 +3387,11 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
             sketchPlanePickSession: {
               ...session,
               stage: 'adjust',
+              liveTransformActivationNonce: session.liveTransformActivationNonce + 1,
               adjustScope: 'rotate-snap',
               activeTransformAxis: null,
               gizmoMode: 'rotate',
+              pendingMoveAxisOffSnapConfirmation: null,
             },
           }
         })
@@ -3103,10 +3416,12 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
             sketchPlanePickSession: {
               ...session,
               stage: 'adjust',
+              liveTransformActivationNonce: session.liveTransformActivationNonce + 1,
               adjustScope: 'rotate',
               activeTransformAxis: 'free',
               gizmoMode: 'rotate',
               transformCommandOrigin: cloneSketchPlaneTransform(session.draftTransform),
+              pendingMoveAxisOffSnapConfirmation: null,
             },
           }
         })
@@ -3128,27 +3443,29 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
           if (session === null) {
             return currentState
           }
-          const baselineTransform =
-            session.transformCommandOrigin === null
-              ? cloneSketchPlaneTransform(session.draftTransform)
-              : cloneSketchPlaneTransform(session.transformCommandOrigin)
+          const baselineTransform = cloneSketchPlaneTransform(session.draftTransform)
           return {
             sketchPlanePickSession: {
               ...session,
               stage: 'adjust',
-              adjustScope: 'move',
+              liveTransformActivationNonce: session.liveTransformActivationNonce + 1,
+              adjustScope: 'move-axis',
               activeTransformAxis:
                 command === 'move-x' ? 'x' : command === 'move-y' ? 'y' : 'z',
               gizmoMode: 'translate',
               draftTransform: baselineTransform,
               transformCommandOrigin: baselineTransform,
+              pendingMoveAxisOffSnapConfirmation: null,
             },
           }
         })
+        const moveAxis =
+          command === 'move-x' ? 'x' : command === 'move-y' ? 'y' : 'z'
         appendConsoleEntry({
           layer: 'Commands',
-          text: buildSketchPlaneMovePrompt(
-            moveAxisSession?.draftTransform.translation ?? { x: 0, y: 0, z: 0 },
+          text: buildSketchPlaneMoveAxisPrompt(
+            moveAxis,
+            moveAxisSession?.draftTransform.translation[moveAxis] ?? 0,
           ),
           source: 'sketch-plane',
           severity: 'info',
@@ -3170,6 +3487,7 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
             sketchPlanePickSession: {
               ...session,
               stage: 'adjust',
+              liveTransformActivationNonce: session.liveTransformActivationNonce + 1,
               adjustScope: 'rotate',
               activeTransformAxis:
                 command === 'rotate-x' ? 'x' : command === 'rotate-y' ? 'y' : 'z',
@@ -3265,6 +3583,7 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
             translation: { ...normalizedTransform.translation },
             rotationDeg: { ...normalizedTransform.rotationDeg },
           },
+          pendingMoveAxisOffSnapConfirmation: null,
         },
       }
     })
@@ -3297,6 +3616,11 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
               [axis]: value,
             },
           },
+          pendingMoveAxisOffSnapConfirmation:
+            session.pendingMoveAxisOffSnapConfirmation !== null &&
+            session.pendingMoveAxisOffSnapConfirmation.axis === axis
+              ? null
+              : session.pendingMoveAxisOffSnapConfirmation,
         },
       }
     })
@@ -3326,6 +3650,7 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
               [axis]: value,
             },
           },
+          pendingMoveAxisOffSnapConfirmation: null,
         },
       }
     })
@@ -3334,6 +3659,58 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
       text: `Sketch plane rotated: ${axis.toUpperCase()} ${value.toFixed(0)}`,
       source: 'sketch-plane',
       severity: 'info',
+    })
+  },
+  setSketchPlaneMoveAxisOffSnapConfirmation: (axis, value, literal) => {
+    if (!Number.isFinite(value)) {
+      return
+    }
+    set((state) => {
+      const session = state.sketchPlanePickSession
+      if (
+        session === null ||
+        session.adjustScope !== 'move-axis' ||
+        session.activeTransformAxis !== axis
+      ) {
+        return state
+      }
+      if (
+        session.pendingMoveAxisOffSnapConfirmation?.axis === axis &&
+        session.pendingMoveAxisOffSnapConfirmation.value === value &&
+        session.pendingMoveAxisOffSnapConfirmation.literal === literal
+      ) {
+        return state
+      }
+      return {
+        sketchPlanePickSession: {
+          ...session,
+          pendingMoveAxisOffSnapConfirmation: {
+            axis,
+            value,
+            literal,
+          },
+        },
+      }
+    })
+    appendConsoleEntry({
+      layer: 'Commands',
+      text: buildSketchPlaneMoveAxisOffSnapConfirmPrompt(axis, literal),
+      source: 'sketch-plane',
+      severity: 'info',
+    })
+  },
+  clearSketchPlaneMoveAxisOffSnapConfirmation: () => {
+    set((state) => {
+      const session = state.sketchPlanePickSession
+      if (session === null || session.pendingMoveAxisOffSnapConfirmation === null) {
+        return state
+      }
+      return {
+        sketchPlanePickSession: {
+          ...session,
+          pendingMoveAxisOffSnapConfirmation: null,
+        },
+      }
     })
   },
   setGeometrySketchPlane: (nodeId, plane) => {
@@ -3508,11 +3885,16 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
         mode === 'draw' && current?.nodeId === nodeId && current.mode === 'draw'
           ? current.activeTool
           : null
+      const lastUsedTool =
+        current?.nodeId === nodeId
+          ? current.lastUsedTool
+          : null
       const drawDraft = buildGeometrySketchSessionDraft(mode, activeTool)
       if (mode === 'draw') {
         nextPromptRef.current = {
           tool: activeTool,
           draft: drawDraft,
+          lastUsedTool,
         }
       }
       return {
@@ -3523,6 +3905,7 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
           nodeId,
           mode,
           activeTool,
+          lastUsedTool,
           drawStage: resolveGeometrySketchDrawStage(mode, activeTool, drawDraft),
           editorViewportId,
           shouldRestoreViewportWindowMode:
@@ -3535,7 +3918,11 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
       }
     })
     if (nextPromptRef.current !== null) {
-      appendGeometrySketchConsolePrompt(nextPromptRef.current.tool, nextPromptRef.current.draft)
+      appendGeometrySketchConsolePrompt(
+        nextPromptRef.current.tool,
+        nextPromptRef.current.draft,
+        nextPromptRef.current.lastUsedTool,
+      )
     }
   },
   closeGeometrySketchSession: () => {
@@ -3552,12 +3939,36 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
   returnActiveSketchSessionOneLevel: () => {
     const state = get()
     if (state.sketchPlanePickSession !== null) {
+      if (state.sketchPlanePickSession.adjustScope === 'move-axis') {
+        const revertedTransform =
+          state.sketchPlanePickSession.transformCommandOrigin === null
+            ? state.sketchPlanePickSession.draftTransform
+            : cloneSketchPlaneTransform(state.sketchPlanePickSession.transformCommandOrigin)
+        set({
+          sketchPlanePickSession: {
+            ...state.sketchPlanePickSession,
+            adjustScope: 'move',
+            activeTransformAxis: 'free',
+            transformCommandOrigin: cloneSketchPlaneTransform(revertedTransform),
+            draftTransform: revertedTransform,
+            pendingMoveAxisOffSnapConfirmation: null,
+          },
+        })
+        appendConsoleEntry({
+          layer: 'Commands',
+          text: buildSketchPlaneMovePrompt(revertedTransform.translation),
+          source: 'sketch-plane',
+          severity: 'info',
+        })
+        return
+      }
       if (state.sketchPlanePickSession.adjustScope === 'move-snap') {
         set({
           sketchPlanePickSession: {
             ...state.sketchPlanePickSession,
             adjustScope: 'move',
             activeTransformAxis: 'free',
+            pendingMoveAxisOffSnapConfirmation: null,
           },
         })
         appendConsoleEntry({
@@ -3574,6 +3985,7 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
             ...state.sketchPlanePickSession,
             adjustScope: 'rotate',
             activeTransformAxis: 'free',
+            pendingMoveAxisOffSnapConfirmation: null,
           },
         })
         appendConsoleEntry({
@@ -3599,6 +4011,7 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
             activeTransformAxis: null,
             transformCommandOrigin: null,
             draftTransform: revertedTransform,
+            pendingMoveAxisOffSnapConfirmation: null,
           },
         })
         appendConsoleEntry({
@@ -3631,12 +4044,32 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
       case 'pl':
         state.setGeometrySketchSessionTool('pline')
         return
+      case 'previous':
+      case 'p':
+        if (
+          state.geometrySketchSession?.mode === 'draw' &&
+          isGeometrySketchDrawTool(state.geometrySketchSession.lastUsedTool)
+        ) {
+          state.setGeometrySketchSessionTool(state.geometrySketchSession.lastUsedTool)
+        }
+        return
+      case 'undo':
+        state.undoGeometrySketchDrawDraftPoint()
+        return
       case 'enter':
+        if (
+          state.geometrySketchSession?.mode === 'draw' &&
+          state.geometrySketchSession.activeTool === null &&
+          isGeometrySketchDrawTool(state.geometrySketchSession.lastUsedTool)
+        ) {
+          state.setGeometrySketchSessionTool(state.geometrySketchSession.lastUsedTool)
+          return
+        }
         state.finishGeometrySketchDrawDraft()
         return
       case 'back':
       case 'b':
-        state.returnActiveSketchSessionOneLevel()
+        state.cancelGeometrySketchDrawDraft()
         return
       case 'esc':
         appendConsoleEntry({
@@ -3644,7 +4077,7 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
           commandLineKind: 'user',
           text: '> esc',
         })
-        state.returnActiveSketchSessionOneLevel()
+        state.cancelGeometrySketchDrawDraft()
         return
       case 'x':
         state.closeGeometrySketchSession()
@@ -3665,6 +4098,7 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
         nextPromptRef.current = {
           tool,
           draft: nextDraft,
+          lastUsedTool: tool,
         }
       }
       if (state.geometrySketchSession.activeTool === tool) {
@@ -3674,6 +4108,9 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
         geometrySketchSession: {
           ...state.geometrySketchSession,
           activeTool: tool,
+          lastUsedTool: isGeometrySketchDrawTool(tool)
+            ? tool
+            : state.geometrySketchSession.lastUsedTool,
           drawStage: resolveGeometrySketchDrawStage(
             state.geometrySketchSession.mode,
             tool,
@@ -3684,7 +4121,11 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
       }
     })
     if (nextPromptRef.current !== null) {
-      appendGeometrySketchConsolePrompt(nextPromptRef.current.tool, nextPromptRef.current.draft)
+      appendGeometrySketchConsolePrompt(
+        nextPromptRef.current.tool,
+        nextPromptRef.current.draft,
+        nextPromptRef.current.lastUsedTool,
+      )
     }
   },
   setGeometrySketchDrawHoverPoint: (point, snapTarget) => {
@@ -3722,6 +4163,45 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
       }
     })
   },
+  undoGeometrySketchDrawDraftPoint: () => {
+    const nextPromptRef: { current: GeometrySketchConsolePrompt | null } = { current: null }
+    set((state) => {
+      const session = state.geometrySketchSession
+      if (
+        session === null ||
+        session.mode !== 'draw' ||
+        session.drawDraft === null ||
+        !isGeometrySketchDrawTool(session.activeTool) ||
+        session.drawDraft.points.length === 0
+      ) {
+        return state
+      }
+
+      const nextDraft = {
+        ...session.drawDraft,
+        points: session.drawDraft.points.slice(0, -1),
+      }
+      nextPromptRef.current = {
+        tool: session.activeTool,
+        draft: nextDraft,
+        lastUsedTool: session.lastUsedTool,
+      }
+      return {
+        geometrySketchSession: {
+          ...session,
+          drawStage: resolveGeometrySketchDrawStage(session.mode, session.activeTool, nextDraft),
+          drawDraft: nextDraft,
+        },
+      }
+    })
+    if (nextPromptRef.current !== null) {
+      appendGeometrySketchConsolePrompt(
+        nextPromptRef.current.tool,
+        nextPromptRef.current.draft,
+        nextPromptRef.current.lastUsedTool,
+      )
+    }
+  },
   confirmGeometrySketchDrawPoint: (point, snapTarget) => {
     const nextPromptRef: { current: GeometrySketchConsolePrompt | null } = { current: null }
     set((state) => {
@@ -3747,6 +4227,7 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
           nextPromptRef.current = {
             tool: session.activeTool,
             draft: nextDraft,
+            lastUsedTool: session.lastUsedTool,
           }
           return {
             geometrySketchSession: {
@@ -3769,19 +4250,17 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
           return state
         }
         nextPromptRef.current = {
-          tool: session.activeTool,
-          draft: createEmptyGeometrySketchDrawDraft(),
+          tool: null,
+          draft: null,
+          lastUsedTool: session.lastUsedTool,
         }
         return {
           ...withUpdatedActiveGraphDocumentState(state, nextGraph),
           geometrySketchSession: {
             ...session,
-            drawStage: resolveGeometrySketchDrawStage(
-              session.mode,
-              session.activeTool,
-              createEmptyGeometrySketchDrawDraft(),
-            ),
-            drawDraft: createEmptyGeometrySketchDrawDraft(),
+            activeTool: null,
+            drawStage: resolveGeometrySketchDrawStage(session.mode, null, null),
+            drawDraft: null,
           },
         }
       }
@@ -3798,6 +4277,7 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
       nextPromptRef.current = {
         tool: session.activeTool,
         draft: nextDraft,
+        lastUsedTool: session.lastUsedTool,
       }
       return {
         geometrySketchSession: {
@@ -3808,7 +4288,11 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
       }
     })
     if (nextPromptRef.current !== null) {
-      appendGeometrySketchConsolePrompt(nextPromptRef.current.tool, nextPromptRef.current.draft)
+      appendGeometrySketchConsolePrompt(
+        nextPromptRef.current.tool,
+        nextPromptRef.current.draft,
+        nextPromptRef.current.lastUsedTool,
+      )
     }
   },
   finishGeometrySketchDrawDraft: () => {
@@ -3844,45 +4328,32 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
           return state
         }
         nextPromptRef.current = {
-          tool: session.activeTool,
-          draft: createEmptyGeometrySketchDrawDraft(),
+          tool: null,
+          draft: null,
+          lastUsedTool: session.lastUsedTool,
         }
         return {
           ...withUpdatedActiveGraphDocumentState(state, nextGraph),
           geometrySketchSession: {
             ...session,
-            drawStage: resolveGeometrySketchDrawStage(
-              session.mode,
-              session.activeTool,
-              createEmptyGeometrySketchDrawDraft(),
-            ),
-            drawDraft: createEmptyGeometrySketchDrawDraft(),
+            activeTool: null,
+            drawStage: resolveGeometrySketchDrawStage(session.mode, null, null),
+            drawDraft: null,
           },
         }
       }
 
       if (session.drawDraft.points.length < 2) {
-        nextPromptRef.current = {
-          tool: session.activeTool,
-          draft: createEmptyGeometrySketchDrawDraft(),
-        }
-        return {
-          geometrySketchSession: {
-            ...session,
-            drawStage: resolveGeometrySketchDrawStage(
-              session.mode,
-              session.activeTool,
-              createEmptyGeometrySketchDrawDraft(),
-            ),
-            drawDraft: createEmptyGeometrySketchDrawDraft(),
-          },
-        }
+        return state
       }
 
+      const drawGroupId = `pline:${makeComponentId()}`
       const nextComponents = session.drawDraft.points
         .slice(1)
         .map((point, index) =>
-          buildGeometrySketchLineComponent(session.drawDraft!.points[index], point),
+          buildGeometrySketchLineComponent(session.drawDraft!.points[index], point, {
+            drawGroupId,
+          }),
         )
       const nextGraph = updateGeometrySketchNode(state.graph, session.nodeId, (feature) =>
         recomputeSketchFeature({
@@ -3894,24 +4365,26 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
         return state
       }
       nextPromptRef.current = {
-        tool: session.activeTool,
-        draft: createEmptyGeometrySketchDrawDraft(),
+        tool: null,
+        draft: null,
+        lastUsedTool: session.lastUsedTool,
       }
       return {
         ...withUpdatedActiveGraphDocumentState(state, nextGraph),
         geometrySketchSession: {
           ...session,
-          drawStage: resolveGeometrySketchDrawStage(
-            session.mode,
-            session.activeTool,
-            createEmptyGeometrySketchDrawDraft(),
-          ),
-          drawDraft: createEmptyGeometrySketchDrawDraft(),
+          activeTool: null,
+          drawStage: resolveGeometrySketchDrawStage(session.mode, null, null),
+          drawDraft: null,
         },
       }
     })
     if (nextPromptRef.current !== null) {
-      appendGeometrySketchConsolePrompt(nextPromptRef.current.tool, nextPromptRef.current.draft)
+      appendGeometrySketchConsolePrompt(
+        nextPromptRef.current.tool,
+        nextPromptRef.current.draft,
+        nextPromptRef.current.lastUsedTool,
+      )
     }
   },
   cancelGeometrySketchDrawDraft: () => {
@@ -3922,74 +4395,32 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
     if (currentSession.activeTool === null) {
       return
     }
-    if (currentSession.drawDraft === null) {
-      return
-    }
-    if (
-      currentSession.drawDraft.points.length === 0 &&
-      currentSession.drawDraft.hoverPoint === null &&
-      currentSession.drawDraft.hoverSnapTarget === null
-    ) {
-      const nextPromptRef: { current: GeometrySketchConsolePrompt | null } = {
-        current: {
-          tool: null,
-          draft: null,
-        },
-      }
-      set((state) => {
-        const session = state.geometrySketchSession
-        if (
-          session === null ||
-          session.mode !== 'draw' ||
-          session.activeTool === null
-        ) {
-          return state
-        }
-        return {
-          geometrySketchSession: {
-            ...session,
-            activeTool: null,
-            drawStage: resolveGeometrySketchDrawStage(session.mode, null, null),
-            drawDraft: null,
-          },
-        }
-      })
-      if (nextPromptRef.current !== null) {
-        appendGeometrySketchConsolePrompt(nextPromptRef.current.tool, nextPromptRef.current.draft)
-      }
-      return
-    }
     const nextPromptRef: { current: GeometrySketchConsolePrompt | null } = { current: null }
     set((state) => {
       const session = state.geometrySketchSession
-      if (session === null || session.drawDraft === null) {
-        return state
-      }
-      if (
-        session.drawDraft.points.length === 0 &&
-        session.drawDraft.hoverPoint === null &&
-        session.drawDraft.hoverSnapTarget === null
-      ) {
+      if (session === null) {
         return state
       }
       nextPromptRef.current = {
-        tool: session.activeTool,
-        draft: createEmptyGeometrySketchDrawDraft(),
+        tool: null,
+        draft: null,
+        lastUsedTool: session.lastUsedTool,
       }
       return {
         geometrySketchSession: {
           ...session,
-          drawStage: resolveGeometrySketchDrawStage(
-            session.mode,
-            session.activeTool,
-            createEmptyGeometrySketchDrawDraft(),
-          ),
-          drawDraft: createEmptyGeometrySketchDrawDraft(),
+          activeTool: null,
+          drawStage: resolveGeometrySketchDrawStage(session.mode, null, null),
+          drawDraft: null,
         },
       }
     })
     if (nextPromptRef.current !== null) {
-      appendGeometrySketchConsolePrompt(nextPromptRef.current.tool, nextPromptRef.current.draft)
+      appendGeometrySketchConsolePrompt(
+        nextPromptRef.current.tool,
+        nextPromptRef.current.draft,
+        nextPromptRef.current.lastUsedTool,
+      )
     }
   },
   appendGeometrySketchComponent: (nodeId, component) => {
