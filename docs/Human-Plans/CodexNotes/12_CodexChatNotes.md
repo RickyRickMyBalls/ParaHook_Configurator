@@ -24,6 +24,58 @@
 
 ## Session 1 Notes
 
+##### [ ] [206] 2026-03-22 12:49 - Add one umbrella `Nodes` index and treat AutoCAD-style command growth as primarily a `Sketch` problem
+
+Context block:
+
+- the `Spaghetti-Editor-Arch/Nodes` folder had:
+  - one real `Sketch` family
+  - placeholder `Extrude` and `Loft` folders
+  - no umbrella index that said what already exists versus what is still missing
+- the next planning task is to inventory all the AutoCAD-like commands the product still needs
+
+Locked direction:
+
+- create `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md`
+- use it as the umbrella inventory for:
+  - current node-family coverage
+  - current shipped sketch commands
+  - missing AutoCAD-style command backlog
+- treat the immediate AutoCAD-style command list as primarily a `Geometry/Sketch` backlog
+- keep `Geometry/Extrude` and `Geometry/Loft` as separate downstream node-family docs that still need to be created
+
+Why this matters:
+
+- it avoids mixing sketch command planning into extrude/loft architecture by accident
+- it gives one canonical place to answer:
+  - what node families already exist here
+  - what commands are already shipped
+  - what commands still need to be added
+- it makes the next obvious doc split clear:
+  - `Extrude-Index.md`
+  - `Loft-Index.md`
+
+##### [ ] [205] 2026-03-22 12:40 - Lock the AppShell cleanup order around runtime-host first and window-controller second
+
+Context block:
+
+- a second direct read of `src/app/AppShell.tsx` was needed before planning the AppShell cleanup family any further
+- the older AppShell index direction was still broadly right, but it needed a more exact seam read and roadmap-aligned naming before a standalone subphase doc would be trustworthy
+
+Locked direction:
+
+- keep `AppShell` as the real composition root
+- treat the radio and sampler runtime cluster as the first extraction seam under `[5.0F-1]`
+- treat browser floating/docking plus spaghetti window/split controller logic as the second seam under `[5.0F-2]`
+- do not add extra roadmap subphases unless `[5.0F-2]` later proves too risky to land under one family slot
+- use a new mounted `RadioRuntimeHost` seam as the first recommended landing zone
+
+Why this matters:
+
+- the file read showed the runtime cluster is already tightly grouped around one set of refs, effects, and the hidden SoundCloud bridge
+- it also showed the render tree is still the correct top-level composition root, so the cleanup should remove leaked hosts and controllers without moving surface composition out of `AppShell`
+- this gives the new standalone `5.0F-1` phase doc a real code-backed boundary instead of a vague "make AppShell smaller" goal
+
 ##### [ ] [204] 2026-03-22 12:32 - Place camera controls in the roadmap as a new `[5.0H]` bridge family
 
 Context block:

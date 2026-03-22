@@ -3,17 +3,40 @@
 ## Doc Header
 
 ### Doc History
+3. 2026-03-22 13:10: Marked `[5.0F-1]` complete after shipping the new `RadioRuntimeHost` seam, updated the family index to point at the moved shipped phase record, and left `[5.0F]` open only for the later browser/editor shell-controller extraction
+2. 2026-03-22 12:40: Refreshed this architecture index after a second live code read, aligned the AppShell family to roadmap `[5.0F]` / `[5.0F-1]` / `[5.0F-2]`, captured the concrete runtime-versus-shell seams in `src/app/AppShell.tsx`, and linked the new standalone `5.0F-1` future phase doc
 1. 2026-03-21 18:24: Created this architecture index as the canonical planning surface for `AppShell`, capturing the real current-state responsibilities, the cleaner target vision, and the phased extraction path needed before separate AppShell phase docs exist
 
 ### Purpose
 
 This doc defines the current architectural read of `AppShell` and the target shape it should grow toward.
 
+This file is the umbrella index for the `AppShell` family.
+
 Use it to answer:
 - what `AppShell` owns right now
 - which responsibilities are legitimate shell concerns versus leaked feature logic
 - what the cleaner target shell should look like
-- which extraction phases should happen before `AppShell` gets its own separate phase-doc family
+- how the `[5.0F]` roadmap family is sequenced
+- where the standalone AppShell `Future/` and `Shipped/` docs live
+
+### Family Structure
+
+Use this folder like this:
+
+- `AppShell-Index.md`
+  - umbrella architecture direction
+  - live ownership read
+  - roadmap-family summary
+- `Future/`
+  - standalone implementation-ready AppShell phase docs
+- `Shipped/`
+  - later shipped records for completed AppShell cuts if the family grows enough to justify them
+
+Current roadmap home:
+- `[5.0F]` AppShell Cleanup And Host Seam Extraction
+- `[5.0F-1]` AppShell Runtime Host Extraction
+- `[5.0F-2]` AppShell Window And Dock Host Extraction
 
 ### Why This Doc Exists
 
@@ -29,24 +52,28 @@ Some of that is correct shell ownership.
 
 Some of it is feature logic that happened to land in the shell because it needed one app-level host.
 
-This doc exists so `AppShell` can stop being described only as "the big file" and instead get a real architectural read:
+This doc exists so `AppShell` can stop being described only as "the big file" and instead get a durable architecture read:
 - current state
+- live seam read
 - target state
-- phased cleanup path
+- roadmap-aligned cleanup path
 
 ### Scope
 
 This doc covers:
 - the current `AppShell` responsibilities
+- the live seam read from `src/app/AppShell.tsx`
 - the target shell architecture
 - extraction boundaries
-- a phased cleanup order
+- the roadmap-aligned AppShell family index
 
-This doc does not yet cover:
-- implementation-ready phase checklists
-- exact hook/component filenames for every extraction
-- low-level pointer-event refactors
-- CSS cleanup details
+This doc does not try to hold:
+- every implementation-ready checklist for each AppShell subphase
+- the full `[5.1]` workspace host design
+- low-level pointer-math details beyond what is needed to name real seams
+- theme or CSS cleanup details
+
+Standalone execution details belong in `Future/` docs when the family needs them.
 
 ## Doc Body
 
@@ -63,7 +90,7 @@ The target direction should keep `AppShell` as:
 - the place that mounts major surfaces
 - the place that coordinates high-level workspace selection
 
-But it should stop being the place that directly owns large amounts of feature-specific runtime behavior.
+But it should stop being the place that directly owns large amounts of feature-specific runtime behavior and inline window-controller logic.
 
 ### Current State
 
@@ -99,6 +126,30 @@ In practice this means one file is mixing three different responsibility classes
   - transport polling
   - sampler loop scheduling
 
+### Live Code Read
+
+The second direct code read on `2026-03-22` confirmed a cleaner seam map than the earlier broad description:
+
+- `AppShell` is still the correct composition root
+  - the main render tree starts near the bottom of `src/app/AppShell.tsx`
+  - it mounts `ViewerHost`, `ViewportOverlay`, `ConsoleDock`, `BrowserPanel`, and `SpaghettiPanel`
+
+- the runtime-host leakage is one dense cluster
+  - runtime store selectors sit near the top of the component body
+  - audio-engine, SoundCloud, request-tracking, and sampler timeout refs live inline in the shell
+  - the radio/sampler `useEffect` cluster is grouped together in the shell body
+  - the hidden `Radio SoundCloud Bridge` iframe is still rendered directly by `AppShell`
+
+- the shell-controller leakage is another dense cluster
+  - viewport and browser clamp/layout helpers live together in the middle of the file
+  - browser floating and spaghetti floating pointer handlers live together later in the file
+  - left-dock resize, split resize, dock previews, and floating activation are all shell-level mechanics currently living inline
+  - `SpaghettiWindowTitleBar` is still defined inside `AppShell.tsx`
+
+That read makes the first safe extraction order much clearer:
+- first extract the audio runtime host seam
+- then extract the browser/editor shell controller seams
+
 ### Current Legitimate Shell Ownership
 
 These are reasonable things for `AppShell` to keep owning:
@@ -120,6 +171,7 @@ These are the main responsibilities that read more like leaked feature logic tha
 - sampler step-preview trigger handling
 - sampler loop scheduling and repeat timers
 - large amounts of editor-window drag and resize mechanics living inline beside unrelated shell concerns
+- browser floating and dock-intent pointer behavior living beside unrelated runtime code
 
 The problem is not only file length.
 
@@ -164,7 +216,7 @@ Target shape:
   - later `AudioPatchbayHost` if needed
   - `BrowserDockHost`
   - `SpaghettiWindowHost`
-  - `WorkspaceSplitHost`
+  - later `WorkspaceMenuHost` if the remaining menu logic still deserves a dedicated seam
 
 Important rule:
 - `AppShell` may mount these seams
@@ -203,16 +255,19 @@ The highest-value first candidates are:
   - move transport polling
   - move waveform refresh
   - move sampler preview and loop timing
-  - keep only one mounted runtime host seam in `AppShell`
+  - move the hidden SoundCloud bridge with the runtime seam
+  - keep only one mounted runtime host seam in `AppShell` for the first cut
+
+- `Browser dock host`
+  - group browser dock/floating state
+  - group browser drag, resize, and dock intent handling
+  - keep browser composition shell-level while removing its pointer/controller clutter from the top-level shell body
 
 - `Spaghetti window shell host`
   - group floating-window shell behavior
   - group split-view shell behavior
   - group titlebar/window action handling
-
-- `Browser dock host`
-  - group browser dock/floating state
-  - group browser drag, resize, and dock intent handling
+  - move the inline `SpaghettiWindowTitleBar` out of `AppShell.tsx`
 
 ### Risks To Avoid
 
@@ -221,75 +276,56 @@ The highest-value first candidates are:
 - Do not extract everything at once.
 - Do not hide real ownership problems behind generic utility files with unclear purpose.
 - Do not move feature logic into the wrong store just to make `AppShell.tsx` shorter.
+- Do not absorb the full `[5.1]` workspace model into this bridge family.
 
 The goal is not a smaller file at any cost.
 
 The goal is clearer ownership.
 
-### Phase Index
+### Roadmap Family Index
 
-## [ ] Phase 1 - Audit And Name The Real AppShell Seams
+## [ ] `[5.0F]` - `AppShell Cleanup And Host Seam Extraction`
 
-Lock the current responsibility map without changing behavior yet.
+This bridge family exists to reduce `AppShell` overload before `[5.1] Workspace Modes` asks the same area to become a broader workspace host.
 
-Outputs:
-- one stable list of what `AppShell` currently owns
-- one stable list of what should stay in the shell
-- one stable list of what should move behind mounted host seams
+Family focus:
+- keep `AppShell` as the app composition root
+- separate feature runtime hosting from shell composition
+- separate browser/editor shell-control mechanics from the top-level shell body
+- keep the cleanup preparatory rather than turning it into the final workspace architecture
 
-## [ ] Phase 2 - Extract Radio Runtime Hosting
+## [x] `[5.0F-1]` - `AppShell Runtime Host Extraction`
 
-Move radio runtime behavior out of the top-level shell body into one narrow mounted host seam.
+This is the first real cut.
 
-Scope:
-- burst handling
-- seek handling
-- reload handling
-- waveform state updates
-- transport polling
-- sampler preview triggers
-- sampler playback scheduling
-- hidden SoundCloud bridge hosting if it still belongs to the radio runtime path
+Reason:
+- the radio/sampler runtime cluster is the clearest example of feature logic living directly in `AppShell`
+- it has the tightest internal coupling and the weakest reason to stay in the shell body
+- it can shrink the file meaningfully without forcing immediate browser or window-controller redesign
 
-Target result:
-- `AppShell` mounts the radio runtime seam
-- `AppShell` no longer directly contains the radio runtime orchestration logic
-
-## [ ] Phase 3 - Extract Browser Dock And Floating Controller
-
-Move browser-specific floating/docking state and pointer behavior behind a dedicated browser shell host.
+Standalone phase doc:
+- `Shipped/AppShell_Phase 5.0F-1 - AppShell Runtime Host Extraction.md`
 
 Target result:
-- browser docking behavior is still shell-level
-- browser inner control logic stops cluttering the main shell component
+- `AppShell` mounts one runtime host seam
+- `AppShell` no longer directly owns the radio/sampler runtime transitions
+- the hidden SoundCloud bridge no longer lives directly in the shell body
 
-## [ ] Phase 4 - Extract Spaghetti Window Shell Controller
+## [ ] `[5.0F-2]` - `AppShell Window And Dock Host Extraction`
 
-Group the floating editor window, split layout, titlebar actions, and related pointer mechanics behind a dedicated shell controller seam.
-
-Target result:
-- `AppShell` still decides where the editor surface mounts
-- editor window-management logic stops living inline beside unrelated feature runtime code
-
-## [ ] Phase 5 - Normalize Workspace Menus And Activation
-
-Tighten shell-wide menu hosting and active-surface coordination after the larger extractions land.
+This is the second bridge cut after the runtime host lands.
 
 Focus:
-- workspace split menu
-- left-dock resize menu
-- active-surface sync
-- shell-wide close-on-outside-click effects
+- browser dock and browser floating controller logic
+- spaghetti floating/split/titlebar shell controller logic
+- left-dock resize, split resize, dock preview, and related shell pointer behavior
 
-## [ ] Phase 6 - Shrink AppShell To A True Composition Root
+Target result:
+- `AppShell` still decides where the surfaces mount
+- browser and editor shell mechanics stop living inline beside unrelated runtime code
+- the file becomes much closer to a real workspace compositor ahead of `[5.1]`
 
-Do the final pass that leaves `AppShell` as:
-- layout root
-- surface composition root
-- shell overlay host
-- mounted seam host
-
-This is the point where `AppShell` should read as architecture instead of accumulation.
+This phase may internally land in smaller implementation steps, but it does not need more roadmap IDs unless the later controller work proves riskier than it currently looks.
 
 ### Success Read
 
@@ -302,6 +338,7 @@ This cleanup succeeds when:
 ### Related Files
 
 - `src/app/AppShell.tsx`
+- `docs/Human-Plans/Architecture/AppShell/Shipped/AppShell_Phase 5.0F-1 - AppShell Runtime Host Extraction.md`
 - `docs/Human-Plans/Architecture/Workspace-Modes.md`
-- `docs/Human-Plans/Architecture/Radio/Radio.md`
+- `docs/Human-Plans/Architecture/Radio.md`
 - `docs/Human-Plans/Architecture/Audio-Patchbay.md`

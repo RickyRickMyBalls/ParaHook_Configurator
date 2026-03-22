@@ -65,6 +65,44 @@ Do not use it for:
 
 ## Doc Body
 
+### [543] - 2026-03-22 13:10 - `VR / SP - Phase 5.0F-1 - AppShell Runtime Host Extraction`
+<!-- ENTRY 543 -->
+HUMAN SUMMARY: `Implemented the \`5.0F-1\` AppShell runtime-host extraction by moving the radio/sampler audio-runtime cluster out of \`src/app/AppShell.tsx\` into a new mounted \`RadioRuntimeHost\` seam, keeping \`AppShell\` as the visible composition root while preserving the existing radio and sampler behavior.` 
+
+#### Scope / Constraints Honored
+- Kept `AppShell` as the visible composition root and left browser/spaghetti window-controller work for the later `[5.0F-2]` phase.
+- Preserved the existing `audioSamplerStore` contract and did not change public runtime/store APIs.
+- Kept the first cut to one internal host component and did not add a `useRadioRuntimeHost.ts` abstraction.
+
+#### Summary of Implementation
+- Added `src/app/hosts/RadioRuntimeHost.tsx` and moved the radio/sampler runtime helpers, refs, effect cluster, and hidden SoundCloud bridge iframe into that mounted seam.
+- Removed the audio-runtime selectors, refs, imports, helpers, and `useEffect` cluster from `src/app/AppShell.tsx`, leaving only `RadioPanel` visibility and the new `<RadioRuntimeHost />` mount in the shell body.
+- Added `src/app/hosts/RadioRuntimeHost.test.tsx` to cover the hidden bridge iframe, a supported burst request, and unmount cleanup of the runtime host.
+
+#### Files Changed
+- `src/app/AppShell.tsx`
+- `src/app/hosts/RadioRuntimeHost.tsx`
+- `src/app/hosts/RadioRuntimeHost.test.tsx`
+
+#### Behavior Changes
+- No intended visible layout change.
+- `AppShell` no longer directly owns the radio/sampler runtime transitions or the hidden SoundCloud iframe.
+- The audio runtime now lives behind one mounted `RadioRuntimeHost` seam.
+
+#### Verification Steps
+- Ran `cmd /c npm.cmd test -- src/app/AppShell.test.tsx src/app/hosts/RadioRuntimeHost.test.tsx`
+- Result:
+  - `2` test files passed
+  - `54` tests passed
+- Ran `cmd /c npm.cmd test -- src/app/panels/RadioPanel.test.tsx src/app/panels/AudioSamplerPanel.test.tsx`
+- Result:
+  - `2` test files passed
+  - `7` tests passed
+- Ran `cmd /c npm.cmd run build`
+- Build status:
+  - passed
+  - emitted the existing `occt-import-js` browser-externalization and chunk-size warnings only
+
 ### [542] - 2026-03-22 12:26 - `VR / SP - Phase 5.0G-2 - Theme Cascade Cleanup And Override Reduction`
 <!-- ENTRY 542 -->
 HUMAN SUMMARY: `Implemented the \`5.0G-2\` owner-cleanup pass inside the landed theme split by removing the second global \`:root\`, moving browser and radio surface rules into their real owner files, and collapsing the repeated \`Spaghetti\` template/driver/output override clusters into canonical CSS blocks without widening the work beyond the current theme lane.` 

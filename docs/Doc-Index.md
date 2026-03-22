@@ -3,6 +3,9 @@
 ## Doc Header
 
 ### Doc History
+72. 2026-03-22 13:10: Moved the shipped `5.0F-1` AppShell runtime-host record from `Future/` to `Shipped/`, updated the AppShell subtree listing to the shipped path, and kept `AppShell-Index.md` as the umbrella family doc while the broader `[5.0F]` lane stays open for the later window/dock extraction
+71. 2026-03-22 12:49: Added `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md` to the architecture docs map as the new umbrella planning surface for geometry node families, separating the real `Sketch` command inventory plus missing AutoCAD-style backlog from the still-placeholder `Extrude` and `Loft` folders
+70. 2026-03-22 12:40: Added `docs/Human-Plans/Architecture/AppShell/Future/AppShell_Phase 5.0F-1 - AppShell Runtime Host Extraction.md` to the architecture docs map and expanded the AppShell subtree listing, so the `[5.0F-1]` runtime-host cleanup now has a dedicated future planning surface under the AppShell family instead of living only in the umbrella index
 69. 2026-03-22 12:32: Updated the architecture docs map to point at `docs/Human-Plans/Architecture/Camera-Controls/Camera_Controls-Index.md` as the canonical camera-controls surface after the note moved into its own family folder, replacing the older flat-file `Camera_Controls.md` path
 68. 2026-03-22 11:53: Added `docs/Human-Plans/Architecture/Camera_Controls.md` to the architecture docs map as the canonical planning surface for viewport camera-control ownership, separating orbit/pan/zoom fallback behavior from higher-priority sketch, gizmo, and view-toolbar interactions
 67. 2026-03-22 10:35: Added `docs/Human-Plans/Architecture/v15Theme.md` to the architecture docs map as the canonical planning surface for the oversized app theme stylesheet, separating the current `v15Theme.css` ownership read, target split strategy, and `[5.0G]` cleanup direction from the broader workspace and AppShell architecture docs
@@ -414,8 +417,11 @@ Rule notes:
         - `Workspace-Modes.md`
 #### -------AppShell
             - `AppShell-Index.md`
+            - `Shipped/AppShell_Phase 5.0F-1 - AppShell Runtime Host Extraction.md`
 #### -------Spaghetti-Editor-Arch
             - `Spaghetti-Editor-Explained.md`
+            - `Nodes/Nodes-Index.md`
+            - `Nodes/Sketch/Sketch.md`
 ### ----Bugs
         - `0_Bug_Report.md`
         - `1_BrowserPanel-Startup-Crash.md`

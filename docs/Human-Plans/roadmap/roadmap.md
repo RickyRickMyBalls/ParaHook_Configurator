@@ -4,6 +4,7 @@
 ### Fold Hack 3
 #### FOld Hack 4
 ###### Doc History
+125. 2026-03-22 13:10: Marked `[5.0F-1] AppShell Runtime Host Extraction` complete after shipping the new mounted `RadioRuntimeHost` seam, moving the radio/sampler runtime cluster and hidden SoundCloud bridge out of `AppShell`, and keeping the parent `[5.0F]` family open only for the later browser/editor shell-controller extraction
 124. 2026-03-22 12:32: Added the new `[5.0H] Camera Controls And View Input Ownership` bridge family under the pre-workspace shell lane, along with `[5.0H-1]` through `[5.0H-5]`, so camera/input cleanup now has a real roadmap home spanning sketch camera blocking, Fusion-style viewport gestures, graph-canvas coexistence, console camera commands, and the later shared view-input owner model
 123. 2026-03-22 11:48: Marked `[3.2B-DrawSketch-3] Selection And Delete` complete after shipping idle `Sketch Draw` entity selection, blue `Window` and green `Crossing` viewport box selection, synced `Entities`-list selection, and immediate delete through viewport `Delete`, console `delete` / `del`, and the visible toolbar action
 122. 2026-03-22 11:15: Tightened the open `[3.2B-DrawSketch-3] Selection And Delete` roadmap entry into an implementation-ready entity-selection phase by separating it from profile review, locking it onto idle `Sketch Draw`, and defining the current code seams plus replacement/delete behavior for the first selection set
@@ -2142,7 +2143,7 @@ Sub-phase labels for the current cleanup split:
 - `[5.0F-1]` AppShell Runtime Host Extraction
 - `[5.0F-2]` AppShell Window And Dock Host Extraction
 
-### [5.0F-1] [ ] - `AppShell Runtime Host Extraction`
+### [5.0F-1] [x] - `AppShell Runtime Host Extraction`
 
 Summary:
 - move feature-specific app-level runtime behavior out of the top-level shell body first
@@ -2150,10 +2151,10 @@ Summary:
 - leave the shell as the mount point, but stop making it the direct owner of burst playback, seek/reload handling, waveform refresh, transport polling, and sampler scheduling
 
 CheckList:
-- [ ] extract radio runtime orchestration behind one mounted host seam
-- [ ] move sampler preview and loop scheduling behind that same runtime host boundary or a sibling host if needed
-- [ ] keep the hidden SoundCloud bridge attached to the runtime host instead of scattering it across the shell body
-- [ ] verify `AppShell` still mounts the runtime seam without continuing to own the runtime transitions directly
+- [x] extract radio runtime orchestration behind one mounted host seam
+- [x] move sampler preview and loop scheduling behind that same runtime host boundary or a sibling host if needed
+- [x] keep the hidden SoundCloud bridge attached to the runtime host instead of scattering it across the shell body
+- [x] verify `AppShell` still mounts the runtime seam without continuing to own the runtime transitions directly
 
 ### [5.0F-2] [ ] - `AppShell Window And Dock Host Extraction`
 

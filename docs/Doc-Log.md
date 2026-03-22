@@ -3,6 +3,13 @@
 ## Doc Header
 
 ### Doc History
+85. 2026-03-22 13:14: Logged the `Nodes-Index.md` follow-up that adds the wireable sketch-object hierarchy under `Geometry/Sketch`, locking the direction that `SketchProfiles` is the one top-level profile output and that expandable profile/entity/point rows are derived reference layers without demoting first-class composite entities like `Rectangle` and `PLine`
+84. 2026-03-22 13:10: Logged the shipped `5.0F-1` AppShell follow-up that marks the runtime-host phase complete, moves the standalone phase record into `AppShell/Shipped/`, updates the family index and roadmap state, and refreshes the docs map to the shipped path after the `RadioRuntimeHost` extraction landed
+83. 2026-03-22 13:10: Logged the `Nodes-Index.md` follow-up that reformats the `Geometry Nodes` checklist into a nested `inputs / outputs` contract, so `Geometry/Sketch`, `Geometry/Extrude`, and planned `Geometry/Loft` now read as compact node-interface summaries instead of only flat family names
+82. 2026-03-22 13:06: Logged the `Nodes-Index.md` correction that broadens the bottom checklist from geometry-only into the real live node registry, keeping `System/OutputPreview` and `Output/Assembled` in the main inventory and trimming the mistaken primitive-node entries out of the `[L]` legacy list
+81. 2026-03-22 13:00: Logged the `Nodes-Index.md` follow-up that turns the new bottom `Nodes` and `Legacy` sections into real checklists, separating current/planned geometry node families from `[L]` legacy nodes and the still-live `toeLoft` seam that should be removed later
+80. 2026-03-22 12:49: Logged the new `Nodes-Index.md` umbrella note, updated the docs map, and captured the planning decision that AutoCAD-style command growth is currently a `Geometry/Sketch` backlog while `Extrude` and `Loft` still need their own dedicated node-family docs
+79. 2026-03-22 12:40: Logged the AppShell family refresh that reworks `AppShell-Index.md` around the live runtime-versus-shell seam read, adds the new standalone `5.0F-1` future phase doc, updates the docs map, and records the extraction-order decision in the active Codex notes so the AppShell lane now has a roadmap-aligned index plus an implementation-ready first subphase plan
 78. 2026-03-22 12:32: Logged the camera-controls follow-up that adds the new `[5.0H] Camera Controls And View Input Ownership` roadmap family with `[5.0H-1]` through `[5.0H-5]`, reworks the moved `Camera_Controls-Index.md` into the umbrella family index, and updates the docs map to the new folderized camera-controls path
 77. 2026-03-22 12:31: Logged the roadmap follow-up that checks off `[5.0G]`, `[5.0G-1]`, and `[5.0G-2]` after the theme split and cleanup both landed, so the live lane now reads as fully completed instead of leaving the shipped theme-system work only implied by changelog and architecture updates
 76. 2026-03-22 12:26: Logged the `v15Theme.md` follow-up that marks `[5.0G-2]` complete after the CSS owner-cleanup pass landed, so the architecture note now reflects the current post-cleanup theme state instead of still describing the second `:root`, `Spaghetti` override chronology, and `base.css` owner leaks as open work
@@ -117,6 +124,152 @@ Do not use it for:
 - keep numbering sequential unless the user explicitly asks for a renumber pass
 
 ## Doc Body
+
+<!-- ENTRY 153 -->
+### [153] - 2026-03-22 13:14 - `DOC - Add Wireable Sketch Object Hierarchy To Nodes Index`
+<!-- ENTRY 153 -->
+HUMAN SUMMARY: Updated `Nodes-Index.md` to capture the deeper wireable sketch-object structure under `Geometry/Sketch`. The doc now says `SketchProfiles` should be the one top-level profile output, expandable into per-profile rows, member entity references, and then entity-to-point expansion while keeping composite entities like `Rectangle` and `PLine` first-class.
+
+#### Scope
+- Updated the `Geometry/Sketch` block in `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md`.
+- Kept the change focused on object hierarchy and row/output semantics.
+- Logged the decision in the permanent doc log.
+
+#### Summary
+- Added an `output hierarchy` block under `Geometry/Sketch` for:
+  - `SketchProfiles`
+  - `SketchProfile`
+  - `SketchEntity`
+  - `SketchPoint`
+- Added `structure rules` that define:
+  - `Rectangle` as a first-class composite entity with derived line children
+  - `PLine` as a first-class composite entity with ordered segment children
+  - `Line` as an atomic entity with two point children
+  - child rows as derived/reference layers unless a later explicit explode workflow exists
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was a docs/planning pass only; no runtime code changed.
+- The new hierarchy intentionally favors one top-level `SketchProfiles` output over exposing both a collection pin and a second top-level selected-profile pin by default.
+
+<!-- ENTRY 152 -->
+### [152] - 2026-03-22 13:10 - `DOC - Reformat Geometry Nodes Into Input Output Contracts`
+<!-- ENTRY 152 -->
+HUMAN SUMMARY: Updated the `Geometry Nodes` block in `Nodes-Index.md` to match the nested formatting the user started. `Geometry/Sketch`, `Geometry/Extrude`, and planned `Geometry/Loft` now show compact `inputs` and `outputs` lists grounded in the current planning and registry docs instead of reading only as flat names.
+
+#### Scope
+- Updated the `Geometry Nodes` section in `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md`.
+- Kept the change limited to node-interface formatting and did not yet restyle the non-geometry families the same way.
+- Logged the follow-up in the permanent doc log.
+
+#### Summary
+- Filled in the user-started `Geometry/Sketch` nested block with:
+  - `SketchPlane`
+  - `Sketch Draw`
+  - `SketchProfiles`
+  - `SketchProfile`
+- Added matching nested `inputs / outputs` rows for `Geometry/Extrude`.
+- Added the first planned `inputs / outputs` rows for `Geometry/Loft`.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was a docs/planning pass only; no runtime code changed.
+- `Loft` remains planned, so its nested contract is still a planning read rather than a claim of shipped runtime support.
+
+<!-- ENTRY 151 -->
+### [151] - 2026-03-22 13:06 - `DOC - Correct Nodes Checklist To Match Live Registry`
+<!-- ENTRY 151 -->
+HUMAN SUMMARY: Corrected the bottom checklist in `Nodes-Index.md` so it now reflects the real live node registry instead of only the geometry slice. The doc now keeps the current output nodes in the main inventory, adds the existing part/param/primitive/utility families, and removes the mistaken primitive entries from the `[L]` legacy list.
+
+#### Scope
+- Updated `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md`.
+- Kept the follow-up inside the same umbrella doc instead of splitting to another note.
+- Logged the correction in the permanent doc log.
+
+#### Summary
+- Reworked `## Nodes` into grouped family checklists for:
+  - geometry
+  - part
+  - output
+  - param
+  - primitive
+  - utility
+- Kept `System/OutputPreview` and `Output/Assembled` in the live inventory as current output nodes to keep tracking.
+- Removed `Primitive/Number` and `Primitive/Vec2` from the `[L]` legacy list after checking the current registry/status docs.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was a docs/planning correction only; no runtime code changed.
+- `toeLoft` remains in the legacy list because it is still a live node-adjacent type seam in code.
+
+<!-- ENTRY 150 -->
+### [150] - 2026-03-22 13:00 - `DOC - Add Node And Legacy Checklists To Nodes Index`
+<!-- ENTRY 150 -->
+HUMAN SUMMARY: Updated `Nodes-Index.md` so the new bottom `Nodes` and `Legacy` sections are now real checklists instead of empty placeholders. The doc now has one scan-friendly list for current/planned geometry node families and one `[L]` cleanup list for legacy nodes and seams that are still present in code.
+
+#### Scope
+- Updated `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md`.
+- Kept the change inside the existing `Nodes` umbrella doc rather than creating another file.
+- Logged the follow-up in the permanent doc log.
+
+#### Summary
+- Added a `Nodes` checklist for:
+  - `Geometry/Sketch`
+  - `Geometry/Extrude`
+  - `Geometry/Loft`
+  - later `Revolve / Sweep / Boolean`
+- Added a `Legacy` checklist using `[L]` for still-live cleanup targets:
+  - `Part/CubeProof`
+  - `Primitive/Number`
+  - `Primitive/Vec2`
+  - `toeLoft`
+- Kept the checklist language aligned to the repo-wide legend where `[L]` means legacy and still in code.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was a docs/planning pass only; no runtime code changed.
+- `toeLoft` is listed here intentionally as a legacy node-adjacent seam because it still affects node/port typing even though it is not itself a node family.
+
+<!-- ENTRY 149 -->
+### [149] - 2026-03-22 12:49 - `DOC - Add Nodes Umbrella Index`
+<!-- ENTRY 149 -->
+HUMAN SUMMARY: Added a new umbrella `Nodes-Index.md` under the `Spaghetti-Editor-Arch/Nodes` family so geometry-node planning now has one canonical place to say what already exists, what folders are still placeholders, and what AutoCAD-style sketch commands are shipped versus still needed. Also updated the docs map and captured the core planning decision in the active Codex notes.
+
+#### Scope
+- Added `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md` as the new node-family umbrella planning surface.
+- Updated `docs/Doc-Index.md` so the architecture docs map now exposes the new `Nodes` index and the live `Sketch` family doc under `Spaghetti-Editor-Arch`.
+- Added one matching planning note to `docs/Human-Plans/CodexNotes/12_CodexChatNotes.md`.
+
+#### Summary
+- Created a new `Nodes Index` doc with:
+  - current `Sketch / Extrude / Loft` family coverage
+  - a first practical inventory of shipped sketch commands
+  - a grouped AutoCAD-style command backlog
+  - recommended near-term command order
+- Explicitly treated AutoCAD-like command growth as primarily a `Geometry/Sketch` backlog for now.
+- Recorded that `Extrude` and `Loft` still need their own dedicated family docs in this folder.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md`
+- `docs/Doc-Index.md`
+- `docs/Human-Plans/CodexNotes/12_CodexChatNotes.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was a docs/planning pass only; no runtime code changed.
+- The new index intentionally keeps camera/view commands out of scope because those belong in the separate `Camera-Controls` family.
 
 <!-- ENTRY 148 -->
 ### [148] - 2026-03-22 12:31 - `DOC - Mark Theme System Roadmap Lane Complete`
