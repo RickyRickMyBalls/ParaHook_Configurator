@@ -63,6 +63,20 @@ describe('routeKeyboardInput', () => {
     })
   })
 
+  it('routes Delete to sketch draw while sketch draw is active', () => {
+    const result = routeKeyboardInput({
+      event: createEvent('Delete'),
+      geometrySketchMode: 'draw',
+      stagedConsoleActive: true,
+      allowFlatConsoleCapture: true,
+    })
+
+    expect(result).toEqual({
+      owner: 'sketch-draw',
+      decision: 'handle',
+    })
+  })
+
   it('routes m/r/s to reference transform before console capture', () => {
     expect(
       routeKeyboardInput({

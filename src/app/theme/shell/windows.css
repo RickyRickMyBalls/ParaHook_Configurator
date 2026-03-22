@@ -1,0 +1,190 @@
+.BrowserFloatingDock {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 24;
+}
+
+.BrowserFloatingWindow {
+  position: absolute;
+  min-width: 280px;
+  min-height: 0;
+  max-width: calc(100% - 24px);
+  max-height: calc(100% - 24px);
+  pointer-events: auto;
+  border-radius: 12px;
+  overflow: hidden;
+  transition:
+    box-shadow 140ms ease,
+    filter 140ms ease;
+}
+
+.BrowserFloatingWindow.isActiveWindow {
+  box-shadow:
+    0 0 0 1px rgba(124, 160, 255, 0.5),
+    0 0 24px rgba(124, 160, 255, 0.18);
+}
+
+.ViewportArea {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  transition: margin-left 160ms ease;
+}
+
+.ViewportArea.isLeftDockSplit {
+  margin-left: 320px;
+}
+
+.ConsoleFloatingWindow {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  pointer-events: auto;
+  border-radius: 12px;
+  overflow: visible;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.46);
+}
+
+.ConsoleFloatingWindow .ConsoleBar,
+.ConsoleFloatingWindow .ConsolePanel {
+  border-radius: 0;
+}
+
+.ConsoleFloatingWindow .ConsoleBar {
+  border-radius: 0 0 12px 12px;
+}
+
+.SpaghettiFloatingDock {
+  position: absolute;
+  z-index: 24;
+  inset: 0;
+  pointer-events: none;
+}
+
+.SpaghettiFloatingWindow {
+  position: absolute;
+  min-width: 0;
+  width: min(980px, calc(100% - 24px));
+  height: min(860px, calc(100% - 24px));
+  max-height: calc(100% - 24px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 10px;
+  transition:
+    box-shadow 140ms ease,
+    filter 140ms ease;
+}
+
+.SpaghettiFloatingWindow.isMaximized {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-height: 100%;
+  border-radius: 0;
+}
+
+.SpaghettiFloatingWindow.isCollapsed {
+  height: auto;
+  max-height: none;
+}
+
+.SpaghettiFloatingWindow.isActiveWindow {
+  box-shadow:
+    0 0 0 1px rgba(124, 160, 255, 0.5),
+    0 0 24px rgba(124, 160, 255, 0.18);
+}
+
+.SpaghettiFloatingWindow.isActiveWindow .SpaghettiFloatingHandle {
+  border-color: rgba(124, 160, 255, 0.5);
+}
+
+.SpaghettiFloatingWindow.isActiveWindow .SpaghettiFloatingBody {
+  box-shadow: inset 0 0 0 1px rgba(124, 160, 255, 0.42);
+}
+
+.ViewportSplitLayout {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+  gap: 0;
+}
+
+.ViewportSplitLayout.isLeftDockSplit {
+  --split-left-offset: var(--left-dock-split-width, 320px);
+}
+
+.ViewportSplitLayout.isVertical .ViewportSplitPane--viewer {
+  border-bottom: none;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ViewportSplitLayout.isHorizontal.isLeftDockSplit.isBalanced .ViewportSplitPane--viewer,
+.ViewportSplitLayout.isHorizontal.isLeftDockSplit.isBalanced .ViewportSplitPane--editor,
+.ViewportSplitLayout.isHorizontal.isLeftDockSplit.isBalanced .ViewportSplitDivider {
+  margin-left: var(--split-left-offset);
+  width: calc(100% - var(--split-left-offset));
+  justify-self: start;
+}
+
+.ViewportSplitLayout.isVertical .ViewportSplitDivider,
+.ViewportSplitLayout.isVertical .ViewportSplitDivider:hover {
+  width: 10px;
+  min-width: 10px;
+  height: 100%;
+  min-height: 100%;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(255, 255, 255, 0.18) 50%,
+    rgba(255, 255, 255, 0.08) 100%
+  );
+  cursor: col-resize;
+}
+
+.ViewportSplitLayout.isVertical.isLeftDockSplit {
+  padding-left: var(--split-left-offset);
+  box-sizing: border-box;
+}
+
+.ViewportSplitLayout.isHorizontal.isLeftDockSplit.isFavorSecond .ViewportSplitPane--viewer {
+  margin-left: var(--split-left-offset);
+  width: calc(100% - var(--split-left-offset));
+  justify-self: start;
+}
+
+.ViewportSplitLayout.isHorizontal.isLeftDockSplit.isFavorSecond .ViewportSplitPane--editor,
+.ViewportSplitLayout.isHorizontal.isLeftDockSplit.isFavorSecond .ViewportSplitDivider {
+  margin-left: 0;
+  width: 100%;
+}
+
+.ViewportSplitLayout.isHorizontal.isLeftDockSplit.isFavorFirst .ViewportSplitPane--viewer,
+.ViewportSplitLayout.isHorizontal.isLeftDockSplit.isFavorFirst .ViewportSplitDivider {
+  margin-left: 0;
+  width: 100%;
+}
+
+.ViewportSplitLayout.isHorizontal.isLeftDockSplit.isFavorFirst .ViewportSplitPane--editor {
+  margin-left: var(--split-left-offset);
+  width: calc(100% - var(--split-left-offset));
+  justify-self: start;
+}
+
+@media (max-width: 1300px) {
+.SpaghettiFloatingDock {
+    inset: 0;
+  }
+
+.SpaghettiFloatingWindow {
+    min-width: 0;
+    width: calc(100% - 24px);
+    height: calc(100% - 24px);
+    max-height: calc(100% - 24px);
+  }
+}

@@ -24,6 +24,434 @@
 
 ## Session 1 Notes
 
+##### [ ] [204] 2026-03-22 12:32 - Place camera controls in the roadmap as a new `[5.0H]` bridge family
+
+Context block:
+
+- camera/input cleanup had an architecture note and an internal phase split, but no real roadmap home yet
+- the work is broader than:
+  - viewer-only controls
+  - sketch-only cleanup
+  - console-only camera commands
+
+Locked direction:
+
+- place camera controls under the pre-workspace bridge lane as:
+  - `[5.0H] Camera Controls And View Input Ownership`
+- use the following subphases:
+  - `[5.0H-1]` Sketch Draw Camera Blocking
+  - `[5.0H-2]` Fusion-Style Model Viewport Camera Baseline
+  - `[5.0H-3]` Spaghetti Canvas And Model Viewport Coexistence
+  - `[5.0H-4]` Camera Console Commands
+  - `[5.0H-5]` Shared View Input Owner Model
+
+Why this matters:
+
+- it keeps the family attached to the same bridge zone that already handles pre-`[5.1]` shell/input cleanup
+- it avoids misplacing camera/input work into only viewer, sketch, or console lanes
+- it gives the new `Camera-Controls` folder a real roadmap family to index against
+
+##### [ ] [203] 2026-03-22 12:16 - Break `Camera_Controls.md` into the fewest safe implementation phases
+
+Context block:
+
+- the camera-controls note was getting directionally complete, but it still needed an execution shape
+- the right split should be small enough to ship safely, without turning one camera/input cleanup into an oversized mixed implementation
+
+Locked direction:
+
+- add a `## Phases` section to `Camera_Controls.md`
+- use the fewest safe phases needed to separate:
+  - `Sketch Draw` ownership blocking
+  - Fusion-style model viewport gestures
+  - graph-canvas plus model-viewport coexistence
+  - camera console commands
+  - the later shared input-owner model
+
+Recommended phase split:
+
+- `Phase 1`
+  - stop camera interference with `Sketch Draw`
+- `Phase 2`
+  - land the Fusion-style model viewport gesture baseline
+- `Phase 3`
+  - preserve graph-canvas behavior and add optional `Ctrl` pass-through to the model viewport
+- `Phase 4`
+  - add `ZOOM` / `PAN` / `ORBIT` console commands
+- `Phase 5`
+  - unify everything under one shared viewport-input owner model
+
+Why this matters:
+
+- it keeps the first shipping target tight enough to unblock `DS-3` testing
+- it prevents graph-canvas and model-camera cleanup from being mixed into one risky pass
+- it gives later gizmo/view-toolbar work a real home without forcing it into the first camera fix
+
+##### [ ] [202] 2026-03-22 12:16 - Add AutoCAD-style camera console suggestions to the new camera-controls note
+
+Context block:
+
+- camera gesture cleanup should not be mouse-only
+- ParaHook will also want a small console surface for view navigation
+- AutoCAD is a useful baseline here because the user already expects:
+  - `z > a`
+  - `z > o`
+
+Locked direction:
+
+- add the first suggested console family to `Camera_Controls.md`
+- use:
+  - `zoom`
+  - `z`
+  as the main command and alias
+- first suggested sub-options:
+  - `a` = `All`
+  - `e` = `Extents`
+  - `p` = `Previous`
+  - `w` = `Window`
+  - `o` = `Object`
+- also suggest:
+  - `pan`
+  - `orbit`
+- `Zoom Object` should support either:
+  - preselect then commit
+  - or command first then select
+
+Why this matters:
+
+- it keeps camera navigation consistent across mouse and console surfaces
+- it gives the future console a real CAD-like view-navigation grammar
+- it prevents camera commands from being bolted on later without an architecture note
+
+##### [ ] [201] 2026-03-22 12:06 - Treat `v15Theme` Phase 2 as in-place cleanup of the landed manifest split, not a new decomposition lane
+
+Context block:
+
+- `[5.0G-1]` is now implemented
+- `src/index.css` still imports `src/app/theme/v15Theme.css`
+- `v15Theme.css` is now a manifest over:
+  - `foundation/`
+  - `shell/`
+  - `surfaces/`
+- the next real work is cleanup inside the split, not more theme-architecture branching
+
+Locked direction:
+
+- keep the phase count at `2`
+- mark Phase 1 complete in `v15Theme.md`
+- make Phase 2 implementation-ready around the live cleanup hotspots:
+  - `src/app/theme/foundation/tokens.css`
+  - `src/app/theme/foundation/base.css`
+  - `src/app/theme/surfaces/viewport-overlay.css`
+  - `src/app/theme/surfaces/spaghetti.css`
+- do not add a Phase 3 just for naming or extra file decomposition
+- default to cleaning within the current `9`-file split unless a later blocker proves otherwise
+
+Why this matters:
+
+- it keeps the theme plan aligned with the code that actually shipped
+- it prevents phase creep right before workspace-mode work
+- it gives the next pass concrete cleanup targets instead of vague `reduce overrides` wording
+
+##### [ ] [200] 2026-03-22 11:53 - Add a dedicated camera-controls architecture surface to resolve viewport input ownership conflicts
+
+Context block:
+
+- `DS-3` entity selection exposed that orbit camera still owns too much of the plain viewport click/drag path
+- that makes shipped `Sketch Draw` selection and later gizmo work feel like exceptions instead of first-class viewport owners
+- the problem is broader than one sketch bug
+- it is an input-ownership architecture issue between:
+  - camera navigation
+  - sketch draw/select
+  - future gizmos
+  - view-toolbar camera actions
+
+Locked direction:
+
+- add `docs/Human-Plans/Architecture/Camera_Controls.md`
+- treat camera controls as fallback viewport navigation, not the default winner for plain `LMB`
+- let active authoring interactions own plain `LMB` first
+- use a Fusion-like baseline:
+  - scroll up = zoom in toward the mouse position
+  - scroll down = zoom out
+  - `MMB` drag = pan
+  - `Shift + MMB` drag = orbit
+  - `MMB` double click = zoom fit
+- keep view-toolbar camera commands explicit rather than letting them blur pointer ownership
+
+Why this matters:
+
+- it gives `Sketch Draw` box selection a real architectural home instead of a one-off workaround
+- it gives later move/edit gizmos the same ownership model
+- it reduces repeated viewer-input conflicts as more CAD-like tools land
+
+Canvas follow-up:
+
+- the `Spaghetti Editor` canvas should stay a separate 2D navigation surface, not a camera surface
+- while the pointer is over the graph canvas:
+  - scroll should zoom the canvas toward the mouse position
+  - `MMB` drag should pan the canvas
+  - plain `LMB` should stay with graph editing
+- model-view camera controls should not steal those same gestures from the active graph canvas
+
+##### [ ] [199] 2026-03-22 11:15 - Make `DS-3` implementation-ready as entity selection, explicitly separate from profile review
+
+Context block:
+
+- the crucial ambiguity in `DS-3` was not only `Selection Mode` versus idle state
+- it was also the overloaded word `review`
+- current code truth already uses:
+  - `geometrySketchSession.mode === 'review'`
+  for profile review, with profile cards and `setGeometrySketchSelectedProfile(...)`
+- the new entity-selection phase must not collide with that existing meaning
+
+Locked direction:
+
+- `DS-3` owns committed entity selection only
+- `DS-3` does not own:
+  - closed-profile selection
+  - profile review mode
+- entity selection should extend:
+  - `geometrySketchSession.mode === 'draw'`
+  - `drawStage === 'sessionIdle'`
+- first selection-set semantics are replace-only:
+  - click entity = replace with one
+  - click empty = clear
+  - window/crossing drag = replace with matched set
+  - entity-row click = replace with one
+- delete should route against that selection set through sketch-draw command handling
+
+Why this matters:
+
+- it removes the biggest implementation ambiguity left in the phase
+- it maps the phase onto the current store/viewer split cleanly
+- it gives a concrete state shape and test matrix instead of only product wording
+
+##### [ ] [198] 2026-03-22 11:03 - Correct `DS-3` so selection is the idle/review state, not a peer tool
+
+Context block:
+
+- the previous `DS-3` tightening over-corrected by turning selection into a first-class tool
+- that conflicts with the desired AutoCAD-like flow after a draw commit:
+  - commit `Line` point `B`
+  - next viewport click should select
+  - only `Enter` / `Previous` should re-arm the last draw command
+
+Locked direction:
+
+- do not model selection as a peer tool next to:
+  - `Line`
+  - `PLine`
+  - `Rectangle`
+  - `Circle`
+- selection belongs to idle/review `Sketch Draw`
+- after a draw-tool commit:
+  - return to idle/review
+  - viewport clicks select
+  - window/crossing drag starts from empty-space click
+- `Enter` or `Previous` should re-arm the last draw tool from that idle/review state
+
+Why this is better:
+
+- it matches the desired post-commit cadence exactly
+- it keeps tool semantics clean
+- it avoids forcing the user to manually switch into a higher-level review mode every time a draw command ends
+
+##### [x] [197] 2026-03-22 10:58 - Tighten `DS-3 Selection And Delete` around a real `Selection Mode` tool plus `Window` / `Crossing`
+
+Context block:
+
+- the first `DS-3` refocus was cleaner than the old umbrella, but `q1` was still too narrow because the user explicitly wants AutoCAD-style window selection in this phase
+- that means the phase cannot stay framed as single-select-only
+- the better shape is one explicit selection tool with a real selection set and two box semantics
+
+Locked direction:
+
+- `Selection Mode` should become the first tool choice inside `Sketch Draw`
+- first selection behaviors should include:
+  - single click selection
+  - blue `Window Selection`
+    - entity must be fully enclosed
+  - green `Crossing Selection`
+    - entity only needs to intersect/touch/cross the box
+- keep the current sketch drag-direction rule:
+  - move `-X`
+    - blue `Window`
+  - move `+X`
+    - green `Crossing`
+- delete should now read against the current selection set, not only one selected entity id
+
+Why this is better:
+
+- it aligns the phase with the actual AutoCAD-like targeting model the user wants
+- it makes selection explicit instead of turning idle draw state into an overloaded always-picking mode
+- it gives the future runtime a cleaner state model:
+  - active tool
+  - hover candidate
+  - selection set
+  - selection-window draft
+
+##### [ ] [196] 2026-03-22 10:43 - Re-focus `DS-3` into the first real `Selection And Delete` phase
+
+Context block:
+
+- `DrawSketch-3` had become stale after the temporary parent-bucket split that let:
+  - `[3.2B-DrawSketch-4] Rectangle`
+  - `[3.2B-DrawSketch-5] Circle`
+  - `[3.2B-DrawSketch-6] Endpoint Snap`
+  move forward as narrower follow-ons
+- after `Rectangle` and `Circle` shipped, the old `Selection, Editing, And Richer Sketch Feedback` label was too broad and no longer described one implementable next step
+
+Locked direction:
+
+- re-focus `[3.2B-DrawSketch-3]` into:
+  - `Selection And Delete`
+- keep the `3` id for continuity instead of renumbering the family again
+- make the first selection cut narrow:
+  - single committed-entity selection only
+  - viewport plus `Entities` row sync
+  - direct delete of the current selection
+- keep these out of scope for now:
+  - grips
+  - move/edit transforms
+  - sub-entity handles
+  - multi-select
+  - box select
+
+Why this is better:
+
+- it turns `DS-3` back into a real executable phase instead of an index bucket
+- it gives `Sketch Draw` its first honest review/destructive workflow after the draw-tool expansion
+- it keeps later editing work from getting mixed into the first committed-entity targeting pass
+
+##### [x] [195] 2026-03-22 08:35 - Ship `DS-4 Rectangle` as the next real `Sketch Draw` tool
+
+Context block:
+
+- the implementation-ready `DS-4` spec locked the right command contract:
+  - `rec > Vec2 > Vec2`
+- the codebase already had the core destination shape available:
+  - `GeometrySketchTool` already knew:
+    - `rectangle`
+  - sketch components and profile derivation already supported first-class:
+    - `rectangle`
+
+Landed behavior:
+
+- `Sketch Draw` now exposes:
+  - `Rectangle`
+  - `rec`
+- `Rectangle` now behaves as a real two-point tool:
+  - first corner
+  - opposite corner
+  - immediate commit
+  - return to idle
+- the viewer now ghosts the full closed rectangle after `P1`
+- the viewport overlay and console status path now treat `Rectangle` like the other real draw tools
+- empty `Enter` after `P1` accepts the hovered opposite corner
+
+Important implementation note:
+
+- one real bug surfaced during the console integration pass:
+  - feature-assist activation could overwrite freshly typed user input with the late arriving assisted prefill
+- the fix was not rectangle-specific only:
+  - the console submit path now reads the latest store input at submit time
+  - feature-assist descriptor activation now preserves existing user-owned input instead of blindly clobbering it
+
+##### [ ] [194] 2026-03-22 08:06 - Tighten `DS-4 Rectangle` into an implementation-ready two-point command spec
+
+Context block:
+
+- `Rectangle` already had the right broad direction, but it was still missing the exact locked command contract needed to implement without more planning drift
+- current code truth is favorable:
+  - `GeometrySketchTool` already includes:
+    - `rectangle`
+  - the sketch feature/runtime already supports first-class committed rectangle components
+- the actual runtime gap is narrower:
+  - `runGeometrySketchDrawCommand(...)` still does not expose:
+    - `rectangle`
+    - `rec`
+  - `GeometrySketchDrawHelper.ts` still only renders live draft/ghost behavior for:
+    - `line`
+    - `pline`
+
+Locked direction:
+
+- typed happy path is:
+  - `rec > Vec2 > Vec2`
+- first accepted point:
+  - first corner
+- second accepted point:
+  - opposite corner
+- second accepted point commits immediately and returns to idle `Sketch Draw`
+- no extra post-`P2` finish step
+- first cut stays axis-aligned in sketch space
+
+Why this is good:
+
+- it is the smallest useful AutoCAD-like rectangle primitive
+- it reuses the existing first-class rectangle component shape instead of inventing a temporary four-line fallback
+- it gives implementation a concrete contract for command routing, helper preview work, and acceptance tests
+
+##### [ ] [193] 2026-03-22 07:58 - Rename the new draw-tool follow-ons from `3A / 3B / 3C` to numeric `DrawSketch-4 / 5 / 6`
+
+Context block:
+
+- the first split used temporary letter suffixes:
+  - `[3.2B-DrawSketch-3A]`
+  - `[3.2B-DrawSketch-3B]`
+  - `[3.2B-DrawSketch-3C]`
+- that reads less cleanly than the rest of the `DrawSketch-N` family
+
+Locked direction:
+
+- rename:
+  - `[3.2B-DrawSketch-3A]` -> `[3.2B-DrawSketch-4]`
+  - `[3.2B-DrawSketch-3B]` -> `[3.2B-DrawSketch-5]`
+  - `[3.2B-DrawSketch-3C]` -> `[3.2B-DrawSketch-6]`
+- keep the parent bucket as:
+  - `[3.2B-DrawSketch-3]`
+- keep the phase titles and intended scope unchanged
+
+Why this is better:
+
+- it matches the established numbered sketch phase family
+- it keeps later follow-ons easier to scan and reference
+- it avoids implying that the new docs are child fragments of `3` rather than the next sequence steps
+
+##### [ ] [192] 2026-03-22 07:47 - Split post-`Line` / `PLine` sketch growth into narrow follow-ons for `Rectangle`, `Circle`, and endpoint snap
+
+Context block:
+
+- shipped `DrawSketch-2` now makes `Line` and `PLine` feel like real hybrid command sessions, so the next sketch growth should stop hiding inside one broad `DrawSketch-3` placeholder
+- current code already has useful latent seams for the next steps:
+  - `GeometrySketchTool` already includes:
+    - `rectangle`
+    - `circle`
+  - sketch feature types and profile derivation already support first-class:
+    - `rectangle`
+    - `circle`
+  - `GeometrySketchDrawHelper` already has an origin snap path plus a visible snap marker
+- the missing work is mainly command wiring, live preview behavior, and endpoint candidate sourcing
+
+Locked direction:
+
+- split the post-`Line` / `PLine` bucket into:
+  - `[3.2B-DrawSketch-3A] Rectangle Tool And Corner Workflow`
+  - `[3.2B-DrawSketch-3B] Circle Tool And Center-Radius Workflow`
+  - `[3.2B-DrawSketch-3C] Endpoint Snap`
+- `Rectangle` should use the local alias:
+  - `rec`
+- `Circle` should use the local alias:
+  - `cc`
+- endpoint snap should extend the current origin snap instead of arriving as a separate snap-mode rewrite
+
+Why this order is good:
+
+- it adds two immediately useful AutoCAD-like primitive tools before drifting into broad editing work
+- it reuses the existing first-class sketch component types instead of forcing a new schema decision
+- it keeps the first object-snap growth narrow and measurable before broader inference/constraint systems
+
 ##### [ ] [191] 2026-03-20 17:24 - Radio sampler toolbar idea: keep the sequencer inside the shared `Radio` toolbar as a collapsible tree with global controls, track lanes, and expandable step detail
 
 Context block:

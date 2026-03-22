@@ -1,0 +1,983 @@
+@keyframes BrowserGraphStateBuildFill {
+  0% {
+    width: 0;
+    opacity: 0.82;
+  }
+
+  72% {
+    width: 100%;
+    opacity: 1;
+  }
+
+  100% {
+    width: 100%;
+    opacity: 0.94;
+  }
+}
+
+@keyframes BrowserGraphOpenGlowSweep {
+  from {
+    transform: translateX(0);
+    opacity: 0.28;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
+
+  to {
+    transform: translateX(220px);
+    opacity: 0.18;
+  }
+}
+
+.V15Panel.BrowserPanelRoot {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+  overflow: visible;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.V15Panel.BrowserPanelRoot.isFloating {
+  height: auto;
+  min-height: 0;
+  max-height: 100%;
+  overflow: hidden;
+}
+
+.BrowserPanelBody {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  gap: 0;
+  margin-top: 0;
+  padding: 0;
+  border: 1px solid var(--v15-panel-border);
+  border-top: none;
+  border-radius: 0 0 12px 12px;
+  background: var(--v15-panel-bg);
+  box-shadow: var(--v15-panel-shadow);
+  overflow: auto;
+}
+
+.BrowserPanelTitleBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 7px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-bottom: none;
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+  background: linear-gradient(
+    180deg,
+    rgba(24, 28, 36, 0.96) 0%,
+    rgba(6, 8, 12, 0.98) 100%
+  );
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  color: #eef2ff;
+  position: relative;
+  z-index: 1;
+  cursor: grab;
+  user-select: text;
+}
+
+.BrowserPanelTitleBar.isCollapsed {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+}
+
+.BrowserPanelTitleCluster {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.BrowserPanelTitle {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.V15Panel button.BrowserPanelChromeButton,
+.V15Panel button.BrowserPanelChromeButton:hover {
+  min-width: 28px;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+  color: #f5f7ff;
+  font-size: 10px;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.V15Panel button.BrowserPanelChromeButton:hover {
+  background: rgba(96, 142, 255, 0.22);
+  border-color: rgba(96, 142, 255, 0.45);
+}
+
+.BrowserTree {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.BrowserTreeSection {
+  border: 1px solid var(--v15-panel-border-soft);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  overflow: hidden;
+}
+
+.BrowserTreeSection--root {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.BrowserTreeSummary {
+  list-style: none;
+  cursor: pointer;
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 800;
+  color: rgba(238, 242, 255, 0.92);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.BrowserTreeSummary--withActions {
+  justify-content: space-between;
+}
+
+.BrowserTreeSummaryLabel {
+  min-width: 0;
+}
+
+.BrowserTreeSummary::-webkit-details-marker {
+  display: none;
+}
+
+.BrowserTreeSummary::before {
+  content: '>';
+  display: inline-block;
+  width: 10px;
+  min-width: 10px;
+  text-align: center;
+  transform: rotate(0deg);
+  transition: transform 140ms ease;
+  font-size: 10px;
+  color: var(--v15-text-muted);
+}
+
+.BrowserTreeSection[open] > .BrowserTreeSummary::before {
+  transform: rotate(90deg);
+}
+
+.BrowserTreeSummaryActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.V15Panel button.BrowserTreeSummaryAction,
+.V15Panel button.BrowserTreeSummaryAction:hover {
+  min-width: 22px;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(245, 247, 255, 0.92);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.02em;
+}
+
+.V15Panel button.BrowserTreeSummaryAction:hover {
+  background: rgba(96, 142, 255, 0.2);
+  border-color: rgba(96, 142, 255, 0.42);
+}
+
+.BrowserTreeGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 8px 8px 16px;
+}
+
+.BrowserTreeGroup--content {
+  position: relative;
+}
+
+.BrowserTreeRow {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto auto;
+  gap: 6px;
+  align-items: center;
+}
+
+.BrowserTreeRow--references-root,
+.BrowserTreeRow--reference-category,
+.BrowserTreeRow--reference-item,
+.BrowserTreeRow--assembly,
+.BrowserTreeRow--component,
+.BrowserTreeRow--object {
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.BrowserTreeRow.isSelected .BrowserTreeRowMain {
+  border-color: rgba(96, 142, 255, 0.55);
+  background: var(--v15-selected);
+}
+
+.BrowserTreeRow.isOpen .BrowserTreeRowMain {
+  border-color: rgba(120, 152, 228, 0.26);
+  background: rgba(18, 20, 28, 0.94);
+}
+
+.BrowserTreeRow.isActiveEditor .BrowserTreeRowMain {
+  border-color: rgba(96, 142, 255, 0.42);
+  box-shadow: inset 0 0 0 1px rgba(96, 142, 255, 0.08);
+}
+
+.BrowserTreeRowLead {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 28px;
+}
+
+.BrowserTreeRowGuides {
+  display: inline-flex;
+  align-items: stretch;
+  height: 28px;
+}
+
+.BrowserTreeRowGuide {
+  position: relative;
+  width: 16px;
+  min-width: 16px;
+  height: 28px;
+  overflow: visible;
+  --browser-tree-guide-center: 10px;
+}
+
+.BrowserTreeRow--references-root .BrowserTreeRowGuide:first-child,
+.BrowserTreeRow--reference-category .BrowserTreeRowGuide:first-child,
+.BrowserTreeRow--reference-item .BrowserTreeRowGuide:first-child,
+.BrowserTreeRow--assembly .BrowserTreeRowGuide:first-child,
+.BrowserTreeRow--sketches-root .BrowserTreeRowGuide:first-child,
+.BrowserTreeRow--sketch .BrowserTreeRowGuide:first-child,
+.BrowserTreeRow--component .BrowserTreeRowGuide:first-child,
+.BrowserTreeRow--object .BrowserTreeRowGuide:first-child {
+  --browser-tree-guide-center: 1.5px;
+  margin-left: -4px;
+}
+
+.BrowserTreeRow--references-root .BrowserTreeRowGuide:first-child::before {
+  top: -18px;
+}
+
+.BrowserTreeRowGuide:nth-child(2) {
+  --browser-tree-guide-center: 14px;
+}
+
+.BrowserTreeRowGuide:nth-child(3) {
+  --browser-tree-guide-center: 18px;
+}
+
+.BrowserTreeRowGuide::before,
+.BrowserTreeRowGuide::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+  background: rgba(196, 206, 224, 0.52);
+}
+
+.BrowserTreeRowGuide--vertical::before,
+.BrowserTreeRowGuide--tee::before {
+  top: -8px;
+  bottom: -8px;
+  left: var(--browser-tree-guide-center);
+  width: 1px;
+}
+
+.BrowserTreeRowGuide--elbow::before {
+  top: -8px;
+  bottom: 50%;
+  left: var(--browser-tree-guide-center);
+  width: 1px;
+}
+
+.BrowserTreeRowGuide--elbow::after,
+.BrowserTreeRowGuide--tee::after {
+  top: calc(50% - 0.5px);
+  left: var(--browser-tree-guide-center);
+  width: calc(20px - var(--browser-tree-guide-center));
+  height: 1px;
+}
+
+.BrowserTreeRow.isLeaf .BrowserTreeRowGuide:last-child::after {
+  width: calc(46px - var(--browser-tree-guide-center));
+}
+
+.BrowserTreeRowExpand,
+.BrowserTreeRowIcon,
+.BrowserTreeRowVisibilityToggle {
+  width: 20px;
+  min-width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  font-size: 10px;
+}
+
+.BrowserTreeRowExpand {
+  border: 1px solid var(--v15-panel-border-soft);
+  background: transparent;
+}
+
+.BrowserTreeRowExpand--placeholder {
+  color: transparent;
+  border: 1px solid transparent;
+}
+
+.BrowserTreeRowIcon {
+  border: 1px solid var(--v15-panel-border-soft);
+  color: rgba(238, 242, 255, 0.86);
+  background: rgba(255, 255, 255, 0.03);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.BrowserTreeRowVisibilityToggle {
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.03);
+  overflow: hidden;
+}
+
+.V15Panel button.BrowserTreeRowVisibilityToggle {
+  padding: 0;
+}
+
+.V15Panel button.BrowserTreeRowVisibilityToggle:hover {
+  border-color: rgba(124, 160, 255, 0.34);
+  background: rgba(96, 142, 255, 0.12);
+}
+
+.V15Panel button.BrowserTreeRowVisibilityToggle.isVisible {
+  border-color: rgba(72, 201, 125, 0.42);
+  background: linear-gradient(180deg, rgba(55, 148, 88, 0.26), rgba(24, 78, 46, 0.14));
+  box-shadow:
+    inset 0 0 0 1px rgba(72, 201, 125, 0.14),
+    0 0 10px rgba(72, 201, 125, 0.12);
+}
+
+.BrowserTreeRowVisibilityToggleEye,
+.BrowserTreeRowVisibilityToggleSlash,
+.BrowserTreeRowVisibilityTogglePupil {
+  position: absolute;
+  pointer-events: none;
+}
+
+.BrowserTreeRowVisibilityToggleEye {
+  left: 3px;
+  top: 5px;
+  width: 12px;
+  height: 8px;
+  border: 1px solid rgba(236, 242, 255, 0.88);
+  border-radius: 999px / 80%;
+  box-sizing: border-box;
+  transition:
+    border-color 140ms ease,
+    opacity 140ms ease;
+}
+
+.BrowserTreeRowVisibilityTogglePupil {
+  left: 50%;
+  top: 50%;
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  transform: translate(-50%, -50%);
+  background: rgba(236, 242, 255, 0.94);
+  box-shadow: 0 0 6px rgba(124, 160, 255, 0.16);
+}
+
+.BrowserTreeRowVisibilityToggleSlash {
+  left: 3px;
+  top: 9px;
+  width: 14px;
+  height: 1px;
+  background: rgba(236, 242, 255, 0.92);
+  transform: rotate(-32deg);
+  transform-origin: center;
+}
+
+.V15Panel button.BrowserTreeRowVisibilityToggle.isHidden .BrowserTreeRowVisibilityToggleEye,
+.V15Panel button.BrowserTreeRowVisibilityToggle.isHidden .BrowserTreeRowVisibilityTogglePupil {
+  opacity: 0.74;
+}
+
+.V15Panel button.BrowserTreeRowVisibilityToggle.isVisible .BrowserTreeRowVisibilityToggleEye {
+  border-color: rgba(236, 242, 255, 0.96);
+}
+
+.V15Panel button.BrowserTreeRowVisibilityToggle.isVisible .BrowserTreeRowVisibilityTogglePupil {
+  background: rgba(245, 248, 255, 0.96);
+  box-shadow: 0 0 8px rgba(72, 201, 125, 0.24);
+}
+
+.V15Panel button.BrowserTreeRowIcon {
+  padding: 0;
+}
+
+.V15Panel button.BrowserTreeRowIcon--policy {
+  border-color: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(244, 247, 255, 0.96);
+  cursor: pointer;
+}
+
+.V15Panel button.BrowserTreeRowIcon--live {
+  border-color: rgba(72, 201, 125, 0.36);
+  background: rgba(55, 148, 88, 0.18);
+  color: rgba(212, 255, 225, 0.96);
+}
+
+.V15Panel button.BrowserTreeRowIcon--release {
+  border-color: rgba(236, 196, 88, 0.38);
+  background: rgba(194, 142, 34, 0.2);
+  color: rgba(255, 242, 195, 0.96);
+}
+
+.V15Panel button.BrowserTreeRowIcon--manual {
+  border-color: rgba(224, 106, 106, 0.34);
+  background: rgba(153, 48, 48, 0.2);
+  color: rgba(255, 216, 216, 0.96);
+}
+
+.BrowserTreeRowMain,
+.BrowserTreeRowQuickAction,
+.BrowserTreeRowOverflow,
+.BrowserTreeContextMenuAction {
+  min-height: 28px;
+}
+
+.V15Panel button.BrowserTreeRowMain {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  text-align: left;
+  background: rgba(12, 14, 20, 0.96);
+  border-color: rgba(255, 255, 255, 0.30);
+  transition:
+    background 140ms ease,
+    border-color 140ms ease;
+}
+
+.V15Panel button.BrowserTreeRowMain.isGraphRow {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+  padding: 0;
+}
+
+.V15Panel button.BrowserTreeRowMain.isContentRow {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+  padding: 0;
+}
+
+.V15Panel button.BrowserTreeRowMain.isReferenceRow {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+  padding: 0;
+}
+
+.V15Panel button.BrowserTreeRowMain.isSketchesRootRow {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+  padding: 0;
+  background: transparent;
+  border-color: transparent;
+}
+
+.V15Panel button.BrowserTreeRowMain.isGraphChildBuildRow {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+  padding: 0;
+}
+
+.V15Panel button.BrowserTreeRowMain.isGraphChildPlainRow,
+.V15Panel button.BrowserTreeRowMain.isViewportRow {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+  padding: 0;
+}
+
+.V15Panel button.BrowserTreeRowMain:hover {
+  border-color: var(--v15-panel-border-soft);
+  background: rgba(20, 22, 30, 0.98);
+}
+
+.V15Panel button.BrowserTreeRowMain.isSketchesRootRow:hover,
+.BrowserTreeRow.isSelected .BrowserTreeRowMain.isSketchesRootRow,
+.BrowserTreeRow.isOpen .BrowserTreeRowMain.isSketchesRootRow,
+.BrowserTreeRow.isActiveEditor .BrowserTreeRowMain.isSketchesRootRow {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.V15Panel button.BrowserTreeRowMain.isGraphRow .BrowserTreeRowLabel {
+  display: none;
+}
+
+.BrowserTreeRowLabel {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.BrowserTreeRowText {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+}
+
+.BrowserGraphStateBar {
+  position: relative;
+  min-width: 0;
+  min-height: 26px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  overflow: hidden;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 0 8px;
+  gap: 8px;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    background 160ms ease;
+}
+
+.BrowserGraphStateFill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 100%;
+  background: linear-gradient(90deg, rgba(84, 186, 124, 0.34), rgba(84, 186, 124, 0.12));
+  transition:
+    width 160ms ease,
+    background 160ms ease;
+}
+
+.BrowserGraphStateBar--rebuild .BrowserGraphStateFill {
+  width: 0;
+  background: transparent;
+}
+
+.BrowserGraphStateBar--done .BrowserGraphStateFill {
+  width: 100%;
+  background: linear-gradient(90deg, rgba(84, 186, 124, 0.34), rgba(84, 186, 124, 0.12));
+}
+
+.BrowserGraphStateBar--building .BrowserGraphStateFill {
+  width: 0;
+  background: linear-gradient(90deg, rgba(232, 186, 86, 0.58), rgba(232, 186, 86, 0.18));
+  animation: BrowserGraphStateBuildFill 1.05s ease-in-out infinite;
+}
+
+.BrowserGraphStateText {
+  position: relative;
+  z-index: 1;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(244, 247, 255, 0.86);
+}
+
+.BrowserContentStateBar {
+  position: relative;
+  min-width: 0;
+  min-height: 26px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  overflow: hidden;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 0 8px;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    background 160ms ease;
+}
+
+.BrowserContentStateBar--slim {
+  min-height: 22px;
+}
+
+.BrowserGraphChildPlainBar {
+  width: 100%;
+  min-width: 0;
+  min-height: 26px;
+  display: flex;
+  align-items: center;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 0 8px;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    background 160ms ease;
+}
+
+.BrowserContentStateFill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0;
+  border-radius: inherit;
+  transition:
+    width 180ms ease,
+    background 160ms ease;
+}
+
+.BrowserContentStateBar--done .BrowserContentStateFill {
+  width: 100%;
+  background: linear-gradient(90deg, rgba(84, 186, 124, 0.26), rgba(84, 186, 124, 0.08));
+}
+
+.BrowserContentStateBar--building .BrowserContentStateFill {
+  width: 0;
+  background: linear-gradient(90deg, rgba(232, 186, 86, 0.48), rgba(232, 186, 86, 0.16));
+  animation: BrowserGraphStateBuildFill 1.05s ease-in-out infinite;
+}
+
+.BrowserContentStateBar--rebuild .BrowserContentStateFill {
+  width: 100%;
+  background: linear-gradient(90deg, rgba(232, 186, 86, 0.34), rgba(232, 186, 86, 0.12));
+}
+
+.BrowserContentStateText {
+  position: relative;
+  z-index: 1;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: rgba(244, 247, 255, 0.9);
+}
+
+.BrowserContentStateMeta {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.BrowserReferenceStateBar {
+  position: relative;
+  min-width: 0;
+  min-height: 26px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  overflow: hidden;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(10, 12, 18, 0.98);
+  padding: 0 8px;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    background 160ms ease;
+}
+
+.BrowserReferenceStateFill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 100%;
+  border-radius: inherit;
+  transition:
+    width 180ms ease,
+    background 160ms ease;
+}
+
+.BrowserReferenceStateBar--highlighted .BrowserReferenceStateFill {
+  background: linear-gradient(90deg, rgba(44, 82, 168, 0.48), rgba(24, 40, 82, 0.18));
+}
+
+.BrowserReferenceStateBar--idle .BrowserReferenceStateFill {
+  background: linear-gradient(90deg, rgba(68, 74, 88, 0.44), rgba(24, 28, 38, 0.16));
+}
+
+.BrowserReferenceStateBar--loading .BrowserReferenceStateFill {
+  background: linear-gradient(90deg, rgba(74, 126, 236, 0.46), rgba(74, 126, 236, 0.14));
+  animation: BrowserGraphStateBuildFill 1.05s ease-in-out infinite;
+}
+
+.BrowserReferenceStateBar--error .BrowserReferenceStateFill {
+  background: linear-gradient(90deg, rgba(214, 96, 96, 0.34), rgba(214, 96, 96, 0.12));
+}
+
+.BrowserReferenceStateText {
+  position: relative;
+  z-index: 1;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: rgba(244, 247, 255, 0.9);
+}
+
+.BrowserGraphStateLabel {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(244, 247, 255, 0.95);
+}
+
+.BrowserTreeRow.isOpen .BrowserGraphStateBar {
+  border-color: rgba(96, 142, 255, 0.28);
+  box-shadow:
+    inset 0 0 0 1px rgba(96, 142, 255, 0.1),
+    0 0 0 1px rgba(96, 142, 255, 0.12),
+    0 0 18px rgba(72, 112, 255, 0.14);
+}
+
+.BrowserTreeRow.isOpen .BrowserGraphStateBar::after {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 -28px;
+  width: 28px;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.14) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  pointer-events: none;
+  animation: BrowserGraphOpenGlowSweep 2.2s linear infinite;
+}
+
+.BrowserTreeRow.isActiveEditor .BrowserGraphStateBar {
+  border-color: rgba(122, 168, 255, 0.42);
+  box-shadow:
+    inset 0 0 0 1px rgba(122, 168, 255, 0.12),
+    0 0 0 1px rgba(122, 168, 255, 0.18),
+    0 0 24px rgba(72, 112, 255, 0.2);
+}
+
+.BrowserTreeRowMeta {
+  font-size: 11px;
+  color: var(--v15-text-muted);
+  text-transform: none;
+  letter-spacing: 0.02em;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.BrowserTreeRowStatus {
+  justify-self: end;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.BrowserTreeRowStatus--inline {
+  justify-self: auto;
+}
+
+.BrowserTreeRowStatus--ready {
+  color: rgba(190, 247, 206, 0.8);
+}
+
+.BrowserTreeRowStatus--warning {
+  color: rgba(255, 214, 144, 0.92);
+}
+
+.BrowserTreeRowStatus--quiet {
+  color: var(--v15-text-muted);
+}
+
+.V15Panel button.BrowserTreeRowOverflow {
+  min-width: 28px;
+  width: 28px;
+  padding: 0;
+  justify-content: center;
+  border-radius: 8px;
+  border-color: transparent;
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--v15-text-muted);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+}
+
+.V15Panel button.BrowserTreeRowOverflow:hover,
+.V15Panel button.BrowserTreeRowOverflow.isActive {
+  border-color: var(--v15-panel-border-soft);
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(238, 242, 255, 0.94);
+}
+
+.V15Panel button.BrowserTreeRowQuickAction {
+  min-width: 28px;
+  width: 28px;
+  padding: 0;
+  justify-content: center;
+  border-radius: 8px;
+  border-color: transparent;
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--v15-text-muted);
+  text-transform: uppercase;
+}
+
+.V15Panel button.BrowserTreeRowQuickAction--close:hover {
+  border-color: rgba(255, 112, 112, 0.26);
+  background: rgba(255, 112, 112, 0.12);
+  color: rgba(255, 220, 220, 0.96);
+}
+
+.V15Panel button.BrowserTreeRowQuickAction--retry:hover {
+  border-color: rgba(123, 170, 255, 0.26);
+  background: rgba(123, 170, 255, 0.12);
+  color: rgba(230, 239, 255, 0.98);
+}
+
+.V15Panel button.BrowserTreeRowQuickAction--save {
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+}
+
+.V15Panel button.BrowserTreeRowQuickAction--save.BrowserTreeRowQuickAction--unsaved {
+  border-color: rgba(87, 129, 255, 0.28);
+  background: rgba(87, 129, 255, 0.16);
+  color: rgba(232, 239, 255, 0.96);
+}
+
+.V15Panel button.BrowserTreeRowQuickAction--save.BrowserTreeRowQuickAction--saved {
+  border-color: rgba(84, 186, 124, 0.18);
+  background: rgba(84, 186, 124, 0.08);
+  color: rgba(212, 255, 225, 0.84);
+}
+
+.V15Panel button.BrowserTreeRowQuickAction--save:hover,
+.V15Panel button.BrowserTreeRowQuickAction--save.isActive {
+  border-color: var(--v15-panel-border-soft);
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(244, 247, 255, 0.98);
+}
+
+.BrowserTreeEmpty {
+  padding: 4px 0 2px;
+  font-size: 12px;
+  color: var(--v15-text-muted);
+}
+
+.BrowserTreeEmpty--nested {
+  padding-left: 58px;
+}
+
+.BrowserTreeSectionNote {
+  padding: 0 8px 6px 16px;
+  font-size: 11px;
+  color: var(--v15-text-muted);
+}
+
+.BrowserTreeContextMenu {
+  position: fixed;
+  z-index: 50;
+  min-width: 180px;
+  max-width: min(240px, calc(100vw - 24px));
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  border: 1px solid rgba(124, 160, 255, 0.3);
+  border-radius: 10px;
+  background: rgba(20, 20, 24, 0.98);
+  box-shadow:
+    0 12px 30px rgba(0, 0, 0, 0.48),
+    0 0 0 1px rgba(124, 160, 255, 0.12);
+}
+
+.BrowserTreeContextMenuHeader {
+  padding: 2px 4px 6px;
+  border-bottom: 1px solid var(--v15-panel-border-soft);
+  font-size: 11px;
+  font-weight: 800;
+  color: rgba(238, 242, 255, 0.92);
+}
+
+.V15Panel button.BrowserTreeContextMenuAction {
+  width: 100%;
+  justify-content: flex-start;
+  text-align: left;
+  border-color: transparent;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.V15Panel button.BrowserTreeContextMenuAction:hover {
+  border-color: var(--v15-panel-border-soft);
+  background: rgba(255, 255, 255, 0.08);
+}

@@ -36,7 +36,9 @@ export type Line2Component = {
   rowId: string
   componentId: string
   type: 'line'
+  name?: string
   drawGroupId?: string
+  drawGroupName?: string
   a: Vec2Expression
   b: Vec2Expression
 }
@@ -45,6 +47,7 @@ export type Bezier2Component = {
   rowId: string
   componentId: string
   type: 'spline'
+  name?: string
   p0: Vec2Expression
   p1: Vec2Expression
   p2: Vec2Expression
@@ -55,6 +58,7 @@ export type Arc3pt2Component = {
   rowId: string
   componentId: string
   type: 'arc3pt'
+  name?: string
   start: Vec2Expression
   mid: Vec2Expression
   end: Vec2Expression
@@ -64,6 +68,7 @@ export type RectangleComponent = {
   rowId: string
   componentId: string
   type: 'rectangle'
+  name?: string
   a: Vec2Expression
   b: Vec2Expression
 }
@@ -72,6 +77,7 @@ export type CircleComponent = {
   rowId: string
   componentId: string
   type: 'circle'
+  name?: string
   center: Vec2Expression
   edge: Vec2Expression
 }

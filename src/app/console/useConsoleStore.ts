@@ -941,13 +941,22 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
         }
       }
       const stagedChoiceIndex = 0
-      const inputText =
-        featureAssistDescriptor.prefill ??
-        getAssistChoiceInputText(featureAssistDescriptor.choices[stagedChoiceIndex]!)
+      const shouldPreserveExistingInput =
+        state.inputText.trim().length > 0 &&
+        (state.isStagedChoiceManualOverride ||
+          state.featureAssistDescriptor === null ||
+          !isInputDrivenByDescriptor(state.featureAssistDescriptor, state.inputText))
+      const inputText = shouldPreserveExistingInput
+        ? state.inputText
+        : (featureAssistDescriptor.prefill ??
+          getAssistChoiceInputText(featureAssistDescriptor.choices[stagedChoiceIndex]!))
+      const nextTracking = resolveStagedChoiceTracking(featureAssistDescriptor, inputText, {
+        forceManualOverride: shouldPreserveExistingInput && state.isStagedChoiceManualOverride,
+      })
       return {
         ...nextState,
-        stagedChoiceIndex,
-        isStagedChoiceManualOverride: false,
+        stagedChoiceIndex: nextTracking.stagedChoiceIndex,
+        isStagedChoiceManualOverride: nextTracking.isStagedChoiceManualOverride,
         inputText,
         historyIndex: null,
         historyDraft: '',

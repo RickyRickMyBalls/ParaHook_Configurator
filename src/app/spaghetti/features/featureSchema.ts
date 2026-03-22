@@ -113,7 +113,9 @@ const lineComponentSchema = z
     rowId: z.string().min(1),
     componentId: z.string().min(1),
     type: z.literal('line'),
+    name: z.string().min(1).optional(),
     drawGroupId: z.string().min(1).optional(),
+    drawGroupName: z.string().min(1).optional(),
     a: vec2ExpressionSchema,
     b: vec2ExpressionSchema,
   })
@@ -124,6 +126,7 @@ const splineComponentSchema = z
     rowId: z.string().min(1),
     componentId: z.string().min(1),
     type: z.literal('spline'),
+    name: z.string().min(1).optional(),
     p0: vec2ExpressionSchema,
     p1: vec2ExpressionSchema,
     p2: vec2ExpressionSchema,
@@ -136,6 +139,7 @@ const arc3ptComponentSchema = z
     rowId: z.string().min(1),
     componentId: z.string().min(1),
     type: z.literal('arc3pt'),
+    name: z.string().min(1).optional(),
     start: vec2ExpressionSchema,
     mid: vec2ExpressionSchema,
     end: vec2ExpressionSchema,
@@ -147,6 +151,7 @@ const rectangleComponentSchema = z
     rowId: z.string().min(1),
     componentId: z.string().min(1),
     type: z.literal('rectangle'),
+    name: z.string().min(1).optional(),
     a: vec2ExpressionSchema,
     b: vec2ExpressionSchema,
   })
@@ -157,6 +162,7 @@ const circleComponentSchema = z
     rowId: z.string().min(1),
     componentId: z.string().min(1),
     type: z.literal('circle'),
+    name: z.string().min(1).optional(),
     center: vec2ExpressionSchema,
     edge: vec2ExpressionSchema,
   })

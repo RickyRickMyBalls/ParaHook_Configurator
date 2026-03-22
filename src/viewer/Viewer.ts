@@ -23,8 +23,10 @@ import {
   PCFSoftShadowMap,
   PerspectiveCamera,
   PointLight,
+  Raycaster,
   Scene,
   SpotLight,
+  Vector2,
   Vector3,
   WebGLRenderer,
 } from 'three'
@@ -48,6 +50,8 @@ import type { GeometrySketchOverlayVm, SketchPlanePickOverlayVm } from '../app/v
 import { loadStepReferenceObject } from './stepReferenceLoader'
 import {
   buildGeometrySketchRenderPolylines,
+  collectGeometrySketchSelectionIds,
+  expandGeometrySketchSelectionFromRowId,
   type GeometrySketchRenderLayer,
 } from './geometrySketchOverlay'
 import { TransformGizmo } from './gizmo/TransformGizmo'
@@ -57,6 +61,7 @@ import { SketchPlanePickHelper } from './sketch/SketchPlanePickHelper'
 import { GeometrySketchDrawHelper } from './sketch/GeometrySketchDrawHelper'
 import { getSketchPlaneWorldNormal, getSketchPlaneWorldOrigin } from './sketch/sketchPlaneMath'
 import type { SketchPlane, SketchPlaneTransform } from '../app/spaghetti/features/featureTypes'
+import type { GeometrySketchSelectionWindowDraft } from '../app/spaghetti/store/useSpaghettiStore'
 
 type GizmoSpace = 'local' | 'world'
 type MaterialPresetId = string
@@ -216,8 +221,14 @@ export class Viewer {
   private readonly geometrySketchComponentMaterial: LineBasicMaterial
   private readonly geometrySketchDraftChainMaterial: LineBasicMaterial
   private readonly geometrySketchDraftGhostMaterial: LineBasicMaterial
+  private readonly geometrySketchHoveredComponentMaterial: LineBasicMaterial
+  private readonly geometrySketchSelectedComponentMaterial: LineBasicMaterial
   private readonly geometrySketchProfileMaterial: LineBasicMaterial
   private readonly geometrySketchSelectedProfileMaterial: LineBasicMaterial
+  private readonly geometrySketchSelectionWindowMaterial: LineBasicMaterial
+  private readonly geometrySketchSelectionCrossingMaterial: LineBasicMaterial
+  private readonly raycaster = new Raycaster()
+  private readonly pointer = new Vector2()
   private frameId: number | null = null
   private readonly partMeshes = new Map<string, Mesh>()
   private readonly referenceGroup: Group
@@ -244,8 +255,22 @@ export class Viewer {
   private onGeometrySketchConfirmPoint:
     | ((point: { x: number; y: number }, snapTarget: 'origin' | null) => void)
     | null = null
+  private onGeometrySketchHoverComponent: ((rowId: string | null) => void) | null = null
+  private onGeometrySketchSelectComponents: ((rowIds: string[]) => void) | null = null
+  private onGeometrySketchSelectionWindowDraftChange:
+    | ((draft: GeometrySketchSelectionWindowDraft | null) => void)
+    | null = null
+  private onGeometrySketchDeleteSelection: (() => void) | null = null
   private onGeometrySketchFinishDraft: (() => void) | null = null
   private onGeometrySketchCancelDraft: (() => void) | null = null
+  private geometrySketchSelectionDrag:
+    | {
+        pointerId: number
+        anchorPoint: { x: number; y: number }
+        anchorClientX: number
+        anchorClientY: number
+      }
+    | null = null
   private assembledMesh: Mesh | null = null
   private selectedPartKey: string | null = null
   private gizmoEnabled = false
@@ -336,6 +361,20 @@ export class Viewer {
       toneMapped: false,
       depthTest: false,
     })
+    this.geometrySketchHoveredComponentMaterial = new LineBasicMaterial({
+      color: new Color('#f4f8ff'),
+      transparent: true,
+      opacity: 0.96,
+      toneMapped: false,
+      depthTest: false,
+    })
+    this.geometrySketchSelectedComponentMaterial = new LineBasicMaterial({
+      color: new Color('#ffd66b'),
+      transparent: true,
+      opacity: 1,
+      toneMapped: false,
+      depthTest: false,
+    })
     this.geometrySketchProfileMaterial = new LineBasicMaterial({
       color: new Color('#74f2cf'),
       transparent: true,
@@ -347,6 +386,20 @@ export class Viewer {
       color: new Color('#ffd66b'),
       transparent: true,
       opacity: 1,
+      toneMapped: false,
+      depthTest: false,
+    })
+    this.geometrySketchSelectionWindowMaterial = new LineBasicMaterial({
+      color: new Color('#68a9ff'),
+      transparent: true,
+      opacity: 0.96,
+      toneMapped: false,
+      depthTest: false,
+    })
+    this.geometrySketchSelectionCrossingMaterial = new LineBasicMaterial({
+      color: new Color('#59e39c'),
+      transparent: true,
+      opacity: 0.96,
       toneMapped: false,
       depthTest: false,
     })
@@ -382,6 +435,11 @@ export class Viewer {
     this.renderer.domElement.addEventListener(
       'pointermove',
       this.handleSketchPlanePickPointerMove,
+      true,
+    )
+    this.renderer.domElement.addEventListener(
+      'pointerup',
+      this.handleSketchPlanePickPointerUp,
       true,
     )
 
@@ -818,6 +876,11 @@ export class Viewer {
   public setGeometrySketchOverlay(overlay: GeometrySketchOverlayVm | null): void {
     const previousOverlayMode = this.geometrySketchOverlay?.mode ?? null
     this.geometrySketchOverlay = overlay
+    if (overlay === null || overlay.mode !== 'draw' || overlay.activeTool !== null) {
+      this.geometrySketchSelectionDrag = null
+      this.onGeometrySketchSelectionWindowDraftChange?.(null)
+      this.onGeometrySketchHoverComponent?.(null)
+    }
     this.clearGeometrySketchOverlay()
     this.geometrySketchDrawHelper.setOverlay(overlay)
     this.gridGroup.visible =
@@ -848,7 +911,21 @@ export class Viewer {
       const line = new Line(geometry, this.getGeometrySketchMaterial(polyline.layer))
       line.frustumCulled = false
       line.renderOrder =
-        polyline.layer === 'selectedProfile' ? 98 : polyline.layer === 'profile' ? 97 : 96
+        polyline.layer === 'selectedComponent'
+          ? 99
+          : polyline.layer === 'hoveredComponent'
+            ? 98
+            : polyline.layer === 'selectedProfile'
+              ? 98
+              : polyline.layer === 'profile'
+                ? 97
+                : polyline.layer === 'selectionWindowWindow' ||
+                    polyline.layer === 'selectionWindowCrossing'
+                  ? 100
+                  : 96
+      if (polyline.layer === 'component' && typeof polyline.componentRowId === 'string') {
+        line.userData.geometrySketchComponentRowId = polyline.componentRowId
+      }
       this.geometrySketchOverlayGroup.add(line)
     }
 
@@ -879,6 +956,28 @@ export class Viewer {
     handler: ((point: { x: number; y: number }, snapTarget: 'origin' | null) => void) | null,
   ): void {
     this.onGeometrySketchConfirmPoint = handler
+  }
+
+  public setOnGeometrySketchHoverComponent(
+    handler: ((rowId: string | null) => void) | null,
+  ): void {
+    this.onGeometrySketchHoverComponent = handler
+  }
+
+  public setOnGeometrySketchSelectComponents(
+    handler: ((rowIds: string[]) => void) | null,
+  ): void {
+    this.onGeometrySketchSelectComponents = handler
+  }
+
+  public setOnGeometrySketchSelectionWindowDraftChange(
+    handler: ((draft: GeometrySketchSelectionWindowDraft | null) => void) | null,
+  ): void {
+    this.onGeometrySketchSelectionWindowDraftChange = handler
+  }
+
+  public setOnGeometrySketchDeleteSelection(handler: (() => void) | null): void {
+    this.onGeometrySketchDeleteSelection = handler
   }
 
   public setOnGeometrySketchFinishDraft(handler: (() => void) | null): void {
@@ -941,6 +1040,11 @@ export class Viewer {
       this.handleSketchPlanePickPointerMove,
       true,
     )
+    this.renderer.domElement.removeEventListener(
+      'pointerup',
+      this.handleSketchPlanePickPointerUp,
+      true,
+    )
 
     this.clearPartMeshes()
     this.clearReferenceObjects()
@@ -960,8 +1064,12 @@ export class Viewer {
     this.sketchPlanePickHelper.dispose()
     this.geometrySketchDrawHelper.dispose()
     this.geometrySketchComponentMaterial.dispose()
+    this.geometrySketchHoveredComponentMaterial.dispose()
+    this.geometrySketchSelectedComponentMaterial.dispose()
     this.geometrySketchProfileMaterial.dispose()
     this.geometrySketchSelectedProfileMaterial.dispose()
+    this.geometrySketchSelectionWindowMaterial.dispose()
+    this.geometrySketchSelectionCrossingMaterial.dispose()
 
     this.renderer.dispose()
     this.container.removeChild(this.renderer.domElement)
@@ -1712,11 +1820,23 @@ export class Viewer {
     if (layer === 'draftChain') {
       return this.geometrySketchDraftChainMaterial
     }
+    if (layer === 'hoveredComponent') {
+      return this.geometrySketchHoveredComponentMaterial
+    }
+    if (layer === 'selectedComponent') {
+      return this.geometrySketchSelectedComponentMaterial
+    }
     if (layer === 'selectedProfile') {
       return this.geometrySketchSelectedProfileMaterial
     }
     if (layer === 'profile') {
       return this.geometrySketchProfileMaterial
+    }
+    if (layer === 'selectionWindowWindow') {
+      return this.geometrySketchSelectionWindowMaterial
+    }
+    if (layer === 'selectionWindowCrossing') {
+      return this.geometrySketchSelectionCrossingMaterial
     }
     return this.geometrySketchComponentMaterial
   }
@@ -1727,6 +1847,47 @@ export class Viewer {
       line.geometry.dispose()
     })
     this.geometrySketchOverlayGroup.clear()
+  }
+
+  private getHoveredGeometrySketchComponentId(
+    clientX: number,
+    clientY: number,
+  ): string | null {
+    if (
+      this.geometrySketchOverlay === null ||
+      this.geometrySketchOverlay.mode !== 'draw' ||
+      this.geometrySketchOverlay.activeTool !== null
+    ) {
+      return null
+    }
+    const rect = this.renderer.domElement.getBoundingClientRect()
+    if (rect.width <= 0 || rect.height <= 0) {
+      return null
+    }
+    this.pointer.set(
+      ((clientX - rect.left) / rect.width) * 2 - 1,
+      -(((clientY - rect.top) / rect.height) * 2 - 1),
+    )
+    this.raycaster.params.Line = {
+      ...(this.raycaster.params.Line ?? {}),
+      threshold: 0.18,
+    }
+    this.raycaster.setFromCamera(this.pointer, this.camera)
+    const intersections = this.raycaster.intersectObjects(this.geometrySketchOverlayGroup.children, false)
+    for (const intersection of intersections) {
+      const rowId = intersection.object.userData.geometrySketchComponentRowId
+      if (typeof rowId === 'string' && rowId.length > 0) {
+        return rowId
+      }
+    }
+    return null
+  }
+
+  private getCurrentGeometrySketchSelectionWindowMode(
+    anchor: { x: number; y: number },
+    current: { x: number; y: number },
+  ): 'window' | 'crossing' {
+    return current.x < anchor.x ? 'window' : 'crossing'
   }
 
   private alignCameraToGeometrySketchPlaneInternal(overlay: GeometrySketchOverlayVm): void {
@@ -1775,6 +1936,51 @@ export class Viewer {
       this.onSketchPlanePickPlaneSelect?.(plane)
       return
     }
+    if (
+      this.geometrySketchOverlay?.mode === 'draw' &&
+      this.geometrySketchOverlay.activeTool === null &&
+      this.geometrySketchOverlay.drawStage === 'sessionIdle'
+    ) {
+      const projectedPoint = this.geometrySketchDrawHelper.projectPointerToSketch(
+        this.camera,
+        this.renderer.domElement,
+        event.clientX,
+        event.clientY,
+      )
+      if (projectedPoint === null) {
+        return
+      }
+      const hoveredComponentId = this.getHoveredGeometrySketchComponentId(
+        event.clientX,
+        event.clientY,
+      )
+      event.preventDefault()
+      event.stopPropagation()
+      if (hoveredComponentId !== null) {
+        this.onGeometrySketchSelectionWindowDraftChange?.(null)
+        this.onGeometrySketchSelectComponents?.(
+          expandGeometrySketchSelectionFromRowId(
+            this.geometrySketchOverlay.components,
+            hoveredComponentId,
+          ),
+        )
+        return
+      }
+      this.geometrySketchSelectionDrag = {
+        pointerId: event.pointerId,
+        anchorPoint: projectedPoint.point,
+        anchorClientX: event.clientX,
+        anchorClientY: event.clientY,
+      }
+      this.renderer.domElement.setPointerCapture(event.pointerId)
+      this.onGeometrySketchHoverComponent?.(null)
+      this.onGeometrySketchSelectionWindowDraftChange?.({
+        anchor: projectedPoint.point,
+        current: projectedPoint.point,
+        mode: 'crossing',
+      })
+      return
+    }
     const drawHit = this.geometrySketchDrawHelper.projectPointerToSketch(
       this.camera,
       this.renderer.domElement,
@@ -1804,6 +2010,35 @@ export class Viewer {
       return
     }
     this.sketchPlanePickHelper.setHoveredPlane(null)
+    if (
+      this.geometrySketchOverlay?.mode === 'draw' &&
+      this.geometrySketchOverlay.activeTool === null &&
+      this.geometrySketchOverlay.drawStage === 'sessionIdle'
+    ) {
+      if (this.geometrySketchSelectionDrag !== null) {
+        const projectedPoint = this.geometrySketchDrawHelper.projectPointerToSketch(
+          this.camera,
+          this.renderer.domElement,
+          event.clientX,
+          event.clientY,
+        )
+        if (projectedPoint !== null) {
+          this.onGeometrySketchSelectionWindowDraftChange?.({
+            anchor: this.geometrySketchSelectionDrag.anchorPoint,
+            current: projectedPoint.point,
+            mode: this.getCurrentGeometrySketchSelectionWindowMode(
+              this.geometrySketchSelectionDrag.anchorPoint,
+              projectedPoint.point,
+            ),
+          })
+        }
+        return
+      }
+      this.onGeometrySketchHoverComponent?.(
+        this.getHoveredGeometrySketchComponentId(event.clientX, event.clientY),
+      )
+      return
+    }
     const drawHit = this.geometrySketchDrawHelper.projectPointerToSketch(
       this.camera,
       this.renderer.domElement,
@@ -1811,6 +2046,56 @@ export class Viewer {
       event.clientY,
     )
     this.onGeometrySketchHoverPoint?.(drawHit?.point ?? null, drawHit?.snapTarget ?? null)
+  }
+
+  private readonly handleSketchPlanePickPointerUp = (event: PointerEvent): void => {
+    if (
+      this.geometrySketchSelectionDrag === null ||
+      event.pointerId !== this.geometrySketchSelectionDrag.pointerId
+    ) {
+      return
+    }
+    const selectionDrag = this.geometrySketchSelectionDrag
+    this.geometrySketchSelectionDrag = null
+    if (this.renderer.domElement.hasPointerCapture(event.pointerId)) {
+      this.renderer.domElement.releasePointerCapture(event.pointerId)
+    }
+    const projectedPoint =
+      this.geometrySketchDrawHelper.projectPointerToSketch(
+        this.camera,
+        this.renderer.domElement,
+        event.clientX,
+        event.clientY,
+      ) ?? {
+        point: selectionDrag.anchorPoint,
+        snapTarget: null,
+      }
+    this.onGeometrySketchSelectionWindowDraftChange?.(null)
+    if (
+      Math.max(
+        Math.abs(event.clientX - selectionDrag.anchorClientX),
+        Math.abs(event.clientY - selectionDrag.anchorClientY),
+      ) < 3
+    ) {
+      this.onGeometrySketchSelectComponents?.([])
+      return
+    }
+    if (this.geometrySketchOverlay === null) {
+      this.onGeometrySketchSelectComponents?.([])
+      return
+    }
+    const mode = this.getCurrentGeometrySketchSelectionWindowMode(
+      selectionDrag.anchorPoint,
+      projectedPoint.point,
+    )
+    this.onGeometrySketchSelectComponents?.(
+      collectGeometrySketchSelectionIds(
+        this.geometrySketchOverlay.components,
+        selectionDrag.anchorPoint,
+        projectedPoint.point,
+        mode,
+      ),
+    )
   }
 
   private readonly handleKeyDown = (event: KeyboardEvent): void => {
@@ -1827,6 +2112,15 @@ export class Viewer {
     })
 
     if (routing.owner === 'sketch-draw' && this.geometrySketchOverlay?.mode === 'draw') {
+      if (
+        event.key === 'Delete' &&
+        this.geometrySketchOverlay.activeTool === null &&
+        (this.geometrySketchOverlay.selectedComponentIds?.length ?? 0) > 0
+      ) {
+        event.preventDefault()
+        this.onGeometrySketchDeleteSelection?.()
+        return
+      }
       if (event.key === 'Enter') {
         event.preventDefault()
         this.onGeometrySketchFinishDraft?.()

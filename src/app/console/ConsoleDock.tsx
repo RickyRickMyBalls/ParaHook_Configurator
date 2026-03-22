@@ -127,6 +127,9 @@ const formatGeometrySketchStatusVec2 = (
     ? 'Vec(?,?)'
     : `Vec(${formatGeometrySketchStatusNumber(point.x)},${formatGeometrySketchStatusNumber(point.y)})`
 
+const formatGeometrySketchStatusFloat = (value: number | null): string =>
+  value === null ? 'Float(?)' : `Float(${formatGeometrySketchStatusNumber(value)})`
+
 const backgroundColorByMode = {
   midnight: '5, 7, 11',
   slate: '20, 24, 32',
@@ -422,6 +425,11 @@ const buildSketchDrawFeatureAssistDescriptor = (
   const idleChoices: ConsoleAssistDescriptor['choices'] = [
     { canonicalToken: 'LINE', aliases: ['L'], label: 'Line' },
     { canonicalToken: 'PLINE', aliases: ['PL'], label: 'PLine' },
+    { canonicalToken: 'RECTANGLE', aliases: ['REC'], label: 'Rectangle' },
+    { canonicalToken: 'CIRCLE', aliases: ['CC'], label: 'Circle' },
+    ...(geometrySketchSession.selectedComponentIds.length > 0
+      ? [{ canonicalToken: 'DELETE', aliases: ['DEL'], label: 'Delete' }]
+      : []),
     ...(geometrySketchSession.lastUsedTool !== null
       ? [{ canonicalToken: 'PREVIOUS', aliases: ['P'], label: 'Previous' }]
       : []),
@@ -430,14 +438,20 @@ const buildSketchDrawFeatureAssistDescriptor = (
 
   if (
     geometrySketchSession.activeTool !== 'line' &&
-    geometrySketchSession.activeTool !== 'pline'
+    geometrySketchSession.activeTool !== 'pline' &&
+    geometrySketchSession.activeTool !== 'rectangle' &&
+    geometrySketchSession.activeTool !== 'circle'
   ) {
     const idlePrefill =
       geometrySketchSession.lastUsedTool === 'pline'
         ? 'PLine'
-        : geometrySketchSession.lastUsedTool === 'line'
-          ? 'Line'
-          : 'Line'
+        : geometrySketchSession.lastUsedTool === 'rectangle'
+          ? 'Rectangle'
+          : geometrySketchSession.lastUsedTool === 'circle'
+            ? 'Circle'
+            : geometrySketchSession.lastUsedTool === 'line'
+              ? 'Line'
+              : 'Line'
     return {
       label: 'Sketch Draw',
       breadcrumb: ['Graph', 'Sketch', 'Sketch Draw'],
@@ -446,12 +460,52 @@ const buildSketchDrawFeatureAssistDescriptor = (
     }
   }
 
+  if (geometrySketchSession.activeTool === 'circle') {
+    const centerPoint = geometrySketchSession.drawDraft?.points[0] ?? null
+    const hoverPoint = geometrySketchSession.drawDraft?.hoverPoint ?? null
+    const hoverRadius =
+      centerPoint !== null && hoverPoint !== null
+        ? Math.hypot(hoverPoint.x - centerPoint.x, hoverPoint.y - centerPoint.y)
+        : null
+    return {
+      label: 'Sketch Draw',
+      breadcrumb:
+        centerPoint === null
+          ? [
+              'Graph',
+              'Sketch',
+              'Sketch Draw',
+              'Circle',
+              'Center',
+              formatGeometrySketchStatusVec2(hoverPoint),
+            ]
+          : [
+              'Graph',
+              'Sketch',
+              'Sketch Draw',
+              'Circle',
+              `Center ${formatGeometrySketchStatusVec2(centerPoint)}`,
+              'Radius',
+              formatGeometrySketchStatusFloat(hoverRadius),
+            ],
+      prefill: null,
+      choices: [],
+    }
+  }
+
   const pointIndex =
-    geometrySketchSession.activeTool === 'line'
+    geometrySketchSession.activeTool === 'line' || geometrySketchSession.activeTool === 'rectangle'
       ? geometrySketchSession.drawDraft?.points.length === 0
         ? 1
         : 2
       : (geometrySketchSession.drawDraft?.points.length ?? 0) + 1
+
+  const toolToken =
+    geometrySketchSession.activeTool === 'line'
+      ? 'L'
+      : geometrySketchSession.activeTool === 'pline'
+        ? 'PL'
+        : 'REC'
 
   return {
     label: 'Sketch Draw',
@@ -459,7 +513,7 @@ const buildSketchDrawFeatureAssistDescriptor = (
       'Graph',
       'Sketch',
       'Sketch Draw',
-      geometrySketchSession.activeTool === 'line' ? 'L' : 'PL',
+      toolToken,
       `P${pointIndex}`,
       formatGeometrySketchStatusVec2(geometrySketchSession.drawDraft?.hoverPoint ?? null),
     ],
@@ -2202,13 +2256,19 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
             | 'l'
             | 'pline'
             | 'pl'
+            | 'rectangle'
+            | 'rec'
+            | 'circle'
+            | 'cc'
             | 'previous'
             | 'p'
-            | 'undo'
-            | 'enter'
-            | 'esc'
-            | 'back'
-            | 'b'
+          | 'undo'
+          | 'enter'
+          | 'delete'
+          | 'del'
+          | 'esc'
+          | 'back'
+          | 'b'
             | 'x',
         ) => {
           if (rawCommand !== 'esc') {
@@ -2234,8 +2294,17 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
           return
         }
         if (
+          trimmedInput === 'delete' ||
+          trimmedInput === 'del'
+        ) {
+          submitDrawCommand(trimmedInput, trimmedInput)
+          return
+        }
+        if (
           geometrySketchSession.activeTool !== null &&
-          (geometrySketchSession.activeTool === 'line' || geometrySketchSession.activeTool === 'pline')
+          (geometrySketchSession.activeTool === 'line' ||
+            geometrySketchSession.activeTool === 'pline' ||
+            geometrySketchSession.activeTool === 'rectangle')
         ) {
           const parsedVec2 = parseConsoleVec2Literal(trimmedInput)
           if (parsedVec2 !== null) {
@@ -2250,12 +2319,49 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
             return
           }
         }
+        if (geometrySketchSession.activeTool === 'circle') {
+          if ((geometrySketchSession.drawDraft?.points.length ?? 0) === 0) {
+            const parsedVec2 = parseConsoleVec2Literal(trimmedInput)
+            if (parsedVec2 !== null) {
+              appendConsoleEntry({
+                layer: 'Commands',
+                commandLineKind: 'user',
+                text: `> ${trimmedInput}`,
+              })
+              pushCommandHistory(trimmedInput)
+              spaghettiState.confirmGeometrySketchDrawPoint(parsedVec2, null)
+              useConsoleStore.getState().setInputText('')
+              return
+            }
+          } else {
+            const parsedRadius = parseConsoleSignedFloatLiteral(trimmedInput)
+            if (parsedRadius !== null) {
+              appendConsoleEntry({
+                layer: 'Commands',
+                commandLineKind: 'user',
+                text: `> ${trimmedInput}`,
+              })
+              pushCommandHistory(trimmedInput)
+              spaghettiState.confirmGeometrySketchDrawRadius(parsedRadius)
+              useConsoleStore.getState().setInputText('')
+              return
+            }
+          }
+        }
         if (trimmedInput === 'line' || trimmedInput === 'l') {
           submitDrawCommand(trimmedInput, trimmedInput as 'line' | 'l')
           return
         }
         if (trimmedInput === 'pline' || trimmedInput === 'pl') {
           submitDrawCommand(trimmedInput, trimmedInput as 'pline' | 'pl')
+          return
+        }
+        if (trimmedInput === 'rectangle' || trimmedInput === 'rec') {
+          submitDrawCommand(trimmedInput, trimmedInput as 'rectangle' | 'rec')
+          return
+        }
+        if (trimmedInput === 'circle' || trimmedInput === 'cc') {
+          submitDrawCommand(trimmedInput, trimmedInput as 'circle' | 'cc')
           return
         }
         if (trimmedInput === 'previous' || trimmedInput === 'p') {
@@ -2294,12 +2400,15 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
                   ? 'none'
                   : geometrySketchSession.activeTool.toUpperCase()
               } ` +
-              `target=P${
-                geometrySketchSession.activeTool === 'line'
+              `target=${
+                geometrySketchSession.activeTool === 'circle'
                   ? geometrySketchSession.drawDraft?.points.length === 0
-                    ? 1
-                    : 2
-                  : (geometrySketchSession.drawDraft?.points.length ?? 0) + 1
+                    ? 'Center'
+                    : 'Radius'
+                  : geometrySketchSession.activeTool === 'line' ||
+                      geometrySketchSession.activeTool === 'rectangle'
+                    ? `P${geometrySketchSession.drawDraft?.points.length === 0 ? 1 : 2}`
+                    : `P${(geometrySketchSession.drawDraft?.points.length ?? 0) + 1}`
               } ` +
               `points=${geometrySketchSession.drawDraft?.points.length ?? 0} ` +
               `hover=${
@@ -2322,7 +2431,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
           appendConsoleEntry({
             layer: 'Commands',
             text:
-              'Draw Sketch commands: line (l), pline (pl), previous (p), undo, enter, esc, back (b), x, status, help',
+              'Draw Sketch commands: line (l), pline (pl), rectangle (rec), circle (cc), previous (p), undo, enter, esc, back (b), x, status, help',
             severity: 'info',
           })
           return

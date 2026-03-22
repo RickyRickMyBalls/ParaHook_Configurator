@@ -197,6 +197,12 @@ export type GeometrySketchDrawDraft = {
   hoverSnapTarget: 'origin' | null
 }
 
+export type GeometrySketchSelectionWindowDraft = {
+  anchor: GeometrySketchDraftPoint
+  current: GeometrySketchDraftPoint
+  mode: 'window' | 'crossing'
+}
+
 export type GeometrySketchDrawStage = 'sessionIdle' | 'toolSelected' | 'draftActive'
 export type SketchPlaneCommand =
   | 'xy'
@@ -223,10 +229,16 @@ export type GeometrySketchDrawCommand =
   | 'l'
   | 'pline'
   | 'pl'
+  | 'rectangle'
+  | 'rec'
+  | 'circle'
+  | 'cc'
   | 'previous'
   | 'p'
   | 'undo'
   | 'enter'
+  | 'delete'
+  | 'del'
   | 'back'
   | 'b'
   | 'esc'
@@ -247,6 +259,9 @@ export type GeometrySketchSession = {
   editorViewportId: string | null
   shouldRestoreViewportWindowMode: boolean
   drawDraft: GeometrySketchDrawDraft | null
+  selectedComponentIds: string[]
+  hoveredComponentId: string | null
+  selectionWindowDraft: GeometrySketchSelectionWindowDraft | null
 }
 
 export type SpaghettiStoreState = {
@@ -343,13 +358,24 @@ export type SpaghettiStoreState = {
     point: GeometrySketchDraftPoint | null,
     snapTarget: 'origin' | null,
   ) => void
+  setGeometrySketchHoveredComponent: (rowId: string | null) => void
+  setGeometrySketchSelectedComponents: (rowIds: string[]) => void
+  setGeometrySketchSelectionWindowDraft: (
+    draft: {
+      anchor: GeometrySketchDraftPoint
+      current: GeometrySketchDraftPoint
+      mode: 'window' | 'crossing'
+    } | null,
+  ) => void
   undoGeometrySketchDrawDraftPoint: () => void
   confirmGeometrySketchDrawPoint: (
     point: GeometrySketchDraftPoint,
     snapTarget: 'origin' | null,
   ) => void
+  confirmGeometrySketchDrawRadius: (radius: number) => void
   finishGeometrySketchDrawDraft: () => void
   cancelGeometrySketchDrawDraft: () => void
+  deleteGeometrySketchSelectedComponents: () => void
   appendGeometrySketchComponent: (nodeId: string, component: SketchComponent) => void
   updateGeometrySketchComponentPoint: (
     nodeId: string,
@@ -368,6 +394,8 @@ export type SpaghettiStoreState = {
       | 'edge',
     value: Vec2Expression,
   ) => void
+  setGeometrySketchComponentName: (nodeId: string, rowId: string, name: string | null) => void
+  setGeometrySketchDrawGroupName: (nodeId: string, drawGroupId: string, name: string | null) => void
   moveGeometrySketchComponentUp: (nodeId: string, rowId: string) => void
   moveGeometrySketchComponentDown: (nodeId: string, rowId: string) => void
   removeGeometrySketchComponent: (nodeId: string, rowId: string) => void
@@ -1262,10 +1290,17 @@ const createDefaultComponent = (
 
 const isGeometrySketchDrawTool = (
   tool: GeometrySketchTool | null,
-): tool is 'line' | 'pline' => tool === 'line' || tool === 'pline'
+): tool is 'line' | 'pline' | 'rectangle' | 'circle' =>
+  tool === 'line' || tool === 'pline' || tool === 'rectangle' || tool === 'circle'
 
 const getGeometrySketchConsoleToolLabel = (tool: GeometrySketchTool): string =>
-  tool === 'pline' ? 'PLINE' : tool.toUpperCase()
+  tool === 'pline'
+    ? 'PLINE'
+    : tool === 'rectangle'
+      ? 'REC'
+      : tool === 'circle'
+        ? 'CC'
+        : tool.toUpperCase()
 
 const roundGeometrySketchDraftCoordinate = (value: number): number =>
   Math.round(value * 1_000) / 1_000
@@ -1317,17 +1352,22 @@ const buildGeometrySketchConsolePrompt = (
 ): string | null => {
   if (tool === null) {
     return lastUsedTool !== null
-      ? 'Sketch Draw > [Line, PLine, Previous, X]'
-      : 'Sketch Draw > [Line, PLine, X]'
+      ? 'Sketch Draw > [Line, PLine, Rectangle, Circle, Previous, X]'
+      : 'Sketch Draw > [Line, PLine, Rectangle, Circle, X]'
   }
   if (!isGeometrySketchDrawTool(tool)) {
     return null
   }
   const toolLabel = getGeometrySketchConsoleToolLabel(tool)
-  if (tool === 'line') {
+  if (tool === 'line' || tool === 'rectangle') {
     return (draft?.points[0] ?? null) === null
       ? `${toolLabel} Specify point 1:`
       : `${toolLabel} Specify point 2 or [Enter Accept]:`
+  }
+  if (tool === 'circle') {
+    return (draft?.points[0] ?? null) === null
+      ? `${toolLabel} Specify center point:`
+      : `${toolLabel} Specify radius or [Enter Accept]:`
   }
   const pointCount = draft?.points.length ?? 0
   if (pointCount === 0) {
@@ -1426,6 +1466,44 @@ const buildGeometrySketchLineComponent = (
   a: { kind: 'lit', x: start.x, y: start.y },
   b: { kind: 'lit', x: end.x, y: end.y },
 })
+
+const buildGeometrySketchRectangleComponent = (
+  start: GeometrySketchDraftPoint,
+  end: GeometrySketchDraftPoint,
+): SketchComponent => ({
+  rowId: makeRowId(),
+  componentId: makeComponentId(),
+  type: 'rectangle',
+  a: { kind: 'lit', x: start.x, y: start.y },
+  b: { kind: 'lit', x: end.x, y: end.y },
+})
+
+const buildGeometrySketchCircleComponent = (
+  center: GeometrySketchDraftPoint,
+  edge: GeometrySketchDraftPoint,
+): SketchComponent => ({
+  rowId: makeRowId(),
+  componentId: makeComponentId(),
+  type: 'circle',
+  center: { kind: 'lit', x: center.x, y: center.y },
+  edge: { kind: 'lit', x: edge.x, y: edge.y },
+})
+
+const buildGeometrySketchCircleEdgeFromRadius = (
+  center: GeometrySketchDraftPoint,
+  radius: number,
+): GeometrySketchDraftPoint => ({
+  x: roundGeometrySketchDraftCoordinate(center.x + radius),
+  y: center.y,
+})
+
+const normalizeSketchComponentName = (name: string | null): string | undefined => {
+  if (name === null) {
+    return undefined
+  }
+  const trimmed = name.trim()
+  return trimmed.length === 0 ? undefined : trimmed
+}
 
 const isCubeSeedRectangleSketch = (feature: SketchFeature): boolean =>
   feature.featureId === 'cube-sketch-1' &&
@@ -1681,7 +1759,42 @@ const pruneGeometrySketchSession = (
     return null
   }
   const node = graph.nodes.find((candidate) => candidate.nodeId === session.nodeId)
-  return node !== undefined && isGeometrySketchNode(node) ? session : null
+  if (node === undefined || !isGeometrySketchNode(node)) {
+    return null
+  }
+  const sketchFeature = readManagedSketchFeature(node.params.sketch)
+  if (sketchFeature === null) {
+    return null
+  }
+  const componentRowIds = new Set(sketchFeature.components.map((component) => component.rowId))
+  const nextSelectedComponentIds = session.selectedComponentIds.filter((rowId) =>
+    componentRowIds.has(rowId),
+  )
+  const nextHoveredComponentId =
+    session.hoveredComponentId !== null && componentRowIds.has(session.hoveredComponentId)
+      ? session.hoveredComponentId
+      : null
+  if (
+    nextSelectedComponentIds.length === session.selectedComponentIds.length &&
+    nextHoveredComponentId === session.hoveredComponentId
+  ) {
+    return session
+  }
+  return {
+    ...session,
+    selectedComponentIds: nextSelectedComponentIds,
+    hoveredComponentId: nextHoveredComponentId,
+  }
+}
+
+const normalizeGeometrySketchSelectionIds = (rowIds: readonly string[]): string[] => {
+  const unique = new Set<string>()
+  for (const rowId of rowIds) {
+    if (typeof rowId === 'string' && rowId.length > 0) {
+      unique.add(rowId)
+    }
+  }
+  return [...unique]
 }
 
 export const selectNodeMode = (
@@ -3913,6 +4026,9 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
               ? current.shouldRestoreViewportWindowMode || shouldRestoreViewportWindowMode
               : shouldRestoreViewportWindowMode,
           drawDraft,
+          selectedComponentIds: [],
+          hoveredComponentId: null,
+          selectionWindowDraft: null,
         },
         sketchPlanePickSession: null,
       }
@@ -4044,6 +4160,14 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
       case 'pl':
         state.setGeometrySketchSessionTool('pline')
         return
+      case 'rectangle':
+      case 'rec':
+        state.setGeometrySketchSessionTool('rectangle')
+        return
+      case 'circle':
+      case 'cc':
+        state.setGeometrySketchSessionTool('circle')
+        return
       case 'previous':
       case 'p':
         if (
@@ -4066,6 +4190,10 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
           return
         }
         state.finishGeometrySketchDrawDraft()
+        return
+      case 'delete':
+      case 'del':
+        state.deleteGeometrySketchSelectedComponents()
         return
       case 'back':
       case 'b':
@@ -4117,6 +4245,9 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
             buildGeometrySketchSessionDraft(state.geometrySketchSession.mode, tool),
           ),
           drawDraft: buildGeometrySketchSessionDraft(state.geometrySketchSession.mode, tool),
+          selectedComponentIds: [],
+          hoveredComponentId: null,
+          selectionWindowDraft: null,
         },
       }
     })
@@ -4159,6 +4290,92 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
             hoverPoint: normalizedPoint,
             hoverSnapTarget: nextSnapTarget,
           },
+        },
+      }
+    })
+  },
+  setGeometrySketchHoveredComponent: (rowId) => {
+    set((state) => {
+      const session = state.geometrySketchSession
+      if (
+        session === null ||
+        session.mode !== 'draw' ||
+        session.activeTool !== null ||
+        session.drawStage !== 'sessionIdle' ||
+        session.hoveredComponentId === rowId
+      ) {
+        return state
+      }
+      return {
+        geometrySketchSession: {
+          ...session,
+          hoveredComponentId: rowId,
+        },
+      }
+    })
+  },
+  setGeometrySketchSelectedComponents: (rowIds) => {
+    set((state) => {
+      const session = state.geometrySketchSession
+      if (
+        session === null ||
+        session.mode !== 'draw' ||
+        session.activeTool !== null ||
+        session.drawStage !== 'sessionIdle'
+      ) {
+        return state
+      }
+      const nextSelectedComponentIds = normalizeGeometrySketchSelectionIds(rowIds)
+      if (
+        nextSelectedComponentIds.length === session.selectedComponentIds.length &&
+        nextSelectedComponentIds.every((rowId, index) => rowId === session.selectedComponentIds[index])
+      ) {
+        return state
+      }
+      return {
+        geometrySketchSession: {
+          ...session,
+          selectedComponentIds: nextSelectedComponentIds,
+          selectionWindowDraft: null,
+        },
+      }
+    })
+  },
+  setGeometrySketchSelectionWindowDraft: (draft) => {
+    set((state) => {
+      const session = state.geometrySketchSession
+      if (
+        session === null ||
+        session.mode !== 'draw' ||
+        session.activeTool !== null ||
+        session.drawStage !== 'sessionIdle'
+      ) {
+        return state
+      }
+      const nextDraft =
+        draft === null
+          ? null
+          : {
+              anchor: normalizeGeometrySketchDraftPoint(draft.anchor),
+              current: normalizeGeometrySketchDraftPoint(draft.current),
+              mode: draft.mode,
+            }
+      const currentDraft = session.selectionWindowDraft
+      if (
+        (currentDraft === null && nextDraft === null) ||
+        (currentDraft !== null &&
+          nextDraft !== null &&
+          currentDraft.mode === nextDraft.mode &&
+          areGeometrySketchDraftPointsEqual(currentDraft.anchor, nextDraft.anchor) &&
+          areGeometrySketchDraftPointsEqual(currentDraft.current, nextDraft.current))
+      ) {
+        return state
+      }
+      return {
+        geometrySketchSession: {
+          ...session,
+          selectionWindowDraft: nextDraft,
+          hoveredComponentId: nextDraft === null ? session.hoveredComponentId : null,
         },
       }
     })
@@ -4216,13 +4433,17 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
       }
 
       const nextPoint = normalizeGeometrySketchDraftPoint(point)
-      if (session.activeTool === 'line') {
+      if (
+        session.activeTool === 'line' ||
+        session.activeTool === 'rectangle' ||
+        session.activeTool === 'circle'
+      ) {
         const startPoint = session.drawDraft.points[0] ?? null
         if (startPoint === null) {
           const nextDraft = {
             points: [nextPoint],
-            hoverPoint: nextPoint,
-            hoverSnapTarget: snapTarget,
+            hoverPoint: session.activeTool === 'circle' ? null : nextPoint,
+            hoverSnapTarget: session.activeTool === 'circle' ? null : snapTarget,
           }
           nextPromptRef.current = {
             tool: session.activeTool,
@@ -4243,7 +4464,14 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
         const nextGraph = updateGeometrySketchNode(state.graph, session.nodeId, (feature) =>
           recomputeSketchFeature({
             ...feature,
-            components: [...feature.components, buildGeometrySketchLineComponent(startPoint, nextPoint)],
+            components: [
+              ...feature.components,
+              session.activeTool === 'line'
+                ? buildGeometrySketchLineComponent(startPoint, nextPoint)
+                : session.activeTool === 'circle'
+                  ? buildGeometrySketchCircleComponent(startPoint, nextPoint)
+                : buildGeometrySketchRectangleComponent(startPoint, nextPoint),
+            ],
           }),
         )
         if (nextGraph === state.graph) {
@@ -4261,6 +4489,9 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
             activeTool: null,
             drawStage: resolveGeometrySketchDrawStage(session.mode, null, null),
             drawDraft: null,
+            selectedComponentIds: [],
+            hoveredComponentId: null,
+            selectionWindowDraft: null,
           },
         }
       }
@@ -4295,6 +4526,64 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
       )
     }
   },
+  confirmGeometrySketchDrawRadius: (radius) => {
+    const nextPromptRef: { current: GeometrySketchConsolePrompt | null } = { current: null }
+    set((state) => {
+      const session = state.geometrySketchSession
+      if (
+        session === null ||
+        session.mode !== 'draw' ||
+        session.activeTool !== 'circle' ||
+        session.drawDraft === null
+      ) {
+        return state
+      }
+
+      const center = session.drawDraft.points[0] ?? null
+      if (center === null || !Number.isFinite(radius) || radius <= 0) {
+        return state
+      }
+
+      const edge = buildGeometrySketchCircleEdgeFromRadius(center, radius)
+      if (areGeometrySketchDraftPointsEqual(center, edge)) {
+        return state
+      }
+
+      const nextGraph = updateGeometrySketchNode(state.graph, session.nodeId, (feature) =>
+        recomputeSketchFeature({
+          ...feature,
+          components: [...feature.components, buildGeometrySketchCircleComponent(center, edge)],
+        }),
+      )
+      if (nextGraph === state.graph) {
+        return state
+      }
+      nextPromptRef.current = {
+        tool: null,
+        draft: null,
+        lastUsedTool: session.lastUsedTool,
+      }
+      return {
+        ...withUpdatedActiveGraphDocumentState(state, nextGraph),
+        geometrySketchSession: {
+          ...session,
+          activeTool: null,
+          drawStage: resolveGeometrySketchDrawStage(session.mode, null, null),
+          drawDraft: null,
+          selectedComponentIds: [],
+          hoveredComponentId: null,
+          selectionWindowDraft: null,
+        },
+      }
+    })
+    if (nextPromptRef.current !== null) {
+      appendGeometrySketchConsolePrompt(
+        nextPromptRef.current.tool,
+        nextPromptRef.current.draft,
+        nextPromptRef.current.lastUsedTool,
+      )
+    }
+  },
   finishGeometrySketchDrawDraft: () => {
     const nextPromptRef: { current: GeometrySketchConsolePrompt | null } = { current: null }
     set((state) => {
@@ -4308,7 +4597,11 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
         return state
       }
 
-      if (session.activeTool === 'line') {
+      if (
+        session.activeTool === 'line' ||
+        session.activeTool === 'rectangle' ||
+        session.activeTool === 'circle'
+      ) {
         const startPoint = session.drawDraft.points[0] ?? null
         const hoverPoint = session.drawDraft.hoverPoint
         if (
@@ -4321,7 +4614,14 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
         const nextGraph = updateGeometrySketchNode(state.graph, session.nodeId, (feature) =>
           recomputeSketchFeature({
             ...feature,
-            components: [...feature.components, buildGeometrySketchLineComponent(startPoint, hoverPoint)],
+            components: [
+              ...feature.components,
+              session.activeTool === 'line'
+                ? buildGeometrySketchLineComponent(startPoint, hoverPoint)
+                : session.activeTool === 'circle'
+                  ? buildGeometrySketchCircleComponent(startPoint, hoverPoint)
+                : buildGeometrySketchRectangleComponent(startPoint, hoverPoint),
+            ],
           }),
         )
         if (nextGraph === state.graph) {
@@ -4339,6 +4639,9 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
             activeTool: null,
             drawStage: resolveGeometrySketchDrawStage(session.mode, null, null),
             drawDraft: null,
+            selectedComponentIds: [],
+            hoveredComponentId: null,
+            selectionWindowDraft: null,
           },
         }
       }
@@ -4376,6 +4679,9 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
           activeTool: null,
           drawStage: resolveGeometrySketchDrawStage(session.mode, null, null),
           drawDraft: null,
+          selectedComponentIds: [],
+          hoveredComponentId: null,
+          selectionWindowDraft: null,
         },
       }
     })
@@ -4412,6 +4718,8 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
           activeTool: null,
           drawStage: resolveGeometrySketchDrawStage(session.mode, null, null),
           drawDraft: null,
+          hoveredComponentId: null,
+          selectionWindowDraft: null,
         },
       }
     })
@@ -4422,6 +4730,45 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
         nextPromptRef.current.lastUsedTool,
       )
     }
+  },
+  deleteGeometrySketchSelectedComponents: () => {
+    set((state) => {
+      const session = state.geometrySketchSession
+      if (
+        session === null ||
+        session.mode !== 'draw' ||
+        session.activeTool !== null ||
+        session.drawStage !== 'sessionIdle' ||
+        session.selectedComponentIds.length === 0
+      ) {
+        return state
+      }
+      const selectedIds = new Set(session.selectedComponentIds)
+      const nextGraph = updateGeometrySketchNode(state.graph, session.nodeId, (feature) => {
+        const nextComponents = feature.components.filter(
+          (component) => !selectedIds.has(component.rowId),
+        )
+        if (nextComponents.length === feature.components.length) {
+          return feature
+        }
+        return recomputeSketchFeature({
+          ...feature,
+          components: nextComponents,
+        })
+      })
+      if (nextGraph === state.graph) {
+        return state
+      }
+      return {
+        ...withUpdatedActiveGraphDocumentState(state, nextGraph),
+        geometrySketchSession: {
+          ...session,
+          selectedComponentIds: [],
+          hoveredComponentId: null,
+          selectionWindowDraft: null,
+        },
+      }
+    })
   },
   appendGeometrySketchComponent: (nodeId, component) => {
     set((state) => {
@@ -4455,6 +4802,82 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
         return recomputeSketchFeature({
           ...feature,
           components,
+        })
+      })
+      if (nextGraph === state.graph) {
+        return state
+      }
+      return {
+        ...withUpdatedActiveGraphDocumentState(state, nextGraph),
+      }
+    })
+  },
+  setGeometrySketchComponentName: (nodeId, rowId, name) => {
+    set((state) => {
+      const normalizedName = normalizeSketchComponentName(name)
+      const nextGraph = updateGeometrySketchNode(state.graph, nodeId, (feature) => {
+        let didChange = false
+        const nextComponents = feature.components.map((component) => {
+          if (component.rowId !== rowId) {
+            return component
+          }
+          if (component.name === normalizedName) {
+            return component
+          }
+          didChange = true
+          if (normalizedName === undefined) {
+            const { name: _name, ...rest } = component
+            return rest as SketchComponent
+          }
+          return {
+            ...component,
+            name: normalizedName,
+          }
+        })
+        if (!didChange) {
+          return feature
+        }
+        return recomputeSketchFeature({
+          ...feature,
+          components: nextComponents,
+        })
+      })
+      if (nextGraph === state.graph) {
+        return state
+      }
+      return {
+        ...withUpdatedActiveGraphDocumentState(state, nextGraph),
+      }
+    })
+  },
+  setGeometrySketchDrawGroupName: (nodeId, drawGroupId, name) => {
+    set((state) => {
+      const normalizedName = normalizeSketchComponentName(name)
+      const nextGraph = updateGeometrySketchNode(state.graph, nodeId, (feature) => {
+        let didChange = false
+        const nextComponents = feature.components.map((component) => {
+          if (component.type !== 'line' || component.drawGroupId !== drawGroupId) {
+            return component
+          }
+          if (component.drawGroupName === normalizedName) {
+            return component
+          }
+          didChange = true
+          if (normalizedName === undefined) {
+            const { drawGroupName: _drawGroupName, ...rest } = component
+            return rest as SketchComponent
+          }
+          return {
+            ...component,
+            drawGroupName: normalizedName,
+          }
+        })
+        if (!didChange) {
+          return feature
+        }
+        return recomputeSketchFeature({
+          ...feature,
+          components: nextComponents,
         })
       })
       if (nextGraph === state.graph) {

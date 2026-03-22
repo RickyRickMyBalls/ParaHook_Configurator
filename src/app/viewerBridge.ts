@@ -5,7 +5,10 @@ import type {
   SketchPlane,
   SketchPlaneTransform,
 } from './spaghetti/features/featureTypes'
-import type { GeometrySketchDrawStage } from './spaghetti/store/useSpaghettiStore'
+import type {
+  GeometrySketchDrawStage,
+  GeometrySketchSelectionWindowDraft,
+} from './spaghetti/store/useSpaghettiStore'
 
 export type CameraPreset = 'iso' | 'top' | 'front' | 'left' | 'right'
 export type GizmoMode = 'translate' | 'rotate' | 'scale'
@@ -33,6 +36,9 @@ export type GeometrySketchOverlayVm = {
   profiles: GeometrySketchOverlayProfileVm[]
   selectedProfileId?: string
   drawDraft: GeometrySketchDrawDraftVm | null
+  selectedComponentIds?: string[]
+  hoveredComponentId?: string | null
+  selectionWindowDraft?: GeometrySketchSelectionWindowDraft | null
   ui: {
     snapEnabled: boolean
     snapDistancePx: number
@@ -119,6 +125,16 @@ export interface ViewerApi {
   setOnGeometrySketchConfirmPoint: (
     handler: ((point: { x: number; y: number }, snapTarget: 'origin' | null) => void) | null,
   ) => void
+  setOnGeometrySketchHoverComponent: (
+    handler: ((rowId: string | null) => void) | null,
+  ) => void
+  setOnGeometrySketchSelectComponents: (
+    handler: ((rowIds: string[]) => void) | null,
+  ) => void
+  setOnGeometrySketchSelectionWindowDraftChange: (
+    handler: ((draft: GeometrySketchSelectionWindowDraft | null) => void) | null,
+  ) => void
+  setOnGeometrySketchDeleteSelection: (handler: (() => void) | null) => void
   setOnGeometrySketchFinishDraft: (handler: (() => void) | null) => void
   setOnGeometrySketchCancelDraft: (handler: (() => void) | null) => void
   setSketchPlanePickOverlay: (overlay: SketchPlanePickOverlayVm | null) => void
@@ -128,6 +144,7 @@ export interface ViewerApi {
   setOnSketchPlanePickTransformChange: (
     handler: ((transform: SketchPlaneTransform) => void) | null,
   ) => void
+  setOnSketchPlanePickTransformCommit: (handler: (() => void) | null) => void
 }
 
 let viewer: ViewerApi | null = null

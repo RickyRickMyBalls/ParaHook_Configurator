@@ -3,6 +3,9 @@
 ## Doc Header
 
 ### Doc History
+69. 2026-03-22 12:32: Updated the architecture docs map to point at `docs/Human-Plans/Architecture/Camera-Controls/Camera_Controls-Index.md` as the canonical camera-controls surface after the note moved into its own family folder, replacing the older flat-file `Camera_Controls.md` path
+68. 2026-03-22 11:53: Added `docs/Human-Plans/Architecture/Camera_Controls.md` to the architecture docs map as the canonical planning surface for viewport camera-control ownership, separating orbit/pan/zoom fallback behavior from higher-priority sketch, gizmo, and view-toolbar interactions
+67. 2026-03-22 10:35: Added `docs/Human-Plans/Architecture/v15Theme.md` to the architecture docs map as the canonical planning surface for the oversized app theme stylesheet, separating the current `v15Theme.css` ownership read, target split strategy, and `[5.0G]` cleanup direction from the broader workspace and AppShell architecture docs
 66. 2026-03-21 18:24: Added `docs/Human-Plans/Architecture/AppShell/AppShell-Index.md` to the architecture docs map as the new canonical planning surface for the current overloaded `AppShell`, separating its current-state ownership read, target shell vision, and first phased extraction path from the broader workspace and radio docs
 65. 2026-03-21 12:35: Added `docs/index.md` to the docs map as the new MkDocs landing page, so the first published docs-site surface is represented in the canonical docs index instead of existing only in site config
 64. 2026-03-21 12:15: Added `docs/Phase-Plans/mkDocs.md` to the docs map as a simple planning note for a possible MkDocs documentation layer, so the repo now has one dedicated place to capture setup expectations before any live site config lands
@@ -398,6 +401,7 @@ Rule notes:
         - `12_CodexChatNotes.md`
 ### ----Architecture
         - `Audio-Patchbay.md`
+        - `Camera-Controls/Camera_Controls-Index.md`
         - `Console.md`
         - `Engine-Architecture.md`
         - `Glossary.md`
@@ -406,6 +410,7 @@ Rule notes:
         - `Spaghetti-Types.md`
         - `System-Map.md`
         - `Terminology-Decisions.md`
+        - `v15Theme.md`
         - `Workspace-Modes.md`
 #### -------AppShell
             - `AppShell-Index.md`

@@ -1,0 +1,1574 @@
+body {
+  color: var(--v15-text);
+  background: var(--v15-bg-vignette), var(--v15-bg);
+}
+
+.V15TitleCard {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--v15-panel-border);
+  border-radius: 12px;
+  box-shadow: var(--v15-panel-shadow);
+  padding: 10px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.V15TitleText {
+  font-size: 14px;
+  line-height: 1.2;
+  font-weight: 900;
+  letter-spacing: 0.2px;
+}
+
+.V15VersionText {
+  font-size: 12px;
+  opacity: 0.8;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.TitleStatusBar {
+  --title-status-border-rest: var(--v15-panel-border);
+  --title-status-border-peak: rgba(132, 152, 214, 0.42);
+  --title-status-glow-rest: rgba(108, 124, 168, 0.08);
+  --title-status-glow-peak: rgba(132, 152, 214, 0.22);
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  text-align: left;
+  background: linear-gradient(
+    180deg,
+    rgba(18, 20, 25, 0.98) 0%,
+    rgba(9, 10, 13, 0.99) 58%,
+    rgba(3, 4, 6, 1) 100%
+  );
+  border: 1px solid var(--v15-panel-border);
+  border-radius: 12px;
+  box-shadow:
+    var(--v15-panel-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 0 0 1px rgba(108, 124, 168, 0.08);
+  color: var(--v15-text);
+  padding: 10px 12px;
+  animation: title-status-border-glow 4.8s ease-in-out infinite;
+}
+
+.TitleStatusBar::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 12% 20%, rgba(112, 132, 188, 0.18) 0%, rgba(112, 132, 188, 0) 42%),
+    radial-gradient(circle at 88% 28%, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0) 28%);
+  opacity: 0.9;
+}
+
+.TitleStatusBar::after {
+  content: '';
+  position: absolute;
+  top: -30%;
+  bottom: -30%;
+  left: -35%;
+  width: 42%;
+  border-radius: 999px;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(134, 154, 214, 0.1) 45%,
+    rgba(255, 255, 255, 0.16) 50%,
+    rgba(134, 154, 214, 0.1) 55%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  filter: blur(10px);
+  opacity: 0.5;
+  animation: title-status-sheen 4.8s ease-in-out infinite;
+}
+
+.TitleStatusBar.state-building {
+  --title-status-border-rest: rgba(68, 128, 255, 0.46);
+  --title-status-border-peak: rgba(112, 168, 255, 0.72);
+  --title-status-glow-rest: rgba(68, 128, 255, 0.14);
+  --title-status-glow-peak: rgba(112, 168, 255, 0.28);
+  border-color: rgba(68, 128, 255, 0.46);
+  box-shadow:
+    var(--v15-panel-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 0 18px rgba(68, 128, 255, 0.14);
+}
+
+.TitleStatusBar.state-assembling {
+  --title-status-border-rest: rgba(170, 102, 255, 0.48);
+  --title-status-border-peak: rgba(199, 142, 255, 0.72);
+  --title-status-glow-rest: rgba(170, 102, 255, 0.12);
+  --title-status-glow-peak: rgba(199, 142, 255, 0.24);
+  border-color: rgba(170, 102, 255, 0.48);
+  box-shadow:
+    var(--v15-panel-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 0 18px rgba(170, 102, 255, 0.12);
+}
+
+.TitleStatusBar.state-error {
+  --title-status-border-rest: rgba(255, 114, 114, 0.58);
+  --title-status-border-peak: rgba(255, 164, 164, 0.8);
+  --title-status-glow-rest: rgba(255, 114, 114, 0.12);
+  --title-status-glow-peak: rgba(255, 164, 164, 0.24);
+  border-color: rgba(255, 114, 114, 0.58);
+  box-shadow:
+    var(--v15-panel-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 0 18px rgba(255, 114, 114, 0.12);
+}
+
+.TitleStatusPulseFlash {
+  position: absolute;
+  inset: -2px;
+  border-radius: 12px;
+  pointer-events: none;
+  animation: title-cache-pulse 220ms ease-out;
+}
+
+.TitleStatusRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.TitleStatusName {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+  line-height: 1.2;
+  font-weight: 900;
+  letter-spacing: 0.2px;
+}
+
+.TitleStatusMeta {
+  flex: 0 0 auto;
+  font-size: 12px;
+  color: var(--v15-text-muted);
+  text-transform: capitalize;
+}
+
+.TitleStatusProgressTrack {
+  position: relative;
+  margin-top: 8px;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  overflow: hidden;
+  z-index: 1;
+}
+
+.TitleStatusProgressFill {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: 999px;
+  transition: width 140ms ease-out;
+}
+
+.TitleStatusBar.state-idle .TitleStatusProgressFill {
+  background: rgba(200, 200, 210, 0.58);
+}
+
+.TitleStatusBar.state-building .TitleStatusProgressFill {
+  background: #1d6fe9;
+}
+
+.TitleStatusBar.state-assembling .TitleStatusProgressFill {
+  background: #8f61ff;
+}
+
+.TitleStatusBar.state-error .TitleStatusProgressFill {
+  background: #ff7272;
+}
+
+.TitleStatusProgressFill.isIndeterminate {
+  width: 100% !important;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.2) 0%,
+    rgba(255, 255, 255, 0.55) 50%,
+    rgba(255, 255, 255, 0.2) 100%
+  );
+  animation: indeterminate-slide 1s linear infinite;
+}
+
+.PanelStack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.PanelStack.isConstrained {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+  scrollbar-color: rgba(86, 92, 110, 0.95) rgba(8, 10, 14, 0.92);
+  scrollbar-width: thin;
+}
+
+.PanelStack::-webkit-scrollbar {
+  width: 12px;
+}
+
+.PanelStack::-webkit-scrollbar-track {
+  background: rgba(8, 10, 14, 0.92);
+}
+
+.PanelStack::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    180deg,
+    rgba(92, 98, 118, 0.98) 0%,
+    rgba(60, 65, 82, 0.98) 100%
+  );
+  border-radius: 999px;
+  border: 2px solid rgba(8, 10, 14, 0.92);
+}
+
+.PanelStack::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(
+    180deg,
+    rgba(110, 118, 142, 0.98) 0%,
+    rgba(74, 80, 99, 0.98) 100%
+  );
+}
+
+.V15Panel {
+  background: var(--v15-panel-bg);
+  border: 1px solid var(--v15-panel-border);
+  border-radius: 12px;
+  box-shadow: var(--v15-panel-shadow);
+  color: var(--v15-text);
+  box-sizing: border-box;
+  padding: 12px;
+}
+
+.ParaSlider {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  min-width: 0;
+}
+
+.ParaSlider.isCapless .ParaSliderTrack {
+  border-left: 1px solid var(--v15-panel-border-soft);
+  border-radius: 8px;
+}
+
+.V15Panel button.ParaSliderCap,
+.ConsoleToolbarMenu button.ParaSliderCap,
+.ViewportOverlaySketchSessionWindow button.ParaSliderCap,
+.ViewportOverlayToolPanel button.ParaSliderCap {
+  flex: 0 0 28px;
+  width: 28px;
+  min-width: 28px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid var(--v15-panel-border-soft);
+  background: color-mix(in srgb, var(--sp-window-toolbar-bg) 86%, white 5%);
+  color: var(--v15-text);
+  font-size: calc(var(--sp-window-font-size) - 1px);
+  font-family: var(--sp-window-font-family);
+  line-height: 1;
+  border-radius: 0;
+}
+
+.V15Panel button.ParaSliderCap--left,
+.ConsoleToolbarMenu button.ParaSliderCap--left,
+.ViewportOverlaySketchSessionWindow button.ParaSliderCap--left,
+.ViewportOverlayToolPanel button.ParaSliderCap--left {
+  border-radius: 8px 0 0 8px;
+}
+
+.V15Panel button.ParaSliderCap--right,
+.ConsoleToolbarMenu button.ParaSliderCap--right,
+.ViewportOverlaySketchSessionWindow button.ParaSliderCap--right,
+.ViewportOverlayToolPanel button.ParaSliderCap--right {
+  border-left: none;
+  border-radius: 0 8px 8px 0;
+}
+
+.ParaSliderTrack {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 26px;
+  border: 1px solid var(--v15-panel-border-soft);
+  border-left: none;
+  background: color-mix(in srgb, var(--sp-window-toolbar-bg) 86%, white 5%);
+  cursor: ew-resize;
+  overflow: hidden;
+  outline: none;
+}
+
+.ParaSliderTrack:focus-visible {
+  box-shadow: inset 0 0 0 1px rgba(124, 160, 255, 0.45);
+}
+
+.ParaSliderTrack.isClampEditing {
+  cursor: col-resize;
+}
+
+.ParaSliderClampRange {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  border-radius: 0;
+  background: transparent;
+  pointer-events: none;
+}
+
+.ParaSliderClampRange.isClampEditing {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 160, 102, 0.4) 0%,
+    rgba(255, 136, 66, 0.26) 100%
+  );
+}
+
+.ParaSliderFill {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  background: linear-gradient(
+    90deg,
+    rgba(124, 160, 255, 0.38) 0%,
+    rgba(124, 160, 255, 0.2) 100%
+  );
+  border-radius: 0;
+  pointer-events: none;
+}
+
+.ParaSliderValueMarker {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  width: 2px;
+  margin-left: -1px;
+  border-radius: 999px;
+  background: rgba(244, 247, 255, 0.92);
+  box-shadow: 0 0 0 1px rgba(11, 11, 15, 0.42);
+  pointer-events: none;
+}
+
+.ParaSliderContent {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 var(--sp-window-pad-x);
+  pointer-events: none;
+}
+
+.ParaSliderLabel,
+.ParaSliderValue {
+  font-size: calc(var(--sp-window-font-size) - 1px);
+  font-family: var(--sp-window-font-family);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.ParaSliderLabel {
+  color: rgba(230, 236, 248, 0.94);
+}
+
+.ParaSliderValue {
+  color: rgba(238, 242, 255, 0.86);
+  text-align: right;
+}
+
+.V15Panel button.ParaSliderValueButton,
+.ReferenceTransformToolbar button.ParaSliderValueButton,
+.ConsoleToolbarMenu button.ParaSliderValueButton,
+.ViewportOverlaySketchSessionWindow button.ParaSliderValueButton,
+.ViewportOverlayToolPanel button.ParaSliderValueButton,
+.ParaSliderValueInput {
+  position: relative;
+  z-index: 2;
+  pointer-events: auto;
+  min-width: 52px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 4px;
+  font-size: calc(var(--sp-window-font-size) - 1px);
+  font-family: var(--sp-window-font-family);
+  line-height: 1;
+  text-align: right;
+  box-sizing: border-box;
+}
+
+.V15Panel button.ParaSliderValueButton,
+.ReferenceTransformToolbar button.ParaSliderValueButton,
+.ConsoleToolbarMenu button.ParaSliderValueButton,
+.ViewportOverlaySketchSessionWindow button.ParaSliderValueButton,
+.ViewportOverlayToolPanel button.ParaSliderValueButton {
+  border: none;
+  background: transparent;
+  color: rgba(238, 242, 255, 0.86);
+}
+
+.V15Panel button.ParaSliderValueButton:hover,
+.ReferenceTransformToolbar button.ParaSliderValueButton:hover,
+.ConsoleToolbarMenu button.ParaSliderValueButton:hover,
+.ViewportOverlaySketchSessionWindow button.ParaSliderValueButton:hover,
+.ViewportOverlayToolPanel button.ParaSliderValueButton:hover,
+.V15Panel button.ParaSliderValueButton:focus-visible,
+.ReferenceTransformToolbar button.ParaSliderValueButton:focus-visible,
+.ConsoleToolbarMenu button.ParaSliderValueButton:focus-visible,
+.ViewportOverlaySketchSessionWindow button.ParaSliderValueButton:focus-visible,
+.ViewportOverlayToolPanel button.ParaSliderValueButton:focus-visible {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(245, 247, 255, 0.98);
+}
+
+.ParaSliderValueInput {
+  border: 1px solid rgba(124, 160, 255, 0.45);
+  background: rgba(17, 22, 34, 0.94);
+  color: rgba(245, 247, 255, 0.98);
+  outline: none;
+}
+
+.ParaSliderValueInput:focus {
+  border-color: rgba(124, 160, 255, 0.76);
+  box-shadow: 0 0 0 1px rgba(124, 160, 255, 0.22);
+}
+
+.ParaSliderValueInput::-webkit-outer-spin-button,
+.ParaSliderValueInput::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.ParaSliderValueInput[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.ParaSliderClampInput {
+  min-width: 56px;
+}
+
+.ParaSliderClampInput--min {
+  text-align: left;
+}
+
+.ParaSliderClampInput--max {
+  text-align: right;
+}
+
+.ParaVec3Slider {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+}
+
+.ParaVec2Slider {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+}
+
+.ParaVec3SliderAxis {
+  min-width: 0;
+}
+
+.ParaVec2SliderAxis {
+  min-width: 0;
+}
+
+.ParaVec3SliderAxis .ParaSliderContent {
+  gap: 4px;
+  padding: 0 6px;
+}
+
+.ParaVec2SliderAxis .ParaSliderContent {
+  gap: 4px;
+  padding: 0 6px;
+}
+
+.ParaVec3SliderAxis .ParaSliderLabel,
+.ParaVec3SliderAxis .ParaSliderValue,
+.ParaVec3SliderAxis .ParaSliderValueInput,
+.ParaVec3SliderAxis button.ParaSliderValueButton {
+  font-size: calc(var(--sp-window-font-size) - 2px);
+}
+
+.ParaVec2SliderAxis .ParaSliderLabel,
+.ParaVec2SliderAxis .ParaSliderValue,
+.ParaVec2SliderAxis .ParaSliderValueInput,
+.ParaVec2SliderAxis button.ParaSliderValueButton {
+  font-size: calc(var(--sp-window-font-size) - 2px);
+}
+
+.ParaVec3SliderAxis .ParaSliderLabel {
+  font-weight: 800;
+}
+
+.ParaVec2SliderAxis .ParaSliderLabel {
+  font-weight: 800;
+}
+
+.ParaVec3SliderAxis .ParaSliderValue,
+.ParaVec3SliderAxis .ParaSliderValueInput,
+.ParaVec3SliderAxis button.ParaSliderValueButton {
+  min-width: 0;
+  width: auto;
+  padding: 0;
+}
+
+.ParaVec2SliderAxis .ParaSliderValue,
+.ParaVec2SliderAxis .ParaSliderValueInput,
+.ParaVec2SliderAxis button.ParaSliderValueButton {
+  min-width: 0;
+  width: auto;
+  padding: 0;
+}
+
+.ParaSelect {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  min-width: 0;
+}
+
+.V15Panel button.ParaSelectCap,
+.ConsoleToolbarMenu button.ParaSelectCap,
+.ViewportOverlayToolPanel button.ParaSelectCap {
+  flex: 0 0 28px;
+  width: 28px;
+  min-width: 28px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid var(--v15-panel-border-soft);
+  background: color-mix(in srgb, var(--sp-window-toolbar-bg) 86%, white 5%);
+  color: var(--v15-text);
+  font-size: calc(var(--sp-window-font-size) - 1px);
+  font-family: var(--sp-window-font-family);
+  line-height: 1;
+  border-radius: 0;
+}
+
+.V15Panel button.ParaSelectCap--left,
+.ConsoleToolbarMenu button.ParaSelectCap--left,
+.ViewportOverlayToolPanel button.ParaSelectCap--left {
+  border-radius: 8px 0 0 8px;
+}
+
+.V15Panel button.ParaSelectCap--right,
+.ConsoleToolbarMenu button.ParaSelectCap--right,
+.ViewportOverlayToolPanel button.ParaSelectCap--right {
+  border-left: none;
+  border-radius: 0 8px 8px 0;
+}
+
+.ParaSelectTrack {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 30px;
+  border: 1px solid var(--v15-panel-border-soft);
+  border-left: none;
+  background: color-mix(in srgb, var(--sp-window-toolbar-bg) 86%, white 5%);
+  overflow: hidden;
+}
+
+.ParaSelectTrack:focus-within {
+  box-shadow: inset 0 0 0 1px rgba(124, 160, 255, 0.45);
+}
+
+.ParaSelectTrackButton {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  overflow: hidden;
+  cursor: pointer;
+  text-align: left;
+}
+
+.ParaSelectTrack--custom {
+  overflow: visible;
+}
+
+.ParaSelectTrack--custom.isMenuOpen {
+  box-shadow: inset 0 0 0 1px rgba(124, 160, 255, 0.45);
+}
+
+.ParaSelectTrackButton:focus-visible {
+  outline: none;
+}
+
+.V15Panel button.ParaSelectValueHandle,
+.ConsoleToolbarMenu button.ParaSelectValueHandle,
+.ViewportOverlayToolPanel button.ParaSelectValueHandle,
+.ParaSelectValueHandle {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  width: 12px;
+  margin-left: -6px;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  cursor: ew-resize;
+  z-index: 3;
+}
+
+.ParaSelectValueHandle::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 2px;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: rgba(244, 247, 255, 0.92);
+  box-shadow: 0 0 0 1px rgba(11, 11, 15, 0.42);
+}
+
+.ParaSelectFill {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(124, 160, 255, 0.38) 0%,
+    rgba(124, 160, 255, 0.2) 100%
+  );
+  border-radius: 0;
+  pointer-events: none;
+}
+
+.ParaSelectValueMarker {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  width: 2px;
+  margin-left: -1px;
+  border-radius: 999px;
+  background: rgba(244, 247, 255, 0.92);
+  box-shadow: 0 0 0 1px rgba(11, 11, 15, 0.42);
+  pointer-events: none;
+}
+
+.ParaSelectContent {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 var(--sp-window-pad-x);
+  pointer-events: none;
+}
+
+.ParaSelectLabel,
+.ParaSelectValue {
+  font-size: var(--sp-window-font-size);
+  font-family: var(--sp-window-font-family);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.ParaSelectLabel {
+  color: rgba(230, 236, 248, 0.94);
+}
+
+.ParaSelectValue {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 0 4px;
+  color: rgba(238, 242, 255, 0.86);
+  text-align: right;
+  justify-content: flex-end;
+  margin-left: auto;
+}
+
+.ParaSelectChevron {
+  flex: 0 0 auto;
+  font-size: calc(var(--sp-window-font-size) - 1px);
+  opacity: 0.78;
+}
+
+.ParaSelectNative {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+  appearance: none;
+  -webkit-appearance: none;
+  color-scheme: dark;
+  clip-path: inset(50%);
+  overflow: hidden;
+}
+
+.ParaSelectNative option,
+.ParaSelectNative optgroup {
+  background: #101218;
+  color: var(--v15-text);
+}
+
+.ParaSelectNative option:checked {
+  background: #1d6fe9;
+  color: #ffffff;
+}
+
+.ParaSelectNative option:disabled {
+  color: rgba(232, 232, 234, 0.45);
+}
+
+.ParaSelectMenu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 60;
+  min-width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px;
+  border: 1px solid rgba(124, 160, 255, 0.28);
+  border-radius: 10px;
+  background: rgba(16, 18, 24, 0.98);
+  box-shadow:
+    0 12px 30px rgba(0, 0, 0, 0.48),
+    0 0 0 1px rgba(124, 160, 255, 0.12);
+}
+
+.ParaSelectMenuActions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+button.ParaSelectMenuOption,
+button.ParaSelectMenuOption:hover {
+  width: 100%;
+  min-height: 28px;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  text-align: left;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(238, 242, 255, 0.92);
+  font-size: 12px;
+  font-weight: 700;
+  font-family: var(--sp-window-font-family);
+  line-height: 1.2;
+}
+
+button.ParaSelectMenuOption:hover,
+button.ParaSelectMenuOption.isSelected {
+  border-color: rgba(124, 160, 255, 0.32);
+  background: rgba(96, 142, 255, 0.2);
+  color: rgba(245, 247, 255, 0.98);
+}
+
+button.ParaSelectMenuAction,
+button.ParaSelectMenuAction:hover {
+  width: 100%;
+  min-height: 28px;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  text-align: left;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(238, 242, 255, 0.92);
+  font-size: 12px;
+  font-weight: 700;
+  font-family: var(--sp-window-font-family);
+  line-height: 1.2;
+}
+
+button.ParaSelectMenuAction:hover {
+  border-color: rgba(124, 160, 255, 0.32);
+  background: rgba(96, 142, 255, 0.2);
+  color: rgba(245, 247, 255, 0.98);
+}
+
+.V15PanelTitle {
+  margin: 0 0 10px 0;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.V15PanelSummary {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+}
+
+.V15PanelSummary::-webkit-details-marker {
+  display: none;
+}
+
+.V15PanelSummary::after {
+  content: '+';
+  font-size: 14px;
+  line-height: 1;
+  color: var(--v15-text-dim);
+}
+
+.V15PanelCollapsible[open] > .V15PanelSummary::after {
+  content: '-';
+}
+
+.V15SectionLabel {
+  margin: 10px 0 8px 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--v15-panel-border-soft);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--v15-text-muted);
+}
+
+.V15Meta {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--v15-text-dim);
+}
+
+.V15Error {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--v15-error);
+}
+
+.V15Panel button {
+  padding: 7px 10px;
+  border: 1px solid var(--v15-btn-border);
+  border-radius: 8px;
+  background: var(--v15-btn-bg);
+  color: #f3f4f6;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ModeLabel {
+  min-width: 68px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #7b8aa1;
+}
+
+.ModeLabel.isActive {
+  color: #1d6fe9;
+  font-weight: 700;
+}
+
+.ModeLabel.isAssembled.isActive {
+  color: #1f9d55;
+}
+
+.CameraPresetGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 5px;
+  width: 100%;
+}
+
+.CameraActionButton {
+  font-weight: 700;
+  justify-content: center;
+}
+
+.ToggleList {
+  display: grid;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.ToggleList label,
+.InlineCheck {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.MiniFieldGrid {
+  margin-top: 6px;
+  display: grid;
+  gap: 6px;
+}
+
+.MiniFieldGrid label {
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.MiniFieldGrid input,
+.MiniFieldGrid select,
+.InlineEditorRow input,
+.InlineEditorRow select,
+.AssignmentRow select {
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 8px;
+  border: 1px solid var(--v15-panel-border-soft);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--v15-text);
+  padding: 6px 8px;
+}
+
+.MiniFieldGrid select,
+.InlineEditorRow select,
+.AssignmentRow select {
+  color-scheme: dark;
+}
+
+.MiniFieldGrid select option,
+.InlineEditorRow select option,
+.AssignmentRow select option,
+.MiniFieldGrid select optgroup,
+.InlineEditorRow select optgroup,
+.AssignmentRow select optgroup {
+  background: #101218;
+  color: var(--v15-text);
+}
+
+.MiniFieldGrid select option:checked,
+.InlineEditorRow select option:checked,
+.AssignmentRow select option:checked {
+  background: #1d6fe9;
+  color: #ffffff;
+}
+
+.MiniFieldGrid select option:disabled,
+.InlineEditorRow select option:disabled,
+.AssignmentRow select option:disabled {
+  color: rgba(232, 232, 234, 0.45);
+}
+
+.ItemList {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ListRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 5px 7px;
+  cursor: pointer;
+}
+
+.ListRow:hover {
+  border-color: var(--v15-panel-border-soft);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.ListRow.isSelected {
+  border-color: rgba(96, 142, 255, 0.55);
+  background: var(--v15-selected);
+}
+
+.ListRowName {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.TypeChip {
+  border: 1px solid var(--v15-panel-border-soft);
+  border-radius: 999px;
+  padding: 2px 7px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--v15-text-dim);
+}
+
+.Swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  flex: 0 0 14px;
+}
+
+.IconButton {
+  padding: 4px 8px !important;
+  font-size: 11px;
+}
+
+.InlineEditorRow {
+  margin-top: 6px;
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 5px;
+}
+
+.EditorPanel {
+  margin-top: 6px;
+  border: 1px solid var(--v15-panel-border-soft);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 7px;
+}
+
+.VectorFieldGrid {
+  margin-top: 6px;
+  display: grid;
+  grid-template-columns: auto 1fr 1fr 1fr;
+  gap: 5px;
+  align-items: center;
+}
+
+.VectorFieldGrid span {
+  font-size: 12px;
+  color: var(--v15-text-dim);
+}
+
+.VectorFieldGrid input {
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 8px;
+  border: 1px solid var(--v15-panel-border-soft);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--v15-text);
+  padding: 5px 7px;
+}
+
+.AssignmentRow {
+  display: grid;
+  grid-template-columns: minmax(96px, 1fr) minmax(120px, 1fr) auto;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid var(--v15-panel-border-soft);
+  border-radius: 8px;
+  padding: 5px 7px;
+}
+
+.V15Panel button:hover {
+  background: var(--v15-btn-hover);
+}
+
+.V15Panel button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.V15Panel input[type='range'] {
+  width: 100%;
+  appearance: none;
+  height: 4px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.22);
+  outline: none;
+}
+
+.V15Panel input[type='range']::-webkit-slider-thumb {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.35);
+  background: #d9dbe1;
+}
+
+.V15Panel input[type='checkbox'] {
+  accent-color: #2d7cff;
+}
+
+.V15Row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.V15Wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.BuildPolicyButton {
+  min-width: 142px;
+  width: 100%;
+  min-height: 26px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  padding: 5px 8px;
+  font-size: 11px;
+  letter-spacing: 0.01em;
+  font-weight: 700;
+  text-transform: none;
+  transition:
+    background 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 120ms ease;
+}
+
+.V15Panel button.BuildPolicyButton--live {
+  background: linear-gradient(180deg, #2f7a59 0%, #27684b 100%);
+  border-color: rgba(137, 238, 191, 0.86);
+  color: #ecfff6;
+  box-shadow: inset 0 0 0 1px rgba(137, 238, 191, 0.3), 0 0 0 2px rgba(52, 171, 125, 0.16);
+}
+
+.V15Panel button.BuildPolicyButton--release {
+  background: linear-gradient(180deg, #8d6c24 0%, #785b1f 100%);
+  border-color: rgba(255, 220, 116, 0.88);
+  color: #fff7db;
+  box-shadow: inset 0 0 0 1px rgba(255, 220, 116, 0.3), 0 0 0 2px rgba(202, 155, 48, 0.17);
+}
+
+.V15Panel button.BuildPolicyButton--manual {
+  background: linear-gradient(180deg, #8f3535 0%, #782c2c 100%);
+  border-color: rgba(255, 146, 146, 0.9);
+  color: #ffe3e3;
+  box-shadow: inset 0 0 0 1px rgba(255, 146, 146, 0.3), 0 0 0 2px rgba(210, 69, 69, 0.18);
+}
+
+.V15Panel button.BuildPolicyButton--live:hover {
+  background: linear-gradient(180deg, #3a8e6a 0%, #2e7a58 100%);
+}
+
+.V15Panel button.BuildPolicyButton--release:hover {
+  background: linear-gradient(180deg, #a07a29 0%, #8d6b25 100%);
+}
+
+.V15Panel button.BuildPolicyButton--manual:hover {
+  background: linear-gradient(180deg, #a03c3c 0%, #8c3434 100%);
+}
+
+.BuildPolicyButton:hover {
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-0.5px);
+}
+
+.BuildPolicyButton:active {
+  transform: translateY(0);
+}
+
+.ViewportSplitPane {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.ViewportSplitPane--viewer,
+.ViewportSplitPane--editor,
+.ViewportSplitDivider {
+  transition:
+    margin-left 180ms ease,
+    width 180ms ease;
+}
+
+.ViewportSplitDividerShell {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.ViewportSplitPane--viewer {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ViewportSplitPane--editor {
+  padding: 12px;
+  box-sizing: border-box;
+}
+
+.ViewportSplitDivider,
+.ViewportSplitDivider:hover {
+  display: block;
+  width: 100%;
+  min-height: 10px;
+  height: 10px;
+  padding: 0;
+  border-radius: 0;
+  border: none;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(255, 255, 255, 0.18) 50%,
+    rgba(255, 255, 255, 0.08) 100%
+  );
+  cursor: row-resize;
+}
+
+.ViewportBottomSplitDockGhost {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 3;
+  pointer-events: none;
+  border: 1px dashed rgba(255, 255, 255, 0.85);
+  border-radius: 12px 12px 0 0;
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.ViewportBottomSplitDockGhost.isLeftDockShifted {
+  left: var(--left-dock-split-width, 320px);
+}
+
+.ViewportRoot {
+  position: absolute;
+  inset: 0;
+  background: #0b0b0f;
+}
+
+.ViewportViewerSurface {
+  position: absolute;
+  inset: 0;
+}
+
+.ViewportCanvasLayer {
+  position: absolute;
+  inset: 0;
+}
+
+.RadioWaveformStrip {
+  display: grid;
+  gap: 6px;
+}
+
+.RadioWaveformStripCanvas {
+  position: relative;
+  min-height: 88px;
+  border-radius: 10px;
+  border: 1px solid rgba(126, 214, 136, 0.16);
+  background:
+    linear-gradient(180deg, rgba(17, 31, 20, 0.94) 0%, rgba(10, 18, 12, 0.96) 100%);
+  overflow: hidden;
+}
+
+.RadioWaveformBars {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(1px, 1fr);
+  align-items: center;
+  gap: 1px;
+  padding: 8px 6px;
+}
+
+.RadioWaveformBar {
+  align-self: center;
+  border-radius: 999px;
+  background: linear-gradient(
+    180deg,
+    rgba(244, 164, 74, 0.96) 0%,
+    rgba(214, 126, 40, 0.92) 100%
+  );
+  box-shadow: 0 0 0 1px rgba(255, 196, 124, 0.06);
+}
+
+.RadioWaveformLimitedLane {
+  position: absolute;
+  inset: 0;
+}
+
+.RadioWaveformLimitedGrid {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(247, 170, 79, 0.14) 0%, rgba(247, 170, 79, 0.02) 100%),
+    repeating-linear-gradient(
+      90deg,
+      rgba(214, 226, 255, 0.14) 0,
+      rgba(214, 226, 255, 0.14) 1px,
+      transparent 1px,
+      transparent 16.666%
+    );
+}
+
+.RadioWaveformPlayhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: rgba(238, 246, 255, 0.9);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+.RadioWaveformStepMarker {
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  width: 1px;
+  margin-left: -0.5px;
+  background: rgba(126, 214, 136, 0.62);
+}
+
+.RadioWaveformStepMarker.isActive {
+  width: 2px;
+  margin-left: -1px;
+  background: rgba(208, 255, 214, 0.96);
+}
+
+.RadioWaveformStepMarker.isLocked {
+  background: rgba(152, 222, 255, 0.78);
+}
+
+.RadioWaveformMessage {
+  font-size: 10px;
+  line-height: 1.4;
+  color: rgba(210, 244, 214, 0.7);
+}
+
+.AxisWidget {
+  position: absolute;
+  top: var(--v15-axis-widget-top);
+  right: var(--v15-right-dock-padding-x);
+  width: var(--v15-axis-widget-size);
+  height: var(--v15-axis-widget-size);
+  overflow: hidden;
+  user-select: text;
+  transition:
+    width 180ms ease,
+    height 180ms ease,
+    transform 180ms ease;
+}
+
+.AxisWidgetResizeHandle {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 16px;
+  height: 16px;
+  cursor: nwse-resize;
+  z-index: 10;
+  pointer-events: auto;
+  background-image: linear-gradient(
+    225deg,
+    transparent 0%,
+    transparent 45%,
+    rgba(255, 255, 255, 0.85) 45%,
+    rgba(255, 255, 255, 0.85) 55%,
+    transparent 55%,
+    transparent 100%
+  );
+  opacity: 0.8;
+}
+
+.AxisWidget canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.ReferenceTimelineGraphShell {
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(180deg, rgba(17, 20, 29, 0.96), rgba(11, 13, 21, 0.98));
+  padding: 8px;
+}
+
+.ReferenceTimelineGraph {
+  display: block;
+  width: 100%;
+  height: auto;
+  cursor: crosshair;
+}
+
+.ReferenceTimelineGraphFrame {
+  fill: rgba(18, 22, 35, 0.94);
+  stroke: rgba(255, 255, 255, 0.08);
+}
+
+.ReferenceTimelineGraphGridLine {
+  stroke: rgba(255, 255, 255, 0.08);
+  stroke-width: 1;
+}
+
+.ReferenceTimelineGraphPath {
+  fill: none;
+  stroke: rgba(124, 160, 255, 0.95);
+  stroke-width: 2.25;
+}
+
+.ReferenceTimelineGraphHandleLine {
+  stroke: rgba(255, 255, 255, 0.2);
+  stroke-width: 1;
+}
+
+.ReferenceTimelineGraphHandle {
+  fill: rgba(255, 179, 112, 0.95);
+  stroke: rgba(24, 20, 10, 0.85);
+  stroke-width: 1.5;
+  cursor: grab;
+}
+
+.ReferenceTimelineGraphPoint {
+  fill: rgba(245, 248, 255, 0.98);
+  stroke: rgba(83, 124, 255, 0.98);
+  stroke-width: 2;
+  cursor: grab;
+}
+
+@keyframes title-cache-pulse {
+  0% {
+    box-shadow: var(--v15-panel-shadow), 0 0 0 0 rgba(127, 224, 169, 0.55);
+  }
+  100% {
+    box-shadow: var(--v15-panel-shadow), 0 0 0 10px rgba(127, 224, 169, 0);
+  }
+}
+
+@keyframes title-status-border-glow {
+  0%,
+  100% {
+    border-color: var(--title-status-border-rest);
+    box-shadow:
+      var(--v15-panel-shadow),
+      inset 0 1px 0 rgba(255, 255, 255, 0.04),
+      0 0 0 1px var(--title-status-glow-rest);
+  }
+  18% {
+    border-color: var(--title-status-border-peak);
+    box-shadow:
+      var(--v15-panel-shadow),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05),
+      0 0 0 1px var(--title-status-glow-peak),
+      0 0 18px var(--title-status-glow-rest);
+  }
+  52% {
+    border-color: var(--title-status-border-peak);
+    box-shadow:
+      var(--v15-panel-shadow),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05),
+      0 0 0 1px var(--title-status-glow-peak),
+      0 0 22px var(--title-status-glow-peak);
+  }
+  68% {
+    border-color: var(--title-status-border-rest);
+    box-shadow:
+      var(--v15-panel-shadow),
+      inset 0 1px 0 rgba(255, 255, 255, 0.04),
+      0 0 0 1px var(--title-status-glow-rest),
+      0 0 10px rgba(0, 0, 0, 0);
+  }
+}
+
+@keyframes title-status-sheen {
+  0% {
+    transform: translateX(0);
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.45;
+  }
+  48% {
+    opacity: 0.55;
+  }
+  62% {
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(330%);
+    opacity: 0;
+  }
+}
+
+@keyframes indeterminate-slide {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+.spaghettiCanvasHost {
+  position: relative;
+  width: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+  max-height: none;
+  overflow: hidden;
+}
+
+.spaghettiWireSvg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.spComp_group {
+  position: relative;
+}
+
+.spComp_children {
+  position: relative;
+}
+
+.spComp_warning {
+  font-weight: 600;
+}

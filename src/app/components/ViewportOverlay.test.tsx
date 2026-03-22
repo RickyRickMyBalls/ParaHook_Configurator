@@ -3,6 +3,7 @@
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { SketchFeature } from '../spaghetti/features/featureTypes'
 
 vi.mock('./ReferenceTransformToolbar', () => ({
   ReferenceTransformToolbar: () => <div data-testid="reference-transform-toolbar" />,
@@ -169,7 +170,9 @@ describe('ViewportOverlay sketch session window', () => {
     expect(container.querySelector('button[aria-label="PLine"]')).not.toBeNull()
     expect(container.textContent).toContain('Sketch Draw')
     expect(container.textContent).toContain('No Tool Selected')
-    expect(container.textContent).toContain('Choose a sketch tool to begin drawing in the main viewport.')
+    expect(container.textContent).toContain(
+      'Click entities or drag Window/Crossing to select, or choose a sketch tool to begin drawing.',
+    )
     expect(container.textContent).toContain('Review Profiles')
     expect(container.textContent).toContain('entities staged on this sketch')
   })
@@ -246,6 +249,11 @@ describe('ViewportOverlay sketch session window', () => {
     expect(groupHeader?.textContent).toContain('2 lines')
     expect(container.querySelectorAll('.ViewportOverlaySketchEntityGroupHeader--child')).toHaveLength(0)
     expect(container.querySelectorAll('.ParaVec2Slider')).toHaveLength(0)
+    expect(
+      Array.from(container.querySelectorAll('.ViewportOverlaySketchEntityEntryNumber')).map(
+        (element) => element.textContent?.trim(),
+      ),
+    ).toEqual(['1', '2'])
 
     await act(async () => {
       groupHeader?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
@@ -254,6 +262,11 @@ describe('ViewportOverlay sketch session window', () => {
     expect(container.querySelectorAll('.ViewportOverlaySketchEntityGroupHeader--child')).toHaveLength(2)
     expect(container.textContent).toContain('Line 1')
     expect(container.textContent).toContain('Line 2')
+    expect(
+      Array.from(container.querySelectorAll('.ViewportOverlaySketchEntityEntryNumber')).map(
+        (element) => element.textContent?.trim(),
+      ),
+    ).toEqual(['1', '2', '2.1', '2.2'])
 
     const childLineHeader = Array.from(
       container.querySelectorAll('.ViewportOverlaySketchEntityGroupHeader--child'),
@@ -285,6 +298,235 @@ describe('ViewportOverlay sketch session window', () => {
     })
 
     expect(container.querySelectorAll('.ParaVec2Slider')).toHaveLength(4)
+  })
+
+  it('shows rectangle entities as expandable rows with point plus dimension editors', async () => {
+    const { ViewportOverlay } = await import('./ViewportOverlay')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+
+    act(() => {
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-sketch-1',
+            type: 'Geometry/Sketch',
+            params: {
+              sketch: {
+                type: 'sketch',
+                featureId: 'sketch-1',
+                plane: 'XY',
+                components: [
+                  {
+                    rowId: 'row-rect-1',
+                    componentId: 'cmp-rect-1',
+                    type: 'rectangle',
+                    a: { kind: 'lit', x: 10, y: 20 },
+                    b: { kind: 'lit', x: 60, y: 50 },
+                  },
+                ],
+                outputs: {
+                  profiles: [],
+                },
+                uiState: {
+                  collapsed: false,
+                },
+              },
+            },
+          },
+        ],
+        edges: [],
+      })
+      useSpaghettiStore.getState().startGeometrySketchSession('node-sketch-1', 'draw')
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewportOverlay />)
+    })
+
+    const rectangleHeader = Array.from(
+      container.querySelectorAll('.ViewportOverlaySketchEntityGroupHeader'),
+    ).find((element) => element.textContent?.includes('Rectangle')) as HTMLButtonElement | undefined
+
+    expect(rectangleHeader).toBeDefined()
+    expect(container.querySelectorAll('.ViewportOverlaySketchEntityEditors .ParaVec2Slider')).toHaveLength(0)
+    expect(container.querySelectorAll('.ViewportOverlaySketchEntityEditors .ParaSlider')).toHaveLength(0)
+
+    await act(async () => {
+      rectangleHeader?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(container.textContent).toContain('A')
+    expect(container.textContent).toContain('B')
+    expect(container.textContent).toContain('Width')
+    expect(container.textContent).toContain('Height')
+    expect(container.querySelectorAll('.ViewportOverlaySketchEntityEditors .ParaVec2Slider')).toHaveLength(2)
+    expect(
+      container.querySelector('button[aria-label="Edit Width value"]'),
+    ).not.toBeNull()
+    expect(
+      container.querySelector('button[aria-label="Edit Height value"]'),
+    ).not.toBeNull()
+  })
+
+  it('allows renaming a rectangle entry from the expanded editors', async () => {
+    const { ViewportOverlay } = await import('./ViewportOverlay')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+
+    act(() => {
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-sketch-1',
+            type: 'Geometry/Sketch',
+            params: {
+              sketch: {
+                type: 'sketch',
+                featureId: 'sketch-1',
+                plane: 'XY',
+                components: [
+                  {
+                    rowId: 'row-rect-1',
+                    componentId: 'cmp-rect-1',
+                    type: 'rectangle',
+                    a: { kind: 'lit', x: 10, y: 20 },
+                    b: { kind: 'lit', x: 60, y: 50 },
+                  },
+                ],
+                outputs: {
+                  profiles: [],
+                },
+                uiState: {
+                  collapsed: false,
+                },
+              },
+            },
+          },
+        ],
+        edges: [],
+      })
+      useSpaghettiStore.getState().startGeometrySketchSession('node-sketch-1', 'draw')
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewportOverlay />)
+    })
+
+    const rectangleHeader = Array.from(
+      container.querySelectorAll('.ViewportOverlaySketchEntityGroupHeader'),
+    ).find((element) => element.textContent?.includes('Rectangle')) as HTMLButtonElement | undefined
+
+    await act(async () => {
+      rectangleHeader?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    const nameInput = container.querySelector(
+      'input[aria-label="Rename Rectangle entry"]',
+    ) as HTMLInputElement | null
+
+    expect(nameInput).not.toBeNull()
+
+    await act(async () => {
+      if (nameInput !== null) {
+        nameInput.value = 'Door Cutout'
+        nameInput.dispatchEvent(new Event('input', { bubbles: true }))
+        nameInput.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
+
+    await act(async () => {
+      nameInput?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+    })
+
+    expect(
+      (
+        useSpaghettiStore.getState().graph.nodes[0]?.params.sketch as
+          | SketchFeature
+          | undefined
+      )?.components[0],
+    ).toMatchObject({ name: 'Door Cutout' })
+    expect(container.textContent).toContain('Door Cutout')
+  })
+
+  it('reuses clamp editing for sketch draw para sliders, including rectangle dimensions', async () => {
+    const { ViewportOverlay } = await import('./ViewportOverlay')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+
+    act(() => {
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-sketch-1',
+            type: 'Geometry/Sketch',
+            params: {
+              sketch: {
+                type: 'sketch',
+                featureId: 'sketch-1',
+                plane: 'XY',
+                components: [
+                  {
+                    rowId: 'row-rect-1',
+                    componentId: 'cmp-rect-1',
+                    type: 'rectangle',
+                    a: { kind: 'lit', x: 10, y: 20 },
+                    b: { kind: 'lit', x: 60, y: 50 },
+                  },
+                ],
+                outputs: {
+                  profiles: [],
+                },
+                uiState: {
+                  collapsed: false,
+                },
+              },
+            },
+          },
+        ],
+        edges: [],
+      })
+      useSpaghettiStore.getState().startGeometrySketchSession('node-sketch-1', 'draw')
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewportOverlay />)
+    })
+
+    const rectangleHeader = Array.from(
+      container.querySelectorAll('.ViewportOverlaySketchEntityGroupHeader'),
+    ).find((element) => element.textContent?.includes('Rectangle')) as HTMLButtonElement | undefined
+
+    await act(async () => {
+      rectangleHeader?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    const editClampButton = Array.from(container.querySelectorAll('button')).find((button) =>
+      button.textContent?.includes('Edit Clamp'),
+    ) as HTMLButtonElement | undefined
+
+    expect(editClampButton).toBeDefined()
+
+    await act(async () => {
+      editClampButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(container.textContent).toContain('Done Clamp')
+    expect(
+      container.querySelectorAll('.ViewportOverlaySketchEntityEditors .ParaSliderClampHandle'),
+    ).toHaveLength(12)
   })
 
   it('opens the shared i menu from sketch draw titlebar right click', async () => {
@@ -363,7 +605,7 @@ describe('ViewportOverlay sketch session window', () => {
     expect(container.textContent).toContain('PLine Point Size')
   })
 
-  it('aligns the camera back to the sketch plane from the titlebar action', async () => {
+  it('keeps align view in session, clamp editing in entities, and active tool nested under tool selection', async () => {
     const { ViewportOverlay } = await import('./ViewportOverlay')
     const { getViewer } = await import('../viewerBridge')
     const alignCameraToGeometrySketchPlane = vi.fn()
@@ -381,11 +623,35 @@ describe('ViewportOverlay sketch session window', () => {
       root?.render(<ViewportOverlay />)
     })
 
-    const alignButton = Array.from(container.querySelectorAll('button')).find(
-      (button) => button.textContent === 'Align View',
+    const titlebarActions = container?.querySelector(
+      '.ViewportOverlayToolPanelTrailingActions',
+    ) as HTMLDivElement | null
+    const allButtons = Array.from(container.querySelectorAll('button'))
+    const alignButton = allButtons.find(
+      (button) => button.textContent?.trim() === 'Align View',
     ) as HTMLButtonElement | undefined
+    const editClampButton = allButtons.find(
+      (button) => button.textContent?.trim() === 'Edit Clamp',
+    ) as HTMLButtonElement | undefined
+    const activeToolToggle = allButtons.find(
+      (button) => button.textContent?.includes('Active Tool'),
+    ) as HTMLButtonElement | undefined
+    const alignButtonSection = alignButton?.closest('.ViewportOverlayToolPanelSection') as
+      | HTMLDivElement
+      | null
+    const editClampButtonSection = editClampButton?.closest('.ViewportOverlayToolPanelSection') as
+      | HTMLDivElement
+      | null
+    const activeToolSection = activeToolToggle?.closest('.ViewportOverlayToolPanelSection') as
+      | HTMLDivElement
+      | null
 
     expect(alignButton).toBeDefined()
+    expect(titlebarActions?.textContent).not.toContain('Align View')
+    expect(titlebarActions?.textContent).not.toContain('Edit Clamp')
+    expect(alignButtonSection?.textContent).toContain('Session')
+    expect(editClampButtonSection?.textContent).toContain('Entities')
+    expect(activeToolSection?.textContent).toContain('Tool Selection')
 
     await act(async () => {
       alignButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
@@ -489,6 +755,142 @@ describe('ViewportOverlay sketch session window', () => {
 
     expect(sessionWindow?.style.width).toBe('460px')
     expect(sessionWindow?.style.height).toBe('560px')
+  })
+
+  it('returns the sketch draw toolbar to auto height when a section collapses after manual resize', async () => {
+    const { ViewportOverlay } = await import('./ViewportOverlay')
+    await seedSketchSession()
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewportOverlay />)
+    })
+
+    const sessionWindow = container.querySelector(
+      '.ViewportOverlaySketchSessionWindow',
+    ) as HTMLDivElement | null
+    const resizeHandle = container.querySelector(
+      '.ViewportOverlaySketchSessionResizeHandle--se',
+    ) as HTMLDivElement | null
+
+    expect(sessionWindow).not.toBeNull()
+    expect(resizeHandle).not.toBeNull()
+
+    await act(async () => {
+      resizeHandle?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 11,
+          button: 0,
+          clientX: 420,
+          clientY: 520,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          pointerId: 11,
+          clientX: 460,
+          clientY: 580,
+        }),
+      )
+      window.dispatchEvent(new PointerEvent('pointerup', { pointerId: 11 }))
+    })
+
+    expect(sessionWindow?.style.height).not.toBe('')
+
+    const activeToolToggle = Array.from(container.querySelectorAll('button')).find((button) =>
+      button.textContent?.includes('Active Tool'),
+    ) as HTMLButtonElement | undefined
+
+    await act(async () => {
+      activeToolToggle?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(sessionWindow?.style.height).toBe('')
+  })
+
+  it('renders draggable split bars between sketch draw main sections', async () => {
+    const { ViewportOverlay } = await import('./ViewportOverlay')
+    await seedSketchSession()
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewportOverlay />)
+    })
+
+    const splitHandles = container.querySelectorAll(
+      '.ViewportOverlayToolPanelSectionStackResizeHandle',
+    )
+    const topPane = container.querySelector(
+      '.ViewportOverlayToolPanelSectionStackPane[data-section-id="section-0"]',
+    ) as HTMLDivElement | null
+    const nextPane = container.querySelector(
+      '.ViewportOverlayToolPanelSectionStackPane[data-section-id="section-1"]',
+    ) as HTMLDivElement | null
+
+    expect(splitHandles.length).toBeGreaterThan(0)
+    expect(topPane).not.toBeNull()
+    expect(nextPane).not.toBeNull()
+    expect(topPane?.style.height).toBe('')
+
+    Object.defineProperty(topPane, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => ({
+        left: 0,
+        top: 0,
+        width: 400,
+        height: 56,
+        right: 400,
+        bottom: 56,
+        x: 0,
+        y: 0,
+        toJSON: () => '',
+      }),
+    })
+    Object.defineProperty(nextPane, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => ({
+        left: 0,
+        top: 68,
+        width: 400,
+        height: 88,
+        right: 400,
+        bottom: 156,
+        x: 0,
+        y: 68,
+        toJSON: () => '',
+      }),
+    })
+
+    await act(async () => {
+      splitHandles[0]?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 12,
+          button: 0,
+          clientX: 100,
+          clientY: 100,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          pointerId: 12,
+          clientX: 100,
+          clientY: 132,
+        }),
+      )
+      window.dispatchEvent(new PointerEvent('pointerup', { pointerId: 12 }))
+    })
+
+    expect(topPane?.style.height).toBe('88px')
   })
 
   it('spawns the sketch session window to the right of the docked browser using overlay-local coordinates', async () => {

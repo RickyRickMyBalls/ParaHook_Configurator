@@ -97,6 +97,13 @@ export const routeKeyboardInput = ({
     return { owner: 'none', decision: 'ignore' }
   }
 
+  if (event.key === 'Delete') {
+    if (geometrySketchMode === 'draw') {
+      return { owner: 'sketch-draw', decision: 'handle' }
+    }
+    return { owner: 'none', decision: 'ignore' }
+  }
+
   if ((event.key === 'ArrowUp' || event.key === 'ArrowDown') && stagedConsoleActive) {
     return { owner: 'staged-console', decision: 'handle' }
   }

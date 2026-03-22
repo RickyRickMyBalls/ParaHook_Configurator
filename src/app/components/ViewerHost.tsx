@@ -182,6 +182,9 @@ export function ViewerHost() {
                   : { ...geometrySketchSession.drawDraft.hoverPoint },
               hoverSnapTarget: geometrySketchSession.drawDraft.hoverSnapTarget,
             },
+      selectedComponentIds: geometrySketchSession.selectedComponentIds,
+      hoveredComponentId: geometrySketchSession.hoveredComponentId,
+      selectionWindowDraft: geometrySketchSession.selectionWindowDraft,
       ui: {
         snapEnabled: sketchDrawSnapEnabled,
         snapDistancePx: sketchDrawSnapDistancePx,
@@ -427,6 +430,18 @@ export function ViewerHost() {
     viewer.setOnGeometrySketchConfirmPoint((point, snapTarget) => {
       useSpaghettiStore.getState().confirmGeometrySketchDrawPoint(point, snapTarget)
     })
+    viewer.setOnGeometrySketchHoverComponent((rowId) => {
+      useSpaghettiStore.getState().setGeometrySketchHoveredComponent(rowId)
+    })
+    viewer.setOnGeometrySketchSelectComponents((rowIds) => {
+      useSpaghettiStore.getState().setGeometrySketchSelectedComponents(rowIds)
+    })
+    viewer.setOnGeometrySketchSelectionWindowDraftChange((draft) => {
+      useSpaghettiStore.getState().setGeometrySketchSelectionWindowDraft(draft ?? null)
+    })
+    viewer.setOnGeometrySketchDeleteSelection(() => {
+      useSpaghettiStore.getState().deleteGeometrySketchSelectedComponents()
+    })
     viewer.setOnGeometrySketchFinishDraft(() => {
       useSpaghettiStore.getState().finishGeometrySketchDrawDraft()
     })
@@ -444,6 +459,10 @@ export function ViewerHost() {
       viewer.setOnSketchPlanePickTransformCommit(null)
       viewer.setOnGeometrySketchHoverPoint(null)
       viewer.setOnGeometrySketchConfirmPoint(null)
+      viewer.setOnGeometrySketchHoverComponent(null)
+      viewer.setOnGeometrySketchSelectComponents(null)
+      viewer.setOnGeometrySketchSelectionWindowDraftChange(null)
+      viewer.setOnGeometrySketchDeleteSelection(null)
       viewer.setOnGeometrySketchFinishDraft(null)
       viewer.setOnGeometrySketchCancelDraft(null)
     }

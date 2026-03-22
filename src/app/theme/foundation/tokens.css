@@ -1,0 +1,46 @@
+:root {
+  --v15-right-dock-width: 340px;
+  --v15-right-dock-padding-x: 16px;
+  --v15-bg: #0b0b0f;
+  --v15-bg-vignette: radial-gradient(
+    circle at 70% 35%,
+    rgba(38, 44, 56, 0.24) 0%,
+    rgba(11, 11, 15, 0) 45%
+  );
+  --v15-panel-bg: rgba(20, 20, 24, 0.9);
+  --v15-panel-border: rgba(255, 255, 255, 0.14);
+  --v15-panel-border-soft: rgba(255, 255, 255, 0.1);
+  --v15-panel-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  --v15-text: #e8e8ea;
+  --v15-text-dim: rgba(232, 232, 234, 0.78);
+  --v15-text-muted: rgba(232, 232, 234, 0.64);
+  --v15-btn-bg: #23262c;
+  --v15-btn-hover: #2f343c;
+  --v15-btn-border: rgba(255, 255, 255, 0.14);
+  --v15-selected: rgba(96, 142, 255, 0.22);
+  --v15-error: #ff7272;
+  --v15-console-bg: rgba(5, 7, 11, 0.96);
+  --v15-console-border: rgba(130, 147, 192, 0.22);
+  --v15-console-commands: #f5f8ff;
+  --v15-console-shortcuts: #7fe4ff;
+  --v15-console-app: #8fb0ff;
+  --v15-console-worker: #86e9a6;
+  --v15-console-diagnostics: #ff8f72;
+  --v15-console-params: #f1c26d;
+  --v15-console-selection: #e1c1ff;
+  --v15-axis-widget-top: 12px;
+  --v15-axis-widget-size: 176px;
+  --v15-view-anchor-gap: 12px;
+  --v15-view-anchor-top: calc(
+    var(--v15-axis-widget-top) + var(--v15-axis-widget-size) + var(--v15-view-anchor-gap)
+  );
+  --sp-row-h: 22px;
+  --sp-pad-x: 6px;
+  --sp-gap-x: 5px;
+  --sp-radius: 5px;
+  --sp-pin-gutter: 12px;
+  --sp-field-h: 18px;
+  --sp-field-radius: 3px;
+  --sp-font-xs: 8px;
+  --sp-font-sm: 9px;
+}

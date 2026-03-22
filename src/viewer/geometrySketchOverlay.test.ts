@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import type { GeometrySketchOverlayVm } from '../app/viewerBridge'
-import { buildGeometrySketchRenderPolylines, projectSketchPointToWorld } from './geometrySketchOverlay'
+import {
+  buildGeometrySketchRenderPolylines,
+  collectGeometrySketchSelectionIds,
+  expandGeometrySketchSelectionFromRowId,
+  projectSketchPointToWorld,
+} from './geometrySketchOverlay'
 
 describe('geometrySketchOverlay helpers', () => {
   it('maps sketch points onto XY, XZ, and YZ viewer planes', () => {
@@ -152,5 +157,169 @@ describe('geometrySketchOverlay helpers', () => {
       { x: 10, y: 0, z: 0.02 },
       { x: 15, y: 5, z: 0.02 },
     ])
+  })
+
+  it('builds a closed rectangle ghost polyline from the first corner and hovered opposite corner', () => {
+    const overlay: GeometrySketchOverlayVm = {
+      mode: 'draw',
+      plane: 'XY',
+      planeTransform: {
+        offsetMm: 0,
+        inPlaneRotationDeg: 0,
+        translation: { x: 0, y: 0, z: 0 },
+        rotationDeg: { x: 0, y: 0, z: 0 },
+      },
+      drawStage: 'draftActive',
+      activeTool: 'rectangle',
+      components: [],
+      profiles: [],
+      selectedProfileId: undefined,
+      drawDraft: {
+        points: [{ x: 2, y: 3 }],
+        hoverPoint: { x: 12, y: 15 },
+        hoverSnapTarget: null,
+      },
+      ui: {
+        snapEnabled: true,
+        snapDistancePx: 14,
+        crosshairSize: 1,
+        startPointVisible: true,
+        startPointSymbolSize: 1,
+        startPointSymbolType: 'crosshair',
+        plinePointVisible: true,
+        plinePointSymbolSize: 1,
+        plinePointSymbolType: 'crosshair',
+      },
+    }
+
+    const polylines = buildGeometrySketchRenderPolylines(overlay)
+
+    expect(polylines.filter((polyline) => polyline.layer === 'draftChain')).toHaveLength(0)
+    expect(polylines.filter((polyline) => polyline.layer === 'draftGhost')).toHaveLength(1)
+    expect(
+      polylines.find((polyline) => polyline.layer === 'draftGhost')?.points,
+    ).toEqual([
+      { x: 2, y: 3, z: 0.02 },
+      { x: 12, y: 3, z: 0.02 },
+      { x: 12, y: 15, z: 0.02 },
+      { x: 2, y: 15, z: 0.02 },
+      { x: 2, y: 3, z: 0.02 },
+    ])
+  })
+
+  it('builds a sampled circle ghost polyline from the committed center and hovered radius witness', () => {
+    const overlay: GeometrySketchOverlayVm = {
+      mode: 'draw',
+      plane: 'XY',
+      planeTransform: {
+        offsetMm: 0,
+        inPlaneRotationDeg: 0,
+        translation: { x: 0, y: 0, z: 0 },
+        rotationDeg: { x: 0, y: 0, z: 0 },
+      },
+      drawStage: 'draftActive',
+      activeTool: 'circle',
+      components: [],
+      profiles: [],
+      selectedProfileId: undefined,
+      drawDraft: {
+        points: [{ x: 2, y: 3 }],
+        hoverPoint: { x: 7, y: 3 },
+        hoverSnapTarget: null,
+      },
+      ui: {
+        snapEnabled: true,
+        snapDistancePx: 14,
+        crosshairSize: 1,
+        startPointVisible: true,
+        startPointSymbolSize: 1,
+        startPointSymbolType: 'crosshair',
+        plinePointVisible: true,
+        plinePointSymbolSize: 1,
+        plinePointSymbolType: 'crosshair',
+      },
+    }
+
+    const polylines = buildGeometrySketchRenderPolylines(overlay)
+    const ghost = polylines.find((polyline) => polyline.layer === 'draftGhost')
+
+    expect(polylines.filter((polyline) => polyline.layer === 'draftChain')).toHaveLength(0)
+    expect(ghost).toBeDefined()
+    expect(ghost?.points).toHaveLength(49)
+    expect(ghost?.points[0]).toEqual({ x: 7, y: 3, z: 0.02 })
+    expect(ghost?.points.at(-1)?.x).toBeCloseTo(7)
+    expect(ghost?.points.at(-1)?.y).toBeCloseTo(3)
+    expect(ghost?.points.at(-1)?.z).toBeCloseTo(0.02)
+  })
+
+  it('expands grouped pline child hits to the full entity selection set', () => {
+    const components: GeometrySketchOverlayVm['components'] = [
+      {
+        rowId: 'row-line-a',
+        componentId: 'cmp-line-a',
+        type: 'line',
+        drawGroupId: 'group-1',
+        a: { kind: 'lit', x: 0, y: 0 },
+        b: { kind: 'lit', x: 10, y: 0 },
+      },
+      {
+        rowId: 'row-line-b',
+        componentId: 'cmp-line-b',
+        type: 'line',
+        drawGroupId: 'group-1',
+        a: { kind: 'lit', x: 10, y: 0 },
+        b: { kind: 'lit', x: 10, y: 10 },
+      },
+      {
+        rowId: 'row-rect',
+        componentId: 'cmp-rect',
+        type: 'rectangle',
+        a: { kind: 'lit', x: 20, y: 20 },
+        b: { kind: 'lit', x: 30, y: 30 },
+      },
+    ]
+
+    expect(expandGeometrySketchSelectionFromRowId(components, 'row-line-a')).toEqual([
+      'row-line-a',
+      'row-line-b',
+    ])
+    expect(expandGeometrySketchSelectionFromRowId(components, 'row-rect')).toEqual(['row-rect'])
+  })
+
+  it('distinguishes window selection from crossing selection', () => {
+    const components: GeometrySketchOverlayVm['components'] = [
+      {
+        rowId: 'row-line-crossing',
+        componentId: 'cmp-line-crossing',
+        type: 'line',
+        a: { kind: 'lit', x: -5, y: 5 },
+        b: { kind: 'lit', x: 5, y: 5 },
+      },
+      {
+        rowId: 'row-rect-inside',
+        componentId: 'cmp-rect-inside',
+        type: 'rectangle',
+        a: { kind: 'lit', x: 1, y: 1 },
+        b: { kind: 'lit', x: 4, y: 4 },
+      },
+    ]
+
+    expect(
+      collectGeometrySketchSelectionIds(
+        components,
+        { x: 0, y: 0 },
+        { x: 6, y: 6 },
+        'window',
+      ),
+    ).toEqual(['row-rect-inside'])
+
+    expect(
+      collectGeometrySketchSelectionIds(
+        components,
+        { x: 0, y: 0 },
+        { x: 6, y: 6 },
+        'crossing',
+      ),
+    ).toEqual(['row-line-crossing', 'row-rect-inside'])
   })
 })

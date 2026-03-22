@@ -4,6 +4,13 @@
 ### Fold Hack 3
 #### FOld Hack 4
 ###### Doc History
+124. 2026-03-22 12:32: Added the new `[5.0H] Camera Controls And View Input Ownership` bridge family under the pre-workspace shell lane, along with `[5.0H-1]` through `[5.0H-5]`, so camera/input cleanup now has a real roadmap home spanning sketch camera blocking, Fusion-style viewport gestures, graph-canvas coexistence, console camera commands, and the later shared view-input owner model
+123. 2026-03-22 11:48: Marked `[3.2B-DrawSketch-3] Selection And Delete` complete after shipping idle `Sketch Draw` entity selection, blue `Window` and green `Crossing` viewport box selection, synced `Entities`-list selection, and immediate delete through viewport `Delete`, console `delete` / `del`, and the visible toolbar action
+122. 2026-03-22 11:15: Tightened the open `[3.2B-DrawSketch-3] Selection And Delete` roadmap entry into an implementation-ready entity-selection phase by separating it from profile review, locking it onto idle `Sketch Draw`, and defining the current code seams plus replacement/delete behavior for the first selection set
+121. 2026-03-22 11:03: Corrected the open `[3.2B-DrawSketch-3] Selection And Delete` roadmap entry so selection now belongs to idle/review `Sketch Draw` rather than a peer `Selection Mode` tool, with draw-tool commits falling back into review/select behavior and `Enter` / `Previous` re-arming the last draw command
+120. 2026-03-22 10:58: Tightened the open `[3.2B-DrawSketch-3] Selection And Delete` roadmap entry so the first cut now explicitly includes blue `Window Selection` and green `Crossing Selection`, making delete act on a real selection set instead of the older single-select-only wording
+119. 2026-03-22 10:43: Re-focused the open `[3.2B-DrawSketch-3]` sketch follow-on into `Selection And Delete`, so the roadmap now treats that phase as the first committed-entity targeting and removal pass inside `Sketch Draw` instead of the older broad selection/editing/richer-feedback umbrella
+118. 2026-03-22 10:23: Added a new open `[5.0G] Theme System And Stylesheet Decomposition` bridge phase under the pre-workspace shell lane, along with two narrow `[5.0G-1]` and `[5.0G-2]` subphases so the oversized `v15Theme.css` cleanup has a real roadmap home without being buried inside `[5.0E]` naming cleanup or `[5.0F]` AppShell extraction
 117. 2026-03-21 22:24: Marked `[3.2B-S7] SketchPlane Transform History` complete after shipping persistent sketch-plane move history in the toolbar and viewport, so committed move accepts now append signed-diff history rows, `Merge History` compacts unlocked spans, and re-entering `SketchPlane` restores the same committed path
 116. 2026-03-21 18:37: Added a new open `[5.0F] AppShell Cleanup And Host Seam Extraction` bridge phase under the pre-workspace shell lane, along with two narrow `[5.0F-1]` and `[5.0F-2]` subphases so `AppShell` overload cleanup now has a real roadmap home without absorbing the broader `[5.1] Workspace Modes` architecture
 115. 2026-03-21 13:17: Marked `[3.2B-S6] SketchPlane Move Axis Numeric Entry` complete after deepening `SketchPlane > Move` into real `X / Y / Z` child leaves with float-only console entry, off-snap confirm/deny handling, shared overlay activation, and post-commit return to the parent `Move` scope
@@ -260,6 +267,9 @@ Status legend:
 - [x] `[5.0D]` `Deferred Legacy Residue And Dead-Surface Cleanup`
 - [~] `[5.0E]` `Spaghetti Editor Surface Standardization And Viewport-Type Cleanup`
 - [ ] `[5.0F]` `AppShell Cleanup And Host Seam Extraction`
+- [x] `[5.0G]` `Theme System And Stylesheet Decomposition`
+- [x] `[5.0G-1]` `Theme Manifest And Surface File Split`
+- [x] `[5.0G-2]` `Cascade Cleanup And Override Reduction`
 - [~] `[5.1]` `Workspace Modes`
 - [ ] `[5.2]` `Control Viz And Graph-Driven Control Surfaces`
 - [ ] `[5.3]` `Build Sequencing, Build Bars, And Output Build Control`
@@ -1480,18 +1490,22 @@ CheckList:
   - `Arc3Point`
   - `BezierSpline`
 
-#### [ ] `3.2B-DrawSketch-3` - `Selection, Editing, And Richer Sketch Feedback`
+#### [x] `3.2B-DrawSketch-3` - `Selection And Delete`
 
 Summary:
-- deepen `Draw Sketch` from raw placement into a fuller sketch authoring surface
-- add viewport-side entity selection, editing, and richer sketch feedback states
-- keep this attached to the sketch authoring family instead of pushing it into later Browser or workspace lanes
+- add the first committed-entity targeting pass inside `Sketch Draw`
+- make idle `Sketch Draw` own `Window` and `Crossing` box behaviors
+- let the user select one or more existing sketch entities and delete them without leaving the sketch authoring surface
+- keep entity selection separate from the existing profile-review surface
+- keep broader move/edit/grip work deferred until after this narrower review action is stable
 
 CheckList:
-- [ ] add viewport hover/selected/active feedback for sketch entities
-- [ ] allow editing existing sketch entities from the real viewport
-- [ ] add richer snapping/inference aids for sketch drawing
-- [ ] keep committed sketch components graph/store-owned while temporary interaction remains viewer-owned
+- [x] make idle `Sketch Draw` the default entity-selection state after draw-tool commit
+- [x] add blue `Window Selection` and green `Crossing Selection` box behavior
+- [x] sync viewport selection and `Entities` list selection onto one selected component-id set
+- [x] support `Delete` plus local `delete` / `del` for the current selection set
+- [x] keep entity selection separate from profile-review mode
+- [x] keep committed sketch components graph/store-owned while selection state remains sketch-session-local
 
 #### [x] `[3.2B-S1]` - `Sketch Session Hierarchy Model`
 
@@ -2034,6 +2048,7 @@ CheckList:
   - do not absorb the real hybrid workspace system from `[5.1]`
 - [ ] standardize the `Spaghetti Editor` surface model enough that `5.1` can normalize viewport types and pane switching without inheriting ambiguous editor-specific shell vocabulary
 - [ ] reduce `AppShell` overload and extract the first host seams cleanly before `[5.1]` turns the workspace host model into a broader architecture lane
+- [ ] lock one camera/view input ownership family before `[5.1]` so viewport gestures, graph-canvas coexistence, and later camera commands stop depending on accidental surface precedence
 
 ### [5.0A] [x] - `Spaghetti Default Startup And Preview-Mode Shell Removal`
 
@@ -2152,6 +2167,156 @@ CheckList:
 - [ ] group editor floating/split/titlebar shell behavior behind a dedicated shell host seam
 - [ ] reduce the number of shell-wide pointer and resize effects living inline in the top-level `AppShell` body
 - [ ] leave the later canonical tile-tree and workspace-surface hosting rules to `[5.1]`
+
+### [5.0G] [x] - `Theme System And Stylesheet Decomposition`
+
+Summary:
+- narrow bridge cut for reducing the oversized global `src/app/theme/v15Theme.css` before `[5.1] Workspace Modes` asks the shell and editor surfaces to keep growing
+- use this to separate stable theme tokens, shared shell chrome, and feature-surface styling so the pre-workspace UI cleanup stops depending on one chronology-heavy stylesheet
+- keep this structural and parity-focused rather than turning it into a full visual redesign
+
+CheckList:
+- [x] define one stable theme entry/manifest that can aggregate split stylesheet files without changing the runtime styling contract
+- [x] split the current monolithic theme by honest ownership such as:
+  - tokens/base
+  - shell/docks/windows
+  - browser/console/viewer overlays
+  - editor and feature surfaces
+- [x] reduce late-file override passes so style ownership reads from file location instead of only from source order
+- [x] keep this cut narrow:
+  - do not turn it into a CSS-modules or styling-library migration
+  - do not widen it into a visual redesign pass
+  - do not absorb the host-model work from `[5.1]`
+
+Sub-phase labels for the current cleanup split:
+- `[5.0G-1]` Theme Manifest And Surface File Split
+- `[5.0G-2]` Cascade Cleanup And Override Reduction
+
+### [5.0G-1] [x] - `Theme Manifest And Surface File Split`
+
+Summary:
+- first split the current `v15Theme.css` into a stable manifest plus a small set of surface-owned files while keeping the shipped UI visually equivalent
+- start by separating the most obvious ownership boundaries so later edits can stay local to the surface they belong to
+
+CheckList:
+- [x] keep one canonical top-level theme import path for the app
+- [x] move theme tokens, shared variables, and global base rules into a dedicated foundation file
+- [x] extract shell/dock/window chrome into a dedicated shell-theme file
+- [x] extract the heavier feature-surface families into dedicated files instead of leaving them interleaved in one sheet
+- [x] verify the app still renders with styling parity after the file split
+
+### [5.0G-2] [x] - `Cascade Cleanup And Override Reduction`
+
+Summary:
+- after the first file split lands, clean up the remaining override-heavy cascade so style intent is easier to trust and maintain
+- use this to collapse the late cleanup-pass pattern where the same surface keeps being restated hundreds or thousands of lines later
+
+CheckList:
+- [x] move obvious surface-specific override blocks closer to the surface file that owns them
+- [x] reduce duplicate `:root` and repeated selector-family tuning where one canonical definition should exist
+- [x] keep responsive and narrow-screen overrides grouped predictably instead of scattering them across unrelated surface blocks
+- [x] verify the split theme still preserves the current shipped behavior before any later visual polish work starts
+
+### [5.0H] [ ] - `Camera Controls And View Input Ownership`
+
+Summary:
+- narrow bridge family for cleaning up camera gestures and view-input ownership before `[5.1] Workspace Modes` broadens cross-surface hosting and intent routing
+- use this to stop viewport authoring from fighting camera defaults, lock a Fusion-style model viewport baseline, preserve graph-canvas ownership, and give later camera console commands one real roadmap home
+- keep this as shared view/input cleanup:
+  - not just a sketch phase
+  - not just a viewer phase
+  - not just a console phase
+
+CheckList:
+- [ ] block camera interference during `Sketch Draw` selection and draw interactions
+- [ ] land the Fusion-style model viewport gesture baseline
+- [ ] preserve `Spaghetti Editor` canvas ownership while supporting optional pass-through to the model viewport
+- [ ] add first camera console commands such as `ZOOM`, `PAN`, and `ORBIT`
+- [ ] introduce the later shared view-input owner model for gizmos, widgets, selection, and camera
+- [ ] keep this bridge family narrow:
+  - do not absorb the full workspace-surface host model from `[5.1]`
+  - do not absorb later generic transform/gizmo authoring beyond the shared input-owner seam
+
+Sub-phase labels for the recommended cleanup split:
+- `[5.0H-1]` Sketch Draw Camera Blocking
+- `[5.0H-2]` Fusion-Style Model Viewport Camera Baseline
+- `[5.0H-3]` Spaghetti Canvas And Model Viewport Coexistence
+- `[5.0H-4]` Camera Console Commands
+- `[5.0H-5]` Shared View Input Owner Model
+
+### [5.0H-1] [ ] - `Sketch Draw Camera Blocking`
+
+Summary:
+- stop plain camera navigation from stealing `Sketch Draw` click and drag ownership while the sketch session is active
+- make this the first cleanup cut because it unblocks honest testing of shipped `DS-3` selection and later sketch follow-ons
+
+CheckList:
+- [ ] stop plain camera orbit/pan from stealing `LMB` click or drag inside idle `Sketch Draw`
+- [ ] stop plain camera orbit/pan from stealing `LMB` click or drag while a sketch draw tool is active
+- [ ] make idle `Sketch Draw` reliably own click selection, `Window`, and `Crossing`
+- [ ] keep non-conflicting camera navigation available through intentional alternate gestures during sketch work
+- [ ] verify `Sketch Draw` selection and delete can be tested end to end without orbit interference
+
+### [5.0H-2] [ ] - `Fusion-Style Model Viewport Camera Baseline`
+
+Summary:
+- lock the model viewport onto the preferred Fusion-style gesture map so camera behavior stops drifting across different temporary shortcuts
+- keep this specific to the 3D model viewport rather than broadening it into graph-canvas behavior
+
+CheckList:
+- [ ] change model viewport wheel behavior to consistent mouse-point zoom
+- [ ] change model viewport `MMB` drag to pan
+- [ ] change model viewport `Shift + MMB` drag to orbit
+- [ ] add `MMB` double-click zoom-fit behavior
+- [ ] define the first zoom-fit target rule for visible/selected/active content
+- [ ] verify the new gesture map does not break current viewport authoring interactions
+
+### [5.0H-3] [ ] - `Spaghetti Canvas And Model Viewport Coexistence`
+
+Summary:
+- preserve the graph canvas as its own 2D navigation/edit surface while still allowing explicit access to the model viewport when both are visible
+- keep surface ownership honest instead of letting the model camera silently win from inside the graph canvas
+
+CheckList:
+- [ ] preserve graph-canvas pointer-centered wheel zoom
+- [ ] preserve graph-canvas pan behavior on the canvas surface
+- [ ] preserve plain `LMB` graph editing ownership on nodes, wires, and empty-canvas interactions
+- [ ] explicitly prevent model-camera gestures from stealing default canvas navigation/edit input
+- [ ] add the optional `Ctrl` pass-through bridge for model viewport zoom/pan/orbit
+- [ ] verify the active surface stays obvious and predictable while both surfaces are visible
+
+### [5.0H-4] [ ] - `Camera Console Commands`
+
+Summary:
+- add the first real camera/view command family so camera control is not mouse-only
+- use an AutoCAD-style `ZOOM` baseline, plus simple `PAN` and `ORBIT`, while keeping command targeting honest about which surface is active
+
+CheckList:
+- [ ] add a `ZOOM` / `Z` console command family
+- [ ] add first zoom sub-options:
+  - [ ] `A` = `All`
+  - [ ] `E` = `Extents`
+  - [ ] `P` = `Previous`
+  - [ ] `W` = `Window`
+  - [ ] `O` = `Object`
+- [ ] add `PAN` console command
+- [ ] add `ORBIT` console command
+- [ ] support `Zoom Object` with both preselection and command-first flows
+- [ ] bind camera console commands to the active view surface without confusing the graph canvas with the 3D model camera
+
+### [5.0H-5] [ ] - `Shared View Input Owner Model`
+
+Summary:
+- add one shared view-input owner seam so camera, selection, gizmos, widgets, and later view-toolbar actions all resolve through the same ownership order
+- keep this as the later cleanup cut after the more concrete gesture and console behavior has landed
+
+CheckList:
+- [ ] introduce one resolved viewport input owner model or equivalent arbitration seam
+- [ ] make tool interaction, gizmos, widgets, selection, and camera all resolve through that same ownership order
+- [ ] route future view-toolbar camera actions through the same ownership model
+- [ ] route future gizmo drag sessions through the same ownership model
+- [ ] add enough debug visibility to diagnose which system currently owns the pointer
+- [ ] remove remaining one-off exceptions once the shared owner path is stable
 
 ### [5.1] [~] - `VR / SP` - `Workspace Modes`
 #### Header

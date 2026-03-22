@@ -21,6 +21,10 @@ let viewerSetOnSketchPlanePickTransformChange: ReturnType<typeof vi.fn>
 let viewerSetOnSketchPlanePickTransformCommit: ReturnType<typeof vi.fn>
 let viewerSetOnGeometrySketchHoverPoint: ReturnType<typeof vi.fn>
 let viewerSetOnGeometrySketchConfirmPoint: ReturnType<typeof vi.fn>
+let viewerSetOnGeometrySketchHoverComponent: ReturnType<typeof vi.fn>
+let viewerSetOnGeometrySketchSelectComponents: ReturnType<typeof vi.fn>
+let viewerSetOnGeometrySketchSelectionWindowDraftChange: ReturnType<typeof vi.fn>
+let viewerSetOnGeometrySketchDeleteSelection: ReturnType<typeof vi.fn>
 let viewerSetOnGeometrySketchFinishDraft: ReturnType<typeof vi.fn>
 let viewerSetOnGeometrySketchCancelDraft: ReturnType<typeof vi.fn>
 
@@ -57,6 +61,14 @@ vi.mock('../../viewer/Viewer', () => ({
       viewerSetOnGeometrySketchHoverPoint(...args)
     public setOnGeometrySketchConfirmPoint = (...args: unknown[]) =>
       viewerSetOnGeometrySketchConfirmPoint(...args)
+    public setOnGeometrySketchHoverComponent = (...args: unknown[]) =>
+      viewerSetOnGeometrySketchHoverComponent(...args)
+    public setOnGeometrySketchSelectComponents = (...args: unknown[]) =>
+      viewerSetOnGeometrySketchSelectComponents(...args)
+    public setOnGeometrySketchSelectionWindowDraftChange = (...args: unknown[]) =>
+      viewerSetOnGeometrySketchSelectionWindowDraftChange(...args)
+    public setOnGeometrySketchDeleteSelection = (...args: unknown[]) =>
+      viewerSetOnGeometrySketchDeleteSelection(...args)
     public setOnGeometrySketchFinishDraft = (...args: unknown[]) =>
       viewerSetOnGeometrySketchFinishDraft(...args)
     public setOnGeometrySketchCancelDraft = (...args: unknown[]) =>
@@ -133,6 +145,10 @@ describe('ViewerHost reference loading', () => {
     viewerSetOnSketchPlanePickTransformCommit = vi.fn()
     viewerSetOnGeometrySketchHoverPoint = vi.fn()
     viewerSetOnGeometrySketchConfirmPoint = vi.fn()
+    viewerSetOnGeometrySketchHoverComponent = vi.fn()
+    viewerSetOnGeometrySketchSelectComponents = vi.fn()
+    viewerSetOnGeometrySketchSelectionWindowDraftChange = vi.fn()
+    viewerSetOnGeometrySketchDeleteSelection = vi.fn()
     viewerSetOnGeometrySketchFinishDraft = vi.fn()
     viewerSetOnGeometrySketchCancelDraft = vi.fn()
     globalThis.Worker = MockWorker as unknown as typeof Worker

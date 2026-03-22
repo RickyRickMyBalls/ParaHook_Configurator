@@ -12,14 +12,19 @@ export type Point3 = SketchPoint3
 
 export type GeometrySketchRenderLayer =
   | 'component'
+  | 'hoveredComponent'
+  | 'selectedComponent'
   | 'profile'
   | 'selectedProfile'
   | 'draftChain'
   | 'draftGhost'
+  | 'selectionWindowWindow'
+  | 'selectionWindowCrossing'
 
 export type GeometrySketchRenderPolyline = {
   layer: GeometrySketchRenderLayer
   points: Point3[]
+  componentRowId?: string
 }
 
 const BEZIER_STEPS = 24
@@ -136,6 +141,20 @@ const sampleCircle = (center: Point2, edge: Point2, steps: number): Point2[] => 
   return out
 }
 
+const rectangleCornersFromOppositePoints = (a: Point2, b: Point2): Point2[] => {
+  const minX = Math.min(a.x, b.x)
+  const maxX = Math.max(a.x, b.x)
+  const minY = Math.min(a.y, b.y)
+  const maxY = Math.max(a.y, b.y)
+  return [
+    { x: minX, y: minY },
+    { x: maxX, y: minY },
+    { x: maxX, y: maxY },
+    { x: minX, y: maxY },
+    { x: minX, y: minY },
+  ]
+}
+
 const componentToPolyline2 = (component: SketchComponent): Point2[] => {
   if (component.type === 'line') {
     return [resolveVec2Expression(component.a), resolveVec2Expression(component.b)]
@@ -160,23 +179,163 @@ const componentToPolyline2 = (component: SketchComponent): Point2[] => {
   if (component.type === 'rectangle') {
     const a = resolveVec2Expression(component.a)
     const b = resolveVec2Expression(component.b)
-    const minX = Math.min(a.x, b.x)
-    const maxX = Math.max(a.x, b.x)
-    const minY = Math.min(a.y, b.y)
-    const maxY = Math.max(a.y, b.y)
-    return [
-      { x: minX, y: minY },
-      { x: maxX, y: minY },
-      { x: maxX, y: maxY },
-      { x: minX, y: maxY },
-      { x: minX, y: minY },
-    ]
+    return rectangleCornersFromOppositePoints(a, b)
   }
   return sampleCircle(
     resolveVec2Expression(component.center),
     resolveVec2Expression(component.edge),
     CIRCLE_STEPS,
   )
+}
+
+type GeometrySketchSelectableEntity = {
+  selectionId: string
+  componentIds: string[]
+  polylines: Point2[][]
+}
+
+const buildSelectableEntities = (
+  components: readonly SketchComponent[],
+): GeometrySketchSelectableEntity[] => {
+  const entitiesById = new Map<string, GeometrySketchSelectableEntity>()
+  const entities: GeometrySketchSelectableEntity[] = []
+  for (const component of components) {
+    const selectionId =
+      component.type === 'line' && typeof component.drawGroupId === 'string'
+        ? component.drawGroupId
+        : component.rowId
+    let entity = entitiesById.get(selectionId)
+    if (entity === undefined) {
+      entity = {
+        selectionId,
+        componentIds: [],
+        polylines: [],
+      }
+      entitiesById.set(selectionId, entity)
+      entities.push(entity)
+    }
+    entity.componentIds.push(component.rowId)
+    entity.polylines.push(componentToPolyline2(component))
+  }
+  return entities
+}
+
+const normalizeSelectionRect = (
+  anchor: Point2,
+  current: Point2,
+): { minX: number; maxX: number; minY: number; maxY: number } => ({
+  minX: Math.min(anchor.x, current.x),
+  maxX: Math.max(anchor.x, current.x),
+  minY: Math.min(anchor.y, current.y),
+  maxY: Math.max(anchor.y, current.y),
+})
+
+const isPointInsideRect = (
+  point: Point2,
+  rect: { minX: number; maxX: number; minY: number; maxY: number },
+): boolean =>
+  point.x >= rect.minX - 1e-6 &&
+  point.x <= rect.maxX + 1e-6 &&
+  point.y >= rect.minY - 1e-6 &&
+  point.y <= rect.maxY + 1e-6
+
+const getSegmentOrientation = (a: Point2, b: Point2, c: Point2): number =>
+  (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x)
+
+const isPointOnSegment = (a: Point2, b: Point2, point: Point2): boolean =>
+  point.x >= Math.min(a.x, b.x) - 1e-6 &&
+  point.x <= Math.max(a.x, b.x) + 1e-6 &&
+  point.y >= Math.min(a.y, b.y) - 1e-6 &&
+  point.y <= Math.max(a.y, b.y) + 1e-6
+
+const doSegmentsIntersect = (a0: Point2, a1: Point2, b0: Point2, b1: Point2): boolean => {
+  const o1 = getSegmentOrientation(a0, a1, b0)
+  const o2 = getSegmentOrientation(a0, a1, b1)
+  const o3 = getSegmentOrientation(b0, b1, a0)
+  const o4 = getSegmentOrientation(b0, b1, a1)
+  if (
+    ((o1 > 0 && o2 < 0) || (o1 < 0 && o2 > 0)) &&
+    ((o3 > 0 && o4 < 0) || (o3 < 0 && o4 > 0))
+  ) {
+    return true
+  }
+  if (Math.abs(o1) < 1e-6 && isPointOnSegment(a0, a1, b0)) return true
+  if (Math.abs(o2) < 1e-6 && isPointOnSegment(a0, a1, b1)) return true
+  if (Math.abs(o3) < 1e-6 && isPointOnSegment(b0, b1, a0)) return true
+  if (Math.abs(o4) < 1e-6 && isPointOnSegment(b0, b1, a1)) return true
+  return false
+}
+
+const doesPolylineIntersectRect = (
+  points: readonly Point2[],
+  rect: { minX: number; maxX: number; minY: number; maxY: number },
+): boolean => {
+  if (points.some((point) => isPointInsideRect(point, rect))) {
+    return true
+  }
+  const rectCorners: Point2[] = [
+    { x: rect.minX, y: rect.minY },
+    { x: rect.maxX, y: rect.minY },
+    { x: rect.maxX, y: rect.maxY },
+    { x: rect.minX, y: rect.maxY },
+  ]
+  const rectEdges: Array<[Point2, Point2]> = [
+    [rectCorners[0], rectCorners[1]],
+    [rectCorners[1], rectCorners[2]],
+    [rectCorners[2], rectCorners[3]],
+    [rectCorners[3], rectCorners[0]],
+  ]
+  for (let index = 1; index < points.length; index += 1) {
+    const start = points[index - 1]
+    const end = points[index]
+    if (
+      start === undefined ||
+      end === undefined ||
+      Math.max(start.x, end.x) < rect.minX ||
+      Math.min(start.x, end.x) > rect.maxX ||
+      Math.max(start.y, end.y) < rect.minY ||
+      Math.min(start.y, end.y) > rect.maxY
+    ) {
+      continue
+    }
+    if (rectEdges.some(([edgeStart, edgeEnd]) => doSegmentsIntersect(start, end, edgeStart, edgeEnd))) {
+      return true
+    }
+  }
+  return false
+}
+
+const isPolylineFullyInsideRect = (
+  points: readonly Point2[],
+  rect: { minX: number; maxX: number; minY: number; maxY: number },
+): boolean => points.every((point) => isPointInsideRect(point, rect))
+
+export const expandGeometrySketchSelectionFromRowId = (
+  components: readonly SketchComponent[],
+  rowId: string | null,
+): string[] => {
+  if (rowId === null) {
+    return []
+  }
+  const entities = buildSelectableEntities(components)
+  const entity = entities.find((candidate) => candidate.componentIds.includes(rowId))
+  return entity?.componentIds ?? []
+}
+
+export const collectGeometrySketchSelectionIds = (
+  components: readonly SketchComponent[],
+  anchor: Point2,
+  current: Point2,
+  mode: 'window' | 'crossing',
+): string[] => {
+  const rect = normalizeSelectionRect(anchor, current)
+  return buildSelectableEntities(components)
+    .filter((entity) =>
+      mode === 'window'
+        ? entity.polylines.every((points) => isPolylineFullyInsideRect(points, rect))
+        : entity.polylines.some((points) => doesPolylineIntersectRect(points, rect)),
+    )
+    .flatMap((entity) => entity.componentIds)
 }
 
 export const projectSketchPointToWorld = (
@@ -218,6 +377,7 @@ export const buildGeometrySketchRenderPolylines = (
   const componentPolylines = overlay.components
     .map((component) => ({
       layer: 'component' as const,
+      componentRowId: component.rowId,
       points: polyline2To3(
         overlay.plane,
         overlay.planeTransform,
@@ -226,6 +386,46 @@ export const buildGeometrySketchRenderPolylines = (
       ),
     }))
     .filter((polyline) => polyline.points.length >= 2)
+
+  const hoveredIds = new Set(
+    expandGeometrySketchSelectionFromRowId(
+      overlay.components,
+      overlay.hoveredComponentId ?? null,
+    ),
+  )
+  const selectedIds = new Set(overlay.selectedComponentIds ?? [])
+  const hoveredPolylines =
+    overlay.mode === 'draw' && overlay.activeTool === null
+      ? overlay.components
+          .filter((component) => hoveredIds.has(component.rowId) && !selectedIds.has(component.rowId))
+          .map((component) => ({
+            layer: 'hoveredComponent' as const,
+            componentRowId: component.rowId,
+            points: polyline2To3(
+              overlay.plane,
+              overlay.planeTransform,
+              componentToPolyline2(component),
+              COMPONENT_ELEVATION + 0.015,
+            ),
+          }))
+          .filter((polyline) => polyline.points.length >= 2)
+      : []
+  const selectedPolylines =
+    overlay.mode === 'draw' && overlay.activeTool === null
+      ? overlay.components
+          .filter((component) => selectedIds.has(component.rowId))
+          .map((component) => ({
+            layer: 'selectedComponent' as const,
+            componentRowId: component.rowId,
+            points: polyline2To3(
+              overlay.plane,
+              overlay.planeTransform,
+              componentToPolyline2(component),
+              COMPONENT_ELEVATION + 0.02,
+            ),
+          }))
+          .filter((polyline) => polyline.points.length >= 2)
+      : []
 
   if (overlay.mode === 'draw') {
     const drawDraftPolylines: GeometrySketchRenderPolyline[] = []
@@ -246,6 +446,10 @@ export const buildGeometrySketchRenderPolylines = (
       const ghostStart =
         overlay.activeTool === 'line'
           ? draft.points[0] ?? null
+          : overlay.activeTool === 'rectangle'
+            ? draft.points[0] ?? null
+          : overlay.activeTool === 'circle'
+            ? draft.points[0] ?? null
           : overlay.activeTool === 'pline'
             ? draft.points[draft.points.length - 1] ?? null
             : null
@@ -255,19 +459,50 @@ export const buildGeometrySketchRenderPolylines = (
         ghostEnd !== null &&
         (ghostStart.x !== ghostEnd.x || ghostStart.y !== ghostEnd.y)
       ) {
+        const ghostPoints =
+          overlay.activeTool === 'rectangle'
+            ? rectangleCornersFromOppositePoints(ghostStart, ghostEnd)
+            : overlay.activeTool === 'circle'
+              ? sampleCircle(ghostStart, ghostEnd, CIRCLE_STEPS)
+            : [ghostStart, ghostEnd]
         drawDraftPolylines.push({
           layer: 'draftGhost',
           points: polyline2To3(
             overlay.plane,
             overlay.planeTransform,
-            [ghostStart, ghostEnd],
+            ghostPoints,
             DRAFT_GHOST_ELEVATION,
           ),
         })
       }
     }
 
-    return [...componentPolylines, ...drawDraftPolylines]
+    if (overlay.selectionWindowDraft != null) {
+      const { anchor, current, mode } = overlay.selectionWindowDraft
+      const windowPoints = polyline2To3(
+        overlay.plane,
+        overlay.planeTransform,
+        [
+          { x: anchor.x, y: anchor.y },
+          { x: current.x, y: anchor.y },
+          { x: current.x, y: current.y },
+          { x: anchor.x, y: current.y },
+          { x: anchor.x, y: anchor.y },
+        ],
+        DRAFT_GHOST_ELEVATION + 0.01,
+      )
+      drawDraftPolylines.push({
+        layer: mode === 'window' ? 'selectionWindowWindow' : 'selectionWindowCrossing',
+        points: windowPoints,
+      })
+    }
+
+    return [
+      ...componentPolylines,
+      ...hoveredPolylines,
+      ...selectedPolylines,
+      ...drawDraftPolylines,
+    ]
   }
 
   if (overlay.mode !== 'review') {

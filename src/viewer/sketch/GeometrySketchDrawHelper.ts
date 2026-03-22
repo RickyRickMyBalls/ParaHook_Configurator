@@ -291,7 +291,10 @@ export class GeometrySketchDrawHelper {
       overlay !== null &&
       overlay.mode === 'draw' &&
       overlay.drawDraft !== null &&
-      (overlay.activeTool === 'line' || overlay.activeTool === 'pline')
+      (overlay.activeTool === 'line' ||
+        overlay.activeTool === 'pline' ||
+        overlay.activeTool === 'rectangle' ||
+        overlay.activeTool === 'circle')
     this.group.visible = showDrawPreview
     if (!showDrawPreview || overlay === null || overlay.drawDraft === null) {
       setLinePoints(this.chainLine, [])
@@ -321,7 +324,9 @@ export class GeometrySketchDrawHelper {
     this.chainLine.visible = false
 
     const anchorPoint =
-      overlay.activeTool === 'line'
+      overlay.activeTool === 'line' ||
+      overlay.activeTool === 'rectangle' ||
+      overlay.activeTool === 'circle'
         ? overlay.drawDraft.points[0] ?? null
         : overlay.drawDraft.points[overlay.drawDraft.points.length - 1] ?? null
     const activeDraftAnchorMarker =
@@ -352,13 +357,23 @@ export class GeometrySketchDrawHelper {
     }
 
     const ghostStart =
-      overlay.activeTool === 'line'
+      overlay.activeTool === 'line' ||
+      overlay.activeTool === 'rectangle' ||
+      overlay.activeTool === 'circle'
         ? overlay.drawDraft.points[0] ?? null
         : overlay.drawDraft.points[overlay.drawDraft.points.length - 1] ?? null
     const ghostEnd = overlay.drawDraft.hoverPoint
-    if (ghostStart !== null && ghostEnd !== null) {
-      setLinePoints(this.ghostLine, [])
-      this.ghostLine.visible = false
+    if (
+      overlay.activeTool === 'circle' &&
+      ghostStart !== null &&
+      ghostEnd !== null &&
+      (ghostStart.x !== ghostEnd.x || ghostStart.y !== ghostEnd.y)
+    ) {
+      setLinePoints(this.ghostLine, [
+        new Vector3(ghostStart.x, ghostStart.y, DRAFT_GEOMETRY_ELEVATION),
+        new Vector3(ghostEnd.x, ghostEnd.y, DRAFT_GEOMETRY_ELEVATION),
+      ])
+      this.ghostLine.visible = true
     } else {
       setLinePoints(this.ghostLine, [])
       this.ghostLine.visible = false
@@ -439,9 +454,7 @@ export class GeometrySketchDrawHelper {
   ): { point: { x: number; y: number }; snapTarget: 'origin' | null } | null {
     if (
       this.overlay === null ||
-      this.overlay.mode !== 'draw' ||
-      this.overlay.drawDraft === null ||
-      (this.overlay.activeTool !== 'line' && this.overlay.activeTool !== 'pline')
+      this.overlay.mode !== 'draw'
     ) {
       return null
     }
@@ -465,7 +478,14 @@ export class GeometrySketchDrawHelper {
       return null
     }
 
+    const supportsOriginSnap =
+      this.overlay.drawDraft !== null &&
+      (this.overlay.activeTool === 'line' ||
+        this.overlay.activeTool === 'pline' ||
+        this.overlay.activeTool === 'rectangle' ||
+        this.overlay.activeTool === 'circle')
     const snappedToOrigin =
+      supportsOriginSnap &&
       this.overlay.ui.snapEnabled &&
       planeOrigin
         .clone()

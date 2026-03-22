@@ -3,6 +3,32 @@
 ## Doc Header
 
 ### Doc History
+78. 2026-03-22 12:32: Logged the camera-controls follow-up that adds the new `[5.0H] Camera Controls And View Input Ownership` roadmap family with `[5.0H-1]` through `[5.0H-5]`, reworks the moved `Camera_Controls-Index.md` into the umbrella family index, and updates the docs map to the new folderized camera-controls path
+77. 2026-03-22 12:31: Logged the roadmap follow-up that checks off `[5.0G]`, `[5.0G-1]`, and `[5.0G-2]` after the theme split and cleanup both landed, so the live lane now reads as fully completed instead of leaving the shipped theme-system work only implied by changelog and architecture updates
+76. 2026-03-22 12:26: Logged the `v15Theme.md` follow-up that marks `[5.0G-2]` complete after the CSS owner-cleanup pass landed, so the architecture note now reflects the current post-cleanup theme state instead of still describing the second `:root`, `Spaghetti` override chronology, and `base.css` owner leaks as open work
+75. 2026-03-22 12:16: Logged the `Camera_Controls.md` follow-up that breaks the new camera/input architecture into five safe rollout phases, so the note now separates `Sketch Draw` ownership blocking, Fusion-style model gestures, graph-canvas coexistence, console camera commands, and the later shared viewport-input owner model instead of leaving one large unsequenced cleanup block
+74. 2026-03-22 12:16: Logged the `Camera_Controls.md` follow-up that adds the first AutoCAD-style camera-console suggestions, so the architecture note now recommends a `zoom` / `z` command family with `All`, `Extents`, `Previous`, `Window`, and `Object` sub-options plus simple `pan` and `orbit` view commands
+73. 2026-03-22 12:16: Logged the `Camera_Controls.md` follow-up that adds the `Ctrl` pass-through suggestion for combined graph-plus-model work, so the architecture note now recommends canvas-local zoom/pan/edit by default while `Ctrl + wheel` and `Ctrl`-modified middle-mouse gestures explicitly forward camera navigation to the model viewport
+72. 2026-03-22 12:11: Logged the `Camera_Controls.md` follow-up that separates `Spaghetti Editor` canvas navigation from model-view camera navigation, so the architecture note now explicitly keeps pointer-centered canvas zoom, canvas pan, and graph-edit `LMB` ownership from being stolen by viewer camera controls while the user is working in the node canvas
+71. 2026-03-22 12:06: Logged the `v15Theme.md` follow-up that marks `[5.0G-1]` complete and makes `[5.0G-2]` implementation-ready around the live post-split cleanup hotspots, while also capturing the same phase-boundary decision in the active Codex notes so the theme lane now treats the next pass as in-place cleanup instead of another decomposition phase
+70. 2026-03-22 11:53: Logged the `Camera_Controls.md` follow-up that locks the preferred baseline gesture map toward Fusion-style navigation, so the architecture note now treats scroll as mouse-point zoom, `MMB` drag as pan, `Shift + MMB` drag as orbit, and `MMB` double-click as zoom-fit while preserving plain `LMB` for authoring interactions
+69. 2026-03-22 11:53: Added the new `Camera_Controls.md` architecture note, updated the docs map, and captured the viewport input-ownership direction in the active Codex notes so camera navigation cleanup now has one canonical planning surface instead of living only in sketch-selection chat context
+68. 2026-03-22 11:48: Logged the shipped `3.2B-DrawSketch-3` selection-and-delete implementation, moved the standalone phase record into `Sketch/Shipped/`, and synced `Sketch.md` plus `roadmap.md` so the sketch docs now treat idle entity selection, `Window` / `Crossing` box behavior, and delete as landed `Sketch Draw` behavior instead of future planning
+67. 2026-03-22 11:40: Logged the `v15Theme.md` rewrite that turns the initial architecture note into a much more implementation-ready two-phase plan, locking the current code seam read, the recommended `src/app/theme/` folder/file layout, and the exact low-risk split strategy without adding more roadmap phases
+66. 2026-03-22 11:15: Logged the `3.2B-DrawSketch-3` implementation-readiness follow-up that separates committed entity selection from profile review, locks it onto idle `Sketch Draw`, and records the current code seams plus replace-only selection-set behavior for the first cut
+65. 2026-03-22 11:03: Logged the `3.2B-DrawSketch-3` correction that moves selection out of a peer tool slot and into idle/review `Sketch Draw`, so the active sketch docs now match the desired AutoCAD-like flow where draw-tool commits fall back to selection and `Enter` / `Previous` re-arm the last command
+64. 2026-03-22 10:58: Logged the `3.2B-DrawSketch-3` follow-up that adds blue `Window Selection` and green `Crossing Selection`, so the active sketch docs now treat delete as operating on a real selection set instead of the earlier single-select-only wording
+63. 2026-03-22 10:43: Logged the `3.2B-DrawSketch-3` refocus from a stale parent-bucket placeholder into `Selection And Delete`, so the active sketch docs and roadmap now treat that phase as the first single-entity selection plus delete pass instead of a broad mixed editing umbrella
+62. 2026-03-22 10:35: Logged the new `v15Theme.md` architecture note and updated the docs map so the repo now has one canonical planning surface for the oversized app theme stylesheet, its target split strategy, and the narrow `[5.0G]` cleanup direction before any implementation split starts
+61. 2026-03-22 10:35: Logged the shipped `3.2B-DrawSketch-5` circle implementation, moved the standalone phase record into `Sketch/Shipped/`, and synced `Sketch.md` plus the parent `DrawSketch-3` bucket so the sketch docs now treat `Circle` / `cc` center-then-radius draw sessions as landed behavior instead of future planning
+60. 2026-03-22 10:23: Logged the roadmap follow-up that adds `[5.0G] Theme System And Stylesheet Decomposition` plus the new `[5.0G-1]` and `[5.0G-2]` subphases, so the oversized `v15Theme.css` cleanup now has a real bridge-phase home under the pre-workspace shell lane instead of being buried inside `[5.0E]` naming cleanup or `[5.0F]` AppShell extraction
+59. 2026-03-22 10:20: Logged the `3.2B-DrawSketch-5` viewport-flow clarification that makes the circle phase implementation-ready at the interaction level, locking the live console path as `Center > Vec2` then `Radius > Float`, with mouse movement updating those values in the viewport and clicks acting as the commit for center then radius
+58. 2026-03-22 10:15: Logged the `3.2B-DrawSketch-5` correction that changes the primary circle typed flow from `cc > Vec2 > Vec2` to `cc > Vec2 > Float`, so the first circle phase now reads as center-then-radius for the user while still allowing viewport radius-witness picks and preserving the current internal `center + edge` storage shape
+57. 2026-03-22 10:10: Logged the `3.2B-DrawSketch-5` follow-up that makes `Circle Tool And Center-Radius Workflow` implementation-ready, locking the typed flow as `cc > Vec2 > Vec2`, the first committed `center + edge` circle shape, the current draw-tool routing gap, and the first-cut boundary that excludes diameter/tangent variants
+56. 2026-03-22 08:35: Logged the shipped `3.2B-DrawSketch-4` rectangle implementation, moved the standalone phase record into `Sketch/Shipped/`, and synced `Sketch.md` plus the active Codex notes so the sketch docs now treat `Rectangle` / `rec` two-point draw sessions as landed behavior instead of future planning
+55. 2026-03-22 08:06: Logged the `3.2B-DrawSketch-4` follow-up that makes `Rectangle Tool And Corner Workflow` implementation-ready, locking the typed flow as `rec > Vec2 > Vec2`, immediate second-point commit, axis-aligned two-corner geometry, and the current command/helper gaps that the runtime cut must close
+54. 2026-03-22 07:58: Logged the sketch-doc numbering cleanup that renames the new draw-tool follow-ons from `3A / 3B / 3C` to `[3.2B-DrawSketch-4]`, `[3.2B-DrawSketch-5]`, and `[3.2B-DrawSketch-6]`, so the `DrawSketch` family now reads as one clean numeric sequence instead of mixing numbered and letter-suffixed phase ids
+53. 2026-03-22 07:47: Logged the sketch-planning follow-up that splits the broad `DrawSketch-3` bucket into concrete `Rectangle`, `Circle`, and endpoint-snap subphases, so the next AutoCAD-like sketch tool work now has dedicated future docs, updated architecture notes, and a durable Codex planning note instead of staying buried in one mixed placeholder
 52. 2026-03-21 23:38: Logged the shipped `3.2B-DrawSketch-2` implementation, moved the standalone phase record into `Sketch/Shipped/`, and synced `Sketch.md` plus `roadmap.md` so the docs now treat multi-step `Line` / `PLine` command sessions, live `P1 / P2 / P3` console status, and local `Previous` / `undo` as landed runtime behavior instead of future planning
 51. 2026-03-21 22:24: Logged the shipped `3.2B-S7` transform-history implementation and moved the phase record into `Sketch/Shipped/`, so the sketch docs now record persistent toolbar-visible move history, viewport history segments, and the shipped `Merge History` / `Lock` behavior instead of leaving `S7` in future planning
 50. 2026-03-21 22:00: Logged the shipped `3.2B-S8` viewport shortcut follow-up in `CHANGELOG.md`, so the `M` key now re-enters move correctly after mouse-driven sketch-plane move accepts instead of staying stuck when the session returns to root with translate still active
@@ -91,6 +117,389 @@ Do not use it for:
 - keep numbering sequential unless the user explicitly asks for a renumber pass
 
 ## Doc Body
+
+<!-- ENTRY 148 -->
+### [148] - 2026-03-22 12:31 - `DOC - Mark Theme System Roadmap Lane Complete`
+<!-- ENTRY 148 -->
+HUMAN SUMMARY: Updated the roadmap lane checkboxes for the theme-system cleanup family. The live roadmap now marks `[5.0G]`, `[5.0G-1]`, and `[5.0G-2]` as complete so the lane matches the shipped manifest split, the landed cascade cleanup, and the already-updated `v15Theme.md` architecture note.
+
+#### Scope
+- Updated the live `[5.0G]` roadmap lane and its two subphase blocks in `docs/Human-Plans/roadmap/roadmap.md`.
+- Kept the change limited to status markers and local checklist completion for the shipped theme lane.
+- Logged the roadmap sync in the permanent doc log.
+
+#### Summary
+- Checked off the top lane quick-list entries for `[5.0G]`, `[5.0G-1]`, and `[5.0G-2]`.
+- Marked the main `[5.0G]` section header as complete.
+- Marked the `[5.0G-1]` and `[5.0G-2]` subphase headers and checklist items as complete.
+
+#### Files Changed
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was a roadmap/doc sync only; the shipped runtime CSS work remains recorded in `docs/CHANGELOG.md`.
+
+<!-- ENTRY 147 -->
+### [147] - 2026-03-22 12:26 - `DOC - Mark v15Theme Phase 2 Complete`
+<!-- ENTRY 147 -->
+HUMAN SUMMARY: Updated `v15Theme.md` to reflect that the Phase 2 owner-cleanup pass is now implemented. The doc now treats the second `:root` removal, the `Spaghetti` override consolidation, and the `base.css` surface-owner cleanup as landed behavior instead of still-open work.
+
+#### Scope
+- Updated `docs/Human-Plans/Architecture/v15Theme.md` so the theme architecture note matches the current post-cleanup code.
+- Kept this doc follow-up focused on status and current-state accuracy instead of reopening the theme plan.
+- Logged the documentation update in the permanent doc log.
+
+#### Summary
+- Marked `[5.0G-2]` complete in `v15Theme.md` and checked off the Phase 2 checklist.
+- Updated the short version and current ownership read so they now describe the live cleaned-up theme state.
+- Replaced the earlier open-hotspot wording with completed Phase 2 outcomes for:
+  - second global `:root` removal
+  - `Spaghetti` override consolidation
+  - browser/radio owner cleanup out of `foundation/base.css`
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/v15Theme.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This entry logs the doc sync only; the shipped runtime CSS work is recorded separately in `docs/CHANGELOG.md`.
+
+<!-- ENTRY 146 -->
+### [146] - 2026-03-22 12:06 - `DOC - Mark v15Theme Phase 1 Complete And Lock Phase 2 Cleanup Spec`
+<!-- ENTRY 146 -->
+HUMAN SUMMARY: Updated `v15Theme.md` to reflect that the theme manifest split has landed, checked off the full `[5.0G-1]` phase, and rewrote `[5.0G-2]` around the real post-split cleanup hotspots in `foundation/`, `viewport-overlay`, and `spaghetti`. Also captured the same planning decision in the active Codex notes so the repo now treats the next theme pass as in-place cleanup of the landed split rather than a new decomposition phase.
+
+#### Scope
+- Updated `docs/Human-Plans/Architecture/v15Theme.md` to match the live post-Phase-1 theme layout and make `[5.0G-2]` implementation-ready.
+- Added the corresponding phase-boundary note to `docs/Human-Plans/CodexNotes/12_CodexChatNotes.md`.
+- Logged this documentation follow-up in the permanent doc log.
+
+#### Summary
+- Marked `[5.0G-1]` complete in `v15Theme.md` and checked off its implementation checklist.
+- Updated the current theme seam read so the doc now reflects the live manifest-plus-subfiles layout instead of the earlier single-file pre-split state.
+- Reworked `[5.0G-2]` around concrete cleanup targets:
+  - second global `:root` / `--sp-*` token ownership
+  - late `Spaghetti` override-history clusters
+  - `foundation/base.css` shared-primitives boundary
+  - `viewport-overlay.css` plus `ViewToolbar*` ownership
+- Kept the theme lane at `2` phases and explicitly did not add a new rename-only or extra decomposition phase.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/v15Theme.md`
+- `docs/Human-Plans/CodexNotes/12_CodexChatNotes.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- No runtime code changed in this pass.
+- The Phase 2 plan is intentionally scoped as cleanup within the landed `9`-file theme split, not a broader workspace-mode or naming pass.
+
+<!-- ENTRY 145 -->
+### [145] - 2026-03-22 11:40 - `DOC - Make v15Theme Architecture Doc Implementation Ready`
+<!-- ENTRY 145 -->
+HUMAN SUMMARY: Reworked `v15Theme.md` into a much more implementation-ready planning surface. The doc now locks the current code seam read, names the exact `src/app/theme/` folders and files the split should create, keeps the phase count at the minimum safe `2`, and gives both phases a concrete checklist, decision block, and implementation spec.
+
+#### Scope
+- Rewrote `docs/Human-Plans/Architecture/v15Theme.md` into a more execution-facing architecture doc.
+- Kept the roadmap family at `[5.0G]`, `[5.0G-1]`, and `[5.0G-2]` instead of adding more phases.
+- Logged the document rewrite in the permanent doc log.
+
+#### Summary
+- Added a concrete current-code seam read covering the live import path, current theme folder shape, and the main TSX owner/verification files.
+- Locked the recommended first-pass folder/file structure under `src/app/theme/foundation/`, `src/app/theme/shell/`, and `src/app/theme/surfaces/`.
+- Reworked both phases into the requested structure:
+  - `Info`
+  - `Checklist`
+  - `Decision / Questions`
+  - `Implementation Spec`
+- Locked the recommended low-risk direction:
+  - keep `src/index.css` importing `v15Theme.css`
+  - keep `v15Theme.css` as the manifest file
+  - keep class names stable in Phase 1
+  - reserve cleanup and override reduction for Phase 2
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/v15Theme.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- No runtime code changed in this pass.
+- The phase count intentionally stayed at `2` because that is the minimum safe split between parity extraction and later cascade cleanup.
+
+<!-- ENTRY 144 -->
+### [144] - 2026-03-22 10:35 - `DOC - Add v15Theme Architecture Surface`
+<!-- ENTRY 144 -->
+HUMAN SUMMARY: Added a new architecture doc for the app theme system and registered it in the docs map. The repo now has one canonical planning surface for `src/app/theme/v15Theme.css`, including its current ownership read, the recommended split strategy, and the intended meaning of the new `[5.0G]` roadmap family.
+
+#### Scope
+- Created `docs/Human-Plans/Architecture/v15Theme.md` as a new architecture/planning doc.
+- Updated `docs/Doc-Index.md` so the architecture docs map includes the new theme doc.
+- Kept this pass document-only and did not change runtime styling files.
+
+#### Summary
+- Added a new `v15Theme.md` doc with:
+  - current-state read of the single imported `v15Theme.css` system
+  - target manifest-plus-surface-file split direction
+  - ownership rules for global tokens versus surface-owned styling
+  - phase index alignment for `[5.0G-1]` and `[5.0G-2]`
+- Recorded that the theme cleanup should stay structural and parity-focused rather than becoming a redesign or styling-library migration.
+- Registered the new doc in the canonical docs index.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/v15Theme.md`
+- `docs/Doc-Index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- No runtime code changed in this pass.
+- The new doc is intended to sit beside `Workspace-Modes.md` and `AppShell/AppShell-Index.md`, not replace either one.
+
+<!-- ENTRY 143 -->
+### [143] - 2026-03-22 10:35 - `DOC - Mark DrawSketch-5 Circle Phase Shipped`
+<!-- ENTRY 143 -->
+HUMAN SUMMARY: Marked `DrawSketch-5` as shipped after the circle implementation landed. The sketch docs now treat `Circle` / `cc` as real shipped `Sketch Draw` behavior, moved the standalone circle phase record from `Future/` to `Shipped/`, and updated the parent draw bucket so only endpoint snap remains open in that immediate follow-on lane.
+
+#### Scope
+- Marked the mirrored `DrawSketch-5` section in `Sketch.md` as shipped and synced its landed runtime behavior.
+- Moved the standalone `DrawSketch-5` phase record into `Sketch/Shipped/`.
+- Updated the parent `DrawSketch-3` future bucket so it now reads `Circle` as landed and keeps endpoint snap as the next open follow-on.
+
+#### Summary
+- Added a new `Sketch.md` doc-history note that `DrawSketch-5` landed on `2026-03-22`.
+- Replaced the open/future circle planning block in `Sketch.md` with shipped behavior, console/status, and implementation-notes sections.
+- Converted the standalone circle phase doc into a shipped record under `Sketch/Shipped/`.
+- Updated the parent `DrawSketch-3` bucket to move `Circle` into the landed list and narrow the next implementation order down to endpoint snap.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Sketch.md`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Future/Sketch_Phase 3.2B-DrawSketch-3 - Selection, Editing, And Richer Sketch Feedback.md`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Shipped/Sketch_Phase 3.2B-DrawSketch-5 - Circle Tool And Center-Radius Workflow.md`
+
+#### Notes
+- No new planning decisions were introduced in this pass; this was a status-sync after the shipped runtime implementation.
+- The old `Future/Sketch_Phase 3.2B-DrawSketch-5 - Circle Tool And Center-Radius Workflow.md` path no longer exists because that record was moved into `Shipped/`.
+
+<!-- ENTRY 142 -->
+### [142] - 2026-03-22 10:23 - `DOC - Add Theme System Decomposition Phase To Roadmap`
+<!-- ENTRY 142 -->
+HUMAN SUMMARY: Added a new roadmap bridge phase for the oversized theme stylesheet cleanup. The roadmap now gives `v15Theme.css` decomposition its own `[5.0G]` family with one first cut for the manifest-plus-file split and one follow-on for cascade/override cleanup, instead of hiding that work inside editor naming or `AppShell` extraction.
+
+#### Scope
+- Updated the live roadmap quick checklist under Lane `[5]`.
+- Added a new parent `[5.0G]` roadmap section plus the `[5.0G-1]` and `[5.0G-2]` child sections.
+- Kept the existing `[5.0E]` and `[5.0F]` phase ownership intact instead of widening either phase to absorb theme-system cleanup.
+
+#### Summary
+- Added `[5.0G]` as the pre-workspace home for theme-system and stylesheet decomposition.
+- Added `[5.0G-1]` for the stable theme manifest and first surface-owned file split.
+- Added `[5.0G-2]` for later cascade cleanup, override reduction, and ownership hardening after the split.
+- Recorded that this work should stay structural/parity-focused and should not turn into a CSS-modules migration, styling-library migration, or visual redesign pass.
+
+#### Files Changed
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- No runtime code changed in this pass.
+- The new phase family intentionally sits beside `[5.0E]` and `[5.0F]` rather than being nested under either one.
+
+<!-- ENTRY 141 -->
+### [141] - 2026-03-22 10:20 - `DOC - Tighten DrawSketch-5 Circle Viewport Console Flow`
+<!-- ENTRY 141 -->
+HUMAN SUMMARY: Tightened `DrawSketch-5` again so the circle phase now explicitly defines the viewport-assisted console path instead of leaving it implied. The docs now lock stage 1 as live `Center > Vec2(N,N)` hover feedback and stage 2 as live `Radius > Float(N)` distance feedback, with clicks committing center and radius respectively.
+
+#### Scope
+- Updated the mirrored `DrawSketch-5` section in `Sketch.md`.
+- Updated the standalone future phase doc for `3.2B-DrawSketch-5`.
+- Focused only on the user-facing interaction contract and did not change the already-locked component storage shape.
+
+#### Summary
+- Added the explicit live command-line wording for stage 1 and stage 2.
+- Locked stage 1 mouse movement to update the live center `Vec2`.
+- Locked stage 2 mouse movement to update the live radius `Float` from center-to-cursor distance.
+- Locked click behavior so the first click commits center and the second click commits radius.
+- Added the viewport preview requirement for a radius witness line plus live circle ghost during stage 2.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Sketch.md`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Future/Sketch_Phase 3.2B-DrawSketch-5 - Circle Tool And Center-Radius Workflow.md`
+
+#### Notes
+- No runtime code changed in this pass.
+- `DrawSketch-5` now has an explicit viewport-plus-console interaction contract for implementation.
+
+<!-- ENTRY 140 -->
+### [140] - 2026-03-22 10:15 - `DOC - Correct DrawSketch-5 Circle Flow To Center Plus Radius`
+<!-- ENTRY 140 -->
+HUMAN SUMMARY: Corrected the just-tightened `DrawSketch-5` circle phase so the primary typed command is now `cc > Vec2 > Float` instead of `cc > Vec2 > Vec2`. The docs now match the intended user-facing flow of placing a center point and then specifying a radius, while still allowing viewport radius-witness picking and keeping the current internal `center + edge` component shape for the first implementation.
+
+#### Scope
+- Corrected the mirrored `DrawSketch-5` section in `Sketch.md`.
+- Corrected the standalone future phase doc for `3.2B-DrawSketch-5`.
+- Kept the phase implementation-ready and did not reopen unrelated circle-phase decisions.
+
+#### Summary
+- Changed the typed happy path from `cc > Vec2 > Vec2` to `cc > Vec2 > Float`.
+- Reframed the second step as typed radius input first, with viewport edge-witness picking as the alternate path.
+- Updated the status-path wording so the second step now reads as float-driven in the typed path.
+- Kept the first implementation’s stored circle shape as `center + edge`, with typed radius translated into an internal edge witness along local `+X`.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Sketch.md`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Future/Sketch_Phase 3.2B-DrawSketch-5 - Circle Tool And Center-Radius Workflow.md`
+
+#### Notes
+- No runtime code changed in this pass.
+- The next implementation can still support both typed radius entry and viewport-picked radius witnesses under one circle command.
+
+<!-- ENTRY 139 -->
+### [139] - 2026-03-22 10:10 - `DOC - Make DrawSketch-5 Circle Phase Implementation Ready`
+<!-- ENTRY 139 -->
+HUMAN SUMMARY: Tightened `DrawSketch-5` into an implementation-ready circle-tool spec. The sketch docs now lock the exact `cc > Vec2 > Vec2` center-plus-edge flow, keep the first circle as one first-class `center + edge` component, and ground the next implementation cut in the current runtime truth that committed circles already exist but the active draw-command seam still does not route `circle`.
+
+#### Scope
+- Tightened the mirrored `DrawSketch-5` section in `Sketch.md` so the main architecture doc now records the exact implementation contract for the first circle tool.
+- Tightened the standalone future phase doc for `3.2B-DrawSketch-5` to match the same locked flow and current code truth.
+- Kept the phase open/future and did not mark any runtime behavior as shipped.
+
+#### Summary
+- Added a new `Sketch.md` doc-history note that `DrawSketch-5` is now implementation-ready.
+- Locked the typed happy path as `cc > Vec2 > Vec2`.
+- Locked the first committed circle shape as one first-class `circle` component storing `center` plus `edge`.
+- Clarified that the first cut should keep the shared two-point `P1 / P2` status model while prompt/help text describes `center` and `edge`.
+- Added the explicit first-cut rule that zero-radius circles do not commit.
+- Grounded the phase in the current code seam that still excludes `circle` from the active two-point draw-tool routing.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Sketch.md`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Future/Sketch_Phase 3.2B-DrawSketch-5 - Circle Tool And Center-Radius Workflow.md`
+
+#### Notes
+- No runtime code changed in this pass.
+- `DrawSketch-5` remains the next open circle-tool implementation phase after shipped `DrawSketch-4`.
+
+<!-- ENTRY 138 -->
+### [138] - 2026-03-22 08:35 - `DOC - Mark DrawSketch-4 Rectangle Phase Shipped`
+<!-- ENTRY 138 -->
+HUMAN SUMMARY: Marked `DrawSketch-4` as shipped after the rectangle implementation landed. The sketch docs now treat `Rectangle` / `rec` as real shipped `Sketch Draw` behavior, moved the standalone rectangle phase record from `Future/` to `Shipped/`, and updated the active Codex notes to capture the important console-assist input-preservation fix discovered during implementation.
+
+#### Scope
+- Marked the mirrored `DrawSketch-4` section in `Sketch.md` as shipped and synced its landed runtime shape.
+- Added the standalone shipped rectangle phase record under `Sketch/Shipped/`.
+- Updated the parent `DrawSketch-3` future bucket so it now reads `Rectangle` as landed and keeps `Circle` plus endpoint snap as the next open follow-ons.
+- Recorded the implementation outcome in the active Codex notes file.
+
+#### Summary
+- Added a new `Sketch.md` doc-history note that `DrawSketch-4` landed on `2026-03-22`.
+- Changed the main `DrawSketch-4` section from open/future language to shipped/landed language.
+- Added a shipped-behavior block covering:
+  - `rectangle` / `rec`
+  - `rec > Vec2 > Vec2`
+  - first-corner / opposite-corner commit
+  - empty `Enter` accepting hovered `P2`
+  - full closed rectangle ghost preview
+- Added a new standalone shipped phase doc for `3.2B-DrawSketch-4`.
+- Removed the older `Future/` copy for `DrawSketch-4` so the status split stays truthful.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Sketch.md`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Future/Sketch_Phase 3.2B-DrawSketch-3 - Selection, Editing, And Richer Sketch Feedback.md`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Shipped/Sketch_Phase 3.2B-DrawSketch-4 - Rectangle Tool And Corner Workflow.md`
+- `docs/Human-Plans/CodexNotes/12_CodexChatNotes.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- `DrawSketch-5` and `DrawSketch-6` remain open future follow-ons.
+
+<!-- ENTRY 137 -->
+### [137] - 2026-03-22 08:06 - `DOC - Tighten DrawSketch-4 Rectangle Flow Into Implementation-Ready Spec`
+<!-- ENTRY 137 -->
+HUMAN SUMMARY: Tightened the open `DrawSketch-4` rectangle phase into an implementation-ready spec. The phase now locks the typed happy path as `rec > Vec2 > Vec2`, states directly that the second accepted point commits immediately with no extra finish step, limits the first cut to axis-aligned first-corner/opposite-corner rectangles, and grounds the phase in the actual current runtime gaps around command exposure and live helper preview.
+
+#### Scope
+- Updated the standalone `DrawSketch-4` phase doc with more concrete locked decisions and execution details.
+- Synced the mirrored `DrawSketch-4` section in the main `Sketch.md` architecture doc.
+- Recorded the reusable planning decision in the active Codex notes file.
+- Logged the document-only tightening in the permanent doc log.
+
+#### Summary
+- Added the locked typed command flow:
+  - `rec > Vec2 > Vec2`
+- Added the rule that the second accepted point commits immediately and returns to idle `Sketch Draw`.
+- Added the rule that the first rectangle cut is axis-aligned in sketch space using two opposite corners.
+- Added current code-to-target mapping that calls out the actual remaining runtime gaps in:
+  - `runGeometrySketchDrawCommand(...)`
+  - `GeometrySketchDrawHelper.ts`
+- Expanded acceptance checks so implementation has a concrete command/session contract.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Future/Sketch_Phase 3.2B-DrawSketch-4 - Rectangle Tool And Corner Workflow.md`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Sketch.md`
+- `docs/Human-Plans/CodexNotes/12_CodexChatNotes.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This pass intentionally tightens only `Rectangle`; `Circle` and `Endpoint Snap` remain separate future follow-ons.
+
+<!-- ENTRY 136 -->
+### [136] - 2026-03-22 07:58 - `DOC - Rename DrawSketch 3A 3B 3C To DrawSketch 4 5 6`
+<!-- ENTRY 136 -->
+HUMAN SUMMARY: Renamed the new sketch draw follow-ons from the temporary letter-suffixed ids `[3.2B-DrawSketch-3A]`, `[3.2B-DrawSketch-3B]`, and `[3.2B-DrawSketch-3C]` to the cleaner numbered ids `[3.2B-DrawSketch-4]`, `[3.2B-DrawSketch-5]`, and `[3.2B-DrawSketch-6]`. The phase titles and scope stayed the same; this was a numbering cleanup so the `DrawSketch` family reads as one clean numeric sequence.
+
+#### Scope
+- Renamed the live sketch-architecture references from the temporary letter suffixes to numeric `DrawSketch-N` ids.
+- Renamed the three standalone future phase doc files to match the new numeric ids.
+- Added a new planning note capturing the numbering decision.
+- Logged the document-only rename in the permanent doc log.
+
+#### Summary
+- Renamed `Rectangle Tool And Corner Workflow` to phase id `[3.2B-DrawSketch-4]`.
+- Renamed `Circle Tool And Center-Radius Workflow` to phase id `[3.2B-DrawSketch-5]`.
+- Renamed `Endpoint Snap` to phase id `[3.2B-DrawSketch-6]`.
+- Updated the parent `DrawSketch-3` bucket and `Sketch.md` references to point at the new ids.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Sketch.md`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Future/Sketch_Phase 3.2B-DrawSketch-3 - Selection, Editing, And Richer Sketch Feedback.md`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Future/Sketch_Phase 3.2B-DrawSketch-4 - Rectangle Tool And Corner Workflow.md`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Future/Sketch_Phase 3.2B-DrawSketch-5 - Circle Tool And Center-Radius Workflow.md`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Future/Sketch_Phase 3.2B-DrawSketch-6 - Endpoint Snap.md`
+- `docs/Human-Plans/CodexNotes/12_CodexChatNotes.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- The earlier entry that introduced the split remains intact as historical truth; this new entry records only the follow-up numbering cleanup.
+
+<!-- ENTRY 135 -->
+### [135] - 2026-03-22 07:47 - `DOC - Split DrawSketch-3 Into Rectangle Circle And Endpoint Snap Subphases`
+<!-- ENTRY 135 -->
+HUMAN SUMMARY: Split the broad open `DrawSketch-3` sketch bucket into three narrower AutoCAD-like follow-ons so the next drafting work now has concrete implementation-ready homes for `Rectangle`, `Circle`, and endpoint snap. The main `Sketch.md` architecture note now reflects the shipped `Line` / `PLine` reality, the parent `DrawSketch-3` doc now reads as a subphase bucket, and new standalone future phase docs capture the `rec`, `cc`, and endpoint-snap directions explicitly.
+
+#### Scope
+- Updated the main sketch architecture doc to reflect the shipped `Line` / `PLine` base and the new follow-on ordering.
+- Tightened the existing standalone `DrawSketch-3` doc so it now acts as the parent bucket for narrower next phases.
+- Added three new standalone future phase docs for `Rectangle`, `Circle`, and endpoint snap.
+- Recorded the reusable planning decision in the active Codex notes file.
+- Logged the document-only change in the permanent doc log.
+
+#### Summary
+- Added `[3.2B-DrawSketch-3A] Rectangle Tool And Corner Workflow` with alias `rec` and first-corner / opposite-corner commit rules.
+- Added `[3.2B-DrawSketch-3B] Circle Tool And Center-Radius Workflow` with alias `cc` and center-then-edge commit rules.
+- Added `[3.2B-DrawSketch-3C] Endpoint Snap` as the first object-snap pass extending the current origin-only snap behavior.
+- Updated `Sketch.md` so `DrawSketch-1` and `DrawSketch-2` now describe the already shipped `Line` / `PLine` reality instead of older placeholder rectangle/circle wording.
+- Added a Codex planning note explaining why the next sketch growth should stay split into narrow tool-first follow-ons before later broad editing work.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Sketch.md`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Future/Sketch_Phase 3.2B-DrawSketch-3 - Selection, Editing, And Richer Sketch Feedback.md`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Future/Sketch_Phase 3.2B-DrawSketch-3A - Rectangle Tool And Corner Workflow.md`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Future/Sketch_Phase 3.2B-DrawSketch-3B - Circle Tool And Center-Radius Workflow.md`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Future/Sketch_Phase 3.2B-DrawSketch-3C - Endpoint Snap.md`
+- `docs/Human-Plans/CodexNotes/12_CodexChatNotes.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This pass intentionally stops before deeper selection/editing work, because the immediate product value is the first two primitive tools plus one narrow object-snap follow-on.
 
 <!-- ENTRY 134 -->
 ### [134] - 2026-03-21 23:05 - `DOC - Tighten DrawSketch-2 PLine Status And Finish Rules`

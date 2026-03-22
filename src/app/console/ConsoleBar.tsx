@@ -299,7 +299,7 @@ export function ConsoleBar({
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    onSubmitCommand?.(inputText)
+    onSubmitCommand?.(useConsoleStore.getState().inputText)
     resetHistoryNavigation()
     queueMicrotask(() => {
       const input = inputRef?.current
@@ -338,7 +338,7 @@ export function ConsoleBar({
       if (inputText.trim().length === 0) {
         return
       }
-      onSubmitCommand?.(inputText)
+      onSubmitCommand?.(useConsoleStore.getState().inputText)
       resetHistoryNavigation()
       return
     }

@@ -102,6 +102,10 @@ export function ParaSlider({
   const valueInputRef = useRef<HTMLInputElement | null>(null)
   const [isValueEditing, setIsValueEditing] = useState(false)
   const [valueInput, setValueInput] = useState('')
+  const [isClampMinEditing, setIsClampMinEditing] = useState(false)
+  const [isClampMaxEditing, setIsClampMaxEditing] = useState(false)
+  const [clampMinInput, setClampMinInput] = useState('')
+  const [clampMaxInput, setClampMaxInput] = useState('')
   const [dragPreviewValue, setDragPreviewValue] = useState<number | null>(null)
   const normalizedValue = allowWrap ? wrapValue(value, min, max) : clampValue(value, min, max)
   const normalizedDisplayedTrackValue =
@@ -147,6 +151,14 @@ export function ParaSlider({
   }, [effectiveClampMax, effectiveClampMin, normalizedValue])
   const inputPrecision = useMemo(() => inferStepPrecision(step), [step])
   const editableValueText = useMemo(() => normalizedValue.toFixed(inputPrecision), [inputPrecision, normalizedValue])
+  const editableClampMinText = useMemo(
+    () => effectiveClampMin.toFixed(inputPrecision),
+    [effectiveClampMin, inputPrecision],
+  )
+  const editableClampMaxText = useMemo(
+    () => effectiveClampMax.toFixed(inputPrecision),
+    [effectiveClampMax, inputPrecision],
+  )
   const fineStep = useMemo(() => (step <= 0 ? step : Math.max(step / 10, 0.0001)), [step])
 
   useEffect(() => {
@@ -154,6 +166,18 @@ export function ParaSlider({
       setValueInput(editableValueText)
     }
   }, [editableValueText, isValueEditing])
+
+  useEffect(() => {
+    if (!isClampMinEditing) {
+      setClampMinInput(editableClampMinText)
+    }
+  }, [editableClampMinText, isClampMinEditing])
+
+  useEffect(() => {
+    if (!isClampMaxEditing) {
+      setClampMaxInput(editableClampMaxText)
+    }
+  }, [editableClampMaxText, isClampMaxEditing])
 
   useEffect(() => {
     if (!isValueEditing) {
@@ -415,6 +439,55 @@ export function ParaSlider({
     setIsValueEditing(false)
   }
 
+  const commitClampInput = (edge: 'min' | 'max') => {
+    if (onClampChange === undefined) {
+      if (edge === 'min') {
+        setClampMinInput(editableClampMinText)
+        setIsClampMinEditing(false)
+      } else {
+        setClampMaxInput(editableClampMaxText)
+        setIsClampMaxEditing(false)
+      }
+      return
+    }
+    const rawValue = edge === 'min' ? clampMinInput : clampMaxInput
+    const parsedValue = Number(rawValue)
+    if (!Number.isFinite(parsedValue)) {
+      if (edge === 'min') {
+        setClampMinInput(editableClampMinText)
+        setIsClampMinEditing(false)
+      } else {
+        setClampMaxInput(editableClampMaxText)
+        setIsClampMaxEditing(false)
+      }
+      return
+    }
+    const nextValue = normalizeValue(parsedValue, min, max, fineStep)
+    if (edge === 'min') {
+      onClampChange({
+        min: Math.min(nextValue, effectiveClampMax),
+        max: effectiveClampMax,
+      })
+      setIsClampMinEditing(false)
+      return
+    }
+    onClampChange({
+      min: effectiveClampMin,
+      max: Math.max(nextValue, effectiveClampMin),
+    })
+    setIsClampMaxEditing(false)
+  }
+
+  const cancelClampInput = (edge: 'min' | 'max') => {
+    if (edge === 'min') {
+      setClampMinInput(editableClampMinText)
+      setIsClampMinEditing(false)
+      return
+    }
+    setClampMaxInput(editableClampMaxText)
+    setIsClampMaxEditing(false)
+  }
+
   const handleKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
     switch (event.key) {
       case 'ArrowLeft':
@@ -508,10 +581,63 @@ export function ParaSlider({
           </>
         ) : null}
         <div className="ParaSliderContent">
-          <span className="ParaSliderLabel">{displayLabel ?? label}</span>
           {isEditingClamp ? (
-            <span className="ParaSliderValue">{displayValue ?? formatValue(normalizedValue)}</span>
-          ) : isValueEditing ? (
+            <>
+              <input
+                className="ParaSliderValueInput ParaSliderClampInput ParaSliderClampInput--min"
+                type="number"
+                step={fineStep}
+                value={clampMinInput}
+                aria-label={`Edit minimum ${label} clamp`}
+                onPointerDown={(event) => {
+                  event.stopPropagation()
+                }}
+                onFocus={() => setIsClampMinEditing(true)}
+                onInput={(event) => setClampMinInput((event.target as HTMLInputElement).value)}
+                onChange={(event) => setClampMinInput(event.target.value)}
+                onBlur={() => commitClampInput('min')}
+                onContextMenu={onContextMenu}
+                onKeyDown={(event) => {
+                  event.stopPropagation()
+                  if (event.key === 'Enter') {
+                    commitClampInput('min')
+                    return
+                  }
+                  if (event.key === 'Escape') {
+                    cancelClampInput('min')
+                  }
+                }}
+              />
+              <input
+                className="ParaSliderValueInput ParaSliderClampInput ParaSliderClampInput--max"
+                type="number"
+                step={fineStep}
+                value={clampMaxInput}
+                aria-label={`Edit maximum ${label} clamp`}
+                onPointerDown={(event) => {
+                  event.stopPropagation()
+                }}
+                onFocus={() => setIsClampMaxEditing(true)}
+                onInput={(event) => setClampMaxInput((event.target as HTMLInputElement).value)}
+                onChange={(event) => setClampMaxInput(event.target.value)}
+                onBlur={() => commitClampInput('max')}
+                onContextMenu={onContextMenu}
+                onKeyDown={(event) => {
+                  event.stopPropagation()
+                  if (event.key === 'Enter') {
+                    commitClampInput('max')
+                    return
+                  }
+                  if (event.key === 'Escape') {
+                    cancelClampInput('max')
+                  }
+                }}
+              />
+            </>
+          ) : (
+            <span className="ParaSliderLabel">{displayLabel ?? label}</span>
+          )}
+          {isEditingClamp ? null : isValueEditing ? (
             <input
               ref={valueInputRef}
               className="ParaSliderValueInput"

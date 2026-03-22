@@ -1,5 +1,8 @@
 import {
+  Children,
+  Fragment,
   forwardRef,
+  useEffect,
   useRef,
   useState,
   type CSSProperties,
@@ -66,6 +69,13 @@ type ViewportOverlayToolSplitLayoutProps = {
   defaultTopHeight?: number
   minTopHeight?: number
   minBottomHeight?: number
+}
+
+type ViewportOverlayToolSectionStackProps = {
+  className?: string
+  minPaneHeight?: number
+  resetKey?: number | string
+  children: ReactNode
 }
 
 export const ViewportOverlayToolPanel = forwardRef<HTMLDivElement, ViewportOverlayToolPanelProps>(
@@ -405,6 +415,144 @@ export function ViewportOverlayToolSplitLayout(props: ViewportOverlayToolSplitLa
       <div className="ViewportOverlayToolPanelSplitPane ViewportOverlayToolPanelSplitPane--bottom">
         {bottom}
       </div>
+    </div>
+  )
+}
+
+export function ViewportOverlayToolSectionStack(props: ViewportOverlayToolSectionStackProps) {
+  const { className, minPaneHeight = 56, resetKey, children } = props
+  const paneRefs = useRef<Record<string, HTMLDivElement | null>>({})
+  const dragStateRef = useRef<{
+    active: boolean
+    pointerId: number
+    upperId: string
+    lowerId: string
+    startY: number
+    startUpperHeight: number
+    startLowerHeight: number
+  } | null>(null)
+  const [paneHeights, setPaneHeights] = useState<Record<string, number>>({})
+  const resolvedSections = Children.toArray(children).map((child, index) => ({
+    id: `section-${index}`,
+    content: child,
+  }))
+
+  const sectionIds = resolvedSections.map((section) => section.id).join('|')
+
+  const setPaneRef = (id: string, node: HTMLDivElement | null) => {
+    paneRefs.current[id] = node
+  }
+
+  const clearMissingPaneHeights = () => {
+    setPaneHeights((current) => {
+      const nextEntries = Object.entries(current).filter(([id]) =>
+        resolvedSections.some((section) => section.id === id),
+      )
+      if (nextEntries.length === Object.keys(current).length) {
+        return current
+      }
+      return Object.fromEntries(nextEntries)
+    })
+  }
+
+  const resetPaneHeights = () => {
+    setPaneHeights({})
+  }
+
+  const startResize =
+    (upperId: string, lowerId: string) => (event: ReactPointerEvent<HTMLDivElement>) => {
+      const upper = paneRefs.current[upperId]
+      const lower = paneRefs.current[lowerId]
+      if (upper === null || upper === undefined || lower === null || lower === undefined) {
+        return
+      }
+      event.preventDefault()
+      event.stopPropagation()
+
+      dragStateRef.current = {
+        active: true,
+        pointerId: event.pointerId,
+        upperId,
+        lowerId,
+        startY: event.clientY,
+        startUpperHeight: upper.getBoundingClientRect().height,
+        startLowerHeight: lower.getBoundingClientRect().height,
+      }
+
+      const move = (moveEvent: PointerEvent) => {
+        const state = dragStateRef.current
+        if (state === null || !state.active || moveEvent.pointerId !== state.pointerId) {
+          return
+        }
+        const totalHeight = state.startUpperHeight + state.startLowerHeight
+        const nextUpperHeight = Math.min(
+          Math.max(state.startUpperHeight + (moveEvent.clientY - state.startY), minPaneHeight),
+          totalHeight - minPaneHeight,
+        )
+        const nextLowerHeight = totalHeight - nextUpperHeight
+        setPaneHeights((current) => ({
+          ...current,
+          [state.upperId]: Math.round(nextUpperHeight),
+          [state.lowerId]: Math.round(nextLowerHeight),
+        }))
+      }
+
+      const stop = (stopEvent: PointerEvent) => {
+        const state = dragStateRef.current
+        if (state === null || stopEvent.pointerId !== state.pointerId) {
+          return
+        }
+        dragStateRef.current = {
+          ...state,
+          active: false,
+        }
+        window.removeEventListener('pointermove', move)
+        window.removeEventListener('pointerup', stop)
+        window.removeEventListener('pointercancel', stop)
+      }
+
+      window.addEventListener('pointermove', move)
+      window.addEventListener('pointerup', stop)
+      window.addEventListener('pointercancel', stop)
+    }
+
+  useEffect(() => {
+    clearMissingPaneHeights()
+  }, [sectionIds])
+
+  useEffect(() => {
+    resetPaneHeights()
+  }, [resetKey])
+
+  return (
+    <div className={`ViewportOverlayToolPanelSectionStack${className ? ` ${className}` : ''}`}>
+      {resolvedSections.map((section, index) => (
+        <Fragment key={section.id}>
+          <div
+            ref={(node) => setPaneRef(section.id, node)}
+            className="ViewportOverlayToolPanelSectionStackPane"
+            data-section-id={section.id}
+            style={
+              paneHeights[section.id] === undefined
+                ? undefined
+                : { height: `${paneHeights[section.id]}px` }
+            }
+          >
+            {section.content}
+          </div>
+          {index < resolvedSections.length - 1 ? (
+            <div
+              className="ViewportOverlayToolPanelSectionStackResizeHandle"
+              onPointerDown={startResize(section.id, resolvedSections[index + 1]!.id)}
+              role="separator"
+              aria-orientation="horizontal"
+              aria-label={`Resize ${section.id} section`}
+            >
+              <div className="ViewportOverlayToolPanelSectionStackResizeRule" />
+            </div>
+          ) : null}
+        </Fragment>
+      ))}
     </div>
   )
 }

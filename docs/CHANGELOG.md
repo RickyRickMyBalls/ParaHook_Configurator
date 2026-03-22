@@ -65,6 +65,495 @@ Do not use it for:
 
 ## Doc Body
 
+### [542] - 2026-03-22 12:26 - `VR / SP - Phase 5.0G-2 - Theme Cascade Cleanup And Override Reduction`
+<!-- ENTRY 542 -->
+HUMAN SUMMARY: `Implemented the \`5.0G-2\` owner-cleanup pass inside the landed theme split by removing the second global \`:root\`, moving browser and radio surface rules into their real owner files, and collapsing the repeated \`Spaghetti\` template/driver/output override clusters into canonical CSS blocks without widening the work beyond the current theme lane.` 
+
+#### Scope / Constraints Honored
+- Kept the work CSS-only and did not widen it into `AppShell`, workspace-mode, or TSX refactors.
+- Preserved the existing top-level theme import contract through `src/index.css` -> `src/app/theme/v15Theme.css`.
+- Kept the existing class names and did not rename selector families or add new theme files.
+- Left the host-provided `--sp-window-*` contract intact.
+
+#### Summary of Implementation
+- Updated `src/app/theme/foundation/tokens.css` so the canonical `--sp-*` node-template tokens now match the live tuned values that were previously coming from the late `Spaghetti` `:root` override.
+- Removed browser-owned animation definitions and radio/overlay-specific action styling from `src/app/theme/foundation/base.css` and moved them into `surfaces/browser.css` and `surfaces/radio-audio.css`.
+- Consolidated the repeated `Spaghetti` node-template, output-port, and driver-control families into canonical sections inside `src/app/theme/surfaces/spaghetti.css`.
+- Removed the second global `:root` plus the explicit cleanup-pass / final-override chronology blocks from `src/app/theme/surfaces/spaghetti.css`.
+
+#### Files Changed
+- `src/app/theme/foundation/tokens.css`
+- `src/app/theme/foundation/base.css`
+- `src/app/theme/surfaces/browser.css`
+- `src/app/theme/surfaces/radio-audio.css`
+- `src/app/theme/surfaces/spaghetti.css`
+
+#### Behavior Changes
+- No intended user-facing redesign.
+- Browser animations now live in the Browser surface file.
+- Radio overlay action styling now lives in the Radio/Audio surface file.
+- `Spaghetti` node-template and number-driver rendering no longer depend on a late duplicate `:root` and repeated override clusters to reach their final visual state.
+
+#### Verification Steps
+- Ran focused regression tests:
+  - `npm.cmd test -- --run src/app/AppShell.test.tsx src/app/console/ConsoleDock.test.tsx src/app/components/ViewportOverlay.test.tsx src/app/panels/BrowserPanel.test.tsx src/app/panels/SpaghettiPanel.test.tsx src/app/panels/RadioPanel.test.tsx src/app/panels/AudioSamplerPanel.test.tsx`
+- Result:
+  - `7` test files passed
+  - `245` tests passed
+- Ran `npm.cmd run build`
+- Build status:
+  - still failing due unrelated pre-existing TypeScript errors in `ViewerHost.tsx`, `ViewportOverlay.tsx`, `useSpaghettiStore.ts`, and `Viewer.ts`
+  - no build failure pointed at the theme CSS files changed in this phase
+
+### [541] - 2026-03-22 12:00 - `VR / SP - Phase 5.0G-1 - Theme Manifest And Surface File Split`
+<!-- ENTRY 541 -->
+HUMAN SUMMARY: `Implemented the first structural \`5.0G-1\` theme split by turning \`src/app/theme/v15Theme.css\` into a manifest and moving the live app theme into foundation, shell, and surface-owned CSS files without changing the top-level import path or broad class names. The focused shell/browser/console/overlay/spaghetti/radio tests all still pass after the split.` 
+
+#### Scope / Constraints Honored
+- Kept the existing top-level import contract:
+  - `src/index.css`
+    - `@import './app/theme/v15Theme.css';`
+- Kept the work CSS-only and did not widen it into `AppShell` or workspace-mode implementation.
+- Preserved the existing broad class families instead of renaming component roots during the split.
+- Kept `Radio` and sampler together in one first-pass surface file.
+
+#### Summary of Implementation
+- Created the new theme folders:
+  - `src/app/theme/foundation/`
+  - `src/app/theme/shell/`
+  - `src/app/theme/surfaces/`
+- Added the new theme files:
+  - `foundation/tokens.css`
+  - `foundation/base.css`
+  - `shell/docks.css`
+  - `shell/windows.css`
+  - `surfaces/browser.css`
+  - `surfaces/console.css`
+  - `surfaces/viewport-overlay.css`
+  - `surfaces/spaghetti.css`
+  - `surfaces/radio-audio.css`
+- Reduced `src/app/theme/v15Theme.css` to an ordered manifest of `@import` statements.
+- Moved the existing selectors into the new files by current ownership:
+  - tokens/base
+  - shell docks/windows
+  - browser
+  - console
+  - viewport overlay/tool-panel
+  - spaghetti/editor
+  - radio/audio
+
+#### Files Changed
+- `src/app/theme/v15Theme.css`
+- `src/app/theme/foundation/tokens.css`
+- `src/app/theme/foundation/base.css`
+- `src/app/theme/shell/docks.css`
+- `src/app/theme/shell/windows.css`
+- `src/app/theme/surfaces/browser.css`
+- `src/app/theme/surfaces/console.css`
+- `src/app/theme/surfaces/viewport-overlay.css`
+- `src/app/theme/surfaces/spaghetti.css`
+- `src/app/theme/surfaces/radio-audio.css`
+
+#### Behavior Changes
+- No intended user-facing visual redesign.
+- The app now reads its theme through the same one top-level import path, but the underlying CSS ownership is split into dedicated files.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/AppShell.test.tsx src/app/console/ConsoleDock.test.tsx src/app/components/ViewportOverlay.test.tsx src/app/panels/BrowserPanel.test.tsx src/app/panels/SpaghettiPanel.test.tsx src/app/panels/RadioPanel.test.tsx src/app/panels/AudioSamplerPanel.test.tsx`
+- `npm.cmd run build` `fails in unrelated pre-existing TypeScript work outside this CSS split, including current errors in \`ViewerHost.tsx\`, \`ViewportOverlay.tsx\`, \`useSpaghettiStore.ts\`, and \`Viewer.ts\`.`
+
+### [540] - 2026-03-22 11:48 - `SP - Phase 3.2B-DrawSketch-3 - Selection And Delete`
+<!-- ENTRY 540 -->
+HUMAN SUMMARY: `Implemented the first committed-entity selection pass inside \`Sketch Draw\`. Idle draw now supports viewport hover plus selected feedback, blue \`Window\` and green \`Crossing\` drag-box selection, synced \`Entities\`-list selection, and immediate delete through viewport \`Delete\`, console \`delete\` / \`del\`, and the visible toolbar action.`
+
+#### Scope / Constraints Honored
+- Kept `DS-3` focused on committed entity selection and delete, without moving into grips, transforms, sub-entity editing, or profile-review behavior.
+- Left profile review on the existing separate `geometrySketchSession.mode === 'review'` path.
+- Kept first-cut selection semantics replace-only, with no additive modifier model.
+
+#### Summary of Implementation
+- Extended `geometrySketchSession` with idle-draw selection state for hovered entities, selected component ids, and live selection-window drafts.
+- Wired the viewer to project idle draw pointer movement onto the sketch plane, detect hovered committed components, drive blue `Window` versus green `Crossing` drag previews, and submit final selection sets on pointer-up.
+- Added grouped-entity expansion for `PLine` selection so one hovered or clicked polyline child selects the full authored polyline entity.
+- Rendered hovered, selected, and selection-window overlays in the sketch viewer so entity targeting is visible directly in the viewport.
+- Synced the `Entities` panel with the new selection state, including selectable rows, selected/hovered styling, and a visible delete action.
+- Added draw-idle `delete` / `del` console commands and viewport `Delete` keyboard routing that delete the current selected component set.
+
+#### Files Changed
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `src/app/components/ViewportOverlay.tsx`
+- `src/app/components/ViewportOverlay.test.tsx`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+- `src/app/inputRouting.ts`
+- `src/app/inputRouting.test.ts`
+- `src/app/viewerBridge.ts`
+- `src/viewer/Viewer.ts`
+- `src/viewer/geometrySketchOverlay.ts`
+- `src/viewer/geometrySketchOverlay.test.ts`
+- `src/viewer/sketch/GeometrySketchDrawHelper.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `src/app/theme/v15Theme.css`
+
+#### Behavior Changes
+- After a draw-tool commit, idle `Sketch Draw` now acts as the committed-entity selection state instead of a draw-only resting state.
+- Clicking a committed sketch entity replaces the current selection with that entity.
+- Dragging right (`+X`) creates green `Crossing` selection that selects touched/intersected entities.
+- Dragging left (`-X`) creates blue `Window` selection that selects only fully enclosed entities.
+- Clicking empty space without a real drag clears the current selection.
+- `Delete`, `delete`, and `del` now remove the current selected entity set while `Sketch Draw` stays open.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/viewer/geometrySketchOverlay.test.ts src/app/components/ViewportOverlay.test.tsx src/app/console/ConsoleDock.test.tsx src/app/inputRouting.test.ts src/app/spaghetti/store/useSpaghettiStore.test.ts src/app/components/ViewerHost.test.tsx`
+
+### [539] - 2026-03-22 10:34 - `SP - Phase 3.2B-DrawSketch-5 - Circle Tool And Center-Radius Workflow`
+<!-- ENTRY 539 -->
+HUMAN SUMMARY: `Implemented the first real \`Circle\` / \`cc\` tool in \`Sketch Draw\`. The draw session now supports center-then-radius circle creation with viewport-assisted \`Center > Vec2\` then \`Radius > Float\` console flow, typed radius entry, live radius-witness plus circle ghost preview, and immediate commit back to idle after the second accepted input.`
+
+#### Scope / Constraints Honored
+- Implemented only the first center-plus-radius circle cut and kept the first-class stored circle shape as `center + edge`.
+- Reused the existing draw-session machinery instead of introducing a separate circle-only session model.
+- Left diameter mode, tangent variants, and post-commit circle editing out of scope.
+
+#### Summary of Implementation
+- Added `circle` / `cc` as a real `Sketch Draw` command in the store and console routing.
+- Extended the shared draw-tool family so `Circle` participates in active draw stages, `Previous`, idle prompt rebuilding, and `Enter` acceptance.
+- Added typed radius commit support that converts the submitted float into the stored edge witness from the committed center.
+- Updated the console feature-assist breadcrumb to show the live circle-specific path:
+  - `Circle > Center > Vec(...)`
+  - `Circle > Center Vec(...) > Radius > Float(...)`
+- Added circle availability to the sketch draw toolbar/tool list and updated the active tool prompt copy and accept-button behavior.
+- Extended the viewport draw preview so circle sessions render a live full-circle ghost plus a radius witness line from the committed center to the hovered point.
+- Added focused regression coverage for store-level circle commit, typed console radius submit, and sampled circle ghost generation.
+
+#### Files Changed
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/components/ViewportOverlay.tsx`
+- `src/viewer/geometrySketchOverlay.ts`
+- `src/viewer/sketch/GeometrySketchDrawHelper.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `src/app/console/ConsoleDock.test.tsx`
+- `src/viewer/geometrySketchOverlay.test.ts`
+
+#### Behavior Changes
+- `Sketch Draw` idle choices now include `Circle`.
+- Typing `circle` or `cc` arms the circle tool.
+- Circle sessions now support:
+  - typed `Vec2` center
+  - typed `Float` radius
+  - viewport-picked center
+  - viewport-picked radius witness
+- The viewport now shows a live circle ghost and radius witness line while a circle radius is being chosen.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/spaghetti/store/useSpaghettiStore.test.ts src/app/console/ConsoleDock.test.tsx src/viewer/geometrySketchOverlay.test.ts src/app/components/ViewportOverlay.test.tsx`
+
+### [538] - 2026-03-22 10:03 - `SP - Phase 3.2B-DrawSketch-4 - Sketch Draw Section Layout Rearrangement`
+<!-- ENTRY 538 -->
+HUMAN SUMMARY: `Re-arranged the live \`Sketch Draw\` toolbar so \`Align View\` now lives inside the \`Session\` section, \`Edit Clamp\` moved into the \`Entities\` header, and \`Active Tool\` is now a nested subsection under \`Tool Selection\` instead of a separate main section. This keeps the title bar cleaner and groups the draw controls closer to the content they affect.`
+
+#### Scope / Constraints Honored
+- Kept the existing draw/review behavior intact and only rearranged the control placement inside the sketch draw toolbar.
+- Preserved the current split-bar section stack and auto-height reset behavior while reducing the draw-mode main-section count.
+- Left the actual align/clamp/tool runtime behavior unchanged.
+
+#### Summary of Implementation
+- Removed `Align View` and `Edit Clamp` from the sketch draw title-bar action row.
+- Added `Align View` as a session-scoped action inside the `Session` section content.
+- Reworked the `Entities` section label into a header row with the collapse toggle on the left and the clamp-mode action anchored on the right.
+- Folded the draw-mode `Active Tool` card into `Tool Selection` as a nested subsection with its own collapse toggle.
+- Updated the overlay regression test to assert the new control placement instead of the old title-bar arrangement.
+
+#### Files Changed
+- `src/app/components/ViewportOverlay.tsx`
+- `src/app/components/ViewportOverlay.test.tsx`
+
+#### Behavior Changes
+- The sketch draw title bar no longer shows `Align View` or `Edit Clamp`.
+- `Align View` now appears inside `Session`.
+- `Edit Clamp` now appears in the `Entities` section header.
+- `Active Tool` now expands from inside `Tool Selection`.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/components/ViewportOverlay.test.tsx`
+
+### [537] - 2026-03-22 09:47 - `SP - Phase 3.2B-DrawSketch-4 - Section Split Bars And Auto Height`
+<!-- ENTRY 537 -->
+HUMAN SUMMARY: `The floating \`Sketch Draw\` toolbar now uses real horizontal split bars between its visible main sections instead of decorative divider lines. Collapsing a main section after manual resize also returns the window to auto-height mode, so the toolbar shrinks back to the correct content height instead of leaving stale empty space.`
+
+#### Scope / Constraints Honored
+- Applied the new section-resize behavior to the sketch draw toolbar shown in the current workflow.
+- Built the section-stack behavior as a shared tool-panel primitive rather than a one-off sketch-only drag hack.
+- Left the existing sketch-plane split layout intact while adding the new per-section stack behavior for sketch draw.
+
+#### Summary of Implementation
+- Added a shared `ViewportOverlayToolSectionStack` primitive that wraps visible tool sections, inserts draggable horizontal separators between them, and gives each pane its own scroll container.
+- Integrated that shared section stack into the `Sketch Draw` session body so its visible main sections now have real resize bars.
+- Added sketch-draw window height-mode tracking so manual resize still works, but collapsing a section resets the window back to auto height and clears the per-section size overrides.
+- Updated the sketch session body styling to let the new pane stack fill the window correctly and hand scrolling off to the individual section panes.
+- Added regression coverage for sketch draw auto-height reset on collapse and for the new section split-bar drag behavior.
+
+#### Files Changed
+- `src/app/components/ViewportOverlay.tsx`
+- `src/app/components/ViewportOverlay.test.tsx`
+- `src/app/components/ViewportOverlayToolPanel.tsx`
+- `src/app/theme/v15Theme.css`
+
+#### Behavior Changes
+- `Sketch Draw` main sections now have draggable horizontal split bars between them.
+- Each sketch draw section pane can scroll independently when its content exceeds the assigned height.
+- Collapsing a sketch draw main section after manual window resize now restores auto-height sizing for the toolbar.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/components/ViewportOverlay.test.tsx`
+
+### [536] - 2026-03-22 09:35 - `SP - Phase 3.2B-DrawSketch-4 - Toolbar Min Width To 75`
+<!-- ENTRY 536 -->
+HUMAN SUMMARY: `Lowered the minimum width of the floating \`Sketch Draw\` toolbar window from 360px to 75px. The same 75px floor now applies consistently to manual resizing and the toolbar width para-slider, so the sketch toolbar can collapse much narrower when the user wants a compact strip.`
+
+#### Scope / Constraints Honored
+- Kept the change to the shared sketch session window width clamp.
+- Reused the existing min-width constant instead of creating a second slider-only override.
+- Left the default toolbar size unchanged.
+
+#### Summary of Implementation
+- Reduced the sketch session window minimum-width constant from `360` to `75`.
+- Let the existing resize logic and toolbar width slider inherit the new floor automatically because both already read from the same constant.
+- Re-ran the viewport overlay test suite to verify the narrower clamp did not break the sketch session window behavior.
+
+#### Files Changed
+- `src/app/components/ViewportOverlay.tsx`
+
+#### Behavior Changes
+- The floating sketch toolbar can now be resized down to 75px wide.
+- The `Toolbar Width` slider in the sketch draw customization panel now also allows values down to 75px.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/components/ViewportOverlay.test.tsx`
+
+### [535] - 2026-03-22 09:33 - `SP - Phase 3.2B-DrawSketch-4 - Entry Renaming`
+<!-- ENTRY 535 -->
+HUMAN SUMMARY: `Sketch entity entries can now be renamed from the expanded \`Entities\` editor surface, and those names are stored with the sketch components instead of living only in overlay state. Rectangle, line, and grouped \`PLine\` entries now support custom names that persist through redraws and reload-safe feature serialization.`
+
+#### Scope / Constraints Honored
+- Stored entry names in the sketch component data model instead of inventing overlay-only labels.
+- Kept renaming inside the existing expanded entity editor flow rather than adding more header chrome.
+- Preserved the default generated labels when a custom name is cleared.
+
+#### Summary of Implementation
+- Added optional persisted component names across sketch component types, plus optional persisted draw-group names for grouped `PLine` entries.
+- Extended the sketch feature schema so custom entry names survive feature parsing and serialization.
+- Added store actions to rename a single sketch component or an entire grouped draw entry by `drawGroupId`.
+- Updated the sketch entity row view-model so headers display custom names when present while falling back to the existing generated labels.
+- Added a `Name` editor row to expanded entity editors and expanded grouped `PLine` entries, with commit-on-blur / `Enter` behavior.
+- Added viewport overlay regression coverage for rectangle renaming and verified the broader sketch store suite still passes.
+
+#### Files Changed
+- `src/app/components/ViewportOverlay.tsx`
+- `src/app/components/ViewportOverlay.test.tsx`
+- `src/app/spaghetti/features/featureSchema.ts`
+- `src/app/spaghetti/features/featureTypes.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/theme/v15Theme.css`
+
+#### Behavior Changes
+- Expanded sketch entries now expose a `Name` field.
+- Custom entry names replace the generated row labels in the `Entities` list.
+- Grouped `PLine` parent entries can now carry their own shared custom name.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/components/ViewportOverlay.test.tsx`
+- Ran `npm.cmd test -- --run src/app/components/ParaSlider.test.tsx`
+- Ran `npm.cmd test -- --run src/app/spaghetti/store/useSpaghettiStore.test.ts`
+
+### [534] - 2026-03-22 09:23 - `SP - Phase 3.2B-DrawSketch-4 - Typed Clamp Inputs`
+<!-- ENTRY 534 -->
+HUMAN SUMMARY: `Enriched the shared \`ParaSlider\` clamp mode so the displayed clamp min/max values are now editable number fields instead of read-only text. Users can now type exact clamp limits or keep using the existing orange two-sided drag range, and the sketch draw rectangle editors inherit the improved behavior automatically.`
+
+#### Scope / Constraints Honored
+- Kept the clamp improvement inside the shared `ParaSlider` component so all clamp-enabled surfaces benefit from the same behavior.
+- Preserved the existing drag-handle clamp workflow while adding typed entry as a second input path.
+- Left normal non-clamp slider value editing unchanged.
+
+#### Summary of Implementation
+- Added live clamp min/max input state to `ParaSlider` while clamp editing is active.
+- Replaced the clamp-mode text readouts with number inputs that commit on blur or `Enter` and cancel back to the current clamp on `Escape`.
+- Kept the clamp handle drag behavior intact so users can mix typed entry and direct manipulation.
+- Added slider-level regression coverage for typed clamp min/max input and reran the sketch overlay clamp suite to verify the shared change did not break the rectangle entity UI.
+
+#### Files Changed
+- `src/app/components/ParaSlider.tsx`
+- `src/app/components/ParaSlider.test.tsx`
+- `src/app/theme/v15Theme.css`
+
+#### Behavior Changes
+- Clamp mode now supports direct numeric entry for both clamp endpoints.
+- Clamp-enabled sketch draw sliders and rectangle editors now support typed clamp limits in addition to dragging.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/components/ParaSlider.test.tsx`
+- Ran `npm.cmd test -- --run src/app/components/ViewportOverlay.test.tsx`
+
+### [533] - 2026-03-22 09:19 - `SP - Phase 3.2B-DrawSketch-4 - Entry Numbering In Sketch Entities`
+<!-- ENTRY 533 -->
+HUMAN SUMMARY: `Added explicit entry numbers to the \`Sketch Draw > Entities\` list so each staged sketch item now has a visible index immediately to the left of its expand chevron. Grouped \`PLine\` children also receive nested numbers, which makes the entity table easier to scan and reference while editing.` 
+
+#### Scope / Constraints Honored
+- Kept the change limited to the sketch entity list presentation layer.
+- Preserved the existing entity grouping and expand/collapse behavior.
+- Did not change sketch component ordering or storage, only how rows are labeled in the overlay.
+
+#### Summary of Implementation
+- Extended the sketch entity row view-model so every top-level entity row carries a stable display number.
+- Added nested child numbering for grouped `PLine` segment rows using a `parent.child` format.
+- Rendered the new entry number column ahead of the expand chevron in both top-level and child rows.
+- Tightened the entity-row CSS so the new number column does not steal the label/detail styling.
+- Expanded the viewport overlay test coverage to assert the expected top-level and nested numbering.
+
+#### Files Changed
+- `src/app/components/ViewportOverlay.tsx`
+- `src/app/components/ViewportOverlay.test.tsx`
+- `src/app/theme/v15Theme.css`
+
+#### Behavior Changes
+- Sketch entity rows now show visible entry numbers.
+- Grouped child rows under `PLine` now show nested numbers like `2.1`, `2.2`.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/components/ViewportOverlay.test.tsx`
+
+### [532] - 2026-03-22 09:16 - `SP - Phase 3.2B-DrawSketch-4 - Vec2 Clamp Support`
+<!-- ENTRY 532 -->
+HUMAN SUMMARY: `Extended the new \`Sketch Draw\` clamp workflow into the rectangle corner \`Vec2\` rows, so point-axis sliders now enter clamp-edit mode alongside the rectangle \`Width\` and \`Height\` rows. The shared \`ParaVec2Slider\` now forwards per-axis clamp ranges down to the underlying \`ParaSlider\` controls instead of leaving point editors outside the clamp system.`
+
+#### Scope / Constraints Honored
+- Kept the clamp behavior on top of the shared `ParaSlider` implementation instead of introducing a one-off sketch-only vec2 editor.
+- Limited the change to `Vec2` clamp forwarding and the sketch draw rectangle editor integration.
+- Preserved normal non-clamp `Vec2` editing behavior outside clamp mode.
+
+#### Summary of Implementation
+- Added optional clamp props to `ParaVec2Slider` so each axis can carry its own min/max clamp range and clamp-change callback.
+- Updated `ParaVec2Slider` to switch its internal label/value presentation when clamp editing is active, matching the existing single-slider clamp UX.
+- Wired rectangle `A` and `B` corner rows in the sketch draw overlay into the local sketch clamp range state using per-axis keys.
+- Expanded the sketch draw clamp regression coverage so the rectangle editor now exposes clamp handles for both vec2 axes and both dimension sliders.
+
+#### Files Changed
+- `src/app/components/ParaVec2Slider.tsx`
+- `src/app/components/ViewportOverlay.tsx`
+- `src/app/components/ViewportOverlay.test.tsx`
+
+#### Behavior Changes
+- Rectangle `A` / `B` `Vec2` rows now participate in `Sketch Draw` clamp editing.
+- Each `Vec2` axis now exposes its own clamp handles and clamp range while sharing the same toolbar-level `Edit Clamp` toggle.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/components/ViewportOverlay.test.tsx`
+
+### [531] - 2026-03-22 09:11 - `SP - Phase 3.2B-DrawSketch-4 - Sketch Draw Clamp Editing`
+<!-- ENTRY 531 -->
+HUMAN SUMMARY: `Added the reference-style clamp editing workflow to the \`Sketch Draw\` overlay so draw-session \`ParaSlider\` controls can switch between normal value editing and clamp-range editing. Rectangle \`Width\` and \`Height\` rows now participate in the same clamp system as the sketch draw settings sliders without changing the underlying rectangle data model.`
+
+#### Scope / Constraints Honored
+- Reused the existing shared `ParaSlider` clamp behavior instead of creating a sketch-only slider variant.
+- Kept rectangle geometry as two corner points with derived width/height editors.
+- Limited this change to the `Sketch Draw` overlay UI and its local slider clamp state.
+
+#### Summary of Implementation
+- Added a sketch-draw-level `Edit Clamp` / `Done Clamp` toggle to the `ViewportOverlay` title-bar actions.
+- Introduced local per-slider clamp-range state in the sketch draw overlay and normalized the stored min/max pairs before reuse.
+- Wired the sketch draw toolbar-size sliders, sketch draw settings sliders, and rectangle `Width` / `Height` sliders into the shared `ParaSlider` clamp props.
+- Mirrored the reference transform presentation pattern so clamp mode shows min/max values in the slider body while exposing the clamp handles on the track.
+- Added a viewport overlay regression test that enables sketch draw clamp mode and verifies rectangle dimension sliders enter clamp editing.
+
+#### Files Changed
+- `src/app/components/ViewportOverlay.tsx`
+- `src/app/components/ViewportOverlay.test.tsx`
+
+#### Behavior Changes
+- `Sketch Draw` now exposes an `Edit Clamp` action in the floating session window.
+- Sketch draw `ParaSlider` controls now support clamp-range editing while staying in the same overlay.
+- Rectangle dimension rows now share the same clamp workflow as the rest of the sketch draw slider surface.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/components/ViewportOverlay.test.tsx`
+
+### [530] - 2026-03-22 08:59 - `SP - Phase 3.2B-DrawSketch-4 - Rectangle Entries Breakdown`
+<!-- ENTRY 530 -->
+HUMAN SUMMARY: `Expanded the \`Sketch Draw > Entities\` UI so first-class \`Rectangle\` components no longer appear as flat summary rows. Rectangle rows now open with chevrons and expose two \`Vec2\` corner editors plus dedicated \`Width\` and \`Height\` \`ParaSlider\` rows, while the geometry truth still stays anchored to the rectangle's two corner points.`
+
+#### Scope / Constraints Honored
+- Kept the rectangle geometry model as one first-class `rectangle` component.
+- Limited this follow-up to the `Sketch Draw > Entities` editor UI.
+- Did not convert rectangles into four stored line segments or a fake `PLine`.
+
+#### Summary of Implementation
+- Reworked the sketch-entity list view-model so editable first-class components can render as expandable rows, not just standalone lines.
+- Added a rectangle-specific expanded editor body in the viewport overlay with:
+  - `A` `Vec2`
+  - `B` `Vec2`
+  - `Width` `ParaSlider`
+  - `Height` `ParaSlider`
+- Implemented width/height edits by rewriting corner `b` relative to anchored corner `a`, preserving the current rectangle direction instead of introducing duplicate width/height source-of-truth fields.
+- Added a viewport overlay test that covers the new expandable rectangle row and verifies the dedicated width/height editor controls are present.
+
+#### Files Changed
+- `src/app/components/ViewportOverlay.tsx`
+- `src/app/components/ViewportOverlay.test.tsx`
+
+#### Behavior Changes
+- `Rectangle` entries in `Sketch Draw > Entities` now open with a chevron.
+- Expanded rectangle rows now show four child editor rows instead of one flat summary line.
+- Width and height are now editable directly from the `Entries` UI without changing the first-class rectangle component type.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/components/ViewportOverlay.test.tsx`
+
+### [529] - 2026-03-22 08:35 - `SP - Phase 3.2B-DrawSketch-4 - Rectangle Tool And Corner Workflow`
+<!-- ENTRY 529 -->
+HUMAN SUMMARY: `Landed the first real \`Rectangle\` draw tool for \`Sketch Draw\`. The sketch runtime, viewer preview, viewport overlay, and console command path now support \`rectangle\` / \`rec\` as a two-point first-corner/opposite-corner workflow with immediate commit, and the console assist/input sync was tightened so typed commands are not clobbered by late prefill updates.`
+
+#### Scope / Constraints Honored
+- Kept the implementation scoped to the first `Rectangle` cut described by `3.2B-DrawSketch-4`.
+- Preserved the existing hybrid viewport-plus-console draw session model from `DrawSketch-2`.
+- Kept the first rectangle shape axis-aligned in sketch space and committed as one first-class `rectangle` component.
+- Did not broaden this pass into circle, endpoint snap, rotated rectangles, or post-commit rectangle editing.
+
+#### Summary of Implementation
+- Extended `Sketch Draw` command routing so `rectangle` and `rec` arm the same tool, show `REC` prompts, and return to idle after the second accepted point or empty `Enter` against a hovered opposite corner.
+- Added first-class rectangle component construction in the sketch store so the second accepted point commits a `rectangle` component instead of exploding into line segments.
+- Expanded the viewer overlay and draw helper so active rectangle sessions project pointer points, show the first-corner anchor, and ghost the full closed rectangle while `P2` is hovering.
+- Exposed `Rectangle` in the viewport sketch toolbar and overlay guidance so the first-corner / opposite-corner flow is visible and the accept button works for the two-point rectangle path.
+- Extended the console feature-assist and typed `Vec2` path for active draw sessions so `Rectangle` behaves like `Line` in the console, while hardening the shared console submit/prefill logic to preserve current user-owned input during feature-assist activation.
+
+#### Files Changed
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/viewer/geometrySketchOverlay.ts`
+- `src/viewer/sketch/GeometrySketchDrawHelper.ts`
+- `src/app/components/ViewportOverlay.tsx`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/ConsoleBar.tsx`
+- `src/app/console/useConsoleStore.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `src/viewer/geometrySketchOverlay.test.ts`
+- `src/app/console/ConsoleDock.test.tsx`
+
+#### Behavior Changes
+- `Sketch Draw` idle prompts now advertise `Rectangle` alongside `Line`, `PLine`, and `Previous`.
+- Typing `rectangle` or `rec` now arms a real two-point rectangle command.
+- After `P1`, the viewport previews a closed rectangle ghost instead of a single segment.
+- The second accepted point commits one first-class `rectangle` component and returns the draw session to idle.
+- Empty `Enter` after `P1` now accepts the current hovered opposite corner for `Rectangle`, matching the locked `DrawSketch-4` contract.
+- Console feature-assist activation no longer overwrites already-entered user input just because a new assist descriptor arrives in the same activation window.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- Ran `npm.cmd test -- --run src/viewer/geometrySketchOverlay.test.ts`
+- Ran `npm.cmd test -- --run src/app/components/ViewportOverlay.test.tsx`
+- Ran `npm.cmd test -- --run src/app/console/ConsoleDock.test.tsx`
+
 ### [528] - 2026-03-21 23:38 - `SP - Phase 3.2B-DrawSketch-2 - Multi-Step Tool Sessions And Commit Rules`
 <!-- ENTRY 528 -->
 HUMAN SUMMARY: Landed the first real multi-step `Sketch Draw` command pass for `Line` and `PLine`. Draw sessions now support hybrid viewport-plus-console point entry, live `P1 / P2 / P3` status readout in the console summary, local `Previous` / `undo`, and direct cancel-to-idle behavior instead of the older one-off point-drop flow.

@@ -1,0 +1,2226 @@
+.V15Panel button.ParaSliderClampHandle,
+.ReferenceTransformToolbar button.ParaSliderClampHandle,
+.ViewportOverlaySketchSessionWindow button.ParaSliderClampHandle,
+.ViewportOverlayToolPanel button.ParaSliderClampHandle {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  width: 8px;
+  min-width: 8px;
+  margin-left: -4px;
+  padding: 0;
+  border: 1px solid rgba(255, 196, 148, 0.92);
+  border-radius: 3px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 188, 124, 0.98) 0%,
+    rgba(255, 140, 72, 0.98) 100%
+  );
+  box-shadow:
+    0 0 0 1px rgba(10, 10, 14, 0.4),
+    0 0 12px rgba(255, 136, 66, 0.18);
+  cursor: col-resize;
+  z-index: 2;
+}
+
+.V15Panel button.ParaSliderClampHandle:hover,
+.ReferenceTransformToolbar button.ParaSliderClampHandle:hover,
+.ViewportOverlaySketchSessionWindow button.ParaSliderClampHandle:hover,
+.ViewportOverlayToolPanel button.ParaSliderClampHandle:hover {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 204, 146, 0.99) 0%,
+    rgba(255, 156, 88, 0.99) 100%
+  );
+  border-color: rgba(255, 224, 198, 0.96);
+}
+
+.ModeSwitch {
+  position: relative;
+  width: 72px;
+  height: 34px;
+  border: none !important;
+  border-radius: 999px;
+  cursor: pointer;
+  padding: 3px !important;
+  transition: background-color 180ms ease;
+}
+
+.ModeSwitch.isParts {
+  background: #1d6fe9;
+}
+
+.ModeSwitch.isAssembled {
+  background: #1f9d55;
+}
+
+.ModeSwitchThumb {
+  display: block;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.28);
+  transition: transform 180ms ease;
+}
+
+.ModeSwitch.isAssembled .ModeSwitchThumb {
+  transform: translateX(38px);
+}
+
+.ViewToolbarRoot {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-height: calc(100dvh - var(--v15-view-anchor-top) - 16px);
+  overflow: hidden;
+  transition: max-height 180ms ease;
+}
+
+.ViewToolbarToggle {
+  margin: 0;
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ViewToolbarToggle::-webkit-details-marker {
+  display: none;
+}
+
+.ViewToolbarToggle::after {
+  content: '+';
+  font-size: 15px;
+  line-height: 1;
+  color: var(--v15-text-dim);
+}
+
+.ViewToolbarRoot[open] .ViewToolbarToggle::after {
+  content: '-';
+}
+
+.ViewToolbarPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+}
+
+.ViewToolbarRoot[open] .ViewToolbarPanel {
+  flex: 1;
+}
+
+.ViewSection {
+  border: 1px solid var(--v15-panel-border-soft);
+  border-radius: 10px;
+  padding: 8px;
+}
+
+.ViewSection > summary {
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--v15-text-dim);
+  list-style: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: fit-content;
+  max-width: 100%;
+  padding: 6px 10px;
+  border: 1px solid var(--v15-panel-border-soft);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.ViewSection > summary::-webkit-details-marker {
+  display: none;
+}
+
+.ViewStyledSection > summary {
+  color: rgba(232, 232, 234, 0.82);
+  border-color: var(--v15-panel-border-soft);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(20, 20, 24, 0.02) 100%);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 8px;
+}
+
+.ViewStyledSection[open] > summary,
+.ViewStyledSection[open] > summary:hover {
+  color: rgba(232, 232, 234, 0.98);
+  border-color: rgba(124, 160, 255, 0.32);
+  background: linear-gradient(180deg, rgba(40, 68, 128, 0.45) 0%, rgba(34, 45, 80, 0.42) 100%);
+}
+
+.ViewStyledSection .CameraToolbar {
+  gap: 6px;
+  margin-top: 10px;
+  margin-bottom: 12px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.ViewStyledSection[open] {
+  border-color: rgba(124, 160, 255, 0.65);
+  box-shadow: 0 0 0 1px rgba(124, 160, 255, 0.22), 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.ViewStyledSection[open] > summary {
+  color: #f2f5ff;
+}
+
+.ViewStyledSection:not([open]) {
+  border-color: transparent;
+  box-shadow: none;
+  padding: 4px 0;
+}
+
+.ViewStyledSection:not([open]) > summary {
+  margin-bottom: 0;
+}
+
+.ViewToolbarPanel > .ViewStyledSection:not([open]) + .ViewStyledSection:not([open]) {
+  margin-top: -2px;
+}
+
+.CameraButton,
+.ViewStyledSection .V15Wrap > button,
+.ViewStyledSection > button,
+.ViewStyledSection .InlineEditorRow > button {
+  width: 100%;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 26px;
+  padding: 5px 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: linear-gradient(180deg, #2e323a 0%, #262a32 100%);
+  color: #f3f5f9;
+  font-size: 11px;
+  letter-spacing: 0.01em;
+  font-weight: 600;
+  text-transform: none;
+  transition:
+    background 180ms ease,
+    border-color 180ms ease,
+    transform 120ms ease;
+}
+
+.ViewStyledSection .V15Wrap {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.CameraButton:hover {
+  background: linear-gradient(180deg, #3a3f48 0%, #2f353f 100%);
+  border-color: rgba(255, 255, 255, 0.28);
+  transform: translateY(-0.5px);
+}
+
+.CameraButton:active {
+  transform: translateY(0);
+}
+
+.CameraButton.isActive {
+  background: linear-gradient(180deg, #3b4f76 0%, #344267 100%);
+  border-color: rgba(124, 160, 255, 0.8);
+  box-shadow: inset 0 0 0 1px rgba(124, 160, 255, 0.35), 0 0 0 2px rgba(124, 160, 255, 0.18);
+}
+
+.CameraButton.isActive::after {
+  content: '*';
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  font-size: 11px;
+  color: rgba(220, 231, 255, 0.85);
+}
+
+.ViewportOverlayRoot {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 30;
+}
+
+.ViewportOverlayWidget {
+  pointer-events: auto;
+  background: rgba(20, 20, 24, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 10px;
+  backdrop-filter: blur(4px);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.35);
+}
+
+.ViewportOverlaySketchPlanePicker {
+  position: absolute;
+  min-width: 280px;
+  max-width: min(360px, calc(100vw - 16px));
+  overflow: hidden;
+}
+
+.ViewportOverlaySketchPlanePickerTitleBar {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px 8px;
+  cursor: move;
+  user-select: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    linear-gradient(180deg, rgba(255, 184, 28, 0.12), rgba(255, 184, 28, 0.04)),
+    rgba(255, 255, 255, 0.02);
+}
+
+.ViewportOverlaySketchPlanePickerTitleBlock {
+  display: grid;
+  gap: 2px;
+}
+
+.ViewportOverlaySketchPlanePickerTitle {
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: rgba(255, 244, 214, 0.92);
+}
+
+.ViewportOverlaySketchPlanePickerSubTitle {
+  font-size: 11px;
+  color: rgba(220, 226, 238, 0.72);
+}
+
+.ViewportOverlaySketchPlanePickerClose {
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(241, 244, 250, 0.88);
+  border-radius: 999px;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+  cursor: pointer;
+}
+
+.ViewportOverlaySketchPlanePickerBody {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px 12px;
+}
+
+.ViewportOverlaySketchPlanePickerLabel,
+.ViewportOverlaySketchPlanePickerHint {
+  font-size: 12px;
+  color: rgba(235, 239, 246, 0.88);
+}
+
+.ViewportOverlaySketchPlanePickerHint {
+  color: rgba(208, 215, 228, 0.72);
+}
+
+.ViewportOverlaySketchPlanePickerActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ViewportOverlaySketchPlanePickerButton {
+  appearance: none;
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  background: rgba(245, 158, 11, 0.14);
+  color: rgba(255, 243, 214, 0.96);
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: 12px;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.ViewportOverlaySketchPlanePickerButton.isGhost {
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(237, 241, 247, 0.88);
+}
+
+.ViewportOverlaySketchPlaneSession {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.ViewportOverlaySketchPlaneViewportLayer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.ViewportOverlayToolPanel,
+.ViewportOverlaySketchPlaneDock {
+  position: absolute;
+  top: 84px;
+  right: 18px;
+  width: min(340px, calc(100vw - 36px));
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 0;
+  min-width: 280px;
+  min-height: 0;
+  pointer-events: auto;
+  z-index: var(--overlay-tool-z-index, 1);
+  border: 1px solid color-mix(in srgb, var(--overlay-tool-accent, var(--sketch-plane-accent)) 55%, rgba(255, 255, 255, 0.18));
+  border-radius: 12px;
+  color: rgba(232, 232, 234, var(--overlay-tool-text-alpha, 1));
+  font-size: var(--overlay-tool-font-size, 12px);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--overlay-tool-accent, var(--sketch-plane-accent)) 14%, rgba(255, 255, 255, 0.04)),
+      rgba(
+        var(--overlay-tool-bg-rgb, 10, 12, 18),
+        calc(var(--overlay-tool-bg-alpha, 0.94) * var(--overlay-tool-alpha-scale, 1))
+      )
+    ),
+    rgba(
+      var(--overlay-tool-bg-rgb, 10, 12, 18),
+      calc(var(--overlay-tool-bg-alpha, 0.94) * var(--overlay-tool-alpha-scale, 1))
+    );
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.34);
+  backdrop-filter: var(--overlay-tool-backdrop-filter, blur(8px));
+  overflow: hidden;
+}
+
+.ViewportOverlayToolPanelTitleBar,
+.ViewportOverlaySketchPlaneSessionTitleBar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 6px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  cursor: grab;
+  user-select: none;
+}
+
+.ViewportOverlayToolPanelLeadingActions,
+.ViewportOverlayToolPanelTrailingActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ViewportOverlayToolPanelTrailingActions {
+  margin-left: auto;
+}
+
+.ViewportOverlayToolPanelTitleBlock,
+.ViewportOverlaySketchPlaneSessionTitleBlock {
+  display: grid;
+  gap: 0;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.ViewportOverlayToolPanelTitle,
+.ViewportOverlaySketchPlaneSessionTitle {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--overlay-tool-accent, var(--sketch-plane-accent)) 72%, white);
+}
+
+.ViewportOverlayToolPanelTitleMeta,
+.ViewportOverlaySketchPlaneSessionSubTitle {
+  font-size: calc(var(--overlay-tool-font-size, 12px) - 2px);
+  color: rgba(220, 226, 238, calc(var(--overlay-tool-text-alpha, 1) * 0.72));
+}
+
+.ViewportOverlaySketchPlaneSessionMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: calc(var(--overlay-tool-font-size, 12px) - 2px);
+  color: rgba(220, 226, 238, calc(var(--overlay-tool-text-alpha, 1) * 0.72));
+}
+
+.ViewportOverlaySketchPlaneSessionMetaNode {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ViewportOverlaySketchPlaneSessionMetaStage {
+  flex: 0 0 auto;
+  color: color-mix(
+    in srgb,
+    var(--overlay-tool-accent, var(--sketch-plane-accent)) 68%,
+    rgba(255, 255, 255, 0.82)
+  );
+}
+
+.ViewportOverlaySketchPlaneSessionToolbarActions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.ViewportOverlayToolPanelClose,
+.ViewportOverlaySketchPlaneTitleClose {
+  min-height: 22px;
+  padding: 0 8px;
+}
+
+.ViewportOverlaySketchPlaneSessionPlaneChip,
+.ViewportOverlaySketchPlaneSessionAction {
+  appearance: none;
+  min-height: 24px;
+  padding: 0 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(238, 242, 255, calc(var(--overlay-tool-text-alpha, 1) * 0.92));
+  font-size: calc(var(--overlay-tool-font-size, 12px) - 1px);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.ViewportOverlaySketchPlaneStageAction {
+  min-width: 108px;
+  white-space: nowrap;
+}
+
+.ViewportOverlaySketchPlaneSessionPlaneChip.isActive,
+.ViewportOverlaySketchPlaneSessionAction.isPrimary {
+  border-color: color-mix(in srgb, var(--sketch-plane-accent) 78%, rgba(255, 255, 255, 0.18));
+  background: color-mix(in srgb, var(--sketch-plane-accent) 18%, rgba(255, 255, 255, 0.04));
+  color: rgba(255, 246, 222, 0.98);
+}
+
+.ViewportOverlaySketchPlaneSessionAction:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.ViewportOverlaySketchPlaneAxes {
+  position: absolute;
+  inset: 0 0 0 0;
+  pointer-events: none;
+}
+
+.ViewportOverlaySketchPlaneAxis {
+  position: absolute;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.ViewportOverlaySketchPlaneAxis--x {
+  left: 50%;
+  top: calc(50% + 36px);
+  width: 144px;
+  height: 2px;
+  transform: translateX(0);
+  background: linear-gradient(90deg, rgba(255, 84, 84, 0.98), rgba(255, 84, 84, 0.24));
+  color: rgba(255, 180, 180, 0.92);
+}
+
+.ViewportOverlaySketchPlaneAxis--x::after {
+  content: 'X';
+  position: absolute;
+  right: -16px;
+  top: -8px;
+}
+
+.ViewportOverlaySketchPlaneAxis--y {
+  left: calc(50% - 72px);
+  top: 50%;
+  width: 144px;
+  height: 2px;
+  transform: rotate(-32deg);
+  background: linear-gradient(90deg, rgba(84, 255, 136, 0.98), rgba(84, 255, 136, 0.24));
+  color: rgba(194, 255, 214, 0.92);
+}
+
+.ViewportOverlaySketchPlaneAxis--y::after {
+  content: 'Y';
+  position: absolute;
+  right: -14px;
+  top: -8px;
+}
+
+.ViewportOverlaySketchPlaneAxis--z {
+  left: calc(50% - 1px);
+  top: calc(50% - 92px);
+  width: 2px;
+  height: 148px;
+  background: linear-gradient(180deg, rgba(116, 176, 255, 0.98), rgba(116, 176, 255, 0.24));
+  color: rgba(203, 226, 255, 0.92);
+}
+
+.ViewportOverlaySketchPlaneAxis--z::after {
+  content: 'Z';
+  position: absolute;
+  left: 8px;
+  top: -10px;
+}
+
+.ViewportOverlaySketchPlaneAxisOrigin {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  transform: translate(-50%, -50%);
+  border-radius: 999px;
+  background: rgba(236, 241, 252, 0.98);
+  box-shadow:
+    0 0 0 2px rgba(20, 24, 34, 0.96),
+    0 0 0 6px rgba(255, 255, 255, 0.06);
+}
+
+.ViewportOverlaySketchPlaneOriginPlanes {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.ViewportOverlaySketchPlaneOriginPlane {
+  position: absolute;
+  appearance: none;
+  pointer-events: auto;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(245, 182, 84, 0.2);
+  color: rgba(255, 244, 214, 0.96);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.24);
+  cursor: pointer;
+}
+
+.ViewportOverlaySketchPlaneOriginPlane.isActive {
+  border-color: rgba(96, 154, 255, 0.7);
+  background: rgba(96, 154, 255, 0.24);
+  box-shadow:
+    0 0 0 1px rgba(96, 154, 255, 0.28),
+    0 14px 30px rgba(0, 0, 0, 0.28);
+}
+
+.ViewportOverlaySketchPlaneOriginPlane--XY {
+  left: calc(50% - 72px);
+  top: calc(50% + 12px);
+  width: 144px;
+  height: 88px;
+  transform: skewX(-28deg);
+}
+
+.ViewportOverlaySketchPlaneOriginPlane--XZ {
+  left: calc(50% - 8px);
+  top: calc(50% - 86px);
+  width: 98px;
+  height: 124px;
+  transform: skewY(-28deg);
+}
+
+.ViewportOverlaySketchPlaneOriginPlane--YZ {
+  left: calc(50% - 88px);
+  top: calc(50% - 74px);
+  width: 98px;
+  height: 124px;
+  transform: skewY(28deg);
+}
+
+.ViewportOverlaySketchPlaneOriginPlaneLabel {
+  position: absolute;
+  inset: auto auto 8px 10px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.ViewportOverlaySketchPlaneGizmoPanel {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  pointer-events: auto;
+}
+
+.ViewportOverlayToolPanelBody,
+.ViewportOverlaySketchPlaneDockBody {
+  display: grid;
+  gap: 0;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color:
+    color-mix(in srgb, var(--overlay-tool-accent, var(--sketch-plane-accent)) 52%, rgba(92, 98, 118, 0.96))
+    rgba(8, 10, 14, 0.94);
+}
+
+.ViewportOverlayToolPanelBody::-webkit-scrollbar,
+.ViewportOverlaySketchPlaneDockBody::-webkit-scrollbar {
+  width: 12px;
+}
+
+.ViewportOverlayToolPanelBody::-webkit-scrollbar-track,
+.ViewportOverlaySketchPlaneDockBody::-webkit-scrollbar-track {
+  background: rgba(8, 10, 14, 0.94);
+}
+
+.ViewportOverlayToolPanelBody::-webkit-scrollbar-thumb,
+.ViewportOverlaySketchPlaneDockBody::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--overlay-tool-accent, var(--sketch-plane-accent)) 54%, rgba(110, 118, 142, 0.98)) 0%,
+    color-mix(in srgb, var(--overlay-tool-accent, var(--sketch-plane-accent)) 38%, rgba(60, 65, 82, 0.98)) 100%
+  );
+  border-radius: 999px;
+  border: 2px solid rgba(8, 10, 14, 0.94);
+}
+
+.ViewportOverlayToolPanelBody::-webkit-scrollbar-thumb:hover,
+.ViewportOverlaySketchPlaneDockBody::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--overlay-tool-accent, var(--sketch-plane-accent)) 66%, rgba(132, 140, 166, 0.98)) 0%,
+    color-mix(in srgb, var(--overlay-tool-accent, var(--sketch-plane-accent)) 48%, rgba(74, 80, 99, 0.98)) 100%
+  );
+}
+
+.ViewportOverlayToolPanelContextMenu {
+  border-color: color-mix(
+    in srgb,
+    var(--overlay-tool-accent, var(--sketch-plane-accent)) 44%,
+    rgba(255, 255, 255, 0.22)
+  );
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(
+        in srgb,
+        var(--overlay-tool-accent, var(--sketch-plane-accent)) 16%,
+        rgba(255, 255, 255, 0.04)
+      ),
+      rgba(13, 17, 26, 0.98)
+    ),
+    rgba(13, 17, 26, 0.98);
+}
+
+.ViewportOverlayToolPanelContextMenu .SpaghettiContextMenuItem:hover {
+  background: color-mix(
+    in srgb,
+    var(--overlay-tool-accent, var(--sketch-plane-accent)) 28%,
+    rgba(255, 255, 255, 0.06)
+  );
+  border-color: color-mix(
+    in srgb,
+    var(--overlay-tool-accent, var(--sketch-plane-accent)) 58%,
+    rgba(255, 255, 255, 0.2)
+  );
+}
+
+.ViewportOverlayToolPanelSection,
+.ViewportOverlaySketchPlaneDockSection {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  min-height: 0;
+}
+
+.ViewportOverlayToolPanelSplitLayout {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
+.ViewportOverlayToolPanelSplitPane {
+  min-height: 0;
+  overflow: auto;
+}
+
+.ViewportOverlayToolPanelSplitPane--top {
+  flex: 0 0 auto;
+}
+
+.ViewportOverlayToolPanelSplitPane--bottom {
+  flex: 1 1 auto;
+}
+
+.ViewportOverlayToolPanelSplitResizeHandle {
+  flex: 0 0 auto;
+  min-height: 12px;
+  padding: 4px 0;
+  cursor: ns-resize;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+}
+
+.ViewportOverlayToolPanelSplitResizeRule {
+  width: calc(100% - 16px);
+  height: 1px;
+  border-radius: 999px;
+  background: color-mix(
+    in srgb,
+    var(--overlay-tool-accent, var(--sketch-plane-accent)) 42%,
+    rgba(255, 255, 255, 0.18)
+  );
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 0 12px color-mix(
+      in srgb,
+      var(--overlay-tool-accent, var(--sketch-plane-accent)) 18%,
+      transparent
+    );
+}
+
+.ViewportOverlayToolPanelSplitResizeHandle:hover .ViewportOverlayToolPanelSplitResizeRule,
+.ViewportOverlayToolPanelSplitResizeHandle:focus-visible .ViewportOverlayToolPanelSplitResizeRule {
+  background: color-mix(
+    in srgb,
+    var(--overlay-tool-accent, var(--sketch-plane-accent)) 68%,
+    rgba(255, 255, 255, 0.26)
+  );
+}
+
+.ViewportOverlaySketchPlaneSectionRow {
+  display: grid;
+  gap: 8px;
+}
+
+.ViewportOverlaySketchPlanePlaneChipGroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ViewportOverlayToolPanelSectionLabel,
+.ViewportOverlaySketchPlaneDockLabel {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: color-mix(
+    in srgb,
+    var(--overlay-tool-accent, var(--sketch-plane-accent)) 76%,
+    rgba(255, 232, 196, 0.92)
+  );
+}
+
+.ViewportOverlayToolPanelTextToggle,
+.ViewportOverlaySketchPlaneTextToggle {
+  appearance: none;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: inherit;
+  font: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ViewportOverlaySketchPlaneSectionHeaderRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ViewportOverlaySketchPlaneSectionHeaderRow .ViewportOverlaySketchPlaneTextToggle {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.ViewportOverlaySketchPlaneInlineAction {
+  flex: 0 0 auto;
+  min-width: max-content;
+}
+
+.ViewportOverlayToolPanelChevron,
+.ViewportOverlaySketchPlaneChevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 10px;
+  min-width: 10px;
+  font-size: 10px;
+  line-height: 1;
+  color: inherit;
+  opacity: 0.88;
+  transform: rotate(0deg);
+  transform-origin: 50% 50%;
+  transition:
+    transform 120ms ease,
+    opacity 120ms ease;
+}
+
+.ViewportOverlayToolPanelChevron.isExpanded,
+.ViewportOverlaySketchPlaneChevron.isExpanded {
+  transform: rotate(90deg);
+}
+
+.ViewportOverlayToolPanelIMenuSection {
+  padding-bottom: 2px;
+  border-bottom: 1px solid
+    color-mix(
+      in srgb,
+      var(--overlay-tool-accent, var(--sketch-plane-accent)) 24%,
+      rgba(255, 255, 255, 0.06)
+    );
+}
+
+.ViewportOverlayToolPanelCustomizationNote {
+  font-size: calc(var(--overlay-tool-font-size, 12px) - 1px);
+  line-height: 1.45;
+  color: rgba(220, 226, 238, calc(var(--overlay-tool-text-alpha, 1) * 0.76));
+}
+
+.ViewportOverlayToolPanelCustomizationRows {
+  display: grid;
+  gap: 8px;
+}
+
+.ViewportOverlayToolPanelCustomizationSubsection {
+  display: grid;
+  gap: 8px;
+  padding: 6px 0 0;
+}
+
+.ViewportOverlayToolPanelBodySplitLayout {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
+.ViewportOverlayToolPanelBodySplitPane {
+  min-height: 0;
+  overflow: auto;
+}
+
+.ViewportOverlayToolPanelBodySplitPane--top {
+  flex: 0 0 auto;
+}
+
+.ViewportOverlayToolPanelBodySplitPane--bottom {
+  flex: 1 1 auto;
+}
+
+.ViewportOverlayToolPanelBodySplitResizeHandle {
+  flex: 0 0 auto;
+  height: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: row-resize;
+  padding: 0 8px;
+}
+
+.ViewportOverlayToolPanelBodySplitResizeRule {
+  width: 100%;
+  height: 1px;
+  border-radius: 999px;
+  background: color-mix(
+    in srgb,
+    var(--overlay-tool-accent, var(--sketch-plane-accent)) 42%,
+    rgba(255, 255, 255, 0.12)
+  );
+  box-shadow:
+    0 0 0 1px
+      color-mix(
+        in srgb,
+        var(--overlay-tool-accent, var(--sketch-plane-accent)) 18%,
+        rgba(255, 255, 255, 0.05)
+      ),
+    0 0 8px rgba(0, 0, 0, 0.14);
+}
+
+.ViewportOverlayToolPanelBodySplitResizeHandle:hover .ViewportOverlayToolPanelBodySplitResizeRule,
+.ViewportOverlayToolPanelBodySplitResizeHandle:focus-visible .ViewportOverlayToolPanelBodySplitResizeRule {
+  background: color-mix(
+    in srgb,
+    var(--overlay-tool-accent, var(--sketch-plane-accent)) 68%,
+    rgba(255, 255, 255, 0.26)
+  );
+}
+
+.ViewportOverlaySketchPlaneGizmoRows {
+  display: grid;
+  gap: 8px;
+  --sp-window-font-size: calc(var(--overlay-tool-font-size, 12px) - 1px);
+}
+
+.ViewportOverlaySketchPlaneGizmoSliderGroup {
+  display: grid;
+  gap: 8px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  padding: 6px 8px 8px;
+}
+
+.ViewportOverlaySketchPlaneTransformHistoryGroup {
+  order: -1;
+}
+
+.ViewportOverlaySketchPlaneGizmoSliderGroup + .ViewportOverlaySketchPlaneGizmoSliderGroup {
+  margin-top: 4px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 168, 44, 0.14);
+}
+
+.ViewportOverlaySketchPlaneGizmoSliderGroup.isActive {
+  border-color: rgba(255, 168, 44, 0.46);
+}
+
+.ViewportOverlaySketchPlaneAxisRow {
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 2px 4px 4px;
+  transition:
+    border-color 120ms ease,
+    background-color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.ViewportOverlaySketchPlaneAxisRow.isActive {
+  border-color: color-mix(in srgb, var(--sketch-plane-accent) 72%, rgba(255, 255, 255, 0.12));
+  background: color-mix(in srgb, var(--sketch-plane-accent) 12%, rgba(255, 255, 255, 0.03));
+  box-shadow: inset 0 0 0 1px
+    color-mix(in srgb, var(--sketch-plane-accent) 18%, rgba(255, 255, 255, 0.04));
+}
+
+.ViewportOverlaySketchPlaneGizmoSliderGroupLabel {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(220, 226, 238, 0.66);
+  transition: color 120ms ease;
+}
+
+.ViewportOverlaySketchPlaneGizmoSliderGroupLabel:hover {
+  color: rgba(232, 238, 248, 0.86);
+}
+
+.ViewportOverlaySketchPlaneGizmoRows .ParaSliderLabel,
+.ViewportOverlaySketchPlaneGizmoRows .ParaSliderValue,
+.ViewportOverlaySketchPlaneGizmoRows .ParaSliderValueInput,
+.ViewportOverlaySketchPlaneGizmoRows button.ParaSliderValueButton {
+  font-size: 12px;
+}
+
+.ViewportOverlaySketchPlaneGizmoRows button.ParaSliderCap {
+  font-size: 10px;
+}
+
+.ViewportOverlaySketchSessionWindow {
+  position: absolute;
+  width: min(420px, calc(100vw - 32px));
+  display: flex;
+  flex-direction: column;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.ViewportOverlayToolPanelResizeHandle,
+.ViewportOverlaySketchSessionResizeHandle {
+  position: absolute;
+  z-index: 2;
+  pointer-events: auto;
+}
+
+.ViewportOverlayToolPanelResizeHandle--n,
+.ViewportOverlayToolPanelResizeHandle--s,
+.ViewportOverlaySketchSessionResizeHandle--n,
+.ViewportOverlaySketchSessionResizeHandle--s {
+  left: 10px;
+  right: 10px;
+  height: 8px;
+}
+
+.ViewportOverlayToolPanelResizeHandle--n,
+.ViewportOverlaySketchSessionResizeHandle--n {
+  top: -4px;
+  cursor: ns-resize;
+}
+
+.ViewportOverlayToolPanelResizeHandle--s,
+.ViewportOverlaySketchSessionResizeHandle--s {
+  bottom: -4px;
+  cursor: ns-resize;
+}
+
+.ViewportOverlayToolPanelResizeHandle--e,
+.ViewportOverlayToolPanelResizeHandle--w,
+.ViewportOverlaySketchSessionResizeHandle--e,
+.ViewportOverlaySketchSessionResizeHandle--w {
+  top: 10px;
+  bottom: 10px;
+  width: 8px;
+}
+
+.ViewportOverlayToolPanelResizeHandle--e,
+.ViewportOverlaySketchSessionResizeHandle--e {
+  right: -4px;
+  cursor: ew-resize;
+}
+
+.ViewportOverlayToolPanelResizeHandle--w,
+.ViewportOverlaySketchSessionResizeHandle--w {
+  left: -4px;
+  cursor: ew-resize;
+}
+
+.ViewportOverlayToolPanelResizeHandle--ne,
+.ViewportOverlayToolPanelResizeHandle--nw,
+.ViewportOverlayToolPanelResizeHandle--se,
+.ViewportOverlayToolPanelResizeHandle--sw,
+.ViewportOverlaySketchSessionResizeHandle--ne,
+.ViewportOverlaySketchSessionResizeHandle--nw,
+.ViewportOverlaySketchSessionResizeHandle--se,
+.ViewportOverlaySketchSessionResizeHandle--sw {
+  width: 14px;
+  height: 14px;
+}
+
+.ViewportOverlayToolPanelResizeHandle--ne,
+.ViewportOverlaySketchSessionResizeHandle--ne {
+  top: -4px;
+  right: -4px;
+  cursor: nesw-resize;
+}
+
+.ViewportOverlayToolPanelResizeHandle--nw,
+.ViewportOverlaySketchSessionResizeHandle--nw {
+  top: -4px;
+  left: -4px;
+  cursor: nwse-resize;
+}
+
+.ViewportOverlayToolPanelResizeHandle--se,
+.ViewportOverlaySketchSessionResizeHandle--se {
+  right: -4px;
+  bottom: -4px;
+  cursor: nwse-resize;
+}
+
+.ViewportOverlayToolPanelResizeHandle--sw,
+.ViewportOverlaySketchSessionResizeHandle--sw {
+  left: -4px;
+  bottom: -4px;
+  cursor: nesw-resize;
+}
+
+.ViewportOverlayToolPanelSectionStack {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
+.ViewportOverlayToolPanelSectionStackPane {
+  min-height: 0;
+  overflow: auto;
+}
+
+.ViewportOverlayToolPanelSectionStackResizeHandle {
+  flex: 0 0 auto;
+  min-height: 12px;
+  padding: 4px 0;
+  cursor: ns-resize;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+}
+
+.ViewportOverlayToolPanelSectionStackResizeRule {
+  width: calc(100% - 16px);
+  height: 1px;
+  border-radius: 999px;
+  background: color-mix(
+    in srgb,
+    var(--overlay-tool-accent, var(--sketch-plane-accent)) 34%,
+    rgba(255, 255, 255, 0.16)
+  );
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 0 10px color-mix(
+      in srgb,
+      var(--overlay-tool-accent, var(--sketch-plane-accent)) 14%,
+      transparent
+    );
+}
+
+.ViewportOverlayToolPanelSectionStackResizeHandle:hover .ViewportOverlayToolPanelSectionStackResizeRule,
+.ViewportOverlayToolPanelSectionStackResizeHandle:focus-visible .ViewportOverlayToolPanelSectionStackResizeRule {
+  background: color-mix(
+    in srgb,
+    var(--overlay-tool-accent, var(--sketch-plane-accent)) 62%,
+    rgba(255, 255, 255, 0.26)
+  );
+}
+
+.ViewportOverlaySketchSessionTitleBar {
+  touch-action: none;
+}
+
+.ViewportOverlaySketchSessionTitleBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ViewportOverlaySketchSessionTitle {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: rgba(244, 247, 255, 0.96);
+}
+
+.ViewportOverlaySketchSessionSubTitle {
+  font-size: 11px;
+  color: rgba(197, 207, 226, 0.78);
+}
+
+.ViewportOverlaySketchSessionClose {
+  min-width: 22px;
+  justify-content: center;
+  padding: 0 8px;
+}
+
+.ViewportOverlaySketchSessionBody {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 12px;
+  overflow: hidden;
+}
+
+.ViewportOverlaySketchSessionBody .ViewportOverlayToolPanelSectionStack {
+  flex: 1 1 auto;
+}
+
+.ViewportOverlaySketchSessionPlane,
+.ViewportOverlaySketchEntitySummary {
+  font-size: 11px;
+  color: rgba(208, 217, 235, 0.84);
+}
+
+.ViewportOverlaySketchDraftCard {
+  border: 1px solid
+    color-mix(
+      in srgb,
+      var(--overlay-tool-accent, var(--sketch-plane-accent)) 34%,
+      rgba(255, 255, 255, 0.08)
+    );
+  border-radius: 12px;
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(
+        in srgb,
+        var(--overlay-tool-accent, var(--sketch-plane-accent)) 10%,
+        rgba(255, 255, 255, 0.03)
+      ),
+      rgba(255, 255, 255, 0.025)
+    );
+  padding: 10px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.025);
+}
+
+.ViewportOverlaySketchToolbar,
+.ViewportOverlaySketchSessionActions,
+.ViewportOverlaySketchProfileGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ViewportOverlaySketchToolButton,
+.ViewportOverlaySketchSessionActions > button {
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid
+    color-mix(
+      in srgb,
+      var(--overlay-tool-accent, var(--sketch-plane-accent)) 22%,
+      rgba(255, 255, 255, 0.12)
+    );
+  background: color-mix(
+    in srgb,
+    var(--overlay-tool-accent, var(--sketch-plane-accent)) 8%,
+    rgba(255, 255, 255, 0.04)
+  );
+  color: rgba(242, 246, 255, 0.94);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.ViewportOverlaySketchToolButton {
+  min-width: 38px;
+  width: 38px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ViewportOverlaySketchToolIcon {
+  width: 17px;
+  height: 17px;
+  display: block;
+  overflow: visible;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+}
+
+.ViewportOverlaySketchToolButton.isActive {
+  border-color: color-mix(
+    in srgb,
+    var(--overlay-tool-accent, var(--sketch-plane-accent)) 72%,
+    rgba(255, 255, 255, 0.16)
+  );
+  background: color-mix(
+    in srgb,
+    var(--overlay-tool-accent, var(--sketch-plane-accent)) 20%,
+    rgba(255, 255, 255, 0.04)
+  );
+  color: rgba(255, 248, 236, 0.98);
+}
+
+.ViewportOverlaySketchSessionActions > button.isGhost {
+  background: rgba(255, 255, 255, 0.025);
+  color: rgba(214, 223, 240, 0.88);
+}
+
+.ViewportOverlaySketchDraftTitle {
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: color-mix(
+    in srgb,
+    var(--overlay-tool-accent, var(--sketch-plane-accent)) 58%,
+    rgba(241, 245, 255, 0.95)
+  );
+}
+
+.ViewportOverlaySketchFieldGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.ViewportOverlaySketchField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ViewportOverlaySketchField > span {
+  font-size: 10px;
+  color: rgba(197, 208, 230, 0.82);
+}
+
+.ViewportOverlaySketchField > input {
+  min-height: 28px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(245, 247, 255, 0.94);
+  padding: 0 8px;
+}
+
+.ViewportOverlaySketchProfileCard {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border-radius: 10px;
+  border: 1px solid
+    color-mix(
+      in srgb,
+      var(--overlay-tool-accent, var(--sketch-plane-accent)) 24%,
+      rgba(255, 255, 255, 0.12)
+    );
+  background: color-mix(
+    in srgb,
+    var(--overlay-tool-accent, var(--sketch-plane-accent)) 8%,
+    rgba(255, 255, 255, 0.03)
+  );
+  color: rgba(242, 246, 255, 0.94);
+}
+
+.ViewportOverlaySketchProfileCard.isSelected {
+  border-color: color-mix(
+    in srgb,
+    var(--overlay-tool-accent, var(--sketch-plane-accent)) 72%,
+    rgba(255, 255, 255, 0.16)
+  );
+  box-shadow: inset 0 0 0 1px
+    color-mix(
+      in srgb,
+      var(--overlay-tool-accent, var(--sketch-plane-accent)) 38%,
+      rgba(255, 255, 255, 0.08)
+    );
+}
+
+.ViewportOverlaySketchProfileMeta {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 10px;
+}
+
+.ViewportOverlaySketchEntityList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 160px;
+  overflow: auto;
+}
+
+.ViewportOverlaySketchEntityItem {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: color-mix(
+    in srgb,
+    var(--overlay-tool-accent, var(--sketch-plane-accent)) 7%,
+    rgba(255, 255, 255, 0.025)
+  );
+  font-size: 10px;
+  color: rgba(212, 222, 240, 0.88);
+}
+
+.ViewportOverlaySketchEntityButton {
+  width: 100%;
+  border: 0;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ViewportOverlaySketchEntityEntryNumber {
+  flex: 0 0 26px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: rgba(255, 184, 145, 0.96);
+  text-align: right;
+}
+
+.ViewportOverlaySketchEntityGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ViewportOverlaySketchEntityGroupHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 8px;
+  background: color-mix(
+    in srgb,
+    var(--overlay-tool-accent, var(--sketch-plane-accent)) 10%,
+    rgba(255, 255, 255, 0.035)
+  );
+  font-size: 10px;
+  color: rgba(212, 222, 240, 0.88);
+  text-align: left;
+  cursor: pointer;
+}
+
+.ViewportOverlaySketchEntityItem.isHovered,
+.ViewportOverlaySketchEntityGroupHeader.isHovered {
+  background: color-mix(
+    in srgb,
+    rgba(244, 248, 255, 0.22),
+    rgba(255, 255, 255, 0.05)
+  );
+}
+
+.ViewportOverlaySketchEntityItem.isSelected,
+.ViewportOverlaySketchEntityGroupHeader.isSelected {
+  background: color-mix(
+    in srgb,
+    rgba(255, 214, 107, 0.3),
+    rgba(255, 255, 255, 0.06)
+  );
+  box-shadow: inset 0 0 0 1px rgba(255, 214, 107, 0.42);
+}
+
+.ViewportOverlaySketchEntityGroupHeader .ViewportOverlaySketchPlaneChevron {
+  flex: 0 0 auto;
+}
+
+.ViewportOverlaySketchEntityGroupTitle {
+  min-width: 0;
+  font-weight: 600;
+  color: rgba(242, 246, 255, 0.95);
+}
+
+.ViewportOverlaySketchEntityPrimaryLabel {
+  text-transform: capitalize;
+  color: rgba(242, 246, 255, 0.95);
+}
+
+.ViewportOverlaySketchEntityDetail {
+  margin-left: auto;
+}
+
+.ViewportOverlaySketchEntityGroupChildren {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-left: 18px;
+}
+
+.ViewportOverlaySketchEntityGroupHeader--child {
+  background: color-mix(
+    in srgb,
+    var(--overlay-tool-accent, var(--sketch-plane-accent)) 6%,
+    rgba(255, 255, 255, 0.025)
+  );
+}
+
+.ViewportOverlaySketchEntityItem--child {
+  background: color-mix(
+    in srgb,
+    var(--overlay-tool-accent, var(--sketch-plane-accent)) 4%,
+    rgba(255, 255, 255, 0.02)
+  );
+}
+
+.ViewportOverlaySketchEntityEditors {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 0 0 18px;
+}
+
+.ViewportOverlaySketchEntityEditorRow {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+
+.ViewportOverlaySketchEntityEditorRow--full {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.ViewportOverlaySketchEntityEditorRow--name {
+  grid-template-columns: 34px minmax(0, 1fr);
+}
+
+.ViewportOverlaySketchEntityEditorLabel {
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(242, 246, 255, 0.95);
+  text-transform: uppercase;
+}
+
+.ViewportOverlaySketchEntityNameInput {
+  width: 100%;
+  min-width: 0;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 7px;
+  border: 1px solid rgba(130, 156, 214, 0.24);
+  background: rgba(17, 21, 31, 0.92);
+  color: rgba(245, 247, 255, 0.96);
+  font-size: 10px;
+  font-family: var(--sp-window-font-family);
+  box-sizing: border-box;
+  outline: none;
+}
+
+.ViewportOverlaySketchEntityNameInput:focus {
+  border-color: rgba(124, 160, 255, 0.66);
+  box-shadow: 0 0 0 1px rgba(124, 160, 255, 0.18);
+}
+
+.ViewportOverlaySketchEmptyState {
+  width: 100%;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px dashed
+    color-mix(
+      in srgb,
+      var(--overlay-tool-accent, var(--sketch-plane-accent)) 24%,
+      rgba(255, 255, 255, 0.14)
+    );
+  background: color-mix(
+    in srgb,
+    var(--overlay-tool-accent, var(--sketch-plane-accent)) 7%,
+    rgba(255, 255, 255, 0.02)
+  );
+  font-size: 11px;
+  color: rgba(204, 214, 232, 0.82);
+}
+
+.ViewportHud {
+  position: absolute;
+  right: calc(var(--v15-right-dock-padding-x) + var(--v15-axis-widget-size) + 10px);
+  top: var(--v15-axis-widget-top);
+  max-width: 280px;
+  max-width: 280px;
+  padding: 8px 10px;
+  font-size: 12px;
+  color: var(--v15-text-dim);
+}
+
+.ReferenceTransformToolbar {
+  position: absolute;
+  left: 24px;
+  top: 22px;
+  transform: none;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 380px;
+  max-width: min(440px, calc(100vw - 48px));
+  max-height: calc(100dvh - 24px);
+  padding: 0;
+  overflow: visible;
+  z-index: 8;
+}
+
+.ReferenceTransformToolbarResizeHandle {
+  position: absolute;
+  z-index: 2;
+  pointer-events: auto;
+}
+
+.ReferenceTransformToolbarResizeHandle--n,
+.ReferenceTransformToolbarResizeHandle--s {
+  left: 10px;
+  right: 10px;
+  height: 8px;
+}
+
+.ReferenceTransformToolbarResizeHandle--n {
+  top: -4px;
+  cursor: ns-resize;
+}
+
+.ReferenceTransformToolbarResizeHandle--s {
+  bottom: -4px;
+  cursor: ns-resize;
+}
+
+.ReferenceTransformToolbarResizeHandle--e,
+.ReferenceTransformToolbarResizeHandle--w {
+  top: 10px;
+  bottom: 10px;
+  width: 8px;
+}
+
+.ReferenceTransformToolbarResizeHandle--e {
+  right: -4px;
+  cursor: ew-resize;
+}
+
+.ReferenceTransformToolbarResizeHandle--w {
+  left: -4px;
+  cursor: ew-resize;
+}
+
+.ReferenceTransformToolbarResizeHandle--ne,
+.ReferenceTransformToolbarResizeHandle--nw,
+.ReferenceTransformToolbarResizeHandle--se,
+.ReferenceTransformToolbarResizeHandle--sw {
+  width: 14px;
+  height: 14px;
+}
+
+.ReferenceTransformToolbarResizeHandle--ne {
+  top: -4px;
+  right: -4px;
+  cursor: nesw-resize;
+}
+
+.ReferenceTransformToolbarResizeHandle--nw {
+  top: -4px;
+  left: -4px;
+  cursor: nwse-resize;
+}
+
+.ReferenceTransformToolbarResizeHandle--se {
+  right: -4px;
+  bottom: -4px;
+  cursor: nwse-resize;
+}
+
+.ReferenceTransformToolbarResizeHandle--sw {
+  left: -4px;
+  bottom: -4px;
+  cursor: nesw-resize;
+}
+
+.ReferenceTransformToolbarHeader {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  padding: 10px 12px;
+  font-size: 12px;
+  background: linear-gradient(180deg, rgba(33, 44, 76, 0.98), rgba(27, 36, 64, 0.98));
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  cursor: move;
+  user-select: none;
+}
+
+.ReferenceTransformToolbarTitle {
+  font-weight: 800;
+  color: rgba(245, 248, 255, 0.98);
+}
+
+.ReferenceTransformToolbarTarget {
+  color: rgba(210, 220, 245, 0.9);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1 1 auto;
+}
+
+.ReferenceTransformToolbarHeaderAction,
+.ReferenceTransformToolbarClose {
+  min-width: 28px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(245, 248, 255, 0.96);
+  font-weight: 700;
+}
+
+.ReferenceTransformToolbarHeaderAction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ReferenceTransformToolbarHeaderAction.isActive {
+  border-color: rgba(124, 160, 255, 0.56);
+  background: rgba(96, 142, 255, 0.2);
+  box-shadow: inset 0 0 0 1px rgba(124, 160, 255, 0.2);
+}
+
+.ReferenceTransformToolbarZoomGlyph {
+  position: relative;
+  width: 12px;
+  height: 12px;
+  display: inline-block;
+}
+
+.ReferenceTransformToolbarZoomGlyph::before,
+.ReferenceTransformToolbarZoomGlyph::after {
+  content: '';
+  position: absolute;
+}
+
+.ReferenceTransformToolbarZoomGlyph::before {
+  left: 0;
+  top: 0;
+  width: 8px;
+  height: 8px;
+  border: 2px solid rgba(245, 248, 255, 0.96);
+  border-radius: 999px;
+}
+
+.ReferenceTransformToolbarZoomGlyph::after {
+  right: 0;
+  bottom: 0;
+  width: 6px;
+  height: 2px;
+  background: rgba(245, 248, 255, 0.96);
+  transform: rotate(45deg);
+  transform-origin: center;
+  border-radius: 999px;
+}
+
+.ReferenceTransformToolbarLockGlyph {
+  position: relative;
+  width: 12px;
+  height: 12px;
+  display: inline-block;
+}
+
+.ReferenceTransformToolbarLockGlyph::before,
+.ReferenceTransformToolbarLockGlyph::after {
+  content: '';
+  position: absolute;
+}
+
+.ReferenceTransformToolbarLockGlyph::before {
+  left: 2px;
+  right: 2px;
+  bottom: 0;
+  height: 7px;
+  border: 2px solid rgba(245, 248, 255, 0.96);
+  border-radius: 2px;
+}
+
+.ReferenceTransformToolbarLockGlyph::after {
+  left: 3px;
+  top: -1px;
+  width: 6px;
+  height: 6px;
+  border: 2px solid rgba(245, 248, 255, 0.96);
+  border-bottom: 0;
+  border-radius: 999px 999px 0 0;
+}
+
+.ReferenceTransformToolbarInfoGlyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  height: 12px;
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 800;
+  font-style: italic;
+  color: rgba(245, 248, 255, 0.98);
+}
+
+.ReferenceTransformToolbarBody {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  flex: 1 1 auto;
+  min-height: 0;
+  gap: 10px;
+  padding: 10px 12px 12px;
+  overflow-y: auto;
+}
+
+.ReferenceTransformToolbarShortcuts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  background: rgba(22, 27, 41, 0.88);
+}
+
+.ReferenceTransformToolbarShortcutsTitle {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(170, 184, 220, 0.86);
+}
+
+.ReferenceTransformToolbarShortcutRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ReferenceTransformToolbarShortcutKeys {
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(244, 247, 255, 0.96);
+}
+
+.ReferenceTransformToolbarShortcutText {
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: right;
+  font-size: 12px;
+  color: rgba(208, 218, 242, 0.82);
+}
+
+.ReferenceTransformToolbarSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.ReferenceTransformToolbarSection--controls {
+  padding-bottom: 2px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ReferenceTransformToolbarTransformRow {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.ReferenceTransformToolbarTransformSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  overflow: hidden;
+}
+
+.ReferenceTransformToolbarTransformSection.isActive {
+  border-color: rgba(104, 145, 255, 0.52);
+  box-shadow: 0 0 0 1px rgba(104, 145, 255, 0.16);
+}
+
+.ReferenceTransformToolbarTransformSectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 0;
+  padding: 8px 10px;
+  background: transparent;
+  cursor: pointer;
+  user-select: none;
+}
+
+.ReferenceTransformToolbarTransformSection.isActive .ReferenceTransformToolbarTransformSectionHeader {
+  background: rgba(96, 142, 255, 0.08);
+}
+
+.ReferenceTransformToolbarSectionToggle {
+  min-width: 10px;
+  width: 10px;
+  height: 10px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--v15-text-muted);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  text-align: center;
+}
+
+.ReferenceTransformToolbarTransformSectionLabel {
+  font-size: 12px;
+  font-weight: 800;
+  color: rgba(238, 242, 255, 0.92);
+}
+
+.ReferenceTransformToolbarTransformSectionActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.ReferenceTransformToolbarTransformSectionBody {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 8px 8px 16px;
+}
+
+.ReferenceTransformToolbarChannelBox {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border-radius: 10px;
+}
+
+.ReferenceTransformToolbarChannelBox.isHighlighted {
+  background: linear-gradient(180deg, rgba(88, 123, 216, 0.1), rgba(54, 80, 144, 0.08));
+  box-shadow: inset 0 0 0 1px rgba(104, 145, 255, 0.26);
+}
+
+.ReferenceTransformToolbarChannelBox.isTimeline {
+  padding: 8px;
+  border: 1px solid rgba(118, 143, 214, 0.2);
+  background: linear-gradient(180deg, rgba(27, 31, 46, 0.9), rgba(19, 22, 33, 0.96));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.ReferenceTransformToolbarTransformRowHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ReferenceTransformToolbarActions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ReferenceTransformToolbarInlineLabel {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: rgba(201, 212, 238, 0.82);
+}
+
+.ReferenceTransformToolbarValueStack {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+  min-width: 0;
+}
+
+.ReferenceTransformToolbarRotateSnapGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ReferenceTransformToolbarTimelineBox {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ReferenceTransformToolbarTimelineControls {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ReferenceTransformToolbarTimelineFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.ReferenceTransformToolbarCycleSelect {
+  min-height: 28px;
+  min-width: 150px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: linear-gradient(180deg, rgba(49, 58, 80, 0.96), rgba(38, 46, 66, 0.98));
+  color: rgba(236, 241, 252, 0.96);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.ReferenceTransformToolbarButton {
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: linear-gradient(180deg, rgba(49, 58, 80, 0.96), rgba(38, 46, 66, 0.98));
+  color: rgba(236, 241, 252, 0.96);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.ReferenceTransformToolbarButton:hover {
+  border-color: rgba(149, 175, 235, 0.26);
+  background: linear-gradient(180deg, rgba(58, 68, 93, 0.98), rgba(43, 51, 73, 0.98));
+}
+
+.ReferenceTransformToolbarButton.isActive {
+  border-color: rgba(104, 145, 255, 0.7);
+  background: rgba(57, 86, 160, 0.42);
+  color: rgba(245, 248, 255, 0.98);
+}
+
+.ReferenceTransformToolbarButton--lock {
+  min-width: 56px;
+}
+
+.ReferenceTransformToolbarButton--compact {
+  min-height: 24px;
+  padding: 0 8px;
+  font-size: 11px;
+}
+
+.ReferenceTransformToolbarButton--pushRight {
+  margin-left: auto;
+}
+
+.ReferenceTransformToolbarSnapRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.ReferenceTransformToolbarSnapButtons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.ReferenceTransformToolbar .ParaSlider {
+  width: 100%;
+}
+
+.ReferenceTransformToolbar button.ParaSliderCap,
+.ReferenceTransformToolbar button.ParaSliderClampHandle {
+  font-family: var(--sp-window-font-family);
+}
+
+.ReferenceTransformToolbar button.ParaSliderCap {
+  flex: 0 0 28px;
+  width: 28px;
+  min-width: 28px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid var(--v15-panel-border-soft);
+  background: color-mix(in srgb, var(--sp-window-toolbar-bg) 86%, white 5%);
+  color: var(--v15-text);
+  font-size: calc(var(--sp-window-font-size) - 1px);
+  line-height: 1;
+  border-radius: 0;
+}
+
+.ReferenceTransformToolbar button.ParaSliderCap--left {
+  border-radius: 8px 0 0 8px;
+}
+
+.ReferenceTransformToolbar button.ParaSliderCap--right {
+  border-left: none;
+  border-radius: 0 8px 8px 0;
+}
+
+.ReferenceTransformToolbar .ParaSliderTrack {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 30px;
+  border: 1px solid var(--v15-panel-border-soft);
+  border-left: none;
+  background: color-mix(in srgb, var(--sp-window-toolbar-bg) 86%, white 5%);
+  cursor: ew-resize;
+  overflow: hidden;
+  outline: none;
+}
+
+.ReferenceTransformToolbar .ParaSliderTrack:focus-visible {
+  box-shadow: inset 0 0 0 1px rgba(124, 160, 255, 0.45);
+}
+
+.ReferenceTransformToolbar .ParaSliderFill {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  background: linear-gradient(
+    90deg,
+    rgba(124, 160, 255, 0.38) 0%,
+    rgba(124, 160, 255, 0.2) 100%
+  );
+  border-radius: 0;
+  pointer-events: none;
+}
+
+.ReferenceTransformToolbar .ParaSliderClampRange {
+  background: transparent;
+}
+
+.ReferenceTransformToolbar .ParaSliderClampRange.isClampEditing {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 160, 102, 0.4) 0%,
+    rgba(255, 136, 66, 0.26) 100%
+  );
+}
+
+.ReferenceTransformToolbar .ParaSliderValueMarker {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  width: 2px;
+  margin-left: -1px;
+  border-radius: 999px;
+  background: rgba(244, 247, 255, 0.92);
+  box-shadow: 0 0 0 1px rgba(11, 11, 15, 0.42);
+  pointer-events: none;
+}
+
+.ReferenceTransformToolbar .ParaSliderContent {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 var(--sp-window-pad-x);
+  pointer-events: none;
+}
+
+.ReferenceTransformToolbar .ParaSliderLabel,
+.ReferenceTransformToolbar .ParaSliderValue {
+  font-size: var(--sp-window-font-size);
+  font-family: var(--sp-window-font-family);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.ReferenceTransformToolbar .ParaSliderLabel {
+  color: rgba(230, 236, 248, 0.94);
+}
+
+.ReferenceTransformToolbar .ParaSliderValue {
+  color: rgba(238, 242, 255, 0.86);
+  text-align: right;
+}
+
+.HudLine {
+  display: block;
+  margin: 2px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

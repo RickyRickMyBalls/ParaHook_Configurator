@@ -2657,6 +2657,246 @@ describe('ConsoleDock', () => {
     expect(useConsoleStore.getState().entries.some((entry) => entry.text === '> 5,5')).toBe(true)
   })
 
+  it('accepts typed vec2 submissions during an active Rectangle command and returns to idle after the second point', async () => {
+    const rectangleNodeId = 'node-sketch-rect-1'
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: rectangleNodeId,
+            type: 'Geometry/Sketch',
+            params: {
+              sketch: {
+                type: 'sketch',
+                featureId: 'sketch-1',
+                plane: 'XY',
+                components: [],
+                outputs: { profiles: [], diagnostics: [] },
+                uiState: { collapsed: false },
+              },
+            },
+          },
+        ],
+        edges: [],
+      })
+      useSpaghettiStore.getState().startGeometrySketchSession(rectangleNodeId, 'draw')
+      useConsoleStore.getState().setInputText('rec')
+    })
+
+    const submit = async () => {
+      await act(async () => {
+        const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+        form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+      })
+    }
+
+    await submit()
+
+    expect(useSpaghettiStore.getState().geometrySketchSession).toMatchObject({
+      mode: 'draw',
+      activeTool: 'rectangle',
+      lastUsedTool: 'rectangle',
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('2,3')
+    })
+    await submit()
+
+    expect(useSpaghettiStore.getState().geometrySketchSession).toMatchObject({
+      mode: 'draw',
+      activeTool: 'rectangle',
+      lastUsedTool: 'rectangle',
+      drawStage: 'draftActive',
+      drawDraft: {
+        points: [{ x: 2, y: 3 }],
+      },
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('12,15')
+    })
+    await submit()
+
+    expect(useSpaghettiStore.getState().geometrySketchSession).toMatchObject({
+      mode: 'draw',
+      activeTool: null,
+      drawStage: 'sessionIdle',
+      drawDraft: null,
+    })
+    expect(
+      (useSpaghettiStore.getState().graph.nodes.find((node) => node.nodeId === rectangleNodeId)
+        ?.params.sketch as { components: Array<{ type: string }> }).components,
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'rectangle',
+        }),
+      ]),
+    )
+    expect(useConsoleStore.getState().entries.some((entry) => entry.text === '> rec')).toBe(true)
+    expect(useConsoleStore.getState().entries.some((entry) => entry.text === '> 2,3')).toBe(true)
+    expect(useConsoleStore.getState().entries.some((entry) => entry.text === '> 12,15')).toBe(true)
+  })
+
+  it('accepts typed radius submissions during an active Circle command and returns to idle after commit', async () => {
+    const circleNodeId = 'node-sketch-circle-1'
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: circleNodeId,
+            type: 'Geometry/Sketch',
+            params: {
+              sketch: {
+                type: 'sketch',
+                featureId: 'sketch-1',
+                plane: 'XY',
+                components: [],
+                outputs: { profiles: [], diagnostics: [] },
+                uiState: { collapsed: false },
+              },
+            },
+          },
+        ],
+        edges: [],
+      })
+      useSpaghettiStore.getState().startGeometrySketchSession(circleNodeId, 'draw')
+      useConsoleStore.getState().setInputText('cc')
+    })
+
+    const submit = async () => {
+      await act(async () => {
+        const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+        form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+      })
+    }
+
+    await submit()
+
+    expect(useSpaghettiStore.getState().geometrySketchSession).toMatchObject({
+      mode: 'draw',
+      activeTool: 'circle',
+      lastUsedTool: 'circle',
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('2,3')
+    })
+    await submit()
+
+    expect(useSpaghettiStore.getState().geometrySketchSession).toMatchObject({
+      mode: 'draw',
+      activeTool: 'circle',
+      lastUsedTool: 'circle',
+      drawStage: 'draftActive',
+      drawDraft: {
+        points: [{ x: 2, y: 3 }],
+      },
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('6')
+    })
+    await submit()
+
+    expect(useSpaghettiStore.getState().geometrySketchSession).toMatchObject({
+      mode: 'draw',
+      activeTool: null,
+      drawStage: 'sessionIdle',
+      drawDraft: null,
+    })
+    expect(
+      (useSpaghettiStore.getState().graph.nodes.find((node) => node.nodeId === circleNodeId)
+        ?.params.sketch as {
+          components: Array<{
+            type: string
+            center?: { kind?: string; x: number; y: number }
+            edge?: { kind?: string; x: number; y: number }
+          }>
+        }).components,
+    ).toMatchObject([
+      {
+        type: 'circle',
+        center: { kind: 'lit', x: 2, y: 3 },
+        edge: { kind: 'lit', x: 8, y: 3 },
+      },
+    ])
+    expect(useConsoleStore.getState().entries.some((entry) => entry.text === '> cc')).toBe(true)
+    expect(useConsoleStore.getState().entries.some((entry) => entry.text === '> 2,3')).toBe(true)
+    expect(useConsoleStore.getState().entries.some((entry) => entry.text === '> 6')).toBe(true)
+  })
+
+  it('accepts del in idle sketch draw and deletes the selected entity set', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-sketch-1',
+            type: 'Geometry/Sketch',
+            params: {
+              sketch: {
+                type: 'sketch',
+                featureId: 'sketch-1',
+                plane: 'XY',
+                components: [
+                  {
+                    rowId: 'row-line-1',
+                    componentId: 'cmp-line-1',
+                    type: 'line',
+                    a: { kind: 'lit', x: 0, y: 0 },
+                    b: { kind: 'lit', x: 10, y: 0 },
+                  },
+                ],
+                outputs: { profiles: [], diagnostics: [] },
+                uiState: { collapsed: false },
+              },
+            },
+          },
+        ],
+        edges: [],
+      })
+      useSpaghettiStore.getState().startGeometrySketchSession('node-sketch-1', 'draw')
+      useSpaghettiStore.getState().setGeometrySketchSelectedComponents(['row-line-1'])
+      useConsoleStore.getState().setInputText('del')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useSpaghettiStore.getState().geometrySketchSession).toMatchObject({
+      mode: 'draw',
+      activeTool: null,
+      drawStage: 'sessionIdle',
+      selectedComponentIds: [],
+    })
+    expect(
+      (useSpaghettiStore.getState().graph.nodes.find((node) => node.nodeId === 'node-sketch-1')
+        ?.params.sketch as { components: Array<{ type: string }> }).components,
+    ).toHaveLength(0)
+    expect(useConsoleStore.getState().entries.some((entry) => entry.text === '> del')).toBe(true)
+  })
+
   it('re-arms the last draw tool when enter is pressed again from idle sketch draw', async () => {
     container = document.createElement('div')
     document.body.appendChild(container)
@@ -2762,6 +3002,64 @@ describe('ConsoleDock', () => {
     })
   })
 
+  it('publishes the circle center and radius breadcrumb flow while Circle is active', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-sketch-1',
+            type: 'Geometry/Sketch',
+            params: {
+              sketch: {
+                type: 'sketch',
+                featureId: 'sketch-1',
+                plane: 'XY',
+                components: [],
+                outputs: { profiles: [], diagnostics: [] },
+                uiState: { collapsed: false },
+              },
+            },
+          },
+        ],
+        edges: [],
+      })
+      useSpaghettiStore.getState().startGeometrySketchSession('node-sketch-1', 'draw')
+      useSpaghettiStore.getState().setGeometrySketchSessionTool('circle')
+      useSpaghettiStore.getState().setGeometrySketchDrawHoverPoint({ x: 1.5, y: -2.25 }, null)
+    })
+
+    expect(useConsoleStore.getState().featureAssistDescriptor).toMatchObject({
+      breadcrumb: ['Graph', 'Sketch', 'Sketch Draw', 'Circle', 'Center', 'Vec(1.5,-2.25)'],
+      choices: [],
+      prefill: null,
+    })
+
+    await act(async () => {
+      useSpaghettiStore.getState().confirmGeometrySketchDrawPoint({ x: 1.5, y: -2.25 }, null)
+      useSpaghettiStore.getState().setGeometrySketchDrawHoverPoint({ x: 4.5, y: -2.25 }, null)
+    })
+
+    expect(useConsoleStore.getState().featureAssistDescriptor).toMatchObject({
+      breadcrumb: [
+        'Graph',
+        'Sketch',
+        'Sketch Draw',
+        'Circle',
+        'Center Vec(1.5,-2.25)',
+        'Radius',
+        'Float(3)',
+      ],
+      choices: [],
+      prefill: null,
+    })
+  })
+
   it('does not re-enter guided root after the first committed draw point', async () => {
     container = document.createElement('div')
     document.body.appendChild(container)
@@ -2854,7 +3152,7 @@ describe('ConsoleDock', () => {
     expect(
       useConsoleStore
         .getState()
-        .entries.some((entry) => entry.text === 'Sketch Draw > [Line, PLine, Previous, X]'),
+        .entries.some((entry) => entry.text === 'Sketch Draw > [Line, PLine, Rectangle, Circle, Previous, X]'),
     ).toBe(true)
   })
 
@@ -4001,7 +4299,7 @@ describe('ConsoleDock', () => {
     expect(
       useConsoleStore
         .getState()
-        .entries.some((entry) => entry.text === 'Sketch Draw > [Line, PLine, X]'),
+        .entries.some((entry) => entry.text === 'Sketch Draw > [Line, PLine, Rectangle, Circle, X]'),
     ).toBe(true)
   })
 

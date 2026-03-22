@@ -17,6 +17,7 @@ import { ParaVec3Slider } from './ParaVec3Slider'
 import { ReferenceTransformToolbar } from './ReferenceTransformToolbar'
 import {
   ViewportOverlayToolPanel,
+  ViewportOverlayToolSectionStack,
   ViewportOverlayToolSplitLayout,
   ViewportOverlayToolSection,
   type ViewportOverlayToolPanelResizeDirection,
@@ -32,6 +33,7 @@ import type {
 import type { GeometrySketchTool } from '../spaghetti/store/useSpaghettiStore'
 import type {
   Line2Component,
+  RectangleComponent,
   SketchComponent,
   SketchFeature,
 } from '../spaghetti/features/featureTypes'
@@ -57,6 +59,11 @@ type OverlaySize = {
   height: number
 }
 
+type SliderClampRange = {
+  min: number
+  max: number
+}
+
 type OverlayToolDensity = 'collapsed' | 'essentials' | 'expanded'
 type ResizeDirection = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw'
 
@@ -64,6 +71,11 @@ const defaultOverlayPosition: OverlayPosition = {
   left: 24,
   top: 72,
 }
+
+const normalizeSliderClampRange = (range: SliderClampRange): SliderClampRange => ({
+  min: Math.min(range.min, range.max),
+  max: Math.max(range.min, range.max),
+})
 
 const formatSketchPlaneHistorySignedValue = (value: number): string => {
   const rounded = Math.round(value * 10) / 10
@@ -83,28 +95,37 @@ type SketchEntityListRowVm =
   | {
       kind: 'component'
       key: string
+      entryNumber: string
       label: string
+      defaultLabel: string
       detail: string
+      rowId: string
       expandable: false
     }
   | {
-      kind: 'line'
+      kind: 'editable'
       key: string
+      entryNumber: string
       label: string
+      defaultLabel: string
       detail: string
       rowId: string
-      component: Line2Component
+      component: Line2Component | RectangleComponent
       expandable: true
     }
   | {
       kind: 'group'
       key: string
+      entryNumber: string
       label: string
+      defaultLabel: string
       detail: string
       groupId: string
       children: Array<{
         key: string
+        entryNumber: string
         label: string
+        defaultLabel: string
         detail: string
         rowId: string
         component: Line2Component
@@ -121,7 +142,7 @@ const DEFAULT_SKETCH_SESSION_WINDOW_SIZE: OverlaySize = {
 }
 const MIN_OVERLAY_TOOL_PANEL_WIDTH = 280
 const MIN_OVERLAY_TOOL_PANEL_HEIGHT = 240
-const MIN_SKETCH_SESSION_WINDOW_WIDTH = 360
+const MIN_SKETCH_SESSION_WINDOW_WIDTH = 75
 const MIN_SKETCH_SESSION_WINDOW_HEIGHT = 320
 const SKETCH_SESSION_WINDOW_VIEWPORT_MARGIN = 12
 const overlayToolDensityOrder: readonly OverlayToolDensity[] = [
@@ -171,13 +192,36 @@ const formatSketchComponentDetail = (component: SketchComponent): string =>
         ? `${formatPoint(component.a)} -> ${formatPoint(component.b)}`
         : component.type === 'arc3pt'
           ? `${formatPoint(component.start)} -> ${formatPoint(component.end)}`
-          : `${formatPoint(component.p0)} -> ${formatPoint(component.p3)}`
+        : `${formatPoint(component.p0)} -> ${formatPoint(component.p3)}`
+
+const getRectangleWidth = (component: RectangleComponent): number =>
+  Math.abs(component.b.x - component.a.x)
+
+const getRectangleHeight = (component: RectangleComponent): number =>
+  Math.abs(component.b.y - component.a.y)
+
+const updateRectangleWidth = (
+  component: RectangleComponent,
+  nextWidth: number,
+): { x: number; y: number } => ({
+  x: component.a.x + (component.b.x >= component.a.x ? 1 : -1) * nextWidth,
+  y: component.b.y,
+})
+
+const updateRectangleHeight = (
+  component: RectangleComponent,
+  nextHeight: number,
+): { x: number; y: number } => ({
+  x: component.b.x,
+  y: component.a.y + (component.b.y >= component.a.y ? 1 : -1) * nextHeight,
+})
 
 const buildSketchEntityListRows = (
   components: readonly SketchComponent[],
 ): SketchEntityListRowVm[] => {
   const rows: SketchEntityListRowVm[] = []
   let polylineIndex = 1
+  let entryNumber = 1
   for (let index = 0; index < components.length; index += 1) {
     const component = components[index]
     if (component === undefined) {
@@ -200,43 +244,77 @@ const buildSketchEntityListRows = (
       rows.push({
         kind: 'group',
         key: component.drawGroupId,
-        label: `PLine ${polylineIndex}`,
+        entryNumber: `${entryNumber}`,
+        label: component.drawGroupName ?? `PLine ${polylineIndex}`,
+        defaultLabel: `PLine ${polylineIndex}`,
         detail: `${groupedLines.length} lines`,
         groupId: component.drawGroupId,
         children: groupedLines.map((line, lineIndex) => ({
           key: line.rowId,
-          label: `Line ${lineIndex + 1}`,
+          entryNumber: `${entryNumber}.${lineIndex + 1}`,
+          label: line.name ?? `Line ${lineIndex + 1}`,
+          defaultLabel: `Line ${lineIndex + 1}`,
           detail: formatSketchComponentDetail(line),
           rowId: line.rowId,
           component: line,
         })),
       })
       polylineIndex += 1
+      entryNumber += 1
       index = nextIndex - 1
       continue
     }
-    if (component.type === 'line') {
+    if (component.type === 'line' || component.type === 'rectangle') {
       rows.push({
-        kind: 'line',
+        kind: 'editable',
         key: component.rowId,
-        label: 'Line',
+        entryNumber: `${entryNumber}`,
+        label: component.name ?? (component.type === 'rectangle' ? 'Rectangle' : 'Line'),
+        defaultLabel: component.type === 'rectangle' ? 'Rectangle' : 'Line',
         detail: formatSketchComponentDetail(component),
         rowId: component.rowId,
         component,
         expandable: true,
       })
+      entryNumber += 1
       continue
     }
     rows.push({
       kind: 'component',
       key: component.rowId,
-      label: component.type,
+      entryNumber: `${entryNumber}`,
+      label: component.name ?? component.type,
+      defaultLabel: component.type,
       detail: formatSketchComponentDetail(component),
+      rowId: component.rowId,
       expandable: false,
     })
+    entryNumber += 1
   }
   return rows
 }
+
+const getSketchEntityRowSelectionIds = (row: SketchEntityListRowVm): string[] =>
+  row.kind === 'group'
+    ? row.children.map((child) => child.rowId)
+    : row.kind === 'editable' || row.kind === 'component'
+      ? [row.rowId]
+      : []
+
+const isSketchEntityRowSelected = (
+  row: SketchEntityListRowVm,
+  selectedComponentIds: ReadonlySet<string>,
+): boolean => {
+  const rowSelectionIds = getSketchEntityRowSelectionIds(row)
+  return rowSelectionIds.length > 0 && rowSelectionIds.every((rowId) => selectedComponentIds.has(rowId))
+}
+
+const isSketchEntityRowHovered = (
+  row: SketchEntityListRowVm,
+  hoveredComponentId: string | null,
+): boolean =>
+  hoveredComponentId !== null &&
+  getSketchEntityRowSelectionIds(row).includes(hoveredComponentId)
 
 const getGeometrySketchToolLabel = (tool: GeometrySketchTool): string =>
   tool === 'pline'
@@ -390,6 +468,18 @@ export function ViewportOverlay() {
   const updateGeometrySketchComponentPoint = useSpaghettiStore(
     (state) => state.updateGeometrySketchComponentPoint,
   )
+  const setGeometrySketchComponentName = useSpaghettiStore(
+    (state) => state.setGeometrySketchComponentName,
+  )
+  const setGeometrySketchDrawGroupName = useSpaghettiStore(
+    (state) => state.setGeometrySketchDrawGroupName,
+  )
+  const setGeometrySketchSelectedComponents = useSpaghettiStore(
+    (state) => state.setGeometrySketchSelectedComponents,
+  )
+  const deleteGeometrySketchSelectedComponents = useSpaghettiStore(
+    (state) => state.deleteGeometrySketchSelectedComponents,
+  )
   const startGeometrySketchSession = useSpaghettiStore(
     (state) => state.startGeometrySketchSession,
   )
@@ -535,8 +625,13 @@ export function ViewportOverlay() {
     })
   const [sketchSessionWindowSize, setSketchSessionWindowSize] =
     useState<OverlaySize | null>(null)
+  const [sketchSessionWindowHeightMode, setSketchSessionWindowHeightMode] = useState<
+    'auto' | 'manual'
+  >('auto')
   const [sketchSessionToolPanelDensity, setSketchSessionToolPanelDensity] =
     useState<OverlayToolDensity>('expanded')
+  const [sketchSessionSectionStackResetNonce, setSketchSessionSectionStackResetNonce] =
+    useState(0)
   const [sketchSessionTitleBarContextMenu, setSketchSessionTitleBarContextMenu] = useState<{
     x: number
     y: number
@@ -558,6 +653,13 @@ export function ViewportOverlay() {
   >({})
   const [sketchSessionEntityLineRowsExpanded, setSketchSessionEntityLineRowsExpanded] = useState<
     Record<string, boolean>
+  >({})
+  const [sketchSessionEntryRenameDrafts, setSketchSessionEntryRenameDrafts] = useState<
+    Record<string, string>
+  >({})
+  const [sketchSessionClampEditing, setSketchSessionClampEditing] = useState(false)
+  const [sketchSessionSliderClampRanges, setSketchSessionSliderClampRanges] = useState<
+    Record<string, SliderClampRange>
   >({})
   const [sketchSessionProfilesExpanded, setSketchSessionProfilesExpanded] =
     useState(true)
@@ -803,6 +905,11 @@ export function ViewportOverlay() {
     setSketchPlaneToolPanelHeightMode('auto')
   }
 
+  const resetSketchSessionWindowToAutoHeight = () => {
+    setSketchSessionWindowHeightMode('auto')
+    setSketchSessionSectionStackResetNonce((current) => current + 1)
+  }
+
   const setSketchPlaneToolPanelSizeAxis = (axis: 'width' | 'height', nextValue: number) => {
     const overlayHost = getOverlayHostMetrics()
     const currentWidth =
@@ -1020,8 +1127,10 @@ export function ViewportOverlay() {
       ),
     )
     setSketchSessionWindowSize(null)
+    setSketchSessionWindowHeightMode('auto')
     setSketchSessionIMenuOpen(false)
     setSketchSessionIMenuExpanded(true)
+    setSketchSessionSectionStackResetNonce((current) => current + 1)
   }, [activeGeometrySketchNode?.nodeId])
 
   useEffect(() => {
@@ -1664,6 +1773,7 @@ export function ViewportOverlay() {
         width: Math.round(nextWidth),
         height: Math.round(nextHeight),
       })
+      setSketchSessionWindowHeightMode('manual')
     }
 
     const stop = (stopEvent: PointerEvent): void => {
@@ -1699,15 +1809,185 @@ export function ViewportOverlay() {
     () => buildSketchEntityListRows(sketchComponents),
     [sketchComponents],
   )
-  const renderSketchLineEntityEditors = (
-    lineRowId: string,
-    component: Line2Component,
+  const getSketchSessionSliderClampRange = (
+    sliderId: string,
+    min: number,
+    max: number,
+  ): SliderClampRange =>
+    normalizeSliderClampRange(sketchSessionSliderClampRanges[sliderId] ?? { min, max })
+  const buildSketchSessionClampProps = ({
+    sliderId,
+    min,
+    max,
+    formatValue,
+    displayValue,
+  }: {
+    sliderId: string
+    min: number
+    max: number
+    formatValue: (value: number) => string
+    displayValue?: string
+  }) => {
+    const range = getSketchSessionSliderClampRange(sliderId, min, max)
+    return {
+      clampMin: range.min,
+      clampMax: range.max,
+      isEditingClamp: sketchSessionClampEditing,
+      onClampChange: (nextRange: SliderClampRange) => {
+        setSketchSessionSliderClampRanges((current) => ({
+          ...current,
+          [sliderId]: normalizeSliderClampRange(nextRange),
+        }))
+      },
+      displayLabel: sketchSessionClampEditing ? formatValue(range.min) : undefined,
+      displayValue: sketchSessionClampEditing ? formatValue(range.max) : displayValue,
+    }
+  }
+  const buildSketchSessionVec2ClampProps = ({
+    sliderId,
+    min,
+    max,
+    formatValue,
+  }: {
+    sliderId: string
+    min: number
+    max: number
+    formatValue: (value: number) => string
+  }) => {
+    const xRange = getSketchSessionSliderClampRange(`${sliderId}:x`, min, max)
+    const yRange = getSketchSessionSliderClampRange(`${sliderId}:y`, min, max)
+    return {
+      clampMin: {
+        x: xRange.min,
+        y: yRange.min,
+      },
+      clampMax: {
+        x: xRange.max,
+        y: yRange.max,
+      },
+      isEditingClamp: sketchSessionClampEditing,
+      onClampChangeAxis: (axis: 'x' | 'y', nextRange: SliderClampRange) => {
+        setSketchSessionSliderClampRanges((current) => ({
+          ...current,
+          [`${sliderId}:${axis}`]: normalizeSliderClampRange(nextRange),
+        }))
+      },
+      formatValue: (_axis: 'x' | 'y', value: number) => formatValue(value),
+    }
+  }
+  const buildSketchEntryRenameInput = ({
+    entryKey,
+    currentLabel,
+    defaultLabel,
+    ariaLabel,
+    onCommit,
+  }: {
+    entryKey: string
+    currentLabel: string
+    defaultLabel: string
+    ariaLabel: string
+    onCommit: (value: string | null) => void
+  }) => (
+    <input
+      className="ViewportOverlaySketchEntityNameInput"
+      type="text"
+      value={sketchSessionEntryRenameDrafts[entryKey] ?? currentLabel}
+      placeholder={defaultLabel}
+      aria-label={ariaLabel}
+      onPointerDown={(event) => {
+        event.stopPropagation()
+      }}
+      onInput={(event) =>
+        setSketchSessionEntryRenameDrafts((current) => ({
+          ...current,
+          [entryKey]: (event.target as HTMLInputElement).value,
+        }))
+      }
+      onChange={(event) =>
+        setSketchSessionEntryRenameDrafts((current) => ({
+          ...current,
+          [entryKey]: event.target.value,
+        }))
+      }
+      onBlur={(event) => {
+        onCommit(event.target.value)
+        setSketchSessionEntryRenameDrafts((current) => {
+          const next = { ...current }
+          delete next[entryKey]
+          return next
+        })
+      }}
+      onKeyDown={(event) => {
+        event.stopPropagation()
+        if (event.key === 'Enter') {
+          onCommit((event.target as HTMLInputElement).value)
+          setSketchSessionEntryRenameDrafts((current) => {
+            const next = { ...current }
+            delete next[entryKey]
+            return next
+          })
+          ;(event.target as HTMLInputElement).blur()
+          return
+        }
+        if (event.key === 'Escape') {
+          setSketchSessionEntryRenameDrafts((current) => {
+            const next = { ...current }
+            delete next[entryKey]
+            return next
+          })
+          ;(event.target as HTMLInputElement).value = currentLabel
+          ;(event.target as HTMLInputElement).blur()
+        }
+      }}
+    />
+  )
+  const renderSketchEntityNameEditorRow = ({
+    entryKey,
+    currentLabel,
+    defaultLabel,
+    ariaLabel,
+    onCommit,
+  }: {
+    entryKey: string
+    currentLabel: string
+    defaultLabel: string
+    ariaLabel: string
+    onCommit: (value: string | null) => void
+  }) => (
+    <div className="ViewportOverlaySketchEntityEditorRow ViewportOverlaySketchEntityEditorRow--name">
+      <span className="ViewportOverlaySketchEntityEditorLabel">Name</span>
+      {buildSketchEntryRenameInput({
+        entryKey,
+        currentLabel,
+        defaultLabel,
+        ariaLabel,
+        onCommit,
+      })}
+    </div>
+  )
+  const renderSketchEditableEntityEditors = (
+    rowId: string,
+    component: Line2Component | RectangleComponent,
+    options?: {
+      entryKey?: string
+      currentLabel?: string
+      defaultLabel?: string
+    },
   ) => {
     if (activeGeometrySketchNode === null) {
       return null
     }
     return (
       <div className="ViewportOverlaySketchEntityEditors">
+        {renderSketchEntityNameEditorRow({
+          entryKey: options?.entryKey ?? rowId,
+          currentLabel: options?.currentLabel ?? component.name ?? 'Entry',
+          defaultLabel:
+            options?.defaultLabel ?? (component.type === 'rectangle' ? 'Rectangle' : 'Line'),
+          ariaLabel: `Rename ${options?.defaultLabel ?? component.type} entry`,
+          onCommit: (value) =>
+            setGeometrySketchComponentName(activeGeometrySketchNode.nodeId, rowId, value),
+        })}
         <div className="ViewportOverlaySketchEntityEditorRow">
           <span className="ViewportOverlaySketchEntityEditorLabel">A</span>
           <ParaVec2Slider
@@ -1716,14 +1996,19 @@ export function ViewportOverlay() {
             max={2000}
             step={0.1}
             onChangeAxis={(axis, nextValue) =>
-              updateGeometrySketchComponentPoint(activeGeometrySketchNode.nodeId, lineRowId, 'a', {
+              updateGeometrySketchComponentPoint(activeGeometrySketchNode.nodeId, rowId, 'a', {
                 kind: 'lit',
                 x: axis === 'x' ? nextValue : component.a.x,
                 y: axis === 'y' ? nextValue : component.a.y,
               })
             }
-            formatValue={(_axis, value) => formatStableNumber(value)}
             displayValue={(_axis, value) => formatStableNumber(value)}
+            {...buildSketchSessionVec2ClampProps({
+              sliderId: `entity:${rowId}:a`,
+              min: -2000,
+              max: 2000,
+              formatValue: formatStableNumber,
+            })}
           />
         </div>
         <div className="ViewportOverlaySketchEntityEditorRow">
@@ -1734,16 +2019,71 @@ export function ViewportOverlay() {
             max={2000}
             step={0.1}
             onChangeAxis={(axis, nextValue) =>
-              updateGeometrySketchComponentPoint(activeGeometrySketchNode.nodeId, lineRowId, 'b', {
+              updateGeometrySketchComponentPoint(activeGeometrySketchNode.nodeId, rowId, 'b', {
                 kind: 'lit',
                 x: axis === 'x' ? nextValue : component.b.x,
                 y: axis === 'y' ? nextValue : component.b.y,
               })
             }
-            formatValue={(_axis, value) => formatStableNumber(value)}
             displayValue={(_axis, value) => formatStableNumber(value)}
+            {...buildSketchSessionVec2ClampProps({
+              sliderId: `entity:${rowId}:b`,
+              min: -2000,
+              max: 2000,
+              formatValue: formatStableNumber,
+            })}
           />
         </div>
+        {component.type === 'rectangle' ? (
+          <>
+            <div className="ViewportOverlaySketchEntityEditorRow ViewportOverlaySketchEntityEditorRow--full">
+              <ParaSlider
+                label="Width"
+                value={getRectangleWidth(component)}
+                min={0}
+                max={2000}
+                step={0.1}
+                onChange={(nextWidth) =>
+                  updateGeometrySketchComponentPoint(activeGeometrySketchNode.nodeId, rowId, 'b', {
+                    kind: 'lit',
+                    ...updateRectangleWidth(component, nextWidth),
+                  })
+                }
+                formatValue={(value) => formatStableNumber(value)}
+                {...buildSketchSessionClampProps({
+                  sliderId: `entity:${rowId}:width`,
+                  min: 0,
+                  max: 2000,
+                  formatValue: formatStableNumber,
+                  displayValue: formatStableNumber(getRectangleWidth(component)),
+                })}
+              />
+            </div>
+            <div className="ViewportOverlaySketchEntityEditorRow ViewportOverlaySketchEntityEditorRow--full">
+              <ParaSlider
+                label="Height"
+                value={getRectangleHeight(component)}
+                min={0}
+                max={2000}
+                step={0.1}
+                onChange={(nextHeight) =>
+                  updateGeometrySketchComponentPoint(activeGeometrySketchNode.nodeId, rowId, 'b', {
+                    kind: 'lit',
+                    ...updateRectangleHeight(component, nextHeight),
+                  })
+                }
+                formatValue={(value) => formatStableNumber(value)}
+                {...buildSketchSessionClampProps({
+                  sliderId: `entity:${rowId}:height`,
+                  min: 0,
+                  max: 2000,
+                  formatValue: formatStableNumber,
+                  displayValue: formatStableNumber(getRectangleHeight(component)),
+                })}
+              />
+            </div>
+          </>
+        ) : null}
       </div>
     )
   }
@@ -1762,16 +2102,27 @@ export function ViewportOverlay() {
   const activeTool = geometrySketchSession?.activeTool ?? null
   const activeDrawStage = geometrySketchSession?.drawStage ?? null
   const activeDrawDraft = geometrySketchSession?.drawDraft ?? null
+  const selectedSketchComponentIds = geometrySketchSession?.selectedComponentIds ?? []
+  const selectedSketchComponentIdSet = useMemo(
+    () => new Set(selectedSketchComponentIds),
+    [selectedSketchComponentIds],
+  )
+  const hoveredSketchComponentId = geometrySketchSession?.hoveredComponentId ?? null
+  const isIdleSketchEntitySelection =
+    geometrySketchSession?.mode === 'draw' &&
+    activeTool === null &&
+    activeDrawStage === 'sessionIdle'
   const activeLineStartPoint = activeDrawDraft?.points[0] ?? null
   const activePlineLastPoint =
     activeDrawDraft === null || activeDrawDraft.points.length === 0
       ? null
       : activeDrawDraft.points[activeDrawDraft.points.length - 1]
   const activeHoverPoint = activeDrawDraft?.hoverPoint ?? null
+  const activeCircleCenterPoint = activeDrawDraft?.points[0] ?? null
   const activePreviewStartPoint =
     activeTool === 'pline'
       ? activePlineLastPoint
-      : activeTool === 'line'
+      : activeTool === 'line' || activeTool === 'rectangle' || activeTool === 'circle'
         ? activeLineStartPoint
         : null
   const activePreviewLength =
@@ -1782,34 +2133,58 @@ export function ViewportOverlay() {
         )
       : null
   const activeDrawPointTargetLabel =
-    activeTool === 'line'
+    activeTool === 'circle'
+      ? activeCircleCenterPoint === null
+        ? 'Center'
+        : 'Radius'
+      : activeTool === 'line' || activeTool === 'rectangle'
       ? activeLineStartPoint === null
         ? 'P1'
         : 'P2'
       : activeTool === 'pline'
         ? `P${(activeDrawDraft?.points.length ?? 0) + 1}`
         : 'n/a'
-  const canAcceptLine =
-    activeTool === 'line' &&
+  const canAcceptTwoPointTool =
+    (activeTool === 'line' || activeTool === 'rectangle') &&
     activeLineStartPoint !== null &&
     activeHoverPoint !== null &&
     (activeLineStartPoint.x !== activeHoverPoint.x || activeLineStartPoint.y !== activeHoverPoint.y)
+  const canAcceptCircle =
+    activeTool === 'circle' &&
+    activeCircleCenterPoint !== null &&
+    activeHoverPoint !== null &&
+    (activeCircleCenterPoint.x !== activeHoverPoint.x ||
+      activeCircleCenterPoint.y !== activeHoverPoint.y)
   const canFinishPline =
     activeTool === 'pline' && (activeDrawDraft?.points.length ?? 0) >= 2
   const activeDrawPrompt =
     geometrySketchSession?.mode !== 'draw'
       ? ''
       : activeDrawStage === 'sessionIdle'
-        ? 'Choose a sketch tool to begin drawing in the main viewport.'
-      : activeTool === 'pline'
+        ? selectedSketchComponentIds.length > 0
+          ? 'Selection active. Click or drag to replace it, Delete removes it, and Enter re-arms the last draw tool.'
+          : 'Click entities or drag Window/Crossing to select, or choose a sketch tool to begin drawing.'
+        : activeTool === 'pline'
         ? activeDrawDraft === null || activeDrawDraft.points.length === 0
           ? 'Click or type the first point to start PLine.'
           : 'Click or type the next point. Empty Enter finishes once two points exist.'
+        : activeTool === 'circle' && activeCircleCenterPoint === null
+          ? 'Move the mouse to stage Center, then click or type Vec2 to start Circle.'
+          : activeTool === 'circle'
+            ? 'Move the mouse to preview Radius, then click, type Float, or press Enter to place the circle.'
+        : activeTool === 'rectangle' && activeLineStartPoint === null
+          ? 'Click or type the first corner to start Rectangle.'
+          : activeTool === 'rectangle'
+            ? 'Move the mouse to preview P2, then click or press Enter to place the rectangle.'
         : activeTool === 'line' && activeLineStartPoint === null
           ? 'Click or type the first point to start Line.'
-          : activeTool === 'line'
+        : activeTool === 'line'
             ? 'Move the mouse to preview P2, then click or press Enter to place the line.'
             : 'Choose a sketch tool to begin drawing in the main viewport.'
+
+  const selectSketchEntityRow = (row: SketchEntityListRowVm) => {
+    setGeometrySketchSelectedComponents(getSketchEntityRowSelectionIds(row))
+  }
 
   const setSketchSessionWindowSizeAxis = (axis: 'width' | 'height', nextValue: number) => {
     const overlayHost = getOverlayHostMetrics()
@@ -1838,6 +2213,9 @@ export function ViewportOverlay() {
         height: axis === 'height' ? clampedValue : currentHeight,
       }
     })
+    if (axis === 'height') {
+      setSketchSessionWindowHeightMode('manual')
+    }
   }
 
 
@@ -2807,7 +3185,9 @@ export function ViewportOverlay() {
               width:
                 sketchSessionWindowSize === null ? undefined : `${sketchSessionWindowSize.width}px`,
               height:
-                sketchSessionToolPanelDensity === 'collapsed' || sketchSessionWindowSize === null
+                sketchSessionToolPanelDensity === 'collapsed' ||
+                sketchSessionWindowSize === null ||
+                sketchSessionWindowHeightMode === 'auto'
                   ? undefined
                   : `${sketchSessionWindowSize.height}px`,
               '--overlay-tool-accent': sketchSessionAccent,
@@ -2840,25 +3220,6 @@ export function ViewportOverlay() {
               </div>
             </div>
             <div className="ViewportOverlayToolPanelTrailingActions">
-              <button
-                type="button"
-                className="ViewportOverlaySketchPlaneSessionAction"
-                onPointerDown={(event) => {
-                  event.preventDefault()
-                  event.stopPropagation()
-                }}
-                onMouseDown={(event) => {
-                  event.preventDefault()
-                  event.stopPropagation()
-                }}
-                onClick={() => {
-                  getViewer()?.alignCameraToGeometrySketchPlane()
-                }}
-                aria-label="Align view to sketch plane"
-                title="Align view to sketch plane"
-              >
-                Align View
-              </button>
               <button
                 type="button"
                 className="ViewportOverlaySketchPlaneSessionAction isPrimary ViewportOverlayToolPanelTitleDone"
@@ -2950,6 +3311,7 @@ export function ViewportOverlay() {
             </div>
           </div>
           <div className="ViewportOverlaySketchSessionBody ViewportOverlayToolPanelBody">
+            <ViewportOverlayToolSectionStack resetKey={sketchSessionSectionStackResetNonce}>
             {sketchSessionIMenuOpen ? (
               <ViewportOverlayToolSection
                 className="ViewportOverlayToolPanelIMenuSection"
@@ -2957,9 +3319,10 @@ export function ViewportOverlay() {
                   <button
                     type="button"
                     className="ViewportOverlayToolPanelTextToggle"
-                    onClick={() =>
+                    onClick={() => {
+                      resetSketchSessionWindowToAutoHeight()
                       setSketchSessionIMenuExpanded((currentExpanded) => !currentExpanded)
-                    }
+                    }}
                   >
                     <span
                       className={`ViewportOverlayToolPanelChevron ${
@@ -2982,11 +3345,12 @@ export function ViewportOverlay() {
                       <button
                         type="button"
                         className="ViewportOverlayToolPanelTextToggle"
-                        onClick={() =>
+                        onClick={() => {
+                          resetSketchSessionWindowToAutoHeight()
                           setSketchSessionToolbarWindowExpanded(
                             (currentExpanded) => !currentExpanded,
                           )
-                        }
+                        }}
                       >
                         <span
                           className={`ViewportOverlayToolPanelChevron ${
@@ -3013,6 +3377,16 @@ export function ViewportOverlay() {
                             step={1}
                             onChange={(value) => setSketchSessionWindowSizeAxis('width', value)}
                             formatValue={(value) => `${value.toFixed(0)} px`}
+                            {...buildSketchSessionClampProps({
+                              sliderId: 'toolbar-width',
+                              min: MIN_SKETCH_SESSION_WINDOW_WIDTH,
+                              max: Math.max(
+                                MIN_SKETCH_SESSION_WINDOW_WIDTH,
+                                getOverlayHostMetrics().width -
+                                  SKETCH_SESSION_WINDOW_VIEWPORT_MARGIN * 2,
+                              ),
+                              formatValue: (value) => `${value.toFixed(0)} px`,
+                            })}
                           />
                           <ParaSlider
                             label="Toolbar Height"
@@ -3027,6 +3401,16 @@ export function ViewportOverlay() {
                             step={1}
                             onChange={(value) => setSketchSessionWindowSizeAxis('height', value)}
                             formatValue={(value) => `${value.toFixed(0)} px`}
+                            {...buildSketchSessionClampProps({
+                              sliderId: 'toolbar-height',
+                              min: MIN_SKETCH_SESSION_WINDOW_HEIGHT,
+                              max: Math.max(
+                                MIN_SKETCH_SESSION_WINDOW_HEIGHT,
+                                getOverlayHostMetrics().height -
+                                  SKETCH_SESSION_WINDOW_VIEWPORT_MARGIN * 2,
+                              ),
+                              formatValue: (value) => `${value.toFixed(0)} px`,
+                            })}
                           />
                         </div>
                       ) : null}
@@ -3035,11 +3419,12 @@ export function ViewportOverlay() {
                       <button
                         type="button"
                         className="ViewportOverlayToolPanelTextToggle"
-                        onClick={() =>
+                        onClick={() => {
+                          resetSketchSessionWindowToAutoHeight()
                           setSketchSessionSketchDrawSettingsExpanded(
                             (currentExpanded) => !currentExpanded,
                           )
-                        }
+                        }}
                       >
                         <span
                           className={`ViewportOverlayToolPanelChevron ${
@@ -3070,6 +3455,12 @@ export function ViewportOverlay() {
                             step={1}
                             onChange={setSketchDrawSnapDistancePx}
                             formatValue={(value) => `${value.toFixed(0)} px`}
+                            {...buildSketchSessionClampProps({
+                              sliderId: 'sketch-draw-snap-distance',
+                              min: 4,
+                              max: 64,
+                              formatValue: (value) => `${value.toFixed(0)} px`,
+                            })}
                           />
                           <ParaSlider
                             label="Crosshair Size"
@@ -3079,6 +3470,12 @@ export function ViewportOverlay() {
                             step={0.05}
                             onChange={setSketchDrawCrosshairSize}
                             formatValue={(value) => `${value.toFixed(2)}x`}
+                            {...buildSketchSessionClampProps({
+                              sliderId: 'sketch-draw-crosshair-size',
+                              min: 0.5,
+                              max: 3,
+                              formatValue: (value) => `${value.toFixed(2)}x`,
+                            })}
                           />
                           <ParaSelect
                             label="Start Point"
@@ -3110,6 +3507,12 @@ export function ViewportOverlay() {
                             step={0.05}
                             onChange={setSketchDrawStartPointSymbolSize}
                             formatValue={(value) => `${value.toFixed(2)}x`}
+                            {...buildSketchSessionClampProps({
+                              sliderId: 'sketch-draw-start-point-symbol-size',
+                              min: 0.01,
+                              max: 3,
+                              formatValue: (value) => `${value.toFixed(2)}x`,
+                            })}
                           />
                           <ParaSelect
                             label="PLine Point Symbols"
@@ -3141,6 +3544,12 @@ export function ViewportOverlay() {
                             step={0.05}
                             onChange={setSketchDrawPlinePointSymbolSize}
                             formatValue={(value) => `${value.toFixed(2)}x`}
+                            {...buildSketchSessionClampProps({
+                              sliderId: 'sketch-draw-pline-point-size',
+                              min: 0.01,
+                              max: 3,
+                              formatValue: (value) => `${value.toFixed(2)}x`,
+                            })}
                           />
                         </div>
                       ) : null}
@@ -3152,13 +3561,14 @@ export function ViewportOverlay() {
             <ViewportOverlayToolSection
               className="ViewportOverlaySketchPlaneDockSection"
               label={
-                <button
-                  type="button"
-                  className="ViewportOverlaySketchPlaneTextToggle"
-                  onClick={() =>
-                    setSketchSessionSessionExpanded((currentExpanded) => !currentExpanded)
-                  }
-                >
+                  <button
+                    type="button"
+                    className="ViewportOverlaySketchPlaneTextToggle"
+                    onClick={() => {
+                      resetSketchSessionWindowToAutoHeight()
+                      setSketchSessionSessionExpanded((currentExpanded) => !currentExpanded)
+                    }}
+                  >
                   <span
                     className={`ViewportOverlaySketchPlaneChevron ${
                       sketchSessionSessionExpanded ? 'isExpanded' : ''
@@ -3184,6 +3594,19 @@ export function ViewportOverlay() {
                   <div className="ViewportOverlaySketchEntitySummary">
                     Sketch geometry is rendered in the main viewer.
                   </div>
+                  <div className="ViewportOverlaySketchSessionActions">
+                    <button
+                      type="button"
+                      className="isGhost"
+                      onClick={() => {
+                        getViewer()?.alignCameraToGeometrySketchPlane()
+                      }}
+                      aria-label="Align view to sketch plane"
+                      title="Align view to sketch plane"
+                    >
+                      Align View
+                    </button>
+                  </div>
                 </>
               ) : null}
             </ViewportOverlayToolSection>
@@ -3194,11 +3617,12 @@ export function ViewportOverlay() {
                   <button
                     type="button"
                     className="ViewportOverlaySketchPlaneTextToggle"
-                    onClick={() =>
+                    onClick={() => {
+                      resetSketchSessionWindowToAutoHeight()
                       setSketchSessionToolSelectionExpanded(
                         (currentExpanded) => !currentExpanded,
                       )
-                    }
+                    }}
                   >
                     <span
                       className={`ViewportOverlaySketchPlaneChevron ${
@@ -3213,143 +3637,156 @@ export function ViewportOverlay() {
                 }
               >
                 {sketchSessionToolSelectionExpanded ? (
-                  <div className="ViewportOverlaySketchToolbar">
-                    {(['line', 'pline'] as const).map((tool) => (
+                  <div className="ViewportOverlayToolPanelCustomizationRows">
+                    <div className="ViewportOverlaySketchToolbar">
+                    {(['line', 'pline', 'rectangle', 'circle'] as const).map((tool) => (
                       <button
                         key={tool}
                         type="button"
                         className={`ViewportOverlaySketchToolButton ${
-                          activeTool === tool ? 'isActive' : ''
-                        }`}
-                        aria-label={getGeometrySketchToolLabel(tool)}
-                        title={getGeometrySketchToolLabel(tool)}
+                            activeTool === tool ? 'isActive' : ''
+                          }`}
+                          aria-label={getGeometrySketchToolLabel(tool)}
+                          title={getGeometrySketchToolLabel(tool)}
+                          onClick={() => {
+                            runGeometrySketchDrawCommand(tool)
+                          }}
+                        >
+                          {renderGeometrySketchToolIcon(tool)}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="ViewportOverlayToolPanelCustomizationSubsection">
+                      <button
+                        type="button"
+                        className="ViewportOverlayToolPanelTextToggle"
                         onClick={() => {
-                          runGeometrySketchDrawCommand(tool)
+                          resetSketchSessionWindowToAutoHeight()
+                          setSketchSessionActiveToolExpanded((currentExpanded) => !currentExpanded)
                         }}
                       >
-                        {renderGeometrySketchToolIcon(tool)}
+                        <span
+                          className={`ViewportOverlayToolPanelChevron ${
+                            sketchSessionActiveToolExpanded ? 'isExpanded' : ''
+                          }`}
+                          aria-hidden="true"
+                        >
+                          ›
+                        </span>
+                        <span>Active Tool</span>
                       </button>
-                    ))}
-                  </div>
-                ) : null}
-              </ViewportOverlayToolSection>
-            ) : null}
-            {geometrySketchSession.mode === 'draw' && sketchSessionToolPanelDensity !== 'collapsed' ? (
-              <ViewportOverlayToolSection
-                className="ViewportOverlaySketchPlaneDockSection"
-                label={
-                  <button
-                    type="button"
-                    className="ViewportOverlaySketchPlaneTextToggle"
-                    onClick={() =>
-                      setSketchSessionActiveToolExpanded((currentExpanded) => !currentExpanded)
-                    }
-                  >
-                    <span
-                      className={`ViewportOverlaySketchPlaneChevron ${
-                        sketchSessionActiveToolExpanded ? 'isExpanded' : ''
-                      }`}
-                      aria-hidden="true"
-                    >
-                      ›
-                    </span>
-                    <span>Active Tool</span>
-                  </button>
-                }
-              >
-                {sketchSessionActiveToolExpanded ? (
-                  <div className="ViewportOverlaySketchDraftCard">
-                    <div className="ViewportOverlaySketchDraftTitle">
-                      {activeTool === null ? 'No Tool Selected' : getGeometrySketchToolLabel(activeTool)}
-                    </div>
-                    <div className="ViewportOverlaySketchEntitySummary">
-                      {activeDrawPrompt}
-                    </div>
-                    <div className="ViewportOverlaySketchEntityList">
-                      <div className="ViewportOverlaySketchEntityItem">
-                        <span>Draw Stage</span>
-                        <span>
-                          {activeDrawStage === 'sessionIdle'
-                            ? 'Session Idle'
-                            : activeDrawStage === 'toolSelected'
-                              ? 'Tool Selected'
-                              : activeDrawStage === 'draftActive'
-                                ? 'Draft Active'
-                                : 'n/a'}
-                        </span>
-                      </div>
-                      <div className="ViewportOverlaySketchEntityItem">
-                        <span>Plane</span>
-                        <span>{sketchFeature?.plane ?? 'XY'}</span>
-                      </div>
-                      <div className="ViewportOverlaySketchEntityItem">
-                        <span>Points</span>
-                        <span>{activeDrawDraft?.points.length ?? 0}</span>
-                      </div>
-                      <div className="ViewportOverlaySketchEntityItem">
-                        <span>Target</span>
-                        <span>{activeDrawPointTargetLabel}</span>
-                      </div>
-                      <div className="ViewportOverlaySketchEntityItem">
-                        <span>Hover</span>
-                        <span>
-                          {activeHoverPoint === null ? 'none' : formatPoint(activeHoverPoint)}
-                        </span>
-                      </div>
-                      <div className="ViewportOverlaySketchEntityItem">
-                        <span>Origin Snap</span>
-                        <span>
-                          {activeDrawDraft?.hoverSnapTarget === 'origin' ? 'armed' : 'off'}
-                        </span>
-                      </div>
-                      {activePreviewStartPoint !== null ? (
-                        <div className="ViewportOverlaySketchEntityItem">
-                          <span>{activeTool === 'pline' ? 'Last Point' : 'Start Point'}</span>
+                      {sketchSessionActiveToolExpanded ? (
+                        <div className="ViewportOverlaySketchDraftCard">
+                          <div className="ViewportOverlaySketchDraftTitle">
+                            {activeTool === null
+                              ? 'No Tool Selected'
+                              : getGeometrySketchToolLabel(activeTool)}
+                          </div>
+                          <div className="ViewportOverlaySketchEntitySummary">
+                            {activeDrawPrompt}
+                          </div>
+                          <div className="ViewportOverlaySketchEntityList">
+                            <div className="ViewportOverlaySketchEntityItem">
+                              <span>Draw Stage</span>
+                              <span>
+                                {activeDrawStage === 'sessionIdle'
+                                  ? 'Session Idle'
+                                  : activeDrawStage === 'toolSelected'
+                                    ? 'Tool Selected'
+                                    : activeDrawStage === 'draftActive'
+                                      ? 'Draft Active'
+                                      : 'n/a'}
+                              </span>
+                            </div>
+                            <div className="ViewportOverlaySketchEntityItem">
+                              <span>Plane</span>
+                              <span>{sketchFeature?.plane ?? 'XY'}</span>
+                            </div>
+                            <div className="ViewportOverlaySketchEntityItem">
+                              <span>Points</span>
+                              <span>{activeDrawDraft?.points.length ?? 0}</span>
+                            </div>
+                            <div className="ViewportOverlaySketchEntityItem">
+                              <span>Target</span>
+                              <span>{activeDrawPointTargetLabel}</span>
+                            </div>
+                            <div className="ViewportOverlaySketchEntityItem">
+                              <span>Hover</span>
+                              <span>
+                                {activeHoverPoint === null ? 'none' : formatPoint(activeHoverPoint)}
+                              </span>
+                            </div>
+                            <div className="ViewportOverlaySketchEntityItem">
+                              <span>Origin Snap</span>
+                              <span>
+                                {activeDrawDraft?.hoverSnapTarget === 'origin' ? 'armed' : 'off'}
+                              </span>
+                            </div>
+                            {activePreviewStartPoint !== null ? (
+                              <div className="ViewportOverlaySketchEntityItem">
+                                <span>
+                                  {activeTool === 'pline'
+                                    ? 'Last Point'
+                              : activeTool === 'rectangle'
+                                ? 'First Corner'
+                                : activeTool === 'circle'
+                                  ? 'Center'
+                                : 'Start Point'}
+                          </span>
                           <span>{formatPoint(activePreviewStartPoint)}</span>
+                              </div>
+                            ) : null}
+                            {activePreviewLength !== null ? (
+                              <div className="ViewportOverlaySketchEntityItem">
+                                <span>Preview Length</span>
+                                <span>{formatStableNumber(activePreviewLength)}</span>
+                              </div>
+                            ) : null}
+                          </div>
+                          <div className="ViewportOverlaySketchSessionActions">
+                            <button
+                              type="button"
+                              onClick={() => runGeometrySketchDrawCommand('enter')}
+                              disabled={
+                                activeTool === null ||
+                                ((activeTool === 'line' || activeTool === 'rectangle') &&
+                                  !canAcceptTwoPointTool) ||
+                                (activeTool === 'circle' && !canAcceptCircle) ||
+                                (activeTool === 'pline' && !canFinishPline)
+                              }
+                            >
+                              {activeTool === 'pline'
+                                ? 'Finish PLine'
+                                : activeTool === 'circle'
+                                  ? 'Accept Circle'
+                                : activeTool === 'rectangle'
+                                  ? 'Accept Rectangle'
+                                  : activeTool === 'line'
+                                    ? 'Accept Line'
+                                    : 'Finish Draft'}
+                            </button>
+                            <button
+                              type="button"
+                              className="isGhost"
+                              onClick={() => {
+                                runGeometrySketchDrawCommand('back')
+                              }}
+                              disabled={activeTool === null}
+                            >
+                              Cancel Draft
+                            </button>
+                            <button
+                              type="button"
+                              className="isGhost"
+                              onClick={() => {
+                                startGeometrySketchSession(activeGeometrySketchNode.nodeId, 'review')
+                              }}
+                            >
+                              Review Profiles
+                            </button>
+                          </div>
                         </div>
                       ) : null}
-                      {activePreviewLength !== null ? (
-                        <div className="ViewportOverlaySketchEntityItem">
-                          <span>Preview Length</span>
-                          <span>{formatStableNumber(activePreviewLength)}</span>
-                        </div>
-                      ) : null}
-                    </div>
-                    <div className="ViewportOverlaySketchSessionActions">
-                      <button
-                        type="button"
-                        onClick={() => runGeometrySketchDrawCommand('enter')}
-                        disabled={
-                          activeTool === null ||
-                          (activeTool === 'line' && !canAcceptLine) ||
-                          (activeTool === 'pline' && !canFinishPline)
-                        }
-                      >
-                        {activeTool === 'pline'
-                          ? 'Finish PLine'
-                          : activeTool === 'line'
-                            ? 'Accept Line'
-                            : 'Finish Draft'}
-                      </button>
-                      <button
-                        type="button"
-                        className="isGhost"
-                        onClick={() => {
-                          runGeometrySketchDrawCommand('back')
-                        }}
-                        disabled={activeTool === null}
-                      >
-                        Cancel Draft
-                      </button>
-                      <button
-                        type="button"
-                        className="isGhost"
-                        onClick={() => {
-                          startGeometrySketchSession(activeGeometrySketchNode.nodeId, 'review')
-                        }}
-                      >
-                        Review Profiles
-                      </button>
                     </div>
                   </div>
                 ) : null}
@@ -3360,23 +3797,56 @@ export function ViewportOverlay() {
               <ViewportOverlayToolSection
                 className="ViewportOverlaySketchPlaneDockSection"
                 label={
-                  <button
-                    type="button"
-                    className="ViewportOverlaySketchPlaneTextToggle"
-                    onClick={() =>
-                      setSketchSessionEntitiesExpanded((currentExpanded) => !currentExpanded)
-                    }
-                  >
-                    <span
-                      className={`ViewportOverlaySketchPlaneChevron ${
-                        sketchSessionEntitiesExpanded ? 'isExpanded' : ''
-                      }`}
-                      aria-hidden="true"
+                  <div className="ViewportOverlaySketchPlaneSectionHeaderRow">
+                    <button
+                      type="button"
+                      className="ViewportOverlaySketchPlaneTextToggle"
+                      onClick={() => {
+                        resetSketchSessionWindowToAutoHeight()
+                        setSketchSessionEntitiesExpanded((currentExpanded) => !currentExpanded)
+                      }}
                     >
-                      ›
-                    </span>
-                    <span>Entities</span>
-                  </button>
+                      <span
+                        className={`ViewportOverlaySketchPlaneChevron ${
+                          sketchSessionEntitiesExpanded ? 'isExpanded' : ''
+                        }`}
+                        aria-hidden="true"
+                      >
+                        ›
+                      </span>
+                      <span>Entities</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={`ViewportOverlaySketchPlaneSessionAction ViewportOverlaySketchPlaneInlineAction ${
+                        sketchSessionClampEditing ? 'isPrimary' : ''
+                      }`}
+                      onClick={() => {
+                        setSketchSessionClampEditing((current) => !current)
+                      }}
+                      aria-pressed={sketchSessionClampEditing}
+                      aria-label={
+                        sketchSessionClampEditing ? 'Done clamp editing' : 'Edit clamp ranges'
+                      }
+                      title={
+                        sketchSessionClampEditing ? 'Done clamp editing' : 'Edit clamp ranges'
+                      }
+                    >
+                      {sketchSessionClampEditing ? 'Done Clamp' : 'Edit Clamp'}
+                    </button>
+                    <button
+                      type="button"
+                      className="ViewportOverlaySketchPlaneSessionAction ViewportOverlaySketchPlaneInlineAction"
+                      onClick={() => {
+                        deleteGeometrySketchSelectedComponents()
+                      }}
+                      disabled={!isIdleSketchEntitySelection || selectedSketchComponentIds.length === 0}
+                      aria-label="Delete selected sketch entities"
+                      title="Delete selected sketch entities"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 }
               >
                 {sketchSessionEntitiesExpanded ? (
@@ -3384,28 +3854,58 @@ export function ViewportOverlay() {
                     <div className="ViewportOverlaySketchEntitySummary">
                       {sketchComponents.length === 0
                         ? 'No entities yet.'
-                        : `${sketchComponents.length} entities staged on this sketch.`}
+                        : selectedSketchComponentIds.length > 0
+                          ? `${sketchComponents.length} entities staged on this sketch. ${selectedSketchComponentIds.length} selected.`
+                          : `${sketchComponents.length} entities staged on this sketch.`}
                     </div>
                     {sketchComponents.length > 0 ? (
                       <div className="ViewportOverlaySketchEntityList">
-                        {sketchEntityRows.map((row) =>
-                          row.kind === 'component' ? (
-                            <div key={row.key} className="ViewportOverlaySketchEntityItem">
-                              <span>{row.label}</span>
-                              <span>{row.detail}</span>
-                            </div>
-                          ) : row.kind === 'line' ? (
+                        {sketchEntityRows.map((row) => {
+                          const rowIsSelected = isSketchEntityRowSelected(
+                            row,
+                            selectedSketchComponentIdSet,
+                          )
+                          const rowIsHovered = isSketchEntityRowHovered(
+                            row,
+                            hoveredSketchComponentId,
+                          )
+                          return row.kind === 'component' ? (
+                            <button
+                              key={row.key}
+                              type="button"
+                              className={`ViewportOverlaySketchEntityItem ViewportOverlaySketchEntityButton ${
+                                rowIsSelected ? 'isSelected' : ''
+                              } ${rowIsHovered ? 'isHovered' : ''}`}
+                              onClick={() => {
+                                selectSketchEntityRow(row)
+                              }}
+                            >
+                              <span className="ViewportOverlaySketchEntityEntryNumber">
+                                {row.entryNumber}
+                              </span>
+                              <span className="ViewportOverlaySketchEntityPrimaryLabel">
+                                {row.label}
+                              </span>
+                              <span className="ViewportOverlaySketchEntityDetail">{row.detail}</span>
+                            </button>
+                          ) : row.kind === 'editable' ? (
                             <div key={row.key} className="ViewportOverlaySketchEntityGroup">
                               <button
                                 type="button"
-                                className="ViewportOverlaySketchEntityGroupHeader"
-                                onClick={() =>
+                                className={`ViewportOverlaySketchEntityGroupHeader ${
+                                  rowIsSelected ? 'isSelected' : ''
+                                } ${rowIsHovered ? 'isHovered' : ''}`}
+                                onClick={() => {
+                                  selectSketchEntityRow(row)
                                   setSketchSessionEntityLineRowsExpanded((currentExpanded) => ({
                                     ...currentExpanded,
                                     [row.rowId]: currentExpanded[row.rowId] !== true,
                                   }))
-                                }
+                                }}
                               >
+                                <span className="ViewportOverlaySketchEntityEntryNumber">
+                                  {row.entryNumber}
+                                </span>
                                 <span
                                   className={`ViewportOverlaySketchPlaneChevron ${
                                     sketchSessionEntityLineRowsExpanded[row.rowId] ? 'isExpanded' : ''
@@ -3417,24 +3917,34 @@ export function ViewportOverlay() {
                                 <span className="ViewportOverlaySketchEntityGroupTitle">
                                   {row.label}
                                 </span>
-                                <span>{row.detail}</span>
+                                <span className="ViewportOverlaySketchEntityDetail">{row.detail}</span>
                               </button>
                               {sketchSessionEntityLineRowsExpanded[row.rowId]
-                                ? renderSketchLineEntityEditors(row.rowId, row.component)
+                                ? renderSketchEditableEntityEditors(row.rowId, row.component, {
+                                    entryKey: row.key,
+                                    currentLabel: row.label,
+                                    defaultLabel: row.defaultLabel,
+                                  })
                                 : null}
                             </div>
                           ) : (
                             <div key={row.key} className="ViewportOverlaySketchEntityGroup">
                               <button
                                 type="button"
-                                className="ViewportOverlaySketchEntityGroupHeader"
-                                onClick={() =>
+                                className={`ViewportOverlaySketchEntityGroupHeader ${
+                                  rowIsSelected ? 'isSelected' : ''
+                                } ${rowIsHovered ? 'isHovered' : ''}`}
+                                onClick={() => {
+                                  selectSketchEntityRow(row)
                                   setSketchSessionEntityGroupsExpanded((currentExpanded) => ({
                                     ...currentExpanded,
                                     [row.groupId]: currentExpanded[row.groupId] !== true,
                                   }))
-                                }
+                                }}
                               >
+                                <span className="ViewportOverlaySketchEntityEntryNumber">
+                                  {row.entryNumber}
+                                </span>
                                 <span
                                   className={`ViewportOverlaySketchPlaneChevron ${
                                     sketchSessionEntityGroupsExpanded[row.groupId] ? 'isExpanded' : ''
@@ -3446,22 +3956,44 @@ export function ViewportOverlay() {
                                 <span className="ViewportOverlaySketchEntityGroupTitle">
                                   {row.label}
                                 </span>
-                                <span>{row.detail}</span>
+                                <span className="ViewportOverlaySketchEntityDetail">{row.detail}</span>
                               </button>
                               {sketchSessionEntityGroupsExpanded[row.groupId] ? (
                                 <div className="ViewportOverlaySketchEntityGroupChildren">
+                                  {renderSketchEntityNameEditorRow({
+                                    entryKey: row.key,
+                                    currentLabel: row.label,
+                                    defaultLabel: row.defaultLabel,
+                                    ariaLabel: 'Rename PLine entry',
+                                    onCommit: (value) =>
+                                      setGeometrySketchDrawGroupName(
+                                        activeGeometrySketchNode.nodeId,
+                                        row.groupId,
+                                        value,
+                                      ),
+                                  })}
                                   {row.children.map((child) => (
                                     <div key={child.key} className="ViewportOverlaySketchEntityGroup">
                                       <button
                                         type="button"
-                                        className="ViewportOverlaySketchEntityGroupHeader ViewportOverlaySketchEntityGroupHeader--child"
-                                        onClick={() =>
+                                        className={`ViewportOverlaySketchEntityGroupHeader ViewportOverlaySketchEntityGroupHeader--child ${
+                                          selectedSketchComponentIdSet.has(child.rowId)
+                                            ? 'isSelected'
+                                            : ''
+                                        } ${
+                                          hoveredSketchComponentId === child.rowId ? 'isHovered' : ''
+                                        }`}
+                                        onClick={() => {
+                                          setGeometrySketchSelectedComponents([child.rowId])
                                           setSketchSessionEntityLineRowsExpanded((currentExpanded) => ({
                                             ...currentExpanded,
                                             [child.rowId]: currentExpanded[child.rowId] !== true,
                                           }))
-                                        }
+                                        }}
                                       >
+                                        <span className="ViewportOverlaySketchEntityEntryNumber">
+                                          {child.entryNumber}
+                                        </span>
                                         <span
                                           className={`ViewportOverlaySketchPlaneChevron ${
                                             sketchSessionEntityLineRowsExpanded[child.rowId]
@@ -3475,18 +4007,28 @@ export function ViewportOverlay() {
                                         <span className="ViewportOverlaySketchEntityGroupTitle">
                                           {child.label}
                                         </span>
-                                        <span>{child.detail}</span>
+                                        <span className="ViewportOverlaySketchEntityDetail">
+                                          {child.detail}
+                                        </span>
                                       </button>
                                       {sketchSessionEntityLineRowsExpanded[child.rowId]
-                                        ? renderSketchLineEntityEditors(child.rowId, child.component)
+                                        ? renderSketchEditableEntityEditors(
+                                            child.rowId,
+                                            child.component,
+                                            {
+                                              entryKey: child.key,
+                                              currentLabel: child.label,
+                                              defaultLabel: child.defaultLabel,
+                                            },
+                                          )
                                         : null}
                                     </div>
                                   ))}
                                 </div>
                               ) : null}
                             </div>
-                          ),
-                        )}
+                          )
+                        })}
                       </div>
                     ) : null}
                   </>
@@ -3501,9 +4043,10 @@ export function ViewportOverlay() {
                   <button
                     type="button"
                     className="ViewportOverlaySketchPlaneTextToggle"
-                    onClick={() =>
+                    onClick={() => {
+                      resetSketchSessionWindowToAutoHeight()
                       setSketchSessionProfilesExpanded((currentExpanded) => !currentExpanded)
-                    }
+                    }}
                   >
                     <span
                       className={`ViewportOverlaySketchPlaneChevron ${
@@ -3558,9 +4101,10 @@ export function ViewportOverlay() {
                   <button
                     type="button"
                     className="ViewportOverlaySketchPlaneTextToggle"
-                    onClick={() =>
+                    onClick={() => {
+                      resetSketchSessionWindowToAutoHeight()
                       setSketchSessionActiveToolExpanded((currentExpanded) => !currentExpanded)
-                    }
+                    }}
                   >
                     <span
                       className={`ViewportOverlaySketchPlaneChevron ${
@@ -3598,6 +4142,7 @@ export function ViewportOverlay() {
                 ) : null}
               </ViewportOverlayToolSection>
             ) : null}
+            </ViewportOverlayToolSectionStack>
           </div>
           <SpaghettiContextMenu
             open={sketchSessionTitleBarContextMenu !== null}

@@ -2371,11 +2371,11 @@ describe('useSpaghettiStore Geometry/Sketch editing semantics', () => {
       .map((entry) => entry.text)
 
     expect(promptEntries).toEqual([
-      'Sketch Draw > [Line, PLine, X]',
+      'Sketch Draw > [Line, PLine, Rectangle, Circle, X]',
       'PLINE Specify point 1:',
       'PLINE Specify point 2:',
       'PLINE Specify point 3 or [Enter Finish]:',
-      'Sketch Draw > [Line, PLine, Previous, X]',
+      'Sketch Draw > [Line, PLine, Rectangle, Circle, Previous, X]',
     ])
   })
 
@@ -2470,8 +2470,277 @@ describe('useSpaghettiStore Geometry/Sketch editing semantics', () => {
       drawDraft: null,
     })
     expect(useConsoleStore.getState().entries.at(-1)?.text).toBe(
-      'Sketch Draw > [Line, PLine, Previous, X]',
+      'Sketch Draw > [Line, PLine, Rectangle, Circle, Previous, X]',
     )
+  })
+
+  it('tracks viewer-owned Rectangle draft points and commits a rectangle on the second point before returning to idle', () => {
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: {
+              type: 'sketch',
+              featureId: 'sketch-1',
+              plane: 'XY',
+              components: [],
+              outputs: { profiles: [], diagnostics: [] },
+              uiState: { collapsed: false },
+            },
+          },
+        },
+      ],
+      edges: [],
+    })
+
+    useSpaghettiStore.getState().startGeometrySketchSession('node-sketch-1', 'draw')
+    useSpaghettiStore.getState().runGeometrySketchDrawCommand('rec')
+    useSpaghettiStore.getState().setGeometrySketchDrawHoverPoint({ x: 2, y: 3 }, null)
+    useSpaghettiStore.getState().confirmGeometrySketchDrawPoint({ x: 2, y: 3 }, null)
+    useSpaghettiStore.getState().setGeometrySketchDrawHoverPoint({ x: 12, y: 15 }, null)
+    useSpaghettiStore.getState().confirmGeometrySketchDrawPoint({ x: 12, y: 15 }, null)
+
+    const state = useSpaghettiStore.getState()
+    const sketch = state.graph.nodes.find((node) => node.nodeId === 'node-sketch-1')?.params.sketch as {
+      components: Array<{ type: string; a?: { x: number; y: number }; b?: { x: number; y: number } }>
+    }
+
+    expect(sketch.components).toHaveLength(1)
+    expect(sketch.components[0]).toMatchObject({
+      type: 'rectangle',
+      a: { x: 2, y: 3 },
+      b: { x: 12, y: 15 },
+    })
+    expect(state.geometrySketchSession).toMatchObject({
+      activeTool: null,
+      lastUsedTool: 'rectangle',
+      drawStage: 'sessionIdle',
+      drawDraft: null,
+    })
+    expect(useConsoleStore.getState().entries.at(-1)?.text).toBe(
+      'Sketch Draw > [Line, PLine, Rectangle, Circle, Previous, X]',
+    )
+  })
+
+  it('tracks viewer-owned Circle center and radius witness points and commits a circle on the second point before returning to idle', () => {
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: {
+              type: 'sketch',
+              featureId: 'sketch-1',
+              plane: 'XY',
+              components: [],
+              outputs: { profiles: [], diagnostics: [] },
+              uiState: { collapsed: false },
+            },
+          },
+        },
+      ],
+      edges: [],
+    })
+
+    useSpaghettiStore.getState().startGeometrySketchSession('node-sketch-1', 'draw')
+    useSpaghettiStore.getState().runGeometrySketchDrawCommand('cc')
+    useSpaghettiStore.getState().setGeometrySketchDrawHoverPoint({ x: 2, y: 3 }, null)
+    useSpaghettiStore.getState().confirmGeometrySketchDrawPoint({ x: 2, y: 3 }, null)
+    useSpaghettiStore.getState().setGeometrySketchDrawHoverPoint({ x: 8, y: 3 }, null)
+    useSpaghettiStore.getState().confirmGeometrySketchDrawPoint({ x: 8, y: 3 }, null)
+
+    const state = useSpaghettiStore.getState()
+    const sketch = state.graph.nodes.find((node) => node.nodeId === 'node-sketch-1')?.params.sketch as {
+      components: Array<{
+        type: string
+        center?: { x: number; y: number }
+        edge?: { x: number; y: number }
+      }>
+    }
+
+    expect(sketch.components).toHaveLength(1)
+    expect(sketch.components[0]).toMatchObject({
+      type: 'circle',
+      center: { x: 2, y: 3 },
+      edge: { x: 8, y: 3 },
+    })
+    expect(state.geometrySketchSession).toMatchObject({
+      activeTool: null,
+      lastUsedTool: 'circle',
+      drawStage: 'sessionIdle',
+      drawDraft: null,
+    })
+    expect(useConsoleStore.getState().entries.at(-1)?.text).toBe(
+      'Sketch Draw > [Line, PLine, Rectangle, Circle, Previous, X]',
+    )
+  })
+
+  it('tracks idle sketch entity selection and deletes the selected components', () => {
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: {
+              type: 'sketch',
+              featureId: 'sketch-1',
+              plane: 'XY',
+              components: [
+                {
+                  rowId: 'row-line-1',
+                  componentId: 'cmp-line-1',
+                  type: 'line',
+                  a: { kind: 'lit', x: 0, y: 0 },
+                  b: { kind: 'lit', x: 10, y: 0 },
+                },
+                {
+                  rowId: 'row-circle-1',
+                  componentId: 'cmp-circle-1',
+                  type: 'circle',
+                  center: { kind: 'lit', x: 4, y: 4 },
+                  edge: { kind: 'lit', x: 6, y: 4 },
+                },
+              ],
+              outputs: { profiles: [], diagnostics: [] },
+              uiState: { collapsed: false },
+            },
+          },
+        },
+      ],
+      edges: [],
+    })
+
+    useSpaghettiStore.getState().startGeometrySketchSession('node-sketch-1', 'draw')
+    useSpaghettiStore.getState().setGeometrySketchHoveredComponent('row-line-1')
+    useSpaghettiStore.getState().setGeometrySketchSelectedComponents(['row-line-1'])
+
+    let state = useSpaghettiStore.getState()
+    expect(state.geometrySketchSession).toMatchObject({
+      mode: 'draw',
+      activeTool: null,
+      drawStage: 'sessionIdle',
+      hoveredComponentId: 'row-line-1',
+      selectedComponentIds: ['row-line-1'],
+      selectionWindowDraft: null,
+    })
+
+    useSpaghettiStore.getState().deleteGeometrySketchSelectedComponents()
+
+    state = useSpaghettiStore.getState()
+    expect(state.geometrySketchSession).toMatchObject({
+      hoveredComponentId: null,
+      selectedComponentIds: [],
+      selectionWindowDraft: null,
+    })
+    expect(
+      (state.graph.nodes.find((node) => node.nodeId === 'node-sketch-1')?.params.sketch as SketchFeature)
+        .components,
+    ).toEqual([
+      expect.objectContaining({
+        rowId: 'row-circle-1',
+        type: 'circle',
+      }),
+    ])
+  })
+
+  it('clears idle entity selection when a new draw tool is armed', () => {
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: {
+              type: 'sketch',
+              featureId: 'sketch-1',
+              plane: 'XY',
+              components: [
+                {
+                  rowId: 'row-line-1',
+                  componentId: 'cmp-line-1',
+                  type: 'line',
+                  a: { kind: 'lit', x: 0, y: 0 },
+                  b: { kind: 'lit', x: 10, y: 0 },
+                },
+              ],
+              outputs: { profiles: [], diagnostics: [] },
+              uiState: { collapsed: false },
+            },
+          },
+        },
+      ],
+      edges: [],
+    })
+
+    useSpaghettiStore.getState().startGeometrySketchSession('node-sketch-1', 'draw')
+    useSpaghettiStore.getState().setGeometrySketchHoveredComponent('row-line-1')
+    useSpaghettiStore.getState().setGeometrySketchSelectedComponents(['row-line-1'])
+
+    useSpaghettiStore.getState().setGeometrySketchSessionTool('line')
+
+    expect(useSpaghettiStore.getState().geometrySketchSession).toMatchObject({
+      mode: 'draw',
+      activeTool: 'line',
+      hoveredComponentId: null,
+      selectedComponentIds: [],
+      selectionWindowDraft: null,
+    })
+  })
+
+  it('uses enter to accept the hovered opposite corner for Rectangle', () => {
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: {
+              type: 'sketch',
+              featureId: 'sketch-1',
+              plane: 'XY',
+              components: [],
+              outputs: { profiles: [], diagnostics: [] },
+              uiState: { collapsed: false },
+            },
+          },
+        },
+      ],
+      edges: [],
+    })
+
+    useSpaghettiStore.getState().startGeometrySketchSession('node-sketch-1', 'draw')
+    useSpaghettiStore.getState().setGeometrySketchSessionTool('rectangle')
+    useSpaghettiStore.getState().confirmGeometrySketchDrawPoint({ x: -4, y: 1 }, null)
+    useSpaghettiStore.getState().setGeometrySketchDrawHoverPoint({ x: 6, y: 9 }, null)
+
+    useSpaghettiStore.getState().finishGeometrySketchDrawDraft()
+
+    const state = useSpaghettiStore.getState()
+    const sketch = state.graph.nodes.find((node) => node.nodeId === 'node-sketch-1')?.params.sketch as {
+      components: Array<{ type: string; a?: { x: number; y: number }; b?: { x: number; y: number } }>
+    }
+
+    expect(sketch.components).toHaveLength(1)
+    expect(sketch.components[0]).toMatchObject({
+      type: 'rectangle',
+      a: { x: -4, y: 1 },
+      b: { x: 6, y: 9 },
+    })
+    expect(state.geometrySketchSession).toMatchObject({
+      activeTool: null,
+      lastUsedTool: 'rectangle',
+      drawStage: 'sessionIdle',
+      drawDraft: null,
+    })
   })
 
   it('uses cancelGeometrySketchDrawDraft to return directly to session idle', () => {
@@ -2519,7 +2788,7 @@ describe('useSpaghettiStore Geometry/Sketch editing semantics', () => {
     })
     expect(selectActiveEditorViewport(state)?.windowMode).toBe('collapsed')
     expect(useConsoleStore.getState().entries.at(-1)?.text).toBe(
-      'Sketch Draw > [Line, PLine, Previous, X]',
+      'Sketch Draw > [Line, PLine, Rectangle, Circle, Previous, X]',
     )
   })
 

@@ -1,0 +1,5042 @@
+.SpaghettiPanelRoot {
+  min-width: 0;
+  height: 100%;
+  min-height: 0;
+  max-height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: var(--sp-window-shell-pad-y, 0px) var(--sp-window-shell-pad-x, 0px);
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  background: var(--sp-window-body-bg);
+  border-color: var(--sp-window-body-border);
+  font-family: var(--sp-window-font-family);
+  font-size: var(--sp-window-font-size);
+}
+
+.SpaghettiPanelRoot button,
+.SpaghettiPanelRoot select,
+.SpaghettiPanelRoot input,
+.SpaghettiPanelRoot textarea {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+.SpaghettiPanelRoot .V15Meta,
+.SpaghettiPanelRoot .V15Error,
+.SpaghettiPanelRoot .V15SectionLabel {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+.SpaghettiPanelHeaderShell {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 auto;
+  min-height: 0;
+  gap: var(--sp-window-gap);
+}
+
+.SpaghettiPanelPinnedRow {
+  flex: 0 0 auto;
+}
+
+.SpaghettiWindowShell {
+  opacity: 1;
+}
+
+.SpaghettiWindowSettingsSection {
+  border: 1px solid var(--v15-panel-border-soft);
+  border-radius: 8px;
+  background: var(--sp-window-toolbar-surface);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  overflow: hidden;
+}
+
+.SpaghettiWindowSettingsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: var(--sp-window-pad-y) var(--sp-window-pad-x);
+  font-size: var(--sp-window-font-size);
+  font-weight: 700;
+  font-family: var(--sp-window-font-family);
+  color: var(--v15-text-dim);
+}
+
+.V15Panel button.SpaghettiWindowSettingsHeaderToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 24px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.SpaghettiWindowSettingsActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.V15Panel button.SpaghettiWindowSettingsClampToggle {
+  min-height: 24px;
+  padding: 0 var(--sp-window-pad-x);
+  font-size: calc(var(--sp-window-font-size) - 1px);
+  white-space: nowrap;
+  font-family: var(--sp-window-font-family);
+}
+
+.V15Panel button.SpaghettiWindowSettingsClampToggle.isActive,
+.V15Panel button.SpaghettiWindowSettingsClampToggle.isActive:hover {
+  border-color: rgba(255, 160, 102, 0.52);
+  background: rgba(255, 145, 82, 0.2);
+  color: rgba(255, 238, 224, 0.98);
+}
+
+.V15Panel button.SpaghettiWindowSettingsReset {
+  min-height: 24px;
+  padding: 0 var(--sp-window-pad-x);
+  font-size: calc(var(--sp-window-font-size) - 1px);
+  white-space: nowrap;
+  font-family: var(--sp-window-font-family);
+}
+
+.SpaghettiWindowSettingsGroups {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  padding: 0;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  border-top: 1px solid var(--v15-panel-border-soft);
+  scrollbar-gutter: stable;
+  scrollbar-color: rgba(86, 92, 110, 0.95) rgba(8, 10, 14, 0.92);
+  scrollbar-width: thin;
+}
+
+.SpaghettiWindowSettingsGroups::-webkit-scrollbar {
+  width: 12px;
+}
+
+.SpaghettiWindowSettingsGroups::-webkit-scrollbar-track {
+  background: rgba(8, 10, 14, 0.92);
+}
+
+.SpaghettiWindowSettingsGroups::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    180deg,
+    rgba(92, 98, 118, 0.98) 0%,
+    rgba(60, 65, 82, 0.98) 100%
+  );
+  border-radius: 999px;
+  border: 2px solid rgba(8, 10, 14, 0.92);
+}
+
+.SpaghettiWindowSettingsGroups::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(
+    180deg,
+    rgba(110, 118, 142, 0.98) 0%,
+    rgba(74, 80, 99, 0.98) 100%
+  );
+}
+
+.SpaghettiWindowSettingsGroup {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: 0;
+  border: 1px solid var(--v15-panel-border-soft);
+  border-radius: 8px;
+  background: var(--sp-window-toolbar-surface);
+  overflow: hidden;
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease,
+    background 120ms ease;
+}
+
+.SpaghettiWindowSettingsGroup.isExpanded {
+  border-color: rgba(104, 138, 233, 0.42);
+  background: color-mix(in srgb, var(--sp-window-toolbar-surface) 86%, rgba(82, 108, 182, 0.18));
+  box-shadow: inset 0 0 0 1px rgba(84, 115, 208, 0.14);
+}
+
+.SpaghettiWindowSettingsGroup + .SpaghettiWindowSettingsGroup {
+  margin-top: -1px;
+}
+
+.V15Panel button.SpaghettiWindowSettingsGroupToggle {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 28px;
+  padding: var(--sp-window-pad-y) var(--sp-window-pad-x);
+  border: none;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.V15Panel button.SpaghettiWindowSettingsGroupToggle:hover,
+.V15Panel button.SpaghettiWindowSettingsGroupToggle:focus-visible {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.SpaghettiWindowSettingsGroup.isExpanded .SpaghettiWindowSettingsGroupToggle:hover,
+.SpaghettiWindowSettingsGroup.isExpanded .SpaghettiWindowSettingsGroupToggle:focus-visible {
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.SpaghettiWindowSettingsGroupChevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 10px;
+  min-width: 10px;
+  color: var(--v15-text-dim);
+  font-size: var(--sp-window-font-size);
+  font-weight: 700;
+  font-family: var(--sp-window-font-family);
+}
+
+.SpaghettiWindowSettingsGroupTitle {
+  margin: 0;
+  font-size: var(--sp-window-font-size);
+  font-weight: 700;
+  font-family: var(--sp-window-font-family);
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--v15-text-dim);
+}
+
+.SpaghettiWindowSettingsGroupFields {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+  border-top: 1px solid var(--v15-panel-border-soft);
+}
+
+.SpaghettiWindowSettingsGroupFields.isCollapsed {
+  display: none;
+}
+
+.SpaghettiWindowSettingsField {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: 6px;
+  font-size: calc(var(--sp-window-font-size) - 1px);
+  color: var(--v15-text-dim);
+}
+
+.SpaghettiWindowSettingsField .ParaSlider,
+.SpaghettiWindowSettingsField .ParaSelect {
+  width: 100%;
+}
+
+.SpaghettiWindowSettingsField select {
+  min-height: 26px;
+  border-radius: 8px;
+  border: 1px solid var(--v15-panel-border-soft);
+  background: color-mix(in srgb, var(--sp-window-toolbar-bg) 86%, white 5%);
+  color: var(--v15-text);
+  padding: calc(var(--sp-window-pad-y) * 0.5) var(--sp-window-pad-x);
+  color-scheme: dark;
+  font-size: var(--sp-window-font-size);
+  font-family: var(--sp-window-font-family);
+}
+
+.SpaghettiWindowSettingsField select option {
+  background: #101218;
+  color: var(--v15-text);
+}
+
+.SpaghettiWindowSettingsSection .ParaSelectTrack--custom.isMenuOpen {
+  box-shadow: inset 0 0 0 1px rgba(124, 160, 255, 0.45);
+}
+
+.SpaghettiWindowSettingsSection .ParaSelectTrack {
+  background: color-mix(in srgb, var(--sp-window-toolbar-bg) 86%, white 5%);
+}
+
+.SpaghettiWindowSettingsSection .ParaSelectTrackButton,
+.SpaghettiWindowSettingsSection .ParaSelectTrackButton:hover,
+.SpaghettiWindowSettingsSection .ParaSelectTrackButton:focus-visible {
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  box-shadow: none;
+}
+
+.SpaghettiWindowSettingsSection .ParaSelectFill {
+  top: 4px;
+  bottom: 4px;
+  background: linear-gradient(
+    90deg,
+    rgba(124, 160, 255, 0.38) 0%,
+    rgba(124, 160, 255, 0.2) 100%
+  );
+  border-radius: 0;
+}
+
+.SpaghettiWindowSettingsSection .ParaSelectValueMarker {
+  top: 4px;
+  bottom: 4px;
+  width: 2px;
+  margin-left: -1px;
+  border-radius: 999px;
+  background: rgba(244, 247, 255, 0.92);
+  box-shadow: 0 0 0 1px rgba(11, 11, 15, 0.42);
+}
+
+.SpaghettiWindowSettingsSection .ParaSelectValueHandle {
+  top: 4px;
+  bottom: 4px;
+}
+
+.SpaghettiWindowSettingsSection .ParaSelectValue {
+  min-width: 52px;
+  height: 20px;
+  padding: 0 4px;
+  border-radius: 4px;
+  position: relative;
+  z-index: 2;
+  box-sizing: border-box;
+}
+
+.SpaghettiWindowSettingsSection .ParaSelectTrackButton:hover .ParaSelectValue,
+.SpaghettiWindowSettingsSection .ParaSelectTrackButton:focus-visible .ParaSelectValue,
+.SpaghettiWindowSettingsSection .ParaSelectTrack--custom.isMenuOpen .ParaSelectValue {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(245, 247, 255, 0.98);
+}
+
+.SpaghettiWindowSettingsSection .ParaSelectMenu {
+  top: calc(100% + 1px);
+  left: -1px;
+  right: -1px;
+  min-width: auto;
+  gap: 0;
+  padding: 0;
+  border: 1px solid var(--v15-panel-border-soft);
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  background: rgba(28, 31, 39, 1);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.28);
+  overflow: clip;
+}
+
+.SpaghettiWindowSettingsSection button.ParaSelectMenuOption,
+.SpaghettiWindowSettingsSection button.ParaSelectMenuOption:hover {
+  min-height: 30px;
+  padding: 0 var(--sp-window-pad-x);
+  border: none;
+  border-radius: 0;
+  background: rgba(60, 64, 74, 1);
+  color: rgba(238, 242, 255, 0.88);
+  font-size: var(--sp-window-font-size);
+  font-weight: 600;
+  font-family: var(--sp-window-font-family);
+  line-height: 1;
+}
+
+.SpaghettiWindowSettingsSection button.ParaSelectMenuOption + button.ParaSelectMenuOption {
+  border-top: 1px solid color-mix(in srgb, var(--v15-panel-border-soft) 88%, transparent);
+}
+
+.SpaghettiWindowSettingsSection button.ParaSelectMenuOption:hover,
+.SpaghettiWindowSettingsSection button.ParaSelectMenuOption.isSelected {
+  background: linear-gradient(
+    90deg,
+    rgba(78, 103, 170, 1) 0%,
+    rgba(61, 82, 136, 1) 100%
+  );
+  color: rgba(245, 247, 255, 0.98);
+}
+
+.SpaghettiWindowSettingsSliderRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.SpaghettiWindowSettingsSliderRow span {
+  min-width: 38px;
+  text-align: right;
+  color: rgba(238, 242, 255, 0.86);
+  font-size: var(--sp-window-font-size);
+  font-family: var(--sp-window-font-family);
+}
+
+.SpaghettiFocusRow {
+  border: 1px solid var(--sp-window-body-border);
+  border-radius: 10px;
+  background: var(--sp-window-toolbar-surface);
+  padding: var(--sp-window-pad-y) var(--sp-window-pad-x);
+  gap: 8px;
+}
+
+.SpaghettiFocusPickerCell {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.SpaghettiGraphSection {
+  border: 1px solid var(--v15-panel-border-soft);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 10px;
+}
+
+.SpaghettiPanelHeaderBlock {
+  display: flex;
+  flex-direction: column;
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+  border: 1px solid var(--v15-panel-border-soft);
+  border-radius: 10px;
+  background: var(--sp-window-toolbar-bg);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  scrollbar-color: rgba(86, 92, 110, 0.95) rgba(8, 10, 14, 0.92);
+  scrollbar-width: thin;
+}
+
+.SpaghettiPanelHeaderBlock::-webkit-scrollbar {
+  width: 12px;
+}
+
+.SpaghettiPanelHeaderBlock::-webkit-scrollbar-track {
+  background: rgba(8, 10, 14, 0.92);
+}
+
+.SpaghettiPanelHeaderBlock::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    180deg,
+    rgba(92, 98, 118, 0.98) 0%,
+    rgba(60, 65, 82, 0.98) 100%
+  );
+  border-radius: 999px;
+  border: 2px solid rgba(8, 10, 14, 0.92);
+}
+
+.SpaghettiPanelHeaderBlock::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(
+    180deg,
+    rgba(110, 118, 142, 0.98) 0%,
+    rgba(74, 80, 99, 0.98) 100%
+  );
+}
+
+.SpaghettiPanelHeaderBlock.isCollapsed {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.SpaghettiPanelHeaderScroll {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 auto;
+  gap: 0;
+  min-height: 0;
+  overflow: visible;
+  padding: 0;
+}
+
+.SpaghettiPanelHeaderScroll.isCollapsed {
+  min-height: 10px;
+}
+
+.SpaghettiPanelToolbarTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 100%;
+}
+
+.SpaghettiPanelToolbarGroup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.SpaghettiFloatingHandle {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 7px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-bottom: none;
+  border-radius: 10px 10px 0 0;
+  background: var(--sp-window-titlebar-bg);
+  color: #eef2ff;
+  font-size: var(--sp-window-font-size);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  cursor: grab;
+  user-select: text;
+  pointer-events: auto;
+  font-family: var(--sp-window-font-family);
+}
+
+.SpaghettiFloatingHandleStart {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 0 1 auto;
+}
+
+.SpaghettiFloatingHandleRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.SpaghettiFloatingHandle.isMeatball {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.SpaghettiFloatingHandle.isMeatball .SpaghettiFloatingHandleTitle {
+  flex: 0 0 auto;
+}
+
+.SpaghettiFloatingHandle.isMeatball .SpaghettiFloatingHandleStart {
+  width: 100%;
+}
+
+.SpaghettiFloatingHandle.isMeatball .SpaghettiFloatingHandleRow {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 8px;
+}
+
+.SpaghettiFloatingHandle.isMeatball .SpaghettiFloatingHandleGraph {
+  width: 100%;
+}
+
+.SpaghettiFloatingHandle.isMeatball .SpaghettiFloatingHandleActions {
+  width: 100%;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+
+.SpaghettiFloatingHandleTitle {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.SpaghettiFloatingHandleGraph {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  min-width: 0;
+  justify-content: flex-start;
+}
+
+.SpaghettiGraphDocumentPicker {
+  flex: 0 0 auto;
+  min-width: 188px;
+  max-width: min(360px, 38vw);
+}
+
+.SpaghettiFloatingHandleGraph .ParaSelect {
+  width: 100%;
+}
+
+.SpaghettiFloatingHandleGraph button.ParaSelectCap,
+.SpaghettiFloatingHandleGraph button.ParaSelectCap:hover {
+  flex: 0 0 24px;
+  width: 24px;
+  min-width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+  color: #f5f7ff;
+  font-size: 9px;
+  line-height: 1;
+  border-radius: 0;
+  box-sizing: border-box;
+}
+
+.SpaghettiFloatingHandleGraph button.ParaSelectCap--left {
+  border-radius: 6px 0 0 6px;
+}
+
+.SpaghettiFloatingHandleGraph button.ParaSelectCap--right {
+  border-left: none;
+  border-radius: 0 6px 6px 0;
+}
+
+.SpaghettiFloatingHandleGraph .ParaSelectTrack {
+  height: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-left: none;
+  background: rgba(255, 255, 255, 0.08);
+  box-sizing: border-box;
+  border-radius: 0;
+}
+
+.SpaghettiFloatingHandleGraph .ParaSelectTrack:focus-within,
+.SpaghettiFloatingHandleGraph .ParaSelectTrack.isMenuOpen {
+  box-shadow: inset 0 0 0 1px rgba(124, 160, 255, 0.45);
+}
+
+.SpaghettiFloatingHandleGraph .ParaSelectTrackButton {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+  box-sizing: border-box;
+}
+
+.SpaghettiFloatingHandleGraph .ParaSelectFill {
+  top: 3px;
+  bottom: 3px;
+}
+
+.SpaghettiFloatingHandleGraph .ParaSelectValueMarker {
+  top: 3px;
+  bottom: 3px;
+}
+
+.SpaghettiFloatingHandleGraph .ParaSelectValueHandle {
+  top: 3px;
+  bottom: 3px;
+}
+
+.SpaghettiFloatingHandleGraph .ParaSelectContent {
+  gap: 6px;
+  padding: 0 8px;
+}
+
+.SpaghettiFloatingHandleGraph .ParaSelectLabel,
+.SpaghettiFloatingHandleGraph .ParaSelectValue {
+  font-size: var(--sp-window-font-size);
+  color: #eef2ff;
+}
+
+.SpaghettiFloatingHandleGraph .ParaSelectLabel {
+  display: none;
+}
+
+.SpaghettiFloatingHandleGraph .ParaSelectValue {
+  flex: 1 1 auto;
+  min-width: 0;
+  gap: 4px;
+  padding: 0;
+  justify-content: space-between;
+  font-family: var(--sp-window-font-family);
+  font-size: var(--sp-window-font-size);
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.SpaghettiFloatingHandleGraph .ParaSelectValue > span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+}
+
+.SpaghettiFloatingHandleGraph .ParaSelectChevron {
+  font-size: 8px;
+  opacity: 0.78;
+}
+
+.SpaghettiFloatingHandleGraph .ParaSelectMenu {
+  top: calc(100% - 1px);
+  left: 0;
+  right: 0;
+  min-width: auto;
+  gap: 0;
+  padding: 0;
+  border-radius: 0;
+  border: 1px solid rgba(124, 160, 255, 0.28);
+  border-top: none;
+  box-shadow:
+    0 10px 20px rgba(0, 0, 0, 0.35),
+    0 0 0 1px rgba(124, 160, 255, 0.08);
+  overflow: hidden;
+}
+
+.SpaghettiFloatingHandleGraph button.ParaSelectMenuOption,
+.SpaghettiFloatingHandleGraph button.ParaSelectMenuOption:hover {
+  min-height: 24px;
+  height: 24px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 0;
+  font-size: var(--sp-window-font-size);
+  font-weight: 700;
+  font-family: var(--sp-window-font-family);
+  line-height: 1;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #eef2ff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.SpaghettiFloatingHandleGraph button.ParaSelectMenuOption + button.ParaSelectMenuOption {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.SpaghettiFloatingHandleGraph button.ParaSelectMenuOption.isSelected,
+.SpaghettiFloatingHandleGraph button.ParaSelectMenuOption.isSelected:hover {
+  font-weight: 700;
+  color: #eef2ff;
+  background: rgba(255, 255, 255, 0.12);
+  border-color: transparent;
+}
+
+.SpaghettiFloatingHandleActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  margin-left: auto;
+  min-width: 0;
+}
+
+.SpaghettiFloatingHandle.isMeatball .SpaghettiFloatingHandleActions {
+  margin-left: 0;
+}
+
+.SpaghettiFloatingHandleCoreActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.SpaghettiFloatingHandleAdvancedActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  min-width: 0;
+  max-width: 0;
+  opacity: 0;
+  overflow: hidden;
+  transform: translateX(8px);
+  pointer-events: none;
+  transition:
+    max-width 180ms ease,
+    opacity 160ms ease,
+    transform 180ms ease;
+}
+
+.SpaghettiFloatingHandleAdvancedActions.isExpanded {
+  max-width: 220px;
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: auto;
+}
+
+.SpaghettiFloatingHandle.isMeatball .SpaghettiFloatingHandleActions {
+  width: 100%;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+
+.SpaghettiFloatingHandle.isMeatball .SpaghettiFloatingHandleAdvancedActions {
+  max-width: 0;
+  flex-basis: 100%;
+}
+
+.SpaghettiFloatingHandle.isMeatball .SpaghettiFloatingHandleAdvancedActions.isExpanded {
+  max-width: 100%;
+}
+
+.SpaghettiWindowAction,
+.SpaghettiWindowAction:hover {
+  min-width: 28px;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+  color: #f5f7ff;
+  font-size: 10px;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.SpaghettiWindowAction.isActive,
+.SpaghettiWindowAction:hover {
+  background: rgba(96, 142, 255, 0.22);
+  border-color: rgba(96, 142, 255, 0.45);
+}
+
+.SpaghettiWindowAction--meatball.isActive,
+.SpaghettiWindowAction--meatball.isActive:hover {
+  background: rgba(214, 72, 72, 0.22);
+  border-color: rgba(214, 72, 72, 0.55);
+  color: #ffd7d7;
+}
+
+.SpaghettiWindowAction--build {
+  flex: 0 0 auto;
+}
+
+.SpaghettiWindowActionTrayToggle {
+  flex: 0 0 auto;
+}
+
+.SpaghettiFloatingHandle:active {
+  cursor: grabbing;
+}
+
+.SpaghettiFloatingBody {
+  border-radius: 0 0 10px 10px;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  pointer-events: auto;
+  background: var(--sp-window-canvas-shell-bg);
+}
+
+.SpaghettiFloatingBody > * {
+  pointer-events: auto;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  max-height: 100%;
+  overflow: hidden;
+}
+
+.SpaghettiFloatingResizeHandle {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 16px;
+  height: 16px;
+  cursor: nwse-resize;
+  z-index: 12;
+  pointer-events: auto;
+  background-image: linear-gradient(
+    225deg,
+    transparent 0%,
+    transparent 42%,
+    rgba(255, 255, 255, 0.85) 42%,
+    rgba(255, 255, 255, 0.85) 54%,
+    transparent 54%,
+    transparent 100%
+  );
+  opacity: 0.85;
+}
+
+.SpaghettiMeatballHost {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  flex: 1 1 auto;
+  height: 100%;
+  min-height: 0;
+}
+
+.SpaghettiMeatballHost .SpaghettiFloatingHandle {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.SpaghettiMeatballHost .SpaghettiPanelRoot {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.SpaghettiSplitWindow {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 10px;
+  box-shadow: var(--v15-panel-shadow);
+}
+
+.SpaghettiPanelCanvasWrap {
+  margin-top: 0;
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--sp-window-body-bg) 82%, black 18%);
+}
+
+.SpaghettiPanelCanvasWrap.isExpanded {
+  margin-top: 0;
+}
+
+.SpaghettiDebugDrawer {
+  flex: 0 0 auto;
+  border: 1px solid var(--v15-panel-border-soft);
+  border-radius: 10px;
+  background: var(--sp-window-toolbar-surface);
+  overflow: hidden;
+}
+
+.SpaghettiDebugDrawer.isOpen {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.SpaghettiDebugDrawerToggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  text-align: left;
+  border: 0;
+  border-radius: 0;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.SpaghettiDebugDrawerBody {
+  display: grid;
+  flex: 1 1 auto;
+  gap: 12px;
+  min-height: 0;
+  padding: 0 10px 10px;
+  max-height: none;
+  overflow: auto;
+}
+
+.SpaghettiDebugSection {
+  display: grid;
+  gap: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(9, 12, 18, 0.44);
+  padding: 10px;
+}
+
+.SpaghettiDebugSectionHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.SpaghettiDebugSectionHeader h3 {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.SpaghettiDebugSectionHeader span,
+.SpaghettiDebugMetaGrid span {
+  font-size: 11px;
+  color: var(--v15-text-muted);
+}
+
+.SpaghettiDebugMetaGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+}
+
+.SpaghettiDebugMetaGrid > div {
+  display: grid;
+  gap: 2px;
+}
+
+.SpaghettiDebugMetaGrid strong {
+  font-size: 12px;
+  color: var(--v15-text);
+  font-weight: 600;
+}
+
+.SpaghettiDebugTable {
+  display: grid;
+  gap: 4px;
+}
+
+.SpaghettiDebugTableRow {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.025);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.SpaghettiDebugTableRow--header {
+  background: rgba(87, 110, 160, 0.18);
+  color: rgba(236, 242, 255, 0.95);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.SpaghettiDebugTableRow span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.SpaghettiDebugTableEmpty {
+  padding: 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--v15-text-muted);
+  font-size: 11px;
+}
+
+.SpaghettiHelpDetails {
+  border: 1px solid var(--v15-panel-border-soft);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.SpaghettiToolbarSection {
+  border: 1px solid var(--v15-panel-border-soft);
+  border-radius: 8px;
+  background: var(--sp-window-toolbar-surface);
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease,
+    background 120ms ease;
+}
+
+.SpaghettiToolbarSection[open] {
+  border-color: rgba(104, 138, 233, 0.42);
+  background: color-mix(in srgb, var(--sp-window-toolbar-surface) 86%, rgba(82, 108, 182, 0.18));
+  box-shadow: inset 0 0 0 1px rgba(84, 115, 208, 0.14);
+}
+
+.SpaghettiToolbarRow {
+  display: flex;
+  align-items: center;
+  padding: var(--sp-window-pad-y) var(--sp-window-pad-x);
+  border: 1px solid var(--v15-panel-border-soft);
+  border-radius: 8px;
+  background: var(--sp-window-toolbar-surface);
+}
+
+.SpaghettiToolbarSectionSummary {
+  cursor: pointer;
+  padding: var(--sp-window-pad-y) var(--sp-window-pad-x);
+  font-size: var(--sp-window-font-size);
+  font-weight: 700;
+  font-family: var(--sp-window-font-family);
+  color: var(--v15-text-dim);
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.SpaghettiToolbarSectionSummary:hover,
+.SpaghettiToolbarSectionSummary:focus-visible {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.SpaghettiToolbarSection[open] .SpaghettiToolbarSectionSummary:hover,
+.SpaghettiToolbarSection[open] .SpaghettiToolbarSectionSummary:focus-visible {
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.SpaghettiToolbarSectionSummary::-webkit-details-marker {
+  display: none;
+}
+
+.SpaghettiToolbarSectionSummary::after {
+  content: '+';
+  order: -1;
+}
+
+.SpaghettiToolbarSection[open] .SpaghettiToolbarSectionSummary::after {
+  content: '-';
+}
+
+.SpaghettiToolbarSectionBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-window-gap);
+  padding: var(--sp-window-pad-y) var(--sp-window-pad-x);
+  border-top: 1px solid var(--v15-panel-border-soft);
+}
+
+.SpaghettiHelpSummary {
+  cursor: pointer;
+  padding: var(--sp-window-pad-y) var(--sp-window-pad-x);
+  font-size: var(--sp-window-font-size);
+  font-weight: 700;
+  font-family: var(--sp-window-font-family);
+  color: var(--v15-text-dim);
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.SpaghettiHelpSummary::-webkit-details-marker {
+  display: none;
+}
+
+.SpaghettiHelpSummary::after {
+  content: '+';
+  order: -1;
+}
+
+.SpaghettiHelpDetails[open] .SpaghettiHelpSummary::after {
+  content: '-';
+}
+
+.SpaghettiHelpBody {
+  padding: var(--sp-window-pad-y) var(--sp-window-pad-x);
+  border-top: 1px solid var(--v15-panel-border-soft);
+  font-size: var(--sp-window-font-size);
+  font-family: var(--sp-window-font-family);
+}
+
+.SpaghettiEditorRoot {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.SpaghettiEditorShell {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+  margin-top: auto;
+}
+
+.SpaghettiEditorBody {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.SpaghettiEditorToolbarScroll {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.SpaghettiEditorToolbarScroll--expanded {
+  overflow: hidden;
+  padding-right: 0;
+}
+
+.SpaghettiEditorHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.SpaghettiEditorAddRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.SpaghettiEditorModeButton--active {
+  border-color: rgba(96, 142, 255, 0.8) !important;
+  background: rgba(96, 142, 255, 0.22) !important;
+}
+
+.SpaghettiFocusRow .ParaSelect {
+  width: 100%;
+}
+
+.SpaghettiFocusRow .ParaSelectCap,
+.SpaghettiFocusRow .ParaSelectTrack {
+  height: 28px;
+}
+
+.SpaghettiFocusRow .ParaSelectTrackButton,
+.SpaghettiFocusRow .ParaSelectTrackButton:hover,
+.SpaghettiFocusRow .ParaSelectTrackButton:focus-visible {
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  box-shadow: none;
+}
+
+.SpaghettiFocusRow .ParaSelectValue {
+  min-width: 0;
+}
+
+.SpaghettiGraphDocumentSelect {
+  width: 100%;
+  min-width: 0;
+  border-radius: 8px;
+  border: 1px solid var(--v15-panel-border-soft);
+  background: color-mix(in srgb, var(--sp-window-toolbar-bg) 86%, white 5%);
+  color: var(--v15-text);
+  padding: calc(var(--sp-window-pad-y) - 1px) calc(var(--sp-window-pad-x) + 2px);
+  box-sizing: border-box;
+  color-scheme: dark;
+  font-family: var(--sp-window-font-family);
+  font-size: var(--sp-window-font-size);
+}
+
+.SpaghettiGraphDocumentSelect--titlebar {
+  flex: 0 0 auto;
+  min-height: 28px;
+  min-width: 0;
+  padding: 4px 22px 4px 10px;
+  border-color: rgba(255, 255, 255, 0.18);
+  background-color: rgba(255, 255, 255, 0.08);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%23eef2ff' d='M1.2.6 5 4.2 8.8.6 10 1.8 5 6 0 1.8z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 7px center;
+  background-size: 8px 5px;
+  color: #eef2ff;
+  font-size: var(--sp-window-font-size);
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+  text-align: left;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+
+.SpaghettiGraphDocumentSelect option,
+.SpaghettiGraphDocumentSelect optgroup {
+  background: #101218;
+  color: var(--v15-text);
+}
+
+.SpaghettiGraphDocumentSelect option:checked {
+  background: #1d6fe9;
+  color: #ffffff;
+}
+
+.SpaghettiGraphDocumentRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.V15Panel button.SpaghettiGraphQuickAction {
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  font-size: var(--sp-window-font-size);
+  letter-spacing: 0.04em;
+}
+
+.SpaghettiTypeLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  width: 100%;
+}
+
+.SpaghettiTypeLegendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: calc(var(--sp-window-font-size) - 1px);
+  color: rgba(221, 229, 243, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  padding: calc(var(--sp-window-pad-y) - 3px) calc(var(--sp-window-pad-x) - 1px);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.SpaghettiTypeLegendHex {
+  color: rgba(199, 208, 225, 0.72);
+}
+
+.SpaghettiTypeSwatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  display: inline-block;
+}
+
+.SpaghettiTypeSwatch--number { background: #ffffff; }
+
+.SpaghettiTypeSwatch--boolean { background: #f6d365; }
+
+.SpaghettiTypeSwatch--vec2 { background: #38bdf8; }
+
+.SpaghettiTypeSwatch--vec3 { background: #22d3ee; }
+
+.SpaghettiTypeSwatch--spline2 { background: #ff4e4e; }
+
+.SpaghettiTypeSwatch--spline3 { background: #fb7185; }
+
+.SpaghettiTypeSwatch--profileLoop { background: #34d399; }
+
+.SpaghettiTypeSwatch--stations { background: #a78bfa; }
+
+.SpaghettiTypeSwatch--railMath { background: #9ca3af; }
+
+.SpaghettiTypeSwatch--toeLoft { background: #cbd5e1; }
+
+.SpaghettiCollapsedRoot {
+  border: 1px solid var(--v15-panel-border-soft);
+  border-radius: 10px;
+  background: var(--sp-window-canvas-shell-bg);
+  padding: var(--sp-window-pad-y) var(--sp-window-pad-x);
+}
+
+.SpaghettiCollapsedHeader {
+  font-size: var(--sp-window-font-size);
+  color: var(--v15-text-dim);
+  margin-bottom: 6px;
+}
+
+.SpaghettiCollapsedFocusCard {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: var(--sp-window-toolbar-surface);
+  padding: var(--sp-window-pad-y) var(--sp-window-pad-x);
+  margin-bottom: 10px;
+}
+
+.SpaghettiCollapsedFocusLabel {
+  font-size: var(--sp-window-font-size);
+  font-weight: 700;
+}
+
+.V15Panel button.SpaghettiCanvasResizeBar,
+.V15Panel button.SpaghettiCanvasResizeBar:hover,
+.V15Panel button.SpaghettiWindowSettingsResizeBar,
+.V15Panel button.SpaghettiWindowSettingsResizeBar:hover {
+  flex: 0 0 auto;
+  width: 100%;
+  max-width: none;
+  height: 4px;
+  appearance: none;
+  -webkit-appearance: none;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  box-shadow: none;
+  color: transparent;
+  cursor: ns-resize;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  padding: 0;
+  margin: 0;
+}
+
+.SpaghettiCanvasResizeBar::before,
+.SpaghettiWindowSettingsResizeBar::before {
+  content: '';
+  width: 100%;
+  height: 2px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  transition:
+    background 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.SpaghettiCanvasResizeBar:hover,
+.SpaghettiWindowSettingsResizeBar:hover {
+  background: transparent;
+}
+
+.SpaghettiCanvasResizeBar:hover::before,
+.SpaghettiWindowSettingsResizeBar:hover::before {
+  background: rgba(124, 160, 255, 0.56);
+  box-shadow: 0 0 8px rgba(124, 160, 255, 0.18);
+}
+
+.SpaghettiCanvasResizeBar:focus-visible,
+.SpaghettiWindowSettingsResizeBar:focus-visible {
+  outline: none;
+}
+
+.SpaghettiCanvasResizeBar:focus-visible::before,
+.SpaghettiWindowSettingsResizeBar:focus-visible::before {
+  background: rgba(124, 160, 255, 0.62);
+  box-shadow:
+    0 0 0 1px rgba(124, 160, 255, 0.2),
+    0 0 8px rgba(124, 160, 255, 0.2);
+}
+
+.SpaghettiWindowSettingsResizeBar {
+  margin: 0 0 2px;
+}
+
+.SpaghettiDebugResizeBar {
+  margin-top: 2px;
+}
+
+.SpaghettiCanvasResizeGrip {
+  display: none;
+}
+
+.SpaghettiCanvasRoot {
+  box-sizing: border-box;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--v15-panel-border-soft);
+  border-radius: 10px;
+  background: var(--sp-window-canvas-shell-bg);
+  padding: var(--sp-window-pad-y) var(--sp-window-pad-x);
+  outline: none;
+  overflow: hidden;
+  font-family: var(--sp-window-font-family);
+  font-size: var(--sp-window-font-size);
+}
+
+.SpaghettiCanvasRoot:focus-visible {
+  box-shadow: 0 0 0 2px rgba(96, 142, 255, 0.45);
+}
+
+.SpaghettiCanvasToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--sp-window-gap);
+  margin-bottom: var(--sp-window-gap);
+  font-size: var(--sp-window-font-size);
+  font-family: var(--sp-window-font-family);
+}
+
+.SpaghettiCanvasToolbar--modeOnly {
+  margin-bottom: 10px;
+}
+
+.SpaghettiCanvasModeToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-family: var(--sp-window-font-family);
+}
+
+.SpaghettiCanvasCurveControl {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--sp-window-font-size);
+  font-family: var(--sp-window-font-family);
+  color: rgba(220, 228, 244, 0.9);
+}
+
+.SpaghettiCanvasCurveControl input[type='range'] {
+  width: 160px;
+}
+
+.SpaghettiCanvasRowMode,
+.spView_modeControl {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--sp-window-font-size);
+  color: rgba(220, 228, 244, 0.9);
+}
+
+.SpaghettiCanvasRowMode select,
+.spView_modeControl select {
+  min-width: 118px;
+  border-radius: 6px;
+  border: 1px solid var(--v15-panel-border-soft);
+  background: color-mix(in srgb, var(--sp-window-toolbar-bg) 86%, white 5%);
+  color: var(--v15-text);
+  padding: calc(var(--sp-window-pad-y) * 0.45) calc(var(--sp-window-pad-x) * 0.8);
+  font-size: var(--sp-window-font-size);
+  font-family: var(--sp-window-font-family);
+}
+
+.SpaghettiCanvasMessage {
+  flex: 1 1 100%;
+  font-size: var(--sp-window-font-size);
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: calc(var(--sp-window-pad-y) - 2px) var(--sp-window-pad-x);
+  font-family: var(--sp-window-font-family);
+}
+
+.SpaghettiCanvasMessage--info {
+  color: rgba(212, 233, 255, 0.95);
+  border-color: rgba(124, 160, 255, 0.4);
+  background: rgba(54, 86, 150, 0.24);
+}
+
+.SpaghettiCanvasMessage--error {
+  color: rgba(255, 215, 215, 0.96);
+  border-color: rgba(255, 114, 114, 0.5);
+  background: rgba(138, 46, 46, 0.26);
+}
+
+.SpaghettiCanvasScroller {
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: var(--sp-window-canvas-well-bg);
+}
+
+.SpaghettiNodeAddMenu {
+  position: absolute;
+  z-index: 20;
+  width: 272px;
+  max-height: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(18, 21, 30, 0.98);
+  box-shadow: 0 16px 30px rgba(0, 0, 0, 0.5);
+}
+
+.SpaghettiNodeAddMenuSearch {
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 8px;
+  border: 1px solid var(--v15-panel-border-soft);
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--v15-text);
+  padding: 6px 8px;
+  font-size: 12px;
+}
+
+.SpaghettiNodeAddMenuList {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 0;
+}
+
+.SpaghettiNodeAddMenuItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(236, 241, 252, 0.96);
+  padding: 6px 8px;
+  font-size: 11px;
+  text-align: left;
+}
+
+.SpaghettiNodeAddMenuItem span:last-child {
+  color: rgba(189, 200, 224, 0.76);
+  font-size: 10px;
+}
+
+.SpaghettiNodeAddMenuEmpty {
+  font-size: 11px;
+  color: rgba(209, 218, 238, 0.72);
+  padding: 4px 2px;
+}
+
+.SpaghettiCanvasStage {
+  position: relative;
+  isolation: isolate;
+  opacity: var(--sp-graph-content-opacity);
+}
+
+.SpaghettiWireLayer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  z-index: 1;
+}
+
+.SpaghettiWire {
+  fill: none;
+  stroke: rgba(152, 178, 255, 0.82);
+  stroke-width: 2.2px;
+  pointer-events: stroke;
+  cursor: pointer;
+  transition: stroke 120ms ease, stroke-width 120ms ease;
+}
+
+.SpaghettiWire--dashed {
+  stroke-dasharray: 6 4;
+}
+
+.SpaghettiWire--hovered {
+  stroke: rgba(196, 215, 255, 0.96);
+  stroke-width: 2.6px;
+}
+
+.SpaghettiWire--selected {
+  stroke: #76a8ff;
+  stroke-width: 3px;
+}
+
+.SpaghettiWire--preview {
+  stroke: rgba(127, 224, 169, 0.9);
+  stroke-dasharray: 5 4;
+  stroke-width: 2.2px;
+  pointer-events: none;
+}
+
+.SpaghettiWireGap {
+  fill: none;
+  stroke: rgba(11, 12, 18, 0.9);
+  stroke-width: 5.2px;
+  pointer-events: none;
+}
+
+.SpaghettiWireLoop {
+  fill: none;
+  stroke: rgba(207, 220, 255, 0.95);
+  stroke-width: 2.2px;
+  pointer-events: none;
+}
+
+.SpaghettiWireLoop--hovered {
+  stroke: rgba(236, 243, 255, 0.98);
+  stroke-width: 2.6px;
+}
+
+.SpaghettiWireLoop--selected {
+  stroke: #9ec2ff;
+  stroke-width: 2.8px;
+}
+
+.SpaghettiWireWaypoint {
+  fill: rgba(245, 248, 255, 0.95);
+  stroke: rgba(86, 128, 220, 0.95);
+  stroke-width: 2px;
+  cursor: grab;
+  pointer-events: auto;
+}
+
+.SpaghettiWireWaypoint:active {
+  cursor: grabbing;
+}
+
+.SpaghettiWireWaypoint--hovered {
+  fill: rgba(255, 255, 255, 0.98);
+  stroke: rgba(130, 170, 255, 0.98);
+}
+
+.SpaghettiWireWaypoint--selected {
+  fill: rgba(219, 230, 255, 0.98);
+  stroke: rgba(118, 168, 255, 1);
+}
+
+.SpaghettiNode {
+  position: absolute;
+  width: 260px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  background: rgba(20, 22, 28, 0.94);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.4);
+  color: var(--v15-text);
+  padding: 6px;
+  user-select: text;
+  cursor: grab;
+  z-index: 2;
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease,
+    transform 120ms ease,
+    z-index 120ms ease;
+}
+
+.SpaghettiNode:active {
+  cursor: grabbing;
+}
+
+.SpaghettiNode--selected {
+  border-color: rgba(116, 168, 255, 0.95);
+  box-shadow:
+    0 0 0 2px rgba(96, 142, 255, 0.55),
+    0 0 22px rgba(96, 142, 255, 0.32),
+    0 12px 24px rgba(0, 0, 0, 0.5);
+  transform: translateY(-1px);
+  z-index: 8;
+}
+
+.SpaghettiNode--previewed {
+  border-color: rgba(255, 193, 94, 0.96);
+  box-shadow:
+    0 0 0 2px rgba(255, 193, 94, 0.52),
+    0 0 22px rgba(255, 193, 94, 0.24),
+    0 12px 24px rgba(0, 0, 0, 0.44);
+  transform: translateY(-1px);
+  z-index: 7;
+}
+
+.SpaghettiNodeHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 6px;
+  font-size: 11px;
+}
+
+.SpaghettiNodeHeaderMain {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.SpaghettiNodeTitleText {
+  min-width: 0;
+  color: #f5f7ff;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.V15Panel button.SpaghettiNodeModeButton,
+.V15Panel button.SpaghettiNodeModeButton:hover,
+.V15Panel button.SpaghettiNodeModeButton:focus-visible,
+.V15Panel button.SpaghettiNodeModeButton:active {
+  min-width: 10px;
+  width: 10px;
+  height: 10px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  font-size: 5px;
+  font-weight: 700;
+  line-height: 1;
+  text-align: center;
+}
+
+.SpaghettiNodeType {
+  color: var(--v15-text-muted);
+  font-size: 9px;
+}
+
+.SpaghettiNodeSketchInputsLabel {
+  margin: 0;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(214, 222, 238, 0.8);
+}
+
+.SpaghettiNodeSketchHeader {
+  margin: 2px 0 8px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  flex-wrap: nowrap;
+}
+
+.SpaghettiNodeSketchHeader .SpaghettiNodeSketchInputsLabel {
+  order: 2;
+  white-space: nowrap;
+}
+
+.SpaghettiNodeScrubControls {
+  --sp-node-right-control-width: clamp(140px, 50%, 170px);
+  display: inline-flex;
+  order: 1;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  min-width: 0;
+  white-space: nowrap;
+  margin-left: 0;
+  width: var(--sp-node-right-control-width);
+  max-width: 100%;
+  align-self: flex-end;
+}
+
+.SpaghettiNodeScrubToggle {
+  min-height: 14px;
+  border-radius: 999px;
+  padding: 0 5px;
+  font-size: 8px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  color: #f3f6ff;
+}
+
+.SpaghettiNodeScrubToggle--low {
+  background: linear-gradient(180deg, #2f5fa9 0%, #284f8b 100%);
+  border-color: rgba(139, 179, 255, 0.9);
+}
+
+.SpaghettiNodeScrubToggle--high {
+  background: linear-gradient(180deg, #2f7a59 0%, #27684b 100%);
+  border-color: rgba(137, 238, 191, 0.88);
+}
+
+.V15Panel button.SpaghettiNodeScrubToggle--low,
+.V15Panel button.SpaghettiNodeScrubToggle--low:hover {
+  background: linear-gradient(180deg, #2f5fa9 0%, #284f8b 100%);
+  border-color: rgba(139, 179, 255, 0.9);
+  color: #f3f6ff;
+}
+
+.V15Panel button.SpaghettiNodeScrubToggle--high,
+.V15Panel button.SpaghettiNodeScrubToggle--high:hover {
+  background: linear-gradient(180deg, #2f7a59 0%, #27684b 100%);
+  border-color: rgba(137, 238, 191, 0.88);
+  color: #ecfff6;
+}
+
+.SpaghettiNodeScrubSlider {
+  width: 50%;
+  min-width: 64px;
+  appearance: none;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.24);
+  outline: none;
+}
+
+.SpaghettiNodeScrubSlider::-webkit-slider-thumb {
+  appearance: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.35);
+  background: #dbe4ff;
+}
+
+.SpaghettiNodeScrubValue {
+  min-width: 18px;
+  text-align: right;
+  font-size: 8px;
+  color: rgba(214, 222, 238, 0.9);
+  font-variant-numeric: tabular-nums;
+}
+
+.SpaghettiNodePorts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.SpaghettiNodePresetRow {
+  --sp-node-right-control-width: clamp(140px, 50%, 170px);
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 10px;
+  color: rgba(214, 222, 238, 0.9);
+}
+
+.SpaghettiNodePresetRow select {
+  width: var(--sp-node-right-control-width);
+  min-width: 140px;
+  max-width: 170px;
+  border-radius: 8px;
+  border: 1px solid var(--v15-panel-border-soft);
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--v15-text);
+  padding: 4px 7px;
+  font-size: 10px;
+}
+
+.SpaghettiNodePresetControls {
+  --sp-preset-control-bg: rgba(34, 38, 48, 0.96);
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  min-width: 0;
+  width: auto;
+  max-width: 100%;
+}
+
+.SpaghettiNodeToolbarToggle {
+  width: 24px;
+  min-width: 24px;
+  height: var(--sp-field-h);
+  border-radius: 8px;
+  border: 1px solid var(--v15-panel-border-soft);
+  background: var(--sp-preset-control-bg);
+  cursor: pointer;
+  padding: 0;
+  box-sizing: border-box;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.SpaghettiNodeToolbarToggle::before {
+  display: none;
+}
+
+.SpaghettiNodeToolbarEditor {
+  margin-bottom: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  padding: 5px 6px;
+  background: rgba(255, 255, 255, 0.03);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.SpaghettiNodeToolbarRow {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 6px;
+  font-size: 9px;
+  color: rgba(216, 226, 244, 0.92);
+}
+
+.SpaghettiNodeToolbarRow--toggle {
+  grid-template-columns: auto 1fr;
+  font-size: 9px;
+}
+
+.SpaghettiNodeToolbarSlider {
+  width: 100%;
+  appearance: none;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.22);
+  outline: none;
+}
+
+.SpaghettiNodeToolbarSlider::-webkit-slider-thumb {
+  appearance: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.35);
+  background: #dbe4ff;
+}
+
+.SpaghettiNodeToolbarValue {
+  min-width: 20px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.SpaghettiNodePresetControls > select {
+  width: max-content;
+  min-width: 0;
+  flex: 0 0 auto;
+  white-space: nowrap;
+  height: var(--sp-field-h);
+  appearance: none;
+  -webkit-appearance: none;
+  border: 1px solid var(--v15-panel-border-soft);
+  background: var(--sp-preset-control-bg);
+  border-radius: 8px;
+  padding: 0 7px;
+  box-sizing: border-box;
+  color: var(--v15-text);
+  box-shadow: none;
+}
+
+.V15Panel button.SpaghettiNodeToolbarToggle,
+.V15Panel button.SpaghettiNodeToolbarToggle:hover {
+  padding: 0;
+  border: 1px solid var(--v15-panel-border-soft);
+  border-radius: 8px;
+  background: var(--sp-preset-control-bg);
+  color: var(--v15-text);
+}
+
+.V15Panel button.SpaghettiNodeToolbarToggle:hover {
+  border-color: rgba(132, 164, 232, 0.56);
+  background: rgba(50, 58, 78, 0.98);
+}
+
+.V15Panel button.SpaghettiNodeToolbarToggle:active {
+  border-color: rgba(98, 142, 234, 0.82);
+  background: rgba(40, 78, 148, 0.72);
+}
+
+.SpaghettiNodeValueRow {
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 10px;
+  color: rgba(214, 222, 238, 0.9);
+}
+
+.SpaghettiNodeValueRow input {
+  width: 86px;
+  border-radius: 8px;
+  border: 1px solid var(--v15-panel-border-soft);
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--v15-text);
+  padding: 4px 7px;
+  font-size: 10px;
+}
+
+.SpaghettiNodePortColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.SpaghettiNodePortColumn--in {
+  align-self: flex-start;
+}
+
+.SpaghettiNodePortColumn--out {
+  align-self: flex-end;
+}
+
+.SpaghettiNodePortColumn--out .SpaghettiPort {
+  text-align: right;
+}
+
+.SpaghettiPort {
+  --sp-port-main-pad-x: 10px;
+  --sp-port-main-pad-y: 4px;
+  position: relative;
+  font-size: 10px;
+  line-height: 1.3;
+}
+
+.SpaghettiPortMain {
+  --sp-port-color: #c9d3ea;
+  position: relative;
+  z-index: 1;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  padding: var(--sp-port-main-pad-y) var(--sp-port-main-pad-x);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.SpaghettiPort--child .SpaghettiPortMain {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.28);
+}
+
+.SpaghettiPortMain::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  width: 2px;
+  border-radius: 999px;
+  background: var(--sp-port-color);
+  opacity: 0.9;
+}
+
+.SpaghettiPort--out .SpaghettiPortMain {
+  cursor: pointer;
+  padding-right: 18px;
+}
+
+.SpaghettiPort--in .SpaghettiPortMain {
+  cursor: pointer;
+  padding-left: 18px;
+}
+
+.SpaghettiPort--in .SpaghettiPortMain::after {
+  left: 2px;
+}
+
+.SpaghettiPort--out .SpaghettiPortMain::after {
+  right: 2px;
+}
+
+.SpaghettiPortAnchor {
+  position: absolute;
+  top: 50%;
+  width: var(--sp-port-dot-size, 8px);
+  height: var(--sp-port-dot-size, 8px);
+  border-radius: 999px;
+  transform: translateY(-50%);
+  z-index: 2;
+  background: var(--sp-port-color);
+}
+
+.SpaghettiPortAnchor--in {
+  left: calc(-1px - (var(--sp-port-dot-size, 8px) / 2));
+  box-shadow: 0 0 0 1px rgba(16, 20, 30, 0.5);
+}
+
+.SpaghettiPortAnchor--out {
+  right: calc(-1px - (var(--sp-port-dot-size, 8px) / 2));
+  box-shadow: 0 0 0 1px rgba(18, 14, 14, 0.55);
+}
+
+.SpaghettiPortAnchor--disabled {
+  opacity: 0.55;
+  filter: saturate(0.2);
+  pointer-events: none;
+}
+
+.SpaghettiPort--compatible .SpaghettiPortMain {
+  border-color: rgba(127, 224, 169, 0.88);
+  background: rgba(127, 224, 169, 0.18);
+}
+
+.SpaghettiPort--incompatible .SpaghettiPortMain {
+  border-color: rgba(255, 114, 114, 0.85);
+  background: rgba(255, 114, 114, 0.15);
+}
+
+.SpaghettiPortName {
+  display: block;
+  color: rgba(241, 243, 248, 0.95);
+}
+
+.SpaghettiPortType {
+  display: block;
+  color: var(--sp-port-color);
+  opacity: 0.86;
+}
+
+.SpaghettiPortLabelType {
+  display: block;
+  color: rgba(241, 243, 248, 0.95);
+}
+
+.SpaghettiPort--kind-number { --sp-port-color: #ffffff; }
+
+.SpaghettiPort--kind-boolean { --sp-port-color: #f6d365; }
+
+.SpaghettiPort--kind-vec2 { --sp-port-color: #38bdf8; }
+
+.SpaghettiPort--kind-vec3 { --sp-port-color: #22d3ee; }
+
+.SpaghettiPort--kind-plane { --sp-port-color: #f59e0b; }
+
+.SpaghettiPort--kind-spline2 { --sp-port-color: #ff4e4e; }
+
+.SpaghettiPort--kind-spline3 { --sp-port-color: #fb7185; }
+
+.SpaghettiPort--kind-profileLoop { --sp-port-color: #34d399; }
+
+.SpaghettiPort--kind-sketchProfiles { --sp-port-color: #10b981; }
+
+.SpaghettiPort--kind-sketchProfile { --sp-port-color: #6ee7b7; }
+
+.SpaghettiPort--kind-solidBody { --sp-port-color: #cbd5e1; }
+
+.SpaghettiPort--kind-stations { --sp-port-color: #a78bfa; }
+
+.SpaghettiPort--kind-railMath { --sp-port-color: #9ca3af; }
+
+.SpaghettiPort--kind-toeLoft { --sp-port-color: #cbd5e1; }
+
+.SpaghettiPortHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.SpaghettiPortHeaderLeft {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.SpaghettiPortHeaderLeft.isRowToggle {
+  cursor: pointer;
+}
+
+.SpaghettiPortHeaderRight {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.SpaghettiPortChevron {
+  min-width: 16px;
+  min-height: 16px;
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(240, 244, 255, 0.94);
+  font-size: 10px;
+  line-height: 1;
+  padding: 0;
+}
+
+.SpaghettiPortChevron:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.V15Panel button.SpaghettiPortChevron--leading,
+.V15Panel button.SpaghettiPortChevron--leading:hover,
+.V15Panel button.SpaghettiPortChevron--leading:focus-visible,
+.V15Panel button.SpaghettiPortChevron--leading:active {
+  min-width: auto;
+  width: auto;
+  min-height: auto;
+  height: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--sp-port-color);
+  font-size: 9px;
+  flex: 0 0 auto;
+}
+
+.SpaghettiPortChevron--details {
+  opacity: 0.85;
+}
+
+.SpaghettiCompositeGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.SpaghettiCompositeChildren {
+  margin-left: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.SpaghettiCompositeWarningBadge {
+  margin: 0 0 0 18px;
+  display: inline-flex;
+  width: fit-content;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 183, 102, 0.62);
+  background: rgba(145, 95, 20, 0.28);
+  color: rgba(255, 223, 176, 0.96);
+  font-size: 9px;
+  line-height: 1.2;
+  padding: 2px 7px;
+  letter-spacing: 0.02em;
+}
+
+.SpaghettiValueBar {
+  margin-top: 4px;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 18px 1fr 18px;
+  align-items: center;
+  gap: 4px;
+}
+
+.SpaghettiValueBar--half {
+  margin-top: 0;
+  min-width: 0;
+  grid-template-columns: 16px minmax(0, 1fr) 16px;
+}
+
+.SpaghettiValueBar--disabled {
+  opacity: 0.82;
+}
+
+.SpaghettiPort .SpaghettiValueBarArrow {
+  min-height: 22px;
+  width: 18px;
+  border-radius: 6px;
+  padding: 0;
+  font-size: 10px;
+  line-height: 1;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.SpaghettiPort .SpaghettiValueBarArrow:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.SpaghettiPort .SpaghettiValueBarArrow:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.SpaghettiValueBarTrack {
+  min-height: 24px;
+  border-radius: 6px;
+  border: 1px solid var(--v15-panel-border-soft);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 7px;
+  min-width: 0;
+  user-select: text;
+  cursor: ew-resize;
+}
+
+.SpaghettiValueBarTrack--disabled {
+  cursor: default;
+  filter: saturate(0.65);
+}
+
+.SpaghettiValueBarTrack:focus-within {
+  border-color: rgba(124, 160, 255, 0.65);
+}
+
+.SpaghettiValueBarLabel {
+  font-size: 10px;
+  color: rgba(242, 245, 252, 0.95);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.SpaghettiValueBarMeta {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.SpaghettiValueBarDrivenBadge {
+  border-radius: 999px;
+  border: 1px solid rgba(132, 170, 255, 0.6);
+  background: rgba(74, 124, 212, 0.36);
+  color: rgba(229, 238, 255, 0.96);
+  font-size: 8px;
+  line-height: 1;
+  padding: 2px 5px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.SpaghettiValueBarInput {
+  width: 70px;
+  min-width: 0;
+  box-sizing: border-box;
+  text-align: right;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--v15-text);
+  font-size: 10px;
+  padding: 0;
+  cursor: ew-resize;
+}
+
+.SpaghettiValueBarInput:focus {
+  cursor: text;
+}
+
+.SpaghettiValueBarInput:disabled {
+  cursor: not-allowed;
+  color: rgba(224, 232, 247, 0.72);
+}
+
+.SpaghettiValueBar--half .SpaghettiValueBarInput {
+  width: 44px;
+}
+
+.SpaghettiPortValueInput {
+  margin-top: 4px;
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 6px;
+  border: 1px solid var(--v15-panel-border-soft);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--v15-text);
+  padding: 3px 6px;
+  font-size: 10px;
+  cursor: ew-resize;
+}
+
+.SpaghettiPortValueInput:focus {
+  cursor: text;
+}
+
+.SpaghettiPortValueInput--half {
+  width: calc(50% - 4px);
+  margin-top: 0;
+}
+
+.SpaghettiPortVec2Inputs {
+  margin-top: 4px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
+  width: 100%;
+}
+
+.SpaghettiPortInlineValueBars {
+  margin-top: 4px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 6px;
+  width: 100%;
+}
+
+.SpaghettiPortInlineValueBar {
+  min-width: 0;
+}
+
+.SpaghettiPortInlineValueBar .SpaghettiValueBar {
+  margin-top: 0;
+}
+
+.SpRow {
+  min-height: var(--sp-row-h);
+}
+
+.SpRow--driver {
+  border-radius: var(--sp-radius);
+}
+
+.SpRow--input,
+.SpRow--output {
+  width: 100%;
+}
+
+.SpaghettiPort {
+  padding: 4px var(--sp-pad-x);
+}
+
+.SpaghettiPort--in {
+  padding-left: var(--sp-pin-gutter);
+}
+
+.SpaghettiPort--out {
+  padding-right: var(--sp-pin-gutter);
+}
+
+.SpaghettiPortHeader {
+  min-height: var(--sp-field-h);
+}
+
+.SpaghettiPortHeaderRight--out {
+  margin-left: auto;
+  justify-content: flex-end;
+}
+
+.SpaghettiPort--out .SpaghettiPortHeader {
+  justify-content: flex-end;
+  text-align: right;
+}
+
+.SpaghettiPort--out .SpaghettiPortName {
+  margin-right: auto;
+  max-width: 52%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.SpaghettiPortType {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 4px;
+  padding: 0 6px;
+  min-height: 18px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.SpaghettiPort--in .SpaghettiPortType {
+  border: none;
+  background: transparent;
+  border-radius: 0;
+  min-height: 0;
+  padding: 0;
+}
+
+.SpNumberField {
+  --sp-param-color: #4a7cd4;
+  --sp-number-fill-percent: 0%;
+  --sp-number-fill-ratio: 0;
+  --sp-cap-left-w: 10px;
+  --sp-cap-right-w: 12px;
+  margin-top: 4px;
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: var(--sp-field-h);
+  border-radius: var(--sp-field-radius);
+  border: 1px solid var(--v15-panel-border-soft);
+  background-color: rgba(19, 22, 30, 0.96);
+  background-image:
+    linear-gradient(
+      90deg,
+      transparent 0,
+      transparent var(--sp-cap-left-w),
+      color-mix(in srgb, var(--sp-param-color) 58%, transparent) var(--sp-cap-left-w),
+      color-mix(in srgb, var(--sp-param-color) 58%, transparent)
+        calc(
+          var(--sp-cap-left-w) +
+            (100% - var(--sp-cap-left-w) - var(--sp-cap-right-w)) * var(--sp-number-fill-ratio)
+        ),
+      transparent
+        calc(
+          var(--sp-cap-left-w) +
+            (100% - var(--sp-cap-left-w) - var(--sp-cap-right-w)) * var(--sp-number-fill-ratio)
+        ),
+      transparent 100%
+    ),
+    linear-gradient(
+      90deg,
+      transparent calc(var(--sp-cap-left-w) - 1px),
+      rgba(255, 255, 255, 0.1) calc(var(--sp-cap-left-w) - 1px),
+      rgba(255, 255, 255, 0.1) var(--sp-cap-left-w),
+      transparent var(--sp-cap-left-w)
+    ),
+    linear-gradient(
+      90deg,
+      transparent calc(100% - var(--sp-cap-right-w) - 1px),
+      rgba(255, 255, 255, 0.1) calc(100% - var(--sp-cap-right-w) - 1px),
+      rgba(255, 255, 255, 0.1) calc(100% - var(--sp-cap-right-w)),
+      transparent calc(100% - var(--sp-cap-right-w))
+    );
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px;
+  position: relative;
+  cursor: ew-resize;
+  user-select: text;
+  overflow: visible;
+}
+
+.SpNumberField::after {
+  content: '';
+  position: absolute;
+  right: -5px;
+  top: 2px;
+  bottom: 2px;
+  width: 2px;
+  border-radius: 999px;
+  background: var(--sp-param-color);
+  opacity: 0.95;
+}
+
+.SpNumberField::before {
+  content: '';
+  position: absolute;
+  right: -3px;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  transform: translateY(-50%);
+  background: var(--sp-param-color);
+  box-shadow: 0 0 0 1px rgba(18, 14, 14, 0.55);
+}
+
+.SpNumberField:hover {
+  border-color: rgba(124, 160, 255, 0.55);
+}
+
+.SpNumberField--compact {
+  margin-top: 0;
+  min-height: 22px;
+  gap: 6px;
+  padding: 0 6px;
+}
+
+.SpNumberField--blue {
+  --sp-param-color: #4a7cd4;
+}
+
+.SpNumberField--white {
+  --sp-param-color: #d4dbe7;
+}
+
+.SpNumberField.isScrubbing {
+  border-color: color-mix(in srgb, var(--sp-param-color) 72%, white 28%);
+}
+
+.SpNumberFieldLabel {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: var(--sp-font-sm);
+  color: rgba(242, 245, 252, 0.95);
+}
+
+.SpNumberFieldValueWrap {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
+  margin-left: auto;
+}
+
+.SpNumberFieldDrivenBadge {
+  border-radius: 999px;
+  border: 1px solid rgba(132, 170, 255, 0.6);
+  background: rgba(74, 124, 212, 0.36);
+  color: rgba(229, 238, 255, 0.96);
+  font-size: 8px;
+  line-height: 1;
+  padding: 2px 5px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.SpNumberFieldInput {
+  min-height: 0;
+  width: 62px;
+  min-width: 0;
+  box-sizing: border-box;
+  border: none;
+  background: transparent;
+  color: var(--v15-text);
+  padding: 0;
+  text-align: right;
+  font-size: var(--sp-font-sm);
+  cursor: text;
+}
+
+.SpNumberFieldInput::-webkit-outer-spin-button,
+.SpNumberFieldInput::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.SpNumberFieldInput[type='number'] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.SpNumberFieldInput:focus {
+  outline: none;
+}
+
+.SpNumberField.isDisabled {
+  opacity: 0.72;
+  cursor: not-allowed;
+}
+
+.SpNumberField.isDisabled .SpNumberFieldInput {
+  cursor: not-allowed;
+}
+
+.SpVec2Field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
+  width: 100%;
+}
+
+.SpVec2FieldAxis {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 5px;
+}
+
+.SpVec2FieldAxisLabel {
+  font-size: var(--sp-font-xs);
+  color: rgba(214, 222, 238, 0.78);
+  line-height: 1;
+}
+
+.SpaghettiDriverControlLabel {
+  font-size: var(--sp-font-sm);
+  color: rgba(214, 222, 238, 0.9);
+  min-width: 0;
+}
+
+.SpaghettiPort--input-disabled {
+  border-color: rgba(184, 198, 228, 0.36);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.SpaghettiPortAnchor--disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+}
+
+.SpaghettiPortDrivenMessage {
+  margin-top: 4px;
+  font-size: 9px;
+  color: rgba(188, 211, 255, 0.94);
+  letter-spacing: 0.02em;
+}
+
+.SpaghettiContextMenu {
+  position: absolute;
+  z-index: 30;
+  min-width: 138px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(13, 17, 26, 0.98);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.48);
+}
+
+.SpaghettiContextMenuItem {
+  width: 100%;
+  text-align: left;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(235, 242, 255, 0.96);
+  font-size: 10px;
+  padding: 5px 8px;
+}
+
+.SpaghettiContextMenuItem:hover {
+  background: rgba(96, 142, 255, 0.28);
+  border-color: rgba(128, 170, 255, 0.65);
+}
+
+.SpaghettiContextMenuItem:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.SpaghettiPortRangeInput {
+  margin-top: 4px;
+  width: 100%;
+  appearance: none;
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.24);
+  outline: none;
+}
+
+.SpaghettiPortRangeInput::-webkit-slider-thumb {
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.35);
+  background: #dbe4ff;
+}
+
+.SpaghettiPortDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.SpaghettiPortDetailsSection {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.SpaghettiPortDetailsTitle {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: rgba(220, 229, 246, 0.76);
+}
+
+.SpaghettiPortDetailsBox {
+  margin: -1px 0 0 0;
+  padding: 10px 0 8px 0;
+  border-left: 1px solid rgba(255, 255, 255, 0.12);
+  border-right: 1px solid rgba(255, 255, 255, 0.12);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0 0 8px 8px;
+  background: transparent;
+}
+
+.SpaghettiPortDetailsBox--custom {
+  padding: 12px 8px 8px 8px;
+}
+
+.SpaghettiGeometryNodeStackSection--inputs .SpaghettiPort--in .SpaghettiPortMain::after {
+  display: none;
+}
+
+.SpaghettiGeometryNodeStackSection--inputs .SpaghettiPort--in .SpaghettiPortDetailsBox {
+  margin-top: -6px;
+  padding: 12px 8px 8px 8px;
+  border-color: var(--sp-port-color);
+}
+
+.SpaghettiGeometryNodeStackSection--inputs .SpaghettiPortDetail--in {
+  padding-left: 14px;
+}
+
+.SpaghettiGeometryNodeStackSection--inputs .SpaghettiPortDetail--in::before {
+  left: 2px;
+}
+
+.SpaghettiGeometryNodeStackSection--outputs .SpaghettiPort--out .SpaghettiPortMain::after {
+  display: none;
+}
+
+.SpaghettiGeometryNodeStackSection--outputs .SpaghettiPort--out .SpaghettiPortDetailsBox {
+  margin-top: -6px;
+  padding: 12px 8px 8px 8px;
+  border-color: var(--sp-port-color);
+}
+
+.SpaghettiSketchPlaneControlStack {
+  display: grid;
+  gap: 8px;
+}
+
+.SpaghettiSketchPlaneControlSection {
+  display: grid;
+  gap: 6px;
+}
+
+.SpaghettiSketchPlaneControlHeader {
+  display: grid;
+  gap: 2px;
+}
+
+.SpaghettiSketchPlaneControlTitle {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: rgba(220, 229, 246, 0.78);
+}
+
+.SpaghettiSketchPlaneControlHint {
+  font-size: 10px;
+  line-height: 1.35;
+  color: rgba(209, 218, 232, 0.72);
+}
+
+.SpaghettiSketchPlaneControlRows {
+  display: grid;
+  gap: 6px;
+}
+
+.SpaghettiSketchPlaneControlActionRow {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.V15Panel button.SpaghettiSketchPlaneMiniAction,
+.V15Panel button.SpaghettiSketchPlaneMiniAction:hover,
+.V15Panel button.SpaghettiSketchPlaneMiniAction:focus-visible,
+.V15Panel button.SpaghettiSketchPlaneMiniAction:active {
+  min-width: 0;
+  height: 18px;
+  padding: 0 7px;
+  border-radius: 999px;
+  border: 1px solid rgba(245, 158, 11, 0.28);
+  background: rgba(245, 158, 11, 0.1);
+  color: rgba(255, 239, 207, 0.94);
+  font-size: 9px;
+  letter-spacing: 0.03em;
+}
+
+.V15Panel button.SpaghettiSketchPlaneMiniAction.isActive,
+.V15Panel button.SpaghettiSketchPlaneMiniAction.isActive:hover,
+.V15Panel button.SpaghettiSketchPlaneMiniAction.isActive:focus-visible,
+.V15Panel button.SpaghettiSketchPlaneMiniAction.isActive:active {
+  border-color: rgba(245, 158, 11, 0.56);
+  background: rgba(245, 158, 11, 0.18);
+}
+
+.SpaghettiGeometryNodeStackSection--outputs .SpaghettiPortDetail--out {
+  padding-right: 14px;
+}
+
+.SpaghettiGeometryNodeStackSection--outputs .SpaghettiPortDetail--out::after {
+  right: 2px;
+}
+
+.SpaghettiPortDetail {
+  position: relative;
+  font-size: 10px;
+  color: rgba(214, 223, 240, 0.82);
+}
+
+.SpaghettiPortDetail--in {
+  padding-left: 10px;
+}
+
+.SpaghettiPortDetail--out {
+  padding-right: 10px;
+}
+
+.SpaghettiPortDetail--in::before,
+.SpaghettiPortDetail--out::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  transform: translateY(-50%);
+}
+
+.SpaghettiPortDetail--in::before {
+  left: 0;
+  background: rgba(238, 242, 251, 0.9);
+}
+
+.SpaghettiPortDetail--out::after {
+  right: 0;
+  background: rgba(255, 78, 78, 0.9);
+}
+
+.SpaghettiPortDetail--number::before,
+.SpaghettiPortDetail--number::after { background: #ffffff; }
+
+.SpaghettiPortDetail--boolean::before,
+.SpaghettiPortDetail--boolean::after { background: #f6d365; }
+
+.SpaghettiPortDetail--vec2::before,
+.SpaghettiPortDetail--vec2::after { background: #38bdf8; }
+
+.SpaghettiPortDetail--vec3::before,
+.SpaghettiPortDetail--vec3::after { background: #22d3ee; }
+
+.SpaghettiPortDetail--plane::before,
+.SpaghettiPortDetail--plane::after { background: #f59e0b; }
+
+.SpaghettiPortDetail--spline2::before,
+.SpaghettiPortDetail--spline2::after { background: #ff4e4e; }
+
+.SpaghettiPortDetail--spline3::before,
+.SpaghettiPortDetail--spline3::after { background: #fb7185; }
+
+.SpaghettiPortDetail--profileLoop::before,
+.SpaghettiPortDetail--profileLoop::after { background: #34d399; }
+
+.SpaghettiPortDetail--sketchProfiles::before,
+.SpaghettiPortDetail--sketchProfiles::after { background: #10b981; }
+
+.SpaghettiPortDetail--sketchProfile::before,
+.SpaghettiPortDetail--sketchProfile::after { background: #6ee7b7; }
+
+.SpaghettiPortDetail--solidBody::before,
+.SpaghettiPortDetail--solidBody::after { background: #cbd5e1; }
+
+.SpaghettiPortDetail--stations::before,
+.SpaghettiPortDetail--stations::after { background: #a78bfa; }
+
+.SpaghettiNodeParams {
+  margin: 8px 0 0 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.09);
+  padding-top: 6px;
+  max-height: 80px;
+  overflow: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 10px;
+  color: rgba(219, 224, 235, 0.78);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.SpaghettiNodeSections {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 140px;
+  overflow-y: auto;
+}
+
+.SpaghettiNodeSection {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 5px 6px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.SpaghettiNodeSectionLabel {
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(213, 221, 241, 0.9);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 4px;
+}
+
+.SpaghettiNodeSectionItems {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.SpaghettiNodeSectionItem {
+  position: relative;
+  font-size: 10px;
+  color: rgba(217, 224, 236, 0.78);
+  border-left: 2px solid rgba(126, 155, 230, 0.45);
+  padding-left: 12px;
+}
+
+.SpaghettiNodeSectionItem::before {
+  content: '';
+  position: absolute;
+  left: -6px;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: #e7ebf6;
+  transform: translateY(-50%);
+  box-shadow: 0 0 0 1px rgba(16, 20, 30, 0.45);
+}
+
+.SpaghettiFeatureStack {
+  margin-top: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.SpaghettiFeatureStackHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.SpaghettiFeatureStackTitle {
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(213, 221, 241, 0.9);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.SpaghettiFeatureStackActions {
+  display: flex;
+  gap: 4px;
+}
+
+.SpaghettiFeatureStackActions button {
+  min-height: 20px;
+  padding: 0 7px;
+  font-size: 10px;
+}
+
+.SpaghettiNodeTemplate {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.SpaghettiTemplateSection {
+  margin: 0;
+}
+
+.SpaghettiTemplateSection .SpaghettiNodePortColumn--in {
+  width: calc(50% - 2px);
+  max-width: calc(50% - 2px);
+  margin-right: auto;
+}
+
+.SpaghettiTemplateSection .SpaghettiPort--in {
+  width: 100%;
+  min-height: var(--sp-output-row-min-height, 40px);
+  border-radius: var(--sp-field-radius);
+  box-sizing: border-box;
+  overflow: visible;
+  padding: 4px var(--sp-pad-x) 4px var(--sp-pin-gutter);
+  background: color-mix(in srgb, var(--sp-port-color) 18%, rgba(11, 15, 24, 0.9));
+  border-color: color-mix(in srgb, var(--sp-port-color) 42%, rgba(96, 122, 172, 0.34));
+}
+
+.SpaghettiTemplateSection .SpaghettiPort--in .SpaghettiPortHeader {
+  position: relative;
+  min-height: 16px;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  row-gap: 4px;
+}
+
+.SpaghettiTemplateSection .SpaghettiPort--in .SpaghettiPortName,
+.SpaghettiTemplateSection .SpaghettiPort--in .SpaghettiPortType {
+  display: inline-flex;
+  align-items: center;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  border: none;
+  background: transparent;
+  border-radius: 0;
+  min-height: 0;
+  padding: 0;
+  opacity: 0.96;
+}
+
+.SpaghettiTemplateSection .SpaghettiPort--in .SpaghettiPortName {
+  position: static;
+  grid-row: 1;
+  margin: 0;
+  max-width: 100%;
+  align-self: start;
+  justify-self: end;
+  color: var(--sp-port-color);
+}
+
+.SpaghettiTemplateSection .SpaghettiPort--in .SpaghettiPortType {
+  position: static;
+  grid-row: 3;
+  align-self: end;
+  justify-self: start;
+  margin-top: 0;
+  margin-bottom: 0;
+  color: var(--sp-port-color);
+}
+
+.SpaghettiTemplateSection .SpaghettiPort--in .SpaghettiPortHeaderRight {
+  position: static;
+  grid-row: 3;
+  align-self: end;
+  justify-self: start;
+  margin: 0;
+}
+
+.SpaghettiTemplateSection .SpaghettiPort--in .SpaghettiPortChevron {
+  display: none;
+}
+
+.SpaghettiTemplateSection .SpaghettiPortAnchor--in {
+  left: calc(-4px - (var(--sp-port-dot-size, 8px) / 2));
+}
+
+.SpaghettiTemplateSection--outputs {
+  order: 3;
+}
+
+.SpaghettiTemplateSection--outputs .SpaghettiNodePortColumn--out {
+  width: calc(50% - 2px);
+  max-width: calc(50% - 2px);
+  margin-left: auto;
+}
+
+.SpaghettiTemplateSection--outputs .SpaghettiPort--out {
+  width: 100%;
+  margin-left: auto;
+  margin-right: 0;
+  min-height: var(--sp-output-row-min-height, 40px);
+  border-radius: var(--sp-field-radius);
+  box-sizing: border-box;
+  overflow: visible;
+  padding: 4px var(--sp-pin-gutter) 4px var(--sp-pad-x);
+  background: color-mix(in srgb, var(--sp-port-color) 18%, rgba(11, 15, 24, 0.9));
+  border-color: color-mix(in srgb, var(--sp-port-color) 42%, rgba(96, 122, 172, 0.34));
+}
+
+.SpaghettiTemplateSection--outputs .SpaghettiPortAnchor--out {
+  right: -8px;
+}
+
+.SpaghettiTemplateSection--outputs .SpaghettiPort--out .SpaghettiPortHeader {
+  position: relative;
+  min-height: 16px;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  row-gap: 4px;
+}
+
+.SpaghettiTemplateSection--outputs .SpaghettiPort--out .SpaghettiPortName,
+.SpaghettiTemplateSection--outputs .SpaghettiPort--out .SpaghettiPortType {
+  display: inline-flex;
+  align-items: center;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  border: none;
+  background: transparent;
+  border-radius: 0;
+  min-height: 0;
+  padding: 0;
+  opacity: 0.96;
+}
+
+.SpaghettiTemplateSection--outputs .SpaghettiPort--out .SpaghettiPortName {
+  position: static;
+  grid-row: 1;
+  margin: 0;
+  max-width: 100%;
+  align-self: start;
+  justify-self: start;
+  color: rgba(226, 234, 248, 0.95);
+}
+
+.SpaghettiTemplateSection--outputs .SpaghettiPort--out .SpaghettiPortType {
+  position: static;
+  grid-row: 3;
+  align-self: end;
+  justify-self: end;
+  margin-top: 0;
+  margin-bottom: 0;
+  color: var(--sp-port-color);
+}
+
+.SpaghettiTemplateSection--outputs .SpaghettiPort--out .SpaghettiPortHeaderRight {
+  position: static;
+  grid-row: 3;
+  align-self: end;
+  right: 0;
+  bottom: auto;
+  margin: 0;
+}
+
+.SpaghettiTemplateAuxSection {
+  border-style: dashed;
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.SpaghettiDriverControlRow {
+  margin-bottom: 0;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 6px;
+  padding: 2px 4px;
+  background: rgba(255, 255, 255, 0.03);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--sp-gap-x);
+  position: relative;
+  z-index: 2;
+}
+
+.SpaghettiDriverControlRow.isDisabled {
+  opacity: 0.72;
+}
+
+.SpaghettiNodeTemplate .SpaghettiDriverControlRow {
+  --sp-port-color: #ffffff;
+  position: relative;
+  padding-left: 18px;
+}
+
+.SpaghettiNodeTemplate .SpaghettiDriverControlRow::after {
+  content: none !important;
+  display: none !important;
+}
+
+.SpaghettiNodeTemplate .SpaghettiDriverControlRow.SpaghettiDriverControlRow--number {
+  position: relative;
+  border: none;
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
+  display: block;
+  width: 100%;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.SpaghettiNodeTemplate .SpaghettiDriverControlRow.SpaghettiDriverControlRow--number::after,
+.SpaghettiNodeTemplate .SpaghettiDriverControlRow.SpaghettiDriverControlRow--number::before {
+  display: none;
+}
+
+.SpaghettiNode--showInternalWiring
+  .SpaghettiNodeTemplate
+  .SpaghettiDriverControlRow.SpaghettiDriverControlRow--number::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  transform: translateY(-50%);
+  background: color-mix(in srgb, var(--sp-param-color, #4a7cd4) 68%, transparent);
+  opacity: 0.9;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.SpaghettiNodeTemplate
+  .SpaghettiDriverControlRow.SpaghettiDriverControlRow--number
+  .SpaghettiDriverNumberField {
+  position: relative;
+  isolation: isolate;
+  z-index: 1;
+  width: calc(100% - 1px);
+  margin-top: 0;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.SpaghettiNodeTemplate
+  .SpaghettiDriverControlRow.SpaghettiDriverControlRow--number
+  .SpaghettiDriverNumberField::before {
+  display: none;
+}
+
+.SpaghettiDriverControlRow--number {
+  border: none;
+  background: transparent;
+  padding: 0;
+  display: block;
+}
+
+.SpaghettiDriverNumberField {
+  margin-top: 0;
+}
+
+.SpaghettiDriverGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.SpaghettiDriverGroupLabel {
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(229, 236, 250, 0.88);
+}
+
+.SpaghettiDriverControlRow--vec2 {
+  align-items: flex-start;
+}
+
+.SpaghettiDriverVec2Inputs {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.SpaghettiDriverVec2Axis {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.SpaghettiDriverVec2AxisLabel {
+  font-size: 9px;
+  color: rgba(214, 222, 238, 0.78);
+}
+
+.SpaghettiReservedOutputRow {
+  cursor: default;
+  background: rgba(255, 255, 255, 0.03);
+  border-style: dashed;
+  border-color: rgba(255, 255, 255, 0.28);
+}
+
+.SpaghettiPort--disabled {
+  opacity: 0.82;
+}
+
+.SpaghettiFeatureItem {
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.02);
+  overflow: hidden;
+}
+
+.SpaghettiFeatureItem--disabled {
+  opacity: 0.82;
+}
+
+.SpaghettiFeatureItem--inactive {
+  border-color: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.012);
+}
+
+.SpaghettiFeatureRowShell {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: stretch;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.SpaghettiFeatureRow {
+  width: 100%;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+  border: none;
+  background: rgba(255, 255, 255, 0.03);
+  color: inherit;
+  padding: 5px 6px;
+  position: relative;
+  z-index: 2;
+}
+
+.SpaghettiFeatureRowActions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px 4px 0;
+}
+
+.SpaghettiFeatureRowActions button {
+  min-width: 0;
+}
+
+.SpaghettiFeatureType {
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(227, 236, 252, 0.94);
+}
+
+.SpaghettiFeatureSummary {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 10px;
+  color: rgba(209, 220, 240, 0.85);
+}
+
+.SpaghettiFeatureDiagBadge {
+  border-radius: 999px;
+  font-size: 9px;
+  line-height: 1;
+  min-width: 18px;
+  min-height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+  border: 1px solid transparent;
+}
+
+.SpaghettiFeatureDiagBadge.isWarning {
+  color: rgba(255, 229, 149, 0.96);
+  border-color: rgba(247, 199, 98, 0.7);
+  background: rgba(122, 85, 23, 0.35);
+}
+
+.SpaghettiFeatureDiagBadge.isError {
+  color: rgba(255, 208, 208, 0.96);
+  border-color: rgba(255, 126, 126, 0.72);
+  background: rgba(128, 40, 40, 0.38);
+}
+
+.SpaghettiFeatureBody {
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.SpaghettiFeatureSectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 10px;
+  color: rgba(207, 219, 242, 0.9);
+}
+
+.SpaghettiFeatureSectionHeader button {
+  min-height: 20px;
+  padding: 0 7px;
+  font-size: 10px;
+}
+
+.SpaghettiFeatureLineList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.SpaghettiFeatureLineRow {
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 6px;
+  padding: 5px;
+  background: rgba(255, 255, 255, 0.02);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.SpaghettiFeatureLineTitle {
+  font-size: 10px;
+  color: rgba(218, 226, 241, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.SpaghettiFeatureLineTitle span {
+  color: rgba(186, 201, 227, 0.78);
+}
+
+.SpaghettiFeatureEndpoint {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.SpaghettiFeatureEndpoint > span {
+  font-size: 9px;
+  color: rgba(190, 207, 235, 0.84);
+}
+
+.SpaghettiFeatureProfileList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.SpaghettiFeatureProfileItem {
+  border-left: 2px solid rgba(89, 187, 148, 0.72);
+  padding-left: 8px;
+  display: flex;
+  gap: 8px;
+  font-size: 10px;
+  color: rgba(205, 221, 242, 0.9);
+}
+
+.SpaghettiFeatureSelectRow {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.SpaghettiFeatureSelectRow > span {
+  font-size: 9px;
+  color: rgba(190, 207, 235, 0.84);
+}
+
+.SpaghettiFeatureSelectRow select {
+  border-radius: 6px;
+  border: 1px solid var(--v15-panel-border-soft);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--v15-text);
+  padding: 2px 6px;
+  font-size: 10px;
+}
+
+.SpaghettiFeatureDiagList {
+  padding: 0 6px 6px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.SpaghettiFeatureDiagMsg {
+  border-radius: 5px;
+  border: 1px solid transparent;
+  font-size: 10px;
+  padding: 4px 6px;
+}
+
+.SpaghettiFeatureDiagMsg.isWarning {
+  color: rgba(255, 229, 149, 0.94);
+  border-color: rgba(247, 199, 98, 0.64);
+  background: rgba(122, 85, 23, 0.3);
+}
+
+.SpaghettiFeatureDiagMsg.isError {
+  color: rgba(255, 208, 208, 0.96);
+  border-color: rgba(255, 126, 126, 0.68);
+  background: rgba(128, 40, 40, 0.34);
+}
+
+.SpaghettiFeatureHint {
+  font-size: 9px;
+  color: rgba(180, 209, 190, 0.9);
+  padding: 0 6px 6px 6px;
+}
+
+.SpaghettiFeatureEmpty {
+  font-size: 10px;
+  color: rgba(186, 203, 231, 0.82);
+}
+
+.fsPrev_profileGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+}
+
+.fsPrev_profileCard {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  padding: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+.fsPrev_profileCardSelected {
+  border-color: rgba(130, 182, 255, 0.9);
+  box-shadow: inset 0 0 0 1px rgba(130, 182, 255, 0.45);
+}
+
+.fsPrev_profileMeta {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fsPrev_profileLabel {
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(222, 234, 255, 0.96);
+}
+
+.fsPrev_profileId,
+.fsPrev_profileArea {
+  font-size: 10px;
+  color: rgba(200, 214, 240, 0.86);
+}
+
+.fsPrev_profileSvgWrap {
+  flex: 0 0 auto;
+}
+
+.fsPrev_svg {
+  display: block;
+}
+
+.fsPrev_svgBg {
+  fill: rgba(12, 17, 26, 0.72);
+  stroke: rgba(255, 255, 255, 0.16);
+  stroke-width: 1;
+}
+
+.fsPrev_svgLoop {
+  fill: none;
+  stroke: rgba(148, 219, 181, 0.96);
+  stroke-width: 1.25;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.fsPrev_extrudeSummary {
+  font-size: 10px;
+  color: rgba(204, 220, 246, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 4px 6px;
+}
+
+.fsPrev_diagBadges {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.fsPrev_diagPill {
+  border-radius: 999px;
+  font-size: 9px;
+  line-height: 1;
+  padding: 3px 6px;
+  border: 1px solid transparent;
+}
+
+.fsPrev_diagPillError {
+  color: rgba(255, 208, 208, 0.96);
+  border-color: rgba(255, 126, 126, 0.72);
+  background: rgba(128, 40, 40, 0.38);
+}
+
+.fsPrev_diagPillWarning {
+  color: rgba(255, 229, 149, 0.96);
+  border-color: rgba(247, 199, 98, 0.7);
+  background: rgba(122, 85, 23, 0.35);
+}
+
+.fsPrev_diagPillInfo {
+  color: rgba(182, 221, 255, 0.95);
+  border-color: rgba(121, 181, 238, 0.68);
+  background: rgba(39, 78, 123, 0.35);
+}
+
+.fsPrev_diagMsg.isInfo {
+  color: rgba(182, 221, 255, 0.95);
+  border-color: rgba(121, 181, 238, 0.68);
+  background: rgba(39, 78, 123, 0.32);
+}
+
+.SpaghettiNodeTemplate--withInternalDeps {
+  position: relative;
+}
+
+.SpaghettiInternalDependencyOverlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: visible;
+  z-index: 1;
+}
+
+.SpaghettiInternalDependencyWire {
+  fill: none;
+  stroke: rgba(184, 197, 224, 0.62);
+  stroke-width: 1.5px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.SpaghettiInternalDependencyWire--driver {
+  stroke: rgba(118, 193, 227, 0.72);
+}
+
+.SpaghettiInternalDependencyWire--feature {
+  stroke: rgba(160, 176, 226, 0.68);
+}
+
+.SpaghettiInternalDependencyWire--inactive {
+  stroke-dasharray: 4 4;
+  opacity: 0.74;
+}
+
+.SpaghettiInternalDependencyWire--disabled {
+  stroke: rgba(128, 138, 160, 0.52);
+  opacity: 0.58;
+}
+
+.SpaghettiNodeTemplate > .SpaghettiTemplateSection {
+  margin-left: -3px;
+  margin-right: -3px;
+}
+
+.SpaghettiSketchNodeTemplate {
+  display: grid;
+  gap: 8px;
+}
+
+.SpaghettiGeometryNodeShell {
+  display: grid;
+  gap: 8px;
+}
+
+.SpaghettiGeometryNodeHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid rgba(126, 167, 255, 0.16);
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(82, 108, 176, 0.14), rgba(35, 43, 72, 0.08)),
+    rgba(255, 255, 255, 0.02);
+}
+
+.SpaghettiGeometryNodeHeaderMain {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.SpaghettiGeometryNodeHeaderTitle {
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(243, 247, 255, 0.96);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.SpaghettiGeometryNodeHeaderBadge,
+.SpaghettiGeometryNodeHeaderChip,
+.SpaghettiGeometryNodeSummaryChip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 20px;
+  padding: 0 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(229, 236, 250, 0.9);
+  font-size: 10px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.SpaghettiGeometryNodeHeaderBadge {
+  border-color: rgba(126, 167, 255, 0.28);
+  background: rgba(96, 132, 224, 0.16);
+  color: rgba(234, 241, 255, 0.95);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.SpaghettiGeometryNodeHeaderChips,
+.SpaghettiGeometryNodeSummaryStrip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.SpaghettiGeometryNodeHeaderChips {
+  justify-content: flex-end;
+}
+
+.SpaghettiGeometryNodeHeaderChip--accent,
+.SpaghettiGeometryNodeSummaryChip--accent {
+  border-color: rgba(126, 167, 255, 0.28);
+  background: rgba(96, 132, 224, 0.16);
+}
+
+.SpaghettiGeometryNodeHeaderChip--success,
+.SpaghettiGeometryNodeSummaryChip--success {
+  border-color: rgba(112, 210, 176, 0.28);
+  background: rgba(40, 125, 98, 0.18);
+}
+
+.SpaghettiGeometryNodeHeaderChip--warn,
+.SpaghettiGeometryNodeSummaryChip--warn {
+  border-color: rgba(255, 196, 92, 0.28);
+  background: rgba(124, 83, 24, 0.18);
+}
+
+.SpaghettiGeometryNodeSummaryStrip {
+  padding: 0 2px;
+}
+
+.SpaghettiGeometryNodeMain {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.SpaghettiGeometryNodeRailLabel,
+.SpaghettiGeometryNodeDiagnosticsLabel {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: rgba(205, 216, 236, 0.72);
+}
+
+.SpaghettiGeometryNodeRailBody,
+.SpaghettiGeometryNodeContent,
+.SpaghettiGeometryNodeDiagnosticsFooter {
+  min-width: 0;
+}
+
+.SpaghettiGeometryNodeStackSection {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.SpaghettiGeometryNodeRailToggle {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  width: 100%;
+  min-height: 24px;
+  padding: 0;
+  border: 0;
+  background: none;
+  appearance: none;
+  box-shadow: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+.V15Panel button.SpaghettiGeometryNodeRailToggle,
+.V15Panel button.SpaghettiGeometryNodeRailToggle:hover,
+.V15Panel button.SpaghettiGeometryNodeRailToggle:focus-visible,
+.V15Panel button.SpaghettiGeometryNodeRailToggle:active {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.SpaghettiGeometryNodeRailToggle:hover .SpaghettiGeometryNodeRailLabel,
+.SpaghettiGeometryNodeRailToggle:hover .SpaghettiGeometryNodeRailChevron,
+.SpaghettiGeometryNodeRailToggle:focus-visible .SpaghettiGeometryNodeRailLabel,
+.SpaghettiGeometryNodeRailToggle:focus-visible .SpaghettiGeometryNodeRailChevron {
+  color: rgba(225, 233, 247, 0.9);
+}
+
+.SpaghettiGeometryNodeStackSection--content {
+  min-width: 0;
+}
+
+.SpaghettiGeometryNodeRailChevron {
+  font-size: 10px;
+  line-height: 1;
+  color: rgba(205, 216, 236, 0.72);
+  flex: 0 0 auto;
+}
+
+.SpaghettiGeometryNodeContent {
+  display: grid;
+  gap: 8px;
+}
+
+.SpaghettiGeometryNodeContent > .SpaghettiTemplateSection {
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.SpaghettiGeometryNodeStackSection .SpaghettiNodePortColumn {
+  gap: 8px;
+}
+
+.SpaghettiGeometryNodeStackSection .SpaghettiNodePortColumn--in,
+.SpaghettiGeometryNodeStackSection .SpaghettiNodePortColumn--out {
+  width: 100%;
+  max-width: 100%;
+}
+
+.SpaghettiGeometryNodeStackSection .SpaghettiPort--in,
+.SpaghettiGeometryNodeStackSection .SpaghettiPort--out {
+  width: 100%;
+  max-width: 100%;
+}
+
+.SpaghettiGeometryNodeStackSection .SpaghettiPort--in {
+  box-sizing: border-box;
+  padding-right: 14px;
+}
+
+.SpaghettiGeometryNodeStackSection--inputs .SpaghettiPort--in {
+  padding: 0 calc(var(--sp-pin-gutter) - 15px) 0 2px;
+  background: transparent;
+  border-radius: 0;
+}
+
+.SpaghettiGeometryNodeStackSection--inputs .SpaghettiPort--in .SpaghettiPortMain {
+  --sp-port-color: inherit;
+  --sp-port-main-pad-y: 2px;
+  border-color: var(--sp-port-color);
+}
+
+.SpaghettiGeometryNodeStackSection--inputs .SpaghettiPort--in .SpaghettiPortHeaderLeft {
+  margin-left: -10px;
+  gap: 3px;
+}
+
+.SpaghettiGeometryNodeStackSection--inputs .SpaghettiPort--in .SpaghettiPortType {
+  color: var(--sp-port-color);
+  opacity: 1;
+}
+
+.SpaghettiGeometryNodeStackSection--outputs .SpaghettiPort--out {
+  padding: 0 2px 0 calc(var(--sp-pin-gutter) - 15px);
+  background: transparent;
+  border-radius: 0;
+}
+
+.SpaghettiGeometryNodeStackSection--outputs .SpaghettiPort--out .SpaghettiPortMain {
+  --sp-port-color: inherit;
+  --sp-port-main-pad-y: 2px;
+  border-color: var(--sp-port-color);
+}
+
+.SpaghettiGeometryNodeStackSection--outputs .SpaghettiPort--out .SpaghettiPortType {
+  color: var(--sp-port-color);
+  opacity: 1;
+}
+
+.SpaghettiGeometryNodeStackSection .SpaghettiPort--in .SpaghettiPortHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-height: 18px;
+  height: auto;
+}
+
+.SpaghettiGeometryNodeStackSection--inputs .SpaghettiPort--in .SpaghettiPortHeader {
+  min-height: 14px;
+}
+
+.SpaghettiGeometryNodeStackSection--outputs .SpaghettiPort--out .SpaghettiPortHeader {
+  min-height: 14px;
+}
+
+.SpaghettiGeometryNodeStackSection .SpaghettiPort--in .SpaghettiPortName {
+  min-width: 0;
+  max-width: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  justify-self: auto;
+  align-self: center;
+}
+
+.SpaghettiGeometryNodeStackSection .SpaghettiPort--in .SpaghettiPortHeaderRight {
+  min-width: 0;
+  max-width: 40%;
+  margin-left: auto;
+  justify-self: auto;
+  align-self: center;
+  overflow: hidden;
+}
+
+.SpaghettiGeometryNodeStackSection .SpaghettiPort--in .SpaghettiPortType {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  justify-self: auto;
+  align-self: center;
+}
+
+.SpaghettiGeometryNodeStackSection .SpaghettiPort--out .SpaghettiPortName {
+  min-width: 0;
+  max-width: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  justify-self: auto;
+  align-self: center;
+}
+
+.SpaghettiGeometryNodeStackSection .SpaghettiPort--out .SpaghettiPortHeaderRight {
+  min-width: 0;
+  max-width: 40%;
+  margin-left: auto;
+  justify-self: auto;
+  align-self: center;
+  overflow: hidden;
+}
+
+.SpaghettiGeometryNodeStackSection .SpaghettiPort--out .SpaghettiPortType {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  justify-self: auto;
+  align-self: center;
+}
+
+.SpaghettiGeometryPortRow {
+  display: grid;
+  gap: 6px;
+}
+
+.SpaghettiGeometryPortRowHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 24px;
+  padding: 4px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.03);
+  cursor: pointer;
+  box-sizing: border-box;
+  user-select: none;
+}
+
+.SpaghettiGeometryPortRowHeader:hover,
+.SpaghettiGeometryPortRowHeader:focus-visible {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.SpaghettiGeometryPortRowLabel {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  color: rgba(239, 243, 252, 0.95);
+}
+
+.SpaghettiGeometryPortRowMeta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  margin-left: auto;
+}
+
+.SpaghettiGeometryPortRowType {
+  font-size: 10px;
+  color: rgba(205, 216, 236, 0.76);
+  white-space: nowrap;
+}
+
+.SpaghettiGeometryPortRowChevron {
+  font-size: 9px;
+  line-height: 1;
+  color: rgba(193, 204, 226, 0.95);
+}
+
+.SpaghettiGeometryPortRowBody {
+  display: grid;
+  gap: 4px;
+}
+
+.SpaghettiGeometryNodeDiagnosticsFooter {
+  display: grid;
+  gap: 6px;
+  padding-top: 2px;
+}
+
+.SpaghettiSketchPlaneRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 8px;
+}
+
+.SpaghettiSketchPlaneRowPort {
+  min-width: 0;
+}
+
+.SpaghettiSketchPlaneAction {
+  width: 24px;
+  height: 24px;
+  border: 1px solid rgba(245, 158, 11, 0.34);
+  border-radius: 999px;
+  background: rgba(245, 158, 11, 0.12);
+  color: rgba(255, 239, 207, 0.96);
+  cursor: pointer;
+}
+
+.SpaghettiSketchPlaneAction.isActive {
+  background: rgba(245, 158, 11, 0.22);
+  border-color: rgba(245, 158, 11, 0.56);
+}
+
+.SpaghettiSketchPlaceholder {
+  display: grid;
+  gap: 4px;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px dashed rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.SpaghettiSketchPlaceholderTitle {
+  font-size: 11px;
+  color: rgba(239, 243, 251, 0.92);
+}
+
+.SpaghettiSketchPlaceholderBody {
+  font-size: 11px;
+  line-height: 1.35;
+  color: rgba(209, 218, 232, 0.8);
+}
+
+.SpaghettiSketchSectionBody {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 6px 4px 2px;
+}
+
+.SpaghettiSketchActionRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.SpaghettiSketchActionMeta {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.SpaghettiSketchActionTitle {
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(241, 245, 255, 0.95);
+}
+
+.SpaghettiSketchActionHint {
+  font-size: 10px;
+  line-height: 1.35;
+  color: rgba(206, 216, 234, 0.8);
+}
+
+.SpaghettiSketchActionButton {
+  min-height: 26px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(132, 164, 232, 0.28);
+  background: rgba(86, 126, 204, 0.12);
+  color: rgba(244, 247, 255, 0.94);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.SpaghettiSketchActionButton.isActive {
+  border-color: rgba(132, 164, 232, 0.62);
+  background: rgba(86, 126, 204, 0.24);
+}
+
+.SpaghettiSketchEntityList,
+.SpaghettiSketchDiagnostics {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.SpaghettiSketchEntityRow,
+.SpaghettiSketchDiagnosticRow {
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 6px 8px;
+}
+
+.SpaghettiSketchEntityRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.SpaghettiSketchEntityMeta {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.SpaghettiSketchEntityTitle {
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(240, 244, 255, 0.95);
+}
+
+.SpaghettiSketchEntitySummary,
+.SpaghettiSketchDiagnosticRow {
+  font-size: 10px;
+  line-height: 1.35;
+  color: rgba(206, 216, 234, 0.82);
+}
+
+.SpaghettiSketchDiagnosticRow {
+  border-color: rgba(255, 196, 92, 0.24);
+  background: rgba(124, 83, 24, 0.16);
+  color: rgba(255, 228, 178, 0.9);
+}
+
+.SpaghettiSketchEntityActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.SpaghettiSketchEntityActions > button {
+  min-height: 22px;
+  padding: 0 7px;
+  font-size: 9px;
+}
+
+.SpaghettiNodeSection {
+  border-radius: 6px;
+  padding: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.01);
+}
+
+.SpaghettiNodeSectionLabel {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 9px;
+  letter-spacing: 0.03em;
+  color: rgba(227, 236, 252, 0.95);
+  text-transform: none;
+  border-bottom: 1px solid rgba(140, 158, 199, 0.2);
+}
+
+.SpaghettiNodeSectionHeaderHitArea {
+  width: 100%;
+  margin: 0;
+  min-height: 14px;
+  padding: 2px 4px;
+  border-radius: 5px;
+  cursor: pointer;
+  box-sizing: border-box;
+  user-select: none;
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  text-align: left;
+}
+
+.SpaghettiNodeSectionHeaderHitArea:hover,
+.SpaghettiNodeSectionHeaderHitArea:focus-visible {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.SpaghettiNodeSectionChevron {
+  font-size: 9px;
+  line-height: 1;
+  color: rgba(193, 204, 226, 0.95);
+  flex: 0 0 auto;
+  min-width: 10px;
+  text-align: right;
+}
+
+.SpaghettiNodeSectionRow {
+  margin: 0;
+  border-radius: 5px;
+}
+
+.SpaghettiNodeGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.SpaghettiNodeGroupBody {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.SpaghettiNodeSectionItems--collapsed,
+.SpaghettiDriverGroupCollapsedSummary {
+  min-height: 12px;
+  padding: 0 4px;
+  color: rgba(196, 206, 224, 0.7);
+  font-size: 8px;
+  font-style: italic;
+}
+
+.SpaghettiNodePortColumn {
+  gap: 3px;
+}
+
+.SpaghettiPort {
+  border-radius: 6px;
+  padding: 2px var(--sp-pad-x);
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.SpaghettiPort::after {
+  display: none;
+}
+
+.SpaghettiPort--in {
+  padding-left: var(--sp-pin-gutter);
+}
+
+.SpaghettiPort--out {
+  padding-right: var(--sp-pin-gutter);
+}
+
+.SpaghettiPortHeader {
+  min-height: 14px;
+  align-items: center;
+}
+
+.SpaghettiPortName {
+  font-size: 10px;
+}
+
+.SpaghettiPortType {
+  min-height: 14px;
+  padding: 0 3px;
+  border-radius: 3px;
+  font-size: 9px;
+}
+
+.SpaghettiPortAnchor {
+  width: 6px;
+  height: 6px;
+  box-shadow: 0 0 0 1px rgba(10, 12, 16, 0.92);
+}
+
+.SpaghettiPortAnchor--in {
+  left: -3px;
+}
+
+.SpaghettiPortAnchor--out {
+  right: -3px;
+}
+
+.SpNumberField {
+  --sp-cap-left-w: 8px;
+  --sp-cap-right-w: 8px;
+  --sp-number-bg: rgba(28, 40, 64, 0.92);
+  --sp-number-cap-bg: rgba(11, 15, 24, 0.9);
+  margin-top: 2px;
+  min-height: var(--sp-field-h);
+  border-radius: var(--sp-field-radius);
+  gap: 4px;
+  padding-left: calc(4px + var(--sp-cap-left-w));
+  padding-right: calc(4px + var(--sp-cap-right-w));
+  border: 1px solid rgba(164, 182, 224, 0.22);
+  background-color: var(--sp-number-bg);
+  background-image: linear-gradient(
+    90deg,
+    transparent 0,
+    transparent var(--sp-cap-left-w),
+    color-mix(in srgb, var(--sp-param-color) 56%, transparent) var(--sp-cap-left-w),
+    color-mix(in srgb, var(--sp-param-color) 56%, transparent)
+      calc(
+        var(--sp-cap-left-w) +
+          (100% - var(--sp-cap-left-w) - var(--sp-cap-right-w)) * var(--sp-number-fill-ratio)
+      ),
+    transparent
+      calc(
+        var(--sp-cap-left-w) +
+          (100% - var(--sp-cap-left-w) - var(--sp-cap-right-w)) * var(--sp-number-fill-ratio)
+      ),
+    transparent 100%
+  );
+  position: relative;
+  overflow: visible;
+}
+
+.SpNumberField::after {
+  display: none;
+}
+
+.SpNumberField::before {
+  display: none;
+}
+
+.SpNumberFieldEdge {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: var(--sp-number-cap-bg);
+  opacity: 1;
+  cursor: pointer;
+  z-index: 2;
+}
+
+.SpNumberFieldEdge.isDisabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.SpNumberFieldEdge:focus-visible {
+  outline: 1px solid color-mix(in srgb, var(--sp-param-color) 70%, white 30%);
+  outline-offset: 1px;
+}
+
+.SpNumberFieldEdge::before {
+  display: none;
+}
+
+.SpNumberFieldEdge::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  transform: translateY(-50%);
+  background: var(--sp-param-color);
+  box-shadow: 0 0 0 1px rgba(18, 14, 14, 0.55);
+}
+
+.SpNumberFieldEdge--left {
+  left: 0;
+  width: var(--sp-cap-left-w);
+  border-radius: var(--sp-field-radius) 0 0 var(--sp-field-radius);
+}
+
+.SpNumberFieldEdge--left::before {
+  right: -7px;
+}
+
+.SpNumberFieldEdge--left::after {
+  left: -8px;
+}
+
+.SpNumberFieldEdge--right {
+  right: 0;
+  width: var(--sp-cap-right-w);
+  border-radius: 0 var(--sp-field-radius) var(--sp-field-radius) 0;
+}
+
+.SpNumberFieldEdge--right::before {
+  left: -7px;
+  transform: translateY(-50%) scaleX(-1);
+}
+
+.SpNumberFieldEdge--right::after {
+  right: -8px;
+}
+
+.SpNumberFieldEdge:hover {
+  background: color-mix(in srgb, var(--sp-number-cap-bg) 88%, white 12%);
+}
+
+.SpNumberFieldEdge:active {
+  background: rgba(37, 41, 49, 0.96);
+}
+
+.SpNumberFieldEdge.isDisabled::before,
+.SpNumberFieldEdge.isDisabled::after {
+  opacity: 0.75;
+}
+
+.SpNumberField.isScrubbing {
+  border-color: color-mix(in srgb, var(--sp-param-color) 76%, white 24%);
+  background-image: linear-gradient(
+    90deg,
+    transparent 0,
+    transparent var(--sp-cap-left-w),
+    color-mix(in srgb, var(--sp-param-color) 74%, transparent) var(--sp-cap-left-w),
+    color-mix(in srgb, var(--sp-param-color) 74%, transparent)
+      calc(
+        var(--sp-cap-left-w) +
+          (100% - var(--sp-cap-left-w) - var(--sp-cap-right-w)) * var(--sp-number-fill-ratio)
+      ),
+    transparent
+      calc(
+        var(--sp-cap-left-w) +
+          (100% - var(--sp-cap-left-w) - var(--sp-cap-right-w)) * var(--sp-number-fill-ratio)
+      ),
+    transparent 100%
+  );
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--sp-param-color) 42%, transparent),
+    0 0 10px color-mix(in srgb, var(--sp-param-color) 48%, transparent);
+}
+
+.SpNumberField--compact {
+  min-height: 16px;
+  gap: 4px;
+  padding: 0 4px;
+}
+
+.SpNumberFieldValueWrap {
+  order: 1;
+  position: relative;
+  z-index: 3;
+  gap: 4px;
+  min-width: 0;
+  flex: 1 1 auto;
+  justify-content: flex-start;
+  margin-right: auto;
+}
+
+.SpNumberFieldInput {
+  width: 42px;
+  font-size: 7px;
+  text-align: left;
+  font-family: inherit;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  text-transform: none;
+}
+
+.SpNumberFieldLabel {
+  order: 2;
+  position: relative;
+  z-index: 3;
+  margin-left: auto;
+  max-width: 52%;
+  padding-left: 0;
+  text-align: right;
+  font-size: 7px;
+  font-family: inherit;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  text-transform: none;
+}
+
+.SpNumberFieldLabel::before {
+  display: none;
+}
+
+.SpNumberFieldLabel::after {
+  display: none;
+}
+
+.SpVec2Field {
+  gap: 4px;
+}
+
+.SpVec2FieldAxis {
+  gap: 3px;
+}
+
+.SpaghettiPortDetails {
+  margin-top: 3px;
+  gap: 1px;
+}
+
+.DriversSection--pinsOnly .SpaghettiDriverGroupLabel {
+  display: none;
+}
+
+.DriversSection--pinsOnly .SpaghettiDriverControlRow {
+  position: relative;
+  min-height: 12px;
+  border-color: transparent;
+  background: transparent;
+  padding-top: 1px;
+  padding-bottom: 1px;
+}
+
+.SpaghettiDriverPinValue {
+  display: none;
+}
+
+.DriversSection--pinsOnly .SpaghettiDriverControlLabel,
+.DriversSection--pinsOnly .SpNumberFieldLabel,
+.DriversSection--pinsOnly .SpNumberFieldValueWrap,
+.DriversSection--pinsOnly .SpNumberFieldInput,
+.DriversSection--pinsOnly .SpNumberFieldDrivenBadge,
+.DriversSection--pinsOnly .SpVec2FieldAxisLabel {
+  display: none;
+}
+
+.DriversSection--pinsOnly .SpaghettiDriverPinValue {
+  display: block;
+  position: absolute;
+  right: 4px;
+  top: -5px;
+  font-size: 6px;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  color: rgba(214, 226, 250, 0.9);
+  white-space: nowrap;
+  text-align: right;
+  pointer-events: none;
+}
+
+.DriversSection--pinsOnly .SpVec2Field {
+  width: 100%;
+}
+
+.DriversSection--pinsOnly .SpNumberField {
+  min-height: 10px;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+.DriversSection--pinsOnly .SpNumberFieldEdge {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+.InputsSection--pinsOnly .SpaghettiPort,
+.OutputsSection--pinsOnly .SpaghettiPort {
+  min-height: 12px;
+  border-color: transparent;
+  background: transparent;
+  padding-top: 1px;
+  padding-bottom: 1px;
+}
+
+.InputsSection--pinsOnly .SpaghettiPortHeader,
+.OutputsSection--pinsOnly .SpaghettiPortHeader,
+.InputsSection--pinsOnly .SpaghettiPortRangeInput,
+.OutputsSection--pinsOnly .SpaghettiPortRangeInput,
+.InputsSection--pinsOnly .SpaghettiPortDrivenMessage,
+.OutputsSection--pinsOnly .SpaghettiPortDrivenMessage,
+.InputsSection--pinsOnly .SpaghettiPortDetails,
+.OutputsSection--pinsOnly .SpaghettiPortDetails,
+.InputsSection--pinsOnly .SpNumberField,
+.OutputsSection--pinsOnly .SpNumberField {
+  display: none;
+}
+
+/* Outputs style pass: half-width right-anchored rows with plain type text. */
+
+.SpaghettiSectionRowWithMove {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.SpaghettiSectionRowBody {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.SpaghettiDriverControlRow--wireableOut {
+  padding-right: calc((var(--sp-port-dot-size, 8px) * 2) + 16px);
+}
+
+.SpaghettiDriverPinCluster {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.SpaghettiDriverInputPinSlot,
+.SpaghettiDriverOutputPinSlot {
+  position: relative;
+  width: var(--sp-port-dot-size, 8px);
+  height: var(--sp-port-dot-size, 8px);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.SpaghettiDriverInputPin,
+.SpaghettiDriverOutputPin {
+  position: static;
+  transform: none;
+  left: auto;
+  right: auto;
+}
+
+.SpaghettiDriverInputPinSlot--compatible,
+.SpaghettiDriverOutputPinSlot--compatible {
+  box-shadow: 0 0 0 1px rgba(127, 224, 169, 0.9);
+  border-radius: 999px;
+}
+
+.SpaghettiDriverInputPinSlot--incompatible,
+.SpaghettiDriverOutputPinSlot--incompatible {
+  box-shadow: 0 0 0 1px rgba(255, 114, 114, 0.9);
+  border-radius: 999px;
+}
+
+.SpaghettiDriverUnresolvedMessage {
+  position: absolute;
+  right: calc((var(--sp-port-dot-size, 8px) * 2) + 22px);
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 8px;
+  color: rgba(255, 192, 108, 0.95);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.SpaghettiDriverWarningIndicator {
+  position: absolute;
+  right: calc((var(--sp-port-dot-size, 8px) * 2) + 38px);
+  top: 50%;
+  transform: translateY(-50%);
+  min-width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(247, 199, 98, 0.75);
+  background: rgba(122, 85, 23, 0.45);
+  color: rgba(255, 229, 149, 0.96);
+  font-size: 9px;
+  line-height: 10px;
+  text-align: center;
+  font-weight: 700;
+  pointer-events: auto;
+}
+
+.SpaghettiDriverControlRow--offsetMode {
+  border-radius: var(--sp-radius);
+  background: rgba(126, 174, 255, 0.07);
+}
+
+.SpaghettiDriverOffsetModeStack {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
+}
+
+.SpaghettiDriverOffsetModeStack .SpaghettiDriverNumberField {
+  margin-top: 0;
+}
+
+.SpaghettiDriverOffsetModeStack .SpaghettiDriverNumberField--drivenValue {
+  --sp-param-color: #6e9cff;
+}
+
+.SpaghettiDriverOffsetModeStack .SpaghettiDriverNumberField--offsetValue {
+  --sp-param-color: #5fc6c0;
+}
+
+.SpaghettiDriverOffsetModeStack .SpaghettiDriverNumberField--effectiveValue {
+  --sp-param-color: #9ab0d2;
+}
+
+.SpaghettiSectionRowMoveControls {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+}
+
+.SpaghettiSectionRowMoveControls--valueBarAligned {
+  align-self: stretch;
+  margin-top: 0;
+  height: auto;
+  min-height: 100%;
+  justify-content: space-between;
+}
+
+.V15Panel button.SpaghettiSectionRowMoveButton,
+.V15Panel button.SpaghettiSectionRowMoveButton:hover {
+  min-width: 10px;
+  width: 10px;
+  height: 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  border-radius: 0px;
+  padding: 0;
+  line-height: 1;
+  font-size: 4px;
+}
+
+.V15Panel button.SpaghettiSectionRowMoveButton:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.SpaghettiOutputPreviewTemplate {
+  gap: 8px;
+}
+
+.SpaghettiOutputPreviewSection .SpaghettiNodePortColumn--in {
+  gap: 8px;
+}
+
+.SpaghettiOutputPreviewRow {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.SpaghettiOutputPreviewComponentRow,
+.SpaghettiOutputPreviewObjectRow {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+}
+
+.SpaghettiOutputPreviewComponentRow {
+  margin-bottom: 4px;
+}
+
+.SpaghettiOutputPreviewComponentRow span,
+.SpaghettiOutputPreviewObjectRow span {
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(148, 163, 184, 0.92);
+}
+
+.SpaghettiOutputPreviewComponentInput,
+.SpaghettiOutputPreviewObjectInput {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  background: rgba(15, 23, 42, 0.54);
+  color: rgba(241, 245, 249, 0.96);
+  padding: 5px 8px;
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+.SpaghettiOutputPreviewComponentInput:focus,
+.SpaghettiOutputPreviewObjectInput:focus {
+  outline: none;
+  border-color: rgba(96, 165, 250, 0.72);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.18);
+}
+
+.SpaghettiOutputPreviewMeta {
+  margin-left: 16px;
+  font-size: 10px;
+  line-height: 1.2;
+  color: rgba(226, 232, 240, 0.88);
+}
+
+.SpaghettiOutputPreviewHint {
+  color: rgba(148, 163, 184, 0.92);
+}
+
+.SpaghettiOutputPreviewWarning {
+  margin-left: 16px;
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(247, 199, 98, 0.75);
+  background: rgba(122, 85, 23, 0.45);
+  color: rgba(255, 229, 149, 0.96);
+  font-size: 9px;
+  line-height: 12px;
+  text-align: center;
+  font-weight: 700;
+}
+
+.SpaghettiUtilityNodeTemplate {
+  display: grid;
+  gap: 10px;
+  min-width: 208px;
+  padding: 10px 12px 12px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02)),
+    rgba(15, 23, 42, 0.72);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.SpaghettiUtilityNodeSection {
+  margin: 0;
+}
+
+.SpaghettiUtilityNodeSection--outputs .SpaghettiPortColumn--out {
+  gap: 8px;
+}
+
+.SpaghettiUtilityNodeEditorRow {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+
+.SpaghettiUtilityNodeEditorLabel {
+  color: rgba(226, 232, 240, 0.82);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.SpaghettiUtilityNodeEditorControl {
+  min-width: 0;
+}
+
+.SpaghettiUtilityNodeEditorControl .SpNumberField,
+.SpaghettiUtilityNodeEditorControl .SpVec2Field {
+  width: 100%;
+}
+
+.SpaghettiUtilityNodeToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #e2e8f0;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.SpaghettiUtilityNodeToggle input {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: #f6d365;
+}
+
+@media (max-width: 1100px) {
+.SpaghettiDebugTableRow {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

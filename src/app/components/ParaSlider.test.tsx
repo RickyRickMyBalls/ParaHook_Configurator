@@ -148,6 +148,68 @@ describe('ParaSlider', () => {
     expect(fill?.style.width).toBe('80%')
   })
 
+  it('lets the user type clamp min and max values while clamp edit mode is on', async () => {
+    const handleClampChange = vi.fn()
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(
+        <ParaSlider
+          label="Window Fill"
+          min={0}
+          max={1}
+          step={0.05}
+          value={0.8}
+          clampMin={0.65}
+          clampMax={1}
+          isEditingClamp
+          onChange={vi.fn()}
+          onClampChange={handleClampChange}
+          formatValue={(nextValue) => `${Math.round(nextValue * 100)}%`}
+        />,
+      )
+    })
+
+    const minInput = container.querySelector(
+      'input[aria-label="Edit minimum Window Fill clamp"]',
+    ) as HTMLInputElement | null
+    const maxInput = container.querySelector(
+      'input[aria-label="Edit maximum Window Fill clamp"]',
+    ) as HTMLInputElement | null
+
+    expect(minInput).not.toBeNull()
+    expect(maxInput).not.toBeNull()
+
+    await act(async () => {
+      if (minInput !== null) {
+        minInput.value = '0.4'
+        minInput.dispatchEvent(new Event('input', { bubbles: true }))
+        minInput.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
+
+    await act(async () => {
+      minInput?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+    })
+
+    await act(async () => {
+      if (maxInput !== null) {
+        maxInput.value = '0.9'
+        maxInput.dispatchEvent(new Event('input', { bubbles: true }))
+        maxInput.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
+
+    await act(async () => {
+      maxInput?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+    })
+
+    expect(handleClampChange).toHaveBeenNthCalledWith(1, { min: 0.4, max: 1 })
+    expect(handleClampChange).toHaveBeenNthCalledWith(2, { min: 0.65, max: 0.9 })
+  })
+
   it('uses 10x finer sensitivity and step quantization while shift-dragging the value', async () => {
     const handleChange = vi.fn()
     container = document.createElement('div')
