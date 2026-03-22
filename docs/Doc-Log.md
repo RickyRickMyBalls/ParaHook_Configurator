@@ -3,6 +3,24 @@
 ## Doc Header
 
 ### Doc History
+103. 2026-03-22 14:15: Logged the `Pasta-Path-Index.md` follow-up that adds a dedicated `Questions / Decisions` section, turning the main unresolved concept choices into explicit `### [ ] qN - ...` headings so the timeline idea can be tightened incrementally instead of leaving the key decisions implied across the rest of the doc
+102. 2026-03-22 14:12: Logged the `Pasta-Path-Index.md` follow-up that adds the first `Fusion` visual-takeaways guidance, so the timeline concept now explicitly borrows the low-profile footer density, horizontal step-strip readability, and strong playhead emphasis of a Fusion-style history bar without pretending ParaHook has the same strictly linear feature stack
+101. 2026-03-22 14:12: Logged the shipped `5.0F-2` AppShell follow-up that marks the window/dock-host extraction complete, moves the standalone phase record into `AppShell/Shipped/`, refreshes `AppShell-Index.md` to the fully shipped `[5.0F]` state, updates the roadmap checkboxes, and syncs the docs map to the shipped path
+100. 2026-03-22 14:10: Logged the `Pasta-Path-Index.md` follow-up that adds the first workspace-placement suggestion, locking the direction that `Pasta Path` should likely live as another top-left `+/e/-` style surface mode with a slim full-width bottom footprint and only grow taller when parallel branch rows are actually needed
+99. 2026-03-22 14:06: Logged the new `Pasta-Path` architecture family setup, including the new folderized `Pasta-Path-Index.md` umbrella note plus reserved `Future/` and `Shipped/` folders and the docs-map registration, so the graph-to-timeline hybrid history concept now has one canonical planning home under `docs/Human-Plans/Architecture/`
+98. 2026-03-22 14:04: Logged the `Nodes-Index.md` follow-up that moves the planned sketch-plane `Flip` boolean out of `Transform` and under `Plane`, so the `Geometry/Sketch` input hierarchy now matches the intended surface layout where plane orientation owns the flip toggle and `Transform` stays focused on `Vec3` motion channels
+97. 2026-03-22 14:00: Logged the `Nodes-Index.md` follow-up that renames its local four-phase ladder to the roadmap-owned `[3.2A-1]` through `[3.2A-4]` ids, so the node-family planning surface now aligns directly with the new `[3.2A]` mini-family structure in `roadmap.md` instead of still using generic `Phase 1` through `Phase 4` labels
+96. 2026-03-22 13:56: Logged the roadmap follow-up that turns `[3.2A] Data Types And Sketch Foundation` into a parent mini-family, preserving the shipped original cut as `[3.2A-0]` and adding open `[3.2A-1]` through `[3.2A-4]` subphases so the `EWR` and geometry-node hierarchy planning from `Nodes-Index.md` now has a real roadmap home under the foundational geometry lane
+95. 2026-03-22 14:00: Logged the `Nodes-Index.md` follow-up that breaks the current node-family and `EWR` direction into four execution phases, using the fewest safe phases that still separate the shared row-model foundation, the first `Geometry/Sketch` vertical slice, the downstream geometry-node follow-ons, and the later registry/legacy cleanup pass while adding explicit `Questions / Decisions` and `Suggestion` blocks for each phase
+94. 2026-03-22 13:49: Logged the `Nodes-Index.md` follow-up that rewrites the full `Geometry Nodes` section into a cleaner EWR-first family map, grouping each geometry node by `inputs`, `outputs`, and relevant expandable hierarchy so the geometry block now reads as one coherent wireable-node contract
+93. 2026-03-22 13:43: Logged the `Nodes-Index.md` follow-up that adds `Expandable Wireable Rows` (`EWR`) as the user-facing term for the expandable pin-bearing row hierarchy, pairing it with the code-facing `WireableRowNode` and `WireableRowTree` names so the new row-tree model has one canonical vocabulary
+92. 2026-03-22 13:36: Logged the `Nodes-Index.md` follow-up that expands `SketchPlane > Transform` into the locked 3D row tree, so `Move` and `Rotate` now read as `Vec3 -> X/Y/Z Float`, later `Scale` is reserved as another `Vec3`, and `Flip` is treated as `Boolean`
+91. 2026-03-22 13:31: Logged the `Nodes-Index.md` follow-up that expands `SketchPoint = Vec2` into `X` and `Y` float children inside the simplified sketch hierarchy, so the compact row tree now explicitly supports one more level of direct numeric expansion instead of leaving `Vec2` opaque
+90. 2026-03-22 13:28: Logged the AppShell planning follow-up that refreshes `AppShell-Index.md` to the post-`5.0F-1` state, adds the new standalone `5.0F-2` future phase doc, and updates the docs map so the remaining browser/editor window-and-dock extraction has a dedicated implementation-ready planning surface
+89. 2026-03-22 13:29: Logged the `Nodes-Index.md` follow-up that expands the simplified `Geometry/Sketch` input side, breaking `SketchPlane` and `Sketch Draw` into clearer nested substructure so the sketch node now reads as one compact input/output tree instead of a flat pair of input labels plus a deep output-only hierarchy
+88. 2026-03-22 13:26: Logged the `Nodes-Index.md` follow-up that expands the simplified `Geometry/Sketch` hierarchy so `SketchLine`, `SketchCircle`, `SketchRectangle`, and `SketchPLine` each now show a clearer internal row breakdown, making the wireable sketch-object tree more concrete
+87. 2026-03-22 13:23: Logged the `Nodes-Index.md` follow-up that tightens the simplified `Geometry/Sketch` hierarchy example, correcting sketch-point leaf typing from `Vec3` to `Vec2`, normalizing `Point A / Point B` naming, and fixing the nested `SketchPLine` indentation so the compact row-tree read stays consistent
+86. 2026-03-22 13:19: Logged the `Spaghetti-Types.md` alignment pass that updates its future sketch/geometry planning to match `Nodes-Index.md`, shifting `Sketch` toward a `SketchProfiles`-first expandable hierarchy, adding the composite-versus-atomic sketch-object rule, and tightening the future geometry-node wording around the current `Geometry/*` family
 85. 2026-03-22 13:14: Logged the `Nodes-Index.md` follow-up that adds the wireable sketch-object hierarchy under `Geometry/Sketch`, locking the direction that `SketchProfiles` is the one top-level profile output and that expandable profile/entity/point rows are derived reference layers without demoting first-class composite entities like `Rectangle` and `PLine`
 84. 2026-03-22 13:10: Logged the shipped `5.0F-1` AppShell follow-up that marks the runtime-host phase complete, moves the standalone phase record into `AppShell/Shipped/`, updates the family index and roadmap state, and refreshes the docs map to the shipped path after the `RadioRuntimeHost` extraction landed
 83. 2026-03-22 13:10: Logged the `Nodes-Index.md` follow-up that reformats the `Geometry Nodes` checklist into a nested `inputs / outputs` contract, so `Geometry/Sketch`, `Geometry/Extrude`, and planned `Geometry/Loft` now read as compact node-interface summaries instead of only flat family names
@@ -124,6 +142,479 @@ Do not use it for:
 - keep numbering sequential unless the user explicitly asks for a renumber pass
 
 ## Doc Body
+
+<!-- ENTRY 170 -->
+### [170] - 2026-03-22 14:15 - `DOC - Add Questions And Decisions Section To Pasta Path Index`
+<!-- ENTRY 170 -->
+HUMAN SUMMARY: Updated `Pasta-Path-Index.md` to add a dedicated `Questions / Decisions` section using the `### [ ] qN - ...` heading format. The doc now surfaces the main unresolved placement, mapping, branching, sync, and representation choices as explicit decision points instead of leaving them scattered implicitly through the concept text.
+
+#### Scope
+- Updated the umbrella `Pasta Path` index doc.
+- Added a new `Questions / Decisions` section near the bottom of the file.
+- Logged the structure change in the permanent doc log.
+
+#### Summary
+- Added explicit question headings for:
+  - workspace placement
+  - read-only versus editable first cut
+  - graph-to-timeline mapping
+  - automatic versus expanded branch rows
+  - viewport/editor sync during rollback
+  - node-level versus feature-level timeline representation
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Pasta-Path/Pasta-Path-Index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was a docs/planning pass only; no runtime code changed.
+- The new section only introduces explicit question headings for now; it does not yet lock answers or add suggestions under each question.
+
+<!-- ENTRY 169 -->
+### [169] - 2026-03-22 14:12 - `DOC - Add Fusion Visual Takeaways To Pasta Path Index`
+<!-- ENTRY 169 -->
+HUMAN SUMMARY: Updated `Pasta-Path-Index.md` to capture the first concrete visual/form-factor takeaways from a Fusion-style timeline reference. The doc now explicitly recommends borrowing the low-profile footer-like density, horizontal step-strip readability, and strong playhead emphasis of that UI pattern while adapting it to ParaHook's branching graph reality.
+
+#### Scope
+- Updated the umbrella `Pasta Path` index doc.
+- Added the first explicit visual-takeaways section for the timeline surface.
+- Logged the visual-direction follow-up in the permanent doc log.
+
+#### Summary
+- Added a `Fusion Visual Takeaways` section.
+- Locked the recommendation to borrow:
+  - low vertical footprint
+  - full-width horizontal history strip
+  - compact icon/chip step presentation
+  - strong vertical playhead emphasis
+  - footer-like presentation
+- Also locked the adaptation rule that ParaHook should not copy Fusion's purely linear assumption and should allow vertical branch rows only when needed.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Pasta-Path/Pasta-Path-Index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was a docs/planning pass only; no runtime code changed.
+- The new section is intentionally about visual/form-factor principles, not a full implementation spec or pixel-accurate UI clone target.
+
+<!-- ENTRY 168 -->
+### [168] - 2026-03-22 14:10 - `DOC - Add Slim Workspace Mode Suggestion To Pasta Path Index`
+<!-- ENTRY 168 -->
+HUMAN SUMMARY: Updated `Pasta-Path-Index.md` to capture the first placement suggestion for the concept inside the existing editor-mode system. The doc now recommends that `Pasta Path` likely live as another `+/e/-` style surface mode with a slim, full-width, bottom timeline footprint rather than starting as another full-height editor.
+
+#### Scope
+- Updated the umbrella `Pasta Path` index doc.
+- Added the first concrete workspace-placement guidance for the concept.
+- Logged the placement direction in the permanent doc log.
+
+#### Summary
+- Added a `Suggested Workspace Placement` section.
+- Locked the recommendation that:
+  - `Pasta Path` likely belongs in the same top-left mode family as the current `+/e/-` editor surfaces
+  - it should start as a slim bottom timeline surface around `100px` tall
+  - it should preserve width for long horizontal history reading
+  - it should only grow vertically when parallel branch rows are actually needed
+- Added one more first-constraint note reinforcing the slim-by-default direction.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Pasta-Path/Pasta-Path-Index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was a docs/planning pass only; no runtime code changed.
+- The change captures placement/form-factor direction without yet breaking the family into execution phases.
+
+<!-- ENTRY 167 -->
+### [167] - 2026-03-22 14:06 - `DOC - Add Pasta Path Architecture Family And Index`
+<!-- ENTRY 167 -->
+HUMAN SUMMARY: Added a new folderized `Pasta Path` architecture family under `docs/Human-Plans/Architecture/`, created the first umbrella `Pasta-Path-Index.md` note, reserved `Future/` and `Shipped/` folders for later work, and registered the new family in the docs map so the graph-to-timeline history concept now has one canonical planning home.
+
+#### Scope
+- Created a new `docs/Human-Plans/Architecture/Pasta-Path/` family folder.
+- Added the first umbrella note at `docs/Human-Plans/Architecture/Pasta-Path/Pasta-Path-Index.md`.
+- Reserved `Future/` and `Shipped/` folders for later standalone phase and shipped records.
+- Updated the docs map to include the new family.
+
+#### Summary
+- Added the new `Pasta Path` concept as a folder-root architecture/index doc instead of a flat single-file note.
+- Framed the concept around:
+  - timeline scrubbing
+  - parallel layers
+  - history rollback through partial evaluation
+  - graph-to-timeline mapping
+- Locked the relationship that the `Spaghetti Editor` remains source-of-truth while `Pasta Path` is a derived temporal/history surface.
+- Registered the family in `docs/Doc-Index.md`.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Pasta-Path/Pasta-Path-Index.md`
+- `docs/Doc-Index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was a docs/planning pass only; no runtime code changed.
+- The new family intentionally starts with only one umbrella index so later execution docs can be added under `Future/` and `Shipped/` without restructuring again.
+
+<!-- ENTRY 166 -->
+### [166] - 2026-03-22 14:04 - `DOC - Move SketchPlane Flip Under Plane In Nodes Index`
+<!-- ENTRY 166 -->
+HUMAN SUMMARY: Updated the `Geometry/Sketch` input hierarchy in `Nodes-Index.md` so the planned `Flip` boolean now hangs under `Plane` instead of under `Transform`. This keeps the sketch-plane row tree aligned with the intended UI surface where plane orientation owns the flip toggle and `Transform` stays focused on `Move`, `Rotate`, and later `Scale`.
+
+#### Scope
+- Updated the `Geometry/Sketch` input tree in `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md`.
+- Adjusted the related phase-decision suggestion so it no longer treats `Flip` as part of the `Transform` row.
+- Logged the hierarchy correction in the permanent doc log.
+
+#### Summary
+- Added a new local doc-history line in `Nodes-Index.md` for the hierarchy correction.
+- Moved `Flip = Boolean` from under `Transform` to under `Plane`.
+- Reworded the `Geometry Sketch EWR Vertical Slice` question suggestion so `Transform` stays `Vec3`-channel-only while `Plane` owns `Flip`.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was a docs/planning pass only; no runtime code changed.
+- The change is intentionally narrow: it corrects hierarchy placement without changing the broader `SketchPlane` planning direction.
+
+<!-- ENTRY 165 -->
+### [165] - 2026-03-22 14:00 - `DOC - Rename Nodes Index Phase Ladder To 3.2A Subphase Ids`
+<!-- ENTRY 165 -->
+HUMAN SUMMARY: Updated `Nodes-Index.md` so its local four-phase rollout no longer uses generic `Phase 1` through `Phase 4` labels. The phase ladder now uses the roadmap-owned `[3.2A-1]` through `[3.2A-4]` ids, keeping the node-family planning surface aligned with the new `[3.2A]` mini-family structure in `roadmap.md`.
+
+#### Scope
+- Renamed the local phase headings in `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md`.
+- Preserved the existing checklist and `Questions / Decisions` content under each phase.
+- Logged the phase-id alignment in the permanent doc log.
+
+#### Summary
+- Added a new local doc-history line in `Nodes-Index.md` for the roadmap sync.
+- Renamed:
+  - `Phase 1` -> `[3.2A-1] EWR Foundation And Shared Row Contract`
+  - `Phase 2` -> `[3.2A-2] Geometry Sketch EWR Vertical Slice`
+  - `Phase 3` -> `[3.2A-3] Downstream Geometry Node Hierarchy Expansion`
+  - `Phase 4` -> `[3.2A-4] Registry Alignment And Legacy Cleanup`
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was a docs/planning pass only; no runtime code changed.
+- The content of each phase stayed the same; only the phase ids and naming were aligned to the live roadmap structure.
+
+<!-- ENTRY 164 -->
+### [164] - 2026-03-22 13:56 - `DOC - Reframe 3.2A As EWR And Geometry Node Hierarchy Family`
+<!-- ENTRY 164 -->
+HUMAN SUMMARY: Updated the live roadmap so `[3.2A]` is no longer just one shipped phase entry. It now acts as the parent family for the original shipped `Data Types And Sketch Foundation` cut plus the newer `EWR` and geometry-node hierarchy follow-on work, giving the `Nodes-Index.md` phase ladder a real roadmap home under the existing foundational geometry lane.
+
+#### Scope
+- Turned `[3.2A]` from a single shipped roadmap phase into a parent mini-family.
+- Preserved the original shipped scope as `[3.2A-0] Data Types And Sketch Foundation`.
+- Added the open follow-on subphases `[3.2A-1]` through `[3.2A-4]` for `EWR`, sketch vertical-slice hierarchy, downstream geometry-node expansion, and registry/legacy cleanup.
+
+#### Summary
+- Added a new roadmap doc-history note for the `3.2A` family restructure.
+- Updated the Lane `[3]` quick checklist so `[3.2A]` is partial and exposes `[3.2A-0]` through `[3.2A-4]`.
+- Rewrote the body of the `[3.2A]` roadmap section so it now describes the full family purpose rather than only the already-shipped historical cut.
+- Added standalone body sections for:
+  - `[3.2A-0] Data Types And Sketch Foundation`
+  - `[3.2A-1] EWR Foundation And Shared Row Contract`
+  - `[3.2A-2] Geometry Sketch EWR Vertical Slice`
+  - `[3.2A-3] Downstream Geometry Node Hierarchy Expansion`
+  - `[3.2A-4] Registry Alignment And Legacy Cleanup`
+
+#### Files Changed
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was a docs/planning pass only; no runtime code changed.
+- The restructure keeps the shipped historical `3.2A` truth intact while giving the newer `Nodes-Index.md` hierarchy work one consistent roadmap slot instead of splitting it into a separate unrelated family.
+
+<!-- ENTRY 163 -->
+### [163] - 2026-03-22 14:00 - `DOC - Break Nodes Index Into Four EWR And Node Family Phases`
+<!-- ENTRY 163 -->
+HUMAN SUMMARY: Updated `Nodes-Index.md` to add a real phased rollout under `## Phases`. The doc now breaks the direction into four phases that separate the shared `EWR` foundation, the first `Geometry/Sketch` vertical slice, the downstream geometry-node family expansion, and the later registry/legacy cleanup work while giving each phase its own checklist plus `Questions / Decisions` and `Suggestion` blocks.
+
+#### Scope
+- Updated the `## Phases` section in `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md`.
+- Kept the rollout to four phases as the fewest safe split for the current combined node-family and row-hierarchy direction.
+- Logged the phase split in the permanent doc log.
+
+#### Summary
+- Added:
+  - `Phase 1 - EWR Foundation And Shared Row Contract`
+  - `Phase 2 - Geometry Sketch EWR Vertical Slice`
+  - `Phase 3 - Downstream Geometry Node Family Expansion`
+  - `Phase 4 - Registry Alignment, Legacy Cleanup, And Family Hardening`
+- Added checklist bullets for what each phase should accomplish.
+- Added explicit `Questions / Decisions` plus `Suggestion` blocks inside every phase section.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was a docs/planning pass only; no runtime code changed.
+- The phase split intentionally minimizes count while still isolating the risky shared row-model foundation from the sketch vertical slice and the later registry cleanup work.
+
+<!-- ENTRY 162 -->
+### [162] - 2026-03-22 13:49 - `DOC - Rewrite Geometry Nodes As EWR First Family Map`
+<!-- ENTRY 162 -->
+HUMAN SUMMARY: Reworked the full `Geometry Nodes` block in `Nodes-Index.md` so it now reads as one cleaner EWR-first family map. Instead of a partly-accumulated sketch-only tree plus shallow follow-on bullets, each geometry node now has a clearer `inputs` / `outputs` contract and the sketch node keeps its deeper expandable hierarchy in one consistent place.
+
+#### Scope
+- Rewrote the `#### Geometry Nodes` section in `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md`.
+- Kept the change inside the existing node index instead of splitting the geometry family into new docs yet.
+- Logged the restructuring in the permanent doc log.
+
+#### Summary
+- Reworked `Geometry/Sketch` into:
+  - `inputs`
+  - `outputs`
+  - `EWR output tree`
+  - `structure rules`
+- Expanded the later geometry nodes so they now also show compact contracts for:
+  - `Geometry/Extrude`
+  - `Geometry/Loft`
+  - `Geometry/Revolve`
+  - `Geometry/Sweep`
+  - `Geometry/Boolean`
+- Kept the sketch hierarchy as the deepest example because it is the current main EWR-driven geometry node.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was a docs/planning pass only; no runtime code changed.
+- The later geometry-node contracts remain planning reads, not claims of shipped implementation.
+
+<!-- ENTRY 161 -->
+### [161] - 2026-03-22 13:43 - `DOC - Add Expandable Wireable Rows Terminology To Nodes Index`
+<!-- ENTRY 161 -->
+HUMAN SUMMARY: Updated `Nodes-Index.md` to define `Expandable Wireable Rows` (`EWR`) as the user-facing name for the expandable row hierarchy with output pins. The same section also locks the code-facing names `WireableRowNode` and `WireableRowTree` so future node/tree planning can refer to the same concept consistently.
+
+#### Scope
+- Updated `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md`.
+- Kept the change focused on naming and row-model vocabulary.
+- Logged the terminology decision in the permanent doc log.
+
+#### Summary
+- Added `Expandable Wireable Rows` as the user-facing term.
+- Added `EWR` as the short form.
+- Added:
+  - `WireableRowNode`
+  - `WireableRowTree`
+  as the code-facing naming pair.
+- Added the `object rows` versus `value rows` split with examples.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was a docs/planning pass only; no runtime code changed.
+- The new terminology is intended to sit beside the existing node/type language, not replace node-family names like `Geometry/Sketch`.
+
+<!-- ENTRY 160 -->
+### [160] - 2026-03-22 13:36 - `DOC - Expand SketchPlane Transform Into Vec3 Channels`
+<!-- ENTRY 160 -->
+HUMAN SUMMARY: Updated the simplified `Geometry/Sketch` input tree in `Nodes-Index.md` so `SketchPlane > Transform` now reflects the intended 3D structure. `Move` and `Rotate` are now shown as expandable `Vec3` rows with `X / Y / Z` float children, later `Scale` is reserved the same way, and `Flip` is now treated as `Boolean`.
+
+#### Scope
+- Updated the `SketchPlane > Transform` portion of `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md`.
+- Kept the change limited to the simplified sketch input hierarchy.
+- Logged the refinement in the permanent doc log.
+
+#### Summary
+- Expanded `Move` into `Vec3` with `X / Y / Z` float children.
+- Expanded `Rotate` into `Vec3` with `X / Y / Z` float children.
+- Added later `Scale = Vec3` with the same child-float structure.
+- Changed `Flip` from a vague later transform item into explicit `Boolean`.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was a docs/planning pass only; no runtime code changed.
+- The simplified node tree is intentionally describing expandable wireable structure, not claiming all of these rows are already implemented in UI today.
+
+<!-- ENTRY 159 -->
+### [159] - 2026-03-22 13:31 - `DOC - Expand SketchPoint Vec2 Leaves Into X And Y Floats`
+<!-- ENTRY 159 -->
+HUMAN SUMMARY: Updated the simplified sketch hierarchy in `Nodes-Index.md` so `SketchPoint = Vec2` no longer stays opaque. The compact row tree now shows that a `SketchPoint` row may expand again into `X` and `Y` float children for direct numeric wiring and editing.
+
+#### Scope
+- Updated the simplified `Geometry/Sketch` hierarchy in `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md`.
+- Kept the change focused on the point-leaf expansion rule.
+- Logged the refinement in the permanent doc log.
+
+#### Summary
+- Added `X = Float` and `Y = Float` under the existing `SketchPoint = Vec2` leaves.
+- Applied the same leaf expansion pattern to:
+  - `SketchLine`
+  - `SketchCircle`
+  - `SketchRectangle`
+  - `SketchPLine`
+- Kept the rest of the simplified hierarchy unchanged.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was a docs/planning pass only; no runtime code changed.
+- The row tree is intentionally describing expandable wireable structure, not claiming that every one of these child rows is already implemented in UI today.
+
+<!-- ENTRY 158 -->
+### [158] - 2026-03-22 13:28 - `DOC - Add Implementation Ready AppShell 5.0F-2 Future Plan`
+<!-- ENTRY 158 -->
+HUMAN SUMMARY: Refreshed `AppShell-Index.md` to the real post-`5.0F-1` state and added the new standalone `5.0F-2` future phase doc. The AppShell docs now treat the remaining browser/editor window-and-dock controller cleanup as the active implementation-ready bridge before workspace modes instead of leaving it as a short umbrella-note stub.
+
+#### Scope
+- Updated `docs/Human-Plans/Architecture/AppShell/AppShell-Index.md` to remove stale runtime-host leakage language and point the open `[5.0F-2]` lane at a dedicated future phase doc.
+- Created `docs/Human-Plans/Architecture/AppShell/Future/AppShell_Phase 5.0F-2 - AppShell Window And Dock Host Extraction.md`.
+- Updated the docs map so the new future AppShell phase doc is discoverable in `docs/Doc-Index.md`.
+
+#### Summary
+- Reworked the AppShell umbrella index so it now reflects the shipped `RadioRuntimeHost` seam and the remaining inline browser/editor shell-controller overload in `src/app/AppShell.tsx`.
+- Added an implementation-ready `[5.0F-2]` future doc that locks the recommended first cut around:
+  - `BrowserDockHost`
+  - `SpaghettiWindowHost`
+  - keeping shared left-dock and menu state in `AppShell` for the first pass
+- Added the new future doc to the AppShell subtree in the canonical docs map.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/AppShell/AppShell-Index.md`
+- `docs/Human-Plans/Architecture/AppShell/Future/AppShell_Phase 5.0F-2 - AppShell Window And Dock Host Extraction.md`
+- `docs/Doc-Index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was a docs/planning pass only; no runtime code changed.
+- No roadmap or changelog state changed in this pass because `[5.0F-2]` remains planned, not shipped.
+
+<!-- ENTRY 157 -->
+### [157] - 2026-03-22 13:29 - `DOC - Expand Simplified Sketch Input Breakdown`
+<!-- ENTRY 157 -->
+HUMAN SUMMARY: Updated the simplified `Geometry/Sketch` contract in `Nodes-Index.md` so the input side now breaks down more like the output side. `SketchPlane` and `Sketch Draw` now show clearer nested substructure, which makes the sketch node read as one compact tree instead of a shallow input list feeding a much deeper output hierarchy.
+
+#### Scope
+- Updated the simplified `Geometry/Sketch` input hierarchy in `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md`.
+- Kept the change limited to the compact input/output contract example.
+- Logged the follow-up in the permanent doc log.
+
+#### Summary
+- Expanded `SketchPlane` into:
+  - `Plane`
+  - `Transform`
+    - `Move`
+    - `Rotate`
+    - later `Flip`
+  - later `Source`
+    - `Origin Plane`
+    - `Planar Face`
+- Expanded `Sketch Draw` into:
+  - `Line`
+  - `PLine`
+  - `Rectangle`
+  - `Circle`
+  - later `Selection`
+  - later `Snaps`
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was a docs/planning pass only; no runtime code changed.
+- The `later` labels are intentional where the compact input tree is naming the owned command families before all of them are fully shipped.
+
+<!-- ENTRY 156 -->
+### [156] - 2026-03-22 13:26 - `DOC - Expand Simplified Sketch Entity Breakdown`
+<!-- ENTRY 156 -->
+HUMAN SUMMARY: Updated the simplified `Geometry/Sketch` hierarchy example in `Nodes-Index.md` so the core sketch entity rows now break down more concretely. `SketchLine`, `SketchCircle`, `SketchRectangle`, and `SketchPLine` now show clearer point/radius/segment structure instead of stopping at one shallow placeholder line each.
+
+#### Scope
+- Updated the simplified `Geometry/Sketch` nested hierarchy in `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md`.
+- Kept the change limited to the compact row-tree example under the sketch output hierarchy.
+- Logged the follow-up in the permanent doc log.
+
+#### Summary
+- Expanded `SketchCircle` into:
+  - `Center = SketchPoint`
+  - `Radius = Float`
+- Expanded `SketchRectangle` into four derived `SketchLine` children, each with `Point A / Point B`.
+- Expanded `SketchPLine` into multiple `SketchLine` children plus later `SketchArc`.
+- Kept `SketchLine` itself as the atomic two-point entity.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was a docs/planning pass only; no runtime code changed.
+- The rectangle and polyline segment rows remain derived child structure under first-class composite entities, not a statement that those parents should be downgraded to flat stored line lists.
+
+<!-- ENTRY 155 -->
+### [155] - 2026-03-22 13:23 - `DOC - Tighten Simplified Sketch Hierarchy Example`
+<!-- ENTRY 155 -->
+HUMAN SUMMARY: Updated the simplified `Geometry/Sketch` hierarchy example in `Nodes-Index.md` to use the cleaner structure agreed in chat. The compact row-tree now uses `Point A / Point B`, treats `SketchPoint` as `Vec2` instead of `Vec3`, and keeps the nested `SketchPLine` example aligned to the rest of the hierarchy.
+
+#### Scope
+- Updated the simplified `Geometry/Sketch` nested output example in `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md`.
+- Kept the change purely structural/naming-focused.
+- Logged the correction in the permanent doc log.
+
+#### Summary
+- Replaced `Point a` / `Point b` with `Point A` / `Point B`.
+- Corrected `SketchPoint` from `Vec3` to `Vec2`.
+- Fixed the nested `SketchPLine` indentation so `later SketchArc` stays clearly under the polyline segment breakdown.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was a docs/planning pass only; no runtime code changed.
+- `Vec2` remains the correct sketch-local point type even though viewer/world projection later maps sketch points into 3D space.
+
+<!-- ENTRY 154 -->
+### [154] - 2026-03-22 13:19 - `DOC - Align Spaghetti Types Future Geometry Planning To Nodes Index`
+<!-- ENTRY 154 -->
+HUMAN SUMMARY: Updated `Spaghetti-Types.md` so its future-facing sketch and geometry planning now matches the newer `Nodes-Index.md` direction. The type doc now favors a `SketchProfiles`-first expandable hierarchy, keeps `Rectangle` and `PLine` first-class composite entities, and leans on the current `Geometry/*` node family instead of older parallel feature-node naming.
+
+#### Scope
+- Updated the future-planning portions of `docs/Human-Plans/Architecture/Spaghetti-Types.md`.
+- Kept the change focused on overlapping sketch/geometry direction and did not attempt a full rewrite of the older type doc.
+- Logged the alignment pass in the permanent doc log.
+
+#### Summary
+- Reworked the future sketch-output read from:
+  - top-level `SketchProfile` plus `SketchProfiles`
+  to:
+  - top-level `SketchProfiles`
+  - expandable child `SketchProfile` rows
+  - optional later `SketchCurves`
+- Added the wireable hierarchy language for:
+  - `SketchProfiles`
+  - `SketchProfile`
+  - `SketchEntity`
+  - `SketchPoint`
+- Added the structure rule that `Rectangle` and `PLine` remain first-class composite entities while `Line` remains atomic.
+- Tightened the future-node wording so the doc now points more directly at `Geometry/Loft`, `Geometry/Revolve`, `Geometry/Sweep`, and `Geometry/Boolean` instead of leaning on older parallel `Feature/*` naming.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Spaghetti-Types.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was a docs/planning alignment pass only; no runtime code changed.
+- The broader current-registry and identity-map sections in `Spaghetti-Types.md` remain useful and were intentionally left intact.
 
 <!-- ENTRY 153 -->
 ### [153] - 2026-03-22 13:14 - `DOC - Add Wireable Sketch Object Hierarchy To Nodes Index`

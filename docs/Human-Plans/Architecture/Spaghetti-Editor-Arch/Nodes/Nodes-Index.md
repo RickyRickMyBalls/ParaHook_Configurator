@@ -3,6 +3,15 @@
 ## Doc Header
 
 ### Doc History
+14. 2026-03-22 14:04: Moved the planned `Flip` boolean in the `Geometry/Sketch` input tree so it now hangs directly under `Plane` instead of under `Transform`, keeping the sketch-plane hierarchy aligned with the intended surface layout where plane orientation owns the flip toggle while `Transform` stays focused on `Vec3` motion channels
+13. 2026-03-22 14:00: Renamed the local `Nodes-Index.md` phase ladder to match the roadmap-owned `[3.2A-1]` through `[3.2A-4]` naming, so the node-family planning surface now lines up directly with the `3.2A` mini-family in `roadmap.md` instead of still using generic `Phase 1` through `Phase 4` headings
+12. 2026-03-22 14:00: Broke the `Nodes-Index.md` direction into a four-phase rollout under `## Phases`, using the fewest safe phases that still separate the shared `EWR` foundation, the first `Geometry/Sketch` vertical slice, the downstream geometry-node family follow-ons, and the later node-family cleanup/legacy migration work while adding explicit `Questions / Decisions` plus `Suggestion` blocks for each phase
+11. 2026-03-22 13:49: Reworked the full `Geometry Nodes` section into a cleaner EWR-first structure, grouping each geometry node by `inputs`, `outputs`, and the relevant expandable internal hierarchy so the section now reads like one coherent wireable-node family map instead of an accreted sequence of local edits
+10. 2026-03-22 13:43: Added the new `Expandable Wireable Rows` (`EWR`) terminology to this node index, locking the user-facing name for the expandable pin-bearing row hierarchy and pairing it with the code-facing `WireableRowNode` / `WireableRowTree` naming so future node/tree planning can use one consistent term
+9. 2026-03-22 13:36: Expanded the `SketchPlane > Transform` input tree so it now reflects the locked 3D structure: `Transform` as the parent 3-channel block, `Move` and `Rotate` as expandable `Vec3` rows with `X / Y / Z` float children, later `Scale` as another `Vec3`, and `Flip` as a `Boolean`
+8. 2026-03-22 13:31: Expanded the simplified sketch leaf structure again so `Vec2` no longer stays opaque, locking the direction that a `SketchPoint` row may expand into `X` and `Y` float children for direct wiring and parameter editing
+7. 2026-03-22 13:29: Expanded the simplified `Geometry/Sketch` input side so `SketchPlane` and `Sketch Draw` now break down into clearer nested substructure, making the sketch-node contract read more like one compact input/output tree instead of a flat input label pair
+6. 2026-03-22 13:26: Expanded the simplified `Geometry/Sketch` hierarchy example so `SketchLine`, `SketchCircle`, `SketchRectangle`, and `SketchPLine` each now have a clearer internal breakdown, making the row tree read more like a real expandable wireable object structure instead of only a shallow type list
 5. 2026-03-22 13:14: Added the wireable sketch-object hierarchy under `Geometry/Sketch`, locking the direction that `SketchProfiles` should be the one top-level profile output, expandable into per-profile rows, member entity references, and then deeper entity-to-point breakdown without demoting first-class composite entities like `Rectangle` and `PLine`
 4. 2026-03-22 13:10: Reformatted the `Geometry Nodes` checklist into the stronger nested `inputs / outputs` shape the user started, grounding `Sketch`, `Extrude`, and planned `Loft` in the current `Spaghetti-Types` and registry contracts so the node inventory now reads more like a compact node-interface map instead of only a flat family list
 3. 2026-03-22 13:06: Corrected the bottom node checklist so it now reflects the real live registry rather than only the geometry slice, adding current `Part`, `Output`, `Param`, `Primitive`, and `Utility` nodes, keeping output nodes in the main inventory, and trimming the mistaken primitive-node entries out of the `[L]` legacy list
@@ -253,54 +262,186 @@ Checklist rule for this section:
 - `[~]` = node exists in code now but is still evolving
 - `[ ]` = node family is still needed
 
+#### Expandable Wireable Rows
+
+- `Expandable Wireable Rows`
+  - short form: `EWR`
+  - user-facing term for rows that:
+    - can expand into child rows
+    - can expose output pins
+    - may represent either wireable objects or primitive values
+
+- code-facing term:
+  - `WireableRowNode`
+
+- grouped tree/model term:
+  - `WireableRowTree`
+
+- row kinds inside this model:
+  - `object rows`
+    - examples:
+      - `SketchProfile`
+      - `SketchLine`
+      - `SketchPoint`
+  - `value rows`
+    - examples:
+      - `Vec2`
+      - `Vec3`
+      - `Float`
+      - `Boolean`
+
 #### Geometry Nodes
 
 - [x] `Geometry/Sketch`
-      - inputs
-        - `SketchPlane`
-        - `Sketch Draw`
-      - outputs
-        - `SketchProfiles`
-      - output hierarchy
-        - `SketchProfiles`
-          - top-level wireable profile collection
-          - expands into one wireable `SketchProfile` row per derived closed profile
-        - `SketchProfile`
-          - expands into referenced member `SketchEntity` rows
+  - inputs
+    - `SketchPlane`
+      - `Plane`
+        - `Flip` = `Boolean`
+      - `Transform`
+        - `Move` = `Vec3`
+          - `X` = `Float`
+          - `Y` = `Float`
+          - `Z` = `Float`
+        - `Rotate` = `Vec3`
+          - `X` = `Float`
+          - `Y` = `Float`
+          - `Z` = `Float`
+        - later `Scale` = `Vec3`
+          - `X` = `Float`
+          - `Y` = `Float`
+          - `Z` = `Float`
+      - later `Source`
+        - `Origin Plane`
+        - `Planar Face`
+    - `Sketch Draw`
+      - `Line`
+      - `PLine`
+      - `Rectangle`
+      - `Circle`
+      - later `Selection`
+      - later `Snaps`
+  - outputs
+    - `SketchProfiles`
+  - EWR output tree
+    - `SketchProfiles`
+      - `SketchProfile`
         - `SketchEntity`
-          - base authored/derived sketch-object layer
-          - concrete rows include:
+          - `SketchLine`
+            - `Point A` = `SketchPoint`
+              - `SketchPoint` = `Vec2`
+                - `X` = `Float`
+                - `Y` = `Float`
+            - `Point B` = `SketchPoint`
+              - `SketchPoint` = `Vec2`
+                - `X` = `Float`
+                - `Y` = `Float`
+          - `SketchCircle`
+            - `Center` = `SketchPoint`
+              - `SketchPoint` = `Vec2`
+                - `X` = `Float`
+                - `Y` = `Float`
+            - `Radius` = `Float`
+          - `SketchRectangle`
             - `SketchLine`
-            - `SketchCircle`
-            - `SketchRectangle`
-            - `SketchPLine`
+              - `Point A` = `SketchPoint`
+                - `SketchPoint` = `Vec2`
+                  - `X` = `Float`
+                  - `Y` = `Float`
+              - `Point B` = `SketchPoint`
+                - `SketchPoint` = `Vec2`
+                  - `X` = `Float`
+                  - `Y` = `Float`
+            - `SketchLine`
+              - `Point A` = `SketchPoint`
+                - `SketchPoint` = `Vec2`
+                  - `X` = `Float`
+                  - `Y` = `Float`
+              - `Point B` = `SketchPoint`
+                - `SketchPoint` = `Vec2`
+                  - `X` = `Float`
+                  - `Y` = `Float`
+            - `SketchLine`
+              - `Point A` = `SketchPoint`
+                - `SketchPoint` = `Vec2`
+                  - `X` = `Float`
+                  - `Y` = `Float`
+              - `Point B` = `SketchPoint`
+                - `SketchPoint` = `Vec2`
+                  - `X` = `Float`
+                  - `Y` = `Float`
+            - `SketchLine`
+              - `Point A` = `SketchPoint`
+                - `SketchPoint` = `Vec2`
+                  - `X` = `Float`
+                  - `Y` = `Float`
+              - `Point B` = `SketchPoint`
+                - `SketchPoint` = `Vec2`
+                  - `X` = `Float`
+                  - `Y` = `Float`
+          - `SketchPLine`
+            - `SketchLine`
+              - `Point A` = `SketchPoint`
+                - `SketchPoint` = `Vec2`
+                  - `X` = `Float`
+                  - `Y` = `Float`
+              - `Point B` = `SketchPoint`
+                - `SketchPoint` = `Vec2`
+                  - `X` = `Float`
+                  - `Y` = `Float`
+            - `SketchLine`
+              - `Point A` = `SketchPoint`
+                - `SketchPoint` = `Vec2`
+                  - `X` = `Float`
+                  - `Y` = `Float`
+              - `Point B` = `SketchPoint`
+                - `SketchPoint` = `Vec2`
+                  - `X` = `Float`
+                  - `Y` = `Float`
             - later `SketchArc`
-        - `SketchPoint`
-          - leaf sketch object under line/segment expansion
-          - exposes editable `Vec2`
-      - structure rules
-        - `Rectangle` is a first-class composite sketch entity that expands into derived child `Line` rows
-        - `PLine` is a first-class composite sketch entity that expands into ordered segment rows
-        - `Line` is an atomic sketch entity composed of two `Point` rows
-        - child rows are derived/reference rows unless a later explicit `explode` workflow says otherwise
+  - structure rules
+    - `Rectangle` remains a first-class composite entity that expands into derived child `SketchLine` rows
+    - `PLine` remains a first-class composite entity that expands into ordered segment rows
+    - `Line` remains an atomic entity made of two `SketchPoint` rows
+    - child rows are derived/reference layers unless a later explicit `explode` workflow exists
 - [x] `Geometry/Extrude`
-      - inputs
-        - `SketchProfile`
-        - Modifiers
-          - `Depth`
-          - later `Taper / Offset / Mode`
-      - outputs
-        - `SolidBody`
+  - inputs
+    - `SketchProfile`
+    - `Modifiers`
+      - `Depth`
+      - later `Taper / Offset / Mode`
+  - outputs
+    - `SolidBody`
 - [ ] `Geometry/Loft`
-      - inputs
-        - `StartProfile`
-        - `EndProfile`
-        - later `LoftType / RailGuide`
-      - outputs
-        - `SolidBody`
+  - inputs
+    - `StartProfile`
+    - `EndProfile`
+    - later `LoftType / RailGuide`
+  - outputs
+    - `SolidBody`
 - [ ] `Geometry/Revolve`
+  - inputs
+    - `SketchProfile`
+    - `Angle`
+    - `Axis`
+  - outputs
+    - `SolidBody`
 - [ ] `Geometry/Sweep`
+  - inputs
+    - `SketchProfile`
+    - `Path`
+    - later `Twist / Frenet / Guide Controls`
+  - outputs
+    - `SolidBody`
 - [ ] `Geometry/Boolean`
+  - inputs
+    - `TargetBody`
+    - `ToolBody`
+    - `Mode`
+      - `Union`
+      - `Cut`
+      - `Intersect`
+  - outputs
+    - `SolidBody`
 
 #### Part Nodes
 
@@ -342,3 +483,152 @@ Checklist rule for this section:
 
 - [L] `toeLoft`
   - not a node family, but still a live legacy output-type seam in ports/compiler/tests and should be removed once graph-native solid-body output typing fully replaces it
+
+
+
+
+
+
+
+## Phases
+
+### [ ] [3.2A-1] - EWR Foundation And Shared Row Contract
+
+- [ ] lock the shared `Expandable Wireable Rows` (`EWR`) vocabulary
+- [ ] define one base `WireableRowNode` / `WireableRowTree` shape for:
+  - object rows
+  - value rows
+  - expandable child rows
+  - optional output pins
+- [ ] lock the primitive value-row set for the first wave:
+  - `Float`
+  - `Boolean`
+  - `Vec2`
+  - `Vec3`
+- [ ] define the base row behaviors:
+  - expand / collapse
+  - label
+  - pin exposure
+  - child ordering
+- [ ] keep this phase framework-only and avoid pulling full sketch authoring behavior into the same cut
+
+#### [ ] - `q1` Should every EWR row type be wireable by default, or should some rows be display-only?
+
+##### Suggestion
+
+Make every EWR row wireable by default unless there is a strong reason not to. That keeps the mental model simple: if the row exists in the tree, it can expose a pin.
+
+#### [ ] - `q2` Should the first row-tree contract support both object rows and primitive value rows from day one?
+
+##### Suggestion
+
+Yes. Do not ship an object-only tree first. The whole point of the deeper hierarchy is that objects like `SketchPoint` can expand into primitive value rows like `Float`.
+
+#### [ ] - `q3` Should the first EWR implementation live inside geometry-node surfaces only?
+
+##### Suggestion
+
+Yes. Start with geometry-node surfaces. Do not try to generalize the same row-tree into every node family before the geometry path proves the model.
+
+### [ ] [3.2A-2] - Geometry Sketch EWR Vertical Slice
+
+- [ ] ship the first honest `Geometry/Sketch` EWR tree
+- [ ] expose `SketchPlane` and `Sketch Draw` as expandable input rows
+- [ ] expose `SketchProfiles` as the one top-level profile output row
+- [ ] expand `SketchProfiles` into per-profile rows
+- [ ] expand profile rows into member `SketchEntity` rows
+- [ ] expand entity rows into:
+  - `SketchLine`
+  - `SketchCircle`
+  - `SketchRectangle`
+  - `SketchPLine`
+- [ ] expand point/value leaves:
+  - `SketchPoint -> Vec2 -> X / Y Float`
+- [ ] keep composite-versus-atomic rules honest:
+  - `Rectangle` and `PLine` stay first-class composite entities
+  - `Line` stays atomic
+
+#### [ ] - `q1` Should `Geometry/Sketch` keep only one top-level profile output row?
+
+##### Suggestion
+
+Yes. Keep `SketchProfiles` as the one top-level profile output. Let the per-profile rows live underneath it as expandable child EWR rows instead of exposing a second top-level selected-profile output by default.
+
+#### [ ] - `q2` Should profile-member entity rows be editable there, or only reference/navigate back to the authored entity rows?
+
+##### Suggestion
+
+Keep them reference-first in the first cut. They should be inspectable, highlightable, and wireable, but editing ownership should stay in the authored entity rows under the sketch tree.
+
+#### [ ] - `q3` Should `SketchPlane > Transform` use full 3D value rows from the first EWR slice?
+
+##### Suggestion
+
+Yes. Keep `Transform` focused on `Move`, `Rotate`, and later `Scale` as `Vec3 -> X / Y / Z Float`, while `Plane` owns the separate `Flip` boolean. That keeps the row tree aligned with the intended surface layout instead of mixing the orientation toggle into the motion channels.
+
+### [ ] [3.2A-3] - Downstream Geometry Node Hierarchy Expansion
+
+- [ ] give `Geometry/Extrude` a real EWR-shaped contract
+- [ ] create the first real `Geometry/Loft` family contract
+- [ ] define `Geometry/Revolve`, `Geometry/Sweep`, and `Geometry/Boolean` as later geometry-node follow-ons with explicit input/output rows
+- [ ] keep downstream geometry consumers wired around:
+  - `SketchProfile`
+  - `SolidBody`
+- [ ] create dedicated family docs for:
+  - `Nodes/Extrude/Extrude-Index.md`
+  - `Nodes/Loft/Loft-Index.md`
+
+#### [ ] - `q1` Should downstream geometry nodes consume child `SketchProfile` rows directly rather than a second top-level sketch-profile output?
+
+##### Suggestion
+
+Yes. Let downstream nodes consume the child `SketchProfile` rows exposed under `SketchProfiles`. That matches the EWR hierarchy and avoids duplicating profile truth at the sketch-node top level.
+
+#### [ ] - `q2` Should `Extrude` stay the only shipped downstream geometry consumer before `Loft` starts?
+
+##### Suggestion
+
+Yes. Keep `Extrude` as the first real downstream geometry consumer. Make `Loft` the next one only after the `SketchProfiles -> SketchProfile -> SolidBody` path is stable.
+
+#### [ ] - `q3` Should `Revolve`, `Sweep`, and `Boolean` stay planning-only in this phase?
+
+##### Suggestion
+
+Yes. Give them explicit contracts in the doc, but do not force implementation in the same wave as `Extrude` and `Loft`.
+
+### [ ] [3.2A-4] - Registry Alignment And Legacy Cleanup
+
+- [ ] align the real registry/read surfaces to the newer node-family planning language
+- [ ] keep `Output` nodes in the live inventory:
+  - `System/OutputPreview`
+  - `Output/Assembled`
+- [ ] review how far non-geometry families should adopt EWR:
+  - `Part`
+  - `Output`
+  - `Param`
+  - `Primitive`
+  - `Utility`
+- [ ] clean up or retire legacy seams:
+  - `Part/CubeProof`
+  - `toeLoft`
+- [ ] prune overlap between:
+  - `Nodes-Index.md`
+  - `Spaghetti-Types.md`
+
+#### [ ] - `q1` Should non-geometry node families adopt full EWR in the same shape as `Geometry/Sketch`?
+
+##### Suggestion
+
+Not immediately. Let geometry prove the row model first. Then adopt EWR selectively where the hierarchy actually helps instead of forcing every node family into the same depth.
+
+#### [ ] - `q2` Should `toeLoft` be treated as a real legacy-migration target in this family?
+
+##### Suggestion
+
+Yes. Keep it explicitly marked `[L]` until graph-native body typing fully replaces it in ports, validators, and downstream wiring.
+
+#### [ ] - `q3` When should `Spaghetti-Types.md` stop acting like the old umbrella node index?
+
+##### Suggestion
+
+After `Extrude-Index.md` and `Loft-Index.md` exist and the geometry-family docs are stable enough that `Spaghetti-Types.md` can go back to being primarily a vocabulary/type-system bridge instead of carrying overlapping node-family planning.

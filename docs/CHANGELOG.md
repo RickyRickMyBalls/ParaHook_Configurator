@@ -65,6 +65,42 @@ Do not use it for:
 
 ## Doc Body
 
+### [544] - 2026-03-22 14:12 - `VR / SP - Phase 5.0F-2 - AppShell Window And Dock Host Extraction`
+<!-- ENTRY 544 -->
+HUMAN SUMMARY: `Completed the \`5.0F-2\` AppShell shell-controller extraction by moving browser dock/floating behavior into \`BrowserDockHost\`, spaghetti floating/split/meatball behavior into \`SpaghettiWindowHost\`, and the shared left-dock/menu controller into \`useAppShellDockController\`, leaving \`AppShell\` as the thinner workspace compositor ahead of workspace modes.` 
+
+#### Scope / Constraints Honored
+- Kept the phase as an internal extraction and did not widen into `[5.1] Workspace Modes` or store-contract redesign.
+- Preserved the existing shell CSS class families and the current top-level `AppShell` composition layout.
+- Kept the shared left-dock width, dock-preview truth, split-menu state, and active-surface coordination in `AppShell` for this first controller cut.
+
+#### Summary of Implementation
+- Added `src/app/hosts/BrowserDockHost.tsx` to own browser dock/floating state, clamp helpers, drag/dock pointer behavior, and docked/floating browser rendering through the existing shell anchors.
+- Added `src/app/hosts/SpaghettiWindowHost.tsx` to own the inline `SpaghettiWindowTitleBar`, the per-viewport window UI maps, floating/split/meatball render branches, drag/resize logic, split detach behavior, meatball dock transitions, and bottom split re-entry behavior.
+- Added `src/app/hosts/useAppShellDockController.ts` so the remaining AppShell-owned left-dock resize lifecycle, menu open/reset actions, outside-click handling, and shared dock-preview resolution no longer live inline in `AppShell.tsx`.
+- Reworked `src/app/AppShell.tsx` into the shell compositor plus shared shell-state owner, mounting the new browser and spaghetti hosts while retaining the left-dock/menu state, workspace split actions, active-surface coordination, console offset logic, `RadioPanel`, `RadioRuntimeHost`, and `ViewToolbar`.
+- Added focused host coverage in `src/app/hosts/BrowserDockHost.test.tsx` and `src/app/hosts/SpaghettiWindowHost.test.tsx` alongside the existing AppShell integration suite.
+
+#### Files Changed
+- `src/app/AppShell.tsx`
+- `src/app/hosts/BrowserDockHost.tsx`
+- `src/app/hosts/SpaghettiWindowHost.tsx`
+- `src/app/hosts/useAppShellDockController.ts`
+- `src/app/hosts/BrowserDockHost.test.tsx`
+- `src/app/hosts/SpaghettiWindowHost.test.tsx`
+- `docs/Human-Plans/Architecture/AppShell/AppShell-Index.md`
+- `docs/Human-Plans/Architecture/AppShell/Shipped/AppShell_Phase 5.0F-2 - AppShell Window And Dock Host Extraction.md`
+- `docs/Human-Plans/roadmap/roadmap.md`
+
+#### Behavior Changes (if any)
+- `AppShell` no longer owns the inline browser floating/dock controller or the inline spaghetti floating/split/meatball controller directly; those behaviors now live behind mounted host seams with parity-preserving behavior.
+- Browser popout/re-dock and spaghetti split/meatball/floating transitions still follow the existing interaction model, but their ownership boundaries are now explicit.
+
+#### Verification Steps
+- `cmd /c npm.cmd test -- src/app/AppShell.test.tsx src/app/hosts/BrowserDockHost.test.tsx src/app/hosts/SpaghettiWindowHost.test.tsx src/app/panels/BrowserPanel.test.tsx src/app/panels/SpaghettiPanel.test.tsx`
+- `cmd /c npm.cmd run build`
+- Manual UI smoke-check not run
+
 ### [543] - 2026-03-22 13:10 - `VR / SP - Phase 5.0F-1 - AppShell Runtime Host Extraction`
 <!-- ENTRY 543 -->
 HUMAN SUMMARY: `Implemented the \`5.0F-1\` AppShell runtime-host extraction by moving the radio/sampler audio-runtime cluster out of \`src/app/AppShell.tsx\` into a new mounted \`RadioRuntimeHost\` seam, keeping \`AppShell\` as the visible composition root while preserving the existing radio and sampler behavior.` 

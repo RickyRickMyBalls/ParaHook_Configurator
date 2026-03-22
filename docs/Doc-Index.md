@@ -3,6 +3,9 @@
 ## Doc Header
 
 ### Doc History
+75. 2026-03-22 14:12: Moved the shipped `5.0F-2` AppShell window/dock extraction record from `Future/` to `Shipped/`, refreshed `AppShell-Index.md` to the fully shipped `[5.0F]` state, and updated the AppShell subtree listing so the docs map now shows both AppShell cleanup phase records under `Shipped/`
+74. 2026-03-22 14:06: Added `docs/Human-Plans/Architecture/Pasta-Path/Pasta-Path-Index.md` to the architecture docs map as the new umbrella planning surface for the `Pasta Path` timeline/history concept, separating the graph-to-timeline vision, partial-evaluation scrub direction, and later family growth from the existing `Spaghetti Editor` and `Workspace` architecture docs
+73. 2026-03-22 13:28: Added `docs/Human-Plans/Architecture/AppShell/Future/AppShell_Phase 5.0F-2 - AppShell Window And Dock Host Extraction.md` to the architecture docs map and refreshed `AppShell-Index.md` to the post-`5.0F-1` state, so the remaining AppShell browser/editor controller cleanup now has a dedicated implementation-ready future planning surface
 72. 2026-03-22 13:10: Moved the shipped `5.0F-1` AppShell runtime-host record from `Future/` to `Shipped/`, updated the AppShell subtree listing to the shipped path, and kept `AppShell-Index.md` as the umbrella family doc while the broader `[5.0F]` lane stays open for the later window/dock extraction
 71. 2026-03-22 12:49: Added `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md` to the architecture docs map as the new umbrella planning surface for geometry node families, separating the real `Sketch` command inventory plus missing AutoCAD-style backlog from the still-placeholder `Extrude` and `Loft` folders
 70. 2026-03-22 12:40: Added `docs/Human-Plans/Architecture/AppShell/Future/AppShell_Phase 5.0F-1 - AppShell Runtime Host Extraction.md` to the architecture docs map and expanded the AppShell subtree listing, so the `[5.0F-1]` runtime-host cleanup now has a dedicated future planning surface under the AppShell family instead of living only in the umbrella index
@@ -408,16 +411,18 @@ Rule notes:
         - `Console.md`
         - `Engine-Architecture.md`
         - `Glossary.md`
+        - `Pasta-Path/Pasta-Path-Index.md`
         - `Radio.md`
         - `Sampler.md`
         - `Spaghetti-Types.md`
         - `System-Map.md`
         - `Terminology-Decisions.md`
         - `v15Theme.md`
-        - `Workspace-Modes.md`
+        - `Workspace-Modes/Workspace-Modes-Index.md`
 #### -------AppShell
             - `AppShell-Index.md`
             - `Shipped/AppShell_Phase 5.0F-1 - AppShell Runtime Host Extraction.md`
+            - `Shipped/AppShell_Phase 5.0F-2 - AppShell Window And Dock Host Extraction.md`
 #### -------Spaghetti-Editor-Arch
             - `Spaghetti-Editor-Explained.md`
             - `Nodes/Nodes-Index.md`

@@ -4,6 +4,8 @@
 ### Fold Hack 3
 #### FOld Hack 4
 ###### Doc History
+127. 2026-03-22 14:12: Marked `[5.0F-2] AppShell Window And Dock Host Extraction` complete after shipping the new `BrowserDockHost`, `SpaghettiWindowHost`, and shared dock-controller seam, and closed the parent `[5.0F]` bridge family now that both AppShell cleanup subphases are landed
+126. 2026-03-22 13:56: Reworked `[3.2A] Data Types And Sketch Foundation` into a parent family, preserving the shipped original cut as `[3.2A-0]` and adding new open `[3.2A-1]` through `[3.2A-4]` subphases so the `EWR` and geometry-node hierarchy planning from `Nodes-Index.md` now has a real roadmap home under the existing foundational geometry lane instead of floating as a separate side plan
 125. 2026-03-22 13:10: Marked `[5.0F-1] AppShell Runtime Host Extraction` complete after shipping the new mounted `RadioRuntimeHost` seam, moving the radio/sampler runtime cluster and hidden SoundCloud bridge out of `AppShell`, and keeping the parent `[5.0F]` family open only for the later browser/editor shell-controller extraction
 124. 2026-03-22 12:32: Added the new `[5.0H] Camera Controls And View Input Ownership` bridge family under the pre-workspace shell lane, along with `[5.0H-1]` through `[5.0H-5]`, so camera/input cleanup now has a real roadmap home spanning sketch camera blocking, Fusion-style viewport gestures, graph-canvas coexistence, console camera commands, and the later shared view-input owner model
 123. 2026-03-22 11:48: Marked `[3.2B-DrawSketch-3] Selection And Delete` complete after shipping idle `Sketch Draw` entity selection, blue `Window` and green `Crossing` viewport box selection, synced `Entities`-list selection, and immediate delete through viewport `Delete`, console `delete` / `del`, and the visible toolbar action
@@ -210,7 +212,12 @@ Status legend:
 
 - [ ] `[3.1]` `Node System Cleanup And Growth`
 - [~] `[3.2]` `Foundational Geometry Node System`
-- [x] `[3.2A]` `Data Types And Sketch Foundation`
+- [~] `[3.2A]` `Data Types And Sketch Foundation`
+- [x] `[3.2A-0]` `Data Types And Sketch Foundation`
+- [ ] `[3.2A-1]` `EWR Foundation And Shared Row Contract`
+- [ ] `[3.2A-2]` `Geometry Sketch EWR Vertical Slice`
+- [ ] `[3.2A-3]` `Downstream Geometry Node Hierarchy Expansion`
+- [ ] `[3.2A-4]` `Registry Alignment And Legacy Cleanup`
 - [x] `[3.2B]` `Sketch Operation Authoring`
 - [x] `[3.2B-S1]` `Sketch Session Hierarchy Model`
 - [x] `[3.2B-S2]` `SketchPlane Session Cleanup`
@@ -267,7 +274,7 @@ Status legend:
 - [x] `[5.0C]` `Legacy Input-Mode Branch Removal`
 - [x] `[5.0D]` `Deferred Legacy Residue And Dead-Surface Cleanup`
 - [~] `[5.0E]` `Spaghetti Editor Surface Standardization And Viewport-Type Cleanup`
-- [ ] `[5.0F]` `AppShell Cleanup And Host Seam Extraction`
+- [x] `[5.0F]` `AppShell Cleanup And Host Seam Extraction`
 - [x] `[5.0G]` `Theme System And Stylesheet Decomposition`
 - [x] `[5.0G-1]` `Theme Manifest And Surface File Split`
 - [x] `[5.0G-2]` `Cascade Cleanup And Override Reduction`
@@ -1376,15 +1383,30 @@ Summary:
 
 CheckList:
 - [ ] keep `[3.2A]` through `[3.2D]` as the staged execution split for the first graph-native geometry path
+- [ ] treat `[3.2A]` as a mini-family where the shipped type-and-sketch-foundation cut stays preserved as `[3.2A-0]` and the newer `EWR` / geometry-node hierarchy work lands as `[3.2A-1]` through `[3.2A-4]`
 - [ ] keep `Sketch`, `Extrude`, and `Loft` user-facing and mode-based instead of collapsing back into hidden helper seams
 - [ ] land the foundational geometry path ahead of the broader wire/driver/part/feature hardening wave
 
-### [3.2A] [x] - `Data Types And Sketch Foundation`
+### [3.2A] [~] - `Data Types And Sketch Foundation`
+
+Summary:
+- preserve the shipped original `Data Types And Sketch Foundation` cut as the base of a broader `[3.2A]` family instead of leaving the newer `EWR` / geometry-node hierarchy planning detached from the roadmap
+- use this family to track the shared `Expandable Wireable Rows` contract, the first `Geometry/Sketch` row-tree vertical slice, and the later registry / legacy follow-through under one foundational geometry home
+- keep `[3.2A]` focused on geometry type language, wireable row hierarchy, and node-structure contracts rather than absorbing the later operational sketch-command work owned by `[3.2B]`
+
+CheckList:
+- [x] preserve the shipped original foundation cut as `[3.2A-0]`
+- [ ] add the shared `EWR` / `WireableRowNode` vocabulary and row contract under `[3.2A-1]`
+- [ ] land the first honest `Geometry/Sketch` row-tree vertical slice under `[3.2A-2]`
+- [ ] extend the row-tree / hierarchy model across the downstream geometry-node family under `[3.2A-3]`
+- [ ] align the registry naming and legacy seams with the final geometry-node hierarchy under `[3.2A-4]`
+
+### [3.2A-0] [x] - `Data Types And Sketch Foundation`
 
 Summary:
 - lock the minimum honest geometry type language needed to support the first real authored-node path
 - ship the first real `Sketch` node shell with honest top-level inputs and outputs
-- keep this phase focused on the type vocabulary plus the `Sketch` seam, not deep sketch authoring breadth yet
+- keep this shipped cut focused on the type vocabulary plus the `Sketch` seam, not deep sketch authoring breadth yet
 
 CheckList:
 - [x] lock the minimum honest geometry type language needed to support the first real authored-node path
@@ -1403,6 +1425,54 @@ CheckList:
   - `[SolidBody]`
 - [x] ship the first real `Sketch` node shell with honest top-level inputs and outputs
 - [x] keep this phase focused on the type vocabulary plus the `Sketch` seam, not deep sketch authoring breadth yet
+
+### [3.2A-1] [ ] - `EWR Foundation And Shared Row Contract`
+
+Summary:
+- define the shared `Expandable Wireable Rows` (`EWR`) contract for geometry-node row trees before the feature spreads across multiple node families
+- lock the split between object rows, value rows, and the code-facing `WireableRowNode` / `WireableRowTree` model
+- keep this phase at the shared contract level so later vertical slices do not invent incompatible row semantics
+
+CheckList:
+- [ ] lock the user-facing `EWR` vocabulary and the code-facing `WireableRowNode` / `WireableRowTree` names
+- [ ] define the shared expand / collapse / output-pin rules for object rows and value rows
+- [ ] keep the first contract small enough that `Geometry/Sketch` can be the first honest vertical slice without needing later structural rewrites
+
+### [3.2A-2] [ ] - `Geometry Sketch EWR Vertical Slice`
+
+Summary:
+- apply the shared `EWR` contract to `Geometry/Sketch` as the first full row-tree vertical slice
+- make the `Sketch` node read as one honest expandable input/output hierarchy instead of a flat shell plus hidden special cases
+- keep this phase centered on the `SketchPlane`, `Sketch Draw`, and `SketchProfiles` hierarchy rather than downstream body features
+
+CheckList:
+- [ ] lock the `Geometry/Sketch` input tree around `SketchPlane` and `Sketch Draw`
+- [ ] lock the `SketchProfiles -> SketchProfile -> SketchEntity -> SketchPoint` output hierarchy
+- [ ] preserve first-class composite entities like `SketchRectangle` and `SketchPLine` while still exposing derived child rows for deeper inspection and wiring
+
+### [3.2A-3] [ ] - `Downstream Geometry Node Hierarchy Expansion`
+
+Summary:
+- extend the same row-tree / hierarchy model from `Geometry/Sketch` into the downstream geometry-node family
+- keep `Extrude`, `Loft`, and later geometry nodes aligned with the same honest row-and-pin structure rather than growing one-off outputs
+- make the broader geometry family easier to reason about before deeper feature growth lands
+
+CheckList:
+- [ ] align `Geometry/Extrude` inputs and outputs to the shared row-tree rules
+- [ ] align planned downstream geometry nodes like `Loft`, `Revolve`, `Sweep`, and `Boolean` to the same hierarchy language
+- [ ] avoid node-specific wire hacks that bypass the shared `EWR` structure
+
+### [3.2A-4] [ ] - `Registry Alignment And Legacy Cleanup`
+
+Summary:
+- reconcile the live node registry, naming seams, and still-live legacy leftovers with the final geometry-node hierarchy direction
+- keep this cleanup after the row-tree contract and geometry-node shapes are already locked so naming churn does not happen twice
+- finish the family by making the live registry and architecture docs describe the same geometry-node structure
+
+CheckList:
+- [ ] align the live node registry names with the locked geometry-node family language
+- [ ] trim or remove legacy geometry/node seams that no longer fit the final hierarchy
+- [ ] leave the geometry-node family in a state where architecture docs, registry naming, and shipped node surfaces agree on the same structure
 
 ### [3.2B] [x] - `Sketch Operation Authoring`
 #### FoldHack 4
@@ -2119,7 +2189,7 @@ CheckList:
   - do not absorb the whole workspace hosting system from `[5.1]`
   - do not turn it into detached/browser pop-out implementation
 
-### [5.0F] [ ] - `AppShell Cleanup And Host Seam Extraction`
+### [5.0F] [x] - `AppShell Cleanup And Host Seam Extraction`
 
 Summary:
 - narrow bridge cut for reducing `src/app/AppShell.tsx` overload before `[5.1] Workspace Modes` asks that same area to become the shared workspace host
@@ -2127,17 +2197,17 @@ Summary:
 - keep this cleanup/prep-oriented rather than turning it into the full final workspace architecture
 
 CheckList:
-- [ ] define the current `AppShell` ownership split clearly:
+- [x] define the current `AppShell` ownership split clearly:
   - shell composition
   - shell window-management
   - feature runtime hosting
-- [ ] extract the first app-level runtime host seams so `AppShell` stops directly owning radio/sampler runtime orchestration
-- [ ] group browser and editor shell-control logic behind clearer host seams instead of leaving the top-level shell body as the default owner of every pointer/drag/runtime detail
-- [ ] keep this cut narrow:
+- [x] extract the first app-level runtime host seams so `AppShell` stops directly owning radio/sampler runtime orchestration
+- [x] group browser and editor shell-control logic behind clearer host seams instead of leaving the top-level shell body as the default owner of every pointer/drag/runtime detail
+- [x] keep this cut narrow:
   - do not absorb the tile-tree model from `[5.1]`
   - do not absorb workspace persistence from `[5.1]`
   - do not turn it into the final multi-window host system
-- [ ] use the AppShell cleanup pass to prepare, not replace, the later workspace family
+- [x] use the AppShell cleanup pass to prepare, not replace, the later workspace family
 
 Sub-phase labels for the current cleanup split:
 - `[5.0F-1]` AppShell Runtime Host Extraction
@@ -2156,7 +2226,7 @@ CheckList:
 - [x] keep the hidden SoundCloud bridge attached to the runtime host instead of scattering it across the shell body
 - [x] verify `AppShell` still mounts the runtime seam without continuing to own the runtime transitions directly
 
-### [5.0F-2] [ ] - `AppShell Window And Dock Host Extraction`
+### [5.0F-2] [x] - `AppShell Window And Dock Host Extraction`
 
 Summary:
 - group the remaining browser/editor shell behavior behind clearer shell-host seams after the runtime host cleanup starts reducing the file
@@ -2164,10 +2234,10 @@ Summary:
 - keep the result preparatory for `[5.1]`, not a substitute for the later shared workspace host model
 
 CheckList:
-- [ ] group browser dock/floating ownership behind a dedicated shell host seam
-- [ ] group editor floating/split/titlebar shell behavior behind a dedicated shell host seam
-- [ ] reduce the number of shell-wide pointer and resize effects living inline in the top-level `AppShell` body
-- [ ] leave the later canonical tile-tree and workspace-surface hosting rules to `[5.1]`
+- [x] group browser dock/floating ownership behind a dedicated shell host seam
+- [x] group editor floating/split/titlebar shell behavior behind a dedicated shell host seam
+- [x] reduce the number of shell-wide pointer and resize effects living inline in the top-level `AppShell` body
+- [x] leave the later canonical tile-tree and workspace-surface hosting rules to `[5.1]`
 
 ### [5.0G] [x] - `Theme System And Stylesheet Decomposition`
 
@@ -2332,7 +2402,7 @@ Summary:
   - shared cross-surface intent routing for major workspace domains
   - persistence and saved workspace modes
   - later multi-window surface growth and detached/browser pop-out on top of the same shared host model
-- this is now the real roadmap home for the broader workspace-mode architecture in `docs/Human-Plans/Architecture/Workspace-Modes.md`
+- this is now the real roadmap home for the broader workspace-mode architecture in `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
 - this is also the right family for the newer canonical workspace-selection / surface-activation seam now described in `docs/Human-Plans/Architecture/Console.md`, because that work is broader than console routing and should unify `Console`, `Browser`, `Spaghetti Editor`, and `Viewer` as workspace surfaces over shared truth
 - the older smaller workspace-presentation cleanup wave stays recorded here as already-landed groundwork, but no longer owns the future execution numbering
 

@@ -4,6 +4,7 @@
 ### Fold Hack 3
 #### Doc History
 
+54. 2026-03-22 13:19: Aligned the future-facing sketch/geometry planning in this type doc to the newer `Nodes-Index.md` direction, replacing the older “top-level selected `SketchProfile` output” read with a `SketchProfiles`-first expandable hierarchy, adding the composite-versus-atomic sketch-object rule for `Rectangle` / `PLine` / `Line` / `Point`, and tightening the future geometry-node wording around the current `Geometry/*` family
 53. 2026-03-16 17:54: Replaced the deferred `Pattern` node with a ParaHook-side `Array` wrapper node and broke it into `Linear`, `Circular`, and `Path` array modes, matching the current plan to treat repetition as a higher-level custom feature rather than a direct Replicad command name
 52. 2026-03-16 17:49: Expanded the numbered foundational checklist with the next feature-node candidates after `Sketch`, `Extrude`, and `Loft`, marking `Boolean`, `Fillet`, `Shell`, and `Sweep` as the strongest first-round additions while leaving `Mirror`, `Pattern`, `TrimSplit`, and `Revolve` deferred
 52. 2026-03-16 17:59: Added a small phase breakdown at the bottom of the simple checklist for the first four numbered sections (`Data Types`, `Sketch`, `Extrude`, `Loft`), so the foundational node-system work can be discussed as staged implementation waves without splitting into a separate planning doc yet
@@ -239,12 +240,11 @@ These are not current registry entries.
 ##### Feature Stack / Feature Nodes
 
 - `[ ]` `FeatureStack`
-- `[ ]` `Sketch`
-- `[ ]` `Feature/Sketch2`
-- `[ ]` `Feature/CloseProfile`
-- `[ ]` `Feature/Extrude`
-- `[ ]` `Feature/Loft`
-- `[ ]` `Feature/Boolean`
+- `[ ]` `Geometry/Loft`
+- `[ ]` `Geometry/Revolve`
+- `[ ]` `Geometry/Sweep`
+- `[ ]` `Geometry/Boolean`
+- `[ ]` later feature-level wrappers only if the geometry-node family truly needs them
 
 ##### ParaHook-Specific Feature Nodes
 
@@ -273,6 +273,10 @@ These are graph-facing parent/composite nodes, not project/content rows.
 - `[ ]` `Composite/Baseplate`
 - `[ ]` `Composite/ToeHook`
 - `[ ]` `Composite/HeelKick`
+
+Current direction note:
+- prefer the current `Geometry/*` node family as the main graph-node language
+- use expandable row/object hierarchy inside those nodes before adding more parallel top-level graph nodes than necessary
 
 ##### Part / Publish Nodes
 
@@ -391,14 +395,30 @@ Sketch placement / orientation:
   - the discovered closed-profile set derived from the sketch curves
   - useful when one sketch contains multiple valid closed regions
 - `SketchProfile`
-  - one selected closed profile
-  - likely the main first-pass downstream output for `Extrude`, `Loft`, and similar solid features
+  - one derived child profile inside `SketchProfiles`
+  - should usually appear as an expandable/wireable child row instead of a second separate top-level sketch output
 
 Clean first-pass read:
-- primary output: `SketchProfile`
-- secondary outputs:
+- primary top-level output: `SketchProfiles`
+- expandable child outputs:
+  - `SketchProfile`
+- optional secondary output:
   - `SketchCurves`
-  - `SketchProfiles`
+
+Wireable hierarchy direction:
+- `SketchProfiles`
+  - top-level wireable collection output
+- `SketchProfile`
+  - wireable derived child profile row
+- `SketchEntity`
+  - wireable authored/derived entity row
+- `SketchPoint`
+  - wireable leaf point row
+
+Structure rule:
+- `Rectangle` and `PLine` should stay first-class composite sketch entities
+- `Line` should stay an atomic sketch entity made of two `Point`s
+- child line/segment/point rows are derived/reference layers unless a later explicit explode workflow exists
 
 #### First-Pass Internal `Sketch` Subnodes
 
@@ -532,9 +552,9 @@ Owned by the `Sketch` composite node:
 - the editable sketch command stack
 - the ordered sketch operation history
 - the resulting sketch outputs:
-  - `SketchCurves`
   - `SketchProfiles`
-  - `SketchProfile`
+  - expandable child `SketchProfile` rows
+  - later optional `SketchCurves`
 
 Practical first-pass direction:
 - let the user sketch with normal tools in the builder
@@ -581,9 +601,9 @@ This is the simple first working checklist for the first foundational geometry n
     - ### 2.1.5 [ ] in:SketchSplineRef - [SketchCurveRef]
 
   - ## 2.2 Outputs
-    - ### 2.2.1 [~] out:SketchCurves - [SketchCurves]
-    - ### 2.2.2 [~] out:SketchProfiles - [SketchProfiles]
-    - ### 2.2.3 [~] out:SketchProfile - [SketchProfile]
+    - ### 2.2.1 [~] out:SketchProfiles - [SketchProfiles]
+    - ### 2.2.2 [~] expandable child rows: `SketchProfile`
+    - ### 2.2.3 [~] later optional out:SketchCurves - [SketchCurves]
 
   - ## 2.3 Primitive / source subnodes
     - ### 2.3.1 [~] - SketchNumber out:[Float]
