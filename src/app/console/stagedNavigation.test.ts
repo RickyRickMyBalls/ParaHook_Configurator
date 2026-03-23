@@ -7,23 +7,37 @@ import {
 } from './stagedNavigation'
 
 describe('stagedNavigation', () => {
-  it('creates a root staged session with Graph and Radio choices', () => {
+  it('creates a root staged session with Graph, Camera, and Radio choices', () => {
     const result = createConsoleRootSession()
 
     expect(result.scopeId).toBe('root')
     expect(result.breadcrumb).toEqual(['Root'])
-    expect(result.validChoices.map((choice) => choice.canonicalToken)).toEqual(['GRAPH', 'RADIO'])
+    expect(result.validChoices.map((choice) => choice.canonicalToken)).toEqual([
+      'GRAPH',
+      'CAMERA',
+      'RADIO',
+      'ZOOM',
+      'PAN',
+      'ORBIT',
+    ])
   })
 
-  it('advances from the explicit root session into graph and radio scopes', () => {
+  it('advances from the explicit root session into graph, camera, and radio scopes', () => {
     const context = createConsoleStagedNavigationContext([
       { graphDocumentId: 'graph-document-1', name: 'Graph 1' },
       { graphDocumentId: 'graph-document-2', name: 'Graph 2' },
     ])
 
+    const cameraResult = submitConsoleStagedNavigationToken(createConsoleRootSession(), 'camera', context)
     const graphResult = submitConsoleStagedNavigationToken(createConsoleRootSession(), 'graph', context)
     const radioResult = submitConsoleStagedNavigationToken(createConsoleRootSession(), 'radio', context)
 
+    expect(cameraResult).toMatchObject({
+      kind: 'advance',
+      session: {
+        scopeId: 'cameraRoot',
+      },
+    })
     expect(graphResult).toMatchObject({
       kind: 'advance',
       session: {
@@ -35,6 +49,44 @@ describe('stagedNavigation', () => {
       session: {
         scopeId: 'radioRoot',
       },
+    })
+  })
+
+  it('executes camera projection choices from the root camera family', () => {
+    const context = createConsoleStagedNavigationContext([
+      { graphDocumentId: 'graph-document-1', name: 'Graph 1' },
+    ])
+
+    const cameraRoot = submitConsoleStagedNavigationToken(null, 'c', context)
+    expect(cameraRoot.kind).toBe('advance')
+    if (cameraRoot.kind !== 'advance') {
+      throw new Error('Expected camera root token to advance')
+    }
+    expect(cameraRoot.session.scopeId).toBe('cameraRoot')
+    expect(cameraRoot.validChoices.map((choice) => choice.canonicalToken)).toEqual([
+      'PROJECTION',
+      'BACK',
+    ])
+
+    const projectionRoot = submitConsoleStagedNavigationToken(cameraRoot.session, 'projection', context)
+    expect(projectionRoot.kind).toBe('advance')
+    if (projectionRoot.kind !== 'advance') {
+      throw new Error('Expected projection token to advance')
+    }
+    expect(projectionRoot.session.scopeId).toBe('cameraProjectionRoot')
+    expect(projectionRoot.validChoices.map((choice) => choice.canonicalToken)).toEqual([
+      'ORTHOGRAPHIC',
+      'PERSPECTIVE',
+      'BACK',
+    ])
+
+    expect(submitConsoleStagedNavigationToken(projectionRoot.session, 'o', context)).toMatchObject({
+      kind: 'execute',
+      actionId: 'camera.projection.orthographic',
+    })
+    expect(submitConsoleStagedNavigationToken(projectionRoot.session, 'p', context)).toMatchObject({
+      kind: 'execute',
+      actionId: 'camera.projection.perspective',
     })
   })
 
@@ -147,6 +199,7 @@ describe('stagedNavigation', () => {
       'EXTRUDE',
       'OUTPUT PREVIEW',
       'FOCUS NODE',
+      'ZOOM',
       'COLLAPSED',
       'ESSENTIALS',
       'EXPANDED',
@@ -183,6 +236,7 @@ describe('stagedNavigation', () => {
       'EXTRUDE',
       'OUTPUT PREVIEW',
       'FOCUS NODE',
+      'ZOOM',
       'COLLAPSED',
       'ESSENTIALS',
       'EXPANDED',
@@ -269,6 +323,7 @@ describe('stagedNavigation', () => {
       'EXTRUDE',
       'OUTPUT PREVIEW',
       'FOCUS NODE',
+      'ZOOM',
       'COLLAPSED',
       'ESSENTIALS',
       'EXPANDED',
@@ -546,7 +601,11 @@ describe('stagedNavigation', () => {
     expect(cancelledResult.breadcrumb).toEqual([])
     expect(cancelledResult.validChoices.map((choice) => choice.canonicalToken)).toEqual([
       'GRAPH',
+      'CAMERA',
       'RADIO',
+      'ZOOM',
+      'PAN',
+      'ORBIT',
     ])
   })
 

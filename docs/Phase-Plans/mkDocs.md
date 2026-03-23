@@ -3,6 +3,11 @@
 ## Doc Header
 
 ### Doc History
+13. 2026-03-23 17:39: Implemented `Phase 3 - GitHub Pages Combined App And Docs Publish` by extending the existing repo Pages workflow to build both the app and MkDocs into one artifact, adding the nested docs `site_url`, and recording the live `/` plus `/docs/` hosting behavior in the MkDocs notes
+12. 2026-03-23 17:18: Added `Phase 3 - GitHub Pages Combined App And Docs Publish` so the MkDocs note now covers same-repo GitHub Pages hosting without replacing the existing app site, locking the one-artifact `/` plus `/docs/` publish model against the current `deploy-pages.yml` workflow
+11. 2026-03-23 17:11: Added the live dark-mode theme pass to the MkDocs planning note, recording that the published docs site now starts in Material's `slate` palette with a visible light-mode toggle instead of staying light-only
+10. 2026-03-23 14:17: Implemented the first live `Phase 2` MkDocs upkeep pass by adding Material navigation usability features in `mkdocs.yml`, rewriting `docs/index.md` to match the real inferred-nav publish model, and marking the Phase 2 completion checklist complete for the shipped published-docs maintenance baseline
+9. 2026-03-23 14:11: Added `Phase 2 - MkDocs Update And Published-Docs Maintenance` so the planning note now covers follow-on live-site upkeep after the baseline setup, including when new docs auto-publish, when `exclude_docs` or manual nav changes are needed, and which repo docs should stay in sync during docs-site updates
 8. 2026-03-21 13:11: Moved the live current-page heading tree back to the standard right-side table of contents by removing `toc.integrate` from the MkDocs theme config
 7. 2026-03-21 13:06: Expanded the live MkDocs nav to publish the full `/docs` tree except `Archive/`, replacing the earlier tiny hand-curated nav with inferred folder navigation
 6. 2026-03-21 12:35: Marked `Phase 1 - MkDocs Baseline Setup` complete after adding the live MkDocs config, the docs landing page, the docs dependency file, and successful local build verification
@@ -240,13 +245,14 @@ Current live behavior:
 - MkDocs infers navigation from the full `/docs` tree
 - archive folders are excluded from the published site
 - the left sidebar exposes the non-archive docs tree directly instead of forcing search or a tiny starter nav
+- the site starts in Material's `slate` dark palette by default and exposes a header toggle for switching back to light mode
 - the current page heading tree uses the standard right-side table of contents
 
 This is more useful for real browsing, but it also means the sidebar follows MkDocs's inferred ordering instead of a carefully curated manual order.
 
 ## Phases
 
-Yes. This can be done in `1` phase, as long as the phase is kept to baseline setup only.
+The initial adoption fit in `1` baseline phase, and the live site now has two follow-on lanes: ongoing `Phase 2` published-docs maintenance plus the now-shipped `Phase 3` same-repo GitHub Pages hosting pass that preserves the current app deploy.
 
 ### Phase 1 - `MkDocs Baseline Setup`
 
@@ -406,3 +412,184 @@ This keeps the first serve/build/debug loop small and avoids forcing immediate p
 - [x] no Phase 1 step depends on branding assets, deployment setup, or custom folding code
 
 If this grows during implementation, split later follow-on work into separate post-setup phases instead of bloating Phase 1.
+
+### Phase 2 - `MkDocs Update And Published-Docs Maintenance`
+
+Goal:
+- keep the live docs site aligned with the real `/docs` tree as new docs are created, moved, renamed, or retired
+- make published-versus-internal visibility decisions explicit instead of relying on accidental folder placement
+- keep the MkDocs site readable as the repo docs set grows beyond the first baseline
+
+In scope:
+- update `mkdocs.yml` when the published docs surface needs a new `exclude_docs` rule, theme tweak, plugin change, or later manual `nav` curation
+- decide whether a newly added doc should auto-publish through inferred nav or stay hidden behind an excluded path
+- refresh the landing page or related umbrella docs when the published docs surface materially changes
+- keep repo doc-maintenance surfaces aligned when MkDocs-facing docs are added or reorganized
+- run local docs-site verification after any meaningful MkDocs config or published-surface update
+
+Out of scope for this phase:
+- full public-docs rewrite of the internal planning tree
+- deployment hosting or CI publish automation
+- custom JavaScript sidebar behavior or non-native folding systems
+- a full branding redesign beyond small practical theme/config updates
+
+Why Phase 2 exists:
+- the live site now infers nav from the real `/docs` tree instead of a tiny hand-curated starter nav
+- that makes new docs easier to publish, but it also means docs placement and exclusion rules now directly shape the published site
+- the repo already has separate doc-maintenance rules, so MkDocs upkeep should explicitly name which files stay in sync
+
+#### Phase 2 Locked Decisions
+
+- keep `docs/` as the MkDocs source directory
+- keep inferred navigation as the default unless ordering/readability pressure justifies a manual `nav:` block later
+- treat new docs under non-excluded folders as auto-published by default
+- use `exclude_docs` first when a docs branch should stay out of the published site
+- update repo tracking docs and local doc-history sections separately from MkDocs config; publication and repo-history maintenance are related but not the same task
+
+#### Phase 2 Files
+
+Files that may be touched during this phase:
+
+- `mkdocs.yml`
+- `docs/index.md`
+- `docs/Phase-Plans/mkDocs.md`
+- `docs/Doc-Index.md`
+- `docs/Doc-Log.md`
+
+Depending on the docs change, the phase may also touch:
+
+- the new or moved doc that is being published
+- umbrella/index docs for the affected docs family
+
+#### Phase 2 Update Rule
+
+When a new doc is added under `docs/`:
+
+- it will appear in the MkDocs site automatically if it lives outside the excluded folders and no later manual `nav:` overrides that behavior
+- it does not need a matching `mkdocs.yml` entry while nav remains inferred
+- it does need normal repo doc maintenance such as local `Doc History`, `docs/Doc-Log.md`, and any affected canonical docs-map or umbrella-doc updates
+
+When the docs-site behavior should change:
+
+- update `mkdocs.yml` if the doc should be excluded, re-ordered through manual nav, or surfaced with different theme/plugin behavior
+
+#### Phase 2 Verification Steps
+
+1. add, move, rename, or revise the target doc
+2. update any required repo doc-maintenance files such as `docs/Doc-Log.md` and affected umbrella/index docs
+3. if publication behavior changes, update `mkdocs.yml`
+4. run `mkdocs serve` or `mkdocs build`
+5. confirm the doc appears or stays hidden as intended
+6. confirm sidebar placement and page links still behave acceptably
+7. confirm the build completes without errors
+
+#### Phase 2 Completion Check
+
+- [x] the intended docs change is reflected in the published MkDocs site behavior
+- [x] any required `exclude_docs` or later `nav:` updates are applied
+- [x] affected docs keep their local `Doc History` state aligned
+- [x] `docs/Doc-Log.md` records the doc-side change
+- [x] `docs/Doc-Index.md` or other umbrella docs are updated when the docs map or canonical structure changed
+- [x] `mkdocs build` completes successfully after the update
+
+### Phase 3 - `GitHub Pages Combined App And Docs Publish`
+
+Goal:
+- publish the MkDocs site through GitHub Pages from this same repository without replacing the existing app site
+- keep the current web app at the site root and publish the docs site under `/docs/`
+- extend the existing Pages automation rather than creating a second competing Pages deploy
+
+In scope:
+- update the current `.github/workflows/deploy-pages.yml` workflow so it builds both the app and the MkDocs site in one job set
+- keep `npm run build` producing the app `dist/` output at the publish root
+- install Python plus `requirements-docs.txt` in the Pages workflow and run `mkdocs build --site-dir site`
+- copy the built MkDocs output into `dist/docs/` before the Pages artifact upload
+- add the MkDocs `site_url` setting for the nested docs publish path
+- refresh the docs landing page and MkDocs planning note if the published docs access path or hosting behavior becomes part of the live guidance
+- verify that the app root still works after the docs payload is merged into the same Pages artifact
+
+Out of scope for this phase:
+- moving the docs to a separate repository
+- converting the repository into the special root `<user>.github.io` repo
+- adding a custom domain
+- replacing GitHub Pages with another hosting provider
+- broad app deployment changes unrelated to fitting MkDocs into the existing Pages artifact
+
+Why Phase 3 exists:
+- this repo already has a live GitHub Pages workflow that uploads the app `dist/` folder
+- GitHub Pages publishes one deployed artifact per repository, so a second independent Pages deploy would compete with the current app site
+- the safe same-repo path is one combined artifact with the app at `/` and MkDocs nested under `/docs/`
+
+#### Phase 3 Locked Decisions
+
+- reuse the existing `.github/workflows/deploy-pages.yml` workflow instead of adding a second Pages deployment workflow
+- keep the app published at the site root
+- publish MkDocs under `/docs/`
+- build MkDocs separately and merge its output into `dist/docs/` before the Pages artifact upload
+- keep `requirements-docs.txt` as the committed docs dependency surface for the workflow
+- set `mkdocs.yml` `site_url` to the nested GitHub Pages docs path derived from the current `origin` remote: `https://rickyrickmyballs.github.io/ParaHook_Configurator/docs/`
+- if the GitHub owner or repository name changes later, update `site_url` in the same change set as the hosting change
+
+#### Phase 3 Files
+
+Files that should be touched during this phase:
+
+- `.github/workflows/deploy-pages.yml`
+- `mkdocs.yml`
+- `requirements-docs.txt`
+- `docs/index.md`
+- `docs/Phase-Plans/mkDocs.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+Phase 3 may also touch:
+
+- app-side docs or README surfaces that explain the published docs entry point
+
+#### Phase 3 Build Shape
+
+Recommended combined Pages build order:
+
+1. check out the repo
+2. set up Node and run `npm ci`
+3. run the app build so `dist/` exists
+4. set up Python
+5. install docs dependencies from `requirements-docs.txt`
+6. run `mkdocs build --site-dir site`
+7. copy `site/` into `dist/docs/`
+8. upload `dist/` as the one GitHub Pages artifact
+
+Practical result:
+
+- the web app stays available at the repository Pages root
+- the docs site is served from `/docs/`
+- only one `actions/deploy-pages` publish step exists for the repo
+
+#### Phase 3 Live Result
+
+- `.github/workflows/deploy-pages.yml` now builds the app first, then builds MkDocs and merges it into `dist/docs/` before the Pages artifact upload
+- `mkdocs.yml` now sets `site_url` to `https://rickyrickmyballs.github.io/ParaHook_Configurator/docs/`
+- the current GitHub Pages publish shape keeps the app at the project-site root while serving the MkDocs site from the nested `/docs/` path
+
+#### Phase 3 Verification Steps
+
+1. update `.github/workflows/deploy-pages.yml` to build both the app and MkDocs in one publish flow
+2. update `mkdocs.yml` with the nested docs `site_url`
+3. update any live docs text that explains where the published docs now live
+4. run `npm run build`
+5. run `mkdocs build`
+6. dry-check that copying the built MkDocs `site/` output into `dist/docs/` does not overwrite app assets at the publish root
+7. push the workflow change to GitHub
+8. confirm the Pages workflow succeeds
+9. open the site root and confirm the app still loads
+10. open `/docs/` and confirm the MkDocs site loads with working internal links and assets
+
+#### Phase 3 Completion Check
+
+- [x] the existing Pages workflow builds both the app and MkDocs without introducing a second competing Pages deploy
+- [x] the published app still loads at the site root
+- [x] the MkDocs site loads successfully under `/docs/`
+- [x] `mkdocs.yml` includes the correct nested `site_url`
+- [x] the combined Pages artifact upload still uses `dist/`
+- [x] `docs/CHANGELOG.md` records the shipped workflow/config change
+- [x] `docs/Doc-Log.md` records the documentation-side update

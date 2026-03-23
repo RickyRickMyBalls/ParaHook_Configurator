@@ -4,6 +4,7 @@
 ### Fold Hack 3
 #### FOld Hack 4
 ###### Doc History
+138. 2026-03-23 17:19: Added and marked `[3.2B-Console-1] SketchDraw Scoped Command Surface` complete under the shipped sketch authoring lane after the first sketch-console cleanup landed, so the roadmap now explicitly records that `Radio` remains reachable inside `SketchDraw` and returns to the active local draw scope instead of forcing a root exit
 137. 2026-03-23 01:02: Added a new `[5.0I] View Toolbar And Shared View State` bridge family under the pre-workspace shell lane with `[5.0I-1]` through `[5.0I-4]`, so the new `View-Toolbar` architecture family now has a real roadmap home spanning the projection console entry first cut, the later visible projection/lens surface, broader grid/background state, and the deferred gizmo/helper/feel follow-ons
 136. 2026-03-23 13:50: Marked `[3.2A-0.1] Sketch To Extrude To Preview Contract Repair` complete after shipping the graph-native mesh-preview contract repair, moving the standalone phase record into `Nodes-Fondation/Shipped/`, and keeping the broader `[3.2A]` family focused forward on the later `EWR` phases now that the immediate post-foundation geometry-fidelity cleanup is landed
 135. 2026-03-23 13:24: Marked `[5.3A-2] Graph-Native Worker Contract And Separate-Build Identity` complete after shipping the graph-native worker request-and-state contract, moving the standalone phase record into `Worker/Shipped/`, and updating the worker lane summary so the live roadmap now treats canonical `compiledBuildData + buildIdentity + invalidation` graph builds as landed groundwork while richer result semantics remain deferred to `[5.3A-6]`
@@ -235,6 +236,7 @@ Status legend:
 - [x] `[3.2B-S3]` `SketchDraw Session Cleanup`
 - [x] `[3.2B-S4]` `Sketch Return One Level`
 - [x] `[3.2B-S5]` `Sketch Toolbar / Console Command Alignment`
+- [x] `[3.2B-Console-1]` `SketchDraw Scoped Command Surface`
 - [x] `[3.2B-S6]` `SketchPlane Move Axis Numeric Entry`
 - [x] `[3.2B-S7]` `SketchPlane Transform History`
 - [~] `[3.2B-6]` `Sketch Content Ownership And Later Export`
@@ -1680,6 +1682,19 @@ CheckList:
 - [x] map toolbar sections to command groups
 - [x] map toolbar actions and console tokens to the same underlying sketch-session verbs
 - [x] keep toolbar and console prompt/state reads aligned with the active sketch session level
+
+#### [x] `[3.2B-Console-1]` - `SketchDraw Scoped Command Surface`
+
+Summary:
+- make `SketchDraw` behave as a real local command scope instead of a sealed console branch
+- keep global `Radio` reachable while `SketchDraw` is active
+- return `Radio on/off` to the active sketch-draw scope instead of root
+
+CheckList:
+- [x] keep `SketchDraw` as a local scope instead of a console lockout mode
+- [x] keep global `Radio` reachable while `SketchDraw` is active
+- [x] return `Radio on/off` to the active sketch-draw scope instead of root
+- [x] keep active draw runtime owned by `geometrySketchSession`
 
 #### [x] `[3.2B-S6]` - `SketchPlane Move Axis Numeric Entry`
 

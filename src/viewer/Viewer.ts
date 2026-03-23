@@ -20,6 +20,7 @@ import {
   MeshStandardMaterial,
   NoToneMapping,
   Object3D,
+  OrthographicCamera,
   PCFSoftShadowMap,
   PerspectiveCamera,
   PointLight,
@@ -40,6 +41,7 @@ import {
   type LightSpec,
   type LightType,
   type MaterialPreset,
+  type ProjectionMode,
   type ViewSettings,
 } from '../shared/viewSettingsTypes'
 import type { ReferenceLoadableItem } from '../app/references/referenceManifest'
@@ -202,7 +204,8 @@ const toLightType = (light: Light): LightType | null => {
 export class Viewer {
   private readonly container: HTMLElement
   private readonly scene: Scene
-  private readonly camera: PerspectiveCamera
+  private readonly perspectiveCamera: PerspectiveCamera
+  private readonly orthographicCamera: OrthographicCamera
   private readonly renderer: WebGLRenderer
   private readonly clock: Clock
   private readonly rootGroup: Group
@@ -322,9 +325,13 @@ export class Viewer {
     this.scene.background = new Color(DEFAULT_BACKGROUND)
     this.clock = new Clock()
 
-    this.camera = new PerspectiveCamera(60, 1, 0.1, 1000)
-    this.camera.position.set(3, 2.4, 3)
-    this.camera.lookAt(0, 0, 0)
+    this.perspectiveCamera = new PerspectiveCamera(60, 1, 0.1, 1000)
+    this.perspectiveCamera.position.set(3, 2.4, 3)
+    this.perspectiveCamera.lookAt(0, 0, 0)
+    this.orthographicCamera = new OrthographicCamera(-2, 2, 2, -2, 0.1, 1000)
+    this.orthographicCamera.position.copy(this.perspectiveCamera.position)
+    this.orthographicCamera.up.copy(this.perspectiveCamera.up)
+    this.orthographicCamera.lookAt(0, 0, 0)
 
     this.renderer = new WebGLRenderer({ antialias: true })
     this.renderer.setPixelRatio(window.devicePixelRatio)
@@ -442,9 +449,13 @@ export class Viewer {
     this.referenceGroup = new Group()
     this.rootGroup.add(this.referenceGroup)
 
-    this.cameraController = new CameraController(this.camera, this.renderer.domElement)
+    this.cameraController = new CameraController(
+      this.perspectiveCamera,
+      this.orthographicCamera,
+      this.renderer.domElement,
+    )
     this.transformGizmo = new TransformGizmo(
-      this.camera,
+      this.cameraController.getActiveCamera(),
       this.renderer.domElement,
       this.cameraController.getControls(),
     )
@@ -559,6 +570,7 @@ export class Viewer {
   public applyViewSettings(settings: ViewSettings): void {
     this.currentViewSettings = cloneViewSettings(settings)
 
+    this.setProjectionMode(settings.projectionMode)
     this.syncCameraInteractionState()
     this.gridGroup.visible =
       this.geometrySketchOverlay?.mode === 'draw' ? false : settings.gridVisible
@@ -578,6 +590,11 @@ export class Viewer {
     this.applyMaterialSettings(settings.materials)
     this.applyShadowFlags()
     this.refreshSelectionStyling()
+  }
+
+  public setProjectionMode(mode: ProjectionMode): void {
+    this.cameraController.setProjectionMode(mode)
+    this.transformGizmo.setCamera(this.cameraController.getActiveCamera())
   }
 
   public setCameraPreset(preset: CameraPreset): void {
@@ -2102,7 +2119,7 @@ export class Viewer {
       ...(this.raycaster.params.Line ?? {}),
       threshold: 0.18,
     }
-    this.raycaster.setFromCamera(this.pointer, this.camera)
+    this.raycaster.setFromCamera(this.pointer, this.cameraController.getActiveCamera())
     const intersections = this.raycaster.intersectObjects(this.geometrySketchOverlayGroup.children, false)
     for (const intersection of intersections) {
       const rowId = intersection.object.userData.geometrySketchComponentRowId
@@ -2124,7 +2141,11 @@ export class Viewer {
     const planeOrigin = getSketchPlaneWorldOrigin(overlay.plane, overlay.planeTransform)
     const planeNormal = getSketchPlaneWorldNormal(overlay.plane, overlay.planeTransform)
     const controls = this.cameraController.getControls()
-    const currentViewDirection = this.camera.position.clone().sub(controls.target).normalize()
+    const currentViewDirection = this.cameraController
+      .getActiveCamera()
+      .position.clone()
+      .sub(controls.target)
+      .normalize()
     const oppositeNormal = planeNormal.clone().multiplyScalar(-1)
     const preferredDirection =
       currentViewDirection.dot(planeNormal) >= currentViewDirection.dot(oppositeNormal)
@@ -2139,8 +2160,7 @@ export class Viewer {
   private readonly handleResize = (): void => {
     const width = Math.max(this.container.clientWidth, 1)
     const height = Math.max(this.container.clientHeight, 1)
-    this.camera.aspect = width / height
-    this.camera.updateProjectionMatrix()
+    this.cameraController.setViewportSize(width, height)
     this.renderer.setSize(width, height, false)
   }
 
@@ -2196,7 +2216,7 @@ export class Viewer {
       this.sketchPlanePickOverlay.stage === 'pick'
     ) {
       const plane = this.sketchPlanePickHelper.pickPlane(
-        this.camera,
+        this.cameraController.getActiveCamera(),
         this.renderer.domElement,
         event.clientX,
         event.clientY,
@@ -2215,7 +2235,7 @@ export class Viewer {
       this.geometrySketchOverlay.drawStage === 'sessionIdle'
     ) {
       const projectedPoint = this.geometrySketchDrawHelper.projectPointerToSketch(
-        this.camera,
+        this.cameraController.getActiveCamera(),
         this.renderer.domElement,
         event.clientX,
         event.clientY,
@@ -2255,7 +2275,7 @@ export class Viewer {
       return
     }
     const drawHit = this.geometrySketchDrawHelper.projectPointerToSketch(
-      this.camera,
+      this.cameraController.getActiveCamera(),
       this.renderer.domElement,
       event.clientX,
       event.clientY,
@@ -2307,7 +2327,7 @@ export class Viewer {
       this.sketchPlanePickOverlay.stage === 'pick'
     ) {
       const plane = this.sketchPlanePickHelper.pickPlane(
-        this.camera,
+        this.cameraController.getActiveCamera(),
         this.renderer.domElement,
         event.clientX,
         event.clientY,
@@ -2323,7 +2343,7 @@ export class Viewer {
     ) {
       if (this.geometrySketchSelectionDrag !== null) {
         const projectedPoint = this.geometrySketchDrawHelper.projectPointerToSketch(
-          this.camera,
+          this.cameraController.getActiveCamera(),
           this.renderer.domElement,
           event.clientX,
           event.clientY,
@@ -2346,7 +2366,7 @@ export class Viewer {
       return
     }
     const drawHit = this.geometrySketchDrawHelper.projectPointerToSketch(
-      this.camera,
+      this.cameraController.getActiveCamera(),
       this.renderer.domElement,
       event.clientX,
       event.clientY,
@@ -2438,7 +2458,7 @@ export class Viewer {
     }
     const projectedPoint =
       this.geometrySketchDrawHelper.projectPointerToSketch(
-        this.camera,
+        this.cameraController.getActiveCamera(),
         this.renderer.domElement,
         event.clientX,
         event.clientY,
@@ -2571,8 +2591,9 @@ export class Viewer {
     this.frameId = window.requestAnimationFrame(this.renderLoop)
     const dt = this.clock.getDelta()
     this.cameraController.update(dt)
-    this.renderer.render(this.scene, this.camera)
-    this.axisGizmo?.renderFromCameraQuaternion(this.camera.quaternion)
+    const activeCamera = this.cameraController.getActiveCamera()
+    this.renderer.render(this.scene, activeCamera)
+    this.axisGizmo?.renderFromCameraQuaternion(activeCamera.quaternion)
   }
 
   private mapSnapDirectionToVector(dir: SnapDirection): Vector3 {

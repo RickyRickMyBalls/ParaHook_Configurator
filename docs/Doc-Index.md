@@ -1,8 +1,13 @@
 # Doc Index
 
-## Doc Header
+<details open>
+<summary>Doc Header</summary>
 
 ### Doc History
+98. 2026-03-23 17:19: Updated the sketch subtree in the docs map after shipping `[3.2B-Console-1]`, replacing the old future-path listing with the new `Nodes/Sketch/Shipped/Sketch_Phase 3.2B-Console-1 - SketchDraw Scoped Command Surface.md` record while keeping the later `Console-2` and `Console-3` follow-ons listed under `Future/`
+97. 2026-03-23 15:02: Added the new `3.2B-Console` sketch-console mini-family to the architecture docs map by registering its three standalone future phase docs under the `Spaghetti-Editor-Arch > Nodes > Sketch > Future` subtree, so the staged `SketchDraw` console cleanup now has a dedicated planning ladder separate from the older sketch session and tool families
+96. 2026-03-23 14:32: Wrapped the top `Doc Header` section in a foldable HTML `details` block as a live MkDocs prototype, so the large docs index can keep its local history and usage notes available without forcing that metadata to stay expanded above the main docs map
+95. 2026-03-23 14:07: Added `docs/Human-Plans/Architecture/View-Toolbar/Future/View_Toolbar_Phase 5.0I-1 - Shared View Command Dispatch And Projection Console Entry.md` to the architecture docs map and refreshed the `View-Toolbar` subtree so the first shared projection-command cut now has its own implementation-ready future planning surface under the new family
 94. 2026-03-23 13:50: Moved the shipped `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Fondation/Future/Nodes_Phase 3.2A-0.1 - Sketch To Extrude To Preview Contract Repair.md` record into `Nodes-Fondation/Shipped/`, refreshed the `Spaghetti-Editor-Arch` subtree listing, and kept the docs map aligned with the shipped graph-native mesh-preview repair after the standalone node phase moved out of the future queue
 93. 2026-03-23 13:24: Moved the shipped `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase 5.3A-2 - Graph-Native Worker Contract And Separate-Build Identity.md` record into `Worker/Shipped/`, refreshed the Worker subtree listing, and kept the docs map aligned with the umbrella Worker and roadmap surfaces now that the graph-native request/build-unit phase is completed history instead of a pending future plan
 92. 2026-03-23 01:10: Added `docs/Bugs/4_GeometrySketch-Extrude-Profile-Handoff-Regression.md` to the docs map and refreshed the master bug report so the current `Geometry/Sketch -> Geometry/Extrude` shape-loss regression now has a dedicated bug note plus a listed entry in `0_Bug_Report.md`
@@ -122,6 +127,8 @@ Use it to answer:
 - older docs may still reference `docs/Phases/...` paths
 - the active phase-system location is now `docs/Phase-Plans/...`
 - when older docs conflict with newer canonical docs, prefer the newer canonical docs
+
+</details>
 
 ## Doc Body
 
@@ -456,6 +463,7 @@ Rule notes:
 #### -------View-Toolbar
             - `ThreeViewier.md`
             - `View-Toolbar-Index.md`
+            - `Future/View_Toolbar_Phase 5.0I-1 - Shared View Command Dispatch And Projection Console Entry.md`
 #### -------Worker
             - `Worker.md`
             - `Shipped/Worker_Phase 5.3A-2 - Graph-Native Worker Contract And Separate-Build Identity.md`
@@ -467,6 +475,9 @@ Rule notes:
             - `Nodes/Nodes-Index.md`
             - `Nodes/Nodes-Fondation/Shipped/Nodes_Phase 3.2A-0.1 - Sketch To Extrude To Preview Contract Repair.md`
             - `Nodes/Sketch/Sketch.md`
+            - `Nodes/Sketch/Shipped/Sketch_Phase 3.2B-Console-1 - SketchDraw Scoped Command Surface.md`
+            - `Nodes/Sketch/Future/Sketch_Phase 3.2B-Console-2 - SketchDraw Staged Command Routing.md`
+            - `Nodes/Sketch/Future/Sketch_Phase 3.2B-Console-3 - Shared Sketch Command Tree And Scope Providers.md`
 ### ----Bugs
         - `0_Bug_Report.md`
         - `1_BrowserPanel-Startup-Crash.md`

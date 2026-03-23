@@ -213,6 +213,26 @@ export function ViewToolbar() {
           <details className="ViewSection CameraSection ViewStyledSection">
             <summary>Camera</summary>
             <div className="V15Wrap CameraToolbar">
+              <button
+                className={`CameraButton CameraActionButton ${
+                  view.projectionMode === 'perspective' ? 'isActive' : ''
+                }`}
+                type="button"
+                aria-pressed={view.projectionMode === 'perspective'}
+                onClick={() => setViewKey('projectionMode', 'perspective')}
+              >
+                Perspective
+              </button>
+              <button
+                className={`CameraButton CameraActionButton ${
+                  view.projectionMode === 'orthographic' ? 'isActive' : ''
+                }`}
+                type="button"
+                aria-pressed={view.projectionMode === 'orthographic'}
+                onClick={() => setViewKey('projectionMode', 'orthographic')}
+              >
+                Orthographic
+              </button>
               <div className="CameraPresetGrid">
               {cameraPresets.map((preset) => (
                 <button

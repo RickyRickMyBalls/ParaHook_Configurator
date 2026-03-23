@@ -16,7 +16,7 @@ type InternalTransformControls = TransformControls & {
 }
 
 export class TransformGizmo {
-  private readonly camera: Camera
+  private camera: Camera
   private readonly domElement: HTMLElement
   private readonly orbitControls: OrbitControls
   private readonly controls: TransformControls
@@ -89,6 +89,11 @@ export class TransformGizmo {
 
   public setSpace(space: GizmoSpace): void {
     this.controls.setSpace(space)
+  }
+
+  public setCamera(camera: Camera): void {
+    this.camera = camera
+    ;(this.controls as TransformControls & { camera?: Camera }).camera = camera
   }
 
   public setEnabled(enabled: boolean): void {

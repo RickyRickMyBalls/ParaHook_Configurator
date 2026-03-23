@@ -111,6 +111,9 @@ const resolveStagedAdvanceIdentity = ({
     if (matchedCanonicalToken === 'GRAPH') {
       return buildIdentity('Console', 'Root', 'Graph')
     }
+    if (matchedCanonicalToken === 'CAMERA') {
+      return buildIdentity('Console', 'Root', 'Camera')
+    }
     if (matchedCanonicalToken === 'RADIO') {
       return buildIdentity('Console', 'Root', 'Radio')
     }
@@ -127,6 +130,23 @@ const resolveStagedAdvanceIdentity = ({
   }
 
   switch (activeScopeId) {
+    case 'cameraRoot':
+      return matchedCanonicalToken === 'PROJECTION'
+        ? buildIdentity('Console', 'Camera', 'Projection')
+        : matchedCanonicalToken === 'BACK'
+          ? buildIdentity('Console', 'Camera', 'Back')
+          : null
+    case 'cameraProjectionRoot':
+      switch (matchedCanonicalToken) {
+        case 'ORTHOGRAPHIC':
+          return buildIdentity('Console', 'Camera', 'Projection', 'Orthographic')
+        case 'PERSPECTIVE':
+          return buildIdentity('Console', 'Camera', 'Projection', 'Perspective')
+        case 'BACK':
+          return buildIdentity('Console', 'Camera', 'Projection', 'Back')
+        default:
+          return null
+      }
     case 'zoomRoot':
     case 'sketchDrawZoomRoot':
       switch (matchedCanonicalToken) {
@@ -264,6 +284,8 @@ const resolveStagedChoiceIdentity = ({
     case 'graphSelected':
     case 'zoomRoot':
     case 'sketchDrawZoomRoot':
+    case 'cameraRoot':
+    case 'cameraProjectionRoot':
     case 'graphZoomRoot':
     case 'graphZoomCanvas':
     case 'graphZoomModelViewport':
@@ -347,6 +369,10 @@ const resolveStagedExecuteIdentity = ({
       return buildIdentity('Console', 'Camera', 'Pan')
     case 'camera.orbit':
       return buildIdentity('Console', 'Camera', 'Orbit')
+    case 'camera.projection.orthographic':
+      return buildIdentity('Console', 'Camera', 'Projection', 'Orthographic')
+    case 'camera.projection.perspective':
+      return buildIdentity('Console', 'Camera', 'Projection', 'Perspective')
     case 'zoom.model.all':
       return buildIdentity('Console', 'Zoom', 'ModelViewport', 'All')
     case 'zoom.model.extents':
@@ -522,6 +548,9 @@ const resolveSketchPlaneFeatureAssistIdentity = ({
 
   if (matchesBreadcrumb(breadcrumb, ['Graph', 'Sketch', 'Sketch Draw'])) {
     switch (normalizedToken) {
+      case 'CAMERA':
+      case 'C':
+        return buildIdentity('Console', 'Graph', 'Sketch', 'Draw', 'Camera')
       case 'ZOOM':
       case 'Z':
         return buildIdentity('Console', 'Graph', 'Sketch', 'Draw', 'Zoom')
@@ -533,6 +562,34 @@ const resolveSketchPlaneFeatureAssistIdentity = ({
         return buildIdentity('Console', 'Graph', 'Sketch', 'Draw', 'PLine')
       case 'X':
         return buildIdentity('Console', 'Graph', 'Sketch', 'Draw', 'Exit')
+      default:
+        return null
+    }
+  }
+
+  if (matchesBreadcrumb(breadcrumb, ['Graph', 'Sketch', 'Sketch Draw', 'Camera'])) {
+    switch (normalizedToken) {
+      case 'PROJECTION':
+        return buildIdentity('Console', 'Graph', 'Sketch', 'Draw', 'Camera', 'Projection')
+      case 'BACK':
+      case 'B':
+        return buildIdentity('Console', 'Graph', 'Sketch', 'Draw', 'Camera', 'Back')
+      default:
+        return null
+    }
+  }
+
+  if (matchesBreadcrumb(breadcrumb, ['Graph', 'Sketch', 'Sketch Draw', 'Camera', 'Projection'])) {
+    switch (normalizedToken) {
+      case 'ORTHOGRAPHIC':
+      case 'O':
+        return buildIdentity('Console', 'Graph', 'Sketch', 'Draw', 'Camera', 'Projection', 'Orthographic')
+      case 'PERSPECTIVE':
+      case 'P':
+        return buildIdentity('Console', 'Graph', 'Sketch', 'Draw', 'Camera', 'Projection', 'Perspective')
+      case 'BACK':
+      case 'B':
+        return buildIdentity('Console', 'Graph', 'Sketch', 'Draw', 'Camera', 'Projection', 'Back')
       default:
         return null
     }

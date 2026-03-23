@@ -33,6 +33,22 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install docs dependencies
+        run: python -m pip install -r requirements-docs.txt
+
+      - name: Build docs
+        run: mkdocs build --site-dir site
+
+      - name: Merge docs into Pages artifact
+        run: |
+          mkdir -p dist/docs
+          cp -r site/. dist/docs/
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:

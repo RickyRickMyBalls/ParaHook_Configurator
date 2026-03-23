@@ -1,5 +1,6 @@
 export type ToneMappingMode = 'none' | 'aces'
 export type EnvPreset = 'none' | 'studio'
+export type ProjectionMode = 'perspective' | 'orthographic'
 
 export type LightType = 'directional' | 'point' | 'spot' | 'hemisphere' | 'ambient'
 
@@ -40,6 +41,7 @@ export type MaterialPreset = {
 export type PartMaterialMap = Record<string, MaterialPresetId>
 
 export type ViewSettings = {
+  projectionMode: ProjectionMode
   orbitEnabled: boolean
   gridVisible: boolean
   axesVisible: boolean
@@ -109,6 +111,7 @@ export const DEFAULT_MATERIAL_PRESETS: MaterialPreset[] = [
 ]
 
 export const DEFAULT_VIEW_SETTINGS: ViewSettings = {
+  projectionMode: 'perspective',
   orbitEnabled: true,
   gridVisible: true,
   axesVisible: false,

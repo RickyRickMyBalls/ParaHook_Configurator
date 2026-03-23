@@ -1,5 +1,6 @@
 site_name: ParaHook Docs
 docs_dir: docs
+site_url: https://rickyrickmyballs.github.io/ParaHook_Configurator/docs/
 
 exclude_docs: |
   Archive/
@@ -8,7 +9,22 @@ exclude_docs: |
 
 theme:
   name: material
+  palette:
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to light mode
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to dark mode
   features:
+    - navigation.top
+    - navigation.tracking
     - toc.follow
 
 markdown_extensions:

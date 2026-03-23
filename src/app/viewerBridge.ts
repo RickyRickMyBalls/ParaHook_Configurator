@@ -1,4 +1,4 @@
-import type { ViewSettings } from '../shared/viewSettingsTypes'
+import type { ProjectionMode, ViewSettings } from '../shared/viewSettingsTypes'
 import type { ReferenceTransformOverride } from './references/referenceManifest'
 import type {
   SketchComponent,
@@ -75,6 +75,7 @@ export type SketchPlanePickOverlayVm = {
 
 export interface ViewerApi {
   setCameraPreset: (preset: CameraPreset) => void
+  setProjectionMode: (mode: ProjectionMode) => void
   alignCameraToGeometrySketchPlane: () => void
   frameAll: () => void
   frameExtents: () => void

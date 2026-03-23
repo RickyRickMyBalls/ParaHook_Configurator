@@ -34,6 +34,8 @@ export type ConsoleStagedNavigationChoice = {
 
 export type ConsoleStagedNavigationScopeId =
   | 'root'
+  | 'cameraRoot'
+  | 'cameraProjectionRoot'
   | 'zoomRoot'
   | 'sketchDrawZoomRoot'
   | 'radioRoot'
@@ -72,6 +74,8 @@ export type ConsoleStagedNavigationExecuteResult = {
   actionId:
     | 'camera.pan'
     | 'camera.orbit'
+    | 'camera.projection.orthographic'
+    | 'camera.projection.perspective'
     | 'zoom.model.all'
     | 'zoom.model.extents'
     | 'zoom.model.previous'
@@ -142,6 +146,13 @@ const ROOT_GRAPH_CHOICE: ConsoleStagedNavigationChoice = {
   kind: 'scope',
 }
 
+const ROOT_CAMERA_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'CAMERA',
+  aliases: ['C'],
+  label: 'Camera',
+  kind: 'scope',
+}
+
 const ROOT_RADIO_CHOICE: ConsoleStagedNavigationChoice = {
   canonicalToken: 'RADIO',
   aliases: ['R'],
@@ -167,6 +178,27 @@ const ROOT_ORBIT_CHOICE: ConsoleStagedNavigationChoice = {
   canonicalToken: 'ORBIT',
   aliases: ['O'],
   label: 'Orbit',
+  kind: 'action',
+}
+
+const CAMERA_PROJECTION_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'PROJECTION',
+  aliases: [],
+  label: 'Projection',
+  kind: 'scope',
+}
+
+const CAMERA_PROJECTION_ORTHOGRAPHIC_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'ORTHOGRAPHIC',
+  aliases: ['O'],
+  label: 'Orthographic',
+  kind: 'action',
+}
+
+const CAMERA_PROJECTION_PERSPECTIVE_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'PERSPECTIVE',
+  aliases: ['P'],
+  label: 'Perspective',
   kind: 'action',
 }
 
@@ -380,10 +412,22 @@ const matchesChoice = (choice: ConsoleStagedNavigationChoice, normalizedToken: s
 
 const buildRootChoices = (): ConsoleStagedNavigationChoice[] => [
   ROOT_GRAPH_CHOICE,
+  ROOT_CAMERA_CHOICE,
   ROOT_RADIO_CHOICE,
   ROOT_ZOOM_CHOICE,
   ROOT_PAN_CHOICE,
   ROOT_ORBIT_CHOICE,
+]
+
+const buildCameraRootChoices = (): ConsoleStagedNavigationChoice[] => [
+  CAMERA_PROJECTION_CHOICE,
+  createBackChoice(),
+]
+
+const buildCameraProjectionChoices = (): ConsoleStagedNavigationChoice[] => [
+  CAMERA_PROJECTION_ORTHOGRAPHIC_CHOICE,
+  CAMERA_PROJECTION_PERSPECTIVE_CHOICE,
+  createBackChoice(),
 ]
 
 export const createConsoleRootSession = (): ConsoleStagedNavigationSession => ({
@@ -540,6 +584,28 @@ const createRadioRootSession = (): ConsoleStagedNavigationSession => ({
     sketchNodeId: null,
   },
   validChoices: buildRadioRootChoices(),
+})
+
+const createCameraRootSession = (): ConsoleStagedNavigationSession => ({
+  scopeId: 'cameraRoot',
+  breadcrumb: ['Select', 'Camera'],
+  selections: {
+    graphDocumentId: null,
+    selectedNodeId: null,
+    sketchNodeId: null,
+  },
+  validChoices: buildCameraRootChoices(),
+})
+
+const createCameraProjectionRootSession = (): ConsoleStagedNavigationSession => ({
+  scopeId: 'cameraProjectionRoot',
+  breadcrumb: ['Select', 'Camera', 'Projection'],
+  selections: {
+    graphDocumentId: null,
+    selectedNodeId: null,
+    sketchNodeId: null,
+  },
+  validChoices: buildCameraProjectionChoices(),
 })
 
 const createZoomRootSession = (): ConsoleStagedNavigationSession => ({
@@ -947,6 +1013,9 @@ export const submitConsoleStagedNavigationToken = (
     if (matchedRootChoice === undefined) {
       return createInvalidResult(null, submittedToken, buildRootChoices())
     }
+    if (matchedRootChoice.canonicalToken === ROOT_CAMERA_CHOICE.canonicalToken) {
+      return createAdvanceResult(createCameraRootSession(), submittedToken, matchedRootChoice)
+    }
     if (matchedRootChoice.canonicalToken === ROOT_RADIO_CHOICE.canonicalToken) {
       const radioRootSession = createRadioRootSession()
       return createAdvanceResult(radioRootSession, submittedToken, matchedRootChoice)
@@ -991,6 +1060,9 @@ export const submitConsoleStagedNavigationToken = (
     if (matchedChoice === null) {
       return createInvalidResult({ ...session, validChoices: rootChoices }, submittedToken, rootChoices)
     }
+    if (matchedChoice.canonicalToken === ROOT_CAMERA_CHOICE.canonicalToken) {
+      return createAdvanceResult(createCameraRootSession(), submittedToken, matchedChoice)
+    }
     if (matchedChoice.canonicalToken === ROOT_RADIO_CHOICE.canonicalToken) {
       const radioRootSession = createRadioRootSession()
       return createAdvanceResult(radioRootSession, submittedToken, matchedChoice)
@@ -1029,6 +1101,54 @@ export const submitConsoleStagedNavigationToken = (
       )
     }
     return createAdvanceResult(rootSession, submittedToken, matchedChoice)
+  }
+
+  if (session.scopeId === 'cameraRoot') {
+    const cameraRootChoices = buildCameraRootChoices()
+    const matchedChoice =
+      cameraRootChoices.find((choice) => matchesChoice(choice, normalizedToken)) ?? null
+    if (matchedChoice === null) {
+      return createInvalidResult(
+        { ...session, validChoices: cameraRootChoices },
+        submittedToken,
+        cameraRootChoices,
+      )
+    }
+    if (matchedChoice.canonicalToken === 'BACK') {
+      return createAdvanceResult(createConsoleRootSession(), submittedToken, matchedChoice)
+    }
+    return createAdvanceResult(createCameraProjectionRootSession(), submittedToken, matchedChoice)
+  }
+
+  if (session.scopeId === 'cameraProjectionRoot') {
+    const projectionChoices = buildCameraProjectionChoices()
+    const matchedChoice =
+      projectionChoices.find((choice) => matchesChoice(choice, normalizedToken)) ?? null
+    if (matchedChoice === null) {
+      return createInvalidResult(
+        { ...session, validChoices: projectionChoices },
+        submittedToken,
+        projectionChoices,
+      )
+    }
+    if (matchedChoice.canonicalToken === 'BACK') {
+      return createAdvanceResult(createCameraRootSession(), submittedToken, matchedChoice)
+    }
+    return {
+      kind: 'execute',
+      session: {
+        ...session,
+        validChoices: projectionChoices,
+      },
+      submittedToken,
+      matchedChoice,
+      actionId:
+        matchedChoice.canonicalToken === CAMERA_PROJECTION_ORTHOGRAPHIC_CHOICE.canonicalToken
+          ? 'camera.projection.orthographic'
+          : 'camera.projection.perspective',
+      breadcrumb: [...session.breadcrumb, matchedChoice.label],
+      selections: session.selections,
+    }
   }
 
   if (session.scopeId === 'radioRoot') {

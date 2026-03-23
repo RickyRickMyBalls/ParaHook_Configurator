@@ -3,6 +3,16 @@
 ## Doc Header
 
 ### Doc History
+161. 2026-03-23 17:39: Logged the shipped MkDocs `Phase 3` hosting pass that updates the existing GitHub Pages workflow and `mkdocs.yml` for one combined app-root plus `/docs/` publish artifact, while refreshing both `docs/index.md` and `docs/Phase-Plans/mkDocs.md` to describe that live same-repo hosting model
+160. 2026-03-23 17:19: Logged the shipped `[3.2B-Console-1]` follow-through by moving the standalone sketch-console phase record into `Shipped/`, updating `Sketch.md` and `roadmap.md` to mark the first scoped-console cleanup complete, and refreshing the docs map so the new shipped path replaces the old future listing
+159. 2026-03-23 17:18: Logged the new `mkDocs.md` hosting follow-up that adds `Phase 3 - GitHub Pages Combined App And Docs Publish`, locking the same-repo GitHub Pages plan around one combined artifact with the app kept at `/` and the MkDocs site published under `/docs/` through the existing Pages workflow
+158. 2026-03-23 17:12: Logged the MkDocs dark-mode pass that updates `mkdocs.yml` to start the published docs site in Material's `slate` palette by default while keeping a light-mode toggle, and refreshed both `docs/index.md` and `docs/Phase-Plans/mkDocs.md` so the live docs notes match that new theme behavior
+157. 2026-03-23 17:03: Logged the `CHANGELOG.md` foldability migration that wraps every numbered changelog entry's detailed body in a collapsed HTML `details` block while keeping each title and `HUMAN SUMMARY` visible, including the local changelog-rule update that makes the same entry layout the forward default
+156. 2026-03-23 15:02: Logged the new `3.2B-Console` sketch-console mini-family, including the `Sketch.md` umbrella update, the three standalone future phase docs for scoped `SketchDraw` command cleanup and staged routing, and the docs-map refresh that lists those new planning surfaces under the sketch subtree
+155. 2026-03-23 14:40: Logged the `Doc-Index.md` foldability prototype that wraps the top `Doc Header` section in an HTML `details` block, keeping the large docs-map metadata collapsible in MkDocs without rewriting the rest of the file into a fully indented admonition structure
+154. 2026-03-23 14:18: Logged the first shipped `mkDocs` Phase 2 upkeep pass that updates `mkdocs.yml` with small Material navigation improvements, rewrites `docs/index.md` into a real live-site landing page with auto-publish and exclusion guidance, and refreshes `docs/Phase-Plans/mkDocs.md` so the new Phase 2 maintenance lane reads as implemented instead of planning-only
+153. 2026-03-23 14:12: Logged the `mkDocs.md` follow-up that adds `Phase 2 - MkDocs Update And Published-Docs Maintenance`, reframes the MkDocs planning note as a two-phase track instead of one finished baseline, and records the current rule that new docs auto-publish under inferred nav unless `exclude_docs` or a later manual `nav:` change says otherwise
+152. 2026-03-23 14:07: Logged the new standalone `[5.0I-1] View Toolbar Phase - Shared View Command Dispatch And Projection Console Entry` future doc, updated `View-Toolbar-Index.md` so the family points at the first implementation-ready phase record, and refreshed the docs map so the new `View-Toolbar/Future/` subtree now includes the initial orthographic-versus-perspective console/toolbar phase
 151. 2026-03-23 13:50: Logged the shipped `[3.2A-0.1]` follow-through by moving the standalone `Nodes-Fondation` phase record into `Shipped/`, marking the node-family index and roadmap state forward, updating the docs map to the new shipped path, and flipping the dedicated sketch-to-extrude bug notes from implementation-ready to code-resolved pending manual app verification
 150. 2026-03-23 13:32: Refreshed the `Sketch To Extrude` bug-planning surfaces after the shipped worker-contract cleanup, tightening both the standalone `[3.2A-0.1]` phase doc and the dedicated bug note around the actual remaining downstream `worker mesh -> PartArtifact -> Viewer` seam, updating the likely files/tests, and marking the bug as implementation-ready instead of still framed around the stale `compileGraph loop.segments` diagnosis
 149. 2026-03-23 13:24: Logged the shipped `[5.3A-2]` worker-contract follow-through by moving the standalone phase record into `Worker/Shipped/`, refreshing `Worker.md`, `roadmap.md`, and `Doc-Index.md` to the shipped state, and updating the open `[5.3A-4]` dispatcher doc so it now treats the graph-native request/build-unit contract as completed groundwork instead of still-pending work
@@ -190,6 +200,44 @@ Do not use it for:
 - keep numbering sequential unless the user explicitly asks for a renumber pass
 
 ## Doc Body
+
+### [192] - 2026-03-23 17:19 - `DOC - Ship Sketch Console Phase 3.2B-Console-1`
+
+Moved the standalone `[3.2B-Console-1] SketchDraw Scoped Command Surface` record into `Shipped/`, updated the sketch and roadmap family surfaces to mark the first scoped-console cleanup complete, and refreshed the docs map so the sketch subtree now points at the shipped path instead of the old future record.
+
+Files changed:
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Shipped/Sketch_Phase 3.2B-Console-1 - SketchDraw Scoped Command Surface.md`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Future/Sketch_Phase 3.2B-Console-1 - SketchDraw Scoped Command Surface.md` (removed)
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Sketch.md`
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/Doc-Index.md`
+- `docs/Doc-Log.md`
+
+### [190] - 2026-03-23 15:02 - `DOC - Add Sketch Console Mini-Family`
+<!-- DOC ENTRY 190 -->
+HUMAN SUMMARY: `Added a new open \`3.2B-Console\` sketch-console mini-family to the sketch architecture, created three standalone future phase docs for the staged \`SketchDraw\` command-surface cleanup ladder, and refreshed the docs map so those new planning surfaces are discoverable under the existing sketch subtree.`
+
+#### Scope
+- Kept the work inside the existing `Sketch` architecture family rather than creating a second competing console-planning home outside the sketch node docs.
+- Split the new mini-family into a narrow three-step ladder so command-surface cleanup, staged `SketchDraw` routing, and later shared sketch command-tree/provider work stay separated.
+- Updated the docs map and permanent doc log alongside the sketch-family docs so the new planning surfaces are discoverable and historically recorded.
+
+#### Summary
+- Updated `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Sketch.md` with a new `Sketch Console Vision - 3.2B-Console` parent section plus three open subphases: `[3.2B-Console-1] SketchDraw Scoped Command Surface`, `[3.2B-Console-2] SketchDraw Staged Command Routing`, and `[3.2B-Console-3] Shared Sketch Command Tree And Scope Providers`.
+- Added three standalone future phase docs under `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Future/` so each new console-cleanup step has its own dedicated implementation/planning surface.
+- Updated `docs/Doc-Index.md` so the `Spaghetti-Editor-Arch` subtree now lists the three new sketch-console phase docs.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Sketch.md`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Future/Sketch_Phase 3.2B-Console-1 - SketchDraw Scoped Command Surface.md`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Future/Sketch_Phase 3.2B-Console-2 - SketchDraw Staged Command Routing.md`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Future/Sketch_Phase 3.2B-Console-3 - Shared Sketch Command Tree And Scope Providers.md`
+- `docs/Doc-Index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This is docs-only planning work.
+- The new mini-family intentionally stays sketch-local and does not claim a whole-app generic command-registry redesign.
 
 ### [189] - 2026-03-23 13:50 - `DOC - Ship Sketch To Extrude Preview Repair Phase Record`
 <!-- DOC ENTRY 189 -->

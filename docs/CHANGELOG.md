@@ -65,6 +65,127 @@ Do not use it for:
 
 ## Doc Body
 
+### [561] - 2026-03-23 17:39 - `DOC - Phase 14 - GitHub Pages Combined App And Docs Publish`
+<!-- ENTRY 561 -->
+HUMAN SUMMARY: `Updated the existing GitHub Pages deployment so this repo now publishes both the app and the MkDocs site without one replacing the other. The app stays at the project-site root while the docs are built separately and served from the nested \`/docs/\` path inside the same Pages artifact.`
+
+#### Scope / Constraints Honored
+- Reused the existing repository Pages workflow instead of introducing a second competing `actions/deploy-pages` publish path.
+- Kept the app publish root unchanged and nested the MkDocs output under `/docs/`.
+- Limited the implementation to workflow/config plus the live docs notes needed to explain the new hosting shape.
+
+#### Summary of Implementation
+- Updated `.github/workflows/deploy-pages.yml` so the build job now installs Python docs dependencies, runs `mkdocs build --site-dir site`, and merges the generated docs output into `dist/docs/` before uploading the Pages artifact.
+- Added the nested GitHub Pages docs `site_url` to `mkdocs.yml` so generated canonical links and hosted-path assumptions target `/ParaHook_Configurator/docs/`.
+- Refreshed `docs/index.md` and `docs/Phase-Plans/mkDocs.md` so the live docs notes now describe the shipped combined Pages artifact model and mark `Phase 3` complete.
+
+#### Files Changed
+- `.github/workflows/deploy-pages.yml`
+- `mkdocs.yml`
+- `docs/index.md`
+- `docs/Phase-Plans/mkDocs.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+- The repo's GitHub Pages workflow now publishes the MkDocs site under `/docs/` alongside the existing app root instead of requiring a second Pages site.
+- The generated MkDocs site now uses the nested GitHub Pages docs URL as its canonical hosted path.
+
+#### Verification Steps
+- Ran `npm.cmd run build`.
+- Ran `mkdocs build --site-dir site`.
+- Merged the built docs output into `dist/docs/` locally with `robocopy .\\site .\\dist\\docs /E`.
+- Confirmed the combined artifact contains `dist/index.html`, `dist/docs/index.html`, and `dist/docs/search/search_index.json`.
+- Confirmed the generated docs build includes the nested canonical path `https://rickyrickmyballs.github.io/ParaHook_Configurator/docs/` in `site/index.html`.
+- `mkdocs build --site-dir site` still reports the same two pre-existing unresolved-link warnings in `docs/Human-Plans/Architecture/Transform-Tool.md`.
+
+### [560] - 2026-03-23 17:19 - `SP - Phase 3.2B-Console-1 - SketchDraw Scoped Command Surface`
+<!-- ENTRY 560 -->
+HUMAN SUMMARY: `Implemented the first sketch-console cleanup so \`Radio\` remains reachable while \`SketchDraw\` is active, and accepted radio actions now return the user to the live sketch-draw scope instead of kicking them back to root. This keeps the durable draw-session behavior while making the console surface act more like a real scoped command system.`
+
+#### Scope / Constraints Honored
+- Kept the change narrow inside the current console seam instead of widening into the full staged-routing refactor planned for `[3.2B-Console-2]`.
+- Preserved the durable `SketchDraw` session model and did not turn `Esc` into a global exit.
+- Left drawing runtime ownership in `geometrySketchSession` and only changed the command-surface behavior around `Radio`.
+
+#### Summary of Implementation
+- Updated `src/app/console/ConsoleDock.tsx` so `radio` and `r` can open the shared `Radio` staged scope while `SketchDraw` is active.
+- Adjusted the accepted `Radio` action path so `Radio on/off` returns to the active `SketchDraw` scope instead of dropping the user to root.
+- Expanded `src/app/console/ConsoleDock.test.tsx` to verify both the in-sketch `Radio` entry path and the return-to-`SketchDraw` behavior after a radio action completes.
+
+#### Files Changed
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+- `Radio` is now callable while `SketchDraw` is active.
+- Running `Radio on` or `Radio off` from inside `SketchDraw` no longer ejects the user from the sketch-draw scope.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/console/ConsoleDock.test.tsx src/app/console/stagedNavigation.test.ts src/app/components/ViewerHost.test.tsx src/viewer/scene/CameraController.test.ts`.
+- Confirmed the focused suite passed: 4 test files, 151 tests passed.
+
+### [559] - 2026-03-23 17:12 - `DOC - Phase 14 - MkDocs Dark Mode Default And Palette Toggle`
+<!-- ENTRY 559 -->
+HUMAN SUMMARY: `Added a real dark mode to the live MkDocs site and made it the default starting palette. The docs now open in Material's dark \`slate\` scheme while keeping a header toggle so light mode is still available when needed.` 
+
+#### Scope / Constraints Honored
+- Kept the change narrow inside the MkDocs theme configuration and live docs-site notes.
+- Made dark mode the default without removing the ability to switch back to light mode.
+- Preserved the current inferred navigation, excluded-folder rules, and right-side table-of-contents behavior.
+
+#### Summary of Implementation
+- Updated `mkdocs.yml` to use a two-palette Material theme configuration with `slate` first so the docs site starts in dark mode by default.
+- Added a header palette toggle that swaps between dark and light mode.
+- Updated `docs/index.md` and `docs/Phase-Plans/mkDocs.md` so the live docs notes now say the site starts dark and exposes a light-mode toggle.
+
+#### Files Changed
+- `mkdocs.yml`
+- `docs/index.md`
+- `docs/Phase-Plans/mkDocs.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+- The published MkDocs site now opens in dark mode by default.
+- Users can switch between dark and light palettes through the header toggle next to the search surface.
+
+#### Verification Steps
+- Ran `mkdocs build`.
+- Confirmed the docs build completed successfully after the palette configuration update.
+
+### [558] - 2026-03-23 14:18 - `DOC - Phase 14 - MkDocs Phase 2 Published-Site Maintenance`
+<!-- ENTRY 558 -->
+HUMAN SUMMARY: `Implemented the first live Phase 2 MkDocs upkeep pass by refreshing the landing page to match the inferred-nav publish model and adding small Material navigation improvements for larger docs-site browsing. The published docs surface now explains how new docs appear automatically, which folders stay excluded, and how readers should move through the repo docs.` 
+
+#### Scope / Constraints Honored
+- Kept inferred navigation as the default instead of widening immediately into a full manual `nav:` curation pass.
+- Left publication boundaries unchanged except for documenting the current exclusions and improving the live browse experience.
+- Kept the change inside docs-site config and docs surfaces without mixing in deployment or broader docs-tree restructuring.
+
+#### Summary of Implementation
+- Added `navigation.top` and `navigation.tracking` to `mkdocs.yml` so the larger inferred docs site is easier to move through.
+- Reworked `docs/index.md` into a proper live-site landing page with local `Doc History`, current publish-scope notes, excluded-folder guidance, and direct entry links into the main repo docs surfaces.
+- Updated `docs/Phase-Plans/mkDocs.md` so the new Phase 2 planning section records the shipped maintenance pass and marks its completion checklist complete.
+
+#### Files Changed
+- `mkdocs.yml`
+- `docs/index.md`
+- `docs/Phase-Plans/mkDocs.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+- The live docs site now shows Material's back-to-top affordance during long-page reading.
+- The current page anchor state now tracks more actively while moving through long docs pages.
+- The landing page now reflects the real inferred-nav publication model instead of the obsolete tiny Phase 1 starter description.
+
+#### Verification Steps
+- Ran `mkdocs build`.
+- Confirmed the docs build completed successfully after the config and landing-page updates.
+
 ### [557] - 2026-03-23 13:59 - `SP - Phase 3.2A-0.1 - Mesh Winding Fix For Solid Extrude Preview`
 <!-- ENTRY 557 -->
 HUMAN SUMMARY: `Fixed the follow-up graph-native mesh preview issue where extruded profiles could read like hollow walls because the viewer remapped mesh vertices into its axis convention without also reversing triangle winding, which left capped faces vulnerable to front-face culling under the default solid material path.`

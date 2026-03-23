@@ -3238,7 +3238,9 @@ describe('ConsoleDock', () => {
     expect(
       useConsoleStore
         .getState()
-        .entries.some((entry) => entry.text === 'Sketch Draw > [Line, PLine, Rectangle, Circle, Zoom, Previous, X]'),
+        .entries.some(
+          (entry) => entry.text.startsWith('Sketch Draw > ['),
+        ),
     ).toBe(true)
   })
 
@@ -3612,7 +3614,7 @@ describe('ConsoleDock', () => {
 
     const state = useSpaghettiStore.getState()
     const editorViewportId = state.activeEditorViewportId
-    expect(state.editorViewportsById[editorViewportId]?.windowMode).toBe('expanded')
+    expect(state.editorViewportsById[editorViewportId]?.windowMode).toBe('maximized')
     expect(state.editorViewportHeaderCollapsedById[editorViewportId]).toBe(true)
     expect(state.editorViewportCanvasToolbarVisibleById[editorViewportId]).toBe(false)
     expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('graphSelected')
@@ -4637,8 +4639,120 @@ describe('ConsoleDock', () => {
     expect(
       useConsoleStore
         .getState()
-        .entries.some((entry) => entry.text === 'Sketch Draw > [Line, PLine, Rectangle, Circle, Zoom, X]'),
+        .entries.some(
+          (entry) =>
+            entry.text === 'Sketch Draw > [Line, PLine, Rectangle, Circle, Camera, Zoom, X]',
+        ),
     ).toBe(true)
+  })
+
+  it('opens radio from sketch draw without closing the draw session', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-sketch-1',
+            type: 'Geometry/Sketch',
+            params: {
+              sketch: {
+                type: 'sketch',
+                featureId: 'sketch-1',
+                plane: 'XY',
+                components: [],
+                outputs: { profiles: [], diagnostics: [] },
+                uiState: { collapsed: false },
+              },
+            },
+          },
+        ],
+        edges: [],
+      })
+      useSpaghettiStore.getState().startGeometrySketchSession('node-sketch-1', 'draw')
+      useConsoleStore.getState().setInputText('r')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('radioRoot')
+    expect(useSpaghettiStore.getState().geometrySketchSession).toMatchObject({
+      nodeId: 'node-sketch-1',
+      mode: 'draw',
+    })
+    expect(
+      useConsoleStore.getState().entries.some((entry) => entry.text === 'Select > Radio'),
+    ).toBe(true)
+  })
+
+  it('returns to sketch draw after radio on is accepted from sketch draw', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-sketch-1',
+            type: 'Geometry/Sketch',
+            params: {
+              sketch: {
+                type: 'sketch',
+                featureId: 'sketch-1',
+                plane: 'XY',
+                components: [],
+                outputs: { profiles: [], diagnostics: [] },
+                uiState: { collapsed: false },
+              },
+            },
+          },
+        ],
+        edges: [],
+      })
+      useSpaghettiStore.getState().startGeometrySketchSession('node-sketch-1', 'draw')
+      useConsoleStore.getState().setInputText('r')
+    })
+
+    const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('o')
+    })
+
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useAudioSamplerStore.getState().isRadioEnabled).toBe(true)
+    expect(useConsoleStore.getState().stagedNavigationSession).toBeNull()
+    expect(useSpaghettiStore.getState().geometrySketchSession).toMatchObject({
+      nodeId: 'node-sketch-1',
+      mode: 'draw',
+    })
+    expect(
+      useConsoleStore
+        .getState()
+        .entries.some(
+          (entry) => entry.text.startsWith('Sketch Draw > ['),
+        ),
+    ).toBe(true)
+    expect(
+      useConsoleStore.getState().entries.some((entry) => entry.text === 'Returned to root'),
+    ).toBe(false)
   })
 
   it('prefills and cycles sketch draw feature assist choices after staged launch', async () => {

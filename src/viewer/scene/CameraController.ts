@@ -1,15 +1,33 @@
-import { Box3, MOUSE, MathUtils, Object3D, PerspectiveCamera, Vector3 } from 'three'
+import {
+  Box3,
+  Camera,
+  MathUtils,
+  MOUSE,
+  Object3D,
+  OrthographicCamera,
+  PerspectiveCamera,
+  Vector3,
+} from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+import type { ProjectionMode } from '../../shared/viewSettingsTypes'
 
 export type CameraPreset = 'iso' | 'top' | 'front' | 'left' | 'right'
 export type CameraPose = {
   position: Vector3
   target: Vector3
   up: Vector3
+  projectionMode: ProjectionMode
+  perspectiveFovDeg: number
+  orthoViewHeight: number
 }
 
+const MIN_CAMERA_DISTANCE = 0.05
+const DEFAULT_ORTHO_VIEW_HEIGHT = 4
+const FIT_PADDING = 1.2
+
 export class CameraController {
-  private readonly camera: PerspectiveCamera
+  private readonly perspectiveCamera: PerspectiveCamera
+  private readonly orthographicCamera: OrthographicCamera
   private readonly controls: OrbitControls
   private leftButtonOrbitEnabled = false
   private readonly tmpSize = new Vector3()
@@ -18,6 +36,10 @@ export class CameraController {
   private readonly tmpOffset = new Vector3()
   private readonly tmpPanOffset = new Vector3()
   private readonly tmpPanVertical = new Vector3()
+  private readonly tmpPanHorizontal = new Vector3()
+  private readonly tmpRight = new Vector3()
+  private readonly tmpUp = new Vector3()
+  private readonly tmpCorner = new Vector3()
   private readonly transitionFromPosition = new Vector3()
   private readonly transitionFromTarget = new Vector3()
   private readonly transitionFromUp = new Vector3()
@@ -42,16 +64,28 @@ export class CameraController {
         lastClientY: number
       }
     | null = null
+  private projectionMode: ProjectionMode = 'perspective'
+  private lastPerspectiveFovDeg: number
+  private orthoViewHeight = DEFAULT_ORTHO_VIEW_HEIGHT
+  private viewportWidth = 1
+  private viewportHeight = 1
 
-  public constructor(camera: PerspectiveCamera, domElement: HTMLElement) {
-    this.camera = camera
-    this.controls = new OrbitControls(camera, domElement)
+  public constructor(
+    perspectiveCamera: PerspectiveCamera,
+    orthographicCamera: OrthographicCamera,
+    domElement: HTMLElement,
+  ) {
+    this.perspectiveCamera = perspectiveCamera
+    this.orthographicCamera = orthographicCamera
+    this.lastPerspectiveFovDeg = perspectiveCamera.fov
+    this.controls = new OrbitControls(perspectiveCamera, domElement)
     this.controls.enableDamping = true
     this.controls.dampingFactor = 0.08
     this.controls.screenSpacePanning = false
     this.controls.rotateSpeed = 0.8
     this.controls.zoomSpeed = 1
     this.controls.panSpeed = 0.8
+    this.syncOrthographicFromPerspective()
     this.applyMouseBindings()
   }
 
@@ -59,7 +93,40 @@ export class CameraController {
     return this.controls
   }
 
+  public getProjectionMode(): ProjectionMode {
+    return this.projectionMode
+  }
+
+  public getActiveCamera(): PerspectiveCamera | OrthographicCamera {
+    return this.projectionMode === 'orthographic' ? this.orthographicCamera : this.perspectiveCamera
+  }
+
+  public setViewportSize(width: number, height: number): void {
+    this.viewportWidth = Math.max(width, 1)
+    this.viewportHeight = Math.max(height, 1)
+    this.perspectiveCamera.aspect = this.viewportWidth / this.viewportHeight
+    this.perspectiveCamera.updateProjectionMatrix()
+    this.updateOrthographicFrustum()
+  }
+
+  public setProjectionMode(mode: ProjectionMode): void {
+    if (this.projectionMode === mode) {
+      return
+    }
+    this.cameraTransition = null
+    if (mode === 'orthographic') {
+      this.syncOrthographicFromPerspective()
+      this.controls.object = this.orthographicCamera as Camera
+    } else {
+      this.syncPerspectiveFromOrthographic()
+      this.controls.object = this.perspectiveCamera as Camera
+    }
+    this.projectionMode = mode
+    this.controls.update()
+  }
+
   public update(dt: number): void {
+    const activeCamera = this.getActiveCamera()
     if (this.cameraTransition !== null) {
       this.cameraTransition.elapsed = Math.min(
         this.cameraTransition.elapsed + Math.max(dt, 0),
@@ -73,18 +140,15 @@ export class CameraController {
         linearT < 0.5
           ? 4 * linearT * linearT * linearT
           : 1 - Math.pow(-2 * linearT + 2, 3) / 2
-      this.controls.target.lerpVectors(
-        this.transitionFromTarget,
-        this.transitionToTarget,
-        easedT,
-      )
-      this.camera.position.lerpVectors(
+      this.controls.target.lerpVectors(this.transitionFromTarget, this.transitionToTarget, easedT)
+      activeCamera.position.lerpVectors(
         this.transitionFromPosition,
         this.transitionToPosition,
         easedT,
       )
-      this.camera.up.lerpVectors(this.transitionFromUp, this.transitionToUp, easedT).normalize()
-      this.camera.lookAt(this.controls.target)
+      activeCamera.up.lerpVectors(this.transitionFromUp, this.transitionToUp, easedT).normalize()
+      activeCamera.lookAt(this.controls.target)
+      activeCamera.updateProjectionMatrix()
       if (linearT >= 1) {
         this.cameraTransition = null
       }
@@ -170,17 +234,25 @@ export class CameraController {
     }
     this.cameraTransition = null
     const zoomFactor = deltaY < 0 ? 0.92 : 1.08
-    this.tmpOffset.copy(this.camera.position).sub(this.controls.target)
-    const nextDistance = Math.max(this.tmpOffset.length() * zoomFactor, 0.05)
+    if (this.projectionMode === 'orthographic') {
+      this.orthoViewHeight = Math.max(this.orthoViewHeight * zoomFactor, 0.001)
+      this.updateOrthographicFrustum()
+      this.controls.update()
+      return
+    }
+
+    this.tmpOffset.copy(this.perspectiveCamera.position).sub(this.controls.target)
+    const nextDistance = Math.max(this.tmpOffset.length() * zoomFactor, MIN_CAMERA_DISTANCE)
     if (this.tmpOffset.lengthSq() <= 1e-8) {
       this.tmpOffset.set(1, 1, 1).normalize()
     } else {
       this.tmpOffset.normalize()
     }
-    this.camera.position.copy(this.controls.target).addScaledVector(this.tmpOffset, nextDistance)
-    this.camera.near = Math.max(nextDistance / 100, 0.01)
-    this.camera.far = Math.max(nextDistance * 100, 100)
-    this.camera.updateProjectionMatrix()
+    this.perspectiveCamera.position
+      .copy(this.controls.target)
+      .addScaledVector(this.tmpOffset, nextDistance)
+    this.syncNearFarFromDistance(nextDistance)
+    this.perspectiveCamera.updateProjectionMatrix()
     this.controls.update()
   }
 
@@ -190,27 +262,38 @@ export class CameraController {
       return
     }
 
-    box3.getSize(this.tmpSize)
     box3.getCenter(this.tmpCenter)
-    const maxDim = Math.max(this.tmpSize.x, this.tmpSize.y, this.tmpSize.z, 0.001)
-    const verticalFov = MathUtils.degToRad(this.camera.fov)
-    const fitHeightDistance = maxDim / (2 * Math.tan(verticalFov / 2))
-    const fitWidthDistance = fitHeightDistance / Math.max(this.camera.aspect, 0.01)
-    const distance = 1.2 * Math.max(fitHeightDistance, fitWidthDistance)
-
-    this.tmpDirection
-      .copy(this.camera.position)
-      .sub(this.controls.target)
-      .normalize()
+    const activeCamera = this.getActiveCamera()
+    this.tmpDirection.copy(activeCamera.position).sub(this.controls.target)
     if (!Number.isFinite(this.tmpDirection.lengthSq()) || this.tmpDirection.lengthSq() < 1e-8) {
       this.tmpDirection.set(1, 1, 1).normalize()
+    } else {
+      this.tmpDirection.normalize()
     }
 
+    const viewExtents = this.measureViewPlaneExtents(box3, this.tmpDirection, activeCamera.up)
+    const nextDistance = Math.max(activeCamera.position.distanceTo(this.controls.target), 0.5)
     this.controls.target.copy(this.tmpCenter)
-    this.camera.position.copy(this.tmpCenter).addScaledVector(this.tmpDirection, distance)
-    this.camera.near = Math.max(distance / 100, 0.01)
-    this.camera.far = Math.max(distance * 100, 100)
-    this.camera.updateProjectionMatrix()
+    activeCamera.position.copy(this.tmpCenter).addScaledVector(this.tmpDirection, nextDistance)
+    activeCamera.lookAt(this.controls.target)
+
+    if (this.projectionMode === 'orthographic') {
+      this.orthoViewHeight = Math.max(
+        FIT_PADDING * Math.max(viewExtents.height, viewExtents.width / this.getAspect()),
+        0.001,
+      )
+      this.updateOrthographicFrustum()
+    } else {
+      const verticalFov = MathUtils.degToRad(this.perspectiveCamera.fov)
+      const fitHeightDistance = (viewExtents.height / 2) / Math.max(Math.tan(verticalFov / 2), 1e-6)
+      const fitWidthDistance =
+        (viewExtents.width / 2) /
+        Math.max(Math.tan(verticalFov / 2) * this.getAspect(), 1e-6)
+      const distance = Math.max(FIT_PADDING * Math.max(fitHeightDistance, fitWidthDistance), 0.5)
+      this.perspectiveCamera.position.copy(this.tmpCenter).addScaledVector(this.tmpDirection, distance)
+      this.syncNearFarFromDistance(distance)
+      this.perspectiveCamera.updateProjectionMatrix()
+    }
     this.controls.update()
   }
 
@@ -245,19 +328,24 @@ export class CameraController {
     }
 
     const nextTargetCenter = targetCenter ?? previousCenter
-    const currentDistance = Math.max(this.camera.position.distanceTo(nextTargetCenter), 0.001)
+    const activeCamera = this.getActiveCamera()
+    const currentDistance = Math.max(activeCamera.position.distanceTo(nextTargetCenter), 0.001)
     const nextDistance = currentDistance * (nextMaxDim / previousMaxDim)
 
-    this.tmpDirection.copy(this.camera.position).sub(nextTargetCenter).normalize()
+    this.tmpDirection.copy(activeCamera.position).sub(nextTargetCenter).normalize()
     if (!Number.isFinite(this.tmpDirection.lengthSq()) || this.tmpDirection.lengthSq() < 1e-8) {
       this.tmpDirection.set(1, 1, 1).normalize()
     }
 
     this.controls.target.copy(nextTargetCenter)
-    this.camera.position.copy(nextTargetCenter).addScaledVector(this.tmpDirection, nextDistance)
-    this.camera.near = Math.max(nextDistance / 100, 0.01)
-    this.camera.far = Math.max(nextDistance * 100, 100)
-    this.camera.updateProjectionMatrix()
+    activeCamera.position.copy(nextTargetCenter).addScaledVector(this.tmpDirection, nextDistance)
+    if (this.projectionMode === 'orthographic') {
+      this.orthoViewHeight = Math.max(this.orthoViewHeight * (nextMaxDim / previousMaxDim), 0.001)
+      this.updateOrthographicFrustum()
+    } else {
+      this.syncNearFarFromDistance(nextDistance)
+      this.perspectiveCamera.updateProjectionMatrix()
+    }
     this.controls.update()
     return { center: previousCenter.clone(), maxDim: nextMaxDim }
   }
@@ -270,19 +358,20 @@ export class CameraController {
     }
 
     bounds.getCenter(this.tmpCenter)
+    const activeCamera = this.getActiveCamera()
     if (previousCenter === null) {
-      const offset = this.camera.position.clone().sub(this.controls.target)
+      const offset = activeCamera.position.clone().sub(this.controls.target)
       this.controls.target.copy(this.tmpCenter)
-      this.camera.position.copy(this.tmpCenter).add(offset)
-      this.camera.updateProjectionMatrix()
+      activeCamera.position.copy(this.tmpCenter).add(offset)
+      activeCamera.updateProjectionMatrix()
       this.controls.update()
       return this.tmpCenter.clone()
     }
 
     const delta = this.tmpCenter.clone().sub(previousCenter)
     this.controls.target.add(delta)
-    this.camera.position.add(delta)
-    this.camera.updateProjectionMatrix()
+    activeCamera.position.add(delta)
+    activeCamera.updateProjectionMatrix()
     this.controls.update()
     return this.tmpCenter.clone()
   }
@@ -313,10 +402,14 @@ export class CameraController {
   }
 
   public getPose(): CameraPose {
+    const activeCamera = this.getActiveCamera()
     return {
-      position: this.camera.position.clone(),
+      position: activeCamera.position.clone(),
       target: this.controls.target.clone(),
-      up: this.camera.up.clone(),
+      up: activeCamera.up.clone(),
+      projectionMode: this.projectionMode,
+      perspectiveFovDeg: this.lastPerspectiveFovDeg,
+      orthoViewHeight: this.orthoViewHeight,
     }
   }
 
@@ -332,17 +425,18 @@ export class CameraController {
       return
     }
 
+    const activeCamera = this.getActiveCamera()
     const nextTarget = options?.target?.clone() ?? this.controls.target.clone()
-    const currentDistance = Math.max(this.camera.position.distanceTo(this.controls.target), 0.5)
+    const currentDistance = Math.max(activeCamera.position.distanceTo(this.controls.target), 0.5)
     const nextUp =
       Math.abs(normalized.dot(new Vector3(0, 1, 0))) > 0.98
         ? new Vector3(0, 0, -1)
         : new Vector3(0, 1, 0)
     const nextPosition = nextTarget.clone().addScaledVector(normalized, currentDistance)
 
-    this.transitionFromPosition.copy(this.camera.position)
+    this.transitionFromPosition.copy(activeCamera.position)
     this.transitionFromTarget.copy(this.controls.target)
-    this.transitionFromUp.copy(this.camera.up)
+    this.transitionFromUp.copy(activeCamera.up)
     this.transitionToPosition.copy(nextPosition)
     this.transitionToTarget.copy(nextTarget)
     this.transitionToUp.copy(nextUp)
@@ -358,9 +452,13 @@ export class CameraController {
       durationMs?: number
     },
   ): void {
-    this.transitionFromPosition.copy(this.camera.position)
+    this.lastPerspectiveFovDeg = pose.perspectiveFovDeg
+    this.orthoViewHeight = Math.max(pose.orthoViewHeight, 0.001)
+    this.setProjectionMode(pose.projectionMode)
+    const activeCamera = this.getActiveCamera()
+    this.transitionFromPosition.copy(activeCamera.position)
     this.transitionFromTarget.copy(this.controls.target)
-    this.transitionFromUp.copy(this.camera.up)
+    this.transitionFromUp.copy(activeCamera.up)
     this.transitionToPosition.copy(pose.position)
     this.transitionToTarget.copy(pose.target)
     this.transitionToUp.copy(pose.up)
@@ -372,21 +470,23 @@ export class CameraController {
 
   public snapToDirection(direction: Vector3): void {
     this.cameraTransition = null
+    const activeCamera = this.getActiveCamera()
     const target = this.controls.target.clone()
-    const currentDistance = Math.max(this.camera.position.distanceTo(target), 0.5)
+    const currentDistance = Math.max(activeCamera.position.distanceTo(target), 0.5)
     const normalized = direction.clone().normalize()
     if (!Number.isFinite(normalized.lengthSq()) || normalized.lengthSq() < 1e-8) {
       return
     }
 
     if (Math.abs(normalized.dot(new Vector3(0, 1, 0))) > 0.98) {
-      this.camera.up.set(0, 0, -1)
+      activeCamera.up.set(0, 0, -1)
     } else {
-      this.camera.up.set(0, 1, 0)
+      activeCamera.up.set(0, 1, 0)
     }
 
-    this.camera.position.copy(target).addScaledVector(normalized, currentDistance)
-    this.camera.lookAt(target)
+    activeCamera.position.copy(target).addScaledVector(normalized, currentDistance)
+    activeCamera.lookAt(target)
+    activeCamera.updateProjectionMatrix()
     this.controls.update()
   }
 
@@ -396,23 +496,124 @@ export class CameraController {
     this.controls.mouseButtons.RIGHT = null
   }
 
+  private getAspect(): number {
+    return Math.max(this.viewportWidth / Math.max(this.viewportHeight, 1), 0.01)
+  }
+
+  private syncNearFarFromDistance(distance: number): void {
+    this.perspectiveCamera.near = Math.max(distance / 100, 0.01)
+    this.perspectiveCamera.far = Math.max(distance * 100, 100)
+  }
+
+  private updateOrthographicFrustum(): void {
+    const halfHeight = this.orthoViewHeight / 2
+    const halfWidth = halfHeight * this.getAspect()
+    this.orthographicCamera.left = -halfWidth
+    this.orthographicCamera.right = halfWidth
+    this.orthographicCamera.top = halfHeight
+    this.orthographicCamera.bottom = -halfHeight
+    const orthoDistance = Math.max(
+      this.orthographicCamera.position.distanceTo(this.controls.target),
+      0.5,
+    )
+    this.orthographicCamera.near = Math.max(orthoDistance / 100, 0.01)
+    this.orthographicCamera.far = Math.max(orthoDistance * 100, 100)
+    this.orthographicCamera.updateProjectionMatrix()
+  }
+
+  private syncOrthographicFromPerspective(): void {
+    const distance = Math.max(
+      this.perspectiveCamera.position.distanceTo(this.controls.target),
+      MIN_CAMERA_DISTANCE,
+    )
+    this.lastPerspectiveFovDeg = this.perspectiveCamera.fov
+    this.orthoViewHeight = Math.max(
+      2 * distance * Math.tan(MathUtils.degToRad(this.perspectiveCamera.fov / 2)),
+      0.001,
+    )
+    this.orthographicCamera.position.copy(this.perspectiveCamera.position)
+    this.orthographicCamera.up.copy(this.perspectiveCamera.up)
+    this.orthographicCamera.lookAt(this.controls.target)
+    this.updateOrthographicFrustum()
+  }
+
+  private syncPerspectiveFromOrthographic(): void {
+    this.perspectiveCamera.fov = this.lastPerspectiveFovDeg
+    this.perspectiveCamera.position.copy(this.orthographicCamera.position)
+    this.perspectiveCamera.up.copy(this.orthographicCamera.up)
+    const distance = Math.max(
+      this.perspectiveCamera.position.distanceTo(this.controls.target),
+      MIN_CAMERA_DISTANCE,
+    )
+    this.syncNearFarFromDistance(distance)
+    this.perspectiveCamera.updateProjectionMatrix()
+    this.perspectiveCamera.lookAt(this.controls.target)
+  }
+
   private panByClientDelta(deltaX: number, deltaY: number): void {
+    const activeCamera = this.getActiveCamera()
+    const elementWidth = Math.max(this.controls.domElement?.clientWidth ?? 1, 1)
     const elementHeight = Math.max(this.controls.domElement?.clientHeight ?? 1, 1)
-    this.tmpOffset.copy(this.camera.position).sub(this.controls.target)
-    const targetDistance =
-      this.tmpOffset.length() * Math.tan(((this.camera.fov / 2) * Math.PI) / 180)
-    const panX = (2 * deltaX * targetDistance) / elementHeight
-    const panY = (2 * deltaY * targetDistance) / elementHeight
+    let worldPanX = 0
+    let worldPanY = 0
 
-    this.camera.updateMatrix()
-    this.tmpPanOffset.setFromMatrixColumn(this.camera.matrix, 0).multiplyScalar(-panX)
-    this.tmpPanVertical
-      .copy(this.camera.up)
-      .setLength(panY)
-    this.tmpPanOffset.add(this.tmpPanVertical)
+    if (this.projectionMode === 'orthographic') {
+      worldPanX = (deltaX * this.orthoViewHeight * this.getAspect()) / elementWidth
+      worldPanY = (deltaY * this.orthoViewHeight) / elementHeight
+    } else {
+      this.tmpOffset.copy(this.perspectiveCamera.position).sub(this.controls.target)
+      const targetDistance =
+        this.tmpOffset.length() * Math.tan(((this.perspectiveCamera.fov / 2) * Math.PI) / 180)
+      worldPanX = (2 * deltaX * targetDistance * this.getAspect()) / elementWidth
+      worldPanY = (2 * deltaY * targetDistance) / elementHeight
+    }
 
-    this.camera.position.add(this.tmpPanOffset)
+    activeCamera.updateMatrixWorld()
+    this.tmpPanHorizontal
+      .setFromMatrixColumn(activeCamera.matrixWorld, 0)
+      .multiplyScalar(-worldPanX)
+    this.tmpPanVertical.copy(activeCamera.up).normalize().multiplyScalar(worldPanY)
+    this.tmpPanOffset.copy(this.tmpPanHorizontal).add(this.tmpPanVertical)
+
+    activeCamera.position.add(this.tmpPanOffset)
     this.controls.target.add(this.tmpPanOffset)
+    activeCamera.updateProjectionMatrix()
     this.controls.update()
+  }
+
+  private measureViewPlaneExtents(
+    box3: Box3,
+    direction: Vector3,
+    up: Vector3,
+  ): { width: number; height: number } {
+    this.tmpRight.crossVectors(direction, up).normalize()
+    if (!Number.isFinite(this.tmpRight.lengthSq()) || this.tmpRight.lengthSq() < 1e-8) {
+      this.tmpRight.set(1, 0, 0)
+    }
+    this.tmpUp.crossVectors(this.tmpRight, direction).normalize()
+
+    let minX = Number.POSITIVE_INFINITY
+    let maxX = Number.NEGATIVE_INFINITY
+    let minY = Number.POSITIVE_INFINITY
+    let maxY = Number.NEGATIVE_INFINITY
+
+    for (const x of [box3.min.x, box3.max.x]) {
+      for (const y of [box3.min.y, box3.max.y]) {
+        for (const z of [box3.min.z, box3.max.z]) {
+          this.tmpCorner.set(x, y, z).sub(this.tmpCenter)
+          const projectedX = this.tmpCorner.dot(this.tmpRight)
+          const projectedY = this.tmpCorner.dot(this.tmpUp)
+          minX = Math.min(minX, projectedX)
+          maxX = Math.max(maxX, projectedX)
+          minY = Math.min(minY, projectedY)
+          maxY = Math.max(maxY, projectedY)
+        }
+      }
+    }
+
+    return {
+      width: Math.max(maxX - minX, 0.001),
+      height: Math.max(maxY - minY, 0.001),
+    }
   }
 }

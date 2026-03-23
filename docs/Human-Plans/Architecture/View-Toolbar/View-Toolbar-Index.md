@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+9. 2026-03-23 14:07: Added the first standalone future phase doc under `Future/` for `[5.0I-1] Shared View Command Dispatch And Projection Console Entry`, so the family now has an implementation-ready planning surface for the initial `Orthographic` versus `Perspective` console-plus-toolbar seam instead of only the umbrella phase summary
 8. 2026-03-23 01:02: Added a concrete roadmap home for this family after reviewing the live roadmap lanes, placing `View-Toolbar` under the pre-workspace bridge lane as `[5.0I] View Toolbar And Shared View State` with `[5.0I-1]` through `[5.0I-4]` matching the local phase ladder
 7. 2026-03-23 00:55: Reworked the bottom of this file into a real phased rollout, replacing the looser future-split note with a four-phase ladder and making the first cut explicitly about shared view-command dispatch plus the new `Camera > Projection > Orthographic / Perspective` console path
 6. 2026-03-23 00:50: Added the first explicit projection console-path recommendation, locking the shared `Camera > Projection > [Orthographic, Perspective]` shape with local `O` / `P` aliases and noting the same command should also be reachable under `Graph > Sketch > Sketch Draw`
@@ -90,7 +91,9 @@ Use this folder like this:
   - control-family summary
   - cross-doc ownership summary
 - `Future/`
-  - later standalone view-toolbar execution/planning docs
+  - standalone view-toolbar execution/planning docs
+  - current first phase doc:
+    - `View_Toolbar_Phase 5.0I-1 - Shared View Command Dispatch And Projection Console Entry.md`
 - `Shipped/`
   - later shipped records if the family grows into multiple implemented cuts
 

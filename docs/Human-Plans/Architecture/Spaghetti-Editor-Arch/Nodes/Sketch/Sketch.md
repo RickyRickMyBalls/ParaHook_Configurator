@@ -3,6 +3,8 @@
 ## Doc Header
 
 ### Doc History
+68. 2026-03-23 17:19: Marked `[3.2B-Console-1] SketchDraw Scoped Command Surface` complete after the first sketch-console cleanup shipped, moved its standalone phase record into `Shipped/`, and updated the sketch family so `Radio`-while-drawing now reads as landed local-scope behavior while the later staged-routing and shared-provider follow-ons stay open
+67. 2026-03-23 14:58: Added a new open `3.2B-Console` sketch-console subfamily with standalone future phase docs, giving the sketch architecture a dedicated place to plan the staged `SketchDraw` command-surface cleanup, the later migration from feature-assist branching into staged/scoped command routing, and the eventual shared sketch command tree/provider model
 66. 2026-03-23 00:43: Tightened the open `[3.2B-DrawSketch-6.1] Endpoint Snap First Pass` child phase into a more implementation-ready spec inside both the standalone future phase doc and this sketch family mirror, locking the current snap seams, the first committed endpoint extraction set, the origin-versus-endpoint ranking rule, the first `hoverSnapTarget` expansion, and the concrete helper/store/viewer verification targets
 65. 2026-03-23 00:20: Added a bigger-vision AutoCAD-style modify-command backlog to the top of the open `[3.2B-DrawSketch-7] Entity Transform And Modify Tools` family, so the doc now explicitly frames `DrawSketch-7` as the long-term home for transform, reshape/topology, and structure/cleanup commands on existing sketch entities
 64. 2026-03-23 00:16: Expanded the new open `[3.2B-DrawSketch-7] Entity Transform And Modify Tools` family to include the broader AutoCAD-style modify backlog, then re-split it into a safer six-step ladder of `[7.0] Move Copy And Rotate`, `[7.1] Scale Mirror And Array`, `[7.2] Offset Fillet And Chamfer`, `[7.3] Stretch`, `[7.4] Trim And Extend`, and `[7.5] Explode And Join`
@@ -3271,6 +3273,106 @@ Use these subphases:
 - `[3.2B-S8]`
   - `SketchPlane Move Again Re-Arm`
   - open follow-on for local `Move Again` / `M` whole-move re-entry inside `SketchPlane > Move`
+
+### [ ]Sketch Console Vision - `3.2B-Console`
+
+This vision should now be treated as a parent bucket with its own subphases.
+
+Use these subphases:
+- `[3.2B-Console-1]`
+  - `SketchDraw Scoped Command Surface`
+  - shipped cleanup that makes `SketchDraw` read as one explicit local command scope and keeps `Radio` reachable while drawing
+- `[3.2B-Console-2]`
+  - `SketchDraw Staged Command Routing`
+  - move `SketchDraw` command selection into staged/scoped routing while still handing active drawing work off to the existing sketch session/tool runtime
+- `[3.2B-Console-3]`
+  - `Shared Sketch Command Tree And Scope Providers`
+  - unify root sketch scope, `SketchPlane`, and `SketchDraw` under one sketch-local command tree/provider model instead of keeping separate staged and feature-assist routers
+
+## [x] [3.2B-Console-1] - `SketchDraw Scoped Command Surface`
+
+`SketchDraw` currently lives inside the same console shell as the rest of the app, but it still behaves like a local branch inside `ConsoleDock` instead of a clearly modeled command scope.
+
+Purpose:
+- make `SketchDraw` read as one explicit local command surface
+- keep the current draw session durable
+- stop treating each new local command as another one-off `ConsoleDock` branch
+
+Owns:
+- a named `SketchDraw` command scope for idle command selection
+- explicit local command groups for:
+  - `Tool Selection`
+  - `Camera`
+  - `Zoom`
+  - `Session Controls`
+- prompt language that clearly reads as one scope with local follow-up choices
+
+Does not own:
+- full staged migration yet
+- point-entry/runtime draw-state redesign
+- new draw tools
+
+Locked direction:
+- command selection should become cleaner first before the deeper staged migration
+- active drawing/runtime tool state still belongs to the existing sketch session model
+
+Shipped result:
+- `SketchDraw` now behaves as a real local command scope instead of a sealed console branch
+- global `Radio` remains reachable while `SketchDraw` is active
+- `Radio on/off` returns to the active sketch-draw scope instead of root
+
+## [ ] [3.2B-Console-2] - `SketchDraw Staged Command Routing`
+
+Once `SketchDraw` reads as one real local scope, command selection should move into the same staged/scoped command model used by root console families.
+
+Purpose:
+- make `SketchDraw` command selection staged
+- stop relying on feature-assist-only branching for command families like `Camera > Projection`
+- keep tool runtime handoff inside the existing sketch draw session
+
+Owns:
+- staged/scoped `SketchDraw` command selection
+- staged local branches such as:
+  - `Camera > Projection > Orthographic`
+  - `Camera > Projection > Perspective`
+  - `Zoom`
+  - `Previous`
+  - `Delete`
+  - `Back`
+  - `X`
+- handoff from staged command choice into the existing draw-tool session/runtime
+
+Does not own:
+- turning every point-by-point draft step into staged navigation
+- replacing `geometrySketchSession`
+
+Locked direction:
+- stage command selection
+- do not stage the full drawing interaction itself
+
+## [ ] [3.2B-Console-3] - `Shared Sketch Command Tree And Scope Providers`
+
+After `SketchDraw` uses staged routing, the wider sketch family should stop splitting command ownership between staged root scopes, sketch-local feature-assist branches, and direct token parsing.
+
+Purpose:
+- give `SketchPlane` and `SketchDraw` one shared sketch-local command tree
+- let sketch surfaces contribute scoped command providers instead of hard-coding behavior in `ConsoleDock`
+- keep one console surface with one command architecture underneath
+
+Owns:
+- one shared sketch-local command tree/provider model
+- root selected-sketch scope plus child providers for:
+  - `SketchPlane`
+  - `SketchDraw`
+- shared alias/choice ownership across toolbar and console surfaces
+
+Does not own:
+- a whole-app global command registry for every feature family
+- fuzzy search / natural-language command routing
+
+Locked direction:
+- the console should stay one surface
+- the sketch family should stop using multiple unrelated command-routing styles underneath that one surface
 
 ## [x] [3.2B-S1] - `Sketch Session Hierarchy Model`
 

@@ -464,6 +464,7 @@ const buildSketchDrawFeatureAssistDescriptor = (
     { canonicalToken: 'PLINE', aliases: ['PL'], label: 'PLine' },
     { canonicalToken: 'RECTANGLE', aliases: ['REC'], label: 'Rectangle' },
     { canonicalToken: 'CIRCLE', aliases: ['CC'], label: 'Circle' },
+    { canonicalToken: 'CAMERA', aliases: ['C'], label: 'Camera' },
     { canonicalToken: 'ZOOM', aliases: ['Z'], label: 'Zoom' },
     ...(geometrySketchSession.selectedComponentIds.length > 0
       ? [{ canonicalToken: 'DELETE', aliases: ['DEL'], label: 'Delete' }]
@@ -560,6 +561,30 @@ const buildSketchDrawFeatureAssistDescriptor = (
   }
 }
 
+const buildSketchDrawCameraAssistDescriptor = (): ConsoleAssistDescriptor => ({
+  label: 'Sketch Draw > Camera',
+  breadcrumb: ['Graph', 'Sketch', 'Sketch Draw', 'Camera'],
+  prefill: 'Projection',
+  choices: [
+    { canonicalToken: 'PROJECTION', aliases: [], label: 'Projection' },
+    { canonicalToken: 'BACK', aliases: ['B'], label: 'Back' },
+  ],
+})
+
+const buildSketchDrawCameraProjectionAssistDescriptor = (): ConsoleAssistDescriptor => {
+  const projectionMode = useUiPrefsStore.getState().view.projectionMode
+  return {
+    label: 'Sketch Draw > Camera > Projection',
+    breadcrumb: ['Graph', 'Sketch', 'Sketch Draw', 'Camera', 'Projection'],
+    prefill: projectionMode === 'orthographic' ? 'Orthographic' : 'Perspective',
+    choices: [
+      { canonicalToken: 'ORTHOGRAPHIC', aliases: ['O'], label: 'Orthographic' },
+      { canonicalToken: 'PERSPECTIVE', aliases: ['P'], label: 'Perspective' },
+      { canonicalToken: 'BACK', aliases: ['B'], label: 'Back' },
+    ],
+  }
+}
+
 const getActiveFeatureAssistDescriptor = ({
   sketchPlanePickSession,
   geometrySketchSession,
@@ -585,6 +610,10 @@ const getStagedScopeLabel = (session: ConsoleStagedNavigationSession | null): st
   switch (session.scopeId) {
     case 'root':
       return 'Root'
+    case 'cameraRoot':
+      return 'Camera'
+    case 'cameraProjectionRoot':
+      return 'Camera > Projection'
     case 'zoomRoot':
       return 'Zoom'
     case 'sketchDrawZoomRoot':
@@ -1777,13 +1806,23 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
             stagedResult.actionId === 'radio.closeToolbar'
           ) {
             let radioStateAfterAction = null as ReturnType<typeof useAudioSamplerStore.getState> | null
+            const returnToSketchDrawAfterRadio =
+              spaghettiState.geometrySketchSession?.mode === 'draw'
             if (stagedResult.actionId === 'radio.on') {
-              enterGuidedRootSession()
+              if (returnToSketchDrawAfterRadio) {
+                setStagedNavigationSession(null)
+              } else {
+                enterGuidedRootSession()
+              }
               useAudioSamplerStore.getState().turnRadioOn()
               radioStateAfterAction = useAudioSamplerStore.getState()
               requestRadioRuntimeWarmup(radioStateAfterAction.sourceUrl)
             } else if (stagedResult.actionId === 'radio.off') {
-              enterGuidedRootSession()
+              if (returnToSketchDrawAfterRadio) {
+                setStagedNavigationSession(null)
+              } else {
+                enterGuidedRootSession()
+              }
               useAudioSamplerStore.getState().turnRadioOff()
             } else if (stagedResult.actionId === 'radio.openToolbar') {
               setStagedNavigationSession(stagedResult.session)
@@ -1832,18 +1871,33 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
               })
             }
             if (stagedResult.actionId === 'radio.on' || stagedResult.actionId === 'radio.off') {
-              appendConsoleEntry({
-                layer: 'Commands',
-                text: 'Returned to root',
-                source: 'console',
-                severity: 'info',
-              })
-              appendConsoleEntry({
-                layer: 'Commands',
-                text: ROOT_PROMPT_TEXT,
-                source: 'console',
-                severity: 'info',
-              })
+              if (returnToSketchDrawAfterRadio) {
+                const nextDescriptor = getActiveFeatureAssistDescriptor({
+                  sketchPlanePickSession: useSpaghettiStore.getState().sketchPlanePickSession,
+                  geometrySketchSession: useSpaghettiStore.getState().geometrySketchSession,
+                })
+                if (nextDescriptor !== null) {
+                  appendConsoleEntry({
+                    layer: 'Commands',
+                    text: buildFeatureAssistPromptText(nextDescriptor),
+                    source: 'console',
+                    severity: 'info',
+                  })
+                }
+              } else {
+                appendConsoleEntry({
+                  layer: 'Commands',
+                  text: 'Returned to root',
+                  source: 'console',
+                  severity: 'info',
+                })
+                appendConsoleEntry({
+                  layer: 'Commands',
+                  text: ROOT_PROMPT_TEXT,
+                  source: 'console',
+                  severity: 'info',
+                })
+              }
             } else {
               appendConsoleEntry({
                 layer: 'Commands',
@@ -1894,6 +1948,8 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
           if (
             stagedResult.actionId === 'camera.pan' ||
             stagedResult.actionId === 'camera.orbit' ||
+            stagedResult.actionId === 'camera.projection.orthographic' ||
+            stagedResult.actionId === 'camera.projection.perspective' ||
             stagedResult.actionId === 'zoom.model.all' ||
             stagedResult.actionId === 'zoom.model.extents' ||
             stagedResult.actionId === 'zoom.model.previous' ||
@@ -2012,6 +2068,23 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
                   stagedResult.actionId === 'camera.pan'
                     ? 'Pan armed: drag in the viewport with LMB'
                     : 'Orbit armed: drag in the viewport with LMB',
+                source: 'console',
+                severity: 'info',
+              })
+            } else if (
+              stagedResult.actionId === 'camera.projection.orthographic' ||
+              stagedResult.actionId === 'camera.projection.perspective'
+            ) {
+              const projectionMode =
+                stagedResult.actionId === 'camera.projection.orthographic'
+                  ? 'orthographic'
+                  : 'perspective'
+              useUiPrefsStore.getState().setViewKey('projectionMode', projectionMode)
+              appendConsoleEntry({
+                layer: 'View',
+                text: `Projection: ${
+                  projectionMode === 'orthographic' ? 'Orthographic' : 'Perspective'
+                }`,
                 source: 'console',
                 severity: 'info',
               })
@@ -2621,6 +2694,179 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
         ) {
           submitDrawCommand(trimmedInput, trimmedInput)
           return
+        }
+        if (trimmedInput === 'radio' || trimmedInput === 'r') {
+          const rawToken = inputText.trim()
+          const stagedResult = submitConsoleStagedNavigationToken(null, rawToken, stagedContext)
+          if (stagedResult.kind === 'advance' && stagedResult.session.scopeId === 'radioRoot') {
+            const commandIdentity = resolveConsoleRadioCommandIdentity({
+              kind: 'stagedAdvance',
+              activeScopeId: null,
+              matchedCanonicalToken: stagedResult.matchedChoice.canonicalToken,
+              matchedLabel: stagedResult.matchedChoice.label,
+            })
+            appendConsoleEntry({
+              layer: 'Commands',
+              commandLineKind: 'user',
+              text: `> ${rawToken}`,
+            })
+            pushCommandHistory(rawToken)
+            trackRadioCommandIdentity(commandIdentity)
+            requestRadioBurst(commandIdentity, 'enter')
+            setStagedNavigationSession(stagedResult.session)
+            appendConsoleEntry({
+              layer: 'Commands',
+              text: formatStagedBreadcrumb(stagedResult.breadcrumb),
+              source: 'console',
+              severity: 'info',
+            })
+            appendConsoleEntry({
+              layer: 'Commands',
+              text: buildStagedPromptText(stagedResult.session, stagedResult.validChoices),
+              source: 'console',
+              severity: 'info',
+            })
+            return
+          }
+        }
+        const assistBreadcrumb = featureAssistDescriptor?.breadcrumb ?? null
+        const isSketchDrawRootAssist =
+          assistBreadcrumb !== null &&
+          assistBreadcrumb.length === 3 &&
+          assistBreadcrumb[0] === 'Graph' &&
+          assistBreadcrumb[1] === 'Sketch' &&
+          assistBreadcrumb[2] === 'Sketch Draw'
+        const isSketchDrawCameraAssist =
+          assistBreadcrumb !== null &&
+          assistBreadcrumb.length === 4 &&
+          assistBreadcrumb[0] === 'Graph' &&
+          assistBreadcrumb[1] === 'Sketch' &&
+          assistBreadcrumb[2] === 'Sketch Draw' &&
+          assistBreadcrumb[3] === 'Camera'
+        const isSketchDrawCameraProjectionAssist =
+          assistBreadcrumb !== null &&
+          assistBreadcrumb.length === 5 &&
+          assistBreadcrumb[0] === 'Graph' &&
+          assistBreadcrumb[1] === 'Sketch' &&
+          assistBreadcrumb[2] === 'Sketch Draw' &&
+          assistBreadcrumb[3] === 'Camera' &&
+          assistBreadcrumb[4] === 'Projection'
+        if (isSketchDrawRootAssist && (trimmedInput === 'camera' || trimmedInput === 'c')) {
+          const commandIdentity = resolveFeatureAssistSubmitIdentity(trimmedInput)
+          appendConsoleEntry({
+            layer: 'Commands',
+            commandLineKind: 'user',
+            text: `> ${trimmedInput}`,
+          })
+          pushCommandHistory(trimmedInput)
+          requestRadioBurst(commandIdentity, 'enter')
+          const nextDescriptor = buildSketchDrawCameraAssistDescriptor()
+          useConsoleStore.getState().setFeatureAssistDescriptor(nextDescriptor)
+          appendConsoleEntry({
+            layer: 'Commands',
+            text: buildFeatureAssistPromptText(nextDescriptor),
+            source: 'console',
+            severity: 'info',
+          })
+          return
+        }
+        if (isSketchDrawCameraAssist) {
+          if (trimmedInput === 'projection') {
+            const commandIdentity = resolveFeatureAssistSubmitIdentity(trimmedInput)
+            appendConsoleEntry({
+              layer: 'Commands',
+              commandLineKind: 'user',
+              text: `> ${trimmedInput}`,
+            })
+            pushCommandHistory(trimmedInput)
+            requestRadioBurst(commandIdentity, 'enter')
+            const nextDescriptor = buildSketchDrawCameraProjectionAssistDescriptor()
+            useConsoleStore.getState().setFeatureAssistDescriptor(nextDescriptor)
+            appendConsoleEntry({
+              layer: 'Commands',
+              text: buildFeatureAssistPromptText(nextDescriptor),
+              source: 'console',
+              severity: 'info',
+            })
+            return
+          }
+          if (trimmedInput === 'back' || trimmedInput === 'b') {
+            const commandIdentity = resolveFeatureAssistSubmitIdentity(trimmedInput)
+            appendConsoleEntry({
+              layer: 'Commands',
+              commandLineKind: 'user',
+              text: `> ${trimmedInput}`,
+            })
+            pushCommandHistory(trimmedInput)
+            requestRadioBurst(commandIdentity, 'enter')
+            const nextDescriptor = buildSketchDrawFeatureAssistDescriptor(geometrySketchSession)
+            useConsoleStore.getState().setFeatureAssistDescriptor(nextDescriptor)
+            appendConsoleEntry({
+              layer: 'Commands',
+              text: buildFeatureAssistPromptText(nextDescriptor),
+              source: 'console',
+              severity: 'info',
+            })
+            return
+          }
+        }
+        if (isSketchDrawCameraProjectionAssist) {
+          if (
+            trimmedInput === 'orthographic' ||
+            trimmedInput === 'o' ||
+            trimmedInput === 'perspective' ||
+            trimmedInput === 'p'
+          ) {
+            const commandIdentity = resolveFeatureAssistSubmitIdentity(trimmedInput)
+            appendConsoleEntry({
+              layer: 'Commands',
+              commandLineKind: 'user',
+              text: `> ${trimmedInput}`,
+            })
+            pushCommandHistory(trimmedInput)
+            requestRadioBurst(commandIdentity, 'enter')
+            const projectionMode =
+              trimmedInput === 'orthographic' || trimmedInput === 'o'
+                ? 'orthographic'
+                : 'perspective'
+            useUiPrefsStore.getState().setViewKey('projectionMode', projectionMode)
+            appendConsoleEntry({
+              layer: 'View',
+              text: `Projection: ${
+                projectionMode === 'orthographic' ? 'Orthographic' : 'Perspective'
+              }`,
+              source: 'console',
+              severity: 'info',
+            })
+            const nextDescriptor = buildSketchDrawFeatureAssistDescriptor(geometrySketchSession)
+            useConsoleStore.getState().setFeatureAssistDescriptor(nextDescriptor)
+            appendConsoleEntry({
+              layer: 'Commands',
+              text: buildFeatureAssistPromptText(nextDescriptor),
+              source: 'console',
+              severity: 'info',
+            })
+            return
+          }
+          if (trimmedInput === 'back' || trimmedInput === 'b') {
+            const commandIdentity = resolveFeatureAssistSubmitIdentity(trimmedInput)
+            appendConsoleEntry({
+              layer: 'Commands',
+              commandLineKind: 'user',
+              text: `> ${trimmedInput}`,
+            })
+            pushCommandHistory(trimmedInput)
+            requestRadioBurst(commandIdentity, 'enter')
+            const nextDescriptor = buildSketchDrawCameraAssistDescriptor()
+            useConsoleStore.getState().setFeatureAssistDescriptor(nextDescriptor)
+            appendConsoleEntry({
+              layer: 'Commands',
+              text: buildFeatureAssistPromptText(nextDescriptor),
+              source: 'console',
+              severity: 'info',
+            })
+            return
+          }
         }
         if (trimmedInput === 'zoom' || trimmedInput === 'z') {
           appendConsoleEntry({
