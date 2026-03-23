@@ -7,8 +7,8 @@ type CollapsedEditorProps = {
   graphDocumentId: string
   focusNodeId: string | null
   isCanvasToolbarVisible: boolean
-  viewMode: 'expanded' | 'collapsed'
-  onSetViewMode: (viewMode: 'expanded' | 'collapsed') => void
+  viewMode: 'expanded' | 'essentials' | 'collapsed'
+  onSetViewMode: (viewMode: 'expanded' | 'essentials' | 'collapsed') => void
 }
 
 const compareByNodeId = (a: SpaghettiNode, b: SpaghettiNode): number =>

@@ -3,6 +3,12 @@
 ## Doc Header
 
 ### Doc History
+94. 2026-03-23 13:50: Moved the shipped `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Fondation/Future/Nodes_Phase 3.2A-0.1 - Sketch To Extrude To Preview Contract Repair.md` record into `Nodes-Fondation/Shipped/`, refreshed the `Spaghetti-Editor-Arch` subtree listing, and kept the docs map aligned with the shipped graph-native mesh-preview repair after the standalone node phase moved out of the future queue
+93. 2026-03-23 13:24: Moved the shipped `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase 5.3A-2 - Graph-Native Worker Contract And Separate-Build Identity.md` record into `Worker/Shipped/`, refreshed the Worker subtree listing, and kept the docs map aligned with the umbrella Worker and roadmap surfaces now that the graph-native request/build-unit phase is completed history instead of a pending future plan
+92. 2026-03-23 01:10: Added `docs/Bugs/4_GeometrySketch-Extrude-Profile-Handoff-Regression.md` to the docs map and refreshed the master bug report so the current `Geometry/Sketch -> Geometry/Extrude` shape-loss regression now has a dedicated bug note plus a listed entry in `0_Bug_Report.md`
+91. 2026-03-23 00:31: Added `docs/Human-Plans/Architecture/AutoCAD-Command-Backlog.md` to the architecture docs map as the new broad AutoCAD-style command inventory for ParaHook, separating the long-term command-adoption target from narrower family docs like `Sketch`, `Camera-Controls`, and node-specific phase plans
+90. 2026-03-22 23:28: Added `docs/Human-Plans/Architecture/View-Toolbar/ThreeViewier.md` to the architecture docs map and refreshed the `View-Toolbar` subtree so the new folder now includes both the umbrella toolbar-direction index and a broader Three.js viewer settings inventory grounded in the current ParaHook runtime seams
+89. 2026-03-22 22:55: Added `docs/Human-Plans/Architecture/View-Toolbar/View-Toolbar-Index.md` to the architecture docs map, created the new folderized `View-Toolbar` family with `Future/` and `Shipped/`, and refreshed the architecture subtree so explicit view-toolbar planning now has a canonical home separate from the broader camera-controls, console, and gizmo docs
 88. 2026-03-22 22:32: Moved the shipped `docs/Human-Plans/Architecture/Camera-Controls/Future/Camera_Controls_Phase 5.0H-4 - Camera Console Commands.md` record into `Shipped/`, refreshed `Camera_Controls-Index.md`, and updated the camera-controls subtree so the docs map now shows the console-camera cut as landed history instead of a pending future phase
 87. 2026-03-22 21:47: Added `docs/Human-Plans/Architecture/Camera-Controls/Future/Camera_Controls_Phase 5.0H-4 - Camera Console Commands.md` to the architecture docs map and refreshed `Camera_Controls-Index.md`, so the next open camera-controls cut now has a dedicated implementation-ready planning surface after the shipped sketch block, model-viewport baseline, and graph-canvas coexistence work
 86. 2026-03-22 21:11: Added `docs/Human-Plans/Architecture/Camera-Controls/Future/Camera_Controls_Phase 5.0H-3 - Spaghetti Canvas And Model Viewport Coexistence.md` to the architecture docs map and refreshed `Camera_Controls-Index.md`, so the next camera-controls cut now has a dedicated implementation-ready planning surface after the shipped sketch and model-viewport camera baseline work
@@ -430,6 +436,8 @@ Rule notes:
         - `Spaghetti-Types.md`
         - `System-Map.md`
         - `Terminology-Decisions.md`
+        - `View-Toolbar/ThreeViewier.md`
+        - `View-Toolbar/View-Toolbar-Index.md`
         - `v15Theme.md`
         - `Worker/Worker.md`
         - `Workspace-Modes/Workspace-Modes-Index.md`
@@ -445,21 +453,26 @@ Rule notes:
             - `Shipped/Camera_Controls_Phase 5.0H-4 - Camera Console Commands.md`
 #### -------Pasta-Path
             - `Pasta-Path-Index.md`
+#### -------View-Toolbar
+            - `ThreeViewier.md`
+            - `View-Toolbar-Index.md`
 #### -------Worker
             - `Worker.md`
-            - `Future/Worker_Phase 5.3A-2 - Graph-Native Worker Contract And Separate-Build Identity.md`
+            - `Shipped/Worker_Phase 5.3A-2 - Graph-Native Worker Contract And Separate-Build Identity.md`
             - `Future/Worker_Phase 5.3A-4 - Dispatcher Boundary Cleanup.md`
             - `Shipped/Worker_Phase 5.3A-3 - Worker Lane Definition And Execution-Intent Model.md`
             - `Shipped/Worker_Phase 5.3A-1 - Worker Audit And Legacy Startup Inventory.md`
 #### -------Spaghetti-Editor-Arch
             - `Spaghetti-Editor-Explained.md`
             - `Nodes/Nodes-Index.md`
+            - `Nodes/Nodes-Fondation/Shipped/Nodes_Phase 3.2A-0.1 - Sketch To Extrude To Preview Contract Repair.md`
             - `Nodes/Sketch/Sketch.md`
 ### ----Bugs
         - `0_Bug_Report.md`
         - `1_BrowserPanel-Startup-Crash.md`
         - `2_BrowserPanel-ProjectContent-Selector-Crash.md`
         - `3_ReferenceWorkspace-BlackScreen-Regression.md`
+        - `4_GeometrySketch-Extrude-Profile-Handoff-Regression.md`
 ### ----roadmap
         - `roadmap.md`
         - `Vision-roadmap.md`

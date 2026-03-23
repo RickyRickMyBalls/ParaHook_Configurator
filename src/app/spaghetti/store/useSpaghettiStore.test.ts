@@ -529,6 +529,8 @@ describe('useSpaghettiStore graph normalization', () => {
       pendingChangedParamIds: ['sp_full'],
       pendingStatsPartKeys: ['baseplate', 'assembled'],
       pendingInstances: { heelKickInstances: [1], toeHookInstances: [1] },
+      pendingTargetBuildUnitIds: ['output-entry:s001:node-baseplate-1'],
+      pendingAffectedBuildUnitIds: ['output-entry:s001:node-baseplate-1'],
       buildRequestId: 'build-request-42',
       buildSeq: 42,
     })
@@ -543,6 +545,12 @@ describe('useSpaghettiStore graph normalization', () => {
     expect(firstRuntime.compileBuild.inFlightGraphRevision).toBe(0)
     expect(firstRuntime.compileBuild.latestAcceptedGraphRevision).toBeNull()
     expect(firstRuntime.compileBuild.pendingStatsPartKeys).toEqual(['baseplate', 'assembled'])
+    expect(firstRuntime.compileBuild.pendingTargetBuildUnitIds).toEqual([
+      'output-entry:s001:node-baseplate-1',
+    ])
+    expect(firstRuntime.compileBuild.pendingAffectedBuildUnitIds).toEqual([
+      'output-entry:s001:node-baseplate-1',
+    ])
     expect(firstRuntime.previewPreparation.buildStatsReadyPartKeys).toEqual(['baseplate', 'assembled'])
     expect(secondRuntime.compileBuild.lastCompileResult).toBeNull()
     expect(secondRuntime.previewPreparation.previewIntent).toBe('outputPreview')
@@ -622,6 +630,8 @@ describe('useSpaghettiStore graph normalization', () => {
       pendingChangedParamIds: ['sp_full'],
       pendingStatsPartKeys: ['baseplate', 'assembled'],
       pendingInstances: { heelKickInstances: [1], toeHookInstances: [1] },
+      pendingTargetBuildUnitIds: ['output-entry:s001:node-baseplate-1'],
+      pendingAffectedBuildUnitIds: ['output-entry:s001:node-baseplate-1'],
       buildRequestId: 'build-request-revision',
       buildSeq: 12,
     })
@@ -649,6 +659,9 @@ describe('useSpaghettiStore graph normalization', () => {
     expect(accepted).toBe(true)
     expect(state.graphRuntimeByDocumentId['graph-document-1']?.compileBuild.currentGraphRevision).toBe(1)
     expect(state.graphRuntimeByDocumentId['graph-document-1']?.compileBuild.latestAcceptedGraphRevision).toBe(0)
+    expect(state.graphRuntimeByDocumentId['graph-document-1']?.compileBuild.latestAcceptedBuildUnitIds).toEqual([
+      'output-entry:s001:node-baseplate-1',
+    ])
   })
 
   it('saving to disk clears save state without changing accepted build freshness', async () => {
@@ -2847,6 +2860,40 @@ describe('useSpaghettiStore Geometry/Sketch editing semantics', () => {
       lastUsedTool: 'pline',
       drawStage: 'sessionIdle',
       drawDraft: null,
+    })
+  })
+
+  it('preserves endpoint snap targets through the shared hover and point-confirm seam', () => {
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: {
+              type: 'sketch',
+              featureId: 'sketch-1',
+              plane: 'XY',
+              components: [],
+              outputs: { profiles: [], diagnostics: [] },
+              uiState: { collapsed: false },
+            },
+          },
+        },
+      ],
+      edges: [],
+    })
+
+    useSpaghettiStore.getState().startGeometrySketchSession('node-sketch-1', 'draw')
+    useSpaghettiStore.getState().setGeometrySketchSessionTool('line')
+    useSpaghettiStore.getState().setGeometrySketchDrawHoverPoint({ x: 10, y: 0 }, 'endpoint')
+    useSpaghettiStore.getState().confirmGeometrySketchDrawPoint({ x: 10, y: 0 }, 'endpoint')
+
+    expect(useSpaghettiStore.getState().geometrySketchSession?.drawDraft).toEqual({
+      points: [{ x: 10, y: 0 }],
+      hoverPoint: { x: 10, y: 0 },
+      hoverSnapTarget: 'endpoint',
     })
   })
 

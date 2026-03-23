@@ -12,14 +12,16 @@ import {
   Vector3,
 } from 'three'
 import type { GeometrySketchOverlayVm } from '../../app/viewerBridge'
+import { collectGeometrySketchEndpointCandidates } from '../geometrySketchOverlay'
 import {
   applySketchPlaneFrameToObject,
   getSketchPlaneWorldNormal,
   getSketchPlaneWorldOrigin,
+  projectSketchPointToWorld,
   projectWorldPointToSketchLocal,
 } from './sketchPlaneMath'
 
-const GRID_SIZE = 72
+const GRID_SIZE = 300
 const GRID_MINOR_STEP = 1
 const GRID_MAJOR_STEP = 10
 const GRID_DOUBLE_MAJOR_STEP = 50
@@ -27,6 +29,7 @@ const DRAFT_GEOMETRY_ELEVATION = 0.02
 const ORIGIN_MARKER_ELEVATION = 0.08
 const DRAFT_POINT_MARKER_ELEVATION = DRAFT_GEOMETRY_ELEVATION
 const CIRCLE_START_POINT_SYMBOL_SCALE = 0.72
+const SNAP_MARKER_SCALE_MULTIPLIER = 1.35
 const PLINE_HISTORICAL_POINT_COLOR = 0x8bbdff
 
 const isMultipleOf = (value: number, step: number): boolean => Math.abs(value % step) < 1e-6
@@ -204,6 +207,37 @@ const setLinePoints = (line: Line, points: Vector3[]): void => {
   geometry.computeBoundingSphere()
 }
 
+const getProjectedScreenDistancePx = (
+  point: { x: number; y: number; z: number },
+  pointerNdc: Vector2,
+  viewportWidth: number,
+  viewportHeight: number,
+): number =>
+  new Vector2(point.x, point.y)
+    .sub(pointerNdc)
+    .length() *
+  Math.min(viewportWidth, viewportHeight) /
+  2
+
+const appendUniqueSnapCandidate = (
+  candidates: Array<{ point: { x: number; y: number }; target: 'origin' | 'endpoint' }>,
+  nextPoint: { x: number; y: number },
+  target: 'origin' | 'endpoint',
+): void => {
+  const alreadyPresent = candidates.some(
+    (candidate) =>
+      candidate.target === target &&
+      Math.abs(candidate.point.x - nextPoint.x) < 1e-6 &&
+      Math.abs(candidate.point.y - nextPoint.y) < 1e-6,
+  )
+  if (!alreadyPresent) {
+    candidates.push({
+      point: nextPoint,
+      target,
+    })
+  }
+}
+
 export class GeometrySketchDrawHelper {
   private readonly group = new Group()
   private readonly planePivot = new Group()
@@ -252,6 +286,9 @@ export class GeometrySketchDrawHelper {
     this.workingGrid.add(minor)
     this.workingGrid.add(major)
     this.workingGrid.add(doubleMajor)
+    this.workingGrid.name = 'GeometrySketchWorkingGrid'
+    this.originMarker.name = 'GeometrySketchOriginMarker'
+    this.snapMarker.name = 'GeometrySketchSnapMarker'
 
     this.group.name = 'GeometrySketchDrawHelper'
     this.group.visible = false
@@ -272,7 +309,7 @@ export class GeometrySketchDrawHelper {
     this.ghostLine.frustumCulled = false
     this.chainLine.renderOrder = 119
     this.ghostLine.renderOrder = 120
-    this.snapMarker.renderOrder = 121
+    this.snapMarker.renderOrder = 124
     this.draftAnchorCrosshairMarker.renderOrder = 122
     this.draftAnchorCircleMarker.renderOrder = 122
     this.cursorMarker.renderOrder = 123
@@ -287,18 +324,20 @@ export class GeometrySketchDrawHelper {
 
   public setOverlay(overlay: GeometrySketchOverlayVm | null): void {
     this.overlay = overlay
+    const showDrawSession = overlay !== null && overlay.mode === 'draw'
     const showDrawPreview =
-      overlay !== null &&
-      overlay.mode === 'draw' &&
+      showDrawSession &&
       overlay.drawDraft !== null &&
       (overlay.activeTool === 'line' ||
         overlay.activeTool === 'pline' ||
         overlay.activeTool === 'rectangle' ||
         overlay.activeTool === 'circle')
-    this.group.visible = showDrawPreview
-    if (!showDrawPreview || overlay === null || overlay.drawDraft === null) {
+    this.group.visible = showDrawSession
+    if (!showDrawSession || overlay === null) {
       setLinePoints(this.chainLine, [])
       setLinePoints(this.ghostLine, [])
+      this.chainLine.visible = false
+      this.ghostLine.visible = false
       this.snapMarker.visible = false
       this.setPlineHistoricalMarkers('crosshair', false, [], 1)
       this.setPlineHistoricalMarkers('circle', false, [], 1)
@@ -312,12 +351,30 @@ export class GeometrySketchDrawHelper {
     this.planePivot.matrix.identity()
     this.planePivot.matrixWorld.identity()
     applySketchPlaneFrameToObject(this.planeRoot, overlay.plane, overlay.planeTransform)
+    this.originMarker.position.z = ORIGIN_MARKER_ELEVATION
+
+    if (!showDrawPreview || overlay.drawDraft === null) {
+      setLinePoints(this.chainLine, [])
+      setLinePoints(this.ghostLine, [])
+      this.chainLine.visible = false
+      this.ghostLine.visible = false
+      this.snapMarker.visible = false
+      this.setPlineHistoricalMarkers('crosshair', false, [], 1)
+      this.setPlineHistoricalMarkers('circle', false, [], 1)
+      this.draftAnchorCrosshairMarker.visible = false
+      this.draftAnchorCircleMarker.visible = false
+      this.cursorMarker.visible = false
+      return
+    }
+
     this.cursorMarker.scale.setScalar(overlay.ui.crosshairSize)
     this.draftAnchorCrosshairMarker.scale.setScalar(overlay.ui.startPointSymbolSize)
     this.draftAnchorCircleMarker.scale.setScalar(
       overlay.ui.startPointSymbolSize * CIRCLE_START_POINT_SYMBOL_SCALE,
     )
-    this.snapMarker.scale.setScalar(overlay.ui.startPointSymbolSize)
+    this.snapMarker.scale.setScalar(
+      overlay.ui.startPointSymbolSize * SNAP_MARKER_SCALE_MULTIPLIER,
+    )
     this.syncPlineHistoricalMarkers(overlay)
 
     setLinePoints(this.chainLine, [])
@@ -349,9 +406,17 @@ export class GeometrySketchDrawHelper {
       activeDraftAnchorMarker.visible = false
     }
 
-    if (overlay.ui.snapEnabled && overlay.drawDraft.hoverSnapTarget === 'origin') {
+    if (
+      overlay.ui.snapEnabled &&
+      overlay.drawDraft.hoverSnapTarget !== null &&
+      overlay.drawDraft.hoverPoint !== null
+    ) {
       this.snapMarker.visible = true
-      this.snapMarker.position.set(0, 0, DRAFT_POINT_MARKER_ELEVATION)
+      this.snapMarker.position.set(
+        overlay.drawDraft.hoverPoint.x,
+        overlay.drawDraft.hoverPoint.y,
+        DRAFT_POINT_MARKER_ELEVATION,
+      )
     } else {
       this.snapMarker.visible = false
     }
@@ -386,14 +451,11 @@ export class GeometrySketchDrawHelper {
         overlay.drawDraft.hoverPoint.y,
         DRAFT_POINT_MARKER_ELEVATION,
       )
-      ;(this.cursorMarker.material as LineBasicMaterial).color.set(
-        overlay.drawDraft.hoverSnapTarget === 'origin' ? 0xffd66b : 0xf4f8ff,
-      )
+      ;(this.cursorMarker.material as LineBasicMaterial).color.set(0xf4f8ff)
     } else {
       this.cursorMarker.visible = false
     }
 
-    this.originMarker.position.z = ORIGIN_MARKER_ELEVATION
   }
 
   private syncPlineHistoricalMarkers(overlay: GeometrySketchOverlayVm): void {
@@ -451,7 +513,7 @@ export class GeometrySketchDrawHelper {
     domElement: HTMLElement,
     clientX: number,
     clientY: number,
-  ): { point: { x: number; y: number }; snapTarget: 'origin' | null } | null {
+  ): { point: { x: number; y: number }; snapTarget: 'origin' | 'endpoint' | null } | null {
     if (
       this.overlay === null ||
       this.overlay.mode !== 'draw'
@@ -478,27 +540,68 @@ export class GeometrySketchDrawHelper {
       return null
     }
 
-    const supportsOriginSnap =
+    const supportsPointSnap =
       this.overlay.drawDraft !== null &&
       (this.overlay.activeTool === 'line' ||
         this.overlay.activeTool === 'pline' ||
         this.overlay.activeTool === 'rectangle' ||
         this.overlay.activeTool === 'circle')
-    const snappedToOrigin =
-      supportsOriginSnap &&
-      this.overlay.ui.snapEnabled &&
-      planeOrigin
-        .clone()
-        .project(camera)
-        .sub(new Vector3(this.pointer.x, this.pointer.y, 0))
-        .length() *
-        Math.min(rect.width, rect.height) /
-        2 <=
-      this.overlay.ui.snapDistancePx
-    if (snappedToOrigin) {
-      return {
-        point: { x: 0, y: 0 },
-        snapTarget: 'origin',
+
+    if (supportsPointSnap && this.overlay.ui.snapEnabled) {
+      const snapCandidates: Array<{
+        point: { x: number; y: number }
+        target: 'origin' | 'endpoint'
+      }> = []
+      appendUniqueSnapCandidate(snapCandidates, { x: 0, y: 0 }, 'origin')
+      for (const candidate of collectGeometrySketchEndpointCandidates(this.overlay.components)) {
+        appendUniqueSnapCandidate(snapCandidates, candidate.point, candidate.target)
+      }
+      if (this.overlay.activeTool === 'pline' && this.overlay.drawDraft !== null) {
+        for (const draftPoint of this.overlay.drawDraft.points) {
+          appendUniqueSnapCandidate(snapCandidates, draftPoint, 'endpoint')
+        }
+      }
+      let nearestCandidate:
+        | { point: { x: number; y: number }; snapTarget: 'origin' | 'endpoint'; distancePx: number }
+        | null = null
+
+      for (const candidate of snapCandidates) {
+        const candidateWorldPoint = projectSketchPointToWorld(
+          this.overlay.plane,
+          this.overlay.planeTransform,
+          candidate.point,
+        )
+        const projectedCandidateWorldPoint = new Vector3(
+          candidateWorldPoint.x,
+          candidateWorldPoint.y,
+          candidateWorldPoint.z,
+        ).project(camera)
+        const candidateDistancePx = getProjectedScreenDistancePx(
+          projectedCandidateWorldPoint,
+          this.pointer,
+          rect.width,
+          rect.height,
+        )
+        if (candidateDistancePx > this.overlay.ui.snapDistancePx) {
+          continue
+        }
+        if (nearestCandidate === null || candidateDistancePx < nearestCandidate.distancePx) {
+          nearestCandidate = {
+            point: {
+              x: Math.round(candidate.point.x * 1_000) / 1_000,
+              y: Math.round(candidate.point.y * 1_000) / 1_000,
+            },
+            snapTarget: candidate.target,
+            distancePx: candidateDistancePx,
+          }
+        }
+      }
+
+      if (nearestCandidate !== null) {
+        return {
+          point: nearestCandidate.point,
+          snapTarget: nearestCandidate.snapTarget,
+        }
       }
     }
 

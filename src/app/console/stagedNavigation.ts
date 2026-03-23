@@ -35,6 +35,7 @@ export type ConsoleStagedNavigationChoice = {
 export type ConsoleStagedNavigationScopeId =
   | 'root'
   | 'zoomRoot'
+  | 'sketchDrawZoomRoot'
   | 'radioRoot'
   | 'graphRoot'
   | 'graphSelected'
@@ -552,6 +553,17 @@ const createZoomRootSession = (): ConsoleStagedNavigationSession => ({
   validChoices: buildZoomActionChoices(),
 })
 
+export const createSketchDrawZoomRootSession = (): ConsoleStagedNavigationSession => ({
+  scopeId: 'sketchDrawZoomRoot',
+  breadcrumb: ['Graph', 'Sketch', 'Sketch Draw', 'Zoom'],
+  selections: {
+    graphDocumentId: null,
+    selectedNodeId: null,
+    sketchNodeId: null,
+  },
+  validChoices: buildZoomActionChoices(),
+})
+
 const createGraphZoomRootSession = (
   breadcrumb: string[],
   selections: ConsoleStagedNavigationSelection,
@@ -1061,6 +1073,47 @@ export const submitConsoleStagedNavigationToken = (
   }
 
   if (session.scopeId === 'zoomRoot') {
+    const zoomChoices = buildZoomActionChoices()
+    const matchedChoice =
+      zoomChoices.find((choice) => matchesChoice(choice, normalizedToken)) ?? null
+    if (matchedChoice === null) {
+      return createInvalidResult({ ...session, validChoices: zoomChoices }, submittedToken, zoomChoices)
+    }
+    if (matchedChoice.canonicalToken === 'BACK') {
+      return createAdvanceResult(createConsoleRootSession(), submittedToken, matchedChoice)
+    }
+    const actionIdByToken: Record<
+      string,
+      Extract<
+        ConsoleStagedNavigationExecuteResult['actionId'],
+        | 'zoom.model.all'
+        | 'zoom.model.extents'
+        | 'zoom.model.previous'
+        | 'zoom.model.window'
+        | 'zoom.model.object'
+      >
+    > = {
+      ALL: 'zoom.model.all',
+      EXTENTS: 'zoom.model.extents',
+      PREVIOUS: 'zoom.model.previous',
+      WINDOW: 'zoom.model.window',
+      OBJECT: 'zoom.model.object',
+    }
+    return {
+      kind: 'execute',
+      session: {
+        ...session,
+        validChoices: zoomChoices,
+      },
+      submittedToken,
+      matchedChoice,
+      actionId: actionIdByToken[matchedChoice.canonicalToken],
+      breadcrumb: [...session.breadcrumb, matchedChoice.label],
+      selections: session.selections,
+    }
+  }
+
+  if (session.scopeId === 'sketchDrawZoomRoot') {
     const zoomChoices = buildZoomActionChoices()
     const matchedChoice =
       zoomChoices.find((choice) => matchesChoice(choice, normalizedToken)) ?? null

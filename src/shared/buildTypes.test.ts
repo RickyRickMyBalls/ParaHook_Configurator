@@ -24,9 +24,39 @@ const cubeArtifact = (): PartArtifact => ({
   },
 })
 
+const extrudeMeshArtifact = (): PartArtifact => ({
+  id: 'extrude',
+  label: 'Extrude',
+  kind: 'mesh',
+  mesh: {
+    vertices: [
+      0, 0, 0,
+      5, 0, 0,
+      0, 0, 10,
+      5, 0, 10,
+      0, 20, 0,
+      5, 20, 0,
+      0, 20, 10,
+      5, 20, 10,
+    ],
+    indices: [
+      0, 2, 1,
+      1, 2, 3,
+      4, 5, 6,
+      5, 7, 6,
+    ],
+  },
+  partKeyStr: 'extrude',
+  partKey: {
+    id: 'extrude',
+    instance: null,
+  },
+})
+
 describe('buildTypes PartArtifact contract', () => {
   it('accepts canonical artifacts with matching partKey and partKeyStr', () => {
     expect(isPartArtifact(cubeArtifact())).toBe(true)
+    expect(isPartArtifact(extrudeMeshArtifact())).toBe(true)
   })
 
   it('rejects artifacts whose partKey string identity does not match', () => {
@@ -34,6 +64,24 @@ describe('buildTypes PartArtifact contract', () => {
       isPartArtifact({
         ...cubeArtifact(),
         partKeyStr: 's001',
+      }),
+    ).toBe(false)
+    expect(
+      isPartArtifact({
+        ...extrudeMeshArtifact(),
+        partKeyStr: 's001',
+      }),
+    ).toBe(false)
+  })
+
+  it('rejects invalid mesh artifacts', () => {
+    expect(
+      isPartArtifact({
+        ...extrudeMeshArtifact(),
+        mesh: {
+          vertices: [0, 0, 0, 1],
+          indices: [0, 1, 2],
+        },
       }),
     ).toBe(false)
   })

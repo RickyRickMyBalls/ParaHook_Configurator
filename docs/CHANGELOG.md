@@ -65,6 +65,223 @@ Do not use it for:
 
 ## Doc Body
 
+### [557] - 2026-03-23 13:59 - `SP - Phase 3.2A-0.1 - Mesh Winding Fix For Solid Extrude Preview`
+<!-- ENTRY 557 -->
+HUMAN SUMMARY: `Fixed the follow-up graph-native mesh preview issue where extruded profiles could read like hollow walls because the viewer remapped mesh vertices into its axis convention without also reversing triangle winding, which left capped faces vulnerable to front-face culling under the default solid material path.`
+
+#### Scope / Constraints Honored
+- Kept this fix narrow inside the viewer mesh-adaptation layer instead of widening into sketch review or changing the worker/runtime extrusion contract again.
+- Preserved the current single-sided solid material behavior so the app can still add an intentional future `walls/thin` mode instead of masking the bug with `DoubleSide`.
+- Added one focused viewer-side regression helper test and left the broader graph-native mesh contract tests intact.
+
+#### Summary of Implementation
+- Extracted the graph-native artifact-mesh viewer adapter into `src/viewer/artifactMeshGeometry.ts`.
+- Updated the viewer mesh adapter so the existing CAD-to-viewer `y/z` remap now also reverses triangle winding per triangle, preserving outward normals after the handedness flip.
+- Added `src/viewer/artifactMeshGeometry.test.ts` to guard the winding fix and reject incomplete triangle buffers.
+
+#### Files Changed
+- `src/viewer/artifactMeshGeometry.ts`
+- `src/viewer/artifactMeshGeometry.test.ts`
+- `src/viewer/Viewer.ts`
+
+#### Behavior Changes (if any)
+- Graph-native extrude previews now render capped solid faces correctly under the default viewer material path instead of reading like wall-only meshes because of culled caps.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/viewer/artifactMeshGeometry.test.ts src/shared/buildTypes.test.ts src/app/buildDispatcher.test.ts src/worker/cad/featureStackRuntime.test.ts src/worker/pipeline/buildPipeline.test.ts`
+- `npm.cmd run build`
+
+### [556] - 2026-03-23 13:50 - `SP - Phase 3.2A-0.1 - Sketch To Extrude To Preview Contract Repair`
+<!-- ENTRY 556 -->
+HUMAN SUMMARY: `Shipped the \`[3.2A-0.1]\` graph-native preview repair by widening \`PartArtifact\` to carry mesh geometry, publishing mesh artifacts from compiled graph-native extrudes instead of flattening them to bounds boxes, and teaching the viewer to render those mesh artifacts while leaving legacy box-backed parts on their existing path.`
+
+#### Scope / Constraints Honored
+- Kept this repair narrow and downstream of the already-shipped `[5.3A-2]` request cleanup rather than widening into the broader `EWR` family or another worker rewrite.
+- Preserved the legacy box-backed preview path for compatibility while only changing the graph-native compiled feature-stack result seam.
+- Left manual in-app verification of the authored irregular `PLine` case as a recommended follow-up instead of claiming an unrun interactive check.
+
+#### Summary of Implementation
+- Extended `src/shared/buildTypes.ts` so `PartArtifact` now supports both `box` and `mesh` variants, with matching runtime validation for graph-native mesh payloads.
+- Updated `src/worker/buildModel.ts` so compiled graph-native feature-stack bodies are grouped and emitted as merged mesh artifacts instead of being reduced to bounds boxes, while the legacy payload-driven path still emits box artifacts.
+- Updated `src/viewer/Viewer.ts` so mesh artifacts render through `BufferGeometry` with the current viewer axis convention preserved, instead of forcing all graph outputs through `BoxGeometry`.
+- Added focused regression coverage in `src/shared/buildTypes.test.ts`, `src/app/buildDispatcher.test.ts`, `src/worker/cad/featureStackRuntime.test.ts`, and `src/worker/pipeline/buildPipeline.test.ts` so the widened contract and graph-native mesh preview path stay guarded.
+
+#### Files Changed
+- `src/shared/buildTypes.ts`
+- `src/shared/buildTypes.test.ts`
+- `src/app/buildDispatcher.test.ts`
+- `src/worker/buildModel.ts`
+- `src/viewer/Viewer.ts`
+- `src/worker/cad/featureStackRuntime.test.ts`
+- `src/worker/pipeline/buildPipeline.test.ts`
+
+#### Behavior Changes (if any)
+- Graph-native compiled `Geometry/Extrude` preview parts can now flow through the worker/result/viewer path as real mesh geometry instead of only as bounding-box stand-ins.
+- Legacy box-backed preview parts continue to render on the existing box path.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/shared/buildTypes.test.ts src/app/buildDispatcher.test.ts src/worker/cad/featureStackRuntime.test.ts src/worker/pipeline/buildPipeline.test.ts`
+- `npm.cmd run build`
+
+### [555] - 2026-03-23 13:24 - `WRK - Phase 5.3A-2 - Graph-Native Worker Contract And Separate-Build Identity`
+<!-- ENTRY 555 -->
+HUMAN SUMMARY: `Shipped the \`5.3A-2\` worker contract cut by adding canonical graph-native \`compiledBuildData\` requests, output-entry \`buildUnitId\` identity in staged and accepted graph-build state, and worker/pipeline adoption of that new request path while preserving coarse \`BuildResult.parts\`, part-key progress, and legacy \`payload\` fields as transitional compatibility.`
+
+#### Scope / Constraints Honored
+- Kept this phase focused on request-and-state contract cleanup rather than widening into the later mesh/result-semantics repair.
+- Preserved legacy `payload`, instance wrapper fields, coarse `BuildResult.parts`, and part-key progress so existing compatibility paths still run.
+- Landed canonical output-entry `buildUnitId` truth on the app side without inventing narrower invalidation semantics beyond the current targeted connected outputs.
+
+#### Summary of Implementation
+- Extended `src/shared/buildTypes.ts` with canonical graph-native `compiledBuildData`, `buildIdentity`, and `invalidation` request fields plus the associated validators and build-unit typing.
+- Added the canonical `buildGraphOutputEntryId()` helper in `src/app/spaghetti/outputSurface.ts` and rewrote `src/app/spaghetti/integration/buildInputsToRequest.ts` so graph builds now emit `compiledBuildData`, target/affected output-entry build-unit ids, and compatibility metadata instead of depending on `profilePatch` as the canonical seam.
+- Added `requestGraphBuild()` in `src/app/buildDispatcher.ts` and updated `src/app/store/useAppStore.ts` so graph document builds now post the graph-native request shape while still carrying a compatibility legacy payload wrapper.
+- Extended `src/app/spaghetti/store/useSpaghettiStore.ts` so staged and accepted graph-build state now records pending target/affected build-unit ids and promotes accepted build-unit identity on successful build acceptance.
+- Updated `src/worker/worker.ts`, `src/worker/buildModel.ts`, `src/worker/pipeline/buildPipeline.ts`, and `src/worker/pipeline/signatures.ts` so the worker validates, prefers, signs, and orders graph-native requests from `compiledBuildData` while leaving legacy payload handling alive as the fallback path.
+- Added focused regressions in `src/app/spaghetti/integration/buildInputsToRequest.test.ts`, `src/app/buildDispatcher.test.ts`, `src/app/spaghetti/store/useSpaghettiStore.test.ts`, and `src/worker/pipeline/buildPipeline.test.ts`.
+
+#### Files Changed
+- `src/shared/buildTypes.ts`
+- `src/app/spaghetti/outputSurface.ts`
+- `src/app/spaghetti/integration/buildInputsToRequest.ts`
+- `src/app/spaghetti/integration/buildInputsToRequest.test.ts`
+- `src/app/buildDispatcher.ts`
+- `src/app/buildDispatcher.test.ts`
+- `src/app/store/useAppStore.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `src/worker/worker.ts`
+- `src/worker/buildModel.ts`
+- `src/worker/pipeline/buildPipeline.ts`
+- `src/worker/pipeline/buildPipeline.test.ts`
+- `src/worker/pipeline/signatures.ts`
+
+#### Behavior Changes (if any)
+- Graph document builds now send canonical `compiledBuildData + buildIdentity + invalidation` worker requests instead of using legacy `payload: BoxParams` as their architectural source of truth.
+- The app now tracks graph-build targeting and acceptance by output-entry `buildUnitId` in staged and accepted state.
+- Worker cache/signature and part-ordering logic now respects graph-native compiled build data when present, while legacy request paths still remain valid compatibility input.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/spaghetti/integration/buildInputsToRequest.test.ts src/app/buildDispatcher.test.ts src/worker/pipeline/buildPipeline.test.ts src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `npm.cmd run build`
+
+### [554] - 2026-03-22 23:15 - `SP - Sketch Draw - Persistent 300 x 300 Working Grid`
+<!-- ENTRY 554 -->
+HUMAN SUMMARY: `Made the \`Sketch Draw\` working grid persistent for the full session and expanded it to a centered \`300 x 300\` area instead of only showing a smaller draft-time grid during active line-like tools.`
+
+#### Scope / Constraints Honored
+- Kept the change inside the sketch helper/viewer layer without widening the sketch session model.
+- Preserved sketch zoom-fit behavior so local sketch zoom still frames sketch geometry rather than the now-always-visible working grid.
+- Added a focused helper regression instead of widening into unrelated viewer tests.
+
+#### Summary of Implementation
+- Updated `src/viewer/sketch/GeometrySketchDrawHelper.ts` so the helper stays visible for the full `Sketch Draw` session, not just active draft preview states.
+- Expanded the helper grid from `72` to `300` and kept it centered on the sketch origin.
+- Named the working grid helper group for inspection and added a focused geometry test in `src/viewer/sketch/GeometrySketchDrawHelper.test.ts`.
+- Tightened `src/viewer/Viewer.ts` so sketch zoom-fit still excludes the always-visible working grid from its framing bounds.
+
+#### Files Changed
+- `src/viewer/sketch/GeometrySketchDrawHelper.ts`
+- `src/viewer/sketch/GeometrySketchDrawHelper.test.ts`
+- `src/viewer/Viewer.ts`
+
+#### Behavior Changes (if any)
+- `Sketch Draw` now shows a centered `300 x 300` working grid immediately on session entry.
+- The working grid remains visible during idle selection state, not only during active line/polyline/rectangle/circle preview.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/viewer/sketch/GeometrySketchDrawHelper.test.ts src/app/console/ConsoleDock.test.tsx`
+- `npm.cmd run build`
+
+### [553] - 2026-03-22 23:09 - `VR - Phase 5.0H-4 - Sketch Draw Zoom Fit`
+<!-- ENTRY 553 -->
+HUMAN SUMMARY: `Fixed \`Sketch Draw\` zoom so local \`Zoom All\` and \`Zoom Extents\` now fit the visible sketch geometry in the viewport instead of framing the unrelated model-content bounds.`
+
+#### Scope / Constraints Honored
+- Kept the change inside the shipped `Sketch Draw` console zoom reuse path.
+- Reused the existing sketch overlay render groups instead of inventing a second sketch-bounds model.
+- Left root and graph zoom behavior unchanged.
+
+#### Summary of Implementation
+- Added a dedicated `frameGeometrySketch()` viewer API in `src/viewer/Viewer.ts` and `src/app/viewerBridge.ts`.
+- Implemented sketch framing from the live sketch overlay and active draft helper groups.
+- Updated `src/app/console/ConsoleDock.tsx` so `Sketch Draw > Zoom` routes model zoom actions to the sketch-specific frame path.
+- Updated `src/app/console/ConsoleDock.test.tsx` so the sketch zoom regression now expects the sketch-specific frame method.
+
+#### Files Changed
+- `src/viewer/Viewer.ts`
+- `src/app/viewerBridge.ts`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+
+#### Behavior Changes (if any)
+- `Sketch Draw > Zoom > All`
+- `Sketch Draw > Zoom > Extents`
+  now fit the visible sketch lines/draft geometry instead of the unrelated 3D model bounds.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/console/ConsoleDock.test.tsx`
+- `npm.cmd run build`
+
+### [552] - 2026-03-22 23:06 - `VR - Phase 5.0H-4 - Sketch Draw Zoom Reuse`
+<!-- ENTRY 552 -->
+HUMAN SUMMARY: `Extended the shipped camera console work into \`Sketch Draw\` so idle sketch sessions now expose a local \`Zoom\` choice and completed zoom actions return cleanly to the sketch session instead of forcing the user out of it.`
+
+#### Scope / Constraints Honored
+- Kept the change inside the existing camera-console and sketch-console seams.
+- Reused the shipped `Zoom` family instead of inventing a separate sketch-only camera command set.
+- Preserved active sketch draw ownership while allowing temporary zoom navigation.
+
+#### Summary of Implementation
+- Added a `Sketch Draw > Zoom` staged scope in `src/app/console/stagedNavigation.ts`.
+- Updated `src/app/console/ConsoleDock.tsx` so idle `Sketch Draw` shows `Zoom`, typed `z` / `zoom` enters the local zoom family, and successful zoom actions hand control back to the sketch session.
+- Updated `src/app/console/ConsoleBar.tsx` and `src/app/console/radioCommandIdentity.ts` so the scoped breadcrumb and radio identities reflect the new sketch zoom family.
+- Expanded `src/app/console/ConsoleDock.test.tsx` to cover the new sketch draw zoom flow and the revised idle sketch draw prompt text.
+
+#### Files Changed
+- `src/app/console/stagedNavigation.ts`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/ConsoleBar.tsx`
+- `src/app/console/radioCommandIdentity.ts`
+- `src/app/console/ConsoleDock.test.tsx`
+
+#### Behavior Changes (if any)
+- Idle `Sketch Draw` now offers `Zoom` alongside the other local commands.
+- Entering `z` / `zoom` during `Sketch Draw` opens a scoped zoom family and returns to the sketch session after the zoom action completes.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/console/ConsoleDock.test.tsx`
+- `npm.cmd run build`
+
+### [551] - 2026-03-22 22:56 - `VR - Phase 5.0H-4 - Zoom All vs Zoom Extents Split`
+<!-- ENTRY 551 -->
+HUMAN SUMMARY: `Split the first-cut camera console zoom behavior so \`Zoom All\` keeps the broader grid-inclusive frame while \`Zoom Extents\` now frames only authored 3D content.`
+
+#### Scope / Constraints Honored
+- Kept the change narrow to the shipped camera console/viewer seam.
+- Preserved the existing root/scoped `Zoom` command structure and staged-return behavior.
+- Left `Zoom All` as the broader working-space frame while narrowing `Zoom Extents`.
+
+#### Summary of Implementation
+- Added a dedicated `frameExtents()` viewer API in `src/viewer/Viewer.ts` and `src/app/viewerBridge.ts`.
+- Kept `frameAll()` grid-inclusive and introduced a separate content-only bounds helper for `Zoom Extents`.
+- Updated `src/app/console/ConsoleDock.tsx` so both staged and flat `z > e` paths call `frameExtents()` while `z > a` continues to call `frameAll()`.
+- Updated `src/app/console/ConsoleDock.test.tsx` to verify `z > e` no longer aliases to `frameAll()`.
+
+#### Files Changed
+- `src/viewer/Viewer.ts`
+- `src/app/viewerBridge.ts`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+
+#### Behavior Changes (if any)
+- `Zoom All` now frames content plus the visible grid envelope.
+- `Zoom Extents` now frames only authored/model content and ignores the grid.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/console/ConsoleDock.test.tsx`
+- `npm.cmd run build`
+
 ### [550] - 2026-03-22 22:32 - `VR - Phase 5.0H-4 - Camera Console Commands`
 <!-- ENTRY 550 -->
 HUMAN SUMMARY: `Shipped the first camera console layer by adding root/scoped \`Zoom\`, console \`Pan\` and \`Orbit\`, bounded camera-pose history for \`Zoom Previous\`, and a canvas-fit bridge so \`Graph > Zoom\` can target either the canvas or the model viewport without inventing a new 3D picking system.` 

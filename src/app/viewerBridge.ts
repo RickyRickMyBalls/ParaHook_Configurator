@@ -20,10 +20,12 @@ export type GeometrySketchOverlayProfileVm = {
   vertices: Array<{ x: number; y: number }>
 }
 
+export type GeometrySketchSnapTarget = 'origin' | 'endpoint'
+
 export type GeometrySketchDrawDraftVm = {
   points: Array<{ x: number; y: number }>
   hoverPoint: { x: number; y: number } | null
-  hoverSnapTarget: 'origin' | null
+  hoverSnapTarget: GeometrySketchSnapTarget | null
 }
 
 export type GeometrySketchOverlayVm = {
@@ -75,6 +77,8 @@ export interface ViewerApi {
   setCameraPreset: (preset: CameraPreset) => void
   alignCameraToGeometrySketchPlane: () => void
   frameAll: () => void
+  frameExtents: () => void
+  frameGeometrySketch: () => void
   framePrevious: () => void
   frameSelected: (partId: string | null) => void
   frameReference: (referenceId: string) => void
@@ -126,10 +130,10 @@ export interface ViewerApi {
   setAxisOverlayCanvas: (canvas: HTMLCanvasElement | null) => void
   setGeometrySketchOverlay: (overlay: GeometrySketchOverlayVm | null) => void
   setOnGeometrySketchHoverPoint: (
-    handler: ((point: { x: number; y: number } | null, snapTarget: 'origin' | null) => void) | null,
+    handler: ((point: { x: number; y: number } | null, snapTarget: GeometrySketchSnapTarget | null) => void) | null,
   ) => void
   setOnGeometrySketchConfirmPoint: (
-    handler: ((point: { x: number; y: number }, snapTarget: 'origin' | null) => void) | null,
+    handler: ((point: { x: number; y: number }, snapTarget: GeometrySketchSnapTarget | null) => void) | null,
   ) => void
   setOnGeometrySketchHoverComponent: (
     handler: ((rowId: string | null) => void) | null,

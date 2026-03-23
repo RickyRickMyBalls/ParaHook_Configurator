@@ -108,6 +108,69 @@ describe('BuildDispatcher build stats seeding', () => {
     dispatcher.dispose()
   })
 
+  it('posts graph-native build requests with compiled data and build-unit identity', async () => {
+    const module = await import('./buildDispatcher')
+    module.buildDispatcher.dispose()
+    const dispatcher = new module.BuildDispatcher()
+
+    dispatcher.requestGraphBuild({
+      routingIdentity: {
+        projectFileId: 'project-1',
+        graphDocumentId: 'graph-a',
+        buildRequestId: 'request-a-1',
+      },
+      legacyPayload: { width: 1, length: 2, height: 3 },
+      compiledBuildData: {
+        instances: {
+          heelKickInstances: [1],
+          toeHookInstances: [1],
+        },
+        orderedPartKeys: ['cube'],
+        resolvedParts: {},
+        resolvedShared: {
+          sp_featureStackIR: {
+            schemaVersion: 1,
+            parts: {
+              cube: [],
+            },
+          },
+        },
+      },
+      buildIdentity: {
+        graphRevision: 4,
+        targetBuildUnitIds: ['output-entry:s001:node-cube'],
+      },
+      invalidation: {
+        affectedBuildUnitIds: ['output-entry:s001:node-cube'],
+      },
+      changedParamIds: ['sp_full'],
+      buildStatsPartKeys: ['cube', 'assembled'],
+    })
+
+    const worker = (dispatcher as unknown as { worker: MockWorker }).worker
+    expect(worker.postedMessages[0]).toEqual(
+      expect.objectContaining({
+        type: 'build',
+        lane: 'build',
+        projectFileId: 'project-1',
+        graphDocumentId: 'graph-a',
+        buildRequestId: 'request-a-1',
+        executionIntent: DEFAULT_BUILD_EXECUTION_INTENT,
+        compiledBuildData: expect.objectContaining({
+          orderedPartKeys: ['cube'],
+        }),
+        buildIdentity: {
+          graphRevision: 4,
+          targetBuildUnitIds: ['output-entry:s001:node-cube'],
+        },
+        invalidation: {
+          affectedBuildUnitIds: ['output-entry:s001:node-cube'],
+        },
+      }),
+    )
+    dispatcher.dispose()
+  })
+
   it('rejects a wrong-graph result and keeps the handler quiet', async () => {
     const module = await import('./buildDispatcher')
     module.buildDispatcher.dispose()
@@ -139,6 +202,83 @@ describe('BuildDispatcher build stats seeding', () => {
     })
 
     expect(handler).not.toHaveBeenCalled()
+    dispatcher.dispose()
+  })
+
+  it('accepts build results that carry graph-native mesh artifacts', async () => {
+    const module = await import('./buildDispatcher')
+    module.buildDispatcher.dispose()
+    const dispatcher = new module.BuildDispatcher()
+    const handler = vi.fn()
+    dispatcher.setBuildResultHandler(handler)
+
+    dispatcher.requestGraphBuild({
+      routingIdentity: {
+        projectFileId: 'project-1',
+        graphDocumentId: 'graph-a',
+        buildRequestId: 'request-a-1',
+      },
+      legacyPayload: { width: 1, length: 2, height: 3 },
+      compiledBuildData: {
+        instances: {
+          heelKickInstances: [1],
+          toeHookInstances: [1],
+        },
+        orderedPartKeys: ['extrude'],
+        resolvedParts: {},
+      },
+      buildIdentity: {
+        graphRevision: 1,
+        targetBuildUnitIds: ['output-entry:s001:node-extrude'],
+      },
+      invalidation: {
+        affectedBuildUnitIds: ['output-entry:s001:node-extrude'],
+      },
+      buildStatsPartKeys: ['extrude', 'assembled'],
+    })
+
+    const worker = (dispatcher as unknown as { worker: MockWorker }).worker
+    worker.dispatchMessage({
+      type: 'build_result',
+      lane: 'build',
+      seq: 1,
+      projectFileId: 'project-1',
+      graphDocumentId: 'graph-a',
+      buildRequestId: 'request-a-1',
+      parts: [
+        {
+          id: 'extrude',
+          label: 'Extrude',
+          kind: 'mesh',
+          mesh: {
+            vertices: [
+              0, 0, 0,
+              5, 0, 0,
+              0, 20, 0,
+            ],
+            indices: [0, 1, 2],
+          },
+          partKeyStr: 'extrude',
+          partKey: {
+            id: 'extrude',
+            instance: null,
+          },
+        },
+      ],
+    })
+
+    expect(handler).toHaveBeenCalledWith(
+      expect.objectContaining({
+        graphDocumentId: 'graph-a',
+        buildRequestId: 'request-a-1',
+        parts: [
+          expect.objectContaining({
+            kind: 'mesh',
+            partKeyStr: 'extrude',
+          }),
+        ],
+      }),
+    )
     dispatcher.dispose()
   })
 

@@ -9,6 +9,10 @@ import {
 
 type Point2 = SketchPoint2
 export type Point3 = SketchPoint3
+export type GeometrySketchSnapCandidate = {
+  point: Point2
+  target: 'origin' | 'endpoint'
+}
 
 export type GeometrySketchRenderLayer =
   | 'component'
@@ -153,6 +157,17 @@ const rectangleCornersFromOppositePoints = (a: Point2, b: Point2): Point2[] => {
     { x: minX, y: maxY },
     { x: minX, y: minY },
   ]
+}
+
+const pushUniquePoint = (points: Point2[], point: Point2): void => {
+  const alreadyPresent = points.some(
+    (candidate) =>
+      Math.abs(candidate.x - point.x) < 1e-6 &&
+      Math.abs(candidate.y - point.y) < 1e-6,
+  )
+  if (!alreadyPresent) {
+    points.push(point)
+  }
 }
 
 const componentToPolyline2 = (component: SketchComponent): Point2[] => {
@@ -320,6 +335,34 @@ export const expandGeometrySketchSelectionFromRowId = (
   const entities = buildSelectableEntities(components)
   const entity = entities.find((candidate) => candidate.componentIds.includes(rowId))
   return entity?.componentIds ?? []
+}
+
+export const collectGeometrySketchEndpointCandidates = (
+  components: readonly SketchComponent[],
+): GeometrySketchSnapCandidate[] => {
+  const endpointPoints: Point2[] = []
+
+  for (const component of components) {
+    if (component.type === 'line') {
+      pushUniquePoint(endpointPoints, resolveVec2Expression(component.a))
+      pushUniquePoint(endpointPoints, resolveVec2Expression(component.b))
+      continue
+    }
+    if (component.type === 'rectangle') {
+      const corners = rectangleCornersFromOppositePoints(
+        resolveVec2Expression(component.a),
+        resolveVec2Expression(component.b),
+      )
+      for (const corner of corners.slice(0, 4)) {
+        pushUniquePoint(endpointPoints, corner)
+      }
+    }
+  }
+
+  return endpointPoints.map((point) => ({
+    point,
+    target: 'endpoint',
+  }))
 }
 
 export const collectGeometrySketchSelectionIds = (

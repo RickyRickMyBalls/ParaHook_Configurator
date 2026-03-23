@@ -248,12 +248,13 @@ describe('SpaghettiWindowHost', () => {
             currentSpaghettiState.setEditorViewportCanvasToolbarVisible(editorViewportId, true)
             return
           }
-          currentSpaghettiState.setEditorViewportWindowMode(editorViewportId, 'expanded')
           if (mode === 'essentials') {
+            currentSpaghettiState.setEditorViewportWindowMode(editorViewportId, 'maximized')
             currentSpaghettiState.setEditorViewportHeaderCollapsed(editorViewportId, true)
             currentSpaghettiState.setEditorViewportCanvasToolbarVisible(editorViewportId, false)
             return
           }
+          currentSpaghettiState.setEditorViewportWindowMode(editorViewportId, 'expanded')
           currentSpaghettiState.setEditorViewportHeaderCollapsed(editorViewportId, false)
           currentSpaghettiState.setEditorViewportCanvasToolbarVisible(editorViewportId, true)
         },
@@ -445,8 +446,37 @@ describe('SpaghettiWindowHost', () => {
     expect(container?.textContent).toContain('window-settings-open')
     expect(container?.textContent).toContain('header-collapsed')
     expect(container?.textContent).toContain('canvas-toolbar-hidden')
+    expect(container?.querySelector('.SpaghettiFloatingHandle--essentials')).toBeNull()
     expect(
       container?.querySelector('.SpaghettiFloatingHandleAdvancedActions')?.classList.contains('isExpanded'),
     ).toBe(true)
+  })
+
+  it('renders essentials as a maximized minimal overlay chip after the primary mode cycle', async () => {
+    await renderHarness()
+
+    const modeButton = container?.querySelector(
+      '.SpaghettiFloatingHandle .SpaghettiWindowAction--collapse',
+    ) as HTMLButtonElement | null
+
+    await act(async () => {
+      modeButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+    await rerenderHarness()
+
+    const floatingWindow = container?.querySelector('.SpaghettiFloatingWindow') as HTMLElement | null
+    const essentialsChip = container?.querySelector(
+      '.SpaghettiFloatingHandle--essentials .SpaghettiWindowAction--collapse',
+    ) as HTMLButtonElement | null
+
+    expect(currentSpaghettiState.setEditorViewportPresentationMode).toHaveBeenCalledWith(
+      'editor-viewport-1',
+      'essentials',
+    )
+    expect(floatingWindow?.className).toContain('isMaximized')
+    expect(floatingWindow?.className).toContain('isEssentials')
+    expect(essentialsChip?.textContent).toBe('e')
+    expect(container?.querySelector('button[aria-label="Close editor"]')).toBeNull()
+    expect(container?.textContent).not.toContain('Spaghetti Editor')
   })
 })

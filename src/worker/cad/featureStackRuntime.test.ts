@@ -699,6 +699,135 @@ describe('buildModel diagnostics flush', () => {
     })
   })
 
+  it('emits a graph-native mesh PartArtifact for canonical compiled Geometry/Sketch -> Geometry/Extrude builds', () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'n-sketch',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: {
+              type: 'sketch',
+              featureId: 'sketch-1',
+              plane: 'YZ',
+              components: [
+                {
+                  rowId: 'row-1',
+                  componentId: 'line-1',
+                  type: 'line',
+                  a: { kind: 'lit', x: 0, y: 0 },
+                  b: { kind: 'lit', x: 20, y: 0 },
+                },
+                {
+                  rowId: 'row-2',
+                  componentId: 'line-2',
+                  type: 'line',
+                  a: { kind: 'lit', x: 20, y: 0 },
+                  b: { kind: 'lit', x: 20, y: 10 },
+                },
+                {
+                  rowId: 'row-3',
+                  componentId: 'line-3',
+                  type: 'line',
+                  a: { kind: 'lit', x: 20, y: 10 },
+                  b: { kind: 'lit', x: 0, y: 10 },
+                },
+                {
+                  rowId: 'row-4',
+                  componentId: 'line-4',
+                  type: 'line',
+                  a: { kind: 'lit', x: 0, y: 10 },
+                  b: { kind: 'lit', x: 0, y: 0 },
+                },
+              ],
+              outputs: {
+                profiles: [],
+                diagnostics: [],
+              },
+              uiState: {
+                collapsed: false,
+              },
+            },
+          },
+        },
+        {
+          nodeId: 'n-extrude',
+          type: 'Geometry/Extrude',
+          params: {
+            extrudeType: 'Basic',
+            depthMm: 5,
+          },
+        },
+        {
+          nodeId: 'n-output-preview',
+          type: OUTPUT_PREVIEW_NODE_TYPE,
+          params: {
+            slots: [{ slotId: 's001' }],
+            nextSlotIndex: 2,
+          },
+        },
+      ],
+      edges: [
+        {
+          edgeId: 'e-sketch-profile',
+          from: {
+            nodeId: 'n-sketch',
+            portId: 'SketchProfile',
+          },
+          to: {
+            nodeId: 'n-extrude',
+            portId: 'ExtrusionProfile',
+          },
+        },
+        {
+          edgeId: 'e-extrude-preview',
+          from: {
+            nodeId: 'n-extrude',
+            portId: 'SolidBody',
+          },
+          to: {
+            nodeId: 'n-output-preview',
+            portId: 'in:solid:s001',
+          },
+        },
+      ],
+    }
+
+    const compileResult = compileSpaghettiGraph(graph)
+    expect(compileResult.ok).toBe(true)
+    expect(compileResult.buildInputs).toBeDefined()
+
+    const parts = buildModel({
+      payload: {
+        width: 1,
+        length: 2,
+        height: 3,
+      },
+      instances: compileResult.buildInputs?.instances ?? {},
+      compiledBuildData: compileResult.buildInputs,
+    })
+
+    expect(parts.find((part) => part.partKeyStr === 'extrude')).toEqual(
+      expect.objectContaining({
+        id: 'extrude',
+        label: 'Extrude',
+        kind: 'mesh',
+        partKeyStr: 'extrude',
+        partKey: {
+          id: 'extrude',
+          instance: null,
+        },
+      }),
+    )
+    const extrude = parts.find((part) => part.partKeyStr === 'extrude')
+    expect(extrude?.kind).toBe('mesh')
+    if (extrude?.kind === 'mesh') {
+      expect(extrude.mesh.vertices.length).toBeGreaterThan(0)
+      expect(extrude.mesh.indices.length).toBeGreaterThan(0)
+    }
+  })
+
   it('keeps cube unresolved at runtime when the extrude feature is disabled', () => {
     const compileResult = compileSpaghettiGraph(disabledCubeExtrudeGraph())
     expect(compileResult.ok).toBe(true)

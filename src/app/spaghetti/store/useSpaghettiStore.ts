@@ -71,7 +71,7 @@ import type {
 } from '../schema/spaghettiTypes'
 import { newId } from '../utils/id'
 import { makeComponentId, makeRowId } from '../utils/id'
-import type { BuildRoutingIdentity, PartArtifact } from '../../../shared/buildTypes'
+import type { BuildRoutingIdentity, BuildUnitId, PartArtifact } from '../../../shared/buildTypes'
 import { appendConsoleEntry } from '../../console/useConsoleStore'
 import {
   defaultWorkspaceSplitDirection,
@@ -119,12 +119,15 @@ export type GraphCompileBuildState = {
   pendingChangedParamIds: string[]
   pendingStatsPartKeys: string[]
   pendingInstances: GraphBuildInstances | null
+  pendingTargetBuildUnitIds: BuildUnitId[]
+  pendingAffectedBuildUnitIds: BuildUnitId[]
   currentGraphRevision: number
   lastBuildSeq: number | null
   latestIssuedGraphRevision: number | null
   latestIssuedBuildSeq: number
   latestAcceptedGraphRevision: number | null
   latestAcceptedBuildSeq: number | null
+  latestAcceptedBuildUnitIds: BuildUnitId[]
   inFlightGraphRevision: number | null
   inFlightBuildRequestId: string | null
   inFlightBuildSeq: number | null
@@ -199,7 +202,7 @@ export type GeometrySketchDraftPoint = {
 export type GeometrySketchDrawDraft = {
   points: GeometrySketchDraftPoint[]
   hoverPoint: GeometrySketchDraftPoint | null
-  hoverSnapTarget: 'origin' | null
+  hoverSnapTarget: 'origin' | 'endpoint' | null
 }
 
 export type GeometrySketchSelectionWindowDraft = {
@@ -363,7 +366,7 @@ export type SpaghettiStoreState = {
   setGeometrySketchSessionTool: (tool: GeometrySketchTool) => void
   setGeometrySketchDrawHoverPoint: (
     point: GeometrySketchDraftPoint | null,
-    snapTarget: 'origin' | null,
+    snapTarget: 'origin' | 'endpoint' | null,
   ) => void
   setGeometrySketchHoveredComponent: (rowId: string | null) => void
   setGeometrySketchSelectedComponents: (rowIds: string[]) => void
@@ -377,7 +380,7 @@ export type SpaghettiStoreState = {
   undoGeometrySketchDrawDraftPoint: () => void
   confirmGeometrySketchDrawPoint: (
     point: GeometrySketchDraftPoint,
-    snapTarget: 'origin' | null,
+    snapTarget: 'origin' | 'endpoint' | null,
   ) => void
   confirmGeometrySketchDrawRadius: (radius: number) => void
   finishGeometrySketchDrawDraft: () => void
@@ -434,6 +437,8 @@ export type SpaghettiStoreState = {
       pendingChangedParamIds: string[]
       pendingStatsPartKeys: string[]
       pendingInstances: GraphBuildInstances
+      pendingTargetBuildUnitIds?: BuildUnitId[]
+      pendingAffectedBuildUnitIds?: BuildUnitId[]
       buildRequestId: string
       buildSeq: number
     },
@@ -2080,12 +2085,15 @@ const createEmptyGraphCompileBuildState = (): GraphCompileBuildState => ({
   pendingChangedParamIds: [],
   pendingStatsPartKeys: [],
   pendingInstances: null,
+  pendingTargetBuildUnitIds: [],
+  pendingAffectedBuildUnitIds: [],
   currentGraphRevision: 0,
   lastBuildSeq: null,
   latestIssuedGraphRevision: null,
   latestIssuedBuildSeq: 0,
   latestAcceptedGraphRevision: null,
   latestAcceptedBuildSeq: null,
+  latestAcceptedBuildUnitIds: [],
   inFlightGraphRevision: null,
   inFlightBuildRequestId: null,
   inFlightBuildSeq: null,
@@ -5143,12 +5151,15 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
                 heelKickInstances: [...options.pendingInstances.heelKickInstances],
                 toeHookInstances: [...options.pendingInstances.toeHookInstances],
               },
+              pendingTargetBuildUnitIds: [...(options.pendingTargetBuildUnitIds ?? [])],
+              pendingAffectedBuildUnitIds: [...(options.pendingAffectedBuildUnitIds ?? [])],
               currentGraphRevision: runtime.compileBuild.currentGraphRevision,
               lastBuildSeq: options.buildSeq,
               latestIssuedGraphRevision: runtime.compileBuild.currentGraphRevision,
               latestIssuedBuildSeq: options.buildSeq,
               latestAcceptedGraphRevision: runtime.compileBuild.latestAcceptedGraphRevision,
               latestAcceptedBuildSeq: runtime.compileBuild.latestAcceptedBuildSeq,
+              latestAcceptedBuildUnitIds: [...runtime.compileBuild.latestAcceptedBuildUnitIds],
               inFlightGraphRevision: runtime.compileBuild.currentGraphRevision,
               inFlightBuildRequestId: options.buildRequestId,
               inFlightBuildSeq: options.buildSeq,
@@ -5202,6 +5213,9 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
               lastBuildSeq: routingIdentity.buildSeq,
               latestAcceptedGraphRevision: compileBuild.inFlightGraphRevision,
               latestAcceptedBuildSeq: routingIdentity.buildSeq,
+              latestAcceptedBuildUnitIds: [...compileBuild.pendingTargetBuildUnitIds],
+              pendingTargetBuildUnitIds: [],
+              pendingAffectedBuildUnitIds: [],
               inFlightGraphRevision: null,
               inFlightBuildRequestId: null,
               inFlightBuildSeq: null,
@@ -5253,6 +5267,8 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
             ...runtime,
             compileBuild: {
               ...compileBuild,
+              pendingTargetBuildUnitIds: [],
+              pendingAffectedBuildUnitIds: [],
               inFlightGraphRevision: null,
               inFlightBuildRequestId: null,
               inFlightBuildSeq: null,
@@ -5753,13 +5769,16 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
       return
     }
 
-    if (viewport.windowMode !== 'expanded') {
-      get().setEditorViewportWindowMode(editorViewportId, 'expanded')
-    }
     if (mode === 'essentials') {
+      if (viewport.windowMode !== 'maximized') {
+        get().setEditorViewportWindowMode(editorViewportId, 'maximized')
+      }
       get().setEditorViewportHeaderCollapsed(editorViewportId, true)
       get().setEditorViewportCanvasToolbarVisible(editorViewportId, false)
       return
+    }
+    if (viewport.windowMode !== 'expanded') {
+      get().setEditorViewportWindowMode(editorViewportId, 'expanded')
     }
     get().setEditorViewportHeaderCollapsed(editorViewportId, false)
     get().setEditorViewportCanvasToolbarVisible(editorViewportId, true)

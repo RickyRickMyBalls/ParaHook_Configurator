@@ -46,8 +46,13 @@ import type { ReferenceLoadableItem } from '../app/references/referenceManifest'
 import type { ReferenceTransformOverride } from '../app/references/referenceManifest'
 import { appendConsoleEntry } from '../app/console/useConsoleStore'
 import { isEditableTarget, routeKeyboardInput } from '../app/inputRouting'
-import type { GeometrySketchOverlayVm, SketchPlanePickOverlayVm } from '../app/viewerBridge'
+import type {
+  GeometrySketchOverlayVm,
+  GeometrySketchSnapTarget,
+  SketchPlanePickOverlayVm,
+} from '../app/viewerBridge'
 import { loadStepReferenceObject } from './stepReferenceLoader'
+import { createViewerGeometryFromArtifactMesh } from './artifactMeshGeometry'
 import {
   buildGeometrySketchRenderPolylines,
   collectGeometrySketchSelectionIds,
@@ -250,10 +255,10 @@ export class Viewer {
   private onSketchPlanePickTransformChange: ((transform: SketchPlaneTransform) => void) | null = null
   private onSketchPlanePickTransformCommit: (() => void) | null = null
   private onGeometrySketchHoverPoint:
-    | ((point: { x: number; y: number } | null, snapTarget: 'origin' | null) => void)
+    | ((point: { x: number; y: number } | null, snapTarget: GeometrySketchSnapTarget | null) => void)
     | null = null
   private onGeometrySketchConfirmPoint:
-    | ((point: { x: number; y: number }, snapTarget: 'origin' | null) => void)
+    | ((point: { x: number; y: number }, snapTarget: GeometrySketchSnapTarget | null) => void)
     | null = null
   private onGeometrySketchHoverComponent: ((rowId: string | null) => void) | null = null
   private onGeometrySketchSelectComponents: ((rowIds: string[]) => void) | null = null
@@ -488,21 +493,40 @@ export class Viewer {
     for (const part of parts) {
       const partKeyStr = part.viewerKey
       const artifact = part.artifact
-      const geometry = new BoxGeometry(
-        artifact.params.length,
-        artifact.params.height,
-        artifact.params.width,
-      )
       const material = this.resolveMaterialForPart(partKeyStr)
+      const geometry =
+        artifact.kind === 'box'
+          ? new BoxGeometry(
+              artifact.params.length,
+              artifact.params.height,
+              artifact.params.width,
+            )
+          : createViewerGeometryFromArtifactMesh(artifact.mesh)
+      if (geometry === null) {
+        continue
+      }
       const mesh = new Mesh(geometry, material)
       mesh.name = partKeyStr
-      mesh.position.set(xCursor + artifact.params.length / 2, artifact.params.height / 2, 0)
+      let lengthForCursor = 0
+      if (artifact.kind === 'box') {
+        mesh.position.set(xCursor + artifact.params.length / 2, artifact.params.height / 2, 0)
+        lengthForCursor = artifact.params.length
+      } else {
+        const bounds = geometry.boundingBox ?? new Box3().setFromObject(mesh)
+        const length = bounds.max.x - bounds.min.x
+        mesh.position.set(
+          xCursor - bounds.min.x,
+          -bounds.min.y,
+          -((bounds.min.z + bounds.max.z) / 2),
+        )
+        lengthForCursor = length
+      }
       mesh.visible = visibility[partKeyStr] ?? true
       mesh.castShadow = this.currentViewSettings.shadowsEnabled
       mesh.receiveShadow = this.currentViewSettings.shadowsEnabled
       this.rootGroup.add(mesh)
       this.partMeshes.set(partKeyStr, mesh)
-      xCursor += artifact.params.length + 0.2
+      xCursor += Math.max(lengthForCursor, 0.2) + 0.2
     }
 
     this.refreshSelectionStyling()
@@ -787,10 +811,42 @@ export class Viewer {
 
   public frameAll(): void {
     this.rememberCameraPose()
-    this.cameraController.frameAll(this.rootGroup)
+    this.cameraController.frameBox(this.getFrameAllBounds())
     appendConsoleEntry({
       layer: 'View',
       text: 'Frame all',
+      source: 'viewer',
+      severity: 'info',
+    })
+  }
+
+  public frameExtents(): void {
+    this.rememberCameraPose()
+    this.cameraController.frameBox(this.getFrameExtentsBounds())
+    appendConsoleEntry({
+      layer: 'View',
+      text: 'Zoom extents',
+      source: 'viewer',
+      severity: 'info',
+    })
+  }
+
+  public frameGeometrySketch(): void {
+    const sketchBounds = this.getGeometrySketchFrameBounds()
+    if (sketchBounds.isEmpty()) {
+      appendConsoleEntry({
+        layer: 'View',
+        text: 'Sketch zoom: no sketch geometry to frame',
+        source: 'viewer',
+        severity: 'warn',
+      })
+      return
+    }
+    this.rememberCameraPose()
+    this.cameraController.frameBox(sketchBounds)
+    appendConsoleEntry({
+      layer: 'View',
+      text: 'Sketch zoom extents',
       source: 'viewer',
       severity: 'info',
     })
@@ -1093,13 +1149,13 @@ export class Viewer {
   }
 
   public setOnGeometrySketchHoverPoint(
-    handler: ((point: { x: number; y: number } | null, snapTarget: 'origin' | null) => void) | null,
+    handler: ((point: { x: number; y: number } | null, snapTarget: GeometrySketchSnapTarget | null) => void) | null,
   ): void {
     this.onGeometrySketchHoverPoint = handler
   }
 
   public setOnGeometrySketchConfirmPoint(
-    handler: ((point: { x: number; y: number }, snapTarget: 'origin' | null) => void) | null,
+    handler: ((point: { x: number; y: number }, snapTarget: GeometrySketchSnapTarget | null) => void) | null,
   ): void {
     this.onGeometrySketchConfirmPoint = handler
   }
@@ -1940,6 +1996,34 @@ export class Viewer {
 
   private readReferenceScaleAnchor(object: Object3D): Vector3 {
     return object.getWorldPosition(new Vector3())
+  }
+
+  private getFrameAllBounds(): Box3 {
+    const bounds = this.getFrameExtentsBounds()
+    if (this.gridGroup.visible) {
+      bounds.union(new Box3().setFromObject(this.gridGroup, true))
+    }
+    return bounds
+  }
+
+  private getFrameExtentsBounds(): Box3 {
+    return new Box3().setFromObject(this.rootGroup, true)
+  }
+
+  private getGeometrySketchFrameBounds(): Box3 {
+    const bounds = new Box3().setFromObject(this.geometrySketchOverlayGroup, true)
+    const shouldIncludeDrawDraft =
+      this.geometrySketchOverlay?.mode === 'draw' &&
+      this.geometrySketchOverlay.drawDraft !== null &&
+      (this.geometrySketchOverlay.activeTool === 'line' ||
+        this.geometrySketchOverlay.activeTool === 'pline' ||
+        this.geometrySketchOverlay.activeTool === 'rectangle' ||
+        this.geometrySketchOverlay.activeTool === 'circle')
+    const drawDraftGroup = this.geometrySketchDrawHelper.getGroup()
+    if (shouldIncludeDrawDraft && drawDraftGroup.visible) {
+      bounds.union(new Box3().setFromObject(drawDraftGroup, true))
+    }
+    return bounds
   }
 
   private syncAxisOverlay(): void {

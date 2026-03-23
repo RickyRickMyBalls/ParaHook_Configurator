@@ -57,7 +57,7 @@ const defaultExpandedToolbarHeight = 150
 const minWindowSettingsHeight = 72
 const defaultExpandedWindowSettingsHeight = 180
 
-type SpaghettiEditorViewMode = 'expanded' | 'collapsed'
+type SpaghettiEditorViewMode = 'expanded' | 'essentials' | 'collapsed'
 type PartNodeType = Extract<NodeTypeId, 'Part/Baseplate' | 'Part/ToeHook' | 'Part/HeelKick'>
 
 const compareNodes = (a: SpaghettiNode, b: SpaghettiNode): number =>
@@ -150,6 +150,7 @@ type WindowSettingsSectionId = 'titlebar' | 'body' | 'text'
 
 type SpaghettiPanelProps = {
   editorViewportId: string
+  isEssentials?: boolean
   isWindowSettingsOpen?: boolean
   isClampEditing?: boolean
   windowAppearance?: SpaghettiWindowAppearance
@@ -164,6 +165,7 @@ type SpaghettiPanelProps = {
 
 export function SpaghettiPanel({
   editorViewportId,
+  isEssentials = false,
   isWindowSettingsOpen = false,
   isClampEditing = false,
   windowAppearance = defaultSpaghettiWindowAppearance,
@@ -836,15 +838,17 @@ export function SpaghettiPanel({
           flex: '0 0 auto',
         }
       : undefined
+  const effectiveViewMode: SpaghettiEditorViewMode = isEssentials ? 'essentials' : viewMode
 
   return (
     <section
       ref={panelRef}
-      className="V15Panel SpaghettiPanelRoot"
+      className={`V15Panel SpaghettiPanelRoot ${isEssentials ? 'isEssentials' : ''}`}
       data-editor-viewport-id={editorViewportId}
       data-graph-document-id={graphDocumentId ?? ''}
     >
-      <div ref={titleRef} className="SpaghettiPanelHeaderShell">
+      {!isEssentials ? (
+        <div ref={titleRef} className="SpaghettiPanelHeaderShell">
         {isWindowSettingsOpen ? (
           <>
             <div className="SpaghettiPanelPinnedRow SpaghettiWindowSettingsSection">
@@ -1355,19 +1359,24 @@ export function SpaghettiPanel({
           </div>
         </div>
       </div>
+      ) : null}
 
-      <button
-        type="button"
-        className="SpaghettiCanvasResizeBar"
-        onPointerDown={handleResizeStart}
-        onDoubleClick={handleResetHeight}
-        aria-label="Resize spaghetti editor area"
-      >
-        <span className="SpaghettiCanvasResizeGrip" />
-      </button>
+      {!isEssentials ? (
+        <button
+          type="button"
+          className="SpaghettiCanvasResizeBar"
+          onPointerDown={handleResizeStart}
+          onDoubleClick={handleResetHeight}
+          aria-label="Resize spaghetti editor area"
+        >
+          <span className="SpaghettiCanvasResizeGrip" />
+        </button>
+      ) : null}
 
       <div
-        className={`SpaghettiPanelCanvasWrap ${isHeaderCollapsed ? 'isExpanded' : ''}`}
+        className={`SpaghettiPanelCanvasWrap ${isHeaderCollapsed ? 'isExpanded' : ''} ${
+          isEssentials ? 'isEssentials' : ''
+        }`}
       >
         <SpaghettiEditorBoundary>
           {graphDocumentId === null ? (
@@ -1375,7 +1384,7 @@ export function SpaghettiPanel({
           ) : (
             <SpaghettiEditor
               graphDocumentId={graphDocumentId}
-              viewMode={viewMode}
+              viewMode={effectiveViewMode}
               focusNodeId={focusNodeId}
               fitCanvasRequestKey={fitCanvasRequestKey}
               fitNodeId={fitNodeRequest.nodeId}
@@ -1388,7 +1397,7 @@ export function SpaghettiPanel({
         </SpaghettiEditorBoundary>
       </div>
 
-      {isDebugVisible ? (
+      {!isEssentials && isDebugVisible ? (
         <button
           type="button"
           className="SpaghettiCanvasResizeBar SpaghettiDebugResizeBar"
@@ -1400,11 +1409,13 @@ export function SpaghettiPanel({
         </button>
       ) : null}
 
-      <DebugInspectorDrawer
-        isOpen={isDebugVisible}
-        onToggle={() => setIsDebugVisible((value) => !value)}
-        style={debugDrawerStyle}
-      />
+      {!isEssentials ? (
+        <DebugInspectorDrawer
+          isOpen={isDebugVisible}
+          onToggle={() => setIsDebugVisible((value) => !value)}
+          style={debugDrawerStyle}
+        />
+      ) : null}
     </section>
   )
 }

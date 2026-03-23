@@ -52,6 +52,14 @@ export type GraphPublishedContentSurface = {
 
 export const GRAPH_OUTPUT_SURFACE_VERSION = 1
 
+export const buildGraphOutputEntryId = (
+  slotId: string,
+  sourceNodeId: string | null | undefined,
+): string =>
+  typeof sourceNodeId === 'string' && sourceNodeId.length > 0
+    ? `output-entry:${slotId}:${sourceNodeId}`
+    : `output-entry:${slotId}:unbound`
+
 export const buildGraphOutputSurface = (options: {
   graphDocumentId: string
   previewPreparation: GraphPreviewPreparation
@@ -97,10 +105,7 @@ export const buildGraphOutputSurface = (options: {
     }
 
     return {
-      outputEntryId:
-        sourceNodeId.length > 0
-          ? `output-entry:${slotId}:${sourceNodeId}`
-          : `output-entry:${slotId}:unbound`,
+      outputEntryId: buildGraphOutputEntryId(slotId, sourceNodeId),
       slotId,
       sourceNodeId,
       label: slotId,

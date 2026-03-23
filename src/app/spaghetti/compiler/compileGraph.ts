@@ -2,6 +2,7 @@ import type { SpaghettiGraph } from '../schema/spaghettiTypes'
 import { compileFeatureStack, type FeatureStackIR } from '../features/compileFeatureStack'
 import { getEffectiveFeatureStack } from '../features/featureDependencies'
 import { readFeatureStack } from '../features/featureSchema'
+import type { ProfileLoop } from '../features/featureTypes'
 import { applyFeatureVirtualInputOverrides } from '../features/featureVirtualPorts'
 import { getNodeDef } from '../registry/nodeRegistry'
 import type { SpaghettiDiagnostic } from './validateGraph'
@@ -181,17 +182,30 @@ const getHeelKickAnchorPortMapping = (): HeelKickAnchorPortMapping => ({
 const isSketchPlane = (value: unknown): value is 'XY' | 'XZ' | 'YZ' =>
   value === 'XY' || value === 'XZ' || value === 'YZ'
 
+const isProfileLoopLike = (value: unknown): value is ProfileLoop =>
+  typeof value === 'object' &&
+  value !== null &&
+  Array.isArray((value as { segments?: unknown }).segments) &&
+  (((value as { winding?: unknown }).winding === 'CCW') ||
+    (value as { winding?: unknown }).winding === 'CW')
+
 const isProfileInputLike = (
   value: unknown,
 ): value is {
   profileId: string
+  profileIndex?: number
   area: number
+  loop?: ProfileLoop
   verticesProxy: Array<{ x: number; y: number }>
 } =>
   typeof value === 'object' &&
   value !== null &&
   typeof (value as { profileId?: unknown }).profileId === 'string' &&
+  (((value as { profileIndex?: unknown }).profileIndex === undefined) ||
+    typeof (value as { profileIndex?: unknown }).profileIndex === 'number') &&
   typeof (value as { area?: unknown }).area === 'number' &&
+  (((value as { loop?: unknown }).loop === undefined) ||
+    isProfileLoopLike((value as { loop?: unknown }).loop)) &&
   Array.isArray((value as { verticesProxy?: unknown }).verticesProxy)
 
 const readGeometrySketchPlaneFromNode = (
@@ -246,7 +260,7 @@ const buildGeometryExtrudeOps = (
       ? {
           sketchFeatureId: sourceSketchNode.nodeId,
           profileId: profileInput.profileId,
-          profileIndex: 0,
+          profileIndex: profileInput.profileIndex ?? 0,
         }
       : null
 
@@ -259,12 +273,13 @@ const buildGeometryExtrudeOps = (
       profilesResolved: [
         {
           profileId: profileInput.profileId,
-          profileIndex: 0,
+          profileIndex: profileInput.profileIndex ?? 0,
           area: profileInput.area,
-          loop: {
-            segments: [],
-            winding: 'CCW',
-          },
+          loop:
+            profileInput.loop ?? {
+              segments: [],
+              winding: 'CCW',
+            },
           verticesProxy: profileInput.verticesProxy,
         },
       ],

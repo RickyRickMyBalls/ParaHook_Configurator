@@ -4,6 +4,10 @@
 ### Fold Hack 3
 #### FOld Hack 4
 ###### Doc History
+137. 2026-03-23 01:02: Added a new `[5.0I] View Toolbar And Shared View State` bridge family under the pre-workspace shell lane with `[5.0I-1]` through `[5.0I-4]`, so the new `View-Toolbar` architecture family now has a real roadmap home spanning the projection console entry first cut, the later visible projection/lens surface, broader grid/background state, and the deferred gizmo/helper/feel follow-ons
+136. 2026-03-23 13:50: Marked `[3.2A-0.1] Sketch To Extrude To Preview Contract Repair` complete after shipping the graph-native mesh-preview contract repair, moving the standalone phase record into `Nodes-Fondation/Shipped/`, and keeping the broader `[3.2A]` family focused forward on the later `EWR` phases now that the immediate post-foundation geometry-fidelity cleanup is landed
+135. 2026-03-23 13:24: Marked `[5.3A-2] Graph-Native Worker Contract And Separate-Build Identity` complete after shipping the graph-native worker request-and-state contract, moving the standalone phase record into `Worker/Shipped/`, and updating the worker lane summary so the live roadmap now treats canonical `compiledBuildData + buildIdentity + invalidation` graph builds as landed groundwork while richer result semantics remain deferred to `[5.3A-6]`
+134. 2026-03-23 11:02: Added `[3.2A-0.1] Sketch To Extrude To Preview Contract Repair` under the shipped `[3.2A-0]` foundation, so the newly confirmed graph-native geometry fidelity cleanup now has an explicit roadmap home before the later `EWR` phases begin
 133. 2026-03-22 22:32: Marked `[5.0H-4] Camera Console Commands` complete after shipping the first root/scoped `Zoom` family plus console `Pan` / `Orbit`, tightening the roadmap wording so `Zoom Object` only claims the existing selected part/reference seam and unsupported paths like `Zoom Window` stay explicitly honest
 132. 2026-03-22 21:40: Marked `[5.0H-3] Spaghetti Canvas And Model Viewport Coexistence` complete after shipping the first explicit graph-canvas/model-viewport coexistence cut, so the camera-controls family now reads as three landed slices with only camera console commands and the later shared input-owner model still open
 131. 2026-03-22 20:52: Marked `[5.0H-2] Fusion-Style Model Viewport Camera Baseline` complete after shipping the first Fusion-style remap of the model-viewport camera controls, so the parent `[5.0H]` camera-controls family now reads as two landed cuts with only graph-canvas coexistence, console camera commands, and the later shared input-owner model still open
@@ -220,6 +224,7 @@ Status legend:
 - [~] `[3.2]` `Foundational Geometry Node System`
 - [~] `[3.2A]` `Data Types And Sketch Foundation`
 - [x] `[3.2A-0]` `Data Types And Sketch Foundation`
+- [x] `[3.2A-0.1]` `Sketch To Extrude To Preview Contract Repair`
 - [ ] `[3.2A-1]` `EWR Foundation And Shared Row Contract`
 - [ ] `[3.2A-2]` `Geometry Sketch EWR Vertical Slice`
 - [ ] `[3.2A-3]` `Downstream Geometry Node Hierarchy Expansion`
@@ -284,12 +289,17 @@ Status legend:
 - [x] `[5.0G]` `Theme System And Stylesheet Decomposition`
 - [x] `[5.0G-1]` `Theme Manifest And Surface File Split`
 - [x] `[5.0G-2]` `Cascade Cleanup And Override Reduction`
+- [~] `[5.0I]` `View Toolbar And Shared View State`
+- [ ] `[5.0I-1]` `Shared View Command Dispatch And Projection Console Entry`
+- [ ] `[5.0I-2]` `Projection Surface, ParaSelect, And Lens Controls`
+- [ ] `[5.0I-3]` `Grid, Background, And Core View State`
+- [ ] `[5.0I-4]` `Gizmo, Helpers, And Legacy Feel Follow-Ons`
 - [~] `[5.1]` `Workspace Modes`
 - [ ] `[5.2]` `Control Viz And Graph-Driven Control Surfaces`
 - [~] `[5.3]` `Build Sequencing, Build Bars, And Output Build Control`
 - [~] `[5.3A]` `Worker And Graph-Native Build Contract`
 - [x] `[5.3A-1]` `Worker Audit And Legacy Startup Inventory`
-- [ ] `[5.3A-2]` `Graph-Native Worker Contract And Separate-Build Identity`
+- [x] `[5.3A-2]` `Graph-Native Worker Contract And Separate-Build Identity`
 - [x] `[5.3A-3]` `Worker Lane Definition And Execution-Intent Model`
 - [ ] `[5.3A-4]` `Dispatcher Boundary Cleanup`
 - [ ] `[5.3A-5]` `Legacy Runtime And Startup Fallback Removal`
@@ -1410,6 +1420,7 @@ Summary:
 
 CheckList:
 - [x] preserve the shipped original foundation cut as `[3.2A-0]`
+- [x] land the immediate graph-native geometry fidelity cleanup as `[3.2A-0.1]` before the broader `EWR` expansion begins
 - [ ] add the shared `EWR` / `WireableRowNode` vocabulary and row contract under `[3.2A-1]`
 - [ ] land the first honest `Geometry/Sketch` row-tree vertical slice under `[3.2A-2]`
 - [ ] extend the row-tree / hierarchy model across the downstream geometry-node family under `[3.2A-3]`
@@ -1439,6 +1450,19 @@ CheckList:
   - `[SolidBody]`
 - [x] ship the first real `Sketch` node shell with honest top-level inputs and outputs
 - [x] keep this phase focused on the type vocabulary plus the `Sketch` seam, not deep sketch authoring breadth yet
+
+### [3.2A-0.1] [x] - `Sketch To Extrude To Preview Contract Repair`
+
+Summary:
+- repair the newly confirmed gap where `Sketch Draw` profile truth can survive into graph-native `Geometry/Extrude` internally but still fail to prove an honest end-to-end `Sketch -> Extrude -> Output Preview` shape path
+- use this as the immediate post-foundation cleanup before the broader `EWR` rollout begins
+
+CheckList:
+- [x] repair the graph-native `Geometry/Sketch -> Geometry/Extrude` contract where needed
+- [x] replace the current box-only build/output flattening with a result shape that can preserve the real extruded geometry
+- [x] make `Output Preview` capable of showing the true extruded result instead of only a bounds box
+- [x] verify the automated graph-native `PLine` / mesh artifact path that protects irregular `Sketch Draw` profiles through preview
+- [x] keep this cleanup narrow and do not widen it into the broader `EWR` hierarchy work
 
 ### [3.2A-1] [ ] - `EWR Foundation And Shared Row Contract`
 
@@ -2407,6 +2431,71 @@ CheckList:
 - [ ] add enough debug visibility to diagnose which system currently owns the pointer
 - [ ] remove remaining one-off exceptions once the shared owner path is stable
 
+### [5.0I] [~] - `View Toolbar And Shared View State`
+
+Summary:
+- narrow bridge family for turning `View-Toolbar` from a loose dock surface into one honest shared view-control system before `[5.1] Workspace Modes` broadens viewport hosting and per-surface presentation further
+- keep this family focused on explicit view commands and view state:
+  - projection
+  - lens/framing
+  - grid
+  - background
+  - helpers
+- keep raw pointer-ownership and gesture arbitration in `[5.0H]`
+- keep broad shell/window hosting in `[5.1]`
+
+CheckList:
+- [ ] prove the first shared toolbar-plus-console view command through one narrow projection cut
+- [ ] turn projection into a fuller visible toolbar section after the command seam is honest
+- [ ] recover the broader everyday view state like grid and background under the same shared command model
+- [ ] defer richer gizmo/helper tuning and legacy camera-feel controls until the core view-state surface is already coherent
+
+Subphases:
+- `[5.0I-1]` Shared View Command Dispatch And Projection Console Entry
+- `[5.0I-2]` Projection Surface, ParaSelect, And Lens Controls
+- `[5.0I-3]` Grid, Background, And Core View State
+- `[5.0I-4]` Gizmo, Helpers, And Legacy Feel Follow-Ons
+
+### [5.0I-1] [ ] - `Shared View Command Dispatch And Projection Console Entry`
+
+- add the first shared `View-Toolbar` command seam through:
+  - `Camera > Projection > Orthographic`
+  - `Camera > Projection > Perspective`
+- support local aliases `O` and `P` at that projection choice step
+- support the same command shape under `Graph > Sketch > Sketch Draw > Camera > Projection`
+- keep toolbar clicks and console choices on one shared projection-change seam
+- keep `Orthographic` honest as a real orthographic camera target, not a low-`FOV` fake
+
+### [5.0I-2] [ ] - `Projection Surface, ParaSelect, And Lens Controls`
+
+- add visible `View` toolbar controls for:
+  - `Perspective`
+  - `Orthographic`
+  - `ParaSelect`
+  - `FOV`
+- decide whether user-facing `Zoom` belongs in this same first lens/framing block
+- remember per-mode values where that improves usability without introducing hidden mode drift
+
+### [5.0I-3] [ ] - `Grid, Background, And Core View State`
+
+- expand the current one-checkbox grid into a real view-state section
+- adopt the `gridlines_n` layer model plus `+ Add Grid Lines`
+- add background modes and custom background color
+- decide the first return set for environment/scene variants without letting them dominate the everyday view surface
+- keep the same state reachable from toolbar and console
+
+### [5.0I-4] [ ] - `Gizmo, Helpers, And Legacy Feel Follow-Ons`
+
+- separate orientation-gizmo controls from transform-gizmo controls
+- add orientation-gizmo tuning like line opacity, sphere size, text size/visibility, and viewport size
+- decide which old camera-feel controls still deserve to come back:
+  - inertia
+  - decay
+  - roll
+  - spin
+  - `Zoom Stops Inertia`
+- keep this phase later so the first essential view-state surface does not get buried under legacy tuning
+
 ### [5.1] [~] - `VR / SP` - `Workspace Modes`
 #### Header
 Summary:
@@ -2493,7 +2582,7 @@ CheckList:
   - project/app state owns row policy
   - worker/runtime owns row execution truth
 - [ ] define deferred mesh/combine behavior across objects/assemblies
-- [ ] define the graph-native worker request/result contract that should replace the current legacy compatibility path
+- [x] define the graph-native worker request/result contract that should replace the current legacy compatibility path
 - [ ] remove dependence on graph-to-legacy request translation once the graph-native contract is real
 
 Worker/build sub-phase labels for the current cleanup split:
@@ -2514,7 +2603,7 @@ Summary:
 
 CheckList:
 - [x] audit the current worker/runtime and legacy startup path
-- [ ] define the graph-native worker contract and separate-build identity
+- [x] define the graph-native worker contract and separate-build identity
 - [x] define the permanent worker lanes and execution-intent model
 - [ ] thin the dispatcher around the real seams
 - [ ] remove legacy startup/runtime fallback behavior
@@ -2537,17 +2626,17 @@ CheckList:
   - legacy `assembled` startup narration
 - [x] identify where Browser and Console are still reading legacy worker/build truth instead of graph-native truth
 
-### [5.3A-2] [ ] - `Graph-Native Worker Contract And Separate-Build Identity`
+### [5.3A-2] [x] - `Graph-Native Worker Contract And Separate-Build Identity`
 
 Summary:
 - define the honest graph-native worker contract
 - lock what the first real separate-build unit is, what routing identity must survive, and what child-versus-parent rebuild ownership means
 
 CheckList:
-- [ ] define the request shape that should replace `payload: BoxParams`
-- [ ] define the first honest build unit for separate-building
-- [ ] lock child rebuild versus parent aggregate-status rules into request/result semantics
-- [ ] require startup/build identity to come from real graph outputs instead of fake fallback `baseplate` / `heelKick` / `toeHook` assumptions
+- [x] define the request shape that should replace `payload: BoxParams`
+- [x] define the first honest build unit for separate-building
+- [x] lock child rebuild versus parent aggregate-status rules into request/result semantics
+- [x] require startup/build identity to come from real graph outputs instead of fake fallback `baseplate` / `heelKick` / `toeHook` assumptions
 
 ### [5.3A-3] [x] - `Worker Lane Definition And Execution-Intent Model`
 

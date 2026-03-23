@@ -2,7 +2,7 @@ import { selectGraphByDocumentId, useSpaghettiStore } from '../store/useSpaghett
 import { CollapsedEditor } from './CollapsedEditor'
 import { ExpandedEditor } from './ExpandedEditor'
 
-type SpaghettiEditorViewMode = 'expanded' | 'collapsed'
+type SpaghettiEditorViewMode = 'expanded' | 'essentials' | 'collapsed'
 
 type SpaghettiEditorProps = {
   graphDocumentId: string
@@ -40,21 +40,21 @@ export function SpaghettiEditor({
             <div className="V15Error">Viewport graph binding is missing.</div>
           ) : null}
 
-          {graph === null ? null : viewMode === 'expanded' ? (
+          {graph === null ? null : viewMode === 'collapsed' ? (
+            <CollapsedEditor
+              graphDocumentId={graphDocumentId}
+              focusNodeId={focusNodeId}
+              isCanvasToolbarVisible={isCanvasToolbarVisible}
+              viewMode={viewMode}
+              onSetViewMode={onSetViewMode}
+            />
+          ) : (
             <ExpandedEditor
               graphDocumentId={graphDocumentId}
               fitCanvasRequestKey={fitCanvasRequestKey}
               fitNodeId={fitNodeId}
               fitNodeRequestKey={fitNodeRequestKey}
               isMeatballView={isMeatballView}
-              isCanvasToolbarVisible={isCanvasToolbarVisible}
-              viewMode={viewMode}
-              onSetViewMode={onSetViewMode}
-            />
-          ) : (
-            <CollapsedEditor
-              graphDocumentId={graphDocumentId}
-              focusNodeId={focusNodeId}
               isCanvasToolbarVisible={isCanvasToolbarVisible}
               viewMode={viewMode}
               onSetViewMode={onSetViewMode}

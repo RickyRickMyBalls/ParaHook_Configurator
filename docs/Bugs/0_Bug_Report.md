@@ -1,6 +1,7 @@
 # 0 - Bug Report
 
 ## Doc History
+6. 2026-03-23 13:50: Updated `Bug 7` to `[resolved?]` after the graph-native mesh-preview repair landed in code, keeping it visible in the short bug list while manual in-app verification of the irregular `Sketch Draw -> Geometry/Extrude -> OutputPreview` case still remains
 1. 2026-03-06 16:21: Re-formatted the `## Bug List` entries so each line now reads in the order `Bug N`, then status key, then the note text
 2. 2026-03-06 16:20: Added status tags to every entry in `## Bug List` so the short bug index now shows each bug's current state at a glance without changing the separate `Priority Order` section
 3. 2026-03-06 16:19: Re-formatted `## Priority Order` to match the one-line bug-list style so the ranked bug order now reads as a clean bug index instead of plain numbered prose
@@ -60,6 +61,7 @@ It is mainly:
 
 Current practical order:
 
+- `Bug 7` - Geometry/Sketch profile does not extrude the real Sketch Draw shape
 - `Bug 4` - Cube connected to OutputPreview does not render
 - `Bug 1` - Spaghetti editor toolbar drag bar cannot move high enough
 - `Bug 2` - Spaghetti editor toolbar drag bar is not aligned to the real canvas boundary
@@ -75,6 +77,7 @@ Current practical order:
 - `Bug 4` - `[investigating]` - Cube connected to OutputPreview does not render
 - `Bug 5` - `[planned]` - Spaghetti toolbar is fragmented across too many UI regions
 - `Bug 6` - `[planned]` - Wires lack clear render-path and active-flow visibility
+- `Bug 7` - `[resolved?]` - Geometry/Sketch profile loses the real Sketch Draw shape before Geometry/Extrude
 
 
 
@@ -235,3 +238,35 @@ Likely files:
 
 Related docs:
 - `/docs/Plans/Wish-Features/Spaghetti-Editor/01.3 - Wires ui.md`
+
+### Bug 7 - Geometry/Sketch profile does not extrude the real Sketch Draw shape
+
+Status:
+- `[investigating]`
+
+Problem:
+- irregular closed shapes authored in `Sketch Draw`, especially `PLine`-based profiles, can be selected and fed into `Geometry/Extrude`
+- but the resulting extruded body does not match the real 2D shape the user drew
+
+Why this matters:
+- this breaks trust in the graph-native geometry pipeline
+- it makes `Sketch -> Extrude -> OutputPreview` look connected while still producing the wrong body
+- it suggests the authored `Sketch Draw` profile data is being reduced or rebuilt incorrectly before runtime extrusion
+
+Current likely cause:
+- the graph-native `Geometry/Sketch -> Geometry/Extrude` compile seam appears to rebuild a synthetic sketch payload from evaluated profile output and drop the richer loop-segment structure
+
+Likely ownership:
+- `AS`
+- `Geometry`
+- worker CAD runtime contract
+
+Likely files:
+- `src/app/spaghetti/compiler/compileGraph.ts`
+- `src/app/spaghetti/registry/nodeRegistry.ts`
+- `src/app/spaghetti/compiler/evaluateGraph.ts`
+- `src/app/spaghetti/features/compileFeatureStack.ts`
+- `src/worker/cad/featureStackRuntime.ts`
+
+Related docs:
+- `/docs/Bugs/4_GeometrySketch-Extrude-Profile-Handoff-Regression.md`

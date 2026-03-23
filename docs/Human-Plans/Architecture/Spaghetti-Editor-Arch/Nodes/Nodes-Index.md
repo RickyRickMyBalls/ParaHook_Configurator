@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+15. 2026-03-23 13:50: Marked `[3.2A-0.1] Sketch To Extrude To Preview Contract Repair` complete after widening the graph-native preview artifact contract to allow mesh outputs, moving the standalone phase record into `Nodes-Fondation/Shipped/`, and updating this node-family index so the immediate post-foundation geometry-fidelity cleanup now reads as landed groundwork before the later `EWR` phases
 14. 2026-03-22 14:04: Moved the planned `Flip` boolean in the `Geometry/Sketch` input tree so it now hangs directly under `Plane` instead of under `Transform`, keeping the sketch-plane hierarchy aligned with the intended surface layout where plane orientation owns the flip toggle while `Transform` stays focused on `Vec3` motion channels
 13. 2026-03-22 14:00: Renamed the local `Nodes-Index.md` phase ladder to match the roadmap-owned `[3.2A-1]` through `[3.2A-4]` naming, so the node-family planning surface now lines up directly with the `3.2A` mini-family in `roadmap.md` instead of still using generic `Phase 1` through `Phase 4` headings
 12. 2026-03-22 14:00: Broke the `Nodes-Index.md` direction into a four-phase rollout under `## Phases`, using the fewest safe phases that still separate the shared `EWR` foundation, the first `Geometry/Sketch` vertical slice, the downstream geometry-node family follow-ons, and the later node-family cleanup/legacy migration work while adding explicit `Questions / Decisions` plus `Suggestion` blocks for each phase
@@ -527,6 +528,25 @@ Yes. The long-term direction should be that downstream geometry nodes consume ch
 
 
 ## Phases
+
+### [x] [3.2A-0.1] - Sketch To Extrude To Preview Contract Repair
+
+- [x] repair the current graph-native geometry fidelity gap before broader `EWR` work expands
+- [x] verify the code path for `Sketch Draw -> SketchProfile -> Geometry/Extrude -> Output Preview` can publish real authored extruded shape data
+- [x] replace the current box-only preview flattening for graph-native extrude results without widening into the full worker rewrite
+- [x] keep this phase as a narrow post-foundation cleanup under shipped `[3.2A-0]`, not as the first `EWR` phase
+
+#### [ ] - `q1` Should this cleanup count as the first `EWR` phase?
+
+##### Suggestion
+
+No. Treat it as a post-foundation geometry contract repair under `[3.2A-0.1]`. `EWR` should still begin later at `[3.2A-1]`.
+
+#### [ ] - `q2` What is the primary seam this cleanup should repair?
+
+##### Suggestion
+
+Treat the main seam as `Shape3D mesh -> PartArtifact -> Viewer`, with any remaining sketch-profile compile fixes kept secondary and narrow.
 
 ### [ ] [3.2A-1] - EWR Foundation And Shared Row Contract
 

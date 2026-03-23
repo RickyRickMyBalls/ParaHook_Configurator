@@ -594,8 +594,6 @@ describe('ViewportOverlay sketch session window', () => {
     expect(container.textContent).toContain('Toolbar Width')
     expect(container.textContent).toContain('Toolbar Height')
     expect(container.textContent).toContain('Sketch Draw Settings')
-    expect(container.textContent).toContain('Snap')
-    expect(container.textContent).toContain('Snap Distance')
     expect(container.textContent).toContain('Crosshair Size')
     expect(container.textContent).toContain('Start Point')
     expect(container.textContent).toContain('Start Point Symbol')
@@ -603,6 +601,15 @@ describe('ViewportOverlay sketch session window', () => {
     expect(container.textContent).toContain('PLine Point Symbols')
     expect(container.textContent).toContain('PLine Point Symbol')
     expect(container.textContent).toContain('PLine Point Size')
+    expect(container.textContent).toContain('Snap')
+    expect(container.textContent).toContain('Snap Distance')
+
+    const sketchDrawSettingsSubsection = Array.from(
+      container.querySelectorAll('.ViewportOverlayToolPanelCustomizationSubsection'),
+    ).find((section) => section.textContent?.includes('Sketch Draw Settings')) as HTMLElement | undefined
+
+    expect(sketchDrawSettingsSubsection).toBeDefined()
+    expect(sketchDrawSettingsSubsection?.textContent).not.toContain('Snap Distance')
   })
 
   it('keeps align view in session, clamp editing in entities, and active tool nested under tool selection', async () => {

@@ -2847,6 +2847,84 @@ describe('ConsoleDock', () => {
     expect(useConsoleStore.getState().entries.some((entry) => entry.text === '> 6')).toBe(true)
   })
 
+  it('lets focused circle-radius input accumulate multi-digit floats during freeform assist entry', async () => {
+    const circleNodeId = 'node-sketch-circle-freeform'
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: circleNodeId,
+            type: 'Geometry/Sketch',
+            params: {
+              sketch: {
+                type: 'sketch',
+                featureId: 'sketch-1',
+                plane: 'XY',
+                components: [],
+                outputs: { profiles: [], diagnostics: [] },
+                uiState: { collapsed: false },
+              },
+            },
+          },
+        ],
+        edges: [],
+      })
+      useSpaghettiStore.getState().startGeometrySketchSession(circleNodeId, 'draw')
+      useSpaghettiStore.getState().runGeometrySketchDrawCommand('circle')
+      useSpaghettiStore.getState().confirmGeometrySketchDrawPoint({ x: 2, y: 3 }, null)
+    })
+
+    const input = container.querySelector(
+      'input[aria-label="Console input"]',
+    ) as HTMLInputElement | null
+
+    const typeIntoFocusedConsoleInput = async (nextValue: string, key: string) => {
+      await act(async () => {
+        input?.focus()
+      })
+      expect(document.activeElement).toBe(input)
+
+      const keyEvent = new KeyboardEvent('keydown', {
+        key,
+        bubbles: true,
+        cancelable: true,
+      })
+
+      await act(async () => {
+        input?.dispatchEvent(keyEvent)
+      })
+
+      expect(keyEvent.defaultPrevented).toBe(false)
+
+      await act(async () => {
+        if (input === null) {
+          return
+        }
+        const valueSetter = Object.getOwnPropertyDescriptor(
+          window.HTMLInputElement.prototype,
+          'value',
+        )?.set
+        valueSetter?.call(input, nextValue)
+        input.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }))
+      })
+    }
+
+    await typeIntoFocusedConsoleInput('1', '1')
+    expect(useConsoleStore.getState().inputText).toBe('1')
+
+    await typeIntoFocusedConsoleInput('10', '0')
+    expect(useConsoleStore.getState().inputText).toBe('10')
+
+    await typeIntoFocusedConsoleInput('100', '0')
+    expect(useConsoleStore.getState().inputText).toBe('100')
+  })
+
   it('accepts del in idle sketch draw and deletes the selected entity set', async () => {
     container = document.createElement('div')
     document.body.appendChild(container)
@@ -3160,7 +3238,7 @@ describe('ConsoleDock', () => {
     expect(
       useConsoleStore
         .getState()
-        .entries.some((entry) => entry.text === 'Sketch Draw > [Line, PLine, Rectangle, Circle, Previous, X]'),
+        .entries.some((entry) => entry.text === 'Sketch Draw > [Line, PLine, Rectangle, Circle, Zoom, Previous, X]'),
     ).toBe(true)
   })
 
@@ -4260,11 +4338,79 @@ describe('ConsoleDock', () => {
     expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('zoomRoot')
     expect(useConsoleStore.getState().inputText).toBe('All')
     expect(
+      useConsoleStore.getState().entries.some((entry) => entry.text === 'Select > Zoom'),
+    ).toBe(true)
+    expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain('Zoom > Choose next')
+    expect(
       useConsoleStore.getState().entries.some(
         (entry) =>
           entry.text === 'Zoom > Choose next [All, Extents, Previous, Window, Object, Back]',
       ),
     ).toBe(true)
+  })
+
+  it('enters sketch draw zoom and returns to sketch draw after z > e completes', async () => {
+    const viewerFrameGeometrySketch = vi.fn()
+    setViewer({
+      frameAll: vi.fn(),
+      frameExtents: vi.fn(),
+      frameGeometrySketch: viewerFrameGeometrySketch,
+      framePrevious: vi.fn(),
+      frameSelected: vi.fn(),
+      frameReference: vi.fn(),
+      setConsoleCameraMode: vi.fn(),
+    } as any)
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'sketch_1',
+            type: 'Geometry/Sketch',
+            params: getDefaultNodeParams('Geometry/Sketch'),
+          },
+        ],
+        edges: [],
+      })
+      useSpaghettiStore.getState().startGeometrySketchSession('sketch_1', 'draw')
+    })
+
+    const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('z')
+    })
+
+    expect(useSpaghettiStore.getState().geometrySketchSession?.mode).toBe('draw')
+
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('sketchDrawZoomRoot')
+    expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
+      'Graph > Sketch > Sketch Draw > Zoom > Choose next',
+    )
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('e')
+    })
+
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(viewerFrameGeometrySketch).toHaveBeenCalledTimes(1)
+    expect(useConsoleStore.getState().stagedNavigationSession).toBeNull()
+    expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
+      'Graph > Sketch > Sketch Draw > Choose next',
+    )
   })
 
   it('defaults Graph > Zoom to Canvas first', async () => {
@@ -4305,9 +4451,12 @@ describe('ConsoleDock', () => {
 
   it('frames model extents from z > e and arms pan from pan', async () => {
     const viewerFrameAll = vi.fn()
+    const viewerFrameExtents = vi.fn()
     const viewerSetConsoleCameraMode = vi.fn()
     setViewer({
       frameAll: viewerFrameAll,
+      frameExtents: viewerFrameExtents,
+      frameGeometrySketch: vi.fn(),
       framePrevious: vi.fn(),
       frameSelected: vi.fn(),
       frameReference: vi.fn(),
@@ -4329,7 +4478,10 @@ describe('ConsoleDock', () => {
       form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
     })
 
-    expect(viewerFrameAll).toHaveBeenCalledTimes(1)
+    expect(viewerFrameExtents).toHaveBeenCalledTimes(1)
+    expect(viewerFrameAll).not.toHaveBeenCalled()
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('root')
+    expect(useConsoleStore.getState().inputText).toBe('Graph')
 
     await act(async () => {
       useConsoleStore.getState().setInputText('pan')
@@ -4340,6 +4492,78 @@ describe('ConsoleDock', () => {
     })
 
     expect(viewerSetConsoleCameraMode).toHaveBeenCalledWith('pan')
+  })
+
+  it('returns to root after flat z > a completes', async () => {
+    const viewerFrameAll = vi.fn()
+    setViewer({
+      frameAll: viewerFrameAll,
+      frameExtents: vi.fn(),
+      frameGeometrySketch: vi.fn(),
+      framePrevious: vi.fn(),
+      frameSelected: vi.fn(),
+      frameReference: vi.fn(),
+      setConsoleCameraMode: vi.fn(),
+    } as any)
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useConsoleStore.getState().setInputText('z > a')
+    })
+
+    const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(viewerFrameAll).toHaveBeenCalledTimes(1)
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('root')
+    expect(useConsoleStore.getState().inputText).toBe('Graph')
+    expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
+      'Root > Choose next',
+    )
+  })
+
+  it('returns to graph after graph-scoped z > a completes', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [],
+        edges: [],
+      })
+      useConsoleStore.getState().setInputText('g')
+    })
+
+    const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('graphSelected')
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('z > a')
+    })
+
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('graphSelected')
+    expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
+      'Graph > Choose next',
+    )
   })
 
   it('executes sketch draw from staged navigation and clears the staged session', async () => {
@@ -4413,7 +4637,7 @@ describe('ConsoleDock', () => {
     expect(
       useConsoleStore
         .getState()
-        .entries.some((entry) => entry.text === 'Sketch Draw > [Line, PLine, Rectangle, Circle, X]'),
+        .entries.some((entry) => entry.text === 'Sketch Draw > [Line, PLine, Rectangle, Circle, Zoom, X]'),
     ).toBe(true)
   })
 

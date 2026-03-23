@@ -3,6 +3,14 @@
 ## Doc Header
 
 ### Doc History
+66. 2026-03-23 00:43: Tightened the open `[3.2B-DrawSketch-6.1] Endpoint Snap First Pass` child phase into a more implementation-ready spec inside both the standalone future phase doc and this sketch family mirror, locking the current snap seams, the first committed endpoint extraction set, the origin-versus-endpoint ranking rule, the first `hoverSnapTarget` expansion, and the concrete helper/store/viewer verification targets
+65. 2026-03-23 00:20: Added a bigger-vision AutoCAD-style modify-command backlog to the top of the open `[3.2B-DrawSketch-7] Entity Transform And Modify Tools` family, so the doc now explicitly frames `DrawSketch-7` as the long-term home for transform, reshape/topology, and structure/cleanup commands on existing sketch entities
+64. 2026-03-23 00:16: Expanded the new open `[3.2B-DrawSketch-7] Entity Transform And Modify Tools` family to include the broader AutoCAD-style modify backlog, then re-split it into a safer six-step ladder of `[7.0] Move Copy And Rotate`, `[7.1] Scale Mirror And Array`, `[7.2] Offset Fillet And Chamfer`, `[7.3] Stretch`, `[7.4] Trim And Extend`, and `[7.5] Explode And Join`
+63. 2026-03-23 00:09: Added a new open `[3.2B-DrawSketch-7] Entity Transform And Modify Tools` family with a standalone future phase doc, splitting the next post-snap sketch-edit growth into a safe ladder of `[7.0] Move And Rotate`, `[7.1] Scale Mirror And Array`, `[7.2] Stretch`, and `[7.3] Trim And Extend` instead of treating all modify tools as one phase
+62. 2026-03-22 23:56: Expanded the open `DrawSketch-6` snap-family planning with a bigger AutoCAD-like long-term snap vision, adding object-snap and tracking categories, a suggested growth order after endpoint snap, and a view-toolbar direction for master snap controls, per-snap rows, tracking aids, polar settings, and later symbol customization
+61. 2026-03-22 23:45: Reframed `[3.2B-DrawSketch-6]` as a wider `Snap Growth` parent instead of one monolithic endpoint-only phase, then added the first child split at the bottom with `[3.2B-DrawSketch-6.0] Snap Toolbar And Shared Snap Controls` and `[3.2B-DrawSketch-6.1] Endpoint Snap First Pass` so later midpoint/center/object-snap follow-ons have a cleaner place to land
+60. 2026-03-22 23:39: Extended the open `[3.2B-DrawSketch-6] Endpoint Snap` plan with the current snap-settings research, locking the first toolbar cleanup that moves `Snap` and `Snap Distance` out of the sketch-draw `i` menu into a dedicated main `Snap` section and explicitly reusing the already-shipped sketch-draw snap prefs instead of introducing a second snap-control system
+59. 2026-03-22 23:30: Tightened `[3.2B-DrawSketch-6] Endpoint Snap` into a more implementation-ready spec by locking the exact first endpoint extraction set per entity type, the shared origin-versus-endpoint ranking rule, the active-tool-only snap boundary, the first user-visible snap feedback contract, and the concrete store/viewer/helper seams plus verification targets
 58. 2026-03-22 11:48: Landed `[3.2B-DrawSketch-3] Selection And Delete`, so `Sketch Draw` now falls back to idle committed-entity targeting after draw-tool commit, supports blue `Window` and green `Crossing` selection in the viewport, syncs selection with the `Entities` list, and allows immediate delete through viewport `Delete`, console `delete` / `del`, and the visible toolbar action
 57. 2026-03-22 11:15: Tightened `[3.2B-DrawSketch-3] Selection And Delete` into an implementation-ready entity-selection spec by explicitly separating it from the existing profile-review mode, locking it onto idle `Sketch Draw` (`draw > sessionIdle`), defining replacement semantics for click/window selection, and naming the current store/viewer/overlay seams plus the targeted verification matrix
 56. 2026-03-22 11:03: Corrected `[3.2B-DrawSketch-3] Selection And Delete` so selection now lives in idle/review `Sketch Draw` instead of a peer `Selection Mode` tool, meaning draw-tool commits return to selectable review state and `Enter` / `Previous` are the way back into the last draw command
@@ -398,7 +406,9 @@ Next tool-focused follow-ons:
 - `[3.2B-DrawSketch-5]`
   - `Circle Tool And Center-Radius Workflow`
 - `[3.2B-DrawSketch-6]`
-  - `Endpoint Snap`
+  - `Snap Growth`
+- `[3.2B-DrawSketch-7]`
+  - `Entity Transform And Modify Tools`
 - later:
   - `Arc3Point`
   - `BezierSpline`
@@ -2017,18 +2027,19 @@ Owns:
 - the viewport draft layer now samples a live circle ghost and shows a live radius witness line from center to hover
 - no diameter mode, tangent variants, trim/extend behavior, circle entry-edit UI, or arc conversion shipped in this phase
 
-## [ ] - `3.2B-DrawSketch-6` - `Endpoint Snap`
+## [ ] - `3.2B-DrawSketch-6` - `Snap Growth`
 
 ### Header
 
 Purpose:
-- extend the current origin-only snap behavior so active draw tools can lock onto committed sketch endpoints like a first real object-snap pass
+- define the next sketch-draw snap family after the shipped origin-only snap
+- split the work into smaller snap follow-ons instead of treating all snap growth as one phase
 
 Owns:
-- endpoint candidate collection from committed sketch content
-- hover/confirm snap behavior for endpoint targets
-- endpoint snap marker/status language
-- reuse of the same snap path across `Line`, `PLine`, `Rectangle`, and `Circle`
+- the snap-family phase split
+- shared snap-control direction in the sketch-draw toolbar
+- the first endpoint-snap vertical slice
+- later room for midpoint / center / other snap growth
 
 ### Questions / Decisions
 
@@ -2055,6 +2066,88 @@ Owns:
 - shared
 - any active point-placement tool should be able to consume endpoint snaps when it is asking for the next point
 
+#### [x] - `q3` Decide the exact first endpoint extraction rules per committed entity type.
+
+##### Suggestion
+- locked direction:
+- include:
+  - `line`
+    - `a`
+    - `b`
+  - `pline`
+    - every committed segment start/end endpoint
+    - adjacent repeated endpoints should be de-duplicated before snap ranking
+  - `rectangle`
+    - the four committed corners
+- do not include yet:
+  - `circle` center
+  - `circle` edge witness
+  - profile-derived points
+  - any endpoint from the currently active uncommitted draft
+
+#### [x] - `q4` Decide how endpoint snap should coexist with the already-shipped origin snap.
+
+##### Suggestion
+- locked direction:
+- origin stays in the same shared snap search
+- first ranking rule:
+  - nearest qualifying candidate in screen-space inside the active snap radius wins
+- if origin and endpoint are both inside range:
+  - choose the nearer one
+- do not add a special origin-priority override in this phase
+
+#### [x] - `q5` Decide when endpoint snap is allowed to drive the committed point.
+
+##### Suggestion
+- locked direction:
+- only while an active point-placement draw tool is asking for a point
+- include:
+  - `Line`
+  - `PLine`
+  - `Rectangle`
+  - `Circle`
+- do not apply in:
+  - idle `Sketch Draw` selection mode
+  - typed `Vec2` parsing itself
+  - later entity move/edit workflows
+
+#### [x] - `q6` Decide the first user-visible feedback contract for endpoint snap.
+
+##### Suggestion
+- locked direction:
+- keep the current snap marker and reuse it for endpoint snap
+- when snapped:
+  - hover point resolves to the snapped coordinate
+  - marker sits on the snapped endpoint
+  - console/status path uses the snapped coordinate, not the unsnapped hover coordinate
+- do not add endpoint labels, badges, or richer inference guides in this phase
+
+#### [x] - `q7` Decide where the current sketch-draw snap controls should live before richer snap types are added.
+
+##### Suggestion
+- locked direction:
+- move `Snap` and `Snap Distance` out of the sketch-draw `i` menu settings subsection
+- create a dedicated main `Snap` section in the `Sketch Draw` toolbar
+- first contents of that section:
+  - `Snap`
+  - `Snap Distance`
+- later snap-family rows can expand there:
+  - `Endpoint`
+  - `Midpoint`
+  - `Center`
+  - others
+- leave visual-only rows such as crosshair and point-symbol controls in the existing settings/customization surface
+
+#### [x] - `q8` Decide whether the first endpoint-snap implementation should reuse the already-shipped sketch-draw snap prefs.
+
+##### Suggestion
+- locked direction:
+- reuse the existing persisted prefs:
+  - `sketchDrawSnapEnabled`
+  - `sketchDrawSnapDistancePx`
+- do not invent a second endpoint-specific toggle/value pair in this phase
+- endpoint snap should honor the same on/off and radius controls that origin snap already uses
+
 ### Implementation Spec
 
 - current code truth:
@@ -2063,21 +2156,610 @@ Owns:
     - origin snap search
   - `geometrySketchSession.drawDraft.hoverSnapTarget` is still limited to:
     - `origin`
+  - the sketch-draw snap prefs already exist and already flow through the viewer overlay vm:
+    - `src/app/store/uiPrefsStore.ts`
+    - `src/app/components/ViewerHost.tsx`
+  - the current toolbar placement is still under the sketch-draw settings subsection in:
+    - `src/app/components/ViewportOverlay.tsx`
 - current gap:
   - there is no candidate gathering or session typing for committed sketch endpoints yet
+  - the current toolbar layout does not expose snap as a first-class sketch-draw section yet
+- first data-model target:
+  - extend the draw-draft snap-target shape so hover can carry:
+    - `origin`
+    - `endpoint`
+  - first endpoint payload should preserve at minimum:
+    - snapped sketch-space coordinate
+    - source component id / row id
+    - small source kind such as `line`, `pline`, or `rectangle`
+- first endpoint extraction target:
+  - gather committed candidates from the active sketch node only
+  - include:
+    - line `a/b`
+    - pline committed segment endpoints
+    - rectangle corners
+  - exclude:
+    - current draft geometry
+    - circle center/edge
+    - profile-derived points
 - first honest runtime target:
+  - first UI cleanup:
+    - move `Snap` and `Snap Distance` into a dedicated `Snap` section in the main `Sketch Draw` toolbar
+    - keep those controls bound to the existing sketch-draw snap prefs
   - while a point-based draw command is active, the hover point should snap to the nearest qualifying endpoint inside the existing snap radius
   - the snap marker should move onto that endpoint
   - confirm should commit the snapped coordinate through the same canonical point-confirm seam already used by click and typed `Vec2`
   - origin snap should keep working as it does today
 - nearest-candidate choice should stay deterministic:
   - use nearest endpoint in screen-space within the active snap radius
+- likely runtime ownership remains near:
+  - `src/app/components/ViewportOverlay.tsx`
+    - move `Snap` and `Snap Distance` into a dedicated `Sketch Draw` toolbar section
+  - `src/viewer/geometrySketchOverlay.ts`
+    - collect committed endpoint candidates from active sketch content
+  - `src/app/spaghetti/store/useSpaghettiStore.ts`
+    - store the resolved snapped hover point and target kind in the draw draft
+  - `src/viewer/sketch/GeometrySketchDrawHelper.ts`
+    - render the shared snap marker against endpoint targets
+  - `src/app/console/ConsoleDock.tsx`
+    - continue reflecting the snapped coordinate through existing live draw breadcrumb/status output
+- first verification target:
+  - viewport hover near a committed endpoint resolves to that exact endpoint coordinate
+  - clicking while snapped commits the snapped coordinate, not the raw hover coordinate
+  - typed `Vec2` submit still bypasses hover snap and commits the typed coordinate directly
+  - if no candidate is inside radius, current free-hover/origin behavior remains unchanged
 - this phase should not add:
   - midpoint snap
   - center snap
   - tangent/perpendicular snap
   - full inference/tracking overlays
   - constraint solving
+
+### Acceptance Checks
+
+- a dedicated `Snap` section exists in the main `Sketch Draw` toolbar
+- that section owns `Snap` and `Snap Distance`
+- the old sketch-draw settings subsection no longer owns those two rows
+- active `Line` placement can snap to an existing committed endpoint
+- active `PLine` placement can continue from an existing committed endpoint
+- rectangle corners participate as snap targets
+- `Circle` center and edge placement can consume endpoint snaps from existing line / pline / rectangle geometry
+- origin snap still works after endpoint snap is added
+- nearest-candidate choice stays deterministic when multiple endpoints are inside the snap radius
+
+### Subphases
+
+#### [ ] - `3.2B-DrawSketch-6.0` - `Snap Toolbar And Shared Snap Controls`
+
+Purpose:
+- move snap controls into a first-class `Snap` section before more snap types are added
+
+Owns:
+- toolbar reorganization
+- shared snap on/off control ownership
+- shared snap distance control ownership
+- reuse of the existing sketch-draw snap prefs
+
+First targets:
+- move `Snap` and `Snap Distance` out of the sketch-draw settings submenu
+- create a dedicated main `Snap` section in the `Sketch Draw` toolbar
+- keep the controls wired to:
+  - `sketchDrawSnapEnabled`
+  - `sketchDrawSnapDistancePx`
+- leave visual-only draw settings in the existing settings/customization surface
+
+#### [ ] - `3.2B-DrawSketch-6.1` - `Endpoint Snap First Pass`
+
+### Header
+
+Purpose:
+- extend the shipped origin snap into the first committed-geometry object snap
+
+Owns:
+- committed endpoint candidate gathering
+- origin-plus-endpoint ranking
+- snapped hover/confirm behavior
+- shared point-placement tool reuse across `Line`, `PLine`, `Rectangle`, and `Circle`
+
+Keeps out of scope:
+- midpoint / center / quadrant snap
+- nearest / perpendicular / tangent / intersection
+- ortho / polar tracking
+- per-snap toggle growth beyond the already-shipped shared snap toggle and snap radius
+
+### Current Seam Read
+
+Current code already gives this phase part of what it needs:
+- `GeometrySketchDrawHelper` already computes:
+  - the hovered sketch-plane point
+  - the current `origin` snap
+  - the snap marker preview
+- `ViewerHost` already forwards the active hover point and current `snapTarget` back into app state
+- `useSpaghettiStore` already owns:
+  - `geometrySketchSession.drawDraft.hoverPoint`
+  - `geometrySketchSession.drawDraft.hoverSnapTarget`
+  - the canonical `confirmGeometrySketchDrawPoint(...)` commit seam
+- the shipped prefs already exist and should be reused:
+  - `sketchDrawSnapEnabled`
+  - `sketchDrawSnapDistancePx`
+
+Current hard limit:
+- `hoverSnapTarget` is still effectively `origin | null`
+- committed sketch endpoints are not yet collected or ranked as snap candidates
+
+### Questions / Decisions
+
+#### [x] q1 - Which committed entity types should supply endpoint candidates in the first pass?
+
+##### Decision
+- The first pass should include committed endpoints from:
+  - `line`
+  - `pline`
+  - `rectangle`
+
+##### Suggestion
+- Use only authored committed endpoint rows that already exist in sketch state.
+- Exclude:
+  - circles
+  - active draft geometry
+  - profile-derived points
+
+#### [x] q2 - How should origin snap and endpoint snap compete?
+
+##### Decision
+- They should share one ranking pass.
+
+##### Suggestion
+- Compute all valid candidates in screen-space.
+- Keep only candidates inside the active snap radius.
+- Choose the nearest candidate in screen-space.
+- If the `origin` is nearest, current shipped behavior stays intact.
+
+#### [x] q3 - Which tools should consume endpoint snap in the first pass?
+
+##### Decision
+- Endpoint snap should apply to active point-placement tools only:
+  - `Line`
+  - `PLine`
+  - `Rectangle`
+  - `Circle`
+
+##### Suggestion
+- Reuse the same snapped hover/confirm seam already used by origin snap.
+- Do not widen snap behavior into idle selection or unrelated review states in this phase.
+
+#### [x] q4 - What is the first required `snapTarget` expansion?
+
+##### Decision
+- Add `endpoint` as the first new target kind.
+
+##### Suggestion
+- The stored snap result should preserve:
+  - the snapped coordinate
+  - the snap kind (`origin` or `endpoint`)
+  - the source component row/id when the candidate came from committed geometry
+
+### Implementation Spec
+
+Recommended file changes:
+- `src/viewer/geometrySketchOverlay.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/viewer/sketch/GeometrySketchDrawHelper.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/console/ConsoleDock.tsx`
+- tests:
+  - `src/viewer/geometrySketchOverlay.test.ts`
+  - `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+  - `src/app/console/ConsoleDock.test.tsx`
+
+Implementation steps:
+1. Extend the geometry-sketch overlay VM snap-target type so it can represent `endpoint` in addition to `origin`.
+2. Add committed endpoint extraction for:
+   - `line`
+   - `pline`
+   - `rectangle`
+3. Dedupe repeated endpoint coordinates where a shared `pline` or connected shape would otherwise surface the same committed point multiple times.
+4. Rank `origin` plus committed endpoints in one shared screen-space pass using the existing snap-distance preference.
+5. Return the winning snapped coordinate plus target kind through the existing viewer hover callback.
+6. Store the resolved target in `geometrySketchSession.drawDraft.hoverSnapTarget` without changing the existing confirm entrypoint.
+7. Keep `confirmGeometrySketchDrawPoint(...)` as the canonical commit seam, so tools continue to receive one resolved point whether it was free-hover, origin-snapped, or endpoint-snapped.
+8. Reuse the existing snap marker instead of introducing a second visual language in this phase.
+9. Keep the console/status path driven by the resolved snapped coordinate so the visible `Vec2` reflects the actual committed point.
+
+Required behavior-preservation rules:
+- Do not break the shipped `origin` snap.
+- Do not change typed `Vec2` numeric entry behavior.
+- Do not widen into midpoint / center / quadrant / tracking logic.
+- Do not add a new endpoint-specific preference toggle in this first pass.
+
+Verification:
+- run:
+  - `src/viewer/geometrySketchOverlay.test.ts`
+  - `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+  - `src/app/console/ConsoleDock.test.tsx`
+- smoke-check:
+  - `Line` snaps to committed line endpoints
+  - `PLine` snaps to committed pline endpoints
+  - `Rectangle` snaps to committed rectangle corners
+  - `Circle` center placement can consume endpoint snap
+  - `origin` still wins when nearer
+  - free hover still works when no candidate is inside radius
+
+Definition of done:
+- committed `line`, `pline`, and `rectangle` endpoints participate in snap ranking
+- active `Line`, `PLine`, `Rectangle`, and `Circle` point placement can consume endpoint snap
+- `hoverSnapTarget` can represent `endpoint`
+- the existing snap marker and console/status path reflect the snapped endpoint result
+- no midpoint / center / quadrant / tracking scope creep lands in this phase
+
+Later likely children:
+- `3.2B-DrawSketch-6.2`
+  - midpoint / quadrant / center snap
+- `3.2B-DrawSketch-6.3`
+  - nearest / perpendicular / tangent / intersection snap
+- `3.2B-DrawSketch-6.4+`
+  - ortho / polar tracking / object snap tracking
+- `3.2B-DrawSketch-6.5+`
+  - richer snap symbol and per-snap preference growth
+
+### Bigger Vision
+
+#### AutoCAD-Like Snap Families To Plan For
+
+- object snaps:
+  - endpoint
+  - midpoint
+  - center
+  - quadrant
+  - nearest
+  - perpendicular
+  - tangent
+  - intersection
+  - apparent intersection
+  - extension
+  - parallel
+  - later if relevant:
+    - node
+    - insertion
+- tracking aids:
+  - ortho
+  - polar tracking
+  - object snap tracking
+
+#### Suggested ParaHook Snap Growth Order
+
+- first:
+  - shared snap toolbar and shared snap prefs
+  - endpoint snap
+- next:
+  - midpoint
+  - quadrant on circles/arcs
+  - center on circles/arcs
+- then:
+  - nearest
+  - perpendicular
+  - tangent
+  - intersection
+- then:
+  - ortho
+  - polar tracking by angle increment
+  - object snap tracking / extension guides
+- later:
+  - per-snap enable/disable rows
+  - per-snap marker/symbol customization
+  - temporary snap overrides
+
+#### Suggested Snap Subphase Ladder
+
+- `[3.2B-DrawSketch-6.0]`
+  - `Snap Toolbar And Shared Snap Controls`
+  - move `Snap` / `Snap Distance` into a first-class toolbar section
+  - keep one shared master snap toggle and one shared snap radius
+- `[3.2B-DrawSketch-6.1]`
+  - `Endpoint Snap First Pass`
+  - first committed-geometry snap target
+  - shared across `Line`, `PLine`, `Rectangle`, and `Circle`
+- `[3.2B-DrawSketch-6.2]`
+  - `Midpoint Center And Quadrant Snaps`
+  - add the first geometric helper snaps that do not require line-solution math
+  - covers:
+    - midpoint
+    - circle/arc center
+    - circle/arc quadrant
+- `[3.2B-DrawSketch-6.3]`
+  - `Nearest Perpendicular Tangent And Intersection`
+  - add the first computed relation-based snaps
+  - covers:
+    - nearest
+    - perpendicular
+    - tangent
+    - intersection
+    - apparent intersection if worth keeping with the same math pass
+- `[3.2B-DrawSketch-6.4]`
+  - `Ortho And Polar Tracking`
+  - add directional drafting aids separate from object snaps
+  - covers:
+    - ortho
+    - polar tracking
+    - polar angle increment controls
+- `[3.2B-DrawSketch-6.5]`
+  - `Object Snap Tracking Extension And Parallel`
+  - add guide-driven snap/tracking behavior that builds on prior snap targets
+  - covers:
+    - object snap tracking
+    - extension
+    - parallel
+- `[3.2B-DrawSketch-6.6]`
+  - `Snap Preferences Symbols And Temporary Overrides`
+  - expand the settings surface once the main snap families are real
+  - covers:
+    - per-snap enable/disable rows
+    - symbol visibility/style growth
+    - marker scale refinements
+    - temporary snap overrides
+
+Recommended minimum safe count:
+- `7` subphases total
+- reason:
+  - `6.0` / `6.1` keep the current toolbar cleanup separate from the first real object snap
+  - `6.2` / `6.3` separate simple geometric snaps from computed relation snaps
+  - `6.4` keeps line-tracking aids separate from object snaps
+  - `6.5` keeps guide-driven tracking math separate from plain tracking and plain snaps
+  - `6.6` keeps UX/settings growth from blocking the core snap math phases
+
+## [ ] - `3.2B-DrawSketch-7` - `Entity Transform And Modify Tools`
+
+### Header
+
+Purpose:
+- add the first real post-selection sketch editing tools after `DrawSketch-3` and the snap family are stable
+
+Owns:
+- transform-style modify commands for committed sketch entities
+- topology/shape modify commands like trim and extend
+- structure/pattern commands like copy, array, explode, and join
+- shared command/session rules for edit tools inside `Sketch Draw`
+- the phase split for later line/entity editing growth
+
+### Bigger Vision
+
+AutoCAD-like sketch modify command backlog this family is meant to cover over time:
+
+- transform / pattern:
+  - `move`
+  - `copy`
+  - `rotate`
+  - `scale`
+  - `mirror`
+  - `array`
+- reshape / topology:
+  - `stretch`
+  - `trim`
+  - `extend`
+  - `offset`
+  - `fillet`
+  - `chamfer`
+  - later if needed:
+    - `break`
+    - `lengthen`
+- structure / cleanup:
+  - `explode`
+  - `join`
+
+Suggested rule:
+- `DrawSketch-7` should own modification of existing sketch entities
+- new draw tools stay in their own `DrawSketch-N` phases
+- snap/tracking growth stays in `DrawSketch-6`
+
+### Questions / Decisions
+
+#### [x] - `q1` Decide whether all requested modify tools should ship in one phase.
+
+##### Suggestion
+- locked direction:
+- no
+- split them into smaller subphases
+- reason:
+  - `move / copy / rotate / scale / mirror / array` are transform/pattern-family tools
+  - `trim / extend / offset / fillet / chamfer / stretch` change geometry differently and carry different snap/selection demands
+  - `explode / join` are structure/cleanup tools with their own command rules
+
+#### [x] - `q2` Decide the first safe modify family to implement after selection and snap groundwork.
+
+##### Suggestion
+- locked direction:
+- start with transform-family commands first:
+  - `move`
+  - `copy`
+  - `rotate`
+  - later `scale`
+- reason:
+  - they reuse entity selection
+  - they fit the existing point/float-driven console model
+  - they do not require topology surgery immediately
+
+#### [x] - `q3` Decide the initial entity scope for these modify tools.
+
+##### Suggestion
+- locked direction:
+- first scope should target committed top-level sketch entities only:
+  - `line`
+  - `pline`
+  - `rectangle`
+  - `circle`
+- do not start with:
+  - sub-entity point-only edits
+  - profile-level edits
+  - constraint-aware edits
+
+### Implementation Spec
+
+- current code truth:
+  - `DrawSketch-3` already established committed entity selection and delete
+  - the current `geometrySketchSession` already carries:
+    - selected component ids
+    - hovered component id
+    - idle draw/session ownership
+  - the `Entities` list in `ViewportOverlay` already mirrors committed sketch entity rows
+- current gap:
+  - there is no real edit-command family yet for committed sketch entities
+  - there is no shared modify-session contract yet for transforms versus topology edits
+- first architecture direction:
+  - keep `DrawSketch-7` as the parent edit/modify family
+  - land transform-family commands before topology-edit commands
+  - keep structure/cleanup tools separate from transform and topology math where possible
+  - use selection-driven command entry instead of inventing a second selection model
+- likely runtime ownership will remain near:
+  - `src/app/spaghetti/store/useSpaghettiStore.ts`
+  - `src/app/components/ViewportOverlay.tsx`
+  - `src/app/console/ConsoleDock.tsx`
+  - `src/viewer/geometrySketchOverlay.ts`
+
+### Long-Term Command Backlog
+
+- transform / pattern:
+  - `move`
+  - `copy`
+  - `rotate`
+  - `scale`
+  - `mirror`
+  - `array`
+- reshape / topology:
+  - `stretch`
+  - `trim`
+  - `extend`
+  - `offset`
+  - `fillet`
+  - `chamfer`
+- structure / cleanup:
+  - `explode`
+  - `join`
+
+### Subphases
+
+#### [ ] - `3.2B-DrawSketch-7.0` - `Move Copy And Rotate First Pass`
+
+Purpose:
+- add the first true sketch-entity transform tools
+
+Owns:
+- `move`
+- `copy`
+- `rotate`
+- shared selected-entity transform session rules
+
+First targets:
+- operate on the current committed entity selection set
+- support viewport-assisted point/angle entry plus typed console values
+- preserve selection/list/viewport sync through the transform session
+
+#### [ ] - `3.2B-DrawSketch-7.1` - `Scale Mirror And Array`
+
+Purpose:
+- add the next transform/pattern family after `move`, `copy`, and `rotate`
+
+Owns:
+- `scale`
+- `mirror`
+- `array`
+
+First targets:
+- keep these in the same broad transform-family lane
+- do not mix them with trim/extend math in the same implementation cut
+
+#### [ ] - `3.2B-DrawSketch-7.2` - `Offset Fillet And Chamfer`
+
+Purpose:
+- add the first reshape helpers that still fit a relatively bounded command model
+
+Owns:
+- `offset`
+- `fillet`
+- `chamfer`
+
+Reason to separate:
+- these are more geometric than plain transforms
+- but they are still more self-contained than trim/extend plus stretch
+
+#### [ ] - `3.2B-DrawSketch-7.3` - `Stretch`
+
+Purpose:
+- add a first stretch workflow once transform-family sessions are proven
+
+Owns:
+- stretch selection rules
+- stretch-specific point/segment behavior
+
+Reason to separate:
+- stretch is not just a plain whole-entity transform
+- it is likely to require more nuanced point/segment ownership
+
+#### [ ] - `3.2B-DrawSketch-7.4` - `Trim And Extend`
+
+Purpose:
+- add the first topology/length modification family
+
+Owns:
+- `trim`
+- `extend`
+
+Reason to separate:
+- these require geometry intersection logic, target resolution, and command rules that differ sharply from transform tools
+
+#### [ ] - `3.2B-DrawSketch-7.5` - `Explode And Join`
+
+Purpose:
+- add structure/cleanup commands after the broader edit families are stable
+
+Owns:
+- `explode`
+- `join`
+
+Reason to separate:
+- these mutate entity ownership/structure instead of only position or local geometry
+
+Recommended minimum safe count:
+- `6` subphases total under `DrawSketch-7`
+- reason:
+  - keeps transform/pattern growth ahead of topology-edit growth
+  - gives `offset / fillet / chamfer` a cleaner place than stuffing them into trim/extend
+  - keeps stretch isolated from simpler whole-entity transforms
+  - keeps trim/extend from blocking earlier move/rotate usefulness
+  - keeps `explode / join` out of the geometry-edit math phases
+
+#### Suggested View-Toolbar Direction
+
+- `Snap`
+  - master on/off
+  - snap distance
+- `Object Snaps`
+  - endpoint
+  - midpoint
+  - center
+  - quadrant
+  - nearest
+  - perpendicular
+  - tangent
+  - intersection
+- `Tracking`
+  - ortho
+  - polar
+  - object snap tracking
+- `Polar`
+  - angle increment
+  - later additional angle set
+- `Symbols`
+  - master symbol on/off
+  - marker scale
+  - later per-snap symbol visibility/style
+
+#### Suggested Product Rules
+
+- keep one shared snap distance for the early phases
+- do not make every snap type customizable immediately
+- keep object snaps and tracking aids as separate concepts
+- treat ortho and polar as line/tracking aids, not as object snaps
+- let the view toolbar become the long-term home for running snap state, while `Sketch Draw` keeps a local `Snap` section for active authoring
 
 ## [ ] - `3.2B-4` - `Sketch Exposure And Browser Structure`
 

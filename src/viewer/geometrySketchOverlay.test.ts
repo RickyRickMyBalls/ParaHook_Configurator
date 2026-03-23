@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { GeometrySketchOverlayVm } from '../app/viewerBridge'
 import {
   buildGeometrySketchRenderPolylines,
+  collectGeometrySketchEndpointCandidates,
   collectGeometrySketchSelectionIds,
   expandGeometrySketchSelectionFromRowId,
   projectSketchPointToWorld,
@@ -321,5 +322,43 @@ describe('geometrySketchOverlay helpers', () => {
         'crossing',
       ),
     ).toEqual(['row-line-crossing', 'row-rect-inside'])
+  })
+
+  it('collects deduped committed endpoint snap candidates from lines, pline segments, and rectangles', () => {
+    const components: GeometrySketchOverlayVm['components'] = [
+      {
+        rowId: 'row-line-a',
+        componentId: 'cmp-line-a',
+        type: 'line',
+        drawGroupId: 'group-1',
+        a: { kind: 'lit', x: 0, y: 0 },
+        b: { kind: 'lit', x: 10, y: 0 },
+      },
+      {
+        rowId: 'row-line-b',
+        componentId: 'cmp-line-b',
+        type: 'line',
+        drawGroupId: 'group-1',
+        a: { kind: 'lit', x: 10, y: 0 },
+        b: { kind: 'lit', x: 10, y: 10 },
+      },
+      {
+        rowId: 'row-rect',
+        componentId: 'cmp-rect',
+        type: 'rectangle',
+        a: { kind: 'lit', x: 20, y: 20 },
+        b: { kind: 'lit', x: 30, y: 30 },
+      },
+    ]
+
+    expect(collectGeometrySketchEndpointCandidates(components)).toEqual([
+      { point: { x: 0, y: 0 }, target: 'endpoint' },
+      { point: { x: 10, y: 0 }, target: 'endpoint' },
+      { point: { x: 10, y: 10 }, target: 'endpoint' },
+      { point: { x: 20, y: 20 }, target: 'endpoint' },
+      { point: { x: 30, y: 20 }, target: 'endpoint' },
+      { point: { x: 30, y: 30 }, target: 'endpoint' },
+      { point: { x: 20, y: 30 }, target: 'endpoint' },
+    ])
   })
 })

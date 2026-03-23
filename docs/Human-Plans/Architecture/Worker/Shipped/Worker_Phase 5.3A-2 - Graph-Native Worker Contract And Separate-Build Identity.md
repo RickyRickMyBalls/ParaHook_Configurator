@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+4. 2026-03-23 13:12: Shipped `[5.3A-2]` by adding a canonical graph-native `compiledBuildData` request path under the existing dispatcher wrapper, landing `buildIdentity` / `invalidation` plus output-entry `buildUnitId` truth in staged and accepted graph-build state, preserving coarse `BuildResult.parts` and part-key progress as transitional compatibility, and validating the seam with focused translation/dispatcher/pipeline/store tests plus a full production build
 3. 2026-03-22 19:29: Reworked `[5.3A-2]` into a real implementation-phase spec for the post-`5.3A-3` world by treating the shipped lane-and-intent scaffold as fixed groundwork, replacing the stale pre-`5.3A-3` assumptions with a request-plus-result-first rollout target, locking `output entry` as the first canonical `buildUnitId`, and defining the transitional rule that live progress may keep `partKey` while staged and accepted build state adopt graph-native build-unit truth
 2. 2026-03-22 18:18: Reworked this future phase into a decision-complete contract-definition spec by locking `output entry` as the first canonical build unit, keeping `executionIntent` minimal in this phase, replacing the open-ended suggestions with one explicit request/result contract target, and defining the hard keep-versus-retire boundary that later worker, dispatcher, Browser, and Console phases must implement against
 1. 2026-03-22 18:09: Created this standalone future phase doc for `[5.3A-2]`, turning the post-audit worker follow-up into an implementation-ready contract-definition phase that locks the graph-native request shape, the first honest separate-build unit, survivable routing/progress semantics, and the Browser/Console follow-through required before runtime deletion or dispatcher cleanup starts
@@ -57,7 +58,7 @@ This phase does not cover:
 
 ## Doc Body
 
-## [ ] - `[5.3A-2]` - `Graph-Native Worker Contract And Separate-Build Identity`
+## [x] - `[5.3A-2]` - `Graph-Native Worker Contract And Separate-Build Identity`
 
 ### Header
 
@@ -126,6 +127,7 @@ This phase intentionally does not require:
 The rollout rule is:
 - request + staged state + accepted result first
 - live progress may remain `partKey`-based temporarily if that keeps the cut safe
+- coarse `BuildResult.parts` may remain unchanged in this phase while accepted build-unit truth lands app-side
 
 ### Graph-Native Request Contract
 
@@ -156,6 +158,14 @@ The replacement request must be one graph-native build request with these top-le
 - no canonical `BoxParams` patching
 - no canonical `heelKickInstances` / `toeHookInstances` dependence
 - no legacy foothook-family naming as the authored input seam
+
+Implemented boundary in this shipped cut:
+- graph-native requests now carry:
+  - `compiledBuildData`
+  - `buildIdentity`
+  - `invalidation`
+- legacy `payload` plus instance fields remain as compatibility-wrapper fields only
+- graph document builds no longer patch `profilePatch` onto `state.box` as the canonical request path
 
 Important contract rule:
 - the worker request must describe graph/build truth honestly
@@ -214,6 +224,11 @@ Those fields may remain temporarily as compatibility bookkeeping, but staged gra
 - affected `buildUnitIds`
 
 This phase does not require richer final result schema beyond that first identity landing.
+
+Implemented shipped choice:
+- `BuildResult.parts` remains coarse in this phase
+- accepted build-unit identity is promoted from staged graph-build state on acceptance
+- richer worker result semantics remain deferred to `[5.3A-6]`
 
 It only requires that accepted results and staged state can answer:
 - which output-entry unit was requested?

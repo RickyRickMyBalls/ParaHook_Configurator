@@ -423,8 +423,8 @@ type SpaghettiCanvasProps = {
   fitNodeRequestKey?: number
   isMeatballView?: boolean
   isToolbarVisible?: boolean
-  viewMode?: 'expanded' | 'collapsed'
-  onSetViewMode?: (viewMode: 'expanded' | 'collapsed') => void
+  viewMode?: 'expanded' | 'essentials' | 'collapsed'
+  onSetViewMode?: (viewMode: 'expanded' | 'essentials' | 'collapsed') => void
 }
 
 export function SpaghettiCanvas({
@@ -463,6 +463,7 @@ export function SpaghettiCanvas({
   const clearUiMessage = useSpaghettiStore((state) => state.clearUiMessage)
   const setExtrudeDepth = useSpaghettiStore((state) => state.setExtrudeDepth)
   const setNodeMode = useSpaghettiStore((state) => state.setNodeMode)
+  const supportsOverlayCanvasMode = viewMode !== 'collapsed'
 
   const stageRef = useRef<HTMLDivElement | null>(null)
   const viewportRef = useRef<HTMLDivElement | null>(null)
@@ -618,7 +619,7 @@ export function SpaghettiCanvas({
   )
 
   useLayoutEffect(() => {
-    if (viewMode !== 'expanded') {
+    if (!supportsOverlayCanvasMode) {
       lastFitCanvasRequestKeyRef.current = fitCanvasRequestKey
       return
     }
@@ -656,10 +657,10 @@ export function SpaghettiCanvas({
       height: Math.max(maxStageY - minStageY, 1),
     })
     lastFitCanvasRequestKeyRef.current = fitCanvasRequestKey
-  }, [fitCanvasRequestKey, fitStageBounds, viewMode])
+  }, [fitCanvasRequestKey, fitStageBounds, supportsOverlayCanvasMode])
 
   useLayoutEffect(() => {
-    if (fitNodeId === null || viewMode !== 'expanded') {
+    if (fitNodeId === null || !supportsOverlayCanvasMode) {
       lastFitNodeRequestKeyRef.current = fitNodeRequestKey
       return
     }
@@ -684,7 +685,7 @@ export function SpaghettiCanvas({
       height: nodeRect.height / viewRef.current.zoom,
     })
     lastFitNodeRequestKeyRef.current = fitNodeRequestKey
-  }, [fitNodeId, fitNodeRequestKey, fitStageBounds, graph?.nodes, viewMode])
+  }, [fitNodeId, fitNodeRequestKey, fitStageBounds, graph?.nodes, supportsOverlayCanvasMode])
 
   useEffect(() => {
     ensureNodePositions()
@@ -2202,7 +2203,7 @@ export function SpaghettiCanvas({
 
   return (
     <div
-      className="SpaghettiCanvasRoot spView_root"
+      className={`SpaghettiCanvasRoot spView_root ${viewMode === 'essentials' ? 'isEssentials' : ''}`}
       style={
         {
           '--sp-output-row-min-height': `${outputRowMinHeight}px`,
@@ -2297,7 +2298,7 @@ export function SpaghettiCanvas({
       ) : null}
       <div
         ref={viewportRef}
-        className="SpaghettiCanvasScroller"
+        className={`SpaghettiCanvasScroller ${viewMode === 'essentials' ? 'isEssentials' : ''}`}
         onContextMenu={(event) => {
           event.preventDefault()
           event.stopPropagation()
@@ -2344,7 +2345,7 @@ export function SpaghettiCanvas({
         onWheel={(event) => {
           event.stopPropagation()
           event.preventDefault()
-          if (viewMode === 'expanded' && event.shiftKey) {
+          if (supportsOverlayCanvasMode && event.shiftKey) {
             zoomViewerCameraByWheelDelta(event.deltaY)
             return
           }
@@ -2372,7 +2373,7 @@ export function SpaghettiCanvas({
             return
           }
 
-          if (viewMode === 'expanded' && event.shiftKey && event.ctrlKey) {
+          if (supportsOverlayCanvasMode && event.shiftKey && event.ctrlKey) {
             beginViewerTemporaryOrbitDrag(event.clientX, event.clientY)
             startWindowPointerDrag(
               (moveEvent) => {
@@ -2387,7 +2388,7 @@ export function SpaghettiCanvas({
             return
           }
 
-          if (viewMode === 'expanded' && event.shiftKey) {
+          if (supportsOverlayCanvasMode && event.shiftKey) {
             beginViewerTemporaryPanDrag(event.clientX, event.clientY)
             startWindowPointerDrag(
               (moveEvent) => {

@@ -128,15 +128,20 @@ const resolveStagedAdvanceIdentity = ({
 
   switch (activeScopeId) {
     case 'zoomRoot':
+    case 'sketchDrawZoomRoot':
       switch (matchedCanonicalToken) {
         case 'ALL':
         case 'EXTENTS':
         case 'PREVIOUS':
         case 'WINDOW':
         case 'OBJECT':
-          return buildIdentity('Console', 'Zoom', toIdentitySegment(matchedLabel))
+          return activeScopeId === 'sketchDrawZoomRoot'
+            ? buildIdentity('Console', 'Graph', 'Sketch', 'Draw', 'Zoom', toIdentitySegment(matchedLabel))
+            : buildIdentity('Console', 'Zoom', toIdentitySegment(matchedLabel))
         case 'BACK':
-          return buildIdentity('Console', 'Zoom', 'Back')
+          return activeScopeId === 'sketchDrawZoomRoot'
+            ? buildIdentity('Console', 'Graph', 'Sketch', 'Draw', 'Zoom', 'Back')
+            : buildIdentity('Console', 'Zoom', 'Back')
         default:
           return null
       }
@@ -258,6 +263,7 @@ const resolveStagedChoiceIdentity = ({
     case 'graphRoot':
     case 'graphSelected':
     case 'zoomRoot':
+    case 'sketchDrawZoomRoot':
     case 'graphZoomRoot':
     case 'graphZoomCanvas':
     case 'graphZoomModelViewport':
@@ -516,6 +522,9 @@ const resolveSketchPlaneFeatureAssistIdentity = ({
 
   if (matchesBreadcrumb(breadcrumb, ['Graph', 'Sketch', 'Sketch Draw'])) {
     switch (normalizedToken) {
+      case 'ZOOM':
+      case 'Z':
+        return buildIdentity('Console', 'Graph', 'Sketch', 'Draw', 'Zoom')
       case 'LINE':
       case 'L':
         return buildIdentity('Console', 'Graph', 'Sketch', 'Draw', 'Line')

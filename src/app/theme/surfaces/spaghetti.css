@@ -511,6 +511,34 @@
   font-family: var(--sp-window-font-family);
 }
 
+.SpaghettiFloatingHandle--essentials {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  width: auto;
+  padding: 0;
+  gap: 0;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  cursor: default;
+  user-select: none;
+  pointer-events: none;
+  z-index: 18;
+}
+
+.SpaghettiFloatingHandle--essentials .SpaghettiWindowAction {
+  min-width: 32px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  pointer-events: auto;
+  box-shadow:
+    0 8px 18px rgba(0, 0, 0, 0.32),
+    0 0 0 1px rgba(124, 160, 255, 0.18);
+}
+
 .SpaghettiFloatingHandleStart {
   display: inline-flex;
   align-items: center;
@@ -844,6 +872,11 @@
   background: var(--sp-window-canvas-shell-bg);
 }
 
+.SpaghettiFloatingBody.isEssentials {
+  border-radius: 0;
+  background: transparent;
+}
+
 .SpaghettiFloatingBody > * {
   pointer-events: auto;
   width: 100%;
@@ -918,6 +951,18 @@
 
 .SpaghettiPanelCanvasWrap.isExpanded {
   margin-top: 0;
+}
+
+.SpaghettiPanelRoot.isEssentials,
+.SpaghettiPanelRoot.isEssentials.V15Panel {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.SpaghettiPanelCanvasWrap.isEssentials {
+  background: transparent;
 }
 
 .SpaghettiDebugDrawer {
@@ -1466,6 +1511,14 @@
   font-size: var(--sp-window-font-size);
 }
 
+.SpaghettiPanelRoot.isEssentials .SpaghettiCanvasRoot,
+.SpaghettiCanvasRoot.isEssentials {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+}
+
 .SpaghettiCanvasRoot:focus-visible {
   box-shadow: 0 0 0 2px rgba(96, 142, 255, 0.45);
 }
@@ -1557,6 +1610,13 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   background: var(--sp-window-canvas-well-bg);
+}
+
+.SpaghettiPanelRoot.isEssentials .SpaghettiCanvasScroller,
+.SpaghettiCanvasScroller.isEssentials {
+  border: none;
+  border-radius: 0;
+  background: transparent;
 }
 
 .SpaghettiNodeAddMenu {

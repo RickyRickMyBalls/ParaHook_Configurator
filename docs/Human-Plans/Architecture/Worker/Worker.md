@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+9. 2026-03-23 13:12: Marked `[5.3A-2]` complete after shipping the graph-native worker request-and-state contract, moved its standalone phase record into `Worker/Shipped/`, updated the family index and phase ladder to the shipped path, and refreshed the current seam read so the umbrella Worker doc now reflects the live `compiledBuildData + buildIdentity + invalidation` graph-build path with coarse result semantics still deferred to `[5.3A-6]`
 8. 2026-03-22 19:50: Added the standalone future phase doc for `[5.3A-4]`, so the dispatcher-boundary cleanup now has its own implementation-ready planning surface under the Worker family with the live `BuildDispatcher` store/console side effects mapped to the later outward-hook and bootstrap-wiring cleanup
 7. 2026-03-22 19:29: Refreshed the local `[5.3A-2]` phase summary to match the real post-`5.3A-3` sequencing, so the umbrella Worker doc now treats `5.3A-2` as the request-and-result-first code phase that replaces the `BoxParams` request seam underneath the already-shipped lane-and-intent scaffold instead of still reading like a pure pre-`5.3A-3` contract-definition step
 6. 2026-03-22 19:19: Updated the local Worker phase ladder to use the real `[5.3A-1]` through `[5.3A-7]` titles and checklist state, replacing the older generic `Phase 1` through `Phase 7` labels so the umbrella doc now matches the roadmap and shipped/future Worker family records
@@ -53,8 +54,8 @@ Current roadmap home:
   - shipped record:
     - `docs/Human-Plans/Architecture/Worker/Shipped/Worker_Phase 5.3A-1 - Worker Audit And Legacy Startup Inventory.md`
 - `[5.3A-2]` Graph-Native Worker Contract And Separate-Build Identity
-  - future doc:
-    - `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase 5.3A-2 - Graph-Native Worker Contract And Separate-Build Identity.md`
+  - shipped record:
+    - `docs/Human-Plans/Architecture/Worker/Shipped/Worker_Phase 5.3A-2 - Graph-Native Worker Contract And Separate-Build Identity.md`
 - `[5.3A-3]` Worker Lane Definition And Execution-Intent Model
   - shipped record:
     - `docs/Human-Plans/Architecture/Worker/Shipped/Worker_Phase 5.3A-3 - Worker Lane Definition And Execution-Intent Model.md`
@@ -235,12 +236,18 @@ The worker seam is still not clean enough to be considered finished.
 The biggest remaining problem is the request payload shape.
 
 Current reality:
-- the shared build request still carries `payload: BoxParams`
-- app-side graph builds are translated into that shape by patching graph-derived data onto legacy box state
+- graph document builds now carry canonical:
+  - `compiledBuildData`
+  - `buildIdentity`
+  - `invalidation`
+- the shared build request still also carries legacy `payload: BoxParams` compatibility fields
+- result semantics and live progress are still transitional:
+  - coarse `PartArtifact[]`
+  - `partKey` live progress
 
-That means the worker is not yet consuming an honest graph-native request.
+That means the worker request seam is healthier than before, but the worker contract is not finished yet.
 
-Instead, the app is still adapting graph truth into an older payload seam.
+The remaining leak is no longer "graph builds only speak box payload"; it is that compatibility fields and coarse result/progress semantics still survive around the newer graph-native request path.
 
 This is the main architectural leak.
 
@@ -556,7 +563,7 @@ The right mental model is:
 - shipped record:
   - `docs/Human-Plans/Architecture/Worker/Shipped/Worker_Phase 5.3A-1 - Worker Audit And Legacy Startup Inventory.md`
 
-## [ ] `[5.3A-2]` - `Graph-Native Worker Contract And Separate-Build Identity`
+## [x] `[5.3A-2]` - `Graph-Native Worker Contract And Separate-Build Identity`
 
 - replace the canonical `payload: BoxParams` request seam underneath the already-shipped `build` lane and `executionIntent` scaffold
 - define the graph-native request shape the compiled graph should produce
@@ -566,8 +573,8 @@ The right mental model is:
 - keep live progress temporarily allowed on `partKey` if needed for a safe rollout
 - remove ambiguity about whether legacy `BoxParams`, instance fallback, and `profilePatch` fields are compatibility-only or still architectural truth
 - lock the startup rule that the worker contract must not imply `baseplate` / `heelKick` / `toeHook` output unless the active graph actually resolves those units
-- future doc:
-  - `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase 5.3A-2 - Graph-Native Worker Contract And Separate-Build Identity.md`
+- shipped record:
+  - `docs/Human-Plans/Architecture/Worker/Shipped/Worker_Phase 5.3A-2 - Graph-Native Worker Contract And Separate-Build Identity.md`
 
 ## [x] `[5.3A-3]` - `Worker Lane Definition And Execution-Intent Model`
 

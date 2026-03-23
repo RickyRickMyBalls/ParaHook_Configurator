@@ -976,32 +976,43 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     const pendingBuildState =
       selectGraphRuntimeByDocumentId(spaghettiState, graphDocumentId)?.compileBuild ?? null
+    const previewPreparation =
+      selectGraphRuntimeByDocumentId(spaghettiState, graphDocumentId)?.previewPreparation ?? null
+    if (previewPreparation === null) {
+      return compileResult
+    }
     const requestBuild = buildRequestFromBuildInputs(
       compileResult.buildInputs,
+      previewPreparation,
       pendingBuildState?.previousBuildInputs ?? undefined,
     )
     const buildRequestId = newId('build-request')
-
-    const payloadWithPatch = {
-      ...state.box,
-      ...requestBuild.profilePatch,
-    }
-    const buildSeq = buildDispatcher.requestBuild(payloadWithPatch as BoxParams, {
+    const buildSeq = buildDispatcher.requestGraphBuild({
       routingIdentity: {
         projectFileId: state.currentProject.projectFileId,
         graphDocumentId,
         buildRequestId,
       },
+      legacyPayload: state.box,
+      compiledBuildData: requestBuild.compiledBuildData,
+      buildIdentity: {
+        graphRevision: pendingBuildState?.currentGraphRevision ?? 0,
+        targetBuildUnitIds: requestBuild.targetBuildUnitIds,
+      },
+      invalidation: {
+        affectedBuildUnitIds: requestBuild.affectedBuildUnitIds,
+      },
       changedParamIds: requestBuild.changedParamIds,
-      buildInstances: requestBuild.instances,
-      buildStatsPartKeys: requestBuild.partKeys,
+      buildStatsPartKeys: requestBuild.buildStatsPartKeys,
     })
     spaghettiState.stageGraphBuildRequest(graphDocumentId, {
       compileResult,
       previousBuildInputs: pendingBuildState?.previousBuildInputs ?? null,
       pendingChangedParamIds: requestBuild.changedParamIds,
-      pendingStatsPartKeys: requestBuild.partKeys,
-      pendingInstances: requestBuild.instances,
+      pendingStatsPartKeys: requestBuild.buildStatsPartKeys,
+      pendingInstances: requestBuild.compiledBuildData.instances,
+      pendingTargetBuildUnitIds: requestBuild.targetBuildUnitIds,
+      pendingAffectedBuildUnitIds: requestBuild.affectedBuildUnitIds,
       buildRequestId,
       buildSeq,
     })

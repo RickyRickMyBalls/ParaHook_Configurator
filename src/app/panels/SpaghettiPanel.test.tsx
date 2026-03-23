@@ -702,4 +702,24 @@ describe('SpaghettiPanel', () => {
     const headerBlock = container.querySelector('.SpaghettiPanelHeaderBlock') as HTMLDivElement | null
     expect(headerBlock?.style.height).toBe('150px')
   })
+
+  it('hides panel chrome and forwards essentials mode into the editor canvas', async () => {
+    const essentialsContainer = document.createElement('div')
+    document.body.appendChild(essentialsContainer)
+    root = createRoot(essentialsContainer)
+
+    await act(async () => {
+      root?.render(<SpaghettiPanel editorViewportId="editor-viewport-1" isEssentials />)
+    })
+
+    container = essentialsContainer
+
+    expect(container.querySelector('.SpaghettiPanelHeaderShell')).toBeNull()
+    expect(container.querySelector('.SpaghettiCanvasResizeBar')).toBeNull()
+    expect(container.textContent).toContain('Spaghetti Editor Canvas essentials node-1 no-fit 0')
+    expect(container.querySelector('.SpaghettiPanelRoot')?.className).toContain('isEssentials')
+    expect(container.querySelector('.SpaghettiPanelCanvasWrap')?.className).toContain('isEssentials')
+    expect(container.textContent).not.toContain('Focus Node')
+    expect(container.textContent).not.toContain('Part Nodes')
+  })
 })

@@ -54,6 +54,7 @@ import type { ConsoleAssistDescriptor, ConsoleFloatingRect } from './consoleType
 import {
   cancelConsoleStagedNavigationSession,
   createConsoleRootSession,
+  createSketchDrawZoomRootSession,
   createConsoleStagedNavigationContext,
   isConsoleStagedNavigationRootToken,
   resolveConsoleWorkspaceContextSync,
@@ -463,6 +464,7 @@ const buildSketchDrawFeatureAssistDescriptor = (
     { canonicalToken: 'PLINE', aliases: ['PL'], label: 'PLine' },
     { canonicalToken: 'RECTANGLE', aliases: ['REC'], label: 'Rectangle' },
     { canonicalToken: 'CIRCLE', aliases: ['CC'], label: 'Circle' },
+    { canonicalToken: 'ZOOM', aliases: ['Z'], label: 'Zoom' },
     ...(geometrySketchSession.selectedComponentIds.length > 0
       ? [{ canonicalToken: 'DELETE', aliases: ['DEL'], label: 'Delete' }]
       : []),
@@ -585,6 +587,8 @@ const getStagedScopeLabel = (session: ConsoleStagedNavigationSession | null): st
       return 'Root'
     case 'zoomRoot':
       return 'Zoom'
+    case 'sketchDrawZoomRoot':
+      return 'Graph > Sketch > Sketch Draw > Zoom'
     case 'radioRoot':
       return 'Radio'
     case 'graphRoot':
@@ -1238,6 +1242,11 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
       return true
     }
 
+    if (activeSession.scopeId === 'sketchDrawZoomRoot') {
+      setStagedNavigationSession(null)
+      return true
+    }
+
     if (activeSession.scopeId === 'graphRoot' || activeSession.scopeId === 'radioRoot') {
       enterGuidedRootSession()
       appendConsoleEntry({
@@ -1708,6 +1717,13 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
             }
             }
           }
+          if (
+            activeStagedSession?.scopeId === 'sketchDrawZoomRoot' &&
+            stagedResult.matchedChoice.canonicalToken === 'BACK'
+          ) {
+            setStagedNavigationSession(null)
+            return
+          }
           setStagedNavigationSession(stagedResult.session)
           const preAutoBreadcrumb =
             stagedResult.autoSelections.length === 0
@@ -2003,7 +2019,13 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
               stagedResult.actionId === 'zoom.model.all' ||
               stagedResult.actionId === 'zoom.model.extents'
             ) {
-              viewer?.frameAll()
+              if (stagedResult.session.scopeId === 'sketchDrawZoomRoot') {
+                viewer?.frameGeometrySketch()
+              } else if (stagedResult.actionId === 'zoom.model.all') {
+                viewer?.frameAll()
+              } else {
+                viewer?.frameExtents()
+              }
             } else if (stagedResult.actionId === 'zoom.model.previous') {
               viewer?.framePrevious()
             } else if (stagedResult.actionId === 'zoom.model.window') {
@@ -2030,13 +2052,42 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
               actionSucceeded = executeCanvasZoomAction(canvasAction)
             }
 
-            setStagedNavigationSession(stagedResult.session)
-            appendConsoleEntry({
-              layer: 'Commands',
-              text: buildStagedPromptText(stagedResult.session, stagedResult.session.validChoices),
-              source: 'console',
-              severity: 'info',
-            })
+            let nextStagedSession: ConsoleStagedNavigationSession | null = stagedResult.session
+            if (actionSucceeded && stagedResult.actionId.startsWith('zoom.')) {
+              const stagedContext = buildStagedNavigationContextFromStoreState(
+                useSpaghettiStore.getState(),
+              )
+              let unwindSession = stagedResult.session
+              while (
+                unwindSession.scopeId === 'zoomRoot' ||
+                unwindSession.scopeId === 'sketchDrawZoomRoot' ||
+                unwindSession.scopeId === 'graphZoomRoot' ||
+                unwindSession.scopeId === 'graphZoomCanvas' ||
+                unwindSession.scopeId === 'graphZoomModelViewport'
+              ) {
+                const resumedResult = submitConsoleStagedNavigationToken(
+                  unwindSession,
+                  'back',
+                  stagedContext,
+                )
+                if (resumedResult.kind !== 'advance') {
+                  break
+                }
+                unwindSession = resumedResult.session
+              }
+              nextStagedSession =
+                stagedResult.session.scopeId === 'sketchDrawZoomRoot' ? null : unwindSession
+            }
+
+            setStagedNavigationSession(nextStagedSession)
+            if (nextStagedSession !== null) {
+              appendConsoleEntry({
+                layer: 'Commands',
+                text: buildStagedPromptText(nextStagedSession, nextStagedSession.validChoices),
+                source: 'console',
+                severity: 'info',
+              })
+            }
             if (actionSucceeded) {
               requestRadioBurst(commandIdentity, 'enter')
             }
@@ -2188,6 +2239,18 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
               stagedResult.selections.graphDocumentId,
               stagedResult.selections.sketchNodeId,
             )
+            const sketchDrawDescriptor = getActiveFeatureAssistDescriptor({
+              sketchPlanePickSession: useSpaghettiStore.getState().sketchPlanePickSession,
+              geometrySketchSession: useSpaghettiStore.getState().geometrySketchSession,
+            })
+            if (sketchDrawDescriptor !== null) {
+              appendConsoleEntry({
+                layer: 'Commands',
+                text: buildFeatureAssistPromptText(sketchDrawDescriptor),
+                source: 'console',
+                severity: 'info',
+              })
+            }
             requestRadioBurst(commandIdentity, 'enter')
             return
           }
@@ -2521,6 +2584,25 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
           pushCommandHistory(rawCommand)
           spaghettiState.runGeometrySketchDrawCommand(command)
           useConsoleStore.getState().setInputText('')
+          if (
+            command === 'esc' ||
+            command === 'back' ||
+            command === 'b' ||
+            command === 'x'
+          ) {
+            const nextDescriptor = getActiveFeatureAssistDescriptor({
+              sketchPlanePickSession: useSpaghettiStore.getState().sketchPlanePickSession,
+              geometrySketchSession: useSpaghettiStore.getState().geometrySketchSession,
+            })
+            if (nextDescriptor !== null) {
+              appendConsoleEntry({
+                layer: 'Commands',
+                text: buildFeatureAssistPromptText(nextDescriptor),
+                source: 'console',
+                severity: 'info',
+              })
+            }
+          }
         }
 
         if (trimmedInput.length === 0) {
@@ -2538,6 +2620,30 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
           trimmedInput === 'del'
         ) {
           submitDrawCommand(trimmedInput, trimmedInput)
+          return
+        }
+        if (trimmedInput === 'zoom' || trimmedInput === 'z') {
+          appendConsoleEntry({
+            layer: 'Commands',
+            commandLineKind: 'user',
+            text: `> ${trimmedInput}`,
+          })
+          pushCommandHistory(trimmedInput)
+          const zoomSession = createSketchDrawZoomRootSession()
+          setStagedNavigationSession(zoomSession)
+          useConsoleStore.getState().setInputText('')
+          appendConsoleEntry({
+            layer: 'Commands',
+            text: formatStagedBreadcrumb(zoomSession.breadcrumb),
+            source: 'console',
+            severity: 'info',
+          })
+          appendConsoleEntry({
+            layer: 'Commands',
+            text: buildStagedPromptText(zoomSession, zoomSession.validChoices),
+            source: 'console',
+            severity: 'info',
+          })
           return
         }
         if (
@@ -2792,6 +2898,12 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
                 setStagedNavigationSession(stagedResult.session)
                 appendConsoleEntry({
                   layer: 'Commands',
+                  text: formatStagedBreadcrumb(stagedResult.breadcrumb),
+                  source: 'console',
+                  severity: 'info',
+                })
+                appendConsoleEntry({
+                  layer: 'Commands',
                   text: buildStagedPromptText(stagedResult.session, stagedResult.validChoices),
                   source: 'console',
                   severity: 'info',
@@ -2801,8 +2913,10 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
               }
             }
             const selectedReferenceId = resolveSelectedReferenceIdForZoom()
-            if (zoomAction === 'all' || zoomAction === 'extents') {
+            if (zoomAction === 'all') {
               viewer?.frameAll()
+            } else if (zoomAction === 'extents') {
+              viewer?.frameExtents()
             } else if (zoomAction === 'previous') {
               viewer?.framePrevious()
             } else if (zoomAction === 'window') {
@@ -2825,9 +2939,10 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
                 source: 'console',
                 severity: 'warn',
               })
-              requestRadioBurst(flatCommandIdentity, 'enter')
-              return
-            }
+                requestRadioBurst(flatCommandIdentity, 'enter')
+                return
+              }
+            enterGuidedRootSession({ appendPrompt: true })
             requestRadioBurst(flatCommandIdentity, 'enter')
           }
           return

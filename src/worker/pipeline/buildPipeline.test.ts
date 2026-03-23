@@ -115,7 +115,96 @@ const multiCubePayload = () =>
     },
   }) as unknown as { width: number; length: number; height: number }
 
+const cubeCompiledBuildData = () => ({
+  instances: {
+    heelKickInstances: [1],
+    toeHookInstances: [1],
+  },
+  orderedPartKeys: ['cube'],
+  resolvedParts: {},
+  resolvedShared: {
+    sp_featureStackIR: {
+      schemaVersion: 1,
+      parts: {
+        cube: [
+          {
+            op: 'sketch',
+            featureId: 'cube-sketch-1',
+            profilesResolved: [
+              {
+                profileId: 'cube-profile-1',
+                area: 400,
+                vertices: [
+                  { x: 0, y: 0 },
+                  { x: 20, y: 0 },
+                  { x: 20, y: 20 },
+                  { x: 0, y: 20 },
+                ],
+              },
+            ],
+          },
+          {
+            op: 'extrude',
+            featureId: 'cube-extrude-1',
+            profileRef: {
+              sketchFeatureId: 'cube-sketch-1',
+              profileId: 'cube-profile-1',
+            },
+            depthResolved: 20,
+            taperResolved: 0,
+            offsetResolved: 0,
+            bodyId: 'cube-body-1',
+          },
+        ],
+      },
+    },
+  },
+})
+
 describe('buildPipeline spaghetti stats integration', () => {
+  it('prefers compiled graph-native build data when present', async () => {
+    vi.resetModules()
+    const { buildPipeline } = await import('./buildPipeline')
+    const progress: Array<{ partKey: string; state: string }> = []
+
+    const result = await buildPipeline(
+      {
+        type: 'build',
+        lane: 'build',
+        seq: 1,
+        projectFileId: 'project-1',
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-1',
+        payload: { width: 1, length: 2, height: 3 },
+        executionIntent: DEFAULT_BUILD_EXECUTION_INTENT,
+        buildIdentity: {
+          graphRevision: 2,
+          targetBuildUnitIds: ['output-entry:s001:node-cube'],
+        },
+        invalidation: {
+          affectedBuildUnitIds: ['output-entry:s001:node-cube'],
+        },
+        compiledBuildData: cubeCompiledBuildData(),
+        changedParamIds: ['sp_full'],
+      },
+      (message) => {
+        progress.push({ partKey: message.partKey, state: message.state })
+      },
+    )
+
+    expect(
+      progress.filter((message) => message.state === 'queued').map((message) => message.partKey),
+    ).toEqual(['cube', 'assembled'])
+    expect(result.parts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          partKeyStr: 'cube',
+          kind: 'mesh',
+        }),
+      ]),
+    )
+  })
+
   it('emits spaghetti progress rows using canonical source/build identity', async () => {
     vi.resetModules()
     const { buildPipeline } = await import('./buildPipeline')

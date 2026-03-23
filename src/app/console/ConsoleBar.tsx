@@ -120,6 +120,10 @@ export function ConsoleBar({
     switch (session.scopeId) {
       case 'root':
         return ['Root']
+      case 'zoomRoot':
+        return ['Zoom']
+      case 'sketchDrawZoomRoot':
+        return ['Graph', 'Sketch', 'Sketch Draw', 'Zoom']
       case 'graphRoot':
       case 'graphSelected':
         return ['Graph']
@@ -332,6 +336,13 @@ export function ConsoleBar({
       stagedNavigationSession !== null ||
       consolePromptSession !== null ||
       featureAssistDescriptor !== null
+    const shouldReplaceAssistedInput =
+      stagedNavigationSession !== null ||
+      consolePromptSession !== null ||
+      (
+        featureAssistDescriptor !== null &&
+        (featureAssistDescriptor.choices.length > 0 || featureAssistDescriptor.prefill !== null)
+      )
 
     if (treatSpaceAsSubmit && event.key === ' ') {
       event.preventDefault()
@@ -343,7 +354,7 @@ export function ConsoleBar({
       return
     }
     if (
-      isGuidedInputActive &&
+      shouldReplaceAssistedInput &&
       !isStagedChoiceManualOverride &&
       event.key.length === 1 &&
       !event.ctrlKey &&
@@ -409,7 +420,14 @@ export function ConsoleBar({
       stagedNavigationSession !== null ||
       consolePromptSession !== null ||
       featureAssistDescriptor !== null
-    if (!isGuidedInputActive || isStagedChoiceManualOverride) {
+    const shouldReplaceAssistedInput =
+      stagedNavigationSession !== null ||
+      consolePromptSession !== null ||
+      (
+        featureAssistDescriptor !== null &&
+        (featureAssistDescriptor.choices.length > 0 || featureAssistDescriptor.prefill !== null)
+      )
+    if (!isGuidedInputActive || !shouldReplaceAssistedInput || isStagedChoiceManualOverride) {
       return
     }
     const pastedText = event.clipboardData.getData('text')

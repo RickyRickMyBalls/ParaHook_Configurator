@@ -3,6 +3,7 @@ import {
   buildRequestFromBuildInputs,
   type SpaghettiBuildInputs,
 } from './buildInputsToRequest'
+import type { GraphPreviewPreparation } from '../previewPreparation'
 
 const cubeBuildInputs = (): SpaghettiBuildInputs => ({
   instances: {
@@ -21,34 +22,74 @@ const cubeBuildInputs = (): SpaghettiBuildInputs => ({
   },
 })
 
+const previewPreparation = (): GraphPreviewPreparation => ({
+  outputPreviewNodeId: 'node-output-preview',
+  outputSlotIds: ['s001', 's002'],
+  previewCandidateSlotIds: ['s001'],
+  previewCandidatePartKeys: ['cube'],
+  sourceNodeIdBySlotId: {
+    s001: 'node-cube',
+  },
+  sourcePartKeyBySlotId: {
+    s001: 'cube',
+  },
+  sourcePortIdBySlotId: {
+    s001: 'SolidBody',
+  },
+  sourcePartKeyByNodeId: {
+    'node-cube': 'cube',
+  },
+  slotStatusBySlotId: {
+    s001: 'ok',
+    s002: 'empty',
+  },
+  buildStatsReadyPartKeys: [],
+  previewIntent: 'outputPreview',
+})
+
 describe('buildRequestFromBuildInputs', () => {
-  it('derives spaghetti stats part keys from the minimal profile patch', () => {
-    expect(buildRequestFromBuildInputs(cubeBuildInputs())).toEqual({
-      profilePatch: {
-        sp_featureStackIR: {
-          schemaVersion: 1,
-          parts: {
-            cube: [],
+  it('builds graph-native compiled build data plus output-entry build units', () => {
+    expect(buildRequestFromBuildInputs(cubeBuildInputs(), previewPreparation())).toEqual({
+      compiledBuildData: {
+        instances: {
+          heelKickInstances: [1],
+          toeHookInstances: [1],
+        },
+        orderedPartKeys: ['cube'],
+        resolvedParts: {},
+        resolvedShared: {
+          sp_featureStackIR: {
+            schemaVersion: 1,
+            parts: {
+              cube: [],
+            },
           },
         },
       },
-      instances: {
-        heelKickInstances: [1],
-        toeHookInstances: [1],
-      },
+      targetBuildUnitIds: ['output-entry:s001:node-cube'],
+      affectedBuildUnitIds: ['output-entry:s001:node-cube'],
       changedParamIds: ['sp_full'],
-      partKeys: ['cube', 'assembled'],
+      buildStatsPartKeys: ['cube', 'assembled'],
     })
+  })
+
+  it('excludes empty output-preview slots from build-unit targeting', () => {
+    const translated = buildRequestFromBuildInputs(cubeBuildInputs(), previewPreparation())
+
+    expect(translated.targetBuildUnitIds).toEqual(['output-entry:s001:node-cube'])
+    expect(translated.affectedBuildUnitIds).toEqual(['output-entry:s001:node-cube'])
+    expect(translated.targetBuildUnitIds).not.toContain('output-entry:s002:unbound')
   })
 
   it('keeps repeated spaghetti build translation deterministic', () => {
     const current = cubeBuildInputs()
-    const first = buildRequestFromBuildInputs(current)
-    const second = buildRequestFromBuildInputs(current, current)
+    const first = buildRequestFromBuildInputs(current, previewPreparation())
+    const second = buildRequestFromBuildInputs(current, previewPreparation(), current)
 
-    expect(first.partKeys).toEqual(['cube', 'assembled'])
-    expect(second.partKeys).toEqual(['cube', 'assembled'])
+    expect(first.buildStatsPartKeys).toEqual(['cube', 'assembled'])
+    expect(second.buildStatsPartKeys).toEqual(['cube', 'assembled'])
     expect(second.changedParamIds).toEqual([])
+    expect(second.targetBuildUnitIds).toEqual(['output-entry:s001:node-cube'])
   })
 
   it('uses compile-owned ordered part keys for deterministic multi-part stats rows', () => {
@@ -70,7 +111,9 @@ describe('buildRequestFromBuildInputs', () => {
       },
     }
 
-    expect(buildRequestFromBuildInputs(buildInputs).partKeys).toEqual([
+    expect(
+      buildRequestFromBuildInputs(buildInputs, previewPreparation()).buildStatsPartKeys,
+    ).toEqual([
       'cube#1',
       'cube#2',
       'assembled',

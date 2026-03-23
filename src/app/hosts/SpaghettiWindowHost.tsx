@@ -75,6 +75,7 @@ function SpaghettiWindowTitleBar(props: {
   isHeaderCollapsed: boolean
   isCanvasToolbarVisible: boolean
   isMeatball?: boolean
+  isEssentials?: boolean
   isMaximized: boolean
   isSplit: boolean
 }) {
@@ -86,6 +87,7 @@ function SpaghettiWindowTitleBar(props: {
     isHeaderCollapsed,
     isCanvasToolbarVisible,
     isMeatball = false,
+    isEssentials = false,
     isMaximized,
     isSplit,
     onClose,
@@ -104,7 +106,6 @@ function SpaghettiWindowTitleBar(props: {
   const requestGraphDocumentBuild = useAppStore((state) => state.requestGraphDocumentBuild)
   const viewport = useSpaghettiStore((state) => selectEditorViewportById(state, editorViewportId))
   const graphDocumentId = viewport?.graphDocumentId ?? ''
-  const isEssentials = !isCollapsed && isHeaderCollapsed && !isCanvasToolbarVisible
   const primaryModeButtonLabel = isCollapsed ? '+' : isEssentials ? 'e' : '-'
   const primaryModeButtonAriaLabel = isCollapsed
     ? 'Restore expanded editor'
@@ -126,6 +127,24 @@ function SpaghettiWindowTitleBar(props: {
       return
     }
     requestGraphDocumentBuild(graphDocumentId)
+  }
+
+  if (isEssentials) {
+    return (
+      <div className="SpaghettiFloatingHandle SpaghettiFloatingHandle--essentials">
+        <button
+          type="button"
+          className="SpaghettiWindowAction SpaghettiWindowAction--collapse isActive"
+          onPointerDown={stopPointer}
+          onClick={onPrimaryViewModeCycle}
+          aria-label={primaryModeButtonAriaLabel}
+          aria-expanded={!isCollapsed}
+          title={primaryModeButtonTitle}
+        >
+          {primaryModeButtonLabel}
+        </button>
+      </div>
+    )
   }
 
   return (
@@ -396,6 +415,11 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
     (activeWindowMode === 'expanded' ||
       activeWindowMode === 'maximized' ||
       activeWindowMode === 'collapsed')
+  const isEssentials =
+    activeEditorViewport !== null &&
+    activeWindowMode === 'maximized' &&
+    isHeaderCollapsed &&
+    !isCanvasToolbarVisible
   const canDragFloatingWindow =
     activeWindowMode === 'expanded' || activeWindowMode === 'collapsed'
   const canResizeFloatingWindow = activeWindowMode === 'expanded'
@@ -1166,7 +1190,8 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
     const editorViewportId = activeEditorViewport.editorViewportId
     const headerCollapsed = headerCollapsedByViewportId[editorViewportId] ?? false
     const canvasToolbarVisible = canvasToolbarVisibleByViewportId[editorViewportId] ?? true
-    const isEssentials = activeEditorViewport.windowMode !== 'collapsed' && headerCollapsed && !canvasToolbarVisible
+    const isEssentials =
+      activeEditorViewport.windowMode === 'maximized' && headerCollapsed && !canvasToolbarVisible
 
     if (activeEditorViewport.windowMode === 'collapsed') {
       setEditorViewportPresentationMode(editorViewportId, 'expanded')
@@ -1361,11 +1386,13 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
           isHeaderCollapsed={isHeaderCollapsed}
           isCanvasToolbarVisible={isCanvasToolbarVisible}
           isMeatball
+          isEssentials={isEssentials}
           isMaximized={false}
           isSplit={false}
         />
         <SpaghettiPanel
           editorViewportId={activeEditorViewport.editorViewportId}
+          isEssentials={isEssentials}
           isWindowSettingsOpen={isWindowSettingsOpen}
           isClampEditing={isWindowClampEditing}
           windowAppearance={activeWindowAppearance}
@@ -1434,12 +1461,14 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
                 isHeaderCollapsed={isHeaderCollapsed}
                 isCanvasToolbarVisible={isCanvasToolbarVisible}
                 isMeatball={false}
+                isEssentials={isEssentials}
                 isMaximized={false}
                 isSplit
               />
-              <div className="SpaghettiFloatingBody">
+              <div className={`SpaghettiFloatingBody ${isEssentials ? 'isEssentials' : ''}`}>
                 <SpaghettiPanel
                   editorViewportId={activeEditorViewport.editorViewportId}
+                  isEssentials={isEssentials}
                   isWindowSettingsOpen={isWindowSettingsOpen}
                   isClampEditing={isWindowClampEditing}
                   windowAppearance={activeWindowAppearance}
@@ -1485,7 +1514,9 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
                 : activeWindowMode === 'collapsed'
                   ? 'isCollapsed'
                   : ''
-            } ${workspaceActiveSurface === 'spaghetti' ? 'isActiveWindow' : ''}`}
+            } ${isEssentials ? 'isEssentials' : ''} ${
+              workspaceActiveSurface === 'spaghetti' ? 'isActiveWindow' : ''
+            }`}
             onPointerDown={onActivateSpaghettiFloatingWindow}
             onPointerDownCapture={onActivateSpaghettiSurface}
             style={{
@@ -1524,13 +1555,15 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
               isHeaderCollapsed={isHeaderCollapsed}
               isCanvasToolbarVisible={isCanvasToolbarVisible}
               isMeatball={false}
+              isEssentials={isEssentials}
               isMaximized={activeWindowMode === 'maximized'}
               isSplit={false}
             />
             {activeWindowMode !== 'collapsed' ? (
-              <div className="SpaghettiFloatingBody">
+              <div className={`SpaghettiFloatingBody ${isEssentials ? 'isEssentials' : ''}`}>
                 <SpaghettiPanel
                   editorViewportId={activeEditorViewport.editorViewportId}
+                  isEssentials={isEssentials}
                   isWindowSettingsOpen={isWindowSettingsOpen}
                   isClampEditing={isWindowClampEditing}
                   windowAppearance={activeWindowAppearance}

@@ -1,6 +1,6 @@
 import { SpaghettiCanvas } from '../canvas/SpaghettiCanvas'
 
-type SpaghettiEditorViewMode = 'expanded' | 'collapsed'
+type SpaghettiEditorViewMode = 'expanded' | 'essentials' | 'collapsed'
 
 type ExpandedEditorProps = {
   graphDocumentId: string

@@ -3,6 +3,21 @@
 ## Doc Header
 
 ### Doc History
+151. 2026-03-23 13:50: Logged the shipped `[3.2A-0.1]` follow-through by moving the standalone `Nodes-Fondation` phase record into `Shipped/`, marking the node-family index and roadmap state forward, updating the docs map to the new shipped path, and flipping the dedicated sketch-to-extrude bug notes from implementation-ready to code-resolved pending manual app verification
+150. 2026-03-23 13:32: Refreshed the `Sketch To Extrude` bug-planning surfaces after the shipped worker-contract cleanup, tightening both the standalone `[3.2A-0.1]` phase doc and the dedicated bug note around the actual remaining downstream `worker mesh -> PartArtifact -> Viewer` seam, updating the likely files/tests, and marking the bug as implementation-ready instead of still framed around the stale `compileGraph loop.segments` diagnosis
+149. 2026-03-23 13:24: Logged the shipped `[5.3A-2]` worker-contract follow-through by moving the standalone phase record into `Worker/Shipped/`, refreshing `Worker.md`, `roadmap.md`, and `Doc-Index.md` to the shipped state, and updating the open `[5.3A-4]` dispatcher doc so it now treats the graph-native request/build-unit contract as completed groundwork instead of still-pending work
+148. 2026-03-23 00:43: Tightened the open `[3.2B-DrawSketch-6.1] Endpoint Snap First Pass` child phase into a more implementation-ready spec inside both `Sketch.md` and its standalone future phase doc, locking the current snap seams, the first committed endpoint extraction set, the origin-versus-endpoint ranking rule, the first `hoverSnapTarget` expansion, and the concrete helper/store/viewer verification targets
+147. 2026-03-23 00:31: Added `docs/Human-Plans/Architecture/AutoCAD-Command-Backlog.md` as a new broad architecture-side AutoCAD-style command inventory for ParaHook, grouping the long-term backlog into view/navigation, selection, snaps, draw tools, modify/edit tools, annotation/constraints, and content/reference-related commands instead of leaving that growing command target scattered across the sketch and camera family docs
+146. 2026-03-23 00:20: Added a bigger-vision AutoCAD-style modify-command backlog to the top of the open `[3.2B-DrawSketch-7] Entity Transform And Modify Tools` family in both `Sketch.md` and its standalone future phase doc, explicitly framing `DrawSketch-7` as the long-term home for transform, reshape/topology, and structure/cleanup commands on existing sketch entities
+145. 2026-03-23 00:16: Expanded the new open `[3.2B-DrawSketch-7] Entity Transform And Modify Tools` family in both `Sketch.md` and its standalone future phase doc to include the broader AutoCAD-style modify backlog, then re-split it into a safer six-step ladder of `[7.0] Move Copy And Rotate`, `[7.1] Scale Mirror And Array`, `[7.2] Offset Fillet And Chamfer`, `[7.3] Stretch`, `[7.4] Trim And Extend`, and `[7.5] Explode And Join`
+144. 2026-03-23 00:09: Added a new open `[3.2B-DrawSketch-7] Entity Transform And Modify Tools` family in `Sketch.md` plus its standalone future phase doc, splitting the next post-snap sketch-edit growth into a minimum-safe ladder of `[7.0] Move And Rotate`, `[7.1] Scale Mirror And Array`, `[7.2] Stretch`, and `[7.3] Trim And Extend`
+143. 2026-03-23 00:00: Broke the larger `DrawSketch-6` snap vision into a concrete minimum-safe subphase ladder in both `Sketch.md` and its standalone future phase doc, recommending a seven-step `[3.2B-DrawSketch-6.0]` through `[3.2B-DrawSketch-6.6]` progression that separates toolbar/shared controls, endpoint snap, simple geometric snaps, computed relation snaps, ortho/polar tracking, object snap tracking, and later preferences/symbol growth
+142. 2026-03-22 23:56: Expanded the open `DrawSketch-6` snap-family planning with a broader AutoCAD-like long-term vision in both `Sketch.md` and its standalone future phase doc, adding object-snap and tracking categories, a suggested growth order after endpoint snap, and a longer-term view-toolbar direction for master snap controls, per-snap rows, tracking aids, polar settings, and later symbol customization
+141. 2026-03-22 23:45: Reframed `[3.2B-DrawSketch-6]` from one monolithic endpoint-only phase into a wider `Snap Growth` parent in both `Sketch.md` and its standalone future phase doc, then added the first child split with `[3.2B-DrawSketch-6.0] Snap Toolbar And Shared Snap Controls` and `[3.2B-DrawSketch-6.1] Endpoint Snap First Pass` so later midpoint/center/object-snap follow-ons can land cleanly under the same family
+140. 2026-03-22 23:39: Extended the open `[3.2B-DrawSketch-6] Endpoint Snap` plan with the current sketch-draw snap-settings research, explicitly locking the first toolbar cleanup that moves `Snap` and `Snap Distance` out of the sketch-draw settings submenu into a dedicated main `Snap` section while reusing the already-shipped sketch-draw snap prefs and naming the relevant overlay/store/viewer seams
+139. 2026-03-22 23:28: Logged the new `View-Toolbar/ThreeViewier.md` planning doc, added it to the docs map, and captured one broad practical inventory of current plus possible Three.js viewer settings for ParaHook across projection, framing, background, grid, helpers, lighting, materials, render quality, and console-aligned view control growth
+138. 2026-03-22 23:30: Tightened the open `[3.2B-DrawSketch-6] Endpoint Snap` planning surface in both `Sketch.md` and its standalone future phase doc, locking the exact first endpoint extraction set per entity type, the shared origin-versus-endpoint ranking rule, the active-tool-only snap boundary, the first user-visible snap feedback contract, and the concrete store/viewer/helper seams plus verification targets
+137. 2026-03-22 22:55: Logged the new `View-Toolbar` architecture family, created `Future/` and `Shipped/` under `docs/Human-Plans/Architecture/View-Toolbar/`, added `View-Toolbar-Index.md` as the umbrella planning surface, and grounded the first direction around console alignment, projection mode controls, `ParaSelect`, `FOV`, grid controls, and legacy gizmo carry-forward
 136. 2026-03-22 22:32: Logged the shipped `[5.0H-4] Camera Console Commands` follow-up that moves the standalone phase record into `Camera-Controls/Shipped/`, updates the camera family index and roadmap to reflect the landed root/scoped `Zoom` plus console `Pan` / `Orbit` cut, refreshes the docs map to the shipped path, and tightens the wording so `Zoom Object` only claims the current selected part/reference seam while unsupported paths stay explicit
 135. 2026-03-22 22:00: Logged the `[5.0H-4]` implementation-readiness pass that grounds `Zoom Object` on the existing browser/app selection seam instead of a new viewport-pick feature, locks the reusable root/scoped `Zoom` tree shape, and names the concrete console/viewer files plus first verification targets
 134. 2026-03-22 21:52: Logged the `[5.0H-4]` console-camera follow-up that locks `Zoom` as a reusable scoped command family, with root `Zoom` living beside `Graph` as the model-viewport default while `Graph > Zoom` now defaults to `Canvas` first and still exposes `Model Viewport` as the secondary branch
@@ -175,6 +190,174 @@ Do not use it for:
 - keep numbering sequential unless the user explicitly asks for a renumber pass
 
 ## Doc Body
+
+### [189] - 2026-03-23 13:50 - `DOC - Ship Sketch To Extrude Preview Repair Phase Record`
+<!-- DOC ENTRY 189 -->
+HUMAN SUMMARY: `Moved the standalone \`[3.2A-0.1]\` sketch-to-extrude repair doc into \`Nodes-Fondation/Shipped/\`, refreshed the node-family and roadmap/docs-map surfaces to the shipped state, and updated the bug records so this geometry-fidelity repair now reads as code-resolved pending manual in-app verification instead of still implementation-ready planning.`
+
+#### Scope
+- Kept the doc follow-through focused on the existing `Nodes`, roadmap, docs-map, and bug-tracking surfaces that explicitly referenced `[3.2A-0.1]`.
+- Preserved earlier planning and bug-history entries rather than rewriting the pre-shipment investigation record.
+- Kept the bug state conservative by using `[resolved?]` until the irregular authored `PLine` case is manually verified in-app.
+
+#### Summary
+- Moved `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Fondation/Future/Nodes_Phase 3.2A-0.1 - Sketch To Extrude To Preview Contract Repair.md` into `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Fondation/Shipped/` and updated the standalone phase record so it describes the landed mesh-preview repair instead of future implementation steps.
+- Updated `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md` and `docs/Human-Plans/roadmap/roadmap.md` so `[3.2A-0.1]` now reads as completed groundwork ahead of the later `EWR` phases.
+- Updated `docs/Doc-Index.md` so the architecture docs map points at the shipped `Nodes-Fondation/Shipped/` phase record.
+- Updated `docs/Bugs/4_GeometrySketch-Extrude-Profile-Handoff-Regression.md` and `docs/Bugs/0_Bug_Report.md` so the bug now reads as code-resolved pending manual app verification.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Fondation/Shipped/Nodes_Phase 3.2A-0.1 - Sketch To Extrude To Preview Contract Repair.md`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md`
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/Doc-Index.md`
+- `docs/Bugs/4_GeometrySketch-Extrude-Profile-Handoff-Regression.md`
+- `docs/Bugs/0_Bug_Report.md`
+- `docs/Doc-Log.md`
+
+### [188] - 2026-03-23 13:32 - `DOC - Tighten Sketch To Extrude Repair Plan Around Result Semantics`
+<!-- DOC ENTRY 188 -->
+HUMAN SUMMARY: `Updated the standalone \`[3.2A-0.1]\` repair phase doc and the dedicated sketch-to-extrude bug note so both now reflect the post-\`[5.3A-2]\` reality: the old graph-native compile handoff issue is now a verification checkpoint, while the actual implementation target is the downstream \`worker mesh -> PartArtifact -> Viewer\` collapse.`
+
+#### Scope
+- Kept the doc changes limited to the standalone `Nodes` repair phase doc and the dedicated bug note.
+- Preserved the broader `EWR` and worker-roadmap boundaries instead of widening this into another family rewrite.
+- Added new permanent top-of-file doc-log history rather than rewriting earlier bug-planning history.
+
+#### Summary
+- Refreshed `Nodes_Phase 3.2A-0.1 - Sketch To Extrude To Preview Contract Repair.md` so its implementation spec now names the concrete shared result, dispatcher validation, worker build-model, and viewer seams as the main work.
+- Updated `4_GeometrySketch-Extrude-Profile-Handoff-Regression.md` so the stale `compileGraph loop.segments` diagnosis no longer reads as the primary remaining bug cause.
+- Marked the bug note implementation-ready and tightened the likely files, decisions, implementation steps, verification set, and definition of done around mesh-capable preview artifacts.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Fondation/Future/Nodes_Phase 3.2A-0.1 - Sketch To Extrude To Preview Contract Repair.md`
+- `docs/Bugs/4_GeometrySketch-Extrude-Profile-Handoff-Regression.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was a docs-only planning correction.
+- The updated plan still keeps a narrow compile-path verification step so the old upstream handoff bug stays closed while the downstream result-contract repair lands.
+
+### [187] - 2026-03-23 13:24 - `DOC - Ship Worker Phase 5.3A-2 Planning Surface`
+<!-- DOC ENTRY 187 -->
+HUMAN SUMMARY: `Moved the \`[5.3A-2]\` worker-contract phase record into \`Worker/Shipped/\`, refreshed the umbrella worker and roadmap/docs-map surfaces to the shipped state, and tightened the open dispatcher-cleanup doc so it now treats the graph-native request/build-unit contract as completed groundwork rather than future speculation.`
+
+#### Scope
+- Kept the doc changes inside the existing Worker family, roadmap, and docs-map surfaces without widening into unrelated worker phases.
+- Preserved the current `[5.3A-6]` result-semantics boundary so the shipped `5.3A-2` docs only claim the request-and-state contract work that actually landed.
+- Left older doc-log and local doc-history entries intact and added new top entries instead of rewriting history.
+
+#### Summary
+- Moved `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase 5.3A-2 - Graph-Native Worker Contract And Separate-Build Identity.md` into `docs/Human-Plans/Architecture/Worker/Shipped/` and updated the standalone phase record to describe the landed contract precisely.
+- Refreshed `docs/Human-Plans/Architecture/Worker/Worker.md` so the umbrella family now marks `[5.3A-2]` complete and describes the live graph-build seam as `compiledBuildData + buildIdentity + invalidation` with coarse result semantics still deferred.
+- Updated `docs/Human-Plans/roadmap/roadmap.md` and `docs/Doc-Index.md` so the roadmap and docs map both point at the shipped `5.3A-2` record instead of the old future path.
+- Updated `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase 5.3A-4 - Dispatcher Boundary Cleanup.md` so its prerequisite wording now treats `[5.3A-2]` as shipped groundwork rather than a still-pending dependency.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Worker/Shipped/Worker_Phase 5.3A-2 - Graph-Native Worker Contract And Separate-Build Identity.md`
+- `docs/Human-Plans/Architecture/Worker/Worker.md`
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/Doc-Index.md`
+- `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase 5.3A-4 - Dispatcher Boundary Cleanup.md`
+
+#### Verification / Consistency Checks
+- Confirmed the shipped Worker family path now appears in `Worker.md`, `roadmap.md`, and `Doc-Index.md`.
+- Confirmed the open `[5.3A-4]` doc now references `[5.3A-2]` as shipped groundwork instead of a future prerequisite.
+
+<!-- ENTRY 186 -->
+### [186] - 2026-03-23 11:08 - `DOC - Add 3.2A-0.1 Standalone Nodes Repair Phase`
+<!-- ENTRY 186 -->
+HUMAN SUMMARY: Added the standalone `[3.2A-0.1] Sketch To Extrude To Preview Contract Repair` phase doc under the `Nodes` family, updated `Nodes-Index.md` to include it as the pre-`EWR` cleanup phase, and refreshed the docs map so the new post-foundation geometry repair now has a real implementation-ready planning surface.
+
+#### Scope
+- Added one new standalone future phase doc under the `Nodes` family.
+- Updated `Nodes-Index.md` to include `[3.2A-0.1]` ahead of the later `EWR` phases.
+- Updated the docs map and permanent doc log.
+
+#### Summary
+- Created a dedicated implementation-ready plan for repairing the current `Sketch -> Extrude -> Output Preview` fidelity gap.
+- Kept the phase explicitly separate from the broader `EWR` rollout.
+- Positioned it as the immediate post-foundation cleanup under shipped `[3.2A-0]`.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Future/Nodes_Phase 3.2A-0.1 - Sketch To Extrude To Preview Contract Repair.md`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md`
+- `docs/Doc-Index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This is a docs-only planning pass.
+- The new phase intentionally stays focused on geometry-result fidelity and avoids widening into the full worker-contract family or the later `EWR` hierarchy work.
+
+<!-- ENTRY 185 -->
+### [185] - 2026-03-23 11:02 - `DOC - Add 3.2A-0.1 Sketch To Extrude Cleanup To Roadmap`
+<!-- ENTRY 185 -->
+HUMAN SUMMARY: Updated the roadmap to add `[3.2A-0.1] Sketch To Extrude To Preview Contract Repair` directly under the shipped `[3.2A-0]` foundation, giving the newly confirmed graph-native geometry fidelity cleanup a real roadmap home before the later `EWR` phases begin.
+
+#### Scope
+- Updated the live roadmap only.
+- Added the new `3.2A-0.1` checklist row and detailed phase block under the `[3.2A]` family.
+- Logged the roadmap follow-up in the permanent doc log.
+
+#### Summary
+- Kept `[3.2A-0]` intact as shipped history.
+- Added `[3.2A-0.1]` as the immediate cleanup phase for the sketch-to-extrude-to-preview contract.
+- Left `[3.2A-1]` through `[3.2A-4]` as the later `EWR` and downstream node-structure wave.
+
+#### Files Changed
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This change intentionally treats the geometry fidelity repair as a pre-`EWR` cleanup instead of the first `EWR` phase itself.
+
+<!-- ENTRY 184 -->
+### [184] - 2026-03-23 01:19 - `DOC - Make Sketch To Extrude Bug Note Implementation Ready`
+<!-- ENTRY 184 -->
+HUMAN SUMMARY: Extended the new `Geometry Sketch To Extrude Profile Handoff Regression` bug note with an implementation-ready fix block at the bottom, translating the current sketch-profile data-loss suspicion into a concrete contract-repair plan with a header, seam read, locked decisions, and implementation spec.
+
+#### Scope
+- Updated the dedicated Bug 4 regression note only.
+- Added an implementation-ready bottom section without changing any runtime code.
+- Logged the docs follow-up in the permanent doc log.
+
+#### Summary
+- Added a `Fix Spec` section for the sketch-to-extrude contract repair.
+- Captured the current seam read across `compileGraph`, `nodeRegistry`, `evaluateGraph`, `compileFeatureStack`, and `featureStackRuntime`.
+- Locked the main decisions so the next implementation cut can focus on contract fidelity instead of reopening the same bug-triage question.
+
+#### Files Changed
+- `docs/Bugs/4_GeometrySketch-Extrude-Profile-Handoff-Regression.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This is still a bug note, not a new feature phase doc.
+- The implementation-ready section is intentionally narrow and keeps the broader `EWR` rollout out of scope.
+
+<!-- ENTRY 183 -->
+### [183] - 2026-03-23 01:10 - `DOC - Add Geometry Sketch To Extrude Handoff Bug Note`
+<!-- ENTRY 183 -->
+HUMAN SUMMARY: Added a dedicated bug note for the current graph-native `Geometry/Sketch -> Geometry/Extrude` shape-loss regression, then refreshed the master bug report and docs map so the new irregular-profile extrusion failure is now tracked as a first-class open bug instead of only living in chat context.
+
+#### Scope
+- Added one new dedicated bug doc under `docs/Bugs/`.
+- Updated the running master bug report with a new `Bug 7` entry and priority placement.
+- Updated the docs index so the new bug note appears in the canonical docs map.
+
+#### Summary
+- Created a focused bug note describing the symptom where irregular `Sketch Draw` profiles extrude to the wrong body shape.
+- Recorded the current strongest suspicion that the graph-native compile path rebuilds a reduced sketch/profile payload and drops the richer loop structure before runtime extrusion.
+- Linked the broader bug inventory to the new dedicated note so the issue is easier to discover and revisit later.
+
+#### Files Changed
+- `docs/Bugs/4_GeometrySketch-Extrude-Profile-Handoff-Regression.md`
+- `docs/Bugs/0_Bug_Report.md`
+- `docs/Doc-Index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was a docs-only tracking update; no runtime code changed.
+- The current bug note intentionally frames `OutputPreview` as a downstream suspect rather than the primary likely fault.
 
 <!-- ENTRY 182 -->
 ### [182] - 2026-03-22 21:26 - `DOC - Correct Camera Controls Phase 5.0H-3 Baseline Mapping`

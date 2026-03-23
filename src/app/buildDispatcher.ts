@@ -9,12 +9,15 @@ import { LEGACY_BUILD_STATS_PART_ORDER } from '../shared/buildStatsKeys'
 import type {
   AssembleRequest,
   AssembleResult,
+  BuildIdentity,
+  BuildInvalidation,
   BuildProgress,
   BuildRequest,
   BuildResult,
   BuildRoutingIdentity,
   BuildExecutionIntent,
   BoxParams,
+  CompiledBuildData,
   WorkerError,
 } from '../shared/buildTypes'
 import { appendConsoleEntry } from './console/useConsoleStore'
@@ -34,6 +37,17 @@ type BuildRequestOptions = {
   changedParamIds?: string[]
   buildInstances?: BuildInstances
   buildStatsPartKeys?: string[]
+}
+
+type GraphBuildRequestOptions = {
+  routingIdentity?: BuildRoutingIdentity
+  executionIntent?: BuildExecutionIntent
+  changedParamIds?: string[]
+  buildStatsPartKeys?: string[]
+  legacyPayload?: BoxParams
+  compiledBuildData: CompiledBuildData
+  buildIdentity: BuildIdentity
+  invalidation: BuildInvalidation
 }
 
 type RoutingLedger = {
@@ -216,15 +230,6 @@ export class BuildDispatcher {
   }
 
   public requestBuild(params: BoxParams, options?: BuildRequestOptions): number {
-    const seq = ++this.seqCounter
-    this.latestRequestedSeq = seq
-    const routingIdentity = options?.routingIdentity ?? this.createLegacyRoutingIdentity(seq)
-    const executionIntent = {
-      ...(options?.executionIntent ?? DEFAULT_BUILD_EXECUTION_INTENT),
-    } satisfies BuildExecutionIntent
-    const ledger = this.getOrCreateRoutingLedger(routingIdentity)
-    ledger.latestRequestedSeq = seq
-
     const buildInstances = options?.buildInstances ?? this.getBuildInstancesForNextBuild?.()
     const heelKickInstances =
       buildInstances === undefined
@@ -234,6 +239,70 @@ export class BuildDispatcher {
       buildInstances === undefined
         ? undefined
         : normalizeInstances(buildInstances.toeHookInstances)
+    return this.requestBuildInternal({
+      routingIdentity: options?.routingIdentity,
+      executionIntent: options?.executionIntent,
+      changedParamIds: options?.changedParamIds,
+      buildStatsPartKeys: options?.buildStatsPartKeys,
+      message: {
+        type: 'build',
+        lane: 'build',
+        seq: 0,
+        projectFileId: '',
+        graphDocumentId: '',
+        buildRequestId: '',
+        payload: params,
+        executionIntent: DEFAULT_BUILD_EXECUTION_INTENT,
+        ...(options?.changedParamIds !== undefined ? { changedParamIds: options.changedParamIds } : {}),
+        ...(buildInstances === undefined
+          ? {}
+          : {
+              heelKickInstances,
+              toeHookInstances,
+            }),
+      },
+    })
+  }
+
+  public requestGraphBuild(options: GraphBuildRequestOptions): number {
+    return this.requestBuildInternal({
+      routingIdentity: options.routingIdentity,
+      executionIntent: options.executionIntent,
+      changedParamIds: options.changedParamIds,
+      buildStatsPartKeys: options.buildStatsPartKeys,
+      message: {
+        type: 'build',
+        lane: 'build',
+        seq: 0,
+        projectFileId: '',
+        graphDocumentId: '',
+        buildRequestId: '',
+        payload: options.legacyPayload ?? { width: 1, length: 1, height: 1 },
+        executionIntent: DEFAULT_BUILD_EXECUTION_INTENT,
+        buildIdentity: options.buildIdentity,
+        invalidation: options.invalidation,
+        compiledBuildData: options.compiledBuildData,
+        ...(options.changedParamIds !== undefined ? { changedParamIds: options.changedParamIds } : {}),
+      },
+    })
+  }
+
+  private requestBuildInternal(options: {
+    routingIdentity?: BuildRoutingIdentity
+    executionIntent?: BuildExecutionIntent
+    changedParamIds?: string[]
+    buildStatsPartKeys?: string[]
+    message: BuildRequest
+  }): number {
+    const seq = ++this.seqCounter
+    this.latestRequestedSeq = seq
+    const routingIdentity = options?.routingIdentity ?? this.createLegacyRoutingIdentity(seq)
+    const executionIntent = {
+      ...(options?.executionIntent ?? DEFAULT_BUILD_EXECUTION_INTENT),
+    } satisfies BuildExecutionIntent
+    const ledger = this.getOrCreateRoutingLedger(routingIdentity)
+    ledger.latestRequestedSeq = seq
+
     const changedParamIds = this.normalizeChangedParamIds(
       options?.changedParamIds ?? this.getChangedParamIdsForNextBuild?.() ?? [],
     )
@@ -256,21 +325,13 @@ export class BuildDispatcher {
     })
 
     const message: BuildRequest = {
-      type: 'build',
-      lane: 'build',
+      ...options.message,
       seq,
       projectFileId: routingIdentity.projectFileId,
       graphDocumentId: routingIdentity.graphDocumentId,
       buildRequestId: routingIdentity.buildRequestId,
-      payload: params,
       executionIntent,
       ...(changedParamIds.length > 0 ? { changedParamIds } : {}),
-      ...(buildInstances === undefined
-        ? {}
-        : {
-            heelKickInstances,
-            toeHookInstances,
-          }),
     }
     this.worker.postMessage(message)
     return seq

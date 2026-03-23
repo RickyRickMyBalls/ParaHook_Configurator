@@ -8,6 +8,11 @@ import type {
   WorkerError,
 } from '../shared/buildTypes'
 import {
+  isBuildIdentity,
+  isBuildInvalidation,
+  isCompiledBuildData,
+} from '../shared/buildTypes'
+import {
   assemblePipeline,
   buildPipeline,
   type ProgressEmitter,
@@ -77,6 +82,15 @@ const isBuildRequest = (value: unknown): value is BuildRequest => {
     return false
   }
   if (value.toeHookInstances !== undefined && !isNumberArray(value.toeHookInstances)) {
+    return false
+  }
+  if (value.buildIdentity !== undefined && !isBuildIdentity(value.buildIdentity)) {
+    return false
+  }
+  if (value.invalidation !== undefined && !isBuildInvalidation(value.invalidation)) {
+    return false
+  }
+  if (value.compiledBuildData !== undefined && !isCompiledBuildData(value.compiledBuildData)) {
     return false
   }
   return (

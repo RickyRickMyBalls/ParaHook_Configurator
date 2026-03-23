@@ -642,6 +642,7 @@ export function ViewportOverlay() {
     useState(true)
   const [sketchSessionSketchDrawSettingsExpanded, setSketchSessionSketchDrawSettingsExpanded] =
     useState(true)
+  const [sketchSessionSnapExpanded, setSketchSessionSnapExpanded] = useState(true)
   const [sketchSessionToolSelectionExpanded, setSketchSessionToolSelectionExpanded] =
     useState(true)
   const [sketchSessionActiveToolExpanded, setSketchSessionActiveToolExpanded] =
@@ -1130,6 +1131,7 @@ export function ViewportOverlay() {
     setSketchSessionWindowHeightMode('auto')
     setSketchSessionIMenuOpen(false)
     setSketchSessionIMenuExpanded(true)
+    setSketchSessionSnapExpanded(true)
     setSketchSessionSectionStackResetNonce((current) => current + 1)
   }, [activeGeometrySketchNode?.nodeId])
 
@@ -3438,30 +3440,6 @@ export function ViewportOverlay() {
                       </button>
                       {sketchSessionSketchDrawSettingsExpanded ? (
                         <div className="ViewportOverlayToolPanelCustomizationRows">
-                          <ParaSelect
-                            label="Snap"
-                            value={sketchDrawSnapEnabled ? 'on' : 'off'}
-                            options={[
-                              { value: 'off', label: 'Off' },
-                              { value: 'on', label: 'On' },
-                            ]}
-                            onChange={(value) => setSketchDrawSnapEnabled(value === 'on')}
-                          />
-                          <ParaSlider
-                            label="Snap Distance"
-                            value={sketchDrawSnapDistancePx}
-                            min={4}
-                            max={64}
-                            step={1}
-                            onChange={setSketchDrawSnapDistancePx}
-                            formatValue={(value) => `${value.toFixed(0)} px`}
-                            {...buildSketchSessionClampProps({
-                              sliderId: 'sketch-draw-snap-distance',
-                              min: 4,
-                              max: 64,
-                              formatValue: (value) => `${value.toFixed(0)} px`,
-                            })}
-                          />
                           <ParaSlider
                             label="Crosshair Size"
                             value={sketchDrawCrosshairSize}
@@ -3554,6 +3532,60 @@ export function ViewportOverlay() {
                         </div>
                       ) : null}
                     </div>
+                  </div>
+                ) : null}
+              </ViewportOverlayToolSection>
+            ) : null}
+            {geometrySketchSession.mode === 'draw' ? (
+              <ViewportOverlayToolSection
+                className="ViewportOverlaySketchPlaneDockSection"
+                label={
+                  <button
+                    type="button"
+                    className="ViewportOverlaySketchPlaneTextToggle"
+                    onClick={() => {
+                      resetSketchSessionWindowToAutoHeight()
+                      setSketchSessionSnapExpanded((currentExpanded) => !currentExpanded)
+                    }}
+                  >
+                    <span
+                      className={`ViewportOverlaySketchPlaneChevron ${
+                        sketchSessionSnapExpanded ? 'isExpanded' : ''
+                      }`}
+                      aria-hidden="true"
+                    >
+                      â€º
+                    </span>
+                    <span>Snap</span>
+                  </button>
+                }
+              >
+                {sketchSessionSnapExpanded ? (
+                  <div className="ViewportOverlayToolPanelCustomizationRows">
+                    <ParaSelect
+                      label="Snap"
+                      value={sketchDrawSnapEnabled ? 'on' : 'off'}
+                      options={[
+                        { value: 'off', label: 'Off' },
+                        { value: 'on', label: 'On' },
+                      ]}
+                      onChange={(value) => setSketchDrawSnapEnabled(value === 'on')}
+                    />
+                    <ParaSlider
+                      label="Snap Distance"
+                      value={sketchDrawSnapDistancePx}
+                      min={4}
+                      max={64}
+                      step={1}
+                      onChange={setSketchDrawSnapDistancePx}
+                      formatValue={(value) => `${value.toFixed(0)} px`}
+                      {...buildSketchSessionClampProps({
+                        sliderId: 'sketch-draw-snap-distance',
+                        min: 4,
+                        max: 64,
+                        formatValue: (value) => `${value.toFixed(0)} px`,
+                      })}
+                    />
                   </div>
                 ) : null}
               </ViewportOverlayToolSection>
@@ -3717,9 +3749,9 @@ export function ViewportOverlay() {
                               </span>
                             </div>
                             <div className="ViewportOverlaySketchEntityItem">
-                              <span>Origin Snap</span>
+                              <span>Snap Target</span>
                               <span>
-                                {activeDrawDraft?.hoverSnapTarget === 'origin' ? 'armed' : 'off'}
+                                {activeDrawDraft?.hoverSnapTarget ?? 'off'}
                               </span>
                             </div>
                             {activePreviewStartPoint !== null ? (

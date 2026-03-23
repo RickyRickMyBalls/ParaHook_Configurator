@@ -12,6 +12,7 @@ export type BuildRoutingIdentity = {
   graphDocumentId: string
   buildRequestId: string
 }
+export type BuildUnitId = string
 
 export type ViewMode = 'parts' | 'assembled'
 export type BuildPhase = 'parts' | 'assemble' | 'export'
@@ -38,6 +39,11 @@ export type PartId = string
 export type PartKey = {
   id: PartId
   instance: number | null
+}
+
+export type ArtifactMesh = {
+  vertices: number[]
+  indices: number[]
 }
 
 export const isInstancePartId = (id: PartId): id is 'heelKick' | 'toeHook' =>
@@ -75,7 +81,7 @@ export const parsePartKeyString = (partKeyStr: string): PartKey => {
   }
 }
 
-export type PartArtifact = {
+export type BoxPartArtifact = {
   id: PartId
   label: string
   kind: 'box'
@@ -83,6 +89,17 @@ export type PartArtifact = {
   partKeyStr: string
   partKey: PartKey
 }
+
+export type MeshPartArtifact = {
+  id: PartId
+  label: string
+  kind: 'mesh'
+  mesh: ArtifactMesh
+  partKeyStr: string
+  partKey: PartKey
+}
+
+export type PartArtifact = BoxPartArtifact | MeshPartArtifact
 
 export type ViewerRenderablePart = {
   viewerKey: string
@@ -109,6 +126,20 @@ export const isPartKey = (value: unknown): value is PartKey => {
 
 export const getPartArtifactKey = (artifact: PartArtifact): string => artifact.partKeyStr
 
+const isArtifactMesh = (value: unknown): value is ArtifactMesh =>
+  isRecord(value) &&
+  Array.isArray(value.vertices) &&
+  value.vertices.every((item) => typeof item === 'number' && Number.isFinite(item)) &&
+  value.vertices.length % 3 === 0 &&
+  Array.isArray(value.indices) &&
+  value.indices.every(
+    (item) =>
+      typeof item === 'number' &&
+      Number.isInteger(item) &&
+      Number.isFinite(item) &&
+      item >= 0,
+  )
+
 export const isPartArtifact = (value: unknown): value is PartArtifact => {
   if (!isRecord(value)) {
     return false
@@ -117,19 +148,26 @@ export const isPartArtifact = (value: unknown): value is PartArtifact => {
     typeof value.id !== 'string' ||
     value.id.length === 0 ||
     typeof value.label !== 'string' ||
-    value.kind !== 'box' ||
-    !isRecord(value.params) ||
     typeof value.partKeyStr !== 'string' ||
     value.partKeyStr.length === 0 ||
     !isPartKey(value.partKey)
   ) {
     return false
   }
-  if (
-    typeof value.params.width !== 'number' ||
-    typeof value.params.length !== 'number' ||
-    typeof value.params.height !== 'number'
-  ) {
+  if (value.kind === 'box') {
+    if (
+      !isRecord(value.params) ||
+      typeof value.params.width !== 'number' ||
+      typeof value.params.length !== 'number' ||
+      typeof value.params.height !== 'number'
+    ) {
+      return false
+    }
+  } else if (value.kind === 'mesh') {
+    if (!isArtifactMesh(value.mesh)) {
+      return false
+    }
+  } else {
     return false
   }
   return partKeyToString(value.partKey) === value.partKeyStr
@@ -143,6 +181,56 @@ export const toViewerRenderablePart = (
   artifact,
 })
 
+export type CompiledBuildInstances = {
+  heelKickInstances: number[]
+  toeHookInstances: number[]
+}
+
+export type CompiledBuildData = {
+  instances: CompiledBuildInstances
+  orderedPartKeys: string[]
+  resolvedParts: Record<string, Record<string, unknown>>
+  resolvedShared?: Record<string, unknown>
+}
+
+export type BuildIdentity = {
+  graphRevision: number
+  targetBuildUnitIds: BuildUnitId[]
+}
+
+export type BuildInvalidation = {
+  affectedBuildUnitIds: BuildUnitId[]
+}
+
+const isStringArray = (value: unknown): value is string[] =>
+  Array.isArray(value) && value.every((item) => typeof item === 'string')
+
+const isNumberArray = (value: unknown): value is number[] =>
+  Array.isArray(value) && value.every((item) => typeof item === 'number')
+
+export const isCompiledBuildInstances = (value: unknown): value is CompiledBuildInstances =>
+  isRecord(value) &&
+  isNumberArray(value.heelKickInstances) &&
+  isNumberArray(value.toeHookInstances)
+
+export const isCompiledBuildData = (value: unknown): value is CompiledBuildData =>
+  isRecord(value) &&
+  isCompiledBuildInstances(value.instances) &&
+  isStringArray(value.orderedPartKeys) &&
+  isRecord(value.resolvedParts) &&
+  Object.values(value.resolvedParts).every(isRecord) &&
+  (value.resolvedShared === undefined || isRecord(value.resolvedShared))
+
+export const isBuildIdentity = (value: unknown): value is BuildIdentity =>
+  isRecord(value) &&
+  typeof value.graphRevision === 'number' &&
+  Number.isInteger(value.graphRevision) &&
+  value.graphRevision >= 0 &&
+  isStringArray(value.targetBuildUnitIds)
+
+export const isBuildInvalidation = (value: unknown): value is BuildInvalidation =>
+  isRecord(value) && isStringArray(value.affectedBuildUnitIds)
+
 export type BuildRequest = {
   type: 'build'
   lane: 'build'
@@ -152,6 +240,9 @@ export type BuildRequest = {
   buildRequestId: string
   payload: BoxParams
   executionIntent: BuildExecutionIntent
+  buildIdentity?: BuildIdentity
+  invalidation?: BuildInvalidation
+  compiledBuildData?: CompiledBuildData
   changedParamIds?: string[]
   heelKickInstances?: number[]
   toeHookInstances?: number[]

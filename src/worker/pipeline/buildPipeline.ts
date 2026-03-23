@@ -40,6 +40,13 @@ const now = (): number => Date.now()
 const asRecord = (value: unknown): Record<string, unknown> | null =>
   typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : null
 
+const toBuildSignatureInput = (request: BuildRequest) => ({
+  payload: request.payload,
+  compiledBuildData: request.compiledBuildData,
+  heelKickInstances: request.heelKickInstances,
+  toeHookInstances: request.toeHookInstances,
+})
+
 const emit = (
   emitProgress: ProgressEmitter,
   message: Omit<BuildProgress, 'type'>,
@@ -74,14 +81,17 @@ export const buildPipeline = async (
     buildRequestId,
   } = request
   const instances = { heelKickInstances, toeHookInstances }
-  const buildSignature = makeBuildSignature(payload, ENGINE_MODE, CONTROL_MODE)
+  const signatureInput = toBuildSignatureInput(request)
+  const buildSignature = makeBuildSignature(signatureInput, ENGINE_MODE, CONTROL_MODE)
   const parts = buildModel({
     payload,
     instances,
+    compiledBuildData: request.compiledBuildData,
   })
-  const spaghettiPartKeys = deriveSpaghettiSourcePartKeysFromProfilePatch(
-    asRecord(payload) ?? {},
-  )
+  const spaghettiPartKeys =
+    request.compiledBuildData !== undefined
+      ? [...request.compiledBuildData.orderedPartKeys]
+      : deriveSpaghettiSourcePartKeysFromProfilePatch(asRecord(payload) ?? {})
   const orderedPartKeys =
     spaghettiPartKeys.length > 0
       ? withAssembledBuildStatsKey(spaghettiPartKeys)
@@ -100,7 +110,7 @@ export const buildPipeline = async (
       state: 'queued',
     })
 
-    const partSignature = makePartSignature(partKey, payload, ENGINE_MODE, CONTROL_MODE)
+    const partSignature = makePartSignature(partKey, signatureInput, ENGINE_MODE, CONTROL_MODE)
     const isAffected = affectedSet.has(partKey)
 
     if (!isAffected && partCache.has(partSignature)) {
@@ -188,8 +198,11 @@ export const buildPipeline = async (
         progress01: 0.5,
       })
 
-      // Stub compute point; deterministic part output is owned by partsSpec.
-      void findPart(parts, partKey)
+      // Keep the transitional compatibility `assembled` progress row even though
+      // graph-native requests do not publish a separate assembled artifact here.
+      if (!(request.compiledBuildData !== undefined && partKey === 'assembled')) {
+        void findPart(parts, partKey)
+      }
 
       const elapsed = now() - start
       partCache.add(partSignature)
@@ -241,7 +254,7 @@ export const assemblePipeline = async (
   emitProgress: ProgressEmitter,
 ): Promise<AssembleResult> => {
   const { seq, payload } = request
-  const signature = makeBuildSignature(payload, ENGINE_MODE, CONTROL_MODE)
+  const signature = makeBuildSignature({ payload }, ENGINE_MODE, CONTROL_MODE)
   const partKey = 'assembled'
   const buildRequestId = `legacy-assemble-${seq}`
 

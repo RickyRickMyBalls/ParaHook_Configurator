@@ -98,6 +98,7 @@ vi.mock('../registry/nodeRegistry', async () => {
 })
 
 import { compileSpaghettiGraph, computeFeatureStackIrParts } from './compileGraph'
+import { evaluateSpaghettiGraph } from './evaluateGraph'
 import { getDefaultNodeParams } from '../registry/nodeRegistry'
 
 const cubeNode = (nodeId: string = 'n-cube') => ({
@@ -902,7 +903,7 @@ describe('compileSpaghettiGraph determinism', () => {
     expect(signedAreaOpenLoop(vertices)).toBeGreaterThanOrEqual(0)
   })
 
-  it('compiles Geometry/Sketch -> Geometry/Extrude into graph-native runtime IR with a selected SketchProfile', () => {
+  it('compiles Geometry/Sketch -> Geometry/Extrude into graph-native runtime IR with the full selected sketch profile shape preserved', () => {
     const graph: SpaghettiGraph = {
       schemaVersion: 1,
       nodes: [
@@ -927,18 +928,32 @@ describe('compileSpaghettiGraph determinism', () => {
                   componentId: 'line-2',
                   type: 'line',
                   a: { kind: 'lit', x: 40, y: 0 },
-                  b: { kind: 'lit', x: 40, y: 20 },
+                  b: { kind: 'lit', x: 40, y: 10 },
                 },
                 {
                   rowId: 'row-3',
                   componentId: 'line-3',
                   type: 'line',
-                  a: { kind: 'lit', x: 40, y: 20 },
-                  b: { kind: 'lit', x: 0, y: 20 },
+                  a: { kind: 'lit', x: 40, y: 10 },
+                  b: { kind: 'lit', x: 20, y: 10 },
                 },
                 {
                   rowId: 'row-4',
                   componentId: 'line-4',
+                  type: 'line',
+                  a: { kind: 'lit', x: 20, y: 10 },
+                  b: { kind: 'lit', x: 20, y: 20 },
+                },
+                {
+                  rowId: 'row-5',
+                  componentId: 'line-5',
+                  type: 'line',
+                  a: { kind: 'lit', x: 20, y: 20 },
+                  b: { kind: 'lit', x: 0, y: 20 },
+                },
+                {
+                  rowId: 'row-6',
+                  componentId: 'line-6',
                   type: 'line',
                   a: { kind: 'lit', x: 0, y: 20 },
                   b: { kind: 'lit', x: 0, y: 0 },
@@ -1016,12 +1031,15 @@ describe('compileSpaghettiGraph determinism', () => {
         profilesResolved: [
           {
             profileId: expect.any(String),
-            area: 800,
+            area: 600,
             vertices: [
               { x: 0, y: 0 },
               { x: 40, y: 0 },
-              { x: 40, y: 20 },
+              { x: 40, y: 10 },
+              { x: 20, y: 10 },
+              { x: 20, y: 20 },
               { x: 0, y: 20 },
+              { x: 0, y: 0 },
             ],
           },
         ],
@@ -1039,6 +1057,106 @@ describe('compileSpaghettiGraph determinism', () => {
         plane: 'XZ',
         bodyId: 'n-extrude:body',
       },
+    ])
+  })
+
+  it('preserves the selected sketch profile loop instead of rebuilding an empty loop proxy', () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'n-sketch',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: {
+              type: 'sketch',
+              featureId: 'sketch-1',
+              plane: 'XY',
+              components: [
+                {
+                  rowId: 'row-1',
+                  componentId: 'line-1',
+                  type: 'line',
+                  a: { kind: 'lit', x: 0, y: 0 },
+                  b: { kind: 'lit', x: 30, y: 0 },
+                },
+                {
+                  rowId: 'row-2',
+                  componentId: 'line-2',
+                  type: 'line',
+                  a: { kind: 'lit', x: 30, y: 0 },
+                  b: { kind: 'lit', x: 0, y: 20 },
+                },
+                {
+                  rowId: 'row-3',
+                  componentId: 'line-3',
+                  type: 'line',
+                  a: { kind: 'lit', x: 0, y: 20 },
+                  b: { kind: 'lit', x: 0, y: 0 },
+                },
+              ],
+              outputs: {
+                profiles: [],
+                diagnostics: [],
+              },
+              uiState: {
+                collapsed: false,
+              },
+            },
+          },
+        },
+        {
+          nodeId: 'n-extrude',
+          type: 'Geometry/Extrude',
+          params: {
+            extrudeType: 'Basic',
+            depthMm: 12,
+          },
+        },
+      ],
+      edges: [
+        {
+          edgeId: 'e-sketch-profile',
+          from: {
+            nodeId: 'n-sketch',
+            portId: 'SketchProfile',
+          },
+          to: {
+            nodeId: 'n-extrude',
+            portId: 'ExtrusionProfile',
+          },
+        },
+      ],
+    }
+
+    const evaluation = evaluateSpaghettiGraph(graph)
+    expect(evaluation.ok).toBe(true)
+
+    const result = computeFeatureStackIrParts(graph, {
+      resolvedInputsByNodeId: evaluation.inputsByNodeId,
+    })
+    expect(result.warnings).toEqual([])
+
+    const sketchOp = result.parts.extrude?.find((operation) => operation.op === 'sketch') as
+      | {
+          op: 'sketch'
+          profilesResolved: Array<{
+            loop: { segments: unknown[] }
+            verticesProxy: Array<{ x: number; y: number }>
+          }>
+        }
+      | undefined
+    expect(sketchOp?.op).toBe('sketch')
+    if (sketchOp?.op !== 'sketch') {
+      throw new Error('Expected sketch operation in extrude part IR.')
+    }
+
+    expect(sketchOp.profilesResolved).toHaveLength(1)
+    expect(sketchOp.profilesResolved[0]?.loop.segments.length).toBeGreaterThan(0)
+    expect(sketchOp.profilesResolved[0]?.verticesProxy).toEqual([
+      { x: 0, y: 0 },
+      { x: 30, y: 0 },
+      { x: 0, y: 20 },
     ])
   })
 })

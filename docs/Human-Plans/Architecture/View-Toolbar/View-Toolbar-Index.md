@@ -1,0 +1,487 @@
+# View Toolbar Index
+
+## Doc Header
+
+### Doc History
+8. 2026-03-23 01:02: Added a concrete roadmap home for this family after reviewing the live roadmap lanes, placing `View-Toolbar` under the pre-workspace bridge lane as `[5.0I] View Toolbar And Shared View State` with `[5.0I-1]` through `[5.0I-4]` matching the local phase ladder
+7. 2026-03-23 00:55: Reworked the bottom of this file into a real phased rollout, replacing the looser future-split note with a four-phase ladder and making the first cut explicitly about shared view-command dispatch plus the new `Camera > Projection > Orthographic / Perspective` console path
+6. 2026-03-23 00:50: Added the first explicit projection console-path recommendation, locking the shared `Camera > Projection > [Orthographic, Perspective]` shape with local `O` / `P` aliases and noting the same command should also be reachable under `Graph > Sketch > Sketch Draw`
+5. 2026-03-22 23:19: Expanded the legacy recovery list again after checking `/17.0/replicad-app` for the old view-side controls, adding background color modes, scene/environment variants, and camera-feel controls like inertia, decay, spin, and zoom-inertia behavior to the `View-Toolbar` backlog
+4. 2026-03-22 23:16: Replaced the fixed `minor / major / double major` grid-tier assumption with a user-extensible `gridlines_n` layer model, so the view-toolbar direction now plans for `+ Add Grid Lines` and per-layer customization instead of hard-coding exactly three named grid bands
+3. 2026-03-22 23:13: Locked the projection direction so future `Orthographic` mode means a real orthographic camera instead of a low-`FOV` perspective approximation, and clarified that the same view/projection controls should be controllable through the `Console` as well as the visible toolbar
+2. 2026-03-22 23:10: Added a dedicated `Legacy View Toolbar Recovery Backlog` section after comparing the current `/20` toolbar against `/17.0/replicad-app`, capturing the missing projection, FOV, zoom, rear/reset, richer grid, gizmo-tuning, roll, and camera-feel controls needed to regain legacy viewer capability
+1. 2026-03-22 22:55: Created this umbrella planning index for the new `View-Toolbar` family, set up the folderized `Future/` and `Shipped/` structure, and captured the first architecture direction for console integration, camera mode controls, FOV sliders, grid controls, and legacy gizmo/view carry-forward work
+
+### Purpose
+
+This file is the umbrella planning index for the `View-Toolbar` family under `Architecture`.
+
+Use it to answer:
+- what the `View` toolbar is supposed to own
+- what should stay in camera gestures versus explicit toolbar controls
+- how the toolbar should integrate with the `Console`
+- which camera/view controls are already implied elsewhere but still missing here
+- where future standalone `View-Toolbar` docs should branch
+
+### How To Use This File
+
+- use `Control Families` to see the intended toolbar surface
+- use `Cross-Doc Boundaries` to keep camera, console, gizmo, and toolbar ownership clean
+- use `Missing Legacy Carry-Forward` to capture older viewport/view features that still need a modern home
+- use `Doc Split Follow-Ons` when the family grows enough for standalone future phase docs
+
+### Scope Note
+
+This doc is intentionally about the explicit `View` toolbar surface.
+
+It is mainly about:
+- view-mode toggles and camera-mode switches
+- explicit camera commands exposed as buttons, toggles, sliders, or selectors
+- grid and viewport-display controls that belong to the user view state
+- console alignment for the same view/camera command families
+
+It is not the main home for:
+- raw camera pointer-ownership rules
+- low-level viewer gesture tuning
+- transform gizmo interaction logic
+- sketch-node command growth
+
+Those still belong in their own canonical docs.
+
+## Doc Body
+
+### Short Version
+
+The `View` toolbar should become the explicit camera-and-viewport control surface for ParaHook.
+
+It should not compete with gesture ownership.
+It should sit above the gesture layer and expose deliberate commands/settings like:
+- orthographic versus perspective
+- standard view alignment
+- `ParaSelect` for perspective presets
+- `FOV` sliders
+- grid visibility/spacing/intensity controls
+- viewport gizmo visibility and related view helpers
+
+It should also align with the `Console` so toolbar clicks and console commands read as two entry surfaces over the same view-command model instead of two separate behavior trees.
+
+### Why This Doc Exists
+
+Right now the broader direction is split across several places:
+- `Camera-Controls` already says the view toolbar should be an explicit camera-command surface
+- `Console` already says toolbar grouping should align with command scopes/groups/actions
+- the older gizmo wishlist already captures missing orientation-gizmo settings and `/15.1` carry-forward details
+- sketch docs already imply active grid and aligned-view behavior in the viewport
+
+But there is not yet one dedicated place that answers:
+- what the `View` toolbar actually contains
+- which controls should ship first
+- what belongs in the toolbar versus console versus direct gizmo clicks
+- which missing legacy viewer/view controls still need to be carried forward into `/20/`
+
+This doc exists to give that surface one canonical home before more camera and viewport controls get added ad hoc.
+
+### Family Structure
+
+Use this folder like this:
+
+- `View-Toolbar-Index.md`
+  - umbrella architecture direction
+  - control-family summary
+  - cross-doc ownership summary
+- `Future/`
+  - later standalone view-toolbar execution/planning docs
+- `Shipped/`
+  - later shipped records if the family grows into multiple implemented cuts
+
+Current roadmap home:
+- `[5.0I] View Toolbar And Shared View State`
+- `[5.0I-1] Shared View Command Dispatch And Projection Console Entry`
+- `[5.0I-2] Projection Surface, ParaSelect, And Lens Controls`
+- `[5.0I-3] Grid, Background, And Core View State`
+- `[5.0I-4] Gizmo, Helpers, And Legacy Feel Follow-Ons`
+
+### Cross-Doc Boundaries
+
+Canonical ownership should stay split like this:
+
+- `Camera-Controls`
+  - pointer ownership
+  - orbit/pan/zoom gesture rules
+  - fallback priority between tools, widgets, and camera navigation
+- `Console`
+  - command-language structure
+  - shared dispatch/routing rules
+  - transcript and prompt behavior
+- `View-Toolbar`
+  - explicit camera/view controls the user can see and click
+  - layout/grouping of those controls
+  - persisted view-state controls that belong to the active viewport/viewer
+- `Gizmo` planning
+  - orientation-gizmo parity and tuning details
+
+Important rule:
+- do not let the toolbar invent separate behavior paths for commands that should also exist in the console
+
+### Core Direction
+
+The `View` toolbar should be treated as an explicit command/settings surface for the active view.
+
+Good toolbar ownership:
+- `Top`
+- `Front`
+- `Right`
+- `Iso`
+- `Fit`
+- orthographic/perspective toggle
+- perspective preset selector like `ParaSelect`
+- `FOV` value sliders
+- grid visibility and display controls
+- axis/orientation gizmo visibility
+
+Bad toolbar ownership:
+- stealing plain viewport drag behavior silently
+- hiding important camera-mode switches behind temporary debug toggles
+- mixing transform-gizmo controls and view-gizmo controls into one unnamed blob
+
+### Control Families
+
+This is the first recommended toolbar grouping.
+
+#### 1. Camera Mode
+
+- orthographic
+- perspective
+- `ParaSelect` perspective preset selector
+- active mode readout
+
+Reason:
+- camera projection/mode is a top-level view decision and needs to be obvious
+
+Important rule:
+- `Orthographic` should mean a real orthographic camera mode
+- do not fake orthographic mode by only driving perspective `FOV` toward zero
+
+Recommended first command shape:
+- `Camera > Projection > Orthographic`
+- `Camera > Projection > Perspective`
+- local aliases at the `Projection` choice step:
+  - `O` = `Orthographic`
+  - `P` = `Perspective`
+
+Scoped shortcut surface:
+- `Graph > Sketch > Sketch Draw > Camera > Projection > Orthographic`
+- `Graph > Sketch > Sketch Draw > Camera > Projection > Perspective`
+
+Alias rule:
+- keep the visible choices as full wording
+- keep `O` and `P` only as local aliases inside the `Projection` choice step, not as global root shortcuts
+
+#### 2. View Jump
+
+- `Top`
+- `Bottom`
+- `Front`
+- `Back`
+- `Left`
+- `Right`
+- `Iso`
+- `Fit`
+- later `Focus Selected`
+
+Reason:
+- these are explicit one-shot camera commands, not gesture behavior
+
+#### 3. Lens / Framing
+
+- `FOV` slider
+- near/far or clipping follow-ons only if they become necessary later
+- reset-to-default action when tuning values become user-facing
+
+Reason:
+- `FOV` belongs with view/lens state, not buried in a debug panel
+
+#### 4. Grid
+
+- show/hide grid
+- `+ Add Grid Lines`
+- per-layer spacing scale
+- per-layer opacity/intensity
+- per-layer color
+- per-layer visibility
+- aligned sketch-grid handoff state when a sketch plane becomes active
+
+Reason:
+- grid is part of how the user reads and authors space, so it should live near other view-state controls
+
+Naming rule:
+- do not expose fixed user-facing names like `minor`, `major`, or `double major`
+- use a simple ordered layer model such as `gridlines_1`, `gridlines_2`, `gridlines_3`
+- let the user add more grid-line layers instead of assuming exactly three forever
+
+#### 5. Gizmo / Helpers
+
+- axis/orientation gizmo enable
+- later line opacity
+- later text visibility
+- later text height
+- any other pure view-helper toggles
+
+Reason:
+- these are viewport reading aids, not transform-tool controls
+
+### Console Integration Direction
+
+The toolbar and console should describe the same command families.
+
+Recommended rule:
+- toolbar sections map to console scopes/groups
+- toolbar actions map to commands or follow-up tokens
+- toolbar value widgets map to the same underlying setting-change seams the console uses
+
+Examples:
+- clicking `Perspective` should route through the same view-mode change seam that a console command would call
+- changing `FOV` from a slider should update the same underlying camera/view state that typed console input would target later
+- `Fit` in the toolbar should be the same action family as console `Zoom > All` or a related explicit fit command, not a second bespoke implementation
+
+Important rule:
+- every major view-toolbar control added here should have a console path too
+- projection mode, `ParaSelect`, `FOV`, grid controls, fit/reset, and view jumps should all be reachable from the `Console`
+- first explicit example:
+  - `Camera > Projection > [Orthographic, Perspective]`
+  - with local aliases `O` / `P`
+
+### Missing Legacy Carry-Forward
+
+Current likely carry-forward items that need a modern `View-Toolbar` home:
+
+- orthographic versus perspective as an obvious user control
+- perspective preset selection instead of one fixed perspective mode
+- user-facing `FOV` control
+- clearer grid controls instead of hard-coded viewer defaults
+- separation between orientation gizmo settings and transform gizmo settings
+- `/15.1` orientation-gizmo parity/tuning options currently only captured in the older gizmo wishlist
+- background color / backdrop mode controls
+- scene/environment variants beyond one fixed background
+- camera inertia and related feel controls if they still fit the product direction
+
+### Legacy View Toolbar Recovery Backlog
+
+This is the concrete feature list the current `/20` `View` toolbar still needs if the goal is to recover the important viewer-side capability that existed in `/17.0`.
+
+#### [ ] Camera / Projection Recovery
+
+- add `Perspective`
+- add `Orthographic`
+- add `ParaSelect` or equivalent perspective preset selection
+- add camera `Reset`
+- add `Rear`
+- add user-facing `Zoom` control
+- add user-facing `FOV` control
+
+Projection rule:
+- `Orthographic` must be implemented as a real orthographic camera mode
+- do not treat `FOV = very small` as the shipped orthographic solution
+
+#### [ ] Grid Recovery
+
+- expand grid from one checkbox into a real grid section
+- add grid size / extent control
+- add infinite-versus-bounded grid mode
+- add grid center mode such as `Origin` versus `Model`
+- add grid `Z` snap/alignment actions if still relevant
+- replace fixed `minor / major / double major` tiers with user-defined grid-line layers
+- add `+ Add Grid Lines`
+- add per-layer spacing control
+- add per-layer opacity control
+- add per-layer color control
+- add per-layer visibility toggle
+- add layer reorder rules only if ordering affects rendering/readability
+- add grid color presets only if they still help on top of the per-layer model
+
+Grid model rule:
+- the long-term model should be a list of customizable grid-line layers, not a hard-coded three-tier grid
+- legacy `minor / major / double major` behavior can be treated as the first default preset, not the permanent UI structure
+
+#### [ ] Background / Scene Recovery
+
+- add explicit background mode controls
+- add at least the first simple background set:
+  - `Dark Blue`
+  - `Black`
+  - `White`
+  - `Custom`
+- add custom background color picking
+- decide whether scene variants should return as true view-toolbar features:
+  - `Stars`
+  - `Nebula`
+  - `Swarm`
+- if scene variants return, keep them clearly separate from ordinary background color choice
+
+Background rule:
+- background color and scene/environment choice belong to the `View` family more than to object/material editing
+- if the old scene variants are too playful or too legacy-specific, they can return later as optional helper/environment modes rather than first-cut core controls
+
+#### [ ] Orientation Gizmo Recovery
+
+- separate orientation-gizmo controls from transform-gizmo controls
+- add axis-gizmo line opacity
+- add axis-gizmo sphere size
+- add axis-gizmo text size
+- add axis-gizmo viewport size
+- keep axis overlay enable as the top-level on/off
+
+#### [ ] View Command Recovery
+
+- keep `Top`
+- keep `Front`
+- keep `Left`
+- keep `Right`
+- keep `Iso`
+- add `Rear`
+- keep `Frame`
+- keep `Frame All`
+- decide whether `Reset` should be a distinct command or fold into a fit/default-view action
+
+#### [ ] Camera Feel / Motion Recovery
+
+- decide whether camera mode selection still matters:
+  - `Orbit`
+  - `Trackball`
+  - `Arcball`
+- decide whether inertia should be user-facing again
+- decide whether decay should be user-facing again
+- decide whether roll `+90 / -90` should return
+- decide whether `Spin` should return
+- decide whether `Zoom Stops Inertia` should return
+
+Console rule:
+- if any of these camera-feel controls remain user-facing, they should also have a console path, not just a hidden toolbar-only state
+
+Recommendation:
+- projection, fit, view jumps, grid, and background should come back before the more experimental feel controls
+- inertia/decay/roll/spin can return later if they still support the modern ParaHook interaction model instead of reviving legacy complexity for its own sake
+
+Important rule:
+- not every `/17.0` control must come back exactly as-is
+- but projection, `FOV`, zoom/framing, real grid controls, background modes, and orientation-gizmo tuning are the strongest legacy features currently missing from `/20`
+
+### Phases
+
+This family should ship in the fewest safe cuts that still keep command ownership, projection changes, grid growth, and legacy helper carry-forward readable.
+
+#### [ ] Phase 1 - Shared View Command Dispatch And Projection Console Entry
+
+Goal:
+- make the first view-toolbar command family real through the shared toolbar-plus-console seam
+
+This phase should:
+- add the shared command path:
+  - `Camera > Projection > Orthographic`
+  - `Camera > Projection > Perspective`
+- support local aliases:
+  - `O`
+  - `P`
+- support the same command shape under:
+  - `Graph > Sketch > Sketch Draw > Camera > Projection`
+- ensure toolbar actions and console choices call the same underlying projection-change seam
+- keep `Orthographic` as a real orthographic camera target, not a low-`FOV` fake
+
+Why first:
+- this is the smallest honest `View-Toolbar` vertical slice
+- it proves the command-structure rule before the family widens into sliders and richer settings
+
+#### [ ] Phase 2 - Projection Surface, ParaSelect, And Lens Controls
+
+Goal:
+- turn projection into a fuller user-facing view section instead of only a command leaf
+
+This phase should:
+- add visible toolbar controls for:
+  - `Perspective`
+  - `Orthographic`
+  - `ParaSelect`
+  - `FOV`
+- decide whether `Zoom` belongs here as a visible framing control
+- define per-mode remembered values where useful
+
+#### [ ] Phase 3 - Grid, Background, And Core View State
+
+Goal:
+- recover the broader everyday view-state controls that make the viewer feel intentionally configurable
+
+This phase should:
+- expand the grid section into a real settings surface
+- adopt the `gridlines_n` layer model with `+ Add Grid Lines`
+- add background mode controls
+- add custom background color
+- decide the first return set for scene/environment variants
+- keep these controls reachable through console as honest view-state commands
+
+#### [ ] Phase 4 - Gizmo, Helpers, And Legacy Feel Follow-Ons
+
+Goal:
+- bring back the later helper-tuning and camera-feel controls without polluting the first essential view cuts
+
+This phase should:
+- separate orientation-gizmo controls from transform-gizmo controls
+- add orientation-gizmo tuning:
+  - line opacity
+  - sphere size
+  - text size/visibility
+  - viewport size
+- decide which legacy camera-feel controls still deserve to return:
+  - inertia
+  - decay
+  - roll
+  - spin
+  - `Zoom Stops Inertia`
+
+Phase rule:
+- do not widen Phase 1 with legacy helper tuning just because the old app had it
+- prove shared command ownership first, then widen the visible settings surface
+
+### Open Questions
+
+#### [ ] `q1` Should `View` be one global toolbar or one surface owned per active viewport type?
+
+Current tension:
+- `Console` is app-global
+- camera/view state may still be viewer-local
+- graph canvas, model viewport, and later split workspaces may not all expose the same full control set
+
+#### Suggestion
+
+Make the command language shared, but let the visible toolbar adapt to the active viewport type.
+
+That keeps `Console` and command naming stable while avoiding fake controls on surfaces that cannot honor them yet.
+
+#### [ ] `q2` Where should `ParaSelect` live in the visible hierarchy?
+
+Current tension:
+- it could be a top-level camera-mode selector
+- or a child of `Perspective`
+
+#### Suggestion
+
+Treat `Perspective` versus `Orthographic` as the first switch, then let `ParaSelect` appear as a child/preset surface only when perspective is active.
+
+#### [ ] `q3` Should grid controls be generic view settings or partially sketch-aware?
+
+Current tension:
+- model-view grid settings are generic
+- active sketch work already wants a plane-aligned working grid
+
+#### Suggestion
+
+Keep the toolbar control family generic, but let the live values reflect sketch-owned aligned-grid state when a sketch session is active instead of inventing a second sketch-only grid toolbar.
+
+### Done Means
+
+This family is in a healthy state when:
+
+- the repo has one canonical `View-Toolbar` architecture home
+- the toolbar/control surface is separated cleanly from raw camera gesture rules
+- console alignment is explicit
+- camera mode, `FOV`, grid, and gizmo/helper controls have one shared planning surface
+- future standalone `View-Toolbar` execution docs can branch here instead of being invented in unrelated files

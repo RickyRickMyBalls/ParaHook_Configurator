@@ -1,4 +1,6 @@
 import {
+  type ArtifactMesh,
+  type CompiledBuildData,
   getPartArtifactKey,
   parsePartKeyString,
   type BoxParams,
@@ -6,6 +8,7 @@ import {
 } from '../shared/buildTypes'
 import { compareSpaghettiSourcePartKeys } from '../shared/buildStatsKeys'
 import type { MeshPack, RuntimeDiagnostic, Shape3D } from './cad/cadTypes'
+import { mergeMeshPacks } from './cad/cadKernelAdapter'
 import { deriveLegacyParts } from './pipeline/partsSpec'
 import { runFoothookFeatureStack } from './products/foothook/buildFoothook'
 
@@ -17,6 +20,7 @@ type BuildInstances = {
 type BuildModelRequest = {
   payload: BoxParams
   instances: BuildInstances
+  compiledBuildData?: CompiledBuildData
 }
 
 const asRecord = (value: unknown): Record<string, unknown> | null =>
@@ -87,12 +91,20 @@ const compareShapes = (a: Shape3D, b: Shape3D): number =>
   a.bodyId.localeCompare(b.bodyId) ||
   a.featureId.localeCompare(b.featureId)
 
-const toArtifactFromBounds = (partKeyStr: string, bounds: Bounds3): PartArtifact => {
+const getArtifactLabel = (partKeyStr: string): { partKey: ReturnType<typeof parsePartKeyString>; label: string } => {
   const partKey = parsePartKeyString(partKeyStr)
   const baseLabel = GRAPH_PART_LABELS[partKey.id] ?? partKey.id
   return {
-    id: partKey.id,
+    partKey,
     label: partKey.instance === null ? baseLabel : `${baseLabel} #${partKey.instance}`,
+  }
+}
+
+const toArtifactFromBounds = (partKeyStr: string, bounds: Bounds3): PartArtifact => {
+  const { partKey, label } = getArtifactLabel(partKeyStr)
+  return {
+    id: partKey.id,
+    label,
     kind: 'box',
     params: {
       length: bounds.maxX - bounds.minX,
@@ -104,7 +116,19 @@ const toArtifactFromBounds = (partKeyStr: string, bounds: Bounds3): PartArtifact
   }
 }
 
-const deriveFeatureStackArtifacts = (
+const toMeshArtifact = (partKeyStr: string, mesh: ArtifactMesh): PartArtifact => {
+  const { partKey, label } = getArtifactLabel(partKeyStr)
+  return {
+    id: partKey.id,
+    label,
+    kind: 'mesh',
+    mesh,
+    partKeyStr,
+    partKey,
+  }
+}
+
+const deriveFeatureStackBoxArtifacts = (
   bodies: Record<string, Shape3D>,
   existingPartKeys: ReadonlySet<string>,
 ): PartArtifact[] => {
@@ -124,6 +148,34 @@ const deriveFeatureStackArtifacts = (
     .filter(([partKey]) => !existingPartKeys.has(partKey))
     .sort((a, b) => compareSpaghettiSourcePartKeys(a[0], b[0]))
     .map(([partKey, bounds]) => toArtifactFromBounds(partKey, bounds))
+}
+
+const deriveFeatureStackMeshArtifacts = (
+  bodies: Record<string, Shape3D>,
+  existingPartKeys: ReadonlySet<string>,
+): PartArtifact[] => {
+  const meshesByPartKey = new Map<string, MeshPack[]>()
+  const sortedBodies = Object.values(bodies).sort(compareShapes)
+
+  for (const body of sortedBodies) {
+    const current = meshesByPartKey.get(body.partKey)
+    if (current === undefined) {
+      meshesByPartKey.set(body.partKey, [body.mesh])
+      continue
+    }
+    current.push(body.mesh)
+  }
+
+  return [...meshesByPartKey.entries()]
+    .filter(([partKey]) => !existingPartKeys.has(partKey))
+    .sort((a, b) => compareSpaghettiSourcePartKeys(a[0], b[0]))
+    .map(([partKey, meshes]) => {
+      const mergedMesh = meshes.length === 1 ? meshes[0] : mergeMeshPacks(meshes)
+      return toMeshArtifact(partKey, {
+        vertices: [...mergedMesh.vertices],
+        indices: [...mergedMesh.indices],
+      })
+    })
 }
 
 const flushDiagnostics = (diagnostics: readonly RuntimeDiagnostic[]): void => {
@@ -149,7 +201,21 @@ const flushDiagnostics = (diagnostics: readonly RuntimeDiagnostic[]): void => {
   )
 }
 
-export const buildModel = ({ payload, instances }: BuildModelRequest): PartArtifact[] => {
+export const buildModel = ({
+  payload,
+  instances,
+  compiledBuildData,
+}: BuildModelRequest): PartArtifact[] => {
+  if (compiledBuildData !== undefined) {
+    const sharedBuildData = asRecord(compiledBuildData.resolvedShared) ?? {}
+    const featureStackResult = runFoothookFeatureStack(sharedBuildData)
+    if (featureStackResult === null) {
+      return []
+    }
+    flushDiagnostics(featureStackResult.diagnostics)
+    return deriveFeatureStackMeshArtifacts(featureStackResult.bodies, new Set())
+  }
+
   const legacyParts = deriveLegacyParts(payload, instances)
   const profilePatch = asRecord(payload)
   if (profilePatch === null) {
@@ -162,7 +228,7 @@ export const buildModel = ({ payload, instances }: BuildModelRequest): PartArtif
     const legacyPartKeys = new Set(legacyParts.map(getPartArtifactKey))
     return [
       ...legacyParts,
-      ...deriveFeatureStackArtifacts(featureStackResult.bodies, legacyPartKeys),
+      ...deriveFeatureStackBoxArtifacts(featureStackResult.bodies, legacyPartKeys),
     ]
   }
   return legacyParts

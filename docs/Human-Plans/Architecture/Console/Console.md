@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+19. 2026-03-23 00:50: Added the first explicit projection-switch example under the existing toolbar-alignment rule, locking the recommendation that visible `Camera > Projection > Orthographic / Perspective` choices in the view toolbar should map to the same console path with local `O` / `P` aliases instead of inventing a toolbar-only behavior seam
 18. 2026-03-21 11:33: Marked `[4.1P] Assisted Prefill Replace-On-Type Across Levels` complete after landing one shared assisted-follow override rule in the console input seam, so staged navigation and feature-session descriptors now replace assisted prefill on first printable typing, preserve manual override until explicit assisted re-entry, and support focused-input paste replacement without rewriting the already-shipped `[4.1M]` and `[4.1N]` records
 17. 2026-03-21 11:20: Added a new open follow-on `[4.1P] Assisted Prefill Replace-On-Type Across Levels`, so the intended rule that the first printable typed key should replace assisted prefill at any constrained level now has its own future console phase instead of overwriting the already-shipped `[4.1M]` and `[4.1N]` records
 16. 2026-03-21 11:08: Collapsed the old duplicated bottom-of-file phase/spec dump into a compact phase index, so `Console.md` now keeps the main architecture body plus short per-phase summary/goals/docs/checklist entries while the detailed implementation specs remain in the standalone `Console_Phase ...` docs
@@ -659,6 +660,22 @@ Examples:
   - group
 - `Line / PLine`
   - commands
+- `Camera`
+  - scope
+- `Projection`
+  - group
+- `Orthographic / Perspective`
+  - commands
+
+First explicit view-toolbar projection example:
+- visible toolbar group:
+  - `Camera > Projection > Orthographic / Perspective`
+- matching console path:
+  - `Camera > Projection > Orthographic`
+  - `Camera > Projection > Perspective`
+- local aliases allowed at that choice step:
+  - `O`
+  - `P`
 
 Important rules:
 - toolbar clicks and console typing should dispatch to the same underlying session verbs

@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+2. 2026-03-23 13:24: Refreshed this future dispatcher phase after shipping `[5.3A-2]`, updating its prerequisite wording and reading order so the doc now treats the graph-native request/build-unit contract as completed groundwork with the standalone `5.3A-2` record living under `Worker/Shipped/`
 1. 2026-03-22 19:50: Created this standalone future phase doc for `[5.3A-4]`, turning the dispatcher cleanup follow-up into an implementation-ready planning surface that keeps worker lifetime, typed validation, request sequencing, and stale-drop inside `BuildDispatcher` while moving build-stats and console side effects outward into app runtime wiring after the graph-native request/build-unit contract lands
 
 ### Purpose
@@ -25,7 +26,7 @@ Use it to answer:
 - explicit `executionIntent`
 - `assemble` as compatibility-only
 
-`[5.3A-2]` is the still-pending request/build-unit replacement phase:
+`[5.3A-2]` already shipped the request/build-unit replacement groundwork:
 - replace canonical `payload: BoxParams`
 - land graph-native `buildUnitId` truth in request/staged/accepted state
 
@@ -78,7 +79,7 @@ Does not own:
 This phase starts from:
 - `docs/Human-Plans/Architecture/Worker/Shipped/Worker_Phase 5.3A-1 - Worker Audit And Legacy Startup Inventory.md`
 - `docs/Human-Plans/Architecture/Worker/Shipped/Worker_Phase 5.3A-3 - Worker Lane Definition And Execution-Intent Model.md`
-- `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase 5.3A-2 - Graph-Native Worker Contract And Separate-Build Identity.md`
+- `docs/Human-Plans/Architecture/Worker/Shipped/Worker_Phase 5.3A-2 - Graph-Native Worker Contract And Separate-Build Identity.md`
 
 Locked constraints from earlier phases:
 - `BuildDispatcher` must keep worker lifetime ownership
@@ -256,7 +257,7 @@ Deletion of those legacy behaviors belongs later to:
 
 Recommended reading order:
 1. shipped `5.3A-1` audit record
-2. future `5.3A-2` request/build-unit phase doc
+2. shipped `5.3A-2` request/build-unit phase doc
 3. shipped `5.3A-3` lane-and-intent record
 4. `src/app/buildDispatcher.ts`
 5. `src/app/bootstrapBuildWiring.ts`
