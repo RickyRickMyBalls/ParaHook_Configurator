@@ -290,6 +290,12 @@ Checklist rule for this section:
       - `Float`
       - `Boolean`
 
+- recommendation for the first cut:
+  - treat the current `Geometry/Sketch` attached input/output rows as the first `EWR` proving slice, not as the final generalized framework
+  - extract the shared row contract first at the data/model level
+  - keep sketch-owned behaviors like `Draw`, plane-pick flow, and review ownership outside the base `EWR` shape
+  - do not force `Extrude` or non-geometry families onto `EWR` until `SketchPlane`, `Sketch Draw`, and `SketchProfiles` all fit one honest row-tree path
+
 #### Geometry Nodes
 
 - [x] `Geometry/Sketch`
@@ -485,7 +491,37 @@ Checklist rule for this section:
   - not a node family, but still a live legacy output-type seam in ports/compiler/tests and should be removed once graph-native solid-body output typing fully replaces it
 
 
+## Main Questions / Decisions
 
+### [ ] - `Q1` - Should `Geometry/Sketch` use separate top-level `EWR` roots for `SketchPlane`, `SketchDraw`, and `SketchProfiles` rather than one parent `Sketch` `EWR` that contains all three?
+
+#### Suggestion
+
+Yes. Keep `Geometry/Sketch` as the node shell, and make `SketchPlane`, `SketchDraw`, and `SketchProfiles` separate top-level `EWR` roots. Do not create one parent `Sketch` `EWR` that mixes those three under a single expandable row, because that would blur input/output ownership and make pin direction less honest. The current sketch row work should still be treated as the first proving slice for the shared `EWR` contract rather than the final generalized framework.
+
+### [ ] - `Q2` - Should `EWR` stay sketch-first until `SketchPlane`, `Sketch Draw`, and `SketchProfiles` all fit the same row-tree contract?
+
+#### Suggestion
+
+Yes. Keep `EWR` sketch-first until those three surfaces all fit one honest row-tree path with acceptable expand/collapse behavior, child ordering, and pin exposure. Do not branch into `Extrude`, `Loft`, or non-geometry families before that proof exists.
+
+### [ ] - `Q3` - Should the first `EWR` phase lock only the shared row contract, or should it also absorb sketch-specific workflow ownership like `Draw`, plane picking, and review?
+
+#### Suggestion
+
+Lock only the shared row contract in the first phase. The base `EWR` type should own generic row concerns like hierarchy, labels, optional pins, and ordering, while sketch-specific workflow ownership stays outside the base model and plugs into it through sketch-owned actions or row content.
+
+### [ ] - `Q4` - Should the first `EWR` contract support both object rows and primitive value rows from day one?
+
+#### Suggestion
+
+Yes. The first contract should support both object rows and primitive value rows immediately. Without that, the row tree cannot honestly represent the intended sketch hierarchy where objects like `SketchPoint` expand into value layers like `Vec2 -> X / Y Float`.
+
+### [ ] - `Q5` - Should downstream geometry nodes consume child sketch rows from the `EWR` hierarchy rather than relying on duplicated top-level outputs?
+
+#### Suggestion
+
+Yes. The long-term direction should be that downstream geometry nodes consume child rows from the `EWR` hierarchy, especially `SketchProfile` rows under `SketchProfiles`, instead of depending on duplicated top-level outputs that split the source of truth.
 
 
 
@@ -510,6 +546,10 @@ Checklist rule for this section:
   - label
   - pin exposure
   - child ordering
+- [ ] keep this phase contract-first:
+  - shared row data/model
+  - shared row behavior rules
+  - no sketch-specific draw/review workflow ownership in the base type
 - [ ] keep this phase framework-only and avoid pulling full sketch authoring behavior into the same cut
 
 #### [ ] - `q1` Should every EWR row type be wireable by default, or should some rows be display-only?
@@ -530,6 +570,12 @@ Yes. Do not ship an object-only tree first. The whole point of the deeper hierar
 
 Yes. Start with geometry-node surfaces. Do not try to generalize the same row-tree into every node family before the geometry path proves the model.
 
+#### [ ] - `q4` Should the current `Geometry/Sketch` row work be treated as the reusable system already, or as the first proving slice for it?
+
+##### Suggestion
+
+Treat it as the first proving slice. The current sketch row work is valuable because it exposes the right pressure, but it should not be mistaken for the final shared framework yet. Extract the common row contract in this phase, then let the first real reuse happen through the sketch tree instead of through premature cross-family generalization.
+
 ### [ ] [3.2A-2] - Geometry Sketch EWR Vertical Slice
 
 - [ ] ship the first honest `Geometry/Sketch` EWR tree
@@ -547,6 +593,11 @@ Yes. Start with geometry-node surfaces. Do not try to generalize the same row-tr
 - [ ] keep composite-versus-atomic rules honest:
   - `Rectangle` and `PLine` stay first-class composite entities
   - `Line` stays atomic
+- [ ] use this phase to prove one shared row path across:
+  - `SketchPlane`
+  - `Sketch Draw`
+  - `SketchProfiles`
+- [ ] do not expand beyond `Geometry/Sketch` until those three surfaces fit the same contract cleanly
 
 #### [ ] - `q1` Should `Geometry/Sketch` keep only one top-level profile output row?
 
@@ -565,6 +616,12 @@ Keep them reference-first in the first cut. They should be inspectable, highligh
 ##### Suggestion
 
 Yes. Keep `Transform` focused on `Move`, `Rotate`, and later `Scale` as `Vec3 -> X / Y / Z Float`, while `Plane` owns the separate `Flip` boolean. That keeps the row tree aligned with the intended surface layout instead of mixing the orientation toggle into the motion channels.
+
+#### [ ] - `q4` What should count as the exit condition before `EWR` expands into downstream geometry nodes?
+
+##### Suggestion
+
+Do not branch into `Extrude`, `Loft`, or non-geometry adoption until `SketchPlane`, `Sketch Draw`, and `SketchProfiles` are all running through the same honest row-tree contract with acceptable expand/collapse behavior, pin exposure, and child ordering. `Geometry/Sketch` should prove the model first.
 
 ### [ ] [3.2A-3] - Downstream Geometry Node Hierarchy Expansion
 

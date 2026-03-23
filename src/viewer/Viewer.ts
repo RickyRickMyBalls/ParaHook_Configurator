@@ -271,6 +271,34 @@ export class Viewer {
         anchorClientY: number
       }
     | null = null
+  private cameraOrbitModifierDrag:
+    | {
+        pointerId: number
+      }
+    | null = null
+  private middleClickTracker:
+    | {
+        pointerId: number
+        anchorClientX: number
+        anchorClientY: number
+        moved: boolean
+      }
+    | null = null
+  private consoleCameraMode: 'pan' | 'orbit' | null = null
+  private consoleCameraModeDrag:
+    | {
+        pointerId: number
+        mode: 'pan' | 'orbit'
+      }
+    | null = null
+  private readonly cameraPoseHistory: CameraPose[] = []
+  private lastMiddleClick:
+    | {
+        atMs: number
+        clientX: number
+        clientY: number
+      }
+    | null = null
   private assembledMesh: Mesh | null = null
   private selectedPartKey: string | null = null
   private gizmoEnabled = false
@@ -507,7 +535,7 @@ export class Viewer {
   public applyViewSettings(settings: ViewSettings): void {
     this.currentViewSettings = cloneViewSettings(settings)
 
-    this.cameraController.setEnabled(settings.orbitEnabled)
+    this.syncCameraInteractionState()
     this.gridGroup.visible =
       this.geometrySketchOverlay?.mode === 'draw' ? false : settings.gridVisible
     this.axesHelper.visible = settings.axesVisible
@@ -712,10 +740,17 @@ export class Viewer {
   }
 
   public beginTemporaryOrbitDrag(startClientX: number, startClientY: number): void {
+    if (!this.currentViewSettings.orbitEnabled) {
+      return
+    }
+    this.rememberCameraPose()
     this.cameraController.beginTemporaryOrbitDrag(startClientX, startClientY)
   }
 
   public updateTemporaryOrbitDrag(clientX: number, clientY: number): void {
+    if (!this.currentViewSettings.orbitEnabled) {
+      return
+    }
     this.cameraController.updateTemporaryOrbitDrag(clientX, clientY)
   }
 
@@ -723,11 +758,61 @@ export class Viewer {
     this.cameraController.endTemporaryOrbitDrag()
   }
 
+  public zoomCameraByWheelDelta(deltaY: number): void {
+    if (!this.currentViewSettings.orbitEnabled) {
+      return
+    }
+    this.rememberCameraPose()
+    this.cameraController.zoomByWheelDelta(deltaY)
+  }
+
+  public beginTemporaryPanDrag(startClientX: number, startClientY: number): void {
+    if (!this.currentViewSettings.orbitEnabled) {
+      return
+    }
+    this.rememberCameraPose()
+    this.cameraController.beginTemporaryPanDrag(startClientX, startClientY)
+  }
+
+  public updateTemporaryPanDrag(clientX: number, clientY: number): void {
+    if (!this.currentViewSettings.orbitEnabled) {
+      return
+    }
+    this.cameraController.updateTemporaryPanDrag(clientX, clientY)
+  }
+
+  public endTemporaryPanDrag(): void {
+    this.cameraController.endTemporaryPanDrag()
+  }
+
   public frameAll(): void {
+    this.rememberCameraPose()
     this.cameraController.frameAll(this.rootGroup)
     appendConsoleEntry({
       layer: 'View',
       text: 'Frame all',
+      source: 'viewer',
+      severity: 'info',
+    })
+  }
+
+  public framePrevious(): void {
+    const previousPose = this.cameraPoseHistory.pop() ?? null
+    if (previousPose === null) {
+      appendConsoleEntry({
+        layer: 'View',
+        text: 'Zoom previous: no stored camera pose',
+        source: 'viewer',
+        severity: 'warn',
+      })
+      return
+    }
+    this.cameraController.animateToPose(previousPose, {
+      durationMs: 220,
+    })
+    appendConsoleEntry({
+      layer: 'View',
+      text: 'Zoom previous',
       source: 'viewer',
       severity: 'info',
     })
@@ -743,6 +828,7 @@ export class Viewer {
       this.frameAll()
       return
     }
+    this.rememberCameraPose()
     this.cameraController.frameObject(obj)
     appendConsoleEntry({
       layer: 'View',
@@ -758,6 +844,7 @@ export class Viewer {
       this.frameAll()
       return
     }
+    this.rememberCameraPose()
     this.cameraController.frameObject(obj)
     appendConsoleEntry({
       layer: 'View',
@@ -765,6 +852,15 @@ export class Viewer {
       source: 'viewer',
       severity: 'info',
     })
+  }
+
+  public setConsoleCameraMode(mode: 'pan' | 'orbit' | null): void {
+    this.consoleCameraMode = mode
+    if (mode === null) {
+      this.consoleCameraModeDrag = null
+      this.cameraController.endTemporaryPanDrag()
+      this.cameraController.endTemporaryOrbitDrag()
+    }
   }
 
   public setGizmoEnabled(enabled: boolean): void {
@@ -876,6 +972,7 @@ export class Viewer {
   public setGeometrySketchOverlay(overlay: GeometrySketchOverlayVm | null): void {
     const previousOverlayMode = this.geometrySketchOverlay?.mode ?? null
     this.geometrySketchOverlay = overlay
+    this.syncCameraInteractionState()
     if (overlay === null || overlay.mode !== 'draw' || overlay.activeTool !== null) {
       this.geometrySketchSelectionDrag = null
       this.onGeometrySketchSelectionWindowDraftChange?.(null)
@@ -944,6 +1041,55 @@ export class Viewer {
     } else {
       this.geometrySketchCameraAlignKey = null
     }
+  }
+
+  private syncCameraInteractionState(): void {
+    if (!this.currentViewSettings.orbitEnabled) {
+      this.clearCameraGestureDrafts()
+    }
+    this.cameraController.setEnabled(this.currentViewSettings.orbitEnabled)
+    this.cameraController.setLeftButtonOrbitEnabled(false)
+  }
+
+  private areCameraPosesEquivalent(left: CameraPose, right: CameraPose): boolean {
+    return (
+      left.position.distanceToSquared(right.position) <= 1e-8 &&
+      left.target.distanceToSquared(right.target) <= 1e-8 &&
+      left.up.distanceToSquared(right.up) <= 1e-8
+    )
+  }
+
+  private rememberCameraPose(): void {
+    const nextPose = this.cameraController.getPose()
+    const lastPose = this.cameraPoseHistory[this.cameraPoseHistory.length - 1] ?? null
+    if (lastPose !== null && this.areCameraPosesEquivalent(lastPose, nextPose)) {
+      return
+    }
+    this.cameraPoseHistory.push(nextPose)
+    if (this.cameraPoseHistory.length > 24) {
+      this.cameraPoseHistory.splice(0, this.cameraPoseHistory.length - 24)
+    }
+  }
+
+  private clearCameraGestureDrafts(): void {
+    if (
+      this.cameraOrbitModifierDrag !== null &&
+      this.renderer.domElement.hasPointerCapture(this.cameraOrbitModifierDrag.pointerId)
+    ) {
+      this.renderer.domElement.releasePointerCapture(this.cameraOrbitModifierDrag.pointerId)
+    }
+    this.cameraOrbitModifierDrag = null
+    if (
+      this.consoleCameraModeDrag !== null &&
+      this.renderer.domElement.hasPointerCapture(this.consoleCameraModeDrag.pointerId)
+    ) {
+      this.renderer.domElement.releasePointerCapture(this.consoleCameraModeDrag.pointerId)
+    }
+    this.consoleCameraModeDrag = null
+    this.middleClickTracker = null
+    this.lastMiddleClick = null
+    this.cameraController.endTemporaryPanDrag()
+    this.cameraController.endTemporaryOrbitDrag()
   }
 
   public setOnGeometrySketchHoverPoint(
@@ -1915,6 +2061,49 @@ export class Viewer {
   }
 
   private readonly handleSketchPlanePickPointerDown = (event: PointerEvent): void => {
+    if (
+      event.button === 1 &&
+      this.currentViewSettings.orbitEnabled
+    ) {
+      if (event.ctrlKey) {
+        event.preventDefault()
+        event.stopPropagation()
+        this.cameraOrbitModifierDrag = {
+          pointerId: event.pointerId,
+        }
+        this.renderer.domElement.setPointerCapture(event.pointerId)
+        this.beginTemporaryOrbitDrag(event.clientX, event.clientY)
+        return
+      }
+      this.middleClickTracker = {
+        pointerId: event.pointerId,
+        anchorClientX: event.clientX,
+        anchorClientY: event.clientY,
+        moved: false,
+      }
+      return
+    }
+    if (
+      event.button === 0 &&
+      this.currentViewSettings.orbitEnabled &&
+      this.consoleCameraMode !== null &&
+      this.sketchPlanePickOverlay === null &&
+      this.geometrySketchOverlay?.mode !== 'draw'
+    ) {
+      event.preventDefault()
+      event.stopPropagation()
+      this.consoleCameraModeDrag = {
+        pointerId: event.pointerId,
+        mode: this.consoleCameraMode,
+      }
+      this.renderer.domElement.setPointerCapture(event.pointerId)
+      if (this.consoleCameraMode === 'pan') {
+        this.beginTemporaryPanDrag(event.clientX, event.clientY)
+      } else {
+        this.beginTemporaryOrbitDrag(event.clientX, event.clientY)
+      }
+      return
+    }
     if (event.button !== 0) {
       return
     }
@@ -1997,6 +2186,39 @@ export class Viewer {
 
   private readonly handleSketchPlanePickPointerMove = (event: PointerEvent): void => {
     if (
+      this.consoleCameraModeDrag !== null &&
+      event.pointerId === this.consoleCameraModeDrag.pointerId
+    ) {
+      event.preventDefault()
+      event.stopPropagation()
+      if (this.consoleCameraModeDrag.mode === 'pan') {
+        this.updateTemporaryPanDrag(event.clientX, event.clientY)
+      } else {
+        this.updateTemporaryOrbitDrag(event.clientX, event.clientY)
+      }
+      return
+    }
+    if (
+      this.cameraOrbitModifierDrag !== null &&
+      event.pointerId === this.cameraOrbitModifierDrag.pointerId
+    ) {
+      event.preventDefault()
+      event.stopPropagation()
+      this.updateTemporaryOrbitDrag(event.clientX, event.clientY)
+      return
+    }
+    if (
+      this.middleClickTracker !== null &&
+      event.pointerId === this.middleClickTracker.pointerId &&
+      !this.middleClickTracker.moved
+    ) {
+      this.middleClickTracker.moved =
+        Math.max(
+          Math.abs(event.clientX - this.middleClickTracker.anchorClientX),
+          Math.abs(event.clientY - this.middleClickTracker.anchorClientY),
+        ) >= 3
+    }
+    if (
       this.sketchPlanePickOverlay !== null &&
       this.sketchPlanePickOverlay.stage === 'pick'
     ) {
@@ -2049,6 +2271,76 @@ export class Viewer {
   }
 
   private readonly handleSketchPlanePickPointerUp = (event: PointerEvent): void => {
+    if (
+      this.consoleCameraModeDrag !== null &&
+      event.pointerId === this.consoleCameraModeDrag.pointerId
+    ) {
+      const mode = this.consoleCameraModeDrag.mode
+      this.consoleCameraModeDrag = null
+      this.consoleCameraMode = null
+      if (this.renderer.domElement.hasPointerCapture(event.pointerId)) {
+        this.renderer.domElement.releasePointerCapture(event.pointerId)
+      }
+      event.preventDefault()
+      event.stopPropagation()
+      if (mode === 'pan') {
+        this.endTemporaryPanDrag()
+      } else {
+        this.endTemporaryOrbitDrag()
+      }
+      appendConsoleEntry({
+        layer: 'View',
+        text: `${mode === 'pan' ? 'Pan' : 'Orbit'} complete`,
+        source: 'viewer',
+        severity: 'info',
+      })
+      return
+    }
+    if (
+      this.cameraOrbitModifierDrag !== null &&
+      event.pointerId === this.cameraOrbitModifierDrag.pointerId
+    ) {
+      this.cameraOrbitModifierDrag = null
+      if (this.renderer.domElement.hasPointerCapture(event.pointerId)) {
+        this.renderer.domElement.releasePointerCapture(event.pointerId)
+      }
+      event.preventDefault()
+      event.stopPropagation()
+      this.endTemporaryOrbitDrag()
+      return
+    }
+    if (
+      this.middleClickTracker !== null &&
+      event.pointerId === this.middleClickTracker.pointerId
+    ) {
+      const click = this.middleClickTracker
+      this.middleClickTracker = null
+      if (!click.moved && this.currentViewSettings.orbitEnabled) {
+        const nextClickAtMs = performance.now()
+        if (
+          this.lastMiddleClick !== null &&
+          nextClickAtMs - this.lastMiddleClick.atMs <= 350 &&
+          Math.max(
+            Math.abs(event.clientX - this.lastMiddleClick.clientX),
+            Math.abs(event.clientY - this.lastMiddleClick.clientY),
+          ) <= 6
+        ) {
+          this.lastMiddleClick = null
+          event.preventDefault()
+          event.stopPropagation()
+          this.frameAll()
+          return
+        }
+        this.lastMiddleClick = {
+          atMs: nextClickAtMs,
+          clientX: event.clientX,
+          clientY: event.clientY,
+        }
+      } else if (click.moved) {
+        this.lastMiddleClick = null
+      }
+      return
+    }
     if (
       this.geometrySketchSelectionDrag === null ||
       event.pointerId !== this.geometrySketchSelectionDrag.pointerId

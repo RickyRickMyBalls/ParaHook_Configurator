@@ -1,4 +1,4 @@
-import { Box3, MathUtils, Object3D, PerspectiveCamera, Vector3 } from 'three'
+import { Box3, MOUSE, MathUtils, Object3D, PerspectiveCamera, Vector3 } from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 
 export type CameraPreset = 'iso' | 'top' | 'front' | 'left' | 'right'
@@ -11,9 +11,13 @@ export type CameraPose = {
 export class CameraController {
   private readonly camera: PerspectiveCamera
   private readonly controls: OrbitControls
+  private leftButtonOrbitEnabled = false
   private readonly tmpSize = new Vector3()
   private readonly tmpCenter = new Vector3()
   private readonly tmpDirection = new Vector3()
+  private readonly tmpOffset = new Vector3()
+  private readonly tmpPanOffset = new Vector3()
+  private readonly tmpPanVertical = new Vector3()
   private readonly transitionFromPosition = new Vector3()
   private readonly transitionFromTarget = new Vector3()
   private readonly transitionFromUp = new Vector3()
@@ -32,6 +36,12 @@ export class CameraController {
         lastClientY: number
       }
     | null = null
+  private temporaryPanDrag:
+    | {
+        lastClientX: number
+        lastClientY: number
+      }
+    | null = null
 
   public constructor(camera: PerspectiveCamera, domElement: HTMLElement) {
     this.camera = camera
@@ -42,6 +52,7 @@ export class CameraController {
     this.controls.rotateSpeed = 0.8
     this.controls.zoomSpeed = 1
     this.controls.panSpeed = 0.8
+    this.applyMouseBindings()
   }
 
   public getControls(): OrbitControls {
@@ -85,6 +96,11 @@ export class CameraController {
     this.controls.enabled = enabled
   }
 
+  public setLeftButtonOrbitEnabled(enabled: boolean): void {
+    this.leftButtonOrbitEnabled = enabled
+    this.applyMouseBindings()
+  }
+
   public beginTemporaryOrbitDrag(startClientX: number, startClientY: number): void {
     this.cameraTransition = null
     this.temporaryOrbitDrag = {
@@ -117,6 +133,55 @@ export class CameraController {
 
   public endTemporaryOrbitDrag(): void {
     this.temporaryOrbitDrag = null
+  }
+
+  public beginTemporaryPanDrag(startClientX: number, startClientY: number): void {
+    this.cameraTransition = null
+    this.temporaryPanDrag = {
+      lastClientX: startClientX,
+      lastClientY: startClientY,
+    }
+  }
+
+  public updateTemporaryPanDrag(clientX: number, clientY: number): void {
+    if (this.temporaryPanDrag === null) {
+      return
+    }
+    const deltaX = clientX - this.temporaryPanDrag.lastClientX
+    const deltaY = clientY - this.temporaryPanDrag.lastClientY
+    if (deltaX === 0 && deltaY === 0) {
+      return
+    }
+
+    this.panByClientDelta(deltaX, deltaY)
+    this.temporaryPanDrag = {
+      lastClientX: clientX,
+      lastClientY: clientY,
+    }
+  }
+
+  public endTemporaryPanDrag(): void {
+    this.temporaryPanDrag = null
+  }
+
+  public zoomByWheelDelta(deltaY: number): void {
+    if (!Number.isFinite(deltaY) || deltaY === 0) {
+      return
+    }
+    this.cameraTransition = null
+    const zoomFactor = deltaY < 0 ? 0.92 : 1.08
+    this.tmpOffset.copy(this.camera.position).sub(this.controls.target)
+    const nextDistance = Math.max(this.tmpOffset.length() * zoomFactor, 0.05)
+    if (this.tmpOffset.lengthSq() <= 1e-8) {
+      this.tmpOffset.set(1, 1, 1).normalize()
+    } else {
+      this.tmpOffset.normalize()
+    }
+    this.camera.position.copy(this.controls.target).addScaledVector(this.tmpOffset, nextDistance)
+    this.camera.near = Math.max(nextDistance / 100, 0.01)
+    this.camera.far = Math.max(nextDistance * 100, 100)
+    this.camera.updateProjectionMatrix()
+    this.controls.update()
   }
 
   public frameBox(box3: Box3): void {
@@ -322,6 +387,32 @@ export class CameraController {
 
     this.camera.position.copy(target).addScaledVector(normalized, currentDistance)
     this.camera.lookAt(target)
+    this.controls.update()
+  }
+
+  private applyMouseBindings(): void {
+    this.controls.mouseButtons.LEFT = this.leftButtonOrbitEnabled ? MOUSE.ROTATE : null
+    this.controls.mouseButtons.MIDDLE = MOUSE.PAN
+    this.controls.mouseButtons.RIGHT = null
+  }
+
+  private panByClientDelta(deltaX: number, deltaY: number): void {
+    const elementHeight = Math.max(this.controls.domElement?.clientHeight ?? 1, 1)
+    this.tmpOffset.copy(this.camera.position).sub(this.controls.target)
+    const targetDistance =
+      this.tmpOffset.length() * Math.tan(((this.camera.fov / 2) * Math.PI) / 180)
+    const panX = (2 * deltaX * targetDistance) / elementHeight
+    const panY = (2 * deltaY * targetDistance) / elementHeight
+
+    this.camera.updateMatrix()
+    this.tmpPanOffset.setFromMatrixColumn(this.camera.matrix, 0).multiplyScalar(-panX)
+    this.tmpPanVertical
+      .copy(this.camera.up)
+      .setLength(panY)
+    this.tmpPanOffset.add(this.tmpPanVertical)
+
+    this.camera.position.add(this.tmpPanOffset)
+    this.controls.target.add(this.tmpPanOffset)
     this.controls.update()
   }
 }

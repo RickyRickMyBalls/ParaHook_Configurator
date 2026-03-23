@@ -163,6 +163,11 @@ export type EditorViewportNodeFitRequest = {
   key: number
 }
 
+export type EditorViewportCanvasFitRequest = {
+  editorViewportId: string
+  key: number
+}
+
 export type SketchPlanePickSession = {
   nodeId: string
   editorViewportId: string | null
@@ -286,6 +291,7 @@ export type SpaghettiStoreState = {
   selectedNodeId: string | null
   consolePreviewNodeId: string | null
   editorViewportNodeFitRequest: EditorViewportNodeFitRequest | null
+  editorViewportCanvasFitRequest: EditorViewportCanvasFitRequest | null
   selectedEdgeId: string | null
   hoveredEdgeId: string | null
   connectionDrag: ConnectionDragState | null
@@ -309,6 +315,7 @@ export type SpaghettiStoreState = {
   setSelectedNodeId: (nodeId: string | null) => void
   setConsolePreviewNodeId: (nodeId: string | null) => void
   requestEditorViewportNodeFit: (editorViewportId: string, nodeId: string) => void
+  requestEditorViewportCanvasFit: (editorViewportId: string) => void
   setSelectedEdgeId: (edgeId: string | null) => void
   setHoveredEdgeId: (edgeId: string | null) => void
   setConnectionDrag: (drag: ConnectionDragState | null) => void
@@ -2692,6 +2699,7 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
   selectedNodeId: null,
   consolePreviewNodeId: null,
   editorViewportNodeFitRequest: null,
+  editorViewportCanvasFitRequest: null,
   editorViewportHeaderCollapsedById: {},
   editorViewportCanvasToolbarVisibleById: {},
   selectedEdgeId: null,
@@ -2957,6 +2965,14 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
         editorViewportId,
         nodeId,
         key: (state.editorViewportNodeFitRequest?.key ?? 0) + 1,
+      },
+    }))
+  },
+  requestEditorViewportCanvasFit: (editorViewportId) => {
+    set((state) => ({
+      editorViewportCanvasFitRequest: {
+        editorViewportId,
+        key: (state.editorViewportCanvasFitRequest?.key ?? 0) + 1,
       },
     }))
   },

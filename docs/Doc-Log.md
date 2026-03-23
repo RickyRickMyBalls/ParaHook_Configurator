@@ -3,6 +3,39 @@
 ## Doc Header
 
 ### Doc History
+136. 2026-03-22 22:32: Logged the shipped `[5.0H-4] Camera Console Commands` follow-up that moves the standalone phase record into `Camera-Controls/Shipped/`, updates the camera family index and roadmap to reflect the landed root/scoped `Zoom` plus console `Pan` / `Orbit` cut, refreshes the docs map to the shipped path, and tightens the wording so `Zoom Object` only claims the current selected part/reference seam while unsupported paths stay explicit
+135. 2026-03-22 22:00: Logged the `[5.0H-4]` implementation-readiness pass that grounds `Zoom Object` on the existing browser/app selection seam instead of a new viewport-pick feature, locks the reusable root/scoped `Zoom` tree shape, and names the concrete console/viewer files plus first verification targets
+134. 2026-03-22 21:52: Logged the `[5.0H-4]` console-camera follow-up that locks `Zoom` as a reusable scoped command family, with root `Zoom` living beside `Graph` as the model-viewport default while `Graph > Zoom` now defaults to `Canvas` first and still exposes `Model Viewport` as the secondary branch
+133. 2026-03-22 21:47: Logged the new standalone `[5.0H-4] Camera Console Commands` future phase doc, updated `Camera_Controls-Index.md` to point at it, and refreshed the docs map so the next open camera-controls cut now has its own implementation-ready planning surface after the shipped sketch, viewport-baseline, and canvas/model coexistence work
+132. 2026-03-22 21:40: Logged the shipped `[5.0H-3] Spaghetti Canvas And Model Viewport Coexistence` follow-up that moves the standalone phase record into `Camera-Controls/Shipped/`, updates the camera family index and roadmap to mark the coexistence cut complete, and advances the remaining open camera-controls work to console commands plus the later shared input-owner model
+131. 2026-03-22 21:26: Logged the `[5.0H-3]` coexistence correction that makes the model viewport baseline explicit again as `wheel zoom`, `MMB` pan, `Ctrl + MMB` orbit, and `MMB` double-click fit, with the canvas now described as simply adding `Shift` to forward those same model gestures while hovered
+130. 2026-03-22 21:24: Logged the `[5.0H-3]` pass-through redesign that replaces the mixed canvas/model modifier proposal with a cleaner `+Shift` rule, so while hovering the canvas the model viewport now uses `Shift + wheel` for zoom, `Shift + MMB` for pan, and `Shift + Ctrl + MMB` for orbit
+129. 2026-03-22 21:19: Logged the `[5.0H-3]` pass-through correction that replaces the earlier split `Ctrl + MMB` pan plus `Ctrl + Shift + MMB` orbit idea with the simpler rule that model orbit should just use normal `Ctrl + MMB`, while `Shift + wheel` remains the canvas-to-model zoom pass-through
+128. 2026-03-22 21:15: Logged the `[5.0H-3] Spaghetti Canvas And Model Viewport Coexistence` follow-up that tightens its standalone phase doc around the real graph-canvas runtime, locking the current plain-wheel plus empty-background-`LMB` ownership, recording that only expanded-view `Ctrl + MMB` orbit exists today, and making the next cut explicitly add new canvas-to-viewer zoom/pan seams with `Shift + wheel` replacing the older `Ctrl + wheel` idea
+127. 2026-03-22 21:11: Logged the new standalone `[5.0H-3] Spaghetti Canvas And Model Viewport Coexistence` future phase doc, updated `Camera_Controls-Index.md` to point at it, and refreshed the docs map so the next camera-controls cut now has its own implementation-ready planning surface with the safer `Shift + wheel` pass-through zoom direction
+126. 2026-03-22 20:52: Logged the shipped `[5.0H-2] Fusion-Style Model Viewport Camera Baseline` follow-up that moves the standalone phase record into `Camera-Controls/Shipped/`, marks the camera family and roadmap state forward after the implementation landed, and refreshes the docs map so the model-viewport gesture baseline now reads as completed history instead of a future planning surface
+125. 2026-03-22 20:44: Logged the `[5.0H-2] Fusion-Style Model Viewport Camera Baseline` follow-up that tightens its standalone phase doc around the current camera/runtime seams, locking the real starting `OrbitControls` mouse map, the absence of an existing viewer double-click camera path, and `Viewer.frameAll()` as the first zoom-fit target so the implementer does not have to guess those details
+124. 2026-03-22 20:42: Logged the new standalone `[5.0H-2] Fusion-Style Model Viewport Camera Baseline` future phase doc, updated `Camera_Controls-Index.md` to list it under the `Camera-Controls` family, and refreshed the docs map so the next camera-controls cut now has a dedicated implementation-ready planning surface after the shipped sketch-camera ownership block
+123. 2026-03-22 20:27: Logged the shipped `[5.0H-1] Sketch Draw Camera Blocking` follow-up that moves the standalone phase record into `Camera-Controls/Shipped/`, marks the camera family and roadmap state forward after the implementation landed, and refreshes the docs map so the first camera/input cleanup cut now reads as completed history instead of a future planning surface
+122. 2026-03-22 19:56: Logged the `[5.0H-1] Sketch Draw Camera Blocking` follow-up that tightens its standalone phase doc around the real viewer/runtime seams, replacing the earlier generic input-routing guesses with a narrower implementation path through `Viewer`, `CameraController`, and the temporary orbit bridge while keeping the cut scoped to blocking camera `LMB` ownership during `Sketch Draw`
+121. 2026-03-22 19:50: Logged the new standalone `Worker_Phase 5.3A-4 - Dispatcher Boundary Cleanup.md` future doc, updated `Worker.md` to point at it from the Worker family summary, and refreshed the docs map so the dispatcher-boundary cleanup now has its own implementation-ready planning surface after the graph-native request/build-unit and lane/intent groundwork
+120. 2026-03-22 19:40: Logged the small shipped-doc cleanup for `Worker_Phase 5.3A-3 - Worker Lane Definition And Execution-Intent Model.md`, correcting the phase-order framing so the record now reads as early lane-and-intent groundwork that landed after the shipped audit but before the still-pending `5.3A-2` request/build-unit replacement work
+119. 2026-03-22 19:29: Logged the `5.3A-2` worker-contract follow-up that refreshes the future phase doc for the post-`5.3A-3` world, rewriting it as a request-plus-result-first implementation phase that replaces the legacy `BoxParams` request seam under the shipped lane-and-intent scaffold while also updating `Worker.md` so the local phase ladder describes the same corrected sequencing
+118. 2026-03-22 19:19: Logged the `Worker.md` phase-ladder sync that replaces the older generic `Phase 1` through `Phase 7` headings with the real `[5.3A-1]` through `[5.3A-7]` titles, updates the local checklist state to match the shipped `5.3A-3` lane work, and points the relevant items at their standalone future/shipped Worker phase records
+117. 2026-03-22 19:15: Logged the shipped `[5.3A-3]` worker lane-definition cut that moves `Worker_Phase 5.3A-3 - Worker Lane Definition And Execution-Intent Model.md` into `Worker/Shipped/`, updates `Worker.md` to point at the shipped record, marks the roadmap worker lane subphase complete, and refreshes the docs map to the new shipped path
+116. 2026-03-22 19:05: Logged the new standalone `Worker_Phase 5.3A-3 - Worker Lane Definition And Execution-Intent Model.md` future doc, updated `Worker.md` to point at it from the family index, and refreshed the docs map so the lane-definition and execution-intent follow-up now has its own implementation-ready planning surface under the Worker family
+115. 2026-03-22 18:18: Logged the `5.3A-2` worker-contract follow-up that rewrites the future phase doc into a decision-complete contract spec, locking `output entry` as the first canonical build unit, keeping `executionIntent` minimal in this phase, and replacing the earlier suggestion-driven sections with one explicit request/result target plus a hard compatibility boundary for later worker cleanup phases
+114. 2026-03-22 18:09: Logged the new standalone `Worker_Phase 5.3A-2 - Graph-Native Worker Contract And Separate-Build Identity.md` future doc, updated `Worker.md` to point at it from the family index, and refreshed the docs map so the next worker-contract phase now has its own implementation-ready planning surface after the shipped audit
+113. 2026-03-22 18:04: Logged the shipped `[5.3A-1]` worker audit pass that converts the first worker phase doc into a completed read-only audit record, moves it from `Worker/Future/` to `Worker/Shipped/`, updates `Worker.md` to point at the shipped record, marks the roadmap worker audit subphase complete with the parent worker lane still partial, and refreshes the docs map to the new shipped path
+112. 2026-03-22 17:57: Logged the `Worker_Phase 5.3A-1 - Worker Audit And Legacy Startup Inventory.md` follow-up that makes the first worker phase more implementation-ready, locking the concrete audit questions by file, required written outputs, handoff artifact shape for `[5.3A-2]`, suggested verification commands, and stricter definition-of-done criteria
+111. 2026-03-22 14:57: Logged the worker-family follow-up that renames the roadmap mini-family to `[5.3A]` with subphases `[5.3A-1]` through `[5.3A-7]`, adds `Future/` and `Shipped/` under `docs/Human-Plans/Architecture/Worker/`, creates the standalone `Worker_Phase 5.3A-1 - Worker Audit And Legacy Startup Inventory.md` planning surface, and refreshes the docs map so the worker family now mirrors the newer AppShell-style umbrella-plus-phase-doc structure
+110. 2026-03-22 14:57: Logged the roadmap follow-up that expands `[5.3] Build Sequencing, Build Bars, And Output Build Control` into the real worker/build mini-family `[5.3-1]` through `[5.3-7]`, so the worker audit, graph-native contract, dispatcher cleanup, legacy startup removal, stronger Browser/Console build truth, and final cutover now have one concrete roadmap home under the existing build lane
+109. 2026-03-22 14:56: Logged the new standalone `[5.0H-1] Sketch Draw Camera Blocking` future phase doc, updated `Camera_Controls-Index.md` to list it under the `Camera-Controls` family, and refreshed the docs map so the first camera-controls cut now has a dedicated implementation-ready planning surface under `Future/`
+108. 2026-03-22 14:57: Logged the `Worker.md` workspace-modes boundary note that shell placement must preserve one shared worker/build truth for `Browser` and `Console`, while keeping the actual tiled/windowed/pop-out layout follow-through in the separate `Workspace Modes` phase family instead of widening the worker lane
+107. 2026-03-22 14:54: Logged the `Worker.md` startup-legacy cleanup follow-up that ties removal of fallback `baseplate` / `heelKick` / `toeHook` boot output to the existing worker phases, so the graph-native cutover now explicitly forbids legacy default instances, legacy build-stats ordering, and legacy startup narration from surviving the worker cleanup
+106. 2026-03-22 14:44: Logged the `Worker.md` follow-up that makes the downstream `Browser` and `Console` obligations explicit, so the worker architecture now says separate-build identity must survive into tree rows and transcript/progress surfaces without flattening child rebuilds into fake parent rebuild language
+105. 2026-03-22 14:44: Logged the `Worker.md` sequencing clarification that separate-build ownership and the graph-native request contract must land before any broad worker refactor, and that `Pasta Path` timeline scrubbing should be treated as a later downstream consumer of that cleaner build seam instead of driving the first worker cut
+104. 2026-03-22 14:18: Logged the `Pasta-Path-Index.md` follow-up that adds `#### Suggestion` blocks under every open `Questions / Decisions` item, so the timeline concept now carries concrete recommended answers for placement, first-cut scope, mapping, branching, sync, and representation instead of leaving those choices as neutral prompts only
 103. 2026-03-22 14:15: Logged the `Pasta-Path-Index.md` follow-up that adds a dedicated `Questions / Decisions` section, turning the main unresolved concept choices into explicit `### [ ] qN - ...` headings so the timeline idea can be tightened incrementally instead of leaving the key decisions implied across the rest of the doc
 102. 2026-03-22 14:12: Logged the `Pasta-Path-Index.md` follow-up that adds the first `Fusion` visual-takeaways guidance, so the timeline concept now explicitly borrows the low-profile footer density, horizontal step-strip readability, and strong playhead emphasis of a Fusion-style history bar without pretending ParaHook has the same strictly linear feature stack
 101. 2026-03-22 14:12: Logged the shipped `5.0F-2` AppShell follow-up that marks the window/dock-host extraction complete, moves the standalone phase record into `AppShell/Shipped/`, refreshes `AppShell-Index.md` to the fully shipped `[5.0F]` state, updates the roadmap checkboxes, and syncs the docs map to the shipped path
@@ -142,6 +175,331 @@ Do not use it for:
 - keep numbering sequential unless the user explicitly asks for a renumber pass
 
 ## Doc Body
+
+<!-- ENTRY 182 -->
+### [182] - 2026-03-22 21:26 - `DOC - Correct Camera Controls Phase 5.0H-3 Baseline Mapping`
+<!-- ENTRY 182 -->
+HUMAN SUMMARY: Corrected the planned `[5.0H-3]` coexistence wording so the model viewport baseline is explicit again as `wheel zoom`, `MMB` pan, `Ctrl + MMB` orbit, and `MMB` double-click fit, with the canvas now described as simply adding `Shift` to forward those same model gestures while hovered.
+
+#### Scope
+- Updated the standalone `[5.0H-3]` future phase doc.
+- Updated the camera-controls family index wording for the same baseline clarification.
+- Logged the planning correction in the permanent doc log.
+
+#### Summary
+- Restored the explicit model-viewport baseline wording to match the intended `Ctrl + MMB` orbit direction.
+- Kept the canvas pass-through rule as "normal model gesture plus Shift".
+- Left the rest of the coexistence phase scope unchanged.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Camera-Controls/Future/Camera_Controls_Phase 5.0H-3 - Spaghetti Canvas And Model Viewport Coexistence.md`
+- `docs/Human-Plans/Architecture/Camera-Controls/Camera_Controls-Index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was a docs/planning correction only; no runtime code changed.
+- The phase still remains focused on canvas/model coexistence and leaves camera console commands plus the shared input-owner model for later phases.
+
+<!-- ENTRY 181 -->
+### [181] - 2026-03-22 21:24 - `DOC - Redesign Camera Controls Phase 5.0H-3 Pass-Through Set`
+<!-- ENTRY 181 -->
+HUMAN SUMMARY: Replaced the planned `[5.0H-3]` canvas/model pass-through set with a cleaner `+Shift` rule so, while hovering the canvas, the model viewport reuses its normal camera gestures plus `Shift` instead of relying on a mixed modifier scheme.
+
+#### Scope
+- Updated the standalone `[5.0H-3]` future phase doc.
+- Updated the camera-controls family index wording for the same pass-through redesign.
+- Logged the planning correction in the permanent doc log.
+
+#### Summary
+- Kept `Shift + wheel` as the canvas-to-model zoom pass-through.
+- Changed model pan to `Shift + MMB`.
+- Changed model orbit to `Shift + Ctrl + MMB`.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Camera-Controls/Future/Camera_Controls_Phase 5.0H-3 - Spaghetti Canvas And Model Viewport Coexistence.md`
+- `docs/Human-Plans/Architecture/Camera-Controls/Camera_Controls-Index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was a docs/planning correction only; no runtime code changed.
+- The phase still remains focused on canvas/model coexistence and leaves camera console commands plus the shared input-owner model for later phases.
+
+<!-- ENTRY 180 -->
+### [180] - 2026-03-22 21:19 - `DOC - Correct Camera Controls Phase 5.0H-3 Orbit Pass-Through`
+<!-- ENTRY 180 -->
+HUMAN SUMMARY: Corrected the planned `[5.0H-3]` canvas/model pass-through set so model orbit now uses the simpler normal `Ctrl + MMB` gesture, while `Shift + wheel` stays as the explicit canvas-to-model zoom path.
+
+#### Scope
+- Updated the standalone `[5.0H-3]` future phase doc.
+- Updated the camera-controls family index wording for the same pass-through correction.
+- Logged the planning correction in the permanent doc log.
+
+#### Summary
+- Replaced the earlier split `Ctrl + MMB` pan plus `Ctrl + Shift + MMB` orbit plan.
+- Locked `Ctrl + MMB` as the canonical model-orbit pass-through while hovering the canvas.
+- Kept `Shift + wheel` as the model-zoom pass-through.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Camera-Controls/Future/Camera_Controls_Phase 5.0H-3 - Spaghetti Canvas And Model Viewport Coexistence.md`
+- `docs/Human-Plans/Architecture/Camera-Controls/Camera_Controls-Index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was a docs/planning correction only; no runtime code changed.
+- The phase still remains focused on canvas/model coexistence and leaves camera console commands plus the shared input-owner model for later phases.
+
+<!-- ENTRY 179 -->
+### [179] - 2026-03-22 21:15 - `DOC - Tighten Camera Controls Phase 5.0H-3 Into A More Concrete Spec`
+<!-- ENTRY 179 -->
+HUMAN SUMMARY: Tightened the standalone `[5.0H-3] Spaghetti Canvas And Model Viewport Coexistence` phase doc into a more implementation-ready spec by grounding it in the current graph-canvas runtime. The plan now records that `SpaghettiCanvas.tsx` already owns plain wheel zoom and empty-background `LMB` pan, that only expanded-view `Ctrl + MMB` temporary orbit exists today, and that the next cut must add explicit canvas-to-viewer zoom and pan seams rather than pretending those paths already exist.
+
+#### Scope
+- Updated the standalone `[5.0H-3]` future phase doc.
+- Replaced a few generic canvas/pass-through assumptions with the current concrete runtime state.
+- Logged the implementation-readiness tightening in the permanent doc log.
+
+#### Summary
+- Added a new local doc-history line to the phase doc.
+- Refined `Current Seam Read` with the current canvas wheel, pan, and temporary orbit bridge behavior.
+- Marked the current `q1` through `q4` decisions as locked in the doc.
+- Tightened `Implementation Spec` so `viewerBridge.ts` and likely new canvas-to-viewer zoom/pan seams are explicit requirements.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Camera-Controls/Future/Camera_Controls_Phase 5.0H-3 - Spaghetti Canvas And Model Viewport Coexistence.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was a docs/planning pass only; no runtime code changed.
+- The phase remains intentionally focused on canvas/model coexistence and still leaves camera console commands plus the shared input-owner model for later phases.
+
+<!-- ENTRY 178 -->
+### [178] - 2026-03-22 21:11 - `DOC - Add Camera Controls Phase 5.0H-3 Future Plan`
+<!-- ENTRY 178 -->
+HUMAN SUMMARY: Added a new standalone future phase doc for `[5.0H-3] Spaghetti Canvas And Model Viewport Coexistence`, giving the next camera-controls cut its own implementation-ready planning surface after the shipped sketch and model-viewport baseline work.
+
+#### Scope
+- Created the standalone `[5.0H-3]` future phase doc.
+- Updated the camera-controls family index to list the new doc and the newer `Shift + wheel` pass-through zoom idea.
+- Refreshed the docs map to include the new future phase path.
+
+#### Summary
+- Added `docs/Human-Plans/Architecture/Camera-Controls/Future/Camera_Controls_Phase 5.0H-3 - Spaghetti Canvas And Model Viewport Coexistence.md`.
+- Updated `Camera_Controls-Index.md` so the future family list and `[5.0H-3]` checklist now point at `Shift + wheel` for model zoom pass-through instead of `Ctrl + Scroll`.
+- Updated `docs/Doc-Index.md` so the camera-controls subtree lists the new future phase doc.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Camera-Controls/Future/Camera_Controls_Phase 5.0H-3 - Spaghetti Canvas And Model Viewport Coexistence.md`
+- `docs/Human-Plans/Architecture/Camera-Controls/Camera_Controls-Index.md`
+- `docs/Doc-Index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was a docs/planning pass only; no runtime code changed.
+- The phase is still intentionally scoped to canvas/model coexistence and leaves camera console commands plus the shared input-owner model for later phases.
+
+<!-- ENTRY 177 -->
+### [177] - 2026-03-22 20:52 - `DOC - Ship Camera Controls Phase 5.0H-2 Docs`
+<!-- ENTRY 177 -->
+HUMAN SUMMARY: Moved the standalone `[5.0H-2] Fusion-Style Model Viewport Camera Baseline` phase record from `Future/` to `Shipped/`, marked the camera-controls family and roadmap state forward, and refreshed the docs map so the model-viewport gesture baseline now reads as landed history instead of pending planning.
+
+#### Scope
+- `Camera-Controls` family status sync after the shipped `5.0H-2` runtime implementation.
+- Roadmap, family-index, phase-doc, and docs-map updates only.
+
+#### Summary
+- Moved `Camera_Controls_Phase 5.0H-2 - Fusion-Style Model Viewport Camera Baseline.md` from `Future/` to `Shipped/`.
+- Marked `[5.0H-2]` complete in `Camera_Controls-Index.md` and `roadmap.md`.
+- Updated `docs/Doc-Index.md` so the camera-controls subtree points at the shipped path.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Camera-Controls/Shipped/Camera_Controls_Phase 5.0H-2 - Fusion-Style Model Viewport Camera Baseline.md`
+- `docs/Human-Plans/Architecture/Camera-Controls/Camera_Controls-Index.md`
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/Doc-Index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This entry covers only the docs/family-state updates after the runtime implementation.
+- The shipped code/runtime behavior is recorded separately in `docs/CHANGELOG.md`.
+
+<!-- ENTRY 176 -->
+### [176] - 2026-03-22 20:44 - `DOC - Tighten Camera Controls Phase 5.0H-2 Into A More Concrete Spec`
+<!-- ENTRY 176 -->
+HUMAN SUMMARY: Tightened the standalone `[5.0H-2] Fusion-Style Model Viewport Camera Baseline` phase doc into a more implementation-ready spec by grounding it in the current camera runtime. The plan now names the real starting `OrbitControls` mouse map, explicitly states that there is no current viewer double-click camera path, and locks `Viewer.frameAll()` as the first zoom-fit target instead of leaving those details implicit.
+
+#### Scope
+- Updated the standalone `[5.0H-2]` future phase doc.
+- Replaced a few generic gesture and seam assumptions with the current concrete runtime state.
+- Logged the implementation-readiness tightening in the permanent doc log.
+
+#### Summary
+- Added a new local doc-history line to the phase doc.
+- Refined `Current Seam Read` with the current `OrbitControls` button mapping and the absence of a viewer double-click camera path.
+- Marked the current `q1` through `q4` decisions as locked in the doc.
+- Tightened `Implementation Spec` so `Viewer.ts` is explicitly required and `Viewer.frameAll()` is the first zoom-fit target for `MMB` double-click.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Camera-Controls/Future/Camera_Controls_Phase 5.0H-2 - Fusion-Style Model Viewport Camera Baseline.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was a docs/planning pass only; no runtime code changed.
+- The phase remains intentionally model-viewport-only and still leaves graph-canvas coexistence to `[5.0H-3]`.
+
+<!-- ENTRY 175 -->
+### [175] - 2026-03-22 20:42 - `DOC - Add Camera Controls Phase 5.0H-2 Future Plan`
+<!-- ENTRY 175 -->
+HUMAN SUMMARY: Added a new standalone future phase doc for `[5.0H-2] Fusion-Style Model Viewport Camera Baseline`, giving the next camera-controls cut its own implementation-ready planning surface under `Future/` after the shipped `[5.0H-1]` sketch-camera ownership block.
+
+#### Scope
+- Created `docs/Human-Plans/Architecture/Camera-Controls/Future/Camera_Controls_Phase 5.0H-2 - Fusion-Style Model Viewport Camera Baseline.md`.
+- Updated `docs/Human-Plans/Architecture/Camera-Controls/Camera_Controls-Index.md` to list the new future phase doc.
+- Updated `docs/Doc-Index.md` so the docs map now shows the new camera-controls future planning surface.
+
+#### Summary
+- Added the new `[5.0H-2]` future phase doc with:
+  - `Purpose`
+  - `Why This Phase Exists`
+  - `Scope`
+  - `Header`
+  - `Target Result`
+  - `Current Seam Read`
+  - `Questions / Decisions`
+  - `Implementation Spec`
+- Kept the phase model-viewport-only around the Fusion-style gesture baseline:
+  - wheel zoom
+  - `MMB` pan
+  - `Shift + MMB` orbit
+  - `MMB` double-click zoom fit
+- Explicitly deferred graph-canvas coexistence, camera console commands, and the shared owner model to later camera phases.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Camera-Controls/Future/Camera_Controls_Phase 5.0H-2 - Fusion-Style Model Viewport Camera Baseline.md`
+- `docs/Human-Plans/Architecture/Camera-Controls/Camera_Controls-Index.md`
+- `docs/Doc-Index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was a docs/planning pass only; no runtime code changed.
+- The new phase doc assumes the shipped `[5.0H-1]` `Sketch Draw` camera block stays intact while the broader model-viewport gesture baseline changes.
+
+<!-- ENTRY 174 -->
+### [174] - 2026-03-22 20:27 - `DOC - Mark Camera Controls Phase 5.0H-1 Shipped`
+<!-- ENTRY 174 -->
+HUMAN SUMMARY: Marked `[5.0H-1] Sketch Draw Camera Blocking` shipped after the viewer-side camera block landed. The standalone phase record moved from `Camera-Controls/Future/` to `Camera-Controls/Shipped/`, the camera family index and roadmap now mark `5.0H-1` complete, and the docs map points at the shipped path.
+
+#### Scope
+- Moved the standalone `[5.0H-1]` phase record into the `Shipped/` folder.
+- Updated the `Camera_Controls-Index.md` family state.
+- Updated `roadmap.md` to mark `[5.0H-1]` complete and parent `[5.0H]` partial.
+- Updated `Doc-Index.md` to the shipped camera-controls path.
+
+#### Summary
+- Added a shipped-result note and completion history line to the `5.0H-1` phase record before moving it.
+- Refreshed the camera family index so `[5.0H-1]` now reads as completed while `[5.0H-2]` through `[5.0H-5]` remain open.
+- Refreshed the roadmap and docs map so the repo no longer shows the first camera-controls cut as a pending future phase.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Camera-Controls/Shipped/Camera_Controls_Phase 5.0H-1 - Sketch Draw Camera Blocking.md`
+- `docs/Human-Plans/Architecture/Camera-Controls/Camera_Controls-Index.md`
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/Doc-Index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This doc-log entry covers the documentation/state sync only; the shipped runtime behavior itself is recorded in `docs/CHANGELOG.md`.
+- The broader Fusion-style viewport baseline remains deferred to `[5.0H-2]`.
+
+<!-- ENTRY 173 -->
+### [173] - 2026-03-22 19:56 - `DOC - Tighten Camera Controls Phase 5.0H-1 Around Real Viewer Seams`
+<!-- ENTRY 173 -->
+HUMAN SUMMARY: Tightened the standalone `[5.0H-1] Sketch Draw Camera Blocking` phase doc into a more implementation-ready spec by grounding it in the current runtime seams. The plan no longer leans on fuzzy `inputRouting` guesses and now points directly at the existing viewer overlay/session feed in `ViewerHost`, the camera-left-button claim in `CameraController`, and the temporary orbit bridge path exposed through `viewerBridge.ts`.
+
+#### Scope
+- Updated the standalone `[5.0H-1]` future phase doc.
+- Replaced generic seam guesses with the current concrete viewer/runtime path.
+- Logged the implementation-readiness tightening in the permanent doc log.
+
+#### Summary
+- Added a new local doc-history line to the phase doc.
+- Rewrote `Current Seam Read` around:
+  - `ViewerHost.tsx`
+  - `Viewer.ts`
+  - `CameraController.ts`
+  - `viewerBridge.ts`
+- Tightened the `Questions / Decisions` and `Implementation Spec` sections so the first cut now clearly means:
+  - derive the block in `Viewer`
+  - disable left-button orbit ownership in `CameraController`
+  - suppress temporary orbit drag while blocked
+- Removed the earlier implication that `inputRouting.ts` was likely the main seam for this phase.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Camera-Controls/Future/Camera_Controls_Phase 5.0H-1 - Sketch Draw Camera Blocking.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was a docs/planning pass only; no runtime code changed.
+- The phase is still intentionally narrow: it blocks camera `LMB` ownership during `Sketch Draw` without widening into the full Fusion-style gesture remap owned by `[5.0H-2]`.
+
+<!-- ENTRY 172 -->
+### [172] - 2026-03-22 14:56 - `DOC - Add Camera Controls Phase 5.0H-1 Future Plan`
+<!-- ENTRY 172 -->
+HUMAN SUMMARY: Added a new standalone future phase doc for `[5.0H-1] Sketch Draw Camera Blocking`, using the stronger implementation-ready structure from the AppShell family template so the first camera-controls cut now has explicit scope, decisions, file seams, implementation steps, and verification instead of living only as a checklist line in the umbrella camera-controls index.
+
+#### Scope
+- Created `docs/Human-Plans/Architecture/Camera-Controls/Future/Camera_Controls_Phase 5.0H-1 - Sketch Draw Camera Blocking.md`.
+- Updated `docs/Human-Plans/Architecture/Camera-Controls/Camera_Controls-Index.md` to list the new future phase doc.
+- Updated `docs/Doc-Index.md` so the docs map now shows the new camera-controls future planning surface.
+
+#### Summary
+- Added the new `[5.0H-1]` future phase doc with:
+  - `Purpose`
+  - `Why This Phase Exists`
+  - `Scope`
+  - `Header`
+  - `Target Result`
+  - `Current Seam Read`
+  - `Questions / Decisions`
+  - `Implementation Spec`
+- Kept the phase intentionally narrow around blocking camera ownership from stealing plain `LMB` while `Sketch Draw` is open.
+- Used the `AppShell_Phase 5.0F-1` structure as the template for the decision and implementation sections, as requested.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Camera-Controls/Future/Camera_Controls_Phase 5.0H-1 - Sketch Draw Camera Blocking.md`
+- `docs/Human-Plans/Architecture/Camera-Controls/Camera_Controls-Index.md`
+- `docs/Doc-Index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was a docs/planning pass only; no runtime code changed.
+- The new phase doc intentionally stops short of the full Fusion-style camera remap so `[5.0H-2]` can still own the broader viewport baseline cleanly later.
+
+<!-- ENTRY 171 -->
+### [171] - 2026-03-22 14:18 - `DOC - Add Suggestion Blocks To Pasta Path Questions`
+<!-- ENTRY 171 -->
+HUMAN SUMMARY: Updated `Pasta-Path-Index.md` so every `Questions / Decisions` item now includes a `#### Suggestion` block. The doc no longer just lists open questions; it now records a recommended direction for each unresolved decision around placement, first-cut behavior, mapping, branch display, editor sync, and timeline representation.
+
+#### Scope
+- Updated the `Questions / Decisions` section in the umbrella `Pasta Path` index doc.
+- Added one `#### Suggestion` block under each existing `q1` through `q6` question.
+- Logged the structure/content upgrade in the permanent doc log.
+
+#### Summary
+- Added concrete suggestions for:
+  - keeping `Pasta Path` in the top-left mode family first
+  - making the first cut read-only and scrub-only
+  - using deterministic execution-order mapping with conditional parallel rows
+  - keeping the default strip single-row until branch detail is really needed
+  - syncing filtered render with `Spaghetti Editor` highlight feedback
+  - using a mixed grouped abstraction layer instead of raw-node-only or feature-only history
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Pasta-Path/Pasta-Path-Index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was a docs/planning pass only; no runtime code changed.
+- The suggestions are intentionally first-pass recommendations and can still be revised later as the `Pasta Path` concept tightens.
 
 <!-- ENTRY 170 -->
 ### [170] - 2026-03-22 14:15 - `DOC - Add Questions And Decisions Section To Pasta Path Index`

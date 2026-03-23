@@ -80,6 +80,8 @@ type ConsoleCommandName =
   | 'history'
   | 'frame'
   | 'zoom'
+  | 'pan'
+  | 'orbit'
   | 'move'
   | 'rotate'
   | 'scale'
@@ -233,6 +235,8 @@ const parseConsoleCommand = (
     f: 'frame',
     zoom: 'zoom',
     z: 'zoom',
+    pan: 'pan',
+    orbit: 'orbit',
     move: 'move',
     m: 'move',
     rotate: 'rotate',
@@ -249,6 +253,38 @@ const parseConsoleCommand = (
     args,
     argumentText,
   }
+}
+
+const normalizeConsoleBranchTokens = (args: string[]): string[] =>
+  args
+    .map((token) => token.trim())
+    .filter((token) => token.length > 0 && token !== '>')
+    .map((token) => token.toLowerCase())
+
+const parseZoomCommandAction = (
+  args: string[],
+): 'all' | 'extents' | 'previous' | 'window' | 'object' | null => {
+  const normalizedTokens = normalizeConsoleBranchTokens(args)
+  const terminalToken = normalizedTokens.at(-1) ?? null
+  if (terminalToken === null) {
+    return null
+  }
+  if (terminalToken === 'a' || terminalToken === 'all') {
+    return 'all'
+  }
+  if (terminalToken === 'e' || terminalToken === 'extents') {
+    return 'extents'
+  }
+  if (terminalToken === 'p' || terminalToken === 'previous') {
+    return 'previous'
+  }
+  if (terminalToken === 'w' || terminalToken === 'window') {
+    return 'window'
+  }
+  if (terminalToken === 'o' || terminalToken === 'object') {
+    return 'object'
+  }
+  return null
 }
 
 const formatStagedBreadcrumb = (breadcrumb: string[]): string => breadcrumb.join(' > ')
@@ -547,11 +583,19 @@ const getStagedScopeLabel = (session: ConsoleStagedNavigationSession | null): st
   switch (session.scopeId) {
     case 'root':
       return 'Root'
+    case 'zoomRoot':
+      return 'Zoom'
     case 'radioRoot':
       return 'Radio'
     case 'graphRoot':
     case 'graphSelected':
       return 'Graph'
+    case 'graphZoomRoot':
+      return 'Graph > Zoom'
+    case 'graphZoomCanvas':
+      return 'Graph > Zoom > Canvas'
+    case 'graphZoomModelViewport':
+      return 'Graph > Zoom > Model Viewport'
     case 'graphNodeList':
     case 'graphNodeSelected':
       return 'Focus Node'
@@ -1293,6 +1337,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
     if (stepActiveStagedNavigationSessionOneLevel()) {
       return
     }
+    getViewer()?.setConsoleCameraMode(null)
     const spaghettiState = useSpaghettiStore.getState()
     if (spaghettiState.sketchPlanePickSession !== null) {
       spaghettiState.runSketchPlaneCommand('esc')
@@ -1339,6 +1384,30 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
       nodeLabel: `${labelPrefix}_[${existingNodeCount + 1}]`,
       stagedContext: buildStagedNavigationContextFromStoreState(updatedState),
     }
+  }, [])
+
+  const resolveSelectedReferenceIdForZoom = useCallback((): string | null => {
+    const appState = useAppStore.getState()
+    const selectedTarget = appState.workspaceSelection.selectedTarget
+    if (selectedTarget?.kind === 'reference-item') {
+      return selectedTarget.referenceId
+    }
+    return appState.referenceWorkspace.activeTransformReferenceId
+  }, [])
+
+  const resolveEditorViewportIdForGraphDocument = useCallback((graphDocumentId: string): string | null => {
+    const spaghettiState = useSpaghettiStore.getState()
+    const activeViewport =
+      spaghettiState.editorViewportsById[spaghettiState.activeEditorViewportId] ?? null
+    if (activeViewport?.graphDocumentId === graphDocumentId) {
+      return activeViewport.editorViewportId
+    }
+    return (
+      spaghettiState.editorViewportOrder.find((editorViewportId) => {
+        const viewport = spaghettiState.editorViewportsById[editorViewportId]
+        return viewport?.graphDocumentId === graphDocumentId
+      }) ?? null
+    )
   }, [])
 
   const handleSubmitCommand = useCallback(
@@ -1479,18 +1548,22 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
 
       const shouldHandleAsStagedNavigation =
         (activeStagedSession !== null && activeStagedSession.scopeId !== 'root') ||
-        isConsoleStagedNavigationRootToken(inputText)
+        (
+          spaghettiState.sketchPlanePickSession === null &&
+          spaghettiState.geometrySketchSession?.mode !== 'draw' &&
+          isConsoleStagedNavigationRootToken(inputText)
+        )
 
       if (shouldHandleAsStagedNavigation) {
         const rawToken = inputText.trim()
+        const normalizedRawToken = normalizeRadioCommandIdentity(rawToken)
         if (
           (
             (activeStagedSession === null &&
               isConsoleStagedNavigationRootToken(inputText)) ||
             activeStagedSession?.scopeId === 'root'
           ) &&
-          normalizeRadioCommandIdentity(rawToken) !== 'RADIO' &&
-          normalizeRadioCommandIdentity(rawToken) !== 'R'
+          (normalizedRawToken === 'GRAPH' || normalizedRawToken === 'G')
         ) {
           graphRootEditorRevealRestoreRef.current = ensureSpaghettiEditorVisibleForGraphRoot()
           if (spaghettiState.activeGraphDocumentId.length > 0) {
@@ -1800,6 +1873,173 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
               severity: 'info',
             })
             requestRadioBurst(commandIdentity, 'enter')
+            return
+          }
+          if (
+            stagedResult.actionId === 'camera.pan' ||
+            stagedResult.actionId === 'camera.orbit' ||
+            stagedResult.actionId === 'zoom.model.all' ||
+            stagedResult.actionId === 'zoom.model.extents' ||
+            stagedResult.actionId === 'zoom.model.previous' ||
+            stagedResult.actionId === 'zoom.model.window' ||
+            stagedResult.actionId === 'zoom.model.object' ||
+            stagedResult.actionId === 'zoom.canvas.all' ||
+            stagedResult.actionId === 'zoom.canvas.extents' ||
+            stagedResult.actionId === 'zoom.canvas.previous' ||
+            stagedResult.actionId === 'zoom.canvas.window' ||
+            stagedResult.actionId === 'zoom.canvas.object'
+          ) {
+            const viewer = getViewer()
+            const appState = useAppStore.getState()
+            const selectedReferenceId = resolveSelectedReferenceIdForZoom()
+            const commandLabel = formatStagedBreadcrumb(stagedResult.breadcrumb)
+            const executeModelZoomObject = (): boolean => {
+              if (appState.selectedPartKey !== null) {
+                viewer?.frameSelected(appState.selectedPartKey)
+                return true
+              }
+              if (selectedReferenceId !== null) {
+                viewer?.frameReference(selectedReferenceId)
+                return true
+              }
+              appendConsoleEntry({
+                layer: 'Diagnostics',
+                text: 'Zoom Object requires a selected part or reference',
+                source: 'console',
+                severity: 'warn',
+              })
+              return false
+            }
+
+            const executeCanvasZoomAction = (
+              action: 'all' | 'extents' | 'previous' | 'window' | 'object',
+            ): boolean => {
+              const graphDocumentId = stagedResult.selections.graphDocumentId
+              if (graphDocumentId === null) {
+                appendConsoleEntry({
+                  layer: 'Diagnostics',
+                  text: 'Graph zoom requires an active graph selection',
+                  source: 'console',
+                  severity: 'warn',
+                })
+                return false
+              }
+              const editorViewportId = resolveEditorViewportIdForGraphDocument(graphDocumentId)
+              if (editorViewportId === null) {
+                appendConsoleEntry({
+                  layer: 'Diagnostics',
+                  text: 'Graph zoom requires an open editor viewport for the selected graph',
+                  source: 'console',
+                  severity: 'warn',
+                })
+                return false
+              }
+              const spaghettiState = useSpaghettiStore.getState()
+              if (action === 'all' || action === 'extents') {
+                spaghettiState.requestEditorViewportCanvasFit(editorViewportId)
+                appendConsoleEntry({
+                  layer: 'View',
+                  text: 'Graph canvas zoom extents',
+                  source: 'console',
+                  severity: 'info',
+                })
+                return true
+              }
+              if (action === 'object') {
+                const selectedNodeId = spaghettiState.selectedNodeId
+                const selectedGraph = selectGraphDocumentById(spaghettiState, graphDocumentId)?.graph ?? null
+                const selectedNodeExists =
+                  selectedNodeId !== null &&
+                  (selectedGraph?.nodes.some((node) => node.nodeId === selectedNodeId) ?? false)
+                if (!selectedNodeExists || selectedNodeId === null) {
+                  appendConsoleEntry({
+                    layer: 'Diagnostics',
+                    text: 'Graph canvas Zoom Object requires a selected node in the current graph',
+                    source: 'console',
+                    severity: 'warn',
+                  })
+                  return false
+                }
+                spaghettiState.requestEditorViewportNodeFit(editorViewportId, selectedNodeId)
+                appendConsoleEntry({
+                  layer: 'View',
+                  text: `Graph canvas zoom object: ${selectedNodeId}`,
+                  source: 'console',
+                  severity: 'info',
+                })
+                return true
+              }
+              appendConsoleEntry({
+                layer: 'Diagnostics',
+                text: `Graph canvas ${action === 'previous' ? 'Zoom Previous' : 'Zoom Window'} is not implemented yet`,
+                source: 'console',
+                severity: 'warn',
+              })
+              return false
+            }
+
+            appendConsoleEntry({
+              layer: 'Commands',
+              text: commandLabel,
+              source: 'console',
+              severity: 'info',
+            })
+
+            let actionSucceeded = true
+            if (stagedResult.actionId === 'camera.pan' || stagedResult.actionId === 'camera.orbit') {
+              viewer?.setConsoleCameraMode(
+                stagedResult.actionId === 'camera.pan' ? 'pan' : 'orbit',
+              )
+              appendConsoleEntry({
+                layer: 'View',
+                text:
+                  stagedResult.actionId === 'camera.pan'
+                    ? 'Pan armed: drag in the viewport with LMB'
+                    : 'Orbit armed: drag in the viewport with LMB',
+                source: 'console',
+                severity: 'info',
+              })
+            } else if (
+              stagedResult.actionId === 'zoom.model.all' ||
+              stagedResult.actionId === 'zoom.model.extents'
+            ) {
+              viewer?.frameAll()
+            } else if (stagedResult.actionId === 'zoom.model.previous') {
+              viewer?.framePrevious()
+            } else if (stagedResult.actionId === 'zoom.model.window') {
+              appendConsoleEntry({
+                layer: 'Diagnostics',
+                text: 'Zoom Window is not implemented yet',
+                source: 'console',
+                severity: 'warn',
+              })
+              actionSucceeded = false
+            } else if (stagedResult.actionId === 'zoom.model.object') {
+              actionSucceeded = executeModelZoomObject()
+            } else {
+              const canvasAction =
+                stagedResult.actionId === 'zoom.canvas.all'
+                  ? 'all'
+                  : stagedResult.actionId === 'zoom.canvas.extents'
+                    ? 'extents'
+                    : stagedResult.actionId === 'zoom.canvas.previous'
+                      ? 'previous'
+                      : stagedResult.actionId === 'zoom.canvas.window'
+                        ? 'window'
+                        : 'object'
+              actionSucceeded = executeCanvasZoomAction(canvasAction)
+            }
+
+            setStagedNavigationSession(stagedResult.session)
+            appendConsoleEntry({
+              layer: 'Commands',
+              text: buildStagedPromptText(stagedResult.session, stagedResult.session.validChoices),
+              source: 'console',
+              severity: 'info',
+            })
+            if (actionSucceeded) {
+              requestRadioBurst(commandIdentity, 'enter')
+            }
             return
           }
           if (
@@ -2480,7 +2720,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
           requestRadioBurst(flatCommandIdentity, 'enter')
           appendConsoleEntry({
             layer: 'Commands',
-            text: 'Commands: help, console, clear, history, frame, zoom, move, rotate, scale, snap, echo, status',
+            text: 'Commands: help, console, clear, history, frame, zoom, pan, orbit, move, rotate, scale, snap, echo, status',
             severity: 'info',
           })
           return
@@ -2540,14 +2780,73 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
           })
           return
         case 'zoom':
-          viewer?.frameSelected(appState.selectedPartKey)
+          {
+            const zoomAction = parseZoomCommandAction(parsed.args)
+            if (zoomAction === null) {
+              const stagedResult = submitConsoleStagedNavigationToken(
+                null,
+                'zoom',
+                buildStagedNavigationContextFromStoreState(useSpaghettiStore.getState()),
+              )
+              if (stagedResult.kind === 'advance') {
+                setStagedNavigationSession(stagedResult.session)
+                appendConsoleEntry({
+                  layer: 'Commands',
+                  text: buildStagedPromptText(stagedResult.session, stagedResult.validChoices),
+                  source: 'console',
+                  severity: 'info',
+                })
+                requestRadioBurst(flatCommandIdentity, 'enter')
+                return
+              }
+            }
+            const selectedReferenceId = resolveSelectedReferenceIdForZoom()
+            if (zoomAction === 'all' || zoomAction === 'extents') {
+              viewer?.frameAll()
+            } else if (zoomAction === 'previous') {
+              viewer?.framePrevious()
+            } else if (zoomAction === 'window') {
+              appendConsoleEntry({
+                layer: 'Diagnostics',
+                text: 'Zoom Window is not implemented yet',
+                source: 'console',
+                severity: 'warn',
+              })
+              requestRadioBurst(flatCommandIdentity, 'enter')
+              return
+            } else if (appState.selectedPartKey !== null) {
+              viewer?.frameSelected(appState.selectedPartKey)
+            } else if (selectedReferenceId !== null) {
+              viewer?.frameReference(selectedReferenceId)
+            } else {
+              appendConsoleEntry({
+                layer: 'Diagnostics',
+                text: 'Zoom Object requires a selected part or reference',
+                source: 'console',
+                severity: 'warn',
+              })
+              requestRadioBurst(flatCommandIdentity, 'enter')
+              return
+            }
+            requestRadioBurst(flatCommandIdentity, 'enter')
+          }
+          return
+        case 'pan':
+          viewer?.setConsoleCameraMode('pan')
           requestRadioBurst(flatCommandIdentity, 'enter')
           appendConsoleEntry({
             layer: 'View',
-            text:
-              appState.selectedPartKey === null
-                ? 'Zoom selected: no active part, framed all'
-                : `Zoom selected: ${appState.selectedPartKey}`,
+            text: 'Pan armed: drag in the viewport with LMB',
+            source: 'console',
+            severity: 'info',
+          })
+          return
+        case 'orbit':
+          viewer?.setConsoleCameraMode('orbit')
+          requestRadioBurst(flatCommandIdentity, 'enter')
+          appendConsoleEntry({
+            layer: 'View',
+            text: 'Orbit armed: drag in the viewport with LMB',
             source: 'console',
             severity: 'info',
           })
@@ -2633,6 +2932,8 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
       enterGuidedRootSession,
       pushCommandHistory,
       requestRadioBurst,
+      resolveEditorViewportIdForGraphDocument,
+      resolveSelectedReferenceIdForZoom,
       setStagedNavigationSession,
       trackRadioCommandIdentity,
     ],

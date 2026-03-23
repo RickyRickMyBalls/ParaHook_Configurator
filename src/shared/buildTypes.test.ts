@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  DEFAULT_BUILD_EXECUTION_INTENT,
   isPartArtifact,
   parsePartKeyString,
   partKeyToString,
@@ -46,6 +47,15 @@ describe('buildTypes PartArtifact contract', () => {
     expect(toViewerRenderablePart(cubeArtifact(), 's001')).toEqual({
       viewerKey: 's001',
       artifact: cubeArtifact(),
+    })
+  })
+
+  it('exports the canonical default execution intent for live graph builds', () => {
+    expect(DEFAULT_BUILD_EXECUTION_INTENT).toEqual({
+      buildMode: 'final',
+      quality: 'full',
+      updatePolicy: 'auto',
+      outputIntent: 'accepted_final',
     })
   })
 })

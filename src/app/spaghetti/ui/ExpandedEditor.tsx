@@ -4,6 +4,7 @@ type SpaghettiEditorViewMode = 'expanded' | 'collapsed'
 
 type ExpandedEditorProps = {
   graphDocumentId: string
+  fitCanvasRequestKey: number
   fitNodeId: string | null
   fitNodeRequestKey: number
   isMeatballView?: boolean
@@ -14,6 +15,7 @@ type ExpandedEditorProps = {
 
 export function ExpandedEditor({
   graphDocumentId,
+  fitCanvasRequestKey,
   fitNodeId,
   fitNodeRequestKey,
   isMeatballView = false,
@@ -25,6 +27,7 @@ export function ExpandedEditor({
     <div className="spaghettiCanvasHost">
       <SpaghettiCanvas
         graphDocumentId={graphDocumentId}
+        fitCanvasRequestKey={fitCanvasRequestKey}
         fitNodeId={fitNodeId}
         fitNodeRequestKey={fitNodeRequestKey}
         isMeatballView={isMeatballView}

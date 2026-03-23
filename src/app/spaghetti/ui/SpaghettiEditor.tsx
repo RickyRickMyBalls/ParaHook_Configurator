@@ -8,6 +8,7 @@ type SpaghettiEditorProps = {
   graphDocumentId: string
   viewMode: SpaghettiEditorViewMode
   focusNodeId: string | null
+  fitCanvasRequestKey: number
   fitNodeId: string | null
   fitNodeRequestKey: number
   isMeatballView?: boolean
@@ -19,6 +20,7 @@ export function SpaghettiEditor({
   graphDocumentId,
   viewMode,
   focusNodeId,
+  fitCanvasRequestKey,
   fitNodeId,
   fitNodeRequestKey,
   isMeatballView = false,
@@ -41,6 +43,7 @@ export function SpaghettiEditor({
           {graph === null ? null : viewMode === 'expanded' ? (
             <ExpandedEditor
               graphDocumentId={graphDocumentId}
+              fitCanvasRequestKey={fitCanvasRequestKey}
               fitNodeId={fitNodeId}
               fitNodeRequestKey={fitNodeRequestKey}
               isMeatballView={isMeatballView}

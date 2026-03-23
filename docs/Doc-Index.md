@@ -3,6 +3,19 @@
 ## Doc Header
 
 ### Doc History
+88. 2026-03-22 22:32: Moved the shipped `docs/Human-Plans/Architecture/Camera-Controls/Future/Camera_Controls_Phase 5.0H-4 - Camera Console Commands.md` record into `Shipped/`, refreshed `Camera_Controls-Index.md`, and updated the camera-controls subtree so the docs map now shows the console-camera cut as landed history instead of a pending future phase
+87. 2026-03-22 21:47: Added `docs/Human-Plans/Architecture/Camera-Controls/Future/Camera_Controls_Phase 5.0H-4 - Camera Console Commands.md` to the architecture docs map and refreshed `Camera_Controls-Index.md`, so the next open camera-controls cut now has a dedicated implementation-ready planning surface after the shipped sketch block, model-viewport baseline, and graph-canvas coexistence work
+86. 2026-03-22 21:11: Added `docs/Human-Plans/Architecture/Camera-Controls/Future/Camera_Controls_Phase 5.0H-3 - Spaghetti Canvas And Model Viewport Coexistence.md` to the architecture docs map and refreshed `Camera_Controls-Index.md`, so the next camera-controls cut now has a dedicated implementation-ready planning surface after the shipped sketch and model-viewport camera baseline work
+85. 2026-03-22 20:52: Moved the shipped `docs/Human-Plans/Architecture/Camera-Controls/Future/Camera_Controls_Phase 5.0H-2 - Fusion-Style Model Viewport Camera Baseline.md` record into `Shipped/`, refreshed `Camera_Controls-Index.md`, and updated the camera-controls subtree so the docs map now shows the model-viewport Fusion-style baseline as landed history instead of a pending future phase
+84. 2026-03-22 20:42: Added `docs/Human-Plans/Architecture/Camera-Controls/Future/Camera_Controls_Phase 5.0H-2 - Fusion-Style Model Viewport Camera Baseline.md` to the architecture docs map and refreshed `Camera_Controls-Index.md`, so the next camera-controls cut now has a dedicated implementation-ready future planning surface after the shipped sketch-camera ownership block
+83. 2026-03-22 20:27: Moved the shipped `5.0H-1` camera-controls record from `Future/` to `Shipped/`, refreshed `Camera_Controls-Index.md` to the post-`5.0H-1` state, and updated the camera-controls subtree listing so the docs map now shows the first camera/input cleanup cut as landed history instead of pending future work
+82. 2026-03-22 19:50: Added `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase 5.3A-4 - Dispatcher Boundary Cleanup.md` to the architecture docs map and refreshed the Worker subtree so the dispatcher-boundary cleanup now has its own dedicated future planning surface after the graph-native request/build-unit and lane/intent groundwork
+81. 2026-03-22 19:15: Moved the shipped `Worker_Phase 5.3A-3 - Worker Lane Definition And Execution-Intent Model.md` record from `Future/` to `Shipped/`, refreshed the Worker subtree listing, and kept `Worker.md` as the umbrella family doc now that the lane-definition and execution-intent cut is completed implementation history instead of a pending phase spec
+80. 2026-03-22 19:05: Added `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase 5.3A-3 - Worker Lane Definition And Execution-Intent Model.md` to the architecture docs map and refreshed the Worker subtree so the lane-definition and execution-intent follow-up now has a dedicated future planning surface after the graph-native contract phase
+79. 2026-03-22 18:09: Added `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase 5.3A-2 - Graph-Native Worker Contract And Separate-Build Identity.md` to the architecture docs map and refreshed the Worker subtree so the next graph-native worker-contract phase now has a dedicated future planning surface after the shipped `[5.3A-1]` audit
+78. 2026-03-22 18:04: Moved the shipped `Worker_Phase 5.3A-1 - Worker Audit And Legacy Startup Inventory.md` record from `Future/` to `Shipped/`, refreshed the Worker subtree listing, and kept `Worker.md` as the umbrella family doc now that the first worker audit cut is completed history instead of a pending phase spec
+77. 2026-03-22 14:57: Added `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase 5.3A-1 - Worker Audit And Legacy Startup Inventory.md` to the architecture docs map, turned `Worker` into a folderized family with `Future/` and `Shipped/`, and refreshed the architecture subtree so the new `[5.3A]` worker mini-family now has a dedicated implementation-ready phase-doc landing zone like `AppShell`
+76. 2026-03-22 14:56: Added `docs/Human-Plans/Architecture/Camera-Controls/Future/Camera_Controls_Phase 5.0H-1 - Sketch Draw Camera Blocking.md` to the architecture docs map and refreshed `Camera_Controls-Index.md`, so the first camera-controls cut now has a dedicated implementation-ready future planning surface under the `Camera-Controls` family instead of living only in the umbrella index
 75. 2026-03-22 14:12: Moved the shipped `5.0F-2` AppShell window/dock extraction record from `Future/` to `Shipped/`, refreshed `AppShell-Index.md` to the fully shipped `[5.0F]` state, and updated the AppShell subtree listing so the docs map now shows both AppShell cleanup phase records under `Shipped/`
 74. 2026-03-22 14:06: Added `docs/Human-Plans/Architecture/Pasta-Path/Pasta-Path-Index.md` to the architecture docs map as the new umbrella planning surface for the `Pasta Path` timeline/history concept, separating the graph-to-timeline vision, partial-evaluation scrub direction, and later family growth from the existing `Spaghetti Editor` and `Workspace` architecture docs
 73. 2026-03-22 13:28: Added `docs/Human-Plans/Architecture/AppShell/Future/AppShell_Phase 5.0F-2 - AppShell Window And Dock Host Extraction.md` to the architecture docs map and refreshed `AppShell-Index.md` to the post-`5.0F-1` state, so the remaining AppShell browser/editor controller cleanup now has a dedicated implementation-ready future planning surface
@@ -418,11 +431,26 @@ Rule notes:
         - `System-Map.md`
         - `Terminology-Decisions.md`
         - `v15Theme.md`
+        - `Worker/Worker.md`
         - `Workspace-Modes/Workspace-Modes-Index.md`
 #### -------AppShell
             - `AppShell-Index.md`
             - `Shipped/AppShell_Phase 5.0F-1 - AppShell Runtime Host Extraction.md`
             - `Shipped/AppShell_Phase 5.0F-2 - AppShell Window And Dock Host Extraction.md`
+#### -------Camera-Controls
+            - `Camera_Controls-Index.md`
+            - `Shipped/Camera_Controls_Phase 5.0H-1 - Sketch Draw Camera Blocking.md`
+            - `Shipped/Camera_Controls_Phase 5.0H-2 - Fusion-Style Model Viewport Camera Baseline.md`
+            - `Shipped/Camera_Controls_Phase 5.0H-3 - Spaghetti Canvas And Model Viewport Coexistence.md`
+            - `Shipped/Camera_Controls_Phase 5.0H-4 - Camera Console Commands.md`
+#### -------Pasta-Path
+            - `Pasta-Path-Index.md`
+#### -------Worker
+            - `Worker.md`
+            - `Future/Worker_Phase 5.3A-2 - Graph-Native Worker Contract And Separate-Build Identity.md`
+            - `Future/Worker_Phase 5.3A-4 - Dispatcher Boundary Cleanup.md`
+            - `Shipped/Worker_Phase 5.3A-3 - Worker Lane Definition And Execution-Intent Model.md`
+            - `Shipped/Worker_Phase 5.3A-1 - Worker Audit And Legacy Startup Inventory.md`
 #### -------Spaghetti-Editor-Arch
             - `Spaghetti-Editor-Explained.md`
             - `Nodes/Nodes-Index.md`

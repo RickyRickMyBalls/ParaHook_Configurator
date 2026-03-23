@@ -1,4 +1,5 @@
 import {
+  DEFAULT_BUILD_EXECUTION_INTENT,
   isPartArtifact,
   LEGACY_RUNTIME_GRAPH_DOCUMENT_ID,
   LEGACY_RUNTIME_PROJECT_FILE_ID,
@@ -12,6 +13,7 @@ import type {
   BuildRequest,
   BuildResult,
   BuildRoutingIdentity,
+  BuildExecutionIntent,
   BoxParams,
   WorkerError,
 } from '../shared/buildTypes'
@@ -28,6 +30,7 @@ type BuildInstances = {
 
 type BuildRequestOptions = {
   routingIdentity?: BuildRoutingIdentity
+  executionIntent?: BuildExecutionIntent
   changedParamIds?: string[]
   buildInstances?: BuildInstances
   buildStatsPartKeys?: string[]
@@ -55,6 +58,7 @@ const isBuildResult = (value: unknown): value is BuildResult => {
   }
   if (
     value.type !== 'build_result' ||
+    value.lane !== 'build' ||
     typeof value.seq !== 'number' ||
     typeof value.projectFileId !== 'string' ||
     typeof value.graphDocumentId !== 'string' ||
@@ -113,6 +117,12 @@ const isWorkerError = (value: unknown): value is WorkerError => {
   if (value.buildRequestId !== undefined && typeof value.buildRequestId !== 'string') {
     return false
   }
+  if (value.lane !== undefined && value.lane !== 'build' && value.lane !== 'export') {
+    return false
+  }
+  if (value.op === 'build' && value.lane !== 'build') {
+    return false
+  }
   return true
 }
 
@@ -131,13 +141,20 @@ const isBuildProgress = (value: unknown): value is BuildProgress => {
     return false
   }
   const phaseValid = value.phase === 'parts' || value.phase === 'assemble' || value.phase === 'export'
+  const laneValid = value.lane === undefined || value.lane === 'build' || value.lane === 'export'
   const stateValid =
     value.state === 'queued' ||
     value.state === 'cache_hit' ||
     value.state === 'building' ||
     value.state === 'done' ||
     value.state === 'error'
-  if (!phaseValid || !stateValid) {
+  if (!phaseValid || !laneValid || !stateValid) {
+    return false
+  }
+  if (value.phase === 'parts' && value.lane !== 'build') {
+    return false
+  }
+  if (value.phase === 'export' && value.lane !== 'export') {
     return false
   }
   if (value.progress01 !== undefined && typeof value.progress01 !== 'number') {
@@ -202,6 +219,9 @@ export class BuildDispatcher {
     const seq = ++this.seqCounter
     this.latestRequestedSeq = seq
     const routingIdentity = options?.routingIdentity ?? this.createLegacyRoutingIdentity(seq)
+    const executionIntent = {
+      ...(options?.executionIntent ?? DEFAULT_BUILD_EXECUTION_INTENT),
+    } satisfies BuildExecutionIntent
     const ledger = this.getOrCreateRoutingLedger(routingIdentity)
     ledger.latestRequestedSeq = seq
 
@@ -237,11 +257,13 @@ export class BuildDispatcher {
 
     const message: BuildRequest = {
       type: 'build',
+      lane: 'build',
       seq,
       projectFileId: routingIdentity.projectFileId,
       graphDocumentId: routingIdentity.graphDocumentId,
       buildRequestId: routingIdentity.buildRequestId,
       payload: params,
+      executionIntent,
       ...(changedParamIds.length > 0 ? { changedParamIds } : {}),
       ...(buildInstances === undefined
         ? {}

@@ -193,6 +193,7 @@ export function SpaghettiPanel({
     nodeId: null,
     key: 0,
   })
+  const [fitCanvasRequestKey, setFitCanvasRequestKey] = useState(0)
   const buildPolicy = useAppStore((state) => state.buildPolicy)
   const setSpaghettiGraph = useAppStore((state) => state.setSpaghettiGraph)
   const workspaceSelectedTarget = useAppStore((state) => state.workspaceSelection.selectedTarget)
@@ -222,6 +223,9 @@ export function SpaghettiPanel({
   const sharedViewerComposition = useSpaghettiStore(selectSharedViewerComposition)
   const setSelectedNodeId = useSpaghettiStore((state) => state.setSelectedNodeId)
   const editorViewportNodeFitRequest = useSpaghettiStore((state) => state.editorViewportNodeFitRequest)
+  const editorViewportCanvasFitRequest = useSpaghettiStore(
+    (state) => state.editorViewportCanvasFitRequest,
+  )
   const setUiMessage = useSpaghettiStore((state) => state.setUiMessage)
   const saveFocusedEditorViewportGraphToFile = useSpaghettiStore(
     (state) => state.saveFocusedEditorViewportGraphToFile,
@@ -492,6 +496,16 @@ export function SpaghettiPanel({
       key: editorViewportNodeFitRequest.key,
     })
   }, [editorViewportId, editorViewportNodeFitRequest])
+
+  useEffect(() => {
+    if (editorViewportCanvasFitRequest == null) {
+      return
+    }
+    if (editorViewportCanvasFitRequest.editorViewportId !== editorViewportId) {
+      return
+    }
+    setFitCanvasRequestKey(editorViewportCanvasFitRequest.key)
+  }, [editorViewportCanvasFitRequest, editorViewportId])
 
   useEffect(() => {
     if (focusNodeId !== null && availableNodeIds.has(focusNodeId)) {
@@ -1363,6 +1377,7 @@ export function SpaghettiPanel({
               graphDocumentId={graphDocumentId}
               viewMode={viewMode}
               focusNodeId={focusNodeId}
+              fitCanvasRequestKey={fitCanvasRequestKey}
               fitNodeId={fitNodeRequest.nodeId}
               fitNodeRequestKey={fitNodeRequest.key}
               isMeatballView={viewport?.windowMode === 'meatball editor view'}

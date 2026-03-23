@@ -4,6 +4,12 @@
 ### Fold Hack 3
 #### FOld Hack 4
 ###### Doc History
+133. 2026-03-22 22:32: Marked `[5.0H-4] Camera Console Commands` complete after shipping the first root/scoped `Zoom` family plus console `Pan` / `Orbit`, tightening the roadmap wording so `Zoom Object` only claims the existing selected part/reference seam and unsupported paths like `Zoom Window` stay explicitly honest
+132. 2026-03-22 21:40: Marked `[5.0H-3] Spaghetti Canvas And Model Viewport Coexistence` complete after shipping the first explicit graph-canvas/model-viewport coexistence cut, so the camera-controls family now reads as three landed slices with only camera console commands and the later shared input-owner model still open
+131. 2026-03-22 20:52: Marked `[5.0H-2] Fusion-Style Model Viewport Camera Baseline` complete after shipping the first Fusion-style remap of the model-viewport camera controls, so the parent `[5.0H]` camera-controls family now reads as two landed cuts with only graph-canvas coexistence, console camera commands, and the later shared input-owner model still open
+130. 2026-03-22 20:27: Marked `[5.0H-1] Sketch Draw Camera Blocking` complete after shipping the first viewer-side sketch camera block, so plain viewport `LMB` no longer belongs to camera orbit while `Sketch Draw` is open, temporary orbit-drag bridge requests are ignored under the same condition, and the parent `[5.0H]` camera-controls family now reads as partial with the broader gesture remap still deferred to `[5.0H-2]` through `[5.0H-5]`
+129. 2026-03-22 18:04: Marked `[5.3A-1] Worker Audit And Legacy Startup Inventory` complete after shipping the read-only audit record into the Worker `Shipped/` family, and moved `[5.3]` plus `[5.3A]` to partial status now that the worker lane has a completed first audit cut but the graph-native contract work is still open
+128. 2026-03-22 14:57: Expanded `[5.3] Build Sequencing, Build Bars, And Output Build Control` into a real worker/build mini-family `[5.3A]` with standalone subphases `[5.3A-1]` through `[5.3A-7]`, so the graph-native worker contract, dispatcher cleanup, legacy startup removal, stronger Browser/Console build truth, and later Pasta-Path-ready result semantics now have one concrete roadmap home instead of living only in `Worker.md`
 127. 2026-03-22 14:12: Marked `[5.0F-2] AppShell Window And Dock Host Extraction` complete after shipping the new `BrowserDockHost`, `SpaghettiWindowHost`, and shared dock-controller seam, and closed the parent `[5.0F]` bridge family now that both AppShell cleanup subphases are landed
 126. 2026-03-22 13:56: Reworked `[3.2A] Data Types And Sketch Foundation` into a parent family, preserving the shipped original cut as `[3.2A-0]` and adding new open `[3.2A-1]` through `[3.2A-4]` subphases so the `EWR` and geometry-node hierarchy planning from `Nodes-Index.md` now has a real roadmap home under the existing foundational geometry lane instead of floating as a separate side plan
 125. 2026-03-22 13:10: Marked `[5.0F-1] AppShell Runtime Host Extraction` complete after shipping the new mounted `RadioRuntimeHost` seam, moving the radio/sampler runtime cluster and hidden SoundCloud bridge out of `AppShell`, and keeping the parent `[5.0F]` family open only for the later browser/editor shell-controller extraction
@@ -280,7 +286,15 @@ Status legend:
 - [x] `[5.0G-2]` `Cascade Cleanup And Override Reduction`
 - [~] `[5.1]` `Workspace Modes`
 - [ ] `[5.2]` `Control Viz And Graph-Driven Control Surfaces`
-- [ ] `[5.3]` `Build Sequencing, Build Bars, And Output Build Control`
+- [~] `[5.3]` `Build Sequencing, Build Bars, And Output Build Control`
+- [~] `[5.3A]` `Worker And Graph-Native Build Contract`
+- [x] `[5.3A-1]` `Worker Audit And Legacy Startup Inventory`
+- [ ] `[5.3A-2]` `Graph-Native Worker Contract And Separate-Build Identity`
+- [x] `[5.3A-3]` `Worker Lane Definition And Execution-Intent Model`
+- [ ] `[5.3A-4]` `Dispatcher Boundary Cleanup`
+- [ ] `[5.3A-5]` `Legacy Runtime And Startup Fallback Removal`
+- [ ] `[5.3A-6]` `Result Semantics, Browser Truth, And Console Truth`
+- [ ] `[5.3A-7]` `Graph-Native Worker Cutover And Legacy Contract Deletion`
 - [ ] `[5.4]` `Advanced Output Types And Later Project Packaging`
 - [ ] `[5.5]` `Publish / Receive Execution`
 - [ ] `[5.6]` `Final Legacy Phase-Out And Compatibility Cleanup`
@@ -2288,7 +2302,7 @@ CheckList:
 - [x] keep responsive and narrow-screen overrides grouped predictably instead of scattering them across unrelated surface blocks
 - [x] verify the split theme still preserves the current shipped behavior before any later visual polish work starts
 
-### [5.0H] [ ] - `Camera Controls And View Input Ownership`
+### [5.0H] [~] - `Camera Controls And View Input Ownership`
 
 Summary:
 - narrow bridge family for cleaning up camera gestures and view-input ownership before `[5.1] Workspace Modes` broadens cross-surface hosting and intent routing
@@ -2299,10 +2313,10 @@ Summary:
   - not just a console phase
 
 CheckList:
-- [ ] block camera interference during `Sketch Draw` selection and draw interactions
-- [ ] land the Fusion-style model viewport gesture baseline
-- [ ] preserve `Spaghetti Editor` canvas ownership while supporting optional pass-through to the model viewport
-- [ ] add first camera console commands such as `ZOOM`, `PAN`, and `ORBIT`
+- [x] block camera interference during `Sketch Draw` selection and draw interactions
+- [x] land the Fusion-style model viewport gesture baseline
+- [x] preserve `Spaghetti Editor` canvas ownership while supporting optional pass-through to the model viewport
+- [x] add first camera console commands such as `ZOOM`, `PAN`, and `ORBIT`
 - [ ] introduce the later shared view-input owner model for gizmos, widgets, selection, and camera
 - [ ] keep this bridge family narrow:
   - do not absorb the full workspace-surface host model from `[5.1]`
@@ -2315,65 +2329,69 @@ Sub-phase labels for the recommended cleanup split:
 - `[5.0H-4]` Camera Console Commands
 - `[5.0H-5]` Shared View Input Owner Model
 
-### [5.0H-1] [ ] - `Sketch Draw Camera Blocking`
+### [5.0H-1] [x] - `Sketch Draw Camera Blocking`
 
 Summary:
 - stop plain camera navigation from stealing `Sketch Draw` click and drag ownership while the sketch session is active
 - make this the first cleanup cut because it unblocks honest testing of shipped `DS-3` selection and later sketch follow-ons
 
 CheckList:
-- [ ] stop plain camera orbit/pan from stealing `LMB` click or drag inside idle `Sketch Draw`
-- [ ] stop plain camera orbit/pan from stealing `LMB` click or drag while a sketch draw tool is active
-- [ ] make idle `Sketch Draw` reliably own click selection, `Window`, and `Crossing`
-- [ ] keep non-conflicting camera navigation available through intentional alternate gestures during sketch work
-- [ ] verify `Sketch Draw` selection and delete can be tested end to end without orbit interference
+- [x] stop plain camera orbit/pan from stealing `LMB` click or drag inside idle `Sketch Draw`
+- [x] stop plain camera orbit/pan from stealing `LMB` click or drag while a sketch draw tool is active
+- [x] make idle `Sketch Draw` reliably own click selection, `Window`, and `Crossing`
+- [x] keep non-conflicting camera navigation available through intentional alternate gestures during sketch work
+- [x] verify `Sketch Draw` selection and delete can be tested end to end without orbit interference
 
-### [5.0H-2] [ ] - `Fusion-Style Model Viewport Camera Baseline`
+### [5.0H-2] [x] - `Fusion-Style Model Viewport Camera Baseline`
 
 Summary:
 - lock the model viewport onto the preferred Fusion-style gesture map so camera behavior stops drifting across different temporary shortcuts
 - keep this specific to the 3D model viewport rather than broadening it into graph-canvas behavior
 
 CheckList:
-- [ ] change model viewport wheel behavior to consistent mouse-point zoom
-- [ ] change model viewport `MMB` drag to pan
-- [ ] change model viewport `Shift + MMB` drag to orbit
-- [ ] add `MMB` double-click zoom-fit behavior
-- [ ] define the first zoom-fit target rule for visible/selected/active content
-- [ ] verify the new gesture map does not break current viewport authoring interactions
+- [x] change model viewport wheel behavior to consistent mouse-point zoom
+- [x] change model viewport `MMB` drag to pan
+- [x] change model viewport `Ctrl + MMB` drag to orbit
+- [x] add `MMB` double-click zoom-fit behavior
+- [x] define the first zoom-fit target rule for visible/selected/active content
+- [x] verify the new gesture map does not break current viewport authoring interactions
 
-### [5.0H-3] [ ] - `Spaghetti Canvas And Model Viewport Coexistence`
+### [5.0H-3] [x] - `Spaghetti Canvas And Model Viewport Coexistence`
 
 Summary:
 - preserve the graph canvas as its own 2D navigation/edit surface while still allowing explicit access to the model viewport when both are visible
 - keep surface ownership honest instead of letting the model camera silently win from inside the graph canvas
 
 CheckList:
-- [ ] preserve graph-canvas pointer-centered wheel zoom
-- [ ] preserve graph-canvas pan behavior on the canvas surface
-- [ ] preserve plain `LMB` graph editing ownership on nodes, wires, and empty-canvas interactions
-- [ ] explicitly prevent model-camera gestures from stealing default canvas navigation/edit input
-- [ ] add the optional `Ctrl` pass-through bridge for model viewport zoom/pan/orbit
-- [ ] verify the active surface stays obvious and predictable while both surfaces are visible
+- [x] preserve graph-canvas pointer-centered wheel zoom
+- [x] preserve graph-canvas pan behavior on the canvas surface
+- [x] preserve plain `LMB` graph editing ownership on nodes, wires, and empty-canvas interactions
+- [x] explicitly prevent model-camera gestures from stealing default canvas navigation/edit input
+- [x] add the explicit `Shift`-modified pass-through bridge for model viewport zoom/pan/orbit
+- [x] verify the active surface stays obvious and predictable while both surfaces are visible
 
-### [5.0H-4] [ ] - `Camera Console Commands`
+### [5.0H-4] [x] - `Camera Console Commands`
 
 Summary:
 - add the first real camera/view command family so camera control is not mouse-only
 - use an AutoCAD-style `ZOOM` baseline, plus simple `PAN` and `ORBIT`, while keeping command targeting honest about which surface is active
 
 CheckList:
-- [ ] add a `ZOOM` / `Z` console command family
-- [ ] add first zoom sub-options:
-  - [ ] `A` = `All`
-  - [ ] `E` = `Extents`
-  - [ ] `P` = `Previous`
-  - [ ] `W` = `Window`
-  - [ ] `O` = `Object`
-- [ ] add `PAN` console command
-- [ ] add `ORBIT` console command
-- [ ] support `Zoom Object` with both preselection and command-first flows
-- [ ] bind camera console commands to the active view surface without confusing the graph canvas with the 3D model camera
+- [x] add a root `ZOOM` / `Z` console command family
+- [x] add first model-viewport zoom sub-options:
+  - [x] `A` = `All`
+  - [x] `E` = `Extents`
+  - [x] `P` = `Previous`
+  - [x] `W` = `Window`
+  - [x] `O` = `Object`
+- [x] reuse `Zoom` under `Graph` with canvas-first defaults
+- [x] add `PAN` console command
+- [x] add `ORBIT` console command
+- [x] support first-cut `Zoom Object` from current selected part/reference truth
+- [x] keep unsupported paths explicit instead of faking them:
+  - [x] `Zoom Window`
+  - [x] `Graph > Zoom > Canvas > Previous`
+- [x] bind camera console commands to the intended target surface without confusing the graph canvas with the 3D model camera
 
 ### [5.0H-5] [ ] - `Shared View Input Owner Model`
 
@@ -2453,7 +2471,7 @@ CheckList:
 - [ ] define source control vs downstream offset rules
 - [ ] define how control surfaces drive graph params cleanly
 
-### [5.3] [ ] - `AS / SP` - `Build Sequencing, Build Bars, And Output Build Control`
+### [5.3] [~] - `AS / SP` - `Build Sequencing, Build Bars, And Output Build Control`
 
 Summary:
 - later lane for truthful per-object/per-part build bars, staged build sequencing, rebuild policies, and mesh/combine control above the current graph-local build memory work
@@ -2477,6 +2495,125 @@ CheckList:
 - [ ] define deferred mesh/combine behavior across objects/assemblies
 - [ ] define the graph-native worker request/result contract that should replace the current legacy compatibility path
 - [ ] remove dependence on graph-to-legacy request translation once the graph-native contract is real
+
+Worker/build sub-phase labels for the current cleanup split:
+- `[5.3A]` Worker And Graph-Native Build Contract
+- `[5.3A-1]` Worker Audit And Legacy Startup Inventory
+- `[5.3A-2]` Graph-Native Worker Contract And Separate-Build Identity
+- `[5.3A-3]` Worker Lane Definition And Execution-Intent Model
+- `[5.3A-4]` Dispatcher Boundary Cleanup
+- `[5.3A-5]` Legacy Runtime And Startup Fallback Removal
+- `[5.3A-6]` Result Semantics, Browser Truth, And Console Truth
+- `[5.3A-7]` Graph-Native Worker Cutover And Legacy Contract Deletion
+
+### [5.3A] [~] - `Worker And Graph-Native Build Contract`
+
+Summary:
+- mini-family under `[5.3]` for the deeper worker/runtime cleanup that will make build sequencing, build bars, Browser truth, and Console truth honest
+- use this family to stage the worker rewrite without absorbing unrelated later output packaging or publish/receive work
+
+CheckList:
+- [x] audit the current worker/runtime and legacy startup path
+- [ ] define the graph-native worker contract and separate-build identity
+- [x] define the permanent worker lanes and execution-intent model
+- [ ] thin the dispatcher around the real seams
+- [ ] remove legacy startup/runtime fallback behavior
+- [ ] strengthen results so Browser and Console can present honest build truth
+- [ ] cut over fully to the graph-native worker contract and delete legacy compatibility glue
+
+### [5.3A-1] [x] - `Worker Audit And Legacy Startup Inventory`
+
+Summary:
+- first audit the real current worker/build system before changing the contract
+- use this to map the live request/result/progress lanes, startup auto-build path, old `assembled` narration, and all surviving foothook-era fallback assumptions
+
+CheckList:
+- [x] map the live `build`, `assemble`, and planned `export` lanes that actually exist today
+- [x] inventory startup auto-build behavior and where it is triggered
+- [x] inventory legacy defaults such as:
+  - `heelKickInstances`
+  - `toeHookInstances`
+  - `LEGACY_BUILD_STATS_PART_ORDER`
+  - legacy `assembled` startup narration
+- [x] identify where Browser and Console are still reading legacy worker/build truth instead of graph-native truth
+
+### [5.3A-2] [ ] - `Graph-Native Worker Contract And Separate-Build Identity`
+
+Summary:
+- define the honest graph-native worker contract
+- lock what the first real separate-build unit is, what routing identity must survive, and what child-versus-parent rebuild ownership means
+
+CheckList:
+- [ ] define the request shape that should replace `payload: BoxParams`
+- [ ] define the first honest build unit for separate-building
+- [ ] lock child rebuild versus parent aggregate-status rules into request/result semantics
+- [ ] require startup/build identity to come from real graph outputs instead of fake fallback `baseplate` / `heelKick` / `toeHook` assumptions
+
+### [5.3A-3] [x] - `Worker Lane Definition And Execution-Intent Model`
+
+Summary:
+- decide what job types the worker permanently owns
+- use this to define whether `build`, `preview`, `assemble`, and later `export` remain separate lanes or become clearer graph-native modes
+
+CheckList:
+- [x] define the permanent worker lane set and what each lane returns/reports
+- [x] decide whether `assemble` survives honestly or is removed instead of lingering as a startup compatibility path
+- [x] define execution-intent controls such as:
+  - preview versus final
+  - per-part or per-feature detail
+  - deferred/heavy-work toggles
+- [x] decide whether fast preview geometry is a worker mode, a viewer approximation path, or both with explicit semantics
+
+### [5.3A-4] [ ] - `Dispatcher Boundary Cleanup`
+
+Summary:
+- thin the dispatcher after the contract is stable
+- keep transport/runtime sequencing there, but stop letting it act like a second app controller for console/store publishing
+
+CheckList:
+- [ ] keep worker lifetime, stale-drop, and typed message validation in the dispatcher
+- [ ] move UI-facing side effects outward where practical
+- [ ] keep result acceptance app-owned
+- [ ] refactor around the real contract/boundary seams instead of doing a generic cleanup pass
+
+### [5.3A-5] [ ] - `Legacy Runtime And Startup Fallback Removal`
+
+Summary:
+- remove the old runtime path once the graph-native worker seam exists
+- this is where the app stops booting into fake foothook output and the worker stops treating legacy part derivation as the default base path
+
+CheckList:
+- [ ] remove default startup dependence on `heelKickInstances` and `toeHookInstances`
+- [ ] remove `LEGACY_BUILD_STATS_PART_ORDER` fallback once graph-native build identity is real
+- [ ] remove legacy fallback `baseplate` / `heelKick` / `toeHook` part derivation as the default runtime
+- [ ] ensure first app load either builds real graph truth or stays quiet/ready instead of fabricating legacy startup output
+
+### [5.3A-6] [ ] - `Result Semantics, Browser Truth, And Console Truth`
+
+Summary:
+- make worker results and progress strong enough that Browser and Console can present honest build truth
+- this is the phase where child-only rebuilds, unaffected siblings, cache-hit/building/done/error state, and aggregate parent rows become trustworthy
+
+CheckList:
+- [ ] make result semantics explicit enough to distinguish:
+  - rebuilt child units
+  - unaffected siblings
+  - aggregate parent state versus true parent rebuild
+- [ ] let Browser rows show separate-build truth without implying fake broad parent rebuilds
+- [ ] let Console transcript/progress show per-unit or per-lane runtime truth without flattening child activity into misleading parent wording
+- [ ] keep this strong enough that later `Pasta Path` rollback/scrub work can consume the same result identity
+
+### [5.3A-7] [ ] - `Graph-Native Worker Cutover And Legacy Contract Deletion`
+
+Summary:
+- final cutover from the transitional worker contract to the graph-native one
+- remove dead compatibility glue only after the earlier replacement path is proven in worker, Browser, and Console
+
+CheckList:
+- [ ] migrate callers from graph-to-legacy translation onto the graph-native request shape
+- [ ] remove dead protocol shapes and compatibility translation once the live path is stable
+- [ ] verify startup/build behavior no longer emits fallback foothook output on first app load
+- [ ] verify Browser, Console, and later workspace placement keep reading one shared worker/build truth after the cutover
 
 ### [5.4] [ ] - `AS / VR` - `Advanced Output Types And Later Project Packaging`
 

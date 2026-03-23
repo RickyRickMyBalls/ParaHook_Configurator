@@ -65,6 +65,210 @@ Do not use it for:
 
 ## Doc Body
 
+### [550] - 2026-03-22 22:32 - `VR - Phase 5.0H-4 - Camera Console Commands`
+<!-- ENTRY 550 -->
+HUMAN SUMMARY: `Shipped the first camera console layer by adding root/scoped \`Zoom\`, console \`Pan\` and \`Orbit\`, bounded camera-pose history for \`Zoom Previous\`, and a canvas-fit bridge so \`Graph > Zoom\` can target either the canvas or the model viewport without inventing a new 3D picking system.` 
+
+#### Scope / Constraints Honored
+- Kept this phase focused on console camera commands instead of widening into shared input-owner arbitration.
+- Reused the existing viewer/camera seams rather than inventing a second camera subsystem.
+- Kept `Zoom Object` grounded on current selected part/reference truth.
+- Kept unsupported paths explicit instead of faking support.
+
+#### Summary of Implementation
+- Extended `src/app/console/stagedNavigation.ts` and `src/app/console/ConsoleDock.tsx` with a reusable root `Zoom` family plus `Graph > Zoom`, root `Pan`, and root `Orbit`.
+- Added camera-command identities in `src/app/console/radioCommandIdentity.ts` and kept transcript/help behavior aligned in the console path.
+- Extended `src/viewer/Viewer.ts` and `src/app/viewerBridge.ts` with bounded camera-pose history, `Zoom Previous`, and temporary console pan/orbit arming.
+- Added a small graph-canvas fit seam through `src/app/spaghetti/store/useSpaghettiStore.ts`, `src/app/panels/SpaghettiPanel.tsx`, and `src/app/spaghetti/canvas/SpaghettiCanvas.tsx` so `Graph > Zoom > Canvas` can frame all graph content or the currently selected node.
+
+#### Files Changed
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/stagedNavigation.ts`
+- `src/app/console/radioCommandIdentity.ts`
+- `src/app/console/ConsoleDock.test.tsx`
+- `src/app/viewerBridge.ts`
+- `src/viewer/Viewer.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/panels/SpaghettiPanel.tsx`
+- `src/app/spaghetti/ui/SpaghettiEditor.tsx`
+- `src/app/spaghetti/ui/ExpandedEditor.tsx`
+- `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
+
+#### Behavior Changes (if any)
+- Root console now supports `zoom` / `z`, `pan`, and `orbit`.
+- Root `Zoom` defaults to the model viewport and supports:
+  - `All`
+  - `Extents`
+  - `Previous`
+  - `Window` with explicit not-implemented feedback
+  - `Object` from current selected part/reference truth
+- `Graph > Zoom` now defaults to `Canvas` first and can also target `Model Viewport`.
+- Console `Pan` and `Orbit` arm one temporary model-viewport drag mode and then auto-clear after use.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/console/ConsoleDock.test.tsx`
+- `npm.cmd test -- --run src/app/panels/SpaghettiPanel.test.tsx`
+- `npm.cmd test -- --run src/app/components/ViewerHost.test.tsx src/viewer/scene/CameraController.test.ts`
+- `npm.cmd run build`
+
+### [549] - 2026-03-22 21:40 - `VR / SP - Spaghetti Canvas And Model Viewport Coexistence`
+<!-- ENTRY 549 -->
+HUMAN SUMMARY: `Implemented the first canvas/model coexistence cut so the expanded \`Spaghetti\` canvas now uses \`MMB\` for local pan, preserves plain wheel for canvas zoom, and forwards model navigation through explicit \`Shift\`-modified gestures without disturbing normal graph editing.` 
+
+#### Scope / Constraints Honored
+- Kept this phase limited to the expanded `Spaghetti` canvas coexistence surface.
+- Preserved plain `LMB` graph editing behavior.
+- Removed the old expanded-view `Ctrl + MMB` canvas orbit shortcut.
+- Kept broader input-owner arbitration and camera console commands out of scope.
+
+#### Summary of Implementation
+- Added viewer-bridge helpers for temporary pan drags and wheel-based zoom forwarding in `src/app/viewerBridge.ts`.
+- Extended `src/viewer/scene/CameraController.ts` with temporary pan drag and zoom-forward support so canvas pass-through can reuse the shipped model viewport camera behavior instead of inventing a second path.
+- Updated `src/viewer/Viewer.ts` to expose the new narrow camera-forwarding methods and aligned the viewport orbit modifier to `Ctrl + MMB` so the canvas can use the same baseline gesture with `Shift` added.
+- Reworked `src/app/spaghetti/canvas/SpaghettiCanvas.tsx` so:
+  - plain wheel still zooms the canvas
+  - plain `MMB` pans the canvas from anywhere over the canvas
+  - `Shift + wheel` forwards model zoom
+  - `Shift + MMB` forwards model pan
+  - `Shift + Ctrl + MMB` forwards model orbit
+- Added focused controller coverage for the new temporary pan and zoom helpers in `src/viewer/scene/CameraController.test.ts`.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
+- `src/app/viewerBridge.ts`
+- `src/viewer/Viewer.ts`
+- `src/viewer/scene/CameraController.ts`
+- `src/viewer/scene/CameraController.test.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- In the expanded `Spaghetti` canvas, local navigation now uses `MMB` instead of empty-background `LMB`.
+- Model viewport navigation from the canvas now requires `Shift`:
+  - `Shift + wheel` = model zoom
+  - `Shift + MMB` = model pan
+  - `Shift + Ctrl + MMB` = model orbit
+- The model viewport baseline now uses `Ctrl + MMB` for orbit.
+
+#### Verification Steps
+- Run `npm.cmd test -- --run src/viewer/scene/CameraController.test.ts`.
+- Run `npm.cmd run build`.
+
+### [548] - 2026-03-22 21:05 - `VR / SP - Sketch Draw Camera Pan Follow-Up`
+<!-- ENTRY 548 -->
+HUMAN SUMMARY: `Fixed the post-\`5.0H-2\` camera gating bug so opening \`Sketch Draw\` no longer disables the whole camera controller, which restores non-conflicting \`MMB\` pan and \`Shift + MMB\` orbit while still keeping plain \`LMB\` reserved for sketch interaction.` 
+
+#### Scope / Constraints Honored
+- Kept this as a narrow cleanup to the shipped camera baseline and sketch-camera ownership behavior.
+- Preserved plain `LMB` sketch ownership.
+- Did not widen into graph-canvas coexistence, console camera commands, or a new phase.
+
+#### Summary of Implementation
+- Updated `src/viewer/Viewer.ts` so `syncCameraInteractionState()` no longer disables the entire camera controller just because `Sketch Draw` is open.
+- Kept the viewer camera enabled whenever `orbitEnabled` is on, while still forcing left-button orbit ownership off.
+- Removed the blanket sketch-mode early returns from the temporary orbit seam so the non-conflicting `Shift + MMB` path remains usable during sketch sessions.
+
+#### Files Changed
+- `src/viewer/Viewer.ts`
+
+#### Behavior Changes
+- While `Sketch Draw` is open, `MMB` pan works again.
+- While `Sketch Draw` is open, `Shift + MMB` orbit also works again.
+- Plain `LMB` remains owned by sketch draw/select behavior.
+
+#### Verification Steps
+- `npm.cmd run build`
+
+### [547] - 2026-03-22 20:52 - `VR - Phase 5.0H-2 - Fusion-Style Model Viewport Camera Baseline`
+<!-- ENTRY 547 -->
+HUMAN SUMMARY: `Shipped the first Fusion-style model-viewport camera baseline by remapping OrbitControls to \`MMB\` pan, routing orbit onto \`Shift + MMB\`, adding middle-button double-click fit-to-content through \`Viewer.frameAll()\`, and preserving the shipped \`Sketch Draw\` camera block from \`5.0H-1\`.` 
+
+#### Scope / Constraints Honored
+- Kept this phase model-viewport-only.
+- Preserved the shipped `5.0H-1` `Sketch Draw` camera block.
+- Did not widen into graph-canvas coexistence, camera console commands, or the shared input-owner model.
+
+#### Summary of Implementation
+- Updated `src/viewer/scene/CameraController.ts` so the viewport baseline now uses `MMB` pan by default, clears the older competing right-button path, and keeps left-button orbit disabled unless explicitly re-enabled by the caller.
+- Updated `src/viewer/Viewer.ts` to route `Shift + MMB` through the existing temporary-orbit seam, detect `MMB` double-click to call `frameAll()`, and clear middle-button gesture drafts whenever camera input is disabled or `Sketch Draw` reclaims the viewport.
+- Updated `src/viewer/scene/CameraController.test.ts` to lock the new mouse-button baseline and preserve the temporary-orbit regression coverage.
+
+#### Files Changed
+- `src/viewer/scene/CameraController.ts`
+- `src/viewer/Viewer.ts`
+- `src/viewer/scene/CameraController.test.ts`
+
+#### Behavior Changes
+- Outside `Sketch Draw`, the model viewport now uses wheel zoom, `MMB` drag pan, `Shift + MMB` drag orbit, and `MMB` double-click zoom fit to visible content.
+- Plain `LMB` no longer participates in the default model-viewport orbit baseline.
+- The shipped `Sketch Draw` camera block continues to suppress the viewport camera path while sketch authoring is active.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/viewer/scene/CameraController.test.ts`
+- `npm.cmd run build`
+
+### [546] - 2026-03-22 20:27 - `VR / SP - Phase 5.0H-1 - Sketch Draw Camera Blocking`
+<!-- ENTRY 546 -->
+HUMAN SUMMARY: `Completed the \`5.0H-1\` camera-controls cut by blocking the viewer's left-button camera claim while \`Sketch Draw\` is open, applying the same block to temporary orbit-drag requests, and preserving the existing wheel/\`MMB\` behavior so the broader Fusion-style remap stays deferred to \`5.0H-2\`.` 
+
+#### Scope / Constraints Honored
+- Kept this phase narrow to plain `LMB` camera blocking during `Sketch Draw`.
+- Preserved wheel zoom, `MMB`, and the broader viewer control baseline for the later `[5.0H-2]` phase.
+- Did not widen into graph-canvas coexistence, camera console commands, or gizmo-input cleanup.
+
+#### Summary of Implementation
+- Extended `src/viewer/scene/CameraController.ts` with a narrow left-button ownership seam so `OrbitControls` can stop claiming `LMB` without disturbing the other mouse-button bindings.
+- Updated `src/viewer/Viewer.ts` to derive a sketch-camera block from the live geometry-sketch overlay, apply that block to the camera controller, and ignore temporary orbit-drag requests while `Sketch Draw` is open.
+- Added focused regression coverage in `src/viewer/scene/CameraController.test.ts` for disabling and restoring left-button orbit ownership without affecting the remaining camera mouse bindings.
+
+#### Files Changed
+- `src/viewer/scene/CameraController.ts`
+- `src/viewer/Viewer.ts`
+- `src/viewer/scene/CameraController.test.ts`
+
+#### Behavior Changes
+- While `Sketch Draw` is open, plain viewport `LMB` no longer belongs to camera orbit.
+- Idle `Sketch Draw` can keep single-click selection plus `Window` / `Crossing` drag ownership without camera interference.
+- Temporary orbit-drag bridge requests are ignored while `Sketch Draw` is open.
+
+#### Verification Steps
+- `cmd /c npm.cmd test -- --run src/viewer/scene/CameraController.test.ts`
+- `cmd /c npm.cmd test -- --run src/app/components/ViewerHost.test.tsx src/viewer/geometrySketchOverlay.test.ts src/app/components/ViewportOverlay.test.tsx`
+
+### [545] - 2026-03-22 19:15 - `WRK - Phase 5.3A-3 - Worker Lane Definition And Execution-Intent Model`
+<!-- ENTRY 545 -->
+HUMAN SUMMARY: `Shipped the \`5.3A-3\` worker lane-definition cut by adding explicit \`lane\` and \`executionIntent\` truth to the live build contract, defaulting normal graph builds to final/full/auto accepted-output intent, and preserving \`assemble\` only as a compatibility path instead of the target architectural lane.`
+
+#### Scope / Constraints Honored
+- Kept this phase structural and semantic instead of widening into legacy-runtime deletion, Browser redesign, or caller-specific preview policy.
+- Preserved the current `assemble` compatibility path and existing console lifecycle wording while making the canonical live build path explicit.
+- Left richer `buildUnitId` result semantics and Browser/Console truth refinement for later worker phases.
+
+#### Summary of Implementation
+- Extended `src/shared/buildTypes.ts` with the first explicit build-lane model by adding `WorkerLane`, `BuildExecutionIntent`, the canonical `DEFAULT_BUILD_EXECUTION_INTENT`, and required `lane` plus `executionIntent` fields on the live build request/result path.
+- Updated `src/app/buildDispatcher.ts`, `src/worker/worker.ts`, and `src/worker/pipeline/buildPipeline.ts` so normal graph builds now post and validate explicit `lane: 'build'` traffic with default final/full/auto/accepted-final intent, while keeping `assemble` handling alive as legacy compatibility.
+- Updated focused worker/store tests so build fixtures and expectations use the new contract without changing current runtime behavior or transcript wording.
+
+#### Files Changed
+- `src/shared/buildTypes.ts`
+- `src/app/buildDispatcher.ts`
+- `src/worker/worker.ts`
+- `src/worker/pipeline/buildPipeline.ts`
+- `src/worker/pipeline/artifactEmitter.ts`
+- `src/shared/buildTypes.test.ts`
+- `src/app/buildDispatcher.test.ts`
+- `src/worker/pipeline/buildPipeline.test.ts`
+- `src/app/console/consolePublishers.test.ts`
+- `src/app/store/useAppStore.test.ts`
+
+#### Behavior Changes
+- The canonical live build path now carries explicit lane and execution-intent truth in code.
+- Normal graph builds default to `buildMode: 'final'`, `quality: 'full'`, `updatePolicy: 'auto'`, and `outputIntent: 'accepted_final'`.
+- `assemble` remains callable but is now clearly a compatibility-only seam rather than the target permanent lane model.
+
+#### Verification Steps
+- `cmd /c npm.cmd test -- src/shared/buildTypes.test.ts src/app/buildDispatcher.test.ts src/worker/pipeline/buildPipeline.test.ts src/app/console/consolePublishers.test.ts src/app/store/useAppStore.test.ts`
+- `cmd /c npm.cmd run build`
+
 ### [544] - 2026-03-22 14:12 - `VR / SP - Phase 5.0F-2 - AppShell Window And Dock Host Extraction`
 <!-- ENTRY 544 -->
 HUMAN SUMMARY: `Completed the \`5.0F-2\` AppShell shell-controller extraction by moving browser dock/floating behavior into \`BrowserDockHost\`, spaghetti floating/split/meatball behavior into \`SpaghettiWindowHost\`, and the shared left-dock/menu controller into \`useAppShellDockController\`, leaving \`AppShell\` as the thinner workspace compositor ahead of workspace modes.` 

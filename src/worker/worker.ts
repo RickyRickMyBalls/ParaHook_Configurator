@@ -1,6 +1,7 @@
 import type {
   AssembleRequest,
   AssembleResult,
+  BuildExecutionIntent,
   BuildProgress,
   BuildRequest,
   BuildResult,
@@ -33,12 +34,29 @@ const isStringArray = (value: unknown): value is string[] =>
 const isNumberArray = (value: unknown): value is number[] =>
   Array.isArray(value) && value.every((item) => typeof item === 'number')
 
+const isBuildExecutionIntent = (value: unknown): value is BuildExecutionIntent => {
+  if (!isRecord(value)) {
+    return false
+  }
+  const buildModeValid = value.buildMode === 'preview' || value.buildMode === 'final'
+  const qualityValid = value.quality === 'draft' || value.quality === 'full'
+  const updatePolicyValid =
+    value.updatePolicy === 'auto' ||
+    value.updatePolicy === 'defer_until_release' ||
+    value.updatePolicy === 'manual'
+  const outputIntentValid =
+    value.outputIntent === 'transient_preview' ||
+    value.outputIntent === 'accepted_final'
+  return buildModeValid && qualityValid && updatePolicyValid && outputIntentValid
+}
+
 const isBuildRequest = (value: unknown): value is BuildRequest => {
   if (!isRecord(value)) {
     return false
   }
   if (
     value.type !== 'build' ||
+    value.lane !== 'build' ||
     typeof value.seq !== 'number' ||
     typeof value.projectFileId !== 'string' ||
     typeof value.graphDocumentId !== 'string' ||
@@ -47,6 +65,9 @@ const isBuildRequest = (value: unknown): value is BuildRequest => {
     return false
   }
   if (!isRecord(value.payload)) {
+    return false
+  }
+  if (!isBuildExecutionIntent(value.executionIntent)) {
     return false
   }
   if (value.changedParamIds !== undefined && !isStringArray(value.changedParamIds)) {
@@ -110,6 +131,7 @@ workerScope.addEventListener('message', async (event: MessageEvent<unknown>) => 
         type: 'worker_error',
         seq: event.data.seq,
         op: 'build',
+        lane: 'build',
         message,
         projectFileId: event.data.projectFileId,
         graphDocumentId: event.data.graphDocumentId,

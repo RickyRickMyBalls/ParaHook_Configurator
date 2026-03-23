@@ -15,7 +15,21 @@ export type BuildRoutingIdentity = {
 
 export type ViewMode = 'parts' | 'assembled'
 export type BuildPhase = 'parts' | 'assemble' | 'export'
+export type WorkerLane = 'build' | 'export'
 export type BuildProgressState = 'queued' | 'cache_hit' | 'building' | 'done' | 'error'
+export type BuildExecutionIntent = {
+  buildMode: 'preview' | 'final'
+  quality: 'draft' | 'full'
+  updatePolicy: 'auto' | 'defer_until_release' | 'manual'
+  outputIntent: 'transient_preview' | 'accepted_final'
+}
+
+export const DEFAULT_BUILD_EXECUTION_INTENT = {
+  buildMode: 'final',
+  quality: 'full',
+  updatePolicy: 'auto',
+  outputIntent: 'accepted_final',
+} as const satisfies BuildExecutionIntent
 
 export const PART_ORDER = ['baseplate', 'heelKick', 'toeHook', 'assembled'] as const
 
@@ -131,11 +145,13 @@ export const toViewerRenderablePart = (
 
 export type BuildRequest = {
   type: 'build'
+  lane: 'build'
   seq: number
   projectFileId: string
   graphDocumentId: string
   buildRequestId: string
   payload: BoxParams
+  executionIntent: BuildExecutionIntent
   changedParamIds?: string[]
   heelKickInstances?: number[]
   toeHookInstances?: number[]
@@ -149,6 +165,7 @@ export type AssembleRequest = {
 
 export type BuildResult = {
   type: 'build_result'
+  lane: 'build'
   seq: number
   projectFileId: string
   graphDocumentId: string
@@ -173,6 +190,7 @@ export type WorkerError = {
   seq: number
   op: 'assemble' | 'build' | 'export'
   message: string
+  lane?: WorkerLane
   projectFileId?: string
   graphDocumentId?: string
   buildRequestId?: string
@@ -184,6 +202,7 @@ export type BuildProgress = {
   projectFileId: string
   graphDocumentId: string
   buildRequestId: string
+  lane?: WorkerLane
   phase: BuildPhase
   partKey: string
   state: BuildProgressState

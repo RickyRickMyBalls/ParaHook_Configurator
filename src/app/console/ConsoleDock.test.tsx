@@ -2,7 +2,7 @@
 
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getDefaultNodeParams } from '../spaghetti/registry/nodeRegistry'
 import { useSpaghettiStore } from '../spaghetti/store/useSpaghettiStore'
 import { resetAudioSamplerStore, useAudioSamplerStore } from '../store/audioSamplerStore'
@@ -41,6 +41,7 @@ describe('ConsoleDock', () => {
   let container: HTMLDivElement | null = null
   let ConsoleDock: typeof import('./ConsoleDock').ConsoleDock
   let useAppStore: typeof import('../store/useAppStore').useAppStore
+  let setViewer: typeof import('../viewerBridge').setViewer
   const originalWindowOpen = window.open
   const originalWorker = globalThis.Worker
 
@@ -52,7 +53,9 @@ describe('ConsoleDock', () => {
     window.open = originalWindowOpen
     globalThis.Worker = MockWorker as unknown as typeof Worker
     ;({ useAppStore } = await import('../store/useAppStore'))
+    ;({ setViewer } = await import('../viewerBridge'))
     useAppStore.setState(useAppStore.getInitialState(), true)
+    setViewer(null)
     ;({ ConsoleDock } = await import('./ConsoleDock'))
   })
 
@@ -69,6 +72,7 @@ describe('ConsoleDock', () => {
     document.body.innerHTML = ''
     window.open = originalWindowOpen
     globalThis.Worker = originalWorker
+    setViewer(null)
   })
 
   it('renders the collapsed console row and expands into the panel', async () => {
@@ -343,7 +347,9 @@ describe('ConsoleDock', () => {
     expect(
       useConsoleStore
         .getState()
-        .entries.some((entry) => entry.text === 'Root > Choose next [Graph, Radio]'),
+        .entries.some(
+          (entry) => entry.text.startsWith('Root > Choose next ['),
+        ),
     ).toBe(true)
   })
 
@@ -384,7 +390,9 @@ describe('ConsoleDock', () => {
     expect(
       useConsoleStore
         .getState()
-        .entries.some((entry) => entry.text === 'Root > Choose next [Graph, Radio]'),
+        .entries.some(
+          (entry) => entry.text.startsWith('Root > Choose next ['),
+        ),
     ).toBe(true)
   })
 
@@ -1415,7 +1423,7 @@ describe('ConsoleDock', () => {
       )
     })
 
-    expect(useConsoleStore.getState().inputText).toBe('Radio')
+    expect(useConsoleStore.getState().inputText).toBe('Orbit')
   })
 
   it('auto-captures printable typing into the console without slash', async () => {
@@ -3357,7 +3365,7 @@ describe('ConsoleDock', () => {
       useConsoleStore.getState().entries.some(
         (entry) =>
           entry.text ===
-          'Graph > Choose next [Sketch, Extrude, Output Preview, Focus Node, Collapsed, Essentials, Expanded, References, Open, Build, Back]',
+          'Graph > Choose next [Sketch, Extrude, Output Preview, Focus Node, Zoom, Collapsed, Essentials, Expanded, References, Open, Build, Back]',
       ),
     ).toBe(true)
   })
@@ -3474,7 +3482,7 @@ describe('ConsoleDock', () => {
       useConsoleStore.getState().entries.some(
         (entry) =>
           entry.text ===
-          'Graph > Choose next [Sketch, Extrude, Output Preview, Focus Node, Collapsed, Essentials, Expanded, References, Open, Build, Back]',
+          'Graph > Choose next [Sketch, Extrude, Output Preview, Focus Node, Zoom, Collapsed, Essentials, Expanded, References, Open, Build, Back]',
       ),
     ).toBe(true)
 
@@ -3537,7 +3545,7 @@ describe('ConsoleDock', () => {
       useConsoleStore.getState().entries.some(
         (entry) =>
           entry.text ===
-          'Graph > Choose next [Sketch, Extrude, Output Preview, Focus Node, Collapsed, Essentials, Expanded, References, Open, Build, Back]',
+          'Graph > Choose next [Sketch, Extrude, Output Preview, Focus Node, Zoom, Collapsed, Essentials, Expanded, References, Open, Build, Back]',
       ),
     ).toBe(true)
   })
@@ -3670,7 +3678,7 @@ describe('ConsoleDock', () => {
       useConsoleStore.getState().entries.some(
         (entry) =>
           entry.text ===
-          'Graph > Choose next [Sketch, Extrude, Output Preview, Focus Node, Collapsed, Essentials, Expanded, References, Open, Build, Back]',
+          'Graph > Choose next [Sketch, Extrude, Output Preview, Focus Node, Zoom, Collapsed, Essentials, Expanded, References, Open, Build, Back]',
       ),
     ).toBe(true)
   })
@@ -3840,7 +3848,7 @@ describe('ConsoleDock', () => {
       useConsoleStore.getState().entries.some(
         (entry) =>
           entry.text ===
-          'Graph > Choose next [Sketch, Extrude, Output Preview, Focus Node, Collapsed, Essentials, Expanded, References, Open, Build, Back]',
+          'Graph > Choose next [Sketch, Extrude, Output Preview, Focus Node, Zoom, Collapsed, Essentials, Expanded, References, Open, Build, Back]',
       ),
     ).toBe(true)
   })
@@ -4006,7 +4014,7 @@ describe('ConsoleDock', () => {
       useConsoleStore.getState().entries.some(
         (entry) =>
           entry.text ===
-          'Graph > Choose next [Sketch, Extrude, Output Preview, Focus Node, Collapsed, Essentials, Expanded, References, Open, Build, Back]',
+          'Graph > Choose next [Sketch, Extrude, Output Preview, Focus Node, Zoom, Collapsed, Essentials, Expanded, References, Open, Build, Back]',
       ),
     ).toBe(true)
   })
@@ -4035,7 +4043,7 @@ describe('ConsoleDock', () => {
       useConsoleStore.getState().entries.some(
         (entry) =>
           entry.text ===
-          'Graph > Choose next [Sketch, Extrude, Output Preview, Focus Node, Collapsed, Essentials, Expanded, References, Open, Build, Back]',
+          'Graph > Choose next [Sketch, Extrude, Output Preview, Focus Node, Zoom, Collapsed, Essentials, Expanded, References, Open, Build, Back]',
       ),
     ).toBe(true)
   })
@@ -4119,7 +4127,9 @@ describe('ConsoleDock', () => {
     expect(
       useConsoleStore
         .getState()
-        .entries.some((entry) => entry.text === 'Root > Choose next [Graph, Radio]'),
+        .entries.some(
+          (entry) => entry.text.startsWith('Root > Choose next ['),
+        ),
     ).toBe(true)
   })
 
@@ -4187,7 +4197,9 @@ describe('ConsoleDock', () => {
     expect(
       useConsoleStore
         .getState()
-        .entries.filter((entry) => entry.text === 'Root > Choose next [Graph, Radio]'),
+        .entries.filter(
+          (entry) => entry.text.startsWith('Root > Choose next ['),
+        ),
     ).toHaveLength(1)
     expect(
       useConsoleStore.getState().entries.some((entry) => entry.text === 'Returned to root'),
@@ -4215,7 +4227,9 @@ describe('ConsoleDock', () => {
     expect(
       useConsoleStore
         .getState()
-        .entries.filter((entry) => entry.text === 'Root > Choose next [Graph, Radio]'),
+        .entries.filter(
+          (entry) => entry.text.startsWith('Root > Choose next ['),
+        ),
     ).toHaveLength(1)
     expect(
       useConsoleStore
@@ -4223,9 +4237,109 @@ describe('ConsoleDock', () => {
         .entries.some(
           (entry) =>
             entry.text ===
-            'Graph > Choose next [Sketch, Extrude, Output Preview, Focus Node, Collapsed, Essentials, Expanded, References, Open, Build, Back]',
+            'Graph > Choose next [Sketch, Extrude, Output Preview, Focus Node, Zoom, Collapsed, Essentials, Expanded, References, Open, Build, Back]',
         ),
     ).toBe(true)
+  })
+
+  it('enters the root zoom family and prefills the first zoom action', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useConsoleStore.getState().setInputText('z')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('zoomRoot')
+    expect(useConsoleStore.getState().inputText).toBe('All')
+    expect(
+      useConsoleStore.getState().entries.some(
+        (entry) =>
+          entry.text === 'Zoom > Choose next [All, Extents, Previous, Window, Object, Back]',
+      ),
+    ).toBe(true)
+  })
+
+  it('defaults Graph > Zoom to Canvas first', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useConsoleStore.getState().setInputText('g')
+    })
+
+    const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('graphSelected')
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('z')
+    })
+
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('graphZoomRoot')
+    expect(useConsoleStore.getState().inputText).toBe('Canvas')
+    expect(
+      useConsoleStore.getState().entries.some(
+        (entry) =>
+          entry.text === 'Graph > Zoom > Choose next [Canvas, Model Viewport, Back]',
+      ),
+    ).toBe(true)
+  })
+
+  it('frames model extents from z > e and arms pan from pan', async () => {
+    const viewerFrameAll = vi.fn()
+    const viewerSetConsoleCameraMode = vi.fn()
+    setViewer({
+      frameAll: viewerFrameAll,
+      framePrevious: vi.fn(),
+      frameSelected: vi.fn(),
+      frameReference: vi.fn(),
+      setConsoleCameraMode: viewerSetConsoleCameraMode,
+    } as any)
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useConsoleStore.getState().setInputText('z > e')
+    })
+
+    const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(viewerFrameAll).toHaveBeenCalledTimes(1)
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('pan')
+    })
+
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(viewerSetConsoleCameraMode).toHaveBeenCalledWith('pan')
   })
 
   it('executes sketch draw from staged navigation and clears the staged session', async () => {

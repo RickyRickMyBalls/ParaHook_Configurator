@@ -83,6 +83,7 @@ describe('console publishers', () => {
     const worker = (dispatcher as unknown as { worker: MockWorker }).worker
     worker.dispatchMessage({
       type: 'build_result',
+      lane: 'build',
       seq: 1,
       projectFileId: 'project-1',
       graphDocumentId: 'graph-a',

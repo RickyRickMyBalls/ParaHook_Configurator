@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { DEFAULT_BUILD_EXECUTION_INTENT } from '../shared/buildTypes'
 import { LEGACY_BUILD_STATS_PART_ORDER } from '../shared/buildStatsKeys'
 
 type WorkerMessageHandler = (event: MessageEvent<unknown>) => void
@@ -96,6 +97,14 @@ describe('BuildDispatcher build stats seeding', () => {
     expect(useBuildStatsStore.getState().partOrder).toEqual([
       ...LEGACY_BUILD_STATS_PART_ORDER,
     ])
+    const worker = (dispatcher as unknown as { worker: MockWorker }).worker
+    expect(worker.postedMessages[0]).toEqual(
+      expect.objectContaining({
+        type: 'build',
+        lane: 'build',
+        executionIntent: DEFAULT_BUILD_EXECUTION_INTENT,
+      }),
+    )
     dispatcher.dispose()
   })
 
@@ -120,6 +129,7 @@ describe('BuildDispatcher build stats seeding', () => {
     const worker = (dispatcher as unknown as { worker: MockWorker }).worker
     worker.dispatchMessage({
       type: 'build_result',
+      lane: 'build',
       seq: 1,
       projectFileId: 'project-1',
       graphDocumentId: 'graph-b',
@@ -163,6 +173,7 @@ describe('BuildDispatcher build stats seeding', () => {
     const worker = (dispatcher as unknown as { worker: MockWorker }).worker
     worker.dispatchMessage({
       type: 'build_result',
+      lane: 'build',
       seq: 2,
       projectFileId: 'project-1',
       graphDocumentId: 'graph-a',
@@ -172,6 +183,7 @@ describe('BuildDispatcher build stats seeding', () => {
     })
     worker.dispatchMessage({
       type: 'build_result',
+      lane: 'build',
       seq: 1,
       projectFileId: 'project-1',
       graphDocumentId: 'graph-a',
@@ -222,6 +234,7 @@ describe('BuildDispatcher build stats seeding', () => {
     const worker = (dispatcher as unknown as { worker: MockWorker }).worker
     worker.dispatchMessage({
       type: 'build_result',
+      lane: 'build',
       seq: 2,
       projectFileId: 'project-1',
       graphDocumentId: 'graph-b',
@@ -231,6 +244,7 @@ describe('BuildDispatcher build stats seeding', () => {
     })
     worker.dispatchMessage({
       type: 'build_result',
+      lane: 'build',
       seq: 1,
       projectFileId: 'project-1',
       graphDocumentId: 'graph-a',

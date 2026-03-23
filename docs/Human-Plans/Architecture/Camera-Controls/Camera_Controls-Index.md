@@ -3,6 +3,17 @@
 ## Doc Header
 
 ### Doc History
+18. 2026-03-22 22:32: Marked `[5.0H-4] Camera Console Commands` complete after shipping the first root/scoped `Zoom` family plus console `Pan` / `Orbit`, moved the standalone phase record into `Shipped/`, and advanced the camera-controls family so only the later shared input-owner model remains open
+17. 2026-03-22 21:47: Added the new standalone future phase doc for `[5.0H-4] Camera Console Commands`, so the next open camera-controls cut now has its own implementation-ready planning surface under `Future/` after the shipped sketch block, viewport baseline, and canvas/model coexistence work
+16. 2026-03-22 21:40: Marked `[5.0H-3] Spaghetti Canvas And Model Viewport Coexistence` complete after shipping the first explicit canvas/model coexistence cut, moved the standalone phase record into `Shipped/`, and advanced the family so camera console commands plus the later shared input-owner model are now the remaining open follow-ons
+15. 2026-03-22 21:26: Corrected the planned `[5.0H-3]` coexistence rule so it now clearly treats the model viewport baseline as `wheel zoom`, `MMB` pan, `Ctrl + MMB` orbit, and `MMB` double-click fit, with the canvas simply adding `Shift` to forward those same model gestures while hovered
+14. 2026-03-22 21:24: Replaced the planned `[5.0H-3]` canvas/model pass-through set with a cleaner `+Shift` rule, so while hovering the canvas the model viewport now reuses its normal camera gestures plus `Shift`: `Shift + wheel` for zoom, `Shift + MMB` for pan, and `Shift + Ctrl + MMB` for orbit
+13. 2026-03-22 21:19: Corrected the planned `[5.0H-3]` canvas/model pass-through direction so model orbit is now the simpler normal `Ctrl + MMB` gesture while `Shift + wheel` stays the canvas-to-model zoom pass-through, removing the earlier split `Ctrl + MMB` pan plus `Ctrl + Shift + MMB` orbit idea
+12. 2026-03-22 21:11: Added the new standalone future phase doc for `[5.0H-3] Spaghetti Canvas And Model Viewport Coexistence`, so the next camera-controls cut now has its own implementation-ready planning surface under `Future/` with the updated explicit pass-through direction using `Shift + wheel` for model zoom instead of the older riskier `Ctrl + wheel` idea
+11. 2026-03-22 20:52: Marked `[5.0H-2] Fusion-Style Model Viewport Camera Baseline` complete after shipping the first Fusion-style model-viewport gesture remap, moved the standalone phase record into `Shipped/`, and advanced the camera-controls family so the next open work is now the graph-canvas coexistence, console-camera, and shared-input-owner follow-on set
+10. 2026-03-22 20:42: Added the new standalone future phase doc for `[5.0H-2] Fusion-Style Model Viewport Camera Baseline`, so the next camera-controls cut now has its own implementation-ready planning surface under `Future/` instead of living only as a checklist block in the umbrella index
+9. 2026-03-22 20:27: Marked `[5.0H-1] Sketch Draw Camera Blocking` complete after shipping the first sketch-camera ownership block, moved the standalone phase record into `Shipped/`, and kept the remaining camera-controls family open for the broader viewport-baseline, canvas coexistence, console-command, and shared input-owner follow-ons
+8. 2026-03-22 14:56: Added the new standalone future phase doc for `[5.0H-1] Sketch Draw Camera Blocking`, so the first camera-controls cut now has its own implementation-ready planning surface under `Future/` instead of living only as a checklist line inside the umbrella index
 7. 2026-03-22 12:32: Reworked this moved file into the `Camera-Controls` family index, aligned the phase section to the new `[5.0H]` roadmap family, and made the folder-root doc read as the canonical umbrella surface instead of the older single-file note path
 6. 2026-03-22 12:16: Added a phased rollout section at the bottom of the camera-controls architecture note, breaking the overall camera/input cleanup into the smallest safe implementation sequence across viewport ownership, Fusion-style model gestures, graph-canvas coexistence, console view commands, and the later shared owner model for gizmos and view tools
 5. 2026-03-22 12:16: Added the first AutoCAD-style camera-console suggestions, so the architecture note now recommends a `ZOOM` / `Z` console family with sub-options like `All`, `Extents`, `Previous`, `Window`, and `Object`, plus simple `PAN` and `ORBIT` view commands
@@ -37,6 +48,10 @@ Use this folder like this:
   - later standalone camera-controls execution docs if the family needs them
 - `Shipped/`
   - later shipped records for completed camera-controls cuts if the family grows enough to justify them
+  - `Camera_Controls_Phase 5.0H-1 - Sketch Draw Camera Blocking.md`
+  - `Camera_Controls_Phase 5.0H-2 - Fusion-Style Model Viewport Camera Baseline.md`
+  - `Camera_Controls_Phase 5.0H-3 - Spaghetti Canvas And Model Viewport Coexistence.md`
+  - `Camera_Controls_Phase 5.0H-4 - Camera Console Commands.md`
 
 Current roadmap home:
 - `[5.0H] Camera Controls And View Input Ownership`
@@ -163,7 +178,7 @@ Recommended baseline:
   - reserved for authoring/selecting when a viewport tool/session is active
 - `MMB`
   - pan while held
-- `Shift + MMB`
+- `Ctrl + MMB`
   - orbit while held
 - `Wheel`
   - zoom
@@ -187,7 +202,7 @@ Use this as the default working map:
   - zoom out from the mouse position
 - `MMB Down + Drag`
   - pan
-- `Shift + MMB Down + Drag`
+- `Ctrl + MMB Down + Drag`
   - orbit
 - `MMB Double Click`
   - zoom fit
@@ -329,8 +344,8 @@ Critical rule:
 Current code truth:
 - the graph canvas already behaves like a separate zoom/pan surface more than a model camera surface
 - wheel zoom is already pointer-centered in the canvas
-- empty-background drag already pans the canvas
-- there is also an expanded-view temporary viewer-orbit path today
+- `MMB` now pans the canvas from anywhere over the canvas
+- expanded view now has an explicit `Shift`-modified model pass-through set
 
 Recommended direction:
 - keep the canvas as its own navigation surface
@@ -350,11 +365,11 @@ Recommended bridge:
 
 - while hovering the active graph canvas:
   - normal input stays canvas-local
-  - `Ctrl + Scroll`
+  - `Shift + Scroll`
     - forward zoom to the model viewport instead of the canvas
-  - `Ctrl + MMB Down + Drag`
+  - `Shift + MMB Down + Drag`
     - forward pan to the model viewport
-  - `Ctrl + Shift + MMB Down + Drag`
+  - `Shift + Ctrl + MMB Down + Drag`
     - forward orbit to the model viewport
 
 Why this is cleaner:
@@ -394,7 +409,7 @@ Near-term cleanup recommendation:
 2. make `Sketch Draw` own plain `LMB` click/drag while its session is active
 3. move camera navigation onto the Fusion-like baseline:
    - `MMB` drag = pan
-   - `Shift + MMB` drag = orbit
+   - `Ctrl + MMB` drag = orbit
    - wheel = mouse-point zoom
    - `MMB` double-click = zoom fit
 4. keep view-toolbar camera commands explicit and separate
@@ -417,67 +432,69 @@ Use this as the working direction:
 - use a Fusion-like navigation baseline:
   - scroll = mouse-point zoom
   - `MMB` drag = pan
-  - `Shift + MMB` drag = orbit
+  - `Ctrl + MMB` drag = orbit
   - `MMB` double-click = zoom fit
 - `Sketch Draw` is the first system that should force this cleanup, not a one-off exception
 
 
 ## Phases
 
-### [ ] `[5.0H-1]` - `Sketch Draw Camera Blocking`
+### [x] `[5.0H-1]` - `Sketch Draw Camera Blocking`
 
 CheckList:
-- [ ] stop plain camera orbit/pan from stealing `LMB` click or drag inside idle `Sketch Draw`
-- [ ] stop plain camera orbit/pan from stealing `LMB` click or drag while a sketch draw tool is active
-- [ ] make idle `Sketch Draw` reliably own:
+- [x] stop plain camera orbit/pan from stealing `LMB` click or drag inside idle `Sketch Draw`
+- [x] stop plain camera orbit/pan from stealing `LMB` click or drag while a sketch draw tool is active
+- [x] make idle `Sketch Draw` reliably own:
   - click selection
   - window selection
   - crossing selection
-- [ ] keep non-conflicting camera navigation available through intentional alternate gestures during sketch work
-- [ ] verify `DS-3` selection and delete can be tested end to end without orbit interference
+- [x] keep non-conflicting camera navigation available through intentional alternate gestures during sketch work
+- [x] verify `DS-3` selection and delete can be tested end to end without orbit interference
 
-### [ ] `[5.0H-2]` - `Fusion-Style Model Viewport Camera Baseline`
+### [x] `[5.0H-2]` - `Fusion-Style Model Viewport Camera Baseline`
 
 CheckList:
-- [ ] change model viewport wheel behavior to consistent mouse-point zoom
-- [ ] change model viewport `MMB` drag to pan
-- [ ] change model viewport `Shift + MMB` drag to orbit
-- [ ] add `MMB` double-click zoom-fit behavior
-- [ ] define the first zoom-fit target rule:
+- [x] change model viewport wheel behavior to consistent mouse-point zoom
+- [x] change model viewport `MMB` drag to pan
+- [x] change model viewport `Ctrl + MMB` drag to orbit
+- [x] add `MMB` double-click zoom-fit behavior
+- [x] define the first zoom-fit target rule:
   - visible model content
   - selected object
   - or active target
-- [ ] verify the new gesture map does not break current authoring interactions
+- [x] verify the new gesture map does not break current authoring interactions
 
-### [ ] `[5.0H-3]` - `Spaghetti Canvas And Model Viewport Coexistence`
-
-CheckList:
-- [ ] preserve graph-canvas pointer-centered wheel zoom
-- [ ] preserve graph-canvas pan behavior on the canvas surface
-- [ ] preserve plain `LMB` graph editing ownership on nodes, wires, and empty-canvas interactions
-- [ ] explicitly prevent model-camera gestures from stealing default canvas navigation/edit input
-- [ ] add the optional `Ctrl` pass-through bridge:
-  - [ ] `Ctrl + Scroll` forwards zoom to the model viewport
-  - [ ] `Ctrl + MMB` drag forwards pan to the model viewport
-  - [ ] `Ctrl + Shift + MMB` drag forwards orbit to the model viewport
-- [ ] verify the active surface stays obvious and predictable while both surfaces are visible
-
-### [ ] `[5.0H-4]` - `Camera Console Commands`
+### [x] `[5.0H-3]` - `Spaghetti Canvas And Model Viewport Coexistence`
 
 CheckList:
-- [ ] add a `ZOOM` / `Z` console command family
-- [ ] add first zoom sub-options:
-  - [ ] `A` = `All`
-  - [ ] `E` = `Extents`
-  - [ ] `P` = `Previous`
-  - [ ] `W` = `Window`
-  - [ ] `O` = `Object`
-- [ ] add `PAN` console command
-- [ ] add `ORBIT` console command
-- [ ] support `Zoom Object` with:
-  - [ ] preselection flow
-  - [ ] command-first then select flow
-- [ ] bind console camera commands to the active view surface without confusing the graph canvas with the 3D model camera
+- [x] preserve graph-canvas pointer-centered wheel zoom
+- [x] preserve graph-canvas pan behavior on the canvas surface
+- [x] preserve plain `LMB` graph editing ownership on nodes, wires, and empty-canvas interactions
+- [x] explicitly prevent model-camera gestures from stealing default canvas navigation/edit input
+- [x] add the explicit `Shift`-modified pass-through bridge:
+  - [x] `Shift + wheel` forwards zoom to the model viewport
+  - [x] `Shift + MMB` drag forwards pan to the model viewport
+  - [x] `Shift + Ctrl + MMB` drag forwards orbit to the model viewport
+- [x] verify the active surface stays obvious and predictable while both surfaces are visible
+
+### [x] `[5.0H-4]` - `Camera Console Commands`
+
+CheckList:
+- [x] add a root `ZOOM` / `Z` console command family as a sibling of `Graph`
+- [x] add first model-viewport zoom sub-options:
+  - [x] `A` = `All`
+  - [x] `E` = `Extents`
+  - [x] `P` = `Previous`
+  - [x] `W` = `Window`
+  - [x] `O` = `Object`
+- [x] reuse `Zoom` under `Graph` with `Canvas` first and `Model Viewport` second
+- [x] add `PAN` console command
+- [x] add `ORBIT` console command
+- [x] support first-cut `Zoom Object` from existing selected part/reference truth
+- [x] keep unsupported paths explicit:
+  - [x] `Zoom Window` returns honest not-implemented feedback
+  - [x] `Graph > Zoom > Canvas > Previous` returns honest not-implemented feedback
+- [x] bind camera console commands to the intended target surface without confusing the graph canvas with the 3D model camera
 
 ### [ ] `[5.0H-5]` - `Shared View Input Owner Model`
 

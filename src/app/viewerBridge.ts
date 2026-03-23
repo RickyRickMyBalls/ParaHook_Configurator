@@ -75,12 +75,18 @@ export interface ViewerApi {
   setCameraPreset: (preset: CameraPreset) => void
   alignCameraToGeometrySketchPlane: () => void
   frameAll: () => void
+  framePrevious: () => void
   frameSelected: (partId: string | null) => void
   frameReference: (referenceId: string) => void
   snapCameraToDirection: (dir: SnapDirection) => void
+  zoomCameraByWheelDelta: (deltaY: number) => void
+  beginTemporaryPanDrag: (startClientX: number, startClientY: number) => void
+  updateTemporaryPanDrag: (clientX: number, clientY: number) => void
+  endTemporaryPanDrag: () => void
   beginTemporaryOrbitDrag: (startClientX: number, startClientY: number) => void
   updateTemporaryOrbitDrag: (clientX: number, clientY: number) => void
   endTemporaryOrbitDrag: () => void
+  setConsoleCameraMode: (mode: 'pan' | 'orbit' | null) => void
   applyViewSettings: (settings: ViewSettings) => void
   setGizmoEnabled: (enabled: boolean) => void
   setGizmoMode: (mode: GizmoMode) => void
@@ -173,6 +179,36 @@ export const beginViewerTemporaryOrbitDrag = (
   startClientY: number,
 ): void => {
   viewer?.beginTemporaryOrbitDrag(startClientX, startClientY)
+}
+
+export const setViewerConsoleCameraMode = (mode: 'pan' | 'orbit' | null): void => {
+  viewer?.setConsoleCameraMode(mode)
+}
+
+export const frameViewerPrevious = (): void => {
+  viewer?.framePrevious()
+}
+
+export const zoomViewerCameraByWheelDelta = (deltaY: number): void => {
+  viewer?.zoomCameraByWheelDelta(deltaY)
+}
+
+export const beginViewerTemporaryPanDrag = (
+  startClientX: number,
+  startClientY: number,
+): void => {
+  viewer?.beginTemporaryPanDrag(startClientX, startClientY)
+}
+
+export const updateViewerTemporaryPanDrag = (
+  clientX: number,
+  clientY: number,
+): void => {
+  viewer?.updateTemporaryPanDrag(clientX, clientY)
+}
+
+export const endViewerTemporaryPanDrag = (): void => {
+  viewer?.endTemporaryPanDrag()
 }
 
 export const updateViewerTemporaryOrbitDrag = (

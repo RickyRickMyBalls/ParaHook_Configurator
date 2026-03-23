@@ -957,6 +957,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
 
     const result: BuildResult = {
       type: 'build_result',
+      lane: 'build',
       seq: 1,
       projectFileId: selectCurrentProjectId(useAppStore.getState()),
       graphDocumentId: 'graph-document-1',

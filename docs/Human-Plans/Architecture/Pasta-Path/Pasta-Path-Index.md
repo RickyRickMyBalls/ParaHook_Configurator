@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+5. 2026-03-22 14:18: Added `#### Suggestion` blocks under every open `Pasta Path` question, so the new `Questions / Decisions` section now carries concrete recommended answers for placement, scope, mapping, branching, sync, and representation instead of acting only as a neutral question list
 4. 2026-03-22 14:15: Added a dedicated `Questions / Decisions` section to the `Pasta Path` index, turning the main unresolved product and architecture choices into explicit `### [ ] qN - ...` checklist-style headings so the concept can be tightened incrementally instead of leaving those decisions scattered implicitly through the vision text
 3. 2026-03-22 14:12: Added a `Fusion` visual-takeaways section to the `Pasta Path` index, locking the recommendation that the first timeline surface should borrow the low-profile footer-like density, horizontal step-strip readability, and clear playhead emphasis of a Fusion-style history bar without literally copying its strictly linear feature-stack assumptions
 2. 2026-03-22 14:10: Added the first workspace-placement suggestion for `Pasta Path`, locking the direction that it should likely live as another `+/e/-` style surface mode with a slim full-width bottom footprint, using roughly `100px` of height by default and growing vertically only when parallel branch rows are actually needed
@@ -182,12 +183,36 @@ The first `Pasta Path` cut should stay disciplined:
 
 ### [ ] q1 - should `Pasta Path` live as another mode in the same top-left `+/e/-` family, or should it become a separate always-visible footer surface?
 
+#### Suggestion
+
+Start by making `Pasta Path` another mode in the same top-left `+/e/-` family. That keeps it close to the current editor-mode system and avoids committing to a permanently visible footer before the timeline proves its value.
+
 ### [ ] q2 - should the first `Pasta Path` cut be read-only and scrub-only, or should it allow direct editing/reordering from the timeline?
+
+#### Suggestion
+
+Make the first cut read-only and scrub-only. Do not allow direct timeline editing or reordering until the graph-to-timeline mapping and rollback behavior are already stable.
 
 ### [ ] q3 - what is the first honest graph-to-timeline mapping rule for turning a branching `Spaghetti` graph into one stable left-to-right history strip?
 
+#### Suggestion
+
+Use a deterministic execution-order mapping with one primary left-to-right strip, then place branch-only segments onto parallel rows when they cannot be represented honestly in one condensed track. The first rule should prioritize stability and readability over perfect graph fidelity.
+
 ### [ ] q4 - when graph branching exists, should parallel tracks appear automatically, or should the default strip stay single-row until the user expands branch detail?
+
+#### Suggestion
+
+Keep the default strip single-row whenever possible, and only introduce parallel rows when branch structure would become misleading if forced into one line. That preserves the slim footer feel while still allowing honest branch visualization.
 
 ### [ ] q5 - what should happen in the model viewport when the `Pasta Path` playhead moves backward: immediate filtered render only, or filtered render plus explicit node/highlight sync in the `Spaghetti Editor`?
 
+#### Suggestion
+
+The first cut should do immediate filtered render plus explicit highlight sync back to the `Spaghetti Editor`. The geometry change alone is useful, but node/highlight sync is what makes the timeline feel connected to its source-of-truth graph.
+
 ### [ ] q6 - should the first visible timeline steps be node-level, feature-level, or a mixed grouped abstraction layer above raw graph nodes?
+
+#### Suggestion
+
+Start with a mixed grouped abstraction layer above raw nodes. Pure node-level history will likely be too noisy, while pure feature-level history risks hiding too much of the graph truth. A grouped layer gives the first cut a cleaner readable strip without severing the link back to real nodes.

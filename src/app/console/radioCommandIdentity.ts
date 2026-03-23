@@ -114,10 +114,32 @@ const resolveStagedAdvanceIdentity = ({
     if (matchedCanonicalToken === 'RADIO') {
       return buildIdentity('Console', 'Root', 'Radio')
     }
+    if (matchedCanonicalToken === 'ZOOM') {
+      return buildIdentity('Console', 'Root', 'Zoom')
+    }
+    if (matchedCanonicalToken === 'PAN') {
+      return buildIdentity('Console', 'Root', 'Pan')
+    }
+    if (matchedCanonicalToken === 'ORBIT') {
+      return buildIdentity('Console', 'Root', 'Orbit')
+    }
     return null
   }
 
   switch (activeScopeId) {
+    case 'zoomRoot':
+      switch (matchedCanonicalToken) {
+        case 'ALL':
+        case 'EXTENTS':
+        case 'PREVIOUS':
+        case 'WINDOW':
+        case 'OBJECT':
+          return buildIdentity('Console', 'Zoom', toIdentitySegment(matchedLabel))
+        case 'BACK':
+          return buildIdentity('Console', 'Zoom', 'Back')
+        default:
+          return null
+      }
     case 'radioRoot':
       return matchedCanonicalToken === 'BACK'
         ? buildIdentity('Console', 'Radio', 'Back')
@@ -137,6 +159,8 @@ const resolveStagedAdvanceIdentity = ({
           return buildIdentity('Console', 'Graph', 'OutputPreview')
         case 'FOCUS NODE':
           return buildIdentity('Console', 'Graph', 'FocusNode')
+        case 'ZOOM':
+          return buildIdentity('Console', 'Graph', 'Zoom')
         case 'REFERENCES':
           return buildIdentity('Console', 'Graph', 'References')
         case 'COLLAPSED':
@@ -186,6 +210,10 @@ const resolveStagedAdvanceIdentity = ({
       return matchedCanonicalToken === 'BACK'
         ? buildIdentity('Console', 'Graph', 'FocusNode', 'Back')
         : null
+    case 'graphZoomRoot':
+    case 'graphZoomCanvas':
+    case 'graphZoomModelViewport':
+      return resolveSelectionIdentity(['Console', 'Graph', 'Zoom'], matchedLabel)
     default:
       return null
   }
@@ -229,6 +257,10 @@ const resolveStagedChoiceIdentity = ({
       }
     case 'graphRoot':
     case 'graphSelected':
+    case 'zoomRoot':
+    case 'graphZoomRoot':
+    case 'graphZoomCanvas':
+    case 'graphZoomModelViewport':
     case 'graphSketchList':
     case 'graphExtrudeList':
     case 'graphOutputPreviewList':
@@ -305,6 +337,30 @@ const resolveStagedExecuteIdentity = ({
       return buildIdentity('Console', 'Radio', 'CloseToolbar')
     case 'graph.list':
       return buildIdentity('Console', 'Graph', 'List')
+    case 'camera.pan':
+      return buildIdentity('Console', 'Camera', 'Pan')
+    case 'camera.orbit':
+      return buildIdentity('Console', 'Camera', 'Orbit')
+    case 'zoom.model.all':
+      return buildIdentity('Console', 'Zoom', 'ModelViewport', 'All')
+    case 'zoom.model.extents':
+      return buildIdentity('Console', 'Zoom', 'ModelViewport', 'Extents')
+    case 'zoom.model.previous':
+      return buildIdentity('Console', 'Zoom', 'ModelViewport', 'Previous')
+    case 'zoom.model.window':
+      return buildIdentity('Console', 'Zoom', 'ModelViewport', 'Window')
+    case 'zoom.model.object':
+      return buildIdentity('Console', 'Zoom', 'ModelViewport', 'Object')
+    case 'zoom.canvas.all':
+      return buildIdentity('Console', 'Zoom', 'Canvas', 'All')
+    case 'zoom.canvas.extents':
+      return buildIdentity('Console', 'Zoom', 'Canvas', 'Extents')
+    case 'zoom.canvas.previous':
+      return buildIdentity('Console', 'Zoom', 'Canvas', 'Previous')
+    case 'zoom.canvas.window':
+      return buildIdentity('Console', 'Zoom', 'Canvas', 'Window')
+    case 'zoom.canvas.object':
+      return buildIdentity('Console', 'Zoom', 'Canvas', 'Object')
     case 'graph.editor.collapsed':
       return buildIdentity('Console', 'Graph', 'Editor', 'Collapsed')
     case 'graph.editor.essentials':

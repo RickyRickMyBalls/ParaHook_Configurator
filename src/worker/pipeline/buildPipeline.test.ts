@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
+import { DEFAULT_BUILD_EXECUTION_INTENT } from '../../shared/buildTypes'
 
 const cubePayload = () =>
   ({
@@ -118,27 +119,31 @@ describe('buildPipeline spaghetti stats integration', () => {
   it('emits spaghetti progress rows using canonical source/build identity', async () => {
     vi.resetModules()
     const { buildPipeline } = await import('./buildPipeline')
-    const progress: Array<{ partKey: string; state: string }> = []
+    const progress: Array<{ partKey: string; state: string; lane?: string }> = []
 
     const result = await buildPipeline(
       {
         type: 'build',
+        lane: 'build',
         seq: 1,
         projectFileId: 'legacy-runtime-project',
         graphDocumentId: 'graph-document-1',
         buildRequestId: 'build-request-1',
         payload: cubePayload(),
+        executionIntent: DEFAULT_BUILD_EXECUTION_INTENT,
         changedParamIds: ['sp_full'],
       },
       (message) => {
-        progress.push({ partKey: message.partKey, state: message.state })
+        progress.push({ partKey: message.partKey, state: message.state, lane: message.lane })
       },
     )
 
     expect(
       progress.filter((message) => message.state === 'queued').map((message) => message.partKey),
     ).toEqual(['cube', 'assembled'])
+    expect(progress.every((message) => message.lane === 'build')).toBe(true)
     expect(progress.some((message) => message.partKey === 's001')).toBe(false)
+    expect(result.lane).toBe('build')
     expect(result.parts.some((part) => part.partKeyStr === 'cube')).toBe(true)
   })
 
@@ -148,11 +153,13 @@ describe('buildPipeline spaghetti stats integration', () => {
     await buildPipeline(
       {
         type: 'build',
+        lane: 'build',
         seq: 1,
         projectFileId: 'legacy-runtime-project',
         graphDocumentId: 'graph-document-1',
         buildRequestId: 'build-request-1',
         payload: cubePayload(),
+        executionIntent: DEFAULT_BUILD_EXECUTION_INTENT,
         changedParamIds: ['sp_full'],
       },
       () => {},
@@ -162,11 +169,13 @@ describe('buildPipeline spaghetti stats integration', () => {
     await buildPipeline(
       {
         type: 'build',
+        lane: 'build',
         seq: 2,
         projectFileId: 'legacy-runtime-project',
         graphDocumentId: 'graph-document-1',
         buildRequestId: 'build-request-2',
         payload: cubePayload(),
+        executionIntent: DEFAULT_BUILD_EXECUTION_INTENT,
         changedParamIds: [],
       },
       (message) => {
@@ -193,11 +202,13 @@ describe('buildPipeline spaghetti stats integration', () => {
     const firstResult = await buildPipeline(
       {
         type: 'build',
+        lane: 'build',
         seq: 10,
         projectFileId: 'legacy-runtime-project',
         graphDocumentId: 'graph-document-1',
         buildRequestId: 'build-request-10',
         payload: multiCubePayload(),
+        executionIntent: DEFAULT_BUILD_EXECUTION_INTENT,
         changedParamIds: ['sp_full'],
       },
       (message) => {
@@ -208,6 +219,7 @@ describe('buildPipeline spaghetti stats integration', () => {
     expect(
       firstProgress.filter((message) => message.state === 'queued').map((message) => message.partKey),
     ).toEqual(['cube#1', 'cube#2', 'assembled'])
+    expect(firstResult.lane).toBe('build')
     expect(firstResult.parts.map((part) => part.partKeyStr)).toEqual(
       expect.arrayContaining(['cube#1', 'cube#2']),
     )
@@ -216,11 +228,13 @@ describe('buildPipeline spaghetti stats integration', () => {
     await buildPipeline(
       {
         type: 'build',
+        lane: 'build',
         seq: 11,
         projectFileId: 'legacy-runtime-project',
         graphDocumentId: 'graph-document-1',
         buildRequestId: 'build-request-11',
         payload: multiCubePayload(),
+        executionIntent: DEFAULT_BUILD_EXECUTION_INTENT,
         changedParamIds: [],
       },
       (message) => {

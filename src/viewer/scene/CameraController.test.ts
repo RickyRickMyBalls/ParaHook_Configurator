@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { BoxGeometry, Group, Mesh, MeshBasicMaterial, PerspectiveCamera, Vector3 } from 'three'
+import { BoxGeometry, Group, Mesh, MeshBasicMaterial, MOUSE, PerspectiveCamera, Vector3 } from 'three'
 
 const orbitControlMocks = vi.hoisted(() => ({
   instances: [] as Array<{
@@ -9,6 +9,11 @@ const orbitControlMocks = vi.hoisted(() => ({
     rotateLeft: ReturnType<typeof vi.fn>
     rotateUp: ReturnType<typeof vi.fn>
     update: ReturnType<typeof vi.fn>
+    mouseButtons: {
+      LEFT: number | null
+      MIDDLE: number | null
+      RIGHT: number | null
+    }
   }>,
 }))
 
@@ -28,6 +33,11 @@ vi.mock('three/examples/jsm/controls/OrbitControls.js', async () => {
     public readonly rotateLeft = vi.fn()
     public readonly rotateUp = vi.fn()
     public readonly update = vi.fn()
+    public readonly mouseButtons = {
+      LEFT: MOUSE.ROTATE,
+      MIDDLE: MOUSE.DOLLY,
+      RIGHT: MOUSE.PAN,
+    }
 
     public constructor(_camera: unknown, domElement: HTMLElement) {
       this.domElement = domElement
@@ -75,6 +85,95 @@ describe('CameraController temporary orbit drag', () => {
     expect(controls.rotateLeft).toHaveBeenCalledTimes(1)
     expect(controls.rotateUp).toHaveBeenCalledTimes(1)
     expect(controls.update).toHaveBeenCalledTimes(1)
+  })
+
+  it('can disable and restore left-button orbit ownership without affecting the other mouse buttons', () => {
+    const domElement = document.createElement('div')
+    Object.defineProperty(domElement, 'clientHeight', {
+      configurable: true,
+      value: 400,
+    })
+
+    const controller = new CameraController(
+      new PerspectiveCamera(45, 1, 0.1, 1000),
+      domElement,
+    )
+    const controls = orbitControlMocks.instances[0]
+
+    expect(controls.mouseButtons.LEFT).toBeNull()
+    expect(controls.mouseButtons.MIDDLE).toBe(MOUSE.PAN)
+    expect(controls.mouseButtons.RIGHT).toBeNull()
+
+    controller.setLeftButtonOrbitEnabled(true)
+
+    expect(controls.mouseButtons.LEFT).toBe(MOUSE.ROTATE)
+    expect(controls.mouseButtons.MIDDLE).toBe(MOUSE.PAN)
+    expect(controls.mouseButtons.RIGHT).toBeNull()
+
+    controller.setLeftButtonOrbitEnabled(false)
+
+    expect(controls.mouseButtons.LEFT).toBeNull()
+    expect(controls.mouseButtons.MIDDLE).toBe(MOUSE.PAN)
+    expect(controls.mouseButtons.RIGHT).toBeNull()
+  })
+
+  it('pans the camera and orbit target during a temporary pan drag and stops after release', () => {
+    const domElement = document.createElement('div')
+    Object.defineProperty(domElement, 'clientHeight', {
+      configurable: true,
+      value: 400,
+    })
+
+    const camera = new PerspectiveCamera(45, 1, 0.1, 1000)
+    camera.position.set(10, 10, 10)
+    const controller = new CameraController(camera, domElement)
+    const controls = orbitControlMocks.instances[0]
+    controls.target.set(0, 0, 0)
+    controls.update.mockClear()
+
+    const initialPosition = camera.position.clone()
+    const initialTarget = controls.target.clone()
+
+    controller.beginTemporaryPanDrag(100, 100)
+    controller.updateTemporaryPanDrag(140, 120)
+
+    expect(camera.position.equals(initialPosition)).toBe(false)
+    expect(controls.target.equals(initialTarget)).toBe(false)
+    expect(controls.update).toHaveBeenCalledTimes(1)
+
+    const positionAfterDrag = camera.position.clone()
+    const targetAfterDrag = controls.target.clone()
+    controller.endTemporaryPanDrag()
+    controller.updateTemporaryPanDrag(180, 160)
+
+    expect(camera.position.toArray()).toEqual(positionAfterDrag.toArray())
+    expect(controls.target.toArray()).toEqual(targetAfterDrag.toArray())
+    expect(controls.update).toHaveBeenCalledTimes(1)
+  })
+
+  it('zooms the camera toward the current target on wheel delta', () => {
+    const domElement = document.createElement('div')
+    Object.defineProperty(domElement, 'clientHeight', {
+      configurable: true,
+      value: 400,
+    })
+
+    const camera = new PerspectiveCamera(45, 1, 0.1, 1000)
+    camera.position.set(0, 0, 10)
+    const controller = new CameraController(camera, domElement)
+    const controls = orbitControlMocks.instances[0]
+    controls.target.set(0, 0, 0)
+    controls.update.mockClear()
+
+    const distanceBeforeZoomIn = camera.position.distanceTo(controls.target)
+    controller.zoomByWheelDelta(-120)
+    const distanceAfterZoomIn = camera.position.distanceTo(controls.target)
+    expect(distanceAfterZoomIn).toBeLessThan(distanceBeforeZoomIn)
+
+    controller.zoomByWheelDelta(120)
+    const distanceAfterZoomOut = camera.position.distanceTo(controls.target)
+    expect(distanceAfterZoomOut).toBeGreaterThan(distanceAfterZoomIn)
+    expect(controls.update).toHaveBeenCalledTimes(2)
   })
 
   it('tracks an object without changing camera distance', async () => {

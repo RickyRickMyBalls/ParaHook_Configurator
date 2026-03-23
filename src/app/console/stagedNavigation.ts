@@ -34,9 +34,13 @@ export type ConsoleStagedNavigationChoice = {
 
 export type ConsoleStagedNavigationScopeId =
   | 'root'
+  | 'zoomRoot'
   | 'radioRoot'
   | 'graphRoot'
   | 'graphSelected'
+  | 'graphZoomRoot'
+  | 'graphZoomCanvas'
+  | 'graphZoomModelViewport'
   | 'graphNodeList'
   | 'graphNodeSelected'
   | 'graphSketchList'
@@ -65,6 +69,18 @@ export type ConsoleStagedNavigationExecuteResult = {
   submittedToken: string
   matchedChoice: ConsoleStagedNavigationChoice
   actionId:
+    | 'camera.pan'
+    | 'camera.orbit'
+    | 'zoom.model.all'
+    | 'zoom.model.extents'
+    | 'zoom.model.previous'
+    | 'zoom.model.window'
+    | 'zoom.model.object'
+    | 'zoom.canvas.all'
+    | 'zoom.canvas.extents'
+    | 'zoom.canvas.previous'
+    | 'zoom.canvas.window'
+    | 'zoom.canvas.object'
     | 'radio.on'
     | 'radio.off'
     | 'radio.url'
@@ -130,6 +146,27 @@ const ROOT_RADIO_CHOICE: ConsoleStagedNavigationChoice = {
   aliases: ['R'],
   label: 'Radio',
   kind: 'scope',
+}
+
+const ROOT_ZOOM_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'ZOOM',
+  aliases: ['Z'],
+  label: 'Zoom',
+  kind: 'scope',
+}
+
+const ROOT_PAN_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'PAN',
+  aliases: ['P'],
+  label: 'Pan',
+  kind: 'action',
+}
+
+const ROOT_ORBIT_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'ORBIT',
+  aliases: ['O'],
+  label: 'Orbit',
+  kind: 'action',
 }
 
 const RADIO_ON_CHOICE: ConsoleStagedNavigationChoice = {
@@ -251,6 +288,62 @@ const GRAPH_BUILD_CHOICE: ConsoleStagedNavigationChoice = {
   kind: 'action',
 }
 
+const GRAPH_ZOOM_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'ZOOM',
+  aliases: ['Z'],
+  label: 'Zoom',
+  kind: 'scope',
+}
+
+const ZOOM_CANVAS_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'CANVAS',
+  aliases: ['C'],
+  label: 'Canvas',
+  kind: 'scope',
+}
+
+const ZOOM_MODEL_VIEWPORT_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'MODEL VIEWPORT',
+  aliases: ['MODELVIEWPORT', 'MV', 'VIEWPORT', 'V'],
+  label: 'Model Viewport',
+  kind: 'scope',
+}
+
+const ZOOM_ALL_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'ALL',
+  aliases: ['A'],
+  label: 'All',
+  kind: 'action',
+}
+
+const ZOOM_EXTENTS_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'EXTENTS',
+  aliases: ['E'],
+  label: 'Extents',
+  kind: 'action',
+}
+
+const ZOOM_PREVIOUS_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'PREVIOUS',
+  aliases: ['P'],
+  label: 'Previous',
+  kind: 'action',
+}
+
+const ZOOM_WINDOW_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'WINDOW',
+  aliases: ['W'],
+  label: 'Window',
+  kind: 'action',
+}
+
+const ZOOM_OBJECT_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'OBJECT',
+  aliases: ['O'],
+  label: 'Object',
+  kind: 'action',
+}
+
 const SKETCH_DRAW_CHOICE: ConsoleStagedNavigationChoice = {
   canonicalToken: 'SKETCH DRAW',
   aliases: ['SKETCHDRAW', 'SD'],
@@ -284,7 +377,13 @@ const normalizeToken = (value: string): string => value.trim().toUpperCase()
 const matchesChoice = (choice: ConsoleStagedNavigationChoice, normalizedToken: string): boolean =>
   normalizedToken === choice.canonicalToken || choice.aliases.includes(normalizedToken)
 
-const buildRootChoices = (): ConsoleStagedNavigationChoice[] => [ROOT_GRAPH_CHOICE, ROOT_RADIO_CHOICE]
+const buildRootChoices = (): ConsoleStagedNavigationChoice[] => [
+  ROOT_GRAPH_CHOICE,
+  ROOT_RADIO_CHOICE,
+  ROOT_ZOOM_CHOICE,
+  ROOT_PAN_CHOICE,
+  ROOT_ORBIT_CHOICE,
+]
 
 export const createConsoleRootSession = (): ConsoleStagedNavigationSession => ({
   scopeId: 'root',
@@ -329,6 +428,7 @@ const buildGraphSelectedChoices = (): ConsoleStagedNavigationChoice[] => [
   GRAPH_EXTRUDE_CHOICE,
   GRAPH_OUTPUT_PREVIEW_CHOICE,
   GRAPH_FOCUS_NODE_CHOICE,
+  GRAPH_ZOOM_CHOICE,
   GRAPH_EDITOR_COLLAPSED_CHOICE,
   GRAPH_EDITOR_ESSENTIALS_CHOICE,
   GRAPH_EDITOR_EXPANDED_CHOICE,
@@ -397,6 +497,21 @@ const buildGraphSketchSelectedChoices = (): ConsoleStagedNavigationChoice[] => [
   createBackChoice(),
 ]
 
+const buildZoomActionChoices = (): ConsoleStagedNavigationChoice[] => [
+  ZOOM_ALL_CHOICE,
+  ZOOM_EXTENTS_CHOICE,
+  ZOOM_PREVIOUS_CHOICE,
+  ZOOM_WINDOW_CHOICE,
+  ZOOM_OBJECT_CHOICE,
+  createBackChoice(),
+]
+
+const buildGraphZoomRootChoices = (): ConsoleStagedNavigationChoice[] => [
+  ZOOM_CANVAS_CHOICE,
+  ZOOM_MODEL_VIEWPORT_CHOICE,
+  createBackChoice(),
+]
+
 const buildGraphNodeSelectedChoices = (): ConsoleStagedNavigationChoice[] => [
   NODE_DELETE_CHOICE,
   createBackChoice(),
@@ -424,6 +539,47 @@ const createRadioRootSession = (): ConsoleStagedNavigationSession => ({
     sketchNodeId: null,
   },
   validChoices: buildRadioRootChoices(),
+})
+
+const createZoomRootSession = (): ConsoleStagedNavigationSession => ({
+  scopeId: 'zoomRoot',
+  breadcrumb: ['Select', 'Zoom'],
+  selections: {
+    graphDocumentId: null,
+    selectedNodeId: null,
+    sketchNodeId: null,
+  },
+  validChoices: buildZoomActionChoices(),
+})
+
+const createGraphZoomRootSession = (
+  breadcrumb: string[],
+  selections: ConsoleStagedNavigationSelection,
+): ConsoleStagedNavigationSession => ({
+  scopeId: 'graphZoomRoot',
+  breadcrumb,
+  selections,
+  validChoices: buildGraphZoomRootChoices(),
+})
+
+const createGraphZoomCanvasSession = (
+  breadcrumb: string[],
+  selections: ConsoleStagedNavigationSelection,
+): ConsoleStagedNavigationSession => ({
+  scopeId: 'graphZoomCanvas',
+  breadcrumb,
+  selections,
+  validChoices: buildZoomActionChoices(),
+})
+
+const createGraphZoomModelViewportSession = (
+  breadcrumb: string[],
+  selections: ConsoleStagedNavigationSelection,
+): ConsoleStagedNavigationSession => ({
+  scopeId: 'graphZoomModelViewport',
+  breadcrumb,
+  selections,
+  validChoices: buildZoomActionChoices(),
 })
 
 const createAdvanceResult = (
@@ -783,6 +939,26 @@ export const submitConsoleStagedNavigationToken = (
       const radioRootSession = createRadioRootSession()
       return createAdvanceResult(radioRootSession, submittedToken, matchedRootChoice)
     }
+    if (matchedRootChoice.canonicalToken === ROOT_ZOOM_CHOICE.canonicalToken) {
+      return createAdvanceResult(createZoomRootSession(), submittedToken, matchedRootChoice)
+    }
+    if (
+      matchedRootChoice.canonicalToken === ROOT_PAN_CHOICE.canonicalToken ||
+      matchedRootChoice.canonicalToken === ROOT_ORBIT_CHOICE.canonicalToken
+    ) {
+      return {
+        kind: 'execute',
+        session: createConsoleRootSession(),
+        submittedToken,
+        matchedChoice: matchedRootChoice,
+        actionId:
+          matchedRootChoice.canonicalToken === ROOT_PAN_CHOICE.canonicalToken
+            ? 'camera.pan'
+            : 'camera.orbit',
+        breadcrumb: ['Select', matchedRootChoice.label],
+        selections: createConsoleRootSession().selections,
+      }
+    }
     const rootSession = createGraphRootSession(context)
     const graphAutoAdvance = resolveSingleGraphAutoAdvance(context)
     if (graphAutoAdvance !== null) {
@@ -806,6 +982,29 @@ export const submitConsoleStagedNavigationToken = (
     if (matchedChoice.canonicalToken === ROOT_RADIO_CHOICE.canonicalToken) {
       const radioRootSession = createRadioRootSession()
       return createAdvanceResult(radioRootSession, submittedToken, matchedChoice)
+    }
+    if (matchedChoice.canonicalToken === ROOT_ZOOM_CHOICE.canonicalToken) {
+      return createAdvanceResult(createZoomRootSession(), submittedToken, matchedChoice)
+    }
+    if (
+      matchedChoice.canonicalToken === ROOT_PAN_CHOICE.canonicalToken ||
+      matchedChoice.canonicalToken === ROOT_ORBIT_CHOICE.canonicalToken
+    ) {
+      return {
+        kind: 'execute',
+        session: {
+          ...session,
+          validChoices: rootChoices,
+        },
+        submittedToken,
+        matchedChoice,
+        actionId:
+          matchedChoice.canonicalToken === ROOT_PAN_CHOICE.canonicalToken
+            ? 'camera.pan'
+            : 'camera.orbit',
+        breadcrumb: ['Select', matchedChoice.label],
+        selections: session.selections,
+      }
     }
     const rootSession = createGraphRootSession(context)
     const graphAutoAdvance = resolveSingleGraphAutoAdvance(context)
@@ -852,6 +1051,47 @@ export const submitConsoleStagedNavigationToken = (
       session: {
         ...session,
         validChoices: radioChoices,
+      },
+      submittedToken,
+      matchedChoice,
+      actionId: actionIdByToken[matchedChoice.canonicalToken],
+      breadcrumb: [...session.breadcrumb, matchedChoice.label],
+      selections: session.selections,
+    }
+  }
+
+  if (session.scopeId === 'zoomRoot') {
+    const zoomChoices = buildZoomActionChoices()
+    const matchedChoice =
+      zoomChoices.find((choice) => matchesChoice(choice, normalizedToken)) ?? null
+    if (matchedChoice === null) {
+      return createInvalidResult({ ...session, validChoices: zoomChoices }, submittedToken, zoomChoices)
+    }
+    if (matchedChoice.canonicalToken === 'BACK') {
+      return createAdvanceResult(createConsoleRootSession(), submittedToken, matchedChoice)
+    }
+    const actionIdByToken: Record<
+      string,
+      Extract<
+        ConsoleStagedNavigationExecuteResult['actionId'],
+        | 'zoom.model.all'
+        | 'zoom.model.extents'
+        | 'zoom.model.previous'
+        | 'zoom.model.window'
+        | 'zoom.model.object'
+      >
+    > = {
+      ALL: 'zoom.model.all',
+      EXTENTS: 'zoom.model.extents',
+      PREVIOUS: 'zoom.model.previous',
+      WINDOW: 'zoom.model.window',
+      OBJECT: 'zoom.model.object',
+    }
+    return {
+      kind: 'execute',
+      session: {
+        ...session,
+        validChoices: zoomChoices,
       },
       submittedToken,
       matchedChoice,
@@ -1028,6 +1268,14 @@ export const submitConsoleStagedNavigationToken = (
       return createAdvanceResult(nodeListSession, submittedToken, matchedChoice)
     }
 
+    if (matchedChoice.canonicalToken === GRAPH_ZOOM_CHOICE.canonicalToken) {
+      return createAdvanceResult(
+        createGraphZoomRootSession([...session.breadcrumb, matchedChoice.label], session.selections),
+        submittedToken,
+        matchedChoice,
+      )
+    }
+
     const outputPreviewOptions = selectedGraph?.outputPreviewOptions ?? []
     const outputPreviewChoices = buildGraphOutputPreviewListChoices(outputPreviewOptions)
     const outputPreviewListSession = createGraphOutputPreviewListSession(
@@ -1051,6 +1299,108 @@ export const submitConsoleStagedNavigationToken = (
       )
     }
     return createAdvanceResult(outputPreviewListSession, submittedToken, matchedChoice)
+  }
+
+  if (session.scopeId === 'graphZoomRoot') {
+    const graphZoomRootChoices = buildGraphZoomRootChoices()
+    const matchedChoice =
+      graphZoomRootChoices.find((choice) => matchesChoice(choice, normalizedToken)) ?? null
+    if (matchedChoice === null) {
+      return createInvalidResult(
+        { ...session, validChoices: graphZoomRootChoices },
+        submittedToken,
+        graphZoomRootChoices,
+      )
+    }
+    if (matchedChoice.canonicalToken === 'BACK') {
+      const graphIndex = findGraphIndexByDocumentId(context, session.selections.graphDocumentId)
+      if (graphIndex === null || session.selections.graphDocumentId === null) {
+        return createInvalidResult(
+          { ...session, validChoices: graphZoomRootChoices },
+          submittedToken,
+          graphZoomRootChoices,
+        )
+      }
+      return createAdvanceResult(
+        createGraphSelectedSession(graphIndex, session.selections.graphDocumentId),
+        submittedToken,
+        matchedChoice,
+      )
+    }
+    if (matchedChoice.canonicalToken === ZOOM_CANVAS_CHOICE.canonicalToken) {
+      return createAdvanceResult(
+        createGraphZoomCanvasSession([...session.breadcrumb, matchedChoice.label], session.selections),
+        submittedToken,
+        matchedChoice,
+      )
+    }
+    return createAdvanceResult(
+      createGraphZoomModelViewportSession([...session.breadcrumb, matchedChoice.label], session.selections),
+      submittedToken,
+      matchedChoice,
+    )
+  }
+
+  if (session.scopeId === 'graphZoomCanvas' || session.scopeId === 'graphZoomModelViewport') {
+    const zoomChoices = buildZoomActionChoices()
+    const matchedChoice =
+      zoomChoices.find((choice) => matchesChoice(choice, normalizedToken)) ?? null
+    if (matchedChoice === null) {
+      return createInvalidResult({ ...session, validChoices: zoomChoices }, submittedToken, zoomChoices)
+    }
+    if (matchedChoice.canonicalToken === 'BACK') {
+      return createAdvanceResult(
+        createGraphZoomRootSession(
+          session.breadcrumb.slice(0, -1),
+          session.selections,
+        ),
+        submittedToken,
+        matchedChoice,
+      )
+    }
+    const isCanvasScope = session.scopeId === 'graphZoomCanvas'
+    const actionIdByToken: Record<
+      string,
+      Extract<
+        ConsoleStagedNavigationExecuteResult['actionId'],
+        | 'zoom.model.all'
+        | 'zoom.model.extents'
+        | 'zoom.model.previous'
+        | 'zoom.model.window'
+        | 'zoom.model.object'
+        | 'zoom.canvas.all'
+        | 'zoom.canvas.extents'
+        | 'zoom.canvas.previous'
+        | 'zoom.canvas.window'
+        | 'zoom.canvas.object'
+      >
+    > = isCanvasScope
+      ? {
+          ALL: 'zoom.canvas.all',
+          EXTENTS: 'zoom.canvas.extents',
+          PREVIOUS: 'zoom.canvas.previous',
+          WINDOW: 'zoom.canvas.window',
+          OBJECT: 'zoom.canvas.object',
+        }
+      : {
+          ALL: 'zoom.model.all',
+          EXTENTS: 'zoom.model.extents',
+          PREVIOUS: 'zoom.model.previous',
+          WINDOW: 'zoom.model.window',
+          OBJECT: 'zoom.model.object',
+        }
+    return {
+      kind: 'execute',
+      session: {
+        ...session,
+        validChoices: zoomChoices,
+      },
+      submittedToken,
+      matchedChoice,
+      actionId: actionIdByToken[matchedChoice.canonicalToken],
+      breadcrumb: [...session.breadcrumb, matchedChoice.label],
+      selections: session.selections,
+    }
   }
 
   if (session.scopeId === 'graphSketchList') {

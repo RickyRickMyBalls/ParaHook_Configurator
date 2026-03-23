@@ -74,9 +74,13 @@ import {
 } from './compositeExpansion'
 import { isInteractiveTarget } from '../spInteractive'
 import {
+  beginViewerTemporaryPanDrag,
   beginViewerTemporaryOrbitDrag,
+  endViewerTemporaryPanDrag,
   endViewerTemporaryOrbitDrag,
+  updateViewerTemporaryPanDrag,
   updateViewerTemporaryOrbitDrag,
+  zoomViewerCameraByWheelDelta,
 } from '../../viewerBridge'
 import {
   selectDiagnosticsVm,
@@ -414,6 +418,7 @@ type DevProbeWindow = Window & { [DEV_PROBE_NODE_ID_KEY]?: string }
 
 type SpaghettiCanvasProps = {
   graphDocumentId: string
+  fitCanvasRequestKey?: number
   fitNodeId?: string | null
   fitNodeRequestKey?: number
   isMeatballView?: boolean
@@ -424,6 +429,7 @@ type SpaghettiCanvasProps = {
 
 export function SpaghettiCanvas({
   graphDocumentId,
+  fitCanvasRequestKey = 0,
   fitNodeId = null,
   fitNodeRequestKey = 0,
   isMeatballView = false,
@@ -520,6 +526,7 @@ export function SpaghettiCanvas({
   const previousPortElementVersionByNodeIdRef = useRef(new Map<string, number>())
   const lastUiActionRef = useRef<string | null>(null)
   const evaluationRunCountRef = useRef(0)
+  const lastFitCanvasRequestKeyRef = useRef<number>(fitCanvasRequestKey)
   const lastFitNodeRequestKeyRef = useRef<number>(fitNodeRequestKey)
   const nodeRowMode = useSpaghettiStore((state) => {
     if (nodeRowModeMenu === null) {
@@ -566,6 +573,91 @@ export function SpaghettiCanvas({
     viewRef.current = view
   }, [view])
 
+  const fitStageBounds = useCallback(
+    (bounds: { x: number; y: number; width: number; height: number }) => {
+      const viewportElement = viewportRef.current
+      if (viewportElement === null) {
+        return
+      }
+      const viewportRect = viewportElement.getBoundingClientRect()
+      const sidePadding = isMeatballView ? 20 : 28
+      const topPadding = isMeatballView ? 12 : 22
+      const bottomPadding = isMeatballView ? 40 : 72
+      const widthFittedZoom =
+        (viewportRect.width - sidePadding * 2) / Math.max(bounds.width, 1)
+      const heightFittedZoom =
+        (viewportRect.height - topPadding - bottomPadding) / Math.max(bounds.height, 1)
+      const fittedZoom = isMeatballView
+        ? Math.min(widthFittedZoom * 0.985, heightFittedZoom)
+        : Math.min(widthFittedZoom, heightFittedZoom)
+      const nextZoom = clampNumber(
+        fittedZoom * (isMeatballView ? 1 : 1.18),
+        0.4,
+        isMeatballView ? 2.9 : 2.6,
+      )
+      const centeredPanX = viewportRect.width * 0.5 - (bounds.x + bounds.width * 0.5) * nextZoom
+      const minVisibleLeftPanX = sidePadding - bounds.x * nextZoom
+      const maxVisibleRightPanX =
+        viewportRect.width - sidePadding - (bounds.x + bounds.width) * nextZoom
+      const nextPanX = Math.round(
+        isMeatballView
+          ? minVisibleLeftPanX <= maxVisibleRightPanX
+            ? clampNumber(centeredPanX, minVisibleLeftPanX, maxVisibleRightPanX)
+            : (minVisibleLeftPanX + maxVisibleRightPanX) * 0.5
+          : Math.max(centeredPanX, minVisibleLeftPanX),
+      )
+      const nextPanY = Math.round(topPadding - bounds.y * nextZoom)
+
+      setView({
+        panX: nextPanX,
+        panY: nextPanY,
+        zoom: nextZoom,
+      })
+    },
+    [isMeatballView],
+  )
+
+  useLayoutEffect(() => {
+    if (viewMode !== 'expanded') {
+      lastFitCanvasRequestKeyRef.current = fitCanvasRequestKey
+      return
+    }
+    if (lastFitCanvasRequestKeyRef.current === fitCanvasRequestKey) {
+      return
+    }
+    const stageElement = stageRef.current
+    if (stageElement === null) {
+      return
+    }
+    const stageRect = stageElement.getBoundingClientRect()
+    const nodeElements = Array.from(
+      stageElement.querySelectorAll<HTMLElement>('[data-sp-node-id]'),
+    )
+    if (nodeElements.length === 0) {
+      lastFitCanvasRequestKeyRef.current = fitCanvasRequestKey
+      return
+    }
+
+    let minStageX = Number.POSITIVE_INFINITY
+    let minStageY = Number.POSITIVE_INFINITY
+    let maxStageX = Number.NEGATIVE_INFINITY
+    let maxStageY = Number.NEGATIVE_INFINITY
+    for (const nodeElement of nodeElements) {
+      const nodeRect = nodeElement.getBoundingClientRect()
+      minStageX = Math.min(minStageX, (nodeRect.left - stageRect.left) / viewRef.current.zoom)
+      minStageY = Math.min(minStageY, (nodeRect.top - stageRect.top) / viewRef.current.zoom)
+      maxStageX = Math.max(maxStageX, (nodeRect.right - stageRect.left) / viewRef.current.zoom)
+      maxStageY = Math.max(maxStageY, (nodeRect.bottom - stageRect.top) / viewRef.current.zoom)
+    }
+    fitStageBounds({
+      x: minStageX,
+      y: minStageY,
+      width: Math.max(maxStageX - minStageX, 1),
+      height: Math.max(maxStageY - minStageY, 1),
+    })
+    lastFitCanvasRequestKeyRef.current = fitCanvasRequestKey
+  }, [fitCanvasRequestKey, fitStageBounds, viewMode])
+
   useLayoutEffect(() => {
     if (fitNodeId === null || viewMode !== 'expanded') {
       lastFitNodeRequestKeyRef.current = fitNodeRequestKey
@@ -574,9 +666,8 @@ export function SpaghettiCanvas({
     if (lastFitNodeRequestKeyRef.current === fitNodeRequestKey) {
       return
     }
-    const viewportElement = viewportRef.current
     const stageElement = stageRef.current
-    if (viewportElement === null || stageElement === null) {
+    if (stageElement === null) {
       return
     }
     const nodeElement = stageElement.querySelector<HTMLElement>(`[data-sp-node-id="${fitNodeId}"]`)
@@ -584,48 +675,16 @@ export function SpaghettiCanvas({
       return
     }
 
-    const viewportRect = viewportElement.getBoundingClientRect()
     const stageRect = stageElement.getBoundingClientRect()
     const nodeRect = nodeElement.getBoundingClientRect()
-    const stageX = (nodeRect.left - stageRect.left) / viewRef.current.zoom
-    const stageY = (nodeRect.top - stageRect.top) / viewRef.current.zoom
-    const stageWidth = nodeRect.width / viewRef.current.zoom
-    const stageHeight = nodeRect.height / viewRef.current.zoom
-    const sidePadding = isMeatballView ? 20 : 28
-    const topPadding = isMeatballView ? 12 : 22
-    const bottomPadding = isMeatballView ? 40 : 72
-    const widthFittedZoom =
-      (viewportRect.width - sidePadding * 2) / Math.max(stageWidth, 1)
-    const heightFittedZoom =
-      (viewportRect.height - topPadding - bottomPadding) / Math.max(stageHeight, 1)
-    const fittedZoom = isMeatballView
-      ? Math.min(widthFittedZoom * 0.985, heightFittedZoom)
-      : Math.min(widthFittedZoom, heightFittedZoom)
-    const nextZoom = clampNumber(
-      fittedZoom * (isMeatballView ? 1 : 1.18),
-      0.4,
-      isMeatballView ? 2.9 : 2.6,
-    )
-    const centeredPanX = viewportRect.width * 0.5 - (stageX + stageWidth * 0.5) * nextZoom
-    const minVisibleLeftPanX = sidePadding - stageX * nextZoom
-    const maxVisibleRightPanX =
-      viewportRect.width - sidePadding - (stageX + stageWidth) * nextZoom
-    const nextPanX = Math.round(
-      isMeatballView
-        ? minVisibleLeftPanX <= maxVisibleRightPanX
-          ? clampNumber(centeredPanX, minVisibleLeftPanX, maxVisibleRightPanX)
-          : (minVisibleLeftPanX + maxVisibleRightPanX) * 0.5
-        : Math.max(centeredPanX, minVisibleLeftPanX),
-    )
-    const nextPanY = Math.round(topPadding - stageY * nextZoom)
-
-    setView({
-      panX: nextPanX,
-      panY: nextPanY,
-      zoom: nextZoom,
+    fitStageBounds({
+      x: (nodeRect.left - stageRect.left) / viewRef.current.zoom,
+      y: (nodeRect.top - stageRect.top) / viewRef.current.zoom,
+      width: nodeRect.width / viewRef.current.zoom,
+      height: nodeRect.height / viewRef.current.zoom,
     })
     lastFitNodeRequestKeyRef.current = fitNodeRequestKey
-  }, [fitNodeId, fitNodeRequestKey, graph?.nodes, isMeatballView, viewMode])
+  }, [fitNodeId, fitNodeRequestKey, fitStageBounds, graph?.nodes, viewMode])
 
   useEffect(() => {
     ensureNodePositions()
@@ -2120,6 +2179,27 @@ export function SpaghettiCanvas({
     [applyGraphPatch, setExtrudeDepth],
   )
 
+  const startWindowPointerDrag = useCallback(
+    (
+      onMove: (moveEvent: PointerEvent) => void,
+      onEnd: () => void,
+    ) => {
+      const handleMove = (moveEvent: PointerEvent) => {
+        onMove(moveEvent)
+      }
+      const handleEnd = () => {
+        onEnd()
+        window.removeEventListener('pointermove', handleMove)
+        window.removeEventListener('pointerup', handleEnd)
+        window.removeEventListener('pointercancel', handleEnd)
+      }
+      window.addEventListener('pointermove', handleMove)
+      window.addEventListener('pointerup', handleEnd)
+      window.addEventListener('pointercancel', handleEnd)
+    },
+    [],
+  )
+
   return (
     <div
       className="SpaghettiCanvasRoot spView_root"
@@ -2264,6 +2344,10 @@ export function SpaghettiCanvas({
         onWheel={(event) => {
           event.stopPropagation()
           event.preventDefault()
+          if (viewMode === 'expanded' && event.shiftKey) {
+            zoomViewerCameraByWheelDelta(event.deltaY)
+            return
+          }
           const viewportElement = viewportRef.current
           if (viewportElement === null) {
             return
@@ -2283,60 +2367,56 @@ export function SpaghettiCanvas({
             }
           })
         }}
-        onPointerDown={(event) => {
-          if (viewMode === 'expanded' && event.button === 1 && event.ctrlKey) {
+        onPointerDownCapture={(event) => {
+          if (event.button !== 1) {
+            return
+          }
+
+          if (viewMode === 'expanded' && event.shiftKey && event.ctrlKey) {
             beginViewerTemporaryOrbitDrag(event.clientX, event.clientY)
-            const handleMove = (moveEvent: PointerEvent) => {
-              updateViewerTemporaryOrbitDrag(moveEvent.clientX, moveEvent.clientY)
-            }
-            const handleUp = () => {
-              endViewerTemporaryOrbitDrag()
-              window.removeEventListener('pointermove', handleMove)
-              window.removeEventListener('pointerup', handleUp)
-              window.removeEventListener('pointercancel', handleUp)
-            }
-            window.addEventListener('pointermove', handleMove)
-            window.addEventListener('pointerup', handleUp)
-            window.addEventListener('pointercancel', handleUp)
+            startWindowPointerDrag(
+              (moveEvent) => {
+                updateViewerTemporaryOrbitDrag(moveEvent.clientX, moveEvent.clientY)
+              },
+              () => {
+                endViewerTemporaryOrbitDrag()
+              },
+            )
             event.preventDefault()
             event.stopPropagation()
             return
           }
-          if (event.button !== 0) {
+
+          if (viewMode === 'expanded' && event.shiftKey) {
+            beginViewerTemporaryPanDrag(event.clientX, event.clientY)
+            startWindowPointerDrag(
+              (moveEvent) => {
+                updateViewerTemporaryPanDrag(moveEvent.clientX, moveEvent.clientY)
+              },
+              () => {
+                endViewerTemporaryPanDrag()
+              },
+            )
+            event.preventDefault()
+            event.stopPropagation()
             return
           }
-          const target = event.target
-          if (!(target instanceof Element)) {
-            return
-          }
-          // Only start panning from empty canvas background regions.
-          if (
-            target.closest('.SpaghettiNode') !== null ||
-            target.closest('.SpaghettiPort') !== null ||
-            target.closest('.SpaghettiWire') !== null ||
-            target.closest('.SpaghettiWireWaypoint') !== null ||
-            target.closest('.SpaghettiWireLoop') !== null ||
-            target.closest('.SpaghettiWireGap') !== null
-          ) {
-            return
-          }
+
           const startX = event.clientX
           const startY = event.clientY
           const startView = viewRef.current
-          const handleMove = (moveEvent: PointerEvent) => {
-            setView({
-              ...viewRef.current,
-              panX: startView.panX + (moveEvent.clientX - startX),
-              panY: startView.panY + (moveEvent.clientY - startY),
-            })
-          }
-          const handleUp = () => {
-            window.removeEventListener('pointermove', handleMove)
-            window.removeEventListener('pointerup', handleUp)
-          }
-          window.addEventListener('pointermove', handleMove)
-          window.addEventListener('pointerup', handleUp)
+          startWindowPointerDrag(
+            (moveEvent) => {
+              setView({
+                ...viewRef.current,
+                panX: startView.panX + (moveEvent.clientX - startX),
+                panY: startView.panY + (moveEvent.clientY - startY),
+              })
+            },
+            () => {},
+          )
           event.preventDefault()
+          event.stopPropagation()
         }}
       >
         {nodeAddMenu !== null ? (

@@ -11,6 +11,7 @@ export const emitArtifacts = (
   changedParamIds?: string[],
 ): BuildResult => ({
   type: 'build_result',
+  lane: 'build',
   seq: options.seq,
   projectFileId: options.projectFileId,
   graphDocumentId: options.graphDocumentId,
