@@ -141,6 +141,27 @@ describe('CameraController', () => {
     expect(controls.target.toArray()).toEqual(targetAfterDrag.toArray())
   })
 
+  it('pans orthographic views along the camera screen axes', () => {
+    const { controller, controls, orthographicCamera } = createController()
+    controller.setProjectionMode('orthographic')
+    controller.snapToDirection(new Vector3(0, 1, 0))
+    controls.update.mockClear()
+
+    const startPosition = orthographicCamera.position.clone()
+    const startTarget = controls.target.clone()
+
+    controller.beginTemporaryPanDrag(100, 100)
+    controller.updateTemporaryPanDrag(140, 120)
+
+    expect(orthographicCamera.position.y).toBeCloseTo(startPosition.y, 6)
+    expect(controls.target.y).toBeCloseTo(startTarget.y, 6)
+    expect(orthographicCamera.position.x).not.toBeCloseTo(startPosition.x, 6)
+    expect(controls.target.x).not.toBeCloseTo(startTarget.x, 6)
+    expect(orthographicCamera.position.z).not.toBeCloseTo(startPosition.z, 6)
+    expect(controls.target.z).not.toBeCloseTo(startTarget.z, 6)
+    expect(controls.update).toHaveBeenCalledTimes(1)
+  })
+
   it('zooms perspective by changing camera distance and orthographic by changing view height', () => {
     const { controller, controls, perspectiveCamera } = createController()
     controls.update.mockClear()
@@ -156,6 +177,21 @@ describe('CameraController', () => {
 
     expect(orthographicPoseAfter.position.toArray()).toEqual(orthographicPoseBefore.position.toArray())
     expect(orthographicPoseAfter.orthoViewHeight).toBeLessThan(orthographicPoseBefore.orthoViewHeight)
+  })
+
+  it('frames a client drag window on the target plane in both projection modes', () => {
+    const { controller, controls, perspectiveCamera } = createController()
+
+    const perspectiveDistanceBefore = perspectiveCamera.position.distanceTo(controls.target)
+    expect(controller.frameWindowClientRect(100, 100, 300, 300)).toBe(true)
+    const perspectiveDistanceAfter = perspectiveCamera.position.distanceTo(controls.target)
+    expect(perspectiveDistanceAfter).toBeLessThan(perspectiveDistanceBefore)
+
+    controller.setProjectionMode('orthographic')
+    const orthoPoseBefore = controller.getPose()
+    expect(controller.frameWindowClientRect(100, 100, 300, 300)).toBe(true)
+    const orthoPoseAfter = controller.getPose()
+    expect(orthoPoseAfter.orthoViewHeight).toBeLessThan(orthoPoseBefore.orthoViewHeight)
   })
 
   it('preserves framing when switching between perspective and orthographic', () => {

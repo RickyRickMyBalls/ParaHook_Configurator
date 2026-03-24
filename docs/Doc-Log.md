@@ -3,6 +3,15 @@
 ## Doc Header
 
 ### Doc History
+170. 2026-03-23 21:34: Logged the small build-unblock follow-up in `docs/CHANGELOG.md`, covering the `ConsoleDock` nullability narrowing that fixes the staged `SketchDraw` session TypeScript error and restores a clean `npm run build`
+169. 2026-03-23 21:32: Logged the orthographic-pan vertical-basis follow-up in `docs/CHANGELOG.md`, recording the shared camera-controller update that now computes screen-up from the live camera basis so aligned sketch-view orthographic pan no longer loses vertical motion
+168. 2026-03-23 21:26: Logged the shipped sketch-draw pan follow-up in `docs/CHANGELOG.md`, covering the viewer change that lets explicit console-armed camera drag modes override the sketch pointer layer plus the new idle `SketchDraw` `pan` regression test
+167. 2026-03-23 21:24: Logged the shipped orthographic-pan follow-up in `docs/CHANGELOG.md`, covering the shared camera-controller basis fix that now uses the active camera's matrix columns for pan and the new orthographic top-view regression test
+166. 2026-03-23 21:19: Logged the shipped `Zoom Window First Pass` follow-up in `docs/CHANGELOG.md`, covering the new model-viewport drag-box camera mode, the target-plane camera-fit math, and the console changes that arm `Zoom Window` from both root zoom and idle `SketchDraw`
+165. 2026-03-23 21:10: Logged the shipped `[3.2B-Console-2]` zoom-object follow-up in `docs/CHANGELOG.md`, covering the new sketch-selection framing seam in the viewer plus the console-routing change that lets idle `SketchDraw` `Zoom Object` use selected sketch entities and resume the local sketch-draw scope
+164. 2026-03-23 18:16: Logged the shipped `[3.2B-Console-2]` sketch-console routing pass in `docs/CHANGELOG.md`, capturing the new local `SketchDraw` staged command scopes, shared staged projection/zoom flow, and the focused console test coverage that now passes against that implementation
+163. 2026-03-23 17:57: Reworked the live `docs/index.md` landing page into a more presentable MkDocs home screen with grouped quick-link cards, browse-by-area links, and clearer direct entry points into the roadmap, architecture, bugs, and core repo doc surfaces without changing the underlying inferred-nav publish model
+162. 2026-03-23 17:29: Tightened the standalone `[3.2B-Console-2] SketchDraw Staged Command Routing` phase doc into a more handoff-ready implementation spec, locking the exact local staged scope ids, action ids, `Back` versus `X` behavior, staged-to-runtime handoff rules, and the concrete verification targets for the next sketch-console routing pass
 161. 2026-03-23 17:39: Logged the shipped MkDocs `Phase 3` hosting pass that updates the existing GitHub Pages workflow and `mkdocs.yml` for one combined app-root plus `/docs/` publish artifact, while refreshing both `docs/index.md` and `docs/Phase-Plans/mkDocs.md` to describe that live same-repo hosting model
 160. 2026-03-23 17:19: Logged the shipped `[3.2B-Console-1]` follow-through by moving the standalone sketch-console phase record into `Shipped/`, updating `Sketch.md` and `roadmap.md` to mark the first scoped-console cleanup complete, and refreshing the docs map so the new shipped path replaces the old future listing
 159. 2026-03-23 17:18: Logged the new `mkDocs.md` hosting follow-up that adds `Phase 3 - GitHub Pages Combined App And Docs Publish`, locking the same-repo GitHub Pages plan around one combined artifact with the app kept at `/` and the MkDocs site published under `/docs/` through the existing Pages workflow
@@ -200,6 +209,14 @@ Do not use it for:
 - keep numbering sequential unless the user explicitly asks for a renumber pass
 
 ## Doc Body
+
+### [193] - 2026-03-23 17:29 - `DOC - Tighten Sketch Console Phase 3.2B-Console-2`
+
+Tightened the standalone `[3.2B-Console-2] SketchDraw Staged Command Routing` phase doc into a more handoff-ready implementation spec, adding the exact local staged command model, recommended scope ids and action ids, the locked `Back` versus `X` split, stronger `ConsoleDock` handoff rules, and clearer automated/manual verification expectations for the next sketch-console routing phase.
+
+Files changed:
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Future/Sketch_Phase 3.2B-Console-2 - SketchDraw Staged Command Routing.md`
+- `docs/Doc-Log.md`
 
 ### [192] - 2026-03-23 17:19 - `DOC - Ship Sketch Console Phase 3.2B-Console-1`
 

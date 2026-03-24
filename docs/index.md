@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+4. 2026-03-23 17:57: Reworked the MkDocs landing page into a more readable home screen with grouped quick-link cards and browse-by-area links, so the docs site now has clearer entry points into the main repo doc surfaces without changing the underlying inferred navigation rules
 3. 2026-03-23 17:39: Updated the live MkDocs landing page for the shipped GitHub Pages hosting pass, recording that the existing repo Pages deployment now keeps the app at the site root while publishing this docs site under `/docs/` through the same combined artifact
 2. 2026-03-23 17:11: Updated the live MkDocs landing page for the new dark-by-default site theme, noting that the docs now open in Material's `slate` palette while keeping a header toggle for switching back to light mode
 1. 2026-03-23 14:17: Reworked the MkDocs landing page for the Phase 2 live-site state, adding explicit notes about inferred navigation, excluded folders, auto-publishing rules for new docs, and the main repo doc surfaces that matter when maintaining the published docs tree
@@ -26,12 +27,91 @@ Use it to understand:
 
 ## Doc Body
 
-### Start Here
+This landing page is the shortest route into the parts of the published docs tree that matter most day to day.
 
-- open [MkDocs Plan](Phase-Plans/mkDocs.md) for the docs-site setup and maintenance rules
-- open [Doc Index](Doc-Index.md) for the canonical docs map and repo documentation rules
-- open [CHANGELOG](CHANGELOG.md) for shipped implementation history
-- open [Doc Log](Doc-Log.md) for document-change history
+### Quick Start
+
+<div class="grid cards" markdown>
+
+- __Doc Index__
+
+  ---
+
+  Canonical docs map plus the repo's documentation-structure rules.
+
+  [Open Doc Index](Doc-Index.md)
+
+- __MkDocs Plan__
+
+  ---
+
+  Setup, maintenance, and GitHub Pages hosting notes for this docs site.
+
+  [Open MkDocs Plan](Phase-Plans/mkDocs.md)
+
+- __CHANGELOG__
+
+  ---
+
+  Permanent shipped implementation history for the repo.
+
+  [Open CHANGELOG](CHANGELOG.md)
+
+- __Doc Log__
+
+  ---
+
+  Document-change history and docs-maintenance record.
+
+  [Open Doc Log](Doc-Log.md)
+
+</div>
+
+### Browse By Area
+
+<div class="grid cards" markdown>
+
+- __Roadmap__
+
+  ---
+
+  High-level project direction, active lanes, and longer-term sequencing.
+
+  [Open Roadmap](Human-Plans/roadmap/roadmap.md)
+
+- __System Map__
+
+  ---
+
+  Broad architecture orientation for the major ParaHook systems.
+
+  [Open System Map](Human-Plans/Architecture/System-Map.md)
+
+- __Phase Setup__
+
+  ---
+
+  Source-of-truth rules for phase prefixes, family docs, and task lifecycle.
+
+  [Open Phase Setup](Phase-Plans/00_Phase-Setup.md)
+
+- __Bug Reports__
+
+  ---
+
+  Tracked regressions and focused bug notes that are still worth watching.
+
+  [Open Bug Reports](Bugs/0_Bug_Report.md)
+
+</div>
+
+### Common Routes
+
+- [Decisions](Human-Plans/Decisions.MD)
+- [Engine Architecture](Human-Plans/Architecture/Engine-Architecture.md)
+- [Architecture Glossary](Human-Plans/Architecture/Glossary.md)
+- [DOC Phase Family](Phase-Plans/14_DOC%20-%20Phase-Plans.md)
+- [Spaghetti Node Index](Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md)
 
 ### Current Live Behavior
 
@@ -48,21 +128,18 @@ Use it to understand:
 - on the live project site, the app stays at `https://rickyrickmyballs.github.io/ParaHook_Configurator/`
 - on the live project site, the docs are served from `https://rickyrickmyballs.github.io/ParaHook_Configurator/docs/`
 
-### Excluded From Publication
+### Publishing Rules
 
-The current MkDocs config excludes these docs branches from the published site:
+What auto-publishes:
+
+- new docs under included folders appear automatically because navigation is inferred from the docs folder structure
+- new docs do not need a matching `mkdocs.yml` nav entry while navigation stays inferred
+
+What stays out of the published site:
 
 - `Archive/`
 - `Human-Plans/roadmap/archive/`
 - `Phase-Plans/Tasks/Archive/`
-
-### Updating MkDocs
-
-When you add a new doc under `docs/`:
-
-- it will appear automatically if it is outside the excluded folders
-- it does not need a matching `mkdocs.yml` nav entry while navigation stays inferred
-- it should still follow the repo docs rules such as local `Doc History` and `docs/Doc-Log.md`
 
 When you want different docs-site behavior:
 

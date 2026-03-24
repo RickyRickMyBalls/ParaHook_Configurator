@@ -21,6 +21,11 @@ export type ConsoleStagedNavigationContext = {
     extrudeOptions: ConsoleStagedNodeOption[]
     outputPreviewOptions: ConsoleStagedNodeOption[]
   }>
+  sketchDraw: {
+    hasSelection: boolean
+    hasPrevious: boolean
+    preferredTool: 'LINE' | 'PLINE' | 'RECTANGLE' | 'CIRCLE' | null
+  }
 }
 
 export type ConsoleStagedNavigationChoiceKind = 'scope' | 'action'
@@ -37,6 +42,9 @@ export type ConsoleStagedNavigationScopeId =
   | 'cameraRoot'
   | 'cameraProjectionRoot'
   | 'zoomRoot'
+  | 'sketchDrawRoot'
+  | 'sketchDrawCameraRoot'
+  | 'sketchDrawCameraProjectionRoot'
   | 'sketchDrawZoomRoot'
   | 'radioRoot'
   | 'graphRoot'
@@ -76,6 +84,16 @@ export type ConsoleStagedNavigationExecuteResult = {
     | 'camera.orbit'
     | 'camera.projection.orthographic'
     | 'camera.projection.perspective'
+    | 'sketchdraw.tool.line'
+    | 'sketchdraw.tool.pline'
+    | 'sketchdraw.tool.rectangle'
+    | 'sketchdraw.tool.circle'
+    | 'sketchdraw.camera.projection.orthographic'
+    | 'sketchdraw.camera.projection.perspective'
+    | 'sketchdraw.previous'
+    | 'sketchdraw.delete'
+    | 'sketchdraw.back'
+    | 'sketchdraw.exit'
     | 'zoom.model.all'
     | 'zoom.model.extents'
     | 'zoom.model.previous'
@@ -199,6 +217,69 @@ const CAMERA_PROJECTION_PERSPECTIVE_CHOICE: ConsoleStagedNavigationChoice = {
   canonicalToken: 'PERSPECTIVE',
   aliases: ['P'],
   label: 'Perspective',
+  kind: 'action',
+}
+
+const SKETCH_DRAW_LINE_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'LINE',
+  aliases: ['L'],
+  label: 'Line',
+  kind: 'action',
+}
+
+const SKETCH_DRAW_PLINE_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'PLINE',
+  aliases: ['PL'],
+  label: 'PLine',
+  kind: 'action',
+}
+
+const SKETCH_DRAW_RECTANGLE_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'RECTANGLE',
+  aliases: ['REC'],
+  label: 'Rectangle',
+  kind: 'action',
+}
+
+const SKETCH_DRAW_CIRCLE_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'CIRCLE',
+  aliases: ['CC'],
+  label: 'Circle',
+  kind: 'action',
+}
+
+const SKETCH_DRAW_CAMERA_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'CAMERA',
+  aliases: ['C'],
+  label: 'Camera',
+  kind: 'scope',
+}
+
+const SKETCH_DRAW_ZOOM_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'ZOOM',
+  aliases: ['Z'],
+  label: 'Zoom',
+  kind: 'scope',
+}
+
+const SKETCH_DRAW_PREVIOUS_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'PREVIOUS',
+  aliases: ['P'],
+  label: 'Previous',
+  kind: 'action',
+}
+
+const SKETCH_DRAW_DELETE_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'DELETE',
+  aliases: ['DEL'],
+  label: 'Delete',
+  kind: 'action',
+}
+
+const SKETCH_DRAW_EXIT_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'X',
+  aliases: [],
+  label: 'X',
   kind: 'action',
 }
 
@@ -430,6 +511,47 @@ const buildCameraProjectionChoices = (): ConsoleStagedNavigationChoice[] => [
   createBackChoice(),
 ]
 
+const buildSketchDrawRootChoices = (
+  context: Pick<ConsoleStagedNavigationContext, 'sketchDraw'>,
+): ConsoleStagedNavigationChoice[] => {
+  const toolChoices = [
+    SKETCH_DRAW_LINE_CHOICE,
+    SKETCH_DRAW_PLINE_CHOICE,
+    SKETCH_DRAW_RECTANGLE_CHOICE,
+    SKETCH_DRAW_CIRCLE_CHOICE,
+  ]
+  const preferredTool = context.sketchDraw.preferredTool
+  const orderedToolChoices =
+    preferredTool === null
+      ? toolChoices
+      : [
+          ...(toolChoices.find((choice) => choice.canonicalToken === preferredTool) !== undefined
+            ? [toolChoices.find((choice) => choice.canonicalToken === preferredTool)!]
+            : []),
+          ...toolChoices.filter((choice) => choice.canonicalToken !== preferredTool),
+        ]
+  return [
+  ...orderedToolChoices,
+  SKETCH_DRAW_CAMERA_CHOICE,
+  SKETCH_DRAW_ZOOM_CHOICE,
+  ...(context.sketchDraw.hasSelection ? [SKETCH_DRAW_DELETE_CHOICE] : []),
+  ...(context.sketchDraw.hasPrevious ? [SKETCH_DRAW_PREVIOUS_CHOICE] : []),
+  createBackChoice(),
+  SKETCH_DRAW_EXIT_CHOICE,
+]
+}
+
+const buildSketchDrawCameraRootChoices = (): ConsoleStagedNavigationChoice[] => [
+  CAMERA_PROJECTION_CHOICE,
+  createBackChoice(),
+]
+
+const buildSketchDrawCameraProjectionChoices = (): ConsoleStagedNavigationChoice[] => [
+  CAMERA_PROJECTION_ORTHOGRAPHIC_CHOICE,
+  CAMERA_PROJECTION_PERSPECTIVE_CHOICE,
+  createBackChoice(),
+]
+
 export const createConsoleRootSession = (): ConsoleStagedNavigationSession => ({
   scopeId: 'root',
   breadcrumb: ['Root'],
@@ -628,6 +750,41 @@ export const createSketchDrawZoomRootSession = (): ConsoleStagedNavigationSessio
     sketchNodeId: null,
   },
   validChoices: buildZoomActionChoices(),
+})
+
+export const createSketchDrawRootSession = (
+  context: Pick<ConsoleStagedNavigationContext, 'sketchDraw'>,
+): ConsoleStagedNavigationSession => ({
+  scopeId: 'sketchDrawRoot',
+  breadcrumb: ['Graph', 'Sketch', 'Sketch Draw'],
+  selections: {
+    graphDocumentId: null,
+    selectedNodeId: null,
+    sketchNodeId: null,
+  },
+  validChoices: buildSketchDrawRootChoices(context),
+})
+
+const createSketchDrawCameraRootSession = (): ConsoleStagedNavigationSession => ({
+  scopeId: 'sketchDrawCameraRoot',
+  breadcrumb: ['Graph', 'Sketch', 'Sketch Draw', 'Camera'],
+  selections: {
+    graphDocumentId: null,
+    selectedNodeId: null,
+    sketchNodeId: null,
+  },
+  validChoices: buildSketchDrawCameraRootChoices(),
+})
+
+const createSketchDrawCameraProjectionRootSession = (): ConsoleStagedNavigationSession => ({
+  scopeId: 'sketchDrawCameraProjectionRoot',
+  breadcrumb: ['Graph', 'Sketch', 'Sketch Draw', 'Camera', 'Projection'],
+  selections: {
+    graphDocumentId: null,
+    selectedNodeId: null,
+    sketchNodeId: null,
+  },
+  validChoices: buildSketchDrawCameraProjectionChoices(),
 })
 
 const createGraphZoomRootSession = (
@@ -968,6 +1125,11 @@ const resolveSingleSketchAutoAdvance = (
 
 export const createConsoleStagedNavigationContext = (
   graphOptions: ConsoleStagedGraphOption[],
+  sketchDraw: ConsoleStagedNavigationContext['sketchDraw'] = {
+    hasSelection: false,
+    hasPrevious: false,
+    preferredTool: 'LINE',
+  },
 ): ConsoleStagedNavigationContext => ({
   graphOptions: graphOptions.map((option) => ({
     graphDocumentId: option.graphDocumentId,
@@ -989,6 +1151,7 @@ export const createConsoleStagedNavigationContext = (
       label: outputPreviewOption.label,
     })),
   })),
+  sketchDraw,
 })
 
 export const isConsoleStagedNavigationRootToken = (submittedToken: string): boolean => {
@@ -1151,6 +1314,114 @@ export const submitConsoleStagedNavigationToken = (
     }
   }
 
+  if (
+    session.scopeId === 'sketchDrawRoot' ||
+    session.scopeId === 'sketchDrawCameraRoot' ||
+    session.scopeId === 'sketchDrawCameraProjectionRoot' ||
+    session.scopeId === 'sketchDrawZoomRoot'
+  ) {
+    const radioRootChoice = buildRootChoices().find(
+      (choice) => choice.canonicalToken === ROOT_RADIO_CHOICE.canonicalToken,
+    )
+    if (radioRootChoice !== undefined && matchesChoice(radioRootChoice, normalizedToken)) {
+      return createAdvanceResult(createRadioRootSession(), submittedToken, radioRootChoice)
+    }
+  }
+
+  if (session.scopeId === 'sketchDrawRoot') {
+    const sketchDrawRootChoices = buildSketchDrawRootChoices(context)
+    const matchedChoice =
+      sketchDrawRootChoices.find((choice) => matchesChoice(choice, normalizedToken)) ?? null
+    if (matchedChoice === null) {
+      return createInvalidResult(
+        { ...session, validChoices: sketchDrawRootChoices },
+        submittedToken,
+        sketchDrawRootChoices,
+      )
+    }
+    if (matchedChoice.canonicalToken === 'CAMERA') {
+      return createAdvanceResult(createSketchDrawCameraRootSession(), submittedToken, matchedChoice)
+    }
+    if (matchedChoice.canonicalToken === 'ZOOM') {
+      return createAdvanceResult(createSketchDrawZoomRootSession(), submittedToken, matchedChoice)
+    }
+    return {
+      kind: 'execute',
+      session: {
+        ...session,
+        validChoices: sketchDrawRootChoices,
+      },
+      submittedToken,
+      matchedChoice,
+      actionId:
+        matchedChoice.canonicalToken === 'LINE'
+          ? 'sketchdraw.tool.line'
+          : matchedChoice.canonicalToken === 'PLINE'
+            ? 'sketchdraw.tool.pline'
+            : matchedChoice.canonicalToken === 'RECTANGLE'
+              ? 'sketchdraw.tool.rectangle'
+              : matchedChoice.canonicalToken === 'CIRCLE'
+                ? 'sketchdraw.tool.circle'
+                : matchedChoice.canonicalToken === 'PREVIOUS'
+                  ? 'sketchdraw.previous'
+                  : matchedChoice.canonicalToken === 'DELETE'
+                    ? 'sketchdraw.delete'
+                    : matchedChoice.canonicalToken === 'BACK'
+                      ? 'sketchdraw.back'
+                      : 'sketchdraw.exit',
+      breadcrumb: [...session.breadcrumb, matchedChoice.label],
+      selections: session.selections,
+    }
+  }
+
+  if (session.scopeId === 'sketchDrawCameraRoot') {
+    const sketchDrawCameraChoices = buildSketchDrawCameraRootChoices()
+    const matchedChoice =
+      sketchDrawCameraChoices.find((choice) => matchesChoice(choice, normalizedToken)) ?? null
+    if (matchedChoice === null) {
+      return createInvalidResult(
+        { ...session, validChoices: sketchDrawCameraChoices },
+        submittedToken,
+        sketchDrawCameraChoices,
+      )
+    }
+    if (matchedChoice.canonicalToken === 'BACK') {
+      return createAdvanceResult(createSketchDrawRootSession(context), submittedToken, matchedChoice)
+    }
+    return createAdvanceResult(createSketchDrawCameraProjectionRootSession(), submittedToken, matchedChoice)
+  }
+
+  if (session.scopeId === 'sketchDrawCameraProjectionRoot') {
+    const sketchDrawProjectionChoices = buildSketchDrawCameraProjectionChoices()
+    const matchedChoice =
+      sketchDrawProjectionChoices.find((choice) => matchesChoice(choice, normalizedToken)) ?? null
+    if (matchedChoice === null) {
+      return createInvalidResult(
+        { ...session, validChoices: sketchDrawProjectionChoices },
+        submittedToken,
+        sketchDrawProjectionChoices,
+      )
+    }
+    if (matchedChoice.canonicalToken === 'BACK') {
+      return createAdvanceResult(createSketchDrawCameraRootSession(), submittedToken, matchedChoice)
+    }
+    return {
+      kind: 'execute',
+      session: {
+        ...session,
+        validChoices: sketchDrawProjectionChoices,
+      },
+      submittedToken,
+      matchedChoice,
+      actionId:
+        matchedChoice.canonicalToken === CAMERA_PROJECTION_ORTHOGRAPHIC_CHOICE.canonicalToken
+          ? 'sketchdraw.camera.projection.orthographic'
+          : 'sketchdraw.camera.projection.perspective',
+      breadcrumb: [...session.breadcrumb, matchedChoice.label],
+      selections: session.selections,
+    }
+  }
+
   if (session.scopeId === 'radioRoot') {
     const radioChoices = buildRadioRootChoices()
     const matchedChoice =
@@ -1241,7 +1512,7 @@ export const submitConsoleStagedNavigationToken = (
       return createInvalidResult({ ...session, validChoices: zoomChoices }, submittedToken, zoomChoices)
     }
     if (matchedChoice.canonicalToken === 'BACK') {
-      return createAdvanceResult(createConsoleRootSession(), submittedToken, matchedChoice)
+      return createAdvanceResult(createSketchDrawRootSession(context), submittedToken, matchedChoice)
     }
     const actionIdByToken: Record<
       string,

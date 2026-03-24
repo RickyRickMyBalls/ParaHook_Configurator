@@ -55,6 +55,7 @@ import {
   cancelConsoleStagedNavigationSession,
   createConsoleRootSession,
   createSketchDrawZoomRootSession,
+  createSketchDrawRootSession,
   createConsoleStagedNavigationContext,
   isConsoleStagedNavigationRootToken,
   resolveConsoleWorkspaceContextSync,
@@ -596,7 +597,8 @@ const getActiveFeatureAssistDescriptor = ({
     return buildSketchPlaneFeatureAssistDescriptor(sketchPlanePickSession)
   }
   if (
-    geometrySketchSession?.mode === 'draw'
+    geometrySketchSession?.mode === 'draw' &&
+    geometrySketchSession.activeTool !== null
   ) {
     return buildSketchDrawFeatureAssistDescriptor(geometrySketchSession)
   }
@@ -616,6 +618,12 @@ const getStagedScopeLabel = (session: ConsoleStagedNavigationSession | null): st
       return 'Camera > Projection'
     case 'zoomRoot':
       return 'Zoom'
+    case 'sketchDrawRoot':
+      return 'Graph > Sketch > Sketch Draw'
+    case 'sketchDrawCameraRoot':
+      return 'Graph > Sketch > Sketch Draw > Camera'
+    case 'sketchDrawCameraProjectionRoot':
+      return 'Graph > Sketch > Sketch Draw > Camera > Projection'
     case 'sketchDrawZoomRoot':
       return 'Graph > Sketch > Sketch Draw > Zoom'
     case 'radioRoot':
@@ -865,7 +873,30 @@ const buildStagedNavigationContextFromStoreState = (
           label: `outputPreview_[${index + 1}]`,
         })),
     })),
+    {
+      hasSelection: (spaghettiState.geometrySketchSession?.selectedComponentIds.length ?? 0) > 0,
+      hasPrevious: spaghettiState.geometrySketchSession?.lastUsedTool !== null,
+      preferredTool:
+        spaghettiState.geometrySketchSession?.activeTool === 'pline' ||
+        spaghettiState.geometrySketchSession?.lastUsedTool === 'pline'
+          ? 'PLINE'
+          : spaghettiState.geometrySketchSession?.activeTool === 'rectangle' ||
+              spaghettiState.geometrySketchSession?.lastUsedTool === 'rectangle'
+            ? 'RECTANGLE'
+            : spaghettiState.geometrySketchSession?.activeTool === 'circle' ||
+                spaghettiState.geometrySketchSession?.lastUsedTool === 'circle'
+              ? 'CIRCLE'
+              : 'LINE',
+    },
   )
+
+const isSketchDrawLocalStagedScope = (
+  session: ConsoleStagedNavigationSession | null,
+): boolean =>
+  session?.scopeId === 'sketchDrawRoot' ||
+  session?.scopeId === 'sketchDrawCameraRoot' ||
+  session?.scopeId === 'sketchDrawCameraProjectionRoot' ||
+  session?.scopeId === 'sketchDrawZoomRoot'
 
 const buildWorkspaceIntentDepsFromStoreState = (): WorkspaceIntentDeps => {
   const appState = useAppStore.getState()
@@ -946,6 +977,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
   const previousSketchPlanePickSessionRef = useRef<
     ReturnType<typeof useSpaghettiStore.getState>['sketchPlanePickSession']
   >(null)
+  const previousSketchDrawIdleRef = useRef(false)
   const [popoutHost, setPopoutHost] = useState<HTMLElement | null>(null)
   const appendEscUserEntry = useCallback(() => {
     appendConsoleEntry({
@@ -1271,8 +1303,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
       return true
     }
 
-    if (activeSession.scopeId === 'sketchDrawZoomRoot') {
-      setStagedNavigationSession(null)
+    if (isSketchDrawLocalStagedScope(activeSession)) {
       return true
     }
 
@@ -1385,6 +1416,20 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
       spaghettiState.runGeometrySketchDrawCommand('esc')
     }
   }, [stepActiveConsolePromptSessionBack, stepActiveStagedNavigationSessionOneLevel])
+
+  const primeSketchDrawStagedRootForTyping = useCallback(() => {
+    const consoleState = useConsoleStore.getState()
+    const spaghettiState = useSpaghettiStore.getState()
+    const isSketchDrawIdle =
+      spaghettiState.geometrySketchSession?.mode === 'draw' &&
+      spaghettiState.geometrySketchSession.activeTool === null
+    if (!isSketchDrawIdle || consoleState.stagedNavigationSession !== null) {
+      return
+    }
+    setStagedNavigationSession(
+      createSketchDrawRootSession(buildStagedNavigationContextFromStoreState(spaghettiState)),
+    )
+  }, [setStagedNavigationSession])
 
   const createMissingGraphNodeInGraphDocument = useCallback((
     graphDocumentId: string,
@@ -1806,11 +1851,12 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
             stagedResult.actionId === 'radio.closeToolbar'
           ) {
             let radioStateAfterAction = null as ReturnType<typeof useAudioSamplerStore.getState> | null
-            const returnToSketchDrawAfterRadio =
-              spaghettiState.geometrySketchSession?.mode === 'draw'
+            const sketchDrawResumeSession =
+              isSketchDrawLocalStagedScope(activeStagedSession) ? activeStagedSession : null
+            const returnToSketchDrawAfterRadio = spaghettiState.geometrySketchSession?.mode === 'draw'
             if (stagedResult.actionId === 'radio.on') {
               if (returnToSketchDrawAfterRadio) {
-                setStagedNavigationSession(null)
+                setStagedNavigationSession(sketchDrawResumeSession)
               } else {
                 enterGuidedRootSession()
               }
@@ -1819,7 +1865,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
               requestRadioRuntimeWarmup(radioStateAfterAction.sourceUrl)
             } else if (stagedResult.actionId === 'radio.off') {
               if (returnToSketchDrawAfterRadio) {
-                setStagedNavigationSession(null)
+                setStagedNavigationSession(sketchDrawResumeSession)
               } else {
                 enterGuidedRootSession()
               }
@@ -1872,17 +1918,29 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
             }
             if (stagedResult.actionId === 'radio.on' || stagedResult.actionId === 'radio.off') {
               if (returnToSketchDrawAfterRadio) {
-                const nextDescriptor = getActiveFeatureAssistDescriptor({
-                  sketchPlanePickSession: useSpaghettiStore.getState().sketchPlanePickSession,
-                  geometrySketchSession: useSpaghettiStore.getState().geometrySketchSession,
-                })
-                if (nextDescriptor !== null) {
+                if (sketchDrawResumeSession !== null) {
                   appendConsoleEntry({
                     layer: 'Commands',
-                    text: buildFeatureAssistPromptText(nextDescriptor),
+                    text: buildStagedPromptText(
+                      sketchDrawResumeSession,
+                      sketchDrawResumeSession.validChoices,
+                    ),
                     source: 'console',
                     severity: 'info',
                   })
+                } else {
+                  const nextDescriptor = getActiveFeatureAssistDescriptor({
+                    sketchPlanePickSession: useSpaghettiStore.getState().sketchPlanePickSession,
+                    geometrySketchSession: useSpaghettiStore.getState().geometrySketchSession,
+                  })
+                  if (nextDescriptor !== null) {
+                    appendConsoleEntry({
+                      layer: 'Commands',
+                      text: buildFeatureAssistPromptText(nextDescriptor),
+                      source: 'console',
+                      severity: 'info',
+                    })
+                  }
                 }
               } else {
                 appendConsoleEntry({
@@ -1906,6 +1964,43 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
                 severity: 'info',
               })
             }
+            return
+          }
+          if (
+            stagedResult.actionId === 'sketchdraw.tool.line' ||
+            stagedResult.actionId === 'sketchdraw.tool.pline' ||
+            stagedResult.actionId === 'sketchdraw.tool.rectangle' ||
+            stagedResult.actionId === 'sketchdraw.tool.circle' ||
+            stagedResult.actionId === 'sketchdraw.previous' ||
+            stagedResult.actionId === 'sketchdraw.delete' ||
+            stagedResult.actionId === 'sketchdraw.back' ||
+            stagedResult.actionId === 'sketchdraw.exit'
+          ) {
+            appendConsoleEntry({
+              layer: 'Commands',
+              text: formatStagedBreadcrumb(stagedResult.breadcrumb),
+              source: 'console',
+              severity: 'info',
+            })
+            setStagedNavigationSession(null)
+            const sketchDrawCommand =
+              stagedResult.actionId === 'sketchdraw.tool.line'
+                ? 'line'
+                : stagedResult.actionId === 'sketchdraw.tool.pline'
+                  ? 'pline'
+                  : stagedResult.actionId === 'sketchdraw.tool.rectangle'
+                    ? 'rectangle'
+                    : stagedResult.actionId === 'sketchdraw.tool.circle'
+                      ? 'circle'
+                      : stagedResult.actionId === 'sketchdraw.previous'
+                        ? 'previous'
+                        : stagedResult.actionId === 'sketchdraw.delete'
+                          ? 'delete'
+                          : stagedResult.actionId === 'sketchdraw.back'
+                            ? 'back'
+                            : 'x'
+            useSpaghettiStore.getState().runGeometrySketchDrawCommand(sketchDrawCommand)
+            requestRadioBurst(commandIdentity, 'enter')
             return
           }
           if (
@@ -1950,6 +2045,8 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
             stagedResult.actionId === 'camera.orbit' ||
             stagedResult.actionId === 'camera.projection.orthographic' ||
             stagedResult.actionId === 'camera.projection.perspective' ||
+            stagedResult.actionId === 'sketchdraw.camera.projection.orthographic' ||
+            stagedResult.actionId === 'sketchdraw.camera.projection.perspective' ||
             stagedResult.actionId === 'zoom.model.all' ||
             stagedResult.actionId === 'zoom.model.extents' ||
             stagedResult.actionId === 'zoom.model.previous' ||
@@ -1966,6 +2063,9 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
             const selectedReferenceId = resolveSelectedReferenceIdForZoom()
             const commandLabel = formatStagedBreadcrumb(stagedResult.breadcrumb)
             const executeModelZoomObject = (): boolean => {
+              if (stagedResult.session.scopeId === 'sketchDrawZoomRoot') {
+                return viewer?.frameSelectedGeometrySketch() ?? false
+              }
               if (appState.selectedPartKey !== null) {
                 viewer?.frameSelected(appState.selectedPartKey)
                 return true
@@ -2073,10 +2173,13 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
               })
             } else if (
               stagedResult.actionId === 'camera.projection.orthographic' ||
-              stagedResult.actionId === 'camera.projection.perspective'
+              stagedResult.actionId === 'camera.projection.perspective' ||
+              stagedResult.actionId === 'sketchdraw.camera.projection.orthographic' ||
+              stagedResult.actionId === 'sketchdraw.camera.projection.perspective'
             ) {
               const projectionMode =
-                stagedResult.actionId === 'camera.projection.orthographic'
+                stagedResult.actionId === 'camera.projection.orthographic' ||
+                stagedResult.actionId === 'sketchdraw.camera.projection.orthographic'
                   ? 'orthographic'
                   : 'perspective'
               useUiPrefsStore.getState().setViewKey('projectionMode', projectionMode)
@@ -2102,13 +2205,13 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
             } else if (stagedResult.actionId === 'zoom.model.previous') {
               viewer?.framePrevious()
             } else if (stagedResult.actionId === 'zoom.model.window') {
+              viewer?.setConsoleCameraMode('zoom-window')
               appendConsoleEntry({
-                layer: 'Diagnostics',
-                text: 'Zoom Window is not implemented yet',
+                layer: 'View',
+                text: 'Zoom Window armed: drag a box in the viewport with LMB',
                 source: 'console',
-                severity: 'warn',
+                severity: 'info',
               })
-              actionSucceeded = false
             } else if (stagedResult.actionId === 'zoom.model.object') {
               actionSucceeded = executeModelZoomObject()
             } else {
@@ -2148,8 +2251,15 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
                 }
                 unwindSession = resumedResult.session
               }
-              nextStagedSession =
-                stagedResult.session.scopeId === 'sketchDrawZoomRoot' ? null : unwindSession
+              nextStagedSession = unwindSession
+            } else if (
+              actionSucceeded &&
+              (stagedResult.actionId === 'sketchdraw.camera.projection.orthographic' ||
+                stagedResult.actionId === 'sketchdraw.camera.projection.perspective')
+            ) {
+              nextStagedSession = createSketchDrawRootSession(
+                buildStagedNavigationContextFromStoreState(useSpaghettiStore.getState()),
+              )
             }
 
             setStagedNavigationSession(nextStagedSession)
@@ -2312,18 +2422,22 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
               stagedResult.selections.graphDocumentId,
               stagedResult.selections.sketchNodeId,
             )
-            const sketchDrawDescriptor = getActiveFeatureAssistDescriptor({
-              sketchPlanePickSession: useSpaghettiStore.getState().sketchPlanePickSession,
-              geometrySketchSession: useSpaghettiStore.getState().geometrySketchSession,
+            const sketchDrawSession = createSketchDrawRootSession(
+              buildStagedNavigationContextFromStoreState(useSpaghettiStore.getState()),
+            )
+            setStagedNavigationSession(sketchDrawSession)
+            appendConsoleEntry({
+              layer: 'Commands',
+              text: formatStagedBreadcrumb(sketchDrawSession.breadcrumb),
+              source: 'console',
+              severity: 'info',
             })
-            if (sketchDrawDescriptor !== null) {
-              appendConsoleEntry({
-                layer: 'Commands',
-                text: buildFeatureAssistPromptText(sketchDrawDescriptor),
-                source: 'console',
-                severity: 'info',
-              })
-            }
+            appendConsoleEntry({
+              layer: 'Commands',
+              text: buildStagedPromptText(sketchDrawSession, sketchDrawSession.validChoices),
+              source: 'console',
+              severity: 'info',
+            })
             requestRadioBurst(commandIdentity, 'enter')
             return
           }
@@ -2344,6 +2458,13 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
           return
         }
         if (stagedResult.kind === 'invalid') {
+          if (
+            isSketchDrawLocalStagedScope(activeStagedSession) &&
+            spaghettiState.geometrySketchSession?.mode === 'draw'
+          ) {
+            // Let sketch-draw runtime commands like Enter/Status/Help continue through the
+            // draw-session handler instead of treating them as staged-navigation errors.
+          } else {
           if (stagedResult.session !== null) {
             setStagedNavigationSession(stagedResult.session)
           }
@@ -2369,6 +2490,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
             severity: 'info',
           })
           return
+          }
         }
       }
       graphRootEditorRevealRestoreRef.current = null
@@ -2697,7 +2819,11 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
         }
         if (trimmedInput === 'radio' || trimmedInput === 'r') {
           const rawToken = inputText.trim()
-          const stagedResult = submitConsoleStagedNavigationToken(null, rawToken, stagedContext)
+          const stagedResult = submitConsoleStagedNavigationToken(
+            isSketchDrawLocalStagedScope(activeStagedSession) ? activeStagedSession : null,
+            rawToken,
+            stagedContext,
+          )
           if (stagedResult.kind === 'advance' && stagedResult.session.scopeId === 'radioRoot') {
             const commandIdentity = resolveConsoleRadioCommandIdentity({
               kind: 'stagedAdvance',
@@ -2727,6 +2853,134 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
               severity: 'info',
             })
             return
+          }
+        }
+        if (geometrySketchSession.activeTool === null) {
+          const sketchDrawSession: ConsoleStagedNavigationSession =
+            activeStagedSession !== null && isSketchDrawLocalStagedScope(activeStagedSession)
+              ? activeStagedSession
+              : createSketchDrawRootSession(stagedContext)
+          const stagedResult = submitConsoleStagedNavigationToken(
+            sketchDrawSession,
+            trimmedInput,
+            stagedContext,
+          )
+          if (stagedResult.kind === 'advance') {
+            const commandIdentity = resolveConsoleRadioCommandIdentity({
+              kind: 'stagedAdvance',
+              activeScopeId: sketchDrawSession.scopeId,
+              matchedCanonicalToken: stagedResult.matchedChoice.canonicalToken,
+              matchedLabel: stagedResult.matchedChoice.label,
+            })
+            appendConsoleEntry({
+              layer: 'Commands',
+              commandLineKind: 'user',
+              text: `> ${trimmedInput}`,
+            })
+            pushCommandHistory(trimmedInput)
+            trackRadioCommandIdentity(commandIdentity)
+            requestRadioBurst(commandIdentity, 'enter')
+            setStagedNavigationSession(stagedResult.session)
+            appendConsoleEntry({
+              layer: 'Commands',
+              text: formatStagedBreadcrumb(stagedResult.breadcrumb),
+              source: 'console',
+              severity: 'info',
+            })
+            appendConsoleEntry({
+              layer: 'Commands',
+              text: buildStagedPromptText(stagedResult.session, stagedResult.validChoices),
+              source: 'console',
+              severity: 'info',
+            })
+            return
+          }
+          if (stagedResult.kind === 'execute') {
+            const commandIdentity = resolveConsoleRadioCommandIdentity({
+              kind: 'stagedExecute',
+              activeScopeId: sketchDrawSession.scopeId,
+              actionId: stagedResult.actionId,
+            })
+            appendConsoleEntry({
+              layer: 'Commands',
+              commandLineKind: 'user',
+              text: `> ${trimmedInput}`,
+            })
+            pushCommandHistory(trimmedInput)
+            trackRadioCommandIdentity(commandIdentity)
+            if (
+              stagedResult.actionId === 'sketchdraw.tool.line' ||
+              stagedResult.actionId === 'sketchdraw.tool.pline' ||
+              stagedResult.actionId === 'sketchdraw.tool.rectangle' ||
+              stagedResult.actionId === 'sketchdraw.tool.circle' ||
+              stagedResult.actionId === 'sketchdraw.previous' ||
+              stagedResult.actionId === 'sketchdraw.delete' ||
+              stagedResult.actionId === 'sketchdraw.back' ||
+              stagedResult.actionId === 'sketchdraw.exit'
+            ) {
+              appendConsoleEntry({
+                layer: 'Commands',
+                text: formatStagedBreadcrumb(stagedResult.breadcrumb),
+                source: 'console',
+                severity: 'info',
+              })
+              setStagedNavigationSession(null)
+              spaghettiState.runGeometrySketchDrawCommand(
+                stagedResult.actionId === 'sketchdraw.tool.line'
+                  ? 'line'
+                  : stagedResult.actionId === 'sketchdraw.tool.pline'
+                    ? 'pline'
+                    : stagedResult.actionId === 'sketchdraw.tool.rectangle'
+                      ? 'rectangle'
+                      : stagedResult.actionId === 'sketchdraw.tool.circle'
+                        ? 'circle'
+                        : stagedResult.actionId === 'sketchdraw.previous'
+                          ? 'previous'
+                          : stagedResult.actionId === 'sketchdraw.delete'
+                            ? 'delete'
+                            : stagedResult.actionId === 'sketchdraw.back'
+                              ? 'back'
+                              : 'x',
+              )
+              requestRadioBurst(commandIdentity, 'enter')
+              return
+            }
+            if (
+              stagedResult.actionId === 'sketchdraw.camera.projection.orthographic' ||
+              stagedResult.actionId === 'sketchdraw.camera.projection.perspective'
+            ) {
+              const projectionMode =
+                stagedResult.actionId === 'sketchdraw.camera.projection.orthographic'
+                  ? 'orthographic'
+                  : 'perspective'
+              useUiPrefsStore.getState().setViewKey('projectionMode', projectionMode)
+              setStagedNavigationSession(createSketchDrawRootSession(stagedContext))
+              appendConsoleEntry({
+                layer: 'Commands',
+                text: formatStagedBreadcrumb(stagedResult.breadcrumb),
+                source: 'console',
+                severity: 'info',
+              })
+              appendConsoleEntry({
+                layer: 'View',
+                text: `Projection: ${
+                  projectionMode === 'orthographic' ? 'Orthographic' : 'Perspective'
+                }`,
+                source: 'console',
+                severity: 'info',
+              })
+              appendConsoleEntry({
+                layer: 'Commands',
+                text: buildStagedPromptText(
+                  createSketchDrawRootSession(stagedContext),
+                  createSketchDrawRootSession(stagedContext).validChoices,
+                ),
+                source: 'console',
+                severity: 'info',
+              })
+              requestRadioBurst(commandIdentity, 'enter')
+              return
+            }
           }
         }
         const assistBreadcrumb = featureAssistDescriptor?.breadcrumb ?? null
@@ -3166,14 +3420,22 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
             } else if (zoomAction === 'previous') {
               viewer?.framePrevious()
             } else if (zoomAction === 'window') {
+              viewer?.setConsoleCameraMode('zoom-window')
               appendConsoleEntry({
-                layer: 'Diagnostics',
-                text: 'Zoom Window is not implemented yet',
+                layer: 'View',
+                text: 'Zoom Window armed: drag a box in the viewport with LMB',
                 source: 'console',
-                severity: 'warn',
+                severity: 'info',
               })
-              requestRadioBurst(flatCommandIdentity, 'enter')
-              return
+            } else if (
+              useSpaghettiStore.getState().geometrySketchSession?.mode === 'draw' &&
+              (useSpaghettiStore.getState().geometrySketchSession?.selectedComponentIds.length ?? 0) > 0
+            ) {
+              const didFrameSelectedSketch = viewer?.frameSelectedGeometrySketch() ?? false
+              if (!didFrameSelectedSketch) {
+                requestRadioBurst(flatCommandIdentity, 'enter')
+                return
+              }
             } else if (appState.selectedPartKey !== null) {
               viewer?.frameSelected(appState.selectedPartKey)
             } else if (selectedReferenceId !== null) {
@@ -3188,7 +3450,26 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
                 requestRadioBurst(flatCommandIdentity, 'enter')
                 return
               }
-            enterGuidedRootSession({ appendPrompt: true })
+            if (useSpaghettiStore.getState().geometrySketchSession?.mode === 'draw') {
+              const sketchDrawSession = createSketchDrawRootSession(
+                buildStagedNavigationContextFromStoreState(useSpaghettiStore.getState()),
+              )
+              setStagedNavigationSession(sketchDrawSession)
+              appendConsoleEntry({
+                layer: 'Commands',
+                text: formatStagedBreadcrumb(sketchDrawSession.breadcrumb),
+                source: 'console',
+                severity: 'info',
+              })
+              appendConsoleEntry({
+                layer: 'Commands',
+                text: buildStagedPromptText(sketchDrawSession, sketchDrawSession.validChoices),
+                source: 'console',
+                severity: 'info',
+              })
+            } else {
+              enterGuidedRootSession({ appendPrompt: true })
+            }
             requestRadioBurst(flatCommandIdentity, 'enter')
           }
           return
@@ -3680,13 +3961,18 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
       if (
         suppressAutoCaptureRef.current ||
         routing.decision !== 'handle' ||
-        (routing.owner !== 'flat-console' && routing.owner !== 'staged-console')
+        ((routing.owner !== 'flat-console' && routing.owner !== 'staged-console') &&
+          !(
+            useSpaghettiStore.getState().geometrySketchSession?.mode === 'draw' &&
+            useSpaghettiStore.getState().geometrySketchSession?.activeTool === null
+          ))
       ) {
         return
       }
       event.preventDefault()
       event.stopImmediatePropagation()
       focusMainConsoleInput()
+      primeSketchDrawStagedRootForTyping()
       seedInputText(event.key)
     }
 
@@ -3700,6 +3986,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
     featureAssistDescriptor,
     focusMainConsoleInput,
     handleEscCancelCommand,
+    primeSketchDrawStagedRootForTyping,
     routeConsoleGlobalKey,
     seedInputText,
     stagedNavigationSession,
@@ -3774,13 +4061,18 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
       if (
         suppressAutoCaptureRef.current ||
         routing.decision !== 'handle' ||
-        (routing.owner !== 'flat-console' && routing.owner !== 'staged-console')
+        ((routing.owner !== 'flat-console' && routing.owner !== 'staged-console') &&
+          !(
+            useSpaghettiStore.getState().geometrySketchSession?.mode === 'draw' &&
+            useSpaghettiStore.getState().geometrySketchSession?.activeTool === null
+          ))
       ) {
         return
       }
       event.preventDefault()
       event.stopImmediatePropagation()
       focusPopoutConsoleInput()
+      primeSketchDrawStagedRootForTyping()
       seedInputText(event.key)
     }
 
@@ -3795,11 +4087,61 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
     focusPopoutConsoleInput,
     handleEscCancelCommand,
     popoutHost,
+    primeSketchDrawStagedRootForTyping,
     routeConsoleGlobalKey,
     seedInputText,
     stagedNavigationSession,
     treatSpaceAsSubmit,
     windowMode,
+  ])
+
+  useEffect(() => {
+    const isSketchDrawIdle =
+      geometrySketchSession?.mode === 'draw' && geometrySketchSession.activeTool === null
+    if (geometrySketchSession?.mode !== 'draw' && isSketchDrawLocalStagedScope(stagedNavigationSession)) {
+      clearStagedNavigationSession()
+      previousSketchDrawIdleRef.current = false
+      return
+    }
+    if (!isSketchDrawIdle || consolePromptSession !== null) {
+      previousSketchDrawIdleRef.current = isSketchDrawIdle
+      return
+    }
+    if (stagedNavigationSession !== null && !isSketchDrawLocalStagedScope(stagedNavigationSession)) {
+      previousSketchDrawIdleRef.current = isSketchDrawIdle
+      return
+    }
+    if (stagedNavigationSession === null) {
+      const sketchDrawRootSession = createSketchDrawRootSession(
+        buildStagedNavigationContextFromStoreState(useSpaghettiStore.getState()),
+      )
+      const existingInputText = useConsoleStore.getState().inputText
+      setStagedNavigationSession(sketchDrawRootSession)
+      if (existingInputText.trim().length > 0) {
+        useConsoleStore.getState().setInputText(existingInputText, { startManualOverride: true })
+      }
+      if (!previousSketchDrawIdleRef.current) {
+        appendConsoleEntry({
+          layer: 'Commands',
+          text: 'Graph > Sketch > Sketch Draw',
+          source: 'console',
+          severity: 'info',
+        })
+        appendConsoleEntry({
+          layer: 'Commands',
+          text: buildStagedPromptText(sketchDrawRootSession, sketchDrawRootSession.validChoices),
+          source: 'console',
+          severity: 'info',
+        })
+      }
+    }
+    previousSketchDrawIdleRef.current = isSketchDrawIdle
+  }, [
+    clearStagedNavigationSession,
+    consolePromptSession,
+    geometrySketchSession,
+    setStagedNavigationSession,
+    stagedNavigationSession,
   ])
 
   useEffect(() => {

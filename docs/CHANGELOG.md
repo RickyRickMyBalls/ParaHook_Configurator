@@ -65,6 +65,202 @@ Do not use it for:
 
 ## Doc Body
 
+### [568] - 2026-03-23 21:34 - `SP - Phase 3.2B-Console-2 - SketchDraw Session Nullability Build Fix`
+<!-- ENTRY 568 -->
+HUMAN SUMMARY: `Fixed the TypeScript build break in the staged \`SketchDraw\` command branch by narrowing the local staged-session value to a guaranteed non-null session before command-identity resolution. This was a compile-time safety fix; runtime behavior did not change.`
+
+#### Scope / Constraints Honored
+- Kept the change narrow to the `SketchDraw` staged-command nullability branch.
+- Treated this as a build-unblock safety fix, not a behavioral console refactor.
+
+#### Summary of Implementation
+- Updated `src/app/console/ConsoleDock.tsx` so the local `sketchDrawSession` value in the idle `SketchDraw` staged path is typed as a guaranteed `ConsoleStagedNavigationSession`.
+- Re-ran the full app production build to confirm both `tsc -b` and `vite build` pass.
+
+#### Files Changed
+- `src/app/console/ConsoleDock.tsx`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+- No runtime behavior change intended; this fixes a TypeScript nullability error that blocked builds.
+
+#### Verification Steps
+- Ran `npm.cmd run build`.
+- Confirmed `tsc -b` and `vite build` both completed successfully.
+- Observed existing non-fatal Vite warnings about large chunks and `occt-import-js` browser externalization.
+
+### [567] - 2026-03-23 21:32 - `SP - Phase 5.0I-1 - Orthographic Pan Vertical Basis Follow-Up`
+<!-- ENTRY 567 -->
+HUMAN SUMMARY: `Refined the orthographic pan fix so vertical panning now derives from the camera's live forward and right vectors instead of relying on the previous up-axis assumption. This closes the remaining case where idle \`SketchDraw\` orthographic pan could move left/right but still fail vertically in certain aligned views.`
+
+#### Scope / Constraints Honored
+- Kept the change inside shared camera-controller pan math so the correction applies consistently across viewer contexts.
+- Treated this as a basis-vector correction, not a broader sketch interaction rewrite.
+- Reused the existing focused controller test suite for regression coverage.
+
+#### Summary of Implementation
+- Updated `src/viewer/scene/CameraController.ts` so vertical pan now uses `screenUp = right x forward` from the active camera basis instead of relying on the prior column/up assumption.
+
+#### Files Changed
+- `src/viewer/scene/CameraController.ts`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+- Orthographic pan now uses the camera's live screen basis for both axes, which fixes the remaining missing vertical movement in aligned sketch views.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/viewer/scene/CameraController.test.ts`.
+- Confirmed the focused suite passed: 1 test file, 13 tests passed.
+
+### [566] - 2026-03-23 21:26 - `SP - Phase 5.0H - SketchDraw Commanded Pan Override`
+<!-- ENTRY 566 -->
+HUMAN SUMMARY: `Fixed commanded camera pan inside \`SketchDraw\` by letting explicit console-armed camera modes override the sketch-draw pointer layer. Idle \`SketchDraw\` \`pan\` drags now route to the camera again instead of falling through to sketch interaction, which also fixes the ortho-pan path there.`
+
+#### Scope / Constraints Honored
+- Kept the change narrow to explicit console-armed camera modes and did not reopen the broader accidental-LMB camera blocking work in sketch draw.
+- Preserved normal sketch-draw pointer ownership when no console camera mode is armed.
+- Added a focused console regression instead of relying only on manual app verification.
+
+#### Summary of Implementation
+- Updated `src/viewer/Viewer.ts` so console-armed camera drag modes are no longer blocked just because `SketchDraw` is active.
+- Added a focused `ConsoleDock` regression in `src/app/console/ConsoleDock.test.tsx` to verify idle `SketchDraw` `pan` still arms the camera mode and keeps the local sketch-draw scope intact.
+
+#### Files Changed
+- `src/viewer/Viewer.ts`
+- `src/app/console/ConsoleDock.test.tsx`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+- Explicit `pan` commands now work again from idle `SketchDraw`, including in orthographic mode, because the armed camera drag takes precedence over the sketch pointer layer.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/console/ConsoleDock.test.tsx src/viewer/scene/CameraController.test.ts src/app/console/stagedNavigation.test.ts`.
+- Confirmed the focused suite passed: 3 test files, 153 tests passed.
+
+### [565] - 2026-03-23 21:24 - `SP - Phase 5.0I-1 - Orthographic Pan Basis Fix`
+<!-- ENTRY 565 -->
+HUMAN SUMMARY: `Fixed the incorrect orthographic panning feel by changing camera pan to use the camera's real screen-space basis vectors instead of mixing in the stored \`camera.up\` vector. Orthographic pan now follows the visible viewport axes correctly after projection switches and direction snaps.`
+
+#### Scope / Constraints Honored
+- Kept the fix narrow inside the shared camera-controller pan math instead of widening into a broader input-routing change.
+- Reused the current temporary-pan drag path so the correction applies consistently to viewer pan and console-armed pan.
+- Added a focused orthographic regression test rather than relying on manual-only verification.
+
+#### Summary of Implementation
+- Updated `src/viewer/scene/CameraController.ts` so pan now derives both horizontal and vertical motion from the active camera's actual matrix columns.
+- Added an orthographic top-view pan regression in `src/viewer/scene/CameraController.test.ts` to verify panning stays on the camera plane and no longer drifts along the view normal.
+
+#### Files Changed
+- `src/viewer/scene/CameraController.ts`
+- `src/viewer/scene/CameraController.test.ts`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+- Orthographic pan now follows the visible screen axes correctly instead of using an incorrect vertical basis after projection changes.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/viewer/scene/CameraController.test.ts`.
+- Confirmed the focused suite passed: 1 test file, 13 tests passed.
+
+### [564] - 2026-03-23 21:19 - `SP - Phase 3.2B-Console-2 - Zoom Window First Pass`
+<!-- ENTRY 564 -->
+HUMAN SUMMARY: `Implemented the first real \`Zoom Window\` path for the model viewport. Console zoom-window commands now arm a drag-box mode, render a visible viewport rectangle while the user drags, and fit the camera to the committed window by projecting that rectangle onto the current target plane.`
+
+#### Scope / Constraints Honored
+- Kept this pass focused on model-viewport `Zoom Window` and did not widen into graph-canvas zoom-window behavior.
+- Reused the current console camera-mode seam instead of introducing a separate zoom-window command runtime.
+- Kept the implementation compatible with both perspective and orthographic projection modes.
+
+#### Summary of Implementation
+- Added `frameWindowClientRect()` to `src/viewer/scene/CameraController.ts` so the camera can fit a dragged client rectangle by projecting its corners onto the current target plane and framing the resulting world-space bounds.
+- Updated `src/viewer/Viewer.ts` to support a new `zoom-window` console camera mode, render a live drag rectangle over the viewport, and commit or cancel the zoom-window drag on pointer release.
+- Updated `src/app/console/ConsoleDock.tsx` so flat and staged model `Zoom Window` commands arm the new viewport drag mode, with root flows returning to root and idle `SketchDraw` flows returning to the local sketch-draw scope.
+- Expanded `src/viewer/scene/CameraController.test.ts` and `src/app/console/ConsoleDock.test.tsx` to cover both the camera-fit math and the console arming/return behavior.
+
+#### Files Changed
+- `src/app/viewerBridge.ts`
+- `src/viewer/scene/CameraController.ts`
+- `src/viewer/scene/CameraController.test.ts`
+- `src/viewer/Viewer.ts`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+- `Zoom Window` now works for model-viewport zoom flows by arming a visible drag box in the viewport and fitting the camera to the committed box.
+- Idle `SketchDraw` `Zoom Window` now arms the same viewport drag mode and returns to the local sketch-draw scope instead of dead-ending at an unimplemented warning.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/viewer/scene/CameraController.test.ts src/app/console/ConsoleDock.test.tsx src/app/console/stagedNavigation.test.ts`.
+- Confirmed the focused suite passed: 3 test files, 151 tests passed.
+
+### [563] - 2026-03-23 21:10 - `SP - Phase 3.2B-Console-2 - SketchDraw Zoom Object Follow-Up`
+<!-- ENTRY 563 -->
+HUMAN SUMMARY: `Fixed the missing \`Zoom Object\` path inside \`SketchDraw\` by giving the viewer a sketch-selection framing seam and routing sketch-draw zoom-object commands through it. Full typed zoom commands issued during idle \`SketchDraw\` now also return to the local sketch-draw scope instead of dropping the user back to root.`
+
+#### Scope / Constraints Honored
+- Kept the change narrow to the `SketchDraw` zoom-object gap instead of widening into the still-open `Zoom Window` implementation work.
+- Reused the existing sketch overlay selection state instead of inventing a second sketch-selection model.
+- Preserved the existing part/reference `Zoom Object` behavior outside `SketchDraw`.
+
+#### Summary of Implementation
+- Added `frameSelectedGeometrySketch()` to the viewer bridge and implemented it in `src/viewer/Viewer.ts` by computing frame bounds from the currently selected sketch overlay polylines.
+- Updated `src/app/console/ConsoleDock.tsx` so staged and flat `Zoom Object` commands use the new sketch-selection framing seam while `SketchDraw` is active.
+- Added a focused `ConsoleDock` test that verifies `z > o` in idle `SketchDraw` frames selected sketch geometry and returns to the local sketch-draw scope.
+
+#### Files Changed
+- `src/app/viewerBridge.ts`
+- `src/viewer/Viewer.ts`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+- `Zoom Object` now works against selected sketch entities while `SketchDraw` is active.
+- Full typed zoom commands issued during idle `SketchDraw` now resume the local sketch-draw command scope after completion.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/console/ConsoleDock.test.tsx src/app/console/stagedNavigation.test.ts`.
+- Confirmed the focused suite passed: 2 test files, 137 tests passed.
+
+### [562] - 2026-03-23 18:16 - `SP - Phase 3.2B-Console-2 - SketchDraw Staged Command Routing`
+<!-- ENTRY 562 -->
+HUMAN SUMMARY: `Moved idle \`SketchDraw\` command selection onto real local staged routing instead of the older hand-wired feature-assist entry path. \`SketchDraw\` now owns its own staged local command surface for tools, camera, zoom, back, and exit while still leaving runtime point entry in \`geometrySketchSession\` and keeping global \`Radio\` reachable.`
+
+#### Scope / Constraints Honored
+- Kept the runtime drawing interaction in `geometrySketchSession` instead of trying to stage point-by-point draw input.
+- Preserved the durable `SketchDraw` session behavior, including `Esc` not acting as a global sketch-draw exit.
+- Kept global `Radio` reachable while adding the new local staged `SketchDraw` scopes.
+
+#### Summary of Implementation
+- Expanded `src/app/console/stagedNavigation.ts` with dedicated `SketchDraw` local scopes, action ids, context inputs, and transitions for tool selection, camera projection, zoom, previous, delete, back, and exit.
+- Updated `src/app/console/radioCommandIdentity.ts` and `src/app/console/ConsoleDock.tsx` so idle `SketchDraw` now seeds a local staged root, routes local projection and zoom through the shared staged-navigation machinery, and returns `Radio` and zoom completions back into the active local sketch-draw scope.
+- Refreshed `src/app/console/stagedNavigation.test.ts` and `src/app/console/ConsoleDock.test.tsx` to cover the new local staged tree, local projection flow, `Radio` availability from sketch draw, and the revised idle/runtime boundary behavior.
+
+#### Files Changed
+- `src/app/console/stagedNavigation.ts`
+- `src/app/console/radioCommandIdentity.ts`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/stagedNavigation.test.ts`
+- `src/app/console/ConsoleDock.test.tsx`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+- Idle `SketchDraw` now behaves as a real local staged command scope with grouped local commands instead of relying on the older custom idle feature-assist routing.
+- `SketchDraw` local camera projection and zoom commands now route through the same staged-navigation model as the rest of the console.
+- `Radio` remains callable from inside `SketchDraw`, and returning from radio or local zoom lands back in the live sketch-draw local scope.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/console/stagedNavigation.test.ts src/app/console/ConsoleDock.test.tsx`.
+- Confirmed the focused suite passed: 2 test files, 136 tests passed.
+
 ### [561] - 2026-03-23 17:39 - `DOC - Phase 14 - GitHub Pages Combined App And Docs Publish`
 <!-- ENTRY 561 -->
 HUMAN SUMMARY: `Updated the existing GitHub Pages deployment so this repo now publishes both the app and the MkDocs site without one replacing the other. The app stays at the project-site root while the docs are built separately and served from the nested \`/docs/\` path inside the same Pages artifact.`

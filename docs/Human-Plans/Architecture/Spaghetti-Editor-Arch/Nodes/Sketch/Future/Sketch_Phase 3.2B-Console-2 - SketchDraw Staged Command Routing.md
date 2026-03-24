@@ -5,6 +5,7 @@
 ### Doc History
 1. 2026-03-23 15:02: Created this standalone future phase doc for `[3.2B-Console-2]`, defining the follow-on where `SketchDraw` command selection moves from feature-assist-only branching into staged/scoped command routing while leaving active drawing runtime in the existing sketch session model
 2. 2026-03-23 17:18: Tightened this phase into an implementation-ready spec by locking what becomes staged versus what stays in `geometrySketchSession`, grounding the work in the current `ConsoleDock` plus `stagedNavigation` seams, carrying forward the Phase 1 local-versus-global precedence rules, and defining how `Radio` remains reachable while `SketchDraw` command selection becomes staged
+3. 2026-03-23 17:29: Tightened the phase further into a handoff-ready implementation spec by locking the exact staged scope ids, action ids, local command tree, `Back` versus `X` behavior, `ConsoleDock` handoff seams, and the concrete automated/manual verification needed before this phase can be marked shipped
 
 ### Purpose
 
@@ -45,6 +46,20 @@ This phase does not cover:
 - redesigning draw runtime state machines
 - whole-app generic command registry work
 
+### Locked Phase Boundary
+
+This is still a console-routing phase, not a sketch-runtime rewrite.
+
+This phase must:
+- move idle/local `SketchDraw` command selection into staged routing
+- keep active tool prompts and draw-depth state in `geometrySketchSession`
+- preserve the shipped `[3.2B-Console-1]` rule that global `Radio` remains callable while `SketchDraw` is active
+
+This phase must not:
+- move point-by-point drafting into staged nodes
+- invent a second sketch-only staged engine
+- widen into the later shared sketch provider/tree work owned by `[3.2B-Console-3]`
+
 ## Doc Body
 
 ## [ ] - `[3.2B-Console-2]` - `SketchDraw Staged Command Routing`
@@ -79,6 +94,7 @@ Keeps for later phases:
 - local `Zoom` keeps its staged subtree, but under one consistent `SketchDraw` staged model
 - actual drawing runtime still stays in the current sketch session model
 - global families like `Radio` remain callable while `SketchDraw` is active
+- `Back` remains a one-level local staged step-up while `X` remains full sketch-draw exit
 
 ### Current Code-To-Target Mapping
 
@@ -106,6 +122,60 @@ Current split problem:
 - root families already use staged navigation cleanly
 - local `Zoom` is already staged, which proves the approach but also exposes the current inconsistency
 
+### Exact Staged Command Model
+
+Use one local staged tree rooted at the active `SketchDraw` scope.
+
+Recommended scope ids:
+- `sketchDrawRoot`
+- `sketchDrawCameraRoot`
+- `sketchDrawCameraProjectionRoot`
+- reuse the existing zoom staged scope under the same local tree instead of leaving it as an isolated special case
+
+Recommended action ids:
+- `sketchdraw.tool.line`
+- `sketchdraw.tool.pline`
+- `sketchdraw.tool.rectangle`
+- `sketchdraw.tool.circle`
+- `sketchdraw.camera.projection.orthographic`
+- `sketchdraw.camera.projection.perspective`
+- `sketchdraw.zoom.previous`
+- `sketchdraw.delete`
+- `sketchdraw.back`
+- `sketchdraw.exit`
+
+Recommended local tree:
+
+```text
+Sketch Draw
+|- Line
+|- PLine
+|- Rectangle
+|- Circle
+|- Camera
+|  \- Projection
+|     |- Orthographic
+|     \- Perspective
+|- Zoom
+|- Previous
+|- Delete
+|- Back
+\- X
+```
+
+Recommended visible aliases:
+- `L` = `Line`
+- `PL` = `PLine`
+- `REC` = `Rectangle`
+- `C` = `Camera`
+- `O` = `Orthographic`
+- `P` = `Perspective`
+- keep `R` free for global `Radio`
+
+Important alias rule:
+- local aliases may only occupy tokens that do not break the shipped `Radio`-inside-`SketchDraw` behavior
+- do not let local `Rectangle` or any other sketch command steal bare `R`
+
 ### What Becomes Staged Versus What Stays Session-Driven
 
 #### Must Become Staged
@@ -132,6 +202,10 @@ The staged system should own:
 - back behavior
 - local breadcrumbs
 - local command-family prompt shape
+
+Important behavior split:
+- staged selection owns the idle/local command tree
+- once a tool is chosen, the runtime owns prompt depth like `P1`, `P2`, `Center`, `Radius`
 
 #### Must Stay In `geometrySketchSession`
 
@@ -166,6 +240,7 @@ Locked precedence rules:
 2. if a token does not match the local sketch-draw staged branch, global/root families remain eligible
 3. global `Radio` remains reachable while `SketchDraw` is active
 4. local aliases must not steal obvious global-family entry tokens like `r`
+5. while local staged scope is active, root/global staged families should still be enterable when the token does not belong to the local tree
 
 Examples:
 - `line`
@@ -176,6 +251,10 @@ Examples:
   - global/root family
 - `r`
   - global/root `Radio`
+- `back`
+  - local staged step-up inside `SketchDraw`
+- `x`
+  - full local `SketchDraw` exit
 
 ### Staged Shape
 
@@ -204,11 +283,28 @@ Important rule:
 - this is a staged command-selection tree
 - it is not a replacement for the draw runtime/depth tree inside active tool sessions
 
+### `Back` Versus `X`
+
+Lock this behavior explicitly:
+
+- `Back`
+  - one-level local staged navigation only
+  - `Sketch Draw > Camera > Projection` -> `Sketch Draw > Camera`
+  - `Sketch Draw > Camera` -> `Sketch Draw`
+  - from idle/root `Sketch Draw`, `Back` should follow the existing local return-one-level behavior rather than silently becoming `X`
+- `X`
+  - full sketch-draw exit
+  - leaves the active `SketchDraw` scope entirely
+
+This distinction must survive the staged migration. If `Back` and `X` collapse into one action, the local scope is not behaving correctly.
+
 ### Console Structure Changes
 
 `src/app/console/stagedNavigation.ts`
 - add staged local scope ids for `SketchDraw` command selection
+- add a constructor/helper for the local `SketchDraw` root session
 - add staged local choices for the command families listed above
+- wire child scope transitions for `Camera` and `Projection`
 - reuse the current staged choice/result model instead of inventing a second sketch-only staged system
 
 `src/app/console/radioCommandIdentity.ts`
@@ -223,6 +319,10 @@ Important rule:
   - transcript echo
   - staged submit wiring
   - handoff into the existing draw runtime
+  - the `Radio` coexistence behavior shipped in `[3.2B-Console-1]`
+
+`src/app/console/useConsoleStore.ts`
+- add any small session-state helpers needed so the active local staged sketch scope can survive a `Radio` round-trip and return cleanly to the same `SketchDraw` root
 
 ### Runtime Handoff Rules
 
@@ -239,6 +339,8 @@ When a staged local choice is selected:
   - hand off into existing draw-runtime previous behavior
 - `Delete`
   - hand off into existing delete behavior
+- `Back`
+  - hand off into the existing return-one-level behavior when already at idle/root `SketchDraw`
 - `X`
   - hand off into the existing full sketch-draw exit behavior
 
@@ -251,6 +353,10 @@ When a staged local branch is purely navigational:
   - execute projection change
 - `Perspective`
   - execute projection change
+
+Important handoff rule:
+- selecting a tool must switch the console prompt from staged idle selection into the existing runtime-driven draw prompt
+- when that runtime returns to idle `SketchDraw`, the console should resume the local staged root prompt instead of falling back to old feature-assist camera/tool summaries
 
 ### Prompt And UI Rules
 
@@ -273,10 +379,19 @@ Recommended file targets:
 - `src/app/console/ConsoleDock.tsx`
 - likely supporting updates in:
   - `src/app/console/useConsoleStore.ts`
+  - `src/app/console/ConsoleBar.tsx` only if prompt rendering needs a small staged-versus-runtime distinction cleanup
 
 Recommended tests:
 - `src/app/console/stagedNavigation.test.ts`
 - `src/app/console/ConsoleDock.test.tsx`
+
+Recommended implementation order:
+1. add the local `SketchDraw` staged root/session constructor and child scope tree in `stagedNavigation.ts`
+2. register canonical identities for the new staged local execute actions
+3. route `ConsoleDock` idle `SketchDraw` command selection through the staged session instead of bespoke feature-assist camera/tool branches
+4. preserve the existing `geometrySketchSession` handoff for live tool runtime and depth prompts
+5. re-thread the shipped `Radio` round-trip so entering/leaving `Radio` from inside `SketchDraw` returns to the same local staged root
+6. remove obsolete `Sketch Draw > Camera` and `Sketch Draw > Camera > Projection` feature-assist branches once staged coverage is complete
 
 Implementation steps:
 1. add explicit staged local scope ids for `SketchDraw`
@@ -300,6 +415,7 @@ Required automated verification:
 
 - `stagedNavigation.test.ts`
   - local `SketchDraw` staged scopes exist
+  - `sketchDrawRoot` exposes `Line`, `PLine`, `Rectangle`, `Circle`, `Camera`, `Zoom`, `Previous`, `Delete`, `Back`, and `X`
   - local `Camera > Projection` branch executes the correct action ids
   - local staged `Zoom` remains valid
 - `ConsoleDock.test.tsx`
@@ -311,6 +427,7 @@ Required automated verification:
   - `Radio on/off` returns to the active `SketchDraw` scope instead of root
   - `Back` stays one-level local navigation
   - `X` stays full sketch-draw exit
+  - active tool prompts like `P1`, `P2`, `Center`, and `Radius` still come from runtime/session state, not staged nodes
 
 Suggested manual smoke checks:
 - enter `SketchDraw`
@@ -326,6 +443,8 @@ Suggested manual smoke checks:
 - run `Radio`
 - turn radio on/off
 - confirm `SketchDraw` remains active
+- while in `Sketch Draw > Camera > Projection`, run `Back` and confirm it only steps to `Camera`
+- from idle `SketchDraw`, run `X` and confirm the session exits fully
 
 ### Assumptions And Defaults
 
@@ -342,4 +461,5 @@ Suggested manual smoke checks:
 - local `Zoom` fits into the broader staged local model cleanly
 - tool runtime still stays in `geometrySketchSession`
 - `Radio` remains reachable while `SketchDraw` is active
+- `Back` and `X` remain distinct after the staged migration
 - the phase lands without widening into full app-wide command-provider redesign

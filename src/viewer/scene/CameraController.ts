@@ -5,6 +5,7 @@ import {
   MOUSE,
   Object3D,
   OrthographicCamera,
+  Plane,
   PerspectiveCamera,
   Vector3,
 } from 'three'
@@ -40,6 +41,15 @@ export class CameraController {
   private readonly tmpRight = new Vector3()
   private readonly tmpUp = new Vector3()
   private readonly tmpCorner = new Vector3()
+  private readonly tmpWindowCornerA = new Vector3()
+  private readonly tmpWindowCornerB = new Vector3()
+  private readonly tmpWindowCornerC = new Vector3()
+  private readonly tmpWindowCornerD = new Vector3()
+  private readonly tmpWindowNear = new Vector3()
+  private readonly tmpWindowFar = new Vector3()
+  private readonly tmpPlaneNormal = new Vector3()
+  private readonly tmpWindowRayDirection = new Vector3()
+  private readonly tmpTargetPlane = new Plane()
   private readonly transitionFromPosition = new Vector3()
   private readonly transitionFromTarget = new Vector3()
   private readonly transitionFromUp = new Vector3()
@@ -307,6 +317,50 @@ export class CameraController {
     this.frameBox(bounds)
   }
 
+  public frameWindowClientRect(
+    startClientX: number,
+    startClientY: number,
+    endClientX: number,
+    endClientY: number,
+  ): boolean {
+    const minX = Math.min(startClientX, endClientX)
+    const maxX = Math.max(startClientX, endClientX)
+    const minY = Math.min(startClientY, endClientY)
+    const maxY = Math.max(startClientY, endClientY)
+    if (maxX - minX < 3 || maxY - minY < 3) {
+      return false
+    }
+
+    const activeCamera = this.getActiveCamera()
+    this.tmpPlaneNormal.copy(this.controls.target).sub(activeCamera.position).normalize()
+    if (!Number.isFinite(this.tmpPlaneNormal.lengthSq()) || this.tmpPlaneNormal.lengthSq() < 1e-8) {
+      return false
+    }
+    this.tmpTargetPlane.setFromNormalAndCoplanarPoint(this.tmpPlaneNormal, this.controls.target)
+
+    const didProjectAllCorners =
+      this.projectClientPointToTargetPlane(minX, minY, this.tmpWindowCornerA) &&
+      this.projectClientPointToTargetPlane(maxX, minY, this.tmpWindowCornerB) &&
+      this.projectClientPointToTargetPlane(maxX, maxY, this.tmpWindowCornerC) &&
+      this.projectClientPointToTargetPlane(minX, maxY, this.tmpWindowCornerD)
+
+    if (!didProjectAllCorners) {
+      return false
+    }
+
+    const bounds = new Box3()
+    bounds.expandByPoint(this.tmpWindowCornerA)
+    bounds.expandByPoint(this.tmpWindowCornerB)
+    bounds.expandByPoint(this.tmpWindowCornerC)
+    bounds.expandByPoint(this.tmpWindowCornerD)
+    if (bounds.isEmpty()) {
+      return false
+    }
+
+    this.frameBox(bounds)
+    return true
+  }
+
   public trackScaledObject(
     obj: Object3D,
     previousCenter: Vector3 | null,
@@ -571,8 +625,14 @@ export class CameraController {
     activeCamera.updateMatrixWorld()
     this.tmpPanHorizontal
       .setFromMatrixColumn(activeCamera.matrixWorld, 0)
+      .normalize()
       .multiplyScalar(-worldPanX)
-    this.tmpPanVertical.copy(activeCamera.up).normalize().multiplyScalar(worldPanY)
+    activeCamera.getWorldDirection(this.tmpDirection)
+    this.tmpUp
+      .crossVectors(this.tmpPanHorizontal.clone().normalize().negate(), this.tmpDirection)
+      .normalize()
+    this.tmpPanVertical.copy(this.tmpUp)
+      .multiplyScalar(worldPanY)
     this.tmpPanOffset.copy(this.tmpPanHorizontal).add(this.tmpPanVertical)
 
     activeCamera.position.add(this.tmpPanOffset)
@@ -615,5 +675,48 @@ export class CameraController {
       width: Math.max(maxX - minX, 0.001),
       height: Math.max(maxY - minY, 0.001),
     }
+  }
+
+  private projectClientPointToTargetPlane(
+    clientX: number,
+    clientY: number,
+    out: Vector3,
+  ): boolean {
+    const ndcX = (clientX / this.viewportWidth) * 2 - 1
+    const ndcY = -((clientY / this.viewportHeight) * 2 - 1)
+    const activeCamera = this.getActiveCamera()
+
+    if (activeCamera instanceof PerspectiveCamera) {
+      this.tmpWindowNear.copy(activeCamera.position)
+      this.tmpWindowFar.set(ndcX, ndcY, 1).unproject(activeCamera)
+    } else {
+      this.tmpWindowNear.set(ndcX, ndcY, -1).unproject(activeCamera)
+      this.tmpWindowFar.set(ndcX, ndcY, 1).unproject(activeCamera)
+    }
+
+    this.tmpWindowRayDirection.copy(this.tmpWindowFar).sub(this.tmpWindowNear)
+    if (
+      !Number.isFinite(this.tmpWindowRayDirection.lengthSq()) ||
+      this.tmpWindowRayDirection.lengthSq() < 1e-8
+    ) {
+      return false
+    }
+    this.tmpWindowRayDirection.normalize()
+    const denominator = this.tmpTargetPlane.normal.dot(this.tmpWindowRayDirection)
+    if (Math.abs(denominator) < 1e-6) {
+      return false
+    }
+
+    const distance =
+      -(
+        this.tmpTargetPlane.normal.dot(this.tmpWindowNear) +
+        this.tmpTargetPlane.constant
+      ) / denominator
+    if (!Number.isFinite(distance)) {
+      return false
+    }
+
+    out.copy(this.tmpWindowNear).addScaledVector(this.tmpWindowRayDirection, distance)
+    return true
   }
 }

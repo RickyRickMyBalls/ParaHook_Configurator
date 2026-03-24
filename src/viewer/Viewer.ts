@@ -292,13 +292,22 @@ export class Viewer {
         moved: boolean
       }
     | null = null
-  private consoleCameraMode: 'pan' | 'orbit' | null = null
+  private consoleCameraMode: 'pan' | 'orbit' | 'zoom-window' | null = null
   private consoleCameraModeDrag:
     | {
         pointerId: number
         mode: 'pan' | 'orbit'
       }
     | null = null
+  private consoleZoomWindowDrag:
+    | {
+        pointerId: number
+        anchorClientX: number
+        anchorClientY: number
+      }
+    | null = null
+  private readonly zoomWindowOverlayRoot: HTMLDivElement
+  private readonly zoomWindowOverlayBox: HTMLDivElement
   private readonly cameraPoseHistory: CameraPose[] = []
   private lastMiddleClick:
     | {
@@ -321,6 +330,9 @@ export class Viewer {
 
   public constructor(container: HTMLElement) {
     this.container = container
+    if (window.getComputedStyle(this.container).position === 'static') {
+      this.container.style.position = 'relative'
+    }
     this.scene = new Scene()
     this.scene.background = new Color(DEFAULT_BACKGROUND)
     this.clock = new Clock()
@@ -341,6 +353,19 @@ export class Viewer {
     this.renderer.domElement.style.width = '100%'
     this.renderer.domElement.style.height = '100%'
     this.container.appendChild(this.renderer.domElement)
+    this.zoomWindowOverlayRoot = document.createElement('div')
+    this.zoomWindowOverlayRoot.style.position = 'absolute'
+    this.zoomWindowOverlayRoot.style.inset = '0'
+    this.zoomWindowOverlayRoot.style.pointerEvents = 'none'
+    this.zoomWindowOverlayRoot.style.zIndex = '5'
+    this.zoomWindowOverlayBox = document.createElement('div')
+    this.zoomWindowOverlayBox.style.position = 'absolute'
+    this.zoomWindowOverlayBox.style.display = 'none'
+    this.zoomWindowOverlayBox.style.border = '1px solid rgba(122, 196, 255, 0.95)'
+    this.zoomWindowOverlayBox.style.background = 'rgba(122, 196, 255, 0.12)'
+    this.zoomWindowOverlayBox.style.boxSizing = 'border-box'
+    this.zoomWindowOverlayRoot.appendChild(this.zoomWindowOverlayBox)
+    this.container.appendChild(this.zoomWindowOverlayRoot)
 
     this.gridGroup = new Group()
     this.minorGridHelper = createGridLayer(
@@ -869,6 +894,28 @@ export class Viewer {
     })
   }
 
+  public frameSelectedGeometrySketch(): boolean {
+    const selectedBounds = this.getSelectedGeometrySketchFrameBounds()
+    if (selectedBounds.isEmpty()) {
+      appendConsoleEntry({
+        layer: 'View',
+        text: 'Sketch zoom object: no selected sketch geometry',
+        source: 'viewer',
+        severity: 'warn',
+      })
+      return false
+    }
+    this.rememberCameraPose()
+    this.cameraController.frameBox(selectedBounds)
+    appendConsoleEntry({
+      layer: 'View',
+      text: 'Sketch zoom object',
+      source: 'viewer',
+      severity: 'info',
+    })
+    return true
+  }
+
   public framePrevious(): void {
     const previousPose = this.cameraPoseHistory.pop() ?? null
     if (previousPose === null) {
@@ -927,10 +974,12 @@ export class Viewer {
     })
   }
 
-  public setConsoleCameraMode(mode: 'pan' | 'orbit' | null): void {
+  public setConsoleCameraMode(mode: 'pan' | 'orbit' | 'zoom-window' | null): void {
     this.consoleCameraMode = mode
     if (mode === null) {
       this.consoleCameraModeDrag = null
+      this.consoleZoomWindowDrag = null
+      this.clearZoomWindowOverlay()
       this.cameraController.endTemporaryPanDrag()
       this.cameraController.endTemporaryOrbitDrag()
     }
@@ -1144,6 +1193,41 @@ export class Viewer {
     }
   }
 
+  private getCanvasLocalClientPoint(clientX: number, clientY: number): { x: number; y: number } {
+    const rect = this.renderer.domElement.getBoundingClientRect()
+    return {
+      x: clientX - rect.left,
+      y: clientY - rect.top,
+    }
+  }
+
+  private updateZoomWindowOverlay(
+    anchorClientX: number,
+    anchorClientY: number,
+    currentClientX: number,
+    currentClientY: number,
+  ): void {
+    const anchor = this.getCanvasLocalClientPoint(anchorClientX, anchorClientY)
+    const current = this.getCanvasLocalClientPoint(currentClientX, currentClientY)
+    const left = Math.min(anchor.x, current.x)
+    const top = Math.min(anchor.y, current.y)
+    const width = Math.abs(current.x - anchor.x)
+    const height = Math.abs(current.y - anchor.y)
+    this.zoomWindowOverlayBox.style.display = 'block'
+    this.zoomWindowOverlayBox.style.left = `${left}px`
+    this.zoomWindowOverlayBox.style.top = `${top}px`
+    this.zoomWindowOverlayBox.style.width = `${width}px`
+    this.zoomWindowOverlayBox.style.height = `${height}px`
+  }
+
+  private clearZoomWindowOverlay(): void {
+    this.zoomWindowOverlayBox.style.display = 'none'
+    this.zoomWindowOverlayBox.style.left = '0'
+    this.zoomWindowOverlayBox.style.top = '0'
+    this.zoomWindowOverlayBox.style.width = '0'
+    this.zoomWindowOverlayBox.style.height = '0'
+  }
+
   private clearCameraGestureDrafts(): void {
     if (
       this.cameraOrbitModifierDrag !== null &&
@@ -1159,6 +1243,14 @@ export class Viewer {
       this.renderer.domElement.releasePointerCapture(this.consoleCameraModeDrag.pointerId)
     }
     this.consoleCameraModeDrag = null
+    if (
+      this.consoleZoomWindowDrag !== null &&
+      this.renderer.domElement.hasPointerCapture(this.consoleZoomWindowDrag.pointerId)
+    ) {
+      this.renderer.domElement.releasePointerCapture(this.consoleZoomWindowDrag.pointerId)
+    }
+    this.consoleZoomWindowDrag = null
+    this.clearZoomWindowOverlay()
     this.middleClickTracker = null
     this.lastMiddleClick = null
     this.cameraController.endTemporaryPanDrag()
@@ -1291,6 +1383,7 @@ export class Viewer {
     this.geometrySketchSelectionCrossingMaterial.dispose()
 
     this.renderer.dispose()
+    this.zoomWindowOverlayRoot.remove()
     this.container.removeChild(this.renderer.domElement)
   }
 
@@ -2043,6 +2136,27 @@ export class Viewer {
     return bounds
   }
 
+  private getSelectedGeometrySketchFrameBounds(): Box3 {
+    if (
+      this.geometrySketchOverlay?.mode !== 'draw' ||
+      this.geometrySketchOverlay.activeTool !== null ||
+      (this.geometrySketchOverlay.selectedComponentIds?.length ?? 0) === 0
+    ) {
+      return new Box3()
+    }
+
+    const bounds = new Box3()
+    const selectedPolylines = buildGeometrySketchRenderPolylines(this.geometrySketchOverlay).filter(
+      (polyline) => polyline.layer === 'selectedComponent',
+    )
+    for (const polyline of selectedPolylines) {
+      for (const point of polyline.points) {
+        bounds.expandByPoint(new Vector3(point.x, point.y, point.z))
+      }
+    }
+    return bounds
+  }
+
   private syncAxisOverlay(): void {
     if (!this.axisOverlayEnabled || this.axisOverlayCanvas === null) {
       this.axisGizmo?.dispose()
@@ -2191,24 +2305,38 @@ export class Viewer {
       event.button === 0 &&
       this.currentViewSettings.orbitEnabled &&
       this.consoleCameraMode !== null &&
-      this.sketchPlanePickOverlay === null &&
-      this.geometrySketchOverlay?.mode !== 'draw'
+      this.sketchPlanePickOverlay === null
     ) {
       event.preventDefault()
       event.stopPropagation()
-      this.consoleCameraModeDrag = {
-        pointerId: event.pointerId,
-        mode: this.consoleCameraMode,
-      }
       this.renderer.domElement.setPointerCapture(event.pointerId)
-      if (this.consoleCameraMode === 'pan') {
-        this.beginTemporaryPanDrag(event.clientX, event.clientY)
+      if (this.consoleCameraMode === 'zoom-window') {
+        this.consoleZoomWindowDrag = {
+          pointerId: event.pointerId,
+          anchorClientX: event.clientX,
+          anchorClientY: event.clientY,
+        }
+        this.updateZoomWindowOverlay(event.clientX, event.clientY, event.clientX, event.clientY)
       } else {
-        this.beginTemporaryOrbitDrag(event.clientX, event.clientY)
+        this.consoleCameraModeDrag = {
+          pointerId: event.pointerId,
+          mode: this.consoleCameraMode,
+        }
+        if (this.consoleCameraMode === 'pan') {
+          this.beginTemporaryPanDrag(event.clientX, event.clientY)
+        } else {
+          this.beginTemporaryOrbitDrag(event.clientX, event.clientY)
+        }
       }
       return
     }
     if (event.button !== 0) {
+      return
+    }
+    if (
+      this.consoleZoomWindowDrag !== null &&
+      event.pointerId === this.consoleZoomWindowDrag.pointerId
+    ) {
       return
     }
     if (
@@ -2289,6 +2417,20 @@ export class Viewer {
   }
 
   private readonly handleSketchPlanePickPointerMove = (event: PointerEvent): void => {
+    if (
+      this.consoleZoomWindowDrag !== null &&
+      event.pointerId === this.consoleZoomWindowDrag.pointerId
+    ) {
+      event.preventDefault()
+      event.stopPropagation()
+      this.updateZoomWindowOverlay(
+        this.consoleZoomWindowDrag.anchorClientX,
+        this.consoleZoomWindowDrag.anchorClientY,
+        event.clientX,
+        event.clientY,
+      )
+      return
+    }
     if (
       this.consoleCameraModeDrag !== null &&
       event.pointerId === this.consoleCameraModeDrag.pointerId
@@ -2375,6 +2517,53 @@ export class Viewer {
   }
 
   private readonly handleSketchPlanePickPointerUp = (event: PointerEvent): void => {
+    if (
+      this.consoleZoomWindowDrag !== null &&
+      event.pointerId === this.consoleZoomWindowDrag.pointerId
+    ) {
+      const zoomWindowDrag = this.consoleZoomWindowDrag
+      this.consoleZoomWindowDrag = null
+      this.consoleCameraMode = null
+      if (this.renderer.domElement.hasPointerCapture(event.pointerId)) {
+        this.renderer.domElement.releasePointerCapture(event.pointerId)
+      }
+      event.preventDefault()
+      event.stopPropagation()
+      this.clearZoomWindowOverlay()
+      if (
+        Math.max(
+          Math.abs(event.clientX - zoomWindowDrag.anchorClientX),
+          Math.abs(event.clientY - zoomWindowDrag.anchorClientY),
+        ) < 3
+      ) {
+        appendConsoleEntry({
+          layer: 'View',
+          text: 'Zoom Window cancelled',
+          source: 'viewer',
+          severity: 'info',
+        })
+        return
+      }
+      const anchor = this.getCanvasLocalClientPoint(
+        zoomWindowDrag.anchorClientX,
+        zoomWindowDrag.anchorClientY,
+      )
+      const current = this.getCanvasLocalClientPoint(event.clientX, event.clientY)
+      this.rememberCameraPose()
+      const didFrameWindow = this.cameraController.frameWindowClientRect(
+        anchor.x,
+        anchor.y,
+        current.x,
+        current.y,
+      )
+      appendConsoleEntry({
+        layer: 'View',
+        text: didFrameWindow ? 'Zoom Window complete' : 'Zoom Window could not resolve a frame box',
+        source: 'viewer',
+        severity: didFrameWindow ? 'info' : 'warn',
+      })
+      return
+    }
     if (
       this.consoleCameraModeDrag !== null &&
       event.pointerId === this.consoleCameraModeDrag.pointerId

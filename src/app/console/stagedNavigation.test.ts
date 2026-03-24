@@ -3,6 +3,7 @@ import {
   cancelConsoleStagedNavigationSession,
   createConsoleRootSession,
   createConsoleStagedNavigationContext,
+  createSketchDrawRootSession,
   submitConsoleStagedNavigationToken,
 } from './stagedNavigation'
 
@@ -88,6 +89,90 @@ describe('stagedNavigation', () => {
       kind: 'execute',
       actionId: 'camera.projection.perspective',
     })
+  })
+
+  it('creates a sketch draw root session with the local staged command surface', () => {
+    const context = createConsoleStagedNavigationContext([], {
+      hasSelection: true,
+      hasPrevious: true,
+      preferredTool: 'LINE',
+    })
+
+    const result = createSketchDrawRootSession(context)
+
+    expect(result.scopeId).toBe('sketchDrawRoot')
+    expect(result.breadcrumb).toEqual(['Graph', 'Sketch', 'Sketch Draw'])
+    expect(result.validChoices.map((choice) => choice.canonicalToken)).toEqual([
+      'LINE',
+      'PLINE',
+      'RECTANGLE',
+      'CIRCLE',
+      'CAMERA',
+      'ZOOM',
+      'DELETE',
+      'PREVIOUS',
+      'BACK',
+      'X',
+    ])
+  })
+
+  it('routes sketch draw camera projection and returns to the local root from zoom back', () => {
+    const context = createConsoleStagedNavigationContext([], {
+      hasSelection: false,
+      hasPrevious: false,
+      preferredTool: 'LINE',
+    })
+
+    const sketchDrawRoot = createSketchDrawRootSession(context)
+    const cameraRoot = submitConsoleStagedNavigationToken(sketchDrawRoot, 'c', context)
+    expect(cameraRoot.kind).toBe('advance')
+    if (cameraRoot.kind !== 'advance') {
+      throw new Error('Expected sketch draw camera token to advance')
+    }
+    expect(cameraRoot.session.scopeId).toBe('sketchDrawCameraRoot')
+
+    const projectionRoot = submitConsoleStagedNavigationToken(cameraRoot.session, 'projection', context)
+    expect(projectionRoot.kind).toBe('advance')
+    if (projectionRoot.kind !== 'advance') {
+      throw new Error('Expected sketch draw projection token to advance')
+    }
+    expect(projectionRoot.session.scopeId).toBe('sketchDrawCameraProjectionRoot')
+
+    expect(submitConsoleStagedNavigationToken(projectionRoot.session, 'o', context)).toMatchObject({
+      kind: 'execute',
+      actionId: 'sketchdraw.camera.projection.orthographic',
+    })
+
+    const zoomRoot = submitConsoleStagedNavigationToken(sketchDrawRoot, 'z', context)
+    expect(zoomRoot.kind).toBe('advance')
+    if (zoomRoot.kind !== 'advance') {
+      throw new Error('Expected sketch draw zoom token to advance')
+    }
+    expect(zoomRoot.session.scopeId).toBe('sketchDrawZoomRoot')
+
+    const backResult = submitConsoleStagedNavigationToken(zoomRoot.session, 'b', context)
+    expect(backResult.kind).toBe('advance')
+    if (backResult.kind !== 'advance') {
+      throw new Error('Expected sketch draw zoom back token to advance')
+    }
+    expect(backResult.session.scopeId).toBe('sketchDrawRoot')
+  })
+
+  it('keeps radio reachable from local sketch draw staged scopes', () => {
+    const context = createConsoleStagedNavigationContext([], {
+      hasSelection: false,
+      hasPrevious: false,
+      preferredTool: 'LINE',
+    })
+
+    const sketchDrawRoot = createSketchDrawRootSession(context)
+    const radioResult = submitConsoleStagedNavigationToken(sketchDrawRoot, 'r', context)
+
+    expect(radioResult.kind).toBe('advance')
+    if (radioResult.kind !== 'advance') {
+      throw new Error('Expected radio to remain reachable from sketch draw root')
+    }
+    expect(radioResult.session.scopeId).toBe('radioRoot')
   })
 
   it('accepts both graph and g as the same staged root token', () => {

@@ -147,6 +147,48 @@ const resolveStagedAdvanceIdentity = ({
         default:
           return null
       }
+    case 'sketchDrawRoot':
+      switch (matchedCanonicalToken) {
+        case 'LINE':
+          return buildIdentity('Console', 'Graph', 'Sketch', 'Draw', 'Line')
+        case 'PLINE':
+          return buildIdentity('Console', 'Graph', 'Sketch', 'Draw', 'PLine')
+        case 'RECTANGLE':
+          return buildIdentity('Console', 'Graph', 'Sketch', 'Draw', 'Rectangle')
+        case 'CIRCLE':
+          return buildIdentity('Console', 'Graph', 'Sketch', 'Draw', 'Circle')
+        case 'CAMERA':
+          return buildIdentity('Console', 'Graph', 'Sketch', 'Draw', 'Camera')
+        case 'ZOOM':
+          return buildIdentity('Console', 'Graph', 'Sketch', 'Draw', 'Zoom')
+        case 'PREVIOUS':
+          return buildIdentity('Console', 'Graph', 'Sketch', 'Draw', 'Previous')
+        case 'DELETE':
+          return buildIdentity('Console', 'Graph', 'Sketch', 'Draw', 'Delete')
+        case 'BACK':
+          return buildIdentity('Console', 'Graph', 'Sketch', 'Draw', 'Back')
+        case 'X':
+          return buildIdentity('Console', 'Graph', 'Sketch', 'Draw', 'Exit')
+        default:
+          return null
+      }
+    case 'sketchDrawCameraRoot':
+      return matchedCanonicalToken === 'PROJECTION'
+        ? buildIdentity('Console', 'Graph', 'Sketch', 'Draw', 'Camera', 'Projection')
+        : matchedCanonicalToken === 'BACK'
+          ? buildIdentity('Console', 'Graph', 'Sketch', 'Draw', 'Camera', 'Back')
+          : null
+    case 'sketchDrawCameraProjectionRoot':
+      switch (matchedCanonicalToken) {
+        case 'ORTHOGRAPHIC':
+          return buildIdentity('Console', 'Graph', 'Sketch', 'Draw', 'Camera', 'Projection', 'Orthographic')
+        case 'PERSPECTIVE':
+          return buildIdentity('Console', 'Graph', 'Sketch', 'Draw', 'Camera', 'Projection', 'Perspective')
+        case 'BACK':
+          return buildIdentity('Console', 'Graph', 'Sketch', 'Draw', 'Camera', 'Projection', 'Back')
+        default:
+          return null
+      }
     case 'zoomRoot':
     case 'sketchDrawZoomRoot':
       switch (matchedCanonicalToken) {
@@ -282,6 +324,9 @@ const resolveStagedChoiceIdentity = ({
       }
     case 'graphRoot':
     case 'graphSelected':
+    case 'sketchDrawRoot':
+    case 'sketchDrawCameraRoot':
+    case 'sketchDrawCameraProjectionRoot':
     case 'zoomRoot':
     case 'sketchDrawZoomRoot':
     case 'cameraRoot':
@@ -373,6 +418,26 @@ const resolveStagedExecuteIdentity = ({
       return buildIdentity('Console', 'Camera', 'Projection', 'Orthographic')
     case 'camera.projection.perspective':
       return buildIdentity('Console', 'Camera', 'Projection', 'Perspective')
+    case 'sketchdraw.tool.line':
+      return buildIdentity('Console', 'Graph', 'Sketch', 'Draw', 'Line')
+    case 'sketchdraw.tool.pline':
+      return buildIdentity('Console', 'Graph', 'Sketch', 'Draw', 'PLine')
+    case 'sketchdraw.tool.rectangle':
+      return buildIdentity('Console', 'Graph', 'Sketch', 'Draw', 'Rectangle')
+    case 'sketchdraw.tool.circle':
+      return buildIdentity('Console', 'Graph', 'Sketch', 'Draw', 'Circle')
+    case 'sketchdraw.camera.projection.orthographic':
+      return buildIdentity('Console', 'Graph', 'Sketch', 'Draw', 'Camera', 'Projection', 'Orthographic')
+    case 'sketchdraw.camera.projection.perspective':
+      return buildIdentity('Console', 'Graph', 'Sketch', 'Draw', 'Camera', 'Projection', 'Perspective')
+    case 'sketchdraw.previous':
+      return buildIdentity('Console', 'Graph', 'Sketch', 'Draw', 'Previous')
+    case 'sketchdraw.delete':
+      return buildIdentity('Console', 'Graph', 'Sketch', 'Draw', 'Delete')
+    case 'sketchdraw.back':
+      return buildIdentity('Console', 'Graph', 'Sketch', 'Draw', 'Back')
+    case 'sketchdraw.exit':
+      return buildIdentity('Console', 'Graph', 'Sketch', 'Draw', 'Exit')
     case 'zoom.model.all':
       return buildIdentity('Console', 'Zoom', 'ModelViewport', 'All')
     case 'zoom.model.extents':

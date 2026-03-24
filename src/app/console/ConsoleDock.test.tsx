@@ -1526,8 +1526,8 @@ describe('ConsoleDock', () => {
       )
     })
 
-    expect(useConsoleStore.getState().inputText).toBe('b')
-    expect(useConsoleStore.getState().isStagedChoiceManualOverride).toBe(true)
+    expect(useConsoleStore.getState().inputText).toBe('Line')
+    expect(useConsoleStore.getState().isStagedChoiceManualOverride).toBe(false)
 
     await act(async () => {
       window.dispatchEvent(
@@ -1535,8 +1535,8 @@ describe('ConsoleDock', () => {
       )
     })
 
-    expect(useConsoleStore.getState().inputText).toBe('ba')
-    expect(useConsoleStore.getState().isStagedChoiceManualOverride).toBe(true)
+    expect(useConsoleStore.getState().inputText).toBe('Line')
+    expect(useConsoleStore.getState().isStagedChoiceManualOverride).toBe(false)
   })
 
   it('auto-captures printable keys into the console while sketch-plane pick is active', async () => {
@@ -1614,7 +1614,7 @@ describe('ConsoleDock', () => {
       )
     })
 
-    expect(useConsoleStore.getState().inputText).toBe('b')
+    expect(useConsoleStore.getState().inputText).toBe('Line')
 
     await act(async () => {
       useSpaghettiStore.getState().closeGeometrySketchSession()
@@ -1626,7 +1626,7 @@ describe('ConsoleDock', () => {
       )
     })
 
-    expect(useConsoleStore.getState().inputText).toBe('bb')
+    expect(useConsoleStore.getState().inputText).toBe('Lineb')
   })
 
   it('runs narrow-core typed commands and reports unknown commands strictly', async () => {
@@ -3239,7 +3239,7 @@ describe('ConsoleDock', () => {
       useConsoleStore
         .getState()
         .entries.some(
-          (entry) => entry.text.startsWith('Sketch Draw > ['),
+          (entry) => entry.text.startsWith('Graph > Sketch > Sketch Draw > Choose next ['),
         ),
     ).toBe(true)
   })
@@ -4409,10 +4409,175 @@ describe('ConsoleDock', () => {
     })
 
     expect(viewerFrameGeometrySketch).toHaveBeenCalledTimes(1)
-    expect(useConsoleStore.getState().stagedNavigationSession).toBeNull()
-    expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
-      'Graph > Sketch > Sketch Draw > Choose next',
-    )
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('sketchDrawRoot')
+    expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain('Choose next')
+  })
+
+  it('uses sketch-selected geometry for sketch draw z > o', async () => {
+    const viewerFrameSelectedGeometrySketch = vi.fn(() => true)
+    setViewer({
+      frameAll: vi.fn(),
+      frameExtents: vi.fn(),
+      frameGeometrySketch: vi.fn(),
+      frameSelectedGeometrySketch: viewerFrameSelectedGeometrySketch,
+      framePrevious: vi.fn(),
+      frameSelected: vi.fn(),
+      frameReference: vi.fn(),
+      setConsoleCameraMode: vi.fn(),
+    } as any)
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-sketch-1',
+            type: 'Geometry/Sketch',
+            params: {
+              sketch: {
+                type: 'sketch',
+                featureId: 'sketch-1',
+                plane: 'XY',
+                components: [
+                  {
+                    rowId: 'row-line-1',
+                    type: 'line',
+                    a: { x: 0, y: 0 },
+                    b: { x: 25, y: 10 },
+                  },
+                ],
+                outputs: { profiles: [], diagnostics: [] },
+                uiState: { collapsed: false },
+              },
+            },
+          },
+        ],
+        edges: [],
+      })
+      useSpaghettiStore.getState().startGeometrySketchSession('node-sketch-1', 'draw')
+      useSpaghettiStore.getState().setGeometrySketchSelectedComponents(['row-line-1'])
+      useConsoleStore.getState().setInputText('z > o')
+    })
+
+    const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(viewerFrameSelectedGeometrySketch).toHaveBeenCalledTimes(1)
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('sketchDrawRoot')
+  })
+
+  it('arms zoom window from sketch draw z > w and returns to sketch draw', async () => {
+    const viewerSetConsoleCameraMode = vi.fn()
+    setViewer({
+      frameAll: vi.fn(),
+      frameExtents: vi.fn(),
+      frameGeometrySketch: vi.fn(),
+      frameSelectedGeometrySketch: vi.fn(),
+      framePrevious: vi.fn(),
+      frameSelected: vi.fn(),
+      frameReference: vi.fn(),
+      setConsoleCameraMode: viewerSetConsoleCameraMode,
+    } as any)
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-sketch-1',
+            type: 'Geometry/Sketch',
+            params: {
+              sketch: {
+                type: 'sketch',
+                featureId: 'sketch-1',
+                plane: 'XY',
+                components: [],
+                outputs: { profiles: [], diagnostics: [] },
+                uiState: { collapsed: false },
+              },
+            },
+          },
+        ],
+        edges: [],
+      })
+      useSpaghettiStore.getState().startGeometrySketchSession('node-sketch-1', 'draw')
+      useConsoleStore.getState().setInputText('z > w')
+    })
+
+    const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(viewerSetConsoleCameraMode).toHaveBeenCalledWith('zoom-window')
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('sketchDrawRoot')
+  })
+
+  it('arms pan from idle sketch draw and keeps the local sketch draw scope', async () => {
+    const viewerSetConsoleCameraMode = vi.fn()
+    setViewer({
+      frameAll: vi.fn(),
+      frameExtents: vi.fn(),
+      frameGeometrySketch: vi.fn(),
+      frameSelectedGeometrySketch: vi.fn(),
+      framePrevious: vi.fn(),
+      frameSelected: vi.fn(),
+      frameReference: vi.fn(),
+      setConsoleCameraMode: viewerSetConsoleCameraMode,
+    } as any)
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-sketch-1',
+            type: 'Geometry/Sketch',
+            params: {
+              sketch: {
+                type: 'sketch',
+                featureId: 'sketch-1',
+                plane: 'XY',
+                components: [],
+                outputs: { profiles: [], diagnostics: [] },
+                uiState: { collapsed: false },
+              },
+            },
+          },
+        ],
+        edges: [],
+      })
+      useSpaghettiStore.getState().startGeometrySketchSession('node-sketch-1', 'draw')
+      useConsoleStore.getState().setInputText('pan')
+    })
+
+    const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(viewerSetConsoleCameraMode).toHaveBeenCalledWith('pan')
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('sketchDrawRoot')
   })
 
   it('defaults Graph > Zoom to Canvas first', async () => {
@@ -4531,6 +4696,38 @@ describe('ConsoleDock', () => {
     )
   })
 
+  it('arms zoom window from flat z > w and returns to root', async () => {
+    const viewerSetConsoleCameraMode = vi.fn()
+    setViewer({
+      frameAll: vi.fn(),
+      frameExtents: vi.fn(),
+      frameGeometrySketch: vi.fn(),
+      frameSelectedGeometrySketch: vi.fn(),
+      framePrevious: vi.fn(),
+      frameSelected: vi.fn(),
+      frameReference: vi.fn(),
+      setConsoleCameraMode: viewerSetConsoleCameraMode,
+    } as any)
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useConsoleStore.getState().setInputText('z > w')
+    })
+
+    const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(viewerSetConsoleCameraMode).toHaveBeenCalledWith('zoom-window')
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('root')
+  })
+
   it('returns to graph after graph-scoped z > a completes', async () => {
     container = document.createElement('div')
     document.body.appendChild(container)
@@ -4631,7 +4828,7 @@ describe('ConsoleDock', () => {
       form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
     })
 
-    expect(useConsoleStore.getState().stagedNavigationSession).toBeNull()
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('sketchDrawRoot')
     expect(useSpaghettiStore.getState().geometrySketchSession).toMatchObject({
       nodeId: 'node-sketch-1',
       mode: 'draw',
@@ -4640,8 +4837,7 @@ describe('ConsoleDock', () => {
       useConsoleStore
         .getState()
         .entries.some(
-          (entry) =>
-            entry.text === 'Sketch Draw > [Line, PLine, Rectangle, Circle, Camera, Zoom, X]',
+          (entry) => entry.text === 'Graph > Sketch > Sketch Draw > Choose next [Line, PLine, Rectangle, Circle, Camera, Zoom, Back, X]',
         ),
     ).toBe(true)
   })
@@ -4738,7 +4934,7 @@ describe('ConsoleDock', () => {
     })
 
     expect(useAudioSamplerStore.getState().isRadioEnabled).toBe(true)
-    expect(useConsoleStore.getState().stagedNavigationSession).toBeNull()
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('sketchDrawRoot')
     expect(useSpaghettiStore.getState().geometrySketchSession).toMatchObject({
       nodeId: 'node-sketch-1',
       mode: 'draw',
@@ -4747,7 +4943,7 @@ describe('ConsoleDock', () => {
       useConsoleStore
         .getState()
         .entries.some(
-          (entry) => entry.text.startsWith('Sketch Draw > ['),
+          (entry) => entry.text.startsWith('Graph > Sketch > Sketch Draw > Choose next ['),
         ),
     ).toBe(true)
     expect(
@@ -4809,7 +5005,7 @@ describe('ConsoleDock', () => {
     })
 
     expect(useConsoleStore.getState().inputText).toBe('Line')
-    expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain('Sketch Draw >')
+    expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain('Choose next')
     expect(container.querySelector('.ConsoleBarSummaryChoice.isActive')?.textContent).toContain(
       'Line',
     )
@@ -4835,6 +5031,72 @@ describe('ConsoleDock', () => {
       activeTool: 'pline',
       drawStage: 'toolSelected',
     })
+  })
+
+  it('routes sketch draw camera projection through local staged navigation', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-sketch-1',
+            type: 'Geometry/Sketch',
+            params: {
+              sketch: {
+                type: 'sketch',
+                featureId: 'sketch-1',
+                plane: 'XY',
+                components: [],
+                outputs: { profiles: [], diagnostics: [] },
+                uiState: { collapsed: false },
+              },
+            },
+          },
+        ],
+        edges: [],
+      })
+      useSpaghettiStore.getState().startGeometrySketchSession('node-sketch-1', 'draw')
+      useConsoleStore.getState().setInputText('c')
+    })
+
+    const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('sketchDrawCameraRoot')
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('projection')
+    })
+
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe(
+      'sketchDrawCameraProjectionRoot',
+    )
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('o')
+    })
+
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useUiPrefsStore.getState().view.projectionMode).toBe('orthographic')
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('sketchDrawRoot')
+    expect(
+      useConsoleStore.getState().entries.some((entry) => entry.text === 'Projection: Orthographic'),
+    ).toBe(true)
   })
 
   it('executes sketch plane from staged navigation and clears the staged session', async () => {

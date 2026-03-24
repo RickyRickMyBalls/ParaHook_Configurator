@@ -80,6 +80,7 @@ export interface ViewerApi {
   frameAll: () => void
   frameExtents: () => void
   frameGeometrySketch: () => void
+  frameSelectedGeometrySketch: () => boolean
   framePrevious: () => void
   frameSelected: (partId: string | null) => void
   frameReference: (referenceId: string) => void
@@ -91,7 +92,7 @@ export interface ViewerApi {
   beginTemporaryOrbitDrag: (startClientX: number, startClientY: number) => void
   updateTemporaryOrbitDrag: (clientX: number, clientY: number) => void
   endTemporaryOrbitDrag: () => void
-  setConsoleCameraMode: (mode: 'pan' | 'orbit' | null) => void
+  setConsoleCameraMode: (mode: 'pan' | 'orbit' | 'zoom-window' | null) => void
   applyViewSettings: (settings: ViewSettings) => void
   setGizmoEnabled: (enabled: boolean) => void
   setGizmoMode: (mode: GizmoMode) => void
@@ -186,7 +187,7 @@ export const beginViewerTemporaryOrbitDrag = (
   viewer?.beginTemporaryOrbitDrag(startClientX, startClientY)
 }
 
-export const setViewerConsoleCameraMode = (mode: 'pan' | 'orbit' | null): void => {
+export const setViewerConsoleCameraMode = (mode: 'pan' | 'orbit' | 'zoom-window' | null): void => {
   viewer?.setConsoleCameraMode(mode)
 }
 
