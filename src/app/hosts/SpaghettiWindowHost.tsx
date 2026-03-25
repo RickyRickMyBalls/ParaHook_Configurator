@@ -103,7 +103,9 @@ function SpaghettiWindowTitleBar(props: {
     onShellClick,
     onContextMenu,
   } = props
-  const requestGraphDocumentBuild = useAppStore((state) => state.requestGraphDocumentBuild)
+  const requestBrowserGraphDocumentBuild = useAppStore(
+    (state) => state.requestBrowserGraphDocumentBuild,
+  )
   const viewport = useSpaghettiStore((state) => selectEditorViewportById(state, editorViewportId))
   const graphDocumentId = viewport?.graphDocumentId ?? ''
   const primaryModeButtonLabel = isCollapsed ? '+' : isEssentials ? 'e' : '-'
@@ -126,7 +128,9 @@ function SpaghettiWindowTitleBar(props: {
     if (graphDocumentId.length === 0) {
       return
     }
-    requestGraphDocumentBuild(graphDocumentId)
+    requestBrowserGraphDocumentBuild(graphDocumentId, {
+      explicit: true,
+    })
   }
 
   if (isEssentials) {

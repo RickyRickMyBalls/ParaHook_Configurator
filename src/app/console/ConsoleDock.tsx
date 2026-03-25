@@ -12,6 +12,7 @@ import { isEditableTarget, routeKeyboardInput } from '../inputRouting'
 import { DEFAULT_REFERENCE_ROTATE_SNAP } from '../references/referenceTimeline'
 import { getViewer } from '../viewerBridge'
 import { requestRadioRuntimeWarmup } from '../../runtime/audio/radioRuntimeWarmup'
+import { revealFinishedSketch } from '../sketch/finishSketchVisibility'
 import {
   type RadioBurstTriggerKind,
   useAudioSamplerStore,
@@ -1973,6 +1974,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
             stagedResult.actionId === 'sketchdraw.tool.circle' ||
             stagedResult.actionId === 'sketchdraw.previous' ||
             stagedResult.actionId === 'sketchdraw.delete' ||
+            stagedResult.actionId === 'sketchdraw.done' ||
             stagedResult.actionId === 'sketchdraw.back' ||
             stagedResult.actionId === 'sketchdraw.exit'
           ) {
@@ -1982,6 +1984,40 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
               source: 'console',
               severity: 'info',
             })
+            if (stagedResult.actionId === 'sketchdraw.done') {
+              const finishedSketchNodeId =
+                useSpaghettiStore.getState().geometrySketchSession?.nodeId ?? null
+              if (finishedSketchNodeId !== null) {
+                revealFinishedSketch(finishedSketchNodeId)
+              }
+              setStagedNavigationSession(null)
+              useSpaghettiStore.getState().closeGeometrySketchSession()
+              const spaghettiState = useSpaghettiStore.getState()
+              const resumedHandoff =
+                spaghettiState.activeGraphDocumentId.length > 0
+                  ? resolveConsoleWorkspaceContextSync(
+                      buildStagedNavigationContextFromStoreState(spaghettiState),
+                      {
+                        graphDocumentId: spaghettiState.activeGraphDocumentId,
+                        nodeId: spaghettiState.selectedNodeId,
+                      },
+                    )
+                  : { session: null, selectedLabel: null }
+              if (resumedHandoff.session !== null) {
+                setStagedNavigationSession(resumedHandoff.session)
+                appendConsoleEntry({
+                  layer: 'Commands',
+                  text: buildStagedPromptText(
+                    resumedHandoff.session,
+                    resumedHandoff.session.validChoices,
+                  ),
+                  source: 'console',
+                  severity: 'info',
+                })
+              }
+              requestRadioBurst(commandIdentity, 'enter')
+              return
+            }
             setStagedNavigationSession(null)
             const sketchDrawCommand =
               stagedResult.actionId === 'sketchdraw.tool.line'

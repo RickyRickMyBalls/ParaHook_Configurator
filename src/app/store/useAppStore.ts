@@ -51,6 +51,11 @@ import { appendConsoleEntry } from '../console/useConsoleStore'
 type BoxParamKey = keyof BoxParams
 type PartsVisibility = Record<string, boolean>
 type BuildPolicy = 'live' | 'release' | 'manual'
+export type BrowserBuildPolicy = 'live' | 'release' | 'manual' | 'off'
+export type BrowserBuildExecutionTarget = {
+  kind: 'graph-document'
+  graphDocumentId: string
+}
 type ProjectFileVersion = 1
 export type ProjectContentBuildState = 'rebuild' | 'building' | 'done'
 export type ReferenceItemLoadState = 'unloaded' | 'loading' | 'loaded' | 'error'
@@ -141,6 +146,7 @@ export type ProjectContentBrowserRowVm =
       kind: 'sketch'
       label: string
       meta: string
+      isVisible: boolean
       buildState?: ProjectContentBuildState
       buildStateLabel?: string
       rebuildGraphDocumentIds?: string[]
@@ -323,11 +329,16 @@ export type AppState = {
   partsVisibility: PartsVisibility
   selectedPartKey: string | null
   buildPolicy: BuildPolicy
+  browserGraphBuildPolicyByGraphDocumentId: Record<string, BrowserBuildPolicy>
+  browserContentBuildPolicyByRowId: Record<string, BrowserBuildPolicy>
+  browserInteractionGraphDocumentIds: Record<string, true>
+  pendingBrowserBuildGraphDocumentIds: Record<string, true>
   isInteracting: boolean
   pendingBuildAfterRelease: boolean
   currentProject: ProjectFile
   projectContent: ProjectContentState
   referenceWorkspace: ReferenceWorkspaceState
+  sketchVisibilityByRowId: Record<string, boolean>
   workspaceSelection: WorkspaceSelectionState
   floatingShellActivationRequest: FloatingShellActivationRequest | null
   consoleContextSyncRequest: ConsoleContextSyncRequest | null
@@ -339,6 +350,25 @@ export type AppState = {
   compileSpaghetti: () => CompileSpaghettiGraphResult
   requestSpaghettiBuild: () => CompileSpaghettiGraphResult
   setBuildPolicy: (policy: BuildPolicy) => void
+  getBrowserGraphBuildPolicy: (graphDocumentId: string) => BrowserBuildPolicy | null
+  getBrowserContentBuildPolicy: (rowId: string) => BrowserBuildPolicy | null
+  setBrowserGraphBuildPolicy: (graphDocumentId: string, policy: BrowserBuildPolicy) => void
+  clearBrowserGraphBuildPolicy: (graphDocumentId: string) => void
+  cycleBrowserGraphBuildPolicy: (
+    graphDocumentId: string,
+    basePolicy?: BrowserBuildPolicy,
+  ) => void
+  setBrowserContentBuildPolicy: (rowId: string, policy: BrowserBuildPolicy) => void
+  clearBrowserContentBuildPolicy: (rowId: string) => void
+  cycleBrowserContentBuildPolicy: (rowId: string, basePolicy?: BrowserBuildPolicy) => void
+  beginBrowserBuildInteraction: (graphDocumentId: string) => void
+  endBrowserBuildInteraction: (graphDocumentId: string) => void
+  requestBrowserGraphDocumentBuild: (
+    graphDocumentId: string,
+    options?: {
+      explicit?: boolean
+    },
+  ) => CompileSpaghettiGraphResult | null
   beginInteraction: () => void
   endInteraction: () => void
   requestManualBuild: () => void
@@ -349,6 +379,8 @@ export type AppState = {
   toggleReferenceItemVisibility: (referenceId: string) => void
   setReferenceItemVisibility: (referenceId: string, visible: boolean) => void
   toggleReferenceCategoryVisibility: (categoryId: ReferenceCategoryId) => void
+  toggleSketchVisibility: (rowId: string) => void
+  setSketchVisibility: (rowId: string, visible: boolean) => void
   addImportedReference: (reference: {
     fileName: string
     fileType: ReferenceFileType
@@ -646,6 +678,13 @@ const buildProjectContentState = (
     SpaghettiStoreState,
     'graphDocumentsById' | 'graphDocumentOrder' | 'graphRuntimeByDocumentId'
   >,
+  browserPolicyState?: Pick<
+    AppState,
+    | 'currentProject'
+    | 'projectContent'
+    | 'browserGraphBuildPolicyByGraphDocumentId'
+    | 'browserContentBuildPolicyByRowId'
+  >,
 ): ProjectContentState => {
   const rootAssemblyId = project.rootAssemblyId ?? buildRootAssemblyId(project.projectFileId)
   const childRowIds: string[] = []
@@ -655,10 +694,16 @@ const buildProjectContentState = (
 
   for (const documentEntry of project.graphDocuments) {
     const graphDocument = spaghettiState.graphDocumentsById[documentEntry.graphDocumentId]
-    const outputSurface = selectGraphRuntimeByDocumentId(
-      spaghettiState,
-      documentEntry.graphDocumentId,
-    )?.outputSurface
+    const suppressRuntimeOutput =
+      browserPolicyState === undefined
+        ? false
+        : selectShouldSuppressBrowserGraphRuntimeOutput(
+            browserPolicyState,
+            documentEntry.graphDocumentId,
+          )
+    const outputSurface = suppressRuntimeOutput
+      ? null
+      : selectGraphRuntimeByDocumentId(spaghettiState, documentEntry.graphDocumentId)?.outputSurface
     const publishedContentSurface =
       graphDocument === undefined
         ? null
@@ -908,6 +953,128 @@ export const selectChangedGeomParamIds = (state: Pick<AppState, 'geomDirty' | 'g
 const nextInstanceId = (instances: number[]): number =>
   Math.max(...instances, 0) + 1
 
+const BROWSER_BUILD_POLICY_ORDER: readonly BrowserBuildPolicy[] = [
+  'live',
+  'release',
+  'manual',
+  'off',
+]
+
+const BROWSER_BUILD_POLICY_PRIORITY: Record<BrowserBuildPolicy, number> = {
+  off: 0,
+  manual: 1,
+  release: 2,
+  live: 3,
+}
+
+const cycleBrowserBuildPolicy = (policy: BrowserBuildPolicy): BrowserBuildPolicy => {
+  const currentIndex = BROWSER_BUILD_POLICY_ORDER.indexOf(policy)
+  return BROWSER_BUILD_POLICY_ORDER[(currentIndex + 1) % BROWSER_BUILD_POLICY_ORDER.length]
+}
+
+const pickMoreEagerBrowserBuildPolicy = (
+  left: BrowserBuildPolicy,
+  right: BrowserBuildPolicy,
+): BrowserBuildPolicy =>
+  BROWSER_BUILD_POLICY_PRIORITY[right] > BROWSER_BUILD_POLICY_PRIORITY[left] ? right : left
+
+const deleteRecordKey = <T extends Record<string, unknown>>(
+  record: T,
+  key: string,
+): T => {
+  if (!(key in record)) {
+    return record
+  }
+  const next = { ...record }
+  delete next[key]
+  return next
+}
+
+const selectAssemblyBrowserBuildPolicy = (
+  state: Pick<
+    AppState,
+    'currentProject' | 'browserContentBuildPolicyByRowId'
+  >,
+): BrowserBuildPolicy | null => {
+  const rootAssemblyId =
+    state.currentProject.rootAssemblyId ?? buildRootAssemblyId(state.currentProject.projectFileId)
+  return state.browserContentBuildPolicyByRowId[rootAssemblyId] ?? null
+}
+
+const selectStrongestIndependentBrowserContentPolicyForGraphDocument = (
+  state: Pick<AppState, 'projectContent' | 'browserContentBuildPolicyByRowId'>,
+  graphDocumentId: string,
+): BrowserBuildPolicy | null => {
+  let strongest: BrowserBuildPolicy | null = null
+
+  for (const component of Object.values(state.projectContent.componentsById)) {
+    if (component.ownerGraphDocumentId !== graphDocumentId) {
+      continue
+    }
+    const authored = state.browserContentBuildPolicyByRowId[component.componentId] ?? null
+    if (authored === null) {
+      continue
+    }
+    strongest = strongest === null ? authored : pickMoreEagerBrowserBuildPolicy(strongest, authored)
+  }
+
+  for (const objectRow of Object.values(state.projectContent.objectsById)) {
+    if (objectRow.ownerGraphDocumentId !== graphDocumentId) {
+      continue
+    }
+    const authored = state.browserContentBuildPolicyByRowId[objectRow.objectId] ?? null
+    if (authored === null) {
+      continue
+    }
+    strongest = strongest === null ? authored : pickMoreEagerBrowserBuildPolicy(strongest, authored)
+  }
+
+  return strongest
+}
+
+export const selectEffectiveBrowserExecutionPolicy = (
+  state: Pick<
+    AppState,
+    | 'currentProject'
+    | 'projectContent'
+    | 'browserGraphBuildPolicyByGraphDocumentId'
+    | 'browserContentBuildPolicyByRowId'
+  >,
+  target: BrowserBuildExecutionTarget,
+): BrowserBuildPolicy => {
+  if (target.kind !== 'graph-document') {
+    return 'live'
+  }
+
+  let effective =
+    state.browserGraphBuildPolicyByGraphDocumentId[target.graphDocumentId] ??
+    selectAssemblyBrowserBuildPolicy(state) ??
+    'live'
+
+  const strongestIndependent =
+    selectStrongestIndependentBrowserContentPolicyForGraphDocument(state, target.graphDocumentId)
+  if (strongestIndependent !== null) {
+    effective = pickMoreEagerBrowserBuildPolicy(effective, strongestIndependent)
+  }
+
+  return effective
+}
+
+export const selectShouldSuppressBrowserGraphRuntimeOutput = (
+  state: Pick<
+    AppState,
+    | 'currentProject'
+    | 'projectContent'
+    | 'browserGraphBuildPolicyByGraphDocumentId'
+    | 'browserContentBuildPolicyByRowId'
+  >,
+  graphDocumentId: string,
+): boolean =>
+  selectEffectiveBrowserExecutionPolicy(state, {
+    kind: 'graph-document',
+    graphDocumentId,
+  }) === 'off'
+
 export const useAppStore = create<AppState>((set, get) => ({
   box: initialBox,
   lastBuildSeq: 0,
@@ -919,11 +1086,16 @@ export const useAppStore = create<AppState>((set, get) => ({
   partsVisibility: defaultVisibility,
   selectedPartKey: null,
   buildPolicy: 'live',
+  browserGraphBuildPolicyByGraphDocumentId: {},
+  browserContentBuildPolicyByRowId: {},
+  browserInteractionGraphDocumentIds: {},
+  pendingBrowserBuildGraphDocumentIds: {},
   isInteracting: false,
   pendingBuildAfterRelease: false,
   currentProject: createInitialProjectFile(),
   projectContent: createInitialProjectContentState(),
   referenceWorkspace: createInitialReferenceWorkspaceState(),
+  sketchVisibilityByRowId: {},
   workspaceSelection: {
     selectedTarget: null,
     activeSurface: null,
@@ -1039,6 +1211,144 @@ export const useAppStore = create<AppState>((set, get) => ({
         policy === 'release' ? state.pendingBuildAfterRelease : false,
     }))
   },
+  getBrowserGraphBuildPolicy: (graphDocumentId) =>
+    get().browserGraphBuildPolicyByGraphDocumentId[graphDocumentId] ?? null,
+  getBrowserContentBuildPolicy: (rowId) => get().browserContentBuildPolicyByRowId[rowId] ?? null,
+  setBrowserGraphBuildPolicy: (graphDocumentId, policy) => {
+    set((state) => ({
+      browserGraphBuildPolicyByGraphDocumentId: {
+        ...state.browserGraphBuildPolicyByGraphDocumentId,
+        [graphDocumentId]: policy,
+      },
+    }))
+    syncCurrentProjectFromSpaghetti(useSpaghettiStore.getState())
+  },
+  clearBrowserGraphBuildPolicy: (graphDocumentId) => {
+    set((state) => {
+      const next = { ...state.browserGraphBuildPolicyByGraphDocumentId }
+      delete next[graphDocumentId]
+      return {
+        browserGraphBuildPolicyByGraphDocumentId: next,
+      }
+    })
+    syncCurrentProjectFromSpaghetti(useSpaghettiStore.getState())
+  },
+  cycleBrowserGraphBuildPolicy: (graphDocumentId, basePolicy) => {
+    set((state) => {
+      const currentPolicy =
+        state.browserGraphBuildPolicyByGraphDocumentId[graphDocumentId] ?? basePolicy ?? 'live'
+      return {
+        browserGraphBuildPolicyByGraphDocumentId: {
+          ...state.browserGraphBuildPolicyByGraphDocumentId,
+          [graphDocumentId]: cycleBrowserBuildPolicy(currentPolicy),
+        },
+      }
+    })
+    syncCurrentProjectFromSpaghetti(useSpaghettiStore.getState())
+  },
+  setBrowserContentBuildPolicy: (rowId, policy) => {
+    set((state) => ({
+      browserContentBuildPolicyByRowId: {
+        ...state.browserContentBuildPolicyByRowId,
+        [rowId]: policy,
+      },
+    }))
+    syncCurrentProjectFromSpaghetti(useSpaghettiStore.getState())
+  },
+  clearBrowserContentBuildPolicy: (rowId) => {
+    set((state) => {
+      const next = { ...state.browserContentBuildPolicyByRowId }
+      delete next[rowId]
+      return {
+        browserContentBuildPolicyByRowId: next,
+      }
+    })
+    syncCurrentProjectFromSpaghetti(useSpaghettiStore.getState())
+  },
+  cycleBrowserContentBuildPolicy: (rowId, basePolicy) => {
+    set((state) => {
+      const currentPolicy =
+        state.browserContentBuildPolicyByRowId[rowId] ?? basePolicy ?? 'live'
+      return {
+        browserContentBuildPolicyByRowId: {
+          ...state.browserContentBuildPolicyByRowId,
+          [rowId]: cycleBrowserBuildPolicy(currentPolicy),
+        },
+      }
+    })
+    syncCurrentProjectFromSpaghetti(useSpaghettiStore.getState())
+  },
+  beginBrowserBuildInteraction: (graphDocumentId) => {
+    if (graphDocumentId.length === 0) {
+      return
+    }
+    set((state) =>
+      state.browserInteractionGraphDocumentIds[graphDocumentId] === true
+        ? state
+        : {
+            browserInteractionGraphDocumentIds: {
+              ...state.browserInteractionGraphDocumentIds,
+              [graphDocumentId]: true,
+            },
+          },
+    )
+  },
+  endBrowserBuildInteraction: (graphDocumentId) => {
+    if (graphDocumentId.length === 0) {
+      return
+    }
+    const shouldDispatchQueuedBuild =
+      get().pendingBrowserBuildGraphDocumentIds[graphDocumentId] === true
+    set((state) => ({
+      browserInteractionGraphDocumentIds: deleteRecordKey(
+        state.browserInteractionGraphDocumentIds,
+        graphDocumentId,
+      ),
+      pendingBrowserBuildGraphDocumentIds: deleteRecordKey(
+        state.pendingBrowserBuildGraphDocumentIds,
+        graphDocumentId,
+      ),
+    }))
+    if (shouldDispatchQueuedBuild) {
+      get().requestBrowserGraphDocumentBuild(graphDocumentId)
+    }
+  },
+  requestBrowserGraphDocumentBuild: (graphDocumentId, options) => {
+    const policy = selectEffectiveBrowserExecutionPolicy(get(), {
+      kind: 'graph-document',
+      graphDocumentId,
+    })
+    const isExplicit = options?.explicit === true
+
+    if (policy === 'off') {
+      set((state) => ({
+        pendingBrowserBuildGraphDocumentIds: deleteRecordKey(
+          state.pendingBrowserBuildGraphDocumentIds,
+          graphDocumentId,
+        ),
+      }))
+      appendConsoleEntry({
+        layer: 'Browser',
+        text: `Build suppressed for ${graphDocumentId} because policy is Off`,
+        source: graphDocumentId,
+        severity: 'info',
+      })
+      syncCurrentProjectFromSpaghetti(useSpaghettiStore.getState())
+      return null
+    }
+
+    if (!isExplicit && policy === 'manual') {
+      return null
+    }
+
+    set((state) => ({
+      pendingBrowserBuildGraphDocumentIds: deleteRecordKey(
+        state.pendingBrowserBuildGraphDocumentIds,
+        graphDocumentId,
+      ),
+    }))
+    return get().requestGraphDocumentBuild(graphDocumentId)
+  },
   beginInteraction: () => {
     set((state) => (state.isInteracting ? state : { isInteracting: true }))
   },
@@ -1062,7 +1372,9 @@ export const useAppStore = create<AppState>((set, get) => ({
       source: activeGraphDocument.graphDocumentId,
       severity: 'info',
     })
-    get().requestGraphDocumentBuild(activeGraphDocument.graphDocumentId)
+    get().requestBrowserGraphDocumentBuild(activeGraphDocument.graphDocumentId, {
+      explicit: true,
+    })
   },
   acceptBuildResult: (result) => {
     const currentProjectId = get().currentProject.projectFileId
@@ -1174,6 +1486,22 @@ export const useAppStore = create<AppState>((set, get) => ({
         },
       }
     })
+  },
+  toggleSketchVisibility: (rowId) => {
+    set((state) => ({
+      sketchVisibilityByRowId: {
+        ...state.sketchVisibilityByRowId,
+        [rowId]: !(state.sketchVisibilityByRowId[rowId] ?? false),
+      },
+    }))
+  },
+  setSketchVisibility: (rowId, visible) => {
+    set((state) => ({
+      sketchVisibilityByRowId: {
+        ...state.sketchVisibilityByRowId,
+        [rowId]: visible,
+      },
+    }))
   },
   addImportedReference: ({ fileName, fileType, objectUrl }) => {
     const referenceId = buildImportedReferenceId()
@@ -1847,7 +2175,7 @@ const selectProjectContentBuildState = (options: {
 }
 
 export const selectCurrentProjectContentBrowserRows = (
-  state: Pick<AppState, 'currentProject' | 'projectContent'> & {
+  state: Pick<AppState, 'currentProject' | 'projectContent' | 'sketchVisibilityByRowId'> & {
     graphRuntimeByDocumentId: Record<string, GraphRuntimeState>
     graphDocumentsById: Record<string, GraphDocument>
   },
@@ -2123,6 +2451,14 @@ export const selectCurrentProjectContentBrowserRows = (
         kind: 'sketch',
         label: `Sketch ${sketchIndex}`,
         meta: sketchMeta,
+        isVisible:
+          state.sketchVisibilityByRowId[
+            buildProjectSketchBrowserRowId(
+              documentEntry.graphDocumentId,
+              node.nodeId,
+              feature.featureId,
+            )
+          ] ?? false,
         buildState: sketchBuildState.buildState,
         buildStateLabel: sketchBuildState.buildStateLabel,
         rebuildGraphDocumentIds:
@@ -2260,7 +2596,13 @@ const syncCurrentProjectFromSpaghetti = (
           rootAssemblyId: nextRootAssemblyId,
         }
       : state.currentProject
-    const nextProjectContent = buildProjectContentState(nextCurrentProject, spaghettiState)
+    const nextProjectContent = buildProjectContentState(nextCurrentProject, spaghettiState, {
+      currentProject: nextCurrentProject,
+      projectContent: state.projectContent,
+      browserGraphBuildPolicyByGraphDocumentId:
+        state.browserGraphBuildPolicyByGraphDocumentId,
+      browserContentBuildPolicyByRowId: state.browserContentBuildPolicyByRowId,
+    })
 
     if (
       nextCurrentProject === state.currentProject &&
@@ -2275,6 +2617,40 @@ const syncCurrentProjectFromSpaghetti = (
   })
 }
 
+const handleBrowserGraphRuntimeRevisionChange = (graphDocumentId: string): void => {
+  const state = useAppStore.getState()
+  const policy = selectEffectiveBrowserExecutionPolicy(state, {
+    kind: 'graph-document',
+    graphDocumentId,
+  })
+
+  if (policy === 'live') {
+    state.requestBrowserGraphDocumentBuild(graphDocumentId)
+    return
+  }
+
+  if (policy === 'release') {
+    if (state.browserInteractionGraphDocumentIds[graphDocumentId] === true) {
+      useAppStore.setState((current) => ({
+        pendingBrowserBuildGraphDocumentIds: {
+          ...current.pendingBrowserBuildGraphDocumentIds,
+          [graphDocumentId]: true,
+        },
+      }))
+      return
+    }
+    state.requestBrowserGraphDocumentBuild(graphDocumentId)
+    return
+  }
+
+  useAppStore.setState((current) => ({
+    pendingBrowserBuildGraphDocumentIds: deleteRecordKey(
+      current.pendingBrowserBuildGraphDocumentIds,
+      graphDocumentId,
+    ),
+  }))
+}
+
 useSpaghettiStore.subscribe((state, previousState) => {
   if (
     state.graphDocumentOrder === previousState.graphDocumentOrder &&
@@ -2284,4 +2660,25 @@ useSpaghettiStore.subscribe((state, previousState) => {
     return
   }
   syncCurrentProjectFromSpaghetti(state)
+
+  const changedGraphDocumentIds = new Set<string>([
+    ...Object.keys(state.graphRuntimeByDocumentId),
+    ...Object.keys(previousState.graphRuntimeByDocumentId),
+  ])
+
+  for (const graphDocumentId of changedGraphDocumentIds) {
+    const nextRevision =
+      state.graphRuntimeByDocumentId[graphDocumentId]?.compileBuild.currentGraphRevision ?? null
+    const previousRevision =
+      previousState.graphRuntimeByDocumentId[graphDocumentId]?.compileBuild.currentGraphRevision ??
+      null
+    if (
+      nextRevision === null ||
+      previousRevision === null ||
+      nextRevision === previousRevision
+    ) {
+      continue
+    }
+    handleBrowserGraphRuntimeRevisionChange(graphDocumentId)
+  }
 })

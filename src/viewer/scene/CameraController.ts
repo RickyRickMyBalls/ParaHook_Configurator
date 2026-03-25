@@ -91,7 +91,7 @@ export class CameraController {
     this.controls = new OrbitControls(perspectiveCamera, domElement)
     this.controls.enableDamping = true
     this.controls.dampingFactor = 0.08
-    this.controls.screenSpacePanning = false
+    this.controls.screenSpacePanning = true
     this.controls.rotateSpeed = 0.8
     this.controls.zoomSpeed = 1
     this.controls.panSpeed = 0.8
@@ -471,6 +471,7 @@ export class CameraController {
     direction: Vector3,
     options?: {
       target?: Vector3
+      up?: Vector3
       durationMs?: number
     },
   ): void {
@@ -483,9 +484,11 @@ export class CameraController {
     const nextTarget = options?.target?.clone() ?? this.controls.target.clone()
     const currentDistance = Math.max(activeCamera.position.distanceTo(this.controls.target), 0.5)
     const nextUp =
-      Math.abs(normalized.dot(new Vector3(0, 1, 0))) > 0.98
-        ? new Vector3(0, 0, -1)
-        : new Vector3(0, 1, 0)
+      options?.up !== undefined
+        ? options.up.clone().normalize()
+        : Math.abs(normalized.dot(new Vector3(0, 1, 0))) > 0.98
+          ? new Vector3(0, 0, -1)
+          : new Vector3(0, 1, 0)
     const nextPosition = nextTarget.clone().addScaledVector(normalized, currentDistance)
 
     this.transitionFromPosition.copy(activeCamera.position)
@@ -623,13 +626,14 @@ export class CameraController {
     }
 
     activeCamera.updateMatrixWorld()
-    this.tmpPanHorizontal
+    this.tmpRight
       .setFromMatrixColumn(activeCamera.matrixWorld, 0)
       .normalize()
+    this.tmpPanHorizontal
+      .copy(this.tmpRight)
       .multiplyScalar(-worldPanX)
-    activeCamera.getWorldDirection(this.tmpDirection)
     this.tmpUp
-      .crossVectors(this.tmpPanHorizontal.clone().normalize().negate(), this.tmpDirection)
+      .setFromMatrixColumn(activeCamera.matrixWorld, 1)
       .normalize()
     this.tmpPanVertical.copy(this.tmpUp)
       .multiplyScalar(worldPanY)

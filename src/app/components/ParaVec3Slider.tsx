@@ -14,6 +14,8 @@ type ParaVec3SliderProps = {
   max: number
   step: number
   onChangeAxis: (axis: Vec3Axis, value: number) => void
+  onActivate?: () => void
+  onChangeEndAxis?: (axis: Vec3Axis, value: number) => void
   allowWrap?: boolean
   showContinuousDragPreview?: boolean
   formatValue?: (axis: Vec3Axis, value: number) => string
@@ -28,6 +30,8 @@ export function ParaVec3Slider({
   max,
   step,
   onChangeAxis,
+  onActivate,
+  onChangeEndAxis,
   allowWrap = false,
   showContinuousDragPreview = false,
   formatValue = (_axis, nextValue) => `${nextValue}`,
@@ -48,7 +52,13 @@ export function ParaVec3Slider({
             allowWrap={allowWrap}
             showContinuousDragPreview={showContinuousDragPreview}
             hideCaps
+            onActivate={onActivate}
             onChange={(nextValue) => onChangeAxis(axis, nextValue)}
+            onChangeEnd={
+              onChangeEndAxis === undefined
+                ? undefined
+                : (nextValue) => onChangeEndAxis(axis, nextValue)
+            }
             formatValue={(nextValue) => formatValue(axis, nextValue)}
           />
         </div>

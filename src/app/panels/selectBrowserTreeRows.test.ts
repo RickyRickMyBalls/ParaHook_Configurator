@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { EditorViewport, GraphDocument } from '../spaghetti/schema/spaghettiTypes'
 import type { BrowserGraphRowVm } from './selectBrowserGraphRows'
 import { selectBrowserTreeRows } from './selectBrowserTreeRows'
-import type { ReferenceWorkspaceBrowserTreeVm } from '../store/useAppStore'
+import type { BrowserBuildPolicy, ReferenceWorkspaceBrowserTreeVm } from '../store/useAppStore'
 
 const graphDocument = (
   graphDocumentId: string,
@@ -28,6 +28,10 @@ const graphRow = (options?: {
   hasFocusedViewport?: boolean
   buildState?: 'rebuild' | 'building' | 'done'
   buildStateLabel?: string
+  authoredBrowserBuildPolicy?: BrowserBuildPolicy | null
+  effectiveBrowserBuildPolicy?: BrowserBuildPolicy
+  effectiveBrowserBuildPolicySource?: 'self' | 'graph' | 'assembly' | 'component' | 'default'
+  effectiveBrowserBuildPolicySourceLabel?: string | null
 }): BrowserGraphRowVm => ({
   cachedGraphId: options?.cachedGraphId ?? 'cached-graph-1',
   graphDocumentId: options?.graphDocumentId ?? 'graph-document-1',
@@ -39,6 +43,10 @@ const graphRow = (options?: {
   hasFocusedViewport: options?.hasFocusedViewport ?? true,
   buildState: options?.buildState ?? 'rebuild',
   buildStateLabel: options?.buildStateLabel ?? 'Rebuild',
+  authoredBrowserBuildPolicy: options?.authoredBrowserBuildPolicy ?? null,
+  effectiveBrowserBuildPolicy: options?.effectiveBrowserBuildPolicy ?? 'live',
+  effectiveBrowserBuildPolicySource: options?.effectiveBrowserBuildPolicySource ?? 'default',
+  effectiveBrowserBuildPolicySourceLabel: options?.effectiveBrowserBuildPolicySourceLabel ?? null,
   publishedOutputRows: [
     {
       rowId: 'published-output-row:graph-document-1:output-entry:s001:node-a',
@@ -167,6 +175,10 @@ describe('selectBrowserTreeRows', () => {
         hasFocusedViewport: true,
         buildState: 'rebuild',
         buildStateLabel: 'Rebuild',
+        authoredBrowserBuildPolicy: null,
+        effectiveBrowserBuildPolicy: 'live',
+        effectiveBrowserBuildPolicySource: 'default',
+        effectiveBrowserBuildPolicySourceLabel: null,
         actions: [
           {
             actionId: 'save',
@@ -330,6 +342,125 @@ describe('selectBrowserTreeRows', () => {
     expect(rows.graphRows[0].children[0]).toMatchObject({
       rowKind: 'graph-section',
       label: 'Needs Rebuild',
+    })
+  })
+
+  it('derives effective browser build policy from graph, assembly, and component authored overrides', () => {
+    const rows = selectBrowserTreeRows({
+      referenceWorkspaceTree: emptyReferenceWorkspaceTree,
+      contentRows: [
+        {
+          rowId: 'assembly-root:project-file-1',
+          kind: 'assembly',
+          label: 'Assembly 1',
+          meta: '',
+        },
+        {
+          rowId: 'component-1',
+          kind: 'component',
+          label: 'Pedal Component',
+          meta: 'Graph 1',
+          ownerGraphDocumentId: 'graph-document-1',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry:slot-a:node-a',
+          componentSourceKind: 'published-component',
+          resolutionState: 'resolved',
+          receiveId: null,
+          childObjectCount: 2,
+          slotId: 'slot-a',
+          sourceNodeId: 'node-a',
+          highlightViewerKey: 'slot-a',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-a',
+        },
+        {
+          rowId: 'object-1',
+          kind: 'object',
+          label: 'Object 1',
+          meta: '',
+          ownerGraphDocumentId: 'graph-document-1',
+          parentComponentId: 'component-1',
+          objectSourceKind: 'published-object',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry:slot-a:node-a',
+          slotId: 'slot-a',
+          sourceNodeId: 'node-a',
+          resolutionState: 'resolved',
+          highlightViewerKey: 'slot-a',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-a',
+        },
+        {
+          rowId: 'object-2',
+          kind: 'object',
+          label: 'Object 2',
+          meta: '',
+          ownerGraphDocumentId: 'graph-document-1',
+          parentComponentId: 'component-1',
+          objectSourceKind: 'published-object',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry:slot-b:node-b',
+          slotId: 'slot-b',
+          sourceNodeId: 'node-b',
+          resolutionState: 'resolved',
+          highlightViewerKey: 'slot-b',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-b',
+        },
+      ],
+      graphRows: [graphRow()],
+      browserGraphBuildPolicyByGraphDocumentId: {
+        'graph-document-1': 'manual',
+      },
+      browserContentBuildPolicyByRowId: {
+        'component-1': 'release',
+        'object-2': 'off',
+      },
+      editorViewports: [],
+      graphDocumentsById: {
+        'graph-document-1': graphDocument('graph-document-1', 'Graph 1'),
+      },
+      selectedRowId: null,
+      collapsedContentRowIds: [],
+      expandedGraphDocumentIds: ['graph-document-1'],
+      hasActiveEditorViewport: false,
+      sharedViewerCompositionGraphDocumentIds: [],
+      sharedViewerCompositionActive: false,
+    })
+
+    expect(rows.graphRows[0]).toMatchObject({
+      authoredBrowserBuildPolicy: 'manual',
+      effectiveBrowserBuildPolicy: 'manual',
+      effectiveBrowserBuildPolicySource: 'self',
+      effectiveBrowserBuildPolicySourceLabel: 'Graph 1',
+    })
+    expect(rows.contentRows[0]).toMatchObject({
+      rowKind: 'assembly',
+      authoredBrowserBuildPolicy: null,
+      effectiveBrowserBuildPolicy: 'live',
+      effectiveBrowserBuildPolicySource: 'default',
+      effectiveBrowserBuildPolicySourceLabel: null,
+    })
+    expect(rows.contentRows[1]).toMatchObject({
+      rowKind: 'component',
+      authoredBrowserBuildPolicy: 'release',
+      effectiveBrowserBuildPolicy: 'release',
+      effectiveBrowserBuildPolicySource: 'self',
+      effectiveBrowserBuildPolicySourceLabel: 'Pedal Component',
+    })
+    expect(rows.contentRows[2]).toMatchObject({
+      rowKind: 'object',
+      authoredBrowserBuildPolicy: null,
+      effectiveBrowserBuildPolicy: 'release',
+      effectiveBrowserBuildPolicySource: 'component',
+      effectiveBrowserBuildPolicySourceLabel: 'Pedal Component',
+    })
+    expect(rows.contentRows[3]).toMatchObject({
+      rowKind: 'object',
+      authoredBrowserBuildPolicy: 'off',
+      effectiveBrowserBuildPolicy: 'off',
+      effectiveBrowserBuildPolicySource: 'self',
+      effectiveBrowserBuildPolicySourceLabel: 'Object 2',
     })
   })
 
@@ -532,7 +663,7 @@ describe('selectBrowserTreeRows', () => {
       sharedViewerCompositionActive: false,
     })
 
-      expect(rows.contentRows).toEqual([
+    expect(rows.contentRows).toMatchObject([
         {
           rowId: 'assembly-root:project-file-1',
           rowKind: 'assembly',
@@ -734,7 +865,7 @@ describe('selectBrowserTreeRows', () => {
       sharedViewerCompositionActive: false,
     })
 
-      expect(rows.contentRows).toEqual([
+    expect(rows.contentRows).toMatchObject([
         {
           rowId: 'assembly-root:project-file-1',
           rowKind: 'assembly',
@@ -981,6 +1112,7 @@ describe('selectBrowserTreeRows', () => {
           kind: 'sketch',
           label: 'Sketch 1',
           meta: 'Graph 1 | XY | 4 comps | 1 profile',
+          isVisible: false,
           buildState: 'rebuild',
           buildStateLabel: 'Rebuild',
           rebuildGraphDocumentIds: ['graph-document-1'],

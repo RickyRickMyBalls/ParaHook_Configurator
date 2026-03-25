@@ -244,7 +244,18 @@
 .BrowserTreeRow--reference-item,
 .BrowserTreeRow--assembly,
 .BrowserTreeRow--component,
-.BrowserTreeRow--object {
+.BrowserTreeRow--object,
+.BrowserTreeRow--graph-document,
+.BrowserTreeRow--viewport,
+.BrowserTreeRow--graph-section,
+.BrowserTreeRow--graph-rebuild-object,
+.BrowserTreeRow--graph-node {
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.BrowserTreeRow--graph-document,
+.BrowserTreeRow--viewport {
+  position: relative;
   grid-template-columns: auto minmax(0, 1fr);
 }
 
@@ -472,20 +483,37 @@
 }
 
 .V15Panel button.BrowserTreeRowIcon--release {
+  border-color: rgba(96, 156, 255, 0.4);
+  background: rgba(42, 88, 176, 0.22);
+  color: rgba(219, 234, 255, 0.96);
+}
+
+.V15Panel button.BrowserTreeRowIcon--manual {
   border-color: rgba(236, 196, 88, 0.38);
   background: rgba(194, 142, 34, 0.2);
   color: rgba(255, 242, 195, 0.96);
 }
 
-.V15Panel button.BrowserTreeRowIcon--manual {
-  border-color: rgba(224, 106, 106, 0.34);
-  background: rgba(153, 48, 48, 0.2);
-  color: rgba(255, 216, 216, 0.96);
+.V15Panel button.BrowserTreeRowIcon--off {
+  border-color: rgba(171, 179, 194, 0.24);
+  background: rgba(88, 94, 106, 0.22);
+  color: rgba(223, 227, 235, 0.9);
+}
+
+.V15Panel button.BrowserTreeRowIcon--independent {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.12),
+    0 0 10px rgba(98, 164, 255, 0.18);
+  filter: saturate(1.12) brightness(1.06);
+}
+
+.V15Panel button.BrowserTreeRowIcon--inherited {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  filter: none;
 }
 
 .BrowserTreeRowMain,
 .BrowserTreeRowQuickAction,
-.BrowserTreeRowOverflow,
 .BrowserTreeContextMenuAction {
   min-height: 28px;
 }
@@ -508,18 +536,27 @@
   grid-template-columns: minmax(0, 1fr);
   gap: 0;
   padding: 0;
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
 }
 
 .V15Panel button.BrowserTreeRowMain.isContentRow {
   grid-template-columns: minmax(0, 1fr);
   gap: 0;
   padding: 0;
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
 }
 
 .V15Panel button.BrowserTreeRowMain.isReferenceRow {
   grid-template-columns: minmax(0, 1fr);
   gap: 0;
   padding: 0;
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
 }
 
 .V15Panel button.BrowserTreeRowMain.isSketchesRootRow {
@@ -534,6 +571,9 @@
   grid-template-columns: minmax(0, 1fr);
   gap: 0;
   padding: 0;
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
 }
 
 .V15Panel button.BrowserTreeRowMain.isGraphChildPlainRow,
@@ -541,11 +581,25 @@
   grid-template-columns: minmax(0, 1fr);
   gap: 0;
   padding: 0;
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
 }
 
 .V15Panel button.BrowserTreeRowMain:hover {
   border-color: var(--v15-panel-border-soft);
   background: rgba(20, 22, 30, 0.98);
+}
+
+.V15Panel button.BrowserTreeRowMain.isGraphRow:hover,
+.V15Panel button.BrowserTreeRowMain.isContentRow:hover,
+.V15Panel button.BrowserTreeRowMain.isReferenceRow:hover,
+.V15Panel button.BrowserTreeRowMain.isGraphChildBuildRow:hover,
+.V15Panel button.BrowserTreeRowMain.isGraphChildPlainRow:hover,
+.V15Panel button.BrowserTreeRowMain.isViewportRow:hover {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
 }
 
 .V15Panel button.BrowserTreeRowMain.isSketchesRootRow:hover,
@@ -557,11 +611,8 @@
   box-shadow: none;
 }
 
-.V15Panel button.BrowserTreeRowMain.isGraphRow .BrowserTreeRowLabel {
-  display: none;
-}
-
 .BrowserTreeRowLabel {
+  flex: 0 1 auto;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -572,29 +623,39 @@
 
 .BrowserTreeRowText {
   min-width: 0;
-  display: grid;
-  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+  display: flex;
   gap: 8px;
   align-items: center;
+  flex: 1 1 auto;
 }
 
-.BrowserGraphStateBar {
+.BrowserTreeRowSurface {
   position: relative;
   min-width: 0;
   min-height: 26px;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
   align-items: center;
   overflow: hidden;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.03);
   padding: 0 8px;
-  gap: 8px;
   transition:
     border-color 160ms ease,
     box-shadow 160ms ease,
     background 160ms ease;
+}
+
+.BrowserTreeRowSurface--slim {
+  min-height: 22px;
+}
+
+.BrowserTreeRowSurface--plain {
+  display: flex;
+}
+
+.BrowserGraphStateBar {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .BrowserGraphStateFill {
@@ -608,8 +669,8 @@
 }
 
 .BrowserGraphStateBar--rebuild .BrowserGraphStateFill {
-  width: 0;
-  background: transparent;
+  width: 5%;
+  background: linear-gradient(90deg, rgba(232, 186, 86, 0.62), rgba(232, 186, 86, 0.22));
 }
 
 .BrowserGraphStateBar--done .BrowserGraphStateFill {
@@ -619,13 +680,17 @@
 
 .BrowserGraphStateBar--building .BrowserGraphStateFill {
   width: 0;
-  background: linear-gradient(90deg, rgba(232, 186, 86, 0.58), rgba(232, 186, 86, 0.18));
+  background: linear-gradient(90deg, rgba(74, 193, 255, 0.64), rgba(74, 193, 255, 0.22));
   animation: BrowserGraphStateBuildFill 1.05s ease-in-out infinite;
 }
 
 .BrowserGraphStateText {
   position: relative;
   z-index: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 0 1 auto;
   font-size: 10px;
   font-weight: 800;
   line-height: 1;
@@ -635,22 +700,8 @@
 }
 
 .BrowserContentStateBar {
-  position: relative;
-  min-width: 0;
-  min-height: 26px;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 10px;
-  overflow: hidden;
-  border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(255, 255, 255, 0.03);
-  padding: 0 8px;
-  transition:
-    border-color 160ms ease,
-    box-shadow 160ms ease,
-    background 160ms ease;
 }
 
 .BrowserContentStateBar--slim {
@@ -658,19 +709,14 @@
 }
 
 .BrowserGraphChildPlainBar {
-  width: 100%;
-  min-width: 0;
-  min-height: 26px;
-  display: flex;
-  align-items: center;
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(255, 255, 255, 0.03);
-  padding: 0 8px;
-  transition:
-    border-color 160ms ease,
-    box-shadow 160ms ease,
-    background 160ms ease;
+}
+
+.BrowserTreeRow--graph-document .BrowserTreeRowSurface,
+.BrowserTreeRow--viewport .BrowserTreeRowSurface {
+  padding-right: 42px;
 }
 
 .BrowserContentStateFill {
@@ -690,18 +736,21 @@
 
 .BrowserContentStateBar--building .BrowserContentStateFill {
   width: 0;
-  background: linear-gradient(90deg, rgba(232, 186, 86, 0.48), rgba(232, 186, 86, 0.16));
+  background: linear-gradient(90deg, rgba(74, 193, 255, 0.56), rgba(74, 193, 255, 0.2));
   animation: BrowserGraphStateBuildFill 1.05s ease-in-out infinite;
 }
 
 .BrowserContentStateBar--rebuild .BrowserContentStateFill {
-  width: 100%;
-  background: linear-gradient(90deg, rgba(232, 186, 86, 0.34), rgba(232, 186, 86, 0.12));
+  width: 5%;
+  background: linear-gradient(90deg, rgba(232, 186, 86, 0.62), rgba(232, 186, 86, 0.22));
 }
 
 .BrowserContentStateText {
   position: relative;
   z-index: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-size: 10px;
   font-weight: 800;
   line-height: 1;
@@ -716,28 +765,16 @@
   z-index: 1;
   min-width: 0;
   display: inline-flex;
+  flex: 0 1 auto;
   align-items: center;
   justify-content: flex-end;
   gap: 10px;
+  overflow: hidden;
 }
 
 .BrowserReferenceStateBar {
-  position: relative;
-  min-width: 0;
-  min-height: 26px;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 10px;
-  overflow: hidden;
-  border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(10, 12, 18, 0.98);
-  padding: 0 8px;
-  transition:
-    border-color 160ms ease,
-    box-shadow 160ms ease,
-    background 160ms ease;
 }
 
 .BrowserReferenceStateFill {
@@ -770,6 +807,10 @@
 .BrowserReferenceStateText {
   position: relative;
   z-index: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 0 1 auto;
   font-size: 10px;
   font-weight: 800;
   line-height: 1;
@@ -792,37 +833,55 @@
 }
 
 .BrowserTreeRow.isOpen .BrowserGraphStateBar {
-  border-color: rgba(96, 142, 255, 0.28);
-  box-shadow:
-    inset 0 0 0 1px rgba(96, 142, 255, 0.1),
-    0 0 0 1px rgba(96, 142, 255, 0.12),
-    0 0 18px rgba(72, 112, 255, 0.14);
+  border-color: rgba(120, 152, 228, 0.22);
+  box-shadow: inset 0 0 0 1px rgba(96, 142, 255, 0.06);
 }
 
-.BrowserTreeRow.isOpen .BrowserGraphStateBar::after {
-  content: '';
-  position: absolute;
-  inset: 0 auto 0 -28px;
-  width: 28px;
-  background: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 0.14) 50%,
-    rgba(255, 255, 255, 0) 100%
-  );
-  pointer-events: none;
-  animation: BrowserGraphOpenGlowSweep 2.2s linear infinite;
+.BrowserTreeRow.isSelected .BrowserTreeRowMain.isGraphRow,
+.BrowserTreeRow.isSelected .BrowserTreeRowMain.isContentRow,
+.BrowserTreeRow.isSelected .BrowserTreeRowMain.isReferenceRow,
+.BrowserTreeRow.isSelected .BrowserTreeRowMain.isGraphChildBuildRow,
+.BrowserTreeRow.isSelected .BrowserTreeRowMain.isGraphChildPlainRow,
+.BrowserTreeRow.isSelected .BrowserTreeRowMain.isViewportRow,
+.BrowserTreeRow.isOpen .BrowserTreeRowMain.isGraphRow,
+.BrowserTreeRow.isOpen .BrowserTreeRowMain.isContentRow,
+.BrowserTreeRow.isOpen .BrowserTreeRowMain.isReferenceRow,
+.BrowserTreeRow.isOpen .BrowserTreeRowMain.isGraphChildBuildRow,
+.BrowserTreeRow.isOpen .BrowserTreeRowMain.isGraphChildPlainRow,
+.BrowserTreeRow.isOpen .BrowserTreeRowMain.isViewportRow,
+.BrowserTreeRow.isActiveEditor .BrowserTreeRowMain.isGraphRow,
+.BrowserTreeRow.isActiveEditor .BrowserTreeRowMain.isContentRow,
+.BrowserTreeRow.isActiveEditor .BrowserTreeRowMain.isReferenceRow,
+.BrowserTreeRow.isActiveEditor .BrowserTreeRowMain.isGraphChildBuildRow,
+.BrowserTreeRow.isActiveEditor .BrowserTreeRowMain.isGraphChildPlainRow,
+.BrowserTreeRow.isActiveEditor .BrowserTreeRowMain.isViewportRow {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.BrowserTreeRow.isSelected :is(
+    .BrowserGraphStateBar,
+    .BrowserContentStateBar,
+    .BrowserReferenceStateBar,
+    .BrowserGraphChildPlainBar
+  ) {
+  border-color: rgba(96, 142, 255, 0.55);
+  box-shadow: inset 0 0 0 1px rgba(96, 142, 255, 0.08);
 }
 
 .BrowserTreeRow.isActiveEditor .BrowserGraphStateBar {
-  border-color: rgba(122, 168, 255, 0.42);
-  box-shadow:
-    inset 0 0 0 1px rgba(122, 168, 255, 0.12),
-    0 0 0 1px rgba(122, 168, 255, 0.18),
-    0 0 24px rgba(72, 112, 255, 0.2);
+  border-color: rgba(122, 168, 255, 0.34);
+  box-shadow: inset 0 0 0 1px rgba(122, 168, 255, 0.1);
+}
+
+.BrowserTreeRow.isActiveEditor .BrowserGraphChildPlainBar {
+  border-color: rgba(122, 168, 255, 0.34);
+  box-shadow: inset 0 0 0 1px rgba(122, 168, 255, 0.1);
 }
 
 .BrowserTreeRowMeta {
+  flex: 1 1 auto;
   font-size: 11px;
   color: var(--v15-text-muted);
   text-transform: none;
@@ -859,26 +918,6 @@
   color: var(--v15-text-muted);
 }
 
-.V15Panel button.BrowserTreeRowOverflow {
-  min-width: 28px;
-  width: 28px;
-  padding: 0;
-  justify-content: center;
-  border-radius: 8px;
-  border-color: transparent;
-  background: rgba(255, 255, 255, 0.02);
-  color: var(--v15-text-muted);
-  font-size: 12px;
-  letter-spacing: 0.06em;
-}
-
-.V15Panel button.BrowserTreeRowOverflow:hover,
-.V15Panel button.BrowserTreeRowOverflow.isActive {
-  border-color: var(--v15-panel-border-soft);
-  background: rgba(255, 255, 255, 0.07);
-  color: rgba(238, 242, 255, 0.94);
-}
-
 .V15Panel button.BrowserTreeRowQuickAction {
   min-width: 28px;
   width: 28px;
@@ -889,6 +928,15 @@
   background: rgba(255, 255, 255, 0.02);
   color: var(--v15-text-muted);
   text-transform: uppercase;
+}
+
+.BrowserTreeRow--graph-document .BrowserTreeRowQuickAction,
+.BrowserTreeRow--viewport .BrowserTreeRowQuickAction {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
 }
 
 .V15Panel button.BrowserTreeRowQuickAction--close:hover {

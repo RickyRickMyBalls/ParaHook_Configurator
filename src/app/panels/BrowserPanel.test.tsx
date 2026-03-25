@@ -8,6 +8,7 @@ import type { ReferenceWorkspaceBrowserTreeVm } from '../store/useAppStore'
 let currentSpaghettiState: any
 let currentAppState: any
 let importReferenceFileFromDiskMock: ReturnType<typeof vi.fn>
+let mockRequestBrowserGraphDocumentBuild: ReturnType<typeof vi.fn>
 
 vi.mock('../spaghetti/store/useSpaghettiStore', () => ({
   useSpaghettiStore: (selector: (state: any) => unknown) => selector(currentSpaghettiState),
@@ -21,6 +22,7 @@ vi.mock('../store/useAppStore', () => ({
   useAppStore: (selector: (state: any) => unknown) => selector(currentAppState),
   selectCurrentProjectContentBrowserRows: () => currentAppState.projectContentRows,
   selectReferenceWorkspaceBrowserTree: () => currentAppState.referenceWorkspaceTree,
+  selectShouldSuppressBrowserGraphRuntimeOutput: () => false,
 }))
 
 vi.mock('../references/importReferenceFile', () => ({
@@ -229,6 +231,7 @@ describe('BrowserPanel', () => {
 
   beforeEach(() => {
     importReferenceFileFromDiskMock = vi.fn()
+    mockRequestBrowserGraphDocumentBuild = vi.fn()
     currentSpaghettiState = {
       graphDocumentsById: {
         'graph-document-1': graphDocument,
@@ -269,8 +272,11 @@ describe('BrowserPanel', () => {
       currentProject: null,
       projectContent: null,
       projectContentRows: [],
+      browserGraphBuildPolicyByGraphDocumentId: {},
+      browserContentBuildPolicyByRowId: {},
       referenceWorkspaceTree: emptyReferenceWorkspaceTree,
       referenceWorkspace: referenceWorkspaceStateFromTree(emptyReferenceWorkspaceTree),
+      sketchVisibilityByRowId: {},
       workspaceSelection: {
         selectedTarget: null,
         activeSurface: null,
@@ -281,13 +287,87 @@ describe('BrowserPanel', () => {
       requestConsoleContextSync: vi.fn(),
       requestFloatingShellActivation: vi.fn(),
       buildPolicy: 'live',
-      requestGraphDocumentBuild: vi.fn(),
+      setBrowserGraphBuildPolicy: vi.fn((graphDocumentId: string, policy: string) => {
+        currentAppState = {
+          ...currentAppState,
+          browserGraphBuildPolicyByGraphDocumentId: {
+            ...currentAppState.browserGraphBuildPolicyByGraphDocumentId,
+            [graphDocumentId]: policy,
+          },
+        }
+      }),
+      clearBrowserGraphBuildPolicy: vi.fn((graphDocumentId: string) => {
+        const next = { ...currentAppState.browserGraphBuildPolicyByGraphDocumentId }
+        delete next[graphDocumentId]
+        currentAppState = {
+          ...currentAppState,
+          browserGraphBuildPolicyByGraphDocumentId: next,
+        }
+      }),
+      cycleBrowserGraphBuildPolicy: vi.fn((graphDocumentId: string, basePolicy?: string) => {
+        const currentPolicy =
+          currentAppState.browserGraphBuildPolicyByGraphDocumentId[graphDocumentId] ?? basePolicy ?? 'live'
+        const nextPolicy =
+          currentPolicy === 'live'
+            ? 'release'
+            : currentPolicy === 'release'
+              ? 'manual'
+              : currentPolicy === 'manual'
+                ? 'off'
+                : 'live'
+        currentAppState = {
+          ...currentAppState,
+          browserGraphBuildPolicyByGraphDocumentId: {
+            ...currentAppState.browserGraphBuildPolicyByGraphDocumentId,
+            [graphDocumentId]: nextPolicy,
+          },
+        }
+      }),
+      setBrowserContentBuildPolicy: vi.fn((rowId: string, policy: string) => {
+        currentAppState = {
+          ...currentAppState,
+          browserContentBuildPolicyByRowId: {
+            ...currentAppState.browserContentBuildPolicyByRowId,
+            [rowId]: policy,
+          },
+        }
+      }),
+      clearBrowserContentBuildPolicy: vi.fn((rowId: string) => {
+        const next = { ...currentAppState.browserContentBuildPolicyByRowId }
+        delete next[rowId]
+        currentAppState = {
+          ...currentAppState,
+          browserContentBuildPolicyByRowId: next,
+        }
+      }),
+      cycleBrowserContentBuildPolicy: vi.fn((rowId: string, basePolicy?: string) => {
+        const currentPolicy =
+          currentAppState.browserContentBuildPolicyByRowId[rowId] ?? basePolicy ?? 'live'
+        const nextPolicy =
+          currentPolicy === 'live'
+            ? 'release'
+            : currentPolicy === 'release'
+              ? 'manual'
+              : currentPolicy === 'manual'
+                ? 'off'
+                : 'live'
+        currentAppState = {
+          ...currentAppState,
+          browserContentBuildPolicyByRowId: {
+            ...currentAppState.browserContentBuildPolicyByRowId,
+            [rowId]: nextPolicy,
+          },
+        }
+      }),
+      requestGraphDocumentBuild: mockRequestBrowserGraphDocumentBuild,
+      requestBrowserGraphDocumentBuild: mockRequestBrowserGraphDocumentBuild,
       selectPart: vi.fn(),
       toggleReferenceWorkspaceExpanded: vi.fn(),
       toggleReferenceCategoryExpanded: vi.fn(),
       toggleReferenceItemVisibility: vi.fn(),
       setReferenceItemVisibility: vi.fn(),
       toggleReferenceCategoryVisibility: vi.fn(),
+      toggleSketchVisibility: vi.fn(),
       addImportedReference: vi.fn(() => 'reference-import:1'),
       retryReferenceItemLoad: vi.fn(),
       removeImportedReference: vi.fn(),
@@ -396,13 +476,13 @@ describe('BrowserPanel', () => {
     expect(currentSpaghettiState.loadGraphDocumentIntoNewGraphFromFile).toHaveBeenCalledTimes(1)
   })
 
-  it('opens the row menu from the overflow button and runs graph actions through the shared menu surface', async () => {
+  it('opens the row menu from right click and runs graph actions through the shared menu surface', async () => {
     ;({ root } = await renderBrowserPanel())
 
-    const overflowButton = findButtonByLabel('More options for Graph 1')
-    expect(overflowButton).not.toBeNull()
+    const graphRow = findRowMainByLabel('Graph 1')
+    expect(graphRow).not.toBeNull()
 
-    await click(overflowButton!)
+    await contextMenu(graphRow!)
 
     expect(document.querySelector('.BrowserTreeContextMenuHeader')?.textContent).toBe('Graph 1')
     expect(findButtonByLabel('New Editor')).not.toBeNull()
@@ -454,7 +534,7 @@ describe('BrowserPanel', () => {
     ;({ container, root } = await renderBrowserPanel())
 
     const graphPolicyButton = findButtonByLabel('Cycle build policy for Graph 1. Current policy Live')
-    expect(graphPolicyButton).toBeNull()
+    expect(graphPolicyButton).not.toBeNull()
 
     const policyButton = findButtonByLabel('Cycle build policy for Pedal Component. Current policy Live')
     const saveButton = findButtonByLabel('Graph save options for Graph 1')
@@ -466,15 +546,129 @@ describe('BrowserPanel', () => {
     expect(container?.querySelector('.BrowserTreeRowQuickAction--save.BrowserTreeRowQuickAction--unsaved')).not.toBeNull()
     expect(container?.querySelector('.BrowserTreeRow.isOpen')).not.toBeNull()
     expect(container?.querySelector('.BrowserTreeRow.isActiveEditor')).not.toBeNull()
-    expect(container?.textContent).toContain('Rebuild')
     expect(container?.textContent).not.toContain('Dirty')
     expect(container?.textContent).not.toContain('Saved')
 
     await click(policyButton!)
+    await act(async () => {
+      root!.render(<BrowserPanel />)
+    })
+    expect(currentAppState.cycleBrowserContentBuildPolicy).toHaveBeenCalledWith(
+      'project-component:project-file-1:graph-document-1:published',
+      'live',
+    )
     expect(findButtonByLabel('Cycle build policy for Pedal Component. Current policy Release')).not.toBeNull()
+    expect(findButtonByLabel('Cycle build policy for Graph 1. Current policy Live')).not.toBeNull()
 
     await click(findButtonByLabel('Cycle build policy for Pedal Component. Current policy Release')!)
+    await act(async () => {
+      root!.render(<BrowserPanel />)
+    })
     expect(findButtonByLabel('Cycle build policy for Pedal Component. Current policy Manual')).not.toBeNull()
+
+    await click(findButtonByLabel('Cycle build policy for Pedal Component. Current policy Manual')!)
+    await act(async () => {
+      root!.render(<BrowserPanel />)
+    })
+    expect(findButtonByLabel('Cycle build policy for Pedal Component. Current policy Off')).not.toBeNull()
+
+    const componentRow = findRowMainByLabel('Pedal Component')
+    expect(componentRow?.getAttribute('aria-pressed')).toBe('false')
+  })
+
+  it('shows effective inherited policy and only creates a self override through the row menu', async () => {
+    currentAppState = {
+      ...currentAppState,
+      browserGraphBuildPolicyByGraphDocumentId: {
+        'graph-document-1': 'manual',
+      },
+      projectContentRows: [
+        {
+          rowId: 'assembly-root:project-file-1',
+          kind: 'assembly',
+          label: 'Assembly 1',
+          meta: '',
+          buildState: 'done',
+          buildStateLabel: 'Built',
+          rebuildGraphDocumentIds: [],
+        },
+        {
+          rowId: 'project-component:project-file-1:graph-document-1:published',
+          kind: 'component',
+          label: 'Pedal Component',
+          meta: 'Graph 1',
+          buildState: 'rebuild',
+          buildStateLabel: 'Rebuild',
+          rebuildGraphDocumentIds: ['graph-document-1'],
+          ownerGraphDocumentId: 'graph-document-1',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry:slot-baseplate:node-baseplate-1',
+          componentSourceKind: 'published-component',
+          resolutionState: 'resolved',
+          receiveId: null,
+          childObjectCount: 1,
+          slotId: 'slot-baseplate',
+          sourceNodeId: 'node-baseplate-1',
+          highlightViewerKey: 'slot-baseplate',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-baseplate-1',
+        },
+      ],
+    }
+
+    ;({ root } = await renderBrowserPanel())
+
+    const policyButton = findButtonByLabel(
+      'Inherited build policy for Pedal Component. Current policy Manual. Right-click for independence options',
+    )
+    expect(policyButton).not.toBeNull()
+    expect(policyButton?.getAttribute('title')).toContain('Build policy: Manual (from Graph 1)')
+    expect(policyButton?.getAttribute('title')).toContain('Right-click to manage independence.')
+
+    await click(policyButton!)
+    await act(async () => {
+      root!.render(<BrowserPanel />)
+    })
+
+    expect(currentAppState.cycleBrowserContentBuildPolicy).not.toHaveBeenCalled()
+    expect(findButtonByLabel(
+      'Inherited build policy for Pedal Component. Current policy Manual. Right-click for independence options',
+    )).not.toBeNull()
+
+    await contextMenu(policyButton!)
+
+    expect(findButtonByLabel('Make Independent')).not.toBeNull()
+
+    await click(findButtonByLabel('Make Independent')!)
+
+    expect(currentAppState.setBrowserContentBuildPolicy).toHaveBeenCalledWith(
+      'project-component:project-file-1:graph-document-1:published',
+      'manual',
+    )
+    await act(async () => {
+      root!.render(<BrowserPanel />)
+    })
+    const independentPolicyButton = findButtonByLabel(
+      'Cycle build policy for Pedal Component. Current policy Manual',
+    )
+    expect(independentPolicyButton).not.toBeNull()
+    expect(independentPolicyButton?.className).toContain('BrowserTreeRowIcon--independent')
+
+    await contextMenu(independentPolicyButton!)
+
+    expect(findButtonByLabel('Return To Parent')).not.toBeNull()
+
+    await click(findButtonByLabel('Return To Parent')!)
+
+    expect(currentAppState.clearBrowserContentBuildPolicy).toHaveBeenCalledWith(
+      'project-component:project-file-1:graph-document-1:published',
+    )
+    await act(async () => {
+      root!.render(<BrowserPanel />)
+    })
+    expect(findButtonByLabel(
+      'Inherited build policy for Pedal Component. Current policy Manual. Right-click for independence options',
+    )).not.toBeNull()
   })
 
   it('keeps the right-click path available for the same row menu', async () => {
@@ -543,7 +737,7 @@ describe('BrowserPanel', () => {
     ;({ container, root } = await renderBrowserPanel())
 
     expect(container?.querySelector('.BrowserTreeRowQuickAction--save.BrowserTreeRowQuickAction--saved')).not.toBeNull()
-    expect(container?.textContent).toContain('Building')
+    expect(container?.querySelector('.BrowserGraphStateBar--building')).not.toBeNull()
     expect(container?.textContent).not.toContain('Dirty')
     expect(container?.textContent).not.toContain('Saved')
   })
@@ -566,7 +760,6 @@ describe('BrowserPanel', () => {
     ;({ container, root } = await renderBrowserPanel())
 
     expect(container?.querySelector('.BrowserGraphStateBar--done')).not.toBeNull()
-    expect(container?.textContent).toContain('Done')
     expect(container?.querySelector('.BrowserTreeRowQuickAction--save.BrowserTreeRowQuickAction--unsaved')).not.toBeNull()
   })
 
@@ -961,7 +1154,7 @@ describe('BrowserPanel', () => {
     expect(container?.querySelector('.BrowserTreeRowGuide--elbow')).not.toBeNull()
   })
 
-  it('renders passive right-side readiness status for content rows', async () => {
+  it('renders content row state through fill-bar classes without inline status text', async () => {
     currentAppState = {
       ...currentAppState,
       projectContentRows: [
@@ -1017,11 +1210,9 @@ describe('BrowserPanel', () => {
 
     ;({ container, root } = await renderBrowserPanel())
 
-    const readyStatuses = container?.querySelectorAll('.BrowserTreeRowStatus--ready') ?? []
-    const warningStatuses = container?.querySelectorAll('.BrowserTreeRowStatus--warning') ?? []
-
-    expect(Array.from(readyStatuses).some((element) => element.textContent === 'Ready')).toBe(true)
-    expect(Array.from(warningStatuses).some((element) => element.textContent === 'Unresolved')).toBe(true)
+    expect(container?.querySelector('.BrowserContentStateBar--done')).not.toBeNull()
+    expect(container?.querySelector('.BrowserTreeRowStatus')).toBeNull()
+    expect(container?.querySelector('.BrowserContentStateText')).toBeNull()
     expect(findRowMainByLabel('Pedal Component')?.textContent).toContain('Graph 1')
   })
 
@@ -1182,10 +1373,10 @@ describe('BrowserPanel', () => {
       newEditorSpawnPosition: { x: 405, y: 16 },
     }))
 
-    const overflowButton = findButtonByLabel('More options for Pedal Component')
-    expect(overflowButton).not.toBeNull()
+    const componentRow = findRowMainByLabel('Pedal Component')
+    expect(componentRow).not.toBeNull()
 
-    await click(overflowButton!)
+    await contextMenu(componentRow!)
     expect(findButtonByLabel('View In Graph')).not.toBeNull()
 
     await click(findButtonByLabel('View In Graph')!)
@@ -1745,6 +1936,60 @@ describe('BrowserPanel', () => {
     expect(currentAppState.setActiveSurface).toHaveBeenCalledWith('browser')
   })
 
+  it('clicking a reference category row expands or collapses children instead of toggling visibility', async () => {
+    currentAppState = {
+      ...currentAppState,
+      referenceWorkspaceTree: {
+        rowId: 'reference-root',
+        label: 'References',
+        isExpanded: true,
+        categories: [
+          {
+            rowId: 'reference-category-row:footpads',
+            categoryId: 'footpads',
+            label: 'Footpads',
+            isExpanded: false,
+            itemCount: 1,
+            visibleItemCount: 0,
+            hasLoadingItem: false,
+            hasErrorItem: false,
+            emptyLabel: 'No loadable references yet.',
+            items: [
+              {
+                rowId: 'reference-item-row:footpad:pubpad-full-assembly',
+                referenceId: 'footpad:pubpad-full-assembly',
+                sourceKind: 'manifest',
+                label: 'PubPad Full Assembly',
+                categoryId: 'footpads',
+                fileType: 'obj',
+                assetPath: '/ReferenceModels/footpads/XR_Footpad_PubPad_Full_Assembly.obj',
+                isVisible: false,
+                loadState: 'unloaded',
+                errorMessage: null,
+              },
+            ],
+          },
+          ...emptyReferenceWorkspaceTree.categories.slice(1),
+        ],
+      },
+    }
+    currentAppState.referenceWorkspace = referenceWorkspaceStateFromTree(
+      currentAppState.referenceWorkspaceTree,
+    )
+
+    ;({ root } = await renderBrowserPanel())
+
+    const footpadsRow = findRowMainByLabel('Footpads')
+    expect(footpadsRow).not.toBeNull()
+
+    await click(footpadsRow!)
+
+    expect(currentAppState.toggleReferenceCategoryExpanded).toHaveBeenCalledWith('footpads')
+    expect(currentAppState.toggleReferenceCategoryVisibility).not.toHaveBeenCalledWith('footpads')
+    expect(currentAppState.toggleReferenceItemVisibility).not.toHaveBeenCalled()
+    expect(currentAppState.setReferenceItemVisibility).not.toHaveBeenCalled()
+  })
+
   it('opens the Content import menu from the header + button and imports a single accepted file type into User References', async () => {
     importReferenceFileFromDiskMock.mockResolvedValue({
       fileName: 'shoe.glb',
@@ -1889,6 +2134,16 @@ describe('BrowserPanel', () => {
     expect(currentAppState.removeImportedReference).toHaveBeenCalledWith('reference-import:1')
   })
 
+  it('does not render inline overflow buttons for browser rows', async () => {
+    ;({ root } = await renderBrowserPanel())
+
+    expect(
+      Array.from(document.querySelectorAll('button')).some((element) =>
+        (element.getAttribute('aria-label') ?? '').startsWith('More options for '),
+      ),
+    ).toBe(false)
+  })
+
   it('focuses authored sketch content rows back into their graph node authoring surface', async () => {
     currentSpaghettiState = {
       ...currentSpaghettiState,
@@ -1933,6 +2188,7 @@ describe('BrowserPanel', () => {
           kind: 'sketch',
           label: 'Sketch 1',
           meta: 'Graph 1 | XY | 1 comp | 0 profiles',
+          isVisible: false,
           buildState: 'rebuild',
           buildStateLabel: 'Rebuild',
           rebuildGraphDocumentIds: ['graph-document-1'],
@@ -1975,5 +2231,53 @@ describe('BrowserPanel', () => {
       graphDocumentId: 'graph-document-1',
       nodeId: 'node-sketch-1',
     })
+  })
+
+  it('shows a sketch visibility eye and toggles browser sketch visibility from the eyeball', async () => {
+    currentAppState = {
+      ...currentAppState,
+      projectContentRows: [
+        {
+          rowId: 'project-sketches-root:project-file-1',
+          kind: 'sketches-root',
+          label: 'Sketches',
+          meta: '1 sketch',
+          sketchCount: 1,
+        },
+        {
+          rowId: 'project-sketch:graph-document-1:node-sketch-1:sketch-1',
+          kind: 'sketch',
+          label: 'Sketch 1',
+          meta: 'Graph 1 | XY | 1 comp | 0 profiles',
+          isVisible: false,
+          buildState: 'done',
+          buildStateLabel: 'Built',
+          rebuildGraphDocumentIds: [],
+          statusLabel: 'Ready',
+          statusTone: 'ready',
+          ownerGraphDocumentId: 'graph-document-1',
+          graphDocumentId: 'graph-document-1',
+          nodeId: 'node-sketch-1',
+          featureId: 'sketch-1',
+          plane: 'XY',
+          componentCount: 1,
+          profileCount: 0,
+          diagnosticsCount: 0,
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-sketch-1',
+        },
+      ],
+    }
+
+    ;({ root } = await renderBrowserPanel())
+
+    const visibilityButton = findButtonByLabel('Show Sketch 1')
+    expect(visibilityButton).not.toBeNull()
+
+    await click(visibilityButton!)
+
+    expect(currentAppState.toggleSketchVisibility).toHaveBeenCalledWith(
+      'project-sketch:graph-document-1:node-sketch-1:sketch-1',
+    )
   })
 })

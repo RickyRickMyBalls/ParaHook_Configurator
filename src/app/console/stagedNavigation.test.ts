@@ -111,6 +111,7 @@ describe('stagedNavigation', () => {
       'ZOOM',
       'DELETE',
       'PREVIOUS',
+      'DONE',
       'BACK',
       'X',
     ])

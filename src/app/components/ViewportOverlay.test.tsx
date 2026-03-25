@@ -1883,6 +1883,38 @@ describe('ViewportOverlay sketch session window', () => {
     })
   })
 
+  it('uses the sketch draw Done toolbar action to reveal the sketch in the browser and close the session', async () => {
+    const { ViewportOverlay } = await import('./ViewportOverlay')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    const { useAppStore } = await import('../store/useAppStore')
+    await seedSketchSession()
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewportOverlay />)
+    })
+
+    const doneButton = container.querySelector(
+      '.ViewportOverlayToolPanelTitleDone',
+    ) as HTMLButtonElement | null
+
+    expect(doneButton).not.toBeNull()
+
+    await act(async () => {
+      doneButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useSpaghettiStore.getState().geometrySketchSession).toBeNull()
+    expect(
+      useAppStore
+        .getState()
+        .sketchVisibilityByRowId['project-sketch:graph-document-1:node-sketch-1:sketch-1'],
+    ).toBe(true)
+  })
+
   it('cycles the sketch-plane toolbar through collapsed, essentials, and expanded body states', async () => {
     const { ViewportOverlay } = await import('./ViewportOverlay')
     await seedSketchPlanePickSession()

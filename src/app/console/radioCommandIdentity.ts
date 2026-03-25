@@ -434,6 +434,8 @@ const resolveStagedExecuteIdentity = ({
       return buildIdentity('Console', 'Graph', 'Sketch', 'Draw', 'Previous')
     case 'sketchdraw.delete':
       return buildIdentity('Console', 'Graph', 'Sketch', 'Draw', 'Delete')
+    case 'sketchdraw.done':
+      return buildIdentity('Console', 'Graph', 'Sketch', 'Draw', 'Done')
     case 'sketchdraw.back':
       return buildIdentity('Console', 'Graph', 'Sketch', 'Draw', 'Back')
     case 'sketchdraw.exit':

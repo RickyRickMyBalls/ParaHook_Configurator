@@ -3,6 +3,8 @@
 ## Doc Header
 
 ### Doc History
+21. 2026-03-24 14:19: Created the standalone future phase doc `Future/Console_Phase 5.1G - Surface-Agnostic Command Ownership And Adapter Expansion.md`, updated the phase-doc guidance to reflect the folderized `Console/Future/` layout, and linked the new `5.1G` follow-on out of the bottom phase index
+20. 2026-03-24 14:15: Added a bottom moving-forward summary plus new open `[5.1G] Surface-Agnostic Command Ownership And Adapter Expansion`, locking the rule that `Console`, `Browser`, `Model Viewport`, and `View Toolbar` should stay as surface adapters over shared workspace, graph, and view owners instead of becoming separate command owners
 19. 2026-03-23 00:50: Added the first explicit projection-switch example under the existing toolbar-alignment rule, locking the recommendation that visible `Camera > Projection > Orthographic / Perspective` choices in the view toolbar should map to the same console path with local `O` / `P` aliases instead of inventing a toolbar-only behavior seam
 18. 2026-03-21 11:33: Marked `[4.1P] Assisted Prefill Replace-On-Type Across Levels` complete after landing one shared assisted-follow override rule in the console input seam, so staged navigation and feature-session descriptors now replace assisted prefill on first printable typing, preserve manual override until explicit assisted re-entry, and support focused-input paste replacement without rewriting the already-shipped `[4.1M]` and `[4.1N]` records
 17. 2026-03-21 11:20: Added a new open follow-on `[4.1P] Assisted Prefill Replace-On-Type Across Levels`, so the intended rule that the first printable typed key should replace assisted prefill at any constrained level now has its own future console phase instead of overwriting the already-shipped `[4.1M]` and `[4.1N]` records
@@ -1162,8 +1164,12 @@ Current recommendation:
 
 `Console.md` is now the canonical current-truth architecture doc for Console.
 
-Detailed implementation slices and historical shipped snapshots live in the standalone phase docs in this folder:
-- `Console_Phase <phase id> - <title>.md`
+Detailed implementation slices and historical shipped snapshots live in the standalone phase docs across this family folder:
+- root-level historical phase docs such as:
+  - `Console_Phase <phase id> - <title>.md`
+- folderized future or shipped records such as:
+  - `Future/Console_Phase <phase id> - <title>.md`
+  - `Shipped/Console_Phase <phase id> - <title>.md`
 
 Rules for using them:
 - use `Console.md` for the live architecture, phase ordering, and current decisions
@@ -1355,3 +1361,74 @@ Checklist:
 - [x] canonical intent layer
 - [x] surface migration and reflection
 - [x] hardening and expansion
+
+## Moving Forward Summary
+
+The current direction is:
+- keep command behavior surface-agnostic
+- keep placement and hosting separate from command ownership
+- keep `Console`, `Browser`, `Model Viewport`, and `View Toolbar` as entry surfaces over shared command seams, not as separate command owners
+
+Ownership moving forward should stay split like this:
+- workspace/shell owns placement and hosting
+  - `Windowed`
+  - `Tiled`
+  - active pane/surface
+  - split/floating/pop-out behavior
+- workspace intents own shared cross-surface outcomes
+  - open/focus/select/activate outcomes that more than one surface can trigger
+- graph/spaghetti owns graph and CAD authoring truth
+  - sketch
+  - node authoring
+  - graph mutations
+  - future CAD commands that change authored graph state
+- viewer/view-state owns camera and view truth
+  - projection
+  - framing
+  - orbit/pan/zoom family
+  - visible view settings
+
+Practical rule:
+- define a new CAD command at its real owner first
+- then expose it through whichever surfaces need it:
+  - `Console`
+  - `Browser`
+  - `Model Viewport`
+  - `View Toolbar`
+
+This means:
+- do not add a command as `console-only` first and then try to copy it outward later
+- do not let toolbar buttons or viewport overlays become the only place a command truly exists
+- do not let workspace placement mode change how a command is owned or executed
+
+Existing docs already cover most of the setup around this:
+- `[5.1F]` already established canonical workspace-selection and intent seams
+- `Workspace Modes` and `05.1C` already cover shell placement and surface hosting
+- `Browser-5` already covers Browser selection/focus sync
+- `[5.0I-1]` already proves the toolbar-plus-console shared command seam for projection
+
+What is still missing is the repeatable expansion rule for new CAD commands:
+- every new graph/view/workspace command should plug into one owned seam first
+- every surface should adapt into that same seam instead of inventing a local execution path
+
+## [ ] `[5.1G]` `Surface-Agnostic Command Ownership And Adapter Expansion`
+
+Summary:
+- turn future CAD command growth into one owner-first model so `Console`, `Browser`, `Model Viewport`, and `View Toolbar` all trigger the same underlying command seams
+
+Goals:
+- keep command behavior independent of placement and surface entry
+- make new CAD commands land once in the real owner and then fan out cleanly to multiple surfaces
+- reduce command drift between console grammar, browser actions, viewport controls, and toolbar controls
+
+Docs:
+- [5.1G](./Future/Console_Phase%205.1G%20-%20Surface-Agnostic%20Command%20Ownership%20And%20Adapter%20Expansion.md)
+
+Checklist:
+- [ ] inventory the shared command families that need owner-first routing:
+  - graph/CAD authoring
+  - workspace selection/focus/open
+  - camera/view commands
+- [ ] assign each command family to its canonical owner seam instead of a surface-local handler
+- [ ] migrate Browser, model viewport, and view-toolbar entry points onto those shared seams where they still call local behavior directly
+- [ ] add regression coverage proving the same command can be triggered from more than one surface without different behavior

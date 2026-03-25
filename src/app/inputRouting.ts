@@ -124,16 +124,6 @@ export const routeKeyboardInput = ({
     return { owner: 'reference-transform', decision: 'handle' }
   }
 
-  const higherPriorityFeatureSessionActive =
-    geometrySketchMode !== null || referenceTransformActive
-
-  if (allowFlatConsoleCapture && higherPriorityFeatureSessionActive && isConsoleCapturePrintableKey(event)) {
-    return {
-      owner: 'none',
-      decision: 'ignore',
-    }
-  }
-
   if (allowFlatConsoleCapture && isConsoleCapturePrintableKey(event)) {
     return {
       owner: stagedConsoleActive ? 'staged-console' : 'flat-console',

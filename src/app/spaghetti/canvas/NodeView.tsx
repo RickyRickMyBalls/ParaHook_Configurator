@@ -28,6 +28,7 @@ import { Vec2Field } from './fields/Vec2Field'
 import { getTypeColor } from './typeColors'
 import { ParaSelect } from '../../components/ParaSelect'
 import { ParaSlider } from '../../components/ParaSlider'
+import { useAppStore } from '../../store/useAppStore'
 import type {
   DriverControlRowVm,
   DriverEndpointRowVm,
@@ -472,8 +473,25 @@ function NodeViewComponent({
   const removeGeometrySketchComponent = useSpaghettiStore(
     (state) => state.removeGeometrySketchComponent,
   )
+  const activeGraphDocumentId = useSpaghettiStore((state) => state.activeGraphDocumentId)
   const graph = useSpaghettiStore((state) => state.graph)
   const setGraph = useSpaghettiStore((state) => state.setGraph)
+  const beginBrowserBuildInteraction = useAppStore((state) => state.beginBrowserBuildInteraction)
+  const endBrowserBuildInteraction = useAppStore((state) => state.endBrowserBuildInteraction)
+
+  const beginGraphParameterInteraction = () => {
+    if (activeGraphDocumentId === null) {
+      return
+    }
+    beginBrowserBuildInteraction(activeGraphDocumentId)
+  }
+
+  const endGraphParameterInteraction = () => {
+    if (activeGraphDocumentId === null) {
+      return
+    }
+    endBrowserBuildInteraction(activeGraphDocumentId)
+  }
 
   const sectionKey = (sectionId: string): string =>
     buildSectionCollapseKey(node.nodeId, sectionId)
@@ -2333,7 +2351,9 @@ function NodeViewComponent({
               min={-200}
               max={200}
               step={0.1}
+              onActivate={beginGraphParameterInteraction}
               onChange={(value) => setGeometrySketchPlaneOffset(node.nodeId, value)}
+              onChangeEnd={() => endGraphParameterInteraction()}
               formatValue={(value) => `${value.toFixed(1)} mm`}
             />
             <ParaSlider
@@ -2343,7 +2363,9 @@ function NodeViewComponent({
               max={180}
               step={1}
               allowWrap
+              onActivate={beginGraphParameterInteraction}
               onChange={(value) => setGeometrySketchPlaneInPlaneRotation(node.nodeId, value)}
+              onChangeEnd={() => endGraphParameterInteraction()}
               formatValue={(value) => `${value.toFixed(0)} deg`}
             />
             {mode === 'expanded' ? (
@@ -2354,11 +2376,13 @@ function NodeViewComponent({
                   min={-200}
                   max={200}
                   step={0.1}
+                  onActivate={beginGraphParameterInteraction}
                   onChange={(value) =>
                     sessionForNode !== null
                       ? setSketchPlanePickTranslationAxis('x', value)
                       : setGeometrySketchPlaneTranslationAxis(node.nodeId, 'x', value)
                   }
+                  onChangeEnd={() => endGraphParameterInteraction()}
                   formatValue={(value) => `${value.toFixed(1)} mm`}
                 />
                 <ParaSlider
@@ -2367,11 +2391,13 @@ function NodeViewComponent({
                   min={-200}
                   max={200}
                   step={0.1}
+                  onActivate={beginGraphParameterInteraction}
                   onChange={(value) =>
                     sessionForNode !== null
                       ? setSketchPlanePickTranslationAxis('y', value)
                       : setGeometrySketchPlaneTranslationAxis(node.nodeId, 'y', value)
                   }
+                  onChangeEnd={() => endGraphParameterInteraction()}
                   formatValue={(value) => `${value.toFixed(1)} mm`}
                 />
                 <ParaSlider
@@ -2380,11 +2406,13 @@ function NodeViewComponent({
                   min={-200}
                   max={200}
                   step={0.1}
+                  onActivate={beginGraphParameterInteraction}
                   onChange={(value) =>
                     sessionForNode !== null
                       ? setSketchPlanePickTranslationAxis('z', value)
                       : setGeometrySketchPlaneTranslationAxis(node.nodeId, 'z', value)
                   }
+                  onChangeEnd={() => endGraphParameterInteraction()}
                   formatValue={(value) => `${value.toFixed(1)} mm`}
                 />
                 <ParaSlider
@@ -2394,11 +2422,13 @@ function NodeViewComponent({
                   max={180}
                   step={1}
                   allowWrap
+                  onActivate={beginGraphParameterInteraction}
                   onChange={(value) =>
                     sessionForNode !== null
                       ? setSketchPlanePickRotationAxis('x', value)
                       : setGeometrySketchPlaneRotationAxis(node.nodeId, 'x', value)
                   }
+                  onChangeEnd={() => endGraphParameterInteraction()}
                   formatValue={(value) => `${value.toFixed(0)} deg`}
                 />
                 <ParaSlider
@@ -2408,11 +2438,13 @@ function NodeViewComponent({
                   max={180}
                   step={1}
                   allowWrap
+                  onActivate={beginGraphParameterInteraction}
                   onChange={(value) =>
                     sessionForNode !== null
                       ? setSketchPlanePickRotationAxis('y', value)
                       : setGeometrySketchPlaneRotationAxis(node.nodeId, 'y', value)
                   }
+                  onChangeEnd={() => endGraphParameterInteraction()}
                   formatValue={(value) => `${value.toFixed(0)} deg`}
                 />
                 <ParaSlider
@@ -2422,11 +2454,13 @@ function NodeViewComponent({
                   max={180}
                   step={1}
                   allowWrap
+                  onActivate={beginGraphParameterInteraction}
                   onChange={(value) =>
                     sessionForNode !== null
                       ? setSketchPlanePickRotationAxis('z', value)
                       : setGeometrySketchPlaneRotationAxis(node.nodeId, 'z', value)
                   }
+                  onChangeEnd={() => endGraphParameterInteraction()}
                   formatValue={(value) => `${value.toFixed(0)} deg`}
                 />
               </>

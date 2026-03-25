@@ -65,6 +65,780 @@ Do not use it for:
 
 ## Doc Body
 
+### [594] - 2026-03-25 00:31 - `SP - Browser - Runtime Build Policy Execution`
+<!-- ENTRY 594 -->
+HUMAN SUMMARY: `Implemented Browser-3 with graph-first runtime build-policy execution so Browser `live / release / manual / off` now affects real rebuild timing and output presence instead of staying surface-only. Live graphs rebuild on parametric updates, release graphs defer until interaction end, manual graphs wait for explicit build, and off graphs suppress worker-produced output from Browser/content/viewer presentation.`
+
+#### Scope / Constraints Honored
+- Kept the first runtime target graph-first rather than attempting true per-object execution.
+- Preserved Browser-1/2 authored plus effective policy truth and the explicit independence workflow.
+- Left deeper multi-component graph execution and finer child-target runtime scheduling for later phases.
+
+#### Summary of Implementation
+- Added graph-first Browser runtime execution selectors and request helpers in `useAppStore` so effective Browser policy now controls when graph builds are requested and when graph output is suppressed.
+- Wired graph-revision change handling through Browser policy: `live` builds immediately, `release` queues until interaction end, `manual` stays dirty until explicit build, and `off` suppresses runtime output/build execution.
+- Updated Browser and spaghetti build entry points to use the new Browser-aware graph build request path for explicit build behavior.
+- Added Browser-aware output suppression in current project content derivation and viewer preview rendering so `off` removes worker-produced geometry from Browser/content/viewer surfaces without conflating it with eyeball visibility.
+- Wired graph-mutating parameter interaction begin/end hooks through sketch-plane and sketch-entity slider surfaces so `release` has a real interaction boundary to wait on.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/panels/selectBrowserGraphRows.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ParaVec2Slider.tsx`
+- `src/app/components/ParaVec3Slider.tsx`
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/components/ViewportOverlay.tsx`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `src/app/hosts/SpaghettiWindowHost.test.tsx`
+- `src/app/store/useAppStore.test.ts`
+
+#### Behavior Changes
+- Browser build-policy modes now affect real graph runtime execution instead of only icon state.
+- `Build` is now routed through the Browser-aware graph build request path, so dirty `manual` rows can be explicitly built while `off` stays suppressed.
+- Switching a graph effective policy to `off` now suppresses its published output from Browser content and viewer preview surfaces.
+- `Release` mode now waits for graph-parameter interaction end instead of building continuously through every parameter update.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/store/useAppStore.test.ts src/app/panels/BrowserPanel.test.tsx src/app/hosts/SpaghettiWindowHost.test.tsx`
+- Ran `npm.cmd run build`
+- Build passed. Existing Vite warnings about `occt-import-js` browser externalization and large chunks remained non-fatal.
+
+### [593] - 2026-03-24 23:15 - `SP - Browser - Independent Policy Icon Highlight`
+<!-- ENTRY 593 -->
+HUMAN SUMMARY: `Added a dedicated visual highlight for independent Browser build-policy rows so self-authored overrides stand out from inherited policy rows. Inherited rows keep their subtle inherited treatment, while independent rows now get their own brighter policy-icon emphasis.`
+
+#### Scope / Constraints Honored
+- Kept the change limited to Browser policy icon styling and BrowserPanel coverage.
+- Did not change Browser policy cascade logic or runtime build behavior.
+- Preserved the explicit right-click independence workflow from the Browser-2 cleanup.
+
+#### Summary of Implementation
+- Added an `independent` policy-icon class for self-authored Browser build-policy rows.
+- Styled the independent state with a stronger ring/glow so overrides read differently from inherited rows.
+- Extended BrowserPanel coverage to verify that making a row independent applies the independent icon treatment.
+
+#### Files Changed
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `src/app/theme/surfaces/browser.css`
+
+#### Behavior Changes
+- Self-authored Browser policy rows now visually pop more than inherited rows.
+- Inherited rows still keep the lower-key inherited treatment.
+- Users can distinguish inherited versus independent policy at a glance without opening the row menu.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/panels/BrowserPanel.test.tsx`
+- Ran `npm.cmd run build`
+- Build passed. Existing Vite warnings about `occt-import-js` browser externalization and large chunks remained non-fatal.
+
+### [592] - 2026-03-24 23:10 - `SP - Browser - Browser-2 Inherited Policy Cleanup`
+<!-- ENTRY 592 -->
+HUMAN SUMMARY: `Cleaned up Browser-2 inherited policy behavior so inherited rows no longer silently create overrides on left-click. Inherited build-policy icons now stay read-only on normal click, explain that they are inherited, and require the row menu for explicit Make Independent / Return To Parent behavior.`
+
+#### Scope / Constraints Honored
+- Kept the cleanup inside Browser policy interaction and test coverage only.
+- Did not change Browser-3 runtime worker/build execution behavior.
+- Preserved the existing authored/effective policy truth and selector cascade rules.
+
+#### Summary of Implementation
+- Updated Browser policy icon copy so inherited rows no longer advertise themselves as cycle buttons.
+- Kept left-click cycling only for self-authored/default rows while inherited rows remain inert on ordinary click.
+- Kept explicit independence management in the row context menu through `Make Independent` and `Return To Parent`.
+- Refreshed BrowserPanel tests so inherited rows verify the new explicit-independence flow instead of the old silent-override behavior.
+
+#### Files Changed
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/panels/BrowserPanel.test.tsx`
+
+#### Behavior Changes
+- Inherited build-policy icons now read as inherited state instead of a normal cycle action.
+- Left-clicking an inherited row icon no longer creates a self-authored override.
+- Right-clicking the row remains the explicit path to `Make Independent`.
+- Once a row becomes self-authored, the row menu exposes `Return To Parent` or `Return To Default` as appropriate.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/panels/BrowserPanel.test.tsx src/app/panels/selectBrowserGraphRows.test.ts src/app/panels/selectBrowserTreeRows.test.ts src/app/store/useAppStore.test.ts`
+- Ran `npm.cmd run build`
+- Build passed. Existing Vite warnings about `occt-import-js` browser externalization and large chunks remained non-fatal.
+
+### [591] - 2026-03-24 22:52 - `SP - Browser - Cascade And Effective Policy Truth`
+<!-- ENTRY 591 -->
+HUMAN SUMMARY: `Implemented Browser-2 by turning Browser build policy into authored plus effective truth for graph, assembly, component, and object rows. Graph/content rows now render effective policy from selector-owned cascade rules, inherited rows explain their source in the tooltip, and clicking an inherited row icon creates a self override by cycling from the current effective mode instead of pretending every row starts at `live`.`
+
+#### Scope / Constraints Honored
+- Kept runtime worker/build execution behavior unchanged.
+- Left `live / release / manual / off` as Browser-authored and selector-derived truth only.
+- Did not extend cascade to sketches, references, graph sections, graph nodes, or viewport rows.
+
+#### Summary of Implementation
+- Added authored-policy getters plus base-policy-aware Browser cycle actions in `useAppStore`.
+- Extended Browser graph/content row VMs with authored policy, effective policy, source, and source-label fields.
+- Implemented effective policy derivation in Browser selectors using nearest authored ancestor truth instead of Browser-local panel logic.
+- Updated `BrowserPanel` to render effective policy from the row VMs, show inherited policy source in the tooltip, and cycle inherited rows from their current effective mode.
+- Added a subtle inherited treatment on Browser policy icons.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/store/useAppStore.test.ts`
+- `src/app/panels/selectBrowserGraphRows.ts`
+- `src/app/panels/selectBrowserGraphRows.test.ts`
+- `src/app/panels/selectBrowserTreeRows.ts`
+- `src/app/panels/selectBrowserTreeRows.test.ts`
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `src/app/theme/surfaces/browser.css`
+
+#### Behavior Changes
+- Graph rows now expose authored/effective Browser policy state instead of only a raw icon color.
+- Assembly rows default to effective `live` unless they author their own policy.
+- Component rows resolve effective policy from `self -> assembly -> owning graph -> live`.
+- Object rows resolve effective policy from `self -> parent component -> assembly -> owning graph -> live`.
+- Clicking an inherited row icon now creates a self-authored override from the current effective mode rather than cycling from a fake local `live`.
+- Inherited rows now explain their policy source in the Browser tooltip, for example `Build policy: Manual (from Graph 1)`.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/store/useAppStore.test.ts src/app/panels/selectBrowserGraphRows.test.ts src/app/panels/selectBrowserTreeRows.test.ts src/app/panels/BrowserPanel.test.tsx`
+- Ran `npm.cmd run build`
+- Build passed. Existing Vite warnings about `occt-import-js` browser externalization and large chunks remained non-fatal.
+
+### [590] - 2026-03-24 14:31 - `SP - Browser - Shared Row Surface Template Setup`
+<!-- ENTRY 590 -->
+HUMAN SUMMARY: `Set up a shared Browser row-surface template so graph rows, content rows, reference rows, and plain graph-child/editor rows all inherit one common base surface instead of maintaining separate copy-pasted bar shells. This is the structural cleanup needed so future Browser rows can be added without drifting visually.`
+
+#### Scope / Constraints Honored
+- Kept the change limited to Browser row rendering and surface CSS.
+- Did not change Browser row actions, selection behavior, or context-menu behavior.
+- Preserved existing fill-bar/runtime state styling while unifying the underlying shell.
+
+#### Summary of Implementation
+- Added a shared `BrowserTreeRowSurface` base class for Browser row bars.
+- Added a shared `BrowserTreeRowContent` renderer in `BrowserPanel.tsx` so label/meta content uses one markup template across row families.
+- Updated graph, content, reference, and plain graph-child/editor row branches to use the shared surface/content template.
+- Kept row-family-specific styling only for the parts that are truly different: fill color/state and a few family-specific accents.
+
+#### Files Changed
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/theme/surfaces/browser.css`
+
+#### Behavior Changes
+- Browser rows are now structurally closer to a true shared template instead of four separate hand-built surfaces.
+- Future Browser row families can reuse the same base surface and content markup more safely.
+- Visual drift between row families should be much easier to control because the common shell now lives in one place.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/panels/BrowserPanel.test.tsx`
+- Ran `npm.cmd run build`
+- Build passed. Existing Vite warnings about `occt-import-js` browser externalization and large chunks remained non-fatal.
+
+### [589] - 2026-03-24 14:27 - `SP - Browser - Overlay Graph And Editor Quick Actions`
+<!-- ENTRY 589 -->
+HUMAN SUMMARY: `Moved graph save and open-editor close buttons out of the row-width calculation by overlaying them on top of their rows instead of giving them a dedicated layout column. This lets graph-document and open-editor bars reach the same right edge as content rows while keeping the quick-action buttons visible.`
+
+#### Scope / Constraints Honored
+- Kept the change limited to Browser row-layout CSS.
+- Did not change graph save behavior, open-editor close behavior, or Browser action handling.
+- Preserved readable label spacing by adding internal right padding inside the bar surfaces.
+
+#### Summary of Implementation
+- Changed `graph-document` and `viewport` rows back to a two-column row grid so the main bar can occupy the full available row width.
+- Positioned the row quick-action buttons as absolute overlays on the right edge for those row kinds.
+- Added extra internal right padding to graph and open-editor bar surfaces so text does not collide with the overlaid buttons.
+
+#### Files Changed
+- `src/app/theme/surfaces/browser.css`
+
+#### Behavior Changes
+- Graph-document rows now visually align to the same right edge as content rows even though they still have the `S` save button.
+- Open-editor rows now visually align to the same right edge as content rows even though they still have the close button.
+- The visible bar/fill surface is no longer shortened by a dedicated action column on those row kinds.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/panels/BrowserPanel.test.tsx`
+- Ran `npm.cmd run build`
+- Build passed. Existing Vite warnings about `occt-import-js` browser externalization and large chunks remained non-fatal.
+
+### [588] - 2026-03-24 14:21 - `SP - Browser - Remove Double-Surface Bar Shells`
+<!-- ENTRY 588 -->
+HUMAN SUMMARY: `Removed the double-box look from graph child rows, graph-document rows, and open-editor rows by making the outer Browser row shell transparent for bar-based rows. The visible border/fill surface now lives on the inner bar only, so the fill bar reaches the real row edge instead of looking nested inside a larger outer box.`
+
+#### Scope / Constraints Honored
+- Kept the change limited to Browser bar/shell CSS.
+- Did not change Browser row actions, graph save, viewport close, or context-menu behavior.
+- Preserved selected and active row feedback by moving it to the inner bar surfaces.
+
+#### Summary of Implementation
+- Made `BrowserTreeRowMain` transparent for graph, content, reference, graph-child, and viewport bar-based rows.
+- Moved selected and active-editor emphasis onto the inner Browser bar surfaces instead of the outer row shell.
+- Added inner-bar selected styling for graph, content, reference, and plain graph-child row bars.
+
+#### Files Changed
+- `src/app/theme/surfaces/browser.css`
+
+#### Behavior Changes
+- Graph-document rows no longer look like a smaller fill bar sitting inside a larger outer button box.
+- `Needs Rebuild`, `Nodes`, graph node rows, and open-editor rows now present as a single bar surface instead of a bar inside another bordered shell.
+- Selected and active states now read on the inner bar surface where the user is actually looking.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/panels/BrowserPanel.test.tsx`
+- Ran `npm.cmd run build`
+- Build passed. Existing Vite warnings about `occt-import-js` browser externalization and large chunks remained non-fatal.
+
+### [587] - 2026-03-24 14:18 - `SP - Browser - Graph And Editor Row Width Cleanup`
+<!-- ENTRY 587 -->
+HUMAN SUMMARY: `Removed the last trailing empty action space from graph-document and open-editor Browser rows by giving those row kinds an exact three-column grid: lead, main bar, and quick action. The fill bar now reaches the true row width instead of stopping early because of unused reserved columns.`
+
+#### Scope / Constraints Honored
+- Kept the change limited to Browser row-grid CSS.
+- Did not change graph save behavior, editor close behavior, or Browser context-menu behavior.
+- Left row kinds with different action counts on their own layouts.
+
+#### Summary of Implementation
+- Updated `graph-document` and `viewport` row kinds to use an explicit three-column Browser row grid.
+- Removed the leftover reserved empty action columns that had been inherited from the default Browser row template.
+- Kept graph/document quick-action buttons in place while allowing the main bar to consume the correct width.
+
+#### Files Changed
+- `src/app/theme/surfaces/browser.css`
+
+#### Behavior Changes
+- Graph document rows no longer show empty trailing row space after the `S` button.
+- Open editor rows no longer reserve extra empty columns after their close action.
+- The Browser fill bar now matches the real row width for graph and editor rows instead of appearing clipped short.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/panels/BrowserPanel.test.tsx`
+- Ran `npm.cmd run build`
+- Build passed. Existing Vite warnings about `occt-import-js` browser externalization and large chunks remained non-fatal.
+
+### [586] - 2026-03-24 14:13 - `SP - Browser - Graph And Editor Surface Style Unification`
+<!-- ENTRY 586 -->
+HUMAN SUMMARY: `Pulled graph-document and open-editor row surfaces closer to the cleaner content-row template by toning down the graph-only border/glow treatment. The Browser now reads more like one row family instead of content rows using one template and graph rows using another.`
+
+#### Scope / Constraints Honored
+- Kept the change limited to Browser row-surface CSS.
+- Did not change Browser actions, save buttons, quick actions, or context-menu behavior.
+- Kept the graph build fill-bar behavior intact.
+
+#### Summary of Implementation
+- Reduced the graph-row base border weight to match the lighter content-row surface.
+- Removed the animated graph-only open-row sweep effect.
+- Simplified graph open/active border treatments so they behave more like the shared Browser row template.
+
+#### Files Changed
+- `src/app/theme/surfaces/browser.css`
+
+#### Behavior Changes
+- Graph document rows no longer stand apart as a heavier glowing row family.
+- Open graph rows still show state, but with a subtler border treatment that matches content rows more closely.
+- Open editor rows now sit beside graph/content rows with a more consistent Browser row language.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/panels/BrowserPanel.test.tsx`
+- Ran `npm.cmd run build`
+- Build passed. Existing Vite warnings about `occt-import-js` browser externalization and large chunks remained non-fatal.
+
+### [585] - 2026-03-24 14:08 - `SP - Browser - Row Bar Template Cleanup`
+<!-- ENTRY 585 -->
+HUMAN SUMMARY: `Cleaned up the Browser row-bar templates so graph, content, and reference bars no longer reserve an empty internal status column. This makes the fill bar and label live in one consistent shell across Browser rows instead of looking like one row nested inside another.`
+
+#### Scope / Constraints Honored
+- Kept the change limited to Browser row-bar layout CSS.
+- Did not change Browser row actions, selection, or context-menu behavior.
+- Kept the existing fill-bar runtime color language intact.
+
+#### Summary of Implementation
+- Updated `BrowserGraphStateBar`, `BrowserContentStateBar`, and `BrowserReferenceStateBar` to use a single internal content column.
+- Removed the leftover internal `auto` column and gap that had been reserved for now-hidden inline status text.
+- Unified the row-bar template so labels and fill bars render as one clean surface across Browser row families.
+
+#### Files Changed
+- `src/app/theme/surfaces/browser.css`
+
+#### Behavior Changes
+- Graph rows no longer show an empty trailing slot inside the main bar.
+- Content and reference rows now use the same simpler internal bar template.
+- Browser fill bars now read as part of the row surface instead of looking nested inside a second row shell.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/panels/BrowserPanel.test.tsx`
+- Ran `npm.cmd run build`
+- Build passed. Existing Vite warnings about `occt-import-js` browser externalization and large chunks remained non-fatal.
+
+### [584] - 2026-03-24 14:04 - `SP - Browser - Graph Child Row Grid Cleanup`
+<!-- ENTRY 584 -->
+HUMAN SUMMARY: `Fixed the broken `Needs Rebuild` and `Nodes` Browser rows under graph documents by removing the extra empty quick-action columns from graph child row layout. Those rows now render as clean two-column rows with just the lead controls and the main bar.`
+
+#### Scope / Constraints Honored
+- Kept the fix limited to Browser graph child row layout.
+- Did not change graph row actions, graph save behavior, or Browser context-menu behavior.
+- Left rows with real quick actions on their existing multi-column layout.
+
+#### Summary of Implementation
+- Updated the Browser row grid CSS so `graph-section`, `graph-rebuild-object`, and `graph-node` rows use the same compact two-column row layout as other non-quick-action Browser rows.
+- Removed the empty reserved quick-action columns that were causing the visual breakage on `Needs Rebuild` and `Nodes`.
+
+#### Files Changed
+- `src/app/theme/surfaces/browser.css`
+
+#### Behavior Changes
+- `Needs Rebuild` rows under graph documents no longer show the broken empty trailing segment.
+- `Nodes` section rows under graph documents now occupy the full row cleanly instead of leaving unused action columns on the right.
+- Graph child rows without quick actions now visually match the simpler Browser row families.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/panels/BrowserPanel.test.tsx`
+- Ran `npm.cmd run build`
+- Build passed. Existing Vite warnings about `occt-import-js` browser externalization and large chunks remained non-fatal.
+
+### [583] - 2026-03-24 14:01 - `SP - Browser - Remove Inline Overflow Buttons`
+<!-- ENTRY 583 -->
+HUMAN SUMMARY: `Removed the per-row `...` overflow buttons from the Browser so rows no longer overflow horizontally. Browser row actions now rely on the existing right-click context menu instead of an inline menu trigger.`
+
+#### Scope / Constraints Honored
+- Kept the Browser right-click context menu flow intact.
+- Did not remove graph save, retry, remove, close, or other explicit quick-action buttons.
+- Kept row actions available through the shared Browser context menu.
+
+#### Summary of Implementation
+- Removed the inline overflow-button API from `BrowserTreeRowShell`.
+- Removed the row-level overflow-menu opening path from `BrowserPanel.tsx` and kept row right-click handling as the menu entry path.
+- Updated Browser tests to open row menus by `contextmenu` on the row surface instead of clicking a `...` button.
+- Removed the now-unused Browser overflow-button CSS.
+
+#### Files Changed
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `src/app/theme/surfaces/browser.css`
+
+#### Behavior Changes
+- Browser rows no longer render inline `...` overflow buttons.
+- Right-click is now the only row-menu entry path for shared Browser row actions.
+- Browser rows have more horizontal room for labels and metadata because the extra trailing overflow button is gone.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/panels/BrowserPanel.test.tsx`
+- Ran `npm.cmd run build`
+- Build passed. Existing Vite warnings about `occt-import-js` browser externalization and large chunks remained non-fatal.
+
+### [582] - 2026-03-24 13:48 - `SP - Browser - Build Policy Icon Surface`
+<!-- ENTRY 582 -->
+HUMAN SUMMARY: `Shipped the first Browser-1 build-policy surface with store-owned `live / release / manual / off` row modes for graph and content rows, while also aligning Browser fill bars to one shared runtime language.`
+
+#### Scope / Constraints Honored
+- Kept the existing global runtime `buildPolicy` path untouched.
+- Did not change worker dispatch or build scheduling behavior.
+- Did not implement graph-to-child policy propagation yet.
+- Kept the eyeball as visibility-only.
+
+#### Summary of Implementation
+- Added canonical Browser-owned policy state in `useAppStore` with keyed maps for graph rows by `graphDocumentId` and content rows by `rowId`.
+- Added cycle/set actions for Browser graph and content policy state, including the new `off` mode.
+- Updated `BrowserPanel.tsx` to remove the old local policy map and read/write canonical store-owned Browser policy state instead.
+- Expanded the policy icon surface from content rows to graph-title rows.
+- Updated Browser fill-bar colors so graph and content rows now share the same runtime visual language for `done`, `building`, and `rebuild`.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/theme/surfaces/browser.css`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `src/app/store/useAppStore.test.ts`
+
+#### Behavior Changes
+- Graph-title rows now show the same build-policy icon surface as assembly/component/object rows.
+- Browser policy icon cycle order is now `live -> release -> manual -> off -> live`.
+- Browser graph/content policy state is now store-owned instead of local `BrowserPanel` state.
+- Browser `release` icon color is now blue, `manual` is yellow, and `off` uses a neutral gray disabled tone.
+- Browser graph/content fill bars now both render `done` as full green, `building` as animated blue/cyan, and `rebuild` as a low yellow stub.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/panels/BrowserPanel.test.tsx src/app/store/useAppStore.test.ts`
+- Ran `npm.cmd run build`
+- Build passed. Existing Vite warnings about `occt-import-js` browser externalization and large chunks remained non-fatal.
+
+### [581] - 2026-03-24 07:46 - `SP - Browser - Reference Category Click Expands Instead Of Loads`
+<!-- ENTRY 581 -->
+HUMAN SUMMARY: `Changed Browser reference-category row clicks so `Shoes`, `Footpads`, and `Premade Foothooks` now only expand or collapse their child rows. Clicking the category row no longer toggles visibility or triggers reference loading; that behavior now stays only on the eyeball toggle.`
+
+#### Scope / Constraints Honored
+- Kept the change limited to reference category row click behavior in the Browser panel.
+- Left the category eyeball toggle behavior intact for explicit visibility control.
+- Added a focused test to prevent category-row clicks from drifting back into visibility toggles.
+
+#### Summary of Implementation
+- Updated `BrowserPanel.tsx` so `reference-category` row selection now routes to `toggleReferenceCategoryExpanded(...)` with expand/collapse console logging.
+- Removed the old category row click path that reused `handleToggleReferenceVisibility(...)`.
+- Added a Browser panel regression asserting that clicking a reference category row expands/collapses children instead of toggling category or item visibility.
+
+#### Files Changed
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Clicking `Shoes`, `Footpads`, or `Premade Foothooks` now only opens/closes that category.
+- Reference loading/visibility changes only happen from the eyeball toggle or item-level actions, not from the category row click itself.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/panels/BrowserPanel.test.tsx`
+- Ran `npm.cmd run build`
+- Build passed. Existing Vite warnings about `occt-import-js` browser externalization and large chunks remained non-fatal.
+
+### [580] - 2026-03-24 07:45 - `SP - Browser - Fill-Bar-Only Status Surface`
+<!-- ENTRY 580 -->
+HUMAN SUMMARY: `Removed visible status text from all Browser rows and left status representation to the fill-bar color/state styling only. Graph, content, reference, and sketch rows no longer show inline status words like `Rebuild`, `Done`, `Building`, `Ready`, or `Draft` in the main row line.`
+
+#### Scope / Constraints Honored
+- Kept the change in the Browser panel render surface without changing the underlying row-state model.
+- Preserved the existing fill-bar state classes so status still exists visually.
+- Updated Browser panel tests to assert on bar/state classes instead of visible status words.
+
+#### Summary of Implementation
+- Removed graph build-state text from `BrowserGraphStateBar` rendering in `BrowserPanel.tsx`.
+- Removed content build-state and inline status text from `BrowserContentStateBar` rendering in `BrowserPanel.tsx`.
+- Removed reference state text from `BrowserReferenceStateBar` rendering in `BrowserPanel.tsx`.
+- Updated `BrowserPanel.test.tsx` to match the new fill-bar-only status rule.
+
+#### Files Changed
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Browser rows no longer show explicit status words in the row line.
+- Row status is now represented by the bar/fill color and state styling only.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/panels/BrowserPanel.test.tsx`
+- Ran `npm.cmd run build`
+- Build passed. Existing Vite warnings about `occt-import-js` browser externalization and large chunks remained non-fatal.
+
+### [579] - 2026-03-24 00:18 - `SP - Browser - Sketch Rows Name-Only Cleanup`
+<!-- ENTRY 579 -->
+HUMAN SUMMARY: `Simplified Browser sketch rows so they now show the sketch name without the extra sketch metadata or right-side status text. Sketch rows no longer display plane, component count, profile count, build state, or sketch state in the main browser line.`
+
+#### Scope / Constraints Honored
+- Kept the change limited to sketch-row display behavior in the Browser panel.
+- Did not remove stored sketch metadata from the underlying row VMs.
+- Left non-sketch content rows unchanged.
+
+#### Summary of Implementation
+- Updated `BrowserPanel.tsx` so `rowKind === 'sketch'` suppresses inline meta text.
+- Suppressed sketch-row content build-state text and sketch status text in the same browser row render path.
+- Left the row label, icon, and visibility toggle intact so sketch rows still remain identifiable and controllable.
+
+#### Files Changed
+- `src/app/panels/BrowserPanel.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Sketch rows now render as name-first rows.
+- Hidden for sketch rows:
+- plane
+- component count
+- profile count
+- build state
+- sketch state
+
+#### Verification Steps
+- Ran `npm.cmd run build`
+- Build passed. Existing Vite warnings about `occt-import-js` browser externalization and large chunks remained non-fatal.
+
+### [578] - 2026-03-24 00:11 - `SP - Browser - Row Label Priority Over Status`
+<!-- ENTRY 578 -->
+HUMAN SUMMARY: `Adjusted the Browser row layout so row names keep priority over inline status text. The label/meta line now holds width first, while the right-side status cluster truncates and yields earlier instead of visually stepping on the name.`
+
+#### Scope / Constraints Honored
+- Kept the change limited to browser row surface CSS.
+- Did not rename row types or alter row rendering logic.
+- Preserved the existing status bars and inline status content while changing only layout priority.
+
+#### Summary of Implementation
+- Updated `browser.css` so `BrowserTreeRowText` uses a flex layout that prioritizes the label/meta cluster.
+- Gave `BrowserTreeRowLabel` and `BrowserTreeRowMeta` explicit flex behavior so the name line owns the main row width.
+- Made `BrowserGraphStateText`, `BrowserContentStateText`, `BrowserContentStateMeta`, and `BrowserReferenceStateText` yield and truncate earlier.
+
+#### Files Changed
+- `src/app/theme/surfaces/browser.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Browser row names should remain readable longer before status text starts squeezing them.
+- Inline status text now truncates/yields sooner on narrow rows.
+
+#### Verification Steps
+- Ran `npm.cmd run build`
+- Build passed. Existing Vite warnings about `occt-import-js` browser externalization and large chunks remained non-fatal.
+
+### [577] - 2026-03-23 23:06 - `SP - Phase 3.2B-Console-2 - Finished Sketch Auto-Reveal`
+<!-- ENTRY 577 -->
+HUMAN SUMMARY: `Finished sketches now turn their browser visibility on automatically when the user accepts the sketch with `Done`. Both the console `SketchDraw > Done` path and the viewport overlay `Done` button now reveal the sketch in the Browser and keep it rendered in the viewport after the session closes.`
+
+#### Scope / Constraints Honored
+- Kept the change focused on real sketch-finish seams instead of forcing every session exit path to auto-reveal.
+- Avoided adding a direct cross-store cycle by using a small shared finish helper rather than wiring `useSpaghettiStore` back into `useAppStore`.
+- Preserved the browser eyeball as the source of ongoing visibility control after the initial auto-reveal.
+
+#### Summary of Implementation
+- Added `revealFinishedSketch(nodeId)` in `src/app/sketch/finishSketchVisibility.ts` to resolve the current sketch feature row id and enable its browser visibility.
+- Updated `ConsoleDock.tsx` so `sketchdraw.done` reveals the finished sketch before closing the geometry sketch session.
+- Updated `ViewportOverlay.tsx` so the viewport `Done` button uses the same reveal helper before closing the sketch session.
+- Added regressions in `ConsoleDock.test.tsx` and `ViewportOverlay.test.tsx` to verify that `Done` closes the session and flips the sketch browser visibility on.
+
+#### Files Changed
+- `src/app/sketch/finishSketchVisibility.ts`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/components/ViewportOverlay.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+- `src/app/components/ViewportOverlay.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- `SketchDraw > Done` now auto-enables the finished sketch’s browser visibility.
+- The viewport overlay `Done` button now does the same.
+- After finishing a sketch, it stays visible in the viewport until the user turns it off from the browser eyeball.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/console/ConsoleDock.test.tsx src/app/components/ViewportOverlay.test.tsx`
+- Ran `npm.cmd run build`
+- Build passed. Existing Vite warnings about `occt-import-js` browser externalization and large chunks remained non-fatal.
+
+### [576] - 2026-03-23 22:55 - `SP - Phase 3.2B-Console-2 - Browser Sketch Visibility And Viewer Overlay`
+<!-- ENTRY 576 -->
+HUMAN SUMMARY: `Added browser-level sketch visibility toggles with an eyeball icon on sketch rows and routed that state into a new passive sketch overlay lane in the model viewport. Visible sketches now render in the viewer outside the active sketch session, while the active draw/review overlay stays separate and interactive.`
+
+#### Scope / Constraints Honored
+- Kept browser-visible sketches separate from the active `geometrySketchSession` overlay instead of overloading the draw-session render path.
+- Reused the existing browser eye-toggle pattern so sketch rows behave like other visibility-controlled rows.
+- Left active sketch selection, hover, draw draft, and camera-align behavior on the existing active overlay seam only.
+
+#### Summary of Implementation
+- Added `sketchVisibilityByRowId` plus `toggleSketchVisibility` / `setSketchVisibility` to `useAppStore.ts` and surfaced `isVisible` on project sketch browser rows.
+- Extended browser row VMs so sketch rows carry visibility state and show the same left-side eye toggle used by references.
+- Updated `BrowserPanel.tsx` to toggle sketch visibility from the browser eyeball and log the action through the browser console layer.
+- Added `VisibleGeometrySketchOverlayVm` and a new `setVisibleGeometrySketchOverlays(...)` viewer seam in `viewerBridge.ts`.
+- Updated `ViewerHost.tsx` to derive passive visible sketch overlays from browser sketch rows and sync them into the viewer separately from the active sketch session overlay.
+- Added a second sketch overlay render group in `Viewer.ts` so passive visible sketches render in the viewport without taking over interaction, draw helpers, or camera restore/alignment behavior.
+- Updated focused browser, viewer-host, browser-tree, and store tests to cover the new visibility state and passive overlay sync path.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/panels/selectBrowserTreeRows.ts`
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/viewerBridge.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/viewer/Viewer.ts`
+- `src/app/store/useAppStore.test.ts`
+- `src/app/panels/selectBrowserTreeRows.test.ts`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Sketch rows in the Browser now show an eye toggle on the left.
+- Turning a sketch on renders that sketch in the model viewport even when it is not the active sketch session.
+- Turning a sketch off removes that passive sketch overlay from the viewport.
+- The active sketch session overlay remains the interactive layer and is not duplicated through the passive visibility lane.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/store/useAppStore.test.ts src/app/panels/selectBrowserTreeRows.test.ts src/app/panels/BrowserPanel.test.tsx src/app/components/ViewerHost.test.tsx`
+- Ran `npm.cmd run build`
+- Build passed. Existing Vite warnings about `occt-import-js` browser externalization and large chunks remained non-fatal.
+
+### [575] - 2026-03-23 22:42 - `SP - Phase 3.2B-Console-2 - SketchDraw Done Command`
+<!-- ENTRY 575 -->
+HUMAN SUMMARY: `Added a real idle `SketchDraw` `Done` command under `G > S > SD` so users can accept the sketch and leave draw mode from the console without using only `X` or the viewport button. `Done` now closes the sketch session and rehydrates the selected sketch graph scope, while `X` remains the plain exit path.` 
+
+#### Scope / Constraints Honored
+- Kept the change narrow to idle `SketchDraw` staged routing and return behavior.
+- Reused the existing sketch-session close seam instead of inventing a second commit path.
+- Preserved a meaningful distinction between `Done` and `X` by making only `Done` explicitly restore the selected sketch graph scope.
+
+#### Summary of Implementation
+- Added `DONE` / `D` to the local `SketchDraw` staged root surface in `stagedNavigation.ts`.
+- Added the new `sketchdraw.done` action identity in `radioCommandIdentity.ts`.
+- Updated `ConsoleDock.tsx` so `Done` closes the geometry sketch session, resolves workspace context sync, and returns the console to the selected sketch scope prompt.
+- Added focused regressions for the new staged choice surface and the `Done` round-trip back to `graphSketchSelected`.
+
+#### Files Changed
+- `src/app/console/stagedNavigation.ts`
+- `src/app/console/radioCommandIdentity.ts`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/stagedNavigation.test.ts`
+- `src/app/console/ConsoleDock.test.tsx`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+- Idle `SketchDraw` now shows `Done` in its local command list.
+- Submitting `D` or `Done` from idle `SketchDraw` closes the sketch session and returns to the selected sketch graph scope instead of dropping to root.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/console/ConsoleDock.test.tsx src/app/console/stagedNavigation.test.ts`.
+- Ran `npm.cmd run build`.
+
+### [574] - 2026-03-23 22:30 - `SP - Phase 3.2B-Console-2 - Viewport Typing Hybrid Capture Cleanup`
+<!-- ENTRY 574 -->
+HUMAN SUMMARY: `Fixed the console hybrid-capture regression where clicking back into the model viewport could leave plain letter typing out of the console after the sketch-console routing changes. Printable keys now still seed the console input from the viewport, including during idle `SketchDraw`, so a user can click the model viewport and immediately type command letters again.` 
+
+#### Scope / Constraints Honored
+- Kept the fix in shared input-routing and console capture rules instead of adding another viewport-specific focus workaround.
+- Preserved the protected non-printable workflow keys like `Escape`, `Enter`, `Delete`, and the existing higher-priority transform/sketch-plane shortcuts.
+- Updated the focused console test coverage to match the intended post-click viewport typing behavior.
+
+#### Summary of Implementation
+- Removed the old `allowFlatConsoleCapture` suppression that blocked printable-key console capture whenever a feature session was active.
+- Updated `ConsoleDock` regression coverage so idle `SketchDraw` plus viewport focus now expects the first typed letter to focus and seed the console input immediately.
+
+#### Files Changed
+- `src/app/inputRouting.ts`
+- `src/app/console/ConsoleDock.test.tsx`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+- After clicking inside the model viewport, typing a plain letter now re-enters the console input consistently instead of leaving staged/sketch sessions with a stuck guided prefill.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/console/ConsoleDock.test.tsx`.
+- Ran `npm.cmd run build`.
+
+### [573] - 2026-03-23 22:23 - `SP - Phase 5.0I-1 - OrbitControls Screen-Space Pan Alignment`
+<!-- ENTRY 573 -->
+HUMAN SUMMARY: `The last orthographic pan bug was on the normal viewport OrbitControls path, not the temporary console-pan path. Swapping OrbitControls to screen-space panning makes normal ortho pan follow the visible camera axes, which is why the earlier controller-only fixes had no visible effect during ordinary viewport pan.` 
+
+#### Scope / Constraints Honored
+- Kept the fix narrow to the normal viewport pan path instead of adding another special-case workaround.
+- Reused the existing OrbitControls seam rather than replacing normal viewport pan with custom drag math.
+- Left the real orthographic camera implementation intact.
+
+#### Summary of Implementation
+- Updated `src/viewer/scene/CameraController.ts` so the shared OrbitControls instance now uses `screenSpacePanning = true`.
+- Verified the app still builds cleanly after the controls-path change.
+
+#### Files Changed
+- `src/viewer/scene/CameraController.ts`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+- Normal middle-mouse viewport pan in orthographic mode now follows the camera's screen axes instead of the old world-up-style pan behavior.
+
+#### Verification Steps
+- Ran `npm.cmd run build`.
+
+### [572] - 2026-03-23 22:20 - `SP - Phase 5.0I-1 - Shared Orthographic Pan Basis Correction`
+<!-- ENTRY 572 -->
+HUMAN SUMMARY: `Fixed the remaining orthographic pan bug in the normal model viewport by taking vertical screen-space pan from the active camera's real matrix up column instead of a derived cross-product basis. This restores up/down pan in plane-aligned orthographic views like XY, XZ, and YZ while keeping the latest controller regression and full build green.`
+
+#### Scope / Constraints Honored
+- Kept the change in the shared camera-controller pan math instead of adding another sketch-only override.
+- Preserved the existing real orthographic-camera path and active-camera routing.
+- Added a focused plane-aligned orthographic regression instead of relying only on manual viewport checks.
+
+#### Summary of Implementation
+- Updated `src/viewer/scene/CameraController.ts` so orthographic pan reads its vertical screen basis from the active camera's world-matrix up column.
+- Added a new regression in `src/viewer/scene/CameraController.test.ts` that covers pure vertical pan in a plane-aligned orthographic front-style view.
+
+#### Files Changed
+- `src/viewer/scene/CameraController.ts`
+- `src/viewer/scene/CameraController.test.ts`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+- Up/down panning in orthographic mode now works in the shared model viewport camera path for plane-aligned views instead of collapsing to one-axis-only motion.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/viewer/scene/CameraController.test.ts`.
+- Ran `npm.cmd run build`.
+
+### [571] - 2026-03-23 22:14 - `SP - Phase 5.0I-1 - SketchDraw Projection Re-Align Follow-Up`
+<!-- ENTRY 571 -->
+HUMAN SUMMARY: `Fixed the `G > S > SD > C > P > O` projection-switch race by re-aligning the camera to the active sketch plane after projection changes while idle `SketchDraw` is active. This prevents orthographic mode from inheriting a half-finished sketch-plane align transition, which was leaving the camera basis skewed and causing one-axis pan plus weird orbit behavior.`
+
+#### Scope / Constraints Honored
+- Kept the change narrow to projection switches while idle `SketchDraw` is active.
+- Reused the existing sketch-plane alignment seam instead of inventing a separate orthographic-only correction path.
+- Treated this as a runtime-view-basis fix; no command grammar changed.
+
+#### Summary of Implementation
+- Updated `src/viewer/Viewer.ts` so `setProjectionMode()` now re-aligns the camera to the active sketch plane whenever `SketchDraw` is active and idle.
+- Re-ran the full production build to confirm the viewer change compiles cleanly.
+
+#### Files Changed
+- `src/viewer/Viewer.ts`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+- Projection switches performed during idle `SketchDraw` now immediately re-assert the sketch-plane camera basis, which stabilizes orthographic pan/orbit after `C > P > O`.
+
+#### Verification Steps
+- Ran `npm.cmd run build`.
+- Confirmed `tsc -b` and `vite build` both completed successfully.
+- Observed only the existing non-fatal Vite warnings about large chunks and `occt-import-js` browser externalization.
+
+### [570] - 2026-03-23 22:10 - `SP - Phase 5.0I-1 - Sketch Plane Camera Up Alignment`
+<!-- ENTRY 570 -->
+HUMAN SUMMARY: `Fixed the sketch-draw orthographic camera basis by aligning the camera's up vector to the sketch plane frame when the view is aligned to the active sketch plane. This addresses the remaining case where \`G > S > SD > C > P > O\` could enter orthographic with a bad camera basis, causing weird orbit behavior and one-axis-only panning.`
+
+#### Scope / Constraints Honored
+- Kept the change focused on sketch-plane camera alignment instead of broadening into another general camera-controls refactor.
+- Reused the existing sketch-plane frame math rather than inventing a new per-view up heuristic.
+- Added a focused controller regression to keep explicit up-vector direction alignment covered.
+
+#### Summary of Implementation
+- Added `getSketchPlaneWorldYAxis()` to `src/viewer/sketch/sketchPlaneMath.ts` so the sketch-plane frame exposes its real in-plane vertical axis.
+- Updated `src/viewer/Viewer.ts` so `alignCameraToGeometrySketchPlaneInternal()` now chooses both the plane-facing direction and a matching sketch-plane up vector before animating the camera.
+- Extended `src/viewer/scene/CameraController.ts` and `src/viewer/scene/CameraController.test.ts` so `animateToDirection()` can honor an explicit up vector and regression-test that behavior.
+
+#### Files Changed
+- `src/viewer/sketch/sketchPlaneMath.ts`
+- `src/viewer/Viewer.ts`
+- `src/viewer/scene/CameraController.ts`
+- `src/viewer/scene/CameraController.test.ts`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+- Sketch-plane-aligned orthographic views now use the sketch plane's own up axis, which stabilizes pan/orbit behavior in idle `SketchDraw`.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/viewer/scene/CameraController.test.ts`.
+- Ran `npm.cmd run build`.
+- Confirmed the focused controller suite passed: 1 test file, 15 tests passed.
+- Confirmed the app production build completed successfully.
+
+### [569] - 2026-03-23 22:06 - `SP - Phase 5.0I-1 - Pure Vertical Orthographic Pan Fix`
+<!-- ENTRY 569 -->
+HUMAN SUMMARY: `Fixed the remaining orthographic pan edge case where pure vertical drags could collapse because the vertical basis was accidentally being derived from the already-scaled horizontal drag vector. Orthographic pan now builds its screen-right and screen-up axes from the live camera basis independently, so pure up/down drags work in aligned views such as idle \`SketchDraw\`.`
+
+#### Scope / Constraints Honored
+- Kept the fix inside shared camera-controller pan math so it applies uniformly across viewer contexts.
+- Treated this as a basis-vector bug fix, not a broader interaction or console change.
+
+#### Summary of Implementation
+- Updated `src/viewer/scene/CameraController.ts` so orthographic pan derives screen-right directly from the camera matrix and screen-up from `right x forward`, without reusing a scaled horizontal pan vector.
+- Added a pure-vertical orthographic pan regression in `src/viewer/scene/CameraController.test.ts`.
+
+#### Files Changed
+- `src/viewer/scene/CameraController.ts`
+- `src/viewer/scene/CameraController.test.ts`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+- Pure vertical orthographic pan drags now move correctly on the camera plane instead of potentially collapsing to no movement.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/viewer/scene/CameraController.test.ts`.
+- Confirmed the focused suite passed: 1 test file, 14 tests passed.
+
 ### [568] - 2026-03-23 21:34 - `SP - Phase 3.2B-Console-2 - SketchDraw Session Nullability Build Fix`
 <!-- ENTRY 568 -->
 HUMAN SUMMARY: `Fixed the TypeScript build break in the staged \`SketchDraw\` command branch by narrowing the local staged-session value to a guaranteed non-null session before command-identity resolution. This was a compile-time safety fix; runtime behavior did not change.`

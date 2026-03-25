@@ -4,6 +4,9 @@
 <summary>Doc Header</summary>
 
 ### Doc History
+101. 2026-03-24 14:19: Added `docs/Human-Plans/Architecture/Console/Future/Console_Phase 5.1G - Surface-Agnostic Command Ownership And Adapter Expansion.md` to the architecture docs map and refreshed the `Console` subtree so the new owner-first multi-surface command-expansion phase now has a dedicated future planning surface under the folderized console family
+100. 2026-03-24 13:11: Added the new standalone `Browser/Future/` phase docs to the architecture docs map, so the Browser family now has dedicated future planning surfaces for build-policy icon surface, cascade truth, runtime execution, row-click cleanup, selection/focus sync, and BrowserPanel structure cleanup instead of keeping those phases only inside `Browser-Index.md`
+99. 2026-03-24 12:26: Added `docs/Human-Plans/Architecture/Browser/Browser-Index.md` to the architecture docs map, created the new folderized `Browser` family with `Future/` and `Shipped/`, and refreshed the architecture subtree so Browser-specific planning now has one canonical umbrella home under `docs/Human-Plans/Architecture/` instead of staying scattered across older Browser/build/task notes
 98. 2026-03-23 17:19: Updated the sketch subtree in the docs map after shipping `[3.2B-Console-1]`, replacing the old future-path listing with the new `Nodes/Sketch/Shipped/Sketch_Phase 3.2B-Console-1 - SketchDraw Scoped Command Surface.md` record while keeping the later `Console-2` and `Console-3` follow-ons listed under `Future/`
 97. 2026-03-23 15:02: Added the new `3.2B-Console` sketch-console mini-family to the architecture docs map by registering its three standalone future phase docs under the `Spaghetti-Editor-Arch > Nodes > Sketch > Future` subtree, so the staged `SketchDraw` console cleanup now has a dedicated planning ladder separate from the older sketch session and tool families
 96. 2026-03-23 14:32: Wrapped the top `Doc Header` section in a foldable HTML `details` block as a live MkDocs prototype, so the large docs index can keep its local history and usage notes available without forcing that metadata to stay expanded above the main docs map
@@ -433,8 +436,9 @@ Rule notes:
         - `12_CodexChatNotes.md`
 ### ----Architecture
         - `Audio-Patchbay.md`
+        - `Browser/Browser-Index.md`
         - `Camera-Controls/Camera_Controls-Index.md`
-        - `Console.md`
+        - `Console/Console.md`
         - `Engine-Architecture.md`
         - `Glossary.md`
         - `Pasta-Path/Pasta-Path-Index.md`
@@ -452,12 +456,23 @@ Rule notes:
             - `AppShell-Index.md`
             - `Shipped/AppShell_Phase 5.0F-1 - AppShell Runtime Host Extraction.md`
             - `Shipped/AppShell_Phase 5.0F-2 - AppShell Window And Dock Host Extraction.md`
+#### -------Browser
+            - `Browser-Index.md`
+            - `Shipped/Browser_Phase Browser-1 - Build Policy Icon Surface.md`
+            - `Shipped/Browser_Phase Browser-2 - Cascade And Effective Policy Truth.md`
+            - `Shipped/Browser_Phase Browser-3 - Runtime Build Policy Execution.md`
+            - `Future/Browser_Phase Browser-4 - Row Click And Action Ownership Cleanup.md`
+            - `Future/Browser_Phase Browser-5 - Selection And Focus Sync.md`
+            - `Future/Browser_Phase Browser-6 - BrowserPanel Structure And Row-Family Cleanup.md`
 #### -------Camera-Controls
             - `Camera_Controls-Index.md`
             - `Shipped/Camera_Controls_Phase 5.0H-1 - Sketch Draw Camera Blocking.md`
             - `Shipped/Camera_Controls_Phase 5.0H-2 - Fusion-Style Model Viewport Camera Baseline.md`
             - `Shipped/Camera_Controls_Phase 5.0H-3 - Spaghetti Canvas And Model Viewport Coexistence.md`
             - `Shipped/Camera_Controls_Phase 5.0H-4 - Camera Console Commands.md`
+#### -------Console
+            - `Console.md`
+            - `Future/Console_Phase 5.1G - Surface-Agnostic Command Ownership And Adapter Expansion.md`
 #### -------Pasta-Path
             - `Pasta-Path-Index.md`
 #### -------View-Toolbar

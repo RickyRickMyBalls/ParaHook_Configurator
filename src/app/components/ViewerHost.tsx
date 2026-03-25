@@ -3,9 +3,12 @@ import {
   setViewer,
   type GeometrySketchOverlayVm,
   type SketchPlanePickOverlayVm,
+  type VisibleGeometrySketchOverlayVm,
 } from '../viewerBridge'
 import { Viewer } from '../../viewer/Viewer'
 import {
+  selectCurrentProjectContentBrowserRows,
+  selectShouldSuppressBrowserGraphRuntimeOutput,
   selectReferenceWorkspaceItems,
   useAppStore,
 } from '../store/useAppStore'
@@ -40,7 +43,16 @@ export function ViewerHost() {
   const isMountedRef = useRef(false)
   const partsVisibility = useAppStore((state) => state.partsVisibility)
   const selectedPartKey = useAppStore((state) => state.selectedPartKey)
+  const currentProject = useAppStore((state) => state.currentProject)
+  const projectContent = useAppStore((state) => state.projectContent)
   const referenceWorkspace = useAppStore((state) => state.referenceWorkspace)
+  const sketchVisibilityByRowId = useAppStore((state) => state.sketchVisibilityByRowId)
+  const browserGraphBuildPolicyByGraphDocumentId = useAppStore(
+    (state) => state.browserGraphBuildPolicyByGraphDocumentId,
+  )
+  const browserContentBuildPolicyByRowId = useAppStore(
+    (state) => state.browserContentBuildPolicyByRowId,
+  )
   const setReferenceItemLoadState = useAppStore((state) => state.setReferenceItemLoadState)
   const setReferenceItemVisibility = useAppStore((state) => state.setReferenceItemVisibility)
   const endReferenceTransform = useAppStore((state) => state.endReferenceTransform)
@@ -48,9 +60,11 @@ export function ViewerHost() {
   const setReferenceTransformSpace = useAppStore((state) => state.setReferenceTransformSpace)
   const setReferenceTransformOverride = useAppStore((state) => state.setReferenceTransformOverride)
   const graphRuntimeByDocumentId = useSpaghettiStore((state) => state.graphRuntimeByDocumentId)
+  const graphDocumentsById = useSpaghettiStore((state) => state.graphDocumentsById)
   const sketchPlanePickSession = useSpaghettiStore((state) => state.sketchPlanePickSession)
   const geometrySketchSession = useSpaghettiStore((state) => state.geometrySketchSession)
   const sharedViewerComposition = useSpaghettiStore(selectSharedViewerComposition)
+  const viewerTargetGraphDocumentId = useSpaghettiStore((state) => state.viewerTargetGraphDocumentId)
   const viewerTargetPreviewPreparation = useSpaghettiStore(selectViewerTargetGraphPreviewPreparation)
   const viewerTargetBuildOutputs = useSpaghettiStore(selectViewerTargetGraphAcceptedPreviewBuildOutputs)
   const view = useUiPrefsStore((state) => state.view)
@@ -111,7 +125,17 @@ export function ViewerHost() {
             graphDocumentId,
             previewPreparation: graphRuntimeByDocumentId[graphDocumentId]?.previewPreparation ?? null,
             buildOutputs:
-              graphRuntimeByDocumentId[graphDocumentId]?.acceptedPreviewBuildOutputs ?? [],
+              selectShouldSuppressBrowserGraphRuntimeOutput(
+                {
+                  currentProject,
+                  projectContent,
+                  browserGraphBuildPolicyByGraphDocumentId,
+                  browserContentBuildPolicyByRowId,
+                },
+                graphDocumentId,
+              )
+                ? []
+                : graphRuntimeByDocumentId[graphDocumentId]?.acceptedPreviewBuildOutputs ?? [],
           })),
         )
       }
@@ -120,12 +144,28 @@ export function ViewerHost() {
       }
       return selectPreviewRenderVmFromPreparation(
         viewerTargetPreviewPreparation,
-        viewerTargetBuildOutputs,
+        viewerTargetGraphDocumentId !== null &&
+          selectShouldSuppressBrowserGraphRuntimeOutput(
+            {
+              currentProject,
+              projectContent,
+              browserGraphBuildPolicyByGraphDocumentId,
+              browserContentBuildPolicyByRowId,
+            },
+            viewerTargetGraphDocumentId,
+          )
+          ? []
+          : viewerTargetBuildOutputs,
       )
     },
     [
+      browserContentBuildPolicyByRowId,
+      browserGraphBuildPolicyByGraphDocumentId,
+      currentProject,
       graphRuntimeByDocumentId,
+      projectContent,
       sharedViewerComposition,
+      viewerTargetGraphDocumentId,
       viewerTargetBuildOutputs,
       viewerTargetPreviewPreparation,
     ],
@@ -209,6 +249,63 @@ export function ViewerHost() {
     sketchDrawStartPointSymbolType,
     sketchDrawStartPointVisible,
     sketchDrawStartPointSymbolSize,
+  ])
+
+  const visibleGeometrySketchOverlays = useMemo<VisibleGeometrySketchOverlayVm[]>(() => {
+    const contentRows = selectCurrentProjectContentBrowserRows({
+      currentProject,
+      projectContent,
+      sketchVisibilityByRowId,
+      graphRuntimeByDocumentId,
+      graphDocumentsById,
+    })
+
+    return contentRows
+      .filter((row): row is Extract<typeof contentRows[number], { kind: 'sketch' }> => row.kind === 'sketch')
+      .filter((row) => row.isVisible)
+      .filter((row) => geometrySketchSession === null || row.nodeId !== geometrySketchSession.nodeId)
+      .map((row) => {
+        const graphDocument = graphDocumentsById[row.graphDocumentId]
+        const sketchNode =
+          graphDocument?.graph.nodes.find(
+            (node) => node.nodeId === row.nodeId && node.type === 'Geometry/Sketch',
+          ) ?? null
+        const sketchFeature = sketchNode?.params.sketch as SketchFeature | undefined
+        if (sketchFeature === undefined) {
+          return null
+        }
+        return {
+          overlayId: row.rowId,
+          plane: sketchFeature.plane ?? row.plane,
+          planeTransform: {
+            ...(sketchFeature.planeTransform ?? {
+              offsetMm: 0,
+              inPlaneRotationDeg: 0,
+              translation: { x: 0, y: 0, z: 0 },
+              rotationDeg: { x: 0, y: 0, z: 0 },
+            }),
+            translation: {
+              ...(sketchFeature.planeTransform?.translation ?? { x: 0, y: 0, z: 0 }),
+            },
+            rotationDeg: {
+              ...(sketchFeature.planeTransform?.rotationDeg ?? { x: 0, y: 0, z: 0 }),
+            },
+          },
+          components: sketchFeature.components ?? [],
+          profiles: (sketchFeature.outputs.profiles ?? []).map((profile) => ({
+            profileId: profile.profileId,
+            vertices: profile.verticesProxy,
+          })),
+        } satisfies VisibleGeometrySketchOverlayVm
+      })
+      .filter((overlay): overlay is VisibleGeometrySketchOverlayVm => overlay !== null)
+  }, [
+    currentProject,
+    geometrySketchSession,
+    graphDocumentsById,
+    graphRuntimeByDocumentId,
+    projectContent,
+    sketchVisibilityByRowId,
   ])
 
   const sketchPlanePickOverlay = useMemo<SketchPlanePickOverlayVm | null>(() => {
@@ -562,6 +659,10 @@ export function ViewerHost() {
   useEffect(() => {
     viewerRef.current?.setGeometrySketchOverlay(geometrySketchOverlay)
   }, [geometrySketchOverlay])
+
+  useEffect(() => {
+    viewerRef.current?.setVisibleGeometrySketchOverlays(visibleGeometrySketchOverlays)
+  }, [visibleGeometrySketchOverlays])
 
   useEffect(() => {
     viewerRef.current?.setSketchPlanePickOverlay(sketchPlanePickOverlay)

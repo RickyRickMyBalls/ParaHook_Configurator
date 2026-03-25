@@ -162,6 +162,48 @@ describe('CameraController', () => {
     expect(controls.update).toHaveBeenCalledTimes(1)
   })
 
+  it('supports pure vertical orthographic pan drags', () => {
+    const { controller, controls, orthographicCamera } = createController()
+    controller.setProjectionMode('orthographic')
+    controller.snapToDirection(new Vector3(0, 1, 0))
+
+    const startPosition = orthographicCamera.position.clone()
+    const startTarget = controls.target.clone()
+
+    controller.beginTemporaryPanDrag(100, 100)
+    controller.updateTemporaryPanDrag(100, 140)
+
+    expect(orthographicCamera.position.y).toBeCloseTo(startPosition.y, 6)
+    expect(controls.target.y).toBeCloseTo(startTarget.y, 6)
+    expect(orthographicCamera.position.x).toBeCloseTo(startPosition.x, 6)
+    expect(controls.target.x).toBeCloseTo(startTarget.x, 6)
+    expect(orthographicCamera.position.z).not.toBeCloseTo(startPosition.z, 6)
+    expect(controls.target.z).not.toBeCloseTo(startTarget.z, 6)
+  })
+
+  it('supports pure vertical orthographic pan in a plane-aligned front view', () => {
+    const { controller, controls, orthographicCamera } = createController()
+    controller.setProjectionMode('orthographic')
+    controller.animateToDirection(new Vector3(0, 0, 1), {
+      up: new Vector3(0, 1, 0),
+      durationMs: 1,
+    })
+    controller.update(1)
+
+    const startPosition = orthographicCamera.position.clone()
+    const startTarget = controls.target.clone()
+
+    controller.beginTemporaryPanDrag(100, 100)
+    controller.updateTemporaryPanDrag(100, 140)
+
+    expect(orthographicCamera.position.z).toBeCloseTo(startPosition.z, 6)
+    expect(controls.target.z).toBeCloseTo(startTarget.z, 6)
+    expect(orthographicCamera.position.x).toBeCloseTo(startPosition.x, 6)
+    expect(controls.target.x).toBeCloseTo(startTarget.x, 6)
+    expect(orthographicCamera.position.y).not.toBeCloseTo(startPosition.y, 6)
+    expect(controls.target.y).not.toBeCloseTo(startTarget.y, 6)
+  })
+
   it('zooms perspective by changing camera distance and orthographic by changing view height', () => {
     const { controller, controls, perspectiveCamera } = createController()
     controls.update.mockClear()
@@ -242,6 +284,20 @@ describe('CameraController', () => {
     const restoredPose = controller.getPose()
     expect(restoredPose.projectionMode).toBe('orthographic')
     expect(restoredPose.orthoViewHeight).toBeCloseTo(orthoPose.orthoViewHeight, 6)
+  })
+
+  it('honors an explicit up vector when animating to a direction', () => {
+    const { controller } = createController()
+    controller.animateToDirection(new Vector3(0, 0, 1), {
+      up: new Vector3(1, 0, 0),
+      durationMs: 1,
+    })
+    controller.update(1)
+
+    const pose = controller.getPose()
+    expect(pose.up.x).toBeCloseTo(1, 6)
+    expect(pose.up.y).toBeCloseTo(0, 6)
+    expect(pose.up.z).toBeCloseTo(0, 6)
   })
 
   it('tracks an object without changing camera distance', () => {

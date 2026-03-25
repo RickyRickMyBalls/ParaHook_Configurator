@@ -5,6 +5,7 @@
 ### Doc History
 1. 2026-03-23 14:07: Created this standalone future phase doc for `[5.0I-1]`, translating the first `View-Toolbar` implementation cut into an implementation-ready plan centered on the shared console/toolbar projection seam and the first real `Orthographic` versus `Perspective` command path
 2. 2026-03-23 14:35: Tightened this doc into an implementation-ready Phase 1 spec that matches the shipped projection seam, shared `ViewSettings` ownership, root/scoped console grammar, toolbar surface, viewer/controller architecture, and required verification
+3. 2026-03-23 22:25: Recorded the shipped orthographic-pan follow-up that clarified the real remaining bug path was normal viewport `OrbitControls` panning, which required `screenSpacePanning = true` in addition to the custom temporary-pan fixes
 
 ### Purpose
 
@@ -251,6 +252,9 @@ Additional behavior rules:
 - framing in orthographic updates `orthoViewHeight` to fit bounds while preserving direction/target
 - pose history must survive projection switches
 - gizmo camera must update when projection mode changes
+- normal viewport pan must also honor orthographic screen axes, not just console-armed temporary `pan`
+- the shared `OrbitControls` path therefore needs `screenSpacePanning = true`
+- sketch-plane-aligned orthographic views also depend on correct camera `up` alignment and projection-switch re-alignment while idle `SketchDraw`
 
 ### Toolbar Surface
 
@@ -324,6 +328,20 @@ Required manual smoke checks:
 - toolbar buttons switch projection
 - resize in ortho keeps framing stable
 - `Frame All`, `Frame`, `Top`, `Front`, `Left`, `Right`, `Iso`, and sketch pointer projection still work in both modes
+- normal middle-mouse viewport pan in orthographic `XY`, `XZ`, and `YZ` follows the visible screen axes
+- `G > S > SD > C > P > O` pan uses the same correct up/down motion as the normal model viewport
+
+### Implementation Notes From Shipped Follow-Ups
+
+- The main orthographic pan bug was not a Three.js orthographic-camera limitation.
+- The app had two different pan paths:
+  - normal viewport pan through shared `OrbitControls`
+  - console-armed temporary `pan` through custom controller drag math
+- Several early fixes improved the temporary `pan` path but did not change ordinary viewport pan behavior because the visible bug was still on the `OrbitControls` path.
+- The fix that actually restored normal orthographic pan was enabling `screenSpacePanning = true` on the shared `OrbitControls` instance.
+- Sketch-plane-aligned orthographic views still required the follow-up camera-basis fixes:
+  - align camera `up` to the sketch plane's in-plane Y axis
+  - re-apply sketch-plane camera alignment after projection switches while idle `SketchDraw`
 
 ### Assumptions And Defaults
 

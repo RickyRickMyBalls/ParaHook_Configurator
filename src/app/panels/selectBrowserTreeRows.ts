@@ -1,5 +1,6 @@
 import type { EditorViewport, GraphDocument } from '../spaghetti/schema/spaghettiTypes'
 import type {
+  BrowserBuildPolicy,
   ProjectContentBrowserRowVm,
   ProjectContentBuildState,
   ReferenceWorkspaceBrowserTreeVm,
@@ -7,6 +8,8 @@ import type {
   ReferenceWorkspaceBrowserItemVm,
 } from '../store/useAppStore'
 import type { BrowserGraphRowVm } from './selectBrowserGraphRows'
+
+export type BrowserBuildPolicySource = 'self' | 'graph' | 'assembly' | 'component' | 'default'
 
 export type BrowserTreeRowKind =
   | 'references-root'
@@ -58,6 +61,10 @@ type BrowserTreeRowBaseVm = {
   isExpanded: boolean
   actions: BrowserTreeRowActionVm[]
   showOverflowButton?: boolean
+  authoredBrowserBuildPolicy?: BrowserBuildPolicy | null
+  effectiveBrowserBuildPolicy?: BrowserBuildPolicy
+  effectiveBrowserBuildPolicySource?: BrowserBuildPolicySource
+  effectiveBrowserBuildPolicySourceLabel?: string | null
 }
 
 export type BrowserReferenceRowState = 'highlighted' | 'idle' | 'loading' | 'error'
@@ -116,6 +123,7 @@ export type BrowserSketchesRootTreeRowVm = BrowserTreeRowBaseVm & {
 
 export type BrowserSketchTreeRowVm = BrowserTreeRowBaseVm & {
   rowKind: 'sketch'
+  isVisible: boolean
   buildState: ProjectContentBuildState
   buildStateLabel: string
   rebuildGraphDocumentIds: string[]
@@ -340,6 +348,8 @@ export const selectBrowserTreeRows = (options: {
   activeTransformReferenceId?: string | null
   contentRows: ProjectContentBrowserRowVm[]
   graphRows: BrowserGraphRowVm[]
+  browserGraphBuildPolicyByGraphDocumentId?: Record<string, BrowserBuildPolicy>
+  browserContentBuildPolicyByRowId?: Record<string, BrowserBuildPolicy>
   editorViewports: EditorViewport[]
   graphDocumentsById: Record<string, GraphDocument>
   selectedRowId: string | null
@@ -353,6 +363,8 @@ export const selectBrowserTreeRows = (options: {
   const {
     referenceWorkspaceTree,
     activeTransformReferenceId = null,
+    browserContentBuildPolicyByRowId = {},
+    browserGraphBuildPolicyByGraphDocumentId = {},
     contentRows,
     editorViewports,
     expandedGraphDocumentIds,
@@ -413,6 +425,157 @@ export const selectBrowserTreeRows = (options: {
   const orderedAssemblies = contentRows.filter(
     (row): row is Extract<ProjectContentBrowserRowVm, { kind: 'assembly' }> => row.kind === 'assembly',
   )
+  const rootAssemblyRow = orderedAssemblies[0] ?? null
+  const componentRowById = new Map(
+    contentRows
+      .filter((row): row is Extract<ProjectContentBrowserRowVm, { kind: 'component' }> => row.kind === 'component')
+      .map((row) => [row.rowId, row] as const),
+  )
+  const graphLabelByDocumentId = new Map(graphRows.map((row) => [row.graphDocumentId, row.label] as const))
+
+  const resolveGraphPolicy = (
+    graphDocumentId: string,
+  ): Pick<
+    BrowserTreeRowBaseVm,
+    | 'authoredBrowserBuildPolicy'
+    | 'effectiveBrowserBuildPolicy'
+    | 'effectiveBrowserBuildPolicySource'
+    | 'effectiveBrowserBuildPolicySourceLabel'
+  > => {
+    const authoredBrowserBuildPolicy =
+      browserGraphBuildPolicyByGraphDocumentId[graphDocumentId] ?? null
+    return {
+      authoredBrowserBuildPolicy,
+      effectiveBrowserBuildPolicy: authoredBrowserBuildPolicy ?? 'live',
+      effectiveBrowserBuildPolicySource: authoredBrowserBuildPolicy === null ? 'default' : 'self',
+      effectiveBrowserBuildPolicySourceLabel:
+        authoredBrowserBuildPolicy === null ? null : graphLabelByDocumentId.get(graphDocumentId) ?? graphDocumentId,
+    }
+  }
+
+  const resolveAssemblyPolicy = (
+    rowId: string,
+    label: string,
+  ): Pick<
+    BrowserTreeRowBaseVm,
+    | 'authoredBrowserBuildPolicy'
+    | 'effectiveBrowserBuildPolicy'
+    | 'effectiveBrowserBuildPolicySource'
+    | 'effectiveBrowserBuildPolicySourceLabel'
+  > => {
+    const authoredBrowserBuildPolicy = browserContentBuildPolicyByRowId[rowId] ?? null
+    return {
+      authoredBrowserBuildPolicy,
+      effectiveBrowserBuildPolicy: authoredBrowserBuildPolicy ?? 'live',
+      effectiveBrowserBuildPolicySource: authoredBrowserBuildPolicy === null ? 'default' : 'self',
+      effectiveBrowserBuildPolicySourceLabel: authoredBrowserBuildPolicy === null ? null : label,
+    }
+  }
+
+  const resolveComponentPolicy = (
+    row: Extract<ProjectContentBrowserRowVm, { kind: 'component' }>,
+  ): Pick<
+    BrowserTreeRowBaseVm,
+    | 'authoredBrowserBuildPolicy'
+    | 'effectiveBrowserBuildPolicy'
+    | 'effectiveBrowserBuildPolicySource'
+    | 'effectiveBrowserBuildPolicySourceLabel'
+  > => {
+    const authoredBrowserBuildPolicy = browserContentBuildPolicyByRowId[row.rowId] ?? null
+    if (authoredBrowserBuildPolicy !== null) {
+      return {
+        authoredBrowserBuildPolicy,
+        effectiveBrowserBuildPolicy: authoredBrowserBuildPolicy,
+        effectiveBrowserBuildPolicySource: 'self',
+        effectiveBrowserBuildPolicySourceLabel: row.label,
+      }
+    }
+    const assemblyAuthored =
+      rootAssemblyRow === null ? null : browserContentBuildPolicyByRowId[rootAssemblyRow.rowId] ?? null
+    if (assemblyAuthored !== null) {
+      return {
+        authoredBrowserBuildPolicy,
+        effectiveBrowserBuildPolicy: assemblyAuthored,
+        effectiveBrowserBuildPolicySource: 'assembly',
+        effectiveBrowserBuildPolicySourceLabel: rootAssemblyRow?.label ?? null,
+      }
+    }
+    const graphAuthored = browserGraphBuildPolicyByGraphDocumentId[row.ownerGraphDocumentId] ?? null
+    if (graphAuthored !== null) {
+      return {
+        authoredBrowserBuildPolicy,
+        effectiveBrowserBuildPolicy: graphAuthored,
+        effectiveBrowserBuildPolicySource: 'graph',
+        effectiveBrowserBuildPolicySourceLabel:
+          graphLabelByDocumentId.get(row.ownerGraphDocumentId) ?? row.ownerGraphDocumentId,
+      }
+    }
+    return {
+      authoredBrowserBuildPolicy,
+      effectiveBrowserBuildPolicy: 'live',
+      effectiveBrowserBuildPolicySource: 'default',
+      effectiveBrowserBuildPolicySourceLabel: null,
+    }
+  }
+
+  const resolveObjectPolicy = (
+    row: Extract<ProjectContentBrowserRowVm, { kind: 'object' }>,
+  ): Pick<
+    BrowserTreeRowBaseVm,
+    | 'authoredBrowserBuildPolicy'
+    | 'effectiveBrowserBuildPolicy'
+    | 'effectiveBrowserBuildPolicySource'
+    | 'effectiveBrowserBuildPolicySourceLabel'
+  > => {
+    const authoredBrowserBuildPolicy = browserContentBuildPolicyByRowId[row.rowId] ?? null
+    if (authoredBrowserBuildPolicy !== null) {
+      return {
+        authoredBrowserBuildPolicy,
+        effectiveBrowserBuildPolicy: authoredBrowserBuildPolicy,
+        effectiveBrowserBuildPolicySource: 'self',
+        effectiveBrowserBuildPolicySourceLabel: row.label,
+      }
+    }
+    const parentComponent =
+      row.parentComponentId === null ? null : componentRowById.get(row.parentComponentId) ?? null
+    if (parentComponent !== null) {
+      const parentComponentAuthored = browserContentBuildPolicyByRowId[parentComponent.rowId] ?? null
+      if (parentComponentAuthored !== null) {
+        return {
+          authoredBrowserBuildPolicy,
+          effectiveBrowserBuildPolicy: parentComponentAuthored,
+          effectiveBrowserBuildPolicySource: 'component',
+          effectiveBrowserBuildPolicySourceLabel: parentComponent.label,
+        }
+      }
+    }
+    const assemblyAuthored =
+      rootAssemblyRow === null ? null : browserContentBuildPolicyByRowId[rootAssemblyRow.rowId] ?? null
+    if (assemblyAuthored !== null) {
+      return {
+        authoredBrowserBuildPolicy,
+        effectiveBrowserBuildPolicy: assemblyAuthored,
+        effectiveBrowserBuildPolicySource: 'assembly',
+        effectiveBrowserBuildPolicySourceLabel: rootAssemblyRow?.label ?? null,
+      }
+    }
+    const graphAuthored = browserGraphBuildPolicyByGraphDocumentId[row.ownerGraphDocumentId] ?? null
+    if (graphAuthored !== null) {
+      return {
+        authoredBrowserBuildPolicy,
+        effectiveBrowserBuildPolicy: graphAuthored,
+        effectiveBrowserBuildPolicySource: 'graph',
+        effectiveBrowserBuildPolicySourceLabel:
+          graphLabelByDocumentId.get(row.ownerGraphDocumentId) ?? row.ownerGraphDocumentId,
+      }
+    }
+    return {
+      authoredBrowserBuildPolicy,
+      effectiveBrowserBuildPolicy: 'live',
+      effectiveBrowserBuildPolicySource: 'default',
+      effectiveBrowserBuildPolicySourceLabel: null,
+    }
+  }
 
   orderedAssemblies.forEach((row) => {
     const assemblyChildren = rootContentRows
@@ -428,6 +591,7 @@ export const selectBrowserTreeRows = (options: {
       iconLabel: 'A',
       label: row.label,
       meta: row.meta,
+      ...resolveAssemblyPolicy(row.rowId, row.label),
       ...(row.statusLabel !== undefined
         ? {
             statusLabel: row.statusLabel,
@@ -471,6 +635,7 @@ export const selectBrowserTreeRows = (options: {
           iconLabel: 'O',
           label: contentRow.label,
           meta: contentRow.meta,
+          ...resolveObjectPolicy(contentRow),
           ...(contentRow.statusLabel !== undefined
             ? {
                 statusLabel: contentRow.statusLabel,
@@ -521,6 +686,7 @@ export const selectBrowserTreeRows = (options: {
         iconLabel: 'C',
         label: contentRow.label,
         meta: contentRow.meta,
+        ...resolveComponentPolicy(contentRow),
         ...(contentRow.statusLabel !== undefined
           ? {
               statusLabel: contentRow.statusLabel,
@@ -569,6 +735,7 @@ export const selectBrowserTreeRows = (options: {
           iconLabel: 'O',
           label: objectRow.label,
           meta: objectRow.meta,
+          ...resolveObjectPolicy(objectRow),
           ...(objectRow.statusLabel !== undefined
             ? {
                 statusLabel: objectRow.statusLabel,
@@ -617,6 +784,7 @@ export const selectBrowserTreeRows = (options: {
         rowKind: 'sketch',
         depth: 1,
         treeGuides: [sketchIndex < orderedSketchRows.length - 1 ? 'tee' : 'elbow'],
+        isVisible: sketchRow.isVisible,
         buildState: sketchRow.buildState ?? 'done',
         buildStateLabel: sketchRow.buildStateLabel ?? '',
         rebuildGraphDocumentIds: sketchRow.rebuildGraphDocumentIds ?? [],
@@ -1017,6 +1185,7 @@ export const selectBrowserTreeRows = (options: {
         hasFocusedViewport: row.hasFocusedViewport,
         buildState: row.buildState,
         buildStateLabel: row.buildStateLabel,
+        ...resolveGraphPolicy(row.graphDocumentId),
         actions: [
           {
             actionId: 'save',

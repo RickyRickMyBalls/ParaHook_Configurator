@@ -127,6 +127,10 @@ describe('selectBrowserGraphRows', () => {
         hasFocusedViewport: true,
         buildState: 'rebuild',
         buildStateLabel: 'Rebuild',
+        authoredBrowserBuildPolicy: null,
+        effectiveBrowserBuildPolicy: 'live',
+        effectiveBrowserBuildPolicySource: 'default',
+        effectiveBrowserBuildPolicySourceLabel: null,
         publishedOutputRows: [
           {
             rowId: 'published-output-row:graph-document-1:output-entry:s001:node-a',
@@ -215,6 +219,34 @@ describe('selectBrowserGraphRows', () => {
       saveState: 'unsaved',
       buildState: 'done',
       buildStateLabel: 'Done',
+    })
+  })
+
+  it('exposes authored and effective browser build policy for graph rows', () => {
+    const rows = selectBrowserGraphRows({
+      cachedGraphEntryOrder: ['graph-document-1'],
+      cachedGraphEntriesById: {
+        'graph-document-1': cachedGraphEntry('graph-document-1', 'graph-document-1', true),
+      },
+      graphDocumentsById: {
+        'graph-document-1': graphDocument('graph-document-1', 'Graph 1'),
+      },
+      graphRuntimeByDocumentId: {
+        'graph-document-1': graphRuntime(),
+      },
+      browserGraphBuildPolicyByGraphDocumentId: {
+        'graph-document-1': 'manual',
+      },
+      activeGraphDocumentId: 'graph-document-1',
+      openViewportCountByGraphDocumentId: new Map(),
+      hasFocusedViewportByGraphDocumentId: new Map(),
+    })
+
+    expect(rows[0]).toMatchObject({
+      authoredBrowserBuildPolicy: 'manual',
+      effectiveBrowserBuildPolicy: 'manual',
+      effectiveBrowserBuildPolicySource: 'self',
+      effectiveBrowserBuildPolicySourceLabel: 'Graph 1',
     })
   })
 })

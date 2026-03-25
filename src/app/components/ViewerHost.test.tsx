@@ -15,6 +15,7 @@ let viewerSetOnReferenceTransformModeChange: ReturnType<typeof vi.fn>
 let viewerSetOnReferenceTransformSpaceChange: ReturnType<typeof vi.fn>
 let viewerSetGizmoSnap: ReturnType<typeof vi.fn>
 let viewerSetGeometrySketchOverlay: ReturnType<typeof vi.fn>
+let viewerSetVisibleGeometrySketchOverlays: ReturnType<typeof vi.fn>
 let viewerSetSketchPlanePickOverlay: ReturnType<typeof vi.fn>
 let viewerSetOnSketchPlanePickPlaneSelect: ReturnType<typeof vi.fn>
 let viewerSetOnSketchPlanePickTransformChange: ReturnType<typeof vi.fn>
@@ -57,6 +58,8 @@ vi.mock('../../viewer/Viewer', () => ({
       viewerSetOnReferenceTransformSpaceChange(...args)
     public setGizmoSnap = (...args: unknown[]) => viewerSetGizmoSnap(...args)
     public setGeometrySketchOverlay = (...args: unknown[]) => viewerSetGeometrySketchOverlay(...args)
+    public setVisibleGeometrySketchOverlays = (...args: unknown[]) =>
+      viewerSetVisibleGeometrySketchOverlays(...args)
     public setOnGeometrySketchHoverPoint = (...args: unknown[]) =>
       viewerSetOnGeometrySketchHoverPoint(...args)
     public setOnGeometrySketchConfirmPoint = (...args: unknown[]) =>
@@ -139,6 +142,7 @@ describe('ViewerHost reference loading', () => {
     viewerSetOnReferenceTransformSpaceChange = vi.fn()
     viewerSetGizmoSnap = vi.fn()
     viewerSetGeometrySketchOverlay = vi.fn()
+    viewerSetVisibleGeometrySketchOverlays = vi.fn()
     viewerSetSketchPlanePickOverlay = vi.fn()
     viewerSetOnSketchPlanePickPlaneSelect = vi.fn()
     viewerSetOnSketchPlanePickTransformChange = vi.fn()
@@ -495,6 +499,68 @@ describe('ViewerHost reference loading', () => {
         ]),
       }),
     )
+  })
+
+  it('pushes browser-visible sketch rows into the passive viewer sketch overlay lane', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useAppStore } = await import('../store/useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+
+    act(() => {
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-sketch-1',
+            type: 'Geometry/Sketch',
+            params: {
+              sketch: {
+                type: 'sketch',
+                featureId: 'sketch-1',
+                plane: 'YZ',
+                components: [
+                  {
+                    rowId: 'row-line-1',
+                    componentId: 'cmp-line-1',
+                    type: 'line',
+                    a: { kind: 'lit', x: 0, y: 0 },
+                    b: { kind: 'lit', x: 20, y: 0 },
+                  },
+                ],
+                outputs: {
+                  profiles: [],
+                },
+                uiState: {
+                  collapsed: false,
+                },
+              },
+            },
+          },
+        ],
+        edges: [],
+      })
+      useAppStore.getState().setSketchVisibility(
+        'project-sketch:graph-document-1:node-sketch-1:sketch-1',
+        true,
+      )
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost />)
+    })
+
+    expect(viewerSetVisibleGeometrySketchOverlays).toHaveBeenCalledWith([
+      expect.objectContaining({
+        overlayId: 'project-sketch:graph-document-1:node-sketch-1:sketch-1',
+        plane: 'YZ',
+        components: expect.any(Array),
+        profiles: [],
+      }),
+    ])
   })
 
   it('pushes the active sketch-plane pick session into the viewer and routes plane picks back into the store', async () => {

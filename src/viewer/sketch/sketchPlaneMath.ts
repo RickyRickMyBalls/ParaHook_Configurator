@@ -136,6 +136,11 @@ export const getSketchPlaneWorldOrigin = (
   transform: SketchPlaneTransform | undefined,
 ): Vector3 => resolveSketchPlaneAxes(plane, transform).origin
 
+export const getSketchPlaneWorldYAxis = (
+  plane: SketchPlane,
+  transform: SketchPlaneTransform | undefined,
+): Vector3 => resolveSketchPlaneAxes(plane, transform).yAxis
+
 export const getSketchPlaneWorldNormal = (
   plane: SketchPlane,
   transform: SketchPlaneTransform | undefined,

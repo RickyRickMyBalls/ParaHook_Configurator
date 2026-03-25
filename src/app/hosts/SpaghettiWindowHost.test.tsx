@@ -31,6 +31,7 @@ vi.mock('../store/useAppStore', () => ({
   useAppStore: (selector: (state: any) => unknown) =>
     selector({
       requestGraphDocumentBuild: mockRequestGraphDocumentBuild,
+      requestBrowserGraphDocumentBuild: mockRequestGraphDocumentBuild,
     }),
 }))
 

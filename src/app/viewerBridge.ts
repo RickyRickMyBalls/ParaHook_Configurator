@@ -54,6 +54,14 @@ export type GeometrySketchOverlayVm = {
   }
 }
 
+export type VisibleGeometrySketchOverlayVm = {
+  overlayId: string
+  plane: SketchPlane
+  planeTransform: SketchPlaneTransform
+  components: SketchComponent[]
+  profiles: GeometrySketchOverlayProfileVm[]
+}
+
 export type SketchPlanePickOverlayVm = {
   stage: 'pick' | 'adjust'
   gizmoMode: 'translate' | 'rotate'
@@ -131,6 +139,7 @@ export interface ViewerApi {
   setAxisOverlayEnabled: (enabled: boolean) => void
   setAxisOverlayCanvas: (canvas: HTMLCanvasElement | null) => void
   setGeometrySketchOverlay: (overlay: GeometrySketchOverlayVm | null) => void
+  setVisibleGeometrySketchOverlays: (overlays: VisibleGeometrySketchOverlayVm[]) => void
   setOnGeometrySketchHoverPoint: (
     handler: ((point: { x: number; y: number } | null, snapTarget: GeometrySketchSnapTarget | null) => void) | null,
   ) => void

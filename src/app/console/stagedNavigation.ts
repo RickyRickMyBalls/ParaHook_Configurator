@@ -92,6 +92,7 @@ export type ConsoleStagedNavigationExecuteResult = {
     | 'sketchdraw.camera.projection.perspective'
     | 'sketchdraw.previous'
     | 'sketchdraw.delete'
+    | 'sketchdraw.done'
     | 'sketchdraw.back'
     | 'sketchdraw.exit'
     | 'zoom.model.all'
@@ -273,6 +274,13 @@ const SKETCH_DRAW_DELETE_CHOICE: ConsoleStagedNavigationChoice = {
   canonicalToken: 'DELETE',
   aliases: ['DEL'],
   label: 'Delete',
+  kind: 'action',
+}
+
+const SKETCH_DRAW_DONE_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'DONE',
+  aliases: ['D'],
+  label: 'Done',
   kind: 'action',
 }
 
@@ -536,6 +544,7 @@ const buildSketchDrawRootChoices = (
   SKETCH_DRAW_ZOOM_CHOICE,
   ...(context.sketchDraw.hasSelection ? [SKETCH_DRAW_DELETE_CHOICE] : []),
   ...(context.sketchDraw.hasPrevious ? [SKETCH_DRAW_PREVIOUS_CHOICE] : []),
+  SKETCH_DRAW_DONE_CHOICE,
   createBackChoice(),
   SKETCH_DRAW_EXIT_CHOICE,
 ]
@@ -1366,6 +1375,8 @@ export const submitConsoleStagedNavigationToken = (
                   ? 'sketchdraw.previous'
                   : matchedChoice.canonicalToken === 'DELETE'
                     ? 'sketchdraw.delete'
+                    : matchedChoice.canonicalToken === 'DONE'
+                      ? 'sketchdraw.done'
                     : matchedChoice.canonicalToken === 'BACK'
                       ? 'sketchdraw.back'
                       : 'sketchdraw.exit',

@@ -7,6 +7,7 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from 'react'
 import { routeKeyboardInput } from '../inputRouting'
+import { revealFinishedSketch } from '../sketch/finishSketchVisibility'
 import { useAppStore } from '../store/useAppStore'
 import { getViewer, subscribeViewer, type ViewerApi } from '../viewerBridge'
 import { useUiPrefsStore } from '../store/uiPrefsStore'
@@ -426,6 +427,9 @@ export function ViewportOverlay() {
   const sketchPlaneToolPanelRef = useRef<HTMLDivElement | null>(null)
   const sketchSessionWindowRef = useRef<HTMLDivElement | null>(null)
   const selectedPartKey = useAppStore((state) => state.selectedPartKey)
+  const beginBrowserBuildInteraction = useAppStore((state) => state.beginBrowserBuildInteraction)
+  const endBrowserBuildInteraction = useAppStore((state) => state.endBrowserBuildInteraction)
+  const activeGraphDocumentId = useSpaghettiStore((state) => state.activeGraphDocumentId)
   const sketchPlanePickSession = useSpaghettiStore((state) => state.sketchPlanePickSession)
   const geometrySketchSession = useSpaghettiStore((state) => state.geometrySketchSession)
   const activePlanePickNode = useSpaghettiStore((state) => {
@@ -490,6 +494,18 @@ export function ViewportOverlay() {
   const setGeometrySketchSelectedProfile = useSpaghettiStore(
     (state) => state.setGeometrySketchSelectedProfile,
   )
+  const beginGraphParameterInteraction = () => {
+    if (activeGraphDocumentId === null) {
+      return
+    }
+    beginBrowserBuildInteraction(activeGraphDocumentId)
+  }
+  const endGraphParameterInteraction = () => {
+    if (activeGraphDocumentId === null) {
+      return
+    }
+    endBrowserBuildInteraction(activeGraphDocumentId)
+  }
   const axisOverlayEnabled = useUiPrefsStore((state) => state.view.axisOverlayEnabled)
   const viewToolbarOpen = useUiPrefsStore((state) => state.viewToolbarOpen)
   const expandedAxisWidgetSize = useUiPrefsStore(
@@ -1997,6 +2013,7 @@ export function ViewportOverlay() {
             min={-2000}
             max={2000}
             step={0.1}
+            onActivate={beginGraphParameterInteraction}
             onChangeAxis={(axis, nextValue) =>
               updateGeometrySketchComponentPoint(activeGeometrySketchNode.nodeId, rowId, 'a', {
                 kind: 'lit',
@@ -2004,6 +2021,7 @@ export function ViewportOverlay() {
                 y: axis === 'y' ? nextValue : component.a.y,
               })
             }
+            onChangeEndAxis={() => endGraphParameterInteraction()}
             displayValue={(_axis, value) => formatStableNumber(value)}
             {...buildSketchSessionVec2ClampProps({
               sliderId: `entity:${rowId}:a`,
@@ -2020,6 +2038,7 @@ export function ViewportOverlay() {
             min={-2000}
             max={2000}
             step={0.1}
+            onActivate={beginGraphParameterInteraction}
             onChangeAxis={(axis, nextValue) =>
               updateGeometrySketchComponentPoint(activeGeometrySketchNode.nodeId, rowId, 'b', {
                 kind: 'lit',
@@ -2027,6 +2046,7 @@ export function ViewportOverlay() {
                 y: axis === 'y' ? nextValue : component.b.y,
               })
             }
+            onChangeEndAxis={() => endGraphParameterInteraction()}
             displayValue={(_axis, value) => formatStableNumber(value)}
             {...buildSketchSessionVec2ClampProps({
               sliderId: `entity:${rowId}:b`,
@@ -2045,12 +2065,14 @@ export function ViewportOverlay() {
                 min={0}
                 max={2000}
                 step={0.1}
+                onActivate={beginGraphParameterInteraction}
                 onChange={(nextWidth) =>
                   updateGeometrySketchComponentPoint(activeGeometrySketchNode.nodeId, rowId, 'b', {
                     kind: 'lit',
                     ...updateRectangleWidth(component, nextWidth),
                   })
                 }
+                onChangeEnd={() => endGraphParameterInteraction()}
                 formatValue={(value) => formatStableNumber(value)}
                 {...buildSketchSessionClampProps({
                   sliderId: `entity:${rowId}:width`,
@@ -2068,12 +2090,14 @@ export function ViewportOverlay() {
                 min={0}
                 max={2000}
                 step={0.1}
+                onActivate={beginGraphParameterInteraction}
                 onChange={(nextHeight) =>
                   updateGeometrySketchComponentPoint(activeGeometrySketchNode.nodeId, rowId, 'b', {
                     kind: 'lit',
                     ...updateRectangleHeight(component, nextHeight),
                   })
                 }
+                onChangeEnd={() => endGraphParameterInteraction()}
                 formatValue={(value) => formatStableNumber(value)}
                 {...buildSketchSessionClampProps({
                   sliderId: `entity:${rowId}:height`,
@@ -2879,8 +2903,12 @@ export function ViewportOverlay() {
                                   showContinuousDragPreview={
                                     sketchPlaneToolbarTranslateSnapEnabled
                                   }
-                                  onActivate={() => runSketchPlaneCommand('move-x')}
+                                  onActivate={() => {
+                                    beginGraphParameterInteraction()
+                                    runSketchPlaneCommand('move-x')
+                                  }}
                                   onChange={(value) => setSketchPlanePickTranslationAxis('x', value)}
+                                  onChangeEnd={() => endGraphParameterInteraction()}
                                   formatValue={(value) => `${value.toFixed(1)} mm`}
                                 />
                               </div>
@@ -2904,8 +2932,12 @@ export function ViewportOverlay() {
                                   showContinuousDragPreview={
                                     sketchPlaneToolbarTranslateSnapEnabled
                                   }
-                                  onActivate={() => runSketchPlaneCommand('move-y')}
+                                  onActivate={() => {
+                                    beginGraphParameterInteraction()
+                                    runSketchPlaneCommand('move-y')
+                                  }}
                                   onChange={(value) => setSketchPlanePickTranslationAxis('y', value)}
+                                  onChangeEnd={() => endGraphParameterInteraction()}
                                   formatValue={(value) => `${value.toFixed(1)} mm`}
                                 />
                               </div>
@@ -2929,8 +2961,12 @@ export function ViewportOverlay() {
                                   showContinuousDragPreview={
                                     sketchPlaneToolbarTranslateSnapEnabled
                                   }
-                                  onActivate={() => runSketchPlaneCommand('move-z')}
+                                  onActivate={() => {
+                                    beginGraphParameterInteraction()
+                                    runSketchPlaneCommand('move-z')
+                                  }}
                                   onChange={(value) => setSketchPlanePickTranslationAxis('z', value)}
+                                  onChangeEnd={() => endGraphParameterInteraction()}
                                   formatValue={(value) => `${value.toFixed(1)} mm`}
                                 />
                               </div>
@@ -2949,7 +2985,9 @@ export function ViewportOverlay() {
                                 showContinuousDragPreview={
                                   sketchPlaneToolbarTranslateSnapEnabled
                                 }
+                                onActivate={beginGraphParameterInteraction}
                                 onChangeAxis={setSketchPlanePickTranslationAxis}
+                                onChangeEndAxis={() => endGraphParameterInteraction()}
                                 formatValue={(_axis, value) => `${value.toFixed(1)} mm`}
                                 displayValue={(_axis, value) => value.toFixed(1)}
                               />
@@ -3034,7 +3072,9 @@ export function ViewportOverlay() {
                                   }
                                   allowWrap
                                   showContinuousDragPreview={sketchPlaneToolbarRotateSnapEnabled}
+                                  onActivate={beginGraphParameterInteraction}
                                   onChange={(value) => setSketchPlanePickRotationAxis('x', value)}
+                                  onChangeEnd={() => endGraphParameterInteraction()}
                                   formatValue={(value) => `${value.toFixed(0)} deg`}
                                 />
                               </div>
@@ -3057,7 +3097,9 @@ export function ViewportOverlay() {
                                   }
                                   allowWrap
                                   showContinuousDragPreview={sketchPlaneToolbarRotateSnapEnabled}
+                                  onActivate={beginGraphParameterInteraction}
                                   onChange={(value) => setSketchPlanePickRotationAxis('y', value)}
+                                  onChangeEnd={() => endGraphParameterInteraction()}
                                   formatValue={(value) => `${value.toFixed(0)} deg`}
                                 />
                               </div>
@@ -3080,7 +3122,9 @@ export function ViewportOverlay() {
                                   }
                                   allowWrap
                                   showContinuousDragPreview={sketchPlaneToolbarRotateSnapEnabled}
+                                  onActivate={beginGraphParameterInteraction}
                                   onChange={(value) => setSketchPlanePickRotationAxis('z', value)}
+                                  onChangeEnd={() => endGraphParameterInteraction()}
                                   formatValue={(value) => `${value.toFixed(0)} deg`}
                                 />
                               </div>
@@ -3098,7 +3142,9 @@ export function ViewportOverlay() {
                                 }
                                 allowWrap
                                 showContinuousDragPreview={sketchPlaneToolbarRotateSnapEnabled}
+                                onActivate={beginGraphParameterInteraction}
                                 onChangeAxis={setSketchPlanePickRotationAxis}
+                                onChangeEndAxis={() => endGraphParameterInteraction()}
                                 formatValue={(_axis, value) => `${value.toFixed(0)} deg`}
                                 displayValue={(_axis, value) => value.toFixed(0)}
                               />
@@ -3234,6 +3280,7 @@ export function ViewportOverlay() {
                   event.stopPropagation()
                 }}
                 onClick={() => {
+                  revealFinishedSketch(geometrySketchSession.nodeId)
                   closeGeometrySketchSession()
                 }}
                 disabled={

@@ -423,6 +423,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
       selectCurrentProjectContentBrowserRows({
         currentProject: useAppStore.getState().currentProject,
         projectContent: useAppStore.getState().projectContent,
+        sketchVisibilityByRowId: useAppStore.getState().sketchVisibilityByRowId,
         graphRuntimeByDocumentId: useSpaghettiStore.getState().graphRuntimeByDocumentId,
         graphDocumentsById: useSpaghettiStore.getState().graphDocumentsById,
       }),
@@ -571,30 +572,25 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
       selectCurrentProjectContentBrowserRows({
         currentProject: useAppStore.getState().currentProject,
         projectContent: useAppStore.getState().projectContent,
+        sketchVisibilityByRowId: useAppStore.getState().sketchVisibilityByRowId,
         graphRuntimeByDocumentId: useSpaghettiStore.getState().graphRuntimeByDocumentId,
         graphDocumentsById: useSpaghettiStore.getState().graphDocumentsById,
       }),
     ).toEqual(
         expect.arrayContaining([
-          {
+          expect.objectContaining({
             rowId: 'assembly-root:project-file-1',
             kind: 'assembly',
             label: 'Assembly 1',
             meta: '',
-            buildState: 'rebuild',
-            buildStateLabel: 'Rebuild',
-            rebuildGraphDocumentIds: ['graph-document-1', secondGraphId],
             statusLabel: 'Ready',
             statusTone: 'ready',
-          },
-          {
+          }),
+          expect.objectContaining({
             rowId: `project-object:project-file-1:${secondGraphId}:output-object:slot-linked`,
             kind: 'object',
             label: 'Object 1',
             meta: 'Graph 2',
-            buildState: 'rebuild',
-            buildStateLabel: 'Rebuild',
-            rebuildGraphDocumentIds: [secondGraphId],
             statusLabel: '',
             statusTone: 'quiet',
           ownerGraphDocumentId: secondGraphId,
@@ -608,15 +604,12 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
           highlightViewerKey: 'slot-linked',
           authoringGraphDocumentId: secondGraphId,
           authoringNodeId: 'node-baseplate-2',
-        },
-          {
+        }),
+          expect.objectContaining({
             rowId: 'project-object:project-file-1:receive:graph-document-1:receive-1',
             kind: 'object',
             label: 'slot-linked',
             meta: 'Linked Object',
-            buildState: 'rebuild',
-            buildStateLabel: 'Rebuild',
-            rebuildGraphDocumentIds: ['graph-document-1'],
             statusLabel: '',
             statusTone: 'quiet',
           ownerGraphDocumentId: 'graph-document-1',
@@ -630,7 +623,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
           highlightViewerKey: 'slot-linked',
           authoringGraphDocumentId: secondGraphId,
           authoringNodeId: 'node-baseplate-2',
-        },
+        }),
       ]),
     )
   })
@@ -666,30 +659,25 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
       selectCurrentProjectContentBrowserRows({
         currentProject: useAppStore.getState().currentProject,
         projectContent: useAppStore.getState().projectContent,
+        sketchVisibilityByRowId: useAppStore.getState().sketchVisibilityByRowId,
         graphRuntimeByDocumentId: useSpaghettiStore.getState().graphRuntimeByDocumentId,
         graphDocumentsById: useSpaghettiStore.getState().graphDocumentsById,
       }),
     ).toEqual(
         expect.arrayContaining([
-          {
+          expect.objectContaining({
             rowId: 'assembly-root:project-file-1',
             kind: 'assembly',
             label: 'Assembly 1',
             meta: '',
-            buildState: 'rebuild',
-            buildStateLabel: 'Rebuild',
-            rebuildGraphDocumentIds: ['graph-document-1'],
             statusLabel: 'Unresolved',
             statusTone: 'warning',
-          },
-          {
+          }),
+          expect.objectContaining({
             rowId: 'project-object:project-file-1:receive:graph-document-1:receive-1',
             kind: 'object',
             label: 'output-entry:slot-missing:node-missing-1',
             meta: 'Unresolved Link',
-            buildState: 'rebuild',
-            buildStateLabel: 'Rebuild',
-            rebuildGraphDocumentIds: ['graph-document-1'],
             statusLabel: 'Unresolved',
             statusTone: 'warning',
           ownerGraphDocumentId: 'graph-document-1',
@@ -703,7 +691,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
           highlightViewerKey: null,
           authoringGraphDocumentId: secondGraphId,
           authoringNodeId: null,
-        },
+        }),
       ]),
     )
   })
@@ -760,6 +748,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
       selectCurrentProjectContentBrowserRows({
         currentProject: useAppStore.getState().currentProject,
         projectContent: useAppStore.getState().projectContent,
+        sketchVisibilityByRowId: useAppStore.getState().sketchVisibilityByRowId,
         graphRuntimeByDocumentId: useSpaghettiStore.getState().graphRuntimeByDocumentId,
         graphDocumentsById: useSpaghettiStore.getState().graphDocumentsById,
       }),
@@ -777,6 +766,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
           kind: 'sketch',
           label: 'Sketch 1',
           meta: 'Graph 1 | YZ | 1 comp | 0 profiles',
+          isVisible: false,
           statusLabel: 'Draft',
           ownerGraphDocumentId: 'graph-document-1',
           graphDocumentId: 'graph-document-1',
@@ -807,13 +797,12 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
       .createGraphDocument(createValidBaseplateGraph(), 'Graph 2')
     useSpaghettiStore.getState().openGraphDocumentInViewport(secondGraphId)
 
-    const requestBuildSpy = vi.spyOn(buildDispatcher, 'requestBuild').mockReturnValue(41)
+    const requestBuildSpy = vi.spyOn(buildDispatcher, 'requestGraphBuild').mockReturnValue(41)
 
     const compileResult = useAppStore.getState().requestSpaghettiBuild()
 
     expect(compileResult.ok).toBe(true)
     expect(requestBuildSpy).toHaveBeenCalledWith(
-      expect.any(Object),
       expect.objectContaining({
         routingIdentity: expect.objectContaining({
           projectFileId: selectCurrentProjectId(useAppStore.getState()),
@@ -825,6 +814,357 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     expect(
       useSpaghettiStore.getState().graphRuntimeByDocumentId[secondGraphId]?.compileBuild.inFlightBuildSeq,
     ).toBe(41)
+  })
+
+  it('cycles browser graph build policy through live, release, manual, off, and back to live', async () => {
+    const { useAppStore } = await import('./useAppStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+
+    expect(useAppStore.getState().browserGraphBuildPolicyByGraphDocumentId['graph-document-1']).toBe(
+      undefined,
+    )
+
+    useAppStore.getState().cycleBrowserGraphBuildPolicy('graph-document-1')
+    expect(useAppStore.getState().browserGraphBuildPolicyByGraphDocumentId['graph-document-1']).toBe(
+      'release',
+    )
+
+    useAppStore.getState().cycleBrowserGraphBuildPolicy('graph-document-1')
+    expect(useAppStore.getState().browserGraphBuildPolicyByGraphDocumentId['graph-document-1']).toBe(
+      'manual',
+    )
+
+    useAppStore.getState().cycleBrowserGraphBuildPolicy('graph-document-1')
+    expect(useAppStore.getState().browserGraphBuildPolicyByGraphDocumentId['graph-document-1']).toBe(
+      'off',
+    )
+
+    useAppStore.getState().cycleBrowserGraphBuildPolicy('graph-document-1')
+    expect(useAppStore.getState().browserGraphBuildPolicyByGraphDocumentId['graph-document-1']).toBe(
+      'live',
+    )
+  })
+
+  it('cycles browser content build policy through live, release, manual, off, and back to live', async () => {
+    const { useAppStore } = await import('./useAppStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+
+    expect(
+      useAppStore.getState().browserContentBuildPolicyByRowId['project-component:test'],
+    ).toBe(undefined)
+
+    useAppStore.getState().cycleBrowserContentBuildPolicy('project-component:test')
+    expect(
+      useAppStore.getState().browserContentBuildPolicyByRowId['project-component:test'],
+    ).toBe('release')
+
+    useAppStore.getState().cycleBrowserContentBuildPolicy('project-component:test')
+    expect(
+      useAppStore.getState().browserContentBuildPolicyByRowId['project-component:test'],
+    ).toBe('manual')
+
+    useAppStore.getState().cycleBrowserContentBuildPolicy('project-component:test')
+    expect(
+      useAppStore.getState().browserContentBuildPolicyByRowId['project-component:test'],
+    ).toBe('off')
+
+    useAppStore.getState().cycleBrowserContentBuildPolicy('project-component:test')
+    expect(
+      useAppStore.getState().browserContentBuildPolicyByRowId['project-component:test'],
+    ).toBe('live')
+  })
+
+  it('cycles browser content build policy from an inherited base policy when no authored value exists', async () => {
+    const { useAppStore } = await import('./useAppStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+
+    useAppStore.getState().cycleBrowserContentBuildPolicy('project-component:test', 'manual')
+    expect(
+      useAppStore.getState().browserContentBuildPolicyByRowId['project-component:test'],
+    ).toBe('off')
+  })
+
+  it('returns browser-authored policy lookups as null when unset', async () => {
+    const { useAppStore } = await import('./useAppStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+
+    expect(useAppStore.getState().getBrowserGraphBuildPolicy('graph-document-1')).toBeNull()
+    expect(useAppStore.getState().getBrowserContentBuildPolicy('project-component:test')).toBeNull()
+
+    useAppStore.getState().setBrowserGraphBuildPolicy('graph-document-1', 'release')
+    useAppStore.getState().setBrowserContentBuildPolicy('project-component:test', 'manual')
+
+    expect(useAppStore.getState().getBrowserGraphBuildPolicy('graph-document-1')).toBe('release')
+    expect(useAppStore.getState().getBrowserContentBuildPolicy('project-component:test')).toBe(
+      'manual',
+    )
+  })
+
+  it('auto-builds live graph revisions immediately through the browser runtime policy path', async () => {
+    const { buildDispatcher } = await import('../buildDispatcher')
+    const { useAppStore } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    const { createValidBaseplateGraph } = await import('../spaghetti/dev/sampleGraph')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+
+    const previewPreparation = createPreviewPreparation([
+      {
+        slotId: 'slot-baseplate',
+        sourceNodeId: 'node-baseplate-1',
+        sourcePartKey: 'baseplate',
+      },
+    ])
+
+    useSpaghettiStore.setState((state) => ({
+      graphRuntimeByDocumentId: {
+        ...state.graphRuntimeByDocumentId,
+        'graph-document-1': {
+          ...state.graphRuntimeByDocumentId['graph-document-1'],
+          previewPreparation,
+        },
+      },
+    }))
+
+    const requestBuildSpy = vi.spyOn(buildDispatcher, 'requestGraphBuild').mockReturnValue(91)
+
+    useSpaghettiStore.getState().setGraph(createValidBaseplateGraph())
+
+    expect(requestBuildSpy).toHaveBeenCalledTimes(1)
+    expect(requestBuildSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        routingIdentity: expect.objectContaining({
+          graphDocumentId: 'graph-document-1',
+        }),
+      }),
+    )
+  })
+
+  it('queues release graph revisions until the interaction ends', async () => {
+    const { buildDispatcher } = await import('../buildDispatcher')
+    const { useAppStore } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    const { createValidBaseplateGraph } = await import('../spaghetti/dev/sampleGraph')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+
+    const previewPreparation = createPreviewPreparation([
+      {
+        slotId: 'slot-baseplate',
+        sourceNodeId: 'node-baseplate-1',
+        sourcePartKey: 'baseplate',
+      },
+    ])
+
+    useSpaghettiStore.setState((state) => ({
+      graphRuntimeByDocumentId: {
+        ...state.graphRuntimeByDocumentId,
+        'graph-document-1': {
+          ...state.graphRuntimeByDocumentId['graph-document-1'],
+          previewPreparation,
+        },
+      },
+    }))
+
+    const requestBuildSpy = vi.spyOn(buildDispatcher, 'requestGraphBuild').mockReturnValue(92)
+
+    useAppStore.getState().setBrowserGraphBuildPolicy('graph-document-1', 'release')
+    useAppStore.getState().beginBrowserBuildInteraction('graph-document-1')
+    useSpaghettiStore.getState().setGraph(createValidBaseplateGraph())
+
+    expect(requestBuildSpy).not.toHaveBeenCalled()
+    expect(useAppStore.getState().pendingBrowserBuildGraphDocumentIds).toMatchObject({
+      'graph-document-1': true,
+    })
+
+    useAppStore.getState().endBrowserBuildInteraction('graph-document-1')
+
+    expect(requestBuildSpy).toHaveBeenCalledTimes(1)
+    expect(useAppStore.getState().pendingBrowserBuildGraphDocumentIds['graph-document-1']).toBe(
+      undefined,
+    )
+  })
+
+  it('keeps manual graphs dirty until an explicit browser build is requested', async () => {
+    const { buildDispatcher } = await import('../buildDispatcher')
+    const { useAppStore } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    const { createValidBaseplateGraph } = await import('../spaghetti/dev/sampleGraph')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+
+    const previewPreparation = createPreviewPreparation([
+      {
+        slotId: 'slot-baseplate',
+        sourceNodeId: 'node-baseplate-1',
+        sourcePartKey: 'baseplate',
+      },
+    ])
+
+    useSpaghettiStore.setState((state) => ({
+      graphRuntimeByDocumentId: {
+        ...state.graphRuntimeByDocumentId,
+        'graph-document-1': {
+          ...state.graphRuntimeByDocumentId['graph-document-1'],
+          previewPreparation,
+        },
+      },
+    }))
+
+    const requestBuildSpy = vi.spyOn(buildDispatcher, 'requestGraphBuild').mockReturnValue(93)
+
+    useAppStore.getState().setBrowserGraphBuildPolicy('graph-document-1', 'manual')
+    useSpaghettiStore.getState().setGraph(createValidBaseplateGraph())
+
+    expect(requestBuildSpy).not.toHaveBeenCalled()
+    expect(
+      useSpaghettiStore.getState().graphRuntimeByDocumentId['graph-document-1']?.compileBuild
+        .currentGraphRevision,
+    ).toBeGreaterThan(
+      useSpaghettiStore.getState().graphRuntimeByDocumentId['graph-document-1']?.compileBuild
+        .latestAcceptedGraphRevision ?? -1,
+    )
+
+    useAppStore.getState().requestBrowserGraphDocumentBuild('graph-document-1', {
+      explicit: true,
+    })
+
+    expect(requestBuildSpy).toHaveBeenCalledTimes(1)
+  })
+
+  it('lets an independent child outrun parent off in the browser execution-policy selector', async () => {
+    const {
+      selectEffectiveBrowserExecutionPolicy,
+      selectCurrentProjectContentBrowserRows,
+      useAppStore,
+    } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+
+    const previewPreparation = createPreviewPreparation([
+      {
+        slotId: 'slot-baseplate',
+        sourceNodeId: 'node-baseplate-1',
+        sourcePartKey: 'baseplate',
+      },
+    ])
+
+    useSpaghettiStore.setState((state) => ({
+      graphRuntimeByDocumentId: {
+        ...state.graphRuntimeByDocumentId,
+        'graph-document-1': {
+          ...state.graphRuntimeByDocumentId['graph-document-1'],
+          previewPreparation,
+          acceptedBuildOutputs: [baseplateArtifact],
+          outputSurface: buildGraphOutputSurface({
+            graphDocumentId: 'graph-document-1',
+            previewPreparation,
+            acceptedBuildOutputs: [baseplateArtifact],
+            publishedAtBuildSeq: 7,
+          }),
+        },
+      },
+    }))
+
+    const initialObjectRow = selectCurrentProjectContentBrowserRows({
+      currentProject: useAppStore.getState().currentProject,
+      projectContent: useAppStore.getState().projectContent,
+      sketchVisibilityByRowId: useAppStore.getState().sketchVisibilityByRowId,
+      graphRuntimeByDocumentId: useSpaghettiStore.getState().graphRuntimeByDocumentId,
+      graphDocumentsById: useSpaghettiStore.getState().graphDocumentsById,
+    }).find((row) => row.kind === 'object' && row.ownerGraphDocumentId === 'graph-document-1')
+    expect(initialObjectRow?.rowId).toBeTruthy()
+
+    useAppStore.getState().setBrowserContentBuildPolicy(initialObjectRow!.rowId, 'live')
+    useAppStore.getState().setBrowserGraphBuildPolicy('graph-document-1', 'off')
+    expect(
+      selectCurrentProjectContentBrowserRows({
+        currentProject: useAppStore.getState().currentProject,
+        projectContent: useAppStore.getState().projectContent,
+        sketchVisibilityByRowId: useAppStore.getState().sketchVisibilityByRowId,
+        graphRuntimeByDocumentId: useSpaghettiStore.getState().graphRuntimeByDocumentId,
+        graphDocumentsById: useSpaghettiStore.getState().graphDocumentsById,
+      }),
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowId: initialObjectRow?.rowId,
+          ownerGraphDocumentId: 'graph-document-1',
+        }),
+      ]),
+    )
+
+    expect(
+      selectEffectiveBrowserExecutionPolicy(useAppStore.getState(), {
+        kind: 'graph-document',
+        graphDocumentId: 'graph-document-1',
+      }),
+    ).toBe('live')
+  })
+
+  it('suppresses off graph output from project content until the graph is re-enabled', async () => {
+    const { selectCurrentProjectContentBrowserRows, useAppStore } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+
+    const previewPreparation = createPreviewPreparation([
+      {
+        slotId: 'slot-baseplate',
+        sourceNodeId: 'node-baseplate-1',
+        sourcePartKey: 'baseplate',
+      },
+    ])
+
+    useSpaghettiStore.setState((state) => ({
+      graphRuntimeByDocumentId: {
+        ...state.graphRuntimeByDocumentId,
+        'graph-document-1': {
+          ...state.graphRuntimeByDocumentId['graph-document-1'],
+          previewPreparation,
+          acceptedBuildOutputs: [baseplateArtifact],
+          outputSurface: buildGraphOutputSurface({
+            graphDocumentId: 'graph-document-1',
+            previewPreparation,
+            acceptedBuildOutputs: [baseplateArtifact],
+            publishedAtBuildSeq: 8,
+          }),
+        },
+      },
+    }))
+
+    const listRows = () =>
+      selectCurrentProjectContentBrowserRows({
+        currentProject: useAppStore.getState().currentProject,
+        projectContent: useAppStore.getState().projectContent,
+        sketchVisibilityByRowId: useAppStore.getState().sketchVisibilityByRowId,
+        graphRuntimeByDocumentId: useSpaghettiStore.getState().graphRuntimeByDocumentId,
+        graphDocumentsById: useSpaghettiStore.getState().graphDocumentsById,
+      })
+
+    expect(listRows().some((row) => row.kind === 'object' && row.ownerGraphDocumentId === 'graph-document-1')).toBe(
+      true,
+    )
+
+    useAppStore.getState().setBrowserGraphBuildPolicy('graph-document-1', 'off')
+    expect(listRows().some((row) => row.kind === 'object' && row.ownerGraphDocumentId === 'graph-document-1')).toBe(
+      false,
+    )
+
+    useAppStore.getState().clearBrowserGraphBuildPolicy('graph-document-1')
+    expect(listRows().some((row) => row.kind === 'object' && row.ownerGraphDocumentId === 'graph-document-1')).toBe(
+      true,
+    )
   })
 
   it('updates current project graph membership when a graph document is loaded from file', async () => {

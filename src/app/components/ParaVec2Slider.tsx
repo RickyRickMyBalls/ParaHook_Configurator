@@ -18,6 +18,8 @@ type ParaVec2SliderProps = {
   max: number
   step: number
   onChangeAxis: (axis: Vec2Axis, value: number) => void
+  onActivate?: () => void
+  onChangeEndAxis?: (axis: Vec2Axis, value: number) => void
   clampMin?: Partial<Record<Vec2Axis, number>>
   clampMax?: Partial<Record<Vec2Axis, number>>
   isEditingClamp?: boolean
@@ -36,6 +38,8 @@ export function ParaVec2Slider({
   max,
   step,
   onChangeAxis,
+  onActivate,
+  onChangeEndAxis,
   clampMin,
   clampMax,
   isEditingClamp = false,
@@ -82,7 +86,13 @@ export function ParaVec2Slider({
             allowWrap={allowWrap}
             showContinuousDragPreview={showContinuousDragPreview}
             hideCaps
+            onActivate={onActivate}
             onChange={(nextValue) => onChangeAxis(axis, nextValue)}
+            onChangeEnd={
+              onChangeEndAxis === undefined
+                ? undefined
+                : (nextValue) => onChangeEndAxis(axis, nextValue)
+            }
             formatValue={(nextValue) => formatValue(axis, nextValue)}
           />
         </div>

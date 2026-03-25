@@ -4,6 +4,8 @@ import type {
   CachedGraphEntry,
   GraphRuntimeState,
 } from '../spaghetti/store/useSpaghettiStore'
+import type { BrowserBuildPolicy } from '../store/useAppStore'
+import type { BrowserBuildPolicySource } from './selectBrowserTreeRows'
 
 export type BrowserPublishedGraphOutputRowVm = {
   rowId: string
@@ -29,6 +31,10 @@ export type BrowserGraphRowVm = {
   hasFocusedViewport: boolean
   buildState: 'rebuild' | 'building' | 'done'
   buildStateLabel: string
+  authoredBrowserBuildPolicy: BrowserBuildPolicy | null
+  effectiveBrowserBuildPolicy: BrowserBuildPolicy
+  effectiveBrowserBuildPolicySource: BrowserBuildPolicySource
+  effectiveBrowserBuildPolicySourceLabel: string | null
   publishedOutputRows: BrowserPublishedGraphOutputRowVm[]
 }
 
@@ -56,6 +62,8 @@ export const selectBrowserGraphRows = (options: {
   cachedGraphEntriesById: Record<string, CachedGraphEntry>
   graphDocumentsById: Record<string, GraphDocument>
   graphRuntimeByDocumentId: Record<string, GraphRuntimeState>
+  browserGraphBuildPolicyByGraphDocumentId?: Record<string, BrowserBuildPolicy>
+  suppressedGraphDocumentIds?: ReadonlySet<string>
   activeGraphDocumentId: string
   openViewportCountByGraphDocumentId: ReadonlyMap<string, number>
   hasFocusedViewportByGraphDocumentId: ReadonlyMap<string, boolean>
@@ -66,6 +74,8 @@ export const selectBrowserGraphRows = (options: {
     cachedGraphEntryOrder,
     graphDocumentsById,
     graphRuntimeByDocumentId,
+    browserGraphBuildPolicyByGraphDocumentId = {},
+    suppressedGraphDocumentIds = new Set<string>(),
     hasFocusedViewportByGraphDocumentId,
     openViewportCountByGraphDocumentId,
   } = options
@@ -87,6 +97,8 @@ export const selectBrowserGraphRows = (options: {
         hasFocusedViewportByGraphDocumentId.get(document.graphDocumentId) ?? false
       const lifecycleStatus = entry.isDirty ? 'Dirty' : 'Saved'
       const runtime = graphRuntimeByDocumentId[document.graphDocumentId]
+      const authoredBrowserBuildPolicy =
+        browserGraphBuildPolicyByGraphDocumentId[document.graphDocumentId] ?? null
       const currentGraphRevision = runtime?.compileBuild?.currentGraphRevision ?? 0
       const latestAcceptedGraphRevision =
         runtime?.compileBuild?.latestAcceptedGraphRevision ?? null
@@ -109,7 +121,10 @@ export const selectBrowserGraphRows = (options: {
               ? 'Open editor'
               : `${openViewportCount} editors`
 
-      const outputSurface = runtime?.outputSurface ?? null
+      const outputSurface =
+        suppressedGraphDocumentIds.has(document.graphDocumentId)
+          ? null
+          : runtime?.outputSurface ?? null
       const publishedOutputRows = (outputSurface?.entries ?? []).map((publishedEntry) => ({
         rowId: `published-output-row:${document.graphDocumentId}:${publishedEntry.outputEntryId}`,
         outputEntryId: publishedEntry.outputEntryId,
@@ -135,6 +150,11 @@ export const selectBrowserGraphRows = (options: {
         buildState,
         buildStateLabel:
           buildState === 'building' ? 'Building' : buildState === 'done' ? 'Done' : 'Rebuild',
+        authoredBrowserBuildPolicy,
+        effectiveBrowserBuildPolicy: authoredBrowserBuildPolicy ?? 'live',
+        effectiveBrowserBuildPolicySource: authoredBrowserBuildPolicy === null ? 'default' : 'self',
+        effectiveBrowserBuildPolicySourceLabel:
+          authoredBrowserBuildPolicy === null ? null : document.name,
         publishedOutputRows,
       } satisfies BrowserGraphRowVm)
       return rows

@@ -52,6 +52,7 @@ import type {
   GeometrySketchOverlayVm,
   GeometrySketchSnapTarget,
   SketchPlanePickOverlayVm,
+  VisibleGeometrySketchOverlayVm,
 } from '../app/viewerBridge'
 import { loadStepReferenceObject } from './stepReferenceLoader'
 import { createViewerGeometryFromArtifactMesh } from './artifactMeshGeometry'
@@ -66,7 +67,11 @@ import { AxisGizmo, type SnapDirection } from './overlay/AxisGizmo'
 import { CameraController, type CameraPose, type CameraPreset } from './scene/CameraController'
 import { SketchPlanePickHelper } from './sketch/SketchPlanePickHelper'
 import { GeometrySketchDrawHelper } from './sketch/GeometrySketchDrawHelper'
-import { getSketchPlaneWorldNormal, getSketchPlaneWorldOrigin } from './sketch/sketchPlaneMath'
+import {
+  getSketchPlaneWorldNormal,
+  getSketchPlaneWorldOrigin,
+  getSketchPlaneWorldYAxis,
+} from './sketch/sketchPlaneMath'
 import type { SketchPlane, SketchPlaneTransform } from '../app/spaghetti/features/featureTypes'
 import type { GeometrySketchSelectionWindowDraft } from '../app/spaghetti/store/useSpaghettiStore'
 
@@ -210,6 +215,7 @@ export class Viewer {
   private readonly clock: Clock
   private readonly rootGroup: Group
   private readonly geometrySketchOverlayGroup: Group
+  private readonly visibleGeometrySketchOverlayGroup: Group
   private readonly gridGroup: Group
   private readonly minorGridHelper: LineSegments
   private readonly majorGridHelper: LineSegments
@@ -401,6 +407,9 @@ export class Viewer {
     this.geometrySketchOverlayGroup = new Group()
     this.geometrySketchOverlayGroup.renderOrder = 96
     this.scene.add(this.geometrySketchOverlayGroup)
+    this.visibleGeometrySketchOverlayGroup = new Group()
+    this.visibleGeometrySketchOverlayGroup.renderOrder = 94
+    this.scene.add(this.visibleGeometrySketchOverlayGroup)
     this.sketchPlanePickHelper = new SketchPlanePickHelper()
     this.scene.add(this.sketchPlanePickHelper.getGroup())
     this.geometrySketchDrawHelper = new GeometrySketchDrawHelper()
@@ -619,6 +628,12 @@ export class Viewer {
 
   public setProjectionMode(mode: ProjectionMode): void {
     this.cameraController.setProjectionMode(mode)
+    if (
+      this.geometrySketchOverlay?.mode === 'draw' &&
+      this.geometrySketchOverlay.activeTool === null
+    ) {
+      this.alignCameraToGeometrySketchPlaneInternal(this.geometrySketchOverlay)
+    }
     this.transformGizmo.setCamera(this.cameraController.getActiveCamera())
   }
 
@@ -1100,7 +1115,7 @@ export class Viewer {
       this.onGeometrySketchSelectionWindowDraftChange?.(null)
       this.onGeometrySketchHoverComponent?.(null)
     }
-    this.clearGeometrySketchOverlay()
+    this.clearGeometrySketchOverlayGroup(this.geometrySketchOverlayGroup)
     this.geometrySketchDrawHelper.setOverlay(overlay)
     this.gridGroup.visible =
       overlay?.mode === 'draw' ? false : this.currentViewSettings.gridVisible
@@ -1119,34 +1134,7 @@ export class Viewer {
       return
     }
 
-    for (const polyline of buildGeometrySketchRenderPolylines(overlay)) {
-      if (polyline.points.length < 2) {
-        continue
-      }
-      const geometry = new BufferGeometry()
-      geometry.setFromPoints(
-        polyline.points.map((point) => new Vector3(point.x, point.y, point.z)),
-      )
-      const line = new Line(geometry, this.getGeometrySketchMaterial(polyline.layer))
-      line.frustumCulled = false
-      line.renderOrder =
-        polyline.layer === 'selectedComponent'
-          ? 99
-          : polyline.layer === 'hoveredComponent'
-            ? 98
-            : polyline.layer === 'selectedProfile'
-              ? 98
-              : polyline.layer === 'profile'
-                ? 97
-                : polyline.layer === 'selectionWindowWindow' ||
-                    polyline.layer === 'selectionWindowCrossing'
-                  ? 100
-                  : 96
-      if (polyline.layer === 'component' && typeof polyline.componentRowId === 'string') {
-        line.userData.geometrySketchComponentRowId = polyline.componentRowId
-      }
-      this.geometrySketchOverlayGroup.add(line)
-    }
+    this.renderGeometrySketchOverlayPolylines(this.geometrySketchOverlayGroup, overlay)
 
     if (overlay.mode === 'draw') {
       const nextAlignKey = JSON.stringify({
@@ -1162,6 +1150,33 @@ export class Viewer {
       }
     } else {
       this.geometrySketchCameraAlignKey = null
+    }
+  }
+
+  public setVisibleGeometrySketchOverlays(overlays: VisibleGeometrySketchOverlayVm[]): void {
+    this.clearGeometrySketchOverlayGroup(this.visibleGeometrySketchOverlayGroup)
+    for (const overlay of overlays) {
+      this.renderGeometrySketchOverlayPolylines(this.visibleGeometrySketchOverlayGroup, {
+        mode: 'review',
+        plane: overlay.plane,
+        planeTransform: overlay.planeTransform,
+        drawStage: null,
+        activeTool: null,
+        components: overlay.components,
+        profiles: overlay.profiles,
+        drawDraft: null,
+        ui: {
+          snapEnabled: false,
+          snapDistancePx: 0,
+          crosshairSize: 0,
+          startPointVisible: false,
+          startPointSymbolSize: 0,
+          startPointSymbolType: 'circle',
+          plinePointVisible: false,
+          plinePointSymbolSize: 0,
+          plinePointSymbolType: 'circle',
+        },
+      })
     }
   }
 
@@ -1361,7 +1376,8 @@ export class Viewer {
     this.clearReferenceObjects()
     this.clearAssembledMesh()
     this.clearAllLights()
-    this.clearGeometrySketchOverlay()
+    this.clearGeometrySketchOverlayGroup(this.geometrySketchOverlayGroup)
+    this.clearGeometrySketchOverlayGroup(this.visibleGeometrySketchOverlayGroup)
 
     for (const material of this.materialCacheByPresetId.values()) {
       material.dispose()
@@ -2202,12 +2218,46 @@ export class Viewer {
     return this.geometrySketchComponentMaterial
   }
 
-  private clearGeometrySketchOverlay(): void {
-    this.geometrySketchOverlayGroup.children.forEach((child) => {
+  private clearGeometrySketchOverlayGroup(group: Group): void {
+    group.children.forEach((child) => {
       const line = child as Line
       line.geometry.dispose()
     })
-    this.geometrySketchOverlayGroup.clear()
+    group.clear()
+  }
+
+  private renderGeometrySketchOverlayPolylines(
+    group: Group,
+    overlay: GeometrySketchOverlayVm,
+  ): void {
+    for (const polyline of buildGeometrySketchRenderPolylines(overlay)) {
+      if (polyline.points.length < 2) {
+        continue
+      }
+      const geometry = new BufferGeometry()
+      geometry.setFromPoints(
+        polyline.points.map((point) => new Vector3(point.x, point.y, point.z)),
+      )
+      const line = new Line(geometry, this.getGeometrySketchMaterial(polyline.layer))
+      line.frustumCulled = false
+      line.renderOrder =
+        polyline.layer === 'selectedComponent'
+          ? 99
+          : polyline.layer === 'hoveredComponent'
+            ? 98
+            : polyline.layer === 'selectedProfile'
+              ? 98
+              : polyline.layer === 'profile'
+                ? 97
+                : polyline.layer === 'selectionWindowWindow' ||
+                    polyline.layer === 'selectionWindowCrossing'
+                  ? 100
+                  : 96
+      if (group === this.geometrySketchOverlayGroup && polyline.layer === 'component' && typeof polyline.componentRowId === 'string') {
+        line.userData.geometrySketchComponentRowId = polyline.componentRowId
+      }
+      group.add(line)
+    }
   }
 
   private getHoveredGeometrySketchComponentId(
@@ -2254,19 +2304,27 @@ export class Viewer {
   private alignCameraToGeometrySketchPlaneInternal(overlay: GeometrySketchOverlayVm): void {
     const planeOrigin = getSketchPlaneWorldOrigin(overlay.plane, overlay.planeTransform)
     const planeNormal = getSketchPlaneWorldNormal(overlay.plane, overlay.planeTransform)
+    const planeYAxis = getSketchPlaneWorldYAxis(overlay.plane, overlay.planeTransform)
     const controls = this.cameraController.getControls()
     const currentViewDirection = this.cameraController
       .getActiveCamera()
       .position.clone()
       .sub(controls.target)
       .normalize()
+    const currentUp = this.cameraController.getActiveCamera().up.clone().normalize()
     const oppositeNormal = planeNormal.clone().multiplyScalar(-1)
     const preferredDirection =
       currentViewDirection.dot(planeNormal) >= currentViewDirection.dot(oppositeNormal)
         ? planeNormal
         : oppositeNormal
+    const oppositePlaneYAxis = planeYAxis.clone().multiplyScalar(-1)
+    const preferredUp =
+      currentUp.dot(planeYAxis) >= currentUp.dot(oppositePlaneYAxis)
+        ? planeYAxis
+        : oppositePlaneYAxis
     this.cameraController.animateToDirection(preferredDirection, {
       target: planeOrigin,
+      up: preferredUp,
       durationMs: 320,
     })
   }
