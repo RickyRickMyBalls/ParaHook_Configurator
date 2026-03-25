@@ -135,10 +135,8 @@ export function AppShell() {
   useEffect(() => {
     if (!isBrowserFloating && workspaceActiveSurface === 'browser') {
       setActiveFloatingShell(null)
-      setActiveSurface(null)
-      requestConsoleContextSync('surface-clear')
     }
-  }, [isBrowserFloating, requestConsoleContextSync, setActiveSurface, workspaceActiveSurface])
+  }, [isBrowserFloating, workspaceActiveSurface])
 
   useEffect(() => {
     if (

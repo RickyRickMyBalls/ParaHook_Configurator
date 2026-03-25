@@ -1,3 +1,5 @@
+import type { ConsoleWorkspaceContextTarget } from '../store/useAppStore'
+
 export type ConsoleStagedNodeOption = {
   nodeId: string
   label?: string
@@ -26,6 +28,16 @@ export type ConsoleStagedNavigationContext = {
     hasPrevious: boolean
     preferredTool: 'LINE' | 'PLINE' | 'RECTANGLE' | 'CIRCLE' | null
   }
+  referenceCategories: Array<{
+    categoryId: string
+    label: string
+    canLoadAll: boolean
+    items: Array<{
+      referenceId: string
+      label: string
+      canLoadModel: boolean
+    }>
+  }>
 }
 
 export type ConsoleStagedNavigationChoiceKind = 'scope' | 'action'
@@ -35,6 +47,8 @@ export type ConsoleStagedNavigationChoice = {
   aliases: string[]
   label: string
   kind: ConsoleStagedNavigationChoiceKind
+  referenceCategoryId?: string
+  referenceId?: string
 }
 
 export type ConsoleStagedNavigationScopeId =
@@ -60,11 +74,20 @@ export type ConsoleStagedNavigationScopeId =
   | 'graphExtrudeSelected'
   | 'graphOutputPreviewList'
   | 'graphOutputPreviewSelected'
+  | 'contentAssemblySelected'
+  | 'contentComponentSelected'
+  | 'contentObjectSelected'
+  | 'multiSelectSelected'
+  | 'referencesSelected'
+  | 'referenceCategorySelected'
+  | 'referenceSelected'
 
 export type ConsoleStagedNavigationSelection = {
   graphDocumentId: string | null
   selectedNodeId: string | null
   sketchNodeId: string | null
+  referenceId?: string | null
+  referenceCategoryId?: string | null
 }
 
 export type ConsoleStagedNavigationSession = {
@@ -122,6 +145,12 @@ export type ConsoleStagedNavigationExecuteResult = {
     | 'sketch.plane'
     | 'sketch.draw'
     | 'node.delete'
+    | 'reference.loadAll'
+    | 'reference.category.loadAll'
+    | 'reference.loadModel'
+    | 'reference.transform.move'
+    | 'reference.transform.rotate'
+    | 'reference.transform.scale'
   breadcrumb: string[]
   selections: ConsoleStagedNavigationSelection
 }
@@ -162,6 +191,13 @@ const ROOT_GRAPH_CHOICE: ConsoleStagedNavigationChoice = {
   canonicalToken: 'GRAPH',
   aliases: ['G'],
   label: 'Graph',
+  kind: 'scope',
+}
+
+const ROOT_REFERENCES_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'REFERENCES',
+  aliases: ['REF', 'REFS', 'REFERENCE', 'REFRENCE'],
+  label: 'References',
   kind: 'scope',
 }
 
@@ -487,6 +523,76 @@ const NODE_DELETE_CHOICE: ConsoleStagedNavigationChoice = {
   kind: 'action',
 }
 
+const REFERENCE_LOAD_MODEL_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'LOAD MODEL',
+  aliases: ['LOADMODEL', 'LM'],
+  label: 'Load Model',
+  kind: 'action',
+}
+
+const REFERENCES_LOAD_ALL_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'LOAD ALL',
+  aliases: ['LOADALL', 'LA'],
+  label: 'Load All',
+  kind: 'action',
+}
+
+const getReferenceCategoryAliases = (categoryId: string): string[] => {
+  switch (categoryId) {
+    case 'footpads':
+      return ['FP', 'FOODPADS']
+    case 'shoes':
+      return ['SH']
+    case 'premade-foothooks':
+      return ['PF', 'PFH', 'PREMADEFOOTHOOKS']
+    default:
+      return []
+  }
+}
+
+const createReferenceCategoryChoice = (
+  categoryId: string,
+  label: string,
+): ConsoleStagedNavigationChoice => ({
+  canonicalToken: label.toUpperCase(),
+  aliases: getReferenceCategoryAliases(categoryId),
+  label,
+  kind: 'scope',
+  referenceCategoryId: categoryId,
+})
+
+const createReferenceItemChoice = (
+  referenceId: string,
+  label: string,
+): ConsoleStagedNavigationChoice => ({
+  canonicalToken: label.toUpperCase(),
+  aliases: [],
+  label,
+  kind: 'scope',
+  referenceId,
+})
+
+const MOVE_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'MOVE',
+  aliases: ['M'],
+  label: 'Move',
+  kind: 'action',
+}
+
+const ROTATE_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'ROTATE',
+  aliases: ['R'],
+  label: 'Rotate',
+  kind: 'action',
+}
+
+const SCALE_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'SCALE',
+  aliases: ['S'],
+  label: 'Scale',
+  kind: 'action',
+}
+
 const createBackChoice = (): ConsoleStagedNavigationChoice => ({
   canonicalToken: 'BACK',
   aliases: ['B'],
@@ -501,6 +607,7 @@ const matchesChoice = (choice: ConsoleStagedNavigationChoice, normalizedToken: s
 
 const buildRootChoices = (): ConsoleStagedNavigationChoice[] => [
   ROOT_GRAPH_CHOICE,
+  ROOT_REFERENCES_CHOICE,
   ROOT_CAMERA_CHOICE,
   ROOT_RADIO_CHOICE,
   ROOT_ZOOM_CHOICE,
@@ -693,6 +800,36 @@ const buildGraphNodeSelectedChoices = (): ConsoleStagedNavigationChoice[] => [
   createBackChoice(),
 ]
 
+const buildContentSelectedChoices = (): ConsoleStagedNavigationChoice[] => [createBackChoice()]
+const buildMultiSelectSelectedChoices = (): ConsoleStagedNavigationChoice[] => [createBackChoice()]
+
+const buildReferencesSelectedChoices = (
+  categoryOptions: Array<{ categoryId: string; label: string; canLoadAll?: boolean }>,
+  canLoadAll: boolean,
+): ConsoleStagedNavigationChoice[] => [
+  ...categoryOptions.map((category) =>
+    createReferenceCategoryChoice(category.categoryId, category.label),
+  ),
+  ...(canLoadAll ? [REFERENCES_LOAD_ALL_CHOICE] : []),
+  createBackChoice(),
+]
+
+const buildReferenceCategorySelectedChoices = (
+  itemOptions: Array<{ referenceId: string; label: string }>,
+  canLoadAll: boolean,
+): ConsoleStagedNavigationChoice[] => [
+  ...itemOptions.map((item) => createReferenceItemChoice(item.referenceId, item.label)),
+  ...(canLoadAll ? [REFERENCES_LOAD_ALL_CHOICE] : []),
+  createBackChoice(),
+]
+
+const buildReferenceSelectedChoices = (canLoadModel: boolean): ConsoleStagedNavigationChoice[] => [
+  ...(canLoadModel
+    ? [REFERENCE_LOAD_MODEL_CHOICE]
+    : [MOVE_CHOICE, ROTATE_CHOICE, SCALE_CHOICE]),
+  createBackChoice(),
+]
+
 const createGraphRootSession = (
   context: ConsoleStagedNavigationContext,
 ): ConsoleStagedNavigationSession => ({
@@ -868,6 +1005,117 @@ const createGraphSelectedSession = (
   validChoices: buildGraphSelectedChoices(),
 })
 
+const createContentAssemblySelectedSession = (label: string): ConsoleStagedNavigationSession => ({
+  scopeId: 'contentAssemblySelected',
+  breadcrumb: ['Select', 'Assembly', label],
+  selections: {
+    graphDocumentId: null,
+    selectedNodeId: null,
+    sketchNodeId: null,
+    referenceId: null,
+  },
+  validChoices: buildContentSelectedChoices(),
+})
+
+const createContentComponentSelectedSession = (
+  label: string,
+  fallbackGraphDocumentId: string | null,
+): ConsoleStagedNavigationSession => ({
+  scopeId: 'contentComponentSelected',
+  breadcrumb: ['Select', 'Component', label],
+  selections: {
+    graphDocumentId: fallbackGraphDocumentId,
+    selectedNodeId: null,
+    sketchNodeId: null,
+    referenceId: null,
+  },
+  validChoices: buildContentSelectedChoices(),
+})
+
+const createContentObjectSelectedSession = (
+  label: string,
+  fallbackGraphDocumentId: string | null,
+): ConsoleStagedNavigationSession => ({
+  scopeId: 'contentObjectSelected',
+  breadcrumb: ['Select', 'Object', label],
+  selections: {
+    graphDocumentId: fallbackGraphDocumentId,
+    selectedNodeId: null,
+    sketchNodeId: null,
+    referenceId: null,
+  },
+  validChoices: buildContentSelectedChoices(),
+})
+
+const createMultiSelectSelectedSession = (): ConsoleStagedNavigationSession => ({
+  scopeId: 'multiSelectSelected',
+  breadcrumb: ['Select', 'Multi Select'],
+  selections: {
+    graphDocumentId: null,
+    selectedNodeId: null,
+    sketchNodeId: null,
+    referenceId: null,
+  },
+  validChoices: buildMultiSelectSelectedChoices(),
+})
+
+const createReferenceSelectedSession = (
+  label: string,
+  referenceId: string,
+  canLoadModel: boolean,
+  referenceCategoryId: string | null = null,
+  referenceCategoryLabel: string | null = null,
+): ConsoleStagedNavigationSession => ({
+  scopeId: 'referenceSelected',
+  breadcrumb:
+    referenceCategoryId !== null && referenceCategoryLabel !== null
+      ? ['Select', 'References', referenceCategoryLabel, label]
+      : ['Select', 'Reference', label],
+  selections: {
+    graphDocumentId: null,
+    selectedNodeId: null,
+    sketchNodeId: null,
+    referenceId,
+    referenceCategoryId,
+  },
+  validChoices: buildReferenceSelectedChoices(canLoadModel),
+})
+
+const createReferencesSelectedSession = (
+  label: string,
+  categoryOptions: Array<{ categoryId: string; label: string; canLoadAll?: boolean }>,
+  canLoadAll: boolean,
+): ConsoleStagedNavigationSession => ({
+  scopeId: 'referencesSelected',
+  breadcrumb: ['Select', label],
+  selections: {
+    graphDocumentId: null,
+    selectedNodeId: null,
+    sketchNodeId: null,
+    referenceId: null,
+  },
+  validChoices: buildReferencesSelectedChoices(categoryOptions, canLoadAll),
+})
+
+const createReferenceCategorySelectedSession = (
+  rootLabel: string,
+  categoryId: string,
+  label: string,
+  itemOptions: Array<{ referenceId: string; label: string }>,
+  canLoadAll: boolean,
+): ConsoleStagedNavigationSession => ({
+  scopeId: 'referenceCategorySelected',
+  breadcrumb: ['Select', rootLabel, label],
+  selections: {
+    graphDocumentId: null,
+    selectedNodeId: null,
+    sketchNodeId: null,
+    referenceId: null,
+    referenceCategoryId: categoryId,
+  },
+  validChoices: buildReferenceCategorySelectedChoices(itemOptions, canLoadAll),
+})
+
 const findGraphIndexByDocumentId = (
   context: ConsoleStagedNavigationContext,
   graphDocumentId: string | null,
@@ -888,22 +1136,98 @@ export type ConsoleWorkspaceContextSyncResolution = {
 
 export const resolveConsoleWorkspaceContextSync = (
   context: ConsoleStagedNavigationContext,
-  target: {
-    graphDocumentId: string | null
-    nodeId: string | null
-  },
+  target:
+    | {
+        graphDocumentId: string | null
+        nodeId: string | null
+      }
+    | ConsoleWorkspaceContextTarget,
 ): ConsoleWorkspaceContextSyncResolution => {
-  const graphIndex = findGraphIndexByDocumentId(context, target.graphDocumentId)
-  if (graphIndex === null || target.graphDocumentId === null) {
+  if ('kind' in target && target.kind === 'assembly') {
+    return {
+      session: createContentAssemblySelectedSession(target.label),
+      selectedLabel: target.label,
+    }
+  }
+
+  if ('kind' in target && target.kind === 'component') {
+    return {
+      session: createContentComponentSelectedSession(target.label, target.fallbackGraphDocumentId),
+      selectedLabel: target.label,
+    }
+  }
+
+  if ('kind' in target && target.kind === 'object') {
+    return {
+      session: createContentObjectSelectedSession(target.label, target.fallbackGraphDocumentId),
+      selectedLabel: target.label,
+    }
+  }
+
+  if ('kind' in target && target.kind === 'multi-select') {
+    return {
+      session: createMultiSelectSelectedSession(),
+      selectedLabel: target.label,
+    }
+  }
+
+    if ('kind' in target && target.kind === 'references-root') {
+      return {
+        session: createReferencesSelectedSession(target.label, target.categoryOptions, target.canLoadAll),
+        selectedLabel: target.label,
+      }
+  }
+
+  if ('kind' in target && target.kind === 'reference-category') {
+    const matchedCategory = context.referenceCategories.find(
+      (category) => category.categoryId === target.categoryId,
+    )
+    return {
+      session: createReferenceCategorySelectedSession(
+        'References',
+        target.categoryId,
+        target.label,
+        matchedCategory?.items.map((item) => ({
+          referenceId: item.referenceId,
+          label: item.label,
+        })) ?? [],
+        target.canLoadAll,
+      ),
+      selectedLabel: target.label,
+    }
+  }
+
+  if ('kind' in target && target.kind === 'reference-item') {
+    return {
+      session: createReferenceSelectedSession(target.label, target.referenceId, target.canLoadModel),
+      selectedLabel: target.label,
+    }
+  }
+
+  const graphTarget =
+    'kind' in target
+      ? target.kind === 'graph-document'
+        ? {
+            graphDocumentId: target.graphDocumentId,
+            nodeId: null,
+          }
+        : {
+            graphDocumentId: target.graphDocumentId,
+            nodeId: target.nodeId,
+          }
+      : target
+
+  const graphIndex = findGraphIndexByDocumentId(context, graphTarget.graphDocumentId)
+  if (graphIndex === null || graphTarget.graphDocumentId === null) {
     return {
       session: null,
       selectedLabel: null,
     }
   }
 
-  if (target.nodeId === null) {
+  if (graphTarget.nodeId === null) {
     return {
-      session: createGraphSelectedSession(graphIndex, target.graphDocumentId),
+      session: createGraphSelectedSession(graphIndex, graphTarget.graphDocumentId),
       selectedLabel: `graph_[${graphIndex}]`,
     }
   }
@@ -911,21 +1235,23 @@ export const resolveConsoleWorkspaceContextSync = (
   const selectedGraph = context.graphOptions[graphIndex - 1] ?? null
   if (selectedGraph === null) {
     return {
-      session: createGraphSelectedSession(graphIndex, target.graphDocumentId),
+      session: createGraphSelectedSession(graphIndex, graphTarget.graphDocumentId),
       selectedLabel: `graph_[${graphIndex}]`,
     }
   }
 
-  const sketchIndex = selectedGraph.sketchOptions.findIndex((option) => option.nodeId === target.nodeId)
+  const sketchIndex = selectedGraph.sketchOptions.findIndex(
+    (option) => option.nodeId === graphTarget.nodeId,
+  )
   if (sketchIndex !== -1) {
     const label = `sketch_[${sketchIndex + 1}]`
     return {
       session: createGraphSketchSelectedSession(
         ['Select', 'Graph', `graph_[${graphIndex}]`, 'Sketch', label],
         {
-          graphDocumentId: target.graphDocumentId,
-          selectedNodeId: target.nodeId,
-          sketchNodeId: target.nodeId,
+          graphDocumentId: graphTarget.graphDocumentId,
+          selectedNodeId: graphTarget.nodeId,
+          sketchNodeId: graphTarget.nodeId,
         },
       ),
       selectedLabel: label,
@@ -933,7 +1259,7 @@ export const resolveConsoleWorkspaceContextSync = (
   }
 
   const extrudeIndex = selectedGraph.extrudeOptions.findIndex(
-    (option) => option.nodeId === target.nodeId,
+    (option) => option.nodeId === graphTarget.nodeId,
   )
   if (extrudeIndex !== -1) {
     const label = `extrude_[${extrudeIndex + 1}]`
@@ -941,8 +1267,8 @@ export const resolveConsoleWorkspaceContextSync = (
       session: createGraphExtrudeSelectedSession(
         ['Select', 'Graph', `graph_[${graphIndex}]`, 'Extrude', label],
         {
-          graphDocumentId: target.graphDocumentId,
-          selectedNodeId: target.nodeId,
+          graphDocumentId: graphTarget.graphDocumentId,
+          selectedNodeId: graphTarget.nodeId,
           sketchNodeId: null,
         },
       ),
@@ -951,7 +1277,7 @@ export const resolveConsoleWorkspaceContextSync = (
   }
 
   const outputPreviewIndex = selectedGraph.outputPreviewOptions.findIndex(
-    (option) => option.nodeId === target.nodeId,
+    (option) => option.nodeId === graphTarget.nodeId,
   )
   if (outputPreviewIndex !== -1) {
     const label = `outputPreview_[${outputPreviewIndex + 1}]`
@@ -959,8 +1285,8 @@ export const resolveConsoleWorkspaceContextSync = (
       session: createGraphOutputPreviewSelectedSession(
         ['Select', 'Graph', `graph_[${graphIndex}]`, 'Output Preview', label],
         {
-          graphDocumentId: target.graphDocumentId,
-          selectedNodeId: target.nodeId,
+          graphDocumentId: graphTarget.graphDocumentId,
+          selectedNodeId: graphTarget.nodeId,
           sketchNodeId: null,
         },
       ),
@@ -968,15 +1294,17 @@ export const resolveConsoleWorkspaceContextSync = (
     }
   }
 
-  const allNodeIndex = selectedGraph.allNodeOptions.findIndex((option) => option.nodeId === target.nodeId)
+  const allNodeIndex = selectedGraph.allNodeOptions.findIndex(
+    (option) => option.nodeId === graphTarget.nodeId,
+  )
   if (allNodeIndex !== -1) {
     const label = selectedGraph.allNodeOptions[allNodeIndex]?.label ?? `node_[${allNodeIndex + 1}]`
     return {
       session: createGraphNodeSelectedSession(
         ['Select', 'Graph', `graph_[${graphIndex}]`, 'Focus Node', label],
         {
-          graphDocumentId: target.graphDocumentId,
-          selectedNodeId: target.nodeId,
+          graphDocumentId: graphTarget.graphDocumentId,
+          selectedNodeId: graphTarget.nodeId,
           sketchNodeId: null,
         },
       ),
@@ -985,7 +1313,7 @@ export const resolveConsoleWorkspaceContextSync = (
   }
 
   return {
-    session: createGraphSelectedSession(graphIndex, target.graphDocumentId),
+    session: createGraphSelectedSession(graphIndex, graphTarget.graphDocumentId),
     selectedLabel: `graph_[${graphIndex}]`,
   }
 }
@@ -1134,6 +1462,7 @@ const resolveSingleSketchAutoAdvance = (
 
 export const createConsoleStagedNavigationContext = (
   graphOptions: ConsoleStagedGraphOption[],
+  referenceCategories: ConsoleStagedNavigationContext['referenceCategories'] = [],
   sketchDraw: ConsoleStagedNavigationContext['sketchDraw'] = {
     hasSelection: false,
     hasPrevious: false,
@@ -1158,6 +1487,16 @@ export const createConsoleStagedNavigationContext = (
     outputPreviewOptions: (option.outputPreviewOptions ?? []).map((outputPreviewOption) => ({
       nodeId: outputPreviewOption.nodeId,
       label: outputPreviewOption.label,
+    })),
+  })),
+  referenceCategories: referenceCategories.map((category) => ({
+    categoryId: category.categoryId,
+    label: category.label,
+    canLoadAll: category.canLoadAll,
+    items: category.items.map((item) => ({
+      referenceId: item.referenceId,
+      label: item.label,
+      canLoadModel: item.canLoadModel,
     })),
   })),
   sketchDraw,
@@ -1187,6 +1526,17 @@ export const submitConsoleStagedNavigationToken = (
     }
     if (matchedRootChoice.canonicalToken === ROOT_CAMERA_CHOICE.canonicalToken) {
       return createAdvanceResult(createCameraRootSession(), submittedToken, matchedRootChoice)
+    }
+    if (matchedRootChoice.canonicalToken === ROOT_REFERENCES_CHOICE.canonicalToken) {
+      return createAdvanceResult(
+        createReferencesSelectedSession(
+          ROOT_REFERENCES_CHOICE.label,
+          context.referenceCategories,
+          context.referenceCategories.some((category) => category.canLoadAll),
+        ),
+        submittedToken,
+        matchedRootChoice,
+      )
     }
     if (matchedRootChoice.canonicalToken === ROOT_RADIO_CHOICE.canonicalToken) {
       const radioRootSession = createRadioRootSession()
@@ -1234,6 +1584,17 @@ export const submitConsoleStagedNavigationToken = (
     }
     if (matchedChoice.canonicalToken === ROOT_CAMERA_CHOICE.canonicalToken) {
       return createAdvanceResult(createCameraRootSession(), submittedToken, matchedChoice)
+    }
+    if (matchedChoice.canonicalToken === ROOT_REFERENCES_CHOICE.canonicalToken) {
+      return createAdvanceResult(
+        createReferencesSelectedSession(
+          ROOT_REFERENCES_CHOICE.label,
+          context.referenceCategories,
+          context.referenceCategories.some((category) => category.canLoadAll),
+        ),
+        submittedToken,
+        matchedChoice,
+      )
     }
     if (matchedChoice.canonicalToken === ROOT_RADIO_CHOICE.canonicalToken) {
       const radioRootSession = createRadioRootSession()
@@ -2196,6 +2557,213 @@ export const submitConsoleStagedNavigationToken = (
           : matchedChoice.canonicalToken === SKETCH_DRAW_CHOICE.canonicalToken
             ? 'sketch.draw'
             : 'node.delete',
+      breadcrumb: [...session.breadcrumb, matchedChoice.label],
+      selections: session.selections,
+    }
+  }
+
+  if (
+    session.scopeId === 'contentAssemblySelected' ||
+    session.scopeId === 'contentComponentSelected' ||
+    session.scopeId === 'contentObjectSelected'
+  ) {
+    const contentChoices = buildContentSelectedChoices()
+    const matchedChoice =
+      contentChoices.find((choice) => matchesChoice(choice, normalizedToken)) ?? null
+    if (matchedChoice === null) {
+      return createInvalidResult(
+        { ...session, validChoices: contentChoices },
+        submittedToken,
+        contentChoices,
+      )
+    }
+    if (session.selections.graphDocumentId !== null) {
+      const graphIndex = findGraphIndexByDocumentId(context, session.selections.graphDocumentId)
+      if (graphIndex !== null) {
+        return createAdvanceResult(
+          createGraphSelectedSession(graphIndex, session.selections.graphDocumentId),
+          submittedToken,
+          matchedChoice,
+        )
+      }
+    }
+    return createAdvanceResult(createConsoleRootSession(), submittedToken, matchedChoice)
+  }
+
+  if (session.scopeId === 'multiSelectSelected') {
+    const multiSelectChoices = buildMultiSelectSelectedChoices()
+    const matchedChoice =
+      multiSelectChoices.find((choice) => matchesChoice(choice, normalizedToken)) ?? null
+    if (matchedChoice === null) {
+      return createInvalidResult(
+        { ...session, validChoices: multiSelectChoices },
+        submittedToken,
+        multiSelectChoices,
+      )
+    }
+    return createAdvanceResult(createConsoleRootSession(), submittedToken, matchedChoice)
+  }
+
+  if (session.scopeId === 'referencesSelected') {
+    const referencesChoices = session.validChoices
+    const matchedChoice =
+      referencesChoices.find((choice) => matchesChoice(choice, normalizedToken)) ?? null
+    if (matchedChoice === null) {
+      return createInvalidResult(
+        { ...session, validChoices: referencesChoices },
+        submittedToken,
+        referencesChoices,
+      )
+    }
+    if (matchedChoice.canonicalToken === 'BACK') {
+      return createAdvanceResult(createConsoleRootSession(), submittedToken, matchedChoice)
+    }
+    if (matchedChoice.kind === 'scope' && typeof matchedChoice.referenceCategoryId === 'string') {
+      const matchedCategory = context.referenceCategories.find(
+        (category) => category.categoryId === matchedChoice.referenceCategoryId,
+      )
+      return createAdvanceResult(
+        createReferenceCategorySelectedSession(
+          session.breadcrumb.at(-1) ?? 'References',
+          matchedChoice.referenceCategoryId,
+          matchedChoice.label,
+          matchedCategory?.items.map((item) => ({
+            referenceId: item.referenceId,
+            label: item.label,
+          })) ?? [],
+          matchedCategory?.canLoadAll ?? true,
+        ),
+        submittedToken,
+        matchedChoice,
+      )
+    }
+    return {
+      kind: 'execute',
+      session: {
+        ...session,
+        validChoices: referencesChoices,
+      },
+      submittedToken,
+      matchedChoice,
+      actionId: 'reference.loadAll',
+      breadcrumb: [...session.breadcrumb, matchedChoice.label],
+      selections: session.selections,
+    }
+  }
+
+  if (session.scopeId === 'referenceCategorySelected') {
+    const categoryChoices = session.validChoices
+    const matchedChoice =
+      categoryChoices.find((choice) => matchesChoice(choice, normalizedToken)) ?? null
+    if (matchedChoice === null) {
+      return createInvalidResult(
+        { ...session, validChoices: categoryChoices },
+        submittedToken,
+        categoryChoices,
+      )
+    }
+    if (matchedChoice.canonicalToken === 'BACK') {
+      return createAdvanceResult(
+        createReferencesSelectedSession(
+          session.breadcrumb[1] ?? 'References',
+          context.referenceCategories,
+          context.referenceCategories.some((category) => category.canLoadAll),
+        ),
+        submittedToken,
+        matchedChoice,
+      )
+    }
+    if (matchedChoice.kind === 'scope' && typeof matchedChoice.referenceId === 'string') {
+      const matchedCategory = context.referenceCategories.find(
+        (category) => category.categoryId === session.selections.referenceCategoryId,
+      )
+      const matchedItem =
+        matchedCategory?.items.find((item) => item.referenceId === matchedChoice.referenceId) ?? null
+      return createAdvanceResult(
+        createReferenceSelectedSession(
+          matchedChoice.label,
+          matchedChoice.referenceId,
+          matchedItem?.canLoadModel ?? true,
+          session.selections.referenceCategoryId ?? null,
+          session.breadcrumb.at(-1) ?? null,
+        ),
+        submittedToken,
+        matchedChoice,
+      )
+    }
+    return {
+      kind: 'execute',
+      session: {
+        ...session,
+        validChoices: categoryChoices,
+      },
+      submittedToken,
+      matchedChoice,
+      actionId: 'reference.category.loadAll',
+      breadcrumb: [...session.breadcrumb, matchedChoice.label],
+      selections: session.selections,
+    }
+  }
+
+  if (session.scopeId === 'referenceSelected') {
+    const referenceChoices = session.validChoices
+    const matchedChoice =
+      referenceChoices.find((choice) => matchesChoice(choice, normalizedToken)) ?? null
+    if (matchedChoice === null) {
+      return createInvalidResult(
+        { ...session, validChoices: referenceChoices },
+        submittedToken,
+        referenceChoices,
+      )
+    }
+    if (matchedChoice.canonicalToken === 'BACK') {
+      if (session.selections.referenceCategoryId !== null) {
+        const matchedCategory = context.referenceCategories.find(
+          (category) => category.categoryId === session.selections.referenceCategoryId,
+        )
+        if (matchedCategory !== undefined) {
+          return createAdvanceResult(
+            createReferenceCategorySelectedSession(
+              'References',
+              matchedCategory.categoryId,
+              matchedCategory.label,
+              matchedCategory.items.map((item) => ({
+                referenceId: item.referenceId,
+                label: item.label,
+              })),
+              matchedCategory.canLoadAll,
+            ),
+            submittedToken,
+            matchedChoice,
+          )
+        }
+      }
+      return createAdvanceResult(createConsoleRootSession(), submittedToken, matchedChoice)
+    }
+    const actionIdByToken: Record<
+      string,
+      Extract<
+        ConsoleStagedNavigationExecuteResult['actionId'],
+        | 'reference.loadModel'
+        | 'reference.transform.move'
+        | 'reference.transform.rotate'
+        | 'reference.transform.scale'
+      >
+    > = {
+      'LOAD MODEL': 'reference.loadModel',
+      MOVE: 'reference.transform.move',
+      ROTATE: 'reference.transform.rotate',
+      SCALE: 'reference.transform.scale',
+    }
+    return {
+      kind: 'execute',
+      session: {
+        ...session,
+        validChoices: referenceChoices,
+      },
+      submittedToken,
+      matchedChoice,
+      actionId: actionIdByToken[matchedChoice.canonicalToken],
       breadcrumb: [...session.breadcrumb, matchedChoice.label],
       selections: session.selections,
     }

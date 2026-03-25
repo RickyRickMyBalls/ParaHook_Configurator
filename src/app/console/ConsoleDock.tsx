@@ -17,7 +17,11 @@ import {
   type RadioBurstTriggerKind,
   useAudioSamplerStore,
 } from '../store/audioSamplerStore'
-import { useAppStore } from '../store/useAppStore'
+import {
+  selectConsoleWorkspaceContextTarget,
+  selectReferenceWorkspaceBrowserTree,
+  useAppStore,
+} from '../store/useAppStore'
 import { useUiPrefsStore } from '../store/uiPrefsStore'
 import {
   activateGraphDocumentIntent,
@@ -650,6 +654,20 @@ const getStagedScopeLabel = (session: ConsoleStagedNavigationSession | null): st
     case 'graphOutputPreviewList':
     case 'graphOutputPreviewSelected':
       return 'Output Preview'
+    case 'contentAssemblySelected':
+      return 'Assembly'
+    case 'contentComponentSelected':
+      return 'Component'
+    case 'contentObjectSelected':
+      return 'Object'
+    case 'multiSelectSelected':
+      return 'Multi Select'
+    case 'referencesSelected':
+      return 'References'
+    case 'referenceCategorySelected':
+      return 'References'
+    case 'referenceSelected':
+      return 'Reference'
     default:
       return null
   }
@@ -672,7 +690,9 @@ const buildConsolePromptSessionText = (promptSession: Pick<
   'breadcrumb' | 'prefill'
 >): string => `${formatStagedBreadcrumb(promptSession.breadcrumb)} > Enter value [${promptSession.prefill}]`
 
-const buildRootPromptText = (choices: string[] = ['Graph', 'Radio']): string =>
+const buildRootPromptText = (
+  choices: string[] = ['Graph', 'References', 'Camera', 'Radio', 'Zoom', 'Pan', 'Orbit'],
+): string =>
   `Root > Choose next [${choices.join(', ')}]`
 
 const ROOT_PROMPT_TEXT = buildRootPromptText()
@@ -846,7 +866,10 @@ const ensureSpaghettiEditorVisibleForGraphRoot = (): GraphRootEditorRevealRestor
 
 const buildStagedNavigationContextFromStoreState = (
   spaghettiState: ReturnType<typeof useSpaghettiStore.getState>,
-) =>
+) => {
+  const appState = useAppStore.getState()
+  const referenceTree = selectReferenceWorkspaceBrowserTree(appState)
+  return (
   createConsoleStagedNavigationContext(
     selectOrderedGraphDocuments(spaghettiState).map((document) => ({
       graphDocumentId: document.graphDocumentId,
@@ -874,6 +897,18 @@ const buildStagedNavigationContextFromStoreState = (
           label: `outputPreview_[${index + 1}]`,
         })),
     })),
+    referenceTree.categories.map((category) => ({
+      categoryId: category.categoryId,
+      label: category.label,
+      canLoadAll: category.items.some(
+        (item) => !item.isVisible || item.loadState === 'error' || item.loadState === 'unloaded',
+      ),
+      items: category.items.map((item) => ({
+        referenceId: item.referenceId,
+        label: item.label,
+        canLoadModel: !item.isVisible || item.loadState === 'error' || item.loadState === 'unloaded',
+      })),
+    })),
     {
       hasSelection: (spaghettiState.geometrySketchSession?.selectedComponentIds.length ?? 0) > 0,
       hasPrevious: spaghettiState.geometrySketchSession?.lastUsedTool !== null,
@@ -890,6 +925,8 @@ const buildStagedNavigationContextFromStoreState = (
               : 'LINE',
     },
   )
+  )
+}
 
 const isSketchDrawLocalStagedScope = (
   session: ConsoleStagedNavigationSession | null,
@@ -1107,18 +1144,18 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
     enterGuidedRootSession()
   }, [enterGuidedRootSession])
 
-  const trackRadioCommandIdentity = useCallback((commandIdentity: string | null) => {
-    if (commandIdentity === null) {
+  const trackRadioCommandIdentity = useCallback((commandIdentity: string | null | undefined) => {
+    if (typeof commandIdentity !== 'string' || commandIdentity.length === 0) {
       return
     }
     useAudioSamplerStore.getState().ensureSamplePosition(commandIdentity)
   }, [])
 
   const requestRadioBurst = useCallback((
-    commandIdentity: string | null,
+    commandIdentity: string | null | undefined,
     triggerKind: RadioBurstTriggerKind,
   ) => {
-    if (commandIdentity === null) {
+    if (typeof commandIdentity !== 'string' || commandIdentity.length === 0) {
       return null
     }
     return useAudioSamplerStore.getState().requestRadioBurst(commandIdentity, triggerKind)
@@ -1680,6 +1717,44 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
           })
           trackRadioCommandIdentity(commandIdentity)
           requestRadioBurst(commandIdentity, 'enter')
+          if (stagedResult.session.scopeId === 'referencesSelected') {
+            const appState = useAppStore.getState()
+            if (
+              stagedResult.matchedChoice.canonicalToken === 'REFERENCES' ||
+              (activeStagedSession?.scopeId === 'referenceCategorySelected' &&
+                stagedResult.matchedChoice.canonicalToken === 'BACK')
+            ) {
+              appState.setWorkspaceSelectedTarget({
+                kind: 'references-root',
+              })
+              appState.setWorkspaceResolvedContentSelection(null)
+              appState.selectPart(null)
+            }
+          }
+          if (
+            stagedResult.session.scopeId === 'referenceCategorySelected' &&
+            typeof stagedResult.selections.referenceCategoryId === 'string'
+          ) {
+            const appState = useAppStore.getState()
+            appState.setWorkspaceSelectedTarget({
+              kind: 'reference-category',
+              categoryId: stagedResult.selections.referenceCategoryId as any,
+            })
+            appState.setWorkspaceResolvedContentSelection(null)
+            appState.selectPart(null)
+          }
+          if (
+            stagedResult.session.scopeId === 'referenceSelected' &&
+            typeof stagedResult.selections.referenceId === 'string'
+          ) {
+            const appState = useAppStore.getState()
+            appState.setWorkspaceSelectedTarget({
+              kind: 'reference-item',
+              referenceId: stagedResult.selections.referenceId,
+            })
+            appState.setWorkspaceResolvedContentSelection(null)
+            appState.selectPart(null)
+          }
           if (
             activeStagedSession?.selections.selectedNodeId !== null &&
             stagedResult.selections.selectedNodeId === null &&
@@ -2310,6 +2385,109 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
             if (actionSucceeded) {
               requestRadioBurst(commandIdentity, 'enter')
             }
+            return
+          }
+          if (
+            (stagedResult.actionId === 'reference.loadAll' ||
+              stagedResult.actionId === 'reference.category.loadAll' ||
+              stagedResult.actionId === 'reference.loadModel' ||
+              stagedResult.actionId === 'reference.transform.move' ||
+              stagedResult.actionId === 'reference.transform.rotate' ||
+              stagedResult.actionId === 'reference.transform.scale') &&
+            (stagedResult.actionId === 'reference.loadAll' ||
+              stagedResult.actionId === 'reference.category.loadAll' ||
+              typeof stagedResult.selections.referenceId === 'string')
+          ) {
+            const appState = useAppStore.getState()
+            setStagedNavigationSession(stagedResult.session)
+            appendConsoleEntry({
+              layer: 'Commands',
+              text: formatStagedBreadcrumb(stagedResult.breadcrumb),
+              source: 'console',
+              severity: 'info',
+            })
+            if (stagedResult.actionId === 'reference.loadAll') {
+              appState.startReferenceLoadBatchForAll()
+              appendConsoleEntry({
+                layer: 'Browser',
+                text: 'Load All: References',
+                source: 'console',
+                severity: 'info',
+              })
+            } else if (stagedResult.actionId === 'reference.category.loadAll') {
+              const categoryId = stagedResult.selections.referenceCategoryId ?? null
+              if (typeof categoryId === 'string') {
+                appState.startReferenceLoadBatchForCategory(categoryId as any)
+              }
+              appendConsoleEntry({
+                layer: 'Browser',
+                text: `Load All: ${stagedResult.session.breadcrumb.at(-1) ?? 'Category'}`,
+                source: 'console',
+                severity: 'info',
+              })
+            } else if (stagedResult.actionId === 'reference.loadModel') {
+              const referenceId = stagedResult.selections.referenceId as string
+              const nextReferenceSession = resolveConsoleWorkspaceContextSync(
+                buildStagedNavigationContextFromStoreState(useSpaghettiStore.getState()),
+                {
+                  kind: 'reference-item',
+                  referenceId,
+                  label: stagedResult.session.breadcrumb.at(-1) ?? referenceId,
+                  fallbackGraphDocumentId: null,
+                  canLoadModel: false,
+                },
+              ).session
+              const currentLoadState =
+                appState.referenceWorkspace.loadStateById[referenceId] ?? 'unloaded'
+              const isCurrentlyVisible =
+                appState.referenceWorkspace.visibilityById[referenceId] ?? false
+              if (!isCurrentlyVisible && currentLoadState === 'unloaded') {
+                appState.retryReferenceItemLoad(referenceId)
+              } else {
+                appState.setReferenceItemVisibility(referenceId, true)
+              }
+              if (nextReferenceSession !== null) {
+                setStagedNavigationSession(nextReferenceSession)
+              }
+              appendConsoleEntry({
+                layer: 'Browser',
+                text: `Load Model: ${stagedResult.session.breadcrumb.at(-1) ?? referenceId}`,
+                source: 'console',
+                severity: 'info',
+              })
+            } else {
+              const referenceId = stagedResult.selections.referenceId as string
+              appState.beginReferenceTransform(referenceId)
+              if (stagedResult.actionId === 'reference.transform.rotate') {
+                appState.setReferenceTransformMode('rotate')
+              } else if (stagedResult.actionId === 'reference.transform.scale') {
+                appState.setReferenceTransformMode('scale')
+              } else {
+                appState.setReferenceTransformMode('translate')
+              }
+              appendConsoleEntry({
+                layer: 'Transforms',
+                text: `${
+                  stagedResult.actionId === 'reference.transform.rotate'
+                    ? 'Rotate'
+                    : stagedResult.actionId === 'reference.transform.scale'
+                      ? 'Scale'
+                      : 'Move'
+                } armed`,
+                source: 'console',
+                severity: 'info',
+              })
+            }
+            appendConsoleEntry({
+              layer: 'Commands',
+              text: buildStagedPromptText(
+                useConsoleStore.getState().stagedNavigationSession ?? stagedResult.session,
+                (useConsoleStore.getState().stagedNavigationSession ?? stagedResult.session).validChoices,
+              ),
+              source: 'console',
+              severity: 'info',
+            })
+            requestRadioBurst(commandIdentity, 'enter')
             return
           }
           if (
@@ -3696,9 +3874,13 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
 
     const isForcedRootSync = consoleContextSyncRequest.reason === 'surface-clear'
     const spaghettiState = useSpaghettiStore.getState()
+    const appState = useAppStore.getState()
+    const workspaceContextTarget = selectConsoleWorkspaceContextTarget(appState)
     const resolvedTarget =
       isForcedRootSync
         ? null
+        : workspaceContextTarget !== null
+        ? workspaceContextTarget
         : workspaceActiveSurface === 'spaghetti'
         ? {
             graphDocumentId:
@@ -3707,17 +3889,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
                 : null,
             nodeId: spaghettiState.selectedNodeId,
           }
-        : workspaceSelectedTarget?.kind === 'graph-document'
-          ? {
-              graphDocumentId: workspaceSelectedTarget.graphDocumentId,
-              nodeId: null,
-            }
-          : workspaceSelectedTarget?.kind === 'graph-node'
-            ? {
-                graphDocumentId: workspaceSelectedTarget.graphDocumentId,
-                nodeId: workspaceSelectedTarget.nodeId,
-              }
-            : null
+        : null
 
     const resolvedHandoff =
       resolvedTarget === null
@@ -3744,6 +3916,52 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
     if (resolvedHandoff.session === null) {
       if (spaghettiState.geometrySketchSession?.mode === 'draw') {
         return
+      }
+
+      if (
+        currentSession !== null &&
+        (currentSession.scopeId === 'contentAssemblySelected' ||
+          currentSession.scopeId === 'contentComponentSelected' ||
+          currentSession.scopeId === 'contentObjectSelected' ||
+          currentSession.scopeId === 'multiSelectSelected' ||
+          currentSession.scopeId === 'referencesSelected' ||
+          currentSession.scopeId === 'referenceCategorySelected' ||
+          currentSession.scopeId === 'referenceSelected')
+      ) {
+        const fallbackGraphDocumentId = currentSession.selections.graphDocumentId ?? null
+        if (fallbackGraphDocumentId !== null) {
+          const fallbackGraphIndex = buildStagedNavigationContextFromStoreState(spaghettiState).graphOptions.findIndex(
+            (graphOption) => graphOption.graphDocumentId === fallbackGraphDocumentId,
+          )
+          if (fallbackGraphIndex !== -1) {
+            const fallbackHandoff = resolveConsoleWorkspaceContextSync(
+              buildStagedNavigationContextFromStoreState(spaghettiState),
+              {
+                graphDocumentId: fallbackGraphDocumentId,
+                nodeId: null,
+              },
+            )
+            if (fallbackHandoff.session !== null) {
+              setStagedNavigationSession(fallbackHandoff.session)
+              appendConsoleEntry({
+                layer: 'Commands',
+                text: formatStagedBreadcrumb(fallbackHandoff.session.breadcrumb),
+                source: 'console',
+                severity: 'info',
+              })
+              appendConsoleEntry({
+                layer: 'Commands',
+                text: buildStagedPromptText(
+                  fallbackHandoff.session,
+                  fallbackHandoff.session.validChoices,
+                ),
+                source: 'console',
+                severity: 'info',
+              })
+              return
+            }
+          }
+        }
       }
 
       if (rootGuidedOptOutRef.current) {

@@ -155,6 +155,146 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     })
   })
 
+  it('clears resolved grouped content selection when the primary workspace target changes', async () => {
+    const { useAppStore } = await import('./useAppStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+
+    useAppStore.getState().setWorkspaceResolvedContentSelection({
+      rootRowId: 'assembly-root:project-file-1',
+      rootKind: 'assembly',
+      partKeys: ['graph-document-1:slot-a', 'graph-document-1:slot-b'],
+      groupedRowIds: ['component-1', 'object-1', 'object-2'],
+    })
+
+    expect(useAppStore.getState().workspaceSelection.resolvedContentSelection).toEqual({
+      rootRowId: 'assembly-root:project-file-1',
+      rootKind: 'assembly',
+      partKeys: ['graph-document-1:slot-a', 'graph-document-1:slot-b'],
+      groupedRowIds: ['component-1', 'object-1', 'object-2'],
+    })
+
+    useAppStore.getState().setWorkspaceSelectedTarget({
+      kind: 'reference-item',
+      referenceId: 'shoe:shoe-1',
+    })
+
+    expect(useAppStore.getState().workspaceSelection.resolvedContentSelection).toBeNull()
+  })
+
+  it('stores explicit multi-select roots and resolves unioned grouped content payloads', async () => {
+    const { useAppStore } = await import('./useAppStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useAppStore.setState((state) => ({
+      ...state,
+      projectContent: {
+        ...state.projectContent,
+        assembliesById: {
+          'assembly-root:project-file-1': {
+            assemblyId: 'assembly-root:project-file-1',
+            label: 'Assembly 1',
+            childRowIds: ['component-1', 'object-3'],
+          },
+        },
+        componentsById: {
+          'component-1': {
+            componentId: 'component-1',
+            ownerGraphDocumentId: 'graph-document-1',
+            sourceGraphDocumentId: 'graph-document-1',
+            sourceOutputEntryId: 'output-entry-1',
+            sourceNodeId: 'node-1',
+            label: 'Component 1',
+            componentSourceKind: 'published-component',
+            resolutionState: 'resolved',
+            receiveId: null,
+            childObjectIds: ['object-1', 'object-2'],
+          },
+        },
+        objectsById: {
+          'object-1': {
+            objectId: 'object-1',
+            ownerGraphDocumentId: 'graph-document-1',
+            parentComponentId: 'component-1',
+            objectSourceKind: 'published-object',
+            sourceGraphDocumentId: 'graph-document-1',
+            sourceOutputEntryId: 'output-entry-1',
+            sourceNodeId: 'node-1',
+            slotId: 'slot-a',
+            label: 'Object 1',
+            resolutionState: 'resolved',
+          },
+          'object-2': {
+            objectId: 'object-2',
+            ownerGraphDocumentId: 'graph-document-1',
+            parentComponentId: 'component-1',
+            objectSourceKind: 'published-object',
+            sourceGraphDocumentId: 'graph-document-1',
+            sourceOutputEntryId: 'output-entry-2',
+            sourceNodeId: 'node-2',
+            slotId: 'slot-b',
+            label: 'Object 2',
+            resolutionState: 'resolved',
+          },
+          'object-3': {
+            objectId: 'object-3',
+            ownerGraphDocumentId: 'graph-document-1',
+            parentComponentId: null,
+            objectSourceKind: 'published-object',
+            sourceGraphDocumentId: 'graph-document-1',
+            sourceOutputEntryId: 'output-entry-3',
+            sourceNodeId: 'node-3',
+            slotId: 'slot-c',
+            label: 'Object 3',
+            resolutionState: 'resolved',
+          },
+        },
+      },
+    }))
+
+    useAppStore.getState().setWorkspaceExplicitSelection({
+      selectedTarget: {
+        kind: 'object',
+        objectId: 'object-3',
+      },
+      explicitSelectedTargets: [
+        {
+          kind: 'component',
+          componentId: 'component-1',
+        },
+        {
+          kind: 'object',
+          objectId: 'object-3',
+        },
+      ],
+      selectionAnchorTarget: {
+        kind: 'object',
+        objectId: 'object-3',
+      },
+    })
+
+    expect(useAppStore.getState().workspaceSelection.explicitSelectedTargets).toEqual([
+      {
+        kind: 'component',
+        componentId: 'component-1',
+      },
+      {
+        kind: 'object',
+        objectId: 'object-3',
+      },
+    ])
+    expect(useAppStore.getState().workspaceSelection.selectionAnchorTarget).toEqual({
+      kind: 'object',
+      objectId: 'object-3',
+    })
+    expect(useAppStore.getState().workspaceSelection.resolvedContentSelection).toEqual({
+      rootRowId: 'object:object-3',
+      rootKind: 'multi-select',
+      partKeys: ['graph-document-1:slot-a', 'graph-document-1:slot-b', 'graph-document-1:slot-c'],
+      groupedRowIds: ['object-1', 'object-2'],
+    })
+  })
+
   it('does not publish the viewer active-surface line while sketch-plane pick is active', async () => {
     const { useAppStore } = await import('./useAppStore')
     const { useConsoleStore } = await import('../console/useConsoleStore')
@@ -433,6 +573,13 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
           kind: 'assembly',
           label: 'Assembly 1',
           meta: '',
+          isVisible: true,
+          visibilityPartKeys: [
+            'slot-baseplate',
+            'graph-document-1:slot-baseplate',
+            'slot-toe-hook',
+            'graph-document-1:slot-toe-hook',
+          ],
           buildState: 'rebuild',
           buildStateLabel: 'Rebuild',
           rebuildGraphDocumentIds: ['graph-document-1'],
@@ -444,6 +591,13 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
           kind: 'component',
           label: 'Component 1',
           meta: 'Graph 1',
+          isVisible: true,
+          visibilityPartKeys: [
+            'slot-baseplate',
+            'graph-document-1:slot-baseplate',
+            'slot-toe-hook',
+            'graph-document-1:slot-toe-hook',
+          ],
           buildState: 'rebuild',
           buildStateLabel: 'Rebuild',
           rebuildGraphDocumentIds: ['graph-document-1'],
@@ -467,6 +621,8 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
           kind: 'object',
           label: 'Object 1',
           meta: '',
+          isVisible: true,
+          visibilityPartKeys: ['slot-baseplate', 'graph-document-1:slot-baseplate'],
           buildState: 'rebuild',
           buildStateLabel: 'Rebuild',
           rebuildGraphDocumentIds: ['graph-document-1'],
@@ -489,6 +645,8 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
           kind: 'object',
           label: 'Object 2',
           meta: '',
+          isVisible: true,
+          visibilityPartKeys: ['slot-toe-hook', 'graph-document-1:slot-toe-hook'],
           buildState: 'rebuild',
           buildStateLabel: 'Rebuild',
           rebuildGraphDocumentIds: ['graph-document-1'],
@@ -1167,6 +1325,74 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     )
   })
 
+  it('derives assembly, component, and object viewer visibility from part visibility', async () => {
+    const { selectCurrentProjectContentBrowserRows, useAppStore } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+
+    const previewPreparation = createPreviewPreparation([
+      {
+        slotId: 'slot-baseplate',
+        sourceNodeId: 'node-baseplate-1',
+        sourcePartKey: 'baseplate',
+      },
+    ])
+
+    useSpaghettiStore.setState((state) => ({
+      graphRuntimeByDocumentId: {
+        ...state.graphRuntimeByDocumentId,
+        'graph-document-1': {
+          ...state.graphRuntimeByDocumentId['graph-document-1'],
+          previewPreparation,
+          acceptedBuildOutputs: [baseplateArtifact],
+          outputSurface: buildGraphOutputSurface({
+            graphDocumentId: 'graph-document-1',
+            previewPreparation,
+            acceptedBuildOutputs: [baseplateArtifact],
+            publishedAtBuildSeq: 9,
+          }),
+        },
+      },
+    }))
+
+    const listRows = () =>
+      selectCurrentProjectContentBrowserRows({
+        currentProject: useAppStore.getState().currentProject,
+        projectContent: useAppStore.getState().projectContent,
+        partsVisibility: useAppStore.getState().partsVisibility,
+        sketchVisibilityByRowId: useAppStore.getState().sketchVisibilityByRowId,
+        graphRuntimeByDocumentId: useSpaghettiStore.getState().graphRuntimeByDocumentId,
+        graphDocumentsById: useSpaghettiStore.getState().graphDocumentsById,
+      })
+
+    expect(listRows()).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: 'assembly',
+          isVisible: true,
+          visibilityPartKeys: ['slot-baseplate', 'graph-document-1:slot-baseplate'],
+        }),
+        expect.objectContaining({
+          kind: 'object',
+          isVisible: true,
+          visibilityPartKeys: ['slot-baseplate', 'graph-document-1:slot-baseplate'],
+        }),
+      ]),
+    )
+
+    useAppStore.getState().setPartVisibility('slot-baseplate', false)
+    useAppStore.getState().setPartVisibility('graph-document-1:slot-baseplate', false)
+
+    expect(listRows()).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: 'assembly', isVisible: false }),
+        expect.objectContaining({ kind: 'object', isVisible: false }),
+      ]),
+    )
+  })
+
   it('updates current project graph membership when a graph document is loaded from file', async () => {
     const { loadGraphDocumentFromFile, serializeGraphDocument } = await import(
       '../io/graphDocumentPersistence'
@@ -1512,5 +1738,138 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     } finally {
       globalThis.URL = originalUrl
     }
+  })
+
+  it('starts a root reference batch in deterministic browser order and resets errored targets', async () => {
+    const { useAppStore } = await import('./useAppStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useAppStore.getState().setReferenceItemLoadState('footpad:pubpad-full-assembly', 'error', 'Nope')
+    useAppStore.getState().setReferenceItemLoadState('shoe:shoe-1', 'loaded')
+
+    useAppStore.getState().startReferenceLoadBatchForAll()
+
+    const referenceWorkspace = useAppStore.getState().referenceWorkspace
+    expect(referenceWorkspace.visibilityById['footpad:pubpad-full-assembly']).toBe(true)
+    expect(referenceWorkspace.loadStateById['footpad:pubpad-full-assembly']).toBe('unloaded')
+    expect(referenceWorkspace.errorById['footpad:pubpad-full-assembly']).toBeNull()
+    expect(referenceWorkspace.referenceLoadBatch).toMatchObject({
+      source: 'root-load-all',
+      targetIds: [
+        'footpad:pubpad-full-assembly',
+        'shoe:shoe-2',
+        'shoe:shoe-3',
+        'hook:large',
+        'hook:medium',
+        'hook:small',
+        'hook:xl',
+      ],
+      remainingIds: [
+        'footpad:pubpad-full-assembly',
+        'shoe:shoe-2',
+        'shoe:shoe-3',
+        'hook:large',
+        'hook:medium',
+        'hook:small',
+        'hook:xl',
+      ],
+      completedIds: [],
+    })
+  })
+
+  it('starts a category batch scoped to that category only', async () => {
+    const { useAppStore } = await import('./useAppStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+
+    useAppStore.getState().startReferenceLoadBatchForCategory('footpads')
+
+    expect(useAppStore.getState().referenceWorkspace.referenceLoadBatch).toMatchObject({
+      source: 'category-load-all',
+      targetIds: ['footpad:pubpad-full-assembly'],
+      remainingIds: ['footpad:pubpad-full-assembly'],
+      completedIds: [],
+    })
+  })
+
+  it('replaces queued batch work while preserving the in-flight active item until it settles', async () => {
+    const { useAppStore } = await import('./useAppStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useAppStore.getState().startReferenceLoadBatchForAll()
+    const firstRequestId =
+      useAppStore.getState().referenceWorkspace.referenceLoadBatch?.requestId ?? null
+    expect(firstRequestId).not.toBeNull()
+
+    useAppStore
+      .getState()
+      .markReferenceBatchItemStarted('footpad:pubpad-full-assembly', firstRequestId!)
+    useAppStore.getState().startReferenceLoadBatchForCategory('shoes')
+
+    const replacementBatch = useAppStore.getState().referenceWorkspace.referenceLoadBatch
+    expect(replacementBatch).toMatchObject({
+      source: 'category-load-all',
+      activeReferenceId: 'footpad:pubpad-full-assembly',
+      targetIds: ['shoe:shoe-1', 'shoe:shoe-2', 'shoe:shoe-3'],
+      remainingIds: ['shoe:shoe-1', 'shoe:shoe-2', 'shoe:shoe-3'],
+    })
+  })
+
+  it('removes hidden queued ids from the active batch while leaving the active item alone', async () => {
+    const { useAppStore } = await import('./useAppStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useAppStore.getState().startReferenceLoadBatchForAll()
+    const firstRequestId =
+      useAppStore.getState().referenceWorkspace.referenceLoadBatch?.requestId ?? null
+    expect(firstRequestId).not.toBeNull()
+
+    useAppStore
+      .getState()
+      .markReferenceBatchItemStarted('footpad:pubpad-full-assembly', firstRequestId!)
+    useAppStore.getState().setReferenceItemVisibility('shoe:shoe-1', false)
+    useAppStore.getState().setReferenceItemVisibility('footpad:pubpad-full-assembly', false)
+
+    expect(useAppStore.getState().referenceWorkspace.referenceLoadBatch).toMatchObject({
+      activeReferenceId: 'footpad:pubpad-full-assembly',
+    })
+    expect(
+      useAppStore.getState().referenceWorkspace.referenceLoadBatch?.remainingIds.includes('shoe:shoe-1'),
+    ).toBe(false)
+    expect(
+      useAppStore.getState().referenceWorkspace.referenceLoadBatch?.targetIds.includes('shoe:shoe-1'),
+    ).toBe(false)
+    expect(
+      useAppStore
+        .getState()
+        .referenceWorkspace.referenceLoadBatch?.targetIds.includes('footpad:pubpad-full-assembly'),
+    ).toBe(true)
+  })
+
+  it('appends one console completion line when a reference batch fully completes', async () => {
+    const { useAppStore } = await import('./useAppStore')
+    const { useConsoleStore } = await import('../console/useConsoleStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useConsoleStore.setState(useConsoleStore.getInitialState(), true)
+
+    useAppStore.getState().startReferenceLoadBatchForCategory('footpads')
+    const requestId =
+      useAppStore.getState().referenceWorkspace.referenceLoadBatch?.requestId ?? null
+    expect(requestId).not.toBeNull()
+
+    useAppStore
+      .getState()
+      .markReferenceBatchItemStarted('footpad:pubpad-full-assembly', requestId!)
+    useAppStore
+      .getState()
+      .markReferenceBatchItemCompleted('footpad:pubpad-full-assembly', requestId!, 'loaded')
+
+    expect(useAppStore.getState().referenceWorkspace.referenceLoadBatch).toBeNull()
+    expect(
+      useConsoleStore
+        .getState()
+        .entries.some((entry) => entry.text === 'Load All Complete: Footpads'),
+    ).toBe(true)
   })
 })

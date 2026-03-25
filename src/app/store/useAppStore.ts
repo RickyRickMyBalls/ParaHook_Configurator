@@ -128,6 +128,8 @@ export type ProjectContentBrowserRowVm =
       kind: 'assembly'
       label: string
       meta: string
+      isVisible?: boolean
+      visibilityPartKeys?: string[]
       buildState?: ProjectContentBuildState
       buildStateLabel?: string
       rebuildGraphDocumentIds?: string[]
@@ -168,6 +170,8 @@ export type ProjectContentBrowserRowVm =
       kind: 'component'
       label: string
       meta: string
+      isVisible?: boolean
+      visibilityPartKeys?: string[]
       buildState?: ProjectContentBuildState
       buildStateLabel?: string
       rebuildGraphDocumentIds?: string[]
@@ -191,6 +195,8 @@ export type ProjectContentBrowserRowVm =
       kind: 'object'
       label: string
       meta: string
+      isVisible?: boolean
+      visibilityPartKeys?: string[]
       buildState?: ProjectContentBuildState
       buildStateLabel?: string
       rebuildGraphDocumentIds?: string[]
@@ -215,6 +221,7 @@ export type ReferenceWorkspaceState = {
   visibilityById: Record<string, boolean>
   loadStateById: Record<string, ReferenceItemLoadState>
   errorById: Record<string, string | null>
+  referenceLoadBatch: ReferenceLoadBatchState | null
   transformOverrideById: Record<string, ReferenceTransformOverride | null>
   channelClampRangeByReferenceId: Record<
     string,
@@ -234,6 +241,20 @@ export type ReferenceWorkspaceState = {
   activeTransformSpace: ReferenceTransformSpace
   importedReferencesById: Record<string, ImportedReferenceRecord>
   importedReferenceOrder: string[]
+}
+
+export type ReferenceLoadBatchSource = 'root-load-all' | 'category-load-all'
+
+export type ReferenceLoadBatchState = {
+  requestId: string
+  source: ReferenceLoadBatchSource
+  scopeLabel: string
+  targetIds: string[]
+  remainingIds: string[]
+  activeReferenceId: string | null
+  completedIds: string[]
+  failedIds: string[]
+  startedAt: number
 }
 
 export type ReferenceWorkspaceBrowserItemVm = {
@@ -291,8 +312,23 @@ export type WorkspaceSelectedTarget =
       nodeId: string
     }
   | {
+      kind: 'references-root'
+    }
+  | {
+      kind: 'reference-category'
+      categoryId: ReferenceCategoryId
+    }
+  | {
       kind: 'reference-item'
       referenceId: string
+    }
+  | {
+      kind: 'assembly'
+      assemblyId: string
+    }
+  | {
+      kind: 'component'
+      componentId: string
     }
   | {
       kind: 'object'
@@ -303,8 +339,77 @@ export type WorkspaceSelectedTarget =
       partKey: string
     }
 
+export type WorkspaceResolvedContentSelection = {
+  rootRowId: string
+  rootKind: 'assembly' | 'component' | 'object' | 'multi-select'
+  partKeys: string[]
+  groupedRowIds: string[]
+}
+
+export type ConsoleWorkspaceContextTarget =
+  | {
+      kind: 'graph-document'
+      graphDocumentId: string
+    }
+  | {
+      kind: 'graph-node'
+      graphDocumentId: string
+      nodeId: string
+    }
+  | {
+      kind: 'assembly'
+      assemblyId: string
+      label: string
+      fallbackGraphDocumentId: null
+    }
+  | {
+      kind: 'component'
+      componentId: string
+      label: string
+      fallbackGraphDocumentId: string | null
+    }
+  | {
+      kind: 'object'
+      objectId: string
+      label: string
+      fallbackGraphDocumentId: string | null
+    }
+  | {
+      kind: 'references-root'
+      label: string
+      fallbackGraphDocumentId: null
+      canLoadAll: boolean
+      categoryOptions: Array<{
+        categoryId: ReferenceCategoryId
+        label: string
+      }>
+    }
+  | {
+      kind: 'reference-category'
+      categoryId: ReferenceCategoryId
+      label: string
+      fallbackGraphDocumentId: null
+      canLoadAll: boolean
+    }
+  | {
+      kind: 'reference-item'
+      referenceId: string
+      label: string
+      fallbackGraphDocumentId: null
+      canLoadModel: boolean
+    }
+  | {
+      kind: 'multi-select'
+      label: string
+      fallbackGraphDocumentId: null
+      selectedCount: number
+    }
+
 export type WorkspaceSelectionState = {
   selectedTarget: WorkspaceSelectedTarget | null
+  explicitSelectedTargets: WorkspaceSelectedTarget[]
+  selectionAnchorTarget: WorkspaceSelectedTarget | null
+  resolvedContentSelection?: WorkspaceResolvedContentSelection | null
   activeSurface: WorkspaceSurface | null
 }
 
@@ -387,6 +492,16 @@ export type AppState = {
     objectUrl: string
   }) => string
   retryReferenceItemLoad: (referenceId: string) => void
+  startReferenceLoadBatchForAll: () => void
+  startReferenceLoadBatchForCategory: (categoryId: ReferenceCategoryId) => void
+  markReferenceBatchItemStarted: (referenceId: string, requestId: string) => void
+  markReferenceBatchItemCompleted: (
+    referenceId: string,
+    requestId: string,
+    outcome: 'loaded' | 'error',
+  ) => void
+  loadAllReferences: () => void
+  loadReferenceCategory: (categoryId: ReferenceCategoryId) => void
   removeImportedReference: (referenceId: string) => void
   setReferenceItemLoadState: (
     referenceId: string,
@@ -431,6 +546,14 @@ export type AppState = {
   setReferenceRotateSnapEnabled: (referenceId: string, enabled: boolean) => void
   setReferenceRotateSnapValue: (referenceId: string, value: number) => void
   setWorkspaceSelectedTarget: (target: WorkspaceSelectedTarget | null) => void
+  setWorkspaceExplicitSelection: (selection: {
+    selectedTarget: WorkspaceSelectedTarget | null
+    explicitSelectedTargets: WorkspaceSelectedTarget[]
+    selectionAnchorTarget: WorkspaceSelectedTarget | null
+  }) => void
+  setWorkspaceResolvedContentSelection: (
+    selection: WorkspaceResolvedContentSelection | null,
+  ) => void
   setActiveSurface: (surface: WorkspaceSurface | null) => void
   requestConsoleContextSync: (reason: ConsoleContextSyncReason) => void
   requestFloatingShellActivation: (target: FloatingShellActivationTarget) => void
@@ -474,6 +597,203 @@ const DEFAULT_COLLAPSED_REFERENCE_CATEGORY_IDS: ReferenceCategoryId[] = [
   'premade-foothooks',
 ]
 
+const isExplicitWorkspaceSelectionTarget = (
+  target: WorkspaceSelectedTarget | null,
+): target is Extract<
+  WorkspaceSelectedTarget,
+  | { kind: 'references-root' }
+  | { kind: 'reference-category' }
+  | { kind: 'reference-item' }
+  | { kind: 'assembly' }
+  | { kind: 'component' }
+  | { kind: 'object' }
+> =>
+  target !== null &&
+  (target.kind === 'references-root' ||
+    target.kind === 'reference-category' ||
+    target.kind === 'reference-item' ||
+    target.kind === 'assembly' ||
+    target.kind === 'component' ||
+    target.kind === 'object')
+
+const getWorkspaceSelectedTargetKey = (target: WorkspaceSelectedTarget): string => {
+  switch (target.kind) {
+    case 'graph-document':
+      return `graph-document:${target.graphDocumentId}`
+    case 'graph-node':
+      return `graph-node:${target.graphDocumentId}:${target.nodeId}`
+    case 'references-root':
+      return 'references-root'
+    case 'reference-category':
+      return `reference-category:${target.categoryId}`
+    case 'reference-item':
+      return `reference-item:${target.referenceId}`
+    case 'assembly':
+      return `assembly:${target.assemblyId}`
+    case 'component':
+      return `component:${target.componentId}`
+    case 'object':
+      return `object:${target.objectId}`
+    case 'part':
+      return `part:${target.partKey}`
+  }
+}
+
+const areWorkspaceSelectedTargetsEqual = (
+  left: WorkspaceSelectedTarget | null,
+  right: WorkspaceSelectedTarget | null,
+): boolean => {
+  if (left === right) {
+    return true
+  }
+  if (left === null || right === null) {
+    return false
+  }
+  return getWorkspaceSelectedTargetKey(left) === getWorkspaceSelectedTargetKey(right)
+}
+
+const buildObjectPartKey = (objectRecord: ProjectObjectRecord): string | null =>
+  objectRecord.slotId === null ? null : `${objectRecord.sourceGraphDocumentId}:${objectRecord.slotId}`
+
+const resolveSingleTargetContentSelection = (
+  state: Pick<AppState, 'projectContent'>,
+  target: WorkspaceSelectedTarget,
+): WorkspaceResolvedContentSelection | null => {
+  if (target.kind === 'object') {
+    const objectRecord = state.projectContent.objectsById[target.objectId]
+    if (objectRecord === undefined) {
+      return null
+    }
+    const partKey = buildObjectPartKey(objectRecord)
+    return {
+      rootRowId: objectRecord.objectId,
+      rootKind: 'object',
+      partKeys: partKey === null ? [] : [partKey],
+      groupedRowIds: [],
+    }
+  }
+
+  if (target.kind === 'component') {
+    const componentRecord = state.projectContent.componentsById[target.componentId]
+    if (componentRecord === undefined) {
+      return null
+    }
+    const partKeys: string[] = []
+    const groupedRowIds: string[] = []
+    for (const objectId of componentRecord.childObjectIds) {
+      groupedRowIds.push(objectId)
+      const objectRecord = state.projectContent.objectsById[objectId]
+      if (objectRecord === undefined) {
+        continue
+      }
+      const partKey = buildObjectPartKey(objectRecord)
+      if (partKey !== null) {
+        partKeys.push(partKey)
+      }
+    }
+    return {
+      rootRowId: componentRecord.componentId,
+      rootKind: 'component',
+      partKeys,
+      groupedRowIds,
+    }
+  }
+
+  if (target.kind !== 'assembly') {
+    return null
+  }
+
+  const assemblyRecord = state.projectContent.assembliesById[target.assemblyId]
+  if (assemblyRecord === undefined) {
+    return null
+  }
+  const partKeys: string[] = []
+  const groupedRowIds: string[] = []
+  for (const childRowId of assemblyRecord.childRowIds) {
+    const componentRecord = state.projectContent.componentsById[childRowId]
+    if (componentRecord !== undefined) {
+      groupedRowIds.push(componentRecord.componentId)
+      for (const objectId of componentRecord.childObjectIds) {
+        groupedRowIds.push(objectId)
+        const objectRecord = state.projectContent.objectsById[objectId]
+        if (objectRecord === undefined) {
+          continue
+        }
+        const partKey = buildObjectPartKey(objectRecord)
+        if (partKey !== null) {
+          partKeys.push(partKey)
+        }
+      }
+      continue
+    }
+    const objectRecord = state.projectContent.objectsById[childRowId]
+    if (objectRecord === undefined) {
+      continue
+    }
+    groupedRowIds.push(objectRecord.objectId)
+    const partKey = buildObjectPartKey(objectRecord)
+    if (partKey !== null) {
+      partKeys.push(partKey)
+    }
+  }
+  return {
+    rootRowId: assemblyRecord.assemblyId,
+    rootKind: 'assembly',
+    partKeys,
+    groupedRowIds,
+  }
+}
+
+const resolveExplicitContentSelection = (
+  state: Pick<AppState, 'projectContent'>,
+  selectedTarget: WorkspaceSelectedTarget | null,
+  explicitSelectedTargets: WorkspaceSelectedTarget[],
+): WorkspaceResolvedContentSelection | null => {
+  const explicitContentTargets = explicitSelectedTargets.filter(
+    (target): target is Extract<
+      WorkspaceSelectedTarget,
+      { kind: 'assembly' } | { kind: 'component' } | { kind: 'object' }
+    > =>
+      target.kind === 'assembly' || target.kind === 'component' || target.kind === 'object',
+  )
+
+  if (explicitContentTargets.length === 0) {
+    return null
+  }
+
+  if (explicitSelectedTargets.length === 1) {
+    return resolveSingleTargetContentSelection(state, explicitContentTargets[0])
+  }
+
+  const partKeySet = new Set<string>()
+  const groupedRowIdSet = new Set<string>()
+  for (const target of explicitContentTargets) {
+    const selection = resolveSingleTargetContentSelection(state, target)
+    if (selection === null) {
+      continue
+    }
+    selection.partKeys.forEach((partKey) => partKeySet.add(partKey))
+    selection.groupedRowIds.forEach((rowId) => groupedRowIdSet.add(rowId))
+  }
+
+  if (partKeySet.size === 0 && groupedRowIdSet.size === 0) {
+    return null
+  }
+
+  return {
+    rootRowId:
+      selectedTarget !== null &&
+      (selectedTarget.kind === 'assembly' ||
+        selectedTarget.kind === 'component' ||
+        selectedTarget.kind === 'object')
+        ? getWorkspaceSelectedTargetKey(selectedTarget)
+        : 'multi-select',
+    rootKind: 'multi-select',
+    partKeys: [...partKeySet],
+    groupedRowIds: [...groupedRowIdSet],
+  }
+}
+
 const createInitialReferenceWorkspaceState = (): ReferenceWorkspaceState => ({
   referencesExpanded: true,
   categoryExpandedById: Object.fromEntries(
@@ -493,6 +813,7 @@ const createInitialReferenceWorkspaceState = (): ReferenceWorkspaceState => ({
   errorById: Object.fromEntries(
     REFERENCE_MANIFEST_ITEMS.map((item) => [item.referenceId, null]),
   ) as Record<string, string | null>,
+  referenceLoadBatch: null,
   transformOverrideById: {},
   channelClampRangeByReferenceId: {},
   timelineModeByReferenceId: {},
@@ -601,6 +922,115 @@ const getReferenceIdsForCategory = (
     )
   }
   return selectReferenceManifestItemsForCategory(categoryId).map((item) => item.referenceId)
+}
+
+const getOrderedReferenceIds = (referenceWorkspace: ReferenceWorkspaceState): string[] =>
+  selectReferenceWorkspaceBrowserTree({ referenceWorkspace }).categories.flatMap((category) =>
+    category.items.map((item) => item.referenceId),
+  )
+
+let referenceLoadBatchRequestCounter = 0
+
+const buildReferenceLoadBatchRequestId = (): string => {
+  referenceLoadBatchRequestCounter += 1
+  return `reference-load-batch:${referenceLoadBatchRequestCounter}`
+}
+
+const dedupeReferenceIds = (referenceIds: readonly string[]): string[] => Array.from(new Set(referenceIds))
+
+const filterReferenceLoadBatch = (
+  batch: ReferenceLoadBatchState | null,
+  excludedIds: readonly string[],
+): ReferenceLoadBatchState | null => {
+  if (batch === null || excludedIds.length === 0) {
+    return batch
+  }
+  const excludedIdSet = new Set(excludedIds)
+  const activeReferenceId =
+    batch.activeReferenceId !== null && excludedIdSet.has(batch.activeReferenceId)
+      ? batch.activeReferenceId
+      : batch.activeReferenceId
+  const targetIds = batch.targetIds.filter(
+    (referenceId) => referenceId === activeReferenceId || !excludedIdSet.has(referenceId),
+  )
+  const remainingIds = batch.remainingIds.filter((referenceId) => !excludedIdSet.has(referenceId))
+  const completedIds = batch.completedIds.filter((referenceId) => !excludedIdSet.has(referenceId))
+  const failedIds = batch.failedIds.filter((referenceId) => !excludedIdSet.has(referenceId))
+  if (targetIds.length === 0 && activeReferenceId === null) {
+    return null
+  }
+  return {
+    ...batch,
+    targetIds,
+    remainingIds,
+    completedIds,
+    failedIds,
+  }
+}
+
+const createReferenceLoadBatch = (
+  referenceWorkspace: ReferenceWorkspaceState,
+  targetIds: readonly string[],
+  source: ReferenceLoadBatchSource,
+  scopeLabel: string,
+): {
+  referenceWorkspace: ReferenceWorkspaceState
+  referenceLoadBatch: ReferenceLoadBatchState | null
+} => {
+  const dedupedTargetIds = dedupeReferenceIds(targetIds)
+  const nextVisibilityById = { ...referenceWorkspace.visibilityById }
+  const nextLoadStateById = { ...referenceWorkspace.loadStateById }
+  const nextErrorById = { ...referenceWorkspace.errorById }
+
+  dedupedTargetIds.forEach((referenceId) => {
+    nextVisibilityById[referenceId] = true
+    if ((nextLoadStateById[referenceId] ?? 'unloaded') === 'error') {
+      nextLoadStateById[referenceId] = 'unloaded'
+      nextErrorById[referenceId] = null
+    }
+  })
+
+  const existingBatch = referenceWorkspace.referenceLoadBatch
+  const carriedActiveReferenceId = existingBatch?.activeReferenceId ?? null
+  const actionableTargetIds = dedupedTargetIds.filter((referenceId) => {
+    if (referenceId === carriedActiveReferenceId) {
+      return false
+    }
+    return (nextLoadStateById[referenceId] ?? 'unloaded') !== 'loaded'
+  })
+  const completedIds: string[] = []
+  const remainingIds = actionableTargetIds.filter((referenceId) => {
+    if (referenceId === carriedActiveReferenceId) {
+      return false
+    }
+    return (nextLoadStateById[referenceId] ?? 'unloaded') === 'unloaded'
+  })
+
+  const nextReferenceWorkspace: ReferenceWorkspaceState = {
+    ...referenceWorkspace,
+    visibilityById: nextVisibilityById,
+    loadStateById: nextLoadStateById,
+    errorById: nextErrorById,
+    referenceLoadBatch:
+      actionableTargetIds.length === 0 && carriedActiveReferenceId === null
+        ? null
+        : {
+            requestId: buildReferenceLoadBatchRequestId(),
+            source,
+            scopeLabel,
+            targetIds: actionableTargetIds,
+            remainingIds,
+            activeReferenceId: carriedActiveReferenceId,
+            completedIds,
+            failedIds: [],
+            startedAt: Date.now(),
+          },
+  }
+
+  return {
+    referenceWorkspace: nextReferenceWorkspace,
+    referenceLoadBatch: nextReferenceWorkspace.referenceLoadBatch,
+  }
 }
 
 const clearActiveReferenceTransformIfMatches = (
@@ -1094,12 +1524,15 @@ export const useAppStore = create<AppState>((set, get) => ({
   pendingBuildAfterRelease: false,
   currentProject: createInitialProjectFile(),
   projectContent: createInitialProjectContentState(),
-  referenceWorkspace: createInitialReferenceWorkspaceState(),
-  sketchVisibilityByRowId: {},
-  workspaceSelection: {
-    selectedTarget: null,
-    activeSurface: null,
-  },
+    referenceWorkspace: createInitialReferenceWorkspaceState(),
+    sketchVisibilityByRowId: {},
+    workspaceSelection: {
+      selectedTarget: null,
+      explicitSelectedTargets: [],
+      selectionAnchorTarget: null,
+      resolvedContentSelection: null,
+      activeSurface: null,
+    },
   floatingShellActivationRequest: null,
   consoleContextSyncRequest: null,
   workerError: null,
@@ -1437,17 +1870,21 @@ export const useAppStore = create<AppState>((set, get) => ({
     set((state) => {
       const wasVisible = state.referenceWorkspace.visibilityById[referenceId] ?? false
       const nextVisible = !wasVisible
-      return {
-        referenceWorkspace: {
-          ...state.referenceWorkspace,
-          visibilityById: {
-            ...state.referenceWorkspace.visibilityById,
-            [referenceId]: nextVisible,
-          },
-          ...(!nextVisible
-            ? clearActiveReferenceTransformIfMatches(state.referenceWorkspace, [referenceId])
-            : {}),
+      const nextReferenceWorkspace = {
+        ...state.referenceWorkspace,
+        visibilityById: {
+          ...state.referenceWorkspace.visibilityById,
+          [referenceId]: nextVisible,
         },
+        referenceLoadBatch: nextVisible
+          ? state.referenceWorkspace.referenceLoadBatch
+          : filterReferenceLoadBatch(state.referenceWorkspace.referenceLoadBatch, [referenceId]),
+        ...(!nextVisible
+          ? clearActiveReferenceTransformIfMatches(state.referenceWorkspace, [referenceId])
+          : {}),
+      }
+      return {
+        referenceWorkspace: nextReferenceWorkspace,
       }
     })
   },
@@ -1459,6 +1896,9 @@ export const useAppStore = create<AppState>((set, get) => ({
           ...state.referenceWorkspace.visibilityById,
           [referenceId]: visible,
         },
+        referenceLoadBatch: visible
+          ? state.referenceWorkspace.referenceLoadBatch
+          : filterReferenceLoadBatch(state.referenceWorkspace.referenceLoadBatch, [referenceId]),
         ...(!visible
           ? clearActiveReferenceTransformIfMatches(state.referenceWorkspace, [referenceId])
           : {}),
@@ -1480,6 +1920,9 @@ export const useAppStore = create<AppState>((set, get) => ({
         referenceWorkspace: {
           ...state.referenceWorkspace,
           visibilityById: nextVisibilityById,
+          referenceLoadBatch: nextVisible
+            ? state.referenceWorkspace.referenceLoadBatch
+            : filterReferenceLoadBatch(state.referenceWorkspace.referenceLoadBatch, referenceIds),
           ...(!nextVisible
             ? clearActiveReferenceTransformIfMatches(state.referenceWorkspace, referenceIds)
             : {}),
@@ -1601,6 +2044,118 @@ export const useAppStore = create<AppState>((set, get) => ({
       },
     }))
   },
+  startReferenceLoadBatchForAll: () => {
+    set((state) => {
+      const targetIds = getOrderedReferenceIds(state.referenceWorkspace)
+      const { referenceWorkspace } = createReferenceLoadBatch(
+        state.referenceWorkspace,
+        targetIds,
+        'root-load-all',
+        'References',
+      )
+      return {
+        referenceWorkspace,
+      }
+    })
+  },
+  startReferenceLoadBatchForCategory: (categoryId) => {
+    set((state) => {
+      const orderedReferenceIds = getOrderedReferenceIds(state.referenceWorkspace)
+      const categoryReferenceIdSet = new Set(
+        getReferenceIdsForCategory(state.referenceWorkspace, categoryId),
+      )
+      const targetIds = orderedReferenceIds.filter((referenceId) =>
+        categoryReferenceIdSet.has(referenceId),
+      )
+      const { referenceWorkspace } = createReferenceLoadBatch(
+        state.referenceWorkspace,
+        targetIds,
+        'category-load-all',
+        selectReferenceWorkspaceBrowserTree({ referenceWorkspace: state.referenceWorkspace }).categories.find(
+          (category) => category.categoryId === categoryId,
+        )?.label ?? categoryId,
+      )
+      return {
+        referenceWorkspace,
+      }
+    })
+  },
+  markReferenceBatchItemStarted: (referenceId, requestId) => {
+    set((state) => {
+      const currentBatch = state.referenceWorkspace.referenceLoadBatch
+      if (currentBatch === null || currentBatch.requestId !== requestId) {
+        return state
+      }
+      if (!currentBatch.remainingIds.includes(referenceId)) {
+        return state
+      }
+      return {
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          referenceLoadBatch: {
+            ...currentBatch,
+            activeReferenceId: referenceId,
+            remainingIds: currentBatch.remainingIds.filter((currentId) => currentId !== referenceId),
+          },
+        },
+      }
+    })
+  },
+  markReferenceBatchItemCompleted: (referenceId, requestId, outcome) => {
+    set((state) => {
+      const currentBatch = state.referenceWorkspace.referenceLoadBatch
+      if (
+        currentBatch === null ||
+        (currentBatch.requestId !== requestId && currentBatch.activeReferenceId !== referenceId)
+      ) {
+        return state
+      }
+      const participatesInCurrentBatch = currentBatch.targetIds.includes(referenceId)
+      const nextCompletedIds =
+        participatesInCurrentBatch && outcome === 'loaded' && !currentBatch.completedIds.includes(referenceId)
+          ? [...currentBatch.completedIds, referenceId]
+          : currentBatch.completedIds
+      const nextFailedIds =
+        participatesInCurrentBatch && outcome === 'error' && !currentBatch.failedIds.includes(referenceId)
+          ? [...currentBatch.failedIds, referenceId]
+          : currentBatch.failedIds
+      const nextActiveReferenceId =
+        currentBatch.activeReferenceId === referenceId ? null : currentBatch.activeReferenceId
+      const targetDoneCount = currentBatch.targetIds.filter(
+        (targetId) => nextCompletedIds.includes(targetId) || nextFailedIds.includes(targetId),
+      ).length
+      const nextReferenceLoadBatch =
+        currentBatch.targetIds.length === 0 ||
+        (nextActiveReferenceId === null && targetDoneCount >= currentBatch.targetIds.length)
+          ? null
+          : {
+              ...currentBatch,
+              activeReferenceId: nextActiveReferenceId,
+              completedIds: nextCompletedIds,
+              failedIds: nextFailedIds,
+            }
+      if (nextReferenceLoadBatch === null && currentBatch.targetIds.length > 0) {
+        appendConsoleEntry({
+          layer: 'Browser',
+          text: `Load All Complete: ${currentBatch.scopeLabel}`,
+          source: currentBatch.requestId,
+          severity: 'info',
+        })
+      }
+      return {
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          referenceLoadBatch: nextReferenceLoadBatch,
+        },
+      }
+    })
+  },
+  loadAllReferences: () => {
+    get().startReferenceLoadBatchForAll()
+  },
+  loadReferenceCategory: (categoryId) => {
+    get().startReferenceLoadBatchForCategory(categoryId)
+  },
   removeImportedReference: (referenceId) => {
     set((state) => {
       const importedReference = state.referenceWorkspace.importedReferencesById[referenceId]
@@ -1642,6 +2197,10 @@ export const useAppStore = create<AppState>((set, get) => ({
           visibilityById: nextVisibilityById,
           loadStateById: nextLoadStateById,
           errorById: nextErrorById,
+          referenceLoadBatch: filterReferenceLoadBatch(
+            state.referenceWorkspace.referenceLoadBatch,
+            [referenceId],
+          ),
           transformOverrideById: nextTransformOverrideById,
           channelClampRangeByReferenceId: nextChannelClampRangeByReferenceId,
           timelineModeByReferenceId: nextTimelineModeByReferenceId,
@@ -1926,6 +2485,38 @@ export const useAppStore = create<AppState>((set, get) => ({
       workspaceSelection: {
         ...state.workspaceSelection,
         selectedTarget: target,
+        explicitSelectedTargets: isExplicitWorkspaceSelectionTarget(target) ? [target] : [],
+        selectionAnchorTarget: isExplicitWorkspaceSelectionTarget(target) ? target : null,
+        resolvedContentSelection: null,
+      },
+    }))
+  },
+  setWorkspaceExplicitSelection: (selection) => {
+    set((state) => {
+      const dedupedExplicitSelectedTargets = selection.explicitSelectedTargets.filter(
+        (target, index, targets) =>
+          targets.findIndex((candidate) => areWorkspaceSelectedTargetsEqual(candidate, target)) === index,
+      )
+      return {
+        workspaceSelection: {
+          ...state.workspaceSelection,
+          selectedTarget: selection.selectedTarget,
+          explicitSelectedTargets: dedupedExplicitSelectedTargets,
+          selectionAnchorTarget: selection.selectionAnchorTarget,
+          resolvedContentSelection: resolveExplicitContentSelection(
+            state,
+            selection.selectedTarget,
+            dedupedExplicitSelectedTargets,
+          ),
+        },
+      }
+    })
+  },
+  setWorkspaceResolvedContentSelection: (selection) => {
+    set((state) => ({
+      workspaceSelection: {
+        ...state.workspaceSelection,
+        resolvedContentSelection: selection,
       },
     }))
   },
@@ -2176,10 +2767,19 @@ const selectProjectContentBuildState = (options: {
 
 export const selectCurrentProjectContentBrowserRows = (
   state: Pick<AppState, 'currentProject' | 'projectContent' | 'sketchVisibilityByRowId'> & {
+    partsVisibility?: PartsVisibility
     graphRuntimeByDocumentId: Record<string, GraphRuntimeState>
     graphDocumentsById: Record<string, GraphDocument>
   },
 ): ProjectContentBrowserRowVm[] => {
+  const partsVisibility = state.partsVisibility ?? {}
+  const buildViewerVisibilityPartKeys = (
+    graphDocumentId: string,
+    slotId: string | null,
+  ): string[] =>
+    slotId === null ? [] : [slotId, `${graphDocumentId}:${slotId}`]
+  const resolveContentVisibility = (partKeys: readonly string[]): boolean =>
+    partKeys.length > 0 && partKeys.some((partKey) => partsVisibility[partKey] ?? true)
   const rootAssembly = selectCurrentProjectRootAssembly(state)
   if (rootAssembly === null) {
     return []
@@ -2193,6 +2793,8 @@ export const selectCurrentProjectContentBrowserRows = (
       kind: 'assembly',
       label: rootAssembly.label,
       meta: '',
+      isVisible: false,
+      visibilityPartKeys: [],
       buildState: 'done',
       buildStateLabel: '',
       rebuildGraphDocumentIds: [],
@@ -2226,6 +2828,10 @@ export const selectCurrentProjectContentBrowserRows = (
       if (objectBuildState.buildState === 'rebuild') {
         assemblyRebuildGraphDocumentIds.add(objectRow.ownerGraphDocumentId)
       }
+      const objectVisibilityPartKeys = buildViewerVisibilityPartKeys(
+        objectRow.ownerGraphDocumentId,
+        objectRow.slotId,
+      )
       rows.push({
         rowId: objectRow.objectId,
         kind: 'object',
@@ -2236,6 +2842,9 @@ export const selectCurrentProjectContentBrowserRows = (
             ? 'Linked Object'
             : 'Unresolved Link'
           : sourceGraphLabel,
+        isVisible:
+          objectRow.resolutionState === 'resolved' && resolveContentVisibility(objectVisibilityPartKeys),
+        visibilityPartKeys: objectRow.resolutionState === 'resolved' ? objectVisibilityPartKeys : [],
         buildState: objectBuildState.buildState,
         buildStateLabel: objectBuildState.buildStateLabel,
         rebuildGraphDocumentIds:
@@ -2278,6 +2887,11 @@ export const selectCurrentProjectContentBrowserRows = (
         : sourceOutputEntry?.sourceNodeId ?? component.sourceNodeId
     const sourceGraphLabel =
       graphLabelByDocumentId.get(component.sourceGraphDocumentId) ?? component.sourceGraphDocumentId
+    const componentVisibilityPartKeys = componentObjects
+      .filter((objectRow) => objectRow.resolutionState === 'resolved' && objectRow.slotId !== null)
+      .flatMap((objectRow) =>
+        buildViewerVisibilityPartKeys(objectRow.ownerGraphDocumentId, objectRow.slotId),
+      )
     const componentHasUnresolvedObject = componentObjects.some(
       (objectRow) => objectRow.resolutionState !== 'resolved',
     )
@@ -2323,6 +2937,8 @@ export const selectCurrentProjectContentBrowserRows = (
             ? 'Linked Component'
             : 'Unresolved Link'
           : sourceGraphLabel,
+      isVisible: resolveContentVisibility(componentVisibilityPartKeys),
+      visibilityPartKeys: componentVisibilityPartKeys,
       buildState: componentBuildState.buildState,
       buildStateLabel: componentBuildState.buildStateLabel,
       rebuildGraphDocumentIds:
@@ -2357,11 +2973,18 @@ export const selectCurrentProjectContentBrowserRows = (
       if (objectBuildState.buildState === 'rebuild') {
         assemblyRebuildGraphDocumentIds.add(objectRow.ownerGraphDocumentId)
       }
+      const objectVisibilityPartKeys = buildViewerVisibilityPartKeys(
+        objectRow.ownerGraphDocumentId,
+        objectRow.slotId,
+      )
       rows.push({
         rowId: objectRow.objectId,
         kind: 'object',
         label: objectRow.label,
         meta: '',
+        isVisible:
+          objectRow.resolutionState === 'resolved' && resolveContentVisibility(objectVisibilityPartKeys),
+        visibilityPartKeys: objectRow.resolutionState === 'resolved' ? objectVisibilityPartKeys : [],
         buildState: objectBuildState.buildState,
         buildStateLabel: objectBuildState.buildStateLabel,
         rebuildGraphDocumentIds:
@@ -2391,8 +3014,13 @@ export const selectCurrentProjectContentBrowserRows = (
     hasContent: assemblyHasContent,
   })
   const rootAssemblyRow = rows[0] as Extract<ProjectContentBrowserRowVm, { kind: 'assembly' }>
+  const assemblyVisibilityPartKeys = rows.flatMap((row) =>
+    row.kind === 'object' || row.kind === 'component' ? (row.visibilityPartKeys ?? []) : [],
+  )
   rows[0] = {
     ...rootAssemblyRow,
+    isVisible: resolveContentVisibility(assemblyVisibilityPartKeys),
+    visibilityPartKeys: [...new Set(assemblyVisibilityPartKeys)],
     buildState: assemblyBuildState.buildState,
     buildStateLabel: assemblyBuildState.buildStateLabel,
     rebuildGraphDocumentIds: [...assemblyRebuildGraphDocumentIds],
@@ -2575,6 +3203,115 @@ export const selectReferenceWorkspaceItems = (
   state: Pick<AppState, 'referenceWorkspace'>,
 ): ReferenceWorkspaceBrowserItemVm[] =>
   selectReferenceWorkspaceBrowserTree(state).categories.flatMap((category) => category.items)
+
+export const selectConsoleWorkspaceContextTarget = (
+  state: Pick<AppState, 'workspaceSelection' | 'projectContent' | 'referenceWorkspace'>,
+): ConsoleWorkspaceContextTarget | null => {
+  const explicitSelectedTargets = state.workspaceSelection.explicitSelectedTargets ?? []
+  if (explicitSelectedTargets.length > 1) {
+    return {
+      kind: 'multi-select',
+      label: 'Multi Select',
+      fallbackGraphDocumentId: null,
+      selectedCount: explicitSelectedTargets.length,
+    }
+  }
+
+  const selectedTarget = state.workspaceSelection.selectedTarget
+  if (selectedTarget === null) {
+    return null
+  }
+  if (selectedTarget.kind === 'graph-document' || selectedTarget.kind === 'graph-node') {
+    return selectedTarget
+  }
+  if (selectedTarget.kind === 'references-root') {
+    const referenceTree = selectReferenceWorkspaceBrowserTree(state)
+    const referenceItems = referenceTree.categories.flatMap((category) => category.items)
+    const canLoadAll = referenceItems.some(
+      (item) => !item.isVisible || item.loadState === 'error' || item.loadState === 'unloaded',
+    )
+    return {
+      kind: 'references-root',
+      label: 'References',
+      fallbackGraphDocumentId: null,
+      canLoadAll,
+      categoryOptions: referenceTree.categories.map((category) => ({
+        categoryId: category.categoryId,
+        label: category.label,
+      })),
+    }
+  }
+  if (selectedTarget.kind === 'reference-category') {
+    const referenceTree = selectReferenceWorkspaceBrowserTree(state)
+    const category = referenceTree.categories.find(
+      (currentCategory) => currentCategory.categoryId === selectedTarget.categoryId,
+    )
+    if (category === undefined) {
+      return null
+    }
+    return {
+      kind: 'reference-category',
+      categoryId: category.categoryId,
+      label: category.label,
+      fallbackGraphDocumentId: null,
+      canLoadAll: category.items.some(
+        (item) => !item.isVisible || item.loadState === 'error' || item.loadState === 'unloaded',
+      ),
+    }
+  }
+  if (selectedTarget.kind === 'assembly') {
+    const assembly = state.projectContent.assembliesById[selectedTarget.assemblyId]
+    if (assembly === undefined) {
+      return null
+    }
+    return {
+      kind: 'assembly',
+      assemblyId: assembly.assemblyId,
+      label: assembly.label,
+      fallbackGraphDocumentId: null,
+    }
+  }
+  if (selectedTarget.kind === 'component') {
+    const component = state.projectContent.componentsById[selectedTarget.componentId]
+    if (component === undefined) {
+      return null
+    }
+    return {
+      kind: 'component',
+      componentId: component.componentId,
+      label: component.label,
+      fallbackGraphDocumentId: component.sourceGraphDocumentId,
+    }
+  }
+  if (selectedTarget.kind === 'object') {
+    const objectRow = state.projectContent.objectsById[selectedTarget.objectId]
+    if (objectRow === undefined) {
+      return null
+    }
+    return {
+      kind: 'object',
+      objectId: objectRow.objectId,
+      label: objectRow.label,
+      fallbackGraphDocumentId: objectRow.sourceGraphDocumentId,
+    }
+  }
+  if (selectedTarget.kind !== 'reference-item') {
+    return null
+  }
+  const referenceItem = selectReferenceWorkspaceItems(state).find(
+    (item) => item.referenceId === selectedTarget.referenceId,
+  )
+  if (referenceItem === undefined) {
+    return null
+  }
+  return {
+    kind: 'reference-item',
+    referenceId: referenceItem.referenceId,
+    label: referenceItem.label,
+    fallbackGraphDocumentId: null,
+    canLoadModel: !referenceItem.isVisible && referenceItem.loadState !== 'error',
+  }
+}
 
 const syncCurrentProjectFromSpaghetti = (
   spaghettiState: Pick<

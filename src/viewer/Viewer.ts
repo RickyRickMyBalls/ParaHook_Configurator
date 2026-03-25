@@ -8,6 +8,7 @@ import {
   Clock,
   Color,
   DirectionalLight,
+  EdgesGeometry,
   Float32BufferAttribute,
   Group,
   HemisphereLight,
@@ -88,11 +89,26 @@ type ReferenceHighlightMaterialState = {
   emissiveHex: number
   emissiveIntensity: number
 }
+type WorkspaceSelectionPick =
+  | {
+      kind: 'part'
+      partKey: string
+    }
+  | {
+      kind: 'reference-item'
+      referenceId: string
+    }
+
+type WorkspaceSelectionPickEvent = {
+  pick: WorkspaceSelectionPick | null
+  ctrlKey: boolean
+}
 
 const DEFAULT_BACKGROUND = '#0b0b0f'
 const STUDIO_BACKGROUND = '#151922'
 const ACTIVE_REFERENCE_HIGHLIGHT_COLOR = '#fff4c2'
 const ACTIVE_REFERENCE_HIGHLIGHT_EMISSIVE = '#ffd66b'
+const ACTIVE_PART_SELECTION_OUTLINE = '#9ec3ff'
 const GRID_SIZE = 300
 const GRID_MINOR_STEP = 1
 const GRID_MAJOR_STEP = 10
@@ -245,6 +261,10 @@ export class Viewer {
   private readonly pointer = new Vector2()
   private frameId: number | null = null
   private readonly partMeshes = new Map<string, Mesh>()
+  private readonly partSelectionOutlines = new Map<string, LineSegments>()
+  private highlightedPartKeys = new Set<string>()
+  private readonly referenceSelectionOutlines = new Map<string, LineSegments[]>()
+  private highlightedReferenceIds = new Set<string>()
   private readonly referenceGroup: Group
   private readonly referenceObjects = new Map<string, Object3D>()
   private readonly referenceLoadPromises = new Map<string, Promise<void>>()
@@ -277,6 +297,7 @@ export class Viewer {
   private onGeometrySketchDeleteSelection: (() => void) | null = null
   private onGeometrySketchFinishDraft: (() => void) | null = null
   private onGeometrySketchCancelDraft: (() => void) | null = null
+  private onWorkspaceSelectionPick: ((event: WorkspaceSelectionPickEvent) => void) | null = null
   private geometrySketchSelectionDrag:
     | {
         pointerId: number
@@ -296,6 +317,15 @@ export class Viewer {
         anchorClientX: number
         anchorClientY: number
         moved: boolean
+      }
+    | null = null
+  private workspaceSelectionClickTracker:
+    | {
+        pointerId: number
+        anchorClientX: number
+        anchorClientY: number
+        moved: boolean
+        ctrlKey: boolean
       }
     | null = null
   private consoleCameraMode: 'pan' | 'orbit' | 'zoom-window' | null = null
@@ -569,8 +599,28 @@ export class Viewer {
       mesh.visible = visibility[partKeyStr] ?? true
       mesh.castShadow = this.currentViewSettings.shadowsEnabled
       mesh.receiveShadow = this.currentViewSettings.shadowsEnabled
+      mesh.userData.partKey = partKeyStr
+      const selectionOutline = new LineSegments(
+        new EdgesGeometry(geometry),
+        new LineBasicMaterial({
+          color: new Color(ACTIVE_PART_SELECTION_OUTLINE),
+          transparent: true,
+          opacity: 0.96,
+          toneMapped: false,
+          depthTest: false,
+          depthWrite: false,
+        }),
+      )
+      selectionOutline.name = `${partKeyStr}:selection-outline`
+      selectionOutline.visible = false
+      selectionOutline.renderOrder = 120
+      selectionOutline.frustumCulled = false
+      selectionOutline.userData.partKey = partKeyStr
+      selectionOutline.userData.selectionOverlay = true
+      mesh.add(selectionOutline)
       this.rootGroup.add(mesh)
       this.partMeshes.set(partKeyStr, mesh)
+      this.partSelectionOutlines.set(partKeyStr, selectionOutline)
       xCursor += Math.max(lengthForCursor, 0.2) + 0.2
     }
 
@@ -744,6 +794,7 @@ export class Viewer {
     }
     this.disposeObjectTree(object)
     this.referenceObjects.delete(referenceId)
+    this.referenceSelectionOutlines.delete(referenceId)
     this.refreshReferenceHighlightStyling()
     this.refreshGizmoAttachment()
   }
@@ -1090,6 +1141,16 @@ export class Viewer {
     this.refreshGizmoAttachment()
   }
 
+  public setHighlightedPartKeys(partIds: string[]): void {
+    this.highlightedPartKeys = new Set(partIds)
+    this.refreshSelectionStyling()
+  }
+
+  public setHighlightedReferenceIds(referenceIds: string[]): void {
+    this.highlightedReferenceIds = new Set(referenceIds)
+    this.refreshReferenceHighlightStyling()
+  }
+
   public setAxisOverlayEnabled(enabled: boolean): void {
     this.axisOverlayEnabled = enabled
     this.syncAxisOverlay()
@@ -1345,6 +1406,12 @@ export class Viewer {
 
   public setOnSketchPlanePickTransformCommit(handler: (() => void) | null): void {
     this.onSketchPlanePickTransformCommit = handler
+  }
+
+  public setOnWorkspaceSelectionPick(
+    handler: ((event: WorkspaceSelectionPickEvent) => void) | null,
+  ): void {
+    this.onWorkspaceSelectionPick = handler
   }
 
   public dispose(): void {
@@ -1696,9 +1763,20 @@ export class Viewer {
   private clearPartMeshes(): void {
     for (const mesh of this.partMeshes.values()) {
       this.rootGroup.remove(mesh)
+      mesh.traverse((child) => {
+        if (child instanceof LineSegments) {
+          child.geometry.dispose()
+          if (Array.isArray(child.material)) {
+            child.material.forEach((material) => material.dispose())
+            return
+          }
+          child.material.dispose()
+        }
+      })
       mesh.geometry.dispose()
     }
     this.partMeshes.clear()
+    this.partSelectionOutlines.clear()
   }
 
   private clearReferenceObjects(): void {
@@ -1709,6 +1787,7 @@ export class Viewer {
       this.disposeObjectTree(object)
     }
     this.referenceObjects.clear()
+    this.referenceSelectionOutlines.clear()
     this.referenceLoadPromises.clear()
     this.removedReferenceIds.clear()
   }
@@ -1725,6 +1804,7 @@ export class Viewer {
 
   private applyReferenceObjectDefaults(object: Object3D): void {
     object.visible = false
+    const selectionOutlines: LineSegments[] = []
     object.traverse((child) => {
       if (!(child instanceof Mesh)) {
         return
@@ -1742,15 +1822,42 @@ export class Viewer {
       }
       child.castShadow = this.currentViewSettings.shadowsEnabled
       child.receiveShadow = this.currentViewSettings.shadowsEnabled
+      const selectionOutline = new LineSegments(
+        new EdgesGeometry(child.geometry),
+        new LineBasicMaterial({
+          color: new Color(ACTIVE_PART_SELECTION_OUTLINE),
+          transparent: true,
+          opacity: 0.96,
+          toneMapped: false,
+          depthTest: false,
+          depthWrite: false,
+        }),
+      )
+      selectionOutline.name = `${object.name}:selection-outline`
+      selectionOutline.visible = false
+      selectionOutline.renderOrder = 120
+      selectionOutline.frustumCulled = false
+      selectionOutline.userData.referenceSelectionOverlay = true
+      child.add(selectionOutline)
+      selectionOutlines.push(selectionOutline)
     })
+    const referenceId = object.userData.referenceId
+    if (typeof referenceId === 'string' && referenceId.length > 0) {
+      this.referenceSelectionOutlines.set(referenceId, selectionOutlines)
+    }
   }
 
   private refreshReferenceHighlightStyling(): void {
     const highlightTint = new Color(ACTIVE_REFERENCE_HIGHLIGHT_COLOR)
     const highlightEmissive = new Color(ACTIVE_REFERENCE_HIGHLIGHT_EMISSIVE)
     for (const [referenceId, object] of this.referenceObjects.entries()) {
+      const isSelected = this.highlightedReferenceIds.has(referenceId) && object.visible
       const isHighlighted =
         referenceId === this.activeReferenceTransformReferenceId && object.visible
+      const outlines = this.referenceSelectionOutlines.get(referenceId) ?? []
+      for (const outline of outlines) {
+        outline.visible = isSelected || isHighlighted
+      }
       object.traverse((child) => {
         if (!(child instanceof Mesh)) {
           return
@@ -1809,6 +1916,7 @@ export class Viewer {
       transform?.offset?.y ?? 0,
       transform?.offset?.z ?? 0,
     )
+    pivot.userData.referenceId = reference.referenceId
     pivot.userData.referenceTransformBase = {
       position: {
         x: transform?.offset?.x ?? 0,
@@ -1954,8 +2062,9 @@ export class Viewer {
   }
 
   private refreshSelectionStyling(): void {
-    for (const [partKeyStr, mesh] of this.partMeshes.entries()) {
-      mesh.scale.setScalar(partKeyStr === this.selectedPartKey ? 1.05 : 1)
+    for (const [partKeyStr, outline] of this.partSelectionOutlines.entries()) {
+      outline.visible =
+        partKeyStr === this.selectedPartKey || this.highlightedPartKeys.has(partKeyStr)
     }
   }
 
@@ -2294,6 +2403,67 @@ export class Viewer {
     return null
   }
 
+  private shouldHandleWorkspaceSelectionPick(): boolean {
+    return (
+      this.onWorkspaceSelectionPick !== null &&
+      this.sketchPlanePickOverlay === null &&
+      this.geometrySketchOverlay === null &&
+      this.consoleCameraMode === null &&
+      this.consoleCameraModeDrag === null &&
+      this.consoleZoomWindowDrag === null &&
+      this.cameraOrbitModifierDrag === null &&
+      this.activeReferenceTransformReferenceId === null
+    )
+  }
+
+  private pickWorkspaceSelection(
+    clientX: number,
+    clientY: number,
+  ): WorkspaceSelectionPick | null {
+    const rect = this.renderer.domElement.getBoundingClientRect()
+    if (rect.width <= 0 || rect.height <= 0) {
+      return null
+    }
+    this.pointer.set(
+      ((clientX - rect.left) / rect.width) * 2 - 1,
+      -(((clientY - rect.top) / rect.height) * 2 - 1),
+    )
+    this.raycaster.setFromCamera(this.pointer, this.cameraController.getActiveCamera())
+    const pickRoots: Object3D[] = []
+    for (const object of this.referenceObjects.values()) {
+      if (object.visible) {
+        pickRoots.push(object)
+      }
+    }
+    for (const mesh of this.partMeshes.values()) {
+      if (mesh.visible) {
+        pickRoots.push(mesh)
+      }
+    }
+    const intersections = this.raycaster.intersectObjects(pickRoots, true)
+    for (const intersection of intersections) {
+      let current: Object3D | null = intersection.object
+      while (current !== null) {
+        const referenceId = current.userData.referenceId
+        if (typeof referenceId === 'string' && referenceId.length > 0) {
+          return {
+            kind: 'reference-item',
+            referenceId,
+          }
+        }
+        const partKey = current.userData.partKey
+        if (typeof partKey === 'string' && partKey.length > 0) {
+          return {
+            kind: 'part',
+            partKey,
+          }
+        }
+        current = current.parent
+      }
+    }
+    return null
+  }
+
   private getCurrentGeometrySketchSelectionWindowMode(
     anchor: { x: number; y: number },
     current: { x: number; y: number },
@@ -2391,6 +2561,17 @@ export class Viewer {
     if (event.button !== 0) {
       return
     }
+    if (this.shouldHandleWorkspaceSelectionPick()) {
+      this.workspaceSelectionClickTracker = {
+        pointerId: event.pointerId,
+        anchorClientX: event.clientX,
+        anchorClientY: event.clientY,
+        moved: false,
+        ctrlKey: event.ctrlKey,
+      }
+    } else {
+      this.workspaceSelectionClickTracker = null
+    }
     if (
       this.consoleZoomWindowDrag !== null &&
       event.pointerId === this.consoleZoomWindowDrag.pointerId
@@ -2475,6 +2656,17 @@ export class Viewer {
   }
 
   private readonly handleSketchPlanePickPointerMove = (event: PointerEvent): void => {
+    if (
+      this.workspaceSelectionClickTracker !== null &&
+      event.pointerId === this.workspaceSelectionClickTracker.pointerId &&
+      !this.workspaceSelectionClickTracker.moved
+    ) {
+      this.workspaceSelectionClickTracker.moved =
+        Math.max(
+          Math.abs(event.clientX - this.workspaceSelectionClickTracker.anchorClientX),
+          Math.abs(event.clientY - this.workspaceSelectionClickTracker.anchorClientY),
+        ) >= 3
+    }
     if (
       this.consoleZoomWindowDrag !== null &&
       event.pointerId === this.consoleZoomWindowDrag.pointerId
@@ -2691,6 +2883,19 @@ export class Viewer {
         this.lastMiddleClick = null
       }
       return
+    }
+    if (
+      this.workspaceSelectionClickTracker !== null &&
+      event.pointerId === this.workspaceSelectionClickTracker.pointerId
+    ) {
+      const click = this.workspaceSelectionClickTracker
+      this.workspaceSelectionClickTracker = null
+      if (!click.moved) {
+        this.onWorkspaceSelectionPick?.({
+          pick: this.pickWorkspaceSelection(event.clientX, event.clientY),
+          ctrlKey: click.ctrlKey,
+        })
+      }
     }
     if (
       this.geometrySketchSelectionDrag === null ||

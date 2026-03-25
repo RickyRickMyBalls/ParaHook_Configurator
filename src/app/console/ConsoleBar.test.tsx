@@ -73,4 +73,82 @@ describe('ConsoleBar', () => {
       ),
     ).toEqual(['B'])
   })
+
+  it('shows the full staged breadcrumb for object selection scopes', async () => {
+    useConsoleStore.setState({
+      stagedNavigationSession: {
+        scopeId: 'contentObjectSelected',
+        breadcrumb: ['Select', 'Object', 'Object 1'],
+        selections: {
+          graphDocumentId: 'graph-document-1',
+          selectedNodeId: null,
+          sketchNodeId: null,
+          referenceId: null,
+        },
+        validChoices: [
+          {
+            label: 'Back',
+            aliases: ['B'],
+            canonicalToken: 'BACK',
+            kind: 'action',
+          },
+        ],
+      },
+      stagedChoiceIndex: 0,
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleBar />)
+    })
+
+    expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
+      'Select > Object > Object 1 > Choose next',
+    )
+  })
+
+  it('keeps root alias hints when the summary is rendered from the fallback prompt text', async () => {
+    useConsoleStore.setState({
+      entries: [
+        {
+          id: 'entry-1',
+          sequence: 1,
+          createdAtMs: 1,
+          timestampLabel: '00:00:01',
+          text: 'Root > Choose next [Graph, References, Camera, Radio, Zoom, Pan, Orbit]',
+          layer: 'Commands',
+          commandLineKind: null,
+          source: 'console',
+          severity: 'info',
+        },
+      ],
+      stagedNavigationSession: null,
+      consolePromptSession: null,
+      featureAssistDescriptor: null,
+      stagedChoiceIndex: null,
+      inputText: '',
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleBar />)
+    })
+
+    const choices = Array.from(
+      container.querySelectorAll('.ConsoleBarSummaryChoice'),
+    ) as HTMLElement[]
+    const referencesChoice = choices.find((choice) => choice.textContent?.includes('References'))
+
+    expect(
+      Array.from(referencesChoice?.querySelectorAll('.ConsoleBarSummaryChoiceAlias') ?? []).map(
+        (node) => node.textContent,
+      ),
+    ).toEqual(['R', 'e', 'f'])
+  })
 })

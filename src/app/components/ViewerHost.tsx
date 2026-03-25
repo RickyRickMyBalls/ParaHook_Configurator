@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { appendConsoleEntry } from '../console/useConsoleStore'
 import {
   setViewer,
   type GeometrySketchOverlayVm,
@@ -12,6 +13,7 @@ import {
   selectReferenceWorkspaceItems,
   useAppStore,
 } from '../store/useAppStore'
+import type { WorkspaceSelectedTarget } from '../store/useAppStore'
 import { useUiPrefsStore } from '../store/uiPrefsStore'
 import {
   selectSharedViewerComposition,
@@ -37,12 +39,61 @@ const EMPTY_PREVIEW_LIST: PreviewRenderVm = {
   viewerParts: [],
 }
 
+const isExplicitSelectionTarget = (
+  target: WorkspaceSelectedTarget | null,
+): target is Extract<
+  WorkspaceSelectedTarget,
+  | { kind: 'references-root' }
+  | { kind: 'reference-category' }
+  | { kind: 'reference-item' }
+  | { kind: 'assembly' }
+  | { kind: 'component' }
+  | { kind: 'object' }
+> =>
+  target !== null &&
+  (target.kind === 'references-root' ||
+    target.kind === 'reference-category' ||
+    target.kind === 'reference-item' ||
+    target.kind === 'assembly' ||
+    target.kind === 'component' ||
+    target.kind === 'object')
+
+const getWorkspaceTargetKey = (target: WorkspaceSelectedTarget): string => {
+  switch (target.kind) {
+    case 'references-root':
+      return 'references-root'
+    case 'reference-category':
+      return `reference-category:${target.categoryId}`
+    case 'reference-item':
+      return `reference-item:${target.referenceId}`
+    case 'assembly':
+      return `assembly:${target.assemblyId}`
+    case 'component':
+      return `component:${target.componentId}`
+    case 'object':
+      return `object:${target.objectId}`
+    case 'graph-document':
+      return `graph-document:${target.graphDocumentId}`
+    case 'graph-node':
+      return `graph-node:${target.graphDocumentId}:${target.nodeId}`
+    case 'part':
+      return `part:${target.partKey}`
+  }
+}
+
 export function ViewerHost() {
   const mountRef = useRef<HTMLDivElement | null>(null)
   const viewerRef = useRef<Viewer | null>(null)
   const isMountedRef = useRef(false)
   const partsVisibility = useAppStore((state) => state.partsVisibility)
   const selectedPartKey = useAppStore((state) => state.selectedPartKey)
+  const workspaceSelectedTarget = useAppStore((state) => state.workspaceSelection.selectedTarget)
+  const workspaceExplicitSelectedTargets = useAppStore(
+    (state) => state.workspaceSelection.explicitSelectedTargets,
+  )
+  const workspaceResolvedContentSelection = useAppStore(
+    (state) => state.workspaceSelection.resolvedContentSelection,
+  )
   const currentProject = useAppStore((state) => state.currentProject)
   const projectContent = useAppStore((state) => state.projectContent)
   const referenceWorkspace = useAppStore((state) => state.referenceWorkspace)
@@ -53,8 +104,13 @@ export function ViewerHost() {
   const browserContentBuildPolicyByRowId = useAppStore(
     (state) => state.browserContentBuildPolicyByRowId,
   )
+  const markReferenceBatchItemStarted = useAppStore((state) => state.markReferenceBatchItemStarted)
+  const markReferenceBatchItemCompleted = useAppStore((state) => state.markReferenceBatchItemCompleted)
   const setReferenceItemLoadState = useAppStore((state) => state.setReferenceItemLoadState)
   const setReferenceItemVisibility = useAppStore((state) => state.setReferenceItemVisibility)
+  const setWorkspaceSelectedTarget = useAppStore((state) => state.setWorkspaceSelectedTarget)
+  const setActiveSurface = useAppStore((state) => state.setActiveSurface)
+  const selectPart = useAppStore((state) => state.selectPart)
   const endReferenceTransform = useAppStore((state) => state.endReferenceTransform)
   const setReferenceTransformMode = useAppStore((state) => state.setReferenceTransformMode)
   const setReferenceTransformSpace = useAppStore((state) => state.setReferenceTransformSpace)
@@ -171,6 +227,94 @@ export function ViewerHost() {
     ],
   )
 
+  const projectContentRows = useMemo(
+    () =>
+      selectCurrentProjectContentBrowserRows({
+        currentProject,
+        projectContent,
+        partsVisibility,
+        sketchVisibilityByRowId,
+        graphRuntimeByDocumentId,
+        graphDocumentsById,
+      }),
+    [
+      currentProject,
+      graphDocumentsById,
+      graphRuntimeByDocumentId,
+      partsVisibility,
+      projectContent,
+      sketchVisibilityByRowId,
+    ],
+  )
+
+  const contentObjectRowByViewerPartKey = useMemo(() => {
+    const nextRowsByViewerPartKey = new Map<
+      string,
+      Extract<(typeof projectContentRows)[number], { kind: 'object' }>
+    >()
+    for (const row of projectContentRows) {
+      if (row.kind !== 'object') {
+        continue
+      }
+      for (const partKey of row.visibilityPartKeys ?? []) {
+        if (!nextRowsByViewerPartKey.has(partKey)) {
+          nextRowsByViewerPartKey.set(partKey, row)
+        }
+      }
+    }
+    return nextRowsByViewerPartKey
+  }, [projectContentRows])
+
+  const highlightedPartKeys = useMemo(() => {
+    type HighlightableContentRow = Extract<
+      (typeof projectContentRows)[number],
+      { kind: 'assembly' | 'component' | 'object' }
+    >
+    const activeViewerPartKeys = new Set(previewList.viewerParts.map((part) => part.viewerKey))
+    const filterActiveKeys = (keys: readonly string[]) =>
+      keys.filter((key) => activeViewerPartKeys.has(key))
+
+    if (workspaceResolvedContentSelection != null) {
+      return filterActiveKeys(workspaceResolvedContentSelection.partKeys)
+    }
+    if (workspaceSelectedTarget === null) {
+      return selectedPartKey === null ? [] : filterActiveKeys([selectedPartKey])
+    }
+    if (workspaceSelectedTarget.kind === 'part') {
+      return filterActiveKeys([workspaceSelectedTarget.partKey])
+    }
+    if (
+      workspaceSelectedTarget.kind === 'assembly' ||
+      workspaceSelectedTarget.kind === 'component' ||
+      workspaceSelectedTarget.kind === 'object'
+    ) {
+      const targetRowId =
+        workspaceSelectedTarget.kind === 'assembly'
+          ? workspaceSelectedTarget.assemblyId
+          : workspaceSelectedTarget.kind === 'component'
+            ? workspaceSelectedTarget.componentId
+            : workspaceSelectedTarget.objectId
+      const contentRow = projectContentRows.find(
+        (row): row is HighlightableContentRow =>
+          (row.kind === 'assembly' || row.kind === 'component' || row.kind === 'object') &&
+          row.rowId === targetRowId,
+      )
+      if (contentRow !== undefined) {
+        const keys = filterActiveKeys(contentRow.visibilityPartKeys ?? [])
+        if (keys.length > 0) {
+          return keys
+        }
+      }
+    }
+    return selectedPartKey === null ? [] : filterActiveKeys([selectedPartKey])
+  }, [
+    previewList.viewerParts,
+    projectContentRows,
+    selectedPartKey,
+    workspaceResolvedContentSelection,
+    workspaceSelectedTarget,
+  ])
+
   const geometrySketchOverlay = useMemo<GeometrySketchOverlayVm | null>(() => {
     if (geometrySketchSession === null || activeGeometrySketchNode === null) {
       return null
@@ -252,16 +396,11 @@ export function ViewerHost() {
   ])
 
   const visibleGeometrySketchOverlays = useMemo<VisibleGeometrySketchOverlayVm[]>(() => {
-    const contentRows = selectCurrentProjectContentBrowserRows({
-      currentProject,
-      projectContent,
-      sketchVisibilityByRowId,
-      graphRuntimeByDocumentId,
-      graphDocumentsById,
-    })
-
-    return contentRows
-      .filter((row): row is Extract<typeof contentRows[number], { kind: 'sketch' }> => row.kind === 'sketch')
+    return projectContentRows
+      .filter(
+        (row): row is Extract<(typeof projectContentRows)[number], { kind: 'sketch' }> =>
+          row.kind === 'sketch',
+      )
       .filter((row) => row.isVisible)
       .filter((row) => geometrySketchSession === null || row.nodeId !== geometrySketchSession.nodeId)
       .map((row) => {
@@ -300,12 +439,9 @@ export function ViewerHost() {
       })
       .filter((overlay): overlay is VisibleGeometrySketchOverlayVm => overlay !== null)
   }, [
-    currentProject,
     geometrySketchSession,
     graphDocumentsById,
-    graphRuntimeByDocumentId,
-    projectContent,
-    sketchVisibilityByRowId,
+    projectContentRows,
   ])
 
   const sketchPlanePickOverlay = useMemo<SketchPlanePickOverlayVm | null>(() => {
@@ -368,6 +504,40 @@ export function ViewerHost() {
     () => selectReferenceWorkspaceItems({ referenceWorkspace }),
     [referenceWorkspace],
   )
+  const referenceWorkspaceItemById = useMemo(
+    () => new Map(referenceWorkspaceItems.map((item) => [item.referenceId, item] as const)),
+    [referenceWorkspaceItems],
+  )
+  const highlightedReferenceIds = useMemo(() => {
+    const highlightedReferenceIdSet = new Set<string>()
+    const explicitWorkspaceTargets = workspaceExplicitSelectedTargets ?? []
+    const explicitTargets =
+      explicitWorkspaceTargets.length > 0
+        ? explicitWorkspaceTargets
+        : workspaceSelectedTarget === null
+          ? []
+          : [workspaceSelectedTarget]
+
+    for (const target of explicitTargets) {
+      if (target.kind === 'references-root') {
+        referenceWorkspaceItems.forEach((item) => highlightedReferenceIdSet.add(item.referenceId))
+        continue
+      }
+      if (target.kind === 'reference-category') {
+        referenceWorkspaceItems
+          .filter((item) => item.categoryId === target.categoryId)
+          .forEach((item) => highlightedReferenceIdSet.add(item.referenceId))
+        continue
+      }
+      if (target.kind === 'reference-item') {
+        highlightedReferenceIdSet.add(target.referenceId)
+      }
+    }
+
+    return [...highlightedReferenceIdSet].filter((referenceId) =>
+      referenceWorkspaceItems.some((item) => item.referenceId === referenceId),
+    )
+  }, [referenceWorkspaceItems, workspaceExplicitSelectedTargets, workspaceSelectedTarget])
   const [timelineNowMs, setTimelineNowMs] = useState(() => performance.now())
   const previousReferenceIdsRef = useRef<string[]>([])
   const activeReferenceTransformSession = useMemo(
@@ -491,6 +661,14 @@ export function ViewerHost() {
   }, [selectedPartKey])
 
   useEffect(() => {
+    viewerRef.current?.setHighlightedPartKeys(highlightedPartKeys)
+  }, [highlightedPartKeys])
+
+  useEffect(() => {
+    viewerRef.current?.setHighlightedReferenceIds(highlightedReferenceIds)
+  }, [highlightedReferenceIds])
+
+  useEffect(() => {
     viewerRef.current?.applyViewSettings(view)
   }, [view])
 
@@ -545,6 +723,110 @@ export function ViewerHost() {
     viewer.setOnGeometrySketchCancelDraft(() => {
       useSpaghettiStore.getState().cancelGeometrySketchDrawDraft()
     })
+    viewer.setOnWorkspaceSelectionPick(({ pick, ctrlKey }) => {
+      const appState = useAppStore.getState()
+      appState.setActiveSurface('viewer')
+      if (pick === null) {
+        appState.setWorkspaceSelectedTarget(null)
+        useAppStore.setState({ selectedPartKey: null })
+        appState.requestConsoleContextSync('surface-clear')
+        return
+      }
+      if (pick.kind === 'reference-item') {
+        appState.setWorkspaceSelectedTarget({
+          kind: 'reference-item',
+          referenceId: pick.referenceId,
+        })
+        appState.selectPart(null)
+        appState.requestConsoleContextSync('target-selection')
+        return
+      }
+      const objectRow = contentObjectRowByViewerPartKey.get(pick.partKey)
+      if (objectRow !== undefined) {
+        const explicitSelectionTarget: WorkspaceSelectedTarget = {
+          kind: 'object',
+          objectId: objectRow.rowId,
+        }
+        const commitExplicitSelection = (
+          explicitSelectedTargets: WorkspaceSelectedTarget[],
+          selectedTarget: WorkspaceSelectedTarget | null,
+          selectionAnchorTarget: WorkspaceSelectedTarget | null,
+        ) => {
+          appState.setWorkspaceExplicitSelection({
+            selectedTarget,
+            explicitSelectedTargets,
+            selectionAnchorTarget,
+          })
+          appState.selectPart(pick.partKey)
+          appState.requestConsoleContextSync('target-selection')
+        }
+        if (ctrlKey) {
+          const currentExplicitTargets =
+            appState.workspaceSelection.explicitSelectedTargets.length > 0
+              ? appState.workspaceSelection.explicitSelectedTargets
+              : isExplicitSelectionTarget(appState.workspaceSelection.selectedTarget)
+                ? [appState.workspaceSelection.selectedTarget]
+                : []
+          const existingIndex = currentExplicitTargets.findIndex(
+            (target) => getWorkspaceTargetKey(target) === getWorkspaceTargetKey(explicitSelectionTarget),
+          )
+          if (existingIndex === -1) {
+            commitExplicitSelection(
+              [...currentExplicitTargets, explicitSelectionTarget],
+              explicitSelectionTarget,
+              explicitSelectionTarget,
+            )
+            return
+          }
+
+          const nextExplicitTargets = currentExplicitTargets.filter(
+            (target) => getWorkspaceTargetKey(target) !== getWorkspaceTargetKey(explicitSelectionTarget),
+          )
+          if (nextExplicitTargets.length === 0) {
+            appState.setWorkspaceExplicitSelection({
+              selectedTarget: null,
+              explicitSelectedTargets: [],
+              selectionAnchorTarget: explicitSelectionTarget,
+            })
+            appState.selectPart(null)
+            appState.requestConsoleContextSync('target-selection')
+            return
+          }
+
+          const nextPrimaryTarget =
+            appState.workspaceSelection.selectedTarget !== null &&
+            getWorkspaceTargetKey(appState.workspaceSelection.selectedTarget) !==
+              getWorkspaceTargetKey(explicitSelectionTarget) &&
+            nextExplicitTargets.some(
+              (target) =>
+                getWorkspaceTargetKey(target) ===
+                getWorkspaceTargetKey(appState.workspaceSelection.selectedTarget!),
+            )
+              ? appState.workspaceSelection.selectedTarget
+              : nextExplicitTargets.at(-1) ?? null
+
+          commitExplicitSelection(
+            nextExplicitTargets,
+            nextPrimaryTarget,
+            explicitSelectionTarget,
+          )
+          return
+        }
+
+        commitExplicitSelection(
+          [explicitSelectionTarget],
+          explicitSelectionTarget,
+          explicitSelectionTarget,
+        )
+      } else {
+        appState.setWorkspaceSelectedTarget({
+          kind: 'part',
+          partKey: pick.partKey,
+        })
+      }
+      appState.selectPart(pick.partKey)
+      appState.requestConsoleContextSync('target-selection')
+    })
 
     return () => {
       viewer.setOnReferenceTransformChange(null)
@@ -562,8 +844,18 @@ export function ViewerHost() {
       viewer.setOnGeometrySketchDeleteSelection(null)
       viewer.setOnGeometrySketchFinishDraft(null)
       viewer.setOnGeometrySketchCancelDraft(null)
+      viewer.setOnWorkspaceSelectionPick(null)
     }
-  }, [endReferenceTransform, setReferenceTransformMode, setReferenceTransformOverride, setReferenceTransformSpace])
+  }, [
+    contentObjectRowByViewerPartKey,
+    endReferenceTransform,
+    selectPart,
+    setActiveSurface,
+    setReferenceTransformMode,
+    setReferenceTransformOverride,
+    setReferenceTransformSpace,
+    setWorkspaceSelectedTarget,
+  ])
 
   useEffect(() => {
     const viewer = viewerRef.current
@@ -579,18 +871,40 @@ export function ViewerHost() {
       viewer.removeReference(referenceId)
     })
     previousReferenceIdsRef.current = currentReferenceIds
+  }, [referenceWorkspaceItems])
+
+  useEffect(() => {
+    const viewer = viewerRef.current
+    if (viewer === null) {
+      return
+    }
+
+    referenceWorkspaceItems.forEach((item) => {
+      if (!item.isVisible) {
+        viewer.setReferenceVisible(item.referenceId, false)
+        return
+      }
+      if (item.loadState === 'loaded') {
+        viewer.setReferenceVisible(item.referenceId, true)
+      }
+    })
+  }, [referenceWorkspaceItems])
+
+  useEffect(() => {
+    const viewer = viewerRef.current
+    if (viewer === null || referenceWorkspace.referenceLoadBatch !== null) {
+      return
+    }
 
     const syncReferences = async () => {
       for (const item of referenceWorkspaceItems) {
-        if (!item.isVisible) {
-          viewer.setReferenceVisible(item.referenceId, false)
-          continue
+        if (useAppStore.getState().referenceWorkspace.referenceLoadBatch !== null) {
+          return
         }
-        if (item.loadState === 'loaded') {
-          viewer.setReferenceVisible(item.referenceId, true)
-          continue
-        }
-        if (item.loadState === 'loading') {
+        if (
+          !item.isVisible ||
+          (item.loadState !== 'unloaded' && item.loadState !== 'error')
+        ) {
           continue
         }
         setReferenceItemLoadState(item.referenceId, 'loading')
@@ -600,6 +914,12 @@ export function ViewerHost() {
             return
           }
           setReferenceItemLoadState(item.referenceId, 'loaded')
+          appendConsoleEntry({
+            layer: 'Browser',
+            text: `Loaded Model: ${item.label}`,
+            source: item.referenceId,
+            severity: 'info',
+          })
           if (useAppStore.getState().referenceWorkspace.visibilityById[item.referenceId] ?? false) {
             viewer.setReferenceVisible(item.referenceId, true)
           }
@@ -617,7 +937,74 @@ export function ViewerHost() {
     }
 
     void syncReferences()
-  }, [referenceWorkspaceItems, setReferenceItemLoadState, setReferenceItemVisibility])
+  }, [
+    referenceWorkspace.referenceLoadBatch,
+    referenceWorkspaceItems,
+    setReferenceItemLoadState,
+    setReferenceItemVisibility,
+  ])
+
+  useEffect(() => {
+    const viewer = viewerRef.current
+    const referenceLoadBatch = referenceWorkspace.referenceLoadBatch
+    if (viewer === null || referenceLoadBatch === null) {
+      return
+    }
+    if (referenceLoadBatch.activeReferenceId !== null) {
+      return
+    }
+
+    const nextReferenceId = referenceLoadBatch.remainingIds[0] ?? null
+    if (nextReferenceId === null) {
+      return
+    }
+    const nextItem = referenceWorkspaceItemById.get(nextReferenceId) ?? null
+    if (nextItem === null) {
+      markReferenceBatchItemCompleted(nextReferenceId, referenceLoadBatch.requestId, 'error')
+      return
+    }
+
+    const runBatchLoad = async () => {
+      markReferenceBatchItemStarted(nextReferenceId, referenceLoadBatch.requestId)
+      setReferenceItemLoadState(nextReferenceId, 'loading')
+      try {
+        await viewer.ensureReferenceLoaded(nextItem)
+        if (!isMountedRef.current || viewerRef.current !== viewer) {
+          return
+        }
+        setReferenceItemLoadState(nextReferenceId, 'loaded')
+        appendConsoleEntry({
+          layer: 'Browser',
+          text: `Loaded Model: ${nextItem.label}`,
+          source: nextReferenceId,
+          severity: 'info',
+        })
+        if (useAppStore.getState().referenceWorkspace.visibilityById[nextReferenceId] ?? false) {
+          viewer.setReferenceVisible(nextReferenceId, true)
+        }
+        markReferenceBatchItemCompleted(nextReferenceId, referenceLoadBatch.requestId, 'loaded')
+      } catch (error) {
+        if (!isMountedRef.current || viewerRef.current !== viewer) {
+          return
+        }
+        const message =
+          error instanceof Error ? error.message : 'Failed to load reference asset.'
+        setReferenceItemLoadState(nextReferenceId, 'error', message)
+        setReferenceItemVisibility(nextReferenceId, false)
+        viewer.setReferenceVisible(nextReferenceId, false)
+        markReferenceBatchItemCompleted(nextReferenceId, referenceLoadBatch.requestId, 'error')
+      }
+    }
+
+    void runBatchLoad()
+  }, [
+    markReferenceBatchItemCompleted,
+    markReferenceBatchItemStarted,
+    referenceWorkspace.referenceLoadBatch,
+    referenceWorkspaceItemById,
+    setReferenceItemLoadState,
+    setReferenceItemVisibility,
+  ])
 
   useEffect(() => {
     const viewer = viewerRef.current

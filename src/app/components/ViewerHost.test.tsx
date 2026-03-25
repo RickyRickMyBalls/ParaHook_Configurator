@@ -3,6 +3,7 @@
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { GraphPreviewPreparation } from '../spaghetti/previewPreparation'
 
 let viewerEnsureReferenceLoaded: ReturnType<typeof vi.fn>
 let viewerSetReferenceVisible: ReturnType<typeof vi.fn>
@@ -16,6 +17,8 @@ let viewerSetOnReferenceTransformSpaceChange: ReturnType<typeof vi.fn>
 let viewerSetGizmoSnap: ReturnType<typeof vi.fn>
 let viewerSetGeometrySketchOverlay: ReturnType<typeof vi.fn>
 let viewerSetVisibleGeometrySketchOverlays: ReturnType<typeof vi.fn>
+let viewerSetHighlightedPartKeys: ReturnType<typeof vi.fn>
+let viewerSetHighlightedReferenceIds: ReturnType<typeof vi.fn>
 let viewerSetSketchPlanePickOverlay: ReturnType<typeof vi.fn>
 let viewerSetOnSketchPlanePickPlaneSelect: ReturnType<typeof vi.fn>
 let viewerSetOnSketchPlanePickTransformChange: ReturnType<typeof vi.fn>
@@ -28,6 +31,7 @@ let viewerSetOnGeometrySketchSelectionWindowDraftChange: ReturnType<typeof vi.fn
 let viewerSetOnGeometrySketchDeleteSelection: ReturnType<typeof vi.fn>
 let viewerSetOnGeometrySketchFinishDraft: ReturnType<typeof vi.fn>
 let viewerSetOnGeometrySketchCancelDraft: ReturnType<typeof vi.fn>
+let viewerSetOnWorkspaceSelectionPick: ReturnType<typeof vi.fn>
 
 vi.mock('../viewerBridge', () => ({
   setViewer: vi.fn(),
@@ -40,6 +44,9 @@ vi.mock('../../viewer/Viewer', () => ({
     public setAssembled(): void {}
     public setParts(): void {}
     public setSelectedPart(): void {}
+    public setHighlightedPartKeys = (...args: unknown[]) => viewerSetHighlightedPartKeys(...args)
+    public setHighlightedReferenceIds = (...args: unknown[]) =>
+      viewerSetHighlightedReferenceIds(...args)
     public applyViewSettings(): void {}
     public ensureReferenceLoaded = (...args: unknown[]) => viewerEnsureReferenceLoaded(...args)
     public setReferenceVisible = (...args: unknown[]) => viewerSetReferenceVisible(...args)
@@ -76,6 +83,8 @@ vi.mock('../../viewer/Viewer', () => ({
       viewerSetOnGeometrySketchFinishDraft(...args)
     public setOnGeometrySketchCancelDraft = (...args: unknown[]) =>
       viewerSetOnGeometrySketchCancelDraft(...args)
+    public setOnWorkspaceSelectionPick = (...args: unknown[]) =>
+      viewerSetOnWorkspaceSelectionPick(...args)
     public setSketchPlanePickOverlay = (...args: unknown[]) =>
       viewerSetSketchPlanePickOverlay(...args)
     public setOnSketchPlanePickPlaneSelect = (...args: unknown[]) =>
@@ -91,6 +100,10 @@ vi.mock('../../viewer/Viewer', () => ({
   true
 
 type WorkerMessageHandler = (event: MessageEvent<unknown>) => void
+type WorkspaceSelectionPickPayload = {
+  pick: { kind: 'part'; partKey: string } | { kind: 'reference-item'; referenceId: string } | null
+  ctrlKey: boolean
+}
 
 class MockWorker {
   private readonly handlers = new Set<WorkerMessageHandler>()
@@ -124,6 +137,165 @@ const deferred = <T,>() => {
   return { promise, resolve, reject }
 }
 
+const createPreviewPreparation = (
+  slots: Array<{
+    slotId: string
+    sourceNodeId: string
+    sourcePartKey: string
+    status?: 'ok' | 'empty' | 'unresolved'
+  }>,
+): GraphPreviewPreparation => ({
+  outputPreviewNodeId: 'node-output-preview-1',
+  outputSlotIds: slots.map((slot) => slot.slotId),
+  previewCandidateSlotIds: slots.map((slot) => slot.slotId),
+  previewCandidatePartKeys: slots.map((slot) => slot.sourcePartKey),
+  sourceNodeIdBySlotId: Object.fromEntries(slots.map((slot) => [slot.slotId, slot.sourceNodeId])),
+  sourcePartKeyBySlotId: Object.fromEntries(
+    slots.map((slot) => [slot.slotId, slot.sourcePartKey]),
+  ),
+  sourcePortIdBySlotId: Object.fromEntries(
+    slots.map((slot) => [slot.slotId, `out:${slot.sourcePartKey}`]),
+  ),
+  sourcePartKeyByNodeId: Object.fromEntries(
+    slots.map((slot) => [slot.sourceNodeId, slot.sourcePartKey]),
+  ),
+  slotStatusBySlotId: Object.fromEntries(slots.map((slot) => [slot.slotId, slot.status ?? 'ok'])),
+  buildStatsReadyPartKeys: [],
+  previewIntent: 'outputPreview',
+})
+
+const seedViewportObjectSelectionGraph = async (
+  slots: Array<{
+    slotId: string
+    sourceNodeId: string
+    sourcePartKey: string
+    objectId: string
+    label: string
+  }>,
+) => {
+  const { useAppStore } = await import('../store/useAppStore')
+  const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+  const { buildGraphOutputSurface } = await import('../spaghetti/outputSurface')
+
+  const previewPreparation = createPreviewPreparation(slots)
+  const componentId = 'project-component:project-file-1:graph-document-1:published'
+
+  act(() => {
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-output-preview-1',
+          type: 'System/OutputPreview',
+          params: {
+            slots: slots.map((slot) => ({ slotId: slot.slotId })),
+            objects: slots.map((slot) => ({
+              objectId: slot.objectId,
+              label: slot.label,
+              slotId: slot.slotId,
+            })),
+          },
+        },
+        ...slots.map((slot) => ({
+          nodeId: slot.sourceNodeId,
+          type: 'Baseplate',
+          params: {},
+        })),
+      ],
+      edges: slots.map((slot, index) => ({
+        edgeId: `edge-${index + 1}`,
+        from: { nodeId: slot.sourceNodeId, portId: 'out:solid' },
+        to: { nodeId: 'node-output-preview-1', portId: `in:solid:${slot.slotId}` },
+      })),
+    })
+    useSpaghettiStore.setState((state) => ({
+      viewerTargetGraphDocumentId: 'graph-document-1',
+      graphRuntimeByDocumentId: {
+        ...state.graphRuntimeByDocumentId,
+        'graph-document-1': {
+          ...state.graphRuntimeByDocumentId['graph-document-1'],
+          previewPreparation,
+          acceptedPreviewBuildOutputs: slots.map((slot, index) => ({
+            id: `artifact-${index + 1}`,
+            kind: 'box',
+            label: slot.label,
+            partKeyStr: slot.sourcePartKey,
+            partKey: { id: slot.sourcePartKey, instance: null },
+            params: { width: 10, length: 20, height: 5 },
+          })),
+          outputSurface: buildGraphOutputSurface({
+            graphDocumentId: 'graph-document-1',
+            previewPreparation,
+            acceptedBuildOutputs: slots.map((slot, index) => ({
+              id: `artifact-${index + 1}`,
+              kind: 'box',
+              label: slot.label,
+              partKeyStr: slot.sourcePartKey,
+              partKey: { id: slot.sourcePartKey, instance: null },
+              params: { width: 10, length: 20, height: 5 },
+            })),
+            publishedAtBuildSeq: 1,
+          }),
+        },
+      },
+    }))
+    useAppStore.setState((state) => ({
+      currentProject: {
+        ...state.currentProject,
+        graphDocuments: [
+          {
+            graphDocumentId: 'graph-document-1',
+            label: 'Graph 1',
+            sourceFilePath: null,
+            orderIndex: 0,
+          },
+        ],
+        rootAssemblyId: 'assembly-root:project-file-1',
+      },
+      projectContent: {
+        assembliesById: {
+          'assembly-root:project-file-1': {
+            assemblyId: 'assembly-root:project-file-1',
+            label: 'Assembly 1',
+            childRowIds: [componentId],
+          },
+        },
+        componentsById: {
+          [componentId]: {
+            componentId,
+            ownerGraphDocumentId: 'graph-document-1',
+            sourceGraphDocumentId: 'graph-document-1',
+            sourceOutputEntryId: `output-entry:${slots[0]?.slotId ?? 'slot-a'}:${slots[0]?.sourceNodeId ?? 'node-1'}`,
+            sourceNodeId: slots[0]?.sourceNodeId ?? 'node-1',
+            label: 'Component 1',
+            componentSourceKind: 'published-component',
+            resolutionState: 'resolved',
+            receiveId: null,
+            childObjectIds: slots.map((slot) => slot.objectId),
+          },
+        },
+        objectsById: Object.fromEntries(
+          slots.map((slot) => [
+            slot.objectId,
+            {
+              objectId: slot.objectId,
+              ownerGraphDocumentId: 'graph-document-1',
+              parentComponentId: componentId,
+              objectSourceKind: 'published-object',
+              sourceGraphDocumentId: 'graph-document-1',
+              sourceOutputEntryId: `output-entry:${slot.slotId}:${slot.sourceNodeId}`,
+              sourceNodeId: slot.sourceNodeId,
+              slotId: slot.slotId,
+              label: slot.label,
+              resolutionState: 'resolved',
+            },
+          ]),
+        ),
+      },
+    }))
+  })
+}
+
 describe('ViewerHost reference loading', () => {
   const originalWorker = globalThis.Worker
   let root: Root | null = null
@@ -143,6 +315,8 @@ describe('ViewerHost reference loading', () => {
     viewerSetGizmoSnap = vi.fn()
     viewerSetGeometrySketchOverlay = vi.fn()
     viewerSetVisibleGeometrySketchOverlays = vi.fn()
+    viewerSetHighlightedPartKeys = vi.fn()
+    viewerSetHighlightedReferenceIds = vi.fn()
     viewerSetSketchPlanePickOverlay = vi.fn()
     viewerSetOnSketchPlanePickPlaneSelect = vi.fn()
     viewerSetOnSketchPlanePickTransformChange = vi.fn()
@@ -155,10 +329,13 @@ describe('ViewerHost reference loading', () => {
     viewerSetOnGeometrySketchDeleteSelection = vi.fn()
     viewerSetOnGeometrySketchFinishDraft = vi.fn()
     viewerSetOnGeometrySketchCancelDraft = vi.fn()
+    viewerSetOnWorkspaceSelectionPick = vi.fn()
     globalThis.Worker = MockWorker as unknown as typeof Worker
     const { useAppStore } = await import('../store/useAppStore')
+    const { useConsoleStore } = await import('../console/useConsoleStore')
     const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
     useAppStore.setState(useAppStore.getInitialState(), true)
+    useConsoleStore.setState(useConsoleStore.getInitialState(), true)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
   })
 
@@ -187,6 +364,7 @@ describe('ViewerHost reference loading', () => {
 
     const { ViewerHost } = await import('./ViewerHost')
     const { useAppStore } = await import('../store/useAppStore')
+    const { useConsoleStore } = await import('../console/useConsoleStore')
 
     act(() => {
       useAppStore.getState().toggleReferenceItemVisibility('shoe:shoe-1')
@@ -210,6 +388,9 @@ describe('ViewerHost reference loading', () => {
 
     expect(useAppStore.getState().referenceWorkspace.loadStateById['shoe:shoe-1']).toBe('loaded')
     expect(viewerSetReferenceVisible).toHaveBeenCalledWith('shoe:shoe-1', true)
+    expect(
+      useConsoleStore.getState().entries.some((entry) => entry.text === 'Loaded Model: Shoe 1'),
+    ).toBe(true)
   })
 
   it('keeps a failed STEP row retryable by clearing visibility on error and loading again after the next click', async () => {
@@ -252,6 +433,144 @@ describe('ViewerHost reference loading', () => {
     expect(useAppStore.getState().referenceWorkspace.loadStateById['hook:large']).toBe('loaded')
     expect(viewerEnsureReferenceLoaded).toHaveBeenCalledTimes(2)
     expect(viewerSetReferenceVisible).toHaveBeenCalledWith('hook:large', true)
+  })
+
+  it('loads a reference batch one item at a time in queue order', async () => {
+    const firstLoad = deferred<void>()
+    const secondLoad = deferred<void>()
+    viewerEnsureReferenceLoaded
+      .mockImplementationOnce(() => firstLoad.promise)
+      .mockImplementationOnce(() => secondLoad.promise)
+
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useAppStore } = await import('../store/useAppStore')
+
+    act(() => {
+      useAppStore.getState().startReferenceLoadBatchForCategory('shoes')
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost />)
+    })
+
+    expect(viewerEnsureReferenceLoaded).toHaveBeenCalledTimes(1)
+    expect(viewerEnsureReferenceLoaded.mock.calls[0]?.[0]).toMatchObject({ referenceId: 'shoe:shoe-1' })
+    expect(useAppStore.getState().referenceWorkspace.referenceLoadBatch?.activeReferenceId).toBe(
+      'shoe:shoe-1',
+    )
+
+    await act(async () => {
+      await Promise.resolve()
+    })
+
+    expect(viewerEnsureReferenceLoaded).toHaveBeenCalledTimes(1)
+
+    await act(async () => {
+      firstLoad.resolve()
+      await firstLoad.promise
+    })
+
+    expect(viewerEnsureReferenceLoaded).toHaveBeenCalledTimes(2)
+    expect(viewerEnsureReferenceLoaded.mock.calls[1]?.[0]).toMatchObject({ referenceId: 'shoe:shoe-2' })
+
+    await act(async () => {
+      secondLoad.resolve()
+      await secondLoad.promise
+    })
+  })
+
+  it('replaces queued batch work after the in-flight item settles without letting stale completion corrupt the new batch', async () => {
+    const firstLoad = deferred<void>()
+    const secondLoad = deferred<void>()
+    viewerEnsureReferenceLoaded
+      .mockImplementationOnce(() => firstLoad.promise)
+      .mockImplementationOnce(() => secondLoad.promise)
+
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useAppStore } = await import('../store/useAppStore')
+
+    act(() => {
+      useAppStore.getState().startReferenceLoadBatchForAll()
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost />)
+    })
+
+    expect(viewerEnsureReferenceLoaded.mock.calls[0]?.[0]).toMatchObject({
+      referenceId: 'footpad:pubpad-full-assembly',
+    })
+
+    act(() => {
+      useAppStore.getState().startReferenceLoadBatchForCategory('shoes')
+    })
+
+    expect(useAppStore.getState().referenceWorkspace.referenceLoadBatch).toMatchObject({
+      activeReferenceId: 'footpad:pubpad-full-assembly',
+      targetIds: ['shoe:shoe-1', 'shoe:shoe-2', 'shoe:shoe-3'],
+    })
+
+    await act(async () => {
+      firstLoad.resolve()
+      await firstLoad.promise
+    })
+
+    expect(useAppStore.getState().referenceWorkspace.referenceLoadBatch?.completedIds).toEqual([])
+    expect(viewerEnsureReferenceLoaded).toHaveBeenCalledTimes(2)
+    expect(viewerEnsureReferenceLoaded.mock.calls[1]?.[0]).toMatchObject({ referenceId: 'shoe:shoe-1' })
+
+    await act(async () => {
+      secondLoad.resolve()
+      await secondLoad.promise
+    })
+  })
+
+  it('advances the batch after a failed reference load and counts the failure as completed progress', async () => {
+    const secondLoad = deferred<void>()
+    viewerEnsureReferenceLoaded
+      .mockRejectedValueOnce(new Error('Shoe 1 failed'))
+      .mockImplementationOnce(() => secondLoad.promise)
+
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useAppStore } = await import('../store/useAppStore')
+
+    act(() => {
+      useAppStore.getState().startReferenceLoadBatchForCategory('shoes')
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost />)
+    })
+
+    await act(async () => {
+      await Promise.resolve()
+    })
+
+    expect(useAppStore.getState().referenceWorkspace.loadStateById['shoe:shoe-1']).toBe('error')
+    expect(useAppStore.getState().referenceWorkspace.visibilityById['shoe:shoe-1']).toBe(false)
+    expect(useAppStore.getState().referenceWorkspace.referenceLoadBatch).toMatchObject({
+      failedIds: ['shoe:shoe-1'],
+      activeReferenceId: 'shoe:shoe-2',
+    })
+    expect(viewerEnsureReferenceLoaded).toHaveBeenCalledTimes(2)
+    expect(viewerEnsureReferenceLoaded.mock.calls[1]?.[0]).toMatchObject({ referenceId: 'shoe:shoe-2' })
+
+    await act(async () => {
+      secondLoad.resolve()
+      await secondLoad.promise
+    })
   })
 
   it('removes an imported reference object from the viewer when the workspace row is removed', async () => {
@@ -561,6 +880,485 @@ describe('ViewerHost reference loading', () => {
         profiles: [],
       }),
     ])
+  })
+
+  it('pushes assembly and component content selection into the viewer highlighted-part lane', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useAppStore } = await import('../store/useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    const { buildGraphOutputSurface } = await import('../spaghetti/outputSurface')
+
+    const previewPreparation = createPreviewPreparation([
+      {
+        slotId: 'slot-baseplate',
+        sourceNodeId: 'node-baseplate-1',
+        sourcePartKey: 'baseplate',
+      },
+    ])
+
+    act(() => {
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-output-preview-1',
+            type: 'System/OutputPreview',
+            params: {
+              slots: [{ slotId: 'slot-baseplate' }],
+              objects: [
+                {
+                  objectId: 'output-object:slot-baseplate',
+                  label: 'Object 1',
+                  slotId: 'slot-baseplate',
+                },
+              ],
+            },
+          },
+          {
+            nodeId: 'node-baseplate-1',
+            type: 'Baseplate',
+            params: {},
+          },
+        ],
+        edges: [
+          {
+            edgeId: 'edge-1',
+            from: { nodeId: 'node-baseplate-1', portId: 'out:solid' },
+            to: { nodeId: 'node-output-preview-1', portId: 'in:solid:slot-baseplate' },
+          },
+        ],
+      })
+      useSpaghettiStore.setState((state) => ({
+        viewerTargetGraphDocumentId: 'graph-document-1',
+        graphRuntimeByDocumentId: {
+          ...state.graphRuntimeByDocumentId,
+          'graph-document-1': {
+            ...state.graphRuntimeByDocumentId['graph-document-1'],
+            previewPreparation,
+            acceptedPreviewBuildOutputs: [
+              {
+                id: 'artifact-1',
+                kind: 'box',
+                label: 'Baseplate',
+                partKeyStr: 'baseplate',
+                partKey: { id: 'baseplate', instance: null },
+                params: { width: 10, length: 20, height: 5 },
+              },
+            ],
+            outputSurface: buildGraphOutputSurface({
+              graphDocumentId: 'graph-document-1',
+              previewPreparation,
+              acceptedBuildOutputs: [
+                {
+                  id: 'artifact-1',
+                  kind: 'box',
+                  label: 'Baseplate',
+                  partKeyStr: 'baseplate',
+                  partKey: { id: 'baseplate', instance: null },
+                  params: { width: 10, length: 20, height: 5 },
+                },
+              ],
+              publishedAtBuildSeq: 1,
+            }),
+          },
+        },
+      }))
+      useAppStore.setState((state) => ({
+        currentProject: {
+          ...state.currentProject,
+          graphDocuments: [
+            {
+              graphDocumentId: 'graph-document-1',
+              label: 'Graph 1',
+              sourceFilePath: null,
+              orderIndex: 0,
+            },
+          ],
+          rootAssemblyId: 'assembly-root:project-file-1',
+        },
+        projectContent: {
+          assembliesById: {
+            'assembly-root:project-file-1': {
+              assemblyId: 'assembly-root:project-file-1',
+              label: 'Assembly 1',
+              childRowIds: ['project-component:project-file-1:graph-document-1:published'],
+            },
+          },
+          componentsById: {
+            'project-component:project-file-1:graph-document-1:published': {
+              componentId: 'project-component:project-file-1:graph-document-1:published',
+              ownerGraphDocumentId: 'graph-document-1',
+              sourceGraphDocumentId: 'graph-document-1',
+              sourceOutputEntryId: 'output-entry:slot-baseplate:node-baseplate-1',
+              sourceNodeId: 'node-baseplate-1',
+              label: 'Component 1',
+              componentSourceKind: 'published-component',
+              resolutionState: 'resolved',
+              receiveId: null,
+              childObjectIds: ['project-object:project-file-1:graph-document-1:output-object'],
+            },
+          },
+          objectsById: {
+            'project-object:project-file-1:graph-document-1:output-object': {
+              objectId: 'project-object:project-file-1:graph-document-1:output-object',
+              ownerGraphDocumentId: 'graph-document-1',
+              parentComponentId: 'project-component:project-file-1:graph-document-1:published',
+              objectSourceKind: 'published-object',
+              sourceGraphDocumentId: 'graph-document-1',
+              sourceOutputEntryId: 'output-entry:slot-baseplate:node-baseplate-1',
+              sourceNodeId: 'node-baseplate-1',
+              slotId: 'slot-baseplate',
+              label: 'Object 1',
+              resolutionState: 'resolved',
+            },
+          },
+        },
+      }))
+      useAppStore.getState().setWorkspaceSelectedTarget({
+        kind: 'assembly',
+        assemblyId: 'assembly-root:project-file-1',
+      })
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost />)
+    })
+
+    expect(viewerSetHighlightedPartKeys).toHaveBeenCalledWith(
+      expect.arrayContaining(['slot-baseplate']),
+    )
+  })
+
+  it('routes viewport object picks into shared explicit selection and clears on empty clicks', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useAppStore } = await import('../store/useAppStore')
+    await seedViewportObjectSelectionGraph([
+      {
+        slotId: 'slot-baseplate',
+        sourceNodeId: 'node-baseplate-1',
+        sourcePartKey: 'baseplate',
+        objectId: 'project-object:project-file-1:graph-document-1:output-object-1',
+        label: 'Object 1',
+      },
+      {
+        slotId: 'slot-cover',
+        sourceNodeId: 'node-cover-1',
+        sourcePartKey: 'cover',
+        objectId: 'project-object:project-file-1:graph-document-1:output-object-2',
+        label: 'Object 2',
+      },
+    ])
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost />)
+    })
+
+    const workspaceSelectionPickHandler = viewerSetOnWorkspaceSelectionPick.mock.calls.at(-1)?.[0] as
+      | ((event: WorkspaceSelectionPickPayload) => void)
+      | null
+
+    act(() => {
+      workspaceSelectionPickHandler?.({
+        pick: {
+          kind: 'part',
+          partKey: 'graph-document-1:slot-baseplate',
+        },
+        ctrlKey: false,
+      })
+    })
+
+    expect(useAppStore.getState().workspaceSelection).toMatchObject({
+      selectedTarget: {
+        kind: 'object',
+        objectId: 'project-object:project-file-1:graph-document-1:output-object-1',
+      },
+      explicitSelectedTargets: [
+        {
+          kind: 'object',
+          objectId: 'project-object:project-file-1:graph-document-1:output-object-1',
+        },
+      ],
+      selectionAnchorTarget: {
+        kind: 'object',
+        objectId: 'project-object:project-file-1:graph-document-1:output-object-1',
+      },
+      activeSurface: 'viewer',
+      resolvedContentSelection: {
+        rootRowId: 'project-object:project-file-1:graph-document-1:output-object-1',
+        rootKind: 'object',
+        partKeys: ['graph-document-1:slot-baseplate'],
+        groupedRowIds: [],
+      },
+    })
+    expect(useAppStore.getState().selectedPartKey).toBe('graph-document-1:slot-baseplate')
+    expect(useAppStore.getState().consoleContextSyncRequest?.reason).toBe('target-selection')
+
+    act(() => {
+      workspaceSelectionPickHandler?.({
+        pick: {
+          kind: 'part',
+          partKey: 'graph-document-1:slot-cover',
+        },
+        ctrlKey: true,
+      })
+    })
+
+    expect(useAppStore.getState().workspaceSelection).toMatchObject({
+      selectedTarget: {
+        kind: 'object',
+        objectId: 'project-object:project-file-1:graph-document-1:output-object-2',
+      },
+      explicitSelectedTargets: [
+        {
+          kind: 'object',
+          objectId: 'project-object:project-file-1:graph-document-1:output-object-1',
+        },
+        {
+          kind: 'object',
+          objectId: 'project-object:project-file-1:graph-document-1:output-object-2',
+        },
+      ],
+      selectionAnchorTarget: {
+        kind: 'object',
+        objectId: 'project-object:project-file-1:graph-document-1:output-object-2',
+      },
+      activeSurface: 'viewer',
+      resolvedContentSelection: {
+        rootRowId: 'object:project-object:project-file-1:graph-document-1:output-object-2',
+        rootKind: 'multi-select',
+        partKeys: expect.arrayContaining(['graph-document-1:slot-baseplate', 'graph-document-1:slot-cover']),
+        groupedRowIds: [],
+      },
+    })
+    expect(useAppStore.getState().selectedPartKey).toBe('graph-document-1:slot-cover')
+
+    act(() => {
+      workspaceSelectionPickHandler?.({
+        pick: {
+          kind: 'part',
+          partKey: 'graph-document-1:slot-cover',
+        },
+        ctrlKey: true,
+      })
+    })
+
+    expect(useAppStore.getState().workspaceSelection).toMatchObject({
+      selectedTarget: {
+        kind: 'object',
+        objectId: 'project-object:project-file-1:graph-document-1:output-object-1',
+      },
+      explicitSelectedTargets: [
+        {
+          kind: 'object',
+          objectId: 'project-object:project-file-1:graph-document-1:output-object-1',
+        },
+      ],
+      selectionAnchorTarget: {
+        kind: 'object',
+        objectId: 'project-object:project-file-1:graph-document-1:output-object-2',
+      },
+      activeSurface: 'viewer',
+      resolvedContentSelection: {
+        rootRowId: 'project-object:project-file-1:graph-document-1:output-object-1',
+        rootKind: 'object',
+        partKeys: ['graph-document-1:slot-baseplate'],
+        groupedRowIds: [],
+      },
+    })
+    expect(useAppStore.getState().selectedPartKey).toBe('graph-document-1:slot-cover')
+
+    act(() => {
+      workspaceSelectionPickHandler?.({
+        pick: {
+          kind: 'part',
+          partKey: 'graph-document-1:slot-baseplate',
+        },
+        ctrlKey: true,
+      })
+    })
+
+    expect(useAppStore.getState().workspaceSelection).toMatchObject({
+      selectedTarget: null,
+      explicitSelectedTargets: [],
+      selectionAnchorTarget: {
+        kind: 'object',
+        objectId: 'project-object:project-file-1:graph-document-1:output-object-1',
+      },
+      activeSurface: 'viewer',
+      resolvedContentSelection: null,
+    })
+    expect(useAppStore.getState().selectedPartKey).toBeNull()
+
+    act(() => {
+      workspaceSelectionPickHandler?.({
+        pick: null,
+        ctrlKey: false,
+      })
+    })
+
+    expect(useAppStore.getState().workspaceSelection.selectedTarget).toBeNull()
+    expect(useAppStore.getState().selectedPartKey).toBeNull()
+    expect(useAppStore.getState().consoleContextSyncRequest?.reason).toBe('surface-clear')
+  })
+
+  it('routes viewport reference picks back into workspace selection', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useAppStore } = await import('../store/useAppStore')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost />)
+    })
+
+    const workspaceSelectionPickHandler = viewerSetOnWorkspaceSelectionPick.mock.calls.at(-1)?.[0] as
+      | ((event: WorkspaceSelectionPickPayload) => void)
+      | null
+
+    act(() => {
+      workspaceSelectionPickHandler?.({
+        pick: {
+          kind: 'reference-item',
+          referenceId: 'shoe:shoe-1',
+        },
+        ctrlKey: false,
+      })
+    })
+
+    expect(useAppStore.getState().workspaceSelection).toMatchObject({
+      selectedTarget: {
+        kind: 'reference-item',
+        referenceId: 'shoe:shoe-1',
+      },
+      activeSurface: 'viewer',
+      resolvedContentSelection: null,
+    })
+    expect(useAppStore.getState().selectedPartKey).toBeNull()
+    expect(useAppStore.getState().consoleContextSyncRequest?.reason).toBe('target-selection')
+  })
+
+  it('keeps unmapped viewport part picks as single part selection', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useAppStore } = await import('../store/useAppStore')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost />)
+    })
+
+    const workspaceSelectionPickHandler = viewerSetOnWorkspaceSelectionPick.mock.calls.at(-1)?.[0] as
+      | ((event: WorkspaceSelectionPickPayload) => void)
+      | null
+
+    act(() => {
+      workspaceSelectionPickHandler?.({
+        pick: {
+          kind: 'part',
+          partKey: 'unmapped-part-key',
+        },
+        ctrlKey: true,
+      })
+    })
+
+    expect(useAppStore.getState().workspaceSelection).toMatchObject({
+      selectedTarget: {
+        kind: 'part',
+        partKey: 'unmapped-part-key',
+      },
+      explicitSelectedTargets: [],
+      selectionAnchorTarget: null,
+      resolvedContentSelection: null,
+      activeSurface: 'viewer',
+    })
+    expect(useAppStore.getState().selectedPartKey).toBe('unmapped-part-key')
+    expect(useAppStore.getState().consoleContextSyncRequest?.reason).toBe('target-selection')
+  })
+
+  it('pushes selected references into the viewer highlight lane without starting transform ownership', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useAppStore } = await import('../store/useAppStore')
+
+    act(() => {
+      useAppStore.setState((state) => ({
+        ...state,
+        workspaceSelection: {
+          ...state.workspaceSelection,
+          selectedTarget: {
+            kind: 'reference-item',
+            referenceId: 'shoe:shoe-1',
+          },
+          activeSurface: 'browser',
+        },
+      }))
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost />)
+    })
+
+    expect(viewerSetHighlightedReferenceIds).toHaveBeenCalledWith(['shoe:shoe-1'])
+    expect(viewerSetReferenceTransformSession).not.toHaveBeenCalledWith(
+      expect.objectContaining({ referenceId: 'shoe:shoe-1' }),
+    )
+  })
+
+  it('pushes explicit multi-selected references into the viewer highlight lane', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useAppStore } = await import('../store/useAppStore')
+
+    act(() => {
+      useAppStore.setState((state) => ({
+        ...state,
+        workspaceSelection: {
+          ...state.workspaceSelection,
+          selectedTarget: {
+            kind: 'reference-item',
+            referenceId: 'shoe:shoe-2',
+          },
+          explicitSelectedTargets: [
+            {
+              kind: 'reference-item',
+              referenceId: 'shoe:shoe-1',
+            },
+            {
+              kind: 'reference-item',
+              referenceId: 'shoe:shoe-2',
+            },
+          ],
+          selectionAnchorTarget: {
+            kind: 'reference-item',
+            referenceId: 'shoe:shoe-2',
+          },
+        },
+      }))
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost />)
+    })
+
+    expect(viewerSetHighlightedReferenceIds).toHaveBeenCalledWith(['shoe:shoe-1', 'shoe:shoe-2'])
   })
 
   it('pushes the active sketch-plane pick session into the viewer and routes plane picks back into the store', async () => {

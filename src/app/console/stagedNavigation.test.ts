@@ -15,6 +15,7 @@ describe('stagedNavigation', () => {
     expect(result.breadcrumb).toEqual(['Root'])
     expect(result.validChoices.map((choice) => choice.canonicalToken)).toEqual([
       'GRAPH',
+      'REFERENCES',
       'CAMERA',
       'RADIO',
       'ZOOM',
@@ -92,7 +93,7 @@ describe('stagedNavigation', () => {
   })
 
   it('creates a sketch draw root session with the local staged command surface', () => {
-    const context = createConsoleStagedNavigationContext([], {
+    const context = createConsoleStagedNavigationContext([], [], {
       hasSelection: true,
       hasPrevious: true,
       preferredTool: 'LINE',
@@ -118,7 +119,7 @@ describe('stagedNavigation', () => {
   })
 
   it('routes sketch draw camera projection and returns to the local root from zoom back', () => {
-    const context = createConsoleStagedNavigationContext([], {
+    const context = createConsoleStagedNavigationContext([], [], {
       hasSelection: false,
       hasPrevious: false,
       preferredTool: 'LINE',
@@ -160,7 +161,7 @@ describe('stagedNavigation', () => {
   })
 
   it('keeps radio reachable from local sketch draw staged scopes', () => {
-    const context = createConsoleStagedNavigationContext([], {
+    const context = createConsoleStagedNavigationContext([], [], {
       hasSelection: false,
       hasPrevious: false,
       preferredTool: 'LINE',
@@ -687,6 +688,7 @@ describe('stagedNavigation', () => {
     expect(cancelledResult.breadcrumb).toEqual([])
     expect(cancelledResult.validChoices.map((choice) => choice.canonicalToken)).toEqual([
       'GRAPH',
+      'REFERENCES',
       'CAMERA',
       'RADIO',
       'ZOOM',

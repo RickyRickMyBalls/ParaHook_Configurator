@@ -69,6 +69,7 @@ vi.mock('./store/useAppStore', () => {
   store.getState = () => currentAppState
   return {
     useAppStore: store,
+    selectConsoleWorkspaceContextTarget: (state: any) => state.workspaceSelection.selectedTarget,
   }
 })
 
@@ -711,6 +712,18 @@ describe('AppShell', () => {
     expect(currentAppState.workspaceSelection.activeSurface).toBe('viewer')
     expect(currentAppState.requestConsoleContextSync).not.toHaveBeenCalledWith('surface-clear')
     expect(currentAppState.consoleContextSyncRequest?.reason).not.toBe('surface-clear')
+  })
+
+  it('does not clear docked browser surface ownership when browser becomes active', async () => {
+    ;({ container, root } = await renderAppShell())
+
+    await act(async () => {
+      currentAppState.setActiveSurface('browser')
+      await rerenderAppShell(root!)
+    })
+
+    expect(currentAppState.workspaceSelection.activeSurface).toBe('browser')
+    expect(currentAppState.requestConsoleContextSync).not.toHaveBeenCalledWith('surface-clear')
   })
 
   it('keeps the floating browser wrapper width pinned when the browser is popped out', async () => {

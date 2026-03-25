@@ -65,6 +65,1077 @@ Do not use it for:
 
 ## Doc Body
 
+### [633] - 2026-03-25 17:41 - `SP - Browser-7.1 - Viewport Ctrl Multi-Select Sync`
+<!-- ENTRY 633 -->
+HUMAN SUMMARY: `Implemented Browser-7.1 so Ctrl-clicking multiple model-viewport objects now edits the same shared explicit-selection set that Browser-5.4 uses, which keeps Browser row selection, viewer highlighting, and Console multi-select scope in sync instead of collapsing back to single-select.` 
+#### Scope / Constraints Honored
+- Limited the change to viewport object picks; viewport reference picks still use the existing single-select path.
+- Reused the existing shared workspace explicit-selection model instead of adding a viewer-local multi-select state.
+- Preserved ordinary non-`Ctrl` viewport selection behavior and empty-surface deselect behavior.
+
+#### Summary of Implementation
+- Extended the internal viewer workspace-pick callback payload to carry both the picked target and whether `Ctrl` was held on that click.
+- Updated `ViewerHost` so mapped viewport object picks now commit through `setWorkspaceExplicitSelection(...)`, including Browser-5.4-style add/remove behavior, primary-target fallback, anchor updates, and last-item clear.
+- Kept unmapped raw part picks on the old single-part path and added console coverage proving viewer-created explicit object sets route into the existing `Multi Select` scope.
+
+#### Files Changed
+- `src/viewer/Viewer.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+
+#### Behavior Changes (if any)
+- `Ctrl+click`ing multiple objects in the model viewport now mirrors that explicit object set into the Browser and shared workspace selection state.
+- Removing the last viewport-selected object from the explicit set now clears the shared selection cleanly instead of leaving a stale selected object behind.
+
+#### Verification Steps
+- `npm.cmd run test -- src/app/components/ViewerHost.test.tsx`
+- `npm.cmd run test -- src/app/console/ConsoleDock.test.tsx`
+- `npm.cmd run test -- src/app/store/useAppStore.test.ts`
+- `npm.cmd run test -- src/app/panels/BrowserPanel.test.tsx`
+- `npm.cmd run build`
+
+### [632] - 2026-03-25 17:26 - `SP - Root Prompt Uses Full Canonical Choice List`
+<!-- ENTRY 632 -->
+HUMAN SUMMARY: `Fixed the fallback Console root prompt so viewer deselect plus \`Esc\` no longer collapses the root into the old short three-item list; the root prompt now always uses the full canonical root choice set.` 
+#### Scope / Constraints Honored
+- Kept the existing distinction between a live staged root session and the fallback root prompt state.
+- Limited the change to the fallback root prompt text builder instead of rewriting root-session ownership.
+- Added a regression test for the viewer deselect, `Esc`, and second empty-viewport click sequence.
+
+#### Summary of Implementation
+- Updated `buildRootPromptText(...)` in `ConsoleDock` so its default choice list matches the real staged root session: `Graph`, `References`, `Camera`, `Radio`, `Zoom`, `Pan`, and `Orbit`.
+- Extended `ConsoleDock` coverage to assert full root availability both for normal `surface-clear` while already at root and for the viewer-deselect plus `Esc` replay path.
+
+#### Files Changed
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+
+#### Behavior Changes (if any)
+- The fallback root prompt now always shows the full root menu instead of sometimes reverting to the old short `Graph / References / Radio` version.
+
+#### Verification Steps
+- `npm.cmd run test -- src/app/console/ConsoleDock.test.tsx`
+- `npm.cmd run build`
+
+### [631] - 2026-03-25 17:21 - `SP - Reference Load Model Advances Into Transform Menu`
+<!-- ENTRY 631 -->
+HUMAN SUMMARY: `Changed the staged Console reference flow so committing \`Load Model\` immediately advances the user into the loaded reference menu \`[Move, Rotate, Scale, Back]\` instead of leaving them in the stale hidden-reference menu.` 
+#### Scope / Constraints Honored
+- Kept the staged reference menu structure unchanged: hidden references still offer `Load Model`, and loaded references still offer `Move`, `Rotate`, `Scale`, and `Back`.
+- Limited the change to the post-commit staged-session handoff for `reference.loadModel`.
+- Preserved the existing reference load and visibility behavior in the app store.
+
+#### Summary of Implementation
+- Updated `ConsoleDock` so the `reference.loadModel` action rebuilds the staged reference-selected session with `canLoadModel: false` immediately after commit.
+- Reused the existing workspace-context sync builder to move the user into the loaded reference action menu without waiting for a later sync pass.
+- Extended the `ConsoleDock` test coverage to assert the new `Move / Rotate / Scale / Back` prompt and `Move` prefill after `Load Model`.
+
+#### Files Changed
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+
+#### Behavior Changes (if any)
+- After `Load Model` on a hidden reference, the Console now immediately shows `Reference > Choose next [Move, Rotate, Scale, Back]` and prefills `Move`.
+
+#### Verification Steps
+- `npm.cmd run test -- src/app/console/ConsoleDock.test.tsx`
+- `npm.cmd run build`
+
+### [630] - 2026-03-25 17:17 - `SP - Viewer Null Pick Returns Console To Root`
+<!-- ENTRY 630 -->
+HUMAN SUMMARY: `Changed the viewer null-pick handoff so clicking the plain model viewport no longer logs \`Selection cleared\`; it now clears the viewer-picked part silently and requests a root-level Console handoff through \`surface-clear\` instead.` 
+#### Scope / Constraints Honored
+- Kept viewer object and reference picks on the existing target-selection path.
+- Limited the change to the viewer null-pick handoff instead of rewriting broader selection logging rules.
+- Preserved the existing Console root-return behavior for `surface-clear`.
+
+#### Summary of Implementation
+- Updated `ViewerHost` so a `null` workspace pick clears `selectedPartKey` silently, clears the shared selected target, and requests Console sync with `surface-clear`.
+- Left non-null viewer picks unchanged so object and reference selection still route through `target-selection`.
+- Updated the existing `ViewerHost` test to assert the new `surface-clear` reason.
+
+#### Files Changed
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+
+#### Behavior Changes (if any)
+- Clicking the plain model viewport now hands the Console back to root instead of producing the misleading `Selection cleared` entry.
+
+#### Verification Steps
+- `npm.cmd run test -- src/app/components/ViewerHost.test.tsx src/app/console/ConsoleDock.test.tsx`
+- `npm.cmd run build`
+
+### [629] - 2026-03-25 17:14 - `SP - Console Root Prompt Alias Hint Persistence`
+<!-- ENTRY 629 -->
+HUMAN SUMMARY: `Kept the root Console prompt’s alias-hint highlighting visible after \`Escape\` unwinds the live staged root session, so choices like \`References\` still visually advertise the \`ref\` alias instead of dropping back to an unhinted static prompt.` 
+#### Scope / Constraints Honored
+- Kept the existing staged-console `Escape` ownership and root opt-out behavior unchanged.
+- Limited the change to the fallback summary-render path instead of rewriting staged root session handling.
+- Added focused coverage around the root prompt alias-hint regression.
+
+#### Summary of Implementation
+- Added a root-prompt alias-hint resolver in `ConsoleBar` so fallback prompt summaries preserve the intended root alias emphasis for `Graph`, `References`, `Camera`, `Radio`, `Zoom`, `Pan`, and `Orbit`.
+- Updated the prompt-summary parsing path to use those root alias hints when the summary is being rendered from transcript text rather than a live staged session.
+- Added a `ConsoleBar` test that verifies `References` still highlights the `ref` alias in the fallback root prompt state.
+
+#### Files Changed
+- `src/app/console/ConsoleBar.tsx`
+- `src/app/console/ConsoleBar.test.tsx`
+
+#### Behavior Changes (if any)
+- After `Escape` returns the Console to the fallback root prompt, root choices keep their alias-hint highlighting instead of losing the visual cue.
+
+#### Verification Steps
+- `npm.cmd run test -- src/app/console/ConsoleBar.test.tsx src/app/console/ConsoleDock.test.tsx`
+- `npm.cmd run build`
+
+### [628] - 2026-03-25 17:03 - `SP - Browser-6 - BrowserPanel Structure And Row-Family Cleanup`
+<!-- ENTRY 628 -->
+HUMAN SUMMARY: `Finished the interrupted Browser-6 refactor by making \`BrowserPanel\` a thin host over shared Browser interaction and context-menu helpers, extracting row and section presenters into dedicated modules, restoring a green production build, and adding focused tests around the new Browser-6 seams.` 
+#### Scope / Constraints Honored
+- Treated the existing Browser state as an interrupted refactor recovery instead of rewriting the Browser stack from scratch.
+- Kept shared selection truth, Console sync, and reference batch ownership in the existing store and intent seams rather than inventing new Browser-local APIs.
+- Preserved the shipped Browser-5.x interaction model for selection, focus routing, explicit multi-select, and reference loading behavior while moving ownership out of `BrowserPanel`.
+- Fixed the unrelated `radioCommandIdentity` exhaustiveness break in the same pass so the acceptance bar stayed full-build green.
+
+#### Summary of Implementation
+- Rewired `BrowserPanel` to use one `createBrowserRowInteractionHandlers(...)` instance for row selection, double-select routing, expand/collapse, visibility toggles, and empty-body deselect.
+- Replaced panel-local row context-menu composition with `buildBrowserContextMenuItems(...)` and kept only overlay state plus screen positioning local to the panel host.
+- Extracted the shared Browser row shell into `browserTreeRowPresenter.tsx`, split the three top-level Browser sections into `browserTreeSections.tsx`, and moved the row/import overlay presenters into `browserTreeMenus.tsx`.
+- Added narrow helper tests for Browser interaction dispatch and Browser context-menu composition, plus explicit reference-action identity coverage in `radioCommandIdentity.test.ts`.
+
+#### Files Changed
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/panels/browserTreeRowPresenter.tsx`
+- `src/app/panels/browserTreeSections.tsx`
+- `src/app/panels/browserTreeMenus.tsx`
+- `src/app/panels/browserInteractions.ts`
+- `src/app/panels/browserContextMenu.ts`
+- `src/app/panels/browserInteractions.test.ts`
+- `src/app/panels/browserContextMenu.test.ts`
+- `src/app/console/radioCommandIdentity.ts`
+- `src/app/console/radioCommandIdentity.test.ts`
+
+#### Behavior Changes (if any)
+- No intentional Browser feature-scope expansion shipped in this pass; the change is structural and behavior-preserving for the existing Browser-5.x feature set.
+- Browser row interaction and context-menu behavior now resolve through the dedicated Browser-6 helper seams instead of duplicated panel-local logic, which restores the interrupted refactor to a stable, buildable state.
+
+#### Verification Steps
+- `npm.cmd run build`
+- `npm.cmd run test -- src/app/panels/BrowserPanel.test.tsx src/app/panels/selectBrowserTreeRows.test.ts src/app/panels/browserRowActions.test.ts src/app/panels/browserInteractions.test.ts src/app/panels/browserContextMenu.test.ts src/app/components/ViewerHost.test.tsx src/app/console/ConsoleDock.test.tsx src/app/console/radioCommandIdentity.test.ts`
+
+### [627] - 2026-03-25 15:16 - `SP - Browser-5.4 - Explicit Additive Multi-Select`
+<!-- ENTRY 627 -->
+HUMAN SUMMARY: `Added explicit Browser multi-select for content and reference rows with shared root-selection state, section-bounded Ctrl/Shift row selection behavior, grouped descendant carry-forward for parent content targets, a synthetic Console \`Multi Select\` scope, and matching viewer highlight consumption for explicit reference sets.` 
+#### Scope / Constraints Honored
+- Kept `5.4` scoped to Browser content plus reference rows only.
+- Left graph, viewport, and sketch-authoring rows on their current single-focus behavior.
+- Kept rooted parent content selection semantics from `Browser-5.2` instead of flattening parent targets into anonymous child-only sets.
+- Reused the existing Browser-to-Console sync seam instead of adding Browser-local Console ownership.
+
+#### Summary of Implementation
+- Extended shared workspace selection state with explicit root targets plus a range anchor while keeping `selectedTarget` as the primary target.
+- Added shared explicit-selection resolution that unions grouped content payloads for multi-select without losing parent-root meaning.
+- Updated Browser row clicks so ordinary click replaces selection, `Ctrl+click` toggles content/reference roots, and `Shift+click` builds same-section visible ranges.
+- Extended Browser row rendering to support multiple selected roots while keeping grouped descendant rows on the softer grouped-selected treatment.
+- Added a synthetic staged Console `Multi Select` scope and routed multi-root explicit selection into it through the existing workspace-context resolver.
+- Updated viewer reference highlighting to consume explicit selected reference sets instead of only one selected reference item.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/panels/selectBrowserTreeRows.ts`
+- `src/app/console/stagedNavigation.ts`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/store/useAppStore.test.ts`
+- `src/app/panels/selectBrowserTreeRows.test.ts`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+
+#### Behavior Changes
+- Browser content and reference rows now support explicit additive multi-select.
+- Browser `Ctrl+click` toggles a root target into or out of the explicit selection set.
+- Browser `Shift+click` selects a visible range within the current Browser section only.
+- Explicit mixed multi-selection now routes the Console into `Select > Multi Select` instead of one single-target content/reference scope.
+- Viewer reference highlight can now reflect more than one explicitly selected reference target.
+
+#### Verification Steps
+- Passed: `npm.cmd test -- --run src/app/store/useAppStore.test.ts src/app/panels/selectBrowserTreeRows.test.ts src/app/panels/BrowserPanel.test.tsx src/app/console/ConsoleDock.test.tsx src/app/components/ViewerHost.test.tsx`
+- Failed with pre-existing blocker: `npm.cmd run build`
+- Remaining known build blocker: `src/app/console/radioCommandIdentity.ts(395)` lacks an ending return statement.
+
+### [626] - 2026-03-25 14:21 - `SP - Browser-5.5 - Reference Row Text Explicitly Layers Above Fill`
+<!-- ENTRY 626 -->
+HUMAN SUMMARY: `Raised the Browser row text into an explicit layer above the fill bar so reference labels and meta sit clearly on top of the progress fill instead of depending on default paint order. This is a small visual stacking fix only.` 
+#### Scope / Constraints Honored
+- Limited the change to Browser row text layering.
+- Kept reference load behavior, progress math, and fill styling unchanged.
+- Applied the stacking fix through shared row text styling so it benefits the Browser row shell consistently.
+
+#### Summary of Implementation
+- Added explicit `position: relative` and `z-index: 1` to the shared Browser row text container so it renders above the fill layer.
+
+#### Files Changed
+- `src/app/theme/surfaces/browser.css`
+
+#### Behavior Changes
+- Browser row labels/meta now render on top of the fill bar more reliably.
+
+#### Verification
+- Visual CSS change only; no automated tests run.
+
+### [625] - 2026-03-25 14:20 - `SP - Browser-5.5 - Reference Active Fill Softened With Light Transparency`
+<!-- ENTRY 625 -->
+HUMAN SUMMARY: `Softened the reference active/loading fill slightly by restoring a bit of transparency to the black fill, while keeping the new two-color model intact. The row still uses one inactive base and one active fill color, but the loaded portion is now a little less flat than pure solid black.` 
+#### Scope / Constraints Honored
+- Limited the change to Browser reference fill opacity.
+- Kept the inactive row background and two-color model unchanged.
+- Applied the same softened active tone to loaded rows, animated loading rows, and determinate aggregate fills.
+
+#### Summary of Implementation
+- Reduced the opacity of the shared reference active/loading fill from fully solid black to a lightly transparent black.
+
+#### Files Changed
+- `src/app/theme/surfaces/browser.css`
+
+#### Behavior Changes
+- Reference loading/loaded fills now keep a slight transparency instead of pure solid black.
+
+#### Verification
+- Visual CSS change only; no automated tests run.
+
+### [624] - 2026-03-25 14:19 - `SP - Browser-5.5 - Reference Rows Use True Two-Color Fill Model`
+<!-- ENTRY 624 -->
+HUMAN SUMMARY: `Simplified the reference row visuals to the intended two-color model: one inactive row background and one active black fill color. The previous styling was compositing similar colors on different base layers, which is why loading rows and fully loaded rows still looked different even after matching the fill tone.` 
+#### Scope / Constraints Honored
+- Limited the change to Browser reference row styling.
+- Kept the loading logic, batch progress math, and console behavior unchanged.
+- Used one shared inactive background plus one shared active fill so 100% progress matches the final loaded appearance exactly.
+
+#### Summary of Implementation
+- Made the reference row shell always use the inactive/dormant background.
+- Changed active and loading fills to one solid black active color.
+- Cleared the dormant fill back to transparent so the inactive row color comes from the shared row background instead of a second overlaid gradient.
+
+#### Files Changed
+- `src/app/theme/surfaces/browser.css`
+
+#### Behavior Changes
+- Reference rows now follow a strict two-color model: inactive base plus active black fill.
+- A 100% loading fill now visually matches a fully loaded row exactly.
+
+#### Verification
+- Visual CSS change only; no automated tests run.
+
+### [623] - 2026-03-25 14:18 - `SP - Browser-5.5 - Reference Loaded Fill Darkened To Read Black`
+<!-- ENTRY 623 -->
+HUMAN SUMMARY: `Darkened the reference active/loading fill opacity so the loaded portion now reads as black instead of a softer gray against the row background. This keeps the inactive remainder untouched while making the filled portion visually match the intended finished-state tone.` 
+#### Scope / Constraints Honored
+- Limited the change to Browser reference fill opacity.
+- Kept the inactive row background, batch progress math, and loading behavior unchanged.
+- Applied the darker tone consistently to active rows, animated loading rows, and determinate aggregate fills.
+
+#### Summary of Implementation
+- Increased the reference fill opacity in the Browser surface CSS for active rows and both loading fill variants so the filled portion reads closer to black.
+
+#### Files Changed
+- `src/app/theme/surfaces/browser.css`
+
+#### Behavior Changes
+- The loaded portion of reference rows now appears darker and closer to black during loading and after completion.
+
+#### Verification
+- Visual CSS change only; no automated tests run.
+
+### [622] - 2026-03-25 14:16 - `SP - Browser-5.5 - Reference Loading Rows Match Final Loaded Tone`
+<!-- ENTRY 622 -->
+HUMAN SUMMARY: `Adjusted reference loading rows so they now use the inactive/dormant row background with the same dark fill tone as the finished loaded state, instead of the previous blue loading gradient. This makes rows like `Medium STEP` visually transition into the final loaded look without changing color language mid-load.` 
+#### Scope / Constraints Honored
+- Limited the change to Browser reference loading-row styling.
+- Kept the reference batch queue, progress math, and console behavior unchanged.
+- Applied the same visual model to determinate and animated reference loading rows.
+
+#### Summary of Implementation
+- Updated the Browser reference loading-row CSS so loading rows use the dormant/inactive background underneath.
+- Changed the loading fill itself to the same dark active tone used by fully loaded reference rows, while keeping the existing width animation for in-progress item loads.
+
+#### Files Changed
+- `src/app/theme/surfaces/browser.css`
+
+#### Behavior Changes
+- Loading reference rows now show an inactive remainder with a dark loaded-style fill.
+- Fully loaded rows now visually match the in-progress loading fill at 100%, instead of changing from blue to dark at completion.
+
+#### Verification
+- Visual CSS change only; no automated tests run.
+
+### [621] - 2026-03-25 14:13 - `SP - Browser-5.5 - Determinate Aggregate Fill Uses Active Dark Tone`
+<!-- ENTRY 621 -->
+HUMAN SUMMARY: `Corrected the determinate reference aggregate fill so the progress portion now uses the active dark tone while the row background stays in the inactive/dormant style. This matches the intended read: inactive remainder, dark loaded portion, instead of a blue loading fill.` 
+#### Scope / Constraints Honored
+- Limited the change to the determinate aggregate reference-fill color.
+- Kept the inactive row background, batch math, and loading behavior unchanged.
+- Applied the dark tone only to determinate aggregate progress, not to all loading reference rows.
+
+#### Summary of Implementation
+- Added the active dark fill color to the determinate reference loading-fill CSS override while leaving the aggregate row background in the dormant/inactive style.
+
+#### Files Changed
+- `src/app/theme/surfaces/browser.css`
+
+#### Behavior Changes
+- Aggregate reference batch rows now show a dark progress fill over the inactive row background.
+- The blue loading tint no longer appears on determinate root/category batch fills.
+
+#### Verification
+- Visual CSS change only; no automated tests run.
+
+### [620] - 2026-03-25 14:12 - `SP - Browser-5.5 - Aggregate Progress Empty Remainder Uses Dormant Tone`
+<!-- ENTRY 620 -->
+HUMAN SUMMARY: `Adjusted the aggregate reference batch bar so its unfilled remainder now uses the dormant/inactive look during loading, instead of making the whole row feel loaded too early. The row still turns fully dark only once loading actually finishes.` 
+#### Scope / Constraints Honored
+- Limited the change to Browser reference aggregate-progress styling.
+- Kept the batch queue, progress math, and completion behavior unchanged.
+- Avoided selector-dependent CSS by marking determinate rows explicitly in the Browser row markup.
+
+#### Summary of Implementation
+- Added an explicit determinate class to aggregate reference loading rows in `BrowserPanel`.
+- Updated the Browser surface CSS so determinate loading rows use the dormant/inactive background for the empty remainder while leaving the loaded dark tone for the final active state only.
+
+#### Files Changed
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/theme/surfaces/browser.css`
+
+#### Behavior Changes
+- During reference batch progress, the empty portion of the bar now stays visually inactive/dormant.
+- The row becomes fully dark only after the reference/category/root is actually loaded.
+
+#### Verification
+- Visual CSS change only; no automated tests run.
+
+### [619] - 2026-03-25 14:10 - `SP - Browser-5.5 - Reference Aggregate Progress Fill Matches Loaded Tone`
+<!-- ENTRY 619 -->
+HUMAN SUMMARY: `Changed the determinate reference batch-fill color to use the same dark loaded tone as completed reference rows, so the filled portion of the `Load All` bar now reads like already-loaded progress instead of a separate blue loading state. This keeps the aggregate bar visually consistent with the final loaded look while still leaving the unfilled remainder visible as work left.` 
+#### Scope / Constraints Honored
+- Limited the change to the Browser reference aggregate-progress fill styling.
+- Kept the batch queue, progress math, and per-item loading visuals unchanged.
+- Applied the darker tone only to determinate aggregate loading fills, not to all loading reference rows.
+
+#### Summary of Implementation
+- Updated the determinate reference loading-fill CSS override so aggregate root/category batch bars render with the same dark loaded tone instead of the default blue loading gradient.
+
+#### Files Changed
+- `src/app/theme/surfaces/browser.css`
+
+#### Behavior Changes
+- The filled portion of the `References` root/category batch bar now visually matches the loaded reference state.
+
+#### Verification
+- Visual CSS change only; no automated tests run.
+
+### [618] - 2026-03-25 14:09 - `SP - Browser-5.5 - Load All Progress Starts At Current Command Work`
+<!-- ENTRY 618 -->
+HUMAN SUMMARY: `Fixed the first-frame `Load All` progress bars so the `References` root and category rows now start from the actual work queued by the current command instead of inheriting progress from references that were already loaded beforehand. This makes the aggregate bars represent the current `Load All` operation, which is what the Browser phase doc intended.` 
+#### Scope / Constraints Honored
+- Limited the change to reference batch seeding and aggregate progress semantics.
+- Kept the shared batch queue, sequential loading, and completion messaging intact.
+- Preserved visibility enabling for already loaded references while excluding them from new queued work.
+
+#### Summary of Implementation
+- Changed `createReferenceLoadBatch()` so new `Load All` batches only target references that still need loading after error-reset normalization.
+- Stopped pre-seeding batch `completedIds` from references that were already loaded before the current command.
+- Updated the root-batch store regression so `targetIds` now represent actionable work for the current `Load All` request.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/store/useAppStore.test.ts`
+
+#### Behavior Changes
+- On the first `Load All` click, the root/category progress bars now begin at zero for the queued work instead of looking partially complete from prior loaded state.
+- Already loaded references still become visible as needed, but they no longer inflate the new batch progress fraction.
+
+#### Verification
+- Passed: `npm.cmd test -- --run src/app/store/useAppStore.test.ts src/app/components/ViewerHost.test.tsx src/app/panels/selectBrowserTreeRows.test.ts src/app/panels/BrowserPanel.test.tsx`
+
+### [617] - 2026-03-25 14:03 - `SP - Browser-5.5 - Reference Load All Completion Console Confirmation`
+<!-- ENTRY 617 -->
+HUMAN SUMMARY: `Added a final console confirmation when a reference `Load All` batch actually finishes, so the user now gets one clear end-of-queue message after the last reference settles. This is emitted from the shared batch owner seam, which keeps it honest for both root and category `Load All` commands.` 
+#### Scope / Constraints Honored
+- Emitted the message when the shared batch truly completes, not when the command is first submitted.
+- Kept the completion message in app-state batch ownership instead of duplicating it in surface-level command handlers.
+- Supported both root `References` batches and category-level `Load All` batches.
+
+#### Summary of Implementation
+- Added a `scopeLabel` to `referenceLoadBatch` so completion messaging can name the finished load scope deterministically.
+- Updated `markReferenceBatchItemCompleted()` to append one final `Load All Complete: <scope>` console line when the batch transitions to `null`.
+- Added a store regression that verifies a completed category batch appends the final completion entry.
+- Updated direct batch test fixtures to carry the new `scopeLabel`.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/store/useAppStore.test.ts`
+- `src/app/panels/selectBrowserTreeRows.test.ts`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+
+#### Behavior Changes
+- When a `Load All` batch finishes, the console now prints `Load All Complete: References` or the matching category label.
+- The message appears after the actual final queued reference settles, not at submit time.
+
+#### Verification
+- Passed: `npm.cmd test -- --run src/app/store/useAppStore.test.ts src/app/components/ViewerHost.test.tsx src/app/panels/selectBrowserTreeRows.test.ts src/app/panels/BrowserPanel.test.tsx`
+
+### [616] - 2026-03-25 14:00 - `SP - Browser-5.5 - Reference Load Completion Console Confirmation`
+<!-- ENTRY 616 -->
+HUMAN SUMMARY: `Added a console confirmation line when the viewer actually finishes loading a reference object, so the user now gets explicit feedback that the requested model loaded successfully. The message is emitted from the real viewer-load completion seam, which keeps it honest for both single-item loads and queued batch loads.` 
+#### Scope / Constraints Honored
+- Emitted the confirmation only after a real successful viewer load completes.
+- Kept the message in the shared load owner path instead of duplicating it in Browser or Console click handlers.
+- Applied the same confirmation behavior to both single-item loads and batch-driven loads.
+
+#### Summary of Implementation
+- Added `appendConsoleEntry()` calls in `ViewerHost` immediately after successful reference load completion for both the lightweight single-item path and the batch queue consumer path.
+- Used deterministic `Loaded Model: <label>` text so the console reflects the exact reference that finished loading.
+- Added a ViewerHost regression that verifies a successful reference load appends the confirmation entry.
+
+#### Files Changed
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+
+#### Behavior Changes
+- When a reference finishes loading, the console now prints `Loaded Model: <label>`.
+- This confirmation appears for direct `Load Model` actions and for `Load All` batch completion of each item.
+
+#### Verification
+- Passed: `npm.cmd test -- --run src/app/components/ViewerHost.test.tsx`
+
+### [615] - 2026-03-25 13:58 - `SP - Browser-5.5 - Determinate Reference Batch Progress Bar Fix`
+<!-- ENTRY 615 -->
+HUMAN SUMMARY: `Fixed the Browser reference aggregate loading bars so root/category rows now show the true completed fraction of the active batch instead of an indeterminate pulsing loader. The shared batch progress values were already present, but the loading-state CSS animation was still visually overriding the real aggregate width.` 
+#### Scope / Constraints Honored
+- Limited this follow-up to the Browser reference progress rendering path.
+- Kept the shared batch queue and per-item loading behavior unchanged.
+- Preserved item-row loading visuals while making only aggregate root/category rows determinate.
+
+#### Summary of Implementation
+- Added a determinate reference-fill class in `BrowserPanel` when a non-item reference row has computed batch `progress01`.
+- Disabled the generic loading animation for determinate aggregate reference fills in the Browser surface CSS.
+- Added a BrowserPanel regression that verifies root/category batch rows render the determinate class and the expected aggregate width.
+
+#### Files Changed
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `src/app/theme/surfaces/browser.css`
+
+#### Behavior Changes
+- Active root/category reference batch rows now show the overall batch fraction directly.
+- The `References` bar no longer visually resets per object while a batch is still in progress.
+
+#### Verification
+- Passed: `npm.cmd test -- --run src/app/panels/BrowserPanel.test.tsx src/app/panels/selectBrowserTreeRows.test.ts src/app/components/ViewerHost.test.tsx`
+
+### [614] - 2026-03-25 13:54 - `SP - Browser-5.5 - Reference Batch Load Queue And Aggregate Progress`
+<!-- ENTRY 614 -->
+HUMAN SUMMARY: `Turned Browser reference `Load All` into a real shared batch queue owned by app state and consumed by `ViewerHost`, so references now load one at a time in deterministic order and the Browser root/category bars show aggregate batch progress instead of replaying per-item 0-100 fills. Browser and Console root/category `Load All` entrypoints now route into the same batch seam, while single-reference `Load Model` stays on the lightweight item path.`
+#### Scope / Constraints Honored
+- Kept the phase in the Browser/app/viewer seam instead of moving reference loading into a worker.
+- Preserved single-reference `Load Model` behavior while separating root/category batch ownership from item-local loading.
+- Implemented replacement semantics so new batches replace queued work only and allow the current in-flight reference to settle first.
+
+#### Summary of Implementation
+- Added `referenceLoadBatch` state in `useAppStore` with deterministic target ordering, queued remaining ids, active item tracking, completed/failed sets, and shared actions for root/category batch start plus per-item batch lifecycle updates.
+- Moved `ViewerHost` off the old visible-row discovery loop for batch work and into an explicit queue consumer that starts one reference at a time, advances on success or failure, and safely handles carried active loads when a new batch replaces queued work.
+- Updated Browser and Console `Load All` entrypoints to dispatch into `startReferenceLoadBatchForAll()` and `startReferenceLoadBatchForCategory()` instead of the old visibility-only helpers.
+- Added batch-aware Browser reference row derivation so the `References` root and category rows compute aggregate progress from the shared batch while item rows keep their local loading/error state.
+- Added focused regressions for batch creation/replacement/hide rules, sequential ViewerHost loading, stale-completion protection, aggregate Browser progress, and Console-triggered batch starts.
+- Cleaned up nearby console/browser test typing drift so the touched suite stays aligned with the newer root `References` scope and staged-choice shape.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/store/useAppStore.test.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `src/app/panels/selectBrowserTreeRows.ts`
+- `src/app/panels/selectBrowserTreeRows.test.ts`
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+- `src/app/console/ConsoleBar.test.tsx`
+- `src/app/console/stagedNavigation.test.ts`
+
+#### Behavior Changes
+- `References > Load All` and category `Load All` now execute as one shared sequential batch instead of a broad visibility flip.
+- The `References` root bar now reflects overall batch progress, and category rows show their local share of that active batch.
+- Batch progress treats failed references as completed work so one bad file does not freeze the overall progress bar.
+- Starting a new root/category batch during an active load now replaces queued work after the current in-flight reference settles.
+
+#### Verification
+- Passed: `npm.cmd test -- --run src/app/store/useAppStore.test.ts src/app/components/ViewerHost.test.tsx src/app/panels/selectBrowserTreeRows.test.ts src/app/panels/BrowserPanel.test.tsx src/app/console/ConsoleDock.test.tsx src/app/console/ConsoleBar.test.tsx src/app/console/stagedNavigation.test.ts`
+- `npm.cmd run build` still fails on the pre-existing TypeScript error in `src/app/console/radioCommandIdentity.ts:395`.
+
+### [613] - 2026-03-25 12:00 - `SP - Browser - References Root Load All Owner Scope`
+<!-- ENTRY 613 -->
+HUMAN SUMMARY: `Added a real shared owner path for the `References` root so Browser and Console can both trigger `Load All` through the same app seam. Selecting the `References` root now syncs the Console into `Select > References`, the Browser right-click menu exposes `Load All`, and committing `Load All` from either surface routes into one shared `loadAllReferences()` action instead of surface-local logic.` 
+#### Scope / Constraints Honored
+- Implemented the shared action before relying on the Console as the primary owner.
+- Limited the new console scope to the `References` root only.
+- Kept individual reference-item selection and transform behavior unchanged.
+
+#### Summary of Implementation
+- Added a shared `loadAllReferences()` app action that makes all references visible and resets errored rows back to `unloaded` so the viewer load path can retry them honestly.
+- Added a new `references-root` workspace target and console-context resolution so selecting `References` produces a lightweight `Select > References` staged scope.
+- Added `Load All` to the Browser right-click menu for the `References` root and routed it into the shared app action.
+- Added a new staged console scope/action pair for `References > Choose next [Load All, Back]`, with console commit dispatching into the same shared `loadAllReferences()` owner seam.
+- Added BrowserPanel and ConsoleDock regressions for root selection sync, root row-menu `Load All`, and console `Load All` submission.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `src/app/console/stagedNavigation.ts`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+- `src/app/console/ConsoleBar.tsx`
+
+#### Behavior Changes
+- Selecting `References` now moves the Console into `Select > References`.
+- The `References` root right-click menu now includes `Load All`.
+- Committing `Load All` from the `References` console scope now loads all references through the same shared action used by the Browser.
+
+#### Verification
+- Passed: `npm.cmd test -- --run src/app/panels/BrowserPanel.test.tsx src/app/console/ConsoleDock.test.tsx src/app/components/ViewerHost.test.tsx`
+
+### [612] - 2026-03-25 11:53 - `SP - Browser - Reference Parent Click Selection Cleanup`
+<!-- ENTRY 612 -->
+HUMAN SUMMARY: `Finished the Browser reference-parent selection flow so clicking `References` or a reference category now actually selects that parent row and groups its children downward. The grouped-highlight rules had already been reversed, but parent-row clicks were still returning early without clearing stale target selection, which left the old object/reference-item selection in control.` 
+#### Scope / Constraints Honored
+- Limited the change to Browser parent-row selection behavior for the reference tree.
+- Kept reference-item selection local and unchanged.
+- Cleared stale selection-driven console context when selecting reference parents instead of inventing a new reference-parent console scope.
+
+#### Summary of Implementation
+- Updated Browser reference-root and reference-category click handling so those rows now claim Browser active-surface selection, clear stale workspace target state, clear resolved content selection, and request a surface-clear console sync.
+- Added a BrowserPanel regression that starts from a stale object target, clicks `References` and `Footpads`, and verifies the parent rows become selected while the descendant reference rows receive grouped-selected state.
+
+#### Files Changed
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/panels/BrowserPanel.test.tsx`
+
+#### Behavior Changes
+- Clicking `References` now selects the `References` row and groups its descendant reference categories/items.
+- Clicking `Footpads` now selects the `Footpads` row and groups its child reference items.
+- Previous object/reference-item selection no longer masks reference-parent selection after a parent-row click.
+
+#### Verification
+- Passed: `npm.cmd test -- --run src/app/panels/BrowserPanel.test.tsx src/app/console/ConsoleDock.test.tsx src/app/components/ViewerHost.test.tsx`
+
+### [611] - 2026-03-25 11:51 - `SP - Browser - Reference Grouped Highlight Direction Fix`
+<!-- ENTRY 611 -->
+HUMAN SUMMARY: `Reversed the reference grouped-highlight direction to match the intended Browser semantics. Selecting a reference item no longer highlights its parent category or the `References` root, while selecting a reference parent row now projects grouped highlight downward into its children instead.` 
+#### Scope / Constraints Honored
+- Limited the change to Browser grouped-selection visuals for the reference tree.
+- Kept single reference-item selection local to the clicked item.
+- Did not change console context, transform ownership, or reference load behavior.
+
+#### Summary of Implementation
+- Removed the child-to-parent reference grouped-selection derivation that had been added in the previous follow-up.
+- Added downward grouped-selection derivation for reference parents so `References` groups all reference descendants and a reference category groups its own child items.
+- Updated BrowserPanel coverage to assert that selected reference items do not highlight parent rows, and that selecting a reference category highlights its child items instead.
+
+#### Files Changed
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/panels/BrowserPanel.test.tsx`
+
+#### Behavior Changes
+- Selecting `PubPad Full Assembly` now highlights only that reference item.
+- Selecting `Footpads` now highlights `Footpads` as selected and its child reference items as grouped-selected.
+- Selecting the `References` root now groups its descendant reference categories and items instead of the reverse.
+
+#### Verification
+- Passed: `npm.cmd test -- --run src/app/panels/BrowserPanel.test.tsx src/app/console/ConsoleDock.test.tsx src/app/components/ViewerHost.test.tsx`
+
+### [610] - 2026-03-25 11:48 - `SP - Browser - Reference Parent Grouped Highlight Follow-Up`
+<!-- ENTRY 610 -->
+HUMAN SUMMARY: `Added the missing grouped-selection highlight for reference parents so selecting a reference item now softly highlights its category row and the `References` root, similar to the existing assembly/component parent selection treatment. The Browser was already computing the selected reference row correctly, but the reference-tree ancestor rows were never being marked or rendered as grouped-selected.` 
+#### Scope / Constraints Honored
+- Limited the change to Browser tree highlight state for reference selection.
+- Kept the selected reference item as the primary selected row.
+- Did not change console routing, reference transform behavior, or reference load behavior.
+
+#### Summary of Implementation
+- Extended Browser grouped-selection derivation so a selected reference item contributes its category row and the `References` root as grouped-selected ancestor rows.
+- Wired `isGroupedSelected` through the reference root, reference category, and reference item tree-row view models so the existing grouped-highlight styling can apply to the reference tree.
+- Added a BrowserPanel regression that selects a shared reference target and verifies the selected item stays primary while `Footpads` and `References` receive the softer grouped-selected state.
+
+#### Files Changed
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/panels/selectBrowserTreeRows.ts`
+- `src/app/panels/BrowserPanel.test.tsx`
+
+#### Behavior Changes
+- Selecting a reference item now softly highlights its parent category row.
+- Selecting a reference item now also softly highlights the `References` root row, matching the parent-family selection feel already used for content trees.
+
+#### Verification
+- Passed: `npm.cmd test -- --run src/app/panels/BrowserPanel.test.tsx src/app/console/ConsoleDock.test.tsx src/app/components/ViewerHost.test.tsx`
+
+### [609] - 2026-03-25 11:44 - `SP - Browser - Reference Load Model Console Cleanup`
+<!-- ENTRY 609 -->
+HUMAN SUMMARY: `Fixed the Browser-5.3 follow-up where selecting a reference and committing \`Load Model\` from the Console did not reliably start the load path. The console and Browser reference load actions now treat hidden unloaded references as an explicit load/retry request instead of only flipping visibility, and the console radio-burst helpers now safely ignore missing command identities instead of throwing during unrelated staged actions.` 
+#### Scope / Constraints Honored
+- Kept the existing lightweight reference selection scope and did not auto-start transform on plain selection.
+- Limited the cleanup to reference load behavior and a small console robustness guard.
+- Left viewer-side async reference loading behavior unchanged.
+
+#### Summary of Implementation
+- Updated the Console `reference.loadModel` action so hidden `unloaded` references use the app-level retry/load entrypoint, while already loaded hidden references still just become visible.
+- Matched the Browser row-menu `Load Model` action to the same hidden-unloaded behavior so both entry surfaces treat model loading consistently.
+- Hardened the console radio identity helpers so missing staged command identities are ignored safely instead of causing unrelated command submission errors.
+- Added a console regression that selects a hidden reference, submits `load model`, and verifies visibility changes without arming reference transform.
+
+#### Files Changed
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+- `src/app/panels/BrowserPanel.tsx`
+
+#### Behavior Changes
+- Selecting a reference and committing `Load Model` from the Console now properly routes hidden unloaded references into the real load path.
+- Browser context-menu `Load Model` now uses the same hidden-unloaded load behavior instead of only toggling visibility.
+- Missing radio command identities no longer block staged reference actions.
+
+#### Verification
+- Passed: `npm.cmd test -- --run src/app/console/ConsoleDock.test.tsx src/app/panels/BrowserPanel.test.tsx src/app/components/ViewerHost.test.tsx`
+
+### [608] - 2026-03-25 11:38 - `SP - Browser - Docked Browser Surface Ownership Cleanup`
+<!-- ENTRY 608 -->
+HUMAN SUMMARY: `Fixed the runtime-only case where Browser object selection still failed after the viewer path was corrected. The docked Browser was being stripped of active-surface ownership by AppShell immediately after Browser activation, which could trigger a follow-up console clear and break Browser-originated object context sync.` 
+#### Scope / Constraints Honored
+- Kept the Browser selection behavior on the shared workspace-to-console path.
+- Limited the fix to docked Browser surface ownership and its AppShell test coverage.
+- Did not change viewer selection routing or add new Browser selection semantics.
+
+#### Summary of Implementation
+- Removed the AppShell behavior that cleared `activeSurface` and requested `surface-clear` whenever the Browser was active while docked.
+- Kept the floating-shell highlight cleanup by only dropping the floating window marker when the Browser is docked.
+- Added an AppShell regression that locks in docked Browser active-surface ownership instead of immediately clearing it.
+- Updated the AppShell test mock for `useAppStore` so it exposes the shared console-context selector now consumed by `ConsoleDock`.
+
+#### Files Changed
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+
+#### Behavior Changes
+- Selecting an object from the docked Browser no longer loses Browser surface ownership immediately after the click.
+- Browser-originated object selection can now keep the Console in `Select > Object > Object 1` instead of being cleared back out by AppShell.
+
+#### Verification
+- Passed: `npm.cmd test -- --run src/app/AppShell.test.tsx -t "does not clear docked browser surface ownership when browser becomes active"`
+- Passed: `npm.cmd test -- --run src/app/console/ConsoleDock.test.tsx src/app/panels/BrowserPanel.test.tsx src/app/components/ViewerHost.test.tsx`
+- Not re-run full `src/app/AppShell.test.tsx` suite end-to-end because it still contains an unrelated pre-existing failure around the spaghetti titlebar essentials-button label text.
+
+### [607] - 2026-03-25 11:32 - `SP - Browser - Object Selection Console Breadcrumb Cleanup`
+<!-- ENTRY 607 -->
+HUMAN SUMMARY: `Fixed the Browser-5.3 follow-up where object selection could still collapse back to graph context or show a shortened staged prompt in the console summary. Browser and viewer object picks now keep the shared object-selection context ahead of the spaghetti graph fallback, and the console bar now shows the full rooted breadcrumb for content selection.` 
+#### Scope / Constraints Honored
+- Kept the existing shared workspace-to-console sync seam instead of adding Browser-local console ownership.
+- Limited the cleanup to object/content selection routing and staged summary display.
+- Left graph, sketch, and other pre-existing staged console scopes unchanged.
+
+#### Summary of Implementation
+- Changed the console context sync effect to prefer the shared workspace-selected target whenever one exists, only falling back to spaghetti graph/node context when no richer workspace target is available.
+- Updated the console bar staged summary breadcrumb logic so content and reference selection scopes render their full `Select > ...` path instead of collapsing to a shortened scope label.
+- Added focused regressions for the full object-selection summary text and for the case where a selected object must win over spaghetti graph fallback.
+
+#### Files Changed
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/ConsoleBar.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+- `src/app/console/ConsoleBar.test.tsx`
+
+#### Behavior Changes
+- Selecting `Object 1` in the Browser now keeps the Console in `Select > Object > Object 1` instead of snapping back to graph context.
+- Selecting `Object 1` in the model viewport now shows the same `Select > Object > Object 1` breadcrumb in the console summary instead of only `Choose next [Back]`.
+
+#### Verification
+- Passed: `npm.cmd test -- --run src/app/console/ConsoleBar.test.tsx src/app/console/ConsoleDock.test.tsx src/app/panels/BrowserPanel.test.tsx src/app/components/ViewerHost.test.tsx`
+
+### [606] - 2026-03-25 11:26 - `SP - Browser - Selection To Console Context For Content And References`
+<!-- ENTRY 606 -->
+HUMAN SUMMARY: `Implemented the first Browser-5.3 console-context pass so Browser and viewer selection of content or references now moves the Console into lightweight honest selection scopes instead of leaving content/reference selection disconnected from staged command context. Object, component, assembly, and reference targets now route through the shared workspace-to-console sync seam, while deselect falls back out of local content scope without inventing explicit multi-select.` 
+#### Scope / Constraints Honored
+- Extended the shared workspace-to-console sync seam instead of adding Browser-local console routing.
+- Kept rooted grouped parent selection under one parent-owned `Select` scope.
+- Did not add explicit additive multi-select, `Ctrl+click`, `Shift+click`, or synthetic `Multi Select`.
+- Kept reference selection lightweight and separate from auto-starting transform on plain selection.
+
+#### Summary of Implementation
+- Added app-level console-context target lookup so the console sync path can resolve labels and fallback graph ownership for object, component, assembly, and reference targets from shared workspace truth.
+- Extended staged console navigation with new lightweight content and reference selection scopes plus rooted `Select > ...` breadcrumbs for assembly/component/object/reference sync.
+- Added the first honest reference-scope actions through the staged console path, including conditional `Load Model` plus explicit move/rotate/scale transform ownership for selected references.
+- Updated Browser row selection and viewer pick handlers to request console context sync for content/reference selection and deselection through the same shared seam.
+- Added focused console, BrowserPanel, and ViewerHost regressions for the new content/reference scope routing, fallback-on-clear behavior, and viewer/browser parity.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/console/stagedNavigation.ts`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+
+#### Behavior Changes
+- Selecting an object now moves the Console into `Select > Object > <label>` with a lightweight object selection scope.
+- Selecting an assembly or component now moves the Console into rooted parent selection scopes instead of collapsing into a child-only or synthetic multi-select scope.
+- Selecting a reference now moves the Console into a lightweight reference scope; hidden references expose `Load Model`, while visible references expose explicit transform actions without auto-starting transform on selection.
+- Clearing object/component selection now falls back to the nearest broader graph scope when one is known instead of always forcing the Console to root.
+- Viewer-picked content/reference targets now produce the same Console scope as matching Browser selection.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/console/ConsoleDock.test.tsx src/app/panels/BrowserPanel.test.tsx src/app/components/ViewerHost.test.tsx src/app/store/workspaceIntents.test.ts`
+- Ran `npm.cmd run build`
+- Focused tests passed.
+- Build currently fails on the existing TypeScript error in `src/app/console/radioCommandIdentity.ts` line 395: `TS2366 Function lacks ending return statement and return type does not include 'undefined'.`
+
+### [605] - 2026-03-25 10:12 - `SP - Browser - Grouped Parent Selection Row Highlight Follow-Up`
+<!-- ENTRY 605 -->
+HUMAN SUMMARY: `Extended the new Browser-5.2 grouped parent selection so Browser child rows now visually participate too, instead of leaving only the parent row visibly selected while the viewport highlighted the whole subtree. The parent/root keeps the stronger selected state, while descendant rows get a softer grouped-selection treatment.` 
+#### Scope / Constraints Honored
+- Kept the parent/root row as the primary selected Browser target.
+- Did not add explicit additive multi-select.
+- Preserved the existing viewer grouped highlight behavior from the first Browser-5.2 pass.
+
+#### Summary of Implementation
+- Added grouped-selected row metadata to Browser row VMs.
+- Derived grouped descendant Browser row ids from the shared resolved content-selection root.
+- Applied a softer grouped-selection Browser row style for descendant content rows while leaving the root row on the stronger selected style.
+- Added a BrowserPanel regression to verify that child object rows receive the grouped-selection class when an assembly root is selected.
+
+#### Files Changed
+- `src/app/panels/selectBrowserTreeRows.ts`
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/theme/surfaces/browser.css`
+- `src/app/panels/BrowserPanel.test.tsx`
+
+#### Behavior Changes
+- Selecting an assembly now leaves the assembly row as the bright root selection.
+- Descendant content rows in that grouped selection now also show a softer Browser highlight instead of looking completely unselected.
+- Selecting an object directly still leaves that one object as the strongest selected row.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/panels/BrowserPanel.test.tsx src/app/components/ViewerHost.test.tsx src/app/store/useAppStore.test.ts`
+- Ran `npm.cmd run build`
+- Build passed; the remaining output was only the existing Vite warnings about large chunks and `occt-import-js` browser externalization.
+
+### [604] - 2026-03-25 10:07 - `SP - Browser - Implicit Parent Grouped Selection First Pass`
+<!-- ENTRY 604 -->
+HUMAN SUMMARY: `Implemented the first Browser-5.2 grouped-selection pass so selecting an assembly, component, or object now stores one primary root target plus a resolved content-part selection set instead of relying only on local row behavior. The viewer highlight lane now reads that grouped selection truth directly, while ordinary single-select and the existing reference-selection cleanup remain intact.` 
+#### Scope / Constraints Honored
+- Kept ordinary Browser click as single-select.
+- Did not add explicit additive multi-select, `Ctrl+click`, or `Shift+click` range behavior yet.
+- Preserved the shipped Browser-5 and Browser-5.1 selection behavior for viewer picks and references.
+
+#### Summary of Implementation
+- Added a shared `resolvedContentSelection` seam under `workspaceSelection` to hold one root row plus grouped descendant part keys.
+- Made Browser `assembly`, `component`, and `object` row selection populate that grouped content-selection state.
+- Kept all other target changes clearing the grouped content-selection state so viewer picks and reference selection do not inherit stale parent grouping.
+- Updated the viewer highlight lane to prefer the grouped content-selection part keys when present.
+- Added focused Browser/store regression coverage for the new grouped selection state.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/store/useAppStore.test.ts`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+
+#### Behavior Changes
+- Selecting an `Assembly` row now keeps the assembly as the primary selected target while also storing the resolved grouped descendant part-key set.
+- Selecting a `Component` row now keeps the component as the primary selected target while also storing the resolved grouped descendant part-key set.
+- Selecting an `Object` row now stores a one-object grouped selection set instead of leaving grouped selection empty.
+- Viewer content highlight now follows the grouped content-selection set directly when one exists.
+- Changing the primary selected target to a non-content target clears any stale grouped content-selection state.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/panels/BrowserPanel.test.tsx src/app/components/ViewerHost.test.tsx src/app/store/useAppStore.test.ts`
+- Ran `npm.cmd run build`
+- Build passed; the remaining output was only the existing Vite warnings about large chunks and `occt-import-js` browser externalization.
+
+### [603] - 2026-03-25 09:27 - `SP - Browser - Active Reference Fill Flattened To Black`
+<!-- ENTRY 603 -->
+HUMAN SUMMARY: `Adjusted the new Browser reference active state so loaded reference rows now use a flat black fill instead of the earlier darker gradient. This keeps active references visually darker than dormant ones without reading like a second animated/status gradient layer.` 
+#### Scope / Constraints Honored
+- Kept the new `active` versus `dormant` reference state model unchanged.
+- Changed only the active reference fill styling.
+- Preserved the separate highlighted, loading, and error treatments.
+
+#### Summary of Implementation
+- Replaced the `BrowserReferenceStateBar--active` gradient fill with a flat black fill in Browser CSS.
+- Left dormant reference rows on the lighter grey style so loaded/active rows still read as the darker state.
+
+#### Files Changed
+- `src/app/theme/surfaces/browser.css`
+
+#### Behavior Changes (if any)
+- Active loaded reference rows now render with a solid black fill instead of a gradient.
+
+#### Verification Steps
+- `npm.cmd run build`
+
+### [602] - 2026-03-25 09:18 - `SP - Browser - Reference Active Versus Dormant Fill Bars`
+<!-- ENTRY 602 -->
+HUMAN SUMMARY: `Updated Browser reference row bars so loaded/visible references now stay darker as an active state, while unloaded references stay lighter and greyer as a dormant state. Parent reference rows now aggregate from their children, so the root and category bars read active whenever a descendant reference is actually loaded.` 
+#### Scope / Constraints Honored
+- Kept the existing reference selection and transform ownership behavior unchanged.
+- Reused the current Browser reference row state path instead of inventing a separate style-only flag.
+- Preserved loading and error states while splitting the old idle state into active versus dormant.
+
+#### Summary of Implementation
+- Replaced the old reference `idle` state with two explicit Browser states: `active` and `dormant`.
+- Updated reference item state so visible loaded rows become `active`, while hidden/unloaded rows become `dormant`.
+- Updated category and root aggregation so parent reference rows become `active` whenever any descendant is visible and loaded, while still preferring `highlighted`, `loading`, and `error` when those stronger states are present.
+- Tuned Browser reference CSS so `active` rows keep the darker filled look and `dormant` rows keep the lighter greyer look.
+- Added BrowserPanel coverage to verify both `active` and `dormant` reference bars render together in the expected mixed tree case.
+
+#### Files Changed
+- `src/app/panels/selectBrowserTreeRows.ts`
+- `src/app/theme/surfaces/browser.css`
+- `src/app/panels/BrowserPanel.test.tsx`
+
+#### Behavior Changes (if any)
+- Loaded/visible reference rows now stay visually dark as active.
+- Hidden/unloaded reference rows now stay visually lighter as dormant.
+- `References` and category parent rows now darken when at least one descendant reference is loaded and visible.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/panels/BrowserPanel.test.tsx`
+
+### [601] - 2026-03-25 03:24 - `SP - Browser - Reference Row Load Model Menu Action`
+<!-- ENTRY 601 -->
+HUMAN SUMMARY: `Added a dedicated \`Load Model\` right-click action for hidden reference rows in the Browser. This uses the existing reference visibility/load seam to load or re-show the reference model without starting transform mode.` 
+#### Scope / Constraints Honored
+- Kept ordinary reference selection lightweight.
+- Reused the existing reference visibility/load seam instead of inventing a second load path.
+- Did not couple `Load Model` to reference transform ownership.
+
+#### Summary of Implementation
+- Added `Load Model` to the Browser context menu for hidden non-error reference rows.
+- Wired that action to `setReferenceItemVisibility(referenceId, true)` so hidden manifest/imported references load or re-show through the existing ViewerHost reference-loading path.
+- Kept imported error rows on the existing `Retry` / `Remove` menu path instead of showing a misleading load action there.
+- Added BrowserPanel coverage to verify `Load Model` appears for a hidden reference row and does not begin transform ownership.
+
+#### Files Changed
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/panels/BrowserPanel.test.tsx`
+
+#### Behavior Changes (if any)
+- Right-clicking a hidden reference row now shows `Load Model`.
+- Choosing `Load Model` loads or re-shows the reference model.
+- `Load Model` does not start reference transform mode.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/panels/BrowserPanel.test.tsx`
+
+### [600] - 2026-03-25 03:18 - `SP - Browser - Reference Selection Cleanup First Pass`
+<!-- ENTRY 600 -->
+HUMAN SUMMARY: `Implemented the first Browser-5.1 reference-selection cleanup pass. Plain reference selection now stays lightweight instead of silently starting reference transform, viewport-selected references still mirror into Browser rows, and selected references now use the same outline-only selection look as content objects.` 
+#### Scope / Constraints Honored
+- Kept ordinary reference selection separate from explicit reference transform ownership.
+- Reused the Browser-5 shared selection model instead of adding a second reference-only selection path.
+- Matched plain reference highlight styling to the existing object/component/assembly outline treatment without adding fill or size-change effects.
+
+#### Summary of Implementation
+- Changed `activateReferenceItemIntent(...)` so it no longer defaults to `ensureVisible` plus `beginTransform`, making plain reference activation selection-only by default.
+- Updated the Browser reference transform action path to opt into visibility-on plus transform ownership explicitly, preserving the stronger transform flow as a separate action.
+- Added viewer-side reference selection outlines and a `setHighlightedReferenceIds(...)` seam so selected references can use the same outline-only highlight lane as selected content objects.
+- Wired `ViewerHost` to derive highlighted reference ids from shared workspace selection and push them into the viewer.
+- Extended focused tests for workspace intents, Browser reference row clicks, and ViewerHost selection-follow behavior.
+
+#### Files Changed
+- `src/app/store/workspaceIntents.ts`
+- `src/app/store/workspaceIntents.test.ts`
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `src/app/viewerBridge.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `src/viewer/Viewer.ts`
+
+#### Behavior Changes (if any)
+- Clicking a reference row now selects/highlights it without automatically starting `Move`.
+- Viewport-picked references still route back into Browser selection when the mapping is clear.
+- Plain selected references now use the same outline/glow-style selection treatment as content objects.
+- Explicit reference transform still remains available through the separate transform action path.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/store/workspaceIntents.test.ts src/app/panels/BrowserPanel.test.tsx src/app/components/ViewerHost.test.tsx`
+- `npm.cmd run build`
+
+### [599] - 2026-03-25 02:49 - `SP - Browser - Selection And Focus Sync`
+<!-- ENTRY 599 -->
+HUMAN SUMMARY: `Implemented the first real Browser-5 selection/focus sync pass. Model-viewport picks now flow back into shared workspace selection and Browser row selection, empty viewport clicks clear lightweight selection, and Browser no longer hangs onto stale local row selection after the viewer takes over.`
+#### Scope / Constraints Honored
+- Implemented the Browser-5 selection/focus sync phase without changing worker/build behavior.
+- Kept content selection and authoring-context selection separate.
+- Preserved the existing graph/sketch console-context routing while adding viewport-to-Browser follow.
+
+#### Summary of Implementation
+- Added a viewer-side workspace-pick callback seam so left-click part/reference picks can resolve back into shared workspace selection.
+- Wired `ViewerHost` to map picked viewer parts back to Browser content objects and mirror picked references into Browser/reference selection.
+- Added empty-space viewport deselect so lightweight model/content selection clears cleanly when the user clicks blank canvas.
+- Updated Browser selection resolution so stale local row state no longer survives once the viewer is the active surface and there is no selected target.
+- Added empty Browser-space deselect handling for the Browser surface itself.
+- Extended focused Browser and ViewerHost tests to cover viewport pick follow, viewport clear, and Browser clear behavior.
+
+#### Files Changed
+- `src/viewer/Viewer.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/panels/BrowserPanel.test.tsx`
+
+#### Behavior Changes (if any)
+- Clicking a visible model part in the viewport now selects the matching Browser/content object.
+- Clicking a visible reference in the viewport now selects the matching Browser reference row.
+- Clicking empty viewport space clears lightweight viewport/content selection.
+- Clicking empty Browser space clears Browser selection.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/components/ViewerHost.test.tsx src/app/panels/BrowserPanel.test.tsx`
+- `npm.cmd run build`
+
+### [598] - 2026-03-25 02:08 - `SP - Viewer - Outline-Only Content Selection Glow`
+<!-- ENTRY 598 -->
+HUMAN SUMMARY: `Reworked the new Browser/content selection highlight so the viewport no longer tints the full object material. Selected content now uses an outline-style glow lane instead, preserving the base part material while keeping Browser-driven assembly/component/object selection visible in the model viewport.` 
+
+#### Scope / Constraints Honored
+- Kept this as a visual cleanup on the existing Browser/content selection seam rather than expanding Browser-5 scope.
+- Removed the whole-surface material-tint effect instead of layering a second conflicting selection treatment on top.
+- Preserved the earlier Browser-driven subtree selection behavior for `Assembly`, `Component`, and `Object` rows.
+
+#### Summary of Implementation
+- Replaced the part-selection emissive material override in the viewer with dedicated per-part edge-outline overlays.
+- Built outline segments alongside runtime viewer parts and now toggle those overlays based on `selectedPartKey` plus the Browser-driven highlighted-part lane.
+- Left the base mesh material untouched so selection no longer reads like a full material swap or fill effect.
+
+#### Files Changed
+- `src/viewer/Viewer.ts`
+
+#### Behavior Changes
+- Browser/content selection now highlights model output with an outline-style glow instead of tinting the entire mesh surface.
+- Object size and base material appearance remain unchanged during selection.
+
+#### Verification Steps
+- `npm.cmd run build`
+- `npm.cmd test -- --run src/app/components/ViewerHost.test.tsx src/app/panels/BrowserPanel.test.tsx`
+
+### [597] - 2026-03-25 02:03 - `SP - Browser - Content Selection Viewer Glow`
+<!-- ENTRY 597 -->
+HUMAN SUMMARY: `Browser content selection now drives a non-scaling viewport glow for assembly, component, and object targets so picking rows in Content highlights the matching model output without filling the mesh or enlarging it. This also upgrades Browser selection to subtree-aware workspace targets for assemblies/components while keeping the old single-part lane available for direct object picks and gizmo work.` 
+
+#### Scope / Constraints Honored
+- Kept the first pass strictly to glow-style model selection feedback with no fill overlay and no geometry scaling.
+- Reused the shared Browser/workspace-selection path instead of inventing a Browser-only viewer highlight seam.
+- Left user-configurable selection-style controls for a later viewer-settings phase.
+
+#### Summary of Implementation
+- Added Browser workspace target kinds for `assembly` and `component` so content-row selection can represent subtree targets instead of only leaf objects/parts.
+- Updated `BrowserPanel` so assembly and component row clicks now select those subtree targets while clearing the old single-selected-part lane.
+- Added a new `ViewerApi.setHighlightedPartKeys(...)` seam and pushed resolved content-row viewer keys from `ViewerHost` into the viewer based on the active workspace target.
+- Replaced the old content-selection scale-up treatment in `Viewer` with emissive-only highlighting on the selected/highlighted meshes, preserving object size and base color state.
+- Added focused Browser and ViewerHost coverage for subtree-content selection and the new highlighted-part lane.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/viewerBridge.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `src/viewer/Viewer.ts`
+
+#### Behavior Changes
+- Selecting an assembly, component, or object row in Browser Content now highlights the corresponding model output in the viewport with a glow-style emissive effect.
+- Assembly/component selection can now highlight multiple viewer parts at once through the shared workspace target path.
+- The old size-change selection styling for content parts is gone.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/panels/BrowserPanel.test.tsx src/app/components/ViewerHost.test.tsx src/app/store/workspaceIntents.test.ts src/app/store/useAppStore.test.ts`
+- `npm.cmd run build`
+
+### [596] - 2026-03-25 01:35 - `SP - Browser - Content Row Viewer Visibility Eyeballs`
+<!-- ENTRY 596 -->
+HUMAN SUMMARY: `Added real viewer-visibility eyeballs for Browser content rows so assembly, component, and object rows now toggle rendered viewer output independently from Browser build policy. This keeps the left policy icon for runtime/calc state and uses the eyeball strictly for show/hide behavior on the underlying viewer parts.` 
+
+#### Scope / Constraints Honored
+- Kept Browser build-policy execution and Browser-3 runtime semantics unchanged.
+- Reused the existing viewer `partsVisibility` seam instead of inventing a second hidden visibility system.
+- Limited the work to Browser content-row visibility truth, Browser row rendering, and focused Browser/store tests.
+
+#### Summary of Implementation
+- Extended project-content row VMs so assembly, component, and object rows now carry `isVisible` plus resolved `visibilityPartKeys`.
+- Derived content-row visibility from the existing part-key visibility map and propagated those fields into Browser tree rows.
+- Updated `BrowserPanel` to render real eyeball toggles for content rows and bulk-toggle all associated viewer part keys for parent rows like assemblies and components.
+- Added focused Browser and store coverage for content visibility eyes and visibility derivation.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/store/useAppStore.test.ts`
+- `src/app/panels/selectBrowserTreeRows.ts`
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `src/app/panels/browserRowActions.test.ts`
+
+#### Behavior Changes
+- Assembly, component, and object rows now show real viewer-visibility eyeballs when they resolve to viewer part keys.
+- Toggling those eyeballs hides or shows the corresponding viewer output without changing Browser build policy.
+- Parent content rows derive their visibility from the visibility of their associated descendant viewer parts.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/panels/BrowserPanel.test.tsx src/app/store/useAppStore.test.ts src/app/panels/selectBrowserTreeRows.test.ts`
+- `npm.cmd run build`
+
+### [595] - 2026-03-25 01:08 - `SP - Browser - Row Click And Action Ownership Cleanup`
+<!-- ENTRY 595 -->
+HUMAN SUMMARY: `Implemented Browser-4 so ordinary Browser rows now follow a cleaner shared interaction grammar: expand/collapse stays on the branch control, row click stays light, the legacy graph save button is gone, and lower-frequency actions moved into the right-click row menu. This also aligned ordinary rows more tightly around the shared branch / policy-icon / visibility / bar-label slot structure instead of continuing the old per-row quick-action drift.`
+
+#### Scope / Constraints Honored
+- Kept Browser build-policy semantics and Browser-3 runtime execution behavior unchanged.
+- Limited the work to Browser row interaction ownership, row surface cleanup, and Browser row/menu tests.
+- Preserved section-header summary controls while cleaning up ordinary tree-row behavior.
+
+#### Summary of Implementation
+- Removed the legacy graph save quick button and the separate save-button context-menu path from `BrowserPanel`.
+- Stopped ordinary row click from auto-expanding Browser container rows and from triggering content-row rebuild side effects.
+- Added passive visibility placeholders so ordinary Browser rows keep a more stable fixed slot layout even when visibility is unsupported.
+- Moved imported-reference retry/remove actions and viewport close into the row-menu path instead of inline row buttons.
+- Added `Close` as a viewport row action in `selectBrowserTreeRows` so open-editor rows keep a menu-based close path after the inline button removal.
+
+#### Files Changed
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `src/app/panels/selectBrowserTreeRows.ts`
+- `src/app/panels/selectBrowserTreeRows.test.ts`
+- `src/app/theme/surfaces/browser.css`
+
+#### Behavior Changes
+- Ordinary Browser row click no longer toggles expand/collapse for container rows.
+- Content-row single click remains selection-first without silently dispatching rebuilds.
+- Graph export/save is now right-click only; the inline `S` quick button is gone.
+- Open-editor close and imported-reference retry/remove now come from the row menu instead of inline row buttons.
+- Ordinary rows now reserve a visibility slot even when it is passive, reducing row-family geometry drift.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/panels/BrowserPanel.test.tsx src/app/panels/selectBrowserTreeRows.test.ts`
+- Ran `npm.cmd run build`
+- Build passed. Existing Vite warnings about `occt-import-js` browser externalization and large chunks remained non-fatal.
+
 ### [594] - 2026-03-25 00:31 - `SP - Browser - Runtime Build Policy Execution`
 <!-- ENTRY 594 -->
 HUMAN SUMMARY: `Implemented Browser-3 with graph-first runtime build-policy execution so Browser `live / release / manual / off` now affects real rebuild timing and output presence instead of staying surface-only. Live graphs rebuild on parametric updates, release graphs defer until interaction end, manual graphs wait for explicit build, and off graphs suppress worker-produced output from Browser/content/viewer presentation.`
@@ -19756,3 +20827,10 @@ HUMAN SUMMARY: `Initialized the new /20/parahook stack with Vite, React, TypeScr
 - Confirm the draft reflects the original restart architecture, repo layout, worker skeleton, and viewer skeleton.
 
 
+- [620] 2026-03-25 13:14 EDT: Extended reference-category Console scopes so `Footpads`, `Shoes`, and the other categories now list their individual reference items, allowing users to drill into a single object from the category scope and enter the existing per-reference `Load Model` flow while Browser selection follows the chosen item.
+- [619] 2026-03-25 12:46 EDT: Synced deeper Console reference navigation back into Browser selection so `references > footpads` now deselects the `References` root and selects the `Footpads` category row instead, while `back` restores the root reference target.
+- [618] 2026-03-25 12:39 EDT: Wired the Console root `References` entry back into shared workspace selection so committing `references` from root now also selects the `References` row in the Browser instead of only changing console scope.
+- [617] 2026-03-25 12:33 EDT: Expanded the Console root `References` aliases so the singular `ref` path is explicitly covered at root, along with tolerant `reference` and `refrence` spellings that still enter the shared references scope.
+- [616] 2026-03-25 12:30 EDT: Added `References` as a first-class Console root choice so users can enter the existing reference selection scope directly from root with `references`, `ref`, or `refs`, without requiring a prior Browser selection.
+- [615] 2026-03-25 12:22 EDT: Added staged Console aliases for reference-category navigation so `Footpads`, `Shoes`, and `Premade Foothooks` can be reached from `Select > References` with short tokens like `fp`, `sh`, and `pfh`, including the common `foodpads` typo path for footpads.
+- [614] 2026-03-25 12:17 EDT: Extended Browser-5.3 reference console depth so selecting `References` exposes child category scopes, selecting a category like `Footpads` syncs to `Select > References > Footpads`, and both Console and Browser row menus route category/root `Load All` actions through the shared reference owner seam.

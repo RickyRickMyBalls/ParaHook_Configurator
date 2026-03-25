@@ -3,6 +3,7 @@ import type {
   BrowserBuildPolicy,
   ProjectContentBrowserRowVm,
   ProjectContentBuildState,
+  ReferenceLoadBatchState,
   ReferenceWorkspaceBrowserTreeVm,
   ReferenceWorkspaceBrowserCategoryVm,
   ReferenceWorkspaceBrowserItemVm,
@@ -57,6 +58,7 @@ type BrowserTreeRowBaseVm = {
   label: string
   meta: string
   isSelected: boolean
+  isGroupedSelected?: boolean
   isExpandable: boolean
   isExpanded: boolean
   actions: BrowserTreeRowActionVm[]
@@ -67,13 +69,19 @@ type BrowserTreeRowBaseVm = {
   effectiveBrowserBuildPolicySourceLabel?: string | null
 }
 
-export type BrowserReferenceRowState = 'highlighted' | 'idle' | 'loading' | 'error'
+export type BrowserReferenceRowState =
+  | 'highlighted'
+  | 'active'
+  | 'dormant'
+  | 'loading'
+  | 'error'
 
 export type BrowserReferencesRootTreeRowVm = BrowserTreeRowBaseVm & {
   rowKind: 'references-root'
   isVisible: boolean
   state: BrowserReferenceRowState
   stateLabel: string
+  progress01?: number
 }
 
 export type BrowserReferenceCategoryTreeRowVm = BrowserTreeRowBaseVm & {
@@ -84,6 +92,7 @@ export type BrowserReferenceCategoryTreeRowVm = BrowserTreeRowBaseVm & {
   isVisible: boolean
   state: BrowserReferenceRowState
   stateLabel: string
+  progress01?: number
 }
 
 export type BrowserReferenceItemTreeRowVm = BrowserTreeRowBaseVm & {
@@ -109,6 +118,8 @@ export type BrowserGraphSectionTreeRowVm = BrowserTreeRowBaseVm & {
 
 export type BrowserAssemblyTreeRowVm = BrowserTreeRowBaseVm & {
   rowKind: 'assembly'
+  isVisible: boolean
+  visibilityPartKeys: string[]
   buildState: ProjectContentBuildState
   buildStateLabel: string
   rebuildGraphDocumentIds: string[]
@@ -143,6 +154,8 @@ export type BrowserSketchTreeRowVm = BrowserTreeRowBaseVm & {
 
 export type BrowserComponentTreeRowVm = BrowserTreeRowBaseVm & {
   rowKind: 'component'
+  isVisible: boolean
+  visibilityPartKeys: string[]
   buildState: ProjectContentBuildState
   buildStateLabel: string
   rebuildGraphDocumentIds: string[]
@@ -171,6 +184,8 @@ export type BrowserComponentTreeRowVm = BrowserTreeRowBaseVm & {
 
 export type BrowserObjectTreeRowVm = BrowserTreeRowBaseVm & {
   rowKind: 'object'
+  isVisible: boolean
+  visibilityPartKeys: string[]
   buildState: ProjectContentBuildState
   buildStateLabel: string
   rebuildGraphDocumentIds: string[]
@@ -314,6 +329,21 @@ const countLabel = (count: number, singular: string, plural: string): string =>
 
 const formatReferenceItemMeta = (fileType: string): string => fileType.toUpperCase()
 
+const formatReferenceStateLabel = (state: BrowserReferenceRowState): string => {
+  switch (state) {
+    case 'highlighted':
+      return 'Highlight'
+    case 'loading':
+      return 'Loading'
+    case 'error':
+      return 'Error'
+    case 'active':
+      return 'Active'
+    default:
+      return 'Dormant'
+  }
+}
+
 const selectReferenceCategoryState = (
   items: ReferenceWorkspaceBrowserCategoryVm['items'],
   activeTransformReferenceId: string | null,
@@ -337,14 +367,26 @@ const selectReferenceCategoryState = (
 
   const hasVisibleLoadedItem = items.some((item) => item.isVisible && item.loadState === 'loaded')
   if (hasVisibleLoadedItem) {
-    return 'idle'
+    return 'active'
   }
 
-  return 'idle'
+  return 'dormant'
 }
+
+const clampProgress01 = (value: number): number => Math.max(0, Math.min(1, value))
+
+const countBatchCompletedForIds = (
+  batch: ReferenceLoadBatchState,
+  referenceIds: readonly string[],
+): number =>
+  referenceIds.filter(
+    (referenceId) =>
+      batch.completedIds.includes(referenceId) || batch.failedIds.includes(referenceId),
+  ).length
 
 export const selectBrowserTreeRows = (options: {
   referenceWorkspaceTree: ReferenceWorkspaceBrowserTreeVm
+  referenceLoadBatch?: ReferenceLoadBatchState | null
   activeTransformReferenceId?: string | null
   contentRows: ProjectContentBrowserRowVm[]
   graphRows: BrowserGraphRowVm[]
@@ -353,6 +395,8 @@ export const selectBrowserTreeRows = (options: {
   editorViewports: EditorViewport[]
   graphDocumentsById: Record<string, GraphDocument>
   selectedRowId: string | null
+  selectedRowIds?: string[]
+  groupedSelectedRowIds?: string[]
   collapsedContentRowIds: string[]
   expandedGraphDocumentIds: string[]
   graphSectionExpandedByRowId?: Record<string, boolean>
@@ -362,21 +406,26 @@ export const selectBrowserTreeRows = (options: {
 }): BrowserTreeRowsVm => {
   const {
     referenceWorkspaceTree,
+    referenceLoadBatch = null,
     activeTransformReferenceId = null,
     browserContentBuildPolicyByRowId = {},
     browserGraphBuildPolicyByGraphDocumentId = {},
     contentRows,
-    editorViewports,
-    expandedGraphDocumentIds,
-    graphSectionExpandedByRowId = {},
-    graphDocumentsById,
-    graphRows,
-    hasActiveEditorViewport,
-    collapsedContentRowIds,
-    selectedRowId,
-    sharedViewerCompositionActive,
-    sharedViewerCompositionGraphDocumentIds,
+  editorViewports,
+  expandedGraphDocumentIds,
+  graphSectionExpandedByRowId = {},
+  graphDocumentsById,
+  graphRows,
+  hasActiveEditorViewport,
+  groupedSelectedRowIds = [],
+  collapsedContentRowIds,
+  selectedRowId,
+  selectedRowIds = selectedRowId === null ? [] : [selectedRowId],
+  sharedViewerCompositionActive,
+  sharedViewerCompositionGraphDocumentIds,
   } = options
+  const groupedSelectedRowIdSet = new Set(groupedSelectedRowIds)
+  const selectedRowIdSet = new Set(selectedRowIds)
 
   const rootContentRows = contentRows.filter(
     (
@@ -585,6 +634,8 @@ export const selectBrowserTreeRows = (options: {
       rowKind: 'assembly',
       depth: 0,
       treeGuides: [],
+      isVisible: row.isVisible ?? false,
+      visibilityPartKeys: row.visibilityPartKeys ?? [],
       buildState: row.buildState ?? 'done',
       buildStateLabel: row.buildStateLabel ?? '',
       rebuildGraphDocumentIds: row.rebuildGraphDocumentIds ?? [],
@@ -598,7 +649,8 @@ export const selectBrowserTreeRows = (options: {
             statusTone: row.statusTone ?? 'quiet',
           }
         : {}),
-      isSelected: selectedRowId === row.rowId,
+      isSelected: selectedRowIdSet.has(row.rowId),
+      isGroupedSelected: groupedSelectedRowIdSet.has(row.rowId),
       isExpandable: assemblyChildren.length > 0,
       isExpanded,
       actions: [],
@@ -618,6 +670,8 @@ export const selectBrowserTreeRows = (options: {
           treeGuides: [
             hasMoreRootSiblings ? 'tee' : 'elbow',
           ],
+          isVisible: contentRow.isVisible ?? false,
+          visibilityPartKeys: contentRow.visibilityPartKeys ?? [],
           buildState: contentRow.buildState ?? 'done',
           buildStateLabel: contentRow.buildStateLabel ?? '',
           rebuildGraphDocumentIds: contentRow.rebuildGraphDocumentIds ?? [],
@@ -642,7 +696,8 @@ export const selectBrowserTreeRows = (options: {
                 statusTone: contentRow.statusTone ?? 'quiet',
               }
             : {}),
-          isSelected: selectedRowId === contentRow.rowId,
+          isSelected: selectedRowIdSet.has(contentRow.rowId),
+          isGroupedSelected: groupedSelectedRowIdSet.has(contentRow.rowId),
           isExpandable: false,
           isExpanded: false,
           actions: [
@@ -669,6 +724,8 @@ export const selectBrowserTreeRows = (options: {
               ? 'tee'
               : 'elbow',
         ],
+        isVisible: contentRow.isVisible ?? false,
+        visibilityPartKeys: contentRow.visibilityPartKeys ?? [],
         buildState: contentRow.buildState ?? 'done',
         buildStateLabel: contentRow.buildStateLabel ?? '',
         rebuildGraphDocumentIds: contentRow.rebuildGraphDocumentIds ?? [],
@@ -693,7 +750,8 @@ export const selectBrowserTreeRows = (options: {
               statusTone: contentRow.statusTone ?? 'quiet',
             }
           : {}),
-        isSelected: selectedRowId === contentRow.rowId,
+        isSelected: selectedRowIdSet.has(contentRow.rowId),
+        isGroupedSelected: groupedSelectedRowIdSet.has(contentRow.rowId),
         isExpandable: componentChildren.length > 0,
         isExpanded: isComponentExpanded,
         actions: [
@@ -718,6 +776,8 @@ export const selectBrowserTreeRows = (options: {
             hasMoreRootSiblings ? 'vertical' : 'none',
             objectIndex < componentChildren.length - 1 ? 'tee' : 'elbow',
           ],
+          isVisible: objectRow.isVisible ?? false,
+          visibilityPartKeys: objectRow.visibilityPartKeys ?? [],
           buildState: objectRow.buildState ?? 'done',
           buildStateLabel: objectRow.buildStateLabel ?? '',
           rebuildGraphDocumentIds: objectRow.rebuildGraphDocumentIds ?? [],
@@ -742,7 +802,8 @@ export const selectBrowserTreeRows = (options: {
                 statusTone: objectRow.statusTone ?? 'quiet',
               }
             : {}),
-          isSelected: selectedRowId === objectRow.rowId,
+          isSelected: selectedRowIdSet.has(objectRow.rowId),
+          isGroupedSelected: groupedSelectedRowIdSet.has(objectRow.rowId),
           isExpandable: false,
           isExpanded: false,
           actions: [
@@ -768,7 +829,7 @@ export const selectBrowserTreeRows = (options: {
       iconLabel: 'S',
       label: row.label,
       meta: row.meta,
-      isSelected: selectedRowId === row.rowId,
+      isSelected: selectedRowIdSet.has(row.rowId),
       isExpandable: orderedSketchRows.length > 0,
       isExpanded,
       actions: [],
@@ -807,7 +868,7 @@ export const selectBrowserTreeRows = (options: {
               statusTone: sketchRow.statusTone ?? 'quiet',
             }
           : {}),
-        isSelected: selectedRowId === sketchRow.rowId,
+        isSelected: selectedRowIdSet.has(sketchRow.rowId),
         isExpandable: false,
         isExpanded: false,
         actions: [
@@ -836,11 +897,20 @@ export const selectBrowserTreeRows = (options: {
   const referenceRootState: BrowserReferenceRowState =
     hasHighlightedReference
       ? 'highlighted'
-      : hasLoadingReference
+      : referenceLoadBatch !== null || hasLoadingReference
       ? 'loading'
       : hasReferenceError
         ? 'error'
-        : 'idle'
+        : hasVisibleLoadedReference
+          ? 'active'
+          : 'dormant'
+  const rootBatchProgress01 =
+    referenceLoadBatch !== null && referenceLoadBatch.targetIds.length > 0
+      ? clampProgress01(
+          countBatchCompletedForIds(referenceLoadBatch, referenceLoadBatch.targetIds) /
+            referenceLoadBatch.targetIds.length,
+        )
+      : undefined
 
   visibleReferenceRows.push({
     rowId: referenceWorkspaceTree.rowId,
@@ -854,20 +924,15 @@ export const selectBrowserTreeRows = (options: {
       'item',
       'items',
     ),
-    isSelected: selectedRowId === referenceWorkspaceTree.rowId,
+    isSelected: selectedRowIdSet.has(referenceWorkspaceTree.rowId),
+    isGroupedSelected: groupedSelectedRowIdSet.has(referenceWorkspaceTree.rowId),
     isExpandable: true,
     isExpanded: referenceWorkspaceTree.isExpanded,
     actions: [],
     isVisible: hasVisibleLoadedReference,
     state: referenceRootState,
-    stateLabel:
-      referenceRootState === 'error'
-        ? 'Error'
-        : referenceRootState === 'loading'
-          ? 'Loading'
-          : referenceRootState === 'highlighted'
-            ? 'Highlight'
-            : 'Idle',
+    stateLabel: formatReferenceStateLabel(referenceRootState),
+    progress01: rootBatchProgress01,
   } satisfies BrowserReferencesRootTreeRowVm)
 
   if (referenceWorkspaceTree.isExpanded) {
@@ -875,6 +940,26 @@ export const selectBrowserTreeRows = (options: {
       const hasMoreCategories = categoryIndex < referenceCategories.length - 1
       const categoryState = selectReferenceCategoryState(category.items, activeTransformReferenceId)
       const categoryVisible = category.items.some((item) => item.isVisible && item.loadState === 'loaded')
+      const categoryBatchTargetIds =
+        referenceLoadBatch === null
+          ? []
+          : category.items
+              .map((item) => item.referenceId)
+              .filter((referenceId) => referenceLoadBatch.targetIds.includes(referenceId))
+      const categoryStateWithBatch: BrowserReferenceRowState =
+        activeTransformReferenceId !== null &&
+        category.items.some((item) => item.referenceId === activeTransformReferenceId)
+          ? 'highlighted'
+          : categoryBatchTargetIds.length > 0
+            ? 'loading'
+            : categoryState
+      const categoryProgress01 =
+        categoryBatchTargetIds.length > 0 && referenceLoadBatch !== null
+          ? clampProgress01(
+              countBatchCompletedForIds(referenceLoadBatch, categoryBatchTargetIds) /
+                categoryBatchTargetIds.length,
+            )
+          : undefined
       const categoryIconLabel =
         category.categoryId === 'footpads'
           ? 'F'
@@ -891,7 +976,8 @@ export const selectBrowserTreeRows = (options: {
         iconLabel: categoryIconLabel,
         label: category.label,
         meta: countLabel(category.itemCount, 'item', 'items'),
-        isSelected: selectedRowId === category.rowId,
+        isSelected: selectedRowIdSet.has(category.rowId),
+        isGroupedSelected: groupedSelectedRowIdSet.has(category.rowId),
         isExpandable: true,
         isExpanded: category.isExpanded,
         actions: [],
@@ -899,15 +985,9 @@ export const selectBrowserTreeRows = (options: {
         itemCount: category.itemCount,
         emptyLabel: category.emptyLabel,
         isVisible: categoryVisible,
-        state: categoryState,
-        stateLabel:
-          categoryState === 'error'
-            ? 'Error'
-            : categoryState === 'loading'
-              ? 'Loading'
-              : categoryState === 'highlighted'
-                ? 'Highlight'
-                : 'Idle',
+        state: categoryStateWithBatch,
+        stateLabel: formatReferenceStateLabel(categoryStateWithBatch),
+        progress01: categoryProgress01,
       } satisfies BrowserReferenceCategoryTreeRowVm)
 
       if (!category.isExpanded) {
@@ -922,7 +1002,9 @@ export const selectBrowserTreeRows = (options: {
               ? 'highlighted'
             : item.isVisible && item.loadState === 'loading'
               ? 'loading'
-              : 'idle'
+              : item.isVisible && item.loadState === 'loaded'
+                ? 'active'
+                : 'dormant'
         visibleReferenceRows.push({
           rowId: item.rowId,
           rowKind: 'reference-item',
@@ -934,7 +1016,8 @@ export const selectBrowserTreeRows = (options: {
           iconLabel: 'R',
           label: item.label,
           meta: formatReferenceItemMeta(item.fileType),
-          isSelected: selectedRowId === item.rowId,
+          isSelected: selectedRowIdSet.has(item.rowId),
+          isGroupedSelected: groupedSelectedRowIdSet.has(item.rowId),
           isExpandable: false,
           isExpanded: false,
           actions: [
@@ -952,14 +1035,7 @@ export const selectBrowserTreeRows = (options: {
           assetPath: item.assetPath,
           isVisible: item.isVisible,
           state: itemState,
-          stateLabel:
-            itemState === 'error'
-              ? 'Error'
-              : itemState === 'loading'
-                ? 'Loading'
-                : itemState === 'highlighted'
-                  ? 'Highlight'
-                  : 'Idle',
+          stateLabel: formatReferenceStateLabel(itemState),
           errorMessage: item.errorMessage,
         } satisfies BrowserReferenceItemTreeRowVm)
       })
@@ -1072,7 +1148,7 @@ export const selectBrowserTreeRows = (options: {
             objectRow.meta === row.label || objectRow.meta === `${row.label} unresolved`
               ? ''
               : objectRow.meta,
-          isSelected: selectedRowId === `graph-rebuild-row:${row.graphDocumentId}:${objectRow.rowId}`,
+          isSelected: selectedRowIdSet.has(`graph-rebuild-row:${row.graphDocumentId}:${objectRow.rowId}`),
           isExpandable: false,
           isExpanded: false,
           actions: [
@@ -1097,7 +1173,7 @@ export const selectBrowserTreeRows = (options: {
           iconLabel: 'N',
           label: formatGraphNodeLabel(node.type),
           meta: buildGraphNodeMeta(node.type, node.nodeId),
-          isSelected: selectedRowId === `graph-node-row:${row.graphDocumentId}:${node.nodeId}`,
+          isSelected: selectedRowIdSet.has(`graph-node-row:${row.graphDocumentId}:${node.nodeId}`),
           isExpandable: false,
           isExpanded: false,
           actions: [
@@ -1144,7 +1220,7 @@ export const selectBrowserTreeRows = (options: {
           iconLabel: sectionDefinition.iconLabel,
           label: sectionDefinition.label,
           meta: formatGraphSectionMeta(sectionDefinition.sectionKind, sectionDefinition.children.length),
-          isSelected: selectedRowId === sectionRowId,
+          isSelected: selectedRowIdSet.has(sectionRowId),
           isExpandable: true,
           isExpanded: sectionExpanded,
           actions: [],
@@ -1177,7 +1253,7 @@ export const selectBrowserTreeRows = (options: {
         iconLabel: 'G',
         label: row.label,
         meta: isInSharedViewerComposition ? `${row.meta} | In Shared Viewer` : row.meta,
-        isSelected: selectedRowId === `graph-row:${row.graphDocumentId}`,
+        isSelected: selectedRowIdSet.has(`graph-row:${row.graphDocumentId}`),
         isExpandable: true,
         isExpanded: expandedGraphDocumentIds.includes(row.graphDocumentId),
         saveState: row.saveState,
@@ -1231,7 +1307,7 @@ export const selectBrowserTreeRows = (options: {
         iconLabel: 'V',
         label,
         meta: viewport.isFocused ? 'Active editor' : `Editor z${viewport.zOrder}`,
-        isSelected: selectedRowId === `viewport-row:${viewport.editorViewportId}`,
+        isSelected: selectedRowIdSet.has(`viewport-row:${viewport.editorViewportId}`),
         isExpandable: false,
         isExpanded: false,
         actions: [
@@ -1240,6 +1316,11 @@ export const selectBrowserTreeRows = (options: {
             label: 'Focus',
             ariaLabel: `Focus ${label}`,
             disabled: viewport.isFocused,
+          },
+          {
+            actionId: 'close',
+            label: 'Close',
+            ariaLabel: `Close ${label}`,
           },
         ],
       } satisfies BrowserViewportTreeRowVm

@@ -120,6 +120,8 @@ export interface ViewerApi {
     scale?: number
   }) => void
   setSelectedPart: (partId: string | null) => void
+  setHighlightedPartKeys: (partIds: string[]) => void
+  setHighlightedReferenceIds: (referenceIds: string[]) => void
   setReferenceTransformSession: (session: {
     referenceId: string
     mode: GizmoMode

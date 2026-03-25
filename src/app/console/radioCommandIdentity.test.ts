@@ -193,6 +193,40 @@ describe('radioCommandIdentity', () => {
     ).toBe('Console.Graph.FocusNode.Delete')
   })
 
+  it('resolves reference staged actions to canonical semantic identities', () => {
+    expect(
+      resolveConsoleRadioCommandIdentity({
+        kind: 'stagedExecute',
+        activeScopeId: 'referencesSelected',
+        actionId: 'reference.loadAll',
+      }),
+    ).toBe('Console.References.LoadAll')
+
+    expect(
+      resolveConsoleRadioCommandIdentity({
+        kind: 'stagedExecute',
+        activeScopeId: 'referenceCategorySelected',
+        actionId: 'reference.category.loadAll',
+      }),
+    ).toBe('Console.References.Category.LoadAll')
+
+    expect(
+      resolveConsoleRadioCommandIdentity({
+        kind: 'stagedExecute',
+        activeScopeId: 'referenceSelected',
+        actionId: 'reference.loadModel',
+      }),
+    ).toBe('Console.References.Item.LoadModel')
+
+    expect(
+      resolveConsoleRadioCommandIdentity({
+        kind: 'stagedExecute',
+        activeScopeId: 'referenceSelected',
+        actionId: 'reference.transform.rotate',
+      }),
+    ).toBe('Console.References.Transform.Rotate')
+  })
+
   it('resolves flat command aliases through the parsed semantic command name', () => {
     expect(
       resolveConsoleRadioCommandIdentity({

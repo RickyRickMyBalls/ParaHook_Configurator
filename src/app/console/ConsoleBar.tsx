@@ -85,6 +85,34 @@ export function ConsoleBar({
     return null
   }
 
+  const selectPromptSummaryAliasHint = (
+    breadcrumb: string[],
+    label: string,
+  ): string | null => {
+    if (breadcrumb.length === 1 && breadcrumb[0] === 'Root') {
+      switch (normalizeCompactChoiceToken(label)) {
+        case 'GRAPH':
+          return 'G'
+        case 'REFERENCES':
+          return 'REF'
+        case 'CAMERA':
+          return 'C'
+        case 'RADIO':
+          return 'R'
+        case 'ZOOM':
+          return 'Z'
+        case 'PAN':
+          return 'P'
+        case 'ORBIT':
+          return 'O'
+        default:
+          return null
+      }
+    }
+
+    return null
+  }
+
   const renderChoiceLabelWithAliasHint = (choice: SummaryChoice) => {
     const aliasHint = choice.aliasHint
     if (aliasHint === null || aliasHint.length === 0) {
@@ -141,6 +169,13 @@ export function ConsoleBar({
       case 'graphOutputPreviewList':
       case 'graphOutputPreviewSelected':
         return ['Graph', 'Output Preview']
+      case 'contentAssemblySelected':
+      case 'contentComponentSelected':
+      case 'contentObjectSelected':
+      case 'referencesSelected':
+      case 'referenceCategorySelected':
+      case 'referenceSelected':
+        return session.breadcrumb
       default:
         return ['Choose next']
     }
@@ -186,12 +221,14 @@ export function ConsoleBar({
         ? 0
         : choices.findIndex((choice) => normalizeChoiceToken(choice) === normalizedInput)
 
+    const breadcrumb = breadcrumbText.split('>').map((segment) => segment.trim()).filter(Boolean)
+
     return {
-      breadcrumb: breadcrumbText.split('>').map((segment) => segment.trim()).filter(Boolean),
+      breadcrumb,
       leadText: ` > ${leadText}`,
       choices: choices.map((choice) => ({
         label: choice,
-        aliasHint: selectPreferredAliasHint(choice, []),
+        aliasHint: selectPromptSummaryAliasHint(breadcrumb, choice),
       })),
       activeChoiceIndex: activeChoiceIndex === -1 ? null : activeChoiceIndex,
     }

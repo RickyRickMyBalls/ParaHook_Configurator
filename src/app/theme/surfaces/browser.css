@@ -393,6 +393,11 @@
   overflow: hidden;
 }
 
+.BrowserTreeRowVisibilityToggle--placeholder {
+  border-color: transparent;
+  background: transparent;
+}
+
 .V15Panel button.BrowserTreeRowVisibilityToggle {
   padding: 0;
 }
@@ -513,7 +518,6 @@
 }
 
 .BrowserTreeRowMain,
-.BrowserTreeRowQuickAction,
 .BrowserTreeContextMenuAction {
   min-height: 28px;
 }
@@ -622,6 +626,8 @@
 }
 
 .BrowserTreeRowText {
+  position: relative;
+  z-index: 1;
   min-width: 0;
   display: flex;
   gap: 8px;
@@ -714,11 +720,6 @@
   background: rgba(255, 255, 255, 0.03);
 }
 
-.BrowserTreeRow--graph-document .BrowserTreeRowSurface,
-.BrowserTreeRow--viewport .BrowserTreeRowSurface {
-  padding-right: 42px;
-}
-
 .BrowserContentStateFill {
   position: absolute;
   inset: 0 auto 0 0;
@@ -774,7 +775,7 @@
 
 .BrowserReferenceStateBar {
   border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(10, 12, 18, 0.98);
+  background: linear-gradient(90deg, rgba(68, 74, 88, 0.44), rgba(24, 28, 38, 0.16));
 }
 
 .BrowserReferenceStateFill {
@@ -791,13 +792,22 @@
   background: linear-gradient(90deg, rgba(44, 82, 168, 0.48), rgba(24, 40, 82, 0.18));
 }
 
-.BrowserReferenceStateBar--idle .BrowserReferenceStateFill {
-  background: linear-gradient(90deg, rgba(68, 74, 88, 0.44), rgba(24, 28, 38, 0.16));
+.BrowserReferenceStateBar--active .BrowserReferenceStateFill {
+  background: rgba(0, 0, 0, 0.82);
+}
+
+.BrowserReferenceStateBar--dormant .BrowserReferenceStateFill {
+  background: transparent;
 }
 
 .BrowserReferenceStateBar--loading .BrowserReferenceStateFill {
-  background: linear-gradient(90deg, rgba(74, 126, 236, 0.46), rgba(74, 126, 236, 0.14));
+  background: rgba(0, 0, 0, 0.82);
   animation: BrowserGraphStateBuildFill 1.05s ease-in-out infinite;
+}
+
+.BrowserReferenceStateBar--loading .BrowserReferenceStateFill--determinate {
+  background: rgba(0, 0, 0, 0.82);
+  animation: none;
 }
 
 .BrowserReferenceStateBar--error .BrowserReferenceStateFill {
@@ -870,6 +880,16 @@
   box-shadow: inset 0 0 0 1px rgba(96, 142, 255, 0.08);
 }
 
+.BrowserTreeRow.isGroupedSelected:not(.isSelected) :is(
+    .BrowserGraphStateBar,
+    .BrowserContentStateBar,
+    .BrowserReferenceStateBar,
+    .BrowserGraphChildPlainBar
+  ) {
+  border-color: rgba(96, 142, 255, 0.32);
+  box-shadow: inset 0 0 0 1px rgba(96, 142, 255, 0.04);
+}
+
 .BrowserTreeRow.isActiveEditor .BrowserGraphStateBar {
   border-color: rgba(122, 168, 255, 0.34);
   box-shadow: inset 0 0 0 1px rgba(122, 168, 255, 0.1);
@@ -916,64 +936,6 @@
 
 .BrowserTreeRowStatus--quiet {
   color: var(--v15-text-muted);
-}
-
-.V15Panel button.BrowserTreeRowQuickAction {
-  min-width: 28px;
-  width: 28px;
-  padding: 0;
-  justify-content: center;
-  border-radius: 8px;
-  border-color: transparent;
-  background: rgba(255, 255, 255, 0.02);
-  color: var(--v15-text-muted);
-  text-transform: uppercase;
-}
-
-.BrowserTreeRow--graph-document .BrowserTreeRowQuickAction,
-.BrowserTreeRow--viewport .BrowserTreeRowQuickAction {
-  position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 2;
-}
-
-.V15Panel button.BrowserTreeRowQuickAction--close:hover {
-  border-color: rgba(255, 112, 112, 0.26);
-  background: rgba(255, 112, 112, 0.12);
-  color: rgba(255, 220, 220, 0.96);
-}
-
-.V15Panel button.BrowserTreeRowQuickAction--retry:hover {
-  border-color: rgba(123, 170, 255, 0.26);
-  background: rgba(123, 170, 255, 0.12);
-  color: rgba(230, 239, 255, 0.98);
-}
-
-.V15Panel button.BrowserTreeRowQuickAction--save {
-  font-size: 10px;
-  font-weight: 900;
-  letter-spacing: 0.04em;
-}
-
-.V15Panel button.BrowserTreeRowQuickAction--save.BrowserTreeRowQuickAction--unsaved {
-  border-color: rgba(87, 129, 255, 0.28);
-  background: rgba(87, 129, 255, 0.16);
-  color: rgba(232, 239, 255, 0.96);
-}
-
-.V15Panel button.BrowserTreeRowQuickAction--save.BrowserTreeRowQuickAction--saved {
-  border-color: rgba(84, 186, 124, 0.18);
-  background: rgba(84, 186, 124, 0.08);
-  color: rgba(212, 255, 225, 0.84);
-}
-
-.V15Panel button.BrowserTreeRowQuickAction--save:hover,
-.V15Panel button.BrowserTreeRowQuickAction--save.isActive {
-  border-color: var(--v15-panel-border-soft);
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(244, 247, 255, 0.98);
 }
 
 .BrowserTreeEmpty {

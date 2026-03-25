@@ -146,9 +146,33 @@ describe('workspaceIntents', () => {
       referenceId: 'shoe:shoe-1',
     })
     expect(useAppStore.getState().workspaceSelection.activeSurface).toBe('browser')
+    expect(useAppStore.getState().referenceWorkspace.visibilityById['shoe:shoe-1']).toBe(false)
+    expect(useAppStore.getState().referenceWorkspace.activeTransformReferenceId).toBeNull()
+    expect(useAppStore.getState().floatingShellActivationRequest?.target).toBe('browser')
+  })
+
+  it('can explicitly promote a reference intent into visible transform ownership', async () => {
+    const { activateReferenceItemIntent } = await import('./workspaceIntents')
+    const { useAppStore } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+
+    activateReferenceItemIntent(
+      {
+        app: useAppStore.getState(),
+        spaghetti: useSpaghettiStore.getState(),
+      },
+      'shoe:shoe-1',
+      {
+        ensureVisible: true,
+        beginTransform: true,
+      },
+    )
+
     expect(useAppStore.getState().referenceWorkspace.visibilityById['shoe:shoe-1']).toBe(true)
     expect(useAppStore.getState().referenceWorkspace.activeTransformReferenceId).toBe('shoe:shoe-1')
-    expect(useAppStore.getState().floatingShellActivationRequest?.target).toBe('browser')
   })
 
   it('activates an object target through the canonical workspace intent seam', async () => {

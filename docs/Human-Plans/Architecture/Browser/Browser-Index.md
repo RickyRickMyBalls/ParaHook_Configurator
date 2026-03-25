@@ -3,6 +3,29 @@
 ## Doc Header
 
 ### Doc History
+35. 2026-03-25 17:29: Added `Browser-7 - Browser Cleanup Follow-Ons` as the next small-cleanup Browser phase after Browser-6, created a dedicated Browser-7 tracking direction for narrower shipped follow-ons, and recorded the first two concrete entries for viewport-driven explicit multi-select sync and object-scope `Zoom` command expansion
+34. 2026-03-25 16:20: Locked the remaining `Browser-6` structural questions in this Browser umbrella doc, deciding that shared selection, console routing, and reference batch loading must stay outside `BrowserPanel` ownership and that Browser-6 should preserve shipped Browser-5.x behavior by default while extracting seams, reducing duplication, and improving row-family organization
+33. 2026-03-25 16:13: Locked `q2` under `Browser-6 - BrowserPanel Structure And Row-Family Cleanup`, deciding that Browser-6 should keep the shared row shell and click grammar centralized while moving content, reference, graph, and sketch row-family differences into narrower family-specific adapter seams instead of one giant central panel switch
+32. 2026-03-25 16:09: Added a new long-term Browser vision block, locking the direction that folders and objects should eventually read as shared Browser primitives across references and generated content, with imported/reference origin shown through grey visual treatment while green/yellow bars continue to express generated/build/runtime state instead of making references and authored content stay permanently separate tree species
+31. 2026-03-25 16:05: Locked `q1` under `Browser-6 - BrowserPanel Structure And Row-Family Cleanup`, deciding that the first Browser-6 pass should be a meaningful architecture cleanup rather than a cosmetic helper extraction, with `BrowserPanel` becoming a thinner host while row-vm derivation, interaction dispatch, and row-family rendering seams move outward
+30. 2026-03-25 16:02: Added the first `Questions / Decisions` block under `Browser-6 - BrowserPanel Structure And Row-Family Cleanup`, tightening the next Browser cleanup phase around how far the panel split should go, where row-family behavior should live, what interaction logic should leave `BrowserPanel`, and how much Browser-5.x shipped behavior should be opportunistically refactored during the structural pass
+29. 2026-03-25 15:56: Marked `Browser-5.3`, `Browser-5.4`, and `Browser-5.5` shipped after the selection-to-console, explicit multi-select, and reference batch-loading work landed, moved their standalone phase records into `Browser/Shipped/`, rewrote the Browser ladder to the post-5.5 state, and advanced the family so `Browser-6` is now the remaining open Browser cleanup follow-on
+28. 2026-03-25 14:39: Created the standalone future `Browser-5.4 - Explicit Additive Multi-Select` phase doc under `Browser/Future/`, tightening the Browser selection ladder so the later `Ctrl+click` add/remove plus `Shift+click` range-selection pass now has its own implementation-ready planning surface between the shipped rooted-grouped selection work and the newer reference batch-loading follow-up
+27. 2026-03-25 13:17: Added `Browser-5.5 - Reference Batch Load Queue And Aggregate Progress` to the Browser follow-up ladder, framing `Load All` reference behavior as a Browser-facing batch-loading and aggregate-progress phase owned across Browser, shared app state, and viewer reference execution rather than as a worker-first task
+26. 2026-03-25 10:59: Locked the `Browser-5.3` console-context questions in this Browser umbrella doc, deciding that meaningful content/reference selection should push the Console into the nearest honest command scope, rooted grouped parent selection stays under one parent-owned `Select` scope, lightweight reference selection can enter its own lightweight reference scope without auto-starting transform, and empty-space deselect should clear selection-driven local Console context back to the nearest broader valid scope
+25. 2026-03-25 10:23: Added `Browser-5.4 - Explicit Additive Multi-Select` to the Browser selection ladder, separating later `Ctrl+click` add/remove and `Shift+click` range-selection growth from the nearer `Browser-5.3` selection-to-console context work so command-scope sync and explicit multi-select no longer share one phase
+24. 2026-03-25 10:20: Added the first `Questions / Decisions` block under `Browser-5.3 - Selection To Console Context For Content And References`, introducing concrete open questions plus suggestions around when selection should push console scope, how parent grouped content selection should map into one command root, how reference selection should behave before explicit transform commands, and whether empty-space deselect should also clear lightweight Browser-driven console context
+23. 2026-03-25 10:16: Marked `Browser-5.2 - Implicit Parent Multi-Selection` shipped after the grouped parent-selection code landed, rewrote the old `Browser-5.2` follow-up block into a shipped-result summary, and advanced the Browser family so `Browser-5.3` plus `Browser-6` remain the next open Browser console-context and panel-structure follow-ons
+22. 2026-03-25 10:06: Created the standalone future `Browser-5.2 - Implicit Parent Multi-Selection` phase doc under `Browser/Future/` and made it implementation-ready, translating the locked Browser-5.2 grouped-selection decisions into a concrete execution spec with one primary root target, a resolved descendant selection set, grouped viewport highlight rules, and the explicit boundary that later `Ctrl+click` plus `Shift+click` selection remains outside this phase
+21. 2026-03-25 10:01: Updated the Browser-5.2 and Browser-5.3 follow-up notes to use the standard future row-selection click grammar, keeping ordinary click as single-select, switching additive toggle selection to `Ctrl+click`, and reserving `Shift+click` for a later anchor-to-range selection feature instead of using `Shift` for add/remove
+20. 2026-03-25 09:58: Locked the remaining Browser-5.2 grouped-selection questions around immediate grouped viewport highlight plus unchanged Browser-5 deselect/replacement rules, and clarified the later explicit additive multi-select direction so current single-select stays intact while a future phase can use `Shift+click` to add or remove rows from the selection set
+19. 2026-03-25 09:54: Locked the first two Browser-5.2 grouped-selection decisions in this Browser umbrella doc, deciding that selecting an `Assembly` or `Component` resolves a deterministic descendant selection set while still preserving one parent/root target as the primary selected thing for Browser, Console, and later transform ownership
+18. 2026-03-25 09:51: Expanded the Browser-5 follow-up ladder by adding `Browser-5.3` for selection-to-console context integration after grouped selection lands, and added the first `Browser-5.2` `Questions / Decisions` block so the implicit parent multi-selection phase now has concrete selection-shape and highlight-behavior questions instead of only a short summary
+17. 2026-03-25 09:44: Marked `Browser-5.1 - Reference Selection Cleanup` shipped after the reference-selection code landed, rewrote the old `Browser-5.1` follow-up block into a shipped-result summary, and advanced the Browser family so `Browser-5.2` plus `Browser-6` remain the next open Browser selection and structure follow-ons
+16. 2026-03-25 03:18: Locked the final `Browser-5.1` visual-selection decision in this Browser umbrella doc and aligned the reference cleanup direction with the already-shipped object/component/assembly outline-glow style, so plain reference selection now clearly inherits the same lightweight selection look instead of implying a separate heavier reference-only treatment
+15. 2026-03-25 03:15: Locked the first three `Browser-5.1` reference-selection decisions in this Browser umbrella doc, deciding that ordinary reference selection only highlights/selects, viewport-picked references should drive matching Browser-row selection when the mapping is clear, and empty-space click plus replacement click should handle ordinary reference deselect and replacement
+14. 2026-03-25 03:08: Created the standalone future `Browser-5.1 - Reference Selection Cleanup` phase doc under `Browser/Future/`, so the next immediate post-`Browser-5` selection cleanup now has its own dedicated planning surface instead of living only as a follow-up note inside the umbrella Browser family index
+13. 2026-03-25 02:58: Split the next Browser selection follow-up into `Browser-5.1 - Reference Selection Cleanup` and `Browser-5.2 - Implicit Parent Multi-Selection`, so the newer reference-selection cleanup work no longer shares one follow-up slot with the later grouped-selection growth
 12. 2026-03-24 13:02: Expanded `Browser-Index.md` beyond build-policy planning by adding a broader Browser cleanup section plus a second mini-phase ladder for row interaction, selection/focus sync, and panel-structure cleanup, so the Browser family now reads as a fuller umbrella architecture surface instead of mostly one build-policy plan
 11. 2026-03-24 12:57: Broke the monolithic Browser build-policy phase into a three-step subphase ladder, separating the Browser icon/fill-bar surface, inherited/effective policy truth, and real runtime build-policy execution so the UI, data model, and worker-behavior work no longer read like one oversized phase
 10. 2026-03-24 12:52: Updated the remaining Browser-phase questions so `q4` now frames fill bars explicitly as runtime loading/status bars with a low yellow stale stub for dirty/manual rows, and added one new inheritance-display question about authored versus effective calc-policy when graph or parent rows cascade modes downward
@@ -99,6 +122,42 @@ The Browser family should eventually own planning for:
 - Browser row action and click ownership
 - Browser structure and panel cleanup where the Browser surface has become too overloaded
 
+### Long-Term Vision
+
+Long-term, the Browser should move toward one more unified tree model built from shared container and target primitives:
+
+- folders are folders
+- objects are objects
+- assemblies and components remain real structured content containers
+- imported/reference-backed things should not need to stay a forever-separate Browser species if they are functionally just folders or objects with a different origin
+
+Direction:
+- a reference folder like `Footpads` or `Shoes` should eventually behave like a real folder the user can:
+  - rename
+  - reorganize
+  - add sibling folders beside
+  - later move into other containers such as an assembly when that broader content move model exists
+- a reference item should eventually behave like a real object with imported origin, not like a permanently special non-object tree entry
+- imported/reference-backed rows should communicate their origin visually through the Browser treatment:
+  - darker/grey reference-origin styling shows the thing was imported
+  - green/yellow runtime bars continue to show generated/build/runtime state
+
+This means the long-term Browser should distinguish:
+- what the thing is:
+  - folder
+  - object
+  - assembly
+  - component
+- from where the thing came from:
+  - imported / reference-backed
+  - generated / authored
+  - later mixed or derived if needed
+
+Hard direction:
+- do not lock the Browser forever into two fully separate worlds where references and generated content can never converge
+- let the nearer Browser families still use practical row-family seams today
+- but keep the architecture open so imported folders/objects can later participate in the same broader content tree and move/reorganization model
+
 ### Current Placeholder Phase Direction
 
 Likely first Browser-family phase topics:
@@ -140,6 +199,7 @@ The Browser family likely needs two parallel mini-ladders:
   - `Browser-4`
   - `Browser-5`
   - `Browser-6`
+  - `Browser-7`
 
 ## Browser Build Policy Phase Ladder
 
@@ -513,7 +573,7 @@ If this Browser ladder grows beyond the umbrella summary, create:
 - `Browser_Phase 2 - Cascade And Effective Policy Truth.md`
 - `Browser_Phase 3 - Runtime Build Policy Execution.md`
 
-## [ ] Browser-4 - Row Click And Action Ownership Cleanup
+## [x] Browser-4 - Row Click And Action Ownership Cleanup
 
 ### Purpose
 
@@ -545,7 +605,7 @@ Make Browser row interactions more predictable by separating selection, focus/op
 
 ### Questions / Decisions
 
-#### [ ] q11 - What should a plain left-click on a Browser row do by default?
+#### [x] q11 - What should a plain left-click on a Browser row do by default?
 
 Question:
 - should ordinary left-click primarily select the row, focus/open its target, or do both at once?
@@ -555,7 +615,14 @@ Suggestion:
 - only focus/open when the row kind has a clear single target and that focus behavior is already expected
 - avoid mixing selection, expansion, and action execution into one click
 
-#### [ ] q12 - Which controls must own expand/collapse instead of row-click?
+Decision:
+- Browser row click is family-consistent by target domain, not globally identical across every row kind
+- `Content` rows use single-click as selection-first against the actual scene/content object
+- this keeps content-row selection compatible with the later viewer-side `Transform` flow where the user can move the Three.js solid without forcing a full `replicad` rebuild
+- `Graph Documents` rows use single-click as graph-context select/focus rather than scene-object selection
+- ordinary row click must not trigger rebuild behavior directly
+
+#### [x] q12 - Which controls must own expand/collapse instead of row-click?
 
 Question:
 - should expand/collapse only belong to the tree chevron/branch control, or can row-click still collapse certain container rows?
@@ -564,8 +631,15 @@ Suggestion:
 - keep expand/collapse on the explicit tree control only
 - do not make ordinary row-click toggle open state
 - this keeps row-click semantics stable across graph, content, reference, and sketch rows
+- use the left branch control as the only expand/collapse owner for normal tree rows
+- let section headers keep their own explicit collapse affordance where the section shell already owns it
 
-#### [ ] q13 - Should double-click open/focus the row target where that concept exists?
+Decision:
+- expand/collapse is owned by the explicit branch control for normal tree rows
+- ordinary row click does not toggle open state
+- section headers may keep their own dedicated collapse affordance because they are section shells rather than ordinary tree rows
+
+#### [x] q13 - Should double-click open/focus the row target where that concept exists?
 
 Question:
 - when a row has a meaningful target surface, should double-click be the stronger open/focus gesture while single-click remains selection-first?
@@ -575,7 +649,13 @@ Suggestion:
 - use double-click as the stronger open/focus gesture for rows that have a real editor/view target
 - keep single-click simpler so Browser rows do not feel overloaded
 
-#### [ ] q14 - Which row actions should stay inline versus move fully to right-click/context menus?
+Decision:
+- yes
+- double-click is the stronger open/focus gesture where a row has a clear target surface or target context
+- keep single-click simpler and selection-first
+- do not force a fake double-click meaning onto row families that do not have a clear stronger target action
+
+#### [x] q14 - Which row actions should stay inline versus move fully to right-click/context menus?
 
 Question:
 - after removing the inline `...` buttons, which remaining actions should still stay visible inline, and which should only live in the right-click menu?
@@ -585,10 +665,37 @@ Suggestion:
   - expand/collapse
   - visibility
   - build-policy icon
-  - graph save if it remains a true always-visible quick action
 - move lower-frequency row actions to the right-click menu
 
-#### [ ] q15 - Should row click ever trigger build behavior directly?
+Decision:
+- Browser rows should converge on one shared inline row template:
+  - branch control (`+` / `-` / leaf)
+  - row/type icon slot that also carries build-policy color where supported
+  - visibility slot
+  - main loading-bar label surface
+- keep those slots visually aligned across row families even when a given row uses a passive/disabled placeholder instead of an active control
+- remove the legacy graph save quick button from the row surface
+- keep export/save-style graph actions in the right-click menu instead of spending a permanent inline slot on them
+- move lower-frequency row actions to the right-click menu
+
+#### [x] q16 - Should every Browser row use the same fixed slot template even when some controls are passive?
+
+Question:
+- should all Browser rows reserve the same left-to-right structure so future row families stay aligned, even if some rows only show passive placeholders for unsupported controls?
+
+Suggestion:
+- yes
+- use one shared row template so future row types do not invent new geometry
+- let unsupported controls become passive placeholders rather than changing the row layout
+- this should be one of the main Browser-4 cleanup goals before more row families are added
+
+Decision:
+- yes
+- Browser rows should converge on one fixed slot template even when some controls are passive
+- unsupported controls use subtle passive placeholders rather than changing row geometry
+- section headers may keep their own section-shell layout, but ordinary Browser rows should stop inventing new per-family layouts
+
+#### [x] q15 - Should row click ever trigger build behavior directly?
 
 Question:
 - should selecting or focusing a Browser row ever dispatch build behavior, or should build remain explicit through policy/runtime and dedicated commands?
@@ -598,7 +705,13 @@ Suggestion:
 - row click should not trigger build behavior directly
 - build should stay owned by runtime policy, explicit `Build`, or other dedicated commands rather than selection side effects
 
-## [ ] Browser-5 - Selection And Focus Sync
+Decision:
+- no
+- row click never directly triggers build behavior
+- build stays owned by runtime policy, explicit `Build`, or later dedicated commands such as `Force Rebuild`
+- selection and focus clicks should remain side-effect light
+
+## [x] Browser-5 - Selection And Focus Sync
 
 ### Purpose
 
@@ -616,6 +729,313 @@ Make Browser selection, viewer selection, console context, and graph/editor focu
 - Browser selection should reliably map to one workspace target
 - viewer highlight, graph focus, and console context should read that same target truth where appropriate
 - avoid one row kind focusing a graph while another only selects locally unless that difference is explicit and intentional
+
+### Shipped Result
+
+- Browser/content selection now writes through shared workspace target truth instead of staying Browser-local
+- viewer part/reference picks now flow back into Browser selection when a clean matching row exists
+- empty viewport click now clears lightweight content/model selection
+- empty Browser click now clears Browser row selection
+- Browser no longer holds stale local row selection after the viewer becomes the active surface with no selected target
+
+### Early Foundation Already Landed
+
+- `Content` row selection now already drives real workspace-target selection for:
+  - `Assembly`
+  - `Component`
+  - `Object`
+- Browser content selection now also drives a first-pass model-viewport glow/highlight lane for the matching output geometry
+- current highlight direction is intentionally narrow:
+  - glow/emissive only
+  - no fill-style highlight
+  - no size change / scale-up
+- later viewer-selection settings can still expand this into user-controlled styles such as:
+  - glow tuning
+  - fill/highlight modes
+  - other viewport selection presentation options
+
+### Questions / Decisions
+
+#### [x] q17 - Should Browser row selection always set shared workspace target truth, or are there row kinds that should stay local-only?
+
+Question:
+- when the user selects a Browser row, should that always update the shared workspace target, or should some rows still only select inside the Browser without changing cross-surface truth?
+
+Suggestion:
+- target-bearing Browser rows should update shared workspace target truth
+- `Content` rows should be real model-selection targets:
+  - `Assembly` selection should target the whole assembly subtree
+  - `Component` selection should target that component subtree
+  - `Object` selection should target that object
+- that content-row selection already has a first-pass shipped viewer result:
+  - selecting those rows now causes the matching model output to glow in the viewport
+- this gives the Browser the right future base for viewer-side transform/manipulation without forcing rebuild
+- `Graph Documents` target-bearing rows should also set shared target truth, but as authoring-context selection instead of model-selection
+- only structural/container rows with no real authored or viewer target should remain mostly local
+
+Decision:
+- target-bearing Browser rows update shared workspace target truth
+- `Content` rows are real model-selection targets:
+  - `Assembly` targets the whole assembly subtree
+  - `Component` targets that component subtree
+  - `Object` targets that object
+- `Graph Documents` target-bearing rows also set shared target truth, but as authoring-context selection rather than model-selection
+- only structural/container rows with no real authored or viewer target remain mostly local
+
+#### [x] q18 - What is the exact difference between Browser `selection` and Browser `focus`?
+
+Question:
+- should single-click selection and stronger open/focus actions continue to be different, and if so what should each one own across Browser, Viewer, Graph, and Console?
+
+Suggestion:
+- keep `selection` as the lightweight shared-target act
+- keep `focus` as the stronger surface-routing act
+- selection should highlight or identify the target
+- focus should bring the owning authoring/editor surface forward when that makes sense
+- deselection should also stay in the lightweight selection lane:
+  - clicking empty Browser / viewport space clears selection
+  - `Esc` can act as a backup clear only when a tool/session is not actively using selection
+
+Decision:
+- keep `selection` as the lightweight shared-target act
+- keep `focus` as the stronger surface-routing act
+- selection highlights or identifies the target without necessarily stealing editor focus
+- focus/open brings the owning authoring/editor surface forward when that row family has a real stronger target action
+- deselection belongs to the lightweight selection lane, not the stronger focus/open lane
+
+#### [x] q19 - When the user selects something in the Viewer, should the Browser always follow and select the matching row?
+
+Question:
+- if the viewer selection changes to an object/part/reference that has a Browser row, should the Browser always mirror that selection?
+
+Suggestion:
+- yes for stable target-bearing rows that the Browser can represent honestly
+- Browser should follow viewer target selection when a clear matching row exists
+- avoid partial fake sync for row families that do not yet have a clean one-to-one Browser target
+
+Decision:
+- yes
+- Viewer selection should mirror into Browser selection when a clear matching Browser row exists
+- follow the Fusion-style direction where Browser and viewport selection stay visually in sync for real target-bearing rows
+- avoid inventing fake Browser follow behavior for row families that still do not have a clean target mapping
+
+#### [x] q20 - When should Browser selection trigger Console context sync?
+
+Question:
+- should every Browser row selection request console context sync, or only the rows that materially change command context?
+
+Suggestion:
+- every meaningful Browser row family should eventually expose a real console context
+- sync the console to the nearest valid command scope for the selected row target
+- current concrete priority remains:
+  - `Graph Documents`
+  - graph nodes
+  - sketches
+- content rows should also grow into real command contexts later, for example:
+  - `Move`
+  - `Rotate`
+  - `Scale`
+  - `Material`
+  - `Export`
+  - later CAD-oriented commands such as `Shell`, `Explode To Faces`, or boolean-related operations
+- until a row family has a real command layer, do not fake a noisy no-op context; route only to the nearest valid layer that actually exists
+
+Decision:
+- yes
+- Browser selection should eventually trigger console context sync for every meaningful row family
+- the console should move to the nearest valid command scope for the selected target
+- current graph/sketch authoring rows remain the first concrete command-context families
+- content rows are expected to gain their own command contexts later for object/assembly actions such as move, rotate, scale, material, export, and future CAD operations
+- do not fabricate fake context for row families that do not yet have a real command layer
+
+#### [x] q21 - What should happen when Browser target selection and active graph/editor focus disagree?
+
+Question:
+- if the selected Browser row belongs to one graph but the active editor or focused graph is another, which truth should win first?
+
+Suggestion:
+- shared target selection should update immediately
+- editor/graph focus should only follow when the row family owns a real focus/open action
+- do not make every selection forcibly steal editor focus if the user only meant to inspect or highlight
+
+Decision:
+- single-selecting a different Browser item always re-targets the workspace selection immediately
+- Browser selection, viewport highlight, and other lightweight target-follow surfaces should move to that new selected target right away
+- editor/graph focus stealing remains row-family dependent:
+  - authoring-context rows may move the active graph/editor focus when that family owns focus/open behavior
+  - content rows do not automatically yank the user into a different graph editor just because the selected object belongs to another graph
+- keep target refocus immediate, but keep stronger editor-focus routing intentional rather than automatic everywhere
+
+#### [x] q22 - How should the user deselect Browser / content selections?
+
+Question:
+- when the user wants to clear a Browser-driven content or viewport selection, should deselect happen through empty-space click, `Esc`, explicit commands, or some combination?
+
+Suggestion:
+- follow the lighter Fusion-style pattern:
+  - clicking empty model viewport space clears the current lightweight selection
+  - clicking empty Browser space clears the current Browser row selection
+  - selecting a different target replaces the old selection unless later multi-select is active
+  - `Esc` acts as a backup clear only when an active tool/command session is not already using `Esc` for cancel/exit semantics
+- keep deselect separate from build/runtime behavior and separate from stronger focus/open actions
+
+Decision:
+- use empty-space click as the primary deselect path:
+  - empty model viewport click clears the current lightweight model/content selection
+  - empty Browser click clears the current Browser row selection
+- selecting a different target replaces the old selection unless a later multi-select mode is active
+- `Esc` is a backup clear only when no active tool/command session owns it for cancel/exit behavior
+
+### [x] Browser-5.1 - Reference Selection Cleanup
+
+- `Browser-5.1` is now shipped
+- this cleanup landed the reference-selection parity work that Browser-5 intentionally left as the next immediate follow-up
+
+Shipped result:
+- selecting a reference only highlights/selects it
+- ordinary reference selection does not start `Move` and does not enter transform mode
+- viewport-picked references select the matching Browser row whenever one clear matching row exists
+- empty viewport click clears lightweight reference selection
+- empty Browser click clears Browser row selection
+- selecting a different reference replaces the old one unless a later multi-select mode is active
+- `Esc` remains a backup clear only when no stronger tool/session already owns it
+- reference selection now uses the same outline/glow treatment already used for selected objects/components/assemblies
+- plain reference selection still avoids fill or size-change styling
+- reference rows now also distinguish `dormant` versus `active` loaded state more honestly, with loaded references and their parent rows staying visually darker while unloaded rows remain lighter
+
+### [x] Browser-5.2 - Implicit Parent Multi-Selection
+
+- `Browser-5.2` is now shipped
+- this cleanup landed the grouped parent-selection layer that Browser-5 intentionally left as the next content-selection follow-up
+
+Shipped result:
+- selecting an `Assembly` keeps one assembly root target while resolving its selectable descendants into one grouped content-selection set
+- selecting a `Component` keeps one component root target while resolving its selectable descendants into one grouped content-selection set
+- selecting an `Object` resolves to just that object
+- the viewport now highlights the whole resolved grouped content-selection set immediately
+- the Browser now keeps the parent/root row as the stronger selected row while descendant rows in the grouped set also get a softer grouped-selection highlight
+- grouped parent selection still keeps the Browser-5 deselect/replacement baseline unchanged
+- ordinary click still remains single-select
+- later explicit additive multi-select still remains separate:
+  - `Ctrl+click` add/remove row selection
+  - `Shift+click` anchor-to-range selection
+  - marquee/lasso
+  - mixed manual selection sets
+
+### Questions / Decisions
+
+#### [x] q1 - What exactly should parent content selection resolve to?
+
+Question:
+- when the user selects an `Assembly` or `Component` row, what is the actual selected set the workspace should resolve behind that one row click?
+
+Suggestion:
+- treat parent selection as implicit grouped selection of the selectable descendant content rows it owns
+- `Assembly` should resolve to all selectable descendants under that assembly
+- `Component` should resolve to all selectable descendants under that component
+- `Object` should still resolve to just that object
+- keep this selection set deterministic and tree-driven instead of inventing partial or view-dependent grouping
+
+Decision:
+- treat parent selection as implicit grouped selection of the selectable descendant content rows it owns
+- selecting an `Assembly` resolves to all selectable descendants under that assembly
+- selecting a `Component` resolves to all selectable descendants under that component
+- selecting an `Object` still resolves to just that object
+- keep the resolved set deterministic and tree-driven so later move/rotate/scale can apply to the whole subtree from one root selection
+
+#### [x] q2 - Should the parent row remain the primary selected target even when it resolves to a descendant set?
+
+Question:
+- if selecting an `Assembly` resolves to many descendants, should the shared workspace still remember the parent as the primary selected target, or should it collapse entirely into only the descendant objects?
+
+Suggestion:
+- keep both concepts:
+  - parent row remains the primary selected target for Browser, Console, and future transform ownership
+  - resolved descendants become the implicit grouped selection set used for viewport highlight and later transform operations
+- this keeps parent intent visible without losing the real underlying selected geometry set
+
+Decision:
+- yes
+- keep one parent/root as the primary selected target for Browser, Console, and later transform ownership
+- keep the resolved descendants as the implicit grouped selection set used for viewport highlight and later transform operations
+- this preserves one clear root target while still letting parent move/rotate/scale apply to all selected children
+
+#### [x] q3 - How should viewport highlight behave for implicit grouped parent selection?
+
+Question:
+- when a parent row is selected and the system resolves multiple descendants, should the viewport highlight all of them immediately, and how strong should that grouped highlight be?
+
+Suggestion:
+- yes, highlight all resolved descendants immediately
+- keep the first grouped-selection visual language lightweight:
+  - same outline/glow family already used for object/reference selection
+  - no fill
+  - no size change
+- avoid inventing a second heavier grouped-selection style in the same phase
+
+Decision:
+- yes
+- highlight all resolved descendants immediately when the parent row is selected
+- keep the grouped-selection visual language lightweight:
+  - same outline/glow family already used for object/reference selection
+  - no fill
+  - no size change
+- do not invent a second heavier grouped-selection style in the same phase
+
+#### [x] q4 - How should deselect and replacement behave when the current selection is an implicit grouped parent selection?
+
+Question:
+- once a parent row selection has resolved to many descendants, what should happen when the user clicks a different row or clicks empty space?
+
+Suggestion:
+- keep the Browser-5 deselect baseline unchanged:
+  - selecting a different target replaces the whole grouped selection
+  - empty viewport click clears the grouped selection
+  - empty Browser click clears the Browser row selection
+  - `Esc` remains only a backup clear when no stronger tool/session owns it
+
+Decision:
+- keep the Browser-5 deselect baseline unchanged
+- selecting a different target replaces the whole grouped selection
+- empty viewport click clears the grouped selection
+- empty Browser click clears the Browser row selection
+- `Esc` remains only a backup clear when no stronger tool/session owns it
+
+### [x] Browser-5.3 - Selection To Console Context For Content And References
+
+- `Browser-5.3` is now shipped
+- this cleanup landed the shared content/reference selection-to-console routing layer that Browser-5.2 intentionally left as the next follow-on
+
+Shipped result:
+- selecting an `Assembly`, `Component`, or `Object` now moves the Console into the matching `Select > ...` content scope without auto-starting transform
+- rooted grouped parent content selection keeps the parent/root as the Console command owner while grouped descendants remain the execution set behind that root
+- selecting `References`, a reference category, or a reference item now moves the Console into the matching lightweight reference scope with honest `Load All` or `Load Model` entry actions
+- Browser row selection and viewer-picked selection now resolve through the same shared workspace-to-console seam for the same selected target
+- empty-space deselect now clears lightweight selection-driven content/reference scope back to the nearest broader valid scope instead of leaving stale local Browser-driven context behind
+
+### [x] Browser-5.4 - Explicit Additive Multi-Select
+
+- `Browser-5.4` is now shipped
+- this cleanup landed the explicit additive multi-select layer that Browser-5.3 intentionally left as the next selection-growth follow-on
+
+Shipped result:
+- ordinary click still replaces selection, `Ctrl+click` now toggles content/reference roots into or out of the explicit set, and `Shift+click` now builds a same-section visible range from the current anchor
+- shared workspace selection now keeps one canonical primary target plus `explicitSelectedTargets` and `selectionAnchorTarget`
+- removing the current primary target now promotes the most recently remaining explicit target so the shared model still keeps one stable primary target whenever the set still contains rows
+- parent content targets still contribute their rooted grouped descendant payload inside explicit sets, so effective content selection becomes the union of each selected rooted payload instead of flattening parents into anonymous child-only rows
+- explicit mixed multi-selection now routes the Console into synthetic `Select > Multi Select`, while collapsing back to one explicit target returns to the ordinary single-target `Select > ...` scope
+
+### [x] Browser-5.5 - Reference Batch Load Queue And Aggregate Progress
+
+- `Browser-5.5` is now shipped
+- this cleanup landed the shared reference batch queue and aggregate-progress layer that the earlier reference loading work intentionally left as the next follow-on
+
+Shipped result:
+- root and category `Load All` actions now start one shared `referenceLoadBatch` session instead of relying on broad visible-list load discovery
+- references now load sequentially in deterministic order, with later items waiting until the active item resolves
+- the `References` root row and participating category rows now derive their bars from aggregate batch truth instead of replaying per-item `0 -> 100` progress
+- item rows still keep their local `unloaded / loading / loaded / error` state while the root/category bars represent whole-batch progress
+- Browser and Console `Load All` entrypoints now dispatch into the same shared batch-start seam, and the Console now prints both per-item loaded confirmations and one final completion line when the batch finishes
 
 ## [ ] Browser-6 - BrowserPanel Structure And Row-Family Cleanup
 
@@ -635,3 +1055,150 @@ Reduce the amount of Browser-specific behavior trapped in one large panel compon
 - keep Browser row VM generation separate from Browser interaction behavior
 - shrink special-case inline row handling where possible
 - make graph/content/reference/sketch/viewport rows follow clearer shared rules before adding more Browser features
+
+### Questions / Decisions
+
+#### [x] q1 - How far should the BrowserPanel split go in the first Browser-6 cut?
+
+Question:
+- should Browser-6 only extract a few helpers from `BrowserPanel`, or should it establish a clearer layered structure such as row-vm derivation, interaction handlers, and row-family rendering seams in the first pass?
+
+Suggestion:
+- make the first Browser-6 cut structural enough to matter:
+  - keep one top-level `BrowserPanel` host
+  - move row-vm derivation out of the panel body
+  - move selection / open / context-menu behavior out of the panel body
+  - keep row rendering on a small reusable shell plus row-family-specific adapters
+- avoid a cosmetic helper-only split that leaves the same logic density in one file under different function names
+
+Decision:
+- make the first Browser-6 cut a meaningful architecture cleanup, not a cosmetic helper extraction
+- keep one top-level `BrowserPanel` host
+- move row-vm derivation out of the panel body
+- move selection / open / context-menu behavior out of the panel body
+- keep row rendering on a small reusable shell plus row-family-specific adapters
+- avoid a helper-only split that leaves the same logic density trapped in one file
+
+#### [x] q2 - Where should row-family-specific behavior live after Browser-6?
+
+Question:
+- once `BrowserPanel` is cleaned up, should row-family differences still be handled through one big central switch, or should each row family own a narrower adapter/config seam?
+
+Suggestion:
+- move toward one Browser row-family definition seam per major family:
+  - graph-document / graph-owned rows
+  - content rows
+  - reference rows
+  - sketch rows
+  - viewport or utility rows where still needed
+- each family seam should define:
+  - row identity mapping
+  - select/open/context-menu capability
+  - optional grouped-highlight behavior
+  - optional action surface participation
+- keep the shared row shell and shared click grammar centralized, but keep family-specific exceptions out of one giant panel switch
+
+Decision:
+- keep the shared row shell and shared click grammar centralized
+- move major row-family differences into narrower family-specific adapter seams instead of one giant central panel switch
+- the first Browser-6 family seams should group behavior roughly by:
+  - graph-document / graph-owned rows
+  - content rows
+  - reference rows
+  - sketch rows
+- each family seam should define:
+  - row identity mapping
+  - select/open/context-menu capability
+  - optional grouped-highlight behavior
+  - optional action surface participation
+
+#### [x] q3 - Which interaction logic must leave BrowserPanel entirely?
+
+Question:
+- Browser-5.x added more shared selection, console-context, and reference-load behavior; which of those should Browser-6 treat as off-limits for panel-local ownership?
+
+Suggestion:
+- Browser-6 should keep these outside `BrowserPanel` ownership:
+  - shared selection truth
+  - explicit multi-select state
+  - resolved grouped content-selection truth
+  - console context routing
+  - reference batch-load ownership
+- `BrowserPanel` should become mainly:
+  - row composition
+  - event capture
+  - dispatch into shared seams
+  - visual-state rendering from derived row vm truth
+- do not let the structure cleanup accidentally pull Browser-5.3 / 5.4 / 5.5 ownership back into the panel
+
+Decision:
+- Browser-6 should keep these outside `BrowserPanel` ownership:
+  - shared selection truth
+  - explicit multi-select state
+  - resolved grouped content-selection truth
+  - console context routing
+  - reference batch-load ownership
+- `BrowserPanel` should become mainly:
+  - row composition
+  - event capture
+  - dispatch into shared seams
+  - visual-state rendering from derived row vm truth
+- do not let the structure cleanup pull Browser-5.3 / 5.4 / 5.5 ownership back into the panel
+
+#### [x] q4 - How aggressive should Browser-6 be about opportunistic cleanup of shipped Browser-5.x behavior?
+
+Question:
+- while restructuring the panel, should Browser-6 also try to rewrite the shipped selection/reference/loading behavior deeply, or should it mainly preserve behavior and improve code organization around it?
+
+Suggestion:
+- Browser-6 should be behavior-preserving by default
+- prefer:
+  - extract
+  - rename
+  - isolate seams
+  - reduce duplication
+  - improve tests around row-family boundaries
+- only change shipped Browser-5.x behavior when the current structure makes a bug or inconsistency impossible to avoid
+- keep the main success condition as:
+  - Browser behavior still works the same
+  - adding the next row-family or Browser action is much easier
+
+Decision:
+- Browser-6 should be behavior-preserving by default
+- prefer:
+  - extract
+  - rename
+  - isolate seams
+  - reduce duplication
+  - improve tests around row-family boundaries
+- only change shipped Browser-5.x behavior when the current structure makes a bug or inconsistency impossible to avoid
+- keep the main success condition as:
+  - Browser behavior still works the same
+  - adding the next row-family or Browser action is much easier
+
+## [ ] Browser-7 - Browser Cleanup Follow-Ons
+
+### Purpose
+
+Track the next small Browser cleanup entries after Browser-6 without forcing each one to become its own standalone structural phase.
+
+### Owns
+
+- smaller Browser cleanup follow-ons after Browser-6
+- Browser/viewer/console sync cleanup that is narrower than another large panel-structure pass
+- command-surface and selection-sync gaps discovered while using the shipped Browser-6 structure
+
+### Suggested Direction
+
+- use Browser-7 as the next accumulating cleanup bucket for small real Browser behavior changes
+- keep each item narrow, concrete, and implementation-facing
+- log landed Browser-7 work normally in `docs/CHANGELOG.md`, but keep the planning/tracking list here and in the standalone Browser-7 phase doc
+
+### Initial Tracked Entries
+
+- `b7.1`
+  - viewport explicit multi-select should sync back into Browser multi-select
+  - when the user holds `Ctrl` and multi-selects objects in the model viewport, Browser should mirror the same explicit object set through the shared selection truth
+- `b7.2`
+  - every object should expose the `Zoom` command family
+  - object command surfaces should include `Zoom` and its child options consistently with the shared Console zoom grammar

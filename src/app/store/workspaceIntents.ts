@@ -199,7 +199,7 @@ export const activateReferenceItemIntent = (
     beginTransform?: boolean
   } = {},
 ): { referenceId: string } => {
-  if (options.ensureVisible ?? true) {
+  if (options.ensureVisible ?? false) {
     deps.app.setReferenceItemVisibility?.(referenceId, true)
   }
   selectTargetIntent(deps, {
@@ -207,7 +207,7 @@ export const activateReferenceItemIntent = (
     referenceId,
   })
   activateSurfaceIntent(deps, 'browser')
-  if (options.beginTransform ?? true) {
+  if (options.beginTransform ?? false) {
     deps.app.beginReferenceTransform?.(referenceId)
   }
   return { referenceId }

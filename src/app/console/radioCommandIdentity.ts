@@ -478,6 +478,18 @@ const resolveStagedExecuteIdentity = ({
       return buildIdentity('Console', 'Graph', 'Sketch', 'Draw')
     case 'node.delete':
       return resolveGraphNodeDeleteIdentity(activeScopeId)
+    case 'reference.loadAll':
+      return buildIdentity('Console', 'References', 'LoadAll')
+    case 'reference.category.loadAll':
+      return buildIdentity('Console', 'References', 'Category', 'LoadAll')
+    case 'reference.loadModel':
+      return buildIdentity('Console', 'References', 'Item', 'LoadModel')
+    case 'reference.transform.move':
+      return buildIdentity('Console', 'References', 'Transform', 'Move')
+    case 'reference.transform.rotate':
+      return buildIdentity('Console', 'References', 'Transform', 'Rotate')
+    case 'reference.transform.scale':
+      return buildIdentity('Console', 'References', 'Transform', 'Scale')
   }
 }
 

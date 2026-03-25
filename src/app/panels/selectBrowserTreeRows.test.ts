@@ -307,9 +307,105 @@ describe('selectBrowserTreeRows', () => {
             ariaLabel: 'Focus Graph 1',
             disabled: true,
           },
+          {
+            actionId: 'close',
+            label: 'Close',
+            ariaLabel: 'Close Graph 1',
+          },
         ],
       },
     ])
+  })
+
+  it('marks every explicit root row selected while keeping descendant grouped rows softer', () => {
+    const rows = selectBrowserTreeRows({
+      referenceWorkspaceTree: emptyReferenceWorkspaceTree,
+      contentRows: [
+        {
+          rowId: 'assembly-root:project-file-1',
+          kind: 'assembly',
+          label: 'Assembly 1',
+          meta: '',
+          visibilityPartKeys: ['graph-document-1:slot-a', 'graph-document-1:slot-b'],
+        },
+        {
+          rowId: 'component-1',
+          kind: 'component',
+          label: 'Component 1',
+          meta: '2 Objects',
+          visibilityPartKeys: ['graph-document-1:slot-a', 'graph-document-1:slot-b'],
+          ownerGraphDocumentId: 'graph-document-1',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry-1',
+          componentSourceKind: 'published-component',
+          resolutionState: 'resolved',
+          receiveId: null,
+          childObjectCount: 2,
+          slotId: 'slot-a',
+          sourceNodeId: 'node-1',
+          highlightViewerKey: 'slot-a',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-1',
+        },
+        {
+          rowId: 'object-1',
+          kind: 'object',
+          label: 'Object 1',
+          meta: 'Graph 1',
+          visibilityPartKeys: ['graph-document-1:slot-a'],
+          ownerGraphDocumentId: 'graph-document-1',
+          parentComponentId: 'component-1',
+          objectSourceKind: 'published-object',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry-1',
+          slotId: 'slot-a',
+          sourceNodeId: 'node-1',
+          resolutionState: 'resolved',
+          highlightViewerKey: 'slot-a',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-1',
+        },
+        {
+          rowId: 'object-2',
+          kind: 'object',
+          label: 'Object 2',
+          meta: 'Graph 1',
+          visibilityPartKeys: ['graph-document-1:slot-b'],
+          ownerGraphDocumentId: 'graph-document-1',
+          parentComponentId: 'component-1',
+          objectSourceKind: 'published-object',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry-2',
+          slotId: 'slot-b',
+          sourceNodeId: 'node-2',
+          resolutionState: 'resolved',
+          highlightViewerKey: 'slot-b',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-2',
+        },
+      ],
+      graphRows: [],
+      editorViewports: [],
+      graphDocumentsById: {
+        'graph-document-1': graphDocument('graph-document-1', 'Graph 1'),
+      },
+      selectedRowId: 'object-2',
+      selectedRowIds: ['component-1', 'object-2'],
+      groupedSelectedRowIds: ['object-1'],
+      collapsedContentRowIds: [],
+      expandedGraphDocumentIds: [],
+      hasActiveEditorViewport: false,
+      sharedViewerCompositionGraphDocumentIds: [],
+      sharedViewerCompositionActive: false,
+    })
+
+    const componentRow = rows.contentRows.find((row) => row.rowId === 'component-1')
+    const objectRow = rows.contentRows.find((row) => row.rowId === 'object-2')
+    const groupedObjectRow = rows.contentRows.find((row) => row.rowId === 'object-1')
+
+    expect(componentRow?.isSelected).toBe(true)
+    expect(objectRow?.isSelected).toBe(true)
+    expect(groupedObjectRow?.isGroupedSelected).toBe(true)
   })
 
   it('shows read-only shared composition status and disables reveal when shared composition is active', () => {
@@ -1069,25 +1165,144 @@ describe('selectBrowserTreeRows', () => {
     expect(rows.referenceRows).toEqual([
       expect.objectContaining({
         rowId: 'reference-root',
-        state: 'idle',
-        stateLabel: 'Idle',
+        state: 'active',
+        stateLabel: 'Active',
       }),
       expect.objectContaining({
         rowId: 'reference-category-row:user-references',
         label: 'User References',
-        state: 'idle',
-        stateLabel: 'Idle',
+        state: 'active',
+        stateLabel: 'Active',
       }),
       expect.objectContaining({
         rowId: 'reference-item-row:reference-import:1',
         sourceKind: 'imported',
         meta: 'GLB',
-        state: 'idle',
-        stateLabel: 'Idle',
+        state: 'active',
+        stateLabel: 'Active',
         isSelected: true,
         showOverflowButton: false,
       }),
     ])
+  })
+
+  it('derives aggregate root and category progress from the active reference batch without changing item bars', () => {
+    const rows = selectBrowserTreeRows({
+      referenceWorkspaceTree: {
+        rowId: 'reference-root',
+        label: 'References',
+        isExpanded: true,
+        categories: [
+          {
+            rowId: 'reference-category-row:footpads',
+            categoryId: 'footpads',
+            label: 'Footpads',
+            isExpanded: true,
+            itemCount: 1,
+            visibleItemCount: 1,
+            hasLoadingItem: false,
+            hasErrorItem: false,
+            emptyLabel: 'No loadable references yet.',
+            items: [
+              {
+                rowId: 'reference-item-row:footpad:pubpad-full-assembly',
+                referenceId: 'footpad:pubpad-full-assembly',
+                sourceKind: 'manifest',
+                label: 'PubPad Full Assembly',
+                categoryId: 'footpads',
+                fileType: 'obj',
+                assetPath: 'ReferenceModels/footpads/XR_Footpad_PubPad_Full_Assembly.obj',
+                isVisible: true,
+                loadState: 'loaded',
+                errorMessage: null,
+              },
+            ],
+          },
+          {
+            rowId: 'reference-category-row:shoes',
+            categoryId: 'shoes',
+            label: 'Shoes',
+            isExpanded: true,
+            itemCount: 2,
+            visibleItemCount: 2,
+            hasLoadingItem: true,
+            hasErrorItem: false,
+            emptyLabel: 'No loadable references yet.',
+            items: [
+              {
+                rowId: 'reference-item-row:shoe:shoe-1',
+                referenceId: 'shoe:shoe-1',
+                sourceKind: 'manifest',
+                label: 'Shoe 1',
+                categoryId: 'shoes',
+                fileType: 'glb',
+                assetPath: 'shoe-1.glb',
+                isVisible: true,
+                loadState: 'loading',
+                errorMessage: null,
+              },
+              {
+                rowId: 'reference-item-row:shoe:shoe-2',
+                referenceId: 'shoe:shoe-2',
+                sourceKind: 'manifest',
+                label: 'Shoe 2',
+                categoryId: 'shoes',
+                fileType: 'glb',
+                assetPath: 'shoe-2.glb',
+                isVisible: true,
+                loadState: 'unloaded',
+                errorMessage: null,
+              },
+            ],
+          },
+        ],
+      },
+      referenceLoadBatch: {
+        requestId: 'reference-load-batch:1',
+        source: 'root-load-all',
+        scopeLabel: 'References',
+        targetIds: ['footpad:pubpad-full-assembly', 'shoe:shoe-1', 'shoe:shoe-2'],
+        remainingIds: ['shoe:shoe-2'],
+        activeReferenceId: 'shoe:shoe-1',
+        completedIds: ['footpad:pubpad-full-assembly'],
+        failedIds: ['shoe:shoe-1'],
+        startedAt: 1,
+      },
+      contentRows: [],
+      graphRows: [],
+      editorViewports: [],
+      graphDocumentsById: {},
+      selectedRowId: 'reference-category-row:shoes',
+      collapsedContentRowIds: [],
+      expandedGraphDocumentIds: [],
+      hasActiveEditorViewport: true,
+      sharedViewerCompositionGraphDocumentIds: [],
+      sharedViewerCompositionActive: false,
+    })
+
+    expect(rows.referenceRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowId: 'reference-root',
+          state: 'loading',
+          progress01: 2 / 3,
+        }),
+        expect.objectContaining({
+          rowId: 'reference-category-row:footpads',
+          state: 'loading',
+          progress01: 1,
+        }),
+        expect.objectContaining({
+          rowId: 'reference-category-row:shoes',
+          state: 'loading',
+          progress01: 1 / 2,
+        }),
+        expect.objectContaining({
+          rowId: 'reference-item-row:shoe:shoe-1',
+          state: 'loading',
+        }),
+      ]),
+    )
   })
 
   it('renders the authored Sketches content family as a collapsible browser root with sketch rows', () => {

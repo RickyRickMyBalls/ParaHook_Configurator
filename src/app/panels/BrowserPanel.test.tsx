@@ -23,6 +23,11 @@ vi.mock('../store/useAppStore', () => ({
   selectCurrentProjectContentBrowserRows: () => currentAppState.projectContentRows,
   selectReferenceWorkspaceBrowserTree: () => currentAppState.referenceWorkspaceTree,
   selectShouldSuppressBrowserGraphRuntimeOutput: () => false,
+  buildProjectSketchBrowserRowId: (
+    graphDocumentId: string,
+    nodeId: string,
+    featureId: string,
+  ) => `project-sketch:${graphDocumentId}:${nodeId}:${featureId}`,
 }))
 
 vi.mock('../references/importReferenceFile', () => ({
@@ -188,11 +193,155 @@ const referenceWorkspaceStateFromTree = (tree: typeof emptyReferenceWorkspaceTre
     .flatMap((category) => category.items)
     .filter((item) => item.sourceKind === 'imported')
     .map((item) => item.referenceId),
+  referenceLoadBatch: null,
 })
 
+const isMockExplicitSelectionTarget = (target: any): boolean =>
+  target !== null &&
+  [
+    'references-root',
+    'reference-category',
+    'reference-item',
+    'assembly',
+    'component',
+    'object',
+  ].includes(target.kind)
+
+const getMockSelectionTargetKey = (target: any): string => {
+  switch (target.kind) {
+    case 'references-root':
+      return 'references-root'
+    case 'reference-category':
+      return `reference-category:${target.categoryId}`
+    case 'reference-item':
+      return `reference-item:${target.referenceId}`
+    case 'assembly':
+      return `assembly:${target.assemblyId}`
+    case 'component':
+      return `component:${target.componentId}`
+    case 'object':
+      return `object:${target.objectId}`
+    default:
+      return `${target.kind}`
+  }
+}
+
+const resolveMockContentSelection = (explicitTargets: any[]) => {
+  const contentTargets = explicitTargets.filter((target) =>
+    ['assembly', 'component', 'object'].includes(target.kind),
+  )
+  if (contentTargets.length === 0) {
+    return null
+  }
+
+  const resolveSingle = (
+    target: any,
+  ): {
+    rootRowId: string
+    rootKind: 'assembly' | 'component' | 'object'
+    partKeys: string[]
+    groupedRowIds: string[]
+  } | null => {
+    if (target.kind === 'object') {
+      const objectRow = currentAppState.projectContentRows.find(
+        (row: any) => row.kind === 'object' && row.rowId === target.objectId,
+      )
+      return objectRow === undefined
+        ? null
+        : {
+            rootRowId: objectRow.rowId,
+            rootKind: 'object' as const,
+            partKeys: [...new Set((objectRow.visibilityPartKeys ?? []) as string[])],
+            groupedRowIds: [],
+          }
+    }
+    if (target.kind === 'component') {
+      const componentRow = currentAppState.projectContentRows.find(
+        (row: any) => row.kind === 'component' && row.rowId === target.componentId,
+      )
+      if (componentRow === undefined) {
+        return null
+      }
+      const groupedRows = currentAppState.projectContentRows.filter(
+        (row: any) => row.kind === 'object' && row.parentComponentId === componentRow.rowId,
+      )
+      return {
+        rootRowId: componentRow.rowId,
+        rootKind: 'component' as const,
+        partKeys: [...new Set((componentRow.visibilityPartKeys ?? []) as string[])],
+        groupedRowIds: groupedRows.map((row: any) => row.rowId),
+      }
+    }
+
+    const assemblyRow = currentAppState.projectContentRows.find(
+      (row: any) => row.kind === 'assembly' && row.rowId === target.assemblyId,
+    )
+    if (assemblyRow === undefined) {
+      return null
+    }
+    const groupedRows = currentAppState.projectContentRows.filter(
+      (row: any) =>
+        (row.kind === 'component' || row.kind === 'object') &&
+        (row.visibilityPartKeys ?? []).some((partKey: string) =>
+          (assemblyRow.visibilityPartKeys ?? []).includes(partKey),
+        ),
+    )
+    return {
+      rootRowId: assemblyRow.rowId,
+      rootKind: 'assembly' as const,
+      partKeys: [...new Set((assemblyRow.visibilityPartKeys ?? []) as string[])],
+      groupedRowIds: groupedRows.map((row: any) => row.rowId),
+    }
+  }
+
+  if (explicitTargets.length === 1) {
+    return resolveSingle(contentTargets[0])
+  }
+
+  const partKeySet = new Set<string>()
+  const groupedRowIdSet = new Set<string>()
+  for (const target of contentTargets) {
+    const selection = resolveSingle(target)
+    if (selection === null) {
+      continue
+    }
+    selection.partKeys.forEach((partKey: string) => partKeySet.add(partKey))
+    selection.groupedRowIds.forEach((rowId: string) => groupedRowIdSet.add(rowId))
+  }
+  return {
+    rootRowId: 'multi-select',
+    rootKind: 'multi-select' as const,
+    partKeys: [...partKeySet],
+    groupedRowIds: [...groupedRowIdSet],
+  }
+}
+
 const click = async (element: Element) => {
+  await clickWithModifiers(element, {})
+}
+
+const clickWithModifiers = async (
+  element: Element,
+  options: { ctrlKey?: boolean; shiftKey?: boolean },
+) => {
   await act(async () => {
-    element.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    element.dispatchEvent(
+      new PointerEvent('pointerdown', {
+        bubbles: true,
+        cancelable: true,
+        button: 0,
+        ctrlKey: options.ctrlKey ?? false,
+        shiftKey: options.shiftKey ?? false,
+      }),
+    )
+    element.dispatchEvent(
+      new MouseEvent('click', {
+        bubbles: true,
+        cancelable: true,
+        ctrlKey: options.ctrlKey ?? false,
+        shiftKey: options.shiftKey ?? false,
+      }),
+    )
   })
 }
 
@@ -274,16 +423,66 @@ describe('BrowserPanel', () => {
       projectContentRows: [],
       browserGraphBuildPolicyByGraphDocumentId: {},
       browserContentBuildPolicyByRowId: {},
+      partsVisibility: {},
       referenceWorkspaceTree: emptyReferenceWorkspaceTree,
       referenceWorkspace: referenceWorkspaceStateFromTree(emptyReferenceWorkspaceTree),
       sketchVisibilityByRowId: {},
       workspaceSelection: {
         selectedTarget: null,
+        explicitSelectedTargets: [],
+        selectionAnchorTarget: null,
+        resolvedContentSelection: null,
         activeSurface: null,
       },
       consoleContextSyncRequest: null,
-      setWorkspaceSelectedTarget: vi.fn(),
-      setActiveSurface: vi.fn(),
+      setWorkspaceSelectedTarget: vi.fn((target) => {
+        currentAppState = {
+          ...currentAppState,
+          workspaceSelection: {
+            ...currentAppState.workspaceSelection,
+            selectedTarget: target,
+            explicitSelectedTargets: isMockExplicitSelectionTarget(target) ? [target] : [],
+            selectionAnchorTarget: isMockExplicitSelectionTarget(target) ? target : null,
+            resolvedContentSelection: null,
+          },
+        }
+      }),
+      setWorkspaceExplicitSelection: vi.fn((selection) => {
+        currentAppState = {
+          ...currentAppState,
+          workspaceSelection: {
+            ...currentAppState.workspaceSelection,
+            selectedTarget: selection.selectedTarget,
+            explicitSelectedTargets: selection.explicitSelectedTargets.filter(
+              (target: any, index: number, targets: any[]) =>
+                targets.findIndex(
+                  (candidate: any) =>
+                    getMockSelectionTargetKey(candidate) === getMockSelectionTargetKey(target),
+                ) === index,
+            ),
+            selectionAnchorTarget: selection.selectionAnchorTarget,
+            resolvedContentSelection: resolveMockContentSelection(selection.explicitSelectedTargets),
+          },
+        }
+      }),
+      setWorkspaceResolvedContentSelection: vi.fn((selection) => {
+        currentAppState = {
+          ...currentAppState,
+          workspaceSelection: {
+            ...currentAppState.workspaceSelection,
+            resolvedContentSelection: selection,
+          },
+        }
+      }),
+      setActiveSurface: vi.fn((surface) => {
+        currentAppState = {
+          ...currentAppState,
+          workspaceSelection: {
+            ...currentAppState.workspaceSelection,
+            activeSurface: surface,
+          },
+        }
+      }),
       requestConsoleContextSync: vi.fn(),
       requestFloatingShellActivation: vi.fn(),
       buildPolicy: 'live',
@@ -361,6 +560,7 @@ describe('BrowserPanel', () => {
       }),
       requestGraphDocumentBuild: mockRequestBrowserGraphDocumentBuild,
       requestBrowserGraphDocumentBuild: mockRequestBrowserGraphDocumentBuild,
+      setPartVisibility: vi.fn(),
       selectPart: vi.fn(),
       toggleReferenceWorkspaceExpanded: vi.fn(),
       toggleReferenceCategoryExpanded: vi.fn(),
@@ -370,6 +570,10 @@ describe('BrowserPanel', () => {
       toggleSketchVisibility: vi.fn(),
       addImportedReference: vi.fn(() => 'reference-import:1'),
       retryReferenceItemLoad: vi.fn(),
+      startReferenceLoadBatchForAll: vi.fn(),
+      startReferenceLoadBatchForCategory: vi.fn(),
+      loadAllReferences: vi.fn(),
+      loadReferenceCategory: vi.fn(),
       removeImportedReference: vi.fn(),
       beginReferenceTransform: vi.fn(),
     }
@@ -537,13 +741,11 @@ describe('BrowserPanel', () => {
     expect(graphPolicyButton).not.toBeNull()
 
     const policyButton = findButtonByLabel('Cycle build policy for Pedal Component. Current policy Live')
-    const saveButton = findButtonByLabel('Graph save options for Graph 1')
     expect(policyButton).not.toBeNull()
-    expect(saveButton).not.toBeNull()
+    expect(findButtonByLabel('Graph save options for Graph 1')).toBeNull()
     expect(policyButton?.textContent).toBe('C')
     expect(container?.querySelector('.BrowserGraphStateBar--rebuild')).not.toBeNull()
     expect(container?.querySelector('.BrowserContentStateBar--rebuild')).not.toBeNull()
-    expect(container?.querySelector('.BrowserTreeRowQuickAction--save.BrowserTreeRowQuickAction--unsaved')).not.toBeNull()
     expect(container?.querySelector('.BrowserTreeRow.isOpen')).not.toBeNull()
     expect(container?.querySelector('.BrowserTreeRow.isActiveEditor')).not.toBeNull()
     expect(container?.textContent).not.toContain('Dirty')
@@ -684,17 +886,17 @@ describe('BrowserPanel', () => {
     expect(findButtonByLabel('Swap Editor')).not.toBeNull()
   })
 
-  it('opens the dedicated save menu from the graph save button and exports through the existing disk path', async () => {
+  it('exports through the row menu and no longer renders the legacy graph save button', async () => {
     ;({ root } = await renderBrowserPanel())
 
-    const saveButton = findButtonByLabel('Graph save options for Graph 1')
-    expect(saveButton).not.toBeNull()
+    const graphRow = findRowMainByLabel('Graph 1')
+    expect(graphRow).not.toBeNull()
+    expect(findButtonByLabel('Graph save options for Graph 1')).toBeNull()
 
-    await click(saveButton!)
+    await contextMenu(graphRow!)
 
     expect(document.querySelector('.BrowserTreeContextMenuHeader')?.textContent).toBe('Graph 1')
     expect(findButtonByLabel('Export Graph')).not.toBeNull()
-    expect(findButtonByLabel('Open')).toBeNull()
 
     await click(findButtonByLabel('Export Graph')!)
 
@@ -702,20 +904,7 @@ describe('BrowserPanel', () => {
     expect(document.querySelector('.BrowserTreeContextMenu')).toBeNull()
   })
 
-  it('opens the same save menu from right-clicking the graph save button', async () => {
-    ;({ root } = await renderBrowserPanel())
-
-    const saveButton = findButtonByLabel('Graph save options for Graph 1')
-    expect(saveButton).not.toBeNull()
-
-    await contextMenu(saveButton!)
-
-    expect(document.querySelector('.BrowserTreeContextMenuHeader')?.textContent).toBe('Graph 1')
-    expect(findButtonByLabel('Export Graph')).not.toBeNull()
-    expect(findButtonByLabel('Swap Editor')).toBeNull()
-  })
-
-  it('shows the save button as saved when the graph is clean and only shows build text while building', async () => {
+  it('shows building state without rendering a legacy graph save button', async () => {
     currentSpaghettiState = {
       ...currentSpaghettiState,
       cachedGraphEntriesById: {
@@ -736,7 +925,7 @@ describe('BrowserPanel', () => {
 
     ;({ container, root } = await renderBrowserPanel())
 
-    expect(container?.querySelector('.BrowserTreeRowQuickAction--save.BrowserTreeRowQuickAction--saved')).not.toBeNull()
+    expect(findButtonByLabel('Graph save options for Graph 1')).toBeNull()
     expect(container?.querySelector('.BrowserGraphStateBar--building')).not.toBeNull()
     expect(container?.textContent).not.toContain('Dirty')
     expect(container?.textContent).not.toContain('Saved')
@@ -760,7 +949,7 @@ describe('BrowserPanel', () => {
     ;({ container, root } = await renderBrowserPanel())
 
     expect(container?.querySelector('.BrowserGraphStateBar--done')).not.toBeNull()
-    expect(container?.querySelector('.BrowserTreeRowQuickAction--save.BrowserTreeRowQuickAction--unsaved')).not.toBeNull()
+    expect(findButtonByLabel('Graph save options for Graph 1')).toBeNull()
   })
 
   it('clicking a graph row selects it and routes the focused editor to that graph', async () => {
@@ -869,7 +1058,7 @@ describe('BrowserPanel', () => {
     })
   })
 
-  it('clicking an open editor row focuses that editor and the direct close button closes it', async () => {
+  it('clicking an open editor row focuses that editor and close remains in the row menu', async () => {
     currentSpaghettiState = {
       ...currentSpaghettiState,
       graphDocumentsById: {
@@ -927,14 +1116,16 @@ describe('BrowserPanel', () => {
 
     const graphTwoEditorShell = graphTwoEditorRow?.closest('.BrowserTreeRow')
     expect(graphTwoEditorShell?.classList.contains('isActiveEditor')).toBe(true)
-    expect(container?.querySelector('[aria-label=\"Close Graph 2\"]')).not.toBeNull()
+    expect(container?.querySelector('[aria-label=\"Close Graph 2\"]')).toBeNull()
 
-    await click(container?.querySelector('[aria-label=\"Close Graph 2\"]')!)
+    await contextMenu(graphTwoEditorRow!)
+    expect(findButtonByLabel('Close')).not.toBeNull()
+    await click(findButtonByLabel('Close')!)
 
     expect(currentSpaghettiState.closeEditorViewport).toHaveBeenCalledWith('editor-viewport-2')
   })
 
-  it('single-clicking a component row selects it, requests rebuild, and highlights the viewport target when shared composition is inactive', async () => {
+  it('single-clicking a component row selects it as a content subtree target when shared composition is inactive', async () => {
     currentAppState = {
       ...currentAppState,
       projectContentRows: [
@@ -975,8 +1166,26 @@ describe('BrowserPanel', () => {
 
     await click(componentRow!)
 
-    expect(currentAppState.requestGraphDocumentBuild).toHaveBeenCalledWith('graph-document-1')
-    expect(currentAppState.selectPart).toHaveBeenCalledWith('slot-baseplate')
+    expect(currentAppState.requestGraphDocumentBuild).not.toHaveBeenCalled()
+    expect(currentAppState.setWorkspaceExplicitSelection).toHaveBeenCalledWith({
+      selectedTarget: {
+        kind: 'component',
+        componentId: 'project-component:project-file-1:graph-document-1:published',
+      },
+      explicitSelectedTargets: [
+        {
+          kind: 'component',
+          componentId: 'project-component:project-file-1:graph-document-1:published',
+        },
+      ],
+      selectionAnchorTarget: {
+        kind: 'component',
+        componentId: 'project-component:project-file-1:graph-document-1:published',
+      },
+    })
+    expect(currentAppState.requestConsoleContextSync).toHaveBeenCalledWith('target-selection')
+    expect(currentAppState.selectPart).toHaveBeenCalledWith(null)
+    expect(currentAppState.setActiveSurface).toHaveBeenCalledWith('browser')
     expect(currentSpaghettiState.swapFocusedEditorViewportToGraphDocument).not.toHaveBeenCalled()
     expect(componentRow?.getAttribute('aria-pressed')).toBe('true')
   })
@@ -1216,7 +1425,7 @@ describe('BrowserPanel', () => {
     expect(findRowMainByLabel('Pedal Component')?.textContent).toContain('Graph 1')
   })
 
-  it('single-clicking a component row still requests rebuild while shared composition suppresses highlight selection', async () => {
+  it('single-clicking a component row keeps selection light while shared composition suppresses highlight selection', async () => {
     currentSpaghettiState = {
       ...currentSpaghettiState,
       sharedViewerComposition: {
@@ -1265,8 +1474,8 @@ describe('BrowserPanel', () => {
 
     await click(componentRow!)
 
-    expect(currentAppState.requestGraphDocumentBuild).toHaveBeenCalledWith('graph-document-1')
-    expect(currentAppState.selectPart).not.toHaveBeenCalled()
+    expect(currentAppState.requestGraphDocumentBuild).not.toHaveBeenCalled()
+    expect(currentAppState.selectPart).toHaveBeenCalledWith(null)
     expect(componentRow?.getAttribute('aria-pressed')).toBe('true')
   })
 
@@ -1446,7 +1655,7 @@ describe('BrowserPanel', () => {
     expect(currentAppState.setActiveSurface).toHaveBeenCalledWith('spaghetti')
   })
 
-  it('single-clicking an object row selects it, requests rebuild, and highlights the viewport target when shared composition is inactive', async () => {
+  it('single-clicking an object row selects it and highlights the viewport target when shared composition is inactive', async () => {
     currentAppState = {
       ...currentAppState,
       projectContentRows: [
@@ -1504,15 +1713,420 @@ describe('BrowserPanel', () => {
 
     await click(objectRow!)
 
-    expect(currentAppState.requestGraphDocumentBuild).toHaveBeenCalledWith('graph-document-1')
+    expect(currentAppState.requestGraphDocumentBuild).not.toHaveBeenCalled()
     expect(currentAppState.selectPart).toHaveBeenCalledWith('slot-baseplate')
-    expect(currentAppState.setWorkspaceSelectedTarget).toHaveBeenCalledWith({
-      kind: 'object',
-      objectId: 'project-object:project-file-1:graph-document-1:pedal-body',
+    expect(currentAppState.setWorkspaceExplicitSelection).toHaveBeenCalledWith({
+      selectedTarget: {
+        kind: 'object',
+        objectId: 'project-object:project-file-1:graph-document-1:pedal-body',
+      },
+      explicitSelectedTargets: [
+        {
+          kind: 'object',
+          objectId: 'project-object:project-file-1:graph-document-1:pedal-body',
+        },
+      ],
+      selectionAnchorTarget: {
+        kind: 'object',
+        objectId: 'project-object:project-file-1:graph-document-1:pedal-body',
+      },
     })
+    expect(currentAppState.requestConsoleContextSync).toHaveBeenCalledWith('target-selection')
     expect(currentAppState.setActiveSurface).toHaveBeenCalledWith('browser')
     expect(currentSpaghettiState.swapFocusedEditorViewportToGraphDocument).not.toHaveBeenCalled()
     expect(objectRow?.getAttribute('aria-pressed')).toBe('true')
+  })
+
+  it('ctrl-click adds a second content row into the explicit browser selection set', async () => {
+    currentAppState = {
+      ...currentAppState,
+      projectContentRows: [
+        {
+          rowId: 'assembly-root:project-file-1',
+          kind: 'assembly',
+          label: 'Assembly 1',
+          meta: '',
+        },
+        {
+          rowId: 'object-1',
+          kind: 'object',
+          label: 'Object 1',
+          meta: 'Graph 1',
+          visibilityPartKeys: ['graph-document-1:slot-a'],
+          ownerGraphDocumentId: 'graph-document-1',
+          parentComponentId: null,
+          objectSourceKind: 'published-object',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry-1',
+          slotId: 'slot-a',
+          sourceNodeId: 'node-1',
+          resolutionState: 'resolved',
+          highlightViewerKey: 'slot-a',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-1',
+        },
+        {
+          rowId: 'object-2',
+          kind: 'object',
+          label: 'Object 2',
+          meta: 'Graph 1',
+          visibilityPartKeys: ['graph-document-1:slot-b'],
+          ownerGraphDocumentId: 'graph-document-1',
+          parentComponentId: null,
+          objectSourceKind: 'published-object',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry-2',
+          slotId: 'slot-b',
+          sourceNodeId: 'node-2',
+          resolutionState: 'resolved',
+          highlightViewerKey: 'slot-b',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-2',
+        },
+      ],
+      workspaceSelection: {
+        selectedTarget: {
+          kind: 'object',
+          objectId: 'object-1',
+        },
+        explicitSelectedTargets: [
+          {
+            kind: 'object',
+            objectId: 'object-1',
+          },
+        ],
+        selectionAnchorTarget: {
+          kind: 'object',
+          objectId: 'object-1',
+        },
+        resolvedContentSelection: null,
+        activeSurface: 'browser',
+      },
+    }
+
+    ;({ root } = await renderBrowserPanel())
+
+    await clickWithModifiers(findRowMainByLabel('Object 2')!, { ctrlKey: true })
+
+    expect(currentAppState.setWorkspaceExplicitSelection).toHaveBeenCalledWith({
+      selectedTarget: {
+        kind: 'object',
+        objectId: 'object-2',
+      },
+      explicitSelectedTargets: [
+        {
+          kind: 'object',
+          objectId: 'object-1',
+        },
+        {
+          kind: 'object',
+          objectId: 'object-2',
+        },
+      ],
+      selectionAnchorTarget: {
+        kind: 'object',
+        objectId: 'object-2',
+      },
+    })
+  })
+
+  it('shift-click builds a same-section range from the current anchor', async () => {
+    currentAppState = {
+      ...currentAppState,
+      projectContentRows: [
+        {
+          rowId: 'assembly-root:project-file-1',
+          kind: 'assembly',
+          label: 'Assembly 1',
+          meta: '',
+        },
+        {
+          rowId: 'object-1',
+          kind: 'object',
+          label: 'Object 1',
+          meta: 'Graph 1',
+          visibilityPartKeys: ['graph-document-1:slot-a'],
+          ownerGraphDocumentId: 'graph-document-1',
+          parentComponentId: null,
+          objectSourceKind: 'published-object',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry-1',
+          slotId: 'slot-a',
+          sourceNodeId: 'node-1',
+          resolutionState: 'resolved',
+          highlightViewerKey: 'slot-a',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-1',
+        },
+        {
+          rowId: 'object-2',
+          kind: 'object',
+          label: 'Object 2',
+          meta: 'Graph 1',
+          visibilityPartKeys: ['graph-document-1:slot-b'],
+          ownerGraphDocumentId: 'graph-document-1',
+          parentComponentId: null,
+          objectSourceKind: 'published-object',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry-2',
+          slotId: 'slot-b',
+          sourceNodeId: 'node-2',
+          resolutionState: 'resolved',
+          highlightViewerKey: 'slot-b',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-2',
+        },
+      ],
+      workspaceSelection: {
+        selectedTarget: {
+          kind: 'object',
+          objectId: 'object-1',
+        },
+        explicitSelectedTargets: [
+          {
+            kind: 'object',
+            objectId: 'object-1',
+          },
+        ],
+        selectionAnchorTarget: {
+          kind: 'object',
+          objectId: 'object-1',
+        },
+        resolvedContentSelection: null,
+        activeSurface: 'browser',
+      },
+    }
+
+    ;({ root } = await renderBrowserPanel())
+
+    await clickWithModifiers(findRowMainByLabel('Object 2')!, { shiftKey: true })
+
+    expect(currentAppState.setWorkspaceExplicitSelection).toHaveBeenCalledWith({
+      selectedTarget: {
+        kind: 'object',
+        objectId: 'object-2',
+      },
+      explicitSelectedTargets: [
+        {
+          kind: 'object',
+          objectId: 'object-1',
+        },
+        {
+          kind: 'object',
+          objectId: 'object-2',
+        },
+      ],
+      selectionAnchorTarget: {
+        kind: 'object',
+        objectId: 'object-1',
+      },
+    })
+  })
+
+  it('clears stale local row selection when the viewer becomes the active surface with no selected target', async () => {
+    currentAppState = {
+      ...currentAppState,
+      projectContentRows: [
+        {
+          rowId: 'assembly-root:project-file-1',
+          kind: 'assembly',
+          label: 'Assembly 1',
+          meta: '',
+        },
+        {
+          rowId: 'project-component:project-file-1:graph-document-1:published',
+          kind: 'component',
+          label: 'Pedal Component',
+          meta: '1 Object',
+          ownerGraphDocumentId: 'graph-document-1',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry:slot-baseplate:node-baseplate-1',
+          componentSourceKind: 'published-component',
+          resolutionState: 'resolved',
+          receiveId: null,
+          childObjectCount: 1,
+          slotId: 'slot-baseplate',
+          sourceNodeId: 'node-baseplate-1',
+          highlightViewerKey: 'slot-baseplate',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-baseplate-1',
+        },
+        {
+          rowId: 'project-object:project-file-1:graph-document-1:pedal-body',
+          kind: 'object',
+          label: 'Pedal Body',
+          meta: 'Graph 1',
+          ownerGraphDocumentId: 'graph-document-1',
+          parentComponentId: 'project-component:project-file-1:graph-document-1:published',
+          objectSourceKind: 'published-object',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry:slot-baseplate:node-baseplate-1',
+          slotId: 'slot-baseplate',
+          sourceNodeId: 'node-baseplate-1',
+          resolutionState: 'resolved',
+          highlightViewerKey: 'slot-baseplate',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-baseplate-1',
+        },
+      ],
+    }
+
+    ;({ root } = await renderBrowserPanel())
+
+    const objectRow = findRowMainByLabel('Pedal Body')
+    expect(objectRow).not.toBeNull()
+
+    await click(objectRow!)
+    expect(objectRow?.getAttribute('aria-pressed')).toBe('true')
+
+    currentAppState = {
+      ...currentAppState,
+      workspaceSelection: {
+        selectedTarget: null,
+        activeSurface: 'viewer',
+      },
+    }
+
+    await act(async () => {
+      root!.render(<BrowserPanel />)
+    })
+
+    expect(findRowMainByLabel('Pedal Body')?.getAttribute('aria-pressed')).toBe('false')
+  })
+
+  it('clears browser selection when the user clicks empty browser space', async () => {
+    currentAppState = {
+      ...currentAppState,
+      projectContentRows: [
+        {
+          rowId: 'assembly-root:project-file-1',
+          kind: 'assembly',
+          label: 'Assembly 1',
+          meta: '',
+        },
+        {
+          rowId: 'project-object:project-file-1:graph-document-1:pedal-body',
+          kind: 'object',
+          label: 'Pedal Body',
+          meta: 'Graph 1',
+          ownerGraphDocumentId: 'graph-document-1',
+          parentComponentId: null,
+          objectSourceKind: 'published-object',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry:slot-baseplate:node-baseplate-1',
+          slotId: 'slot-baseplate',
+          sourceNodeId: 'node-baseplate-1',
+          resolutionState: 'resolved',
+          highlightViewerKey: 'slot-baseplate',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-baseplate-1',
+        },
+      ],
+    }
+
+    ;({ container } = await renderBrowserPanel())
+
+    const objectRow = findRowMainByLabel('Pedal Body')
+    expect(objectRow).not.toBeNull()
+
+    await click(objectRow!)
+    expect(objectRow?.getAttribute('aria-pressed')).toBe('true')
+
+    const browserBody = container?.querySelector('.BrowserPanelBody') as HTMLElement | null
+    expect(browserBody).not.toBeNull()
+
+    await click(browserBody!)
+
+    expect(currentAppState.setWorkspaceSelectedTarget).toHaveBeenCalledWith(null)
+    expect(currentAppState.selectPart).toHaveBeenCalledWith(null)
+    expect(findRowMainByLabel('Pedal Body')?.getAttribute('aria-pressed')).toBe('false')
+  })
+
+  it('stores one root target plus a grouped resolved content selection for parent rows', async () => {
+    currentAppState = {
+      ...currentAppState,
+      projectContentRows: [
+        {
+          rowId: 'assembly-root:project-file-1',
+          kind: 'assembly',
+          label: 'Assembly 1',
+          meta: '',
+          visibilityPartKeys: ['graph-document-1:slot-a', 'graph-document-1:slot-b'],
+        },
+        {
+          rowId: 'project-component:project-file-1:graph-document-1:component-1',
+          kind: 'component',
+          label: 'Pedal Component',
+          meta: '2 Objects',
+          visibilityPartKeys: ['graph-document-1:slot-a', 'graph-document-1:slot-b'],
+        },
+        {
+          rowId: 'project-object:project-file-1:graph-document-1:object-1',
+          kind: 'object',
+          label: 'Object 1',
+          meta: 'Graph 1',
+          visibilityPartKeys: ['graph-document-1:slot-a'],
+          ownerGraphDocumentId: 'graph-document-1',
+          parentComponentId: 'project-component:project-file-1:graph-document-1:component-1',
+          objectSourceKind: 'published-object',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry:slot-a',
+          slotId: 'slot-a',
+          sourceNodeId: 'node-a',
+          resolutionState: 'resolved',
+          highlightViewerKey: 'slot-a',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-a',
+        },
+        {
+          rowId: 'project-object:project-file-1:graph-document-1:object-2',
+          kind: 'object',
+          label: 'Object 2',
+          meta: 'Graph 1',
+          visibilityPartKeys: ['graph-document-1:slot-b'],
+          ownerGraphDocumentId: 'graph-document-1',
+          parentComponentId: 'project-component:project-file-1:graph-document-1:component-1',
+          objectSourceKind: 'published-object',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry:slot-b',
+          slotId: 'slot-b',
+          sourceNodeId: 'node-b',
+          resolutionState: 'resolved',
+          highlightViewerKey: 'slot-b',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-b',
+        },
+      ],
+    }
+
+    ;({ root } = await renderBrowserPanel())
+
+    const assemblyRow = findRowMainByLabel('Assembly 1')
+    expect(assemblyRow).not.toBeNull()
+
+    await click(assemblyRow!)
+
+    expect(currentAppState.workspaceSelection.selectedTarget).toEqual({
+      kind: 'assembly',
+      assemblyId: 'assembly-root:project-file-1',
+    })
+    expect(currentAppState.workspaceSelection.resolvedContentSelection).toEqual({
+      rootRowId: 'assembly-root:project-file-1',
+      rootKind: 'assembly',
+      partKeys: ['graph-document-1:slot-a', 'graph-document-1:slot-b'],
+      groupedRowIds: [
+        'project-component:project-file-1:graph-document-1:component-1',
+        'project-object:project-file-1:graph-document-1:object-1',
+        'project-object:project-file-1:graph-document-1:object-2',
+      ],
+    })
+    expect(assemblyRow?.closest('.BrowserTreeRow')?.classList.contains('isSelected')).toBe(true)
+    expect(findRowMainByLabel('Object 1')?.closest('.BrowserTreeRow')?.classList.contains('isGroupedSelected')).toBe(
+      true,
+    )
+    expect(findRowMainByLabel('Object 2')?.closest('.BrowserTreeRow')?.classList.contains('isGroupedSelected')).toBe(
+      true,
+    )
   })
 
   it('double-clicking an object row opens the source graph and focuses the source node', async () => {
@@ -1669,14 +2283,24 @@ describe('BrowserPanel', () => {
     expect(currentSpaghettiState.requestEditorViewportNodeFit).not.toHaveBeenCalled()
     expect(currentAppState.selectPart).not.toHaveBeenCalled()
 
-    await click(findButtonByLabel('Expand Nodes')!)
+    const nodesToggle =
+      findButtonByLabel('Expand Nodes') ?? findButtonByLabel('Collapse Nodes')
+    expect(nodesToggle).not.toBeNull()
+    if (nodesToggle?.getAttribute('aria-label') === 'Expand Nodes') {
+      await click(nodesToggle)
+    }
     expect(findRowMainByLabel('Cube')).not.toBeNull()
 
     await click(findButtonByLabel('Collapse Graph 1 child sections')!)
     await click(findButtonByLabel('Expand Graph 1 child sections')!)
     expect(findRowMainByLabel('Cube')).not.toBeNull()
 
-    await click(findRowMainByLabel('OutputPreview')!)
+    const outputPreviewRow = Array.from(document.querySelectorAll('.BrowserTreeRowMain')).find(
+      (element) => element.textContent?.includes('OutputPreview'),
+    )
+    expect(outputPreviewRow).not.toBeNull()
+
+    await click(outputPreviewRow!)
     expect(currentSpaghettiState.setSelectedNodeId).toHaveBeenCalledWith('node-output-1')
     expect(currentSpaghettiState.requestEditorViewportNodeFit).toHaveBeenCalledWith(
       'editor-viewport-2',
@@ -1807,6 +2431,16 @@ describe('BrowserPanel', () => {
       container!.querySelectorAll('.BrowserTreeRow.BrowserTreeRow--reference-item'),
     ).find((element) => element.textContent?.includes('PubPad Full Assembly'))
     expect(selectedReferenceRow?.classList.contains('isSelected')).toBe(true)
+    expect(
+      Array.from(container!.querySelectorAll('.BrowserTreeRow.BrowserTreeRow--reference-category')).find(
+        (element) => element.textContent?.includes('Footpads'),
+      )?.classList.contains('isGroupedSelected'),
+    ).toBe(false)
+    expect(
+      container
+        ?.querySelector('.BrowserTreeRow.BrowserTreeRow--references-root')
+        ?.classList.contains('isGroupedSelected'),
+    ).toBe(false)
 
     currentAppState = {
       ...currentAppState,
@@ -1827,6 +2461,251 @@ describe('BrowserPanel', () => {
       container!.querySelectorAll('.BrowserTreeRow.BrowserTreeRow--object'),
     ).find((element) => element.textContent?.includes('Pedal Body'))
     expect(selectedObjectRow?.classList.contains('isSelected')).toBe(true)
+  })
+
+  it('projects grouped highlight downward when a reference parent row is selected', async () => {
+    currentAppState = {
+      ...currentAppState,
+      referenceWorkspaceTree: {
+        rowId: 'reference-root',
+        label: 'References',
+        isExpanded: true,
+        categories: [
+          {
+            rowId: 'reference-category-row:footpads',
+            categoryId: 'footpads',
+            label: 'Footpads',
+            isExpanded: true,
+            itemCount: 1,
+            visibleItemCount: 1,
+            hasLoadingItem: false,
+            hasErrorItem: false,
+            emptyLabel: 'No loadable references yet.',
+            items: [
+              {
+                rowId: 'reference-item-row:footpad:pubpad-full-assembly',
+                referenceId: 'footpad:pubpad-full-assembly',
+                sourceKind: 'manifest',
+                label: 'PubPad Full Assembly',
+                categoryId: 'footpads',
+                fileType: 'obj',
+                assetPath: '/ReferenceModels/footpads/XR_Footpad_PubPad_Full_Assembly.obj',
+                isVisible: true,
+                loadState: 'loaded',
+                errorMessage: null,
+              },
+            ],
+          },
+          ...emptyReferenceWorkspaceTree.categories.slice(1),
+        ],
+      },
+      workspaceSelection: {
+        selectedTarget: null,
+        activeSurface: 'browser',
+      },
+    }
+    currentAppState.referenceWorkspace = referenceWorkspaceStateFromTree(
+      currentAppState.referenceWorkspaceTree,
+    )
+
+    ;({ container } = await renderBrowserPanel())
+
+    await click(findRowMainByLabel('Footpads')!)
+
+    const selectedCategoryRow = Array.from(
+      container!.querySelectorAll('.BrowserTreeRow.BrowserTreeRow--reference-category'),
+    ).find((element) => element.textContent?.includes('Footpads'))
+    const groupedItemRow = Array.from(
+      container!.querySelectorAll('.BrowserTreeRow.BrowserTreeRow--reference-item'),
+    ).find((element) => element.textContent?.includes('PubPad Full Assembly'))
+    expect(selectedCategoryRow?.classList.contains('isSelected')).toBe(true)
+    expect(groupedItemRow?.classList.contains('isGroupedSelected')).toBe(true)
+    expect(
+      container
+        ?.querySelector('.BrowserTreeRow.BrowserTreeRow--references-root')
+        ?.classList.contains('isGroupedSelected'),
+    ).toBe(false)
+  })
+
+  it('clicking reference parents selects them and groups their children downward', async () => {
+    currentAppState = {
+      ...currentAppState,
+      referenceWorkspaceTree: {
+        rowId: 'reference-root',
+        label: 'References',
+        isExpanded: true,
+        categories: [
+          {
+            rowId: 'reference-category-row:footpads',
+            categoryId: 'footpads',
+            label: 'Footpads',
+            isExpanded: true,
+            itemCount: 1,
+            visibleItemCount: 1,
+            hasLoadingItem: false,
+            hasErrorItem: false,
+            emptyLabel: 'No loadable references yet.',
+            items: [
+              {
+                rowId: 'reference-item-row:footpad:pubpad-full-assembly',
+                referenceId: 'footpad:pubpad-full-assembly',
+                sourceKind: 'manifest',
+                label: 'PubPad Full Assembly',
+                categoryId: 'footpads',
+                fileType: 'obj',
+                assetPath: '/ReferenceModels/footpads/XR_Footpad_PubPad_Full_Assembly.obj',
+                isVisible: true,
+                loadState: 'loaded',
+                errorMessage: null,
+              },
+            ],
+          },
+          ...emptyReferenceWorkspaceTree.categories.slice(1),
+        ],
+      },
+      workspaceSelection: {
+        selectedTarget: {
+          kind: 'object',
+          objectId: 'project-object:project-file-1:graph-document-1:pedal-body',
+        },
+        resolvedContentSelection: null,
+        activeSurface: 'browser',
+      },
+    }
+    currentAppState.referenceWorkspace = referenceWorkspaceStateFromTree(
+      currentAppState.referenceWorkspaceTree,
+    )
+
+    ;({ container } = await renderBrowserPanel())
+
+    await click(findRowMainByLabel('References')!)
+    expect(
+      container
+        ?.querySelector('.BrowserTreeRow.BrowserTreeRow--references-root')
+        ?.classList.contains('isSelected'),
+    ).toBe(true)
+    expect(
+      Array.from(container!.querySelectorAll('.BrowserTreeRow.BrowserTreeRow--reference-category')).find(
+        (element) => element.textContent?.includes('Footpads'),
+      )?.classList.contains('isGroupedSelected'),
+    ).toBe(true)
+    expect(
+      Array.from(container!.querySelectorAll('.BrowserTreeRow.BrowserTreeRow--reference-item')).find(
+        (element) => element.textContent?.includes('PubPad Full Assembly'),
+      )?.classList.contains('isGroupedSelected'),
+    ).toBe(true)
+
+    await click(findRowMainByLabel('Footpads')!)
+    expect(
+      Array.from(container!.querySelectorAll('.BrowserTreeRow.BrowserTreeRow--reference-category')).find(
+        (element) => element.textContent?.includes('Footpads'),
+      )?.classList.contains('isSelected'),
+    ).toBe(true)
+    expect(
+      Array.from(container!.querySelectorAll('.BrowserTreeRow.BrowserTreeRow--reference-item')).find(
+        (element) => element.textContent?.includes('PubPad Full Assembly'),
+      )?.classList.contains('isGroupedSelected'),
+    ).toBe(true)
+  })
+
+  it('adds Load All to the References row menu and routes it through the shared action', async () => {
+    currentAppState = {
+      ...currentAppState,
+      referenceWorkspaceTree: {
+        rowId: 'reference-root',
+        label: 'References',
+        isExpanded: true,
+        categories: [
+          {
+            rowId: 'reference-category-row:footpads',
+            categoryId: 'footpads',
+            label: 'Footpads',
+            isExpanded: true,
+            itemCount: 1,
+            visibleItemCount: 0,
+            hasLoadingItem: false,
+            hasErrorItem: false,
+            emptyLabel: 'No loadable references yet.',
+            items: [
+              {
+                rowId: 'reference-item-row:footpad:pubpad-full-assembly',
+                referenceId: 'footpad:pubpad-full-assembly',
+                sourceKind: 'manifest',
+                label: 'PubPad Full Assembly',
+                categoryId: 'footpads',
+                fileType: 'obj',
+                assetPath: '/ReferenceModels/footpads/XR_Footpad_PubPad_Full_Assembly.obj',
+                isVisible: false,
+                loadState: 'unloaded',
+                errorMessage: null,
+              },
+            ],
+          },
+          ...emptyReferenceWorkspaceTree.categories.slice(1),
+        ],
+      },
+    }
+    currentAppState.referenceWorkspace = referenceWorkspaceStateFromTree(
+      currentAppState.referenceWorkspaceTree,
+    )
+
+    ;({ root } = await renderBrowserPanel())
+
+    await contextMenu(findRowMainByLabel('References')!)
+    expect(findButtonByLabel('Load All')).not.toBeNull()
+
+    await click(findButtonByLabel('Load All')!)
+    expect(currentAppState.startReferenceLoadBatchForAll).toHaveBeenCalled()
+  })
+
+  it('adds Load All to a reference category row menu and routes it through the shared category action', async () => {
+    currentAppState = {
+      ...currentAppState,
+      referenceWorkspaceTree: {
+        rowId: 'reference-root',
+        label: 'References',
+        isExpanded: true,
+        categories: [
+          {
+            rowId: 'reference-category-row:footpads',
+            categoryId: 'footpads',
+            label: 'Footpads',
+            isExpanded: true,
+            itemCount: 1,
+            visibleItemCount: 0,
+            hasLoadingItem: false,
+            hasErrorItem: false,
+            emptyLabel: 'No loadable references yet.',
+            items: [
+              {
+                rowId: 'reference-item-row:footpad:pubpad-full-assembly',
+                referenceId: 'footpad:pubpad-full-assembly',
+                sourceKind: 'manifest',
+                label: 'PubPad Full Assembly',
+                categoryId: 'footpads',
+                fileType: 'obj',
+                assetPath: '/ReferenceModels/footpads/XR_Footpad_PubPad_Full_Assembly.obj',
+                isVisible: false,
+                loadState: 'unloaded',
+                errorMessage: null,
+              },
+            ],
+          },
+          ...emptyReferenceWorkspaceTree.categories.slice(1),
+        ],
+      },
+    }
+    currentAppState.referenceWorkspace = referenceWorkspaceStateFromTree(
+      currentAppState.referenceWorkspaceTree,
+    )
+
+    ;({ root } = await renderBrowserPanel())
+
+    await contextMenu(findRowMainByLabel('Footpads')!)
+    expect(findButtonByLabel('Load All')).not.toBeNull()
+
+    await click(findButtonByLabel('Load All')!)
+    expect(currentAppState.startReferenceLoadBatchForCategory).toHaveBeenCalledWith('footpads')
   })
 
   it('renders References inside Content and keeps category toggle separate from +/- expansion', async () => {
@@ -1922,21 +2801,34 @@ describe('BrowserPanel', () => {
     expect(currentAppState.toggleReferenceItemVisibility).not.toHaveBeenCalledWith(
       'footpad:pubpad-full-assembly',
     )
-    expect(currentAppState.setReferenceItemVisibility).toHaveBeenCalledWith(
+    expect(currentAppState.setReferenceItemVisibility).not.toHaveBeenCalledWith(
       'footpad:pubpad-full-assembly',
       true,
     )
-    expect(currentAppState.beginReferenceTransform).toHaveBeenCalledWith(
+    expect(currentAppState.beginReferenceTransform).not.toHaveBeenCalledWith(
       'footpad:pubpad-full-assembly',
     )
-    expect(currentAppState.setWorkspaceSelectedTarget).toHaveBeenCalledWith({
-      kind: 'reference-item',
-      referenceId: 'footpad:pubpad-full-assembly',
+    expect(currentAppState.setWorkspaceExplicitSelection).toHaveBeenCalledWith({
+      selectedTarget: {
+        kind: 'reference-item',
+        referenceId: 'footpad:pubpad-full-assembly',
+      },
+      explicitSelectedTargets: [
+        {
+          kind: 'reference-item',
+          referenceId: 'footpad:pubpad-full-assembly',
+        },
+      ],
+      selectionAnchorTarget: {
+        kind: 'reference-item',
+        referenceId: 'footpad:pubpad-full-assembly',
+      },
     })
+    expect(currentAppState.requestConsoleContextSync).toHaveBeenCalledWith('target-selection')
     expect(currentAppState.setActiveSurface).toHaveBeenCalledWith('browser')
   })
 
-  it('clicking a reference category row expands or collapses children instead of toggling visibility', async () => {
+  it('reference category expansion belongs to the branch control instead of row click', async () => {
     currentAppState = {
       ...currentAppState,
       referenceWorkspaceTree: {
@@ -1984,10 +2876,14 @@ describe('BrowserPanel', () => {
 
     await click(footpadsRow!)
 
-    expect(currentAppState.toggleReferenceCategoryExpanded).toHaveBeenCalledWith('footpads')
+    expect(currentAppState.toggleReferenceCategoryExpanded).not.toHaveBeenCalled()
     expect(currentAppState.toggleReferenceCategoryVisibility).not.toHaveBeenCalledWith('footpads')
     expect(currentAppState.toggleReferenceItemVisibility).not.toHaveBeenCalled()
     expect(currentAppState.setReferenceItemVisibility).not.toHaveBeenCalled()
+
+    await click(findButtonByLabel('Expand Footpads children')!)
+
+    expect(currentAppState.toggleReferenceCategoryExpanded).toHaveBeenCalledWith('footpads')
   })
 
   it('opens the Content import menu from the header + button and imports a single accepted file type into User References', async () => {
@@ -2071,16 +2967,12 @@ describe('BrowserPanel', () => {
     )
     await click(findButtonByLabel('Transform Object')!)
 
-    expect(currentAppState.setReferenceItemVisibility).toHaveBeenCalledWith(
-      'footpad:pubpad-full-assembly',
-      true,
-    )
     expect(currentAppState.beginReferenceTransform).toHaveBeenCalledWith(
       'footpad:pubpad-full-assembly',
     )
   })
 
-  it('shows retry and remove inline actions for imported error rows without using an overflow menu', async () => {
+  it('moves imported reference retry and remove actions into the row menu', async () => {
     currentAppState = {
       ...currentAppState,
       referenceWorkspaceTree: {
@@ -2124,14 +3016,223 @@ describe('BrowserPanel', () => {
     ;({ root } = await renderBrowserPanel())
 
     expect(findButtonByLabel('More options for shoe.glb')).toBeNull()
-    expect(findButtonByLabel('Retry shoe.glb')).not.toBeNull()
-    expect(findButtonByLabel('Remove shoe.glb')).not.toBeNull()
+    expect(findButtonByLabel('Retry shoe.glb')).toBeNull()
+    expect(findButtonByLabel('Remove shoe.glb')).toBeNull()
 
-    await click(findButtonByLabel('Retry shoe.glb')!)
+    await contextMenu(findRowMainByLabel('shoe.glb')!)
+    expect(findButtonByLabel('Retry')).not.toBeNull()
+    expect(findButtonByLabel('Remove')).not.toBeNull()
+
+    await click(findButtonByLabel('Retry')!)
     expect(currentAppState.retryReferenceItemLoad).toHaveBeenCalledWith('reference-import:1')
 
-    await click(findButtonByLabel('Remove shoe.glb')!)
+    await contextMenu(findRowMainByLabel('shoe.glb')!)
+    await click(findButtonByLabel('Remove')!)
     expect(currentAppState.removeImportedReference).toHaveBeenCalledWith('reference-import:1')
+  })
+
+  it('renders active reference bars darker for loaded rows and dormant bars lighter for unloaded rows', async () => {
+    currentAppState = {
+      ...currentAppState,
+      referenceWorkspaceTree: {
+        rowId: 'reference-root',
+        label: 'References',
+        isExpanded: true,
+        categories: [
+          {
+            rowId: 'reference-category-row:footpads',
+            categoryId: 'footpads',
+            label: 'Footpads',
+            isExpanded: true,
+            itemCount: 1,
+            visibleItemCount: 1,
+            hasLoadingItem: false,
+            hasErrorItem: false,
+            emptyLabel: 'No loadable references yet.',
+            items: [
+              {
+                rowId: 'reference-item-row:footpad:pubpad-full-assembly',
+                referenceId: 'footpad:pubpad-full-assembly',
+                sourceKind: 'manifest',
+                label: 'PubPad Full Assembly',
+                categoryId: 'footpads',
+                fileType: 'obj',
+                assetPath: '/ReferenceModels/footpads/XR_Footpad_PubPad_Full_Assembly.obj',
+                isVisible: true,
+                loadState: 'loaded',
+                errorMessage: null,
+              },
+            ],
+          },
+          {
+            rowId: 'reference-category-row:shoes',
+            categoryId: 'shoes',
+            label: 'Shoes',
+            isExpanded: true,
+            itemCount: 1,
+            visibleItemCount: 0,
+            hasLoadingItem: false,
+            hasErrorItem: false,
+            emptyLabel: 'No loadable references yet.',
+            items: [
+              {
+                rowId: 'reference-item-row:shoe:shoe-1',
+                referenceId: 'shoe:shoe-1',
+                sourceKind: 'manifest',
+                label: 'Shoe 1',
+                categoryId: 'shoes',
+                fileType: 'glb',
+                assetPath: '/ReferenceModels/shoes/Shoe_1.glb',
+                isVisible: false,
+                loadState: 'unloaded',
+                errorMessage: null,
+              },
+            ],
+          },
+          ...emptyReferenceWorkspaceTree.categories.slice(2),
+        ],
+      },
+    }
+    currentAppState.referenceWorkspace = referenceWorkspaceStateFromTree(
+      currentAppState.referenceWorkspaceTree,
+    )
+
+    ;({ container } = await renderBrowserPanel())
+
+    expect(container?.querySelector('.BrowserReferenceStateBar--active')).not.toBeNull()
+    expect(container?.querySelector('.BrowserReferenceStateBar--dormant')).not.toBeNull()
+  })
+
+  it('renders determinate aggregate progress for loading reference root and category rows', async () => {
+    currentAppState = {
+      ...currentAppState,
+      referenceWorkspaceTree: {
+        rowId: 'reference-root',
+        label: 'References',
+        isExpanded: true,
+        categories: [
+          {
+            rowId: 'reference-category-row:footpads',
+            categoryId: 'footpads',
+            label: 'Footpads',
+            isExpanded: true,
+            itemCount: 2,
+            visibleItemCount: 2,
+            hasLoadingItem: true,
+            hasErrorItem: false,
+            emptyLabel: 'No loadable references yet.',
+            items: [
+              {
+                rowId: 'reference-item-row:footpad:pubpad-full-assembly',
+                referenceId: 'footpad:pubpad-full-assembly',
+                sourceKind: 'manifest',
+                label: 'PubPad Full Assembly',
+                categoryId: 'footpads',
+                fileType: 'obj',
+                assetPath: '/ReferenceModels/footpads/XR_Footpad_PubPad_Full_Assembly.obj',
+                isVisible: true,
+                loadState: 'loaded',
+                errorMessage: null,
+              },
+              {
+                rowId: 'reference-item-row:footpad:pubpad-2',
+                referenceId: 'footpad:pubpad-2',
+                sourceKind: 'manifest',
+                label: 'PubPad 2',
+                categoryId: 'footpads',
+                fileType: 'obj',
+                assetPath: '/ReferenceModels/footpads/PubPad_2.obj',
+                isVisible: true,
+                loadState: 'loading',
+                errorMessage: null,
+              },
+            ],
+          },
+          ...emptyReferenceWorkspaceTree.categories.slice(1),
+        ],
+      },
+    }
+    currentAppState.referenceWorkspace = {
+      ...referenceWorkspaceStateFromTree(currentAppState.referenceWorkspaceTree),
+      referenceLoadBatch: {
+        requestId: 'reference-load-batch:1',
+        source: 'root-load-all',
+        scopeLabel: 'References',
+        targetIds: ['footpad:pubpad-full-assembly', 'footpad:pubpad-2'],
+        remainingIds: [],
+        activeReferenceId: 'footpad:pubpad-2',
+        completedIds: ['footpad:pubpad-full-assembly'],
+        failedIds: [],
+        startedAt: 1,
+      },
+    }
+
+    ;({ container } = await renderBrowserPanel())
+
+    const rootFill = findRowMainByLabel('References')
+      ?.querySelector('.BrowserReferenceStateFill') as HTMLSpanElement | null
+    const categoryFill = findRowMainByLabel('Footpads')
+      ?.querySelector('.BrowserReferenceStateFill') as HTMLSpanElement | null
+
+    expect(rootFill?.classList.contains('BrowserReferenceStateFill--determinate')).toBe(true)
+    expect(categoryFill?.classList.contains('BrowserReferenceStateFill--determinate')).toBe(true)
+    expect(rootFill?.style.width).toBe('50%')
+    expect(categoryFill?.style.width).toBe('50%')
+  })
+
+  it('adds Load Model to hidden reference rows and loads without starting transform', async () => {
+    currentAppState = {
+      ...currentAppState,
+      referenceWorkspaceTree: {
+        rowId: 'reference-root',
+        label: 'References',
+        isExpanded: true,
+        categories: [
+          {
+            rowId: 'reference-category-row:footpads',
+            categoryId: 'footpads',
+            label: 'Footpads',
+            isExpanded: true,
+            itemCount: 1,
+            visibleItemCount: 0,
+            hasLoadingItem: false,
+            hasErrorItem: false,
+            emptyLabel: 'No loadable references yet.',
+            items: [
+              {
+                rowId: 'reference-item-row:footpad:pubpad-full-assembly',
+                referenceId: 'footpad:pubpad-full-assembly',
+                sourceKind: 'manifest',
+                label: 'PubPad Full Assembly',
+                categoryId: 'footpads',
+                fileType: 'obj',
+                assetPath: '/ReferenceModels/footpads/XR_Footpad_PubPad_Full_Assembly.obj',
+                isVisible: false,
+                loadState: 'unloaded',
+                errorMessage: null,
+              },
+            ],
+          },
+          ...emptyReferenceWorkspaceTree.categories.slice(1),
+        ],
+      },
+    }
+    currentAppState.referenceWorkspace = referenceWorkspaceStateFromTree(
+      currentAppState.referenceWorkspaceTree,
+    )
+
+    ;({ root } = await renderBrowserPanel())
+
+    await contextMenu(findRowMainByLabel('PubPad Full Assembly')!)
+    expect(findButtonByLabel('Load Model')).not.toBeNull()
+
+    await click(findButtonByLabel('Load Model')!)
+    expect(currentAppState.retryReferenceItemLoad).toHaveBeenCalledWith(
+      'footpad:pubpad-full-assembly',
+    )
+    expect(currentAppState.beginReferenceTransform).not.toHaveBeenCalledWith(
+      'footpad:pubpad-full-assembly',
+    )
   })
 
   it('does not render inline overflow buttons for browser rows', async () => {
@@ -2279,5 +3380,75 @@ describe('BrowserPanel', () => {
     expect(currentAppState.toggleSketchVisibility).toHaveBeenCalledWith(
       'project-sketch:graph-document-1:node-sketch-1:sketch-1',
     )
+  })
+
+  it('shows content visibility eyes for assembly, component, and object rows', async () => {
+    currentAppState = {
+      ...currentAppState,
+      projectContentRows: [
+        {
+          rowId: 'assembly-1',
+          kind: 'assembly',
+          label: 'Assembly 1',
+          meta: '',
+          isVisible: true,
+          visibilityPartKeys: ['slot-a', 'slot-b'],
+          buildState: 'done',
+          buildStateLabel: 'Built',
+          rebuildGraphDocumentIds: [],
+        },
+        {
+          rowId: 'component-1',
+          kind: 'component',
+          label: 'Component 1',
+          meta: 'Graph 1',
+          isVisible: true,
+          visibilityPartKeys: ['slot-a', 'slot-b'],
+          buildState: 'done',
+          buildStateLabel: 'Built',
+          rebuildGraphDocumentIds: [],
+          ownerGraphDocumentId: 'graph-document-1',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry-1',
+          componentSourceKind: 'published-component',
+          resolutionState: 'resolved',
+          receiveId: null,
+          childObjectCount: 2,
+          slotId: null,
+          sourceNodeId: 'node-output-1',
+          highlightViewerKey: null,
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-output-1',
+        },
+        {
+          rowId: 'object-1',
+          kind: 'object',
+          label: 'Object 1',
+          meta: '',
+          isVisible: true,
+          visibilityPartKeys: ['slot-a'],
+          buildState: 'done',
+          buildStateLabel: 'Built',
+          rebuildGraphDocumentIds: [],
+          ownerGraphDocumentId: 'graph-document-1',
+          parentComponentId: 'component-1',
+          objectSourceKind: 'published-object',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry-1',
+          slotId: 'slot-a',
+          sourceNodeId: 'node-output-1',
+          resolutionState: 'resolved',
+          highlightViewerKey: 'slot-a',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-output-1',
+        },
+      ],
+    }
+
+    ;({ root } = await renderBrowserPanel())
+
+    expect(findButtonByLabel('Hide Assembly 1')).not.toBeNull()
+    expect(findButtonByLabel('Hide Component 1')).not.toBeNull()
+    expect(findButtonByLabel('Hide Object 1')).not.toBeNull()
   })
 })

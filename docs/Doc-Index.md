@@ -4,6 +4,18 @@
 <summary>Doc Header</summary>
 
 ### Doc History
+113. 2026-03-25 17:29: Added `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-7 - Browser Cleanup Follow-Ons.md` to the architecture docs map and refreshed the Browser subtree so the next small Browser cleanup follow-ons now have a dedicated future tracking surface after Browser-6
+112. 2026-03-25 15:56: Moved the shipped Browser phase records `Browser-5.3`, `Browser-5.4`, and `Browser-5.5` from `docs/Human-Plans/Architecture/Browser/Future/` into `Browser/Shipped/`, refreshed the Browser subtree listing, and kept the docs map aligned with the post-5.5 Browser family state where `Browser-6` is the remaining future Browser phase
+111. 2026-03-25 14:39: Added `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-5.4 - Explicit Additive Multi-Select.md` to the architecture docs map and refreshed the Browser subtree so the explicit `Ctrl+click` plus `Shift+click` multi-select follow-up now has its own standalone future planning surface between the Browser-5.3 console-context phase and the Browser-5.5 reference batch-loading phase
+110. 2026-03-25 13:17: Added `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-5.5 - Reference Batch Load Queue And Aggregate Progress.md` to the architecture docs map and refreshed the Browser subtree so the next reference-loading follow-up now has a dedicated future planning surface under the Browser family
+109. 2026-03-25 10:59: Added `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-5.3 - Selection To Console Context For Content And References.md` to the architecture docs map and refreshed the Browser subtree so the next content/reference selection-to-console follow-up now has its own standalone implementation-ready future planning surface under the Browser family
+108. 2026-03-25 10:16: Moved the shipped `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-5.2 - Implicit Parent Multi-Selection.md` record into `Browser/Shipped/`, refreshed the Browser subtree listing, and kept the docs map aligned with the newly landed grouped parent-selection cleanup after Browser-5.1
+107. 2026-03-25 10:06: Added `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-5.2 - Implicit Parent Multi-Selection.md` to the architecture docs map and refreshed the Browser subtree so the next grouped parent-selection follow-up now has its own standalone implementation-ready future planning surface under the Browser family
+106. 2026-03-25 09:44: Moved the shipped `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-5.1 - Reference Selection Cleanup.md` record into `Browser/Shipped/`, refreshed the Browser subtree listing, and kept the docs map aligned with the newly landed reference-selection cleanup after Browser-5
+105. 2026-03-25 03:08: Added `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-5.1 - Reference Selection Cleanup.md` to the architecture docs map and refreshed the Browser subtree so the next immediate post-`Browser-5` reference-selection cleanup now has a dedicated future planning surface under the Browser family
+104. 2026-03-25 03:00: Added `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/master spaghetti-index.md` plus `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Future/Master_Spaghetti_Phase Master Spaghetti-1 - Smart Wiring And Intent-Aware Auto-Insert First Pass.md` to the architecture docs map, so the Spaghetti editor umbrella now has a visible folder entry-point doc and its first standalone future smart-wiring phase record
+103. 2026-03-25 02:50: Moved the shipped `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-5 - Selection And Focus Sync.md` record into `Browser/Shipped/`, refreshed the Browser subtree listing, and kept the docs map aligned with the newly landed Browser selection/focus sync phase
+102. 2026-03-25 01:45: Added `docs/Human-Plans/roadmap/Architecture-roadmap.md` to the docs map as the new cross-family tracker for the newer architecture phase ladders, so `Browser`, `Console`, `Spaghetti Editor`, `Nodes`, `Worker`, and `AppShell` now have one compact roadmap companion under `docs/Human-Plans/roadmap/`
 101. 2026-03-24 14:19: Added `docs/Human-Plans/Architecture/Console/Future/Console_Phase 5.1G - Surface-Agnostic Command Ownership And Adapter Expansion.md` to the architecture docs map and refreshed the `Console` subtree so the new owner-first multi-surface command-expansion phase now has a dedicated future planning surface under the folderized console family
 100. 2026-03-24 13:11: Added the new standalone `Browser/Future/` phase docs to the architecture docs map, so the Browser family now has dedicated future planning surfaces for build-policy icon surface, cascade truth, runtime execution, row-click cleanup, selection/focus sync, and BrowserPanel structure cleanup instead of keeping those phases only inside `Browser-Index.md`
 99. 2026-03-24 12:26: Added `docs/Human-Plans/Architecture/Browser/Browser-Index.md` to the architecture docs map, created the new folderized `Browser` family with `Future/` and `Shipped/`, and refreshed the architecture subtree so Browser-specific planning now has one canonical umbrella home under `docs/Human-Plans/Architecture/` instead of staying scattered across older Browser/build/task notes
@@ -461,9 +473,15 @@ Rule notes:
             - `Shipped/Browser_Phase Browser-1 - Build Policy Icon Surface.md`
             - `Shipped/Browser_Phase Browser-2 - Cascade And Effective Policy Truth.md`
             - `Shipped/Browser_Phase Browser-3 - Runtime Build Policy Execution.md`
-            - `Future/Browser_Phase Browser-4 - Row Click And Action Ownership Cleanup.md`
-            - `Future/Browser_Phase Browser-5 - Selection And Focus Sync.md`
+            - `Shipped/Browser_Phase Browser-4 - Row Click And Action Ownership Cleanup.md`
+            - `Shipped/Browser_Phase Browser-5 - Selection And Focus Sync.md`
+            - `Shipped/Browser_Phase Browser-5.1 - Reference Selection Cleanup.md`
+            - `Shipped/Browser_Phase Browser-5.2 - Implicit Parent Multi-Selection.md`
+            - `Shipped/Browser_Phase Browser-5.3 - Selection To Console Context For Content And References.md`
+            - `Shipped/Browser_Phase Browser-5.4 - Explicit Additive Multi-Select.md`
+            - `Shipped/Browser_Phase Browser-5.5 - Reference Batch Load Queue And Aggregate Progress.md`
             - `Future/Browser_Phase Browser-6 - BrowserPanel Structure And Row-Family Cleanup.md`
+            - `Future/Browser_Phase Browser-7 - Browser Cleanup Follow-Ons.md`
 #### -------Camera-Controls
             - `Camera_Controls-Index.md`
             - `Shipped/Camera_Controls_Phase 5.0H-1 - Sketch Draw Camera Blocking.md`
@@ -486,7 +504,9 @@ Rule notes:
             - `Shipped/Worker_Phase 5.3A-3 - Worker Lane Definition And Execution-Intent Model.md`
             - `Shipped/Worker_Phase 5.3A-1 - Worker Audit And Legacy Startup Inventory.md`
 #### -------Spaghetti-Editor-Arch
+            - `master spaghetti-index.md`
             - `Spaghetti-Editor-Explained.md`
+            - `Future/Master_Spaghetti_Phase Master Spaghetti-1 - Smart Wiring And Intent-Aware Auto-Insert First Pass.md`
             - `Nodes/Nodes-Index.md`
             - `Nodes/Nodes-Fondation/Shipped/Nodes_Phase 3.2A-0.1 - Sketch To Extrude To Preview Contract Repair.md`
             - `Nodes/Sketch/Sketch.md`
@@ -501,6 +521,7 @@ Rule notes:
         - `4_GeometrySketch-Extrude-Profile-Handoff-Regression.md`
 ### ----roadmap
         - `roadmap.md`
+        - `Architecture-roadmap.md`
         - `Vision-roadmap.md`
         - `Now-Next-Later-Much-Later.md`
 #### -------archive
