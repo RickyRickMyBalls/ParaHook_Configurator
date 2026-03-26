@@ -4,6 +4,7 @@
 <summary>Doc Header</summary>
 
 ### Doc History
+122. 2026-03-25 22:17: Moved the shipped `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-6 - BrowserPanel Structure And Row-Family Cleanup.md` record into `Browser/Shipped/`, refreshed the Browser subtree listing, and kept the docs map aligned with the post-Browser-6 family state where `Browser-7` is now the remaining future Browser phase
 121. 2026-03-25 21:49: Moved the shipped `docs/Human-Plans/Architecture/Console/Future/Console_Phase 5.1G - Surface-Agnostic Command Ownership And Adapter Expansion.md` record into `Console/Shipped/`, refreshed the Console subtree listing, and kept the docs map aligned with the now-landed owner-first command-expansion cut after shared workspace-selection outcomes and shared view commands shipped in code
 120. 2026-03-25 21:10: Moved the shipped `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase 5.3A-7 - Graph-Native Worker Cutover And Legacy Contract Deletion.md` record into `Worker/Shipped/`, refreshed the Worker subtree listing, and kept the docs map aligned with the now-fully-shipped `5.3A` worker family so the architecture docs no longer list any open future worker phase under `Worker/`
 119. 2026-03-25 20:37: Added `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase 5.3A-7 - Graph-Native Worker Cutover And Legacy Contract Deletion.md` to the architecture docs map, refreshed the Worker subtree so the final worker cutover now has its own implementation-ready future planning surface, and kept the Worker family aligned with the newly locked outer-edge translation, bundle-first cutover, `assemble` deletion, product-neutral core, and deletion-grade verification decisions
@@ -488,7 +489,7 @@ Rule notes:
             - `Shipped/Browser_Phase Browser-5.3 - Selection To Console Context For Content And References.md`
             - `Shipped/Browser_Phase Browser-5.4 - Explicit Additive Multi-Select.md`
             - `Shipped/Browser_Phase Browser-5.5 - Reference Batch Load Queue And Aggregate Progress.md`
-            - `Future/Browser_Phase Browser-6 - BrowserPanel Structure And Row-Family Cleanup.md`
+            - `Shipped/Browser_Phase Browser-6 - BrowserPanel Structure And Row-Family Cleanup.md`
             - `Future/Browser_Phase Browser-7 - Browser Cleanup Follow-Ons.md`
 #### -------Camera-Controls
             - `Camera_Controls-Index.md`

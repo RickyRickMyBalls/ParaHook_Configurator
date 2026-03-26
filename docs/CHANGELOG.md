@@ -65,6 +65,32 @@ Do not use it for:
 
 ## Doc Body
 
+### [642] - 2026-03-25 22:07 - `BRW - Browser-6 - BrowserPanel Structure And Row-Family Cleanup`
+<!-- ENTRY 642 -->
+HUMAN SUMMARY: `Shipped the Browser-6 structural cleanup by extracting the remaining BrowserPanel-wide composition, overlay lifecycle, and action wiring into a dedicated controller hook while keeping the existing row-family, presenter, interaction, menu, and selector seams canonical and behavior-preserving.` 
+#### Scope / Constraints Honored
+- Kept Browser-6 focused on the remaining `BrowserPanel` host/controller cleanup instead of redesigning row families.
+- Preserved Browser-5.3, Browser-5.4, and Browser-5.5 behavior, including selection-to-console sync, explicit multi-select, and reference batch-loading.
+- Kept Browser transcript publishing as a Browser-local helper for this phase instead of widening into a larger console ownership change.
+
+#### Summary of Implementation
+- Added `useBrowserPanelController.ts` as the new BrowserPanel-wide controller seam that now owns store reads, derived Browser rows, workspace intent dependency assembly, overlay lifecycle, Browser transcript helper wiring, and panel-scoped graph/reference/content/editor action closures.
+- Slimmed `BrowserPanel.tsx` down to shell-local collapse/popout behavior plus host rendering of the Browser sections and overlay components.
+- Kept `selectBrowserGraphRows.ts`, `selectBrowserTreeRows.ts`, `browserInteractions.ts`, `browserRowFamilies.ts`, `browserTreeRowPresenter.tsx`, `browserTreeSections.tsx`, `browserContextMenu.ts`, and `browserRowActions.ts` as the canonical Browser seams rather than replacing them.
+
+#### Files Changed
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/panels/useBrowserPanelController.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- No intended user-facing behavior change; this phase is structural cleanup.
+- `BrowserPanel` now acts as a host/composition surface while the new controller hook owns the heavy panel-specific state assembly, overlay lifecycle, and action glue.
+
+#### Verification Steps
+- `npm.cmd run test -- src/app/panels/BrowserPanel.test.tsx src/app/panels/browserInteractions.test.ts src/app/panels/browserContextMenu.test.ts src/app/panels/browserRowActions.test.ts src/app/panels/selectBrowserGraphRows.test.ts src/app/panels/selectBrowserTreeRows.test.ts`
+- `npm.cmd run build`
+
 ### [641] - 2026-03-25 21:49 - `CON - Phase 5.1G - Surface-Agnostic Command Ownership And Adapter Expansion`
 <!-- ENTRY 641 -->
 HUMAN SUMMARY: `Shipped the first \`5.1G\` console owner-first command expansion cut by centralizing shared workspace-selection outcomes and shared view commands, rewiring \`Console\`, \`Browser\`, \`Model Viewport\`, and \`View Toolbar\` onto those seams, and cleaning the console-family docs to the shipped state.` 

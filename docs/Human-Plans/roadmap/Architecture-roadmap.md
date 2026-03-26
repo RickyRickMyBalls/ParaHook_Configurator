@@ -3,6 +3,8 @@
 ## Doc Header
 
 ### Doc History
+15. 2026-03-25 22:17: Cleaned up this cross-family roadmap after shipping `Browser-6 - BrowserPanel Structure And Row-Family Cleanup`, updated the Browser family read to the post-Browser-6 state with eleven shipped cuts, and advanced the remaining open Browser architecture work to the smaller `Browser-7` follow-on bucket
+14. 2026-03-25 21:55: Added a practical `To do` checklist section to this cross-family roadmap, rewriting the near-term sequence from the current live architecture families instead of the older roadmap-lane labels so the file now has one Browser-to-Pasta-Path working list for what to finish before the first honest `Pasta Path` cut
 13. 2026-03-25 21:49: Marked `[5.1G] Surface-Agnostic Command Ownership And Adapter Expansion` shipped in this cross-family roadmap, updated the Console family read so shared workspace-selection outcomes and shared view commands now count as landed owner-first console groundwork, and left the Console family partial only because the smaller `[4.1I5]` staged-grammar hardening follow-on still remains open
 12. 2026-03-25 21:25: Refreshed this cross-family roadmap against the newer Browser and Master Spaghetti source docs, so the Browser family now acknowledges both `Browser-6` and the later `Browser-7` cleanup bucket while the Spaghetti Editor family notes the existing standalone `Master Spaghetti-1` follow-on instead of reading like that ladder is still purely undecided
 11. 2026-03-25 21:10: Marked `[5.3A-7] Graph-Native Worker Cutover And Legacy Contract Deletion` shipped in this cross-family roadmap, updated the Worker family read to a fully shipped seven-phase worker ladder, and closed the Worker architecture family as complete until a new follow-on family is introduced
@@ -99,11 +101,10 @@ Source doc:
 
 Current read:
 - `Browser` is one of the cleanest newer architecture families right now
-- it already has a compact ladder with ten shipped cuts plus two named open follow-ons
-- the next open work is:
-  - `Browser-6`
+- it already has a compact ladder with eleven shipped cuts plus one named open follow-on
+- the next open work is now:
   - `Browser-7`
-- `Browser-7` is the newer accumulating cleanup bucket after `Browser-6`, and its first narrow shipped follow-on has already landed under the local `Browser-7.x` tracking
+- `Browser-7` is the accumulating cleanup bucket after the shipped Browser-6 structural split, and its first narrow shipped follow-on has already landed under the local `Browser-7.x` tracking
 
 ### [x] Browser-1 - Build Policy Icon Surface
 ### [x] Browser-2 - Cascade And Effective Policy Truth
@@ -115,7 +116,7 @@ Current read:
 ### [x] Browser-5.3 - Selection To Console Context For Content And References
 ### [x] Browser-5.4 - Explicit Additive Multi-Select
 ### [x] Browser-5.5 - Reference Batch Load Queue And Aggregate Progress
-### [ ] Browser-6 - BrowserPanel Structure And Row-Family Cleanup
+### [x] Browser-6 - BrowserPanel Structure And Row-Family Cleanup
 ### [ ] Browser-7 - Browser Cleanup Follow-Ons
 
 ## [~] Console
@@ -354,6 +355,33 @@ Current read:
 ### [x] [5.0F] AppShell Cleanup And Host Seam Extraction
 ### [x] [5.0F-1] AppShell Runtime Host Extraction
 ### [x] [5.0F-2] AppShell Window And Dock Host Extraction
+
+## To do
+
+- [x] `Browser-6`
+- [ ] `Browser-7`
+- [ ] `SketchPlane-2`
+- [ ] `SketchPlane-2-Cleanup`
+- [ ] `SketchPlane-3`
+- [ ] `SketchPlane-S8`
+- [ ] `Sketch-Console-2`
+- [ ] `Sketch-Console-3`
+- [ ] `DrawSketch-6`
+- [ ] `DrawSketch-7`
+- [ ] `Nodes-3.2A-1`
+- [ ] `Nodes-3.2A-2`
+- [ ] `Nodes-3.2A-3`
+- [ ] `Extrude-1`
+- [ ] `Nodes-3.2A-4`
+- [ ] `Sketch-4`
+- [ ] `Sketch-5`
+- [ ] `Sketch-6`
+- [ ] `Camera-5`
+- [ ] `ViewToolbar-1`
+- [ ] `Workspace-1`
+- [ ] `Workspace-2`
+- [ ] `Workspace-3`
+- [ ] `PastaPath-1`
 
 ## Next Cleanup
 

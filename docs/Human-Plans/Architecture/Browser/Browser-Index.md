@@ -3,6 +3,8 @@
 ## Doc Header
 
 ### Doc History
+37. 2026-03-25 22:17: Cleaned up the Browser architecture docs after shipping `Browser-6 - BrowserPanel Structure And Row-Family Cleanup` by moving its standalone phase record into `Browser/Shipped/`, rewriting this Browser umbrella doc to the post-Browser-6 state, and advancing the family so `Browser-7` is now the remaining open Browser follow-on
+36. 2026-03-25 21:57: Refined the open `Browser-6` read in this Browser umbrella doc to match the live code and the tightened standalone phase spec, clarifying that the Browser already has extracted row-family, presenter, interaction, and menu seams and that the real remaining Browser-6 target is the heavier BrowserPanel model/controller and overlay-wiring cleanup still trapped inline
 35. 2026-03-25 17:29: Added `Browser-7 - Browser Cleanup Follow-Ons` as the next small-cleanup Browser phase after Browser-6, created a dedicated Browser-7 tracking direction for narrower shipped follow-ons, and recorded the first two concrete entries for viewport-driven explicit multi-select sync and object-scope `Zoom` command expansion
 34. 2026-03-25 16:20: Locked the remaining `Browser-6` structural questions in this Browser umbrella doc, deciding that shared selection, console routing, and reference batch loading must stay outside `BrowserPanel` ownership and that Browser-6 should preserve shipped Browser-5.x behavior by default while extracting seams, reducing duplication, and improving row-family organization
 33. 2026-03-25 16:13: Locked `q2` under `Browser-6 - BrowserPanel Structure And Row-Family Cleanup`, deciding that Browser-6 should keep the shared row shell and click grammar centralized while moving content, reference, graph, and sketch row-family differences into narrower family-specific adapter seams instead of one giant central panel switch
@@ -1037,144 +1039,27 @@ Shipped result:
 - item rows still keep their local `unloaded / loading / loaded / error` state while the root/category bars represent whole-batch progress
 - Browser and Console `Load All` entrypoints now dispatch into the same shared batch-start seam, and the Console now prints both per-item loaded confirmations and one final completion line when the batch finishes
 
-## [ ] Browser-6 - BrowserPanel Structure And Row-Family Cleanup
+## [x] Browser-6 - BrowserPanel Structure And Row-Family Cleanup
 
-### Purpose
+- `Browser-6` is now shipped
+- this cleanup landed the second-stage BrowserPanel structural split that the earlier Browser row-family, presenter, interaction, and menu extractions intentionally left as the next host/controller follow-on
 
-Reduce the amount of Browser-specific behavior trapped in one large panel component and make row-family behavior easier to reason about and extend.
-
-### Owns
-
-- BrowserPanel structural cleanup
-- row-shell versus row-behavior separation
-- row-family consistency standards
-- reducing inline special-case handling for every row kind
-
-### Suggested Direction
-
-- keep Browser row VM generation separate from Browser interaction behavior
-- shrink special-case inline row handling where possible
-- make graph/content/reference/sketch/viewport rows follow clearer shared rules before adding more Browser features
-
-### Questions / Decisions
-
-#### [x] q1 - How far should the BrowserPanel split go in the first Browser-6 cut?
-
-Question:
-- should Browser-6 only extract a few helpers from `BrowserPanel`, or should it establish a clearer layered structure such as row-vm derivation, interaction handlers, and row-family rendering seams in the first pass?
-
-Suggestion:
-- make the first Browser-6 cut structural enough to matter:
-  - keep one top-level `BrowserPanel` host
-  - move row-vm derivation out of the panel body
-  - move selection / open / context-menu behavior out of the panel body
-  - keep row rendering on a small reusable shell plus row-family-specific adapters
-- avoid a cosmetic helper-only split that leaves the same logic density in one file under different function names
-
-Decision:
-- make the first Browser-6 cut a meaningful architecture cleanup, not a cosmetic helper extraction
-- keep one top-level `BrowserPanel` host
-- move row-vm derivation out of the panel body
-- move selection / open / context-menu behavior out of the panel body
-- keep row rendering on a small reusable shell plus row-family-specific adapters
-- avoid a helper-only split that leaves the same logic density trapped in one file
-
-#### [x] q2 - Where should row-family-specific behavior live after Browser-6?
-
-Question:
-- once `BrowserPanel` is cleaned up, should row-family differences still be handled through one big central switch, or should each row family own a narrower adapter/config seam?
-
-Suggestion:
-- move toward one Browser row-family definition seam per major family:
-  - graph-document / graph-owned rows
-  - content rows
-  - reference rows
-  - sketch rows
-  - viewport or utility rows where still needed
-- each family seam should define:
-  - row identity mapping
-  - select/open/context-menu capability
-  - optional grouped-highlight behavior
-  - optional action surface participation
-- keep the shared row shell and shared click grammar centralized, but keep family-specific exceptions out of one giant panel switch
-
-Decision:
-- keep the shared row shell and shared click grammar centralized
-- move major row-family differences into narrower family-specific adapter seams instead of one giant central panel switch
-- the first Browser-6 family seams should group behavior roughly by:
-  - graph-document / graph-owned rows
-  - content rows
-  - reference rows
-  - sketch rows
-- each family seam should define:
-  - row identity mapping
-  - select/open/context-menu capability
-  - optional grouped-highlight behavior
-  - optional action surface participation
-
-#### [x] q3 - Which interaction logic must leave BrowserPanel entirely?
-
-Question:
-- Browser-5.x added more shared selection, console-context, and reference-load behavior; which of those should Browser-6 treat as off-limits for panel-local ownership?
-
-Suggestion:
-- Browser-6 should keep these outside `BrowserPanel` ownership:
+Shipped result:
+- `BrowserPanel.tsx` now reads as a thinner host/shell instead of the main mixed Browser controller
+- the new `useBrowserPanelController.ts` seam now owns the heavier BrowserPanel-wide store reads, derived tree composition, menu state/lifecycle, controller closures, and Browser-scoped transcript helper wiring that previously lived inline
+- the existing Browser seams remain canonical:
+  - row derivation
+  - row-family capability mapping
+  - row interaction dispatch
+  - row-shell and section rendering
+  - row-action execution
+  - context-menu item building
+- shared Browser-5.3 / 5.4 / 5.5 ownership stayed outside `BrowserPanel`:
   - shared selection truth
-  - explicit multi-select state
-  - resolved grouped content-selection truth
-  - console context routing
-  - reference batch-load ownership
-- `BrowserPanel` should become mainly:
-  - row composition
-  - event capture
-  - dispatch into shared seams
-  - visual-state rendering from derived row vm truth
-- do not let the structure cleanup accidentally pull Browser-5.3 / 5.4 / 5.5 ownership back into the panel
-
-Decision:
-- Browser-6 should keep these outside `BrowserPanel` ownership:
-  - shared selection truth
-  - explicit multi-select state
-  - resolved grouped content-selection truth
-  - console context routing
-  - reference batch-load ownership
-- `BrowserPanel` should become mainly:
-  - row composition
-  - event capture
-  - dispatch into shared seams
-  - visual-state rendering from derived row vm truth
-- do not let the structure cleanup pull Browser-5.3 / 5.4 / 5.5 ownership back into the panel
-
-#### [x] q4 - How aggressive should Browser-6 be about opportunistic cleanup of shipped Browser-5.x behavior?
-
-Question:
-- while restructuring the panel, should Browser-6 also try to rewrite the shipped selection/reference/loading behavior deeply, or should it mainly preserve behavior and improve code organization around it?
-
-Suggestion:
-- Browser-6 should be behavior-preserving by default
-- prefer:
-  - extract
-  - rename
-  - isolate seams
-  - reduce duplication
-  - improve tests around row-family boundaries
-- only change shipped Browser-5.x behavior when the current structure makes a bug or inconsistency impossible to avoid
-- keep the main success condition as:
-  - Browser behavior still works the same
-  - adding the next row-family or Browser action is much easier
-
-Decision:
-- Browser-6 should be behavior-preserving by default
-- prefer:
-  - extract
-  - rename
-  - isolate seams
-  - reduce duplication
-  - improve tests around row-family boundaries
-- only change shipped Browser-5.x behavior when the current structure makes a bug or inconsistency impossible to avoid
-- keep the main success condition as:
-  - Browser behavior still works the same
-  - adding the next row-family or Browser action is much easier
+  - shared console-context routing
+  - shared reference batch-load ownership
+  - shared workspace/view command-owner seams
+- Browser behavior stayed materially the same while the structure became much easier to extend without regrowing one oversized panel file
 
 ## [ ] Browser-7 - Browser Cleanup Follow-Ons
 

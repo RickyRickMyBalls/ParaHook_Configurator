@@ -369,6 +369,9 @@ Important rule:
 - not every `/17.0` control must come back exactly as-is
 - but projection, `FOV`, zoom/framing, real grid controls, background modes, and orientation-gizmo tuning are the strongest legacy features currently missing from `/20`
 
+
+
+
 ### Phases
 
 This family should ship in the fewest safe cuts that still keep command ownership, projection changes, grid growth, and legacy helper carry-forward readable.
