@@ -22,6 +22,12 @@ import {
   type GizmoSpace,
 } from '../viewerBridge'
 import {
+  frameAllCommand,
+  frameSelectedCommand,
+  setCameraPresetCommand,
+  setProjectionModeCommand,
+} from '../viewCommands'
+import {
   COMPACT_AXIS_WIDGET_SIZE,
   DEFAULT_EXPANDED_AXIS_WIDGET_SIZE,
   resolveRightDockWidth,
@@ -219,7 +225,7 @@ export function ViewToolbar() {
                 }`}
                 type="button"
                 aria-pressed={view.projectionMode === 'perspective'}
-                onClick={() => setViewKey('projectionMode', 'perspective')}
+                onClick={() => setProjectionModeCommand('perspective')}
               >
                 Perspective
               </button>
@@ -229,7 +235,7 @@ export function ViewToolbar() {
                 }`}
                 type="button"
                 aria-pressed={view.projectionMode === 'orthographic'}
-                onClick={() => setViewKey('projectionMode', 'orthographic')}
+                onClick={() => setProjectionModeCommand('orthographic')}
               >
                 Orthographic
               </button>
@@ -242,7 +248,7 @@ export function ViewToolbar() {
                   aria-pressed={activeCameraPreset === preset}
                   onClick={() => {
                     setActiveCameraPreset(preset)
-                    withViewer((viewer) => viewer.setCameraPreset(preset))
+                    setCameraPresetCommand(preset)
                   }}
                 >
                   {preset[0].toUpperCase() + preset.slice(1)}
@@ -252,14 +258,14 @@ export function ViewToolbar() {
               <button
                 className="CameraButton CameraActionButton"
                 type="button"
-                onClick={() => withViewer((viewer) => viewer.frameSelected(selectedPartKey))}
+                onClick={() => frameSelectedCommand(selectedPartKey)}
               >
                 Frame
               </button>
               <button
                 className="CameraButton CameraActionButton"
                 type="button"
-                onClick={() => withViewer((viewer) => viewer.frameAll())}
+                onClick={() => frameAllCommand()}
               >
                 Frame All
               </button>

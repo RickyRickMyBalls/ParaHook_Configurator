@@ -31,6 +31,7 @@ import {
   startSketchPlaneIntent,
   type WorkspaceIntentDeps,
 } from '../store/workspaceIntents'
+import { commitWorkspaceTargetSelection } from '../store/workspaceSelectionCommands'
 import { addNode as addNodeCommand, removeNode as removeNodeCommand } from '../spaghetti/graphCommands'
 import { getDefaultNodeParams, getNodeDef } from '../spaghetti/registry/nodeRegistry'
 import type {
@@ -68,6 +69,16 @@ import {
   type ConsoleStagedNavigationChoice,
   type ConsoleStagedNavigationSession,
 } from './stagedNavigation'
+import {
+  frameAllCommand,
+  frameExtentsCommand,
+  framePreviousCommand,
+  frameReferenceCommand,
+  frameSelectedCommand,
+  frameSelectedGeometrySketchCommand,
+  setConsoleCameraModeCommand,
+  setProjectionModeCommand,
+} from '../viewCommands'
 
 const FLOATING_MIN_WIDTH = 420
 const FLOATING_MIN_HEIGHT = 220
@@ -1449,7 +1460,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
     if (stepActiveStagedNavigationSessionOneLevel()) {
       return
     }
-    getViewer()?.setConsoleCameraMode(null)
+    setConsoleCameraModeCommand(null)
     const spaghettiState = useSpaghettiStore.getState()
     if (spaghettiState.sketchPlanePickSession !== null) {
       spaghettiState.runSketchPlaneCommand('esc')
@@ -1729,11 +1740,19 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
               (activeStagedSession?.scopeId === 'referenceCategorySelected' &&
                 stagedResult.matchedChoice.canonicalToken === 'BACK')
             ) {
-              appState.setWorkspaceSelectedTarget({
-                kind: 'references-root',
-              })
-              appState.setWorkspaceResolvedContentSelection(null)
-              appState.selectPart(null)
+              commitWorkspaceTargetSelection(
+                {
+                  setWorkspaceSelectedTarget: appState.setWorkspaceSelectedTarget,
+                  selectPart: appState.selectPart,
+                  requestConsoleContextSync: appState.requestConsoleContextSync,
+                },
+                {
+                  kind: 'references-root',
+                },
+                {
+                  selectedPartKey: null,
+                },
+              )
             }
           }
           if (
@@ -1741,24 +1760,40 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
             typeof stagedResult.selections.referenceCategoryId === 'string'
           ) {
             const appState = useAppStore.getState()
-            appState.setWorkspaceSelectedTarget({
-              kind: 'reference-category',
-              categoryId: stagedResult.selections.referenceCategoryId as any,
-            })
-            appState.setWorkspaceResolvedContentSelection(null)
-            appState.selectPart(null)
+            commitWorkspaceTargetSelection(
+              {
+                setWorkspaceSelectedTarget: appState.setWorkspaceSelectedTarget,
+                selectPart: appState.selectPart,
+                requestConsoleContextSync: appState.requestConsoleContextSync,
+              },
+              {
+                kind: 'reference-category',
+                categoryId: stagedResult.selections.referenceCategoryId as any,
+              },
+              {
+                selectedPartKey: null,
+              },
+            )
           }
           if (
             stagedResult.session.scopeId === 'referenceSelected' &&
             typeof stagedResult.selections.referenceId === 'string'
           ) {
             const appState = useAppStore.getState()
-            appState.setWorkspaceSelectedTarget({
-              kind: 'reference-item',
-              referenceId: stagedResult.selections.referenceId,
-            })
-            appState.setWorkspaceResolvedContentSelection(null)
-            appState.selectPart(null)
+            commitWorkspaceTargetSelection(
+              {
+                setWorkspaceSelectedTarget: appState.setWorkspaceSelectedTarget,
+                selectPart: appState.selectPart,
+                requestConsoleContextSync: appState.requestConsoleContextSync,
+              },
+              {
+                kind: 'reference-item',
+                referenceId: stagedResult.selections.referenceId,
+              },
+              {
+                selectedPartKey: null,
+              },
+            )
           }
           if (
             activeStagedSession?.selections.selectedNodeId !== null &&
@@ -2180,14 +2215,14 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
             const commandLabel = formatStagedBreadcrumb(stagedResult.breadcrumb)
             const executeModelZoomObject = (): boolean => {
               if (stagedResult.session.scopeId === 'sketchDrawZoomRoot') {
-                return viewer?.frameSelectedGeometrySketch() ?? false
+                return frameSelectedGeometrySketchCommand()
               }
               if (appState.selectedPartKey !== null) {
-                viewer?.frameSelected(appState.selectedPartKey)
+                frameSelectedCommand(appState.selectedPartKey)
                 return true
               }
               if (selectedReferenceId !== null) {
-                viewer?.frameReference(selectedReferenceId)
+                frameReferenceCommand(selectedReferenceId)
                 return true
               }
               appendConsoleEntry({
@@ -2275,7 +2310,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
 
             let actionSucceeded = true
             if (stagedResult.actionId === 'camera.pan' || stagedResult.actionId === 'camera.orbit') {
-              viewer?.setConsoleCameraMode(
+              setConsoleCameraModeCommand(
                 stagedResult.actionId === 'camera.pan' ? 'pan' : 'orbit',
               )
               appendConsoleEntry({
@@ -2298,7 +2333,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
                 stagedResult.actionId === 'sketchdraw.camera.projection.orthographic'
                   ? 'orthographic'
                   : 'perspective'
-              useUiPrefsStore.getState().setViewKey('projectionMode', projectionMode)
+              setProjectionModeCommand(projectionMode)
               appendConsoleEntry({
                 layer: 'View',
                 text: `Projection: ${
@@ -2314,14 +2349,14 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
               if (stagedResult.session.scopeId === 'sketchDrawZoomRoot') {
                 viewer?.frameGeometrySketch()
               } else if (stagedResult.actionId === 'zoom.model.all') {
-                viewer?.frameAll()
+                frameAllCommand()
               } else {
-                viewer?.frameExtents()
+                frameExtentsCommand()
               }
             } else if (stagedResult.actionId === 'zoom.model.previous') {
-              viewer?.framePrevious()
+              framePreviousCommand()
             } else if (stagedResult.actionId === 'zoom.model.window') {
-              viewer?.setConsoleCameraMode('zoom-window')
+              setConsoleCameraModeCommand('zoom-window')
               appendConsoleEntry({
                 layer: 'View',
                 text: 'Zoom Window armed: drag a box in the viewport with LMB',
@@ -3172,7 +3207,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
                 stagedResult.actionId === 'sketchdraw.camera.projection.orthographic'
                   ? 'orthographic'
                   : 'perspective'
-              useUiPrefsStore.getState().setViewKey('projectionMode', projectionMode)
+              setProjectionModeCommand(projectionMode)
               setStagedNavigationSession(createSketchDrawRootSession(stagedContext))
               appendConsoleEntry({
                 layer: 'Commands',
@@ -3302,7 +3337,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
               trimmedInput === 'orthographic' || trimmedInput === 'o'
                 ? 'orthographic'
                 : 'perspective'
-            useUiPrefsStore.getState().setViewKey('projectionMode', projectionMode)
+            setProjectionModeCommand(projectionMode)
             appendConsoleEntry({
               layer: 'View',
               text: `Projection: ${
@@ -3531,7 +3566,6 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
       })
       trackRadioCommandIdentity(flatCommandIdentity)
 
-      const viewer = getViewer()
       const appState = useAppStore.getState()
       const activeReferenceId = appState.referenceWorkspace.activeTransformReferenceId
       const rotateSnapState =
@@ -3595,7 +3629,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
           })
           return
         case 'frame':
-          viewer?.frameAll()
+          frameAllCommand()
           requestRadioBurst(flatCommandIdentity, 'enter')
           appendConsoleEntry({
             layer: 'View',
@@ -3633,13 +3667,13 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
             }
             const selectedReferenceId = resolveSelectedReferenceIdForZoom()
             if (zoomAction === 'all') {
-              viewer?.frameAll()
+              frameAllCommand()
             } else if (zoomAction === 'extents') {
-              viewer?.frameExtents()
+              frameExtentsCommand()
             } else if (zoomAction === 'previous') {
-              viewer?.framePrevious()
+              framePreviousCommand()
             } else if (zoomAction === 'window') {
-              viewer?.setConsoleCameraMode('zoom-window')
+              setConsoleCameraModeCommand('zoom-window')
               appendConsoleEntry({
                 layer: 'View',
                 text: 'Zoom Window armed: drag a box in the viewport with LMB',
@@ -3650,15 +3684,15 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
               useSpaghettiStore.getState().geometrySketchSession?.mode === 'draw' &&
               (useSpaghettiStore.getState().geometrySketchSession?.selectedComponentIds.length ?? 0) > 0
             ) {
-              const didFrameSelectedSketch = viewer?.frameSelectedGeometrySketch() ?? false
+              const didFrameSelectedSketch = frameSelectedGeometrySketchCommand()
               if (!didFrameSelectedSketch) {
                 requestRadioBurst(flatCommandIdentity, 'enter')
                 return
               }
             } else if (appState.selectedPartKey !== null) {
-              viewer?.frameSelected(appState.selectedPartKey)
+              frameSelectedCommand(appState.selectedPartKey)
             } else if (selectedReferenceId !== null) {
-              viewer?.frameReference(selectedReferenceId)
+              frameReferenceCommand(selectedReferenceId)
             } else {
               appendConsoleEntry({
                 layer: 'Diagnostics',
@@ -3693,7 +3727,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
           }
           return
         case 'pan':
-          viewer?.setConsoleCameraMode('pan')
+          setConsoleCameraModeCommand('pan')
           requestRadioBurst(flatCommandIdentity, 'enter')
           appendConsoleEntry({
             layer: 'View',
@@ -3703,7 +3737,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
           })
           return
         case 'orbit':
-          viewer?.setConsoleCameraMode('orbit')
+          setConsoleCameraModeCommand('orbit')
           requestRadioBurst(flatCommandIdentity, 'enter')
           appendConsoleEntry({
             layer: 'View',

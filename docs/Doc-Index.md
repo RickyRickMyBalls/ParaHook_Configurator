@@ -4,6 +4,7 @@
 <summary>Doc Header</summary>
 
 ### Doc History
+121. 2026-03-25 21:49: Moved the shipped `docs/Human-Plans/Architecture/Console/Future/Console_Phase 5.1G - Surface-Agnostic Command Ownership And Adapter Expansion.md` record into `Console/Shipped/`, refreshed the Console subtree listing, and kept the docs map aligned with the now-landed owner-first command-expansion cut after shared workspace-selection outcomes and shared view commands shipped in code
 120. 2026-03-25 21:10: Moved the shipped `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase 5.3A-7 - Graph-Native Worker Cutover And Legacy Contract Deletion.md` record into `Worker/Shipped/`, refreshed the Worker subtree listing, and kept the docs map aligned with the now-fully-shipped `5.3A` worker family so the architecture docs no longer list any open future worker phase under `Worker/`
 119. 2026-03-25 20:37: Added `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase 5.3A-7 - Graph-Native Worker Cutover And Legacy Contract Deletion.md` to the architecture docs map, refreshed the Worker subtree so the final worker cutover now has its own implementation-ready future planning surface, and kept the Worker family aligned with the newly locked outer-edge translation, bundle-first cutover, `assemble` deletion, product-neutral core, and deletion-grade verification decisions
 118. 2026-03-25 20:13: Moved the shipped `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase 5.3A-6 - Result Semantics, Browser Truth, And Console Truth.md` record into `Worker/Shipped/`, refreshed the Worker subtree listing, and kept the docs map aligned with the post-`5.3A-6` worker family state now that bundle-based result semantics, Browser truth, and Console truth are landed history instead of a pending future phase
@@ -497,7 +498,7 @@ Rule notes:
             - `Shipped/Camera_Controls_Phase 5.0H-4 - Camera Console Commands.md`
 #### -------Console
             - `Console.md`
-            - `Future/Console_Phase 5.1G - Surface-Agnostic Command Ownership And Adapter Expansion.md`
+            - `Shipped/Console_Phase 5.1G - Surface-Agnostic Command Ownership And Adapter Expansion.md`
 #### -------Pasta-Path
             - `Pasta-Path-Index.md`
 #### -------View-Toolbar

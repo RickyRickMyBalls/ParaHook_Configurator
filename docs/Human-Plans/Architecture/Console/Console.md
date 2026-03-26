@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+22. 2026-03-25 21:49: Marked `[5.1G] Surface-Agnostic Command Ownership And Adapter Expansion` complete after shipping the first owner-first command migration cut, moving its standalone phase record into `Console/Shipped/`, and updating the phase index so shared workspace-selection outcomes and shared view commands are now landed console-family history rather than an open future follow-on
 21. 2026-03-24 14:19: Created the standalone future phase doc `Future/Console_Phase 5.1G - Surface-Agnostic Command Ownership And Adapter Expansion.md`, updated the phase-doc guidance to reflect the folderized `Console/Future/` layout, and linked the new `5.1G` follow-on out of the bottom phase index
 20. 2026-03-24 14:15: Added a bottom moving-forward summary plus new open `[5.1G] Surface-Agnostic Command Ownership And Adapter Expansion`, locking the rule that `Console`, `Browser`, `Model Viewport`, and `View Toolbar` should stay as surface adapters over shared workspace, graph, and view owners instead of becoming separate command owners
 19. 2026-03-23 00:50: Added the first explicit projection-switch example under the existing toolbar-alignment rule, locking the recommendation that visible `Camera > Projection > Orthographic / Perspective` choices in the view toolbar should map to the same console path with local `O` / `P` aliases instead of inventing a toolbar-only behavior seam
@@ -1411,10 +1412,10 @@ What is still missing is the repeatable expansion rule for new CAD commands:
 - every new graph/view/workspace command should plug into one owned seam first
 - every surface should adapt into that same seam instead of inventing a local execution path
 
-## [ ] `[5.1G]` `Surface-Agnostic Command Ownership And Adapter Expansion`
+## [x] `[5.1G]` `Surface-Agnostic Command Ownership And Adapter Expansion`
 
 Summary:
-- turn future CAD command growth into one owner-first model so `Console`, `Browser`, `Model Viewport`, and `View Toolbar` all trigger the same underlying command seams
+- shipped the first owner-first command migration cut so `Console`, `Browser`, `Model Viewport`, and `View Toolbar` now share canonical workspace-selection outcome seams plus shared view-command owners instead of continuing to grow separate local glue
 
 Goals:
 - keep command behavior independent of placement and surface entry
@@ -1422,13 +1423,13 @@ Goals:
 - reduce command drift between console grammar, browser actions, viewport controls, and toolbar controls
 
 Docs:
-- [5.1G](./Future/Console_Phase%205.1G%20-%20Surface-Agnostic%20Command%20Ownership%20And%20Adapter%20Expansion.md)
+- [5.1G](./Shipped/Console_Phase%205.1G%20-%20Surface-Agnostic%20Command%20Ownership%20And%20Adapter%20Expansion.md)
 
 Checklist:
-- [ ] inventory the shared command families that need owner-first routing:
+- [x] inventory the shared command families that need owner-first routing:
   - graph/CAD authoring
   - workspace selection/focus/open
   - camera/view commands
-- [ ] assign each command family to its canonical owner seam instead of a surface-local handler
-- [ ] migrate Browser, model viewport, and view-toolbar entry points onto those shared seams where they still call local behavior directly
-- [ ] add regression coverage proving the same command can be triggered from more than one surface without different behavior
+- [x] assign each command family to its canonical owner seam instead of a surface-local handler
+- [x] migrate Browser, model viewport, and view-toolbar entry points onto those shared seams where they still call local behavior directly
+- [x] add regression coverage proving the same command can be triggered from more than one surface without different behavior

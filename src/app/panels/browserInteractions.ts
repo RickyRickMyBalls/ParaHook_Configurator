@@ -4,6 +4,10 @@ import {
   activateGraphNodeIntent,
   type WorkspaceIntentDeps,
 } from '../store/workspaceIntents'
+import {
+  clearWorkspaceTargetSelection,
+  commitWorkspaceExplicitSelection,
+} from '../store/workspaceSelectionCommands'
 import type {
   ConsoleContextSyncReason,
   WorkspaceSelectedTarget,
@@ -186,25 +190,40 @@ export const createBrowserRowInteractionHandlers = (
     selectionAnchorTarget: WorkspaceSelectedTarget | null,
     selectedRow: BrowserRenderableRowVm,
   ) => {
-    deps.setWorkspaceExplicitSelection({
-      selectedTarget,
-      explicitSelectedTargets: explicitTargets,
-      selectionAnchorTarget,
-    })
-    deps.setActiveSurface('browser')
-    deps.selectPart(
-      selectedRow.rowKind === 'object' && !deps.sharedViewerCompositionActive
-        ? selectedRow.highlightViewerKey
-        : null,
+    commitWorkspaceExplicitSelection(
+      {
+        setWorkspaceExplicitSelection: deps.setWorkspaceExplicitSelection,
+        setActiveSurface: deps.setActiveSurface,
+        selectPart: deps.selectPart,
+        requestConsoleContextSync: deps.requestConsoleContextSync,
+      },
+      {
+        selectedTarget,
+        explicitSelectedTargets: explicitTargets,
+        selectionAnchorTarget,
+      },
+      {
+        activeSurface: 'browser',
+        selectedPartKey:
+          selectedRow.rowKind === 'object' && !deps.sharedViewerCompositionActive
+            ? selectedRow.highlightViewerKey
+            : null,
+      },
     )
-    deps.requestConsoleContextSync('target-selection')
   }
 
   const clearBrowserSelection = () => {
     deps.setLocalSelectedBrowserRowId(null)
-    deps.setWorkspaceSelectedTarget(null)
-    deps.selectPart(null)
-    deps.requestConsoleContextSync('target-selection')
+    clearWorkspaceTargetSelection(
+      {
+        setWorkspaceSelectedTarget: deps.setWorkspaceSelectedTarget,
+        selectPart: deps.selectPart,
+        requestConsoleContextSync: deps.requestConsoleContextSync,
+      },
+      {
+        syncReason: 'target-selection',
+      },
+    )
   }
 
   const handleSelectBrowserRow = (
@@ -275,14 +294,23 @@ export const createBrowserRowInteractionHandlers = (
               getWorkspaceTargetKey(target) !== getWorkspaceTargetKey(explicitSelectionTarget),
           )
           if (nextExplicitTargets.length === 0) {
-            deps.setWorkspaceExplicitSelection({
-              selectedTarget: null,
-              explicitSelectedTargets: [],
-              selectionAnchorTarget: explicitSelectionTarget,
-            })
-            deps.setActiveSurface('browser')
-            deps.selectPart(null)
-            deps.requestConsoleContextSync('target-selection')
+            commitWorkspaceExplicitSelection(
+              {
+                setWorkspaceExplicitSelection: deps.setWorkspaceExplicitSelection,
+                setActiveSurface: deps.setActiveSurface,
+                selectPart: deps.selectPart,
+                requestConsoleContextSync: deps.requestConsoleContextSync,
+              },
+              {
+                selectedTarget: null,
+                explicitSelectedTargets: [],
+                selectionAnchorTarget: explicitSelectionTarget,
+              },
+              {
+                activeSurface: 'browser',
+                selectedPartKey: null,
+              },
+            )
             return
           }
 
@@ -332,7 +360,6 @@ export const createBrowserRowInteractionHandlers = (
         spawnPosition: deps.newEditorSpawnPosition,
         fitNodeInViewport: true,
       })
-      deps.requestConsoleContextSync('target-selection')
       return
     }
     if (row.rowKind === 'graph-rebuild-object' || row.rowKind === 'graph-node') {
@@ -354,7 +381,6 @@ export const createBrowserRowInteractionHandlers = (
           },
         )
       }
-      deps.requestConsoleContextSync('target-selection')
       return
     }
     if (row.rowKind !== 'graph-document') {
@@ -365,7 +391,6 @@ export const createBrowserRowInteractionHandlers = (
       spawnPosition: deps.newEditorSpawnPosition,
     }).editorViewportId
     if (editorViewportId !== null) {
-      deps.requestConsoleContextSync('target-selection')
       deps.appendBrowserEntry(`Opened ${describeBrowserRow(row)}`)
     }
   }
@@ -376,7 +401,6 @@ export const createBrowserRowInteractionHandlers = (
         strategy: 'open-or-focus',
         spawnPosition: deps.newEditorSpawnPosition,
       })
-      deps.requestConsoleContextSync('target-selection')
       return
     }
     if (
@@ -408,7 +432,6 @@ export const createBrowserRowInteractionHandlers = (
         },
       )
     }
-    deps.requestConsoleContextSync('target-selection')
   }
 
   const handleToggleBrowserRowExpand = (row: BrowserRenderableRowVm) => {

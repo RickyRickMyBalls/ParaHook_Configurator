@@ -14,6 +14,11 @@ import {
   useAppStore,
 } from '../store/useAppStore'
 import type { WorkspaceSelectedTarget } from '../store/useAppStore'
+import {
+  clearWorkspaceTargetSelection,
+  commitWorkspaceExplicitSelection,
+  commitWorkspaceTargetSelection,
+} from '../store/workspaceSelectionCommands'
 import { useUiPrefsStore } from '../store/uiPrefsStore'
 import {
   selectSharedViewerComposition,
@@ -108,9 +113,6 @@ export function ViewerHost() {
   const markReferenceBatchItemCompleted = useAppStore((state) => state.markReferenceBatchItemCompleted)
   const setReferenceItemLoadState = useAppStore((state) => state.setReferenceItemLoadState)
   const setReferenceItemVisibility = useAppStore((state) => state.setReferenceItemVisibility)
-  const setWorkspaceSelectedTarget = useAppStore((state) => state.setWorkspaceSelectedTarget)
-  const setActiveSurface = useAppStore((state) => state.setActiveSurface)
-  const selectPart = useAppStore((state) => state.selectPart)
   const endReferenceTransform = useAppStore((state) => state.endReferenceTransform)
   const setReferenceTransformMode = useAppStore((state) => state.setReferenceTransformMode)
   const setReferenceTransformSpace = useAppStore((state) => state.setReferenceTransformSpace)
@@ -726,18 +728,33 @@ export function ViewerHost() {
       const appState = useAppStore.getState()
       appState.setActiveSurface('viewer')
       if (pick === null) {
-        appState.setWorkspaceSelectedTarget(null)
-        useAppStore.setState({ selectedPartKey: null })
-        appState.requestConsoleContextSync('surface-clear')
+        clearWorkspaceTargetSelection(
+          {
+            setWorkspaceSelectedTarget: appState.setWorkspaceSelectedTarget,
+            selectPart: appState.selectPart,
+            requestConsoleContextSync: appState.requestConsoleContextSync,
+          },
+          {
+            syncReason: 'surface-clear',
+          },
+        )
         return
       }
       if (pick.kind === 'reference-item') {
-        appState.setWorkspaceSelectedTarget({
-          kind: 'reference-item',
-          referenceId: pick.referenceId,
-        })
-        appState.selectPart(null)
-        appState.requestConsoleContextSync('target-selection')
+        commitWorkspaceTargetSelection(
+          {
+            setWorkspaceSelectedTarget: appState.setWorkspaceSelectedTarget,
+            selectPart: appState.selectPart,
+            requestConsoleContextSync: appState.requestConsoleContextSync,
+          },
+          {
+            kind: 'reference-item',
+            referenceId: pick.referenceId,
+          },
+          {
+            selectedPartKey: null,
+          },
+        )
         return
       }
       const objectRow = contentObjectRowByViewerPartKey.get(pick.partKey)
@@ -751,13 +768,21 @@ export function ViewerHost() {
           selectedTarget: WorkspaceSelectedTarget | null,
           selectionAnchorTarget: WorkspaceSelectedTarget | null,
         ) => {
-          appState.setWorkspaceExplicitSelection({
-            selectedTarget,
-            explicitSelectedTargets,
-            selectionAnchorTarget,
-          })
-          appState.selectPart(pick.partKey)
-          appState.requestConsoleContextSync('target-selection')
+          commitWorkspaceExplicitSelection(
+            {
+              setWorkspaceExplicitSelection: appState.setWorkspaceExplicitSelection,
+              selectPart: appState.selectPart,
+              requestConsoleContextSync: appState.requestConsoleContextSync,
+            },
+            {
+              selectedTarget,
+              explicitSelectedTargets,
+              selectionAnchorTarget,
+            },
+            {
+              selectedPartKey: pick.partKey,
+            },
+          )
         }
         if (ctrlKey) {
           const currentExplicitTargets =
@@ -782,13 +807,21 @@ export function ViewerHost() {
             (target) => getWorkspaceTargetKey(target) !== getWorkspaceTargetKey(explicitSelectionTarget),
           )
           if (nextExplicitTargets.length === 0) {
-            appState.setWorkspaceExplicitSelection({
-              selectedTarget: null,
-              explicitSelectedTargets: [],
-              selectionAnchorTarget: explicitSelectionTarget,
-            })
-            appState.selectPart(null)
-            appState.requestConsoleContextSync('target-selection')
+            commitWorkspaceExplicitSelection(
+              {
+                setWorkspaceExplicitSelection: appState.setWorkspaceExplicitSelection,
+                selectPart: appState.selectPart,
+                requestConsoleContextSync: appState.requestConsoleContextSync,
+              },
+              {
+                selectedTarget: null,
+                explicitSelectedTargets: [],
+                selectionAnchorTarget: explicitSelectionTarget,
+              },
+              {
+                selectedPartKey: null,
+              },
+            )
             return
           }
 
@@ -818,13 +851,22 @@ export function ViewerHost() {
           explicitSelectionTarget,
         )
       } else {
-        appState.setWorkspaceSelectedTarget({
-          kind: 'part',
-          partKey: pick.partKey,
-        })
+        commitWorkspaceTargetSelection(
+          {
+            setWorkspaceSelectedTarget: appState.setWorkspaceSelectedTarget,
+            selectPart: appState.selectPart,
+            requestConsoleContextSync: appState.requestConsoleContextSync,
+          },
+          {
+            kind: 'part',
+            partKey: pick.partKey,
+          },
+          {
+            selectedPartKey: pick.partKey,
+          },
+        )
+        return
       }
-      appState.selectPart(pick.partKey)
-      appState.requestConsoleContextSync('target-selection')
     })
 
     return () => {
@@ -848,12 +890,9 @@ export function ViewerHost() {
   }, [
     contentObjectRowByViewerPartKey,
     endReferenceTransform,
-    selectPart,
-    setActiveSurface,
     setReferenceTransformMode,
     setReferenceTransformOverride,
     setReferenceTransformSpace,
-    setWorkspaceSelectedTarget,
   ])
 
   useEffect(() => {

@@ -77,6 +77,9 @@ describe('workspaceIntents', () => {
       kind: 'graph-document',
       graphDocumentId: secondGraphId,
     })
+    expect(useAppStore.getState().consoleContextSyncRequest).toMatchObject({
+      reason: 'target-selection',
+    })
     expect(useAppStore.getState().workspaceSelection.activeSurface).toBe('spaghetti')
     expect(useAppStore.getState().floatingShellActivationRequest?.target).toBe('spaghetti')
   })
@@ -121,6 +124,9 @@ describe('workspaceIntents', () => {
       graphDocumentId: 'graph-document-1',
       nodeId: 'node-sketch-1',
     })
+    expect(useAppStore.getState().consoleContextSyncRequest).toMatchObject({
+      reason: 'target-selection',
+    })
     expect(useAppStore.getState().workspaceSelection.activeSurface).toBe('spaghetti')
   })
 
@@ -144,6 +150,9 @@ describe('workspaceIntents', () => {
     expect(useAppStore.getState().workspaceSelection.selectedTarget).toMatchObject({
       kind: 'reference-item',
       referenceId: 'shoe:shoe-1',
+    })
+    expect(useAppStore.getState().consoleContextSyncRequest).toMatchObject({
+      reason: 'target-selection',
     })
     expect(useAppStore.getState().workspaceSelection.activeSurface).toBe('browser')
     expect(useAppStore.getState().referenceWorkspace.visibilityById['shoe:shoe-1']).toBe(false)
@@ -200,6 +209,9 @@ describe('workspaceIntents', () => {
     expect(useAppStore.getState().workspaceSelection.selectedTarget).toMatchObject({
       kind: 'object',
       objectId: 'project-object:project-file-1:graph-document-1:output-object:slot-baseplate',
+    })
+    expect(useAppStore.getState().consoleContextSyncRequest).toMatchObject({
+      reason: 'target-selection',
     })
     expect(useAppStore.getState().workspaceSelection.activeSurface).toBe('browser')
     expect(useAppStore.getState().selectedPartKey).toBe('slot-baseplate')

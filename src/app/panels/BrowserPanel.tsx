@@ -349,6 +349,7 @@ export function BrowserPanel({
         setWorkspaceSelectedTarget,
         setActiveSurface,
         requestFloatingShellActivation,
+        requestConsoleContextSync,
         setReferenceItemVisibility,
         beginReferenceTransform,
         selectPart,

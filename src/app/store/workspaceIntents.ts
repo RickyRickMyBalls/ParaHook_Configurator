@@ -1,8 +1,10 @@
 import type {
+  ConsoleContextSyncReason,
   FloatingShellActivationTarget,
   WorkspaceSelectedTarget,
   WorkspaceSurface,
 } from './useAppStore'
+import { commitWorkspaceTargetSelection } from './workspaceSelectionCommands'
 
 type ViewportPosition = {
   x: number
@@ -18,6 +20,7 @@ type WorkspaceIntentAppDeps = {
   setWorkspaceSelectedTarget: (target: WorkspaceSelectedTarget | null) => void
   setActiveSurface: (surface: WorkspaceSurface | null) => void
   requestFloatingShellActivation: (target: FloatingShellActivationTarget) => void
+  requestConsoleContextSync?: (reason: ConsoleContextSyncReason) => void
   setReferenceItemVisibility?: (referenceId: string, visible: boolean) => void
   beginReferenceTransform?: (referenceId: string) => void
   selectPart?: (partKey: string | null) => void
@@ -70,7 +73,13 @@ export const selectTargetIntent = (
   deps: WorkspaceIntentDeps,
   target: WorkspaceSelectedTarget | null,
 ): WorkspaceSelectedTarget | null => {
-  deps.app.setWorkspaceSelectedTarget(target)
+  commitWorkspaceTargetSelection(
+    {
+      setWorkspaceSelectedTarget: deps.app.setWorkspaceSelectedTarget,
+      requestConsoleContextSync: deps.app.requestConsoleContextSync,
+    },
+    target,
+  )
   if (target === null || target.kind === 'graph-document') {
     deps.spaghetti.setSelectedNodeId(null)
   } else if (target.kind === 'graph-node') {
@@ -202,10 +211,20 @@ export const activateReferenceItemIntent = (
   if (options.ensureVisible ?? false) {
     deps.app.setReferenceItemVisibility?.(referenceId, true)
   }
-  selectTargetIntent(deps, {
-    kind: 'reference-item',
-    referenceId,
-  })
+  commitWorkspaceTargetSelection(
+    {
+      setWorkspaceSelectedTarget: deps.app.setWorkspaceSelectedTarget,
+      selectPart: deps.app.selectPart,
+      requestConsoleContextSync: deps.app.requestConsoleContextSync,
+    },
+    {
+      kind: 'reference-item',
+      referenceId,
+    },
+    {
+      selectedPartKey: null,
+    },
+  )
   activateSurfaceIntent(deps, 'browser')
   if (options.beginTransform ?? false) {
     deps.app.beginReferenceTransform?.(referenceId)
@@ -220,13 +239,20 @@ export const activateObjectIntent = (
     partKey?: string | null
   } = {},
 ): { objectId: string } => {
-  selectTargetIntent(deps, {
-    kind: 'object',
-    objectId,
-  })
-  if (options.partKey !== undefined) {
-    deps.app.selectPart?.(options.partKey)
-  }
+  commitWorkspaceTargetSelection(
+    {
+      setWorkspaceSelectedTarget: deps.app.setWorkspaceSelectedTarget,
+      selectPart: deps.app.selectPart,
+      requestConsoleContextSync: deps.app.requestConsoleContextSync,
+    },
+    {
+      kind: 'object',
+      objectId,
+    },
+    {
+      selectedPartKey: options.partKey,
+    },
+  )
   activateSurfaceIntent(deps, 'browser')
   return { objectId }
 }

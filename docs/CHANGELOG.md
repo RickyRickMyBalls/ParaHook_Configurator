@@ -65,6 +65,46 @@ Do not use it for:
 
 ## Doc Body
 
+### [641] - 2026-03-25 21:49 - `CON - Phase 5.1G - Surface-Agnostic Command Ownership And Adapter Expansion`
+<!-- ENTRY 641 -->
+HUMAN SUMMARY: `Shipped the first \`5.1G\` console owner-first command expansion cut by centralizing shared workspace-selection outcomes and shared view commands, rewiring \`Console\`, \`Browser\`, \`Model Viewport\`, and \`View Toolbar\` onto those seams, and cleaning the console-family docs to the shipped state.` 
+#### Scope / Constraints Honored
+- Kept the implementation focused on owner-first command-family cleanup instead of widening it into a full command-registry rewrite.
+- Preserved `ConsoleDock` as the narrator/parser surface rather than turning it into the permanent owner of view or workspace behavior.
+- Kept Browser and viewport interaction grammar intact while moving repeated selection/context side effects behind shared owner seams.
+
+#### Summary of Implementation
+- Added `workspaceSelectionCommands.ts` as the shared workspace-selection outcome seam for single-target selection, explicit multi-selection, and clear flows, then used it to remove duplicated `set target + select part + sync context` glue from Browser and Viewer surfaces.
+- Updated `workspaceIntents.ts` so Browser-driven graph/reference/object activation can publish the same canonical target-selection outcome through the shared owner seam without leaving each surface to request console-context sync independently.
+- Added `viewCommands.ts` as the shared view-command seam for projection, camera presets, framing, zoom-object helpers, and console camera modes, then rewired `ConsoleDock` and `ViewToolbar` to call those commands instead of hand-rolling view behavior locally.
+- Kept Console-local staged navigation and sketch-session prompts intact by deliberately not replaying Browser-style context sync back into Console-originated staged flows.
+
+#### Files Changed
+- `src/app/store/workspaceSelectionCommands.ts`
+- `src/app/store/workspaceSelectionCommands.test.ts`
+- `src/app/store/workspaceIntents.ts`
+- `src/app/store/workspaceIntents.test.ts`
+- `src/app/viewCommands.ts`
+- `src/app/viewCommands.test.ts`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/panels/browserInteractions.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewToolbar.tsx`
+- `src/app/components/ViewToolbar.test.tsx`
+- `docs/Human-Plans/Architecture/Console/Console.md`
+- `docs/Human-Plans/Architecture/Console/Shipped/Console_Phase 5.1G - Surface-Agnostic Command Ownership And Adapter Expansion.md`
+- `docs/Human-Plans/roadmap/Architecture-roadmap.md`
+- `docs/Doc-Index.md`
+
+#### Behavior Changes
+- Browser and viewer selection flows now share one canonical workspace-selection side-effect path for target selection, explicit multi-selection, part highlighting, and console-context sync.
+- Browser-driven graph/reference/object activation now reaches the same shared workspace intent plus console-context outcome seam instead of relying on local per-surface sync glue.
+- Console and View Toolbar now invoke the same shared view-command owner functions for projection, framing, camera presets, and console camera modes.
+
+#### Verification Steps
+- `npm.cmd run test -- src/app/store/workspaceSelectionCommands.test.ts src/app/store/workspaceIntents.test.ts src/app/viewCommands.test.ts src/app/components/ViewToolbar.test.tsx src/app/panels/browserInteractions.test.ts src/app/console/ConsoleDock.test.tsx src/app/components/ViewerHost.test.tsx`
+- `npm.cmd run build`
+
 ### [640] - 2026-03-25 21:10 - `WRK - Phase 5.3A-7 - Graph-Native Worker Cutover And Legacy Contract Deletion`
 <!-- ENTRY 640 -->
 HUMAN SUMMARY: `Shipped the final \`5.3A-7\` worker cutover by deleting the last legacy worker-contract surfaces, making the shared worker boundary graph-native only, removing assembled-only viewer/runtime handling, and cleaning the remaining tests and docs to the post-compatibility state.` 

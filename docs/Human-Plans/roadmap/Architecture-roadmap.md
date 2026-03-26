@@ -3,6 +3,8 @@
 ## Doc Header
 
 ### Doc History
+13. 2026-03-25 21:49: Marked `[5.1G] Surface-Agnostic Command Ownership And Adapter Expansion` shipped in this cross-family roadmap, updated the Console family read so shared workspace-selection outcomes and shared view commands now count as landed owner-first console groundwork, and left the Console family partial only because the smaller `[4.1I5]` staged-grammar hardening follow-on still remains open
+12. 2026-03-25 21:25: Refreshed this cross-family roadmap against the newer Browser and Master Spaghetti source docs, so the Browser family now acknowledges both `Browser-6` and the later `Browser-7` cleanup bucket while the Spaghetti Editor family notes the existing standalone `Master Spaghetti-1` follow-on instead of reading like that ladder is still purely undecided
 11. 2026-03-25 21:10: Marked `[5.3A-7] Graph-Native Worker Cutover And Legacy Contract Deletion` shipped in this cross-family roadmap, updated the Worker family read to a fully shipped seven-phase worker ladder, and closed the Worker architecture family as complete until a new follow-on family is introduced
 10. 2026-03-25 20:13: Marked `[5.3A-6] Result Semantics, Browser Truth, And Console Truth` shipped in this cross-family roadmap, updated the Worker family read to six shipped groundwork phases, and advanced the remaining open Worker follow-on to the final graph-native cutover and legacy-contract deletion stage
 9. 2026-03-25 19:03: Marked `[5.3A-5] Legacy Runtime And Startup Fallback Removal` shipped in this cross-family roadmap, updated the Worker family read to five shipped groundwork phases, and advanced the remaining open Worker follow-ons to the later result-semantics plus final graph-native cutover stages
@@ -97,9 +99,11 @@ Source doc:
 
 Current read:
 - `Browser` is one of the cleanest newer architecture families right now
-- it already has a compact ladder with ten shipped cuts and one remaining open follow-on
+- it already has a compact ladder with ten shipped cuts plus two named open follow-ons
 - the next open work is:
   - `Browser-6`
+  - `Browser-7`
+- `Browser-7` is the newer accumulating cleanup bucket after `Browser-6`, and its first narrow shipped follow-on has already landed under the local `Browser-7.x` tracking
 
 ### [x] Browser-1 - Build Policy Icon Surface
 ### [x] Browser-2 - Cascade And Effective Policy Truth
@@ -112,13 +116,14 @@ Current read:
 ### [x] Browser-5.4 - Explicit Additive Multi-Select
 ### [x] Browser-5.5 - Reference Batch Load Queue And Aggregate Progress
 ### [ ] Browser-6 - BrowserPanel Structure And Row-Family Cleanup
+### [ ] Browser-7 - Browser Cleanup Follow-Ons
 
 ## [~] Console
 ### Info
 
 Source docs:
 - `docs/Human-Plans/Architecture/Console/Console.md`
-- `docs/Human-Plans/Architecture/Console/Future/Console_Phase 5.1G - Surface-Agnostic Command Ownership And Adapter Expansion.md`
+- `docs/Human-Plans/Architecture/Console/Shipped/Console_Phase 5.1G - Surface-Agnostic Command Ownership And Adapter Expansion.md`
 
 Current read:
 - the console family already has a real newer mini-ladder for:
@@ -127,8 +132,12 @@ Current read:
   - input ownership
   - context sync
   - canonical workspace intents
-- the main remaining open architecture-side follow-on is:
-  - `[5.1G]`
+- shared owner-first command expansion is now shipped too:
+  - canonical workspace-selection outcomes
+  - shared view commands
+  - surface adapters over shared owners
+- the main remaining open console-family follow-on is now:
+  - `[4.1I5]` robustness and prompt quality under the staged grammar lane
 
 ### [x] [4.1H] Hybrid Command Capture And Shortcut Unification
 ### [~] [4.1I] Hierarchical Path Grammar
@@ -139,7 +148,7 @@ Current read:
 ### [x] [4.1N] Feature Session Prompt Descriptors
 ### [x] [4.1P] Assisted Prefill Replace-On-Type Across Levels
 ### [x] [5.1F] Workspace Selection, Surface Activation, And Canonical Intents
-### [ ] [5.1G] Surface-Agnostic Command Ownership And Adapter Expansion
+### [x] [5.1G] Surface-Agnostic Command Ownership And Adapter Expansion
 
 ## [~] Pasta Path
 ### Info
@@ -233,18 +242,22 @@ Current read:
 ## [~] Spaghetti Editor
 ### Info
 
-Source doc:
+Source docs:
 - `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Spaghetti-Editor-Explained.md`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Future/Master_Spaghetti_Phase Master Spaghetti-1 - Smart Wiring And Intent-Aware Auto-Insert First Pass.md`
 
 Current read:
 - the `Spaghetti Editor` umbrella doc is still more of a current architecture map than a true family phase index
-- this family should eventually decide whether it needs:
-  - a dedicated phase ladder of its own
-  - or whether its future planning should keep living mainly through subfamilies like:
-    - `Nodes`
-    - Browser/workspace coordination
+- this family is still lighter than `Browser`, `Console`, or `Worker` as a phase-tracked architecture family
+- but it is no longer purely phase-less:
+  - there is now one standalone future `Master Spaghetti-1` follow-on under `Future/`
+- the main remaining structure question is whether future umbrella planning should keep branching as occasional `Master Spaghetti` follow-ons plus subfamilies like:
+  - `Nodes`
+  - Browser/workspace coordination
+  - or whether it should grow into a denser dedicated ladder later
 
 ### [~] Master Spaghetti - Umbrella Architecture Map
+### [ ] Master Spaghetti-1 - Smart Wiring And Intent-Aware Auto-Insert First Pass
 
 ## [~] Nodes
 ### Info
