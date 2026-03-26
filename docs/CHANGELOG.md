@@ -65,6 +65,265 @@ Do not use it for:
 
 ## Doc Body
 
+### [640] - 2026-03-25 21:10 - `WRK - Phase 5.3A-7 - Graph-Native Worker Cutover And Legacy Contract Deletion`
+<!-- ENTRY 640 -->
+HUMAN SUMMARY: `Shipped the final \`5.3A-7\` worker cutover by deleting the last legacy worker-contract surfaces, making the shared worker boundary graph-native only, removing assembled-only viewer/runtime handling, and cleaning the remaining tests and docs to the post-compatibility state.` 
+#### Scope / Constraints Honored
+- Removed dead compatibility code instead of preserving inert aliases.
+- Kept bundle-backed accepted result truth from `[5.3A-6]` as the canonical runtime surface.
+- Preserved viewer part-selection and visibility behavior while deleting assembled-only viewer/runtime handling.
+- Deleted unused legacy schema/protocol files once the graph-native cutover no longer referenced them.
+
+#### Summary of Implementation
+- Narrowed the shared worker contract to the permanent graph-native shape by removing legacy `BoxParams` request payloads, `AssembleRequest` / `AssembleResult`, and the old assemble/runtime compatibility branch from `buildTypes`, `worker.ts`, `buildPipeline`, and `buildModel`.
+- Deleted dispatcher/bootstrap compatibility entrypoints and assembled-only runtime hooks so `BuildDispatcher` now owns graph-native request transport only and `bootstrapBuildWiring.ts` narrates graph-native build lifecycle without assembled stats or transcript paths.
+- Removed dead app-side worker compatibility state and assembled-only viewer handling, while keeping bundle-backed accepted result truth and derived flat selectors as read-only convenience surfaces.
+- Shrunk the foothook compatibility adapter to graph-native compiled-build input, removed dead legacy pipeline/schema files, and updated tests/fixtures that still referenced instance-based compatibility or payload-shaped worker requests.
+
+#### Files Changed
+- `src/shared/buildTypes.ts`
+- `src/shared/buildStatsKeys.ts`
+- `src/app/buildDispatcher.ts`
+- `src/app/bootstrapBuildWiring.ts`
+- `src/app/store/useAppStore.ts`
+- `src/app/spaghetti/compiler/compileGraph.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/viewer/Viewer.ts`
+- `src/worker/worker.ts`
+- `src/worker/buildModel.ts`
+- `src/worker/pipeline/buildPipeline.ts`
+- `src/worker/pipeline/signatures.ts`
+- `src/worker/products/foothook/foothookCompatibilityAdapter.ts`
+- `src/app/protocol.ts`
+- `src/worker/validation.ts`
+- `src/worker/pipeline/partsSpec.ts`
+- `src/app/buildDispatcher.test.ts`
+- `src/app/bootstrapBuildWiring.test.ts`
+- `src/app/console/consolePublishers.test.ts`
+- `src/app/store/useAppStore.test.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `src/app/spaghetti/outputSurface.test.ts`
+- `src/app/panels/selectBrowserGraphRows.test.ts`
+- `src/app/components/ViewerHost.test.tsx`
+- `src/app/spaghetti/selectors/selectDebugInspectorVm.test.ts`
+- `src/app/spaghetti/integration/buildInputsToRequest.test.ts`
+- `src/shared/buildStatsKeys.test.ts`
+- `src/worker/pipeline/buildPipeline.test.ts`
+- `src/worker/cad/featureStackRuntime.test.ts`
+
+#### Behavior Changes
+- The shared worker boundary is now graph-native only: no `payload: BoxParams`, no assemble request/result path, and no dispatcher-side assemble/cache-hit behavior.
+- Graph-native build dispatch, worker execution, accepted runtime state, Browser truth, and Console lifecycle narration now all flow through the same bundle-first worker result path without legacy worker protocol translation inside the core seam.
+- Viewer/runtime handling no longer carries an assembled-only mesh path; live content continues to render through bundle-derived accepted/preview artifact surfaces.
+
+#### Verification Steps
+- `npm.cmd run test -- src/app/buildDispatcher.test.ts src/app/bootstrapBuildWiring.test.ts src/app/console/consolePublishers.test.ts src/app/store/useAppStore.test.ts src/app/spaghetti/store/useSpaghettiStore.test.ts src/app/spaghetti/outputSurface.test.ts src/app/panels/selectBrowserGraphRows.test.ts src/worker/pipeline/buildPipeline.test.ts src/app/components/ViewerHost.test.tsx src/app/spaghetti/selectors/selectDebugInspectorVm.test.ts src/app/spaghetti/integration/buildInputsToRequest.test.ts src/shared/buildStatsKeys.test.ts src/worker/cad/featureStackRuntime.test.ts`
+- `npm.cmd run build`
+
+### [639] - 2026-03-25 20:13 - `WRK - Phase 5.3A-6 - Result Semantics, Browser Truth, And Console Truth`
+<!-- ENTRY 639 -->
+HUMAN SUMMARY: `Shipped the \`5.3A-6\` worker semantic-strengthening cut by replacing flat top-level build results with \`BuildResult.bundle\`, making accepted graph runtime state publish explicit rebuilt/retained/evicted entry truth, rebuilding Browser output semantics from typed bundle entries, and adding deterministic Console bundle-summary narration while keeping viewer-facing flat artifact selectors as a compatibility bridge.` 
+#### Scope / Constraints Honored
+- Kept the existing outer `BuildResult` routing envelope and dispatcher stale-drop/runtime-hook ordering intact.
+- Limited this phase to result semantics, Browser truth, and Console truth without widening into a viewer behavior redesign or new transient-preview generation path.
+- Preserved existing viewer-facing flat accepted artifact selectors by deriving them from bundle-backed accepted runtime state.
+
+#### Summary of Implementation
+- Added `BuildResultBundle`, `BuildResultEntry`, `BuildResultClass`, and `BuildResultEntryStatus` to the shared worker contract, and changed `BuildResult` to carry `bundle` instead of top-level `parts`.
+- Updated graph request preparation and worker artifact emission so compiled output-entry identity flows through to emitted build-result bundles with stable `buildUnitId` / `outputEntryId` ownership.
+- Tightened dispatcher validation around the new bundle payload shape while preserving accepted-message routing, stale-drop, and runtime-hook behavior.
+- Changed app-side build acceptance to forward bundle truth into spaghetti runtime state, where accepted bundles now become the canonical source of truth and targeted rebuild acceptance explicitly classifies rebuilt, retained, and evicted entries.
+- Rebuilt `outputSurface` and Browser row metadata from typed bundle entries so Browser truth no longer depends only on flat accepted artifact arrays and inferred `acceptedArtifactKey` resolution.
+- Kept the existing worker lifecycle transcript lines, then added a deterministic bundle-summary completion line so Console narrates shared semantic truth without owning the underlying semantics.
+
+#### Files Changed
+- `src/shared/buildTypes.ts`
+- `src/app/spaghetti/integration/buildInputsToRequest.ts`
+- `src/worker/pipeline/artifactEmitter.ts`
+- `src/worker/pipeline/buildPipeline.ts`
+- `src/app/buildDispatcher.ts`
+- `src/app/store/useAppStore.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/outputSurface.ts`
+- `src/app/panels/selectBrowserGraphRows.ts`
+- `src/app/bootstrapBuildWiring.ts`
+- `src/app/buildDispatcher.test.ts`
+- `src/app/bootstrapBuildWiring.test.ts`
+- `src/app/console/consolePublishers.test.ts`
+- `src/app/store/useAppStore.test.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `src/app/spaghetti/outputSurface.test.ts`
+- `src/app/panels/selectBrowserGraphRows.test.ts`
+- `src/worker/pipeline/buildPipeline.test.ts`
+- `src/app/components/ViewerHost.test.tsx`
+- `src/app/spaghetti/selectors/selectDebugInspectorVm.test.ts`
+
+#### Behavior Changes
+- Worker `build_result` messages now carry `bundle` payloads with explicit result-entry identity and result-class/status semantics instead of flat top-level `PartArtifact[]`.
+- Accepted graph runtime state now stores canonical bundle truth, derives compatibility artifact arrays from that bundle, and publishes explicit rebuilt/retained/evicted entry status during targeted rebuild acceptance.
+- Browser output shaping and row meta now reflect typed accepted result semantics instead of relying only on coarse accepted artifact presence.
+- Console keeps the existing lifecycle narration and now adds a deterministic `Build summary (...)` line derived from accepted bundle counts.
+
+#### Verification Steps
+- `npm.cmd run test -- src/app/buildDispatcher.test.ts src/app/bootstrapBuildWiring.test.ts src/app/console/consolePublishers.test.ts src/app/store/useAppStore.test.ts src/app/spaghetti/store/useSpaghettiStore.test.ts src/app/spaghetti/outputSurface.test.ts src/app/panels/selectBrowserGraphRows.test.ts src/worker/pipeline/buildPipeline.test.ts src/app/components/ViewerHost.test.tsx src/app/spaghetti/selectors/selectDebugInspectorVm.test.ts`
+- `npm.cmd run build`
+
+### [638] - 2026-03-25 19:03 - `WRK - Phase 5.3A-5 - Legacy Runtime And Startup Fallback Removal`
+<!-- ENTRY 638 -->
+HUMAN SUMMARY: `Shipped the \`5.3A-5\` worker cleanup by removing foothook-era startup defaults from the graph-native build path, isolating surviving product-specific runtime logic behind one explicit foothook compatibility adapter, making build-stats identity request-driven, and preserving unaffected accepted outputs during targeted graph rebuilds instead of wiping the whole graph result set.` 
+#### Scope / Constraints Honored
+- Kept `assemble` as explicit/manual compatibility behavior instead of widening this phase into full compatibility deletion.
+- Preserved the existing dispatcher stale-drop/runtime-hook architecture from `[5.3A-4]`.
+- Limited preview work in this phase to explicit preview/final seam cleanup rather than adding a new viewer approximation implementation.
+
+#### Summary of Implementation
+- Split the shared build request contract into graph-native versus compat-only paths so core graph builds no longer carry top-level foothook instance fields or fixed-part ordering as architectural truth.
+- Removed startup/request fallback behavior that seeded worker builds and build stats from legacy default instances or `LEGACY_BUILD_STATS_PART_ORDER`, and made empty graph startup stay idle when no real target build units resolve.
+- Introduced an explicit worker-side foothook compatibility adapter around the remaining product-specific runtime logic while keeping the permanent build pipeline and worker entry focused on graph-native compiled build data.
+- Changed graph-result acceptance to merge rebuilt outputs by targeted build-unit identity so unaffected siblings remain visible across targeted graph rebuilds.
+- Added dev/test coverage for silent no-target startup, published-output graph dispatch, request-driven graph build stats, compat-only runtime behavior, and the updated worker pipeline/build-model type seams.
+
+#### Files Changed
+- `src/shared/buildTypes.ts`
+- `src/app/buildDispatcher.ts`
+- `src/app/bootstrapBuildWiring.ts`
+- `src/app/store/useAppStore.ts`
+- `src/app/store/useAppStore.test.ts`
+- `src/app/spaghetti/dev/sampleGraph.ts`
+- `src/app/spaghetti/integration/buildInputsToRequest.ts`
+- `src/app/spaghetti/integration/buildInputsToRequest.test.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/buildDispatcher.test.ts`
+- `src/app/bootstrapBuildWiring.test.ts`
+- `src/worker/worker.ts`
+- `src/worker/buildModel.ts`
+- `src/worker/cad/featureStackRuntime.test.ts`
+- `src/worker/pipeline/buildPipeline.ts`
+- `src/worker/pipeline/buildPipeline.test.ts`
+- `src/worker/pipeline/signatures.ts`
+- `src/worker/pipeline/partsSpec.ts`
+- `src/worker/products/foothook/foothookCompatibilityAdapter.ts`
+- `docs/Human-Plans/Architecture/Worker/Shipped/Worker_Phase 5.3A-5 - Legacy Runtime And Startup Fallback Removal.md`
+- `docs/Human-Plans/Architecture/Worker/Worker.md`
+- `docs/Human-Plans/roadmap/Architecture-roadmap.md`
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/Doc-Index.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- Empty graph startup no longer dispatches fake worker builds, emits fallback console narration, or seeds fixed-part build stats when no real published build units exist.
+- Ordinary graph-native builds no longer auto-seed or auto-report `assembled`; that key is now compatibility-only.
+- Targeted accepted graph rebuilds preserve unaffected siblings instead of replacing the entire accepted output set for the graph.
+
+#### Verification Steps
+- `npm.cmd run test -- src/app/spaghetti/integration/buildInputsToRequest.test.ts src/app/buildDispatcher.test.ts src/app/bootstrapBuildWiring.test.ts src/worker/pipeline/buildPipeline.test.ts src/app/store/useAppStore.test.ts src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `npm.cmd run build`
+
+### [637] - 2026-03-25 18:18 - `WRK - Phase 5.3A-4 - Dispatcher Boundary Cleanup`
+<!-- ENTRY 637 -->
+HUMAN SUMMARY: `Shipped the \`5.3A-4\` worker boundary cleanup by removing direct build-stats and console writes from \`BuildDispatcher\`, introducing dispatcher runtime hooks for accepted worker events, and moving the worker-facing presentation/bookkeeping bridge into \`bootstrapBuildWiring.ts\` without changing the visible build transcript or stale-drop behavior.` 
+#### Scope / Constraints Honored
+- Kept `BuildDispatcher` as the worker transport, validation, sequencing, and stale-drop owner.
+- Preserved existing app-owned build-result acceptance and worker-error handling.
+- Kept `assemble` compatibility behavior alive without widening into a broader result-semantics redesign.
+
+#### Summary of Implementation
+- Added a dispatcher-local `BuildDispatcherRuntimeHooks` seam plus `setRuntimeHooks(...)` so build start, progress, result, error, assemble result, and assemble cache-hit presentation events can flow outward without store coupling.
+- Removed the direct `useBuildStatsStore` and `appendConsoleEntry(...)` mutations from `BuildDispatcher`, including the synthetic compatibility cache-hit path.
+- Extended `bootstrapBuildWiring.ts` so it now owns the worker-facing bridge into build stats and worker transcript lines while preserving the existing provider registration and app-owned acceptance/error callbacks.
+- Reworked the dispatcher, bootstrap, and console-publisher tests around the new runtime hook seam and added focused bootstrap coverage for build lifecycle, worker error, and assemble cache-hit behavior.
+
+#### Files Changed
+- `src/app/buildDispatcher.ts`
+- `src/app/bootstrapBuildWiring.ts`
+- `src/app/buildDispatcher.test.ts`
+- `src/app/bootstrapBuildWiring.test.ts`
+- `src/app/console/consolePublishers.test.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- No intentional user-facing transcript or build-stats behavior changes were introduced.
+- The worker/runtime seam is now thinner: worker lifecycle presentation and bookkeeping are owned by bootstrap wiring rather than the dispatcher itself.
+
+#### Verification Steps
+- `npm.cmd run test -- src/app/buildDispatcher.test.ts`
+- `npm.cmd run test -- src/app/bootstrapBuildWiring.test.ts`
+- `npm.cmd run test -- src/app/console/consolePublishers.test.ts`
+- `npm.cmd run build`
+
+### [636] - 2026-03-25 17:59 - `SP - Viewer Ctrl Multi-Select Preserves Modifier Through Pointerup`
+<!-- ENTRY 636 -->
+HUMAN SUMMARY: `Hardened the viewer workspace-pick tracker so Ctrl-additive intent survives the full click instead of relying only on the initial pointerdown snapshot, which was leaving some real viewport ctrl-clicks to behave like ordinary replacement clicks.` 
+#### Scope / Constraints Honored
+- Kept the Browser-7.1 shared explicit-selection model unchanged.
+- Limited the fix to viewer input capture instead of rewriting the selection store logic.
+- Preserved ordinary click behavior and the existing pointer-move drag threshold.
+
+#### Summary of Implementation
+- Updated the viewer workspace-selection click tracker so it keeps `ctrlKey` true if either pointerdown, pointermove, or pointerup reports the modifier during the click.
+- Emitted the workspace-pick event with the merged modifier state on pointerup, making additive viewport selection less brittle against event-order differences in the real runtime.
+
+#### Files Changed
+- `src/viewer/Viewer.ts`
+
+#### Behavior Changes (if any)
+- Real model-viewport ctrl-clicks are now more likely to stay additive instead of collapsing to ordinary single-select because the modifier no longer depends solely on the initial pointerdown event.
+
+#### Verification Steps
+- `npm.cmd run test -- src/app/components/ViewerHost.test.tsx`
+- `npm.cmd run test -- src/app/console/ConsoleDock.test.tsx`
+- `npm.cmd run build`
+
+### [635] - 2026-03-25 17:56 - `SP - Console Object Session Sync Compares Full Selection Identity`
+<!-- ENTRY 635 -->
+HUMAN SUMMARY: `Fixed a stale Console-sync bug where changing from one selected object to another inside the same graph could be treated as the same staged session, leaving the Console prompt stuck on the old object even though the viewport had moved on.` 
+#### Scope / Constraints Honored
+- Kept the existing workspace-to-Console sync architecture and staged scope model.
+- Limited the fix to the session-equality gate instead of rewriting object scope construction.
+- Preserved the existing `Multi Select` routing and object-scope grammar.
+
+#### Summary of Implementation
+- Tightened `areConsoleStagedNavigationSessionsEqual(...)` in `ConsoleDock` so it now compares breadcrumb identity and optional reference selections in addition to scope and graph/node ids.
+- Added a regression test proving viewer-driven sync from `Object 1` to `Object 2` in the same graph updates the Console summary and transcript instead of being skipped as a false no-op.
+
+#### Files Changed
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+
+#### Behavior Changes (if any)
+- When viewport selection changes to a different object within the same graph, the Console now updates to the new object instead of staying stuck on the previous one.
+
+#### Verification Steps
+- `npm.cmd run test -- src/app/console/ConsoleDock.test.tsx`
+- `npm.cmd run test -- src/app/components/ViewerHost.test.tsx`
+- `npm.cmd run build`
+
+### [634] - 2026-03-25 17:51 - `SP - Viewer Pointerdown No Longer Clears Console Before Ctrl Multi-Select`
+<!-- ENTRY 634 -->
+HUMAN SUMMARY: `Stopped the viewer surface from briefly forcing the Console back to root on mouse-down when a shared selection already exists, so Ctrl-click viewport multi-select no longer flashes root before the second object is added.` 
+#### Scope / Constraints Honored
+- Kept viewer-surface activation ownership in `AppShell`.
+- Preserved the existing immediate root-sync behavior for true empty-surface viewer activation.
+- Limited the fix to the premature pointerdown sync path instead of changing the later viewer pick commit flow.
+
+#### Summary of Implementation
+- Updated the viewer activation handler in `AppShell` so it only requests `surface-clear` on pointerdown when there is no existing shared selected target and no explicit selection set to preserve.
+- Added an `AppShell` regression test proving a viewer pointerdown with an existing shared selection switches the active surface to `viewer` without forcing a root sync first.
+
+#### Files Changed
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+
+#### Behavior Changes (if any)
+- Ctrl-clicking a second viewport object no longer briefly drops the Console to root during mouse-down before the new object is committed on mouse-up.
+
+#### Verification Steps
+- `npm.cmd run test -- src/app/AppShell.test.tsx`
+- `npm.cmd run test -- src/app/components/ViewerHost.test.tsx`
+- `npm.cmd run test -- src/app/console/ConsoleDock.test.tsx`
+- `npm.cmd run build`
+
 ### [633] - 2026-03-25 17:41 - `SP - Browser-7.1 - Viewport Ctrl Multi-Select Sync`
 <!-- ENTRY 633 -->
 HUMAN SUMMARY: `Implemented Browser-7.1 so Ctrl-clicking multiple model-viewport objects now edits the same shared explicit-selection set that Browser-5.4 uses, which keeps Browser row selection, viewer highlighting, and Console multi-select scope in sync instead of collapsing back to single-select.` 

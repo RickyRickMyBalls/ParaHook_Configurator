@@ -80,7 +80,6 @@ describe('selectDebugInspectorVm', () => {
         diagnostics: { errors: [], warnings: [] },
         evaluation: { topoOrder: ['node-cube-1', 'node-cube-2', 'node-output-preview-1'] },
         buildInputs: {
-          instances: { heelKickInstances: [], toeHookInstances: [] },
           orderedPartKeys: ['cube#1', 'cube#2'],
           resolvedParts: {},
         },
@@ -194,3 +193,4 @@ describe('selectDebugInspectorVm', () => {
     expect(second).toEqual(first)
   })
 })
+

@@ -71,8 +71,16 @@ import type {
 } from '../schema/spaghettiTypes'
 import { newId } from '../utils/id'
 import { makeComponentId, makeRowId } from '../utils/id'
-import type { BuildRoutingIdentity, BuildUnitId, PartArtifact } from '../../../shared/buildTypes'
+import type {
+  BuildResultBundle,
+  BuildResultEntry,
+  BuildRoutingIdentity,
+  BuildUnitId,
+  PartArtifact,
+} from '../../../shared/buildTypes'
+import { DEFAULT_BUILD_EXECUTION_INTENT } from '../../../shared/buildTypes'
 import { appendConsoleEntry } from '../../console/useConsoleStore'
+import { artifactToPartKeyStr } from '../../parts/partKeyResolver'
 import {
   defaultWorkspaceSplitDirection,
   defaultWorkspaceSplitPriority,
@@ -108,17 +116,11 @@ type EdgeWaypoint = {
   flipSide2: boolean
 }
 
-export type GraphBuildInstances = {
-  heelKickInstances: number[]
-  toeHookInstances: number[]
-}
-
 export type GraphCompileBuildState = {
   lastCompileResult: ReturnType<typeof compileSpaghettiGraph> | null
   previousBuildInputs: ReturnType<typeof compileSpaghettiGraph>['buildInputs'] | null
   pendingChangedParamIds: string[]
   pendingStatsPartKeys: string[]
-  pendingInstances: GraphBuildInstances | null
   pendingTargetBuildUnitIds: BuildUnitId[]
   pendingAffectedBuildUnitIds: BuildUnitId[]
   currentGraphRevision: number
@@ -136,6 +138,8 @@ export type GraphCompileBuildState = {
 export type GraphRuntimeState = {
   compileBuild: GraphCompileBuildState
   previewPreparation: GraphPreviewPreparation
+  acceptedBuildBundle: BuildResultBundle | null
+  acceptedPreviewBuildBundle: BuildResultBundle | null
   acceptedBuildOutputs: PartArtifact[]
   acceptedPreviewBuildOutputs: PartArtifact[]
   outputSurface: GraphOutputSurface
@@ -150,6 +154,102 @@ export type ResolvedGraphReceiveReference = GraphReceiveReference & {
 export type SharedViewerCompositionState = {
   compositionId: string
   graphDocumentIds: string[]
+}
+
+const EMPTY_BUILD_RESULT_ENTRIES: BuildResultEntry[] = []
+
+const cloneBuildResultEntry = (entry: BuildResultEntry): BuildResultEntry => ({
+  buildUnitId: entry.buildUnitId,
+  outputEntryId: entry.outputEntryId,
+  sourceNodeId: entry.sourceNodeId,
+  status: entry.status,
+  resultClass: entry.resultClass,
+  artifacts: [...entry.artifacts],
+})
+
+const finalizeAcceptedBuildBundle = (options: {
+  previousBundle: BuildResultBundle | null
+  nextBundle: BuildResultBundle
+  targetBuildUnitIds: readonly BuildUnitId[]
+}): BuildResultBundle => {
+  const previousEntries = options.previousBundle?.entries ?? EMPTY_BUILD_RESULT_ENTRIES
+  const nextEntries = options.nextBundle.entries
+  const previousByBuildUnitId = new Map(previousEntries.map((entry) => [entry.buildUnitId, entry] as const))
+  const nextByBuildUnitId = new Map(nextEntries.map((entry) => [entry.buildUnitId, entry] as const))
+  const orderedBuildUnitIds = [
+    ...new Set([
+      ...previousEntries.map((entry) => entry.buildUnitId),
+      ...options.targetBuildUnitIds,
+      ...nextEntries.map((entry) => entry.buildUnitId),
+    ]),
+  ]
+
+  const entries: BuildResultEntry[] = []
+  for (const buildUnitId of orderedBuildUnitIds) {
+    const rebuiltEntry = nextByBuildUnitId.get(buildUnitId)
+    if (rebuiltEntry !== undefined) {
+      entries.push({
+        ...cloneBuildResultEntry(rebuiltEntry),
+        status: 'rebuilt',
+        resultClass: options.nextBundle.resultClass,
+      })
+      continue
+    }
+
+    const previousEntry = previousByBuildUnitId.get(buildUnitId)
+    if (previousEntry === undefined) {
+      continue
+    }
+
+    if (options.targetBuildUnitIds.includes(buildUnitId)) {
+      entries.push({
+        ...cloneBuildResultEntry(previousEntry),
+        status: 'evicted',
+        resultClass: options.nextBundle.resultClass,
+        artifacts: [],
+      })
+      continue
+    }
+
+    entries.push({
+      ...cloneBuildResultEntry(previousEntry),
+      status: 'retained',
+      resultClass: options.nextBundle.resultClass,
+    })
+  }
+
+  return {
+    buildRequestId: options.nextBundle.buildRequestId,
+    graphDocumentId: options.nextBundle.graphDocumentId,
+    seq: options.nextBundle.seq,
+    resultClass: options.nextBundle.resultClass,
+    executionIntent: { ...options.nextBundle.executionIntent },
+    summary: {
+      rebuiltCount: entries.filter((entry) => entry.status === 'rebuilt').length,
+      retainedCount: entries.filter((entry) => entry.status === 'retained').length,
+      evictedCount: entries.filter((entry) => entry.status === 'evicted').length,
+    },
+    entries,
+  }
+}
+
+const bundleToAcceptedBuildOutputs = (bundle: BuildResultBundle | null): PartArtifact[] => {
+  if (bundle === null) {
+    return []
+  }
+  const artifactsByPartKey = new Map<string, PartArtifact>()
+  for (const entry of bundle.entries) {
+    if (entry.status === 'evicted') {
+      continue
+    }
+    for (const artifact of entry.artifacts) {
+      const partKey = artifactToPartKeyStr(artifact)
+      if (!artifactsByPartKey.has(partKey)) {
+        artifactsByPartKey.set(partKey, artifact)
+      }
+    }
+  }
+  return [...artifactsByPartKey.values()]
 }
 
 export type CachedGraphEntry = {
@@ -436,7 +536,6 @@ export type SpaghettiStoreState = {
       previousBuildInputs: ReturnType<typeof compileSpaghettiGraph>['buildInputs'] | null
       pendingChangedParamIds: string[]
       pendingStatsPartKeys: string[]
-      pendingInstances: GraphBuildInstances
       pendingTargetBuildUnitIds?: BuildUnitId[]
       pendingAffectedBuildUnitIds?: BuildUnitId[]
       buildRequestId: string
@@ -446,7 +545,7 @@ export type SpaghettiStoreState = {
   acceptGraphBuildResult: (
     routingIdentity: BuildRoutingIdentity & {
       buildSeq: number
-      buildOutputs?: PartArtifact[]
+      bundle?: BuildResultBundle
     },
   ) => boolean
   clearGraphBuildRequest: (
@@ -2084,7 +2183,6 @@ const createEmptyGraphCompileBuildState = (): GraphCompileBuildState => ({
   previousBuildInputs: null,
   pendingChangedParamIds: [],
   pendingStatsPartKeys: [],
-  pendingInstances: null,
   pendingTargetBuildUnitIds: [],
   pendingAffectedBuildUnitIds: [],
   currentGraphRevision: 0,
@@ -2105,17 +2203,21 @@ const createGraphRuntimeState = (
 ): GraphRuntimeState => {
   const compileBuild = createEmptyGraphCompileBuildState()
   const previewPreparation = prepareGraphPreviewPreparation(graph)
+  const acceptedBuildBundle = null
+  const acceptedPreviewBuildBundle = null
   const acceptedBuildOutputs: PartArtifact[] = []
   const acceptedPreviewBuildOutputs: PartArtifact[] = []
   return {
     compileBuild,
     previewPreparation,
+    acceptedBuildBundle,
+    acceptedPreviewBuildBundle,
     acceptedBuildOutputs,
     acceptedPreviewBuildOutputs,
     outputSurface: buildGraphOutputSurface({
       graphDocumentId,
       previewPreparation,
-      acceptedBuildOutputs,
+      acceptedBundle: acceptedBuildBundle,
       publishedAtBuildSeq: compileBuild.latestAcceptedBuildSeq,
     }),
   }
@@ -2163,17 +2265,21 @@ const withUpdatedGraphRuntimeGraph = (
     buildStatsReadyPartKeys:
       runtime?.previewPreparation.buildStatsReadyPartKeys ?? [],
   }
+  const acceptedBuildBundle = runtime?.acceptedBuildBundle ?? null
+  const acceptedPreviewBuildBundle = runtime?.acceptedPreviewBuildBundle ?? null
   const acceptedBuildOutputs = runtime?.acceptedBuildOutputs ?? []
   const acceptedPreviewBuildOutputs = runtime?.acceptedPreviewBuildOutputs ?? []
   return {
     compileBuild,
     previewPreparation,
+    acceptedBuildBundle,
+    acceptedPreviewBuildBundle,
     acceptedBuildOutputs,
     acceptedPreviewBuildOutputs,
     outputSurface: buildGraphOutputSurface({
       graphDocumentId,
       previewPreparation,
-      acceptedBuildOutputs,
+      acceptedBundle: acceptedBuildBundle,
       publishedAtBuildSeq: compileBuild.latestAcceptedBuildSeq,
     }),
   }
@@ -5147,10 +5253,6 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
               previousBuildInputs: options.compileResult.buildInputs ?? options.previousBuildInputs,
               pendingChangedParamIds: [...options.pendingChangedParamIds],
               pendingStatsPartKeys: [...options.pendingStatsPartKeys],
-              pendingInstances: {
-                heelKickInstances: [...options.pendingInstances.heelKickInstances],
-                toeHookInstances: [...options.pendingInstances.toeHookInstances],
-              },
               pendingTargetBuildUnitIds: [...(options.pendingTargetBuildUnitIds ?? [])],
               pendingAffectedBuildUnitIds: [...(options.pendingAffectedBuildUnitIds ?? [])],
               currentGraphRevision: runtime.compileBuild.currentGraphRevision,
@@ -5199,9 +5301,29 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
       const nextGraphDocumentIdByBuildSeq = { ...state.graphDocumentIdByBuildSeq }
       delete nextGraphDocumentIdByBuildSeq[routingIdentity.buildSeq]
       accepted = true
-      const acceptedBuildOutputs = Array.isArray(routingIdentity.buildOutputs)
-        ? [...routingIdentity.buildOutputs]
-        : runtime.acceptedBuildOutputs
+      const nextBundle =
+        routingIdentity.bundle ??
+        ({
+          buildRequestId: routingIdentity.buildRequestId,
+          graphDocumentId: routingIdentity.graphDocumentId,
+          seq: routingIdentity.buildSeq,
+          resultClass: 'final',
+          executionIntent: { ...DEFAULT_BUILD_EXECUTION_INTENT },
+          summary: {
+            rebuiltCount: 0,
+            retainedCount: 0,
+            evictedCount: 0,
+          },
+          entries: [],
+        } satisfies BuildResultBundle)
+      const acceptedBuildBundle = finalizeAcceptedBuildBundle({
+        previousBundle: runtime.acceptedBuildBundle,
+        nextBundle,
+        targetBuildUnitIds: compileBuild.pendingTargetBuildUnitIds,
+      })
+      const acceptedPreviewBuildBundle = acceptedBuildBundle
+      const acceptedBuildOutputs = bundleToAcceptedBuildOutputs(acceptedBuildBundle)
+      const acceptedPreviewBuildOutputs = bundleToAcceptedBuildOutputs(acceptedPreviewBuildBundle)
 
       return {
         graphRuntimeByDocumentId: {
@@ -5220,14 +5342,14 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
               inFlightBuildRequestId: null,
               inFlightBuildSeq: null,
             },
+            acceptedBuildBundle,
+            acceptedPreviewBuildBundle,
             acceptedBuildOutputs,
-            acceptedPreviewBuildOutputs: Array.isArray(routingIdentity.buildOutputs)
-              ? [...routingIdentity.buildOutputs]
-              : runtime.acceptedPreviewBuildOutputs,
+            acceptedPreviewBuildOutputs,
             outputSurface: buildGraphOutputSurface({
               graphDocumentId: routingIdentity.graphDocumentId,
               previewPreparation: runtime.previewPreparation,
-              acceptedBuildOutputs,
+              acceptedBundle: acceptedBuildBundle,
               publishedAtBuildSeq: routingIdentity.buildSeq,
             }),
           },

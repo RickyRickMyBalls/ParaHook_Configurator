@@ -805,9 +805,14 @@ const areConsoleStagedNavigationSessionsEqual = (
   }
   return (
     left.scopeId === right.scopeId &&
+    left.breadcrumb.length === right.breadcrumb.length &&
+    left.breadcrumb.every((crumb, index) => crumb === right.breadcrumb[index]) &&
     left.selections.graphDocumentId === right.selections.graphDocumentId &&
     left.selections.selectedNodeId === right.selections.selectedNodeId &&
-    left.selections.sketchNodeId === right.selections.sketchNodeId
+    left.selections.sketchNodeId === right.selections.sketchNodeId &&
+    (left.selections.referenceId ?? null) === (right.selections.referenceId ?? null) &&
+    (left.selections.referenceCategoryId ?? null) ===
+      (right.selections.referenceCategoryId ?? null)
   )
 }
 

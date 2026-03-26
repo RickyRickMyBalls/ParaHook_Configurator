@@ -19,10 +19,6 @@ export type CompileSpaghettiGraphResult = {
     topoOrder: string[]
   }
   buildInputs?: {
-    instances: {
-      heelKickInstances: number[]
-      toeHookInstances: number[]
-    }
     orderedPartKeys: string[]
     resolvedParts: Record<string, Record<string, unknown>>
     resolvedShared?: Record<string, unknown>
@@ -540,16 +536,6 @@ export const compileSpaghettiGraph = (
     },
     evaluation,
     buildInputs: {
-      instances: {
-        heelKickInstances: featureStackComputation.orderedPartKeys
-          .filter((partKey) => partKey.startsWith('heelKick#'))
-          .map((partKey) => Number(partKey.slice('heelKick#'.length)))
-          .filter((value) => Number.isInteger(value) && Number.isFinite(value)),
-        toeHookInstances: featureStackComputation.orderedPartKeys
-          .filter((partKey) => partKey.startsWith('toeHook#'))
-          .map((partKey) => Number(partKey.slice('toeHook#'.length)))
-          .filter((value) => Number.isInteger(value) && Number.isFinite(value)),
-      },
       orderedPartKeys: [...featureStackComputation.orderedPartKeys],
       resolvedParts,
       resolvedShared:

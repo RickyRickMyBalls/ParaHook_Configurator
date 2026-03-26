@@ -43,6 +43,10 @@ export function AppShell() {
   const isRadioToolbarOpen = useAudioSamplerStore((state) => state.isRadioToolbarOpen)
   const floatingShellActivationRequest = useAppStore((state) => state.floatingShellActivationRequest)
   const workspaceActiveSurface = useAppStore((state) => state.workspaceSelection.activeSurface)
+  const workspaceSelectedTarget = useAppStore((state) => state.workspaceSelection.selectedTarget)
+  const workspaceExplicitSelectedTargets = useAppStore(
+    (state) => state.workspaceSelection.explicitSelectedTargets ?? [],
+  )
   const setActiveSurface = useAppStore((state) => state.setActiveSurface)
   const requestConsoleContextSync = useAppStore((state) => state.requestConsoleContextSync)
   const appShellRef = useRef<HTMLDivElement | null>(null)
@@ -116,8 +120,17 @@ export function AppShell() {
     if (sketchPlanePickSession !== null) {
       return
     }
+    if (workspaceSelectedTarget !== null || workspaceExplicitSelectedTargets.length > 0) {
+      return
+    }
     requestConsoleContextSync('surface-clear')
-  }, [requestConsoleContextSync, setActiveSurface, sketchPlanePickSession])
+  }, [
+    requestConsoleContextSync,
+    setActiveSurface,
+    sketchPlanePickSession,
+    workspaceExplicitSelectedTargets.length,
+    workspaceSelectedTarget,
+  ])
 
   const handleActivateBrowserFloatingWindow = useCallback(() => {
     setActiveFloatingShell('browser')

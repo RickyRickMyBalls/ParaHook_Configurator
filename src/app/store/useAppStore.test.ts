@@ -1,5 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { BuildResult } from '../../shared/buildTypes'
+import {
+  DEFAULT_BUILD_EXECUTION_INTENT,
+  type BuildResult,
+  type PartArtifact,
+} from '../../shared/buildTypes'
 import { buildGraphOutputSurface } from '../spaghetti/outputSurface'
 import type { GraphPreviewPreparation } from '../spaghetti/previewPreparation'
 
@@ -44,6 +48,43 @@ const toeHookArtifact = {
   partKeyStr: 'toeHook#1',
   partKey: { id: 'toeHook', instance: 1 },
 }
+
+const createBuildResult = (options: {
+  seq: number
+  projectFileId: string
+  graphDocumentId: string
+  buildRequestId: string
+  artifacts: PartArtifact[]
+}) =>
+  ({
+    type: 'build_result',
+    lane: 'build',
+    seq: options.seq,
+    projectFileId: options.projectFileId,
+    graphDocumentId: options.graphDocumentId,
+    buildRequestId: options.buildRequestId,
+    bundle: {
+      buildRequestId: options.buildRequestId,
+      graphDocumentId: options.graphDocumentId,
+      seq: options.seq,
+      resultClass: 'final',
+      executionIntent: DEFAULT_BUILD_EXECUTION_INTENT,
+      summary: {
+        rebuiltCount: options.artifacts.length,
+        retainedCount: 0,
+        evictedCount: 0,
+      },
+      entries: options.artifacts.map((artifact) => ({
+        buildUnitId: artifact.partKeyStr,
+        outputEntryId: artifact.partKeyStr,
+        sourceNodeId: null,
+        status: 'rebuilt' as const,
+        resultClass: 'final' as const,
+        artifacts: [artifact],
+      })),
+    },
+    changedParamIds: ['sp_full'],
+  }) satisfies BuildResult
 
 const createPreviewPreparation = (
   slots: Array<{
@@ -123,7 +164,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
 
     useAppStore.setState(useAppStore.getInitialState(), true)
 
-    expect(useAppStore.getState().parts).toEqual([])
+    expect(useAppStore.getState().selectedPartKey).toBeNull()
   })
 
   it('owns a first workspace-selection seam for shared target and active-surface truth', async () => {
@@ -945,14 +986,14 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const { buildDispatcher } = await import('../buildDispatcher')
     const { selectCurrentProjectId, useAppStore } = await import('./useAppStore')
     const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
-    const { createValidBaseplateGraph } = await import('../spaghetti/dev/sampleGraph')
+    const { createPublishedCubeGraph } = await import('../spaghetti/dev/sampleGraph')
 
     useAppStore.setState(useAppStore.getInitialState(), true)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
 
     const secondGraphId = useSpaghettiStore
       .getState()
-      .createGraphDocument(createValidBaseplateGraph(), 'Graph 2')
+      .createGraphDocument(createPublishedCubeGraph(), 'Graph 2')
     useSpaghettiStore.getState().openGraphDocumentInViewport(secondGraphId)
 
     const requestBuildSpy = vi.spyOn(buildDispatcher, 'requestGraphBuild').mockReturnValue(41)
@@ -972,6 +1013,31 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     expect(
       useSpaghettiStore.getState().graphRuntimeByDocumentId[secondGraphId]?.compileBuild.inFlightBuildSeq,
     ).toBe(41)
+  })
+
+  it('keeps requestSpaghettiBuild silent when the active graph has no published build units', async () => {
+    const { buildDispatcher } = await import('../buildDispatcher')
+    const { useAppStore } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    const { createValidBaseplateGraph } = await import('../spaghetti/dev/sampleGraph')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+
+    const secondGraphId = useSpaghettiStore
+      .getState()
+      .createGraphDocument(createValidBaseplateGraph(), 'Graph 2')
+    useSpaghettiStore.getState().openGraphDocumentInViewport(secondGraphId)
+
+    const requestBuildSpy = vi.spyOn(buildDispatcher, 'requestGraphBuild').mockReturnValue(41)
+
+    const compileResult = useAppStore.getState().requestSpaghettiBuild()
+
+    expect(compileResult.ok).toBe(true)
+    expect(requestBuildSpy).not.toHaveBeenCalled()
+    expect(
+      useSpaghettiStore.getState().graphRuntimeByDocumentId[secondGraphId]?.compileBuild.inFlightBuildSeq,
+    ).toBeNull()
   })
 
   it('cycles browser graph build policy through live, release, manual, off, and back to live', async () => {
@@ -1066,32 +1132,14 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const { buildDispatcher } = await import('../buildDispatcher')
     const { useAppStore } = await import('./useAppStore')
     const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
-    const { createValidBaseplateGraph } = await import('../spaghetti/dev/sampleGraph')
+    const { createPublishedCubeGraph } = await import('../spaghetti/dev/sampleGraph')
 
     useAppStore.setState(useAppStore.getInitialState(), true)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
 
-    const previewPreparation = createPreviewPreparation([
-      {
-        slotId: 'slot-baseplate',
-        sourceNodeId: 'node-baseplate-1',
-        sourcePartKey: 'baseplate',
-      },
-    ])
-
-    useSpaghettiStore.setState((state) => ({
-      graphRuntimeByDocumentId: {
-        ...state.graphRuntimeByDocumentId,
-        'graph-document-1': {
-          ...state.graphRuntimeByDocumentId['graph-document-1'],
-          previewPreparation,
-        },
-      },
-    }))
-
     const requestBuildSpy = vi.spyOn(buildDispatcher, 'requestGraphBuild').mockReturnValue(91)
 
-    useSpaghettiStore.getState().setGraph(createValidBaseplateGraph())
+    useSpaghettiStore.getState().setGraph(createPublishedCubeGraph())
 
     expect(requestBuildSpy).toHaveBeenCalledTimes(1)
     expect(requestBuildSpy).toHaveBeenCalledWith(
@@ -1107,34 +1155,16 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const { buildDispatcher } = await import('../buildDispatcher')
     const { useAppStore } = await import('./useAppStore')
     const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
-    const { createValidBaseplateGraph } = await import('../spaghetti/dev/sampleGraph')
+    const { createPublishedCubeGraph } = await import('../spaghetti/dev/sampleGraph')
 
     useAppStore.setState(useAppStore.getInitialState(), true)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
-
-    const previewPreparation = createPreviewPreparation([
-      {
-        slotId: 'slot-baseplate',
-        sourceNodeId: 'node-baseplate-1',
-        sourcePartKey: 'baseplate',
-      },
-    ])
-
-    useSpaghettiStore.setState((state) => ({
-      graphRuntimeByDocumentId: {
-        ...state.graphRuntimeByDocumentId,
-        'graph-document-1': {
-          ...state.graphRuntimeByDocumentId['graph-document-1'],
-          previewPreparation,
-        },
-      },
-    }))
 
     const requestBuildSpy = vi.spyOn(buildDispatcher, 'requestGraphBuild').mockReturnValue(92)
 
     useAppStore.getState().setBrowserGraphBuildPolicy('graph-document-1', 'release')
     useAppStore.getState().beginBrowserBuildInteraction('graph-document-1')
-    useSpaghettiStore.getState().setGraph(createValidBaseplateGraph())
+    useSpaghettiStore.getState().setGraph(createPublishedCubeGraph())
 
     expect(requestBuildSpy).not.toHaveBeenCalled()
     expect(useAppStore.getState().pendingBrowserBuildGraphDocumentIds).toMatchObject({
@@ -1153,33 +1183,15 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const { buildDispatcher } = await import('../buildDispatcher')
     const { useAppStore } = await import('./useAppStore')
     const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
-    const { createValidBaseplateGraph } = await import('../spaghetti/dev/sampleGraph')
+    const { createPublishedCubeGraph } = await import('../spaghetti/dev/sampleGraph')
 
     useAppStore.setState(useAppStore.getInitialState(), true)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
 
-    const previewPreparation = createPreviewPreparation([
-      {
-        slotId: 'slot-baseplate',
-        sourceNodeId: 'node-baseplate-1',
-        sourcePartKey: 'baseplate',
-      },
-    ])
-
-    useSpaghettiStore.setState((state) => ({
-      graphRuntimeByDocumentId: {
-        ...state.graphRuntimeByDocumentId,
-        'graph-document-1': {
-          ...state.graphRuntimeByDocumentId['graph-document-1'],
-          previewPreparation,
-        },
-      },
-    }))
-
     const requestBuildSpy = vi.spyOn(buildDispatcher, 'requestGraphBuild').mockReturnValue(93)
 
     useAppStore.getState().setBrowserGraphBuildPolicy('graph-document-1', 'manual')
-    useSpaghettiStore.getState().setGraph(createValidBaseplateGraph())
+    useSpaghettiStore.getState().setGraph(createPublishedCubeGraph())
 
     expect(requestBuildSpy).not.toHaveBeenCalled()
     expect(
@@ -1508,7 +1520,6 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
         ok: true,
         diagnostics: { errors: [], warnings: [] },
         buildInputs: {
-          instances: { heelKickInstances: [1], toeHookInstances: [1] },
           orderedPartKeys: ['baseplate'],
           resolvedParts: {},
         },
@@ -1516,39 +1527,25 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
       previousBuildInputs: null,
       pendingChangedParamIds: ['sp_full'],
       pendingStatsPartKeys: ['baseplate'],
-      pendingInstances: { heelKickInstances: [1], toeHookInstances: [1] },
       buildRequestId: 'build-request-1',
       buildSeq: 1,
     })
 
-    const result: BuildResult = {
-      type: 'build_result',
-      lane: 'build',
+    const result = createBuildResult({
       seq: 1,
       projectFileId: selectCurrentProjectId(useAppStore.getState()),
       graphDocumentId: 'graph-document-1',
       buildRequestId: 'build-request-1',
-      changedParamIds: ['sp_full'],
-      parts: [
-        {
-          id: 'baseplate',
-          label: 'Baseplate',
-          kind: 'box',
-          params: { width: 1, length: 2, height: 3 },
-          partKeyStr: 'baseplate',
-          partKey: { id: 'baseplate', instance: null },
-        },
-      ],
-    }
+      artifacts: [baseplateArtifact],
+    })
 
     useAppStore.getState().acceptBuildResult(result)
 
-    expect(useAppStore.getState().parts).toEqual([])
     expect(useAppStore.getState().lastBuildSeq).toBe(1)
     expect(selectViewerTargetGraphDocumentId(useSpaghettiStore.getState())).toBe(secondGraphId)
     expect(
       selectGraphAcceptedBuildOutputsByDocumentId(useSpaghettiStore.getState(), 'graph-document-1'),
-    ).toEqual(result.parts)
+    ).toEqual(result.bundle.entries.flatMap((entry) => entry.artifacts))
     expect(
       selectGraphAcceptedBuildOutputsByDocumentId(useSpaghettiStore.getState(), secondGraphId),
     ).toEqual([])
@@ -1873,3 +1870,4 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     ).toBe(true)
   })
 })
+

@@ -1,4 +1,6 @@
-import type { BoxParams, CompiledBuildData } from '../../shared/buildTypes'
+import type {
+  CompiledBuildData,
+} from '../../shared/buildTypes'
 
 export type EngineMode = 'stub_box'
 export type ControlMode = 'profile_editor'
@@ -21,10 +23,7 @@ const stableStringify = (value: unknown): string => {
 }
 
 export type BuildSignatureInput = {
-  payload: BoxParams
-  compiledBuildData?: CompiledBuildData
-  heelKickInstances?: number[]
-  toeHookInstances?: number[]
+  compiledBuildData: CompiledBuildData
 }
 
 const serializePayload = (payload: BuildSignatureInput): string => stableStringify(payload)

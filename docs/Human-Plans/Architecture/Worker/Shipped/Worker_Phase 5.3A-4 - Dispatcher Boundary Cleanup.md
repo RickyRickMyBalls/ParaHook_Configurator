@@ -3,6 +3,8 @@
 ## Doc Header
 
 ### Doc History
+4. 2026-03-25 18:22: Shipped `[5.3A-4]` after the dispatcher-boundary cleanup landed in code, moving this phase record into `Worker/Shipped/` and locking that `BuildDispatcher` no longer writes directly to build-stats or console state now that runtime presentation/bookkeeping flows outward through `bootstrapBuildWiring.ts`
+3. 2026-03-25 18:06: Tightened this future dispatcher phase against the live `src/app` code, clarifying that `bootstrapBuildWiring.ts` already owns the provider-and-handler wiring, locking one whole-object runtime-hooks registration seam plus deterministic hook ordering, and extending the verification/read targets so `[5.3A-4]` now reads as a cleaner implementation-ready boundary move instead of a looser cleanup note
 2. 2026-03-23 13:24: Refreshed this future dispatcher phase after shipping `[5.3A-2]`, updating its prerequisite wording and reading order so the doc now treats the graph-native request/build-unit contract as completed groundwork with the standalone `5.3A-2` record living under `Worker/Shipped/`
 1. 2026-03-22 19:50: Created this standalone future phase doc for `[5.3A-4]`, turning the dispatcher cleanup follow-up into an implementation-ready planning surface that keeps worker lifetime, typed validation, request sequencing, and stale-drop inside `BuildDispatcher` while moving build-stats and console side effects outward into app runtime wiring after the graph-native request/build-unit contract lands
 
@@ -55,7 +57,7 @@ This phase does not cover:
 
 ## Doc Body
 
-## [ ] - `[5.3A-4]` - `Dispatcher Boundary Cleanup`
+## [x] - `[5.3A-4]` - `Dispatcher Boundary Cleanup`
 
 ### Header
 
@@ -78,8 +80,8 @@ Does not own:
 
 This phase starts from:
 - `docs/Human-Plans/Architecture/Worker/Shipped/Worker_Phase 5.3A-1 - Worker Audit And Legacy Startup Inventory.md`
-- `docs/Human-Plans/Architecture/Worker/Shipped/Worker_Phase 5.3A-3 - Worker Lane Definition And Execution-Intent Model.md`
 - `docs/Human-Plans/Architecture/Worker/Shipped/Worker_Phase 5.3A-2 - Graph-Native Worker Contract And Separate-Build Identity.md`
+- `docs/Human-Plans/Architecture/Worker/Shipped/Worker_Phase 5.3A-3 - Worker Lane Definition And Execution-Intent Model.md`
 
 Locked constraints from earlier phases:
 - `BuildDispatcher` must keep worker lifetime ownership
@@ -101,8 +103,24 @@ Current direct side effects that must move out of the dispatcher:
 Current seams this phase defines against:
 - `src/app/buildDispatcher.ts`
 - `src/app/bootstrapBuildWiring.ts`
+- `src/app/store/useAppStore.ts`
 - `src/app/store/buildStatsStore.ts`
 - `src/app/console/useConsoleStore.ts`
+- `src/app/buildDispatcher.test.ts`
+- `src/app/console/consolePublishers.test.ts`
+
+Live code alignment for this phase:
+- `bootstrapBuildWiring.ts` already owns the current provider and handler registration for:
+  - changed-param ids
+  - build instances
+  - build-stats part keys
+  - build-result acceptance
+  - worker-error handling
+- `BuildDispatcher` still directly owns the request-start, progress, result-settled, worker-error, and compatibility cache-hit writes into:
+  - `useBuildStatsStore`
+  - `appendConsoleEntry`
+- the compatibility `assemble` path is currently still dispatcher-local and mostly dormant outside this file
+- this phase should reroute `assemble` presentation/bookkeeping side effects outward without widening into a broader assemble-result architecture redesign
 
 ### Implementation Target
 
@@ -150,6 +168,11 @@ Hard rule:
 This phase introduces one narrow outward side-effect seam:
 - `BuildDispatcherRuntimeHooks`
 
+Recommended registration shape:
+- `buildDispatcher.setRuntimeHooks(hooks)`
+- store one whole hooks object on the dispatcher instead of adding many new setter methods for presentation-only side effects
+- keep existing dedicated result/error handlers separate from runtime hooks so app-owned result acceptance does not get collapsed into presentation wiring
+
 Recommended shape:
 - `onBuildRequestStarted(context)`
 - `onAssembleRequestStarted(context)`
@@ -186,6 +209,13 @@ Required payload direction:
   - carries the current `seq`
   - carries the synthetic compatibility progress messages or enough data for outer wiring to produce the same effect
 
+Required ordering rules:
+- request-start hooks fire after sequence, routing identity, and pending-ledger state are finalized but before `worker.postMessage(...)`
+- progress hooks fire only after validated messages survive stale-drop checks
+- build-result and worker-error hooks fire only after validated messages survive stale-drop checks and dispatcher ledger cleanup
+- existing app-owned build-result and worker-error handlers should keep their current relative priority ahead of the new runtime-presentation hooks
+- compatibility assemble cache-hit hooks must be the only outward way the cache-valid path reaches build-stats or console writes
+
 Explicit non-goal:
 - do not invent a generic app-wide event bus in this phase
 - use one dispatcher-local runtime hook seam only
@@ -210,6 +240,14 @@ Outer-wiring responsibilities after the move:
 - append the current transcript lines with the same visible wording
 - keep `useAppStore.getState().acceptBuildResult(result)` outside the dispatcher
 - keep `useAppStore.getState().setWorkerError(error.message)` outside the dispatcher
+
+Live ownership rule:
+- keep the existing provider registration in `bootstrapBuildWiring.ts`:
+  - `setChangedParamIdsProvider`
+  - `setBuildInstancesProvider`
+  - `setBuildStatsPartKeysProvider`
+- add runtime-hook registration in that same file instead of inventing a second coordination surface
+- if the current code still does not need broader app-owned assemble acceptance, do not widen this phase just to invent it
 
 ### Compatibility Boundary
 
@@ -261,8 +299,11 @@ Recommended reading order:
 3. shipped `5.3A-3` lane-and-intent record
 4. `src/app/buildDispatcher.ts`
 5. `src/app/bootstrapBuildWiring.ts`
-6. `src/app/store/buildStatsStore.ts`
-7. `src/app/console/useConsoleStore.ts`
+6. `src/app/store/useAppStore.ts`
+7. `src/app/store/buildStatsStore.ts`
+8. `src/app/console/useConsoleStore.ts`
+9. `src/app/buildDispatcher.test.ts`
+10. `src/app/console/consolePublishers.test.ts`
 
 Required written outputs from this phase:
 1. `Current Constraints`
@@ -275,23 +316,28 @@ Required written outputs from this phase:
 
 Suggested execution steps:
 1. isolate every direct store/console side effect currently living in `BuildDispatcher`
-2. add one dispatcher runtime-hooks seam without disturbing existing result/error handlers
+2. add one whole-object dispatcher runtime-hooks seam without disturbing existing result/error handlers
 3. move build-stats reset/progress/overall-state writes into `bootstrapBuildWiring.ts`
 4. move current console transcript publishing into `bootstrapBuildWiring.ts`
-5. preserve current stale-drop filtering before outward hooks fire
-6. keep compatibility `assemble` and cache-hit behavior visible but routed through hooks
+5. preserve the current handler-versus-presentation ordering for accepted build results and worker errors
+6. preserve current stale-drop filtering before outward hooks fire
+7. keep compatibility `assemble` and cache-hit behavior visible but routed through hooks
 
 Suggested verification:
 - confirm `BuildDispatcher` no longer imports `useBuildStatsStore`
 - confirm `BuildDispatcher` no longer imports `appendConsoleEntry`
 - confirm `bootstrapBuildWiring.ts` becomes the only place that bridges dispatcher runtime events into build-stats and console side effects
+- confirm `bootstrapBuildWiring.ts` still owns provider registration for changed params, build instances, and build-stats part keys
 - confirm current visible transcript wording and build-stats behavior stay materially unchanged
 - confirm stale progress/results/errors still do not leak into the outward hook path
+- confirm the compatibility cache-hit path still emits equivalent visible `assembled` progress behavior without direct dispatcher store writes
+- confirm tests cover both the dispatcher stale-drop path and the moved console-publisher path
 
 Suggested verification commands:
 - `rg -n "appendConsoleEntry|useBuildStatsStore" src/app/buildDispatcher.ts src/app/bootstrapBuildWiring.ts`
-- `rg -n "setBuildResultHandler|setWorkerErrorHandler|setBuildStatsPartKeysProvider|setChangedParamIdsProvider" src/app`
+- `rg -n "setBuildResultHandler|setAssembleResultHandler|setWorkerErrorHandler|setBuildStatsPartKeysProvider|setChangedParamIdsProvider|setBuildInstancesProvider|setRuntimeHooks" src/app`
 - `rg -n "Build started|Build complete|Assemble started|Assemble complete|Assembled cache hit" src/app`
+- `rg -n "build lifecycle worker lines|Build started \\(graph-a\\)|Build complete \\(graph-a\\)" src/app`
 
 Discipline rules:
 - do not widen into request-contract replacement in this phase

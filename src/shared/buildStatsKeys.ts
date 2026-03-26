@@ -1,14 +1,5 @@
 import { parsePartKeyString } from './buildTypes'
 
-export const LEGACY_BUILD_STATS_PART_ORDER = [
-  'baseplate',
-  'heelKick#1',
-  'toeHook#1',
-  'assembled',
-] as const
-
-export const ASSEMBLED_BUILD_STATS_KEY = 'assembled' as const
-
 const SPAGHETTI_SOURCE_PART_BASE_ORDER = [
   'baseplate',
   'cube',
@@ -52,11 +43,6 @@ export const compareSpaghettiSourcePartKeys = (a: string, b: string): number => 
 export const orderSpaghettiSourcePartKeys = (partKeys: readonly string[]): string[] => {
   const unique = [...new Set(partKeys.filter((partKey) => partKey.length > 0))]
   return unique.sort(compareSpaghettiSourcePartKeys)
-}
-
-export const withAssembledBuildStatsKey = (partKeys: readonly string[]): string[] => {
-  const ordered = partKeys.filter((partKey) => partKey !== ASSEMBLED_BUILD_STATS_KEY)
-  return [...ordered, ASSEMBLED_BUILD_STATS_KEY]
 }
 
 export const deriveSpaghettiSourcePartKeysFromProfilePatch = (

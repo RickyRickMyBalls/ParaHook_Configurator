@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { DEFAULT_BUILD_EXECUTION_INTENT } from '../shared/buildTypes'
-import { LEGACY_BUILD_STATS_PART_ORDER } from '../shared/buildStatsKeys'
+import { emitArtifacts } from '../worker/pipeline/artifactEmitter'
 
 type WorkerMessageHandler = (event: MessageEvent<unknown>) => void
 
@@ -35,20 +35,72 @@ class MockWorker {
   public terminate(): void {}
 }
 
-const resetBuildStatsStore = (
-  useBuildStatsStore: typeof import('./store/buildStatsStore').useBuildStatsStore,
-): void => {
-  useBuildStatsStore.setState({
-    activeSeq: null,
-    overallState: 'idle',
-    partOrder: [],
-    partStatsByKey: {},
-    pulseNonce: 0,
-    pulseKind: null,
-  })
+const buildResult = (options: {
+  buildRequestId: string
+  graphDocumentId: string
+  projectFileId: string
+  seq: number
+}) =>
+  emitArtifacts(
+    {
+      seq: options.seq,
+      projectFileId: options.projectFileId,
+      graphDocumentId: options.graphDocumentId,
+      buildRequestId: options.buildRequestId,
+      executionIntent: DEFAULT_BUILD_EXECUTION_INTENT,
+    },
+    [],
+    [],
+  )
+
+const compiledBuildData = {
+  orderedPartKeys: ['cube'],
+  resolvedParts: {},
+  resolvedShared: {
+    sp_featureStackIR: {
+      schemaVersion: 1 as const,
+      parts: {
+        cube: [],
+      },
+    },
+  },
+  outputEntries: [
+    {
+      buildUnitId: 'output-entry:s001:node-cube',
+      outputEntryId: 'output-entry:s001:node-cube',
+      sourceNodeId: 'node-cube',
+      partKey: 'cube',
+    },
+  ],
 }
 
-describe('BuildDispatcher build stats seeding', () => {
+const requestGraphBuild = (
+  dispatcher: InstanceType<(typeof import('./buildDispatcher'))['BuildDispatcher']>,
+  options?: {
+    graphDocumentId?: string
+    buildRequestId?: string
+    buildStatsPartKeys?: string[]
+  },
+): number =>
+  dispatcher.requestGraphBuild({
+    routingIdentity: {
+      projectFileId: 'project-1',
+      graphDocumentId: options?.graphDocumentId ?? 'graph-a',
+      buildRequestId: options?.buildRequestId ?? 'request-a-1',
+    },
+    compiledBuildData,
+    buildIdentity: {
+      graphRevision: 1,
+      targetBuildUnitIds: ['output-entry:s001:node-cube'],
+    },
+    invalidation: {
+      affectedBuildUnitIds: ['output-entry:s001:node-cube'],
+    },
+    changedParamIds: ['sp_full'],
+    buildStatsPartKeys: options?.buildStatsPartKeys ?? ['cube'],
+  })
+
+describe('BuildDispatcher runtime hooks and routing', () => {
   const originalWorker = globalThis.Worker
 
   beforeEach(() => {
@@ -66,45 +118,30 @@ describe('BuildDispatcher build stats seeding', () => {
     globalThis.Worker = originalWorker
   })
 
-  it('seeds spaghetti build stats rows from canonical source/build part keys', async () => {
+  it('emits build start hooks with seeded part keys and routing metadata', async () => {
     const module = await import('./buildDispatcher')
-    const { useBuildStatsStore } = await import('./store/buildStatsStore')
     module.buildDispatcher.dispose()
-    resetBuildStatsStore(useBuildStatsStore)
     const dispatcher = new module.BuildDispatcher()
-    dispatcher.setChangedParamIdsProvider(() => ['sp_full'])
-    dispatcher.setBuildInstancesProvider(() => ({
-      heelKickInstances: [1],
-      toeHookInstances: [1],
-    }))
-    dispatcher.setBuildStatsPartKeysProvider(() => ['cube', 'assembled'])
+    const onBuildRequestStarted = vi.fn()
 
-    dispatcher.requestBuild({ width: 1, length: 2, height: 3 })
+    dispatcher.setRuntimeHooks({
+      onBuildRequestStarted,
+    })
 
-    expect(useBuildStatsStore.getState().partOrder).toEqual(['cube', 'assembled'])
-    dispatcher.dispose()
-  })
+    requestGraphBuild(dispatcher, {
+      buildStatsPartKeys: ['cube'],
+    })
 
-  it('keeps legacy build stats ordering unchanged when no spaghetti keys are provided', async () => {
-    const module = await import('./buildDispatcher')
-    const { useBuildStatsStore } = await import('./store/buildStatsStore')
-    module.buildDispatcher.dispose()
-    resetBuildStatsStore(useBuildStatsStore)
-    const dispatcher = new module.BuildDispatcher()
-
-    dispatcher.requestBuild({ width: 1, length: 2, height: 3 })
-
-    expect(useBuildStatsStore.getState().partOrder).toEqual([
-      ...LEGACY_BUILD_STATS_PART_ORDER,
-    ])
-    const worker = (dispatcher as unknown as { worker: MockWorker }).worker
-    expect(worker.postedMessages[0]).toEqual(
-      expect.objectContaining({
-        type: 'build',
-        lane: 'build',
-        executionIntent: DEFAULT_BUILD_EXECUTION_INTENT,
-      }),
-    )
+    expect(onBuildRequestStarted).toHaveBeenCalledWith({
+      seq: 1,
+      routingIdentity: {
+        projectFileId: 'project-1',
+        graphDocumentId: 'graph-a',
+        buildRequestId: 'request-a-1',
+      },
+      executionIntent: DEFAULT_BUILD_EXECUTION_INTENT,
+      buildStatsPartKeys: ['cube'],
+    })
     dispatcher.dispose()
   })
 
@@ -119,23 +156,7 @@ describe('BuildDispatcher build stats seeding', () => {
         graphDocumentId: 'graph-a',
         buildRequestId: 'request-a-1',
       },
-      legacyPayload: { width: 1, length: 2, height: 3 },
-      compiledBuildData: {
-        instances: {
-          heelKickInstances: [1],
-          toeHookInstances: [1],
-        },
-        orderedPartKeys: ['cube'],
-        resolvedParts: {},
-        resolvedShared: {
-          sp_featureStackIR: {
-            schemaVersion: 1,
-            parts: {
-              cube: [],
-            },
-          },
-        },
-      },
+      compiledBuildData,
       buildIdentity: {
         graphRevision: 4,
         targetBuildUnitIds: ['output-entry:s001:node-cube'],
@@ -144,7 +165,7 @@ describe('BuildDispatcher build stats seeding', () => {
         affectedBuildUnitIds: ['output-entry:s001:node-cube'],
       },
       changedParamIds: ['sp_full'],
-      buildStatsPartKeys: ['cube', 'assembled'],
+      buildStatsPartKeys: ['cube'],
     })
 
     const worker = (dispatcher as unknown as { worker: MockWorker }).worker
@@ -171,114 +192,32 @@ describe('BuildDispatcher build stats seeding', () => {
     dispatcher.dispose()
   })
 
-  it('rejects a wrong-graph result and keeps the handler quiet', async () => {
+  it('rejects wrong-graph results and keeps result hooks quiet', async () => {
     const module = await import('./buildDispatcher')
     module.buildDispatcher.dispose()
     const dispatcher = new module.BuildDispatcher()
-    const handler = vi.fn()
-    dispatcher.setBuildResultHandler(handler)
+    const onBuildResult = vi.fn()
+    const onBuildResultSettled = vi.fn()
 
-    dispatcher.requestBuild(
-      { width: 1, length: 2, height: 3 },
-      {
-        routingIdentity: {
-          projectFileId: 'project-1',
-          graphDocumentId: 'graph-a',
-          buildRequestId: 'request-a-1',
-        },
-      },
-    )
-
-    const worker = (dispatcher as unknown as { worker: MockWorker }).worker
-    worker.dispatchMessage({
-      type: 'build_result',
-      lane: 'build',
-      seq: 1,
-      projectFileId: 'project-1',
-      graphDocumentId: 'graph-b',
-      buildRequestId: 'request-b-1',
-      parts: [],
-      changedParamIds: ['sp_full'],
+    dispatcher.setBuildResultHandler(onBuildResult)
+    dispatcher.setRuntimeHooks({
+      onBuildResultSettled,
     })
 
-    expect(handler).not.toHaveBeenCalled()
-    dispatcher.dispose()
-  })
+    requestGraphBuild(dispatcher)
 
-  it('accepts build results that carry graph-native mesh artifacts', async () => {
-    const module = await import('./buildDispatcher')
-    module.buildDispatcher.dispose()
-    const dispatcher = new module.BuildDispatcher()
-    const handler = vi.fn()
-    dispatcher.setBuildResultHandler(handler)
-
-    dispatcher.requestGraphBuild({
-      routingIdentity: {
+    const worker = (dispatcher as unknown as { worker: MockWorker }).worker
+    worker.dispatchMessage(
+      buildResult({
+        seq: 1,
         projectFileId: 'project-1',
-        graphDocumentId: 'graph-a',
-        buildRequestId: 'request-a-1',
-      },
-      legacyPayload: { width: 1, length: 2, height: 3 },
-      compiledBuildData: {
-        instances: {
-          heelKickInstances: [1],
-          toeHookInstances: [1],
-        },
-        orderedPartKeys: ['extrude'],
-        resolvedParts: {},
-      },
-      buildIdentity: {
-        graphRevision: 1,
-        targetBuildUnitIds: ['output-entry:s001:node-extrude'],
-      },
-      invalidation: {
-        affectedBuildUnitIds: ['output-entry:s001:node-extrude'],
-      },
-      buildStatsPartKeys: ['extrude', 'assembled'],
-    })
-
-    const worker = (dispatcher as unknown as { worker: MockWorker }).worker
-    worker.dispatchMessage({
-      type: 'build_result',
-      lane: 'build',
-      seq: 1,
-      projectFileId: 'project-1',
-      graphDocumentId: 'graph-a',
-      buildRequestId: 'request-a-1',
-      parts: [
-        {
-          id: 'extrude',
-          label: 'Extrude',
-          kind: 'mesh',
-          mesh: {
-            vertices: [
-              0, 0, 0,
-              5, 0, 0,
-              0, 20, 0,
-            ],
-            indices: [0, 1, 2],
-          },
-          partKeyStr: 'extrude',
-          partKey: {
-            id: 'extrude',
-            instance: null,
-          },
-        },
-      ],
-    })
-
-    expect(handler).toHaveBeenCalledWith(
-      expect.objectContaining({
-        graphDocumentId: 'graph-a',
-        buildRequestId: 'request-a-1',
-        parts: [
-          expect.objectContaining({
-            kind: 'mesh',
-            partKeyStr: 'extrude',
-          }),
-        ],
+        graphDocumentId: 'graph-b',
+        buildRequestId: 'request-b-1',
       }),
     )
+
+    expect(onBuildResult).not.toHaveBeenCalled()
+    expect(onBuildResultSettled).not.toHaveBeenCalled()
     dispatcher.dispose()
   })
 
@@ -286,54 +225,40 @@ describe('BuildDispatcher build stats seeding', () => {
     const module = await import('./buildDispatcher')
     module.buildDispatcher.dispose()
     const dispatcher = new module.BuildDispatcher()
-    const handler = vi.fn()
-    dispatcher.setBuildResultHandler(handler)
+    const onBuildResult = vi.fn()
+    const onBuildResultSettled = vi.fn()
 
-    dispatcher.requestBuild(
-      { width: 1, length: 2, height: 3 },
-      {
-        routingIdentity: {
-          projectFileId: 'project-1',
-          graphDocumentId: 'graph-a',
-          buildRequestId: 'request-a-1',
-        },
-      },
-    )
-    dispatcher.requestBuild(
-      { width: 4, length: 5, height: 6 },
-      {
-        routingIdentity: {
-          projectFileId: 'project-1',
-          graphDocumentId: 'graph-a',
-          buildRequestId: 'request-a-2',
-        },
-      },
-    )
+    dispatcher.setBuildResultHandler(onBuildResult)
+    dispatcher.setRuntimeHooks({
+      onBuildResultSettled,
+    })
+
+    requestGraphBuild(dispatcher)
+    requestGraphBuild(dispatcher, {
+      buildRequestId: 'request-a-2',
+    })
 
     const worker = (dispatcher as unknown as { worker: MockWorker }).worker
-    worker.dispatchMessage({
-      type: 'build_result',
-      lane: 'build',
-      seq: 2,
-      projectFileId: 'project-1',
-      graphDocumentId: 'graph-a',
-      buildRequestId: 'request-a-2',
-      parts: [],
-      changedParamIds: ['sp_width'],
-    })
-    worker.dispatchMessage({
-      type: 'build_result',
-      lane: 'build',
-      seq: 1,
-      projectFileId: 'project-1',
-      graphDocumentId: 'graph-a',
-      buildRequestId: 'request-a-1',
-      parts: [],
-      changedParamIds: ['sp_full'],
-    })
+    worker.dispatchMessage(
+      buildResult({
+        seq: 2,
+        projectFileId: 'project-1',
+        graphDocumentId: 'graph-a',
+        buildRequestId: 'request-a-2',
+      }),
+    )
+    worker.dispatchMessage(
+      buildResult({
+        seq: 1,
+        projectFileId: 'project-1',
+        graphDocumentId: 'graph-a',
+        buildRequestId: 'request-a-1',
+      }),
+    )
 
-    expect(handler).toHaveBeenCalledTimes(1)
-    expect(handler).toHaveBeenCalledWith(
+    expect(onBuildResult).toHaveBeenCalledTimes(1)
+    expect(onBuildResultSettled).toHaveBeenCalledTimes(1)
+    expect(onBuildResultSettled).toHaveBeenCalledWith(
       expect.objectContaining({
         seq: 2,
         graphDocumentId: 'graph-a',
@@ -347,65 +272,102 @@ describe('BuildDispatcher build stats seeding', () => {
     const module = await import('./buildDispatcher')
     module.buildDispatcher.dispose()
     const dispatcher = new module.BuildDispatcher()
-    const handler = vi.fn()
-    dispatcher.setBuildResultHandler(handler)
+    const onBuildResult = vi.fn()
+    const onBuildResultSettled = vi.fn()
 
-    dispatcher.requestBuild(
-      { width: 1, length: 2, height: 3 },
-      {
-        routingIdentity: {
-          projectFileId: 'project-1',
-          graphDocumentId: 'graph-a',
-          buildRequestId: 'request-a-1',
-        },
-      },
-    )
-    dispatcher.requestBuild(
-      { width: 7, length: 8, height: 9 },
-      {
-        routingIdentity: {
-          projectFileId: 'project-1',
-          graphDocumentId: 'graph-b',
-          buildRequestId: 'request-b-1',
-        },
-      },
-    )
+    dispatcher.setBuildResultHandler(onBuildResult)
+    dispatcher.setRuntimeHooks({
+      onBuildResultSettled,
+    })
 
-    const worker = (dispatcher as unknown as { worker: MockWorker }).worker
-    worker.dispatchMessage({
-      type: 'build_result',
-      lane: 'build',
-      seq: 2,
-      projectFileId: 'project-1',
+    requestGraphBuild(dispatcher)
+    requestGraphBuild(dispatcher, {
       graphDocumentId: 'graph-b',
       buildRequestId: 'request-b-1',
-      parts: [],
-      changedParamIds: ['sp_length'],
-    })
-    worker.dispatchMessage({
-      type: 'build_result',
-      lane: 'build',
-      seq: 1,
-      projectFileId: 'project-1',
-      graphDocumentId: 'graph-a',
-      buildRequestId: 'request-a-1',
-      parts: [],
-      changedParamIds: ['sp_width'],
     })
 
-    expect(handler).toHaveBeenCalledTimes(2)
-    expect(handler).toHaveBeenNthCalledWith(
+    const worker = (dispatcher as unknown as { worker: MockWorker }).worker
+    worker.dispatchMessage(
+      buildResult({
+        seq: 2,
+        projectFileId: 'project-1',
+        graphDocumentId: 'graph-b',
+        buildRequestId: 'request-b-1',
+      }),
+    )
+    worker.dispatchMessage(
+      buildResult({
+        seq: 1,
+        projectFileId: 'project-1',
+        graphDocumentId: 'graph-a',
+        buildRequestId: 'request-a-1',
+      }),
+    )
+
+    expect(onBuildResult).toHaveBeenCalledTimes(2)
+    expect(onBuildResultSettled).toHaveBeenCalledTimes(2)
+    expect(onBuildResultSettled).toHaveBeenNthCalledWith(
       1,
       expect.objectContaining({
         seq: 2,
         graphDocumentId: 'graph-b',
       }),
     )
-    expect(handler).toHaveBeenNthCalledWith(
+    expect(onBuildResultSettled).toHaveBeenNthCalledWith(
       2,
       expect.objectContaining({
         seq: 1,
         graphDocumentId: 'graph-a',
+      }),
+    )
+    dispatcher.dispose()
+  })
+
+  it('only forwards worker errors for accepted messages', async () => {
+    const module = await import('./buildDispatcher')
+    module.buildDispatcher.dispose()
+    const dispatcher = new module.BuildDispatcher()
+    const onWorkerError = vi.fn()
+    const onRuntimeWorkerError = vi.fn()
+
+    dispatcher.setWorkerErrorHandler(onWorkerError)
+    dispatcher.setRuntimeHooks({
+      onWorkerError: onRuntimeWorkerError,
+    })
+
+    requestGraphBuild(dispatcher)
+    requestGraphBuild(dispatcher, {
+      buildRequestId: 'request-a-2',
+    })
+
+    const worker = (dispatcher as unknown as { worker: MockWorker }).worker
+    worker.dispatchMessage({
+      type: 'worker_error',
+      seq: 1,
+      op: 'build',
+      lane: 'build',
+      message: 'stale build failed',
+      projectFileId: 'project-1',
+      graphDocumentId: 'graph-a',
+      buildRequestId: 'request-a-1',
+    })
+    worker.dispatchMessage({
+      type: 'worker_error',
+      seq: 2,
+      op: 'build',
+      lane: 'build',
+      message: 'active build failed',
+      projectFileId: 'project-1',
+      graphDocumentId: 'graph-a',
+      buildRequestId: 'request-a-2',
+    })
+
+    expect(onWorkerError).toHaveBeenCalledTimes(1)
+    expect(onRuntimeWorkerError).toHaveBeenCalledTimes(1)
+    expect(onRuntimeWorkerError).toHaveBeenCalledWith(
+      expect.objectContaining({
+        seq: 2,
+        message: 'active build failed',
       }),
     )
     dispatcher.dispose()

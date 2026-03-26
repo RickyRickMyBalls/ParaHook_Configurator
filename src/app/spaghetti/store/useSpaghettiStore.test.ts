@@ -31,7 +31,11 @@ import {
   selectViewerTargetGraphOutputSurface,
   useSpaghettiStore,
 } from './useSpaghettiStore'
-import type { PartArtifact } from '../../../shared/buildTypes'
+import {
+  DEFAULT_BUILD_EXECUTION_INTENT,
+  type BuildResultBundle,
+  type PartArtifact,
+} from '../../../shared/buildTypes'
 import type { SketchFeature } from '../features/featureTypes'
 
 const emptyGraph: SpaghettiGraph = {
@@ -57,6 +61,36 @@ const cubeArtifact: PartArtifact = {
   partKeyStr: 'cube',
   partKey: { id: 'cube', instance: null },
 }
+
+const createAcceptedBundle = (options: {
+  seq: number
+  graphDocumentId: string
+  buildRequestId: string
+  entries: Array<{
+    artifact: PartArtifact
+    outputEntryId: string
+    sourceNodeId: string | null
+  }>
+}): BuildResultBundle => ({
+  buildRequestId: options.buildRequestId,
+  graphDocumentId: options.graphDocumentId,
+  seq: options.seq,
+  resultClass: 'final',
+  executionIntent: DEFAULT_BUILD_EXECUTION_INTENT,
+  summary: {
+    rebuiltCount: options.entries.length,
+    retainedCount: 0,
+    evictedCount: 0,
+  },
+  entries: options.entries.map((entry) => ({
+    buildUnitId: entry.outputEntryId,
+    outputEntryId: entry.outputEntryId,
+    sourceNodeId: entry.sourceNodeId,
+    status: 'rebuilt',
+    resultClass: 'final',
+    artifacts: [entry.artifact],
+  })),
+})
 
 const graphWithPublishedPart = (
   nodeId: string,
@@ -510,7 +544,6 @@ describe('useSpaghettiStore graph normalization', () => {
       ok: true,
       diagnostics: { errors: [], warnings: [] },
       buildInputs: {
-        instances: { heelKickInstances: [1], toeHookInstances: [1] },
         orderedPartKeys: ['baseplate'],
         resolvedParts: {},
       },
@@ -520,15 +553,13 @@ describe('useSpaghettiStore graph normalization', () => {
         ok: true,
         diagnostics: { errors: [], warnings: [] },
         buildInputs: {
-          instances: { heelKickInstances: [1], toeHookInstances: [1] },
-          orderedPartKeys: ['baseplate'],
+            orderedPartKeys: ['baseplate'],
           resolvedParts: {},
         },
       },
       previousBuildInputs: null,
       pendingChangedParamIds: ['sp_full'],
-      pendingStatsPartKeys: ['baseplate', 'assembled'],
-      pendingInstances: { heelKickInstances: [1], toeHookInstances: [1] },
+      pendingStatsPartKeys: ['baseplate'],
       pendingTargetBuildUnitIds: ['output-entry:s001:node-baseplate-1'],
       pendingAffectedBuildUnitIds: ['output-entry:s001:node-baseplate-1'],
       buildRequestId: 'build-request-42',
@@ -544,14 +575,14 @@ describe('useSpaghettiStore graph normalization', () => {
     expect(firstRuntime.compileBuild.latestIssuedGraphRevision).toBe(0)
     expect(firstRuntime.compileBuild.inFlightGraphRevision).toBe(0)
     expect(firstRuntime.compileBuild.latestAcceptedGraphRevision).toBeNull()
-    expect(firstRuntime.compileBuild.pendingStatsPartKeys).toEqual(['baseplate', 'assembled'])
+    expect(firstRuntime.compileBuild.pendingStatsPartKeys).toEqual(['baseplate'])
     expect(firstRuntime.compileBuild.pendingTargetBuildUnitIds).toEqual([
       'output-entry:s001:node-baseplate-1',
     ])
     expect(firstRuntime.compileBuild.pendingAffectedBuildUnitIds).toEqual([
       'output-entry:s001:node-baseplate-1',
     ])
-    expect(firstRuntime.previewPreparation.buildStatsReadyPartKeys).toEqual(['baseplate', 'assembled'])
+    expect(firstRuntime.previewPreparation.buildStatsReadyPartKeys).toEqual(['baseplate'])
     expect(secondRuntime.compileBuild.lastCompileResult).toBeNull()
     expect(secondRuntime.previewPreparation.previewIntent).toBe('outputPreview')
   })
@@ -621,15 +652,13 @@ describe('useSpaghettiStore graph normalization', () => {
         ok: true,
         diagnostics: { errors: [], warnings: [] },
         buildInputs: {
-          instances: { heelKickInstances: [1], toeHookInstances: [1] },
-          orderedPartKeys: ['baseplate'],
+            orderedPartKeys: ['baseplate'],
           resolvedParts: {},
         },
       },
       previousBuildInputs: null,
       pendingChangedParamIds: ['sp_full'],
-      pendingStatsPartKeys: ['baseplate', 'assembled'],
-      pendingInstances: { heelKickInstances: [1], toeHookInstances: [1] },
+      pendingStatsPartKeys: ['baseplate'],
       pendingTargetBuildUnitIds: ['output-entry:s001:node-baseplate-1'],
       pendingAffectedBuildUnitIds: ['output-entry:s001:node-baseplate-1'],
       buildRequestId: 'build-request-revision',
@@ -670,15 +699,13 @@ describe('useSpaghettiStore graph normalization', () => {
         ok: true,
         diagnostics: { errors: [], warnings: [] },
         buildInputs: {
-          instances: { heelKickInstances: [1], toeHookInstances: [1] },
-          orderedPartKeys: ['baseplate'],
+            orderedPartKeys: ['baseplate'],
           resolvedParts: {},
         },
       },
       previousBuildInputs: null,
       pendingChangedParamIds: ['sp_full'],
-      pendingStatsPartKeys: ['baseplate', 'assembled'],
-      pendingInstances: { heelKickInstances: [1], toeHookInstances: [1] },
+      pendingStatsPartKeys: ['baseplate'],
       buildRequestId: 'build-request-save',
       buildSeq: 13,
     })
@@ -925,15 +952,13 @@ describe('useSpaghettiStore graph normalization', () => {
         ok: true,
         diagnostics: { errors: [], warnings: [] },
         buildInputs: {
-          instances: { heelKickInstances: [1], toeHookInstances: [1] },
-          orderedPartKeys: ['baseplate'],
+            orderedPartKeys: ['baseplate'],
           resolvedParts: {},
         },
       },
       previousBuildInputs: null,
       pendingChangedParamIds: ['sp_full'],
-      pendingStatsPartKeys: ['baseplate', 'assembled'],
-      pendingInstances: { heelKickInstances: [1], toeHookInstances: [1] },
+      pendingStatsPartKeys: ['baseplate'],
       buildRequestId: 'build-request-99',
       buildSeq: 99,
     })
@@ -972,15 +997,13 @@ describe('useSpaghettiStore graph normalization', () => {
         ok: true,
         diagnostics: { errors: [], warnings: [] },
         buildInputs: {
-          instances: { heelKickInstances: [1], toeHookInstances: [1] },
-          orderedPartKeys: ['baseplate'],
+            orderedPartKeys: ['baseplate'],
           resolvedParts: {},
         },
       },
       previousBuildInputs: null,
       pendingChangedParamIds: ['sp_full'],
       pendingStatsPartKeys: ['baseplate'],
-      pendingInstances: { heelKickInstances: [1], toeHookInstances: [1] },
       buildRequestId: 'build-request-11',
       buildSeq: 11,
     })
@@ -989,15 +1012,13 @@ describe('useSpaghettiStore graph normalization', () => {
         ok: true,
         diagnostics: { errors: [], warnings: [] },
         buildInputs: {
-          instances: { heelKickInstances: [1], toeHookInstances: [1] },
-          orderedPartKeys: ['cube'],
+            orderedPartKeys: ['cube'],
           resolvedParts: {},
         },
       },
       previousBuildInputs: null,
       pendingChangedParamIds: ['sp_cube'],
       pendingStatsPartKeys: ['cube'],
-      pendingInstances: { heelKickInstances: [1], toeHookInstances: [1] },
       buildRequestId: 'build-request-22',
       buildSeq: 22,
     })
@@ -1008,7 +1029,18 @@ describe('useSpaghettiStore graph normalization', () => {
         graphDocumentId: 'graph-document-1',
         buildRequestId: 'build-request-11',
         buildSeq: 11,
-        buildOutputs: [baseplateArtifact],
+        bundle: createAcceptedBundle({
+          seq: 11,
+          graphDocumentId: 'graph-document-1',
+          buildRequestId: 'build-request-11',
+          entries: [
+            {
+              artifact: baseplateArtifact,
+              outputEntryId: 'output-entry:s001:node-baseplate-1',
+              sourceNodeId: 'node-baseplate-1',
+            },
+          ],
+        }),
       }),
     ).toBe(true)
     expect(
@@ -1017,7 +1049,18 @@ describe('useSpaghettiStore graph normalization', () => {
         graphDocumentId: secondGraphId,
         buildRequestId: 'build-request-22',
         buildSeq: 22,
-        buildOutputs: [cubeArtifact],
+        bundle: createAcceptedBundle({
+          seq: 22,
+          graphDocumentId: secondGraphId,
+          buildRequestId: 'build-request-22',
+          entries: [
+            {
+              artifact: cubeArtifact,
+              outputEntryId: 'output-entry:s001:node-cube-1',
+              sourceNodeId: 'node-cube-1',
+            },
+          ],
+        }),
       }),
     ).toBe(true)
 
@@ -1064,15 +1107,13 @@ describe('useSpaghettiStore graph normalization', () => {
         ok: true,
         diagnostics: { errors: [], warnings: [] },
         buildInputs: {
-          instances: { heelKickInstances: [1], toeHookInstances: [1] },
-          orderedPartKeys: ['cube'],
+            orderedPartKeys: ['cube'],
           resolvedParts: {},
         },
       },
       previousBuildInputs: null,
       pendingChangedParamIds: ['sp_cube'],
       pendingStatsPartKeys: ['cube'],
-      pendingInstances: { heelKickInstances: [1], toeHookInstances: [1] },
       buildRequestId: 'build-request-surface',
       buildSeq: 7,
     })
@@ -1082,7 +1123,18 @@ describe('useSpaghettiStore graph normalization', () => {
         graphDocumentId: secondGraphId,
         buildRequestId: 'build-request-surface',
         buildSeq: 7,
-        buildOutputs: [cubeArtifact],
+        bundle: createAcceptedBundle({
+          seq: 7,
+          graphDocumentId: secondGraphId,
+          buildRequestId: 'build-request-surface',
+          entries: [
+            {
+              artifact: cubeArtifact,
+              outputEntryId: 'output-entry:s001:node-cube-1',
+              sourceNodeId: 'node-cube-1',
+            },
+          ],
+        }),
       }),
     ).toBe(true)
 
@@ -1157,15 +1209,13 @@ describe('useSpaghettiStore graph normalization', () => {
         ok: true,
         diagnostics: { errors: [], warnings: [] },
         buildInputs: {
-          instances: { heelKickInstances: [1], toeHookInstances: [1] },
-          orderedPartKeys: ['cube'],
+            orderedPartKeys: ['cube'],
           resolvedParts: {},
         },
       },
       previousBuildInputs: null,
       pendingChangedParamIds: ['sp_cube'],
       pendingStatsPartKeys: ['cube'],
-      pendingInstances: { heelKickInstances: [1], toeHookInstances: [1] },
       buildRequestId: 'build-request-receive',
       buildSeq: 31,
     })
@@ -1175,7 +1225,18 @@ describe('useSpaghettiStore graph normalization', () => {
         graphDocumentId: secondGraphId,
         buildRequestId: 'build-request-receive',
         buildSeq: 31,
-        buildOutputs: [cubeArtifact],
+        bundle: createAcceptedBundle({
+          seq: 31,
+          graphDocumentId: secondGraphId,
+          buildRequestId: 'build-request-receive',
+          entries: [
+            {
+              artifact: cubeArtifact,
+              outputEntryId: 'output-entry:s001:node-cube-1',
+              sourceNodeId: 'node-cube-1',
+            },
+          ],
+        }),
       }),
     ).toBe(true)
 
@@ -1217,15 +1278,13 @@ describe('useSpaghettiStore graph normalization', () => {
         ok: true,
         diagnostics: { errors: [], warnings: [] },
         buildInputs: {
-          instances: { heelKickInstances: [1], toeHookInstances: [1] },
-          orderedPartKeys: ['cube'],
+            orderedPartKeys: ['cube'],
           resolvedParts: {},
         },
       },
       previousBuildInputs: null,
       pendingChangedParamIds: ['sp_cube_a'],
       pendingStatsPartKeys: ['cube'],
-      pendingInstances: { heelKickInstances: [1], toeHookInstances: [1] },
       buildRequestId: 'build-request-a',
       buildSeq: 32,
     })
@@ -1234,15 +1293,13 @@ describe('useSpaghettiStore graph normalization', () => {
         ok: true,
         diagnostics: { errors: [], warnings: [] },
         buildInputs: {
-          instances: { heelKickInstances: [1], toeHookInstances: [1] },
-          orderedPartKeys: ['cube'],
+            orderedPartKeys: ['cube'],
           resolvedParts: {},
         },
       },
       previousBuildInputs: null,
       pendingChangedParamIds: ['sp_cube_b'],
       pendingStatsPartKeys: ['cube'],
-      pendingInstances: { heelKickInstances: [1], toeHookInstances: [1] },
       buildRequestId: 'build-request-b',
       buildSeq: 33,
     })
@@ -1251,14 +1308,36 @@ describe('useSpaghettiStore graph normalization', () => {
       graphDocumentId: secondGraphId,
       buildRequestId: 'build-request-a',
       buildSeq: 32,
-      buildOutputs: [cubeArtifact],
+      bundle: createAcceptedBundle({
+        seq: 32,
+        graphDocumentId: secondGraphId,
+        buildRequestId: 'build-request-a',
+        entries: [
+          {
+            artifact: cubeArtifact,
+            outputEntryId: 'output-entry:s001:node-cube-1',
+            sourceNodeId: 'node-cube-1',
+          },
+        ],
+      }),
     })
     useSpaghettiStore.getState().acceptGraphBuildResult({
       projectFileId: 'legacy-runtime-project',
       graphDocumentId: thirdGraphId,
       buildRequestId: 'build-request-b',
       buildSeq: 33,
-      buildOutputs: [cubeArtifact],
+      bundle: createAcceptedBundle({
+        seq: 33,
+        graphDocumentId: thirdGraphId,
+        buildRequestId: 'build-request-b',
+        entries: [
+          {
+            artifact: cubeArtifact,
+            outputEntryId: 'output-entry:s001:node-cube-2',
+            sourceNodeId: 'node-cube-2',
+          },
+        ],
+      }),
     })
 
     useSpaghettiStore.getState().addGraphReceiveReference('graph-document-1', {
@@ -1321,15 +1400,13 @@ describe('useSpaghettiStore graph normalization', () => {
         ok: true,
         diagnostics: { errors: [], warnings: [] },
         buildInputs: {
-          instances: { heelKickInstances: [1], toeHookInstances: [1] },
-          orderedPartKeys: ['baseplate'],
+            orderedPartKeys: ['baseplate'],
           resolvedParts: {},
         },
       },
       previousBuildInputs: null,
       pendingChangedParamIds: ['sp_full'],
-      pendingStatsPartKeys: ['baseplate', 'assembled'],
-      pendingInstances: { heelKickInstances: [1], toeHookInstances: [1] },
+      pendingStatsPartKeys: ['baseplate'],
       buildRequestId: 'build-request-1',
       buildSeq: 1,
     })
@@ -1345,15 +1422,13 @@ describe('useSpaghettiStore graph normalization', () => {
         ok: true,
         diagnostics: { errors: [], warnings: [] },
         buildInputs: {
-          instances: { heelKickInstances: [1], toeHookInstances: [1] },
-          orderedPartKeys: ['baseplate'],
+            orderedPartKeys: ['baseplate'],
           resolvedParts: {},
         },
       },
       previousBuildInputs: null,
       pendingChangedParamIds: ['sp_width'],
-      pendingStatsPartKeys: ['baseplate', 'assembled'],
-      pendingInstances: { heelKickInstances: [1], toeHookInstances: [1] },
+      pendingStatsPartKeys: ['baseplate'],
       buildRequestId: 'build-request-2',
       buildSeq: 2,
     })
@@ -1392,15 +1467,13 @@ describe('useSpaghettiStore graph normalization', () => {
         ok: true,
         diagnostics: { errors: [], warnings: [] },
         buildInputs: {
-          instances: { heelKickInstances: [1], toeHookInstances: [1] },
-          orderedPartKeys: ['baseplate'],
+            orderedPartKeys: ['baseplate'],
           resolvedParts: {},
         },
       },
       previousBuildInputs: null,
       pendingChangedParamIds: ['sp_full'],
-      pendingStatsPartKeys: ['baseplate', 'assembled'],
-      pendingInstances: { heelKickInstances: [1], toeHookInstances: [1] },
+      pendingStatsPartKeys: ['baseplate'],
       buildRequestId: 'build-request-focus',
       buildSeq: 7,
     })
@@ -1444,15 +1517,13 @@ describe('useSpaghettiStore graph normalization', () => {
         ok: true,
         diagnostics: { errors: [], warnings: [] },
         buildInputs: {
-          instances: { heelKickInstances: [1], toeHookInstances: [1] },
-          orderedPartKeys: ['baseplate'],
+            orderedPartKeys: ['baseplate'],
           resolvedParts: {},
         },
       },
       previousBuildInputs: null,
       pendingChangedParamIds: ['sp_full'],
-      pendingStatsPartKeys: ['baseplate', 'assembled'],
-      pendingInstances: { heelKickInstances: [1], toeHookInstances: [1] },
+      pendingStatsPartKeys: ['baseplate'],
       buildRequestId: 'build-request-viewport',
       buildSeq: 8,
     })
@@ -3702,3 +3773,4 @@ describe('useSpaghettiStore Geometry/Sketch editing semantics', () => {
     expect(useSpaghettiStore.getState().geometrySketchSession).toBeNull()
   })
 })
+

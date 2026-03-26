@@ -6,10 +6,6 @@ import {
 import type { GraphPreviewPreparation } from '../previewPreparation'
 
 const cubeBuildInputs = (): SpaghettiBuildInputs => ({
-  instances: {
-    heelKickInstances: [1],
-    toeHookInstances: [1],
-  },
   orderedPartKeys: ['cube'],
   resolvedParts: {},
   resolvedShared: {
@@ -51,10 +47,6 @@ describe('buildRequestFromBuildInputs', () => {
   it('builds graph-native compiled build data plus output-entry build units', () => {
     expect(buildRequestFromBuildInputs(cubeBuildInputs(), previewPreparation())).toEqual({
       compiledBuildData: {
-        instances: {
-          heelKickInstances: [1],
-          toeHookInstances: [1],
-        },
         orderedPartKeys: ['cube'],
         resolvedParts: {},
         resolvedShared: {
@@ -65,11 +57,19 @@ describe('buildRequestFromBuildInputs', () => {
             },
           },
         },
+        outputEntries: [
+          {
+            buildUnitId: 'output-entry:s001:node-cube',
+            outputEntryId: 'output-entry:s001:node-cube',
+            sourceNodeId: 'node-cube',
+            partKey: 'cube',
+          },
+        ],
       },
       targetBuildUnitIds: ['output-entry:s001:node-cube'],
       affectedBuildUnitIds: ['output-entry:s001:node-cube'],
       changedParamIds: ['sp_full'],
-      buildStatsPartKeys: ['cube', 'assembled'],
+      buildStatsPartKeys: ['cube'],
     })
   })
 
@@ -86,18 +86,14 @@ describe('buildRequestFromBuildInputs', () => {
     const first = buildRequestFromBuildInputs(current, previewPreparation())
     const second = buildRequestFromBuildInputs(current, previewPreparation(), current)
 
-    expect(first.buildStatsPartKeys).toEqual(['cube', 'assembled'])
-    expect(second.buildStatsPartKeys).toEqual(['cube', 'assembled'])
+    expect(first.buildStatsPartKeys).toEqual(['cube'])
+    expect(second.buildStatsPartKeys).toEqual(['cube'])
     expect(second.changedParamIds).toEqual([])
     expect(second.targetBuildUnitIds).toEqual(['output-entry:s001:node-cube'])
   })
 
   it('uses compile-owned ordered part keys for deterministic multi-part stats rows', () => {
     const buildInputs: SpaghettiBuildInputs = {
-      instances: {
-        heelKickInstances: [1],
-        toeHookInstances: [1],
-      },
       orderedPartKeys: ['cube#2', 'cube#1'],
       resolvedParts: {},
       resolvedShared: {
@@ -116,7 +112,6 @@ describe('buildRequestFromBuildInputs', () => {
     ).toEqual([
       'cube#1',
       'cube#2',
-      'assembled',
     ])
   })
 })

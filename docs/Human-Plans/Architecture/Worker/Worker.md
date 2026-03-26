@@ -3,6 +3,16 @@
 ## Doc Header
 
 ### Doc History
+19. 2026-03-25 21:10: Marked `[5.3A-7] Graph-Native Worker Cutover And Legacy Contract Deletion` complete after shipping the final graph-native worker boundary cut, moved its standalone phase record into `Worker/Shipped/`, and refreshed the umbrella Worker read so the full `[5.3A]` mini-family now treats the shared worker contract, dispatcher boundary, result semantics, Browser truth, and Console truth as landed history instead of an open compatibility-cleanup ladder
+18. 2026-03-25 20:37: Locked `q1` through `q5` under `[5.3A-7] Graph-Native Worker Cutover And Legacy Contract Deletion`, added the standalone future phase link for that final worker cutover, and turned the section into an implementation-ready handoff around outer-edge translation ownership, bundle-first consumer cutover, `assemble` deletion, product-neutral core boundaries, and the deletion-grade verification bar
+17. 2026-03-25 20:22: Expanded `[5.3A-7] Graph-Native Worker Cutover And Legacy Contract Deletion` with a first `Questions / Decisions` block, adding focused open questions plus suggestions around final translation ownership, bundle-versus-flat-selector cutover, the fate of `assemble`, where any surviving product adapters should live after deletion, and what verification bar proves the legacy worker path is truly gone
+16. 2026-03-25 20:13: Marked `[5.3A-6] Result Semantics, Browser Truth, And Console Truth` complete after shipping the bundle-based worker result contract, moved its standalone phase record into `Worker/Shipped/`, and refreshed the umbrella Worker read so the live family now treats explicit rebuilt/retained/evicted result truth, Browser output-surface semantics, and Console bundle-summary narration as landed groundwork before the final `[5.3A-7]` cutover
+15. 2026-03-25 19:37: Locked `q1` through `q5` under `[5.3A-6] Result Semantics, Browser Truth, And Console Truth`, added the standalone future phase link for that next worker semantic-strengthening cut, and turned the section into a post-`5.3A-5` implementation-ready handoff around build-result bundles, explicit retained/rebuilt/evicted truth, result-class coexistence, parent aggregate honesty, and Console-as-narrator ownership
+14. 2026-03-25 19:05: Expanded `[5.3A-6] Result Semantics, Browser Truth, And Console Truth` with a first `Questions / Decisions` block, adding focused open questions plus suggestions around result payload shape, retained-sibling truth, preview-versus-final publication rules, Browser aggregate-status semantics, and Console runtime narration depth before the later worker cutover phase
+13. 2026-03-25 19:03: Marked `[5.3A-5]` complete after shipping the legacy runtime and startup fallback removal, moved its standalone phase record into `Worker/Shipped/`, and refreshed the umbrella Worker read so the live family now treats the anonymized foothook adapter seam, silence-on-empty startup, request-driven stats identity, and preserved targeted output acceptance as landed groundwork before `[5.3A-6]`
+12. 2026-03-25 18:34: Created the standalone future phase doc for `[5.3A-5]`, linked the Worker family to that new implementation-ready surface under `Worker/Future/`, and locked `q1` through `q5` in the umbrella `[5.3A-5]` section so the anonymized worker-core seam, silence-on-empty startup, request-driven stats identity, preview split, and no-full-wipe preservation rule now read as explicit decisions instead of open questions
+11. 2026-03-25 18:25: Added the first `Questions / Decisions` block under `[5.3A-5] Legacy Runtime And Startup Fallback Removal`, tightening the next worker cleanup phase around product-neutral core versus product adapter boundaries, graph-first startup silence rules, legacy stats/fallback deletion sequencing, and where simplified preview geometry should live during runtime cleanup
+10. 2026-03-25 18:22: Marked `[5.3A-4]` complete after shipping the dispatcher-boundary cleanup, moved its standalone phase record into `Worker/Shipped/`, updated the family and roadmap references to the shipped path, and refreshed the current worker read so the umbrella doc now treats outward runtime hooks plus `bootstrapBuildWiring.ts` as the live owner of worker-facing build-stats and console side effects
 9. 2026-03-23 13:12: Marked `[5.3A-2]` complete after shipping the graph-native worker request-and-state contract, moved its standalone phase record into `Worker/Shipped/`, updated the family index and phase ladder to the shipped path, and refreshed the current seam read so the umbrella Worker doc now reflects the live `compiledBuildData + buildIdentity + invalidation` graph-build path with coarse result semantics still deferred to `[5.3A-6]`
 8. 2026-03-22 19:50: Added the standalone future phase doc for `[5.3A-4]`, so the dispatcher-boundary cleanup now has its own implementation-ready planning surface under the Worker family with the live `BuildDispatcher` store/console side effects mapped to the later outward-hook and bootstrap-wiring cleanup
 7. 2026-03-22 19:29: Refreshed the local `[5.3A-2]` phase summary to match the real post-`5.3A-3` sequencing, so the umbrella Worker doc now treats `5.3A-2` as the request-and-result-first code phase that replaces the `BoxParams` request seam underneath the already-shipped lane-and-intent scaffold instead of still reading like a pure pre-`5.3A-3` contract-definition step
@@ -60,11 +70,17 @@ Current roadmap home:
   - shipped record:
     - `docs/Human-Plans/Architecture/Worker/Shipped/Worker_Phase 5.3A-3 - Worker Lane Definition And Execution-Intent Model.md`
 - `[5.3A-4]` Dispatcher Boundary Cleanup
-  - future doc:
-    - `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase 5.3A-4 - Dispatcher Boundary Cleanup.md`
+  - shipped record:
+    - `docs/Human-Plans/Architecture/Worker/Shipped/Worker_Phase 5.3A-4 - Dispatcher Boundary Cleanup.md`
 - `[5.3A-5]` Legacy Runtime And Startup Fallback Removal
+  - shipped record:
+    - `docs/Human-Plans/Architecture/Worker/Shipped/Worker_Phase 5.3A-5 - Legacy Runtime And Startup Fallback Removal.md`
 - `[5.3A-6]` Result Semantics, Browser Truth, And Console Truth
+  - shipped record:
+    - `docs/Human-Plans/Architecture/Worker/Shipped/Worker_Phase 5.3A-6 - Result Semantics, Browser Truth, And Console Truth.md`
 - `[5.3A-7]` Graph-Native Worker Cutover And Legacy Contract Deletion
+  - shipped record:
+    - `docs/Human-Plans/Architecture/Worker/Shipped/Worker_Phase 5.3A-7 - Graph-Native Worker Cutover And Legacy Contract Deletion.md`
 
 ### Why This Doc Exists
 
@@ -76,11 +92,13 @@ ParaHook already has a real worker path:
 
 That is good.
 
-But the seam is not clean yet.
+The `[5.3A]` worker mini-family existed because the seam was not clean yet.
 
-Right now the worker is still partly shaped by older `BoxParams` assumptions, the dispatcher still carries some UI/store responsibilities, and the worker build path still mixes legacy parts logic with newer graph/feature-stack work.
+That cutover is now shipped.
 
-This doc exists to make the target worker boundary explicit before more runtime/build behavior gets layered onto the current hybrid seam.
+The shared worker boundary is graph-native only, the bundle-based result path is the canonical runtime truth, the dispatcher stays thin, assembled-only compatibility paths are deleted, and the remaining product-specific behavior is isolated outside the permanent shared contract.
+
+This doc remains the umbrella record for the shipped worker boundary and the architecture rules that future worker/export work should preserve.
 
 ### Scope
 
@@ -125,8 +143,10 @@ That means the architecture should support:
 
 Current reality:
 - the app/worker split is still basically healthy
-- but the request contract is still legacy-shaped
-- and the dispatcher still owns some UI/store side effects that should eventually move outward
+- the shared worker contract is graph-native only
+- the dispatcher boundary is thinner after `[5.3A-4]`, with worker-facing build-stats and console side effects now routed outward through runtime hooks and `bootstrapBuildWiring.ts`
+- `[5.3A-5]` removed the old startup/runtime fallback defaults so graph-native requests seed stats from active request identity, empty startup stays quiet, and targeted graph rebuilds preserve unaffected siblings instead of forcing full output wipes
+- `[5.3A-6]` and `[5.3A-7]` completed the semantic and deletion cuts so accepted bundle truth, Browser truth, Console truth, and the final shared worker boundary no longer depend on legacy `BoxParams`, `assemble`, or assembled-only runtime scaffolding
 
 ### Core Worker Rule
 
@@ -227,67 +247,51 @@ Good current properties:
 
 This is enough to say the worker is still separated reasonably well at the app-versus-worker boundary.
 
-### Current Problems
+### Current Read
 
-The worker seam is still not clean enough to be considered finished.
+The worker seam is now clean enough to treat the full `[5.3A]` family as shipped groundwork rather than an active cleanup lane.
 
-#### 1. The Worker Contract Is Still Legacy-Shaped
-
-The biggest remaining problem is the request payload shape.
+#### 1. The Shared Worker Contract Is Graph-Native
 
 Current reality:
-- graph document builds now carry canonical:
+- graph document builds cross the worker boundary with canonical:
   - `compiledBuildData`
   - `buildIdentity`
   - `invalidation`
-- the shared build request still also carries legacy `payload: BoxParams` compatibility fields
-- result semantics and live progress are still transitional:
-  - coarse `PartArtifact[]`
-  - `partKey` live progress
+- the shared worker contract no longer carries legacy `payload: BoxParams`
+- the shared worker contract no longer exposes `AssembleRequest` / `AssembleResult`
+- worker results now publish canonical `BuildResult.bundle` truth instead of flat top-level `PartArtifact[]`
 
-That means the worker request seam is healthier than before, but the worker contract is not finished yet.
+#### 2. The Dispatcher Boundary Is Thin
 
-The remaining leak is no longer "graph builds only speak box payload"; it is that compatibility fields and coarse result/progress semantics still survive around the newer graph-native request path.
+`BuildDispatcher` now owns:
+- worker lifetime
+- transport
+- request sequencing
+- stale-drop
+- typed message validation
+- runtime hook fan-out for graph-native builds
 
-This is the main architectural leak.
+It no longer owns:
+- direct console publishing
+- direct build-stats store mutation
+- assembled cache-hit behavior
+- compatibility request entrypoints
 
-#### 2. The Dispatcher Still Owns UI-Facing Side Effects
+#### 3. Product-Neutral Core Rules Are Locked
 
-The dispatcher currently does more than transport and sequencing.
+Current reality:
+- the worker core is graph-native and product-neutral at the shared contract seam
+- any surviving product-specific runtime behavior lives behind an explicit adapter seam instead of shaping the shared request/result vocabulary
+- dead compatibility protocol/schema files and assembled-only runtime paths are deleted
 
-It also directly touches:
-- console publishing
-- build-stats store updates
+#### 4. Result Ownership Is Explicit Enough For Browser And Console
 
-This is workable for now, but it couples:
-- worker transport
-- runtime bookkeeping
-- UI-facing diagnostics
-
-The long-term direction should keep the dispatcher focused on transport/runtime concerns and let outer app layers decide how to publish UI state.
-
-#### 3. Worker Build Execution Still Mixes Legacy And Newer Product Paths
-
-The worker runtime still starts from legacy parts logic and then conditionally layers newer feature-stack artifacts on top.
-
-That means the worker is not yet internally cleanly separated between:
-- old legacy product generation
-- newer graph-native / feature-stack generation
-
-This is acceptable during transition, but it is still transitional architecture.
-
-#### 4. Rebuild Ownership Is Still Too Blurry
-
-ParaHook needs a stronger rule for what actually counts as rebuilt.
-
-Target rule:
-- child/object rebuilds do not automatically imply parent component rebuilds
-- child/component rebuilds do not automatically imply parent assembly rebuilds
-- parent rows may aggregate child rebuild status, but that is not the same as a parent rebuild
-
-Current risk:
-- if the worker result semantics stay too coarse, the app and browser can drift into treating a parent status change as though the whole parent content subtree rebuilt
-- if the worker always recomputes broad output sets, the runtime will not preserve unaffected siblings and parent-owned structure cleanly
+Current reality:
+- accepted result truth is bundle-first
+- rebuilt, retained, and evicted status is explicit in accepted result entries
+- Browser parent rows remain aggregate by default unless their own atomic unit rebuilt
+- Console narrates shared semantic facts instead of owning rebuild semantics itself
 
 ### Current Code Reality
 
@@ -587,16 +591,17 @@ The right mental model is:
 - shipped record:
   - `docs/Human-Plans/Architecture/Worker/Shipped/Worker_Phase 5.3A-3 - Worker Lane Definition And Execution-Intent Model.md`
 
-## [ ] `[5.3A-4]` - `Dispatcher Boundary Cleanup`
+## [x] `[5.3A-4]` - `Dispatcher Boundary Cleanup`
 
-- keep worker lifetime, transport, sequencing, stale-drop, and boundary validation
+- keep worker lifetime, transport, sequencing, stale-drop, and boundary validation in `BuildDispatcher`
 - move direct console/build-stats side effects out of `BuildDispatcher` and into outer runtime wiring
-- keep `bootstrapBuildWiring.ts` as the preferred owner for the moved side effects
+- keep `bootstrapBuildWiring.ts` as the owner for the moved side effects
 - introduce one narrow runtime-hooks seam instead of a generic event bus
 - preserve app-owned acceptance/rejection of returned worker results
-- refactor only after the request/build-unit contract and lane/intent seams are stable enough to organize around honestly
+- shipped record:
+  - `docs/Human-Plans/Architecture/Worker/Shipped/Worker_Phase 5.3A-4 - Dispatcher Boundary Cleanup.md`
 
-## [ ] `[5.3A-5]` - `Legacy Runtime And Startup Fallback Removal`
+## [x] `[5.3A-5]` - `Legacy Runtime And Startup Fallback Removal`
 
 - isolate the legacy box-parts path as compatibility scaffolding
 - stop treating legacy part derivation as the permanent base path
@@ -616,30 +621,343 @@ The right mental model is:
 - `LEGACY_BUILD_STATS_PART_ORDER`
 - legacy fallback `baseplate` / `heelKick` / `toeHook` part derivation
 - do not allow the graph-first app to boot into fake foothook output once the target runtime path exists
+- shipped record:
+  - `docs/Human-Plans/Architecture/Worker/Shipped/Worker_Phase 5.3A-5 - Legacy Runtime And Startup Fallback Removal.md`
 
-## [ ] `[5.3A-6]` - `Result Semantics, Browser Truth, And Console Truth`
+### Questions / Decisions
 
-- decide whether `PartArtifact[]` remains enough for the next stage
-- define richer typed outputs if graph-native execution needs more than coarse part boxes
-- keep progress semantics deterministic and lane-specific
-- keep graph/project/build identity explicit in every relevant result and error
-- make result semantics explicit enough to distinguish:
-- rebuilt child artifacts
+#### [x] q1 - Where should the product-neutral worker core stop and product-specific adapters begin?
+
+Question:
+- once the legacy foothook runtime is removed, should the future worker still know about foothook-flavored part families and fallback derivation internally, or should those concerns be isolated behind narrow product adapters around a more neutral build core?
+
+Suggestion:
+- treat `[5.3A-5]` as the phase that draws a clearer product-neutral seam:
+  - worker core owns typed request execution, progress emission, and deterministic build-unit computation
+  - product adapters own any foothook-specific compiled-input shaping, feature translation, or artifact naming that still survives during transition
+  - do not let foothook-family terms remain scattered through the permanent worker pipeline once the graph-native contract already exists
+- if some compatibility bridge must remain temporarily, keep it in one explicit adapter path instead of letting the core stay implicitly legacy-shaped
+
+Decision:
+- the worker core is anonymized
+- the permanent core should know build units and typed ids, not `HeelKick`, `Baseplate`, or other foothook-family names as architectural truth
+- all surviving foothook-specific compatibility should move behind one dedicated compatibility adapter seam
+- later product families such as `Pasta Path` or other non-foothook runtimes should not require deleting foothook assumptions from the worker core because those assumptions should no longer live there
+
+#### [x] q2 - What exactly should startup do when the active graph has no real buildable units yet?
+
+Question:
+- after `[5.3A-5]`, should app startup still trigger any worker/build activity when no real graph-native build units resolve, or should the runtime stay quiet until actual graph truth exists?
+
+Suggestion:
+- lock the graph-first startup rule more aggressively in this phase:
+  - if the active graph resolves real build units, bootstrap may seed real build state from those units
+  - if the active graph resolves no real build units, startup should stay empty/ready
+  - do not fabricate fallback `baseplate`, `heelKick`, `toeHook`, or synthetic `assembled` narration just to make the app look busy
+- treat silence-on-empty as a success condition, not as missing initialization
+
+Decision:
+- silence is success
+- if the active graph resolves zero real build units, the worker does zero work
+- startup should not emit fallback `baseplate`, `heelKick`, `toeHook`, or fake `assembled` output just to prove the app initialized
+- the console may stay empty until the user creates real buildable graph content
+
+#### [x] q3 - How should `LEGACY_BUILD_STATS_PART_ORDER` and other startup ordering fallbacks be removed safely?
+
+Question:
+- once dispatcher presentation ownership is already cleaned up, should `[5.3A-5]` delete the legacy part-order fallback immediately, or should it keep a short compatibility bridge until all build-stats seeding comes from graph-native build identity only?
+
+Suggestion:
+- aim to remove the fallback in `[5.3A-5]`, but only after every build-start path seeds build stats from real request identity:
+  - build-unit-backed part keys from the active request
+  - explicit `assembled` compatibility seeding only where still intentionally transitional
+- do not replace the old fallback with a second hidden default list somewhere else in bootstrap/store code
+- if a temporary bridge is still needed, keep it visibly transitional and local to one seam
+
+Decision:
+- build stats are request-driven
+- active request identity is the only architectural source for build-stats seeding
+- `LEGACY_BUILD_STATS_PART_ORDER` should die here instead of being replaced by another hidden fixed list
+- if the current request is for `Loft`, the stats should read `Loft`, not a hard-coded part family from older foothook runtime assumptions
+
+#### [x] q4 - Where should simplified preview geometry live while legacy runtime paths are being removed?
+
+Question:
+- `[5.3A-5]` needs to separate exact heavy runtime from cheaper interactive preview behavior; should the first non-legacy preview simplification live in the worker, the viewer, or both?
+
+Suggestion:
+- keep the first rule simple:
+  - worker-side simplified geometry is the safer default when the output still needs to participate in canonical build-unit/runtime truth
+  - viewer-side approximation is acceptable for clearly transient interaction-only preview that should never be confused with accepted build results
+- avoid introducing two overlapping preview paths in the same phase unless the semantics are named clearly enough that Browser, Console, and later result work do not need to guess which one produced the visible shape
+
+Decision:
+- the standard strategy is worker-side simplification plus transient viewer approximation
+- use viewer approximation for immediate drag/gesture feedback
+- after the interaction settles, let the worker run a draft/simplified build before the authoritative final build
+- keep these semantics explicitly named as preview versus final so Console and later result work do not need to guess what kind of output the user is seeing
+
+#### [x] q5 - How should child-only rebuild preservation interact with legacy runtime deletion?
+
+Question:
+- when `[5.3A-5]` removes broad fallback derivation, should the phase also require the runtime to preserve unaffected siblings and parent-owned structure during targeted rebuilds, or should that remain mostly deferred to `[5.3A-6]` result semantics?
+
+Suggestion:
+- require `[5.3A-5]` to stop obviously broad legacy recompute behavior where possible:
+  - targeted child rebuilds should not force fake parent-wide startup/output regeneration
+  - unaffected siblings should remain preserved when the current request identity makes retention possible
+- keep the deeper semantic language for `[5.3A-6]`, but do not let `[5.3A-5]` claim legacy runtime removal while broad fallback recompute still makes every targeted change look like a full parent rebuild
+
+Decision:
+- stop the full wipe
+- if the user edits one targeted child such as `Bolt A`, unrelated surviving output such as `Plate B` should remain visible when the current request/result identity allows it
+- `[5.3A-6]` still owns the richer semantic truth model, but `[5.3A-5]` already locks the preservation rule:
+  - do not delete what you did not rebuild
+
+## [x] `[5.3A-6]` - `Result Semantics, Browser Truth, And Console Truth`
+
+- shipped `BuildResult.bundle` as the canonical worker result payload instead of flat top-level `PartArtifact[]`
+- made accepted result truth explicit enough to distinguish:
+- rebuilt child outputs
 - retained unaffected siblings
-- parent aggregate status versus true parent rebuild
-- distinguish preview-only output from exact final output
-- make result semantics clear enough that the app can show:
-- cheap interactive preview meshes
-- in-flight exact worker builds
-- accepted final geometry
-- make result semantics strong enough that a later `Pasta Path` scrubber can filter, roll back, and sync without guessing rebuild ownership from coarse aggregate output
+- evicted targeted outputs
+- preserved deterministic graph/project/build identity in the bundle envelope and entry model
+- kept result-class vocabulary explicit:
+- `transient`
+- `draft`
+- `final`
+- rebuilt Browser output-surface truth from typed bundle entries instead of only flat accepted artifact arrays
+- kept Console as narrator and added deterministic bundle-summary completion lines without moving semantic ownership into Console
+- kept the compatibility bridge for viewer-facing flat output arrays/selectors so the result-semantics cut could land without widening into a full viewer rewrite
 
-## [ ] `[5.3A-7]` - `Graph-Native Worker Cutover And Legacy Contract Deletion`
+### Questions / Decisions
 
-- keep translation in one place during transition
-- migrate callers from legacy-shaped requests to graph-native requests
-- remove dead protocol shapes once the live path is stable
-- verify that stale-drop, caching, diagnostics, and progress still behave correctly after cutover
-- acceptance rule:
-- on first app load, Browser and Console must not show fallback `baseplate` / `heelKick` / `toeHook` startup output unless the active graph truly builds those units
-- if no real graph-native build units exist yet, startup should stay empty/ready instead of fabricating legacy rows
+#### [x] q1 - What should become the canonical result payload shape after `PartArtifact[]` stops being enough?
+
+Question:
+- should `[5.3A-6]` keep `PartArtifact[]` as the top-level accepted result surface with extra metadata added beside it, or should the phase promote a richer build-unit/result-entry structure as the canonical payload that Browser and Console read directly?
+
+Suggestion:
+- prefer a richer outer result structure while still allowing `PartArtifact[]` to remain the geometry/artifact leaf payload inside it
+- the next honest result surface should likely carry:
+  - build-unit identity
+  - result-entry identity
+- output kind
+- preview/final classification
+- retention/replacement semantics
+- do not make Browser and Console reconstruct this from loose arrays plus staged request memory if the worker/app boundary can say it directly
+
+Decision:
+- adopt a `BuildResultBundle` wrapper as the canonical accepted-result shape
+- do not make `Node ID` the primary ownership key
+- the primary identity should stay build-unit/result-entry first:
+  - `buildUnitId`
+  - `outputEntryId` or equivalent result-entry identity
+  - request/session identity:
+    - `buildRequestId`
+    - `graphDocumentId`
+    - `seq`
+- `PartArtifact[]` may remain the geometry leaf payload inside each result entry, but Browser and Console should read the richer bundle rather than reconstruct ownership from a flat artifact array
+
+#### [x] q2 - How should retained unaffected siblings be represented explicitly?
+
+Question:
+- when a targeted child rebuild completes and unaffected siblings remain visible, should `[5.3A-6]` mark those siblings explicitly as retained in result semantics, or should retention stay mostly implicit in app-side merge behavior?
+
+Suggestion:
+- make retained siblings explicit in the accepted-result model
+- Browser and Console should not have to infer "this stayed because nothing touched it" from absence alone
+- a lightweight retained classification is probably enough:
+  - rebuilt in this request
+- retained from previous accepted state
+- removed by this request
+- this keeps sibling preservation honest without forcing full parent-semantics redesign in the worker core itself
+
+Decision:
+- explicit retention becomes semantic truth
+- the accepted result model should classify output entries as:
+  - rebuilt
+  - retained
+  - evicted
+- worker/runtime truth may still own only the rebuilt set directly, but the accepted bundle must publish the final retained/rebuilt/evicted classification so Browser and Console can be honest without inferring retention from absence alone
+
+#### [x] q3 - How should preview, draft, and final outputs coexist without confusing accepted truth?
+
+Question:
+- after `[5.3A-5]` locked explicit preview-versus-final naming, should `[5.3A-6]` allow preview and final outputs to exist in parallel inside one accepted/runtime model, or should preview always remain a separate transient surface that never appears beside accepted final results?
+
+Suggestion:
+- keep preview and final semantically distinct but model them under one shared result vocabulary
+- likely categories:
+  - transient interaction preview
+- worker draft preview
+- accepted final
+- Browser may not need to show every transient layer all the time, but the underlying semantics should still distinguish them so Console and later `Pasta Path` work do not collapse them into one ambiguous "built" state
+
+Decision:
+- coexistence is allowed, but not through the existing overloaded word `lane`
+- use one result-class or equivalent semantic layer such as:
+  - transient
+  - draft
+  - final
+- replacement precedence should be explicit by result-entry identity:
+  - `final` evicts `draft` and `transient` for the same entry
+  - `draft` evicts older `draft` and `transient`
+  - `transient` never evicts `final`
+- this keeps fast preview visible without corrupting accepted final truth
+
+#### [x] q4 - What exactly should Browser rows be allowed to claim about parent rebuild state?
+
+Question:
+- once richer result semantics exist, should parent `Assembly` / `Component` rows ever say they rebuilt just because one child rebuilt, or should they always remain aggregate-status-only unless a true parent-owned operation happened?
+
+Suggestion:
+- lock a strict rule:
+  - parent rows may summarize child activity
+  - parent rows must not claim a true rebuild unless the parent-owned unit itself was recomputed
+- `[5.3A-6]` should be the phase that gives Browser enough typed result semantics to distinguish:
+  - child rebuilt
+  - sibling retained
+- parent aggregate dirty/clean state
+- true parent-owned rebuild
+- this is the minimum needed to keep Browser honest before later timeline/history consumers appear
+
+Decision:
+- Browser parent rows are aggregate by default, not atomic by implication
+- a parent row may say `rebuilt` only when its own atomic unit actually ran
+- otherwise the parent may show aggregate child/runtime state such as:
+  - child building
+  - partial updated
+  - mixed freshness
+  - all clean
+- this is the core honesty rule for `Assembly` / `Component` rows going forward
+
+#### [x] q5 - How much runtime narration should Console own versus derive?
+
+Question:
+- should Console in `[5.3A-6]` remain mostly a formatter over typed worker/app result semantics, or should it be allowed to derive higher-level runtime narration such as grouped unit summaries, retained-sibling lines, and preview/final transitions?
+
+Suggestion:
+- keep Console derivation shallow and owner-light
+- Console should be allowed to summarize typed truth for readability, but not invent new semantic categories that Browser and other surfaces do not share
+- a good rule is:
+- worker/app result model owns semantic categories
+- Console owns transcript phrasing and grouping
+- if a runtime concept matters enough to appear in Console wording repeatedly, it probably belongs in shared result semantics first
+
+Decision:
+- Console is the narrator, not the fact-owner
+- worker/app result semantics define the shared facts
+- Console owns:
+  - transcript phrasing
+  - grouping
+  - summary wording
+- Console does not own:
+  - rebuild classification
+  - retention semantics
+  - preview/final semantic truth
+- broader rule:
+  - shared model owns facts
+  - Browser and Console each present those facts in their own medium
+
+## [x] `[5.3A-7]` - `Graph-Native Worker Cutover And Legacy Contract Deletion`
+
+- shipped the final graph-native worker boundary cutover
+- removed legacy worker-contract surfaces:
+  - `payload: BoxParams`
+  - `AssembleRequest`
+  - `AssembleResult`
+  - dispatcher-side assemble/cache-hit entrypoints
+  - assembled-only viewer/runtime handling
+- kept bundle-backed accepted result truth as the canonical runtime surface
+- deleted dead compatibility protocol/schema files and legacy pipeline helpers once the shared worker boundary no longer referenced them
+- verification rule now satisfied:
+  - no startup/runtime fallback output on empty graphs
+  - Browser and Console read one shared graph-native truth path
+  - stale-drop, progress, diagnostics, and build-result routing remain covered after deletion
+
+### Questions / Decisions
+
+#### [x] q1 - Where should the final remaining legacy-to-graph-native translation seam live during cutover?
+
+Question:
+- when `[5.3A-7]` removes the last legacy request/protocol shapes, should any surviving compatibility translation live only at one app/bootstrap edge, or is there still a valid reason to keep parallel translation/adaptation logic both outside and inside the worker?
+
+Suggestion:
+- force the final translation seam into one explicit outer adapter
+- the worker entry and shared contract should become graph-native only
+- if a legacy caller still exists during transition, it should adapt before crossing the shared worker boundary rather than keeping dual request vocabularies alive inside the worker core
+
+Decision:
+- the final translation seam lives only at one outer app/bootstrap edge
+- the shared worker boundary and worker entry become graph-native only in `[5.3A-7]`
+- no parallel request/protocol translation remains inside the worker core after this cutover
+- if any compatibility caller temporarily survives, it must adapt before crossing the shared worker boundary
+
+#### [x] q2 - How complete should the consumer cutover be away from flat compatibility selectors?
+
+Question:
+- after `[5.3A-6]` kept derived flat accepted artifact arrays as a compatibility bridge, should `[5.3A-7]` require all primary consumers to read canonical bundle truth directly, or is it acceptable for some flat derived selectors to remain as long-term convenience surfaces?
+
+Suggestion:
+- make the canonical internal/runtime truth bundle-first everywhere
+- allow narrow derived selectors only as read-only convenience views, not as architectural truth or write-path inputs
+- if a selector remains, it should be obviously derived from accepted bundle state and should not preserve any old flat-result ownership assumptions
+
+Decision:
+- `[5.3A-7]` requires the primary runtime consumers to become bundle-first
+- any surviving flat selectors are allowed only as narrow read-only convenience views
+- flat derived selectors must not remain write-path inputs, ownership surfaces, or the main Browser/Console/runtime truth after this phase
+
+#### [x] q3 - What is the final fate of `assemble` once the graph-native cutover is complete?
+
+Question:
+- should `[5.3A-7]` delete `assemble` entirely, or should it preserve a small explicit manual compatibility command as a temporary outer adapter even after the core worker contract goes fully graph-native?
+
+Suggestion:
+- do not let `assemble` survive as hidden startup/runtime truth
+- if any manual compatibility entry remains, isolate it outside the permanent graph-native worker core and make its compatibility status obvious
+- prefer full deletion in this phase if no real remaining caller still depends on it
+
+Decision:
+- `assemble` is deleted as part of the permanent worker contract in `[5.3A-7]`
+- it must not survive as a startup path, runtime truth path, or hidden compatibility lane
+- if a temporary manual compatibility helper is still needed during transition, it must live outside the permanent worker core and must not block the phase from deleting `assemble` from the shared worker contract
+
+#### [x] q4 - Where should surviving product-specific runtime logic live after the final legacy deletion?
+
+Question:
+- once the last foothook-era compatibility glue is deleted, should product-specific behavior still live as explicit product adapters/plugins beside the worker pipeline, or should `[5.3A-7]` expect the worker family to become fully product-agnostic with no named product seam left at all?
+
+Suggestion:
+- keep the worker core product-neutral
+- if product-specific build logic still exists, isolate it behind an explicit product adapter/plugin seam outside the permanent core contract
+- do not allow product names or fallback family assumptions to leak back into shared request/result semantics
+
+Decision:
+- the worker core remains product-neutral after `[5.3A-7]`
+- if product-specific behavior still exists, it lives only behind an explicit product adapter/plugin seam outside the shared worker contract
+- product names, fallback family assumptions, and product-specific request/result fields must not leak back into the permanent graph-native worker boundary
+
+#### [x] q5 - What verification bar proves the legacy worker path is truly gone?
+
+Question:
+- what concrete evidence should `[5.3A-7]` require before claiming the graph-native cutover is complete instead of just partially migrated?
+
+Suggestion:
+- require a deletion-grade verification bar, not only passing smoke tests
+- minimum proof should likely include:
+  - no shared worker request/result contract fields that exist only for legacy compatibility
+  - no startup/runtime fallback output on empty graphs
+  - Browser and Console reading one shared graph-native truth path
+  - stale-drop, caching, progress, and worker-error routing still verified after the removal
+  - a code-searchable absence of the known legacy request/protocol shapes this phase is supposed to delete
+
+Decision:
+- `[5.3A-7]` requires a deletion-grade verification bar before it can be claimed shipped
+- minimum proof includes:
+  - no shared worker request/result contract fields that exist only for legacy compatibility
+  - no startup/runtime fallback output on empty graphs
+  - Browser and Console reading one shared graph-native truth path
+  - stale-drop, caching, progress, and worker-error routing still verified after the removal
+  - a code-searchable absence of the legacy request/protocol shapes this phase claims to delete

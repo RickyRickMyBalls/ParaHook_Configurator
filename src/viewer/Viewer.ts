@@ -36,7 +36,7 @@ import type { TransformControlsMode } from 'three/examples/jsm/controls/Transfor
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js'
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js'
-import type { AssembleResult, ViewerRenderablePart } from '../shared/buildTypes'
+import type { ViewerRenderablePart } from '../shared/buildTypes'
 import {
   DEFAULT_VIEW_SETTINGS,
   type LightSpec,
@@ -352,7 +352,6 @@ export class Viewer {
         clientY: number
       }
     | null = null
-  private assembledMesh: Mesh | null = null
   private selectedPartKey: string | null = null
   private gizmoEnabled = false
   private gizmoSpace: GizmoSpace = 'local'
@@ -625,29 +624,6 @@ export class Viewer {
     }
 
     this.refreshSelectionStyling()
-    this.refreshGizmoAttachment()
-  }
-
-  public setAssembled(assembled: AssembleResult['assembled'] | null): void {
-    this.clearAssembledMesh()
-    if (assembled === null) {
-      this.refreshGizmoAttachment()
-      return
-    }
-
-    const geometry = new BoxGeometry(
-      assembled.length,
-      assembled.height,
-      assembled.width,
-    )
-    const material = this.resolveMaterialForAssembled()
-    const mesh = new Mesh(geometry, material)
-    mesh.name = 'assembled'
-    mesh.position.set(0, assembled.height / 2, 0)
-    mesh.castShadow = this.currentViewSettings.shadowsEnabled
-    mesh.receiveShadow = this.currentViewSettings.shadowsEnabled
-    this.rootGroup.add(mesh)
-    this.assembledMesh = mesh
     this.refreshGizmoAttachment()
   }
 
@@ -1441,7 +1417,6 @@ export class Viewer {
 
     this.clearPartMeshes()
     this.clearReferenceObjects()
-    this.clearAssembledMesh()
     this.clearAllLights()
     this.clearGeometrySketchOverlayGroup(this.geometrySketchOverlayGroup)
     this.clearGeometrySketchOverlayGroup(this.visibleGeometrySketchOverlayGroup)
@@ -1656,10 +1631,6 @@ export class Viewer {
     for (const [partKeyStr, mesh] of this.partMeshes.entries()) {
       mesh.material = this.resolveMaterialForPart(partKeyStr)
     }
-
-    if (this.assembledMesh !== null) {
-      this.assembledMesh.material = this.resolveMaterialForAssembled()
-    }
   }
 
   private resolveMaterialForPart(partKey: string): MeshStandardMaterial {
@@ -1693,36 +1664,10 @@ export class Viewer {
     return material
   }
 
-  private resolveMaterialForAssembled(): MeshStandardMaterial {
-    const selected = this.materialCacheByPresetId.get(
-      this.currentViewSettings.materials.selectedPresetId,
-    )
-    if (selected !== undefined) {
-      return selected
-    }
-
-    const first = this.materialCacheByPresetId.values().next().value as
-      | MeshStandardMaterial
-      | undefined
-    if (first !== undefined) {
-      return first
-    }
-
-    const material = new MeshStandardMaterial({ color: '#31a36a' })
-    material.wireframe = this.currentViewSettings.wireframe
-    this.materialCacheByPresetId.set('fallback_runtime', material)
-    return material
-  }
-
   private applyShadowFlags(): void {
     for (const mesh of this.partMeshes.values()) {
       mesh.castShadow = this.currentViewSettings.shadowsEnabled
       mesh.receiveShadow = this.currentViewSettings.shadowsEnabled
-    }
-
-    if (this.assembledMesh !== null) {
-      this.assembledMesh.castShadow = this.currentViewSettings.shadowsEnabled
-      this.assembledMesh.receiveShadow = this.currentViewSettings.shadowsEnabled
     }
 
     for (const referenceObject of this.referenceObjects.values()) {
@@ -1790,16 +1735,6 @@ export class Viewer {
     this.referenceSelectionOutlines.clear()
     this.referenceLoadPromises.clear()
     this.removedReferenceIds.clear()
-  }
-
-  private clearAssembledMesh(): void {
-    if (this.assembledMesh === null) {
-      return
-    }
-
-    this.rootGroup.remove(this.assembledMesh)
-    this.assembledMesh.geometry.dispose()
-    this.assembledMesh = null
   }
 
   private applyReferenceObjectDefaults(object: Object3D): void {
@@ -2661,6 +2596,8 @@ export class Viewer {
       event.pointerId === this.workspaceSelectionClickTracker.pointerId &&
       !this.workspaceSelectionClickTracker.moved
     ) {
+      this.workspaceSelectionClickTracker.ctrlKey =
+        this.workspaceSelectionClickTracker.ctrlKey || event.ctrlKey
       this.workspaceSelectionClickTracker.moved =
         Math.max(
           Math.abs(event.clientX - this.workspaceSelectionClickTracker.anchorClientX),
@@ -2893,7 +2830,7 @@ export class Viewer {
       if (!click.moved) {
         this.onWorkspaceSelectionPick?.({
           pick: this.pickWorkspaceSelection(event.clientX, event.clientY),
-          ctrlKey: click.ctrlKey,
+          ctrlKey: click.ctrlKey || event.ctrlKey,
         })
       }
     }

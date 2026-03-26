@@ -3,6 +3,10 @@
 ## Doc Header
 
 ### Doc History
+11. 2026-03-25 21:10: Marked `[5.3A-7] Graph-Native Worker Cutover And Legacy Contract Deletion` shipped in this cross-family roadmap, updated the Worker family read to a fully shipped seven-phase worker ladder, and closed the Worker architecture family as complete until a new follow-on family is introduced
+10. 2026-03-25 20:13: Marked `[5.3A-6] Result Semantics, Browser Truth, And Console Truth` shipped in this cross-family roadmap, updated the Worker family read to six shipped groundwork phases, and advanced the remaining open Worker follow-on to the final graph-native cutover and legacy-contract deletion stage
+9. 2026-03-25 19:03: Marked `[5.3A-5] Legacy Runtime And Startup Fallback Removal` shipped in this cross-family roadmap, updated the Worker family read to five shipped groundwork phases, and advanced the remaining open Worker follow-ons to the later result-semantics plus final graph-native cutover stages
+8. 2026-03-25 18:22: Marked `[5.3A-4] Dispatcher Boundary Cleanup` shipped in this cross-family roadmap, updated the Worker family read to four shipped groundwork phases, and advanced the remaining open Worker follow-ons to the later legacy-runtime removal plus Browser/Console truth cuts
 7. 2026-03-25 15:56: Marked `Browser-5.3`, `Browser-5.4`, and `Browser-5.5` shipped in this cross-family roadmap, updated the Browser family read to ten shipped Browser cuts, and advanced the remaining open Browser work to the single `Browser-6` BrowserPanel and row-family cleanup follow-on
 6. 2026-03-25 10:16: Marked `Browser-5.2 - Implicit Parent Multi-Selection` shipped in this cross-family roadmap, updated the Browser family read to seven shipped Browser cuts, and advanced the remaining open Browser follow-ons to `Browser-5.3` selection-to-console integration plus `Browser-6` panel/row-family cleanup
 5. 2026-03-25 09:44: Marked `Browser-5.1 - Reference Selection Cleanup` shipped in this cross-family roadmap, updated the Browser family read to six shipped Browser cuts, and advanced the remaining open Browser follow-ons to `Browser-5.2` grouped parent multi-selection plus `Browser-6` panel/row-family cleanup
@@ -305,7 +309,7 @@ Important note:
 
 #### [ ] Extrude-1 - Transform-Aware Preview And Runtime Alignment
 
-## [~] Worker
+## [x] Worker
 ### Info
 
 Source doc:
@@ -313,17 +317,16 @@ Source doc:
 
 Current read:
 - the worker family has a clean sequential `[5.3A-1]` through `[5.3A-7]` ladder
-- the first three phases are shipped groundwork
-- the next active open seam is:
-  - `[5.3A-4]` `Dispatcher Boundary Cleanup`
+- all seven phases are now shipped groundwork
+- the shared worker boundary is graph-native only and the family currently has no remaining open worker cleanup phase
 
 ### [x] [5.3A-1] Worker Audit And Legacy Startup Inventory
 ### [x] [5.3A-2] Graph-Native Worker Contract And Separate-Build Identity
 ### [x] [5.3A-3] Worker Lane Definition And Execution-Intent Model
-### [ ] [5.3A-4] Dispatcher Boundary Cleanup
-### [ ] [5.3A-5] Legacy Runtime And Startup Fallback Removal
-### [ ] [5.3A-6] Result Semantics, Browser Truth, And Console Truth
-### [ ] [5.3A-7] Graph-Native Worker Cutover And Legacy Contract Deletion
+### [x] [5.3A-4] Dispatcher Boundary Cleanup
+### [x] [5.3A-5] Legacy Runtime And Startup Fallback Removal
+### [x] [5.3A-6] Result Semantics, Browser Truth, And Console Truth
+### [x] [5.3A-7] Graph-Native Worker Cutover And Legacy Contract Deletion
 
 ## [x] AppShell
 ### Info

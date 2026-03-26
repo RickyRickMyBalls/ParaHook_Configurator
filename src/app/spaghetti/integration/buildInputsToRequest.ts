@@ -4,9 +4,12 @@ import type { GraphPreviewPreparation } from '../previewPreparation'
 import {
   deriveSpaghettiSourcePartKeysFromProfilePatch,
   orderSpaghettiSourcePartKeys,
-  withAssembledBuildStatsKey,
 } from '../../../shared/buildStatsKeys'
-import type { BuildUnitId, CompiledBuildData } from '../../../shared/buildTypes'
+import type {
+  BuildUnitId,
+  CompiledBuildData,
+  CompiledBuildDataOutputEntry,
+} from '../../../shared/buildTypes'
 
 export type SpaghettiBuildInputs = NonNullable<CompileSpaghettiGraphResult['buildInputs']>
 
@@ -101,15 +104,49 @@ const toProfilePatch = (
   return patch
 }
 
-const toCompiledBuildData = (buildInputs: SpaghettiBuildInputs): CompiledBuildData => ({
-  instances: {
-    heelKickInstances: [...buildInputs.instances.heelKickInstances],
-    toeHookInstances: [...buildInputs.instances.toeHookInstances],
-  },
+const buildCompiledOutputEntries = (
+  previewPreparation: GraphPreviewPreparation,
+): CompiledBuildDataOutputEntry[] => {
+  const outputEntries: CompiledBuildDataOutputEntry[] = []
+  const seen = new Set<string>()
+
+  for (const slotId of previewPreparation.outputSlotIds) {
+    const sourceNodeId = previewPreparation.sourceNodeIdBySlotId[slotId]
+    const partKey = previewPreparation.sourcePartKeyBySlotId[slotId]
+    if (
+      typeof sourceNodeId !== 'string' ||
+      sourceNodeId.length === 0 ||
+      typeof partKey !== 'string' ||
+      partKey.length === 0
+    ) {
+      continue
+    }
+
+    const outputEntryId = buildGraphOutputEntryId(slotId, sourceNodeId)
+    if (seen.has(outputEntryId)) {
+      continue
+    }
+    seen.add(outputEntryId)
+    outputEntries.push({
+      buildUnitId: outputEntryId,
+      outputEntryId,
+      sourceNodeId,
+      partKey,
+    })
+  }
+
+  return outputEntries
+}
+
+const toCompiledBuildData = (
+  buildInputs: SpaghettiBuildInputs,
+  previewPreparation: GraphPreviewPreparation,
+): CompiledBuildData => ({
   orderedPartKeys: [...buildInputs.orderedPartKeys],
   resolvedParts: Object.fromEntries(
     Object.entries(buildInputs.resolvedParts).map(([partKey, params]) => [partKey, { ...params }]),
   ),
+  outputEntries: buildCompiledOutputEntries(previewPreparation),
   ...(isRecord(buildInputs.resolvedShared)
     ? { resolvedShared: { ...buildInputs.resolvedShared } }
     : {}),
@@ -142,13 +179,13 @@ export const buildRequestFromBuildInputs = (
   previewPreparation: GraphPreviewPreparation,
   previousBuildInputs?: SpaghettiBuildInputs,
 ): BuildInputsRequestTranslation => {
-  const compiledBuildData = toCompiledBuildData(buildInputs)
+  const compiledBuildData = toCompiledBuildData(buildInputs, previewPreparation)
   const profilePatch = toProfilePatch(buildInputs, previousBuildInputs)
   const orderedSourcePartKeys =
     buildInputs.orderedPartKeys.length > 0
       ? orderSpaghettiSourcePartKeys(buildInputs.orderedPartKeys)
       : deriveSpaghettiSourcePartKeysFromProfilePatch(profilePatch)
-  const buildStatsPartKeys = withAssembledBuildStatsKey(orderedSourcePartKeys)
+  const buildStatsPartKeys = [...orderedSourcePartKeys]
   const targetBuildUnitIds = collectTargetBuildUnitIds(previewPreparation)
 
   if (previousBuildInputs === undefined) {

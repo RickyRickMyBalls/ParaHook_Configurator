@@ -677,6 +677,30 @@ describe('AppShell', () => {
     expect(currentAppState.consoleContextSyncRequest?.reason).toBe('surface-clear')
   })
 
+  it('does not request console root sync from a viewport click when a shared selection already exists', async () => {
+    ;({ container, root } = await renderAppShell())
+
+    await act(async () => {
+      currentAppState.setActiveSurface('spaghetti')
+      currentAppState.setWorkspaceSelectedTarget({
+        kind: 'object',
+        objectId: 'object-1',
+      })
+      await rerenderAppShell(root!)
+    })
+
+    const viewerSurface = container?.querySelector('.ViewportViewerSurface') as HTMLDivElement | null
+    expect(viewerSurface).not.toBeNull()
+
+    await act(async () => {
+      viewerSurface?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }))
+    })
+
+    expect(currentAppState.workspaceSelection.activeSurface).toBe('viewer')
+    expect(currentAppState.requestConsoleContextSync).not.toHaveBeenCalledWith('surface-clear')
+    expect(currentAppState.consoleContextSyncRequest?.reason).not.toBe('surface-clear')
+  })
+
   it('does not request console root sync from a viewport click while sketch-plane pick is active', async () => {
     ;({ container, root } = await renderAppShell())
 

@@ -46,13 +46,20 @@ const describePublishedOutputMeta = (
     outputSurface?.publishedAtBuildSeq === null || outputSurface === null
       ? 'Not Published'
       : `Build ${outputSurface.publishedAtBuildSeq}`
+  const semanticMeta = [
+    entry.resultEntryStatus,
+    entry.resultClass,
+    entry.acceptedArtifactKey,
+  ].filter((value): value is string => typeof value === 'string' && value.length > 0)
   if (entry.state === 'resolved') {
-    return entry.acceptedArtifactKey === null
+    return semanticMeta.length === 0
       ? `Resolved | ${publishedMeta}`
-      : `Resolved | ${entry.acceptedArtifactKey} | ${publishedMeta}`
+      : `Resolved | ${semanticMeta.join(' | ')} | ${publishedMeta}`
   }
   if (entry.state === 'unresolved') {
-    return `Unresolved | ${publishedMeta}`
+    return semanticMeta.length === 0
+      ? `Unresolved | ${publishedMeta}`
+      : `Unresolved | ${semanticMeta.join(' | ')} | ${publishedMeta}`
   }
   return `Empty | ${publishedMeta}`
 }

@@ -1,11 +1,14 @@
 import { describe, expect, it, vi } from 'vitest'
-import { DEFAULT_BUILD_EXECUTION_INTENT } from '../../shared/buildTypes'
+import { DEFAULT_BUILD_EXECUTION_INTENT, type CompiledBuildData } from '../../shared/buildTypes'
 
-const cubePayload = () =>
-  ({
-    width: 1,
-    length: 2,
-    height: 3,
+const bundleArtifacts = (
+  result: { bundle: { entries: Array<{ artifacts: Array<{ partKeyStr: string; kind: string }> }> } },
+) => result.bundle.entries.flatMap((entry) => entry.artifacts)
+
+const cubeCompiledBuildData = (): CompiledBuildData => ({
+  orderedPartKeys: ['cube'],
+  resolvedParts: {},
+  resolvedShared: {
     sp_featureStackIR: {
       schemaVersion: 1,
       parts: {
@@ -41,13 +44,14 @@ const cubePayload = () =>
         ],
       },
     },
-  }) as unknown as { width: number; length: number; height: number }
+  },
+  outputEntries: [],
+})
 
-const multiCubePayload = () =>
-  ({
-    width: 1,
-    length: 2,
-    height: 3,
+const multiCubeCompiledBuildData = (): CompiledBuildData => ({
+  orderedPartKeys: ['cube#1', 'cube#2'],
+  resolvedParts: {},
+  resolvedShared: {
     sp_featureStackIR: {
       schemaVersion: 1,
       parts: {
@@ -113,52 +117,36 @@ const multiCubePayload = () =>
         ],
       },
     },
-  }) as unknown as { width: number; length: number; height: number }
+  },
+  outputEntries: [],
+})
 
-const cubeCompiledBuildData = () => ({
-  instances: {
-    heelKickInstances: [1],
-    toeHookInstances: [1],
+const buildRequest = (options: {
+  seq: number
+  buildRequestId: string
+  compiledBuildData: CompiledBuildData
+  changedParamIds: string[]
+}) => ({
+  type: 'build' as const,
+  lane: 'build' as const,
+  seq: options.seq,
+  projectFileId: 'graph-native-project',
+  graphDocumentId: 'graph-document-1',
+  buildRequestId: options.buildRequestId,
+  executionIntent: DEFAULT_BUILD_EXECUTION_INTENT,
+  buildIdentity: {
+    graphRevision: options.seq,
+    targetBuildUnitIds: options.compiledBuildData.orderedPartKeys.map(
+      (partKey) => `build-unit:${partKey}`,
+    ),
   },
-  orderedPartKeys: ['cube'],
-  resolvedParts: {},
-  resolvedShared: {
-    sp_featureStackIR: {
-      schemaVersion: 1,
-      parts: {
-        cube: [
-          {
-            op: 'sketch',
-            featureId: 'cube-sketch-1',
-            profilesResolved: [
-              {
-                profileId: 'cube-profile-1',
-                area: 400,
-                vertices: [
-                  { x: 0, y: 0 },
-                  { x: 20, y: 0 },
-                  { x: 20, y: 20 },
-                  { x: 0, y: 20 },
-                ],
-              },
-            ],
-          },
-          {
-            op: 'extrude',
-            featureId: 'cube-extrude-1',
-            profileRef: {
-              sketchFeatureId: 'cube-sketch-1',
-              profileId: 'cube-profile-1',
-            },
-            depthResolved: 20,
-            taperResolved: 0,
-            offsetResolved: 0,
-            bodyId: 'cube-body-1',
-          },
-        ],
-      },
-    },
+  invalidation: {
+    affectedBuildUnitIds: options.compiledBuildData.orderedPartKeys.map(
+      (partKey) => `build-unit:${partKey}`,
+    ),
   },
+  compiledBuildData: options.compiledBuildData,
+  changedParamIds: options.changedParamIds,
 })
 
 describe('buildPipeline spaghetti stats integration', () => {
@@ -168,25 +156,12 @@ describe('buildPipeline spaghetti stats integration', () => {
     const progress: Array<{ partKey: string; state: string }> = []
 
     const result = await buildPipeline(
-      {
-        type: 'build',
-        lane: 'build',
+      buildRequest({
         seq: 1,
-        projectFileId: 'project-1',
-        graphDocumentId: 'graph-document-1',
         buildRequestId: 'build-request-1',
-        payload: { width: 1, length: 2, height: 3 },
-        executionIntent: DEFAULT_BUILD_EXECUTION_INTENT,
-        buildIdentity: {
-          graphRevision: 2,
-          targetBuildUnitIds: ['output-entry:s001:node-cube'],
-        },
-        invalidation: {
-          affectedBuildUnitIds: ['output-entry:s001:node-cube'],
-        },
         compiledBuildData: cubeCompiledBuildData(),
         changedParamIds: ['sp_full'],
-      },
+      }),
       (message) => {
         progress.push({ partKey: message.partKey, state: message.state })
       },
@@ -194,8 +169,8 @@ describe('buildPipeline spaghetti stats integration', () => {
 
     expect(
       progress.filter((message) => message.state === 'queued').map((message) => message.partKey),
-    ).toEqual(['cube', 'assembled'])
-    expect(result.parts).toEqual(
+    ).toEqual(['cube'])
+    expect(bundleArtifacts(result)).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           partKeyStr: 'cube',
@@ -205,23 +180,18 @@ describe('buildPipeline spaghetti stats integration', () => {
     )
   })
 
-  it('emits spaghetti progress rows using canonical source/build identity', async () => {
+  it('emits graph-native progress rows using canonical source/build identity', async () => {
     vi.resetModules()
     const { buildPipeline } = await import('./buildPipeline')
     const progress: Array<{ partKey: string; state: string; lane?: string }> = []
 
     const result = await buildPipeline(
-      {
-        type: 'build',
-        lane: 'build',
+      buildRequest({
         seq: 1,
-        projectFileId: 'legacy-runtime-project',
-        graphDocumentId: 'graph-document-1',
         buildRequestId: 'build-request-1',
-        payload: cubePayload(),
-        executionIntent: DEFAULT_BUILD_EXECUTION_INTENT,
+        compiledBuildData: cubeCompiledBuildData(),
         changedParamIds: ['sp_full'],
-      },
+      }),
       (message) => {
         progress.push({ partKey: message.partKey, state: message.state, lane: message.lane })
       },
@@ -229,44 +199,34 @@ describe('buildPipeline spaghetti stats integration', () => {
 
     expect(
       progress.filter((message) => message.state === 'queued').map((message) => message.partKey),
-    ).toEqual(['cube', 'assembled'])
+    ).toEqual(['cube'])
     expect(progress.every((message) => message.lane === 'build')).toBe(true)
     expect(progress.some((message) => message.partKey === 's001')).toBe(false)
     expect(result.lane).toBe('build')
-    expect(result.parts.some((part) => part.partKeyStr === 'cube')).toBe(true)
+    expect(bundleArtifacts(result).some((part) => part.partKeyStr === 'cube')).toBe(true)
   })
 
   it('keeps repeated unchanged spaghetti builds on deterministic cache-hit rows', async () => {
     vi.resetModules()
     const { buildPipeline } = await import('./buildPipeline')
     await buildPipeline(
-      {
-        type: 'build',
-        lane: 'build',
+      buildRequest({
         seq: 1,
-        projectFileId: 'legacy-runtime-project',
-        graphDocumentId: 'graph-document-1',
         buildRequestId: 'build-request-1',
-        payload: cubePayload(),
-        executionIntent: DEFAULT_BUILD_EXECUTION_INTENT,
+        compiledBuildData: cubeCompiledBuildData(),
         changedParamIds: ['sp_full'],
-      },
+      }),
       () => {},
     )
 
     const repeatedProgress: Array<{ partKey: string; state: string }> = []
     await buildPipeline(
-      {
-        type: 'build',
-        lane: 'build',
+      buildRequest({
         seq: 2,
-        projectFileId: 'legacy-runtime-project',
-        graphDocumentId: 'graph-document-1',
         buildRequestId: 'build-request-2',
-        payload: cubePayload(),
-        executionIntent: DEFAULT_BUILD_EXECUTION_INTENT,
+        compiledBuildData: cubeCompiledBuildData(),
         changedParamIds: [],
-      },
+      }),
       (message) => {
         repeatedProgress.push({ partKey: message.partKey, state: message.state })
       },
@@ -275,12 +235,11 @@ describe('buildPipeline spaghetti stats integration', () => {
     expect(repeatedProgress).toEqual(
       expect.arrayContaining([
         { partKey: 'cube', state: 'cache_hit' },
-        { partKey: 'assembled', state: 'cache_hit' },
       ]),
     )
     expect(
       repeatedProgress.filter((message) => message.state === 'queued').map((message) => message.partKey),
-    ).toEqual(['cube', 'assembled'])
+    ).toEqual(['cube'])
   })
 
   it('emits deterministic multi-part progress rows and preserves repeated cache-hit ordering', async () => {
@@ -289,17 +248,12 @@ describe('buildPipeline spaghetti stats integration', () => {
     const firstProgress: Array<{ partKey: string; state: string }> = []
 
     const firstResult = await buildPipeline(
-      {
-        type: 'build',
-        lane: 'build',
+      buildRequest({
         seq: 10,
-        projectFileId: 'legacy-runtime-project',
-        graphDocumentId: 'graph-document-1',
         buildRequestId: 'build-request-10',
-        payload: multiCubePayload(),
-        executionIntent: DEFAULT_BUILD_EXECUTION_INTENT,
+        compiledBuildData: multiCubeCompiledBuildData(),
         changedParamIds: ['sp_full'],
-      },
+      }),
       (message) => {
         firstProgress.push({ partKey: message.partKey, state: message.state })
       },
@@ -307,25 +261,20 @@ describe('buildPipeline spaghetti stats integration', () => {
 
     expect(
       firstProgress.filter((message) => message.state === 'queued').map((message) => message.partKey),
-    ).toEqual(['cube#1', 'cube#2', 'assembled'])
+    ).toEqual(['cube#1', 'cube#2'])
     expect(firstResult.lane).toBe('build')
-    expect(firstResult.parts.map((part) => part.partKeyStr)).toEqual(
+    expect(bundleArtifacts(firstResult).map((part) => part.partKeyStr)).toEqual(
       expect.arrayContaining(['cube#1', 'cube#2']),
     )
 
     const repeatedProgress: Array<{ partKey: string; state: string }> = []
     await buildPipeline(
-      {
-        type: 'build',
-        lane: 'build',
+      buildRequest({
         seq: 11,
-        projectFileId: 'legacy-runtime-project',
-        graphDocumentId: 'graph-document-1',
         buildRequestId: 'build-request-11',
-        payload: multiCubePayload(),
-        executionIntent: DEFAULT_BUILD_EXECUTION_INTENT,
+        compiledBuildData: multiCubeCompiledBuildData(),
         changedParamIds: [],
-      },
+      }),
       (message) => {
         repeatedProgress.push({ partKey: message.partKey, state: message.state })
       },
@@ -333,12 +282,11 @@ describe('buildPipeline spaghetti stats integration', () => {
 
     expect(
       repeatedProgress.filter((message) => message.state === 'queued').map((message) => message.partKey),
-    ).toEqual(['cube#1', 'cube#2', 'assembled'])
+    ).toEqual(['cube#1', 'cube#2'])
     expect(repeatedProgress).toEqual(
       expect.arrayContaining([
         { partKey: 'cube#1', state: 'cache_hit' },
         { partKey: 'cube#2', state: 'cache_hit' },
-        { partKey: 'assembled', state: 'cache_hit' },
       ]),
     )
   })

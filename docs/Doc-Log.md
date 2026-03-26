@@ -3,8 +3,22 @@
 ## Doc Header
 
 ### Doc History
+269. 2026-03-25 21:10: Cleaned up the Worker architecture docs after shipping `[5.3A-7] Graph-Native Worker Cutover And Legacy Contract Deletion` by moving its standalone phase record from `Worker/Future/` into `Worker/Shipped/`, updating `docs/Human-Plans/Architecture/Worker/Worker.md` plus both roadmap trackers to the fully shipped worker-family state, and refreshing `docs/Doc-Index.md` so the Worker subtree no longer lists any open future worker phase docs
+268. 2026-03-25 20:41: Tightened `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase 5.3A-7 - Graph-Native Worker Cutover And Legacy Contract Deletion.md` against the live shared contract, dispatcher, app/runtime, worker entry, compatibility adapter, and viewer seams so the final worker cutover now reads as an implementation-ready deletion spec with explicit API removals, migration order, concrete file targets, and a verification bar grounded in the actual remaining `BoxParams`, `assemble`, and compatibility-wrapper surfaces
+267. 2026-03-25 20:37: Locked `q1` through `q5` under `[5.3A-7] Graph-Native Worker Cutover And Legacy Contract Deletion` in `docs/Human-Plans/Architecture/Worker/Worker.md`, created the standalone future phase doc `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase 5.3A-7 - Graph-Native Worker Cutover And Legacy Contract Deletion.md`, and refreshed `docs/Doc-Index.md` so the Worker subtree now lists the final graph-native worker cutover as its own implementation-ready future phase surface
+266. 2026-03-25 20:22: Expanded `docs/Human-Plans/Architecture/Worker/Worker.md` under `[5.3A-7] Graph-Native Worker Cutover And Legacy Contract Deletion` with a first `Questions / Decisions` block, adding focused open questions plus suggestions around final translation ownership, bundle-versus-flat-selector cutover, the fate of `assemble`, where any surviving product adapters should live after legacy deletion, and the verification bar required to claim the graph-native worker cutover is actually complete
+265. 2026-03-25 20:13: Cleaned up the Worker architecture docs after the shipped `[5.3A-6]` implementation by moving `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase 5.3A-6 - Result Semantics, Browser Truth, And Console Truth.md` into `Worker/Shipped/`, updating the Worker umbrella plus both roadmap trackers to the post-`5.3A-6` state, and refreshing `docs/Doc-Index.md` so the Worker subtree now lists the result-semantics phase under shipped history instead of future work
+264. 2026-03-25 19:37: Tightened `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase 5.3A-6 - Result Semantics, Browser Truth, And Console Truth.md` against the live shared result, app acceptance, spaghetti runtime, Browser output-surface, and worker transcript seams so the phase now reads as an implementation-ready execution spec with a concrete wire-envelope recommendation, explicit bundle/entry fields, migration order, and exact verification files
+263. 2026-03-25 19:37: Locked `q1` through `q5` under `[5.3A-6] Result Semantics, Browser Truth, And Console Truth` in `docs/Human-Plans/Architecture/Worker/Worker.md`, created the standalone future phase doc `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase 5.3A-6 - Result Semantics, Browser Truth, And Console Truth.md`, and refreshed `docs/Doc-Index.md` so the Worker subtree now lists the new semantic-strengthening future phase beside the shipped `[5.3A-1]` through `[5.3A-5]` records
+262. 2026-03-25 19:05: Expanded `docs/Human-Plans/Architecture/Worker/Worker.md` under `[5.3A-6] Result Semantics, Browser Truth, And Console Truth` with a first `Questions / Decisions` block, adding focused open questions plus suggestions around canonical result payload shape, retained-sibling semantics, preview-versus-final publication rules, Browser parent aggregate truth, and Console narration depth before the later worker cutover phase
+261. 2026-03-25 19:03: Cleaned up the Worker architecture docs after the shipped `[5.3A-5]` implementation by moving `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase 5.3A-5 - Legacy Runtime And Startup Fallback Removal.md` into `Worker/Shipped/`, updating `docs/Human-Plans/Architecture/Worker/Worker.md` plus both roadmap trackers to the post-`5.3A-5` state, and refreshing `docs/Doc-Index.md` so the Worker subtree now lists the legacy-runtime removal phase under shipped history instead of future work
+260. 2026-03-25 18:34: Created `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase 5.3A-5 - Legacy Runtime And Startup Fallback Removal.md` as the standalone implementation-ready worker follow-on, updated `docs/Human-Plans/Architecture/Worker/Worker.md` to point at that new future phase surface and lock `q1` through `q5`, and refreshed `docs/Doc-Index.md` so the Worker subtree now lists the runtime-removal phase beside the shipped `[5.3A-1]` through `[5.3A-4]` records
+259. 2026-03-25 18:25: Expanded `docs/Human-Plans/Architecture/Worker/Worker.md` under `[5.3A-5] Legacy Runtime And Startup Fallback Removal` with the first `Questions / Decisions` block, adding focused open questions plus suggestions around the future worker-core versus product-adapter seam, graph-first startup silence, legacy build-stats-order fallback deletion, preview-path placement, and targeted child-rebuild preservation during runtime cleanup
+258. 2026-03-25 18:22: Cleaned up the Worker architecture docs after the shipped `[5.3A-4]` implementation by moving `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase 5.3A-4 - Dispatcher Boundary Cleanup.md` into `Worker/Shipped/`, updating `docs/Human-Plans/Architecture/Worker/Worker.md` plus both roadmap trackers to the post-`5.3A-4` state, and refreshing `docs/Doc-Index.md` so the Worker subtree now lists the dispatcher-boundary cleanup under shipped history instead of future work
+257. 2026-03-25 18:06: Tightened `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase 5.3A-4 - Dispatcher Boundary Cleanup.md` against the live `src/app` seams so the dispatcher-boundary follow-up now explicitly records bootstrap-owned provider wiring, one whole-object runtime-hooks registration shape, deterministic hook ordering, and the concrete code/test verification targets needed to treat it as implementation-ready
 256. 2026-03-25 17:29: Added the new standalone future Browser phase doc `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-7 - Browser Cleanup Follow-Ons.md`, updated `docs/Human-Plans/Architecture/Browser/Browser-Index.md` so the Browser ladder now continues into a small-follow-on `Browser-7` cleanup bucket with the first two tracked entries for viewport explicit multi-select sync and object-scope `Zoom` command expansion, and refreshed `docs/Doc-Index.md` so the Browser subtree now lists the new future phase surface beside `Browser-6`
 255. 2026-03-25 16:35: Reframed `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-6 - BrowserPanel Structure And Row-Family Cleanup.md` to read more clearly as a long-term Browser-vision enabler, tightening its purpose and summary around later shared Browser primitives while keeping the actual phase contract behavior-preserving, implementation-bounded, and explicitly separate from the full end-state convergence work
+
 254. 2026-03-25 16:20: Locked the remaining `Browser-6` questions in `docs/Human-Plans/Architecture/Browser/Browser-Index.md` and made `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-6 - BrowserPanel Structure And Row-Family Cleanup.md` implementation-ready, aligning both docs around a meaningful layered BrowserPanel split, family-specific adapter seams, shared Browser-5.x ownership staying outside the panel, and a behavior-preserving cleanup strategy
 253. 2026-03-25 16:13: Locked `q2` under `Browser-6 - BrowserPanel Structure And Row-Family Cleanup` in `docs/Human-Plans/Architecture/Browser/Browser-Index.md`, deciding that Browser-6 should keep the shared row shell and click grammar centralized while moving content, reference, graph, and sketch row-family differences into narrower family-specific adapter seams instead of one giant central panel switch
 252. 2026-03-25 16:09: Expanded `docs/Human-Plans/Architecture/Browser/Browser-Index.md` with a new long-term Browser vision block, locking the direction that folders and objects should eventually act like shared Browser primitives across imported/reference-backed and generated/authored content, with origin shown through Browser styling rather than by keeping those tree branches permanently architecturally separate
@@ -295,6 +309,119 @@ Do not use it for:
 - keep numbering sequential unless the user explicitly asks for a renumber pass
 
 ## Doc Body
+
+### [268] - 2026-03-25 20:41 - `DOC - Tighten Worker 5.3A-7 Final Cutover Phase Against Live Code`
+
+Tightened the standalone `[5.3A-7] Graph-Native Worker Cutover And Legacy Contract Deletion` phase doc against the live shared contract, dispatcher, app/runtime, worker entry, compatibility adapter, and viewer seams so the final worker cutover now reads as an implementation-ready deletion spec with explicit API removals, migration order, concrete file targets, and a verification bar grounded in the actual remaining `BoxParams`, `assemble`, and compatibility-wrapper surfaces.
+
+Files changed:
+- `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase 5.3A-7 - Graph-Native Worker Cutover And Legacy Contract Deletion.md`
+- `docs/Doc-Log.md`
+
+### [267] - 2026-03-25 20:37 - `DOC - Lock Worker 5.3A-7 Decisions And Create Future Phase Doc`
+
+Locked `q1` through `q5` under `[5.3A-7] Graph-Native Worker Cutover And Legacy Contract Deletion` in the Worker umbrella doc, created the standalone future phase doc for that final worker cutover, and refreshed the docs map so the Worker family now points at one implementation-ready planning surface for outer-edge-only translation, bundle-first consumer cutover, `assemble` deletion, product-neutral core boundaries, and the deletion-grade verification bar.
+
+Files changed:
+- `docs/Human-Plans/Architecture/Worker/Worker.md`
+- `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase 5.3A-7 - Graph-Native Worker Cutover And Legacy Contract Deletion.md`
+- `docs/Doc-Index.md`
+- `docs/Doc-Log.md`
+
+### [266] - 2026-03-25 20:22 - `DOC - Add Worker 5.3A-7 Cutover Questions`
+
+Expanded the open `[5.3A-7] Graph-Native Worker Cutover And Legacy Contract Deletion` section in the Worker umbrella doc with a first `Questions / Decisions` block, adding focused open questions plus suggestions around final translation ownership, bundle-versus-flat-selector cutover, the fate of `assemble`, where any surviving product adapters should live after legacy deletion, and the verification bar required to prove the graph-native worker cutover is actually complete.
+
+Files changed:
+- `docs/Human-Plans/Architecture/Worker/Worker.md`
+- `docs/Doc-Log.md`
+
+### [265] - 2026-03-25 20:13 - `DOC - Ship Worker 5.3A-6 Docs And Roadmaps`
+
+Cleaned up the Worker architecture docs after the shipped `[5.3A-6] Result Semantics, Browser Truth, And Console Truth` implementation by moving the standalone phase record from `Worker/Future/` into `Worker/Shipped/`, updating the Worker umbrella plus both roadmap trackers to the post-`5.3A-6` state, and refreshing the docs map so the Worker subtree now lists the result-semantics phase as landed history before the remaining `[5.3A-7]` cutover.
+
+Files changed:
+- `docs/Human-Plans/Architecture/Worker/Worker.md`
+- `docs/Human-Plans/Architecture/Worker/Shipped/Worker_Phase 5.3A-6 - Result Semantics, Browser Truth, And Console Truth.md`
+- `docs/Human-Plans/roadmap/Architecture-roadmap.md`
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/Doc-Index.md`
+
+### [264] - 2026-03-25 19:37 - `DOC - Tighten Worker 5.3A-6 Result Semantics Phase Against Live Code`
+
+Tightened the standalone `[5.3A-6] Result Semantics, Browser Truth, And Console Truth` phase doc against the live shared result, app acceptance, spaghetti runtime, Browser output-surface, and worker transcript seams so the phase now reads as an implementation-ready execution spec with a concrete `BuildResult` wire-envelope recommendation, explicit bundle and entry fields, migration order, and exact verification files.
+
+Files changed:
+- `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase 5.3A-6 - Result Semantics, Browser Truth, And Console Truth.md`
+- `docs/Doc-Log.md`
+
+### [263] - 2026-03-25 19:37 - `DOC - Lock Worker 5.3A-6 Result Semantics Decisions And Create Future Phase Doc`
+
+Locked `q1` through `q5` under `[5.3A-6] Result Semantics, Browser Truth, And Console Truth` in the Worker umbrella doc, created the standalone future phase doc for that next semantic-strengthening cut, and refreshed the docs map so the Worker family now points at one implementation-ready planning surface for build-result bundles, explicit rebuilt/retained/evicted truth, result-class coexistence, Browser parent honesty, and Console-as-narrator ownership.
+
+Files changed:
+- `docs/Human-Plans/Architecture/Worker/Worker.md`
+- `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase 5.3A-6 - Result Semantics, Browser Truth, And Console Truth.md`
+- `docs/Doc-Index.md`
+- `docs/Doc-Log.md`
+
+### [262] - 2026-03-25 19:05 - `DOC - Add Worker 5.3A-6 Result Semantics Questions`
+
+Expanded the open `[5.3A-6] Result Semantics, Browser Truth, And Console Truth` section in the Worker umbrella doc with a first `Questions / Decisions` block, adding focused open questions plus suggestions around canonical result payload shape, retained-sibling semantics, preview-versus-final publication rules, Browser parent aggregate truth, and Console narration depth before the later worker cutover phase.
+
+Files changed:
+- `docs/Human-Plans/Architecture/Worker/Worker.md`
+- `docs/Doc-Log.md`
+
+### [261] - 2026-03-25 19:03 - `DOC - Ship Worker Phase 5.3A-5 Architecture Follow-Through`
+
+Cleaned up the Worker architecture docs after the shipped `[5.3A-5] Legacy Runtime And Startup Fallback Removal` implementation by moving its standalone record into `Worker/Shipped/`, rewriting the Worker umbrella and roadmap trackers to the post-`5.3A-5` state, and refreshing the docs map so the Worker subtree now treats the runtime-removal phase as landed history instead of future work.
+
+Files changed:
+- `docs/Human-Plans/Architecture/Worker/Shipped/Worker_Phase 5.3A-5 - Legacy Runtime And Startup Fallback Removal.md`
+- `docs/Human-Plans/Architecture/Worker/Worker.md`
+- `docs/Human-Plans/roadmap/Architecture-roadmap.md`
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/Doc-Index.md`
+- `docs/Doc-Log.md`
+
+### [260] - 2026-03-25 18:34 - `DOC - Create Worker Phase 5.3A-5 Runtime Removal Plan`
+
+Created the standalone `[5.3A-5] Legacy Runtime And Startup Fallback Removal` phase doc as an implementation-ready future planning surface, grounded it against the live startup/request/worker seams, and synchronized the Worker umbrella doc so the newly locked anonymized-core, silence-on-empty, request-driven-stats, preview-split, and no-full-wipe decisions now point at one canonical future execution spec.
+
+Files changed:
+- `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase 5.3A-5 - Legacy Runtime And Startup Fallback Removal.md`
+- `docs/Human-Plans/Architecture/Worker/Worker.md`
+- `docs/Doc-Index.md`
+- `docs/Doc-Log.md`
+
+### [259] - 2026-03-25 18:25 - `DOC - Add Worker 5.3A-5 Legacy Runtime Removal Questions`
+
+Expanded the open `[5.3A-5] Legacy Runtime And Startup Fallback Removal` section in the Worker umbrella doc with a first `Questions / Decisions` block, adding focused open questions plus suggestions around the future worker-core versus product-adapter seam, graph-first startup silence, legacy build-stats-order fallback deletion, preview-path placement, and targeted child-rebuild preservation during runtime cleanup.
+
+Files changed:
+- `docs/Human-Plans/Architecture/Worker/Worker.md`
+- `docs/Doc-Log.md`
+
+### [258] - 2026-03-25 18:22 - `DOC - Ship Worker Phase 5.3A-4 Architecture Follow-Through`
+
+Cleaned up the Worker architecture docs after the shipped `[5.3A-4] Dispatcher Boundary Cleanup` implementation by moving its standalone record into `Worker/Shipped/`, rewriting the Worker umbrella and roadmap trackers to the post-`5.3A-4` state, and refreshing the docs map so the Worker subtree now treats the dispatcher-boundary cleanup as landed history instead of future work.
+
+Files changed:
+- `docs/Human-Plans/Architecture/Worker/Shipped/Worker_Phase 5.3A-4 - Dispatcher Boundary Cleanup.md`
+- `docs/Human-Plans/Architecture/Worker/Worker.md`
+- `docs/Human-Plans/roadmap/Architecture-roadmap.md`
+- `docs/Human-Plans/roadmap/roadmap.md`
+- `docs/Doc-Index.md`
+- `docs/Doc-Log.md`
+
+### [257] - 2026-03-25 18:06 - `DOC - Tighten Worker 5.3A-4 Dispatcher Boundary Phase Against Live Code`
+
+Tightened the standalone `[5.3A-4] Dispatcher Boundary Cleanup` phase doc against the live `src/app` seams, explicitly recording that `bootstrapBuildWiring.ts` already owns provider wiring, locking a single runtime-hooks registration object plus deterministic hook ordering, and adding the concrete app/store/test verification targets needed before implementation starts.
+
+Files changed:
+- `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase 5.3A-4 - Dispatcher Boundary Cleanup.md`
+- `docs/Doc-Log.md`
 
 ### [193] - 2026-03-23 17:29 - `DOC - Tighten Sketch Console Phase 3.2B-Console-2`
 

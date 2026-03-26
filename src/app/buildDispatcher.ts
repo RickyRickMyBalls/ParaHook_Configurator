@@ -1,14 +1,10 @@
 import {
   DEFAULT_BUILD_EXECUTION_INTENT,
-  isPartArtifact,
+  isBuildResultBundle,
   LEGACY_RUNTIME_GRAPH_DOCUMENT_ID,
   LEGACY_RUNTIME_PROJECT_FILE_ID,
-  normalizeInstances,
 } from '../shared/buildTypes'
-import { LEGACY_BUILD_STATS_PART_ORDER } from '../shared/buildStatsKeys'
 import type {
-  AssembleRequest,
-  AssembleResult,
   BuildIdentity,
   BuildInvalidation,
   BuildProgress,
@@ -16,35 +12,18 @@ import type {
   BuildResult,
   BuildRoutingIdentity,
   BuildExecutionIntent,
-  BoxParams,
   CompiledBuildData,
   WorkerError,
 } from '../shared/buildTypes'
-import { appendConsoleEntry } from './console/useConsoleStore'
-import { useBuildStatsStore } from './store/buildStatsStore'
 
 type BuildResultHandler = (result: BuildResult) => void
-type AssembleResultHandler = (result: AssembleResult) => void
 type WorkerErrorHandler = (error: WorkerError) => void
-type BuildInstances = {
-  heelKickInstances?: number[]
-  toeHookInstances?: number[]
-}
-
-type BuildRequestOptions = {
-  routingIdentity?: BuildRoutingIdentity
-  executionIntent?: BuildExecutionIntent
-  changedParamIds?: string[]
-  buildInstances?: BuildInstances
-  buildStatsPartKeys?: string[]
-}
 
 type GraphBuildRequestOptions = {
   routingIdentity?: BuildRoutingIdentity
   executionIntent?: BuildExecutionIntent
   changedParamIds?: string[]
   buildStatsPartKeys?: string[]
-  legacyPayload?: BoxParams
   compiledBuildData: CompiledBuildData
   buildIdentity: BuildIdentity
   invalidation: BuildInvalidation
@@ -57,14 +36,25 @@ type RoutingLedger = {
   pendingBuildRequestIdBySeq: Map<number, string>
 }
 
+export type BuildRequestStartedContext = {
+  seq: number
+  routingIdentity: BuildRoutingIdentity
+  executionIntent: BuildExecutionIntent
+  buildStatsPartKeys: string[]
+}
+
+export type BuildDispatcherRuntimeHooks = {
+  onBuildRequestStarted?: (context: BuildRequestStartedContext) => void
+  onBuildProgress?: (progress: BuildProgress) => void
+  onBuildResultSettled?: (result: BuildResult) => void
+  onWorkerError?: (error: WorkerError) => void
+}
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null
 
 const isStringArray = (value: unknown): value is string[] =>
   Array.isArray(value) && value.every((item) => typeof item === 'string')
-
-const SIGNATURE_ENGINE_MODE = 'stub_box'
-const SIGNATURE_CONTROL_MODE = 'profile_editor'
 
 const isBuildResult = (value: unknown): value is BuildResult => {
   if (!isRecord(value)) {
@@ -80,34 +70,10 @@ const isBuildResult = (value: unknown): value is BuildResult => {
   ) {
     return false
   }
-  if (!Array.isArray(value.parts)) {
-    return false
-  }
   if (value.changedParamIds !== undefined && !isStringArray(value.changedParamIds)) {
     return false
   }
-  return value.parts.every(isPartArtifact)
-}
-
-const isAssembleResult = (value: unknown): value is AssembleResult => {
-  if (!isRecord(value)) {
-    return false
-  }
-  if (
-    value.type !== 'assemble_result' ||
-    typeof value.seq !== 'number' ||
-    typeof value.signature !== 'string'
-  ) {
-    return false
-  }
-  if (!isRecord(value.assembled)) {
-    return false
-  }
-  return (
-    typeof value.assembled.width === 'number' &&
-    typeof value.assembled.length === 'number' &&
-    typeof value.assembled.height === 'number'
-  )
+  return isBuildResultBundle(value.bundle)
 }
 
 const isWorkerError = (value: unknown): value is WorkerError => {
@@ -117,7 +83,7 @@ const isWorkerError = (value: unknown): value is WorkerError => {
   if (
     value.type !== 'worker_error' ||
     typeof value.seq !== 'number' ||
-    (value.op !== 'assemble' && value.op !== 'build' && value.op !== 'export') ||
+    (value.op !== 'build' && value.op !== 'export') ||
     typeof value.message !== 'string'
   ) {
     return false
@@ -154,7 +120,7 @@ const isBuildProgress = (value: unknown): value is BuildProgress => {
   ) {
     return false
   }
-  const phaseValid = value.phase === 'parts' || value.phase === 'assemble' || value.phase === 'export'
+  const phaseValid = value.phase === 'parts' || value.phase === 'export'
   const laneValid = value.lane === undefined || value.lane === 'build' || value.lane === 'export'
   const stateValid =
     value.state === 'queued' ||
@@ -189,14 +155,9 @@ export class BuildDispatcher {
   private latestRequestedSeq = 0
   private latestResolvedSeq = 0
   private readonly routingLedgerByKey = new Map<string, RoutingLedger>()
-  private getChangedParamIdsForNextBuild: (() => string[]) | null = null
-  private getBuildStatsPartKeysForNextBuild: (() => string[]) | null = null
-  private getBuildInstancesForNextBuild: (() => BuildInstances) | null = null
   private onBuildResult: BuildResultHandler = () => {}
-  private onAssembleResult: AssembleResultHandler = () => {}
   private onWorkerError: WorkerErrorHandler = () => {}
-  private cachedAssembledSignature: string | null = null
-  private hasCachedAssembled = false
+  private runtimeHooks: BuildDispatcherRuntimeHooks = {}
 
   public constructor() {
     this.worker = new Worker(new URL('../worker/worker.ts', import.meta.url), {
@@ -209,201 +170,53 @@ export class BuildDispatcher {
     this.onBuildResult = handler
   }
 
-  public setAssembleResultHandler(handler: AssembleResultHandler): void {
-    this.onAssembleResult = handler
-  }
-
   public setWorkerErrorHandler(handler: WorkerErrorHandler): void {
     this.onWorkerError = handler
   }
 
-  public setChangedParamIdsProvider(provider: () => string[]): void {
-    this.getChangedParamIdsForNextBuild = provider
-  }
-
-  public setBuildInstancesProvider(provider: () => BuildInstances): void {
-    this.getBuildInstancesForNextBuild = provider
-  }
-
-  public setBuildStatsPartKeysProvider(provider: () => string[]): void {
-    this.getBuildStatsPartKeysForNextBuild = provider
-  }
-
-  public requestBuild(params: BoxParams, options?: BuildRequestOptions): number {
-    const buildInstances = options?.buildInstances ?? this.getBuildInstancesForNextBuild?.()
-    const heelKickInstances =
-      buildInstances === undefined
-        ? undefined
-        : normalizeInstances(buildInstances.heelKickInstances)
-    const toeHookInstances =
-      buildInstances === undefined
-        ? undefined
-        : normalizeInstances(buildInstances.toeHookInstances)
-    return this.requestBuildInternal({
-      routingIdentity: options?.routingIdentity,
-      executionIntent: options?.executionIntent,
-      changedParamIds: options?.changedParamIds,
-      buildStatsPartKeys: options?.buildStatsPartKeys,
-      message: {
-        type: 'build',
-        lane: 'build',
-        seq: 0,
-        projectFileId: '',
-        graphDocumentId: '',
-        buildRequestId: '',
-        payload: params,
-        executionIntent: DEFAULT_BUILD_EXECUTION_INTENT,
-        ...(options?.changedParamIds !== undefined ? { changedParamIds: options.changedParamIds } : {}),
-        ...(buildInstances === undefined
-          ? {}
-          : {
-              heelKickInstances,
-              toeHookInstances,
-            }),
-      },
-    })
+  public setRuntimeHooks(hooks: BuildDispatcherRuntimeHooks): void {
+    this.runtimeHooks = hooks
   }
 
   public requestGraphBuild(options: GraphBuildRequestOptions): number {
-    return this.requestBuildInternal({
-      routingIdentity: options.routingIdentity,
-      executionIntent: options.executionIntent,
-      changedParamIds: options.changedParamIds,
-      buildStatsPartKeys: options.buildStatsPartKeys,
-      message: {
-        type: 'build',
-        lane: 'build',
-        seq: 0,
-        projectFileId: '',
-        graphDocumentId: '',
-        buildRequestId: '',
-        payload: options.legacyPayload ?? { width: 1, length: 1, height: 1 },
-        executionIntent: DEFAULT_BUILD_EXECUTION_INTENT,
-        buildIdentity: options.buildIdentity,
-        invalidation: options.invalidation,
-        compiledBuildData: options.compiledBuildData,
-        ...(options.changedParamIds !== undefined ? { changedParamIds: options.changedParamIds } : {}),
-      },
-    })
-  }
-
-  private requestBuildInternal(options: {
-    routingIdentity?: BuildRoutingIdentity
-    executionIntent?: BuildExecutionIntent
-    changedParamIds?: string[]
-    buildStatsPartKeys?: string[]
-    message: BuildRequest
-  }): number {
     const seq = ++this.seqCounter
     this.latestRequestedSeq = seq
-    const routingIdentity = options?.routingIdentity ?? this.createLegacyRoutingIdentity(seq)
+    const routingIdentity = options.routingIdentity ?? this.createLegacyRoutingIdentity(seq)
     const executionIntent = {
-      ...(options?.executionIntent ?? DEFAULT_BUILD_EXECUTION_INTENT),
+      ...(options.executionIntent ?? DEFAULT_BUILD_EXECUTION_INTENT),
     } satisfies BuildExecutionIntent
     const ledger = this.getOrCreateRoutingLedger(routingIdentity)
     ledger.latestRequestedSeq = seq
 
-    const changedParamIds = this.normalizeChangedParamIds(
-      options?.changedParamIds ?? this.getChangedParamIdsForNextBuild?.() ?? [],
-    )
+    const changedParamIds = this.normalizeChangedParamIds(options.changedParamIds ?? [])
     const buildStatsPartKeys = this.normalizeBuildStatsPartKeys(
-      options?.buildStatsPartKeys ??
-        this.getBuildStatsPartKeysForNextBuild?.() ??
-        [...LEGACY_BUILD_STATS_PART_ORDER],
+      options.buildStatsPartKeys ?? options.compiledBuildData.orderedPartKeys,
     )
     ledger.pendingChangedParamIdsBySeq.set(seq, changedParamIds)
     ledger.pendingBuildRequestIdBySeq.set(seq, routingIdentity.buildRequestId)
     this.prunePendingRoutingState(ledger)
 
-    useBuildStatsStore.getState().resetStatsForSeq(seq, buildStatsPartKeys)
-    useBuildStatsStore.getState().setOverallState('building')
-    appendConsoleEntry({
-      layer: 'Worker',
-      text: `Build started (${routingIdentity.graphDocumentId})`,
-      source: routingIdentity.graphDocumentId,
-      severity: 'info',
-    })
-
     const message: BuildRequest = {
-      ...options.message,
+      type: 'build',
+      lane: 'build',
       seq,
       projectFileId: routingIdentity.projectFileId,
       graphDocumentId: routingIdentity.graphDocumentId,
       buildRequestId: routingIdentity.buildRequestId,
       executionIntent,
+      compiledBuildData: options.compiledBuildData,
+      buildIdentity: options.buildIdentity,
+      invalidation: options.invalidation,
       ...(changedParamIds.length > 0 ? { changedParamIds } : {}),
     }
+    this.runtimeHooks.onBuildRequestStarted?.({
+      seq,
+      routingIdentity,
+      executionIntent,
+      buildStatsPartKeys,
+    })
     this.worker.postMessage(message)
     return seq
-  }
-
-  public requestAssemble(payload: BoxParams): number {
-    const seq = ++this.seqCounter
-    this.latestRequestedSeq = seq
-
-    useBuildStatsStore.getState().resetStatsForSeq(seq, ['assembled'])
-    useBuildStatsStore.getState().setOverallState('assembling')
-    appendConsoleEntry({
-      layer: 'Worker',
-      text: 'Assemble started',
-      source: 'assembled',
-      severity: 'info',
-    })
-
-    const message: AssembleRequest = {
-      type: 'assemble',
-      seq,
-      payload,
-    }
-    this.worker.postMessage(message)
-    return seq
-  }
-
-  public isAssembledCacheValid(payload: BoxParams): boolean {
-    const signature = this.computeSignature(payload)
-    return this.hasCachedAssembled && this.cachedAssembledSignature === signature
-  }
-
-  public assembleIfNeeded(payload: BoxParams): void {
-    if (!this.isAssembledCacheValid(payload)) {
-      this.requestAssemble(payload)
-      return
-    }
-
-    const seq = this.getCurrentStatsSeq()
-    useBuildStatsStore.getState().resetStatsForSeq(seq, ['assembled'])
-    useBuildStatsStore.getState().applyProgress({
-      type: 'build_progress',
-      seq,
-      projectFileId: LEGACY_RUNTIME_PROJECT_FILE_ID,
-      graphDocumentId: LEGACY_RUNTIME_GRAPH_DOCUMENT_ID,
-      buildRequestId: `legacy-assemble-${seq}`,
-      phase: 'assemble',
-      partKey: 'assembled',
-      state: 'cache_hit',
-      progress01: 1,
-      ms: 0,
-    })
-    useBuildStatsStore.getState().applyProgress({
-      type: 'build_progress',
-      seq,
-      projectFileId: LEGACY_RUNTIME_PROJECT_FILE_ID,
-      graphDocumentId: LEGACY_RUNTIME_GRAPH_DOCUMENT_ID,
-      buildRequestId: `legacy-assemble-${seq}`,
-      phase: 'assemble',
-      partKey: 'assembled',
-      state: 'done',
-      progress01: 1,
-      ms: 0,
-    })
-    useBuildStatsStore.getState().setOverallState('idle')
-    useBuildStatsStore.getState().triggerCacheHitPulse()
-    appendConsoleEntry({
-      layer: 'Worker',
-      text: 'Assembled cache hit',
-      source: 'assembled',
-      severity: 'info',
-    })
   }
 
   public dispose(): void {
@@ -418,13 +231,7 @@ export class BuildDispatcher {
       if (this.isBuildStale(event.data.seq, event.data.buildRequestId, ledger)) {
         return
       }
-      useBuildStatsStore.getState().applyProgress(event.data)
-      appendConsoleEntry({
-        layer: 'Worker',
-        text: `${event.data.partKey}: ${event.data.state}`,
-        source: event.data.graphDocumentId,
-        severity: event.data.state === 'error' ? 'error' : 'info',
-      })
+      this.runtimeHooks.onBuildProgress?.(event.data)
       return
     }
 
@@ -445,36 +252,12 @@ export class BuildDispatcher {
       ledger.pendingChangedParamIdsBySeq.delete(event.data.seq)
       ledger.pendingBuildRequestIdBySeq.delete(event.data.seq)
       ledger.latestResolvedSeq = event.data.seq
-      this.onBuildResult({
+      const acceptedResult = {
         ...event.data,
         changedParamIds: acceptedChangedParamIds,
-      })
-      useBuildStatsStore.getState().setOverallState('idle')
-      appendConsoleEntry({
-        layer: 'Worker',
-        text: `Build complete (${event.data.graphDocumentId})`,
-        source: event.data.graphDocumentId,
-        severity: 'info',
-      })
-      return
-    }
-
-    if (isAssembleResult(event.data)) {
-      if (this.isGlobalStale(event.data.seq)) {
-        return
       }
-
-      this.latestResolvedSeq = event.data.seq
-      this.cachedAssembledSignature = event.data.signature
-      this.hasCachedAssembled = true
-      this.onAssembleResult(event.data)
-      useBuildStatsStore.getState().setOverallState('idle')
-      appendConsoleEntry({
-        layer: 'Worker',
-        text: 'Assemble complete',
-        source: 'assembled',
-        severity: 'info',
-      })
+      this.onBuildResult(acceptedResult)
+      this.runtimeHooks.onBuildResultSettled?.(acceptedResult)
       return
     }
 
@@ -495,15 +278,7 @@ export class BuildDispatcher {
       }
       this.latestResolvedSeq = event.data.seq
       this.onWorkerError(event.data)
-      useBuildStatsStore.getState().setOverallState('error')
-      appendConsoleEntry({
-        layer: 'Diagnostics',
-        text: event.data.message,
-        source:
-          event.data.graphDocumentId ??
-          (event.data.op === 'assemble' ? 'assembled' : event.data.op),
-        severity: 'error',
-      })
+      this.runtimeHooks.onWorkerError?.(event.data)
     }
   }
 
@@ -538,23 +313,6 @@ export class BuildDispatcher {
     return false
   }
 
-  private getCurrentStatsSeq(): number {
-    if (this.latestRequestedSeq > 0) {
-      return this.latestRequestedSeq
-    }
-    if (this.latestResolvedSeq > 0) {
-      return this.latestResolvedSeq
-    }
-    if (this.seqCounter > 0) {
-      return this.seqCounter
-    }
-    return 1
-  }
-
-  private computeSignature(payload: BoxParams): string {
-    return `build|engine=${SIGNATURE_ENGINE_MODE}|control=${SIGNATURE_CONTROL_MODE}|width=${payload.width}|length=${payload.length}|height=${payload.height}`
-  }
-
   private normalizeChangedParamIds(ids: readonly unknown[]): string[] {
     const normalized = [
       ...new Set(
@@ -573,7 +331,7 @@ export class BuildDispatcher {
         ),
       ),
     ]
-    return normalized.length > 0 ? normalized : [...LEGACY_BUILD_STATS_PART_ORDER]
+    return normalized
   }
 
   private prunePendingRoutingState(ledger: RoutingLedger): void {

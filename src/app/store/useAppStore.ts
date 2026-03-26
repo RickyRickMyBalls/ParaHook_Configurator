@@ -19,7 +19,7 @@ import { sketchFeatureSchema } from '../spaghetti/features/featureSchema'
 import { buildRequestFromBuildInputs } from '../spaghetti/integration/buildInputsToRequest'
 import { buildGraphPublishedContentSurface } from '../spaghetti/outputSurface'
 import { OUTPUT_PREVIEW_DEFAULT_COMPONENT_LABEL } from '../spaghetti/system/outputPreviewNode'
-import type { BoxParams, BuildResult, PartArtifact } from '../../shared/buildTypes'
+import type { BuildResult } from '../../shared/buildTypes'
 import { newId } from '../spaghetti/utils/id'
 import {
   REFERENCE_MANIFEST_CATEGORIES,
@@ -48,7 +48,6 @@ import {
 } from '../references/referenceTimeline'
 import { appendConsoleEntry } from '../console/useConsoleStore'
 
-type BoxParamKey = keyof BoxParams
 type PartsVisibility = Record<string, boolean>
 type BuildPolicy = 'live' | 'release' | 'manual'
 export type BrowserBuildPolicy = 'live' | 'release' | 'manual' | 'off'
@@ -424,11 +423,7 @@ export type ConsoleContextSyncRequest = {
 }
 
 export type AppState = {
-  box: BoxParams
   lastBuildSeq: number
-  parts: PartArtifact[]
-  heelKickInstances: number[]
-  toeHookInstances: number[]
   geomDirty: Record<string, number>
   geomBuilt: Record<string, number>
   partsVisibility: PartsVisibility
@@ -448,7 +443,6 @@ export type AppState = {
   floatingShellActivationRequest: FloatingShellActivationRequest | null
   consoleContextSyncRequest: ConsoleContextSyncRequest | null
   workerError: string | null
-  setBoxParam: (key: BoxParamKey, value: number) => void
   setSpaghettiGraph: (graph: SpaghettiGraph) => void
   compileGraphDocument: (graphDocumentId: string) => CompileSpaghettiGraphResult
   requestGraphDocumentBuild: (graphDocumentId: string) => CompileSpaghettiGraphResult
@@ -561,16 +555,6 @@ export type AppState = {
   togglePartVisibility: (partKeyStr: string) => void
   setPartVisibility: (partKeyStr: string, visible: boolean) => void
   selectPart: (partKeyStr: string | null) => void
-  addHeelKickInstance: () => void
-  addToeHookInstance: () => void
-  removeHeelKickInstance: (instance: number) => void
-  removeToeHookInstance: (instance: number) => void
-}
-
-const initialBox: BoxParams = {
-  width: 1,
-  length: 2,
-  height: 1,
 }
 
 const defaultVisibility: PartsVisibility = {
@@ -1380,9 +1364,6 @@ export const selectChangedGeomParamIds = (state: Pick<AppState, 'geomDirty' | 'g
   return changed
 }
 
-const nextInstanceId = (instances: number[]): number =>
-  Math.max(...instances, 0) + 1
-
 const BROWSER_BUILD_POLICY_ORDER: readonly BrowserBuildPolicy[] = [
   'live',
   'release',
@@ -1506,11 +1487,7 @@ export const selectShouldSuppressBrowserGraphRuntimeOutput = (
   }) === 'off'
 
 export const useAppStore = create<AppState>((set, get) => ({
-  box: initialBox,
   lastBuildSeq: 0,
-  parts: [],
-  heelKickInstances: [1],
-  toeHookInstances: [1],
   geomDirty: {},
   geomBuilt: {},
   partsVisibility: defaultVisibility,
@@ -1532,32 +1509,10 @@ export const useAppStore = create<AppState>((set, get) => ({
       selectionAnchorTarget: null,
       resolvedContentSelection: null,
       activeSurface: null,
-    },
+  },
   floatingShellActivationRequest: null,
   consoleContextSyncRequest: null,
   workerError: null,
-  setBoxParam: (key, value) => {
-    const state = get()
-    if (state.box[key] === value) {
-      return
-    }
-    const nextBox: BoxParams = {
-      ...state.box,
-      [key]: value,
-    }
-    set((state) => ({
-      box: nextBox,
-      geomDirty: {
-        ...state.geomDirty,
-        [key]: (state.geomDirty[key] ?? 0) + 1,
-      },
-    }))
-    appendConsoleEntry({
-      layer: 'Params',
-      text: `${key} = ${value}`,
-      source: 'legacy-box',
-    })
-  },
   setSpaghettiGraph: (graph) => {
     useSpaghettiStore.getState().setGraph(graph)
   },
@@ -1591,6 +1546,9 @@ export const useAppStore = create<AppState>((set, get) => ({
       previewPreparation,
       pendingBuildState?.previousBuildInputs ?? undefined,
     )
+    if (requestBuild.targetBuildUnitIds.length === 0) {
+      return compileResult
+    }
     const buildRequestId = newId('build-request')
     const buildSeq = buildDispatcher.requestGraphBuild({
       routingIdentity: {
@@ -1598,7 +1556,6 @@ export const useAppStore = create<AppState>((set, get) => ({
         graphDocumentId,
         buildRequestId,
       },
-      legacyPayload: state.box,
       compiledBuildData: requestBuild.compiledBuildData,
       buildIdentity: {
         graphRevision: pendingBuildState?.currentGraphRevision ?? 0,
@@ -1615,7 +1572,6 @@ export const useAppStore = create<AppState>((set, get) => ({
       previousBuildInputs: pendingBuildState?.previousBuildInputs ?? null,
       pendingChangedParamIds: requestBuild.changedParamIds,
       pendingStatsPartKeys: requestBuild.buildStatsPartKeys,
-      pendingInstances: requestBuild.compiledBuildData.instances,
       pendingTargetBuildUnitIds: requestBuild.targetBuildUnitIds,
       pendingAffectedBuildUnitIds: requestBuild.affectedBuildUnitIds,
       buildRequestId,
@@ -1819,7 +1775,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       graphDocumentId: result.graphDocumentId,
       buildRequestId: result.buildRequestId,
       buildSeq: result.seq,
-      buildOutputs: result.parts,
+      bundle: result.bundle,
     })
     if (!acceptedSpaghettiResult) {
       return
@@ -2596,50 +2552,6 @@ export const useAppStore = create<AppState>((set, get) => ({
       text: partKeyStr === null ? 'Selection cleared' : `Selected ${partKeyStr}`,
       source: partKeyStr,
       severity: 'info',
-    })
-  },
-  addHeelKickInstance: () => {
-    const next = [...get().heelKickInstances, nextInstanceId(get().heelKickInstances)]
-    set({ heelKickInstances: next })
-  },
-  addToeHookInstance: () => {
-    const next = [...get().toeHookInstances, nextInstanceId(get().toeHookInstances)]
-    set({ toeHookInstances: next })
-  },
-  removeHeelKickInstance: (instance) => {
-    const current = get().heelKickInstances
-    if (!current.includes(instance) || current.length <= 1) {
-      return
-    }
-    const next = current.filter((value) => value !== instance)
-    const removedKey = `heelKick#${instance}`
-    set((state) => {
-      const nextVisibility = { ...state.partsVisibility }
-      delete nextVisibility[removedKey]
-      return {
-        heelKickInstances: next,
-        partsVisibility: nextVisibility,
-        selectedPartKey:
-          state.selectedPartKey === removedKey ? null : state.selectedPartKey,
-      }
-    })
-  },
-  removeToeHookInstance: (instance) => {
-    const current = get().toeHookInstances
-    if (!current.includes(instance) || current.length <= 1) {
-      return
-    }
-    const next = current.filter((value) => value !== instance)
-    const removedKey = `toeHook#${instance}`
-    set((state) => {
-      const nextVisibility = { ...state.partsVisibility }
-      delete nextVisibility[removedKey]
-      return {
-        toeHookInstances: next,
-        partsVisibility: nextVisibility,
-        selectedPartKey:
-          state.selectedPartKey === removedKey ? null : state.selectedPartKey,
-      }
     })
   },
 }))

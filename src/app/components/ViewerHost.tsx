@@ -648,7 +648,6 @@ export function ViewerHost() {
       return
     }
 
-    viewer.setAssembled(null)
     viewer.setParts(previewList.viewerParts, partsVisibility, selectedPartKey)
   }, [
     partsVisibility,

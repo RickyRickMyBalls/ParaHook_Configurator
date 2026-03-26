@@ -14,8 +14,8 @@ export type BuildRoutingIdentity = {
 }
 export type BuildUnitId = string
 
-export type ViewMode = 'parts' | 'assembled'
-export type BuildPhase = 'parts' | 'assemble' | 'export'
+export type ViewMode = 'parts'
+export type BuildPhase = 'parts' | 'export'
 export type WorkerLane = 'build' | 'export'
 export type BuildProgressState = 'queued' | 'cache_hit' | 'building' | 'done' | 'error'
 export type BuildExecutionIntent = {
@@ -32,9 +32,6 @@ export const DEFAULT_BUILD_EXECUTION_INTENT = {
   outputIntent: 'accepted_final',
 } as const satisfies BuildExecutionIntent
 
-export const PART_ORDER = ['baseplate', 'heelKick', 'toeHook', 'assembled'] as const
-
-export type LegacyPartId = (typeof PART_ORDER)[number]
 export type PartId = string
 export type PartKey = {
   id: PartId
@@ -45,9 +42,6 @@ export type ArtifactMesh = {
   vertices: number[]
   indices: number[]
 }
-
-export const isInstancePartId = (id: PartId): id is 'heelKick' | 'toeHook' =>
-  id === 'heelKick' || id === 'toeHook'
 
 export const normalizeInstances = (instances?: number[]): number[] => {
   if (instances === undefined || instances.length === 0) {
@@ -181,16 +175,18 @@ export const toViewerRenderablePart = (
   artifact,
 })
 
-export type CompiledBuildInstances = {
-  heelKickInstances: number[]
-  toeHookInstances: number[]
-}
-
 export type CompiledBuildData = {
-  instances: CompiledBuildInstances
   orderedPartKeys: string[]
   resolvedParts: Record<string, Record<string, unknown>>
+  outputEntries?: CompiledBuildDataOutputEntry[]
   resolvedShared?: Record<string, unknown>
+}
+
+export type CompiledBuildDataOutputEntry = {
+  buildUnitId: BuildUnitId
+  outputEntryId: string
+  sourceNodeId: string
+  partKey: string
 }
 
 export type BuildIdentity = {
@@ -205,20 +201,27 @@ export type BuildInvalidation = {
 const isStringArray = (value: unknown): value is string[] =>
   Array.isArray(value) && value.every((item) => typeof item === 'string')
 
-const isNumberArray = (value: unknown): value is number[] =>
-  Array.isArray(value) && value.every((item) => typeof item === 'number')
-
-export const isCompiledBuildInstances = (value: unknown): value is CompiledBuildInstances =>
+const isCompiledBuildDataOutputEntry = (
+  value: unknown,
+): value is CompiledBuildDataOutputEntry =>
   isRecord(value) &&
-  isNumberArray(value.heelKickInstances) &&
-  isNumberArray(value.toeHookInstances)
+  typeof value.buildUnitId === 'string' &&
+  value.buildUnitId.length > 0 &&
+  typeof value.outputEntryId === 'string' &&
+  value.outputEntryId.length > 0 &&
+  typeof value.sourceNodeId === 'string' &&
+  value.sourceNodeId.length > 0 &&
+  typeof value.partKey === 'string' &&
+  value.partKey.length > 0
 
 export const isCompiledBuildData = (value: unknown): value is CompiledBuildData =>
   isRecord(value) &&
-  isCompiledBuildInstances(value.instances) &&
   isStringArray(value.orderedPartKeys) &&
   isRecord(value.resolvedParts) &&
   Object.values(value.resolvedParts).every(isRecord) &&
+  (value.outputEntries === undefined ||
+    (Array.isArray(value.outputEntries) &&
+      value.outputEntries.every(isCompiledBuildDataOutputEntry))) &&
   (value.resolvedShared === undefined || isRecord(value.resolvedShared))
 
 export const isBuildIdentity = (value: unknown): value is BuildIdentity =>
@@ -231,28 +234,91 @@ export const isBuildIdentity = (value: unknown): value is BuildIdentity =>
 export const isBuildInvalidation = (value: unknown): value is BuildInvalidation =>
   isRecord(value) && isStringArray(value.affectedBuildUnitIds)
 
-export type BuildRequest = {
+type BuildRequestBase = {
   type: 'build'
   lane: 'build'
   seq: number
   projectFileId: string
   graphDocumentId: string
   buildRequestId: string
-  payload: BoxParams
   executionIntent: BuildExecutionIntent
-  buildIdentity?: BuildIdentity
-  invalidation?: BuildInvalidation
-  compiledBuildData?: CompiledBuildData
+  compiledBuildData: CompiledBuildData
+  buildIdentity: BuildIdentity
+  invalidation: BuildInvalidation
   changedParamIds?: string[]
-  heelKickInstances?: number[]
-  toeHookInstances?: number[]
 }
 
-export type AssembleRequest = {
-  type: 'assemble'
-  seq: number
-  payload: BoxParams
+export type BuildRequest = BuildRequestBase
+
+export type BuildResultClass = 'transient' | 'draft' | 'final'
+export type BuildResultEntryStatus = 'rebuilt' | 'retained' | 'evicted'
+
+export type BuildResultEntry = {
+  buildUnitId: BuildUnitId
+  outputEntryId: string
+  sourceNodeId: string | null
+  status: BuildResultEntryStatus
+  resultClass: BuildResultClass
+  artifacts: PartArtifact[]
 }
+
+export type BuildResultBundleSummary = {
+  rebuiltCount: number
+  retainedCount: number
+  evictedCount: number
+}
+
+export type BuildResultBundle = {
+  buildRequestId: string
+  graphDocumentId: string
+  seq: number
+  resultClass: BuildResultClass
+  executionIntent: BuildExecutionIntent
+  summary: BuildResultBundleSummary
+  entries: BuildResultEntry[]
+}
+
+const isBuildResultClass = (value: unknown): value is BuildResultClass =>
+  value === 'transient' || value === 'draft' || value === 'final'
+
+const isBuildResultEntryStatus = (value: unknown): value is BuildResultEntryStatus =>
+  value === 'rebuilt' || value === 'retained' || value === 'evicted'
+
+export const isBuildResultEntry = (value: unknown): value is BuildResultEntry =>
+  isRecord(value) &&
+  typeof value.buildUnitId === 'string' &&
+  value.buildUnitId.length > 0 &&
+  typeof value.outputEntryId === 'string' &&
+  value.outputEntryId.length > 0 &&
+  (value.sourceNodeId === null || typeof value.sourceNodeId === 'string') &&
+  isBuildResultEntryStatus(value.status) &&
+  isBuildResultClass(value.resultClass) &&
+  Array.isArray(value.artifacts) &&
+  value.artifacts.every(isPartArtifact)
+
+export const isBuildResultBundle = (value: unknown): value is BuildResultBundle =>
+  isRecord(value) &&
+  typeof value.buildRequestId === 'string' &&
+  value.buildRequestId.length > 0 &&
+  typeof value.graphDocumentId === 'string' &&
+  value.graphDocumentId.length > 0 &&
+  typeof value.seq === 'number' &&
+  Number.isInteger(value.seq) &&
+  isBuildResultClass(value.resultClass) &&
+  isRecord(value.executionIntent) &&
+  (value.executionIntent.buildMode === 'preview' || value.executionIntent.buildMode === 'final') &&
+  (value.executionIntent.quality === 'draft' || value.executionIntent.quality === 'full') &&
+  (value.executionIntent.updatePolicy === 'auto' ||
+    value.executionIntent.updatePolicy === 'defer_until_release' ||
+    value.executionIntent.updatePolicy === 'manual') &&
+  (value.executionIntent.outputIntent === 'transient_preview' ||
+    value.executionIntent.outputIntent === 'accepted_final') &&
+  isRecord(value.summary) &&
+  typeof value.summary.rebuiltCount === 'number' &&
+  typeof value.summary.retainedCount === 'number' &&
+  typeof value.summary.evictedCount === 'number' &&
+  Array.isArray(value.entries) &&
+  value.entries.every(isBuildResultEntry)
 
 export type BuildResult = {
   type: 'build_result'
@@ -261,25 +327,26 @@ export type BuildResult = {
   projectFileId: string
   graphDocumentId: string
   buildRequestId: string
-  parts: PartArtifact[]
+  bundle: BuildResultBundle
   changedParamIds?: string[]
 }
 
-export type AssembleResult = {
-  type: 'assemble_result'
-  seq: number
-  assembled: {
-    width: number
-    length: number
-    height: number
+export const buildResultClassFromExecutionIntent = (
+  executionIntent: BuildExecutionIntent,
+): BuildResultClass => {
+  if (executionIntent.outputIntent === 'accepted_final') {
+    return 'final'
   }
-  signature: string
+  if (executionIntent.quality === 'draft') {
+    return 'draft'
+  }
+  return 'transient'
 }
 
 export type WorkerError = {
   type: 'worker_error'
   seq: number
-  op: 'assemble' | 'build' | 'export'
+  op: 'build' | 'export'
   message: string
   lane?: WorkerLane
   projectFileId?: string
@@ -304,6 +371,5 @@ export type BuildProgress = {
 
 export type WorkerOutboundMessage =
   | BuildResult
-  | AssembleResult
   | WorkerError
   | BuildProgress

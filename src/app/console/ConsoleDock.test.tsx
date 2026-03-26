@@ -4892,6 +4892,73 @@ describe('ConsoleDock', () => {
     )
   })
 
+  it('updates the object-selected console session when viewer sync changes to a different object in the same graph', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useAppStore.setState((state) => ({
+        ...state,
+        projectContent: {
+          ...state.projectContent,
+          objectsById: {
+            'object-1': {
+              objectId: 'object-1',
+              ownerGraphDocumentId: 'graph-document-1',
+              parentComponentId: null,
+              objectSourceKind: 'published-object',
+              sourceGraphDocumentId: 'graph-document-1',
+              sourceOutputEntryId: 'output-entry-1',
+              sourceNodeId: 'node-output-1',
+              slotId: 'slot-a',
+              label: 'Object 1',
+              resolutionState: 'resolved',
+            },
+            'object-2': {
+              objectId: 'object-2',
+              ownerGraphDocumentId: 'graph-document-1',
+              parentComponentId: null,
+              objectSourceKind: 'published-object',
+              sourceGraphDocumentId: 'graph-document-1',
+              sourceOutputEntryId: 'output-entry-2',
+              sourceNodeId: 'node-output-2',
+              slotId: 'slot-b',
+              label: 'Object 2',
+              resolutionState: 'resolved',
+            },
+          },
+        },
+      }))
+      useAppStore.getState().setWorkspaceSelectedTarget({
+        kind: 'object',
+        objectId: 'object-1',
+      })
+      useAppStore.getState().setActiveSurface('viewer')
+      useAppStore.getState().requestConsoleContextSync('target-selection')
+    })
+
+    expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
+      'Select > Object > Object 1 > Choose next',
+    )
+
+    await act(async () => {
+      useAppStore.getState().setWorkspaceSelectedTarget({
+        kind: 'object',
+        objectId: 'object-2',
+      })
+      useAppStore.getState().setActiveSurface('viewer')
+      useAppStore.getState().requestConsoleContextSync('target-selection')
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('contentObjectSelected')
+    expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
+      'Select > Object > Object 2 > Choose next',
+    )
+    expect(useConsoleStore.getState().entries.some((entry) => entry.text === 'Select > Object > Object 2')).toBe(true)
+  })
+
   it('keeps selected object context ahead of spaghetti graph fallback sync', async () => {
     container = document.createElement('div')
     document.body.appendChild(container)

@@ -4,6 +4,10 @@
 ### Fold Hack 3
 #### FOld Hack 4
 ###### Doc History
+142. 2026-03-25 21:10: Marked `[5.3A-7] Graph-Native Worker Cutover And Legacy Contract Deletion` complete after shipping the final graph-native worker boundary cut, deleting the last shared worker compatibility surfaces, and closing the full `[5.3A]` worker mini-family as shipped groundwork under the broader `[5.3]` lane
+141. 2026-03-25 20:13: Marked `[5.3A-6] Result Semantics, Browser Truth, And Console Truth` complete after shipping the bundle-based worker result contract, explicit rebuilt/retained/evicted accepted-result semantics, Browser output-surface truth derived from typed bundle entries, and Console bundle-summary narration, so the live worker mini-family now advances to the final graph-native cutover and legacy-contract deletion phase
+140. 2026-03-25 19:03: Marked `[5.3A-5] Legacy Runtime And Startup Fallback Removal` complete after shipping the worker compatibility-adapter seam, silence-on-empty startup, request-driven stats seeding, and targeted output preservation groundwork, so the live worker mini-family now advances to the later result-semantics and final graph-native cutover phases
+139. 2026-03-25 18:22: Marked `[5.3A-4] Dispatcher Boundary Cleanup` complete after shipping the worker dispatcher-boundary cleanup, so the roadmap now treats outward runtime-hook wiring plus bootstrap-owned build-stats and console publishing as landed groundwork while the remaining open Worker follow-ons move on to legacy runtime removal and stronger Browser/Console truth
 138. 2026-03-23 17:19: Added and marked `[3.2B-Console-1] SketchDraw Scoped Command Surface` complete under the shipped sketch authoring lane after the first sketch-console cleanup landed, so the roadmap now explicitly records that `Radio` remains reachable inside `SketchDraw` and returns to the active local draw scope instead of forcing a root exit
 137. 2026-03-23 01:02: Added a new `[5.0I] View Toolbar And Shared View State` bridge family under the pre-workspace shell lane with `[5.0I-1]` through `[5.0I-4]`, so the new `View-Toolbar` architecture family now has a real roadmap home spanning the projection console entry first cut, the later visible projection/lens surface, broader grid/background state, and the deferred gizmo/helper/feel follow-ons
 136. 2026-03-23 13:50: Marked `[3.2A-0.1] Sketch To Extrude To Preview Contract Repair` complete after shipping the graph-native mesh-preview contract repair, moving the standalone phase record into `Nodes-Fondation/Shipped/`, and keeping the broader `[3.2A]` family focused forward on the later `EWR` phases now that the immediate post-foundation geometry-fidelity cleanup is landed
@@ -299,14 +303,14 @@ Status legend:
 - [~] `[5.1]` `Workspace Modes`
 - [ ] `[5.2]` `Control Viz And Graph-Driven Control Surfaces`
 - [~] `[5.3]` `Build Sequencing, Build Bars, And Output Build Control`
-- [~] `[5.3A]` `Worker And Graph-Native Build Contract`
+- [x] `[5.3A]` `Worker And Graph-Native Build Contract`
 - [x] `[5.3A-1]` `Worker Audit And Legacy Startup Inventory`
 - [x] `[5.3A-2]` `Graph-Native Worker Contract And Separate-Build Identity`
 - [x] `[5.3A-3]` `Worker Lane Definition And Execution-Intent Model`
-- [ ] `[5.3A-4]` `Dispatcher Boundary Cleanup`
-- [ ] `[5.3A-5]` `Legacy Runtime And Startup Fallback Removal`
-- [ ] `[5.3A-6]` `Result Semantics, Browser Truth, And Console Truth`
-- [ ] `[5.3A-7]` `Graph-Native Worker Cutover And Legacy Contract Deletion`
+- [x] `[5.3A-4]` `Dispatcher Boundary Cleanup`
+- [x] `[5.3A-5]` `Legacy Runtime And Startup Fallback Removal`
+- [x] `[5.3A-6]` `Result Semantics, Browser Truth, And Console Truth`
+- [x] `[5.3A-7]` `Graph-Native Worker Cutover And Legacy Contract Deletion`
 - [ ] `[5.4]` `Advanced Output Types And Later Project Packaging`
 - [ ] `[5.5]` `Publish / Receive Execution`
 - [ ] `[5.6]` `Final Legacy Phase-Out And Compatibility Cleanup`
@@ -2610,7 +2614,7 @@ Worker/build sub-phase labels for the current cleanup split:
 - `[5.3A-6]` Result Semantics, Browser Truth, And Console Truth
 - `[5.3A-7]` Graph-Native Worker Cutover And Legacy Contract Deletion
 
-### [5.3A] [~] - `Worker And Graph-Native Build Contract`
+### [5.3A] [x] - `Worker And Graph-Native Build Contract`
 
 Summary:
 - mini-family under `[5.3]` for the deeper worker/runtime cleanup that will make build sequencing, build bars, Browser truth, and Console truth honest
@@ -2620,10 +2624,10 @@ CheckList:
 - [x] audit the current worker/runtime and legacy startup path
 - [x] define the graph-native worker contract and separate-build identity
 - [x] define the permanent worker lanes and execution-intent model
-- [ ] thin the dispatcher around the real seams
-- [ ] remove legacy startup/runtime fallback behavior
-- [ ] strengthen results so Browser and Console can present honest build truth
-- [ ] cut over fully to the graph-native worker contract and delete legacy compatibility glue
+- [x] thin the dispatcher around the real seams
+- [x] remove legacy startup/runtime fallback behavior
+- [x] strengthen results so Browser and Console can present honest build truth
+- [x] cut over fully to the graph-native worker contract and delete legacy compatibility glue
 
 ### [5.3A-1] [x] - `Worker Audit And Legacy Startup Inventory`
 
@@ -2668,54 +2672,54 @@ CheckList:
   - deferred/heavy-work toggles
 - [x] decide whether fast preview geometry is a worker mode, a viewer approximation path, or both with explicit semantics
 
-### [5.3A-4] [ ] - `Dispatcher Boundary Cleanup`
+### [5.3A-4] [x] - `Dispatcher Boundary Cleanup`
 
 Summary:
 - thin the dispatcher after the contract is stable
 - keep transport/runtime sequencing there, but stop letting it act like a second app controller for console/store publishing
 
 CheckList:
-- [ ] keep worker lifetime, stale-drop, and typed message validation in the dispatcher
-- [ ] move UI-facing side effects outward where practical
-- [ ] keep result acceptance app-owned
-- [ ] refactor around the real contract/boundary seams instead of doing a generic cleanup pass
+- [x] keep worker lifetime, stale-drop, and typed message validation in the dispatcher
+- [x] move UI-facing side effects outward where practical
+- [x] keep result acceptance app-owned
+- [x] refactor around the real contract/boundary seams instead of doing a generic cleanup pass
 
-### [5.3A-5] [ ] - `Legacy Runtime And Startup Fallback Removal`
+### [5.3A-5] [x] - `Legacy Runtime And Startup Fallback Removal`
 
 Summary:
 - remove the old runtime path once the graph-native worker seam exists
 - this is where the app stops booting into fake foothook output and the worker stops treating legacy part derivation as the default base path
 
 CheckList:
-- [ ] remove default startup dependence on `heelKickInstances` and `toeHookInstances`
-- [ ] remove `LEGACY_BUILD_STATS_PART_ORDER` fallback once graph-native build identity is real
-- [ ] remove legacy fallback `baseplate` / `heelKick` / `toeHook` part derivation as the default runtime
-- [ ] ensure first app load either builds real graph truth or stays quiet/ready instead of fabricating legacy startup output
+- [x] remove default startup dependence on `heelKickInstances` and `toeHookInstances`
+- [x] remove `LEGACY_BUILD_STATS_PART_ORDER` fallback once graph-native build identity is real
+- [x] remove legacy fallback `baseplate` / `heelKick` / `toeHook` part derivation as the default runtime
+- [x] ensure first app load either builds real graph truth or stays quiet/ready instead of fabricating legacy startup output
 
-### [5.3A-6] [ ] - `Result Semantics, Browser Truth, And Console Truth`
+### [5.3A-6] [x] - `Result Semantics, Browser Truth, And Console Truth`
 
 Summary:
-- make worker results and progress strong enough that Browser and Console can present honest build truth
-- this is the phase where child-only rebuilds, unaffected siblings, cache-hit/building/done/error state, and aggregate parent rows become trustworthy
+- shipped the bundle-based worker result path so Browser and Console can present honest build truth from shared typed semantics instead of reconstructing it from flat artifact arrays
+- this landed explicit rebuilt/retained/evicted truth, result-class vocabulary, Browser aggregate-versus-atomic honesty, and Console completion summaries over the accepted bundle model
 
 CheckList:
-- [ ] make result semantics explicit enough to distinguish:
+- [x] make result semantics explicit enough to distinguish:
   - rebuilt child units
   - unaffected siblings
   - aggregate parent state versus true parent rebuild
-- [ ] let Browser rows show separate-build truth without implying fake broad parent rebuilds
-- [ ] let Console transcript/progress show per-unit or per-lane runtime truth without flattening child activity into misleading parent wording
-- [ ] keep this strong enough that later `Pasta Path` rollback/scrub work can consume the same result identity
+- [x] let Browser rows show separate-build truth without implying fake broad parent rebuilds
+- [x] let Console transcript/progress show per-unit or per-lane runtime truth without flattening child activity into misleading parent wording
+- [x] keep this strong enough that later `Pasta Path` rollback/scrub work can consume the same result identity
 
-### [5.3A-7] [ ] - `Graph-Native Worker Cutover And Legacy Contract Deletion`
+### [5.3A-7] [x] - `Graph-Native Worker Cutover And Legacy Contract Deletion`
 
 Summary:
-- final cutover from the transitional worker contract to the graph-native one
-- remove dead compatibility glue only after the earlier replacement path is proven in worker, Browser, and Console
+- shipped the final cutover from the transitional worker contract to the graph-native one
+- deleted the last shared worker compatibility glue after the graph-native request/result path, bundle semantics, Browser truth, and Console truth were already proven in code
 
 CheckList:
-- [ ] migrate callers from graph-to-legacy translation onto the graph-native request shape
-- [ ] remove dead protocol shapes and compatibility translation once the live path is stable
+- [x] migrate callers from graph-to-legacy translation onto the graph-native request shape
+- [x] remove dead protocol shapes and compatibility translation once the live path is stable
 - [ ] verify startup/build behavior no longer emits fallback foothook output on first app load
 - [ ] verify Browser, Console, and later workspace placement keep reading one shared worker/build truth after the cutover
 

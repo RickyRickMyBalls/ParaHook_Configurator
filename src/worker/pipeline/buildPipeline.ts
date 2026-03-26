@@ -1,24 +1,13 @@
 import type {
-  AssembleRequest,
-  AssembleResult,
-  BuildProgress,
   BuildRequest,
+  BuildProgress,
   BuildResult,
   PartArtifact,
 } from '../../shared/buildTypes'
-import {
-  getPartArtifactKey,
-  LEGACY_RUNTIME_GRAPH_DOCUMENT_ID,
-  LEGACY_RUNTIME_PROJECT_FILE_ID,
-} from '../../shared/buildTypes'
-import {
-  deriveSpaghettiSourcePartKeysFromProfilePatch,
-  withAssembledBuildStatsKey,
-} from '../../shared/buildStatsKeys'
+import { getPartArtifactKey } from '../../shared/buildTypes'
 import { buildModel } from '../buildModel'
 import { emitArtifacts } from './artifactEmitter'
 import { computeAffectedPartKeys } from './paramRouting'
-import { deriveBuildPartKeyStrings } from './partsSpec'
 import {
   makeBuildSignature,
   makePartSignature,
@@ -30,21 +19,14 @@ export type ProgressEmitter = (message: BuildProgress) => void
 
 const buildCache = new Set<string>()
 const partCache = new Set<string>()
-const assembleCache = new Set<string>()
 
 const ENGINE_MODE: EngineMode = 'stub_box'
 const CONTROL_MODE: ControlMode = 'profile_editor'
 
 const now = (): number => Date.now()
 
-const asRecord = (value: unknown): Record<string, unknown> | null =>
-  typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : null
-
 const toBuildSignatureInput = (request: BuildRequest) => ({
-  payload: request.payload,
   compiledBuildData: request.compiledBuildData,
-  heelKickInstances: request.heelKickInstances,
-  toeHookInstances: request.toeHookInstances,
 })
 
 const emit = (
@@ -71,31 +53,13 @@ export const buildPipeline = async (
   request: BuildRequest,
   emitProgress: ProgressEmitter,
 ): Promise<BuildResult> => {
-  const {
-    seq,
-    payload,
-    heelKickInstances,
-    toeHookInstances,
-    projectFileId,
-    graphDocumentId,
-    buildRequestId,
-  } = request
-  const instances = { heelKickInstances, toeHookInstances }
+  const { seq, projectFileId, graphDocumentId, buildRequestId, compiledBuildData } = request
   const signatureInput = toBuildSignatureInput(request)
   const buildSignature = makeBuildSignature(signatureInput, ENGINE_MODE, CONTROL_MODE)
   const parts = buildModel({
-    payload,
-    instances,
-    compiledBuildData: request.compiledBuildData,
+    compiledBuildData,
   })
-  const spaghettiPartKeys =
-    request.compiledBuildData !== undefined
-      ? [...request.compiledBuildData.orderedPartKeys]
-      : deriveSpaghettiSourcePartKeysFromProfilePatch(asRecord(payload) ?? {})
-  const orderedPartKeys =
-    spaghettiPartKeys.length > 0
-      ? withAssembledBuildStatsKey(spaghettiPartKeys)
-      : deriveBuildPartKeyStrings(instances)
+  const orderedPartKeys = [...compiledBuildData.orderedPartKeys]
   const affectedSet = new Set(computeAffectedPartKeys(request.changedParamIds, orderedPartKeys))
 
   for (const partKey of orderedPartKeys) {
@@ -198,11 +162,7 @@ export const buildPipeline = async (
         progress01: 0.5,
       })
 
-      // Keep the transitional compatibility `assembled` progress row even though
-      // graph-native requests do not publish a separate assembled artifact here.
-      if (!(request.compiledBuildData !== undefined && partKey === 'assembled')) {
-        void findPart(parts, partKey)
-      }
+      void findPart(parts, partKey)
 
       const elapsed = now() - start
       partCache.add(partSignature)
@@ -243,131 +203,10 @@ export const buildPipeline = async (
       projectFileId,
       graphDocumentId,
       buildRequestId,
+      executionIntent: request.executionIntent,
+      compiledBuildData,
     },
     parts,
     request.changedParamIds,
   )
-}
-
-export const assemblePipeline = async (
-  request: AssembleRequest,
-  emitProgress: ProgressEmitter,
-): Promise<AssembleResult> => {
-  const { seq, payload } = request
-  const signature = makeBuildSignature({ payload }, ENGINE_MODE, CONTROL_MODE)
-  const partKey = 'assembled'
-  const buildRequestId = `legacy-assemble-${seq}`
-
-  emit(emitProgress, {
-    seq,
-    projectFileId: LEGACY_RUNTIME_PROJECT_FILE_ID,
-    graphDocumentId: LEGACY_RUNTIME_GRAPH_DOCUMENT_ID,
-    buildRequestId,
-    phase: 'assemble',
-    partKey,
-    state: 'queued',
-  })
-
-  if (assembleCache.has(signature)) {
-    emit(emitProgress, {
-      seq,
-      projectFileId: LEGACY_RUNTIME_PROJECT_FILE_ID,
-      graphDocumentId: LEGACY_RUNTIME_GRAPH_DOCUMENT_ID,
-      buildRequestId,
-      phase: 'assemble',
-      partKey,
-      state: 'cache_hit',
-      progress01: 1,
-      ms: 0,
-    })
-    emit(emitProgress, {
-      seq,
-      projectFileId: LEGACY_RUNTIME_PROJECT_FILE_ID,
-      graphDocumentId: LEGACY_RUNTIME_GRAPH_DOCUMENT_ID,
-      buildRequestId,
-      phase: 'assemble',
-      partKey,
-      state: 'done',
-      progress01: 1,
-      ms: 0,
-    })
-    return {
-      type: 'assemble_result',
-      seq,
-      assembled: {
-        width: payload.width,
-        length: payload.length,
-        height: payload.height,
-      },
-      signature,
-    }
-  }
-
-  const start = now()
-
-  try {
-    emit(emitProgress, {
-      seq,
-      projectFileId: LEGACY_RUNTIME_PROJECT_FILE_ID,
-      graphDocumentId: LEGACY_RUNTIME_GRAPH_DOCUMENT_ID,
-      buildRequestId,
-      phase: 'assemble',
-      partKey,
-      state: 'building',
-      progress01: 0,
-    })
-
-    await Promise.resolve()
-
-    emit(emitProgress, {
-      seq,
-      projectFileId: LEGACY_RUNTIME_PROJECT_FILE_ID,
-      graphDocumentId: LEGACY_RUNTIME_GRAPH_DOCUMENT_ID,
-      buildRequestId,
-      phase: 'assemble',
-      partKey,
-      state: 'building',
-      progress01: 0.5,
-    })
-
-    const elapsed = now() - start
-    assembleCache.add(signature)
-    buildCache.add(signature)
-
-    emit(emitProgress, {
-      seq,
-      projectFileId: LEGACY_RUNTIME_PROJECT_FILE_ID,
-      graphDocumentId: LEGACY_RUNTIME_GRAPH_DOCUMENT_ID,
-      buildRequestId,
-      phase: 'assemble',
-      partKey,
-      state: 'done',
-      progress01: 1,
-      ms: elapsed,
-    })
-
-    return {
-      type: 'assemble_result',
-      seq,
-      assembled: {
-        width: payload.width,
-        length: payload.length,
-        height: payload.height,
-      },
-      signature,
-    }
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Assemble failed.'
-    emit(emitProgress, {
-      seq,
-      projectFileId: LEGACY_RUNTIME_PROJECT_FILE_ID,
-      graphDocumentId: LEGACY_RUNTIME_GRAPH_DOCUMENT_ID,
-      buildRequestId,
-      phase: 'assemble',
-      partKey,
-      state: 'error',
-      message,
-    })
-    throw error
-  }
 }

@@ -1,9 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
-  ASSEMBLED_BUILD_STATS_KEY,
   deriveSpaghettiSourcePartKeysFromProfilePatch,
   orderSpaghettiSourcePartKeys,
-  withAssembledBuildStatsKey,
 } from './buildStatsKeys'
 
 describe('buildStatsKeys', () => {
@@ -44,13 +42,6 @@ describe('buildStatsKeys', () => {
       'cube#2',
       'toeHook#2',
       'heelKick#1',
-    ])
-  })
-
-  it('appends assembled last without using preview identity as a stats key', () => {
-    expect(withAssembledBuildStatsKey(['cube', ASSEMBLED_BUILD_STATS_KEY])).toEqual([
-      'cube',
-      ASSEMBLED_BUILD_STATS_KEY,
     ])
   })
 })

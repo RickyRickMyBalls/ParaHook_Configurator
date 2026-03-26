@@ -52,6 +52,7 @@ import { compileSpaghettiGraph } from '../../app/spaghetti/compiler/compileGraph
 import { getDefaultNodeParams } from '../../app/spaghetti/registry/nodeRegistry'
 import { OUTPUT_PREVIEW_NODE_TYPE } from '../../app/spaghetti/system/outputPreviewNode'
 import { buildModel } from '../buildModel'
+import type { CompiledBuildData } from '../../shared/buildTypes'
 import {
   executeFeatureStack,
   type FeatureStackIRPayload,
@@ -91,6 +92,29 @@ const basePayload = (): FeatureStackIRPayload => ({
       },
     ],
   },
+})
+
+const compiledBuildDataFromResolvedShared = (
+  resolvedShared: Record<string, unknown>,
+): CompiledBuildData => ({
+  orderedPartKeys: Object.keys(
+    ((resolvedShared.sp_featureStackIR as { parts?: Record<string, unknown> } | undefined)?.parts ??
+      {}) as Record<string, unknown>,
+  ),
+  resolvedParts: {},
+  resolvedShared,
+  outputEntries: [],
+})
+
+const compiledBuildDataFromCompileResult = (
+  compileResult: ReturnType<typeof compileSpaghettiGraph>,
+): CompiledBuildData => ({
+  orderedPartKeys: compileResult.buildInputs?.orderedPartKeys ?? [],
+  resolvedParts: compileResult.buildInputs?.resolvedParts ?? {},
+  ...(compileResult.buildInputs?.resolvedShared !== undefined
+    ? { resolvedShared: compileResult.buildInputs.resolvedShared }
+    : {}),
+  outputEntries: [],
 })
 
 const cubeGraph = (): SpaghettiGraph => ({
@@ -466,30 +490,21 @@ describe('buildModel diagnostics flush', () => {
     expect(compileResult.ok).toBe(true)
 
     const parts = buildModel({
-      payload: {
-        width: 1,
-        length: 2,
-        height: 3,
-        ...(compileResult.buildInputs?.resolvedShared ?? {}),
-      } as unknown as { width: number; length: number; height: number },
-      instances: {},
+      compiledBuildData: compiledBuildDataFromCompileResult(compileResult),
     })
 
-    expect(parts.find((part) => part.partKeyStr === 'cube')).toEqual({
-      id: 'cube',
-      label: 'Cube',
-      kind: 'box',
-      params: {
-        length: 20,
-        width: 20,
-        height: 20,
-      },
-      partKeyStr: 'cube',
-      partKey: {
+    expect(parts.find((part) => part.partKeyStr === 'cube')).toEqual(
+      expect.objectContaining({
         id: 'cube',
-        instance: null,
-      },
-    })
+        label: 'Cube',
+        kind: 'mesh',
+        partKeyStr: 'cube',
+        partKey: {
+          id: 'cube',
+          instance: null,
+        },
+      }),
+    )
   })
 
   it('emits a deterministic cube PartArtifact from compiled graph Feature Stack IR', () => {
@@ -497,43 +512,29 @@ describe('buildModel diagnostics flush', () => {
     expect(compileResult.ok).toBe(true)
     expect(compileResult.buildInputs).toBeDefined()
 
-    const payload = {
-      width: 1,
-      length: 2,
-      height: 3,
-      ...(compileResult.buildInputs?.resolvedShared ?? {}),
-    } as unknown as { width: number; length: number; height: number }
+    const compiledBuildData = compiledBuildDataFromCompileResult(compileResult)
 
     const parts = buildModel({
-      payload: {
-        ...payload,
-      },
-      instances: {},
+      compiledBuildData,
     })
     const repeated = buildModel({
-      payload: {
-        ...payload,
-      },
-      instances: {},
+      compiledBuildData,
     })
 
     const cube = parts.find((part) => part.partKeyStr === 'cube')
     expect(repeated).toEqual(parts)
-    expect(cube).toEqual({
-      id: 'cube',
-      label: 'Cube',
-      kind: 'box',
-      params: {
-        length: 30,
-        width: 15,
-        height: 25,
-      },
-      partKeyStr: 'cube',
-      partKey: {
+    expect(cube).toEqual(
+      expect.objectContaining({
         id: 'cube',
-        instance: null,
-      },
-    })
+        label: 'Cube',
+        kind: 'mesh',
+        partKeyStr: 'cube',
+        partKey: {
+          id: 'cube',
+          instance: null,
+        },
+      }),
+    )
   })
 
   it('emits deterministic multi-part cube PartArtifacts from compiled graph Feature Stack IR', () => {
@@ -558,13 +559,7 @@ describe('buildModel diagnostics flush', () => {
     expect(compileResult.ok).toBe(true)
 
     const parts = buildModel({
-      payload: {
-        width: 1,
-        length: 2,
-        height: 3,
-        ...(compileResult.buildInputs?.resolvedShared ?? {}),
-      } as unknown as { width: number; length: number; height: number },
-      instances: {},
+      compiledBuildData: compiledBuildDataFromCompileResult(compileResult),
     })
 
     expect(parts.map((part) => part.partKeyStr)).toEqual(
@@ -673,30 +668,21 @@ describe('buildModel diagnostics flush', () => {
     expect(compileResult.ok).toBe(true)
 
     const parts = buildModel({
-      payload: {
-        width: 1,
-        length: 2,
-        height: 3,
-        ...(compileResult.buildInputs?.resolvedShared ?? {}),
-      } as unknown as { width: number; length: number; height: number },
-      instances: {},
+      compiledBuildData: compiledBuildDataFromCompileResult(compileResult),
     })
 
-    expect(parts.find((part) => part.partKeyStr === 'extrude')).toEqual({
-      id: 'extrude',
-      label: 'Extrude',
-      kind: 'box',
-      params: {
-        length: 5,
-        width: 20,
-        height: 10,
-      },
-      partKeyStr: 'extrude',
-      partKey: {
+    expect(parts.find((part) => part.partKeyStr === 'extrude')).toEqual(
+      expect.objectContaining({
         id: 'extrude',
-        instance: null,
-      },
-    })
+        label: 'Extrude',
+        kind: 'mesh',
+        partKeyStr: 'extrude',
+        partKey: {
+          id: 'extrude',
+          instance: null,
+        },
+      }),
+    )
   })
 
   it('emits a graph-native mesh PartArtifact for canonical compiled Geometry/Sketch -> Geometry/Extrude builds', () => {
@@ -799,13 +785,7 @@ describe('buildModel diagnostics flush', () => {
     expect(compileResult.buildInputs).toBeDefined()
 
     const parts = buildModel({
-      payload: {
-        width: 1,
-        length: 2,
-        height: 3,
-      },
-      instances: compileResult.buildInputs?.instances ?? {},
-      compiledBuildData: compileResult.buildInputs,
+      compiledBuildData: compiledBuildDataFromCompileResult(compileResult),
     })
 
     expect(parts.find((part) => part.partKeyStr === 'extrude')).toEqual(
@@ -833,13 +813,7 @@ describe('buildModel diagnostics flush', () => {
     expect(compileResult.ok).toBe(true)
 
     const parts = buildModel({
-      payload: {
-        width: 1,
-        length: 2,
-        height: 3,
-        ...(compileResult.buildInputs?.resolvedShared ?? {}),
-      } as unknown as { width: number; length: number; height: number },
-      instances: {},
+      compiledBuildData: compiledBuildDataFromCompileResult(compileResult),
     })
 
     expect(parts.some((part) => part.partKeyStr === 'cube')).toBe(false)
@@ -848,10 +822,7 @@ describe('buildModel diagnostics flush', () => {
   it('flushes unique warnings once per build', () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
     buildModel({
-      payload: {
-        width: 1,
-        length: 2,
-        height: 3,
+      compiledBuildData: compiledBuildDataFromResolvedShared({
         sp_featureStackIR: {
           schemaVersion: 1,
           parts: {
@@ -873,8 +844,7 @@ describe('buildModel diagnostics flush', () => {
             ],
           },
         },
-      } as unknown as { width: number; length: number; height: number },
-      instances: {},
+      }),
     })
 
     expect(warnSpy).toHaveBeenCalledTimes(1)

@@ -52,7 +52,6 @@ const graphRuntime = (options?: {
       previousBuildInputs: null,
       pendingChangedParamIds: [],
       pendingStatsPartKeys: [],
-      pendingInstances: null,
       currentGraphRevision: options?.currentGraphRevision ?? 0,
       lastBuildSeq: null,
       latestIssuedGraphRevision: null,

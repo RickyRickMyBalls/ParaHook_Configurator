@@ -4,6 +4,13 @@
 <summary>Doc Header</summary>
 
 ### Doc History
+120. 2026-03-25 21:10: Moved the shipped `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase 5.3A-7 - Graph-Native Worker Cutover And Legacy Contract Deletion.md` record into `Worker/Shipped/`, refreshed the Worker subtree listing, and kept the docs map aligned with the now-fully-shipped `5.3A` worker family so the architecture docs no longer list any open future worker phase under `Worker/`
+119. 2026-03-25 20:37: Added `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase 5.3A-7 - Graph-Native Worker Cutover And Legacy Contract Deletion.md` to the architecture docs map, refreshed the Worker subtree so the final worker cutover now has its own implementation-ready future planning surface, and kept the Worker family aligned with the newly locked outer-edge translation, bundle-first cutover, `assemble` deletion, product-neutral core, and deletion-grade verification decisions
+118. 2026-03-25 20:13: Moved the shipped `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase 5.3A-6 - Result Semantics, Browser Truth, And Console Truth.md` record into `Worker/Shipped/`, refreshed the Worker subtree listing, and kept the docs map aligned with the post-`5.3A-6` worker family state now that bundle-based result semantics, Browser truth, and Console truth are landed history instead of a pending future phase
+117. 2026-03-25 19:37: Added `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase 5.3A-6 - Result Semantics, Browser Truth, And Console Truth.md` to the architecture docs map, refreshed the Worker subtree so the next semantic-strengthening worker cut now has its own implementation-ready future planning surface, and kept the Worker family aligned with the newly locked build-result-bundle, explicit-retention, result-class, parent-honesty, and Console-narrator decisions
+116. 2026-03-25 19:03: Moved the shipped `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase 5.3A-5 - Legacy Runtime And Startup Fallback Removal.md` record into `Worker/Shipped/`, refreshed the Worker subtree listing, and kept the docs map aligned with the post-`5.3A-5` worker family state now that the legacy-runtime removal phase is landed history instead of a pending future plan
+115. 2026-03-25 18:34: Added `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase 5.3A-5 - Legacy Runtime And Startup Fallback Removal.md` to the architecture docs map, refreshed the Worker subtree so the next worker runtime-cleanup cut now has its own implementation-ready future planning surface, and kept the Worker family aligned with the newly locked anonymized-core, silence-on-empty, request-driven-stats, preview-split, and no-full-wipe decisions
+114. 2026-03-25 18:22: Moved the shipped `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase 5.3A-4 - Dispatcher Boundary Cleanup.md` record into `Worker/Shipped/`, refreshed the Worker subtree listing, and kept the docs map aligned with the post-`5.3A-4` worker family state now that the dispatcher-boundary cleanup is landed history instead of a pending future phase
 113. 2026-03-25 17:29: Added `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-7 - Browser Cleanup Follow-Ons.md` to the architecture docs map and refreshed the Browser subtree so the next small Browser cleanup follow-ons now have a dedicated future tracking surface after Browser-6
 112. 2026-03-25 15:56: Moved the shipped Browser phase records `Browser-5.3`, `Browser-5.4`, and `Browser-5.5` from `docs/Human-Plans/Architecture/Browser/Future/` into `Browser/Shipped/`, refreshed the Browser subtree listing, and kept the docs map aligned with the post-5.5 Browser family state where `Browser-6` is the remaining future Browser phase
 111. 2026-03-25 14:39: Added `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-5.4 - Explicit Additive Multi-Select.md` to the architecture docs map and refreshed the Browser subtree so the explicit `Ctrl+click` plus `Shift+click` multi-select follow-up now has its own standalone future planning surface between the Browser-5.3 console-context phase and the Browser-5.5 reference batch-loading phase
@@ -499,10 +506,13 @@ Rule notes:
             - `Future/View_Toolbar_Phase 5.0I-1 - Shared View Command Dispatch And Projection Console Entry.md`
 #### -------Worker
             - `Worker.md`
-            - `Shipped/Worker_Phase 5.3A-2 - Graph-Native Worker Contract And Separate-Build Identity.md`
-            - `Future/Worker_Phase 5.3A-4 - Dispatcher Boundary Cleanup.md`
-            - `Shipped/Worker_Phase 5.3A-3 - Worker Lane Definition And Execution-Intent Model.md`
             - `Shipped/Worker_Phase 5.3A-1 - Worker Audit And Legacy Startup Inventory.md`
+            - `Shipped/Worker_Phase 5.3A-2 - Graph-Native Worker Contract And Separate-Build Identity.md`
+            - `Shipped/Worker_Phase 5.3A-3 - Worker Lane Definition And Execution-Intent Model.md`
+            - `Shipped/Worker_Phase 5.3A-4 - Dispatcher Boundary Cleanup.md`
+            - `Shipped/Worker_Phase 5.3A-5 - Legacy Runtime And Startup Fallback Removal.md`
+            - `Shipped/Worker_Phase 5.3A-6 - Result Semantics, Browser Truth, And Console Truth.md`
+            - `Shipped/Worker_Phase 5.3A-7 - Graph-Native Worker Cutover And Legacy Contract Deletion.md`
 #### -------Spaghetti-Editor-Arch
             - `master spaghetti-index.md`
             - `Spaghetti-Editor-Explained.md`

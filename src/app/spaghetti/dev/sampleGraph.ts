@@ -1,4 +1,8 @@
 import type { SpaghettiGraph } from '../schema/spaghettiTypes'
+import {
+  cloneOutputPreviewDefaultParams,
+  OUTPUT_PREVIEW_NODE_TYPE,
+} from '../system/outputPreviewNode'
 
 export const createValidBaseplateGraph = (): SpaghettiGraph => ({
   schemaVersion: 1,
@@ -14,6 +18,80 @@ export const createValidBaseplateGraph = (): SpaghettiGraph => ({
     },
   ],
   edges: [],
+})
+
+export const createPublishedBaseplateGraph = (): SpaghettiGraph => ({
+  schemaVersion: 1,
+  nodes: [
+    {
+      nodeId: 'node-baseplate-1',
+      type: 'Part/Baseplate',
+      params: {},
+      ui: {
+        x: 320,
+        y: 140,
+      },
+    },
+    {
+      nodeId: 'node-output-preview-1',
+      type: OUTPUT_PREVIEW_NODE_TYPE,
+      params: cloneOutputPreviewDefaultParams(),
+      ui: {
+        x: 640,
+        y: 140,
+      },
+    },
+  ],
+  edges: [
+    {
+      edgeId: 'edge-baseplate-to-output-preview',
+      from: {
+        nodeId: 'node-baseplate-1',
+        portId: 'solid',
+      },
+      to: {
+        nodeId: 'node-output-preview-1',
+        portId: 'in:solid:s001',
+      },
+    },
+  ],
+})
+
+export const createPublishedCubeGraph = (): SpaghettiGraph => ({
+  schemaVersion: 1,
+  nodes: [
+    {
+      nodeId: 'node-cube-1',
+      type: 'Part/Cube',
+      params: {},
+      ui: {
+        x: 320,
+        y: 140,
+      },
+    },
+    {
+      nodeId: 'node-output-preview-1',
+      type: OUTPUT_PREVIEW_NODE_TYPE,
+      params: cloneOutputPreviewDefaultParams(),
+      ui: {
+        x: 640,
+        y: 140,
+      },
+    },
+  ],
+  edges: [
+    {
+      edgeId: 'edge-cube-to-output-preview',
+      from: {
+        nodeId: 'node-cube-1',
+        portId: 'solid',
+      },
+      to: {
+        nodeId: 'node-output-preview-1',
+        portId: 'in:solid:s001',
+      },
+    },
+  ],
 })
 
 export const createValidBaseplateToeHookGraph = (): SpaghettiGraph => ({

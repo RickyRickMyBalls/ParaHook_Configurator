@@ -41,7 +41,6 @@ vi.mock('../../viewer/Viewer', () => ({
   Viewer: class MockViewer {
     public constructor(_container: HTMLElement) {}
     public dispose(): void {}
-    public setAssembled(): void {}
     public setParts(): void {}
     public setSelectedPart(): void {}
     public setHighlightedPartKeys = (...args: unknown[]) => viewerSetHighlightedPartKeys(...args)

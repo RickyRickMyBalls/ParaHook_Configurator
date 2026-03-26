@@ -1,4 +1,9 @@
-import type { PartArtifact } from '../../shared/buildTypes'
+import type {
+  BuildResultBundle,
+  BuildResultClass,
+  BuildResultEntryStatus,
+  PartArtifact,
+} from '../../shared/buildTypes'
 import { artifactToPartKeyStr } from '../parts/partKeyResolver'
 import type { GraphPreviewPreparation } from './previewPreparation'
 import type { SpaghettiGraph } from './schema/spaghettiTypes'
@@ -14,6 +19,9 @@ export type GraphPublishedOutputEntry = {
   label: string
   state: GraphPublishedOutputState
   acceptedArtifactKey: string | null
+  buildUnitId?: string | null
+  resultEntryStatus?: BuildResultEntryStatus | null
+  resultClass?: BuildResultClass | null
   diagnosticsState?: GraphPublishedOutputDiagnosticsState
 }
 
@@ -63,15 +71,20 @@ export const buildGraphOutputEntryId = (
 export const buildGraphOutputSurface = (options: {
   graphDocumentId: string
   previewPreparation: GraphPreviewPreparation
-  acceptedBuildOutputs: readonly PartArtifact[]
+  acceptedBundle?: BuildResultBundle | null
+  acceptedBuildOutputs?: readonly PartArtifact[]
   publishedAtBuildSeq: number | null
 }): GraphOutputSurface => {
   const {
     graphDocumentId,
     previewPreparation,
-    acceptedBuildOutputs,
+    acceptedBundle = null,
+    acceptedBuildOutputs = [],
     publishedAtBuildSeq,
   } = options
+  const bundleEntryByOutputEntryId = new Map(
+    (acceptedBundle?.entries ?? []).map((entry) => [entry.outputEntryId, entry] as const),
+  )
   const acceptedArtifactKeyByPartKey = new Map<string, string>()
   for (const artifact of acceptedBuildOutputs) {
     const partKey = artifactToPartKeyStr(artifact)
@@ -84,8 +97,11 @@ export const buildGraphOutputSurface = (options: {
     const sourceNodeId = previewPreparation.sourceNodeIdBySlotId[slotId] ?? ''
     const sourcePartKey = previewPreparation.sourcePartKeyBySlotId[slotId]
     const rawStatus = previewPreparation.slotStatusBySlotId[slotId] ?? 'empty'
+    const outputEntryId = buildGraphOutputEntryId(slotId, sourceNodeId)
+    const bundleEntry = bundleEntryByOutputEntryId.get(outputEntryId) ?? null
     const acceptedArtifactKey =
-      sourcePartKey === undefined ? null : (acceptedArtifactKeyByPartKey.get(sourcePartKey) ?? null)
+      bundleEntry?.artifacts[0]?.partKeyStr ??
+      (sourcePartKey === undefined ? null : (acceptedArtifactKeyByPartKey.get(sourcePartKey) ?? null))
 
     let state: GraphPublishedOutputState = 'empty'
     let diagnosticsState: GraphPublishedOutputDiagnosticsState = 'none'
@@ -96,6 +112,9 @@ export const buildGraphOutputSurface = (options: {
     } else if (rawStatus === 'unresolved') {
       state = 'unresolved'
       diagnosticsState = 'hasDiagnostics'
+    } else if (bundleEntry?.status === 'evicted') {
+      state = 'unresolved'
+      diagnosticsState = 'unknown'
     } else if (acceptedArtifactKey !== null) {
       state = 'resolved'
       diagnosticsState = 'none'
@@ -105,12 +124,15 @@ export const buildGraphOutputSurface = (options: {
     }
 
     return {
-      outputEntryId: buildGraphOutputEntryId(slotId, sourceNodeId),
+      outputEntryId,
       slotId,
       sourceNodeId,
       label: slotId,
       state,
       acceptedArtifactKey,
+      buildUnitId: bundleEntry?.buildUnitId ?? null,
+      resultEntryStatus: bundleEntry?.status ?? null,
+      resultClass: bundleEntry?.resultClass ?? null,
       diagnosticsState,
     } satisfies GraphPublishedOutputEntry
   })
