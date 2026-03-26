@@ -170,11 +170,20 @@ export function ConsoleBar({
       case 'graphOutputPreviewSelected':
         return ['Graph', 'Output Preview']
       case 'contentAssemblySelected':
+      case 'contentAssemblyZoomRoot':
       case 'contentComponentSelected':
       case 'contentObjectSelected':
+      case 'contentObjectTransformRoot':
+      case 'contentObjectZoomRoot':
+      case 'multiSelectSelected':
+      case 'multiSelectZoomRoot':
       case 'referencesSelected':
+      case 'referencesZoomRoot':
       case 'referenceCategorySelected':
+      case 'referenceCategoryZoomRoot':
       case 'referenceSelected':
+      case 'referenceTransformRoot':
+      case 'referenceZoomRoot':
         return session.breadcrumb
       default:
         return ['Choose next']
@@ -234,16 +243,21 @@ export function ConsoleBar({
     }
   }
 
+  const statusAssistDescriptor =
+    featureAssistDescriptor?.summaryMode === 'status' ? featureAssistDescriptor : null
+
   const activeSummary =
-    stagedNavigationSession !== null && stagedNavigationSession.validChoices.length > 0
+    statusAssistDescriptor !== null
       ? {
-          breadcrumb: buildStagedSummaryBreadcrumb(stagedNavigationSession),
-          leadText: ' > Choose next',
-          choices: stagedNavigationSession.validChoices.map((choice) => ({
+          breadcrumb:
+            statusAssistDescriptor.breadcrumb ?? [statusAssistDescriptor.label],
+          leadText: statusAssistDescriptor.summaryLeadText ?? '',
+          choices: statusAssistDescriptor.choices.map((choice) => ({
             label: choice.label,
             aliasHint: selectPreferredAliasHint(choice.label, choice.aliases),
           })),
-          activeChoiceIndex: stagedChoiceIndex ?? 0,
+          activeChoiceIndex:
+            statusAssistDescriptor.choices.length > 0 ? stagedChoiceIndex ?? 0 : null,
         }
       : consolePromptSession !== null
         ? {
@@ -264,7 +278,9 @@ export function ConsoleBar({
         ? {
             breadcrumb:
               featureAssistDescriptor.breadcrumb ?? [featureAssistDescriptor.label],
-            leadText: featureAssistDescriptor.choices.length > 0 ? ' > Choose next' : '',
+            leadText:
+              featureAssistDescriptor.summaryLeadText ??
+              (featureAssistDescriptor.choices.length > 0 ? ' > Choose next' : ''),
             choices: featureAssistDescriptor.choices.map((choice) => ({
               label: choice.label,
               aliasHint: selectPreferredAliasHint(choice.label, choice.aliases),
@@ -272,6 +288,16 @@ export function ConsoleBar({
             activeChoiceIndex:
               featureAssistDescriptor.choices.length > 0 ? stagedChoiceIndex ?? 0 : null,
           }
+      : stagedNavigationSession !== null && stagedNavigationSession.validChoices.length > 0
+      ? {
+          breadcrumb: buildStagedSummaryBreadcrumb(stagedNavigationSession),
+          leadText: ' > Choose next',
+          choices: stagedNavigationSession.validChoices.map((choice) => ({
+            label: choice.label,
+            aliasHint: selectPreferredAliasHint(choice.label, choice.aliases),
+          })),
+          activeChoiceIndex: stagedChoiceIndex ?? 0,
+        }
       : parsePromptSummary(summaryText)
 
   useEffect(() => {
@@ -307,32 +333,36 @@ export function ConsoleBar({
             </span>
           ))}
         </span>
-        <span className="ConsoleBarSummaryChoicesRow">
-          <span className="ConsoleBarSummaryLead">{activeSummary.leadText}</span>
-          <span
-            ref={summaryChoicesViewportRef}
-            className="ConsoleBarSummaryChoicesViewport"
-            aria-label="Console staged choices"
-          >
-            <span className="ConsoleBarSummaryChoices">
-              <span className="ConsoleBarSummaryBracket">[</span>
-              {activeSummary.choices.map((choice, index) => (
-                <span
-                  key={`${choice.label}-${index}`}
-                  className={`ConsoleBarSummaryChoice ${
-                    index === activeSummary.activeChoiceIndex ? 'isActive' : ''
-                  }`}
-                >
-                  {renderChoiceLabelWithAliasHint(choice)}
-                  {index < activeSummary.choices.length - 1 ? (
-                    <span className="ConsoleBarSummarySeparator">, </span>
-                  ) : null}
+        {activeSummary.leadText.length > 0 || activeSummary.choices.length > 0 ? (
+          <span className="ConsoleBarSummaryChoicesRow">
+            <span className="ConsoleBarSummaryLead">{activeSummary.leadText}</span>
+            {activeSummary.choices.length > 0 ? (
+              <span
+                ref={summaryChoicesViewportRef}
+                className="ConsoleBarSummaryChoicesViewport"
+                aria-label="Console staged choices"
+              >
+                <span className="ConsoleBarSummaryChoices">
+                  <span className="ConsoleBarSummaryBracket">[</span>
+                  {activeSummary.choices.map((choice, index) => (
+                    <span
+                      key={`${choice.label}-${index}`}
+                      className={`ConsoleBarSummaryChoice ${
+                        index === activeSummary.activeChoiceIndex ? 'isActive' : ''
+                      }`}
+                    >
+                      {renderChoiceLabelWithAliasHint(choice)}
+                      {index < activeSummary.choices.length - 1 ? (
+                        <span className="ConsoleBarSummarySeparator">, </span>
+                      ) : null}
+                    </span>
+                  ))}
+                  <span className="ConsoleBarSummaryBracket">]</span>
                 </span>
-              ))}
-              <span className="ConsoleBarSummaryBracket">]</span>
-            </span>
+              </span>
+            ) : null}
           </span>
-        </span>
+        ) : null}
       </span>
     ) : (
       summaryText
@@ -404,12 +434,12 @@ export function ConsoleBar({
     }
     if (isGuidedInputActive && event.key === 'ArrowUp') {
       event.preventDefault()
-      ;(onCycleGuidedChoice ?? cycleStagedChoice)('previous')
+      ;(onCycleGuidedChoice ?? cycleStagedChoice)('next')
       return
     }
     if (isGuidedInputActive && event.key === 'ArrowDown') {
       event.preventDefault()
-      ;(onCycleGuidedChoice ?? cycleStagedChoice)('next')
+      ;(onCycleGuidedChoice ?? cycleStagedChoice)('previous')
       return
     }
     if (event.key === 'ArrowUp') {

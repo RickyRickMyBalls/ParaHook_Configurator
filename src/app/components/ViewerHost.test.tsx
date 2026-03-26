@@ -11,6 +11,7 @@ let viewerRemoveReference: ReturnType<typeof vi.fn>
 let viewerSetReferenceTransformSession: ReturnType<typeof vi.fn>
 let viewerSetReferenceTransformOverride: ReturnType<typeof vi.fn>
 let viewerSetOnReferenceTransformChange: ReturnType<typeof vi.fn>
+let viewerSetOnReferenceTransformCommit: ReturnType<typeof vi.fn>
 let viewerSetOnReferenceTransformExit: ReturnType<typeof vi.fn>
 let viewerSetOnReferenceTransformModeChange: ReturnType<typeof vi.fn>
 let viewerSetOnReferenceTransformSpaceChange: ReturnType<typeof vi.fn>
@@ -56,6 +57,8 @@ vi.mock('../../viewer/Viewer', () => ({
       viewerSetReferenceTransformOverride(...args)
     public setOnReferenceTransformChange = (...args: unknown[]) =>
       viewerSetOnReferenceTransformChange(...args)
+    public setOnReferenceTransformCommit = (...args: unknown[]) =>
+      viewerSetOnReferenceTransformCommit(...args)
     public setOnReferenceTransformExit = (...args: unknown[]) =>
       viewerSetOnReferenceTransformExit(...args)
     public setOnReferenceTransformModeChange = (...args: unknown[]) =>
@@ -308,6 +311,7 @@ describe('ViewerHost reference loading', () => {
     viewerSetReferenceTransformSession = vi.fn()
     viewerSetReferenceTransformOverride = vi.fn()
     viewerSetOnReferenceTransformChange = vi.fn()
+    viewerSetOnReferenceTransformCommit = vi.fn()
     viewerSetOnReferenceTransformExit = vi.fn()
     viewerSetOnReferenceTransformModeChange = vi.fn()
     viewerSetOnReferenceTransformSpaceChange = vi.fn()
@@ -628,6 +632,58 @@ describe('ViewerHost reference loading', () => {
 
     act(() => {
       useAppStore.getState().setReferenceItemVisibility('shoe:shoe-1', false)
+    })
+
+    expect(useAppStore.getState().referenceWorkspace.activeTransformReferenceId).toBeNull()
+  })
+
+  it('appends reference transform history when the viewer commit callback fires', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useAppStore } = await import('../store/useAppStore')
+
+    act(() => {
+      useAppStore.getState().beginReferenceTransform('shoe:shoe-1')
+      useAppStore.getState().setReferenceTransformOverride('shoe:shoe-1', {
+        position: { x: 5, y: -2, z: 9 },
+        rotationDeg: { x: 0, y: 0, z: 0 },
+        scale: { x: 1, y: 1, z: 1 },
+      })
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost />)
+    })
+
+    const commitHandler = viewerSetOnReferenceTransformCommit.mock.calls.at(-1)?.[0] as
+      | (() => void)
+      | undefined
+    const exitHandler = viewerSetOnReferenceTransformExit.mock.calls.at(-1)?.[0] as
+      | (() => void)
+      | undefined
+
+    expect(commitHandler).toBeTypeOf('function')
+    expect(exitHandler).toBeTypeOf('function')
+
+    act(() => {
+      commitHandler?.()
+    })
+
+    expect(
+      useAppStore.getState().referenceWorkspace.transformHistoryByReferenceId['shoe:shoe-1'],
+    ).toMatchObject([
+      {
+        kind: 'move',
+        value: { x: 5, y: -2, z: 9 },
+        locked: false,
+      },
+    ])
+
+    act(() => {
+      exitHandler?.()
     })
 
     expect(useAppStore.getState().referenceWorkspace.activeTransformReferenceId).toBeNull()
@@ -1068,7 +1124,7 @@ describe('ViewerHost reference loading', () => {
       workspaceSelectionPickHandler?.({
         pick: {
           kind: 'part',
-          partKey: 'graph-document-1:slot-baseplate',
+          partKey: 'slot-baseplate',
         },
         ctrlKey: false,
       })
@@ -1093,18 +1149,18 @@ describe('ViewerHost reference loading', () => {
       resolvedContentSelection: {
         rootRowId: 'project-object:project-file-1:graph-document-1:output-object-1',
         rootKind: 'object',
-        partKeys: ['graph-document-1:slot-baseplate'],
+        partKeys: expect.arrayContaining(['slot-baseplate', 'graph-document-1:slot-baseplate']),
         groupedRowIds: [],
       },
     })
-    expect(useAppStore.getState().selectedPartKey).toBe('graph-document-1:slot-baseplate')
+    expect(useAppStore.getState().selectedPartKey).toBe('slot-baseplate')
     expect(useAppStore.getState().consoleContextSyncRequest?.reason).toBe('target-selection')
 
     act(() => {
       workspaceSelectionPickHandler?.({
         pick: {
           kind: 'part',
-          partKey: 'graph-document-1:slot-cover',
+          partKey: 'slot-cover',
         },
         ctrlKey: true,
       })
@@ -1133,17 +1189,22 @@ describe('ViewerHost reference loading', () => {
       resolvedContentSelection: {
         rootRowId: 'object:project-object:project-file-1:graph-document-1:output-object-2',
         rootKind: 'multi-select',
-        partKeys: expect.arrayContaining(['graph-document-1:slot-baseplate', 'graph-document-1:slot-cover']),
+        partKeys: expect.arrayContaining([
+          'slot-baseplate',
+          'graph-document-1:slot-baseplate',
+          'slot-cover',
+          'graph-document-1:slot-cover',
+        ]),
         groupedRowIds: [],
       },
     })
-    expect(useAppStore.getState().selectedPartKey).toBe('graph-document-1:slot-cover')
+    expect(useAppStore.getState().selectedPartKey).toBe('slot-cover')
 
     act(() => {
       workspaceSelectionPickHandler?.({
         pick: {
           kind: 'part',
-          partKey: 'graph-document-1:slot-cover',
+          partKey: 'slot-cover',
         },
         ctrlKey: true,
       })
@@ -1168,17 +1229,17 @@ describe('ViewerHost reference loading', () => {
       resolvedContentSelection: {
         rootRowId: 'project-object:project-file-1:graph-document-1:output-object-1',
         rootKind: 'object',
-        partKeys: ['graph-document-1:slot-baseplate'],
+        partKeys: expect.arrayContaining(['slot-baseplate', 'graph-document-1:slot-baseplate']),
         groupedRowIds: [],
       },
     })
-    expect(useAppStore.getState().selectedPartKey).toBe('graph-document-1:slot-cover')
+    expect(useAppStore.getState().selectedPartKey).toBe('slot-cover')
 
     act(() => {
       workspaceSelectionPickHandler?.({
         pick: {
           kind: 'part',
-          partKey: 'graph-document-1:slot-baseplate',
+          partKey: 'slot-baseplate',
         },
         ctrlKey: true,
       })
@@ -1206,6 +1267,62 @@ describe('ViewerHost reference loading', () => {
     expect(useAppStore.getState().workspaceSelection.selectedTarget).toBeNull()
     expect(useAppStore.getState().selectedPartKey).toBeNull()
     expect(useAppStore.getState().consoleContextSyncRequest?.reason).toBe('surface-clear')
+  })
+
+  it('keeps viewport explicit multi-select highlighted across all picked objects', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    await seedViewportObjectSelectionGraph([
+      {
+        slotId: 'slot-baseplate',
+        sourceNodeId: 'node-baseplate-1',
+        sourcePartKey: 'baseplate',
+        objectId: 'project-object:project-file-1:graph-document-1:output-object-1',
+        label: 'Object 1',
+      },
+      {
+        slotId: 'slot-cover',
+        sourceNodeId: 'node-cover-1',
+        sourcePartKey: 'cover',
+        objectId: 'project-object:project-file-1:graph-document-1:output-object-2',
+        label: 'Object 2',
+      },
+    ])
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost />)
+    })
+
+    const workspaceSelectionPickHandler = viewerSetOnWorkspaceSelectionPick.mock.calls.at(-1)?.[0] as
+      | ((event: WorkspaceSelectionPickPayload) => void)
+      | null
+
+    act(() => {
+      workspaceSelectionPickHandler?.({
+        pick: {
+          kind: 'part',
+          partKey: 'slot-baseplate',
+        },
+        ctrlKey: false,
+      })
+    })
+
+    act(() => {
+      workspaceSelectionPickHandler?.({
+        pick: {
+          kind: 'part',
+          partKey: 'slot-cover',
+        },
+        ctrlKey: true,
+      })
+    })
+
+    expect(viewerSetHighlightedPartKeys).toHaveBeenLastCalledWith(
+      expect.arrayContaining(['slot-baseplate', 'slot-cover']),
+    )
   })
 
   it('routes viewport reference picks back into workspace selection', async () => {
@@ -1244,6 +1361,96 @@ describe('ViewerHost reference loading', () => {
     })
     expect(useAppStore.getState().selectedPartKey).toBeNull()
     expect(useAppStore.getState().consoleContextSyncRequest?.reason).toBe('target-selection')
+  })
+
+  it('ctrl-click toggles viewport-picked references through shared explicit selection', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useAppStore } = await import('../store/useAppStore')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost />)
+    })
+
+    const workspaceSelectionPickHandler = viewerSetOnWorkspaceSelectionPick.mock.calls.at(-1)?.[0] as
+      | ((event: WorkspaceSelectionPickPayload) => void)
+      | null
+
+    act(() => {
+      workspaceSelectionPickHandler?.({
+        pick: {
+          kind: 'reference-item',
+          referenceId: 'shoe:shoe-1',
+        },
+        ctrlKey: false,
+      })
+    })
+
+    act(() => {
+      workspaceSelectionPickHandler?.({
+        pick: {
+          kind: 'reference-item',
+          referenceId: 'shoe:shoe-2',
+        },
+        ctrlKey: true,
+      })
+    })
+
+    expect(useAppStore.getState().workspaceSelection).toMatchObject({
+      selectedTarget: {
+        kind: 'reference-item',
+        referenceId: 'shoe:shoe-2',
+      },
+      explicitSelectedTargets: [
+        {
+          kind: 'reference-item',
+          referenceId: 'shoe:shoe-1',
+        },
+        {
+          kind: 'reference-item',
+          referenceId: 'shoe:shoe-2',
+        },
+      ],
+      selectionAnchorTarget: {
+        kind: 'reference-item',
+        referenceId: 'shoe:shoe-2',
+      },
+      activeSurface: 'viewer',
+      resolvedContentSelection: null,
+    })
+    expect(useAppStore.getState().selectedPartKey).toBeNull()
+
+    act(() => {
+      workspaceSelectionPickHandler?.({
+        pick: {
+          kind: 'reference-item',
+          referenceId: 'shoe:shoe-2',
+        },
+        ctrlKey: true,
+      })
+    })
+
+    expect(useAppStore.getState().workspaceSelection).toMatchObject({
+      selectedTarget: {
+        kind: 'reference-item',
+        referenceId: 'shoe:shoe-1',
+      },
+      explicitSelectedTargets: [
+        {
+          kind: 'reference-item',
+          referenceId: 'shoe:shoe-1',
+        },
+      ],
+      selectionAnchorTarget: {
+        kind: 'reference-item',
+        referenceId: 'shoe:shoe-2',
+      },
+      activeSurface: 'viewer',
+      resolvedContentSelection: null,
+    })
   })
 
   it('keeps unmapped viewport part picks as single part selection', async () => {

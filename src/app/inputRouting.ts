@@ -88,7 +88,7 @@ export const routeKeyboardInput = ({
     if (geometrySketchMode === 'draw') {
       return { owner: 'sketch-draw', decision: 'handle' }
     }
-    if (referenceTransformHasPendingKeyboardTransform) {
+    if (referenceTransformActive || referenceTransformHasPendingKeyboardTransform) {
       return { owner: 'reference-transform', decision: 'handle' }
     }
     if (stagedConsoleActive) {

@@ -9,6 +9,10 @@ import {
 import { routeKeyboardInput } from '../inputRouting'
 import { ParaSlider } from './ParaSlider'
 import { ReferenceTimelineGraph } from './ReferenceTimelineGraph'
+import {
+  ViewportOverlayToolPanel,
+  type ViewportOverlayToolPanelResizeDirection,
+} from './ViewportOverlayToolPanel'
 import { selectReferenceWorkspaceItems, useAppStore } from '../store/useAppStore'
 import { getViewer } from '../viewerBridge'
 import { SpaghettiContextMenu } from '../spaghetti/ui/SpaghettiContextMenu'
@@ -73,18 +77,18 @@ type ToolbarSize = {
   height: number
 }
 
-type ResizeDirection = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw'
-
-type PendingKeyboardTransform = {
-  referenceId: string
-  baseline: ReturnType<typeof buildDefaultTransformOverride> | null
-  mode: TransformSectionKey
-}
+type ResizeDirection = ViewportOverlayToolPanelResizeDirection
 
 type ActiveKeyboardChannelSelection = {
   section: TransformSectionKey
   axis: Axis | 'all'
 } | null
+
+type ReferenceTransformHistoryEntries = NonNullable<
+  ReturnType<typeof useAppStore.getState>['referenceWorkspace']['transformHistoryByReferenceId'][string]
+>
+
+type ReferenceTransformHistoryEntry = ReferenceTransformHistoryEntries[number]
 
 const TRANSFORM_SECTIONS: TransformSectionMeta[] = [
   {
@@ -148,7 +152,8 @@ const formatSnapValue = (value: number): string => {
 }
 
 const formatSpeedValue = (value: number): string => `${value.toFixed(2)}x`
-const MIN_TOOLBAR_WIDTH = 380
+const DEFAULT_TOOLBAR_WIDTH = 300
+const MIN_TOOLBAR_WIDTH = 300
 const MIN_TOOLBAR_HEIGHT = 240
 const TOOLBAR_VIEWPORT_MARGIN = 12
 
@@ -157,17 +162,6 @@ const buildDefaultTransformOverride = () => ({
   rotationDeg: { x: 0, y: 0, z: 0 },
   scale: { x: 1, y: 1, z: 1 },
 })
-
-const cloneTransformOverride = (
-  transformOverride: ReturnType<typeof buildDefaultTransformOverride> | null,
-) =>
-  transformOverride === null
-    ? null
-    : {
-        position: { ...transformOverride.position },
-        rotationDeg: { ...transformOverride.rotationDeg },
-        scale: { ...transformOverride.scale },
-      }
 
 const normalizeRange = (range: ReferenceTimelineRange): ReferenceTimelineRange => ({
   min: Math.min(range.min, range.max),
@@ -185,13 +179,52 @@ const transformModeLabel = (mode: TransformSectionKey): string => {
   }
 }
 
+const transformModeConsoleToken = (mode: TransformSectionKey): 'M' | 'R' | 'S' => {
+  switch (mode) {
+    case 'translate':
+      return 'M'
+    case 'rotate':
+      return 'R'
+    case 'scale':
+      return 'S'
+  }
+}
+
+const formatVec3Status = (vector: { x: number; y: number; z: number }): string =>
+  `Vec3 [${formatTransformValue(vector.x)}, ${formatTransformValue(vector.y)}, ${formatTransformValue(vector.z)}]`
+
+const formatHistoryDeltaValue = (value: number): string => {
+  const rounded = Math.abs(value) < 0.0005 ? 0 : value
+  return `${rounded >= 0 ? '+' : ''}${formatTransformValue(rounded)}`
+}
+
+const formatHistoryEntryLabel = (
+  entries: ReadonlyArray<ReferenceTransformHistoryEntry>,
+  entry: ReferenceTransformHistoryEntry,
+): string => {
+  const previousSameKind = [...entries]
+    .slice(0, Math.max(entries.findIndex((candidate) => candidate.entryId === entry.entryId), 0))
+    .reverse()
+    .find((candidate) => candidate.kind === entry.kind) ?? null
+  const baseline =
+    previousSameKind?.value ??
+    (entry.kind === 'scale'
+      ? { x: 1, y: 1, z: 1 }
+      : { x: 0, y: 0, z: 0 })
+  return `${
+    entry.kind === 'move' ? 'Move' : entry.kind === 'rotate' ? 'Rotate' : 'Scale'
+  } Vec(${formatHistoryDeltaValue(entry.value.x - baseline.x)}, ${formatHistoryDeltaValue(
+    entry.value.y - baseline.y,
+  )}, ${formatHistoryDeltaValue(entry.value.z - baseline.z)})`
+}
+
 export function ReferenceTransformToolbar() {
   const referenceWorkspace = useAppStore((state) => state.referenceWorkspace)
   const setReferenceTransformMode = useAppStore((state) => state.setReferenceTransformMode)
   const setReferenceTransformSpace = useAppStore((state) => state.setReferenceTransformSpace)
   const setReferenceTransformOverride = useAppStore((state) => state.setReferenceTransformOverride)
   const resetReferenceTransform = useAppStore((state) => state.resetReferenceTransform)
-  const endReferenceTransform = useAppStore((state) => state.endReferenceTransform)
+  const cancelActiveReferenceTransform = useAppStore((state) => state.cancelActiveReferenceTransform)
   const setReferenceChannelClampRange = useAppStore((state) => state.setReferenceChannelClampRange)
   const setReferenceTimelineMode = useAppStore((state) => state.setReferenceTimelineMode)
   const setReferenceTimelineSpeed = useAppStore((state) => state.setReferenceTimelineSpeed)
@@ -199,6 +232,10 @@ export function ReferenceTransformToolbar() {
   const setReferenceTimelinePoints = useAppStore((state) => state.setReferenceTimelinePoints)
   const setReferenceRotateSnapEnabled = useAppStore((state) => state.setReferenceRotateSnapEnabled)
   const setReferenceRotateSnapValue = useAppStore((state) => state.setReferenceRotateSnapValue)
+  const toggleReferenceTransformHistoryLock = useAppStore(
+    (state) => state.toggleReferenceTransformHistoryLock,
+  )
+  const mergeReferenceTransformHistory = useAppStore((state) => state.mergeReferenceTransformHistory)
 
   const referenceItems = useMemo(
     () => selectReferenceWorkspaceItems({ referenceWorkspace }),
@@ -225,12 +262,12 @@ export function ReferenceTransformToolbar() {
   const [channelContextMenu, setChannelContextMenu] = useState<ChannelContextMenuState | null>(null)
   const [pendingShortcutActivation, setPendingShortcutActivation] =
     useState<PendingShortcutActivation | null>(null)
-  const pendingKeyboardTransformRef = useRef<PendingKeyboardTransform | null>(null)
   const [expandedSections, setExpandedSections] = useState<Record<TransformSectionKey, boolean>>({
     translate: true,
     rotate: true,
     scale: true,
   })
+  const [historyExpanded, setHistoryExpanded] = useState(true)
   const [selectedSection, setSelectedSection] = useState<TransformSectionKey | null>(
     referenceWorkspace.activeTransformMode,
   )
@@ -244,10 +281,12 @@ export function ReferenceTransformToolbar() {
     if (position !== null) {
       return
     }
-    const toolbarWidth = toolbarRef.current?.offsetWidth ?? 420
     const viewportWidth = typeof window === 'undefined' ? 1280 : window.innerWidth
     setPosition({
-      x: Math.max(16, Math.round((viewportWidth - toolbarWidth) / 2)),
+      x: Math.max(
+        TOOLBAR_VIEWPORT_MARGIN,
+        viewportWidth - DEFAULT_TOOLBAR_WIDTH - TOOLBAR_VIEWPORT_MARGIN,
+      ),
       y: 22,
     })
   }, [activeReference, position])
@@ -267,6 +306,10 @@ export function ReferenceTransformToolbar() {
 
   const activeReferenceId = activeReference?.referenceId ?? null
   const activeTransformOverride = activeReference?.transformOverride ?? buildDefaultTransformOverride()
+  const transformHistory =
+    activeReferenceId === null
+      ? []
+      : referenceWorkspace.transformHistoryByReferenceId[activeReferenceId] ?? []
   const channelClampRanges =
     activeReferenceId === null
       ? {}
@@ -340,10 +383,25 @@ export function ReferenceTransformToolbar() {
   const activeRotateStep =
     rotateSnapState.enabled ? Math.max(evaluatedRotateSnap.value, 0.0001) : 1
 
+  const activeSessionPath = useMemo(() => {
+    const currentVector =
+      activeMode === 'rotate'
+        ? evaluatedTransformOverride.rotationDeg
+        : activeMode === 'scale'
+          ? evaluatedTransformOverride.scale
+          : evaluatedTransformOverride.position
+    return `${activeReference?.label ?? 'Reference'} > ${transformModeConsoleToken(activeMode)} > ${formatVec3Status(currentVector)}`
+  }, [
+    activeMode,
+    activeReference?.label,
+    evaluatedTransformOverride.position,
+    evaluatedTransformOverride.rotationDeg,
+    evaluatedTransformOverride.scale,
+  ])
+
   useEffect(() => {
     if (activeReferenceId === null) {
       setPendingShortcutActivation(null)
-      pendingKeyboardTransformRef.current = null
       setActiveKeyboardChannelSelection(null)
     }
   }, [activeReferenceId])
@@ -356,85 +414,6 @@ export function ReferenceTransformToolbar() {
     }
     setSelectedSection(referenceWorkspace.activeTransformMode)
   }, [activeReferenceId, referenceWorkspace.activeTransformMode])
-
-  const commitPendingKeyboardTransform = () => {
-    const pending = pendingKeyboardTransformRef.current
-    getViewer()?.completeReferenceTransformDrag()
-    pendingKeyboardTransformRef.current = null
-    if (pending !== null) {
-      appendConsoleEntry({
-        layer: 'Transforms',
-        text: `${transformModeLabel(pending.mode)} committed`,
-        source: 'reference-transform',
-        severity: 'info',
-      })
-    }
-  }
-
-  const cancelPendingKeyboardTransform = (mode: TransformSectionKey): boolean => {
-    if (activeReferenceId === null) {
-      pendingKeyboardTransformRef.current = null
-      return false
-    }
-    const pending = pendingKeyboardTransformRef.current
-    if (
-      pending === null ||
-      pending.referenceId !== activeReferenceId ||
-      pending.mode !== mode
-    ) {
-      return false
-    }
-    setPendingShortcutActivation(null)
-    getViewer()?.cancelReferenceTransformDrag()
-    getViewer()?.clearReferenceTransformHandle()
-    const baseline = cloneTransformOverride(pending.baseline)
-    setReferenceTransformOverride(activeReferenceId, baseline)
-    getViewer()?.setReferenceTransformOverride(activeReferenceId, baseline)
-    pendingKeyboardTransformRef.current = null
-    setSelectedSection(null)
-    setActiveKeyboardChannelSelection(null)
-    appendConsoleEntry({
-      layer: 'Transforms',
-      text: `${transformModeLabel(mode)} canceled`,
-      source: 'reference-transform',
-      severity: 'info',
-    })
-    return true
-  }
-
-  const revertPendingKeyboardTransformIfModeChanges = (nextMode: TransformSectionKey) => {
-    if (activeReferenceId === null) {
-      pendingKeyboardTransformRef.current = null
-      return
-    }
-    const pending = pendingKeyboardTransformRef.current
-    if (pending === null || pending.referenceId !== activeReferenceId) {
-      pendingKeyboardTransformRef.current = {
-        referenceId: activeReferenceId,
-        baseline: cloneTransformOverride(activeTransformOverride),
-        mode: nextMode,
-      }
-      return
-    }
-    if (pending.mode === nextMode) {
-      return
-    }
-    getViewer()?.cancelReferenceTransformDrag()
-    const baseline = cloneTransformOverride(pending.baseline)
-    setReferenceTransformOverride(activeReferenceId, baseline)
-    getViewer()?.setReferenceTransformOverride(activeReferenceId, baseline)
-    appendConsoleEntry({
-      layer: 'Transforms',
-      text: `${transformModeLabel(pending.mode)} reverted before ${transformModeLabel(nextMode)}`,
-      source: 'reference-transform',
-      severity: 'info',
-    })
-    pendingKeyboardTransformRef.current = {
-      referenceId: activeReferenceId,
-      baseline,
-      mode: nextMode,
-    }
-  }
 
   useEffect(() => {
     if (pendingShortcutActivation === null) {
@@ -460,25 +439,46 @@ export function ReferenceTransformToolbar() {
     }
   }, [activeMode, pendingShortcutActivation])
 
-  useEffect(() => {
-    const handleWindowPointerDown = (event: PointerEvent) => {
-      if (pendingKeyboardTransformRef.current === null) {
-        return
-      }
-      const target = event.target
-      if (!(target instanceof Element)) {
-        return
-      }
-      if (target.closest('.ViewportCanvasLayer') !== null || target.closest('.ViewportRoot') !== null) {
-        commitPendingKeyboardTransform()
-      }
+  const activateModeShortcut = (mode: TransformSectionKey) => {
+    appendConsoleEntry({
+      layer: 'Shortcuts',
+      text: transformModeLabel(mode),
+      source: 'reference-transform',
+      severity: 'info',
+    })
+    setSelectedSection(mode)
+    setActiveKeyboardChannelSelection({ section: mode, axis: 'all' })
+    setPendingShortcutActivation(
+      mode === 'translate'
+        ? 'translate-center'
+        : mode === 'rotate'
+          ? 'rotate-center'
+          : 'scale-center',
+    )
+    if (activeMode !== mode) {
+      setReferenceTransformMode(mode)
     }
+  }
 
-    window.addEventListener('pointerdown', handleWindowPointerDown, true)
-    return () => {
-      window.removeEventListener('pointerdown', handleWindowPointerDown, true)
+  const activateAxisShortcut = (section: TransformSectionKey, axis: Axis) => {
+    setSelectedSection(section)
+    setActiveKeyboardChannelSelection({ section, axis })
+    appendConsoleEntry({
+      layer: 'Shortcuts',
+      text: `${transformModeLabel(section)}: ${axis.toUpperCase()} axis`,
+      source: 'reference-transform',
+      severity: 'info',
+    })
+    if (section === 'translate') {
+      getViewer()?.activateTranslateHandle(axis.toUpperCase() as 'X' | 'Y' | 'Z')
+      return
     }
-  }, [])
+    if (section === 'rotate') {
+      getViewer()?.activateRotateHandle(axis.toUpperCase() as 'X' | 'Y' | 'Z')
+      return
+    }
+    getViewer()?.activateScaleHandle(axis.toUpperCase() as 'X' | 'Y' | 'Z')
+  }
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -486,210 +486,55 @@ export function ReferenceTransformToolbar() {
         return
       }
       const key = event.key.toLowerCase()
-      const pendingKeyboardMode =
-        pendingKeyboardTransformRef.current?.referenceId === activeReferenceId
-          ? pendingKeyboardTransformRef.current.mode
-          : null
       const routing = routeKeyboardInput({
         event,
         referenceTransformActive: activeReferenceId !== null,
-        referenceTransformHasPendingKeyboardTransform: pendingKeyboardMode !== null,
       })
       if (routing.owner !== 'reference-transform' || routing.decision !== 'handle') {
         return
       }
       if (event.key === 'Enter') {
-        if (pendingKeyboardTransformRef.current !== null) {
-          event.preventDefault()
-          commitPendingKeyboardTransform()
-        }
+        event.preventDefault()
+        getViewer()?.commitReferenceTransformSession()
         return
       }
       if (event.key === 'Escape') {
         event.preventDefault()
-        if (pendingKeyboardMode !== null) {
-          if (cancelPendingKeyboardTransform(pendingKeyboardMode)) {
-            appendConsoleEntry({
-              layer: 'Shortcuts',
-              text: `${pendingKeyboardMode[0].toUpperCase()}${pendingKeyboardMode.slice(1)} canceled`,
-              source: 'reference-transform',
-              severity: 'info',
-            })
-          }
-          return
-        }
         if (activeReferenceId !== null) {
-          endReferenceTransform()
+          getViewer()?.cancelReferenceTransformDrag()
+          getViewer()?.clearReferenceTransformHandle()
+          cancelActiveReferenceTransform()
         }
         return
       }
       if (key === 'm') {
         event.preventDefault()
-        if (cancelPendingKeyboardTransform('translate')) {
-          appendConsoleEntry({
-            layer: 'Shortcuts',
-            text: 'Move canceled',
-            source: 'reference-transform',
-            severity: 'info',
-          })
-          return
-        }
-        revertPendingKeyboardTransformIfModeChanges('translate')
-        appendConsoleEntry({
-          layer: 'Transforms',
-          text: 'Move started',
-          source: 'reference-transform',
-          severity: 'info',
-        })
-        appendConsoleEntry({
-          layer: 'Shortcuts',
-          text: 'Move',
-          source: 'reference-transform',
-          severity: 'info',
-        })
-        setSelectedSection('translate')
-        setActiveKeyboardChannelSelection({ section: 'translate', axis: 'all' })
-        setPendingShortcutActivation('translate-center')
-        if (activeMode !== 'translate') {
-          setReferenceTransformMode('translate')
-        }
+        activateModeShortcut('translate')
         return
       }
-      if (pendingKeyboardMode === 'translate' && (key === 'x' || key === 'y' || key === 'z')) {
+      if (activeMode === 'translate' && (key === 'x' || key === 'y' || key === 'z')) {
         event.preventDefault()
-        revertPendingKeyboardTransformIfModeChanges('translate')
-        appendConsoleEntry({
-          layer: 'Transforms',
-          text: `Move axis: ${key.toUpperCase()}`,
-          source: 'reference-transform',
-          severity: 'info',
-        })
-        appendConsoleEntry({
-          layer: 'Shortcuts',
-          text: `Move: ${key.toUpperCase()} axis`,
-          source: 'reference-transform',
-          severity: 'info',
-        })
-        setSelectedSection('translate')
-        setActiveKeyboardChannelSelection({
-          section: 'translate',
-          axis: key,
-        })
-        getViewer()?.activateTranslateHandle(key.toUpperCase() as 'X' | 'Y' | 'Z')
+        activateAxisShortcut('translate', key as Axis)
         return
       }
       if (key === 'r') {
         event.preventDefault()
-        if (cancelPendingKeyboardTransform('rotate')) {
-          appendConsoleEntry({
-            layer: 'Shortcuts',
-            text: 'Rotate canceled',
-            source: 'reference-transform',
-            severity: 'info',
-          })
-          return
-        }
-        revertPendingKeyboardTransformIfModeChanges('rotate')
-        appendConsoleEntry({
-          layer: 'Transforms',
-          text: 'Rotate started',
-          source: 'reference-transform',
-          severity: 'info',
-        })
-        appendConsoleEntry({
-          layer: 'Shortcuts',
-          text: 'Rotate',
-          source: 'reference-transform',
-          severity: 'info',
-        })
-        setSelectedSection('rotate')
-        setActiveKeyboardChannelSelection({ section: 'rotate', axis: 'all' })
-        if (activeMode === 'rotate') {
-          getViewer()?.activateRotateCenterHandle()
-        } else {
-          setPendingShortcutActivation('rotate-center')
-          setReferenceTransformMode('rotate')
-        }
+        activateModeShortcut('rotate')
         return
       }
-      if (pendingKeyboardMode === 'rotate' && (key === 'x' || key === 'y' || key === 'z')) {
+      if (activeMode === 'rotate' && (key === 'x' || key === 'y' || key === 'z')) {
         event.preventDefault()
-        revertPendingKeyboardTransformIfModeChanges('rotate')
-        appendConsoleEntry({
-          layer: 'Transforms',
-          text: `Rotate axis: ${key.toUpperCase()}`,
-          source: 'reference-transform',
-          severity: 'info',
-        })
-        appendConsoleEntry({
-          layer: 'Shortcuts',
-          text: `Rotate: ${key.toUpperCase()} axis`,
-          source: 'reference-transform',
-          severity: 'info',
-        })
-        setSelectedSection('rotate')
-        setActiveKeyboardChannelSelection({
-          section: 'rotate',
-          axis: key,
-        })
-        getViewer()?.activateRotateHandle(key.toUpperCase() as 'X' | 'Y' | 'Z')
+        activateAxisShortcut('rotate', key as Axis)
         return
       }
       if (key === 's') {
         event.preventDefault()
-        if (cancelPendingKeyboardTransform('scale')) {
-          appendConsoleEntry({
-            layer: 'Shortcuts',
-            text: 'Scale canceled',
-            source: 'reference-transform',
-            severity: 'info',
-          })
-          return
-        }
-        revertPendingKeyboardTransformIfModeChanges('scale')
-        appendConsoleEntry({
-          layer: 'Transforms',
-          text: 'Scale started',
-          source: 'reference-transform',
-          severity: 'info',
-        })
-        appendConsoleEntry({
-          layer: 'Shortcuts',
-          text: 'Scale',
-          source: 'reference-transform',
-          severity: 'info',
-        })
-        setSelectedSection('scale')
-        setActiveKeyboardChannelSelection({ section: 'scale', axis: 'all' })
-        if (activeMode === 'scale') {
-          getViewer()?.activateScaleCenterHandle()
-        } else {
-          setPendingShortcutActivation('scale-center')
-          setReferenceTransformMode('scale')
-        }
+        activateModeShortcut('scale')
         return
       }
-      if (pendingKeyboardMode === 'scale' && (key === 'x' || key === 'y' || key === 'z')) {
+      if (activeMode === 'scale' && (key === 'x' || key === 'y' || key === 'z')) {
         event.preventDefault()
-        revertPendingKeyboardTransformIfModeChanges('scale')
-        appendConsoleEntry({
-          layer: 'Transforms',
-          text: `Scale axis: ${key.toUpperCase()}`,
-          source: 'reference-transform',
-          severity: 'info',
-        })
-        appendConsoleEntry({
-          layer: 'Shortcuts',
-          text: `Scale: ${key.toUpperCase()} axis`,
-          source: 'reference-transform',
-          severity: 'info',
-        })
-        setSelectedSection('scale')
-        setActiveKeyboardChannelSelection({
-          section: 'scale',
-          axis: key,
-        })
-        getViewer()?.activateScaleHandle(key.toUpperCase() as 'X' | 'Y' | 'Z')
+        activateAxisShortcut('scale', key as Axis)
       }
     }
 
@@ -697,7 +542,7 @@ export function ReferenceTransformToolbar() {
     return () => {
       window.removeEventListener('keydown', handleKeyDown)
     }
-  }, [activeMode, endReferenceTransform, setReferenceTransformMode])
+  }, [activeMode, activeReferenceId, cancelActiveReferenceTransform, setReferenceTransformMode])
 
   const updateTransformAxis = (
     group: TransformChannelGroup,
@@ -727,22 +572,20 @@ export function ReferenceTransformToolbar() {
     setReferenceTransformOverride(activeReferenceId, nextOverride)
   }
 
-  const handleHeaderPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+  const beginToolbarDrag = (pointerId: number | null, startX: number, startY: number) => {
     const host = toolbarRef.current
     if (host === null) {
       return
     }
-    event.preventDefault()
-    event.stopPropagation()
-
-    const startX = event.clientX
-    const startY = event.clientY
     const startPosition = position ?? {
       x: host.offsetLeft,
       y: host.offsetTop,
     }
 
-    const move = (moveEvent: PointerEvent) => {
+    const move = (moveEvent: PointerEvent | MouseEvent) => {
+      if ('pointerId' in moveEvent && pointerId !== null && moveEvent.pointerId !== pointerId) {
+        return
+      }
       const nextX = startPosition.x + (moveEvent.clientX - startX)
       const nextY = startPosition.y + (moveEvent.clientY - startY)
       const viewportWidth = typeof window === 'undefined' ? nextX + host.offsetWidth : window.innerWidth
@@ -754,15 +597,42 @@ export function ReferenceTransformToolbar() {
       })
     }
 
-    const stop = () => {
+    const stop = (stopEvent?: PointerEvent | MouseEvent) => {
+      if (
+        stopEvent !== undefined &&
+        'pointerId' in stopEvent &&
+        pointerId !== null &&
+        stopEvent.pointerId !== pointerId
+      ) {
+        return
+      }
       window.removeEventListener('pointermove', move)
       window.removeEventListener('pointerup', stop)
       window.removeEventListener('pointercancel', stop)
+      window.removeEventListener('mousemove', move)
+      window.removeEventListener('mouseup', stop)
     }
 
     window.addEventListener('pointermove', move)
     window.addEventListener('pointerup', stop)
     window.addEventListener('pointercancel', stop)
+    window.addEventListener('mousemove', move)
+    window.addEventListener('mouseup', stop)
+  }
+
+  const handleHeaderPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    event.preventDefault()
+    event.stopPropagation()
+    beginToolbarDrag(event.pointerId, event.clientX, event.clientY)
+  }
+
+  const handleHeaderMouseDown = (event: ReactMouseEvent<HTMLDivElement>) => {
+    if (event.button !== 0) {
+      return
+    }
+    event.preventDefault()
+    event.stopPropagation()
+    beginToolbarDrag(null, event.clientX, event.clientY)
   }
 
   const handleResizePointerDown = (
@@ -1045,93 +915,93 @@ export function ReferenceTransformToolbar() {
     (activeKeyboardChannelSelection.axis === 'all' ||
       activeKeyboardChannelSelection.axis === axis)
 
+  const stopTitleActionPointerDown = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    event.preventDefault()
+    event.stopPropagation()
+  }
+
+  const stopTitleActionMouseDown = (event: ReactMouseEvent<HTMLButtonElement>) => {
+    event.preventDefault()
+    event.stopPropagation()
+  }
+
   return (
-    <div
+    <ViewportOverlayToolPanel
       ref={toolbarRef}
-      className="ViewportOverlayWidget ReferenceTransformToolbar"
-      role="toolbar"
-      aria-label="Reference transform controls"
+      className="ReferenceTransformToolbar"
+      title="Transform Reference"
+      titleMeta={activeReference.label}
+      titleActions={
+        <>
+          <button
+            type="button"
+            className={`ReferenceTransformToolbarHeaderAction ${showShortcutHelp ? 'isActive' : ''}`}
+            onPointerDown={stopTitleActionPointerDown}
+            onMouseDown={stopTitleActionMouseDown}
+            onClick={() => setShowShortcutHelp((current) => !current)}
+            aria-label="Toggle keyboard shortcuts help"
+            aria-pressed={showShortcutHelp}
+            title="Keyboard shortcuts"
+          >
+            <span className="ReferenceTransformToolbarInfoGlyph" aria-hidden="true">
+              i
+            </span>
+          </button>
+          <button
+            type="button"
+            className="ReferenceTransformToolbarHeaderAction"
+            onPointerDown={stopTitleActionPointerDown}
+            onMouseDown={stopTitleActionMouseDown}
+            onClick={handleFrameReference}
+            aria-label="Zoom to reference object"
+            title="Zoom to object"
+          >
+            <span className="ReferenceTransformToolbarZoomGlyph" aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            className={`ReferenceTransformToolbarHeaderAction ${isCameraLocked ? 'isActive' : ''}`}
+            onPointerDown={stopTitleActionPointerDown}
+            onMouseDown={stopTitleActionMouseDown}
+            onClick={handleToggleCameraLock}
+            aria-label="Lock camera to reference object"
+            aria-pressed={isCameraLocked}
+            title="Lock camera to object"
+          >
+            <span className="ReferenceTransformToolbarLockGlyph" aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            className="ReferenceTransformToolbarClose"
+            onPointerDown={stopTitleActionPointerDown}
+            onMouseDown={stopTitleActionMouseDown}
+            onClick={() => {
+              getViewer()?.cancelReferenceTransformDrag()
+              getViewer()?.clearReferenceTransformHandle()
+              cancelActiveReferenceTransform()
+            }}
+            aria-label="Close reference transform toolbar"
+            title="Close"
+          >
+            x
+          </button>
+        </>
+      }
+      onTitleBarPointerDown={handleHeaderPointerDown}
+      onTitleBarMouseDown={handleHeaderMouseDown}
+      onResizeHandlePointerDown={(direction, event) => handleResizePointerDown(event, direction)}
       style={
         position === null
           ? undefined
           : {
               left: `${position.x}px`,
               top: `${position.y}px`,
-              width: size === null ? undefined : `${size.width}px`,
+              right: 'auto',
+              width: `${size?.width ?? DEFAULT_TOOLBAR_WIDTH}px`,
               height: size === null ? undefined : `${size.height}px`,
             }
       }
     >
-      {(['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'] as const).map((direction) => (
-        <div
-          key={direction}
-          className={`ReferenceTransformToolbarResizeHandle ReferenceTransformToolbarResizeHandle--${direction}`}
-          onPointerDown={(event) => handleResizePointerDown(event, direction)}
-        />
-      ))}
-      <div
-        className="ReferenceTransformToolbarHeader"
-        onPointerDown={handleHeaderPointerDown}
-      >
-        <span className="ReferenceTransformToolbarTitle">Transform Reference</span>
-        <span className="ReferenceTransformToolbarTarget">{activeReference.label}</span>
-        <button
-          type="button"
-          className={`ReferenceTransformToolbarHeaderAction ${showShortcutHelp ? 'isActive' : ''}`}
-          onPointerDown={(event) => {
-            event.preventDefault()
-            event.stopPropagation()
-          }}
-          onClick={() => setShowShortcutHelp((current) => !current)}
-          aria-label="Toggle keyboard shortcuts help"
-          aria-pressed={showShortcutHelp}
-          title="Keyboard shortcuts"
-        >
-          <span className="ReferenceTransformToolbarInfoGlyph" aria-hidden="true">
-            i
-          </span>
-        </button>
-        <button
-          type="button"
-          className="ReferenceTransformToolbarHeaderAction"
-          onPointerDown={(event) => {
-            event.preventDefault()
-            event.stopPropagation()
-          }}
-          onClick={handleFrameReference}
-          aria-label="Zoom to reference object"
-          title="Zoom to object"
-        >
-          <span className="ReferenceTransformToolbarZoomGlyph" aria-hidden="true" />
-        </button>
-        <button
-          type="button"
-          className={`ReferenceTransformToolbarHeaderAction ${isCameraLocked ? 'isActive' : ''}`}
-          onPointerDown={(event) => {
-            event.preventDefault()
-            event.stopPropagation()
-          }}
-          onClick={handleToggleCameraLock}
-          aria-label="Lock camera to reference object"
-          aria-pressed={isCameraLocked}
-          title="Lock camera to object"
-        >
-          <span className="ReferenceTransformToolbarLockGlyph" aria-hidden="true" />
-        </button>
-        <button
-          type="button"
-          className="ReferenceTransformToolbarClose"
-          onPointerDown={(event) => {
-            event.preventDefault()
-            event.stopPropagation()
-          }}
-          onClick={endReferenceTransform}
-          aria-label="Close reference transform toolbar"
-          title="Close"
-        >
-          x
-        </button>
-      </div>
       <div className="ReferenceTransformToolbarBody">
         {showShortcutHelp ? (
           <div className="ReferenceTransformToolbarShortcuts" aria-label="Reference transform keyboard shortcuts">
@@ -1162,10 +1032,13 @@ export function ReferenceTransformToolbar() {
             </div>
             <div className="ReferenceTransformToolbarShortcutRow">
               <span className="ReferenceTransformToolbarShortcutKeys">Esc</span>
-              <span className="ReferenceTransformToolbarShortcutText">Cancel current keyboard transform</span>
+              <span className="ReferenceTransformToolbarShortcutText">Cancel active transform session</span>
             </div>
           </div>
         ) : null}
+        <div className="ReferenceTransformToolbarStatus" aria-label="Reference transform status">
+          <span className="ReferenceTransformToolbarStatusPath">{activeSessionPath}</span>
+        </div>
         <div className="ReferenceTransformToolbarSection ReferenceTransformToolbarSection--controls">
           <div className="ReferenceTransformToolbarActions">
             <span className="ReferenceTransformToolbarInlineLabel">Space</span>
@@ -1205,20 +1078,7 @@ export function ReferenceTransformToolbar() {
             >
               <div
                 className="ReferenceTransformToolbarTransformSectionHeader"
-                onClick={() => {
-                  appendConsoleEntry({
-                    layer: 'Transforms',
-                    text: `Mode: ${section.label}`,
-                    source: 'reference-transform',
-                    severity: 'info',
-                  })
-                  setSelectedSection(section.key)
-                  setActiveKeyboardChannelSelection({
-                    section: section.key,
-                    axis: 'all',
-                  })
-                  setReferenceTransformMode(section.key)
-                }}
+                onClick={() => activateModeShortcut(section.key)}
                 role="button"
                 tabIndex={0}
                 aria-pressed={selectedSection === section.key}
@@ -1348,6 +1208,64 @@ export function ReferenceTransformToolbar() {
             </div>
           ))}
         </div>
+        <div className="ReferenceTransformToolbarSection" aria-label="Reference transform history">
+          <div className="ReferenceTransformToolbarTransformSection isActive">
+            <div className="ReferenceTransformToolbarTransformSectionHeader">
+              <button
+                type="button"
+                className="ReferenceTransformToolbarSectionToggle"
+                aria-label={`${historyExpanded ? 'Collapse' : 'Expand'} Transform History section`}
+                aria-expanded={historyExpanded}
+                onClick={(event) => {
+                  event.preventDefault()
+                  event.stopPropagation()
+                  setHistoryExpanded((current) => !current)
+                }}
+              >
+                {historyExpanded ? 'v' : '>'}
+              </button>
+              <span className="ReferenceTransformToolbarTransformSectionLabel">Transform History</span>
+              <div className="ReferenceTransformToolbarTransformSectionActions">
+                <button
+                  type="button"
+                  className="ReferenceTransformToolbarButton ReferenceTransformToolbarButton--compact"
+                  onClick={(event) => {
+                    event.preventDefault()
+                    event.stopPropagation()
+                    if (activeReferenceId !== null) {
+                      mergeReferenceTransformHistory(activeReferenceId)
+                    }
+                  }}
+                >
+                  Merge History
+                </button>
+              </div>
+            </div>
+            {historyExpanded ? (
+              <div className="ReferenceTransformToolbarTransformSectionBody">
+                <div className="ReferenceTransformToolbarHistoryRow">
+                  <span className="ReferenceTransformToolbarHistoryLabel">Origin</span>
+                </div>
+                {transformHistory.map((entry) => (
+                  <div key={entry.entryId} className="ReferenceTransformToolbarHistoryRow">
+                    <span className="ReferenceTransformToolbarHistoryLabel">
+                      {formatHistoryEntryLabel(transformHistory, entry)}
+                    </span>
+                    <button
+                      type="button"
+                      className={`ReferenceTransformToolbarButton ReferenceTransformToolbarButton--compact ${
+                        entry.locked ? 'isActive' : ''
+                      }`}
+                      onClick={() => toggleReferenceTransformHistoryLock(activeReferenceId, entry.entryId)}
+                    >
+                      {entry.locked ? 'Unlock' : 'Lock'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        </div>
       </div>
       <SpaghettiContextMenu
         open={channelContextMenu !== null}
@@ -1357,6 +1275,6 @@ export function ReferenceTransformToolbar() {
         onClose={() => setChannelContextMenu(null)}
         containerClassName="ReferenceTransformToolbarContextMenu"
       />
-    </div>
+    </ViewportOverlayToolPanel>
   )
 }

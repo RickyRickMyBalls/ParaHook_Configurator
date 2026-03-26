@@ -21,15 +21,38 @@ import type {
   ConsoleStagedNavigationSession,
 } from './stagedNavigation'
 
-export type ConsolePromptSessionKind = 'radio.url' | 'radio.sampleBurstTime'
+export type ConsolePromptSessionKind =
+  | 'radio.url'
+  | 'radio.sampleBurstTime'
+  | 'reference-transform.axis'
+  | 'reference-transform.plane'
 
-export type ConsolePromptSession = {
-  kind: ConsolePromptSessionKind
-  breadcrumb: string[]
-  label: string
-  prefill: string
-  returnSession: ConsoleStagedNavigationSession
-}
+export type ConsolePromptSession =
+  | {
+      kind: 'radio.url' | 'radio.sampleBurstTime'
+      breadcrumb: string[]
+      label: string
+      prefill: string
+      returnSession: ConsoleStagedNavigationSession
+    }
+  | {
+      kind: 'reference-transform.axis'
+      breadcrumb: string[]
+      label: string
+      prefill: string
+      returnSession: ConsoleStagedNavigationSession
+      mode: 'translate' | 'rotate' | 'scale'
+      axis: 'x' | 'y' | 'z'
+    }
+  | {
+      kind: 'reference-transform.plane'
+      breadcrumb: string[]
+      label: string
+      prefill: string
+      returnSession: ConsoleStagedNavigationSession
+      mode: 'translate' | 'rotate' | 'scale'
+      plane: 'xy' | 'xz' | 'yz'
+    }
 
 const CONSOLE_LAYERS: ConsoleLayer[] = [
   'Commands',
@@ -269,7 +292,12 @@ const areAssistDescriptorsEqual = (
   if (left === null || right === null) {
     return false
   }
-  if (left.label !== right.label || left.prefill !== right.prefill) {
+  if (
+    left.label !== right.label ||
+    left.prefill !== right.prefill ||
+    left.summaryLeadText !== right.summaryLeadText ||
+    (left.summaryMode ?? 'default') !== (right.summaryMode ?? 'default')
+  ) {
     return false
   }
   if ((left.breadcrumb?.length ?? 0) !== (right.breadcrumb?.length ?? 0)) {
@@ -298,18 +326,6 @@ const areAssistDescriptorsEqual = (
 const getActiveAssistDescriptor = (
   state: Pick<ConsoleState, 'stagedNavigationSession' | 'consolePromptSession' | 'featureAssistDescriptor'>,
 ): ConsoleAssistDescriptor | null => {
-  if (state.stagedNavigationSession !== null && state.stagedNavigationSession.validChoices.length > 0) {
-    return {
-      label:
-        state.stagedNavigationSession.breadcrumb.at(-1) ??
-        state.stagedNavigationSession.scopeId,
-      choices: descriptorChoicesFromStagedChoices(state.stagedNavigationSession.validChoices),
-      prefill:
-        state.stagedNavigationSession.validChoices[0] === undefined
-          ? null
-          : getStagedChoiceInputText(state.stagedNavigationSession.validChoices[0]),
-    }
-  }
   if (state.consolePromptSession !== null) {
     return {
       label: state.consolePromptSession.label,
@@ -324,7 +340,22 @@ const getActiveAssistDescriptor = (
       prefill: state.consolePromptSession.prefill,
     }
   }
-  return state.featureAssistDescriptor
+  if (state.featureAssistDescriptor !== null) {
+    return state.featureAssistDescriptor
+  }
+  if (state.stagedNavigationSession !== null && state.stagedNavigationSession.validChoices.length > 0) {
+    return {
+      label:
+        state.stagedNavigationSession.breadcrumb.at(-1) ??
+        state.stagedNavigationSession.scopeId,
+      choices: descriptorChoicesFromStagedChoices(state.stagedNavigationSession.validChoices),
+      prefill:
+        state.stagedNavigationSession.validChoices[0] === undefined
+          ? null
+          : getStagedChoiceInputText(state.stagedNavigationSession.validChoices[0]),
+    }
+  }
+  return null
 }
 
 const getDescriptorDrivenInputText = (
@@ -333,11 +364,6 @@ const getDescriptorDrivenInputText = (
     'stagedNavigationSession' | 'consolePromptSession' | 'featureAssistDescriptor' | 'stagedChoiceIndex'
   >,
 ): string | null => {
-  if (state.stagedNavigationSession !== null && state.stagedNavigationSession.validChoices.length > 0) {
-    const choiceIndex = state.stagedChoiceIndex ?? 0
-    const choice = state.stagedNavigationSession.validChoices[choiceIndex] ?? state.stagedNavigationSession.validChoices[0]
-    return choice === undefined ? null : getStagedChoiceInputText(choice)
-  }
   if (state.consolePromptSession !== null) {
     return state.consolePromptSession.prefill
   }
@@ -348,6 +374,12 @@ const getDescriptorDrivenInputText = (
     return choice === undefined
       ? state.featureAssistDescriptor.prefill
       : getAssistChoiceInputText(choice)
+  }
+  if (state.stagedNavigationSession !== null && state.stagedNavigationSession.validChoices.length > 0) {
+    const choiceIndex = state.stagedChoiceIndex ?? 0
+    const choice =
+      state.stagedNavigationSession.validChoices[choiceIndex] ?? state.stagedNavigationSession.validChoices[0]
+    return choice === undefined ? null : getStagedChoiceInputText(choice)
   }
   return state.featureAssistDescriptor?.prefill ?? null
 }
@@ -810,7 +842,9 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
     set((state) => {
       if (consolePromptSession === null) {
         const fallbackDescriptor =
-          state.stagedNavigationSession !== null && state.stagedNavigationSession.validChoices.length > 0
+          state.featureAssistDescriptor !== null
+            ? state.featureAssistDescriptor
+            : state.stagedNavigationSession !== null && state.stagedNavigationSession.validChoices.length > 0
             ? {
                 label:
                   state.stagedNavigationSession.breadcrumb.at(-1) ??
@@ -821,7 +855,7 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
                     ? null
                     : getStagedChoiceInputText(state.stagedNavigationSession.validChoices[0]),
               }
-            : state.featureAssistDescriptor
+            : null
         if (fallbackDescriptor !== null && fallbackDescriptor.choices.length > 0) {
           const stagedChoiceIndex = 0
           const inputText =
@@ -845,7 +879,10 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
 
       return {
         consolePromptSession,
-        stagedNavigationSession: null,
+        ...(consolePromptSession.kind === 'reference-transform.axis' ||
+        consolePromptSession.kind === 'reference-transform.plane'
+          ? {}
+          : { stagedNavigationSession: null }),
         stagedChoiceIndex: 0,
         isStagedChoiceManualOverride: false,
         inputText: consolePromptSession.prefill,
@@ -880,17 +917,6 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
   },
   clearConsolePromptSession: () => {
     set((state) => {
-      if (state.stagedNavigationSession !== null && state.stagedNavigationSession.validChoices.length > 0) {
-        const stagedChoiceIndex = 0
-        return {
-          consolePromptSession: null,
-          stagedChoiceIndex,
-          isStagedChoiceManualOverride: false,
-          inputText: getStagedChoiceInputText(state.stagedNavigationSession.validChoices[stagedChoiceIndex]!),
-          historyIndex: null,
-          historyDraft: '',
-        }
-      }
       if (state.featureAssistDescriptor !== null && state.featureAssistDescriptor.choices.length > 0) {
         const stagedChoiceIndex = 0
         return {
@@ -900,6 +926,18 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
           inputText:
             state.featureAssistDescriptor.prefill ??
             getAssistChoiceInputText(state.featureAssistDescriptor.choices[stagedChoiceIndex]!),
+          historyIndex: null,
+          historyDraft: '',
+        }
+      }
+      if (state.stagedNavigationSession !== null && state.stagedNavigationSession.validChoices.length > 0) {
+        const stagedChoiceIndex = 0
+        return {
+          consolePromptSession: null,
+          stagedChoiceIndex,
+          isStagedChoiceManualOverride: false,
+          inputText:
+            getStagedChoiceInputText(state.stagedNavigationSession.validChoices[stagedChoiceIndex]!),
           historyIndex: null,
           historyDraft: '',
         }
@@ -916,7 +954,7 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
       const nextState = {
         featureAssistDescriptor,
       }
-      if (state.stagedNavigationSession !== null || state.consolePromptSession !== null) {
+      if (state.consolePromptSession !== null) {
         return nextState
       }
       if (areAssistDescriptorsEqual(state.featureAssistDescriptor, featureAssistDescriptor)) {

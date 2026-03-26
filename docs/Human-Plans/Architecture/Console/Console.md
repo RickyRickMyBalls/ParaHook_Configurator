@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+23. 2026-03-26 07:08: Moved the standalone shipped console phase docs into `Console/Shipped/`, left the still-open `[4.1I]` parent record at the root because `4.1I5` is not done yet, and updated the phase index plus phase-doc guidance so shipped links now resolve through the shipped folder instead of the mixed old root layout
 22. 2026-03-25 21:49: Marked `[5.1G] Surface-Agnostic Command Ownership And Adapter Expansion` complete after shipping the first owner-first command migration cut, moving its standalone phase record into `Console/Shipped/`, and updating the phase index so shared workspace-selection outcomes and shared view commands are now landed console-family history rather than an open future follow-on
 21. 2026-03-24 14:19: Created the standalone future phase doc `Future/Console_Phase 5.1G - Surface-Agnostic Command Ownership And Adapter Expansion.md`, updated the phase-doc guidance to reflect the folderized `Console/Future/` layout, and linked the new `5.1G` follow-on out of the bottom phase index
 20. 2026-03-24 14:15: Added a bottom moving-forward summary plus new open `[5.1G] Surface-Agnostic Command Ownership And Adapter Expansion`, locking the rule that `Console`, `Browser`, `Model Viewport`, and `View Toolbar` should stay as surface adapters over shared workspace, graph, and view owners instead of becoming separate command owners
@@ -1166,7 +1167,7 @@ Current recommendation:
 `Console.md` is now the canonical current-truth architecture doc for Console.
 
 Detailed implementation slices and historical shipped snapshots live in the standalone phase docs across this family folder:
-- root-level historical phase docs such as:
+- root-level active or partially complete records such as:
   - `Console_Phase <phase id> - <title>.md`
 - folderized future or shipped records such as:
   - `Future/Console_Phase <phase id> - <title>.md`
@@ -1174,7 +1175,8 @@ Detailed implementation slices and historical shipped snapshots live in the stan
 
 Rules for using them:
 - use `Console.md` for the live architecture, phase ordering, and current decisions
-- use the standalone phase docs for implementation detail, acceptance shape, and historical scope
+- use root-level standalone phase docs for still-active or not-fully-shipped records
+- use `Shipped/` standalone phase docs for historical implemented scope and acceptance shape
 - if shipped behavior changes, add a new follow-on phase instead of rewriting old implemented phase docs
 
 History note:
@@ -1194,7 +1196,7 @@ Goals:
 - typed aliases and shortcut-like entry should converge on the same command path
 
 Docs:
-- [4.1H](./Console_Phase%204.1H%20-%20Hybrid%20Command%20Capture%20And%20Shortcut%20Unification.md)
+- [4.1H](./Shipped/Console_Phase%204.1H%20-%20Hybrid%20Command%20Capture%20And%20Shortcut%20Unification.md)
 
 Checklist:
 - [x] auto-capture printable typing when appropriate
@@ -1214,10 +1216,10 @@ Goals:
 
 Docs:
 - [4.1I](./Console_Phase%204.1I%20-%20Hierarchical%20Path%20Grammar.md)
-- [4.1I1](./Console_Phase%204.1I1%20-%20Staged%20Grammar%20Core.md)
-- [4.1I2](./Console_Phase%204.1I2%20-%20Console%20Session%20Integration.md)
-- [4.1I3](./Console_Phase%204.1I3%20-%20First%20Executable%20Vertical%20Slice.md)
-- [4.1I4](./Console_Phase%204.1I4%20-%20Missing-Branch%20Recovery%20And%20Node%20Creation.md)
+- [4.1I1](./Shipped/Console_Phase%204.1I1%20-%20Staged%20Grammar%20Core.md)
+- [4.1I2](./Shipped/Console_Phase%204.1I2%20-%20Console%20Session%20Integration.md)
+- [4.1I3](./Shipped/Console_Phase%204.1I3%20-%20First%20Executable%20Vertical%20Slice.md)
+- [4.1I4](./Shipped/Console_Phase%204.1I4%20-%20Missing-Branch%20Recovery%20And%20Node%20Creation.md)
 
 Checklist:
 - [x] `4.1I1` staged grammar core
@@ -1237,11 +1239,11 @@ Goals:
 - route session-aware decisions through one shared seam
 
 Docs:
-- [4.1J](./Console_Phase%204.1J%20-%20Input%20Ownership%20And%20Coordination%20Cleanup.md)
-- [4.1J1](./Console_Phase%204.1J1%20-%20Input%20Ownership%20Audit.md)
-- [4.1J2](./Console_Phase%204.1J2%20-%20Shared%20Input%20Routing%20Seam.md)
-- [4.1J3](./Console_Phase%204.1J3%20-%20Session%20Migration.md)
-- [4.1J4](./Console_Phase%204.1J4%20-%20Cleanup%20And%20Hardening.md)
+- [4.1J](./Shipped/Console_Phase%204.1J%20-%20Input%20Ownership%20And%20Coordination%20Cleanup.md)
+- [4.1J1](./Shipped/Console_Phase%204.1J1%20-%20Input%20Ownership%20Audit.md)
+- [4.1J2](./Shipped/Console_Phase%204.1J2%20-%20Shared%20Input%20Routing%20Seam.md)
+- [4.1J3](./Shipped/Console_Phase%204.1J3%20-%20Session%20Migration.md)
+- [4.1J4](./Shipped/Console_Phase%204.1J4%20-%20Cleanup%20And%20Hardening.md)
 
 Checklist:
 - [x] `4.1J1` audit current ownership and conflicts
@@ -1260,7 +1262,7 @@ Goals:
 - avoid stale hidden context after surface changes
 
 Docs:
-- [4.1K](./Console_Phase%204.1K%20-%20Surface-Driven%20Console%20Context%20Sync.md)
+- [4.1K](./Shipped/Console_Phase%204.1K%20-%20Surface-Driven%20Console%20Context%20Sync.md)
 
 Checklist:
 - [x] reflect active surface context into console state
@@ -1278,7 +1280,7 @@ Goals:
 - avoid turning the transcript into flat noisy debug output
 
 Docs:
-- [4.1L](./Console_Phase%204.1L%20-%20Command%20Transcript%20Sublayers.md)
+- [4.1L](./Shipped/Console_Phase%204.1L%20-%20Command%20Transcript%20Sublayers.md)
 
 Checklist:
 - [x] define transcript categories or sublayers
@@ -1296,7 +1298,7 @@ Goals:
 - preserve legibility of the current candidate before commit
 
 Docs:
-- [4.1M](./Console_Phase%204.1M%20-%20Staged%20Choice%20Prefill%20And%20Arrow%20Cycling.md)
+- [4.1M](./Shipped/Console_Phase%204.1M%20-%20Staged%20Choice%20Prefill%20And%20Arrow%20Cycling.md)
 
 Checklist:
 - [x] prefill the first valid constrained option
@@ -1314,7 +1316,7 @@ Goals:
 - keep prompt descriptors shared instead of feature-local
 
 Docs:
-- [4.1N](./Console_Phase%204.1N%20-%20Feature%20Session%20Prompt%20Descriptor%20Follow-On.md)
+- [4.1N](./Shipped/Console_Phase%204.1N%20-%20Feature%20Session%20Prompt%20Descriptor%20Follow-On.md)
 
 Checklist:
 - [x] publish session-aware prompt descriptors
@@ -1332,7 +1334,7 @@ Goals:
 - keep prefill and cycling intact until the user actually starts typing
 
 Docs:
-- [4.1P](./Console_Phase%204.1P%20-%20Assisted%20Prefill%20Replace-On-Type%20Across%20Levels.md)
+- [4.1P](./Shipped/Console_Phase%204.1P%20-%20Assisted%20Prefill%20Replace-On-Type%20Across%20Levels.md)
 
 Checklist:
 - [x] replace assisted prefill on the first printable typed key
@@ -1351,11 +1353,11 @@ Goals:
 - keep surface reflection flowing back into the console
 
 Docs:
-- [5.1F](./Console_Phase%205.1F%20-%20Workspace%20Selection,%20Surface%20Activation,%20And%20Canonical%20Intents.md)
-- [5.1F1](./Console_Phase%205.1F1%20-%20Workspace-Selection%20Seam.md)
-- [5.1F2](./Console_Phase%205.1F2%20-%20Canonical%20Intent%20Layer.md)
-- [5.1F3](./Console_Phase%205.1F3%20-%20Surface%20Migration%20And%20Reflection.md)
-- [5.1F4](./Console_Phase%205.1F4%20-%20Hardening%20And%20Expansion.md)
+- [5.1F](./Shipped/Console_Phase%205.1F%20-%20Workspace%20Selection,%20Surface%20Activation,%20And%20Canonical%20Intents.md)
+- [5.1F1](./Shipped/Console_Phase%205.1F1%20-%20Workspace-Selection%20Seam.md)
+- [5.1F2](./Shipped/Console_Phase%205.1F2%20-%20Canonical%20Intent%20Layer.md)
+- [5.1F3](./Shipped/Console_Phase%205.1F3%20-%20Surface%20Migration%20And%20Reflection.md)
+- [5.1F4](./Shipped/Console_Phase%205.1F4%20-%20Hardening%20And%20Expansion.md)
 
 Checklist:
 - [x] workspace-selection seam

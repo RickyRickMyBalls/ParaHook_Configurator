@@ -110,6 +110,162 @@ describe('ConsoleBar', () => {
     )
   })
 
+  it('shows the full staged breadcrumb for object zoom scopes', async () => {
+    useConsoleStore.setState({
+      stagedNavigationSession: {
+        scopeId: 'contentObjectZoomRoot',
+        breadcrumb: ['Select', 'Object', 'Object 1', 'Zoom'],
+        selections: {
+          graphDocumentId: 'graph-document-1',
+          selectedNodeId: null,
+          sketchNodeId: null,
+          referenceId: null,
+        },
+        validChoices: [
+          {
+            label: 'All',
+            aliases: ['A'],
+            canonicalToken: 'ALL',
+            kind: 'action',
+          },
+          {
+            label: 'Back',
+            aliases: ['B'],
+            canonicalToken: 'BACK',
+            kind: 'action',
+          },
+        ],
+      },
+      stagedChoiceIndex: 0,
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleBar />)
+    })
+
+    expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
+      'Select > Object > Object 1 > Zoom > Choose next',
+    )
+  })
+
+  it('shows the full staged breadcrumb for reference zoom scopes', async () => {
+    useConsoleStore.setState({
+      stagedNavigationSession: {
+        scopeId: 'referenceZoomRoot',
+        breadcrumb: ['Select', 'Reference', 'Shoe 1', 'Zoom'],
+        selections: {
+          graphDocumentId: null,
+          selectedNodeId: null,
+          sketchNodeId: null,
+          referenceId: 'shoe:shoe-1',
+          referenceCategoryId: null,
+          referenceCanLoadModel: true,
+        },
+        validChoices: [
+          {
+            label: 'All',
+            aliases: ['A'],
+            canonicalToken: 'ALL',
+            kind: 'action',
+          },
+          {
+            label: 'Back',
+            aliases: ['B'],
+            canonicalToken: 'BACK',
+            kind: 'action',
+          },
+        ],
+      },
+      stagedChoiceIndex: 0,
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleBar />)
+    })
+
+    expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
+      'Select > Reference > Shoe 1 > Zoom > Choose next',
+    )
+  })
+
+  it('renders read-only status assist descriptors without empty choice brackets', async () => {
+    useConsoleStore.setState({
+      featureAssistDescriptor: {
+        label: 'Shoe 1 > M',
+        breadcrumb: ['Shoe 1', 'M', 'Vec3 [0.0, 0.0, 0.0]'],
+        prefill: null,
+        choices: [],
+        summaryLeadText: ' > Read only',
+        summaryMode: 'status',
+      },
+      stagedChoiceIndex: null,
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleBar />)
+    })
+
+    const summaryText = container.querySelector('.ConsoleBarSummary')?.textContent ?? ''
+    expect(summaryText).toContain('Shoe 1 > M > Vec3 [0.0, 0.0, 0.0]')
+    expect(summaryText).toContain('Read only')
+    expect(summaryText).not.toContain('[]')
+  })
+
+  it('shows the full staged breadcrumb for references-root zoom scopes', async () => {
+    useConsoleStore.setState({
+      stagedNavigationSession: {
+        scopeId: 'referencesZoomRoot',
+        breadcrumb: ['Select', 'References', 'Zoom'],
+        selections: {
+          graphDocumentId: null,
+          selectedNodeId: null,
+          sketchNodeId: null,
+          referenceId: null,
+          referenceZoomIds: ['shoe:shoe-1'],
+        },
+        validChoices: [
+          {
+            label: 'All',
+            aliases: ['A'],
+            canonicalToken: 'ALL',
+            kind: 'action',
+          },
+          {
+            label: 'Back',
+            aliases: ['B'],
+            canonicalToken: 'BACK',
+            kind: 'action',
+          },
+        ],
+      },
+      stagedChoiceIndex: 0,
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleBar />)
+    })
+
+    expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
+      'Select > References > Zoom > Choose next',
+    )
+  })
+
   it('keeps root alias hints when the summary is rendered from the fallback prompt text', async () => {
     useConsoleStore.setState({
       entries: [

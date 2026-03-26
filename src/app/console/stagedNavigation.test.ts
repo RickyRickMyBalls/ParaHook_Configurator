@@ -160,6 +160,369 @@ describe('stagedNavigation', () => {
     expect(backResult.session.scopeId).toBe('sketchDrawRoot')
   })
 
+  it('routes object-selected zoom back to the object scope', () => {
+    const context = createConsoleStagedNavigationContext([])
+    const objectSession = {
+      scopeId: 'contentObjectSelected' as const,
+      breadcrumb: ['Select', 'Object', 'Object 1'],
+      selections: {
+        graphDocumentId: 'graph-document-1',
+        selectedNodeId: null,
+        sketchNodeId: null,
+        referenceId: null,
+      },
+      validChoices: [],
+    }
+
+    const zoomRoot = submitConsoleStagedNavigationToken(objectSession, 'z', context)
+    expect(zoomRoot.kind).toBe('advance')
+    if (zoomRoot.kind !== 'advance') {
+      throw new Error('Expected object zoom token to advance')
+    }
+    expect(zoomRoot.session.scopeId).toBe('contentObjectZoomRoot')
+    expect(zoomRoot.session.breadcrumb).toEqual(['Select', 'Object', 'Object 1', 'Zoom'])
+    expect(zoomRoot.validChoices.map((choice) => choice.canonicalToken)).toEqual([
+      'ALL',
+      'EXTENTS',
+      'PREVIOUS',
+      'WINDOW',
+      'OBJECT',
+      'BACK',
+    ])
+
+    const backResult = submitConsoleStagedNavigationToken(zoomRoot.session, 'b', context)
+    expect(backResult.kind).toBe('advance')
+    if (backResult.kind !== 'advance') {
+      throw new Error('Expected object zoom back token to advance')
+    }
+    expect(backResult.session.scopeId).toBe('contentObjectSelected')
+    expect(backResult.session.breadcrumb).toEqual(['Select', 'Object', 'Object 1'])
+    expect(backResult.validChoices.map((choice) => choice.canonicalToken)).toEqual([
+      'TRANSFORM',
+      'MOVE',
+      'ROTATE',
+      'SCALE',
+      'ZOOM',
+      'BACK',
+    ])
+  })
+
+  it('routes object-selected transform and direct move through the canonical transform branch', () => {
+    const context = createConsoleStagedNavigationContext([])
+    const objectSession = {
+      scopeId: 'contentObjectSelected' as const,
+      breadcrumb: ['Select', 'Object', 'Object 1'],
+      selections: {
+        graphDocumentId: 'graph-document-1',
+        selectedNodeId: null,
+        sketchNodeId: null,
+        referenceId: null,
+      },
+      validChoices: [],
+    }
+
+    const transformRoot = submitConsoleStagedNavigationToken(objectSession, 'transform', context)
+    expect(transformRoot.kind).toBe('advance')
+    if (transformRoot.kind !== 'advance') {
+      throw new Error('Expected object transform token to advance')
+    }
+    expect(transformRoot.session.scopeId).toBe('contentObjectTransformRoot')
+    expect(transformRoot.session.breadcrumb).toEqual(['Select', 'Object', 'Object 1', 'Transform'])
+    expect(transformRoot.validChoices.map((choice) => choice.canonicalToken)).toEqual([
+      'MOVE',
+      'ROTATE',
+      'SCALE',
+      'BACK',
+    ])
+
+    const directMove = submitConsoleStagedNavigationToken(objectSession, 'm', context)
+    expect(directMove).toMatchObject({
+      kind: 'execute',
+      actionId: 'content.transform.move',
+      breadcrumb: ['Select', 'Object', 'Object 1', 'Transform', 'Move'],
+    })
+  })
+
+  it('routes assembly-selected zoom back to the assembly scope', () => {
+    const context = createConsoleStagedNavigationContext([])
+    const assemblySession = {
+      scopeId: 'contentAssemblySelected' as const,
+      breadcrumb: ['Select', 'Assembly', 'Assembly 1'],
+      selections: {
+        graphDocumentId: null,
+        selectedNodeId: null,
+        sketchNodeId: null,
+        referenceId: null,
+      },
+      validChoices: [
+        {
+          canonicalToken: 'ZOOM',
+          aliases: ['Z'],
+          label: 'Zoom',
+          kind: 'action' as const,
+        },
+        {
+          canonicalToken: 'BACK',
+          aliases: ['B'],
+          label: 'Back',
+          kind: 'action' as const,
+        },
+      ],
+    }
+
+    const zoomRoot = submitConsoleStagedNavigationToken(assemblySession, 'z', context)
+    expect(zoomRoot.kind).toBe('advance')
+    if (zoomRoot.kind !== 'advance') {
+      throw new Error('Expected assembly zoom token to advance')
+    }
+    expect(zoomRoot.session.scopeId).toBe('contentAssemblyZoomRoot')
+
+    const backResult = submitConsoleStagedNavigationToken(zoomRoot.session, 'b', context)
+    expect(backResult.kind).toBe('advance')
+    if (backResult.kind !== 'advance') {
+      throw new Error('Expected assembly zoom back token to advance')
+    }
+    expect(backResult.session.scopeId).toBe('contentAssemblySelected')
+  })
+
+  it('routes multi-select zoom back to the multi-select scope', () => {
+    const context = createConsoleStagedNavigationContext([])
+    const multiSelectSession = {
+      scopeId: 'multiSelectSelected' as const,
+      breadcrumb: ['Multi-Select', '[Object 1, Object 2]'],
+      selections: {
+        graphDocumentId: null,
+        selectedNodeId: null,
+        sketchNodeId: null,
+        referenceId: null,
+        multiSelectLabels: ['Object 1', 'Object 2'],
+      },
+      validChoices: [
+        {
+          canonicalToken: 'ZOOM',
+          aliases: ['Z'],
+          label: 'Zoom',
+          kind: 'action' as const,
+        },
+        {
+          canonicalToken: 'BACK',
+          aliases: ['B'],
+          label: 'Back',
+          kind: 'action' as const,
+        },
+      ],
+    }
+
+    const zoomRoot = submitConsoleStagedNavigationToken(multiSelectSession, 'z', context)
+    expect(zoomRoot.kind).toBe('advance')
+    if (zoomRoot.kind !== 'advance') {
+      throw new Error('Expected multi-select zoom token to advance')
+    }
+    expect(zoomRoot.session.scopeId).toBe('multiSelectZoomRoot')
+    expect(zoomRoot.session.breadcrumb).toEqual(['Multi-Select', '[Object 1, Object 2]', 'Zoom'])
+    expect(zoomRoot.validChoices.map((choice) => choice.canonicalToken)).toEqual([
+      'ALL',
+      'EXTENTS',
+      'PREVIOUS',
+      'WINDOW',
+      'OBJECT',
+      'BACK',
+    ])
+
+    const backResult = submitConsoleStagedNavigationToken(zoomRoot.session, 'b', context)
+    expect(backResult.kind).toBe('advance')
+    if (backResult.kind !== 'advance') {
+      throw new Error('Expected multi-select zoom back token to advance')
+    }
+    expect(backResult.session.scopeId).toBe('multiSelectSelected')
+    expect(backResult.session.breadcrumb).toEqual(['Multi-Select', '[Object 1, Object 2]'])
+    expect(backResult.validChoices.map((choice) => choice.canonicalToken)).toEqual(['ZOOM', 'BACK'])
+  })
+
+  it('routes selected reference transform through a canonical transform branch while keeping direct move as a shortcut', () => {
+    const context = createConsoleStagedNavigationContext([], [
+      {
+        categoryId: 'shoes',
+        label: 'Shoes',
+        canLoadAll: true,
+        items: [{ referenceId: 'shoe:shoe-1', label: 'Shoe 1', canLoadModel: false }],
+      },
+    ])
+    const referenceSession = {
+      scopeId: 'referenceSelected' as const,
+      breadcrumb: ['Select', 'References', 'Shoes', 'Shoe 1'],
+      selections: {
+        graphDocumentId: null,
+        selectedNodeId: null,
+        sketchNodeId: null,
+        referenceId: 'shoe:shoe-1',
+        referenceCategoryId: 'shoes',
+        referenceCanLoadModel: false,
+      },
+      validChoices: [],
+    }
+
+    const transformRoot = submitConsoleStagedNavigationToken(referenceSession, 'transform', context)
+    expect(transformRoot.kind).toBe('advance')
+    if (transformRoot.kind !== 'advance') {
+      throw new Error('Expected reference transform token to advance')
+    }
+    expect(transformRoot.session.scopeId).toBe('referenceTransformRoot')
+    expect(transformRoot.session.breadcrumb).toEqual([
+      'Select',
+      'References',
+      'Shoes',
+      'Shoe 1',
+      'Transform',
+    ])
+
+    const directMove = submitConsoleStagedNavigationToken(referenceSession, 'move', context)
+    expect(directMove).toMatchObject({
+      kind: 'execute',
+      actionId: 'reference.transform.move',
+      breadcrumb: ['Select', 'References', 'Shoes', 'Shoe 1', 'Transform', 'Move'],
+    })
+
+    expect(transformRoot.session.validChoices.map((choice) => choice.label)).toEqual([
+      'CommitTransform',
+      'Move',
+      'Rotate',
+      'Scale',
+    ])
+
+    const commitShell = submitConsoleStagedNavigationToken(transformRoot.session, 'committransform', context)
+    expect(commitShell).toMatchObject({
+      kind: 'execute',
+      actionId: 'reference.transform.commitShell',
+      breadcrumb: ['Select', 'References', 'Shoes', 'Shoe 1', 'Transform', 'CommitTransform'],
+    })
+  })
+
+  it('routes reference-selected zoom back to the reference scope', () => {
+    const context = createConsoleStagedNavigationContext([])
+    const referenceSession = {
+      scopeId: 'referenceSelected' as const,
+      breadcrumb: ['Select', 'Reference', 'Shoe 1'],
+      selections: {
+        graphDocumentId: null,
+        selectedNodeId: null,
+        sketchNodeId: null,
+        referenceId: 'shoe:shoe-1',
+        referenceCategoryId: null,
+        referenceCanLoadModel: true,
+      },
+      validChoices: [
+        {
+          canonicalToken: 'LOAD MODEL',
+          aliases: ['LOADMODEL', 'LM'],
+          label: 'Load Model',
+          kind: 'action',
+        },
+        {
+          canonicalToken: 'ZOOM',
+          aliases: ['Z'],
+          label: 'Zoom',
+          kind: 'action',
+        },
+        {
+          canonicalToken: 'BACK',
+          aliases: ['B'],
+          label: 'Back',
+          kind: 'action',
+        },
+      ],
+    }
+
+    const zoomRoot = submitConsoleStagedNavigationToken(referenceSession, 'z', context)
+    expect(zoomRoot.kind).toBe('advance')
+    if (zoomRoot.kind !== 'advance') {
+      throw new Error('Expected reference zoom token to advance')
+    }
+    expect(zoomRoot.session.scopeId).toBe('referenceZoomRoot')
+    expect(zoomRoot.session.breadcrumb).toEqual(['Select', 'Reference', 'Shoe 1', 'Zoom'])
+    expect(zoomRoot.validChoices.map((choice) => choice.canonicalToken)).toEqual([
+      'ALL',
+      'EXTENTS',
+      'PREVIOUS',
+      'WINDOW',
+      'OBJECT',
+      'BACK',
+    ])
+
+    const backResult = submitConsoleStagedNavigationToken(zoomRoot.session, 'b', context)
+    expect(backResult.kind).toBe('advance')
+    if (backResult.kind !== 'advance') {
+      throw new Error('Expected reference zoom back token to advance')
+    }
+    expect(backResult.session.scopeId).toBe('referenceSelected')
+    expect(backResult.session.breadcrumb).toEqual(['Select', 'Reference', 'Shoe 1'])
+    expect(backResult.validChoices.map((choice) => choice.canonicalToken)).toEqual([
+      'LOAD MODEL',
+      'ZOOM',
+      'BACK',
+    ])
+  })
+
+  it('routes references-root zoom back to the references scope', () => {
+    const context = createConsoleStagedNavigationContext([], [], {
+      hasSelection: false,
+      hasPrevious: false,
+      preferredTool: null,
+    }, [
+      {
+        categoryId: 'footpads',
+        label: 'Footpads',
+        canLoadAll: true,
+        items: [
+          {
+            referenceId: 'footpad:pubpad-full-assembly',
+            label: 'PubPad Full Assembly',
+            canLoadModel: true,
+          },
+        ],
+      },
+    ])
+    const referencesSession = {
+      scopeId: 'referencesSelected' as const,
+      breadcrumb: ['Select', 'References'],
+      selections: {
+        graphDocumentId: null,
+        selectedNodeId: null,
+        sketchNodeId: null,
+        referenceId: null,
+        referenceZoomIds: ['footpad:pubpad-full-assembly'],
+      },
+      validChoices: [
+        {
+          canonicalToken: 'ZOOM',
+          aliases: ['Z'],
+          label: 'Zoom',
+          kind: 'action' as const,
+        },
+        {
+          canonicalToken: 'BACK',
+          aliases: ['B'],
+          label: 'Back',
+          kind: 'action' as const,
+        },
+      ],
+    }
+
+    const zoomRoot = submitConsoleStagedNavigationToken(referencesSession, 'z', context)
+    expect(zoomRoot.kind).toBe('advance')
+    if (zoomRoot.kind !== 'advance') {
+      throw new Error('Expected references zoom token to advance')
+    }
+    expect(zoomRoot.session.scopeId).toBe('referencesZoomRoot')
+
+    const backResult = submitConsoleStagedNavigationToken(zoomRoot.session, 'b', context)
+    expect(backResult.kind).toBe('advance')
+    if (backResult.kind !== 'advance') {
+      throw new Error('Expected references zoom back token to advance')
+    }
+    expect(backResult.session.scopeId).toBe('referencesSelected')
+  })
+
   it('keeps radio reachable from local sketch draw staged scopes', () => {
     const context = createConsoleStagedNavigationContext([], [], {
       hasSelection: false,

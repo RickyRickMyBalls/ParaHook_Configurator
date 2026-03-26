@@ -191,6 +191,12 @@ const resolveStagedAdvanceIdentity = ({
       }
     case 'zoomRoot':
     case 'sketchDrawZoomRoot':
+    case 'contentAssemblyZoomRoot':
+    case 'contentObjectZoomRoot':
+    case 'multiSelectZoomRoot':
+    case 'referencesZoomRoot':
+    case 'referenceCategoryZoomRoot':
+    case 'referenceZoomRoot':
       switch (matchedCanonicalToken) {
         case 'ALL':
         case 'EXTENTS':
@@ -199,11 +205,35 @@ const resolveStagedAdvanceIdentity = ({
         case 'OBJECT':
           return activeScopeId === 'sketchDrawZoomRoot'
             ? buildIdentity('Console', 'Graph', 'Sketch', 'Draw', 'Zoom', toIdentitySegment(matchedLabel))
-            : buildIdentity('Console', 'Zoom', toIdentitySegment(matchedLabel))
+            : activeScopeId === 'contentAssemblyZoomRoot'
+              ? buildIdentity('Console', 'Assembly', 'Zoom', toIdentitySegment(matchedLabel))
+            : activeScopeId === 'contentObjectZoomRoot'
+              ? buildIdentity('Console', 'Object', 'Zoom', toIdentitySegment(matchedLabel))
+            : activeScopeId === 'multiSelectZoomRoot'
+                ? buildIdentity('Console', 'MultiSelect', 'Zoom', toIdentitySegment(matchedLabel))
+              : activeScopeId === 'referencesZoomRoot'
+                ? buildIdentity('Console', 'References', 'Zoom', toIdentitySegment(matchedLabel))
+              : activeScopeId === 'referenceCategoryZoomRoot'
+                ? buildIdentity('Console', 'References', 'Category', 'Zoom', toIdentitySegment(matchedLabel))
+              : activeScopeId === 'referenceZoomRoot'
+                ? buildIdentity('Console', 'Reference', 'Zoom', toIdentitySegment(matchedLabel))
+              : buildIdentity('Console', 'Zoom', toIdentitySegment(matchedLabel))
         case 'BACK':
           return activeScopeId === 'sketchDrawZoomRoot'
             ? buildIdentity('Console', 'Graph', 'Sketch', 'Draw', 'Zoom', 'Back')
-            : buildIdentity('Console', 'Zoom', 'Back')
+            : activeScopeId === 'contentAssemblyZoomRoot'
+              ? buildIdentity('Console', 'Assembly', 'Zoom', 'Back')
+            : activeScopeId === 'contentObjectZoomRoot'
+              ? buildIdentity('Console', 'Object', 'Zoom', 'Back')
+              : activeScopeId === 'multiSelectZoomRoot'
+                ? buildIdentity('Console', 'MultiSelect', 'Zoom', 'Back')
+              : activeScopeId === 'referencesZoomRoot'
+                ? buildIdentity('Console', 'References', 'Zoom', 'Back')
+              : activeScopeId === 'referenceCategoryZoomRoot'
+                ? buildIdentity('Console', 'References', 'Category', 'Zoom', 'Back')
+              : activeScopeId === 'referenceZoomRoot'
+                ? buildIdentity('Console', 'Reference', 'Zoom', 'Back')
+              : buildIdentity('Console', 'Zoom', 'Back')
         default:
           return null
       }
@@ -277,6 +307,76 @@ const resolveStagedAdvanceIdentity = ({
       return matchedCanonicalToken === 'BACK'
         ? buildIdentity('Console', 'Graph', 'FocusNode', 'Back')
         : null
+    case 'contentAssemblySelected':
+      switch (matchedCanonicalToken) {
+        case 'ZOOM':
+          return buildIdentity('Console', 'Assembly', 'Zoom')
+        case 'BACK':
+          return buildIdentity('Console', 'Assembly', 'Back')
+        default:
+          return null
+      }
+    case 'contentObjectSelected':
+      switch (matchedCanonicalToken) {
+        case 'ZOOM':
+          return buildIdentity('Console', 'Object', 'Zoom')
+        case 'BACK':
+          return buildIdentity('Console', 'Object', 'Back')
+        default:
+          return null
+      }
+    case 'multiSelectSelected':
+      switch (matchedCanonicalToken) {
+        case 'ZOOM':
+          return buildIdentity('Console', 'MultiSelect', 'Zoom')
+        case 'BACK':
+          return buildIdentity('Console', 'MultiSelect', 'Back')
+        default:
+          return null
+      }
+    case 'referenceSelected':
+      switch (matchedCanonicalToken) {
+        case 'LOAD MODEL':
+          return buildIdentity('Console', 'Reference', 'LoadModel')
+        case 'MOVE':
+          return buildIdentity('Console', 'Reference', 'Move')
+        case 'ROTATE':
+          return buildIdentity('Console', 'Reference', 'Rotate')
+        case 'SCALE':
+          return buildIdentity('Console', 'Reference', 'Scale')
+        case 'ZOOM':
+          return buildIdentity('Console', 'Reference', 'Zoom')
+        case 'BACK':
+          return buildIdentity('Console', 'Reference', 'Back')
+        default:
+          return null
+      }
+    case 'referencesSelected':
+      switch (matchedCanonicalToken) {
+        case 'LOAD ALL':
+          return buildIdentity('Console', 'References', 'LoadAll')
+        case 'ZOOM':
+          return buildIdentity('Console', 'References', 'Zoom')
+        case 'BACK':
+          return buildIdentity('Console', 'References', 'Back')
+        default:
+          return matchedLabel.length > 0
+            ? buildIdentity('Console', 'References', toIdentitySegment(matchedLabel))
+            : null
+      }
+    case 'referenceCategorySelected':
+      switch (matchedCanonicalToken) {
+        case 'LOAD ALL':
+          return buildIdentity('Console', 'References', 'Category', 'LoadAll')
+        case 'ZOOM':
+          return buildIdentity('Console', 'References', 'Category', 'Zoom')
+        case 'BACK':
+          return buildIdentity('Console', 'References', 'Category', 'Back')
+        default:
+          return matchedLabel.length > 0
+            ? buildIdentity('Console', 'References', 'Category', toIdentitySegment(matchedLabel))
+            : null
+      }
     case 'graphZoomRoot':
     case 'graphZoomCanvas':
     case 'graphZoomModelViewport':
@@ -329,6 +429,18 @@ const resolveStagedChoiceIdentity = ({
     case 'sketchDrawCameraProjectionRoot':
     case 'zoomRoot':
     case 'sketchDrawZoomRoot':
+    case 'contentAssemblySelected':
+    case 'contentAssemblyZoomRoot':
+    case 'contentObjectSelected':
+    case 'contentObjectZoomRoot':
+    case 'multiSelectSelected':
+    case 'multiSelectZoomRoot':
+    case 'referencesSelected':
+    case 'referencesZoomRoot':
+    case 'referenceCategorySelected':
+    case 'referenceCategoryZoomRoot':
+    case 'referenceSelected':
+    case 'referenceZoomRoot':
     case 'cameraRoot':
     case 'cameraProjectionRoot':
     case 'graphZoomRoot':

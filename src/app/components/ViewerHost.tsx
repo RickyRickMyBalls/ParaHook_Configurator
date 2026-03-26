@@ -682,6 +682,10 @@ export function ViewerHost() {
     viewer.setOnReferenceTransformChange((referenceId, transformOverride) => {
       useAppStore.getState().setReferenceTransformOverride(referenceId, transformOverride)
     })
+    viewer.setOnReferenceTransformCommit(() => {
+      useAppStore.getState().appendActiveReferenceTransformHistoryEntry()
+      useAppStore.getState().completeActiveReferenceTransformEntry()
+    })
     viewer.setOnReferenceTransformExit(() => {
       useAppStore.getState().endReferenceTransform()
     })
@@ -727,42 +731,12 @@ export function ViewerHost() {
     viewer.setOnWorkspaceSelectionPick(({ pick, ctrlKey }) => {
       const appState = useAppStore.getState()
       appState.setActiveSurface('viewer')
-      if (pick === null) {
-        clearWorkspaceTargetSelection(
-          {
-            setWorkspaceSelectedTarget: appState.setWorkspaceSelectedTarget,
-            selectPart: appState.selectPart,
-            requestConsoleContextSync: appState.requestConsoleContextSync,
-          },
-          {
-            syncReason: 'surface-clear',
-          },
-        )
-        return
-      }
-      if (pick.kind === 'reference-item') {
-        commitWorkspaceTargetSelection(
-          {
-            setWorkspaceSelectedTarget: appState.setWorkspaceSelectedTarget,
-            selectPart: appState.selectPart,
-            requestConsoleContextSync: appState.requestConsoleContextSync,
-          },
-          {
-            kind: 'reference-item',
-            referenceId: pick.referenceId,
-          },
-          {
-            selectedPartKey: null,
-          },
-        )
-        return
-      }
-      const objectRow = contentObjectRowByViewerPartKey.get(pick.partKey)
-      if (objectRow !== undefined) {
-        const explicitSelectionTarget: WorkspaceSelectedTarget = {
-          kind: 'object',
-          objectId: objectRow.rowId,
-        }
+      const commitViewportExplicitSelection = (
+        explicitSelectionTarget: WorkspaceSelectedTarget,
+        options: {
+          selectedPartKey: string | null
+        },
+      ) => {
         const commitExplicitSelection = (
           explicitSelectedTargets: WorkspaceSelectedTarget[],
           selectedTarget: WorkspaceSelectedTarget | null,
@@ -780,10 +754,11 @@ export function ViewerHost() {
               selectionAnchorTarget,
             },
             {
-              selectedPartKey: pick.partKey,
+              selectedPartKey: options.selectedPartKey,
             },
           )
         }
+
         if (ctrlKey) {
           const currentExplicitTargets =
             appState.workspaceSelection.explicitSelectedTargets.length > 0
@@ -850,6 +825,44 @@ export function ViewerHost() {
           explicitSelectionTarget,
           explicitSelectionTarget,
         )
+      }
+
+      if (pick === null) {
+        clearWorkspaceTargetSelection(
+          {
+            setWorkspaceSelectedTarget: appState.setWorkspaceSelectedTarget,
+            selectPart: appState.selectPart,
+            requestConsoleContextSync: appState.requestConsoleContextSync,
+          },
+          {
+            syncReason: 'surface-clear',
+          },
+        )
+        return
+      }
+      if (pick.kind === 'reference-item') {
+        commitViewportExplicitSelection(
+          {
+            kind: 'reference-item',
+            referenceId: pick.referenceId,
+          },
+          {
+            selectedPartKey: null,
+          },
+        )
+        return
+      }
+      const objectRow = contentObjectRowByViewerPartKey.get(pick.partKey)
+      if (objectRow !== undefined) {
+        commitViewportExplicitSelection(
+          {
+            kind: 'object',
+            objectId: objectRow.rowId,
+          },
+          {
+            selectedPartKey: pick.partKey,
+          },
+        )
       } else {
         commitWorkspaceTargetSelection(
           {
@@ -871,6 +884,7 @@ export function ViewerHost() {
 
     return () => {
       viewer.setOnReferenceTransformChange(null)
+      viewer.setOnReferenceTransformCommit(null)
       viewer.setOnReferenceTransformExit(null)
       viewer.setOnReferenceTransformModeChange(null)
       viewer.setOnReferenceTransformSpaceChange(null)

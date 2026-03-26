@@ -371,7 +371,7 @@ describe('ConsoleDock', () => {
     })
 
     await act(async () => {
-      useConsoleStore.getState().setInputText('o')
+      useConsoleStore.getState().setInputText('On')
     })
 
     await act(async () => {
@@ -618,24 +618,24 @@ describe('ConsoleDock', () => {
 
     await act(async () => {
       window.dispatchEvent(
-        new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }),
-      )
-    })
-
-    expect(useAudioSamplerStore.getState().latestBurstRequest).toMatchObject({
-      commandIdentity: 'Console.Graph.Extrude',
-      triggerKind: 'arrowDown',
-    })
-
-    await act(async () => {
-      window.dispatchEvent(
         new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true, cancelable: true }),
       )
     })
 
     expect(useAudioSamplerStore.getState().latestBurstRequest).toMatchObject({
-      commandIdentity: 'Console.Graph.Sketch',
+      commandIdentity: 'Console.Graph.Extrude',
       triggerKind: 'arrowUp',
+    })
+
+    await act(async () => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }),
+      )
+    })
+
+    expect(useAudioSamplerStore.getState().latestBurstRequest).toMatchObject({
+      commandIdentity: 'Console.Graph.Sketch',
+      triggerKind: 'arrowDown',
     })
   })
 
@@ -664,24 +664,24 @@ describe('ConsoleDock', () => {
 
     await act(async () => {
       input?.dispatchEvent(
-        new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }),
-      )
-    })
-
-    expect(useAudioSamplerStore.getState().latestBurstRequest).toMatchObject({
-      commandIdentity: 'Console.Graph.Extrude',
-      triggerKind: 'arrowDown',
-    })
-
-    await act(async () => {
-      input?.dispatchEvent(
         new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true, cancelable: true }),
       )
     })
 
     expect(useAudioSamplerStore.getState().latestBurstRequest).toMatchObject({
-      commandIdentity: 'Console.Graph.Sketch',
+      commandIdentity: 'Console.Graph.Extrude',
       triggerKind: 'arrowUp',
+    })
+
+    await act(async () => {
+      input?.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }),
+      )
+    })
+
+    expect(useAudioSamplerStore.getState().latestBurstRequest).toMatchObject({
+      commandIdentity: 'Console.Graph.Sketch',
+      triggerKind: 'arrowDown',
     })
   })
 
@@ -737,13 +737,13 @@ describe('ConsoleDock', () => {
 
     await act(async () => {
       input?.dispatchEvent(
-        new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }),
+        new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true, cancelable: true }),
       )
     })
 
     expect(useAudioSamplerStore.getState().latestBurstRequest).toMatchObject({
       commandIdentity: 'Console.Graph.Sketch.Plane.XZ',
-      triggerKind: 'arrowDown',
+      triggerKind: 'arrowUp',
     })
 
     await act(async () => {
@@ -758,13 +758,13 @@ describe('ConsoleDock', () => {
 
     await act(async () => {
       input?.dispatchEvent(
-        new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }),
+        new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true, cancelable: true }),
       )
     })
 
     expect(useAudioSamplerStore.getState().latestBurstRequest).toMatchObject({
       commandIdentity: 'Console.Graph.Sketch.Plane.Rotate',
-      triggerKind: 'arrowDown',
+      triggerKind: 'arrowUp',
     })
   })
 
@@ -1469,7 +1469,7 @@ describe('ConsoleDock', () => {
     await act(async () => {
       refocusedInput?.dispatchEvent(
         new KeyboardEvent('keydown', {
-          key: 'ArrowUp',
+          key: 'ArrowDown',
           bubbles: true,
           cancelable: true,
         }),
@@ -4061,7 +4061,7 @@ describe('ConsoleDock', () => {
     await act(async () => {
       input?.focus()
       input?.dispatchEvent(
-        new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }),
+        new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true, cancelable: true }),
       )
     })
 
@@ -4291,9 +4291,21 @@ describe('ConsoleDock', () => {
           },
         },
       }))
-      useAppStore.getState().setWorkspaceSelectedTarget({
-        kind: 'object',
-        objectId: 'object-1',
+      useAppStore.getState().setWorkspaceExplicitSelection({
+        selectedTarget: {
+          kind: 'object',
+          objectId: 'object-1',
+        },
+        explicitSelectedTargets: [
+          {
+            kind: 'object',
+            objectId: 'object-1',
+          },
+        ],
+        selectionAnchorTarget: {
+          kind: 'object',
+          objectId: 'object-1',
+        },
       })
       useAppStore.getState().setActiveSurface('browser')
       useAppStore.getState().requestConsoleContextSync('target-selection')
@@ -4302,7 +4314,98 @@ describe('ConsoleDock', () => {
     expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('contentObjectSelected')
     expect(useConsoleStore.getState().entries.some((entry) => entry.text === 'Selected target: Object 1')).toBe(true)
     expect(useConsoleStore.getState().entries.some((entry) => entry.text === 'Select > Object > Object 1')).toBe(true)
-    expect(useConsoleStore.getState().entries.some((entry) => entry.text === 'Object > Choose next [Back]')).toBe(true)
+    expect(
+      useConsoleStore
+        .getState()
+        .entries.some(
+          (entry) =>
+            entry.text === 'Object > Choose next [Transform, Move, Rotate, Scale, Zoom, Back]',
+        ),
+    ).toBe(true)
+    expect(useConsoleStore.getState().inputText).toBe('Transform')
+    expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
+      'Select > Object > Object 1 > Choose next',
+    )
+  })
+
+  it('enters object-local zoom from a browser-selected object and backs out to object scope', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useAppStore.setState((state) => ({
+        ...state,
+        projectContent: {
+          ...state.projectContent,
+          objectsById: {
+            'object-1': {
+              objectId: 'object-1',
+              ownerGraphDocumentId: 'graph-document-1',
+              parentComponentId: null,
+              objectSourceKind: 'published-object',
+              sourceGraphDocumentId: 'graph-document-1',
+              sourceOutputEntryId: 'output-entry-1',
+              sourceNodeId: 'node-output-1',
+              slotId: 'slot-a',
+              label: 'Object 1',
+              resolutionState: 'resolved',
+            },
+          },
+        },
+      }))
+      useAppStore.getState().setWorkspaceExplicitSelection({
+        selectedTarget: {
+          kind: 'object',
+          objectId: 'object-1',
+        },
+        explicitSelectedTargets: [
+          {
+            kind: 'object',
+            objectId: 'object-1',
+          },
+        ],
+        selectionAnchorTarget: {
+          kind: 'object',
+          objectId: 'object-1',
+        },
+      })
+      useAppStore.getState().setActiveSurface('browser')
+      useAppStore.getState().requestConsoleContextSync('target-selection')
+    })
+
+    const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('Zoom')
+    })
+
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('contentObjectZoomRoot')
+    expect(useConsoleStore.getState().entries.some((entry) => entry.text === 'Select > Object > Object 1 > Zoom')).toBe(true)
+    expect(
+      useConsoleStore.getState().entries.some(
+        (entry) =>
+          entry.text === 'Select > Object > Object 1 > Zoom > Choose next [All, Extents, Previous, Window, Object, Back]',
+      ),
+    ).toBe(true)
+    expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
+      'Select > Object > Object 1 > Zoom > Choose next',
+    )
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('Back')
+    })
+
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('contentObjectSelected')
     expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
       'Select > Object > Object 1 > Choose next',
     )
@@ -4326,6 +4429,34 @@ describe('ConsoleDock', () => {
               childRowIds: ['component-1'],
             },
           },
+          componentsById: {
+            'component-1': {
+              componentId: 'component-1',
+              ownerGraphDocumentId: 'graph-document-1',
+              sourceGraphDocumentId: 'graph-document-1',
+              sourceOutputEntryId: 'output-entry-1',
+              sourceNodeId: 'node-output-1',
+              label: 'Component 1',
+              componentSourceKind: 'published-component',
+              resolutionState: 'resolved',
+              receiveId: null,
+              childObjectIds: ['object-1'],
+            },
+          },
+          objectsById: {
+            'object-1': {
+              objectId: 'object-1',
+              ownerGraphDocumentId: 'graph-document-1',
+              parentComponentId: 'component-1',
+              objectSourceKind: 'published-object',
+              sourceGraphDocumentId: 'graph-document-1',
+              sourceOutputEntryId: 'output-entry-1',
+              sourceNodeId: 'node-output-1',
+              slotId: 'slot-a',
+              label: 'Object 1',
+              resolutionState: 'resolved',
+            },
+          },
         },
         workspaceSelection: {
           ...state.workspaceSelection,
@@ -4347,7 +4478,106 @@ describe('ConsoleDock', () => {
 
     expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('contentAssemblySelected')
     expect(useConsoleStore.getState().entries.some((entry) => entry.text === 'Select > Assembly > Assembly 1')).toBe(true)
-    expect(useConsoleStore.getState().entries.some((entry) => entry.text === 'Assembly > Choose next [Back]')).toBe(true)
+    expect(useConsoleStore.getState().entries.some((entry) => entry.text === 'Assembly > Choose next [Zoom, Back]')).toBe(true)
+  })
+
+  it('frames a selected assembly from assembly-local z > o', async () => {
+    const viewerFrameSelectionSet = vi.fn(() => true)
+    setViewer({
+      frameAll: vi.fn(),
+      frameExtents: vi.fn(),
+      frameGeometrySketch: vi.fn(),
+      framePrevious: vi.fn(),
+      frameSelected: vi.fn(),
+      frameSelectionSet: viewerFrameSelectionSet,
+      frameReference: vi.fn(),
+      setConsoleCameraMode: vi.fn(),
+    } as any)
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useAppStore.setState((state) => ({
+        ...state,
+        projectContent: {
+          ...state.projectContent,
+          assembliesById: {
+            'assembly-root:project-file-1': {
+              assemblyId: 'assembly-root:project-file-1',
+              label: 'Assembly 1',
+              childRowIds: ['component-1'],
+            },
+          },
+          componentsById: {
+            'component-1': {
+              componentId: 'component-1',
+              ownerGraphDocumentId: 'graph-document-1',
+              sourceGraphDocumentId: 'graph-document-1',
+              sourceOutputEntryId: 'output-entry-1',
+              sourceNodeId: 'node-output-1',
+              label: 'Component 1',
+              componentSourceKind: 'published-component',
+              resolutionState: 'resolved',
+              receiveId: null,
+              childObjectIds: ['object-1'],
+            },
+          },
+          objectsById: {
+            'object-1': {
+              objectId: 'object-1',
+              ownerGraphDocumentId: 'graph-document-1',
+              parentComponentId: 'component-1',
+              objectSourceKind: 'published-object',
+              sourceGraphDocumentId: 'graph-document-1',
+              sourceOutputEntryId: 'output-entry-1',
+              sourceNodeId: 'node-output-1',
+              slotId: 'slot-a',
+              label: 'Object 1',
+              resolutionState: 'resolved',
+            },
+          },
+        },
+        workspaceSelection: {
+          ...state.workspaceSelection,
+          resolvedContentSelection: {
+            rootRowId: 'assembly-root:project-file-1',
+            rootKind: 'assembly',
+            partKeys: ['graph-document-1:slot-a'],
+            groupedRowIds: ['component-1', 'object-1'],
+          },
+        },
+      }))
+      useAppStore.getState().setWorkspaceSelectedTarget({
+        kind: 'assembly',
+        assemblyId: 'assembly-root:project-file-1',
+      })
+      useAppStore.getState().setActiveSurface('browser')
+      useAppStore.getState().requestConsoleContextSync('target-selection')
+    })
+
+    const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('z')
+    })
+
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('Object')
+    })
+
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(viewerFrameSelectionSet).toHaveBeenCalledWith(['slot-a', 'graph-document-1:slot-a'], [])
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('contentAssemblySelected')
   })
 
   it('syncs a selected reference target into lightweight reference scope and exposes real actions', async () => {
@@ -4366,12 +4596,124 @@ describe('ConsoleDock', () => {
     })
 
     expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('referenceSelected')
-    expect(useConsoleStore.getState().entries.some((entry) => entry.text === 'Select > Reference > Shoe 1')).toBe(true)
     expect(
       useConsoleStore
         .getState()
-        .entries.some((entry) => entry.text === 'Reference > Choose next [Load Model, Back]'),
+        .entries.some((entry) => entry.text === 'Select > References > Shoes > Shoe 1'),
     ).toBe(true)
+    expect(
+      useConsoleStore
+        .getState()
+        .entries.some((entry) => entry.text === 'Reference > Choose next [Load Model, Zoom, Back]'),
+    ).toBe(true)
+  })
+
+  it('enters reference-local zoom from a selected reference and backs out to reference scope', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useAppStore.getState().setWorkspaceSelectedTarget({
+        kind: 'reference-item',
+        referenceId: 'shoe:shoe-1',
+      })
+      useAppStore.getState().setActiveSurface('browser')
+      useAppStore.getState().requestConsoleContextSync('target-selection')
+    })
+
+    const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('Zoom')
+    })
+
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('referenceZoomRoot')
+    expect(
+      useConsoleStore
+        .getState()
+        .entries.some((entry) => entry.text === 'Select > References > Shoes > Shoe 1 > Zoom'),
+    ).toBe(true)
+    expect(
+      useConsoleStore.getState().entries.some(
+        (entry) =>
+          entry.text === 'Select > References > Shoes > Shoe 1 > Zoom > Choose next [All, Extents, Previous, Window, Object, Back]',
+      ),
+    ).toBe(true)
+    expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
+      'Select > References > Shoes > Shoe 1 > Zoom > Choose next',
+    )
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('Back')
+    })
+
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('referenceSelected')
+    expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
+      'Select > References > Shoes > Shoe 1 > Choose next',
+    )
+  })
+
+  it('frames a selected reference from reference-local z > o', async () => {
+    const viewerFrameReference = vi.fn()
+    setViewer({
+      frameAll: vi.fn(),
+      frameExtents: vi.fn(),
+      frameGeometrySketch: vi.fn(),
+      framePrevious: vi.fn(),
+      frameSelected: vi.fn(),
+      frameReference: viewerFrameReference,
+      setConsoleCameraMode: vi.fn(),
+    } as any)
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useAppStore.getState().setWorkspaceSelectedTarget({
+        kind: 'reference-item',
+        referenceId: 'shoe:shoe-1',
+      })
+      useAppStore.getState().setActiveSurface('browser')
+      useAppStore.getState().requestConsoleContextSync('target-selection')
+    })
+
+    const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('z')
+    })
+
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('Object')
+    })
+
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(
+      useConsoleStore.getState().entries.some(
+        (entry) => entry.text === 'Select > References > Shoes > Shoe 1 > Zoom > Object',
+      ),
+    ).toBe(true)
+    expect(viewerFrameReference).toHaveBeenCalledWith('shoe:shoe-1')
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('referenceSelected')
   })
 
   it('routes explicit mixed browser selection into a synthetic multi-select scope', async () => {
@@ -4411,12 +4753,15 @@ describe('ConsoleDock', () => {
     })
 
     expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('multiSelectSelected')
-    expect(useConsoleStore.getState().entries.some((entry) => entry.text === 'Select > Multi Select')).toBe(true)
+    expect(useConsoleStore.getState().entries.some((entry) => entry.text === 'Multi-Select > [Shoe 1, Shoe 2]')).toBe(true)
     expect(
       useConsoleStore
         .getState()
-        .entries.some((entry) => entry.text === 'Multi Select > Choose next [Back]'),
+        .entries.some((entry) => entry.text === 'Choose next [Zoom, Back]'),
     ).toBe(true)
+    expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
+      'Multi-Select > [Shoe 1, Shoe 2] > Choose next',
+    )
   })
 
   it('routes viewport-created explicit object selection into the synthetic multi-select scope', async () => {
@@ -4428,6 +4773,35 @@ describe('ConsoleDock', () => {
       root?.render(<ConsoleDock />)
       useAppStore.setState((state) => ({
         ...state,
+        projectContent: {
+          ...state.projectContent,
+          objectsById: {
+            'object-1': {
+              objectId: 'object-1',
+              ownerGraphDocumentId: 'graph-document-1',
+              parentComponentId: null,
+              objectSourceKind: 'published-object',
+              sourceGraphDocumentId: 'graph-document-1',
+              sourceOutputEntryId: 'output-entry-1',
+              sourceNodeId: 'node-output-1',
+              slotId: 'slot-a',
+              label: 'Object 1',
+              resolutionState: 'resolved',
+            },
+            'object-2': {
+              objectId: 'object-2',
+              ownerGraphDocumentId: 'graph-document-1',
+              parentComponentId: null,
+              objectSourceKind: 'published-object',
+              sourceGraphDocumentId: 'graph-document-1',
+              sourceOutputEntryId: 'output-entry-2',
+              sourceNodeId: 'node-output-2',
+              slotId: 'slot-b',
+              label: 'Object 2',
+              resolutionState: 'resolved',
+            },
+          },
+        },
         workspaceSelection: {
           ...state.workspaceSelection,
           selectedTarget: {
@@ -4461,12 +4835,221 @@ describe('ConsoleDock', () => {
     })
 
     expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('multiSelectSelected')
-    expect(useConsoleStore.getState().entries.some((entry) => entry.text === 'Select > Multi Select')).toBe(true)
+    expect(useConsoleStore.getState().entries.some((entry) => entry.text === 'Multi-Select > [Object 1, Object 2]')).toBe(true)
     expect(
       useConsoleStore
         .getState()
-        .entries.some((entry) => entry.text === 'Multi Select > Choose next [Back]'),
+        .entries.some((entry) => entry.text === 'Choose next [Zoom, Back]'),
     ).toBe(true)
+    expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
+      'Multi-Select > [Object 1, Object 2] > Choose next',
+    )
+  })
+
+  it('enters multi-select zoom from explicit object selection and backs out to multi-select scope', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useAppStore.setState((state) => ({
+        ...state,
+        projectContent: {
+          ...state.projectContent,
+          objectsById: {
+            'object-1': {
+              objectId: 'object-1',
+              ownerGraphDocumentId: 'graph-document-1',
+              parentComponentId: null,
+              objectSourceKind: 'published-object',
+              sourceGraphDocumentId: 'graph-document-1',
+              sourceOutputEntryId: 'output-entry-1',
+              sourceNodeId: 'node-output-1',
+              slotId: 'slot-a',
+              label: 'Object 1',
+              resolutionState: 'resolved',
+            },
+            'object-2': {
+              objectId: 'object-2',
+              ownerGraphDocumentId: 'graph-document-1',
+              parentComponentId: null,
+              objectSourceKind: 'published-object',
+              sourceGraphDocumentId: 'graph-document-1',
+              sourceOutputEntryId: 'output-entry-2',
+              sourceNodeId: 'node-output-2',
+              slotId: 'slot-b',
+              label: 'Object 2',
+              resolutionState: 'resolved',
+            },
+          },
+        },
+        workspaceSelection: {
+          ...state.workspaceSelection,
+          selectedTarget: {
+            kind: 'object',
+            objectId: 'object-2',
+          },
+          explicitSelectedTargets: [
+            {
+              kind: 'object',
+              objectId: 'object-1',
+            },
+            {
+              kind: 'object',
+              objectId: 'object-2',
+            },
+          ],
+          selectionAnchorTarget: {
+            kind: 'object',
+            objectId: 'object-2',
+          },
+          resolvedContentSelection: {
+            rootRowId: 'object:object-2',
+            rootKind: 'multi-select',
+            partKeys: ['slot-a', 'slot-b'],
+            groupedRowIds: [],
+          },
+          activeSurface: 'viewer',
+        },
+      }))
+      useAppStore.getState().requestConsoleContextSync('target-selection')
+    })
+
+    const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('Zoom')
+    })
+
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('multiSelectZoomRoot')
+    expect(useConsoleStore.getState().entries.some((entry) => entry.text === 'Multi-Select > [Object 1, Object 2] > Zoom')).toBe(true)
+    expect(
+      useConsoleStore.getState().entries.some(
+        (entry) => entry.text === 'Zoom > Choose next [All, Extents, Previous, Window, Object, Back]',
+      ),
+    ).toBe(true)
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('Back')
+    })
+
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('multiSelectSelected')
+    expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
+      'Multi-Select > [Object 1, Object 2] > Choose next',
+    )
+  })
+
+  it('frames the explicit multi-selection from multi-select z > o', async () => {
+    const viewerFrameSelectionSet = vi.fn(() => true)
+    setViewer({
+      frameAll: vi.fn(),
+      frameExtents: vi.fn(),
+      frameGeometrySketch: vi.fn(),
+      framePrevious: vi.fn(),
+      frameSelected: vi.fn(),
+      frameSelectionSet: viewerFrameSelectionSet,
+      frameReference: vi.fn(),
+      setConsoleCameraMode: vi.fn(),
+    } as any)
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useAppStore.setState((state) => ({
+        ...state,
+        projectContent: {
+          ...state.projectContent,
+          objectsById: {
+            'object-1': {
+              objectId: 'object-1',
+              ownerGraphDocumentId: 'graph-document-1',
+              parentComponentId: null,
+              objectSourceKind: 'published-object',
+              sourceGraphDocumentId: 'graph-document-1',
+              sourceOutputEntryId: 'output-entry-1',
+              sourceNodeId: 'node-output-1',
+              slotId: 'slot-a',
+              label: 'Object 1',
+              resolutionState: 'resolved',
+            },
+            'object-2': {
+              objectId: 'object-2',
+              ownerGraphDocumentId: 'graph-document-1',
+              parentComponentId: null,
+              objectSourceKind: 'published-object',
+              sourceGraphDocumentId: 'graph-document-1',
+              sourceOutputEntryId: 'output-entry-2',
+              sourceNodeId: 'node-output-2',
+              slotId: 'slot-b',
+              label: 'Object 2',
+              resolutionState: 'resolved',
+            },
+          },
+        },
+        workspaceSelection: {
+          ...state.workspaceSelection,
+          selectedTarget: {
+            kind: 'object',
+            objectId: 'object-2',
+          },
+          explicitSelectedTargets: [
+            {
+              kind: 'object',
+              objectId: 'object-1',
+            },
+            {
+              kind: 'object',
+              objectId: 'object-2',
+            },
+          ],
+          selectionAnchorTarget: {
+            kind: 'object',
+            objectId: 'object-2',
+          },
+          resolvedContentSelection: {
+            rootRowId: 'object:object-2',
+            rootKind: 'multi-select',
+            partKeys: ['slot-a', 'slot-b'],
+            groupedRowIds: [],
+          },
+          activeSurface: 'viewer',
+        },
+      }))
+      useAppStore.getState().requestConsoleContextSync('target-selection')
+    })
+
+    const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('z')
+    })
+
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('Object')
+    })
+
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(viewerFrameSelectionSet).toHaveBeenCalledWith(['slot-a', 'slot-b'], [])
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('multiSelectSelected')
   })
 
   it('syncs a selected references root target into references scope with Load All', async () => {
@@ -4494,6 +5077,7 @@ describe('ConsoleDock', () => {
             entry.text.includes('Footpads') &&
             entry.text.includes('Shoes') &&
             entry.text.includes('Load All') &&
+            entry.text.includes('Zoom') &&
             entry.text.includes('Back'),
         ),
     ).toBe(true)
@@ -4524,9 +5108,110 @@ describe('ConsoleDock', () => {
             entry.text.includes('References > Choose next [') &&
             entry.text.includes('PubPad Full Assembly') &&
             entry.text.includes('Load All') &&
+            entry.text.includes('Zoom') &&
             entry.text.includes('Back'),
         ),
     ).toBe(true)
+  })
+
+  it('frames the references root from references z > o', async () => {
+    const viewerFrameSelectionSet = vi.fn(() => true)
+    setViewer({
+      frameAll: vi.fn(),
+      frameExtents: vi.fn(),
+      frameGeometrySketch: vi.fn(),
+      framePrevious: vi.fn(),
+      frameSelected: vi.fn(),
+      frameSelectionSet: viewerFrameSelectionSet,
+      frameReference: vi.fn(),
+      setConsoleCameraMode: vi.fn(),
+    } as any)
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useAppStore.getState().setWorkspaceSelectedTarget({
+        kind: 'references-root',
+      })
+      useAppStore.getState().setActiveSurface('browser')
+      useAppStore.getState().requestConsoleContextSync('target-selection')
+    })
+
+    const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('z')
+    })
+
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('Object')
+    })
+
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(viewerFrameSelectionSet).toHaveBeenCalledWith(
+      [],
+      expect.arrayContaining(['footpad:pubpad-full-assembly', 'shoe:shoe-1', 'hook:large']),
+    )
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('referencesSelected')
+  })
+
+  it('frames a reference category from category z > o', async () => {
+    const viewerFrameSelectionSet = vi.fn(() => true)
+    setViewer({
+      frameAll: vi.fn(),
+      frameExtents: vi.fn(),
+      frameGeometrySketch: vi.fn(),
+      framePrevious: vi.fn(),
+      frameSelected: vi.fn(),
+      frameSelectionSet: viewerFrameSelectionSet,
+      frameReference: vi.fn(),
+      setConsoleCameraMode: vi.fn(),
+    } as any)
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useAppStore.getState().setWorkspaceSelectedTarget({
+        kind: 'reference-category',
+        categoryId: 'footpads',
+      })
+      useAppStore.getState().setActiveSurface('browser')
+      useAppStore.getState().requestConsoleContextSync('target-selection')
+    })
+
+    const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('z')
+    })
+
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('Object')
+    })
+
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(viewerFrameSelectionSet).toHaveBeenCalledWith([], ['footpad:pubpad-full-assembly'])
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('referenceCategorySelected')
   })
 
   it('lets the references root scope advance into child categories', async () => {
@@ -4638,7 +5323,7 @@ describe('ConsoleDock', () => {
     expect(
       useConsoleStore
         .getState()
-        .entries.some((entry) => entry.text === 'Reference > Choose next [Load Model, Back]'),
+        .entries.some((entry) => entry.text === 'Reference > Choose next [Load Model, Zoom, Back]'),
     ).toBe(true)
   })
 
@@ -4793,15 +5478,142 @@ describe('ConsoleDock', () => {
     expect(useAppStore.getState().referenceWorkspace.visibilityById['shoe:shoe-1']).toBe(true)
     expect(useAppStore.getState().referenceWorkspace.activeTransformReferenceId).toBeNull()
     expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('referenceSelected')
-    expect(useConsoleStore.getState().inputText).toBe('Move')
+    expect(useConsoleStore.getState().inputText).toBe('Transform')
     expect(
       useConsoleStore.getState().entries.some((entry) => entry.text === 'Load Model: Shoe 1'),
     ).toBe(true)
     expect(
       useConsoleStore
         .getState()
-        .entries.some((entry) => entry.text === 'Reference > Choose next [Move, Rotate, Scale, Back]'),
+        .entries.some(
+          (entry) =>
+            entry.text === 'Reference > Choose next [Transform, Move, Rotate, Scale, Zoom, Back]',
+        ),
     ).toBe(true)
+  })
+
+  it('arms whole-reference move immediately from the reference scope', async () => {
+    const viewerSetReferenceTransformSession = vi.fn()
+    const viewerActivateTranslateCenterHandle = vi.fn()
+    setViewer({
+      setReferenceTransformSession: viewerSetReferenceTransformSession,
+      activateTranslateCenterHandle: viewerActivateTranslateCenterHandle,
+      setConsoleCameraMode: vi.fn(),
+    } as any)
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useAppStore.setState((state) => ({
+        ...state,
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          visibilityById: {
+            ...state.referenceWorkspace.visibilityById,
+            'shoe:shoe-1': true,
+          },
+          loadStateById: {
+            ...state.referenceWorkspace.loadStateById,
+            'shoe:shoe-1': 'loaded',
+          },
+        },
+      }))
+      useAppStore.getState().setWorkspaceSelectedTarget({
+        kind: 'reference-item',
+        referenceId: 'shoe:shoe-1',
+      })
+      useAppStore.getState().setActiveSurface('browser')
+      useAppStore.getState().requestConsoleContextSync('target-selection')
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('move')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useAppStore.getState().referenceWorkspace.activeTransformReferenceId).toBe('shoe:shoe-1')
+    expect(useAppStore.getState().referenceWorkspace.activeTransformMode).toBe('translate')
+    expect(viewerSetReferenceTransformSession).toHaveBeenCalledWith({
+      referenceId: 'shoe:shoe-1',
+      mode: 'translate',
+      space: useAppStore.getState().referenceWorkspace.activeTransformSpace,
+    })
+    expect(viewerActivateTranslateCenterHandle).toHaveBeenCalledTimes(1)
+    expect(
+      useConsoleStore.getState().entries.some((entry) => entry.text === 'Move armed'),
+    ).toBe(true)
+    const summaryText = container?.querySelector('.ConsoleBarSummary')?.textContent ?? ''
+    expect(summaryText).toContain('Shoe 1 > M > Choose next')
+    expect(summaryText).toContain('Vec3 [0.0, 0.0, 0.0]')
+    expect(summaryText).toContain('CommitTransform')
+  })
+
+  it('enters the reference transform shell on transform and exits it only when CommitTransform is submitted', async () => {
+    const viewerSetReferenceTransformSession = vi.fn()
+    setViewer({
+      setReferenceTransformSession: viewerSetReferenceTransformSession,
+      setConsoleCameraMode: vi.fn(),
+    } as any)
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useAppStore.setState((state) => ({
+        ...state,
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          visibilityById: {
+            ...state.referenceWorkspace.visibilityById,
+            'shoe:shoe-1': true,
+          },
+          loadStateById: {
+            ...state.referenceWorkspace.loadStateById,
+            'shoe:shoe-1': 'loaded',
+          },
+        },
+      }))
+      useAppStore.getState().setWorkspaceSelectedTarget({
+        kind: 'reference-item',
+        referenceId: 'shoe:shoe-1',
+      })
+      useAppStore.getState().setActiveSurface('browser')
+      useAppStore.getState().requestConsoleContextSync('target-selection')
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('transform')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useAppStore.getState().referenceWorkspace.activeTransformReferenceId).toBe('shoe:shoe-1')
+    expect(useAppStore.getState().referenceWorkspace.activeTransformEntryActive).toBe(false)
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('referenceTransformRoot')
+    expect(useConsoleStore.getState().inputText).toBe('CommitTransform')
+    await act(async () => {
+      useConsoleStore.getState().setInputText('committransform')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useAppStore.getState().referenceWorkspace.activeTransformReferenceId).toBeNull()
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('referenceSelected')
   })
 
   it('falls back to graph scope when object selection is cleared', async () => {
@@ -4890,6 +5702,299 @@ describe('ConsoleDock', () => {
     expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
       'Select > Object > Object 1 > Choose next',
     )
+  })
+
+  it('exposes transform under a selected object and routes direct move through the canonical branch', async () => {
+    const viewerSetSelectedPart = vi.fn()
+    const viewerSetGizmoEnabled = vi.fn()
+    const viewerSetGizmoMode = vi.fn()
+    const viewerActivateTranslateCenterHandle = vi.fn()
+    setViewer({
+      setSelectedPart: viewerSetSelectedPart,
+      setGizmoEnabled: viewerSetGizmoEnabled,
+      setGizmoMode: viewerSetGizmoMode,
+      activateTranslateCenterHandle: viewerActivateTranslateCenterHandle,
+      setConsoleCameraMode: vi.fn(),
+    } as any)
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useAppStore.setState((state) => ({
+        ...state,
+        projectContent: {
+          ...state.projectContent,
+          objectsById: {
+            'object-1': {
+              objectId: 'object-1',
+              ownerGraphDocumentId: 'graph-document-1',
+              parentComponentId: null,
+              objectSourceKind: 'published-object',
+              sourceGraphDocumentId: 'graph-document-1',
+              sourceOutputEntryId: 'output-entry-1',
+              sourceNodeId: 'node-output-1',
+              slotId: 'slot-a',
+              label: 'Object 1',
+              resolutionState: 'resolved',
+            },
+          },
+        },
+      }))
+      useAppStore.getState().setWorkspaceSelectedTarget({
+        kind: 'object',
+        objectId: 'object-1',
+      })
+      useAppStore.getState().selectPart('slot-a')
+      useAppStore.getState().setActiveSurface('browser')
+      useAppStore.getState().requestConsoleContextSync('target-selection')
+    })
+
+    expect(
+      useConsoleStore
+        .getState()
+        .entries.some(
+          (entry) =>
+            entry.text === 'Object > Choose next [Transform, Move, Rotate, Scale, Zoom, Back]',
+        ),
+    ).toBe(true)
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('m')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(viewerSetSelectedPart).toHaveBeenCalledWith('slot-a')
+    expect(viewerSetGizmoEnabled).toHaveBeenCalledWith(true)
+    expect(viewerSetGizmoMode).toHaveBeenCalledWith('translate')
+    expect(viewerActivateTranslateCenterHandle).toHaveBeenCalledTimes(1)
+    expect(
+      useConsoleStore.getState().entries.some(
+        (entry) => entry.text === 'Select > Object > Object 1 > Transform > Move',
+      ),
+    ).toBe(true)
+    expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
+      'Select > Object > Object 1 > Transform > Choose next',
+    )
+  })
+
+  it('uses the same object-local zoom branch for viewer-driven target sync as browser selection', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useAppStore.setState((state) => ({
+        ...state,
+        projectContent: {
+          ...state.projectContent,
+          objectsById: {
+            'object-1': {
+              objectId: 'object-1',
+              ownerGraphDocumentId: 'graph-document-1',
+              parentComponentId: null,
+              objectSourceKind: 'published-object',
+              sourceGraphDocumentId: 'graph-document-1',
+              sourceOutputEntryId: 'output-entry-1',
+              sourceNodeId: 'node-output-1',
+              slotId: 'slot-a',
+              label: 'Object 1',
+              resolutionState: 'resolved',
+            },
+          },
+        },
+      }))
+      useAppStore.getState().setWorkspaceSelectedTarget({
+        kind: 'object',
+        objectId: 'object-1',
+      })
+      useAppStore.getState().setActiveSurface('viewer')
+      useAppStore.getState().requestConsoleContextSync('target-selection')
+    })
+
+    const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('z')
+    })
+
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('contentObjectZoomRoot')
+    expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
+      'Select > Object > Object 1 > Zoom > Choose next',
+    )
+  })
+
+  it('frames a browser-selected object from object-local z > o even when selectedPartKey is null', async () => {
+    const viewerFrameSelected = vi.fn()
+    setViewer({
+      frameAll: vi.fn(),
+      frameExtents: vi.fn(),
+      frameGeometrySketch: vi.fn(),
+      framePrevious: vi.fn(),
+      frameSelected: viewerFrameSelected,
+      frameReference: vi.fn(),
+      setConsoleCameraMode: vi.fn(),
+    } as any)
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useAppStore.setState((state) => ({
+        ...state,
+        projectContent: {
+          ...state.projectContent,
+          objectsById: {
+            'object-1': {
+              objectId: 'object-1',
+              ownerGraphDocumentId: 'graph-document-1',
+              parentComponentId: null,
+              objectSourceKind: 'published-object',
+              sourceGraphDocumentId: 'graph-document-1',
+              sourceOutputEntryId: 'output-entry-1',
+              sourceNodeId: 'node-output-1',
+              slotId: 'slot-a',
+              label: 'Object 1',
+              resolutionState: 'resolved',
+            },
+          },
+        },
+        selectedPartKey: null,
+      }))
+      useAppStore.getState().setWorkspaceExplicitSelection({
+        selectedTarget: {
+          kind: 'object',
+          objectId: 'object-1',
+        },
+        explicitSelectedTargets: [
+          {
+            kind: 'object',
+            objectId: 'object-1',
+          },
+        ],
+        selectionAnchorTarget: {
+          kind: 'object',
+          objectId: 'object-1',
+        },
+      })
+      useAppStore.getState().setActiveSurface('browser')
+      useAppStore.getState().requestConsoleContextSync('target-selection')
+    })
+
+    const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('z')
+    })
+
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('Object')
+    })
+
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(
+      useConsoleStore.getState().entries.some(
+        (entry) => entry.text === 'Select > Object > Object 1 > Zoom > Object',
+      ),
+    ).toBe(true)
+    expect(viewerFrameSelected).toHaveBeenCalledWith('slot-a')
+    expect(
+      useConsoleStore.getState().entries.some(
+        (entry) => entry.text === 'Zoom Object requires a selected part, object, or reference',
+      ),
+    ).toBe(false)
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('contentObjectSelected')
+    expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
+      'Select > Object > Object 1 > Choose next',
+    )
+  })
+
+  it('returns to object scope after object-local z > w arms zoom window', async () => {
+    const viewerSetConsoleCameraMode = vi.fn()
+    setViewer({
+      frameAll: vi.fn(),
+      frameExtents: vi.fn(),
+      frameGeometrySketch: vi.fn(),
+      framePrevious: vi.fn(),
+      frameSelected: vi.fn(),
+      frameReference: vi.fn(),
+      setConsoleCameraMode: viewerSetConsoleCameraMode,
+    } as any)
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useAppStore.setState((state) => ({
+        ...state,
+        projectContent: {
+          ...state.projectContent,
+          objectsById: {
+            'object-1': {
+              objectId: 'object-1',
+              ownerGraphDocumentId: 'graph-document-1',
+              parentComponentId: null,
+              objectSourceKind: 'published-object',
+              sourceGraphDocumentId: 'graph-document-1',
+              sourceOutputEntryId: 'output-entry-1',
+              sourceNodeId: 'node-output-1',
+              slotId: 'slot-a',
+              label: 'Object 1',
+              resolutionState: 'resolved',
+            },
+          },
+        },
+      }))
+      useAppStore.getState().setWorkspaceSelectedTarget({
+        kind: 'object',
+        objectId: 'object-1',
+      })
+      useAppStore.getState().setActiveSurface('browser')
+      useAppStore.getState().requestConsoleContextSync('target-selection')
+    })
+
+    const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('z')
+    })
+
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('w')
+    })
+
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(viewerSetConsoleCameraMode).toHaveBeenCalledWith('zoom-window')
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('contentObjectSelected')
   })
 
   it('updates the object-selected console session when viewer sync changes to a different object in the same graph', async () => {
@@ -5961,7 +7066,7 @@ describe('ConsoleDock', () => {
 
     await act(async () => {
       window.dispatchEvent(
-        new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }),
+        new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true, cancelable: true }),
       )
     })
 
@@ -6177,7 +7282,7 @@ describe('ConsoleDock', () => {
 
     await act(async () => {
       window.dispatchEvent(
-        new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }),
+        new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true, cancelable: true }),
       )
     })
 
@@ -6795,7 +7900,7 @@ describe('ConsoleDock', () => {
     await act(async () => {
       input?.focus()
       input?.dispatchEvent(
-        new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }),
+        new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true, cancelable: true }),
       )
     })
 
@@ -6806,7 +7911,7 @@ describe('ConsoleDock', () => {
 
     await act(async () => {
       input?.dispatchEvent(
-        new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true, cancelable: true }),
+        new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }),
       )
     })
 
@@ -6926,7 +8031,7 @@ describe('ConsoleDock', () => {
 
     await act(async () => {
       window.dispatchEvent(
-        new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }),
+        new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true, cancelable: true }),
       )
     })
 
@@ -6937,7 +8042,7 @@ describe('ConsoleDock', () => {
 
     await act(async () => {
       window.dispatchEvent(
-        new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true, cancelable: true }),
+        new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }),
       )
     })
 

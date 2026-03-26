@@ -91,6 +91,7 @@ export interface ViewerApi {
   frameSelectedGeometrySketch: () => boolean
   framePrevious: () => void
   frameSelected: (partId: string | null) => void
+  frameSelectionSet: (partIds: string[], referenceIds: string[]) => boolean
   frameReference: (referenceId: string) => void
   snapCameraToDirection: (dir: SnapDirection) => void
   zoomCameraByWheelDelta: (deltaY: number) => void
@@ -105,6 +106,7 @@ export interface ViewerApi {
   setGizmoEnabled: (enabled: boolean) => void
   setGizmoMode: (mode: GizmoMode) => void
   completeReferenceTransformDrag: () => void
+  commitReferenceTransformSession: () => void
   cancelReferenceTransformDrag: () => void
   clearReferenceTransformHandle: () => void
   activateTranslateCenterHandle: () => void
@@ -135,6 +137,7 @@ export interface ViewerApi {
   setOnReferenceTransformChange: (
     handler: ((referenceId: string, transform: ReferenceTransformOverride) => void) | null,
   ) => void
+  setOnReferenceTransformCommit: (handler: (() => void) | null) => void
   setOnReferenceTransformExit: (handler: (() => void) | null) => void
   setOnReferenceTransformModeChange: ((handler: ((mode: GizmoMode) => void) | null) => void)
   setOnReferenceTransformSpaceChange: ((handler: ((space: GizmoSpace) => void) | null) => void)

@@ -3,6 +3,43 @@
 ## Doc Header
 
 ### Doc History
+310. 2026-03-26 19:38: Expanded `docs/Human-Plans/Wish-Features/WISHLIST.md` with a new `[03] Generative Design` entry, framing a realistic ParaHook-first path around graph-driven design studies, candidate generation, constraints, scoring, and promotion of winning variants instead of assuming full Fusion-scale topology optimization on day one
+309. 2026-03-26 19:37: Expanded `docs/Human-Plans/Wish-Features/WISHLIST.md` with a new `[02] Animation` entry covering believable authored-solid motion, Fusion-style motion-study ideas, first mechanical motion types, linked gear behavior, ownership guidance, and a staged rollout
+308. 2026-03-26 19:23: Added `docs/Human-Plans/Architecture/Transform/Future/Transform_Phase Transform-3 - Shared Transform Shell And Repeated Steps.md` as the standalone future Transform-family phase doc for the durable transform-shell and repeated-step behavior, keeping the locked post-entry-commit and `CommitTransform` rules while leaving the shell-spawn-on-Transform-entry question explicit
+307. 2026-03-26 19:21: Updated `docs/Human-Plans/Architecture/Transform/transform-index.md` to add explicit `[x]` and `[ ]` status markers on transform phase titles and question headings, so fully locked phases now read as complete at a glance while open questions remain visibly unresolved
+306. 2026-03-26 19:19: Updated `docs/Human-Plans/Architecture/Transform/transform-index.md` to lock `Transform 3` `q1` through `q3`, deciding that committed transform entries stay inside the target-local `Transform` shell until `CommitTransform` exits, that history remains visible between repeated steps, and that the shared shell stays app/store-owned across Console and toolbar surfaces; also added a new `q4` to explicitly decide whether entering `Transform` itself should spawn the shared transform session and toolbar
+305. 2026-03-26 19:11: Expanded `docs/Human-Plans/Wish-Features/WISHLIST.md` by rewriting the paraslider-input / `LFO` idea into a clearer wishlist entry with product rationale, first-pass row behavior, suggested `LFO` controls, architecture suggestions, non-goals, and a small staged rollout
+304. 2026-03-26 19:02: Updated `docs/Human-Plans/roadmap/Vision-roadmap.md` against the newer architecture direction so the north-star now explicitly captures the hybrid workspace/layout model, real CAD-style authored `Layers`, and `Transform` as a cross-surface target-local system instead of leaving those ideas only in the detailed architecture docs
+303. 2026-03-26 18:24: Added `docs/Human-Plans/Architecture/Transform/Future/Transform_Phase Transform-2 - Canonical Hierarchy And Target Ownership.md` as the standalone future Transform-family phase doc for the first canonical hierarchy and non-reference target ownership pass
+302. 2026-03-26 18:22: Updated `docs/Human-Plans/Architecture/Transform/transform-index.md` to lock the `Transform 2` questions, deciding that `Transform` is the canonical first transform entry, direct target-local `Move/Rotate/Scale` remain adapter shortcuts, and real non-reference ownership in this phase should cover object, folder, and assembly targets
+301. 2026-03-26 18:18: Added `docs/Human-Plans/Architecture/Transform/Future/Transform_Phase Transform-1 - Reference Session And History Foundation.md` as the first standalone Transform-family future phase doc, translating the locked reference-first session/history foundation from the older Browser `7.3` planning into a Transform-native implementation-ready spec
+300. 2026-03-26 18:14: Updated `docs/Human-Plans/Architecture/Transform/transform-index.md` to lock the first `Transform 1` questions, deciding that the foundation phase stays reference-first, active transforms must enter the live session, and committed transform history should persist for the life of the target instead of being auto-pruned
+299. 2026-03-26 18:10: Updated `docs/Human-Plans/Architecture/Transform/transform-index.md` to turn the new transform ladder into explicit `###` phase sections with `####` questions and `##### Suggestion` blocks for `Transform 1` through `Transform 4`
+298. 2026-03-26 18:05: Updated `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-7.5 - Final Transform Direction And Phase Split.md`, `docs/Human-Plans/Architecture/Browser/Browser-Index.md`, and `docs/Human-Plans/Architecture/Transform/transform-index.md` to shift the transform ladder so the old Browser `7.3` foundation now counts as `Transform 1`, with the later phases moving up to `Transform 2`, `Transform 3`, and `Transform 4`
+297. 2026-03-26 18:00: Updated `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-7.5 - Final Transform Direction And Phase Split.md`, `docs/Human-Plans/Architecture/Browser/Browser-Index.md`, and `docs/Human-Plans/Architecture/Transform/transform-index.md` to rename the next transform ladder from Browser-numbered `8.1`, `8.2`, and `8.3` into `Transform 1`, `Transform 2`, and `Transform 3`
+296. 2026-03-26 17:55: Created the new `docs/Human-Plans/Architecture/Transform/` family with `Future/`, `Shipped/`, and `transform-index.md` so transform planning now has its own cross-surface architecture home instead of staying only inside Browser docs
+295. 2026-03-26 17:50: Updated `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-7.5 - Final Transform Direction And Phase Split.md` plus `docs/Human-Plans/Architecture/Browser/Browser-Index.md` to collapse the earlier lettered transform ladder into three named Browser phases `8.1`, `8.2`, and `8.3`, covering transform hierarchy plus target ownership, shared transform-shell behavior, and later viewport-history visuals plus traversal/cleanup before the later rename into `Transform 1`, `Transform 2`, and `Transform 3`
+294. 2026-03-26 17:46: Updated `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-7.5 - Final Transform Direction And Phase Split.md` plus `docs/Human-Plans/Architecture/Browser/Browser-Index.md` to lock the first viewport-history clutter rules and to break the Browser transform umbrella into a concrete subphase ladder, clarifying active-row emphasis, merge-driven visual removal, non-uniform scale ellipsoid overlays, and the explicit `7.5A` through `7.5E` execution slices around hierarchy, non-reference ownership, shared shell behavior, viewport visuals, traversal, and later cleanup
+293. 2026-03-26 17:39: Updated `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-7.5 - Final Transform Direction And Phase Split.md` to lock first rotate and scale history-visualization directions, clarifying that scale history should compare original versus committed scale with sphere overlays and rotate history should compare original versus committed plane-normal directions with an AutoCAD-style angle-dimension guide without requiring a numeric label
+292. 2026-03-26 17:35: Updated `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-7.5 - Final Transform Direction And Phase Split.md` to lock a viewport move-history path visualization, clarifying that committed move entries should draw a connected line from the original origin through each successive committed origin point so the movement path stays visible beside the toolbar history
+291. 2026-03-26 17:31: Updated `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-7.5 - Final Transform Direction And Phase Split.md` to lock post-commit return behavior for the umbrella transform direction, clarifying that committed transform steps should return to the same target-local `Transform > Choose next` scope so the transform toolbar/session shell stays alive and target-local history remains visible
+290. 2026-03-26 17:27: Updated `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-7.5 - Final Transform Direction And Phase Split.md` to lock typed plane-entry behavior for the umbrella transform grammar, clarifying that paths like `Select > Object > <Label> > Transform > Move > XY` should expect a `Vec2` input such as `10,10`
+289. 2026-03-26 17:24: Updated `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-7.5 - Final Transform Direction And Phase Split.md` to lock typed axis-entry behavior for the umbrella transform grammar, clarifying that paths like `Select > Object > <Label> > Transform > Move > X` should expect a float input in the same broad pattern as sketch-plane transform
+288. 2026-03-26 17:20: Updated `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-7.5 - Final Transform Direction And Phase Split.md` to lock direct selected-target `Move`, `Rotate`, and `Scale` as convenience shortcut adapters into the canonical `Transform > Move/Rotate/Scale` branch, including explicit `m / r / s` typed alias behavior while keeping breadcrumbs honest through `Transform`
+287. 2026-03-26 17:07: Updated `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-7.5 - Final Transform Direction And Phase Split.md` plus `docs/Human-Plans/Architecture/Browser/Browser-Index.md` to lock the final Browser transform hierarchy so valid selected targets expose `Transform` first and only expose `Move`, `Rotate`, and `Scale` one level deeper, including the canonical staged breadcrumb example `Select > References > premadefoothooks > XL > Transform > Move`
+286. 2026-03-26 17:02: Renamed and reframed `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-7.5 - Final Transform Direction And Phase Split.md` so `7.5` now acts as the umbrella Browser transform phase instead of an object-only ownership follow-on, and updated `docs/Human-Plans/Architecture/Browser/Browser-Index.md` to point at that broader standalone transform-direction doc
+285. 2026-03-26 16:58: Reframed `docs/Human-Plans/Architecture/Browser/Browser-Index.md` so `Browser-7.5` now acts as the real umbrella transform phase, with `7.3` and `7.4` treated as narrower transform sub-directions under that broader final-transform definition effort, and expanded the Browser long-term vision to explicitly include the later transform-history traversal and restore direction
+284. 2026-03-26 16:52: Added the first standalone Browser `7.5` future phase doc as a transform follow-on, initially framing the need for real object-owned transform session, toolbar, and history ownership separate from the already reference-first `Browser-7.3` work instead of letting `Select > Object` grow a fake redirect into reference transform
+283. 2026-03-26 16:24: Tightened `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-7.3 - Reference Transform Session History.md` for near-term implementation by making the live transform command surface explicit, locking `CommitTransform` plus `Esc` behavior inside the active session, and clarifying the assisted vec3 prefill versus typed axis/plane-entry rules
+282. 2026-03-26 16:18: Expanded `docs/Human-Plans/Architecture/Browser/Browser-Index.md` under `Browser-7 - Browser Cleanup Follow-Ons` by adding a new `b7.4` tracked entry for transform-history traversal and restore, keeping that larger playback/replay follow-on explicitly separate from the narrower `b7.3` live transform session and append-history foundation
+281. 2026-03-26 16:15: Tightened the Browser `7.3` planning docs again by updating `docs/Human-Plans/Architecture/Browser/Browser-Index.md`, `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-7 - Browser Cleanup Follow-Ons.md`, and `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-7.3 - Reference Transform Session History.md` so the explicit live transform option set and assisted vec3-prefill rules now apply to `Rotate` and `Scale` as well as `Move`
+280. 2026-03-26 16:12: Tightened the Browser `7.3` planning docs again by updating `docs/Human-Plans/Architecture/Browser/Browser-Index.md`, `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-7 - Browser Cleanup Follow-Ons.md`, and `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-7.3 - Reference Transform Session History.md` to lock the first explicit live `Move` option set as `Vec3`, `X`, `Y`, `Z`, `XY`, `XZ`, and `YZ`, along with the assisted vec3 prefill and typed-entry restore rules
+279. 2026-03-26 16:00: Expanded `docs/Human-Plans/Architecture/Browser/Browser-Index.md` under `Browser-7 - Browser Cleanup Follow-Ons` by adding the first `b7.3` tracked entry plus locked `q23` through `q27`, keeping the transform-session follow-on reference-first and recording the now-locked live-session, commit-return, store-owned history, and enriched sketch-plane-style history UI decisions in the Browser umbrella doc
+278. 2026-03-26 15:40: Updated `docs/Human-Plans/roadmap/Architecture-roadmap.md` so the cross-family roadmap now includes the new `Layers` family and its open `Layers-1` through `Layers-4` ladder for foundation, manager-plus-console controls, sketch entity ownership, and authored 3D object visibility
+277. 2026-03-26 12:55: Broke the `Layers` family into a four-phase execution ladder by updating `docs/Human-Plans/Architecture/Layers/Layers.md`, adding four standalone future `Layers` phase docs under `docs/Human-Plans/Architecture/Layers/Future/`, refreshing `docs/Doc-Index.md` so the Layers subtree now lists those new planning surfaces, and capturing the code-backed phase split in `docs/Human-Plans/CodexNotes/12_CodexChatNotes.md`
+276. 2026-03-26 11:26: Expanded `docs/Human-Plans/Architecture/Layers/Layers.md` again to explicitly lock the first console-facing CAD layer visibility commands as `turn off layer`, `turn on all layers`, and multi-layer `isolate layers`, and captured that follow-on decision in `docs/Human-Plans/CodexNotes/12_CodexChatNotes.md`
+275. 2026-03-26 11:16: Expanded `docs/Human-Plans/Architecture/Layers/Layers.md` into a real AutoCAD-style layer architecture direction, adding the first layer-manager, visibility/color, current-layer, and shared selection-based assignment rules for sketch entities plus authored 3D objects, and captured that reusable product decision in `docs/Human-Plans/CodexNotes/12_CodexChatNotes.md`
+274. 2026-03-26 07:18: Added `docs/Human-Plans/Architecture/Layers/Layers.md`, created the new folderized `Layers/Future/` and `Layers/Shipped/` architecture structure, and refreshed `docs/Doc-Index.md` so layer-specific planning now has a canonical umbrella home under `docs/Human-Plans/Architecture/`
 273. 2026-03-25 22:17: Cleaned up the Browser architecture docs after shipping `Browser-6 - BrowserPanel Structure And Row-Family Cleanup` by moving its standalone phase record from `docs/Human-Plans/Architecture/Browser/Future/` into `Browser/Shipped/`, updating `docs/Human-Plans/Architecture/Browser/Browser-Index.md` plus `docs/Human-Plans/roadmap/Architecture-roadmap.md` to the post-Browser-6 state, and refreshing `docs/Doc-Index.md` so the Browser subtree now shows `Browser-7` as the remaining future Browser phase
 272. 2026-03-25 21:57: Tightened `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-6 - BrowserPanel Structure And Row-Family Cleanup.md` and refreshed the open `Browser-6` read in `docs/Human-Plans/Architecture/Browser/Browser-Index.md` against the live Browser panel, row-family, interaction, presenter, menu, and Console-5.1G seams so the Browser family now consistently frames Browser-6 as the remaining BrowserPanel model/controller and overlay-wiring cleanup instead of re-planning extractions that are already landed
 271. 2026-03-25 21:49: Cleaned up the Console architecture docs after shipping `[5.1G] Surface-Agnostic Command Ownership And Adapter Expansion` by moving its standalone phase record from `Console/Future/` into `Console/Shipped/`, updating `docs/Human-Plans/Architecture/Console/Console.md` plus the architecture docs map and cross-family roadmap to the post-`5.1G` state, and keeping the console family aligned with the now-landed owner-first command-expansion cut
@@ -48,6 +85,94 @@
 232. 2026-03-25 03:15: Locked the first three `Browser-5.1` reference-selection decisions across both `docs/Human-Plans/Architecture/Browser/Browser-Index.md` and the standalone `Browser_Phase Browser-5.1 - Reference Selection Cleanup.md`, deciding that ordinary reference selection stays lightweight, viewport-picked references should follow into matching Browser rows when the mapping is clear, and empty-space click plus replacement click own normal reference deselect and replacement
 231. 2026-03-25 03:13: Locked `q2` in `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-5.1 - Reference Selection Cleanup.md`, deciding that viewport-picked references should drive Browser row selection whenever one clear matching reference row exists while still avoiding fake sync for ambiguous cases
 230. 2026-03-25 03:12: Locked `q1` in `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-5.1 - Reference Selection Cleanup.md`, deciding that ordinary reference selection only highlights/selects the reference while stronger transform ownership must remain a separate explicit action instead of starting from normal row or viewport selection
+
+<!-- ENTRY 310 -->
+### [310] - 2026-03-26 19:38 - `DOC - Add Generative Design Wishlist Entry`
+<!-- ENTRY 310 -->
+HUMAN SUMMARY: `Added a third wishlist entry for generative design, but framed it as a realistic ParaHook-first design-study system built from graph-driven variation, constraints, candidate generation, scoring, and candidate promotion instead of promising full Fusion-scale generative optimization immediately.`
+
+#### Scope
+- Limited this change to wishlist/documentation content under `docs/`.
+- Did not change runtime code, schema, or UI behavior.
+- Focused the update on translating the rough generative-design question into a practical staged feature concept.
+
+#### Summary
+- Updated `docs/Human-Plans/Wish-Features/WISHLIST.md`.
+- Added a new `[03] Generative Design` entry covering design studies, parameter/rule inputs, candidate galleries, simple metrics, and later AI-assisted follow-ons.
+- Kept the feature grounded in existing ParaHook direction such as graph-native authoring, deterministic builds, explicit candidate records, and promotion of winning designs into real branches.
+
+#### Files Changed
+- `docs/Human-Plans/Wish-Features/WISHLIST.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This is documentation/planning capture only; no implementation work was performed in this change.
+
+<!-- ENTRY 309 -->
+### [309] - 2026-03-26 19:37 - `DOC - Add Animation Wishlist Entry`
+<!-- ENTRY 309 -->
+HUMAN SUMMARY: `Added a second wishlist entry for believable 3D-solid animation, framing it around mechanical motion study rather than general VFX animation and capturing Fusion-style ideas like motion links, joint-like motion definitions, playback, and gear-ratio behavior.`
+
+#### Scope
+- Limited this change to wishlist/documentation content under `docs/`.
+- Did not change runtime code, schema, or UI behavior.
+- Focused the update on turning the rough animation idea into a clearer future-feature concept.
+
+#### Summary
+- Updated `docs/Human-Plans/Wish-Features/WISHLIST.md`.
+- Added a new `[02] Animation` entry for authored-solid motion such as gears, sliders, hinges, and linked motion.
+- Added product, UX, Console, ownership, architecture, non-goal, and rollout suggestions influenced by useful Fusion-style motion-study patterns.
+
+#### Files Changed
+- `docs/Human-Plans/Wish-Features/WISHLIST.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This is documentation/planning capture only; no implementation work was performed in this change.
+
+<!-- ENTRY 305 -->
+### [305] - 2026-03-26 19:11 - `DOC - Expand Paraslider Input And LFO Wishlist Idea`
+<!-- ENTRY 305 -->
+HUMAN SUMMARY: `Expanded the wishlist note for wireable paraslider rows and a first `LFO` driver node so the idea now reads like a reusable product concept with clearer UX, architecture, non-goals, and phased rollout suggestions instead of only a short rough note.`
+
+#### Scope
+- Limited this change to wishlist/documentation content under `docs/`.
+- Did not change runtime code, schema, or UI behavior.
+- Focused the update on making the rough feature idea easier to evaluate later.
+
+#### Summary
+- Updated `docs/Human-Plans/Wish-Features/WISHLIST.md`.
+- Reframed paraslider rows as authored controls that could optionally accept graph-driven float inputs.
+- Added suggested `LFO` controls, row states, UX behavior, architecture guidance, non-goals, and a small staged rollout.
+
+#### Files Changed
+- `docs/Human-Plans/Wish-Features/WISHLIST.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This is documentation/planning capture only; no implementation work was performed in this change.
+
+<!-- ENTRY 304 -->
+### [304] - 2026-03-26 19:02 - `DOC - Refresh Vision Roadmap From New Architecture Families`
+<!-- ENTRY 304 -->
+HUMAN SUMMARY: `Updated the vision roadmap so the north-star now explicitly carries the newer architecture direction around hybrid workspace layout, real CAD-style authored layers, and transform as one cross-surface target-local system instead of leaving those ideas buried only in the detailed family docs.`
+
+#### Scope
+- Limited this change to roadmap/architecture documentation under `docs/`.
+- Did not change runtime code, schema, or UI behavior.
+- Focused the update on durable product-direction truths that now belong in the vision doc.
+
+#### Summary
+- Updated `docs/Human-Plans/roadmap/Vision-roadmap.md`.
+- Added explicit vision-level direction for hybrid `Windowed` / `Tiled` workspace layout and later pop-out growth under one shared surface model.
+- Added authored `Layers` and cross-surface `Transform` ownership to the north-star guardrails, desired end state, major feature families, and decision filter.
+
+#### Files Changed
+- `docs/Human-Plans/roadmap/Vision-roadmap.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This is documentation/planning capture only; no implementation work was performed in this change.
 229. 2026-03-25 03:08: Created `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-5.1 - Reference Selection Cleanup.md`, updated `docs/Human-Plans/Architecture/Browser/Browser-Index.md` to record that new standalone follow-up surface, and refreshed `docs/Doc-Index.md` so the Browser family map now lists the immediate post-`Browser-5` reference-selection cleanup as its own future phase doc
 228. 2026-03-25 03:00: Created `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Future/Master_Spaghetti_Phase Master Spaghetti-1 - Smart Wiring And Intent-Aware Auto-Insert First Pass.md`, linked it from `master spaghetti-index.md`, and refreshed `docs/Doc-Index.md` so the Spaghetti editor umbrella now has a standalone implementation-ready future phase doc for the first smart-wiring QoL slice grounded on the real `SketchProfile -> Geometry/Extrude -> OutputPreview` path
 227. 2026-03-25 03:00: Expanded `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/master spaghetti-index.md` with the first explicit `Master Spaghetti` phase, framing `Master Spaghetti-1 - Smart Wiring And Intent-Aware Auto-Insert First Pass` as a narrow umbrella QoL slice for sketch-wire-to-output auto-extrude insertion while also updating the family-status language so the new index reads as having one proving-slice phase rather than still claiming no phase structure at all

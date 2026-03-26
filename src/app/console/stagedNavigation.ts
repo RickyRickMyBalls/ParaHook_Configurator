@@ -75,12 +75,20 @@ export type ConsoleStagedNavigationScopeId =
   | 'graphOutputPreviewList'
   | 'graphOutputPreviewSelected'
   | 'contentAssemblySelected'
+  | 'contentAssemblyZoomRoot'
   | 'contentComponentSelected'
   | 'contentObjectSelected'
+  | 'contentObjectTransformRoot'
+  | 'contentObjectZoomRoot'
   | 'multiSelectSelected'
+  | 'multiSelectZoomRoot'
   | 'referencesSelected'
+  | 'referencesZoomRoot'
   | 'referenceCategorySelected'
+  | 'referenceCategoryZoomRoot'
   | 'referenceSelected'
+  | 'referenceTransformRoot'
+  | 'referenceZoomRoot'
 
 export type ConsoleStagedNavigationSelection = {
   graphDocumentId: string | null
@@ -88,6 +96,9 @@ export type ConsoleStagedNavigationSelection = {
   sketchNodeId: string | null
   referenceId?: string | null
   referenceCategoryId?: string | null
+  referenceCanLoadModel?: boolean
+  referenceZoomIds?: string[]
+  multiSelectLabels?: string[]
 }
 
 export type ConsoleStagedNavigationSession = {
@@ -147,10 +158,14 @@ export type ConsoleStagedNavigationExecuteResult = {
     | 'node.delete'
     | 'reference.loadAll'
     | 'reference.category.loadAll'
-    | 'reference.loadModel'
-    | 'reference.transform.move'
-    | 'reference.transform.rotate'
-    | 'reference.transform.scale'
+  | 'reference.loadModel'
+  | 'reference.transform.commitShell'
+  | 'reference.transform.move'
+  | 'reference.transform.rotate'
+  | 'reference.transform.scale'
+    | 'content.transform.move'
+    | 'content.transform.rotate'
+    | 'content.transform.scale'
   breadcrumb: string[]
   selections: ConsoleStagedNavigationSelection
 }
@@ -593,6 +608,20 @@ const SCALE_CHOICE: ConsoleStagedNavigationChoice = {
   kind: 'action',
 }
 
+const TRANSFORM_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'TRANSFORM',
+  aliases: ['T'],
+  label: 'Transform',
+  kind: 'scope',
+}
+
+const COMMIT_TRANSFORM_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'COMMITTRANSFORM',
+  aliases: ['COMMIT'],
+  label: 'CommitTransform',
+  kind: 'action',
+}
+
 const createBackChoice = (): ConsoleStagedNavigationChoice => ({
   canonicalToken: 'BACK',
   aliases: ['B'],
@@ -801,7 +830,22 @@ const buildGraphNodeSelectedChoices = (): ConsoleStagedNavigationChoice[] => [
 ]
 
 const buildContentSelectedChoices = (): ConsoleStagedNavigationChoice[] => [createBackChoice()]
-const buildMultiSelectSelectedChoices = (): ConsoleStagedNavigationChoice[] => [createBackChoice()]
+const buildContentAssemblySelectedChoices = (): ConsoleStagedNavigationChoice[] => [
+  ROOT_ZOOM_CHOICE,
+  createBackChoice(),
+]
+const buildContentObjectSelectedChoices = (): ConsoleStagedNavigationChoice[] => [
+  TRANSFORM_CHOICE,
+  MOVE_CHOICE,
+  ROTATE_CHOICE,
+  SCALE_CHOICE,
+  ROOT_ZOOM_CHOICE,
+  createBackChoice(),
+]
+const buildMultiSelectSelectedChoices = (): ConsoleStagedNavigationChoice[] => [
+  ROOT_ZOOM_CHOICE,
+  createBackChoice(),
+]
 
 const buildReferencesSelectedChoices = (
   categoryOptions: Array<{ categoryId: string; label: string; canLoadAll?: boolean }>,
@@ -811,6 +855,7 @@ const buildReferencesSelectedChoices = (
     createReferenceCategoryChoice(category.categoryId, category.label),
   ),
   ...(canLoadAll ? [REFERENCES_LOAD_ALL_CHOICE] : []),
+  ROOT_ZOOM_CHOICE,
   createBackChoice(),
 ]
 
@@ -820,14 +865,29 @@ const buildReferenceCategorySelectedChoices = (
 ): ConsoleStagedNavigationChoice[] => [
   ...itemOptions.map((item) => createReferenceItemChoice(item.referenceId, item.label)),
   ...(canLoadAll ? [REFERENCES_LOAD_ALL_CHOICE] : []),
+  ROOT_ZOOM_CHOICE,
   createBackChoice(),
 ]
 
 const buildReferenceSelectedChoices = (canLoadModel: boolean): ConsoleStagedNavigationChoice[] => [
   ...(canLoadModel
-    ? [REFERENCE_LOAD_MODEL_CHOICE]
-    : [MOVE_CHOICE, ROTATE_CHOICE, SCALE_CHOICE]),
+    ? [REFERENCE_LOAD_MODEL_CHOICE, ROOT_ZOOM_CHOICE]
+    : [TRANSFORM_CHOICE, MOVE_CHOICE, ROTATE_CHOICE, SCALE_CHOICE, ROOT_ZOOM_CHOICE]),
   createBackChoice(),
+]
+
+const buildTransformRootChoices = (): ConsoleStagedNavigationChoice[] => [
+  MOVE_CHOICE,
+  ROTATE_CHOICE,
+  SCALE_CHOICE,
+  createBackChoice(),
+]
+
+const buildReferenceTransformRootChoices = (): ConsoleStagedNavigationChoice[] => [
+  COMMIT_TRANSFORM_CHOICE,
+  MOVE_CHOICE,
+  ROTATE_CHOICE,
+  SCALE_CHOICE,
 ]
 
 const createGraphRootSession = (
@@ -1014,7 +1074,19 @@ const createContentAssemblySelectedSession = (label: string): ConsoleStagedNavig
     sketchNodeId: null,
     referenceId: null,
   },
-  validChoices: buildContentSelectedChoices(),
+  validChoices: buildContentAssemblySelectedChoices(),
+})
+
+const createContentAssemblyZoomRootSession = (label: string): ConsoleStagedNavigationSession => ({
+  scopeId: 'contentAssemblyZoomRoot',
+  breadcrumb: ['Select', 'Assembly', label, 'Zoom'],
+  selections: {
+    graphDocumentId: null,
+    selectedNodeId: null,
+    sketchNodeId: null,
+    referenceId: null,
+  },
+  validChoices: buildZoomActionChoices(),
 })
 
 const createContentComponentSelectedSession = (
@@ -1044,19 +1116,65 @@ const createContentObjectSelectedSession = (
     sketchNodeId: null,
     referenceId: null,
   },
-  validChoices: buildContentSelectedChoices(),
+  validChoices: buildContentObjectSelectedChoices(),
 })
 
-const createMultiSelectSelectedSession = (): ConsoleStagedNavigationSession => ({
+const createContentObjectZoomRootSession = (
+  label: string,
+  fallbackGraphDocumentId: string | null,
+): ConsoleStagedNavigationSession => ({
+  scopeId: 'contentObjectZoomRoot',
+  breadcrumb: ['Select', 'Object', label, 'Zoom'],
+  selections: {
+    graphDocumentId: fallbackGraphDocumentId,
+    selectedNodeId: null,
+    sketchNodeId: null,
+    referenceId: null,
+  },
+  validChoices: buildZoomActionChoices(),
+})
+
+const createContentObjectTransformRootSession = (
+  label: string,
+  fallbackGraphDocumentId: string | null,
+): ConsoleStagedNavigationSession => ({
+  scopeId: 'contentObjectTransformRoot',
+  breadcrumb: ['Select', 'Object', label, 'Transform'],
+  selections: {
+    graphDocumentId: fallbackGraphDocumentId,
+    selectedNodeId: null,
+    sketchNodeId: null,
+    referenceId: null,
+  },
+  validChoices: buildTransformRootChoices(),
+})
+
+const formatMultiSelectLabels = (labels: readonly string[]): string => `[${labels.join(', ')}]`
+
+const createMultiSelectSelectedSession = (labels: string[]): ConsoleStagedNavigationSession => ({
   scopeId: 'multiSelectSelected',
-  breadcrumb: ['Select', 'Multi Select'],
+  breadcrumb: ['Multi-Select', formatMultiSelectLabels(labels)],
   selections: {
     graphDocumentId: null,
     selectedNodeId: null,
     sketchNodeId: null,
     referenceId: null,
+    multiSelectLabels: labels,
   },
   validChoices: buildMultiSelectSelectedChoices(),
+})
+
+const createMultiSelectZoomRootSession = (labels: string[]): ConsoleStagedNavigationSession => ({
+  scopeId: 'multiSelectZoomRoot',
+  breadcrumb: ['Multi-Select', formatMultiSelectLabels(labels), 'Zoom'],
+  selections: {
+    graphDocumentId: null,
+    selectedNodeId: null,
+    sketchNodeId: null,
+    referenceId: null,
+    multiSelectLabels: labels,
+  },
+  validChoices: buildZoomActionChoices(),
 })
 
 const createReferenceSelectedSession = (
@@ -1077,14 +1195,60 @@ const createReferenceSelectedSession = (
     sketchNodeId: null,
     referenceId,
     referenceCategoryId,
+    referenceCanLoadModel: canLoadModel,
   },
   validChoices: buildReferenceSelectedChoices(canLoadModel),
+})
+
+const createReferenceTransformRootSession = (
+  label: string,
+  referenceId: string,
+  referenceCategoryId: string | null = null,
+  referenceCategoryLabel: string | null = null,
+): ConsoleStagedNavigationSession => ({
+  scopeId: 'referenceTransformRoot',
+  breadcrumb:
+    referenceCategoryId !== null && referenceCategoryLabel !== null
+      ? ['Select', 'References', referenceCategoryLabel, label, 'Transform']
+      : ['Select', 'Reference', label, 'Transform'],
+  selections: {
+    graphDocumentId: null,
+    selectedNodeId: null,
+    sketchNodeId: null,
+    referenceId,
+    referenceCategoryId,
+  },
+  validChoices: buildReferenceTransformRootChoices(),
+})
+
+const createReferenceZoomRootSession = (
+  label: string,
+  referenceId: string,
+  canLoadModel: boolean,
+  referenceCategoryId: string | null = null,
+  referenceCategoryLabel: string | null = null,
+): ConsoleStagedNavigationSession => ({
+  scopeId: 'referenceZoomRoot',
+  breadcrumb:
+    referenceCategoryId !== null && referenceCategoryLabel !== null
+      ? ['Select', 'References', referenceCategoryLabel, label, 'Zoom']
+      : ['Select', 'Reference', label, 'Zoom'],
+  selections: {
+    graphDocumentId: null,
+    selectedNodeId: null,
+    sketchNodeId: null,
+    referenceId,
+    referenceCategoryId,
+    referenceCanLoadModel: canLoadModel,
+  },
+  validChoices: buildZoomActionChoices(),
 })
 
 const createReferencesSelectedSession = (
   label: string,
   categoryOptions: Array<{ categoryId: string; label: string; canLoadAll?: boolean }>,
   canLoadAll: boolean,
+  referenceIds: string[] = [],
 ): ConsoleStagedNavigationSession => ({
   scopeId: 'referencesSelected',
   breadcrumb: ['Select', label],
@@ -1093,8 +1257,25 @@ const createReferencesSelectedSession = (
     selectedNodeId: null,
     sketchNodeId: null,
     referenceId: null,
+    referenceZoomIds: referenceIds,
   },
   validChoices: buildReferencesSelectedChoices(categoryOptions, canLoadAll),
+})
+
+const createReferencesZoomRootSession = (
+  label: string,
+  referenceIds: string[],
+): ConsoleStagedNavigationSession => ({
+  scopeId: 'referencesZoomRoot',
+  breadcrumb: ['Select', label, 'Zoom'],
+  selections: {
+    graphDocumentId: null,
+    selectedNodeId: null,
+    sketchNodeId: null,
+    referenceId: null,
+    referenceZoomIds: referenceIds,
+  },
+  validChoices: buildZoomActionChoices(),
 })
 
 const createReferenceCategorySelectedSession = (
@@ -1112,8 +1293,28 @@ const createReferenceCategorySelectedSession = (
     sketchNodeId: null,
     referenceId: null,
     referenceCategoryId: categoryId,
+    referenceZoomIds: itemOptions.map((item) => item.referenceId),
   },
   validChoices: buildReferenceCategorySelectedChoices(itemOptions, canLoadAll),
+})
+
+const createReferenceCategoryZoomRootSession = (
+  rootLabel: string,
+  categoryId: string,
+  label: string,
+  referenceIds: string[],
+): ConsoleStagedNavigationSession => ({
+  scopeId: 'referenceCategoryZoomRoot',
+  breadcrumb: ['Select', rootLabel, label, 'Zoom'],
+  selections: {
+    graphDocumentId: null,
+    selectedNodeId: null,
+    sketchNodeId: null,
+    referenceId: null,
+    referenceCategoryId: categoryId,
+    referenceZoomIds: referenceIds,
+  },
+  validChoices: buildZoomActionChoices(),
 })
 
 const findGraphIndexByDocumentId = (
@@ -1166,14 +1367,21 @@ export const resolveConsoleWorkspaceContextSync = (
 
   if ('kind' in target && target.kind === 'multi-select') {
     return {
-      session: createMultiSelectSelectedSession(),
+      session: createMultiSelectSelectedSession(target.selectedLabels),
       selectedLabel: target.label,
     }
   }
 
-    if ('kind' in target && target.kind === 'references-root') {
+  if ('kind' in target && target.kind === 'references-root') {
       return {
-        session: createReferencesSelectedSession(target.label, target.categoryOptions, target.canLoadAll),
+        session: createReferencesSelectedSession(
+          target.label,
+          target.categoryOptions,
+          target.canLoadAll,
+          context.referenceCategories.flatMap((category) =>
+            category.items.map((item) => item.referenceId),
+          ),
+        ),
         selectedLabel: target.label,
       }
   }
@@ -1199,7 +1407,13 @@ export const resolveConsoleWorkspaceContextSync = (
 
   if ('kind' in target && target.kind === 'reference-item') {
     return {
-      session: createReferenceSelectedSession(target.label, target.referenceId, target.canLoadModel),
+      session: createReferenceSelectedSession(
+        target.label,
+        target.referenceId,
+        target.canLoadModel,
+        target.referenceCategoryId,
+        target.referenceCategoryLabel,
+      ),
       selectedLabel: target.label,
     }
   }
@@ -1917,6 +2131,105 @@ export const submitConsoleStagedNavigationToken = (
     }
   }
 
+  if (session.scopeId === 'contentObjectZoomRoot') {
+    const zoomChoices = buildZoomActionChoices()
+    const matchedChoice =
+      zoomChoices.find((choice) => matchesChoice(choice, normalizedToken)) ?? null
+    if (matchedChoice === null) {
+      return createInvalidResult({ ...session, validChoices: zoomChoices }, submittedToken, zoomChoices)
+    }
+    if (matchedChoice.canonicalToken === 'BACK') {
+      return createAdvanceResult(
+        createContentObjectSelectedSession(
+          session.breadcrumb.at(-2) ?? 'Object',
+          session.selections.graphDocumentId,
+        ),
+        submittedToken,
+        matchedChoice,
+      )
+    }
+    const actionIdByToken: Record<
+      string,
+      Extract<
+        ConsoleStagedNavigationExecuteResult['actionId'],
+        | 'zoom.model.all'
+        | 'zoom.model.extents'
+        | 'zoom.model.previous'
+        | 'zoom.model.window'
+        | 'zoom.model.object'
+      >
+    > = {
+      ALL: 'zoom.model.all',
+      EXTENTS: 'zoom.model.extents',
+      PREVIOUS: 'zoom.model.previous',
+      WINDOW: 'zoom.model.window',
+      OBJECT: 'zoom.model.object',
+    }
+    return {
+      kind: 'execute',
+      session: {
+        ...session,
+        validChoices: zoomChoices,
+      },
+      submittedToken,
+      matchedChoice,
+      actionId: actionIdByToken[matchedChoice.canonicalToken],
+      breadcrumb: [...session.breadcrumb, matchedChoice.label],
+      selections: session.selections,
+    }
+  }
+
+  if (session.scopeId === 'referenceZoomRoot') {
+    const zoomChoices = buildZoomActionChoices()
+    const matchedChoice =
+      zoomChoices.find((choice) => matchesChoice(choice, normalizedToken)) ?? null
+    if (matchedChoice === null) {
+      return createInvalidResult({ ...session, validChoices: zoomChoices }, submittedToken, zoomChoices)
+    }
+    if (matchedChoice.canonicalToken === 'BACK') {
+      return createAdvanceResult(
+        createReferenceSelectedSession(
+          session.breadcrumb.at(-2) ?? 'Reference',
+          session.selections.referenceId ?? '',
+          session.selections.referenceCanLoadModel ?? false,
+          session.selections.referenceCategoryId ?? null,
+          session.selections.referenceCategoryId !== null ? (session.breadcrumb.at(-3) ?? null) : null,
+        ),
+        submittedToken,
+        matchedChoice,
+      )
+    }
+    const actionIdByToken: Record<
+      string,
+      Extract<
+        ConsoleStagedNavigationExecuteResult['actionId'],
+        | 'zoom.model.all'
+        | 'zoom.model.extents'
+        | 'zoom.model.previous'
+        | 'zoom.model.window'
+        | 'zoom.model.object'
+      >
+    > = {
+      ALL: 'zoom.model.all',
+      EXTENTS: 'zoom.model.extents',
+      PREVIOUS: 'zoom.model.previous',
+      WINDOW: 'zoom.model.window',
+      OBJECT: 'zoom.model.object',
+    }
+    return {
+      kind: 'execute',
+      session: {
+        ...session,
+        validChoices: zoomChoices,
+      },
+      submittedToken,
+      matchedChoice,
+      actionId: actionIdByToken[matchedChoice.canonicalToken],
+      breadcrumb: [...session.breadcrumb, matchedChoice.label],
+      selections: session.selections,
+    }
+  }
+
   if (session.scopeId === 'graphRoot') {
     const graphRootChoices = buildGraphRootChoices(context.graphOptions)
     const listChoice = graphRootChoices.find((choice) => choice.canonicalToken === 'LIST') ?? null
@@ -2562,11 +2875,73 @@ export const submitConsoleStagedNavigationToken = (
     }
   }
 
-  if (
-    session.scopeId === 'contentAssemblySelected' ||
-    session.scopeId === 'contentComponentSelected' ||
-    session.scopeId === 'contentObjectSelected'
-  ) {
+  if (session.scopeId === 'contentAssemblySelected') {
+    const contentChoices = buildContentAssemblySelectedChoices()
+    const matchedChoice =
+      contentChoices.find((choice) => matchesChoice(choice, normalizedToken)) ?? null
+    if (matchedChoice === null) {
+      return createInvalidResult(
+        { ...session, validChoices: contentChoices },
+        submittedToken,
+        contentChoices,
+      )
+    }
+    if (matchedChoice.canonicalToken === ROOT_ZOOM_CHOICE.canonicalToken) {
+      return createAdvanceResult(
+        createContentAssemblyZoomRootSession(session.breadcrumb.at(-1) ?? 'Assembly'),
+        submittedToken,
+        matchedChoice,
+      )
+    }
+    return createAdvanceResult(createConsoleRootSession(), submittedToken, matchedChoice)
+  }
+
+  if (session.scopeId === 'contentAssemblyZoomRoot') {
+    const zoomChoices = buildZoomActionChoices()
+    const matchedChoice =
+      zoomChoices.find((choice) => matchesChoice(choice, normalizedToken)) ?? null
+    if (matchedChoice === null) {
+      return createInvalidResult({ ...session, validChoices: zoomChoices }, submittedToken, zoomChoices)
+    }
+    if (matchedChoice.canonicalToken === 'BACK') {
+      return createAdvanceResult(
+        createContentAssemblySelectedSession(session.breadcrumb.at(-2) ?? 'Assembly'),
+        submittedToken,
+        matchedChoice,
+      )
+    }
+    const actionIdByToken: Record<
+      string,
+      Extract<
+        ConsoleStagedNavigationExecuteResult['actionId'],
+        | 'zoom.model.all'
+        | 'zoom.model.extents'
+        | 'zoom.model.previous'
+        | 'zoom.model.window'
+        | 'zoom.model.object'
+      >
+    > = {
+      ALL: 'zoom.model.all',
+      EXTENTS: 'zoom.model.extents',
+      PREVIOUS: 'zoom.model.previous',
+      WINDOW: 'zoom.model.window',
+      OBJECT: 'zoom.model.object',
+    }
+    return {
+      kind: 'execute',
+      session: {
+        ...session,
+        validChoices: zoomChoices,
+      },
+      submittedToken,
+      matchedChoice,
+      actionId: actionIdByToken[matchedChoice.canonicalToken],
+      breadcrumb: [...session.breadcrumb, matchedChoice.label],
+      selections: session.selections,
+    }
+  }
+
+  if (session.scopeId === 'contentComponentSelected') {
     const contentChoices = buildContentSelectedChoices()
     const matchedChoice =
       contentChoices.find((choice) => matchesChoice(choice, normalizedToken)) ?? null
@@ -2590,6 +2965,126 @@ export const submitConsoleStagedNavigationToken = (
     return createAdvanceResult(createConsoleRootSession(), submittedToken, matchedChoice)
   }
 
+  if (session.scopeId === 'contentObjectSelected') {
+    const contentChoices = buildContentObjectSelectedChoices()
+    const matchedChoice =
+      contentChoices.find((choice) => matchesChoice(choice, normalizedToken)) ?? null
+    if (matchedChoice === null) {
+      return createInvalidResult(
+        { ...session, validChoices: contentChoices },
+        submittedToken,
+        contentChoices,
+      )
+    }
+    if (matchedChoice.canonicalToken === ROOT_ZOOM_CHOICE.canonicalToken) {
+      return createAdvanceResult(
+        createContentObjectZoomRootSession(
+          session.breadcrumb.at(-1) ?? 'Object',
+          session.selections.graphDocumentId,
+        ),
+        submittedToken,
+        matchedChoice,
+      )
+    }
+    if (matchedChoice.canonicalToken === TRANSFORM_CHOICE.canonicalToken) {
+      return createAdvanceResult(
+        createContentObjectTransformRootSession(
+          session.breadcrumb.at(-1) ?? 'Object',
+          session.selections.graphDocumentId,
+        ),
+        submittedToken,
+        matchedChoice,
+      )
+    }
+    if (
+      matchedChoice.canonicalToken === MOVE_CHOICE.canonicalToken ||
+      matchedChoice.canonicalToken === ROTATE_CHOICE.canonicalToken ||
+      matchedChoice.canonicalToken === SCALE_CHOICE.canonicalToken
+    ) {
+      const transformRootSession = createContentObjectTransformRootSession(
+        session.breadcrumb.at(-1) ?? 'Object',
+        session.selections.graphDocumentId,
+      )
+      const actionIdByToken: Record<
+        string,
+        Extract<
+          ConsoleStagedNavigationExecuteResult['actionId'],
+          'content.transform.move' | 'content.transform.rotate' | 'content.transform.scale'
+        >
+      > = {
+        MOVE: 'content.transform.move',
+        ROTATE: 'content.transform.rotate',
+        SCALE: 'content.transform.scale',
+      }
+      return {
+        kind: 'execute',
+        session: transformRootSession,
+        submittedToken,
+        matchedChoice,
+        actionId: actionIdByToken[matchedChoice.canonicalToken],
+        breadcrumb: [...transformRootSession.breadcrumb, matchedChoice.label],
+        selections: session.selections,
+      }
+    }
+    if (session.selections.graphDocumentId !== null) {
+      const graphIndex = findGraphIndexByDocumentId(context, session.selections.graphDocumentId)
+      if (graphIndex !== null) {
+        return createAdvanceResult(
+          createGraphSelectedSession(graphIndex, session.selections.graphDocumentId),
+          submittedToken,
+          matchedChoice,
+        )
+      }
+    }
+    return createAdvanceResult(createConsoleRootSession(), submittedToken, matchedChoice)
+  }
+
+  if (session.scopeId === 'contentObjectTransformRoot') {
+    const transformChoices = buildTransformRootChoices()
+    const matchedChoice =
+      transformChoices.find((choice) => matchesChoice(choice, normalizedToken)) ?? null
+    if (matchedChoice === null) {
+      return createInvalidResult(
+        { ...session, validChoices: transformChoices },
+        submittedToken,
+        transformChoices,
+      )
+    }
+    if (matchedChoice.canonicalToken === 'BACK') {
+      return createAdvanceResult(
+        createContentObjectSelectedSession(
+          session.breadcrumb.at(-2) ?? 'Object',
+          session.selections.graphDocumentId,
+        ),
+        submittedToken,
+        matchedChoice,
+      )
+    }
+    const actionIdByToken: Record<
+      string,
+      Extract<
+        ConsoleStagedNavigationExecuteResult['actionId'],
+        'content.transform.move' | 'content.transform.rotate' | 'content.transform.scale'
+      >
+    > = {
+      MOVE: 'content.transform.move',
+      ROTATE: 'content.transform.rotate',
+      SCALE: 'content.transform.scale',
+    }
+    return {
+      kind: 'execute',
+      session: {
+        ...session,
+        validChoices: transformChoices,
+      },
+      submittedToken,
+      matchedChoice,
+      actionId: actionIdByToken[matchedChoice.canonicalToken],
+      breadcrumb: [...session.breadcrumb, matchedChoice.label],
+      selections: session.selections,
+    }
+  }
+
   if (session.scopeId === 'multiSelectSelected') {
     const multiSelectChoices = buildMultiSelectSelectedChoices()
     const matchedChoice =
@@ -2601,7 +3096,59 @@ export const submitConsoleStagedNavigationToken = (
         multiSelectChoices,
       )
     }
+    if (matchedChoice.canonicalToken === ROOT_ZOOM_CHOICE.canonicalToken) {
+      return createAdvanceResult(
+        createMultiSelectZoomRootSession(session.selections.multiSelectLabels ?? []),
+        submittedToken,
+        matchedChoice,
+      )
+    }
     return createAdvanceResult(createConsoleRootSession(), submittedToken, matchedChoice)
+  }
+
+  if (session.scopeId === 'multiSelectZoomRoot') {
+    const zoomChoices = buildZoomActionChoices()
+    const matchedChoice =
+      zoomChoices.find((choice) => matchesChoice(choice, normalizedToken)) ?? null
+    if (matchedChoice === null) {
+      return createInvalidResult({ ...session, validChoices: zoomChoices }, submittedToken, zoomChoices)
+    }
+    if (matchedChoice.canonicalToken === 'BACK') {
+      return createAdvanceResult(
+        createMultiSelectSelectedSession(session.selections.multiSelectLabels ?? []),
+        submittedToken,
+        matchedChoice,
+      )
+    }
+    const actionIdByToken: Record<
+      string,
+      Extract<
+        ConsoleStagedNavigationExecuteResult['actionId'],
+        | 'zoom.model.all'
+        | 'zoom.model.extents'
+        | 'zoom.model.previous'
+        | 'zoom.model.window'
+        | 'zoom.model.object'
+      >
+    > = {
+      ALL: 'zoom.model.all',
+      EXTENTS: 'zoom.model.extents',
+      PREVIOUS: 'zoom.model.previous',
+      WINDOW: 'zoom.model.window',
+      OBJECT: 'zoom.model.object',
+    }
+    return {
+      kind: 'execute',
+      session: {
+        ...session,
+        validChoices: zoomChoices,
+      },
+      submittedToken,
+      matchedChoice,
+      actionId: actionIdByToken[matchedChoice.canonicalToken],
+      breadcrumb: [...session.breadcrumb, matchedChoice.label],
+      selections: session.selections,
+    }
   }
 
   if (session.scopeId === 'referencesSelected') {
@@ -2617,6 +3164,16 @@ export const submitConsoleStagedNavigationToken = (
     }
     if (matchedChoice.canonicalToken === 'BACK') {
       return createAdvanceResult(createConsoleRootSession(), submittedToken, matchedChoice)
+    }
+    if (matchedChoice.canonicalToken === ROOT_ZOOM_CHOICE.canonicalToken) {
+      return createAdvanceResult(
+        createReferencesZoomRootSession(
+          session.breadcrumb.at(-1) ?? 'References',
+          session.selections.referenceZoomIds ?? [],
+        ),
+        submittedToken,
+        matchedChoice,
+      )
     }
     if (matchedChoice.kind === 'scope' && typeof matchedChoice.referenceCategoryId === 'string') {
       const matchedCategory = context.referenceCategories.find(
@@ -2651,6 +3208,56 @@ export const submitConsoleStagedNavigationToken = (
     }
   }
 
+  if (session.scopeId === 'referencesZoomRoot') {
+    const zoomChoices = buildZoomActionChoices()
+    const matchedChoice =
+      zoomChoices.find((choice) => matchesChoice(choice, normalizedToken)) ?? null
+    if (matchedChoice === null) {
+      return createInvalidResult({ ...session, validChoices: zoomChoices }, submittedToken, zoomChoices)
+    }
+    if (matchedChoice.canonicalToken === 'BACK') {
+      return createAdvanceResult(
+        createReferencesSelectedSession(
+          session.breadcrumb.at(-2) ?? 'References',
+          context.referenceCategories,
+          context.referenceCategories.some((category) => category.canLoadAll),
+          session.selections.referenceZoomIds ?? [],
+        ),
+        submittedToken,
+        matchedChoice,
+      )
+    }
+    const actionIdByToken: Record<
+      string,
+      Extract<
+        ConsoleStagedNavigationExecuteResult['actionId'],
+        | 'zoom.model.all'
+        | 'zoom.model.extents'
+        | 'zoom.model.previous'
+        | 'zoom.model.window'
+        | 'zoom.model.object'
+      >
+    > = {
+      ALL: 'zoom.model.all',
+      EXTENTS: 'zoom.model.extents',
+      PREVIOUS: 'zoom.model.previous',
+      WINDOW: 'zoom.model.window',
+      OBJECT: 'zoom.model.object',
+    }
+    return {
+      kind: 'execute',
+      session: {
+        ...session,
+        validChoices: zoomChoices,
+      },
+      submittedToken,
+      matchedChoice,
+      actionId: actionIdByToken[matchedChoice.canonicalToken],
+      breadcrumb: [...session.breadcrumb, matchedChoice.label],
+      selections: session.selections,
+    }
+  }
+
   if (session.scopeId === 'referenceCategorySelected') {
     const categoryChoices = session.validChoices
     const matchedChoice =
@@ -2668,6 +3275,21 @@ export const submitConsoleStagedNavigationToken = (
           session.breadcrumb[1] ?? 'References',
           context.referenceCategories,
           context.referenceCategories.some((category) => category.canLoadAll),
+          context.referenceCategories.flatMap((category) =>
+            category.items.map((item) => item.referenceId),
+          ),
+        ),
+        submittedToken,
+        matchedChoice,
+      )
+    }
+    if (matchedChoice.canonicalToken === ROOT_ZOOM_CHOICE.canonicalToken) {
+      return createAdvanceResult(
+        createReferenceCategoryZoomRootSession(
+          session.breadcrumb[1] ?? 'References',
+          session.selections.referenceCategoryId ?? '',
+          session.breadcrumb.at(-1) ?? 'Category',
+          session.selections.referenceZoomIds ?? [],
         ),
         submittedToken,
         matchedChoice,
@@ -2705,8 +3327,69 @@ export const submitConsoleStagedNavigationToken = (
     }
   }
 
+  if (session.scopeId === 'referenceCategoryZoomRoot') {
+    const zoomChoices = buildZoomActionChoices()
+    const matchedChoice =
+      zoomChoices.find((choice) => matchesChoice(choice, normalizedToken)) ?? null
+    if (matchedChoice === null) {
+      return createInvalidResult({ ...session, validChoices: zoomChoices }, submittedToken, zoomChoices)
+    }
+    if (matchedChoice.canonicalToken === 'BACK') {
+      return createAdvanceResult(
+        createReferenceCategorySelectedSession(
+          session.breadcrumb[1] ?? 'References',
+          session.selections.referenceCategoryId ?? '',
+          session.breadcrumb.at(-2) ?? 'Category',
+          (session.selections.referenceZoomIds ?? []).map((referenceId) => ({
+            referenceId,
+            label:
+              context.referenceCategories
+                .flatMap((category) => category.items)
+                .find((item) => item.referenceId === referenceId)?.label ?? referenceId,
+          })),
+          context.referenceCategories.find(
+            (category) => category.categoryId === session.selections.referenceCategoryId,
+          )?.canLoadAll ?? true,
+        ),
+        submittedToken,
+        matchedChoice,
+      )
+    }
+    const actionIdByToken: Record<
+      string,
+      Extract<
+        ConsoleStagedNavigationExecuteResult['actionId'],
+        | 'zoom.model.all'
+        | 'zoom.model.extents'
+        | 'zoom.model.previous'
+        | 'zoom.model.window'
+        | 'zoom.model.object'
+      >
+    > = {
+      ALL: 'zoom.model.all',
+      EXTENTS: 'zoom.model.extents',
+      PREVIOUS: 'zoom.model.previous',
+      WINDOW: 'zoom.model.window',
+      OBJECT: 'zoom.model.object',
+    }
+    return {
+      kind: 'execute',
+      session: {
+        ...session,
+        validChoices: zoomChoices,
+      },
+      submittedToken,
+      matchedChoice,
+      actionId: actionIdByToken[matchedChoice.canonicalToken],
+      breadcrumb: [...session.breadcrumb, matchedChoice.label],
+      selections: session.selections,
+    }
+  }
+
   if (session.scopeId === 'referenceSelected') {
-    const referenceChoices = session.validChoices
+    const referenceChoices = buildReferenceSelectedChoices(
+      session.selections.referenceCanLoadModel ?? false,
+    )
     const matchedChoice =
       referenceChoices.find((choice) => matchesChoice(choice, normalizedToken)) ?? null
     if (matchedChoice === null) {
@@ -2740,6 +3423,31 @@ export const submitConsoleStagedNavigationToken = (
       }
       return createAdvanceResult(createConsoleRootSession(), submittedToken, matchedChoice)
     }
+    if (matchedChoice.canonicalToken === ROOT_ZOOM_CHOICE.canonicalToken) {
+      return createAdvanceResult(
+        createReferenceZoomRootSession(
+          session.breadcrumb.at(-1) ?? 'Reference',
+          session.selections.referenceId ?? '',
+          session.selections.referenceCanLoadModel ?? false,
+          session.selections.referenceCategoryId ?? null,
+          session.selections.referenceCategoryId !== null ? (session.breadcrumb.at(-2) ?? null) : null,
+        ),
+        submittedToken,
+        matchedChoice,
+      )
+    }
+    if (matchedChoice.canonicalToken === TRANSFORM_CHOICE.canonicalToken) {
+      return createAdvanceResult(
+        createReferenceTransformRootSession(
+          session.breadcrumb.at(-1) ?? 'Reference',
+          session.selections.referenceId ?? '',
+          session.selections.referenceCategoryId ?? null,
+          session.selections.referenceCategoryId !== null ? (session.breadcrumb.at(-2) ?? null) : null,
+        ),
+        submittedToken,
+        matchedChoice,
+      )
+    }
     const actionIdByToken: Record<
       string,
       Extract<
@@ -2755,11 +3463,78 @@ export const submitConsoleStagedNavigationToken = (
       ROTATE: 'reference.transform.rotate',
       SCALE: 'reference.transform.scale',
     }
+    const transformRootSession = createReferenceTransformRootSession(
+      session.breadcrumb.at(-1) ?? 'Reference',
+      session.selections.referenceId ?? '',
+      session.selections.referenceCategoryId ?? null,
+      session.selections.referenceCategoryId !== null ? (session.breadcrumb.at(-2) ?? null) : null,
+    )
+    const useTransformRootSession =
+      matchedChoice.canonicalToken === MOVE_CHOICE.canonicalToken ||
+      matchedChoice.canonicalToken === ROTATE_CHOICE.canonicalToken ||
+      matchedChoice.canonicalToken === SCALE_CHOICE.canonicalToken
+    const executeBreadcrumb = useTransformRootSession
+      ? [...transformRootSession.breadcrumb, matchedChoice.label]
+      : [...session.breadcrumb, matchedChoice.label]
+    return {
+      kind: 'execute',
+      session: useTransformRootSession
+        ? transformRootSession
+        : {
+            ...session,
+            validChoices: referenceChoices,
+          },
+      submittedToken,
+      matchedChoice,
+      actionId: actionIdByToken[matchedChoice.canonicalToken],
+      breadcrumb: executeBreadcrumb,
+      selections: session.selections,
+    }
+  }
+
+  if (session.scopeId === 'referenceTransformRoot') {
+    const transformChoices = buildReferenceTransformRootChoices()
+    const matchedChoice =
+      transformChoices.find((choice) => matchesChoice(choice, normalizedToken)) ?? null
+    if (matchedChoice === null) {
+      return createInvalidResult(
+        { ...session, validChoices: transformChoices },
+        submittedToken,
+        transformChoices,
+      )
+    }
+    if (matchedChoice.canonicalToken === COMMIT_TRANSFORM_CHOICE.canonicalToken) {
+      return {
+        kind: 'execute',
+        session: {
+          ...session,
+          validChoices: transformChoices,
+        },
+        submittedToken,
+        matchedChoice,
+        actionId: 'reference.transform.commitShell',
+        breadcrumb: [...session.breadcrumb, matchedChoice.label],
+        selections: session.selections,
+      }
+    }
+    const actionIdByToken: Record<
+      string,
+      Extract<
+        ConsoleStagedNavigationExecuteResult['actionId'],
+        | 'reference.transform.move'
+        | 'reference.transform.rotate'
+        | 'reference.transform.scale'
+      >
+    > = {
+      MOVE: 'reference.transform.move',
+      ROTATE: 'reference.transform.rotate',
+      SCALE: 'reference.transform.scale',
+    }
     return {
       kind: 'execute',
       session: {
         ...session,
-        validChoices: referenceChoices,
+        validChoices: transformChoices,
       },
       submittedToken,
       matchedChoice,

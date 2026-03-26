@@ -65,6 +65,94 @@ Do not use it for:
 
 ## Doc Body
 
+### [645] - 2026-03-26 19:42 - `TRN - Transform-3 - Shell Activation Cleanup`
+<!-- ENTRY 645 -->
+HUMAN SUMMARY: `This cleaned up the just-landed Transform-3 reference shell wiring by removing a redundant ConsoleDock activation path, leaving one clear shell-entry seam while keeping the new Transform shell behavior unchanged.` 
+#### Scope / Constraints Honored
+- Kept the pass strictly to post-Transform-3 cleanup instead of widening the behavior again.
+- Preserved the new shell contract exactly as shipped.
+
+#### Summary of Implementation
+- Removed the duplicate reference-transform-shell activation branch from `ConsoleDock`, so the transform shell is now activated from one effect-based seam instead of two overlapping paths.
+
+#### Files Changed
+- `src/app/console/ConsoleDock.tsx`
+
+#### Behavior Changes
+- No user-facing behavior change was intended; this is a cleanup of duplicated activation wiring.
+
+#### Verification Steps
+- `npx vitest run src/app/console/ConsoleDock.test.tsx src/app/console/stagedNavigation.test.ts`
+- `npx tsc --noEmit`
+
+### [644] - 2026-03-26 19:38 - `TRN - Transform-3 - Reference Transform Shell Persistence`
+<!-- ENTRY 644 -->
+HUMAN SUMMARY: `This implemented the first durable reference-side Transform shell so entering \`Transform\` now opens the shell, committed move/rotate/scale entries return to \`Transform > Choose next\`, and only \`CommitTransform\` exits back to the selected reference scope.` 
+#### Scope / Constraints Honored
+- Kept the implementation on the mature reference transform path instead of widening toolbar ownership across every target family in the same patch.
+- Preserved viewer-owned live transform execution while moving shell persistence and entry-state truth into app/store ownership.
+- Left the broader object/folder/assembly shell follow-ons for later phases instead of faking them through the reference toolbar.
+
+#### Summary of Implementation
+- Added a reference transform shell-versus-entry split in `useAppStore`, so the shell can stay alive while individual `Move`, `Rotate`, and `Scale` entries arm and complete independently.
+- Changed the reference transform commit flow so viewer commits append history and complete the active entry without automatically exiting the overall shell.
+- Updated staged navigation so the reference `Transform` root now exposes shell-level `CommitTransform`, while direct `Move` / `Rotate` / `Scale` continue to re-arm entries inside the same shell.
+- Updated Console routing so the live reference transform assist only takes precedence while an entry is active, allowing `Transform > Choose next` to remain visible between commits.
+- Added explicit coverage for entering the reference transform shell, staying inside it between commits, and only exiting it through `CommitTransform`.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/console/stagedNavigation.ts`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/components/ViewerHost.tsx`
+- `src/viewer/Viewer.ts`
+- `src/app/store/useAppStore.test.ts`
+- `src/app/console/stagedNavigation.test.ts`
+- `src/app/console/ConsoleDock.test.tsx`
+- `src/app/components/ReferenceTransformToolbar.test.tsx`
+
+#### Behavior Changes
+- Entering `Transform` on a selected reference now activates the transform shell immediately.
+- Committing one reference transform entry no longer exits the whole transform session.
+- `CommitTransform` now lives at the reference `Transform` root and is the command that exits the shell.
+- Cancelling an active reference transform entry restores the captured baseline but keeps the overall transform shell alive.
+
+#### Verification Steps
+- `npx vitest run src/app/console/stagedNavigation.test.ts src/app/console/ConsoleDock.test.tsx src/app/components/ViewerHost.test.tsx src/app/components/ReferenceTransformToolbar.test.tsx src/app/store/useAppStore.test.ts`
+- `npx tsc --noEmit`
+
+### [643] - 2026-03-26 07:56 - `BRW - Browser-7.1 - Viewport Explicit Multi-Select Sync`
+<!-- ENTRY 643 -->
+HUMAN SUMMARY: `Shipped the first Browser-7 cleanup entry by making viewport-picked object and reference \`Ctrl+click\` flow through the same shared explicit-selection seam as Browser rows, so Browser multi-select, grouped viewer highlight, and Console multi-select context stay aligned.` 
+#### Scope / Constraints Honored
+- Kept the work limited to the Browser-7.1 viewport explicit-multi-select sync follow-on instead of widening it into a broader BrowserPanel rewrite.
+- Preserved the existing Browser-5.4 shared explicit-selection ownership rather than introducing a viewer-local parallel selection model.
+- Kept ordinary single-select replacement behavior unchanged when `Ctrl` is not used.
+
+#### Summary of Implementation
+- Expanded explicit content-selection resolution so viewport-created object picks resolve through the full viewer-part key set used by grouped content highlight instead of relying on one narrower key shape.
+- Reworked the viewport selection commit path so viewport-picked references can also toggle through the shared explicit-selection set instead of always replacing selection.
+- Tightened viewport-selection regression coverage to use the slot-scoped part-key payloads the live viewer emits, while adding coverage for additive object highlight persistence and reference toggle behavior.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/store/useAppStore.test.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-7 - Browser Cleanup Follow-Ons.md`
+- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- `Ctrl+click` multi-pick in the model viewport now keeps Browser explicit multi-selection in sync with the viewport-created object/reference set.
+- Grouped viewer highlight now remains aligned with the shared resolved content-selection set during viewport-created explicit multi-select instead of collapsing to the last-picked object.
+- Viewport-picked references now participate in additive toggle selection instead of staying replacement-only.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/components/ViewerHost.test.tsx`
+- `npm.cmd test -- --run src/app/store/useAppStore.test.ts`
+- `npm.cmd test -- --run src/app/panels/BrowserPanel.test.tsx`
+
 ### [642] - 2026-03-25 22:07 - `BRW - Browser-6 - BrowserPanel Structure And Row-Family Cleanup`
 <!-- ENTRY 642 -->
 HUMAN SUMMARY: `Shipped the Browser-6 structural cleanup by extracting the remaining BrowserPanel-wide composition, overlay lifecycle, and action wiring into a dedicated controller hook while keeping the existing row-family, presenter, interaction, menu, and selector seams canonical and behavior-preserving.` 

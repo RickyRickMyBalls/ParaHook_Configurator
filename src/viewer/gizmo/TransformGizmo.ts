@@ -143,6 +143,10 @@ export class TransformGizmo {
     this.controls.axis = null
   }
 
+  public isDragging(): boolean {
+    return (this.controls as InternalTransformControls).dragging
+  }
+
   public beginHandleDrag(mode: TransformControlsMode, axis: GizmoAxis): boolean {
     this.activateHandle(mode, axis)
 

@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+10. 2026-03-26 19:02: Updated the vision doc against the newer architecture families so the north-star now explicitly includes real CAD-style authored layers, transform as a cross-surface target-local system, and the hybrid workspace/layout direction instead of leaving those ideas only in the detailed architecture docs
 9. 2026-03-18 21:35: Performed a large cleanup pass to refocus this file as a true vision document, replacing the older lane-and-phase-heavy middle section with cleaner `Core System Shape`, `What Must Stay True`, `Desired End State`, `Major Future Feature Families`, and `High-Level Growth Path` sections while preserving the important product and architecture direction
 8. 2026-03-18 21:22: Tightened the vision doc slightly by adding the long-term app-wide `Console` command-language direction into the higher-level `Product Vision` and `User Experience Shape` sections, so that idea now lives in the north-star document instead of only in the detailed console architecture notes
 7. 2026-03-16 12:31: Added a short feature-stack direction note under `Architecture Shape` so the vision now explicitly says Feature Stack should not be permanently trapped as embedded part-node data and should leave room for first-class graph/composite ownership later
@@ -68,7 +69,9 @@ The product should eventually feel like:
 - a graph editor for authoring geometry and part logic
 - a Browser/project workspace for understanding graphs, components, objects, assemblies, and parts
 - a shared 3D viewer for inspecting the current project content
+- a workspace layout system where major tool surfaces can live in coherent `Windowed`, `Tiled`, and later pop-out placements without becoming separate feature concepts
 - an app-wide `Console` that can later evolve into a command language for navigating and acting across workspace, graph, node, and feature domains
+- real CAD-style authored control systems such as `Layers` and `Transform`, shared across Browser, Console, viewer, and toolbar surfaces instead of being trapped inside one panel
 - a deterministic build pipeline that turns authored graph truth into geometry and exportable outputs
 
 The intended app is closer to:
@@ -148,18 +151,36 @@ ParaHook should keep moving toward explicit ownership at each layer instead of h
 - `Content` rows are part of the build/generate surface, not just passive selection rows.
 - Replicad is the current worker-side geometry engine, so ParaHook should expose chunked rebuild control instead of pretending one giant opaque rebuild is always trustworthy.
 
-#### 6. Generic Node / Editor Surfaces
+#### 6. Authored Content Owns Visibility, Layers, And Transform History
+
+- Authored layers should become real CAD/content ownership, not viewer-only decoration.
+- Layer membership, layer visibility, and later layer color recognition should persist on authored targets instead of being recreated ad hoc per render pass.
+- Transform should grow as one cross-surface target-local system:
+  - canonical `Transform > Move / Rotate / Scale` hierarchy
+  - viewer-owned live manipulation
+  - app/store-owned committed history
+  - shared Browser, Console, toolbar, and viewport-history reads
+- Do not let Browser rows, toolbar chrome, or viewer widgets become the hidden permanent owners of transform semantics.
+
+#### 7. Generic Node / Editor Surfaces
 
 - Node UI should remain registry-driven and template-driven as much as possible.
 - `NodeView`, port rendering, feature-stack presentation, selectors, and contracts should stay generic where possible.
 - Avoid solving new node families by building one-off special panels when the node system itself should own the behavior.
 
-#### 7. Contracts / Schema / IR Discipline
+#### 8. Hybrid Workspace, Not One-Off Panel Modes
+
+- Major tool surfaces should be able to move between `Windowed`, `Tiled`, and later pop-out/browser-hosted presentations inside one shared workspace model.
+- Placement style should not create a second hidden copy of feature ownership.
+- Shell/layout state belongs to the workspace system; Browser/editor/Console/viewer behavior still belongs to their feature owners.
+- Do not keep growing feature-specific split or detachment behavior as if each tool needs its own shell architecture.
+
+#### 9. Contracts / Schema / IR Discipline
 
 - Node registry contracts, compile IR, worker request/result shapes, routing identity, and output declaration seams should stay explicit.
 - Prefer clear typed seams over implicit reach-in behavior between app, graph, worker, and viewer layers.
 
-#### 8. Legacy Removal Must Happen By Replacement
+#### 10. Legacy Removal Must Happen By Replacement
 
 - Transitional compatibility seams are allowed.
 - Permanent dependency on those seams is not the goal.
@@ -187,6 +208,8 @@ ParaHook should keep moving toward explicit ownership at each layer instead of h
 
 - The user can browse project content, open graphs, edit nodes, inspect outputs, and build deterministic geometry from one coherent workspace.
 - The Browser, editor, worker, viewer, and console feel like coordinated parts of one system rather than separate modes stitched together.
+- The workspace can eventually host those surfaces in a calm hybrid layout instead of forcing one hard-coded shell arrangement.
+- Layer ownership and transform history feel like durable authored workspace systems, not temporary per-tool tricks.
 - The `Console` should eventually become part of the same workspace grammar, not just a debug strip, so typed command flows can navigate and act across the app without creating separate mini-command systems per feature.
 - The graph-native path becomes good enough that the old legacy path can be removed.
 - Browser content interaction should eventually feel execution-aware and traceable without collapsing back into graph-only language.
@@ -217,27 +240,41 @@ These are the main long-range feature families the product still needs. They are
 - better reveal, selection, and editor coordination
 - richer project/content inspection without collapsing back into graph-only language
 
-#### 4. Build, Geometry Execution, And Publishing
+#### 4. Workspace Layout And Surface Hosting
+
+- one hybrid workspace layout system
+- calmer `Windowed` and `Tiled` placement of major tool surfaces
+- later pop-out/browser-hosted surface placement on the same ownership model
+- shell placement that stays separate from feature ownership
+
+#### 5. Build, Geometry Execution, And Publishing
 
 - graph-native worker contracts
 - stronger runtime geometry execution and diagnostics
 - explicit publish/output structure
 - truthful row-level build state and later build control
 
-#### 5. Console And Workspace Grammar
+#### 6. Authored Control Systems
+
+- real CAD-style `Layers` for sketch entities and authored 3D objects
+- a target-local `Transform` family shared across Browser, Console, viewer, and toolbar surfaces
+- direct manipulation and typed command entry over the same canonical authored truth
+- later authored visibility, organization, and history systems that stay attached to project-owned targets
+
+#### 7. Console And Workspace Grammar
 
 - app-wide command and feedback surface
 - layered transcript and routing
 - later command-language navigation across workspace, graph, node, and feature domains
 - tighter integration between visible tool state and typed command state
 
-#### 6. Control Surfaces And Direct Manipulation
+#### 8. Control Surfaces And Direct Manipulation
 
 - transform tools that can generalize beyond one feature
 - viewport gizmos and direct-manipulation seams
 - later Jake-mode style simplified editing over the same canonical graph truth
 
-#### 7. Export, Ecosystem, And Advanced Systems
+#### 9. Export, Ecosystem, And Advanced Systems
 
 - richer export depth
 - stronger assembly/composition behavior
@@ -299,6 +336,8 @@ When Codex asks a major decision question, prefer the option that:
 - preserves multi-graph and later project-file growth
 - uses registry/template/schema/IR patterns instead of product-specific branching
 - keeps build controls separate from view controls
+- keeps shell placement separate from feature ownership
+- keeps authored layer and transform truth attached to project-owned targets instead of viewer-only state
 - moves Browser/project hierarchy closer to the intended content model
 - removes future legacy debt instead of adding more
 
@@ -309,6 +348,9 @@ Be cautious when an option:
 - conflates build state with visibility state
 - locks the Browser into a flat parts-list mental model
 - turns `Content` into a duplicate `Graph Documents` list
+- turns authored layers into a viewer-only filter gimmick instead of persistent content ownership
+- lets transform stay fragmented across Browser shortcuts, toolbar buttons, and viewer gestures without one canonical target-local model
+- keeps growing one-off split or pop-out shell behavior per feature instead of moving toward one workspace layout system
 - solves a generic node/editor problem with a custom one-off UI branch
 - deepens `BoxParams` or `Legacy` mode as if they are the long-term core
 

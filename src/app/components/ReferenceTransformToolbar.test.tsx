@@ -10,6 +10,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 const viewerFrameReference = vi.fn()
 const viewerSetReferenceCameraLock = vi.fn()
 const viewerSetReferenceTransformOverride = vi.fn()
+const viewerCommitReferenceTransformSession = vi.fn()
 const viewerCompleteReferenceTransformDrag = vi.fn()
 const viewerCancelReferenceTransformDrag = vi.fn()
 const viewerClearReferenceTransformHandle = vi.fn()
@@ -25,6 +26,7 @@ vi.mock('../viewerBridge', () => ({
     frameReference: viewerFrameReference,
     setReferenceCameraLock: viewerSetReferenceCameraLock,
     setReferenceTransformOverride: viewerSetReferenceTransformOverride,
+    commitReferenceTransformSession: viewerCommitReferenceTransformSession,
     completeReferenceTransformDrag: viewerCompleteReferenceTransformDrag,
     cancelReferenceTransformDrag: viewerCancelReferenceTransformDrag,
     clearReferenceTransformHandle: viewerClearReferenceTransformHandle,
@@ -74,6 +76,7 @@ describe('ReferenceTransformToolbar', () => {
     viewerFrameReference.mockReset()
     viewerSetReferenceCameraLock.mockReset()
     viewerSetReferenceTransformOverride.mockReset()
+    viewerCommitReferenceTransformSession.mockReset()
     viewerCompleteReferenceTransformDrag.mockReset()
     viewerCancelReferenceTransformDrag.mockReset()
     viewerClearReferenceTransformHandle.mockReset()
@@ -231,6 +234,44 @@ describe('ReferenceTransformToolbar', () => {
     expect(viewerActivateTranslateCenterHandle).toHaveBeenCalledTimes(1)
   })
 
+  it('shows the active transform session path and history section for the current vec3 values', async () => {
+    const { ReferenceTransformToolbar } = await import('./ReferenceTransformToolbar')
+    const { useAppStore } = await import('../store/useAppStore')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      useAppStore.setState((state) => ({
+        ...state,
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          activeTransformMode: 'translate',
+          transformOverrideById: {
+            ...state.referenceWorkspace.transformOverrideById,
+            'shoe:shoe-1': {
+              position: { x: 12.5, y: -7, z: 42 },
+              rotationDeg: { x: 15, y: 0, z: -30 },
+              scale: { x: 1.1, y: 1, z: 0.95 },
+            },
+          },
+        },
+      }))
+      root?.render(<ReferenceTransformToolbar />)
+    })
+
+    expect(container.textContent).toContain('Shoe 1 > M > Vec3 [12.50, -7.00, 42.00]')
+    expect(container.textContent).toContain('Transform History')
+    expect(container.textContent).toContain('Origin')
+
+    await act(async () => {
+      useAppStore.getState().setReferenceTransformMode('rotate')
+    })
+
+    expect(container.textContent).toContain('Shoe 1 > R > Vec3 [15.00, 0.00, -30.00]')
+  })
+
   it('uses x y z shortcuts to constrain move while translate mode is active', async () => {
     const { ReferenceTransformToolbar } = await import('./ReferenceTransformToolbar')
     const { useAppStore } = await import('../store/useAppStore')
@@ -264,7 +305,7 @@ describe('ReferenceTransformToolbar', () => {
     expect(viewerActivateTranslateHandle).toHaveBeenNthCalledWith(3, 'Z')
   })
 
-  it('does not use x y z as standalone transform-start shortcuts without an active keyboard chain', async () => {
+  it('uses x y z as axis shortcuts for the active transform mode without an extra keyboard chain', async () => {
     const { ReferenceTransformToolbar } = await import('./ReferenceTransformToolbar')
     const { useAppStore } = await import('../store/useAppStore')
 
@@ -284,7 +325,9 @@ describe('ReferenceTransformToolbar', () => {
       window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', bubbles: true }))
     })
 
-    expect(viewerActivateTranslateHandle).not.toHaveBeenCalled()
+    expect(viewerActivateTranslateHandle).toHaveBeenNthCalledWith(1, 'X')
+    expect(viewerActivateTranslateHandle).toHaveBeenNthCalledWith(2, 'Y')
+    expect(viewerActivateTranslateHandle).toHaveBeenNthCalledWith(3, 'Z')
     expect(viewerActivateRotateHandle).not.toHaveBeenCalled()
     expect(viewerActivateScaleHandle).not.toHaveBeenCalled()
   })
@@ -336,7 +379,7 @@ describe('ReferenceTransformToolbar', () => {
     expect(viewerActivateScaleHandle).toHaveBeenNthCalledWith(3, 'Y')
   })
 
-  it('reverts an uncommitted keyboard transform when switching modes and keeps it after Enter commit', async () => {
+  it('keeps the live draft when switching modes and commits through Enter', async () => {
     const { ReferenceTransformToolbar } = await import('./ReferenceTransformToolbar')
     const { useAppStore } = await import('../store/useAppStore')
 
@@ -365,10 +408,9 @@ describe('ReferenceTransformToolbar', () => {
     })
 
     expect(useAppStore.getState().referenceWorkspace.transformOverrideById['shoe:shoe-1']).toMatchObject({
-      position: { x: 0, y: 0, z: 0 },
+      position: { x: 12, y: 0, z: 0 },
     })
-    expect(viewerSetReferenceTransformOverride).toHaveBeenCalled()
-    expect(viewerCancelReferenceTransformDrag).toHaveBeenCalled()
+    expect(viewerCancelReferenceTransformDrag).not.toHaveBeenCalled()
 
     await act(async () => {
       useAppStore.getState().setReferenceTransformOverride('shoe:shoe-1', {
@@ -381,7 +423,7 @@ describe('ReferenceTransformToolbar', () => {
     await act(async () => {
       window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
     })
-    expect(viewerCompleteReferenceTransformDrag).toHaveBeenCalled()
+    expect(viewerCommitReferenceTransformSession).toHaveBeenCalledTimes(1)
 
     await act(async () => {
       window.dispatchEvent(new KeyboardEvent('keydown', { key: 's', bubbles: true }))
@@ -392,7 +434,7 @@ describe('ReferenceTransformToolbar', () => {
     })
   })
 
-  it('cancels an active keyboard transform on Escape and restores the baseline', async () => {
+  it('cancels the active transform session on Escape and restores the baseline', async () => {
     const { ReferenceTransformToolbar } = await import('./ReferenceTransformToolbar')
     const { useAppStore } = await import('../store/useAppStore')
 
@@ -421,10 +463,12 @@ describe('ReferenceTransformToolbar', () => {
       position: { x: 0, y: 0, z: 0 },
     })
     expect(viewerCancelReferenceTransformDrag).toHaveBeenCalled()
-    expect(useConsoleStore.getState().entries.at(-1)?.text).toBe('Translate canceled')
+    expect(viewerClearReferenceTransformHandle).toHaveBeenCalled()
+    expect(useAppStore.getState().referenceWorkspace.activeTransformReferenceId).toBe('shoe:shoe-1')
+    expect(useAppStore.getState().referenceWorkspace.activeTransformEntryActive).toBe(false)
   })
 
-  it('ends an active reference transform on Escape when no keyboard transform is pending', async () => {
+  it('returns to the reference transform shell on Escape when no keyboard transform is pending', async () => {
     const { ReferenceTransformToolbar } = await import('./ReferenceTransformToolbar')
     const { useAppStore } = await import('../store/useAppStore')
 
@@ -442,10 +486,11 @@ describe('ReferenceTransformToolbar', () => {
       window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
     })
 
-    expect(useAppStore.getState().referenceWorkspace.activeTransformReferenceId).toBeNull()
+    expect(useAppStore.getState().referenceWorkspace.activeTransformReferenceId).toBe('shoe:shoe-1')
+    expect(useAppStore.getState().referenceWorkspace.activeTransformEntryActive).toBe(false)
   })
 
-  it('cancels an uncommitted move when m is pressed a second time', async () => {
+  it('re-arms move when m is pressed a second time without clearing the live draft', async () => {
     const { ReferenceTransformToolbar } = await import('./ReferenceTransformToolbar')
     const { useAppStore } = await import('../store/useAppStore')
 
@@ -479,24 +524,17 @@ describe('ReferenceTransformToolbar', () => {
     })
 
     expect(useAppStore.getState().referenceWorkspace.transformOverrideById['shoe:shoe-1']).toMatchObject({
-      position: { x: 0, y: 0, z: 0 },
+      position: { x: 18, y: -4, z: 7 },
       rotationDeg: { x: 0, y: 0, z: 0 },
       scale: { x: 1, y: 1, z: 1 },
     })
-    expect(viewerCancelReferenceTransformDrag).toHaveBeenCalled()
-    expect(viewerClearReferenceTransformHandle).toHaveBeenCalled()
-    expect(viewerActivateTranslateCenterHandle).toHaveBeenCalledTimes(1)
-    expect(moveSection?.className).not.toContain('isActive')
-
-    await act(async () => {
-      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'm', bubbles: true }))
-    })
-
     expect(viewerActivateTranslateCenterHandle).toHaveBeenCalledTimes(2)
+    expect(viewerCancelReferenceTransformDrag).not.toHaveBeenCalled()
+    expect(viewerClearReferenceTransformHandle).not.toHaveBeenCalled()
     expect(moveSection?.className).toContain('isActive')
   })
 
-  it('cancels uncommitted rotate and scale when r or s is pressed a second time', async () => {
+  it('re-arms rotate and scale when r or s is pressed again without clearing the live draft', async () => {
     const { ReferenceTransformToolbar } = await import('./ReferenceTransformToolbar')
     const { useAppStore } = await import('../store/useAppStore')
 
@@ -532,18 +570,11 @@ describe('ReferenceTransformToolbar', () => {
     })
 
     expect(useAppStore.getState().referenceWorkspace.transformOverrideById['shoe:shoe-1']).toMatchObject({
-      rotationDeg: { x: 0, y: 0, z: 0 },
+      rotationDeg: { x: 27, y: 9, z: -11 },
     })
-    expect(viewerCancelReferenceTransformDrag).toHaveBeenCalled()
-    expect(viewerClearReferenceTransformHandle).toHaveBeenCalled()
-    expect(viewerActivateRotateCenterHandle).toHaveBeenCalledTimes(1)
-    expect(rotateSection?.className).not.toContain('isActive')
-
-    await act(async () => {
-      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'r', bubbles: true }))
-    })
-
     expect(viewerActivateRotateCenterHandle).toHaveBeenCalledTimes(2)
+    expect(viewerCancelReferenceTransformDrag).not.toHaveBeenCalled()
+    expect(viewerClearReferenceTransformHandle).not.toHaveBeenCalled()
     expect(rotateSection?.className).toContain('isActive')
 
     await act(async () => {
@@ -564,15 +595,8 @@ describe('ReferenceTransformToolbar', () => {
     })
 
     expect(useAppStore.getState().referenceWorkspace.transformOverrideById['shoe:shoe-1']).toMatchObject({
-      scale: { x: 1, y: 1, z: 1 },
+      scale: { x: 1.7, y: 0.8, z: 1.3 },
     })
-    expect(viewerActivateScaleCenterHandle).toHaveBeenCalledTimes(1)
-    expect(scaleSection?.className).not.toContain('isActive')
-
-    await act(async () => {
-      window.dispatchEvent(new KeyboardEvent('keydown', { key: 's', bubbles: true }))
-    })
-
     expect(viewerActivateScaleCenterHandle).toHaveBeenCalledTimes(2)
     expect(scaleSection?.className).toContain('isActive')
   })
@@ -695,14 +719,9 @@ describe('ReferenceTransformToolbar', () => {
     expect(
       container.querySelector('button[aria-label="Adjust minimum X clamp"]'),
     ).not.toBeNull()
-    const labels = Array.from(container.querySelectorAll('.ParaSliderLabel')).map((node) =>
-      node.textContent?.trim(),
-    )
-    const values = Array.from(container.querySelectorAll('.ParaSliderValue')).map((node) =>
-      node.textContent?.trim(),
-    )
-    expect(labels[0]).toBe('-300.00')
-    expect(values[0]).toBe('300.00')
+    expect(
+      container.querySelector('button[aria-label="Adjust maximum X clamp"]'),
+    ).not.toBeNull()
   })
 
   it('frames the active reference from the header zoom button', async () => {
@@ -727,6 +746,94 @@ describe('ReferenceTransformToolbar', () => {
     })
 
     expect(viewerFrameReference).toHaveBeenCalledWith('shoe:shoe-1')
+  })
+
+  it('uses the shared overlay tool-panel shell with title meta, drag, and 8 resize handles', async () => {
+    const { ReferenceTransformToolbar } = await import('./ReferenceTransformToolbar')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ReferenceTransformToolbar />)
+    })
+
+    const toolPanel = container.querySelector('.ViewportOverlayToolPanel.ReferenceTransformToolbar') as HTMLDivElement | null
+    const titleBar = container.querySelector('.ViewportOverlayToolPanelTitleBar') as HTMLDivElement | null
+    const titleMeta = container.querySelector('.ViewportOverlayToolPanelTitleMeta') as HTMLDivElement | null
+    const resizeHandles = container.querySelectorAll('.ViewportOverlayToolPanelResizeHandle')
+    const southEastHandle = container.querySelector(
+      '.ViewportOverlayToolPanelResizeHandle--se',
+    ) as HTMLDivElement | null
+
+    expect(toolPanel).not.toBeNull()
+    expect(titleBar).not.toBeNull()
+    expect(titleMeta?.textContent).toContain('Shoe 1')
+    expect(resizeHandles).toHaveLength(8)
+    expect(southEastHandle).not.toBeNull()
+    expect(toolPanel?.style.width).toBe('300px')
+    expect(toolPanel?.style.left).toBe(`${window.innerWidth - 300 - 12}px`)
+
+    if (toolPanel !== null) {
+      Object.defineProperty(toolPanel, 'offsetWidth', {
+        configurable: true,
+        get: () => 300,
+      })
+      Object.defineProperty(toolPanel, 'offsetHeight', {
+        configurable: true,
+        get: () => 360,
+      })
+    }
+
+    const initialLeft = Number.parseInt(toolPanel?.style.left ?? '0', 10)
+    const initialTop = Number.parseInt(toolPanel?.style.top ?? '0', 10)
+
+    await act(async () => {
+      titleBar?.dispatchEvent(
+        new MouseEvent('mousedown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: 100,
+          clientY: 120,
+        }),
+      )
+      window.dispatchEvent(
+        new MouseEvent('mousemove', {
+          clientX: 132,
+          clientY: 148,
+        }),
+      )
+      window.dispatchEvent(new MouseEvent('mouseup'))
+    })
+
+    expect(toolPanel?.style.left).toBe(`${initialLeft}px`)
+    expect(toolPanel?.style.top).toBe(`${initialTop + 28}px`)
+
+    await act(async () => {
+      southEastHandle?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 9,
+          button: 0,
+          clientX: 300,
+          clientY: 360,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          pointerId: 9,
+          clientX: 336,
+          clientY: 404,
+        }),
+      )
+      window.dispatchEvent(new PointerEvent('pointerup', { pointerId: 9 }))
+    })
+
+    expect(toolPanel?.style.width).toBe('336px')
+    expect(toolPanel?.style.height).toBe('404px')
   })
 
   it('toggles the keyboard shortcuts help from the header info button', async () => {

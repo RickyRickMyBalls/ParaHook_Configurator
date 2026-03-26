@@ -60,4 +60,6 @@ export type ConsoleAssistDescriptor = {
   breadcrumb?: string[]
   choices: ConsoleAssistChoice[]
   prefill: string | null
+  summaryLeadText?: string
+  summaryMode?: 'default' | 'status'
 }

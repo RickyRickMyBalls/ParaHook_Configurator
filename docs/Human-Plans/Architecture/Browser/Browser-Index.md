@@ -3,6 +3,13 @@
 ## Doc Header
 
 ### Doc History
+44. 2026-03-26 17:07: Locked the final Browser transform hierarchy in this umbrella doc so valid selected targets should expose `Transform` first and only expose `Move`, `Rotate`, and `Scale` one level deeper under that branch, while also recording the canonical staged reference breadcrumb example `Select > References > premadefoothooks > XL > Transform > Move`
+43. 2026-03-26 16:58: Reframed the open Browser transform direction so `Browser-7.5` is now the real umbrella transform phase, with `7.3` and `7.4` treated as narrower transform sub-directions under that larger final-transform definition effort, and expanded the long-term Browser vision to explicitly include the later transform-history traversal and restore direction instead of leaving it only in the Browser-7 cleanup ladder
+42. 2026-03-26 16:18: Expanded `Browser-7` again by adding a new `b7.4` follow-on entry for transform-history traversal and restore, explicitly separating history playback/scrub behavior from the narrower `b7.3` live-session and append-history foundation
+41. 2026-03-26 16:15: Expanded `q28` under `Browser-7` so the explicit in-session option and assisted-prefill rules now apply to `Rotate` and `Scale` as well as `Move`, keeping `Vec3`, `X`, `Y`, `Z`, `XY`, `XZ`, and `YZ` as the first locked live transform option set across all three transform families
+40. 2026-03-26 16:12: Locked `q28` under `Browser-7` to define the first explicit in-session `Move` options as `Vec3`, `X`, `Y`, `Z`, `XY`, `XZ`, and `YZ`, while also recording the assisted-prefill rule that `Vec3` is the default live autofill, choosing an axis/plane option clears that autofill for typed entry, and clearing typed input restores the assisted vec3 choice
+39. 2026-03-26 16:00: Expanded `Browser-7` in this umbrella Browser doc by adding the first `b7.3` tracked entry plus locked `q23` through `q27`, keeping the transform follow-on reference-first, locking live-session Console behavior, commit return scope, app-store-owned append-on-commit history, and sketch-plane-style enriched history UI before later implementation
+38. 2026-03-26 07:56: Marked `b7.1` under `Browser-7` shipped after landing the real viewport explicit-multi-select sync cleanup, so `Ctrl` multi-pick from the model viewport now flows through the same shared explicit-selection truth as Browser row multi-select, keeps grouped viewer highlight aligned with the shared resolved selection set, and leaves `b7.2` as the remaining open Browser-7 follow-on
 37. 2026-03-25 22:17: Cleaned up the Browser architecture docs after shipping `Browser-6 - BrowserPanel Structure And Row-Family Cleanup` by moving its standalone phase record into `Browser/Shipped/`, rewriting this Browser umbrella doc to the post-Browser-6 state, and advancing the family so `Browser-7` is now the remaining open Browser follow-on
 36. 2026-03-25 21:57: Refined the open `Browser-6` read in this Browser umbrella doc to match the live code and the tightened standalone phase spec, clarifying that the Browser already has extracted row-family, presenter, interaction, and menu seams and that the real remaining Browser-6 target is the heavier BrowserPanel model/controller and overlay-wiring cleanup still trapped inline
 35. 2026-03-25 17:29: Added `Browser-7 - Browser Cleanup Follow-Ons` as the next small-cleanup Browser phase after Browser-6, created a dedicated Browser-7 tracking direction for narrower shipped follow-ons, and recorded the first two concrete entries for viewport-driven explicit multi-select sync and object-scope `Zoom` command expansion
@@ -159,6 +166,21 @@ Hard direction:
 - do not lock the Browser forever into two fully separate worlds where references and generated content can never converge
 - let the nearer Browser families still use practical row-family seams today
 - but keep the architecture open so imported folders/objects can later participate in the same broader content tree and move/reorganization model
+
+Transform direction:
+- the Browser should also grow toward one honest transform model across selected Browser targets instead of leaving transform forever split into unrelated reference-only and authored-object-only paths
+- the long-term transform vision should include:
+  - one clear Browser-owned command entry into transform for valid selected targets
+  - a staged hierarchy where the selected target exposes `Transform` first
+  - `Move`, `Rotate`, and `Scale` one level deeper under that `Transform` branch
+  - target-honest transform session ownership by target kind
+  - shared Console transform grammar where practical
+  - target-local transform history
+  - later history traversal, preview, and restore behavior
+- this later traversal and restore layer is the `7.4` direction:
+  - move backward and forward through committed transform history
+  - preview earlier committed states
+  - explicitly restore/apply a chosen state without forcing that larger model into the first history-foundation pass
 
 ### Current Placeholder Phase Direction
 
@@ -1082,8 +1104,190 @@ Track the next small Browser cleanup entries after Browser-6 without forcing eac
 ### Initial Tracked Entries
 
 - `b7.1`
-  - viewport explicit multi-select should sync back into Browser multi-select
-  - when the user holds `Ctrl` and multi-selects objects in the model viewport, Browser should mirror the same explicit object set through the shared selection truth
+  - shipped
+  - viewport explicit multi-select now syncs back into Browser multi-select through the shared explicit-selection seam
+  - grouped viewer highlight and Console multi-select context now stay aligned with the viewport-created explicit object set
 - `b7.2`
   - every object should expose the `Zoom` command family
   - object command surfaces should include `Zoom` and its child options consistently with the shared Console zoom grammar
+- `b7.3`
+  - reference-first transform-session and history foundation
+  - selected-reference `Move`, `Rotate`, and `Scale` should become one honest live transform session with target-local cumulative history
+  - keep this as the narrow reference-first foundation under the broader transform direction, and use the standalone phase doc for the implementation-ready spec:
+    - `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-7.3 - Reference Transform Session History.md`
+- `b7.4`
+  - later transform-history traversal and restore direction
+  - transform history should support user traversal back and forth through committed entries without forcing that bigger playback/restore model into the first history-foundation pass
+  - likely first cut:
+    - row selection or cursor-based history traversal
+    - previewing earlier committed snapshots
+    - explicit restore/apply behavior from a chosen history state
+  - keep history playback, restore semantics, and any later branching behavior separate from the narrower session-and-history-foundation work
+- `b7.5`
+  - Browser transform should become its own real umbrella phase
+  - use `7.5` to define the final transform direction across Browser-selected targets first, then break actual implementation into narrower subphases
+  - final hierarchy direction:
+    - selected target scope exposes `Transform`
+    - `Transform` exposes `Move`, `Rotate`, and `Scale`
+    - canonical staged example:
+      - `Select > References > premadefoothooks > XL > Transform > Move`
+  - expected execution ladder under the umbrella:
+    - `Transform 1`
+      - reference-first live transform session and append-on-commit history foundation
+    - `Transform 2`
+      - canonical transform hierarchy, target-scope shortcut adapters, and non-reference target ownership
+    - `Transform 3`
+      - shared target-local transform shell and post-commit return behavior
+    - `Transform 4`
+      - viewport move/scale/rotate history visuals, traversal / preview / restore, and later cleanup
+  - this is the phase that should answer:
+    - what the final transform target model is
+    - how object-owned versus reference-owned transform paths should relate
+    - what shared Console grammar should be reused
+    - what toolbar ownership should look like across target kinds
+    - how target-local history and later traversal/restore should fit together
+  - standalone phase doc:
+    - `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-7.5 - Final Transform Direction And Phase Split.md`
+
+### Questions / Decisions
+
+#### [x] q23 - Should Browser-7.3 stay reference-first, or widen into objects and assemblies immediately?
+
+Question:
+- should the next transform/session-history follow-on try to cover selected references plus authored objects and assemblies in one patch, or should it tighten the already-existing reference transform flow first?
+
+Suggestion:
+- keep `b7.3` reference-first
+- build on the already-shipped selected-reference transform surface instead of expanding phase scope into authored-content transform ownership at the same time
+- shape the history/session model so later object and assembly follow-ons can reuse it without redesign
+
+Decision:
+- keep `b7.3` reference-first
+- do not widen the first pass into authored object, assembly, folder, or multi-select transform ownership
+- use this phase to tighten the already-existing selected-reference transform flow first
+- shape the history/session model so later object and assembly follow-ons can reuse it without redesign
+
+#### [x] q24 - While `Move`, `Rotate`, or `Scale` is active, should the Console stay at the generic selected-reference menu or enter the live transform session?
+
+Question:
+- after the user chooses `Move`, `Rotate`, or `Scale` from selected reference scope, should the Console keep rendering the ordinary `Choose next [Move, Rotate, Scale, Zoom, Back]` menu, or should it switch into the active transform session itself?
+
+Suggestion:
+- enter the live transform session
+- do not keep the parent selected-reference menu on screen while transform is active
+- make the active Console path honest in the same compact transform style already proven by sketch-plane transform:
+  - `<Reference Label> > M > Vec3 [...]`
+  - `<Reference Label> > R > Vec3 [...]`
+  - `<Reference Label> > S > Vec3 [...]`
+
+Decision:
+- enter the live transform session
+- do not keep the generic selected-reference menu on screen while transform is active
+- make the active Console path honest in the compact transform style already used by sketch-plane transform:
+  - `<Reference Label> > M > Vec3 [...]`
+  - `<Reference Label> > R > Vec3 [...]`
+  - `<Reference Label> > S > Vec3 [...]`
+
+#### [x] q25 - After `CommitTransform` or `Enter`, should Console return to a persistent transform root or to the normal selected-reference scope?
+
+Question:
+- once a live reference transform is committed, should Console stay inside a dedicated post-commit transform root, or should it exit the live session and return to the ordinary selected-reference scope?
+
+Suggestion:
+- `CommitTransform` and `Enter` should both finalize the active live transform
+- after commit, return to the normal selected-reference scope for that same highlighted target
+- do not add a persistent post-commit transform root in the first pass
+
+Decision:
+- `CommitTransform` and `Enter` both finalize the active live transform
+- after commit, return to the normal selected-reference scope for that same highlighted target
+- do not add a persistent post-commit transform root in the first pass
+
+#### [x] q26 - Where should reference transform history live, and when should it append?
+
+Question:
+- should transform-history ownership stay in the viewer because the viewer executes the live drag, or should the app/store own history and append only at explicit commit points?
+
+Suggestion:
+- keep live transform execution viewer-owned
+- keep history app/store-owned in `useAppStore`, keyed by `referenceId`
+- append one entry only on real commit:
+  - viewport drag release
+  - `Enter`
+  - `CommitTransform`
+- never append during live drag preview
+
+Decision:
+- keep live transform execution viewer-owned
+- keep transform history app/store-owned in `useAppStore`, keyed by `referenceId`
+- append one entry only on real commit:
+  - viewport drag release
+  - `Enter`
+  - `CommitTransform`
+- never append during live drag preview
+
+#### [x] q27 - What should the first reference transform-history UI and merge model be?
+
+Question:
+- should reference transform history invent a new UI/merge rule, or should it follow the sketch-plane history model and enrich it for `Move`, `Rotate`, and `Scale`?
+
+Suggestion:
+- follow the sketch-plane history idea
+- add a collapsible `Transform History` section to the reference transform toolbar
+- show:
+  - `Origin`
+  - one row per committed transform entry
+  - `Lock/Unlock` per row
+  - `Merge History`
+- store absolute committed snapshots, then derive display deltas from the previous committed entry
+- merge should preserve:
+  - the last row
+  - locked rows
+  - while collapsing earlier unlocked rows
+
+#### [x] q28 - What exact in-session options should `Move`, `Rotate`, and `Scale` expose, and how should the default vec3 assist behave?
+
+Question:
+- once the user enters live `Move`, `Rotate`, or `Scale`, should Console only show a passive vec3 path, or should it expose explicit in-session transform options and assisted typed-entry behavior?
+
+Suggestion:
+- all three live transform families should expose the same first explicit in-session options:
+  - `Vec3`
+  - `X`
+  - `Y`
+  - `Z`
+  - `XY`
+  - `XZ`
+  - `YZ`
+- `Vec3` should be the default assisted/autofill option using the current live transform value
+- while that assisted vec3 option is active, the user can still commit by viewport click or `Enter`
+- if the user chooses an axis or plane option like `X`, delete the active vec3 autofill and let typed entry own the input
+- if the user clears the typed input back to empty, restore the default assisted vec3 option
+
+Decision:
+- inside live `Move`, `Rotate`, and `Scale`, Console exposes:
+  - `Vec3`
+  - `X`
+  - `Y`
+  - `Z`
+  - `XY`
+  - `XZ`
+  - `YZ`
+- `Vec3` is the default assisted/autofill option using the current live transform value
+- while `Vec3` is active, the user may still commit by viewport click or `Enter`
+- choosing an axis or plane option like `X` removes the active vec3 autofill and gives typed entry control of the input
+- if the user clears the typed input back to empty, restore the default assisted vec3 option
+
+Decision:
+- follow the sketch-plane history idea and enrich it for `Move`, `Rotate`, and `Scale`
+- add a collapsible `Transform History` section to the reference transform toolbar
+- show:
+  - `Origin`
+  - one row per committed transform entry
+  - `Lock/Unlock` per row
+  - `Merge History`
+- store absolute committed snapshots and derive display deltas from the previous committed entry
+- merge should preserve:
+  - the last row
+  - locked rows
+  - while collapsing earlier unlocked rows

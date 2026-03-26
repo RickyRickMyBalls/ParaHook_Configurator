@@ -24,6 +24,103 @@
 
 ## Session 1 Notes
 
+##### [ ] [209] 2026-03-26 12:55 - Break the new `Layers` family into four code-backed implementation phases
+
+Context block:
+
+- the umbrella `Layers` direction was locked, but it still needed an execution order
+- a quick live code read shows the real seams already split naturally across:
+  - `useAppStore`
+  - `workspaceSelectionCommands`
+  - `useBrowserPanelController`
+  - `ConsoleDock`
+  - `useSpaghettiStore`
+  - `Viewer`
+- that means the layer plan should not stay as one generic future note
+
+Locked direction:
+
+- use a four-phase `Layers` ladder:
+  - `Layers-1`
+    - canonical layer state, membership, current-layer truth, and shared visibility commands
+  - `Layers-2`
+    - `Layer Manager` plus Console command surface
+  - `Layers-3`
+    - sketch-entity layer ownership
+  - `Layers-4`
+    - authored 3D object layer ownership and visibility
+- keep the transcript-layer filter toolbar separate from CAD/content layer commands
+- keep sketch and authored 3D object integration as separate later phases because the live code already has different ownership seams for:
+  - sketch-session state and overlay rendering
+  - project-content records, Browser selection, and viewer object picks
+
+Why this matters:
+
+- it gives the new `Layers` family a real implementation ladder instead of one umbrella idea doc
+- it keeps the first phase focused on shared state so later UI work does not fork layer ownership
+- it matches the actual code boundaries closely enough to become future implementation-ready phase docs
+
+##### [ ] [208] 2026-03-26 11:26 - Lock the first console-facing layer management commands around off, restore-all, and multi-layer isolate
+
+Context block:
+
+- the new `Layers` direction already locked a `Layer Manager` plus shared selection-based assignment
+- the user also wants fast Console buttons/commands for managing layer visibility
+- the desired actions are not generic visibility prose anymore; they are explicit management verbs
+
+Locked direction:
+
+- the first Console-facing layer commands should include:
+  - `turn off layer`
+  - `turn on all layers`
+  - `isolate layers`
+- `turn off layer` hides the chosen layer
+- `turn on all layers` restores visibility for every layer
+- `isolate layers` hides every non-selected layer and must support keeping multiple selected layers visible at once
+- these Console commands should operate on the same underlying CAD/content layer state owned by the `Layer Manager`
+- these commands are distinct from the existing Console transcript layer filter toolbar
+
+Why this matters:
+
+- AutoCAD-style layer work needs fast management actions, not only a passive list of visibility toggles
+- multi-layer isolate is materially different from one-row solo visibility and should be locked explicitly now
+- keeping the Console actions attached to the same underlying layer state prevents the manager and Console from drifting into two separate visibility systems
+
+##### [ ] [207] 2026-03-26 11:16 - Expand the new `Layers` family around an AutoCAD-style layer manager and shared selection-based assignment
+
+Context block:
+
+- the new `docs/Human-Plans/Architecture/Layers/Layers.md` family existed only as a folder placeholder
+- the user wants ParaHook layers to behave more like AutoCAD:
+  - create layers
+  - assign names and colors
+  - toggle visibility
+  - assign selected sketch lines and 3D objects to layers
+- the repo already has active shared-selection work across Browser, viewport, and Console, so the layer direction should not invent a disconnected targeting model
+
+Locked direction:
+
+- `Layers` should mean CAD/content layers, not the separate Console transcript layers
+- ParaHook should get one canonical `Layer Manager` surface
+- the first manager should support:
+  - create
+  - rename
+  - recolor
+  - visibility toggle
+  - current-layer selection
+  - assign current selection to a layer
+- layer assignment should reuse shared Browser/viewport/`Sketch Draw` selection truth instead of adding a layer-local selection model
+- the first supported layer-assignment targets should be:
+  - committed `Sketch Draw` entities
+  - authored 3D content objects
+- layer membership should persist as authored/content truth rather than as a viewer-only overlay
+
+Why this matters:
+
+- it gives one canonical architecture home to the AutoCAD-style layer expectation before phase docs are split out later
+- it lets one layer model span both 2D sketch work and 3D authored object organization
+- it keeps the future layer system aligned with the repo's existing shared selection and command-scope direction
+
 ##### [ ] [206] 2026-03-22 12:49 - Add one umbrella `Nodes` index and treat AutoCAD-style command growth as primarily a `Sketch` problem
 
 Context block:

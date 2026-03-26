@@ -29,6 +29,11 @@ export const frameSelectedCommand = (partKey: string | null): void => {
   getViewer()?.frameSelected(partKey)
 }
 
+export const frameSelectionSetCommand = (
+  partKeys: string[],
+  referenceIds: string[],
+): boolean => getViewer()?.frameSelectionSet(partKeys, referenceIds) ?? false
+
 export const frameSelectedGeometrySketchCommand = (): boolean =>
   getViewer()?.frameSelectedGeometrySketch() ?? false
 

@@ -4,6 +4,8 @@
 <summary>Doc Header</summary>
 
 ### Doc History
+124. 2026-03-26 12:55: Added the four new `docs/Human-Plans/Architecture/Layers/Future/` phase docs to the architecture docs map and refreshed the Layers subtree so the new family now has a visible implementation ladder for state foundation, manager-plus-console controls, sketch entity ownership, and authored 3D object visibility
+123. 2026-03-26 07:18: Added `docs/Human-Plans/Architecture/Layers/Layers.md` to the architecture docs map, created the new folderized `Layers` family with `Future/` and `Shipped/`, and refreshed the architecture subtree so layer-specific planning now has a canonical umbrella home under `docs/Human-Plans/Architecture/`
 122. 2026-03-25 22:17: Moved the shipped `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-6 - BrowserPanel Structure And Row-Family Cleanup.md` record into `Browser/Shipped/`, refreshed the Browser subtree listing, and kept the docs map aligned with the post-Browser-6 family state where `Browser-7` is now the remaining future Browser phase
 121. 2026-03-25 21:49: Moved the shipped `docs/Human-Plans/Architecture/Console/Future/Console_Phase 5.1G - Surface-Agnostic Command Ownership And Adapter Expansion.md` record into `Console/Shipped/`, refreshed the Console subtree listing, and kept the docs map aligned with the now-landed owner-first command-expansion cut after shared workspace-selection outcomes and shared view commands shipped in code
 120. 2026-03-25 21:10: Moved the shipped `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase 5.3A-7 - Graph-Native Worker Cutover And Legacy Contract Deletion.md` record into `Worker/Shipped/`, refreshed the Worker subtree listing, and kept the docs map aligned with the now-fully-shipped `5.3A` worker family so the architecture docs no longer list any open future worker phase under `Worker/`
@@ -462,6 +464,7 @@ Rule notes:
         - `Console/Console.md`
         - `Engine-Architecture.md`
         - `Glossary.md`
+        - `Layers/Layers.md`
         - `Pasta-Path/Pasta-Path-Index.md`
         - `Radio.md`
         - `Sampler.md`
@@ -500,6 +503,12 @@ Rule notes:
 #### -------Console
             - `Console.md`
             - `Shipped/Console_Phase 5.1G - Surface-Agnostic Command Ownership And Adapter Expansion.md`
+#### -------Layers
+            - `Layers.md`
+            - `Future/Layers_Phase Layers-1 - Layer State, Membership, And Visibility Foundation.md`
+            - `Future/Layers_Phase Layers-2 - Layer Manager And Console Command Surface.md`
+            - `Future/Layers_Phase Layers-3 - Sketch Entity Layer Ownership.md`
+            - `Future/Layers_Phase Layers-4 - Authored 3D Object Layer Ownership And Visibility.md`
 #### -------Pasta-Path
             - `Pasta-Path-Index.md`
 #### -------View-Toolbar

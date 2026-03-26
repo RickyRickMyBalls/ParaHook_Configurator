@@ -84,11 +84,6 @@ type ReferenceTransformSession = {
   mode: TransformControlsMode
   space: GizmoSpace
 }
-type ReferenceHighlightMaterialState = {
-  colorHex: number
-  emissiveHex: number
-  emissiveIntensity: number
-}
 type WorkspaceSelectionPick =
   | {
       kind: 'part'
@@ -106,8 +101,6 @@ type WorkspaceSelectionPickEvent = {
 
 const DEFAULT_BACKGROUND = '#0b0b0f'
 const STUDIO_BACKGROUND = '#151922'
-const ACTIVE_REFERENCE_HIGHLIGHT_COLOR = '#fff4c2'
-const ACTIVE_REFERENCE_HIGHLIGHT_EMISSIVE = '#ffd66b'
 const ACTIVE_PART_SELECTION_OUTLINE = '#9ec3ff'
 const GRID_SIZE = 300
 const GRID_MINOR_STEP = 1
@@ -277,6 +270,7 @@ export class Viewer {
   private onReferenceTransformChange:
     | ((referenceId: string, transform: ReferenceTransformOverride) => void)
     | null = null
+  private onReferenceTransformCommit: (() => void) | null = null
   private onReferenceTransformExit: (() => void) | null = null
   private onReferenceTransformModeChange: ((mode: TransformControlsMode) => void) | null = null
   private onReferenceTransformSpaceChange: ((space: GizmoSpace) => void) | null = null
@@ -833,6 +827,10 @@ export class Viewer {
     this.onReferenceTransformChange = handler
   }
 
+  public setOnReferenceTransformCommit(handler: (() => void) | null): void {
+    this.onReferenceTransformCommit = handler
+  }
+
   public setOnReferenceTransformExit(handler: (() => void) | null): void {
     this.onReferenceTransformExit = handler
   }
@@ -1000,6 +998,49 @@ export class Viewer {
     })
   }
 
+  public frameSelectionSet(partIds: string[], referenceIds: string[]): boolean {
+    const bounds = new Box3()
+    let hasTarget = false
+
+    for (const partId of partIds) {
+      const obj = this.partMeshes.get(partId)
+      if (obj === undefined) {
+        continue
+      }
+      bounds.union(new Box3().setFromObject(obj, true))
+      hasTarget = true
+    }
+
+    for (const referenceId of referenceIds) {
+      const obj = this.referenceObjects.get(referenceId)
+      if (obj === undefined) {
+        continue
+      }
+      bounds.union(new Box3().setFromObject(obj, true))
+      hasTarget = true
+    }
+
+    if (!hasTarget || bounds.isEmpty()) {
+      appendConsoleEntry({
+        layer: 'View',
+        text: 'Zoom selected set: no selected objects',
+        source: 'viewer',
+        severity: 'warn',
+      })
+      return false
+    }
+
+    this.rememberCameraPose()
+    this.cameraController.frameBox(bounds)
+    appendConsoleEntry({
+      layer: 'View',
+      text: 'Zoom selected set',
+      source: 'viewer',
+      severity: 'info',
+    })
+    return true
+  }
+
   public frameReference(referenceId: string): void {
     const obj = this.referenceObjects.get(referenceId)
     if (obj === undefined) {
@@ -1040,6 +1081,17 @@ export class Viewer {
 
   public completeReferenceTransformDrag(): void {
     this.transformGizmo.completeActiveDrag()
+  }
+
+  public commitReferenceTransformSession(): void {
+    if (this.activeReferenceTransformReferenceId === null) {
+      return
+    }
+    if (this.transformGizmo.isDragging()) {
+      this.transformGizmo.completeActiveDrag()
+      return
+    }
+    this.requestReferenceTransformCommit()
   }
 
   public cancelReferenceTransformDrag(): void {
@@ -1783,8 +1835,6 @@ export class Viewer {
   }
 
   private refreshReferenceHighlightStyling(): void {
-    const highlightTint = new Color(ACTIVE_REFERENCE_HIGHLIGHT_COLOR)
-    const highlightEmissive = new Color(ACTIVE_REFERENCE_HIGHLIGHT_EMISSIVE)
     for (const [referenceId, object] of this.referenceObjects.entries()) {
       const isSelected = this.highlightedReferenceIds.has(referenceId) && object.visible
       const isHighlighted =
@@ -1793,37 +1843,6 @@ export class Viewer {
       for (const outline of outlines) {
         outline.visible = isSelected || isHighlighted
       }
-      object.traverse((child) => {
-        if (!(child instanceof Mesh)) {
-          return
-        }
-        const materials = Array.isArray(child.material) ? child.material : [child.material]
-        for (const material of materials) {
-          if (!(material instanceof MeshStandardMaterial)) {
-            continue
-          }
-          const storedBase =
-            material.userData.referenceHighlightBase as ReferenceHighlightMaterialState | undefined
-          const baseState: ReferenceHighlightMaterialState =
-            storedBase ?? {
-              colorHex: material.color.getHex(),
-              emissiveHex: material.emissive.getHex(),
-              emissiveIntensity: material.emissiveIntensity,
-            }
-          if (storedBase === undefined) {
-            material.userData.referenceHighlightBase = baseState
-          }
-          material.color.setHex(baseState.colorHex)
-          material.emissive.setHex(baseState.emissiveHex)
-          material.emissiveIntensity = baseState.emissiveIntensity
-          if (isHighlighted) {
-            material.color.lerp(highlightTint, 0.18)
-            material.emissive.copy(highlightEmissive)
-            material.emissiveIntensity = Math.max(baseState.emissiveIntensity, 0.9)
-          }
-          material.needsUpdate = true
-        }
-      })
     }
   }
 
@@ -2054,6 +2073,15 @@ export class Viewer {
     this.onReferenceTransformExit?.()
   }
 
+  private requestReferenceTransformCommit(): void {
+    if (this.activeReferenceTransformReferenceId === null) {
+      return
+    }
+    this.onReferenceTransformCommit?.()
+    this.transformGizmo.clearActiveHandle()
+    this.refreshGizmoAttachment()
+  }
+
   private readonly handleReferenceTransformObjectChange = (object: Object3D): void => {
     if (this.activeReferenceTransformReferenceId === null) {
       return
@@ -2111,6 +2139,7 @@ export class Viewer {
       this.activeReferenceTransformReferenceId !== null &&
       this.referenceObjects.get(this.activeReferenceTransformReferenceId) === object
     ) {
+      this.requestReferenceTransformCommit()
       return
     }
     this.handleSketchPlanePickTransformDragComplete(object)

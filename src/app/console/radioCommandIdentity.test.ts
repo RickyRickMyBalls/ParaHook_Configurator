@@ -118,6 +118,87 @@ describe('radioCommandIdentity', () => {
         matchedLabel: 'Build',
       }),
     ).toBe('Console.Graph.Build')
+
+    expect(
+      resolveConsoleRadioCommandIdentity({
+        kind: 'stagedChoice',
+        activeScopeId: 'contentObjectSelected',
+        matchedCanonicalToken: 'ZOOM',
+        matchedLabel: 'Zoom',
+      }),
+    ).toBe('Console.Object.Zoom')
+
+    expect(
+      resolveConsoleRadioCommandIdentity({
+        kind: 'stagedChoice',
+        activeScopeId: 'contentObjectZoomRoot',
+        matchedCanonicalToken: 'OBJECT',
+        matchedLabel: 'Object',
+      }),
+    ).toBe('Console.Object.Zoom.Object')
+
+    expect(
+      resolveConsoleRadioCommandIdentity({
+        kind: 'stagedChoice',
+        activeScopeId: 'referenceSelected',
+        matchedCanonicalToken: 'ZOOM',
+        matchedLabel: 'Zoom',
+      }),
+    ).toBe('Console.Reference.Zoom')
+
+    expect(
+      resolveConsoleRadioCommandIdentity({
+        kind: 'stagedChoice',
+        activeScopeId: 'referenceZoomRoot',
+        matchedCanonicalToken: 'OBJECT',
+        matchedLabel: 'Object',
+      }),
+    ).toBe('Console.Reference.Zoom.Object')
+
+    expect(
+      resolveConsoleRadioCommandIdentity({
+        kind: 'stagedChoice',
+        activeScopeId: 'multiSelectSelected',
+        matchedCanonicalToken: 'ZOOM',
+        matchedLabel: 'Zoom',
+      }),
+    ).toBe('Console.MultiSelect.Zoom')
+
+    expect(
+      resolveConsoleRadioCommandIdentity({
+        kind: 'stagedChoice',
+        activeScopeId: 'multiSelectZoomRoot',
+        matchedCanonicalToken: 'OBJECT',
+        matchedLabel: 'Object',
+      }),
+    ).toBe('Console.MultiSelect.Zoom.Object')
+
+    expect(
+      resolveConsoleRadioCommandIdentity({
+        kind: 'stagedChoice',
+        activeScopeId: 'contentAssemblySelected',
+        matchedCanonicalToken: 'ZOOM',
+        matchedLabel: 'Zoom',
+      }),
+    ).toBe('Console.Assembly.Zoom')
+
+    expect(
+      resolveConsoleRadioCommandIdentity({
+        kind: 'stagedChoice',
+        activeScopeId: 'referencesSelected',
+        matchedCanonicalToken: 'ZOOM',
+        matchedLabel: 'Zoom',
+      }),
+    ).toBe('Console.References.Zoom')
+
+    expect(
+      resolveConsoleRadioCommandIdentity({
+        kind: 'stagedChoice',
+        activeScopeId: 'referenceCategorySelected',
+        matchedCanonicalToken: 'ZOOM',
+        matchedLabel: 'Zoom',
+      }),
+    ).toBe('Console.References.Category.Zoom')
   })
 
   it('resolves prompt submits without depending on the submitted value text', () => {

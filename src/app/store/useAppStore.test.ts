@@ -331,8 +331,94 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     expect(useAppStore.getState().workspaceSelection.resolvedContentSelection).toEqual({
       rootRowId: 'object:object-3',
       rootKind: 'multi-select',
-      partKeys: ['graph-document-1:slot-a', 'graph-document-1:slot-b', 'graph-document-1:slot-c'],
+      partKeys: [
+        'slot-a',
+        'graph-document-1:slot-a',
+        'slot-b',
+        'graph-document-1:slot-b',
+        'slot-c',
+        'graph-document-1:slot-c',
+      ],
       groupedRowIds: ['object-1', 'object-2'],
+    })
+  })
+
+  it('resolves linked explicit object selection against the owner graph viewer key', async () => {
+    const { useAppStore } = await import('./useAppStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useAppStore.setState((state) => ({
+      ...state,
+      projectContent: {
+        ...state.projectContent,
+        assembliesById: {
+          'assembly-root:project-file-1': {
+            assemblyId: 'assembly-root:project-file-1',
+            label: 'Assembly 1',
+            childRowIds: ['linked-object-1', 'linked-object-2'],
+          },
+        },
+        componentsById: {},
+        objectsById: {
+          'linked-object-1': {
+            objectId: 'linked-object-1',
+            ownerGraphDocumentId: 'graph-document-1',
+            parentComponentId: null,
+            objectSourceKind: 'receive-link',
+            sourceGraphDocumentId: 'graph-document-2',
+            sourceOutputEntryId: 'output-entry:slot-linked-a:node-linked-a',
+            sourceNodeId: 'node-linked-a',
+            slotId: 'slot-linked-a',
+            label: 'Linked Object A',
+            resolutionState: 'resolved',
+          },
+          'linked-object-2': {
+            objectId: 'linked-object-2',
+            ownerGraphDocumentId: 'graph-document-1',
+            parentComponentId: null,
+            objectSourceKind: 'receive-link',
+            sourceGraphDocumentId: 'graph-document-3',
+            sourceOutputEntryId: 'output-entry:slot-linked-b:node-linked-b',
+            sourceNodeId: 'node-linked-b',
+            slotId: 'slot-linked-b',
+            label: 'Linked Object B',
+            resolutionState: 'resolved',
+          },
+        },
+      },
+    }))
+
+    useAppStore.getState().setWorkspaceExplicitSelection({
+      selectedTarget: {
+        kind: 'object',
+        objectId: 'linked-object-2',
+      },
+      explicitSelectedTargets: [
+        {
+          kind: 'object',
+          objectId: 'linked-object-1',
+        },
+        {
+          kind: 'object',
+          objectId: 'linked-object-2',
+        },
+      ],
+      selectionAnchorTarget: {
+        kind: 'object',
+        objectId: 'linked-object-2',
+      },
+    })
+
+    expect(useAppStore.getState().workspaceSelection.resolvedContentSelection).toEqual({
+      rootRowId: 'object:linked-object-2',
+      rootKind: 'multi-select',
+      partKeys: [
+        'slot-linked-a',
+        'graph-document-1:slot-linked-a',
+        'slot-linked-b',
+        'graph-document-1:slot-linked-b',
+      ],
+      groupedRowIds: [],
     })
   })
 
@@ -1868,6 +1954,95 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
         .getState()
         .entries.some((entry) => entry.text === 'Load All Complete: Footpads'),
     ).toBe(true)
+  })
+
+  it('appends changed reference transform history entries, supports lock toggle, and merges unlocked rows', async () => {
+    const { useAppStore } = await import('./useAppStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useAppStore.getState().beginReferenceTransform('shoe:shoe-1')
+    useAppStore.getState().setReferenceTransformMode('translate')
+    useAppStore.getState().setReferenceTransformOverride('shoe:shoe-1', {
+      position: { x: 5, y: 0, z: 0 },
+      rotationDeg: { x: 0, y: 0, z: 0 },
+      scale: { x: 1, y: 1, z: 1 },
+    })
+    useAppStore.getState().appendActiveReferenceTransformHistoryEntry()
+    useAppStore.getState().appendActiveReferenceTransformHistoryEntry()
+
+    useAppStore.getState().setReferenceTransformMode('rotate')
+    useAppStore.getState().setReferenceTransformOverride('shoe:shoe-1', {
+      position: { x: 5, y: 0, z: 0 },
+      rotationDeg: { x: 0, y: 20, z: 0 },
+      scale: { x: 1, y: 1, z: 1 },
+    })
+    useAppStore.getState().appendActiveReferenceTransformHistoryEntry()
+
+    useAppStore.getState().setReferenceTransformMode('translate')
+    useAppStore.getState().setReferenceTransformOverride('shoe:shoe-1', {
+      position: { x: 9, y: -2, z: 4 },
+      rotationDeg: { x: 0, y: 20, z: 0 },
+      scale: { x: 1, y: 1, z: 1 },
+    })
+    useAppStore.getState().appendActiveReferenceTransformHistoryEntry()
+
+    const entriesBeforeMerge =
+      useAppStore.getState().referenceWorkspace.transformHistoryByReferenceId['shoe:shoe-1'] ?? []
+    expect(entriesBeforeMerge).toHaveLength(3)
+    expect(entriesBeforeMerge.map((entry) => entry.kind)).toEqual(['move', 'rotate', 'move'])
+
+    useAppStore
+      .getState()
+      .toggleReferenceTransformHistoryLock('shoe:shoe-1', entriesBeforeMerge[0]!.entryId)
+    expect(
+      useAppStore.getState().referenceWorkspace.transformHistoryByReferenceId['shoe:shoe-1']?.[0]
+        ?.locked,
+    ).toBe(true)
+
+    useAppStore.getState().mergeReferenceTransformHistory('shoe:shoe-1')
+
+    expect(
+      useAppStore.getState().referenceWorkspace.transformHistoryByReferenceId['shoe:shoe-1'],
+    ).toMatchObject([
+      {
+        kind: 'move',
+        value: { x: 5, y: 0, z: 0 },
+        locked: true,
+      },
+      {
+        kind: 'move',
+        value: { x: 9, y: -2, z: 4 },
+        locked: false,
+      },
+    ])
+  })
+
+  it('restores the captured baseline when an active reference transform session is cancelled', async () => {
+    const { useAppStore } = await import('./useAppStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useAppStore.getState().setReferenceTransformOverride('shoe:shoe-1', {
+      position: { x: 2, y: 3, z: 4 },
+      rotationDeg: { x: 0, y: 0, z: 0 },
+      scale: { x: 1, y: 1, z: 1 },
+    })
+    useAppStore.getState().beginReferenceTransform('shoe:shoe-1')
+    useAppStore.getState().setReferenceTransformOverride('shoe:shoe-1', {
+      position: { x: 20, y: 30, z: 40 },
+      rotationDeg: { x: 0, y: 0, z: 0 },
+      scale: { x: 1, y: 1, z: 1 },
+    })
+
+    useAppStore.getState().cancelActiveReferenceTransform()
+
+    expect(useAppStore.getState().referenceWorkspace.activeTransformReferenceId).toBe('shoe:shoe-1')
+    expect(useAppStore.getState().referenceWorkspace.activeTransformEntryActive).toBe(false)
+    expect(useAppStore.getState().referenceWorkspace.activeTransformSessionOrigin).toBeNull()
+    expect(useAppStore.getState().referenceWorkspace.transformOverrideById['shoe:shoe-1']).toMatchObject({
+      position: { x: 2, y: 3, z: 4 },
+      rotationDeg: { x: 0, y: 0, z: 0 },
+      scale: { x: 1, y: 1, z: 1 },
+    })
   })
 })
 

@@ -114,7 +114,7 @@ describe('routeKeyboardInput', () => {
     })
   })
 
-  it('does not let console capture win while sketch draw is active', () => {
+  it('keeps staged console capture active while sketch draw is active', () => {
     const result = routeKeyboardInput({
       event: createEvent('b'),
       geometrySketchMode: 'draw',
@@ -123,8 +123,8 @@ describe('routeKeyboardInput', () => {
     })
 
     expect(result).toEqual({
-      owner: 'none',
-      decision: 'ignore',
+      owner: 'staged-console',
+      decision: 'handle',
     })
   })
 
@@ -141,7 +141,7 @@ describe('routeKeyboardInput', () => {
     })
   })
 
-  it('does not let console capture win while reference transform is active', () => {
+  it('keeps staged console capture active while reference transform is active', () => {
     const result = routeKeyboardInput({
       event: createEvent('b'),
       referenceTransformActive: true,
@@ -150,8 +150,8 @@ describe('routeKeyboardInput', () => {
     })
 
     expect(result).toEqual({
-      owner: 'none',
-      decision: 'ignore',
+      owner: 'staged-console',
+      decision: 'handle',
     })
   })
 
