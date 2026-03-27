@@ -388,6 +388,7 @@ describe('stagedNavigation', () => {
       'Move',
       'Rotate',
       'Scale',
+      'Snap',
       'Settings',
       'Back',
     ])
@@ -426,6 +427,49 @@ describe('stagedNavigation', () => {
       throw new Error('Expected reference transform settings alias to advance')
     }
     expect(settingsRootAlias.session.scopeId).toBe('referenceTransformSettingsRoot')
+
+    const directSnapRoot = submitConsoleStagedNavigationToken(transformRoot.session, 'sn', context)
+    expect(directSnapRoot.kind).toBe('advance')
+    if (directSnapRoot.kind !== 'advance') {
+      throw new Error('Expected reference transform snap alias to advance')
+    }
+    expect(directSnapRoot.session.scopeId).toBe('referenceTransformSnapRoot')
+    expect(directSnapRoot.session.breadcrumb).toEqual([
+      'Select',
+      'References',
+      'Shoes',
+      'Shoe 1',
+      'Transform',
+      'Settings',
+      'Snap',
+    ])
+    expect(directSnapRoot.session.validChoices.map((choice) => choice.label)).toEqual([
+      'Move',
+      'Rotate',
+      'Scale',
+      'Back',
+    ])
+
+    const directSpaceRoot = submitConsoleStagedNavigationToken(transformRoot.session, 'sp', context)
+    expect(directSpaceRoot.kind).toBe('advance')
+    if (directSpaceRoot.kind !== 'advance') {
+      throw new Error('Expected reference transform space alias to advance')
+    }
+    expect(directSpaceRoot.session.scopeId).toBe('referenceTransformSpaceRoot')
+    expect(directSpaceRoot.session.breadcrumb).toEqual([
+      'Select',
+      'References',
+      'Shoes',
+      'Shoe 1',
+      'Transform',
+      'Settings',
+      'Space',
+    ])
+    expect(directSpaceRoot.session.validChoices.map((choice) => choice.label)).toEqual([
+      'Local',
+      'World',
+      'Back',
+    ])
 
     const directLocalFromSettings = submitConsoleStagedNavigationToken(
       settingsRoot.session,
@@ -488,8 +532,11 @@ describe('stagedNavigation', () => {
     }
     expect(moveSnapRoot.session.scopeId).toBe('referenceTransformMoveSnapRoot')
     expect(moveSnapRoot.session.validChoices.map((choice) => choice.label)).toEqual([
-      'On',
-      'Off',
+      'snap:On',
+      'snapXYZ:Unlock',
+      'Move X',
+      'Move Y',
+      'Move Z',
       'Back',
     ])
 
@@ -549,6 +596,7 @@ describe('stagedNavigation', () => {
       'Move',
       'Rotate',
       'Scale',
+      'Snap',
       'Settings',
     ])
 
@@ -573,6 +621,146 @@ describe('stagedNavigation', () => {
       actionId: 'reference.transform.commitShell',
       breadcrumb: ['Select', 'References', 'Shoes', 'Shoe 1', 'Transform', 'CommitTransform'],
     })
+  })
+
+  it('shows only the currently available snap enable action at transform snap mode roots', () => {
+    const disabledContext = createConsoleStagedNavigationContext(
+      [],
+      [
+        {
+          categoryId: 'shoes',
+          label: 'Shoes',
+          canLoadAll: false,
+          items: [{ referenceId: 'shoe:shoe-1', label: 'Shoe 1', canLoadModel: false }],
+        },
+      ],
+      {
+        hasSelection: false,
+        hasPrevious: false,
+        preferredTool: 'LINE',
+      },
+      {},
+      {
+        'shoe:shoe-1': {
+          translate: true,
+        },
+      },
+      {
+        'shoe:shoe-1': {
+          translate: false,
+        },
+      },
+    )
+
+    const referenceSession: ConsoleStagedNavigationSession = {
+      scopeId: 'referenceSelected',
+      breadcrumb: ['Select', 'References', 'Shoes', 'Shoe 1'],
+      selections: {
+        graphDocumentId: null,
+        selectedNodeId: null,
+        sketchNodeId: null,
+        referenceId: 'shoe:shoe-1',
+        referenceCategoryId: 'shoes',
+        referenceCanLoadModel: false,
+      },
+      validChoices: [],
+    }
+
+    const transformRoot = submitConsoleStagedNavigationToken(referenceSession, 'transform', disabledContext)
+    expect(transformRoot.kind).toBe('advance')
+    if (transformRoot.kind !== 'advance') {
+      throw new Error('Expected reference transform token to advance')
+    }
+
+    const settingsRoot = submitConsoleStagedNavigationToken(transformRoot.session, 'settings', disabledContext)
+    expect(settingsRoot.kind).toBe('advance')
+    if (settingsRoot.kind !== 'advance') {
+      throw new Error('Expected settings token to advance')
+    }
+
+    const snapRoot = submitConsoleStagedNavigationToken(settingsRoot.session, 'snap', disabledContext)
+    expect(snapRoot.kind).toBe('advance')
+    if (snapRoot.kind !== 'advance') {
+      throw new Error('Expected snap token to advance')
+    }
+
+    const moveSnapRoot = submitConsoleStagedNavigationToken(snapRoot.session, 'move', disabledContext)
+    expect(moveSnapRoot.kind).toBe('advance')
+    if (moveSnapRoot.kind !== 'advance') {
+      throw new Error('Expected move snap token to advance')
+    }
+    expect(moveSnapRoot.session.validChoices.map((choice) => choice.label)).toContain('snap:On')
+    expect(moveSnapRoot.session.validChoices.map((choice) => choice.label)).not.toContain('snap:Off')
+
+    const enabledContext = createConsoleStagedNavigationContext(
+      [],
+      [
+        {
+          categoryId: 'shoes',
+          label: 'Shoes',
+          canLoadAll: false,
+          items: [{ referenceId: 'shoe:shoe-1', label: 'Shoe 1', canLoadModel: false }],
+        },
+      ],
+      {
+        hasSelection: false,
+        hasPrevious: false,
+        preferredTool: 'LINE',
+      },
+      {},
+      {
+        'shoe:shoe-1': {
+          translate: true,
+        },
+      },
+      {
+        'shoe:shoe-1': {
+          translate: true,
+        },
+      },
+    )
+
+    const enabledTransformRoot = submitConsoleStagedNavigationToken(
+      referenceSession,
+      'transform',
+      enabledContext,
+    )
+    expect(enabledTransformRoot.kind).toBe('advance')
+    if (enabledTransformRoot.kind !== 'advance') {
+      throw new Error('Expected enabled transform token to advance')
+    }
+
+    const enabledSettingsRoot = submitConsoleStagedNavigationToken(
+      enabledTransformRoot.session,
+      'settings',
+      enabledContext,
+    )
+    expect(enabledSettingsRoot.kind).toBe('advance')
+    if (enabledSettingsRoot.kind !== 'advance') {
+      throw new Error('Expected enabled settings token to advance')
+    }
+
+    const enabledSnapRoot = submitConsoleStagedNavigationToken(
+      enabledSettingsRoot.session,
+      'snap',
+      enabledContext,
+    )
+    expect(enabledSnapRoot.kind).toBe('advance')
+    if (enabledSnapRoot.kind !== 'advance') {
+      throw new Error('Expected enabled snap token to advance')
+    }
+
+    const enabledMoveSnapRoot = submitConsoleStagedNavigationToken(
+      enabledSnapRoot.session,
+      'move',
+      enabledContext,
+    )
+    expect(enabledMoveSnapRoot.kind).toBe('advance')
+    if (enabledMoveSnapRoot.kind !== 'advance') {
+      throw new Error('Expected enabled move snap token to advance')
+    }
+    expect(enabledMoveSnapRoot.session.validChoices.map((choice) => choice.label)).toContain('snap:Off')
+    expect(enabledMoveSnapRoot.session.validChoices.map((choice) => choice.label)).not.toContain('snap:On')
   })
 
   it('routes reference-selected zoom back to the reference scope', () => {

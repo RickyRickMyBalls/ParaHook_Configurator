@@ -325,9 +325,21 @@ export function ViewToolbar() {
               onClick={() =>
                 withViewer((viewer) =>
                   viewer.setGizmoSnap({
-                    translateMm: numericValue(snapTranslate, 0),
-                    rotateDeg: numericValue(snapRotate, 0),
-                    scale: numericValue(snapScale, 0),
+                    translate: {
+                      x: numericValue(snapTranslate, 0),
+                      y: numericValue(snapTranslate, 0),
+                      z: numericValue(snapTranslate, 0),
+                    },
+                    rotate: {
+                      x: numericValue(snapRotate, 0),
+                      y: numericValue(snapRotate, 0),
+                      z: numericValue(snapRotate, 0),
+                    },
+                    scale: {
+                      x: numericValue(snapScale, 0),
+                      y: numericValue(snapScale, 0),
+                      z: numericValue(snapScale, 0),
+                    },
                   }),
                 )
               }

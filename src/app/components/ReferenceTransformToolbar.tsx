@@ -18,6 +18,7 @@ import {
   DEFAULT_REFERENCE_TRANSFORM_SNAP_STATE,
   getReferenceTransformHistoryLatestScrubIndex,
   selectReferenceWorkspaceItems,
+  type ReferenceTransformSnapAxis,
   type ReferenceTransformSnapMode,
   useAppStore,
 } from '../store/useAppStore'
@@ -177,6 +178,25 @@ const formatSnapValue = (value: number): string => {
   return `${Number(value.toFixed(4))}`
 }
 
+const scaleSnapValuesFromDriver = (
+  value: { x: number; y: number; z: number },
+  nextDriverValue: number,
+): { x: number; y: number; z: number } => {
+  if (Math.abs(value.x) < 0.000001) {
+    return {
+      x: nextDriverValue,
+      y: value.y,
+      z: value.z,
+    }
+  }
+  const scaleFactor = nextDriverValue / value.x
+  return {
+    x: nextDriverValue,
+    y: Math.abs(value.y) < 0.000001 ? 0 : Number((value.y * scaleFactor).toFixed(4)),
+    z: Math.abs(value.z) < 0.000001 ? 0 : Number((value.z * scaleFactor).toFixed(4)),
+  }
+}
+
 const formatSpeedValue = (value: number): string => `${value.toFixed(2)}x`
 const DEFAULT_TOOLBAR_WIDTH = 300
 const MIN_TOOLBAR_WIDTH = 300
@@ -302,6 +322,12 @@ export function ReferenceTransformToolbar() {
   const setReferenceTransformSnapValue = useAppStore(
     (state) => state.setReferenceTransformSnapValue,
   )
+  const setReferenceTransformSnapAxisValue = useAppStore(
+    (state) => state.setReferenceTransformSnapAxisValue,
+  )
+  const setReferenceTransformSnapLocked = useAppStore(
+    (state) => state.setReferenceTransformSnapLocked,
+  )
   const toggleReferenceTransformHistoryLock = useAppStore(
     (state) => state.toggleReferenceTransformHistoryLock,
   )
@@ -350,6 +376,21 @@ export function ReferenceTransformToolbar() {
     scale: true,
   })
   const [historyExpanded, setHistoryExpanded] = useState(true)
+  const [snapExpanded, setSnapExpanded] = useState(true)
+  const [quickSnapButtonsVisibleByMode, setQuickSnapButtonsVisibleByMode] = useState<
+    Record<ReferenceTransformSnapMode, boolean>
+  >({
+    translate: false,
+    rotate: false,
+    scale: false,
+  })
+  const [expandedSnapVec3ByMode, setExpandedSnapVec3ByMode] = useState<
+    Record<ReferenceTransformSnapMode, boolean>
+  >({
+    translate: false,
+    rotate: false,
+    scale: false,
+  })
   const [expandedHistorySessions, setExpandedHistorySessions] = useState<Record<string, boolean>>({})
   const [selectedSection, setSelectedSection] = useState<TransformSectionKey | null>(
     referenceWorkspace.activeReferenceTransformSession?.mode ?? null,
@@ -473,17 +514,29 @@ export function ReferenceTransformToolbar() {
   const evaluatedTransformSnap = useMemo(
     () => ({
       ...transformSnapState,
-      translate: { ...transformSnapState.translate },
-      scale: { ...transformSnapState.scale },
+      translate: {
+        ...transformSnapState.translate,
+        values: { ...transformSnapState.translate.values },
+      },
+      scale: {
+        ...transformSnapState.scale,
+        values: { ...transformSnapState.scale.values },
+      },
       rotate: {
         ...transformSnapState.rotate,
-        value: evaluateReferenceTimelineChannelValue(
-          getChannelMode('rotate-snap'),
-          getChannelConfig('rotate-snap'),
-          transformSnapState.rotate.value,
-          getChannelRange('rotate-snap'),
-          timelineNowMs,
-        ),
+        values:
+          getChannelMode('rotate-snap') === 'timeline' && transformSnapState.rotate.xyzLocked
+            ? scaleSnapValuesFromDriver(
+                transformSnapState.rotate.values,
+                evaluateReferenceTimelineChannelValue(
+                  getChannelMode('rotate-snap'),
+                  getChannelConfig('rotate-snap'),
+                  transformSnapState.rotate.values.x,
+                  getChannelRange('rotate-snap'),
+                  timelineNowMs,
+                ),
+              )
+            : { ...transformSnapState.rotate.values },
       },
     }),
     [transformSnapState, timelineNowMs, channelClampRanges, channelModes, channelTimelineConfigs],
@@ -491,15 +544,15 @@ export function ReferenceTransformToolbar() {
 
   const activeTranslateStep =
     transformSnapState.translate.enabled
-      ? Math.max(evaluatedTransformSnap.translate.value, 0.0001)
+      ? Math.max(evaluatedTransformSnap.translate.values.x, 0.0001)
       : 1
   const activeRotateStep =
     transformSnapState.rotate.enabled
-      ? Math.max(evaluatedTransformSnap.rotate.value, 0.0001)
+      ? Math.max(evaluatedTransformSnap.rotate.values.x, 0.0001)
       : 1
   const activeScaleStep =
     transformSnapState.scale.enabled
-      ? Math.max(evaluatedTransformSnap.scale.value, 0.0001)
+      ? Math.max(evaluatedTransformSnap.scale.values.x, 0.0001)
       : 0.01
 
   const activeSessionPath = useMemo(
@@ -908,6 +961,30 @@ export function ReferenceTransformToolbar() {
     })
   }
 
+  const updateTransformSnapAxisValue = (
+    mode: ReferenceTransformSnapMode,
+    axis: ReferenceTransformSnapAxis,
+    value: number,
+  ) => {
+    setReferenceTransformSnapAxisValue(activeReferenceId, mode, axis, value)
+    appendConsoleEntry({
+      layer: 'Transforms',
+      text: `${transformModeLabel(mode)} ${axis.toUpperCase()} snap value: ${formatSnapValue(value)}`,
+      source: 'reference-transform',
+      severity: 'info',
+    })
+  }
+
+  const updateTransformSnapLocked = (mode: ReferenceTransformSnapMode, locked: boolean) => {
+    setReferenceTransformSnapLocked(activeReferenceId, mode, locked)
+    appendConsoleEntry({
+      layer: 'Transforms',
+      text: `${transformModeLabel(mode)} snap XYZ ${locked ? 'locked' : 'unlocked'}`,
+      source: 'reference-transform',
+      severity: 'info',
+    })
+  }
+
   const handleTimelineModeChange = (
     channel: ReferenceTimelineChannelKey,
     mode: ReferenceTimelineMode,
@@ -1043,6 +1120,8 @@ export function ReferenceTransformToolbar() {
   const renderSnapModeRow = (mode: ReferenceTransformSnapMode) => {
     const snapState = transformSnapState[mode]
     const evaluatedSnapState = evaluatedTransformSnap[mode]
+    const quickButtonsVisible = quickSnapButtonsVisibleByMode[mode]
+    const vec3Expanded = expandedSnapVec3ByMode[mode]
     const min =
       mode === 'translate'
         ? 0.0001
@@ -1062,75 +1141,176 @@ export function ReferenceTransformToolbar() {
             <button
               type="button"
               className={`ReferenceTransformToolbarButton ReferenceTransformToolbarButton--compact ${snapState.enabled ? 'isActive' : ''}`}
-              onClick={() => updateTransformSnapEnabled(mode, true)}
+              onClick={() => updateTransformSnapEnabled(mode, !snapState.enabled)}
             >
-              On
+              {snapState.enabled ? 'On' : 'Off'}
             </button>
             <button
               type="button"
-              className={`ReferenceTransformToolbarButton ReferenceTransformToolbarButton--compact ${!snapState.enabled ? 'isActive' : ''}`}
-              onClick={() => updateTransformSnapEnabled(mode, false)}
+              className={`ReferenceTransformToolbarButton ReferenceTransformToolbarButton--compact ReferenceTransformToolbarButton--lock ${snapState.xyzLocked ? 'isActive' : ''}`}
+              onClick={() => updateTransformSnapLocked(mode, !snapState.xyzLocked)}
             >
-              Off
+              {snapState.xyzLocked ? 'Locked' : 'Unlocked'}
+            </button>
+            <button
+              type="button"
+              className={`ReferenceTransformToolbarButton ReferenceTransformToolbarButton--compact ReferenceTransformToolbarButton--quick ${quickButtonsVisible ? 'isActive' : ''}`}
+              aria-label={`${quickButtonsVisible ? 'Hide' : 'Show'} ${transformModeLabel(mode)} quick snap buttons`}
+              title={`${quickButtonsVisible ? 'Hide' : 'Show'} quick snap buttons`}
+              onClick={() =>
+                setQuickSnapButtonsVisibleByMode((current) => ({
+                  ...current,
+                  [mode]: !current[mode],
+                }))
+              }
+            >
+              Q
             </button>
           </div>
         </div>
-        {mode === 'rotate' ? (
-          renderChannelRow({
-            channel: 'rotate-snap',
-            label: 'Snap',
-            value: snapState.value,
-            liveValue: evaluatedSnapState.value,
-            min,
-            max,
-            step,
-            formatValue: formatSnapValue,
-            onChange: (value) => updateTransformSnapValue(mode, value),
-            isHighlighted: false,
-          })
+        {snapState.xyzLocked ? (
+          mode === 'rotate' ? (
+            renderChannelRow({
+              channel: 'rotate-snap',
+              label: 'Snap',
+              value: snapState.values.x,
+              liveValue: evaluatedSnapState.values.x,
+              min,
+              max,
+              step,
+              formatValue: formatSnapValue,
+              onChange: (value) => updateTransformSnapAxisValue(mode, 'x', value),
+              isHighlighted: false,
+            })
+          ) : (
+            <div className="ReferenceTransformToolbarChannelBox">
+              <ParaSlider
+                label="Snap"
+                value={snapState.values.x}
+                min={min}
+                max={max}
+                step={step}
+                onChange={(value) => updateTransformSnapAxisValue(mode, 'x', value)}
+                displayLabel="Snap"
+                displayValue={formatSnapValue(evaluatedSnapState.values.x)}
+                formatValue={formatSnapValue}
+              />
+            </div>
+          )
         ) : (
-          <div className="ReferenceTransformToolbarChannelBox">
-            <ParaSlider
-              label="Snap"
-              value={snapState.value}
-              min={min}
-              max={max}
-              step={step}
-              onChange={(value) => updateTransformSnapValue(mode, value)}
-              displayLabel="Snap"
-              displayValue={formatSnapValue(evaluatedSnapState.value)}
-              formatValue={formatSnapValue}
-            />
+          <div className="ReferenceTransformToolbarSnapVec3Group">
+            <div className="ReferenceTransformToolbarSnapVec3Toggle">
+              <button
+                type="button"
+                className="ReferenceTransformToolbarSnapVec3Chevron"
+                aria-label={`${vec3Expanded ? 'Collapse' : 'Expand'} ${transformModeLabel(mode)} Vec3 snap axes`}
+                aria-expanded={vec3Expanded}
+                onClick={() =>
+                  setExpandedSnapVec3ByMode((current) => ({
+                    ...current,
+                    [mode]: !current[mode],
+                  }))
+                }
+              >
+                <span className="ReferenceTransformToolbarSectionToggle">
+                  {vec3Expanded ? 'v' : '>'}
+                </span>
+              </button>
+              <div className="ReferenceTransformToolbarChannelBox ReferenceTransformToolbarChannelBox--snap-vec3">
+                <ParaVec3Slider
+                  value={snapState.values}
+                  min={min}
+                  max={max}
+                  step={step}
+                  allowWrap={mode === 'rotate'}
+                  onChangeAxis={(axis, value) => updateTransformSnapAxisValue(mode, axis, value)}
+                  formatValue={(_axis, value) => formatSnapValue(value)}
+                  displayValue={(axis) => formatSnapValue(evaluatedSnapState.values[axis])}
+                />
+              </div>
+            </div>
+            {vec3Expanded ? (
+              <div className="ReferenceTransformToolbarSnapVec3Rows">
+                <div className="ReferenceTransformToolbarChannelBox">
+                  <ParaSlider
+                    label="X"
+                    value={snapState.values.x}
+                    min={min}
+                    max={max}
+                    step={step}
+                    allowWrap={mode === 'rotate'}
+                    onChange={(value) => updateTransformSnapAxisValue(mode, 'x', value)}
+                    displayLabel="X"
+                    displayValue={formatSnapValue(evaluatedSnapState.values.x)}
+                    formatValue={formatSnapValue}
+                  />
+                </div>
+                <div className="ReferenceTransformToolbarChannelBox">
+                  <ParaSlider
+                    label="Y"
+                    value={snapState.values.y}
+                    min={min}
+                    max={max}
+                    step={step}
+                    allowWrap={mode === 'rotate'}
+                    onChange={(value) => updateTransformSnapAxisValue(mode, 'y', value)}
+                    displayLabel="Y"
+                    displayValue={formatSnapValue(evaluatedSnapState.values.y)}
+                    formatValue={formatSnapValue}
+                  />
+                </div>
+                <div className="ReferenceTransformToolbarChannelBox">
+                  <ParaSlider
+                    label="Z"
+                    value={snapState.values.z}
+                    min={min}
+                    max={max}
+                    step={step}
+                    allowWrap={mode === 'rotate'}
+                    onChange={(value) => updateTransformSnapAxisValue(mode, 'z', value)}
+                    displayLabel="Z"
+                    displayValue={formatSnapValue(evaluatedSnapState.values.z)}
+                    formatValue={formatSnapValue}
+                  />
+                </div>
+              </div>
+            ) : null}
           </div>
         )}
-        <div className="ReferenceTransformToolbarSnapButtons">
-          {TRANSFORM_SNAP_PRESETS[mode].map((preset) => (
+        {quickButtonsVisible ? (
+          <div className="ReferenceTransformToolbarSnapButtons">
+            {TRANSFORM_SNAP_PRESETS[mode].map((preset) => (
+              <button
+                key={preset}
+                type="button"
+                className={`ReferenceTransformToolbarButton ReferenceTransformToolbarButton--compact ${
+                  Math.abs(snapState.values.x - preset) < 0.0005 &&
+                  Math.abs(snapState.values.y - preset) < 0.0005 &&
+                  Math.abs(snapState.values.z - preset) < 0.0005
+                    ? 'isActive'
+                    : ''
+                }`}
+                onClick={() => updateTransformSnapValue(mode, preset)}
+              >
+                {formatSnapValue(preset)}
+              </button>
+            ))}
             <button
-              key={preset}
               type="button"
-              className={`ReferenceTransformToolbarButton ReferenceTransformToolbarButton--compact ${
-                Math.abs(snapState.value - preset) < 0.0005 ? 'isActive' : ''
-              }`}
-              onClick={() => updateTransformSnapValue(mode, preset)}
+              className="ReferenceTransformToolbarButton ReferenceTransformToolbarButton--compact"
+              onClick={() => updateTransformSnapValue(mode, Math.max(min, snapState.values.x / 2))}
             >
-              {formatSnapValue(preset)}
+              /2
             </button>
-          ))}
-          <button
-            type="button"
-            className="ReferenceTransformToolbarButton ReferenceTransformToolbarButton--compact"
-            onClick={() => updateTransformSnapValue(mode, Math.max(min, snapState.value / 2))}
-          >
-            /2
-          </button>
-          <button
-            type="button"
-            className="ReferenceTransformToolbarButton ReferenceTransformToolbarButton--compact"
-            onClick={() => updateTransformSnapValue(mode, Math.min(max, snapState.value * 2))}
-          >
-            x2
-          </button>
-        </div>
+            <button
+              type="button"
+              className="ReferenceTransformToolbarButton ReferenceTransformToolbarButton--compact"
+              onClick={() => updateTransformSnapValue(mode, Math.min(max, snapState.values.x * 2))}
+            >
+              x2
+            </button>
+          </div>
+        ) : null}
       </div>
     )
   }
@@ -1148,7 +1328,9 @@ export function ReferenceTransformToolbar() {
           {
             id: 'timeline',
             label: 'Timeline',
-            disabled: getChannelMode(channelContextMenu.channel) === 'timeline',
+            disabled:
+              getChannelMode(channelContextMenu.channel) === 'timeline' ||
+              (channelContextMenu.channel === 'rotate-snap' && !transformSnapState.rotate.xyzLocked),
             onSelect: () => handleTimelineModeChange(channelContextMenu.channel, 'timeline'),
           },
         ]
@@ -1520,15 +1702,30 @@ export function ReferenceTransformToolbar() {
           </div>
         </div>
         <div className="ReferenceTransformToolbarSection" aria-label="Reference transform snap settings">
-          <div className="ReferenceTransformToolbarTransformSection isActive isExpanded">
+          <div className="ReferenceTransformToolbarTransformSection isActive">
             <div className="ReferenceTransformToolbarTransformSectionHeader">
+              <button
+                type="button"
+                className="ReferenceTransformToolbarSectionToggle"
+                aria-label={`${snapExpanded ? 'Collapse' : 'Expand'} Snap section`}
+                aria-expanded={snapExpanded}
+                onClick={(event) => {
+                  event.preventDefault()
+                  event.stopPropagation()
+                  setSnapExpanded((current) => !current)
+                }}
+              >
+                {snapExpanded ? 'v' : '>'}
+              </button>
               <span className="ReferenceTransformToolbarTransformSectionLabel">Snap</span>
             </div>
-            <div className="ReferenceTransformToolbarTransformSectionBody">
-              <div className="ReferenceTransformToolbarValueStack">
-                {(['translate', 'rotate', 'scale'] as const).map((mode) => renderSnapModeRow(mode))}
+            {snapExpanded ? (
+              <div className="ReferenceTransformToolbarTransformSectionBody">
+                <div className="ReferenceTransformToolbarValueStack">
+                  {(['translate', 'rotate', 'scale'] as const).map((mode) => renderSnapModeRow(mode))}
+                </div>
               </div>
-            </div>
+            ) : null}
           </div>
         </div>
         <div className="ReferenceTransformToolbarSection" aria-label="Reference transform values">

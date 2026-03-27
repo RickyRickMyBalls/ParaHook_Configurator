@@ -1058,9 +1058,9 @@ describe('ViewerHost reference loading', () => {
     })
 
     expect(viewerSetGizmoSnap).toHaveBeenCalledWith({
-      translateMm: 10,
-      rotateDeg: 22.5,
-      scale: 0.25,
+      translate: { x: 10, y: 10, z: 10 },
+      rotate: { x: 22.5, y: 22.5, z: 22.5 },
+      scale: { x: 0.25, y: 0.25, z: 0.25 },
     })
   })
 

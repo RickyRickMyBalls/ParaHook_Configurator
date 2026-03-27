@@ -280,6 +280,12 @@ export class Viewer {
   private onReferenceTransformHandleChange:
     ((handle: ActiveReferenceTransformHandle | null) => void)
     | null = null
+  private activeReferenceTransformHandle: ActiveReferenceTransformHandle | null = null
+  private gizmoSnap: {
+    translate?: { x: number; y: number; z: number }
+    rotate?: { x: number; y: number; z: number }
+    scale?: { x: number; y: number; z: number }
+  } = {}
   private onReferenceTransformModeChange: ((mode: TransformControlsMode) => void) | null = null
   private onReferenceTransformSpaceChange: ((space: GizmoSpace) => void) | null = null
   private onSketchPlanePickPlaneSelect: ((plane: SketchPlane) => void) | null = null
@@ -1185,11 +1191,16 @@ export class Viewer {
   }
 
   public setGizmoSnap(opts: {
-    translateMm?: number
-    rotateDeg?: number
-    scale?: number
+    translate?: { x: number; y: number; z: number }
+    rotate?: { x: number; y: number; z: number }
+    scale?: { x: number; y: number; z: number }
   }): void {
-    this.transformGizmo.setSnap(opts.translateMm, opts.rotateDeg, opts.scale)
+    this.gizmoSnap = {
+      translate: opts.translate,
+      rotate: opts.rotate,
+      scale: opts.scale,
+    }
+    this.transformGizmo.setSnap(opts)
   }
 
   public setSelectedPart(partId: string | null): void {
@@ -1439,10 +1450,27 @@ export class Viewer {
       this.transformGizmo.setMode(overlay.gizmoMode)
       this.transformGizmo.setSpace('world')
       this.transformGizmo.setSize(overlay.ui.gizmoScale)
-      this.transformGizmo.setSnap(overlay.snap.translateMm ?? undefined, overlay.snap.rotateDeg ?? undefined)
+      this.transformGizmo.setSnap({
+        translate:
+          overlay.snap.translateMm === null
+            ? undefined
+            : {
+                x: overlay.snap.translateMm,
+                y: overlay.snap.translateMm,
+                z: overlay.snap.translateMm,
+              },
+        rotate:
+          overlay.snap.rotateDeg === null
+            ? undefined
+            : {
+                x: overlay.snap.rotateDeg,
+                y: overlay.snap.rotateDeg,
+                z: overlay.snap.rotateDeg,
+              },
+      })
     } else {
       this.transformGizmo.setSize(1)
-      this.transformGizmo.setSnap(undefined, undefined)
+      this.transformGizmo.setSnap({})
     }
     this.sketchPlanePickHelper.setOverlay(overlay)
     this.syncGizmoEnabledState()
@@ -2125,6 +2153,87 @@ export class Viewer {
     this.refreshGizmoAttachment()
   }
 
+  private applyReferenceTransformSnapToOverride(
+    object: Object3D,
+    transformOverride: ReferenceTransformOverride,
+  ): ReferenceTransformOverride {
+    const handle = this.activeReferenceTransformHandle
+    if (handle === null) {
+      return transformOverride
+    }
+    const snapValues =
+      handle.mode === 'translate'
+        ? this.gizmoSnap.translate
+        : handle.mode === 'rotate'
+          ? this.gizmoSnap.rotate
+          : this.gizmoSnap.scale
+    if (snapValues === undefined) {
+      return transformOverride
+    }
+    const quantize = (value: number, step: number): number => {
+      if (!Number.isFinite(step) || step <= 0) {
+        return value
+      }
+      return Number((Math.round(value / step) * step).toFixed(4))
+    }
+    const snapAxes = (
+      values: { x: number; y: number; z: number },
+      axes: ReadonlyArray<'x' | 'y' | 'z'>,
+      stepByAxis: { x: number; y: number; z: number },
+    ) => {
+      const nextValues = { ...values }
+      axes.forEach((axis) => {
+        nextValues[axis] = quantize(values[axis], stepByAxis[axis])
+      })
+      return nextValues
+    }
+    const nextOverride: ReferenceTransformOverride = {
+      position: { ...transformOverride.position },
+      rotationDeg: { ...transformOverride.rotationDeg },
+      scale: { ...transformOverride.scale },
+    }
+    if (handle.mode === 'translate') {
+      const axes =
+        handle.kind === 'axis'
+          ? [handle.axis]
+          : handle.kind === 'plane'
+            ? handle.plane === 'xy'
+              ? (['x', 'y'] as const)
+              : handle.plane === 'xz'
+                ? (['x', 'z'] as const)
+                : (['y', 'z'] as const)
+            : (['x', 'y', 'z'] as const)
+      nextOverride.position = snapAxes(transformOverride.position, axes, snapValues)
+    } else if (handle.mode === 'rotate') {
+      if (handle.kind === 'axis') {
+        nextOverride.rotationDeg = snapAxes(transformOverride.rotationDeg, [handle.axis], snapValues)
+      } else if (handle.kind === 'free-rotate') {
+        nextOverride.rotationDeg = snapAxes(transformOverride.rotationDeg, ['x', 'y', 'z'], {
+          x: snapValues.x,
+          y: snapValues.x,
+          z: snapValues.x,
+        })
+      }
+    } else {
+      const axes = handle.kind === 'axis' ? [handle.axis] : (['x', 'y', 'z'] as const)
+      nextOverride.scale = snapAxes(transformOverride.scale, axes, snapValues)
+    }
+    const changed =
+      nextOverride.position.x !== transformOverride.position.x ||
+      nextOverride.position.y !== transformOverride.position.y ||
+      nextOverride.position.z !== transformOverride.position.z ||
+      nextOverride.rotationDeg.x !== transformOverride.rotationDeg.x ||
+      nextOverride.rotationDeg.y !== transformOverride.rotationDeg.y ||
+      nextOverride.rotationDeg.z !== transformOverride.rotationDeg.z ||
+      nextOverride.scale.x !== transformOverride.scale.x ||
+      nextOverride.scale.y !== transformOverride.scale.y ||
+      nextOverride.scale.z !== transformOverride.scale.z
+    if (changed) {
+      this.applyReferenceTransformOverride(object, nextOverride)
+    }
+    return nextOverride
+  }
+
   private readonly handleReferenceTransformObjectChange = (object: Object3D): void => {
     if (this.activeReferenceTransformReferenceId === null) {
       return
@@ -2133,9 +2242,13 @@ export class Viewer {
     if (activeObject === undefined || activeObject !== object) {
       return
     }
+    const snappedOverride = this.applyReferenceTransformSnapToOverride(
+      object,
+      this.readReferenceTransformOverride(object),
+    )
     this.onReferenceTransformChange?.(
       this.activeReferenceTransformReferenceId,
-      this.readReferenceTransformOverride(object),
+      snappedOverride,
     )
     if (this.cameraLockedReferenceId === this.activeReferenceTransformReferenceId) {
       this.syncLockedReferenceCamera(object)
@@ -2145,6 +2258,7 @@ export class Viewer {
   private readonly handleReferenceTransformHandleChange = (
     handle: ActiveReferenceTransformHandle | null,
   ): void => {
+    this.activeReferenceTransformHandle = handle
     if (this.activeReferenceTransformReferenceId === null) {
       return
     }

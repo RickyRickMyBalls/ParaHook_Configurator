@@ -60,9 +60,12 @@ export type ReferenceItemLoadState = 'unloaded' | 'loading' | 'loaded' | 'error'
 export type ReferenceTransformMode = 'translate' | 'rotate' | 'scale'
 export type ReferenceTransformSpace = 'local' | 'world'
 export type ReferenceTransformSnapMode = ReferenceTransformMode
+export type ReferenceTransformSnapAxis = 'x' | 'y' | 'z'
+export type ReferenceTransformSnapAxisValues = Record<ReferenceTransformSnapAxis, number>
 export type ReferenceTransformSnapSetting = {
   enabled: boolean
-  value: number
+  xyzLocked: boolean
+  values: ReferenceTransformSnapAxisValues
 }
 export type ReferenceTransformSnapState = Record<
   ReferenceTransformSnapMode,
@@ -624,6 +627,17 @@ export type AppState = {
     mode: ReferenceTransformSnapMode,
     value: number,
   ) => void
+  setReferenceTransformSnapAxisValue: (
+    referenceId: string,
+    mode: ReferenceTransformSnapMode,
+    axis: ReferenceTransformSnapAxis,
+    value: number,
+  ) => void
+  setReferenceTransformSnapLocked: (
+    referenceId: string,
+    mode: ReferenceTransformSnapMode,
+    locked: boolean,
+  ) => void
   setWorkspaceSelectedTarget: (target: WorkspaceSelectedTarget | null) => void
   setWorkspaceExplicitSelection: (selection: {
     selectedTarget: WorkspaceSelectedTarget | null
@@ -659,15 +673,22 @@ const IMPORTED_REFERENCE_ROW_ID_PREFIX = 'reference-import'
 export const DEFAULT_REFERENCE_TRANSFORM_SNAP_STATE: ReferenceTransformSnapState = {
   translate: {
     enabled: false,
-    value: 10,
+    xyzLocked: true,
+    values: { x: 10, y: 10, z: 10 },
   },
   rotate: {
     enabled: DEFAULT_REFERENCE_ROTATE_SNAP.enabled,
-    value: DEFAULT_REFERENCE_ROTATE_SNAP.value,
+    xyzLocked: true,
+    values: {
+      x: DEFAULT_REFERENCE_ROTATE_SNAP.value,
+      y: DEFAULT_REFERENCE_ROTATE_SNAP.value,
+      z: DEFAULT_REFERENCE_ROTATE_SNAP.value,
+    },
   },
   scale: {
     enabled: false,
-    value: 0.25,
+    xyzLocked: true,
+    values: { x: 0.25, y: 0.25, z: 0.25 },
   },
 }
 export const buildProjectSketchesRootRowId = (projectFileId: string): string =>
@@ -912,10 +933,119 @@ const buildDefaultReferenceTransformOverride = (): ReferenceTransformOverride =>
 const cloneReferenceTransformSnapState = (
   value: ReferenceTransformSnapState = DEFAULT_REFERENCE_TRANSFORM_SNAP_STATE,
 ): ReferenceTransformSnapState => ({
-  translate: { ...value.translate },
-  rotate: { ...value.rotate },
-  scale: { ...value.scale },
+  translate: {
+    ...value.translate,
+    values: { ...value.translate.values },
+  },
+  rotate: {
+    ...value.rotate,
+    values: { ...value.rotate.values },
+  },
+  scale: {
+    ...value.scale,
+    values: { ...value.scale.values },
+  },
 })
+
+type LegacyReferenceTransformSnapSetting = {
+  enabled?: boolean
+  value?: number
+}
+
+const normalizeReferenceTransformSnapSetting = (
+  value: ReferenceTransformSnapSetting | LegacyReferenceTransformSnapSetting | undefined,
+  fallback: ReferenceTransformSnapSetting,
+): ReferenceTransformSnapSetting => {
+  if (
+    value !== undefined &&
+    typeof value === 'object' &&
+    'values' in value &&
+    value.values !== null &&
+    typeof value.values === 'object'
+  ) {
+    const values = value.values as Partial<Record<ReferenceTransformSnapAxis, unknown>>
+    return {
+      enabled: value.enabled ?? fallback.enabled,
+      xyzLocked: value.xyzLocked ?? true,
+      values: {
+        x: typeof values.x === 'number' ? values.x : fallback.values.x,
+        y: typeof values.y === 'number' ? values.y : fallback.values.y,
+        z: typeof values.z === 'number' ? values.z : fallback.values.z,
+      },
+    }
+  }
+  const legacySetting = value as LegacyReferenceTransformSnapSetting | undefined
+  const legacyValue =
+    typeof legacySetting?.value === 'number' && Number.isFinite(legacySetting.value)
+      ? legacySetting.value
+      : fallback.values.x
+  return {
+    enabled:
+      value !== undefined && typeof value === 'object' && typeof value.enabled === 'boolean'
+        ? value.enabled
+        : fallback.enabled,
+    xyzLocked: true,
+    values: {
+      x: legacyValue,
+      y: legacyValue,
+      z: legacyValue,
+    },
+  }
+}
+
+const normalizeReferenceTransformSnapState = (
+  value: Partial<Record<ReferenceTransformSnapMode, ReferenceTransformSnapSetting | LegacyReferenceTransformSnapSetting>> | undefined,
+): ReferenceTransformSnapState => ({
+  translate: normalizeReferenceTransformSnapSetting(value?.translate, DEFAULT_REFERENCE_TRANSFORM_SNAP_STATE.translate),
+  rotate: normalizeReferenceTransformSnapSetting(value?.rotate, DEFAULT_REFERENCE_TRANSFORM_SNAP_STATE.rotate),
+  scale: normalizeReferenceTransformSnapSetting(value?.scale, DEFAULT_REFERENCE_TRANSFORM_SNAP_STATE.scale),
+})
+
+const setAllReferenceTransformSnapAxes = (
+  value: number,
+): ReferenceTransformSnapAxisValues => ({
+  x: value,
+  y: value,
+  z: value,
+})
+
+const scaleReferenceTransformSnapAxisValues = (
+  currentValues: ReferenceTransformSnapAxisValues,
+  axis: ReferenceTransformSnapAxis,
+  nextValue: number,
+): ReferenceTransformSnapAxisValues => {
+  const baseline = currentValues[axis]
+  if (Math.abs(baseline) < 0.000001) {
+    return {
+      ...currentValues,
+      [axis]: nextValue,
+    }
+  }
+  const scaleFactor = nextValue / baseline
+  return {
+    x:
+      axis === 'x'
+        ? nextValue
+        : Math.abs(currentValues.x) < 0.000001
+          ? 0
+          : Number((currentValues.x * scaleFactor).toFixed(4)),
+    y:
+      axis === 'y'
+        ? nextValue
+        : Math.abs(currentValues.y) < 0.000001
+          ? 0
+          : Number((currentValues.y * scaleFactor).toFixed(4)),
+    z:
+      axis === 'z'
+        ? nextValue
+        : Math.abs(currentValues.z) < 0.000001
+          ? 0
+          : Number((currentValues.z * scaleFactor).toFixed(4)),
+  }
+}
+
+const getReferenceTransformSnapDriverValue = (value: ReferenceTransformSnapSetting): number =>
+  value.values.x
 
 type LegacyReferenceTransformHistoryEntry = Omit<
   ReferenceTransformHistoryEntry,
@@ -1304,7 +1434,7 @@ const getReferenceTransformSnapState = (
   referenceWorkspace: ReferenceWorkspaceState,
   referenceId: string,
 ): ReferenceTransformSnapState =>
-  referenceWorkspace.transformSnapByReferenceId[referenceId] ?? DEFAULT_REFERENCE_TRANSFORM_SNAP_STATE
+  normalizeReferenceTransformSnapState(referenceWorkspace.transformSnapByReferenceId[referenceId])
 
 const applyReferenceTransformTimelineDeltas = (
   referenceWorkspace: ReferenceWorkspaceState,
@@ -3232,22 +3362,30 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
   setReferenceTimelineMode: (referenceId, channel, mode, startedAtMs = performance.now()) => {
     set((state) => {
+      const effectiveMode =
+        channel === 'rotate-snap' &&
+        mode === 'timeline' &&
+        !getReferenceTransformSnapState(state.referenceWorkspace, referenceId).rotate.xyzLocked
+          ? 'basic'
+          : mode
       const nextTimelineModeByReferenceId = {
         ...state.referenceWorkspace.timelineModeByReferenceId,
         [referenceId]: {
           ...(state.referenceWorkspace.timelineModeByReferenceId[referenceId] ?? {}),
-          [channel]: mode,
+          [channel]: effectiveMode,
         },
       }
       const nextTimelineConfigByReferenceId = {
         ...state.referenceWorkspace.timelineConfigByReferenceId,
       }
-      if (mode === 'timeline') {
+      if (effectiveMode === 'timeline') {
         const existingConfig = nextTimelineConfigByReferenceId[referenceId]?.[channel]
         if (existingConfig === undefined) {
           const baseValue =
             channel === 'rotate-snap'
-              ? getReferenceTransformSnapState(state.referenceWorkspace, referenceId).rotate.value
+              ? getReferenceTransformSnapDriverValue(
+                  getReferenceTransformSnapState(state.referenceWorkspace, referenceId).rotate,
+                )
               : getReferenceTransformOverrideAxisValue(
                   state.referenceWorkspace.transformOverrideById[referenceId],
                   channel,
@@ -3342,17 +3480,18 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
   setReferenceTransformSnapEnabled: (referenceId, mode, enabled) => {
     set((state) => {
+      const currentSnapState = cloneReferenceTransformSnapState(
+        getReferenceTransformSnapState(state.referenceWorkspace, referenceId),
+      )
       return {
         referenceWorkspace: {
           ...state.referenceWorkspace,
           transformSnapByReferenceId: {
             ...state.referenceWorkspace.transformSnapByReferenceId,
             [referenceId]: {
-              ...cloneReferenceTransformSnapState(
-                getReferenceTransformSnapState(state.referenceWorkspace, referenceId),
-              ),
+              ...currentSnapState,
               [mode]: {
-                ...getReferenceTransformSnapState(state.referenceWorkspace, referenceId)[mode],
+                ...currentSnapState[mode],
                 enabled,
               },
             },
@@ -3370,7 +3509,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         ...state.referenceWorkspace.timelineConfigByReferenceId,
       }
       if (mode === 'rotate') {
-        const previousValue = currentSnapState.rotate.value
+        const previousValue = getReferenceTransformSnapDriverValue(currentSnapState.rotate)
         if (
           getReferenceTimelineMode(state.referenceWorkspace, referenceId, 'rotate-snap') === 'timeline'
         ) {
@@ -3397,11 +3536,107 @@ export const useAppStore = create<AppState>((set, get) => ({
               [mode]: {
                 ...currentSnapState[mode],
                 enabled: true,
-                value,
+                values: setAllReferenceTransformSnapAxes(value),
               },
             },
           },
           timelineConfigByReferenceId: nextTimelineConfigByReferenceId,
+        },
+      }
+    })
+  },
+  setReferenceTransformSnapAxisValue: (referenceId, mode, axis, value) => {
+    set((state) => {
+      const currentSnapState = cloneReferenceTransformSnapState(
+        getReferenceTransformSnapState(state.referenceWorkspace, referenceId),
+      )
+      const currentModeState = currentSnapState[mode]
+      const previousRotateDriverValue = getReferenceTransformSnapDriverValue(currentSnapState.rotate)
+      const nextModeState: ReferenceTransformSnapSetting = {
+        ...currentModeState,
+        enabled: true,
+        values: currentModeState.xyzLocked
+          ? scaleReferenceTransformSnapAxisValues(currentModeState.values, axis, value)
+          : {
+              ...currentModeState.values,
+              [axis]: value,
+            },
+      }
+      const nextSnapState: ReferenceTransformSnapState = {
+        ...currentSnapState,
+        [mode]: nextModeState,
+      }
+      const nextTimelineModeByReferenceId = {
+        ...state.referenceWorkspace.timelineModeByReferenceId,
+      }
+      const nextTimelineConfigByReferenceId = {
+        ...state.referenceWorkspace.timelineConfigByReferenceId,
+      }
+      if (mode === 'rotate') {
+        if (!nextModeState.xyzLocked) {
+          nextTimelineModeByReferenceId[referenceId] = {
+            ...(nextTimelineModeByReferenceId[referenceId] ?? {}),
+            'rotate-snap': 'basic',
+          }
+        } else if (
+          getReferenceTimelineMode(state.referenceWorkspace, referenceId, 'rotate-snap') === 'timeline'
+        ) {
+          const nextRotateDriverValue = getReferenceTransformSnapDriverValue(nextModeState)
+          const existingConfig = nextTimelineConfigByReferenceId[referenceId]?.['rotate-snap']
+          if (existingConfig !== undefined) {
+            nextTimelineConfigByReferenceId[referenceId] = {
+              ...(nextTimelineConfigByReferenceId[referenceId] ?? {}),
+              'rotate-snap': shiftReferenceTimelineConfig(
+                existingConfig,
+                nextRotateDriverValue - previousRotateDriverValue,
+                getReferenceChannelClampRange(state.referenceWorkspace, referenceId, 'rotate-snap'),
+              ),
+            }
+          }
+        }
+      }
+      return {
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          transformSnapByReferenceId: {
+            ...state.referenceWorkspace.transformSnapByReferenceId,
+            [referenceId]: nextSnapState,
+          },
+          timelineModeByReferenceId: nextTimelineModeByReferenceId,
+          timelineConfigByReferenceId: nextTimelineConfigByReferenceId,
+        },
+      }
+    })
+  },
+  setReferenceTransformSnapLocked: (referenceId, mode, locked) => {
+    set((state) => {
+      const currentSnapState = cloneReferenceTransformSnapState(
+        getReferenceTransformSnapState(state.referenceWorkspace, referenceId),
+      )
+      const nextSnapState: ReferenceTransformSnapState = {
+        ...currentSnapState,
+        [mode]: {
+          ...currentSnapState[mode],
+          xyzLocked: locked,
+        },
+      }
+      const nextTimelineModeByReferenceId = {
+        ...state.referenceWorkspace.timelineModeByReferenceId,
+      }
+      if (mode === 'rotate' && !locked) {
+        nextTimelineModeByReferenceId[referenceId] = {
+          ...(nextTimelineModeByReferenceId[referenceId] ?? {}),
+          'rotate-snap': 'basic',
+        }
+      }
+      return {
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          transformSnapByReferenceId: {
+            ...state.referenceWorkspace.transformSnapByReferenceId,
+            [referenceId]: nextSnapState,
+          },
+          timelineModeByReferenceId: nextTimelineModeByReferenceId,
         },
       }
     })

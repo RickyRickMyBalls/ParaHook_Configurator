@@ -5683,7 +5683,7 @@ describe('ConsoleDock', () => {
     expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('referenceTransformRoot')
     expect(
       useConsoleStore.getState().stagedNavigationSession?.validChoices.map((choice) => choice.label) ?? [],
-    ).toEqual(['Move', 'Rotate', 'Scale', 'Settings', 'Back'])
+    ).toEqual(['Move', 'Rotate', 'Scale', 'Snap', 'Settings', 'Back'])
     expect(
       useConsoleStore.getState().entries.some((entry) => entry.text === 'Deleted latest transform entry'),
     ).toBe(true)
@@ -8199,6 +8199,112 @@ describe('ConsoleDock', () => {
     )
   })
 
+  it('lets transform root jump straight to snap through the sn alias', async () => {
+    setViewer({
+      setConsoleCameraMode: vi.fn(),
+    } as any)
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useAppStore.setState((state) => ({
+        ...state,
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          visibilityById: {
+            ...state.referenceWorkspace.visibilityById,
+            'shoe:shoe-1': true,
+          },
+          loadStateById: {
+            ...state.referenceWorkspace.loadStateById,
+            'shoe:shoe-1': 'loaded',
+          },
+        },
+      }))
+      useAppStore.getState().setWorkspaceSelectedTarget({
+        kind: 'reference-item',
+        referenceId: 'shoe:shoe-1',
+      })
+      useAppStore.getState().setActiveSurface('browser')
+      useAppStore.getState().requestConsoleContextSync('target-selection')
+    })
+
+    const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('transform')
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('sn')
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe(
+      'referenceTransformSnapRoot',
+    )
+    expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
+      'Select > References > Shoes > Shoe 1 > Transform > Settings > Snap > Choose next',
+    )
+  })
+
+  it('lets transform root jump straight to space through the sp alias', async () => {
+    setViewer({
+      setConsoleCameraMode: vi.fn(),
+    } as any)
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useAppStore.setState((state) => ({
+        ...state,
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          visibilityById: {
+            ...state.referenceWorkspace.visibilityById,
+            'shoe:shoe-1': true,
+          },
+          loadStateById: {
+            ...state.referenceWorkspace.loadStateById,
+            'shoe:shoe-1': 'loaded',
+          },
+        },
+      }))
+      useAppStore.getState().setWorkspaceSelectedTarget({
+        kind: 'reference-item',
+        referenceId: 'shoe:shoe-1',
+      })
+      useAppStore.getState().setActiveSurface('browser')
+      useAppStore.getState().requestConsoleContextSync('target-selection')
+    })
+
+    const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('transform')
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('sp')
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe(
+      'referenceTransformSpaceRoot',
+    )
+    expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
+      'Select > References > Shoes > Shoe 1 > Transform > Settings > Space > Choose next',
+    )
+  })
+
   it('lets deep transform prompts switch space and collapse back to the owning mode root', async () => {
     const viewerCancelReferenceTransformDrag = vi.fn()
     const viewerClearReferenceTransformHandle = vi.fn()
@@ -8278,6 +8384,174 @@ describe('ConsoleDock', () => {
     expect(
       useConsoleStore.getState().entries.some((entry) => entry.text === 'Space: World applied'),
     ).toBe(true)
+  })
+
+  it('shows one snap enable action at mode roots and uses Locked / Unlocked confirmation text', async () => {
+    setViewer({
+      setConsoleCameraMode: vi.fn(),
+    } as any)
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useAppStore.setState((state) => ({
+        ...state,
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          visibilityById: {
+            ...state.referenceWorkspace.visibilityById,
+            'shoe:shoe-1': true,
+          },
+          loadStateById: {
+            ...state.referenceWorkspace.loadStateById,
+            'shoe:shoe-1': 'loaded',
+          },
+        },
+      }))
+      useAppStore.getState().setWorkspaceSelectedTarget({
+        kind: 'reference-item',
+        referenceId: 'shoe:shoe-1',
+      })
+      useAppStore.getState().setActiveSurface('browser')
+      useAppStore.getState().requestConsoleContextSync('target-selection')
+    })
+
+    const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('transform')
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+      useConsoleStore.getState().setInputText('settings')
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+      useConsoleStore.getState().setInputText('snap')
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+      useConsoleStore.getState().setInputText('move')
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe(
+      'referenceTransformMoveSnapRoot',
+    )
+    expect(
+      useConsoleStore.getState().stagedNavigationSession?.validChoices.map((choice) => choice.label),
+    ).toEqual(['snap:On', 'snapXYZ:Unlock', 'Move X', 'Move Y', 'Move Z', 'Back'])
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('on')
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(
+      useConsoleStore.getState().entries.some((entry) => entry.text === 'Move snap: On'),
+    ).toBe(true)
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('settings')
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+      useConsoleStore.getState().setInputText('snap')
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+      useConsoleStore.getState().setInputText('move')
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(
+      useConsoleStore.getState().stagedNavigationSession?.validChoices.map((choice) => choice.label),
+    ).toEqual(['snap:Off', 'snapXYZ:Unlock', 'Move X', 'Move Y', 'Move Z', 'Back'])
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('unlock')
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(
+      useConsoleStore.getState().entries.some((entry) => entry.text === 'Move snap XYZ: Unlocked'),
+    ).toBe(true)
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('settings')
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+      useConsoleStore.getState().setInputText('snap')
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+      useConsoleStore.getState().setInputText('move')
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(
+      useConsoleStore.getState().stagedNavigationSession?.validChoices.map((choice) => choice.label),
+    ).toEqual(['snap:Off', 'snapXYZ:Lock', 'Move X', 'Move Y', 'Move Z', 'Back'])
+  })
+
+  it('replaces staged snap numeric autofill with the first typed key instead of appending to it', async () => {
+    setViewer({
+      setConsoleCameraMode: vi.fn(),
+    } as any)
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useAppStore.setState((state) => ({
+        ...state,
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          visibilityById: {
+            ...state.referenceWorkspace.visibilityById,
+            'shoe:shoe-1': true,
+          },
+          loadStateById: {
+            ...state.referenceWorkspace.loadStateById,
+            'shoe:shoe-1': 'loaded',
+          },
+        },
+      }))
+      useAppStore.getState().setWorkspaceSelectedTarget({
+        kind: 'reference-item',
+        referenceId: 'shoe:shoe-1',
+      })
+      useAppStore.getState().setActiveSurface('browser')
+      useAppStore.getState().requestConsoleContextSync('target-selection')
+    })
+
+    const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+    const input = container?.querySelector(
+      'input[aria-label="Console input"]',
+    ) as HTMLInputElement | null
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('transform')
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('sn')
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('move')
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe(
+      'referenceTransformMoveSnapRoot',
+    )
+    expect(useConsoleStore.getState().inputText).toBe('10')
+    expect(useConsoleStore.getState().isStagedChoiceManualOverride).toBe(false)
+
+    await act(async () => {
+      input?.focus()
+      input?.dispatchEvent(
+        new KeyboardEvent('keydown', { key: '2', bubbles: true, cancelable: true }),
+      )
+    })
+
+    expect(useConsoleStore.getState().inputText).toBe('2')
+    expect(useConsoleStore.getState().isStagedChoiceManualOverride).toBe(true)
   })
 
   it('closes the reference transform shell on escape when the user is at the transform root', async () => {

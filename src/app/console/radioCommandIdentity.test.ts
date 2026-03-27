@@ -308,6 +308,35 @@ describe('radioCommandIdentity', () => {
     ).toBe('Console.References.Transform.Rotate')
   })
 
+  it('resolves transform root settings adapters to canonical semantic identities', () => {
+    expect(
+      resolveConsoleRadioCommandIdentity({
+        kind: 'stagedChoice',
+        activeScopeId: 'referenceTransformRoot',
+        matchedCanonicalToken: 'SNAP',
+        matchedLabel: 'Snap',
+      }),
+    ).toBe('Console.References.Transform.Settings.Snap')
+
+    expect(
+      resolveConsoleRadioCommandIdentity({
+        kind: 'stagedChoice',
+        activeScopeId: 'referenceTransformRoot',
+        matchedCanonicalToken: 'SPACE',
+        matchedLabel: 'Space',
+      }),
+    ).toBe('Console.References.Transform.Settings.Space')
+
+    expect(
+      resolveConsoleRadioCommandIdentity({
+        kind: 'stagedChoice',
+        activeScopeId: 'referenceTransformRoot',
+        matchedCanonicalToken: 'WORLD',
+        matchedLabel: 'World',
+      }),
+    ).toBe('Console.References.Transform.Settings.Space.World')
+  })
+
   it('resolves flat command aliases through the parsed semantic command name', () => {
     expect(
       resolveConsoleRadioCommandIdentity({

@@ -1,4 +1,8 @@
-import type { ConsoleWorkspaceContextTarget } from '../store/useAppStore'
+import type {
+  ConsoleWorkspaceContextTarget,
+  ReferenceTransformSnapAxis,
+  ReferenceTransformSnapMode,
+} from '../store/useAppStore'
 
 export type ConsoleStagedNodeOption = {
   nodeId: string
@@ -44,6 +48,14 @@ export type ConsoleStagedNavigationContext = {
       activeSessionId: string | null
       activeSessionCommittedEntryCount: number
     }
+  >
+  referenceTransformSnapLockByReferenceId: Record<
+    string,
+    Partial<Record<ReferenceTransformSnapMode, boolean>>
+  >
+  referenceTransformSnapEnabledByReferenceId: Record<
+    string,
+    Partial<Record<ReferenceTransformSnapMode, boolean>>
   >
 }
 
@@ -101,6 +113,15 @@ export type ConsoleStagedNavigationScopeId =
   | 'referenceTransformMoveSnapRoot'
   | 'referenceTransformRotateSnapRoot'
   | 'referenceTransformScaleSnapRoot'
+  | 'referenceTransformMoveSnapXRoot'
+  | 'referenceTransformMoveSnapYRoot'
+  | 'referenceTransformMoveSnapZRoot'
+  | 'referenceTransformRotateSnapXRoot'
+  | 'referenceTransformRotateSnapYRoot'
+  | 'referenceTransformRotateSnapZRoot'
+  | 'referenceTransformScaleSnapXRoot'
+  | 'referenceTransformScaleSnapYRoot'
+  | 'referenceTransformScaleSnapZRoot'
   | 'referenceZoomRoot'
 
 export type ConsoleStagedNavigationSelection = {
@@ -181,13 +202,28 @@ export type ConsoleStagedNavigationExecuteResult = {
   | 'reference.transform.space.world'
   | 'reference.transform.snap.translate.on'
   | 'reference.transform.snap.translate.off'
+  | 'reference.transform.snap.translate.lock'
+  | 'reference.transform.snap.translate.unlock'
   | 'reference.transform.snap.translate.value'
+  | 'reference.transform.snap.translate.x.value'
+  | 'reference.transform.snap.translate.y.value'
+  | 'reference.transform.snap.translate.z.value'
   | 'reference.transform.snap.rotate.on'
   | 'reference.transform.snap.rotate.off'
+  | 'reference.transform.snap.rotate.lock'
+  | 'reference.transform.snap.rotate.unlock'
   | 'reference.transform.snap.rotate.value'
+  | 'reference.transform.snap.rotate.x.value'
+  | 'reference.transform.snap.rotate.y.value'
+  | 'reference.transform.snap.rotate.z.value'
   | 'reference.transform.snap.scale.on'
   | 'reference.transform.snap.scale.off'
+  | 'reference.transform.snap.scale.lock'
+  | 'reference.transform.snap.scale.unlock'
   | 'reference.transform.snap.scale.value'
+  | 'reference.transform.snap.scale.x.value'
+  | 'reference.transform.snap.scale.y.value'
+  | 'reference.transform.snap.scale.z.value'
     | 'content.transform.move'
     | 'content.transform.rotate'
     | 'content.transform.scale'
@@ -663,7 +699,7 @@ const SETTINGS_CHOICE: ConsoleStagedNavigationChoice = {
 
 const SPACE_CHOICE: ConsoleStagedNavigationChoice = {
   canonicalToken: 'SPACE',
-  aliases: [],
+  aliases: ['SP'],
   label: 'Space',
   kind: 'scope',
 }
@@ -689,17 +725,31 @@ const WORLD_CHOICE: ConsoleStagedNavigationChoice = {
   kind: 'action',
 }
 
-const ON_CHOICE: ConsoleStagedNavigationChoice = {
+const SNAP_ON_CHOICE: ConsoleStagedNavigationChoice = {
   canonicalToken: 'ON',
   aliases: ['O'],
-  label: 'On',
+  label: 'snap:On',
   kind: 'action',
 }
 
-const OFF_CHOICE: ConsoleStagedNavigationChoice = {
+const SNAP_OFF_CHOICE: ConsoleStagedNavigationChoice = {
   canonicalToken: 'OFF',
   aliases: [],
-  label: 'Off',
+  label: 'snap:Off',
+  kind: 'action',
+}
+
+const SNAP_XYZ_LOCK_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'SNAPXYZ:LOCK',
+  aliases: ['LOCK'],
+  label: 'snapXYZ:Lock',
+  kind: 'action',
+}
+
+const SNAP_XYZ_UNLOCK_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'SNAPXYZ:UNLOCK',
+  aliases: ['UNLOCK'],
+  label: 'snapXYZ:Unlock',
   kind: 'action',
 }
 
@@ -974,9 +1024,10 @@ export const buildReferenceTransformRootChoices = (
         MOVE_CHOICE,
         ROTATE_CHOICE,
         SCALE_CHOICE,
+        SNAP_CHOICE,
         SETTINGS_CHOICE,
       ]
-    : [MOVE_CHOICE, ROTATE_CHOICE, SCALE_CHOICE, SETTINGS_CHOICE, createBackChoice()]
+    : [MOVE_CHOICE, ROTATE_CHOICE, SCALE_CHOICE, SNAP_CHOICE, SETTINGS_CHOICE, createBackChoice()]
 
 const buildReferenceTransformSettingsChoices = (): ConsoleStagedNavigationChoice[] => [
   SPACE_CHOICE,
@@ -997,9 +1048,36 @@ const buildReferenceTransformSnapChoices = (): ConsoleStagedNavigationChoice[] =
   createBackChoice(),
 ]
 
-const buildReferenceTransformSnapModeChoices = (): ConsoleStagedNavigationChoice[] => [
-  ON_CHOICE,
-  OFF_CHOICE,
+const createReferenceTransformSnapAxisChoice = (
+  mode: ReferenceTransformSnapMode,
+  axis: ReferenceTransformSnapAxis,
+): ConsoleStagedNavigationChoice => {
+  const modeLabel = mode === 'translate' ? 'Move' : mode === 'rotate' ? 'Rotate' : 'Scale'
+  const axisLabel = axis.toUpperCase()
+  const aliases =
+    mode === 'translate'
+      ? [axisLabel, `M${axisLabel}`]
+      : mode === 'rotate'
+        ? [axisLabel, `R${axisLabel}`]
+        : [axisLabel, `S${axisLabel}`]
+  return {
+    canonicalToken: `${modeLabel.toUpperCase()} ${axisLabel}`,
+    aliases,
+    label: `${modeLabel} ${axisLabel}`,
+    kind: 'scope',
+  }
+}
+
+const buildReferenceTransformSnapModeChoices = (
+  mode: ReferenceTransformSnapMode,
+  xyzLocked: boolean,
+  enabled: boolean,
+): ConsoleStagedNavigationChoice[] => [
+  ...(enabled ? [SNAP_OFF_CHOICE] : [SNAP_ON_CHOICE]),
+  ...(xyzLocked ? [SNAP_XYZ_UNLOCK_CHOICE] : [SNAP_XYZ_LOCK_CHOICE]),
+  createReferenceTransformSnapAxisChoice(mode, 'x'),
+  createReferenceTransformSnapAxisChoice(mode, 'y'),
+  createReferenceTransformSnapAxisChoice(mode, 'z'),
   createBackChoice(),
 ]
 
@@ -1008,6 +1086,18 @@ const hasCommittedEntriesInReferenceTransformShell = (
   referenceId: string,
 ): boolean =>
   (context.referenceTransformShellByReferenceId[referenceId]?.activeSessionCommittedEntryCount ?? 0) > 0
+
+const isReferenceTransformSnapModeLocked = (
+  context: ConsoleStagedNavigationContext,
+  referenceId: string,
+  mode: ReferenceTransformSnapMode,
+): boolean => context.referenceTransformSnapLockByReferenceId[referenceId]?.[mode] ?? true
+
+const isReferenceTransformSnapModeEnabled = (
+  context: ConsoleStagedNavigationContext,
+  referenceId: string,
+  mode: ReferenceTransformSnapMode,
+): boolean => context.referenceTransformSnapEnabledByReferenceId[referenceId]?.[mode] ?? false
 
 const createGraphRootSession = (
   context: ConsoleStagedNavigationContext,
@@ -1411,9 +1501,12 @@ const createReferenceTransformModeSnapRootSession = (
     | 'referenceTransformMoveSnapRoot'
     | 'referenceTransformRotateSnapRoot'
     | 'referenceTransformScaleSnapRoot',
+  mode: ReferenceTransformSnapMode,
   modeLabel: 'Move' | 'Rotate' | 'Scale',
   label: string,
   referenceId: string,
+  xyzLocked: boolean,
+  enabled: boolean,
   referenceCategoryId: string | null = null,
   referenceCategoryLabel: string | null = null,
 ): ConsoleStagedNavigationSession => ({
@@ -1438,7 +1531,59 @@ const createReferenceTransformModeSnapRootSession = (
     referenceId,
     referenceCategoryId,
   },
-  validChoices: buildReferenceTransformSnapModeChoices(),
+  validChoices: buildReferenceTransformSnapModeChoices(mode, xyzLocked, enabled),
+})
+
+const createReferenceTransformAxisSnapRootSession = (
+  scopeId:
+    | 'referenceTransformMoveSnapXRoot'
+    | 'referenceTransformMoveSnapYRoot'
+    | 'referenceTransformMoveSnapZRoot'
+    | 'referenceTransformRotateSnapXRoot'
+    | 'referenceTransformRotateSnapYRoot'
+    | 'referenceTransformRotateSnapZRoot'
+    | 'referenceTransformScaleSnapXRoot'
+    | 'referenceTransformScaleSnapYRoot'
+    | 'referenceTransformScaleSnapZRoot',
+  modeLabel: 'Move' | 'Rotate' | 'Scale',
+  axis: ReferenceTransformSnapAxis,
+  label: string,
+  referenceId: string,
+  referenceCategoryId: string | null = null,
+  referenceCategoryLabel: string | null = null,
+): ConsoleStagedNavigationSession => ({
+  scopeId,
+  breadcrumb:
+    referenceCategoryId !== null && referenceCategoryLabel !== null
+      ? [
+          'Select',
+          'References',
+          referenceCategoryLabel,
+          label,
+          'Transform',
+          'Settings',
+          'Snap',
+          modeLabel,
+          `${modeLabel} ${axis.toUpperCase()}`,
+        ]
+      : [
+          'Select',
+          'Reference',
+          label,
+          'Transform',
+          'Settings',
+          'Snap',
+          modeLabel,
+          `${modeLabel} ${axis.toUpperCase()}`,
+        ],
+  selections: {
+    graphDocumentId: null,
+    selectedNodeId: null,
+    sketchNodeId: null,
+    referenceId,
+    referenceCategoryId,
+  },
+  validChoices: [createBackChoice()],
 })
 
 export const createReferenceTransformRootSessionForTarget = (
@@ -1457,6 +1602,7 @@ export const createReferenceTransformRootSessionForTarget = (
   )
 
 const createReferenceTransformSnapModeSessionByToken = (
+  context: ConsoleStagedNavigationContext,
   token: string,
   label: string,
   referenceId: string,
@@ -1467,18 +1613,24 @@ const createReferenceTransformSnapModeSessionByToken = (
     case 'MOVE':
       return createReferenceTransformModeSnapRootSession(
         'referenceTransformMoveSnapRoot',
+        'translate',
         'Move',
         label,
         referenceId,
+        isReferenceTransformSnapModeLocked(context, referenceId, 'translate'),
+        isReferenceTransformSnapModeEnabled(context, referenceId, 'translate'),
         referenceCategoryId,
         referenceCategoryLabel,
       )
     case 'ROTATE':
       return createReferenceTransformModeSnapRootSession(
         'referenceTransformRotateSnapRoot',
+        'rotate',
         'Rotate',
         label,
         referenceId,
+        isReferenceTransformSnapModeLocked(context, referenceId, 'rotate'),
+        isReferenceTransformSnapModeEnabled(context, referenceId, 'rotate'),
         referenceCategoryId,
         referenceCategoryLabel,
       )
@@ -1486,13 +1638,54 @@ const createReferenceTransformSnapModeSessionByToken = (
     default:
       return createReferenceTransformModeSnapRootSession(
         'referenceTransformScaleSnapRoot',
+        'scale',
         'Scale',
         label,
         referenceId,
+        isReferenceTransformSnapModeLocked(context, referenceId, 'scale'),
+        isReferenceTransformSnapModeEnabled(context, referenceId, 'scale'),
         referenceCategoryId,
         referenceCategoryLabel,
       )
   }
+}
+
+const createReferenceTransformSnapAxisSession = (
+  mode: ReferenceTransformSnapMode,
+  axis: ReferenceTransformSnapAxis,
+  label: string,
+  referenceId: string,
+  referenceCategoryId: string | null,
+  referenceCategoryLabel: string | null,
+): ConsoleStagedNavigationSession => {
+  const modeLabel = mode === 'translate' ? 'Move' : mode === 'rotate' ? 'Rotate' : 'Scale'
+  const scopeId =
+    mode === 'translate'
+      ? axis === 'x'
+        ? 'referenceTransformMoveSnapXRoot'
+        : axis === 'y'
+          ? 'referenceTransformMoveSnapYRoot'
+          : 'referenceTransformMoveSnapZRoot'
+      : mode === 'rotate'
+        ? axis === 'x'
+          ? 'referenceTransformRotateSnapXRoot'
+          : axis === 'y'
+            ? 'referenceTransformRotateSnapYRoot'
+            : 'referenceTransformRotateSnapZRoot'
+        : axis === 'x'
+          ? 'referenceTransformScaleSnapXRoot'
+          : axis === 'y'
+            ? 'referenceTransformScaleSnapYRoot'
+            : 'referenceTransformScaleSnapZRoot'
+  return createReferenceTransformAxisSnapRootSession(
+    scopeId,
+    modeLabel,
+    axis,
+    label,
+    referenceId,
+    referenceCategoryId,
+    referenceCategoryLabel,
+  )
 }
 
 const parseReferenceTransformSnapValue = (token: string): number | null => {
@@ -1502,6 +1695,51 @@ const parseReferenceTransformSnapValue = (token: string): number | null => {
   }
   const parsed = Number(trimmed)
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null
+}
+
+const getReferenceTransformSnapModeFromScopeId = (
+  scopeId: ConsoleStagedNavigationScopeId,
+): ReferenceTransformSnapMode | null => {
+  switch (scopeId) {
+    case 'referenceTransformMoveSnapRoot':
+    case 'referenceTransformMoveSnapXRoot':
+    case 'referenceTransformMoveSnapYRoot':
+    case 'referenceTransformMoveSnapZRoot':
+      return 'translate'
+    case 'referenceTransformRotateSnapRoot':
+    case 'referenceTransformRotateSnapXRoot':
+    case 'referenceTransformRotateSnapYRoot':
+    case 'referenceTransformRotateSnapZRoot':
+      return 'rotate'
+    case 'referenceTransformScaleSnapRoot':
+    case 'referenceTransformScaleSnapXRoot':
+    case 'referenceTransformScaleSnapYRoot':
+    case 'referenceTransformScaleSnapZRoot':
+      return 'scale'
+    default:
+      return null
+  }
+}
+
+const getReferenceTransformSnapAxisFromScopeId = (
+  scopeId: ConsoleStagedNavigationScopeId,
+): ReferenceTransformSnapAxis | null => {
+  switch (scopeId) {
+    case 'referenceTransformMoveSnapXRoot':
+    case 'referenceTransformRotateSnapXRoot':
+    case 'referenceTransformScaleSnapXRoot':
+      return 'x'
+    case 'referenceTransformMoveSnapYRoot':
+    case 'referenceTransformRotateSnapYRoot':
+    case 'referenceTransformScaleSnapYRoot':
+      return 'y'
+    case 'referenceTransformMoveSnapZRoot':
+    case 'referenceTransformRotateSnapZRoot':
+    case 'referenceTransformScaleSnapZRoot':
+      return 'z'
+    default:
+      return null
+  }
 }
 
 const createReferenceZoomRootSession = (
@@ -1966,6 +2204,8 @@ export const createConsoleStagedNavigationContext = (
     preferredTool: 'LINE',
   },
   referenceTransformShellByReferenceId: ConsoleStagedNavigationContext['referenceTransformShellByReferenceId'] = {},
+  referenceTransformSnapLockByReferenceId: ConsoleStagedNavigationContext['referenceTransformSnapLockByReferenceId'] = {},
+  referenceTransformSnapEnabledByReferenceId: ConsoleStagedNavigationContext['referenceTransformSnapEnabledByReferenceId'] = {},
 ): ConsoleStagedNavigationContext => ({
   graphOptions: graphOptions.map((option) => ({
     graphDocumentId: option.graphDocumentId,
@@ -1999,6 +2239,8 @@ export const createConsoleStagedNavigationContext = (
   })),
   sketchDraw,
   referenceTransformShellByReferenceId: { ...referenceTransformShellByReferenceId },
+  referenceTransformSnapLockByReferenceId: { ...referenceTransformSnapLockByReferenceId },
+  referenceTransformSnapEnabledByReferenceId: { ...referenceTransformSnapEnabledByReferenceId },
 })
 
 export const isConsoleStagedNavigationRootToken = (submittedToken: string): boolean => {
@@ -3783,6 +4025,24 @@ export const submitConsoleStagedNavigationToken = (
     const transformChoices = buildReferenceTransformRootChoices(
       hasCommittedEntriesInReferenceTransformShell(context, session.selections.referenceId ?? ''),
     )
+    if (normalizedToken === SPACE_CHOICE.canonicalToken || normalizedToken === 'SP') {
+      const nextSession = createReferenceTransformSpaceRootSession(
+        session.breadcrumb.at(-2) ?? session.selections.referenceId ?? 'Reference',
+        session.selections.referenceId ?? '',
+        session.selections.referenceCategoryId ?? null,
+        session.breadcrumb.at(-3) ?? null,
+      )
+      return {
+        kind: 'advance',
+        session: nextSession,
+        submittedToken,
+        matchedChoice: SPACE_CHOICE,
+        breadcrumb: nextSession.breadcrumb,
+        validChoices: nextSession.validChoices,
+        selections: nextSession.selections,
+        autoSelections: [],
+      }
+    }
     if (normalizedToken === LOCAL_CHOICE.canonicalToken || normalizedToken === 'L') {
       return {
         kind: 'execute',
@@ -3861,6 +4121,24 @@ export const submitConsoleStagedNavigationToken = (
         submittedToken,
         matchedChoice,
         breadcrumb: [...session.breadcrumb, matchedChoice.label],
+        validChoices: nextSession.validChoices,
+        selections: nextSession.selections,
+        autoSelections: [],
+      }
+    }
+    if (matchedChoice.canonicalToken === SNAP_CHOICE.canonicalToken) {
+      const nextSession = createReferenceTransformSnapRootSession(
+        session.breadcrumb.at(-2) ?? session.selections.referenceId ?? 'Reference',
+        session.selections.referenceId ?? '',
+        session.selections.referenceCategoryId ?? null,
+        session.breadcrumb.at(-3) ?? null,
+      )
+      return {
+        kind: 'advance',
+        session: nextSession,
+        submittedToken,
+        matchedChoice,
+        breadcrumb: nextSession.breadcrumb,
         validChoices: nextSession.validChoices,
         selections: nextSession.selections,
         autoSelections: [],
@@ -4060,6 +4338,7 @@ export const submitConsoleStagedNavigationToken = (
       }
     }
     const nextSession = createReferenceTransformSnapModeSessionByToken(
+      context,
       matchedChoice.canonicalToken,
       session.breadcrumb.at(-4) ?? session.selections.referenceId ?? 'Reference',
       session.selections.referenceId ?? '',
@@ -4083,14 +4362,13 @@ export const submitConsoleStagedNavigationToken = (
     session.scopeId === 'referenceTransformRotateSnapRoot' ||
     session.scopeId === 'referenceTransformScaleSnapRoot'
   ) {
-    const modeChoices = buildReferenceTransformSnapModeChoices()
+    const mode = getReferenceTransformSnapModeFromScopeId(session.scopeId) ?? 'translate'
+    const modeChoices = buildReferenceTransformSnapModeChoices(
+      mode,
+      isReferenceTransformSnapModeLocked(context, session.selections.referenceId ?? '', mode),
+      isReferenceTransformSnapModeEnabled(context, session.selections.referenceId ?? '', mode),
+    )
     const numericValue = parseReferenceTransformSnapValue(submittedToken)
-    const mode =
-      session.scopeId === 'referenceTransformMoveSnapRoot'
-        ? 'translate'
-        : session.scopeId === 'referenceTransformRotateSnapRoot'
-          ? 'rotate'
-          : 'scale'
     if (numericValue !== null) {
       const actionIdByMode: Record<
         'translate' | 'rotate' | 'scale',
@@ -4150,6 +4428,84 @@ export const submitConsoleStagedNavigationToken = (
         autoSelections: [],
       }
     }
+    if (
+      matchedChoice.canonicalToken === 'SNAPXYZ:LOCK' ||
+      matchedChoice.canonicalToken === 'SNAPXYZ:UNLOCK'
+    ) {
+      const actionIdByModeAndToken: Record<
+        ReferenceTransformSnapMode,
+        Record<
+          'SNAPXYZ:LOCK' | 'SNAPXYZ:UNLOCK',
+          Extract<
+            ConsoleStagedNavigationExecuteResult['actionId'],
+            | 'reference.transform.snap.translate.lock'
+            | 'reference.transform.snap.translate.unlock'
+            | 'reference.transform.snap.rotate.lock'
+            | 'reference.transform.snap.rotate.unlock'
+            | 'reference.transform.snap.scale.lock'
+            | 'reference.transform.snap.scale.unlock'
+          >
+        >
+      > = {
+        translate: {
+          'SNAPXYZ:LOCK': 'reference.transform.snap.translate.lock',
+          'SNAPXYZ:UNLOCK': 'reference.transform.snap.translate.unlock',
+        },
+        rotate: {
+          'SNAPXYZ:LOCK': 'reference.transform.snap.rotate.lock',
+          'SNAPXYZ:UNLOCK': 'reference.transform.snap.rotate.unlock',
+        },
+        scale: {
+          'SNAPXYZ:LOCK': 'reference.transform.snap.scale.lock',
+          'SNAPXYZ:UNLOCK': 'reference.transform.snap.scale.unlock',
+        },
+      }
+      return {
+        kind: 'execute',
+        session: {
+          ...session,
+          validChoices: modeChoices,
+        },
+        submittedToken,
+        matchedChoice,
+        actionId:
+          actionIdByModeAndToken[mode][
+            matchedChoice.canonicalToken as 'SNAPXYZ:LOCK' | 'SNAPXYZ:UNLOCK'
+          ],
+        breadcrumb: [...session.breadcrumb, matchedChoice.label],
+        selections: session.selections,
+      }
+    }
+    if (
+      matchedChoice.canonicalToken.endsWith(' X') ||
+      matchedChoice.canonicalToken.endsWith(' Y') ||
+      matchedChoice.canonicalToken.endsWith(' Z')
+    ) {
+      const axis =
+        matchedChoice.canonicalToken.endsWith(' X')
+          ? 'x'
+          : matchedChoice.canonicalToken.endsWith(' Y')
+            ? 'y'
+            : 'z'
+      const nextSession = createReferenceTransformSnapAxisSession(
+        mode,
+        axis,
+        session.breadcrumb.at(-5) ?? session.selections.referenceId ?? 'Reference',
+        session.selections.referenceId ?? '',
+        session.selections.referenceCategoryId ?? null,
+        session.breadcrumb.at(-6) ?? null,
+      )
+      return {
+        kind: 'advance',
+        session: nextSession,
+        submittedToken,
+        matchedChoice,
+        breadcrumb: nextSession.breadcrumb,
+        validChoices: nextSession.validChoices,
+        selections: nextSession.selections,
+        autoSelections: [],
+      }
+    }
     const actionIdByModeAndToken: Record<
       'translate' | 'rotate' | 'scale',
       Record<
@@ -4189,6 +4545,110 @@ export const submitConsoleStagedNavigationToken = (
       actionId: actionIdByModeAndToken[mode][matchedChoice.canonicalToken as 'ON' | 'OFF'],
       breadcrumb: [...session.breadcrumb, matchedChoice.label],
       selections: session.selections,
+    }
+  }
+
+  if (
+    session.scopeId === 'referenceTransformMoveSnapXRoot' ||
+    session.scopeId === 'referenceTransformMoveSnapYRoot' ||
+    session.scopeId === 'referenceTransformMoveSnapZRoot' ||
+    session.scopeId === 'referenceTransformRotateSnapXRoot' ||
+    session.scopeId === 'referenceTransformRotateSnapYRoot' ||
+    session.scopeId === 'referenceTransformRotateSnapZRoot' ||
+    session.scopeId === 'referenceTransformScaleSnapXRoot' ||
+    session.scopeId === 'referenceTransformScaleSnapYRoot' ||
+    session.scopeId === 'referenceTransformScaleSnapZRoot'
+  ) {
+    const numericValue = parseReferenceTransformSnapValue(submittedToken)
+    if (numericValue !== null) {
+      const mode = getReferenceTransformSnapModeFromScopeId(session.scopeId) ?? 'translate'
+      const axis = getReferenceTransformSnapAxisFromScopeId(session.scopeId) ?? 'x'
+      const actionIdByModeAndAxis: Record<
+        ReferenceTransformSnapMode,
+        Record<
+          ReferenceTransformSnapAxis,
+          Extract<
+            ConsoleStagedNavigationExecuteResult['actionId'],
+            | 'reference.transform.snap.translate.x.value'
+            | 'reference.transform.snap.translate.y.value'
+            | 'reference.transform.snap.translate.z.value'
+            | 'reference.transform.snap.rotate.x.value'
+            | 'reference.transform.snap.rotate.y.value'
+            | 'reference.transform.snap.rotate.z.value'
+            | 'reference.transform.snap.scale.x.value'
+            | 'reference.transform.snap.scale.y.value'
+            | 'reference.transform.snap.scale.z.value'
+          >
+        >
+      > = {
+        translate: {
+          x: 'reference.transform.snap.translate.x.value',
+          y: 'reference.transform.snap.translate.y.value',
+          z: 'reference.transform.snap.translate.z.value',
+        },
+        rotate: {
+          x: 'reference.transform.snap.rotate.x.value',
+          y: 'reference.transform.snap.rotate.y.value',
+          z: 'reference.transform.snap.rotate.z.value',
+        },
+        scale: {
+          x: 'reference.transform.snap.scale.x.value',
+          y: 'reference.transform.snap.scale.y.value',
+          z: 'reference.transform.snap.scale.z.value',
+        },
+      }
+      return {
+        kind: 'execute',
+        session: {
+          ...session,
+          validChoices: [createBackChoice()],
+        },
+        submittedToken,
+        matchedChoice: {
+          canonicalToken: String(numericValue),
+          aliases: [],
+          label: String(numericValue),
+          kind: 'action',
+        },
+        actionId: actionIdByModeAndAxis[mode][axis],
+        breadcrumb: [...session.breadcrumb, String(numericValue)],
+        selections: session.selections,
+      }
+    }
+    const backChoice = createBackChoice()
+    if (!matchesChoice(backChoice, normalizedToken)) {
+      return createInvalidResult(
+        { ...session, validChoices: [backChoice] },
+        submittedToken,
+        [backChoice],
+      )
+    }
+    const mode = getReferenceTransformSnapModeFromScopeId(session.scopeId) ?? 'translate'
+    const modeLabel = mode === 'translate' ? 'Move' : mode === 'rotate' ? 'Rotate' : 'Scale'
+    const nextSession = createReferenceTransformModeSnapRootSession(
+      mode === 'translate'
+        ? 'referenceTransformMoveSnapRoot'
+        : mode === 'rotate'
+          ? 'referenceTransformRotateSnapRoot'
+          : 'referenceTransformScaleSnapRoot',
+      mode,
+      modeLabel,
+      session.breadcrumb.at(-6) ?? session.selections.referenceId ?? 'Reference',
+      session.selections.referenceId ?? '',
+      isReferenceTransformSnapModeLocked(context, session.selections.referenceId ?? '', mode),
+      isReferenceTransformSnapModeEnabled(context, session.selections.referenceId ?? '', mode),
+      session.selections.referenceCategoryId ?? null,
+      session.breadcrumb.at(-7) ?? null,
+    )
+    return {
+      kind: 'advance',
+      session: nextSession,
+      submittedToken,
+      matchedChoice: backChoice,
+      breadcrumb: nextSession.breadcrumb,
+      validChoices: nextSession.validChoices,
+      selections: nextSession.selections,
+      autoSelections: [],
     }
   }
 

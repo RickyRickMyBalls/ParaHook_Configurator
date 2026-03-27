@@ -130,12 +130,16 @@ export class TransformGizmo {
     this.onHandleChange = handler
   }
 
-  public setSnap(translateMm?: number, rotateDeg?: number, scale?: number): void {
-    this.controls.setTranslationSnap(translateMm ?? null)
+  public setSnap(_opts: {
+    translate?: { x: number; y: number; z: number }
+    rotate?: { x: number; y: number; z: number }
+    scale?: { x: number; y: number; z: number }
+  }): void {
+    this.controls.setTranslationSnap(_opts.translate?.x ?? null)
     this.controls.setRotationSnap(
-      rotateDeg === undefined ? null : MathUtils.degToRad(rotateDeg),
+      _opts.rotate === undefined ? null : MathUtils.degToRad(_opts.rotate.x),
     )
-    this.controls.setScaleSnap(scale ?? null)
+    this.controls.setScaleSnap(_opts.scale?.x ?? null)
   }
 
   public setSize(size: number): void {

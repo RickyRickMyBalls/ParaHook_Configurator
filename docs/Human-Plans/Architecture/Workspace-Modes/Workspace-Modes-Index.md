@@ -3,6 +3,11 @@
 ## Doc Header
 
 ### Doc History
+22. 2026-03-27 14:50: Expanded the workspace-family surface inventory after a read-only scan of the live app and architecture docs, adding the missing real workspace candidates `Radio`, `Layer Manager`, `Export`, `Debug Inspector`, and the later `Reference Workspace / Comparison` direction to the supported-surface read and the simple `list of all workspaces`, while keeping `Camera Controls` out because that behavior is expected to stay inside viewport-local `View` / toolbar ownership rather than become a separate workspace surface
+21. 2026-03-27 14:44: Added a simple `list of all workspaces` section near the phase ladder so the family doc now has one short scan-friendly list of the main workspace/surface kinds ParaHook should think in today, grouped between workspace-global surfaces, per-viewport surfaces, and later browser-window or collaboration-facing follow-ons
+20. 2026-03-27 14:42: Tightened the workspace-family architecture around the three real placement modes and viewport ownership, clarifying that `Windowed`, `Tiled`, and later browser `Pop-Out` are the honest host modes, that separate browser windows are not just another tiled pane, and that each `Model Viewport` instance should own its own viewport-local chrome and toolbar host area for `View`, `Gizmo`, and later command toolbars such as `Transform` or `Sketch`
+19. 2026-03-27 13:46: Reframed this file into a real Workspace family index like `Transform`, adding the explicit `Future/` and `Shipped/` family structure plus a first `## Phases` ladder that names `Workspace 1` through `Workspace 6` with per-phase headers, first questions, suggestions, and direct links back to the current task-doc or shipped-source planning records
+18. 2026-03-27 13:42: Refreshed this umbrella workspace-planning doc so it now matches the current roadmap and adjacent architecture docs, fixing the stale `05.1B` path to `Tasks/Old`, adding the already-landed `[5.1F]` workspace-selection and canonical-intent seam to the family read, and clarifying that later collaboration-facing browser surfaces should reuse the same windowed/tiled/pop-out host model instead of inventing a separate shell path
 17. 2026-03-17 18:31: Added the single-owner browser-pop-out rule so when a viewport/tool surface is popped out into a new browser window its in-app pane collapses in the main app instead of remaining duplicated, aligning the later workspace-family behavior with the already-shipped `Console` pop-out ownership model
 16. 2026-03-17 18:28: Broadened the later pop-out read so the workspace-family follow-through is no longer only about `Spaghetti Editor` detachment, but about any supported viewport/tool surface being able to `Pop-Out` into a new browser window on top of the same shared surface-instance model, with the shipped `Console` pop-out treated as the first real proof
 15. 2026-03-17 14:45: Extended the `5.1` workspace-family read so later multi-window `Spaghetti Editor` surfaces and detached/browser pop-out now have an explicit planned home as `[5.1E]` inside the same shared workspace model, instead of floating only as a separate `SP - Phase 13` family placeholder
@@ -25,14 +30,31 @@
 
 This doc defines the architecture direction for ParaHook workspace modes.
 
+This file is the umbrella index for `Workspace Modes`.
+
 Use it to answer:
 - what `Windowed` and `Tiled` mean inside the workspace system
 - how the current Spaghetti-only split should evolve into a workspace-wide layout system
 - what kind of tool surfaces should be eligible for split panes
 - how floating and tiled surfaces should coexist in one hybrid workspace
+- how shared active-surface and cross-surface intent seams relate to workspace hosting
 - how later multiple-surface and browser-pop-out growth should fit the same shell model
+- how later collaboration-facing browser surfaces should fit that same shell model
 - how pane switching should work when the user wants one pane to become another tool surface
 - where shell ownership should live versus feature ownership
+
+### Family Structure
+
+Use this folder like this:
+
+- `Workspace-Modes-Index.md`
+  - umbrella workspace architecture direction
+  - live seam read
+  - workspace-family summary
+- `Future/`
+  - standalone future workspace phase docs
+- `Shipped/`
+  - later shipped workspace phase records
 
 ### Why This Doc Exists
 
@@ -104,12 +126,18 @@ Use these terms:
   - a floating-window-style or non-tiled surface presentation
 - `Tiled`
   - a pane-hosted surface presentation inside the tile layout
+- `Pop-Out`
+  - a later browser-window presentation of the same hosted surface instance
 - `Hybrid Workspace`
-  - one workspace where windowed and tiled surfaces can coexist
+  - one workspace where windowed, tiled, and later popped-out surfaces can coexist
 - `Split Pane`
   - one resizable area inside the tiled layout
 - `Tool Surface`
   - a hostable app surface such as `Browser`, `Spaghetti Editor`, `Console`, or another panel
+- `Viewport-Local Chrome`
+  - UI that belongs to one specific `Model Viewport` instance, such as `View`, `Gizmo`, or later viewport-owned command toolbars
+- `Viewport Toolbar Host`
+  - the viewport-local chrome area that can hold spawned viewport tools without forcing them to overlap the render canvas
 
 Important rule:
 - do not use `viewport` as the main term for these split hosts
@@ -127,7 +155,7 @@ Current pain:
 Plain-English problem:
 - ParaHook has enough real tools now that it needs a workspace layout system, not only isolated floating panels
 
-### The Two Presentation Styles
+### The Three Placement Styles
 
 #### 1. `Windowed`
 
@@ -158,6 +186,19 @@ This presentation style should feel like:
 - a real workspace layout system
 - not just one special hard-coded `Spaghetti below viewer` state
 
+#### 3. `Pop-Out`
+
+This is the later separate-browser-window presentation style.
+
+It should mean:
+- the same hosted surface instance can move into its own browser window
+- the popped-out window becomes the active owner of that surface while it is detached
+- the in-app owner collapses instead of remaining duplicated
+
+Important rule:
+- this is not just another `Tiled` pane
+- separate browser windows are their own later placement mode on top of the same surface-instance model
+
 ### Hybrid Workspace Rule
 
 The strongest current recommendation is:
@@ -171,7 +212,7 @@ That means the user should be able to do layouts like:
 - tiled `Spaghetti Editor`
 
 Plain-English rule:
-- `Tiled` and `Windowed` should be surface placement styles inside one workspace system
+- `Windowed`, `Tiled`, and later `Pop-Out` should be surface placement styles inside one workspace system
 - not a rigid app-wide binary switch
 
 ### Tool Surface Model
@@ -183,7 +224,12 @@ Likely supported surfaces over time:
 - `Spaghetti Editor`
 - `Browser`
 - `Console`
+- `Radio`
+- `Layer Manager`
+- `Export`
+- `Debug Inspector`
 - `Parts List`
+- later `Reference Workspace / Comparison` surfaces
 - later other panel/inspector surfaces that already exist as app-level tools
 
 Important rule:
@@ -195,6 +241,58 @@ Example:
 - `SpaghettiPanel` still owns editor behavior whether it is floating or tiled
 - `Console` still owns transcript/input behavior whether it is floating or tiled
 - the workspace layout system only decides where the surface is shown
+
+### Model Viewport As A First-Class Workspace Surface
+
+The `Model Viewport` should be treated as a first-class workspace surface.
+
+Important rule:
+- the viewport is not the owner of the whole shell
+- but it is the base surface that viewport-local tools can belong to
+
+Practical read:
+- `Browser` and `Console` are workspace-global tool surfaces
+- each `Model Viewport` instance is its own hosted workspace surface
+- some UI belongs to that specific viewport instance rather than to the whole app
+
+Example:
+- if the user opens a second `Model Viewport`
+- that viewport should get its own viewport-local `View` toolbar
+- that viewport should get its own viewport-local `Gizmo`
+- that viewport may later get its own active command toolbar host for tools like `Transform` or `Sketch`
+
+Plain-English rule:
+- one workspace can host multiple model viewports
+- each viewport owns its own viewport-local chrome
+- global surfaces should not be duplicated just because a second viewport exists
+
+### Viewport-Local Chrome And Toolbar Host
+
+Some tools should belong to a specific viewport instance rather than to the app globally.
+
+Important rule:
+- do not treat every viewport-local toolbar as a top-level workspace surface
+- do not treat viewport-local chrome as app-global just because it is visible near the model area
+
+Recommended viewport-local chrome:
+- `View`
+- `Gizmo`
+- later camera or display helpers that are specific to one viewport
+
+Recommended viewport-toolbar-host use:
+- spawned CAD command toolbars such as `Transform`
+- spawned CAD command toolbars such as `Sketch`
+- later other viewport-driven command surfaces the user wants visible without covering the render canvas
+
+Healthy ownership split:
+- workspace shell owns where the viewport lives
+- the viewport instance owns its local chrome and toolbar host area
+- command/session systems decide what active command toolbars mount into that host
+
+Plain-English rule:
+- splitting a viewport should keep its local chrome with it
+- opening a second viewport should create a second viewport-local chrome area
+- the viewport toolbar host should free the render area rather than turning every command toolbar into a floating overlay
 
 ### Surface Instance Rule
 
@@ -213,6 +311,26 @@ Practical read:
 Plain-English rule:
 - first-pass workspace UX can stay simple
 - the underlying surface model should still stay honest enough for later multi-editor growth
+- viewport-local chrome should follow the viewport instance it belongs to
+
+### Relationship To Workspace Selection And Intents
+
+`Workspace Modes` is not only about pane geometry.
+
+The shared shell model also has to stay compatible with the already-landed `[5.1F]` workspace-selection and canonical-intent seam.
+
+Important rule:
+- layout ownership and surface-host ownership belong to the workspace family
+- shared foreground/selection-routing truth should reuse `[5.1F]` instead of being reinvented per pane or per floating window
+
+Practical read:
+- one shared `activeSurface` model should keep working whether a surface is `Windowed`, `Tiled`, or later `Pop-Out`
+- shared cross-surface intents should continue to produce the same outcomes no matter which hosted surface triggered them
+- `activeGraphDocumentId` and `activeEditorViewportId` can remain graph/editor mechanics unless a broader workspace need proves they must move
+- viewport-local chrome and command-toolbar hosts should still resolve through the same shared activation seam rather than inventing viewport-only command ownership
+
+Plain-English rule:
+- do not let tiled hosting, floating hosting, or browser pop-out create a second focus/intent system beside `[5.1F]`
 
 ### Later Browser Pop-Out Rule
 
@@ -239,6 +357,36 @@ Target direction:
 Plain-English rule:
 - a pane should be able to move from tiled or windowed in-app presentation to browser-pop-out presentation without becoming a different feature concept
 - the pop-out window becomes the active owner of that surface while it is detached
+
+### Relationship To Collaboration Surfaces
+
+The newer collaboration direction should ride this same workspace model.
+
+Important rule:
+- future collaboration-facing browser surfaces such as `Server Browser`, room/session views, or similar lobby/session tools should be treated as normal workspace-hosted tool surfaces
+- they should not require a separate window-management model just because they are network-facing or browser-hosted
+
+Practical read:
+- an early collaboration window can still ship as a normal `Windowed` floating surface
+- later, if collaboration surfaces want tiled placement or browser `Pop-Out`, they should reuse the same surface-instance and single-owner rules already defined here
+- host-authoritative browser collaboration and lightweight external session services change networking architecture, not workspace-host architecture
+
+### Relationship To Viewport Command Toolbars
+
+ParaHook will likely add many CAD commands that want to use the model viewport.
+
+Important rule:
+- many of those commands may expose viewport toolbars
+- but command-toolbar state is not the same thing as workspace-layout ownership
+
+Healthy split:
+- workspace owns placement
+- viewport instances own viewport-local chrome and toolbar host areas
+- command/session systems own what active CAD toolbar is mounted there
+
+This keeps the architecture extensible:
+- adding many future viewport-driven commands should not require every command to invent its own shell rules
+- adding a second viewport should not force those command toolbars to become app-global
 
 ### Split Pane Rules
 
@@ -434,6 +582,10 @@ This layer should own:
 - active pane identity
 - layout persistence across both tiled and floating surfaces
 
+Important boundary:
+- this layout owner should integrate with the shared `[5.1F]` active-surface seam
+- it should not fork a second pane-local focus model that disagrees with canonical surface activation
+
 #### Feature ownership
 
 Should stay where it already belongs:
@@ -544,17 +696,39 @@ This architecture sits closest to:
 - the current shipped `2.1D` editor split proof
 - the current `2.1E` dock/floating shell work
 - the later broader `[5.1] VR / SP - Workspace Modes` direction
+- the shipped `[5.1F]` workspace-selection, surface-activation, and canonical-intent seam
 - the later `[5.1E]` workspace-family follow-through for multi-window editor surfaces and detached/browser pop-out
 
 Practical read:
 - `2.1D` proved split presentation is useful
 - shipped code also proved that one surface can move between floating, split, and docked/minimized shell states
-- this doc defines the larger shell model that should now be implemented through the dedicated `[5.1A]` through `[5.1D]` task-doc family, with later multi-window editor follow-through planned as `[5.1E]`
+- `[5.1F]` already established the shared active-surface and canonical-intent seam that workspace hosting should reuse
+- this doc defines the larger shell model that should now be implemented through the dedicated `[5.1A]`, shipped `[5.1B]`, `[5.1C]`, and `[5.1D]` task-doc family, with later multi-window editor follow-through planned as `[5.1E]`
 - later `SP - Phase 13` should use that shared surface model for real multiple visible spaghetti-editor windows and later detached/new-browser editor placement instead of bypassing the workspace architecture with a second shell system
+
+### Current Relationship To Task Docs
+
+The current workspace-family planning still lives partly in the phase-task and adjacent shipped-doc lanes.
+
+Current planning sources:
+- `Workspace 1`
+  - `docs/Phase-Plans/Tasks/Future/05.1A - VR-SP - Workspace Layout Foundation And Left-Dock Entry.md`
+- `Workspace 2`
+  - `docs/Phase-Plans/Tasks/Old/05.1B - VR-SP - Split Pane Authoring And Divider Controls.md`
+- `Workspace 3`
+  - `docs/Phase-Plans/Tasks/Future/05.1C - VR-SP - Hybrid Tool Surface Hosting And Floating-Tiled Transitions.md`
+- `Workspace 4`
+  - `docs/Phase-Plans/Tasks/Future/05.1D - VR-SP - Workspace Persistence, Saved Modes, And Migration.md`
+- `Workspace 5`
+  - current roadmap slot `[5.1E]`
+- `Workspace 6`
+  - `docs/Human-Plans/Architecture/Console/Shipped/Console_Phase 5.1F - Workspace Selection, Surface Activation, And Canonical Intents.md`
+
+This family should gradually gain its own native `Future/` and `Shipped/` records here as the workspace-specific planning gets re-homed out of the mixed task/doc surfaces.
 
 ### Execution Doc Family
 
-Use the dedicated future task docs for implementation detail:
+Use the dedicated workspace-family docs for implementation detail:
 
 - `docs/Phase-Plans/Tasks/Future/05.1A - VR-SP - Workspace Layout Foundation And Left-Dock Entry.md`
   - shared layout owner
@@ -562,7 +736,7 @@ Use the dedicated future task docs for implementation detail:
   - main viewer anchor
   - left-dock `[]` entry behavior
 
-- `docs/Phase-Plans/Tasks/Future/05.1B - VR-SP - Split Pane Authoring And Divider Controls.md`
+- `docs/Phase-Plans/Tasks/Old/05.1B - VR-SP - Split Pane Authoring And Divider Controls.md`
   - first split entry
   - divider authoring
   - resize rules
@@ -590,6 +764,13 @@ Later planned extension inside the same roadmap family:
   - use shipped `Console` pop-out as the first proof that browser-window hosting can stay attached to shared shell ownership
   - keep this as workspace-family follow-through rather than a separate detached-window shell system
 
+Already-landed adjacent seam in the same roadmap family:
+
+- `[5.1F] [x] - Workspace Selection, Surface Activation, And Canonical Intents`
+  - one shared `activeSurface` model
+  - one shared cross-surface intent layer
+  - one canonical activation/selection seam that tiled, windowed, and later pop-out hosting should reuse
+
 ### Architecture Boundary
 
 Keep this file focused on:
@@ -598,11 +779,13 @@ Keep this file focused on:
 - ownership boundaries
 - the relationship between current shipped proof and long-range direction
 
-Push detailed implementation locks into the `05.1A` through `05.1D` task docs, then later `05.1E` once that broader browser-pop-out follow-through gets its own execution doc.
+Push detailed implementation locks into the active `05.1A`, `05.1C`, and `05.1D` task docs, refer back to shipped `05.1B` for split-authoring rules that already landed, and reuse shipped `[5.1F]` for shared activation/intent seams. Later `05.1E` should extend that same family once the broader browser-pop-out follow-through gets its own execution doc.
 
 Important rule:
-- `Workspace-Modes.md` is the umbrella architecture doc
-- the `05.1A-D` files are the current execution-planning docs
+- `Workspace-Modes/Workspace-Modes-Index.md` is the umbrella architecture doc
+- the `05.1A`, `05.1C`, and `05.1D` files are the current open execution-planning docs
+- `05.1B` is already landed split-authoring history inside the same family
+- `[5.1F]` is the shipped workspace-selection and canonical-intent seam the family should build on
 - later multi-window follow-through should extend that same family as `05.1E`, not start a disconnected shell track
 
 ### Suggested Code Shape
@@ -624,6 +807,14 @@ Likely current integration seams:
 - `src/app/store/uiPrefsStore.ts`
 - `src/app/spaghetti/store/useSpaghettiStore.ts`
 
+### Next Steps
+
+Expected next cleanup after adding the family structure:
+
+1. create native `Workspace 1` through `Workspace 4` phase records under `Workspace-Modes/Future/` as the current task-doc planning gets re-homed into this family
+2. add shipped workspace-native records under `Workspace-Modes/Shipped/` when the family has enough direct landed history to justify them
+3. keep later multi-window/pop-out and shared activation/intent planning tied to this same family instead of letting shell ownership split again across unrelated docs
+
 ### Short Version
 
 The right mental model is:
@@ -634,5 +825,122 @@ The right mental model is:
 - panes host supported tool surfaces such as `Browser`, `Spaghetti Editor`, `Console`, and the `Model Viewer`
 - if the user drags `Browser` into the model viewport, it should still keep the current floating-in-viewport Browser behavior
 - the current shell still mostly shows one visible `Spaghetti Editor` at a time, so later multi-editor and pop-out work should grow from one shared surface-instance model instead of inventing a separate detached editor concept
+- the shared `[5.1F]` activation and intent seams should stay true across windowed, tiled, and later popped-out surfaces
+- future collaboration-facing browser surfaces should reuse this same workspace host model rather than creating a separate shell path
 - the split system owns placement and layout, while each tool surface keeps its own feature ownership
-- the detailed implementation now lives in the `05.1A` through `05.1D` task-doc family, with later multi-window editor growth planned as `[5.1E]`
+- the detailed implementation now lives across open `05.1A`, `05.1C`, and `05.1D`, shipped `05.1B`, and the already-landed shared-selection seam `[5.1F]`, with later multi-window editor growth planned as `[5.1E]`
+
+## list of all workspaces
+
+- workspace-global surfaces
+  - `Model Viewport`
+  - `Browser`
+  - `Console`
+  - `Spaghetti Editor`
+  - `Radio`
+  - `Layer Manager`
+  - `Export`
+  - `Debug Inspector`
+- per-viewport surfaces and chrome
+  - `View`
+  - `Gizmo`
+  - viewport toolbar host for spawned command tools such as `Transform` and `Sketch`
+- later workspace-family follow-ons
+  - additional `Model Viewport` instances
+  - `Reference Workspace / Comparison`
+  - collaboration-facing surfaces such as `Server Browser` or room/session views
+  - browser-window `Pop-Out` hosting of supported surfaces
+
+
+## Phases
+
+### [ ] Workspace 1 - Layout Foundation And Left-Dock Entry
+#### Header
+- define one honest workspace-layout owner near `AppShell`
+- lock the first pane-tree model and protected main viewer rule
+- reuse the current left-dock `[]` split affordance as the first tiled-entry seam
+
+#### [ ] Question 1 - Where should the first real shared workspace-layout owner live?
+##### Question 1 Suggestion
+- create a dedicated workspace seam under `src/app/workspace/`
+- keep it shell-owned near `AppShell`
+- do not bury the layout tree in `useSpaghettiStore`
+
+Current source doc:
+- `docs/Phase-Plans/Tasks/Future/05.1A - VR-SP - Workspace Layout Foundation And Left-Dock Entry.md`
+
+### [x] Workspace 2 - Split Pane Authoring And Divider Controls
+#### Header
+- lock how the first shared split is authored from title bars and divider lines
+- keep divider lines as first-class layout controls instead of pane-only one-offs
+- preserve one honest answer for resize, close, merge, and row/column priority behavior
+
+#### [x] Question 1 - How should the first shared split-authoring seam work?
+##### Question 1 Suggestion
+- let standalone windowed surfaces enter tiled mode from their title bars
+- let deeper layout growth come from divider-line actions
+- keep split authoring shared instead of surface-specific
+
+Current source doc:
+- `docs/Phase-Plans/Tasks/Old/05.1B - VR-SP - Split Pane Authoring And Divider Controls.md`
+
+### [ ] Workspace 3 - Hybrid Tool Surface Hosting And Floating-Tiled Transitions
+#### Header
+- lock the first honest hosted-surface set for the hybrid workspace
+- decide how surfaces move between `Windowed` and `Tiled`
+- keep Browser preservation, multi-instance honesty, and pane-header ownership aligned
+
+#### [ ] Question 1 - Which surfaces should participate in the first honest shared workspace pass?
+##### Question 1 Suggestion
+- start with `Model Viewer`, `Browser`, `Console`, `Gizmo/View`, and `Spaghetti Editor`
+- keep smaller secondary panels out until the hosting model feels stable
+- preserve the current floating-in-viewport Browser behavior when Browser is dragged back into the model view
+
+Current source doc:
+- `docs/Phase-Plans/Tasks/Future/05.1C - VR-SP - Hybrid Tool Surface Hosting And Floating-Tiled Transitions.md`
+
+### [ ] Workspace 4 - Persistence, Saved Modes, And Migration
+#### Header
+- remember one honest hybrid workspace state
+- give saved layouts a later home without forcing them into the first cut
+- define the migration path off the old special-case Spaghetti split/meatball shell
+
+#### [ ] Question 1 - What should the first persisted workspace state actually remember?
+##### Question 1 Suggestion
+- remember the tiled split tree
+- remember floating/windowed placements
+- remember which supported surfaces are tiled versus windowed
+- leave named saved modes as a later follow-on
+
+Current source doc:
+- `docs/Phase-Plans/Tasks/Future/05.1D - VR-SP - Workspace Persistence, Saved Modes, And Migration.md`
+
+### [ ] Workspace 5 - Multi-Window Surfaces And Detached Browser Pop-Out
+#### Header
+- widen the family from one visible editor/surface truth into real multi-window hosting where needed
+- keep browser `Pop-Out` attached to the same shared surface-instance model
+- preserve single-owner behavior when a surface moves into a browser window
+
+#### [ ] Question 1 - How should browser `Pop-Out` relate to the shared workspace host model?
+##### Question 1 Suggestion
+- treat `Pop-Out` as another placement mode of the same hosted surface instance
+- collapse the in-app owner when the browser window becomes active
+- do not invent a separate detached-window shell system
+
+Current source doc:
+- roadmap slot `[5.1E]`
+
+### [x] Workspace 6 - Workspace Selection, Surface Activation, And Canonical Intents
+#### Header
+- keep shared surface activation and intent routing aligned across the whole workspace family
+- make sure `Windowed`, `Tiled`, and later `Pop-Out` surfaces all read the same foreground and intent seams
+- keep this as shared workspace truth rather than panel-local command glue
+
+#### [x] Question 1 - What must stay shared across windowed, tiled, and later popped-out workspace surfaces?
+##### Question 1 Suggestion
+- one shared `activeSurface` model
+- one shared cross-surface intent layer
+- one canonical activation/selection seam that pane hosting and browser pop-out both reuse
+
+Current source doc:
+- `docs/Human-Plans/Architecture/Console/Shipped/Console_Phase 5.1F - Workspace Selection, Surface Activation, And Canonical Intents.md`

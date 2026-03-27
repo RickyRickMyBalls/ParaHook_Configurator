@@ -3,6 +3,12 @@
 ## Doc Header
 
 ### Doc History
+41. 2026-03-27 15:05: Tightened the new `Transform 13` viewport snap-visual direction in this family index against a concrete sketch, clarifying that enabled move snap should render a local field of tiny white snap dots around the active gizmo context rather than a broad red-debug-style scatter, while keeping rotate on nearby guide lines and leaving scale out of scope
+40. 2026-03-27 15:02: Added the next snap-visualization follow-on to this family index as `Transform 13`, locking the first viewport direction so enabled move snap should render nearby snap-point dots/spheres while dragging, enabled rotate snap should render nearby snap-guide lines while rotating, and scale should stay out of scope for that first visual pass
+39. 2026-03-27 14:45: Cleaned up the Transform-family docs after the shipped `Transform 11` Console snap parity work by moving its standalone phase record into `Shipped/`, updating this family index so `Transform 11` now reads as complete, and adding the new standalone implementation-ready `Transform 12` future phase doc for transform-shell polish and canonical adapter cleanup
+38. 2026-03-27 14:20: Added the standalone `Transform 11` future phase doc for Console snap parity cleanup, updated this family index so the next open Transform follow-on now reads as a narrow Console-side adapter cleanup after the shipped `Transform 10` per-axis snap model, and locked the first `Transform 11` decisions around one enable-state action, `Locked / Unlocked` wording, and keeping mode-local `Snap` paths as adapters into the shared owner branch
+37. 2026-03-27 14:04: Marked `Transform 10` shipped in this family index after the ratio-locked per-axis snap work landed, removed the stale `Transform 11` split for viewer execution because that gizmo/runtime widening shipped in the same pass, and added the new standalone shipped record for the unified per-axis snap phase
+36. 2026-03-27 13:20: Cleaned up the Transform-family docs after shipping `Transform 9` by marking the shared toolbar `X` exit sync complete in this index, moving its standalone record into `Shipped/`, and splitting the next snap follow-on into `Transform 10` shared snap `XYZ` lock plus adapter ownership versus later `Transform 11` per-axis snap execution in the viewer/gizmo seam
 35. 2026-03-27 11:49: Locked the first `Transform 8` snap direction in this family index, deciding that transform snap lives under `Transform > Settings > Snap`, that `Move`, `Rotate`, and `Scale` each expose both whole-mode snap and deeper axis-specific snap paths, and that mode-local `Snap` entry points are only adapters into that same shared settings tree
 34. 2026-03-27 11:36: Cleaned up the Transform family after shipping `Transform 7`, marking the shared `Local / World` work complete in this index, moving its standalone phase record into `Shipped/`, narrowing the open follow-ons down to `Transform 8` snap controls plus `Transform 9` toolbar `X` exit sync, and making `Transform 8` the active next task
 33. 2026-03-27 09:44: Tightened the `Transform 7` direction again in this family index so the honest hierarchy now reads as `Transform > Settings > Space > Choose next [Local, World]`, while `L` and `W` are documented as common transform-shell shortcuts that can be called from almost anywhere and resolve into that same shared setting instead of becoming a second owner path
@@ -142,22 +148,22 @@ Current Transform-native shipped records:
   - `docs/Human-Plans/Architecture/Transform/Shipped/Transform_Phase Transform-6 - History Scrub And Traversal.md`
 - `Transform 7`
   - `docs/Human-Plans/Architecture/Transform/Shipped/Transform_Phase Transform-7 - Console Local World Space.md`
-
-Current open Transform follow-ons:
-- `Transform 8`
-  - shared transform snap controls for move / rotate / scale
 - `Transform 9`
-  - toolbar `X` exit sync with the Console transform shell
+  - `docs/Human-Plans/Architecture/Transform/Shipped/Transform_Phase Transform-9 - Toolbar X Exit Sync To Console.md`
+- `Transform 10`
+  - `docs/Human-Plans/Architecture/Transform/Shipped/Transform_Phase Transform-10 - Ratio Locked Per Axis Snap.md`
+- `Transform 11`
+  - `docs/Human-Plans/Architecture/Transform/Shipped/Transform_Phase Transform-11 - Console Snap Parity Cleanup.md`
 
 This family now owns the shipped Transform-shell cleanup trail directly, while Browser `7.5` still holds the broader future ladder until the remaining open transform-native follow-ons are written down outside Browser.
 
 ### Next Steps
 
-Expected next cleanup after shipping `Transform 7`:
+Expected next cleanup after shipping `Transform 11`:
 
-1. make `Transform 8` the active next task and tighten the shared snap direction for move / rotate / scale
-2. keep deciding how much of the remaining Browser-umbrella direction should be re-expressed as Transform-native future records instead of staying Browser-numbered
-3. continue moving landed Transform-native standalone records from `Future/` into `Shipped/` so the family stays honest about what is already implemented
+1. tighten transform-shell adapter honesty so root shortcuts, breadcrumbs, and transcript summaries always resolve through the canonical owner paths
+2. keep polishing toolbar density and wording parity without widening transform state or viewer behavior again
+3. keep deciding how much of the remaining Browser-umbrella direction should be re-expressed as Transform-native future records instead of staying Browser-numbered
 
 
 ## Phases
@@ -759,11 +765,11 @@ Decision:
 Standalone phase doc:
 - `docs/Human-Plans/Architecture/Transform/Future/Transform_Phase Transform-8 - Shared Transform Snap Controls.md`
 
-### [ ] Transform 9 - Toolbar X Exit Sync To Console
+### [x] Transform 9 - Toolbar X Exit Sync To Console
 
-- make the transform-toolbar `X` button follow the same shell-exit behavior as Console
-- route toolbar close through the same shared transform exit owner instead of letting it drift into a second close policy
-- keep exit semantics honest across toolbar, Console, and active transform-shell state
+- shipped the shared transform-shell exit seam for toolbar `X` and Console `CommitTransform`
+- removed the old toolbar-local close policy so toolbar and Console now exit through the same owner path
+- kept the post-exit Console scope and shell cleanup aligned across both surfaces
 
 #### [x] q1 - What should the transform-toolbar `X` mean?
 
@@ -804,4 +810,274 @@ Decision:
 - preserve already-committed history and other shipped transform semantics
 
 Standalone phase doc:
-- `docs/Human-Plans/Architecture/Transform/Future/Transform_Phase Transform-9 - Toolbar X Exit Sync To Console.md`
+- `docs/Human-Plans/Architecture/Transform/Shipped/Transform_Phase Transform-9 - Toolbar X Exit Sync To Console.md`
+
+### [x] Transform 10 - Ratio Locked Per Axis Snap
+
+- shipped the full shared per-axis snap pass for reference transform
+- replaced the first scalar-only snap model with shared `enabled + xyzLocked + x/y/z` snap ownership for move, rotate, and scale
+- kept toolbar and Console as equal adapters over the same shared per-reference snap truth
+- widened the viewer / gizmo seam in the same phase so unlocked per-axis snap values are real runtime behavior, not stored-only metadata
+
+#### [x] q1 - Should move, rotate, and scale snap gain a shared `XYZ` lock state?
+
+##### Suggestion
+- yes
+- each snap mode should carry a `locked/unlocked` state in shared transform snap ownership
+- default that lock to `on`
+- keep the toolbar `Lock` button and Console `snapXYZ:Lock` / `snapXYZ:Unlock` path as adapters into that same shared state
+
+Decision:
+- yes
+- each of `Move`, `Rotate`, and `Scale` snap should gain a shared `XYZ` lock state
+- default the snap `XYZ` lock to `on`
+- toolbar and Console should only surface the opposite lock action that can currently be chosen
+- snap state should now be stored per mode as `enabled + xyzLocked + x/y/z`
+
+#### [x] q2 - How should the toolbar snap section render while locked versus unlocked?
+
+##### Suggestion
+- while locked, keep the current single snap slider because one value owns all three axes
+- when unlocked, replace that single row with a `Vec3` snap editor for the mode
+- allow the `Vec3` editor to expand into three normal float parasliders, one row per axis, for finer editing
+
+Decision:
+- while locked, each snap mode should continue to show one shared snap slider
+- when unlocked, that snap row should become a `Vec3` snap editor for the mode
+- the unlocked `Vec3` editor should be expandable into three normal float parasliders, one per axis row
+- `Q` should stay a local toolbar-only quick-preset toggle and remain default `off`
+
+#### [x] q3 - How should Console expose locked versus unlocked snap ownership?
+
+##### Suggestion
+- keep the honest owner path under `Transform > Settings > Snap > Move/Rotate/Scale`
+- at the mode root, add `snapXYZ:Lock` / `snapXYZ:Unlock` and surface only the opposite action from the current state
+- once the mode exists, expose `Move X`, `Move Y`, `Move Z` style snap children from that same mode root
+
+Decision:
+- keep the honest owner path under `Transform > Settings > Snap > Choose next [Move, Rotate, Scale]`
+- at `Transform > Settings > Snap > Move`, `Rotate`, and `Scale`, add `snapXYZ:Lock` or `snapXYZ:Unlock` and only show the opposite state-changing action
+- mode roots should also expose axis-owned snap children:
+  - `Move X`
+  - `Move Y`
+  - `Move Z`
+  - and the same pattern for `Rotate` and `Scale`
+- mode-local adapters like `Transform > Move > Snap` should still route into that same shared owner path
+
+#### [x] q4 - How should whole-mode numeric submit relate to axis-owned snap children?
+
+##### Suggestion
+- preserve whole-mode numeric submit at the mode root
+- mode-level numeric entry should still mean "apply this value to all three axes"
+- axis children should own the per-axis values once the mode is unlocked
+
+Decision:
+- preserve whole-mode numeric submit at the mode root
+- `Transform > Settings > Snap > Move > 10` should still apply that value to all move axes
+- deeper axis children should own per-axis snap values once the mode is unlocked
+- whole-mode numeric submit should keep blasting all three axes equally even while the mode is unlocked
+
+#### [x] q5 - What should re-locking mean once the user has divergent axis values?
+
+##### Suggestion
+- do not collapse or average the unlocked vector back to one scalar
+- preserve the current vector exactly when the user re-locks
+- let locked mode become linked proportional editing over the preserved `X/Y/Z` ratios
+
+Decision:
+- re-locking preserves the current `X/Y/Z` vector exactly
+- locked mode means linked proportional editing, not forced axis equality
+- editing one locked axis rescales the other two by ratio
+- axes already at `0` stay pinned at `0` during linked scaling
+
+#### Shipped cleanup
+
+- snap now persists per reference as shared per-axis state for move, rotate, and scale
+- legacy scalar snap state is normalized into locked `x=y=z=value`
+- while locked, the root toolbar slider and mode-root Console numeric submit use `X` as the driver value
+- while unlocked, toolbar can expand `Vec3` into three per-axis float rows
+- `Transform > Settings > Snap > Move > X > 10` style paths now edit real axis-owned values
+- viewer and gizmo execution now consume the same per-axis snap state the toolbar and Console author
+- rotate-snap timeline compatibility stays tied to the `X` driver value and falls back to `basic` when rotate snap is unlocked
+
+Standalone phase doc:
+- `docs/Human-Plans/Architecture/Transform/Shipped/Transform_Phase Transform-10 - Ratio Locked Per Axis Snap.md`
+
+### [x] Transform 11 - Console Snap Parity Cleanup
+
+- tightened Console snap wording and action shape so the shipped `Transform 10` snap model now reads honestly in Console too
+- kept the phase narrow to Console adapter cleanup instead of widening snap state or viewer behavior again
+- aligned prompt text, status text, and radio identities with the newer toolbar-facing `On / Off` toggle plus `Locked / Unlocked` wording
+
+#### [x] q1 - Should Console snap mode roots keep showing both `On` and `Off`?
+
+##### Suggestion
+- no
+- show only the currently available enabled-state action at each mode root
+- keep Console choices action-oriented rather than showing two permanent toggles
+
+Decision:
+- no
+- if a snap mode is disabled, its mode root should show only `snap:On`
+- if a snap mode is enabled, its mode root should show only `snap:Off`
+- Console should stop showing both enable-state choices at once
+
+#### [x] q2 - How should Console describe snap lock state after the shipped toolbar cleanup?
+
+##### Suggestion
+- keep the mode-root lock choice action-oriented
+- continue to show only the currently available lock-state action
+- use `Locked / Unlocked` wording in Console status text and confirmations so Console matches the shipped toolbar state language
+
+Decision:
+- keep only the currently available lock-state action visible:
+  - `snapXYZ:Unlock` while locked
+  - `snapXYZ:Lock` while unlocked
+- Console status and confirmation text should use `Locked / Unlocked` wording
+- this phase does not need a second snap-lock owner path or state rewrite
+
+#### [x] q3 - What should mode-root and axis-root snap behavior stay tied to?
+
+##### Suggestion
+- keep the shipped `Transform 10` model exactly
+- mode-root numeric submit still writes all three axes equally
+- unlocked mode roots still expose `X / Y / Z` snap children
+- do not widen behavior again in this cleanup pass
+
+Decision:
+- keep the shipped `Transform 10` snap behavior exactly
+- mode-root numeric submit still writes all three axes equally
+- unlocked mode roots still expose `Move X / Y / Z`, `Rotate X / Y / Z`, and `Scale X / Y / Z`
+- axis-root numeric submit keeps the shipped locked-versus-unlocked behavior
+
+#### [x] q4 - Should mode-local `Snap` entries become separate owners in this cleanup?
+
+##### Suggestion
+- no
+- keep `Transform > Move > Snap`, `Rotate > Snap`, and `Scale > Snap` as adapters only
+- the honest owner path should stay under `Transform > Settings > Snap`
+
+Decision:
+- no
+- keep mode-local `Snap` entries as adapters only
+- the honest owner path stays:
+  - `Transform > Settings > Snap > Choose next [Move, Rotate, Scale]`
+
+#### Shipped cleanup
+
+- snap mode roots now show one enabled-state action at a time:
+  - `snap:On` while disabled
+  - `snap:Off` while enabled
+- Console status text now uses the same `Locked / Unlocked` language the toolbar uses
+- mode-local `Transform > Move/Rotate/Scale > Snap` entries remain adapters into `Transform > Settings > Snap`
+- the shipped `Transform 10` snap model stayed unchanged; this phase only cleaned the Console adapter layer
+
+Standalone phase doc:
+- `docs/Human-Plans/Architecture/Transform/Shipped/Transform_Phase Transform-11 - Console Snap Parity Cleanup.md`
+
+### [ ] Transform 12 - Transform Shell Polish And Canonical Adapter Cleanup
+
+- clean up root transform shortcuts so they read like explicit adapters instead of historically accumulated affordances
+- tighten canonical breadcrumb and transcript wording so adapter jumps always narrate the honest owner path
+- do one small transform-toolbar density pass without widening transform ownership or runtime behavior again
+
+#### [x] q1 - Should root transform shortcuts stay as direct adapters into the shared settings owner paths?
+
+##### Suggestion
+- yes
+- keep `SE` and `SN` as direct root adapters
+- add `SP` as a direct root adapter into `Transform > Settings > Space`
+- do not let any of those shortcuts become second ownership seams
+
+Decision:
+- yes
+- keep `SE` and `SN` as direct root adapters
+- add `SP` as a direct root adapter into `Transform > Settings > Space`
+- all of those shortcuts remain adapters into the same shared settings owner paths
+
+#### [x] q2 - How should adapter jumps print in Console summaries and transcript output?
+
+##### Suggestion
+- always print the canonical owner path
+- shortcuts should feel fast, but the breadcrumb should stay honest
+- `Transform > SN` should narrate `Transform > Settings > Snap`
+- `Transform > SP` should narrate `Transform > Settings > Space`
+
+Decision:
+- always print the canonical owner path in Console summaries and transcript output
+- `Transform > SN` should narrate through `Transform > Settings > Snap`
+- `Transform > SP` should narrate through `Transform > Settings > Space`
+- existing `L / W` space shortcuts should keep narrating through `Settings > Space`
+
+#### [x] q3 - What should stay aligned between toolbar and Console in this cleanup?
+
+##### Suggestion
+- keep wording aligned, not identical command labels
+- toolbar should keep `On / Off` and `Locked / Unlocked`
+- Console should keep `snap:On / snap:Off` and `snapXYZ:Lock / snapXYZ:Unlock`
+- resulting state text should still read `On / Off` and `Locked / Unlocked`
+
+Decision:
+- keep wording aligned, not identical raw command labels
+- toolbar keeps `On / Off` and `Locked / Unlocked`
+- Console keeps `snap:On / snap:Off` and `snapXYZ:Lock / snapXYZ:Unlock`
+- state text and confirmations should keep reading `On / Off` and `Locked / Unlocked`
+
+#### [x] q4 - How far should the toolbar cleanup go in this phase?
+
+##### Suggestion
+- keep it cosmetic
+- tighten shared button chrome, spacing, and section density where the current toolbar still feels too bubbly
+- do not add new transform-only behavior in this phase
+
+Decision:
+- keep the toolbar cleanup cosmetic
+- tighten shared button chrome, spacing, and section density where the transform toolbar still feels too bubbly
+- do not add new transform-only behavior or widen transform state ownership in this phase
+
+Standalone phase doc:
+- `docs/Human-Plans/Architecture/Transform/Future/Transform_Phase Transform-12 - Transform Shell Polish And Canonical Adapter Cleanup.md`
+
+### [ ] Transform 13 - Viewport Snap Availability Visuals
+
+- add first-pass viewport visuals that show nearby snap options while the user is actively dragging with snap enabled
+- keep the first pass move-and-rotate only so the overlay direction stays honest to the useful gizmo cases
+- leave scale out of scope for the first visual pass
+
+#### [x] q1 - What should enabled move snap render in the viewport while the user is dragging?
+
+##### Suggestion
+- render nearby snap points as tiny dots or spheres around the active move path
+- let the spacing of those points follow the committed move snap value
+- show the points that matter to the current handle scope, such as `XY` plane movement versus single-axis movement
+- keep those points white in the real product surface
+- keep the field local to the active gizmo neighborhood instead of filling the whole viewport
+
+Decision:
+- when move snap is enabled and the user is actively dragging a move handle, the viewport should render nearby snap options as tiny dots or spheres
+- the spacing of those move snap dots should follow the current committed move snap value
+- the visual should represent the nearby snap positions the user can drag the gizmo toward from the current handle context
+- those move snap dots should render white in the real product surface
+- the first pass should render only a local neighborhood of nearby snap points around the active gizmo context, not a full-scene scatter of points
+
+#### [x] q2 - What should enabled rotate snap render in the viewport while the user is rotating?
+
+##### Suggestion
+- render nearby snap guides as lines around the active rotate axis
+- keep the first pass axis-owned so `X`, `Y`, and `Z` rotate handles show the nearby snapped angular divisions that matter to that axis
+
+Decision:
+- when rotate snap is enabled and the user is actively rotating on `X`, `Y`, or `Z`, the viewport should render nearby snap-guide lines for that active rotate axis
+- the rotate visual should show the nearby snapped angular divisions the current handle can land on
+
+#### [x] q3 - Should scale snap get a viewport visual in this first pass?
+
+##### Suggestion
+- no
+- keep scale out of the first viewport snap-visual pass
+- land move and rotate first before deciding whether scale has an honest enough visual language
+
+Decision:
+- no
+- scale gets no viewport snap visual in the first pass
+- first-pass viewport snap visuals should cover move and rotate only

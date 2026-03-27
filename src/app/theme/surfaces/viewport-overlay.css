@@ -1650,7 +1650,7 @@
   width: 36px;
   height: 36px;
   padding: 0;
-  border-radius: 999px;
+  border-radius: 12px;
   border: 1px solid
     color-mix(
       in srgb,
@@ -1890,7 +1890,7 @@
   display: grid;
   gap: 8px;
   border: 1px solid transparent;
-  border-radius: 10px;
+  border-radius: 8px;
   padding: 6px 8px 8px;
   background: transparent;
   transition:
@@ -2231,9 +2231,9 @@
 
 .ReferenceTransformToolbarButton {
   appearance: none;
-  min-height: 30px;
-  padding: 0 10px;
-  border-radius: 999px;
+  min-height: 28px;
+  padding: 0 9px;
+  border-radius: 8px;
   border: 1px solid
     color-mix(
       in srgb,
@@ -2283,9 +2283,15 @@
 }
 
 .ReferenceTransformToolbarButton--compact {
-  min-height: 26px;
-  padding: 0 8px;
-  font-size: 11px;
+  min-height: 17px;
+  padding: 0 5px;
+  border-radius: 6px;
+  font-size: 10px;
+}
+
+.ReferenceTransformToolbarButton--quick {
+  min-width: 17px;
+  padding: 0 4px;
 }
 
 .ReferenceTransformToolbarButton--pushRight {
@@ -2302,8 +2308,45 @@
 .ReferenceTransformToolbarSnapButtons {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   flex-wrap: wrap;
+  min-width: 0;
+}
+
+.ReferenceTransformToolbarSnapVec3Group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ReferenceTransformToolbarSnapVec3Toggle {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  width: 100%;
+}
+
+.ReferenceTransformToolbarSnapVec3Chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  min-width: 18px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.ReferenceTransformToolbarSnapVec3Rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ReferenceTransformToolbarChannelBox--snap-vec3 {
+  flex: 1 1 auto;
   min-width: 0;
 }
 

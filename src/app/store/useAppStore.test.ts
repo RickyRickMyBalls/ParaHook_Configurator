@@ -2702,5 +2702,43 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
       useAppStore.getState().referenceWorkspace.transformOverrideById['shoe:shoe-1'],
     ).toBeUndefined()
   })
+
+  it('preserves unlocked snap vectors and rescales linked axes when re-locked edits change the driver axis', async () => {
+    const { useAppStore } = await import('./useAppStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+
+    useAppStore.getState().setReferenceTransformSnapValue('shoe:shoe-1', 'translate', 1)
+    useAppStore.getState().setReferenceTransformSnapLocked('shoe:shoe-1', 'translate', false)
+    useAppStore.getState().setReferenceTransformSnapAxisValue('shoe:shoe-1', 'translate', 'y', 5)
+    useAppStore.getState().setReferenceTransformSnapAxisValue('shoe:shoe-1', 'translate', 'z', 10)
+    useAppStore.getState().setReferenceTransformSnapLocked('shoe:shoe-1', 'translate', true)
+    useAppStore.getState().setReferenceTransformSnapAxisValue('shoe:shoe-1', 'translate', 'x', 2)
+
+    expect(
+      useAppStore.getState().referenceWorkspace.transformSnapByReferenceId['shoe:shoe-1']?.translate,
+    ).toMatchObject({
+      enabled: true,
+      xyzLocked: true,
+      values: { x: 2, y: 10, z: 20 },
+    })
+  })
+
+  it('forces rotate-snap timeline mode back to basic when rotate snap is unlocked', async () => {
+    const { useAppStore } = await import('./useAppStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useAppStore.getState().setReferenceTimelineMode('shoe:shoe-1', 'rotate-snap', 'timeline')
+
+    expect(
+      useAppStore.getState().referenceWorkspace.timelineModeByReferenceId['shoe:shoe-1']?.['rotate-snap'],
+    ).toBe('timeline')
+
+    useAppStore.getState().setReferenceTransformSnapLocked('shoe:shoe-1', 'rotate', false)
+
+    expect(
+      useAppStore.getState().referenceWorkspace.timelineModeByReferenceId['shoe:shoe-1']?.['rotate-snap'],
+    ).toBe('basic')
+  })
 })
 

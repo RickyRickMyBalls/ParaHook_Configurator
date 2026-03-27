@@ -146,9 +146,9 @@ export interface ViewerApi {
   activateScaleHandle: (axis: 'X' | 'Y' | 'Z') => void
   setGizmoSpace: (space: GizmoSpace) => void
   setGizmoSnap: (opts: {
-    translateMm?: number
-    rotateDeg?: number
-    scale?: number
+    translate?: { x: number; y: number; z: number }
+    rotate?: { x: number; y: number; z: number }
+    scale?: { x: number; y: number; z: number }
   }) => void
   setSelectedPart: (partId: string | null) => void
   setHighlightedPartKeys: (partIds: string[]) => void

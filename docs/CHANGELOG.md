@@ -65,6 +65,107 @@ Do not use it for:
 
 ## Doc Body
 
+### [680] - 2026-03-27 14:50 - `TRN - Transform-12 - Root Space Adapter And Shell Polish`
+<!-- ENTRY 680 -->
+HUMAN SUMMARY: `This polished the reference transform shell by adding \`Transform > SP\` as a direct adapter into the canonical \`Settings > Space\` branch, aligning root transform radio identities so \`Snap\` and \`Space\` resolve through the honest settings path, and tightening the shared transform-toolbar button chrome so the shell reads a little less bulky without changing behavior.` 
+#### Scope / Constraints Honored
+- Kept this pass to transform-shell adapter cleanup and small shared toolbar chrome polish.
+- Preserved the shipped transform state model, snap semantics, and viewer behavior.
+- Left transform history, snap storage, and runtime execution unchanged.
+
+#### Summary of Implementation
+- Added `SP` as a root alias for `Space` in staged navigation and wired `Transform > SP` to advance directly into `referenceTransformSpaceRoot` with the canonical `Transform > Settings > Space` breadcrumb.
+- Updated transform root radio-command identity resolution so root `Snap`, `Space`, and `World` choices map to the same canonical settings-path identity family instead of drifting from the actual owner path.
+- Tightened the shared transform-toolbar button sizing and snap-button spacing through the common toolbar classes so the transform toolbar chrome reads denser without one-off button overrides.
+
+#### Files Changed
+- `src/app/console/stagedNavigation.ts`
+- `src/app/console/stagedNavigation.test.ts`
+- `src/app/console/ConsoleDock.test.tsx`
+- `src/app/console/radioCommandIdentity.ts`
+- `src/app/console/radioCommandIdentity.test.ts`
+- `src/app/theme/surfaces/viewport-overlay.css`
+
+#### Behavior Changes
+- `Transform > SP` now opens `Transform > Settings > Space > Choose next [Local, World, Back]`.
+- Root transform adapter identities for `Snap` and `Space` now resolve through the canonical settings owner path.
+- Shared transform-toolbar buttons render slightly tighter.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/console/stagedNavigation.test.ts src/app/console/ConsoleDock.test.tsx src/app/console/radioCommandIdentity.test.ts src/app/components/ReferenceTransformToolbar.test.tsx`
+- `cmd /c npx tsc --noEmit`
+
+### [679] - 2026-03-27 14:26 - `TRN - Transform-11 - Console Snap Parity Cleanup`
+<!-- ENTRY 679 -->
+HUMAN SUMMARY: `This cleaned up the reference transform Console snap adapter so snap mode roots now show only one visible enable-state action at a time, the staged prompt reads \`snap:On\` / \`snap:Off\` instead of listing both choices forever, and snap lock confirmations now use the same \`Locked / Unlocked\` wording as the shipped toolbar.` 
+#### Scope / Constraints Honored
+- Kept this pass narrow to Console staged-navigation and Console status wording.
+- Preserved the shipped shared snap state model and viewer/runtime snap behavior from `Transform 10`.
+- Left mode-local `Snap` adapter ownership unchanged so `Transform > Move / Rotate / Scale > Snap` still routes into the same shared settings path.
+
+#### Summary of Implementation
+- Extended the staged-navigation context so transform snap mode roots can read both `enabled` and `xyzLocked` state from the shared reference snap record.
+- Updated transform snap mode-root choice building so Console now shows only `snap:On` when disabled or `snap:Off` when enabled, while still showing only the opposite `snapXYZ:Lock` / `snapXYZ:Unlock` action and the existing `X / Y / Z` children.
+- Updated the shared transform snap execute path in `ConsoleDock` so lock-state confirmations now append `Locked / Unlocked` wording instead of the older `Lock / Unlock` text, and added focused staged-navigation and ConsoleDock regressions for the new prompt/confirmation behavior.
+
+#### Files Changed
+- `src/app/console/stagedNavigation.ts`
+- `src/app/console/stagedNavigation.test.ts`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+
+#### Behavior Changes
+- `Transform > Settings > Snap > Move / Rotate / Scale` now shows one visible enable-state action at a time in Console.
+- Console transform snap confirmations now read `Move snap XYZ: Locked` and `Move snap XYZ: Unlocked`.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/console/stagedNavigation.test.ts src/app/console/ConsoleDock.test.tsx`
+- `cmd /c npx tsc --noEmit`
+
+### [678] - 2026-03-27 14:04 - `TRN - Transform-10 - Ratio Locked Per Axis Snap`
+<!-- ENTRY 678 -->
+HUMAN SUMMARY: `This replaced the first scalar-only reference transform snap model with shared per-axis move / rotate / scale snap state, so snap now carries \`enabled + xyzLocked + x/y/z\`, the toolbar and Console can unlock into real axis-owned values, locked edits preserve ratios instead of collapsing back to one scalar, and the viewer now consumes those per-axis snap values directly.` 
+#### Scope / Constraints Honored
+- Kept this pass reference-transform-first.
+- Preserved whole-mode snap entry so mode-root numeric submit still writes all three axes equally.
+- Kept rotate-snap timeline compatibility narrow by tying it to the `X` driver value and forcing unlocked rotate snap back to `basic`.
+
+#### Summary of Implementation
+- Reworked shared snap ownership in `useAppStore` from scalar per-mode values into per-axis `enabled + xyzLocked + values` state, including legacy scalar normalization plus linked-ratio axis editing when locked.
+- Expanded staged navigation and `ConsoleDock` so `Transform > Settings > Snap > Move / Rotate / Scale` mode roots now expose `snapXYZ:Lock` / `snapXYZ:Unlock`, `Move X / Y / Z` style children, whole-mode numeric submit, and per-axis numeric submit through the same shared snap state.
+- Reworked `ReferenceTransformToolbar` snap rows so each mode now shows `On / Off / Lock / Q`, keeps one root slider while locked, and swaps to a collapsed expandable `Vec3` editor with per-axis float rows while unlocked.
+- Widened the viewer snap seam through `ViewerHost`, `Viewer`, `viewerBridge`, and `TransformGizmo` so reference transform dragging now consumes per-axis snap values for translate / rotate / scale instead of only one scalar per mode.
+- Added focused store regressions for unlock-preserve / relock-linked-scaling plus rotate-snap timeline fallback, and updated the staged-navigation, toolbar, and viewer-host snap coverage to the new per-axis shape.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/store/useAppStore.test.ts`
+- `src/app/console/stagedNavigation.ts`
+- `src/app/console/stagedNavigation.test.ts`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/radioCommandIdentity.ts`
+- `src/app/components/ReferenceTransformToolbar.tsx`
+- `src/app/components/ReferenceTransformToolbar.test.tsx`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `src/viewer/Viewer.ts`
+- `src/viewer/gizmo/TransformGizmo.ts`
+- `src/app/viewerBridge.ts`
+- `src/app/theme/surfaces/viewport-overlay.css`
+- `docs/Human-Plans/Architecture/Transform/transform-index.md`
+- `docs/Human-Plans/Architecture/Transform/Shipped/Transform_Phase Transform-10 - Ratio Locked Per Axis Snap.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Reference transform snap now persists as per-axis state for move, rotate, and scale.
+- Unlocking snap preserves the current `X/Y/Z` vector instead of collapsing back to one scalar later.
+- Re-locking preserves that vector and linked edits now rescale the other two axes proportionally, with zero axes pinned at `0`.
+- The toolbar and Console can now both author real per-axis snap values, and the viewer gizmo uses those values directly.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/store/useAppStore.test.ts src/app/console/stagedNavigation.test.ts src/app/console/ConsoleDock.test.tsx src/app/components/ReferenceTransformToolbar.test.tsx src/app/components/ViewerHost.test.tsx`
+- `cmd /c npx tsc --noEmit`
+
 ### [677] - 2026-03-27 12:48 - `TRN - Transform-9 - Toolbar X Exit Sync To Console`
 <!-- ENTRY 677 -->
 HUMAN SUMMARY: `This made the reference transform toolbar \`X\` stop behaving like its own local close policy and instead route through the same shared shell-exit seam Console uses for \`CommitTransform\`, so closing from the toolbar now clears the shared transform shell, returns Console to the same post-transform reference scope, and keeps the exit cleanup synchronized in one place.` 

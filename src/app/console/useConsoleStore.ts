@@ -128,7 +128,11 @@ type ConsoleState = {
   clearEntries: () => void
   setInputText: (
     value: string,
-    options?: { fromAssist?: boolean; startManualOverride?: boolean },
+    options?: {
+      fromAssist?: boolean
+      startManualOverride?: boolean
+      preserveGuidedReplace?: boolean
+    },
   ) => void
   seedInputText: (value: string) => void
   pushCommandHistory: (value: string) => void
@@ -503,8 +507,14 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
   setInputText: (inputText, options) => {
     set((state) => {
       const activeDescriptor = getActiveAssistDescriptor(state)
+      const shouldPreserveGuidedReplace =
+        activeDescriptor !== null &&
+        options?.preserveGuidedReplace === true &&
+        options?.fromAssist !== true &&
+        options?.startManualOverride !== true
       const shouldForceManualOverride =
         activeDescriptor !== null &&
+        !shouldPreserveGuidedReplace &&
         options?.fromAssist !== true &&
         (options?.startManualOverride === true || state.isStagedChoiceManualOverride)
       const nextTracking =
@@ -513,6 +523,12 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
               stagedChoiceIndex: null,
               isStagedChoiceManualOverride: false,
             }
+          : shouldPreserveGuidedReplace
+            ? {
+                stagedChoiceIndex: resolveStagedChoiceTracking(activeDescriptor, inputText)
+                  .stagedChoiceIndex,
+                isStagedChoiceManualOverride: false,
+              }
           : resolveStagedChoiceTracking(activeDescriptor, inputText, {
               forceManualOverride: shouldForceManualOverride,
             })

@@ -1011,7 +1011,7 @@ describe('ReferenceTransformToolbar', () => {
       snapSection?.querySelectorAll('.ReferenceTransformToolbarSnapModeGroup') ?? [],
     ).find((element) => element.textContent?.includes('Rotate')) as HTMLDivElement | undefined
     const snapToggle = Array.from(rotateSnapGroup?.querySelectorAll('button') ?? []).find(
-      (button) => button.textContent?.trim() === 'On',
+      (button) => button.textContent?.trim() === 'Off',
     ) as HTMLButtonElement | undefined
 
     expect(snapToggle).toBeDefined()
@@ -1024,7 +1024,22 @@ describe('ReferenceTransformToolbar', () => {
       useAppStore.getState().referenceWorkspace.transformSnapByReferenceId['shoe:shoe-1']?.rotate,
     ).toMatchObject({
       enabled: true,
-      value: 15,
+      xyzLocked: true,
+      values: {
+        x: 15,
+        y: 15,
+        z: 15,
+      },
+    })
+
+    const quickToggle = rotateSnapGroup?.querySelector(
+      'button[aria-label="Show Rotate quick snap buttons"]',
+    ) as HTMLButtonElement | null
+
+    expect(quickToggle).not.toBeNull()
+
+    await act(async () => {
+      quickToggle?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
     })
 
     const snap225Button = Array.from(rotateSnapGroup?.querySelectorAll('button') ?? []).find(
@@ -1041,7 +1056,12 @@ describe('ReferenceTransformToolbar', () => {
       useAppStore.getState().referenceWorkspace.transformSnapByReferenceId['shoe:shoe-1']?.rotate,
     ).toMatchObject({
       enabled: true,
-      value: 22.5,
+      xyzLocked: true,
+      values: {
+        x: 22.5,
+        y: 22.5,
+        z: 22.5,
+      },
     })
 
     const rotateSnapSlider = rotateSnapGroup?.querySelector(
@@ -1080,8 +1100,63 @@ describe('ReferenceTransformToolbar', () => {
       useAppStore.getState().referenceWorkspace.transformSnapByReferenceId['shoe:shoe-1']?.rotate,
     ).toMatchObject({
       enabled: true,
-      value: expect.any(Number),
+      xyzLocked: true,
+      values: {
+        x: expect.any(Number),
+      },
     })
+  })
+
+  it('shows a vec3 snap slider when collapsed and axis rows when expanded', async () => {
+    const { ReferenceTransformToolbar } = await import('./ReferenceTransformToolbar')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ReferenceTransformToolbar />)
+    })
+
+    const snapSection = container.querySelector(
+      '[aria-label="Reference transform snap settings"]',
+    ) as HTMLDivElement | null
+    const moveSnapGroup = Array.from(
+      snapSection?.querySelectorAll('.ReferenceTransformToolbarSnapModeGroup') ?? [],
+    ).find((element) => element.textContent?.includes('Move')) as HTMLDivElement | undefined
+
+    const lockButton = Array.from(moveSnapGroup?.querySelectorAll('button') ?? []).find(
+      (button) => button.textContent?.trim() === 'Locked',
+    ) as HTMLButtonElement | undefined
+
+    expect(lockButton).toBeDefined()
+
+    await act(async () => {
+      lockButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(
+      Array.from(moveSnapGroup?.querySelectorAll('button') ?? []).some(
+        (button) => button.textContent?.trim() === 'Unlocked',
+      ),
+    ).toBe(true)
+
+    const vec3Toggle = moveSnapGroup?.querySelector(
+      '.ReferenceTransformToolbarSnapVec3Chevron',
+    ) as HTMLButtonElement | null
+
+    expect(vec3Toggle).not.toBeNull()
+    expect(moveSnapGroup?.querySelector('.ReferenceTransformToolbarSnapVec3Toggle .ParaVec3Slider')).not.toBeNull()
+    expect(moveSnapGroup?.textContent).not.toContain('Vec3 [')
+
+    await act(async () => {
+      vec3Toggle?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(moveSnapGroup?.querySelector('.ReferenceTransformToolbarSnapVec3Toggle .ParaVec3Slider')).not.toBeNull()
+    expect(
+      moveSnapGroup?.querySelectorAll('.ReferenceTransformToolbarSnapVec3Rows .ReferenceTransformToolbarChannelBox'),
+    ).toHaveLength(3)
   })
 
   it('groups history rows by transform session and expands the newest session by default', async () => {
@@ -1546,16 +1621,28 @@ describe('ReferenceTransformToolbar', () => {
       snapSection?.querySelectorAll('.ReferenceTransformToolbarSnapModeGroup') ?? [],
     ).find((element) => element.textContent?.includes('Rotate')) as HTMLDivElement | undefined
     const snapToggle = Array.from(rotateSnapGroup?.querySelectorAll('button') ?? []).find(
-      (button) => button.textContent?.trim() === 'On',
+      (button) => button.textContent?.trim() === 'Off',
     ) as HTMLButtonElement | undefined
 
     await act(async () => {
       snapToggle?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
     })
 
+    const quickToggle = rotateSnapGroup?.querySelector(
+      'button[aria-label="Show Rotate quick snap buttons"]',
+    ) as HTMLButtonElement | null
+
+    expect(quickToggle).not.toBeNull()
+
+    await act(async () => {
+      quickToggle?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
     const snap5Button = Array.from(rotateSnapGroup?.querySelectorAll('button') ?? []).find(
       (button) => button.textContent?.trim() === '5',
     ) as HTMLButtonElement | undefined
+
+    expect(snap5Button).toBeDefined()
 
     await act(async () => {
       snap5Button?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
@@ -1620,7 +1707,7 @@ describe('ReferenceTransformToolbar', () => {
       snapSection?.querySelectorAll('.ReferenceTransformToolbarSnapModeGroup') ?? [],
     ).find((element) => element.textContent?.includes('Rotate')) as HTMLDivElement | undefined
     const snapToggle = Array.from(rotateSnapGroup?.querySelectorAll('button') ?? []).find(
-      (button) => button.textContent?.trim() === 'On',
+      (button) => button.textContent?.trim() === 'Off',
     ) as HTMLButtonElement | undefined
 
     await act(async () => {
@@ -1737,7 +1824,7 @@ describe('ReferenceTransformToolbar', () => {
       snapSection?.querySelectorAll('.ReferenceTransformToolbarSnapModeGroup') ?? [],
     ).find((element) => element.textContent?.includes('Rotate')) as HTMLDivElement | undefined
     const snapToggle = Array.from(rotateSnapGroup?.querySelectorAll('button') ?? []).find(
-      (button) => button.textContent?.trim() === 'On',
+      (button) => button.textContent?.trim() === 'Off',
     ) as HTMLButtonElement | undefined
 
     await act(async () => {
@@ -1773,6 +1860,99 @@ describe('ReferenceTransformToolbar', () => {
       useAppStore.getState().referenceWorkspace.timelineModeByReferenceId['shoe:shoe-1']?.['rotate-snap'],
     ).toBe('timeline')
     expect(container.textContent).toContain('Left to Right')
+  })
+
+  it('can collapse and expand the snap section without affecting the shared snap state', async () => {
+    const { ReferenceTransformToolbar } = await import('./ReferenceTransformToolbar')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ReferenceTransformToolbar />)
+    })
+
+    const snapSection = container.querySelector(
+      '[aria-label="Reference transform snap settings"]',
+    ) as HTMLDivElement | null
+    const snapToggle = snapSection?.querySelector(
+      'button[aria-label="Collapse Snap section"]',
+    ) as HTMLButtonElement | null
+
+    expect(snapToggle).not.toBeNull()
+    expect(
+      snapSection?.querySelectorAll('.ReferenceTransformToolbarSnapModeGroup').length,
+    ).toBe(3)
+
+    await act(async () => {
+      snapToggle?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(
+      snapSection?.querySelectorAll('.ReferenceTransformToolbarSnapModeGroup').length,
+    ).toBe(0)
+    expect(
+      snapSection?.querySelector('button[aria-label="Expand Snap section"]'),
+    ).not.toBeNull()
+
+    await act(async () => {
+      ;(
+        snapSection?.querySelector(
+          'button[aria-label="Expand Snap section"]',
+        ) as HTMLButtonElement | null
+      )?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(
+      snapSection?.querySelectorAll('.ReferenceTransformToolbarSnapModeGroup').length,
+    ).toBe(3)
+  })
+
+  it('can hide and show quick snap preset buttons per mode with the Q toggle', async () => {
+    const { ReferenceTransformToolbar } = await import('./ReferenceTransformToolbar')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ReferenceTransformToolbar />)
+    })
+
+    const snapSection = container.querySelector(
+      '[aria-label="Reference transform snap settings"]',
+    ) as HTMLDivElement | null
+    const moveSnapGroup = Array.from(
+      snapSection?.querySelectorAll('.ReferenceTransformToolbarSnapModeGroup') ?? [],
+    ).find((element) => element.textContent?.includes('Move')) as HTMLDivElement | undefined
+
+    expect(moveSnapGroup?.textContent).not.toContain('50')
+
+    const quickToggle = moveSnapGroup?.querySelector(
+      'button[aria-label="Show Move quick snap buttons"]',
+    ) as HTMLButtonElement | null
+
+    expect(quickToggle).not.toBeNull()
+
+    await act(async () => {
+      quickToggle?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(moveSnapGroup?.textContent).toContain('50')
+    expect(
+      moveSnapGroup?.querySelector('button[aria-label="Hide Move quick snap buttons"]'),
+    ).not.toBeNull()
+
+    await act(async () => {
+      ;(
+        moveSnapGroup?.querySelector(
+          'button[aria-label="Hide Move quick snap buttons"]',
+        ) as HTMLButtonElement | null
+      )?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(moveSnapGroup?.textContent).not.toContain('50')
   })
 
   it('routes toolbar close through the shared shell exit seam and returns Console to the reference scope', async () => {

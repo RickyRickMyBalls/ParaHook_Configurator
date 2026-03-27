@@ -49,6 +49,25 @@ const EMPTY_PREVIEW_LIST: PreviewRenderVm = {
   viewerParts: [],
 }
 
+const scaleSnapValuesFromDriver = (
+  values: { x: number; y: number; z: number },
+  nextDriverValue: number,
+): { x: number; y: number; z: number } => {
+  if (Math.abs(values.x) < 0.000001) {
+    return {
+      x: nextDriverValue,
+      y: values.y,
+      z: values.z,
+    }
+  }
+  const scaleFactor = nextDriverValue / values.x
+  return {
+    x: nextDriverValue,
+    y: Math.abs(values.y) < 0.000001 ? 0 : Number((values.y * scaleFactor).toFixed(4)),
+    z: Math.abs(values.z) < 0.000001 ? 0 : Number((values.z * scaleFactor).toFixed(4)),
+  }
+}
+
 const isExplicitSelectionTarget = (
   target: WorkspaceSelectedTarget | null,
 ): target is Extract<
@@ -665,17 +684,30 @@ export function ViewerHost() {
         DEFAULT_REFERENCE_TRANSFORM_SNAP_STATE
       const evaluatedTransformSnap = {
         ...baseTransformSnap,
-        translate: { ...baseTransformSnap.translate },
-        scale: { ...baseTransformSnap.scale },
+        translate: {
+          ...baseTransformSnap.translate,
+          values: { ...baseTransformSnap.translate.values },
+        },
+        scale: {
+          ...baseTransformSnap.scale,
+          values: { ...baseTransformSnap.scale.values },
+        },
         rotate: {
           ...baseTransformSnap.rotate,
-        value: evaluateReferenceTimelineChannelValue(
-          getChannelMode(item.referenceId, 'rotate-snap'),
-          getChannelConfig(item.referenceId, 'rotate-snap'),
-          baseTransformSnap.rotate.value,
-          getChannelRange(item.referenceId, 'rotate-snap'),
-          timelineNowMs,
-        ),
+          values:
+            getChannelMode(item.referenceId, 'rotate-snap') === 'timeline' &&
+            baseTransformSnap.rotate.xyzLocked
+              ? scaleSnapValuesFromDriver(
+                  baseTransformSnap.rotate.values,
+                  evaluateReferenceTimelineChannelValue(
+                    getChannelMode(item.referenceId, 'rotate-snap'),
+                    getChannelConfig(item.referenceId, 'rotate-snap'),
+                    baseTransformSnap.rotate.values.x,
+                    getChannelRange(item.referenceId, 'rotate-snap'),
+                    timelineNowMs,
+                  ),
+                )
+              : { ...baseTransformSnap.rotate.values },
         },
       }
       return {
@@ -1177,23 +1209,23 @@ export function ViewerHost() {
     }
     const activeReferenceId = referenceWorkspace.activeReferenceTransformSession?.referenceId ?? null
     if (activeReferenceId === null) {
-      viewer.setGizmoSnap({ rotateDeg: undefined })
+      viewer.setGizmoSnap({})
       return
     }
     const activeReferenceItem =
       evaluatedReferenceItems.find((item) => item.referenceId === activeReferenceId) ?? null
     viewer.setGizmoSnap({
-      translateMm:
+      translate:
         activeReferenceItem?.evaluatedTransformSnap.translate.enabled === true
-          ? activeReferenceItem.evaluatedTransformSnap.translate.value
+          ? activeReferenceItem.evaluatedTransformSnap.translate.values
           : undefined,
-      rotateDeg:
+      rotate:
         activeReferenceItem?.evaluatedTransformSnap.rotate.enabled === true
-          ? activeReferenceItem.evaluatedTransformSnap.rotate.value
+          ? activeReferenceItem.evaluatedTransformSnap.rotate.values
           : undefined,
       scale:
         activeReferenceItem?.evaluatedTransformSnap.scale.enabled === true
-          ? activeReferenceItem.evaluatedTransformSnap.scale.value
+          ? activeReferenceItem.evaluatedTransformSnap.scale.values
           : undefined,
     })
   }, [

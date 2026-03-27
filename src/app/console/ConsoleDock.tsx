@@ -18,6 +18,7 @@ import {
 } from '../store/audioSamplerStore'
 import {
   DEFAULT_REFERENCE_TRANSFORM_SNAP_STATE,
+  type ReferenceTransformSnapAxis,
   type ReferenceTransformSnapMode,
   buildObjectPartKeys,
   resolveSingleTargetContentSelection,
@@ -887,15 +888,53 @@ const formatReferenceTransformSnapValue = (value: number): string =>
 const getReferenceTransformSnapModeLabel = (mode: ReferenceTransformSnapMode): 'Move' | 'Rotate' | 'Scale' =>
   mode === 'translate' ? 'Move' : mode === 'rotate' ? 'Rotate' : 'Scale'
 
+const getReferenceTransformSnapAxisLabel = (axis: ReferenceTransformSnapAxis): 'X' | 'Y' | 'Z' =>
+  axis === 'x' ? 'X' : axis === 'y' ? 'Y' : 'Z'
+
+const getReferenceTransformSnapDriverValue = (
+  snapState: (typeof DEFAULT_REFERENCE_TRANSFORM_SNAP_STATE)[ReferenceTransformSnapMode],
+): number => snapState.values.x
+
+const getReferenceTransformSnapAxisValue = (
+  snapState: (typeof DEFAULT_REFERENCE_TRANSFORM_SNAP_STATE)[ReferenceTransformSnapMode],
+  axis: ReferenceTransformSnapAxis,
+): number => snapState.values[axis]
+
 const getReferenceTransformSnapScopeMode = (
   scopeId: ConsoleStagedNavigationSession['scopeId'] | null | undefined,
 ): ReferenceTransformSnapMode | null =>
-  scopeId === 'referenceTransformMoveSnapRoot'
+  scopeId === 'referenceTransformMoveSnapRoot' ||
+  scopeId === 'referenceTransformMoveSnapXRoot' ||
+  scopeId === 'referenceTransformMoveSnapYRoot' ||
+  scopeId === 'referenceTransformMoveSnapZRoot'
     ? 'translate'
-    : scopeId === 'referenceTransformRotateSnapRoot'
+    : scopeId === 'referenceTransformRotateSnapRoot' ||
+        scopeId === 'referenceTransformRotateSnapXRoot' ||
+        scopeId === 'referenceTransformRotateSnapYRoot' ||
+        scopeId === 'referenceTransformRotateSnapZRoot'
       ? 'rotate'
-      : scopeId === 'referenceTransformScaleSnapRoot'
+      : scopeId === 'referenceTransformScaleSnapRoot' ||
+          scopeId === 'referenceTransformScaleSnapXRoot' ||
+          scopeId === 'referenceTransformScaleSnapYRoot' ||
+          scopeId === 'referenceTransformScaleSnapZRoot'
         ? 'scale'
+        : null
+
+const getReferenceTransformSnapScopeAxis = (
+  scopeId: ConsoleStagedNavigationSession['scopeId'] | null | undefined,
+): ReferenceTransformSnapAxis | null =>
+  scopeId === 'referenceTransformMoveSnapXRoot' ||
+  scopeId === 'referenceTransformRotateSnapXRoot' ||
+  scopeId === 'referenceTransformScaleSnapXRoot'
+    ? 'x'
+    : scopeId === 'referenceTransformMoveSnapYRoot' ||
+        scopeId === 'referenceTransformRotateSnapYRoot' ||
+        scopeId === 'referenceTransformScaleSnapYRoot'
+      ? 'y'
+      : scopeId === 'referenceTransformMoveSnapZRoot' ||
+          scopeId === 'referenceTransformRotateSnapZRoot' ||
+          scopeId === 'referenceTransformScaleSnapZRoot'
+        ? 'z'
         : null
 
 const isReferenceTransformSnapScope = (
@@ -1061,6 +1100,30 @@ const buildStagedNavigationContextFromStoreState = (
             ).length,
           },
         },
+    Object.fromEntries(
+      Object.entries(appState.referenceWorkspace.transformSnapByReferenceId).map(
+        ([referenceId, snapState]) => [
+          referenceId,
+          {
+            translate: snapState.translate.xyzLocked,
+            rotate: snapState.rotate.xyzLocked,
+            scale: snapState.scale.xyzLocked,
+          },
+        ],
+      ),
+    ),
+    Object.fromEntries(
+      Object.entries(appState.referenceWorkspace.transformSnapByReferenceId).map(
+        ([referenceId, snapState]) => [
+          referenceId,
+          {
+            translate: snapState.translate.enabled,
+            rotate: snapState.rotate.enabled,
+            scale: snapState.scale.enabled,
+          },
+        ],
+      ),
+    ),
   )
   )
 }
@@ -2666,7 +2729,10 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
                   activeReferenceSession.referenceId
                 ] ?? DEFAULT_REFERENCE_TRANSFORM_SNAP_STATE
               useConsoleStore.getState().setInputText(
-                formatReferenceTransformSnapValue(snapState[activeReferenceSession.mode].value),
+                formatReferenceTransformSnapValue(
+                  getReferenceTransformSnapDriverValue(snapState[activeReferenceSession.mode]),
+                ),
+                { preserveGuidedReplace: true },
               )
               appendConsoleEntry({
                 layer: 'Commands',
@@ -3014,9 +3080,17 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
               useAppStore.getState().referenceWorkspace.transformSnapByReferenceId[
                 stagedResult.selections.referenceId
               ] ?? DEFAULT_REFERENCE_TRANSFORM_SNAP_STATE
+            const stagedSnapAxis = getReferenceTransformSnapScopeAxis(stagedResult.session.scopeId)
             useConsoleStore
               .getState()
-              .setInputText(formatReferenceTransformSnapValue(snapState[stagedSnapMode].value))
+              .setInputText(
+                formatReferenceTransformSnapValue(
+                  stagedSnapAxis === null
+                    ? getReferenceTransformSnapDriverValue(snapState[stagedSnapMode])
+                    : getReferenceTransformSnapAxisValue(snapState[stagedSnapMode], stagedSnapAxis),
+                ),
+                { preserveGuidedReplace: true },
+              )
           }
           const preAutoBreadcrumb =
             stagedResult.autoSelections.length === 0
@@ -3567,15 +3641,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
               stagedResult.actionId === 'reference.transform.scale' ||
               stagedResult.actionId === 'reference.transform.space.local' ||
               stagedResult.actionId === 'reference.transform.space.world' ||
-              stagedResult.actionId === 'reference.transform.snap.translate.on' ||
-              stagedResult.actionId === 'reference.transform.snap.translate.off' ||
-              stagedResult.actionId === 'reference.transform.snap.translate.value' ||
-              stagedResult.actionId === 'reference.transform.snap.rotate.on' ||
-              stagedResult.actionId === 'reference.transform.snap.rotate.off' ||
-              stagedResult.actionId === 'reference.transform.snap.rotate.value' ||
-              stagedResult.actionId === 'reference.transform.snap.scale.on' ||
-              stagedResult.actionId === 'reference.transform.snap.scale.off' ||
-              stagedResult.actionId === 'reference.transform.snap.scale.value' ||
+              stagedResult.actionId.startsWith('reference.transform.snap.') ||
               stagedResult.actionId === 'content.transform.move' ||
               stagedResult.actionId === 'content.transform.rotate' ||
               stagedResult.actionId === 'content.transform.scale') &&
@@ -3750,17 +3816,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
               })
               requestRadioBurst(commandIdentity, 'enter')
               return
-            } else if (
-              stagedResult.actionId === 'reference.transform.snap.translate.on' ||
-              stagedResult.actionId === 'reference.transform.snap.translate.off' ||
-              stagedResult.actionId === 'reference.transform.snap.translate.value' ||
-              stagedResult.actionId === 'reference.transform.snap.rotate.on' ||
-              stagedResult.actionId === 'reference.transform.snap.rotate.off' ||
-              stagedResult.actionId === 'reference.transform.snap.rotate.value' ||
-              stagedResult.actionId === 'reference.transform.snap.scale.on' ||
-              stagedResult.actionId === 'reference.transform.snap.scale.off' ||
-              stagedResult.actionId === 'reference.transform.snap.scale.value'
-            ) {
+            } else if (stagedResult.actionId.startsWith('reference.transform.snap.')) {
               const referenceId = stagedResult.selections.referenceId as string
               const snapMode =
                 stagedResult.actionId.includes('.translate.')
@@ -3768,15 +3824,35 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
                   : stagedResult.actionId.includes('.rotate.')
                     ? 'rotate'
                     : 'scale'
-              const isValueAction = stagedResult.actionId.endsWith('.value')
+              const isModeValueAction =
+                stagedResult.actionId === `reference.transform.snap.${snapMode}.value`
+              const snapAxis = stagedResult.actionId.endsWith('.x.value')
+                ? 'x'
+                : stagedResult.actionId.endsWith('.y.value')
+                  ? 'y'
+                  : stagedResult.actionId.endsWith('.z.value')
+                    ? 'z'
+                    : null
+              const isAxisValueAction = snapAxis !== null
               const isOnAction = stagedResult.actionId.endsWith('.on')
+              const isLockAction = stagedResult.actionId.endsWith('.lock')
+              const isUnlockAction = stagedResult.actionId.endsWith('.unlock')
               const numericValue = parseConsoleSignedFloatLiteral(rawToken)
               const nextSession =
                 activeReferenceSession?.entryActive === true
                   ? createActiveReferenceTransformSnapSession(referenceId, snapMode)
                   : createActiveReferenceTransformRootSession(referenceId)
-              if (isValueAction && numericValue !== null) {
+              if (isModeValueAction && numericValue !== null) {
                 appState.setReferenceTransformSnapValue(referenceId, snapMode, numericValue)
+              } else if (isAxisValueAction && numericValue !== null) {
+                appState.setReferenceTransformSnapAxisValue(
+                  referenceId,
+                  snapMode,
+                  snapAxis,
+                  numericValue,
+                )
+              } else if (isLockAction || isUnlockAction) {
+                appState.setReferenceTransformSnapLocked(referenceId, snapMode, isLockAction)
               } else {
                 appState.setReferenceTransformSnapEnabled(referenceId, snapMode, isOnAction)
               }
@@ -3789,9 +3865,17 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
               const modeLabel = getReferenceTransformSnapModeLabel(snapMode)
               appendConsoleEntry({
                 layer: 'Transforms',
-                text: isValueAction
-                  ? `${modeLabel} snap value: ${formatReferenceTransformSnapValue(nextSnapState[snapMode].value)}`
-                  : `${modeLabel} snap: ${isOnAction ? 'On' : 'Off'}`,
+                text: isModeValueAction
+                  ? `${modeLabel} snap value: ${formatReferenceTransformSnapValue(
+                      getReferenceTransformSnapDriverValue(nextSnapState[snapMode]),
+                    )}`
+                  : isAxisValueAction
+                    ? `${modeLabel} ${getReferenceTransformSnapAxisLabel(snapAxis)} snap value: ${formatReferenceTransformSnapValue(
+                        getReferenceTransformSnapAxisValue(nextSnapState[snapMode], snapAxis),
+                      )}`
+                    : isLockAction || isUnlockAction
+                      ? `${modeLabel} snap XYZ: ${isLockAction ? 'Locked' : 'Unlocked'}`
+                      : `${modeLabel} snap: ${isOnAction ? 'On' : 'Off'}`,
                 source: 'console',
                 severity: 'info',
               })
