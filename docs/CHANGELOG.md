@@ -65,6 +65,34 @@ Do not use it for:
 
 ## Doc Body
 
+### [677] - 2026-03-27 12:48 - `TRN - Transform-9 - Toolbar X Exit Sync To Console`
+<!-- ENTRY 677 -->
+HUMAN SUMMARY: `This made the reference transform toolbar \`X\` stop behaving like its own local close policy and instead route through the same shared shell-exit seam Console uses for \`CommitTransform\`, so closing from the toolbar now clears the shared transform shell, returns Console to the same post-transform reference scope, and keeps the exit cleanup synchronized in one place.` 
+#### Scope / Constraints Honored
+- Kept this pass limited to reference transform shell exit sync.
+- Left `Esc` and explicit entry-cancel semantics unchanged.
+- Preserved committed transform history and other shipped transform behaviors on exit.
+
+#### Summary of Implementation
+- Added a store-owned `referenceTransformShellExitRequest` seam so toolbar close and Console `CommitTransform` can both request the same shared shell exit flow.
+- Updated `ConsoleDock` to consume that request, own the actual shell exit cleanup, cancel any active drag, clear the viewer handle, exit the shared shell, and restore Console to the same reference-selected scope.
+- Rewired the toolbar `X` button to request that shared exit path instead of cancelling active entries and exiting locally.
+- Added a regression that mounts both Console and the reference transform toolbar and proves clicking toolbar `X` now clears the shell, clears the viewer handle path, and lands Console back on the reference scope.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/components/ReferenceTransformToolbar.tsx`
+- `src/app/components/ReferenceTransformToolbar.test.tsx`
+
+#### Behavior Changes
+- Toolbar `X` now exits reference transform through the same shared shell-exit seam as Console `CommitTransform`.
+- Closing transform from the toolbar now returns Console to the same post-transform reference scope instead of running a separate local close path.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/components/ReferenceTransformToolbar.test.tsx src/app/console/ConsoleDock.test.tsx`
+- `cmd /c npx tsc --noEmit`
+
 ### [676] - 2026-03-27 12:16 - `TRN - Transform-8 - Shared Transform Snap Controls`
 <!-- ENTRY 676 -->
 HUMAN SUMMARY: `This replaced the old rotate-only reference snap seam with one shared move / rotate / scale snap model, so transform snap now persists per reference, lives under the shared \`Transform > Settings > Snap\` Console path, syncs with a new toolbar snap section, and drives the viewer gizmo from the same shared state.` 

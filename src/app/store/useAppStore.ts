@@ -478,6 +478,11 @@ export type ConsoleContextSyncRequest = {
   seq: number
 }
 
+export type ReferenceTransformShellExitRequest = {
+  source: 'commit-shell' | 'toolbar-close'
+  seq: number
+}
+
 export type AppState = {
   lastBuildSeq: number
   geomDirty: Record<string, number>
@@ -498,6 +503,7 @@ export type AppState = {
   workspaceSelection: WorkspaceSelectionState
   floatingShellActivationRequest: FloatingShellActivationRequest | null
   consoleContextSyncRequest: ConsoleContextSyncRequest | null
+  referenceTransformShellExitRequest: ReferenceTransformShellExitRequest | null
   workerError: string | null
   setSpaghettiGraph: (graph: SpaghettiGraph) => void
   compileGraphDocument: (graphDocumentId: string) => CompileSpaghettiGraphResult
@@ -629,6 +635,9 @@ export type AppState = {
   ) => void
   setActiveSurface: (surface: WorkspaceSurface | null) => void
   requestConsoleContextSync: (reason: ConsoleContextSyncReason) => void
+  requestReferenceTransformShellExit: (
+    source: ReferenceTransformShellExitRequest['source'],
+  ) => void
   requestFloatingShellActivation: (target: FloatingShellActivationTarget) => void
   ensureVisibilityForPartKeys: (keys: string[], defaultValue?: boolean) => void
   togglePartVisibility: (partKeyStr: string) => void
@@ -1965,6 +1974,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
   floatingShellActivationRequest: null,
   consoleContextSyncRequest: null,
+  referenceTransformShellExitRequest: null,
   workerError: null,
   setSpaghettiGraph: (graph) => {
     useSpaghettiStore.getState().setGraph(graph)
@@ -3463,6 +3473,14 @@ export const useAppStore = create<AppState>((set, get) => ({
       consoleContextSyncRequest: {
         reason,
         seq: (state.consoleContextSyncRequest?.seq ?? 0) + 1,
+      },
+    }))
+  },
+  requestReferenceTransformShellExit: (source) => {
+    set((state) => ({
+      referenceTransformShellExitRequest: {
+        source,
+        seq: (state.referenceTransformShellExitRequest?.seq ?? 0) + 1,
       },
     }))
   },

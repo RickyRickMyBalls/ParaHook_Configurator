@@ -1149,6 +1149,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
   const graphRootEditorRevealRestoreRef = useRef<GraphRootEditorRevealRestore | null>(null)
   const rootGuidedOptOutRef = useRef(false)
   const lastHandledConsoleContextSyncSeqRef = useRef(0)
+  const lastHandledReferenceTransformShellExitSeqRef = useRef(0)
   const suppressNextReferenceTransformShellExitRef = useRef(false)
   const previousSketchPlanePickSessionRef = useRef<
     ReturnType<typeof useSpaghettiStore.getState>['sketchPlanePickSession']
@@ -1206,6 +1207,9 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
   const workspaceSelectedTarget = useAppStore((state) => state.workspaceSelection.selectedTarget)
   const workspaceActiveSurface = useAppStore((state) => state.workspaceSelection.activeSurface)
   const consoleContextSyncRequest = useAppStore((state) => state.consoleContextSyncRequest)
+  const referenceTransformShellExitRequest = useAppStore(
+    (state) => state.referenceTransformShellExitRequest,
+  )
   const sketchPlanePickSession = useSpaghettiStore((state) => state.sketchPlanePickSession)
   const geometrySketchSession = useSpaghettiStore((state) => state.geometrySketchSession)
 
@@ -1616,6 +1620,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
       return false
     }
 
+    getViewer()?.cancelReferenceTransformDrag?.()
     getViewer()?.clearReferenceTransformHandle?.()
     appState.exitReferenceTransformShell()
     useConsoleStore.getState().clearConsolePromptSession()
@@ -3637,34 +3642,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
                 severity: 'info',
               })
             } else if (stagedResult.actionId === 'reference.transform.commitShell') {
-              const referenceId = stagedResult.selections.referenceId as string
-              appState.exitReferenceTransformShell()
-              const nextReferenceSession = resolveConsoleWorkspaceContextSync(
-                buildStagedNavigationContextFromStoreState(useSpaghettiStore.getState()),
-                buildReferenceConsoleWorkspaceTarget(
-                  appState.referenceWorkspace,
-                  referenceId,
-                  stagedResult.session.breadcrumb.at(-2) ?? referenceId,
-                ),
-              ).session
-              if (nextReferenceSession !== null) {
-                setStagedNavigationSession(nextReferenceSession)
-                appendConsoleEntry({
-                  layer: 'Commands',
-                  text: buildStagedPromptText(
-                    nextReferenceSession,
-                    nextReferenceSession.validChoices,
-                  ),
-                  source: 'console',
-                  severity: 'info',
-                })
-              }
-              appendConsoleEntry({
-                layer: 'Transforms',
-                text: 'Transform committed',
-                source: 'console',
-                severity: 'info',
-              })
+              appState.requestReferenceTransformShellExit('commit-shell')
               requestRadioBurst(commandIdentity, 'enter')
               return
             } else if (stagedResult.actionId === 'reference.transform.deleteLatest') {
@@ -5310,6 +5288,34 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
       severity: 'info',
     })
   }, [setStagedNavigationSession, sketchPlanePickSession])
+
+  useEffect(() => {
+    if (referenceTransformShellExitRequest === null) {
+      return
+    }
+    if (
+      referenceTransformShellExitRequest.seq ===
+      lastHandledReferenceTransformShellExitSeqRef.current
+    ) {
+      return
+    }
+    lastHandledReferenceTransformShellExitSeqRef.current =
+      referenceTransformShellExitRequest.seq
+
+    const didExit = exitActiveReferenceTransformShell()
+    if (!didExit) {
+      return
+    }
+
+    if (referenceTransformShellExitRequest.source === 'commit-shell') {
+      appendConsoleEntry({
+        layer: 'Transforms',
+        text: 'Transform committed',
+        source: 'console',
+        severity: 'info',
+      })
+    }
+  }, [exitActiveReferenceTransformShell, referenceTransformShellExitRequest])
 
   useEffect(() => {
     if (consoleContextSyncRequest === null) {

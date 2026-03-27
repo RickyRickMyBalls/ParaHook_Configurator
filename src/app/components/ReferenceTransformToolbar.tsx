@@ -278,6 +278,9 @@ export function ReferenceTransformToolbar() {
   const referenceWorkspace = useAppStore((state) => state.referenceWorkspace)
   const beginReferenceTransformEntry = useAppStore((state) => state.beginReferenceTransformEntry)
   const exitReferenceTransformShell = useAppStore((state) => state.exitReferenceTransformShell)
+  const requestReferenceTransformShellExit = useAppStore(
+    (state) => state.requestReferenceTransformShellExit,
+  )
   const setActiveReferenceTransformSpace = useAppStore(
     (state) => state.setActiveReferenceTransformSpace,
   )
@@ -1231,12 +1234,7 @@ export function ReferenceTransformToolbar() {
             onPointerDown={stopTitleActionPointerDown}
             onMouseDown={stopTitleActionMouseDown}
             onClick={() => {
-              getViewer()?.cancelReferenceTransformDrag()
-              getViewer()?.clearReferenceTransformHandle()
-              if (entryActive) {
-                cancelActiveReferenceTransformEntry()
-              }
-              exitReferenceTransformShell()
+              requestReferenceTransformShellExit('toolbar-close')
             }}
             aria-label="Close reference transform toolbar"
             title="Close"

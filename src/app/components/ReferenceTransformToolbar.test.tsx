@@ -1775,6 +1775,40 @@ describe('ReferenceTransformToolbar', () => {
     expect(container.textContent).toContain('Left to Right')
   })
 
+  it('routes toolbar close through the shared shell exit seam and returns Console to the reference scope', async () => {
+    const { ReferenceTransformToolbar } = await import('./ReferenceTransformToolbar')
+    const { ConsoleDock } = await import('../console/ConsoleDock')
+    const { useAppStore } = await import('../store/useAppStore')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(
+        <>
+          <ConsoleDock />
+          <ReferenceTransformToolbar />
+        </>,
+      )
+    })
+
+    const closeButton = container.querySelector(
+      'button[aria-label="Close reference transform toolbar"]',
+    ) as HTMLButtonElement | null
+
+    expect(closeButton).not.toBeNull()
+
+    await act(async () => {
+      closeButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useAppStore.getState().referenceWorkspace.activeReferenceTransformSession).toBeNull()
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('referenceSelected')
+    expect(viewerCancelReferenceTransformDrag).toHaveBeenCalledTimes(1)
+    expect(viewerClearReferenceTransformHandle).toHaveBeenCalledTimes(1)
+  })
+
   it('keeps the Local / World button synced with shared transform-shell space state', async () => {
     const { ReferenceTransformToolbar } = await import('./ReferenceTransformToolbar')
     const { useAppStore } = await import('../store/useAppStore')
