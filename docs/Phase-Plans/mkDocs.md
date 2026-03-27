@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+16. 2026-03-27 12:20: Removed the temporary manual top-level `mkdocs.yml` nav and returned the hosted site to inferred navigation so new included folders publish into the sidebar automatically again, keeping the homepage as the curated launch surface while the left nav follows the docs tree
 15. 2026-03-27 10:35: Reworked the live MkDocs strategy again by adding a hybrid manual top-level nav in `mkdocs.yml`, rewriting `docs/index.md` into a denser homepage launcher with many curated links, and tightening the MkDocs plan notes so the published-site guidance now matches the current mixed-audience front-door model
 14. 2026-03-27 10:10: Clarified the GitHub Pages hosting note so this doc now explicitly states that the repo uses one Pages workflow and one deployed artifact that serves two live paths, with the app at `/` and MkDocs at `/docs/`, instead of sounding like there are two competing Pages deployments
 13. 2026-03-23 17:39: Implemented `Phase 3 - GitHub Pages Combined App And Docs Publish` by extending the existing repo Pages workflow to build both the app and MkDocs into one artifact, adding the nested docs `site_url`, and recording the live `/` plus `/docs/` hosting behavior in the MkDocs notes
@@ -246,9 +247,9 @@ The current live site no longer uses either:
 - or a fully raw inferred top-level nav with no curation
 
 Current live behavior:
-- `mkdocs.yml` now defines a curated top-level nav for the highest-value public entry points
-- the homepage is a denser launch surface with many grouped links into architecture and planning hubs
-- deeper docs still publish normally under the included `/docs` tree even when they are not promoted into the top-level nav
+- MkDocs infers navigation from the included `/docs` tree again
+- the homepage remains a denser launch surface with many grouped links into architecture and planning hubs
+- deeper docs publish normally under the included `/docs` tree without needing a manual nav entry
 - archive folders are excluded from the published site
 - `Human-Plans/CodexNotes/` is excluded from the published site
 - the left sidebar exposes the non-archive docs tree directly instead of forcing search or a tiny starter nav
@@ -451,9 +452,8 @@ Why Phase 2 exists:
 #### Phase 2 Locked Decisions
 
 - keep `docs/` as the MkDocs source directory
-- keep a hybrid nav model:
-  - curated top-level `nav:` in `mkdocs.yml`
-  - broader docs still reachable through the published docs tree and hub pages
+- keep inferred navigation as the default so new included docs and folders appear automatically
+- keep the homepage as the main curated launch surface
 - treat new docs under non-excluded folders as auto-published by default
 - use `exclude_docs` first when a docs branch should stay out of the published site
 - update repo tracking docs and local doc-history sections separately from MkDocs config; publication and repo-history maintenance are related but not the same task
@@ -478,12 +478,12 @@ Depending on the docs change, the phase may also touch:
 When a new doc is added under `docs/`:
 
 - it will still publish in the MkDocs site automatically if it lives outside the excluded folders
-- it does not need a matching `mkdocs.yml` nav entry unless it should become one of the curated top-level links
+- it does not need a matching `mkdocs.yml` nav entry while navigation stays inferred
 - it does need normal repo doc maintenance such as local `Doc History`, `docs/Doc-Log.md`, and any affected canonical docs-map or umbrella-doc updates
 
 When the docs-site behavior should change:
 
-- update `mkdocs.yml` if the doc should be excluded, promoted into the curated nav, or surfaced with different theme/plugin behavior
+- update `mkdocs.yml` if the doc should be excluded or surfaced with different theme/plugin behavior
 
 #### Phase 2 Verification Steps
 

@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+7. 2026-03-27 12:20: Removed the temporary manual top-level `mkdocs.yml` nav and returned the hosted site to inferred navigation, so new folders and docs under included paths appear automatically again without needing hand-maintained sidebar entries
 6. 2026-03-27 10:35: Reworked the hosted docs homepage into a denser launch surface with larger grouped link sections, added a curated top-level MkDocs nav for the highest-value public entry points, and aligned the publishing notes with the current hybrid navigation plus excluded-folder rules
 5. 2026-03-27 10:00: Updated the live MkDocs landing page after excluding `docs/Human-Plans/CodexNotes/` from the published site, so the hosted `/docs/` tree now matches the intended live docs surface instead of continuing to publish the older scratch-note folder
 4. 2026-03-23 17:57: Reworked the MkDocs landing page into a more readable home screen with grouped quick-link cards and browse-by-area links, so the docs site now has clearer entry points into the main repo doc surfaces without changing the underlying inferred navigation rules
@@ -21,9 +22,8 @@ Use it to:
 
 ### Important Note
 
-- the hosted docs now use a hybrid navigation model:
-  - curated top-level nav for the highest-value entry points
-  - linked hub pages for deeper exploration
+- the hosted docs now publish the non-excluded `/docs` tree automatically again
+- new folders and docs appear in the sidebar without needing a manual `nav:` entry
 - on GitHub Pages, the app lives at the site root and this docs site lives under `/docs/`
 
 ## Doc Body
@@ -288,8 +288,7 @@ This page is meant to feel like a launcher, not a raw repo dump.
   - `https://rickyrickmyballs.github.io/ParaHook_Configurator/`
 - the docs stay at:
   - `https://rickyrickmyballs.github.io/ParaHook_Configurator/docs/`
-- the top-level nav is curated for the main entry points
-- deeper docs still publish under the included `/docs` tree even when they are not promoted into the top nav
+- the sidebar now comes directly from the included `/docs` folder structure instead of a hand-maintained `nav:` block
 
 What stays out of the hosted docs site:
 
@@ -300,5 +299,5 @@ What stays out of the hosted docs site:
 
 When you want different hosted behavior:
 
-- update `mkdocs.yml` if a docs branch should be excluded or promoted into the curated nav
+- update `mkdocs.yml` if a docs branch should be excluded
 - update this landing page when a new architecture or planning hub deserves homepage visibility

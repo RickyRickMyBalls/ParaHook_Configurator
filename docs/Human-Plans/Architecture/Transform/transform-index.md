@@ -765,23 +765,39 @@ Standalone phase doc:
 - route toolbar close through the same shared transform exit owner instead of letting it drift into a second close policy
 - keep exit semantics honest across toolbar, Console, and active transform-shell state
 
-#### [ ] q1 - What should the transform-toolbar `X` mean?
+#### [x] q1 - What should the transform-toolbar `X` mean?
 
 ##### Suggestion
 - make the toolbar `X` mean the same thing as `CommitTransform` at the transform-shell level
 - do not let toolbar close become a second hidden cancel policy
 - keep `Esc` and entry-cancel behavior separate from shell exit
 
-#### [ ] q2 - Which seam should own toolbar `X` exit behavior?
+Decision:
+- make the toolbar `X` mean the same thing as `CommitTransform` at the transform-shell level
+- do not let toolbar close become a second hidden cancel policy
+- keep `Esc` and entry-cancel behavior separate from shell exit
+
+#### [x] q2 - Which seam should own toolbar `X` exit behavior?
 
 ##### Suggestion
 - route toolbar `X` and Console `CommitTransform` through the same shared transform-shell exit action
 - keep toolbar and Console as adapters into that owner seam
 - avoid duplicate cleanup logic between the two surfaces
 
-#### [ ] q3 - What state should sync when the toolbar `X` exits the shell?
+Decision:
+- route toolbar `X` and Console `CommitTransform` through the same shared transform-shell exit action
+- keep toolbar and Console as adapters into that owner seam
+- avoid duplicate cleanup logic between the two surfaces
+
+#### [x] q3 - What state should sync when the toolbar `X` exits the shell?
 
 ##### Suggestion
+- hide the toolbar
+- clear active handle and other shell-local transform UI state
+- return Console to the same post-transform scope it would reach after `CommitTransform`
+- preserve already-committed history and other shipped transform semantics
+
+Decision:
 - hide the toolbar
 - clear active handle and other shell-local transform UI state
 - return Console to the same post-transform scope it would reach after `CommitTransform`
