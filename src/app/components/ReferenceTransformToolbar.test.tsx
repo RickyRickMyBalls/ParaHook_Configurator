@@ -270,15 +270,32 @@ describe('ReferenceTransformToolbar', () => {
       root?.render(<ReferenceTransformToolbar />)
     })
 
-    expect(container.textContent).toContain('Shoe 1 > M > Vec3 [12.50, -7.00, 42.00]')
+    expect(container.textContent).toContain(
+      'Select > Reference > Shoe 1 > Transform > Move > Vec3 [12.5, -7.0, 42.0]',
+    )
     expect(container.textContent).toContain('Transform History')
     expect(container.textContent).toContain('Origin')
+    const historySection = container.querySelector(
+      '[aria-label="Reference transform history"]',
+    ) as HTMLDivElement | null
+    const valuesSection = container.querySelector(
+      '[aria-label="Reference transform values"]',
+    ) as HTMLDivElement | null
+    expect(historySection).not.toBeNull()
+    expect(valuesSection).not.toBeNull()
+    expect(historySection).not.toBeNull()
+    expect(valuesSection).not.toBeNull()
+    expect(
+      historySection!.compareDocumentPosition(valuesSection!),
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
 
     await act(async () => {
       useAppStore.getState().beginReferenceTransformEntry('rotate')
     })
 
-    expect(container.textContent).toContain('Shoe 1 > R > Vec3 [15.00, 0.00, -30.00]')
+    expect(container.textContent).toContain(
+      'Select > Reference > Shoe 1 > Transform > Rotate > Vec3 [15.0, 0.0, -30.0]',
+    )
   })
 
   it('does not treat raw x y z keys as immediate move-axis shortcuts now that console owns axis prompts', async () => {
@@ -1085,7 +1102,13 @@ describe('ReferenceTransformToolbar', () => {
               sessionId: 'reference-transform-session-1',
               sessionOrdinal: 1,
               kind: 'move',
-              value: { x: 5, y: 0, z: 0 },
+              delta: { x: 5, y: 0, z: 0 },
+              after: { x: 5, y: 0, z: 0 },
+              transformAfter: {
+                position: { x: 5, y: 0, z: 0 },
+                rotationDeg: { x: 0, y: 0, z: 0 },
+                scale: { x: 1, y: 1, z: 1 },
+              },
               locked: false,
             },
             {
@@ -1093,7 +1116,13 @@ describe('ReferenceTransformToolbar', () => {
               sessionId: 'reference-transform-session-1',
               sessionOrdinal: 1,
               kind: 'rotate',
-              value: { x: 0, y: 20, z: 0 },
+              delta: { x: 0, y: 20, z: 0 },
+              after: { x: 0, y: 20, z: 0 },
+              transformAfter: {
+                position: { x: 5, y: 0, z: 0 },
+                rotationDeg: { x: 0, y: 20, z: 0 },
+                scale: { x: 1, y: 1, z: 1 },
+              },
               locked: false,
             },
             {
@@ -1101,7 +1130,13 @@ describe('ReferenceTransformToolbar', () => {
               sessionId: 'reference-transform-session-2',
               sessionOrdinal: 2,
               kind: 'move',
-              value: { x: 9, y: -2, z: 4 },
+              delta: { x: 4, y: -2, z: 4 },
+              after: { x: 9, y: -2, z: 4 },
+              transformAfter: {
+                position: { x: 9, y: -2, z: 4 },
+                rotationDeg: { x: 0, y: 20, z: 0 },
+                scale: { x: 1, y: 1, z: 1 },
+              },
               locked: false,
             },
           ],
@@ -1121,8 +1156,9 @@ describe('ReferenceTransformToolbar', () => {
     expect(container.textContent).toContain('Transform 2')
     expect(container.querySelector('button[aria-label="Expand Transform 1"]')).not.toBeNull()
     expect(container.querySelector('button[aria-label="Collapse Transform 2"]')).not.toBeNull()
-    expect(container.textContent).not.toContain('Rotate Vec(+0.00, +20.00, +0.00)')
-    expect(container.textContent).toContain('Move Vec(+4.00, -2.00, +4.00)')
+    expect(container.querySelector('button[aria-label="Lock Transform 2 entry 3"]')).not.toBeNull()
+    expect(container.textContent).not.toContain('2. Rotate Vec(0.00, 20.00, 0.00)')
+    expect(container.textContent).toContain('3. Move Vec(9.00, -2.00, 4.00)')
 
     const expandTransform1 = container.querySelector(
       'button[aria-label="Expand Transform 1"]',
@@ -1132,7 +1168,233 @@ describe('ReferenceTransformToolbar', () => {
       expandTransform1?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
     })
 
-    expect(container.textContent).toContain('Rotate Vec(+0.00, +20.00, +0.00)')
+    expect(container.textContent).toContain('2. Rotate Vec(0.00, 20.00, 0.00)')
+  })
+
+  it('edits existing history entry values in place without appending a new entry', async () => {
+    const { ReferenceTransformToolbar } = await import('./ReferenceTransformToolbar')
+    const { useAppStore } = await import('../store/useAppStore')
+
+    useAppStore.setState((state) => ({
+      ...state,
+      referenceWorkspace: {
+        ...state.referenceWorkspace,
+        activeReferenceTransformSession: {
+          referenceId: 'shoe:shoe-1',
+          sessionId: 'reference-transform-session-1',
+          sessionOrdinal: 1,
+          mode: 'translate',
+          space: 'local',
+          shellActive: true,
+          entryActive: false,
+          activeHandle: null,
+          draftTransform: {
+            position: { x: 5, y: 0, z: 0 },
+            rotationDeg: { x: 0, y: 0, z: 0 },
+            scale: { x: 1, y: 1, z: 1 },
+          },
+          entryOrigin: null,
+        },
+        transformHistoryByReferenceId: {
+          ...state.referenceWorkspace.transformHistoryByReferenceId,
+          'shoe:shoe-1': [
+            {
+              entryId: 'history-1',
+              sessionId: 'reference-transform-session-1',
+              sessionOrdinal: 1,
+              kind: 'move',
+              delta: { x: 5, y: 0, z: 0 },
+              after: { x: 5, y: 0, z: 0 },
+              transformAfter: {
+                position: { x: 5, y: 0, z: 0 },
+                rotationDeg: { x: 0, y: 0, z: 0 },
+                scale: { x: 1, y: 1, z: 1 },
+              },
+              locked: false,
+            },
+          ],
+        },
+      },
+    }))
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ReferenceTransformToolbar />)
+    })
+
+    const values = container.querySelector(
+      '[aria-label="Transform 1 entry 1 values"]',
+    ) as HTMLDivElement | null
+    const firstTrack = values?.querySelector('.ParaSliderTrack') as HTMLDivElement | null
+    expect(firstTrack).not.toBeNull()
+
+    Object.defineProperty(firstTrack, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => ({
+        left: 0,
+        top: 0,
+        width: 100,
+        height: 26,
+        right: 100,
+        bottom: 26,
+        x: 0,
+        y: 0,
+        toJSON: () => '',
+      }),
+    })
+
+    await act(async () => {
+      firstTrack?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: 75,
+        }),
+      )
+      window.dispatchEvent(new PointerEvent('pointerup', {}))
+    })
+
+    const entries =
+      useAppStore.getState().referenceWorkspace.transformHistoryByReferenceId['shoe:shoe-1'] ?? []
+    expect(entries).toHaveLength(1)
+    expect(entries[0]).toMatchObject({
+      delta: { x: 150, y: 0, z: 0 },
+      after: { x: 150, y: 0, z: 0 },
+      transformAfter: {
+        position: { x: 150, y: 0, z: 0 },
+        rotationDeg: { x: 0, y: 0, z: 0 },
+        scale: { x: 1, y: 1, z: 1 },
+      },
+    })
+    expect(useAppStore.getState().referenceWorkspace.transformOverrideById['shoe:shoe-1']).toMatchObject(
+      {
+        position: { x: 150, y: 0, z: 0 },
+        rotationDeg: { x: 0, y: 0, z: 0 },
+        scale: { x: 1, y: 1, z: 1 },
+      },
+    )
+    expect(useAppStore.getState().referenceWorkspace.activeReferenceTransformSession?.draftTransform).toMatchObject(
+      {
+        position: { x: 150, y: 0, z: 0 },
+        rotationDeg: { x: 0, y: 0, z: 0 },
+        scale: { x: 1, y: 1, z: 1 },
+      },
+    )
+  })
+
+  it('scrubs committed history from the toolbar and deactivates future rows', async () => {
+    const { ReferenceTransformToolbar } = await import('./ReferenceTransformToolbar')
+    const { useAppStore } = await import('../store/useAppStore')
+
+    useAppStore.setState((state) => ({
+      ...state,
+      referenceWorkspace: {
+        ...state.referenceWorkspace,
+        activeReferenceTransformSession: {
+          referenceId: 'shoe:shoe-1',
+          sessionId: 'reference-transform-session-1',
+          sessionOrdinal: 1,
+          mode: 'translate',
+          space: 'local',
+          shellActive: true,
+          entryActive: false,
+          activeHandle: null,
+          historyScrubIndex: 3,
+          draftTransform: {
+            position: { x: 5, y: 0, z: 0 },
+            rotationDeg: { x: 0, y: 20, z: 0 },
+            scale: { x: 1.5, y: 1, z: 1 },
+          },
+          entryOrigin: null,
+        },
+        transformHistoryByReferenceId: {
+          ...state.referenceWorkspace.transformHistoryByReferenceId,
+          'shoe:shoe-1': [
+            {
+              entryId: 'history-1',
+              sessionId: 'reference-transform-session-1',
+              sessionOrdinal: 1,
+              kind: 'move',
+              delta: { x: 5, y: 0, z: 0 },
+              after: { x: 5, y: 0, z: 0 },
+              transformAfter: {
+                position: { x: 5, y: 0, z: 0 },
+                rotationDeg: { x: 0, y: 0, z: 0 },
+                scale: { x: 1, y: 1, z: 1 },
+              },
+              locked: false,
+            },
+            {
+              entryId: 'history-2',
+              sessionId: 'reference-transform-session-1',
+              sessionOrdinal: 1,
+              kind: 'rotate',
+              delta: { x: 0, y: 20, z: 0 },
+              after: { x: 0, y: 20, z: 0 },
+              transformAfter: {
+                position: { x: 5, y: 0, z: 0 },
+                rotationDeg: { x: 0, y: 20, z: 0 },
+                scale: { x: 1, y: 1, z: 1 },
+              },
+              locked: false,
+            },
+            {
+              entryId: 'history-3',
+              sessionId: 'reference-transform-session-1',
+              sessionOrdinal: 1,
+              kind: 'scale',
+              delta: { x: 0.5, y: 0, z: 0 },
+              after: { x: 1.5, y: 1, z: 1 },
+              transformAfter: {
+                position: { x: 5, y: 0, z: 0 },
+                rotationDeg: { x: 0, y: 20, z: 0 },
+                scale: { x: 1.5, y: 1, z: 1 },
+              },
+              locked: false,
+            },
+          ],
+        },
+      },
+    }))
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ReferenceTransformToolbar />)
+    })
+
+    const jumpToSecondEntry = container.querySelector(
+      'button[aria-label="Jump to Transform 1 entry 2"]',
+    ) as HTMLButtonElement | null
+
+    await act(async () => {
+      jumpToSecondEntry?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useAppStore.getState().referenceWorkspace.activeReferenceTransformSession).toMatchObject({
+      historyScrubIndex: 2,
+      draftTransform: {
+        position: { x: 5, y: 0, z: 0 },
+        rotationDeg: { x: 0, y: 20, z: 0 },
+        scale: { x: 1, y: 1, z: 1 },
+      },
+    })
+
+    const currentEntryButton = container.querySelector(
+      'button[aria-label="Jump to Transform 1 entry 2"]',
+    ) as HTMLButtonElement | null
+    const futureValues = container.querySelector(
+      '[aria-label="Transform 1 entry 3 values"]',
+    ) as HTMLDivElement | null
+
+    expect(currentEntryButton?.getAttribute('aria-pressed')).toBe('true')
+    expect(futureValues?.className).toContain('isInactive')
   })
 
   it('applies the active rotate snap interval to rotate axis stepping', async () => {
@@ -1319,7 +1581,9 @@ describe('ReferenceTransformToolbar', () => {
       root?.render(<ReferenceTransformToolbar />)
     })
 
-    const firstTrack = container.querySelector('.ReferenceTransformToolbar .ParaSliderTrack') as HTMLDivElement | null
+    const firstTrack = container.querySelector(
+      '[aria-label="Reference transform values"] .ParaSliderTrack',
+    ) as HTMLDivElement | null
     expect(firstTrack).not.toBeNull()
 
     await act(async () => {

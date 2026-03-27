@@ -3,6 +3,20 @@
 ## Doc Header
 
 ### Doc History
+27. 2026-03-27 02:06: Tightened the `Transform 6` family index into implementation-ready scrub language, removing the stale `preview / restore` framing, renaming the phase direction around direct history scrub and traversal, and locking that there is no separate restore action in the first pass because the scrub head itself owns the active rendered history position
+26. 2026-03-27 01:58: Cleaned up the `Transform 6` question list in this family index so the stale open markers now match the actual locked direction, marking history granularity and preview-versus-restore behavior as answered while leaving explicit restore-history mutation as the main remaining open `Transform 6` question
+25. 2026-03-27 01:52: Locked the `Transform 6` branched-commit rule in this family index, deciding that if the user scrubs back to an earlier committed entry and then commits a new transform step, that new row should insert immediately after the scrubbed entry, the old future rows should remain after it and replay from that insertion point, and the child-entry numbering should renumber to the new visible order
+24. 2026-03-27 01:45: Tightened the first `Transform 6` scrub default-state rule in this family index, deciding that when the user is not actively traversing history the history paraslider should stay pinned at `100%` on the newest committed entry, and that each new history commit should advance that idle scrub head forward to the latest entry automatically
+23. 2026-03-27 01:41: Locked the first `Transform 6` traversal-entry and emphasis direction in this family index, deciding that the initial scrub model should be a history paraslider from entry `0..last`, and that when the scrub head sits on an earlier entry the later committed entries should deactivate while their future preview lines stop rendering in the viewport
+22. 2026-03-27 01:35: Marked `Transform 5` shipped in this family index after the committed viewport-history baseline landed, moved its standalone phase record from `Future/` into `Shipped/`, and advanced the Transform family so `Transform 6` is now the only remaining open follow-on
+21. 2026-03-27 01:31: Expanded the `Transform 6` block in this family index so the actual traversal follow-on now carries the fuller question set inline here too, adding explicit open questions around preview entry, restore semantics, viewport/toolbar emphasis, and how traversal should suspend the live transform shell while scrub preview is active
+20. 2026-03-27 01:24: Added the standalone `Transform 6` future phase doc for history traversal / preview / restore, so the Transform family now has an explicit planning surface for the post-visual scrub layer instead of leaving that follow-on only as an open block in this umbrella index
+19. 2026-03-27 00:13: Tightened the shared merge direction in this family index so collapsing transform history should preserve at least one surviving committed entry for each transform kind that exists in the merged set, instead of collapsing `Move`, `Rotate`, and `Scale` together into one last unlocked row
+18. 2026-03-27 00:10: Tightened `Transform 5 q1` in this family index against the shipped SketchPlane visual example so the first move-history viewport path now explicitly reads as the same thin committed polyline with visible checkpoint turns between committed origins rather than only a generic connected line description
+17. 2026-03-27 00:09: Locked `Transform 5 q2` in this family index so rotate history should show the before/after normal directions with an arc between them, while scale history should compare the relative size of a before-versus-after sphere instead of staying at the earlier generic overlay wording
+16. 2026-03-27 00:06: Split the old `Transform 5` follow-on in this family index into `Transform 5` viewport-history visuals versus later `Transform 6` traversal / preview / restore, locking that the first move-history visual should copy the shipped `SketchPlane` committed history line behavior and clarifying that traversal is the actual scrub layer over committed history rather than part of the first visual baseline
+15. 2026-03-26 23:55: Marked the shipped `Transform 3`, `Transform 4.2`, `Transform 4.3`, and `Transform 4.4` records complete in this family index after the shell, shared-draft, grouped-history, and adapter-cleanup work landed, moved those standalone phase docs into `Shipped/`, and advanced the Transform family so `Transform 5` is now the next clear open follow-on
+14. 2026-03-26 22:10: Added the standalone `Transform 4.4` future phase doc for Console-and-toolbar adapter cleanup, so the Transform family now has an explicit cleanup phase focused on extracting transform-specific prompt, breadcrumb, handle-sync, and submit/cancel policy out of `ConsoleDock` instead of leaving that structural cleanup only implicit in chat
 13. 2026-03-26 20:49: Locked the `Transform 4.3` grouped-session-history questions in this family index, deciding that committed child entries remain the base truth with per-entry `sessionId` and `sessionOrdinal` metadata, that shell sessions start on entering `Transform` and close on `CommitTransform`, that empty shells create no parent row, that the newest session defaults expanded while older sessions default collapsed, that parent rows stay expand/collapse-only, and that session numbering remains persistent per target
 12. 2026-03-26 20:46: Expanded the `Transform 4.3` section in this family index with a fuller grouped-session-history question set, adding explicit open `[ ]` decisions around storage shape, shell-session start/end rules, empty-session behavior, default expand/collapse behavior, parent-row actions, and persistent session numbering so the new `4.3` phase doc can be tightened into an implementation-ready toolbar/history reshape
 11. 2026-03-26 20:43: Added the standalone `Transform 4.3` future phase doc for grouped transform-session history, so the Transform family now has a dedicated follow-on for turning flat committed history into expandable shell-session rows like `Transform 1`, `Transform 2`, and later sessions without mixing that toolbar/history reshape back into the already-narrowed `Transform 4.2` draft-sync cleanup
@@ -100,32 +114,36 @@ The Transform family should eventually own planning for:
 
 ### Current Relationship To Browser
 
-The current Browser transform work remains the live source of the locked direction.
+The broader Browser transform umbrella still carries the top-level long-range direction, but the landed shell and cleanup work now has Transform-native shipped records.
 
 Current live umbrella source:
 - `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-7.5 - Final Transform Direction And Phase Split.md`
 
-Current live Browser follow-ons already feeding this family:
-- `Transform 1`
-  - reference-first history/session foundation
-- `Transform 2`
-  - canonical hierarchy plus non-reference target ownership
+Current Transform-native shipped records:
 - `Transform 3`
-  - shared target-local transform shell behavior
-- `Transform 4`
-  - console cleanup and transform-shell polish
+  - `docs/Human-Plans/Architecture/Transform/Shipped/Transform_Phase Transform-3 - Shared Transform Shell And Repeated Steps.md`
+- `Transform 4.2`
+  - `docs/Human-Plans/Architecture/Transform/Shipped/Transform_Phase Transform-4.2 - Reference Draft Sync And Session Cleanup.md`
+- `Transform 4.3`
+  - `docs/Human-Plans/Architecture/Transform/Shipped/Transform_Phase Transform-4.3 - Grouped Session History.md`
+- `Transform 4.4`
+  - `docs/Human-Plans/Architecture/Transform/Shipped/Transform_Phase Transform-4.4 - Console And Toolbar Adapter Cleanup.md`
 - `Transform 5`
-  - viewport history visuals, traversal/restore, and later cleanup
+  - `docs/Human-Plans/Architecture/Transform/Shipped/Transform_Phase Transform-5 - Viewport History Visual Baseline.md`
 
-This new family folder exists so those directions can later migrate into transform-native phase docs without staying permanently nested under Browser.
+Current open Transform follow-on:
+- `Transform 6`
+  - scrub / traversal over committed history
+
+This family now owns the shipped Transform-shell cleanup trail directly, while Browser `7.5` still holds the broader future ladder until the remaining open transform-native follow-ons are written down outside Browser.
 
 ### Next Steps
 
-Expected next cleanup after creating this family:
+Expected next cleanup after shipping `Transform 5`:
 
-1. move the umbrella transform direction from Browser-native planning into a first standalone Transform future phase
-2. decide whether the old Browser `7.4` traversal direction should stay Browser-numbered or be folded into the Transform-native ladder beside `Transform 1`, `Transform 2`, `Transform 3`, `Transform 4`, and `Transform 5`
-3. update the broader docs map if the Transform family becomes the canonical home instead of only a new container
+1. carry the actual scrub / traversal work forward as `Transform 6`
+2. keep deciding how much of the remaining Browser-umbrella direction should be re-expressed as Transform-native future records instead of staying Browser-numbered
+3. continue moving landed Transform-native standalone records from `Future/` into `Shipped/` so the family stays honest about what is already implemented
 
 
 ## Phases
@@ -177,6 +195,7 @@ Decision:
 - keep transform history persistent for the life of the target
 - do not auto-prune old entries
 - let the user control cleanup through merge and later explicit history tools instead of automatic deletion
+- keep committed child rows as enriched `delta + after` history entries, with `before` derived from earlier committed rows instead of stored directly
 
 ### [x] Transform 2 - Canonical Hierarchy And Target Ownership
 #### Info
@@ -218,7 +237,7 @@ Decision:
 - add real object, folder, and assembly transform state paths beside the existing reference path
 - do not fake those targets by redirecting them into reference-owned transform
 
-### [ ] Transform 3 - Shared Transform Shell And Repeated Steps
+### [x] Transform 3 - Shared Transform Shell And Repeated Steps
 #### Info
 - keep the target-local transform shell alive across repeated committed steps
 - align post-commit return, lock, merge, and history-shell behavior across target kinds
@@ -257,8 +276,9 @@ Decision:
 - yes
 - preserve one shared append-on-commit, lock, and merge model across reference and later non-reference target families where the behaviors match
 - keep the shared transform shell app/store-owned so Console and toolbar stay as aligned adapter surfaces over the same session state
+- when collapsing transform history, preserve at least one surviving committed entry for each transform kind present in the merged set, so `Move`, `Rotate`, and `Scale` do not collapse dishonestly into one last unlocked row
 
-#### [ ] q4 - Should entering `Transform` itself spawn the shared transform session and toolbar?
+#### [x] q4 - Should entering `Transform` itself spawn the shared transform session and toolbar?
 
 ##### Suggestion
 - yes
@@ -266,61 +286,94 @@ Decision:
 - the toolbar should appear because that session exists, not because Console directly tells a toolbar to open
 - Console and toolbar should both adapt into the same underlying session
 
-### [ ] Transform 4 - Console Cleanup And Transform Shell Polish
+Decision:
+- yes
+- entering `Transform` should create or activate the target-local shared transform session
+- the toolbar should appear because that session exists, not because Console directly tells a toolbar to open
+- Console and toolbar should both adapt into the same underlying session
+
+Standalone phase doc:
+- `docs/Human-Plans/Architecture/Transform/Shipped/Transform_Phase Transform-3 - Shared Transform Shell And Repeated Steps.md`
+
+### [x] Transform 4 - Console Cleanup And Transform Shell Polish
 #### Header
 - clean up the remaining Console rough edges before the heavier history-visualization phase
 - make the durable transform shell read clearly and consistently in breadcrumbs, prompts, and submit ownership
 - keep this as the short bridge phase between `Transform 3` shell behavior and the later viewport-history work
-- standalone spec:
-  - `docs/Human-Plans/Architecture/Transform/Future/Transform_Phase Transform-4.2 - Reference Draft Sync And Session Cleanup.md`
 
 
-##### [ ] q1 - What Console cleanup is required before the history-visualization phase starts?
+##### [x] q1 - What Console cleanup is required before the history-visualization phase starts?
 
 ##### Suggestion
 - finish the transform-shell wording cleanup first
 - remove any stale staged-menu language that still reads like generic `Choose next` text when the transform shell should read more directly
 - keep breadcrumbs, prompt labels, and submit ownership honest to the durable `Transform` shell
 
-##### [ ] q2 - Where should `CommitTransform` surface in the Console after the shell becomes durable?
+Decision:
+- finish the transform-shell wording cleanup through shared reference-transform helpers instead of leaving the remaining policy in scattered `ConsoleDock` branches
+- keep breadcrumbs, prompt labels, path status, and handle-driven prompt depth honest to the durable `Transform` shell
+- have Console and toolbar read the same transform presentation seam so later cleanup does not drift across surfaces
+
+##### [x] q2 - Where should `CommitTransform` surface in the Console after the shell becomes durable?
 
 ##### Suggestion
 - surface `CommitTransform` at the `Transform` root only
 - do not keep it duplicated inside `Move`, `Rotate`, or `Scale`
 - let per-entry submits commit the current transform entry, while `CommitTransform` exits the shell
 
-##### [ ] q3 - What input/prompt cleanup should happen before traversal and viewport visuals are added?
+Decision:
+- surface `CommitTransform` at the `Transform` root only
+- do not duplicate it inside `Move`, `Rotate`, or `Scale`
+- let per-entry submits commit the current transform entry while `CommitTransform` exits the shell
+
+##### [x] q3 - What input/prompt cleanup should happen before traversal and viewport visuals are added?
 
 ##### Suggestion
 - make assisted vec3, axis float, and plane vec2 entry behavior fully consistent across `Move`, `Rotate`, and `Scale`
 - ensure clearing typed input cleanly restores the default assisted option where that behavior is intended
 - lock Console submit, cancel, and shortcut behavior before layering traversal or viewport-history playback on top
 
-
-#### Transform 4.1 cleanup
+Decision:
+- keep assisted vec3, axis, and plane prompt behavior aligned across `Move`, `Rotate`, and `Scale`
+- make axis prompts relative-by-default with explicit absolute `@...` override, and keep live prompt autofill honest about that absolute value
+- make axis/plane escape cancel live drag cleanly and step back without re-opening stale prompts
+- return committed axis/plane and root shorthand submits back to the shared `Transform` root before later traversal or viewport-history work is layered on top
 
 #### Transform 4.2
 
-##### [ ] q4.2-1 - Should reference transform get one explicit active draft session object in store?
+##### [x] q4.2-1 - Should reference transform get one explicit active draft session object in store?
 
 ###### Suggestion
 - yes
 - replace the current spread-across-several-fields model with one honest active draft session for the active reference transform
 
-##### [ ] q4.2-2 - During a live reference transform entry, should Console and toolbar read from the draft session directly?
+Decision:
+- yes
+- replace the current spread-across-several-fields model with one honest active draft session for the active reference transform
+
+##### [x] q4.2-2 - During a live reference transform entry, should Console and toolbar read from the draft session directly?
 
 ###### Suggestion
 - yes
 - Console and toolbar should both read the same live draft object directly instead of reconstructing state from committed override fields
 
-##### [ ] q4.2-3 - Should viewer gizmo changes write into the active draft continuously?
+Decision:
+- yes
+- Console and toolbar should both read the same live draft object directly instead of reconstructing state from committed override fields
+
+##### [x] q4.2-3 - Should viewer gizmo changes write into the active draft continuously?
 
 ###### Suggestion
 - yes
 - mirror the sketch-plane pattern
 - keep the viewer as execution owner while the store remains the draft/session owner
 
-##### [ ] q4.2-4 - Should commit promote the draft into committed transform state and history, while cancel restores from entry origin?
+Decision:
+- yes
+- mirror the sketch-plane pattern
+- keep the viewer as execution owner while the store remains the draft/session owner
+
+##### [x] q4.2-4 - Should commit promote the draft into committed transform state and history, while cancel restores from entry origin?
 
 ###### Suggestion
 - yes
@@ -329,11 +382,25 @@ Decision:
 - keep existing committed history intact during this cleanup
 - defer grouped transform-session history like `Transform 1`, `Transform 2`, and later session rows to `Transform 4.3`
 
-##### [ ] q4.2-5 - Should `Transform 4.2` stay reference-first, or widen to object, folder, and assembly in the same pass?
+Decision:
+- yes
+- commit should promote the draft into committed transform state and append history when the value changed
+- cancel should restore draft and applied state from the captured entry origin
+- keep existing committed history intact during this cleanup
+- defer grouped transform-session history like `Transform 1`, `Transform 2`, and later session rows to `Transform 4.3`
+
+##### [x] q4.2-5 - Should `Transform 4.2` stay reference-first, or widen to object, folder, and assembly in the same pass?
 
 ###### Suggestion
 - keep it reference-first
 - prove the shared draft/session cleanup on the existing reference path before widening it to other target kinds
+
+Decision:
+- keep it reference-first
+- prove the shared draft/session cleanup on the existing reference path before widening it to other target kinds
+
+Standalone phase doc:
+- `docs/Human-Plans/Architecture/Transform/Shipped/Transform_Phase Transform-4.2 - Reference Draft Sync And Session Cleanup.md`
 
 
 #### Transform 4.3
@@ -424,41 +491,169 @@ Decision:
 - let the label reflect the original shell-session order, not the current visible row order
 
 Standalone phase doc:
-- `docs/Human-Plans/Architecture/Transform/Future/Transform_Phase Transform-4.3 - Grouped Session History.md`
+- `docs/Human-Plans/Architecture/Transform/Shipped/Transform_Phase Transform-4.3 - Grouped Session History.md`
 
 #### Transform 4.4
 
-- 
+- shipped cleanup:
+  - extracted shared reference-transform breadcrumb, prompt, prefill, status-path, and handle-resolution helpers out of `ConsoleDock`
+  - aligned `ConsoleDock` and `ReferenceTransformToolbar` around that shared transform presentation seam
+  - finished the remaining reference transform shell polish around handle-driven prompt sync, escape/cancel behavior, relative-versus-absolute axis entry, and direct root scalar commit for `Rotate` / `Scale`
+
+Standalone phase doc:
+- `docs/Human-Plans/Architecture/Transform/Shipped/Transform_Phase Transform-4.4 - Console And Toolbar Adapter Cleanup.md`
 
 
 
 
-### [ ] Transform 5 - Viewport History Visuals And Traversal
+### [x] Transform 5 - Viewport History Visual Baseline
 
-- land move, scale, and rotate viewport history visuals
-- add traversal / preview / restore behavior
-- finish with any later shared transform-session cleanup only after the target paths have stabilized
+- land the first committed viewport history visuals before any scrub behavior
+- start with move-history path rendering that matches the shipped `SketchPlane` committed history line behavior
+- keep traversal / scrub behavior out of scope for this first visual pass
 
-#### [ ] q1 - How should committed move history render in the viewport?
+#### [x] q1 - How should committed move history render in the viewport?
 
 ##### Suggestion
+- copy the shipped `SketchPlane` committed history line behavior
 - draw a connected path from the original origin through each successive committed moved origin point
+- render it as the same thin committed polyline the shipped `SketchPlane` history uses, with visible checkpoint turns where the committed path changes direction
 - keep the visual aligned with the same committed history list shown in the toolbar
+- keep the live in-progress transform guide separate from the committed path
 
-#### [ ] q2 - How should committed scale and rotate history render in the viewport?
+Decision:
+- copy the shipped `SketchPlane` committed history line behavior for the first move-history viewport pass
+- draw a connected path from the original origin through each successive committed moved origin point
+- render it as the same thin committed polyline the shipped `SketchPlane` history uses, with visible checkpoint turns where the committed path changes direction
+- keep the visual aligned with the same committed history list shown in the toolbar
+- keep the live in-progress transform guide separate from the committed path
+
+#### [x] q2 - How should committed scale and rotate history render in the viewport?
 
 ##### Suggestion
 - scale:
-  - compare original and committed scale with overlay shapes
-  - use an ellipsoid-style overlay when scale is non-uniform
+  - compare the relative size of a before-versus-after sphere
+  - keep the first pass readable as a size comparison instead of a busy generic overlay stack
 - rotate:
-  - compare original and committed plane-normal directions
-  - render an AutoCAD-style angle-dimension guide between them without requiring a numeric label
+  - show the normal direction before and after the committed rotate
+  - render an arc between those two normals to show the angle change without requiring a numeric label
 
-#### [ ] q3 - What clutter and traversal rules should govern viewport history visuals?
+Decision:
+- scale history should compare the relative size of a before-versus-after sphere in the first viewport pass
+- rotate history should show the normal direction before and after the committed rotate
+- rotate history should render an arc between those two normals to show the angle change without requiring a numeric label
+
+#### [ ] q3 - What clutter rules should govern viewport history visuals?
 
 ##### Suggestion
 - selected or active history rows should render strongest
 - older history visuals should stay visible but faded
 - merged-away rows should disappear from both the toolbar and viewport visuals
-- traversal / preview / restore should be layered onto the same committed history model rather than inventing a second unsynced path
+
+Standalone phase doc:
+- `docs/Human-Plans/Architecture/Transform/Shipped/Transform_Phase Transform-5 - Viewport History Visual Baseline.md`
+
+### [ ] Transform 6 - History Scrub / Traversal
+
+- add the actual scrub layer over committed transform history after the first viewport visuals exist
+- let the scrub head define the active rendered committed-history position without inventing a second unsynced history model
+- define how new commits behave when they start from an earlier scrub point
+
+#### [x] q1 - What does traversal mean in this transform family?
+
+##### Suggestion
+- traversal is the actual scrub layer
+- it should mean stepping through committed transform history and letting the scrubbed committed position become the active rendered transform state from that same committed model
+- do not mix this into the first viewport-visual baseline phase
+
+Decision:
+- traversal is the actual scrub layer in this transform family
+- it should mean stepping through committed transform history and letting the scrubbed committed position become the active rendered transform state from that same committed model
+- do not mix this into the first viewport-visual baseline phase
+
+#### [x] q2 - What history granularity should traversal target first?
+
+##### Suggestion
+- start entry-first
+- let traversal step through committed child entries before inventing session-level playback behavior
+- keep grouped session rows as presentation over the same child-entry truth
+
+Decision:
+- start traversal at committed child-entry granularity
+- let traversal step through committed child entries before inventing session-level playback behavior
+- keep grouped session rows as presentation over the same child-entry truth
+
+#### [x] q3 - How should scrub state behave?
+
+##### Suggestion
+- the scrub head should directly define the active rendered committed-history position
+- returning the scrub head to the tail should return to the newest committed state
+- do not invent a separate preview mode or restore action in the first pass
+
+Decision:
+- the scrub head should directly define the active rendered committed-history position
+- returning the scrub head to the tail should return to the newest committed state
+- do not invent a separate preview mode or restore action in the first pass
+- scrub alone should never append a new history row
+
+#### [x] q4 - How should traversal enter first?
+
+##### Suggestion
+- make the first traversal control a history paraslider
+- let the user drag that paraslider from committed entry `0` through the last committed entry
+- let the scrub head drive which landed committed state is active
+- keep grouped parent rows as expand/collapse presentation only, not as the first traversal unit
+
+Decision:
+- make the first traversal control a history paraslider
+- let the user drag that paraslider from committed entry `0` through the last committed entry
+- let the scrub head drive which landed committed state is active
+- when traversal is inactive, keep the paraslider pinned at `100%` on the newest committed entry
+- after each new history commit, auto-advance that idle paraslider to the newest committed entry
+- keep grouped parent rows as expand/collapse presentation only, not as the first traversal unit
+
+#### [x] q5 - Do we need an explicit restore action in the first pass?
+
+##### Suggestion
+- no
+- let the scrub head itself own the active rendered history position
+- returning the scrub head to the tail is enough to return to the newest committed state
+- keep first-pass commit behavior focused on append-at-tail and insert-after-scrub-point, not a separate restore command
+
+Decision:
+- no
+- let the scrub head itself own the active rendered history position
+- returning the scrub head to the tail is enough to return to the newest committed state
+- keep first-pass commit behavior focused on append-at-tail and insert-after-scrub-point, not a separate restore command
+
+#### [x] q6 - How should traversal emphasis coordinate across toolbar and viewport?
+
+##### Suggestion
+- when the scrub head is on an earlier entry, later committed entries should deactivate
+- future committed history lines beyond the scrub head should stop rendering in the viewport
+- the currently scrubbed committed row should render strongest in both toolbar and viewport
+- if traversal is inactive or the scrub head is at the last committed entry, fall back to the normal full committed-history read
+
+Decision:
+- when the scrub head is on an earlier entry, later committed entries should deactivate
+- future committed history lines beyond the scrub head should stop rendering in the viewport
+- the currently scrubbed committed row should render strongest in both toolbar and viewport
+- if traversal is inactive or the scrub head is at the last committed entry, fall back to the normal full committed-history read
+
+#### [x] q7 - What should happen to the live transform shell while traversal scrub is active?
+
+##### Suggestion
+- traversal scrub should suspend live entry editing while it is active
+- clear any active gizmo handle and keep the shell at the shared `Transform` root while scrub is driving the rendered state
+- returning the scrub head to the tail should return to the real current committed state
+- do not let traversal scrub silently append history or remain mixed with an in-progress drag entry
+
+Decision:
+- traversal scrub should suspend any already-active live entry while it is active
+- clear any active gizmo handle and keep the shell at the shared `Transform` root while scrub is driving the rendered state
+- if the user starts and commits a new transform step while scrubbed to an earlier committed entry, insert that new committed row immediately after the scrubbed entry rather than only appending at the old tail
+- keep the old future committed rows after that insertion point, replay them from the new inserted row onward, and renumber the child-entry labels to the new visible order
+- returning the scrub head to the tail without a new commit should return to the real current live draft / committed state
+
+Standalone phase doc:
+- `docs/Human-Plans/Architecture/Transform/Future/Transform_Phase Transform-6 - History Traversal Preview And Restore.md`

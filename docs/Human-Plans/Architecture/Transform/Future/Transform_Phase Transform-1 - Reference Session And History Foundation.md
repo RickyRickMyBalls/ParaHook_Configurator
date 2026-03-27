@@ -171,16 +171,14 @@ Recommended first entry shape:
   - `move`
   - `rotate`
   - `scale`
-- absolute committed vec3 value
+- committed `delta` vec3 value
+- landed absolute `after` vec3 value
 - `locked`
 
 Display rule:
-- store absolute committed snapshots
-- derive human-readable row deltas against the previous committed entry
-- row labels should read like:
-  - `Move Vec(+x, +y, +z)`
-  - `Rotate Vec(+x, +y, +z)`
-  - `Scale Vec(+x, +y, +z)`
+- keep `before` derived instead of stored
+- show the landed absolute `after` in the row title
+- bind row sliders to the stored `delta`
 
 Baseline rule:
 - first `Move` and `Rotate` deltas read against `(0, 0, 0)`
@@ -198,6 +196,8 @@ Locked rule:
   - one row per committed transform entry
   - `Lock/Unlock` action per row
   - `Merge History` action in the section header
+  - child row title shows landed absolute `after`
+  - child row sliders edit the row `delta`
 
 Merge rule:
 - preserve the last row

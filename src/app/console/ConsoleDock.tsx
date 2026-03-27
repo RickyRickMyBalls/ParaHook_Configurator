@@ -21,7 +21,6 @@ import {
   buildObjectPartKeys,
   resolveSingleTargetContentSelection,
   selectConsoleWorkspaceContextTarget,
-  selectReferenceWorkspaceItems,
   selectReferenceWorkspaceBrowserTree,
   useAppStore,
 } from '../store/useAppStore'
@@ -53,6 +52,19 @@ import { ConsoleBar } from './ConsoleBar'
 import { ConsolePanel } from './ConsolePanel'
 import { resolveConsoleRadioCommandIdentity } from './radioCommandIdentity'
 import {
+  applyReferenceTransformAxisValue,
+  applyReferenceTransformPlaneValue,
+  applyReferenceTransformVec3Value,
+  buildReferenceConsoleWorkspaceTarget,
+  buildReferenceTransformAssistDescriptor,
+  buildReferenceTransformAxisPromptSession,
+  buildReferenceTransformPlanePromptSession,
+  getReferenceTransformPromptPrefill,
+  isSameReferenceTransformPromptSession,
+  parseReferenceTransformAxisInput,
+  resolveReferenceTransformPromptSessionFromHandle,
+} from './referenceTransformConsole'
+import {
   appendConsoleEntry,
   formatConsoleEntryLayerLabel,
   isConsoleEntryVisible,
@@ -64,6 +76,7 @@ import {
   buildReferenceTransformRootChoices,
   cancelConsoleStagedNavigationSession,
   createConsoleRootSession,
+  createReferenceTransformRootSessionForTarget,
   createSketchDrawZoomRootSession,
   createSketchDrawRootSession,
   createConsoleStagedNavigationContext,
@@ -331,115 +344,6 @@ const formatSketchPlaneVec3ChoiceLabel = (values: {
   z: number
 }): string =>
   `Vec3(${values.x.toFixed(1)}, ${values.y.toFixed(1)}, ${values.z.toFixed(1)})`
-
-const formatReferenceTransformVec3Status = (values: {
-  x: number
-  y: number
-  z: number
-}): string =>
-  `Vec3 [${values.x.toFixed(1)}, ${values.y.toFixed(1)}, ${values.z.toFixed(1)}]`
-
-const getReferenceTransformModeLabel = (
-  mode: NonNullable<
-    ReturnType<typeof useAppStore.getState>['referenceWorkspace']['activeReferenceTransformSession']
-  >['mode'],
-): 'Move' | 'Rotate' | 'Scale' => {
-  switch (mode) {
-    case 'rotate':
-      return 'Rotate'
-    case 'scale':
-      return 'Scale'
-    case 'translate':
-      return 'Move'
-  }
-}
-
-const buildReferenceTransformConsoleBreadcrumb = ({
-  referenceLabel,
-  stagedNavigationSession,
-  mode,
-  leafLabel = null,
-}: {
-  referenceLabel: string | null
-  stagedNavigationSession: ConsoleStagedNavigationSession | null
-  mode: NonNullable<
-    ReturnType<typeof useAppStore.getState>['referenceWorkspace']['activeReferenceTransformSession']
-  >['mode']
-  leafLabel?: string | null
-}): string[] => {
-  const modeLabel = getReferenceTransformModeLabel(mode)
-  const resolvedReferenceLabel = referenceLabel ?? 'Reference'
-  const breadcrumbBase =
-    stagedNavigationSession?.scopeId === 'referenceTransformRoot'
-      ? stagedNavigationSession.breadcrumb
-      : ['Select', 'Reference', resolvedReferenceLabel, 'Transform']
-  return [...breadcrumbBase, leafLabel ?? modeLabel]
-}
-
-const getReferenceTransformCurrentVector = (
-  referenceWorkspace: ReturnType<typeof useAppStore.getState>['referenceWorkspace'],
-): { x: number; y: number; z: number } => {
-  const activeSession = referenceWorkspace.activeReferenceTransformSession
-  const activeTransformOverride = activeSession?.draftTransform ?? {
-    position: { x: 0, y: 0, z: 0 },
-    rotationDeg: { x: 0, y: 0, z: 0 },
-    scale: { x: 1, y: 1, z: 1 },
-  }
-  switch (activeSession?.mode ?? 'translate') {
-    case 'rotate':
-      return activeTransformOverride.rotationDeg
-    case 'scale':
-      return activeTransformOverride.scale
-    case 'translate':
-      return activeTransformOverride.position
-  }
-}
-
-const buildReferenceConsoleWorkspaceTarget = (
-  referenceWorkspace: ReturnType<typeof useAppStore.getState>['referenceWorkspace'],
-  referenceId: string,
-  fallbackLabel?: string | null,
-) => {
-  const referenceItem =
-    selectReferenceWorkspaceItems({ referenceWorkspace }).find(
-      (item) => item.referenceId === referenceId,
-    ) ?? null
-  const categoryId = referenceItem?.categoryId ?? 'shoes'
-  const categoryLabel =
-    selectReferenceWorkspaceBrowserTree({ referenceWorkspace }).categories.find(
-      (category) => category.categoryId === categoryId,
-    )?.label ??
-    referenceItem?.categoryId ??
-    'References'
-  return {
-    kind: 'reference-item' as const,
-    referenceId,
-    label: referenceItem?.label ?? fallbackLabel ?? referenceId,
-    fallbackGraphDocumentId: null,
-    canLoadModel: referenceItem ? !referenceItem.isVisible && referenceItem.loadState !== 'error' : false,
-    referenceCategoryId: categoryId,
-    referenceCategoryLabel: categoryLabel,
-  }
-}
-
-const buildReferenceTransformAssistChoices = (
-  currentVector: { x: number; y: number; z: number },
-): ConsoleAssistDescriptor['choices'] => {
-  const vec3Label = formatReferenceTransformVec3Status(currentVector)
-  return [
-    {
-      canonicalToken: 'VEC3',
-      aliases: [vec3Label.trim().toUpperCase()],
-      label: vec3Label,
-    },
-    { canonicalToken: 'X', aliases: [], label: 'X' },
-    { canonicalToken: 'Y', aliases: [], label: 'Y' },
-    { canonicalToken: 'Z', aliases: [], label: 'Z' },
-    { canonicalToken: 'XY', aliases: [], label: 'XY' },
-    { canonicalToken: 'XZ', aliases: [], label: 'XZ' },
-    { canonicalToken: 'YZ', aliases: [], label: 'YZ' },
-  ]
-}
 
 const formatSketchPlaneAxisValueToken = (value: number): string => value.toFixed(1)
 
@@ -720,41 +624,6 @@ const buildSketchDrawCameraProjectionAssistDescriptor = (): ConsoleAssistDescrip
   }
 }
 
-const buildReferenceTransformAssistDescriptor = (
-  referenceWorkspace: ReturnType<typeof useAppStore.getState>['referenceWorkspace'],
-  stagedNavigationSession: ConsoleStagedNavigationSession | null,
-): ConsoleAssistDescriptor | null => {
-  const activeSession = referenceWorkspace.activeReferenceTransformSession
-  const activeReferenceId = activeSession?.referenceId ?? null
-  if (activeSession === null || !activeSession.entryActive) {
-    return null
-  }
-  const activeReference =
-    selectReferenceWorkspaceItems({ referenceWorkspace }).find(
-      (item) => item.referenceId === activeReferenceId,
-    ) ?? null
-  const transformOverride = activeSession.draftTransform
-  const currentVector =
-    activeSession.mode === 'rotate'
-      ? transformOverride.rotationDeg
-      : activeSession.mode === 'scale'
-        ? transformOverride.scale
-        : transformOverride.position
-  const referenceLabel = activeReference?.label ?? activeReferenceId
-  const vec3Label = formatReferenceTransformVec3Status(currentVector)
-  const breadcrumb = buildReferenceTransformConsoleBreadcrumb({
-    referenceLabel,
-    stagedNavigationSession,
-    mode: activeSession.mode,
-  })
-  return {
-    label: formatStagedBreadcrumb(breadcrumb),
-    breadcrumb,
-    choices: buildReferenceTransformAssistChoices(currentVector),
-    prefill: vec3Label,
-  }
-}
-
 const getActiveFeatureAssistDescriptor = ({
   sketchPlanePickSession,
   geometrySketchSession,
@@ -876,142 +745,30 @@ const buildStagedPromptText = (
   return scopeLabel === null ? baseText : `${scopeLabel} > ${baseText}`
 }
 
-const buildConsolePromptSessionText = (promptSession: Pick<
-  ConsolePromptSession,
-  'breadcrumb' | 'prefill'
->): string => `${formatStagedBreadcrumb(promptSession.breadcrumb)} > Enter value [${promptSession.prefill}]`
+const buildReferenceTransformAxisPromptChoices = (
+  promptSession: Extract<ConsolePromptSession, { kind: 'reference-transform.axis' }>,
+): string[] => {
+  const siblingAxes = (['X', 'Y', 'Z'] as const).filter(
+    (axis) => axis !== promptSession.axis.toUpperCase(),
+  )
+  const modeChoices =
+    promptSession.mode === 'translate'
+      ? ['Scale', 'Rotate']
+      : promptSession.mode === 'rotate'
+        ? ['Move', 'Scale']
+        : ['Move', 'Rotate']
+  return ['Enter value', ...siblingAxes, ...modeChoices]
+}
 
-const formatReferenceTransformAxisPromptPrefill = (value: number): string => `@${value}`
-
-const getReferenceTransformPromptPrefill = (
-  promptSession: Extract<ConsolePromptSession, { kind: 'reference-transform.axis' | 'reference-transform.plane' }>,
-  referenceWorkspace: ReturnType<typeof useAppStore.getState>['referenceWorkspace'],
+const buildConsolePromptSessionText = (
+  promptSession: ConsolePromptSession,
 ): string => {
-  const currentVector = getReferenceTransformCurrentVector(referenceWorkspace)
   if (promptSession.kind === 'reference-transform.axis') {
-    return formatReferenceTransformAxisPromptPrefill(currentVector[promptSession.axis])
+    return `${formatStagedBreadcrumb(promptSession.breadcrumb)} > Choose next [${buildReferenceTransformAxisPromptChoices(
+      promptSession,
+    ).join(', ')}]`
   }
-  return formatReferenceTransformVec3Status(currentVector)
-}
-
-const buildReferenceTransformAxisPromptSession = ({
-  referenceWorkspace,
-  stagedNavigationSession,
-  axis,
-}: {
-  referenceWorkspace: ReturnType<typeof useAppStore.getState>['referenceWorkspace']
-  stagedNavigationSession: ConsoleStagedNavigationSession | null
-  axis: 'x' | 'y' | 'z'
-}): Extract<ConsolePromptSession, { kind: 'reference-transform.axis' }> | null => {
-  const activeSession = referenceWorkspace.activeReferenceTransformSession
-  const activeReferenceId = activeSession?.referenceId ?? null
-  if (activeSession === null || activeReferenceId === null) {
-    return null
-  }
-  const activeReference =
-    selectReferenceWorkspaceItems({ referenceWorkspace }).find(
-      (item) => item.referenceId === activeReferenceId,
-    ) ?? null
-  const currentVector = getReferenceTransformCurrentVector(referenceWorkspace)
-  const session = stagedNavigationSession ?? createConsoleRootSession()
-  const referenceLabel = activeReference?.label ?? activeReferenceId
-  const modeLabel = getReferenceTransformModeLabel(activeSession.mode)
-  const breadcrumb = [
-    ...buildReferenceTransformConsoleBreadcrumb({
-      referenceLabel,
-      stagedNavigationSession: session,
-      mode: activeSession.mode,
-    }),
-    `${modeLabel} ${axis.toUpperCase()}`,
-  ]
-  return {
-    kind: 'reference-transform.axis',
-    breadcrumb,
-    label: formatStagedBreadcrumb(breadcrumb),
-    prefill: formatReferenceTransformAxisPromptPrefill(currentVector[axis]),
-    returnSession: session,
-    mode: activeSession.mode,
-    axis,
-  }
-}
-
-const buildReferenceTransformPlanePromptSession = ({
-  referenceWorkspace,
-  stagedNavigationSession,
-  plane,
-}: {
-  referenceWorkspace: ReturnType<typeof useAppStore.getState>['referenceWorkspace']
-  stagedNavigationSession: ConsoleStagedNavigationSession | null
-  plane: 'xy' | 'xz' | 'yz'
-}): Extract<ConsolePromptSession, { kind: 'reference-transform.plane' }> | null => {
-  const activeSession = referenceWorkspace.activeReferenceTransformSession
-  const activeReferenceId = activeSession?.referenceId ?? null
-  if (activeSession === null || activeReferenceId === null) {
-    return null
-  }
-  const activeReference =
-    selectReferenceWorkspaceItems({ referenceWorkspace }).find(
-      (item) => item.referenceId === activeReferenceId,
-    ) ?? null
-  const session = stagedNavigationSession ?? createConsoleRootSession()
-  const referenceLabel = activeReference?.label ?? activeReferenceId
-  const modeLabel = getReferenceTransformModeLabel(activeSession.mode)
-  const breadcrumb = [
-    ...buildReferenceTransformConsoleBreadcrumb({
-      referenceLabel,
-      stagedNavigationSession: session,
-      mode: activeSession.mode,
-    }),
-    `${modeLabel} ${plane.toUpperCase()}`,
-  ]
-  return {
-    kind: 'reference-transform.plane',
-    breadcrumb,
-    label: formatStagedBreadcrumb(breadcrumb),
-    prefill: formatReferenceTransformVec3Status(
-      getReferenceTransformCurrentVector(referenceWorkspace),
-    ),
-    returnSession: session,
-    mode: activeSession.mode,
-    plane,
-  }
-}
-
-const isSameReferenceTransformPromptSession = (
-  currentPromptSession: ConsolePromptSession | null,
-  nextPromptSession:
-    | Extract<ConsolePromptSession, { kind: 'reference-transform.axis' }>
-    | Extract<ConsolePromptSession, { kind: 'reference-transform.plane' }>
-    | null,
-): boolean => {
-  if (currentPromptSession === nextPromptSession) {
-    return true
-  }
-  if (currentPromptSession === null || nextPromptSession === null) {
-    return false
-  }
-  if (currentPromptSession.kind !== nextPromptSession.kind) {
-    return false
-  }
-  if (
-    currentPromptSession.kind === 'reference-transform.axis' &&
-    nextPromptSession.kind === 'reference-transform.axis'
-  ) {
-    return (
-      currentPromptSession.mode === nextPromptSession.mode &&
-      currentPromptSession.axis === nextPromptSession.axis
-    )
-  }
-  if (
-    currentPromptSession.kind === 'reference-transform.plane' &&
-    nextPromptSession.kind === 'reference-transform.plane'
-  ) {
-    return (
-      currentPromptSession.mode === nextPromptSession.mode &&
-      currentPromptSession.plane === nextPromptSession.plane
-    )
-  }
-  return false
+  return `${formatStagedBreadcrumb(promptSession.breadcrumb)} > Enter value [${promptSession.prefill}]`
 }
 
 const buildRootPromptText = (
@@ -1100,82 +857,6 @@ const parseConsoleVec3Literal = (
   return { x, y, z }
 }
 
-const applyReferenceTransformAxisValue = (
-  transformOverride: NonNullable<ReturnType<typeof useAppStore.getState>['referenceWorkspace']['transformOverrideById'][string]> | null,
-  mode: 'translate' | 'rotate' | 'scale',
-  axis: 'x' | 'y' | 'z',
-  value: number,
-  options?: {
-    absolute?: boolean
-  },
-) => {
-  const nextTransformOverride = transformOverride ?? {
-    position: { x: 0, y: 0, z: 0 },
-    rotationDeg: { x: 0, y: 0, z: 0 },
-    scale: { x: 1, y: 1, z: 1 },
-  }
-  const targetKey =
-    mode === 'rotate' ? 'rotationDeg' : mode === 'scale' ? 'scale' : 'position'
-  const currentValue = nextTransformOverride[targetKey][axis]
-  return {
-    position: { ...nextTransformOverride.position },
-    rotationDeg: { ...nextTransformOverride.rotationDeg },
-    scale: { ...nextTransformOverride.scale },
-    [targetKey]: {
-      ...nextTransformOverride[targetKey],
-      [axis]: options?.absolute === true ? value : currentValue + value,
-    },
-  }
-}
-
-const applyReferenceTransformPlaneValue = (
-  transformOverride: NonNullable<ReturnType<typeof useAppStore.getState>['referenceWorkspace']['transformOverrideById'][string]> | null,
-  mode: 'translate' | 'rotate' | 'scale',
-  plane: 'xy' | 'xz' | 'yz',
-  value: { x: number; y: number; z: number },
-) => {
-  const nextTransformOverride = transformOverride ?? {
-    position: { x: 0, y: 0, z: 0 },
-    rotationDeg: { x: 0, y: 0, z: 0 },
-    scale: { x: 1, y: 1, z: 1 },
-  }
-  const targetKey =
-    mode === 'rotate' ? 'rotationDeg' : mode === 'scale' ? 'scale' : 'position'
-  const currentVector = nextTransformOverride[targetKey]
-  const axes =
-    plane === 'xy' ? (['x', 'y'] as const) : plane === 'xz' ? (['x', 'z'] as const) : (['y', 'z'] as const)
-  const nextVector = { x: currentVector.x, y: currentVector.y, z: currentVector.z }
-  axes.forEach((axis) => {
-    nextVector[axis] = value[axis]
-  })
-  return {
-    position: { ...nextTransformOverride.position },
-    rotationDeg: { ...nextTransformOverride.rotationDeg },
-    scale: { ...nextTransformOverride.scale },
-    [targetKey]: nextVector,
-  }
-}
-
-const applyReferenceTransformVec3Value = (
-  transformOverride: NonNullable<ReturnType<typeof useAppStore.getState>['referenceWorkspace']['transformOverrideById'][string]> | null,
-  mode: 'translate' | 'rotate' | 'scale',
-  value: { x: number; y: number; z: number },
-) => {
-  const nextTransformOverride = transformOverride ?? {
-    position: { x: 0, y: 0, z: 0 },
-    rotationDeg: { x: 0, y: 0, z: 0 },
-    scale: { x: 1, y: 1, z: 1 },
-  }
-  const targetKey =
-    mode === 'rotate' ? 'rotationDeg' : mode === 'scale' ? 'scale' : 'position'
-  return {
-    position: { ...nextTransformOverride.position },
-    rotationDeg: { ...nextTransformOverride.rotationDeg },
-    scale: { ...nextTransformOverride.scale },
-    [targetKey]: { x: value.x, y: value.y, z: value.z },
-  }
-}
-
 const parseConsoleSignedFloatLiteral = (input: string): number | null => {
   const trimmed = input.trim()
   if (!/^[+-]?(?:\d+(?:\.\d+)?|\.\d+)$/u.test(trimmed)) {
@@ -1183,30 +864,6 @@ const parseConsoleSignedFloatLiteral = (input: string): number | null => {
   }
   const value = Number(trimmed)
   return Number.isFinite(value) ? value : null
-}
-
-const parseReferenceTransformAxisInput = (
-  input: string,
-): { value: number; absolute: boolean } | null => {
-  const trimmed = input.trim()
-  if (trimmed.startsWith('@')) {
-    const absoluteValue = parseConsoleSignedFloatLiteral(trimmed.slice(1))
-    if (absoluteValue === null) {
-      return null
-    }
-    return {
-      value: absoluteValue,
-      absolute: true,
-    }
-  }
-  const relativeValue = parseConsoleSignedFloatLiteral(trimmed)
-  if (relativeValue === null) {
-    return null
-  }
-  return {
-    value: relativeValue,
-    absolute: false,
-  }
 }
 
 const isValueAlignedToStep = (value: number, step: number): boolean => {
@@ -1456,6 +1113,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
   const graphRootEditorRevealRestoreRef = useRef<GraphRootEditorRevealRestore | null>(null)
   const rootGuidedOptOutRef = useRef(false)
   const lastHandledConsoleContextSyncSeqRef = useRef(0)
+  const suppressNextReferenceTransformShellExitRef = useRef(false)
   const previousSketchPlanePickSessionRef = useRef<
     ReturnType<typeof useSpaghettiStore.getState>['sketchPlanePickSession']
   >(null)
@@ -1778,9 +1436,26 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
     getViewer()?.cancelReferenceTransformDrag()
     getViewer()?.clearReferenceTransformHandle()
     appState.cancelActiveReferenceTransformEntry()
-    getViewer()?.setReferenceTransformOverride(activeReferenceId, baseline)
+    getViewer()?.setReferenceTransformOverride?.(activeReferenceId, baseline)
     useConsoleStore.getState().clearConsolePromptSession()
-  }, [])
+
+    const latestReferenceWorkspace = useAppStore.getState().referenceWorkspace
+    const target = buildReferenceConsoleWorkspaceTarget(latestReferenceWorkspace, activeReferenceId)
+    const context = buildStagedNavigationContextFromStoreState(useSpaghettiStore.getState())
+    suppressNextReferenceTransformShellExitRef.current = true
+    queueMicrotask(() => {
+      suppressNextReferenceTransformShellExitRef.current = false
+    })
+    setStagedNavigationSession(
+      createReferenceTransformRootSessionForTarget(
+        context,
+        target.label,
+        activeReferenceId,
+        target.referenceCategoryId,
+        target.referenceCategoryLabel,
+      ),
+    )
+  }, [setStagedNavigationSession])
 
   const exitActiveReferenceTransformShell = useCallback(() => {
     const appState = useAppStore.getState()
@@ -2017,8 +1692,17 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
       activeReferenceSession !== null &&
       !activeReferenceSession.entryActive
     ) {
+      if (suppressNextReferenceTransformShellExitRef.current) {
+        return
+      }
       appendEscUserEntry()
       exitActiveReferenceTransformShell()
+      return
+    }
+    if (
+      activeReferenceSession?.entryActive === true
+    ) {
+      cancelActiveReferenceTransformSession()
       return
     }
     if (stepActiveStagedNavigationSessionOneLevel()) {
@@ -2026,12 +1710,6 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
     }
     setConsoleCameraModeCommand(null)
     const spaghettiState = useSpaghettiStore.getState()
-    if (
-      activeReferenceSession?.entryActive === true
-    ) {
-      cancelActiveReferenceTransformSession()
-      return
-    }
     if (spaghettiState.sketchPlanePickSession !== null) {
       spaghettiState.runSketchPlaneCommand('esc')
       return
@@ -2179,6 +1857,12 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
   }, [])
 
   const commitActiveReferenceTransformFromConsole = useCallback((rawToken: string) => {
+    const appState = useAppStore.getState()
+    const activeSession = appState.referenceWorkspace.activeReferenceTransformSession
+    const activeReferenceId = activeSession?.referenceId ?? null
+    if (activeSession === null || activeReferenceId === null) {
+      return
+    }
     const commandIdentity = resolveFeatureAssistSubmitIdentity(rawToken)
     appendConsoleEntry({
       layer: 'Commands',
@@ -2187,9 +1871,27 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
     })
     pushCommandHistory(rawToken)
     requestRadioBurst(commandIdentity, 'enter')
-    getViewer()?.commitReferenceTransformSession()
+    appState.setActiveReferenceTransformHandle(null)
+    getViewer()?.clearReferenceTransformHandle?.()
+    appState.commitActiveReferenceTransformEntry()
     useConsoleStore.getState().clearConsolePromptSession()
-  }, [pushCommandHistory, requestRadioBurst, resolveFeatureAssistSubmitIdentity])
+    const nextAppState = useAppStore.getState()
+    const target = buildReferenceConsoleWorkspaceTarget(
+      nextAppState.referenceWorkspace,
+      activeReferenceId,
+    )
+    const nextTransformRootSession = createReferenceTransformRootSessionForTarget(
+      buildStagedNavigationContextFromStoreState(useSpaghettiStore.getState()),
+      target.label,
+      target.referenceId,
+      target.referenceCategoryId,
+      target.referenceCategoryLabel,
+    )
+    setStagedNavigationSession(nextTransformRootSession)
+    useConsoleStore.getState().setInputText(
+      nextTransformRootSession.validChoices[0]?.label ?? '',
+    )
+  }, [pushCommandHistory, requestRadioBurst, resolveFeatureAssistSubmitIdentity, setStagedNavigationSession])
 
   const openReferenceTransformAxisPrompt = useCallback((
     axis: 'x' | 'y' | 'z',
@@ -2241,6 +1943,52 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
     }
   }, [])
 
+  const cancelReferenceTransformLeafForTransition = useCallback(() => {
+    const appState = useAppStore.getState()
+    const activeSession = appState.referenceWorkspace.activeReferenceTransformSession
+    const activeReferenceId = activeSession?.referenceId ?? null
+    if (activeSession === null || activeReferenceId === null) {
+      return null
+    }
+    const baseline =
+      activeSession.entryOrigin ?? activeSession.draftTransform
+    getViewer()?.cancelReferenceTransformDrag?.()
+    getViewer()?.clearReferenceTransformHandle?.()
+    appState.setActiveReferenceTransformHandle(null)
+    appState.cancelActiveReferenceTransformEntry()
+    appState.setActiveReferenceTransformDraft(baseline)
+    getViewer()?.setReferenceTransformOverride?.(activeReferenceId, baseline)
+    useConsoleStore.getState().clearConsolePromptSession()
+    return {
+      referenceId: activeReferenceId,
+      space: activeSession.space,
+    }
+  }, [])
+
+  const transitionReferenceTransformAxisPrompt = useCallback((
+    next: {
+      mode: 'translate' | 'rotate' | 'scale'
+      axis?: 'x' | 'y' | 'z'
+    },
+  ) => {
+    const transitionState = cancelReferenceTransformLeafForTransition()
+    if (transitionState === null) {
+      return
+    }
+    const appState = useAppStore.getState()
+    appState.beginReferenceTransformEntry(next.mode)
+    getViewer()?.setReferenceTransformSession?.({
+      referenceId: transitionState.referenceId,
+      mode: next.mode,
+      space: transitionState.space,
+    })
+    if (next.axis !== undefined) {
+      openReferenceTransformAxisPrompt(next.axis)
+      return
+    }
+    useConsoleStore.getState().clearConsolePromptSession()
+  }, [cancelReferenceTransformLeafForTransition, openReferenceTransformAxisPrompt])
+
   const handleSubmitCommand = useCallback(
     (inputText: string) => {
       const trimmedInput = inputText.trim().toLowerCase()
@@ -2253,6 +2001,115 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
         const rawToken = inputText.trim()
 
         if (activePromptSession.kind === 'reference-transform.axis') {
+          const normalizedReferenceToken = normalizeRadioCommandIdentity(rawToken)
+          const currentAxisToken = activePromptSession.axis.toUpperCase()
+          if (
+            normalizedReferenceToken === 'X' ||
+            normalizedReferenceToken === 'Y' ||
+            normalizedReferenceToken === 'Z'
+          ) {
+            if (normalizedReferenceToken !== currentAxisToken) {
+              appendConsoleEntry({
+                layer: 'Commands',
+                commandLineKind: 'user',
+                text: `> ${rawToken}`,
+              })
+              pushCommandHistory(rawToken)
+              transitionReferenceTransformAxisPrompt({
+                mode: activePromptSession.mode,
+                axis: normalizedReferenceToken.toLowerCase() as 'x' | 'y' | 'z',
+              })
+              const nextPromptSession = useConsoleStore.getState().consolePromptSession
+              if (nextPromptSession !== null) {
+                appendConsoleEntry({
+                  layer: 'Commands',
+                  text: buildConsolePromptSessionText(nextPromptSession),
+                  source: 'console',
+                  severity: 'info',
+                })
+              }
+              return
+            }
+          }
+          if (normalizedReferenceToken === 'MOVE' || normalizedReferenceToken === 'M') {
+            if (activePromptSession.mode !== 'translate') {
+              appendConsoleEntry({
+                layer: 'Commands',
+                commandLineKind: 'user',
+                text: `> ${rawToken}`,
+              })
+              pushCommandHistory(rawToken)
+              transitionReferenceTransformAxisPrompt({
+                mode: 'translate',
+              })
+              const nextDescriptor = buildReferenceTransformAssistDescriptor(
+                useAppStore.getState().referenceWorkspace,
+                useConsoleStore.getState().stagedNavigationSession,
+              )
+              if (nextDescriptor !== null) {
+                appendConsoleEntry({
+                  layer: 'Commands',
+                  text: buildFeatureAssistPromptText(nextDescriptor),
+                  source: 'console',
+                  severity: 'info',
+                })
+              }
+              return
+            }
+          }
+          if (normalizedReferenceToken === 'ROTATE' || normalizedReferenceToken === 'R') {
+            if (activePromptSession.mode !== 'rotate') {
+              appendConsoleEntry({
+                layer: 'Commands',
+                commandLineKind: 'user',
+                text: `> ${rawToken}`,
+              })
+              pushCommandHistory(rawToken)
+              transitionReferenceTransformAxisPrompt({
+                mode: 'rotate',
+              })
+              const nextDescriptor = buildReferenceTransformAssistDescriptor(
+                useAppStore.getState().referenceWorkspace,
+                useConsoleStore.getState().stagedNavigationSession,
+              )
+              if (nextDescriptor !== null) {
+                appendConsoleEntry({
+                  layer: 'Commands',
+                  text: buildFeatureAssistPromptText(nextDescriptor),
+                  source: 'console',
+                  severity: 'info',
+                })
+              }
+              return
+            }
+          }
+          if (normalizedReferenceToken === 'SCALE' || normalizedReferenceToken === 'S') {
+            if (activePromptSession.mode !== 'scale') {
+              appendConsoleEntry({
+                layer: 'Commands',
+                commandLineKind: 'user',
+                text: `> ${rawToken}`,
+              })
+              pushCommandHistory(rawToken)
+              transitionReferenceTransformAxisPrompt({
+                mode: 'scale',
+              })
+              const nextDescriptor = buildReferenceTransformAssistDescriptor(
+                useAppStore.getState().referenceWorkspace,
+                useConsoleStore.getState().stagedNavigationSession,
+              )
+              if (nextDescriptor !== null) {
+                appendConsoleEntry({
+                  layer: 'Commands',
+                  text: buildFeatureAssistPromptText(nextDescriptor),
+                  source: 'console',
+                  severity: 'info',
+                })
+              }
+              return
+            }
+          }
+
           const axisInput = parseReferenceTransformAxisInput(rawToken)
           if (axisInput === null) {
             appendConsoleEntry({
@@ -2289,6 +2146,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
             axisInput.value,
             { absolute: axisInput.absolute },
           )
+          getViewer()?.cancelReferenceTransformDrag?.()
           appState.setActiveReferenceTransformDraft(nextTransformOverride)
           getViewer()?.setReferenceTransformOverride(
             activeSession.referenceId,
@@ -2330,6 +2188,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
             activePromptSession.plane,
             parsedVec3,
           )
+          getViewer()?.cancelReferenceTransformDrag?.()
           appState.setActiveReferenceTransformDraft(nextTransformOverride)
           getViewer()?.setReferenceTransformOverride(
             activeSession.referenceId,
@@ -2511,10 +2370,36 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
         const parsedVec3 = parseConsoleVec3Literal(rawToken)
         if (parsedVec3 !== null) {
           const appState = useAppStore.getState()
+          getViewer()?.cancelReferenceTransformDrag?.()
+          appState.setActiveReferenceTransformHandle(null)
+          getViewer()?.clearReferenceTransformHandle?.()
           const nextTransformOverride = applyReferenceTransformVec3Value(
             activeReferenceSession.draftTransform,
             activeReferenceSession.mode,
             parsedVec3,
+          )
+          appState.setActiveReferenceTransformDraft(nextTransformOverride)
+          getViewer()?.setReferenceTransformOverride(
+            activeReferenceSession.referenceId,
+            nextTransformOverride,
+          )
+          commitActiveReferenceTransformFromConsole(rawToken)
+          return
+        }
+
+        if (
+          (activeReferenceSession.mode === 'rotate' || activeReferenceSession.mode === 'scale') &&
+          parseConsoleSignedFloatLiteral(rawToken) !== null
+        ) {
+          const scalarValue = parseConsoleSignedFloatLiteral(rawToken)!
+          const appState = useAppStore.getState()
+          getViewer()?.cancelReferenceTransformDrag?.()
+          appState.setActiveReferenceTransformHandle(null)
+          getViewer()?.clearReferenceTransformHandle?.()
+          const nextTransformOverride = applyReferenceTransformVec3Value(
+            activeReferenceSession.draftTransform,
+            activeReferenceSession.mode,
+            { x: scalarValue, y: scalarValue, z: scalarValue },
           )
           appState.setActiveReferenceTransformDraft(nextTransformOverride)
           getViewer()?.setReferenceTransformOverride(
@@ -4867,6 +4752,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
       resolveSelectedReferenceIdForZoom,
       setStagedNavigationSession,
       trackRadioCommandIdentity,
+      transitionReferenceTransformAxisPrompt,
     ],
   )
 
@@ -5241,6 +5127,15 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
         focusMainConsoleInput()
         return
       }
+      if (
+        event.key === 'Escape' &&
+        useAppStore.getState().referenceWorkspace.activeReferenceTransformSession?.entryActive === true
+      ) {
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        handleEscCancelCommand()
+        return
+      }
       const routing = routeConsoleGlobalKey(event)
       const shouldStepBackReferenceTransformPromptOnEscape =
         event.key === 'Escape' &&
@@ -5346,6 +5241,15 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
         event.preventDefault()
         event.stopImmediatePropagation()
         focusPopoutConsoleInput()
+        return
+      }
+      if (
+        event.key === 'Escape' &&
+        useAppStore.getState().referenceWorkspace.activeReferenceTransformSession?.entryActive === true
+      ) {
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        handleEscCancelCommand()
         return
       }
       const routing = routeConsoleGlobalKey(event)
@@ -5521,39 +5425,30 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
   }, [consolePromptSession, referenceWorkspace])
 
   useEffect(() => {
+    const activeSession = referenceWorkspace.activeReferenceTransformSession
     const activeHandle = referenceWorkspace.activeReferenceTransformSession?.activeHandle ?? null
+    const isReferenceTransformPrompt =
+      consolePromptSession?.kind === 'reference-transform.axis' ||
+      consolePromptSession?.kind === 'reference-transform.plane'
+    if (isReferenceTransformPrompt && (activeSession === null || !activeSession.entryActive)) {
+      useConsoleStore.getState().clearConsolePromptSession()
+      return
+    }
     if (activeHandle === null) {
       return
     }
-    if (activeHandle.kind === 'axis') {
-      const nextPromptSession = buildReferenceTransformAxisPromptSession({
-        referenceWorkspace,
-        stagedNavigationSession,
-        axis: activeHandle.axis,
-      })
-      if (
-        nextPromptSession !== null &&
-        !isSameReferenceTransformPromptSession(consolePromptSession, nextPromptSession)
-      ) {
-        setConsolePromptSession(nextPromptSession)
-      }
+    const nextPromptSession = resolveReferenceTransformPromptSessionFromHandle({
+      referenceWorkspace,
+      stagedNavigationSession,
+      activeHandle,
+    })
+    if (nextPromptSession === null) {
+      useConsoleStore.getState().setConsolePromptSession(null)
       return
     }
-    if (activeHandle.kind === 'plane') {
-      const nextPromptSession = buildReferenceTransformPlanePromptSession({
-        referenceWorkspace,
-        stagedNavigationSession,
-        plane: activeHandle.plane,
-      })
-      if (
-        nextPromptSession !== null &&
-        !isSameReferenceTransformPromptSession(consolePromptSession, nextPromptSession)
-      ) {
-        setConsolePromptSession(nextPromptSession)
-      }
-      return
+    if (!isSameReferenceTransformPromptSession(consolePromptSession, nextPromptSession)) {
+      setConsolePromptSession(nextPromptSession)
     }
-    useConsoleStore.getState().setConsolePromptSession(null)
   }, [
     consolePromptSession,
     referenceWorkspace,

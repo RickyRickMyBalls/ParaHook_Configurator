@@ -3,18 +3,45 @@
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { ConsoleBar } from './ConsoleBar'
 import { useConsoleStore } from './useConsoleStore'
 
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
   true
 
+type WorkerMessageHandler = (event: MessageEvent<unknown>) => void
+
+class MockWorker {
+  private readonly handlers = new Set<WorkerMessageHandler>()
+
+  public addEventListener(type: string, handler: EventListenerOrEventListenerObject): void {
+    if (type !== 'message' || typeof handler !== 'function') {
+      return
+    }
+    this.handlers.add(handler as WorkerMessageHandler)
+  }
+
+  public removeEventListener(type: string, handler: EventListenerOrEventListenerObject): void {
+    if (type !== 'message' || typeof handler !== 'function') {
+      return
+    }
+    this.handlers.delete(handler as WorkerMessageHandler)
+  }
+
+  public postMessage(_message: unknown): void {}
+
+  public terminate(): void {}
+}
+
 describe('ConsoleBar', () => {
   let root: Root | null = null
   let container: HTMLDivElement | null = null
+  let ConsoleBar: typeof import('./ConsoleBar').ConsoleBar
+  const originalWorker = globalThis.Worker
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    globalThis.Worker = MockWorker as unknown as typeof Worker
     useConsoleStore.setState(useConsoleStore.getInitialState(), true)
+    ;({ ConsoleBar } = await import('./ConsoleBar'))
   })
 
   afterEach(async () => {
@@ -27,6 +54,7 @@ describe('ConsoleBar', () => {
     root = null
     container = null
     document.body.innerHTML = ''
+    globalThis.Worker = originalWorker
   })
 
   it('highlights the preferred short alias inside guided choice labels', async () => {

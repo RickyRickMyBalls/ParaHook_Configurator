@@ -8,12 +8,17 @@ import {
 } from 'react'
 import { routeKeyboardInput } from '../inputRouting'
 import { ParaSlider } from './ParaSlider'
+import { ParaVec3Slider } from './ParaVec3Slider'
 import { ReferenceTimelineGraph } from './ReferenceTimelineGraph'
 import {
   ViewportOverlayToolPanel,
   type ViewportOverlayToolPanelResizeDirection,
 } from './ViewportOverlayToolPanel'
-import { selectReferenceWorkspaceItems, useAppStore } from '../store/useAppStore'
+import {
+  getReferenceTransformHistoryLatestScrubIndex,
+  selectReferenceWorkspaceItems,
+  useAppStore,
+} from '../store/useAppStore'
 import { getViewer } from '../viewerBridge'
 import { SpaghettiContextMenu } from '../spaghetti/ui/SpaghettiContextMenu'
 import {
@@ -29,6 +34,11 @@ import {
   type ReferenceTimelineRange,
 } from '../references/referenceTimeline'
 import { appendConsoleEntry, useConsoleStore } from '../console/useConsoleStore'
+import {
+  buildReferenceTransformStatusPath,
+  getReferenceTransformChannelSelectionFromHandle,
+  getReferenceTransformChannelSelectionFromPrompt,
+} from '../console/referenceTransformConsole'
 
 const formatTransformValue = (value: number): string => {
   if (Math.abs(value) < 0.0005) {
@@ -90,10 +100,15 @@ type ReferenceTransformHistoryEntries = NonNullable<
 
 type ReferenceTransformHistoryEntry = ReferenceTransformHistoryEntries[number]
 
+type IndexedReferenceTransformHistoryEntry = {
+  historyIndex: number
+  entry: ReferenceTransformHistoryEntry
+}
+
 type GroupedReferenceTransformHistorySession = {
   sessionId: string
   sessionOrdinal: number
-  entries: ReferenceTransformHistoryEntry[]
+  entries: IndexedReferenceTransformHistoryEntry[]
 }
 
 const TRANSFORM_SECTIONS: TransformSectionMeta[] = [
@@ -185,61 +200,72 @@ const transformModeLabel = (mode: TransformSectionKey): string => {
   }
 }
 
-const transformModeConsoleToken = (mode: TransformSectionKey): 'M' | 'R' | 'S' => {
-  switch (mode) {
-    case 'translate':
-      return 'M'
+const formatHistoryEntryKindLabel = (kind: ReferenceTransformHistoryEntry['kind']): string =>
+  kind === 'move' ? 'Move' : kind === 'rotate' ? 'Rotate' : 'Scale'
+
+const formatHistoryAbsoluteVectorLabel = (value: ReferenceTransformHistoryEntry['after']): string =>
+  `Vec(${formatTransformValue(value.x)}, ${formatTransformValue(value.y)}, ${formatTransformValue(
+    value.z,
+  )})`
+
+const formatHistoryDeltaValue = (value: number): string =>
+  `${value >= 0 ? '+' : ''}${formatTransformValue(value)}`
+
+const formatHistoryEntryTitle = (
+  entry: ReferenceTransformHistoryEntry,
+  historyIndex: number,
+): string =>
+  `${historyIndex + 1}. ${formatHistoryEntryKindLabel(entry.kind)} ${formatHistoryAbsoluteVectorLabel(entry.after)}`
+
+const getHistoryEntrySliderConfig = (
+  entry: ReferenceTransformHistoryEntry,
+): { min: number; max: number; step: number; allowWrap?: boolean } => {
+  switch (entry.kind) {
+    case 'move':
+      return { min: -300, max: 300, step: 1 }
     case 'rotate':
-      return 'R'
+      return { min: -180, max: 180, step: 1, allowWrap: true }
     case 'scale':
-      return 'S'
+      return { min: -9.99, max: 9.99, step: 0.01 }
   }
 }
 
-const formatVec3Status = (vector: { x: number; y: number; z: number }): string =>
-  `Vec3 [${formatTransformValue(vector.x)}, ${formatTransformValue(vector.y)}, ${formatTransformValue(vector.z)}]`
-
-const formatHistoryDeltaValue = (value: number): string => {
-  const rounded = Math.abs(value) < 0.0005 ? 0 : value
-  return `${rounded >= 0 ? '+' : ''}${formatTransformValue(rounded)}`
-}
-
-const formatHistoryEntryLabel = (
-  entries: ReadonlyArray<ReferenceTransformHistoryEntry>,
-  entry: ReferenceTransformHistoryEntry,
-): string => {
-  const previousSameKind = [...entries]
-    .slice(0, Math.max(entries.findIndex((candidate) => candidate.entryId === entry.entryId), 0))
-    .reverse()
-    .find((candidate) => candidate.kind === entry.kind) ?? null
-  const baseline =
-    previousSameKind?.value ??
-    (entry.kind === 'scale'
-      ? { x: 1, y: 1, z: 1 }
-      : { x: 0, y: 0, z: 0 })
-  return `${
-    entry.kind === 'move' ? 'Move' : entry.kind === 'rotate' ? 'Rotate' : 'Scale'
-  } Vec(${formatHistoryDeltaValue(entry.value.x - baseline.x)}, ${formatHistoryDeltaValue(
-    entry.value.y - baseline.y,
-  )}, ${formatHistoryDeltaValue(entry.value.z - baseline.z)})`
+function HistoryLockIcon({ locked }: { locked: boolean }) {
+  return (
+    <svg
+      className="ReferenceTransformToolbarHistoryLockIcon"
+      viewBox="0 0 16 16"
+      aria-hidden="true"
+      fill="none"
+    >
+      <rect x="3.5" y="7" width="9" height="6" rx="1.5" stroke="currentColor" strokeWidth="1.4" />
+      <path
+        d={locked ? 'M5.5 7V5.75a2.5 2.5 0 0 1 5 0V7' : 'M10.5 7V5.75a2.5 2.5 0 0 0-5 0'}
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
 }
 
 const groupReferenceTransformHistoryEntries = (
   entries: ReadonlyArray<ReferenceTransformHistoryEntry>,
 ): GroupedReferenceTransformHistorySession[] => {
   const groupsBySessionId = new Map<string, GroupedReferenceTransformHistorySession>()
-  for (const entry of entries) {
+  entries.forEach((entry, historyIndex) => {
     const currentGroup = groupsBySessionId.get(entry.sessionId)
     if (currentGroup === undefined) {
       groupsBySessionId.set(entry.sessionId, {
         sessionId: entry.sessionId,
         sessionOrdinal: entry.sessionOrdinal,
-        entries: [entry],
+        entries: [{ historyIndex, entry }],
       })
-      continue
+      return
     }
-    currentGroup.entries.push(entry)
-  }
+    currentGroup.entries.push({ historyIndex, entry })
+  })
   return [...groupsBySessionId.values()]
 }
 
@@ -266,6 +292,12 @@ export function ReferenceTransformToolbar() {
   const setReferenceRotateSnapValue = useAppStore((state) => state.setReferenceRotateSnapValue)
   const toggleReferenceTransformHistoryLock = useAppStore(
     (state) => state.toggleReferenceTransformHistoryLock,
+  )
+  const setReferenceTransformHistoryEntryDeltaValue = useAppStore(
+    (state) => state.setReferenceTransformHistoryEntryDeltaValue,
+  )
+  const setActiveReferenceTransformHistoryScrubIndex = useAppStore(
+    (state) => state.setActiveReferenceTransformHistoryScrubIndex,
   )
   const mergeReferenceTransformHistory = useAppStore((state) => state.mergeReferenceTransformHistory)
   const consolePromptSession = useConsoleStore((state) => state.consolePromptSession)
@@ -349,6 +381,19 @@ export function ReferenceTransformToolbar() {
     activeReferenceId === null
       ? []
       : referenceWorkspace.transformHistoryByReferenceId[activeReferenceId] ?? []
+  const latestHistoryScrubIndex = useMemo(
+    () => getReferenceTransformHistoryLatestScrubIndex(transformHistory),
+    [transformHistory],
+  )
+  const activeHistoryScrubIndex = useMemo(
+    () =>
+      Math.min(
+        latestHistoryScrubIndex,
+        Math.max(0, Math.trunc(activeSession?.historyScrubIndex ?? latestHistoryScrubIndex)),
+      ),
+    [activeSession?.historyScrubIndex, latestHistoryScrubIndex],
+  )
+  const historyScrubActive = activeHistoryScrubIndex < latestHistoryScrubIndex
   const groupedTransformHistory = useMemo(
     () => groupReferenceTransformHistoryEntries(transformHistory),
     [transformHistory],
@@ -426,21 +471,20 @@ export function ReferenceTransformToolbar() {
   const activeRotateStep =
     rotateSnapState.enabled ? Math.max(evaluatedRotateSnap.value, 0.0001) : 1
 
-  const activeSessionPath = useMemo(() => {
-    const currentVector =
-      activeMode === 'rotate'
-        ? evaluatedTransformOverride.rotationDeg
-        : activeMode === 'scale'
-          ? evaluatedTransformOverride.scale
-          : evaluatedTransformOverride.position
-    return `${activeReference?.label ?? 'Reference'} > ${transformModeConsoleToken(activeMode)} > ${formatVec3Status(currentVector)}`
-  }, [
-    activeMode,
-    activeReference?.label,
-    evaluatedTransformOverride.position,
-    evaluatedTransformOverride.rotationDeg,
-    evaluatedTransformOverride.scale,
-  ])
+  const activeSessionPath = useMemo(
+    () =>
+      buildReferenceTransformStatusPath({
+        referenceLabel: activeReference?.label ?? 'Reference',
+        activeSession:
+          activeSession === null
+            ? null
+            : {
+                ...activeSession,
+                draftTransform: evaluatedTransformOverride,
+              },
+      }),
+    [activeReference?.label, activeSession, evaluatedTransformOverride],
+  )
 
   useEffect(() => {
     if (activeReferenceId === null) {
@@ -987,30 +1031,10 @@ export function ReferenceTransformToolbar() {
     rotateSnapState.enabled || getChannelMode('rotate-snap') === 'timeline'
 
   const promptDrivenChannelSelection: ActiveKeyboardChannelSelection =
-    consolePromptSession?.kind !== 'reference-transform.axis'
-      ? null
-      : {
-          section:
-            consolePromptSession.mode === 'translate'
-              ? 'translate'
-              : consolePromptSession.mode === 'rotate'
-                ? 'rotate'
-                : 'scale',
-          axis: consolePromptSession.axis,
-        }
+    getReferenceTransformChannelSelectionFromPrompt(consolePromptSession)
 
   const activeHandleDrivenChannelSelection: ActiveKeyboardChannelSelection =
-    activeSession?.activeHandle?.kind !== 'axis'
-      ? null
-      : {
-          section:
-            activeSession.activeHandle.mode === 'translate'
-              ? 'translate'
-              : activeSession.activeHandle.mode === 'rotate'
-                ? 'rotate'
-                : 'scale',
-          axis: activeSession.activeHandle.axis,
-        }
+    getReferenceTransformChannelSelectionFromHandle(activeSession?.activeHandle ?? null)
 
   const isChannelHighlighted = (section: TransformSectionKey, axis: Axis): boolean =>
     promptDrivenChannelSelection !== null
@@ -1182,6 +1206,185 @@ export function ReferenceTransformToolbar() {
             </button>
           </div>
         </div>
+        <div className="ReferenceTransformToolbarSection" aria-label="Reference transform history">
+          <div className="ReferenceTransformToolbarTransformSection isActive">
+            <div className="ReferenceTransformToolbarTransformSectionHeader">
+              <button
+                type="button"
+                className="ReferenceTransformToolbarSectionToggle"
+                aria-label={`${historyExpanded ? 'Collapse' : 'Expand'} Transform History section`}
+                aria-expanded={historyExpanded}
+                onClick={(event) => {
+                  event.preventDefault()
+                  event.stopPropagation()
+                  setHistoryExpanded((current) => !current)
+                }}
+              >
+                {historyExpanded ? 'v' : '>'}
+              </button>
+              <span className="ReferenceTransformToolbarTransformSectionLabel">Transform History</span>
+              <div className="ReferenceTransformToolbarTransformSectionActions">
+                <button
+                  type="button"
+                  className="ReferenceTransformToolbarButton ReferenceTransformToolbarButton--compact"
+                  onClick={(event) => {
+                    event.preventDefault()
+                    event.stopPropagation()
+                    if (activeReferenceId !== null) {
+                      mergeReferenceTransformHistory(activeReferenceId)
+                    }
+                  }}
+                >
+                  Merge History
+                </button>
+              </div>
+            </div>
+            {historyExpanded ? (
+              <div className="ReferenceTransformToolbarTransformSectionBody">
+                <div className="ReferenceTransformToolbarHistoryScrubControl">
+                  <ParaSlider
+                    label="History Scrub"
+                    value={activeHistoryScrubIndex}
+                    min={0}
+                    max={Math.max(latestHistoryScrubIndex, 0)}
+                    step={1}
+                    onChange={(value) => setActiveReferenceTransformHistoryScrubIndex(value)}
+                    displayLabel="Entry"
+                    displayValue={`${activeHistoryScrubIndex} / ${latestHistoryScrubIndex}`}
+                  />
+                </div>
+                <div
+                  className={`ReferenceTransformToolbarHistoryRow ${
+                    activeHistoryScrubIndex === 0 ? 'isActive' : ''
+                  }`}
+                >
+                  <button
+                    type="button"
+                    className="ReferenceTransformToolbarHistoryEntryButton"
+                    aria-pressed={activeHistoryScrubIndex === 0}
+                    onClick={() => setActiveReferenceTransformHistoryScrubIndex(0)}
+                  >
+                    <span className="ReferenceTransformToolbarHistoryLabel">Origin</span>
+                  </button>
+                </div>
+                {groupedTransformHistory.map((sessionGroup) => {
+                  const sessionExpanded =
+                    expandedHistorySessions[sessionGroup.sessionId] ??
+                    sessionGroup.sessionId === groupedTransformHistory.at(-1)?.sessionId
+                  return (
+                    <div
+                      key={sessionGroup.sessionId}
+                      className="ReferenceTransformToolbarHistorySession"
+                    >
+                      <div className="ReferenceTransformToolbarHistoryRow">
+                        <button
+                          type="button"
+                          className="ReferenceTransformToolbarHistorySessionButton"
+                          aria-label={`${sessionExpanded ? 'Collapse' : 'Expand'} Transform ${sessionGroup.sessionOrdinal}`}
+                          aria-expanded={sessionExpanded}
+                          onClick={() =>
+                            setExpandedHistorySessions((current) => ({
+                              ...current,
+                              [sessionGroup.sessionId]: !sessionExpanded,
+                            }))
+                          }
+                        >
+                          <span className="ReferenceTransformToolbarSectionToggle">
+                            {sessionExpanded ? 'v' : '>'}
+                          </span>
+                          <span className="ReferenceTransformToolbarHistorySessionLabel">
+                            {`Transform ${sessionGroup.sessionOrdinal}`}
+                          </span>
+                        </button>
+                      </div>
+                      {sessionExpanded ? (
+                        <div className="ReferenceTransformToolbarHistorySessionChildren">
+                          {sessionGroup.entries.map(({ historyIndex, entry }) => {
+                            const sliderConfig = getHistoryEntrySliderConfig(entry)
+                            const entryScrubIndex = historyIndex + 1
+                            const isScrubbedEntry = activeHistoryScrubIndex === entryScrubIndex
+                            const isFutureEntry = historyScrubActive && entryScrubIndex > activeHistoryScrubIndex
+                            return (
+                              <div
+                                key={entry.entryId}
+                                className={`ReferenceTransformToolbarHistoryEntry ${
+                                  isScrubbedEntry ? 'isActive' : ''
+                                } ${isFutureEntry ? 'isInactive' : ''}`}
+                              >
+                                <div
+                                  className={`ReferenceTransformToolbarHistoryRow ReferenceTransformToolbarHistoryRow--child ${
+                                    isScrubbedEntry ? 'isActive' : ''
+                                  } ${isFutureEntry ? 'isInactive' : ''}`}
+                                >
+                                  <button
+                                    type="button"
+                                    className={`ReferenceTransformToolbarButton ReferenceTransformToolbarButton--compact ReferenceTransformToolbarHistoryLockButton ${
+                                      entry.locked ? 'isActive' : ''
+                                    }`}
+                                    aria-label={`${
+                                      entry.locked ? 'Unlock' : 'Lock'
+                                    } Transform ${sessionGroup.sessionOrdinal} entry ${historyIndex + 1}`}
+                                    aria-pressed={entry.locked}
+                                    title={entry.locked ? 'Unlock entry' : 'Lock entry'}
+                                    onClick={() =>
+                                      toggleReferenceTransformHistoryLock(activeReferenceId, entry.entryId)
+                                    }
+                                  >
+                                    <HistoryLockIcon locked={entry.locked} />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="ReferenceTransformToolbarHistoryEntryButton"
+                                    aria-label={`Jump to Transform ${sessionGroup.sessionOrdinal} entry ${historyIndex + 1}`}
+                                    aria-pressed={isScrubbedEntry}
+                                    onClick={() =>
+                                      setActiveReferenceTransformHistoryScrubIndex(entryScrubIndex)
+                                    }
+                                  >
+                                    <span className="ReferenceTransformToolbarHistoryLabel">
+                                      {formatHistoryEntryTitle(entry, historyIndex)}
+                                    </span>
+                                  </button>
+                                </div>
+                                <div
+                                  className={`ReferenceTransformToolbarHistoryEntryValues ${
+                                    isFutureEntry ? 'isInactive' : ''
+                                  }`}
+                                  aria-label={`Transform ${sessionGroup.sessionOrdinal} entry ${historyIndex + 1} values`}
+                                >
+                                  <ParaVec3Slider
+                                    value={entry.delta}
+                                    min={sliderConfig.min}
+                                    max={sliderConfig.max}
+                                    step={sliderConfig.step}
+                                    allowWrap={sliderConfig.allowWrap}
+                                    onChangeAxis={(axis, value) => {
+                                      if (isFutureEntry) {
+                                        return
+                                      }
+                                      setReferenceTransformHistoryEntryDeltaValue(
+                                        activeReferenceId,
+                                        entry.entryId,
+                                        axis,
+                                        value,
+                                      )
+                                    }}
+                                    formatValue={(_axis, value) => formatHistoryDeltaValue(value)}
+                                    displayValue={(_axis, value) => formatHistoryDeltaValue(value)}
+                                  />
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      ) : null}
+                    </div>
+                  )
+                })}
+              </div>
+            ) : null}
+          </div>
+        </div>
         <div className="ReferenceTransformToolbarSection" aria-label="Reference transform values">
           {TRANSFORM_SECTIONS.map((section) => (
             <div
@@ -1321,106 +1524,6 @@ export function ReferenceTransformToolbar() {
               ) : null}
             </div>
           ))}
-        </div>
-        <div className="ReferenceTransformToolbarSection" aria-label="Reference transform history">
-          <div className="ReferenceTransformToolbarTransformSection isActive">
-            <div className="ReferenceTransformToolbarTransformSectionHeader">
-              <button
-                type="button"
-                className="ReferenceTransformToolbarSectionToggle"
-                aria-label={`${historyExpanded ? 'Collapse' : 'Expand'} Transform History section`}
-                aria-expanded={historyExpanded}
-                onClick={(event) => {
-                  event.preventDefault()
-                  event.stopPropagation()
-                  setHistoryExpanded((current) => !current)
-                }}
-              >
-                {historyExpanded ? 'v' : '>'}
-              </button>
-              <span className="ReferenceTransformToolbarTransformSectionLabel">Transform History</span>
-              <div className="ReferenceTransformToolbarTransformSectionActions">
-                <button
-                  type="button"
-                  className="ReferenceTransformToolbarButton ReferenceTransformToolbarButton--compact"
-                  onClick={(event) => {
-                    event.preventDefault()
-                    event.stopPropagation()
-                    if (activeReferenceId !== null) {
-                      mergeReferenceTransformHistory(activeReferenceId)
-                    }
-                  }}
-                >
-                  Merge History
-                </button>
-              </div>
-            </div>
-            {historyExpanded ? (
-              <div className="ReferenceTransformToolbarTransformSectionBody">
-                <div className="ReferenceTransformToolbarHistoryRow">
-                  <span className="ReferenceTransformToolbarHistoryLabel">Origin</span>
-                </div>
-                {groupedTransformHistory.map((sessionGroup) => {
-                  const sessionExpanded =
-                    expandedHistorySessions[sessionGroup.sessionId] ??
-                    sessionGroup.sessionId === groupedTransformHistory.at(-1)?.sessionId
-                  return (
-                    <div
-                      key={sessionGroup.sessionId}
-                      className="ReferenceTransformToolbarHistorySession"
-                    >
-                      <div className="ReferenceTransformToolbarHistoryRow">
-                        <button
-                          type="button"
-                          className="ReferenceTransformToolbarHistorySessionButton"
-                          aria-label={`${sessionExpanded ? 'Collapse' : 'Expand'} Transform ${sessionGroup.sessionOrdinal}`}
-                          aria-expanded={sessionExpanded}
-                          onClick={() =>
-                            setExpandedHistorySessions((current) => ({
-                              ...current,
-                              [sessionGroup.sessionId]: !sessionExpanded,
-                            }))
-                          }
-                        >
-                          <span className="ReferenceTransformToolbarSectionToggle">
-                            {sessionExpanded ? 'v' : '>'}
-                          </span>
-                          <span className="ReferenceTransformToolbarHistorySessionLabel">
-                            {`Transform ${sessionGroup.sessionOrdinal}`}
-                          </span>
-                        </button>
-                      </div>
-                      {sessionExpanded ? (
-                        <div className="ReferenceTransformToolbarHistorySessionChildren">
-                          {sessionGroup.entries.map((entry) => (
-                            <div
-                              key={entry.entryId}
-                              className="ReferenceTransformToolbarHistoryRow ReferenceTransformToolbarHistoryRow--child"
-                            >
-                              <span className="ReferenceTransformToolbarHistoryLabel">
-                                {formatHistoryEntryLabel(transformHistory, entry)}
-                              </span>
-                              <button
-                                type="button"
-                                className={`ReferenceTransformToolbarButton ReferenceTransformToolbarButton--compact ${
-                                  entry.locked ? 'isActive' : ''
-                                }`}
-                                onClick={() =>
-                                  toggleReferenceTransformHistoryLock(activeReferenceId, entry.entryId)
-                                }
-                              >
-                                {entry.locked ? 'Unlock' : 'Lock'}
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      ) : null}
-                    </div>
-                  )
-                })}
-              </div>
-            ) : null}
-          </div>
         </div>
       </div>
       <SpaghettiContextMenu

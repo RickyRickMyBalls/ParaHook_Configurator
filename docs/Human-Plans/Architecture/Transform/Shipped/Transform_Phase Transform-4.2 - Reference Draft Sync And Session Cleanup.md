@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+4. 2026-03-26 23:55: Marked this phase shipped after the shared store-owned reference draft session landed in code, moved the standalone phase record into `Shipped/`, and aligned the doc with the delivered active-session, viewer-draft sync, Console/toolbar draft-read, and commit/cancel behavior
 3. 2026-03-26 20:10: Narrowed this `Transform 4.2` spec again by moving grouped transform-session history out into a later `Transform 4.3` follow-on, so this phase now keeps committed history intact but no longer owns the expandable `Transform 1`, `Transform 2`, and later session-group toolbar reshape
 2. 2026-03-26 20:07: Updated this `Transform 4.2` spec to lock the newer history direction, keeping committed reference transform history intact during the draft/session cleanup and grouping committed entries under expandable shell-session rows like `Transform 1`, `Transform 2`, and later sessions instead of treating the history only as one flat list
 1. 2026-03-26 20:00: Created this standalone `Transform 4.2` future phase doc under the Transform family to capture the reference-side shared draft/session cleanup, restructuring reference transform around one store-owned live draft session so viewer gizmo changes, Console prompts, and toolbar state all read from the same transform truth like sketch-plane transform already does
@@ -20,7 +21,7 @@ Use it to answer:
 
 ## Doc Body
 
-## [ ] Transform 4.2 - Reference Draft Sync And Session Cleanup
+## [x] Transform 4.2 - Reference Draft Sync And Session Cleanup
 
 ### Summary
 
@@ -32,7 +33,7 @@ Use it to answer:
 - toolbar reads from that same draft
 - commit and cancel operate against the same draft origin
 
-Today, reference transform is close to this pattern, but the state is still spread across:
+Before this phase, reference transform state was still spread across:
 - `activeTransformReferenceId`
 - `activeTransformEntryActive`
 - `activeTransformMode`
@@ -40,9 +41,15 @@ Today, reference transform is close to this pattern, but the state is still spre
 - `activeTransformSessionOrigin`
 - `transformOverrideById`
 
-That works, but it makes the live sync path harder to reason about than sketch-plane transform.
+That older shape worked, but it made the live sync path harder to reason about than sketch-plane transform.
 
-This phase should replace that loose shape with one honest active reference transform draft session.
+### Shipped Result
+
+The shipped `Transform 4.2` cut landed the intended runtime cleanup:
+- one shared `activeReferenceTransformSession` now owns the active reference transform shell, entry state, draft, and entry origin
+- viewer gizmo changes write into that live draft continuously instead of mutating scattered runtime fields
+- Console, toolbar, Browser highlight, and evaluated active-reference override reads now come from that same live draft/session truth
+- commit promotes changed draft state into committed override and history, while cancel restores from the captured entry origin without wiping existing committed history
 
 ### Owns
 

@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+3. 2026-03-26 23:55: Marked this phase shipped after grouped transform-shell session history landed in code, moved the standalone phase record into `Shipped/`, and aligned the doc with the delivered session metadata, grouped toolbar rendering, and empty-shell behavior
 2. 2026-03-26 20:49: Tightened this `Transform 4.3` spec into an implementation-ready grouped-history plan by locking the storage shape to per-entry `sessionId` plus persistent `sessionOrdinal`, making shell entry/exit the canonical session boundaries, forbidding empty parent session rows, defaulting the newest session expanded and older ones collapsed, keeping parent rows expand/collapse-only, and removing the remaining “or” wording that left implementation choices open
 1. 2026-03-26 20:43: Created this standalone `Transform 4.3` future phase doc under the Transform family to capture the grouped transform-session history follow-on, separating the toolbar/history reshape from the already-landed `Transform 4.2` draft/session cleanup so committed history can be re-presented as expandable shell-session rows without re-opening the runtime sync refactor
 
@@ -18,7 +19,7 @@ Use it to answer:
 
 ## Doc Body
 
-## [ ] Transform 4.3 - Grouped Session History
+## [x] Transform 4.3 - Grouped Session History
 
 ### Summary
 
@@ -30,13 +31,21 @@ Use it to answer:
 - Console and toolbar read the same draft
 - commit and cancel operate from one session origin
 
-`Transform 4.3` should leave that runtime model alone and only reshape how committed history is presented.
+`Transform 4.3` leaves that runtime model alone and only reshapes how committed history is presented.
 
 The main change is:
 - keep all committed history entries
 - group them by completed transform shell session
 - render those groups as expandable parent rows like `Transform 1`, `Transform 2`, and later sessions
 - keep the child rows as the committed `Move`, `Rotate`, and `Scale` entries already captured today
+
+### Shipped Result
+
+The shipped `Transform 4.3` cut landed the intended grouped-history presentation:
+- committed child entries remain the base truth, with `sessionId` and persistent `sessionOrdinal` metadata stamped onto each committed entry
+- the transform toolbar now derives grouped parent rows like `Transform 1`, `Transform 2`, and later sessions from that child-entry metadata
+- the newest grouped session defaults expanded, older sessions default collapsed, and parent rows stay expand/collapse-only
+- empty shell sessions still create no history row because only committed child entries produce grouped parents
 
 ### Owns
 

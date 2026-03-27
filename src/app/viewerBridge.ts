@@ -82,6 +82,34 @@ export type SketchPlanePickOverlayVm = {
   }
 }
 
+export type ReferenceTransformHistoryVec3Vm = {
+  x: number
+  y: number
+  z: number
+}
+
+export type ReferenceTransformRotateHistoryEntryVm = {
+  entryId: string
+  position: ReferenceTransformHistoryVec3Vm
+  beforeRotationDeg: ReferenceTransformHistoryVec3Vm
+  afterRotationDeg: ReferenceTransformHistoryVec3Vm
+}
+
+export type ReferenceTransformScaleHistoryEntryVm = {
+  entryId: string
+  position: ReferenceTransformHistoryVec3Vm
+  rotationDeg: ReferenceTransformHistoryVec3Vm
+  beforeScale: ReferenceTransformHistoryVec3Vm
+  afterScale: ReferenceTransformHistoryVec3Vm
+}
+
+export type ReferenceTransformHistoryOverlayVm = {
+  referenceId: string
+  movePoints: ReferenceTransformHistoryVec3Vm[]
+  rotateEntries: ReferenceTransformRotateHistoryEntryVm[]
+  scaleEntries: ReferenceTransformScaleHistoryEntryVm[]
+}
+
 export interface ViewerApi {
   setCameraPreset: (preset: CameraPreset) => void
   setProjectionMode: (mode: ProjectionMode) => void

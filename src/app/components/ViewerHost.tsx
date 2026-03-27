@@ -3,12 +3,16 @@ import { appendConsoleEntry } from '../console/useConsoleStore'
 import {
   setViewer,
   type GeometrySketchOverlayVm,
+  type ReferenceTransformHistoryOverlayVm,
+  type ReferenceTransformHistoryVec3Vm,
   type SketchPlanePickOverlayVm,
   type VisibleGeometrySketchOverlayVm,
 } from '../viewerBridge'
 import { Viewer } from '../../viewer/Viewer'
 import {
+  getReferenceTransformHistoryEntriesThroughScrubIndex,
   selectCurrentProjectContentBrowserRows,
+  type ReferenceTransformHistoryEntry,
   selectShouldSuppressBrowserGraphRuntimeOutput,
   selectReferenceWorkspaceItems,
   useAppStore,
@@ -83,6 +87,65 @@ const getWorkspaceTargetKey = (target: WorkspaceSelectedTarget): string => {
       return `graph-node:${target.graphDocumentId}:${target.nodeId}`
     case 'part':
       return `part:${target.partKey}`
+  }
+}
+
+const cloneHistoryVec3 = (value: ReferenceTransformHistoryVec3Vm): ReferenceTransformHistoryVec3Vm => ({
+  x: value.x,
+  y: value.y,
+  z: value.z,
+})
+
+const buildReferenceTransformIdentity = () => ({
+  position: { x: 0, y: 0, z: 0 },
+  rotationDeg: { x: 0, y: 0, z: 0 },
+  scale: { x: 1, y: 1, z: 1 },
+})
+
+const buildReferenceTransformHistoryOverlayVm = (
+  referenceId: string,
+  entries: readonly ReferenceTransformHistoryEntry[],
+): ReferenceTransformHistoryOverlayVm | null => {
+  if (entries.length === 0) {
+    return null
+  }
+
+  const movePoints: ReferenceTransformHistoryVec3Vm[] = [{ x: 0, y: 0, z: 0 }]
+  const rotateEntries: ReferenceTransformHistoryOverlayVm['rotateEntries'] = []
+  const scaleEntries: ReferenceTransformHistoryOverlayVm['scaleEntries'] = []
+
+  entries.forEach((entry, index) => {
+    const previousTransform =
+      index === 0
+        ? buildReferenceTransformIdentity()
+        : entries[index - 1]!.transformAfter
+    if (entry.kind === 'move') {
+      movePoints.push(cloneHistoryVec3(entry.transformAfter.position))
+      return
+    }
+    if (entry.kind === 'rotate') {
+      rotateEntries.push({
+        entryId: entry.entryId,
+        position: cloneHistoryVec3(entry.transformAfter.position),
+        beforeRotationDeg: cloneHistoryVec3(previousTransform.rotationDeg),
+        afterRotationDeg: cloneHistoryVec3(entry.transformAfter.rotationDeg),
+      })
+      return
+    }
+    scaleEntries.push({
+      entryId: entry.entryId,
+      position: cloneHistoryVec3(entry.transformAfter.position),
+      rotationDeg: cloneHistoryVec3(entry.transformAfter.rotationDeg),
+      beforeScale: cloneHistoryVec3(previousTransform.scale),
+      afterScale: cloneHistoryVec3(entry.transformAfter.scale),
+    })
+  })
+
+  return {
+    referenceId,
+    movePoints,
+    rotateEntries,
+    scaleEntries,
   }
 }
 
@@ -549,6 +612,24 @@ export function ViewerHost() {
           },
     [referenceWorkspace.activeReferenceTransformSession],
   )
+  const activeReferenceTransformHistoryOverlay = useMemo<ReferenceTransformHistoryOverlayVm | null>(() => {
+    const activeSession = referenceWorkspace.activeReferenceTransformSession
+    const activeReferenceId = activeSession?.referenceId ?? null
+    if (activeReferenceId === null) {
+      return null
+    }
+    const currentEntries = referenceWorkspace.transformHistoryByReferenceId[activeReferenceId] ?? []
+    return buildReferenceTransformHistoryOverlayVm(
+      activeReferenceId,
+      getReferenceTransformHistoryEntriesThroughScrubIndex(
+        currentEntries,
+        activeSession?.historyScrubIndex ?? currentEntries.length,
+      ),
+    )
+  }, [
+    referenceWorkspace.activeReferenceTransformSession,
+    referenceWorkspace.transformHistoryByReferenceId,
+  ])
   const hasActiveReferenceTimelines = useMemo(
     () =>
       Object.values(referenceWorkspace.timelineModeByReferenceId).some((channelModes) =>
@@ -1109,6 +1190,10 @@ export function ViewerHost() {
   useEffect(() => {
     viewerRef.current?.setReferenceTransformSession(activeReferenceTransformSession)
   }, [activeReferenceTransformSession])
+
+  useEffect(() => {
+    viewerRef.current?.setReferenceTransformHistoryOverlay(activeReferenceTransformHistoryOverlay)
+  }, [activeReferenceTransformHistoryOverlay])
 
   useEffect(() => {
     viewerRef.current?.setGeometrySketchOverlay(geometrySketchOverlay)

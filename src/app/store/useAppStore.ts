@@ -61,6 +61,11 @@ export type ReferenceItemLoadState = 'unloaded' | 'loading' | 'loaded' | 'error'
 export type ReferenceTransformMode = 'translate' | 'rotate' | 'scale'
 export type ReferenceTransformSpace = 'local' | 'world'
 export type ReferenceTransformHistoryEntryKind = 'move' | 'rotate' | 'scale'
+export type ReferenceTransformHistoryVector = {
+  x: number
+  y: number
+  z: number
+}
 export type ActiveReferenceTransformHandle =
   | {
       mode: ReferenceTransformMode
@@ -82,11 +87,9 @@ export type ReferenceTransformHistoryEntry = {
   sessionId: string
   sessionOrdinal: number
   kind: ReferenceTransformHistoryEntryKind
-  value: {
-    x: number
-    y: number
-    z: number
-  }
+  delta: ReferenceTransformHistoryVector
+  after: ReferenceTransformHistoryVector
+  transformAfter: ReferenceTransformOverride
   locked: boolean
 }
 
@@ -99,6 +102,7 @@ export type ActiveReferenceTransformSession = {
   shellActive: boolean
   entryActive: boolean
   activeHandle: ActiveReferenceTransformHandle | null
+  historyScrubIndex?: number
   draftTransform: ReferenceTransformOverride
   entryOrigin: ReferenceTransformOverride | null
 }
@@ -558,7 +562,14 @@ export type AppState = {
     referenceId: string,
     transformOverride: ReferenceTransformOverride | null,
   ) => void
+  setActiveReferenceTransformHistoryScrubIndex: (scrubIndex: number) => void
   resetReferenceTransform: (referenceId: string) => void
+  setReferenceTransformHistoryEntryDeltaValue: (
+    referenceId: string,
+    entryId: string,
+    axis: 'x' | 'y' | 'z',
+    value: number,
+  ) => void
   toggleReferenceTransformHistoryLock: (referenceId: string, entryId: string) => void
   mergeReferenceTransformHistory: (referenceId: string) => void
   cancelActiveReferenceTransformEntry: () => void
@@ -858,19 +869,88 @@ const buildDefaultReferenceTransformOverride = (): ReferenceTransformOverride =>
   scale: { x: 1, y: 1, z: 1 },
 })
 
+type LegacyReferenceTransformHistoryEntry = Omit<
+  ReferenceTransformHistoryEntry,
+  'delta' | 'after' | 'transformAfter'
+> & {
+  value: ReferenceTransformHistoryVector
+}
+
+type ReferenceTransformHistoryEntryDraft = Omit<
+  ReferenceTransformHistoryEntry,
+  'transformAfter'
+>
+
+type ReferenceTransformHistoryEntryLike =
+  | ReferenceTransformHistoryEntry
+  | ReferenceTransformHistoryEntryDraft
+  | LegacyReferenceTransformHistoryEntry
+
 const cloneReferenceTransformVector = (
-  value: ReferenceTransformHistoryEntry['value'],
-): ReferenceTransformHistoryEntry['value'] => ({
+  value: ReferenceTransformHistoryVector,
+): ReferenceTransformHistoryVector => ({
   x: value.x,
   y: value.y,
   z: value.z,
 })
 
+const addReferenceTransformVectors = (
+  left: ReferenceTransformHistoryVector,
+  right: ReferenceTransformHistoryVector,
+): ReferenceTransformHistoryVector => ({
+  x: left.x + right.x,
+  y: left.y + right.y,
+  z: left.z + right.z,
+})
+
+const subtractReferenceTransformVectors = (
+  left: ReferenceTransformHistoryVector,
+  right: ReferenceTransformHistoryVector,
+): ReferenceTransformHistoryVector => ({
+  x: left.x - right.x,
+  y: left.y - right.y,
+  z: left.z - right.z,
+})
+
+const buildReferenceTransformHistoryIdentityVector = (
+  kind: ReferenceTransformHistoryEntryKind,
+): ReferenceTransformHistoryVector =>
+  kind === 'scale' ? { x: 1, y: 1, z: 1 } : { x: 0, y: 0, z: 0 }
+
+const getReferenceTransformHistoryVectorRange = (
+  kind: ReferenceTransformHistoryEntryKind,
+): { min: number; max: number } => {
+  switch (kind) {
+    case 'move':
+      return { min: -300, max: 300 }
+    case 'rotate':
+      return { min: -180, max: 180 }
+    case 'scale':
+      return { min: 0.01, max: 10 }
+  }
+}
+
+const clampReferenceTransformHistoryVector = (
+  kind: ReferenceTransformHistoryEntryKind,
+  value: ReferenceTransformHistoryVector,
+): ReferenceTransformHistoryVector => {
+  const range = getReferenceTransformHistoryVectorRange(kind)
+  return {
+    x: Math.min(range.max, Math.max(range.min, value.x)),
+    y: Math.min(range.max, Math.max(range.min, value.y)),
+    z: Math.min(range.max, Math.max(range.min, value.z)),
+  }
+}
+
 const cloneReferenceTransformHistoryEntry = (
   entry: ReferenceTransformHistoryEntry,
 ): ReferenceTransformHistoryEntry => ({
   ...entry,
-  value: cloneReferenceTransformVector(entry.value),
+  delta: cloneReferenceTransformVector(entry.delta),
+  after: cloneReferenceTransformVector(entry.after),
+  transformAfter:
+    cloneReferenceTransformOverride(entry.transformAfter) ??
+    buildDefaultReferenceTransformOverride(),
 })
 
 const cloneReferenceTransformOverride = (
@@ -898,21 +978,39 @@ const cloneActiveReferenceTransformSession = (
         shellActive: value.shellActive,
         entryActive: value.entryActive,
         activeHandle: value.activeHandle === null ? null : { ...value.activeHandle },
+        historyScrubIndex: value.historyScrubIndex,
         draftTransform:
           cloneReferenceTransformOverride(value.draftTransform) ??
           buildDefaultReferenceTransformOverride(),
         entryOrigin: cloneReferenceTransformOverride(value.entryOrigin),
       }
 
+const areReferenceTransformOverridesEqual = (
+  left: ReferenceTransformOverride | null,
+  right: ReferenceTransformOverride | null,
+): boolean => {
+  if (left === right) {
+    return true
+  }
+  if (left === null || right === null) {
+    return false
+  }
+  return (
+    areReferenceTransformVectorsEqual(left.position, right.position) &&
+    areReferenceTransformVectorsEqual(left.rotationDeg, right.rotationDeg) &&
+    areReferenceTransformVectorsEqual(left.scale, right.scale)
+  )
+}
+
 const areReferenceTransformVectorsEqual = (
-  left: ReferenceTransformHistoryEntry['value'],
-  right: ReferenceTransformHistoryEntry['value'],
+  left: ReferenceTransformHistoryVector,
+  right: ReferenceTransformHistoryVector,
 ): boolean => left.x === right.x && left.y === right.y && left.z === right.z
 
-const getReferenceTransformHistoryEntryValue = (
+const getReferenceTransformHistoryEntryAfterValue = (
   transformOverride: ReferenceTransformOverride | null,
   kind: ReferenceTransformHistoryEntryKind,
-): ReferenceTransformHistoryEntry['value'] => {
+): ReferenceTransformHistoryVector => {
   const current = transformOverride ?? buildDefaultReferenceTransformOverride()
   switch (kind) {
     case 'move':
@@ -922,6 +1020,60 @@ const getReferenceTransformHistoryEntryValue = (
     case 'scale':
       return cloneReferenceTransformVector(current.scale)
   }
+}
+
+const isLegacyReferenceTransformHistoryEntry = (
+  entry: ReferenceTransformHistoryEntryLike,
+): entry is LegacyReferenceTransformHistoryEntry => 'value' in entry
+
+const buildReferenceTransformHistoryOverrideAfter = (
+  currentTransform: ReferenceTransformOverride,
+  kind: ReferenceTransformHistoryEntryKind,
+  after: ReferenceTransformHistoryVector,
+): ReferenceTransformOverride => {
+  const nextTransform = cloneReferenceTransformOverride(currentTransform) ??
+    buildDefaultReferenceTransformOverride()
+  switch (kind) {
+    case 'move':
+      nextTransform.position = cloneReferenceTransformVector(after)
+      break
+    case 'rotate':
+      nextTransform.rotationDeg = cloneReferenceTransformVector(after)
+      break
+    case 'scale':
+      nextTransform.scale = cloneReferenceTransformVector(after)
+      break
+  }
+  return nextTransform
+}
+
+export const normalizeReferenceTransformHistoryEntries = (
+  entries: readonly ReferenceTransformHistoryEntryLike[],
+): ReferenceTransformHistoryEntry[] => {
+  let currentTransform = buildDefaultReferenceTransformOverride()
+  return entries.map((entry) => {
+    const before = getReferenceTransformHistoryEntryAfterValue(currentTransform, entry.kind)
+    const after = isLegacyReferenceTransformHistoryEntry(entry)
+      ? clampReferenceTransformHistoryVector(entry.kind, entry.value)
+      : clampReferenceTransformHistoryVector(
+          entry.kind,
+          addReferenceTransformVectors(before, entry.delta),
+        )
+    currentTransform = buildReferenceTransformHistoryOverrideAfter(currentTransform, entry.kind, after)
+    const nextEntry: ReferenceTransformHistoryEntry = {
+      entryId: entry.entryId,
+      sessionId: entry.sessionId,
+      sessionOrdinal: entry.sessionOrdinal,
+      kind: entry.kind,
+      delta: subtractReferenceTransformVectors(after, before),
+      after,
+      transformAfter:
+        cloneReferenceTransformOverride(currentTransform) ??
+        buildDefaultReferenceTransformOverride(),
+      locked: entry.locked,
+    }
+    return nextEntry
+  })
 }
 
 const resolveReferenceTransformHistoryKind = (
@@ -947,46 +1099,142 @@ const getNextReferenceTransformSessionOrdinal = (
   return maxSessionOrdinal + 1
 }
 
-const appendReferenceTransformHistoryEntry = (
-  entries: readonly ReferenceTransformHistoryEntry[],
+const clampReferenceTransformHistoryScrubIndex = (
+  scrubIndex: number,
+  entryCount: number,
+): number =>
+  Math.min(entryCount, Math.max(0, Math.trunc(scrubIndex)))
+
+const resolveReferenceTransformHistoryScrubIndex = (
+  entries: readonly ReferenceTransformHistoryEntryLike[],
+  scrubIndex: number | null | undefined,
+): number => {
+  const latestScrubIndex = getReferenceTransformHistoryLatestScrubIndex(entries)
+  if (scrubIndex === null || scrubIndex === undefined || !Number.isFinite(scrubIndex)) {
+    return latestScrubIndex
+  }
+  return clampReferenceTransformHistoryScrubIndex(scrubIndex, latestScrubIndex)
+}
+
+export const getReferenceTransformHistoryLatestScrubIndex = (
+  entries: readonly ReferenceTransformHistoryEntryLike[],
+): number => normalizeReferenceTransformHistoryEntries(entries).length
+
+export const getReferenceTransformHistoryEntriesThroughScrubIndex = (
+  entries: readonly ReferenceTransformHistoryEntryLike[],
+  scrubIndex: number,
+): ReferenceTransformHistoryEntry[] => {
+  const normalizedEntries = normalizeReferenceTransformHistoryEntries(entries)
+  return normalizedEntries
+    .slice(0, clampReferenceTransformHistoryScrubIndex(scrubIndex, normalizedEntries.length))
+    .map(cloneReferenceTransformHistoryEntry)
+}
+
+export const getReferenceTransformHistoryTransformAtScrubIndex = (
+  entries: readonly ReferenceTransformHistoryEntryLike[],
+  scrubIndex: number,
+): ReferenceTransformOverride => {
+  const effectiveEntries = getReferenceTransformHistoryEntriesThroughScrubIndex(entries, scrubIndex)
+  const lastEntry = effectiveEntries.at(-1)
+  return lastEntry === undefined
+    ? buildDefaultReferenceTransformOverride()
+    : cloneReferenceTransformOverride(lastEntry.transformAfter) ??
+        buildDefaultReferenceTransformOverride()
+}
+
+export const insertReferenceTransformHistoryEntryAtScrubIndex = (
+  entries: readonly ReferenceTransformHistoryEntryLike[],
+  scrubIndex: number,
   sessionId: string,
   sessionOrdinal: number,
   kind: ReferenceTransformHistoryEntryKind,
-  value: ReferenceTransformHistoryEntry['value'],
+  after: ReferenceTransformHistoryVector,
 ): ReferenceTransformHistoryEntry[] => {
-  const nextValue = cloneReferenceTransformVector(value)
-  const previousSameKind = [...entries].reverse().find((entry) => entry.kind === kind) ?? null
-  if (previousSameKind !== null && areReferenceTransformVectorsEqual(previousSameKind.value, nextValue)) {
-    return entries.map(cloneReferenceTransformHistoryEntry)
+  const normalizedEntries = normalizeReferenceTransformHistoryEntries(entries)
+  const clampedScrubIndex = clampReferenceTransformHistoryScrubIndex(scrubIndex, normalizedEntries.length)
+  const previousTransform = getReferenceTransformHistoryTransformAtScrubIndex(
+    normalizedEntries,
+    clampedScrubIndex,
+  )
+  const previousAfter = getReferenceTransformHistoryEntryAfterValue(previousTransform, kind)
+  const nextAfter = clampReferenceTransformHistoryVector(kind, after)
+  if (areReferenceTransformVectorsEqual(previousAfter, nextAfter)) {
+    return normalizedEntries.map(cloneReferenceTransformHistoryEntry)
   }
-  return [
-    ...entries.map(cloneReferenceTransformHistoryEntry),
-    {
-      entryId: newId('reference-transform-history'),
-      sessionId,
-      sessionOrdinal,
-      kind,
-      value: nextValue,
-      locked: false,
-    },
-  ]
+  const nextDelta = subtractReferenceTransformVectors(nextAfter, previousAfter)
+  const insertedEntry: ReferenceTransformHistoryEntryDraft = {
+    entryId: newId('reference-transform-history'),
+    sessionId,
+    sessionOrdinal,
+    kind,
+    delta: nextDelta,
+    after: nextAfter,
+    locked: false,
+  }
+  return normalizeReferenceTransformHistoryEntries([
+    ...normalizedEntries.slice(0, clampedScrubIndex),
+    insertedEntry,
+    ...normalizedEntries.slice(clampedScrubIndex),
+  ])
 }
 
 const mergeReferenceTransformHistoryEntries = (
-  entries: readonly ReferenceTransformHistoryEntry[],
+  entries: readonly ReferenceTransformHistoryEntryLike[],
 ): ReferenceTransformHistoryEntry[] => {
-  if (entries.length <= 1) {
-    return entries.map(cloneReferenceTransformHistoryEntry)
+  const normalizedEntries = normalizeReferenceTransformHistoryEntries(entries)
+  if (normalizedEntries.length <= 1) {
+    return normalizedEntries.map(cloneReferenceTransformHistoryEntry)
   }
-  const preservedIndexes = new Set<number>([entries.length - 1])
-  entries.forEach((entry, index) => {
+  const preservedEntries: Array<{ sortIndex: number; entry: ReferenceTransformHistoryEntryLike }> = []
+  const unlockedDeltaByKind = new Map<ReferenceTransformHistoryEntryKind, ReferenceTransformHistoryVector>()
+  const lastUnlockedEntryByKind = new Map<ReferenceTransformHistoryEntryKind, ReferenceTransformHistoryEntry>()
+  normalizedEntries.forEach((entry, index) => {
     if (entry.locked) {
-      preservedIndexes.add(index)
+      preservedEntries.push({
+        sortIndex: index,
+        entry: cloneReferenceTransformHistoryEntry(entry),
+      })
+      return
     }
+    const currentDelta =
+      unlockedDeltaByKind.get(entry.kind) ?? { x: 0, y: 0, z: 0 }
+    unlockedDeltaByKind.set(entry.kind, addReferenceTransformVectors(currentDelta, entry.delta))
+    lastUnlockedEntryByKind.set(entry.kind, entry)
   })
-  return entries
-    .filter((_entry, index) => preservedIndexes.has(index))
-    .map(cloneReferenceTransformHistoryEntry)
+  for (const [kind, delta] of unlockedDeltaByKind.entries()) {
+    const template = lastUnlockedEntryByKind.get(kind)
+    if (template === undefined) {
+      continue
+    }
+    preservedEntries.push({
+      sortIndex: normalizedEntries.findIndex((entry) => entry.entryId === template.entryId),
+      entry: {
+        entryId: template.entryId,
+        sessionId: template.sessionId,
+        sessionOrdinal: template.sessionOrdinal,
+        kind,
+        delta: cloneReferenceTransformVector(delta),
+        after: buildReferenceTransformHistoryIdentityVector(kind),
+        locked: false,
+      },
+    })
+  }
+  return normalizeReferenceTransformHistoryEntries(
+    preservedEntries
+      .sort((left, right) => left.sortIndex - right.sortIndex)
+      .map(({ entry }) => entry),
+  )
+}
+
+const applyReferenceTransformHistoryEntriesToOverride = (
+  entries: readonly ReferenceTransformHistoryEntryLike[],
+): ReferenceTransformOverride => {
+  const normalizedEntries = normalizeReferenceTransformHistoryEntries(entries)
+  const lastEntry = normalizedEntries.at(-1)
+  return lastEntry === undefined
+    ? buildDefaultReferenceTransformOverride()
+    : cloneReferenceTransformOverride(lastEntry.transformAfter) ??
+        buildDefaultReferenceTransformOverride()
 }
 
 const getReferenceChannelClampRange = (
@@ -2365,13 +2613,20 @@ export const useAppStore = create<AppState>((set, get) => ({
       }
       const currentTransformOverride =
         state.referenceWorkspace.transformOverrideById[referenceId] ?? null
-      const currentEntries = state.referenceWorkspace.transformHistoryByReferenceId[referenceId] ?? []
+      const currentEntries = normalizeReferenceTransformHistoryEntries(
+        state.referenceWorkspace.transformHistoryByReferenceId[referenceId] ?? [],
+      )
+      const latestScrubIndex = getReferenceTransformHistoryLatestScrubIndex(currentEntries)
       const draftTransform =
         cloneReferenceTransformOverride(currentTransformOverride) ??
-        buildDefaultReferenceTransformOverride()
+        getReferenceTransformHistoryTransformAtScrubIndex(currentEntries, latestScrubIndex)
       return {
         referenceWorkspace: {
           ...state.referenceWorkspace,
+          transformHistoryByReferenceId: {
+            ...state.referenceWorkspace.transformHistoryByReferenceId,
+            [referenceId]: currentEntries,
+          },
           visibilityById: {
             ...state.referenceWorkspace.visibilityById,
             [referenceId]: true,
@@ -2385,6 +2640,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             shellActive: true,
             entryActive: false,
             activeHandle: null,
+            historyScrubIndex: latestScrubIndex,
             draftTransform,
             entryOrigin: null,
           },
@@ -2432,23 +2688,46 @@ export const useAppStore = create<AppState>((set, get) => ({
         return state
       }
       const activeReferenceId = activeSession.referenceId
-      const nextTransformOverride =
+      const committedTransformOverride =
         cloneReferenceTransformOverride(activeSession.draftTransform) ??
         buildDefaultReferenceTransformOverride()
       const previousTransformOverride =
         state.referenceWorkspace.transformOverrideById[activeReferenceId] ?? null
       const kind = resolveReferenceTransformHistoryKind(activeSession.mode)
-      const value = getReferenceTransformHistoryEntryValue(nextTransformOverride, kind)
-      const currentEntries =
-        state.referenceWorkspace.transformHistoryByReferenceId[activeReferenceId] ?? []
-      const nextEntries = appendReferenceTransformHistoryEntry(
+      const after = getReferenceTransformHistoryEntryAfterValue(committedTransformOverride, kind)
+      const currentEntries = normalizeReferenceTransformHistoryEntries(
+        state.referenceWorkspace.transformHistoryByReferenceId[activeReferenceId] ?? [],
+      )
+      const currentScrubIndex = resolveReferenceTransformHistoryScrubIndex(
         currentEntries,
+        activeSession.historyScrubIndex,
+      )
+      const nextEntries = insertReferenceTransformHistoryEntryAtScrubIndex(
+        currentEntries,
+        currentScrubIndex,
         activeSession.sessionId,
         activeSession.sessionOrdinal,
         kind,
-        value,
+        after,
       )
-      const historyChanged = currentEntries.length !== nextEntries.length
+      const historyChanged =
+        currentEntries.length !== nextEntries.length ||
+        currentEntries.some((entry, index) => {
+          const other = nextEntries[index]
+          return (
+            other === undefined ||
+            entry.entryId !== other.entryId ||
+            !areReferenceTransformVectorsEqual(entry.delta, other.delta) ||
+            !areReferenceTransformVectorsEqual(entry.after, other.after) ||
+            !areReferenceTransformOverridesEqual(entry.transformAfter, other.transformAfter) ||
+            entry.locked !== other.locked
+          )
+        })
+      const latestScrubIndex = getReferenceTransformHistoryLatestScrubIndex(nextEntries)
+      const nextTransformOverride = getReferenceTransformHistoryTransformAtScrubIndex(
+        nextEntries,
+        latestScrubIndex,
+      )
       return {
         referenceWorkspace: {
           ...state.referenceWorkspace,
@@ -2456,6 +2735,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             ...activeSession,
             entryActive: false,
             activeHandle: null,
+            historyScrubIndex: latestScrubIndex,
             draftTransform: nextTransformOverride,
             entryOrigin: null,
           },
@@ -2549,6 +2829,35 @@ export const useAppStore = create<AppState>((set, get) => ({
       }
     })
   },
+  setActiveReferenceTransformHistoryScrubIndex: (scrubIndex) => {
+    set((state) => {
+      const activeSession = state.referenceWorkspace.activeReferenceTransformSession
+      if (activeSession === null || activeSession.entryActive) {
+        return state
+      }
+      const currentEntries = normalizeReferenceTransformHistoryEntries(
+        state.referenceWorkspace.transformHistoryByReferenceId[activeSession.referenceId] ?? [],
+      )
+      const nextScrubIndex = resolveReferenceTransformHistoryScrubIndex(currentEntries, scrubIndex)
+      if (nextScrubIndex === activeSession.historyScrubIndex) {
+        return state
+      }
+      const nextDraftTransform = getReferenceTransformHistoryTransformAtScrubIndex(
+        currentEntries,
+        nextScrubIndex,
+      )
+      return {
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          activeReferenceTransformSession: {
+            ...activeSession,
+            historyScrubIndex: nextScrubIndex,
+            draftTransform: nextDraftTransform,
+          },
+        },
+      }
+    })
+  },
   setReferenceTransformOverride: (referenceId, transformOverride) => {
     set((state) => {
       const previousTransformOverride = state.referenceWorkspace.transformOverrideById[referenceId] ?? null
@@ -2610,9 +2919,77 @@ export const useAppStore = create<AppState>((set, get) => ({
       }
     })
   },
+  setReferenceTransformHistoryEntryDeltaValue: (referenceId, entryId, axis, value) => {
+    set((state) => {
+      const previousTransformOverride = state.referenceWorkspace.transformOverrideById[referenceId] ?? null
+      const activeSession = state.referenceWorkspace.activeReferenceTransformSession
+      const currentEntries = normalizeReferenceTransformHistoryEntries(
+        state.referenceWorkspace.transformHistoryByReferenceId[referenceId] ?? [],
+      )
+      let changed = false
+      const nextEntries = normalizeReferenceTransformHistoryEntries(currentEntries.map((entry) => {
+        if (entry.entryId !== entryId || entry.delta[axis] === value) {
+          return entry
+        }
+        changed = true
+        return {
+          ...entry,
+          delta: {
+            ...entry.delta,
+            [axis]: value,
+          },
+        }
+      }))
+      if (!changed) {
+        return state
+      }
+      const nextTransformOverride = applyReferenceTransformHistoryEntriesToOverride(nextEntries)
+      const nextScrubIndex =
+        activeSession?.referenceId !== referenceId
+          ? undefined
+          : resolveReferenceTransformHistoryScrubIndex(nextEntries, activeSession.historyScrubIndex)
+      const nextDraftTransform =
+        nextScrubIndex === undefined
+          ? nextTransformOverride
+          : getReferenceTransformHistoryTransformAtScrubIndex(nextEntries, nextScrubIndex)
+      return {
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          transformOverrideById: {
+            ...state.referenceWorkspace.transformOverrideById,
+            [referenceId]: nextTransformOverride,
+          },
+          transformHistoryByReferenceId: {
+            ...state.referenceWorkspace.transformHistoryByReferenceId,
+            [referenceId]: nextEntries,
+          },
+          activeReferenceTransformSession:
+            activeSession?.referenceId !== referenceId
+              ? activeSession
+              : {
+                  ...activeSession,
+                  historyScrubIndex: nextScrubIndex,
+                  draftTransform: cloneReferenceTransformOverride(nextDraftTransform) ??
+                    buildDefaultReferenceTransformOverride(),
+                  entryOrigin: activeSession.entryOrigin === null
+                    ? null
+                    : cloneReferenceTransformOverride(nextDraftTransform),
+                },
+          timelineConfigByReferenceId: applyReferenceTransformTimelineDeltas(
+            state.referenceWorkspace,
+            referenceId,
+            previousTransformOverride,
+            nextTransformOverride,
+          ),
+        },
+      }
+    })
+  },
   toggleReferenceTransformHistoryLock: (referenceId, entryId) => {
     set((state) => {
-      const currentEntries = state.referenceWorkspace.transformHistoryByReferenceId[referenceId] ?? []
+      const currentEntries = normalizeReferenceTransformHistoryEntries(
+        state.referenceWorkspace.transformHistoryByReferenceId[referenceId] ?? [],
+      )
       let changed = false
       const nextEntries = currentEntries.map((entry) => {
         if (entry.entryId !== entryId) {
@@ -2627,20 +3004,45 @@ export const useAppStore = create<AppState>((set, get) => ({
       if (!changed) {
         return state
       }
+      const nextTransformOverride = applyReferenceTransformHistoryEntriesToOverride(nextEntries)
+      const activeSession = state.referenceWorkspace.activeReferenceTransformSession
+      const nextScrubIndex =
+        activeSession?.referenceId !== referenceId
+          ? undefined
+          : resolveReferenceTransformHistoryScrubIndex(nextEntries, activeSession.historyScrubIndex)
+      const nextDraftTransform =
+        nextScrubIndex === undefined
+          ? nextTransformOverride
+          : getReferenceTransformHistoryTransformAtScrubIndex(nextEntries, nextScrubIndex)
       return {
         referenceWorkspace: {
           ...state.referenceWorkspace,
+          transformOverrideById: {
+            ...state.referenceWorkspace.transformOverrideById,
+            [referenceId]: nextTransformOverride,
+          },
           transformHistoryByReferenceId: {
             ...state.referenceWorkspace.transformHistoryByReferenceId,
             [referenceId]: nextEntries,
           },
+          activeReferenceTransformSession:
+            activeSession?.referenceId !== referenceId
+              ? activeSession
+              : {
+                  ...activeSession,
+                  historyScrubIndex: nextScrubIndex,
+                  draftTransform: cloneReferenceTransformOverride(nextDraftTransform) ??
+                    buildDefaultReferenceTransformOverride(),
+                },
         },
       }
     })
   },
   mergeReferenceTransformHistory: (referenceId) => {
     set((state) => {
-      const currentEntries = state.referenceWorkspace.transformHistoryByReferenceId[referenceId] ?? []
+      const currentEntries = normalizeReferenceTransformHistoryEntries(
+        state.referenceWorkspace.transformHistoryByReferenceId[referenceId] ?? [],
+      )
       const nextEntries = mergeReferenceTransformHistoryEntries(currentEntries)
       const changed =
         currentEntries.length !== nextEntries.length ||
@@ -2652,7 +3054,9 @@ export const useAppStore = create<AppState>((set, get) => ({
             entry.sessionId !== other.sessionId ||
             entry.sessionOrdinal !== other.sessionOrdinal ||
             entry.locked !== other.locked ||
-            !areReferenceTransformVectorsEqual(entry.value, other.value)
+            !areReferenceTransformVectorsEqual(entry.delta, other.delta) ||
+            !areReferenceTransformVectorsEqual(entry.after, other.after) ||
+            !areReferenceTransformOverridesEqual(entry.transformAfter, other.transformAfter)
           )
         })
       if (!changed) {

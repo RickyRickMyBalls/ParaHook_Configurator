@@ -65,6 +65,389 @@ Do not use it for:
 
 ## Doc Body
 
+### [670] - 2026-03-27 02:12 - `TRN - Transform-6 - History Scrub And Traversal`
+<!-- ENTRY 670 -->
+HUMAN SUMMARY: `This landed the first committed-history scrub layer for reference transform, so the toolbar now exposes a history paraslider and row-jump controls, scrubbing an older entry makes that landed committed state the active rendered transform, future rows dim out, future viewport history overlays stop rendering, and new commits from an older scrub point insert into history before replaying the old future.` 
+#### Scope / Constraints Honored
+- Kept this pass reference-transform-history only.
+- Reused the existing committed `delta + after + transformAfter` model instead of inventing a second traversal store.
+- Left session-level playback and broader object/folder/assembly traversal out of scope.
+
+#### Summary of Implementation
+- Added scrub state to the active reference transform shell and a store action to move the scrub head without mutating committed history.
+- Changed transform commit semantics so committing while scrubbed to an earlier entry now inserts immediately after that scrubbed row, replays later rows from there, and returns the shell to the recomputed tail state.
+- Updated history-row edit and merge paths so the active shell draft stays aligned with the current scrub index instead of always snapping to the tail.
+- Added a `History Scrub` paraslider plus row-jump buttons in `ReferenceTransformToolbar`, switched child numbering to the visible global entry order, and dimmed future rows while traversal is active.
+- Updated `ViewerHost` to feed only the effective history through the current scrub head into the shipped `Transform 5` overlay lane, which hides future move / rotate / scale visuals automatically.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/store/useAppStore.test.ts`
+- `src/app/components/ReferenceTransformToolbar.tsx`
+- `src/app/components/ReferenceTransformToolbar.test.tsx`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `src/app/theme/surfaces/viewport-overlay.css`
+
+#### Behavior Changes
+- Reference transform history can now be scrubbed directly from the toolbar across entry `0..last`.
+- When the scrub head is on an earlier entry, the rendered model and toolbar values follow that landed committed state instead of the tail state.
+- Future history rows visibly deactivate in the toolbar, and future viewport history overlays beyond the scrub head disappear.
+- Committing a new transform step from an earlier scrub point inserts into history at that point and then returns the shell to the new tail state.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/store/useAppStore.test.ts src/app/components/ReferenceTransformToolbar.test.tsx src/app/components/ViewerHost.test.tsx`
+- `cmd /c npx tsc --noEmit`
+
+### [669] - 2026-03-27 02:01 - `TRN - Transform-6 - Scrub Ready History Foundation`
+<!-- ENTRY 669 -->
+HUMAN SUMMARY: `This strengthened committed reference transform history for the upcoming scrub phase by adding a cached full landed \`transformAfter\` snapshot to every row, exporting pure scrub-ready replay helpers from the store, and switching the viewer history overlay seam to consume that canonical landed transform data instead of rebuilding it ad hoc.` 
+#### Scope / Constraints Honored
+- Kept this pass to store and low-risk read-seam groundwork for `Transform 6`.
+- Left traversal UI, history scrub sliders, row deactivation, and viewport hiding behavior out of scope.
+- Preserved the existing `delta`-canonical history model and current toolbar/runtime behavior.
+
+#### Summary of Implementation
+- Extended `ReferenceTransformHistoryEntry` so normalized committed rows now carry both their per-kind landed `after` value and a full landed `transformAfter` snapshot.
+- Refactored the reference transform history replay helpers in `useAppStore` so legacy normalization, append, edit reflow, merge, and override application all compute and preserve `transformAfter`.
+- Added exported pure helpers for later traversal work: latest scrub index, effective history through a scrub index, landed transform at a scrub index, and insert-after-scrub replay.
+- Updated `ViewerHost` history overlay VM construction to read the cached landed transform snapshots directly instead of manually replaying full transform state in the component.
+- Expanded store, toolbar, and viewer-host regressions to cover `transformAfter`, scrub-ready helper behavior, legacy normalization, and compatibility with existing runtime readers.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/store/useAppStore.test.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `src/app/components/ReferenceTransformToolbar.test.tsx`
+
+#### Behavior Changes
+- Committed reference transform history rows now cache a full landed transform snapshot after each row.
+- Store-owned transform history helpers can now answer scrub-ready questions without requiring later UI code to duplicate replay math.
+- Existing toolbar and viewer history behavior remains the same at runtime, but now reads from a cleaner landed-state seam.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/store/useAppStore.test.ts src/app/components/ReferenceTransformToolbar.test.tsx src/app/components/ViewerHost.test.tsx`
+- `cmd /c npx tsc --noEmit`
+
+### [668] - 2026-03-27 01:21 - `TRN - Console - Axis Prompt Submit Cancels Active Gizmo Drag`
+<!-- ENTRY 668 -->
+HUMAN SUMMARY: `This fixed the stuck-viewport bug after console axis submits like \`Transform > Move > X > 10\`, \`Rotate > X > 10\`, and \`Scale > X > 10\` by explicitly cancelling any active gizmo drag before the console applies the typed value and commits the entry.` 
+#### Scope / Constraints Honored
+- Kept this pass limited to the shared reference-transform axis and plane prompt submit path.
+- Left transform history semantics and transform-shell navigation unchanged.
+- Covered move, rotate, and scale through the shared path instead of landing a one-mode patch.
+
+#### Summary of Implementation
+- Updated the reference transform axis and plane prompt submit handlers in `ConsoleDock` so they now cancel any active viewer gizmo drag before writing the typed transform override and committing the entry.
+- Preserved the existing clear-handle and commit flow after the typed override is applied.
+- Tightened the axis-prompt regressions so move, rotate, and scale prompt commits now all prove the viewer drag is cancelled and the handle is cleared when the console submit finishes.
+
+#### Files Changed
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+
+#### Behavior Changes
+- Console axis value submits no longer leave the viewport stuck in an active gizmo-drag state.
+- The shared fix applies to typed move, rotate, and scale axis commits from the transform console.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/console/ConsoleDock.test.tsx`
+- `cmd /c npx tsc --noEmit`
+
+### [667] - 2026-03-27 01:18 - `TRN - Console - Gizmo Auto Commit Returns To Transform Root`
+<!-- ENTRY 667 -->
+HUMAN SUMMARY: `This fixed a reference-transform console bug where gizmo-driven auto-commits could leave the console stuck in an old axis prompt instead of dropping back to the shared \`Transform\` root, even though the history entry had committed correctly.` 
+#### Scope / Constraints Honored
+- Kept this pass limited to the transform console shell-sync path.
+- Left gizmo commit semantics and transform history storage unchanged.
+- Added a regression that covers repeated gizmo auto-commits, not just a one-off prompt clear.
+
+#### Summary of Implementation
+- Updated the transform-handle-to-console sync effect in `ConsoleDock` so active axis and plane prompts are cleared whenever the reference transform session is no longer in an active entry state.
+- Preserved the existing prompt-open behavior while a live handle is active, but now force the console back through the normal root reseed path once a gizmo commit ends the entry.
+- Added a focused console regression that commits two successive gizmo-driven `Move X` entries and proves the console returns to `referenceTransformRoot` with `CommitTransform` ready after each auto-commit.
+
+#### Files Changed
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+
+#### Behavior Changes
+- After a gizmo auto-commit, the console now properly returns to the shared `Transform` root instead of lingering in a stale axis prompt.
+- Repeating gizmo-driven transform entries now keeps the console shell aligned with the committed transform state.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/console/ConsoleDock.test.tsx`
+- `cmd /c npx tsc --noEmit`
+
+### [666] - 2026-03-27 01:20 - `TRN - Console - Guided Input Keeps Focus Without Persistent Selection`
+<!-- ENTRY 666 -->
+HUMAN SUMMARY: `This refined the guided console cleanup so the console keeps keyboard ownership after guided submits and prompt step-backs without leaving the assisted token visibly highlighted, which restores the cleaner always-ready typing feel while preserving the keyboard-only transform flow.` 
+#### Scope / Constraints Honored
+- Kept this pass to guided console input behavior only.
+- Preserved the typed-first assisted-input replacement path from the previous cleanup.
+- Left non-console fields in control once the user clicks into a different editable target.
+
+#### Summary of Implementation
+- Changed the guided refocus helper in `ConsoleBar` to keep the input focused with the caret at the end instead of selecting the entire assisted token.
+- Kept the existing printable-key assisted replacement logic intact so the first typed character still replaces descriptor-driven guided text automatically.
+- Updated the focused console regressions so they now assert retained focus and caret placement rather than full-token selection.
+
+#### Files Changed
+- `src/app/console/ConsoleBar.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+
+#### Behavior Changes
+- Guided console text is no longer always highlighted after submit.
+- The console still stays ready for typing, and the first typed word or number replaces the assisted token unless focus has moved to another editable field.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/console/ConsoleBar.test.tsx src/app/console/ConsoleDock.test.tsx`
+- `cmd /c npx tsc --noEmit`
+
+### [665] - 2026-03-27 01:19 - `TRN - Console - Guided Input Selection Cleanup`
+<!-- ENTRY 665 -->
+HUMAN SUMMARY: `This cleaned up guided console entry so staged and prompt-assisted input stays focused with the assisted token selected, which fixes the keyboard-only reference-transform flow where users should be able to submit \`Move\`, then \`X\`, then \`10\` without re-focusing or manually clearing prefilled text.` 
+#### Scope / Constraints Honored
+- Kept this pass to console input behavior only.
+- Preserved the existing typed-first assisted-input replacement logic.
+- Added a real DOM keyboard regression for the reference-transform `Move -> X -> 10` path instead of relying only on store-state tests.
+
+#### Summary of Implementation
+- Reworked `ConsoleBar` guided-input refocus behavior so submit and escape step-back paths keep the input focused whenever staged or prompt guidance remains active.
+- Changed assisted refocus selection from caret-at-end to full-token selection when the input is still descriptor-driven, while preserving caret-at-end for manual-override text.
+- Added a keyboard-driven `ConsoleDock` regression that types through the transform shell using real input events and proves the `Move -> X -> 10` loop updates the model.
+- Updated the older staged-prefill chaining expectation to match the new assisted-selection behavior and hardened `ConsoleBar.test.tsx` with a local `Worker` shim for isolated execution.
+
+#### Files Changed
+- `src/app/console/ConsoleBar.tsx`
+- `src/app/console/ConsoleBar.test.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+
+#### Behavior Changes
+- Guided console submits now keep the assisted token selected instead of leaving the caret at the end.
+- Reference-transform console entry can now stay fully keyboard-driven through `Move`, axis selection, and value submit without manual text clearing.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/console/ConsoleBar.test.tsx src/app/console/ConsoleDock.test.tsx`
+- `cmd /c npx tsc --noEmit`
+
+### [664] - 2026-03-27 01:12 - `TRN - Transform-5 - Viewport History Visual Baseline`
+<!-- ENTRY 664 -->
+HUMAN SUMMARY: `This landed the first committed reference transform-history viewport overlay, so the active transform shell now renders a SketchPlane-style move path plus first-pass rotate and scale history visuals directly in the viewer from the same committed history rows the toolbar reads.` 
+#### Scope / Constraints Honored
+- Kept this pass reference-transform-history only.
+- Reused the existing store-owned committed history model instead of inventing a second viewer-only history source.
+- Left traversal, preview playback, and restore behavior out of scope for the later `Transform 6` phase.
+
+#### Summary of Implementation
+- Added a viewer-owned `ReferenceTransformHistoryHelper` that renders committed move history as a world-space point-to-point polyline plus first-pass rotate normal/arc and scale sphere-comparison overlays.
+- Extended `ViewerHost` to derive an active-reference history overlay VM from committed `delta + after` rows, including the replayed position/rotation/scale state needed to anchor rotate and scale visuals honestly.
+- Wired `Viewer` to keep that overlay synced with reference load, visibility, and active transform-shell state.
+- Added a host seam test for overlay VM construction and a helper-level viewer test for move, rotate, and scale rendering behavior.
+
+#### Files Changed
+- `src/app/viewerBridge.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `src/viewer/Viewer.ts`
+- `src/viewer/ReferenceTransformHistoryHelper.ts`
+- `src/viewer/ReferenceTransformHistoryHelper.test.ts`
+
+#### Behavior Changes
+- Active reference transform shells now show committed move history in the viewport as a thin checkpoint-turn line rooted at the reference base.
+- Committed rotate rows now render before/after normals with an arc between them.
+- Committed scale rows now render before/after sphere-style size comparisons at the landed history position.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/components/ViewerHost.test.tsx src/viewer/ReferenceTransformHistoryHelper.test.ts`
+- `cmd /c npx tsc --noEmit`
+
+### [663] - 2026-03-27 00:17 - `TRN - Transform-4.4 - History Rows Rebased To Delta Plus After`
+<!-- ENTRY 663 -->
+HUMAN SUMMARY: `This rebased committed reference transform history away from absolute-only row snapshots and onto enriched \`delta + after\` entries, so history titles now show the landed absolute result while row sliders edit per-entry deltas that can reflow later rows and update the live model correctly.` 
+#### Scope / Constraints Honored
+- Kept the change reference-transform-history first.
+- Preserved grouped session rows, lock behavior, and the shared transform shell.
+- Added legacy normalization so older absolute history rows can be converted when the transform shell opens.
+
+#### Summary of Implementation
+- Replaced committed history row storage in `useAppStore` with canonical `delta` and `after` vectors plus helper functions to normalize legacy absolute rows, derive implicit baselines, reflow later rows, and rebuild the effective override from landed `after` values.
+- Updated the reference transform toolbar so child titles show landed absolute `after` values while the `ParaVec3Slider` controls edit signed row deltas instead of absolute snapshots.
+- Tightened store, toolbar, and viewer-host regressions around older-row reflow, live override updates, merge behavior, and legacy absolute-row normalization.
+- Updated the Transform architecture docs so the family record no longer claims committed rows are stored as absolute snapshots only.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/store/useAppStore.test.ts`
+- `src/app/components/ReferenceTransformToolbar.tsx`
+- `src/app/components/ReferenceTransformToolbar.test.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `docs/Human-Plans/Architecture/Transform/transform-index.md`
+- `docs/Human-Plans/Architecture/Transform/Future/Transform_Phase Transform-1 - Reference Session And History Foundation.md`
+
+#### Behavior Changes
+- Committed transform history rows now store and edit per-row deltas while also caching landed absolute `after` values.
+- Editing an older history row now reflows later rows of the same transform kind instead of leaving only the last absolute row authoritative.
+- Existing absolute-only history rows can be normalized into the new model when the transform shell opens.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/store/useAppStore.test.ts src/app/components/ReferenceTransformToolbar.test.tsx src/app/components/ViewerHost.test.tsx`
+- `cmd /c npx tsc --noEmit`
+
+### [662] - 2026-03-27 00:17 - `TRN - Transform-4.4 - History Edits Recompute Live Override`
+<!-- ENTRY 662 -->
+HUMAN SUMMARY: `This completed editable transform-history rows by recomputing the live reference transform override from the updated history list whenever a history slider changes, so editing a committed history row now moves the rendered model instead of only changing stored history text.` 
+#### Scope / Constraints Honored
+- Kept the change limited to reference transform history edit propagation.
+- Preserved the existing editable-history UI introduced in the prior step.
+- Added focused regressions that assert history edits now update the effective override and active draft state.
+
+#### Summary of Implementation
+- Added a helper that rebuilds the effective reference transform override from the current history entries, with the latest surviving value for each transform kind winning.
+- Updated the in-place history entry setter so it now writes the recomputed transform into `transformOverrideById`, syncs the active transform session draft for the same reference, and shifts active timeline configs through the existing transform-delta path.
+- Expanded store and toolbar regressions so history-slider edits must now move the effective reference transform state, not just the history entry value.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/store/useAppStore.test.ts`
+- `src/app/components/ReferenceTransformToolbar.test.tsx`
+
+#### Behavior Changes
+- Editing a transform history slider now updates the live reference model transform.
+- History entry edits continue to modify the existing row instead of appending a new history entry.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/store/useAppStore.test.ts src/app/components/ReferenceTransformToolbar.test.tsx`
+- `cmd /c npx tsc --noEmit`
+
+### [661] - 2026-03-27 00:17 - `TRN - Transform-4.4 - History Entries Edit In Place`
+<!-- ENTRY 661 -->
+HUMAN SUMMARY: `This turned reference transform history rows into real editable vec3 controls backed by an in-place history-entry update action, so adjusting an older move/rotate/scale row now edits that stored entry directly instead of creating a new history row.` 
+#### Scope / Constraints Honored
+- Kept the change limited to reference transform history editing behavior and row presentation.
+- Preserved existing history grouping, lock controls, and merge semantics.
+- Added focused store and toolbar regressions to prove editing mutates an existing row without appending a new entry.
+
+#### Summary of Implementation
+- Added a dedicated `setReferenceTransformHistoryEntryValue` store action that updates a specific history entry axis in place.
+- Reworked toolbar history child rows into a two-line layout with an inline lock-and-title header and an editable `ParaVec3Slider` below for the entry values.
+- Scoped the generic toolbar slider context-menu test back to the live values section so the new history sliders do not interfere with unrelated assertions.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/store/useAppStore.test.ts`
+- `src/app/components/ReferenceTransformToolbar.tsx`
+- `src/app/components/ReferenceTransformToolbar.test.tsx`
+- `src/app/theme/surfaces/viewport-overlay.css`
+
+#### Behavior Changes
+- Older transform history entries can now be edited directly from the toolbar.
+- Editing a history entry mutates that existing row instead of appending a new history entry.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/store/useAppStore.test.ts src/app/components/ReferenceTransformToolbar.test.tsx`
+- `cmd /c npx tsc --noEmit`
+
+### [660] - 2026-03-27 00:17 - `TRN - Transform-4.4 - History Rows Use Compact Lock Icons`
+<!-- ENTRY 660 -->
+HUMAN SUMMARY: `This changed reference transform history child rows so each entry now starts with a tiny icon lock button and a numbered label, which makes row locking read like part of the entry header instead of a second wide action pill at the far edge of the toolbar.` 
+#### Scope / Constraints Honored
+- Kept the change limited to reference transform history row presentation.
+- Left transform history grouping, merge semantics, and actual lock behavior unchanged.
+- Added only a focused toolbar regression for the new icon-button labeling.
+
+#### Summary of Implementation
+- Added numbered child-entry labels in the history session rows so each row now reads as an explicit ordered entry.
+- Replaced the text `Lock` / `Unlock` pill with a compact icon button rendered before the entry label and wired it to the existing history-lock toggle action.
+- Added small toolbar CSS for the compact history lock button and icon sizing.
+
+#### Files Changed
+- `src/app/components/ReferenceTransformToolbar.tsx`
+- `src/app/components/ReferenceTransformToolbar.test.tsx`
+- `src/app/theme/surfaces/viewport-overlay.css`
+
+#### Behavior Changes
+- Transform history child rows now show a tiny icon lock button before the numbered entry label.
+- The lock control remains keyboard and screen-reader accessible through explicit `aria-label` text.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/components/ReferenceTransformToolbar.test.tsx`
+- `cmd /c npx tsc --noEmit`
+
+### [659] - 2026-03-27 00:17 - `TRN - Transform-4.4 - Toolbar History Section Precedes Values`
+<!-- ENTRY 659 -->
+HUMAN SUMMARY: `This moved the reference transform toolbar's \`Transform History\` section above the live \`Move\` / \`Rotate\` / \`Scale\` value sections so committed history is visible first in the panel layout, and added a DOM-order regression so the section order does not drift back.` 
+#### Scope / Constraints Honored
+- Kept the change limited to reference transform toolbar layout order.
+- Left history content, merge behavior, and transform value controls unchanged.
+- Added only a focused section-order regression in the existing toolbar test suite.
+
+#### Summary of Implementation
+- Reordered the `ReferenceTransformToolbar` JSX so the history section renders immediately after the shared control row and before the transform value section stack.
+- Added a focused test assertion that the `Reference transform history` section appears before `Reference transform values` in document order while preserving the existing status-path and history-content checks.
+
+#### Files Changed
+- `src/app/components/ReferenceTransformToolbar.tsx`
+- `src/app/components/ReferenceTransformToolbar.test.tsx`
+
+#### Behavior Changes
+- The toolbar now shows `Transform History` above the `Move`, `Rotate`, and `Scale` sections.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/components/ReferenceTransformToolbar.test.tsx`
+- `cmd /c npx tsc --noEmit`
+
+### [658] - 2026-03-27 00:14 - `TRN - Transform-4.3 - Merge Preserves One Entry Per Kind`
+<!-- ENTRY 658 -->
+HUMAN SUMMARY: `This changed reference transform history merge so collapsing a mixed session now preserves the latest surviving \`Move\`, \`Rotate\`, and \`Scale\` rows instead of keeping only the last unlocked row, which keeps merged transform history honest when different transform kinds do not collapse into each other.` 
+#### Scope / Constraints Honored
+- Kept the change limited to reference transform history merge semantics.
+- Preserved existing lock behavior and grouped-session metadata.
+- Left toolbar grouping, viewport visuals, and traversal behavior unchanged.
+
+#### Summary of Implementation
+- Updated the reference transform history merge helper in `useAppStore` so merge now preserves the latest entry for each transform kind present in the merged set, plus any explicitly locked rows.
+- Kept the preserved rows in chronological order by filtering the existing history list after computing the preserved index set.
+- Expanded the focused store regression to cover a mixed `move -> rotate -> scale -> move` session and prove merge keeps the locked first move plus the latest surviving rotate, scale, and move rows.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/store/useAppStore.test.ts`
+
+#### Behavior Changes
+- `Merge History` no longer collapses mixed `Move`, `Rotate`, and `Scale` entries down to just the final unlocked row.
+- Mixed transform history now keeps one surviving latest row per transform kind, while still preserving locked rows.
+
+#### Verification Steps
+- `npx vitest run src/app/store/useAppStore.test.ts`
+- `npx tsc --noEmit`
+
+### [657] - 2026-03-26 22:44 - `TRN - Transform-4.4 - Rotate And Scale Root Float Commit`
+<!-- ENTRY 657 -->
+HUMAN SUMMARY: `This added a direct scalar shorthand at the reference transform root for Rotate and Scale, so entering \`10\` from \`Transform > Rotate\` or \`Transform > Scale\` now commits that entry immediately and returns the Console to the shared \`Transform\` shell instead of forcing an extra intermediate step.` 
+#### Scope / Constraints Honored
+- Kept the change limited to reference transform root submit behavior.
+- Left axis prompts and plane prompts unchanged.
+- Left move-root behavior unchanged in this patch.
+
+#### Summary of Implementation
+- Extended the active reference transform root submit path in `ConsoleDock` so plain scalar input at `Rotate` or `Scale` root is accepted as a uniform vec3 shorthand.
+- Applied that shorthand to all three axes for the active mode, committed the entry immediately, and returned the Console to `referenceTransformRoot`.
+- Added focused regressions proving both `Rotate > 10` and `Scale > 10` commit directly and leave the user back at `Transform`.
+
+#### Files Changed
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+
+#### Behavior Changes
+- `Transform > Rotate > 10` now commits a rotate entry directly and returns to `Transform`.
+- `Transform > Scale > 10` now commits a scale entry directly and returns to `Transform`.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/console/ConsoleDock.test.tsx`
+- `cmd /c npx tsc --noEmit`
+
 ### [656] - 2026-03-26 22:31 - `TRN - Transform-4.4 - Relative Axis Input Uses Entry Origin`
 <!-- ENTRY 656 -->
 HUMAN SUMMARY: `This fixed reference transform axis prompts so relative numeric input now adds from the transform entry origin instead of the current live drag value, which means \`Move X > 10\` adds 10 from the last committed baseline even if the mouse already moved the gizmo first.` 
@@ -21545,6 +21928,9 @@ HUMAN SUMMARY: `Initialized the new /20/parahook stack with Vite, React, TypeScr
 - Confirm the draft reflects the original restart architecture, repo layout, worker skeleton, and viewer skeleton.
 
 
+- [623] 2026-03-26 23:36 EDT: Landed `Transform 4.4` reference-adapter cleanup by extracting shared reference-transform Console helpers into `src/app/console/referenceTransformConsole.ts`, routing both `ConsoleDock` and `ReferenceTransformToolbar` through the same transform path/prompt/selection logic, and tightening the focused ConsoleDock/toolbar tests around transform-shell escape and shared status-path formatting.
+- [622] 2026-03-26 23:28 EDT: Extracted the shared reference-transform Console adapter helpers into `src/app/console/referenceTransformConsole.ts`, rewired `ConsoleDock` to use those shared prompt/path/value builders, and aligned the reference transform toolbar to the same shared path and axis-selection helpers so transform-specific Console and toolbar semantics no longer drift independently.
+- [621] 2026-03-26 23:02 EDT: Cleared the active reference-transform gizmo handle before console-driven entry commits so `Transform > Move/Rotate/Scale > ... axis > value` now returns cleanly to the `Transform` root instead of re-autofilling the last `@` axis prompt.
 - [620] 2026-03-25 13:14 EDT: Extended reference-category Console scopes so `Footpads`, `Shoes`, and the other categories now list their individual reference items, allowing users to drill into a single object from the category scope and enter the existing per-reference `Load Model` flow while Browser selection follows the chosen item.
 - [619] 2026-03-25 12:46 EDT: Synced deeper Console reference navigation back into Browser selection so `references > footpads` now deselects the `References` root and selects the `Footpads` category row instead, while `back` restores the root reference target.
 - [618] 2026-03-25 12:39 EDT: Wired the Console root `References` entry back into shared workspace selection so committing `references` from root now also selects the `References` row in the Browser instead of only changing console scope.

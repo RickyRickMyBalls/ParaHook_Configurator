@@ -9,6 +9,7 @@ let viewerEnsureReferenceLoaded: ReturnType<typeof vi.fn>
 let viewerSetReferenceVisible: ReturnType<typeof vi.fn>
 let viewerRemoveReference: ReturnType<typeof vi.fn>
 let viewerSetReferenceTransformSession: ReturnType<typeof vi.fn>
+let viewerSetReferenceTransformHistoryOverlay: ReturnType<typeof vi.fn>
 let viewerSetReferenceTransformOverride: ReturnType<typeof vi.fn>
 let viewerSetOnReferenceTransformChange: ReturnType<typeof vi.fn>
 let viewerSetOnReferenceTransformCommit: ReturnType<typeof vi.fn>
@@ -54,6 +55,8 @@ vi.mock('../../viewer/Viewer', () => ({
     public removeReference = (...args: unknown[]) => viewerRemoveReference(...args)
     public setReferenceTransformSession = (...args: unknown[]) =>
       viewerSetReferenceTransformSession(...args)
+    public setReferenceTransformHistoryOverlay = (...args: unknown[]) =>
+      viewerSetReferenceTransformHistoryOverlay(...args)
     public setReferenceTransformOverride = (...args: unknown[]) =>
       viewerSetReferenceTransformOverride(...args)
     public setOnReferenceTransformChange = (...args: unknown[]) =>
@@ -312,6 +315,7 @@ describe('ViewerHost reference loading', () => {
     viewerSetReferenceVisible = vi.fn()
     viewerRemoveReference = vi.fn()
     viewerSetReferenceTransformSession = vi.fn()
+    viewerSetReferenceTransformHistoryOverlay = vi.fn()
     viewerSetReferenceTransformOverride = vi.fn()
     viewerSetOnReferenceTransformChange = vi.fn()
     viewerSetOnReferenceTransformCommit = vi.fn()
@@ -682,7 +686,13 @@ describe('ViewerHost reference loading', () => {
     ).toMatchObject([
       {
         kind: 'move',
-        value: { x: 5, y: -2, z: 9 },
+        delta: { x: 5, y: -2, z: 9 },
+        after: { x: 5, y: -2, z: 9 },
+        transformAfter: {
+          position: { x: 5, y: -2, z: 9 },
+          rotationDeg: { x: 0, y: 0, z: 0 },
+          scale: { x: 1, y: 1, z: 1 },
+        },
         locked: false,
       },
     ])
@@ -692,6 +702,227 @@ describe('ViewerHost reference loading', () => {
     })
 
     expect(useAppStore.getState().referenceWorkspace.activeReferenceTransformSession).toBeNull()
+  })
+
+  it('builds the active reference history overlay vm from committed move rotate and scale rows', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useAppStore } = await import('../store/useAppStore')
+
+    act(() => {
+      useAppStore.getState().beginReferenceTransformShell('shoe:shoe-1')
+      useAppStore.setState((state) => ({
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          activeReferenceTransformSession:
+            state.referenceWorkspace.activeReferenceTransformSession === null
+              ? null
+              : {
+                  ...state.referenceWorkspace.activeReferenceTransformSession,
+                  historyScrubIndex: 4,
+                  draftTransform: {
+                    position: { x: 9, y: -1, z: 2 },
+                    rotationDeg: { x: 0, y: 20, z: 0 },
+                    scale: { x: 1.5, y: 1, z: 1 },
+                  },
+                },
+          transformHistoryByReferenceId: {
+            ...state.referenceWorkspace.transformHistoryByReferenceId,
+            'shoe:shoe-1': [
+              {
+                entryId: 'move-1',
+                sessionId: 'transform-session:shoe:shoe-1:1',
+                sessionOrdinal: 1,
+                kind: 'move',
+                delta: { x: 5, y: 0, z: 0 },
+                after: { x: 5, y: 0, z: 0 },
+                transformAfter: {
+                  position: { x: 5, y: 0, z: 0 },
+                  rotationDeg: { x: 0, y: 0, z: 0 },
+                  scale: { x: 1, y: 1, z: 1 },
+                },
+                locked: false,
+              },
+              {
+                entryId: 'rotate-1',
+                sessionId: 'transform-session:shoe:shoe-1:1',
+                sessionOrdinal: 1,
+                kind: 'rotate',
+                delta: { x: 0, y: 20, z: 0 },
+                after: { x: 0, y: 20, z: 0 },
+                transformAfter: {
+                  position: { x: 5, y: 0, z: 0 },
+                  rotationDeg: { x: 0, y: 20, z: 0 },
+                  scale: { x: 1, y: 1, z: 1 },
+                },
+                locked: false,
+              },
+              {
+                entryId: 'scale-1',
+                sessionId: 'transform-session:shoe:shoe-1:1',
+                sessionOrdinal: 1,
+                kind: 'scale',
+                delta: { x: 0.5, y: 0, z: 0 },
+                after: { x: 1.5, y: 1, z: 1 },
+                transformAfter: {
+                  position: { x: 5, y: 0, z: 0 },
+                  rotationDeg: { x: 0, y: 20, z: 0 },
+                  scale: { x: 1.5, y: 1, z: 1 },
+                },
+                locked: false,
+              },
+              {
+                entryId: 'move-2',
+                sessionId: 'transform-session:shoe:shoe-1:2',
+                sessionOrdinal: 2,
+                kind: 'move',
+                delta: { x: 4, y: -1, z: 2 },
+                after: { x: 9, y: -1, z: 2 },
+                transformAfter: {
+                  position: { x: 9, y: -1, z: 2 },
+                  rotationDeg: { x: 0, y: 20, z: 0 },
+                  scale: { x: 1.5, y: 1, z: 1 },
+                },
+                locked: false,
+              },
+            ],
+          },
+        },
+      }))
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost />)
+    })
+
+    expect(viewerSetReferenceTransformHistoryOverlay.mock.calls).toContainEqual([
+      {
+        referenceId: 'shoe:shoe-1',
+        movePoints: [
+          { x: 0, y: 0, z: 0 },
+          { x: 5, y: 0, z: 0 },
+          { x: 9, y: -1, z: 2 },
+        ],
+        rotateEntries: [
+          {
+            entryId: 'rotate-1',
+            position: { x: 5, y: 0, z: 0 },
+            beforeRotationDeg: { x: 0, y: 0, z: 0 },
+            afterRotationDeg: { x: 0, y: 20, z: 0 },
+          },
+        ],
+        scaleEntries: [
+          {
+            entryId: 'scale-1',
+            position: { x: 5, y: 0, z: 0 },
+            rotationDeg: { x: 0, y: 20, z: 0 },
+            beforeScale: { x: 1, y: 1, z: 1 },
+            afterScale: { x: 1.5, y: 1, z: 1 },
+          },
+        ],
+      },
+    ])
+  })
+
+  it('hides future history overlay rows beyond the active scrub head', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useAppStore } = await import('../store/useAppStore')
+
+    act(() => {
+      useAppStore.getState().beginReferenceTransformShell('shoe:shoe-1')
+      useAppStore.setState((state) => ({
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          activeReferenceTransformSession:
+            state.referenceWorkspace.activeReferenceTransformSession === null
+              ? null
+              : {
+                  ...state.referenceWorkspace.activeReferenceTransformSession,
+                  historyScrubIndex: 2,
+                  draftTransform: {
+                    position: { x: 5, y: 0, z: 0 },
+                    rotationDeg: { x: 0, y: 20, z: 0 },
+                    scale: { x: 1, y: 1, z: 1 },
+                  },
+                },
+          transformHistoryByReferenceId: {
+            ...state.referenceWorkspace.transformHistoryByReferenceId,
+            'shoe:shoe-1': [
+              {
+                entryId: 'move-1',
+                sessionId: 'transform-session:shoe:shoe-1:1',
+                sessionOrdinal: 1,
+                kind: 'move',
+                delta: { x: 5, y: 0, z: 0 },
+                after: { x: 5, y: 0, z: 0 },
+                transformAfter: {
+                  position: { x: 5, y: 0, z: 0 },
+                  rotationDeg: { x: 0, y: 0, z: 0 },
+                  scale: { x: 1, y: 1, z: 1 },
+                },
+                locked: false,
+              },
+              {
+                entryId: 'rotate-1',
+                sessionId: 'transform-session:shoe:shoe-1:1',
+                sessionOrdinal: 1,
+                kind: 'rotate',
+                delta: { x: 0, y: 20, z: 0 },
+                after: { x: 0, y: 20, z: 0 },
+                transformAfter: {
+                  position: { x: 5, y: 0, z: 0 },
+                  rotationDeg: { x: 0, y: 20, z: 0 },
+                  scale: { x: 1, y: 1, z: 1 },
+                },
+                locked: false,
+              },
+              {
+                entryId: 'scale-1',
+                sessionId: 'transform-session:shoe:shoe-1:1',
+                sessionOrdinal: 1,
+                kind: 'scale',
+                delta: { x: 0.5, y: 0, z: 0 },
+                after: { x: 1.5, y: 1, z: 1 },
+                transformAfter: {
+                  position: { x: 5, y: 0, z: 0 },
+                  rotationDeg: { x: 0, y: 20, z: 0 },
+                  scale: { x: 1.5, y: 1, z: 1 },
+                },
+                locked: false,
+              },
+            ],
+          },
+        },
+      }))
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost />)
+    })
+
+    expect(viewerSetReferenceTransformHistoryOverlay).toHaveBeenCalledWith({
+      referenceId: 'shoe:shoe-1',
+      movePoints: [
+        { x: 0, y: 0, z: 0 },
+        { x: 5, y: 0, z: 0 },
+      ],
+      rotateEntries: [
+        {
+          entryId: 'rotate-1',
+          position: { x: 5, y: 0, z: 0 },
+          beforeRotationDeg: { x: 0, y: 0, z: 0 },
+          afterRotationDeg: { x: 0, y: 20, z: 0 },
+        },
+      ],
+      scaleEntries: [],
+    })
   })
 
   it('stores the active reference transform handle when the viewer handle callback fires', async () => {

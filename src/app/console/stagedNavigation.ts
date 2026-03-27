@@ -1237,6 +1237,21 @@ const createReferenceTransformRootSession = (
   ),
 })
 
+export const createReferenceTransformRootSessionForTarget = (
+  context: ConsoleStagedNavigationContext,
+  label: string,
+  referenceId: string,
+  referenceCategoryId: string | null = null,
+  referenceCategoryLabel: string | null = null,
+): ConsoleStagedNavigationSession =>
+  createReferenceTransformRootSession(
+    context,
+    label,
+    referenceId,
+    referenceCategoryId,
+    referenceCategoryLabel,
+  )
+
 const createReferenceZoomRootSession = (
   label: string,
   referenceId: string,

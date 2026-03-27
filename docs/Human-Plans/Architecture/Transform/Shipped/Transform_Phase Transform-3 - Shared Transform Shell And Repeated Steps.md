@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+3. 2026-03-26 23:55: Marked this phase shipped after the durable target-local transform shell landed in code, moved the standalone phase record into `Shipped/`, and aligned the record with the delivered shell-entry, repeated-step, and `CommitTransform`-exit behavior
 2. 2026-03-26 19:50: Locked the remaining shell-entry question by deciding that entering `Transform` should create or activate the shared target-local transform session and make the toolbar appear, while `CommitTransform` should hide the toolbar by exiting the shell; also updated the later phase references so Console cleanup now belongs to `Transform 4` and viewport-history plus traversal work moves to `Transform 5`
 1. 2026-03-26 19:23: Created this standalone `Transform 3` future phase doc under the Transform family, translating the locked shared-shell and repeated-step direction into an implementation-ready plan while leaving the one remaining `Transform`-entry shell-spawn question explicit
 
@@ -18,7 +19,7 @@ Use it to answer:
 
 ## Doc Body
 
-## [ ] Transform 3 - Shared Transform Shell And Repeated Steps
+## [x] Transform 3 - Shared Transform Shell And Repeated Steps
 
 ### Summary
 
@@ -36,6 +37,14 @@ Phase outcome:
 - `CommitTransform` moves up to the `Transform` level instead of living inside `Move`, `Rotate`, or `Scale`
 - Console and toolbar stay aligned as two surfaces over one shared target-local transform shell
 - repeated transform work feels like one local session instead of repeated re-entry into separate one-shot commands
+
+### Shipped Result
+
+The first shipped `Transform 3` cut landed the intended durable shell behavior:
+- entering `Transform` creates or activates the target-local shared shell immediately
+- committed `Move`, `Rotate`, and `Scale` entries return to `... > Transform > Choose next` instead of exiting the shell
+- transform history stays visible while repeated entries continue inside that shell
+- `CommitTransform` lives at the `Transform` root and is the only command that exits back to the broader selected-target scope
 
 ### Owns
 

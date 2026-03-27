@@ -3,6 +3,25 @@
 ## Doc Header
 
 ### Doc History
+350. 2026-03-27 02:06: Tightened `Transform 6` into an implementation-ready scrub spec by updating `docs/Human-Plans/Architecture/Transform/Future/Transform_Phase Transform-6 - History Traversal Preview And Restore.md` and `docs/Human-Plans/Architecture/Transform/transform-index.md` to remove the stale `preview / restore` framing, lock the scrub head as the active rendered history position, and define first-pass commit behavior around append-at-tail versus insert-after-scrub-point instead of a separate restore action
+349. 2026-03-27 01:58: Cleaned up the `Transform 6` question state across the Transform docs by updating `docs/Human-Plans/Architecture/Transform/transform-index.md` and `docs/Human-Plans/Architecture/Transform/Future/Transform_Phase Transform-6 - History Traversal Preview And Restore.md` so the already-locked entry-first granularity and preview-versus-restore behavior no longer read as stale open questions, leaving explicit restore-history mutation as the main remaining unresolved `Transform 6` branch
+348. 2026-03-27 01:52: Locked the `Transform 6` branched-commit direction across the Transform docs by updating `docs/Human-Plans/Architecture/Transform/transform-index.md` and `docs/Human-Plans/Architecture/Transform/Future/Transform_Phase Transform-6 - History Traversal Preview And Restore.md` so a new transform step committed from an earlier scrub point inserts immediately after that entry, keeps the old future rows after it, replays them from the insertion point, and renumbers the child rows to the new visible order
+347. 2026-03-27 01:45: Tightened the `Transform 6` scrub default-state direction across the Transform docs by updating `docs/Human-Plans/Architecture/Transform/transform-index.md` and `docs/Human-Plans/Architecture/Transform/Future/Transform_Phase Transform-6 - History Traversal Preview And Restore.md` so the history paraslider stays pinned at `100%` on the newest committed entry whenever traversal is inactive, and auto-advances there again after each new history commit
+346. 2026-03-27 01:41: Locked the first `Transform 6` scrub direction across the Transform docs by tightening `docs/Human-Plans/Architecture/Transform/Future/Transform_Phase Transform-6 - History Traversal Preview And Restore.md` around a history paraslider from committed entry `0..last`, and clarifying that when the scrub head sits on an earlier entry the later committed entries deactivate while future preview lines stop rendering in the viewport
+345. 2026-03-27 01:35: Cleaned up the Transform-family architecture docs after shipping `Transform 5` by moving `docs/Human-Plans/Architecture/Transform/Future/Transform_Phase Transform-5 - Viewport History Visual Baseline.md` into `Transform/Shipped/`, updating `docs/Human-Plans/Architecture/Transform/transform-index.md` to the post-Transform-5 family state, and tightening the moved phase record so `Transform 6` now reads as the remaining open follow-on
+344. 2026-03-27 01:31: Expanded the `Transform 6` section in `docs/Human-Plans/Architecture/Transform/transform-index.md` so the umbrella Transform index now carries the fuller traversal question set inline, adding explicit open questions around preview entry, restore semantics, viewport/toolbar emphasis, and how traversal preview should interact with the live transform shell
+343. 2026-03-27 01:24: Added `docs/Human-Plans/Architecture/Transform/Future/Transform_Phase Transform-6 - History Traversal Preview And Restore.md` as the standalone future phase doc for the post-visual transform-history scrub layer, and updated `docs/Human-Plans/Architecture/Transform/transform-index.md` to point at that new `Transform 6` planning surface
+342. 2026-03-27 00:50: Added `docs/Human-Plans/Architecture/Transform/Future/Transform_Phase Transform-5 - Viewport History Visual Baseline.md` as the standalone future phase doc for the first committed viewport-history visual pass, and updated `docs/Human-Plans/Architecture/Transform/transform-index.md` to point at that new `Transform 5` planning surface
+341. 2026-03-27 00:13: Tightened the shared transform merge direction in `docs/Human-Plans/Architecture/Transform/transform-index.md`, deciding that collapsing transform history should preserve at least one surviving committed entry for each transform kind present in the merged set instead of collapsing `Move`, `Rotate`, and `Scale` together into one last unlocked row
+340. 2026-03-27 00:10: Tightened `Transform 5 q1` in `docs/Human-Plans/Architecture/Transform/transform-index.md` against the shipped SketchPlane move-history visual example so the first transform move-history viewport line now explicitly reads as the same thin committed polyline with visible checkpoint turns between committed origins
+339. 2026-03-27 00:09: Locked `Transform 5 q2` in `docs/Human-Plans/Architecture/Transform/transform-index.md`, deciding that the first rotate-history viewport visual should show before/after normals with an arc between them while the first scale-history visual should compare the relative size of a before-versus-after sphere
+338. 2026-03-27 00:06: Updated `docs/Human-Plans/Architecture/Transform/transform-index.md` to split the old `Transform 5` follow-on into `Transform 5` viewport-history visuals versus later `Transform 6` traversal / preview / restore, locking the first move-history viewport path to the shipped `SketchPlane` history-line behavior and clarifying that traversal is the actual scrub layer over committed history
+337. 2026-03-27 00:00: Cleaned up the Transform-family architecture docs after the shipped `Transform 3`, `Transform 4.2`, `Transform 4.3`, and `Transform 4.4` work by moving those standalone phase records from `docs/Human-Plans/Architecture/Transform/Future/` into `Transform/Shipped/`, updating `docs/Human-Plans/Architecture/Transform/transform-index.md` to the post-4.4 family state, and tightening the shipped records so the Transform subtree now reads honestly with `Transform 5` as the next open phase
+336. 2026-03-26 23:56: Renamed the WISHLIST `[17]` entry from `Simulation Mode` to `Ride Mode` so the feature reads like a user-facing ParaHook surface while preserving the same worker-backed live physics, telemetry, and `Test Ride` direction.
+335. 2026-03-26 23:55: Expanded `docs/Human-Plans/Wish-Features/WISHLIST.md` with a new `[17] Simulation Mode` entry, framing a future worker-backed live physics environment around high-frequency dynamics, telemetry, fitment/collision validation, and `Test Ride` behavior instead of leaving dynamic validation outside the design tool
+334. 2026-03-26 23:23: Expanded `docs/Human-Plans/Wish-Features/WISHLIST.md` with a new `[16] Hardware library / McMaster bolt import plugin` entry, framing standard fastener import as a future search-and-insert workflow around vendor-aware hardware lookup, clean asset import, useful metadata, and later assembly-aware placement instead of leaving common bolts and washers outside the app
+333. 2026-03-26 22:10: Added `docs/Human-Plans/Architecture/Transform/Future/Transform_Phase Transform-4.4 - Console And Toolbar Adapter Cleanup.md` as the standalone Transform-family cleanup spec for reducing transform-specific duplication between `ConsoleDock` and `ReferenceTransformToolbar`, and updated `docs/Human-Plans/Architecture/Transform/transform-index.md` to point at the new phase under the `Transform 4.4` section
+332. 2026-03-26 23:13: Expanded `docs/Human-Plans/Wish-Features/WISHLIST.md` with a new `[15] Assemblies / mates / mechanism structure` entry, framing assembly truth as the missing structural layer behind meaningful multi-part motion so gears, joints, and linked mechanisms can work from real relationships instead of animation-only playback
 331. 2026-03-26 21:43: Expanded `docs/Human-Plans/Wish-Features/WISHLIST.md` with a new `[14] Parameter manager` entry, framing a future top-level parameter surface around named project values, node-input bindings, usage mapping, metadata, and later formulas/configuration links instead of leaving important design variables buried across many nodes
 330. 2026-03-26 21:42: Expanded `docs/Human-Plans/Wish-Features/WISHLIST.md` with a new `[13] Drawings / documentation` entry, framing a future drawing-sheet workflow around derived orthographic views, dimensions, notes, model-update awareness, and printable/exportable documentation rather than leaving communication outside the CAD tool
 329. 2026-03-26 21:33: Expanded `docs/Human-Plans/Wish-Features/WISHLIST.md` with a new `[12] Kitchen Browser and room-code collaboration system` entry, framing multiplayer ParaHook work as a local-first host/join model with readable room codes, offline-to-online migration, shared authored-state sync, presence cues, and later public or locked kitchen sessions
@@ -106,6 +125,193 @@
 232. 2026-03-25 03:15: Locked the first three `Browser-5.1` reference-selection decisions across both `docs/Human-Plans/Architecture/Browser/Browser-Index.md` and the standalone `Browser_Phase Browser-5.1 - Reference Selection Cleanup.md`, deciding that ordinary reference selection stays lightweight, viewport-picked references should follow into matching Browser rows when the mapping is clear, and empty-space click plus replacement click own normal reference deselect and replacement
 231. 2026-03-25 03:13: Locked `q2` in `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-5.1 - Reference Selection Cleanup.md`, deciding that viewport-picked references should drive Browser row selection whenever one clear matching reference row exists while still avoiding fake sync for ambiguous cases
 230. 2026-03-25 03:12: Locked `q1` in `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-5.1 - Reference Selection Cleanup.md`, deciding that ordinary reference selection only highlights/selects the reference while stronger transform ownership must remain a separate explicit action instead of starting from normal row or viewport selection
+
+<!-- ENTRY 341 -->
+### [341] - 2026-03-27 00:13 - `DOC - Tighten Transform Merge Collapse Rule`
+<!-- ENTRY 341 -->
+HUMAN SUMMARY: Tightened the Transform family index so collapsing transform history must preserve at least one surviving committed entry per transform kind present in the merged set, which keeps `Move`, `Rotate`, and `Scale` from collapsing dishonestly into one last unlocked row.
+
+#### Scope
+- Limited this change to the Transform architecture index under `docs/`.
+- Did not change runtime code, tests, schema, or UI behavior.
+
+#### Summary
+- Updated the shared merge direction under `Transform 3` in `docs/Human-Plans/Architecture/Transform/transform-index.md`.
+- Locked the rule that merged transform history should keep one surviving committed entry for each transform kind that actually exists in the merged set.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Transform/transform-index.md`
+- `docs/Doc-Log.md`
+
+#### Verification
+- Re-read the shared transform merge section after the edit to confirm the new collapse rule sits with the existing lock/merge semantics rather than being buried in a later visual-only phase.
+
+<!-- ENTRY 340 -->
+### [340] - 2026-03-27 00:10 - `DOC - Tighten Transform 5 Move History Polyline Wording`
+<!-- ENTRY 340 -->
+HUMAN SUMMARY: Tightened the Transform family index against the shipped SketchPlane move-history visual example so the first transform move-history viewport path now explicitly reads as the same thin committed polyline with visible checkpoint turns between committed origins instead of only as a generic connected line.
+
+#### Scope
+- Limited this change to the Transform architecture index under `docs/`.
+- Did not change runtime code, tests, schema, or UI behavior.
+
+#### Summary
+- Updated `Transform 5 q1` in `docs/Human-Plans/Architecture/Transform/transform-index.md` to better match the already-shipped SketchPlane move-history path read.
+- Clarified that the first move-history viewport visual should read as a thin committed polyline with visible direction-change checkpoints between committed origins.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Transform/transform-index.md`
+- `docs/Doc-Log.md`
+
+#### Verification
+- Re-read the `Transform 5 q1` section after the edit to confirm the move-history wording now matches the intended SketchPlane-style polyline example more explicitly.
+
+<!-- ENTRY 339 -->
+### [339] - 2026-03-27 00:09 - `DOC - Lock Transform 5 Rotate And Scale Viewport Visuals`
+<!-- ENTRY 339 -->
+HUMAN SUMMARY: Updated the Transform family index to lock the first rotate and scale viewport-history visuals, with rotate now reading as before/after normals plus an arc between them and scale now reading as a relative before-versus-after sphere comparison.
+
+#### Scope
+- Limited this change to the Transform architecture index under `docs/`.
+- Did not change runtime code, tests, schema, or UI behavior.
+
+#### Summary
+- Marked `Transform 5 q2` complete in `docs/Human-Plans/Architecture/Transform/transform-index.md`.
+- Replaced the older generic rotate/scale overlay suggestion with the more explicit viewport language for rotate normals plus angle arc and scale sphere-before-versus-after comparison.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Transform/transform-index.md`
+- `docs/Doc-Log.md`
+
+#### Verification
+- Re-read the `Transform 5` section after the edit to confirm move, rotate, and scale visuals now each have explicit viewport direction in the index.
+
+<!-- ENTRY 338 -->
+### [338] - 2026-03-27 00:06 - `DOC - Split Transform 5 Into Visual Baseline And Traversal`
+<!-- ENTRY 338 -->
+HUMAN SUMMARY: Updated the Transform family index so the old mixed `Transform 5` follow-on is now split into `Transform 5` viewport-history visuals and `Transform 6` traversal / preview / restore, while also locking that the first move-history viewport line should copy the shipped SketchPlane committed-history path and that traversal is the actual scrub layer.
+
+#### Scope
+- Limited this change to the Transform architecture index under `docs/`.
+- Did not change runtime code, tests, schema, or UI behavior.
+
+#### Summary
+- Reframed `Transform 5` in `docs/Human-Plans/Architecture/Transform/transform-index.md` as a visual-only baseline phase.
+- Locked the move-history viewport direction to copy the shipped `SketchPlane Transform History` committed path behavior for the first transform-history visual cut.
+- Added a new `Transform 6` phase block that explicitly owns traversal / preview / restore and clarifies that traversal means the actual scrub layer over committed history.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Transform/transform-index.md`
+- `docs/Doc-Log.md`
+
+#### Verification
+- Re-read the current `Transform` family index after the edit to confirm the ladder now reads as shipped `Transform 3` / `Transform 4`, open `Transform 5` visual baseline, and open `Transform 6` traversal.
+- Cross-checked the wording against the shipped `SketchPlane Transform History` doc so the new move-path direction stays grounded in an already-shipped viewport-history behavior.
+
+<!-- ENTRY 337 -->
+### [337] - 2026-03-27 00:00 - `DOC - Transform Family Shipped Phase Cleanup`
+<!-- ENTRY 337 -->
+HUMAN SUMMARY: Cleaned up the Transform architecture docs after the shipped Transform shell and console-cleanup work by moving the shipped `Transform 3`, `Transform 4.2`, `Transform 4.3`, and `Transform 4.4` records into `Transform/Shipped/`, updating the family index to the post-4.4 state, and tightening the moved docs so `Transform 5` is now the clear next open follow-on.
+
+#### Scope
+- Limited this change to architecture and planning docs under `docs/`.
+- Did not change runtime code, schema, or UI behavior.
+
+#### Summary
+- Updated `docs/Human-Plans/Architecture/Transform/transform-index.md` so the shipped `Transform 3` and `Transform 4` decisions are marked complete, the moved standalone phase-doc paths point at `Shipped/`, and the family read now treats `Transform 5` as the next open follow-on.
+- Tightened the standalone `Transform 3`, `Transform 4.2`, `Transform 4.3`, and `Transform 4.4` phase docs with shipped-status markers, shipped-result summaries, and local doc-history entries that match the landed implementation.
+- Moved those shipped Transform phase records from `docs/Human-Plans/Architecture/Transform/Future/` into `docs/Human-Plans/Architecture/Transform/Shipped/` so the Transform subtree no longer leaves already-landed shell and cleanup work parked under future planning.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Transform/transform-index.md`
+- `docs/Human-Plans/Architecture/Transform/Shipped/Transform_Phase Transform-3 - Shared Transform Shell And Repeated Steps.md`
+- `docs/Human-Plans/Architecture/Transform/Shipped/Transform_Phase Transform-4.2 - Reference Draft Sync And Session Cleanup.md`
+- `docs/Human-Plans/Architecture/Transform/Shipped/Transform_Phase Transform-4.3 - Grouped Session History.md`
+- `docs/Human-Plans/Architecture/Transform/Shipped/Transform_Phase Transform-4.4 - Console And Toolbar Adapter Cleanup.md`
+- `docs/Doc-Log.md`
+
+#### Verification
+- Reviewed the shipped Transform changelog entries and the live `src/app` seams to confirm `Transform 3`, `Transform 4.2`, `Transform 4.3`, and `Transform 4.4` are implemented before moving their phase records into `Shipped/`.
+- Re-checked the Transform-family paths after the doc edits so the umbrella index now points at the moved shipped records instead of stale `Future/` paths.
+
+<!-- ENTRY 336 -->
+### [336] - 2026-03-26 23:56 - `DOC - Rename Simulation Mode Wishlist Entry To Ride Mode`
+<!-- ENTRY 336 -->
+HUMAN SUMMARY: Renamed the `[17]` wishlist entry from `Simulation Mode` to `Ride Mode` so the feature reads more like a user-facing ParaHook surface while preserving the same worker-backed live-physics, telemetry, and `Test Ride` direction.
+
+#### Scope
+- Limited this change to wishlist/documentation content under `docs/`.
+- Renamed the entry title and repeated surface references inside `docs/Human-Plans/Wish-Features/WISHLIST.md`.
+- Added the matching documentation history entry in `docs/Doc-Log.md`.
+
+<!-- ENTRY 335 -->
+### [335] - 2026-03-26 23:55 - `DOC - Add Simulation Mode Test Ride Wishlist Entry`
+<!-- ENTRY 335 -->
+HUMAN SUMMARY: Expanded the wishlist with a new `[17] Simulation Mode` entry that turns the live-physics idea into a clearer feature note around a worker-backed test environment, real-time telemetry, fitment/collision validation, and dynamic ride-like behavior separate from static editing and proxy stress analysis.
+
+#### Scope
+- Limited this change to wishlist/documentation content under `docs/`.
+- Did not change runtime code, schema, or UI behavior.
+- Focused the update on surfacing high-fidelity simulation/test behavior as a future CAD capability.
+
+#### Summary
+- Updated `docs/Human-Plans/Wish-Features/WISHLIST.md`.
+- Added a new `[17] Simulation Mode` wishlist entry.
+- Clarified the split between static authored model state and live simulated runtime state.
+- Added a staged direction around worker-owned physics stepping, telemetry HUD ideas, and dynamic fitment/handling validation.
+
+#### Files Changed
+- `docs/Human-Plans/Wish-Features/WISHLIST.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This is documentation/planning capture only; no implementation work was performed in this change.
+
+<!-- ENTRY 334 -->
+### [334] - 2026-03-26 23:23 - `DOC - Add Hardware Library And McMaster Import Wishlist Entry`
+<!-- ENTRY 334 -->
+HUMAN SUMMARY: Expanded the wishlist with a new `[16] Hardware library / McMaster bolt import plugin` entry that turns fastener import into a clearer CAD feature note around vendor-aware hardware search, clean import, preserved metadata, and later assembly-aware placement instead of leaving standard bolts, nuts, and washers outside the app.
+
+#### Scope
+- Limited this change to wishlist/documentation content under `docs/`.
+- Did not change runtime code, schema, or UI behavior.
+- Focused the update on surfacing hardware import as a future CAD/plugin capability.
+
+#### Summary
+- Updated `docs/Human-Plans/Wish-Features/WISHLIST.md`.
+- Added a new `[16] Hardware library / McMaster bolt import plugin` wishlist entry.
+- Clarified the split between vendor/source lookup, imported asset packaging, and inserted project instances.
+- Added a staged direction around search, import, metadata, and later tighter assembly-aware placement.
+
+#### Files Changed
+- `docs/Human-Plans/Wish-Features/WISHLIST.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This is documentation/planning capture only; no implementation work was performed in this change.
+
+<!-- ENTRY 332 -->
+### [332] - 2026-03-26 23:13 - `DOC - Add Assemblies And Mates Wishlist Entry`
+<!-- ENTRY 332 -->
+HUMAN SUMMARY: Expanded the wishlist with a new `[15] Assemblies / mates / mechanism structure` entry that turns the missing multi-part mechanical layer into a clearer CAD feature note, making joints, revolute/slider motion, and gear relationships structural project truth instead of leaving them implied inside animation alone.
+
+#### Scope
+- Limited this change to wishlist/documentation content under `docs/`.
+- Did not change runtime code, schema, or UI behavior.
+- Focused the update on surfacing assemblies as a future CAD capability tied to meaningful mechanism motion.
+
+#### Summary
+- Updated `docs/Human-Plans/Wish-Features/WISHLIST.md`.
+- Added a new `[15] Assemblies / mates / mechanism structure` wishlist entry.
+- Clarified the split between assembly relationship truth and `[02] Animation` playback/study.
+- Added a staged direction around assembly hierarchy, joints/mates, gear links, and later deeper mechanism support.
+
+#### Files Changed
+- `docs/Human-Plans/Wish-Features/WISHLIST.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This is documentation/planning capture only; no implementation work was performed in this change.
 
 <!-- ENTRY 331 -->
 ### [331] - 2026-03-26 21:43 - `DOC - Add Parameter Manager Wishlist Entry`

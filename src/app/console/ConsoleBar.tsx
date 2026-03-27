@@ -10,6 +10,7 @@ import {
 } from 'react'
 import { CONSOLE_MAX_EXPANDED_HEIGHT, useConsoleStore } from './useConsoleStore'
 import type { ConsoleStagedNavigationSession } from './stagedNavigation'
+import { useAppStore } from '../store/useAppStore'
 
 type ConsoleBarProps = {
   surfaceMode?: 'docked' | 'floating' | 'popout'
@@ -368,6 +369,17 @@ export function ConsoleBar({
       summaryText
     )
 
+  const focusConsoleInput = (options?: { value?: string }) => {
+    const input = inputRef?.current
+    if (input === null || input === undefined) {
+      return
+    }
+    input.focus()
+    const inputValue = options?.value ?? input.value
+    const caretOffset = inputValue.length
+    input.setSelectionRange(caretOffset, caretOffset)
+  }
+
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     onSubmitCommand?.(useConsoleStore.getState().inputText)
@@ -385,12 +397,11 @@ export function ConsoleBar({
           nextState.consolePromptSession !== null ||
           nextState.featureAssistDescriptor !== null
         ) &&
-        !nextState.isStagedChoiceManualOverride &&
         nextState.inputText.length > 0
       ) {
-        input.focus()
-        const caretOffset = nextState.inputText.length
-        input.setSelectionRange(caretOffset, caretOffset)
+        focusConsoleInput({
+          value: nextState.inputText,
+        })
         return
       }
 
@@ -399,6 +410,9 @@ export function ConsoleBar({
   }
 
   const handleInputKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
+    if (event.defaultPrevented) {
+      return
+    }
     const isGuidedInputActive =
       stagedNavigationSession !== null ||
       consolePromptSession !== null ||
@@ -454,21 +468,30 @@ export function ConsoleBar({
     }
     if (event.key === 'Escape') {
       event.preventDefault()
+      const hasActiveReferenceTransformEntry =
+        useAppStore.getState().referenceWorkspace.activeReferenceTransformSession?.entryActive === true
       const isReferenceTransformValuePrompt =
         consolePromptSession?.kind === 'reference-transform.axis' ||
         consolePromptSession?.kind === 'reference-transform.plane'
-      if (isReferenceTransformValuePrompt) {
+      if (hasActiveReferenceTransformEntry) {
+        event.stopPropagation()
         onCancelCommand?.()
         resetHistoryNavigation()
         queueMicrotask(() => {
-          const input = inputRef?.current
-          if (input === null || input === undefined) {
-            return
-          }
-          input.focus()
-          const nextInputText = useConsoleStore.getState().inputText
-          const caretOffset = nextInputText.length
-          input.setSelectionRange(caretOffset, caretOffset)
+          focusConsoleInput({
+            value: useConsoleStore.getState().inputText,
+          })
+        })
+        return
+      }
+      if (isReferenceTransformValuePrompt) {
+        event.stopPropagation()
+        onCancelCommand?.()
+        resetHistoryNavigation()
+        queueMicrotask(() => {
+          focusConsoleInput({
+            value: useConsoleStore.getState().inputText,
+          })
         })
         return
       }
@@ -479,14 +502,9 @@ export function ConsoleBar({
         onCancelCommand?.()
         resetHistoryNavigation()
         queueMicrotask(() => {
-          const input = inputRef?.current
-          if (input === null || input === undefined) {
-            return
-          }
-          input.focus()
-          const nextInputText = useConsoleStore.getState().inputText
-          const caretOffset = nextInputText.length
-          input.setSelectionRange(caretOffset, caretOffset)
+          focusConsoleInput({
+            value: useConsoleStore.getState().inputText,
+          })
         })
         return
       }

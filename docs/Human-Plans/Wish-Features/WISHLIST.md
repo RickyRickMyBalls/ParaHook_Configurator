@@ -2068,3 +2068,395 @@ That is probably a healthier progression than trying to start with the full publ
 - `v3`
   - formulas/expressions
   - later ties into configurations, AI assistance, and studies
+
+### [ ] - [15] - Assemblies / mates / mechanism structure
+
+- ParaHook could eventually have a real `Assemblies` system for multi-part mechanical structure
+- this matters because believable motion like gears turning should not live only inside `Animation`
+- a healthy split is:
+  - `Assemblies` defines what is connected to what and how parts are allowed to move
+  - `Animation` plays, studies, and presents that motion
+
+#### Why this feels important
+
+- once users start making more than one independent part, they need a better answer to:
+  - what parts belong together
+  - what is fixed
+  - what can rotate
+  - what can slide
+  - what drives what
+- without assembly truth, animation risks becoming fake motion playback instead of mechanically meaningful motion
+
+#### Why this matters for gears specifically
+
+- a gear should not "just spin because the user animated it"
+- it should spin because:
+  - it is part of an assembly
+  - it has a rotational relationship
+  - it is linked to another gear or shaft
+  - maybe later it has a ratio like `2:1`
+- that makes gear behavior feel like mechanism logic, not presentation-only keyframes
+
+#### Core direction worth keeping
+
+- assemblies should be first-class project structures
+- useful first assembly concepts:
+  - part
+  - assembly
+  - subassembly
+  - fixed component
+  - moving component
+  - joint/mate/relationship
+- this should give ParaHook a real foundation for mechanical design instead of only loose grouped objects
+
+#### Good first joint / mate ideas
+
+- `fixed`
+- `revolute`
+- `slider`
+- `cylindrical` maybe later
+- align / concentric / distance-style relationships maybe later
+- gear-link / ratio relationship later
+
+#### Relationship to Animation
+
+- `[02] Animation` should probably consume assembly truth later
+- examples:
+  - a revolute mate gives animation a real axis of motion
+  - a slider mate gives animation a real linear motion limit
+  - a gear link gives animation a real coupled rotation relationship
+- that means assemblies are the structural truth and animation becomes the motion-study/presentation layer on top
+
+#### Browser and UX suggestions
+
+- assemblies should probably appear clearly in the Browser hierarchy
+- useful first structure:
+  - `Assembly`
+  - child parts/components
+  - later subassemblies
+- useful first actions:
+  - create assembly from selected parts
+  - add/remove part from assembly
+  - define one mate/joint between two parts
+  - inspect assembly relationships
+
+#### Motion and review value
+
+- beyond gear motion, assemblies would help with:
+  - hinge behavior
+  - slider mechanisms
+  - fit checks
+  - exploded communication later
+  - review of how things actually move together
+- this makes assemblies useful even before a deep BOM or manufacturing story exists
+
+#### Architecture suggestions
+
+- keep separation between:
+  - authored part geometry
+  - assembly hierarchy
+  - relationship/joint definitions
+  - animation/playback state
+- one healthy rule:
+  - assembly constraints should not be hidden inside arbitrary transform history
+- they should live as their own project truth so motion, inspection, and later manufacture/drawing systems can all read them
+
+#### Good first non-goals
+
+- full enterprise assembly solver on day one
+- every mate type immediately
+- full BOM/plm feature depth immediately
+- pretending animation alone solves mechanism structure
+- giant physics simulation before simple mate truth exists
+
+#### Small possible rollout
+
+- `v1`
+  - create assemblies and subassemblies
+  - define fixed and revolute relationships
+  - simple Browser hierarchy and inspection
+- `v2`
+  - slider and linked motion relationships
+  - gear-ratio style coupling
+  - tighter integration with `[02] Animation`
+- `v3`
+  - richer mates/constraints
+  - exploded assembly communication
+  - later BOM/manufacture/drawing connections
+
+### [ ] - [16] - Hardware library / McMaster bolt import plugin
+
+- ParaHook could eventually have a hardware import plugin or built-in hardware library that makes it easy to bring in real fasteners and standard parts
+- one strong target is McMaster-style bolt import
+- the practical user goal is simple:
+  - search for a bolt, nut, washer, spacer, or insert
+  - bring it into the project quickly
+  - place it with useful orientation and metadata
+
+#### Why this feels important
+
+- when users start building real assemblies, they need more than custom modeled geometry
+- they also need common hardware:
+  - bolts
+  - washers
+  - nuts
+  - threaded inserts
+  - standoffs
+- if that workflow is clumsy, users leave the app, download parts elsewhere, and lose momentum
+
+#### Core direction worth keeping
+
+- this could exist as:
+  - a plugin
+  - a hardware-library surface
+  - or a hybrid built-in-plus-plugin model later
+- the first real value is not "perfect vendor integration"
+- it is:
+  - fast search
+  - clean import
+  - useful metadata
+  - correct placement/orientation hints
+
+#### Good first hardware search ideas
+
+- search by:
+  - part family
+  - thread size
+  - diameter
+  - length
+  - head style
+  - maybe material/finish later
+- useful first families:
+  - socket-head bolt
+  - button-head bolt
+  - hex bolt
+  - washer
+  - nut
+  - spacer
+
+#### Why McMaster is attractive
+
+- McMaster already acts as a practical source of standard hardware data for many CAD users
+- that makes it a natural target for:
+  - quick lookup
+  - known part families
+  - familiar purchasing workflow later
+- but the app should still keep the user-facing feature broader than one vendor if possible
+
+#### Import behavior suggestions
+
+- imported hardware should be insertable as:
+  - a reference asset
+  - a library item
+  - maybe later a lightweight assembly component
+- useful first import outputs:
+  - geometry
+  - part label/name
+  - dimensions/thread metadata
+  - maybe later vendor/source link
+- a healthy rule:
+  - imported hardware should land in a way that is easy to use in assemblies, not as an awkward orphan mesh
+
+#### Relationship to assemblies
+
+- this feature gets much more valuable once `[15] Assemblies / mates / mechanism structure` exists
+- good long-range flow:
+  - import bolt
+  - place it into an assembly
+  - align/constrain it to holes or mating parts
+  - maybe later auto-stack washer + nut combinations
+- this is one of the clearest reasons to treat hardware import and assemblies as complementary systems
+
+#### Browser and UI suggestions
+
+- useful entry points:
+  - `Insert Hardware`
+  - `Hardware Library`
+  - plugin-side search panel
+- useful first Browser read:
+  - imported hardware should appear with clean part names, not cryptic file leftovers
+- later this could tie into:
+  - BOM/metadata
+  - library assets
+  - manufacture and drawings
+
+#### Architecture suggestions
+
+- keep separation between:
+  - vendor/source lookup
+  - imported asset package
+  - inserted project instance
+- the imported object should preserve enough metadata to stay useful after insertion
+- one healthy rule:
+  - do not hard-code the whole product around one web-scrape path if a cleaner adapter/plugin layer can own the vendor-specific behavior
+
+#### Risks and constraints to respect
+
+- vendor terms/licensing may limit how data can be fetched or redistributed
+- source formats and site structure can change
+- imported models need reliable scale/orientation cleanup
+- that means the first version should stay conservative and robust
+
+#### Good first non-goals
+
+- every industrial supplier on day one
+- fully automatic hole/fastener inference immediately
+- giant procurement/purchasing system immediately
+- depending on brittle site behavior with no fallback
+- treating all imported hardware as if it were already assembly-smart without structure
+
+#### Small possible rollout
+
+- `v1`
+  - import common hardware from one narrow source/plugin path
+  - search basic bolt/nut/washer families
+  - insert as clean reference/library assets with metadata
+- `v2`
+  - stronger placement/orientation helpers
+  - richer families and dimensions
+  - better library/Browser integration
+- `v3`
+  - tighter assembly-aware placement
+  - maybe vendor/source flexibility beyond one catalog
+  - later BOM/purchasing metadata ties
+
+### [ ] - [17] - Ride mode: high-fidelity physics and `Test Ride`
+
+- ParaHook could eventually have a dedicated `Ride Mode` that swaps the viewport from a static editor into a live physics environment
+- this should be more than a visual gimmick
+- the real goal is to let users live-test parameterized designs for:
+  - clearance
+  - fitment
+  - handling
+  - weight distribution
+  - collision risk
+
+#### Why this feels important
+
+- many designs need to be validated in motion, not only as still geometry
+- a user may want to know:
+  - will this fender strike the ground in a deep carve
+  - will this pad shape interfere under load
+  - how much balancing effort does this setup require
+  - how does a parameter change affect handling feel
+- that makes simulation a different class of tool than:
+  - static CAD editing
+  - proxy stress analysis
+  - manufacture prep
+
+#### Core direction worth keeping
+
+- this should be a toggleable mode, not the default modeling state
+- modeling remains the authored source of truth
+- `Ride Mode` reads that truth and runs a live test environment on top of it
+- that means the user can:
+  - design
+  - toggle into simulation
+  - inspect behavior
+  - return to editing
+
+#### Worker-based simulation direction
+
+- the app already has a good architectural fit for this kind of work if heavy simulation stays off the main UI thread
+- a physics worker could own:
+  - simulation stepping
+  - rigid-body state
+  - telemetry generation
+  - validation events
+- that keeps the UI responsive while the simulation runs at a higher update rate
+
+#### Physics-engine ideas
+
+- a high-performance WASM physics backend such as `Jolt` is a plausible target
+- useful first responsibilities:
+  - rigid-body dynamics
+  - contact/collision detection
+  - suspension/ground interaction later
+  - response events for telemetry and warnings
+- exact engine choice matters less than keeping the simulation isolated and deterministic enough to trust for iteration
+
+#### PID and control-loop direction
+
+- if ParaHook ever wants true ride/vehicle-like behavior, control loops matter as much as rigid-body simulation
+- a good long-range path is:
+  - simulate body motion
+  - simulate control response
+  - expose telemetry for tuning
+- that is what moves the feature from "things fall over in physics" toward real handling/behavior validation
+
+#### Good first telemetry / HUD ideas
+
+- balance torque required
+- effective wattage / duty-cycle style estimates
+- pitch / roll / yaw readout
+- speed and acceleration maybe later
+- collision/fitment warnings
+- maybe later:
+  - controller saturation
+  - thermal load proxy
+  - stability margin
+
+#### Clearance and fitment value
+
+- one of the strongest early use cases is collision and fitment validation under realistic movement
+- examples:
+  - custom fender hits ground
+  - footpad clips during carve
+  - enclosure placement shifts center of mass too far
+- this gives ParaHook a stronger answer to "will this actually work when ridden or moved" before any physical prototype exists
+
+#### Relationship to other wishlist items
+
+- `[11] Al Dente` proxy stress analysis
+  - fast structural intuition
+- `[17] Ride Mode`
+  - dynamic motion/handling validation
+- `[15] Assemblies`
+  - useful later if multi-part moving systems need real constrained behavior inside simulation
+
+These can reinforce each other without becoming the same feature.
+
+#### Browser and UX suggestions
+
+- `Ride Mode` likely wants:
+  - enter/exit toggle
+  - scenario/setup controls
+  - live HUD/telemetry overlay
+  - reset / replay actions
+- useful later concepts:
+  - saved simulation presets
+  - compare setup A vs setup B
+  - record a run for review
+
+#### Architecture suggestions
+
+- keep separation between:
+  - authored model state
+  - simulation configuration
+  - live simulated runtime state
+  - recorded telemetry
+- one healthy rule:
+  - simulation should consume model truth and produce telemetry/validation, not mutate the authored project casually
+
+#### Good first non-goals
+
+- photoreal game-engine world simulation on day one
+- full vehicle dynamics perfection immediately
+- every sensor/controller model immediately
+- replacing the normal editor with a permanently live physics world
+- huge scenario-authoring complexity before one useful test loop exists
+
+#### Small possible rollout
+
+- `v1`
+  - toggle into `Ride Mode`
+  - run one physics worker-backed live test
+  - basic collision/fitment warnings and HUD telemetry
+- `v2`
+  - better scenario setup and replay
+  - stronger control-loop/telemetry tuning
+  - deeper dynamic clearance validation
+- `v3`
+  - richer saved test scenarios
+  - setup comparison workflows
+  - later ties to studies, AI help, and manufacture validation

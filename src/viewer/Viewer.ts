@@ -52,6 +52,7 @@ import { appendConsoleEntry } from '../app/console/useConsoleStore'
 import { isEditableTarget, routeKeyboardInput } from '../app/inputRouting'
 import type {
   GeometrySketchOverlayVm,
+  ReferenceTransformHistoryOverlayVm,
   GeometrySketchSnapTarget,
   SketchPlanePickOverlayVm,
   VisibleGeometrySketchOverlayVm,
@@ -69,6 +70,7 @@ import { AxisGizmo, type SnapDirection } from './overlay/AxisGizmo'
 import { CameraController, type CameraPose, type CameraPreset } from './scene/CameraController'
 import { SketchPlanePickHelper } from './sketch/SketchPlanePickHelper'
 import { GeometrySketchDrawHelper } from './sketch/GeometrySketchDrawHelper'
+import { ReferenceTransformHistoryHelper } from './ReferenceTransformHistoryHelper'
 import {
   getSketchPlaneWorldNormal,
   getSketchPlaneWorldOrigin,
@@ -237,11 +239,13 @@ export class Viewer {
   private axisOverlayCanvas: HTMLCanvasElement | null = null
   private axisOverlayEnabled = true
   private readonly sketchPlanePickHelper: SketchPlanePickHelper
+  private readonly referenceTransformHistoryHelper: ReferenceTransformHistoryHelper
   private readonly geometrySketchDrawHelper: GeometrySketchDrawHelper
   private geometrySketchOverlay: GeometrySketchOverlayVm | null = null
   private geometrySketchCameraAlignKey: string | null = null
   private geometrySketchRestoreCameraPose: CameraPose | null = null
   private sketchPlanePickOverlay: SketchPlanePickOverlayVm | null = null
+  private referenceTransformHistoryOverlay: ReferenceTransformHistoryOverlayVm | null = null
   private readonly geometrySketchComponentMaterial: LineBasicMaterial
   private readonly geometrySketchDraftChainMaterial: LineBasicMaterial
   private readonly geometrySketchDraftGhostMaterial: LineBasicMaterial
@@ -439,6 +443,8 @@ export class Viewer {
     this.scene.add(this.visibleGeometrySketchOverlayGroup)
     this.sketchPlanePickHelper = new SketchPlanePickHelper()
     this.scene.add(this.sketchPlanePickHelper.getGroup())
+    this.referenceTransformHistoryHelper = new ReferenceTransformHistoryHelper()
+    this.scene.add(this.referenceTransformHistoryHelper.getGroup())
     this.geometrySketchDrawHelper = new GeometrySketchDrawHelper()
     this.scene.add(this.geometrySketchDrawHelper.getGroup())
     this.geometrySketchComponentMaterial = new LineBasicMaterial({
@@ -710,6 +716,7 @@ export class Viewer {
         this.applyReferenceObjectDefaults(object)
         this.referenceObjects.set(reference.referenceId, object)
         this.refreshReferenceHighlightStyling()
+        this.syncReferenceTransformHistoryOverlay()
       })
       .finally(() => {
         this.referenceLoadPromises.delete(reference.referenceId)
@@ -739,6 +746,7 @@ export class Viewer {
       object.visible = true
       this.refreshReferenceHighlightStyling()
       this.refreshGizmoAttachment()
+      this.syncReferenceTransformHistoryOverlay()
       return
     }
     if (object.parent === this.referenceGroup) {
@@ -747,6 +755,7 @@ export class Viewer {
     object.visible = false
     this.refreshReferenceHighlightStyling()
     this.refreshGizmoAttachment()
+    this.syncReferenceTransformHistoryOverlay()
   }
 
   public removeReference(referenceId: string): void {
@@ -772,6 +781,7 @@ export class Viewer {
     this.referenceSelectionOutlines.delete(referenceId)
     this.refreshReferenceHighlightStyling()
     this.refreshGizmoAttachment()
+    this.syncReferenceTransformHistoryOverlay()
   }
 
   public setReferenceTransformSession(session: ReferenceTransformSession | null): void {
@@ -785,6 +795,14 @@ export class Viewer {
     this.syncGizmoEnabledState()
     this.refreshReferenceHighlightStyling()
     this.refreshGizmoAttachment()
+    this.syncReferenceTransformHistoryOverlay()
+  }
+
+  public setReferenceTransformHistoryOverlay(
+    overlay: ReferenceTransformHistoryOverlayVm | null,
+  ): void {
+    this.referenceTransformHistoryOverlay = overlay
+    this.syncReferenceTransformHistoryOverlay()
   }
 
   public setReferenceCameraLock(referenceId: string | null): void {
@@ -1494,6 +1512,7 @@ export class Viewer {
     this.axisGizmo?.dispose()
     this.axisGizmo = null
     this.sketchPlanePickHelper.dispose()
+    this.referenceTransformHistoryHelper.dispose()
     this.geometrySketchDrawHelper.dispose()
     this.geometrySketchComponentMaterial.dispose()
     this.geometrySketchHoveredComponentMaterial.dispose()
@@ -2070,6 +2089,19 @@ export class Viewer {
       this.gizmoEnabled ||
         this.activeReferenceTransformReferenceId !== null ||
         this.sketchPlanePickOverlay?.stage === 'adjust',
+    )
+  }
+
+  private syncReferenceTransformHistoryOverlay(): void {
+    if (this.referenceTransformHistoryOverlay === null) {
+      this.referenceTransformHistoryHelper.setOverlay(null, null)
+      return
+    }
+    const referenceObject =
+      this.referenceObjects.get(this.referenceTransformHistoryOverlay.referenceId) ?? null
+    this.referenceTransformHistoryHelper.setOverlay(
+      this.referenceTransformHistoryOverlay,
+      referenceObject,
     )
   }
 
