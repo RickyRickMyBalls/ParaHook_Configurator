@@ -15,14 +15,15 @@ import {
   type ViewportOverlayToolPanelResizeDirection,
 } from './ViewportOverlayToolPanel'
 import {
+  DEFAULT_REFERENCE_TRANSFORM_SNAP_STATE,
   getReferenceTransformHistoryLatestScrubIndex,
   selectReferenceWorkspaceItems,
+  type ReferenceTransformSnapMode,
   useAppStore,
 } from '../store/useAppStore'
 import { getViewer } from '../viewerBridge'
 import { SpaghettiContextMenu } from '../spaghetti/ui/SpaghettiContextMenu'
 import {
-  DEFAULT_REFERENCE_ROTATE_SNAP,
   buildReferenceTimelineConfig,
   evaluateReferenceTimelineChannelValue,
   evaluateReferenceTransformOverrideWithTimelines,
@@ -47,7 +48,11 @@ const formatTransformValue = (value: number): string => {
   return value.toFixed(2)
 }
 
-const ROTATE_SNAP_PRESETS = [1, 5, 11.25, 15, 22.5, 30, 45, 90] as const
+const TRANSFORM_SNAP_PRESETS: Record<ReferenceTransformSnapMode, readonly number[]> = {
+  translate: [1, 5, 10, 25, 50],
+  rotate: [1, 5, 11.25, 15, 22.5, 30, 45, 90],
+  scale: [0.1, 0.25, 0.5, 1],
+}
 const TIMELINE_CYCLE_OPTIONS: Array<{ value: ReferenceTimelineCycle; label: string }> = [
   { value: 'left-to-right', label: 'Left to Right' },
   { value: 'bounce', label: 'Bounce' },
@@ -288,13 +293,20 @@ export function ReferenceTransformToolbar() {
   const setReferenceTimelineSpeed = useAppStore((state) => state.setReferenceTimelineSpeed)
   const setReferenceTimelineCycle = useAppStore((state) => state.setReferenceTimelineCycle)
   const setReferenceTimelinePoints = useAppStore((state) => state.setReferenceTimelinePoints)
-  const setReferenceRotateSnapEnabled = useAppStore((state) => state.setReferenceRotateSnapEnabled)
-  const setReferenceRotateSnapValue = useAppStore((state) => state.setReferenceRotateSnapValue)
+  const setReferenceTransformSnapEnabled = useAppStore(
+    (state) => state.setReferenceTransformSnapEnabled,
+  )
+  const setReferenceTransformSnapValue = useAppStore(
+    (state) => state.setReferenceTransformSnapValue,
+  )
   const toggleReferenceTransformHistoryLock = useAppStore(
     (state) => state.toggleReferenceTransformHistoryLock,
   )
   const setReferenceTransformHistoryEntryDeltaValue = useAppStore(
     (state) => state.setReferenceTransformHistoryEntryDeltaValue,
+  )
+  const deleteReferenceTransformHistoryEntry = useAppStore(
+    (state) => state.deleteReferenceTransformHistoryEntry,
   )
   const setActiveReferenceTransformHistoryScrubIndex = useAppStore(
     (state) => state.setActiveReferenceTransformHistoryScrubIndex,
@@ -410,10 +422,11 @@ export function ReferenceTransformToolbar() {
     activeReferenceId === null
       ? {}
       : referenceWorkspace.timelineConfigByReferenceId[activeReferenceId] ?? {}
-  const rotateSnapState =
+  const transformSnapState =
     activeReferenceId === null
-      ? DEFAULT_REFERENCE_ROTATE_SNAP
-      : referenceWorkspace.rotateSnapByReferenceId[activeReferenceId] ?? DEFAULT_REFERENCE_ROTATE_SNAP
+      ? DEFAULT_REFERENCE_TRANSFORM_SNAP_STATE
+      : referenceWorkspace.transformSnapByReferenceId[activeReferenceId] ??
+        DEFAULT_REFERENCE_TRANSFORM_SNAP_STATE
 
   const getChannelRange = (channel: ReferenceTimelineChannelKey): ReferenceTimelineRange =>
     normalizeRange(channelClampRanges[channel] ?? getReferenceTimelineDefaultRange(channel))
@@ -454,22 +467,37 @@ export function ReferenceTransformToolbar() {
     [activeTransformOverride, timelineNowMs, channelClampRanges, channelModes, channelTimelineConfigs],
   )
 
-  const evaluatedRotateSnap = useMemo(
+  const evaluatedTransformSnap = useMemo(
     () => ({
-      ...rotateSnapState,
-      value: evaluateReferenceTimelineChannelValue(
-        getChannelMode('rotate-snap'),
-        getChannelConfig('rotate-snap'),
-        rotateSnapState.value,
-        getChannelRange('rotate-snap'),
-        timelineNowMs,
-      ),
+      ...transformSnapState,
+      translate: { ...transformSnapState.translate },
+      scale: { ...transformSnapState.scale },
+      rotate: {
+        ...transformSnapState.rotate,
+        value: evaluateReferenceTimelineChannelValue(
+          getChannelMode('rotate-snap'),
+          getChannelConfig('rotate-snap'),
+          transformSnapState.rotate.value,
+          getChannelRange('rotate-snap'),
+          timelineNowMs,
+        ),
+      },
     }),
-    [rotateSnapState, timelineNowMs, channelClampRanges, channelModes, channelTimelineConfigs],
+    [transformSnapState, timelineNowMs, channelClampRanges, channelModes, channelTimelineConfigs],
   )
 
+  const activeTranslateStep =
+    transformSnapState.translate.enabled
+      ? Math.max(evaluatedTransformSnap.translate.value, 0.0001)
+      : 1
   const activeRotateStep =
-    rotateSnapState.enabled ? Math.max(evaluatedRotateSnap.value, 0.0001) : 1
+    transformSnapState.rotate.enabled
+      ? Math.max(evaluatedTransformSnap.rotate.value, 0.0001)
+      : 1
+  const activeScaleStep =
+    transformSnapState.scale.enabled
+      ? Math.max(evaluatedTransformSnap.scale.value, 0.0001)
+      : 0.01
 
   const activeSessionPath = useMemo(
     () =>
@@ -857,21 +885,21 @@ export function ReferenceTransformToolbar() {
     })
   }
 
-  const updateRotateSnapEnabled = (enabled: boolean) => {
-    setReferenceRotateSnapEnabled(activeReferenceId, enabled)
+  const updateTransformSnapEnabled = (mode: ReferenceTransformSnapMode, enabled: boolean) => {
+    setReferenceTransformSnapEnabled(activeReferenceId, mode, enabled)
     appendConsoleEntry({
       layer: 'Transforms',
-      text: `Rotate snap ${enabled ? 'enabled' : 'disabled'}`,
+      text: `${transformModeLabel(mode)} snap ${enabled ? 'enabled' : 'disabled'}`,
       source: 'reference-transform',
       severity: 'info',
     })
   }
 
-  const updateRotateSnapValue = (value: number) => {
-    setReferenceRotateSnapValue(activeReferenceId, value)
+  const updateTransformSnapValue = (mode: ReferenceTransformSnapMode, value: number) => {
+    setReferenceTransformSnapValue(activeReferenceId, mode, value)
     appendConsoleEntry({
       layer: 'Transforms',
-      text: `Rotate snap value: ${formatSnapValue(value)}`,
+      text: `${transformModeLabel(mode)} snap value: ${formatSnapValue(value)}`,
       source: 'reference-transform',
       severity: 'info',
     })
@@ -882,7 +910,7 @@ export function ReferenceTransformToolbar() {
     mode: ReferenceTimelineMode,
   ) => {
     if (mode === 'timeline' && channel === 'rotate-snap') {
-      updateRotateSnapEnabled(true)
+      updateTransformSnapEnabled('rotate', true)
     }
     setReferenceTimelineMode(activeReferenceId, channel, mode, performance.now())
     setChannelContextMenu(null)
@@ -1009,6 +1037,101 @@ export function ReferenceTransformToolbar() {
     )
   }
 
+  const renderSnapModeRow = (mode: ReferenceTransformSnapMode) => {
+    const snapState = transformSnapState[mode]
+    const evaluatedSnapState = evaluatedTransformSnap[mode]
+    const min =
+      mode === 'translate'
+        ? 0.0001
+        : mode === 'rotate'
+          ? getChannelRange('rotate-snap').min
+          : 0.0001
+    const max =
+      mode === 'translate' ? 300 : mode === 'rotate' ? getChannelRange('rotate-snap').max : 10
+    const step = mode === 'translate' ? 0.01 : mode === 'rotate' ? 0.0001 : 0.01
+    return (
+      <div key={mode} className="ReferenceTransformToolbarSnapModeGroup">
+        <div className="ReferenceTransformToolbarTransformSectionHeader ReferenceTransformToolbarTransformSectionHeader--nested">
+          <span className="ReferenceTransformToolbarTransformSectionLabel">
+            {transformModeLabel(mode)}
+          </span>
+          <div className="ReferenceTransformToolbarTransformSectionActions">
+            <button
+              type="button"
+              className={`ReferenceTransformToolbarButton ReferenceTransformToolbarButton--compact ${snapState.enabled ? 'isActive' : ''}`}
+              onClick={() => updateTransformSnapEnabled(mode, true)}
+            >
+              On
+            </button>
+            <button
+              type="button"
+              className={`ReferenceTransformToolbarButton ReferenceTransformToolbarButton--compact ${!snapState.enabled ? 'isActive' : ''}`}
+              onClick={() => updateTransformSnapEnabled(mode, false)}
+            >
+              Off
+            </button>
+          </div>
+        </div>
+        {mode === 'rotate' ? (
+          renderChannelRow({
+            channel: 'rotate-snap',
+            label: 'Snap',
+            value: snapState.value,
+            liveValue: evaluatedSnapState.value,
+            min,
+            max,
+            step,
+            formatValue: formatSnapValue,
+            onChange: (value) => updateTransformSnapValue(mode, value),
+            isHighlighted: false,
+          })
+        ) : (
+          <div className="ReferenceTransformToolbarChannelBox">
+            <ParaSlider
+              label="Snap"
+              value={snapState.value}
+              min={min}
+              max={max}
+              step={step}
+              onChange={(value) => updateTransformSnapValue(mode, value)}
+              displayLabel="Snap"
+              displayValue={formatSnapValue(evaluatedSnapState.value)}
+              formatValue={formatSnapValue}
+            />
+          </div>
+        )}
+        <div className="ReferenceTransformToolbarSnapButtons">
+          {TRANSFORM_SNAP_PRESETS[mode].map((preset) => (
+            <button
+              key={preset}
+              type="button"
+              className={`ReferenceTransformToolbarButton ReferenceTransformToolbarButton--compact ${
+                Math.abs(snapState.value - preset) < 0.0005 ? 'isActive' : ''
+              }`}
+              onClick={() => updateTransformSnapValue(mode, preset)}
+            >
+              {formatSnapValue(preset)}
+            </button>
+          ))}
+          <button
+            type="button"
+            className="ReferenceTransformToolbarButton ReferenceTransformToolbarButton--compact"
+            onClick={() => updateTransformSnapValue(mode, Math.max(min, snapState.value / 2))}
+          >
+            /2
+          </button>
+          <button
+            type="button"
+            className="ReferenceTransformToolbarButton ReferenceTransformToolbarButton--compact"
+            onClick={() => updateTransformSnapValue(mode, Math.min(max, snapState.value * 2))}
+          >
+            x2
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   const contextMenuItems =
     channelContextMenu === null
       ? []
@@ -1026,9 +1149,6 @@ export function ReferenceTransformToolbar() {
             onSelect: () => handleTimelineModeChange(channelContextMenu.channel, 'timeline'),
           },
         ]
-
-  const showRotateSnapRow =
-    rotateSnapState.enabled || getChannelMode('rotate-snap') === 'timeline'
 
   const promptDrivenChannelSelection: ActiveKeyboardChannelSelection =
     getReferenceTransformChannelSelectionFromPrompt(consolePromptSession)
@@ -1318,22 +1438,6 @@ export function ReferenceTransformToolbar() {
                                 >
                                   <button
                                     type="button"
-                                    className={`ReferenceTransformToolbarButton ReferenceTransformToolbarButton--compact ReferenceTransformToolbarHistoryLockButton ${
-                                      entry.locked ? 'isActive' : ''
-                                    }`}
-                                    aria-label={`${
-                                      entry.locked ? 'Unlock' : 'Lock'
-                                    } Transform ${sessionGroup.sessionOrdinal} entry ${historyIndex + 1}`}
-                                    aria-pressed={entry.locked}
-                                    title={entry.locked ? 'Unlock entry' : 'Lock entry'}
-                                    onClick={() =>
-                                      toggleReferenceTransformHistoryLock(activeReferenceId, entry.entryId)
-                                    }
-                                  >
-                                    <HistoryLockIcon locked={entry.locked} />
-                                  </button>
-                                  <button
-                                    type="button"
                                     className="ReferenceTransformToolbarHistoryEntryButton"
                                     aria-label={`Jump to Transform ${sessionGroup.sessionOrdinal} entry ${historyIndex + 1}`}
                                     aria-pressed={isScrubbedEntry}
@@ -1345,6 +1449,38 @@ export function ReferenceTransformToolbar() {
                                       {formatHistoryEntryTitle(entry, historyIndex)}
                                     </span>
                                   </button>
+                                  <div className="ReferenceTransformToolbarHistoryEntryActions">
+                                    <button
+                                      type="button"
+                                      className={`ReferenceTransformToolbarButton ReferenceTransformToolbarButton--compact ReferenceTransformToolbarHistoryLockButton ${
+                                        entry.locked ? 'isActive' : ''
+                                      }`}
+                                      aria-label={`${
+                                        entry.locked ? 'Unlock' : 'Lock'
+                                      } Transform ${sessionGroup.sessionOrdinal} entry ${historyIndex + 1}`}
+                                      aria-pressed={entry.locked}
+                                      title={entry.locked ? 'Unlock entry' : 'Lock entry'}
+                                      onClick={() =>
+                                        toggleReferenceTransformHistoryLock(activeReferenceId, entry.entryId)
+                                      }
+                                    >
+                                      <HistoryLockIcon locked={entry.locked} />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="ReferenceTransformToolbarButton ReferenceTransformToolbarButton--compact ReferenceTransformToolbarHistoryDeleteButton"
+                                      aria-label={`Delete Transform ${sessionGroup.sessionOrdinal} entry ${historyIndex + 1}`}
+                                      title="Delete entry"
+                                      onClick={() =>
+                                        deleteReferenceTransformHistoryEntry(
+                                          activeReferenceId,
+                                          entry.entryId,
+                                        )
+                                      }
+                                    >
+                                      x
+                                    </button>
+                                  </div>
                                 </div>
                                 <div
                                   className={`ReferenceTransformToolbarHistoryEntryValues ${
@@ -1385,6 +1521,18 @@ export function ReferenceTransformToolbar() {
             ) : null}
           </div>
         </div>
+        <div className="ReferenceTransformToolbarSection" aria-label="Reference transform snap settings">
+          <div className="ReferenceTransformToolbarTransformSection isActive isExpanded">
+            <div className="ReferenceTransformToolbarTransformSectionHeader">
+              <span className="ReferenceTransformToolbarTransformSectionLabel">Snap</span>
+            </div>
+            <div className="ReferenceTransformToolbarTransformSectionBody">
+              <div className="ReferenceTransformToolbarValueStack">
+                {(['translate', 'rotate', 'scale'] as const).map((mode) => renderSnapModeRow(mode))}
+              </div>
+            </div>
+          </div>
+        </div>
         <div className="ReferenceTransformToolbarSection" aria-label="Reference transform values">
           {TRANSFORM_SECTIONS.map((section) => (
             <div
@@ -1418,22 +1566,6 @@ export function ReferenceTransformToolbar() {
                 </button>
                 <span className="ReferenceTransformToolbarTransformSectionLabel">{section.label}</span>
                 <div className="ReferenceTransformToolbarTransformSectionActions">
-                  {section.key === 'rotate' ? (
-                    <button
-                      type="button"
-                      className={`ReferenceTransformToolbarButton ReferenceTransformToolbarButton--compact ${rotateSnapState.enabled ? 'isActive' : ''}`}
-                      onClick={(event) => {
-                        event.preventDefault()
-                        event.stopPropagation()
-                        updateRotateSnapEnabled(!rotateSnapState.enabled)
-                      }}
-                      aria-pressed={rotateSnapState.enabled}
-                      aria-label="Toggle rotate snap"
-                      title="Toggle rotate snap"
-                    >
-                      Snap
-                    </button>
-                  ) : null}
                   {section.key === 'scale' ? (
                     <button
                       type="button"
@@ -1454,50 +1586,6 @@ export function ReferenceTransformToolbar() {
               </div>
               {expandedSections[section.key] ? (
                 <div className="ReferenceTransformToolbarTransformSectionBody">
-                  {section.key === 'rotate' && showRotateSnapRow ? (
-                    <div className="ReferenceTransformToolbarRotateSnapGroup">
-                      {renderChannelRow({
-                        channel: 'rotate-snap',
-                        label: 'Snap',
-                        value: rotateSnapState.value,
-                        liveValue: evaluatedRotateSnap.value,
-                        min: getChannelRange('rotate-snap').min,
-                        max: getChannelRange('rotate-snap').max,
-                        step: 0.0001,
-                        formatValue: formatSnapValue,
-                        onChange: (value) => updateRotateSnapValue(value),
-                        isHighlighted: false,
-                      })}
-                      <div className="ReferenceTransformToolbarSnapButtons">
-                        {ROTATE_SNAP_PRESETS.map((preset) => (
-                          <button
-                            key={preset}
-                            type="button"
-                            className={`ReferenceTransformToolbarButton ReferenceTransformToolbarButton--compact ${Math.abs(rotateSnapState.value - preset) < 0.0005 ? 'isActive' : ''}`}
-                            onClick={() => updateRotateSnapValue(preset)}
-                          >
-                            {formatSnapValue(preset)}
-                          </button>
-                        ))}
-                        <button
-                          type="button"
-                          className="ReferenceTransformToolbarButton ReferenceTransformToolbarButton--compact"
-                          onClick={() =>
-                            updateRotateSnapValue(Math.max(0.0001, rotateSnapState.value / 2))
-                          }
-                        >
-                          /2
-                        </button>
-                        <button
-                          type="button"
-                          className="ReferenceTransformToolbarButton ReferenceTransformToolbarButton--compact"
-                          onClick={() => updateRotateSnapValue(rotateSnapState.value * 2)}
-                        >
-                          x2
-                        </button>
-                      </div>
-                    </div>
-                  ) : null}
                   <div className="ReferenceTransformToolbarValueStack">
                     {section.channels.map((channelMeta) => {
                       const baseValue = activeTransformOverride[channelMeta.group][channelMeta.axis]
@@ -1509,12 +1597,19 @@ export function ReferenceTransformToolbar() {
                         liveValue,
                         min: getChannelRange(channelMeta.channel).min,
                         max: getChannelRange(channelMeta.channel).max,
-                        step: channelMeta.sectionKey === 'rotate' ? activeRotateStep : channelMeta.step,
+                        step:
+                          channelMeta.sectionKey === 'rotate'
+                            ? activeRotateStep
+                            : channelMeta.sectionKey === 'translate'
+                              ? activeTranslateStep
+                              : channelMeta.sectionKey === 'scale'
+                                ? activeScaleStep
+                                : channelMeta.step,
                         formatValue: formatTransformValue,
                         isHighlighted: isChannelHighlighted(section.key, channelMeta.axis),
                         allowWrap: channelMeta.allowWrap,
                         showContinuousDragPreview:
-                          channelMeta.sectionKey === 'rotate' && rotateSnapState.enabled,
+                          transformSnapState[channelMeta.sectionKey].enabled,
                         onChange: (value) =>
                           updateTransformAxis(channelMeta.group, channelMeta.axis, value),
                       })

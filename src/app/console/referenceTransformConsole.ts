@@ -124,6 +124,7 @@ export const buildReferenceTransformAssistChoices = (
       aliases: [vec3Label.trim().toUpperCase()],
       label: vec3Label,
     },
+    { canonicalToken: 'SNAP', aliases: ['SN'], label: 'Snap' },
     { canonicalToken: 'X', aliases: [], label: 'X' },
     { canonicalToken: 'Y', aliases: [], label: 'Y' },
     { canonicalToken: 'Z', aliases: [], label: 'Z' },

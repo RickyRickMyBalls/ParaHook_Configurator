@@ -40,7 +40,6 @@ import {
   getReferenceTimelineDefaultRange,
   getReferenceTransformOverrideAxisValue,
   shiftReferenceTimelineConfig,
-  type ReferenceRotateSnapState,
   type ReferenceTimelineChannelKey,
   type ReferenceTimelineConfig,
   type ReferenceTimelineMode,
@@ -60,6 +59,15 @@ export type ProjectContentBuildState = 'rebuild' | 'building' | 'done'
 export type ReferenceItemLoadState = 'unloaded' | 'loading' | 'loaded' | 'error'
 export type ReferenceTransformMode = 'translate' | 'rotate' | 'scale'
 export type ReferenceTransformSpace = 'local' | 'world'
+export type ReferenceTransformSnapMode = ReferenceTransformMode
+export type ReferenceTransformSnapSetting = {
+  enabled: boolean
+  value: number
+}
+export type ReferenceTransformSnapState = Record<
+  ReferenceTransformSnapMode,
+  ReferenceTransformSnapSetting
+>
 export type ReferenceTransformHistoryEntryKind = 'move' | 'rotate' | 'scale'
 export type ReferenceTransformHistoryVector = {
   x: number
@@ -280,7 +288,7 @@ export type ReferenceWorkspaceState = {
     string,
     Partial<Record<ReferenceTimelineChannelKey, ReferenceTimelineConfig>>
   >
-  rotateSnapByReferenceId: Record<string, ReferenceRotateSnapState>
+  transformSnapByReferenceId: Record<string, ReferenceTransformSnapState>
   transformHistoryByReferenceId: Record<string, ReferenceTransformHistoryEntry[]>
   activeReferenceTransformSession: ActiveReferenceTransformSession | null
   importedReferencesById: Record<string, ImportedReferenceRecord>
@@ -570,6 +578,7 @@ export type AppState = {
     axis: 'x' | 'y' | 'z',
     value: number,
   ) => void
+  deleteReferenceTransformHistoryEntry: (referenceId: string, entryId: string) => void
   toggleReferenceTransformHistoryLock: (referenceId: string, entryId: string) => void
   mergeReferenceTransformHistory: (referenceId: string) => void
   cancelActiveReferenceTransformEntry: () => void
@@ -599,8 +608,16 @@ export type AppState = {
     channel: ReferenceTimelineChannelKey,
     points: ReferenceTimelineConfig['points'],
   ) => void
-  setReferenceRotateSnapEnabled: (referenceId: string, enabled: boolean) => void
-  setReferenceRotateSnapValue: (referenceId: string, value: number) => void
+  setReferenceTransformSnapEnabled: (
+    referenceId: string,
+    mode: ReferenceTransformSnapMode,
+    enabled: boolean,
+  ) => void
+  setReferenceTransformSnapValue: (
+    referenceId: string,
+    mode: ReferenceTransformSnapMode,
+    value: number,
+  ) => void
   setWorkspaceSelectedTarget: (target: WorkspaceSelectedTarget | null) => void
   setWorkspaceExplicitSelection: (selection: {
     selectedTarget: WorkspaceSelectedTarget | null
@@ -630,6 +647,20 @@ const INITIAL_PROJECT_FILE_ID = 'project-file-1'
 const ROOT_ASSEMBLY_LABEL = 'Assembly 1'
 const REFERENCE_ROOT_ROW_ID = 'reference-root'
 const IMPORTED_REFERENCE_ROW_ID_PREFIX = 'reference-import'
+export const DEFAULT_REFERENCE_TRANSFORM_SNAP_STATE: ReferenceTransformSnapState = {
+  translate: {
+    enabled: false,
+    value: 10,
+  },
+  rotate: {
+    enabled: DEFAULT_REFERENCE_ROTATE_SNAP.enabled,
+    value: DEFAULT_REFERENCE_ROTATE_SNAP.value,
+  },
+  scale: {
+    enabled: false,
+    value: 0.25,
+  },
+}
 export const buildProjectSketchesRootRowId = (projectFileId: string): string =>
   `project-sketches-root:${projectFileId}`
 export const buildProjectSketchBrowserRowId = (
@@ -856,7 +887,7 @@ const createInitialReferenceWorkspaceState = (): ReferenceWorkspaceState => ({
   channelClampRangeByReferenceId: {},
   timelineModeByReferenceId: {},
   timelineConfigByReferenceId: {},
-  rotateSnapByReferenceId: {},
+  transformSnapByReferenceId: {},
   transformHistoryByReferenceId: {},
   activeReferenceTransformSession: null,
   importedReferencesById: {},
@@ -867,6 +898,14 @@ const buildDefaultReferenceTransformOverride = (): ReferenceTransformOverride =>
   position: { x: 0, y: 0, z: 0 },
   rotationDeg: { x: 0, y: 0, z: 0 },
   scale: { x: 1, y: 1, z: 1 },
+})
+
+const cloneReferenceTransformSnapState = (
+  value: ReferenceTransformSnapState = DEFAULT_REFERENCE_TRANSFORM_SNAP_STATE,
+): ReferenceTransformSnapState => ({
+  translate: { ...value.translate },
+  rotate: { ...value.rotate },
+  scale: { ...value.scale },
 })
 
 type LegacyReferenceTransformHistoryEntry = Omit<
@@ -1252,11 +1291,11 @@ const getReferenceTimelineMode = (
 ): ReferenceTimelineMode =>
   referenceWorkspace.timelineModeByReferenceId[referenceId]?.[channel] ?? 'basic'
 
-const getReferenceRotateSnapState = (
+const getReferenceTransformSnapState = (
   referenceWorkspace: ReferenceWorkspaceState,
   referenceId: string,
-): ReferenceRotateSnapState =>
-  referenceWorkspace.rotateSnapByReferenceId[referenceId] ?? DEFAULT_REFERENCE_ROTATE_SNAP
+): ReferenceTransformSnapState =>
+  referenceWorkspace.transformSnapByReferenceId[referenceId] ?? DEFAULT_REFERENCE_TRANSFORM_SNAP_STATE
 
 const applyReferenceTransformTimelineDeltas = (
   referenceWorkspace: ReferenceWorkspaceState,
@@ -2370,9 +2409,9 @@ export const useAppStore = create<AppState>((set, get) => ({
             ...state.referenceWorkspace.timelineConfigByReferenceId,
             [referenceId]: {},
           },
-          rotateSnapByReferenceId: {
-            ...state.referenceWorkspace.rotateSnapByReferenceId,
-            [referenceId]: { ...DEFAULT_REFERENCE_ROTATE_SNAP },
+          transformSnapByReferenceId: {
+            ...state.referenceWorkspace.transformSnapByReferenceId,
+            [referenceId]: cloneReferenceTransformSnapState(),
           },
           importedReferencesById: {
             ...state.referenceWorkspace.importedReferencesById,
@@ -2557,10 +2596,10 @@ export const useAppStore = create<AppState>((set, get) => ({
         ...state.referenceWorkspace.timelineConfigByReferenceId,
       }
       delete nextTimelineConfigByReferenceId[referenceId]
-      const nextRotateSnapByReferenceId = {
-        ...state.referenceWorkspace.rotateSnapByReferenceId,
+      const nextTransformSnapByReferenceId = {
+        ...state.referenceWorkspace.transformSnapByReferenceId,
       }
-      delete nextRotateSnapByReferenceId[referenceId]
+      delete nextTransformSnapByReferenceId[referenceId]
       const nextTransformHistoryByReferenceId = {
         ...state.referenceWorkspace.transformHistoryByReferenceId,
       }
@@ -2579,7 +2618,7 @@ export const useAppStore = create<AppState>((set, get) => ({
           channelClampRangeByReferenceId: nextChannelClampRangeByReferenceId,
           timelineModeByReferenceId: nextTimelineModeByReferenceId,
           timelineConfigByReferenceId: nextTimelineConfigByReferenceId,
-          rotateSnapByReferenceId: nextRotateSnapByReferenceId,
+          transformSnapByReferenceId: nextTransformSnapByReferenceId,
           transformHistoryByReferenceId: nextTransformHistoryByReferenceId,
           importedReferencesById: nextImportedReferencesById,
           importedReferenceOrder: state.referenceWorkspace.importedReferenceOrder.filter(
@@ -2728,6 +2767,13 @@ export const useAppStore = create<AppState>((set, get) => ({
         nextEntries,
         latestScrubIndex,
       )
+      const nextActiveScrubIndex = historyChanged
+        ? Math.min(latestScrubIndex, currentScrubIndex + 1)
+        : Math.min(latestScrubIndex, currentScrubIndex)
+      const nextActiveDraftTransform = getReferenceTransformHistoryTransformAtScrubIndex(
+        nextEntries,
+        nextActiveScrubIndex,
+      )
       return {
         referenceWorkspace: {
           ...state.referenceWorkspace,
@@ -2735,8 +2781,8 @@ export const useAppStore = create<AppState>((set, get) => ({
             ...activeSession,
             entryActive: false,
             activeHandle: null,
-            historyScrubIndex: latestScrubIndex,
-            draftTransform: nextTransformOverride,
+            historyScrubIndex: nextActiveScrubIndex,
+            draftTransform: nextActiveDraftTransform,
             entryOrigin: null,
           },
           transformOverrideById: {
@@ -2779,7 +2825,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   setActiveReferenceTransformSpace: (space) => {
     set((state) => {
       const activeSession = state.referenceWorkspace.activeReferenceTransformSession
-      if (activeSession === null) {
+      if (activeSession === null || activeSession.space === space) {
         return state
       }
       return {
@@ -2985,6 +3031,70 @@ export const useAppStore = create<AppState>((set, get) => ({
       }
     })
   },
+  deleteReferenceTransformHistoryEntry: (referenceId, entryId) => {
+    set((state) => {
+      const previousTransformOverride = state.referenceWorkspace.transformOverrideById[referenceId] ?? null
+      const activeSession = state.referenceWorkspace.activeReferenceTransformSession
+      const currentEntries = normalizeReferenceTransformHistoryEntries(
+        state.referenceWorkspace.transformHistoryByReferenceId[referenceId] ?? [],
+      )
+      const removedIndex = currentEntries.findIndex((entry) => entry.entryId === entryId)
+      if (removedIndex < 0) {
+        return state
+      }
+      const nextEntries = normalizeReferenceTransformHistoryEntries([
+        ...currentEntries.slice(0, removedIndex),
+        ...currentEntries.slice(removedIndex + 1),
+      ])
+      const nextTransformOverride = applyReferenceTransformHistoryEntriesToOverride(nextEntries)
+      const currentScrubIndex =
+        activeSession?.referenceId !== referenceId
+          ? undefined
+          : resolveReferenceTransformHistoryScrubIndex(currentEntries, activeSession.historyScrubIndex)
+      const nextScrubIndex =
+        currentScrubIndex === undefined
+          ? undefined
+          : resolveReferenceTransformHistoryScrubIndex(
+              nextEntries,
+              currentScrubIndex - (removedIndex + 1 < currentScrubIndex ? 1 : 0),
+            )
+      const nextDraftTransform =
+        nextScrubIndex === undefined
+          ? nextTransformOverride
+          : getReferenceTransformHistoryTransformAtScrubIndex(nextEntries, nextScrubIndex)
+      return {
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          transformOverrideById: {
+            ...state.referenceWorkspace.transformOverrideById,
+            [referenceId]: nextTransformOverride,
+          },
+          transformHistoryByReferenceId: {
+            ...state.referenceWorkspace.transformHistoryByReferenceId,
+            [referenceId]: nextEntries,
+          },
+          activeReferenceTransformSession:
+            activeSession?.referenceId !== referenceId
+              ? activeSession
+              : {
+                  ...activeSession,
+                  historyScrubIndex: nextScrubIndex,
+                  draftTransform: cloneReferenceTransformOverride(nextDraftTransform) ??
+                    buildDefaultReferenceTransformOverride(),
+                  entryOrigin: activeSession.entryOrigin === null
+                    ? null
+                    : cloneReferenceTransformOverride(nextDraftTransform),
+                },
+          timelineConfigByReferenceId: applyReferenceTransformTimelineDeltas(
+            state.referenceWorkspace,
+            referenceId,
+            previousTransformOverride,
+            nextTransformOverride,
+          ),
+        },
+      }
+    })
+  },
   toggleReferenceTransformHistoryLock: (referenceId, entryId) => {
     set((state) => {
       const currentEntries = normalizeReferenceTransformHistoryEntries(
@@ -3127,7 +3237,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         if (existingConfig === undefined) {
           const baseValue =
             channel === 'rotate-snap'
-              ? getReferenceRotateSnapState(state.referenceWorkspace, referenceId).value
+              ? getReferenceTransformSnapState(state.referenceWorkspace, referenceId).rotate.value
               : getReferenceTransformOverrideAxisValue(
                   state.referenceWorkspace.transformOverrideById[referenceId],
                   channel,
@@ -3220,47 +3330,65 @@ export const useAppStore = create<AppState>((set, get) => ({
       }
     })
   },
-  setReferenceRotateSnapEnabled: (referenceId, enabled) => {
-    set((state) => ({
-      referenceWorkspace: {
-        ...state.referenceWorkspace,
-        rotateSnapByReferenceId: {
-          ...state.referenceWorkspace.rotateSnapByReferenceId,
-          [referenceId]: {
-            ...getReferenceRotateSnapState(state.referenceWorkspace, referenceId),
-            enabled,
+  setReferenceTransformSnapEnabled: (referenceId, mode, enabled) => {
+    set((state) => {
+      return {
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          transformSnapByReferenceId: {
+            ...state.referenceWorkspace.transformSnapByReferenceId,
+            [referenceId]: {
+              ...cloneReferenceTransformSnapState(
+                getReferenceTransformSnapState(state.referenceWorkspace, referenceId),
+              ),
+              [mode]: {
+                ...getReferenceTransformSnapState(state.referenceWorkspace, referenceId)[mode],
+                enabled,
+              },
+            },
           },
         },
-      },
-    }))
+      }
+    })
   },
-  setReferenceRotateSnapValue: (referenceId, value) => {
+  setReferenceTransformSnapValue: (referenceId, mode, value) => {
     set((state) => {
-      const previousValue = getReferenceRotateSnapState(state.referenceWorkspace, referenceId).value
+      const currentSnapState = cloneReferenceTransformSnapState(
+        getReferenceTransformSnapState(state.referenceWorkspace, referenceId),
+      )
       const nextTimelineConfigByReferenceId = {
         ...state.referenceWorkspace.timelineConfigByReferenceId,
       }
-      if (getReferenceTimelineMode(state.referenceWorkspace, referenceId, 'rotate-snap') === 'timeline') {
-        const existingConfig = nextTimelineConfigByReferenceId[referenceId]?.['rotate-snap']
-        if (existingConfig !== undefined) {
-          nextTimelineConfigByReferenceId[referenceId] = {
-            ...(nextTimelineConfigByReferenceId[referenceId] ?? {}),
-            'rotate-snap': shiftReferenceTimelineConfig(
-              existingConfig,
-              value - previousValue,
-              getReferenceChannelClampRange(state.referenceWorkspace, referenceId, 'rotate-snap'),
-            ),
+      if (mode === 'rotate') {
+        const previousValue = currentSnapState.rotate.value
+        if (
+          getReferenceTimelineMode(state.referenceWorkspace, referenceId, 'rotate-snap') === 'timeline'
+        ) {
+          const existingConfig = nextTimelineConfigByReferenceId[referenceId]?.['rotate-snap']
+          if (existingConfig !== undefined) {
+            nextTimelineConfigByReferenceId[referenceId] = {
+              ...(nextTimelineConfigByReferenceId[referenceId] ?? {}),
+              'rotate-snap': shiftReferenceTimelineConfig(
+                existingConfig,
+                value - previousValue,
+                getReferenceChannelClampRange(state.referenceWorkspace, referenceId, 'rotate-snap'),
+              ),
+            }
           }
         }
       }
       return {
         referenceWorkspace: {
           ...state.referenceWorkspace,
-          rotateSnapByReferenceId: {
-            ...state.referenceWorkspace.rotateSnapByReferenceId,
+          transformSnapByReferenceId: {
+            ...state.referenceWorkspace.transformSnapByReferenceId,
             [referenceId]: {
-              ...getReferenceRotateSnapState(state.referenceWorkspace, referenceId),
-              value,
+              ...currentSnapState,
+              [mode]: {
+                ...currentSnapState[mode],
+                enabled: true,
+                value,
+              },
             },
           },
           timelineConfigByReferenceId: nextTimelineConfigByReferenceId,

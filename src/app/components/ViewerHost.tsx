@@ -10,6 +10,7 @@ import {
 } from '../viewerBridge'
 import { Viewer } from '../../viewer/Viewer'
 import {
+  DEFAULT_REFERENCE_TRANSFORM_SNAP_STATE,
   getReferenceTransformHistoryEntriesThroughScrubIndex,
   selectCurrentProjectContentBrowserRows,
   type ReferenceTransformHistoryEntry,
@@ -659,30 +660,34 @@ export function ViewerHost() {
         (channel) => getChannelConfig(item.referenceId, channel),
         (channel) => getChannelRange(item.referenceId, channel),
       )
-      const baseRotateSnap = referenceWorkspace.rotateSnapByReferenceId[item.referenceId] ?? {
-        enabled: false,
-        value: 15,
-      }
-      const evaluatedRotateSnap = {
-        ...baseRotateSnap,
+      const baseTransformSnap =
+        referenceWorkspace.transformSnapByReferenceId[item.referenceId] ??
+        DEFAULT_REFERENCE_TRANSFORM_SNAP_STATE
+      const evaluatedTransformSnap = {
+        ...baseTransformSnap,
+        translate: { ...baseTransformSnap.translate },
+        scale: { ...baseTransformSnap.scale },
+        rotate: {
+          ...baseTransformSnap.rotate,
         value: evaluateReferenceTimelineChannelValue(
           getChannelMode(item.referenceId, 'rotate-snap'),
           getChannelConfig(item.referenceId, 'rotate-snap'),
-          baseRotateSnap.value,
+          baseTransformSnap.rotate.value,
           getChannelRange(item.referenceId, 'rotate-snap'),
           timelineNowMs,
         ),
+        },
       }
       return {
         ...item,
         evaluatedTransformOverride,
-        evaluatedRotateSnap,
+        evaluatedTransformSnap,
       }
     })
   }, [
     referenceWorkspace.channelClampRangeByReferenceId,
     referenceWorkspace.activeReferenceTransformSession,
-    referenceWorkspace.rotateSnapByReferenceId,
+    referenceWorkspace.transformSnapByReferenceId,
     referenceWorkspace.timelineConfigByReferenceId,
     referenceWorkspace.timelineModeByReferenceId,
     referenceWorkspaceItems,
@@ -1178,9 +1183,18 @@ export function ViewerHost() {
     const activeReferenceItem =
       evaluatedReferenceItems.find((item) => item.referenceId === activeReferenceId) ?? null
     viewer.setGizmoSnap({
-      rotateDeg: activeReferenceItem?.evaluatedRotateSnap.enabled === true
-        ? activeReferenceItem.evaluatedRotateSnap.value
-        : undefined,
+      translateMm:
+        activeReferenceItem?.evaluatedTransformSnap.translate.enabled === true
+          ? activeReferenceItem.evaluatedTransformSnap.translate.value
+          : undefined,
+      rotateDeg:
+        activeReferenceItem?.evaluatedTransformSnap.rotate.enabled === true
+          ? activeReferenceItem.evaluatedTransformSnap.rotate.value
+          : undefined,
+      scale:
+        activeReferenceItem?.evaluatedTransformSnap.scale.enabled === true
+          ? activeReferenceItem.evaluatedTransformSnap.scale.value
+          : undefined,
     })
   }, [
     evaluatedReferenceItems,

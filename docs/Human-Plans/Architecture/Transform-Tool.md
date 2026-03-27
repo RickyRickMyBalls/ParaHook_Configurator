@@ -86,7 +86,7 @@ Today the shipped transform tool is:
 - reference-targeted value editing
 
 Current proof surface:
-- [ReferenceTransformToolbar.tsx](./../../src/app/components/ReferenceTransformToolbar.tsx)
+- `src/app/components/ReferenceTransformToolbar.tsx`
 
 Current strengths:
 - grouped transform sections
@@ -346,7 +346,7 @@ That means:
 - but its values likely persist into authored graph state
 
 The sketch node architecture doc remains the canonical source for sketch-plane-specific UX:
-- [Sketch.md](./Spaghetti-Editor-Arch/Nodes/Sketch.md)
+- [Sketch](./Spaghetti-Editor-Arch/Nodes/Sketch/Sketch.md)
 
 This doc just defines how the transform-tool architecture can become broad enough to host that target cleanly.
 

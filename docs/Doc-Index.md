@@ -4,6 +4,7 @@
 <summary>Doc Header</summary>
 
 ### Doc History
+126. 2026-03-27 09:40: Added `docs/Human-Plans/Wish-Features/Collaberate/Collaberate.md` to the docs map, added a direct wishlist pointer from `docs/Human-Plans/Wish-Features/WISHLIST.md`, and refreshed the `Wish-Features` subtree so the new collaboration branch is discoverable beside `WISHLIST.md`
 125. 2026-03-26 20:03: Added the new `docs/Human-Plans/Architecture/Export/Export-Index.md` family plus its first `Future/Export_Phase Export-1 - Toolbar Shell And Format Surface.md` planning surface to the architecture docs map, refreshed the architecture roadmap entry points, and kept the docs index aligned with the new export-toolbar family
 124. 2026-03-26 12:55: Added the four new `docs/Human-Plans/Architecture/Layers/Future/` phase docs to the architecture docs map and refreshed the Layers subtree so the new family now has a visible implementation ladder for state foundation, manager-plus-console controls, sketch entity ownership, and authored 3D object visibility
 123. 2026-03-26 07:18: Added `docs/Human-Plans/Architecture/Layers/Layers.md` to the architecture docs map, created the new folderized `Layers` family with `Future/` and `Shipped/`, and refreshed the architecture subtree so layer-specific planning now has a canonical umbrella home under `docs/Human-Plans/Architecture/`
@@ -562,6 +563,8 @@ Rule notes:
         - `10 - radio-Sampler.md`
         - `11 - Scenes.md`
         - `WISHLIST.md`
+#### -------Collaberate
+            - `Collaberate.md`
 #### -------Jake-Mode
             - `Jake-Mode.md`
 #### -------Spaghetti-Editor

@@ -3,6 +3,14 @@
 ## Doc Header
 
 ### Doc History
+35. 2026-03-27 11:49: Locked the first `Transform 8` snap direction in this family index, deciding that transform snap lives under `Transform > Settings > Snap`, that `Move`, `Rotate`, and `Scale` each expose both whole-mode snap and deeper axis-specific snap paths, and that mode-local `Snap` entry points are only adapters into that same shared settings tree
+34. 2026-03-27 11:36: Cleaned up the Transform family after shipping `Transform 7`, marking the shared `Local / World` work complete in this index, moving its standalone phase record into `Shipped/`, narrowing the open follow-ons down to `Transform 8` snap controls plus `Transform 9` toolbar `X` exit sync, and making `Transform 8` the active next task
+33. 2026-03-27 09:44: Tightened the `Transform 7` direction again in this family index so the honest hierarchy now reads as `Transform > Settings > Space > Choose next [Local, World]`, while `L` and `W` are documented as common transform-shell shortcuts that can be called from almost anywhere and resolve into that same shared setting instead of becoming a second owner path
+32. 2026-03-27 09:39: Tightened the `Transform 7` command wording in this family index so transform space now reads as `space:Local` / `space:World`, defaults to `Local` when the user enters `Transform`, and only surfaces the opposite mode as the available command instead of showing both at once
+31. 2026-03-27 09:36: Tightened the `Transform 7` direction again in this family index so the `Local / World` Console command now explicitly has to stay synced with the reference-transform `Local / World` button, making both surfaces read and write the same shared transform-space state
+30. 2026-03-27 09:34: Tightened the `Transform 7` direction in this family index so `Local / World` now reads as a transform-shell command the user can call from almost anywhere inside `Transform`, more like `Move` / `Rotate` / `Scale`, instead of a root-only `Space` branch
+29. 2026-03-27 09:31: Expanded the `Transform 7` block in this family index with a fuller question set, adding explicit open questions around the shell-entry default for `Local / World`, whether space switching should be allowed only at the `Transform` root or also during active sub-entries, and how space should relate to scrubbed history versus committed transform rows
+28. 2026-03-27 09:26: Marked `Transform 6` shipped in this family index after the history scrub layer landed, moved its standalone phase record into `Shipped/`, and split the next transform follow-ons into `Transform 7` console `Local / World` space access, `Transform 8` shared transform snap controls, and `Transform 9` toolbar `X` exit sync with the Console shell
 27. 2026-03-27 02:06: Tightened the `Transform 6` family index into implementation-ready scrub language, removing the stale `preview / restore` framing, renaming the phase direction around direct history scrub and traversal, and locking that there is no separate restore action in the first pass because the scrub head itself owns the active rendered history position
 26. 2026-03-27 01:58: Cleaned up the `Transform 6` question list in this family index so the stale open markers now match the actual locked direction, marking history granularity and preview-versus-restore behavior as answered while leaving explicit restore-history mutation as the main remaining open `Transform 6` question
 25. 2026-03-27 01:52: Locked the `Transform 6` branched-commit rule in this family index, deciding that if the user scrubs back to an earlier committed entry and then commits a new transform step, that new row should insert immediately after the scrubbed entry, the old future rows should remain after it and replay from that insertion point, and the child-entry numbering should renumber to the new visible order
@@ -130,18 +138,24 @@ Current Transform-native shipped records:
   - `docs/Human-Plans/Architecture/Transform/Shipped/Transform_Phase Transform-4.4 - Console And Toolbar Adapter Cleanup.md`
 - `Transform 5`
   - `docs/Human-Plans/Architecture/Transform/Shipped/Transform_Phase Transform-5 - Viewport History Visual Baseline.md`
-
-Current open Transform follow-on:
 - `Transform 6`
-  - scrub / traversal over committed history
+  - `docs/Human-Plans/Architecture/Transform/Shipped/Transform_Phase Transform-6 - History Scrub And Traversal.md`
+- `Transform 7`
+  - `docs/Human-Plans/Architecture/Transform/Shipped/Transform_Phase Transform-7 - Console Local World Space.md`
+
+Current open Transform follow-ons:
+- `Transform 8`
+  - shared transform snap controls for move / rotate / scale
+- `Transform 9`
+  - toolbar `X` exit sync with the Console transform shell
 
 This family now owns the shipped Transform-shell cleanup trail directly, while Browser `7.5` still holds the broader future ladder until the remaining open transform-native follow-ons are written down outside Browser.
 
 ### Next Steps
 
-Expected next cleanup after shipping `Transform 5`:
+Expected next cleanup after shipping `Transform 7`:
 
-1. carry the actual scrub / traversal work forward as `Transform 6`
+1. make `Transform 8` the active next task and tighten the shared snap direction for move / rotate / scale
 2. keep deciding how much of the remaining Browser-umbrella direction should be re-expressed as Transform-native future records instead of staying Browser-numbered
 3. continue moving landed Transform-native standalone records from `Future/` into `Shipped/` so the family stays honest about what is already implemented
 
@@ -553,7 +567,7 @@ Decision:
 Standalone phase doc:
 - `docs/Human-Plans/Architecture/Transform/Shipped/Transform_Phase Transform-5 - Viewport History Visual Baseline.md`
 
-### [ ] Transform 6 - History Scrub / Traversal
+### [x] Transform 6 - History Scrub / Traversal
 
 - add the actual scrub layer over committed transform history after the first viewport visuals exist
 - let the scrub head define the active rendered committed-history position without inventing a second unsynced history model
@@ -656,4 +670,122 @@ Decision:
 - returning the scrub head to the tail without a new commit should return to the real current live draft / committed state
 
 Standalone phase doc:
-- `docs/Human-Plans/Architecture/Transform/Future/Transform_Phase Transform-6 - History Traversal Preview And Restore.md`
+- `docs/Human-Plans/Architecture/Transform/Shipped/Transform_Phase Transform-6 - History Scrub And Traversal.md`
+
+### [x] Transform 7 - Console Local / World Space
+
+- shipped the shared transform-shell `Local / World` mode for reference transform
+- kept `Local / World` as one shared shell-state seam across Console, toolbar, and viewer
+- landed the canonical `Transform > Settings > Space > [Local, World]` path plus broad `L` / `W` shortcuts
+
+#### Shipped cleanup
+
+- `Transform` now defaults the active shell to `Local`
+- the honest Console path is `Transform > Settings > Space > Choose next [Local, World]`
+- `L` and `W` can be called from almost anywhere in the transform shell instead of being limited to the root
+- same-value requests reprint that the setting is already applied instead of mutating shell state
+- deep prompts like `Move X` can switch space and collapse back to the owning mode root
+- the reference-transform `Local / World` button, Console commands, and viewer gizmo mode all read and write the same shared `activeReferenceTransformSession.space` state
+
+Standalone phase doc:
+- `docs/Human-Plans/Architecture/Transform/Shipped/Transform_Phase Transform-7 - Console Local World Space.md`
+
+### [x] Transform 8 - Shared Transform Snap Controls
+
+- shipped the first shared reference-transform snap pass for move, rotate, and scale
+- kept snap ownership shared across Console, toolbar, and viewer instead of growing a Console-only snap path
+- replaced the old rotate-only owner seam with one per-reference shared snap record
+- kept the honest owner path under `Transform > Settings > Snap`
+- limited v1 to one snap value per mode because the current gizmo still consumes one scalar per transform kind
+
+#### [x] q1 - Which transform channels should gain explicit snap controls in this phase?
+
+##### Suggestion
+- cover move, rotate, and scale in the same family pass
+- do not leave transform snap half-owned by rotate-only controls forever
+- let each transform kind carry its own snap enabled-state and interval or step value
+
+Decision:
+- cover move, rotate, and scale in the same family pass
+- do not leave transform snap half-owned by rotate-only controls forever
+- let each transform kind carry its own snap enabled-state and interval or step value
+
+#### [x] q2 - Where should transform snap state live?
+
+##### Suggestion
+- keep transform snap state in the shared transform-shell or target-owned transform state
+- make Console, toolbar, and viewer all read and write the same snap truth
+- do not hide snap settings inside one surface adapter
+
+Decision:
+- keep transform snap state in the shared transform shell
+- make Console, toolbar, and viewer all read and write the same snap truth
+- do not hide snap settings inside one surface adapter
+
+#### [x] q3 - How should Console expose transform snap?
+
+##### Suggestion
+- add a `Snap` branch under `Transform > Settings`
+- let `Snap` own first-pass move / rotate / scale snap controls
+- keep direct mode-local `Snap` entry points allowed only as adapters into that shared branch
+
+Decision:
+- the honest owner path is `Transform > Settings > Snap > Choose next [Move, Rotate, Scale]`
+- inside each transform kind, a direct numeric entry at the mode level applies one shared snap value to all three axes for that kind
+- canonical examples:
+  - `Transform > Settings > Snap > Move > 10`
+  - `Transform > Settings > Snap > Rotate > 15`
+  - `Transform > Settings > Snap > Scale > 0.25`
+- mode-local `Snap` entry points are only adapters into that same shared settings tree:
+  - `Transform > Move > Snap` resolves into `Transform > Settings > Snap > Move`
+  - `Transform > Rotate > Snap` resolves into `Transform > Settings > Snap > Rotate`
+  - `Transform > Scale > Snap` resolves into `Transform > Settings > Snap > Scale`
+- each mode root exposes explicit `On` / `Off` plus direct numeric value submit
+
+#### [x] q4 - How should whole-mode snap and axis-specific snap relate?
+
+##### Suggestion
+- let the mode root hold one whole-mode snap value that applies to `X/Y/Z`
+- let deeper axis children override only the selected axis when needed
+- keep the path honest so mode-level numeric entry means "all axes for this transform kind", while deeper axis entry means "only this axis"
+
+Decision:
+- `Transform > Settings > Snap > Move > 10` applies that move snap value to all three move axes
+- `Transform > Settings > Snap > Rotate > 15` applies that rotate snap value to all three rotate axes
+- `Transform > Settings > Snap > Scale > 0.25` applies that scale snap value to all three scale axes
+- axis-specific snap paths are deferred from this first pass because the current gizmo only supports one scalar per transform kind
+- whole-mode values are the only shipped v1 snap granularity
+
+Standalone phase doc:
+- `docs/Human-Plans/Architecture/Transform/Future/Transform_Phase Transform-8 - Shared Transform Snap Controls.md`
+
+### [ ] Transform 9 - Toolbar X Exit Sync To Console
+
+- make the transform-toolbar `X` button follow the same shell-exit behavior as Console
+- route toolbar close through the same shared transform exit owner instead of letting it drift into a second close policy
+- keep exit semantics honest across toolbar, Console, and active transform-shell state
+
+#### [ ] q1 - What should the transform-toolbar `X` mean?
+
+##### Suggestion
+- make the toolbar `X` mean the same thing as `CommitTransform` at the transform-shell level
+- do not let toolbar close become a second hidden cancel policy
+- keep `Esc` and entry-cancel behavior separate from shell exit
+
+#### [ ] q2 - Which seam should own toolbar `X` exit behavior?
+
+##### Suggestion
+- route toolbar `X` and Console `CommitTransform` through the same shared transform-shell exit action
+- keep toolbar and Console as adapters into that owner seam
+- avoid duplicate cleanup logic between the two surfaces
+
+#### [ ] q3 - What state should sync when the toolbar `X` exits the shell?
+
+##### Suggestion
+- hide the toolbar
+- clear active handle and other shell-local transform UI state
+- return Console to the same post-transform scope it would reach after `CommitTransform`
+- preserve already-committed history and other shipped transform semantics
+
+Standalone phase doc:
+- `docs/Human-Plans/Architecture/Transform/Future/Transform_Phase Transform-9 - Toolbar X Exit Sync To Console.md`

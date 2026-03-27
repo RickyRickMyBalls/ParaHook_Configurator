@@ -9,7 +9,6 @@ import {
 } from 'react'
 import { createPortal } from 'react-dom'
 import { isEditableTarget, routeKeyboardInput } from '../inputRouting'
-import { DEFAULT_REFERENCE_ROTATE_SNAP } from '../references/referenceTimeline'
 import { getViewer } from '../viewerBridge'
 import { requestRadioRuntimeWarmup } from '../../runtime/audio/radioRuntimeWarmup'
 import { revealFinishedSketch } from '../sketch/finishSketchVisibility'
@@ -18,6 +17,8 @@ import {
   useAudioSamplerStore,
 } from '../store/audioSamplerStore'
 import {
+  DEFAULT_REFERENCE_TRANSFORM_SNAP_STATE,
+  type ReferenceTransformSnapMode,
   buildObjectPartKeys,
   resolveSingleTargetContentSelection,
   selectConsoleWorkspaceContextTarget,
@@ -725,6 +726,12 @@ const getStagedScopeLabel = (session: ConsoleStagedNavigationSession | null): st
     case 'referenceSelected':
       return 'Reference'
     case 'referenceTransformRoot':
+    case 'referenceTransformSettingsRoot':
+    case 'referenceTransformSpaceRoot':
+    case 'referenceTransformSnapRoot':
+    case 'referenceTransformMoveSnapRoot':
+    case 'referenceTransformRotateSnapRoot':
+    case 'referenceTransformScaleSnapRoot':
       return formatStagedBreadcrumb(session.breadcrumb)
     case 'referenceZoomRoot':
       return formatStagedBreadcrumb(session.breadcrumb)
@@ -738,6 +745,14 @@ const buildStagedPromptText = (
   choices: ConsoleStagedNavigationChoice[],
 ): string => {
   const scopeLabel = getStagedScopeLabel(session)
+  if (
+    session?.scopeId === 'referenceTransformMoveSnapRoot' ||
+    session?.scopeId === 'referenceTransformRotateSnapRoot' ||
+    session?.scopeId === 'referenceTransformScaleSnapRoot'
+  ) {
+    const choiceSummary = formatStagedChoiceSummary(choices)
+    return `${scopeLabel} > Enter value [${choiceSummary}]`
+  }
   const baseText =
     choices.length === 0
       ? 'No further choices in this staged scope yet'
@@ -865,6 +880,27 @@ const parseConsoleSignedFloatLiteral = (input: string): number | null => {
   const value = Number(trimmed)
   return Number.isFinite(value) ? value : null
 }
+
+const formatReferenceTransformSnapValue = (value: number): string =>
+  Number.isInteger(value) ? `${value}` : `${Number(value.toFixed(4))}`
+
+const getReferenceTransformSnapModeLabel = (mode: ReferenceTransformSnapMode): 'Move' | 'Rotate' | 'Scale' =>
+  mode === 'translate' ? 'Move' : mode === 'rotate' ? 'Rotate' : 'Scale'
+
+const getReferenceTransformSnapScopeMode = (
+  scopeId: ConsoleStagedNavigationSession['scopeId'] | null | undefined,
+): ReferenceTransformSnapMode | null =>
+  scopeId === 'referenceTransformMoveSnapRoot'
+    ? 'translate'
+    : scopeId === 'referenceTransformRotateSnapRoot'
+      ? 'rotate'
+      : scopeId === 'referenceTransformScaleSnapRoot'
+        ? 'scale'
+        : null
+
+const isReferenceTransformSnapScope = (
+  scopeId: ConsoleStagedNavigationSession['scopeId'] | null | undefined,
+): boolean => getReferenceTransformSnapScopeMode(scopeId) !== null || scopeId === 'referenceTransformSnapRoot'
 
 const isValueAlignedToStep = (value: number, step: number): boolean => {
   if (!Number.isFinite(step) || step <= 0) {
@@ -1425,6 +1461,132 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
     }
   }, [])
 
+  const createActiveReferenceTransformRootSession = useCallback((referenceId: string) => {
+    const latestReferenceWorkspace = useAppStore.getState().referenceWorkspace
+    const target = buildReferenceConsoleWorkspaceTarget(latestReferenceWorkspace, referenceId)
+    const context = buildStagedNavigationContextFromStoreState(useSpaghettiStore.getState())
+    return createReferenceTransformRootSessionForTarget(
+      context,
+      target.label,
+      referenceId,
+      target.referenceCategoryId,
+      target.referenceCategoryLabel,
+    )
+  }, [])
+
+  const createActiveReferenceTransformSnapSession = useCallback((
+    referenceId: string,
+    mode: ReferenceTransformSnapMode,
+  ) => {
+    const context = buildStagedNavigationContextFromStoreState(useSpaghettiStore.getState())
+    const rootSession = createActiveReferenceTransformRootSession(referenceId)
+    const settingsResult = submitConsoleStagedNavigationToken(rootSession, 'settings', context)
+    if (settingsResult.kind !== 'advance') {
+      return null
+    }
+    const snapResult = submitConsoleStagedNavigationToken(settingsResult.session, 'snap', context)
+    if (snapResult.kind !== 'advance') {
+      return null
+    }
+    const modeToken = mode === 'translate' ? 'move' : mode === 'rotate' ? 'rotate' : 'scale'
+    const modeResult = submitConsoleStagedNavigationToken(snapResult.session, modeToken, context)
+    return modeResult.kind === 'advance' ? modeResult.session : null
+  }, [createActiveReferenceTransformRootSession])
+
+  const closeReferenceTransformPromptToModeRoot = useCallback(() => {
+    const appState = useAppStore.getState()
+    const activeSession = appState.referenceWorkspace.activeReferenceTransformSession
+    if (activeSession === null) {
+      return null
+    }
+    getViewer()?.cancelReferenceTransformDrag?.()
+    getViewer()?.clearReferenceTransformHandle?.()
+    appState.setActiveReferenceTransformHandle(null)
+    useConsoleStore.getState().clearConsolePromptSession()
+    return {
+      referenceId: activeSession.referenceId,
+      mode: activeSession.mode,
+    }
+  }, [])
+
+  const applyReferenceTransformSpaceShortcut = useCallback((
+    space: 'local' | 'world',
+    rawToken: string,
+    options?: {
+      closePromptToModeRoot?: boolean
+    },
+  ) => {
+    const appState = useAppStore.getState()
+    const activeSession = appState.referenceWorkspace.activeReferenceTransformSession
+    if (activeSession === null) {
+      return false
+    }
+
+    appendConsoleEntry({
+      layer: 'Commands',
+      commandLineKind: 'user',
+      text: `> ${rawToken}`,
+    })
+    pushCommandHistory(rawToken)
+    requestRadioBurst(
+      resolveConsoleRadioCommandIdentity({
+        kind: 'stagedExecute',
+        activeScopeId: 'referenceTransformRoot',
+        actionId:
+          space === 'local'
+            ? 'reference.transform.space.local'
+            : 'reference.transform.space.world',
+      }),
+      'enter',
+    )
+
+    if (options?.closePromptToModeRoot === true) {
+      closeReferenceTransformPromptToModeRoot()
+    }
+
+    const alreadyApplied = activeSession.space === space
+    if (!alreadyApplied) {
+      appState.setActiveReferenceTransformSpace(space)
+    }
+
+    const nextWorkspace = useAppStore.getState().referenceWorkspace
+    appendConsoleEntry({
+      layer: 'Transforms',
+      text: `Space: ${space === 'local' ? 'Local' : 'World'}${
+        alreadyApplied ? ' already applied' : ' applied'
+      }`,
+      source: 'console',
+      severity: 'info',
+    })
+
+    const nextDescriptor = getActiveFeatureAssistDescriptor({
+      sketchPlanePickSession: useSpaghettiStore.getState().sketchPlanePickSession,
+      geometrySketchSession: useSpaghettiStore.getState().geometrySketchSession,
+      referenceWorkspace: nextWorkspace,
+      stagedNavigationSession: useConsoleStore.getState().stagedNavigationSession,
+    })
+    if (nextDescriptor !== null) {
+      appendConsoleEntry({
+        layer: 'Commands',
+        text: buildFeatureAssistPromptText(nextDescriptor),
+        source: 'console',
+        severity: 'info',
+      })
+      return true
+    }
+
+    const nextStagedSession = useConsoleStore.getState().stagedNavigationSession
+    if (nextStagedSession !== null) {
+      appendConsoleEntry({
+        layer: 'Commands',
+        text: buildStagedPromptText(nextStagedSession, nextStagedSession.validChoices),
+        source: 'console',
+        severity: 'info',
+      })
+    }
+    return true
+  }, [closeReferenceTransformPromptToModeRoot, pushCommandHistory, requestRadioBurst])
+
   const cancelActiveReferenceTransformSession = useCallback(() => {
     const appState = useAppStore.getState()
     const activeSession = appState.referenceWorkspace.activeReferenceTransformSession
@@ -1439,23 +1601,12 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
     getViewer()?.setReferenceTransformOverride?.(activeReferenceId, baseline)
     useConsoleStore.getState().clearConsolePromptSession()
 
-    const latestReferenceWorkspace = useAppStore.getState().referenceWorkspace
-    const target = buildReferenceConsoleWorkspaceTarget(latestReferenceWorkspace, activeReferenceId)
-    const context = buildStagedNavigationContextFromStoreState(useSpaghettiStore.getState())
     suppressNextReferenceTransformShellExitRef.current = true
     queueMicrotask(() => {
       suppressNextReferenceTransformShellExitRef.current = false
     })
-    setStagedNavigationSession(
-      createReferenceTransformRootSessionForTarget(
-        context,
-        target.label,
-        activeReferenceId,
-        target.referenceCategoryId,
-        target.referenceCategoryLabel,
-      ),
-    )
-  }, [setStagedNavigationSession])
+    setStagedNavigationSession(createActiveReferenceTransformRootSession(activeReferenceId))
+  }, [createActiveReferenceTransformRootSession, setStagedNavigationSession])
 
   const exitActiveReferenceTransformShell = useCallback(() => {
     const appState = useAppStore.getState()
@@ -1698,6 +1849,16 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
       appendEscUserEntry()
       exitActiveReferenceTransformShell()
       return
+    }
+    if (
+      activeReferenceSession?.entryActive === true &&
+      (activeSession?.scopeId === 'referenceTransformSettingsRoot' ||
+        activeSession?.scopeId === 'referenceTransformSpaceRoot' ||
+        isReferenceTransformSnapScope(activeSession?.scopeId))
+    ) {
+      if (stepActiveStagedNavigationSessionOneLevel()) {
+        return
+      }
     }
     if (
       activeReferenceSession?.entryActive === true
@@ -1989,6 +2150,45 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
     useConsoleStore.getState().clearConsolePromptSession()
   }, [cancelReferenceTransformLeafForTransition, openReferenceTransformAxisPrompt])
 
+  const cycleActiveReferenceTransformModeWithTab = useCallback(() => {
+    const appState = useAppStore.getState()
+    const activeSession = appState.referenceWorkspace.activeReferenceTransformSession
+    const stagedSession = useConsoleStore.getState().stagedNavigationSession
+    const promptSession = useConsoleStore.getState().consolePromptSession
+    const isReferenceTransformPrompt =
+      promptSession?.kind === 'reference-transform.axis' ||
+      promptSession?.kind === 'reference-transform.plane'
+    if (
+      activeSession === null ||
+      (!isReferenceTransformPrompt && stagedSession?.scopeId !== 'referenceTransformRoot')
+    ) {
+      return false
+    }
+    const nextMode =
+      activeSession.mode === 'translate'
+        ? 'rotate'
+        : activeSession.mode === 'rotate'
+          ? 'scale'
+          : 'translate'
+    if (activeSession.entryActive || isReferenceTransformPrompt) {
+      transitionReferenceTransformAxisPrompt({ mode: nextMode })
+    } else {
+      appState.beginReferenceTransformEntry(nextMode)
+      useConsoleStore.getState().clearConsolePromptSession()
+      getViewer()?.setReferenceTransformSession?.({
+        referenceId: activeSession.referenceId,
+        mode: nextMode,
+        space: activeSession.space,
+      })
+    }
+    setStagedNavigationSession(createActiveReferenceTransformRootSession(activeSession.referenceId))
+    return true
+  }, [
+    createActiveReferenceTransformRootSession,
+    setStagedNavigationSession,
+    transitionReferenceTransformAxisPrompt,
+  ])
+
   const handleSubmitCommand = useCallback(
     (inputText: string) => {
       const trimmedInput = inputText.trim().toLowerCase()
@@ -2002,6 +2202,18 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
 
         if (activePromptSession.kind === 'reference-transform.axis') {
           const normalizedReferenceToken = normalizeRadioCommandIdentity(rawToken)
+          if (normalizedReferenceToken === 'L' || normalizedReferenceToken === 'LOCAL') {
+            applyReferenceTransformSpaceShortcut('local', rawToken, {
+              closePromptToModeRoot: true,
+            })
+            return
+          }
+          if (normalizedReferenceToken === 'W' || normalizedReferenceToken === 'WORLD') {
+            applyReferenceTransformSpaceShortcut('world', rawToken, {
+              closePromptToModeRoot: true,
+            })
+            return
+          }
           const currentAxisToken = activePromptSession.axis.toUpperCase()
           if (
             normalizedReferenceToken === 'X' ||
@@ -2157,6 +2369,19 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
         }
 
         if (activePromptSession.kind === 'reference-transform.plane') {
+          const normalizedReferenceToken = normalizeRadioCommandIdentity(rawToken)
+          if (normalizedReferenceToken === 'L' || normalizedReferenceToken === 'LOCAL') {
+            applyReferenceTransformSpaceShortcut('local', rawToken, {
+              closePromptToModeRoot: true,
+            })
+            return
+          }
+          if (normalizedReferenceToken === 'W' || normalizedReferenceToken === 'WORLD') {
+            applyReferenceTransformSpaceShortcut('world', rawToken, {
+              closePromptToModeRoot: true,
+            })
+            return
+          }
           const parsedVec3 = parseConsoleVec3Literal(rawToken)
           if (parsedVec3 === null) {
             appendConsoleEntry({
@@ -2327,7 +2552,11 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
       const referenceWorkspaceState = useAppStore.getState().referenceWorkspace
       const activeReferenceSession = referenceWorkspaceState.activeReferenceTransformSession
       const activeReferenceId = activeReferenceSession?.referenceId ?? null
-      if (activeReferenceSession !== null && activeReferenceSession.entryActive) {
+      if (
+        activeReferenceSession !== null &&
+        activeReferenceSession.entryActive &&
+        !isReferenceTransformSnapScope(activeStagedSession?.scopeId)
+      ) {
         const rawToken = inputText.trim()
         const matchedChoice =
           featureAssistDescriptor !== null
@@ -2364,6 +2593,14 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
         if (normalizedReferenceToken === 'S' || normalizedReferenceToken === 'SCALE') {
           submitReferenceTransformCommand()
           dispatchImmediateShortcut('s')
+          return
+        }
+        if (normalizedReferenceToken === 'L' || normalizedReferenceToken === 'LOCAL') {
+          applyReferenceTransformSpaceShortcut('local', rawToken)
+          return
+        }
+        if (normalizedReferenceToken === 'W' || normalizedReferenceToken === 'WORLD') {
+          applyReferenceTransformSpaceShortcut('world', rawToken)
           return
         }
 
@@ -2411,6 +2648,30 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
         }
 
         switch (matchedChoice?.canonicalToken) {
+          case 'SNAP': {
+            submitReferenceTransformCommand()
+            const snapSession = createActiveReferenceTransformSnapSession(
+              activeReferenceSession.referenceId,
+              activeReferenceSession.mode,
+            )
+            if (snapSession !== null) {
+              setStagedNavigationSession(snapSession)
+              const snapState =
+                useAppStore.getState().referenceWorkspace.transformSnapByReferenceId[
+                  activeReferenceSession.referenceId
+                ] ?? DEFAULT_REFERENCE_TRANSFORM_SNAP_STATE
+              useConsoleStore.getState().setInputText(
+                formatReferenceTransformSnapValue(snapState[activeReferenceSession.mode].value),
+              )
+              appendConsoleEntry({
+                layer: 'Commands',
+                text: buildStagedPromptText(snapSession, snapSession.validChoices),
+                source: 'console',
+                severity: 'info',
+              })
+            }
+            return
+          }
           case 'VEC3':
             commitActiveReferenceTransformFromConsole(rawToken)
             return
@@ -2440,6 +2701,64 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
             return
           default:
             break
+        }
+      }
+
+      if (
+        activeReferenceSession !== null &&
+        activeReferenceId !== null &&
+        activeStagedSession?.scopeId === 'referenceTransformRoot'
+      ) {
+        const rawToken = inputText.trim()
+        const normalizedReferenceToken = normalizeRadioCommandIdentity(rawToken)
+        if (
+          normalizedReferenceToken === 'DELETELATEST' ||
+          normalizedReferenceToken === 'DELETE' ||
+          normalizedReferenceToken === 'DEL' ||
+          normalizedReferenceToken === 'D'
+        ) {
+          const commandIdentity = resolveConsoleRadioCommandIdentity({
+            kind: 'stagedExecute',
+            activeScopeId: 'referenceTransformRoot',
+            actionId: 'reference.transform.deleteLatest',
+          })
+          appendConsoleEntry({
+            layer: 'Commands',
+            commandLineKind: 'user',
+            text: `> ${rawToken}`,
+          })
+          pushCommandHistory(rawToken)
+          requestRadioBurst(commandIdentity, 'enter')
+          const latestEntry = (
+            useAppStore.getState().referenceWorkspace.transformHistoryByReferenceId[activeReferenceId] ??
+            []
+          ).at(-1) ?? null
+          if (latestEntry !== null) {
+            useAppStore
+              .getState()
+              .deleteReferenceTransformHistoryEntry(activeReferenceId, latestEntry.entryId)
+          }
+          const nextTransformRootSession = createActiveReferenceTransformRootSession(activeReferenceId)
+          setStagedNavigationSession(nextTransformRootSession)
+            appendConsoleEntry({
+              layer: 'Transforms',
+              text:
+                latestEntry === null
+                  ? 'Delete latest skipped: no committed transform entry'
+                  : 'Deleted latest transform entry',
+              source: 'console',
+              severity: latestEntry === null ? 'warn' : 'info',
+            })
+          appendConsoleEntry({
+            layer: 'Commands',
+            text: buildStagedPromptText(
+              nextTransformRootSession,
+              nextTransformRootSession.validChoices,
+            ),
+            source: 'console',
+            severity: 'info',
+          })
+          return
         }
       }
 
@@ -2684,6 +3003,16 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
             return
           }
           setStagedNavigationSession(stagedResult.session)
+          const stagedSnapMode = getReferenceTransformSnapScopeMode(stagedResult.session.scopeId)
+          if (stagedSnapMode !== null && typeof stagedResult.selections.referenceId === 'string') {
+            const snapState =
+              useAppStore.getState().referenceWorkspace.transformSnapByReferenceId[
+                stagedResult.selections.referenceId
+              ] ?? DEFAULT_REFERENCE_TRANSFORM_SNAP_STATE
+            useConsoleStore
+              .getState()
+              .setInputText(formatReferenceTransformSnapValue(snapState[stagedSnapMode].value))
+          }
           const preAutoBreadcrumb =
             stagedResult.autoSelections.length === 0
               ? stagedResult.breadcrumb
@@ -3227,9 +3556,21 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
               stagedResult.actionId === 'reference.category.loadAll' ||
               stagedResult.actionId === 'reference.loadModel' ||
               stagedResult.actionId === 'reference.transform.commitShell' ||
+              stagedResult.actionId === 'reference.transform.deleteLatest' ||
               stagedResult.actionId === 'reference.transform.move' ||
               stagedResult.actionId === 'reference.transform.rotate' ||
               stagedResult.actionId === 'reference.transform.scale' ||
+              stagedResult.actionId === 'reference.transform.space.local' ||
+              stagedResult.actionId === 'reference.transform.space.world' ||
+              stagedResult.actionId === 'reference.transform.snap.translate.on' ||
+              stagedResult.actionId === 'reference.transform.snap.translate.off' ||
+              stagedResult.actionId === 'reference.transform.snap.translate.value' ||
+              stagedResult.actionId === 'reference.transform.snap.rotate.on' ||
+              stagedResult.actionId === 'reference.transform.snap.rotate.off' ||
+              stagedResult.actionId === 'reference.transform.snap.rotate.value' ||
+              stagedResult.actionId === 'reference.transform.snap.scale.on' ||
+              stagedResult.actionId === 'reference.transform.snap.scale.off' ||
+              stagedResult.actionId === 'reference.transform.snap.scale.value' ||
               stagedResult.actionId === 'content.transform.move' ||
               stagedResult.actionId === 'content.transform.rotate' ||
               stagedResult.actionId === 'content.transform.scale') &&
@@ -3326,6 +3667,36 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
               })
               requestRadioBurst(commandIdentity, 'enter')
               return
+            } else if (stagedResult.actionId === 'reference.transform.deleteLatest') {
+              const referenceId = stagedResult.selections.referenceId as string
+              const latestEntry = (
+                appState.referenceWorkspace.transformHistoryByReferenceId[referenceId] ?? []
+              ).at(-1) ?? null
+              if (latestEntry !== null) {
+                appState.deleteReferenceTransformHistoryEntry(referenceId, latestEntry.entryId)
+              }
+              const nextTransformRootSession = createActiveReferenceTransformRootSession(referenceId)
+              setStagedNavigationSession(nextTransformRootSession)
+              appendConsoleEntry({
+                layer: 'Transforms',
+                text:
+                  latestEntry === null
+                    ? 'Delete latest skipped: no committed transform entry'
+                    : 'Deleted latest transform entry',
+                source: 'console',
+                severity: latestEntry === null ? 'warn' : 'info',
+              })
+              appendConsoleEntry({
+                layer: 'Commands',
+                text: buildStagedPromptText(
+                  nextTransformRootSession,
+                  nextTransformRootSession.validChoices,
+                ),
+                source: 'console',
+                severity: 'info',
+              })
+              requestRadioBurst(commandIdentity, 'enter')
+              return
             } else if (
               stagedResult.actionId === 'reference.transform.move' ||
               stagedResult.actionId === 'reference.transform.rotate' ||
@@ -3367,6 +3738,112 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
                 source: 'console',
                 severity: 'info',
               })
+            } else if (
+              stagedResult.actionId === 'reference.transform.space.local' ||
+              stagedResult.actionId === 'reference.transform.space.world'
+            ) {
+              const referenceId = stagedResult.selections.referenceId as string
+              const nextSpace =
+                stagedResult.actionId === 'reference.transform.space.world' ? 'world' : 'local'
+              const activeSession = appState.referenceWorkspace.activeReferenceTransformSession
+              const alreadyApplied =
+                activeSession?.referenceId === referenceId && activeSession.space === nextSpace
+              if (!alreadyApplied) {
+                appState.setActiveReferenceTransformSpace(nextSpace)
+              }
+              const nextTransformRootSession = createActiveReferenceTransformRootSession(referenceId)
+              setStagedNavigationSession(nextTransformRootSession)
+              appendConsoleEntry({
+                layer: 'Transforms',
+                text: `Space: ${nextSpace === 'local' ? 'Local' : 'World'}${
+                  alreadyApplied ? ' already applied' : ' applied'
+                }`,
+                source: 'console',
+                severity: 'info',
+              })
+              appendConsoleEntry({
+                layer: 'Commands',
+                text: buildStagedPromptText(
+                  nextTransformRootSession,
+                  nextTransformRootSession.validChoices,
+                ),
+                source: 'console',
+                severity: 'info',
+              })
+              requestRadioBurst(commandIdentity, 'enter')
+              return
+            } else if (
+              stagedResult.actionId === 'reference.transform.snap.translate.on' ||
+              stagedResult.actionId === 'reference.transform.snap.translate.off' ||
+              stagedResult.actionId === 'reference.transform.snap.translate.value' ||
+              stagedResult.actionId === 'reference.transform.snap.rotate.on' ||
+              stagedResult.actionId === 'reference.transform.snap.rotate.off' ||
+              stagedResult.actionId === 'reference.transform.snap.rotate.value' ||
+              stagedResult.actionId === 'reference.transform.snap.scale.on' ||
+              stagedResult.actionId === 'reference.transform.snap.scale.off' ||
+              stagedResult.actionId === 'reference.transform.snap.scale.value'
+            ) {
+              const referenceId = stagedResult.selections.referenceId as string
+              const snapMode =
+                stagedResult.actionId.includes('.translate.')
+                  ? 'translate'
+                  : stagedResult.actionId.includes('.rotate.')
+                    ? 'rotate'
+                    : 'scale'
+              const isValueAction = stagedResult.actionId.endsWith('.value')
+              const isOnAction = stagedResult.actionId.endsWith('.on')
+              const numericValue = parseConsoleSignedFloatLiteral(rawToken)
+              const nextSession =
+                activeReferenceSession?.entryActive === true
+                  ? createActiveReferenceTransformSnapSession(referenceId, snapMode)
+                  : createActiveReferenceTransformRootSession(referenceId)
+              if (isValueAction && numericValue !== null) {
+                appState.setReferenceTransformSnapValue(referenceId, snapMode, numericValue)
+              } else {
+                appState.setReferenceTransformSnapEnabled(referenceId, snapMode, isOnAction)
+              }
+              if (nextSession !== null) {
+                setStagedNavigationSession(nextSession)
+              }
+              const nextSnapState =
+                useAppStore.getState().referenceWorkspace.transformSnapByReferenceId[referenceId] ??
+                DEFAULT_REFERENCE_TRANSFORM_SNAP_STATE
+              const modeLabel = getReferenceTransformSnapModeLabel(snapMode)
+              appendConsoleEntry({
+                layer: 'Transforms',
+                text: isValueAction
+                  ? `${modeLabel} snap value: ${formatReferenceTransformSnapValue(nextSnapState[snapMode].value)}`
+                  : `${modeLabel} snap: ${isOnAction ? 'On' : 'Off'}`,
+                source: 'console',
+                severity: 'info',
+              })
+              if (nextSession !== null) {
+                if (activeReferenceSession?.entryActive === true) {
+                  const nextDescriptor = getActiveFeatureAssistDescriptor({
+                    sketchPlanePickSession: useSpaghettiStore.getState().sketchPlanePickSession,
+                    geometrySketchSession: useSpaghettiStore.getState().geometrySketchSession,
+                    referenceWorkspace: useAppStore.getState().referenceWorkspace,
+                    stagedNavigationSession: nextSession,
+                  })
+                  if (nextDescriptor !== null) {
+                    appendConsoleEntry({
+                      layer: 'Commands',
+                      text: buildFeatureAssistPromptText(nextDescriptor),
+                      source: 'console',
+                      severity: 'info',
+                    })
+                  }
+                } else {
+                  appendConsoleEntry({
+                    layer: 'Commands',
+                    text: buildStagedPromptText(nextSession, nextSession.validChoices),
+                    source: 'console',
+                    severity: 'info',
+                  })
+                }
+              }
+              requestRadioBurst(commandIdentity, 'enter')
+              return
             } else {
               const selectedTarget = appState.workspaceSelection.selectedTarget
               if (selectedTarget?.kind !== 'object') {
@@ -4479,11 +4956,11 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
       const appState = useAppStore.getState()
       const activeTransformReferenceId =
         appState.referenceWorkspace.activeReferenceTransformSession?.referenceId ?? null
-      const rotateSnapState =
+      const transformSnapState =
         activeTransformReferenceId === null
-          ? DEFAULT_REFERENCE_ROTATE_SNAP
-          : appState.referenceWorkspace.rotateSnapByReferenceId[activeTransformReferenceId] ??
-            DEFAULT_REFERENCE_ROTATE_SNAP
+          ? DEFAULT_REFERENCE_TRANSFORM_SNAP_STATE
+          : appState.referenceWorkspace.transformSnapByReferenceId[activeTransformReferenceId] ??
+            DEFAULT_REFERENCE_TRANSFORM_SNAP_STATE
 
       switch (parsed.name) {
         case 'help':
@@ -4671,7 +5148,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
           dispatchImmediateShortcut('s')
           return
         case 'snap':
-          if (activeReferenceId === null) {
+          if (activeTransformReferenceId === null) {
             requestRadioBurst(flatCommandIdentity, 'enter')
             appendConsoleEntry({
               layer: 'Diagnostics',
@@ -4681,15 +5158,25 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
             })
             return
           }
-          appState.setReferenceRotateSnapEnabled(activeReferenceId, !rotateSnapState.enabled)
-          requestRadioBurst(flatCommandIdentity, 'enter')
-          appendConsoleEntry({
-            layer: 'Transforms',
-            text: `Rotate snap ${rotateSnapState.enabled ? 'disabled' : 'enabled'}`,
-            source: 'console',
-            severity: 'info',
-          })
-          return
+          {
+            const activeMode =
+              appState.referenceWorkspace.activeReferenceTransformSession?.mode ?? 'translate'
+            const nextEnabled = !transformSnapState[activeMode].enabled
+            appState.setReferenceTransformSnapEnabled(
+              activeTransformReferenceId,
+              activeMode,
+              nextEnabled,
+            )
+            const modeLabel = getReferenceTransformSnapModeLabel(activeMode)
+            requestRadioBurst(flatCommandIdentity, 'enter')
+            appendConsoleEntry({
+              layer: 'Transforms',
+              text: `${modeLabel} snap ${nextEnabled ? 'enabled' : 'disabled'}`,
+              source: 'console',
+              severity: 'info',
+            })
+            return
+          }
         case 'echo':
           requestRadioBurst(flatCommandIdentity, 'enter')
           appendConsoleEntry({
@@ -5128,6 +5615,19 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
         return
       }
       if (
+        event.key === 'Tab' &&
+        !event.shiftKey &&
+        !event.ctrlKey &&
+        !event.altKey &&
+        !event.metaKey &&
+        cycleActiveReferenceTransformModeWithTab()
+      ) {
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        focusMainConsoleInput()
+        return
+      }
+      if (
         event.key === 'Escape' &&
         useAppStore.getState().referenceWorkspace.activeReferenceTransformSession?.entryActive === true
       ) {
@@ -5213,6 +5713,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
     }
   }, [
     cycleStagedChoiceWithRadioBurst,
+    cycleActiveReferenceTransformModeWithTab,
     consolePromptSession,
     featureAssistDescriptor,
     focusMainConsoleInput,
@@ -5238,6 +5739,19 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
         return
       }
       if (event.key === '/' && !event.ctrlKey && !event.altKey && !event.metaKey) {
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        focusPopoutConsoleInput()
+        return
+      }
+      if (
+        event.key === 'Tab' &&
+        !event.shiftKey &&
+        !event.ctrlKey &&
+        !event.altKey &&
+        !event.metaKey &&
+        cycleActiveReferenceTransformModeWithTab()
+      ) {
         event.preventDefault()
         event.stopImmediatePropagation()
         focusPopoutConsoleInput()
@@ -5329,6 +5843,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
     }
   }, [
     cycleStagedChoiceWithRadioBurst,
+    cycleActiveReferenceTransformModeWithTab,
     consolePromptSession,
     featureAssistDescriptor,
     focusPopoutConsoleInput,

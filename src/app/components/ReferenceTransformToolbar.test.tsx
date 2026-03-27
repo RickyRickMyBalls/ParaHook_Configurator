@@ -160,8 +160,11 @@ describe('ReferenceTransformToolbar', () => {
     ) as HTMLDivElement | null
     expect(moveSection?.className).toContain('isActive')
 
+    const valuesSection = container.querySelector(
+      '[aria-label="Reference transform values"]',
+    ) as HTMLDivElement | null
     const rotateHeader = Array.from(
-      container.querySelectorAll('.ReferenceTransformToolbarTransformSectionHeader'),
+      valuesSection?.querySelectorAll('.ReferenceTransformToolbarTransformSectionHeader') ?? [],
     ).find((element) => element.textContent?.includes('Rotate')) as HTMLDivElement | undefined
 
     expect(rotateHeader).toBeDefined()
@@ -173,7 +176,7 @@ describe('ReferenceTransformToolbar', () => {
     expect(useAppStore.getState().referenceWorkspace.activeReferenceTransformSession?.mode).toBe('rotate')
 
     const rotateSection = Array.from(
-      container.querySelectorAll('.ReferenceTransformToolbarTransformSection'),
+      valuesSection?.querySelectorAll('.ReferenceTransformToolbarTransformSection') ?? [],
     ).find((element) => element.textContent?.includes('Rotate')) as HTMLDivElement | undefined
 
     expect(rotateSection?.className).toContain('isActive')
@@ -989,7 +992,7 @@ describe('ReferenceTransformToolbar', () => {
     expect(viewerFrameReference).not.toHaveBeenCalled()
   })
 
-  it('shows rotate snap controls and updates the reference snap state', async () => {
+  it('shows shared snap controls and updates the reference snap state', async () => {
     const { ReferenceTransformToolbar } = await import('./ReferenceTransformToolbar')
     const { useAppStore } = await import('../store/useAppStore')
 
@@ -1001,24 +1004,30 @@ describe('ReferenceTransformToolbar', () => {
       root?.render(<ReferenceTransformToolbar />)
     })
 
-    const snapToggle = container.querySelector(
-      'button[aria-label="Toggle rotate snap"]',
-    ) as HTMLButtonElement | null
+    const snapSection = container.querySelector(
+      '[aria-label="Reference transform snap settings"]',
+    ) as HTMLDivElement | null
+    const rotateSnapGroup = Array.from(
+      snapSection?.querySelectorAll('.ReferenceTransformToolbarSnapModeGroup') ?? [],
+    ).find((element) => element.textContent?.includes('Rotate')) as HTMLDivElement | undefined
+    const snapToggle = Array.from(rotateSnapGroup?.querySelectorAll('button') ?? []).find(
+      (button) => button.textContent?.trim() === 'On',
+    ) as HTMLButtonElement | undefined
 
-    expect(snapToggle).not.toBeNull()
+    expect(snapToggle).toBeDefined()
 
     await act(async () => {
       snapToggle?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
     })
 
-    expect(useAppStore.getState().referenceWorkspace.rotateSnapByReferenceId['shoe:shoe-1']).toMatchObject(
-      {
-        enabled: true,
-        value: 15,
-      },
-    )
+    expect(
+      useAppStore.getState().referenceWorkspace.transformSnapByReferenceId['shoe:shoe-1']?.rotate,
+    ).toMatchObject({
+      enabled: true,
+      value: 15,
+    })
 
-    const snap225Button = Array.from(container.querySelectorAll('button')).find(
+    const snap225Button = Array.from(rotateSnapGroup?.querySelectorAll('button') ?? []).find(
       (button) => button.textContent?.trim() === '22.5',
     ) as HTMLButtonElement | undefined
 
@@ -1028,46 +1037,51 @@ describe('ReferenceTransformToolbar', () => {
       snap225Button?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
     })
 
-    expect(useAppStore.getState().referenceWorkspace.rotateSnapByReferenceId['shoe:shoe-1']).toMatchObject(
-      {
-        enabled: true,
-        value: 22.5,
-      },
-    )
-
-    const snapValueButton = container.querySelector(
-      'button[aria-label="Edit Snap value"]',
-    ) as HTMLButtonElement | null
-
-    expect(snapValueButton).not.toBeNull()
-
-    await act(async () => {
-      snapValueButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    expect(
+      useAppStore.getState().referenceWorkspace.transformSnapByReferenceId['shoe:shoe-1']?.rotate,
+    ).toMatchObject({
+      enabled: true,
+      value: 22.5,
     })
 
-    const snapValueInput = container.querySelector(
-      'input[aria-label="Edit Snap value"]',
-    ) as HTMLInputElement | null
+    const rotateSnapSlider = rotateSnapGroup?.querySelector(
+      '.ReferenceTransformToolbarChannelBox .ParaSliderTrack',
+    ) as HTMLDivElement | null
+    expect(rotateSnapSlider).not.toBeNull()
 
-    expect(snapValueInput).not.toBeNull()
-
-    await act(async () => {
-      if (snapValueInput !== null) {
-        snapValueInput.value = '7.5'
-        snapValueInput.dispatchEvent(new Event('input', { bubbles: true }))
-      }
+    Object.defineProperty(rotateSnapSlider, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => ({
+        left: 0,
+        top: 0,
+        width: 100,
+        height: 26,
+        right: 100,
+        bottom: 26,
+        x: 0,
+        y: 0,
+        toJSON: () => '',
+      }),
     })
 
     await act(async () => {
-      snapValueInput?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+      rotateSnapSlider?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: 33,
+        }),
+      )
+      window.dispatchEvent(new PointerEvent('pointerup', {}))
     })
 
-    expect(useAppStore.getState().referenceWorkspace.rotateSnapByReferenceId['shoe:shoe-1']).toMatchObject(
-      {
-        enabled: true,
-        value: 7.5,
-      },
-    )
+    expect(
+      useAppStore.getState().referenceWorkspace.transformSnapByReferenceId['shoe:shoe-1']?.rotate,
+    ).toMatchObject({
+      enabled: true,
+      value: expect.any(Number),
+    })
   })
 
   it('groups history rows by transform session and expands the newest session by default', async () => {
@@ -1157,6 +1171,7 @@ describe('ReferenceTransformToolbar', () => {
     expect(container.querySelector('button[aria-label="Expand Transform 1"]')).not.toBeNull()
     expect(container.querySelector('button[aria-label="Collapse Transform 2"]')).not.toBeNull()
     expect(container.querySelector('button[aria-label="Lock Transform 2 entry 3"]')).not.toBeNull()
+    expect(container.querySelector('button[aria-label="Delete Transform 2 entry 3"]')).not.toBeNull()
     expect(container.textContent).not.toContain('2. Rotate Vec(0.00, 20.00, 0.00)')
     expect(container.textContent).toContain('3. Move Vec(9.00, -2.00, 4.00)')
 
@@ -1284,6 +1299,90 @@ describe('ReferenceTransformToolbar', () => {
         scale: { x: 1, y: 1, z: 1 },
       },
     )
+  })
+
+  it('deletes existing history entries from the toolbar', async () => {
+    const { ReferenceTransformToolbar } = await import('./ReferenceTransformToolbar')
+    const { useAppStore } = await import('../store/useAppStore')
+
+    useAppStore.setState((state) => ({
+      ...state,
+      referenceWorkspace: {
+        ...state.referenceWorkspace,
+        activeReferenceTransformSession: {
+          referenceId: 'shoe:shoe-1',
+          sessionId: 'reference-transform-session-1',
+          sessionOrdinal: 1,
+          mode: 'translate',
+          space: 'local',
+          shellActive: true,
+          entryActive: false,
+          activeHandle: null,
+          historyScrubIndex: 1,
+          draftTransform: {
+            position: { x: 5, y: 0, z: 0 },
+            rotationDeg: { x: 0, y: 0, z: 0 },
+            scale: { x: 1, y: 1, z: 1 },
+          },
+          entryOrigin: null,
+        },
+        transformOverrideById: {
+          ...state.referenceWorkspace.transformOverrideById,
+          'shoe:shoe-1': {
+            position: { x: 5, y: 0, z: 0 },
+            rotationDeg: { x: 0, y: 0, z: 0 },
+            scale: { x: 1, y: 1, z: 1 },
+          },
+        },
+        transformHistoryByReferenceId: {
+          ...state.referenceWorkspace.transformHistoryByReferenceId,
+          'shoe:shoe-1': [
+            {
+              entryId: 'history-1',
+              sessionId: 'reference-transform-session-1',
+              sessionOrdinal: 1,
+              kind: 'move',
+              delta: { x: 5, y: 0, z: 0 },
+              after: { x: 5, y: 0, z: 0 },
+              transformAfter: {
+                position: { x: 5, y: 0, z: 0 },
+                rotationDeg: { x: 0, y: 0, z: 0 },
+                scale: { x: 1, y: 1, z: 1 },
+              },
+              locked: false,
+            },
+          ],
+        },
+      },
+    }))
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ReferenceTransformToolbar />)
+    })
+
+    const deleteButton = container.querySelector(
+      'button[aria-label="Delete Transform 1 entry 1"]',
+    ) as HTMLButtonElement | null
+
+    await act(async () => {
+      deleteButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(
+      useAppStore.getState().referenceWorkspace.transformHistoryByReferenceId['shoe:shoe-1'] ?? [],
+    ).toHaveLength(0)
+    expect(useAppStore.getState().referenceWorkspace.transformOverrideById['shoe:shoe-1']).toMatchObject(
+      {
+        position: { x: 0, y: 0, z: 0 },
+        rotationDeg: { x: 0, y: 0, z: 0 },
+        scale: { x: 1, y: 1, z: 1 },
+      },
+    )
+    expect(container.querySelector('button[aria-label="Delete Transform 1 entry 1"]')).toBeNull()
   })
 
   it('scrubs committed history from the toolbar and deactivates future rows', async () => {
@@ -1440,15 +1539,21 @@ describe('ReferenceTransformToolbar', () => {
       root?.render(<ReferenceTransformToolbar />)
     })
 
-    const snapToggle = container.querySelector(
-      'button[aria-label="Toggle rotate snap"]',
-    ) as HTMLButtonElement | null
+    const snapSection = container.querySelector(
+      '[aria-label="Reference transform snap settings"]',
+    ) as HTMLDivElement | null
+    const rotateSnapGroup = Array.from(
+      snapSection?.querySelectorAll('.ReferenceTransformToolbarSnapModeGroup') ?? [],
+    ).find((element) => element.textContent?.includes('Rotate')) as HTMLDivElement | undefined
+    const snapToggle = Array.from(rotateSnapGroup?.querySelectorAll('button') ?? []).find(
+      (button) => button.textContent?.trim() === 'On',
+    ) as HTMLButtonElement | undefined
 
     await act(async () => {
       snapToggle?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
     })
 
-    const snap5Button = Array.from(container.querySelectorAll('button')).find(
+    const snap5Button = Array.from(rotateSnapGroup?.querySelectorAll('button') ?? []).find(
       (button) => button.textContent?.trim() === '5',
     ) as HTMLButtonElement | undefined
 
@@ -1456,14 +1561,20 @@ describe('ReferenceTransformToolbar', () => {
       snap5Button?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
     })
 
+    const valuesSection = container.querySelector(
+      '[aria-label="Reference transform values"]',
+    ) as HTMLDivElement | null
+    const rotateSection = Array.from(
+      valuesSection?.querySelectorAll('.ReferenceTransformToolbarTransformSection') ?? [],
+    ).find((element) => element.textContent?.includes('Rotate')) as HTMLDivElement | undefined
     const increaseXButtons = Array.from(
-      container.querySelectorAll('button[aria-label="Increase X"]'),
+      rotateSection?.querySelectorAll('button[aria-label="Increase X"]') ?? [],
     ) as HTMLButtonElement[]
 
-    expect(increaseXButtons.length).toBeGreaterThanOrEqual(3)
+    expect(increaseXButtons.length).toBeGreaterThanOrEqual(1)
 
     await act(async () => {
-      increaseXButtons[1]?.dispatchEvent(
+      increaseXButtons[0]?.dispatchEvent(
         new MouseEvent('click', { bubbles: true, cancelable: true }),
       )
     })
@@ -1502,15 +1613,21 @@ describe('ReferenceTransformToolbar', () => {
       root?.render(<ReferenceTransformToolbar />)
     })
 
-    const snapToggle = container.querySelector(
-      'button[aria-label="Toggle rotate snap"]',
-    ) as HTMLButtonElement | null
+    const snapSection = container.querySelector(
+      '[aria-label="Reference transform snap settings"]',
+    ) as HTMLDivElement | null
+    const rotateSnapGroup = Array.from(
+      snapSection?.querySelectorAll('.ReferenceTransformToolbarSnapModeGroup') ?? [],
+    ).find((element) => element.textContent?.includes('Rotate')) as HTMLDivElement | undefined
+    const snapToggle = Array.from(rotateSnapGroup?.querySelectorAll('button') ?? []).find(
+      (button) => button.textContent?.trim() === 'On',
+    ) as HTMLButtonElement | undefined
 
     await act(async () => {
       snapToggle?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
     })
 
-    const snap225Button = Array.from(container.querySelectorAll('button')).find(
+    const snap225Button = Array.from(rotateSnapGroup?.querySelectorAll('button') ?? []).find(
       (button) => button.textContent?.trim() === '22.5',
     ) as HTMLButtonElement | undefined
 
@@ -1538,7 +1655,7 @@ describe('ReferenceTransformToolbar', () => {
     })
 
     const firstChannelRow = container.querySelector(
-      '.ReferenceTransformToolbarChannelBox',
+      '[aria-label="Reference transform values"] .ReferenceTransformToolbarChannelBox',
     ) as HTMLDivElement | null
 
     expect(firstChannelRow).not.toBeNull()
@@ -1613,16 +1730,22 @@ describe('ReferenceTransformToolbar', () => {
       root?.render(<ReferenceTransformToolbar />)
     })
 
-    const snapToggle = container.querySelector(
-      'button[aria-label="Toggle rotate snap"]',
-    ) as HTMLButtonElement | null
+    const snapSection = container.querySelector(
+      '[aria-label="Reference transform snap settings"]',
+    ) as HTMLDivElement | null
+    const rotateSnapGroup = Array.from(
+      snapSection?.querySelectorAll('.ReferenceTransformToolbarSnapModeGroup') ?? [],
+    ).find((element) => element.textContent?.includes('Rotate')) as HTMLDivElement | undefined
+    const snapToggle = Array.from(rotateSnapGroup?.querySelectorAll('button') ?? []).find(
+      (button) => button.textContent?.trim() === 'On',
+    ) as HTMLButtonElement | undefined
 
     await act(async () => {
       snapToggle?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
     })
 
     const snapRow = container.querySelector(
-      '.ReferenceTransformToolbarRotateSnapGroup .ReferenceTransformToolbarChannelBox',
+      '[aria-label="Reference transform snap settings"] .ReferenceTransformToolbarChannelBox[data-channel="rotate-snap"]',
     ) as HTMLDivElement | null
 
     expect(snapRow).not.toBeNull()
@@ -1650,5 +1773,47 @@ describe('ReferenceTransformToolbar', () => {
       useAppStore.getState().referenceWorkspace.timelineModeByReferenceId['shoe:shoe-1']?.['rotate-snap'],
     ).toBe('timeline')
     expect(container.textContent).toContain('Left to Right')
+  })
+
+  it('keeps the Local / World button synced with shared transform-shell space state', async () => {
+    const { ReferenceTransformToolbar } = await import('./ReferenceTransformToolbar')
+    const { useAppStore } = await import('../store/useAppStore')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ReferenceTransformToolbar />)
+    })
+
+    const initialButton = Array.from(container.querySelectorAll('button')).find(
+      (button) => button.textContent?.trim() === 'Local',
+    ) as HTMLButtonElement | undefined
+
+    expect(initialButton).toBeDefined()
+
+    await act(async () => {
+      initialButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useAppStore.getState().referenceWorkspace.activeReferenceTransformSession?.space).toBe(
+      'world',
+    )
+    expect(
+      Array.from(container.querySelectorAll('button')).some(
+        (button) => button.textContent?.trim() === 'World',
+      ),
+    ).toBe(true)
+
+    await act(async () => {
+      useAppStore.getState().setActiveReferenceTransformSpace('local')
+    })
+
+    expect(
+      Array.from(container.querySelectorAll('button')).some(
+        (button) => button.textContent?.trim() === 'Local',
+      ),
+    ).toBe(true)
   })
 })

@@ -65,6 +65,197 @@ Do not use it for:
 
 ## Doc Body
 
+### [676] - 2026-03-27 12:16 - `TRN - Transform-8 - Shared Transform Snap Controls`
+<!-- ENTRY 676 -->
+HUMAN SUMMARY: `This replaced the old rotate-only reference snap seam with one shared move / rotate / scale snap model, so transform snap now persists per reference, lives under the shared \`Transform > Settings > Snap\` Console path, syncs with a new toolbar snap section, and drives the viewer gizmo from the same shared state.` 
+#### Scope / Constraints Honored
+- Kept this pass reference-transform-only.
+- Limited v1 snap granularity to one scalar per transform kind because the current gizmo still consumes one snap value per mode.
+- Left axis-specific `X / Y / Z` snap overrides out of scope for a later follow-on.
+
+#### Summary of Implementation
+- Replaced `rotateSnapByReferenceId` with a unified per-reference `transformSnapByReferenceId` record that stores `enabled + value` for move, rotate, and scale.
+- Extended staged navigation and ConsoleDock with `Transform > Settings > Snap > [Move, Rotate, Scale]`, per-mode `On / Off / Back`, direct numeric submit, and mode-local `Transform > Move/Rotate/Scale > Snap` adapters.
+- Updated ViewerHost to push `translateMm`, `rotateDeg`, and `scale` snap values into the gizmo together from the active reference transform session.
+- Removed rotate-only snap ownership from the transform values section and added one shared toolbar snap surface for move, rotate, and scale.
+- Preserved rotate timeline evaluation by projecting the existing `rotate-snap` timeline seam through the unified rotate snap mode.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/store/useAppStore.test.ts`
+- `src/app/components/ReferenceTransformToolbar.tsx`
+- `src/app/components/ReferenceTransformToolbar.test.tsx`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `src/app/console/referenceTransformConsole.ts`
+- `src/app/console/stagedNavigation.ts`
+- `src/app/console/stagedNavigation.test.ts`
+- `src/app/console/radioCommandIdentity.ts`
+- `src/app/console/ConsoleBar.tsx`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+- `docs/Human-Plans/Architecture/Transform/transform-index.md`
+- `docs/Human-Plans/Architecture/Transform/Future/Transform_Phase Transform-8 - Shared Transform Snap Controls.md`
+
+#### Behavior Changes
+- Reference transform snap now exists for move, rotate, and scale instead of rotate alone.
+- Snap values persist per reference after leaving and re-entering the transform shell.
+- `Transform > Settings > Snap` now owns the canonical Console snap path, while `Transform > Move/Rotate/Scale > Snap` routes into the same shared setting.
+- Turning a snap mode off disables runtime snapping without deleting its stored value.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/store/useAppStore.test.ts src/app/components/ReferenceTransformToolbar.test.tsx src/app/components/ViewerHost.test.tsx src/app/console/stagedNavigation.test.ts src/app/console/ConsoleDock.test.tsx`
+- `cmd /c npx tsc --noEmit`
+
+### [675] - 2026-03-27 11:33 - `TRN - Transform - Root Delete Latest Command`
+<!-- ENTRY 675 -->
+HUMAN SUMMARY: `This added a root-level delete-latest command to reference transform, so once the current transform shell has committed at least one row, the \`Transform\` root now exposes \`DeleteLatest\` and typed aliases like \`delete\`, which remove the newest committed row, recompute the active transform state, and keep the user parked in the refreshed Transform root.` 
+#### Scope / Constraints Honored
+- Kept this pass reference-transform-only.
+- Reused the existing store-owned history row delete seam instead of adding a second console-only history mutation path.
+- Limited root visibility to entries committed in the current active transform shell session.
+
+#### Summary of Implementation
+- Added a canonical `reference.transform.deleteLatest` staged-navigation action and exposed `DeleteLatest` in the reference transform root choices whenever the current shell session has committed entries.
+- Wired `ConsoleDock` so typed root tokens like `delete`, `del`, and `d` delete the newest committed transform row from the active reference transform shell.
+- Kept the shell open after deletion, rebuilt the root choice list from the updated committed-entry count, and printed the refreshed root prompt immediately.
+- Added staged-navigation and ConsoleDock regressions for root choice exposure, canonical action routing, and deleting the newest committed row from Transform root.
+
+#### Files Changed
+- `src/app/console/stagedNavigation.ts`
+- `src/app/console/stagedNavigation.test.ts`
+- `src/app/console/radioCommandIdentity.ts`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+
+#### Behavior Changes
+- `Transform` root now exposes `DeleteLatest` once the current shell session has at least one committed row.
+- Submitting `delete` from that root removes the newest committed transform entry and leaves the user at `Transform`.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/console/stagedNavigation.test.ts src/app/console/ConsoleDock.test.tsx`
+- `cmd /c npx tsc --noEmit`
+
+### [674] - 2026-03-27 11:28 - `TRN - Transform - Tab Cycles Move Rotate Scale`
+<!-- ENTRY 674 -->
+HUMAN SUMMARY: `This added the first transform-shell \`Tab\` mode-cycle shortcut for reference transform, so pressing Tab while the user is at \`Transform\`, inside \`Move\`, or down in a prompt like \`Move X\` now advances the gizmo mode from Move to Rotate to Scale, cancelling any live uncommitted entry first and restoring the last saved scrubbed baseline before the new mode root opens.` 
+#### Scope / Constraints Honored
+- Kept this pass reference-transform-only.
+- Reused the existing cancel-entry and prompt-transition seams instead of inventing a second mode-switch path.
+- Left reverse cycling, broader non-reference transform targets, and settings-scope Tab behavior out of scope.
+
+#### Summary of Implementation
+- Added a shared `Tab` cycle helper in `ConsoleDock` that advances the active transform mode in the `translate -> rotate -> scale -> translate` loop.
+- Scoped the shortcut so it only fires while the reference transform shell is active at `Transform` root or inside the reference transform axis/plane prompt surfaces.
+- Reused the existing transition cancel path so `Move`, `Rotate`, `Scale`, and deep prompts like `Move X` all restore the saved baseline before switching to the next mode root.
+- Wired the shortcut into both docked and popout window keydown handlers and kept viewer session sync on the same store-owned transform session.
+- Added focused regressions for `Transform`, `Move`, and `Move X` Tab cycling behavior.
+
+#### Files Changed
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+
+#### Behavior Changes
+- `Tab` now cycles the active reference transform mode from Move to Rotate to Scale and back to Move.
+- Pressing `Tab` from `Move` or `Move X` cancels the live entry first, restores the last saved baseline, and then lands the user at the next mode root.
+- `Tab` from `Transform` root enters the next mode root directly.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/console/ConsoleDock.test.tsx`
+- `cmd /c npx tsc --noEmit`
+
+### [673] - 2026-03-27 11:02 - `TRN - Transform History - Entry Delete Button`
+<!-- ENTRY 673 -->
+HUMAN SUMMARY: `This added first-pass delete controls to committed reference transform history rows, so each toolbar entry now exposes a compact \`x\` button that removes that committed row, reflows the remaining landed history honestly, recomputes the live override, and keeps the active scrub head aligned with the same logical visible entry when possible.` 
+#### Scope / Constraints Honored
+- Kept this pass reference-transform history only.
+- Reused the existing normalized `delta + after + transformAfter` replay seam instead of inventing a separate delete-only path.
+- Left merge semantics, lock semantics, and broader object/folder/assembly transform history out of scope.
+
+#### Summary of Implementation
+- Added a store-owned `deleteReferenceTransformHistoryEntry(...)` action that removes a committed row, normalizes the remaining entries, recomputes the effective transform override, and updates active-shell scrub/draft state for the same reference.
+- Corrected scrub behavior so deleting an earlier visible row preserves the same logical scrub target when possible, while deleting the current row lets the next surviving row slide into place.
+- Added a compact history-row `x` button in `ReferenceTransformToolbar` and wired it through the new shared store action.
+- Expanded store and toolbar regressions to cover delete-button rendering, full row removal, override recompute, and scrub-index alignment after deletion.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/store/useAppStore.test.ts`
+- `src/app/components/ReferenceTransformToolbar.tsx`
+- `src/app/components/ReferenceTransformToolbar.test.tsx`
+- `src/app/theme/surfaces/viewport-overlay.css`
+
+#### Behavior Changes
+- Every committed transform history entry row now exposes a delete button.
+- Deleting a row removes it from committed history, updates the rendered transform, and reflows later rows through the normal history replay path.
+- Active scrubbed traversal stays aligned with the same logical visible row when an earlier visible entry is deleted.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/store/useAppStore.test.ts src/app/components/ReferenceTransformToolbar.test.tsx`
+- `cmd /c npx tsc --noEmit`
+
+### [672] - 2026-03-27 10:00 - `TRN - Transform-7 - Shared Local World Space Commands`
+<!-- ENTRY 672 -->
+HUMAN SUMMARY: `This landed the first shared Transform-7 local/world space pass for reference transform, so the Console now exposes canonical \`Transform > Settings > Space > [Local, World]\` navigation plus broad \`L\` / \`W\` shortcuts, entering Transform defaults to Local, deep axis and plane prompts can switch space and collapse back to the owning mode root, same-value requests report that the setting is already applied, and the Console, toolbar, and viewer all stay synced through the same shared transform-shell space state.` 
+#### Scope / Constraints Honored
+- Kept this pass reference-transform-only.
+- Reused the existing shared `activeReferenceTransformSession.space` shell state instead of adding a second console-only or toolbar-only setting seam.
+- Left snap controls, toolbar X sync, and broader object/folder/assembly transform-space behavior out of scope for later phases.
+
+#### Summary of Implementation
+- Hardened `setActiveReferenceTransformSpace(...)` in the store so same-value writes are treated as no-ops.
+- Extended staged navigation with visible `Settings > Space > Local/World` scopes and canonical execute actions, while also letting `L` / `W` resolve to those same space actions directly from the transform root and settings scope.
+- Updated `ConsoleDock` so `Transform > W`, `Transform > L`, `Transform > Move > L`, and deep prompt `L` / `W` all route through the same shared space behavior, with deep prompt use closing only the leaf prompt and returning to the owning mode root.
+- Preserved the existing single toolbar Local/World button while keeping it synced through shared store state, and kept viewer space callbacks flowing through that same transform-shell state.
+- Added focused regressions for canonical staged navigation, root and mode-root Console shortcuts, deep prompt collapse, toolbar state sync, viewer callback sync, and store no-op behavior.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/store/useAppStore.test.ts`
+- `src/app/console/stagedNavigation.ts`
+- `src/app/console/stagedNavigation.test.ts`
+- `src/app/console/radioCommandIdentity.ts`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+- `src/app/components/ReferenceTransformToolbar.test.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+
+#### Behavior Changes
+- Entering `Transform` now defaults the active shell to Local space.
+- `Transform > Settings > Space > Local/World` is now a real visible Console path.
+- `L` and `W` now work as transform-shell space shortcuts from the transform root, mode roots, and deep axis/plane prompts.
+- Requesting the already-active space no longer mutates state and now reports that the setting is already applied.
+- The toolbar Local/World button and viewer space changes now stay aligned with the Console over the same shared shell state.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/console/stagedNavigation.test.ts src/app/console/ConsoleDock.test.tsx src/app/components/ReferenceTransformToolbar.test.tsx src/app/components/ViewerHost.test.tsx src/app/store/useAppStore.test.ts`
+- `cmd /c npx tsc --noEmit`
+
+### [671] - 2026-03-27 09:02 - `TRN - Transform-6 - Inserted Branch Commit Stays On New Temporary Tail`
+<!-- ENTRY 671 -->
+HUMAN SUMMARY: `This adjusted Transform-6 branch commits so when the user scrubs back to an earlier entry and commits a new transform step, the history scrub head now stays parked on that newly inserted row instead of jumping all the way to the real tail, which makes the inserted row behave like the user's temporary last visible entry while the old future remains inactive behind it.` 
+#### Scope / Constraints Honored
+- Kept this pass limited to post-commit scrub behavior after an earlier-history insert.
+- Left committed history replay, future-row retention, and viewport hiding rules unchanged.
+- Preserved the real committed tail in history storage while only changing the active shell's temporary scrub position.
+
+#### Summary of Implementation
+- Updated the active reference transform commit path so inserted commits now keep the shell `historyScrubIndex` on the newly inserted row instead of forcing it to the true tail.
+- Kept `transformOverrideById` pointed at the real committed tail while the active shell draft stays on the inserted row's landed state.
+- Tightened the branch-insert store regression to assert that after inserting at scrubbed entry `2`, the shell now remains on `3` with the inserted row's landed transform active.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/store/useAppStore.test.ts`
+
+#### Behavior Changes
+- After inserting a new transform step from an earlier scrub point, the history slider now stays on the inserted row.
+- The inserted row behaves like the user's temporary last visible entry until they scrub forward again.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/store/useAppStore.test.ts src/app/components/ReferenceTransformToolbar.test.tsx src/app/components/ViewerHost.test.tsx`
+- `cmd /c npm run build`
+
 ### [670] - 2026-03-27 02:12 - `TRN - Transform-6 - History Scrub And Traversal`
 <!-- ENTRY 670 -->
 HUMAN SUMMARY: `This landed the first committed-history scrub layer for reference transform, so the toolbar now exposes a history paraslider and row-jump controls, scrubbing an older entry makes that landed committed state the active rendered transform, future rows dim out, future viewport history overlays stop rendering, and new commits from an older scrub point insert into history before replaying the old future.` 

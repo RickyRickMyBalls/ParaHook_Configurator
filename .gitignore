@@ -25,3 +25,5 @@ site
 *.sw?
 
 docs/Archive/
+"/archive/" 
+"/docs/Archive/" 

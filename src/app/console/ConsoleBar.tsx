@@ -184,6 +184,12 @@ export function ConsoleBar({
       case 'referenceCategoryZoomRoot':
       case 'referenceSelected':
       case 'referenceTransformRoot':
+      case 'referenceTransformSettingsRoot':
+      case 'referenceTransformSpaceRoot':
+      case 'referenceTransformSnapRoot':
+      case 'referenceTransformMoveSnapRoot':
+      case 'referenceTransformRotateSnapRoot':
+      case 'referenceTransformScaleSnapRoot':
       case 'referenceZoomRoot':
         return session.breadcrumb
       default:

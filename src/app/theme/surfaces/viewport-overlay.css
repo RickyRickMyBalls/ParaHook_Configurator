@@ -2018,7 +2018,7 @@
 .ReferenceTransformToolbarHistoryEntryButton {
   display: flex;
   align-items: center;
-  width: 100%;
+  flex: 1 1 auto;
   min-width: 0;
   padding: 0;
   border: 0;
@@ -2027,6 +2027,14 @@
   font: inherit;
   text-align: left;
   cursor: pointer;
+}
+
+.ReferenceTransformToolbarHistoryEntryActions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  flex: 0 0 auto;
 }
 
 .ReferenceTransformToolbarHistoryEntryButton[aria-pressed='true'] .ReferenceTransformToolbarHistoryLabel {
@@ -2094,6 +2102,18 @@
   padding: 0;
   border-radius: 7px;
   flex: 0 0 auto;
+}
+
+.ReferenceTransformToolbarHistoryDeleteButton {
+  min-width: 22px;
+  min-height: 22px;
+  padding: 0;
+  border-radius: 7px;
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  text-transform: lowercase;
 }
 
 .ReferenceTransformToolbarHistoryLockIcon {
@@ -2211,8 +2231,8 @@
 
 .ReferenceTransformToolbarButton {
   appearance: none;
-  min-height: 32px;
-  padding: 0 12px;
+  min-height: 30px;
+  padding: 0 10px;
   border-radius: 999px;
   border: 1px solid
     color-mix(
@@ -2263,8 +2283,8 @@
 }
 
 .ReferenceTransformToolbarButton--compact {
-  min-height: 28px;
-  padding: 0 10px;
+  min-height: 26px;
+  padding: 0 8px;
   font-size: 11px;
 }
 

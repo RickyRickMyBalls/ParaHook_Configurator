@@ -60,7 +60,7 @@ Keep the Browser-authored/effective policy model from Browser-2:
 
 - `BrowserBuildPolicy = 'live' | 'release' | 'manual' | 'off'`
 
-Keep Browser-owned authored maps in [useAppStore.ts](./parahook/src/app/store/useAppStore.ts):
+Keep Browser-owned authored maps in `src/app/store/useAppStore.ts`:
 
 - `browserGraphBuildPolicyByGraphDocumentId`
 - `browserContentBuildPolicyByRowId`
@@ -82,7 +82,7 @@ Browser rows that still participate in policy truth and dirty read during Browse
 Do not widen the first Browser-3 execution cut below graph-document.
 Current graphs mostly behave like one produced component in practice, so graph-document first is the safest honest runtime target.
 
-Add explicit runtime dirty/build helpers in [useAppStore.ts](./parahook/src/app/store/useAppStore.ts):
+Add explicit runtime dirty/build helpers in `src/app/store/useAppStore.ts`:
 
 - `markBrowserBuildTargetDirty(target)`
 - `clearBrowserBuildTargetDirty(target)`

@@ -55,7 +55,7 @@ Keep the authored Browser policy type from Browser-1:
 
 - `BrowserBuildPolicy = 'live' | 'release' | 'manual' | 'off'`
 
-Add explicit authored policy ownership in [useAppStore.ts](./parahook/src/app/store/useAppStore.ts):
+Add explicit authored policy ownership in `src/app/store/useAppStore.ts`:
 
 - keep:
   - `browserGraphBuildPolicyByGraphDocumentId`
@@ -223,8 +223,8 @@ Example:
 
 Update Browser selector code in:
 
-- [selectBrowserTreeRows.ts](./parahook/src/app/panels/selectBrowserTreeRows.ts)
-- [selectBrowserGraphRows.ts](./parahook/src/app/panels/selectBrowserGraphRows.ts)
+- `src/app/panels/selectBrowserTreeRows.ts`
+- `src/app/panels/selectBrowserGraphRows.ts`
 
 Requirements:
 
@@ -237,7 +237,7 @@ Requirements:
 
 ### BrowserPanel Rules
 
-Update [BrowserPanel.tsx](./parahook/src/app/panels/BrowserPanel.tsx):
+Update `src/app/panels/BrowserPanel.tsx`:
 
 - do not read raw store maps directly to decide display color anymore
 - use row-vm authored/effective fields instead

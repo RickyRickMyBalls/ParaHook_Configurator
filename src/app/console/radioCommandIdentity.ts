@@ -377,6 +377,106 @@ const resolveStagedAdvanceIdentity = ({
             ? buildIdentity('Console', 'References', 'Category', toIdentitySegment(matchedLabel))
             : null
       }
+    case 'referenceTransformRoot':
+      switch (matchedCanonicalToken) {
+        case 'MOVE':
+          return buildIdentity('Console', 'References', 'Transform', 'Move')
+        case 'ROTATE':
+          return buildIdentity('Console', 'References', 'Transform', 'Rotate')
+        case 'SCALE':
+          return buildIdentity('Console', 'References', 'Transform', 'Scale')
+        case 'SETTINGS':
+          return buildIdentity('Console', 'References', 'Transform', 'Settings')
+        case 'BACK':
+          return buildIdentity('Console', 'References', 'Transform', 'Back')
+        case 'LOCAL':
+        case 'WORLD':
+          return buildIdentity(
+            'Console',
+            'References',
+            'Transform',
+            'Settings',
+            'Space',
+            toIdentitySegment(matchedLabel),
+          )
+        default:
+          return null
+      }
+    case 'referenceTransformSettingsRoot':
+      switch (matchedCanonicalToken) {
+        case 'SPACE':
+          return buildIdentity('Console', 'References', 'Transform', 'Settings', 'Space')
+        case 'SNAP':
+          return buildIdentity('Console', 'References', 'Transform', 'Settings', 'Snap')
+        case 'BACK':
+          return buildIdentity('Console', 'References', 'Transform', 'Settings', 'Back')
+        case 'LOCAL':
+        case 'WORLD':
+          return buildIdentity(
+            'Console',
+            'References',
+            'Transform',
+            'Settings',
+            'Space',
+            toIdentitySegment(matchedLabel),
+          )
+        default:
+          return null
+      }
+    case 'referenceTransformSpaceRoot':
+      switch (matchedCanonicalToken) {
+        case 'LOCAL':
+        case 'WORLD':
+          return buildIdentity(
+            'Console',
+            'References',
+            'Transform',
+            'Settings',
+            'Space',
+            toIdentitySegment(matchedLabel),
+          )
+        case 'BACK':
+          return buildIdentity('Console', 'References', 'Transform', 'Settings', 'Space', 'Back')
+        default:
+          return null
+      }
+    case 'referenceTransformSnapRoot':
+      switch (matchedCanonicalToken) {
+        case 'MOVE':
+        case 'ROTATE':
+        case 'SCALE':
+          return buildIdentity(
+            'Console',
+            'References',
+            'Transform',
+            'Settings',
+            'Snap',
+            toIdentitySegment(matchedLabel),
+          )
+        case 'BACK':
+          return buildIdentity('Console', 'References', 'Transform', 'Settings', 'Snap', 'Back')
+        default:
+          return null
+      }
+    case 'referenceTransformMoveSnapRoot':
+    case 'referenceTransformRotateSnapRoot':
+    case 'referenceTransformScaleSnapRoot': {
+      const modeLabel =
+        activeScopeId === 'referenceTransformMoveSnapRoot'
+          ? 'Move'
+          : activeScopeId === 'referenceTransformRotateSnapRoot'
+            ? 'Rotate'
+            : 'Scale'
+      switch (matchedCanonicalToken) {
+        case 'ON':
+        case 'OFF':
+          return buildIdentity('Console', 'References', 'Transform', 'Settings', 'Snap', modeLabel, toIdentitySegment(matchedLabel))
+        case 'BACK':
+          return buildIdentity('Console', 'References', 'Transform', 'Settings', 'Snap', modeLabel, 'Back')
+        default:
+          return null
+      }
+    }
     case 'graphZoomRoot':
     case 'graphZoomCanvas':
     case 'graphZoomModelViewport':
@@ -440,6 +540,13 @@ const resolveStagedChoiceIdentity = ({
     case 'referenceCategorySelected':
     case 'referenceCategoryZoomRoot':
     case 'referenceSelected':
+    case 'referenceTransformRoot':
+    case 'referenceTransformSettingsRoot':
+    case 'referenceTransformSpaceRoot':
+    case 'referenceTransformSnapRoot':
+    case 'referenceTransformMoveSnapRoot':
+    case 'referenceTransformRotateSnapRoot':
+    case 'referenceTransformScaleSnapRoot':
     case 'referenceZoomRoot':
     case 'cameraRoot':
     case 'cameraProjectionRoot':
@@ -604,6 +711,30 @@ const resolveStagedExecuteIdentity = ({
       return buildIdentity('Console', 'References', 'Transform', 'Scale')
     case 'reference.transform.commitShell':
       return buildIdentity('Console', 'References', 'Transform', 'CommitTransform')
+    case 'reference.transform.deleteLatest':
+      return buildIdentity('Console', 'References', 'Transform', 'DeleteLatest')
+    case 'reference.transform.space.local':
+      return buildIdentity('Console', 'References', 'Transform', 'Settings', 'Space', 'Local')
+    case 'reference.transform.space.world':
+      return buildIdentity('Console', 'References', 'Transform', 'Settings', 'Space', 'World')
+    case 'reference.transform.snap.translate.on':
+      return buildIdentity('Console', 'References', 'Transform', 'Settings', 'Snap', 'Move', 'On')
+    case 'reference.transform.snap.translate.off':
+      return buildIdentity('Console', 'References', 'Transform', 'Settings', 'Snap', 'Move', 'Off')
+    case 'reference.transform.snap.translate.value':
+      return buildIdentity('Console', 'References', 'Transform', 'Settings', 'Snap', 'Move', 'Value')
+    case 'reference.transform.snap.rotate.on':
+      return buildIdentity('Console', 'References', 'Transform', 'Settings', 'Snap', 'Rotate', 'On')
+    case 'reference.transform.snap.rotate.off':
+      return buildIdentity('Console', 'References', 'Transform', 'Settings', 'Snap', 'Rotate', 'Off')
+    case 'reference.transform.snap.rotate.value':
+      return buildIdentity('Console', 'References', 'Transform', 'Settings', 'Snap', 'Rotate', 'Value')
+    case 'reference.transform.snap.scale.on':
+      return buildIdentity('Console', 'References', 'Transform', 'Settings', 'Snap', 'Scale', 'On')
+    case 'reference.transform.snap.scale.off':
+      return buildIdentity('Console', 'References', 'Transform', 'Settings', 'Snap', 'Scale', 'Off')
+    case 'reference.transform.snap.scale.value':
+      return buildIdentity('Console', 'References', 'Transform', 'Settings', 'Snap', 'Scale', 'Value')
     case 'content.transform.move':
       return buildIdentity('Console', 'Content', 'Transform', 'Move')
     case 'content.transform.rotate':

@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+7. 2026-03-27 09:26: Marked this phase shipped after the committed reference transform history scrub layer landed in code, moved the standalone phase record into `Shipped/`, and aligned the record with the delivered paraslider traversal, future-row deactivation, viewport overlay truncation, and inserted-branch temporary-tail behavior
 6. 2026-03-27 02:06: Reworked this standalone `Transform 6` phase doc into an implementation-ready scrub spec, removing the stale `preview / restore` framing, locking traversal as direct history scrub over the committed model, and spelling out the concrete store, toolbar, viewer, insertion-commit, and verification rules needed to implement the phase
 5. 2026-03-27 01:58: Cleaned up the `Transform 6` question state in this standalone phase doc so the already-decided entry-first granularity and preview-versus-restore behavior read as locked direction instead of sounding partially open, leaving explicit restore-history mutation as the main remaining unresolved branch
 4. 2026-03-27 01:52: Locked the `Transform 6` branched-commit behavior in this standalone phase doc, deciding that if the user commits a new transform step while scrubbed to an earlier committed entry, that new row should insert immediately after the scrubbed entry, the old future rows should remain after it and replay from that insertion point, and the child-entry numbering should renumber to the new visible order
@@ -22,7 +23,7 @@ Use it to answer:
 
 ## Doc Body
 
-## [ ] Transform 6 - History Scrub And Traversal
+## [x] Transform 6 - History Scrub And Traversal
 
 ### Summary
 
@@ -51,6 +52,15 @@ Phase outcome:
 - old future rows remain after the inserted row, replay from that insertion point, and renumber to the new visible order
 - scrubbing backward deactivates later committed rows and hides future history lines and overlays past the scrub head
 - the phase stays entry-first and does not widen into a separate session-playback engine too early
+
+### Shipped Result
+
+The shipped `Transform 6` cut landed the intended first committed-history scrub layer:
+- the active reference transform shell now owns a history scrub index instead of inventing a second playback model
+- `ReferenceTransformToolbar` now exposes a `History Scrub` paraslider plus row-jump controls
+- scrubbing to an earlier entry makes that landed committed state the active rendered transform state
+- future rows dim out in the toolbar while future viewport history overlays beyond the scrub head stop rendering
+- committing from an earlier scrub point inserts a new row immediately after that scrubbed row, replays the old future rows from there, and keeps the scrub head parked on the inserted row as the user's temporary visible tail until they scrub forward again
 
 ### Owns
 

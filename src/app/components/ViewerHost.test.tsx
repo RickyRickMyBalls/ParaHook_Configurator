@@ -645,6 +645,43 @@ describe('ViewerHost reference loading', () => {
     expect(useAppStore.getState().referenceWorkspace.activeReferenceTransformSession).toBeNull()
   })
 
+  it('keeps reference transform space synced between the viewer callback and shared session state', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useAppStore } = await import('../store/useAppStore')
+
+    act(() => {
+      useAppStore.getState().toggleReferenceItemVisibility('shoe:shoe-1')
+      useAppStore.getState().beginReferenceTransformShell('shoe:shoe-1')
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost />)
+    })
+
+    const spaceChangeHandler = viewerSetOnReferenceTransformSpaceChange.mock.calls.at(-1)?.[0] as
+      | ((space: 'local' | 'world') => void)
+      | undefined
+
+    expect(spaceChangeHandler).toBeTypeOf('function')
+
+    act(() => {
+      spaceChangeHandler?.('world')
+    })
+
+    expect(useAppStore.getState().referenceWorkspace.activeReferenceTransformSession?.space).toBe(
+      'world',
+    )
+    expect(viewerSetReferenceTransformSession).toHaveBeenLastCalledWith({
+      referenceId: 'shoe:shoe-1',
+      mode: 'translate',
+      space: 'world',
+    })
+  })
+
   it('appends reference transform history when the viewer commit callback fires', async () => {
     const { ViewerHost } = await import('./ViewerHost')
     const { useAppStore } = await import('../store/useAppStore')
@@ -997,15 +1034,19 @@ describe('ViewerHost reference loading', () => {
     })
   })
 
-  it('pushes the active reference rotate snap value into the viewer gizmo snap state', async () => {
+  it('pushes the active reference transform snap values into the viewer gizmo snap state', async () => {
     const { ViewerHost } = await import('./ViewerHost')
     const { useAppStore } = await import('../store/useAppStore')
 
     act(() => {
       useAppStore.getState().toggleReferenceItemVisibility('shoe:shoe-1')
       useAppStore.getState().beginReferenceTransformShell('shoe:shoe-1')
-      useAppStore.getState().setReferenceRotateSnapEnabled('shoe:shoe-1', true)
-      useAppStore.getState().setReferenceRotateSnapValue('shoe:shoe-1', 22.5)
+      useAppStore.getState().setReferenceTransformSnapEnabled('shoe:shoe-1', 'translate', true)
+      useAppStore.getState().setReferenceTransformSnapValue('shoe:shoe-1', 'translate', 10)
+      useAppStore.getState().setReferenceTransformSnapEnabled('shoe:shoe-1', 'rotate', true)
+      useAppStore.getState().setReferenceTransformSnapValue('shoe:shoe-1', 'rotate', 22.5)
+      useAppStore.getState().setReferenceTransformSnapEnabled('shoe:shoe-1', 'scale', true)
+      useAppStore.getState().setReferenceTransformSnapValue('shoe:shoe-1', 'scale', 0.25)
     })
 
     container = document.createElement('div')
@@ -1016,7 +1057,11 @@ describe('ViewerHost reference loading', () => {
       root?.render(<ViewerHost />)
     })
 
-    expect(viewerSetGizmoSnap).toHaveBeenCalledWith({ rotateDeg: 22.5 })
+    expect(viewerSetGizmoSnap).toHaveBeenCalledWith({
+      translateMm: 10,
+      rotateDeg: 22.5,
+      scale: 0.25,
+    })
   })
 
   it('pushes the active geometry sketch session into the viewer overlay and clears it when closed', async () => {

@@ -95,6 +95,12 @@ export type ConsoleStagedNavigationScopeId =
   | 'referenceCategoryZoomRoot'
   | 'referenceSelected'
   | 'referenceTransformRoot'
+  | 'referenceTransformSettingsRoot'
+  | 'referenceTransformSpaceRoot'
+  | 'referenceTransformSnapRoot'
+  | 'referenceTransformMoveSnapRoot'
+  | 'referenceTransformRotateSnapRoot'
+  | 'referenceTransformScaleSnapRoot'
   | 'referenceZoomRoot'
 
 export type ConsoleStagedNavigationSelection = {
@@ -165,11 +171,23 @@ export type ConsoleStagedNavigationExecuteResult = {
     | 'node.delete'
     | 'reference.loadAll'
     | 'reference.category.loadAll'
-  | 'reference.loadModel'
+    | 'reference.loadModel'
   | 'reference.transform.commitShell'
+  | 'reference.transform.deleteLatest'
   | 'reference.transform.move'
   | 'reference.transform.rotate'
   | 'reference.transform.scale'
+  | 'reference.transform.space.local'
+  | 'reference.transform.space.world'
+  | 'reference.transform.snap.translate.on'
+  | 'reference.transform.snap.translate.off'
+  | 'reference.transform.snap.translate.value'
+  | 'reference.transform.snap.rotate.on'
+  | 'reference.transform.snap.rotate.off'
+  | 'reference.transform.snap.rotate.value'
+  | 'reference.transform.snap.scale.on'
+  | 'reference.transform.snap.scale.off'
+  | 'reference.transform.snap.scale.value'
     | 'content.transform.move'
     | 'content.transform.rotate'
     | 'content.transform.scale'
@@ -629,6 +647,62 @@ const COMMIT_TRANSFORM_CHOICE: ConsoleStagedNavigationChoice = {
   kind: 'action',
 }
 
+const DELETE_LATEST_TRANSFORM_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'DELETELATEST',
+  aliases: ['DELETE', 'DEL', 'D'],
+  label: 'DeleteLatest',
+  kind: 'action',
+}
+
+const SETTINGS_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'SETTINGS',
+  aliases: ['SE'],
+  label: 'Settings',
+  kind: 'scope',
+}
+
+const SPACE_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'SPACE',
+  aliases: [],
+  label: 'Space',
+  kind: 'scope',
+}
+
+const SNAP_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'SNAP',
+  aliases: ['SN'],
+  label: 'Snap',
+  kind: 'scope',
+}
+
+const LOCAL_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'LOCAL',
+  aliases: ['L'],
+  label: 'Local',
+  kind: 'action',
+}
+
+const WORLD_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'WORLD',
+  aliases: ['W'],
+  label: 'World',
+  kind: 'action',
+}
+
+const ON_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'ON',
+  aliases: ['O'],
+  label: 'On',
+  kind: 'action',
+}
+
+const OFF_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'OFF',
+  aliases: [],
+  label: 'Off',
+  kind: 'action',
+}
+
 const createBackChoice = (): ConsoleStagedNavigationChoice => ({
   canonicalToken: 'BACK',
   aliases: ['B'],
@@ -894,8 +968,40 @@ export const buildReferenceTransformRootChoices = (
   hasCommittedEntriesInActiveShell = false,
 ): ConsoleStagedNavigationChoice[] =>
   hasCommittedEntriesInActiveShell
-    ? [COMMIT_TRANSFORM_CHOICE, MOVE_CHOICE, ROTATE_CHOICE, SCALE_CHOICE]
-    : [MOVE_CHOICE, ROTATE_CHOICE, SCALE_CHOICE, createBackChoice()]
+    ? [
+        COMMIT_TRANSFORM_CHOICE,
+        DELETE_LATEST_TRANSFORM_CHOICE,
+        MOVE_CHOICE,
+        ROTATE_CHOICE,
+        SCALE_CHOICE,
+        SETTINGS_CHOICE,
+      ]
+    : [MOVE_CHOICE, ROTATE_CHOICE, SCALE_CHOICE, SETTINGS_CHOICE, createBackChoice()]
+
+const buildReferenceTransformSettingsChoices = (): ConsoleStagedNavigationChoice[] => [
+  SPACE_CHOICE,
+  SNAP_CHOICE,
+  createBackChoice(),
+]
+
+const buildReferenceTransformSpaceChoices = (): ConsoleStagedNavigationChoice[] => [
+  LOCAL_CHOICE,
+  WORLD_CHOICE,
+  createBackChoice(),
+]
+
+const buildReferenceTransformSnapChoices = (): ConsoleStagedNavigationChoice[] => [
+  MOVE_CHOICE,
+  ROTATE_CHOICE,
+  SCALE_CHOICE,
+  createBackChoice(),
+]
+
+const buildReferenceTransformSnapModeChoices = (): ConsoleStagedNavigationChoice[] => [
+  ON_CHOICE,
+  OFF_CHOICE,
+  createBackChoice(),
+]
 
 const hasCommittedEntriesInReferenceTransformShell = (
   context: ConsoleStagedNavigationContext,
@@ -1237,6 +1343,104 @@ const createReferenceTransformRootSession = (
   ),
 })
 
+const createReferenceTransformSettingsRootSession = (
+  label: string,
+  referenceId: string,
+  referenceCategoryId: string | null = null,
+  referenceCategoryLabel: string | null = null,
+): ConsoleStagedNavigationSession => ({
+  scopeId: 'referenceTransformSettingsRoot',
+  breadcrumb:
+    referenceCategoryId !== null && referenceCategoryLabel !== null
+      ? ['Select', 'References', referenceCategoryLabel, label, 'Transform', 'Settings']
+      : ['Select', 'Reference', label, 'Transform', 'Settings'],
+  selections: {
+    graphDocumentId: null,
+    selectedNodeId: null,
+    sketchNodeId: null,
+    referenceId,
+    referenceCategoryId,
+  },
+  validChoices: buildReferenceTransformSettingsChoices(),
+})
+
+const createReferenceTransformSpaceRootSession = (
+  label: string,
+  referenceId: string,
+  referenceCategoryId: string | null = null,
+  referenceCategoryLabel: string | null = null,
+): ConsoleStagedNavigationSession => ({
+  scopeId: 'referenceTransformSpaceRoot',
+  breadcrumb:
+    referenceCategoryId !== null && referenceCategoryLabel !== null
+      ? ['Select', 'References', referenceCategoryLabel, label, 'Transform', 'Settings', 'Space']
+      : ['Select', 'Reference', label, 'Transform', 'Settings', 'Space'],
+  selections: {
+    graphDocumentId: null,
+    selectedNodeId: null,
+    sketchNodeId: null,
+    referenceId,
+    referenceCategoryId,
+  },
+  validChoices: buildReferenceTransformSpaceChoices(),
+})
+
+const createReferenceTransformSnapRootSession = (
+  label: string,
+  referenceId: string,
+  referenceCategoryId: string | null = null,
+  referenceCategoryLabel: string | null = null,
+): ConsoleStagedNavigationSession => ({
+  scopeId: 'referenceTransformSnapRoot',
+  breadcrumb:
+    referenceCategoryId !== null && referenceCategoryLabel !== null
+      ? ['Select', 'References', referenceCategoryLabel, label, 'Transform', 'Settings', 'Snap']
+      : ['Select', 'Reference', label, 'Transform', 'Settings', 'Snap'],
+  selections: {
+    graphDocumentId: null,
+    selectedNodeId: null,
+    sketchNodeId: null,
+    referenceId,
+    referenceCategoryId,
+  },
+  validChoices: buildReferenceTransformSnapChoices(),
+})
+
+const createReferenceTransformModeSnapRootSession = (
+  scopeId:
+    | 'referenceTransformMoveSnapRoot'
+    | 'referenceTransformRotateSnapRoot'
+    | 'referenceTransformScaleSnapRoot',
+  modeLabel: 'Move' | 'Rotate' | 'Scale',
+  label: string,
+  referenceId: string,
+  referenceCategoryId: string | null = null,
+  referenceCategoryLabel: string | null = null,
+): ConsoleStagedNavigationSession => ({
+  scopeId,
+  breadcrumb:
+    referenceCategoryId !== null && referenceCategoryLabel !== null
+      ? [
+          'Select',
+          'References',
+          referenceCategoryLabel,
+          label,
+          'Transform',
+          'Settings',
+          'Snap',
+          modeLabel,
+        ]
+      : ['Select', 'Reference', label, 'Transform', 'Settings', 'Snap', modeLabel],
+  selections: {
+    graphDocumentId: null,
+    selectedNodeId: null,
+    sketchNodeId: null,
+    referenceId,
+    referenceCategoryId,
+  },
+  validChoices: buildReferenceTransformSnapModeChoices(),
+})
+
 export const createReferenceTransformRootSessionForTarget = (
   context: ConsoleStagedNavigationContext,
   label: string,
@@ -1251,6 +1455,54 @@ export const createReferenceTransformRootSessionForTarget = (
     referenceCategoryId,
     referenceCategoryLabel,
   )
+
+const createReferenceTransformSnapModeSessionByToken = (
+  token: string,
+  label: string,
+  referenceId: string,
+  referenceCategoryId: string | null,
+  referenceCategoryLabel: string | null,
+): ConsoleStagedNavigationSession => {
+  switch (token) {
+    case 'MOVE':
+      return createReferenceTransformModeSnapRootSession(
+        'referenceTransformMoveSnapRoot',
+        'Move',
+        label,
+        referenceId,
+        referenceCategoryId,
+        referenceCategoryLabel,
+      )
+    case 'ROTATE':
+      return createReferenceTransformModeSnapRootSession(
+        'referenceTransformRotateSnapRoot',
+        'Rotate',
+        label,
+        referenceId,
+        referenceCategoryId,
+        referenceCategoryLabel,
+      )
+    case 'SCALE':
+    default:
+      return createReferenceTransformModeSnapRootSession(
+        'referenceTransformScaleSnapRoot',
+        'Scale',
+        label,
+        referenceId,
+        referenceCategoryId,
+        referenceCategoryLabel,
+      )
+  }
+}
+
+const parseReferenceTransformSnapValue = (token: string): number | null => {
+  const trimmed = token.trim()
+  if (trimmed.length === 0) {
+    return null
+  }
+  const parsed = Number(trimmed)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null
+}
 
 const createReferenceZoomRootSession = (
   label: string,
@@ -3531,6 +3783,34 @@ export const submitConsoleStagedNavigationToken = (
     const transformChoices = buildReferenceTransformRootChoices(
       hasCommittedEntriesInReferenceTransformShell(context, session.selections.referenceId ?? ''),
     )
+    if (normalizedToken === LOCAL_CHOICE.canonicalToken || normalizedToken === 'L') {
+      return {
+        kind: 'execute',
+        session: {
+          ...session,
+          validChoices: transformChoices,
+        },
+        submittedToken,
+        matchedChoice: LOCAL_CHOICE,
+        actionId: 'reference.transform.space.local',
+        breadcrumb: [...session.breadcrumb, 'Settings', 'Space', LOCAL_CHOICE.label],
+        selections: session.selections,
+      }
+    }
+    if (normalizedToken === WORLD_CHOICE.canonicalToken || normalizedToken === 'W') {
+      return {
+        kind: 'execute',
+        session: {
+          ...session,
+          validChoices: transformChoices,
+        },
+        submittedToken,
+        matchedChoice: WORLD_CHOICE,
+        actionId: 'reference.transform.space.world',
+        breadcrumb: [...session.breadcrumb, 'Settings', 'Space', WORLD_CHOICE.label],
+        selections: session.selections,
+      }
+    }
     const matchedChoice =
       transformChoices.find((choice) => matchesChoice(choice, normalizedToken)) ?? null
     if (matchedChoice === null) {
@@ -3552,6 +3832,38 @@ export const submitConsoleStagedNavigationToken = (
         actionId: 'reference.transform.commitShell',
         breadcrumb: [...session.breadcrumb, matchedChoice.label],
         selections: session.selections,
+      }
+    }
+    if (matchedChoice.canonicalToken === DELETE_LATEST_TRANSFORM_CHOICE.canonicalToken) {
+      return {
+        kind: 'execute',
+        session: {
+          ...session,
+          validChoices: transformChoices,
+        },
+        submittedToken,
+        matchedChoice,
+        actionId: 'reference.transform.deleteLatest',
+        breadcrumb: [...session.breadcrumb, matchedChoice.label],
+        selections: session.selections,
+      }
+    }
+    if (matchedChoice.canonicalToken === SETTINGS_CHOICE.canonicalToken) {
+      const nextSession = createReferenceTransformSettingsRootSession(
+        session.breadcrumb.at(-2) ?? session.selections.referenceId ?? 'Reference',
+        session.selections.referenceId ?? '',
+        session.selections.referenceCategoryId ?? null,
+        session.breadcrumb.at(-3) ?? null,
+      )
+      return {
+        kind: 'advance',
+        session: nextSession,
+        submittedToken,
+        matchedChoice,
+        breadcrumb: [...session.breadcrumb, matchedChoice.label],
+        validChoices: nextSession.validChoices,
+        selections: nextSession.selections,
+        autoSelections: [],
       }
     }
     const actionIdByToken: Record<
@@ -3576,6 +3888,305 @@ export const submitConsoleStagedNavigationToken = (
       submittedToken,
       matchedChoice,
       actionId: actionIdByToken[matchedChoice.canonicalToken],
+      breadcrumb: [...session.breadcrumb, matchedChoice.label],
+      selections: session.selections,
+    }
+  }
+
+  if (session.scopeId === 'referenceTransformSettingsRoot') {
+    const settingsChoices = buildReferenceTransformSettingsChoices()
+    if (normalizedToken === LOCAL_CHOICE.canonicalToken || normalizedToken === 'L') {
+      return {
+        kind: 'execute',
+        session: {
+          ...session,
+          validChoices: settingsChoices,
+        },
+        submittedToken,
+        matchedChoice: LOCAL_CHOICE,
+        actionId: 'reference.transform.space.local',
+        breadcrumb: [...session.breadcrumb, 'Space', LOCAL_CHOICE.label],
+        selections: session.selections,
+      }
+    }
+    if (normalizedToken === WORLD_CHOICE.canonicalToken || normalizedToken === 'W') {
+      return {
+        kind: 'execute',
+        session: {
+          ...session,
+          validChoices: settingsChoices,
+        },
+        submittedToken,
+        matchedChoice: WORLD_CHOICE,
+        actionId: 'reference.transform.space.world',
+        breadcrumb: [...session.breadcrumb, 'Space', WORLD_CHOICE.label],
+        selections: session.selections,
+      }
+    }
+    const matchedChoice =
+      settingsChoices.find((choice) => matchesChoice(choice, normalizedToken)) ?? null
+    if (matchedChoice === null) {
+      return createInvalidResult(
+        { ...session, validChoices: settingsChoices },
+        submittedToken,
+        settingsChoices,
+      )
+    }
+    if (matchedChoice.canonicalToken === 'BACK') {
+      const nextSession = createReferenceTransformRootSession(
+        context,
+        session.breadcrumb.at(-3) ?? session.selections.referenceId ?? 'Reference',
+        session.selections.referenceId ?? '',
+        session.selections.referenceCategoryId ?? null,
+        session.breadcrumb.at(-4) ?? null,
+      )
+      return {
+        kind: 'advance',
+        session: nextSession,
+        submittedToken,
+        matchedChoice,
+        breadcrumb: nextSession.breadcrumb,
+        validChoices: nextSession.validChoices,
+        selections: nextSession.selections,
+        autoSelections: [],
+      }
+    }
+    const nextSession =
+      matchedChoice.canonicalToken === SNAP_CHOICE.canonicalToken
+        ? createReferenceTransformSnapRootSession(
+            session.breadcrumb.at(-3) ?? session.selections.referenceId ?? 'Reference',
+            session.selections.referenceId ?? '',
+            session.selections.referenceCategoryId ?? null,
+            session.breadcrumb.at(-4) ?? null,
+          )
+        : createReferenceTransformSpaceRootSession(
+            session.breadcrumb.at(-3) ?? session.selections.referenceId ?? 'Reference',
+            session.selections.referenceId ?? '',
+            session.selections.referenceCategoryId ?? null,
+            session.breadcrumb.at(-4) ?? null,
+          )
+    return {
+      kind: 'advance',
+      session: nextSession,
+      submittedToken,
+      matchedChoice,
+      breadcrumb: [...session.breadcrumb, matchedChoice.label],
+      validChoices: nextSession.validChoices,
+      selections: nextSession.selections,
+      autoSelections: [],
+    }
+  }
+
+  if (session.scopeId === 'referenceTransformSpaceRoot') {
+    const spaceChoices = buildReferenceTransformSpaceChoices()
+    const matchedChoice =
+      spaceChoices.find((choice) => matchesChoice(choice, normalizedToken)) ?? null
+    if (matchedChoice === null) {
+      return createInvalidResult(
+        { ...session, validChoices: spaceChoices },
+        submittedToken,
+        spaceChoices,
+      )
+    }
+    if (matchedChoice.canonicalToken === 'BACK') {
+      const nextSession = createReferenceTransformSettingsRootSession(
+        session.breadcrumb.at(-4) ?? session.selections.referenceId ?? 'Reference',
+        session.selections.referenceId ?? '',
+        session.selections.referenceCategoryId ?? null,
+        session.breadcrumb.at(-5) ?? null,
+      )
+      return {
+        kind: 'advance',
+        session: nextSession,
+        submittedToken,
+        matchedChoice,
+        breadcrumb: nextSession.breadcrumb,
+        validChoices: nextSession.validChoices,
+        selections: nextSession.selections,
+        autoSelections: [],
+      }
+    }
+    const actionIdByToken: Record<
+      string,
+      Extract<
+        ConsoleStagedNavigationExecuteResult['actionId'],
+        'reference.transform.space.local' | 'reference.transform.space.world'
+      >
+    > = {
+      LOCAL: 'reference.transform.space.local',
+      WORLD: 'reference.transform.space.world',
+    }
+    return {
+      kind: 'execute',
+      session: {
+        ...session,
+        validChoices: spaceChoices,
+      },
+      submittedToken,
+      matchedChoice,
+      actionId: actionIdByToken[matchedChoice.canonicalToken],
+      breadcrumb: [...session.breadcrumb, matchedChoice.label],
+      selections: session.selections,
+    }
+  }
+
+  if (session.scopeId === 'referenceTransformSnapRoot') {
+    const snapChoices = buildReferenceTransformSnapChoices()
+    const matchedChoice =
+      snapChoices.find((choice) => matchesChoice(choice, normalizedToken)) ?? null
+    if (matchedChoice === null) {
+      return createInvalidResult(
+        { ...session, validChoices: snapChoices },
+        submittedToken,
+        snapChoices,
+      )
+    }
+    if (matchedChoice.canonicalToken === 'BACK') {
+      const nextSession = createReferenceTransformSettingsRootSession(
+        session.breadcrumb.at(-4) ?? session.selections.referenceId ?? 'Reference',
+        session.selections.referenceId ?? '',
+        session.selections.referenceCategoryId ?? null,
+        session.breadcrumb.at(-5) ?? null,
+      )
+      return {
+        kind: 'advance',
+        session: nextSession,
+        submittedToken,
+        matchedChoice,
+        breadcrumb: nextSession.breadcrumb,
+        validChoices: nextSession.validChoices,
+        selections: nextSession.selections,
+        autoSelections: [],
+      }
+    }
+    const nextSession = createReferenceTransformSnapModeSessionByToken(
+      matchedChoice.canonicalToken,
+      session.breadcrumb.at(-4) ?? session.selections.referenceId ?? 'Reference',
+      session.selections.referenceId ?? '',
+      session.selections.referenceCategoryId ?? null,
+      session.breadcrumb.at(-5) ?? null,
+    )
+    return {
+      kind: 'advance',
+      session: nextSession,
+      submittedToken,
+      matchedChoice,
+      breadcrumb: [...session.breadcrumb, matchedChoice.label],
+      validChoices: nextSession.validChoices,
+      selections: nextSession.selections,
+      autoSelections: [],
+    }
+  }
+
+  if (
+    session.scopeId === 'referenceTransformMoveSnapRoot' ||
+    session.scopeId === 'referenceTransformRotateSnapRoot' ||
+    session.scopeId === 'referenceTransformScaleSnapRoot'
+  ) {
+    const modeChoices = buildReferenceTransformSnapModeChoices()
+    const numericValue = parseReferenceTransformSnapValue(submittedToken)
+    const mode =
+      session.scopeId === 'referenceTransformMoveSnapRoot'
+        ? 'translate'
+        : session.scopeId === 'referenceTransformRotateSnapRoot'
+          ? 'rotate'
+          : 'scale'
+    if (numericValue !== null) {
+      const actionIdByMode: Record<
+        'translate' | 'rotate' | 'scale',
+        Extract<
+          ConsoleStagedNavigationExecuteResult['actionId'],
+          | 'reference.transform.snap.translate.value'
+          | 'reference.transform.snap.rotate.value'
+          | 'reference.transform.snap.scale.value'
+        >
+      > = {
+        translate: 'reference.transform.snap.translate.value',
+        rotate: 'reference.transform.snap.rotate.value',
+        scale: 'reference.transform.snap.scale.value',
+      }
+      return {
+        kind: 'execute',
+        session: {
+          ...session,
+          validChoices: modeChoices,
+        },
+        submittedToken,
+        matchedChoice: {
+          canonicalToken: String(numericValue),
+          aliases: [],
+          label: String(numericValue),
+          kind: 'action',
+        },
+        actionId: actionIdByMode[mode],
+        breadcrumb: [...session.breadcrumb, String(numericValue)],
+        selections: session.selections,
+      }
+    }
+    const matchedChoice =
+      modeChoices.find((choice) => matchesChoice(choice, normalizedToken)) ?? null
+    if (matchedChoice === null) {
+      return createInvalidResult(
+        { ...session, validChoices: modeChoices },
+        submittedToken,
+        modeChoices,
+      )
+    }
+    if (matchedChoice.canonicalToken === 'BACK') {
+      const nextSession = createReferenceTransformSnapRootSession(
+        session.breadcrumb.at(-5) ?? session.selections.referenceId ?? 'Reference',
+        session.selections.referenceId ?? '',
+        session.selections.referenceCategoryId ?? null,
+        session.breadcrumb.at(-6) ?? null,
+      )
+      return {
+        kind: 'advance',
+        session: nextSession,
+        submittedToken,
+        matchedChoice,
+        breadcrumb: nextSession.breadcrumb,
+        validChoices: nextSession.validChoices,
+        selections: nextSession.selections,
+        autoSelections: [],
+      }
+    }
+    const actionIdByModeAndToken: Record<
+      'translate' | 'rotate' | 'scale',
+      Record<
+        'ON' | 'OFF',
+        Extract<
+          ConsoleStagedNavigationExecuteResult['actionId'],
+          | 'reference.transform.snap.translate.on'
+          | 'reference.transform.snap.translate.off'
+          | 'reference.transform.snap.rotate.on'
+          | 'reference.transform.snap.rotate.off'
+          | 'reference.transform.snap.scale.on'
+          | 'reference.transform.snap.scale.off'
+        >
+      >
+    > = {
+      translate: {
+        ON: 'reference.transform.snap.translate.on',
+        OFF: 'reference.transform.snap.translate.off',
+      },
+      rotate: {
+        ON: 'reference.transform.snap.rotate.on',
+        OFF: 'reference.transform.snap.rotate.off',
+      },
+      scale: {
+        ON: 'reference.transform.snap.scale.on',
+        OFF: 'reference.transform.snap.scale.off',
+      },
+    }
+    return {
+      kind: 'execute',
+      session: {
+        ...session,
+        validChoices: modeChoices,
+      },
+      submittedToken,
+      matchedChoice,
+      actionId: actionIdByModeAndToken[mode][matchedChoice.canonicalToken as 'ON' | 'OFF'],
       breadcrumb: [...session.breadcrumb, matchedChoice.label],
       selections: session.selections,
     }

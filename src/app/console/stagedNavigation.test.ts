@@ -388,8 +388,126 @@ describe('stagedNavigation', () => {
       'Move',
       'Rotate',
       'Scale',
+      'Settings',
       'Back',
     ])
+
+    const rootWorldShortcut = submitConsoleStagedNavigationToken(transformRoot.session, 'w', context)
+    expect(rootWorldShortcut).toMatchObject({
+      kind: 'execute',
+      actionId: 'reference.transform.space.world',
+      breadcrumb: [
+        'Select',
+        'References',
+        'Shoes',
+        'Shoe 1',
+        'Transform',
+        'Settings',
+        'Space',
+        'World',
+      ],
+    })
+
+    const settingsRoot = submitConsoleStagedNavigationToken(transformRoot.session, 'settings', context)
+    expect(settingsRoot.kind).toBe('advance')
+    if (settingsRoot.kind !== 'advance') {
+      throw new Error('Expected reference transform settings token to advance')
+    }
+    expect(settingsRoot.session.scopeId).toBe('referenceTransformSettingsRoot')
+    expect(settingsRoot.session.validChoices.map((choice) => choice.label)).toEqual([
+      'Space',
+      'Snap',
+      'Back',
+    ])
+
+    const settingsRootAlias = submitConsoleStagedNavigationToken(transformRoot.session, 'se', context)
+    expect(settingsRootAlias.kind).toBe('advance')
+    if (settingsRootAlias.kind !== 'advance') {
+      throw new Error('Expected reference transform settings alias to advance')
+    }
+    expect(settingsRootAlias.session.scopeId).toBe('referenceTransformSettingsRoot')
+
+    const directLocalFromSettings = submitConsoleStagedNavigationToken(
+      settingsRoot.session,
+      'l',
+      context,
+    )
+    expect(directLocalFromSettings).toMatchObject({
+      kind: 'execute',
+      actionId: 'reference.transform.space.local',
+      breadcrumb: [
+        'Select',
+        'References',
+        'Shoes',
+        'Shoe 1',
+        'Transform',
+        'Settings',
+        'Space',
+        'Local',
+      ],
+    })
+
+    const spaceRoot = submitConsoleStagedNavigationToken(settingsRoot.session, 'space', context)
+    expect(spaceRoot.kind).toBe('advance')
+    if (spaceRoot.kind !== 'advance') {
+      throw new Error('Expected reference transform space token to advance')
+    }
+    expect(spaceRoot.session.scopeId).toBe('referenceTransformSpaceRoot')
+    expect(spaceRoot.session.breadcrumb).toEqual([
+      'Select',
+      'References',
+      'Shoes',
+      'Shoe 1',
+      'Transform',
+      'Settings',
+      'Space',
+    ])
+    expect(spaceRoot.session.validChoices.map((choice) => choice.label)).toEqual([
+      'Local',
+      'World',
+      'Back',
+    ])
+
+    const snapRoot = submitConsoleStagedNavigationToken(settingsRoot.session, 'snap', context)
+    expect(snapRoot.kind).toBe('advance')
+    if (snapRoot.kind !== 'advance') {
+      throw new Error('Expected reference transform snap token to advance')
+    }
+    expect(snapRoot.session.scopeId).toBe('referenceTransformSnapRoot')
+    expect(snapRoot.session.validChoices.map((choice) => choice.label)).toEqual([
+      'Move',
+      'Rotate',
+      'Scale',
+      'Back',
+    ])
+
+    const moveSnapRoot = submitConsoleStagedNavigationToken(snapRoot.session, 'move', context)
+    expect(moveSnapRoot.kind).toBe('advance')
+    if (moveSnapRoot.kind !== 'advance') {
+      throw new Error('Expected reference transform move snap token to advance')
+    }
+    expect(moveSnapRoot.session.scopeId).toBe('referenceTransformMoveSnapRoot')
+    expect(moveSnapRoot.session.validChoices.map((choice) => choice.label)).toEqual([
+      'On',
+      'Off',
+      'Back',
+    ])
+
+    expect(submitConsoleStagedNavigationToken(moveSnapRoot.session, '10', context)).toMatchObject({
+      kind: 'execute',
+      actionId: 'reference.transform.snap.translate.value',
+      breadcrumb: [
+        'Select',
+        'References',
+        'Shoes',
+        'Shoe 1',
+        'Transform',
+        'Settings',
+        'Snap',
+        'Move',
+        '10',
+      ],
+    })
 
     const commitShell = submitConsoleStagedNavigationToken(transformRoot.session, 'committransform', context)
     expect(commitShell.kind).toBe('invalid')
@@ -427,10 +545,23 @@ describe('stagedNavigation', () => {
     }
     expect(transformRootWithCommittedEntry.session.validChoices.map((choice) => choice.label)).toEqual([
       'CommitTransform',
+      'DeleteLatest',
       'Move',
       'Rotate',
       'Scale',
+      'Settings',
     ])
+
+    const deleteLatest = submitConsoleStagedNavigationToken(
+      transformRootWithCommittedEntry.session,
+      'delete',
+      committedShellContext,
+    )
+    expect(deleteLatest).toMatchObject({
+      kind: 'execute',
+      actionId: 'reference.transform.deleteLatest',
+      breadcrumb: ['Select', 'References', 'Shoes', 'Shoe 1', 'Transform', 'DeleteLatest'],
+    })
 
     const committedShell = submitConsoleStagedNavigationToken(
       transformRootWithCommittedEntry.session,

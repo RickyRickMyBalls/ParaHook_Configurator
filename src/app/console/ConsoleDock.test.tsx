@@ -5552,6 +5552,143 @@ describe('ConsoleDock', () => {
     expect(summaryText).not.toContain('CommitTransform')
   })
 
+  it('cycles Transform root to Rotate on tab', async () => {
+    const viewerSetReferenceTransformSession = vi.fn()
+    setViewer({
+      setReferenceTransformSession: viewerSetReferenceTransformSession,
+      setConsoleCameraMode: vi.fn(),
+    } as any)
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useAppStore.setState((state) => ({
+        ...state,
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          visibilityById: {
+            ...state.referenceWorkspace.visibilityById,
+            'shoe:shoe-1': true,
+          },
+          loadStateById: {
+            ...state.referenceWorkspace.loadStateById,
+            'shoe:shoe-1': 'loaded',
+          },
+        },
+      }))
+      useAppStore.getState().setWorkspaceSelectedTarget({
+        kind: 'reference-item',
+        referenceId: 'shoe:shoe-1',
+      })
+      useAppStore.getState().setActiveSurface('browser')
+      useAppStore.getState().requestConsoleContextSync('target-selection')
+      useConsoleStore.getState().setInputText('transform')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true }),
+      )
+    })
+
+    expect(useAppStore.getState().referenceWorkspace.activeReferenceTransformSession).toMatchObject({
+      referenceId: 'shoe:shoe-1',
+      mode: 'rotate',
+      entryActive: true,
+    })
+    expect(useConsoleStore.getState().consolePromptSession).toBeNull()
+    expect(container?.querySelector('.ConsoleBarSummary')?.textContent ?? '').toContain(
+      'Select > References > Shoes > Shoe 1 > Transform > Rotate > Choose next',
+    )
+    expect(viewerSetReferenceTransformSession).toHaveBeenLastCalledWith({
+      referenceId: 'shoe:shoe-1',
+      mode: 'rotate',
+      space: useAppStore.getState().referenceWorkspace.activeReferenceTransformSession?.space,
+    })
+  })
+
+  it('deletes the latest committed transform entry from Transform root', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useAppStore.setState((state) => ({
+        ...state,
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          visibilityById: {
+            ...state.referenceWorkspace.visibilityById,
+            'shoe:shoe-1': true,
+          },
+          loadStateById: {
+            ...state.referenceWorkspace.loadStateById,
+            'shoe:shoe-1': 'loaded',
+          },
+        },
+      }))
+      useAppStore.getState().setWorkspaceSelectedTarget({
+        kind: 'reference-item',
+        referenceId: 'shoe:shoe-1',
+      })
+      useAppStore.getState().setActiveSurface('browser')
+      useAppStore.getState().requestConsoleContextSync('target-selection')
+      useConsoleStore.getState().setInputText('transform')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      useAppStore.getState().beginReferenceTransformEntry('translate')
+      useAppStore.getState().setActiveReferenceTransformDraft({
+        position: { x: 4, y: 0, z: 0 },
+        rotationDeg: { x: 0, y: 0, z: 0 },
+        scale: { x: 1, y: 1, z: 1 },
+      })
+      useAppStore.getState().commitActiveReferenceTransformEntry()
+    })
+
+    expect(
+      useConsoleStore.getState().stagedNavigationSession?.validChoices.map((choice) => choice.label) ?? [],
+    ).toContain('DeleteLatest')
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('delete')
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(
+      useAppStore.getState().referenceWorkspace.transformHistoryByReferenceId['shoe:shoe-1'] ?? [],
+    ).toHaveLength(0)
+    expect(useAppStore.getState().referenceWorkspace.transformOverrideById['shoe:shoe-1']).toMatchObject(
+      {
+        position: { x: 0, y: 0, z: 0 },
+        rotationDeg: { x: 0, y: 0, z: 0 },
+        scale: { x: 1, y: 1, z: 1 },
+      },
+    )
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('referenceTransformRoot')
+    expect(
+      useConsoleStore.getState().stagedNavigationSession?.validChoices.map((choice) => choice.label) ?? [],
+    ).toEqual(['Move', 'Rotate', 'Scale', 'Settings', 'Back'])
+    expect(
+      useConsoleStore.getState().entries.some((entry) => entry.text === 'Deleted latest transform entry'),
+    ).toBe(true)
+  })
+
   it('keeps the live transform summary synced to gizmo draft changes for move rotate and scale', async () => {
     const viewerSetReferenceTransformSession = vi.fn()
     const viewerActivateTranslateCenterHandle = vi.fn()
@@ -5631,7 +5768,7 @@ describe('ConsoleDock', () => {
     expect(summaryText).toContain('Vec3 [15.0, 22.5, -30.0]')
     expect(
       useConsoleStore.getState().featureAssistDescriptor?.choices.map((choice) => choice.canonicalToken) ?? [],
-    ).toEqual(['VEC3', 'X', 'Y', 'Z'])
+    ).toEqual(['VEC3', 'SNAP', 'X', 'Y', 'Z'])
 
     await act(async () => {
       useAppStore.getState().beginReferenceTransformEntry('scale')
@@ -5938,7 +6075,200 @@ describe('ConsoleDock', () => {
     expect(
       useConsoleStore.getState().featureAssistDescriptor?.choices.map((choice) => choice.canonicalToken) ??
         [],
-    ).toEqual(['VEC3', 'X', 'Y', 'Z'])
+    ).toEqual(['VEC3', 'SNAP', 'X', 'Y', 'Z'])
+  })
+
+  it('cycles Move root to Rotate on tab and restores the saved baseline', async () => {
+    const viewerSetReferenceTransformSession = vi.fn()
+    const viewerCancelReferenceTransformDrag = vi.fn()
+    const viewerClearReferenceTransformHandle = vi.fn()
+    const viewerSetReferenceTransformOverride = vi.fn()
+    setViewer({
+      setReferenceTransformSession: viewerSetReferenceTransformSession,
+      cancelReferenceTransformDrag: viewerCancelReferenceTransformDrag,
+      clearReferenceTransformHandle: viewerClearReferenceTransformHandle,
+      setReferenceTransformOverride: viewerSetReferenceTransformOverride,
+      setConsoleCameraMode: vi.fn(),
+    } as any)
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useAppStore.setState((state) => ({
+        ...state,
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          visibilityById: {
+            ...state.referenceWorkspace.visibilityById,
+            'shoe:shoe-1': true,
+          },
+          loadStateById: {
+            ...state.referenceWorkspace.loadStateById,
+            'shoe:shoe-1': 'loaded',
+          },
+        },
+      }))
+      useAppStore.getState().setReferenceTransformOverride('shoe:shoe-1', {
+        position: { x: 1, y: 2, z: 3 },
+        rotationDeg: { x: 0, y: 0, z: 0 },
+        scale: { x: 1, y: 1, z: 1 },
+      })
+      useAppStore.getState().setWorkspaceSelectedTarget({
+        kind: 'reference-item',
+        referenceId: 'shoe:shoe-1',
+      })
+      useAppStore.getState().setActiveSurface('browser')
+      useAppStore.getState().requestConsoleContextSync('target-selection')
+      useConsoleStore.getState().setInputText('transform')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('move')
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      useAppStore.getState().setActiveReferenceTransformDraft({
+        position: { x: 9, y: 2, z: 3 },
+        rotationDeg: { x: 0, y: 0, z: 0 },
+        scale: { x: 1, y: 1, z: 1 },
+      })
+    })
+
+    await act(async () => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true }),
+      )
+    })
+
+    expect(viewerCancelReferenceTransformDrag).toHaveBeenCalledTimes(1)
+    expect(viewerClearReferenceTransformHandle).toHaveBeenCalled()
+    expect(viewerSetReferenceTransformOverride).toHaveBeenCalledWith('shoe:shoe-1', {
+      position: { x: 1, y: 2, z: 3 },
+      rotationDeg: { x: 0, y: 0, z: 0 },
+      scale: { x: 1, y: 1, z: 1 },
+    })
+    expect(useConsoleStore.getState().consolePromptSession).toBeNull()
+    expect(useAppStore.getState().referenceWorkspace.activeReferenceTransformSession).toMatchObject({
+      referenceId: 'shoe:shoe-1',
+      mode: 'rotate',
+      entryActive: true,
+      draftTransform: {
+        position: { x: 1, y: 2, z: 3 },
+        rotationDeg: { x: 0, y: 0, z: 0 },
+        scale: { x: 1, y: 1, z: 1 },
+      },
+    })
+    expect(container?.querySelector('.ConsoleBarSummary')?.textContent ?? '').toContain(
+      'Select > References > Shoes > Shoe 1 > Transform > Rotate > Choose next',
+    )
+  })
+
+  it('cycles Move X to Rotate on tab and closes the prompt', async () => {
+    const viewerSetReferenceTransformSession = vi.fn()
+    const viewerCancelReferenceTransformDrag = vi.fn()
+    const viewerClearReferenceTransformHandle = vi.fn()
+    const viewerSetReferenceTransformOverride = vi.fn()
+    setViewer({
+      setReferenceTransformSession: viewerSetReferenceTransformSession,
+      cancelReferenceTransformDrag: viewerCancelReferenceTransformDrag,
+      clearReferenceTransformHandle: viewerClearReferenceTransformHandle,
+      setReferenceTransformOverride: viewerSetReferenceTransformOverride,
+      setConsoleCameraMode: vi.fn(),
+    } as any)
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useAppStore.setState((state) => ({
+        ...state,
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          visibilityById: {
+            ...state.referenceWorkspace.visibilityById,
+            'shoe:shoe-1': true,
+          },
+          loadStateById: {
+            ...state.referenceWorkspace.loadStateById,
+            'shoe:shoe-1': 'loaded',
+          },
+        },
+      }))
+      useAppStore.getState().setReferenceTransformOverride('shoe:shoe-1', {
+        position: { x: 1, y: 2, z: 3 },
+        rotationDeg: { x: 0, y: 0, z: 0 },
+        scale: { x: 1, y: 1, z: 1 },
+      })
+      useAppStore.getState().setWorkspaceSelectedTarget({
+        kind: 'reference-item',
+        referenceId: 'shoe:shoe-1',
+      })
+      useAppStore.getState().setActiveSurface('browser')
+      useAppStore.getState().requestConsoleContextSync('target-selection')
+      useConsoleStore.getState().setInputText('transform')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('move')
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('x')
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      useAppStore.getState().setActiveReferenceTransformDraft({
+        position: { x: 9, y: 2, z: 3 },
+        rotationDeg: { x: 0, y: 0, z: 0 },
+        scale: { x: 1, y: 1, z: 1 },
+      })
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true }),
+      )
+    })
+
+    expect(viewerCancelReferenceTransformDrag).toHaveBeenCalledTimes(1)
+    expect(viewerClearReferenceTransformHandle).toHaveBeenCalled()
+    expect(viewerSetReferenceTransformOverride).toHaveBeenCalledWith('shoe:shoe-1', {
+      position: { x: 1, y: 2, z: 3 },
+      rotationDeg: { x: 0, y: 0, z: 0 },
+      scale: { x: 1, y: 1, z: 1 },
+    })
+    expect(useConsoleStore.getState().consolePromptSession).toBeNull()
+    expect(useAppStore.getState().referenceWorkspace.activeReferenceTransformSession).toMatchObject({
+      referenceId: 'shoe:shoe-1',
+      mode: 'rotate',
+      entryActive: true,
+      draftTransform: {
+        position: { x: 1, y: 2, z: 3 },
+        rotationDeg: { x: 0, y: 0, z: 0 },
+        scale: { x: 1, y: 1, z: 1 },
+      },
+    })
+    expect(container?.querySelector('.ConsoleBarSummary')?.textContent ?? '').toContain(
+      'Select > References > Shoes > Shoe 1 > Transform > Rotate > Choose next',
+    )
   })
 
   it('treats x as typed console input first during move and only opens Move X on enter', async () => {
@@ -7651,6 +7981,303 @@ describe('ConsoleDock', () => {
 
     expect(useAppStore.getState().referenceWorkspace.activeReferenceTransformSession).toBeNull()
     expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('referenceSelected')
+  })
+
+  it('defaults transform space to local and lets Transform > W switch the shell to world', async () => {
+    setViewer({
+      setConsoleCameraMode: vi.fn(),
+    } as any)
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useAppStore.setState((state) => ({
+        ...state,
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          visibilityById: {
+            ...state.referenceWorkspace.visibilityById,
+            'shoe:shoe-1': true,
+          },
+          loadStateById: {
+            ...state.referenceWorkspace.loadStateById,
+            'shoe:shoe-1': 'loaded',
+          },
+        },
+      }))
+      useAppStore.getState().setWorkspaceSelectedTarget({
+        kind: 'reference-item',
+        referenceId: 'shoe:shoe-1',
+      })
+      useAppStore.getState().setActiveSurface('browser')
+      useAppStore.getState().requestConsoleContextSync('target-selection')
+    })
+
+    const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('transform')
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useAppStore.getState().referenceWorkspace.activeReferenceTransformSession?.space).toBe(
+      'local',
+    )
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('w')
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useAppStore.getState().referenceWorkspace.activeReferenceTransformSession?.space).toBe(
+      'world',
+    )
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('referenceTransformRoot')
+    expect(
+      useConsoleStore.getState().entries.some((entry) => entry.text === 'Space: World applied'),
+    ).toBe(true)
+  })
+
+  it('keeps the active mode root alive when Transform > Move > L reapplies local space', async () => {
+    setViewer({
+      setReferenceTransformSession: vi.fn(),
+      activateTranslateCenterHandle: vi.fn(),
+      setConsoleCameraMode: vi.fn(),
+    } as any)
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useAppStore.setState((state) => ({
+        ...state,
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          visibilityById: {
+            ...state.referenceWorkspace.visibilityById,
+            'shoe:shoe-1': true,
+          },
+          loadStateById: {
+            ...state.referenceWorkspace.loadStateById,
+            'shoe:shoe-1': 'loaded',
+          },
+        },
+      }))
+      useAppStore.getState().setWorkspaceSelectedTarget({
+        kind: 'reference-item',
+        referenceId: 'shoe:shoe-1',
+      })
+      useAppStore.getState().setActiveSurface('browser')
+      useAppStore.getState().requestConsoleContextSync('target-selection')
+    })
+
+    const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('transform')
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+      useConsoleStore.getState().setInputText('move')
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useAppStore.getState().referenceWorkspace.activeReferenceTransformSession?.entryActive).toBe(
+      true,
+    )
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('l')
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useAppStore.getState().referenceWorkspace.activeReferenceTransformSession).toMatchObject({
+      entryActive: true,
+      mode: 'translate',
+      space: 'local',
+    })
+    expect(useConsoleStore.getState().consolePromptSession).toBeNull()
+    expect(
+      useConsoleStore.getState().entries.some(
+        (entry) => entry.text === 'Space: Local already applied',
+      ),
+    ).toBe(true)
+  })
+
+  it('shows the full Settings > Space tree and lets escape step back out of it', async () => {
+    setViewer({
+      setConsoleCameraMode: vi.fn(),
+    } as any)
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useAppStore.setState((state) => ({
+        ...state,
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          visibilityById: {
+            ...state.referenceWorkspace.visibilityById,
+            'shoe:shoe-1': true,
+          },
+          loadStateById: {
+            ...state.referenceWorkspace.loadStateById,
+            'shoe:shoe-1': 'loaded',
+          },
+        },
+      }))
+      useAppStore.getState().setWorkspaceSelectedTarget({
+        kind: 'reference-item',
+        referenceId: 'shoe:shoe-1',
+      })
+      useAppStore.getState().setActiveSurface('browser')
+      useAppStore.getState().requestConsoleContextSync('target-selection')
+    })
+
+    const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+    const input = container?.querySelector(
+      'input[aria-label="Console input"]',
+    ) as HTMLInputElement | null
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('transform')
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('se')
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe(
+      'referenceTransformSettingsRoot',
+    )
+    expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
+      'Select > References > Shoes > Shoe 1 > Transform > Settings > Choose next',
+    )
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('space')
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe(
+      'referenceTransformSpaceRoot',
+    )
+    expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
+      'Select > References > Shoes > Shoe 1 > Transform > Settings > Space > Choose next',
+    )
+
+    await act(async () => {
+      input?.focus()
+      input?.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
+      )
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe(
+      'referenceTransformSettingsRoot',
+    )
+
+    await act(async () => {
+      input?.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
+      )
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe(
+      'referenceTransformRoot',
+    )
+    expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
+      'Select > References > Shoes > Shoe 1 > Transform > Choose next',
+    )
+  })
+
+  it('lets deep transform prompts switch space and collapse back to the owning mode root', async () => {
+    const viewerCancelReferenceTransformDrag = vi.fn()
+    const viewerClearReferenceTransformHandle = vi.fn()
+    const viewerSetReferenceTransformSession = vi.fn()
+    const viewerActivateTranslateCenterHandle = vi.fn()
+    const viewerActivateTranslateHandle = vi.fn()
+    setViewer({
+      cancelReferenceTransformDrag: viewerCancelReferenceTransformDrag,
+      clearReferenceTransformHandle: viewerClearReferenceTransformHandle,
+      setReferenceTransformSession: viewerSetReferenceTransformSession,
+      activateTranslateCenterHandle: viewerActivateTranslateCenterHandle,
+      activateTranslateHandle: viewerActivateTranslateHandle,
+      setConsoleCameraMode: vi.fn(),
+    } as any)
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useAppStore.setState((state) => ({
+        ...state,
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          visibilityById: {
+            ...state.referenceWorkspace.visibilityById,
+            'shoe:shoe-1': true,
+          },
+          loadStateById: {
+            ...state.referenceWorkspace.loadStateById,
+            'shoe:shoe-1': 'loaded',
+          },
+        },
+      }))
+      useAppStore.getState().setWorkspaceSelectedTarget({
+        kind: 'reference-item',
+        referenceId: 'shoe:shoe-1',
+      })
+      useAppStore.getState().setActiveSurface('browser')
+      useAppStore.getState().requestConsoleContextSync('target-selection')
+    })
+
+    const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('transform')
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('move')
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('x')
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().consolePromptSession?.kind).toBe('reference-transform.axis')
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('w')
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useAppStore.getState().referenceWorkspace.activeReferenceTransformSession).toMatchObject({
+      entryActive: true,
+      mode: 'translate',
+      space: 'world',
+      activeHandle: null,
+    })
+    expect(useConsoleStore.getState().consolePromptSession).toBeNull()
+    expect(viewerCancelReferenceTransformDrag).toHaveBeenCalled()
+    expect(viewerClearReferenceTransformHandle).toHaveBeenCalled()
+    expect(
+      useConsoleStore.getState().entries.some((entry) => entry.text === 'Space: World applied'),
+    ).toBe(true)
   })
 
   it('closes the reference transform shell on escape when the user is at the transform root', async () => {

@@ -3,6 +3,8 @@
 ## Doc Header
 
 ### Doc History
+15. 2026-03-27 10:35: Reworked the live MkDocs strategy again by adding a hybrid manual top-level nav in `mkdocs.yml`, rewriting `docs/index.md` into a denser homepage launcher with many curated links, and tightening the MkDocs plan notes so the published-site guidance now matches the current mixed-audience front-door model
+14. 2026-03-27 10:10: Clarified the GitHub Pages hosting note so this doc now explicitly states that the repo uses one Pages workflow and one deployed artifact that serves two live paths, with the app at `/` and MkDocs at `/docs/`, instead of sounding like there are two competing Pages deployments
 13. 2026-03-23 17:39: Implemented `Phase 3 - GitHub Pages Combined App And Docs Publish` by extending the existing repo Pages workflow to build both the app and MkDocs into one artifact, adding the nested docs `site_url`, and recording the live `/` plus `/docs/` hosting behavior in the MkDocs notes
 12. 2026-03-23 17:18: Added `Phase 3 - GitHub Pages Combined App And Docs Publish` so the MkDocs note now covers same-repo GitHub Pages hosting without replacing the existing app site, locking the one-artifact `/` plus `/docs/` publish model against the current `deploy-pages.yml` workflow
 11. 2026-03-23 17:11: Added the live dark-mode theme pass to the MkDocs planning note, recording that the published docs site now starts in Material's `slate` palette with a visible light-mode toggle instead of staying light-only
@@ -239,16 +241,24 @@ Planning rule for this repo:
 
 ### Live Nav Note
 
-The current live site no longer uses the tiny two-page hand-written nav from the first baseline pass.
+The current live site no longer uses either:
+- the tiny two-page hand-written nav from the first baseline pass
+- or a fully raw inferred top-level nav with no curation
 
 Current live behavior:
-- MkDocs infers navigation from the full `/docs` tree
+- `mkdocs.yml` now defines a curated top-level nav for the highest-value public entry points
+- the homepage is a denser launch surface with many grouped links into architecture and planning hubs
+- deeper docs still publish normally under the included `/docs` tree even when they are not promoted into the top-level nav
 - archive folders are excluded from the published site
+- `Human-Plans/CodexNotes/` is excluded from the published site
 - the left sidebar exposes the non-archive docs tree directly instead of forcing search or a tiny starter nav
 - the site starts in Material's `slate` dark palette by default and exposes a header toggle for switching back to light mode
 - the current page heading tree uses the standard right-side table of contents
 
-This is more useful for real browsing, but it also means the sidebar follows MkDocs's inferred ordering instead of a carefully curated manual order.
+This is the current compromise:
+- hand-curate only the top layer and the biggest hub pages
+- do not hand-maintain the entire docs tree
+- let the homepage and family index docs do most of the deeper navigation work
 
 ## Phases
 
@@ -441,7 +451,9 @@ Why Phase 2 exists:
 #### Phase 2 Locked Decisions
 
 - keep `docs/` as the MkDocs source directory
-- keep inferred navigation as the default unless ordering/readability pressure justifies a manual `nav:` block later
+- keep a hybrid nav model:
+  - curated top-level `nav:` in `mkdocs.yml`
+  - broader docs still reachable through the published docs tree and hub pages
 - treat new docs under non-excluded folders as auto-published by default
 - use `exclude_docs` first when a docs branch should stay out of the published site
 - update repo tracking docs and local doc-history sections separately from MkDocs config; publication and repo-history maintenance are related but not the same task
@@ -465,13 +477,13 @@ Depending on the docs change, the phase may also touch:
 
 When a new doc is added under `docs/`:
 
-- it will appear in the MkDocs site automatically if it lives outside the excluded folders and no later manual `nav:` overrides that behavior
-- it does not need a matching `mkdocs.yml` entry while nav remains inferred
+- it will still publish in the MkDocs site automatically if it lives outside the excluded folders
+- it does not need a matching `mkdocs.yml` nav entry unless it should become one of the curated top-level links
 - it does need normal repo doc maintenance such as local `Doc History`, `docs/Doc-Log.md`, and any affected canonical docs-map or umbrella-doc updates
 
 When the docs-site behavior should change:
 
-- update `mkdocs.yml` if the doc should be excluded, re-ordered through manual nav, or surfaced with different theme/plugin behavior
+- update `mkdocs.yml` if the doc should be excluded, promoted into the curated nav, or surfaced with different theme/plugin behavior
 
 #### Phase 2 Verification Steps
 
@@ -498,6 +510,18 @@ Goal:
 - publish the MkDocs site through GitHub Pages from this same repository without replacing the existing app site
 - keep the current web app at the site root and publish the docs site under `/docs/`
 - extend the existing Pages automation rather than creating a second competing Pages deploy
+
+Important clarification:
+- this repo uses one GitHub Pages deployment workflow, not two separate Pages deployments
+- the single deployed artifact serves two live URL paths:
+  - app:
+    - `/`
+  - docs:
+    - `/docs/`
+- in other words:
+  - one Pages site
+  - one uploaded artifact
+  - two served sections inside that site
 
 In scope:
 - update the current `.github/workflows/deploy-pages.yml` workflow so it builds both the app and the MkDocs site in one job set
@@ -570,6 +594,7 @@ Practical result:
 - `.github/workflows/deploy-pages.yml` now builds the app first, then builds MkDocs and merges it into `dist/docs/` before the Pages artifact upload
 - `mkdocs.yml` now sets `site_url` to `https://rickyrickmyballs.github.io/ParaHook_Configurator/docs/`
 - the current GitHub Pages publish shape keeps the app at the project-site root while serving the MkDocs site from the nested `/docs/` path
+- there is not a second standalone Pages workflow for docs in this repo; the docs path is part of the same Pages publish as the app root
 
 #### Phase 3 Verification Steps
 

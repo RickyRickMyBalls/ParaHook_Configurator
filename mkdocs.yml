@@ -2,8 +2,51 @@ site_name: ParaHook Docs
 docs_dir: docs
 site_url: https://rickyrickmyballs.github.io/ParaHook_Configurator/docs/
 
+nav:
+  - Home: index.md
+  - Doc Index: Doc-Index.md
+  - Roadmap:
+      - Main Roadmap: Human-Plans/roadmap/roadmap.md
+      - Architecture Roadmap: Human-Plans/roadmap/Architecture-roadmap.md
+      - Vision Roadmap: Human-Plans/roadmap/Vision-roadmap.md
+      - Decisions: Human-Plans/Decisions.MD
+      - Wishlist: Human-Plans/Wish-Features/WISHLIST.md
+  - Architecture:
+      - System Map: Human-Plans/Architecture/System-Map.md
+      - Engine Architecture: Human-Plans/Architecture/Engine-Architecture.md
+      - Glossary: Human-Plans/Architecture/Glossary.md
+      - Browser: Human-Plans/Architecture/Browser/Browser-Index.md
+      - Console: Human-Plans/Architecture/Console/Console.md
+      - Spaghetti Editor: Human-Plans/Architecture/Spaghetti-Editor-Arch/Spaghetti-Editor-Explained.md
+      - Nodes: Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md
+      - Transform: Human-Plans/Architecture/Transform/transform-index.md
+      - Camera Controls: Human-Plans/Architecture/Camera-Controls/Camera_Controls-Index.md
+      - View Toolbar: Human-Plans/Architecture/View-Toolbar/View-Toolbar-Index.md
+      - Worker: Human-Plans/Architecture/Worker/Worker.md
+      - Layers: Human-Plans/Architecture/Layers/Layers.md
+      - Export: Human-Plans/Architecture/Export/Export-Index.md
+      - Pasta Path: Human-Plans/Architecture/Pasta-Path/Pasta-Path-Index.md
+  - Phase Plans:
+      - Phase Setup: Phase-Plans/00_Phase-Setup.md
+      - MkDocs Plan: Phase-Plans/mkDocs.md
+      - GE: Phase-Plans/01_GE - Phase-Plans.md
+      - VM: Phase-Plans/02_VM - Phase-Plans.md
+      - NI: Phase-Plans/03_NI - Phase-Plans.md
+      - SP: Phase-Plans/11_SP - Phase-Plans.md
+      - EX: Phase-Plans/12_EX - Phase-Plans.md
+      - DOC: Phase-Plans/14_DOC - Phase-Plans.md
+  - Bugs:
+      - Bug Report: Bugs/0_Bug_Report.md
+      - Browser Startup Crash: Bugs/1_BrowserPanel-Startup-Crash.md
+      - Project Content Selector Crash: Bugs/2_BrowserPanel-ProjectContent-Selector-Crash.md
+      - Reference Workspace Black Screen: Bugs/3_ReferenceWorkspace-BlackScreen-Regression.md
+      - Sketch To Extrude Regression: Bugs/4_GeometrySketch-Extrude-Profile-Handoff-Regression.md
+  - CHANGELOG: CHANGELOG.md
+  - Doc Log: Doc-Log.md
+
 exclude_docs: |
   Archive/
+  Human-Plans/CodexNotes/
   Human-Plans/roadmap/archive/
   Phase-Plans/Tasks/Archive/
 

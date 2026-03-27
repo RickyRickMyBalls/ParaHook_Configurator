@@ -1646,6 +1646,8 @@ That is probably a healthier progression than trying to start with the full publ
 
 ### [ ] - [12] - Kitchen Browser and room-code collaboration system
 
+- dedicated planning surface: [Collaberate/Collaberate.md](./Collaberate/Collaberate.md)
+
 - ParaHook could eventually have a dedicated collaborative lobby system for live shared modeling sessions
 - this should feel like a `Kitchen Browser` for pair-cooking / group-cooking on parametric models
 - the key user-facing idea is low-friction room-based collaboration:

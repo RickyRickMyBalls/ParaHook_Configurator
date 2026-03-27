@@ -2083,7 +2083,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
 
     useAppStore.getState().mergeReferenceTransformHistory('shoe:shoe-1')
 
-    expect(
+  expect(
       useAppStore.getState().referenceWorkspace.transformHistoryByReferenceId['shoe:shoe-1'],
     ).toMatchObject([
       {
@@ -2135,6 +2135,160 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
         locked: false,
       },
     ])
+  })
+
+  it('deletes transform history entries and preserves the active scrub target', async () => {
+    const { useAppStore } = await import('./useAppStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useAppStore.setState((state) => ({
+      ...state,
+      referenceWorkspace: {
+        ...state.referenceWorkspace,
+        activeReferenceTransformSession: {
+          referenceId: 'shoe:shoe-1',
+          sessionId: 'reference-transform-session-1',
+          sessionOrdinal: 1,
+          mode: 'translate',
+          space: 'local',
+          shellActive: true,
+          entryActive: false,
+          activeHandle: null,
+          historyScrubIndex: 3,
+          draftTransform: {
+            position: { x: 5, y: 0, z: 0 },
+            rotationDeg: { x: 0, y: 20, z: 0 },
+            scale: { x: 2, y: 2, z: 2 },
+          },
+          entryOrigin: null,
+        },
+        transformOverrideById: {
+          ...state.referenceWorkspace.transformOverrideById,
+          'shoe:shoe-1': {
+            position: { x: 9, y: -2, z: 4 },
+            rotationDeg: { x: 0, y: 20, z: 0 },
+            scale: { x: 2, y: 2, z: 2 },
+          },
+        },
+        transformHistoryByReferenceId: {
+          ...state.referenceWorkspace.transformHistoryByReferenceId,
+          'shoe:shoe-1': [
+            {
+              entryId: 'history-1',
+              sessionId: 'reference-transform-session-1',
+              sessionOrdinal: 1,
+              kind: 'move',
+              delta: { x: 5, y: 0, z: 0 },
+              after: { x: 5, y: 0, z: 0 },
+              transformAfter: {
+                position: { x: 5, y: 0, z: 0 },
+                rotationDeg: { x: 0, y: 0, z: 0 },
+                scale: { x: 1, y: 1, z: 1 },
+              },
+              locked: false,
+            },
+            {
+              entryId: 'history-2',
+              sessionId: 'reference-transform-session-1',
+              sessionOrdinal: 1,
+              kind: 'rotate',
+              delta: { x: 0, y: 20, z: 0 },
+              after: { x: 0, y: 20, z: 0 },
+              transformAfter: {
+                position: { x: 5, y: 0, z: 0 },
+                rotationDeg: { x: 0, y: 20, z: 0 },
+                scale: { x: 1, y: 1, z: 1 },
+              },
+              locked: false,
+            },
+            {
+              entryId: 'history-3',
+              sessionId: 'reference-transform-session-1',
+              sessionOrdinal: 1,
+              kind: 'scale',
+              delta: { x: 1, y: 1, z: 1 },
+              after: { x: 2, y: 2, z: 2 },
+              transformAfter: {
+                position: { x: 5, y: 0, z: 0 },
+                rotationDeg: { x: 0, y: 20, z: 0 },
+                scale: { x: 2, y: 2, z: 2 },
+              },
+              locked: false,
+            },
+            {
+              entryId: 'history-4',
+              sessionId: 'reference-transform-session-1',
+              sessionOrdinal: 1,
+              kind: 'move',
+              delta: { x: 4, y: -2, z: 4 },
+              after: { x: 9, y: -2, z: 4 },
+              transformAfter: {
+                position: { x: 9, y: -2, z: 4 },
+                rotationDeg: { x: 0, y: 20, z: 0 },
+                scale: { x: 2, y: 2, z: 2 },
+              },
+              locked: false,
+            },
+          ],
+        },
+      },
+    }))
+
+    useAppStore.getState().deleteReferenceTransformHistoryEntry('shoe:shoe-1', 'history-2')
+
+    expect(
+      useAppStore.getState().referenceWorkspace.transformHistoryByReferenceId['shoe:shoe-1'],
+    ).toMatchObject([
+      {
+        entryId: 'history-1',
+        kind: 'move',
+        delta: { x: 5, y: 0, z: 0 },
+        after: { x: 5, y: 0, z: 0 },
+        transformAfter: {
+          position: { x: 5, y: 0, z: 0 },
+          rotationDeg: { x: 0, y: 0, z: 0 },
+          scale: { x: 1, y: 1, z: 1 },
+        },
+      },
+      {
+        entryId: 'history-3',
+        kind: 'scale',
+        delta: { x: 1, y: 1, z: 1 },
+        after: { x: 2, y: 2, z: 2 },
+        transformAfter: {
+          position: { x: 5, y: 0, z: 0 },
+          rotationDeg: { x: 0, y: 0, z: 0 },
+          scale: { x: 2, y: 2, z: 2 },
+        },
+      },
+      {
+        entryId: 'history-4',
+        kind: 'move',
+        delta: { x: 4, y: -2, z: 4 },
+        after: { x: 9, y: -2, z: 4 },
+        transformAfter: {
+          position: { x: 9, y: -2, z: 4 },
+          rotationDeg: { x: 0, y: 0, z: 0 },
+          scale: { x: 2, y: 2, z: 2 },
+        },
+      },
+    ])
+    expect(useAppStore.getState().referenceWorkspace.transformOverrideById['shoe:shoe-1']).toMatchObject(
+      {
+        position: { x: 9, y: -2, z: 4 },
+        rotationDeg: { x: 0, y: 0, z: 0 },
+        scale: { x: 2, y: 2, z: 2 },
+      },
+    )
+    expect(useAppStore.getState().referenceWorkspace.activeReferenceTransformSession).toMatchObject({
+      referenceId: 'shoe:shoe-1',
+      historyScrubIndex: 2,
+      draftTransform: {
+        position: { x: 5, y: 0, z: 0 },
+        rotationDeg: { x: 0, y: 0, z: 0 },
+        scale: { x: 2, y: 2, z: 2 },
+      },
+    })
   })
 
   it('normalizes legacy absolute transform history rows when opening the transform shell', async () => {
@@ -2418,11 +2572,11 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     })
     expect(useAppStore.getState().referenceWorkspace.activeReferenceTransformSession).toMatchObject({
       entryActive: false,
-      historyScrubIndex: 5,
+      historyScrubIndex: 3,
       draftTransform: {
-        position: { x: 11, y: -1, z: 2 },
+        position: { x: 7, y: 0, z: 0 },
         rotationDeg: { x: 0, y: 20, z: 0 },
-        scale: { x: 1.5, y: 1, z: 1 },
+        scale: { x: 1, y: 1, z: 1 },
       },
     })
   })
@@ -2525,6 +2679,28 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     useAppStore.getState().cancelActiveReferenceTransformEntry()
 
     expect(useAppStore.getState().referenceWorkspace.activeReferenceTransformSession?.activeHandle).toBeNull()
+  })
+
+  it('treats same-value reference transform space writes as a no-op', async () => {
+    const { useAppStore } = await import('./useAppStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useAppStore.getState().beginReferenceTransformShell('shoe:shoe-1')
+
+    const previousSession =
+      useAppStore.getState().referenceWorkspace.activeReferenceTransformSession
+
+    useAppStore.getState().setActiveReferenceTransformSpace('local')
+
+    expect(useAppStore.getState().referenceWorkspace.activeReferenceTransformSession).toBe(
+      previousSession,
+    )
+    expect(
+      useAppStore.getState().referenceWorkspace.transformHistoryByReferenceId['shoe:shoe-1'] ?? [],
+    ).toEqual([])
+    expect(
+      useAppStore.getState().referenceWorkspace.transformOverrideById['shoe:shoe-1'],
+    ).toBeUndefined()
   })
 })
 
