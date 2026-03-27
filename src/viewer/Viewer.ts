@@ -47,6 +47,7 @@ import {
 } from '../shared/viewSettingsTypes'
 import type { ReferenceLoadableItem } from '../app/references/referenceManifest'
 import type { ReferenceTransformOverride } from '../app/references/referenceManifest'
+import type { ActiveReferenceTransformHandle } from '../app/store/useAppStore'
 import { appendConsoleEntry } from '../app/console/useConsoleStore'
 import { isEditableTarget, routeKeyboardInput } from '../app/inputRouting'
 import type {
@@ -272,6 +273,9 @@ export class Viewer {
     | null = null
   private onReferenceTransformCommit: (() => void) | null = null
   private onReferenceTransformExit: (() => void) | null = null
+  private onReferenceTransformHandleChange:
+    ((handle: ActiveReferenceTransformHandle | null) => void)
+    | null = null
   private onReferenceTransformModeChange: ((mode: TransformControlsMode) => void) | null = null
   private onReferenceTransformSpaceChange: ((space: GizmoSpace) => void) | null = null
   private onSketchPlanePickPlaneSelect: ((plane: SketchPlane) => void) | null = null
@@ -518,6 +522,7 @@ export class Viewer {
     )
     this.transformGizmo.setOnObjectChange(this.handleTransformGizmoObjectChange)
     this.transformGizmo.setOnDragComplete(this.handleTransformGizmoDragComplete)
+    this.transformGizmo.setOnHandleChange(this.handleReferenceTransformHandleChange)
     this.transformGizmo.setMode(this.gizmoMode)
     this.transformGizmo.setSpace(this.gizmoSpace)
     this.syncGizmoEnabledState()
@@ -833,6 +838,12 @@ export class Viewer {
 
   public setOnReferenceTransformExit(handler: (() => void) | null): void {
     this.onReferenceTransformExit = handler
+  }
+
+  public setOnReferenceTransformHandleChange(
+    handler: ((handle: ActiveReferenceTransformHandle | null) => void) | null,
+  ): void {
+    this.onReferenceTransformHandleChange = handler
   }
 
   public setOnReferenceTransformModeChange(
@@ -2097,6 +2108,15 @@ export class Viewer {
     if (this.cameraLockedReferenceId === this.activeReferenceTransformReferenceId) {
       this.syncLockedReferenceCamera(object)
     }
+  }
+
+  private readonly handleReferenceTransformHandleChange = (
+    handle: ActiveReferenceTransformHandle | null,
+  ): void => {
+    if (this.activeReferenceTransformReferenceId === null) {
+      return
+    }
+    this.onReferenceTransformHandleChange?.(handle)
   }
 
   private readonly handleSketchPlanePickTransformObjectChange = (object: Object3D): void => {

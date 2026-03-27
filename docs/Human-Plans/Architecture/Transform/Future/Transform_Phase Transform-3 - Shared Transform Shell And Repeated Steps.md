@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+2. 2026-03-26 19:50: Locked the remaining shell-entry question by deciding that entering `Transform` should create or activate the shared target-local transform session and make the toolbar appear, while `CommitTransform` should hide the toolbar by exiting the shell; also updated the later phase references so Console cleanup now belongs to `Transform 4` and viewport-history plus traversal work moves to `Transform 5`
 1. 2026-03-26 19:23: Created this standalone `Transform 3` future phase doc under the Transform family, translating the locked shared-shell and repeated-step direction into an implementation-ready plan while leaving the one remaining `Transform`-entry shell-spawn question explicit
 
 ### Purpose
@@ -49,7 +50,7 @@ Phase outcome:
 
 - the canonical `Transform > Move/Rotate/Scale` hierarchy already covered by `Transform 2`
 - the first reference-only session/history foundation already covered by `Transform 1`
-- viewport move/scale/rotate history visuals and traversal/restore behavior covered by `Transform 4`
+- viewport move/scale/rotate history visuals and traversal/restore behavior covered by `Transform 5`
 - later history playback or scrub semantics beyond keeping the shell alive between commits
 
 ### Locked Direction
@@ -122,19 +123,17 @@ This aligns with the owner-first architecture direction:
 - one underlying transform shell state
 - multiple surfaces adapting into that state
 
-### Remaining Open Question
+#### 6. Entering `Transform` spawns the shared shell
 
-#### q4 - Should entering `Transform` itself spawn the shared transform session and toolbar?
-
-Current best suggestion:
+Locked rule:
 - yes
 - entering `Transform` should create or activate the target-local shared transform session
 - the toolbar should appear because that session exists, not because Console directly tells a toolbar to open
 - Console and toolbar should both adapt into the same underlying session
 
-This question should be locked before implementation starts, because it decides whether:
-- `Transform` is only a staged breadcrumb layer, or
-- `Transform` is the actual shell-creation command that makes the shared session real
+Exit rule:
+- `CommitTransform` from the `Transform` root exits the shell
+- exiting the shell hides the toolbar because the shared session no longer exists
 
 ### Public Interfaces And State
 
@@ -203,7 +202,7 @@ Expected verification seams:
 Required verification:
 
 - shell entry:
-  - entering `Transform` creates or activates the target-local transform shell once `q4` is locked
+  - entering `Transform` creates or activates the target-local transform shell
   - the toolbar appears because the shell is active
 
 - repeated entry commits:
@@ -232,4 +231,5 @@ Required verification:
 - `Transform 2` remains the canonical hierarchy and target-ownership phase
 - `Transform 3` is the first phase where `Transform` becomes a durable shell rather than only a one-entry branch
 - `CommitTransform` is a shell-exit command, not a per-entry command
-- `q4` still needs to be locked before implementation starts
+- later Console cleanup belongs to `Transform 4`
+- later viewport history visuals and traversal belong to `Transform 5`

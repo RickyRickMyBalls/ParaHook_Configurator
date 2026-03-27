@@ -5,6 +5,7 @@ import {
   createConsoleStagedNavigationContext,
   createSketchDrawRootSession,
   submitConsoleStagedNavigationToken,
+  type ConsoleStagedNavigationSession,
 } from './stagedNavigation'
 
 describe('stagedNavigation', () => {
@@ -348,7 +349,7 @@ describe('stagedNavigation', () => {
         items: [{ referenceId: 'shoe:shoe-1', label: 'Shoe 1', canLoadModel: false }],
       },
     ])
-    const referenceSession = {
+    const referenceSession: ConsoleStagedNavigationSession = {
       scopeId: 'referenceSelected' as const,
       breadcrumb: ['Select', 'References', 'Shoes', 'Shoe 1'],
       selections: {
@@ -384,14 +385,59 @@ describe('stagedNavigation', () => {
     })
 
     expect(transformRoot.session.validChoices.map((choice) => choice.label)).toEqual([
+      'Move',
+      'Rotate',
+      'Scale',
+      'Back',
+    ])
+
+    const commitShell = submitConsoleStagedNavigationToken(transformRoot.session, 'committransform', context)
+    expect(commitShell.kind).toBe('invalid')
+
+    const committedShellContext = createConsoleStagedNavigationContext(
+      [],
+      [
+        {
+          categoryId: 'shoes',
+          label: 'Shoes',
+          canLoadAll: false,
+          items: [{ referenceId: 'shoe:shoe-1', label: 'Shoe 1', canLoadModel: false }],
+        },
+      ],
+      {
+        hasSelection: false,
+        hasPrevious: false,
+        preferredTool: 'LINE',
+      },
+      {
+        'shoe:shoe-1': {
+          activeSessionId: 'reference-transform-session-1',
+          activeSessionCommittedEntryCount: 1,
+        },
+      },
+    )
+    const transformRootWithCommittedEntry = submitConsoleStagedNavigationToken(
+      referenceSession,
+      'transform',
+      committedShellContext,
+    )
+    expect(transformRootWithCommittedEntry.kind).toBe('advance')
+    if (transformRootWithCommittedEntry.kind !== 'advance') {
+      throw new Error('Expected reference transform token to advance after committed shell entry')
+    }
+    expect(transformRootWithCommittedEntry.session.validChoices.map((choice) => choice.label)).toEqual([
       'CommitTransform',
       'Move',
       'Rotate',
       'Scale',
     ])
 
-    const commitShell = submitConsoleStagedNavigationToken(transformRoot.session, 'committransform', context)
-    expect(commitShell).toMatchObject({
+    const committedShell = submitConsoleStagedNavigationToken(
+      transformRootWithCommittedEntry.session,
+      'committransform',
+      committedShellContext,
+    )
+    expect(committedShell).toMatchObject({
       kind: 'execute',
       actionId: 'reference.transform.commitShell',
       breadcrumb: ['Select', 'References', 'Shoes', 'Shoe 1', 'Transform', 'CommitTransform'],
@@ -400,7 +446,7 @@ describe('stagedNavigation', () => {
 
   it('routes reference-selected zoom back to the reference scope', () => {
     const context = createConsoleStagedNavigationContext([])
-    const referenceSession = {
+    const referenceSession: ConsoleStagedNavigationSession = {
       scopeId: 'referenceSelected' as const,
       breadcrumb: ['Select', 'Reference', 'Shoe 1'],
       selections: {
@@ -464,24 +510,28 @@ describe('stagedNavigation', () => {
   })
 
   it('routes references-root zoom back to the references scope', () => {
-    const context = createConsoleStagedNavigationContext([], [], {
-      hasSelection: false,
-      hasPrevious: false,
-      preferredTool: null,
-    }, [
+    const context = createConsoleStagedNavigationContext(
+      [],
+      [
+        {
+          categoryId: 'footpads',
+          label: 'Footpads',
+          canLoadAll: true,
+          items: [
+            {
+              referenceId: 'footpad:pubpad-full-assembly',
+              label: 'PubPad Full Assembly',
+              canLoadModel: true,
+            },
+          ],
+        },
+      ],
       {
-        categoryId: 'footpads',
-        label: 'Footpads',
-        canLoadAll: true,
-        items: [
-          {
-            referenceId: 'footpad:pubpad-full-assembly',
-            label: 'PubPad Full Assembly',
-            canLoadModel: true,
-          },
-        ],
+        hasSelection: false,
+        hasPrevious: false,
+        preferredTool: null,
       },
-    ])
+    )
     const referencesSession = {
       scopeId: 'referencesSelected' as const,
       breadcrumb: ['Select', 'References'],

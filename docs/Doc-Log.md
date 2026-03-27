@@ -3,6 +3,27 @@
 ## Doc Header
 
 ### Doc History
+331. 2026-03-26 21:43: Expanded `docs/Human-Plans/Wish-Features/WISHLIST.md` with a new `[14] Parameter manager` entry, framing a future top-level parameter surface around named project values, node-input bindings, usage mapping, metadata, and later formulas/configuration links instead of leaving important design variables buried across many nodes
+330. 2026-03-26 21:42: Expanded `docs/Human-Plans/Wish-Features/WISHLIST.md` with a new `[13] Drawings / documentation` entry, framing a future drawing-sheet workflow around derived orthographic views, dimensions, notes, model-update awareness, and printable/exportable documentation rather than leaving communication outside the CAD tool
+329. 2026-03-26 21:33: Expanded `docs/Human-Plans/Wish-Features/WISHLIST.md` with a new `[12] Kitchen Browser and room-code collaboration system` entry, framing multiplayer ParaHook work as a local-first host/join model with readable room codes, offline-to-online migration, shared authored-state sync, presence cues, and later public or locked kitchen sessions
+328. 2026-03-26 21:28: Expanded `docs/Human-Plans/Wish-Features/WISHLIST.md` with a new `[11] Al Dente real-time stress analysis / proxy-FEA` entry, framing the idea as a fast printability/strength feedback tool with face-based pressure input, live weak-vs-healthy heat-map guidance, and the `Soggy` versus `Al Dente` metaphor instead of full solver-grade simulation
+327. 2026-03-26 21:26: Expanded `docs/Human-Plans/Wish-Features/WISHLIST.md` with a new `[10] ParaHook Genie / Mr. Noodle` entry, framing the AI-assistant direction as a graph-native copilot that authors, wires, explains, and debugs real `Spaghetti` graph edits while treating the mascot persona and account-linked AI sign-in as later product layers on top of a structured graph-edit contract
+326. 2026-03-26 21:10: Expanded `docs/Human-Plans/Wish-Features/WISHLIST.md` with a new `[09] Library / community asset library` entry, framing reusable shared model publishing as a later local-first asset-package system that can grow into git/GitHub-backed install, update, and community publish flows rather than as a loose file-upload idea
+325. 2026-03-26 20:59: Expanded `docs/Human-Plans/Wish-Features/WISHLIST.md` with a new `[08] Enhanced camera controls and saved views` entry, framing the next camera follow-on around SketchUp-like named view recall, stronger fit/previous/orbit behavior, and durable project-owned saved camera states instead of only temporary navigation shortcuts
+324. 2026-03-26 20:49: Locked the `Transform 4.3` grouped-session-history questions in `docs/Human-Plans/Architecture/Transform/transform-index.md` and tightened `docs/Human-Plans/Architecture/Transform/Future/Transform_Phase Transform-4.3 - Grouped Session History.md` into an implementation-ready spec by fixing the storage shape, shell-session boundaries, empty-session rule, default expand/collapse behavior, parent-row action limits, and persistent session numbering
+323. 2026-03-26 20:46: Expanded `docs/Human-Plans/Architecture/Transform/transform-index.md` under `Transform 4.3` with a fuller grouped-session-history question set, adding open `[ ]` decisions around storage shape, shell-session start/end rules, empty-session behavior, default expand/collapse behavior, parent-row actions, and persistent session numbering
+322. 2026-03-26 20:43: Added `docs/Human-Plans/Architecture/Transform/Future/Transform_Phase Transform-4.3 - Grouped Session History.md` as the standalone grouped-history follow-on for the Transform family, and updated `docs/Human-Plans/Architecture/Transform/transform-index.md` to point at that new future phase doc under the open `q4.3-1` question
+321. 2026-03-26 20:39: Expanded `docs/Human-Plans/Wish-Features/WISHLIST.md` with a new `[07] Manufacture / CAM / G-code mode` entry, framing G-code generation as a later first-class manufacturing workflow around jobs, setup, tools, operations, preview, and postprocessed machine output rather than as just another export format
+320. 2026-03-26 20:34: Expanded `docs/Human-Plans/Wish-Features/WISHLIST.md` with a new `[06] Pasta Path` entry, translating the current `docs/Human-Plans/Architecture/Pasta-Path/Pasta-Path-Index.md` direction into a user-facing wishlist note around an enriched history/feature-tree surface that bridges the `Spaghetti` graph, a scrub-friendly timeline, grouped steps, parallel branch rows, and rollback/debug reading
+319. 2026-03-26 20:32: Expanded `docs/Human-Plans/Wish-Features/WISHLIST.md` with a new `[05] Layers` entry, translating the current `docs/Human-Plans/Architecture/Layers/Layers.md` direction into a user-facing wishlist note around real CAD-style authored layer ownership, manager behavior, current-layer rules, shared selection-driven assignment, and Console visibility commands
+318. 2026-03-26 20:28: Expanded `docs/Human-Plans/Wish-Features/WISHLIST.md` with a new `[04] Materials` entry, grounding it in the older `C:\Users\Rubbe\Desktop\ParaHookConfig\17.0\replicad-app` materials panel and turning that proof-of-concept into a real ParaHook wishlist direction around material definitions, assignments, presets, basic PBR controls, and later export/project persistence
+317. 2026-03-26 20:10: Updated `docs/Human-Plans/Architecture/Transform/transform-index.md` and `docs/Human-Plans/Architecture/Transform/Future/Transform_Phase Transform-4.2 - Reference Draft Sync And Session Cleanup.md` to move grouped transform-session history out of `Transform 4.2` and into a later `Transform 4.3` follow-on, narrowing `4.2` back down to shared draft/session cleanup while keeping committed history intact
+316. 2026-03-26 20:03: Added the new folderized `docs/Human-Plans/Architecture/Export/` family with `Export-Index.md`, the first standalone future phase doc `Export_Phase Export-1 - Toolbar Shell And Format Surface.md`, and the supporting `Architecture-roadmap.md` plus `Doc-Index.md` updates so export now has a real user-facing architecture home for the shared-toolbar surface, target review, format selection, and later project/spaghetti save-export neighbors
+315. 2026-03-26 20:07: Updated `docs/Human-Plans/Architecture/Transform/Future/Transform_Phase Transform-4.2 - Reference Draft Sync And Session Cleanup.md` to lock the grouped-history direction for this cleanup, keeping committed reference transform history intact while rendering it as expandable shell-session groups like `Transform 1`, `Transform 2`, and later sessions instead of only as one flat list
+314. 2026-03-26 20:03: Expanded `docs/Human-Plans/Architecture/Transform/transform-index.md` with explicit open `Transform 4.2` questions, adding `[ ]` decision entries around one shared reference draft session, direct Console/toolbar draft reads, continuous viewer-to-draft sync, commit-versus-cancel behavior, and keeping the cleanup reference-first
+313. 2026-03-26 19:58: Updated `docs/Human-Plans/Wish-Features/WISHLIST.md` entry `[03]` with a future external-tool note covering realistic advanced generative-design integrations such as `nTop`, `Ansys`, `COMSOL`, `Altair`, `HEEDS`, `modeFRONTIER`, `OpenMDAO`, and `Dakota`, while keeping ParaHook framed as the graph-native study front end
+312. 2026-03-26 20:00: Added `docs/Human-Plans/Architecture/Transform/Future/Transform_Phase Transform-4.2 - Reference Draft Sync And Session Cleanup.md` as a standalone Transform-family cleanup spec for restructuring reference transform around one shared store-owned live draft session, and updated `docs/Human-Plans/Architecture/Transform/transform-index.md` to point at that new `Transform 4.2` phase doc under the Console cleanup bridge
+311. 2026-03-26 19:50: Updated `docs/Human-Plans/Architecture/Transform/transform-index.md` and `docs/Human-Plans/Architecture/Transform/Future/Transform_Phase Transform-3 - Shared Transform Shell And Repeated Steps.md` to reframe the next transform ladder so `Transform 4` is now the Console cleanup and shell-polish bridge phase, the older viewport-history plus traversal work moves to `Transform 5`, and the remaining `Transform 3` shell-entry question is now locked
 310. 2026-03-26 19:38: Expanded `docs/Human-Plans/Wish-Features/WISHLIST.md` with a new `[03] Generative Design` entry, framing a realistic ParaHook-first path around graph-driven design studies, candidate generation, constraints, scoring, and promotion of winning variants instead of assuming full Fusion-scale topology optimization on day one
 309. 2026-03-26 19:37: Expanded `docs/Human-Plans/Wish-Features/WISHLIST.md` with a new `[02] Animation` entry covering believable authored-solid motion, Fusion-style motion-study ideas, first mechanical motion types, linked gear behavior, ownership guidance, and a staged rollout
 308. 2026-03-26 19:23: Added `docs/Human-Plans/Architecture/Transform/Future/Transform_Phase Transform-3 - Shared Transform Shell And Repeated Steps.md` as the standalone future Transform-family phase doc for the durable transform-shell and repeated-step behavior, keeping the locked post-entry-commit and `CommitTransform` rules while leaving the shell-spawn-on-Transform-entry question explicit
@@ -85,6 +106,308 @@
 232. 2026-03-25 03:15: Locked the first three `Browser-5.1` reference-selection decisions across both `docs/Human-Plans/Architecture/Browser/Browser-Index.md` and the standalone `Browser_Phase Browser-5.1 - Reference Selection Cleanup.md`, deciding that ordinary reference selection stays lightweight, viewport-picked references should follow into matching Browser rows when the mapping is clear, and empty-space click plus replacement click own normal reference deselect and replacement
 231. 2026-03-25 03:13: Locked `q2` in `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-5.1 - Reference Selection Cleanup.md`, deciding that viewport-picked references should drive Browser row selection whenever one clear matching reference row exists while still avoiding fake sync for ambiguous cases
 230. 2026-03-25 03:12: Locked `q1` in `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-5.1 - Reference Selection Cleanup.md`, deciding that ordinary reference selection only highlights/selects the reference while stronger transform ownership must remain a separate explicit action instead of starting from normal row or viewport selection
+
+<!-- ENTRY 331 -->
+### [331] - 2026-03-26 21:43 - `DOC - Add Parameter Manager Wishlist Entry`
+<!-- ENTRY 331 -->
+HUMAN SUMMARY: Expanded the wishlist with a new `[14] Parameter manager` entry that turns the missing project-variable surface into a clearer CAD feature note around named parameters, node-input bindings, usage mapping, metadata, and later formula/configuration support.
+
+#### Scope
+- Limited this change to wishlist/documentation content under `docs/`.
+- Did not change runtime code, schema, or UI behavior.
+- Focused the update on surfacing parameter management as a future CAD capability.
+
+#### Summary
+- Updated `docs/Human-Plans/Wish-Features/WISHLIST.md`.
+- Added a new `[14] Parameter manager` wishlist entry.
+- Clarified the split between local node values and promoted project-level parameters.
+- Added a staged direction around named parameters, usage mapping, safe edits, and later expression/configuration links.
+
+#### Files Changed
+- `docs/Human-Plans/Wish-Features/WISHLIST.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This is documentation/planning capture only; no implementation work was performed in this change.
+
+<!-- ENTRY 330 -->
+### [330] - 2026-03-26 21:42 - `DOC - Add Drawings Documentation Wishlist Entry`
+<!-- ENTRY 330 -->
+HUMAN SUMMARY: Expanded the wishlist with a new `[13] Drawings / documentation` entry that turns the missing communication layer into a clearer CAD feature note around derived sheet objects, orthographic views, dimensions, notes, model-update awareness, and printable/exportable output.
+
+#### Scope
+- Limited this change to wishlist/documentation content under `docs/`.
+- Did not change runtime code, schema, or UI behavior.
+- Focused the update on surfacing drawings/documentation as a future CAD capability.
+
+#### Summary
+- Updated `docs/Human-Plans/Wish-Features/WISHLIST.md`.
+- Added a new `[13] Drawings / documentation` wishlist entry.
+- Clarified that drawings should be derived from real model/project entities instead of disconnected manual artwork.
+- Added a staged direction around sheets, standard views, annotations, export/print, and later assembly-documentation follow-ons.
+
+#### Files Changed
+- `docs/Human-Plans/Wish-Features/WISHLIST.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This is documentation/planning capture only; no implementation work was performed in this change.
+
+<!-- ENTRY 329 -->
+### [329] - 2026-03-26 21:33 - `DOC - Add Kitchen Browser And Room Code Collaboration Wishlist Entry`
+<!-- ENTRY 329 -->
+HUMAN SUMMARY: Expanded the wishlist with a new `[12] Kitchen Browser and room-code collaboration system` entry that turns the multiplayer idea into a clearer local-first collaboration feature note around host/join room codes, offline-to-online migration, shared authored-state sync, presence avatars, busy-node cues, and later public or locked kitchen sessions.
+
+#### Scope
+- Limited this change to wishlist/documentation content under `docs/`.
+- Did not change runtime code, schema, or UI behavior.
+- Focused the update on surfacing collaboration and room-based shared work as a future platform capability.
+
+#### Summary
+- Updated `docs/Human-Plans/Wish-Features/WISHLIST.md`.
+- Added a new `[12] Kitchen Browser and room-code collaboration system` wishlist entry.
+- Clarified the product split between local/offline project work and explicitly live shared sessions.
+- Added a staged direction around room codes, presence, busy-node behavior, spectate/follow-host, and local save-back after online sessions.
+
+#### Files Changed
+- `docs/Human-Plans/Wish-Features/WISHLIST.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This is documentation/planning capture only; no implementation work was performed in this change.
+
+<!-- ENTRY 328 -->
+### [328] - 2026-03-26 21:28 - `DOC - Add Al Dente Proxy Stress Analysis Wishlist Entry`
+<!-- ENTRY 328 -->
+HUMAN SUMMARY: Expanded the wishlist with a new `[11] Al Dente real-time stress analysis / proxy-FEA` entry that turns the lighter structural-feedback idea into a clearer feature note around face-based pressure input, fast heat-map-style weak/healthy guidance, printability intuition, and the `Soggy` versus `Al Dente` metaphor without overpromising full engineering-grade simulation.
+
+#### Scope
+- Limited this change to wishlist/documentation content under `docs/`.
+- Did not change runtime code, schema, or UI behavior.
+- Focused the update on surfacing fast proxy structural feedback as a future CAD capability separate from full simulation.
+
+#### Summary
+- Updated `docs/Human-Plans/Wish-Features/WISHLIST.md`.
+- Added a new `[11] Al Dente real-time stress analysis / proxy-FEA` wishlist entry.
+- Clarified the split between immediate structural intuition and heavier later simulation/generative work.
+- Added a staged direction around face-based pressure input, live visual feedback, and print-focused weak-point warnings.
+
+#### Files Changed
+- `docs/Human-Plans/Wish-Features/WISHLIST.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This is documentation/planning capture only; no implementation work was performed in this change.
+
+<!-- ENTRY 327 -->
+### [327] - 2026-03-26 21:26 - `DOC - Add ParaHook Genie Mr Noodle Wishlist Entry`
+<!-- ENTRY 327 -->
+HUMAN SUMMARY: Expanded the wishlist with a new `[10] ParaHook Genie / Mr. Noodle` entry that turns the AI-assistant idea into a clearer graph-native feature direction, keeping the mascot/persona flavor while centering the real value on structured `Spaghetti` graph authoring, explanation, reviewable edits, and debugging support.
+
+#### Scope
+- Limited this change to wishlist/documentation content under `docs/`.
+- Did not change runtime code, schema, or UI behavior.
+- Focused the update on surfacing the AI-assistant concept as a future graph-native CAD capability.
+
+#### Summary
+- Updated `docs/Human-Plans/Wish-Features/WISHLIST.md`.
+- Added a new `[10] ParaHook Genie / Mr. Noodle` wishlist entry.
+- Clarified that the assistant should author and explain real graph edits instead of only chatting or hallucinating geometry.
+- Added a first direction around review/apply flows, structured graph-edit plans, and provider-flexible account-linked AI access.
+
+#### Files Changed
+- `docs/Human-Plans/Wish-Features/WISHLIST.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This is documentation/planning capture only; no implementation work was performed in this change.
+
+<!-- ENTRY 326 -->
+### [326] - 2026-03-26 21:10 - `DOC - Add Library And Community Asset Wishlist Entry`
+<!-- ENTRY 326 -->
+HUMAN SUMMARY: Expanded the wishlist with a new `[09] Library / community asset library` entry that frames reusable model sharing as a local-first asset-package system, then extends it toward git/GitHub-backed install, update, and later in-app community publish flows rather than treating it as just loose file upload.
+
+#### Scope
+- Limited this change to wishlist/documentation content under `docs/`.
+- Did not change runtime code, schema, or UI behavior.
+- Focused the update on surfacing reusable local/shared/community asset libraries as a future platform capability.
+
+#### Summary
+- Updated `docs/Human-Plans/Wish-Features/WISHLIST.md`.
+- Added a new `[09] Library / community asset library` wishlist entry.
+- Clarified the progression from local library to git-backed library to later in-app GitHub/community publishing.
+- Added a first package-content direction around metadata, source truth, and optional derived exports.
+
+#### Files Changed
+- `docs/Human-Plans/Wish-Features/WISHLIST.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This is documentation/planning capture only; no implementation work was performed in this change.
+
+<!-- ENTRY 325 -->
+### [325] - 2026-03-26 20:59 - `DOC - Add Enhanced Camera Controls And Saved Views Wishlist Entry`
+<!-- ENTRY 325 -->
+HUMAN SUMMARY: Expanded the wishlist with a new `[08] Enhanced camera controls and saved views` entry that turns the next camera-control wish into a clearer feature note around SketchUp-like named view recall, stronger fit/previous/orbit behavior, and durable saved camera states that belong to the project rather than only to one temporary session.
+
+#### Scope
+- Limited this change to wishlist/documentation content under `docs/`.
+- Did not change runtime code, schema, or UI behavior.
+- Focused the update on surfacing saved views and stronger camera workflow as a future CAD capability.
+
+#### Summary
+- Updated `docs/Human-Plans/Wish-Features/WISHLIST.md`.
+- Added a new `[08] Enhanced camera controls and saved views` wishlist entry.
+- Pulled in the existing camera-controls direction while extending it toward durable project-owned saved views.
+- Clarified the split between live camera state, temporary history like `Zoom Previous`, and durable saved-view recall.
+
+#### Files Changed
+- `docs/Human-Plans/Wish-Features/WISHLIST.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This is documentation/planning capture only; no implementation work was performed in this change.
+
+<!-- ENTRY 321 -->
+### [321] - 2026-03-26 20:39 - `DOC - Add Manufacture CAM G-code Wishlist Entry`
+<!-- ENTRY 321 -->
+HUMAN SUMMARY: Expanded the wishlist with a new `[07] Manufacture / CAM / G-code mode` entry that treats machine-code generation as a later first-class manufacturing workflow, separating it from plain geometry export and framing the feature around authored jobs, setup, tools, operations, preview, and postprocessed output.
+
+#### Scope
+- Limited this change to wishlist/documentation content under `docs/`.
+- Did not change runtime code, schema, or UI behavior.
+- Focused the update on surfacing manufacturing/CAM as a future CAD capability rather than a small export option.
+
+#### Summary
+- Updated `docs/Human-Plans/Wish-Features/WISHLIST.md`.
+- Added a new `[07] Manufacture / CAM / G-code mode` wishlist entry.
+- Clarified the product split between `Export` and manufacturing job authoring.
+- Added a staged direction around process selection, setup, tools, operations, preview, and final posted output.
+
+#### Files Changed
+- `docs/Human-Plans/Wish-Features/WISHLIST.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This is documentation/planning capture only; no implementation work was performed in this change.
+
+<!-- ENTRY 320 -->
+### [320] - 2026-03-26 20:34 - `DOC - Add Pasta Path Wishlist Entry From Current Architecture Direction`
+<!-- ENTRY 320 -->
+HUMAN SUMMARY: Expanded the wishlist with a new `[06] Pasta Path` entry that turns the current `Pasta-Path` architecture family into a clearer user-facing feature note around an enriched history/feature-tree surface, keeping the `Spaghetti` graph as source of truth while adding a slim scrub-friendly timeline, grouped steps, parallel branch rows, and rollback/debug reading.
+
+#### Scope
+- Limited this change to wishlist/documentation content under `docs/`.
+- Did not change runtime code, schema, or UI behavior.
+- Focused the update on surfacing `Pasta Path` as a missing CAD capability because it is not yet implemented.
+
+#### Summary
+- Updated `docs/Human-Plans/Wish-Features/WISHLIST.md`.
+- Added a new `[06] Pasta Path` wishlist entry.
+- Pulled in the current architecture direction around graph-to-timeline mapping, scrub behavior, branch-aware presentation, and sync back to `Spaghetti`.
+- Clarified why `Pasta Path` should be treated as more than a plain linear feature tree.
+
+#### Files Changed
+- `docs/Human-Plans/Wish-Features/WISHLIST.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This is documentation/planning capture only; no implementation work was performed in this change.
+
+<!-- ENTRY 319 -->
+### [319] - 2026-03-26 20:32 - `DOC - Add Layers Wishlist Entry From Current Architecture Direction`
+<!-- ENTRY 319 -->
+HUMAN SUMMARY: Expanded the wishlist with a new `[05] Layers` entry that turns the current `Layers` architecture family into a clearer user-facing feature note around real CAD-style authored content layers, a dedicated manager surface, current-layer behavior, shared selection-based assignment, and Console visibility commands.
+
+#### Scope
+- Limited this change to wishlist/documentation content under `docs/`.
+- Did not change runtime code, schema, or UI behavior.
+- Focused the update on surfacing the already-planned `Layers` direction inside the wishlist because the feature is not yet implemented.
+
+#### Summary
+- Updated `docs/Human-Plans/Wish-Features/WISHLIST.md`.
+- Added a new `[05] Layers` wishlist entry.
+- Pulled in the current architecture direction around layer ownership, manager behavior, supported targets, and visibility semantics.
+- Clarified the separation between `Layers` and `Materials`.
+
+#### Files Changed
+- `docs/Human-Plans/Wish-Features/WISHLIST.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This is documentation/planning capture only; no implementation work was performed in this change.
+
+<!-- ENTRY 318 -->
+### [318] - 2026-03-26 20:28 - `DOC - Add Materials Wishlist Entry Based On Older App Proof`
+<!-- ENTRY 318 -->
+HUMAN SUMMARY: Expanded the wishlist with a new `[04] Materials` entry that treats the older `17.0/replicad-app` materials panel as proof-of-concept, then reframes it into a cleaner ParaHook feature direction around authored material definitions, whole-object and later part-level assignment, presets, basic PBR-style controls, and future export/project persistence.
+
+#### Scope
+- Limited this change to wishlist/documentation content under `docs/`.
+- Did not change runtime code, schema, or UI behavior.
+- Focused the update on turning the older material-editing proof into a realistic current wishlist direction.
+
+#### Summary
+- Updated `docs/Human-Plans/Wish-Features/WISHLIST.md`.
+- Added a new `[04] Materials` wishlist entry.
+- Captured the old app's already-proven materials-panel behaviors as concrete guidance for the new direction.
+- Clarified the future split between material definition, assignment, and rendering/export interpretation.
+
+#### Files Changed
+- `docs/Human-Plans/Wish-Features/WISHLIST.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This is documentation/planning capture only; no implementation work was performed in this change.
+
+<!-- ENTRY 316 -->
+### [316] - 2026-03-26 20:03 - `DOC - Add Export Architecture Family`
+<!-- ENTRY 316 -->
+HUMAN SUMMARY: Added a real folderized `Export` architecture family under `docs/Human-Plans/Architecture/`, defining the new shared-toolbar-based export surface, the first format choices, target-review direction for authored objects and references, later project/spaghetti save-export neighbors, and the first standalone `Export-1` phase doc while wiring the family into the architecture roadmap and docs index.
+
+#### Scope
+- Limited this change to architecture/roadmap/documentation content under `docs/`.
+- Did not change runtime code, schema, or UI behavior.
+- Focused the update on giving `Export` a real planned architecture home instead of leaving it as only phase-family placeholders and scattered notes.
+
+#### Summary
+- Added `docs/Human-Plans/Architecture/Export/Export-Index.md`.
+- Added `docs/Human-Plans/Architecture/Export/Future/Export_Phase Export-1 - Toolbar Shell And Format Surface.md`.
+- Added the new `Export` family to `docs/Human-Plans/roadmap/Architecture-roadmap.md`.
+- Updated `docs/Doc-Index.md` so the architecture docs map now lists the new family and first future phase surface.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Export/Export-Index.md`
+- `docs/Human-Plans/Architecture/Export/Future/Export_Phase Export-1 - Toolbar Shell And Format Surface.md`
+- `docs/Human-Plans/Architecture/Export/Shipped/.gitkeep`
+- `docs/Human-Plans/roadmap/Architecture-roadmap.md`
+- `docs/Doc-Index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This is documentation/planning capture only; no implementation work was performed in this change.
+
+<!-- ENTRY 313 -->
+### [313] - 2026-03-26 19:58 - `DOC - Add External Tool Possibilities To Generative Design Wishlist Entry`
+<!-- ENTRY 313 -->
+HUMAN SUMMARY: `Expanded the generative-design wishlist entry with a future external-tool note so the doc now records a realistic long-range path where ParaHook stays the graph-native study front end while deeper simulation, topology optimization, and multi-objective search can later come from integrations like `nTop`, `Ansys`, `COMSOL`, `Altair`, `HEEDS`, `modeFRONTIER`, `OpenMDAO`, or `Dakota`.`
+
+#### Scope
+- Limited this change to wishlist/documentation content under `docs/`.
+- Did not change runtime code, schema, or UI behavior.
+- Focused the update on capturing future advanced generative-design possibilities without changing the earlier first-pass study direction.
+
+#### Summary
+- Updated `docs/Human-Plans/Wish-Features/WISHLIST.md`.
+- Added a `Future external-tool possibilities` section under entry `[03]`.
+- Clarified the likely long-range split between ParaHook-owned study/candidate UX and external-tool-owned deeper evaluation and optimization.
+
+#### Files Changed
+- `docs/Human-Plans/Wish-Features/WISHLIST.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This is documentation/planning capture only; no implementation work was performed in this change.
 
 <!-- ENTRY 310 -->
 ### [310] - 2026-03-26 19:38 - `DOC - Add Generative Design Wishlist Entry`

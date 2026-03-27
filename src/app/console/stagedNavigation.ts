@@ -38,6 +38,13 @@ export type ConsoleStagedNavigationContext = {
       canLoadModel: boolean
     }>
   }>
+  referenceTransformShellByReferenceId: Record<
+    string,
+    {
+      activeSessionId: string | null
+      activeSessionCommittedEntryCount: number
+    }
+  >
 }
 
 export type ConsoleStagedNavigationChoiceKind = 'scope' | 'action'
@@ -883,12 +890,18 @@ const buildTransformRootChoices = (): ConsoleStagedNavigationChoice[] => [
   createBackChoice(),
 ]
 
-const buildReferenceTransformRootChoices = (): ConsoleStagedNavigationChoice[] => [
-  COMMIT_TRANSFORM_CHOICE,
-  MOVE_CHOICE,
-  ROTATE_CHOICE,
-  SCALE_CHOICE,
-]
+export const buildReferenceTransformRootChoices = (
+  hasCommittedEntriesInActiveShell = false,
+): ConsoleStagedNavigationChoice[] =>
+  hasCommittedEntriesInActiveShell
+    ? [COMMIT_TRANSFORM_CHOICE, MOVE_CHOICE, ROTATE_CHOICE, SCALE_CHOICE]
+    : [MOVE_CHOICE, ROTATE_CHOICE, SCALE_CHOICE, createBackChoice()]
+
+const hasCommittedEntriesInReferenceTransformShell = (
+  context: ConsoleStagedNavigationContext,
+  referenceId: string,
+): boolean =>
+  (context.referenceTransformShellByReferenceId[referenceId]?.activeSessionCommittedEntryCount ?? 0) > 0
 
 const createGraphRootSession = (
   context: ConsoleStagedNavigationContext,
@@ -1201,6 +1214,7 @@ const createReferenceSelectedSession = (
 })
 
 const createReferenceTransformRootSession = (
+  context: ConsoleStagedNavigationContext,
   label: string,
   referenceId: string,
   referenceCategoryId: string | null = null,
@@ -1218,7 +1232,9 @@ const createReferenceTransformRootSession = (
     referenceId,
     referenceCategoryId,
   },
-  validChoices: buildReferenceTransformRootChoices(),
+  validChoices: buildReferenceTransformRootChoices(
+    hasCommittedEntriesInReferenceTransformShell(context, referenceId),
+  ),
 })
 
 const createReferenceZoomRootSession = (
@@ -1682,6 +1698,7 @@ export const createConsoleStagedNavigationContext = (
     hasPrevious: false,
     preferredTool: 'LINE',
   },
+  referenceTransformShellByReferenceId: ConsoleStagedNavigationContext['referenceTransformShellByReferenceId'] = {},
 ): ConsoleStagedNavigationContext => ({
   graphOptions: graphOptions.map((option) => ({
     graphDocumentId: option.graphDocumentId,
@@ -1714,6 +1731,7 @@ export const createConsoleStagedNavigationContext = (
     })),
   })),
   sketchDraw,
+  referenceTransformShellByReferenceId: { ...referenceTransformShellByReferenceId },
 })
 
 export const isConsoleStagedNavigationRootToken = (submittedToken: string): boolean => {
@@ -3439,6 +3457,7 @@ export const submitConsoleStagedNavigationToken = (
     if (matchedChoice.canonicalToken === TRANSFORM_CHOICE.canonicalToken) {
       return createAdvanceResult(
         createReferenceTransformRootSession(
+          context,
           session.breadcrumb.at(-1) ?? 'Reference',
           session.selections.referenceId ?? '',
           session.selections.referenceCategoryId ?? null,
@@ -3464,6 +3483,7 @@ export const submitConsoleStagedNavigationToken = (
       SCALE: 'reference.transform.scale',
     }
     const transformRootSession = createReferenceTransformRootSession(
+      context,
       session.breadcrumb.at(-1) ?? 'Reference',
       session.selections.referenceId ?? '',
       session.selections.referenceCategoryId ?? null,
@@ -3493,7 +3513,9 @@ export const submitConsoleStagedNavigationToken = (
   }
 
   if (session.scopeId === 'referenceTransformRoot') {
-    const transformChoices = buildReferenceTransformRootChoices()
+    const transformChoices = buildReferenceTransformRootChoices(
+      hasCommittedEntriesInReferenceTransformShell(context, session.selections.referenceId ?? ''),
+    )
     const matchedChoice =
       transformChoices.find((choice) => matchesChoice(choice, normalizedToken)) ?? null
     if (matchedChoice === null) {

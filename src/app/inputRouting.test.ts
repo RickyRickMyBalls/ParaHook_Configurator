@@ -101,6 +101,20 @@ describe('routeKeyboardInput', () => {
     })
   })
 
+  it('lets x/y/z fall back to console capture during a live reference transform entry', () => {
+    const result = routeKeyboardInput({
+      event: createEvent('x'),
+      referenceTransformActive: true,
+      stagedConsoleActive: true,
+      allowFlatConsoleCapture: true,
+    })
+
+    expect(result).toEqual({
+      owner: 'staged-console',
+      decision: 'handle',
+    })
+  })
+
   it('uses staged console for printable token capture when no higher owner is active', () => {
     const result = routeKeyboardInput({
       event: createEvent('b'),

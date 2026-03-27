@@ -74,6 +74,59 @@ describe('ConsoleBar', () => {
     ).toEqual(['B'])
   })
 
+  it('treats escape as step-back immediately for reference transform value prompts', async () => {
+    const cancelSpy = { called: false }
+
+    useConsoleStore.setState({
+      consolePromptSession: {
+        kind: 'reference-transform.axis',
+        breadcrumb: ['Select', 'References', 'Shoes', 'Shoe 1', 'Transform', 'Move', 'Move X'],
+        label: 'Select > References > Shoes > Shoe 1 > Transform > Move > Move X',
+        prefill: '12',
+        returnSession: {
+          scopeId: 'referenceTransformRoot',
+          breadcrumb: ['Select', 'References', 'Shoes', 'Shoe 1', 'Transform'],
+          selections: {
+            graphDocumentId: null,
+            selectedNodeId: null,
+            sketchNodeId: null,
+            referenceId: 'shoe:shoe-1',
+            referenceCategoryId: 'shoes',
+            referenceCanLoadModel: true,
+          },
+          validChoices: [],
+        },
+        mode: 'translate',
+        axis: 'x',
+      },
+      inputText: '12',
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(
+        <ConsoleBar
+          onCancelCommand={() => {
+            cancelSpy.called = true
+          }}
+        />,
+      )
+    })
+
+    const input = container.querySelector('.ConsoleInput') as HTMLInputElement | null
+    expect(input).not.toBeNull()
+
+    await act(async () => {
+      input?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    })
+
+    expect(cancelSpy.called).toBe(true)
+    expect(useConsoleStore.getState().inputText).toBe('12')
+  })
+
   it('shows the full staged breadcrumb for object selection scopes', async () => {
     useConsoleStore.setState({
       stagedNavigationSession: {

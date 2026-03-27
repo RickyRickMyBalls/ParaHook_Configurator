@@ -156,7 +156,7 @@ describe('workspaceIntents', () => {
     })
     expect(useAppStore.getState().workspaceSelection.activeSurface).toBe('browser')
     expect(useAppStore.getState().referenceWorkspace.visibilityById['shoe:shoe-1']).toBe(false)
-    expect(useAppStore.getState().referenceWorkspace.activeTransformReferenceId).toBeNull()
+    expect(useAppStore.getState().referenceWorkspace.activeReferenceTransformSession).toBeNull()
     expect(useAppStore.getState().floatingShellActivationRequest?.target).toBe('browser')
   })
 
@@ -181,7 +181,7 @@ describe('workspaceIntents', () => {
     )
 
     expect(useAppStore.getState().referenceWorkspace.visibilityById['shoe:shoe-1']).toBe(true)
-    expect(useAppStore.getState().referenceWorkspace.activeTransformReferenceId).toBe('shoe:shoe-1')
+    expect(useAppStore.getState().referenceWorkspace.activeReferenceTransformSession?.referenceId).toBe('shoe:shoe-1')
   })
 
   it('activates an object target through the canonical workspace intent seam', async () => {

@@ -117,10 +117,7 @@ export const routeKeyboardInput = ({
     }
   }
 
-  if (
-    referenceTransformActive &&
-    (key === 'm' || key === 'r' || key === 's' || key === 'x' || key === 'y' || key === 'z')
-  ) {
+  if (referenceTransformActive && (key === 'm' || key === 'r' || key === 's')) {
     return { owner: 'reference-transform', decision: 'handle' }
   }
 

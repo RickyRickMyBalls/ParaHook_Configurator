@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+17. 2026-03-26 20:03: Added the new `Export` family to this cross-family roadmap, wiring in the first open `Export-1` through `Export-4` ladder so the roadmap now tracks the export toolbar surface, target collection, format-specific settings, and later project/spaghetti save-export neighbors beside the older architecture families
 16. 2026-03-26 15:40: Added the new `Layers` family to this cross-family roadmap, wiring in the open `Layers-1` through `Layers-4` ladder so the roadmap now tracks layer foundation, manager-plus-console controls, sketch entity ownership, and authored 3D object visibility beside the older architecture families
 15. 2026-03-25 22:17: Cleaned up this cross-family roadmap after shipping `Browser-6 - BrowserPanel Structure And Row-Family Cleanup`, updated the Browser family read to the post-Browser-6 state with eleven shipped cuts, and advanced the remaining open Browser architecture work to the smaller `Browser-7` follow-on bucket
 14. 2026-03-25 21:55: Added a practical `To do` checklist section to this cross-family roadmap, rewriting the near-term sequence from the current live architecture families instead of the older roadmap-lane labels so the file now has one Browser-to-Pasta-Path working list for what to finish before the first honest `Pasta Path` cut
@@ -36,6 +37,7 @@ Use it to answer:
 This file covers:
 - `Browser`
 - `Console`
+- `Export`
 - `Layers`
 - `Pasta Path`
 - `Radio`
@@ -70,6 +72,8 @@ The `Layers` family now belongs in that tracker too because it has a real four-p
   - `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
 - `Console`
   - `docs/Human-Plans/Architecture/Console/Console.md`
+- `Export`
+  - `docs/Human-Plans/Architecture/Export/Export-Index.md`
 - `Layers`
   - `docs/Human-Plans/Architecture/Layers/Layers.md`
 - `Pasta Path`
@@ -185,6 +189,32 @@ Current read:
 ### [ ] Layers-2 - Layer Manager And Console Command Surface
 ### [ ] Layers-3 - Sketch Entity Layer Ownership
 ### [ ] Layers-4 - Authored 3D Object Layer Ownership And Visibility
+
+## [ ] Export
+### Info
+
+Source docs:
+- `docs/Human-Plans/Architecture/Export/Export-Index.md`
+- `docs/Human-Plans/Architecture/Export/Future/Export_Phase Export-1 - Toolbar Shell And Format Surface.md`
+
+Current read:
+- the `Export` family now has a real umbrella home instead of living only as canonical `EX` placeholders or scattered later notes
+- the first direction is explicitly user-facing:
+  - a shared-toolbar-based export surface
+  - target review for authored objects and references
+  - first format choices
+  - later honest save/export neighbors such as project file and spaghetti file
+- none of the export-family phases are shipped yet
+- the family currently reads as one clean four-step path:
+  - export surface shell
+  - target collection
+  - format-specific settings
+  - later persistence-adjacent export neighbors
+
+### [ ] Export-1 - Toolbar Shell And Format Surface
+### [ ] Export-2 - Target Collection And Selection Integration
+### [ ] Export-3 - Format-Specific Settings And Detail Controls
+### [ ] Export-4 - Project File, Spaghetti File, And Later Export Neighbors
 
 ## [~] Pasta Path
 ### Info
@@ -399,6 +429,10 @@ Current read:
 - [ ] `Layers-2`
 - [ ] `Layers-3`
 - [ ] `Layers-4`
+- [ ] `Export-1`
+- [ ] `Export-2`
+- [ ] `Export-3`
+- [ ] `Export-4`
 - [ ] `SketchPlane-2`
 - [ ] `SketchPlane-2-Cleanup`
 - [ ] `SketchPlane-3`

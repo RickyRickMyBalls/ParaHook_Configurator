@@ -65,6 +65,311 @@ Do not use it for:
 
 ## Doc Body
 
+### [656] - 2026-03-26 22:31 - `TRN - Transform-4.4 - Relative Axis Input Uses Entry Origin`
+<!-- ENTRY 656 -->
+HUMAN SUMMARY: `This fixed reference transform axis prompts so relative numeric input now adds from the transform entry origin instead of the current live drag value, which means \`Move X > 10\` adds 10 from the last committed baseline even if the mouse already moved the gizmo first.` 
+#### Scope / Constraints Honored
+- Kept the change limited to reference transform axis prompt submit behavior.
+- Left `@number` absolute axis input unchanged.
+- Left vec3 and plane prompt submit behavior unchanged in this patch.
+
+#### Summary of Implementation
+- Changed the reference transform axis submit path in `ConsoleDock` so plain numeric input now uses the active entry origin as its baseline instead of the current live draft transform.
+- Kept absolute `@...` axis input using the current draft path so direct absolute assignment still works as expected.
+- Added a focused regression proving `Move X > 10` still resolves from the entry origin even after the live draft has drifted to a different gizmo-driven value.
+
+#### Files Changed
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+
+#### Behavior Changes
+- Relative axis submits like `Move X > 10` now add from the entry baseline, not from the current live mouse-driven axis value.
+- Absolute axis submits like `Move X > @10` remain absolute.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/console/ConsoleDock.test.tsx`
+- `cmd /c npx tsc --noEmit`
+
+### [655] - 2026-03-26 22:28 - `TRN - Transform-4.4 - Axis Prompt Autofill Uses Absolute Marker`
+<!-- ENTRY 655 -->
+HUMAN SUMMARY: `This updated live reference transform axis prompt autofill so gizmo-driven values now show an \`@\` prefix, making it clear that the displayed X/Y/Z value is the current absolute axis position while plain typed numbers still submit as relative deltas.` 
+#### Scope / Constraints Honored
+- Kept the change limited to reference transform axis prompt display.
+- Left relative-by-default submit behavior unchanged.
+- Left plane prompts and vec3 prompts unchanged in this patch.
+
+#### Summary of Implementation
+- Added a shared axis prompt prefill formatter in `ConsoleDock` so reference transform axis prompts now render live values as `@value`.
+- Applied that formatter both when opening an axis prompt and when a gizmo drag updates the prompt prefill live.
+- Updated the focused console regression covering live `Move X` prompt updates during gizmo movement.
+
+#### Files Changed
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+
+#### Behavior Changes
+- Live axis prompt autofill now shows `@0`, `@14`, and similar values while the gizmo is driving the draft.
+- This makes the prompt display consistent with the new `@number` absolute-entry convention.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/console/ConsoleDock.test.tsx`
+- `cmd /c npx tsc --noEmit`
+
+### [654] - 2026-03-26 22:23 - `TRN - Transform-4.4 - Axis Commit Returns To Transform Root`
+<!-- ENTRY 654 -->
+HUMAN SUMMARY: `This fixed reference transform axis/plane commits so finishing an entry like \`Move X > 10\` now returns the Console to the shared \`Transform\` root instead of reseeding the still-active \`Move\` assist on the way out.` 
+#### Scope / Constraints Honored
+- Kept the change limited to the reference transform console commit path.
+- Preserved the shared transform shell and the existing `CommitTransform` exit behavior.
+- Left history append behavior unchanged.
+
+#### Summary of Implementation
+- Reordered the reference transform console commit path so the viewer/store entry commit finishes before the prompt is cleared, which lets prompt teardown reseed from `referenceTransformRoot` instead of the stale in-entry assist.
+- Added a focused regression proving `Transform > Move > Move X > 10` returns to the transform root, leaves the shell active, and primes `CommitTransform` after the first committed child entry.
+
+#### Files Changed
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+
+#### Behavior Changes
+- Committing `Move X`, `Move Y`, `Rotate Z`, `Scale X`, and the other axis-entry prompts now returns the Console to `Transform` level, not back into the active `Move/Rotate/Scale` entry root.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/console/ConsoleDock.test.tsx`
+- `cmd /c npx tsc --noEmit`
+
+### [653] - 2026-03-26 22:19 - `TRN - Transform-4.4 - Relative Axis Entry With Absolute Override`
+<!-- ENTRY 653 -->
+HUMAN SUMMARY: `This changed reference transform axis value entry so plain float submits are now relative deltas by default and \`@number\` forces an absolute axis value, which makes \`Move X > 10\` add 10 while \`Move X > @10\` snaps X to 10.` 
+#### Scope / Constraints Honored
+- Kept the change limited to reference transform axis value prompts.
+- Left vec3 entry and plane vec3 entry behavior unchanged in this patch.
+- Applied the same axis-input rule across move, rotate, and scale.
+
+#### Summary of Implementation
+- Extended the reference transform axis submit parser in `ConsoleDock` so plain signed floats parse as relative deltas and `@...` parses as an absolute axis assignment.
+- Updated the axis value application helper so it can add deltas by default or set the axis absolutely when the `@` override is present.
+- Added focused console regressions covering relative move, absolute move with `@10`, relative rotate, and relative scale axis submits.
+
+#### Files Changed
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+
+#### Behavior Changes
+- `Move X > 10` now adds 10 to the current X value.
+- `Move X > @10` now sets the current X value to exactly 10.
+- The same relative-by-default rule now applies to `Rotate X/Y/Z` and `Scale X/Y/Z` axis prompts.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/console/ConsoleDock.test.tsx`
+- `cmd /c npx tsc --noEmit`
+
+### [652] - 2026-03-26 22:14 - `TRN - Transform-4.4 - Escape Cancels Live Prompt Drag`
+<!-- ENTRY 652 -->
+HUMAN SUMMARY: `This made \`Esc\` from a live reference transform axis or plane prompt cancel the in-progress gizmo drag before stepping back, so backing out of Move X / Rotate Y / Scale Z no longer lets mouse-up commit the partial drag.` 
+#### Scope / Constraints Honored
+- Kept the change limited to the reference transform prompt step-back path.
+- Preserved the broader transform shell, history, and grouped-session behavior.
+- Reused the existing viewer drag-cancel seam instead of inventing a second cancel path.
+
+#### Summary of Implementation
+- Updated the reference transform prompt step-back helper in `ConsoleDock` to call the viewer drag-cancel seam before clearing the active handle and dropping back to the parent transform level.
+- Kept the shared active-handle state clearing in place so handle-sync does not reopen the same prompt after escape.
+- Extended the live-update escape regression to assert that the viewer drag-cancel and handle-clear seams both fire when `Esc` is used from an updating `Move X` prompt.
+
+#### Files Changed
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+
+#### Behavior Changes
+- Pressing `Esc` from a live updating reference transform axis/plane prompt now cancels the active drag and steps back to `Move`, `Rotate`, or `Scale` without committing the in-progress move on mouse-up.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/console/ConsoleDock.test.tsx src/app/console/ConsoleBar.test.tsx`
+- `cmd /c npx tsc --noEmit`
+
+### [651] - 2026-03-26 22:12 - `TRN - Transform-4.4 - Live Drag Escape Step Back`
+<!-- ENTRY 651 -->
+HUMAN SUMMARY: `This fixed the live gizmo-drag case for reference transform value prompts, so pressing \`Esc\` while a Move/Rotate/Scale axis value is still updating now steps back to the parent transform level immediately instead of waiting for mouse-up and re-opening the same prompt from stale active-handle state.` 
+#### Scope / Constraints Honored
+- Kept the fix limited to the reference transform prompt step-back path during active live updates.
+- Preserved the broader transform shell and history behavior.
+- Reused the shared active-handle session model instead of adding new prompt-local state.
+
+#### Summary of Implementation
+- Updated the global ConsoleDock escape handling so open `reference-transform.axis` and `reference-transform.plane` prompts win over the broader reference-transform keyboard owner even during active draft updates.
+- Tightened the reference transform prompt step-back helper to clear the shared active handle in both the viewer seam and the app-store session, preventing handle-sync from immediately reopening the same prompt after `Esc`.
+- Added a regression proving `Move X` can be updating live from draft changes, receive global `Esc`, and return to the `Move` root with the entry still active.
+
+#### Files Changed
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+
+#### Behavior Changes
+- While a reference transform axis or plane prompt is live and still updating from gizmo movement, `Esc` now immediately returns to `Move`, `Rotate`, or `Scale` instead of requiring a viewport release first.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/console/ConsoleDock.test.tsx src/app/console/ConsoleBar.test.tsx`
+- `cmd /c npx tsc --noEmit`
+
+### [650] - 2026-03-26 22:06 - `TRN - Transform-4.4 - Axis Prompt Escape Step Back`
+<!-- ENTRY 650 -->
+HUMAN SUMMARY: `This changed reference transform axis and plane value prompts so pressing \`Esc\` steps back to the previous transform level immediately instead of clearing the current numeric input first, which keeps Move X / Rotate Y / Scale Z behaving like a proper nested console path.` 
+#### Scope / Constraints Honored
+- Kept the change limited to reference transform axis/plane prompt escape behavior.
+- Preserved the broader Console escape behavior for other staged and prompt surfaces.
+- Left transform history, shell ownership, and gizmo sync behavior unchanged.
+
+#### Summary of Implementation
+- Updated `ConsoleBar` so `Esc` inside `reference-transform.axis` and `reference-transform.plane` prompts calls the staged cancel/step-back path immediately, even when the input still contains a live numeric prefill.
+- Added a focused ConsoleBar regression proving those prompts now route `Esc` to `onCancelCommand` without first blanking the prompt input.
+- Re-ran the ConsoleDock suite to keep the surrounding transform-shell prompt behavior green after the input-level escape change.
+
+#### Files Changed
+- `src/app/console/ConsoleBar.tsx`
+- `src/app/console/ConsoleBar.test.tsx`
+
+#### Behavior Changes
+- `Esc` from `Move X`, `Move Y`, `Move Z`, `Move XY`, `Rotate X`, `Scale Z`, and the other reference transform value-prompt levels now returns to the previous `Move/Rotate/Scale` level immediately.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/console/ConsoleBar.test.tsx src/app/console/ConsoleDock.test.tsx`
+- `cmd /c npx tsc --noEmit`
+
+### [649] - 2026-03-26 22:00 - `TRN - Transform-4.4 - Center Handle Entry Promotion`
+<!-- ENTRY 649 -->
+HUMAN SUMMARY: `This made a reference transform gizmo center-handle press promote the shared shell into a live entry immediately, so clicking the move center now lands the Console at the Move root with the live Vec3 shown before release commits that entry through the existing drag-complete path.` 
+#### Scope / Constraints Honored
+- Kept the patch reference-first and limited it to the shared shell/Console behavior around real gizmo center-handle activation.
+- Reused the existing viewer drag-complete commit flow instead of redesigning commit ownership.
+- Left history structure and grouped history behavior unchanged.
+
+#### Summary of Implementation
+- Updated the `ViewerHost` reference-transform handle callback so any real gizmo handle engagement promotes the active transform shell into an entry when needed, while preserving the handle payload in the shared session.
+- Added coverage proving a center-handle callback on a shell-only session produces an active translate entry with the center handle stored in session state.
+- Added Console coverage proving the center-handle path returns the Console to the `Transform > Move` root with the live vec3 reseeded instead of leaving stale prompt/manual input behind.
+
+#### Files Changed
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+
+#### Behavior Changes
+- Pressing the move gizmo center while inside the transform shell now starts the move entry immediately instead of leaving the shell idle.
+- The Console now lands at `... > Transform > Move > Choose next` with the live `Vec3 [...]` input reseeded when that center handle is engaged.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/components/ViewerHost.test.tsx src/app/console/ConsoleDock.test.tsx`
+- `cmd /c npx tsc --noEmit`
+
+### [648] - 2026-03-26 21:57 - `TRN - Transform-4.4 - Gizmo Handle To Console Sync`
+<!-- ENTRY 648 -->
+HUMAN SUMMARY: `This made reference transform gizmo handle picks drive the shared Console and toolbar state, so clicking X/Y/Z or XY/XZ/YZ handles now opens the matching Console prompt and keeps row highlight aligned with the active handle instead of only syncing raw draft values.` 
+#### Scope / Constraints Honored
+- Kept the patch reference-first and did not widen handle-sync behavior to object, folder, or assembly transform paths.
+- Left history structure unchanged and used the existing shared reference transform session as the owner of live handle state.
+- Kept center/all-axis and free-rotate handles at the mode root instead of forcing deeper prompts.
+
+#### Summary of Implementation
+- Added a shared `activeHandle` field to the active reference transform session in `useAppStore` plus a `setActiveReferenceTransformHandle(...)` store action, and cleared that handle on entry commit/cancel.
+- Added a new viewer callback seam so `TransformGizmo` reports active handle selection through `Viewer`, `viewerBridge`, and `ViewerHost` into the shared store session.
+- Updated `ConsoleDock` so shared handle changes open the matching reference-transform axis or plane prompt, while center/free-rotate handles clear those deeper prompts and return the Console to the mode root.
+- Updated `ReferenceTransformToolbar` so prompt-driven highlight still wins, but shared gizmo handle state now highlights the matching axis row when no explicit prompt is open and suppresses row highlight for center/free-rotate handles.
+- Added targeted store, viewer-host, toolbar, and console tests for shared handle storage, gizmo-driven prompt opening, center-handle prompt clearing, and row highlight sync.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/store/useAppStore.test.ts`
+- `src/app/viewerBridge.ts`
+- `src/viewer/Viewer.ts`
+- `src/viewer/gizmo/TransformGizmo.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+- `src/app/components/ReferenceTransformToolbar.tsx`
+- `src/app/components/ReferenceTransformToolbar.test.tsx`
+
+#### Behavior Changes
+- Clicking translate, rotate, or scale axis handles now drives Console into the matching `Move X/Y/Z`, `Rotate X/Y/Z`, or `Scale X/Y/Z` prompt path.
+- Clicking move plane handles now drives Console into the matching `Move XY/XZ/YZ` prompt path.
+- Clicking center/all-axis or free-rotate handles now clears deeper axis/plane prompts and leaves the Console at the mode root.
+- Toolbar row highlight now follows the shared active gizmo axis handle even when the prompt was not opened from typed Console input.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/store/useAppStore.test.ts src/app/components/ViewerHost.test.tsx src/app/components/ReferenceTransformToolbar.test.tsx src/app/console/ConsoleDock.test.tsx`
+- `cmd /c npx tsc --noEmit`
+
+### [647] - 2026-03-26 21:00 - `TRN - Transform-4.3 - Grouped Session History`
+<!-- ENTRY 647 -->
+HUMAN SUMMARY: `This grouped committed reference transform history under expandable shell-session parents like Transform 1 and Transform 2, while keeping the committed child entries, lock behavior, merge behavior, and live draft/session sync from Transform-4.2 intact.` 
+#### Scope / Constraints Honored
+- Kept the phase reference-first instead of widening grouped history to object, folder, or assembly targets.
+- Preserved committed child entries as the base truth and derived grouped parent rows from per-entry session metadata instead of adding a second grouped-history store.
+- Kept merge and lock behavior on child entries only, with parent session rows limited to local expand/collapse behavior.
+
+#### Summary of Implementation
+- Extended committed reference transform history entries with `sessionId` and persistent `sessionOrdinal`, and stamped those fields from the active transform shell when child entries commit.
+- Updated reference shell startup to allocate the next pending session ordinal from the target history so empty shells produce no history row and real committed shells become `Transform 1`, `Transform 2`, and later groups.
+- Replaced the flat transform-history list in `ReferenceTransformToolbar` with grouped session parents derived from child-entry metadata, defaulting the newest session expanded and older sessions collapsed.
+- Added grouped-history verification in the store and toolbar tests while keeping the existing Console and viewer-host session tests green against the new entry shape.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/store/useAppStore.test.ts`
+- `src/app/components/ReferenceTransformToolbar.tsx`
+- `src/app/components/ReferenceTransformToolbar.test.tsx`
+- `src/app/theme/surfaces/viewport-overlay.css`
+
+#### Behavior Changes
+- Reference transform history now renders as grouped shell sessions instead of one flat list.
+- Each committed child entry carries the shell session metadata needed to stay under its `Transform N` parent.
+- Newest transform sessions start expanded, older sessions start collapsed, and parent rows only expand or collapse child entries.
+- Empty transform shells still create no history row because no committed child entries are written.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/store/useAppStore.test.ts src/app/components/ReferenceTransformToolbar.test.tsx`
+- `cmd /c npx vitest run src/app/console/ConsoleDock.test.tsx src/app/components/ViewerHost.test.tsx`
+- `cmd /c npx tsc --noEmit`
+
+### [646] - 2026-03-26 20:38 - `TRN - Transform-4.2 - Reference Draft Sync And Session Cleanup`
+<!-- ENTRY 646 -->
+HUMAN SUMMARY: `This replaced the scattered reference transform runtime fields with one shared store-owned active draft session, so the viewer gizmo, Console, toolbar, and Browser highlight state all read the same live reference transform draft while committed history stays intact.` 
+#### Scope / Constraints Honored
+- Kept the cleanup reference-first instead of widening it to object, folder, or assembly transforms.
+- Preserved the committed `transformOverrideById` and `transformHistoryByReferenceId` data shapes rather than folding grouped history into this pass.
+- Kept viewer execution ownership intact while moving live draft/session truth into the app store.
+
+#### Summary of Implementation
+- Added `activeReferenceTransformSession` to `useAppStore` and rewired reference transform shell, entry, draft, commit, and cancel behavior around that single session object.
+- Changed `ViewerHost` so gizmo changes now write into the active draft session continuously, viewer commit calls the shared session commit path, and evaluated reference overrides use the draft for the active transform target.
+- Updated `ConsoleDock` to build the live reference transform assist from the shared draft session and to route typed vec3, axis, and plane submissions through draft update plus shared entry commit instead of mutating committed override state during entry.
+- Updated `ReferenceTransformToolbar` and Browser selection/highlight surfaces to read the active reference from the session object and use the draft transform as the live value source.
+- Updated the affected store, Console, toolbar, viewer-host, and workspace-intent tests to seed and assert against the new session model.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/store/useAppStore.test.ts`
+- `src/app/store/workspaceIntents.ts`
+- `src/app/store/workspaceIntents.test.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+- `src/app/components/ReferenceTransformToolbar.tsx`
+- `src/app/components/ReferenceTransformToolbar.test.tsx`
+- `src/app/panels/useBrowserPanelController.ts`
+
+#### Behavior Changes
+- Entering the reference transform shell now creates one explicit active reference transform session in store.
+- Dragging the reference gizmo updates the same live draft that Console and the transform toolbar read.
+- Committing a reference transform entry promotes the draft into committed override/history only when the active transform kind changed.
+- Cancelling an active reference transform entry restores the captured entry origin without wiping prior committed history.
+
+#### Verification Steps
+- `npx vitest run src/app/store/useAppStore.test.ts src/app/store/workspaceIntents.test.ts src/app/console/ConsoleDock.test.tsx src/app/components/ReferenceTransformToolbar.test.tsx src/app/components/ViewerHost.test.tsx`
+- `npx tsc --noEmit`
+
 ### [645] - 2026-03-26 19:42 - `TRN - Transform-3 - Shell Activation Cleanup`
 <!-- ENTRY 645 -->
 HUMAN SUMMARY: `This cleaned up the just-landed Transform-3 reference shell wiring by removing a redundant ConsoleDock activation path, leaving one clear shell-entry seam while keeping the new Transform shell behavior unchanged.` 

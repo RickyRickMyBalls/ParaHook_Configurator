@@ -164,6 +164,7 @@ type ConsoleState = {
   setDiagnosticsPinned: (value: boolean) => void
   setStagedNavigationSession: (session: ConsoleStagedNavigationSession | null) => void
   setConsolePromptSession: (session: ConsolePromptSession | null) => void
+  updateConsolePromptSessionPrefill: (prefill: string) => void
   setFeatureAssistDescriptor: (descriptor: ConsoleAssistDescriptor | null) => void
   clearStagedNavigationSession: () => void
   clearConsolePromptSession: () => void
@@ -891,6 +892,27 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
       }
     })
   },
+  updateConsolePromptSessionPrefill: (prefill) => {
+    set((state) => {
+      if (state.consolePromptSession === null || state.consolePromptSession.prefill === prefill) {
+        return {}
+      }
+      const shouldMirrorInput =
+        !state.isStagedChoiceManualOverride ||
+        state.inputText.trim() === state.consolePromptSession.prefill.trim()
+      return {
+        consolePromptSession: {
+          ...state.consolePromptSession,
+          prefill,
+        },
+        ...(shouldMirrorInput
+          ? {
+              inputText: prefill,
+            }
+          : {}),
+      }
+    })
+  },
   clearStagedNavigationSession: () => {
     set((state) => {
       if (state.featureAssistDescriptor !== null && state.featureAssistDescriptor.choices.length > 0) {
@@ -979,11 +1001,13 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
         }
       }
       const stagedChoiceIndex = 0
+      const currentDescriptorDrivenInputText = getDescriptorDrivenInputText(state)
       const shouldPreserveExistingInput =
         state.inputText.trim().length > 0 &&
         (state.isStagedChoiceManualOverride ||
-          state.featureAssistDescriptor === null ||
-          !isInputDrivenByDescriptor(state.featureAssistDescriptor, state.inputText))
+          currentDescriptorDrivenInputText === null ||
+          normalizeChoiceToken(state.inputText) !==
+            normalizeChoiceToken(currentDescriptorDrivenInputText))
       const inputText = shouldPreserveExistingInput
         ? state.inputText
         : (featureAssistDescriptor.prefill ??

@@ -454,6 +454,24 @@ export function ConsoleBar({
     }
     if (event.key === 'Escape') {
       event.preventDefault()
+      const isReferenceTransformValuePrompt =
+        consolePromptSession?.kind === 'reference-transform.axis' ||
+        consolePromptSession?.kind === 'reference-transform.plane'
+      if (isReferenceTransformValuePrompt) {
+        onCancelCommand?.()
+        resetHistoryNavigation()
+        queueMicrotask(() => {
+          const input = inputRef?.current
+          if (input === null || input === undefined) {
+            return
+          }
+          input.focus()
+          const nextInputText = useConsoleStore.getState().inputText
+          const caretOffset = nextInputText.length
+          input.setSelectionRange(caretOffset, caretOffset)
+        })
+        return
+      }
       if (
         isGuidedInputActive &&
         !isStagedChoiceManualOverride

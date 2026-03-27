@@ -113,10 +113,6 @@ export function ViewerHost() {
   const markReferenceBatchItemCompleted = useAppStore((state) => state.markReferenceBatchItemCompleted)
   const setReferenceItemLoadState = useAppStore((state) => state.setReferenceItemLoadState)
   const setReferenceItemVisibility = useAppStore((state) => state.setReferenceItemVisibility)
-  const endReferenceTransform = useAppStore((state) => state.endReferenceTransform)
-  const setReferenceTransformMode = useAppStore((state) => state.setReferenceTransformMode)
-  const setReferenceTransformSpace = useAppStore((state) => state.setReferenceTransformSpace)
-  const setReferenceTransformOverride = useAppStore((state) => state.setReferenceTransformOverride)
   const graphRuntimeByDocumentId = useSpaghettiStore((state) => state.graphRuntimeByDocumentId)
   const graphDocumentsById = useSpaghettiStore((state) => state.graphDocumentsById)
   const sketchPlanePickSession = useSpaghettiStore((state) => state.sketchPlanePickSession)
@@ -544,18 +540,14 @@ export function ViewerHost() {
   const previousReferenceIdsRef = useRef<string[]>([])
   const activeReferenceTransformSession = useMemo(
     () =>
-      referenceWorkspace.activeTransformReferenceId === null
+      referenceWorkspace.activeReferenceTransformSession === null
         ? null
         : {
-            referenceId: referenceWorkspace.activeTransformReferenceId,
-            mode: referenceWorkspace.activeTransformMode,
-            space: referenceWorkspace.activeTransformSpace,
+            referenceId: referenceWorkspace.activeReferenceTransformSession.referenceId,
+            mode: referenceWorkspace.activeReferenceTransformSession.mode,
+            space: referenceWorkspace.activeReferenceTransformSession.space,
           },
-    [
-      referenceWorkspace.activeTransformMode,
-      referenceWorkspace.activeTransformReferenceId,
-      referenceWorkspace.activeTransformSpace,
-    ],
+    [referenceWorkspace.activeReferenceTransformSession],
   )
   const hasActiveReferenceTimelines = useMemo(
     () =>
@@ -575,8 +567,12 @@ export function ViewerHost() {
       getReferenceTimelineDefaultRange(channel)
 
     return referenceWorkspaceItems.map((item) => {
+      const baseTransformOverride =
+        referenceWorkspace.activeReferenceTransformSession?.referenceId === item.referenceId
+          ? referenceWorkspace.activeReferenceTransformSession.draftTransform
+          : item.transformOverride ?? null
       const evaluatedTransformOverride = evaluateReferenceTransformOverrideWithTimelines(
-        item.transformOverride ?? null,
+        baseTransformOverride,
         timelineNowMs,
         (channel) => getChannelMode(item.referenceId, channel),
         (channel) => getChannelConfig(item.referenceId, channel),
@@ -604,6 +600,7 @@ export function ViewerHost() {
     })
   }, [
     referenceWorkspace.channelClampRangeByReferenceId,
+    referenceWorkspace.activeReferenceTransformSession,
     referenceWorkspace.rotateSnapByReferenceId,
     referenceWorkspace.timelineConfigByReferenceId,
     referenceWorkspace.timelineModeByReferenceId,
@@ -680,20 +677,41 @@ export function ViewerHost() {
     }
 
     viewer.setOnReferenceTransformChange((referenceId, transformOverride) => {
-      useAppStore.getState().setReferenceTransformOverride(referenceId, transformOverride)
+      const store = useAppStore.getState()
+      const activeReferenceId =
+        store.referenceWorkspace.activeReferenceTransformSession?.referenceId ?? null
+      if (activeReferenceId !== referenceId) {
+        return
+      }
+      store.setActiveReferenceTransformDraft(transformOverride)
     })
     viewer.setOnReferenceTransformCommit(() => {
-      useAppStore.getState().appendActiveReferenceTransformHistoryEntry()
-      useAppStore.getState().completeActiveReferenceTransformEntry()
+      useAppStore.getState().commitActiveReferenceTransformEntry()
     })
     viewer.setOnReferenceTransformExit(() => {
-      useAppStore.getState().endReferenceTransform()
+      useAppStore.getState().exitReferenceTransformShell()
+    })
+    viewer.setOnReferenceTransformHandleChange((handle) => {
+      const store = useAppStore.getState()
+      const activeSession = store.referenceWorkspace.activeReferenceTransformSession
+      if (handle !== null && activeSession !== null) {
+        const nextMode =
+          handle.mode === 'translate'
+            ? 'translate'
+            : handle.mode === 'rotate'
+              ? 'rotate'
+              : 'scale'
+        if (!activeSession.entryActive || activeSession.mode !== nextMode) {
+          store.beginReferenceTransformEntry(nextMode)
+        }
+      }
+      store.setActiveReferenceTransformHandle(handle)
     })
     viewer.setOnReferenceTransformModeChange((mode) => {
-      useAppStore.getState().setReferenceTransformMode(mode)
+      useAppStore.getState().beginReferenceTransformEntry(mode)
     })
     viewer.setOnReferenceTransformSpaceChange((space) => {
-      useAppStore.getState().setReferenceTransformSpace(space)
+      useAppStore.getState().setActiveReferenceTransformSpace(space)
     })
     viewer.setOnSketchPlanePickPlaneSelect((plane) => {
       useSpaghettiStore.getState().setSketchPlanePickDraftPlane(plane)
@@ -886,6 +904,7 @@ export function ViewerHost() {
       viewer.setOnReferenceTransformChange(null)
       viewer.setOnReferenceTransformCommit(null)
       viewer.setOnReferenceTransformExit(null)
+      viewer.setOnReferenceTransformHandleChange(null)
       viewer.setOnReferenceTransformModeChange(null)
       viewer.setOnReferenceTransformSpaceChange(null)
       viewer.setOnSketchPlanePickPlaneSelect(null)
@@ -903,10 +922,6 @@ export function ViewerHost() {
     }
   }, [
     contentObjectRowByViewerPartKey,
-    endReferenceTransform,
-    setReferenceTransformMode,
-    setReferenceTransformOverride,
-    setReferenceTransformSpace,
   ])
 
   useEffect(() => {
@@ -1074,7 +1089,7 @@ export function ViewerHost() {
     if (viewer === null) {
       return
     }
-    const activeReferenceId = referenceWorkspace.activeTransformReferenceId
+    const activeReferenceId = referenceWorkspace.activeReferenceTransformSession?.referenceId ?? null
     if (activeReferenceId === null) {
       viewer.setGizmoSnap({ rotateDeg: undefined })
       return
@@ -1088,7 +1103,7 @@ export function ViewerHost() {
     })
   }, [
     evaluatedReferenceItems,
-    referenceWorkspace.activeTransformReferenceId,
+    referenceWorkspace.activeReferenceTransformSession,
   ])
 
   useEffect(() => {

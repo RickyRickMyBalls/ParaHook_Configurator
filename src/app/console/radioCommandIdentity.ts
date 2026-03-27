@@ -602,7 +602,16 @@ const resolveStagedExecuteIdentity = ({
       return buildIdentity('Console', 'References', 'Transform', 'Rotate')
     case 'reference.transform.scale':
       return buildIdentity('Console', 'References', 'Transform', 'Scale')
+    case 'reference.transform.commitShell':
+      return buildIdentity('Console', 'References', 'Transform', 'CommitTransform')
+    case 'content.transform.move':
+      return buildIdentity('Console', 'Content', 'Transform', 'Move')
+    case 'content.transform.rotate':
+      return buildIdentity('Console', 'Content', 'Transform', 'Rotate')
+    case 'content.transform.scale':
+      return buildIdentity('Console', 'Content', 'Transform', 'Scale')
   }
+  throw new Error(`Unhandled staged execute action identity: ${String(actionId)}`)
 }
 
 const resolveFlatCommandIdentity = (

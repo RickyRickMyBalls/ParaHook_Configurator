@@ -89,13 +89,7 @@ describe('ReferenceTransformToolbar', () => {
     globalThis.Worker = MockWorker as unknown as typeof Worker
     const { useAppStore } = await import('../store/useAppStore')
     useAppStore.setState(useAppStore.getInitialState(), true)
-    useAppStore.setState((state) => ({
-      ...state,
-      referenceWorkspace: {
-        ...state.referenceWorkspace,
-        activeTransformReferenceId: 'shoe:shoe-1',
-      },
-    }))
+    useAppStore.getState().beginReferenceTransformShell('shoe:shoe-1')
   })
 
   afterEach(async () => {
@@ -140,7 +134,7 @@ describe('ReferenceTransformToolbar', () => {
       )
     })
 
-    expect(useAppStore.getState().referenceWorkspace.transformOverrideById['shoe:shoe-1']).toMatchObject(
+    expect(useAppStore.getState().referenceWorkspace.activeReferenceTransformSession?.draftTransform).toMatchObject(
       {
         position: { x: 1, y: 0, z: 0 },
         rotationDeg: { x: 0, y: 0, z: 0 },
@@ -176,7 +170,7 @@ describe('ReferenceTransformToolbar', () => {
       rotateHeader?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
     })
 
-    expect(useAppStore.getState().referenceWorkspace.activeTransformMode).toBe('rotate')
+    expect(useAppStore.getState().referenceWorkspace.activeReferenceTransformSession?.mode).toBe('rotate')
 
     const rotateSection = Array.from(
       container.querySelectorAll('.ReferenceTransformToolbarTransformSection'),
@@ -198,7 +192,7 @@ describe('ReferenceTransformToolbar', () => {
     expect(
       rotateSection?.querySelector('button[aria-label="Expand Rotate section"]'),
     ).not.toBeNull()
-    expect(useAppStore.getState().referenceWorkspace.activeTransformMode).toBe('rotate')
+    expect(useAppStore.getState().referenceWorkspace.activeReferenceTransformSession?.mode).toBe('rotate')
   })
 
   it('switches transform modes from keyboard shortcuts while the toolbar is active', async () => {
@@ -216,21 +210,21 @@ describe('ReferenceTransformToolbar', () => {
     await act(async () => {
       window.dispatchEvent(new KeyboardEvent('keydown', { key: 'r', bubbles: true }))
     })
-    expect(useAppStore.getState().referenceWorkspace.activeTransformMode).toBe('rotate')
+    expect(useAppStore.getState().referenceWorkspace.activeReferenceTransformSession?.mode).toBe('rotate')
     expect(viewerActivateRotateCenterHandle).toHaveBeenCalledTimes(1)
     expect(useConsoleStore.getState().entries.at(-1)?.text).toBe('Rotate')
 
     await act(async () => {
       window.dispatchEvent(new KeyboardEvent('keydown', { key: 's', bubbles: true }))
     })
-    expect(useAppStore.getState().referenceWorkspace.activeTransformMode).toBe('scale')
+    expect(useAppStore.getState().referenceWorkspace.activeReferenceTransformSession?.mode).toBe('scale')
     expect(viewerActivateScaleCenterHandle).toHaveBeenCalledTimes(1)
     expect(useConsoleStore.getState().entries.at(-1)?.text).toBe('Scale')
 
     await act(async () => {
       window.dispatchEvent(new KeyboardEvent('keydown', { key: 'm', bubbles: true }))
     })
-    expect(useAppStore.getState().referenceWorkspace.activeTransformMode).toBe('translate')
+    expect(useAppStore.getState().referenceWorkspace.activeReferenceTransformSession?.mode).toBe('translate')
     expect(viewerActivateTranslateCenterHandle).toHaveBeenCalledTimes(1)
   })
 
@@ -247,7 +241,22 @@ describe('ReferenceTransformToolbar', () => {
         ...state,
         referenceWorkspace: {
           ...state.referenceWorkspace,
-          activeTransformMode: 'translate',
+          activeReferenceTransformSession: {
+            referenceId: 'shoe:shoe-1',
+            sessionId: 'reference-transform-session-1',
+            sessionOrdinal: 1,
+            mode: 'translate',
+            space: 'local',
+            shellActive: true,
+            entryActive: false,
+            activeHandle: null,
+            draftTransform: {
+              position: { x: 12.5, y: -7, z: 42 },
+              rotationDeg: { x: 15, y: 0, z: -30 },
+              scale: { x: 1.1, y: 1, z: 0.95 },
+            },
+            entryOrigin: null,
+          },
           transformOverrideById: {
             ...state.referenceWorkspace.transformOverrideById,
             'shoe:shoe-1': {
@@ -266,13 +275,13 @@ describe('ReferenceTransformToolbar', () => {
     expect(container.textContent).toContain('Origin')
 
     await act(async () => {
-      useAppStore.getState().setReferenceTransformMode('rotate')
+      useAppStore.getState().beginReferenceTransformEntry('rotate')
     })
 
     expect(container.textContent).toContain('Shoe 1 > R > Vec3 [15.00, 0.00, -30.00]')
   })
 
-  it('uses x y z shortcuts to constrain move while translate mode is active', async () => {
+  it('does not treat raw x y z keys as immediate move-axis shortcuts now that console owns axis prompts', async () => {
     const { ReferenceTransformToolbar } = await import('./ReferenceTransformToolbar')
     const { useAppStore } = await import('../store/useAppStore')
 
@@ -287,7 +296,7 @@ describe('ReferenceTransformToolbar', () => {
     await act(async () => {
       window.dispatchEvent(new KeyboardEvent('keydown', { key: 'm', bubbles: true }))
     })
-    expect(useAppStore.getState().referenceWorkspace.activeTransformMode).toBe('translate')
+    expect(useAppStore.getState().referenceWorkspace.activeReferenceTransformSession?.mode).toBe('translate')
 
     await act(async () => {
       window.dispatchEvent(new KeyboardEvent('keydown', { key: 'y', bubbles: true }))
@@ -300,16 +309,14 @@ describe('ReferenceTransformToolbar', () => {
     })
 
     expect(viewerActivateTranslateCenterHandle).toHaveBeenCalledTimes(1)
-    expect(viewerActivateTranslateHandle).toHaveBeenNthCalledWith(1, 'Y')
-    expect(viewerActivateTranslateHandle).toHaveBeenNthCalledWith(2, 'X')
-    expect(viewerActivateTranslateHandle).toHaveBeenNthCalledWith(3, 'Z')
+    expect(viewerActivateTranslateHandle).not.toHaveBeenCalled()
   })
 
-  it('uses x y z as axis shortcuts for the active transform mode without an extra keyboard chain', async () => {
+  it('does not treat raw x y z keys as immediate axis shortcuts when a transform mode is already active', async () => {
     const { ReferenceTransformToolbar } = await import('./ReferenceTransformToolbar')
     const { useAppStore } = await import('../store/useAppStore')
 
-    useAppStore.getState().setReferenceTransformMode('translate')
+    useAppStore.getState().beginReferenceTransformEntry('translate')
 
     container = document.createElement('div')
     document.body.appendChild(container)
@@ -325,14 +332,12 @@ describe('ReferenceTransformToolbar', () => {
       window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', bubbles: true }))
     })
 
-    expect(viewerActivateTranslateHandle).toHaveBeenNthCalledWith(1, 'X')
-    expect(viewerActivateTranslateHandle).toHaveBeenNthCalledWith(2, 'Y')
-    expect(viewerActivateTranslateHandle).toHaveBeenNthCalledWith(3, 'Z')
+    expect(viewerActivateTranslateHandle).not.toHaveBeenCalled()
     expect(viewerActivateRotateHandle).not.toHaveBeenCalled()
     expect(viewerActivateScaleHandle).not.toHaveBeenCalled()
   })
 
-  it('uses x y z shortcuts to constrain rotate and scale while those modes are active', async () => {
+  it('does not treat raw x y z keys as immediate rotate or scale shortcuts while those modes are active', async () => {
     const { ReferenceTransformToolbar } = await import('./ReferenceTransformToolbar')
     const { useAppStore } = await import('../store/useAppStore')
 
@@ -347,7 +352,7 @@ describe('ReferenceTransformToolbar', () => {
     await act(async () => {
       window.dispatchEvent(new KeyboardEvent('keydown', { key: 'r', bubbles: true }))
     })
-    expect(useAppStore.getState().referenceWorkspace.activeTransformMode).toBe('rotate')
+    expect(useAppStore.getState().referenceWorkspace.activeReferenceTransformSession?.mode).toBe('rotate')
     await act(async () => {
       window.dispatchEvent(new KeyboardEvent('keydown', { key: 'y', bubbles: true }))
     })
@@ -357,14 +362,12 @@ describe('ReferenceTransformToolbar', () => {
     await act(async () => {
       window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', bubbles: true }))
     })
-    expect(viewerActivateRotateHandle).toHaveBeenNthCalledWith(1, 'Y')
-    expect(viewerActivateRotateHandle).toHaveBeenNthCalledWith(2, 'X')
-    expect(viewerActivateRotateHandle).toHaveBeenNthCalledWith(3, 'Z')
+    expect(viewerActivateRotateHandle).not.toHaveBeenCalled()
 
     await act(async () => {
       window.dispatchEvent(new KeyboardEvent('keydown', { key: 's', bubbles: true }))
     })
-    expect(useAppStore.getState().referenceWorkspace.activeTransformMode).toBe('scale')
+    expect(useAppStore.getState().referenceWorkspace.activeReferenceTransformSession?.mode).toBe('scale')
     await act(async () => {
       window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', bubbles: true }))
     })
@@ -374,9 +377,7 @@ describe('ReferenceTransformToolbar', () => {
     await act(async () => {
       window.dispatchEvent(new KeyboardEvent('keydown', { key: 'y', bubbles: true }))
     })
-    expect(viewerActivateScaleHandle).toHaveBeenNthCalledWith(1, 'Z')
-    expect(viewerActivateScaleHandle).toHaveBeenNthCalledWith(2, 'X')
-    expect(viewerActivateScaleHandle).toHaveBeenNthCalledWith(3, 'Y')
+    expect(viewerActivateScaleHandle).not.toHaveBeenCalled()
   })
 
   it('keeps the live draft when switching modes and commits through Enter', async () => {
@@ -448,7 +449,7 @@ describe('ReferenceTransformToolbar', () => {
 
     await act(async () => {
       window.dispatchEvent(new KeyboardEvent('keydown', { key: 'm', bubbles: true }))
-      useAppStore.getState().setReferenceTransformOverride('shoe:shoe-1', {
+      useAppStore.getState().setActiveReferenceTransformDraft({
         position: { x: 9, y: 2, z: -3 },
         rotationDeg: { x: 0, y: 0, z: 0 },
         scale: { x: 1, y: 1, z: 1 },
@@ -459,13 +460,13 @@ describe('ReferenceTransformToolbar', () => {
       window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
     })
 
-    expect(useAppStore.getState().referenceWorkspace.transformOverrideById['shoe:shoe-1']).toMatchObject({
+    expect(useAppStore.getState().referenceWorkspace.activeReferenceTransformSession?.draftTransform).toMatchObject({
       position: { x: 0, y: 0, z: 0 },
     })
     expect(viewerCancelReferenceTransformDrag).toHaveBeenCalled()
     expect(viewerClearReferenceTransformHandle).toHaveBeenCalled()
-    expect(useAppStore.getState().referenceWorkspace.activeTransformReferenceId).toBe('shoe:shoe-1')
-    expect(useAppStore.getState().referenceWorkspace.activeTransformEntryActive).toBe(false)
+    expect(useAppStore.getState().referenceWorkspace.activeReferenceTransformSession?.referenceId).toBe('shoe:shoe-1')
+    expect(useAppStore.getState().referenceWorkspace.activeReferenceTransformSession?.entryActive).toBe(false)
   })
 
   it('returns to the reference transform shell on Escape when no keyboard transform is pending', async () => {
@@ -480,14 +481,13 @@ describe('ReferenceTransformToolbar', () => {
       root?.render(<ReferenceTransformToolbar />)
     })
 
-    expect(useAppStore.getState().referenceWorkspace.activeTransformReferenceId).toBe('shoe:shoe-1')
+    expect(useAppStore.getState().referenceWorkspace.activeReferenceTransformSession?.referenceId).toBe('shoe:shoe-1')
 
     await act(async () => {
       window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
     })
 
-    expect(useAppStore.getState().referenceWorkspace.activeTransformReferenceId).toBe('shoe:shoe-1')
-    expect(useAppStore.getState().referenceWorkspace.activeTransformEntryActive).toBe(false)
+    expect(useAppStore.getState().referenceWorkspace.activeReferenceTransformSession).toBeNull()
   })
 
   it('re-arms move when m is pressed a second time without clearing the live draft', async () => {
@@ -601,7 +601,7 @@ describe('ReferenceTransformToolbar', () => {
     expect(scaleSection?.className).toContain('isActive')
   })
 
-  it('highlights the matching xyz rows for keyboard transform targets', async () => {
+  it('highlights all xyz rows for the active mode hotkey and lets console prompts narrow that highlight later', async () => {
     const { ReferenceTransformToolbar } = await import('./ReferenceTransformToolbar')
 
     container = document.createElement('div')
@@ -626,8 +626,8 @@ describe('ReferenceTransformToolbar', () => {
       window.dispatchEvent(new KeyboardEvent('keydown', { key: 'x', bubbles: true }))
     })
     expect(getChannelBox('move-x')?.className).toContain('isHighlighted')
-    expect(getChannelBox('move-y')?.className).not.toContain('isHighlighted')
-    expect(getChannelBox('move-z')?.className).not.toContain('isHighlighted')
+    expect(getChannelBox('move-y')?.className).toContain('isHighlighted')
+    expect(getChannelBox('move-z')?.className).toContain('isHighlighted')
 
     await act(async () => {
       window.dispatchEvent(new KeyboardEvent('keydown', { key: 'm', bubbles: true }))
@@ -640,8 +640,8 @@ describe('ReferenceTransformToolbar', () => {
       window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', bubbles: true }))
     })
     expect(getChannelBox('rotate-z')?.className).toContain('isHighlighted')
-    expect(getChannelBox('rotate-x')?.className).not.toContain('isHighlighted')
-    expect(getChannelBox('rotate-y')?.className).not.toContain('isHighlighted')
+    expect(getChannelBox('rotate-x')?.className).toContain('isHighlighted')
+    expect(getChannelBox('rotate-y')?.className).toContain('isHighlighted')
 
     await act(async () => {
       window.dispatchEvent(new KeyboardEvent('keydown', { key: 'r', bubbles: true }))
@@ -653,6 +653,86 @@ describe('ReferenceTransformToolbar', () => {
     expect(getChannelBox('scale-x')?.className).toContain('isHighlighted')
     expect(getChannelBox('scale-y')?.className).toContain('isHighlighted')
     expect(getChannelBox('scale-z')?.className).toContain('isHighlighted')
+  })
+
+  it('highlights only the prompted axis row when the console opens Move X', async () => {
+    const { ReferenceTransformToolbar } = await import('./ReferenceTransformToolbar')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ReferenceTransformToolbar />)
+      useConsoleStore.getState().setConsolePromptSession({
+        kind: 'reference-transform.axis',
+        breadcrumb: ['Select', 'References', 'Shoes', 'Shoe 1', 'Transform', 'Move', 'Move X'],
+        label: 'Select > References > Shoes > Shoe 1 > Transform > Move > Move X',
+        prefill: '0',
+        returnSession: useConsoleStore.getState().stagedNavigationSession!,
+        mode: 'translate',
+        axis: 'x',
+      })
+    })
+
+    const getChannelBox = (channel: string) =>
+      container?.querySelector(`[data-channel="${channel}"]`) as HTMLDivElement | null
+
+    expect(getChannelBox('move-x')?.className).toContain('isHighlighted')
+    expect(getChannelBox('move-y')?.className).not.toContain('isHighlighted')
+    expect(getChannelBox('move-z')?.className).not.toContain('isHighlighted')
+    expect(getChannelBox('rotate-x')?.className).not.toContain('isHighlighted')
+    expect(getChannelBox('scale-x')?.className).not.toContain('isHighlighted')
+  })
+
+  it('highlights the shared active-handle axis row when the gizmo selects Move Y', async () => {
+    const { ReferenceTransformToolbar } = await import('./ReferenceTransformToolbar')
+    const { useAppStore } = await import('../store/useAppStore')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      useAppStore.getState().beginReferenceTransformEntry('translate')
+      useAppStore.getState().setActiveReferenceTransformHandle({
+        mode: 'translate',
+        kind: 'axis',
+        axis: 'y',
+      })
+      root?.render(<ReferenceTransformToolbar />)
+    })
+
+    const getChannelBox = (channel: string) =>
+      container?.querySelector(`[data-channel="${channel}"]`) as HTMLDivElement | null
+
+    expect(getChannelBox('move-x')?.className).not.toContain('isHighlighted')
+    expect(getChannelBox('move-y')?.className).toContain('isHighlighted')
+    expect(getChannelBox('move-z')?.className).not.toContain('isHighlighted')
+  })
+
+  it('does not highlight an individual row when the gizmo selects the translate center handle', async () => {
+    const { ReferenceTransformToolbar } = await import('./ReferenceTransformToolbar')
+    const { useAppStore } = await import('../store/useAppStore')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      useAppStore.getState().beginReferenceTransformEntry('translate')
+      useAppStore.getState().setActiveReferenceTransformHandle({
+        mode: 'translate',
+        kind: 'center',
+      })
+      root?.render(<ReferenceTransformToolbar />)
+    })
+
+    const highlightedRows = Array.from(
+      container?.querySelectorAll('.ReferenceTransformToolbarChannelBox.isHighlighted') ?? [],
+    )
+
+    expect(highlightedRows).toHaveLength(0)
   })
 
   it('locks all three scale axes together when scale lock is enabled', async () => {
@@ -687,7 +767,7 @@ describe('ReferenceTransformToolbar', () => {
       )
     })
 
-    expect(useAppStore.getState().referenceWorkspace.transformOverrideById['shoe:shoe-1']).toMatchObject(
+    expect(useAppStore.getState().referenceWorkspace.activeReferenceTransformSession?.draftTransform).toMatchObject(
       {
         scale: { x: 1.01, y: 1.01, z: 1.01 },
       },
@@ -973,6 +1053,88 @@ describe('ReferenceTransformToolbar', () => {
     )
   })
 
+  it('groups history rows by transform session and expands the newest session by default', async () => {
+    const { ReferenceTransformToolbar } = await import('./ReferenceTransformToolbar')
+    const { useAppStore } = await import('../store/useAppStore')
+
+    useAppStore.setState((state) => ({
+      ...state,
+      referenceWorkspace: {
+        ...state.referenceWorkspace,
+        activeReferenceTransformSession: {
+          referenceId: 'shoe:shoe-1',
+          sessionId: 'reference-transform-session-2',
+          sessionOrdinal: 2,
+          mode: 'translate',
+          space: 'local',
+          shellActive: true,
+          entryActive: false,
+          activeHandle: null,
+          draftTransform: {
+            position: { x: 9, y: -2, z: 4 },
+            rotationDeg: { x: 0, y: 20, z: 0 },
+            scale: { x: 1, y: 1, z: 1 },
+          },
+          entryOrigin: null,
+        },
+        transformHistoryByReferenceId: {
+          ...state.referenceWorkspace.transformHistoryByReferenceId,
+          'shoe:shoe-1': [
+            {
+              entryId: 'history-1',
+              sessionId: 'reference-transform-session-1',
+              sessionOrdinal: 1,
+              kind: 'move',
+              value: { x: 5, y: 0, z: 0 },
+              locked: false,
+            },
+            {
+              entryId: 'history-2',
+              sessionId: 'reference-transform-session-1',
+              sessionOrdinal: 1,
+              kind: 'rotate',
+              value: { x: 0, y: 20, z: 0 },
+              locked: false,
+            },
+            {
+              entryId: 'history-3',
+              sessionId: 'reference-transform-session-2',
+              sessionOrdinal: 2,
+              kind: 'move',
+              value: { x: 9, y: -2, z: 4 },
+              locked: false,
+            },
+          ],
+        },
+      },
+    }))
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ReferenceTransformToolbar />)
+    })
+
+    expect(container.textContent).toContain('Transform 1')
+    expect(container.textContent).toContain('Transform 2')
+    expect(container.querySelector('button[aria-label="Expand Transform 1"]')).not.toBeNull()
+    expect(container.querySelector('button[aria-label="Collapse Transform 2"]')).not.toBeNull()
+    expect(container.textContent).not.toContain('Rotate Vec(+0.00, +20.00, +0.00)')
+    expect(container.textContent).toContain('Move Vec(+4.00, -2.00, +4.00)')
+
+    const expandTransform1 = container.querySelector(
+      'button[aria-label="Expand Transform 1"]',
+    ) as HTMLButtonElement | null
+
+    await act(async () => {
+      expandTransform1?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(container.textContent).toContain('Rotate Vec(+0.00, +20.00, +0.00)')
+  })
+
   it('applies the active rotate snap interval to rotate axis stepping', async () => {
     const { ReferenceTransformToolbar } = await import('./ReferenceTransformToolbar')
     const { useAppStore } = await import('../store/useAppStore')
@@ -981,6 +1143,22 @@ describe('ReferenceTransformToolbar', () => {
       ...state,
       referenceWorkspace: {
         ...state.referenceWorkspace,
+        activeReferenceTransformSession: {
+          referenceId: 'shoe:shoe-1',
+          sessionId: 'reference-transform-session-1',
+          sessionOrdinal: 1,
+          mode: 'rotate',
+          space: 'local',
+          shellActive: true,
+          entryActive: false,
+          activeHandle: null,
+          draftTransform: {
+            position: { x: 0, y: 0, z: 0 },
+            rotationDeg: { x: 121, y: 0, z: 0 },
+            scale: { x: 1, y: 1, z: 1 },
+          },
+          entryOrigin: null,
+        },
         transformOverrideById: {
           ...state.referenceWorkspace.transformOverrideById,
           'shoe:shoe-1': {
@@ -1028,7 +1206,7 @@ describe('ReferenceTransformToolbar', () => {
       )
     })
 
-    expect(useAppStore.getState().referenceWorkspace.transformOverrideById['shoe:shoe-1']).toMatchObject(
+    expect(useAppStore.getState().referenceWorkspace.activeReferenceTransformSession?.draftTransform).toMatchObject(
       {
         rotationDeg: { x: 126, y: 0, z: 0 },
       },

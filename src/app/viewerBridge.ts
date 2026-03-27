@@ -1,5 +1,6 @@
 import type { ProjectionMode, ViewSettings } from '../shared/viewSettingsTypes'
 import type { ReferenceTransformOverride } from './references/referenceManifest'
+import type { ActiveReferenceTransformHandle } from './store/useAppStore'
 import type {
   SketchComponent,
   SketchPlane,
@@ -139,6 +140,9 @@ export interface ViewerApi {
   ) => void
   setOnReferenceTransformCommit: (handler: (() => void) | null) => void
   setOnReferenceTransformExit: (handler: (() => void) | null) => void
+  setOnReferenceTransformHandleChange: (
+    handler: ((handle: ActiveReferenceTransformHandle | null) => void) | null,
+  ) => void
   setOnReferenceTransformModeChange: ((handler: ((mode: GizmoMode) => void) | null) => void)
   setOnReferenceTransformSpaceChange: ((handler: ((space: GizmoSpace) => void) | null) => void)
   setAxisOverlayEnabled: (enabled: boolean) => void

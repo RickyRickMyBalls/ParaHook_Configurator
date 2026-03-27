@@ -2,9 +2,10 @@ import { Camera, MathUtils, Object3D, Vector3 } from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js'
 import type { TransformControlsMode } from 'three/examples/jsm/controls/TransformControls.js'
+import type { ActiveReferenceTransformHandle } from '../../app/store/useAppStore'
 
 type GizmoSpace = 'local' | 'world'
-type GizmoAxis = 'X' | 'Y' | 'Z' | 'E' | 'XYZ' | 'XYZE'
+type GizmoAxis = 'X' | 'Y' | 'Z' | 'XY' | 'XZ' | 'YZ' | 'E' | 'XYZ' | 'XYZE'
 type PointerLike = { x: number; y: number; button: number }
 type InternalTransformControls = TransformControls & {
   axis: string | null
@@ -25,6 +26,7 @@ export class TransformGizmo {
   private attachedObject: Object3D | null = null
   private onObjectChange: ((object: Object3D) => void) | null = null
   private onDragComplete: ((object: Object3D) => void) | null = null
+  private onHandleChange: ((handle: ActiveReferenceTransformHandle | null) => void) | null = null
   private lastPointerClient: { clientX: number; clientY: number; pointerId: number } | null = null
   private dragDidMutateObject = false
   private suppressNextDragComplete = false
@@ -42,6 +44,7 @@ export class TransformGizmo {
     this.helper.visible = false
     this.controls.addEventListener('dragging-changed', this.onDraggingChanged)
     this.controls.addEventListener('objectChange', this.onObjectChanged)
+    this.controls.addEventListener('mouseDown', this.onMouseDown)
     this.domElement.addEventListener('pointermove', this.handlePointerTrack)
   }
 
@@ -52,6 +55,7 @@ export class TransformGizmo {
   public dispose(): void {
     this.controls.removeEventListener('dragging-changed', this.onDraggingChanged)
     this.controls.removeEventListener('objectChange', this.onObjectChanged)
+    this.controls.removeEventListener('mouseDown', this.onMouseDown)
     this.domElement.removeEventListener('pointermove', this.handlePointerTrack)
     this.controls.dispose()
   }
@@ -122,6 +126,10 @@ export class TransformGizmo {
     this.onDragComplete = handler
   }
 
+  public setOnHandleChange(handler: ((handle: ActiveReferenceTransformHandle | null) => void) | null): void {
+    this.onHandleChange = handler
+  }
+
   public setSnap(translateMm?: number, rotateDeg?: number, scale?: number): void {
     this.controls.setTranslationSnap(translateMm ?? null)
     this.controls.setRotationSnap(
@@ -137,10 +145,12 @@ export class TransformGizmo {
   public activateHandle(mode: TransformControlsMode, axis: GizmoAxis): void {
     this.controls.setMode(mode)
     this.controls.axis = axis
+    this.onHandleChange?.(this.mapActiveHandle(mode, axis))
   }
 
   public clearActiveHandle(): void {
     this.controls.axis = null
+    this.onHandleChange?.(null)
   }
 
   public isDragging(): boolean {
@@ -274,5 +284,46 @@ export class TransformGizmo {
     }
     this.dragDidMutateObject = true
     this.onObjectChange?.(this.attachedObject)
+  }
+
+  private readonly onMouseDown = (): void => {
+    const axis = this.controls.axis as GizmoAxis | null
+    if (axis === null) {
+      return
+    }
+    this.onHandleChange?.(this.mapActiveHandle(this.controls.getMode(), axis))
+  }
+
+  private mapActiveHandle(
+    mode: TransformControlsMode,
+    axis: GizmoAxis,
+  ): ActiveReferenceTransformHandle | null {
+    if (axis === 'X' || axis === 'Y' || axis === 'Z') {
+      return {
+        mode,
+        kind: 'axis',
+        axis: axis.toLowerCase() as 'x' | 'y' | 'z',
+      }
+    }
+    if (axis === 'XY' || axis === 'XZ' || axis === 'YZ') {
+      return {
+        mode,
+        kind: 'plane',
+        plane: axis.toLowerCase() as 'xy' | 'xz' | 'yz',
+      }
+    }
+    if (mode === 'rotate' && (axis === 'E' || axis === 'XYZE')) {
+      return {
+        mode,
+        kind: 'free-rotate',
+      }
+    }
+    if (axis === 'XYZ' || axis === 'XYZE') {
+      return {
+        mode,
+        kind: 'center',
+      }
+    }
+    return null
   }
 }

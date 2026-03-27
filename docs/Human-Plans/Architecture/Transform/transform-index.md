@@ -3,6 +3,13 @@
 ## Doc Header
 
 ### Doc History
+13. 2026-03-26 20:49: Locked the `Transform 4.3` grouped-session-history questions in this family index, deciding that committed child entries remain the base truth with per-entry `sessionId` and `sessionOrdinal` metadata, that shell sessions start on entering `Transform` and close on `CommitTransform`, that empty shells create no parent row, that the newest session defaults expanded while older sessions default collapsed, that parent rows stay expand/collapse-only, and that session numbering remains persistent per target
+12. 2026-03-26 20:46: Expanded the `Transform 4.3` section in this family index with a fuller grouped-session-history question set, adding explicit open `[ ]` decisions around storage shape, shell-session start/end rules, empty-session behavior, default expand/collapse behavior, parent-row actions, and persistent session numbering so the new `4.3` phase doc can be tightened into an implementation-ready toolbar/history reshape
+11. 2026-03-26 20:43: Added the standalone `Transform 4.3` future phase doc for grouped transform-session history, so the Transform family now has a dedicated follow-on for turning flat committed history into expandable shell-session rows like `Transform 1`, `Transform 2`, and later sessions without mixing that toolbar/history reshape back into the already-narrowed `Transform 4.2` draft-sync cleanup
+10. 2026-03-26 20:10: Narrowed `Transform 4.2` back down in this family index by moving grouped transform-session history out of the draft/session cleanup and into a separate `Transform 4.3` follow-on, so `4.2` now stays focused on shared draft/session sync while grouped history remains a later toolbar/history reshape
+9. 2026-03-26 20:03: Expanded `Transform 4` in this family index with a dedicated `Transform 4.2` question block, adding explicit open `[ ]` decisions around one shared reference draft session, viewer-to-draft sync, Console/toolbar draft reads, commit-vs-cancel behavior, and whether the cleanup should stay reference-first
+8. 2026-03-26 20:00: Added the standalone `Transform 4.2` future phase doc for reference-side shared draft and session cleanup, so the next Console-polish step now explicitly captures the need to restructure reference transform around one shared store-owned draft session like sketch-plane transform instead of leaving that cleanup only implicit in chat
+7. 2026-03-26 19:50: Reframed the later transform ladder so `Transform 4` is now the console cleanup bridge between the durable shell work and the heavier viewport-history phase, while the older viewport-history plus traversal direction moved down to `Transform 5`
 6. 2026-03-26 19:21: Updated `Transform` phase and question status markers in this family index so locked questions now use `[x]`, still-open questions use `[ ]`, and fully locked phase titles show `[x]` while later phases with open questions remain `[ ]`
 5. 2026-03-26 19:19: Locked `Transform 3` `q1` through `q3`, deciding that committed transform entries should return to the same target-local `Transform` shell until the user explicitly exits with `CommitTransform`, that transform history should remain visible while repeated steps continue, and that the shared session shell should stay app/store-owned across Console and toolbar surfaces; also added a new `q4` to explicitly lock whether entering `Transform` itself should spawn the shared transform session and toolbar
 4. 2026-03-26 18:22: Locked the `Transform 2` questions in this family index, deciding that `Transform` is the canonical first transform entry under valid targets, direct target-local `Move/Rotate/Scale` remain allowed only as adapter shortcuts into that branch, and real non-reference ownership in this phase should cover object, folder, and assembly targets instead of faking them through reference transform
@@ -106,6 +113,8 @@ Current live Browser follow-ons already feeding this family:
 - `Transform 3`
   - shared target-local transform shell behavior
 - `Transform 4`
+  - console cleanup and transform-shell polish
+- `Transform 5`
   - viewport history visuals, traversal/restore, and later cleanup
 
 This new family folder exists so those directions can later migrate into transform-native phase docs without staying permanently nested under Browser.
@@ -115,14 +124,14 @@ This new family folder exists so those directions can later migrate into transfo
 Expected next cleanup after creating this family:
 
 1. move the umbrella transform direction from Browser-native planning into a first standalone Transform future phase
-2. decide whether the old Browser `7.4` traversal direction should stay Browser-numbered or be folded into the Transform-native ladder beside `Transform 1`, `Transform 2`, `Transform 3`, and `Transform 4`
+2. decide whether the old Browser `7.4` traversal direction should stay Browser-numbered or be folded into the Transform-native ladder beside `Transform 1`, `Transform 2`, `Transform 3`, `Transform 4`, and `Transform 5`
 3. update the broader docs map if the Transform family becomes the canonical home instead of only a new container
 
 
 ## Phases
 
 ### [x] Transform 1 - Reference Session And History Foundation
-
+#### Info
 - own the reference-first live transform session and append-on-commit history foundation
 - prove the store/history/commit-callback model on the already-real reference transform path
 - keep this as the transform-family foundation even though the original planning record came from Browser `7.3`
@@ -170,7 +179,7 @@ Decision:
 - let the user control cleanup through merge and later explicit history tools instead of automatic deletion
 
 ### [x] Transform 2 - Canonical Hierarchy And Target Ownership
-
+#### Info
 - move valid transform targets onto the honest `Select > <Target> > Transform > Move/Rotate/Scale` hierarchy
 - keep target-local `m / r / s` as convenience adapters into that hierarchy
 - add real non-reference target ownership beside the existing reference path
@@ -210,7 +219,7 @@ Decision:
 - do not fake those targets by redirecting them into reference-owned transform
 
 ### [ ] Transform 3 - Shared Transform Shell And Repeated Steps
-
+#### Info
 - keep the target-local transform shell alive across repeated committed steps
 - align post-commit return, lock, merge, and history-shell behavior across target kinds
 - make the transform session feel like one durable command shell instead of a one-shot action
@@ -257,7 +266,174 @@ Decision:
 - the toolbar should appear because that session exists, not because Console directly tells a toolbar to open
 - Console and toolbar should both adapt into the same underlying session
 
-### [ ] Transform 4 - Viewport History Visuals And Traversal
+### [ ] Transform 4 - Console Cleanup And Transform Shell Polish
+#### Header
+- clean up the remaining Console rough edges before the heavier history-visualization phase
+- make the durable transform shell read clearly and consistently in breadcrumbs, prompts, and submit ownership
+- keep this as the short bridge phase between `Transform 3` shell behavior and the later viewport-history work
+- standalone spec:
+  - `docs/Human-Plans/Architecture/Transform/Future/Transform_Phase Transform-4.2 - Reference Draft Sync And Session Cleanup.md`
+
+
+##### [ ] q1 - What Console cleanup is required before the history-visualization phase starts?
+
+##### Suggestion
+- finish the transform-shell wording cleanup first
+- remove any stale staged-menu language that still reads like generic `Choose next` text when the transform shell should read more directly
+- keep breadcrumbs, prompt labels, and submit ownership honest to the durable `Transform` shell
+
+##### [ ] q2 - Where should `CommitTransform` surface in the Console after the shell becomes durable?
+
+##### Suggestion
+- surface `CommitTransform` at the `Transform` root only
+- do not keep it duplicated inside `Move`, `Rotate`, or `Scale`
+- let per-entry submits commit the current transform entry, while `CommitTransform` exits the shell
+
+##### [ ] q3 - What input/prompt cleanup should happen before traversal and viewport visuals are added?
+
+##### Suggestion
+- make assisted vec3, axis float, and plane vec2 entry behavior fully consistent across `Move`, `Rotate`, and `Scale`
+- ensure clearing typed input cleanly restores the default assisted option where that behavior is intended
+- lock Console submit, cancel, and shortcut behavior before layering traversal or viewport-history playback on top
+
+
+#### Transform 4.1 cleanup
+
+#### Transform 4.2
+
+##### [ ] q4.2-1 - Should reference transform get one explicit active draft session object in store?
+
+###### Suggestion
+- yes
+- replace the current spread-across-several-fields model with one honest active draft session for the active reference transform
+
+##### [ ] q4.2-2 - During a live reference transform entry, should Console and toolbar read from the draft session directly?
+
+###### Suggestion
+- yes
+- Console and toolbar should both read the same live draft object directly instead of reconstructing state from committed override fields
+
+##### [ ] q4.2-3 - Should viewer gizmo changes write into the active draft continuously?
+
+###### Suggestion
+- yes
+- mirror the sketch-plane pattern
+- keep the viewer as execution owner while the store remains the draft/session owner
+
+##### [ ] q4.2-4 - Should commit promote the draft into committed transform state and history, while cancel restores from entry origin?
+
+###### Suggestion
+- yes
+- commit should promote the draft into committed transform state and append history when the value changed
+- cancel should restore draft and applied state from the captured entry origin
+- keep existing committed history intact during this cleanup
+- defer grouped transform-session history like `Transform 1`, `Transform 2`, and later session rows to `Transform 4.3`
+
+##### [ ] q4.2-5 - Should `Transform 4.2` stay reference-first, or widen to object, folder, and assembly in the same pass?
+
+###### Suggestion
+- keep it reference-first
+- prove the shared draft/session cleanup on the existing reference path before widening it to other target kinds
+
+
+#### Transform 4.3
+
+##### [x] q4.3-1 - Should committed history be grouped into expandable transform-shell session rows like `Transform 1`, `Transform 2`, and later sessions?
+
+###### Suggestion
+- yes
+- keep all committed history
+- move the grouped-history toolbar reshape into `Transform 4.3` instead of mixing it into the draft/session cleanup
+
+Decision:
+- yes
+- keep all committed history
+- move the grouped-history toolbar reshape into `Transform 4.3` instead of mixing it into the draft/session cleanup
+
+##### [x] q4.3-2 - What store shape should own grouped transform-session history?
+
+###### Suggestion
+- keep the committed child entry rows as the base truth
+- add a `sessionId` onto each committed entry rather than building a second parallel grouped-history tree
+- let the toolbar derive grouped parent rows from that session metadata
+
+Decision:
+- keep the committed child entry rows as the base truth
+- add `sessionId` and persistent `sessionOrdinal` metadata onto each committed entry
+- do not build a second parallel grouped-history tree
+- let the toolbar derive grouped parent rows from that session metadata
+
+##### [x] q4.3-3 - When does a grouped transform session start and end?
+
+###### Suggestion
+- start a new grouped session when the user enters `Transform`
+- keep appending child `Move` / `Rotate` / `Scale` entries into that active session while the shell stays open
+- close the grouped session only when the user exits with `CommitTransform`
+
+Decision:
+- start a new grouped session when the user enters `Transform`
+- keep appending child `Move` / `Rotate` / `Scale` entries into that active session while the shell stays open
+- close the grouped session only when the user exits with `CommitTransform`
+
+##### [x] q4.3-4 - If the user enters `Transform` and exits without committing any child entries, should a `Transform N` row still be created?
+
+###### Suggestion
+- no
+- only create a grouped parent session row if that shell session produced at least one committed child entry
+- do not create empty placeholder sessions
+
+Decision:
+- no
+- only create a grouped parent session row if that shell session produced at least one committed child entry
+- do not create empty placeholder sessions
+
+##### [x] q4.3-5 - What should the default expand/collapse behavior be for grouped transform sessions?
+
+###### Suggestion
+- default the newest grouped transform session to expanded
+- let older grouped sessions start collapsed for readability
+- keep expand/collapse as a local toolbar presentation state unless a later phase explicitly needs persistence
+
+Decision:
+- default the newest grouped transform session to expanded
+- let older grouped sessions start collapsed for readability
+- keep expand/collapse as a local toolbar presentation state unless a later phase explicitly needs persistence
+
+##### [x] q4.3-6 - What actions should live on the grouped parent session row?
+
+###### Suggestion
+- keep the parent row simple in the first pass
+- parent rows should only support expand/collapse
+- keep `Lock/Unlock` and merge behavior on the committed child entries instead of inventing parent-level actions in the same phase
+
+Decision:
+- keep the parent row simple in the first pass
+- parent rows should only support expand/collapse
+- keep `Lock/Unlock` and merge behavior on the committed child entries instead of inventing parent-level actions in the same phase
+
+##### [x] q4.3-7 - How should grouped session labels be numbered?
+
+###### Suggestion
+- use persistent per-target creation order like `Transform 1`, `Transform 2`, `Transform 3`
+- do not renumber older sessions after merge or collapse
+- let the label reflect the original shell-session order, not the current visible row order
+
+Decision:
+- use persistent per-target creation order like `Transform 1`, `Transform 2`, `Transform 3`
+- do not renumber older sessions after merge or collapse
+- let the label reflect the original shell-session order, not the current visible row order
+
+Standalone phase doc:
+- `docs/Human-Plans/Architecture/Transform/Future/Transform_Phase Transform-4.3 - Grouped Session History.md`
+
+#### Transform 4.4
+
+- 
+
+
+
+
+### [ ] Transform 5 - Viewport History Visuals And Traversal
 
 - land move, scale, and rotate viewport history visuals
 - add traversal / preview / restore behavior

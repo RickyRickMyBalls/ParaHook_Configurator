@@ -1988,11 +1988,48 @@
   border-bottom: 0;
 }
 
+.ReferenceTransformToolbarHistoryRow--child {
+  padding-left: 18px;
+}
+
 .ReferenceTransformToolbarHistoryLabel {
   flex: 1 1 auto;
   min-width: 0;
   font-size: 11px;
   color: rgba(220, 226, 238, 0.84);
+}
+
+.ReferenceTransformToolbarHistorySession {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.ReferenceTransformToolbarHistorySessionButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ReferenceTransformToolbarHistorySessionLabel {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: rgba(232, 237, 247, 0.92);
+}
+
+.ReferenceTransformToolbarHistorySessionChildren {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
 }
 
 .ReferenceTransformToolbarChannelBox {

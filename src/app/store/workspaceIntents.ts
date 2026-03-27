@@ -23,6 +23,7 @@ type WorkspaceIntentAppDeps = {
   requestConsoleContextSync?: (reason: ConsoleContextSyncReason) => void
   setReferenceItemVisibility?: (referenceId: string, visible: boolean) => void
   beginReferenceTransform?: (referenceId: string) => void
+  beginReferenceTransformShell?: (referenceId: string) => void
   selectPart?: (partKey: string | null) => void
 }
 
@@ -228,6 +229,7 @@ export const activateReferenceItemIntent = (
   activateSurfaceIntent(deps, 'browser')
   if (options.beginTransform ?? false) {
     deps.app.beginReferenceTransform?.(referenceId)
+    deps.app.beginReferenceTransformShell?.(referenceId)
   }
   return { referenceId }
 }

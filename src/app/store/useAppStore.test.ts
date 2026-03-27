@@ -1960,36 +1960,38 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const { useAppStore } = await import('./useAppStore')
 
     useAppStore.setState(useAppStore.getInitialState(), true)
-    useAppStore.getState().beginReferenceTransform('shoe:shoe-1')
-    useAppStore.getState().setReferenceTransformMode('translate')
-    useAppStore.getState().setReferenceTransformOverride('shoe:shoe-1', {
+    useAppStore.getState().beginReferenceTransformShell('shoe:shoe-1')
+    useAppStore.getState().beginReferenceTransformEntry('translate')
+    useAppStore.getState().setActiveReferenceTransformDraft({
       position: { x: 5, y: 0, z: 0 },
       rotationDeg: { x: 0, y: 0, z: 0 },
       scale: { x: 1, y: 1, z: 1 },
     })
-    useAppStore.getState().appendActiveReferenceTransformHistoryEntry()
-    useAppStore.getState().appendActiveReferenceTransformHistoryEntry()
+    useAppStore.getState().commitActiveReferenceTransformEntry()
+    useAppStore.getState().commitActiveReferenceTransformEntry()
 
-    useAppStore.getState().setReferenceTransformMode('rotate')
-    useAppStore.getState().setReferenceTransformOverride('shoe:shoe-1', {
+    useAppStore.getState().beginReferenceTransformEntry('rotate')
+    useAppStore.getState().setActiveReferenceTransformDraft({
       position: { x: 5, y: 0, z: 0 },
       rotationDeg: { x: 0, y: 20, z: 0 },
       scale: { x: 1, y: 1, z: 1 },
     })
-    useAppStore.getState().appendActiveReferenceTransformHistoryEntry()
+    useAppStore.getState().commitActiveReferenceTransformEntry()
 
-    useAppStore.getState().setReferenceTransformMode('translate')
-    useAppStore.getState().setReferenceTransformOverride('shoe:shoe-1', {
+    useAppStore.getState().beginReferenceTransformEntry('translate')
+    useAppStore.getState().setActiveReferenceTransformDraft({
       position: { x: 9, y: -2, z: 4 },
       rotationDeg: { x: 0, y: 20, z: 0 },
       scale: { x: 1, y: 1, z: 1 },
     })
-    useAppStore.getState().appendActiveReferenceTransformHistoryEntry()
+    useAppStore.getState().commitActiveReferenceTransformEntry()
 
     const entriesBeforeMerge =
       useAppStore.getState().referenceWorkspace.transformHistoryByReferenceId['shoe:shoe-1'] ?? []
     expect(entriesBeforeMerge).toHaveLength(3)
     expect(entriesBeforeMerge.map((entry) => entry.kind)).toEqual(['move', 'rotate', 'move'])
+    expect(entriesBeforeMerge.every((entry) => entry.sessionOrdinal === 1)).toBe(true)
+    expect(new Set(entriesBeforeMerge.map((entry) => entry.sessionId)).size).toBe(1)
 
     useAppStore
       .getState()
@@ -2005,16 +2007,53 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
       useAppStore.getState().referenceWorkspace.transformHistoryByReferenceId['shoe:shoe-1'],
     ).toMatchObject([
       {
+        sessionOrdinal: 1,
         kind: 'move',
         value: { x: 5, y: 0, z: 0 },
         locked: true,
       },
       {
+        sessionOrdinal: 1,
         kind: 'move',
         value: { x: 9, y: -2, z: 4 },
         locked: false,
       },
     ])
+  })
+
+  it('tracks transform shell sessions on committed child history entries and ignores empty shells', async () => {
+    const { useAppStore } = await import('./useAppStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+
+    useAppStore.getState().beginReferenceTransformShell('shoe:shoe-1')
+    useAppStore.getState().exitReferenceTransformShell()
+
+    useAppStore.getState().beginReferenceTransformShell('shoe:shoe-1')
+    useAppStore.getState().beginReferenceTransformEntry('translate')
+    useAppStore.getState().setActiveReferenceTransformDraft({
+      position: { x: 3, y: 0, z: 0 },
+      rotationDeg: { x: 0, y: 0, z: 0 },
+      scale: { x: 1, y: 1, z: 1 },
+    })
+    useAppStore.getState().commitActiveReferenceTransformEntry()
+    useAppStore.getState().exitReferenceTransformShell()
+
+    useAppStore.getState().beginReferenceTransformShell('shoe:shoe-1')
+    useAppStore.getState().beginReferenceTransformEntry('rotate')
+    useAppStore.getState().setActiveReferenceTransformDraft({
+      position: { x: 3, y: 0, z: 0 },
+      rotationDeg: { x: 0, y: 15, z: 0 },
+      scale: { x: 1, y: 1, z: 1 },
+    })
+    useAppStore.getState().commitActiveReferenceTransformEntry()
+
+    const entries =
+      useAppStore.getState().referenceWorkspace.transformHistoryByReferenceId['shoe:shoe-1'] ?? []
+
+    expect(entries).toHaveLength(2)
+    expect(entries.map((entry) => entry.sessionOrdinal)).toEqual([1, 2])
+    expect(entries[0]?.sessionId).not.toBe(entries[1]?.sessionId)
   })
 
   it('restores the captured baseline when an active reference transform session is cancelled', async () => {
@@ -2026,23 +2065,60 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
       rotationDeg: { x: 0, y: 0, z: 0 },
       scale: { x: 1, y: 1, z: 1 },
     })
-    useAppStore.getState().beginReferenceTransform('shoe:shoe-1')
-    useAppStore.getState().setReferenceTransformOverride('shoe:shoe-1', {
+    useAppStore.getState().beginReferenceTransformShell('shoe:shoe-1')
+    useAppStore.getState().beginReferenceTransformEntry('translate')
+    useAppStore.getState().setActiveReferenceTransformDraft({
       position: { x: 20, y: 30, z: 40 },
       rotationDeg: { x: 0, y: 0, z: 0 },
       scale: { x: 1, y: 1, z: 1 },
     })
 
-    useAppStore.getState().cancelActiveReferenceTransform()
+    useAppStore.getState().cancelActiveReferenceTransformEntry()
 
-    expect(useAppStore.getState().referenceWorkspace.activeTransformReferenceId).toBe('shoe:shoe-1')
-    expect(useAppStore.getState().referenceWorkspace.activeTransformEntryActive).toBe(false)
-    expect(useAppStore.getState().referenceWorkspace.activeTransformSessionOrigin).toBeNull()
+    expect(useAppStore.getState().referenceWorkspace.activeReferenceTransformSession?.referenceId).toBe('shoe:shoe-1')
+    expect(useAppStore.getState().referenceWorkspace.activeReferenceTransformSession?.entryActive).toBe(false)
+    expect(useAppStore.getState().referenceWorkspace.activeReferenceTransformSession?.entryOrigin).toBeNull()
     expect(useAppStore.getState().referenceWorkspace.transformOverrideById['shoe:shoe-1']).toMatchObject({
       position: { x: 2, y: 3, z: 4 },
       rotationDeg: { x: 0, y: 0, z: 0 },
       scale: { x: 1, y: 1, z: 1 },
     })
+  })
+
+  it('tracks and clears the active reference transform handle across commit and cancel', async () => {
+    const { useAppStore } = await import('./useAppStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useAppStore.getState().beginReferenceTransformShell('shoe:shoe-1')
+    useAppStore.getState().beginReferenceTransformEntry('translate')
+    useAppStore.getState().setActiveReferenceTransformHandle({
+      mode: 'translate',
+      kind: 'axis',
+      axis: 'y',
+    })
+
+    expect(useAppStore.getState().referenceWorkspace.activeReferenceTransformSession?.activeHandle).toMatchObject(
+      {
+        mode: 'translate',
+        kind: 'axis',
+        axis: 'y',
+      },
+    )
+
+    useAppStore.getState().commitActiveReferenceTransformEntry()
+
+    expect(useAppStore.getState().referenceWorkspace.activeReferenceTransformSession?.activeHandle).toBeNull()
+
+    useAppStore.getState().beginReferenceTransformEntry('translate')
+    useAppStore.getState().setActiveReferenceTransformHandle({
+      mode: 'translate',
+      kind: 'axis',
+      axis: 'x',
+    })
+
+    useAppStore.getState().cancelActiveReferenceTransformEntry()
+
+    expect(useAppStore.getState().referenceWorkspace.activeReferenceTransformSession?.activeHandle).toBeNull()
   })
 })
 

@@ -13,6 +13,7 @@ let viewerSetReferenceTransformOverride: ReturnType<typeof vi.fn>
 let viewerSetOnReferenceTransformChange: ReturnType<typeof vi.fn>
 let viewerSetOnReferenceTransformCommit: ReturnType<typeof vi.fn>
 let viewerSetOnReferenceTransformExit: ReturnType<typeof vi.fn>
+let viewerSetOnReferenceTransformHandleChange: ReturnType<typeof vi.fn>
 let viewerSetOnReferenceTransformModeChange: ReturnType<typeof vi.fn>
 let viewerSetOnReferenceTransformSpaceChange: ReturnType<typeof vi.fn>
 let viewerSetGizmoSnap: ReturnType<typeof vi.fn>
@@ -61,6 +62,8 @@ vi.mock('../../viewer/Viewer', () => ({
       viewerSetOnReferenceTransformCommit(...args)
     public setOnReferenceTransformExit = (...args: unknown[]) =>
       viewerSetOnReferenceTransformExit(...args)
+    public setOnReferenceTransformHandleChange = (...args: unknown[]) =>
+      viewerSetOnReferenceTransformHandleChange(...args)
     public setOnReferenceTransformModeChange = (...args: unknown[]) =>
       viewerSetOnReferenceTransformModeChange(...args)
     public setOnReferenceTransformSpaceChange = (...args: unknown[]) =>
@@ -313,6 +316,7 @@ describe('ViewerHost reference loading', () => {
     viewerSetOnReferenceTransformChange = vi.fn()
     viewerSetOnReferenceTransformCommit = vi.fn()
     viewerSetOnReferenceTransformExit = vi.fn()
+    viewerSetOnReferenceTransformHandleChange = vi.fn()
     viewerSetOnReferenceTransformModeChange = vi.fn()
     viewerSetOnReferenceTransformSpaceChange = vi.fn()
     viewerSetGizmoSnap = vi.fn()
@@ -613,7 +617,7 @@ describe('ViewerHost reference loading', () => {
 
     act(() => {
       useAppStore.getState().toggleReferenceItemVisibility('shoe:shoe-1')
-      useAppStore.getState().beginReferenceTransform('shoe:shoe-1')
+      useAppStore.getState().beginReferenceTransformShell('shoe:shoe-1')
     })
 
     container = document.createElement('div')
@@ -634,7 +638,7 @@ describe('ViewerHost reference loading', () => {
       useAppStore.getState().setReferenceItemVisibility('shoe:shoe-1', false)
     })
 
-    expect(useAppStore.getState().referenceWorkspace.activeTransformReferenceId).toBeNull()
+    expect(useAppStore.getState().referenceWorkspace.activeReferenceTransformSession).toBeNull()
   })
 
   it('appends reference transform history when the viewer commit callback fires', async () => {
@@ -642,8 +646,9 @@ describe('ViewerHost reference loading', () => {
     const { useAppStore } = await import('../store/useAppStore')
 
     act(() => {
-      useAppStore.getState().beginReferenceTransform('shoe:shoe-1')
-      useAppStore.getState().setReferenceTransformOverride('shoe:shoe-1', {
+      useAppStore.getState().beginReferenceTransformShell('shoe:shoe-1')
+      useAppStore.getState().beginReferenceTransformEntry('translate')
+      useAppStore.getState().setActiveReferenceTransformDraft({
         position: { x: 5, y: -2, z: 9 },
         rotationDeg: { x: 0, y: 0, z: 0 },
         scale: { x: 1, y: 1, z: 1 },
@@ -686,7 +691,79 @@ describe('ViewerHost reference loading', () => {
       exitHandler?.()
     })
 
-    expect(useAppStore.getState().referenceWorkspace.activeTransformReferenceId).toBeNull()
+    expect(useAppStore.getState().referenceWorkspace.activeReferenceTransformSession).toBeNull()
+  })
+
+  it('stores the active reference transform handle when the viewer handle callback fires', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useAppStore } = await import('../store/useAppStore')
+
+    act(() => {
+      useAppStore.getState().beginReferenceTransformShell('shoe:shoe-1')
+      useAppStore.getState().beginReferenceTransformEntry('translate')
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost />)
+    })
+
+    const handleChangeHandler = viewerSetOnReferenceTransformHandleChange.mock.calls.at(-1)?.[0] as
+      | ((handle: { mode: 'translate'; kind: 'axis'; axis: 'y' }) => void)
+      | undefined
+
+    expect(handleChangeHandler).toBeTypeOf('function')
+
+    act(() => {
+      handleChangeHandler?.({ mode: 'translate', kind: 'axis', axis: 'y' })
+    })
+
+    expect(useAppStore.getState().referenceWorkspace.activeReferenceTransformSession?.activeHandle).toMatchObject(
+      {
+        mode: 'translate',
+        kind: 'axis',
+        axis: 'y',
+      },
+    )
+  })
+
+  it('promotes the reference transform shell into an active entry when the viewer center handle callback fires', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useAppStore } = await import('../store/useAppStore')
+
+    act(() => {
+      useAppStore.getState().beginReferenceTransformShell('shoe:shoe-1')
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost />)
+    })
+
+    const handleChangeHandler = viewerSetOnReferenceTransformHandleChange.mock.calls.at(-1)?.[0] as
+      | ((handle: { mode: 'translate'; kind: 'center' }) => void)
+      | undefined
+
+    expect(handleChangeHandler).toBeTypeOf('function')
+
+    act(() => {
+      handleChangeHandler?.({ mode: 'translate', kind: 'center' })
+    })
+
+    expect(useAppStore.getState().referenceWorkspace.activeReferenceTransformSession).toMatchObject({
+      mode: 'translate',
+      entryActive: true,
+      activeHandle: {
+        mode: 'translate',
+        kind: 'center',
+      },
+    })
   })
 
   it('pushes the active reference rotate snap value into the viewer gizmo snap state', async () => {
@@ -695,7 +772,7 @@ describe('ViewerHost reference loading', () => {
 
     act(() => {
       useAppStore.getState().toggleReferenceItemVisibility('shoe:shoe-1')
-      useAppStore.getState().beginReferenceTransform('shoe:shoe-1')
+      useAppStore.getState().beginReferenceTransformShell('shoe:shoe-1')
       useAppStore.getState().setReferenceRotateSnapEnabled('shoe:shoe-1', true)
       useAppStore.getState().setReferenceRotateSnapValue('shoe:shoe-1', 22.5)
     })

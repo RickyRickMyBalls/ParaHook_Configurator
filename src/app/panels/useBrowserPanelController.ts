@@ -165,7 +165,7 @@ export function useBrowserPanelController(
     (state) => state.startReferenceLoadBatchForCategory,
   )
   const removeImportedReference = useAppStore((state) => state.removeImportedReference)
-  const beginReferenceTransform = useAppStore((state) => state.beginReferenceTransform)
+  const beginReferenceTransformShell = useAppStore((state) => state.beginReferenceTransformShell)
   const setWorkspaceSelectedTarget = useAppStore((state) => state.setWorkspaceSelectedTarget)
   const setWorkspaceExplicitSelection = useAppStore((state) => state.setWorkspaceExplicitSelection)
   const setActiveSurface = useAppStore((state) => state.setActiveSurface)
@@ -174,7 +174,7 @@ export function useBrowserPanelController(
     (state) => state.requestFloatingShellActivation,
   )
   const activeTransformReferenceId = useAppStore(
-    (state) => state.referenceWorkspace.activeTransformReferenceId,
+    (state) => state.referenceWorkspace.activeReferenceTransformSession?.referenceId ?? null,
   )
   const workspaceActiveSurface = useAppStore((state) => state.workspaceSelection.activeSurface)
   const [expandedGraphDocumentIds, setExpandedGraphDocumentIds] = useState<string[]>([])
@@ -358,7 +358,7 @@ export function useBrowserPanelController(
         requestFloatingShellActivation,
         requestConsoleContextSync,
         setReferenceItemVisibility,
-        beginReferenceTransform,
+        beginReferenceTransform: beginReferenceTransformShell,
         selectPart,
       },
       spaghetti: {
@@ -374,7 +374,7 @@ export function useBrowserPanelController(
     }),
     [
       activeEditorViewportId,
-      beginReferenceTransform,
+      beginReferenceTransformShell,
       editorViewportsById,
       openGraphDocumentInViewport,
       requestConsoleContextSync,

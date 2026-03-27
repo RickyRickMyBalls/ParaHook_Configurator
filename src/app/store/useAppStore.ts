@@ -61,9 +61,26 @@ export type ReferenceItemLoadState = 'unloaded' | 'loading' | 'loaded' | 'error'
 export type ReferenceTransformMode = 'translate' | 'rotate' | 'scale'
 export type ReferenceTransformSpace = 'local' | 'world'
 export type ReferenceTransformHistoryEntryKind = 'move' | 'rotate' | 'scale'
+export type ActiveReferenceTransformHandle =
+  | {
+      mode: ReferenceTransformMode
+      kind: 'axis'
+      axis: 'x' | 'y' | 'z'
+    }
+  | {
+      mode: ReferenceTransformMode
+      kind: 'plane'
+      plane: 'xy' | 'xz' | 'yz'
+    }
+  | {
+      mode: ReferenceTransformMode
+      kind: 'center' | 'free-rotate'
+    }
 
 export type ReferenceTransformHistoryEntry = {
   entryId: string
+  sessionId: string
+  sessionOrdinal: number
   kind: ReferenceTransformHistoryEntryKind
   value: {
     x: number
@@ -71,6 +88,19 @@ export type ReferenceTransformHistoryEntry = {
     z: number
   }
   locked: boolean
+}
+
+export type ActiveReferenceTransformSession = {
+  referenceId: string
+  sessionId: string
+  sessionOrdinal: number
+  mode: ReferenceTransformMode
+  space: ReferenceTransformSpace
+  shellActive: boolean
+  entryActive: boolean
+  activeHandle: ActiveReferenceTransformHandle | null
+  draftTransform: ReferenceTransformOverride
+  entryOrigin: ReferenceTransformOverride | null
 }
 
 export type ImportedReferenceRecord = {
@@ -248,11 +278,7 @@ export type ReferenceWorkspaceState = {
   >
   rotateSnapByReferenceId: Record<string, ReferenceRotateSnapState>
   transformHistoryByReferenceId: Record<string, ReferenceTransformHistoryEntry[]>
-  activeTransformReferenceId: string | null
-  activeTransformEntryActive: boolean
-  activeTransformMode: ReferenceTransformMode
-  activeTransformSpace: ReferenceTransformSpace
-  activeTransformSessionOrigin: ReferenceTransformOverride | null
+  activeReferenceTransformSession: ActiveReferenceTransformSession | null
   importedReferencesById: Record<string, ImportedReferenceRecord>
   importedReferenceOrder: string[]
 }
@@ -520,20 +546,22 @@ export type AppState = {
     loadState: ReferenceItemLoadState,
     errorMessage?: string | null,
   ) => void
-  beginReferenceTransform: (referenceId: string) => void
-  endReferenceTransform: () => void
-  completeActiveReferenceTransformEntry: () => void
-  setReferenceTransformMode: (mode: ReferenceTransformMode) => void
-  setReferenceTransformSpace: (space: ReferenceTransformSpace) => void
+  beginReferenceTransformShell: (referenceId: string) => void
+  exitReferenceTransformShell: () => void
+  beginReferenceTransformEntry: (mode: ReferenceTransformMode) => void
+  commitActiveReferenceTransformEntry: () => void
+  setActiveReferenceTransformMode: (mode: ReferenceTransformMode) => void
+  setActiveReferenceTransformSpace: (space: ReferenceTransformSpace) => void
+  setActiveReferenceTransformHandle: (handle: ActiveReferenceTransformHandle | null) => void
+  setActiveReferenceTransformDraft: (transformOverride: ReferenceTransformOverride | null) => void
   setReferenceTransformOverride: (
     referenceId: string,
     transformOverride: ReferenceTransformOverride | null,
   ) => void
   resetReferenceTransform: (referenceId: string) => void
-  appendActiveReferenceTransformHistoryEntry: () => void
   toggleReferenceTransformHistoryLock: (referenceId: string, entryId: string) => void
   mergeReferenceTransformHistory: (referenceId: string) => void
-  cancelActiveReferenceTransform: () => void
+  cancelActiveReferenceTransformEntry: () => void
   setReferenceChannelClampRange: (
     referenceId: string,
     channel: ReferenceTimelineChannelKey,
@@ -819,11 +847,7 @@ const createInitialReferenceWorkspaceState = (): ReferenceWorkspaceState => ({
   timelineConfigByReferenceId: {},
   rotateSnapByReferenceId: {},
   transformHistoryByReferenceId: {},
-  activeTransformReferenceId: null,
-  activeTransformEntryActive: false,
-  activeTransformMode: 'translate',
-  activeTransformSpace: 'local',
-  activeTransformSessionOrigin: null,
+  activeReferenceTransformSession: null,
   importedReferencesById: {},
   importedReferenceOrder: [],
 })
@@ -842,6 +866,13 @@ const cloneReferenceTransformVector = (
   z: value.z,
 })
 
+const cloneReferenceTransformHistoryEntry = (
+  entry: ReferenceTransformHistoryEntry,
+): ReferenceTransformHistoryEntry => ({
+  ...entry,
+  value: cloneReferenceTransformVector(entry.value),
+})
+
 const cloneReferenceTransformOverride = (
   value: ReferenceTransformOverride | null,
 ): ReferenceTransformOverride | null =>
@@ -851,6 +882,26 @@ const cloneReferenceTransformOverride = (
         position: { ...value.position },
         rotationDeg: { ...value.rotationDeg },
         scale: { ...value.scale },
+      }
+
+const cloneActiveReferenceTransformSession = (
+  value: ActiveReferenceTransformSession | null,
+): ActiveReferenceTransformSession | null =>
+  value === null
+    ? null
+    : {
+        referenceId: value.referenceId,
+        sessionId: value.sessionId,
+        sessionOrdinal: value.sessionOrdinal,
+        mode: value.mode,
+        space: value.space,
+        shellActive: value.shellActive,
+        entryActive: value.entryActive,
+        activeHandle: value.activeHandle === null ? null : { ...value.activeHandle },
+        draftTransform:
+          cloneReferenceTransformOverride(value.draftTransform) ??
+          buildDefaultReferenceTransformOverride(),
+        entryOrigin: cloneReferenceTransformOverride(value.entryOrigin),
       }
 
 const areReferenceTransformVectorsEqual = (
@@ -886,26 +937,34 @@ const resolveReferenceTransformHistoryKind = (
   }
 }
 
+const getNextReferenceTransformSessionOrdinal = (
+  entries: readonly ReferenceTransformHistoryEntry[],
+): number => {
+  const maxSessionOrdinal = entries.reduce(
+    (currentMax, entry) => Math.max(currentMax, entry.sessionOrdinal),
+    0,
+  )
+  return maxSessionOrdinal + 1
+}
+
 const appendReferenceTransformHistoryEntry = (
   entries: readonly ReferenceTransformHistoryEntry[],
+  sessionId: string,
+  sessionOrdinal: number,
   kind: ReferenceTransformHistoryEntryKind,
   value: ReferenceTransformHistoryEntry['value'],
 ): ReferenceTransformHistoryEntry[] => {
   const nextValue = cloneReferenceTransformVector(value)
   const previousSameKind = [...entries].reverse().find((entry) => entry.kind === kind) ?? null
   if (previousSameKind !== null && areReferenceTransformVectorsEqual(previousSameKind.value, nextValue)) {
-    return entries.map((entry) => ({
-      ...entry,
-      value: cloneReferenceTransformVector(entry.value),
-    }))
+    return entries.map(cloneReferenceTransformHistoryEntry)
   }
   return [
-    ...entries.map((entry) => ({
-      ...entry,
-      value: cloneReferenceTransformVector(entry.value),
-    })),
+    ...entries.map(cloneReferenceTransformHistoryEntry),
     {
       entryId: newId('reference-transform-history'),
+      sessionId,
+      sessionOrdinal,
       kind,
       value: nextValue,
       locked: false,
@@ -917,10 +976,7 @@ const mergeReferenceTransformHistoryEntries = (
   entries: readonly ReferenceTransformHistoryEntry[],
 ): ReferenceTransformHistoryEntry[] => {
   if (entries.length <= 1) {
-    return entries.map((entry) => ({
-      ...entry,
-      value: cloneReferenceTransformVector(entry.value),
-    }))
+    return entries.map(cloneReferenceTransformHistoryEntry)
   }
   const preservedIndexes = new Set<number>([entries.length - 1])
   entries.forEach((entry, index) => {
@@ -930,10 +986,7 @@ const mergeReferenceTransformHistoryEntries = (
   })
   return entries
     .filter((_entry, index) => preservedIndexes.has(index))
-    .map((entry) => ({
-      ...entry,
-      value: cloneReferenceTransformVector(entry.value),
-    }))
+    .map(cloneReferenceTransformHistoryEntry)
 }
 
 const getReferenceChannelClampRange = (
@@ -1146,35 +1199,13 @@ const createReferenceLoadBatch = (
 const clearActiveReferenceTransformIfMatches = (
   referenceWorkspace: ReferenceWorkspaceState,
   referenceIds: readonly string[],
-): Pick<
-  ReferenceWorkspaceState,
-  | 'activeTransformReferenceId'
-  | 'activeTransformMode'
-  | 'activeTransformSpace'
-  | 'activeTransformSessionOrigin'
-> => {
-  if (
-    referenceWorkspace.activeTransformReferenceId === null ||
-    !referenceIds.includes(referenceWorkspace.activeTransformReferenceId)
-  ) {
-    return {
-      activeTransformReferenceId: referenceWorkspace.activeTransformReferenceId,
-      activeTransformEntryActive: referenceWorkspace.activeTransformEntryActive,
-      activeTransformMode: referenceWorkspace.activeTransformMode,
-      activeTransformSpace: referenceWorkspace.activeTransformSpace,
-      activeTransformSessionOrigin: cloneReferenceTransformOverride(
-        referenceWorkspace.activeTransformSessionOrigin,
-      ),
-    }
-  }
-  return {
-    activeTransformReferenceId: null,
-    activeTransformEntryActive: false,
-    activeTransformMode: referenceWorkspace.activeTransformMode,
-    activeTransformSpace: referenceWorkspace.activeTransformSpace,
-    activeTransformSessionOrigin: null,
-  }
-}
+): Pick<ReferenceWorkspaceState, 'activeReferenceTransformSession'> => ({
+  activeReferenceTransformSession:
+    referenceWorkspace.activeReferenceTransformSession === null ||
+    !referenceIds.includes(referenceWorkspace.activeReferenceTransformSession.referenceId)
+      ? cloneActiveReferenceTransformSession(referenceWorkspace.activeReferenceTransformSession)
+      : null,
+})
 
 const buildRootAssemblyId = (projectFileId: string): string =>
   `assembly-root:${projectFileId}`
@@ -2326,10 +2357,18 @@ export const useAppStore = create<AppState>((set, get) => ({
       },
     }))
   },
-  beginReferenceTransform: (referenceId) => {
+  beginReferenceTransformShell: (referenceId) => {
     set((state) => {
+      const existingSession = state.referenceWorkspace.activeReferenceTransformSession
+      if (existingSession?.referenceId === referenceId && existingSession.shellActive) {
+        return state
+      }
       const currentTransformOverride =
         state.referenceWorkspace.transformOverrideById[referenceId] ?? null
+      const currentEntries = state.referenceWorkspace.transformHistoryByReferenceId[referenceId] ?? []
+      const draftTransform =
+        cloneReferenceTransformOverride(currentTransformOverride) ??
+        buildDefaultReferenceTransformOverride()
       return {
         referenceWorkspace: {
           ...state.referenceWorkspace,
@@ -2337,74 +2376,183 @@ export const useAppStore = create<AppState>((set, get) => ({
             ...state.referenceWorkspace.visibilityById,
             [referenceId]: true,
           },
-          activeTransformReferenceId: referenceId,
-          activeTransformEntryActive: false,
-          activeTransformMode: state.referenceWorkspace.activeTransformMode,
-          activeTransformSpace: state.referenceWorkspace.activeTransformSpace,
-          activeTransformSessionOrigin:
-            cloneReferenceTransformOverride(currentTransformOverride) ??
-            buildDefaultReferenceTransformOverride(),
+          activeReferenceTransformSession: {
+            referenceId,
+            sessionId: newId('reference-transform-session'),
+            sessionOrdinal: getNextReferenceTransformSessionOrdinal(currentEntries),
+            mode: 'translate',
+            space: 'local',
+            shellActive: true,
+            entryActive: false,
+            activeHandle: null,
+            draftTransform,
+            entryOrigin: null,
+          },
         },
       }
     })
   },
-  endReferenceTransform: () => {
+  exitReferenceTransformShell: () => {
     set((state) => ({
       referenceWorkspace: {
         ...state.referenceWorkspace,
-        activeTransformReferenceId: null,
-        activeTransformEntryActive: false,
-        activeTransformSessionOrigin: null,
+        activeReferenceTransformSession: null,
       },
     }))
   },
-  completeActiveReferenceTransformEntry: () => {
+  beginReferenceTransformEntry: (mode) => {
     set((state) => {
-      const activeReferenceId = state.referenceWorkspace.activeTransformReferenceId
-      if (activeReferenceId === null) {
+      const activeSession = state.referenceWorkspace.activeReferenceTransformSession
+      if (activeSession === null) {
         return state
       }
       return {
         referenceWorkspace: {
           ...state.referenceWorkspace,
-          activeTransformEntryActive: false,
-          activeTransformSessionOrigin:
-            cloneReferenceTransformOverride(
-              state.referenceWorkspace.transformOverrideById[activeReferenceId] ?? null,
-            ) ?? buildDefaultReferenceTransformOverride(),
+          activeReferenceTransformSession: {
+            ...activeSession,
+            mode,
+            entryActive: true,
+            activeHandle: null,
+            entryOrigin:
+              cloneReferenceTransformOverride(activeSession.draftTransform) ??
+              buildDefaultReferenceTransformOverride(),
+            draftTransform:
+              cloneReferenceTransformOverride(activeSession.draftTransform) ??
+              buildDefaultReferenceTransformOverride(),
+          },
         },
       }
     })
   },
-  setReferenceTransformMode: (mode) => {
+  commitActiveReferenceTransformEntry: () => {
     set((state) => {
-      const activeReferenceId = state.referenceWorkspace.activeTransformReferenceId
+      const activeSession = state.referenceWorkspace.activeReferenceTransformSession
+      if (activeSession === null) {
+        return state
+      }
+      const activeReferenceId = activeSession.referenceId
+      const nextTransformOverride =
+        cloneReferenceTransformOverride(activeSession.draftTransform) ??
+        buildDefaultReferenceTransformOverride()
+      const previousTransformOverride =
+        state.referenceWorkspace.transformOverrideById[activeReferenceId] ?? null
+      const kind = resolveReferenceTransformHistoryKind(activeSession.mode)
+      const value = getReferenceTransformHistoryEntryValue(nextTransformOverride, kind)
+      const currentEntries =
+        state.referenceWorkspace.transformHistoryByReferenceId[activeReferenceId] ?? []
+      const nextEntries = appendReferenceTransformHistoryEntry(
+        currentEntries,
+        activeSession.sessionId,
+        activeSession.sessionOrdinal,
+        kind,
+        value,
+      )
+      const historyChanged = currentEntries.length !== nextEntries.length
       return {
         referenceWorkspace: {
           ...state.referenceWorkspace,
-          activeTransformMode: mode,
-          activeTransformEntryActive: activeReferenceId !== null,
-          activeTransformSessionOrigin:
-            activeReferenceId === null
-              ? state.referenceWorkspace.activeTransformSessionOrigin
-              : cloneReferenceTransformOverride(
-                  state.referenceWorkspace.transformOverrideById[activeReferenceId] ?? null,
-                ) ?? buildDefaultReferenceTransformOverride(),
+          activeReferenceTransformSession: {
+            ...activeSession,
+            entryActive: false,
+            activeHandle: null,
+            draftTransform: nextTransformOverride,
+            entryOrigin: null,
+          },
+          transformOverrideById: {
+            ...state.referenceWorkspace.transformOverrideById,
+            [activeReferenceId]: nextTransformOverride,
+          },
+          transformHistoryByReferenceId: historyChanged
+            ? {
+                ...state.referenceWorkspace.transformHistoryByReferenceId,
+                [activeReferenceId]: nextEntries,
+              }
+            : state.referenceWorkspace.transformHistoryByReferenceId,
+          timelineConfigByReferenceId: applyReferenceTransformTimelineDeltas(
+            state.referenceWorkspace,
+            activeReferenceId,
+            previousTransformOverride,
+            nextTransformOverride,
+          ),
         },
       }
     })
   },
-  setReferenceTransformSpace: (space) => {
-    set((state) => ({
-      referenceWorkspace: {
-        ...state.referenceWorkspace,
-        activeTransformSpace: space,
-      },
-    }))
+  setActiveReferenceTransformMode: (mode) => {
+    set((state) => {
+      const activeSession = state.referenceWorkspace.activeReferenceTransformSession
+      if (activeSession === null) {
+        return state
+      }
+      return {
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          activeReferenceTransformSession: {
+            ...activeSession,
+            mode,
+          },
+        },
+      }
+    })
+  },
+  setActiveReferenceTransformSpace: (space) => {
+    set((state) => {
+      const activeSession = state.referenceWorkspace.activeReferenceTransformSession
+      if (activeSession === null) {
+        return state
+      }
+      return {
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          activeReferenceTransformSession: {
+            ...activeSession,
+            space,
+          },
+        },
+      }
+    })
+  },
+  setActiveReferenceTransformHandle: (handle) => {
+    set((state) => {
+      const activeSession = state.referenceWorkspace.activeReferenceTransformSession
+      if (activeSession === null) {
+        return state
+      }
+      return {
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          activeReferenceTransformSession: {
+            ...activeSession,
+            activeHandle: handle === null ? null : { ...handle },
+          },
+        },
+      }
+    })
+  },
+  setActiveReferenceTransformDraft: (transformOverride) => {
+    set((state) => {
+      const activeSession = state.referenceWorkspace.activeReferenceTransformSession
+      if (activeSession === null) {
+        return state
+      }
+      return {
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          activeReferenceTransformSession: {
+            ...activeSession,
+            draftTransform:
+              cloneReferenceTransformOverride(transformOverride) ??
+              buildDefaultReferenceTransformOverride(),
+          },
+        },
+      }
+    })
   },
   setReferenceTransformOverride: (referenceId, transformOverride) => {
     set((state) => {
       const previousTransformOverride = state.referenceWorkspace.transformOverrideById[referenceId] ?? null
+      const activeSession = state.referenceWorkspace.activeReferenceTransformSession
       return {
         referenceWorkspace: {
           ...state.referenceWorkspace,
@@ -2412,6 +2560,15 @@ export const useAppStore = create<AppState>((set, get) => ({
             ...state.referenceWorkspace.transformOverrideById,
             [referenceId]: transformOverride,
           },
+          activeReferenceTransformSession:
+            activeSession?.referenceId === referenceId
+              ? {
+                  ...activeSession,
+                  draftTransform:
+                    cloneReferenceTransformOverride(transformOverride) ??
+                    buildDefaultReferenceTransformOverride(),
+                }
+              : activeSession,
           timelineConfigByReferenceId: applyReferenceTransformTimelineDeltas(
             state.referenceWorkspace,
             referenceId,
@@ -2425,6 +2582,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   resetReferenceTransform: (referenceId) => {
     set((state) => {
       const previousTransformOverride = state.referenceWorkspace.transformOverrideById[referenceId] ?? null
+      const activeSession = state.referenceWorkspace.activeReferenceTransformSession
       return {
         referenceWorkspace: {
           ...state.referenceWorkspace,
@@ -2432,40 +2590,22 @@ export const useAppStore = create<AppState>((set, get) => ({
             ...state.referenceWorkspace.transformOverrideById,
             [referenceId]: null,
           },
+          activeReferenceTransformSession:
+            activeSession?.referenceId === referenceId
+              ? {
+                  ...activeSession,
+                  draftTransform: buildDefaultReferenceTransformOverride(),
+                  entryOrigin: activeSession.entryActive
+                    ? activeSession.entryOrigin
+                    : null,
+                }
+              : activeSession,
           timelineConfigByReferenceId: applyReferenceTransformTimelineDeltas(
             state.referenceWorkspace,
             referenceId,
             previousTransformOverride,
             null,
           ),
-        },
-      }
-    })
-  },
-  appendActiveReferenceTransformHistoryEntry: () => {
-    set((state) => {
-      const activeReferenceId = state.referenceWorkspace.activeTransformReferenceId
-      if (activeReferenceId === null) {
-        return state
-      }
-      const kind = resolveReferenceTransformHistoryKind(state.referenceWorkspace.activeTransformMode)
-      const value = getReferenceTransformHistoryEntryValue(
-        state.referenceWorkspace.transformOverrideById[activeReferenceId] ?? null,
-        kind,
-      )
-      const currentEntries =
-        state.referenceWorkspace.transformHistoryByReferenceId[activeReferenceId] ?? []
-      const nextEntries = appendReferenceTransformHistoryEntry(currentEntries, kind, value)
-      if (currentEntries.length === nextEntries.length) {
-        return state
-      }
-      return {
-        referenceWorkspace: {
-          ...state.referenceWorkspace,
-          transformHistoryByReferenceId: {
-            ...state.referenceWorkspace.transformHistoryByReferenceId,
-            [activeReferenceId]: nextEntries,
-          },
         },
       }
     })
@@ -2509,6 +2649,8 @@ export const useAppStore = create<AppState>((set, get) => ({
           return (
             other === undefined ||
             entry.entryId !== other.entryId ||
+            entry.sessionId !== other.sessionId ||
+            entry.sessionOrdinal !== other.sessionOrdinal ||
             entry.locked !== other.locked ||
             !areReferenceTransformVectorsEqual(entry.value, other.value)
           )
@@ -2527,32 +2669,25 @@ export const useAppStore = create<AppState>((set, get) => ({
       }
     })
   },
-  cancelActiveReferenceTransform: () => {
+  cancelActiveReferenceTransformEntry: () => {
     set((state) => {
-      const activeReferenceId = state.referenceWorkspace.activeTransformReferenceId
-      if (activeReferenceId === null) {
+      const activeSession = state.referenceWorkspace.activeReferenceTransformSession
+      if (activeSession === null) {
         return state
       }
       const baseline =
-        cloneReferenceTransformOverride(state.referenceWorkspace.activeTransformSessionOrigin) ??
+        cloneReferenceTransformOverride(activeSession.entryOrigin) ??
         buildDefaultReferenceTransformOverride()
-      const previousTransformOverride =
-        state.referenceWorkspace.transformOverrideById[activeReferenceId] ?? null
       return {
         referenceWorkspace: {
           ...state.referenceWorkspace,
-          activeTransformEntryActive: false,
-          activeTransformSessionOrigin: null,
-          transformOverrideById: {
-            ...state.referenceWorkspace.transformOverrideById,
-            [activeReferenceId]: baseline,
+          activeReferenceTransformSession: {
+            ...activeSession,
+            entryActive: false,
+            activeHandle: null,
+            draftTransform: baseline,
+            entryOrigin: null,
           },
-          timelineConfigByReferenceId: applyReferenceTransformTimelineDeltas(
-            state.referenceWorkspace,
-            activeReferenceId,
-            previousTransformOverride,
-            baseline,
-          ),
         },
       }
     })
