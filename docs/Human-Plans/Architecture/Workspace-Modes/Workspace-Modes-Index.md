@@ -3,6 +3,8 @@
 ## Doc Header
 
 ### Doc History
+24. 2026-03-27 15:18: Re-shaped the workspace-family phase ladder after the completed `Workspace 0.1` code audit, marking the research phase done, moving the next open work toward shared workspace ownership and state extraction first, treating shipped `05.1B` as split-proof history rather than the next defining future phase, and pulling viewport-local chrome and toolbar-host ownership forward as its own explicit follow-on
+23. 2026-03-27 15:06: Added a native `Workspace 0.1` research phase to this family, creating a code-grounded pre-implementation audit step plus a new standalone future doc under `Workspace-Modes/Future/` so the workspace lane now has one explicit place to inventory the current `AppShell`, dock-host, store, viewport, and split-type seams before the later implementation phases are tightened
 22. 2026-03-27 14:50: Expanded the workspace-family surface inventory after a read-only scan of the live app and architecture docs, adding the missing real workspace candidates `Radio`, `Layer Manager`, `Export`, `Debug Inspector`, and the later `Reference Workspace / Comparison` direction to the supported-surface read and the simple `list of all workspaces`, while keeping `Camera Controls` out because that behavior is expected to stay inside viewport-local `View` / toolbar ownership rather than become a separate workspace surface
 21. 2026-03-27 14:44: Added a simple `list of all workspaces` section near the phase ladder so the family doc now has one short scan-friendly list of the main workspace/surface kinds ParaHook should think in today, grouped between workspace-global surfaces, per-viewport surfaces, and later browser-window or collaboration-facing follow-ons
 20. 2026-03-27 14:42: Tightened the workspace-family architecture around the three real placement modes and viewport ownership, clarifying that `Windowed`, `Tiled`, and later browser `Pop-Out` are the honest host modes, that separate browser windows are not just another tiled pane, and that each `Model Viewport` instance should own its own viewport-local chrome and toolbar host area for `View`, `Gizmo`, and later command toolbars such as `Transform` or `Sketch`
@@ -711,12 +713,16 @@ Practical read:
 The current workspace-family planning still lives partly in the phase-task and adjacent shipped-doc lanes.
 
 Current planning sources:
+- `Workspace 0.1`
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-0.1 - Codebase Research And Implementation Audit.md`
 - `Workspace 1`
   - `docs/Phase-Plans/Tasks/Future/05.1A - VR-SP - Workspace Layout Foundation And Left-Dock Entry.md`
 - `Workspace 2`
-  - `docs/Phase-Plans/Tasks/Old/05.1B - VR-SP - Split Pane Authoring And Divider Controls.md`
-- `Workspace 3`
   - `docs/Phase-Plans/Tasks/Future/05.1C - VR-SP - Hybrid Tool Surface Hosting And Floating-Tiled Transitions.md`
+  - reuses shipped split-proof behavior from `docs/Phase-Plans/Tasks/Old/05.1B - VR-SP - Split Pane Authoring And Divider Controls.md`
+- `Workspace 3`
+  - still needs a native future workspace doc
+  - currently grounded by the completed `Workspace 0.1` audit plus the `AppShell`, `ViewerHost`, and viewport-toolbar ownership seams
 - `Workspace 4`
   - `docs/Phase-Plans/Tasks/Future/05.1D - VR-SP - Workspace Persistence, Saved Modes, And Migration.md`
 - `Workspace 5`
@@ -811,9 +817,10 @@ Likely current integration seams:
 
 Expected next cleanup after adding the family structure:
 
-1. create native `Workspace 1` through `Workspace 4` phase records under `Workspace-Modes/Future/` as the current task-doc planning gets re-homed into this family
-2. add shipped workspace-native records under `Workspace-Modes/Shipped/` when the family has enough direct landed history to justify them
-3. keep later multi-window/pop-out and shared activation/intent planning tied to this same family instead of letting shell ownership split again across unrelated docs
+1. create native `Workspace 1` through `Workspace 5` phase records under `Workspace-Modes/Future/` as the current task-doc planning gets re-homed into this family
+2. give viewport-local chrome and toolbar-host ownership its own native future doc before multi-viewport work starts
+3. add shipped workspace-native records under `Workspace-Modes/Shipped/` when the family has enough direct landed history to justify them
+4. keep later multi-window/pop-out and shared activation/intent planning tied to this same family instead of letting shell ownership split again across unrelated docs
 
 ### Short Version
 
@@ -854,50 +861,77 @@ The right mental model is:
 
 ## Phases
 
-### [ ] Workspace 1 - Layout Foundation And Left-Dock Entry
+### [x] Workspace 0.1 - Codebase Research And Implementation Audit
 #### Header
-- define one honest workspace-layout owner near `AppShell`
-- lock the first pane-tree model and protected main viewer rule
-- reuse the current left-dock `[]` split affordance as the first tiled-entry seam
+- audit the current code before the workspace family hardens around the later implementation phases
+- inventory which parts of the shell already behave like workspace ownership versus feature-local legacy state
+- identify the smallest honest migration path from the current mixed shell/store setup into the shared workspace model
 
-#### [ ] Question 1 - Where should the first real shared workspace-layout owner live?
+#### [x] Question 1 - What do we need to audit in code before `Workspace 1` starts implementation work?
+##### Question 1 Suggestion
+- audit `AppShell` as the current shell host and split-entry seam
+- audit the dock/window hosts such as `BrowserDockHost`, `SpaghettiWindowHost`, and `useAppShellDockController`
+- audit `useAppStore` for shared `workspaceSelection` and activation/intent seams
+- audit `useSpaghettiStore` for current editor-window and split-view ownership that should not silently remain the long-term workspace owner
+- audit `workspaceSplitTypes` and `ViewerHost` to see what can be reused directly versus what still needs a real shared workspace owner
+
+Audit result:
+- `Windowed` is already real
+- `Tiled` is partially real through the current split proof
+- the main open problem is ownership, not divider mechanics
+- `useSpaghettiStore` still carries too much shell-level viewport placement state
+- viewport-local chrome still needs a real per-viewport ownership seam
+
+Current source doc:
+- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-0.1 - Codebase Research And Implementation Audit.md`
+
+### [ ] Workspace 1 - Shared Workspace Owner And State Extraction
+#### Header
+- create one honest workspace owner above the current editor-specific viewport state
+- extract shell-level placement truth out of the mixed `AppShell` and `useSpaghettiStore` setup
+- keep the left-dock `[]` split affordance as the first tiled-entry seam without letting that legacy path define the long-term owner
+
+#### [ ] Question 1 - Where should the first real shared workspace owner live?
 ##### Question 1 Suggestion
 - create a dedicated workspace seam under `src/app/workspace/`
 - keep it shell-owned near `AppShell`
+- move placement and presentation truth there first
 - do not bury the layout tree in `useSpaghettiStore`
 
 Current source doc:
 - `docs/Phase-Plans/Tasks/Future/05.1A - VR-SP - Workspace Layout Foundation And Left-Dock Entry.md`
 
-### [x] Workspace 2 - Split Pane Authoring And Divider Controls
+### [ ] Workspace 2 - First Hosted Surface Migration And Transitional Adapters
 #### Header
-- lock how the first shared split is authored from title bars and divider lines
-- keep divider lines as first-class layout controls instead of pane-only one-offs
-- preserve one honest answer for resize, close, merge, and row/column priority behavior
+- migrate the first honest surface set onto the shared workspace owner without rewriting every renderer at once
+- keep `BrowserDockHost` and `SpaghettiWindowHost` as transition adapters while ownership moves upward
+- reuse shipped split proof from `05.1B` instead of pretending divider behavior is still the main open architectural question
 
-#### [x] Question 1 - How should the first shared split-authoring seam work?
+#### [ ] Question 1 - What should the first honest hosted surface migration look like?
 ##### Question 1 Suggestion
-- let standalone windowed surfaces enter tiled mode from their title bars
-- let deeper layout growth come from divider-line actions
-- keep split authoring shared instead of surface-specific
-
-Current source doc:
-- `docs/Phase-Plans/Tasks/Old/05.1B - VR-SP - Split Pane Authoring And Divider Controls.md`
-
-### [ ] Workspace 3 - Hybrid Tool Surface Hosting And Floating-Tiled Transitions
-#### Header
-- lock the first honest hosted-surface set for the hybrid workspace
-- decide how surfaces move between `Windowed` and `Tiled`
-- keep Browser preservation, multi-instance honesty, and pane-header ownership aligned
-
-#### [ ] Question 1 - Which surfaces should participate in the first honest shared workspace pass?
-##### Question 1 Suggestion
-- start with `Model Viewer`, `Browser`, `Console`, `Gizmo/View`, and `Spaghetti Editor`
-- keep smaller secondary panels out until the hosting model feels stable
-- preserve the current floating-in-viewport Browser behavior when Browser is dragged back into the model view
+- start with `Model Viewport`, `Browser`, `Console`, and `Spaghetti Editor`
+- preserve the current floating/docked host components as adapters during migration
+- reuse shipped split-authoring behavior from `05.1B` instead of re-planning it as the main next step
 
 Current source doc:
 - `docs/Phase-Plans/Tasks/Future/05.1C - VR-SP - Hybrid Tool Surface Hosting And Floating-Tiled Transitions.md`
+- shipped proof to reuse: `docs/Phase-Plans/Tasks/Old/05.1B - VR-SP - Split Pane Authoring And Divider Controls.md`
+
+### [ ] Workspace 3 - Viewport-Local Chrome And Toolbar Host
+#### Header
+- define one viewport-instance ownership seam for `View`, `Gizmo`, `ViewportOverlay`, and later command toolbars
+- stop treating viewport chrome as app-global if later multiple `Model Viewport` instances are expected
+- give spawned viewport tools such as `Transform` and `Sketch` a real viewport-local toolbar host instead of relying on global overlay mounting
+
+#### [ ] Question 1 - What needs to become viewport-owned before later multiple `Model Viewport` instances are believable?
+##### Question 1 Suggestion
+- move `View`, `Gizmo`, and related viewport chrome out of global shell mounting
+- let each `Model Viewport` instance own its own local toolbar host
+- keep behavior seams in `ViewerHost`, but stop making viewport chrome global in `AppShell`
+
+Current source doc:
+- native future workspace doc still needed
+- current grounding comes from completed `Workspace 0.1` audit plus the `AppShell` and `ViewerHost` seams
 
 ### [ ] Workspace 4 - Persistence, Saved Modes, And Migration
 #### Header
@@ -910,6 +944,7 @@ Current source doc:
 - remember the tiled split tree
 - remember floating/windowed placements
 - remember which supported surfaces are tiled versus windowed
+- remember viewport-local chrome ownership state where that affects layout and spawned toolbar hosting
 - leave named saved modes as a later follow-on
 
 Current source doc:

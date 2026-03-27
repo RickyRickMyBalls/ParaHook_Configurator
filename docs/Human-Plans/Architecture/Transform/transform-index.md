@@ -3,6 +3,9 @@
 ## Doc Header
 
 ### Doc History
+44. 2026-03-27 15:18: Cleaned up the Transform-family docs after the shipped `Transform 13` move snap visual pass by moving its standalone phase record from `Future/` into `Shipped/` and updating this family index so the move visual phase no longer points at a stale future-path planning surface
+43. 2026-03-27 15:14: Marked `Transform 13` shipped in this family index after the first move-only snap availability visuals landed in the viewer, keeping the pass scoped to active move drag only, preserving rotate for later `Transform 13.1`, and leaving scale out of scope
+42. 2026-03-27 15:10: Added the standalone implementation-ready `Transform 13` future phase doc for move snap availability visuals, and tightened this family index so `Transform 13` is now move-only during active move-drag entry while the earlier rotate visual idea is deferred into later `Transform 13.1`
 41. 2026-03-27 15:05: Tightened the new `Transform 13` viewport snap-visual direction in this family index against a concrete sketch, clarifying that enabled move snap should render a local field of tiny white snap dots around the active gizmo context rather than a broad red-debug-style scatter, while keeping rotate on nearby guide lines and leaving scale out of scope
 40. 2026-03-27 15:02: Added the next snap-visualization follow-on to this family index as `Transform 13`, locking the first viewport direction so enabled move snap should render nearby snap-point dots/spheres while dragging, enabled rotate snap should render nearby snap-guide lines while rotating, and scale should stay out of scope for that first visual pass
 39. 2026-03-27 14:45: Cleaned up the Transform-family docs after the shipped `Transform 11` Console snap parity work by moving its standalone phase record into `Shipped/`, updating this family index so `Transform 11` now reads as complete, and adding the new standalone implementation-ready `Transform 12` future phase doc for transform-shell polish and canonical adapter cleanup
@@ -1038,10 +1041,11 @@ Decision:
 Standalone phase doc:
 - `docs/Human-Plans/Architecture/Transform/Future/Transform_Phase Transform-12 - Transform Shell Polish And Canonical Adapter Cleanup.md`
 
-### [ ] Transform 13 - Viewport Snap Availability Visuals
+### [x] Transform 13 - Viewport Snap Availability Visuals
 
-- add first-pass viewport visuals that show nearby snap options while the user is actively dragging with snap enabled
-- keep the first pass move-and-rotate only so the overlay direction stays honest to the useful gizmo cases
+- add the first viewport snap-availability visual while the user is actively dragging with move snap enabled
+- keep `Transform 13` move-only so the first pass stays honest to the current gizmo drag context
+- defer rotate visuals to later `Transform 13.1`
 - leave scale out of scope for the first visual pass
 
 #### [x] q1 - What should enabled move snap render in the viewport while the user is dragging?
@@ -1052,6 +1056,10 @@ Standalone phase doc:
 - show the points that matter to the current handle scope, such as `XY` plane movement versus single-axis movement
 - keep those points white in the real product surface
 - keep the field local to the active gizmo neighborhood instead of filling the whole viewport
+- split the move visual by active move-handle context:
+  - single-axis move
+  - two-axis plane move
+  - center / three-axis move
 
 Decision:
 - when move snap is enabled and the user is actively dragging a move handle, the viewport should render nearby snap options as tiny dots or spheres
@@ -1059,25 +1067,49 @@ Decision:
 - the visual should represent the nearby snap positions the user can drag the gizmo toward from the current handle context
 - those move snap dots should render white in the real product surface
 - the first pass should render only a local neighborhood of nearby snap points around the active gizmo context, not a full-scene scatter of points
+- the move visual should split into three handle-context variants:
+  - single-axis move
+  - two-axis plane move
+  - center / three-axis move
 
-#### [x] q2 - What should enabled rotate snap render in the viewport while the user is rotating?
+#### [x] q2 - Should move snap availability visuals split by active move-handle context?
 
 ##### Suggestion
-- render nearby snap guides as lines around the active rotate axis
-- keep the first pass axis-owned so `X`, `Y`, and `Z` rotate handles show the nearby snapped angular divisions that matter to that axis
+- yes
+- single-axis move, plane move, and center move expose different reachable snap destinations
+- give each move-handle family its own local dot-field shape instead of forcing one generic overlay onto all move drags
 
 Decision:
-- when rotate snap is enabled and the user is actively rotating on `X`, `Y`, or `Z`, the viewport should render nearby snap-guide lines for that active rotate axis
-- the rotate visual should show the nearby snapped angular divisions the current handle can land on
+- yes
+- move snap availability visuals should split by active move-handle context
+- single-axis move should render a local 1D line of snap dots
+- two-axis plane move should render a local 2D field of snap dots on that plane
+- center / three-axis move should render a local 3D field of snap dots around the gizmo neighborhood
 
-#### [x] q3 - Should scale snap get a viewport visual in this first pass?
+#### [x] q3 - Should rotate snap land in this same first phase?
+
+##### Suggestion
+- no
+- keep `Transform 13` move-only
+- split rotate into later `Transform 13.1` so the first pass can stay tightly scoped to move drag visuals
+
+Decision:
+- no
+- rotate snap visuals do not land in `Transform 13`
+- rotate moves to later `Transform 13.1`
+- first-pass viewport snap visuals should cover move only
+
+#### [x] q4 - Should scale snap get a viewport visual in this first pass?
 
 ##### Suggestion
 - no
 - keep scale out of the first viewport snap-visual pass
-- land move and rotate first before deciding whether scale has an honest enough visual language
+- land move first before deciding whether scale has an honest enough visual language
 
 Decision:
 - no
 - scale gets no viewport snap visual in the first pass
-- first-pass viewport snap visuals should cover move and rotate only
+- first-pass viewport snap visuals should cover move only
+
+Standalone phase doc:
+- `docs/Human-Plans/Architecture/Transform/Shipped/Transform_Phase Transform-13 - Move Snap Availability Visuals.md`

@@ -72,6 +72,10 @@ import { SketchPlanePickHelper } from './sketch/SketchPlanePickHelper'
 import { GeometrySketchDrawHelper } from './sketch/GeometrySketchDrawHelper'
 import { ReferenceTransformHistoryHelper } from './ReferenceTransformHistoryHelper'
 import {
+  ReferenceTransformMoveSnapHelper,
+  isReferenceTransformMoveSnapHandle,
+} from './ReferenceTransformMoveSnapHelper'
+import {
   getSketchPlaneWorldNormal,
   getSketchPlaneWorldOrigin,
   getSketchPlaneWorldYAxis,
@@ -240,6 +244,7 @@ export class Viewer {
   private axisOverlayEnabled = true
   private readonly sketchPlanePickHelper: SketchPlanePickHelper
   private readonly referenceTransformHistoryHelper: ReferenceTransformHistoryHelper
+  private readonly referenceTransformMoveSnapHelper: ReferenceTransformMoveSnapHelper
   private readonly geometrySketchDrawHelper: GeometrySketchDrawHelper
   private geometrySketchOverlay: GeometrySketchOverlayVm | null = null
   private geometrySketchCameraAlignKey: string | null = null
@@ -281,6 +286,7 @@ export class Viewer {
     ((handle: ActiveReferenceTransformHandle | null) => void)
     | null = null
   private activeReferenceTransformHandle: ActiveReferenceTransformHandle | null = null
+  private referenceTransformDragging = false
   private gizmoSnap: {
     translate?: { x: number; y: number; z: number }
     rotate?: { x: number; y: number; z: number }
@@ -451,6 +457,8 @@ export class Viewer {
     this.scene.add(this.sketchPlanePickHelper.getGroup())
     this.referenceTransformHistoryHelper = new ReferenceTransformHistoryHelper()
     this.scene.add(this.referenceTransformHistoryHelper.getGroup())
+    this.referenceTransformMoveSnapHelper = new ReferenceTransformMoveSnapHelper()
+    this.scene.add(this.referenceTransformMoveSnapHelper.getGroup())
     this.geometrySketchDrawHelper = new GeometrySketchDrawHelper()
     this.scene.add(this.geometrySketchDrawHelper.getGroup())
     this.geometrySketchComponentMaterial = new LineBasicMaterial({
@@ -534,6 +542,7 @@ export class Viewer {
     )
     this.transformGizmo.setOnObjectChange(this.handleTransformGizmoObjectChange)
     this.transformGizmo.setOnDragComplete(this.handleTransformGizmoDragComplete)
+    this.transformGizmo.setOnDraggingChange(this.handleReferenceTransformDraggingChange)
     this.transformGizmo.setOnHandleChange(this.handleReferenceTransformHandleChange)
     this.transformGizmo.setMode(this.gizmoMode)
     this.transformGizmo.setSpace(this.gizmoSpace)
@@ -753,6 +762,7 @@ export class Viewer {
       this.refreshReferenceHighlightStyling()
       this.refreshGizmoAttachment()
       this.syncReferenceTransformHistoryOverlay()
+      this.syncReferenceTransformMoveSnapAvailabilityOverlay()
       return
     }
     if (object.parent === this.referenceGroup) {
@@ -762,6 +772,7 @@ export class Viewer {
     this.refreshReferenceHighlightStyling()
     this.refreshGizmoAttachment()
     this.syncReferenceTransformHistoryOverlay()
+    this.syncReferenceTransformMoveSnapAvailabilityOverlay()
   }
 
   public removeReference(referenceId: string): void {
@@ -788,6 +799,7 @@ export class Viewer {
     this.refreshReferenceHighlightStyling()
     this.refreshGizmoAttachment()
     this.syncReferenceTransformHistoryOverlay()
+    this.syncReferenceTransformMoveSnapAvailabilityOverlay()
   }
 
   public setReferenceTransformSession(session: ReferenceTransformSession | null): void {
@@ -802,6 +814,7 @@ export class Viewer {
     this.refreshReferenceHighlightStyling()
     this.refreshGizmoAttachment()
     this.syncReferenceTransformHistoryOverlay()
+    this.syncReferenceTransformMoveSnapAvailabilityOverlay()
   }
 
   public setReferenceTransformHistoryOverlay(
@@ -1188,6 +1201,7 @@ export class Viewer {
   public setGizmoSpace(space: GizmoSpace): void {
     this.gizmoSpace = space
     this.transformGizmo.setSpace(space)
+    this.syncReferenceTransformMoveSnapAvailabilityOverlay()
   }
 
   public setGizmoSnap(opts: {
@@ -1201,6 +1215,7 @@ export class Viewer {
       scale: opts.scale,
     }
     this.transformGizmo.setSnap(opts)
+    this.syncReferenceTransformMoveSnapAvailabilityOverlay()
   }
 
   public setSelectedPart(partId: string | null): void {
@@ -1541,6 +1556,7 @@ export class Viewer {
     this.axisGizmo = null
     this.sketchPlanePickHelper.dispose()
     this.referenceTransformHistoryHelper.dispose()
+    this.referenceTransformMoveSnapHelper.dispose()
     this.geometrySketchDrawHelper.dispose()
     this.geometrySketchComponentMaterial.dispose()
     this.geometrySketchHoveredComponentMaterial.dispose()
@@ -2133,6 +2149,28 @@ export class Viewer {
     )
   }
 
+  private syncReferenceTransformMoveSnapAvailabilityOverlay(): void {
+    if (
+      this.activeReferenceTransformReferenceId === null ||
+      this.referenceTransformDragging !== true ||
+      this.gizmoSnap.translate === undefined ||
+      !isReferenceTransformMoveSnapHandle(this.activeReferenceTransformHandle)
+    ) {
+      this.referenceTransformMoveSnapHelper.setOverlay(null, null)
+      return
+    }
+    const referenceObject =
+      this.referenceObjects.get(this.activeReferenceTransformReferenceId) ?? null
+    this.referenceTransformMoveSnapHelper.setOverlay(
+      {
+        handle: this.activeReferenceTransformHandle,
+        snapValues: this.gizmoSnap.translate,
+        space: this.gizmoSpace,
+      },
+      referenceObject,
+    )
+  }
+
   private requestReferenceTransformExit(): void {
     if (this.activeReferenceTransformReferenceId === null) {
       return
@@ -2141,6 +2179,7 @@ export class Viewer {
     this.syncGizmoEnabledState()
     this.refreshReferenceHighlightStyling()
     this.refreshGizmoAttachment()
+    this.syncReferenceTransformMoveSnapAvailabilityOverlay()
     this.onReferenceTransformExit?.()
   }
 
@@ -2253,16 +2292,23 @@ export class Viewer {
     if (this.cameraLockedReferenceId === this.activeReferenceTransformReferenceId) {
       this.syncLockedReferenceCamera(object)
     }
+    this.syncReferenceTransformMoveSnapAvailabilityOverlay()
   }
 
   private readonly handleReferenceTransformHandleChange = (
     handle: ActiveReferenceTransformHandle | null,
   ): void => {
     this.activeReferenceTransformHandle = handle
+    this.syncReferenceTransformMoveSnapAvailabilityOverlay()
     if (this.activeReferenceTransformReferenceId === null) {
       return
     }
     this.onReferenceTransformHandleChange?.(handle)
+  }
+
+  private readonly handleReferenceTransformDraggingChange = (dragging: boolean): void => {
+    this.referenceTransformDragging = dragging
+    this.syncReferenceTransformMoveSnapAvailabilityOverlay()
   }
 
   private readonly handleSketchPlanePickTransformObjectChange = (object: Object3D): void => {

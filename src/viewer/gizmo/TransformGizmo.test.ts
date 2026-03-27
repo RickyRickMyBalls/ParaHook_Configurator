@@ -112,4 +112,26 @@ describe('TransformGizmo', () => {
     expect(attachMock).toHaveBeenCalledTimes(1)
     gizmo.dispose()
   })
+
+  it('reports transform dragging state changes', () => {
+    const domElement = document.createElement('div')
+    const gizmo = new TransformGizmo(
+      new PerspectiveCamera(),
+      domElement,
+      { enabled: true } as never,
+    )
+    const handleDraggingChange = vi.fn()
+    gizmo.setOnDraggingChange(handleDraggingChange)
+
+    const draggingChangedHandler = addEventListenerMock.mock.calls.find(
+      ([eventName]) => eventName === 'dragging-changed',
+    )?.[1] as ((event: { value?: unknown }) => void) | undefined
+
+    draggingChangedHandler?.({ value: true })
+    draggingChangedHandler?.({ value: false })
+
+    expect(handleDraggingChange).toHaveBeenNthCalledWith(1, true)
+    expect(handleDraggingChange).toHaveBeenNthCalledWith(2, false)
+    gizmo.dispose()
+  })
 })

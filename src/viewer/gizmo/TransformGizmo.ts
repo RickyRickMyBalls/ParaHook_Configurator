@@ -26,6 +26,7 @@ export class TransformGizmo {
   private attachedObject: Object3D | null = null
   private onObjectChange: ((object: Object3D) => void) | null = null
   private onDragComplete: ((object: Object3D) => void) | null = null
+  private onDraggingChange: ((dragging: boolean) => void) | null = null
   private onHandleChange: ((handle: ActiveReferenceTransformHandle | null) => void) | null = null
   private lastPointerClient: { clientX: number; clientY: number; pointerId: number } | null = null
   private dragDidMutateObject = false
@@ -124,6 +125,10 @@ export class TransformGizmo {
 
   public setOnDragComplete(handler: ((object: Object3D) => void) | null): void {
     this.onDragComplete = handler
+  }
+
+  public setOnDraggingChange(handler: ((dragging: boolean) => void) | null): void {
+    this.onDraggingChange = handler
   }
 
   public setOnHandleChange(handler: ((handle: ActiveReferenceTransformHandle | null) => void) | null): void {
@@ -266,6 +271,7 @@ export class TransformGizmo {
   private readonly onDraggingChanged = (event: { value?: unknown }): void => {
     const dragging = event.value === true
     this.orbitControls.enabled = !dragging
+    this.onDraggingChange?.(dragging)
     if (dragging) {
       this.dragDidMutateObject = false
       this.suppressNextDragComplete = false

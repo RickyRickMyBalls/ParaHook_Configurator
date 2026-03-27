@@ -65,6 +65,38 @@ Do not use it for:
 
 ## Doc Body
 
+### [681] - 2026-03-27 15:14 - `TRN - Transform-13 - Move Snap Availability Visuals`
+<!-- ENTRY 681 -->
+HUMAN SUMMARY: `This added the first live viewport snap-availability visual for reference transform move drag, so while the user is actively dragging a move gizmo with move snap enabled the viewer now renders a bounded field of tiny white snap dots that matches the current handle scope instead of leaving snap as invisible runtime-only behavior.` 
+#### Scope / Constraints Honored
+- Kept the pass move-only and reference-transform-first.
+- Limited the visual to active move drag with move snap enabled, leaving idle overlays, rotate visuals, and scale visuals out of scope.
+- Preserved the shipped move snap math and existing transform-shell / history behavior.
+
+#### Summary of Implementation
+- Added a viewer-owned `ReferenceTransformMoveSnapHelper` that generates bounded white snap-dot fields for three move contexts: single-axis line, plane grid, and center / three-axis lattice.
+- Extended `TransformGizmo` with a small dragging-state callback so `Viewer` can show and clear the overlay exactly on live drag start/end instead of guessing from unrelated shell state.
+- Wired `Viewer` to feed the helper from the existing active translate handle, shared move snap values, and current local/world gizmo space so the overlay stays aligned with the real runtime snap behavior.
+- Added focused helper and gizmo regressions, and kept the existing `ViewerHost` seam green after the new overlay wiring.
+
+#### Files Changed
+- `src/viewer/ReferenceTransformMoveSnapHelper.ts`
+- `src/viewer/ReferenceTransformMoveSnapHelper.test.ts`
+- `src/viewer/gizmo/TransformGizmo.ts`
+- `src/viewer/gizmo/TransformGizmo.test.ts`
+- `src/viewer/Viewer.ts`
+- `docs/Human-Plans/Architecture/Transform/transform-index.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- While actively dragging a move gizmo with move snap enabled, the viewport now shows nearby white snap dots.
+- Axis move shows a 1D snap line, plane move shows a 2D snap field, and center move shows a bounded 3D snap field.
+- The dots clear when drag ends, the drag is cancelled, or transform exit hides the active move session.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/viewer/ReferenceTransformMoveSnapHelper.test.ts src/viewer/gizmo/TransformGizmo.test.ts src/app/components/ViewerHost.test.tsx`
+- `cmd /c npx tsc --noEmit`
+
 ### [680] - 2026-03-27 14:50 - `TRN - Transform-12 - Root Space Adapter And Shell Polish`
 <!-- ENTRY 680 -->
 HUMAN SUMMARY: `This polished the reference transform shell by adding \`Transform > SP\` as a direct adapter into the canonical \`Settings > Space\` branch, aligning root transform radio identities so \`Snap\` and \`Space\` resolve through the honest settings path, and tightening the shared transform-toolbar button chrome so the shell reads a little less bulky without changing behavior.` 
