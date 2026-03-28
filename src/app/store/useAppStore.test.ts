@@ -2740,5 +2740,111 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
       useAppStore.getState().referenceWorkspace.timelineModeByReferenceId['shoe:shoe-1']?.['rotate-snap'],
     ).toBe('basic')
   })
+
+  it('defaults and clamps the move snap dot delay preference', async () => {
+    const { useAppStore } = await import('./useAppStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+
+    expect(useAppStore.getState().referenceWorkspace.moveSnapDotDelayMs).toBe(120)
+
+    useAppStore.getState().setReferenceTransformMoveSnapDotDelayMs(640)
+    expect(useAppStore.getState().referenceWorkspace.moveSnapDotDelayMs).toBe(500)
+
+    useAppStore.getState().setReferenceTransformMoveSnapDotDelayMs(-10)
+    expect(useAppStore.getState().referenceWorkspace.moveSnapDotDelayMs).toBe(0)
+  })
+
+  it('defaults and updates the move snap dots enabled preference', async () => {
+    const { useAppStore } = await import('./useAppStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+
+    expect(useAppStore.getState().referenceWorkspace.moveSnapDotsEnabled).toBe(true)
+
+    useAppStore.getState().setReferenceTransformMoveSnapDotsEnabled(false)
+    expect(useAppStore.getState().referenceWorkspace.moveSnapDotsEnabled).toBe(false)
+  })
+
+  it('defaults and updates the preview last move snap dots preference', async () => {
+    const { useAppStore } = await import('./useAppStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+
+    expect(useAppStore.getState().referenceWorkspace.previewLastMoveSnapDotsEnabled).toBe(false)
+
+    useAppStore.getState().setReferenceTransformPreviewLastMoveSnapDotsEnabled(true)
+    expect(useAppStore.getState().referenceWorkspace.previewLastMoveSnapDotsEnabled).toBe(true)
+  })
+
+  it('defaults and clamps the move snap dot near/far size preferences', async () => {
+    const { useAppStore } = await import('./useAppStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+
+    expect(useAppStore.getState().referenceWorkspace.moveSnapDotNearScale).toBe(1.45)
+    expect(useAppStore.getState().referenceWorkspace.moveSnapDotFarScale).toBe(0.04)
+
+    useAppStore.getState().setReferenceTransformMoveSnapDotNearScale(8)
+    useAppStore.getState().setReferenceTransformMoveSnapDotFarScale(-1)
+
+    expect(useAppStore.getState().referenceWorkspace.moveSnapDotNearScale).toBe(3)
+    expect(useAppStore.getState().referenceWorkspace.moveSnapDotFarScale).toBe(0)
+  })
+
+  it('defaults and clamps the move snap visible radius preference', async () => {
+    const { useAppStore } = await import('./useAppStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+
+    expect(useAppStore.getState().referenceWorkspace.moveSnapDotVisibleRadiusMultiplier).toBe(40)
+
+    useAppStore.getState().setReferenceTransformMoveSnapDotVisibleRadiusMultiplier(640)
+    expect(useAppStore.getState().referenceWorkspace.moveSnapDotVisibleRadiusMultiplier).toBe(200)
+
+    useAppStore.getState().setReferenceTransformMoveSnapDotVisibleRadiusMultiplier(0.1)
+    expect(useAppStore.getState().referenceWorkspace.moveSnapDotVisibleRadiusMultiplier).toBe(1)
+  })
+
+  it('defaults and updates the rotate snap preview enabled preference', async () => {
+    const { useAppStore } = await import('./useAppStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+
+    expect(useAppStore.getState().referenceWorkspace.rotateSnapPreviewEnabled).toBe(true)
+
+    useAppStore.getState().setReferenceTransformRotateSnapPreviewEnabled(false)
+    expect(useAppStore.getState().referenceWorkspace.rotateSnapPreviewEnabled).toBe(false)
+  })
+
+  it('defaults and clamps the rotate snap preview line size and thickness preferences', async () => {
+    const { useAppStore } = await import('./useAppStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+
+    expect(useAppStore.getState().referenceWorkspace.rotateSnapPreviewLineSize).toBe(1)
+    expect(useAppStore.getState().referenceWorkspace.rotateSnapPreviewLineThickness).toBe(1)
+
+    useAppStore.getState().setReferenceTransformRotateSnapPreviewLineSize(8)
+    useAppStore.getState().setReferenceTransformRotateSnapPreviewLineThickness(0.01)
+
+    expect(useAppStore.getState().referenceWorkspace.rotateSnapPreviewLineSize).toBe(3)
+    expect(useAppStore.getState().referenceWorkspace.rotateSnapPreviewLineThickness).toBe(0.25)
+  })
+
+  it('defaults and clamps the rotate snap preview radius and delay preferences', async () => {
+    const { useAppStore } = await import('./useAppStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+
+    expect(useAppStore.getState().referenceWorkspace.rotateSnapPreviewRadiusDeg).toBe(60)
+    expect(useAppStore.getState().referenceWorkspace.rotateSnapPreviewDelayMs).toBe(120)
+
+    useAppStore.getState().setReferenceTransformRotateSnapPreviewRadiusDeg(500)
+    useAppStore.getState().setReferenceTransformRotateSnapPreviewDelayMs(-5)
+
+    expect(useAppStore.getState().referenceWorkspace.rotateSnapPreviewRadiusDeg).toBe(180)
+    expect(useAppStore.getState().referenceWorkspace.rotateSnapPreviewDelayMs).toBe(0)
+  })
 })
 

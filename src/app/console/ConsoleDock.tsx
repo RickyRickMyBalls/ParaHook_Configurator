@@ -2206,10 +2206,12 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
     }
     const appState = useAppStore.getState()
     appState.beginReferenceTransformEntry(next.mode)
+    const nextSession = useAppStore.getState().referenceWorkspace.activeReferenceTransformSession
     getViewer()?.setReferenceTransformSession?.({
       referenceId: transitionState.referenceId,
       mode: next.mode,
       space: transitionState.space,
+      entryOrigin: nextSession?.entryOrigin ?? null,
     })
     if (next.axis !== undefined) {
       openReferenceTransformAxisPrompt(next.axis)
@@ -2242,11 +2244,13 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
       transitionReferenceTransformAxisPrompt({ mode: nextMode })
     } else {
       appState.beginReferenceTransformEntry(nextMode)
+      const nextSession = useAppStore.getState().referenceWorkspace.activeReferenceTransformSession
       useConsoleStore.getState().clearConsolePromptSession()
       getViewer()?.setReferenceTransformSession?.({
         referenceId: activeSession.referenceId,
         mode: nextMode,
         space: activeSession.space,
+        entryOrigin: nextSession?.entryOrigin ?? null,
       })
     }
     setStagedNavigationSession(createActiveReferenceTransformRootSession(activeSession.referenceId))
@@ -3755,6 +3759,8 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
                     : 'translate'
               appState.beginReferenceTransformShell(referenceId)
               appState.beginReferenceTransformEntry(transformMode)
+              const nextSession =
+                useAppStore.getState().referenceWorkspace.activeReferenceTransformSession
               const viewer = getViewer()
               viewer?.setReferenceTransformSession?.({
                 referenceId,
@@ -3762,6 +3768,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
                 space:
                   useAppStore.getState().referenceWorkspace.activeReferenceTransformSession?.space ??
                   'local',
+                entryOrigin: nextSession?.entryOrigin ?? null,
               })
               if (transformMode === 'rotate') {
                 viewer?.activateRotateCenterHandle?.()

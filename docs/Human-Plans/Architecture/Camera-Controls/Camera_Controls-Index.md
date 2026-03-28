@@ -3,6 +3,8 @@
 ## Doc Header
 
 ### Doc History
+20. 2026-03-27 19:44: Renamed the live camera-controls phase ladder from `5.0H-*` to `Camera-*`, moved the standalone phase docs to matching `Camera-1` through `Camera-5.1` filenames, and kept the older `5.0H-*` labels only in historical log entries so the family can start phasing out the mixed numbering system cleanly
+19. 2026-03-27 17:50: Added the new standalone future phase doc for `[5.0H-5.1] Viewer Object Window Selection`, so the camera-controls family now gives 3D viewer marquee selection its own implementation-ready planning surface under `Future/` instead of leaving it implied under the broader shared input-owner follow-on
 18. 2026-03-22 22:32: Marked `[5.0H-4] Camera Console Commands` complete after shipping the first root/scoped `Zoom` family plus console `Pan` / `Orbit`, moved the standalone phase record into `Shipped/`, and advanced the camera-controls family so only the later shared input-owner model remains open
 17. 2026-03-22 21:47: Added the new standalone future phase doc for `[5.0H-4] Camera Console Commands`, so the next open camera-controls cut now has its own implementation-ready planning surface under `Future/` after the shipped sketch block, viewport baseline, and canvas/model coexistence work
 16. 2026-03-22 21:40: Marked `[5.0H-3] Spaghetti Canvas And Model Viewport Coexistence` complete after shipping the first explicit canvas/model coexistence cut, moved the standalone phase record into `Shipped/`, and advanced the family so camera console commands plus the later shared input-owner model are now the remaining open follow-ons
@@ -46,20 +48,21 @@ Use this folder like this:
   - current phase checklist index
 - `Future/`
   - later standalone camera-controls execution docs if the family needs them
+  - `Camera_Controls_Phase Camera-5.1 - Viewer Object Window Selection.md`
 - `Shipped/`
   - later shipped records for completed camera-controls cuts if the family grows enough to justify them
-  - `Camera_Controls_Phase 5.0H-1 - Sketch Draw Camera Blocking.md`
-  - `Camera_Controls_Phase 5.0H-2 - Fusion-Style Model Viewport Camera Baseline.md`
-  - `Camera_Controls_Phase 5.0H-3 - Spaghetti Canvas And Model Viewport Coexistence.md`
-  - `Camera_Controls_Phase 5.0H-4 - Camera Console Commands.md`
+  - `Camera_Controls_Phase Camera-1 - Sketch Draw Camera Blocking.md`
+  - `Camera_Controls_Phase Camera-2 - Fusion-Style Model Viewport Camera Baseline.md`
+  - `Camera_Controls_Phase Camera-3 - Spaghetti Canvas And Model Viewport Coexistence.md`
+  - `Camera_Controls_Phase Camera-4 - Camera Console Commands.md`
 
-Current roadmap home:
-- `[5.0H] Camera Controls And View Input Ownership`
-- `[5.0H-1] Sketch Draw Camera Blocking`
-- `[5.0H-2] Fusion-Style Model Viewport Camera Baseline`
-- `[5.0H-3] Spaghetti Canvas And Model Viewport Coexistence`
-- `[5.0H-4] Camera Console Commands`
-- `[5.0H-5] Shared View Input Owner Model`
+Current phase ladder:
+- `[Camera-1] Sketch Draw Camera Blocking`
+- `[Camera-2] Fusion-Style Model Viewport Camera Baseline`
+- `[Camera-3] Spaghetti Canvas And Model Viewport Coexistence`
+- `[Camera-4] Camera Console Commands`
+- `[Camera-5] Shared View Input Owner Model`
+- `[Camera-5.1] Viewer Object Window Selection`
 
 ### Why This Doc Exists
 
@@ -439,7 +442,7 @@ Use this as the working direction:
 
 ## Phases
 
-### [x] `[5.0H-1]` - `Sketch Draw Camera Blocking`
+### [x] `[Camera-1]` - `Sketch Draw Camera Blocking`
 
 CheckList:
 - [x] stop plain camera orbit/pan from stealing `LMB` click or drag inside idle `Sketch Draw`
@@ -451,7 +454,7 @@ CheckList:
 - [x] keep non-conflicting camera navigation available through intentional alternate gestures during sketch work
 - [x] verify `DS-3` selection and delete can be tested end to end without orbit interference
 
-### [x] `[5.0H-2]` - `Fusion-Style Model Viewport Camera Baseline`
+### [x] `[Camera-2]` - `Fusion-Style Model Viewport Camera Baseline`
 
 CheckList:
 - [x] change model viewport wheel behavior to consistent mouse-point zoom
@@ -464,7 +467,7 @@ CheckList:
   - or active target
 - [x] verify the new gesture map does not break current authoring interactions
 
-### [x] `[5.0H-3]` - `Spaghetti Canvas And Model Viewport Coexistence`
+### [x] `[Camera-3]` - `Spaghetti Canvas And Model Viewport Coexistence`
 
 CheckList:
 - [x] preserve graph-canvas pointer-centered wheel zoom
@@ -477,7 +480,7 @@ CheckList:
   - [x] `Shift + Ctrl + MMB` drag forwards orbit to the model viewport
 - [x] verify the active surface stays obvious and predictable while both surfaces are visible
 
-### [x] `[5.0H-4]` - `Camera Console Commands`
+### [x] `[Camera-4]` - `Camera Console Commands`
 
 CheckList:
 - [x] add a root `ZOOM` / `Z` console command family as a sibling of `Graph`
@@ -496,7 +499,7 @@ CheckList:
   - [x] `Graph > Zoom > Canvas > Previous` returns honest not-implemented feedback
 - [x] bind camera console commands to the intended target surface without confusing the graph canvas with the 3D model camera
 
-### [ ] `[5.0H-5]` - `Shared View Input Owner Model`
+### [ ] `[Camera-5]` - `Shared View Input Owner Model`
 
 CheckList:
 - [ ] introduce one resolved viewport input owner model or equivalent arbitration seam
@@ -505,3 +508,14 @@ CheckList:
 - [ ] route future gizmo drag sessions through the same ownership model
 - [ ] add enough debug visibility to diagnose which system currently owns the pointer
 - [ ] remove remaining one-off exceptions once the shared owner path is stable
+
+### [ ] `[Camera-5.1]` - `Viewer Object Window Selection`
+
+CheckList:
+- [ ] add one standalone future phase doc for viewer object marquee selection:
+  - [ ] `Future/Camera_Controls_Phase Camera-5.1 - Viewer Object Window Selection.md`
+- [ ] let empty-space model-viewport drag begin a visible object-selection window when no higher-priority owner claims the pointer
+- [ ] support left-to-right `Window` selection with full-containment capture
+- [ ] support right-to-left `Crossing` selection with intersection capture
+- [ ] keep gizmo/widget hits and camera gestures from stealing an active marquee drag after selection owns the pointer
+- [ ] push the final captured objects into shared app selection truth instead of a viewer-local selection cache

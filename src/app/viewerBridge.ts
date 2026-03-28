@@ -150,6 +150,18 @@ export interface ViewerApi {
     rotate?: { x: number; y: number; z: number }
     scale?: { x: number; y: number; z: number }
   }) => void
+  setReferenceTransformMoveSnapDotScale: (scale: number) => void
+  setReferenceTransformMoveSnapDotsEnabled: (enabled: boolean) => void
+  setReferenceTransformPreviewLastMoveSnapDotsEnabled: (enabled: boolean) => void
+  setReferenceTransformMoveSnapDotDelayMs: (delayMs: number) => void
+  setReferenceTransformMoveSnapDotNearScale: (scale: number) => void
+  setReferenceTransformMoveSnapDotFarScale: (scale: number) => void
+  setReferenceTransformMoveSnapDotVisibleRadiusMultiplier: (multiplier: number) => void
+  setReferenceTransformRotateSnapPreviewEnabled: (enabled: boolean) => void
+  setReferenceTransformRotateSnapPreviewLineSize: (size: number) => void
+  setReferenceTransformRotateSnapPreviewLineThickness: (thickness: number) => void
+  setReferenceTransformRotateSnapPreviewRadiusDeg: (radiusDeg: number) => void
+  setReferenceTransformRotateSnapPreviewDelayMs: (delayMs: number) => void
   setSelectedPart: (partId: string | null) => void
   setHighlightedPartKeys: (partIds: string[]) => void
   setHighlightedReferenceIds: (referenceIds: string[]) => void
@@ -157,6 +169,7 @@ export interface ViewerApi {
     referenceId: string
     mode: GizmoMode
     space: GizmoSpace
+    entryOrigin: ReferenceTransformOverride | null
   } | null) => void
   setReferenceCameraLock: (referenceId: string | null) => void
   setReferenceTransformOverride: (

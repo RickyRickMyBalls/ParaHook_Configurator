@@ -1,8 +1,9 @@
-# Camera Controls Phase 5.0H-4 - Camera Console Commands
+# Camera Controls Phase Camera-4 - Camera Console Commands
 
 ## Doc Header
 
 ### Doc History
+5. 2026-03-27 19:44: Renamed this live phase record from `5.0H-4` to `Camera-4` so the camera-controls family can start using the simpler `Camera-*` phase names while preserving the earlier `5.0H-*` numbering in historical doc-log entries
 4. 2026-03-22 22:32: Marked `[5.0H-4]` complete after shipping the first root/scoped camera console family, moving this phase record into `Shipped/`, and tightening the record so `Zoom Object` only claims the current selected part/reference seam while unsupported paths like `Zoom Window` stay explicitly honest
 3. 2026-03-22 22:00: Tightened this phase into a more implementation-ready spec by locking `Zoom` as a reusable scoped root-sibling family, grounding `Zoom Object` on existing browser/app selection truth instead of a new viewport-pick feature, and naming the concrete console/viewer seams plus first verification targets
 2. 2026-03-22 21:52: Added the scoped `Zoom` reuse rule so root `Zoom` stays a sibling of `Graph` with model-viewport defaults, while `Graph > Zoom` now defaults to `Canvas` first and still exposes `Model Viewport` as the secondary branch for deeper reuse inside graph and later sketch scopes
@@ -13,14 +14,14 @@
 This doc defines the fourth implementation cut under the camera-controls family.
 
 Use it to answer:
-- what `[5.0H-4]` should add to the console
+- what `[Camera-4]` should add to the console
 - which camera commands belong in the first safe command set
 - how those commands should target the active view surface
 - which files are the right seams for the first implementation
 
 ### Why This Phase Exists
 
-The shipped `[5.0H-1]` through `[5.0H-3]` work made camera behavior predictable from pointer input:
+The shipped `[Camera-1]` through `[Camera-3]` work made camera behavior predictable from pointer input:
 - `Sketch Draw` now owns plain viewport `LMB`
 - the model viewport has a stable baseline
 - the `Spaghetti` canvas has an explicit coexistence rule with the model viewport
@@ -58,7 +59,7 @@ This phase does not cover:
 
 ## Doc Body
 
-## [x] - `[5.0H-4]` - `Camera Console Commands`
+## [x] - `[Camera-4]` - `Camera Console Commands`
 
 ### Header
 
@@ -73,7 +74,7 @@ Owns:
 - the minimum view-history seam needed for `Zoom Previous`
 
 Keeps for later phases:
-- deeper shared input arbitration under `[5.0H-5]`
+- deeper shared input arbitration under `[Camera-5]`
 - named views and richer camera-state management
 - broader graph-canvas command parity if later needed
 
@@ -99,7 +100,7 @@ Keeps for later phases:
   - view-history capture for `Zoom Previous`
   - later window-zoom execution if this phase includes it
 - `src/app/components/ViewerHost.tsx` already pushes `selectedPartKey` into the viewer, so the current browser/app selection seam is sufficient for a first `Zoom Object` cut without inventing general rendered-object picking in the same phase
-- the shipped `[5.0H-3]` work already clarified that the model viewport and graph canvas are separate surfaces, so console camera commands should target the active 3D view surface instead of pretending all visible surfaces are interchangeable
+- the shipped `[Camera-3]` work already clarified that the model viewport and graph canvas are separate surfaces, so console camera commands should target the active 3D view surface instead of pretending all visible surfaces are interchangeable
 - current code truth does not yet show a general `click rendered 3D object in the viewport -> select it` feature, so this phase should not depend on a new viewport-pick selection system
 
 ### Questions / Decisions
@@ -223,7 +224,7 @@ Implementation steps:
 7. keep graph-canvas behavior separate and explicit
 
 Required behavior-preservation rules:
-- do not rewrite the shipped pointer-gesture baseline from `[5.0H-1]` through `[5.0H-3]`
+- do not rewrite the shipped pointer-gesture baseline from `[Camera-1]` through `[Camera-3]`
 - do not widen into shared gizmo/input-owner arbitration
 - do not invent graph-canvas camera semantics inside this phase
 - do not add a brand-new general 3D viewport object-selection system in this phase
@@ -235,7 +236,7 @@ Expected result after this phase:
 - `Zoom Previous` has one real implementation seam
 - `Zoom Object` works against the first current browser/app selected object targets
 - mouse gesture camera behavior remains unchanged
-- `[5.0H-5]` can focus on shared input ownership instead of still filling in basic camera commands
+- `[Camera-5]` can focus on shared input ownership instead of still filling in basic camera commands
 
 Verification:
 - run:
@@ -259,4 +260,4 @@ Definition of done:
 - `PAN` and `ORBIT` exist as real commands
 - the commands target the intended model-view surface
 - `Zoom Object` works from the existing selection foundation without requiring a new viewport-pick feature
-- the phase lands without silently absorbing `[5.0H-5]`
+- the phase lands without silently absorbing `[Camera-5]`

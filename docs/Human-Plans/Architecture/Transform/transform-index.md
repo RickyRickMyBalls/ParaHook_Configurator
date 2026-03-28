@@ -3,6 +3,16 @@
 ## Doc Header
 
 ### Doc History
+54. 2026-03-27 19:04: Split the earlier combined `Transform 14` feature in this family index into a narrower `Transform 14` rename/alignment pass plus a new `Transform 15` generated-object viewer-motion pass, so the toolbar/shell naming cleanup no longer waits on the harder target-widening work
+53. 2026-03-27 19:01: Added the new `Transform 14` feature follow-on to this family index, locking that the current transform toolbar/shell should be renamed `Viewer Transform` and widened so generated objects can use the same viewer-owned transform interaction while staying explicitly viewer-only and not writing those edits back into Replicad truth
+52. 2026-03-27 17:27: Expanded the open `Transform 13.1` rotate preview follow-on so it now explicitly owns a dedicated transform-reference `i`-menu `Rotate Snap Preview` section with viewer-only controls for on/off, line size, thickness, preview radius, and preview delay
+51. 2026-03-27 17:24: Tightened the new `Transform 13.1` rotate snap preview-lines follow-on into a more implementation-ready spec by locking stable angular keying, one concrete visible-window rule, active-axis-only activation constraints, and sharper helper/viewer test expectations while keeping free-rotate and scale out of scope
+50. 2026-03-27 17:19: Cleaned up the Transform-family docs after shipping `Transform 13.2` by moving its standalone move-snap lattice record into `Shipped/`, adding the new implementation-ready `Transform 13.1` rotate snap preview-lines doc in `Future/`, and tightening this index so rotate is now the next open snap-visual follow-on while the move-only rebuild reads as complete
+49. 2026-03-27 16:53: Tightened the rebuilt `Transform 13.2` direction with one small polish lock so the highlighted current snap dot should stay only modestly larger than the normal field dots and transfer that emphasis on arrival at the next snapped point, reinforcing the intended “gizmo moves from dot to dot” read
+48. 2026-03-27 16:43: Rebuilt the `Transform 13.2` follow-on in the family docs as a clean move snap visual-system rewrite instead of a narrower lattice cleanup pass, tightening the next viewer work around one stable world-keyed lattice plus a visible-window and emphasis layer so the move dots stop reading like a gizmo-owned patch
+47. 2026-03-27 16:38: Tightened the standalone `Transform 13.2` follow-on into a more implementation-ready spec, locking one exact `Move Snap Radius` viewer control and explicit buffered-lattice/keying rules so the next move-only snap-visual correction now reads as direct helper/store/viewer work instead of only higher-level product intent
+46. 2026-03-27 16:33: Tightened the new `Transform 13.2` follow-on so the future move snap lattice cleanup now explicitly includes an `i`-menu viewer control for expanding the visible dot radius/neighborhood, keeping that control presentation-only and separate from real snap spacing/math
+45. 2026-03-27 16:28: Added a new standalone `Transform 13.2` future follow-on for persistent move snap lattice cleanup, tightening the next move-only viewer correction around world-anchored dot identity, buffered absolute snap fields, and size/opacity emphasis so the move snap dots stop reading like a gizmo-attached moving block
 44. 2026-03-27 15:18: Cleaned up the Transform-family docs after the shipped `Transform 13` move snap visual pass by moving its standalone phase record from `Future/` into `Shipped/` and updating this family index so the move visual phase no longer points at a stale future-path planning surface
 43. 2026-03-27 15:14: Marked `Transform 13` shipped in this family index after the first move-only snap availability visuals landed in the viewer, keeping the pass scoped to active move drag only, preserving rotate for later `Transform 13.1`, and leaving scale out of scope
 42. 2026-03-27 15:10: Added the standalone implementation-ready `Transform 13` future phase doc for move snap availability visuals, and tightened this family index so `Transform 13` is now move-only during active move-drag entry while the earlier rotate visual idea is deferred into later `Transform 13.1`
@@ -157,16 +167,22 @@ Current Transform-native shipped records:
   - `docs/Human-Plans/Architecture/Transform/Shipped/Transform_Phase Transform-10 - Ratio Locked Per Axis Snap.md`
 - `Transform 11`
   - `docs/Human-Plans/Architecture/Transform/Shipped/Transform_Phase Transform-11 - Console Snap Parity Cleanup.md`
+- `Transform 13`
+  - `docs/Human-Plans/Architecture/Transform/Shipped/Transform_Phase Transform-13 - Move Snap Availability Visuals.md`
+- `Transform 13.2`
+  - `docs/Human-Plans/Architecture/Transform/Shipped/Transform_Phase Transform-13.2 - Persistent Move Snap Lattice Cleanup.md`
 
 This family now owns the shipped Transform-shell cleanup trail directly, while Browser `7.5` still holds the broader future ladder until the remaining open transform-native follow-ons are written down outside Browser.
 
 ### Next Steps
 
-Expected next cleanup after shipping `Transform 11`:
+Expected next open transform-native follow-ons:
 
-1. tighten transform-shell adapter honesty so root shortcuts, breadcrumbs, and transcript summaries always resolve through the canonical owner paths
-2. keep polishing toolbar density and wording parity without widening transform state or viewer behavior again
-3. keep deciding how much of the remaining Browser-umbrella direction should be re-expressed as Transform-native future records instead of staying Browser-numbered
+1. land the first rotate snap preview visual as `Transform 13.1`
+2. rename the current surface to `Viewer Transform` as `Transform 14`
+3. widen that renamed shell to generated-object viewer motion as `Transform 15`, while keeping those edits viewer-only and not Replicad truth yet
+4. keep deciding how much of the remaining Browser-umbrella direction should be re-expressed as Transform-native future records instead of staying Browser-numbered
+5. keep cleaning stale family links whenever a transform follow-on moves from `Future/` to `Shipped/`
 
 
 ## Phases
@@ -1113,3 +1129,302 @@ Decision:
 
 Standalone phase doc:
 - `docs/Human-Plans/Architecture/Transform/Shipped/Transform_Phase Transform-13 - Move Snap Availability Visuals.md`
+
+### [ ] Transform 13.1 - Rotate Snap Preview Lines
+
+- add the first rotate snap preview visual while the user is actively dragging a snapped rotate gizmo handle
+- keep this first rotate pass scoped to axis rotate handles:
+  - `Rotate X`
+  - `Rotate Y`
+  - `Rotate Z`
+- keep the visual viewer-owned and keyed to stable angular snap positions around the rotate origin
+- leave free-rotate and scale out of scope
+
+#### [x] q1 - Should the first rotate preview pass stay axis-only instead of widening into free-rotate?
+
+##### Suggestion
+- yes
+- keep the first rotate preview pass on `Rotate X / Y / Z`
+- leave free-rotate out until the axis-based angular field is proven
+
+Decision:
+- yes
+- the first rotate preview pass stays axis-only
+- it covers `Rotate X`, `Rotate Y`, and `Rotate Z`
+- free-rotate remains out of scope in this phase
+
+#### [x] q2 - What should rotate snap render while the user is actively dragging a snapped rotate axis?
+
+##### Suggestion
+- render a circular neighborhood of short white radial preview lines around the rotate origin
+- space those lines by the current committed rotate snap value
+- show one landed/current line as the rotate equivalent of the move current dot
+- keep the preview local to the active angular neighborhood instead of making the full circle equally loud
+
+Decision:
+- while a snapped rotate axis drag is active, the viewer should render a circular neighborhood of short white radial preview lines around the rotate origin
+- the spacing of those lines should follow the committed rotate snap value
+- one landed/current line should act as the rotate equivalent of the move current dot
+- the preview should stay local to the active angular neighborhood instead of making the full circle equally loud
+
+#### [x] q3 - How should the rotate preview field stay honest while the gizmo moves from snapped angle to snapped angle?
+
+##### Suggestion
+- build the field from stable angular snap identity, not from a gizmo-attached effect
+- keep the preview segments fixed in angular space
+- transfer the landed/current highlight on arrival at the next snapped angle
+- do not pre-grow the destination line too early
+
+Decision:
+- build the rotate preview from stable angular snap identity instead of a gizmo-attached effect
+- keep the preview segments fixed in angular space
+- transfer the landed/current highlight on arrival at the next snapped angle
+- do not pre-grow the destination line too early
+
+#### [x] q4 - What reference direction should each rotate axis use for its preview ring?
+
+##### Suggestion
+- use one stable perpendicular reference ray per axis:
+  - `Rotate X`
+    - `+Y`
+  - `Rotate Y`
+    - `+X`
+  - `Rotate Z`
+    - `+X`
+
+Decision:
+- use one stable perpendicular reference ray per axis:
+  - `Rotate X`
+    - `+Y`
+  - `Rotate Y`
+    - `+X`
+  - `Rotate Z`
+    - `+X`
+
+#### [x] q5 - What visible neighborhood should the first rotate preview pass render around the landed snapped angle?
+
+##### Suggestion
+- keep one bounded angular neighborhood:
+  - current landed line
+  - `4` snap lines on each side
+- keep one hidden buffered line beyond each visible edge so new lines can ghost in before the window runs out
+
+Decision:
+- render one bounded angular neighborhood:
+  - current landed line
+  - `4` snap lines on each side
+- keep one hidden buffered line beyond each visible edge so new lines can ghost in before the visible window runs out
+
+#### [x] q6 - Should `Transform 13.1` add a dedicated rotate preview section in the transform reference `i` menu?
+
+##### Suggestion
+- yes
+- add one viewer-only `Rotate Snap Preview` section in the transform reference `i` menu
+- keep rotate tuning separate from `Move Snap Dots`
+- let the first rotate pass own:
+  - `On / Off`
+  - `Line Size`
+  - `Line Thickness`
+  - `Preview Radius`
+  - `Preview Delay`
+- keep those controls presentation-only
+- do not let them change rotate snap values or rotate math
+
+Decision:
+- yes
+- `Transform 13.1` should add one dedicated `Rotate Snap Preview` section in the transform reference `i` menu
+- that section should stay viewer-only and separate from `Move Snap Dots`
+- the first rotate pass should own:
+  - `On / Off`
+  - `Line Size`
+  - `Line Thickness`
+  - `Preview Radius`
+  - `Preview Delay`
+- these controls affect rotate preview presentation only
+- they must not change rotate snap values or rotate math
+
+Standalone phase doc:
+- `docs/Human-Plans/Architecture/Transform/Future/Transform_Phase Transform-13.1 - Rotate Snap Preview Lines.md`
+
+### [x] Transform 13.2 - Persistent Move Snap Visual System Rebuild
+
+- rebuild the shipped move snap visual as one clean viewer-owned system so the dots read as absolute snap points in space instead of a small block that appears to travel with the gizmo
+- keep this follow-on move-only and leave rotate on later `Transform 13.1`
+- preserve the shipped move snap math and shared snap state while rebuilding the viewer-owned visual ownership model underneath it
+
+#### [x] q1 - Should the move snap dots represent persistent world snap points instead of a recentered local patch that visually shifts with the gizmo?
+
+##### Suggestion
+- yes
+- the move snap dots should read as persistent absolute snap points in world space
+- the gizmo should move from dot to dot
+- do not let the visible field feel like a small dot block that gets rebuilt around the latest snapped target
+
+Decision:
+- yes
+- move snap dots should represent persistent absolute snap points in world space
+- the gizmo should move from dot to dot across that stable lattice
+- the visible move field should stop reading like a small recentered dot block attached to the gizmo
+- the stable lattice should become the real viewer-owned source of truth for the move snap overlay
+
+#### [x] q2 - How should the viewer keep the snap field continuous while the user drags across axis and plane snap steps?
+
+##### Suggestion
+- build the move visual from a larger world-keyed buffered lattice instead of only the immediately visible neighborhood
+- keep each dot keyed by absolute snap position, not by relative offset from the current snapped target
+- axis drag should use a longer persistent 1D corridor with hidden headroom on both ends
+- plane drag should use a larger persistent 2D patch with a hidden outer band beyond the visible dots
+- center drag should follow the same absolute-position identity rule while keeping its lattice bounded
+
+Decision:
+- build the move snap field from a larger world-keyed buffered lattice instead of only the immediately visible neighborhood
+- keep each dot keyed by absolute snap position, not by relative offset from the current snapped target
+- axis drag should use a longer persistent 1D corridor with hidden headroom on both ends
+- plane drag should use a larger persistent 2D patch with a hidden outer band beyond the visible dots
+- center drag should follow the same absolute-position identity rule while keeping its lattice bounded
+
+#### [x] q3 - What should animate when the snapped move target changes during an active drag?
+
+##### Suggestion
+- animate only dot emphasis
+- dot positions should stay fixed on their absolute snap points
+- size should do most of the work
+- opacity can support the weighting, but should not make the dots read like light sources
+- the landed dot should grow as the gizmo reaches it, and surrounding dots should rebalance around the new snapped target while the mouse button is still down
+
+Decision:
+- animate only dot emphasis when the snapped move target changes during an active drag
+- dot positions stay fixed on their absolute snap points
+- size should do most of the work
+- opacity may support the weighting, but should stay secondary so the dots still read as solid points rather than light sources
+- the landed dot should grow as the gizmo reaches it, and surrounding dots should rebalance around the new snapped target while the mouse button is still down
+
+#### [x] q5 - Should the user get an `i`-menu control to expand how far the move snap dot neighborhood is rendered?
+
+##### Suggestion
+- yes
+- add a viewer-only `i`-menu control that expands or contracts the visible move snap dot radius
+- keep that control presentation-only
+- do not let it change the underlying snap spacing, snap values, or snap math
+
+Decision:
+- yes
+- add a viewer-only `i`-menu control that expands or contracts the visible move snap dot radius/neighborhood
+- this control should only widen or tighten how much of the buffered absolute lattice is shown
+- it must not change the underlying snap spacing, snap values, or snap math
+
+#### [x] q4 - Should this correction phase widen into rotate or scale snap visuals?
+
+##### Suggestion
+- no
+- keep this follow-on strictly move-only
+- leave rotate on `Transform 13.1`
+- leave scale out of scope
+
+Decision:
+- no
+- this correction phase stays move-only
+- rotate remains a separate later `Transform 13.1` follow-on
+- scale stays out of scope
+
+Standalone phase doc:
+- `docs/Human-Plans/Architecture/Transform/Shipped/Transform_Phase Transform-13.2 - Persistent Move Snap Lattice Cleanup.md`
+
+### [ ] Transform 14 - Viewer Transform Rename And Shared Surface Alignment
+
+- rename the current transform toolbar/shell surface from the narrower reference wording to `Viewer Transform`
+- keep this phase narrow to wording and shared-surface alignment
+- do not widen target behavior yet
+
+#### [x] q1 - Should this follow-on rename the active transform surface to `Viewer Transform` instead of leaving the reference-first wording in place?
+
+##### Suggestion
+- yes
+- the current surface is no longer only about one reference-specific toolbar
+- rename it to `Viewer Transform` so the name matches the real cross-target viewer ownership direction
+
+Decision:
+- yes
+- this follow-on should rename the active transform surface to `Viewer Transform`
+- the old reference-first wording should stop reading like the feature is reference-only forever
+
+#### [x] q2 - Should `Transform 14` stay a rename/alignment pass instead of widening into generated-object behavior immediately?
+
+##### Suggestion
+- yes
+- keep `Transform 14` narrow so the naming cleanup can land quickly
+- move generated-object viewer motion into a separate follow-on
+- do not make the simple shared-surface rename wait on the harder target-widening work
+
+Decision:
+- yes
+- `Transform 14` should stay a rename/alignment pass
+- generated-object viewer motion should move into later `Transform 15`
+- this phase should not widen target behavior yet
+
+#### [x] q3 - What should `Transform 14` own after the rename?
+
+##### Suggestion
+- own shared wording and shell alignment only
+- rename the toolbar/header and related shell wording to `Viewer Transform`
+- keep references using the same underlying transform behavior
+- leave generated-object viewer motion to a separate follow-on
+
+Decision:
+- `Transform 14` should own shared wording and shell alignment only
+- it should rename the toolbar/header and related shell wording to `Viewer Transform`
+- reference behavior stays otherwise unchanged in this phase
+- generated-object viewer motion moves to later `Transform 15`
+
+Standalone phase doc:
+- `docs/Human-Plans/Architecture/Transform/Future/Transform_Phase Transform-14 - Viewer Transform Rename And Shared Surface Alignment.md`
+
+### [ ] Transform 15 - Generated Object Viewer Motion Under Viewer Transform
+
+- widen the renamed `Viewer Transform` shell so generated objects can use move / rotate / scale in the viewport
+- keep this first generated-object transform pass explicitly viewer-only
+- do not claim that generated-object transform writes back into Replicad geometry or graph truth yet
+
+#### [x] q1 - Should generated objects be allowed to use the same `Viewer Transform` shell even if those edits are not yet durable Replicad truth?
+
+##### Suggestion
+- yes
+- let generated objects use the same viewer-owned transform shell for viewport manipulation
+- keep the first pass honest that this is viewer motion only, not Replicad graph ownership
+- do not block the feature just because durable generated-object transform truth is a later problem
+
+Decision:
+- yes
+- generated objects should be allowed to use the same `Viewer Transform` shell
+- the first pass remains viewer-only for generated objects
+- these edits must not claim to be durable Replicad truth yet
+
+#### [x] q2 - What should generated-object transform own in the first pass?
+
+##### Suggestion
+- own viewer motion only
+- allow move / rotate / scale interaction in the viewport
+- keep the transform local to the current viewer/session state
+- do not write the result back into Replicad model generation or graph state
+
+Decision:
+- generated-object transform should own viewer motion only in the first pass
+- it should allow move / rotate / scale interaction in the viewport
+- it should stay local to viewer/session state
+- it must not write back into Replicad model generation, graph state, or durable CAD truth
+
+#### [x] q3 - Should this feature fork a separate generated-object transform UI, or should both references and generated objects adapt into the same renamed `Viewer Transform` shell?
+
+##### Suggestion
+- do not fork
+- keep one shared `Viewer Transform` shell and toolbar surface
+- let reference and generated-object targets adapt into the same viewer-owned interaction model
+- keep target-specific truth/commit rules below that shared shell
+
+Decision:
+- do not fork a separate generated-object transform UI
+- references and generated objects should adapt into the same renamed `Viewer Transform` shell
+- target-specific truth and commit rules should stay below that shared shell
+
+Standalone phase doc:
+- `docs/Human-Plans/Architecture/Transform/Future/Transform_Phase Transform-15 - Generated Object Viewer Motion Under Viewer Transform.md`

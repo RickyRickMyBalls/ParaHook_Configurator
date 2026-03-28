@@ -18,6 +18,18 @@ let viewerSetOnReferenceTransformHandleChange: ReturnType<typeof vi.fn>
 let viewerSetOnReferenceTransformModeChange: ReturnType<typeof vi.fn>
 let viewerSetOnReferenceTransformSpaceChange: ReturnType<typeof vi.fn>
 let viewerSetGizmoSnap: ReturnType<typeof vi.fn>
+let viewerSetReferenceTransformMoveSnapDotsEnabled: ReturnType<typeof vi.fn>
+let viewerSetReferenceTransformPreviewLastMoveSnapDotsEnabled: ReturnType<typeof vi.fn>
+let viewerSetReferenceTransformMoveSnapDotScale: ReturnType<typeof vi.fn>
+let viewerSetReferenceTransformMoveSnapDotDelayMs: ReturnType<typeof vi.fn>
+let viewerSetReferenceTransformMoveSnapDotNearScale: ReturnType<typeof vi.fn>
+let viewerSetReferenceTransformMoveSnapDotFarScale: ReturnType<typeof vi.fn>
+let viewerSetReferenceTransformMoveSnapDotVisibleRadiusMultiplier: ReturnType<typeof vi.fn>
+let viewerSetReferenceTransformRotateSnapPreviewEnabled: ReturnType<typeof vi.fn>
+let viewerSetReferenceTransformRotateSnapPreviewLineSize: ReturnType<typeof vi.fn>
+let viewerSetReferenceTransformRotateSnapPreviewLineThickness: ReturnType<typeof vi.fn>
+let viewerSetReferenceTransformRotateSnapPreviewRadiusDeg: ReturnType<typeof vi.fn>
+let viewerSetReferenceTransformRotateSnapPreviewDelayMs: ReturnType<typeof vi.fn>
 let viewerSetGeometrySketchOverlay: ReturnType<typeof vi.fn>
 let viewerSetVisibleGeometrySketchOverlays: ReturnType<typeof vi.fn>
 let viewerSetHighlightedPartKeys: ReturnType<typeof vi.fn>
@@ -72,6 +84,30 @@ vi.mock('../../viewer/Viewer', () => ({
     public setOnReferenceTransformSpaceChange = (...args: unknown[]) =>
       viewerSetOnReferenceTransformSpaceChange(...args)
     public setGizmoSnap = (...args: unknown[]) => viewerSetGizmoSnap(...args)
+    public setReferenceTransformMoveSnapDotsEnabled = (...args: unknown[]) =>
+      viewerSetReferenceTransformMoveSnapDotsEnabled(...args)
+    public setReferenceTransformPreviewLastMoveSnapDotsEnabled = (...args: unknown[]) =>
+      viewerSetReferenceTransformPreviewLastMoveSnapDotsEnabled(...args)
+    public setReferenceTransformMoveSnapDotScale = (...args: unknown[]) =>
+      viewerSetReferenceTransformMoveSnapDotScale(...args)
+    public setReferenceTransformMoveSnapDotDelayMs = (...args: unknown[]) =>
+      viewerSetReferenceTransformMoveSnapDotDelayMs(...args)
+    public setReferenceTransformMoveSnapDotNearScale = (...args: unknown[]) =>
+      viewerSetReferenceTransformMoveSnapDotNearScale(...args)
+    public setReferenceTransformMoveSnapDotFarScale = (...args: unknown[]) =>
+      viewerSetReferenceTransformMoveSnapDotFarScale(...args)
+    public setReferenceTransformMoveSnapDotVisibleRadiusMultiplier = (...args: unknown[]) =>
+      viewerSetReferenceTransformMoveSnapDotVisibleRadiusMultiplier(...args)
+    public setReferenceTransformRotateSnapPreviewEnabled = (...args: unknown[]) =>
+      viewerSetReferenceTransformRotateSnapPreviewEnabled(...args)
+    public setReferenceTransformRotateSnapPreviewLineSize = (...args: unknown[]) =>
+      viewerSetReferenceTransformRotateSnapPreviewLineSize(...args)
+    public setReferenceTransformRotateSnapPreviewLineThickness = (...args: unknown[]) =>
+      viewerSetReferenceTransformRotateSnapPreviewLineThickness(...args)
+    public setReferenceTransformRotateSnapPreviewRadiusDeg = (...args: unknown[]) =>
+      viewerSetReferenceTransformRotateSnapPreviewRadiusDeg(...args)
+    public setReferenceTransformRotateSnapPreviewDelayMs = (...args: unknown[]) =>
+      viewerSetReferenceTransformRotateSnapPreviewDelayMs(...args)
     public setGeometrySketchOverlay = (...args: unknown[]) => viewerSetGeometrySketchOverlay(...args)
     public setVisibleGeometrySketchOverlays = (...args: unknown[]) =>
       viewerSetVisibleGeometrySketchOverlays(...args)
@@ -109,7 +145,7 @@ vi.mock('../../viewer/Viewer', () => ({
 
 type WorkerMessageHandler = (event: MessageEvent<unknown>) => void
 type WorkspaceSelectionPickPayload = {
-  pick: { kind: 'part'; partKey: string } | { kind: 'reference-item'; referenceId: string } | null
+  picks: Array<{ kind: 'part'; partKey: string } | { kind: 'reference-item'; referenceId: string }>
   ctrlKey: boolean
 }
 
@@ -324,6 +360,18 @@ describe('ViewerHost reference loading', () => {
     viewerSetOnReferenceTransformModeChange = vi.fn()
     viewerSetOnReferenceTransformSpaceChange = vi.fn()
     viewerSetGizmoSnap = vi.fn()
+    viewerSetReferenceTransformMoveSnapDotsEnabled = vi.fn()
+    viewerSetReferenceTransformPreviewLastMoveSnapDotsEnabled = vi.fn()
+    viewerSetReferenceTransformMoveSnapDotScale = vi.fn()
+    viewerSetReferenceTransformMoveSnapDotDelayMs = vi.fn()
+    viewerSetReferenceTransformMoveSnapDotNearScale = vi.fn()
+    viewerSetReferenceTransformMoveSnapDotFarScale = vi.fn()
+    viewerSetReferenceTransformMoveSnapDotVisibleRadiusMultiplier = vi.fn()
+    viewerSetReferenceTransformRotateSnapPreviewEnabled = vi.fn()
+    viewerSetReferenceTransformRotateSnapPreviewLineSize = vi.fn()
+    viewerSetReferenceTransformRotateSnapPreviewLineThickness = vi.fn()
+    viewerSetReferenceTransformRotateSnapPreviewRadiusDeg = vi.fn()
+    viewerSetReferenceTransformRotateSnapPreviewDelayMs = vi.fn()
     viewerSetGeometrySketchOverlay = vi.fn()
     viewerSetVisibleGeometrySketchOverlays = vi.fn()
     viewerSetHighlightedPartKeys = vi.fn()
@@ -636,6 +684,7 @@ describe('ViewerHost reference loading', () => {
       referenceId: 'shoe:shoe-1',
       mode: 'translate',
       space: 'local',
+      entryOrigin: null,
     })
 
     act(() => {
@@ -679,6 +728,7 @@ describe('ViewerHost reference loading', () => {
       referenceId: 'shoe:shoe-1',
       mode: 'translate',
       space: 'world',
+      entryOrigin: null,
     })
   })
 
@@ -1062,6 +1112,126 @@ describe('ViewerHost reference loading', () => {
       rotate: { x: 22.5, y: 22.5, z: 22.5 },
       scale: { x: 0.25, y: 0.25, z: 0.25 },
     })
+  })
+
+  it('forwards move snap dot radius changes into the viewer helper seam', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useAppStore } = await import('../store/useAppStore')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost />)
+    })
+
+    expect(viewerSetReferenceTransformMoveSnapDotVisibleRadiusMultiplier).toHaveBeenCalledWith(40)
+
+    act(() => {
+      useAppStore.getState().setReferenceTransformMoveSnapDotVisibleRadiusMultiplier(170)
+    })
+
+    expect(viewerSetReferenceTransformMoveSnapDotVisibleRadiusMultiplier).toHaveBeenLastCalledWith(
+      170,
+    )
+  })
+
+  it('forwards move snap dots enabled changes into the viewer helper seam', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useAppStore } = await import('../store/useAppStore')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost />)
+    })
+
+    expect(viewerSetReferenceTransformMoveSnapDotsEnabled).toHaveBeenCalledWith(true)
+
+    act(() => {
+      useAppStore.getState().setReferenceTransformMoveSnapDotsEnabled(false)
+    })
+
+    expect(viewerSetReferenceTransformMoveSnapDotsEnabled).toHaveBeenLastCalledWith(false)
+  })
+
+  it('forwards preview last move snap dots changes into the viewer helper seam', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useAppStore } = await import('../store/useAppStore')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost />)
+    })
+
+    expect(viewerSetReferenceTransformPreviewLastMoveSnapDotsEnabled).toHaveBeenCalledWith(false)
+
+    act(() => {
+      useAppStore.getState().setReferenceTransformPreviewLastMoveSnapDotsEnabled(true)
+    })
+
+    expect(viewerSetReferenceTransformPreviewLastMoveSnapDotsEnabled).toHaveBeenLastCalledWith(
+      true,
+    )
+  })
+
+  it('forwards rotate snap preview enabled changes into the viewer helper seam', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useAppStore } = await import('../store/useAppStore')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost />)
+    })
+
+    expect(viewerSetReferenceTransformRotateSnapPreviewEnabled).toHaveBeenCalledWith(true)
+
+    act(() => {
+      useAppStore.getState().setReferenceTransformRotateSnapPreviewEnabled(false)
+    })
+
+    expect(viewerSetReferenceTransformRotateSnapPreviewEnabled).toHaveBeenLastCalledWith(false)
+  })
+
+  it('forwards rotate snap preview presentation changes into the viewer helper seam', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useAppStore } = await import('../store/useAppStore')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost />)
+    })
+
+    expect(viewerSetReferenceTransformRotateSnapPreviewLineSize).toHaveBeenCalledWith(1)
+    expect(viewerSetReferenceTransformRotateSnapPreviewLineThickness).toHaveBeenCalledWith(1)
+    expect(viewerSetReferenceTransformRotateSnapPreviewRadiusDeg).toHaveBeenCalledWith(60)
+    expect(viewerSetReferenceTransformRotateSnapPreviewDelayMs).toHaveBeenCalledWith(120)
+
+    act(() => {
+      useAppStore.getState().setReferenceTransformRotateSnapPreviewLineSize(1.5)
+      useAppStore.getState().setReferenceTransformRotateSnapPreviewLineThickness(1.25)
+      useAppStore.getState().setReferenceTransformRotateSnapPreviewRadiusDeg(75)
+      useAppStore.getState().setReferenceTransformRotateSnapPreviewDelayMs(180)
+    })
+
+    expect(viewerSetReferenceTransformRotateSnapPreviewLineSize).toHaveBeenLastCalledWith(1.5)
+    expect(viewerSetReferenceTransformRotateSnapPreviewLineThickness).toHaveBeenLastCalledWith(
+      1.25,
+    )
+    expect(viewerSetReferenceTransformRotateSnapPreviewRadiusDeg).toHaveBeenLastCalledWith(75)
+    expect(viewerSetReferenceTransformRotateSnapPreviewDelayMs).toHaveBeenLastCalledWith(180)
   })
 
   it('pushes the active geometry sketch session into the viewer overlay and clears it when closed', async () => {
@@ -1475,10 +1645,12 @@ describe('ViewerHost reference loading', () => {
 
     act(() => {
       workspaceSelectionPickHandler?.({
-        pick: {
-          kind: 'part',
-          partKey: 'slot-baseplate',
-        },
+        picks: [
+          {
+            kind: 'part',
+            partKey: 'slot-baseplate',
+          },
+        ],
         ctrlKey: false,
       })
     })
@@ -1511,11 +1683,168 @@ describe('ViewerHost reference loading', () => {
 
     act(() => {
       workspaceSelectionPickHandler?.({
-        pick: {
-          kind: 'part',
-          partKey: 'slot-cover',
-        },
+        picks: [
+          {
+            kind: 'part',
+            partKey: 'slot-cover',
+          },
+        ],
         ctrlKey: true,
+      })
+    })
+
+    expect(useAppStore.getState().workspaceSelection).toMatchObject({
+      selectedTarget: {
+        kind: 'object',
+        objectId: 'project-object:project-file-1:graph-document-1:output-object-1',
+      },
+      explicitSelectedTargets: [
+        {
+          kind: 'object',
+          objectId: 'project-object:project-file-1:graph-document-1:output-object-1',
+        },
+        {
+          kind: 'object',
+          objectId: 'project-object:project-file-1:graph-document-1:output-object-2',
+        },
+      ],
+      selectionAnchorTarget: {
+        kind: 'object',
+        objectId: 'project-object:project-file-1:graph-document-1:output-object-2',
+      },
+      activeSurface: 'viewer',
+      resolvedContentSelection: {
+        rootRowId: 'object:project-object:project-file-1:graph-document-1:output-object-1',
+        rootKind: 'multi-select',
+        partKeys: expect.arrayContaining([
+          'slot-baseplate',
+          'graph-document-1:slot-baseplate',
+          'slot-cover',
+          'graph-document-1:slot-cover',
+        ]),
+        groupedRowIds: [],
+      },
+    })
+    expect(useAppStore.getState().selectedPartKey).toBe('slot-baseplate')
+
+    act(() => {
+      workspaceSelectionPickHandler?.({
+        picks: [
+          {
+            kind: 'part',
+            partKey: 'slot-cover',
+          },
+        ],
+        ctrlKey: true,
+      })
+    })
+
+    expect(useAppStore.getState().workspaceSelection).toMatchObject({
+      selectedTarget: {
+        kind: 'object',
+        objectId: 'project-object:project-file-1:graph-document-1:output-object-1',
+      },
+      explicitSelectedTargets: [
+        {
+          kind: 'object',
+          objectId: 'project-object:project-file-1:graph-document-1:output-object-1',
+        },
+      ],
+      selectionAnchorTarget: {
+        kind: 'object',
+        objectId: 'project-object:project-file-1:graph-document-1:output-object-2',
+      },
+      activeSurface: 'viewer',
+      resolvedContentSelection: {
+        rootRowId: 'project-object:project-file-1:graph-document-1:output-object-1',
+        rootKind: 'object',
+        partKeys: expect.arrayContaining(['slot-baseplate', 'graph-document-1:slot-baseplate']),
+        groupedRowIds: [],
+      },
+    })
+    expect(useAppStore.getState().selectedPartKey).toBe('slot-baseplate')
+
+    act(() => {
+      workspaceSelectionPickHandler?.({
+        picks: [
+          {
+            kind: 'part',
+            partKey: 'slot-baseplate',
+          },
+        ],
+        ctrlKey: true,
+      })
+    })
+
+    expect(useAppStore.getState().workspaceSelection).toMatchObject({
+      selectedTarget: null,
+      explicitSelectedTargets: [],
+      selectionAnchorTarget: {
+        kind: 'object',
+        objectId: 'project-object:project-file-1:graph-document-1:output-object-1',
+      },
+      activeSurface: 'viewer',
+      resolvedContentSelection: null,
+    })
+    expect(useAppStore.getState().selectedPartKey).toBeNull()
+
+    act(() => {
+      workspaceSelectionPickHandler?.({
+        picks: [],
+        ctrlKey: false,
+      })
+    })
+
+    expect(useAppStore.getState().workspaceSelection.selectedTarget).toBeNull()
+    expect(useAppStore.getState().selectedPartKey).toBeNull()
+    expect(useAppStore.getState().consoleContextSyncRequest?.reason).toBe('surface-clear')
+  })
+
+  it('commits viewport marquee batches as explicit multi-selection across picked objects', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useAppStore } = await import('../store/useAppStore')
+    await seedViewportObjectSelectionGraph([
+      {
+        slotId: 'slot-baseplate',
+        sourceNodeId: 'node-baseplate-1',
+        sourcePartKey: 'baseplate',
+        objectId: 'project-object:project-file-1:graph-document-1:output-object-1',
+        label: 'Object 1',
+      },
+      {
+        slotId: 'slot-cover',
+        sourceNodeId: 'node-cover-1',
+        sourcePartKey: 'cover',
+        objectId: 'project-object:project-file-1:graph-document-1:output-object-2',
+        label: 'Object 2',
+      },
+    ])
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost />)
+    })
+
+    const workspaceSelectionPickHandler = viewerSetOnWorkspaceSelectionPick.mock.calls.at(-1)?.[0] as
+      | ((event: WorkspaceSelectionPickPayload) => void)
+      | null
+
+    act(() => {
+      workspaceSelectionPickHandler?.({
+        picks: [
+          {
+            kind: 'part',
+            partKey: 'slot-baseplate',
+          },
+          {
+            kind: 'part',
+            partKey: 'slot-cover',
+          },
+        ],
+        ctrlKey: false,
       })
     })
 
@@ -1552,74 +1881,77 @@ describe('ViewerHost reference loading', () => {
       },
     })
     expect(useAppStore.getState().selectedPartKey).toBe('slot-cover')
+  })
+
+  it('commits mixed viewport marquee batches for objects and references through shared explicit selection', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useAppStore } = await import('../store/useAppStore')
+    await seedViewportObjectSelectionGraph([
+      {
+        slotId: 'slot-baseplate',
+        sourceNodeId: 'node-baseplate-1',
+        sourcePartKey: 'baseplate',
+        objectId: 'project-object:project-file-1:graph-document-1:output-object-1',
+        label: 'Object 1',
+      },
+    ])
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost />)
+    })
+
+    const workspaceSelectionPickHandler = viewerSetOnWorkspaceSelectionPick.mock.calls.at(-1)?.[0] as
+      | ((event: WorkspaceSelectionPickPayload) => void)
+      | null
 
     act(() => {
       workspaceSelectionPickHandler?.({
-        pick: {
-          kind: 'part',
-          partKey: 'slot-cover',
-        },
-        ctrlKey: true,
+        picks: [
+          {
+            kind: 'part',
+            partKey: 'slot-baseplate',
+          },
+          {
+            kind: 'reference-item',
+            referenceId: 'shoe:shoe-1',
+          },
+        ],
+        ctrlKey: false,
       })
     })
 
     expect(useAppStore.getState().workspaceSelection).toMatchObject({
       selectedTarget: {
-        kind: 'object',
-        objectId: 'project-object:project-file-1:graph-document-1:output-object-1',
+        kind: 'reference-item',
+        referenceId: 'shoe:shoe-1',
       },
       explicitSelectedTargets: [
         {
           kind: 'object',
           objectId: 'project-object:project-file-1:graph-document-1:output-object-1',
         },
+        {
+          kind: 'reference-item',
+          referenceId: 'shoe:shoe-1',
+        },
       ],
       selectionAnchorTarget: {
-        kind: 'object',
-        objectId: 'project-object:project-file-1:graph-document-1:output-object-2',
+        kind: 'reference-item',
+        referenceId: 'shoe:shoe-1',
       },
       activeSurface: 'viewer',
       resolvedContentSelection: {
-        rootRowId: 'project-object:project-file-1:graph-document-1:output-object-1',
-        rootKind: 'object',
+        rootRowId: 'multi-select',
+        rootKind: 'multi-select',
         partKeys: expect.arrayContaining(['slot-baseplate', 'graph-document-1:slot-baseplate']),
         groupedRowIds: [],
       },
     })
-    expect(useAppStore.getState().selectedPartKey).toBe('slot-cover')
-
-    act(() => {
-      workspaceSelectionPickHandler?.({
-        pick: {
-          kind: 'part',
-          partKey: 'slot-baseplate',
-        },
-        ctrlKey: true,
-      })
-    })
-
-    expect(useAppStore.getState().workspaceSelection).toMatchObject({
-      selectedTarget: null,
-      explicitSelectedTargets: [],
-      selectionAnchorTarget: {
-        kind: 'object',
-        objectId: 'project-object:project-file-1:graph-document-1:output-object-1',
-      },
-      activeSurface: 'viewer',
-      resolvedContentSelection: null,
-    })
     expect(useAppStore.getState().selectedPartKey).toBeNull()
-
-    act(() => {
-      workspaceSelectionPickHandler?.({
-        pick: null,
-        ctrlKey: false,
-      })
-    })
-
-    expect(useAppStore.getState().workspaceSelection.selectedTarget).toBeNull()
-    expect(useAppStore.getState().selectedPartKey).toBeNull()
-    expect(useAppStore.getState().consoleContextSyncRequest?.reason).toBe('surface-clear')
   })
 
   it('keeps viewport explicit multi-select highlighted across all picked objects', async () => {
@@ -1655,20 +1987,24 @@ describe('ViewerHost reference loading', () => {
 
     act(() => {
       workspaceSelectionPickHandler?.({
-        pick: {
-          kind: 'part',
-          partKey: 'slot-baseplate',
-        },
+        picks: [
+          {
+            kind: 'part',
+            partKey: 'slot-baseplate',
+          },
+        ],
         ctrlKey: false,
       })
     })
 
     act(() => {
       workspaceSelectionPickHandler?.({
-        pick: {
-          kind: 'part',
-          partKey: 'slot-cover',
-        },
+        picks: [
+          {
+            kind: 'part',
+            partKey: 'slot-cover',
+          },
+        ],
         ctrlKey: true,
       })
     })
@@ -1696,10 +2032,12 @@ describe('ViewerHost reference loading', () => {
 
     act(() => {
       workspaceSelectionPickHandler?.({
-        pick: {
-          kind: 'reference-item',
-          referenceId: 'shoe:shoe-1',
-        },
+        picks: [
+          {
+            kind: 'reference-item',
+            referenceId: 'shoe:shoe-1',
+          },
+        ],
         ctrlKey: false,
       })
     })
@@ -1734,20 +2072,24 @@ describe('ViewerHost reference loading', () => {
 
     act(() => {
       workspaceSelectionPickHandler?.({
-        pick: {
-          kind: 'reference-item',
-          referenceId: 'shoe:shoe-1',
-        },
+        picks: [
+          {
+            kind: 'reference-item',
+            referenceId: 'shoe:shoe-1',
+          },
+        ],
         ctrlKey: false,
       })
     })
 
     act(() => {
       workspaceSelectionPickHandler?.({
-        pick: {
-          kind: 'reference-item',
-          referenceId: 'shoe:shoe-2',
-        },
+        picks: [
+          {
+            kind: 'reference-item',
+            referenceId: 'shoe:shoe-2',
+          },
+        ],
         ctrlKey: true,
       })
     })
@@ -1755,7 +2097,7 @@ describe('ViewerHost reference loading', () => {
     expect(useAppStore.getState().workspaceSelection).toMatchObject({
       selectedTarget: {
         kind: 'reference-item',
-        referenceId: 'shoe:shoe-2',
+        referenceId: 'shoe:shoe-1',
       },
       explicitSelectedTargets: [
         {
@@ -1778,10 +2120,12 @@ describe('ViewerHost reference loading', () => {
 
     act(() => {
       workspaceSelectionPickHandler?.({
-        pick: {
-          kind: 'reference-item',
-          referenceId: 'shoe:shoe-2',
-        },
+        picks: [
+          {
+            kind: 'reference-item',
+            referenceId: 'shoe:shoe-2',
+          },
+        ],
         ctrlKey: true,
       })
     })
@@ -1824,10 +2168,12 @@ describe('ViewerHost reference loading', () => {
 
     act(() => {
       workspaceSelectionPickHandler?.({
-        pick: {
-          kind: 'part',
-          partKey: 'unmapped-part-key',
-        },
+        picks: [
+          {
+            kind: 'part',
+            partKey: 'unmapped-part-key',
+          },
+        ],
         ctrlKey: true,
       })
     })

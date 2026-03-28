@@ -25,6 +25,7 @@ import {
   PCFSoftShadowMap,
   PerspectiveCamera,
   PointLight,
+  Quaternion,
   Raycaster,
   Scene,
   SpotLight,
@@ -74,7 +75,9 @@ import { ReferenceTransformHistoryHelper } from './ReferenceTransformHistoryHelp
 import {
   ReferenceTransformMoveSnapHelper,
   isReferenceTransformMoveSnapHandle,
+  type ReferenceTransformMoveSnapOverlay,
 } from './ReferenceTransformMoveSnapHelper'
+import { ReferenceTransformRotateSnapHelper } from './ReferenceTransformRotateSnapHelper'
 import {
   getSketchPlaneWorldNormal,
   getSketchPlaneWorldOrigin,
@@ -82,6 +85,17 @@ import {
 } from './sketch/sketchPlaneMath'
 import type { SketchPlane, SketchPlaneTransform } from '../app/spaghetti/features/featureTypes'
 import type { GeometrySketchSelectionWindowDraft } from '../app/spaghetti/store/useSpaghettiStore'
+import {
+  WORKSPACE_SELECTION_DRAG_THRESHOLD_PX,
+  collectWorkspaceSelectionWindowPicks,
+  getWorkspaceSelectionWindowMode,
+  hasWorkspaceSelectionDragExceededThreshold,
+  isObjectWorldVisible,
+  type WorkspaceSelectionCandidate,
+  type WorkspaceSelectionPick,
+  type WorkspaceSelectionPickEvent,
+  type WorkspaceSelectionWindowMode,
+} from './workspaceSelectionWindow'
 
 type GizmoSpace = 'local' | 'world'
 type MaterialPresetId = string
@@ -90,22 +104,8 @@ type ReferenceTransformSession = {
   referenceId: string
   mode: TransformControlsMode
   space: GizmoSpace
+  entryOrigin: ReferenceTransformOverride | null
 }
-type WorkspaceSelectionPick =
-  | {
-      kind: 'part'
-      partKey: string
-    }
-  | {
-      kind: 'reference-item'
-      referenceId: string
-    }
-
-type WorkspaceSelectionPickEvent = {
-  pick: WorkspaceSelectionPick | null
-  ctrlKey: boolean
-}
-
 const DEFAULT_BACKGROUND = '#0b0b0f'
 const STUDIO_BACKGROUND = '#151922'
 const ACTIVE_PART_SELECTION_OUTLINE = '#9ec3ff'
@@ -245,6 +245,7 @@ export class Viewer {
   private readonly sketchPlanePickHelper: SketchPlanePickHelper
   private readonly referenceTransformHistoryHelper: ReferenceTransformHistoryHelper
   private readonly referenceTransformMoveSnapHelper: ReferenceTransformMoveSnapHelper
+  private readonly referenceTransformRotateSnapHelper: ReferenceTransformRotateSnapHelper
   private readonly geometrySketchDrawHelper: GeometrySketchDrawHelper
   private geometrySketchOverlay: GeometrySketchOverlayVm | null = null
   private geometrySketchCameraAlignKey: string | null = null
@@ -273,6 +274,7 @@ export class Viewer {
   private readonly referenceLoadPromises = new Map<string, Promise<void>>()
   private readonly removedReferenceIds = new Set<string>()
   private activeReferenceTransformReferenceId: string | null = null
+  private activeReferenceTransformEntryOrigin: ReferenceTransformOverride | null = null
   private cameraLockedReferenceId: string | null = null
   private cameraLockedReferenceCenter: Vector3 | null = null
   private cameraLockedReferenceMaxDim: number | null = null
@@ -286,6 +288,16 @@ export class Viewer {
     ((handle: ActiveReferenceTransformHandle | null) => void)
     | null = null
   private activeReferenceTransformHandle: ActiveReferenceTransformHandle | null = null
+  private lastReferenceTransformMoveSnapHandle: ActiveReferenceTransformHandle | null = null
+  private previewLastMoveSnapDotsEnabled = false
+  private activeReferenceTransformRotatePreviewBasis:
+    | {
+        axis: 'x' | 'y' | 'z'
+        axisDirection: Vector3
+        referenceDirection: Vector3
+      }
+    | null = null
+  private activeReferenceTransformRotatePreviewRingRadius: number | null = null
   private referenceTransformDragging = false
   private gizmoSnap: {
     translate?: { x: number; y: number; z: number }
@@ -358,6 +370,8 @@ export class Viewer {
     | null = null
   private readonly zoomWindowOverlayRoot: HTMLDivElement
   private readonly zoomWindowOverlayBox: HTMLDivElement
+  private readonly workspaceSelectionOverlayRoot: HTMLDivElement
+  private readonly workspaceSelectionOverlayBox: HTMLDivElement
   private readonly cameraPoseHistory: CameraPose[] = []
   private lastMiddleClick:
     | {
@@ -415,6 +429,17 @@ export class Viewer {
     this.zoomWindowOverlayBox.style.boxSizing = 'border-box'
     this.zoomWindowOverlayRoot.appendChild(this.zoomWindowOverlayBox)
     this.container.appendChild(this.zoomWindowOverlayRoot)
+    this.workspaceSelectionOverlayRoot = document.createElement('div')
+    this.workspaceSelectionOverlayRoot.style.position = 'absolute'
+    this.workspaceSelectionOverlayRoot.style.inset = '0'
+    this.workspaceSelectionOverlayRoot.style.pointerEvents = 'none'
+    this.workspaceSelectionOverlayRoot.style.zIndex = '5'
+    this.workspaceSelectionOverlayBox = document.createElement('div')
+    this.workspaceSelectionOverlayBox.style.position = 'absolute'
+    this.workspaceSelectionOverlayBox.style.display = 'none'
+    this.workspaceSelectionOverlayBox.style.boxSizing = 'border-box'
+    this.workspaceSelectionOverlayRoot.appendChild(this.workspaceSelectionOverlayBox)
+    this.container.appendChild(this.workspaceSelectionOverlayRoot)
 
     this.gridGroup = new Group()
     this.minorGridHelper = createGridLayer(
@@ -459,6 +484,8 @@ export class Viewer {
     this.scene.add(this.referenceTransformHistoryHelper.getGroup())
     this.referenceTransformMoveSnapHelper = new ReferenceTransformMoveSnapHelper()
     this.scene.add(this.referenceTransformMoveSnapHelper.getGroup())
+    this.referenceTransformRotateSnapHelper = new ReferenceTransformRotateSnapHelper()
+    this.scene.add(this.referenceTransformRotateSnapHelper.getGroup())
     this.geometrySketchDrawHelper = new GeometrySketchDrawHelper()
     this.scene.add(this.geometrySketchDrawHelper.getGroup())
     this.geometrySketchComponentMaterial = new LineBasicMaterial({
@@ -800,10 +827,15 @@ export class Viewer {
     this.refreshGizmoAttachment()
     this.syncReferenceTransformHistoryOverlay()
     this.syncReferenceTransformMoveSnapAvailabilityOverlay()
+    this.syncReferenceTransformRotateSnapPreviewOverlay()
   }
 
   public setReferenceTransformSession(session: ReferenceTransformSession | null): void {
     this.activeReferenceTransformReferenceId = session?.referenceId ?? null
+    this.activeReferenceTransformEntryOrigin = session?.entryOrigin ?? null
+    this.lastReferenceTransformMoveSnapHandle = null
+    this.activeReferenceTransformRotatePreviewBasis = null
+    this.activeReferenceTransformRotatePreviewRingRadius = null
     if (session !== null) {
       this.gizmoMode = session.mode
       this.gizmoSpace = session.space
@@ -815,6 +847,7 @@ export class Viewer {
     this.refreshGizmoAttachment()
     this.syncReferenceTransformHistoryOverlay()
     this.syncReferenceTransformMoveSnapAvailabilityOverlay()
+    this.syncReferenceTransformRotateSnapPreviewOverlay()
   }
 
   public setReferenceTransformHistoryOverlay(
@@ -1202,6 +1235,7 @@ export class Viewer {
     this.gizmoSpace = space
     this.transformGizmo.setSpace(space)
     this.syncReferenceTransformMoveSnapAvailabilityOverlay()
+    this.syncReferenceTransformRotateSnapPreviewOverlay()
   }
 
   public setGizmoSnap(opts: {
@@ -1216,6 +1250,59 @@ export class Viewer {
     }
     this.transformGizmo.setSnap(opts)
     this.syncReferenceTransformMoveSnapAvailabilityOverlay()
+    this.syncReferenceTransformRotateSnapPreviewOverlay()
+  }
+
+  public setReferenceTransformMoveSnapDotScale(scale: number): void {
+    this.referenceTransformMoveSnapHelper.setDotScaleMultiplier(scale)
+  }
+
+  public setReferenceTransformMoveSnapDotsEnabled(enabled: boolean): void {
+    this.referenceTransformMoveSnapHelper.setEnabled(enabled)
+    this.syncReferenceTransformMoveSnapAvailabilityOverlay()
+  }
+
+  public setReferenceTransformPreviewLastMoveSnapDotsEnabled(enabled: boolean): void {
+    this.previewLastMoveSnapDotsEnabled = enabled
+    this.syncReferenceTransformMoveSnapAvailabilityOverlay()
+  }
+
+  public setReferenceTransformMoveSnapDotDelayMs(delayMs: number): void {
+    this.referenceTransformMoveSnapHelper.setDotDelayMs(delayMs)
+  }
+
+  public setReferenceTransformMoveSnapDotNearScale(scale: number): void {
+    this.referenceTransformMoveSnapHelper.setDotNearScale(scale)
+  }
+
+  public setReferenceTransformMoveSnapDotFarScale(scale: number): void {
+    this.referenceTransformMoveSnapHelper.setDotFarScale(scale)
+  }
+
+  public setReferenceTransformMoveSnapDotVisibleRadiusMultiplier(multiplier: number): void {
+    this.referenceTransformMoveSnapHelper.setDotVisibleRadiusMultiplier(multiplier)
+  }
+
+  public setReferenceTransformRotateSnapPreviewEnabled(enabled: boolean): void {
+    this.referenceTransformRotateSnapHelper.setEnabled(enabled)
+    this.syncReferenceTransformRotateSnapPreviewOverlay()
+  }
+
+  public setReferenceTransformRotateSnapPreviewLineSize(size: number): void {
+    this.referenceTransformRotateSnapHelper.setLineSize(size)
+  }
+
+  public setReferenceTransformRotateSnapPreviewLineThickness(thickness: number): void {
+    this.referenceTransformRotateSnapHelper.setLineThickness(thickness)
+  }
+
+  public setReferenceTransformRotateSnapPreviewRadiusDeg(radiusDeg: number): void {
+    this.referenceTransformRotateSnapHelper.setPreviewRadiusDeg(radiusDeg)
+    this.syncReferenceTransformRotateSnapPreviewOverlay()
+  }
+
+  public setReferenceTransformRotateSnapPreviewDelayMs(delayMs: number): void {
+    this.referenceTransformRotateSnapHelper.setDelayMs(delayMs)
   }
 
   public setSelectedPart(partId: string | null): void {
@@ -1387,6 +1474,39 @@ export class Viewer {
     this.zoomWindowOverlayBox.style.height = '0'
   }
 
+  private updateWorkspaceSelectionOverlay(
+    anchorClientX: number,
+    anchorClientY: number,
+    currentClientX: number,
+    currentClientY: number,
+    mode: WorkspaceSelectionWindowMode,
+  ): void {
+    const anchor = this.getCanvasLocalClientPoint(anchorClientX, anchorClientY)
+    const current = this.getCanvasLocalClientPoint(currentClientX, currentClientY)
+    const left = Math.min(anchor.x, current.x)
+    const top = Math.min(anchor.y, current.y)
+    const width = Math.abs(current.x - anchor.x)
+    const height = Math.abs(current.y - anchor.y)
+    this.workspaceSelectionOverlayBox.style.display = 'block'
+    this.workspaceSelectionOverlayBox.style.left = `${left}px`
+    this.workspaceSelectionOverlayBox.style.top = `${top}px`
+    this.workspaceSelectionOverlayBox.style.width = `${width}px`
+    this.workspaceSelectionOverlayBox.style.height = `${height}px`
+    this.workspaceSelectionOverlayBox.style.borderStyle = mode === 'window' ? 'solid' : 'dashed'
+    this.workspaceSelectionOverlayBox.style.borderColor =
+      mode === 'window' ? 'rgba(122, 196, 255, 0.95)' : 'rgba(123, 224, 150, 0.95)'
+    this.workspaceSelectionOverlayBox.style.background =
+      mode === 'window' ? 'rgba(122, 196, 255, 0.12)' : 'rgba(123, 224, 150, 0.12)'
+  }
+
+  private clearWorkspaceSelectionOverlay(): void {
+    this.workspaceSelectionOverlayBox.style.display = 'none'
+    this.workspaceSelectionOverlayBox.style.left = '0'
+    this.workspaceSelectionOverlayBox.style.top = '0'
+    this.workspaceSelectionOverlayBox.style.width = '0'
+    this.workspaceSelectionOverlayBox.style.height = '0'
+  }
+
   private clearCameraGestureDrafts(): void {
     if (
       this.cameraOrbitModifierDrag !== null &&
@@ -1410,6 +1530,14 @@ export class Viewer {
     }
     this.consoleZoomWindowDrag = null
     this.clearZoomWindowOverlay()
+    if (
+      this.workspaceSelectionClickTracker !== null &&
+      this.renderer.domElement.hasPointerCapture(this.workspaceSelectionClickTracker.pointerId)
+    ) {
+      this.renderer.domElement.releasePointerCapture(this.workspaceSelectionClickTracker.pointerId)
+    }
+    this.workspaceSelectionClickTracker = null
+    this.clearWorkspaceSelectionOverlay()
     this.middleClickTracker = null
     this.lastMiddleClick = null
     this.cameraController.endTemporaryPanDrag()
@@ -1557,6 +1685,7 @@ export class Viewer {
     this.sketchPlanePickHelper.dispose()
     this.referenceTransformHistoryHelper.dispose()
     this.referenceTransformMoveSnapHelper.dispose()
+    this.referenceTransformRotateSnapHelper.dispose()
     this.geometrySketchDrawHelper.dispose()
     this.geometrySketchComponentMaterial.dispose()
     this.geometrySketchHoveredComponentMaterial.dispose()
@@ -1568,6 +1697,7 @@ export class Viewer {
 
     this.renderer.dispose()
     this.zoomWindowOverlayRoot.remove()
+    this.workspaceSelectionOverlayRoot.remove()
     this.container.removeChild(this.renderer.domElement)
   }
 
@@ -2150,12 +2280,18 @@ export class Viewer {
   }
 
   private syncReferenceTransformMoveSnapAvailabilityOverlay(): void {
-    if (
-      this.activeReferenceTransformReferenceId === null ||
-      this.referenceTransformDragging !== true ||
-      this.gizmoSnap.translate === undefined ||
-      !isReferenceTransformMoveSnapHandle(this.activeReferenceTransformHandle)
-    ) {
+    if (this.activeReferenceTransformReferenceId === null || this.gizmoSnap.translate === undefined) {
+      this.referenceTransformMoveSnapHelper.setOverlay(null, null)
+      return
+    }
+    let moveSnapHandle: ReferenceTransformMoveSnapOverlay['handle'] | null = null
+    if (this.referenceTransformDragging === true) {
+      const activeHandle = this.activeReferenceTransformHandle
+      moveSnapHandle = isReferenceTransformMoveSnapHandle(activeHandle) ? activeHandle : null
+    } else if (this.previewLastMoveSnapDotsEnabled) {
+      moveSnapHandle = this.getPreviewLastMoveSnapHandle()
+    }
+    if (moveSnapHandle === null) {
       this.referenceTransformMoveSnapHelper.setOverlay(null, null)
       return
     }
@@ -2163,12 +2299,197 @@ export class Viewer {
       this.referenceObjects.get(this.activeReferenceTransformReferenceId) ?? null
     this.referenceTransformMoveSnapHelper.setOverlay(
       {
-        handle: this.activeReferenceTransformHandle,
+        handle: moveSnapHandle,
         snapValues: this.gizmoSnap.translate,
         space: this.gizmoSpace,
+        anchorPosition: this.activeReferenceTransformEntryOrigin?.position ?? null,
       },
       referenceObject,
     )
+  }
+
+  private getPreviewLastMoveSnapHandle(): ReferenceTransformMoveSnapOverlay['handle'] {
+    if (isReferenceTransformMoveSnapHandle(this.lastReferenceTransformMoveSnapHandle)) {
+      return this.lastReferenceTransformMoveSnapHandle
+    }
+    return {
+      mode: 'translate',
+      kind: 'center',
+    }
+  }
+
+  private syncReferenceTransformRotateSnapPreviewOverlay(): void {
+    if (
+      this.activeReferenceTransformReferenceId === null ||
+      this.referenceTransformDragging !== true ||
+      this.gizmoSnap.rotate === undefined ||
+      this.activeReferenceTransformHandle?.mode !== 'rotate' ||
+      this.activeReferenceTransformHandle.kind !== 'axis'
+    ) {
+      this.referenceTransformRotateSnapHelper.setOverlay(null)
+      return
+    }
+
+    const referenceObject =
+      this.referenceObjects.get(this.activeReferenceTransformReferenceId) ?? null
+    if (referenceObject === null || !referenceObject.visible) {
+      this.referenceTransformRotateSnapHelper.setOverlay(null)
+      return
+    }
+
+    const basis = this.getReferenceTransformRotatePreviewBasis(
+      this.activeReferenceTransformHandle.axis,
+      referenceObject,
+    )
+    const ringRadius =
+      this.activeReferenceTransformRotatePreviewRingRadius ??
+      this.getReferenceTransformRotatePreviewRingRadius(
+        referenceObject,
+        this.activeReferenceTransformHandle.axis,
+      )
+    const landedAngleDeg = this.readReferenceTransformOverride(referenceObject).rotationDeg[
+      this.activeReferenceTransformHandle.axis
+    ]
+    const snapStepDeg = this.gizmoSnap.rotate[this.activeReferenceTransformHandle.axis]
+
+    if (basis === null || !Number.isFinite(ringRadius) || ringRadius === null) {
+      this.referenceTransformRotateSnapHelper.setOverlay(null)
+      return
+    }
+
+    const origin = referenceObject.getWorldPosition(new Vector3())
+    this.referenceTransformRotateSnapHelper.setOverlay({
+      axis: this.activeReferenceTransformHandle.axis,
+      origin: { x: origin.x, y: origin.y, z: origin.z },
+      axisDirection: {
+        x: basis.axisDirection.x,
+        y: basis.axisDirection.y,
+        z: basis.axisDirection.z,
+      },
+      referenceDirection: {
+        x: basis.referenceDirection.x,
+        y: basis.referenceDirection.y,
+        z: basis.referenceDirection.z,
+      },
+      landedAngleDeg,
+      snapStepDeg,
+      ringRadius,
+    })
+  }
+
+  private getReferenceTransformRotatePreviewBasis(
+    axis: 'x' | 'y' | 'z',
+    referenceObject: Object3D,
+  ): { axisDirection: Vector3; referenceDirection: Vector3 } | null {
+    if (
+      this.activeReferenceTransformRotatePreviewBasis !== null &&
+      this.activeReferenceTransformRotatePreviewBasis.axis === axis
+    ) {
+      return {
+        axisDirection: this.activeReferenceTransformRotatePreviewBasis.axisDirection.clone(),
+        referenceDirection: this.activeReferenceTransformRotatePreviewBasis.referenceDirection.clone(),
+      }
+    }
+
+    const rotation = this.gizmoSpace === 'local' ? referenceObject.getWorldQuaternion(new Quaternion()) : null
+    const orient = (vector: Vector3): Vector3 =>
+      (rotation === null ? vector.clone() : vector.clone().applyQuaternion(rotation)).normalize()
+    const axisDirection = orient(
+      axis === 'x' ? new Vector3(1, 0, 0) : axis === 'y' ? new Vector3(0, 1, 0) : new Vector3(0, 0, 1),
+    )
+    const baseReferenceDirection = orient(
+      axis === 'x' ? new Vector3(0, 1, 0) : new Vector3(1, 0, 0),
+    )
+    const referenceDirection = baseReferenceDirection
+      .addScaledVector(axisDirection, -baseReferenceDirection.dot(axisDirection))
+      .normalize()
+    if (referenceDirection.lengthSq() < 1e-6) {
+      return null
+    }
+    return { axisDirection, referenceDirection }
+  }
+
+  private captureReferenceTransformRotatePreviewContext(): void {
+    if (
+      this.activeReferenceTransformReferenceId === null ||
+      this.activeReferenceTransformHandle?.mode !== 'rotate' ||
+      this.activeReferenceTransformHandle.kind !== 'axis'
+    ) {
+      this.activeReferenceTransformRotatePreviewBasis = null
+      this.activeReferenceTransformRotatePreviewRingRadius = null
+      return
+    }
+
+    const referenceObject =
+      this.referenceObjects.get(this.activeReferenceTransformReferenceId) ?? null
+    if (referenceObject === null) {
+      this.activeReferenceTransformRotatePreviewBasis = null
+      this.activeReferenceTransformRotatePreviewRingRadius = null
+      return
+    }
+
+    const basis = this.getReferenceTransformRotatePreviewBasis(
+      this.activeReferenceTransformHandle.axis,
+      referenceObject,
+    )
+    this.activeReferenceTransformRotatePreviewBasis =
+      basis === null
+        ? null
+        : {
+            axis: this.activeReferenceTransformHandle.axis,
+            axisDirection: basis.axisDirection.clone(),
+            referenceDirection: basis.referenceDirection.clone(),
+          }
+    this.activeReferenceTransformRotatePreviewRingRadius = this.getReferenceTransformRotatePreviewRingRadius(
+      referenceObject,
+      this.activeReferenceTransformHandle.axis,
+    )
+  }
+
+  private getReferenceTransformRotatePreviewRingRadius(
+    referenceObject: Object3D,
+    axis: 'x' | 'y' | 'z',
+  ): number | null {
+    const helper = this.transformGizmo.getHelper()
+    const origin = referenceObject.getWorldPosition(new Vector3())
+    const axisName = axis.toUpperCase()
+    const position = new Vector3()
+    const worldPosition = new Vector3()
+    let maxRadius = 0
+
+    helper.updateMatrixWorld(true)
+    helper.traverse((object) => {
+      const geometryOwner = object as Object3D & { geometry?: BufferGeometry }
+      if (geometryOwner.geometry === undefined || object.name !== axisName) {
+        return
+      }
+      if (!this.isWorldVisible(object)) {
+        return
+      }
+      const geometry = geometryOwner.geometry
+      const positionAttribute = geometry.getAttribute('position')
+      if (positionAttribute === undefined) {
+        return
+      }
+      for (let index = 0; index < positionAttribute.count; index += 1) {
+        position.fromBufferAttribute(positionAttribute, index)
+        worldPosition.copy(position).applyMatrix4(object.matrixWorld)
+        maxRadius = Math.max(maxRadius, worldPosition.distanceTo(origin))
+      }
+    })
+
+    return maxRadius > 0 ? maxRadius : null
+  }
+
+  private isWorldVisible(object: Object3D): boolean {
+    let current: Object3D | null = object
+    while (current !== null) {
+      if (!current.visible) {
+        return false
+      }
+      current = current.parent
+    }
+    return true
   }
 
   private requestReferenceTransformExit(): void {
@@ -2176,10 +2497,15 @@ export class Viewer {
       return
     }
     this.activeReferenceTransformReferenceId = null
+    this.activeReferenceTransformEntryOrigin = null
+    this.lastReferenceTransformMoveSnapHandle = null
+    this.activeReferenceTransformRotatePreviewBasis = null
+    this.activeReferenceTransformRotatePreviewRingRadius = null
     this.syncGizmoEnabledState()
     this.refreshReferenceHighlightStyling()
     this.refreshGizmoAttachment()
     this.syncReferenceTransformMoveSnapAvailabilityOverlay()
+    this.syncReferenceTransformRotateSnapPreviewOverlay()
     this.onReferenceTransformExit?.()
   }
 
@@ -2293,13 +2619,29 @@ export class Viewer {
       this.syncLockedReferenceCamera(object)
     }
     this.syncReferenceTransformMoveSnapAvailabilityOverlay()
+    this.syncReferenceTransformRotateSnapPreviewOverlay()
   }
 
   private readonly handleReferenceTransformHandleChange = (
     handle: ActiveReferenceTransformHandle | null,
   ): void => {
     this.activeReferenceTransformHandle = handle
+    if (isReferenceTransformMoveSnapHandle(handle)) {
+      this.lastReferenceTransformMoveSnapHandle =
+        handle.kind === 'axis'
+          ? { mode: 'translate', kind: 'axis', axis: handle.axis }
+          : handle.kind === 'plane'
+            ? { mode: 'translate', kind: 'plane', plane: handle.plane }
+            : { mode: 'translate', kind: 'center' }
+    }
+    if (this.referenceTransformDragging === true) {
+      this.captureReferenceTransformRotatePreviewContext()
+    } else if (handle?.mode !== 'rotate' || handle.kind !== 'axis') {
+      this.activeReferenceTransformRotatePreviewBasis = null
+      this.activeReferenceTransformRotatePreviewRingRadius = null
+    }
     this.syncReferenceTransformMoveSnapAvailabilityOverlay()
+    this.syncReferenceTransformRotateSnapPreviewOverlay()
     if (this.activeReferenceTransformReferenceId === null) {
       return
     }
@@ -2308,7 +2650,14 @@ export class Viewer {
 
   private readonly handleReferenceTransformDraggingChange = (dragging: boolean): void => {
     this.referenceTransformDragging = dragging
+    if (dragging) {
+      this.captureReferenceTransformRotatePreviewContext()
+    } else {
+      this.activeReferenceTransformRotatePreviewBasis = null
+      this.activeReferenceTransformRotatePreviewRingRadius = null
+    }
     this.syncReferenceTransformMoveSnapAvailabilityOverlay()
+    this.syncReferenceTransformRotateSnapPreviewOverlay()
   }
 
   private readonly handleSketchPlanePickTransformObjectChange = (object: Object3D): void => {
@@ -2592,6 +2941,52 @@ export class Viewer {
     )
   }
 
+  private isWorkspaceSelectionViewportGizmoHit(clientX: number, clientY: number): boolean {
+    const helper = this.transformGizmo.getHelper()
+    if (!helper.visible) {
+      return false
+    }
+    const rect = this.renderer.domElement.getBoundingClientRect()
+    if (rect.width <= 0 || rect.height <= 0) {
+      return false
+    }
+    this.pointer.set(
+      ((clientX - rect.left) / rect.width) * 2 - 1,
+      -(((clientY - rect.top) / rect.height) * 2 - 1),
+    )
+    this.raycaster.setFromCamera(this.pointer, this.cameraController.getActiveCamera())
+    return this.raycaster.intersectObject(helper, true).length > 0
+  }
+
+  private collectWorkspaceSelectionCandidates(): WorkspaceSelectionCandidate[] {
+    const candidates: WorkspaceSelectionCandidate[] = []
+    for (const [referenceId, object] of this.referenceObjects.entries()) {
+      if (!isObjectWorldVisible(object)) {
+        continue
+      }
+      candidates.push({
+        pick: {
+          kind: 'reference-item',
+          referenceId,
+        },
+        object,
+      })
+    }
+    for (const [partKey, mesh] of this.partMeshes.entries()) {
+      if (!isObjectWorldVisible(mesh)) {
+        continue
+      }
+      candidates.push({
+        pick: {
+          kind: 'part',
+          partKey,
+        },
+        object: mesh,
+      })
+    }
+    return candidates
+  }
+
   private pickWorkspaceSelection(
     clientX: number,
     clientY: number,
@@ -2605,17 +3000,7 @@ export class Viewer {
       -(((clientY - rect.top) / rect.height) * 2 - 1),
     )
     this.raycaster.setFromCamera(this.pointer, this.cameraController.getActiveCamera())
-    const pickRoots: Object3D[] = []
-    for (const object of this.referenceObjects.values()) {
-      if (object.visible) {
-        pickRoots.push(object)
-      }
-    }
-    for (const mesh of this.partMeshes.values()) {
-      if (mesh.visible) {
-        pickRoots.push(mesh)
-      }
-    }
+    const pickRoots = this.collectWorkspaceSelectionCandidates().map((candidate) => candidate.object)
     const intersections = this.raycaster.intersectObjects(pickRoots, true)
     for (const intersection of intersections) {
       let current: Object3D | null = intersection.object
@@ -2640,11 +3025,33 @@ export class Viewer {
     return null
   }
 
+  private pickWorkspaceSelectionWindow(
+    anchorClientX: number,
+    anchorClientY: number,
+    currentClientX: number,
+    currentClientY: number,
+  ): WorkspaceSelectionPick[] {
+    const rect = this.renderer.domElement.getBoundingClientRect()
+    if (rect.width <= 0 || rect.height <= 0) {
+      return []
+    }
+    return collectWorkspaceSelectionWindowPicks(
+      this.collectWorkspaceSelectionCandidates(),
+      this.cameraController.getActiveCamera(),
+      {
+        width: rect.width,
+        height: rect.height,
+      },
+      this.getCanvasLocalClientPoint(anchorClientX, anchorClientY),
+      this.getCanvasLocalClientPoint(currentClientX, currentClientY),
+    )
+  }
+
   private getCurrentGeometrySketchSelectionWindowMode(
     anchor: { x: number; y: number },
     current: { x: number; y: number },
   ): 'window' | 'crossing' {
-    return current.x < anchor.x ? 'window' : 'crossing'
+    return getWorkspaceSelectionWindowMode(anchor, current)
   }
 
   private alignCameraToGeometrySketchPlaneInternal(overlay: GeometrySketchOverlayVm): void {
@@ -2737,7 +3144,10 @@ export class Viewer {
     if (event.button !== 0) {
       return
     }
-    if (this.shouldHandleWorkspaceSelectionPick()) {
+    if (
+      this.shouldHandleWorkspaceSelectionPick() &&
+      !this.isWorkspaceSelectionViewportGizmoHit(event.clientX, event.clientY)
+    ) {
       this.workspaceSelectionClickTracker = {
         pointerId: event.pointerId,
         anchorClientX: event.clientX,
@@ -2745,6 +3155,7 @@ export class Viewer {
         moved: false,
         ctrlKey: event.ctrlKey,
       }
+      this.renderer.domElement.setPointerCapture(event.pointerId)
     } else {
       this.workspaceSelectionClickTracker = null
     }
@@ -2834,16 +3245,37 @@ export class Viewer {
   private readonly handleSketchPlanePickPointerMove = (event: PointerEvent): void => {
     if (
       this.workspaceSelectionClickTracker !== null &&
-      event.pointerId === this.workspaceSelectionClickTracker.pointerId &&
-      !this.workspaceSelectionClickTracker.moved
+      event.pointerId === this.workspaceSelectionClickTracker.pointerId
     ) {
       this.workspaceSelectionClickTracker.ctrlKey =
         this.workspaceSelectionClickTracker.ctrlKey || event.ctrlKey
       this.workspaceSelectionClickTracker.moved =
-        Math.max(
-          Math.abs(event.clientX - this.workspaceSelectionClickTracker.anchorClientX),
-          Math.abs(event.clientY - this.workspaceSelectionClickTracker.anchorClientY),
-        ) >= 3
+        this.workspaceSelectionClickTracker.moved ||
+        hasWorkspaceSelectionDragExceededThreshold(
+          this.workspaceSelectionClickTracker.anchorClientX,
+          this.workspaceSelectionClickTracker.anchorClientY,
+          event.clientX,
+          event.clientY,
+          WORKSPACE_SELECTION_DRAG_THRESHOLD_PX,
+        )
+      if (this.workspaceSelectionClickTracker.moved) {
+        event.preventDefault()
+        event.stopPropagation()
+        this.updateWorkspaceSelectionOverlay(
+          this.workspaceSelectionClickTracker.anchorClientX,
+          this.workspaceSelectionClickTracker.anchorClientY,
+          event.clientX,
+          event.clientY,
+          getWorkspaceSelectionWindowMode(
+            this.getCanvasLocalClientPoint(
+              this.workspaceSelectionClickTracker.anchorClientX,
+              this.workspaceSelectionClickTracker.anchorClientY,
+            ),
+            this.getCanvasLocalClientPoint(event.clientX, event.clientY),
+          ),
+        )
+        return
+      }
     }
     if (
       this.consoleZoomWindowDrag !== null &&
@@ -3068,9 +3500,28 @@ export class Viewer {
     ) {
       const click = this.workspaceSelectionClickTracker
       this.workspaceSelectionClickTracker = null
+      if (this.renderer.domElement.hasPointerCapture(event.pointerId)) {
+        this.renderer.domElement.releasePointerCapture(event.pointerId)
+      }
+      this.clearWorkspaceSelectionOverlay()
       if (!click.moved) {
         this.onWorkspaceSelectionPick?.({
-          pick: this.pickWorkspaceSelection(event.clientX, event.clientY),
+          picks: (() => {
+            const pick = this.pickWorkspaceSelection(event.clientX, event.clientY)
+            return pick === null ? [] : [pick]
+          })(),
+          ctrlKey: click.ctrlKey || event.ctrlKey,
+        })
+      } else {
+        event.preventDefault()
+        event.stopPropagation()
+        this.onWorkspaceSelectionPick?.({
+          picks: this.pickWorkspaceSelectionWindow(
+            click.anchorClientX,
+            click.anchorClientY,
+            event.clientX,
+            event.clientY,
+          ),
           ctrlKey: click.ctrlKey || event.ctrlKey,
         })
       }
@@ -3221,6 +3672,8 @@ export class Viewer {
     this.frameId = window.requestAnimationFrame(this.renderLoop)
     const dt = this.clock.getDelta()
     this.cameraController.update(dt)
+    this.referenceTransformMoveSnapHelper.tick(dt)
+    this.referenceTransformRotateSnapHelper.tick(dt)
     const activeCamera = this.cameraController.getActiveCamera()
     this.renderer.render(this.scene, activeCamera)
     this.axisGizmo?.renderFromCameraQuaternion(activeCamera.quaternion)

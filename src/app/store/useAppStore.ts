@@ -292,6 +292,18 @@ export type ReferenceWorkspaceState = {
     Partial<Record<ReferenceTimelineChannelKey, ReferenceTimelineConfig>>
   >
   transformSnapByReferenceId: Record<string, ReferenceTransformSnapState>
+  moveSnapDotsEnabled: boolean
+  previewLastMoveSnapDotsEnabled: boolean
+  moveSnapDotScale: number
+  moveSnapDotDelayMs: number
+  moveSnapDotNearScale: number
+  moveSnapDotFarScale: number
+  moveSnapDotVisibleRadiusMultiplier: number
+  rotateSnapPreviewEnabled: boolean
+  rotateSnapPreviewLineSize: number
+  rotateSnapPreviewLineThickness: number
+  rotateSnapPreviewRadiusDeg: number
+  rotateSnapPreviewDelayMs: number
   transformHistoryByReferenceId: Record<string, ReferenceTransformHistoryEntry[]>
   activeReferenceTransformSession: ActiveReferenceTransformSession | null
   importedReferencesById: Record<string, ImportedReferenceRecord>
@@ -638,6 +650,18 @@ export type AppState = {
     mode: ReferenceTransformSnapMode,
     locked: boolean,
   ) => void
+  setReferenceTransformMoveSnapDotScale: (value: number) => void
+  setReferenceTransformMoveSnapDotsEnabled: (enabled: boolean) => void
+  setReferenceTransformPreviewLastMoveSnapDotsEnabled: (enabled: boolean) => void
+  setReferenceTransformMoveSnapDotDelayMs: (value: number) => void
+  setReferenceTransformMoveSnapDotNearScale: (value: number) => void
+  setReferenceTransformMoveSnapDotFarScale: (value: number) => void
+  setReferenceTransformMoveSnapDotVisibleRadiusMultiplier: (value: number) => void
+  setReferenceTransformRotateSnapPreviewEnabled: (enabled: boolean) => void
+  setReferenceTransformRotateSnapPreviewLineSize: (value: number) => void
+  setReferenceTransformRotateSnapPreviewLineThickness: (value: number) => void
+  setReferenceTransformRotateSnapPreviewRadiusDeg: (value: number) => void
+  setReferenceTransformRotateSnapPreviewDelayMs: (value: number) => void
   setWorkspaceSelectedTarget: (target: WorkspaceSelectedTarget | null) => void
   setWorkspaceExplicitSelection: (selection: {
     selectedTarget: WorkspaceSelectedTarget | null
@@ -918,6 +942,18 @@ const createInitialReferenceWorkspaceState = (): ReferenceWorkspaceState => ({
   timelineModeByReferenceId: {},
   timelineConfigByReferenceId: {},
   transformSnapByReferenceId: {},
+  moveSnapDotsEnabled: true,
+  previewLastMoveSnapDotsEnabled: false,
+  moveSnapDotScale: 1,
+  moveSnapDotDelayMs: 120,
+  moveSnapDotNearScale: 1.45,
+  moveSnapDotFarScale: 0.04,
+  moveSnapDotVisibleRadiusMultiplier: 40,
+  rotateSnapPreviewEnabled: true,
+  rotateSnapPreviewLineSize: 1,
+  rotateSnapPreviewLineThickness: 1,
+  rotateSnapPreviewRadiusDeg: 60,
+  rotateSnapPreviewDelayMs: 120,
   transformHistoryByReferenceId: {},
   activeReferenceTransformSession: null,
   importedReferencesById: {},
@@ -3640,6 +3676,111 @@ export const useAppStore = create<AppState>((set, get) => ({
         },
       }
     })
+  },
+  setReferenceTransformMoveSnapDotScale: (value) => {
+    set((state) => ({
+      referenceWorkspace: {
+        ...state.referenceWorkspace,
+        moveSnapDotScale: Math.min(4, Math.max(0.1, Number.isFinite(value) ? value : 1)),
+      },
+    }))
+  },
+  setReferenceTransformMoveSnapDotsEnabled: (enabled) => {
+    set((state) => ({
+      referenceWorkspace: {
+        ...state.referenceWorkspace,
+        moveSnapDotsEnabled: enabled,
+      },
+    }))
+  },
+  setReferenceTransformPreviewLastMoveSnapDotsEnabled: (enabled) => {
+    set((state) => ({
+      referenceWorkspace: {
+        ...state.referenceWorkspace,
+        previewLastMoveSnapDotsEnabled: enabled,
+      },
+    }))
+  },
+  setReferenceTransformMoveSnapDotDelayMs: (value) => {
+    set((state) => ({
+      referenceWorkspace: {
+        ...state.referenceWorkspace,
+        moveSnapDotDelayMs: Math.min(500, Math.max(0, Number.isFinite(value) ? value : 120)),
+      },
+    }))
+  },
+  setReferenceTransformMoveSnapDotNearScale: (value) => {
+    set((state) => ({
+      referenceWorkspace: {
+        ...state.referenceWorkspace,
+        moveSnapDotNearScale: Math.min(3, Math.max(0.1, Number.isFinite(value) ? value : 1.45)),
+      },
+    }))
+  },
+  setReferenceTransformMoveSnapDotFarScale: (value) => {
+    set((state) => ({
+      referenceWorkspace: {
+        ...state.referenceWorkspace,
+        moveSnapDotFarScale: Math.min(1.5, Math.max(0, Number.isFinite(value) ? value : 0.04)),
+      },
+    }))
+  },
+  setReferenceTransformMoveSnapDotVisibleRadiusMultiplier: (value) => {
+    set((state) => ({
+      referenceWorkspace: {
+        ...state.referenceWorkspace,
+        moveSnapDotVisibleRadiusMultiplier: Math.min(
+          200,
+          Math.max(1, Number.isFinite(value) ? value : 40),
+        ),
+      },
+    }))
+  },
+  setReferenceTransformRotateSnapPreviewEnabled: (enabled) => {
+    set((state) => ({
+      referenceWorkspace: {
+        ...state.referenceWorkspace,
+        rotateSnapPreviewEnabled: enabled,
+      },
+    }))
+  },
+  setReferenceTransformRotateSnapPreviewLineSize: (value) => {
+    set((state) => ({
+      referenceWorkspace: {
+        ...state.referenceWorkspace,
+        rotateSnapPreviewLineSize: Math.min(3, Math.max(0.25, Number.isFinite(value) ? value : 1)),
+      },
+    }))
+  },
+  setReferenceTransformRotateSnapPreviewLineThickness: (value) => {
+    set((state) => ({
+      referenceWorkspace: {
+        ...state.referenceWorkspace,
+        rotateSnapPreviewLineThickness: Math.min(
+          3,
+          Math.max(0.25, Number.isFinite(value) ? value : 1),
+        ),
+      },
+    }))
+  },
+  setReferenceTransformRotateSnapPreviewRadiusDeg: (value) => {
+    set((state) => ({
+      referenceWorkspace: {
+        ...state.referenceWorkspace,
+        rotateSnapPreviewRadiusDeg: Math.min(
+          180,
+          Math.max(10, Number.isFinite(value) ? value : 60),
+        ),
+      },
+    }))
+  },
+  setReferenceTransformRotateSnapPreviewDelayMs: (value) => {
+    set((state) => ({
+      referenceWorkspace: {
+        ...state.referenceWorkspace,
+        rotateSnapPreviewDelayMs: Math.min(500, Math.max(0, Number.isFinite(value) ? value : 120)),
+      },
+    }))
   },
   setWorkspaceSelectedTarget: (target) => {
     set((state) => ({

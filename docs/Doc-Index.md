@@ -4,6 +4,8 @@
 <summary>Doc Header</summary>
 
 ### Doc History
+128. 2026-03-27 19:44: Renamed the live `Camera-Controls` phase-doc filenames from `5.0H-*` to `Camera-*`, refreshed `docs/Human-Plans/Architecture/Camera-Controls/Camera_Controls-Index.md` to the new `Camera-1` through `Camera-5.1` ladder, and updated the camera-controls subtree so the docs map now points at the new live file names while older historical entries keep the earlier numbering
+127. 2026-03-27 17:50: Added `docs/Human-Plans/Architecture/Camera-Controls/Future/Camera_Controls_Phase 5.0H-5.1 - Viewer Object Window Selection.md` to the architecture docs map, refreshed the `Camera-Controls` family index, and updated the camera-controls subtree so 3D viewer marquee selection now has a dedicated implementation-ready planning surface under `Future/`
 126. 2026-03-27 09:40: Added `docs/Human-Plans/Wish-Features/Collaberate/Collaberate.md` to the docs map, added a direct wishlist pointer from `docs/Human-Plans/Wish-Features/WISHLIST.md`, and refreshed the `Wish-Features` subtree so the new collaboration branch is discoverable beside `WISHLIST.md`
 125. 2026-03-26 20:03: Added the new `docs/Human-Plans/Architecture/Export/Export-Index.md` family plus its first `Future/Export_Phase Export-1 - Toolbar Shell And Format Surface.md` planning surface to the architecture docs map, refreshed the architecture roadmap entry points, and kept the docs index aligned with the new export-toolbar family
 124. 2026-03-26 12:55: Added the four new `docs/Human-Plans/Architecture/Layers/Future/` phase docs to the architecture docs map and refreshed the Layers subtree so the new family now has a visible implementation ladder for state foundation, manager-plus-console controls, sketch entity ownership, and authored 3D object visibility
@@ -499,10 +501,11 @@ Rule notes:
             - `Future/Browser_Phase Browser-7 - Browser Cleanup Follow-Ons.md`
 #### -------Camera-Controls
             - `Camera_Controls-Index.md`
-            - `Shipped/Camera_Controls_Phase 5.0H-1 - Sketch Draw Camera Blocking.md`
-            - `Shipped/Camera_Controls_Phase 5.0H-2 - Fusion-Style Model Viewport Camera Baseline.md`
-            - `Shipped/Camera_Controls_Phase 5.0H-3 - Spaghetti Canvas And Model Viewport Coexistence.md`
-            - `Shipped/Camera_Controls_Phase 5.0H-4 - Camera Console Commands.md`
+            - `Future/Camera_Controls_Phase Camera-5.1 - Viewer Object Window Selection.md`
+            - `Shipped/Camera_Controls_Phase Camera-1 - Sketch Draw Camera Blocking.md`
+            - `Shipped/Camera_Controls_Phase Camera-2 - Fusion-Style Model Viewport Camera Baseline.md`
+            - `Shipped/Camera_Controls_Phase Camera-3 - Spaghetti Canvas And Model Viewport Coexistence.md`
+            - `Shipped/Camera_Controls_Phase Camera-4 - Camera Console Commands.md`
 #### -------Console
             - `Console.md`
             - `Shipped/Console_Phase 5.1G - Surface-Agnostic Command Ownership And Adapter Expansion.md`

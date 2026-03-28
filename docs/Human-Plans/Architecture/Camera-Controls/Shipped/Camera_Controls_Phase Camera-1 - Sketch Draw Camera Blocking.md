@@ -1,8 +1,9 @@
-# Camera Controls Phase 5.0H-1 - Sketch Draw Camera Blocking
+# Camera Controls Phase Camera-1 - Sketch Draw Camera Blocking
 
 ## Doc Header
 
 ### Doc History
+4. 2026-03-27 19:44: Renamed this live phase record from `5.0H-1` to `Camera-1` so the camera-controls family can start phasing out the older mixed numbering system without rewriting the earlier historical log entries
 3. 2026-03-22 20:27: Marked this phase complete after shipping the first sketch-camera ownership block by disabling the viewer's left-button orbit claim while `Sketch Draw` is open, suppressing temporary orbit-drag requests through the same block, and keeping the broader wheel/`MMB` camera remap deferred to `[5.0H-2]`
 2. 2026-03-22 14:56: Tightened this phase into a more implementation-ready spec by replacing the earlier generic seam guesses with the current concrete runtime path: `ViewerHost` already feeds sketch state into the viewer, `Viewer` owns the blocking decision, `CameraController` owns the `OrbitControls` left-button claim, and the temporary orbit bridge in `viewerBridge.ts` must also be ignored while `Sketch Draw` is open
 1. 2026-03-22 14:56: Created this standalone future phase doc for `[5.0H-1]`, translating the first camera-controls cut into an implementation-ready plan around stopping camera ownership from stealing `Sketch Draw` left-click and drag interactions while keeping the change narrow enough to land before the broader viewport-gesture baseline work
@@ -12,10 +13,10 @@
 This doc defines the first implementation cut under the camera-controls family.
 
 Use it to answer:
-- what `[5.0H-1]` should fix first
+- what `[Camera-1]` should fix first
 - which interactions must stop being camera-owned
 - which files are the first safe seams
-- how to keep this cut narrow enough to land before `[5.0H-2]`
+- how to keep this cut narrow enough to land before `[Camera-2]`
 
 ### Why This Phase Exists
 
@@ -47,7 +48,7 @@ This phase does not cover:
 
 ## Doc Body
 
-## [x] - `[5.0H-1]` - `Sketch Draw Camera Blocking`
+## [x] - `[Camera-1]` - `Sketch Draw Camera Blocking`
 
 ### Header
 
@@ -61,10 +62,10 @@ Owns:
 - idle `Sketch Draw` box-selection drag ownership
 
 Keeps for later phases:
-- full model-viewport gesture remap under `[5.0H-2]`
-- graph-canvas coexistence under `[5.0H-3]`
-- camera console commands under `[5.0H-4]`
-- shared gizmo/input-owner cleanup under `[5.0H-5]`
+- full model-viewport gesture remap under `[Camera-2]`
+- graph-canvas coexistence under `[Camera-3]`
+- camera console commands under `[Camera-4]`
+- shared gizmo/input-owner cleanup under `[Camera-5]`
 
 ### Target Result
 
@@ -97,14 +98,14 @@ Keeps for later phases:
 ##### Suggestion
 - when the geometry-sketch viewer overlay/session is in `draw`, plain viewport `LMB` should no longer start camera orbit/navigation
 - do not wait for the full camera remap to fix this
-- make `Sketch Draw` ownership explicit first, even if the broader camera baseline still lands in `[5.0H-2]`
+- make `Sketch Draw` ownership explicit first, even if the broader camera baseline still lands in `[Camera-2]`
 
 #### [x] - `q2` Should this phase change wheel / `MMB` behavior too?
 
 ##### Suggestion
 - no
 - keep this phase narrow to plain `LMB` ownership blocking only
-- leave wheel zoom, pan, orbit-gesture remap, and `MMB` policy for `[5.0H-2]`
+- leave wheel zoom, pan, orbit-gesture remap, and `MMB` policy for `[Camera-2]`
 
 #### [x] - `q3` Should the block apply only to active draw tools, or to idle `Sketch Draw` too?
 
@@ -138,7 +139,7 @@ Implementation steps:
 6. preserve the existing idle `Sketch Draw` click-selection path
 7. preserve the existing idle `Sketch Draw` drag-selection path for blue `Window` and green `Crossing`
 8. keep wheel, `MMB`, and broader camera gesture remap behavior unchanged in this phase
-9. keep the implementation narrow enough that `[5.0H-2]` can still own the broader Fusion-style camera-baseline remap cleanly later
+9. keep the implementation narrow enough that `[Camera-2]` can still own the broader Fusion-style camera-baseline remap cleanly later
 
 Required behavior-preservation rules:
 - do not redesign the full viewer control scheme in this phase

@@ -7,6 +7,7 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from 'react'
 import { routeKeyboardInput } from '../inputRouting'
+import { ParaSelect } from './ParaSelect'
 import { ParaSlider } from './ParaSlider'
 import { ParaVec3Slider } from './ParaVec3Slider'
 import { ReferenceTimelineGraph } from './ReferenceTimelineGraph'
@@ -328,6 +329,42 @@ export function ReferenceTransformToolbar() {
   const setReferenceTransformSnapLocked = useAppStore(
     (state) => state.setReferenceTransformSnapLocked,
   )
+  const setReferenceTransformMoveSnapDotScale = useAppStore(
+    (state) => state.setReferenceTransformMoveSnapDotScale,
+  )
+  const setReferenceTransformMoveSnapDotsEnabled = useAppStore(
+    (state) => state.setReferenceTransformMoveSnapDotsEnabled,
+  )
+  const setReferenceTransformPreviewLastMoveSnapDotsEnabled = useAppStore(
+    (state) => state.setReferenceTransformPreviewLastMoveSnapDotsEnabled,
+  )
+  const setReferenceTransformMoveSnapDotDelayMs = useAppStore(
+    (state) => state.setReferenceTransformMoveSnapDotDelayMs,
+  )
+  const setReferenceTransformMoveSnapDotNearScale = useAppStore(
+    (state) => state.setReferenceTransformMoveSnapDotNearScale,
+  )
+  const setReferenceTransformMoveSnapDotFarScale = useAppStore(
+    (state) => state.setReferenceTransformMoveSnapDotFarScale,
+  )
+  const setReferenceTransformMoveSnapDotVisibleRadiusMultiplier = useAppStore(
+    (state) => state.setReferenceTransformMoveSnapDotVisibleRadiusMultiplier,
+  )
+  const setReferenceTransformRotateSnapPreviewEnabled = useAppStore(
+    (state) => state.setReferenceTransformRotateSnapPreviewEnabled,
+  )
+  const setReferenceTransformRotateSnapPreviewLineSize = useAppStore(
+    (state) => state.setReferenceTransformRotateSnapPreviewLineSize,
+  )
+  const setReferenceTransformRotateSnapPreviewLineThickness = useAppStore(
+    (state) => state.setReferenceTransformRotateSnapPreviewLineThickness,
+  )
+  const setReferenceTransformRotateSnapPreviewRadiusDeg = useAppStore(
+    (state) => state.setReferenceTransformRotateSnapPreviewRadiusDeg,
+  )
+  const setReferenceTransformRotateSnapPreviewDelayMs = useAppStore(
+    (state) => state.setReferenceTransformRotateSnapPreviewDelayMs,
+  )
   const toggleReferenceTransformHistoryLock = useAppStore(
     (state) => state.toggleReferenceTransformHistoryLock,
   )
@@ -471,6 +508,19 @@ export function ReferenceTransformToolbar() {
       ? DEFAULT_REFERENCE_TRANSFORM_SNAP_STATE
       : referenceWorkspace.transformSnapByReferenceId[activeReferenceId] ??
         DEFAULT_REFERENCE_TRANSFORM_SNAP_STATE
+  const moveSnapDotScale = referenceWorkspace.moveSnapDotScale
+  const moveSnapDotsEnabled = referenceWorkspace.moveSnapDotsEnabled
+  const previewLastMoveSnapDotsEnabled = referenceWorkspace.previewLastMoveSnapDotsEnabled
+  const moveSnapDotDelayMs = referenceWorkspace.moveSnapDotDelayMs
+  const moveSnapDotNearScale = referenceWorkspace.moveSnapDotNearScale
+  const moveSnapDotFarScale = referenceWorkspace.moveSnapDotFarScale
+  const moveSnapDotVisibleRadiusMultiplier =
+    referenceWorkspace.moveSnapDotVisibleRadiusMultiplier
+  const rotateSnapPreviewEnabled = referenceWorkspace.rotateSnapPreviewEnabled
+  const rotateSnapPreviewLineSize = referenceWorkspace.rotateSnapPreviewLineSize
+  const rotateSnapPreviewLineThickness = referenceWorkspace.rotateSnapPreviewLineThickness
+  const rotateSnapPreviewRadiusDeg = referenceWorkspace.rotateSnapPreviewRadiusDeg
+  const rotateSnapPreviewDelayMs = referenceWorkspace.rotateSnapPreviewDelayMs
 
   const getChannelRange = (channel: ReferenceTimelineChannelKey): ReferenceTimelineRange =>
     normalizeRange(channelClampRanges[channel] ?? getReferenceTimelineDefaultRange(channel))
@@ -1472,6 +1522,143 @@ export function ReferenceTransformToolbar() {
               <span className="ReferenceTransformToolbarShortcutKeys">Esc</span>
               <span className="ReferenceTransformToolbarShortcutText">Cancel active transform session</span>
             </div>
+            <div className="ReferenceTransformToolbarShortcutsTitle">Viewport</div>
+            <div className="ReferenceTransformToolbarChannelBox">
+              <ParaSelect
+                label="Move Snap Dots"
+                value={moveSnapDotsEnabled ? 'on' : 'off'}
+                options={[
+                  { value: 'off', label: 'Off' },
+                  { value: 'on', label: 'On' },
+                ]}
+                onChange={(value) => setReferenceTransformMoveSnapDotsEnabled(value === 'on')}
+              />
+            </div>
+            {moveSnapDotsEnabled ? (
+              <>
+                <div className="ReferenceTransformToolbarChannelBox">
+                  <ParaSelect
+                    label="Preview Last Move Snap Dots"
+                    value={previewLastMoveSnapDotsEnabled ? 'on' : 'off'}
+                    options={[
+                      { value: 'off', label: 'Off' },
+                      { value: 'on', label: 'On' },
+                    ]}
+                    onChange={(value) =>
+                      setReferenceTransformPreviewLastMoveSnapDotsEnabled(value === 'on')
+                    }
+                  />
+                </div>
+                <div className="ReferenceTransformToolbarChannelBox">
+                  <ParaSlider
+                    label="Dot Size"
+                    value={moveSnapDotScale}
+                    min={0.1}
+                    max={4}
+                    step={0.1}
+                    onChange={setReferenceTransformMoveSnapDotScale}
+                  />
+                </div>
+                <div className="ReferenceTransformToolbarChannelBox">
+                  <ParaSlider
+                    label="Dot Delay"
+                    value={moveSnapDotDelayMs}
+                    min={0}
+                    max={500}
+                    step={10}
+                    formatValue={(value) => `${Math.round(value)} ms`}
+                    onChange={setReferenceTransformMoveSnapDotDelayMs}
+                  />
+                </div>
+                <div className="ReferenceTransformToolbarChannelBox">
+                  <ParaSlider
+                    label="Dot On Gizmo"
+                    value={moveSnapDotNearScale}
+                    min={0.1}
+                    max={3}
+                    step={0.05}
+                    onChange={setReferenceTransformMoveSnapDotNearScale}
+                  />
+                </div>
+                <div className="ReferenceTransformToolbarChannelBox">
+                  <ParaSlider
+                    label="Dot Furthest"
+                    value={moveSnapDotFarScale}
+                    min={0}
+                    max={1.5}
+                    step={0.02}
+                    onChange={setReferenceTransformMoveSnapDotFarScale}
+                  />
+                </div>
+                <div className="ReferenceTransformToolbarChannelBox">
+                  <ParaSlider
+                    label="Dot Radius"
+                    value={moveSnapDotVisibleRadiusMultiplier}
+                    min={1}
+                    max={200}
+                    step={1}
+                    onChange={setReferenceTransformMoveSnapDotVisibleRadiusMultiplier}
+                  />
+                </div>
+              </>
+            ) : null}
+            <div className="ReferenceTransformToolbarChannelBox">
+              <ParaSelect
+                label="Rotate Snap Preview"
+                value={rotateSnapPreviewEnabled ? 'on' : 'off'}
+                options={[
+                  { value: 'off', label: 'Off' },
+                  { value: 'on', label: 'On' },
+                ]}
+                onChange={(value) => setReferenceTransformRotateSnapPreviewEnabled(value === 'on')}
+              />
+            </div>
+            {rotateSnapPreviewEnabled ? (
+              <>
+                <div className="ReferenceTransformToolbarChannelBox">
+                  <ParaSlider
+                    label="Line Size"
+                    value={rotateSnapPreviewLineSize}
+                    min={0.25}
+                    max={3}
+                    step={0.05}
+                    onChange={setReferenceTransformRotateSnapPreviewLineSize}
+                  />
+                </div>
+                <div className="ReferenceTransformToolbarChannelBox">
+                  <ParaSlider
+                    label="Line Thickness"
+                    value={rotateSnapPreviewLineThickness}
+                    min={0.25}
+                    max={3}
+                    step={0.05}
+                    onChange={setReferenceTransformRotateSnapPreviewLineThickness}
+                  />
+                </div>
+                <div className="ReferenceTransformToolbarChannelBox">
+                  <ParaSlider
+                    label="Preview Radius"
+                    value={rotateSnapPreviewRadiusDeg}
+                    min={10}
+                    max={180}
+                    step={5}
+                    formatValue={(value) => `${Math.round(value)} deg`}
+                    onChange={setReferenceTransformRotateSnapPreviewRadiusDeg}
+                  />
+                </div>
+                <div className="ReferenceTransformToolbarChannelBox">
+                  <ParaSlider
+                    label="Preview Delay"
+                    value={rotateSnapPreviewDelayMs}
+                    min={0}
+                    max={500}
+                    step={10}
+                    formatValue={(value) => `${Math.round(value)} ms`}
+                    onChange={setReferenceTransformRotateSnapPreviewDelayMs}
+                  />
+                </div>
+              </>
+            ) : null}
           </div>
         ) : null}
         <div className="ReferenceTransformToolbarStatus" aria-label="Reference transform status">

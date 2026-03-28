@@ -967,6 +967,321 @@ describe('ReferenceTransformToolbar', () => {
     expect(container.textContent).not.toContain('Keyboard Shortcuts')
   })
 
+  it('exposes move snap dot size in the info panel and updates the shared setting', async () => {
+    const { ReferenceTransformToolbar } = await import('./ReferenceTransformToolbar')
+    const { useAppStore } = await import('../store/useAppStore')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ReferenceTransformToolbar />)
+    })
+
+    const infoButton = container.querySelector(
+      'button[aria-label="Toggle keyboard shortcuts help"]',
+    ) as HTMLButtonElement | null
+
+    await act(async () => {
+      infoButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(container.textContent).toContain('Move Snap Dots')
+    expect(container.textContent).toContain('Dot Size')
+    expect(useAppStore.getState().referenceWorkspace.moveSnapDotScale).toBe(1)
+
+    const increaseButton = container.querySelector(
+      'button[aria-label="Increase Dot Size"]',
+    ) as HTMLButtonElement | null
+
+    expect(increaseButton).not.toBeNull()
+
+    await act(async () => {
+      increaseButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useAppStore.getState().referenceWorkspace.moveSnapDotScale).toBe(1.1)
+  })
+
+  it('exposes move snap dot delay in the info panel and updates the shared setting', async () => {
+    const { ReferenceTransformToolbar } = await import('./ReferenceTransformToolbar')
+    const { useAppStore } = await import('../store/useAppStore')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ReferenceTransformToolbar />)
+    })
+
+    const infoButton = container.querySelector(
+      'button[aria-label="Toggle keyboard shortcuts help"]',
+    ) as HTMLButtonElement | null
+
+    await act(async () => {
+      infoButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(container.textContent).toContain('Dot Delay')
+    expect(useAppStore.getState().referenceWorkspace.moveSnapDotDelayMs).toBe(120)
+
+    const increaseButton = container.querySelector(
+      'button[aria-label="Increase Dot Delay"]',
+    ) as HTMLButtonElement | null
+
+    expect(increaseButton).not.toBeNull()
+
+    await act(async () => {
+      increaseButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useAppStore.getState().referenceWorkspace.moveSnapDotDelayMs).toBe(130)
+  })
+
+  it('exposes move snap dot near/far size controls in the info panel and updates the shared settings', async () => {
+    const { ReferenceTransformToolbar } = await import('./ReferenceTransformToolbar')
+    const { useAppStore } = await import('../store/useAppStore')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ReferenceTransformToolbar />)
+    })
+
+    const infoButton = container.querySelector(
+      'button[aria-label="Toggle keyboard shortcuts help"]',
+    ) as HTMLButtonElement | null
+
+    await act(async () => {
+      infoButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(container.textContent).toContain('Dot On Gizmo')
+    expect(container.textContent).toContain('Dot Furthest')
+    expect(useAppStore.getState().referenceWorkspace.moveSnapDotNearScale).toBe(1.45)
+    expect(useAppStore.getState().referenceWorkspace.moveSnapDotFarScale).toBe(0.04)
+
+    const increaseNearButton = container.querySelector(
+      'button[aria-label="Increase Dot On Gizmo"]',
+    ) as HTMLButtonElement | null
+    const increaseFarButton = container.querySelector(
+      'button[aria-label="Increase Dot Furthest"]',
+    ) as HTMLButtonElement | null
+
+    expect(increaseNearButton).not.toBeNull()
+    expect(increaseFarButton).not.toBeNull()
+
+    await act(async () => {
+      increaseNearButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+      increaseFarButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useAppStore.getState().referenceWorkspace.moveSnapDotNearScale).toBe(1.5)
+    expect(useAppStore.getState().referenceWorkspace.moveSnapDotFarScale).toBe(0.06)
+  })
+
+  it('exposes move snap radius in the info panel and updates the shared setting', async () => {
+    const { ReferenceTransformToolbar } = await import('./ReferenceTransformToolbar')
+    const { useAppStore } = await import('../store/useAppStore')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ReferenceTransformToolbar />)
+    })
+
+    const infoButton = container.querySelector(
+      'button[aria-label="Toggle keyboard shortcuts help"]',
+    ) as HTMLButtonElement | null
+
+    await act(async () => {
+      infoButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(container.textContent).toContain('Dot Radius')
+    expect(container.textContent).toContain('Move Snap Dots')
+    expect(container.textContent).toContain('Preview Last Move Snap Dots')
+    expect(container.textContent).toContain('On')
+    expect(useAppStore.getState().referenceWorkspace.moveSnapDotVisibleRadiusMultiplier).toBe(40)
+
+    const increaseButton = container.querySelector(
+      'button[aria-label="Increase Dot Radius"]',
+    ) as HTMLButtonElement | null
+
+    expect(increaseButton).not.toBeNull()
+
+    await act(async () => {
+      increaseButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useAppStore.getState().referenceWorkspace.moveSnapDotVisibleRadiusMultiplier).toBe(41)
+
+    const toggleSelect = container.querySelector(
+      '.ParaSelectNative[aria-label="Move Snap Dots"]',
+    ) as HTMLSelectElement | null
+
+    expect(toggleSelect).not.toBeNull()
+    const toolbarContainer = container
+
+    await act(async () => {
+      const previewToggleSelect = toolbarContainer.querySelector(
+        '.ParaSelectNative[aria-label="Preview Last Move Snap Dots"]',
+      ) as HTMLSelectElement | null
+      if (previewToggleSelect !== null) {
+        previewToggleSelect.value = 'on'
+        previewToggleSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
+
+    expect(useAppStore.getState().referenceWorkspace.previewLastMoveSnapDotsEnabled).toBe(true)
+
+    await act(async () => {
+      if (toggleSelect !== null) {
+        toggleSelect.value = 'off'
+        toggleSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
+
+    expect(useAppStore.getState().referenceWorkspace.moveSnapDotsEnabled).toBe(false)
+    expect(container.textContent).not.toContain('Dot Delay')
+  })
+
+  it('exposes rotate snap preview toggles in the info panel and updates the shared setting', async () => {
+    const { ReferenceTransformToolbar } = await import('./ReferenceTransformToolbar')
+    const { useAppStore } = await import('../store/useAppStore')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ReferenceTransformToolbar />)
+    })
+
+    const infoButton = container.querySelector(
+      'button[aria-label="Toggle keyboard shortcuts help"]',
+    ) as HTMLButtonElement | null
+
+    await act(async () => {
+      infoButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(container.textContent).toContain('Rotate Snap Preview')
+    expect(useAppStore.getState().referenceWorkspace.rotateSnapPreviewEnabled).toBe(true)
+
+    const toggleSelect = container.querySelector(
+      '.ParaSelectNative[aria-label="Rotate Snap Preview"]',
+    ) as HTMLSelectElement | null
+
+    expect(toggleSelect).not.toBeNull()
+
+    await act(async () => {
+      if (toggleSelect !== null) {
+        toggleSelect.value = 'off'
+        toggleSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
+
+    expect(useAppStore.getState().referenceWorkspace.rotateSnapPreviewEnabled).toBe(false)
+    expect(container.textContent).not.toContain('Line Thickness')
+  })
+
+  it('exposes rotate snap preview line size and thickness controls in the info panel', async () => {
+    const { ReferenceTransformToolbar } = await import('./ReferenceTransformToolbar')
+    const { useAppStore } = await import('../store/useAppStore')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ReferenceTransformToolbar />)
+    })
+
+    const infoButton = container.querySelector(
+      'button[aria-label="Toggle keyboard shortcuts help"]',
+    ) as HTMLButtonElement | null
+
+    await act(async () => {
+      infoButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(container.textContent).toContain('Line Size')
+    expect(container.textContent).toContain('Line Thickness')
+    expect(useAppStore.getState().referenceWorkspace.rotateSnapPreviewLineSize).toBe(1)
+    expect(useAppStore.getState().referenceWorkspace.rotateSnapPreviewLineThickness).toBe(1)
+
+    const increaseLineSizeButton = container.querySelector(
+      'button[aria-label="Increase Line Size"]',
+    ) as HTMLButtonElement | null
+    const increaseLineThicknessButton = container.querySelector(
+      'button[aria-label="Increase Line Thickness"]',
+    ) as HTMLButtonElement | null
+
+    expect(increaseLineSizeButton).not.toBeNull()
+    expect(increaseLineThicknessButton).not.toBeNull()
+
+    await act(async () => {
+      increaseLineSizeButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+      increaseLineThicknessButton?.dispatchEvent(
+        new MouseEvent('click', { bubbles: true, cancelable: true }),
+      )
+    })
+
+    expect(useAppStore.getState().referenceWorkspace.rotateSnapPreviewLineSize).toBe(1.05)
+    expect(useAppStore.getState().referenceWorkspace.rotateSnapPreviewLineThickness).toBe(1.05)
+  })
+
+  it('exposes rotate snap preview radius and delay controls in the info panel', async () => {
+    const { ReferenceTransformToolbar } = await import('./ReferenceTransformToolbar')
+    const { useAppStore } = await import('../store/useAppStore')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ReferenceTransformToolbar />)
+    })
+
+    const infoButton = container.querySelector(
+      'button[aria-label="Toggle keyboard shortcuts help"]',
+    ) as HTMLButtonElement | null
+
+    await act(async () => {
+      infoButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(container.textContent).toContain('Preview Radius')
+    expect(container.textContent).toContain('Preview Delay')
+    expect(useAppStore.getState().referenceWorkspace.rotateSnapPreviewRadiusDeg).toBe(60)
+    expect(useAppStore.getState().referenceWorkspace.rotateSnapPreviewDelayMs).toBe(120)
+
+    const increaseRadiusButton = container.querySelector(
+      'button[aria-label="Increase Preview Radius"]',
+    ) as HTMLButtonElement | null
+    const increaseDelayButton = container.querySelector(
+      'button[aria-label="Increase Preview Delay"]',
+    ) as HTMLButtonElement | null
+
+    expect(increaseRadiusButton).not.toBeNull()
+    expect(increaseDelayButton).not.toBeNull()
+
+    await act(async () => {
+      increaseRadiusButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+      increaseDelayButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useAppStore.getState().referenceWorkspace.rotateSnapPreviewRadiusDeg).toBe(65)
+    expect(useAppStore.getState().referenceWorkspace.rotateSnapPreviewDelayMs).toBe(130)
+  })
+
   it('toggles camera lock for the active reference from the header lock button', async () => {
     const { ReferenceTransformToolbar } = await import('./ReferenceTransformToolbar')
 

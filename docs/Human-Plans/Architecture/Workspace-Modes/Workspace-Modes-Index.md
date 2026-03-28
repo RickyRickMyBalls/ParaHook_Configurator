@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+25. 2026-03-27 15:20: Added a short cleanup read after the completed `Workspace 0.1` audit, clarifying that the current shell behavior is valuable and largely salvageable but that workspace ownership is still spread across `AppShell`, `useAppStore`, `useSpaghettiStore`, and host-specific surfaces, so the family should preserve behavior while consolidating ownership during the next phases
 24. 2026-03-27 15:18: Re-shaped the workspace-family phase ladder after the completed `Workspace 0.1` code audit, marking the research phase done, moving the next open work toward shared workspace ownership and state extraction first, treating shipped `05.1B` as split-proof history rather than the next defining future phase, and pulling viewport-local chrome and toolbar-host ownership forward as its own explicit follow-on
 23. 2026-03-27 15:06: Added a native `Workspace 0.1` research phase to this family, creating a code-grounded pre-implementation audit step plus a new standalone future doc under `Workspace-Modes/Future/` so the workspace lane now has one explicit place to inventory the current `AppShell`, dock-host, store, viewport, and split-type seams before the later implementation phases are tightened
 22. 2026-03-27 14:50: Expanded the workspace-family surface inventory after a read-only scan of the live app and architecture docs, adding the missing real workspace candidates `Radio`, `Layer Manager`, `Export`, `Debug Inspector`, and the later `Reference Workspace / Comparison` direction to the supported-surface read and the simple `list of all workspaces`, while keeping `Camera Controls` out because that behavior is expected to stay inside viewport-local `View` / toolbar ownership rather than become a separate workspace surface
@@ -812,6 +813,28 @@ Likely current integration seams:
 - `src/app/store/useAppStore.ts`
 - `src/app/store/uiPrefsStore.ts`
 - `src/app/spaghetti/store/useSpaghettiStore.ts`
+
+### Cleanup Read
+
+The current shell should be treated as valuable proof, not as throwaway work.
+
+What should be preserved:
+- the real floating and split behavior already present in the app
+- the existing host-component pattern in `BrowserDockHost` and `SpaghettiWindowHost`
+- the shared activation and intent seams already established in `useAppStore` and shipped `[5.1F]`
+- the shipped `Console` browser-window `Pop-Out` as the first real proof that child-window hosting can work
+
+What likely needs cleanup:
+- shell placement truth currently spread across `AppShell`, `useAppStore`, `useSpaghettiStore`, and host-local state
+- editor viewport placement still living inside `useSpaghettiStore`
+- viewport chrome still mounted too globally for later multi-viewport ownership
+- special-case host rules that will get harder to scale as more toolbars and surfaces land
+
+Plain-English rule:
+- preserve behavior
+- preserve useful host proofs
+- clean up ownership
+- do not rebuild the shell from scratch if the current behavior can be migrated honestly
 
 ### Next Steps
 

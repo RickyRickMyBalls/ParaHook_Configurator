@@ -1,8 +1,9 @@
-# Camera Controls Phase 5.0H-2 - Fusion-Style Model Viewport Camera Baseline
+# Camera Controls Phase Camera-2 - Fusion-Style Model Viewport Camera Baseline
 
 ## Doc Header
 
 ### Doc History
+4. 2026-03-27 19:44: Renamed this live phase record from `5.0H-2` to `Camera-2` so the camera-controls family can start using the simpler `Camera-*` phase names while preserving the older numbering in historical log entries
 3. 2026-03-22 20:52: Marked this phase shipped after landing the Fusion-style model-viewport baseline in runtime, moving the phase record from `Future/` to `Shipped/`, and locking the first implementation scope to `MMB` pan, `Shift + MMB` orbit, `MMB` double-click zoom fit to `Viewer.frameAll()`, and the already-shipped sketch-draw camera block staying intact
 2. 2026-03-22 20:44: Tightened this phase into a more implementation-ready spec by grounding it in the current camera runtime: `CameraController` still uses the default `OrbitControls` mouse map, `Viewer` already owns `frameAll()` / `frameSelected()` / `frameReference()`, there is no current viewer double-click camera path yet, and `orbitEnabled` still needs to remain a broad camera toggle while the gesture remap lands
 1. 2026-03-22 20:42: Created this standalone future phase doc for `[5.0H-2]`, translating the next camera-controls cut into an implementation-ready plan around a Fusion-style model-viewport gesture baseline after the shipped `Sketch Draw` camera block, while keeping graph-canvas coexistence, camera console commands, and the later shared input-owner model out of scope
@@ -12,14 +13,14 @@
 This doc defines the second implementation cut under the camera-controls family.
 
 Use it to answer:
-- what `[5.0H-2]` should change in the model viewport
+- what `[Camera-2]` should change in the model viewport
 - which gestures become canonical in this phase
 - which files are the first safe seams
-- how to keep this cut narrow enough to land before `[5.0H-3]`
+- how to keep this cut narrow enough to land before `[Camera-3]`
 
 ### Why This Phase Exists
 
-The shipped `[5.0H-1]` cut proved that the viewer can selectively stop camera ownership from stealing `Sketch Draw` interactions.
+The shipped `[Camera-1]` cut proved that the viewer can selectively stop camera ownership from stealing `Sketch Draw` interactions.
 
 The next problem is that the model viewport still lacks one clear canonical camera baseline:
 - wheel zoom should follow the mouse more consistently
@@ -47,7 +48,7 @@ This phase does not cover:
 
 ## Doc Body
 
-## [x] - `[5.0H-2]` - `Fusion-Style Model Viewport Camera Baseline`
+## [x] - `[Camera-2]` - `Fusion-Style Model Viewport Camera Baseline`
 
 ### Header
 
@@ -61,9 +62,9 @@ Owns:
 - `MMB` double-click zoom-fit in the model viewport
 
 Keeps for later phases:
-- graph-canvas coexistence under `[5.0H-3]`
-- camera console commands under `[5.0H-4]`
-- shared gizmo/input-owner cleanup under `[5.0H-5]`
+- graph-canvas coexistence under `[Camera-3]`
+- camera console commands under `[Camera-4]`
+- shared gizmo/input-owner cleanup under `[Camera-5]`
 
 ### Target Result
 
@@ -83,7 +84,7 @@ Keeps for later phases:
 - `src/viewer/Viewer.ts` already owns higher-level framing operations like `frameAll()`, `frameSelected()`, and `frameReference()`, so it is the right home for the first `MMB` double-click zoom-fit target rule
 - there is no current viewer-level double-click camera handler yet, so this phase must add one explicitly instead of assuming it already exists
 - `src/shared/viewSettingsTypes.ts` and `src/app/components/ViewToolbar.tsx` currently still expose `orbitEnabled`, so this phase should preserve that general on/off camera toggle while changing the underlying model-viewport mouse map
-- the shipped `[5.0H-1]` block already removed the most urgent `Sketch Draw` conflict, so this phase can stay focused on the default 3D viewport gesture baseline itself
+- the shipped `[Camera-1]` block already removed the most urgent `Sketch Draw` conflict, so this phase can stay focused on the default 3D viewport gesture baseline itself
 
 ### Questions / Decisions
 
@@ -102,7 +103,7 @@ Keeps for later phases:
 ##### Suggestion
 - no
 - keep this phase model-viewport-only
-- leave graph-canvas coexistence and any `Ctrl` pass-through rules to `[5.0H-3]`
+- leave graph-canvas coexistence and any `Ctrl` pass-through rules to `[Camera-3]`
 
 #### [x] - `q3` What is the first `MMB` double-click zoom-fit target?
 
@@ -136,20 +137,20 @@ Implementation steps:
 2. add one narrow `CameraController` seam for the new modified-orbit gesture so temporary orbit matches `Shift + MMB` instead of the old left-button assumption
 3. update `Viewer` to start, update, and end temporary orbit only from the intended modified gesture path for the model viewport
 4. add an explicit viewer-level `MMB` double-click path that routes to `frameAll()` for the first zoom-fit target
-5. keep the shipped `Sketch Draw` camera block from `[5.0H-1]` intact
+5. keep the shipped `Sketch Draw` camera block from `[Camera-1]` intact
 6. leave graph-canvas routing and console commands unchanged
 
 Required behavior-preservation rules:
 - do not widen into graph-canvas input routing
-- do not change the `Sketch Draw` ownership block from `[5.0H-1]`
+- do not change the `Sketch Draw` ownership block from `[Camera-1]`
 - do not add camera console commands here
 - do not redesign the view-settings schema beyond what is required for the new baseline
 - treat the model viewport as the only surface that changes in this phase
 
 Expected result after this phase:
 - the model viewport uses one clear Fusion-style gesture baseline
-- the shipped sketch authoring behavior from `[5.0H-1]` remains intact
-- the graph canvas remains unchanged and can be handled separately in `[5.0H-3]`
+- the shipped sketch authoring behavior from `[Camera-1]` remains intact
+- the graph canvas remains unchanged and can be handled separately in `[Camera-3]`
 - later camera-console and shared-owner work can build on a stable viewport baseline instead of moving target gestures
 
 Verification:
@@ -168,6 +169,6 @@ Verification:
 
 Definition of done:
 - the model viewport has the new Fusion-style gesture baseline
-- `Sketch Draw` still blocks camera `LMB` ownership as shipped in `[5.0H-1]`
+- `Sketch Draw` still blocks camera `LMB` ownership as shipped in `[Camera-1]`
 - graph-canvas behavior is unchanged
-- the cut lands without silently absorbing `[5.0H-3]`, `[5.0H-4]`, or `[5.0H-5]`
+- the cut lands without silently absorbing `[Camera-3]`, `[Camera-4]`, or `[Camera-5]`

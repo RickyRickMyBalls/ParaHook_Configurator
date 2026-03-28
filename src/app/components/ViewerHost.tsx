@@ -68,25 +68,6 @@ const scaleSnapValuesFromDriver = (
   }
 }
 
-const isExplicitSelectionTarget = (
-  target: WorkspaceSelectedTarget | null,
-): target is Extract<
-  WorkspaceSelectedTarget,
-  | { kind: 'references-root' }
-  | { kind: 'reference-category' }
-  | { kind: 'reference-item' }
-  | { kind: 'assembly' }
-  | { kind: 'component' }
-  | { kind: 'object' }
-> =>
-  target !== null &&
-  (target.kind === 'references-root' ||
-    target.kind === 'reference-category' ||
-    target.kind === 'reference-item' ||
-    target.kind === 'assembly' ||
-    target.kind === 'component' ||
-    target.kind === 'object')
-
 const getWorkspaceTargetKey = (target: WorkspaceSelectedTarget): string => {
   switch (target.kind) {
     case 'references-root':
@@ -629,6 +610,7 @@ export function ViewerHost() {
             referenceId: referenceWorkspace.activeReferenceTransformSession.referenceId,
             mode: referenceWorkspace.activeReferenceTransformSession.mode,
             space: referenceWorkspace.activeReferenceTransformSession.space,
+            entryOrigin: referenceWorkspace.activeReferenceTransformSession.entryOrigin,
           },
     [referenceWorkspace.activeReferenceTransformSession],
   )
@@ -864,106 +846,96 @@ export function ViewerHost() {
     viewer.setOnGeometrySketchCancelDraft(() => {
       useSpaghettiStore.getState().cancelGeometrySketchDrawDraft()
     })
-    viewer.setOnWorkspaceSelectionPick(({ pick, ctrlKey }) => {
+    viewer.setOnWorkspaceSelectionPick(({ picks, ctrlKey }) => {
       const appState = useAppStore.getState()
       appState.setActiveSurface('viewer')
-      const commitViewportExplicitSelection = (
-        explicitSelectionTarget: WorkspaceSelectedTarget,
-        options: {
-          selectedPartKey: string | null
-        },
+      const selectionTargetEntries = (() => {
+        const entries = new Map<
+          string,
+          {
+            target: WorkspaceSelectedTarget
+            selectedPartKey: string | null
+          }
+        >()
+        for (const pick of picks) {
+          const entry =
+            pick.kind === 'reference-item'
+              ? {
+                  target: {
+                    kind: 'reference-item',
+                    referenceId: pick.referenceId,
+                  } satisfies WorkspaceSelectedTarget,
+                  selectedPartKey: null,
+                }
+              : (() => {
+                  const objectRow = contentObjectRowByViewerPartKey.get(pick.partKey)
+                  if (objectRow !== undefined) {
+                    return {
+                      target: {
+                        kind: 'object',
+                        objectId: objectRow.rowId,
+                      } satisfies WorkspaceSelectedTarget,
+                      selectedPartKey: pick.partKey,
+                    }
+                  }
+                  return {
+                    target: {
+                      kind: 'part',
+                      partKey: pick.partKey,
+                    } satisfies WorkspaceSelectedTarget,
+                    selectedPartKey: pick.partKey,
+                  }
+                })()
+          const key = getWorkspaceTargetKey(entry.target)
+          if (entries.has(key)) {
+            entries.delete(key)
+          }
+          entries.set(key, entry)
+        }
+        return [...entries.values()]
+      })()
+      const resolveSelectedPartKeyForTarget = (
+        target: WorkspaceSelectedTarget | null,
+        fallbackSelectedPartKey: string | null = null,
+      ): string | null => {
+        if (target === null) {
+          return null
+        }
+        if (target.kind === 'part') {
+          return target.partKey
+        }
+        if (target.kind === 'object') {
+          if (fallbackSelectedPartKey !== null) {
+            return fallbackSelectedPartKey
+          }
+          return appState.projectContent.objectsById[target.objectId]?.slotId ?? null
+        }
+        return null
+      }
+      const commitExplicitSelection = (
+        explicitSelectedTargets: WorkspaceSelectedTarget[],
+        selectedTarget: WorkspaceSelectedTarget | null,
+        selectionAnchorTarget: WorkspaceSelectedTarget | null,
+        selectedPartKey: string | null,
       ) => {
-        const commitExplicitSelection = (
-          explicitSelectedTargets: WorkspaceSelectedTarget[],
-          selectedTarget: WorkspaceSelectedTarget | null,
-          selectionAnchorTarget: WorkspaceSelectedTarget | null,
-        ) => {
-          commitWorkspaceExplicitSelection(
-            {
-              setWorkspaceExplicitSelection: appState.setWorkspaceExplicitSelection,
-              selectPart: appState.selectPart,
-              requestConsoleContextSync: appState.requestConsoleContextSync,
-            },
-            {
-              selectedTarget,
-              explicitSelectedTargets,
-              selectionAnchorTarget,
-            },
-            {
-              selectedPartKey: options.selectedPartKey,
-            },
-          )
-        }
-
-        if (ctrlKey) {
-          const currentExplicitTargets =
-            appState.workspaceSelection.explicitSelectedTargets.length > 0
-              ? appState.workspaceSelection.explicitSelectedTargets
-              : isExplicitSelectionTarget(appState.workspaceSelection.selectedTarget)
-                ? [appState.workspaceSelection.selectedTarget]
-                : []
-          const existingIndex = currentExplicitTargets.findIndex(
-            (target) => getWorkspaceTargetKey(target) === getWorkspaceTargetKey(explicitSelectionTarget),
-          )
-          if (existingIndex === -1) {
-            commitExplicitSelection(
-              [...currentExplicitTargets, explicitSelectionTarget],
-              explicitSelectionTarget,
-              explicitSelectionTarget,
-            )
-            return
-          }
-
-          const nextExplicitTargets = currentExplicitTargets.filter(
-            (target) => getWorkspaceTargetKey(target) !== getWorkspaceTargetKey(explicitSelectionTarget),
-          )
-          if (nextExplicitTargets.length === 0) {
-            commitWorkspaceExplicitSelection(
-              {
-                setWorkspaceExplicitSelection: appState.setWorkspaceExplicitSelection,
-                selectPart: appState.selectPart,
-                requestConsoleContextSync: appState.requestConsoleContextSync,
-              },
-              {
-                selectedTarget: null,
-                explicitSelectedTargets: [],
-                selectionAnchorTarget: explicitSelectionTarget,
-              },
-              {
-                selectedPartKey: null,
-              },
-            )
-            return
-          }
-
-          const nextPrimaryTarget =
-            appState.workspaceSelection.selectedTarget !== null &&
-            getWorkspaceTargetKey(appState.workspaceSelection.selectedTarget) !==
-              getWorkspaceTargetKey(explicitSelectionTarget) &&
-            nextExplicitTargets.some(
-              (target) =>
-                getWorkspaceTargetKey(target) ===
-                getWorkspaceTargetKey(appState.workspaceSelection.selectedTarget!),
-            )
-              ? appState.workspaceSelection.selectedTarget
-              : nextExplicitTargets.at(-1) ?? null
-
-          commitExplicitSelection(
-            nextExplicitTargets,
-            nextPrimaryTarget,
-            explicitSelectionTarget,
-          )
-          return
-        }
-
-        commitExplicitSelection(
-          [explicitSelectionTarget],
-          explicitSelectionTarget,
-          explicitSelectionTarget,
+        commitWorkspaceExplicitSelection(
+          {
+            setWorkspaceExplicitSelection: appState.setWorkspaceExplicitSelection,
+            selectPart: appState.selectPart,
+            requestConsoleContextSync: appState.requestConsoleContextSync,
+          },
+          {
+            selectedTarget,
+            explicitSelectedTargets,
+            selectionAnchorTarget,
+          },
+          {
+            selectedPartKey,
+          },
         )
       }
 
-      if (pick === null) {
+      if (selectionTargetEntries.length === 0) {
         clearWorkspaceTargetSelection(
           {
             setWorkspaceSelectedTarget: appState.setWorkspaceSelectedTarget,
@@ -976,46 +948,102 @@ export function ViewerHost() {
         )
         return
       }
-      if (pick.kind === 'reference-item') {
-        commitViewportExplicitSelection(
-          {
-            kind: 'reference-item',
-            referenceId: pick.referenceId,
-          },
-          {
-            selectedPartKey: null,
-          },
-        )
-        return
-      }
-      const objectRow = contentObjectRowByViewerPartKey.get(pick.partKey)
-      if (objectRow !== undefined) {
-        commitViewportExplicitSelection(
-          {
-            kind: 'object',
-            objectId: objectRow.rowId,
-          },
-          {
-            selectedPartKey: pick.partKey,
-          },
-        )
-      } else {
+
+      if (
+        selectionTargetEntries.length === 1 &&
+        selectionTargetEntries[0]!.target.kind === 'part'
+      ) {
+        const singlePartSelection = selectionTargetEntries[0]!
         commitWorkspaceTargetSelection(
           {
             setWorkspaceSelectedTarget: appState.setWorkspaceSelectedTarget,
             selectPart: appState.selectPart,
             requestConsoleContextSync: appState.requestConsoleContextSync,
           },
+          singlePartSelection.target,
           {
-            kind: 'part',
-            partKey: pick.partKey,
-          },
-          {
-            selectedPartKey: pick.partKey,
+            selectedPartKey: singlePartSelection.selectedPartKey,
           },
         )
         return
       }
+
+      if (!ctrlKey) {
+        const primarySelection = selectionTargetEntries.at(-1) ?? null
+        commitExplicitSelection(
+          selectionTargetEntries.map((entry) => entry.target),
+          primarySelection?.target ?? null,
+          primarySelection?.target ?? null,
+          resolveSelectedPartKeyForTarget(
+            primarySelection?.target ?? null,
+            primarySelection?.selectedPartKey ?? null,
+          ),
+        )
+        return
+      }
+
+      const currentExplicitTargets =
+        appState.workspaceSelection.explicitSelectedTargets.length > 0
+          ? [...appState.workspaceSelection.explicitSelectedTargets]
+          : appState.workspaceSelection.selectedTarget !== null
+            ? [appState.workspaceSelection.selectedTarget]
+            : []
+      const currentSelectedTarget = appState.workspaceSelection.selectedTarget
+      const nextExplicitTargets = [...currentExplicitTargets]
+      let lastToggledTarget: WorkspaceSelectedTarget | null = null
+      let lastAddedTarget: WorkspaceSelectedTarget | null = null
+
+      for (const entry of selectionTargetEntries) {
+        lastToggledTarget = entry.target
+        const existingIndex = nextExplicitTargets.findIndex(
+          (target) => getWorkspaceTargetKey(target) === getWorkspaceTargetKey(entry.target),
+        )
+        if (existingIndex === -1) {
+          nextExplicitTargets.push(entry.target)
+          lastAddedTarget = entry.target
+          continue
+        }
+        nextExplicitTargets.splice(existingIndex, 1)
+      }
+
+      if (nextExplicitTargets.length === 0) {
+        commitExplicitSelection([], null, lastToggledTarget, null)
+        return
+      }
+
+      const nextPrimaryTarget =
+        currentSelectedTarget !== null &&
+        nextExplicitTargets.some(
+          (target) => getWorkspaceTargetKey(target) === getWorkspaceTargetKey(currentSelectedTarget),
+        )
+          ? currentSelectedTarget
+          : lastAddedTarget !== null &&
+              nextExplicitTargets.some(
+                (target) => getWorkspaceTargetKey(target) === getWorkspaceTargetKey(lastAddedTarget),
+              )
+            ? lastAddedTarget
+            : nextExplicitTargets.at(-1) ?? null
+      const primarySelectionEntry =
+        selectionTargetEntries.find(
+          (entry) =>
+            nextPrimaryTarget !== null &&
+            getWorkspaceTargetKey(entry.target) === getWorkspaceTargetKey(nextPrimaryTarget),
+        ) ?? null
+
+      commitExplicitSelection(
+        nextExplicitTargets,
+        nextPrimaryTarget,
+        lastToggledTarget,
+        resolveSelectedPartKeyForTarget(
+          nextPrimaryTarget,
+          primarySelectionEntry?.selectedPartKey ??
+            (currentSelectedTarget !== null &&
+            nextPrimaryTarget !== null &&
+            getWorkspaceTargetKey(currentSelectedTarget) === getWorkspaceTargetKey(nextPrimaryTarget)
+              ? appState.selectedPartKey
+              : null),
+        ),
+      )
     })
 
     return () => {
@@ -1236,6 +1264,78 @@ export function ViewerHost() {
   useEffect(() => {
     viewerRef.current?.setReferenceTransformSession(activeReferenceTransformSession)
   }, [activeReferenceTransformSession])
+
+  useEffect(() => {
+    viewerRef.current?.setReferenceTransformMoveSnapDotsEnabled(
+      referenceWorkspace.moveSnapDotsEnabled,
+    )
+  }, [referenceWorkspace.moveSnapDotsEnabled])
+
+  useEffect(() => {
+    viewerRef.current?.setReferenceTransformPreviewLastMoveSnapDotsEnabled(
+      referenceWorkspace.previewLastMoveSnapDotsEnabled,
+    )
+  }, [referenceWorkspace.previewLastMoveSnapDotsEnabled])
+
+  useEffect(() => {
+    viewerRef.current?.setReferenceTransformMoveSnapDotScale(
+      referenceWorkspace.moveSnapDotScale,
+    )
+  }, [referenceWorkspace.moveSnapDotScale])
+
+  useEffect(() => {
+    viewerRef.current?.setReferenceTransformMoveSnapDotDelayMs(
+      referenceWorkspace.moveSnapDotDelayMs,
+    )
+  }, [referenceWorkspace.moveSnapDotDelayMs])
+
+  useEffect(() => {
+    viewerRef.current?.setReferenceTransformMoveSnapDotNearScale(
+      referenceWorkspace.moveSnapDotNearScale,
+    )
+  }, [referenceWorkspace.moveSnapDotNearScale])
+
+  useEffect(() => {
+    viewerRef.current?.setReferenceTransformMoveSnapDotFarScale(
+      referenceWorkspace.moveSnapDotFarScale,
+    )
+  }, [referenceWorkspace.moveSnapDotFarScale])
+
+  useEffect(() => {
+    viewerRef.current?.setReferenceTransformMoveSnapDotVisibleRadiusMultiplier(
+      referenceWorkspace.moveSnapDotVisibleRadiusMultiplier,
+    )
+  }, [referenceWorkspace.moveSnapDotVisibleRadiusMultiplier])
+
+  useEffect(() => {
+    viewerRef.current?.setReferenceTransformRotateSnapPreviewEnabled(
+      referenceWorkspace.rotateSnapPreviewEnabled,
+    )
+  }, [referenceWorkspace.rotateSnapPreviewEnabled])
+
+  useEffect(() => {
+    viewerRef.current?.setReferenceTransformRotateSnapPreviewLineSize(
+      referenceWorkspace.rotateSnapPreviewLineSize,
+    )
+  }, [referenceWorkspace.rotateSnapPreviewLineSize])
+
+  useEffect(() => {
+    viewerRef.current?.setReferenceTransformRotateSnapPreviewLineThickness(
+      referenceWorkspace.rotateSnapPreviewLineThickness,
+    )
+  }, [referenceWorkspace.rotateSnapPreviewLineThickness])
+
+  useEffect(() => {
+    viewerRef.current?.setReferenceTransformRotateSnapPreviewRadiusDeg(
+      referenceWorkspace.rotateSnapPreviewRadiusDeg,
+    )
+  }, [referenceWorkspace.rotateSnapPreviewRadiusDeg])
+
+  useEffect(() => {
+    viewerRef.current?.setReferenceTransformRotateSnapPreviewDelayMs(
+      referenceWorkspace.rotateSnapPreviewDelayMs,
+    )
+  }, [referenceWorkspace.rotateSnapPreviewDelayMs])
 
   useEffect(() => {
     viewerRef.current?.setReferenceTransformHistoryOverlay(activeReferenceTransformHistoryOverlay)

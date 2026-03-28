@@ -65,6 +65,188 @@ Do not use it for:
 
 ## Doc Body
 
+### [687] - 2026-03-27 20:40 - `CAM - Phase Camera-5.1 - Viewer Object Window Selection`
+<!-- ENTRY 687 -->
+HUMAN SUMMARY: `This added CAD-style marquee selection to the 3D viewer, widened the old single-pick callback into batch picks, and routed object/reference window captures back through the existing shared explicit-selection path instead of inventing a viewer-local selection store.` 
+#### Scope / Constraints Honored
+- Matched the existing sketch direction semantics: drag right = `Window` full enclosure, drag left = `Crossing` overlap.
+- Kept the first pass scoped to visible content objects and loaded references.
+- Reused the shared workspace-selection commands and did not add a new viewer-owned selection state.
+
+#### Summary of Implementation
+- Added `src/viewer/workspaceSelectionWindow.ts` plus focused helper tests for threshold, direction mode, containment, overlap, and visibility filtering.
+- Updated `src/viewer/Viewer.ts` to arm a workspace-selection drag session, render a direction-aware marquee overlay, batch-pick visible part/reference candidates from projected screen-space bounds, and keep single-click selection on the same callback seam.
+- Updated `src/app/components/ViewerHost.tsx` so viewer picks now arrive as batches, map back into object/reference/part workspace targets, reuse the shared `Ctrl` toggle behavior, and keep `selectedPartKey` aligned to the resulting primary target.
+- Refreshed `src/app/components/ViewerHost.test.tsx` for the batch selection contract and added marquee coverage for object-only and mixed object/reference batches.
+- Tightened `src/app/components/ReferenceTransformToolbar.test.tsx` just enough to keep the broader strict-null build green during verification.
+
+#### Files Changed
+- `src/viewer/Viewer.ts`
+- `src/viewer/workspaceSelectionWindow.ts`
+- `src/viewer/workspaceSelectionWindow.test.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `src/app/components/ReferenceTransformToolbar.test.tsx`
+
+#### Behavior Changes (if any)
+- Dragging right in empty viewer space now performs `Window` selection and only captures fully enclosed visible objects.
+- Dragging left now performs `Crossing` selection and captures visible objects or references that overlap the marquee.
+- `ViewerHost` now receives batch workspace picks from the viewer and applies them through the shared explicit selection semantics.
+
+#### Verification Steps
+- Ran `cmd /c npm.cmd run test -- src/app/components/ViewerHost.test.tsx src/viewer/workspaceSelectionWindow.test.ts`.
+- Ran `cmd /c npm.cmd run build`.
+
+### [686] - 2026-03-27 17:27 - `TRN - Transform-13.2 - Move Snap Dots I-Panel Toggle`
+<!-- ENTRY 686 -->
+HUMAN SUMMARY: `This folded the transform-reference move snap dot tuning controls under their own \`Move Snap Dots\` header control in the \`i\` panel and made that new on/off select a real viewer toggle, so the panel can collapse the extra sliders and actually stop the move snap dots from rendering when disabled.` 
+#### Scope / Constraints Honored
+- Kept this pass inside the viewer-only move snap presentation controls.
+- Preserved move snap math, transform behavior, and the existing dot tuning sliders.
+- Left rotate and scale visuals untouched.
+
+#### Summary of Implementation
+- Added a shared `moveSnapDotsEnabled` viewer preference to the store and wired it through `ViewerHost`, `Viewer`, and `ReferenceTransformMoveSnapHelper`.
+- Replaced the top move-snap slider in the transform reference `i` panel with a `ParaSelect` header labeled `Move Snap Dots`, using `On` and `Off` states.
+- Folded the dot tuning sliders so they only render when the move snap dots setting is on.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/store/useAppStore.test.ts`
+- `src/app/viewerBridge.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `src/app/components/ReferenceTransformToolbar.tsx`
+- `src/app/components/ReferenceTransformToolbar.test.tsx`
+- `src/viewer/Viewer.ts`
+- `src/viewer/ReferenceTransformMoveSnapHelper.ts`
+
+#### Behavior Changes
+- The transform reference `i` panel now shows a `Move Snap Dots` on/off select at the top of the move snap dot controls.
+- Turning move snap dots off hides the dot-tuning sliders and stops the move snap dots from rendering.
+- Turning move snap dots back on restores the existing tuning sliders and viewer behavior.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/store/useAppStore.test.ts src/app/components/ReferenceTransformToolbar.test.tsx src/app/components/ViewerHost.test.tsx`
+- `cmd /c npx tsc --noEmit`
+
+### [685] - 2026-03-27 17:18 - `TRN - Transform-13.2 - Move Snap Radius Distance Semantics`
+<!-- ENTRY 685 -->
+HUMAN SUMMARY: `This changed the transform-reference \`Move Snap Radius\` control from ring-count semantics into world-distance semantics, so changing move snap from values like \`10\` to \`100\` keeps the overlay tuned around roughly the same spatial neighborhood instead of showing a wildly different amount of space.` 
+#### Scope / Constraints Honored
+- Kept this pass inside the viewer-only move snap overlay preferences.
+- Preserved real move snap math, transform behavior, and shared snap values.
+- Left rotate and scale visuals untouched.
+
+#### Summary of Implementation
+- Reworked `ReferenceTransformMoveSnapHelper` so the radius control now converts a world-distance budget into per-axis visible counts instead of multiplying fixed ring counts.
+- Kept the existing store and viewer seam but aligned the defaults and clamps around distance values: default `40`, min `1`, max `200`.
+- Updated the focused helper, store, toolbar, and viewer-host tests so they lock the new distance-based behavior end to end.
+
+#### Files Changed
+- `src/viewer/ReferenceTransformMoveSnapHelper.ts`
+- `src/viewer/ReferenceTransformMoveSnapHelper.test.ts`
+- `src/app/store/useAppStore.test.ts`
+- `src/app/components/ReferenceTransformToolbar.test.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+
+#### Behavior Changes
+- `Move Snap Radius` now represents world distance instead of dot/ring count.
+- Increasing move snap spacing no longer makes the overlay show a much larger or much smaller spatial neighborhood for the same radius setting.
+- Axis, plane, and center move all derive their visible dot counts from the same distance control, with practical per-mode caps to keep the overlay bounded.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/viewer/ReferenceTransformMoveSnapHelper.test.ts src/app/store/useAppStore.test.ts src/app/components/ReferenceTransformToolbar.test.tsx src/app/components/ViewerHost.test.tsx`
+- `cmd /c npm run build`
+
+### [684] - 2026-03-27 16:59 - `TRN - Transform-13.2 - Highlight Transfer On Arrival`
+<!-- ENTRY 684 -->
+HUMAN SUMMARY: `This polished the rebuilt move snap lattice so the highlighted current dot now reads as only modestly larger than the normal field dots and only transfers that emphasis when the gizmo actually lands on the next snapped point, which makes move drag feel more like stepping from dot to dot instead of pre-highlighting the destination too early.` 
+#### Scope / Constraints Honored
+- Kept this pass inside the viewer-side move snap overlay only.
+- Preserved the shipped `13.2` stable world-keyed lattice system, visible-radius logic, and move snap math.
+- Left rotate and scale snap visuals untouched.
+
+#### Summary of Implementation
+- Changed `ReferenceTransformMoveSnapHelper` so the highlighted current dot now uses a fixed `1.2x` multiplier over its normal local baseline instead of jumping to the full near-scale target.
+- Removed the earlier snap-step reseed behavior that was shrinking and pre-promoting the newly landed target too aggressively, so the old highlighted dot now shrinks back toward baseline while the new landed dot grows from its existing normal state after arrival.
+- Updated the focused helper tests to lock the new modest-highlight rule and the arrival-transfer timing.
+
+#### Files Changed
+- `src/viewer/ReferenceTransformMoveSnapHelper.ts`
+- `src/viewer/ReferenceTransformMoveSnapHelper.test.ts`
+
+#### Behavior Changes
+- The highlighted move snap dot is now only modestly larger than the surrounding field dots.
+- Highlight transfer now happens on arrival at the next snapped point instead of pre-growing the destination too early.
+- Move drag should now read more clearly as the gizmo moving from dot to dot across the stable snap lattice.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/viewer/ReferenceTransformMoveSnapHelper.test.ts`
+- `cmd /c npm run build`
+
+### [683] - 2026-03-27 16:45 - `TRN - Transform-13.2 - Persistent Move Snap Visual System Rebuild`
+<!-- ENTRY 683 -->
+HUMAN SUMMARY: `This rebuilt the move snap overlay around stable world-keyed dot identity instead of the older target-relative patch model, so the move snap dots now stay anchored to absolute snap points in space while the viewer exposes a new \`Move Snap Radius\` control for how much of that buffered field is shown.` 
+#### Scope / Constraints Honored
+- Kept this pass move-only and left rotate `13.1` untouched.
+- Preserved the real move snap math, transform behavior, and shared snap state.
+- Scoped the new radius control to viewer presentation only so it does not change snap spacing or snap values.
+
+#### Summary of Implementation
+- Rewrote `ReferenceTransformMoveSnapHelper` around stable lattice keys for axis, plane, and center move modes, separating field identity from visible-window weighting so dots no longer behave like a small block attached to the gizmo.
+- Added a new shared `moveSnapDotVisibleRadiusMultiplier` preference with a matching transform-reference `i`-panel slider labeled `Move Snap Radius`, and wired it through the store, toolbar, `ViewerHost`, `Viewer`, and helper seams.
+- Replaced the old child-index-based helper tests with keyed-lattice tests that cover absolute dot identity, buffered radius growth, center buffering, and live drag reseeding behavior.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/store/useAppStore.test.ts`
+- `src/app/viewerBridge.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `src/app/components/ReferenceTransformToolbar.tsx`
+- `src/app/components/ReferenceTransformToolbar.test.tsx`
+- `src/viewer/Viewer.ts`
+- `src/viewer/ReferenceTransformMoveSnapHelper.ts`
+- `src/viewer/ReferenceTransformMoveSnapHelper.test.ts`
+
+#### Behavior Changes
+- Move snap dots now stay keyed to absolute snap positions instead of feeling like a recentered moving patch.
+- Axis, plane, and center move all use one buffered stable-lattice model with emphasis changing around the current snapped target.
+- The transform reference `i` panel now includes `Move Snap Radius` for widening or tightening the visible move snap dot neighborhood.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/viewer/ReferenceTransformMoveSnapHelper.test.ts src/app/store/useAppStore.test.ts src/app/components/ReferenceTransformToolbar.test.tsx src/app/components/ViewerHost.test.tsx`
+- `cmd /c npx tsc --noEmit`
+
+### [682] - 2026-03-27 15:30 - `TRN - Transform-13 - Smoother Move Snap Ghosting`
+<!-- ENTRY 682 -->
+HUMAN SUMMARY: `This polished the shipped move snap availability visual so the nearby snap dots now feel ghosted instead of popping, using animated per-dot opacity and scale around the current snapped drag position while keeping the actual snapped move math and live draft behavior unchanged.` 
+#### Scope / Constraints Honored
+- Kept this pass to viewer-side presentation only on top of the shipped `Transform 13` move snap field.
+- Preserved the real snapped transform state and move snap math exactly.
+- Left rotate and scale snap visuals out of scope.
+
+#### Summary of Implementation
+- Reworked `ReferenceTransformMoveSnapHelper` away from one uniform `PointsMaterial` cloud into a pooled animated sprite field with per-dot target opacity, scale, and position.
+- Added continuous distance-based weighting so nearby dots stay brighter and slightly larger while outer dots fade softer, with the current snap destination receiving stronger emphasis.
+- Kept the existing axis, plane, and center neighborhood sizes intact while driving the ghosting from the current snapped drag position and fading the field out smoothly when drag ends or clears.
+- Updated `Viewer` to tick the move snap helper each frame so ghosting can interpolate over time instead of hard-swapping on each drag update.
+
+#### Files Changed
+- `src/viewer/ReferenceTransformMoveSnapHelper.ts`
+- `src/viewer/ReferenceTransformMoveSnapHelper.test.ts`
+- `src/viewer/Viewer.ts`
+
+#### Behavior Changes
+- Move snap dots now fade and scale smoothly during live move drag instead of appearing and disappearing abruptly.
+- The current snapped destination is brighter and larger than the surrounding nearby snap dots.
+- Clearing move drag now fades the snap field out instead of removing it instantly.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/viewer/ReferenceTransformMoveSnapHelper.test.ts src/app/components/ViewerHost.test.tsx`
+- `cmd /c npx tsc --noEmit`
+
 ### [681] - 2026-03-27 15:14 - `TRN - Transform-13 - Move Snap Availability Visuals`
 <!-- ENTRY 681 -->
 HUMAN SUMMARY: `This added the first live viewport snap-availability visual for reference transform move drag, so while the user is actively dragging a move gizmo with move snap enabled the viewer now renders a bounded field of tiny white snap dots that matches the current handle scope instead of leaving snap as invisible runtime-only behavior.` 

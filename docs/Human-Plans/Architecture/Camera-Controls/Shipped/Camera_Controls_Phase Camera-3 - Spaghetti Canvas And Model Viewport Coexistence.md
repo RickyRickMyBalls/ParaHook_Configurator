@@ -1,8 +1,9 @@
-# Camera Controls Phase 5.0H-3 - Spaghetti Canvas And Model Viewport Coexistence
+# Camera Controls Phase Camera-3 - Spaghetti Canvas And Model Viewport Coexistence
 
 ## Doc Header
 
 ### Doc History
+6. 2026-03-27 19:44: Renamed this live phase record from `5.0H-3` to `Camera-3` so the camera-controls family can move onto the simpler `Camera-*` phase naming while preserving earlier `5.0H-*` history entries as-is
 5. 2026-03-22 21:26: Corrected the coexistence rule so the model viewport baseline is now explicitly `wheel zoom`, `MMB` pan, `Ctrl + MMB` orbit, and `MMB` double-click zoom fit, with the canvas simply adding `Shift` to forward those same model gestures while hovered
 4. 2026-03-22 21:24: Replaced the mixed canvas/model pass-through proposal with a cleaner `+Shift` rule, so while hovering the canvas the model viewport now reuses its normal camera gestures plus `Shift`: `Shift + wheel` for model zoom, `Shift + MMB` for model pan, and `Shift + Ctrl + MMB` for model orbit
 3. 2026-03-22 21:19: Corrected the planned canvas-to-model pass-through set so model orbit is now the simpler normal `Ctrl + MMB` gesture instead of the earlier split `Ctrl + MMB` pan plus `Ctrl + Shift + MMB` orbit proposal
@@ -21,7 +22,7 @@ Use it to answer:
 
 ### Why This Phase Exists
 
-The shipped `[5.0H-1]` and `[5.0H-2]` cuts proved two things:
+The shipped `[Camera-1]` and `[Camera-2]` cuts proved two things:
 - authoring surfaces need reliable `LMB` ownership
 - the model viewport now has a stable Fusion-style camera baseline
 
@@ -41,14 +42,14 @@ This phase covers:
 - the first pass-through zoom, pan, and orbit modifier gestures
 
 This phase does not cover:
-- changing the model viewport baseline from `[5.0H-2]`
+- changing the model viewport baseline from `[Camera-2]`
 - camera console commands
 - gizmo/shared input-owner arbitration
 - final customizable keybinding UI
 
 ## Doc Body
 
-## [ ] - `[5.0H-3]` - `Spaghetti Canvas And Model Viewport Coexistence`
+## [ ] - `[Camera-3]` - `Spaghetti Canvas And Model Viewport Coexistence`
 
 ### Header
 
@@ -62,8 +63,8 @@ Owns:
 - explicit model-viewport pass-through gestures while hovering the canvas
 
 Keeps for later phases:
-- camera console commands under `[5.0H-4]`
-- shared gizmo/input-owner cleanup under `[5.0H-5]`
+- camera console commands under `[Camera-4]`
+- shared gizmo/input-owner cleanup under `[Camera-5]`
 
 ### Target Result
 
@@ -81,8 +82,8 @@ Keeps for later phases:
   - empty-background `LMB` drag pans the canvas
 - `src/app/viewerBridge.ts` currently exposes only the temporary viewer-orbit bridge helpers, and `SpaghettiCanvas.tsx` currently uses that bridge only for expanded-view `Ctrl + MMB` orbit
 - there is no existing canvas-to-viewer zoom or pan bridge yet, so this phase must likely add those seams explicitly instead of assuming they already exist
-- `src/viewer/Viewer.ts` and `src/viewer/scene/CameraController.ts` already own the shipped `[5.0H-2]` model viewport baseline, so any new canvas pass-through should forward into those existing viewer-side behaviors rather than creating a second camera implementation
-- the shipped `[5.0H-2]` work already stabilized the model viewport baseline as:
+- `src/viewer/Viewer.ts` and `src/viewer/scene/CameraController.ts` already own the shipped `[Camera-2]` model viewport baseline, so any new canvas pass-through should forward into those existing viewer-side behaviors rather than creating a second camera implementation
+- the shipped `[Camera-2]` work already stabilized the model viewport baseline as:
   - wheel zoom
   - `MMB` pan
   - `Ctrl + MMB` orbit
@@ -124,7 +125,7 @@ Keeps for later phases:
 - keep the first cut subtle
 - do not add heavy new UI chrome yet
 - rely on explicit modifiers and preserved default ownership first
-- if debugging still feels ambiguous later, add a lightweight status/debug hint in `[5.0H-5]`
+- if debugging still feels ambiguous later, add a lightweight status/debug hint in `[Camera-5]`
 
 ### Implementation Spec
 
@@ -174,11 +175,11 @@ Verification:
   - `Shift + wheel` over canvas = model viewport zoom
   - `Shift + MMB` drag over canvas = model viewport pan
   - `Shift + Ctrl + MMB` drag over canvas = model viewport orbit
-  - model viewport baseline from `[5.0H-2]` still works when hovering the viewport itself
+  - model viewport baseline from `[Camera-2]` still works when hovering the viewport itself
 - run a production build if the repo is otherwise buildable, and record unrelated pre-existing failures separately instead of widening this phase
 
 Definition of done:
 - the canvas keeps its normal default ownership
 - model-viewport pass-through from the canvas is explicit and working
 - the user no longer has to guess which surface owns the pointer
-- the cut lands without silently absorbing `[5.0H-4]` or `[5.0H-5]`
+- the cut lands without silently absorbing `[Camera-4]` or `[Camera-5]`
