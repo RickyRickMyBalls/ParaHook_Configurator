@@ -1254,6 +1254,78 @@ describe('selectBrowserTreeRows', () => {
     )
   })
 
+  it('flattens imported user references directly under References when no grouping parent survives', () => {
+    const rows = selectBrowserTreeRows({
+      referenceWorkspaceTree: {
+        rowId: 'reference-root',
+        label: 'References',
+        isExpanded: true,
+        categories: [
+          {
+            rowId: 'reference-category-row:user-references',
+            categoryId: 'user-references',
+            label: 'User References',
+            isExpanded: true,
+            itemCount: 1,
+            visibleItemCount: 1,
+            hasLoadingItem: false,
+            hasErrorItem: false,
+            emptyLabel: 'No imported references yet.',
+            items: [
+              {
+                rowId: 'reference-item-row:reference-import:1',
+                referenceId: 'reference-import:1',
+                sourceKind: 'imported',
+                label: 'shoe.glb',
+                categoryId: 'user-references',
+                fileType: 'glb',
+                assetPath: 'blob:shoe-1',
+                isVisible: true,
+                loadState: 'loaded',
+                errorMessage: null,
+                parentAssemblyId: null,
+                parentComponentId: null,
+                parts: [],
+              },
+            ],
+          },
+        ],
+      },
+      contentRows: [],
+      graphRows: [],
+      editorViewports: [],
+      graphDocumentsById: {},
+      selectedRowId: 'reference-item-row:reference-import:1',
+      collapsedContentRowIds: [],
+      expandedGraphDocumentIds: [],
+      hasActiveEditorViewport: true,
+      sharedViewerCompositionGraphDocumentIds: [],
+      sharedViewerCompositionActive: false,
+    })
+
+    expect(rows.referenceRows).toEqual([])
+    expect(rows.contentRows.some((row) => row.rowId === 'reference-category-row:user-references')).toBe(
+      false,
+    )
+    expect(rows.contentRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowId: 'reference-root',
+          rowKind: 'assembly',
+          referenceContainerKind: 'root',
+        }),
+        expect.objectContaining({
+          rowId: 'reference-item-row:reference-import:1',
+          rowKind: 'object',
+          contentOriginKind: 'source-reference',
+          referenceSourceKind: 'imported',
+          label: 'shoe.glb',
+          isSelected: true,
+        }),
+      ]),
+    )
+  })
+
   it('moves manifest library objects into the content hierarchy when they gain a landing parent', () => {
     const rows = selectBrowserTreeRows({
       referenceWorkspaceTree: {

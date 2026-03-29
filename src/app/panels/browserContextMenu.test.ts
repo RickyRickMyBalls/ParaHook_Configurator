@@ -1,12 +1,11 @@
 import { describe, expect, it, vi } from 'vitest'
 import { buildBrowserContextMenuItems } from './browserContextMenu'
 import type {
+  BrowserAssemblyTreeRowVm,
   BrowserComponentTreeRowVm,
   BrowserGraphTreeRowVm,
   BrowserObjectTreeRowVm,
-  BrowserReferenceCategoryTreeRowVm,
   BrowserReferenceItemTreeRowVm,
-  BrowserReferencesRootTreeRowVm,
   BrowserTreeRowActionVm,
 } from './selectBrowserTreeRows'
 
@@ -16,9 +15,9 @@ const action = (actionId: BrowserTreeRowActionVm['actionId']): BrowserTreeRowAct
   ariaLabel: actionId,
 })
 
-const referenceRootRow = (): BrowserReferencesRootTreeRowVm => ({
+const referenceRootRow = (): BrowserAssemblyTreeRowVm => ({
   rowId: 'reference-root',
-  rowKind: 'references-root',
+  rowKind: 'assembly',
   depth: 0,
   treeGuides: [],
   iconLabel: 'A',
@@ -29,13 +28,15 @@ const referenceRootRow = (): BrowserReferencesRootTreeRowVm => ({
   isExpanded: true,
   actions: [],
   isVisible: false,
-  state: 'dormant',
-  stateLabel: 'Dormant',
+  visibilityPartKeys: [],
+  buildState: 'done',
+  buildStateLabel: 'Done',
+  rebuildGraphDocumentIds: [],
 })
 
-const referenceCategoryRow = (): BrowserReferenceCategoryTreeRowVm => ({
+const referenceCategoryRow = (): BrowserComponentTreeRowVm => ({
   rowId: 'reference-category-row:footpads',
-  rowKind: 'reference-category',
+  rowKind: 'component',
   depth: 1,
   treeGuides: ['elbow'],
   iconLabel: 'C',
@@ -45,12 +46,23 @@ const referenceCategoryRow = (): BrowserReferenceCategoryTreeRowVm => ({
   isExpandable: true,
   isExpanded: true,
   actions: [],
-  categoryId: 'footpads',
-  itemCount: 2,
-  emptyLabel: '',
   isVisible: false,
-  state: 'dormant',
-  stateLabel: 'Dormant',
+  visibilityPartKeys: [],
+  buildState: 'done',
+  buildStateLabel: 'Dormant',
+  rebuildGraphDocumentIds: [],
+  ownerGraphDocumentId: null,
+  sourceGraphDocumentId: null,
+  sourceOutputEntryId: null,
+  componentSourceKind: 'receive-link',
+  resolutionState: 'resolved',
+  receiveId: null,
+  slotId: null,
+  sourceNodeId: null,
+  highlightViewerKey: null,
+  authoringGraphDocumentId: null,
+  authoringNodeId: null,
+  referenceCategoryId: 'footpads',
 })
 
 const hiddenReferenceItemRow = (): BrowserReferenceItemTreeRowVm => ({
@@ -65,14 +77,14 @@ const hiddenReferenceItemRow = (): BrowserReferenceItemTreeRowVm => ({
   isExpandable: false,
   isExpanded: false,
   actions: [action('transform-object')],
+  isVisible: false,
+  state: 'dormant',
+  stateLabel: 'Dormant',
   referenceId: 'shoe-1',
   sourceKind: 'manifest',
   categoryId: 'shoes',
   fileType: 'glb',
   assetPath: '/ReferenceModels/shoes/shoe-1.glb',
-  isVisible: false,
-  state: 'dormant',
-  stateLabel: 'Dormant',
   errorMessage: null,
 })
 

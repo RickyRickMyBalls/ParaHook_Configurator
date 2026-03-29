@@ -329,3 +329,11 @@ Decision:
 - later asset-catalog work remains a separate future feature
 - `Browser-10` is the architectural reset after the Browser-9 cleanup ladder, not just another visual polish phase
 - `Browser-10` should be broken into smaller implementation-ready subphases before code work starts
+
+## Follow-On
+
+If the Browser still has visible grouping parents that only look like normal containers after the `10.x` ladder, the next Browser family phase should be:
+
+- `Browser-11 - Real Project-Owned Reference Containers And Full Container Parity`
+  - visible rows like `References`, `Footpads`, `Shoes`, and `Premade Foothooks` must either become real project-owned assembly/component records or leave the live Browser tree
+  - do not keep special adapted grouping parents once the Browser claims to be one true project tree

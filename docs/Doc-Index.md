@@ -4,6 +4,13 @@
 <summary>Doc Header</summary>
 
 ### Doc History
+152. 2026-03-29 09:47: Added `Browser-11.5 - Cross-Parent First-Drop Ordering Parity` to the Browser docs map, refreshed the Browser subtree so the next post-`11.4` drag-polish follow-on is visible under `Future/`, and kept the Browser-11 umbrella doc as the family-level summary surface
+151. 2026-03-29 09:34: Moved the shipped `Browser-11.4 - Adapted Container Seam Retirement` record out of `Browser/Future/` and into `Browser/Shipped/`, refreshed the Browser subtree so the Browser-11 ladder now appears fully shipped, and kept the Browser-11 umbrella doc as the remaining family-level summary surface
+150. 2026-03-29 09:21: Moved the shipped `Browser-11.3 - Grouping Label Survival And Tree Simplification` record out of `Browser/Future/` and into `Browser/Shipped/`, refreshed the Browser subtree so the `User References` simplification cut now appears only once as shipped history, and kept the Browser-11 umbrella plus remaining `11.4` seam-retirement follow-on under `Future/`
+149. 2026-03-29 08:59: Moved the shipped `Browser-11.2 - Container Drag And Reparent Parity` record out of `Browser/Future/` and into `Browser/Shipped/`, refreshed the Browser subtree so the first container-drag parity cut now appears only once as shipped history, and kept the Browser-11 umbrella plus remaining `11.3` through `11.4` ladder under `Future/`
+148. 2026-03-29 08:26: Moved the shipped `Browser-11.1 - Promote Visible Reference Containers Into Real Owner Records` record out of `Browser/Future/` and into `Browser/Shipped/`, refreshed the Browser subtree so the first Browser-11 owner-record cut now appears only once as shipped history, and kept the Browser-11 umbrella plus remaining `11.2` through `11.4` ladder under `Future/`
+147. 2026-03-29 08:00: Broke `Browser-11 - Real Project-Owned Reference Containers And Full Container Parity` into a visible `11.1` through `11.4` Browser future ladder, refreshed the Browser subtree so the new owner-record, drag-parity, grouping-simplification, and seam-retirement docs are listed under `Future/`, and kept the Browser-11 umbrella doc as the family-level planning surface
+146. 2026-03-29 07:44: Added `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-11 - Real Project-Owned Reference Containers And Full Container Parity.md` to the Browser docs map, refreshed the Browser family index plus Browser-10 umbrella so the next post-`10.x` follow-on is explicit, and locked that visible grouping parents must either become real project-owned assembly/component records or leave the live Browser tree
 145. 2026-03-28 23:36: Moved the shipped `Browser-10.5 - Compatibility Seam Retirement` record out of Browser `Future/` and into `Browser/Shipped/`, refreshed the Browser subtree so the seam-retirement cleanup now appears only once as shipped history, and kept the Browser-10 umbrella doc as the remaining family-level planning surface
 144. 2026-03-28 23:14: Moved the shipped `Browser-10.4 - Load And Runtime Traits On Normal Nodes` record out of Browser `Future/` and into `Browser/Shipped/`, refreshed the Browser subtree so the runtime-trait cleanup now appears only once as shipped history, and kept the remaining `Browser-10.5` ladder under `Future/`
 143. 2026-03-28 22:51: Moved the shipped `Browser-10.3 - Unified Owner Routing Across Browser Console And Viewer` record out of Browser `Future/` and into `Browser/Shipped/`, refreshed the Browser subtree so the owner-routing cleanup now appears only once as shipped history, and kept the remaining `Browser-10.4` through `Browser-10.5` ladder under `Future/`
@@ -519,6 +526,8 @@ Rule notes:
             - `Future/Browser_Phase Browser-8.8.4 - Reintroduce Richer Hierarchy Guidance Carefully.md`
             - `Future/Browser_Phase Browser-9 - Reference Tree Convergence Into Standard Content Hierarchy.md`
             - `Future/Browser_Phase Browser-10 - Unified Project Object Tree Source Of Truth.md`
+            - `Future/Browser_Phase Browser-11 - Real Project-Owned Reference Containers And Full Container Parity.md`
+            - `Future/Browser_Phase Browser-11.5 - Cross-Parent First-Drop Ordering Parity.md`
             - `Shipped/Browser_Phase Browser-1 - Build Policy Icon Surface.md`
             - `Shipped/Browser_Phase Browser-2 - Cascade And Effective Policy Truth.md`
             - `Shipped/Browser_Phase Browser-3 - Runtime Build Policy Execution.md`
@@ -552,6 +561,10 @@ Rule notes:
             - `Shipped/Browser_Phase Browser-10.3 - Unified Owner Routing Across Browser Console And Viewer.md`
             - `Shipped/Browser_Phase Browser-10.4 - Load And Runtime Traits On Normal Nodes.md`
             - `Shipped/Browser_Phase Browser-10.5 - Compatibility Seam Retirement.md`
+            - `Shipped/Browser_Phase Browser-11.1 - Promote Visible Reference Containers Into Real Owner Records.md`
+            - `Shipped/Browser_Phase Browser-11.2 - Container Drag And Reparent Parity.md`
+            - `Shipped/Browser_Phase Browser-11.3 - Grouping Label Survival And Tree Simplification.md`
+            - `Shipped/Browser_Phase Browser-11.4 - Adapted Container Seam Retirement.md`
 #### -------Camera-Controls
             - `Camera_Controls-Index.md`
             - `Future/Camera_Controls_Phase Camera-5.1 - Viewer Object Window Selection.md`

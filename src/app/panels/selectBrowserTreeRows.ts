@@ -493,7 +493,8 @@ export const selectBrowserTreeRows = (options: {
       const shelfItems = category.items.filter(
         (item) => item.parentAssemblyId == null && item.parentComponentId == null,
       )
-      if (!(shelfItems.length === 0 && category.categoryId === 'user-references')) {
+      const renderCategoryRow = category.categoryId !== 'user-references'
+      if (renderCategoryRow) {
         normalizedContentRows.push({
           rowId: category.rowId,
           kind: 'component',
@@ -534,7 +535,9 @@ export const selectBrowserTreeRows = (options: {
           parentAssemblyId:
             item.parentAssemblyId ??
             (item.parentComponentId == null ? referenceWorkspaceTree.rowId : null),
-          parentComponentId: item.parentComponentId ?? (item.parentAssemblyId == null ? category.rowId : null),
+          parentComponentId:
+            item.parentComponentId ??
+            (item.parentAssemblyId == null && renderCategoryRow ? category.rowId : null),
           isVisible: item.isVisible,
           visibilityPartKeys: [],
           buildState: 'done',

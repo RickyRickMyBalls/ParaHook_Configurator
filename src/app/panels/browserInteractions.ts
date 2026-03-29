@@ -431,24 +431,13 @@ export const createBrowserRowInteractionHandlers = (
   }
 
   const handleToggleBrowserRowExpand = (row: BrowserRenderableRowVm) => {
-    if (row.rowKind === 'references-root') {
-      deps.closeMenus()
-      deps.toggleReferenceWorkspaceExpanded()
-      return
-    }
-    if (row.rowKind === 'reference-category') {
-      deps.closeMenus()
-      deps.toggleReferenceCategoryExpanded(row.categoryId)
-      return
-    }
-    if (row.rowKind === 'assembly' && row.referenceContainerKind === 'root') {
+    if (row.rowKind === 'assembly' && row.rowId === deps.referenceWorkspaceRootRowId) {
       deps.closeMenus()
       deps.toggleReferenceWorkspaceExpanded()
       return
     }
     if (
       row.rowKind === 'component' &&
-      row.referenceContainerKind === 'category' &&
       row.referenceCategoryId !== null &&
       row.referenceCategoryId !== undefined
     ) {
@@ -493,14 +482,8 @@ export const createBrowserRowInteractionHandlers = (
   const handleToggleReferenceVisibility = (row: BrowserRenderableRowVm) => {
     deps.setLocalSelectedBrowserRowId(row.rowId)
     deps.closeMenus()
-    if (row.rowKind === 'reference-category') {
-      deps.appendBrowserEntry(`${row.label} visibility toggled`)
-      deps.toggleReferenceCategoryVisibility(row.categoryId)
-      return
-    }
     if (
       row.rowKind === 'component' &&
-      row.referenceContainerKind === 'category' &&
       row.referenceCategoryId !== null &&
       row.referenceCategoryId !== undefined
     ) {

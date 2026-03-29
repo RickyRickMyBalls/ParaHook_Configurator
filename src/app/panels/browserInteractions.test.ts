@@ -2,10 +2,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createBrowserRowInteractionHandlers } from './browserInteractions'
 import type {
   BrowserAssemblyTreeRowVm,
+  BrowserComponentTreeRowVm,
   BrowserGraphTreeRowVm,
   BrowserGraphNodeTreeRowVm,
   BrowserObjectTreeRowVm,
-  BrowserReferenceCategoryTreeRowVm,
   BrowserReferenceItemTreeRowVm,
   BrowserSketchTreeRowVm,
 } from './selectBrowserTreeRows'
@@ -81,6 +81,36 @@ const objectRow = (objectId: string, label: string, partKey = 'part:object-1'): 
   authoringNodeId: 'node-1',
 })
 
+const componentRow = (componentId: string, label: string): BrowserComponentTreeRowVm => ({
+  rowId: componentId,
+  rowKind: 'component',
+  depth: 1,
+  treeGuides: ['elbow'],
+  iconLabel: 'C',
+  label,
+  meta: '',
+  isSelected: false,
+  isExpandable: true,
+  isExpanded: true,
+  actions: [],
+  isVisible: true,
+  visibilityPartKeys: [`part:${componentId}`],
+  buildState: 'done',
+  buildStateLabel: 'Done',
+  rebuildGraphDocumentIds: [],
+  ownerGraphDocumentId: null,
+  sourceGraphDocumentId: null,
+  sourceOutputEntryId: null,
+  componentSourceKind: 'receive-link',
+  resolutionState: 'resolved',
+  receiveId: null,
+  slotId: null,
+  sourceNodeId: null,
+  highlightViewerKey: null,
+  authoringGraphDocumentId: null,
+  authoringNodeId: null,
+})
+
 const graphRow = (): BrowserGraphTreeRowVm => ({
   rowId: 'graph-row:graph-document-1',
   rowKind: 'graph-document',
@@ -149,26 +179,6 @@ const sketchRow = (): BrowserSketchTreeRowVm => ({
   diagnosticsCount: 0,
   authoringGraphDocumentId: 'graph-document-1',
   authoringNodeId: 'node-2',
-})
-
-const referenceCategoryRow = (): BrowserReferenceCategoryTreeRowVm => ({
-  rowId: 'reference-category-row:footpads',
-  rowKind: 'reference-category',
-  depth: 1,
-  treeGuides: ['elbow'],
-  iconLabel: 'C',
-  label: 'Footpads',
-  meta: '0 items',
-  isSelected: false,
-  isExpandable: true,
-  isExpanded: true,
-  actions: [],
-  categoryId: 'footpads',
-  itemCount: 0,
-  emptyLabel: 'No references.',
-  isVisible: false,
-  state: 'dormant',
-  stateLabel: 'Dormant',
 })
 
 const referenceItemRow = (): BrowserReferenceItemTreeRowVm => ({
@@ -281,7 +291,6 @@ describe('createBrowserRowInteractionHandlers', () => {
   it('keeps converged reference container rows on owner targets instead of legacy reference targets', () => {
     const row: BrowserAssemblyTreeRowVm = {
       ...assemblyRow('reference-root', 'References'),
-      referenceContainerKind: 'root',
     }
     const deps = createDeps({
       browserTreeRows: {
@@ -438,7 +447,10 @@ describe('createBrowserRowInteractionHandlers', () => {
 
   it('dispatches expand toggles to the family-specific ownership seam', () => {
     const graphDocumentRow = graphRow()
-    const categoryRow = referenceCategoryRow()
+    const categoryRow: BrowserComponentTreeRowVm = {
+      ...componentRow('reference-category-row:footpads', 'Footpads'),
+      referenceCategoryId: 'footpads',
+    }
     const setExpandedGraphDocumentIds = vi.fn()
     const deps = createDeps({
       setExpandedGraphDocumentIds,

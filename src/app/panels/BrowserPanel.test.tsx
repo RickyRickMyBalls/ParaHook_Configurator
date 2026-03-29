@@ -13,6 +13,42 @@ let mockRequestBrowserGraphDocumentBuild: ReturnType<typeof vi.fn>
 const countMockRows = (count: number, singular: string, plural: string) =>
   count === 1 ? `1 ${singular}` : `${count} ${plural}`
 
+const isReferenceCategoryComponentId = (componentId: string) =>
+  componentId.startsWith('reference-category-row:')
+
+const resolveMockOwnerParentKey = (target: any) => {
+  if (target.kind === 'object') {
+    const objectRow = currentAppState.projectContent?.objectsById?.[target.objectId] ?? null
+    if (objectRow !== null) {
+      return objectRow.parentComponentId ?? objectRow.parentAssemblyId ?? null
+    }
+    const referenceItem =
+      currentAppState.referenceWorkspaceTree?.categories
+        ?.flatMap((category: any) => category.items)
+        ?.find((item: any) => item.rowId === target.objectId) ?? null
+    if (referenceItem === null) {
+      return null
+    }
+    return (
+      referenceItem.parentComponentId ??
+      referenceItem.parentAssemblyId ??
+      `reference-category-row:${referenceItem.categoryId}`
+    )
+  }
+  if (target.kind === 'component') {
+    const componentRow = currentAppState.projectContent?.componentsById?.[target.componentId] ?? null
+    if (componentRow !== null) {
+      return componentRow.parentAssemblyId ?? null
+    }
+    if (isReferenceCategoryComponentId(target.componentId)) {
+      return currentAppState.referenceWorkspaceTree?.rowId ?? null
+    }
+    return null
+  }
+  const assemblyRow = currentAppState.projectContent?.assembliesById?.[target.assemblyId] ?? null
+  return assemblyRow?.parentAssemblyId ?? null
+}
+
 const buildMockProjectContentRows = () => {
   const authoredRows = currentAppState?.projectContentRows ?? []
   const referenceWorkspaceTree = currentAppState?.referenceWorkspaceTree ?? null
@@ -63,7 +99,8 @@ const buildMockProjectContentRows = () => {
     const shelfItems = category.items.filter(
       (item: any) => item.parentAssemblyId == null && item.parentComponentId == null,
     )
-    if (!(shelfItems.length === 0 && category.categoryId === 'user-references')) {
+    const renderCategoryRow = category.categoryId !== 'user-references'
+    if (renderCategoryRow) {
       syntheticRows.push({
         rowId: category.rowId,
         kind: 'component',
@@ -101,7 +138,7 @@ const buildMockProjectContentRows = () => {
           item.parentAssemblyId ??
           (item.parentComponentId == null ? referenceWorkspaceTree.rowId : null),
         parentComponentId:
-          item.parentComponentId ?? (item.parentAssemblyId == null ? category.rowId : null),
+          item.parentComponentId ?? (item.parentAssemblyId == null && renderCategoryRow ? category.rowId : null),
         isVisible: item.isVisible,
         visibilityPartKeys: [],
         ownerGraphDocumentId: null,
@@ -178,29 +215,16 @@ vi.mock('../spaghetti/store/useSpaghettiStore', () => ({
 vi.mock('../store/useAppStore', () => ({
   useAppStore: (selector: (state: any) => unknown) => selector(currentAppState),
   REFERENCE_ROOT_ROW_ID: 'reference-root',
+  buildImportedReferenceRowId: (referenceId: string) => `reference-item-row:${referenceId}`,
   buildReferenceCategoryRowId: (categoryId: string) => `reference-category-row:${categoryId}`,
   selectCurrentProjectContentBrowserRows: () => buildMockProjectContentRows(),
   selectReferenceWorkspaceBrowserTree: () => currentAppState.referenceWorkspaceTree,
   selectShouldSuppressBrowserGraphRuntimeOutput: () => false,
   resolveProjectContentOwnerDrop: (_state: any, draggedTarget: any, dropTarget: any) => {
-    const resolveParentKey = (target: any) => {
-      if (target.kind === 'object') {
-        const objectRow = currentAppState.projectContent?.objectsById?.[target.objectId] ?? null
-        if (objectRow === null) {
-          return null
-        }
-        return objectRow.parentComponentId ?? objectRow.parentAssemblyId ?? null
-      }
-      if (target.kind === 'component') {
-        const componentRow = currentAppState.projectContent?.componentsById?.[target.componentId] ?? null
-        return componentRow?.parentAssemblyId ?? null
-      }
-      const assemblyRow = currentAppState.projectContent?.assembliesById?.[target.assemblyId] ?? null
-      return assemblyRow?.parentAssemblyId ?? null
-    }
+    const resolveParentKey = (target: any) => resolveMockOwnerParentKey(target)
     if (
-      draggedTarget.kind === 'object' &&
-      dropTarget.kind === 'object' &&
+      (draggedTarget.kind === 'object' || draggedTarget.kind === 'component') &&
+      (dropTarget.kind === 'object' || dropTarget.kind === 'component') &&
       (dropTarget.position === 'before' || dropTarget.position === 'after')
     ) {
       return resolveParentKey(draggedTarget) === resolveParentKey(dropTarget)
@@ -214,7 +238,7 @@ vi.mock('../store/useAppStore', () => ({
         : { valid: false, reason: 'invalid-same-parent' }
     }
     if (
-      draggedTarget.kind === 'object' &&
+      (draggedTarget.kind === 'object' || draggedTarget.kind === 'component') &&
       dropTarget.kind === 'component' &&
       dropTarget.position === 'into'
     ) {
@@ -227,7 +251,7 @@ vi.mock('../store/useAppStore', () => ({
       }
     }
     if (
-      draggedTarget.kind === 'object' &&
+      (draggedTarget.kind === 'object' || draggedTarget.kind === 'component') &&
       dropTarget.kind === 'assembly' &&
       dropTarget.position === 'into'
     ) {
@@ -249,26 +273,10 @@ vi.mock('../store/useAppStore', () => ({
   resolveBrowserDraggableTargetDrop: (state: any, draggedTarget: any, dropTarget: any) => {
     const { resolveProjectContentOwnerDrop } = {
       resolveProjectContentOwnerDrop: (_nextState: any, nextDraggedTarget: any, nextDropTarget: any) => {
-        const resolveParentKey = (target: any) => {
-          if (target.kind === 'object') {
-            const objectRow = currentAppState.projectContent?.objectsById?.[target.objectId] ?? null
-            if (objectRow === null) {
-              return null
-            }
-            return objectRow.parentComponentId ?? objectRow.parentAssemblyId ?? null
-          }
-          if (target.kind === 'component') {
-            const componentRow =
-              currentAppState.projectContent?.componentsById?.[target.componentId] ?? null
-            return componentRow?.parentAssemblyId ?? null
-          }
-          const assemblyRow =
-            currentAppState.projectContent?.assembliesById?.[target.assemblyId] ?? null
-          return assemblyRow?.parentAssemblyId ?? null
-        }
+        const resolveParentKey = (target: any) => resolveMockOwnerParentKey(target)
         if (
-          nextDraggedTarget.kind === 'object' &&
-          nextDropTarget.kind === 'object' &&
+          (nextDraggedTarget.kind === 'object' || nextDraggedTarget.kind === 'component') &&
+          (nextDropTarget.kind === 'object' || nextDropTarget.kind === 'component') &&
           (nextDropTarget.position === 'before' || nextDropTarget.position === 'after')
         ) {
           return resolveParentKey(nextDraggedTarget) === resolveParentKey(nextDropTarget)
@@ -282,7 +290,7 @@ vi.mock('../store/useAppStore', () => ({
             : { valid: false, reason: 'invalid-same-parent' }
         }
         if (
-          nextDraggedTarget.kind === 'object' &&
+          (nextDraggedTarget.kind === 'object' || nextDraggedTarget.kind === 'component') &&
           nextDropTarget.kind === 'component' &&
           nextDropTarget.position === 'into'
         ) {
@@ -295,7 +303,7 @@ vi.mock('../store/useAppStore', () => ({
           }
         }
         if (
-          nextDraggedTarget.kind === 'object' &&
+          (nextDraggedTarget.kind === 'object' || nextDraggedTarget.kind === 'component') &&
           nextDropTarget.kind === 'assembly' &&
           nextDropTarget.position === 'into'
         ) {
@@ -563,7 +571,11 @@ const resolveMockContentSelection = (explicitTargets: any[]) => {
       return {
         rootRowId: componentRow.rowId,
         rootKind: 'component' as const,
-        partKeys: [...new Set((componentRow.visibilityPartKeys ?? []) as string[])],
+        partKeys: [
+          ...new Set<string>(
+            groupedRows.flatMap((row: any) => (row.visibilityPartKeys ?? []) as string[]),
+          ),
+        ],
         groupedRowIds: groupedRows.map((row: any) => row.rowId),
       }
     }
@@ -574,18 +586,61 @@ const resolveMockContentSelection = (explicitTargets: any[]) => {
     if (assemblyRow === undefined) {
       return null
     }
-    const groupedRows = projectContentRows.filter(
-      (row: any) =>
-        (row.kind === 'component' || row.kind === 'object') &&
-        (row.visibilityPartKeys ?? []).some((partKey: string) =>
-          (assemblyRow.visibilityPartKeys ?? []).includes(partKey),
-        ),
-    )
+    const groupedRowIds: string[] = []
+    const partKeySet = new Set<string>()
+    const groupedRowIdSet = new Set<string>()
+    const addGroupedRow = (row: any) => {
+      if (groupedRowIdSet.has(row.rowId)) {
+        return
+      }
+      groupedRowIdSet.add(row.rowId)
+      groupedRowIds.push(row.rowId)
+      ;((row.visibilityPartKeys ?? []) as string[]).forEach((partKey) => partKeySet.add(partKey))
+    }
+    const visitAssembly = (assemblyId: string) => {
+      projectContentRows
+        .filter((row: any) => row.kind === 'assembly' && row.parentAssemblyId === assemblyId)
+        .forEach((row: any) => {
+          addGroupedRow(row)
+          visitAssembly(row.rowId)
+        })
+      projectContentRows
+        .filter((row: any) => row.kind === 'component' && row.parentAssemblyId === assemblyId)
+        .forEach((row: any) => {
+          addGroupedRow(row)
+          projectContentRows
+            .filter((objectRow: any) => objectRow.kind === 'object' && objectRow.parentComponentId === row.rowId)
+            .forEach((objectRow: any) => {
+              addGroupedRow(objectRow)
+            })
+        })
+      projectContentRows
+        .filter(
+          (row: any) =>
+            row.kind === 'object' &&
+            row.parentAssemblyId === assemblyId &&
+            row.parentComponentId == null,
+        )
+        .forEach((row: any) => {
+          addGroupedRow(row)
+        })
+    }
+    visitAssembly(assemblyRow.rowId)
+    const assemblyPartKeys = (assemblyRow.visibilityPartKeys ?? []) as string[]
+    if (assemblyPartKeys.length > 0) {
+      projectContentRows
+        .filter(
+          (row: any) =>
+            (row.kind === 'component' || row.kind === 'object') &&
+            ((row.visibilityPartKeys ?? []) as string[]).some((partKey) => assemblyPartKeys.includes(partKey)),
+        )
+        .forEach((row: any) => addGroupedRow(row))
+    }
     return {
       rootRowId: assemblyRow.rowId,
       rootKind: 'assembly' as const,
-      partKeys: [...new Set((assemblyRow.visibilityPartKeys ?? []) as string[])],
-      groupedRowIds: groupedRows.map((row: any) => row.rowId),
+      partKeys: [...partKeySet],
+      groupedRowIds,
     }
   }
 
@@ -1099,7 +1154,7 @@ describe('BrowserPanel', () => {
   })
 
   it('runs the graph document header icon actions from the summary row', async () => {
-    ;({ root } = await renderBrowserPanel())
+    ;({ container, root } = await renderBrowserPanel())
 
     const createButton = findButtonByLabel('Create new graph')
     const duplicateButton = findButtonByLabel('Duplicate focused graph')
@@ -1121,7 +1176,7 @@ describe('BrowserPanel', () => {
   })
 
   it('opens the row menu from right click and runs graph actions through the shared menu surface', async () => {
-    ;({ root } = await renderBrowserPanel())
+    ;({ container, root } = await renderBrowserPanel())
 
     const graphRow = findRowMainByLabel('Graph 1')
     expect(graphRow).not.toBeNull()
@@ -1258,7 +1313,7 @@ describe('BrowserPanel', () => {
       ],
     }
 
-    ;({ root } = await renderBrowserPanel())
+    ;({ container, root } = await renderBrowserPanel())
 
     const policyButton = findButtonByLabel(
       'Inherited build policy for Pedal Component. Current policy Manual. Right-click for independence options',
@@ -3069,7 +3124,7 @@ describe('BrowserPanel', () => {
       currentAppState.referenceWorkspaceTree,
     )
 
-    ;({ root } = await renderBrowserPanel())
+    ;({ container, root } = await renderBrowserPanel())
 
     await contextMenu(findRowMainByLabel('References')!)
     expect(findButtonByLabel('Load All')).not.toBeNull()
@@ -3230,18 +3285,18 @@ describe('BrowserPanel', () => {
     )
     expect(currentAppState.setWorkspaceExplicitSelection).toHaveBeenCalledWith({
       selectedTarget: {
-        kind: 'reference-item',
-        referenceId: 'footpad:pubpad-full-assembly',
+        kind: 'object',
+        objectId: 'reference-item-row:footpad:pubpad-full-assembly',
       },
       explicitSelectedTargets: [
         {
-          kind: 'reference-item',
-          referenceId: 'footpad:pubpad-full-assembly',
+          kind: 'object',
+          objectId: 'reference-item-row:footpad:pubpad-full-assembly',
         },
       ],
       selectionAnchorTarget: {
-        kind: 'reference-item',
-        referenceId: 'footpad:pubpad-full-assembly',
+        kind: 'object',
+        objectId: 'reference-item-row:footpad:pubpad-full-assembly',
       },
     })
     expect(currentAppState.requestConsoleContextSync).toHaveBeenCalledWith('target-selection')
@@ -3435,7 +3490,9 @@ describe('BrowserPanel', () => {
       currentAppState.referenceWorkspaceTree,
     )
 
-    ;({ root } = await renderBrowserPanel())
+    ;({ container, root } = await renderBrowserPanel())
+
+    expect(container?.textContent ?? '').not.toContain('User References')
 
     expect(findButtonByLabel('More options for shoe.glb')).toBeNull()
     expect(findButtonByLabel('Retry shoe.glb')).toBeNull()
@@ -5019,6 +5076,87 @@ describe('BrowserPanel', () => {
     expect(currentAppState.moveProjectContentOwner).toHaveBeenCalledWith(
       { kind: 'object', objectId: 'object-1' },
       { kind: 'component', componentId: 'component-1', position: 'into' },
+    )
+  })
+
+  it('drops promoted reference category containers into authored assemblies', async () => {
+    currentAppState = {
+      ...currentAppState,
+      projectContent: {
+        assembliesById: {
+          'assembly-1': {
+            assemblyId: 'assembly-1',
+            label: 'Assembly 1',
+            parentAssemblyId: null,
+            assemblySourceKind: 'authored',
+            childRowIds: [],
+          },
+        },
+        componentsById: {},
+        objectsById: {},
+      },
+      projectContentRows: [
+        {
+          rowId: 'assembly-1',
+          kind: 'assembly',
+          label: 'Assembly 1',
+          meta: '',
+          isVisible: true,
+          visibilityPartKeys: [],
+          buildState: 'done',
+          buildStateLabel: 'Built',
+          rebuildGraphDocumentIds: [],
+          statusLabel: '',
+          statusTone: 'quiet',
+          parentAssemblyId: null,
+        },
+      ],
+      referenceWorkspaceTree: emptyReferenceWorkspaceTree,
+      referenceWorkspace: referenceWorkspaceStateFromTree(emptyReferenceWorkspaceTree),
+      moveProjectContentOwner: vi.fn(() => true),
+    }
+
+    ;({ root } = await renderBrowserPanel())
+
+    const sourceRow = findRowMainByLabel('Shoes')
+    const targetRow = findRowMainByLabel('Assembly 1')
+    expect(sourceRow).not.toBeNull()
+    expect(targetRow).not.toBeNull()
+
+    Object.defineProperty(sourceRow!.closest('.BrowserTreeRow')!, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => ({
+        x: 0,
+        y: 0,
+        top: 0,
+        left: 0,
+        right: 240,
+        bottom: 32,
+        width: 240,
+        height: 32,
+        toJSON: () => ({}),
+      }),
+    })
+    Object.defineProperty(targetRow!.closest('.BrowserTreeRow')!, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => ({
+        x: 0,
+        y: 48,
+        top: 48,
+        left: 0,
+        right: 240,
+        bottom: 80,
+        width: 240,
+        height: 32,
+        toJSON: () => ({}),
+      }),
+    })
+
+    await dragRow(sourceRow!.closest('.BrowserTreeRow')!, targetRow!.closest('.BrowserTreeRow')!, 64)
+
+    expect(currentAppState.moveProjectContentOwner).toHaveBeenCalledWith(
+      { kind: 'component', componentId: 'reference-category-row:shoes' },
+      { kind: 'assembly', assemblyId: 'assembly-1', position: 'into' },
     )
   })
 

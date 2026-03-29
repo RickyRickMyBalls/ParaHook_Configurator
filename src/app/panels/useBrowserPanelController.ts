@@ -439,19 +439,8 @@ export function useBrowserPanelController(
     ],
   )
 
-  const isReferenceContainerRow = useCallback(
-    (row: BrowserRenderableRowVm): boolean =>
-      (row.rowKind === 'assembly' || row.rowKind === 'component') &&
-      row.referenceContainerKind !== null &&
-      row.referenceContainerKind !== undefined,
-    [],
-  )
-
-  const resolveBrowserDraggableTargetFromRow = useCallback(
+  const resolveBrowserContentOwnerTargetFromRow = useCallback(
     (row: BrowserRenderableRowVm): BrowserDraggableTarget | null => {
-      if (isReferenceContainerRow(row)) {
-        return null
-      }
       if (row.rowKind === 'assembly') {
         return { kind: 'assembly', assemblyId: row.rowId }
       }
@@ -471,7 +460,13 @@ export function useBrowserPanelController(
       }
       return null
     },
-    [isReferenceContainerRow],
+    [],
+  )
+
+  const resolveBrowserDraggableTargetFromRow = useCallback(
+    (row: BrowserRenderableRowVm): BrowserDraggableTarget | null =>
+      resolveBrowserContentOwnerTargetFromRow(row),
+    [resolveBrowserContentOwnerTargetFromRow],
   )
 
   const resolveWorkspaceTargetFromContentOwnerTarget = useCallback(
@@ -487,14 +482,12 @@ export function useBrowserPanelController(
   )
 
   const isDraggableContentOwnerRow = useCallback((row: BrowserRenderableRowVm): boolean => {
-    if (isReferenceContainerRow(row)) {
-      return false
-    }
     if (row.rowKind === 'assembly') {
-      return projectContent?.assembliesById[row.rowId]?.assemblySourceKind === 'authored'
+      return row.rowId !== REFERENCE_ROOT_ROW_ID &&
+        projectContent?.assembliesById[row.rowId]?.assemblySourceKind === 'authored'
     }
     if (row.rowKind === 'component') {
-      return row.componentSourceKind === 'authored'
+      return row.referenceCategoryId != null || row.componentSourceKind === 'authored'
     }
     if (row.rowKind === 'object') {
       if (row.contentOriginKind === 'source-reference') {
@@ -506,7 +499,7 @@ export function useBrowserPanelController(
       return row.objectSourceKind === 'published-object'
     }
     return false
-  }, [isReferenceContainerRow, projectContent])
+  }, [projectContent])
 
   const registerContentRowElement = useCallback(
     (rowId: string) => (element: HTMLDivElement | null) => {
@@ -525,13 +518,13 @@ export function useBrowserPanelController(
       if (row === null) {
         return null
       }
-      const draggedTarget = resolveBrowserDraggableTargetFromRow(row)
-      if (draggedTarget === null) {
+      const ownerTarget = resolveBrowserContentOwnerTargetFromRow(row)
+      if (ownerTarget === null) {
         return null
       }
-      return draggedTarget
+      return ownerTarget
     },
-    [browserTreeRows.contentRows, resolveBrowserDraggableTargetFromRow],
+    [browserTreeRows.contentRows, resolveBrowserContentOwnerTargetFromRow],
   )
 
   const buildVisibleContentRowMetrics = useCallback((): BrowserContentRowMetric[] => {
@@ -716,7 +709,7 @@ export function useBrowserPanelController(
             (row): row is Extract<typeof projectContentRows[number], { kind: 'assembly' }> =>
               row.kind === 'assembly' &&
               row.parentAssemblyId == null &&
-              row.referenceContainerKind !== 'root',
+              row.rowId !== REFERENCE_ROOT_ROW_ID,
           ) ?? null
         return {
           parentAssemblyId: fallbackAssemblyRow?.rowId ?? null,

@@ -674,6 +674,165 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     })
   })
 
+  it('promotes visible reference containers into effective owner records', async () => {
+    const {
+      buildImportedReferenceRowId,
+      buildReferenceCategoryRowId,
+      REFERENCE_ROOT_ROW_ID,
+      resolveOwnedContentSelection,
+      selectCurrentProjectTopLevelAssemblies,
+      useAppStore,
+    } = await import('./useAppStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+
+    expect(
+      selectCurrentProjectTopLevelAssemblies(useAppStore.getState()).map((assembly) => assembly.assemblyId),
+    ).toContain(REFERENCE_ROOT_ROW_ID)
+
+    expect(
+      resolveOwnedContentSelection(useAppStore.getState(), {
+        kind: 'assembly',
+        assemblyId: REFERENCE_ROOT_ROW_ID,
+      }),
+    ).toMatchObject({
+      rootRowId: REFERENCE_ROOT_ROW_ID,
+      rootKind: 'assembly',
+      groupedRowIds: expect.arrayContaining([
+        buildReferenceCategoryRowId('shoes'),
+        buildImportedReferenceRowId('shoe:shoe-1'),
+      ]),
+    })
+
+    expect(
+      resolveOwnedContentSelection(useAppStore.getState(), {
+        kind: 'component',
+        componentId: buildReferenceCategoryRowId('shoes'),
+      }),
+    ).toMatchObject({
+      rootRowId: buildReferenceCategoryRowId('shoes'),
+      rootKind: 'component',
+      groupedRowIds: expect.arrayContaining([
+        buildImportedReferenceRowId('shoe:shoe-1'),
+        buildImportedReferenceRowId('shoe:shoe-2'),
+        buildImportedReferenceRowId('shoe:shoe-3'),
+      ]),
+    })
+  })
+
+  it('allows promoted reference category containers to move into and back out of authored assemblies', async () => {
+    const {
+      buildReferenceCategoryRowId,
+      resolveProjectContentOwnerDrop,
+      selectCurrentProjectContentBrowserRows,
+      REFERENCE_ROOT_ROW_ID,
+      useAppStore,
+    } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useAppStore.setState((state) => ({
+      ...state,
+      projectContent: {
+        assembliesById: {
+          'assembly-1': {
+            assemblyId: 'assembly-1',
+            label: 'Assembly 1',
+            parentAssemblyId: null,
+            assemblySourceKind: 'authored',
+            childRowIds: [],
+          },
+        },
+        componentsById: {},
+        objectsById: {},
+      },
+    }))
+
+    expect(
+      resolveProjectContentOwnerDrop(
+        useAppStore.getState(),
+        {
+          kind: 'component',
+          componentId: buildReferenceCategoryRowId('shoes'),
+        },
+        {
+          kind: 'assembly',
+          assemblyId: 'assembly-1',
+          position: 'into',
+        },
+      ),
+    ).toMatchObject({
+      valid: true,
+      kind: 'reparent',
+      parentTarget: {
+        kind: 'assembly',
+        assemblyId: 'assembly-1',
+      },
+    })
+
+    expect(
+      useAppStore.getState().moveProjectContentOwner(
+        {
+          kind: 'component',
+          componentId: buildReferenceCategoryRowId('shoes'),
+        },
+        {
+          kind: 'assembly',
+          assemblyId: 'assembly-1',
+          position: 'into',
+        },
+      ),
+    ).toBe(true)
+
+    expect(useAppStore.getState().projectContent.assembliesById['assembly-1']?.childRowIds).toEqual([
+      buildReferenceCategoryRowId('shoes'),
+    ])
+    expect(
+      selectCurrentProjectContentBrowserRows({
+        currentProject: useAppStore.getState().currentProject,
+        projectContent: useAppStore.getState().projectContent,
+        sketchVisibilityByRowId: useAppStore.getState().sketchVisibilityByRowId,
+        referenceWorkspace: useAppStore.getState().referenceWorkspace,
+        graphRuntimeByDocumentId: useSpaghettiStore.getState().graphRuntimeByDocumentId,
+        graphDocumentsById: useSpaghettiStore.getState().graphDocumentsById,
+      }).find(
+        (row) => row.rowId === buildReferenceCategoryRowId('shoes'),
+      ),
+    ).toMatchObject({
+      parentAssemblyId: 'assembly-1',
+    })
+
+    expect(
+      useAppStore.getState().moveProjectContentOwner(
+        {
+          kind: 'component',
+          componentId: buildReferenceCategoryRowId('shoes'),
+        },
+        {
+          kind: 'assembly',
+          assemblyId: REFERENCE_ROOT_ROW_ID,
+          position: 'into',
+        },
+      ),
+    ).toBe(true)
+
+    expect(useAppStore.getState().projectContent.assembliesById['assembly-1']?.childRowIds).toEqual([])
+    expect(
+      selectCurrentProjectContentBrowserRows({
+        currentProject: useAppStore.getState().currentProject,
+        projectContent: useAppStore.getState().projectContent,
+        sketchVisibilityByRowId: useAppStore.getState().sketchVisibilityByRowId,
+        referenceWorkspace: useAppStore.getState().referenceWorkspace,
+        graphRuntimeByDocumentId: useSpaghettiStore.getState().graphRuntimeByDocumentId,
+        graphDocumentsById: useSpaghettiStore.getState().graphDocumentsById,
+      }).find(
+        (row) => row.rowId === buildReferenceCategoryRowId('shoes'),
+      ),
+    ).toMatchObject({
+      parentAssemblyId: REFERENCE_ROOT_ROW_ID,
+    })
+  })
+
   it('deletes authored component subtrees including child objects', async () => {
     const { useAppStore } = await import('./useAppStore')
 
@@ -2445,6 +2604,46 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     } finally {
       globalThis.URL = originalUrl
     }
+  })
+
+  it('flattens ungrouped imported references directly under References in browser content rows', async () => {
+    const { selectCurrentProjectContentBrowserRows, useAppStore } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+
+    const referenceId = useAppStore.getState().addImportedReference({
+      fileName: 'shoe.glb',
+      fileType: 'glb',
+      objectUrl: 'blob:shoe-1',
+    })
+
+    const browserRows = selectCurrentProjectContentBrowserRows({
+      currentProject: useAppStore.getState().currentProject,
+      projectContent: useAppStore.getState().projectContent,
+      sketchVisibilityByRowId: useAppStore.getState().sketchVisibilityByRowId,
+      referenceWorkspace: useAppStore.getState().referenceWorkspace,
+      graphRuntimeByDocumentId: useSpaghettiStore.getState().graphRuntimeByDocumentId,
+      graphDocumentsById: useSpaghettiStore.getState().graphDocumentsById,
+    })
+
+    expect(browserRows.some((row) => row.rowId === 'reference-category-row:user-references')).toBe(false)
+    expect(browserRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowId: 'reference-root',
+          kind: 'assembly',
+        }),
+        expect.objectContaining({
+          rowId: `reference-item-row:${referenceId}`,
+          kind: 'object',
+          parentAssemblyId: 'reference-root',
+          parentComponentId: null,
+          contentOriginKind: 'source-reference',
+          referenceCategoryId: 'user-references',
+        }),
+      ]),
+    )
   })
 
   it('starts a root reference batch in deterministic browser order and resets errored targets', async () => {

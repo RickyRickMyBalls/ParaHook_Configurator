@@ -3,6 +3,19 @@
 ## Doc Header
 
 ### Doc History
+123. 2026-03-29 09:47: Tightened `Browser-11.5 - Cross-Parent First-Drop Ordering Parity` into an implementation-ready Browser follow-on by grounding it in the live drag preview-versus-commit mismatch, the shared same-parent-only reorder rule in `resolveProjectContentOwnerDrop(...)`, and the focused BrowserPanel regression that already proves cross-parent landing slots still commit as plain owner `into`
+122. 2026-03-29 09:47: Added `Browser-11.5 - Cross-Parent First-Drop Ordering Parity` as the next Browser follow-on after shipped `11.4`, locking the narrower drag-polish direction that first cross-parent drops into a target owner like `Assembly 1` should support direct intended child-slot ordering instead of requiring a separate owner-row `into` drop before later reorder
+121. 2026-03-29 09:34: Marked `Browser-11.4 - Adapted Container Seam Retirement` shipped after the Browser panel/controller/menu stopped depending on adapted root/category container branches for live owner behavior, the last Browser-facing `referenceContainerKind` and `references-root` / `reference-category` interaction seams were retired for surviving rows, and the Browser-11 ladder now reads as fully shipped first-pass container parity
+120. 2026-03-29 09:21: Tightened `Browser-11.4 - Adapted Container Seam Retirement` into an implementation-ready Browser subphase by grounding it in the surviving post-`11.3` `referenceContainerKind`, `references-root`, `reference-category`, and effective container-owner helper seams, and by locking that the last Browser-11 pass should delete those Browser-facing compatibility branches while preserving only the narrow object-level runtime/reference adapters that still provide real value
+119. 2026-03-29 09:21: Marked `Browser-11.3 - Grouping Label Survival And Tree Simplification` shipped after the live Browser stopped rendering the historical `User References` grouping row, imported user-reference objects flattened directly under the surviving real `References` assembly, and the Browser-11 docs now point at the canonical shipped simplification cut while leaving seam retirement as the remaining open follow-on
+118. 2026-03-29 09:07: Locked the `Browser-11.3 - Grouping Label Survival And Tree Simplification` decisions and tightened that subphase into an implementation-ready Browser follow-on by grounding it in the live promoted-container seams, deciding that `References` plus the current `Footpads` / `Shoes` / `Premade Foothooks` labels survive for now as real project structure, and locking that any later label removal should flatten children upward instead of inventing replacement compatibility parents
+117. 2026-03-29 08:59: Marked `Browser-11.2 - Container Drag And Reparent Parity` shipped after promoted reference category containers like `Shoes` entered the normal Browser drag path, the shared owner-drop seam started accepting those rows as movable `component` owners, and the Browser-11 docs now point at the canonical shipped phase record while keeping later grouping-label cleanup and seam retirement as the remaining open follow-ons
+116. 2026-03-29 08:36: Tightened `Browser-11.2 - Container Drag And Reparent Parity` into an implementation-ready Browser subphase by grounding it in the live controller drag gate plus shared owner-drop legality seam, and by locking that the next cut should remove the `referenceContainerKind` drag block in `useBrowserPanelController` so promoted containers can enter the same Browser move path as normal assemblies/components
+115. 2026-03-29 08:26: Marked `Browser-11.1 - Promote Visible Reference Containers Into Real Owner Records` shipped after `References` plus the visible reference category parents started resolving through effective assembly/component owner records in the shared store owner path, the Browser/store selection helpers now treat those containers as real owners instead of ad hoc synthetic fallbacks, and the Browser-11 docs now point at the canonical shipped phase record
+114. 2026-03-29 08:09: Tightened `Browser-11.1 - Promote Visible Reference Containers Into Real Owner Records` into an implementation-ready Browser subphase by grounding it in the live synthetic-container seams in `useAppStore`, `selectBrowserTreeRows`, `useBrowserPanelController`, `browserInteractions`, and `browserContextMenu`, and by locking that the first cut should promote visible reference grouping parents into real owner records before later drag parity and seam retirement
+113. 2026-03-29 08:00: Broke `Browser-11 - Real Project-Owned Reference Containers And Full Container Parity` into an explicit `11.1` through `11.4` ladder in the Browser family index, added dedicated future planning surfaces for owner-record promotion, container drag parity, grouping-label survival, and adapted-container seam retirement, and reframed `Browser-11` as the umbrella container-truth reset after the shipped `10.x` ladder
+112. 2026-03-29 07:53: Added a `Questions / Decisions` block under `Browser-11 - Real Project-Owned Reference Containers And Full Container Parity`, capturing the remaining open choices around whether `References` stays visible, whether grouping labels like `Shoes` survive as real components, whether those promoted containers gain full drag/reparent parity, and whether any non-real grouping parents should be removed from the live Browser tree
+111. 2026-03-29 07:44: Added `Browser-11 - Real Project-Owned Reference Containers And Full Container Parity` as the next Browser-family follow-on after `Browser-10`, locking that visible grouping parents like `References`, `Footpads`, `Shoes`, and `Premade Foothooks` must either become real project-owned assembly/component records or leave the live Browser tree instead of staying as special adapted containers
 110. 2026-03-28 23:36: Marked `Browser-10.5 - Compatibility Seam Retirement` shipped after Browser and Console reference selection started committing through normal assembly/component/object owner targets, the older public `references-root` / `reference-category` / broad `reference-item` contract shrank down to compatibility fallback behavior, and the Browser-10 docs now point at the canonical shipped phase record instead of a duplicate future copy
 109. 2026-03-28 23:26: Tightened `Browser-10.5 - Compatibility Seam Retirement` into an implementation-ready Browser subphase by grounding it in the surviving post-`10.4` legacy target kinds, Browser selection/row-id compatibility branches, Console staged-navigation reference sessions, and the rule that `10.5` should retire old container-target public contracts while keeping only narrow runtime `referenceId` adapters
 108. 2026-03-28 23:14: Marked `Browser-10.4 - Load And Runtime Traits On Normal Nodes` shipped after shared reference-backed runtime-trait selectors landed in `useAppStore`, Browser item/content-row derivation plus ViewerHost and ConsoleDock narrowed onto that shared load/visibility/error/part-row seam, and the Browser-10 docs now point at the canonical shipped phase record instead of a duplicate future copy
@@ -2269,7 +2282,6 @@ Decision:
       retire leftover Browser-only reference hierarchy compatibility seams after the unified owner model lands
       shipped result:
       live Browser and Console reference selection now stays on normal assembly/component/object owner targets, while the older `references-root` / `reference-category` / broad `reference-item` public contract is reduced to compatibility fallback behavior behind the owner-first path
-  - standalone phase docs:
   - shipped phase docs:
    - `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-10.1 - Unified Reference-Backed Project Owner Records.md`
    - `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-10.2 - Single Browser Tree Derivation.md`
@@ -2281,3 +2293,97 @@ Decision:
   - a clean Browser requires one hierarchy source of truth rather than two hierarchies that only look unified
 - standalone phase doc:
   - `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-10 - Unified Project Object Tree Source Of Truth.md`
+
+### [ ] Browser-11 - Real Project-Owned Reference Containers And Full Container Parity
+
+- next Browser follow-on after `Browser-10`
+- locked direction:
+  - stop keeping visible reference grouping parents as special adapted Browser containers
+  - if `References` stays visible, it must be a real project-owned `Assembly`
+  - if `Footpads`, `Shoes`, `Premade Foothooks`, and similar grouping parents stay visible, they must be real project-owned `Component` records
+  - visible Browser containers should either be real owners or disappear from the live Browser tree
+  - imported/reference-backed origin should remain metadata, not a reason to keep fake container rows
+- why this exists:
+  - `Browser-10` unified the visible tree, owner routing, and runtime-trait reads much more strongly
+  - but rows like `Shoes` can still look like normal components while failing full container parity because they are still adapted reference containers underneath
+  - this is the remaining gap between “one Browser tree” and “one honest container model”
+- first-pass direction:
+  - shipped in `Browser-11.1`:
+    promote `References` into a real effective assembly owner record and visible grouping rows into real effective component owner records in the shared store owner path
+  - shipped in `Browser-11.2`:
+    promoted category containers like `Shoes` now enter the normal Browser drag path and can reparent into and back out of authored assemblies through the shared owner-drop seam
+  - shipped in `Browser-11.3`:
+    the live Browser now keeps the locked surviving structure (`References`, `Footpads`, `Shoes`, and `Premade Foothooks`) and flattens removed historical grouping baggage like `User References` upward into the surviving `References` assembly instead of preserving one more cosmetic parent row
+  - shipped in `Browser-11.4`:
+    retired the remaining Browser-facing adapted container branches for surviving root/category rows so live owner targeting, category drag, expand, visibility, and `Load All` behavior now resolves from ordinary assembly/component owner rows while narrow object-level `referenceId` runtime adapters stay intact
+  - next in `Browser-11.5`:
+    let the first cross-parent drop into a target owner like `Assembly 1` land directly at the intended child slot instead of requiring an owner-row `into` drop followed by a second reorder drag
+  - preserve current reference-backed object metadata and runtime compatibility while container truth converges
+- proposed subphases:
+  - `Browser-11.1`:
+    shipped:
+    visible `References` and grouping parents now resolve through effective assembly/component owner records in the shared store owner path instead of ad hoc owner fallbacks
+    shipped phase doc:
+    `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-11.1 - Promote Visible Reference Containers Into Real Owner Records.md`
+  - `Browser-11.2`:
+    shipped:
+    promoted reference category containers now enter Browser drag as normal `component` owner targets and can reparent into and back out of authored assemblies through the shared move path, while `References` stays a drop target and later root-row drag decisions stay out of scope
+    shipped phase doc:
+    `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-11.2 - Container Drag And Reparent Parity.md`
+  - `Browser-11.3`:
+    shipped:
+    keep `References`, `Footpads`, `Shoes`, and `Premade Foothooks` as the surviving first-pass real structure, remove the live `User References` grouping row, and flatten those imported Browser rows directly under `References` while preserving ordinary owner actions on the surviving rows
+    shipped phase doc:
+    `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-11.3 - Grouping Label Survival And Tree Simplification.md`
+  - `Browser-11.4`:
+    shipped:
+    retired the remaining Browser-facing `referenceContainerKind`, `references-root`, and `reference-category` interaction/context-menu branches for surviving root/category rows while preserving only narrow object-level `referenceId` adapters where runtime/reference behavior still honestly needs them
+  - `Browser-11.5`:
+    implementation-ready:
+    polish cross-parent first-drop ordering so the existing visible landing-slot preview under a target owner like `Assembly 1` can finally commit as that intended ordered landing instead of still resolving through the current same-parent-only reorder rule plus owner `into` fallback
+- Questions / Decisions:
+
+  #### [ ] q1 - Should `References` remain visible as a real assembly, or should it disappear entirely once container truth is cleaned up?
+
+  Question:
+  - after Browser container parity lands, should `References` stay as a visible top-level real assembly, or should those objects move under other real project-owned parents so the label disappears?
+
+  Suggestion:
+  - only keep `References` if it reflects a real project-owned organizational truth the user still wants
+  - if it is only a legacy adaptation label, remove it instead of preserving it cosmetically
+
+  #### [ ] q2 - Should grouping labels like `Footpads`, `Shoes`, and `Premade Foothooks` survive as real components?
+
+  Question:
+  - when container truth converges, should these labels remain in Browser as real `Component` records, or should some of them be removed if they do not represent meaningful long-term project structure?
+
+  Suggestion:
+  - keep a grouping label only if it still gives the user meaningful project organization
+  - do not preserve old reference categories by default just because they existed in the adapted tree
+
+  #### [ ] q3 - Should promoted reference containers get full drag and reparent parity with authored containers?
+
+  Question:
+  - once `References` and category/grouping rows become real owner records, should they gain the same drag/reparent behavior as ordinary authored assemblies/components?
+
+  Suggestion:
+  - yes
+  - if a visible container is real, it should obey the same normal Browser container rules unless a specific product constraint says otherwise
+
+  #### [ ] q4 - Should non-real grouping parents be removed instead of kept as special Browser-only labels?
+
+  Question:
+  - if a visible parent row is not worth making into a real project-owned owner record, should Browser delete that parent row from the live tree instead of keeping one more special adapter?
+
+  Suggestion:
+  - yes
+  - real visible container or no visible container
+  - avoid a third hybrid state where a row looks structural but is still fake underneath
+- standalone phase doc:
+  - `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-11 - Real Project-Owned Reference Containers And Full Container Parity.md`
+- standalone phase docs:
+  - `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-11.1 - Promote Visible Reference Containers Into Real Owner Records.md`
+  - `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-11.2 - Container Drag And Reparent Parity.md`
+  - `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-11.3 - Grouping Label Survival And Tree Simplification.md`
+  - `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-11.4 - Adapted Container Seam Retirement.md`
+  - `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-11.5 - Cross-Parent First-Drop Ordering Parity.md`

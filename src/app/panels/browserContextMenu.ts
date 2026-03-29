@@ -48,9 +48,9 @@ export const buildBrowserContextMenuItems = (
   deps: BrowserContextMenuBuilderDeps,
 ): BrowserContextMenuItem[] => {
   const referenceContainerRootRow =
-    row.rowKind === 'assembly' && row.referenceContainerKind === 'root' ? row : null
+    row.rowKind === 'assembly' && row.rowId === 'reference-root' ? row : null
   const referenceContainerCategoryRow =
-    row.rowKind === 'component' && row.referenceContainerKind === 'category' ? row : null
+    row.rowKind === 'component' && row.referenceCategoryId != null ? row : null
   const referenceBackedObjectRow =
     row.rowKind === 'object' &&
     (row.contentOriginKind === 'imported-reference' || row.contentOriginKind === 'source-reference') &&
@@ -140,7 +140,7 @@ export const buildBrowserContextMenuItems = (
     }
   }
 
-  if (row.rowKind === 'references-root' || referenceContainerRootRow !== null) {
+  if (referenceContainerRootRow !== null) {
     const loadAllRow = referenceContainerRootRow ?? row
     items.unshift({
       id: 'references-root:load-all',
@@ -155,9 +155,9 @@ export const buildBrowserContextMenuItems = (
     })
   }
 
-  if (row.rowKind === 'reference-category' || referenceContainerCategoryRow !== null) {
-    const categoryRow = referenceContainerCategoryRow ?? (row.rowKind === 'reference-category' ? row : null)
-    const categoryId = categoryRow === null ? null : 'categoryId' in categoryRow ? categoryRow.categoryId : categoryRow.referenceCategoryId
+  if (referenceContainerCategoryRow !== null) {
+    const categoryRow = referenceContainerCategoryRow
+    const categoryId = categoryRow.referenceCategoryId
     if (categoryRow !== null && categoryId !== null && categoryId !== undefined) {
       items.unshift({
         id: `reference-category:${categoryId}:load-all`,

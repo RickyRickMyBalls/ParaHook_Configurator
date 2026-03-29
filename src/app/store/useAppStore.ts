@@ -1039,6 +1039,126 @@ const resolveReferenceCategoryLabel = (categoryId: ReferenceCategoryId): string 
     : REFERENCE_MANIFEST_CATEGORIES.find((category) => category.categoryId === categoryId)?.label ??
       categoryId
 
+const shouldRenderReferenceCategoryInBrowser = (categoryId: ReferenceCategoryId): boolean =>
+  categoryId !== USER_REFERENCE_CATEGORY_ID
+
+const resolveReferenceCategoryIdFromComponentId = (
+  componentId: string,
+): ReferenceCategoryId | null =>
+  [...REFERENCE_MANIFEST_CATEGORIES.map((category) => category.categoryId), USER_REFERENCE_CATEGORY_ID].find(
+    (categoryId) => buildReferenceCategoryRowId(categoryId) === componentId,
+  ) ?? null
+
+const selectVisibleReferenceCategoryIds = (): ReferenceCategoryId[] => {
+  return REFERENCE_MANIFEST_CATEGORIES.map((category) => category.categoryId)
+}
+
+const resolveReferenceContainerParentAssemblyId = (
+  projectContent: Pick<ProjectContentState, 'assembliesById'>,
+  rowId: string,
+): string | null =>
+  Object.values(projectContent.assembliesById).find((assembly) => assembly.childRowIds.includes(rowId))
+    ?.assemblyId ?? null
+
+type ReferenceContainerOwnerRecordSource = {
+  projectContent: Pick<ProjectContentState, 'assembliesById' | 'componentsById' | 'objectsById'>
+  referenceWorkspace: Pick<ReferenceWorkspaceState, 'importedReferencesById' | 'importedReferenceOrder'>
+}
+
+const buildReferenceRootAssemblyRecord = (
+  state: ReferenceContainerOwnerRecordSource,
+): ProjectAssemblyRecord => ({
+  assemblyId: REFERENCE_ROOT_ROW_ID,
+  label: 'References',
+  parentAssemblyId: resolveReferenceContainerParentAssemblyId(
+    state.projectContent,
+    REFERENCE_ROOT_ROW_ID,
+  ),
+  assemblySourceKind: 'runtime-root',
+  childRowIds: [
+    ...selectVisibleReferenceCategoryIds()
+      .map(buildReferenceCategoryRowId)
+      .filter(
+        (categoryRowId) =>
+          resolveReferenceContainerParentAssemblyId(state.projectContent, categoryRowId) === null,
+      ),
+    ...Object.values(state.projectContent.assembliesById)
+      .filter((assembly) => assembly.parentAssemblyId === REFERENCE_ROOT_ROW_ID)
+      .map((assembly) => assembly.assemblyId),
+    ...Object.values(state.projectContent.componentsById)
+      .filter((component) => component.parentAssemblyId === REFERENCE_ROOT_ROW_ID)
+      .map((component) => component.componentId),
+    ...Object.values(state.projectContent.objectsById)
+      .filter(
+        (objectRow) =>
+          objectRow.parentAssemblyId === REFERENCE_ROOT_ROW_ID && objectRow.parentComponentId === null,
+      )
+      .map((objectRow) => objectRow.objectId),
+    ...state.referenceWorkspace.importedReferenceOrder
+      .map((referenceId) => state.referenceWorkspace.importedReferencesById[referenceId] ?? null)
+      .filter((item): item is ImportedReferenceRecord => item !== null)
+      .filter(
+        (item) =>
+          item.parentComponentId === null &&
+          (item.parentAssemblyId === REFERENCE_ROOT_ROW_ID ||
+            (item.parentAssemblyId == null &&
+              !shouldRenderReferenceCategoryInBrowser(item.categoryId))),
+      )
+      .map((item) => buildImportedReferenceRowId(item.referenceId)),
+  ],
+})
+
+const buildReferenceCategoryComponentRecord = (
+  state: ReferenceContainerOwnerRecordSource,
+  categoryId: ReferenceCategoryId,
+): ProjectComponentRecord => ({
+  componentId: buildReferenceCategoryRowId(categoryId),
+  parentAssemblyId:
+    resolveReferenceContainerParentAssemblyId(
+      state.projectContent,
+      buildReferenceCategoryRowId(categoryId),
+    ) ?? REFERENCE_ROOT_ROW_ID,
+  ownerGraphDocumentId: null,
+  sourceGraphDocumentId: null,
+  sourceOutputEntryId: null,
+  sourceNodeId: null,
+  label: resolveReferenceCategoryLabel(categoryId),
+  componentSourceKind: 'receive-link',
+  resolutionState: 'resolved',
+  receiveId: null,
+  childObjectIds: Object.values(state.projectContent.objectsById)
+    .filter((objectRow) => objectRow.parentComponentId === buildReferenceCategoryRowId(categoryId))
+    .map((objectRow) => objectRow.objectId),
+})
+
+const resolveProjectAssemblyRecord = (
+  state: Pick<AppState, 'projectContent' | 'referenceWorkspace'>,
+  assemblyId: string,
+): ProjectAssemblyRecord | null => {
+  const assembly = state.projectContent.assembliesById[assemblyId]
+  if (assembly !== undefined) {
+    return assembly
+  }
+  if (assemblyId === REFERENCE_ROOT_ROW_ID) {
+    return buildReferenceRootAssemblyRecord(state)
+  }
+  return null
+}
+
+const resolveProjectComponentRecord = (
+  state: Pick<AppState, 'projectContent' | 'referenceWorkspace'>,
+  componentId: string,
+): ProjectComponentRecord | null => {
+  const component = state.projectContent.componentsById[componentId]
+  if (component !== undefined) {
+    return component
+  }
+  const referenceCategoryId = resolveReferenceCategoryIdFromComponentId(componentId)
+  return referenceCategoryId === null
+    ? null
+    : buildReferenceCategoryComponentRecord(state, referenceCategoryId)
+}
+
 const resolveReferenceRuntimeTraitsFromWorkspace = (
   referenceWorkspace: ReferenceWorkspaceRuntimeTraitSource,
   referenceId: string,
@@ -1103,6 +1223,7 @@ const collectReferenceIdsForAssemblySelection = (
         return false
       }
       return (
+        (record.parentAssemblyId == null && record.parentComponentId == null) ||
         record.parentAssemblyId === REFERENCE_ROOT_ROW_ID ||
         record.parentComponentId === buildReferenceCategoryRowId(record.categoryId)
       )
@@ -1132,12 +1253,13 @@ const collectReferenceIdsForAssemblySelection = (
         visitAssembly(childAssembly.assemblyId)
         return
       }
-      state.referenceWorkspace.importedReferenceOrder.forEach((referenceId) => {
-        const record = state.referenceWorkspace.importedReferencesById[referenceId]
-        if (record?.parentComponentId === childRowId) {
-          referenceIdSet.add(referenceId)
-        }
-      })
+      const componentRecord = resolveProjectComponentRecord(state, childRowId)
+      if (componentRecord !== null) {
+        resolveReferenceIdsForWorkspaceTarget(state, {
+          kind: 'component',
+          componentId: componentRecord.componentId,
+        }).forEach((referenceId) => referenceIdSet.add(referenceId))
+      }
     })
   }
 
@@ -1171,6 +1293,19 @@ export const resolveReferenceIdsForWorkspaceTarget = (
     return importedReference === null ? [] : [importedReference.referenceId]
   }
   if (target.kind === 'component') {
+    const referenceCategoryId = resolveReferenceCategoryIdFromComponentId(target.componentId)
+    if (referenceCategoryId !== null) {
+      return state.referenceWorkspace.importedReferenceOrder.filter((referenceId) => {
+        const record = state.referenceWorkspace.importedReferencesById[referenceId]
+        if (record === undefined || record.categoryId !== referenceCategoryId) {
+          return false
+        }
+        return (
+          (record.parentAssemblyId == null && record.parentComponentId == null) ||
+          record.parentComponentId === target.componentId
+        )
+      })
+    }
     return state.referenceWorkspace.importedReferenceOrder.filter((referenceId) => {
       const record = state.referenceWorkspace.importedReferencesById[referenceId]
       return record?.parentComponentId === target.componentId
@@ -1193,37 +1328,33 @@ const resolveContentOwnerParentTarget = (
   'parentOwnerId' | 'parentOwnerKind' | 'parentOwnerLabel'
 > => {
   if (options.parentComponentId !== undefined && options.parentComponentId !== null) {
-    const parentComponent = state.projectContent.componentsById[options.parentComponentId] ?? null
-    if (parentComponent === null) {
-      const importedCategoryId = [...REFERENCE_MANIFEST_CATEGORIES.map((category) => category.categoryId), USER_REFERENCE_CATEGORY_ID]
-        .find((categoryId) => buildReferenceCategoryRowId(categoryId) === options.parentComponentId)
-      if (importedCategoryId !== undefined) {
-        return {
-          parentOwnerId: options.parentComponentId,
-          parentOwnerKind: 'component',
-          parentOwnerLabel: resolveReferenceCategoryLabel(importedCategoryId),
-        }
+    const parentComponent = resolveProjectComponentRecord(state, options.parentComponentId)
+    if (parentComponent !== null) {
+      return {
+        parentOwnerId: options.parentComponentId,
+        parentOwnerKind: 'component',
+        parentOwnerLabel: parentComponent.label,
       }
     }
     return {
       parentOwnerId: options.parentComponentId,
       parentOwnerKind: 'component',
-      parentOwnerLabel: parentComponent?.label ?? options.parentComponentId,
+      parentOwnerLabel: options.parentComponentId,
     }
   }
   if (options.parentAssemblyId !== undefined && options.parentAssemblyId !== null) {
-    const parentAssembly = state.projectContent.assembliesById[options.parentAssemblyId] ?? null
-    if (parentAssembly === null && options.parentAssemblyId === REFERENCE_ROOT_ROW_ID) {
+    const parentAssembly = resolveProjectAssemblyRecord(state, options.parentAssemblyId)
+    if (parentAssembly !== null) {
       return {
-        parentOwnerId: REFERENCE_ROOT_ROW_ID,
+        parentOwnerId: options.parentAssemblyId,
         parentOwnerKind: 'assembly',
-        parentOwnerLabel: 'References',
+        parentOwnerLabel: parentAssembly.label,
       }
     }
     return {
       parentOwnerId: options.parentAssemblyId,
       parentOwnerKind: 'assembly',
-      parentOwnerLabel: parentAssembly?.label ?? options.parentAssemblyId,
+      parentOwnerLabel: options.parentAssemblyId,
     }
   }
   return {
@@ -1242,8 +1373,8 @@ export const resolveWorkspaceSelectedContentOwnerTarget = (
   }
 
   if (target.kind === 'assembly') {
-    const assembly = state.projectContent.assembliesById[target.assemblyId]
-    if (assembly !== undefined) {
+    const assembly = resolveProjectAssemblyRecord(state, target.assemblyId)
+    if (assembly !== null) {
       return {
         ownerKind: 'assembly',
         ownerId: assembly.assemblyId,
@@ -1254,31 +1385,16 @@ export const resolveWorkspaceSelectedContentOwnerTarget = (
         fallbackGraphDocumentId: null,
         supportsViewerTransform: false,
         supportsSelectAll: true,
-        supportsRename: true,
+        supportsRename: assembly.assemblySourceKind === 'authored',
         supportsDelete: assembly.assemblySourceKind === 'authored',
-      }
-    }
-    if (target.assemblyId === REFERENCE_ROOT_ROW_ID) {
-      return {
-        ownerKind: 'assembly',
-        ownerId: REFERENCE_ROOT_ROW_ID,
-        ownerLabel: 'References',
-        parentOwnerId: null,
-        parentOwnerKind: null,
-        parentOwnerLabel: null,
-        fallbackGraphDocumentId: null,
-        supportsViewerTransform: false,
-        supportsSelectAll: true,
-        supportsRename: false,
-        supportsDelete: false,
       }
     }
     return null
   }
 
   if (target.kind === 'component') {
-    const component = state.projectContent.componentsById[target.componentId]
-    if (component !== undefined) {
+    const component = resolveProjectComponentRecord(state, target.componentId)
+    if (component !== null) {
       const authored = component.componentSourceKind === 'authored'
       return {
         ownerKind: 'component',
@@ -1292,23 +1408,6 @@ export const resolveWorkspaceSelectedContentOwnerTarget = (
         supportsSelectAll: true,
         supportsRename: authored,
         supportsDelete: authored,
-      }
-    }
-    const referenceCategoryId = [...REFERENCE_MANIFEST_CATEGORIES.map((category) => category.categoryId), USER_REFERENCE_CATEGORY_ID]
-      .find((categoryId) => buildReferenceCategoryRowId(categoryId) === target.componentId)
-    if (referenceCategoryId !== undefined) {
-      return {
-        ownerKind: 'component',
-        ownerId: target.componentId,
-        ownerLabel: resolveReferenceCategoryLabel(referenceCategoryId),
-        ...resolveContentOwnerParentTarget(state, {
-          parentAssemblyId: REFERENCE_ROOT_ROW_ID,
-        }),
-        fallbackGraphDocumentId: null,
-        supportsViewerTransform: false,
-        supportsSelectAll: true,
-        supportsRename: false,
-        supportsDelete: false,
       }
     }
     return null
@@ -1387,8 +1486,8 @@ export const resolveOwnedContentSelection = (
   }
 
   if (target.kind === 'component') {
-    const componentRecord = state.projectContent.componentsById[target.componentId]
-    if (componentRecord !== undefined) {
+    const componentRecord = resolveProjectComponentRecord(state, target.componentId)
+    if (componentRecord !== null) {
       const partKeySet = new Set<string>()
       const groupedRowIds: string[] = []
       for (const objectId of componentRecord.childObjectIds) {
@@ -1425,8 +1524,8 @@ export const resolveOwnedContentSelection = (
     return null
   }
 
-  const assemblyRecord = state.projectContent.assembliesById[target.assemblyId]
-  if (assemblyRecord === undefined && target.assemblyId !== REFERENCE_ROOT_ROW_ID) {
+  const assemblyRecord = resolveProjectAssemblyRecord(state, target.assemblyId)
+  if (assemblyRecord === null) {
     return null
   }
   const partKeySet = new Set<string>()
@@ -1435,33 +1534,23 @@ export const resolveOwnedContentSelection = (
     resolveReferenceIdsForWorkspaceTarget(state, { kind: 'assembly', assemblyId }).forEach((referenceId) => {
       const record = state.referenceWorkspace.importedReferencesById[referenceId]
       if (record?.parentComponentId === null) {
-        groupedRowIds.push(buildImportedReferenceRowId(referenceId))
+          groupedRowIds.push(buildImportedReferenceRowId(referenceId))
       }
     })
 
-    const currentAssembly = state.projectContent.assembliesById[assemblyId]
-    if (currentAssembly === undefined) {
-      if (assemblyId === REFERENCE_ROOT_ROW_ID) {
-        const referenceCategoryRowIds = new Set<string>()
-        resolveReferenceIdsForWorkspaceTarget(state, { kind: 'assembly', assemblyId }).forEach((referenceId) => {
-          const record = state.referenceWorkspace.importedReferencesById[referenceId]
-          if (record?.parentComponentId) {
-            referenceCategoryRowIds.add(record.parentComponentId)
-          }
-        })
-        referenceCategoryRowIds.forEach((rowId) => groupedRowIds.push(rowId))
-      }
+    const currentAssembly = resolveProjectAssemblyRecord(state, assemblyId)
+    if (currentAssembly === null) {
       return
     }
     currentAssembly.childRowIds.forEach((childRowId) => {
-      const childAssembly = state.projectContent.assembliesById[childRowId]
-      if (childAssembly !== undefined) {
+      const childAssembly = resolveProjectAssemblyRecord(state, childRowId)
+      if (childAssembly !== null) {
         groupedRowIds.push(childAssembly.assemblyId)
         visitAssembly(childAssembly.assemblyId)
         return
       }
-      const componentRecord = state.projectContent.componentsById[childRowId]
-      if (componentRecord !== undefined) {
+      const componentRecord = resolveProjectComponentRecord(state, childRowId)
+      if (componentRecord !== null) {
         groupedRowIds.push(componentRecord.componentId)
         resolveReferenceIdsForWorkspaceTarget(state, {
           kind: 'component',
@@ -1505,8 +1594,8 @@ export const resolveSingleTargetContentSelection = (
   }
 
   if (target.kind === 'component') {
-    const componentRecord = state.projectContent.componentsById[target.componentId]
-    if (componentRecord !== undefined) {
+    const componentRecord = resolveProjectComponentRecord(state, target.componentId)
+    if (componentRecord !== null) {
       return {
         rootRowId: componentRecord.componentId,
         rootKind: 'component',
@@ -1529,8 +1618,8 @@ export const resolveSingleTargetContentSelection = (
     return null
   }
 
-  const assemblyRecord = state.projectContent.assembliesById[target.assemblyId]
-  if (assemblyRecord === undefined && target.assemblyId !== REFERENCE_ROOT_ROW_ID) {
+  const assemblyRecord = resolveProjectAssemblyRecord(state, target.assemblyId)
+  if (assemblyRecord === null) {
     return null
   }
   return {
@@ -1580,7 +1669,11 @@ const getImportedReferenceItemsForParent = (
     .filter((item): item is ImportedReferenceRecord => item !== null)
     .filter((item) =>
       parentTarget.kind === 'assembly'
-        ? item.parentComponentId === null && item.parentAssemblyId === parentTarget.assemblyId
+        ? item.parentComponentId === null &&
+          (item.parentAssemblyId === parentTarget.assemblyId ||
+            (parentTarget.assemblyId === REFERENCE_ROOT_ROW_ID &&
+              item.parentAssemblyId == null &&
+              !shouldRenderReferenceCategoryInBrowser(item.categoryId)))
         : item.parentComponentId === parentTarget.componentId,
     )
 
@@ -1589,14 +1682,14 @@ const buildDefaultContentOrderForParent = (
   parentTarget: ProjectContentContainerTarget,
 ): string[] => {
   if (parentTarget.kind === 'assembly') {
-    const parentAssembly = state.projectContent.assembliesById[parentTarget.assemblyId]
+    const parentAssembly = resolveProjectAssemblyRecord(state, parentTarget.assemblyId)
     const authoredChildIds = parentAssembly?.childRowIds ?? []
     const importedChildIds = getImportedReferenceItemsForParent(state, parentTarget).map((item) =>
       buildImportedReferenceRowId(item.referenceId),
     )
     return [...authoredChildIds, ...importedChildIds]
   }
-  const parentComponent = state.projectContent.componentsById[parentTarget.componentId]
+  const parentComponent = resolveProjectComponentRecord(state, parentTarget.componentId)
   const authoredChildIds = parentComponent?.childObjectIds ?? []
   const importedChildIds = getImportedReferenceItemsForParent(state, parentTarget).map((item) =>
     buildImportedReferenceRowId(item.referenceId),
@@ -1664,8 +1757,8 @@ const resolveProjectContentOwnerRecord = (
   target: ProjectContentOwnerTarget,
 ): ProjectContentOwnerRecord | null => {
   if (target.kind === 'assembly') {
-    const assembly = state.projectContent.assembliesById[target.assemblyId]
-    if (assembly === undefined) {
+    const assembly = resolveProjectAssemblyRecord(state, target.assemblyId)
+    if (assembly === null) {
       return null
     }
     return {
@@ -1675,12 +1768,12 @@ const resolveProjectContentOwnerRecord = (
         assembly.parentAssemblyId == null
           ? null
           : { kind: 'assembly', assemblyId: assembly.parentAssemblyId },
-      draggable: assembly.assemblySourceKind === 'authored',
+      draggable: assembly.assemblySourceKind === 'authored' && assembly.assemblyId !== REFERENCE_ROOT_ROW_ID,
     }
   }
   if (target.kind === 'component') {
-    const component = state.projectContent.componentsById[target.componentId]
-    if (component === undefined) {
+    const component = resolveProjectComponentRecord(state, target.componentId)
+    if (component === null) {
       return null
     }
     return {
@@ -1690,7 +1783,9 @@ const resolveProjectContentOwnerRecord = (
         component.parentAssemblyId == null
           ? null
           : { kind: 'assembly', assemblyId: component.parentAssemblyId },
-      draggable: component.componentSourceKind === 'authored',
+      draggable:
+        component.componentSourceKind === 'authored' ||
+        resolveReferenceCategoryIdFromComponentId(component.componentId) !== null,
     }
   }
   if (target.kind === 'imported-reference') {
@@ -1813,6 +1908,17 @@ export const resolveProjectContentOwnerDrop = (
     targetRecord.kind === 'assembly'
       ? { kind: 'assembly', assemblyId: targetRecord.ownerId }
       : { kind: 'component', componentId: targetRecord.ownerId }
+
+  if (
+    targetRecord.kind === 'assembly' &&
+    targetRecord.ownerId === REFERENCE_ROOT_ROW_ID &&
+    !(
+      draggedRecord.kind === 'component' &&
+      resolveReferenceCategoryIdFromComponentId(draggedRecord.ownerId) !== null
+    )
+  ) {
+    return { valid: false, reason: 'illegal-target' }
+  }
 
   if (areProjectContentContainerTargetsEqual(draggedRecord.parentTarget, targetContainer)) {
     return { valid: false, reason: 'same-parent-into' }
@@ -4175,6 +4281,12 @@ export const useAppStore = create<AppState>((set, get) => ({
           }
         }
         if (resolution.parentTarget.kind === 'assembly') {
+          if (resolution.parentTarget.assemblyId === REFERENCE_ROOT_ROW_ID) {
+            return {
+              referenceWorkspace: nextReferenceWorkspace,
+              workspaceSelection: nextWorkspaceSelection,
+            }
+          }
           const parentAssembly = state.projectContent.assembliesById[resolution.parentTarget.assemblyId]
           if (parentAssembly === undefined) {
             moved = false
@@ -4202,6 +4314,12 @@ export const useAppStore = create<AppState>((set, get) => ({
         }
         const parentComponent = state.projectContent.componentsById[resolution.parentTarget.componentId]
         if (parentComponent === undefined) {
+          if (resolveReferenceCategoryIdFromComponentId(resolution.parentTarget.componentId) !== null) {
+            return {
+              referenceWorkspace: nextReferenceWorkspace,
+              workspaceSelection: nextWorkspaceSelection,
+            }
+          }
           moved = false
           return state
         }
@@ -4256,11 +4374,11 @@ export const useAppStore = create<AppState>((set, get) => ({
       }
 
       if (resolution.parentTarget.kind === 'assembly') {
-        const parentAssembly = nextProjectContent.assembliesById[resolution.parentTarget.assemblyId]
-        if (parentAssembly === undefined) {
-          return state
-        }
-        if (draggedRecord.kind !== 'imported-reference') {
+        if (resolution.parentTarget.assemblyId !== REFERENCE_ROOT_ROW_ID && draggedRecord.kind !== 'imported-reference') {
+          const parentAssembly = nextProjectContent.assembliesById[resolution.parentTarget.assemblyId]
+          if (parentAssembly === undefined) {
+            return state
+          }
           nextProjectContent = {
             ...nextProjectContent,
             assembliesById: {
@@ -4275,17 +4393,20 @@ export const useAppStore = create<AppState>((set, get) => ({
       } else if (draggedRecord.kind !== 'imported-reference') {
         const parentComponent = nextProjectContent.componentsById[resolution.parentTarget.componentId]
         if (parentComponent === undefined) {
-          return state
-        }
-        nextProjectContent = {
-          ...nextProjectContent,
-          componentsById: {
-            ...nextProjectContent.componentsById,
-            [parentComponent.componentId]: {
-              ...parentComponent,
-              childObjectIds: [...parentComponent.childObjectIds, draggedRecord.ownerId],
+          if (resolveReferenceCategoryIdFromComponentId(resolution.parentTarget.componentId) === null) {
+            return state
+          }
+        } else {
+          nextProjectContent = {
+            ...nextProjectContent,
+            componentsById: {
+              ...nextProjectContent.componentsById,
+              [parentComponent.componentId]: {
+                ...parentComponent,
+                childObjectIds: [...parentComponent.childObjectIds, draggedRecord.ownerId],
+              },
             },
-          },
+          }
         }
       }
 
@@ -4335,20 +4456,25 @@ export const useAppStore = create<AppState>((set, get) => ({
       } else if (draggedRecord.kind === 'component') {
         const component = nextProjectContent.componentsById[draggedRecord.ownerId]
         if (component === undefined) {
-          return state
-        }
-        nextProjectContent = {
-          ...nextProjectContent,
-          componentsById: {
-            ...nextProjectContent.componentsById,
-            [component.componentId]: {
-              ...component,
-              parentAssemblyId:
-                resolution.parentTarget.kind === 'assembly'
-                  ? resolution.parentTarget.assemblyId
-                  : component.parentAssemblyId ?? null,
+          if (resolveReferenceCategoryIdFromComponentId(draggedRecord.ownerId) !== null) {
+            // Effective reference-category containers derive parentage from assembly child row order.
+          } else {
+            return state
+          }
+        } else {
+          nextProjectContent = {
+            ...nextProjectContent,
+            componentsById: {
+              ...nextProjectContent.componentsById,
+              [component.componentId]: {
+                ...component,
+                parentAssemblyId:
+                  resolution.parentTarget.kind === 'assembly'
+                    ? resolution.parentTarget.assemblyId
+                    : component.parentAssemblyId ?? null,
+              },
             },
-          },
+          }
         }
       } else if (draggedRecord.kind === 'object') {
         const objectRow = nextProjectContent.objectsById[draggedRecord.ownerId]
@@ -6405,11 +6531,21 @@ export const selectCurrentProjectRootComponents = (
 }
 
 export const selectCurrentProjectTopLevelAssemblies = (
-  state: Pick<AppState, 'projectContent'>,
+  state: Pick<AppState, 'projectContent'> & {
+    referenceWorkspace?: Pick<ReferenceWorkspaceState, 'importedReferencesById' | 'importedReferenceOrder'>
+  },
 ): ProjectAssemblyRecord[] =>
-  Object.values(state.projectContent.assembliesById).filter(
-    (assembly) => assembly.parentAssemblyId == null,
-  )
+  [
+    ...(state.referenceWorkspace === undefined
+      ? []
+      : [buildReferenceRootAssemblyRecord({
+          projectContent: state.projectContent,
+          referenceWorkspace: state.referenceWorkspace,
+        })].filter((assembly) => assembly.parentAssemblyId == null)),
+    ...Object.values(state.projectContent.assembliesById).filter(
+      (assembly) => assembly.parentAssemblyId == null,
+    ),
+  ]
 
 const selectProjectObjectsForComponent = (
   state: Pick<AppState, 'projectContent'>,
@@ -6519,7 +6655,9 @@ export const selectCurrentProjectContentBrowserRows = (
     slotId === null ? [] : [slotId, `${graphDocumentId}:${slotId}`]
   const resolveContentVisibility = (partKeys: readonly string[]): boolean =>
     partKeys.length > 0 && partKeys.some((partKey) => partsVisibility[partKey] ?? true)
-  const topLevelAssemblies = selectCurrentProjectTopLevelAssemblies(state)
+  const topLevelAssemblies = selectCurrentProjectTopLevelAssemblies(state).filter(
+    (assembly) => assembly.assemblyId !== REFERENCE_ROOT_ROW_ID,
+  )
   const rows: ProjectContentBrowserRowVm[] = []
   const graphLabelByDocumentId = new Map(
     state.currentProject.graphDocuments.map((documentEntry) => [
@@ -6534,34 +6672,27 @@ export const selectCurrentProjectContentBrowserRows = (
         .map((item) => buildReferenceWorkspaceBrowserItemVm(referenceWorkspace, item))
     : []
   const referenceCategories = includeReferenceHierarchy
-    ? [
-        ...REFERENCE_MANIFEST_CATEGORIES.map((category) => ({
-          categoryId: category.categoryId,
-          label: category.label,
-          emptyLabel: 'No loadable references yet.',
-        })),
-        ...(allReferenceItems.some((item) => item.categoryId === USER_REFERENCE_CATEGORY_ID)
-          ? [
-              {
-                categoryId: USER_REFERENCE_CATEGORY_ID,
-                label: USER_REFERENCE_CATEGORY_LABEL,
-                emptyLabel: '',
-              },
-            ]
-          : []),
-      ]
+    ? REFERENCE_MANIFEST_CATEGORIES.map((category) => ({
+        categoryId: category.categoryId,
+        label: category.label,
+        emptyLabel: 'No loadable references yet.',
+      }))
     : []
   const totalShelfReferenceCount = allReferenceItems.filter(
     (item) => item.parentAssemblyId == null && item.parentComponentId == null,
   ).length
 
   if (includeReferenceHierarchy) {
+    const referenceRootAssembly = buildReferenceRootAssemblyRecord({
+      projectContent: state.projectContent,
+      referenceWorkspace,
+    })
     rows.push({
-      rowId: REFERENCE_ROOT_ROW_ID,
+      rowId: referenceRootAssembly.assemblyId,
       kind: 'assembly',
-      label: 'References',
+      label: referenceRootAssembly.label,
       meta: totalShelfReferenceCount === 1 ? '1 item' : `${totalShelfReferenceCount} items`,
-      parentAssemblyId: null,
+      parentAssemblyId: referenceRootAssembly.parentAssemblyId ?? null,
       isVisible: allReferenceItems.some((item) => item.isVisible && item.loadState === 'loaded'),
       visibilityPartKeys: [],
       buildState: 'done',
@@ -6576,6 +6707,13 @@ export const selectCurrentProjectContentBrowserRows = (
     })
 
     referenceCategories.forEach((category) => {
+      const categoryRecord = buildReferenceCategoryComponentRecord(
+        {
+          projectContent: state.projectContent,
+          referenceWorkspace,
+        },
+        category.categoryId,
+      )
       const shelfItems = allReferenceItems.filter(
         (item) =>
           item.categoryId === category.categoryId &&
@@ -6583,11 +6721,11 @@ export const selectCurrentProjectContentBrowserRows = (
           item.parentComponentId == null,
       )
       rows.push({
-        rowId: buildReferenceCategoryRowId(category.categoryId),
+        rowId: categoryRecord.componentId,
         kind: 'component',
-        label: category.label,
+        label: categoryRecord.label,
         meta: shelfItems.length === 1 ? '1 item' : `${shelfItems.length} items`,
-        parentAssemblyId: REFERENCE_ROOT_ROW_ID,
+        parentAssemblyId: categoryRecord.parentAssemblyId ?? REFERENCE_ROOT_ROW_ID,
         isVisible: shelfItems.some((item) => item.isVisible && item.loadState === 'loaded'),
         visibilityPartKeys: [],
         buildState: 'done',
@@ -6595,15 +6733,15 @@ export const selectCurrentProjectContentBrowserRows = (
         rebuildGraphDocumentIds: [],
         statusLabel: '',
         statusTone: 'quiet',
-        ownerGraphDocumentId: null,
-        sourceGraphDocumentId: null,
-        sourceOutputEntryId: null,
-        componentSourceKind: 'receive-link',
-        resolutionState: 'resolved',
-        receiveId: null,
-        childObjectCount: shelfItems.length,
+        ownerGraphDocumentId: categoryRecord.ownerGraphDocumentId,
+        sourceGraphDocumentId: categoryRecord.sourceGraphDocumentId,
+        sourceOutputEntryId: categoryRecord.sourceOutputEntryId,
+        componentSourceKind: categoryRecord.componentSourceKind,
+        resolutionState: categoryRecord.resolutionState,
+        receiveId: categoryRecord.receiveId,
+        childObjectCount: categoryRecord.childObjectIds.length,
         slotId: null,
-        sourceNodeId: null,
+        sourceNodeId: categoryRecord.sourceNodeId,
         highlightViewerKey: null,
         authoringGraphDocumentId: null,
         authoringNodeId: null,
@@ -6649,6 +6787,59 @@ export const selectCurrentProjectContentBrowserRows = (
         })
       })
     })
+
+    allReferenceItems
+      .filter(
+        (item) =>
+          item.parentComponentId == null &&
+          (item.parentAssemblyId === REFERENCE_ROOT_ROW_ID ||
+            (item.parentAssemblyId == null &&
+              !shouldRenderReferenceCategoryInBrowser(item.categoryId))),
+      )
+      .forEach((item) => {
+        rows.push({
+          rowId: item.rowId,
+          kind: 'object',
+          label: item.label,
+          meta: item.fileType.toUpperCase(),
+          parentAssemblyId: REFERENCE_ROOT_ROW_ID,
+          parentComponentId: null,
+          isVisible: item.isVisible,
+          visibilityPartKeys: [],
+          buildState: 'done',
+          buildStateLabel:
+            item.parentAssemblyId != null || item.parentComponentId != null
+              ? 'Imported'
+              : item.sourceKind === 'manifest'
+                ? 'Library'
+                : 'Imported',
+          rebuildGraphDocumentIds: [],
+          statusLabel: '',
+          statusTone: 'quiet',
+          ownerGraphDocumentId: null,
+          objectSourceKind: null,
+          sourceGraphDocumentId: null,
+          sourceOutputEntryId: null,
+          slotId: null,
+          sourceNodeId: null,
+          resolutionState: null,
+          highlightViewerKey: null,
+          authoringGraphDocumentId: null,
+          authoringNodeId: null,
+          contentOriginKind:
+            item.parentAssemblyId != null || item.parentComponentId != null
+              ? 'imported-reference'
+              : 'source-reference',
+          referenceId: item.referenceId,
+          referenceSourceKind: item.sourceKind,
+          referenceCategoryId: item.categoryId,
+          referenceLoadState: item.loadState,
+          fileType: item.fileType,
+          assetPath: item.assetPath,
+          errorMessage: item.errorMessage,
+          partRows: item.parts,
+        })
+      })
   }
   const pushAssemblyBranchRows = (assembly: ProjectAssemblyRecord) => {
     const assemblyStartIndex = rows.length

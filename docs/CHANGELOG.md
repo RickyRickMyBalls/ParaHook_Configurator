@@ -65,6 +65,71 @@ Do not use it for:
 
 ## Doc Body
 
+### [711] - 2026-03-29 09:34 - `BRW - Browser-11.4 - Adapted Container Seam Retirement`
+<!-- ENTRY 711 -->
+HUMAN SUMMARY: `This landed the Browser-11.4 cleanup by retiring the last Browser-facing adapted-container branches for \`References\` and grouping rows like \`Shoes\`, switching live root/category owner handling, expand, visibility, and context-menu behavior onto ordinary assembly/component rows, and leaving only the narrower object-level \`referenceId\` adapters where runtime behavior still honestly needs them.`
+#### Scope / Constraints Honored
+- Kept the change focused on Browser-facing container seam retirement instead of widening into deeper runtime/store redesign or broader object-level reference adapter removal.
+- Preserved narrow object-level `referenceId` compatibility for load, retry, remove, and transform behavior where runtime/reference actions still legitimately depend on it.
+- Left the settled `11.3` tree shape intact while removing the remaining root/category interaction and context-menu dependence on adapted container tags.
+#### What Changed
+- Updated `src/app/panels/useBrowserPanelController.ts` so live container owner targeting, draggable-row gating, and default import landing fallback now treat surviving root/category rows through their normal assembly/component owner identity instead of `referenceContainerKind` checks.
+- Updated `src/app/panels/browserInteractions.ts` so expand/collapse and category visibility toggles now route from owner-style `assembly` / `component` rows for `References` and grouping parents, without requiring the older `references-root`, `reference-category`, or container-kind interaction branches.
+- Updated `src/app/panels/browserContextMenu.ts` so `Load All` and ordinary owner actions for `References` and surviving grouping rows now resolve from normal owner rows instead of the older adapted container menu variants.
+- Updated `src/app/panels/browserInteractions.test.ts` and `src/app/panels/browserContextMenu.test.ts` so the focused Browser regression suite now exercises owner-style root/category rows as the live Browser contract.
+#### Verification
+- `npm.cmd test -- --run src/app/panels/browserInteractions.test.ts src/app/panels/browserContextMenu.test.ts src/app/panels/BrowserPanel.test.tsx src/app/store/useAppStore.test.ts src/app/panels/selectBrowserTreeRows.test.ts`
+- `npm.cmd run build`
+
+### [710] - 2026-03-29 09:21 - `BRW - Browser-11.3 - Grouping Label Survival And Tree Simplification`
+<!-- ENTRY 710 -->
+HUMAN SUMMARY: `This landed the first Browser-11.3 tree-simplification cut by deleting the live \`User References\` grouping row from the Browser, flattening those imported object rows directly under the surviving real \`References\` assembly, and keeping the locked surviving grouping labels (`References`, \`Footpads\`, \`Shoes\`, and \`Premade Foothooks\`) as the honest first-pass project structure.`
+#### Scope / Constraints Honored
+- Kept the change narrowly focused on shipped `11.3` label survival and tree simplification instead of widening into Browser-11.4 seam retirement or runtime/load-system redesign.
+- Preserved the underlying `referenceWorkspace` compatibility tree and `user-references` category metadata for runtime/reference actions while simplifying only the live Browser-facing tree.
+- Kept the locked surviving grouping structure intact by leaving `References`, `Footpads`, `Shoes`, and `Premade Foothooks` visible as real owners in the Browser.
+#### What Changed
+- Updated `src/app/store/useAppStore.ts` so Browser-facing reference category derivation no longer renders `user-references` as a visible grouping parent, the effective `References` assembly record now owns those flattened imported rows directly, and shared parent-order helpers now treat those ungrouped imported references as root children under `References`.
+- Updated `src/app/panels/selectBrowserTreeRows.ts` so the compatibility fallback path also stops emitting a visible `User References` component row and instead places imported shelf rows directly under `References`.
+- Updated `src/app/panels/BrowserPanel.test.tsx`, `src/app/panels/selectBrowserTreeRows.test.ts`, and `src/app/store/useAppStore.test.ts` with focused regressions covering the removed `User References` label, the flattened Browser row shape, and the preserved imported-object actions.
+#### Verification
+- `npm.cmd test -- --run src/app/store/useAppStore.test.ts src/app/panels/selectBrowserTreeRows.test.ts src/app/panels/BrowserPanel.test.tsx src/app/panels/browserInteractions.test.ts src/app/panels/browserContextMenu.test.ts`
+- `npm.cmd run build`
+
+### [709] - 2026-03-29 08:59 - `BRW - Browser-11.2 - Container Drag And Reparent Parity`
+<!-- ENTRY 709 -->
+HUMAN SUMMARY: `This landed the first Browser-11.2 drag-parity cut by letting promoted reference category containers like \`Shoes\` enter the normal Browser component drag path, teaching the shared store owner seam to derive their effective parentage from real assembly child order, and allowing those category rows to move into and back out of authored assemblies without reintroducing a second reference-only drag contract.`
+#### Scope / Constraints Honored
+- Kept the change focused on promoted category-container move semantics instead of mixing in grouping-label survival, full root-row drag parity, or later adapted-container seam retirement.
+- Preserved current reference/runtime affordances such as `Load All`, category expand/collapse, and existing compatibility adapters while removing the controller-only drag inequality.
+- Avoided inventing a new reference-container drag target kind by reusing the shared `assembly` / `component` owner-drop contract.
+#### What Changed
+- Updated `src/app/panels/useBrowserPanelController.ts` so promoted reference category rows now resolve as normal `component` drag targets, while `References` stays available as an owner drop target through a separate non-drag-gated owner-target resolver.
+- Updated `src/app/store/useAppStore.ts` so visible reference root/category owner records derive effective parent assembly truth from real assembly `childRowIds`, reference category owner records become draggable through the shared owner-record seam, and the shared move/reorder path now supports those effective category components moving into and back out of authored assemblies.
+- Updated `src/app/store/useAppStore.ts` so assembly-level grouped reference selection now follows promoted category parents through the shared component owner path instead of only already-parented imported rows.
+- Updated `src/app/panels/BrowserPanel.test.tsx` and `src/app/store/useAppStore.test.ts` with focused regressions proving `Shoes`-style category rows can drag into `Assembly 1` in the Browser harness and move into/out of authored assemblies through the real store seam.
+#### Verification
+- `npm.cmd test -- --run src/app/store/useAppStore.test.ts src/app/panels/BrowserPanel.test.tsx`
+- `npm.cmd test -- --run src/app/panels/selectBrowserTreeRows.test.ts src/app/panels/browserInteractions.test.ts src/app/panels/browserContextMenu.test.ts`
+- `npm.cmd run build`
+
+### [708] - 2026-03-29 08:26 - `BRW - Browser-11.1 - Promote Visible Reference Containers Into Real Owner Records`
+<!-- ENTRY 708 -->
+HUMAN SUMMARY: `This landed the first Browser-11 container-truth cut by promoting visible reference parents like \`References\` and \`Shoes\` into effective assembly/component owner records in the shared store owner path, so Browser/store owner resolution now treats those containers as real owners instead of relying on scattered synthetic fallback branches.`
+#### Scope / Constraints Honored
+- Kept the change focused on owner-record promotion instead of forcing Browser-11.2 drag parity, grouping-label cleanup, or seam retirement into the same pass.
+- Preserved the current visible Browser tree shape, `referenceContainerKind` presentation traits, and the existing runtime/reference/transform adapter seams.
+- Avoided widening this pass into a larger project-content persistence redesign by using an effective owner-record seam over the existing store state.
+#### What Changed
+- Added effective reference-container owner-record builders in `src/app/store/useAppStore.ts` for the visible `References` assembly and category component parents.
+- Updated shared owner resolution in `src/app/store/useAppStore.ts` so `resolveWorkspaceSelectedContentOwnerTarget(...)`, `resolveProjectContentOwnerRecord(...)`, `resolveOwnedContentSelection(...)`, `resolveSingleTargetContentSelection(...)`, and parent-owner label resolution now read visible reference containers through the same owner model as normal assemblies/components.
+- Updated reference-id selection in `src/app/store/useAppStore.ts` so selecting `References` or a reference category includes shelf objects as part of that visible owner scope instead of only already-parented reference rows.
+- Updated `selectCurrentProjectTopLevelAssemblies(...)` and the reference-container row-building branch in `src/app/store/useAppStore.ts` so visible reference containers are sourced from the effective owner seam before Browser row presentation.
+- Refreshed `src/app/store/useAppStore.test.ts` and `src/app/panels/BrowserPanel.test.tsx` so the regression suite follows the promoted container-owner contract and the newer owner-first reference-object selection expectations.
+#### Verification
+- `npm.cmd test -- --run src/app/store/useAppStore.test.ts src/app/panels/selectBrowserTreeRows.test.ts src/app/panels/browserInteractions.test.ts src/app/panels/browserContextMenu.test.ts src/app/panels/BrowserPanel.test.tsx`
+- `npm.cmd run build`
+
 ### [707] - 2026-03-28 23:36 - `BRW - Browser-10.5 - Compatibility Seam Retirement`
 <!-- ENTRY 707 -->
 HUMAN SUMMARY: `This landed the Browser-10.5 cleanup by moving live Browser and Console reference selection onto normal assembly/component/object targets, shrinking the older reference-only selection contract down to a fallback compatibility seam, and keeping the remaining referenceId-based runtime actions intact behind owner-first context routing.`
