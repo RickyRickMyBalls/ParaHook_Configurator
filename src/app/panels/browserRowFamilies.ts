@@ -23,7 +23,8 @@ export const browserRowFamilyAdapters: BrowserRowFamilyAdapter[] = [
     matchesRow: (row) =>
       row.rowKind === 'references-root' ||
       row.rowKind === 'reference-category' ||
-      row.rowKind === 'reference-item',
+      row.rowKind === 'reference-item' ||
+      (row.rowKind === 'object' && row.contentOriginKind === 'source-reference'),
     supportsContextMenu: true,
     supportsDoubleSelect: false,
     supportsExpandToggle: true,
@@ -84,11 +85,13 @@ export const getBrowserRowFamilyAdapter = (
 export const describeBrowserRow = (row: BrowserRenderableRowVm): string => {
   switch (row.rowKind) {
     case 'reference-item':
-      return `Reference ${row.label}`
+      return `object ${row.label}`
+    case 'part':
+      return `part ${row.label}`
     case 'reference-category':
-      return `Category ${row.label}`
+      return `component ${row.label}`
     case 'references-root':
-      return row.label
+      return `assembly ${row.label}`
     case 'sketches-root':
       return row.label
     case 'sketch':

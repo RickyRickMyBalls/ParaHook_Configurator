@@ -1,4 +1,7 @@
-import type { MouseEvent as ReactMouseEvent } from 'react'
+import type {
+  MouseEvent as ReactMouseEvent,
+  PointerEvent as ReactPointerEvent,
+} from 'react'
 import type { BrowserSelectionModifiers } from './browserInteractions'
 import { getBrowserRowFamilyAdapter } from './browserRowFamilies'
 import type {
@@ -97,6 +100,7 @@ function BrowserTreeRowContent(props: { label: string; meta?: string }) {
 
 export type BrowserTreeRowShellProps = {
   row: BrowserRenderableRowVm
+  rowRef?: ((element: HTMLDivElement | null) => void) | undefined
   onSelect: (row: BrowserRenderableRowVm, modifiers: BrowserSelectionModifiers) => void
   onToggleReferenceVisibility?: (row: BrowserRenderableRowVm) => void
   onToggleContentVisibility?: (row: BrowserRenderableRowVm) => void
@@ -108,9 +112,22 @@ export type BrowserTreeRowShellProps = {
     row: BrowserRenderableRowVm,
     event: ReactMouseEvent<HTMLDivElement | HTMLButtonElement>,
   ) => void
+  onPointerDragStartCandidate?: (
+    row: BrowserRenderableRowVm,
+    event: ReactPointerEvent<HTMLButtonElement>,
+  ) => void
+  shouldSuppressClick?: (row: BrowserRenderableRowVm) => boolean
+  clearSuppressedClick?: (row: BrowserRenderableRowVm) => void
+  getDragState?: (row: BrowserRenderableRowVm) => {
+    draggable: boolean
+    isDragging: boolean
+    isPendingDrag?: boolean
+    dropIntent: 'none' | 'before' | 'after' | 'into' | 'invalid'
+    isDropOwnerSupport?: boolean
+  }
 }
 
-export type BrowserTreeRowHandlers = Omit<BrowserTreeRowShellProps, 'row'>
+export type BrowserTreeRowHandlers = Omit<BrowserTreeRowShellProps, 'row' | 'rowRef'>
 
 export function BrowserTreeRowShell(props: BrowserTreeRowShellProps) {
   const {
@@ -126,6 +143,15 @@ export function BrowserTreeRowShell(props: BrowserTreeRowShellProps) {
   } = props
 
   const familyAdapter = getBrowserRowFamilyAdapter(row)
+  const dragState = props.getDragState?.(row) ?? {
+    draggable: false,
+    isDragging: false,
+    isPendingDrag: false,
+    dropIntent: 'none' as const,
+    isDropOwnerSupport: false,
+  }
+  const isDropTargetIntoCollapsed =
+    dragState.dropIntent === 'into' && row.isExpandable && !row.isExpanded
   const browserBuildPolicyState = resolveBrowserBuildPolicyState(row)
   const isGraphRow = row.rowKind === 'graph-document'
   const graphRow = isGraphRow ? (row as BrowserGraphTreeRowVm) : null
@@ -137,7 +163,23 @@ export function BrowserTreeRowShell(props: BrowserTreeRowShellProps) {
     row.rowKind === 'reference-category' ? (row as BrowserReferenceCategoryTreeRowVm) : null
   const referenceItemRow =
     row.rowKind === 'reference-item' ? (row as BrowserReferenceItemTreeRowVm) : null
+  const referenceContainerRow =
+    (row.rowKind === 'assembly' || row.rowKind === 'component') &&
+    row.referenceContainerKind !== null &&
+    row.referenceContainerKind !== undefined
+      ? row
+      : null
   const referenceRow = referenceRootRow ?? referenceCategoryRow ?? referenceItemRow
+  const referenceSurfaceRow = referenceRow ?? referenceContainerRow
+  const referenceBackedObjectRow =
+    row.rowKind === 'object' &&
+    (row.contentOriginKind === 'imported-reference' || row.contentOriginKind === 'source-reference')
+      ? row
+      : null
+  const importedContentObjectRow =
+    referenceBackedObjectRow?.contentOriginKind === 'imported-reference'
+      ? referenceBackedObjectRow
+      : null
   const isContentRow =
     row.rowKind === 'assembly' ||
     row.rowKind === 'component' ||
@@ -154,10 +196,19 @@ export function BrowserTreeRowShell(props: BrowserTreeRowShellProps) {
     browserBuildPolicyState.effectiveBrowserBuildPolicySource !== 'default'
   const isGraphRebuildRow = row.rowKind === 'graph-rebuild-object'
   const isGraphChildPlainRow = row.rowKind === 'graph-section' || row.rowKind === 'graph-node'
-  const isReferenceRow = referenceRow !== null
+  const isReferenceRow = referenceSurfaceRow !== null
+  const isPartRow = row.rowKind === 'part'
   const isReferenceVisibilityRow =
-    row.rowKind === 'reference-category' || row.rowKind === 'reference-item'
-  const isReferenceVisible = referenceRow !== null ? referenceRow.isVisible : false
+    row.rowKind === 'reference-category' ||
+    (row.rowKind === 'component' && row.referenceContainerKind === 'category') ||
+    row.rowKind === 'reference-item' ||
+    referenceBackedObjectRow !== null
+  const isReferenceVisible =
+    referenceSurfaceRow !== null
+      ? referenceSurfaceRow.isVisible
+      : referenceBackedObjectRow !== null
+        ? referenceBackedObjectRow.isVisible
+        : false
   const isContentVisibilityRow =
     (row.rowKind === 'assembly' || row.rowKind === 'component' || row.rowKind === 'object') &&
     row.visibilityPartKeys.length > 0
@@ -165,6 +216,10 @@ export function BrowserTreeRowShell(props: BrowserTreeRowShellProps) {
   const isSketchVisibilityRow = row.rowKind === 'sketch'
   const isSketchVisible = row.rowKind === 'sketch' ? row.isVisible : false
   const buildSurfaceRow = isContentRow || isGraphRebuildRow ? row : null
+  const referenceContainerState = referenceContainerRow?.referenceContainerState ?? 'dormant'
+  const referenceContainerProgress01 = referenceContainerRow?.referenceContainerProgress01 ?? undefined
+  const isReferenceContainerDeterminateProgress =
+    referenceContainerRow !== null && referenceContainerProgress01 !== undefined
   const isActiveViewportRow = row.rowKind === 'viewport' && row.meta === 'Active editor'
   const contentBuildState = buildSurfaceRow ? buildSurfaceRow.buildState : 'done'
   const visibleRowMeta = isSketchRow ? '' : row.meta
@@ -174,6 +229,15 @@ export function BrowserTreeRowShell(props: BrowserTreeRowShellProps) {
     `BrowserTreeRow--depth-${row.depth}`,
     row.isSelected ? 'isSelected' : '',
     row.isGroupedSelected ? 'isGroupedSelected' : '',
+    dragState.draggable ? 'isDraggable' : '',
+    dragState.isDragging ? 'isDragging' : '',
+    dragState.isPendingDrag ? 'isPendingDrag' : '',
+    dragState.dropIntent === 'before' ? 'isDropTargetBefore' : '',
+    dragState.dropIntent === 'after' ? 'isDropTargetAfter' : '',
+    dragState.dropIntent === 'into' ? 'isDropTargetInto' : '',
+    isDropTargetIntoCollapsed ? 'isDropTargetIntoCollapsed' : '',
+    dragState.dropIntent === 'invalid' ? 'isDropTargetInvalid' : '',
+    dragState.isDropOwnerSupport ? 'isDropOwnerSupport' : '',
     !row.isExpandable ? 'isLeaf' : '',
     graphRow?.openViewportCount ? 'isOpen' : '',
     graphRow?.hasFocusedViewport || isActiveViewportRow ? 'isActiveEditor' : '',
@@ -188,11 +252,14 @@ export function BrowserTreeRowShell(props: BrowserTreeRowShellProps) {
     row.rowKind === 'sketches-root' ? 'isSketchesRootRow' : '',
     isGraphRebuildRow ? 'isGraphChildBuildRow' : '',
     isReferenceRow ? 'isReferenceRow' : '',
+    isPartRow ? 'isPartRow' : '',
     isGraphChildPlainRow ? 'isGraphChildPlainRow' : '',
     row.rowKind === 'viewport' ? 'isViewportRow' : '',
     isContentRow ? `isContentRow--${contentBuildState}` : '',
+    referenceBackedObjectRow !== null ? 'isContentRow--imported' : '',
     isGraphRebuildRow ? `isGraphChildBuildRow--${contentBuildState}` : '',
     row.rowKind === 'object' ? 'isContentRow--slim' : '',
+    row.rowKind === 'part' ? 'isContentRow--slim' : '',
     row.rowKind === 'graph-rebuild-object' ? 'isGraphChildBuildRow--slim' : '',
   ]
     .filter((value) => value.length > 0)
@@ -203,6 +270,7 @@ export function BrowserTreeRowShell(props: BrowserTreeRowShellProps) {
 
   return (
     <div
+      ref={props.rowRef}
       className={rowClassName}
       onContextMenu={(event) => {
         if (!familyAdapter.supportsContextMenu) {
@@ -341,13 +409,24 @@ export function BrowserTreeRowShell(props: BrowserTreeRowShellProps) {
       <button
         type="button"
         className={rowMainClassName}
-        onClick={(event) =>
+        onPointerDown={(event) => props.onPointerDragStartCandidate?.(row, event)}
+        onClick={(event) => {
+          if (props.shouldSuppressClick?.(row)) {
+            event.preventDefault()
+            event.stopPropagation()
+            props.clearSuppressedClick?.(row)
+            return
+          }
           onSelect(row, {
             ctrlKey: event.ctrlKey,
             shiftKey: event.shiftKey,
           })
-        }
+        }}
         onDoubleClick={() => {
+          if (props.shouldSuppressClick?.(row)) {
+            props.clearSuppressedClick?.(row)
+            return
+          }
           onSelect(row, {
             ctrlKey: false,
             shiftKey: false,
@@ -368,24 +447,55 @@ export function BrowserTreeRowShell(props: BrowserTreeRowShellProps) {
           </span>
         ) : buildSurfaceRow !== null ? (
           <span
-            className={`BrowserTreeRowSurface BrowserContentStateBar BrowserContentStateBar--${contentBuildState} ${
+            className={`BrowserTreeRowSurface BrowserContentStateBar ${
+              referenceContainerRow !== null
+                ? `BrowserContentStateBar--reference-container BrowserContentStateBar--reference-container-${referenceContainerState}`
+                : importedContentObjectRow !== null
+                ? `BrowserContentStateBar--imported BrowserContentStateBar--imported-${importedContentObjectRow.referenceState ?? 'dormant'}`
+                : referenceBackedObjectRow !== null
+                  ? `BrowserContentStateBar--imported BrowserContentStateBar--imported-${referenceBackedObjectRow.referenceState ?? 'dormant'}`
+                : `BrowserContentStateBar--${contentBuildState}`
+            } ${
               row.rowKind === 'object' || row.rowKind === 'graph-rebuild-object'
                 ? 'BrowserTreeRowSurface--slim BrowserContentStateBar--slim'
                 : ''
             }`}
             title={visibleRowMeta}
           >
-            <span className="BrowserContentStateFill" aria-hidden="true" />
+            <span
+              className={`BrowserContentStateFill${
+                isReferenceContainerDeterminateProgress ? ' BrowserContentStateFill--determinate' : ''
+              }`}
+              style={
+                isReferenceContainerDeterminateProgress
+                  ? {
+                      width: `${Math.max(0, Math.min(1, referenceContainerProgress01 ?? 0)) * 100}%`,
+                    }
+                  : undefined
+              }
+              aria-hidden="true"
+            />
             <BrowserTreeRowContent label={row.label} meta={visibleRowMeta} />
           </span>
-        ) : referenceRow !== null ? (
+        ) : referenceSurfaceRow !== null ? (
           (() => {
             const progress01 =
-              referenceRow.rowKind === 'reference-item' ? undefined : referenceRow.progress01
+              referenceSurfaceRow.rowKind === 'reference-item'
+                ? undefined
+                : referenceSurfaceRow.rowKind === 'references-root' ||
+                    referenceSurfaceRow.rowKind === 'reference-category'
+                  ? referenceSurfaceRow.progress01
+                  : referenceSurfaceRow.referenceContainerProgress01 ?? undefined
             const isDeterminateReferenceProgress = progress01 !== undefined
+            const referenceState =
+              referenceSurfaceRow.rowKind === 'references-root' ||
+              referenceSurfaceRow.rowKind === 'reference-category' ||
+              referenceSurfaceRow.rowKind === 'reference-item'
+                ? referenceSurfaceRow.state
+                : referenceSurfaceRow.referenceContainerState ?? 'dormant'
             return (
               <span
-                className={`BrowserTreeRowSurface BrowserReferenceStateBar BrowserReferenceStateBar--${referenceRow.state}${
+                className={`BrowserTreeRowSurface BrowserReferenceStateBar BrowserReferenceStateBar--${referenceState}${
                   isDeterminateReferenceProgress ? ' BrowserReferenceStateBar--determinate' : ''
                 }`}
                 title={row.meta}

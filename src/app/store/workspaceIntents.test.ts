@@ -132,7 +132,7 @@ describe('workspaceIntents', () => {
 
   it('activates a reference item through the canonical workspace intent seam', async () => {
     const { activateReferenceItemIntent } = await import('./workspaceIntents')
-    const { useAppStore } = await import('./useAppStore')
+    const { buildImportedReferenceRowId, useAppStore } = await import('./useAppStore')
     const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
 
     useAppStore.setState(useAppStore.getInitialState(), true)
@@ -148,8 +148,8 @@ describe('workspaceIntents', () => {
 
     expect(result.referenceId).toBe('shoe:shoe-1')
     expect(useAppStore.getState().workspaceSelection.selectedTarget).toMatchObject({
-      kind: 'reference-item',
-      referenceId: 'shoe:shoe-1',
+      kind: 'object',
+      objectId: buildImportedReferenceRowId('shoe:shoe-1'),
     })
     expect(useAppStore.getState().consoleContextSyncRequest).toMatchObject({
       reason: 'target-selection',

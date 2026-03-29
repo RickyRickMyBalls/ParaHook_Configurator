@@ -816,6 +816,14 @@ const resolveStagedExecuteIdentity = ({
       return buildIdentity('Console', 'Content', 'Transform', 'Rotate')
     case 'content.transform.scale':
       return buildIdentity('Console', 'Content', 'Transform', 'Scale')
+    case 'content.newAssembly':
+      return buildIdentity('Console', 'Content', 'NewAssembly')
+    case 'content.newComponent':
+      return buildIdentity('Console', 'Content', 'NewComponent')
+    case 'content.rename':
+      return buildIdentity('Console', 'Content', 'Rename')
+    case 'content.delete':
+      return buildIdentity('Console', 'Content', 'Delete')
   }
   throw new Error(`Unhandled staged execute action identity: ${String(actionId)}`)
 }

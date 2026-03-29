@@ -159,7 +159,7 @@ describe('ConsoleBar', () => {
     useConsoleStore.setState({
       stagedNavigationSession: {
         scopeId: 'contentObjectSelected',
-        breadcrumb: ['Select', 'Object', 'Object 1'],
+        breadcrumb: ['Select', 'Content', 'Object 1'],
         selections: {
           graphDocumentId: 'graph-document-1',
           selectedNodeId: null,
@@ -187,7 +187,7 @@ describe('ConsoleBar', () => {
     })
 
     expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
-      'Select > Object > Object 1 > Choose next',
+      'Select > Content > Object 1 > Choose next',
     )
   })
 
@@ -195,7 +195,7 @@ describe('ConsoleBar', () => {
     useConsoleStore.setState({
       stagedNavigationSession: {
         scopeId: 'contentObjectZoomRoot',
-        breadcrumb: ['Select', 'Object', 'Object 1', 'Zoom'],
+        breadcrumb: ['Select', 'Content', 'Object 1', 'Zoom'],
         selections: {
           graphDocumentId: 'graph-document-1',
           selectedNodeId: null,
@@ -229,7 +229,7 @@ describe('ConsoleBar', () => {
     })
 
     expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
-      'Select > Object > Object 1 > Zoom > Choose next',
+      'Select > Content > Object 1 > Zoom > Choose next',
     )
   })
 

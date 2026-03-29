@@ -9,14 +9,23 @@ let viewerEnsureReferenceLoaded: ReturnType<typeof vi.fn>
 let viewerSetReferenceVisible: ReturnType<typeof vi.fn>
 let viewerRemoveReference: ReturnType<typeof vi.fn>
 let viewerSetReferenceTransformSession: ReturnType<typeof vi.fn>
+let viewerSetContentObjectTransformGroups: ReturnType<typeof vi.fn>
+let viewerSetContentObjectTransformSession: ReturnType<typeof vi.fn>
+let viewerSetContentObjectTransformOverrides: ReturnType<typeof vi.fn>
 let viewerSetReferenceTransformHistoryOverlay: ReturnType<typeof vi.fn>
 let viewerSetReferenceTransformOverride: ReturnType<typeof vi.fn>
+let viewerGetReferencePartDescriptors: ReturnType<typeof vi.fn>
 let viewerSetOnReferenceTransformChange: ReturnType<typeof vi.fn>
 let viewerSetOnReferenceTransformCommit: ReturnType<typeof vi.fn>
 let viewerSetOnReferenceTransformExit: ReturnType<typeof vi.fn>
 let viewerSetOnReferenceTransformHandleChange: ReturnType<typeof vi.fn>
 let viewerSetOnReferenceTransformModeChange: ReturnType<typeof vi.fn>
 let viewerSetOnReferenceTransformSpaceChange: ReturnType<typeof vi.fn>
+let viewerSetOnContentObjectTransformChange: ReturnType<typeof vi.fn>
+let viewerSetOnContentObjectTransformCommit: ReturnType<typeof vi.fn>
+let viewerSetOnContentObjectTransformHandleChange: ReturnType<typeof vi.fn>
+let viewerSetOnContentObjectTransformModeChange: ReturnType<typeof vi.fn>
+let viewerSetOnContentObjectTransformSpaceChange: ReturnType<typeof vi.fn>
 let viewerSetGizmoSnap: ReturnType<typeof vi.fn>
 let viewerSetReferenceTransformMoveSnapDotsEnabled: ReturnType<typeof vi.fn>
 let viewerSetReferenceTransformPreviewLastMoveSnapDotsEnabled: ReturnType<typeof vi.fn>
@@ -67,10 +76,18 @@ vi.mock('../../viewer/Viewer', () => ({
     public removeReference = (...args: unknown[]) => viewerRemoveReference(...args)
     public setReferenceTransformSession = (...args: unknown[]) =>
       viewerSetReferenceTransformSession(...args)
+    public setContentObjectTransformGroups = (...args: unknown[]) =>
+      viewerSetContentObjectTransformGroups(...args)
+    public setContentObjectTransformSession = (...args: unknown[]) =>
+      viewerSetContentObjectTransformSession(...args)
+    public setContentObjectTransformOverrides = (...args: unknown[]) =>
+      viewerSetContentObjectTransformOverrides(...args)
     public setReferenceTransformHistoryOverlay = (...args: unknown[]) =>
       viewerSetReferenceTransformHistoryOverlay(...args)
     public setReferenceTransformOverride = (...args: unknown[]) =>
       viewerSetReferenceTransformOverride(...args)
+    public getReferencePartDescriptors = (...args: unknown[]) =>
+      viewerGetReferencePartDescriptors(...args)
     public setOnReferenceTransformChange = (...args: unknown[]) =>
       viewerSetOnReferenceTransformChange(...args)
     public setOnReferenceTransformCommit = (...args: unknown[]) =>
@@ -83,6 +100,16 @@ vi.mock('../../viewer/Viewer', () => ({
       viewerSetOnReferenceTransformModeChange(...args)
     public setOnReferenceTransformSpaceChange = (...args: unknown[]) =>
       viewerSetOnReferenceTransformSpaceChange(...args)
+    public setOnContentObjectTransformChange = (...args: unknown[]) =>
+      viewerSetOnContentObjectTransformChange(...args)
+    public setOnContentObjectTransformCommit = (...args: unknown[]) =>
+      viewerSetOnContentObjectTransformCommit(...args)
+    public setOnContentObjectTransformHandleChange = (...args: unknown[]) =>
+      viewerSetOnContentObjectTransformHandleChange(...args)
+    public setOnContentObjectTransformModeChange = (...args: unknown[]) =>
+      viewerSetOnContentObjectTransformModeChange(...args)
+    public setOnContentObjectTransformSpaceChange = (...args: unknown[]) =>
+      viewerSetOnContentObjectTransformSpaceChange(...args)
     public setGizmoSnap = (...args: unknown[]) => viewerSetGizmoSnap(...args)
     public setReferenceTransformMoveSnapDotsEnabled = (...args: unknown[]) =>
       viewerSetReferenceTransformMoveSnapDotsEnabled(...args)
@@ -351,14 +378,23 @@ describe('ViewerHost reference loading', () => {
     viewerSetReferenceVisible = vi.fn()
     viewerRemoveReference = vi.fn()
     viewerSetReferenceTransformSession = vi.fn()
+    viewerSetContentObjectTransformGroups = vi.fn()
+    viewerSetContentObjectTransformSession = vi.fn()
+    viewerSetContentObjectTransformOverrides = vi.fn()
     viewerSetReferenceTransformHistoryOverlay = vi.fn()
     viewerSetReferenceTransformOverride = vi.fn()
+    viewerGetReferencePartDescriptors = vi.fn(() => [])
     viewerSetOnReferenceTransformChange = vi.fn()
     viewerSetOnReferenceTransformCommit = vi.fn()
     viewerSetOnReferenceTransformExit = vi.fn()
     viewerSetOnReferenceTransformHandleChange = vi.fn()
     viewerSetOnReferenceTransformModeChange = vi.fn()
     viewerSetOnReferenceTransformSpaceChange = vi.fn()
+    viewerSetOnContentObjectTransformChange = vi.fn()
+    viewerSetOnContentObjectTransformCommit = vi.fn()
+    viewerSetOnContentObjectTransformHandleChange = vi.fn()
+    viewerSetOnContentObjectTransformModeChange = vi.fn()
+    viewerSetOnContentObjectTransformSpaceChange = vi.fn()
     viewerSetGizmoSnap = vi.fn()
     viewerSetReferenceTransformMoveSnapDotsEnabled = vi.fn()
     viewerSetReferenceTransformPreviewLastMoveSnapDotsEnabled = vi.fn()
@@ -450,6 +486,48 @@ describe('ViewerHost reference loading', () => {
     expect(
       useConsoleStore.getState().entries.some((entry) => entry.text === 'Loaded Model: Shoe 1'),
     ).toBe(true)
+  })
+
+  it('captures real loaded reference part rows into the workspace after load succeeds', async () => {
+    const load = deferred<void>()
+    viewerEnsureReferenceLoaded.mockReturnValue(load.promise)
+    viewerGetReferencePartDescriptors.mockReturnValue([
+      { partKey: 'reference-part:shoe:shoe-1:0', label: 'Upper' },
+      { partKey: 'reference-part:shoe:shoe-1:1', label: 'Sole' },
+    ])
+
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useAppStore } = await import('../store/useAppStore')
+
+    act(() => {
+      useAppStore.getState().toggleReferenceItemVisibility('shoe:shoe-1')
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost />)
+    })
+
+    await act(async () => {
+      load.resolve()
+      await load.promise
+    })
+
+    expect(useAppStore.getState().referenceWorkspace.partRowsByReferenceId['shoe:shoe-1']).toEqual([
+      {
+        rowId: 'reference-part-row:reference-part:shoe:shoe-1:0',
+        partKey: 'reference-part:shoe:shoe-1:0',
+        label: 'Upper',
+      },
+      {
+        rowId: 'reference-part-row:reference-part:shoe:shoe-1:1',
+        partKey: 'reference-part:shoe:shoe-1:1',
+        label: 'Sole',
+      },
+    ])
   })
 
   it('keeps a failed STEP row retryable by clearing visibility on error and loading again after the next click', async () => {
@@ -636,8 +714,9 @@ describe('ViewerHost reference loading', () => {
     const { ViewerHost } = await import('./ViewerHost')
     const { useAppStore } = await import('../store/useAppStore')
 
+    let importedReferenceId: string | null = null
     act(() => {
-      useAppStore.getState().addImportedReference({
+      importedReferenceId = useAppStore.getState().addImportedReference({
         fileName: 'shoe.glb',
         fileType: 'glb',
         objectUrl: 'blob:shoe-1',
@@ -652,8 +731,6 @@ describe('ViewerHost reference loading', () => {
       root?.render(<ViewerHost />)
     })
 
-    const importedReferenceId =
-      useAppStore.getState().referenceWorkspace.importedReferenceOrder[0] ?? null
     expect(importedReferenceId).not.toBeNull()
 
     act(() => {
@@ -729,6 +806,79 @@ describe('ViewerHost reference loading', () => {
       mode: 'translate',
       space: 'world',
       entryOrigin: null,
+    })
+  })
+
+  it('syncs published-object viewer transform groups, session, and overrides into the viewer', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useAppStore } = await import('../store/useAppStore')
+
+    await seedViewportObjectSelectionGraph([
+      {
+        slotId: 'slot-a',
+        sourceNodeId: 'node-box-a',
+        sourcePartKey: 'slot-a',
+        objectId: 'object-a',
+        label: 'Object A',
+      },
+      {
+        slotId: 'slot-b',
+        sourceNodeId: 'node-box-b',
+        sourcePartKey: 'slot-b',
+        objectId: 'object-b',
+        label: 'Object B',
+      },
+    ])
+
+    act(() => {
+      useAppStore.getState().beginContentObjectTransformShell('object-a')
+      useAppStore.getState().beginContentObjectTransformEntry('rotate')
+      useAppStore.getState().setContentObjectTransformSnapEnabled('object-a', 'translate', true)
+      useAppStore.getState().setContentObjectTransformSnapValue('object-a', 'translate', 10)
+      useAppStore.getState().setContentObjectTransformSnapEnabled('object-a', 'rotate', true)
+      useAppStore.getState().setContentObjectTransformSnapValue('object-a', 'rotate', 15)
+      useAppStore.getState().setContentObjectTransformOverride('object-a', {
+        position: { x: 12, y: -3, z: 5 },
+        rotationDeg: { x: 0, y: 30, z: 0 },
+        scale: { x: 1, y: 1, z: 1 },
+      })
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost />)
+    })
+
+    expect(viewerSetContentObjectTransformGroups).toHaveBeenCalledWith([
+      { objectId: 'object-a', partKeys: ['slot-a', 'graph-document-1:slot-a'] },
+      { objectId: 'object-b', partKeys: ['slot-b', 'graph-document-1:slot-b'] },
+    ])
+    expect(viewerSetContentObjectTransformSession).toHaveBeenCalledWith({
+      objectId: 'object-a',
+      mode: 'rotate',
+      space: 'local',
+      entryOrigin: {
+        position: { x: 0, y: 0, z: 0 },
+        rotationDeg: { x: 0, y: 0, z: 0 },
+        scale: { x: 1, y: 1, z: 1 },
+      },
+    })
+    expect(viewerSetContentObjectTransformOverrides).toHaveBeenCalledWith(
+      expect.objectContaining({
+        'object-a': {
+          position: { x: 12, y: -3, z: 5 },
+          rotationDeg: { x: 0, y: 30, z: 0 },
+          scale: { x: 1, y: 1, z: 1 },
+        },
+      }),
+    )
+    expect(viewerSetGizmoSnap).toHaveBeenCalledWith({
+      translate: { x: 10, y: 10, z: 10 },
+      rotate: { x: 15, y: 15, z: 15 },
+      scale: undefined,
     })
   })
 
@@ -1926,8 +2076,8 @@ describe('ViewerHost reference loading', () => {
 
     expect(useAppStore.getState().workspaceSelection).toMatchObject({
       selectedTarget: {
-        kind: 'reference-item',
-        referenceId: 'shoe:shoe-1',
+        kind: 'object',
+        objectId: 'reference-item-row:shoe:shoe-1',
       },
       explicitSelectedTargets: [
         {
@@ -1935,17 +2085,17 @@ describe('ViewerHost reference loading', () => {
           objectId: 'project-object:project-file-1:graph-document-1:output-object-1',
         },
         {
-          kind: 'reference-item',
-          referenceId: 'shoe:shoe-1',
+          kind: 'object',
+          objectId: 'reference-item-row:shoe:shoe-1',
         },
       ],
       selectionAnchorTarget: {
-        kind: 'reference-item',
-        referenceId: 'shoe:shoe-1',
+        kind: 'object',
+        objectId: 'reference-item-row:shoe:shoe-1',
       },
       activeSurface: 'viewer',
       resolvedContentSelection: {
-        rootRowId: 'multi-select',
+        rootRowId: 'object:reference-item-row:shoe:shoe-1',
         rootKind: 'multi-select',
         partKeys: expect.arrayContaining(['slot-baseplate', 'graph-document-1:slot-baseplate']),
         groupedRowIds: [],
@@ -2044,11 +2194,16 @@ describe('ViewerHost reference loading', () => {
 
     expect(useAppStore.getState().workspaceSelection).toMatchObject({
       selectedTarget: {
-        kind: 'reference-item',
-        referenceId: 'shoe:shoe-1',
+        kind: 'object',
+        objectId: 'reference-item-row:shoe:shoe-1',
       },
       activeSurface: 'viewer',
-      resolvedContentSelection: null,
+      resolvedContentSelection: {
+        rootRowId: 'reference-item-row:shoe:shoe-1',
+        rootKind: 'object',
+        partKeys: [],
+        groupedRowIds: [],
+      },
     })
     expect(useAppStore.getState().selectedPartKey).toBeNull()
     expect(useAppStore.getState().consoleContextSyncRequest?.reason).toBe('target-selection')
@@ -2096,22 +2251,22 @@ describe('ViewerHost reference loading', () => {
 
     expect(useAppStore.getState().workspaceSelection).toMatchObject({
       selectedTarget: {
-        kind: 'reference-item',
-        referenceId: 'shoe:shoe-1',
+        kind: 'object',
+        objectId: 'reference-item-row:shoe:shoe-1',
       },
       explicitSelectedTargets: [
         {
-          kind: 'reference-item',
-          referenceId: 'shoe:shoe-1',
+          kind: 'object',
+          objectId: 'reference-item-row:shoe:shoe-1',
         },
         {
-          kind: 'reference-item',
-          referenceId: 'shoe:shoe-2',
+          kind: 'object',
+          objectId: 'reference-item-row:shoe:shoe-2',
         },
       ],
       selectionAnchorTarget: {
-        kind: 'reference-item',
-        referenceId: 'shoe:shoe-2',
+        kind: 'object',
+        objectId: 'reference-item-row:shoe:shoe-2',
       },
       activeSurface: 'viewer',
       resolvedContentSelection: null,
@@ -2132,21 +2287,26 @@ describe('ViewerHost reference loading', () => {
 
     expect(useAppStore.getState().workspaceSelection).toMatchObject({
       selectedTarget: {
-        kind: 'reference-item',
-        referenceId: 'shoe:shoe-1',
+        kind: 'object',
+        objectId: 'reference-item-row:shoe:shoe-1',
       },
       explicitSelectedTargets: [
         {
-          kind: 'reference-item',
-          referenceId: 'shoe:shoe-1',
+          kind: 'object',
+          objectId: 'reference-item-row:shoe:shoe-1',
         },
       ],
       selectionAnchorTarget: {
-        kind: 'reference-item',
-        referenceId: 'shoe:shoe-2',
+        kind: 'object',
+        objectId: 'reference-item-row:shoe:shoe-2',
       },
       activeSurface: 'viewer',
-      resolvedContentSelection: null,
+      resolvedContentSelection: {
+        rootRowId: 'reference-item-row:shoe:shoe-1',
+        rootKind: 'object',
+        partKeys: [],
+        groupedRowIds: [],
+      },
     })
   })
 
@@ -2202,8 +2362,8 @@ describe('ViewerHost reference loading', () => {
         workspaceSelection: {
           ...state.workspaceSelection,
           selectedTarget: {
-            kind: 'reference-item',
-            referenceId: 'shoe:shoe-1',
+            kind: 'object',
+            objectId: 'reference-item-row:shoe:shoe-1',
           },
           activeSurface: 'browser',
         },
@@ -2234,22 +2394,22 @@ describe('ViewerHost reference loading', () => {
         workspaceSelection: {
           ...state.workspaceSelection,
           selectedTarget: {
-            kind: 'reference-item',
-            referenceId: 'shoe:shoe-2',
+            kind: 'object',
+            objectId: 'reference-item-row:shoe:shoe-2',
           },
           explicitSelectedTargets: [
             {
-              kind: 'reference-item',
-              referenceId: 'shoe:shoe-1',
+              kind: 'object',
+              objectId: 'reference-item-row:shoe:shoe-1',
             },
             {
-              kind: 'reference-item',
-              referenceId: 'shoe:shoe-2',
+              kind: 'object',
+              objectId: 'reference-item-row:shoe:shoe-2',
             },
           ],
           selectionAnchorTarget: {
-            kind: 'reference-item',
-            referenceId: 'shoe:shoe-2',
+            kind: 'object',
+            objectId: 'reference-item-row:shoe:shoe-2',
           },
         },
       }))

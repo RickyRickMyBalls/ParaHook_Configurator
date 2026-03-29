@@ -108,6 +108,43 @@ const referenceItemRow: BrowserRenderableRowVm = {
   showOverflowButton: false,
 }
 
+const importedContentObjectRow: BrowserRenderableRowVm = {
+  rowId: 'reference-item-row:shoe:shoe-1',
+  rowKind: 'object',
+  depth: 1,
+  treeGuides: [],
+  isVisible: true,
+  visibilityPartKeys: [],
+  buildState: 'done',
+  buildStateLabel: 'Imported',
+  rebuildGraphDocumentIds: [],
+  ownerGraphDocumentId: null,
+  parentComponentId: null,
+  objectSourceKind: null,
+  sourceGraphDocumentId: null,
+  sourceOutputEntryId: null,
+  slotId: null,
+  sourceNodeId: null,
+  resolutionState: null,
+  highlightViewerKey: null,
+  authoringGraphDocumentId: null,
+  authoringNodeId: null,
+  contentOriginKind: 'imported-reference',
+  referenceId: 'shoe:shoe-1',
+  referenceSourceKind: 'imported',
+  referenceState: 'active',
+  fileType: 'glb',
+  assetPath: '/ReferenceModels/shoes/Shoe_1.glb',
+  errorMessage: null,
+  iconLabel: 'O',
+  label: 'Shoe 1',
+  meta: 'GLB',
+  isSelected: false,
+  isExpandable: false,
+  isExpanded: false,
+  actions: [],
+}
+
 const action = (actionId: BrowserTreeRowActionVm['actionId']): BrowserTreeRowActionVm => ({
   actionId,
   label: actionId,
@@ -205,6 +242,14 @@ describe('runBrowserRowAction', () => {
     const nextHandlers = handlers(false)
 
     runBrowserRowAction(referenceItemRow, action('transform-object'), nextHandlers)
+
+    expect(nextHandlers.onTransformReference).toHaveBeenCalledWith('shoe:shoe-1')
+  })
+
+  it('routes imported content-object transform actions through the reference transform handler', () => {
+    const nextHandlers = handlers(false)
+
+    runBrowserRowAction(importedContentObjectRow, action('transform-object'), nextHandlers)
 
     expect(nextHandlers.onTransformReference).toHaveBeenCalledWith('shoe:shoe-1')
   })

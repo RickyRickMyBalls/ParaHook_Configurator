@@ -161,7 +161,7 @@ describe('ReferenceTransformToolbar', () => {
     expect(moveSection?.className).toContain('isActive')
 
     const valuesSection = container.querySelector(
-      '[aria-label="Reference transform values"]',
+      '[aria-label="Viewer transform values"]',
     ) as HTMLDivElement | null
     const rotateHeader = Array.from(
       valuesSection?.querySelectorAll('.ReferenceTransformToolbarTransformSectionHeader') ?? [],
@@ -274,15 +274,15 @@ describe('ReferenceTransformToolbar', () => {
     })
 
     expect(container.textContent).toContain(
-      'Select > Reference > Shoe 1 > Transform > Move > Vec3 [12.5, -7.0, 42.0]',
+      'Select > Reference > Shoe 1 > Viewer Transform > Move > Vec3 [12.5, -7.0, 42.0]',
     )
-    expect(container.textContent).toContain('Transform History')
+    expect(container.textContent).toContain('Viewer Transform History')
     expect(container.textContent).toContain('Origin')
     const historySection = container.querySelector(
-      '[aria-label="Reference transform history"]',
+      '[aria-label="Viewer transform history"]',
     ) as HTMLDivElement | null
     const valuesSection = container.querySelector(
-      '[aria-label="Reference transform values"]',
+      '[aria-label="Viewer transform values"]',
     ) as HTMLDivElement | null
     expect(historySection).not.toBeNull()
     expect(valuesSection).not.toBeNull()
@@ -297,7 +297,7 @@ describe('ReferenceTransformToolbar', () => {
     })
 
     expect(container.textContent).toContain(
-      'Select > Reference > Shoe 1 > Transform > Rotate > Vec3 [15.0, 0.0, -30.0]',
+      'Select > Reference > Shoe 1 > Viewer Transform > Rotate > Vec3 [15.0, 0.0, -30.0]',
     )
   })
 
@@ -355,6 +355,95 @@ describe('ReferenceTransformToolbar', () => {
     expect(viewerActivateTranslateHandle).not.toHaveBeenCalled()
     expect(viewerActivateRotateHandle).not.toHaveBeenCalled()
     expect(viewerActivateScaleHandle).not.toHaveBeenCalled()
+  })
+
+  it('renders a focused target section and shared snap controls for content-object sessions', async () => {
+    const { ReferenceTransformToolbar } = await import('./ReferenceTransformToolbar')
+    const { useAppStore } = await import('../store/useAppStore')
+
+    act(() => {
+      useAppStore.setState((state) => ({
+        ...state,
+        projectContent: {
+          ...state.projectContent,
+          componentsById: {
+            ...state.projectContent.componentsById,
+            'component-a': {
+              componentId: 'component-a',
+              parentAssemblyId: null,
+              ownerGraphDocumentId: 'graph-document-1',
+              sourceGraphDocumentId: 'graph-document-1',
+              sourceOutputEntryId: 'output-a',
+              sourceNodeId: 'node-a',
+              label: 'Component A',
+              componentSourceKind: 'authored',
+              resolutionState: 'resolved',
+              receiveId: null,
+              childObjectIds: ['object-a'],
+            },
+          },
+          objectsById: {
+            ...state.projectContent.objectsById,
+            'object-a': {
+              objectId: 'object-a',
+              ownerGraphDocumentId: 'graph-document-1',
+              parentComponentId: 'component-a',
+              objectSourceKind: 'published-object',
+              sourceGraphDocumentId: 'graph-document-1',
+              sourceOutputEntryId: 'output-a',
+              sourceNodeId: 'node-a',
+              slotId: 'slot-a',
+              label: 'Object A',
+              resolutionState: 'resolved',
+            },
+          },
+        },
+      }))
+      useAppStore.getState().beginContentObjectTransformShell('object-a')
+      useAppStore.getState().beginContentObjectTransformEntry('translate')
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ReferenceTransformToolbar />)
+    })
+
+    expect(container.textContent).toContain('Focused Target')
+    expect(container.textContent).toContain('Object A')
+    expect(container.textContent).toContain('Object / Part')
+    expect(container.textContent).toContain('Parent: Component A')
+    expect(container.textContent).toContain(
+      'Select > Content > Object A > Viewer Transform > Move > Vec3 [0.0, 0.0, 0.0]',
+    )
+
+    const snapSection = container.querySelector(
+      '[aria-label="Viewer transform snap settings"]',
+    ) as HTMLDivElement | null
+    expect(snapSection).not.toBeNull()
+
+    const moveSnapGroup = Array.from(
+      snapSection?.querySelectorAll('.ReferenceTransformToolbarSnapModeGroup') ?? [],
+    ).find((group) => group.textContent?.includes('Move'))
+    const snapToggle = Array.from(moveSnapGroup?.querySelectorAll('button') ?? []).find(
+      (button) => button.textContent?.trim() === 'Off',
+    ) as HTMLButtonElement | undefined
+
+    expect(snapToggle).toBeDefined()
+
+    await act(async () => {
+      snapToggle?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(
+      useAppStore.getState().referenceWorkspace.transformSnapByObjectId['object-a']?.translate,
+    ).toMatchObject({
+      enabled: true,
+      xyzLocked: true,
+      values: { x: 10, y: 10, z: 10 },
+    })
   })
 
   it('does not treat raw x y z keys as immediate rotate or scale shortcuts while those modes are active', async () => {
@@ -686,8 +775,8 @@ describe('ReferenceTransformToolbar', () => {
       root?.render(<ReferenceTransformToolbar />)
       useConsoleStore.getState().setConsolePromptSession({
         kind: 'reference-transform.axis',
-        breadcrumb: ['Select', 'References', 'Shoes', 'Shoe 1', 'Transform', 'Move', 'Move X'],
-        label: 'Select > References > Shoes > Shoe 1 > Transform > Move > Move X',
+        breadcrumb: ['Select', 'References', 'Shoes', 'Shoe 1', 'Viewer Transform', 'Move', 'Move X'],
+        label: 'Select > References > Shoes > Shoe 1 > Viewer Transform > Move > Move X',
         prefill: '0',
         returnSession: useConsoleStore.getState().stagedNavigationSession!,
         mode: 'translate',
@@ -1320,7 +1409,7 @@ describe('ReferenceTransformToolbar', () => {
     })
 
     const snapSection = container.querySelector(
-      '[aria-label="Reference transform snap settings"]',
+      '[aria-label="Viewer transform snap settings"]',
     ) as HTMLDivElement | null
     const rotateSnapGroup = Array.from(
       snapSection?.querySelectorAll('.ReferenceTransformToolbarSnapModeGroup') ?? [],
@@ -1434,7 +1523,7 @@ describe('ReferenceTransformToolbar', () => {
     })
 
     const snapSection = container.querySelector(
-      '[aria-label="Reference transform snap settings"]',
+      '[aria-label="Viewer transform snap settings"]',
     ) as HTMLDivElement | null
     const moveSnapGroup = Array.from(
       snapSection?.querySelectorAll('.ReferenceTransformToolbarSnapModeGroup') ?? [],
@@ -1930,7 +2019,7 @@ describe('ReferenceTransformToolbar', () => {
     })
 
     const snapSection = container.querySelector(
-      '[aria-label="Reference transform snap settings"]',
+      '[aria-label="Viewer transform snap settings"]',
     ) as HTMLDivElement | null
     const rotateSnapGroup = Array.from(
       snapSection?.querySelectorAll('.ReferenceTransformToolbarSnapModeGroup') ?? [],
@@ -1964,7 +2053,7 @@ describe('ReferenceTransformToolbar', () => {
     })
 
     const valuesSection = container.querySelector(
-      '[aria-label="Reference transform values"]',
+      '[aria-label="Viewer transform values"]',
     ) as HTMLDivElement | null
     const rotateSection = Array.from(
       valuesSection?.querySelectorAll('.ReferenceTransformToolbarTransformSection') ?? [],
@@ -2016,7 +2105,7 @@ describe('ReferenceTransformToolbar', () => {
     })
 
     const snapSection = container.querySelector(
-      '[aria-label="Reference transform snap settings"]',
+      '[aria-label="Viewer transform snap settings"]',
     ) as HTMLDivElement | null
     const rotateSnapGroup = Array.from(
       snapSection?.querySelectorAll('.ReferenceTransformToolbarSnapModeGroup') ?? [],
@@ -2057,7 +2146,7 @@ describe('ReferenceTransformToolbar', () => {
     })
 
     const firstChannelRow = container.querySelector(
-      '[aria-label="Reference transform values"] .ReferenceTransformToolbarChannelBox',
+      '[aria-label="Viewer transform values"] .ReferenceTransformToolbarChannelBox',
     ) as HTMLDivElement | null
 
     expect(firstChannelRow).not.toBeNull()
@@ -2101,7 +2190,7 @@ describe('ReferenceTransformToolbar', () => {
     })
 
     const firstTrack = container.querySelector(
-      '[aria-label="Reference transform values"] .ParaSliderTrack',
+      '[aria-label="Viewer transform values"] .ParaSliderTrack',
     ) as HTMLDivElement | null
     expect(firstTrack).not.toBeNull()
 
@@ -2133,7 +2222,7 @@ describe('ReferenceTransformToolbar', () => {
     })
 
     const snapSection = container.querySelector(
-      '[aria-label="Reference transform snap settings"]',
+      '[aria-label="Viewer transform snap settings"]',
     ) as HTMLDivElement | null
     const rotateSnapGroup = Array.from(
       snapSection?.querySelectorAll('.ReferenceTransformToolbarSnapModeGroup') ?? [],
@@ -2147,7 +2236,7 @@ describe('ReferenceTransformToolbar', () => {
     })
 
     const snapRow = container.querySelector(
-      '[aria-label="Reference transform snap settings"] .ReferenceTransformToolbarChannelBox[data-channel="rotate-snap"]',
+      '[aria-label="Viewer transform snap settings"] .ReferenceTransformToolbarChannelBox[data-channel="rotate-snap"]',
     ) as HTMLDivElement | null
 
     expect(snapRow).not.toBeNull()
@@ -2189,7 +2278,7 @@ describe('ReferenceTransformToolbar', () => {
     })
 
     const snapSection = container.querySelector(
-      '[aria-label="Reference transform snap settings"]',
+      '[aria-label="Viewer transform snap settings"]',
     ) as HTMLDivElement | null
     const snapToggle = snapSection?.querySelector(
       'button[aria-label="Collapse Snap section"]',
@@ -2236,7 +2325,7 @@ describe('ReferenceTransformToolbar', () => {
     })
 
     const snapSection = container.querySelector(
-      '[aria-label="Reference transform snap settings"]',
+      '[aria-label="Viewer transform snap settings"]',
     ) as HTMLDivElement | null
     const moveSnapGroup = Array.from(
       snapSection?.querySelectorAll('.ReferenceTransformToolbarSnapModeGroup') ?? [],
@@ -2289,7 +2378,7 @@ describe('ReferenceTransformToolbar', () => {
     })
 
     const closeButton = container.querySelector(
-      'button[aria-label="Close reference transform toolbar"]',
+      'button[aria-label="Close viewer transform toolbar"]',
     ) as HTMLButtonElement | null
 
     expect(closeButton).not.toBeNull()

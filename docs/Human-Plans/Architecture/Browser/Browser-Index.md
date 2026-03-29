@@ -3,6 +3,73 @@
 ## Doc Header
 
 ### Doc History
+110. 2026-03-28 23:36: Marked `Browser-10.5 - Compatibility Seam Retirement` shipped after Browser and Console reference selection started committing through normal assembly/component/object owner targets, the older public `references-root` / `reference-category` / broad `reference-item` contract shrank down to compatibility fallback behavior, and the Browser-10 docs now point at the canonical shipped phase record instead of a duplicate future copy
+109. 2026-03-28 23:26: Tightened `Browser-10.5 - Compatibility Seam Retirement` into an implementation-ready Browser subphase by grounding it in the surviving post-`10.4` legacy target kinds, Browser selection/row-id compatibility branches, Console staged-navigation reference sessions, and the rule that `10.5` should retire old container-target public contracts while keeping only narrow runtime `referenceId` adapters
+108. 2026-03-28 23:14: Marked `Browser-10.4 - Load And Runtime Traits On Normal Nodes` shipped after shared reference-backed runtime-trait selectors landed in `useAppStore`, Browser item/content-row derivation plus ViewerHost and ConsoleDock narrowed onto that shared load/visibility/error/part-row seam, and the Browser-10 docs now point at the canonical shipped phase record instead of a duplicate future copy
+107. 2026-03-28 22:53: Tightened `Browser-10.4 - Load And Runtime Traits On Normal Nodes` into an implementation-ready Browser subphase by grounding it in the live `referenceWorkspace` runtime maps, the unified Browser row trait fields already emitted by `selectBrowserTreeRows(...)`, and the remaining Browser/viewer/Console callsites that still read load, visibility, error, part-row, and transform-session state too directly
+106. 2026-03-28 22:51: Marked `Browser-10.3 - Unified Owner Routing Across Browser Console And Viewer` shipped after converged Browser rows started committing owner-target selection directly, viewer reference picks/highlighting began adapting from owner routing instead of legacy `reference-item` selection, and the Browser-10 docs now point at the canonical shipped phase record instead of a duplicate future copy
+105. 2026-03-28 22:33: Tightened `Browser-10.3 - Unified Owner Routing Across Browser Console And Viewer` into an implementation-ready Browser subphase by grounding it in the live Browser selection, Console context, viewer highlight, and workspace-intent seams that still translate unified Browser rows back into `references-root` / `reference-category` / `reference-item` target kinds after shipped `10.2`
+104. 2026-03-28 22:21: Marked `Browser-10.2 - Single Browser Tree Derivation` shipped after the live Browser collapsed onto one visible `contentRows` lane, visible reference hierarchy rows started flowing through the unified project-content row path, the Browser content section stopped depending on a separate `referenceRows` lane, and the family docs now point at the canonical shipped phase record instead of keeping a duplicate future copy
+103. 2026-03-28 21:52: Tightened `Browser-10.2 - Single Browser Tree Derivation` into an implementation-ready Browser subphase by grounding it in the live `selectBrowserTreeRows(...)` mixed derivation seam, locking that the first pass should remove `referenceWorkspaceTree` as a visible Browser hierarchy input and collapse the Browser onto one visible row lane before later routing cleanup
+102. 2026-03-28 21:50: Marked `Browser-10.1 - Unified Reference-Backed Project Owner Records` shipped after ordinary Browser reference-backed object identity collapsed onto the existing `imported-reference` owner seam, the older `source-reference` / `place-source` drag-store path was removed, and the Browser family docs now point at the canonical shipped phase record instead of keeping a duplicate future copy
+101. 2026-03-28 21:45: Tightened `Browser-10.1 - Unified Reference-Backed Project Owner Records` into an implementation-ready Browser subphase by grounding it in the live `importedReferencesById` seam, locking that the first pass should collapse the remaining `source-reference` identity onto the existing `imported-reference` owner model, and mirroring that stronger read in the Browser-10 umbrella and family index
+100. 2026-03-28 21:40: Added standalone future phase docs for `Browser-10.1` through `Browser-10.5`, breaking the new Browser-10 one-tree reset into explicit owner-record, tree-derivation, owner-routing, runtime-trait, and seam-retirement planning surfaces and linking them from both the Browser family index and the Browser-10 umbrella doc
+99. 2026-03-28 21:35: Deleted the duplicate Browser-9.1 through Browser-9.7 records from `Browser/Future/` now that each one already exists under `Browser/Shipped/`, and rewired the Browser family index so the `9.x` ladder points only at the umbrella docs plus the canonical shipped phase records
+98. 2026-03-28 21:35: Cleaned up the Browser future planning ladder by turning `Browser-10 - Unified Project Object Tree Source Of Truth` into an explicit umbrella reset with proposed `10.1` through `10.5` subphases, and relabeled the carried Browser-9.4 through Browser-9.7 future files as retained planning-history docs instead of active next-step confusion
+97. 2026-03-28 21:24: Added `Browser-10 - Unified Project Object Tree Source Of Truth` as the next Browser-family architecture reset, locking that Browser should become one true Fusion-style project tree for all 3D project objects regardless of origin or loaded state, and linking the new standalone future phase doc after the Browser-9 convergence ladder
+96. 2026-03-28 20:47: Marked `Browser-9.7 - Normal Assembly Component Rows For Reference Hierarchy` shipped after the `References` root plus visible grouping containers moved into the normal `contentRows` lane as assembly/component rows, the special rendered `references-root` and `reference-category` species stopped driving the live Browser tree, and the old reference-backed selection/context compatibility stayed adapter-backed underneath
+95. 2026-03-28 20:47: Cleaned up the Browser-family docs after shipping `Browser-9.7 - Normal Assembly Component Rows For Reference Hierarchy` by adding the shipped phase record, linking it from the Browser-9 ladder, and refreshing the Browser docs map so the converged reference-container tree shape is recorded as landed history
+94. 2026-03-28 20:24: Tightened `Browser-9.7 - Normal Assembly Component Rows For Reference Hierarchy` into an implementation-ready Browser follow-on by grounding it in the live rendered-row split, row-family adapters, interaction and Console compatibility seams, and locking that the converged `References` assembly plus grouping components must move into the normal `contentRows` lane instead of staying stranded in the older `referenceRows` path
+93. 2026-03-28 20:24: Added the next Browser-9 follow-on `Browser-9.7 - Normal Assembly Component Rows For Reference Hierarchy`, locking that the Browser should delete the remaining special `References` and reference-category container species, keep the familiar labels, and remap them into normal `Assembly` / `Component` rows while current reference-backed compatibility stays adapter-backed
+92. 2026-03-28 20:12: Marked `Browser-9.6 - Placement Shelf Removal And Single Object Identity` shipped after built-in manifest/library rows gained stable reference-backed owner records, ordinary Browser drag from `References` started reusing the shared `imported-reference` move seam instead of the temporary source-placement branch, and manifest rows now leave the `References` branch once they gain a real content parent
+91. 2026-03-28 20:05: Tightened `Browser-9.6 - Placement Shelf Removal And Single Object Identity` into an implementation-ready Browser follow-on by grounding it in the live manifest-versus-imported owner split, locking that `9.6` should widen the existing imported-reference owner seam into one unified reference-backed owner model, and clarifying that ordinary Browser drag should retire the temporary `source-reference` / `place-source` bridge from shipped `9.5`
+90. 2026-03-28 19:54: Added the next Browser-9 follow-on `Browser-9.6 - Placement Shelf Removal And Single Object Identity`, locking that `References` rows like `XL.step` should stop acting like reusable placement sources, that normal drag from `References` should move the same object instead of creating a copy, and that explicit duplicate/import actions should own copy creation instead of ordinary Browser rearrange
+89. 2026-03-28 19:47: Marked `Browser-9.5 - Library Object Rows And Direct Placement Drag` shipped after source/library rows in `References` began rendering as Browser `Object` rows, direct drag from those rows now lands new imported working objects through a separate placement seam beside `moveProjectContentOwner(...)`, and the shared visible `before` / `after` / `into` drag grammar stayed intact
+88. 2026-03-28 19:31: Tightened `Browser-9.5 - Library Object Rows And Direct Placement Drag` into an implementation-ready Browser follow-on by grounding it in the live Browser/store seams, locking that source/library rows should converge visually into `Object` rows without pretending they are already landed owners, and clarifying that `9.5` needs a separate source-object placement seam beside `moveProjectContentOwner(...)` while the visible drag grammar stays shared
+87. 2026-03-28 19:24: Locked the remaining Browser-9 convergence decisions in the umbrella doc, added the standalone future phase doc `Browser_Phase Browser-9.5 - Library Object Rows And Direct Placement Drag.md`, and clarified that `References` should be a normal assembly, category rows should be normal components, current transform compatibility should stay adapter-backed during convergence, and library rows like `XL.step` should become direct-draggable normal `Object` rows
+86. 2026-03-28 19:18: Expanded `Browser-9` with a clearer Fusion-style direct-placement plan, locking that library rows like `XL.step` should read as normal `Object` rows too, should drag directly into any legal `Assembly` / `Subassembly` / `Component` target, and should differ from generated objects only by source/origin presentation plus the backend placement seam
+85. 2026-03-28 18:30: Marked `Browser-9.4 - Imported Object Promotion To True Content Owners` shipped after landed imported/reference-backed object rows became true Browser content-owner drag targets, gained mixed authored-plus-imported parent ordering in the content hierarchy, and kept current imported-object reference-transform compatibility through the existing adapter seam
+84. 2026-03-28 17:07: Tightened `Browser-9.3 - Part Row Exposure For Imported Objects` into an implementation-ready Browser follow-on by locking part-row exposure as truthful source-structure rendering only, preserving one structural `Object` row type plus imported-object visual treatment above visible parts, and sharpening the Browser selection/transform compatibility boundary before later shared object-transform convergence
+83. 2026-03-28 16:44: Marked `Browser-9.2 - Import Landing And Hierarchy Mapping` shipped after imported references gained working-hierarchy landing metadata, Browser stopped showing landed imports in the old `User References` branch, and imported rows now render inside the content tree under the resolved assembly/component parent while keeping `referenceId` compatibility for the current transform flow
+82. 2026-03-28 16:12: Locked the first `Browser-9` questions in this Browser umbrella doc and added the standalone future phase doc, deciding that `References` should become a normal assembly, category rows like `Footpads` / `Shoes` / `Premade Foothooks` should become normal components, and imported objects should later be able to expose child `Part` rows when their source structure already contains them
+81. 2026-03-28 16:02: Added a new `Browser-9 - Reference Tree Convergence Into Standard Content Hierarchy` direction so the Browser family now records the next structural cleanup after the drag-reset ladder, locking the shift away from a special `References / Footpads / Shoes / Premade Foothooks` tree toward a normal `Assembly / Component / Object / Part` hierarchy where `References` becomes a real assembly and imported pubparts can later expose child `Part` rows
+80. 2026-03-28 15:44: Marked `Browser-8.8.3 - Motion And Rearrange Polish` shipped after adding calmer lifted-row and insert-line motion, plus a new display-intent layer so legal cross-parent moves keep a visible blue landing slot while owner highlight stays secondary support
+79. 2026-03-28 15:28: Marked `Browser-8.8.2 - Target Clarity And Trust Tuning` shipped after tightening Browser drag target trust around filtered-row mapping, exact gap-band bias, nearest-legal fallback for illegal middle-band object hovers, and test-harness legality alignment while keeping the simpler `8.8.1` visible drag grammar intact
+78. 2026-03-28 15:13: Tightened the standalone future `Browser-8.8.2 - Target Clarity And Trust Tuning` phase doc into a more implementation-ready Browser follow-on by locking the row-band boundary and nearest-legal fallback tuning scope, keeping `8.8.1`’s simple visible grammar intact, and sharpening the expected Browser drag seams plus verification matrix
+77. 2026-03-28 15:08: Marked `Browser-8.8.1 - Simple Reliable Rearrange Baseline` shipped after simplifying the Browser drag preview back to a stable real-row model, removing the fake placeholder / hidden-source-row behavior, and keeping the pointer-driven reorder/reparent interaction grounded in one exact `before` / `after` insert-line or `into` owner-highlight explanation
+76. 2026-03-28 21:18: Tightened the standalone future `Browser-8.8.1 - Simple Reliable Rearrange Baseline` phase doc into a more implementation-ready Browser reset spec by locking the exact insert-line versus owner-highlight grammar, simple top/middle/bottom band rules, source-row stability, the expected Browser-panel seams, and a sharper first-pass reorder/into/invalid/cancel regression matrix
+75. 2026-03-28 21:11: Restructured `Browser-8.8 - Reliable Drag Interaction Rebuild` into a new Browser restart ladder with explicit `8.8.x` subphases, so the post-`8.7` drag reset now rebuilds from a simple normal rearrange baseline first and only layers back in target clarity, motion polish, and richer hierarchy guidance after the simpler system feels trustworthy
+74. 2026-03-28 21:05: Added a new `Browser-8.8 - Reliable Drag Interaction Rebuild` follow-on so the Browser family now preserves a simpler post-`8.7` drag reset direction, explicitly favoring a calmer pointer-driven insert-line and target-highlight model over the still-glitchy fake-branch/local-tree preview experiment, while keeping the existing store-side legality and move/reparent truth intact
+73. 2026-03-28 20:55: Marked `Browser-8.7 - Pointer-Driven Drag Engine Rebuild` shipped after replacing the Browser’s native row-drag lifecycle with a pointer-driven drag engine, adding threshold-based drag activation, central row-geometry hit testing, local-branch preview derivation, selection handoff on drag start, and live drop-preview guidance with the new active junction marker
+72. 2026-03-28 20:41: Tightened the standalone future `Browser-8.7 - Pointer-Driven Drag Engine Rebuild` phase doc into a more implementation-ready Browser rebuild spec by locking that `8.7` absorbs the narrower `8.6` drag-smartness work, the pointer-session threshold and ownership model, the Browser row-geometry registration seam, the local-branch-only live-tree preview contract, and a sharper pointer-first verification matrix
+71. 2026-03-28 20:34: Added the standalone future Browser phase doc `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-8.7 - Pointer-Driven Drag Engine Rebuild.md`, giving the larger drag-engine rebuild fallback its own dedicated planning surface so the Browser family now has one concrete doc for the pointer-driven replacement direction
+70. 2026-03-28 20:30: Expanded `Browser-8.7 - Pointer-Driven Drag Engine Rebuild` again so the long-term Browser drag rebuild now explicitly treats the hierarchy tree as always live and connected during drag, locking the direction that provisional branch lines should animate/re-wire in place and that one small active junction dot can mark the current attachment/intersection point while dragging
+69. 2026-03-28 20:24: Expanded `Browser-8.7 - Pointer-Driven Drag Engine Rebuild` so the larger Browser drag rebuild now explicitly leans on live hierarchy/tree lines as the primary drag guidance system, locking the direction that provisional parent/depth/branch ownership should be explained through temporary branch-line redraws and indent changes instead of heavier floating target-box UI
+68. 2026-03-28 20:18: Added a new `Browser-8.7 - Pointer-Driven Drag Engine Rebuild` follow-on to preserve the larger cleanup/rebuild fallback in the Browser family, locking the direction that ParaHook should keep the structured content legality and tree truth but later replace the native HTML drag interaction layer with a pointer-driven Browser drag engine if the patched native path still feels too glitchy in practice
+67. 2026-03-28 20:10: Tightened the standalone future `Browser-8.6 - Depth-Lane Drag Interaction` phase doc into a more implementation-ready Browser spec by locking the lane-derivation model, explicit visual guidance contract, default-lane bias plus hysteresis behavior, concrete Browser drag seams, and a sharper verification matrix on top of shipped `8.5`
+66. 2026-03-28 20:08: Added the standalone future `Browser-8.6 - Depth-Lane Drag Interaction` phase doc under `Browser/Future/`, giving the post-`8.5` nested drag interaction upgrade its own dedicated planning surface for the vertical-slot plus horizontal-depth lane model
+65. 2026-03-28 20:06: Expanded `Browser-8.6 - Depth-Lane Drag Interaction` with additional locked questions/decisions around visual lane guidance, lane-width behavior, collapsed-owner participation, and default-depth bias so the later nested drag interaction has a fuller interaction contract before implementation
+64. 2026-03-28 19:58: Marked `Browser-8.5 - Drag Session Architecture Cleanup` shipped after landing the drag-session refactor that splits Browser drag state, pure legality resolution, and pure preview derivation into cleaner seams, adds stronger Browser-level cleanup fallbacks, and keeps the dragged source row mounted while the provisional preview stays derived until drop
+63. 2026-03-28 19:49: Tightened the standalone future `Browser-8.5 - Drag Session Architecture Cleanup` phase doc into a more implementation-ready Browser spec by locking the drag-session coordinator shape, the pure legality and preview-builder split, Browser-level cleanup fallbacks, concrete Browser-panel seams, and a sharper verification matrix, while keeping the later `8.6` depth-lane model out of scope
+62. 2026-03-28 19:45: Added the standalone future `Browser-8.5 - Drag Session Architecture Cleanup` phase doc under `Browser/Future/`, giving the drag reliability/foundation rebuild its own dedicated planning surface before the later `Browser-8.6` depth-lane interaction upgrade
+61. 2026-03-28 19:40: Split the earlier oversized `Browser-8.5` drag cleanup direction so `Browser-8.5` now stays focused on drag-session architecture stabilization, while the richer vertical-slot plus horizontal-depth-lane interaction model moves into a new `Browser-8.6` follow-on with its own carried-over decisions
+60. 2026-03-28 19:34: Expanded `Browser-8.5 - Drag Session Architecture Cleanup` with a new depth-lane drag interaction direction, locking the idea that vertical mouse movement should choose the provisional slot while horizontal movement chooses the legal ownership depth, and added the first `Questions / Decisions` block so the rebuild captures lane count, left/right mapping, and preview retarget behavior explicitly
+59. 2026-03-28 19:20: Added a new `Browser-8.5 - Drag Session Architecture Cleanup` follow-on under the Browser-8 ladder, reframing the still-glitchy Browser drag/drop work as a structural cleanup of session ownership, derived preview layout, and cleanup/recovery seams instead of another narrow visual polish patch
+1. 2026-03-28 18:55: Tightened the standalone future `Browser-8.4 - Reparenting And Drop Rules` phase doc into a more concrete implementation-ready spec by locking first-pass draggable owner kinds, explicit Browser drop intents (`before` / `after` / `into`), moved-row selection retention after successful drop, and the boundary that the first pass is single-row Browser UI drag/drop only
+58. 2026-03-28 16:25: Marked `Browser-8.2 - Folder CRUD In Browser UI And Console` shipped after landing authored `Assembly` and `Component` create/rename/delete flows in both Browser UI row menus and the `Select > Content > ...` Console path, while preserving the narrow first-pass scope and moving the standalone phase record into `Browser/Shipped/`
+57. 2026-03-28 15:48: Added the standalone future `Browser-8.2 - Folder CRUD In Browser UI And Console` phase doc and tightened it into a more implementation-ready Browser phase by locking the first createable structured container kinds, the shared Browser/Console CRUD entry points, the narrow `Assembly` plus `Component` first-pass scope, and a sharper verification matrix for container create/rename/delete without drag/drop
+56. 2026-03-28 15:35: Marked `Browser-8.1 - Container And Leaf Target Semantics` shipped after landing the shared `Select > Content > ...` Console seam, parent-only content-container selection with explicit `SelectAll`, clearer `Esc` / `Back` selection clearing, and the first owner-only versus descendant-resolving content selection split across store, Console, and Browser tests
+55. 2026-03-28 14:45: Tightened the standalone `Browser-8.1 - Container And Leaf Target Semantics` future doc into a more implementation-ready Browser phase by locking the first target-kind contract, the exact `Select > Content > ...` Console seam, parent-only selection plus explicit `SelectAll`, and a sharper Browser/store/Console verification matrix, while mirroring that stronger state here
+54. 2026-03-28 14:36: Added the standalone future `Browser-8.1 - Container And Leaf Target Semantics` phase doc under `Browser/Future/`, so the first structured Browser hierarchy cleanup now has its own dedicated planning surface for the `Select > Content > ...` root, transformable container-owner semantics, and parent-only selection plus explicit `SelectAll`
+53. 2026-03-28 14:27: Tightened `Browser-8` with the next hierarchy rules, locking first-pass drag/drop legality, the reparent behavior that moved rows should preserve world placement while local transform is recalculated under the new parent, and the decision that Browser-8 should not introduce a separate pure non-transform folder type yet
+52. 2026-03-28 14:15: Expanded `Browser-8` so the structured hierarchy now explicitly supports multiple top-level assemblies, and locked the import/upload rule that an incoming assembly should default to its own top-level assembly root unless the user later nests or reparents it under another assembly as a subassembly
+51. 2026-03-28 14:08: Expanded `Browser-8` again so the structured container hierarchy now explicitly prepares for user-driven Browser re-arrangement, locking the direction that objects and transformable containers should later support drag-and-drop reorder/reparent behavior instead of remaining a fixed static tree
+50. 2026-03-28 14:00: Reframed `Browser-8` around a stronger Fusion-style container model so `Assembly`, later `Subassembly`, and `Component` now read as real transformable container owners with origins/history instead of pure non-transform folders, while `Object` / `Part` stays the leaf geometry owner under that hierarchy
+49. 2026-03-28 13:43: Expanded `Browser-8` with a new parent-selection direction so container rows like `Footpads` can be selected as parents without auto-selecting all descendants, while the Console at that parent scope should expose an explicit `SelectAll` option when the user wants to resolve the full child set
+48. 2026-03-28 13:36: Expanded `Browser-8` so the Browser container-vs-leaf cleanup now explicitly locks a stable Console `Content` root for content-side navigation, with child choices updating dynamically from the current Browser/viewport selection so the canonical content breadcrumb direction reads `Select > Content > ...`
+47. 2026-03-28 13:28: Promoted the earlier `b7.6` container-vs-leaf Browser cleanup into its own real `Browser-8` umbrella phase, removing it from the smaller Browser-7 follow-on bucket and breaking the direction into explicit `###` subphases for target semantics, folder CRUD, and later transform/multi-select alignment
+46. 2026-03-28 13:18: Expanded `b7.6` so the Browser container-vs-leaf cleanup now explicitly owns folder CRUD in both Browser UI and Console, allowing users to create, rename, and delete folder/container rows while still keeping transform ownership and later multi-select centered on leaf targets rather than the container rows themselves
+45. 2026-03-28 13:05: Added a new `b7.6` Browser cleanup direction so the tree can move toward one cleaner `container vs leaf` model, with `Assemblies`, `Components`, `References`, and reference categories like `Footpads` reading as hierarchy/folder owners while transformable objects and reference items become the real selectable/transformable leaf targets reused by later `Viewer Transform` and multi-select work
 44. 2026-03-26 17:07: Locked the final Browser transform hierarchy in this umbrella doc so valid selected targets should expose `Transform` first and only expose `Move`, `Rotate`, and `Scale` one level deeper under that branch, while also recording the canonical staged reference breadcrumb example `Select > References > premadefoothooks > XL > Transform > Move`
 43. 2026-03-26 16:58: Reframed the open Browser transform direction so `Browser-7.5` is now the real umbrella transform phase, with `7.3` and `7.4` treated as narrower transform sub-directions under that larger final-transform definition effort, and expanded the long-term Browser vision to explicitly include the later transform-history traversal and restore direction instead of leaving it only in the Browser-7 cleanup ladder
 42. 2026-03-26 16:18: Expanded `Browser-7` again by adding a new `b7.4` follow-on entry for transform-history traversal and restore, explicitly separating history playback/scrub behavior from the narrower `b7.3` live-session and append-history foundation
@@ -1148,7 +1215,6 @@ Track the next small Browser cleanup entries after Browser-6 without forcing eac
     - how target-local history and later traversal/restore should fit together
   - standalone phase doc:
     - `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-7.5 - Final Transform Direction And Phase Split.md`
-
 ### Questions / Decisions
 
 #### [x] q23 - Should Browser-7.3 stay reference-first, or widen into objects and assemblies immediately?
@@ -1291,3 +1357,927 @@ Decision:
   - the last row
   - locked rows
   - while collapsing earlier unlocked rows
+
+## [ ] Browser-8 - Container Versus Leaf Browser Model
+
+### Purpose
+
+Move the Browser toward one cleaner structured hierarchy model so assemblies/components behave like real transformable container owners and `Object` / `Part` rows behave like leaf geometry owners.
+
+### Owns
+
+- Browser target semantics for transformable container rows versus leaf rows
+- Browser and Console container authoring direction
+- cleanup of selection, `Esc`, `Back`, and transform-entry expectations that currently branch too heavily by row family
+- the Browser-side prerequisite shape for later shared `Viewer Transform` and multi-select work
+
+### Suggested Direction
+
+- treat `Assembly`, later `Subassembly`, and `Component` rows as structured transformable container owners
+- treat `Object` / `Part` rows as leaf geometry owners
+- keep existing browse / load / zoom flows working while the target model is cleaned up
+- use `Browser-8` as the umbrella, then land the work in narrower subphases instead of one oversized patch
+
+### Locked Direction
+
+- Console content navigation should use one stable root:
+  - `Select > Content > ...`
+- content-side child choices under that root should update dynamically from the current Browser/viewport selection state
+- selecting a parent/container row should not automatically select all of its children
+- when the user is on a parent/container scope in Console, that scope should expose an explicit `SelectAll` action for resolving the full child set on demand
+- `Assembly` is the primary root transformable container model
+- the Browser should support multiple top-level assembly roots
+- when the user uploads/imports an assembly, it should default to its own top-level assembly root
+- if the user later nests or reparents that assembly under another assembly, it then becomes a subassembly
+- later nested `Subassembly` rows should also be transformable container owners
+- `Component` rows should be transformable container owners
+- later nested `SubComponent` rows may also be supported as transformable container owners, but that hierarchy widening should stay outside the current `Browser-8.3` owner-entry cleanup
+- transformable container owners need:
+  - origin / pivot
+  - basis / orientation
+  - transform history
+- `Object` / `Part` rows stay the leaf geometry owners under those containers
+- reference-backed groups like `Footpads` should eventually map into that same structured container model instead of staying a permanently separate non-transform folder species
+- later `Viewer Transform` and multi-select should work across both:
+  - transformable container owners
+  - leaf geometry owners
+- Console status should later be able to print the selected owner path plus a compact immediate-child summary:
+  - `Select > Content > Assembly 1: [Component 1, Component 2]`
+  - `Select > Content > Assembly 1: [Component 1: [Object 1, Object 2], Component 2, Object 3]`
+- that same status-summary rule should later scale across:
+  - `Assembly`
+  - `Subassembly`
+  - `Component`
+  - later `SubComponent`
+  - later `Object` when parts exist
+- keep that status summary one level deep by default so it stays readable and does not turn into a full recursive tree dump
+- the Browser hierarchy should also prepare for later user-driven re-arrangement:
+  - drag-and-drop reorder
+  - drag-and-drop reparent into other valid containers
+  - moving both leaf objects and transformable containers around the Browser tree
+- first-pass drag/drop legality should be:
+  - `Assembly` can contain:
+    - `Subassembly`
+    - `Component`
+    - `Object` / `Part`
+  - `Subassembly` can contain:
+    - `Subassembly`
+    - `Component`
+    - `Object` / `Part`
+  - `Component` can contain:
+    - `Object` / `Part`
+  - `Object` / `Part` contains nothing
+- when a row is reparented into a new valid container, world placement should stay the same and the moved row should recalculate its local transform under the new parent
+- Browser-8 should not introduce a separate pure non-transform organizational folder type yet:
+  - use structured transformable containers first
+  - revisit a true non-transform folder later only if the product still needs one
+
+### [x] Browser-8.1 - Container And Leaf Target Semantics
+
+- define the canonical Browser distinction between:
+  - transformable container owners
+  - leaf geometry owners
+- define the matching Console content root so content-side navigation stays anchored at:
+  - `Select > Content > ...`
+- child Console choices under `Content` should update dynamically as the current Browser/viewport content selection changes
+- parent/container selection should stay parent-only by default instead of resolving descendants immediately
+- parent/container Console scopes should expose `SelectAll` when the user wants to resolve/select the full child set explicitly
+- clean up Browser navigation, `Esc`, `Back`, highlight clear, and selection ownership so they align to that distinction
+- lock the first structured hierarchy direction:
+  - `Assembly`
+  - later `Subassembly`
+  - `Component`
+  - `Object` / `Part`
+- support more than one top-level `Assembly` in the Browser tree
+- first-pass caution:
+  - preserve existing browse / load / zoom entry flows while target semantics are cleaned up
+  - do not regress current reference/category navigation while reference-backed groups are moved toward the same structured-container model
+- shipped phase doc:
+  - `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-8.1 - Container And Leaf Target Semantics.md`
+- shipped result:
+  - content-side Console navigation now stays anchored under `Select > Content > ...`
+  - content container selection is parent-only by default while explicit descendant resolution stays available for `SelectAll`, zoom, and other owner-wide actions
+  - Browser/Console `Esc` / `Back` cleanup now clears content selection more consistently instead of leaving stale highlight/state behind
+
+### [x] Browser-8.2 - Folder CRUD In Browser UI And Console
+
+- users should be able to create structured container rows from both the Browser UI and Console
+- users should be able to rename structured container rows from both the Browser UI and Console
+- users should be able to delete structured container rows from both the Browser UI and Console
+- users should later be able to drag and drop objects and transformable containers so the Browser tree can be rearranged
+- first intended hierarchy direction:
+  - assembly roots
+  - later subassemblies
+  - components
+- later hierarchy growth may also support nested `SubComponent` rows, but not as part of the first shipped `8.2` CRUD scope
+- keep this phase focused on Browser/container authoring behavior, not full durable STEP/export semantics yet
+- shipped phase doc:
+  - `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-8.2 - Folder CRUD In Browser UI And Console.md`
+- shipped result:
+  - `Select > Content` now exposes `New Assembly`, and selected assemblies/components expose the first shared Console CRUD surface for create/rename/delete
+  - Browser row context menus now surface the same first-pass authored container CRUD actions without introducing drag/drop or subassembly authoring yet
+  - created assemblies are top-level siblings to the runtime root assembly, and created components stay assembly-owned in this first pass
+
+### [x] Browser-8.3 - Shared Leaf Target Entry For Viewer Transform And Multi-Select Prep
+
+- align Browser-selected targets so later `Viewer Transform` can consume one cleaner shared target model across:
+  - transformable container owners
+  - leaf geometry owners
+- make later multi-select widening read as:
+  - one selected owner now
+  - later a list of selected owners
+- keep descendant resolution explicit so selecting a parent owner does not silently flatten it into child-only ownership
+- lock one exact shared owner-target descriptor so Browser, Console, and `Viewer Transform` stop inventing parallel target shapes
+- keep `SelectAll` as a separate resolved descendant action set instead of letting it replace the selected owner
+- shipped phase doc:
+  - `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-8.3 - Shared Owner Target Entry For Viewer Transform And Multi-Select Prep.md`
+- shipped result:
+  - the app store now resolves one shared selected content-owner target descriptor for `assembly`, `component`, and `object-part`
+  - Console content context now reads content-owner label/capability metadata through that shared owner seam
+  - `Viewer Transform` focused-target display now uses the same owner-target payload and shows lightweight parent context for content-object sessions
+
+### [x] Browser-8.4 - Reparenting And Drop Rules
+
+- implement the first legal drop/reparent matrix for structured Browser containers:
+  - `Assembly -> Subassembly / Component / Object-Part`
+  - `Subassembly -> Subassembly / Component / Object-Part`
+  - `Component -> Object-Part`
+  - `Object-Part -> none`
+- later hierarchy widening may add `SubComponent` under `Component`, but that should be introduced explicitly instead of being implied by the first `8.4` drop matrix
+- preserve world placement during reparent:
+  - on drop, keep the moved row visually in the same place in world space
+  - recalculate its local transform relative to the new parent container
+- keep drag/drop rejection honest:
+  - invalid drops should not silently coerce into another parent type
+  - Browser should show clear valid/invalid drop intent
+- keep pure non-transform folders out of scope in this phase
+- standalone phase doc:
+  - `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-8.4 - Reparenting And Drop Rules.md`
+- shipped result:
+  - Browser rows now support single-row drag/drop for the first authored-content move matrix:
+    - same-parent reorder with `before` / `after`
+    - cross-parent reparent with `into`
+  - valid and invalid Browser drop intent is now rendered directly on the row shell, including direct `into` drop on collapsed valid owners
+  - successful reorder or reparent now keeps the moved owner selected and re-syncs Console to that moved owner
+- polish follow-on:
+  - strengthen the drag-preview layer so the active provisional target updates more clearly as the mouse moves across assemblies/components
+  - keep real tree mutation on drop, but make the hover/preview read more like the dragged owner is jumping between candidate parents in real time
+  - likely improvements:
+    - stronger active-target highlight
+    - clearer provisional `into` owner treatment
+    - a more readable dragged-row ghost or placeholder
+  - shipped polish follow-on doc:
+    - `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-8.4.1 - Drag Preview And Hover Retarget Polish.md`
+  - shipped polish result:
+    - dragged rows now render a lightweight drag ghost while the real tree stays unchanged until drop
+    - active provisional target feedback is stronger during drag, including a clearer collapsed-owner `into` treatment
+    - same-parent reorder and cross-parent reparent behavior from `8.4` is preserved
+
+#### Polish Questions / Decisions
+
+##### [x] q5 - Should the drag-preview polish use a row ghost, a placeholder, or target-only emphasis?
+
+Question:
+- for the `8.4.1` polish pass, should the Browser show a lightweight dragged-row ghost, an in-tree placeholder, or only stronger target highlighting while the real tree stays unchanged until drop?
+
+Suggestion:
+- start with target-only emphasis plus a lightweight ghost if needed
+- avoid a full in-tree placeholder first, because that starts to visually imply real mutation before drop
+- keep the preview layer readable without making the Browser feel like it already committed the move
+
+Decision:
+- use stronger target-only emphasis plus a lightweight dragged-row ghost
+- do not add a full in-tree placeholder in the first polish pass
+- keep the preview readable without implying real tree mutation before drop
+
+##### [x] q6 - How strong should provisional parent retargeting be while the mouse crosses candidate owners?
+
+Question:
+- when the user drags across assemblies/components, should the active provisional target just brighten subtly, or should the Browser make a stronger jump in emphasis so it is obvious the dragged owner has retargeted?
+
+Suggestion:
+- make the retargeting strong and immediate
+- the Browser should clearly communicate “you are over Assembly 2 now” or “you are over Component 1 now”
+- this is the main polish goal, so subtle feedback is probably not enough
+
+Decision:
+- make provisional parent retargeting strong and immediate
+- the Browser should clearly communicate the current candidate owner as the mouse crosses assemblies/components
+- subtle-only brightening is not enough for this pass
+
+##### [x] q7 - Should collapsed-owner `into` targeting get its own special preview treatment?
+
+Question:
+- when the target owner is collapsed, should the Browser use the same `into` affordance as expanded owners, or should collapsed owners get a distinct stronger treatment so users know they are dropping into the container and not before/after it?
+
+Suggestion:
+- give collapsed-owner `into` targeting its own stronger preview treatment
+- collapsed containers are the hardest case to read, so they deserve the clearest feedback
+
+Decision:
+- collapsed-owner `into` targeting gets its own stronger preview treatment
+- keep it visually distinct from both expanded-owner `into` and same-parent `before` / `after`
+
+##### [x] q8 - Should auto-expand-on-hover stay out of the first polish pass?
+
+Question:
+- should `8.4.1` stay focused only on preview readability, or should it also auto-expand owners after hover delay while dragging?
+
+Suggestion:
+- keep auto-expand-on-hover out of the first polish pass
+- solve readability first with clearer preview layers
+- only add auto-expand later if the stronger preview still feels insufficient
+
+Decision:
+- keep auto-expand-on-hover out of the first polish pass
+- solve readability first with stronger preview layers and provisional target feedback
+- revisit auto-expand only if the preview polish still feels insufficient
+
+#### Questions / Decisions
+
+##### [ ] q1 - Should same-parent drag/drop reorder and cross-parent reparent ship together?
+
+Question:
+- should `Browser-8.4` land same-parent reorder and cross-parent reparent in one pass, or should the first cut only own one of those behaviors?
+
+Suggestion:
+- ship them together if the legality matrix and transform-preservation rule stay shared
+- avoid splitting them only if that would create two different drag/drop mental models in a row
+- if scope pressure rises, prioritize cross-parent reparent because that is the higher-value structural capability
+
+##### [ ] q2 - When a row is reparents, should world placement or local transform win?
+
+Question:
+- when the user drags an owner or leaf into a new valid container, should the row keep its current world placement and recalculate local transform, or should it keep the old local transform and visibly jump under the new parent?
+
+Suggestion:
+- keep world placement stable
+- recalculate local transform relative to the new parent container
+- this is the least surprising behavior and matches the locked Browser-8 direction above
+
+##### [ ] q3 - What should happen when the drop target is a collapsed container?
+
+Question:
+- if the user drags over a collapsed `Assembly`, `Subassembly`, or `Component`, should the Browser require the row to be expanded first, auto-expand on hover, or allow drop directly onto the collapsed owner?
+
+Suggestion:
+- allow direct drop onto the collapsed owner
+- add a lightweight hover affordance if needed, but do not require pre-expansion just to make reparent work
+- keep the Browser feeling structural rather than fragile
+
+##### [ ] q4 - Should first-pass drag/drop include references and imported hierarchy rows, or stay on authored content owners first?
+
+Question:
+- should `8.4` let users reparent all compatible Browser rows immediately, including reference-backed or imported hierarchy, or should the first pass stay on authored structured content owners first?
+
+Suggestion:
+- keep the first pass on authored structured content owners first
+- widen later once the legality matrix, transform preservation, and console/browser sync are proven stable
+
+### [x] Browser-8.5 - Drag Session Architecture Cleanup
+
+- rebuild the Browser drag/drop system into a cleaner layered model so the drag interaction stays smooth and predictable under reorder, reparent, and preview retarget changes
+- treat this as an architecture cleanup, not another small CSS-only polish pass
+- the current pain to solve is broader than preview styling:
+  - row-local native drag lifecycle and global drag session cleanup are still too tightly coupled
+  - preview layout, legality resolution, and animation are still too interwoven
+  - the source row and provisional slot can still feel fragile when the rendered list changes mid-drag
+- preferred cleanup direction:
+  - one Browser drag session coordinator owns:
+    - drag source identity
+    - current hover target
+    - resolved intent
+    - validity
+    - cleanup / cancel / recovery
+  - drop legality should come from a pure resolver that does not depend on row-local DOM state
+  - provisional preview layout should come from a pure preview builder that derives:
+    - source-row treatment
+    - provisional slot / gap placement
+    - `before` / `after` / `into` guides
+  - the real dragged source row should stay mounted during drag
+  - Browser preview rendering should never need to replace or unmount the native drag source just to show a candidate landing slot
+  - FLIP/layout animation should only animate row movement:
+    - it should not also carry drag lifecycle correctness or cleanup responsibility
+  - drag cleanup should have one reliable Browser-level fallback path, not depend mainly on row-local `dragend` / `drop`
+- intended outcome:
+  - no stuck drag styling
+  - no fake duplicate row feeling
+  - stable provisional targeting while the mouse crosses candidate owners
+  - smoother row displacement during reorder and reparent preview
+  - clearer separation between:
+    - drag session state
+    - legality
+    - preview layout
+    - rendering / animation
+    - committed mutation on drop
+- shipped phase doc:
+  - `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-8.5 - Drag Session Architecture Cleanup.md`
+- shipped result:
+  - Browser drag session state now lives behind a clearer coordinator shape instead of being recomputed ad hoc inside each row-level drag handler
+  - Browser drop legality and provisional preview derivation now flow through dedicated pure helper seams instead of one mixed controller block
+  - Browser-level drag cleanup fallbacks now clear stale preview state more reliably, including interrupted drag cases such as escape or broader lifecycle loss
+  - the real dragged source row stays mounted while the provisional preview remains derived until the actual drop commit
+
+### [ ] Browser-8.6 - Depth-Lane Drag Interaction
+
+- add a richer nested drag interaction on top of the stabilized `8.5` drag-session foundation
+- treat this as an interaction-model upgrade, not the foundational reliability pass
+- preferred direction:
+  - use an explicit two-axis drag model:
+    - vertical movement chooses the provisional slot band
+    - horizontal movement chooses the legal ownership depth for that hovered band
+  - while the user drags through a nested branch:
+    - farther left should move the provisional owner upward toward broader parents
+    - farther right should move the provisional owner downward toward deeper legal owners
+  - derive the horizontal depth lanes from the legal owners for the current vertical band:
+    - if two legal owners exist, split the lane into two depth choices
+    - if three legal owners exist, split the lane into three depth choices
+  - when horizontal movement changes the chosen owner depth, the provisional preview row should move immediately to the new correct slot/depth instead of preserving the old slot literally
+  - add a small amount of horizontal hysteresis so tiny mouse jitter does not constantly flip the provisional owner depth
+- intended outcome:
+  - nested reparenting reads clearly without requiring delicate hover precision
+  - the user can choose both:
+    - where the row lands vertically
+    - which legal parent depth owns it
+  - the provisional preview stays trustworthy while moving through assemblies, subassemblies, and components
+- standalone phase doc:
+  - `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-8.6 - Depth-Lane Drag Interaction.md`
+
+#### Questions / Decisions
+
+##### [x] q1 - Should Browser drag use vertical slot choice plus horizontal depth choice?
+
+Question:
+- while the user drags through nested Browser content, should depth remain implicit from the hovered row alone, or should the drag model explicitly use vertical movement to choose the slot and horizontal movement to choose the legal ownership depth?
+
+Suggestion:
+- use an explicit two-axis model:
+  - vertical movement chooses the provisional slot band
+  - horizontal movement chooses the legal owner depth for that band
+- this should make nested reparenting feel more predictable than guessing depth from hover alone
+
+Decision:
+- use an explicit two-axis drag model
+- vertical movement chooses the provisional slot band
+- horizontal movement chooses the legal ownership depth for that band
+
+##### [x] q2 - How should left/right depth choice map to the hierarchy?
+
+Question:
+- when multiple legal owner depths exist for the current vertical band, should left/right movement map to broader versus deeper ownership in a stable way?
+
+Suggestion:
+- map farther left to broader / higher parents
+- map farther right to deeper / more nested legal owners
+- keep that mapping consistent across assemblies, subassemblies, components, and later deeper container families
+
+Decision:
+- farther left maps to broader / higher parents
+- farther right maps to deeper / more nested legal owners
+- keep this mapping stable across the Browser hierarchy
+
+##### [x] q3 - How should Browser choose between two or three possible owner depths?
+
+Question:
+- if the hovered vertical band allows two or three legal owner depths, should Browser infer one “best” depth automatically, or should it expose those choices through horizontal lane splits?
+
+Suggestion:
+- expose the legal depths through horizontal lane splits
+- if two legal owners exist, divide the active drag width into two lanes
+- if three legal owners exist, divide it into three lanes
+- only include legal owner depths for that band, not every ancestor in the whole tree
+
+Decision:
+- use horizontal depth lanes derived from the legal owner set for the current vertical band
+- two legal owners means two lanes
+- three legal owners means three lanes
+- only legal owners for the current band should participate
+
+##### [x] q4 - What should happen if horizontal depth choice conflicts with the original vertical interpretation?
+
+Question:
+- if the user drags below a component but then moves left to choose a broader parent like the assembly, should Browser preserve the old vertical interpretation or should the provisional preview jump to the new correct slot for that owner depth?
+
+Suggestion:
+- let the provisional preview jump to the new correct slot for the chosen owner depth
+- the preview should resolve the conflict live instead of trying to preserve the old interpretation
+- that makes the final landing place easier to trust
+
+Decision:
+- when horizontal depth choice changes the legal owner, the provisional preview row should move immediately to the new correct slot/depth
+- Browser should not try to preserve the old slot literally if that conflicts with the chosen owner depth
+
+##### [x] q5 - Should Browser add hysteresis to horizontal depth switching?
+
+Question:
+- when the user is choosing between nearby depth lanes, should Browser switch depth immediately on tiny lateral movement, or should it add a small amount of hysteresis to avoid jitter?
+
+Suggestion:
+- add a small amount of horizontal hysteresis
+- keep lane switching responsive, but avoid noisy flicker when the cursor hovers near a lane boundary
+
+Decision:
+- add a small amount of horizontal hysteresis to depth-lane switching
+- keep it responsive, but do not allow tiny jitter to flip the provisional owner depth constantly
+
+##### [x] q6 - Should Browser show explicit visual lane guidance while depth choice is available?
+
+Question:
+- when the current vertical band has more than one legal owner depth, should Browser leave the user to infer the horizontal depth lanes, or should it show explicit visual guidance for the lane choices?
+
+Suggestion:
+- show explicit visual lane guidance whenever more than one legal owner depth exists
+- keep it lightweight:
+  - subtle vertical lane separators
+  - stronger highlight on the currently active lane
+  - matching provisional row depth/indent feedback
+- this should help the user understand why left/right movement changes ownership depth
+
+Decision:
+- show explicit visual lane guidance whenever more than one legal owner depth exists
+- use lightweight separators plus a stronger active-lane emphasis
+- keep the provisional row depth/indent aligned with the active lane
+
+##### [x] q7 - Should horizontal lane widths be equal, or should deeper owners get a narrower/larger bias?
+
+Question:
+- if the current band has two or three legal owner depths, should Browser divide the drag width evenly between them, or bias the width toward shallower or deeper owners?
+
+Suggestion:
+- use equal-width lanes in the first pass
+- do not introduce smart weighting yet
+- a simple equal split will be easier to learn and easier to debug
+
+Decision:
+- use equal-width horizontal lanes in the first pass
+- do not add owner-depth weighting or bias yet
+
+##### [x] q8 - Should collapsed legal owners still participate in horizontal depth choice?
+
+Question:
+- when a collapsed container is one of the legal owners for the current vertical band, should it still be offered as a horizontal depth-lane choice, or only expanded owners?
+
+Suggestion:
+- collapsed legal owners should still participate
+- if they are legal owners for that band, they should be selectable through the same depth-lane model
+- keep them visually distinct enough that users can tell they are choosing a collapsed owner depth
+
+Decision:
+- collapsed legal owners still participate in horizontal depth choice when they are legal for the current band
+- keep their preview treatment visually distinct enough to read as a collapsed owner
+
+##### [x] q9 - Should Browser bias the default lane toward the current parent depth?
+
+Question:
+- before the user moves left or right very much, should the initial active depth lane prefer the current hovered/default owner, or should Browser choose some other “best” lane automatically?
+
+Suggestion:
+- bias the initial lane toward the most local/default owner for that vertical band
+- let the user move left to broaden ownership or right to deepen it when those alternatives are legal
+- this keeps the interaction readable and avoids surprising default jumps
+
+Decision:
+- bias the initial active lane toward the most local/default owner for the current vertical band
+- only change away from that default when the user moves horizontally into another lane
+
+### [x] Browser-8.7 - Pointer-Driven Drag Engine Rebuild
+
+- replaced the Browser’s row-native HTML drag lifecycle with one Browser-level pointer-driven drag engine
+- kept the structured Browser hierarchy, legality rules, and committed move/reparent truth from `8.4` and `8.5`
+- absorbed the practical implementation intent of the narrower `8.6` drag-smartness work into the rebuilt engine instead of shipping two separate drag rewrites
+- shipped phase doc:
+  - `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-8.7 - Pointer-Driven Drag Engine Rebuild.md`
+- shipped result:
+  - Browser drag now activates from one pointer-session model with a small movement threshold, so click selection and drag begin are separated more honestly
+  - drag start now promotes the dragged owner into selection immediately, keeping Browser, Console, and later transform context aligned to the same owner
+  - Browser rows now register geometry centrally and the controller resolves drag preview from shared row metrics instead of row-native `dragover` / `drop` events
+  - provisional drop preview now stays derived from one shared drag frame, including local-branch preview placement and the active junction marker
+  - Browser drag cancellation and cleanup now clear more reliably through pointer cancel, `Escape`, blur, and visibility-loss fallbacks
+  - the Browser test surface now verifies pointer-driven click-vs-drag threshold, selection handoff, preview cleanup, reorder, and collapsed-owner targeting
+
+### [ ] Browser-8.8 - Reliable Drag Interaction Rebuild
+
+- treat this as a calmer drag reset after shipped `8.7`
+- keep the store-side legality and committed move/reparent truth
+- rebuild the visible Browser drag interaction to be simpler and more reliable before reintroducing richer hierarchy preview
+- rationale:
+  - `8.7` improved the pointer/session foundation, but the current preview/render model is still too glitchy
+  - the fake local-tree preview is adding complexity without enough clarity yet
+  - a plain insert-line plus target-highlight system is a better honest baseline than a half-working simulated tree rewrite
+- intended outcome:
+  - drag feels obvious and predictable
+  - fewer visual glitches
+  - less mismatch between where the mouse is and where Browser says the row will land
+  - a simpler interaction surface that is easier to tune and maintain
+
+### [x] Browser-8.8.1 - Simple Reliable Rearrange Baseline
+
+- rebuilt the visible Browser drag interaction around a simpler, more trustworthy baseline on top of the pointer/session foundation from shipped `8.7`
+- shipped phase doc:
+  - `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-8.8.1 - Simple Reliable Rearrange Baseline.md`
+- shipped result:
+  - Browser content rows now stay real and mounted during drag instead of being hidden or structurally replaced by a fake placeholder branch
+  - the active drop explanation now stays narrow and exact:
+    - `before` = insert line above the target row
+    - `after` = insert line below the target row
+    - `into` = owner highlight on the valid container row
+  - the fake local-branch placeholder preview path is no longer part of the live Browser rearrange interaction
+  - same pointer-driven legality and commit-on-release truth remains in place, but the visible drag contract is now calmer and easier to trust
+  - the Browser regression surface now verifies the simpler stable-row contract instead of the earlier hidden-source / placeholder-preview behavior
+
+### [x] Browser-8.8.2 - Target Clarity And Trust Tuning
+
+- tightened the simpler `8.8.1` Browser drag baseline so target resolution feels more trustworthy without widening the visible preview model
+- shipped phase doc:
+  - `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-8.8.2 - Target Clarity And Trust Tuning.md`
+- shipped result:
+  - Browser drag now maps hovered rows by `rowId` instead of reusing filtered row-metric indices against the full content tree, so reorder targets no longer drift when some visible rows are omitted from geometry
+  - exact vertical-gap midpoint resolution now biases toward the lower row, which keeps gap hover and gap release behavior aligned instead of snapping back to the earlier row on drop
+  - illegal middle-band `into` hovers on object rows now fall back to the nearest legal reorder intent instead of being treated as valid `into` targets through the Browser test harness
+  - the simpler visible grammar stays intact:
+    - `before` = insert line above
+    - `after` = insert line below
+    - `into` = owner highlight
+  - collapsed-owner readability and direct `into` targeting remain supported while the Browser trust-tuning pass stays narrowly focused on clearer target resolution rather than richer preview complexity
+
+### [x] Browser-8.8.3 - Motion And Rearrange Polish
+
+- added light motion polish on top of the simpler `8.8.1`/`8.8.2` Browser drag baseline without widening preview complexity
+- shipped phase doc:
+  - `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-8.8.3 - Motion And Rearrange Polish.md`
+- shipped result:
+  - dragged rows now get a calmer lifted motion treatment while active
+  - Browser row shells and insert lines now settle more softly through small transition polish instead of hard snapping
+  - legal cross-parent moves now keep the blue insertion-slot language by separating commit intent from display intent
+  - expanded valid owners can keep owner highlight as secondary support while the primary cue answers where the row will land
+  - collapsed or empty owners still keep the existing `into` highlight path when there is no visible child slot to show yet
+
+### [ ] Browser-8.8.4 - Reintroduce Richer Hierarchy Guidance Carefully
+
+- only after the simpler system feels solid should richer hierarchy guidance return
+- possible later additions:
+  - stronger tree-line guidance
+  - small junction marker
+- any richer hierarchy guidance should be layered back in carefully and only if it improves clarity instead of making drag feel fragile again
+- the baseline from `8.8.1` must remain readable even if these details are turned back on later
+- first pass stays restrained:
+  - subtle active-branch line emphasis
+  - maybe one small junction marker
+  - no fake local-tree preview
+  - no duplicate-branch behavior
+- richer hierarchy cues stay tertiary:
+  - insertion slot remains primary
+  - owner support highlight remains secondary
+- standalone phase doc:
+  - `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-8.8.4 - Reintroduce Richer Hierarchy Guidance Carefully.md`
+
+#### Questions / Decisions
+
+##### [ ] q1 - Should Browser simplify the live preview before adding more hierarchy intelligence again?
+
+Question:
+- after the shipped `8.7` pointer rebuild still feels too glitchy in practice, should the next step simplify the preview model first instead of trying to keep layering richer branch/tree simulation on top?
+
+Suggestion:
+- yes
+- keep the pointer engine
+- simplify the drag preview to:
+  - dragged row
+  - insert line
+  - owner highlight
+- reintroduce richer live-tree preview only after the simpler system feels solid
+
+##### [ ] q2 - Should the first rebuilt preview avoid hiding or structurally replacing the source row?
+
+Question:
+- should Browser stop hiding/replacing the source row or inserting fake branch placeholders while dragging, and instead keep the source visually stable until the committed move happens?
+
+Suggestion:
+- yes
+- avoid fake duplicate-tree behavior
+- keep the source row stable and let one explicit drop indicator explain the current target
+
+### [ ] Browser-9 - Reference Tree Convergence Into Standard Content Hierarchy
+
+- treat this as the next structural Browser cleanup after the drag-reset ladder, not as another drag subphase
+- remove the special long-lived Browser tree species for:
+  - `References`
+  - `Footpads`
+  - `Shoes`
+  - `Premade Foothooks`
+- preserve the same practical organization, but express it through the standard content hierarchy:
+  - `Assembly`
+  - `Component`
+  - `Object`
+  - later `Part`
+- intended direction:
+  - `References` should become a normal `Assembly`
+  - `Footpads`, `Shoes`, and `Premade Foothooks` should become normal `Component` rows under that assembly
+  - imported/library items should become normal `Object` rows under those components by default
+  - Browser should treat rows like `XL.step` as normal `Object` rows, not as a separate long-lived reference-item species
+  - if an `Object` row is visible in Browser, the user should be able to drag it to any legal `Assembly` / `Subassembly` / `Component` owner path
+  - Browser should keep one structural `Object` row type while imported objects stay darker/static and generated objects keep generated/loading treatment
+  - source/origin differences like generated versus imported versus library-backed should remain metadata/presentation and backend placement concerns, not a different Browser tree species
+  - richer imported hierarchy can later map upward into `Component` or `Subassembly` when the source file clearly contains that structure
+  - imported objects that already contain internal parts should later expose those `Part` children in Browser instead of staying visually collapsed into one flat object row
+- rationale:
+  - this keeps Browser honest around what the rows actually are
+  - drag/rearrange, rename, delete, visibility, and later transform can stay on one shared hierarchy model
+  - imported origin can remain visible through styling/metadata instead of requiring a separate permanent tree species
+- recommendation:
+  - yes, this should be `Browser-9`
+  - it is a bigger Browser tree-model convergence step, not just one more `Browser-8` drag/detail follow-on
+
+#### Questions / Decisions
+
+##### [x] q1 - Should `References` stop being a special Browser root and become a normal assembly?
+
+Question:
+- should the Browser stop treating `References` as its own special tree root and instead represent it as a normal top-level `Assembly` named `References`?
+
+Suggestion:
+- yes
+- keep the name and organization the user already understands
+- remove the special Browser-only entity type
+
+Decision:
+- `References` should stop being a special Browser root and become a normal top-level `Assembly` named `References`
+- Browser should preserve the familiar grouping name while removing the separate Browser-only tree species
+
+##### [x] q2 - Should category rows like `Footpads`, `Shoes`, and `Premade Foothooks` become normal components?
+
+Question:
+- should the current reference category rows be modeled as normal `Component` rows under the `References` assembly instead of remaining special reference-category rows?
+
+Suggestion:
+- yes
+- that preserves the grouping while converging the Browser onto one content hierarchy model
+
+Decision:
+- category rows like `Footpads`, `Shoes`, and `Premade Foothooks` should become normal `Component` rows under the `References` assembly
+- that grouping should stay visible, but it should be expressed through the standard content hierarchy instead of a special reference-category type
+
+##### [x] q3 - Should imported objects later expose child `Part` rows in Browser when the source structure already contains parts?
+
+Question:
+- when an imported object already contains internal parts, should Browser later show those parts as children under the object row?
+
+Suggestion:
+- yes
+- keep `Object` as the parent owner
+- expose `Part` as the leaf structural unit under that object when the imported structure already supports it
+
+Decision:
+- default imported single objects should land as normal `Object` rows in the user’s working hierarchy
+- when an imported object’s source structure already contains internal parts, Browser should later be able to expose those child `Part` rows under the object
+- fuller imported hierarchy can later map upward into `Component` or `Subassembly`, but the first import default stays object-first
+- Browser should keep one structural `Object` row type while preserving imported-versus-generated visual treatment through origin/runtime traits
+
+##### [x] q4 - Should Browser preserve current reference-transform compatibility while `9.1` converges the tree model?
+
+Question:
+- while Browser remaps the old reference tree into normal `Assembly` / `Component` / `Object` rows, should `9.1` preserve current reference-transform behavior through a compatibility seam instead of forcing a same-pass transform migration?
+
+Suggestion:
+- yes
+- converge the Browser tree first
+- keep current reference-transform entry working through compatibility mapping
+- move deeper shared object-transform convergence into a later follow-on once the hierarchy is stable
+
+Decision:
+- Browser should preserve current reference-transform compatibility while `9.1` converges the tree model
+- converge the Browser tree first
+- keep current reference-transform entry working through compatibility mapping
+- move deeper shared object-transform convergence into a later follow-on once the hierarchy is stable
+
+- standalone phase doc:
+  - `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-9 - Reference Tree Convergence Into Standard Content Hierarchy.md`
+- shipped subphase:
+  - `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-9.1 - Reference Tree Convergence Baseline.md`
+- shipped subphase:
+  - `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-9.2 - Import Landing And Hierarchy Mapping.md`
+- shipped subphase:
+  - `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-9.3 - Part Row Exposure For Imported Objects.md`
+- shipped subphase:
+  - `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-9.4 - Imported Object Promotion To True Content Owners.md`
+- shipped subphase:
+  - `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-9.5 - Library Object Rows And Direct Placement Drag.md`
+- shipped subphase:
+  - `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-9.6 - Placement Shelf Removal And Single Object Identity.md`
+- shipped subphase:
+  - `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-9.7 - Normal Assembly Component Rows For Reference Hierarchy.md`
+
+##### [x] q5 - Should imported/reference-backed object rows eventually become true content-owner rows instead of remaining compatibility-backed Browser rows?
+
+Question:
+- after `9.1` tree convergence, `9.2` import landing, and `9.3` truthful part exposure, should imported Browser object rows become true content-owner rows that fully participate in normal Browser ownership behavior like drag/rearrange under `Assembly` and `Component`?
+
+Suggestion:
+- yes
+- the remaining gap is that imported rows already look and land like normal content objects, but they do not yet behave like true content owners
+
+Decision:
+- promote imported/reference-backed object rows into true content-owner behavior after `9.1` through `9.3` are stable
+- preserve current imported-object transform compatibility while the ownership seam converges
+
+### [x] Browser-9.5 - Library Object Rows And Direct Placement Drag
+
+- shipped phase doc:
+  - `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-9.5 - Library Object Rows And Direct Placement Drag.md`
+- shipped result:
+  - source/library rows like `XL.step` now render as structural Browser `Object` rows in `References`
+  - the user can start the same visible drag interaction directly from those source/library object rows
+  - dropping a source/library object now creates a landed imported working object under the chosen owner
+  - landed-object rearrange still commits through `moveProjectContentOwner(...)`
+  - Browser kept one visible Fusion-style drag grammar:
+    - `before`
+    - `after`
+    - `into`
+  - current source/imported reference selection and transform compatibility stayed adapter-backed during the placement cleanup
+
+#### Questions / Decisions
+
+##### [x] q6 - Should library rows like `XL.step` become direct-draggable normal `Object` rows instead of staying special source/reference items?
+
+Question:
+- if a library/source row such as `XL.step` is visible in Browser, should it behave like a normal object row that can be dragged directly into any legal owner path?
+
+Suggestion:
+- yes
+- if the row is conceptually an object, Browser should expose it as an object row
+- source/library origin should be metadata and styling, not a separate Browser tree species
+
+Decision:
+- library rows like `XL.step` should become direct-draggable normal `Object` rows in Browser
+- Browser should not require a separate permanent reference-item species for source/library objects
+
+##### [x] q7 - Should dragging a library/source object into `Assembly 1` move the source row or create a landed working object instance?
+
+Question:
+- when the user drags `XL.step` from the source/library side into `Assembly 1`, should Browser literally move that source row, or should it create a landed working object under the drop target while leaving the source/library row available?
+
+Suggestion:
+- create a landed working object under the chosen owner
+- keep the source/library row available as a source object under `References`
+- keep both rows the same structural Browser `Object` kind, with source/placement difference expressed through metadata/runtime seams instead of row species
+
+Decision:
+- dragging a library/source object like `XL.step` into `Assembly 1` should create a landed working object under that owner
+- the source/library row should remain available under `References`
+- both should still read as structural `Object` rows in Browser
+
+##### [x] q8 - Should Browser keep a separate visible drag grammar for source-object placement versus landed-object rearrange?
+
+Question:
+- once Browser supports both landed-object rearrange and source-object direct placement, should the user see two different drag grammars depending on origin, or should the visible drag rules stay the same?
+
+Suggestion:
+- keep one visible drag grammar
+- use the same `before` / `after` / `into` contract
+- only the commit seam should differ behind the scenes between rearranging an existing landed owner and creating a new landed owner from a source object
+
+Decision:
+- Browser should keep one visible drag grammar for source-object placement and landed-object rearrange
+- the origin-specific difference should live in the commit seam, not in a second user-facing drag language
+
+### [x] Browser-9.6 - Placement Shelf Removal And Single Object Identity
+
+- shipped phase doc:
+  - `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-9.6 - Placement Shelf Removal And Single Object Identity.md`
+- shipped result:
+  - built-in manifest/library rows now have stable reference-backed owner identity in store before drag begins
+  - ordinary Browser drag from `References` now reuses the shared `imported-reference` owner move seam instead of the temporary `source-reference` / `place-source` bridge from `9.5`
+  - dragging `XL.step` from `References` into `Assembly 1` now moves that same object into the new owner path
+  - manifest/library rows only remain visible in the `References` branch while they have no content parent
+  - once parented into content, those rows render in the content hierarchy as reference-backed object rows without creating a duplicate record
+  - current `reference-item` selection and transform compatibility stayed adapter-backed during the identity cleanup
+
+#### Questions / Decisions
+
+##### [x] q9 - Should a row like `XL.step` under `References` become the real project object instead of a reusable placement source?
+
+Question:
+- once `9.5` has already made `XL.step` look and drag like a normal Browser `Object`, should the next step make that row the actual project object identity instead of a reusable source row that creates landed copies?
+
+Suggestion:
+- yes
+- if the Browser row is an object row, it should represent one real project object
+- `References` should be a project location in the hierarchy, not a placement shelf with a second hidden identity model
+
+Decision:
+- a row like `XL.step` under `References` should become the real project object instead of a reusable placement source
+- `References` should behave as a normal place in the project hierarchy, not as a placement shelf
+
+##### [x] q10 - Should dragging `XL.step` from `References` into `Assembly 1` move the same object instead of creating a copy?
+
+Question:
+- after `9.5`, when the user drags `XL.step` from `References` into `Assembly 1`, should Browser still create a new landed imported object, or should it move the same object into the target owner path?
+
+Suggestion:
+- move the same object
+- ordinary Browser drag/reparent should mean move, not implicit duplicate/place
+
+Decision:
+- dragging `XL.step` from `References` into `Assembly 1` should move the same object into the new owner path
+- normal Browser drag from `References` should no longer create an implicit copy
+
+##### [x] q11 - Should copy creation move to an explicit duplicate/import/place action instead of ordinary drag?
+
+Question:
+- if the user still wants another copy of a reference-backed object later, should Browser create that through ordinary drag from `References`, or through a separate explicit action?
+
+Suggestion:
+- use a separate explicit action
+- keep ordinary drag semantics honest as move/reparent
+
+Decision:
+- copy creation should move to an explicit duplicate/import/place action instead of ordinary drag from `References`
+- Browser move drag should stay no-copy by default
+
+##### [x] q12 - Should Browser keep the current reference-transform compatibility seam while single-object identity lands?
+
+Question:
+- while Browser collapses the temporary source-object-versus-landed-object split into one real object identity, should it keep the current reference-transform compatibility seam instead of forcing same-pass transform/backend convergence?
+
+Suggestion:
+- yes
+- land the object-identity cleanup first
+- keep current transform/reference compatibility stable while the Browser/store ownership model converges
+
+Decision:
+- Browser should keep the current reference-transform compatibility seam while single-object identity lands
+- collapse the Browser/store object identity first, then tackle deeper transform/backend convergence later
+
+### [x] Browser-9.7 - Normal Assembly Component Rows For Reference Hierarchy
+
+- focus:
+  - delete the remaining special Browser `References` container species
+  - remap the same visible grouping into normal content hierarchy rows
+  - keep reference-backed object identity and compatibility stable while the container rows converge
+
+- locked direction:
+  - `References` should stay visible as a label, but render as a normal `Assembly`
+  - `Footpads`, `Shoes`, `Premade Foothooks`, and `User References` should stay visible as labels, but render as normal `Component` rows
+  - Browser should delete the special `references-root` and `reference-category` row species for these containers
+  - the converged `References` assembly and grouping components should move through the normal `contentRows` Browser lane instead of staying in the older `referenceRows` lane
+  - imported/source truth should stay visible through metadata, styling, and adapters instead of through a separate container-row species
+
+- shipped phase doc:
+  - `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-9.7 - Normal Assembly Component Rows For Reference Hierarchy.md`
+
+- shipped result:
+  - `References` now renders as a normal top-level `Assembly` row in the Browser content lane
+  - visible grouping rows such as `Footpads`, `Shoes`, and `Premade Foothooks` now render as normal `Component` rows under `References`
+  - the live Browser tree no longer depends on rendered `references-root` / `reference-category` container species
+  - current reference-backed selection, visibility, context-menu, and transform compatibility still adapt through the existing reference-target seams underneath
+
+### [ ] Browser-10 - Unified Project Object Tree Source Of Truth
+
+- treat this as the next Browser architecture reset after the `9.x` convergence ladder, not as another narrow compatibility patch
+- locked direction:
+  - Browser should become one true Fusion-style project tree for all real 3D objects in the project
+  - every real project object should appear in Browser whether it is:
+    - generated
+    - imported
+    - linked
+    - reference-backed
+    - loaded
+    - unloaded
+  - source/origin and load state should stay row traits, not tree membership rules
+  - `referenceWorkspace` should stop being a second Browser hierarchy source
+  - if `References` stays visible, it should only remain as a real project-owned assembly or subtree inside the unified hierarchy
+- proposed subphases:
+  - `Browser-10.1`:
+    unify reference-backed Browser object records into one canonical project-owner model
+    implementation-ready note:
+    the live `imported-reference` owner seam already exists, so this first pass should collapse the remaining `source-reference` / shelf-only identity onto that seam instead of inventing a new record family
+    shipped result:
+    ordinary Browser reference-backed object identity now commits through the shared `imported-reference` owner seam and the older `source-reference` / `place-source` drag-store branch is removed
+  - `Browser-10.2`:
+    move Browser row derivation onto one project-tree source instead of `projectContent + referenceWorkspace`
+    shipped result:
+    the live Browser now renders from one visible `contentRows` lane, reference hierarchy rows flow through the unified project-content row path, and `referenceWorkspaceTree` only remains as a compatibility fallback plus metadata/runtime seam
+  - `Browser-10.3`:
+    unify Browser, Console, and viewer owner routing onto that one owner model
+    shipped result:
+    converged Browser rows now commit through visible owner targets, viewer reference picks/highlighting adapt from owner routing, and Console owner labels/context now understand reference-backed owners directly while `reference-item` remains only as a narrow runtime compatibility seam
+  - `Browser-10.4`:
+      keep load/unload/visibility/runtime state as traits on normal project nodes
+      shipped result:
+      shared reference-backed runtime traits now resolve through one app-store seam, Browser item/content-row derivation plus ViewerHost and ConsoleDock reuse that same trait read for ordinary runtime truth, and Browser membership stays independent from viewer load state while current runtime/transform adapters remain intact
+  - `Browser-10.5`:
+      retire leftover Browser-only reference hierarchy compatibility seams after the unified owner model lands
+      shipped result:
+      live Browser and Console reference selection now stays on normal assembly/component/object owner targets, while the older `references-root` / `reference-category` / broad `reference-item` public contract is reduced to compatibility fallback behavior behind the owner-first path
+  - standalone phase docs:
+  - shipped phase docs:
+   - `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-10.1 - Unified Reference-Backed Project Owner Records.md`
+   - `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-10.2 - Single Browser Tree Derivation.md`
+   - `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-10.3 - Unified Owner Routing Across Browser Console And Viewer.md`
+   - `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-10.4 - Load And Runtime Traits On Normal Nodes.md`
+   - `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-10.5 - Compatibility Seam Retirement.md`
+- rationale:
+  - Browser still feels different because `Assembly 1` comes from the real project hierarchy while `References` still comes from a separate adapted tree
+  - a clean Browser requires one hierarchy source of truth rather than two hierarchies that only look unified
+- standalone phase doc:
+  - `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-10 - Unified Project Object Tree Source Of Truth.md`

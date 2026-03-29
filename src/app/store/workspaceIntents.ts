@@ -4,6 +4,7 @@ import type {
   WorkspaceSelectedTarget,
   WorkspaceSurface,
 } from './useAppStore'
+import { buildImportedReferenceRowId } from './useAppStore'
 import { commitWorkspaceTargetSelection } from './workspaceSelectionCommands'
 
 type ViewportPosition = {
@@ -219,8 +220,8 @@ export const activateReferenceItemIntent = (
       requestConsoleContextSync: deps.app.requestConsoleContextSync,
     },
     {
-      kind: 'reference-item',
-      referenceId,
+      kind: 'object',
+      objectId: buildImportedReferenceRowId(referenceId),
     },
     {
       selectedPartKey: null,

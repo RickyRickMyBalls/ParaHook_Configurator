@@ -237,6 +237,8 @@
   grid-template-columns: auto minmax(0, 1fr) auto auto auto;
   gap: 6px;
   align-items: center;
+  position: relative;
+  will-change: transform;
 }
 
 .BrowserTreeRow--references-root,
@@ -272,6 +274,75 @@
 .BrowserTreeRow.isActiveEditor .BrowserTreeRowMain {
   border-color: rgba(96, 142, 255, 0.42);
   box-shadow: inset 0 0 0 1px rgba(96, 142, 255, 0.08);
+}
+
+.BrowserTreeRow.isDraggable .BrowserTreeRowMain {
+  cursor: grab;
+}
+
+.BrowserTreeRow.isDragging {
+  z-index: 4;
+}
+
+.BrowserTreeRow.isDragging .BrowserTreeRowMain {
+  opacity: 0.78;
+  cursor: grabbing;
+  transform: translateY(-1px) scale(1.01);
+  box-shadow:
+    0 10px 20px rgba(0, 0, 0, 0.18),
+    0 0 0 1px rgba(104, 168, 255, 0.12);
+}
+
+.BrowserTreeRow.isPendingDrag .BrowserTreeRowMain {
+  opacity: 0.92;
+}
+
+.BrowserTreeRow.isDropTargetBefore .BrowserTreeRowMain,
+.BrowserTreeRow.isDropTargetAfter .BrowserTreeRowMain {
+  box-shadow: 0 0 0 1px rgba(104, 168, 255, 0.18);
+}
+
+.BrowserTreeRow.isDropOwnerSupport .BrowserTreeRowMain {
+  border-color: rgba(104, 168, 255, 0.42);
+  box-shadow:
+    inset 0 0 0 1px rgba(104, 168, 255, 0.14),
+    0 0 0 1px rgba(104, 168, 255, 0.12);
+}
+
+.BrowserTreeRow.isDropTargetInto .BrowserTreeRowMain {
+  border-color: rgba(104, 168, 255, 0.78);
+  box-shadow:
+    inset 0 0 0 2px rgba(104, 168, 255, 0.22),
+    0 0 0 1px rgba(104, 168, 255, 0.18),
+    0 0 20px rgba(104, 168, 255, 0.12);
+}
+
+.BrowserTreeRow.isDropTargetIntoCollapsed .BrowserTreeRowMain {
+  border-color: rgba(136, 198, 255, 0.9);
+  box-shadow:
+    inset 0 0 0 2px rgba(136, 198, 255, 0.28),
+    0 0 0 1px rgba(136, 198, 255, 0.22),
+    0 0 26px rgba(104, 168, 255, 0.2);
+}
+
+.BrowserTreeRow.isDropTargetInvalid .BrowserTreeRowMain {
+  border-color: rgba(214, 96, 96, 0.46);
+  box-shadow: inset 0 0 0 1px rgba(214, 96, 96, 0.14);
+}
+
+.BrowserTreeRow.isDropTargetInto .BrowserTreeRowLead,
+.BrowserTreeRow.isDropTargetIntoCollapsed .BrowserTreeRowLead {
+  filter: brightness(1.12);
+}
+
+.BrowserTreeRow.isDropOwnerSupport .BrowserTreeRowLead {
+  filter: brightness(1.06);
+}
+
+.BrowserTreeRow.isDropTargetIntoCollapsed .BrowserTreeRowExpand,
+.BrowserTreeRow.isDropTargetIntoCollapsed .BrowserTreeRowIcon {
+  border-color: rgba(136, 198, 255, 0.5);
+  box-shadow: 0 0 0 1px rgba(136, 198, 255, 0.16);
 }
 
 .BrowserTreeRowLead {
@@ -523,6 +594,8 @@
 }
 
 .V15Panel button.BrowserTreeRowMain {
+  position: relative;
+  overflow: visible;
   width: 100%;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -533,7 +606,40 @@
   border-color: rgba(255, 255, 255, 0.30);
   transition:
     background 140ms ease,
-    border-color 140ms ease;
+    border-color 140ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease,
+    opacity 140ms ease;
+}
+
+.V15Panel button.BrowserTreeRowMain::before,
+.V15Panel button.BrowserTreeRowMain::after {
+  content: '';
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  height: 2px;
+  border-radius: 999px;
+  background: rgba(104, 168, 255, 0.96);
+  box-shadow: 0 0 10px rgba(104, 168, 255, 0.18);
+  opacity: 0;
+  transition:
+    opacity 120ms ease,
+    transform 160ms ease;
+  pointer-events: none;
+  transform: scaleX(0.86);
+}
+
+.BrowserTreeRow.isDropTargetBefore .BrowserTreeRowMain::before {
+  top: -2px;
+  opacity: 1;
+  transform: scaleX(1);
+}
+
+.BrowserTreeRow.isDropTargetAfter .BrowserTreeRowMain::after {
+  bottom: -2px;
+  opacity: 1;
+  transform: scaleX(1);
 }
 
 .V15Panel button.BrowserTreeRowMain.isGraphRow {
@@ -599,6 +705,7 @@
 .V15Panel button.BrowserTreeRowMain.isContentRow:hover,
 .V15Panel button.BrowserTreeRowMain.isReferenceRow:hover,
 .V15Panel button.BrowserTreeRowMain.isGraphChildBuildRow:hover,
+.V15Panel button.BrowserTreeRowMain.isPartRow:hover,
 .V15Panel button.BrowserTreeRowMain.isGraphChildPlainRow:hover,
 .V15Panel button.BrowserTreeRowMain.isViewportRow:hover {
   background: transparent;
@@ -648,7 +755,21 @@
   transition:
     border-color 160ms ease,
     box-shadow 160ms ease,
-    background 160ms ease;
+    background 160ms ease,
+    transform 160ms ease,
+    opacity 160ms ease;
+}
+
+.BrowserTreeRow.isDragging :is(
+    .BrowserGraphStateBar,
+    .BrowserContentStateBar,
+    .BrowserReferenceStateBar,
+    .BrowserGraphChildPlainBar
+  ) {
+  transform: translateX(10px) scale(1.01);
+  box-shadow:
+    0 10px 22px rgba(0, 0, 0, 0.22),
+    inset 0 0 0 1px rgba(136, 198, 255, 0.1);
 }
 
 .BrowserTreeRowSurface--slim {
@@ -744,6 +865,74 @@
 .BrowserContentStateBar--rebuild .BrowserContentStateFill {
   width: 5%;
   background: linear-gradient(90deg, rgba(232, 186, 86, 0.62), rgba(232, 186, 86, 0.22));
+}
+
+.BrowserContentStateBar--imported {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: linear-gradient(90deg, rgba(68, 74, 88, 0.44), rgba(24, 28, 38, 0.16));
+}
+
+.BrowserContentStateBar--imported .BrowserContentStateFill {
+  width: 100%;
+  background: transparent;
+}
+
+.BrowserContentStateBar--imported-highlighted .BrowserContentStateFill {
+  background: linear-gradient(90deg, rgba(44, 82, 168, 0.48), rgba(24, 40, 82, 0.18));
+}
+
+.BrowserContentStateBar--imported-active .BrowserContentStateFill {
+  background: rgba(0, 0, 0, 0.82);
+}
+
+.BrowserContentStateBar--imported-dormant .BrowserContentStateFill {
+  background: transparent;
+}
+
+.BrowserContentStateBar--imported-loading .BrowserContentStateFill {
+  background: rgba(0, 0, 0, 0.82);
+  animation: BrowserGraphStateBuildFill 1.05s ease-in-out infinite;
+}
+
+.BrowserContentStateBar--imported-error .BrowserContentStateFill {
+  background: linear-gradient(90deg, rgba(214, 96, 96, 0.34), rgba(214, 96, 96, 0.12));
+}
+
+.BrowserContentStateBar--reference-container {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.BrowserContentStateBar--reference-container .BrowserContentStateFill {
+  width: 100%;
+  background: linear-gradient(90deg, rgba(84, 186, 124, 0.2), rgba(84, 186, 124, 0.08));
+}
+
+.BrowserContentStateBar--reference-container-dormant .BrowserContentStateFill {
+  background: linear-gradient(90deg, rgba(84, 186, 124, 0.12), rgba(84, 186, 124, 0.04));
+}
+
+.BrowserContentStateBar--reference-container-active .BrowserContentStateFill {
+  background: linear-gradient(90deg, rgba(84, 186, 124, 0.26), rgba(84, 186, 124, 0.08));
+}
+
+.BrowserContentStateBar--reference-container-highlighted .BrowserContentStateFill {
+  background: linear-gradient(90deg, rgba(44, 82, 168, 0.44), rgba(24, 40, 82, 0.16));
+}
+
+.BrowserContentStateBar--reference-container-loading .BrowserContentStateFill {
+  width: 0;
+  background: linear-gradient(90deg, rgba(74, 193, 255, 0.56), rgba(74, 193, 255, 0.2));
+  animation: BrowserGraphStateBuildFill 1.05s ease-in-out infinite;
+}
+
+.BrowserContentStateBar--reference-container-loading .BrowserContentStateFill--determinate {
+  animation: none;
+}
+
+.BrowserContentStateBar--reference-container-error .BrowserContentStateFill {
+  width: 100%;
+  background: linear-gradient(90deg, rgba(214, 96, 96, 0.34), rgba(214, 96, 96, 0.12));
 }
 
 .BrowserContentStateText {
@@ -851,18 +1040,21 @@
 .BrowserTreeRow.isSelected .BrowserTreeRowMain.isContentRow,
 .BrowserTreeRow.isSelected .BrowserTreeRowMain.isReferenceRow,
 .BrowserTreeRow.isSelected .BrowserTreeRowMain.isGraphChildBuildRow,
+.BrowserTreeRow.isSelected .BrowserTreeRowMain.isPartRow,
 .BrowserTreeRow.isSelected .BrowserTreeRowMain.isGraphChildPlainRow,
 .BrowserTreeRow.isSelected .BrowserTreeRowMain.isViewportRow,
 .BrowserTreeRow.isOpen .BrowserTreeRowMain.isGraphRow,
 .BrowserTreeRow.isOpen .BrowserTreeRowMain.isContentRow,
 .BrowserTreeRow.isOpen .BrowserTreeRowMain.isReferenceRow,
 .BrowserTreeRow.isOpen .BrowserTreeRowMain.isGraphChildBuildRow,
+.BrowserTreeRow.isOpen .BrowserTreeRowMain.isPartRow,
 .BrowserTreeRow.isOpen .BrowserTreeRowMain.isGraphChildPlainRow,
 .BrowserTreeRow.isOpen .BrowserTreeRowMain.isViewportRow,
 .BrowserTreeRow.isActiveEditor .BrowserTreeRowMain.isGraphRow,
 .BrowserTreeRow.isActiveEditor .BrowserTreeRowMain.isContentRow,
 .BrowserTreeRow.isActiveEditor .BrowserTreeRowMain.isReferenceRow,
 .BrowserTreeRow.isActiveEditor .BrowserTreeRowMain.isGraphChildBuildRow,
+.BrowserTreeRow.isActiveEditor .BrowserTreeRowMain.isPartRow,
 .BrowserTreeRow.isActiveEditor .BrowserTreeRowMain.isGraphChildPlainRow,
 .BrowserTreeRow.isActiveEditor .BrowserTreeRowMain.isViewportRow {
   background: transparent;

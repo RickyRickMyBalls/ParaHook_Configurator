@@ -16,6 +16,7 @@ export type BrowserTreeRowKind =
   | 'references-root'
   | 'reference-category'
   | 'reference-item'
+  | 'part'
   | 'assembly'
   | 'sketches-root'
   | 'sketch'
@@ -95,6 +96,18 @@ export type BrowserReferenceCategoryTreeRowVm = BrowserTreeRowBaseVm & {
   progress01?: number
 }
 
+export type BrowserReferenceContainerKind = 'root' | 'category'
+
+type BrowserReferenceContainerTraits = {
+  referenceContainerKind?: BrowserReferenceContainerKind | null
+  referenceCategoryId?: ReferenceWorkspaceBrowserCategoryVm['categoryId'] | null
+  referenceContainerState?: BrowserReferenceRowState | null
+  referenceContainerStateLabel?: string | null
+  referenceContainerProgress01?: number | null
+  referenceContainerItemCount?: number | null
+  referenceContainerEmptyLabel?: string | null
+}
+
 export type BrowserReferenceItemTreeRowVm = BrowserTreeRowBaseVm & {
   rowKind: 'reference-item'
   referenceId: string
@@ -108,6 +121,12 @@ export type BrowserReferenceItemTreeRowVm = BrowserTreeRowBaseVm & {
   errorMessage: string | null
 }
 
+export type BrowserPartTreeRowVm = BrowserTreeRowBaseVm & {
+  rowKind: 'part'
+  partKey: string
+  parentReferenceId: string
+}
+
 export type BrowserGraphSectionTreeRowVm = BrowserTreeRowBaseVm & {
   rowKind: 'graph-section'
   graphDocumentId: string
@@ -116,7 +135,8 @@ export type BrowserGraphSectionTreeRowVm = BrowserTreeRowBaseVm & {
   emptyLabel: string
 }
 
-export type BrowserAssemblyTreeRowVm = BrowserTreeRowBaseVm & {
+export type BrowserAssemblyTreeRowVm = BrowserTreeRowBaseVm &
+  BrowserReferenceContainerTraits & {
   rowKind: 'assembly'
   isVisible: boolean
   visibilityPartKeys: string[]
@@ -152,7 +172,8 @@ export type BrowserSketchTreeRowVm = BrowserTreeRowBaseVm & {
   authoringNodeId: string
 }
 
-export type BrowserComponentTreeRowVm = BrowserTreeRowBaseVm & {
+export type BrowserComponentTreeRowVm = BrowserTreeRowBaseVm &
+  BrowserReferenceContainerTraits & {
   rowKind: 'component'
   isVisible: boolean
   visibilityPartKeys: string[]
@@ -161,8 +182,8 @@ export type BrowserComponentTreeRowVm = BrowserTreeRowBaseVm & {
   rebuildGraphDocumentIds: string[]
   statusLabel?: string
   statusTone?: 'quiet' | 'ready' | 'warning'
-  ownerGraphDocumentId: string
-  sourceGraphDocumentId: string
+  ownerGraphDocumentId: string | null
+  sourceGraphDocumentId: string | null
   sourceOutputEntryId: string | null
   componentSourceKind: ProjectContentBrowserRowVm extends infer T
     ? T extends { kind: 'component'; componentSourceKind: infer K }
@@ -191,25 +212,36 @@ export type BrowserObjectTreeRowVm = BrowserTreeRowBaseVm & {
   rebuildGraphDocumentIds: string[]
   statusLabel?: string
   statusTone?: 'quiet' | 'ready' | 'warning'
-  ownerGraphDocumentId: string
+  ownerGraphDocumentId: string | null
   parentComponentId: string | null
-  objectSourceKind: ProjectContentBrowserRowVm extends infer T
+  objectSourceKind:
+    | (ProjectContentBrowserRowVm extends infer T
     ? T extends { kind: 'object'; objectSourceKind: infer K }
       ? K
       : never
-    : never
-  sourceGraphDocumentId: string
-  sourceOutputEntryId: string
+    : never)
+    | null
+  sourceGraphDocumentId: string | null
+  sourceOutputEntryId: string | null
   slotId: string | null
   sourceNodeId: string | null
-  resolutionState: ProjectContentBrowserRowVm extends infer T
+  resolutionState:
+    | (ProjectContentBrowserRowVm extends infer T
     ? T extends { kind: 'object'; resolutionState: infer K }
       ? K
       : never
-    : never
+    : never)
+    | null
   highlightViewerKey: string | null
-  authoringGraphDocumentId: string
+  authoringGraphDocumentId: string | null
   authoringNodeId: string | null
+  contentOriginKind?: 'generated' | 'imported-reference' | 'source-reference'
+  referenceId?: string | null
+  referenceSourceKind?: ReferenceWorkspaceBrowserItemVm['sourceKind'] | null
+  referenceState?: BrowserReferenceRowState | null
+  fileType?: ReferenceWorkspaceBrowserItemVm['fileType'] | null
+  assetPath?: string | null
+  errorMessage?: string | null
 }
 
 export type BrowserGraphTreeRowVm = BrowserTreeRowBaseVm & {
@@ -268,6 +300,7 @@ export type BrowserRenderableRowVm =
   | BrowserReferencesRootTreeRowVm
   | BrowserReferenceCategoryTreeRowVm
   | BrowserReferenceItemTreeRowVm
+  | BrowserPartTreeRowVm
   | BrowserAssemblyTreeRowVm
   | BrowserSketchesRootTreeRowVm
   | BrowserSketchTreeRowVm
@@ -286,7 +319,10 @@ export type BrowserGraphChildTreeRowVm =
 
 export type BrowserTreeRowsVm = {
   referenceRows: Array<
-    BrowserReferencesRootTreeRowVm | BrowserReferenceCategoryTreeRowVm | BrowserReferenceItemTreeRowVm
+    | BrowserReferencesRootTreeRowVm
+    | BrowserReferenceCategoryTreeRowVm
+    | BrowserReferenceItemTreeRowVm
+    | BrowserObjectTreeRowVm
   >
   contentRows: Array<
     | BrowserAssemblyTreeRowVm
@@ -294,6 +330,7 @@ export type BrowserTreeRowsVm = {
     | BrowserSketchTreeRowVm
     | BrowserComponentTreeRowVm
     | BrowserObjectTreeRowVm
+    | BrowserPartTreeRowVm
   >
   graphRows: BrowserGraphTreeRowVm[]
   viewportRows: BrowserViewportTreeRowVm[]
@@ -344,35 +381,6 @@ const formatReferenceStateLabel = (state: BrowserReferenceRowState): string => {
   }
 }
 
-const selectReferenceCategoryState = (
-  items: ReferenceWorkspaceBrowserCategoryVm['items'],
-  activeTransformReferenceId: string | null,
-): BrowserReferenceRowState => {
-  const hasHighlightedItem =
-    activeTransformReferenceId !== null &&
-    items.some((item) => item.referenceId === activeTransformReferenceId)
-  if (hasHighlightedItem) {
-    return 'highlighted'
-  }
-
-  const hasVisibleLoadingItem = items.some((item) => item.isVisible && item.loadState === 'loading')
-  if (hasVisibleLoadingItem) {
-    return 'loading'
-  }
-
-  const hasErrorItem = items.some((item) => item.loadState === 'error')
-  if (hasErrorItem) {
-    return 'error'
-  }
-
-  const hasVisibleLoadedItem = items.some((item) => item.isVisible && item.loadState === 'loaded')
-  if (hasVisibleLoadedItem) {
-    return 'active'
-  }
-
-  return 'dormant'
-}
-
 const clampProgress01 = (value: number): number => Math.max(0, Math.min(1, value))
 
 const countBatchCompletedForIds = (
@@ -385,10 +393,11 @@ const countBatchCompletedForIds = (
   ).length
 
 export const selectBrowserTreeRows = (options: {
-  referenceWorkspaceTree: ReferenceWorkspaceBrowserTreeVm
+  referenceWorkspaceTree?: ReferenceWorkspaceBrowserTreeVm | null
   referenceLoadBatch?: ReferenceLoadBatchState | null
   activeTransformReferenceId?: string | null
   contentRows: ProjectContentBrowserRowVm[]
+  contentOrderByParentKey?: Record<string, string[]>
   graphRows: BrowserGraphRowVm[]
   browserGraphBuildPolicyByGraphDocumentId?: Record<string, BrowserBuildPolicy>
   browserContentBuildPolicyByRowId?: Record<string, BrowserBuildPolicy>
@@ -405,12 +414,13 @@ export const selectBrowserTreeRows = (options: {
   sharedViewerCompositionActive: boolean
 }): BrowserTreeRowsVm => {
   const {
-    referenceWorkspaceTree,
+    referenceWorkspaceTree = null,
     referenceLoadBatch = null,
     activeTransformReferenceId = null,
     browserContentBuildPolicyByRowId = {},
     browserGraphBuildPolicyByGraphDocumentId = {},
     contentRows,
+  contentOrderByParentKey = {},
   editorViewports,
   expandedGraphDocumentIds,
   graphSectionExpandedByRowId = {},
@@ -426,31 +436,229 @@ export const selectBrowserTreeRows = (options: {
   } = options
   const groupedSelectedRowIdSet = new Set(groupedSelectedRowIds)
   const selectedRowIdSet = new Set(selectedRowIds)
+  const buildContentParentOrderKey = (kind: 'assembly' | 'component', id: string): string =>
+    `${kind}:${id}`
+  const normalizeOrderedRowIds = (orderedRowIds: string[] | undefined, defaultRowIds: string[]): string[] => {
+    if (orderedRowIds === undefined) {
+      return [...defaultRowIds]
+    }
+    const defaultRowIdSet = new Set(defaultRowIds)
+    const normalized = orderedRowIds.filter((rowId) => defaultRowIdSet.has(rowId))
+    defaultRowIds.forEach((rowId) => {
+      if (!normalized.includes(rowId)) {
+        normalized.push(rowId)
+      }
+    })
+    return normalized
+  }
 
-  const rootContentRows = contentRows.filter(
-    (
-      row,
-    ): row is
-      | Extract<ProjectContentBrowserRowVm, { kind: 'component' }>
-      | Extract<ProjectContentBrowserRowVm, { kind: 'object' }> =>
-      row.kind === 'component' || (row.kind === 'object' && row.parentComponentId === null),
+  const normalizedContentRows: ProjectContentBrowserRowVm[] = []
+  const hasReferenceHierarchyInContentRows = contentRows.some(
+    (row) =>
+      (row.kind === 'assembly' && row.referenceContainerKind === 'root') ||
+      (row.kind === 'component' && row.referenceContainerKind === 'category') ||
+      (row.kind === 'object' &&
+        (row.contentOriginKind === 'source-reference' ||
+          row.contentOriginKind === 'imported-reference')),
   )
+  if (!hasReferenceHierarchyInContentRows && referenceWorkspaceTree !== null) {
+    normalizedContentRows.push({
+      rowId: referenceWorkspaceTree.rowId,
+      kind: 'assembly',
+      label: referenceWorkspaceTree.label,
+      meta: countLabel(
+        referenceWorkspaceTree.categories.reduce((sum, category) => sum + category.itemCount, 0),
+        'item',
+        'items',
+      ),
+      parentAssemblyId: null,
+      isVisible: referenceWorkspaceTree.categories.some((category) =>
+        category.items.some((item) => item.isVisible && item.loadState === 'loaded'),
+      ),
+      visibilityPartKeys: [],
+      buildState: 'done',
+      buildStateLabel: '',
+      rebuildGraphDocumentIds: [],
+      statusLabel: '',
+      statusTone: 'quiet',
+      referenceContainerKind: 'root',
+      referenceCategoryId: null,
+      referenceContainerItemCount: referenceWorkspaceTree.categories.reduce(
+        (sum, category) => sum + category.itemCount,
+        0,
+      ),
+      referenceContainerEmptyLabel: null,
+    })
+    referenceWorkspaceTree.categories.forEach((category) => {
+      const shelfItems = category.items.filter(
+        (item) => item.parentAssemblyId == null && item.parentComponentId == null,
+      )
+      if (!(shelfItems.length === 0 && category.categoryId === 'user-references')) {
+        normalizedContentRows.push({
+          rowId: category.rowId,
+          kind: 'component',
+          label: category.label,
+          meta: countLabel(category.itemCount, 'item', 'items'),
+          parentAssemblyId: referenceWorkspaceTree.rowId,
+          isVisible: shelfItems.some((item) => item.isVisible && item.loadState === 'loaded'),
+          visibilityPartKeys: [],
+          buildState: 'done',
+          buildStateLabel: '',
+          rebuildGraphDocumentIds: [],
+          statusLabel: '',
+          statusTone: 'quiet',
+          ownerGraphDocumentId: null,
+          sourceGraphDocumentId: null,
+          sourceOutputEntryId: null,
+          componentSourceKind: 'receive-link',
+          resolutionState: 'resolved',
+          receiveId: null,
+          childObjectCount: category.itemCount,
+          slotId: null,
+          sourceNodeId: null,
+          highlightViewerKey: null,
+          authoringGraphDocumentId: null,
+          authoringNodeId: null,
+          referenceContainerKind: 'category',
+          referenceCategoryId: category.categoryId,
+          referenceContainerItemCount: category.itemCount,
+          referenceContainerEmptyLabel: category.emptyLabel,
+        })
+      }
+      shelfItems.forEach((item) => {
+        normalizedContentRows.push({
+          rowId: item.rowId,
+          kind: 'object',
+          label: item.label,
+          meta: formatReferenceItemMeta(item.fileType),
+          parentAssemblyId:
+            item.parentAssemblyId ??
+            (item.parentComponentId == null ? referenceWorkspaceTree.rowId : null),
+          parentComponentId: item.parentComponentId ?? (item.parentAssemblyId == null ? category.rowId : null),
+          isVisible: item.isVisible,
+          visibilityPartKeys: [],
+          buildState: 'done',
+          buildStateLabel:
+            item.parentAssemblyId != null || item.parentComponentId != null
+              ? 'Imported'
+              : item.sourceKind === 'manifest'
+                ? 'Library'
+                : 'Imported',
+          rebuildGraphDocumentIds: [],
+          statusLabel: '',
+          statusTone: 'quiet',
+          ownerGraphDocumentId: null,
+          objectSourceKind: null,
+          sourceGraphDocumentId: null,
+          sourceOutputEntryId: null,
+          slotId: null,
+          sourceNodeId: null,
+          resolutionState: null,
+          highlightViewerKey: null,
+          authoringGraphDocumentId: null,
+          authoringNodeId: null,
+          contentOriginKind:
+            item.parentAssemblyId != null || item.parentComponentId != null
+              ? 'imported-reference'
+              : 'source-reference',
+          referenceId: item.referenceId,
+          referenceSourceKind: item.sourceKind,
+          referenceCategoryId: category.categoryId,
+          referenceLoadState: item.loadState,
+          fileType: item.fileType,
+          assetPath: item.assetPath,
+          errorMessage: item.errorMessage,
+          partRows: item.parts ?? [],
+        })
+      })
+      category.items
+        .filter((item) => item.parentAssemblyId != null || item.parentComponentId != null)
+        .forEach((item) => {
+          normalizedContentRows.push({
+            rowId: item.rowId,
+            kind: 'object',
+            label: item.label,
+            meta: formatReferenceItemMeta(item.fileType),
+            parentAssemblyId: item.parentAssemblyId ?? null,
+            parentComponentId: item.parentComponentId ?? null,
+            isVisible: item.isVisible,
+            visibilityPartKeys: [],
+            buildState: 'done',
+            buildStateLabel: 'Imported',
+            rebuildGraphDocumentIds: [],
+            statusLabel: '',
+            statusTone: 'quiet',
+            ownerGraphDocumentId: null,
+            objectSourceKind: null,
+            sourceGraphDocumentId: null,
+            sourceOutputEntryId: null,
+            slotId: null,
+            sourceNodeId: null,
+            resolutionState: null,
+            highlightViewerKey: null,
+            authoringGraphDocumentId: null,
+            authoringNodeId: null,
+            contentOriginKind: 'imported-reference',
+            referenceId: item.referenceId,
+            referenceSourceKind: item.sourceKind,
+            referenceCategoryId: category.categoryId,
+            referenceLoadState: item.loadState,
+            fileType: item.fileType,
+            assetPath: item.assetPath,
+            errorMessage: item.errorMessage,
+            partRows: item.parts ?? [],
+          })
+        })
+    })
+  }
+  normalizedContentRows.push(...contentRows)
+
+  const topLevelAssemblyRows = normalizedContentRows.filter(
+    (row): row is Extract<ProjectContentBrowserRowVm, { kind: 'assembly' }> =>
+      row.kind === 'assembly' && row.parentAssemblyId == null,
+  )
+  const authoredTopLevelAssemblyRows = topLevelAssemblyRows.filter(
+    (row) => row.referenceContainerKind !== 'root',
+  )
+  const defaultTopLevelAssemblyId =
+    authoredTopLevelAssemblyRows.length === 1
+      ? authoredTopLevelAssemblyRows[0].rowId
+      : topLevelAssemblyRows.length === 1
+        ? topLevelAssemblyRows[0].rowId
+        : null
+  const assemblyChildrenRowsByParentId = new Map<
+    string,
+    Array<
+      | Extract<ProjectContentBrowserRowVm, { kind: 'assembly' }>
+      | Extract<ProjectContentBrowserRowVm, { kind: 'component' }>
+      | Extract<ProjectContentBrowserRowVm, { kind: 'object' }>
+    >
+  >()
   const objectRowsByParentId = new Map<
     string,
     Array<Extract<ProjectContentBrowserRowVm, { kind: 'object' }>>
   >()
-  const orderedObjectRows = contentRows.filter(
+  const orderedObjectRows = normalizedContentRows.filter(
     (row): row is Extract<ProjectContentBrowserRowVm, { kind: 'object' }> => row.kind === 'object',
   )
-  const orderedSketchRoots = contentRows.filter(
+  const orderedSketchRoots = normalizedContentRows.filter(
     (row): row is Extract<ProjectContentBrowserRowVm, { kind: 'sketches-root' }> =>
       row.kind === 'sketches-root',
   )
-  const orderedSketchRows = contentRows.filter(
+  const orderedSketchRows = normalizedContentRows.filter(
     (row): row is Extract<ProjectContentBrowserRowVm, { kind: 'sketch' }> => row.kind === 'sketch',
   )
   orderedObjectRows.forEach((row) => {
     if (row.parentComponentId === null) {
+      const parentAssemblyId = row.parentAssemblyId ?? defaultTopLevelAssemblyId
+      if (parentAssemblyId != null) {
+        const existing = assemblyChildrenRowsByParentId.get(parentAssemblyId)
+        if (existing === undefined) {
+          assemblyChildrenRowsByParentId.set(parentAssemblyId, [row])
+        } else {
+          existing.push(row)
+        }
+      }
       return
     }
     const existing = objectRowsByParentId.get(row.parentComponentId)
@@ -460,6 +668,33 @@ export const selectBrowserTreeRows = (options: {
     }
     existing.push(row)
   })
+  normalizedContentRows
+    .filter((row): row is Extract<ProjectContentBrowserRowVm, { kind: 'assembly' }> => row.kind === 'assembly')
+    .forEach((row) => {
+      if (row.parentAssemblyId == null) {
+        return
+      }
+      const existing = assemblyChildrenRowsByParentId.get(row.parentAssemblyId)
+      if (existing === undefined) {
+        assemblyChildrenRowsByParentId.set(row.parentAssemblyId, [row])
+        return
+      }
+      existing.push(row)
+    })
+  normalizedContentRows
+    .filter((row): row is Extract<ProjectContentBrowserRowVm, { kind: 'component' }> => row.kind === 'component')
+    .forEach((row) => {
+      const parentAssemblyId = row.parentAssemblyId ?? defaultTopLevelAssemblyId
+      if (parentAssemblyId == null) {
+        return
+      }
+      const existing = assemblyChildrenRowsByParentId.get(parentAssemblyId)
+      if (existing === undefined) {
+        assemblyChildrenRowsByParentId.set(parentAssemblyId, [row])
+        return
+      }
+      existing.push(row)
+    })
 
   const visibleContentRows: Array<
     | BrowserAssemblyTreeRowVm
@@ -467,16 +702,15 @@ export const selectBrowserTreeRows = (options: {
     | BrowserSketchTreeRowVm
     | BrowserComponentTreeRowVm
     | BrowserObjectTreeRowVm
+    | BrowserPartTreeRowVm
   > = []
-  const visibleReferenceRows: Array<
-    BrowserReferencesRootTreeRowVm | BrowserReferenceCategoryTreeRowVm | BrowserReferenceItemTreeRowVm
-  > = []
-  const orderedAssemblies = contentRows.filter(
-    (row): row is Extract<ProjectContentBrowserRowVm, { kind: 'assembly' }> => row.kind === 'assembly',
+  const assemblyRowById = new Map(
+    normalizedContentRows
+      .filter((row): row is Extract<ProjectContentBrowserRowVm, { kind: 'assembly' }> => row.kind === 'assembly')
+      .map((row) => [row.rowId, row] as const),
   )
-  const rootAssemblyRow = orderedAssemblies[0] ?? null
   const componentRowById = new Map(
-    contentRows
+    normalizedContentRows
       .filter((row): row is Extract<ProjectContentBrowserRowVm, { kind: 'component' }> => row.kind === 'component')
       .map((row) => [row.rowId, row] as const),
   )
@@ -539,24 +773,32 @@ export const selectBrowserTreeRows = (options: {
         effectiveBrowserBuildPolicySourceLabel: row.label,
       }
     }
+    const parentAssemblyId = row.parentAssemblyId ?? defaultTopLevelAssemblyId
+    const parentAssembly =
+      parentAssemblyId == null ? null : assemblyRowById.get(parentAssemblyId) ?? null
     const assemblyAuthored =
-      rootAssemblyRow === null ? null : browserContentBuildPolicyByRowId[rootAssemblyRow.rowId] ?? null
+      parentAssembly === null ? null : browserContentBuildPolicyByRowId[parentAssembly.rowId] ?? null
     if (assemblyAuthored !== null) {
       return {
         authoredBrowserBuildPolicy,
         effectiveBrowserBuildPolicy: assemblyAuthored,
         effectiveBrowserBuildPolicySource: 'assembly',
-        effectiveBrowserBuildPolicySourceLabel: rootAssemblyRow?.label ?? null,
+        effectiveBrowserBuildPolicySourceLabel: parentAssembly?.label ?? null,
       }
     }
-    const graphAuthored = browserGraphBuildPolicyByGraphDocumentId[row.ownerGraphDocumentId] ?? null
+    const graphAuthored =
+      row.ownerGraphDocumentId === null
+        ? null
+        : browserGraphBuildPolicyByGraphDocumentId[row.ownerGraphDocumentId] ?? null
     if (graphAuthored !== null) {
       return {
         authoredBrowserBuildPolicy,
         effectiveBrowserBuildPolicy: graphAuthored,
         effectiveBrowserBuildPolicySource: 'graph',
-        effectiveBrowserBuildPolicySourceLabel:
-          graphLabelByDocumentId.get(row.ownerGraphDocumentId) ?? row.ownerGraphDocumentId,
+          effectiveBrowserBuildPolicySourceLabel:
+            row.ownerGraphDocumentId === null
+              ? null
+              : graphLabelByDocumentId.get(row.ownerGraphDocumentId) ?? row.ownerGraphDocumentId,
       }
     }
     return {
@@ -598,24 +840,32 @@ export const selectBrowserTreeRows = (options: {
         }
       }
     }
+    const parentAssemblyId = row.parentAssemblyId ?? defaultTopLevelAssemblyId
+    const parentAssembly =
+      parentAssemblyId == null ? null : assemblyRowById.get(parentAssemblyId) ?? null
     const assemblyAuthored =
-      rootAssemblyRow === null ? null : browserContentBuildPolicyByRowId[rootAssemblyRow.rowId] ?? null
+      parentAssembly === null ? null : browserContentBuildPolicyByRowId[parentAssembly.rowId] ?? null
     if (assemblyAuthored !== null) {
       return {
         authoredBrowserBuildPolicy,
         effectiveBrowserBuildPolicy: assemblyAuthored,
         effectiveBrowserBuildPolicySource: 'assembly',
-        effectiveBrowserBuildPolicySourceLabel: rootAssemblyRow?.label ?? null,
+        effectiveBrowserBuildPolicySourceLabel: parentAssembly?.label ?? null,
       }
     }
-    const graphAuthored = browserGraphBuildPolicyByGraphDocumentId[row.ownerGraphDocumentId] ?? null
+    const graphAuthored =
+      row.ownerGraphDocumentId === null
+        ? null
+        : browserGraphBuildPolicyByGraphDocumentId[row.ownerGraphDocumentId] ?? null
     if (graphAuthored !== null) {
       return {
         authoredBrowserBuildPolicy,
         effectiveBrowserBuildPolicy: graphAuthored,
         effectiveBrowserBuildPolicySource: 'graph',
         effectiveBrowserBuildPolicySourceLabel:
-          graphLabelByDocumentId.get(row.ownerGraphDocumentId) ?? row.ownerGraphDocumentId,
+          row.ownerGraphDocumentId === null
+            ? null
+            : graphLabelByDocumentId.get(row.ownerGraphDocumentId) ?? row.ownerGraphDocumentId,
       }
     }
     return {
@@ -626,33 +876,370 @@ export const selectBrowserTreeRows = (options: {
     }
   }
 
-  orderedAssemblies.forEach((row) => {
-    const assemblyChildren = rootContentRows
-    const isExpanded = !collapsedContentRowIds.includes(row.rowId)
+  const appendObjectRow = (
+    objectRow: Extract<ProjectContentBrowserRowVm, { kind: 'object' }>,
+    depth: number,
+    treeGuides: BrowserTreeGuideKind[],
+  ) => {
+    const isReferenceBackedObject =
+      objectRow.contentOriginKind === 'imported-reference' ||
+      objectRow.contentOriginKind === 'source-reference'
+    const referenceState: BrowserReferenceRowState | null =
+      !isReferenceBackedObject || objectRow.referenceId == null
+        ? null
+        : objectRow.referenceLoadState === 'error'
+          ? 'error'
+          : activeTransformReferenceId === objectRow.referenceId
+            ? 'highlighted'
+            : objectRow.isVisible && objectRow.referenceLoadState === 'loading'
+              ? 'loading'
+              : objectRow.isVisible && objectRow.referenceLoadState === 'loaded'
+                ? 'active'
+                : 'dormant'
+    const partRows = isReferenceBackedObject ? (objectRow.partRows ?? []) : []
+    const isExpanded = partRows.length > 0 && !collapsedContentRowIds.includes(objectRow.rowId)
     visibleContentRows.push({
-      rowId: row.rowId,
-      rowKind: 'assembly',
-      depth: 0,
-      treeGuides: [],
-      isVisible: row.isVisible ?? false,
-      visibilityPartKeys: row.visibilityPartKeys ?? [],
-      buildState: row.buildState ?? 'done',
-      buildStateLabel: row.buildStateLabel ?? '',
-      rebuildGraphDocumentIds: row.rebuildGraphDocumentIds ?? [],
-      iconLabel: 'A',
-      label: row.label,
-      meta: row.meta,
-      ...resolveAssemblyPolicy(row.rowId, row.label),
-      ...(row.statusLabel !== undefined
+      rowId: objectRow.rowId,
+      rowKind: 'object',
+      depth,
+      treeGuides,
+      isVisible: objectRow.isVisible ?? false,
+      visibilityPartKeys: objectRow.visibilityPartKeys ?? [],
+      buildState: objectRow.buildState ?? 'done',
+      buildStateLabel: objectRow.buildStateLabel ?? '',
+      rebuildGraphDocumentIds: objectRow.rebuildGraphDocumentIds ?? [],
+      ownerGraphDocumentId: objectRow.ownerGraphDocumentId,
+      parentComponentId: objectRow.parentComponentId,
+      objectSourceKind: objectRow.objectSourceKind,
+      sourceGraphDocumentId: objectRow.sourceGraphDocumentId,
+      sourceOutputEntryId: objectRow.sourceOutputEntryId,
+      slotId: objectRow.slotId,
+      sourceNodeId: objectRow.sourceNodeId,
+      resolutionState: objectRow.resolutionState,
+      highlightViewerKey: objectRow.highlightViewerKey,
+      authoringGraphDocumentId: objectRow.authoringGraphDocumentId,
+      authoringNodeId: objectRow.authoringNodeId,
+      contentOriginKind: objectRow.contentOriginKind ?? 'generated',
+      referenceId: objectRow.referenceId ?? null,
+      referenceSourceKind: objectRow.referenceSourceKind ?? null,
+      referenceState,
+      fileType: objectRow.fileType ?? null,
+      assetPath: objectRow.assetPath ?? null,
+      errorMessage: objectRow.errorMessage ?? null,
+      iconLabel: 'O',
+      label: objectRow.label,
+      meta: objectRow.meta,
+      ...resolveObjectPolicy(objectRow),
+      ...(objectRow.statusLabel !== undefined
         ? {
-            statusLabel: row.statusLabel,
-            statusTone: row.statusTone ?? 'quiet',
+            statusLabel: objectRow.statusLabel,
+            statusTone: objectRow.statusTone ?? 'quiet',
           }
         : {}),
-      isSelected: selectedRowIdSet.has(row.rowId),
-      isGroupedSelected: groupedSelectedRowIdSet.has(row.rowId),
-      isExpandable: assemblyChildren.length > 0,
+      isSelected: selectedRowIdSet.has(objectRow.rowId),
+      isGroupedSelected: groupedSelectedRowIdSet.has(objectRow.rowId),
+      isExpandable: partRows.length > 0,
       isExpanded,
+      actions: isReferenceBackedObject
+        ? [
+            {
+              actionId: 'transform-object',
+              label: 'Transform Object',
+              ariaLabel: `Transform ${objectRow.label}`,
+            },
+          ]
+        : [
+            {
+              actionId: 'view-in-graph',
+              label: 'View In Graph',
+              ariaLabel: `View ${objectRow.label} in graph`,
+            },
+          ],
+      showOverflowButton: objectRow.contentOriginKind === 'source-reference' ? false : undefined,
+    } satisfies BrowserObjectTreeRowVm)
+
+    if (!isExpanded || partRows.length === 0 || objectRow.referenceId == null) {
+      return
+    }
+
+    const parentReferenceId = objectRow.referenceId
+    const childAncestorGuides: BrowserTreeGuideKind[] = [
+      ...treeGuides.slice(0, -1),
+      treeGuides.at(-1) === 'tee' ? 'vertical' : 'none',
+    ]
+    partRows.forEach((partRow, partIndex) => {
+      visibleContentRows.push({
+        rowId: partRow.rowId,
+        rowKind: 'part',
+        depth: depth + 1,
+        treeGuides: [
+          ...childAncestorGuides,
+          partIndex < partRows.length - 1 ? 'tee' : 'elbow',
+        ],
+        iconLabel: 'P',
+        label: partRow.label,
+        meta: '',
+        isSelected: selectedRowIdSet.has(partRow.rowId),
+        isGroupedSelected: groupedSelectedRowIdSet.has(partRow.rowId),
+        isExpandable: false,
+        isExpanded: false,
+        actions: [],
+        partKey: partRow.partKey,
+        parentReferenceId,
+      } satisfies BrowserPartTreeRowVm)
+    })
+  }
+
+  const getOrderedContentChildrenForParent = (parent: {
+    kind: 'assembly' | 'component'
+    rowId: string
+  }): Array<
+    | Extract<ProjectContentBrowserRowVm, { kind: 'assembly' | 'component' | 'object' }>
+  > => {
+    const authoredChildren =
+      parent.kind === 'assembly'
+        ? (assemblyChildrenRowsByParentId.get(parent.rowId) ?? [])
+        : (objectRowsByParentId.get(parent.rowId) ?? [])
+    const authoredByRowId = new Map<string, typeof authoredChildren[number]>(
+      authoredChildren.map((row) => [row.rowId, row]),
+    )
+    const defaultOrderIds = authoredChildren.map((row) => row.rowId)
+    const orderedRowIds = normalizeOrderedRowIds(
+      contentOrderByParentKey[buildContentParentOrderKey(parent.kind, parent.rowId)],
+      defaultOrderIds,
+    )
+    const orderedChildren: Array<
+      Extract<ProjectContentBrowserRowVm, { kind: 'assembly' | 'component' | 'object' }>
+    > = []
+    orderedRowIds.forEach((rowId) => {
+      const authoredRow = authoredByRowId.get(rowId)
+      if (authoredRow !== undefined) {
+        orderedChildren.push(authoredRow)
+      }
+    })
+    return orderedChildren
+  }
+
+  const resolveReferenceContainerPresentation = (
+    referenceRows: Array<Extract<ProjectContentBrowserRowVm, { kind: 'object' }>>,
+  ): {
+    state: BrowserReferenceRowState
+    progress01?: number
+  } => {
+    const referenceIds = referenceRows
+      .map((row) => row.referenceId)
+      .filter((referenceId): referenceId is string => typeof referenceId === 'string')
+    const hasHighlightedReference =
+      activeTransformReferenceId !== null &&
+      referenceIds.includes(activeTransformReferenceId)
+    if (hasHighlightedReference) {
+      return { state: 'highlighted' }
+    }
+    const batchTargetIds =
+      referenceLoadBatch === null
+        ? []
+        : referenceIds.filter((referenceId) => referenceLoadBatch.targetIds.includes(referenceId))
+    if (batchTargetIds.length > 0 && referenceLoadBatch !== null) {
+      return {
+        state: 'loading',
+        progress01: clampProgress01(
+          countBatchCompletedForIds(referenceLoadBatch, batchTargetIds) / batchTargetIds.length,
+        ),
+      }
+    }
+    const hasVisibleLoadingReference = referenceRows.some(
+      (row) => row.isVisible && row.referenceLoadState === 'loading',
+    )
+    if (hasVisibleLoadingReference) {
+      return { state: 'loading' }
+    }
+    const hasErrorReference = referenceRows.some((row) => row.referenceLoadState === 'error')
+    if (hasErrorReference) {
+      return { state: 'error' }
+    }
+    const hasVisibleLoadedReference = referenceRows.some(
+      (row) => row.isVisible && row.referenceLoadState === 'loaded',
+    )
+    return {
+      state: hasVisibleLoadedReference ? 'active' : 'dormant',
+    }
+  }
+
+  const appendComponentRow = (
+    componentRow: Extract<ProjectContentBrowserRowVm, { kind: 'component' }>,
+    depth: number,
+    ancestorGuides: BrowserTreeGuideKind[],
+    hasMoreSiblings: boolean,
+  ) => {
+    const orderedChildren = getOrderedContentChildrenForParent({
+      kind: 'component',
+      rowId: componentRow.rowId,
+    }) as Array<Extract<ProjectContentBrowserRowVm, { kind: 'object' }>>
+    const childCount = orderedChildren.length
+    const isComponentExpanded = childCount > 0 && !collapsedContentRowIds.includes(componentRow.rowId)
+    const referenceContainerChildren =
+      componentRow.referenceContainerKind === 'category'
+        ? orderedChildren.filter((row) => typeof row.referenceId === 'string')
+        : []
+    const referenceContainerPresentation =
+      componentRow.referenceContainerKind === 'category'
+        ? resolveReferenceContainerPresentation(referenceContainerChildren)
+        : null
+    visibleContentRows.push({
+      rowId: componentRow.rowId,
+      rowKind: 'component',
+      depth,
+      treeGuides: [
+        ...ancestorGuides,
+        childCount > 0 && isComponentExpanded
+          ? 'tee'
+          : hasMoreSiblings
+            ? 'tee'
+            : 'elbow',
+      ],
+      isVisible: componentRow.isVisible ?? false,
+      visibilityPartKeys: componentRow.visibilityPartKeys ?? [],
+      buildState: componentRow.buildState ?? 'done',
+      buildStateLabel: componentRow.buildStateLabel ?? '',
+      rebuildGraphDocumentIds: componentRow.rebuildGraphDocumentIds ?? [],
+      ownerGraphDocumentId: componentRow.ownerGraphDocumentId,
+      sourceGraphDocumentId: componentRow.sourceGraphDocumentId,
+      sourceOutputEntryId: componentRow.sourceOutputEntryId,
+      componentSourceKind: componentRow.componentSourceKind,
+      resolutionState: componentRow.resolutionState,
+      receiveId: componentRow.receiveId,
+      slotId: componentRow.slotId,
+      sourceNodeId: componentRow.sourceNodeId,
+      highlightViewerKey: componentRow.highlightViewerKey,
+      authoringGraphDocumentId: componentRow.authoringGraphDocumentId,
+      authoringNodeId: componentRow.authoringNodeId,
+      iconLabel: 'C',
+      label: componentRow.label,
+      meta: componentRow.meta,
+      ...resolveComponentPolicy(componentRow),
+      ...(componentRow.statusLabel !== undefined
+        ? {
+            statusLabel: componentRow.statusLabel,
+            statusTone: componentRow.statusTone ?? 'quiet',
+          }
+        : {}),
+      isSelected: selectedRowIdSet.has(componentRow.rowId),
+      isGroupedSelected: groupedSelectedRowIdSet.has(componentRow.rowId),
+      isExpandable: childCount > 0,
+      isExpanded: isComponentExpanded,
+      ...(componentRow.referenceContainerKind === 'category'
+        ? {
+            referenceContainerKind: 'category' as const,
+            referenceCategoryId: componentRow.referenceCategoryId ?? null,
+            referenceContainerState: referenceContainerPresentation?.state ?? 'dormant',
+            referenceContainerStateLabel: formatReferenceStateLabel(
+              referenceContainerPresentation?.state ?? 'dormant',
+            ),
+            referenceContainerProgress01: referenceContainerPresentation?.progress01,
+            referenceContainerItemCount: componentRow.referenceContainerItemCount ?? childCount,
+            referenceContainerEmptyLabel: componentRow.referenceContainerEmptyLabel ?? null,
+          }
+        : {}),
+      actions:
+        componentRow.authoringGraphDocumentId === null
+          ? []
+          : [
+              {
+                actionId: 'view-in-graph',
+                label: 'View In Graph',
+                ariaLabel: `View ${componentRow.label} in graph`,
+              },
+            ],
+    } satisfies BrowserComponentTreeRowVm)
+
+    if (!isComponentExpanded) {
+      return
+    }
+
+    const childAncestorGuides: BrowserTreeGuideKind[] = [
+      ...ancestorGuides,
+      hasMoreSiblings ? 'vertical' : 'none',
+    ]
+    orderedChildren.forEach((childRow, childIndex) => {
+      const treeGuides = [
+        ...childAncestorGuides,
+        childIndex < orderedChildren.length - 1 ? 'tee' : 'elbow',
+      ] satisfies BrowserTreeGuideKind[]
+      appendObjectRow(childRow, depth + 1, treeGuides)
+    })
+  }
+
+  const appendAssemblyRow = (
+    assemblyRow: Extract<ProjectContentBrowserRowVm, { kind: 'assembly' }>,
+    depth: number,
+    ancestorGuides: BrowserTreeGuideKind[],
+    hasMoreSiblings: boolean,
+  ) => {
+    const orderedAssemblyChildren = getOrderedContentChildrenForParent({
+      kind: 'assembly',
+      rowId: assemblyRow.rowId,
+    }) as Array<Extract<ProjectContentBrowserRowVm, { kind: 'assembly' | 'component' | 'object' }>>
+    const isExpanded =
+      orderedAssemblyChildren.length > 0 && !collapsedContentRowIds.includes(assemblyRow.rowId)
+    const referenceContainerChildren =
+      assemblyRow.referenceContainerKind === 'root'
+        ? orderedObjectRows.filter(
+            (row) =>
+              typeof row.referenceId === 'string' && (row.parentAssemblyId ?? null) === assemblyRow.rowId,
+          )
+        : []
+    const referenceContainerPresentation =
+      assemblyRow.referenceContainerKind === 'root'
+        ? resolveReferenceContainerPresentation(referenceContainerChildren)
+        : null
+    visibleContentRows.push({
+      rowId: assemblyRow.rowId,
+      rowKind: 'assembly',
+      depth,
+      treeGuides:
+        depth === 0
+          ? []
+          : [
+              ...ancestorGuides,
+              orderedAssemblyChildren.length > 0 && isExpanded
+                ? 'tee'
+                : hasMoreSiblings
+                  ? 'tee'
+                  : 'elbow',
+            ],
+      isVisible: assemblyRow.isVisible ?? false,
+      visibilityPartKeys: assemblyRow.visibilityPartKeys ?? [],
+      buildState: assemblyRow.buildState ?? 'done',
+      buildStateLabel: assemblyRow.buildStateLabel ?? '',
+      rebuildGraphDocumentIds: assemblyRow.rebuildGraphDocumentIds ?? [],
+      iconLabel: 'A',
+      label: assemblyRow.label,
+      meta: assemblyRow.meta,
+      ...resolveAssemblyPolicy(assemblyRow.rowId, assemblyRow.label),
+      ...(assemblyRow.statusLabel !== undefined
+        ? {
+            statusLabel: assemblyRow.statusLabel,
+            statusTone: assemblyRow.statusTone ?? 'quiet',
+          }
+        : {}),
+      isSelected: selectedRowIdSet.has(assemblyRow.rowId),
+      isGroupedSelected: groupedSelectedRowIdSet.has(assemblyRow.rowId),
+      isExpandable: orderedAssemblyChildren.length > 0,
+      isExpanded,
+      ...(assemblyRow.referenceContainerKind === 'root'
+        ? {
+            referenceContainerKind: 'root' as const,
+            referenceCategoryId: null,
+            referenceContainerState: referenceContainerPresentation?.state ?? 'dormant',
+            referenceContainerStateLabel: formatReferenceStateLabel(
+              referenceContainerPresentation?.state ?? 'dormant',
+            ),
+            referenceContainerProgress01: referenceContainerPresentation?.progress01,
+            referenceContainerItemCount:
+              assemblyRow.referenceContainerItemCount ?? referenceContainerChildren.length,
+            referenceContainerEmptyLabel: assemblyRow.referenceContainerEmptyLabel ?? null,
+          }
+        : {}),
       actions: [],
     } satisfies BrowserAssemblyTreeRowVm)
 
@@ -660,166 +1247,31 @@ export const selectBrowserTreeRows = (options: {
       return
     }
 
-    rootContentRows.forEach((contentRow, rootIndex) => {
-      const hasMoreRootSiblings = rootIndex < rootContentRows.length - 1
-      if (contentRow.kind === 'object') {
-        visibleContentRows.push({
-          rowId: contentRow.rowId,
-          rowKind: 'object',
-          depth: 1,
-          treeGuides: [
-            hasMoreRootSiblings ? 'tee' : 'elbow',
-          ],
-          isVisible: contentRow.isVisible ?? false,
-          visibilityPartKeys: contentRow.visibilityPartKeys ?? [],
-          buildState: contentRow.buildState ?? 'done',
-          buildStateLabel: contentRow.buildStateLabel ?? '',
-          rebuildGraphDocumentIds: contentRow.rebuildGraphDocumentIds ?? [],
-          ownerGraphDocumentId: contentRow.ownerGraphDocumentId,
-          parentComponentId: contentRow.parentComponentId,
-          objectSourceKind: contentRow.objectSourceKind,
-          sourceGraphDocumentId: contentRow.sourceGraphDocumentId,
-          sourceOutputEntryId: contentRow.sourceOutputEntryId,
-          slotId: contentRow.slotId,
-          sourceNodeId: contentRow.sourceNodeId,
-          resolutionState: contentRow.resolutionState,
-          highlightViewerKey: contentRow.highlightViewerKey,
-          authoringGraphDocumentId: contentRow.authoringGraphDocumentId,
-          authoringNodeId: contentRow.authoringNodeId,
-          iconLabel: 'O',
-          label: contentRow.label,
-          meta: contentRow.meta,
-          ...resolveObjectPolicy(contentRow),
-          ...(contentRow.statusLabel !== undefined
-            ? {
-                statusLabel: contentRow.statusLabel,
-                statusTone: contentRow.statusTone ?? 'quiet',
-              }
-            : {}),
-          isSelected: selectedRowIdSet.has(contentRow.rowId),
-          isGroupedSelected: groupedSelectedRowIdSet.has(contentRow.rowId),
-          isExpandable: false,
-          isExpanded: false,
-          actions: [
-            {
-              actionId: 'view-in-graph',
-              label: 'View In Graph',
-              ariaLabel: `View ${contentRow.label} in graph`,
-            },
-          ],
-        } satisfies BrowserObjectTreeRowVm)
+    const childAncestorGuides: BrowserTreeGuideKind[] =
+      depth === 0 ? [] : [...ancestorGuides, hasMoreSiblings ? 'vertical' : 'none']
+    orderedAssemblyChildren.forEach((childRow, childIndex) => {
+      const childHasMoreSiblings = childIndex < orderedAssemblyChildren.length - 1
+      if (childRow.kind === 'assembly') {
+        appendAssemblyRow(childRow, depth + 1, childAncestorGuides, childHasMoreSiblings)
         return
       }
-
-      const componentChildren = objectRowsByParentId.get(contentRow.rowId) ?? []
-      const isComponentExpanded = !collapsedContentRowIds.includes(contentRow.rowId)
-      visibleContentRows.push({
-        rowId: contentRow.rowId,
-        rowKind: 'component',
-        depth: 1,
-        treeGuides: [
-          componentChildren.length > 0 && isComponentExpanded
-            ? 'tee'
-            : hasMoreRootSiblings
-              ? 'tee'
-              : 'elbow',
-        ],
-        isVisible: contentRow.isVisible ?? false,
-        visibilityPartKeys: contentRow.visibilityPartKeys ?? [],
-        buildState: contentRow.buildState ?? 'done',
-        buildStateLabel: contentRow.buildStateLabel ?? '',
-        rebuildGraphDocumentIds: contentRow.rebuildGraphDocumentIds ?? [],
-        ownerGraphDocumentId: contentRow.ownerGraphDocumentId,
-        sourceGraphDocumentId: contentRow.sourceGraphDocumentId,
-        sourceOutputEntryId: contentRow.sourceOutputEntryId,
-        componentSourceKind: contentRow.componentSourceKind,
-        resolutionState: contentRow.resolutionState,
-        receiveId: contentRow.receiveId,
-        slotId: contentRow.slotId,
-        sourceNodeId: contentRow.sourceNodeId,
-        highlightViewerKey: contentRow.highlightViewerKey,
-        authoringGraphDocumentId: contentRow.authoringGraphDocumentId,
-        authoringNodeId: contentRow.authoringNodeId,
-        iconLabel: 'C',
-        label: contentRow.label,
-        meta: contentRow.meta,
-        ...resolveComponentPolicy(contentRow),
-        ...(contentRow.statusLabel !== undefined
-          ? {
-              statusLabel: contentRow.statusLabel,
-              statusTone: contentRow.statusTone ?? 'quiet',
-            }
-          : {}),
-        isSelected: selectedRowIdSet.has(contentRow.rowId),
-        isGroupedSelected: groupedSelectedRowIdSet.has(contentRow.rowId),
-        isExpandable: componentChildren.length > 0,
-        isExpanded: isComponentExpanded,
-        actions: [
-          {
-            actionId: 'view-in-graph',
-            label: 'View In Graph',
-            ariaLabel: `View ${contentRow.label} in graph`,
-          },
-        ],
-      } satisfies BrowserComponentTreeRowVm)
-
-      if (!isComponentExpanded) {
+      if (childRow.kind === 'component') {
+        appendComponentRow(childRow, depth + 1, childAncestorGuides, childHasMoreSiblings)
         return
       }
-
-      componentChildren.forEach((objectRow, objectIndex) => {
-        visibleContentRows.push({
-          rowId: objectRow.rowId,
-          rowKind: 'object',
-          depth: 2,
-          treeGuides: [
-            hasMoreRootSiblings ? 'vertical' : 'none',
-            objectIndex < componentChildren.length - 1 ? 'tee' : 'elbow',
-          ],
-          isVisible: objectRow.isVisible ?? false,
-          visibilityPartKeys: objectRow.visibilityPartKeys ?? [],
-          buildState: objectRow.buildState ?? 'done',
-          buildStateLabel: objectRow.buildStateLabel ?? '',
-          rebuildGraphDocumentIds: objectRow.rebuildGraphDocumentIds ?? [],
-          ownerGraphDocumentId: objectRow.ownerGraphDocumentId,
-          parentComponentId: objectRow.parentComponentId,
-          objectSourceKind: objectRow.objectSourceKind,
-          sourceGraphDocumentId: objectRow.sourceGraphDocumentId,
-          sourceOutputEntryId: objectRow.sourceOutputEntryId,
-          slotId: objectRow.slotId,
-          sourceNodeId: objectRow.sourceNodeId,
-          resolutionState: objectRow.resolutionState,
-          highlightViewerKey: objectRow.highlightViewerKey,
-          authoringGraphDocumentId: objectRow.authoringGraphDocumentId,
-          authoringNodeId: objectRow.authoringNodeId,
-          iconLabel: 'O',
-          label: objectRow.label,
-          meta: objectRow.meta,
-          ...resolveObjectPolicy(objectRow),
-          ...(objectRow.statusLabel !== undefined
-            ? {
-                statusLabel: objectRow.statusLabel,
-                statusTone: objectRow.statusTone ?? 'quiet',
-              }
-            : {}),
-          isSelected: selectedRowIdSet.has(objectRow.rowId),
-          isGroupedSelected: groupedSelectedRowIdSet.has(objectRow.rowId),
-          isExpandable: false,
-          isExpanded: false,
-          actions: [
-            {
-              actionId: 'view-in-graph',
-              label: 'View In Graph',
-              ariaLabel: `View ${objectRow.label} in graph`,
-            },
-          ],
-        } satisfies BrowserObjectTreeRowVm)
-      })
+      appendObjectRow(childRow, depth + 1, [
+        ...childAncestorGuides,
+        childHasMoreSiblings ? 'tee' : 'elbow',
+      ])
     })
+  }
+
+  topLevelAssemblyRows.forEach((assemblyRow, assemblyIndex) => {
+    appendAssemblyRow(assemblyRow, 0, [], assemblyIndex < topLevelAssemblyRows.length - 1)
   })
 
   orderedSketchRoots.forEach((row) => {
-    const isExpanded = !collapsedContentRowIds.includes(row.rowId)
+    const isExpanded = orderedSketchRows.length > 0 && !collapsedContentRowIds.includes(row.rowId)
     visibleContentRows.push({
       rowId: row.rowId,
       rowKind: 'sketches-root',
@@ -882,194 +1334,15 @@ export const selectBrowserTreeRows = (options: {
     })
   })
 
-  const referenceCategories = referenceWorkspaceTree.categories
-  const allReferenceItems = referenceCategories.flatMap((category) => category.items)
-  const hasHighlightedReference =
-    activeTransformReferenceId !== null &&
-    allReferenceItems.some((item) => item.referenceId === activeTransformReferenceId)
-  const hasLoadingReference = allReferenceItems.some(
-    (item) => item.isVisible && item.loadState === 'loading',
-  )
-  const hasReferenceError = allReferenceItems.some((item) => item.loadState === 'error')
-  const hasVisibleLoadedReference = allReferenceItems.some(
-    (item) => item.isVisible && item.loadState === 'loaded',
-  )
-  const referenceRootState: BrowserReferenceRowState =
-    hasHighlightedReference
-      ? 'highlighted'
-      : referenceLoadBatch !== null || hasLoadingReference
-      ? 'loading'
-      : hasReferenceError
-        ? 'error'
-        : hasVisibleLoadedReference
-          ? 'active'
-          : 'dormant'
-  const rootBatchProgress01 =
-    referenceLoadBatch !== null && referenceLoadBatch.targetIds.length > 0
-      ? clampProgress01(
-          countBatchCompletedForIds(referenceLoadBatch, referenceLoadBatch.targetIds) /
-            referenceLoadBatch.targetIds.length,
-        )
-      : undefined
-
-  visibleReferenceRows.push({
-    rowId: referenceWorkspaceTree.rowId,
-    rowKind: 'references-root',
-    depth: 0,
-    treeGuides: [],
-    iconLabel: 'R',
-    label: referenceWorkspaceTree.label,
-    meta: countLabel(
-      referenceCategories.reduce((sum, category) => sum + category.itemCount, 0),
-      'item',
-      'items',
-    ),
-    isSelected: selectedRowIdSet.has(referenceWorkspaceTree.rowId),
-    isGroupedSelected: groupedSelectedRowIdSet.has(referenceWorkspaceTree.rowId),
-    isExpandable: true,
-    isExpanded: referenceWorkspaceTree.isExpanded,
-    actions: [],
-    isVisible: hasVisibleLoadedReference,
-    state: referenceRootState,
-    stateLabel: formatReferenceStateLabel(referenceRootState),
-    progress01: rootBatchProgress01,
-  } satisfies BrowserReferencesRootTreeRowVm)
-
-  if (referenceWorkspaceTree.isExpanded) {
-    referenceCategories.forEach((category, categoryIndex) => {
-      const hasMoreCategories = categoryIndex < referenceCategories.length - 1
-      const categoryState = selectReferenceCategoryState(category.items, activeTransformReferenceId)
-      const categoryVisible = category.items.some((item) => item.isVisible && item.loadState === 'loaded')
-      const categoryBatchTargetIds =
-        referenceLoadBatch === null
-          ? []
-          : category.items
-              .map((item) => item.referenceId)
-              .filter((referenceId) => referenceLoadBatch.targetIds.includes(referenceId))
-      const categoryStateWithBatch: BrowserReferenceRowState =
-        activeTransformReferenceId !== null &&
-        category.items.some((item) => item.referenceId === activeTransformReferenceId)
-          ? 'highlighted'
-          : categoryBatchTargetIds.length > 0
-            ? 'loading'
-            : categoryState
-      const categoryProgress01 =
-        categoryBatchTargetIds.length > 0 && referenceLoadBatch !== null
-          ? clampProgress01(
-              countBatchCompletedForIds(referenceLoadBatch, categoryBatchTargetIds) /
-                categoryBatchTargetIds.length,
-            )
-          : undefined
-      const categoryIconLabel =
-        category.categoryId === 'footpads'
-          ? 'F'
-          : category.categoryId === 'shoes'
-            ? 'S'
-            : category.categoryId === 'premade-foothooks'
-              ? 'P'
-              : 'U'
-      visibleReferenceRows.push({
-        rowId: category.rowId,
-        rowKind: 'reference-category',
-        depth: 1,
-        treeGuides: [hasMoreCategories ? 'tee' : 'elbow'],
-        iconLabel: categoryIconLabel,
-        label: category.label,
-        meta: countLabel(category.itemCount, 'item', 'items'),
-        isSelected: selectedRowIdSet.has(category.rowId),
-        isGroupedSelected: groupedSelectedRowIdSet.has(category.rowId),
-        isExpandable: true,
-        isExpanded: category.isExpanded,
-        actions: [],
-        categoryId: category.categoryId,
-        itemCount: category.itemCount,
-        emptyLabel: category.emptyLabel,
-        isVisible: categoryVisible,
-        state: categoryStateWithBatch,
-        stateLabel: formatReferenceStateLabel(categoryStateWithBatch),
-        progress01: categoryProgress01,
-      } satisfies BrowserReferenceCategoryTreeRowVm)
-
-      if (!category.isExpanded) {
-        return
-      }
-
-      category.items.forEach((item, itemIndex) => {
-        const itemState: BrowserReferenceRowState =
-          item.loadState === 'error'
-            ? 'error'
-            : activeTransformReferenceId === item.referenceId
-              ? 'highlighted'
-            : item.isVisible && item.loadState === 'loading'
-              ? 'loading'
-              : item.isVisible && item.loadState === 'loaded'
-                ? 'active'
-                : 'dormant'
-        visibleReferenceRows.push({
-          rowId: item.rowId,
-          rowKind: 'reference-item',
-          depth: 2,
-          treeGuides: [
-            hasMoreCategories ? 'vertical' : 'none',
-            itemIndex < category.items.length - 1 ? 'tee' : 'elbow',
-          ],
-          iconLabel: 'R',
-          label: item.label,
-          meta: formatReferenceItemMeta(item.fileType),
-          isSelected: selectedRowIdSet.has(item.rowId),
-          isGroupedSelected: groupedSelectedRowIdSet.has(item.rowId),
-          isExpandable: false,
-          isExpanded: false,
-          actions: [
-            {
-              actionId: 'transform-object',
-              label: 'Transform Object',
-              ariaLabel: `Transform ${item.label}`,
-            },
-          ],
-          showOverflowButton: false,
-          referenceId: item.referenceId,
-          sourceKind: item.sourceKind,
-          categoryId: item.categoryId,
-          fileType: item.fileType,
-          assetPath: item.assetPath,
-          isVisible: item.isVisible,
-          state: itemState,
-          stateLabel: formatReferenceStateLabel(itemState),
-          errorMessage: item.errorMessage,
-        } satisfies BrowserReferenceItemTreeRowVm)
-      })
-    })
-  }
-
-  const contentSectionRootBranchRowIds = [
-    ...(visibleReferenceRows.length > 0 ? [referenceWorkspaceTree.rowId] : []),
-    ...visibleContentRows.filter((row) => row.depth === 0).map((row) => row.rowId),
-  ]
+  const contentSectionRootBranchRowIds = visibleContentRows
+    .filter((row) => row.depth === 0)
+    .map((row) => row.rowId)
   const contentSectionRootGuideByRowId = new Map<string, BrowserTreeGuideKind>()
   const contentSectionContinuationGuideByRowId = new Map<string, BrowserTreeGuideKind>()
   contentSectionRootBranchRowIds.forEach((rowId, index) => {
     const hasMoreRootBranches = index < contentSectionRootBranchRowIds.length - 1
     contentSectionRootGuideByRowId.set(rowId, hasMoreRootBranches ? 'tee' : 'elbow')
     contentSectionContinuationGuideByRowId.set(rowId, hasMoreRootBranches ? 'vertical' : 'none')
-  })
-
-  const transformedReferenceRows = visibleReferenceRows.map((row) => {
-    const rootGuide = contentSectionRootGuideByRowId.get(referenceWorkspaceTree.rowId)
-    const continuationGuide = contentSectionContinuationGuideByRowId.get(referenceWorkspaceTree.rowId)
-    if (rootGuide === undefined || continuationGuide === undefined) {
-      return row
-    }
-    if (row.depth === 0) {
-      return {
-        ...row,
-        treeGuides: [rootGuide],
-      }
-    }
-    return {
-      ...row,
-      treeGuides: [continuationGuide, ...row.treeGuides],
-    }
   })
 
   let activeRootAssemblyRowId: string | null = null
@@ -1099,7 +1372,7 @@ export const selectBrowserTreeRows = (options: {
   })
 
   return {
-    referenceRows: transformedReferenceRows,
+    referenceRows: [],
     contentRows: transformedContentRows,
     graphRows: graphRows.map((row) => {
       const isInSharedViewerComposition = sharedViewerCompositionGraphDocumentIds.includes(
@@ -1112,6 +1385,8 @@ export const selectBrowserTreeRows = (options: {
             objectRow.ownerGraphDocumentId === row.graphDocumentId &&
             objectRow.authoringGraphDocumentId === row.graphDocumentId &&
             objectRow.objectSourceKind === 'published-object' &&
+            objectRow.sourceOutputEntryId !== null &&
+            objectRow.authoringGraphDocumentId !== null &&
             (objectRow.buildState === 'rebuild' ||
               objectRow.buildState === 'building' ||
               objectRow.resolutionState === 'unresolved'),
@@ -1123,10 +1398,10 @@ export const selectBrowserTreeRows = (options: {
           treeGuides: [],
           graphDocumentId: row.graphDocumentId,
           objectRowId: objectRow.rowId,
-          objectSourceKind: objectRow.objectSourceKind,
+          objectSourceKind: objectRow.objectSourceKind!,
           buildState: objectRow.buildState ?? 'rebuild',
           buildStateLabel: objectRow.buildStateLabel ?? 'Rebuild',
-          resolutionState: objectRow.resolutionState,
+          resolutionState: objectRow.resolutionState!,
           ...(objectRow.statusLabel !== undefined
             ? {
                 statusLabel: objectRow.statusLabel,
@@ -1138,9 +1413,9 @@ export const selectBrowserTreeRows = (options: {
                   statusTone: 'warning' as const,
                 }
               : {}),
-          sourceOutputEntryId: objectRow.sourceOutputEntryId,
+          sourceOutputEntryId: objectRow.sourceOutputEntryId!,
           sourceNodeId: objectRow.sourceNodeId,
-          authoringGraphDocumentId: objectRow.authoringGraphDocumentId,
+          authoringGraphDocumentId: objectRow.authoringGraphDocumentId!,
           authoringNodeId: objectRow.authoringNodeId,
           iconLabel: 'O',
           label: objectRow.label,

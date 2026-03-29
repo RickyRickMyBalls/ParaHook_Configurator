@@ -60,6 +60,16 @@ export const runBrowserRowAction = (
     return
   }
 
+  if (
+    row.rowKind === 'object' &&
+    (row.contentOriginKind === 'imported-reference' || row.contentOriginKind === 'source-reference')
+  ) {
+    if (action.actionId === 'transform-object' && row.referenceId) {
+      handlers.onTransformReference(row.referenceId)
+    }
+    return
+  }
+
   if (row.rowKind === 'component' || row.rowKind === 'object' || row.rowKind === 'sketch') {
     if (action.actionId === 'view-in-graph' && row.authoringGraphDocumentId !== null) {
       handlers.onViewInGraph(row.authoringGraphDocumentId, row.authoringNodeId)

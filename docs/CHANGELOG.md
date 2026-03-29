@@ -65,6 +65,704 @@ Do not use it for:
 
 ## Doc Body
 
+### [707] - 2026-03-28 23:36 - `BRW - Browser-10.5 - Compatibility Seam Retirement`
+<!-- ENTRY 707 -->
+HUMAN SUMMARY: `This landed the Browser-10.5 cleanup by moving live Browser and Console reference selection onto normal assembly/component/object targets, shrinking the older reference-only selection contract down to a fallback compatibility seam, and keeping the remaining referenceId-based runtime actions intact behind owner-first context routing.`
+#### Scope / Constraints Honored
+- Kept the change focused on retiring public dual-tree selection/context seams instead of redesigning reference runtime execution.
+- Preserved current load, retry, highlight, zoom, and transform behavior by keeping narrow `referenceId` metadata on owner-first context paths.
+- Left deeper type-surface deletion and older non-live compatibility callers out of scope where they do not affect the current Browser/Console contract.
+#### What Changed
+- Updated `src/app/store/useAppStore.ts` so console context resolution now prefers owner-first `assembly`, `component`, and `object` targets for `References`, category rows, and reference-backed objects while carrying only the extra metadata still needed for runtime actions.
+- Updated `src/app/console/stagedNavigation.ts` so owner-first assembly/component/object console contexts can still open the existing reference scopes without needing the older `references-root` and `reference-category` public context kinds.
+- Updated `src/app/console/ConsoleDock.tsx` so staged reference navigation now commits owner-first `assembly`, `component`, and `object` workspace targets, and reference zoom resolution now derives a single reference id from the shared target helper instead of depending on `reference-item` selection.
+- Updated `src/app/console/referenceTransformConsole.ts` and `src/app/store/workspaceIntents.ts` so reference-focused console/intent entry points now select the real imported object row instead of emitting the older public `reference-item` selection target.
+- Narrowed Browser explicit-selection building in `src/app/panels/browserInteractions.ts` so any surviving legacy reference rows map back onto normal owner targets instead of perpetuating the older public target contract.
+#### Verification
+- `npm.cmd test -- --run src/app/store/useAppStore.test.ts src/app/console/ConsoleDock.test.tsx src/app/panels/browserInteractions.test.ts src/app/store/workspaceIntents.test.ts`
+- `npm.cmd run build`
+
+### [706] - 2026-03-28 23:14 - `BRW - Browser-10.4 - Load And Runtime Traits On Normal Nodes`
+<!-- ENTRY 706 -->
+HUMAN SUMMARY: `This landed the Browser-10.4 runtime-trait cleanup by adding one shared reference-backed runtime-trait read seam in the app store, reusing it across Browser row/item derivation, and narrowing ViewerHost plus ConsoleDock away from scattered raw load/visibility lookups while keeping current runtime and transform adapters intact.`
+#### Scope / Constraints Honored
+- Kept the change focused on shared runtime-trait reads instead of forcing a larger loader/runtime storage redesign into the same pass.
+- Preserved Browser membership independence from viewer load state and kept current reference transform/load compatibility seams intact.
+- Left full compatibility-seam retirement for the later Browser-10.5 pass.
+#### What Changed
+- Added shared reference-backed runtime-trait helpers in `src/app/store/useAppStore.ts` so visibility, load state, error state, transform override, and part rows resolve through one store seam.
+- Rewired reference-backed Browser item/content-row derivation in `src/app/store/useAppStore.ts` to reuse the shared runtime-trait builder instead of duplicating raw `referenceWorkspace` map reads.
+- Updated `src/app/components/ViewerHost.tsx` so post-load visibility restoration checks the shared runtime-trait helper rather than directly reading `referenceWorkspace.visibilityById`.
+- Updated `src/app/console/ConsoleDock.tsx` so `reference.loadModel` routing reads current load/visibility state through the shared runtime-trait helper.
+- Added a focused regression test in `src/app/store/useAppStore.test.ts` covering shared runtime-trait projection across store helpers, workspace items, and unified content rows.
+#### Verification
+- `npm.cmd test -- --run src/app/store/useAppStore.test.ts src/app/components/ViewerHost.test.tsx src/app/console/ConsoleDock.test.tsx src/app/panels/selectBrowserTreeRows.test.ts`
+- `npm.cmd run build`
+
+### [705] - 2026-03-28 22:51 - `BRW - Browser-10.3 - Unified Owner Routing Across Browser Console And Viewer`
+<!-- ENTRY 705 -->
+HUMAN SUMMARY: `This landed the Browser-10.3 routing cleanup by making converged Browser rows keep their visible assembly/component/object owner identity across Browser selection, Console context, and viewer reflection, instead of bouncing those rows back into legacy reference-target kinds.` 
+#### Scope / Constraints Honored
+- Kept the change focused on owner-target routing across Browser, store selectors, Console, and viewer reflection instead of forcing the later Browser-10.4 runtime-trait cleanup into the same pass.
+- Preserved the current reference-runtime and transform compatibility seams by keeping `reference-item` support alive only where runtime behavior still legitimately needs `referenceId`.
+- Avoided reverting or restructuring unrelated in-flight Browser, viewer, transform, Console, and docs work already present in the worktree.
+
+#### Summary of Implementation
+- Widened the shared owner selectors in `src/app/store/useAppStore.ts` so reference-backed `References` assembly, category-component rows, and imported object rows resolve through the same content-owner and resolved-selection helpers as normal authored Browser owners.
+- Reworked `src/app/panels/browserInteractions.ts` so converged Browser rows now commit explicit selection through their visible `assembly`, `component`, and `object` owner targets instead of translating those rows back into `references-root`, `reference-category`, or `reference-item`.
+- Updated `src/app/panels/useBrowserPanelController.ts` so grouped Browser selection comes from the shared resolved-content payload, imported-reference drag follow-up selection resolves to owner object row ids, and reference transform entry now selects the owner object row before opening the existing transform shell.
+- Updated `src/app/components/ViewerHost.tsx`, `src/app/console/ConsoleDock.tsx`, and `src/app/components/ReferenceTransformToolbar.tsx` so viewer picks/highlighting, Console zoom/context fallback, and transform-toolbar ownership reads all understand reference-backed owners through the shared owner-routing helpers.
+- Refreshed `src/app/store/useAppStore.test.ts`, `src/app/panels/browserInteractions.test.ts`, and `src/app/components/ViewerHost.test.tsx` so the regression suite follows the owner-routed Browser/viewer selection contract.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/panels/browserInteractions.ts`
+- `src/app/panels/useBrowserPanelController.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/components/ReferenceTransformToolbar.tsx`
+- `src/app/store/useAppStore.test.ts`
+- `src/app/panels/browserInteractions.test.ts`
+- `src/app/components/ViewerHost.test.tsx`
+
+#### Behavior Changes
+- Converged Browser `assembly`, `component`, and `object` rows now keep the same owner-target identity across Browser selection and follow-up routing.
+- Imported/reference-backed object rows now resolve back into owner `object` targets when the viewer picks them or when Browser drag/move flows reselect them.
+- Viewer reference highlighting now derives from shared owner selection metadata instead of depending on legacy reference-target selection as the primary public contract.
+- Console selection helpers now understand reference-backed owner rows directly, so owner-labeled context and zoom fallback work without translating visible Browser rows back into legacy reference-container targets first.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/store/useAppStore.test.ts src/app/panels/browserInteractions.test.ts src/app/components/ViewerHost.test.tsx`
+- `npm.cmd run build`
+
+### [704] - 2026-03-28 22:21 - `BRW - Browser-10.2 - Single Browser Tree Derivation`
+<!-- ENTRY 704 -->
+HUMAN SUMMARY: `This landed the Browser-10.2 derivation cut by moving the live Browser onto one visible content-row lane, pushing reference hierarchy synthesis into the unified project-content row path, and keeping the older \`referenceWorkspaceTree\` input only as a compatibility fallback instead of the live Browser hierarchy source.`
+#### Scope / Constraints Honored
+- Kept the change focused on Browser tree derivation and visible row-lane cleanup instead of forcing the later Browser-10 owner-routing cleanup into the same pass.
+- Preserved current reference-target compatibility, load/runtime traits, and transform-support seams while the visible Browser tree converged.
+- Avoided reverting or restructuring unrelated in-flight Browser, transform, viewer, and docs work already present in the worktree.
+
+#### Summary of Implementation
+- Expanded `src/app/store/useAppStore.ts` so `selectCurrentProjectContentBrowserRows(...)` can inject the visible reference assembly/category/object hierarchy into the same `ProjectContentBrowserRowVm[]` lane that already feeds authored Browser content.
+- Reworked `src/app/panels/selectBrowserTreeRows.ts` so the live Browser tree now renders from unified `contentRows`, keeps `referenceRows` empty, and treats `referenceWorkspaceTree` as a compatibility fallback rather than the primary visible hierarchy input.
+- Updated `src/app/panels/useBrowserPanelController.ts` and `src/app/panels/browserTreeSections.tsx` so the Browser content section renders one visible content lane, initial reference category collapse state stays mirrored into the unified collapse model, and default import landing prefers real authored assemblies instead of the synthetic `References` root.
+- Refreshed Browser test harnesses in `src/app/panels/BrowserPanel.test.tsx` and `src/app/panels/selectBrowserTreeRows.test.ts` so the suite now follows the unified content-lane tree shape and the new reference-backed fallback behavior.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/panels/selectBrowserTreeRows.ts`
+- `src/app/panels/useBrowserPanelController.ts`
+- `src/app/panels/browserTreeSections.tsx`
+- `src/app/panels/browserInteractions.ts`
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `src/app/panels/selectBrowserTreeRows.test.ts`
+
+#### Behavior Changes
+- The live Browser now derives its visible hierarchy from one `contentRows` lane instead of a split `referenceRows + contentRows` presentation.
+- Reference container rows and reference-backed object rows now come through the same visible content-tree path as authored assemblies, components, and objects.
+- Reference category expand/collapse state now survives the unified tree path on initial render instead of depending on the older separate reference lane.
+- Default Browser import placement no longer falls back to the synthetic `References` assembly when no real authored assembly is selected.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/panels/selectBrowserTreeRows.test.ts src/app/panels/BrowserPanel.test.tsx src/app/panels/browserInteractions.test.ts src/app/panels/browserContextMenu.test.ts src/app/panels/browserRowActions.test.ts src/app/store/useAppStore.test.ts`
+- `npm.cmd run build`
+
+### [703] - 2026-03-28 21:50 - `BRW - Browser-10.1 - Unified Reference-Backed Project Owner Records`
+<!-- ENTRY 703 -->
+HUMAN SUMMARY: `This landed the first Browser-10 ownership cleanup by removing the old \`source-reference\` drag/store identity and collapsing ordinary Browser reference-backed object movement onto the existing \`imported-reference\` owner seam, while keeping current \`reference-item\` selection and transform compatibility intact for later Browser-10 routing cleanup.`
+#### Scope / Constraints Honored
+- Kept the change focused on owner identity and drag/store seams instead of forcing the larger Browser-10 tree-derivation rewrite into the same pass.
+- Preserved row-level source-versus-parented presentation traits and existing `reference-item` compatibility behavior.
+- Avoided reverting or restructuring unrelated in-flight Browser and transform work already present in the worktree.
+
+#### Summary of Implementation
+- Simplified `BrowserDraggableTarget` and `BrowserDraggableTargetDropResolution` in `src/app/store/useAppStore.ts` so reference-backed Browser objects now flow only through the real `imported-reference` owner branch.
+- Removed the obsolete `source-reference` / `place-source` drop-resolution path and deleted the now-unused `placeBrowserSourceReferenceObject(...)` store seam.
+- Cleaned up `src/app/panels/useBrowserPanelController.ts` so content-owner resolution and pointer-drop commit no longer special-case a `source-reference` drag identity that the controller already collapsed onto `imported-reference`.
+- Updated the Browser panel test harness in `src/app/panels/BrowserPanel.test.tsx` to follow the new shared owner-drop contract.
+- Marked `Browser-10.1` shipped in the Browser architecture docs and moved its phase record to `Browser/Shipped/`.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/panels/useBrowserPanelController.ts`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Index.md`
+- `docs/Doc-Log.md`
+- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
+- `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-10 - Unified Project Object Tree Source Of Truth.md`
+- `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-10.1 - Unified Reference-Backed Project Owner Records.md`
+
+#### Behavior Changes
+- Ordinary Browser reference-backed object movement no longer relies on a separate `source-reference` drag/store identity.
+- Reference-backed shelf rows and parented rows now share the same underlying `imported-reference` owner seam for Browser move/drop resolution.
+- Current `reference-item` selection and transform compatibility still remain adapter-backed, so user-facing transform behavior does not change in this pass.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/store/useAppStore.test.ts src/app/panels/BrowserPanel.test.tsx src/app/panels/selectBrowserTreeRows.test.ts src/app/panels/browserInteractions.test.ts src/app/panels/browserContextMenu.test.ts src/app/panels/browserRowActions.test.ts`
+- `npm.cmd run build`
+
+### [702] - 2026-03-28 21:05 - `BRW - Browser-9.7.1 - Reference Container Surface Alignment`
+<!-- ENTRY 702 -->
+HUMAN SUMMARY: `This tuned the shipped Browser-9.7 tree so converged container rows like \`References\` and \`Footpads\` no longer render with the old dark reference-bar look, and instead read visually like normal assembly/component rows while still keeping reference-specific progress and compatibility behavior underneath.`
+#### Scope / Constraints Honored
+- Kept the `Browser-9.7` structural tree convergence intact instead of undoing the container-row remap.
+- Preserved reference-specific progress, load, and compatibility metadata for the converged container rows.
+- Limited the change to row-surface presentation plus focused Browser tests.
+
+#### Summary of Implementation
+- Updated `browserTreeRowPresenter.tsx` so reference-container assembly/component rows render through the normal content surface instead of the old reference-state surface.
+- Added content-surface variants in `browser.css` for converged reference containers so active rows read like normal assemblies/components while loading, highlighted, and error states still communicate honestly.
+- Refreshed the Browser panel tests so determinate aggregate progress now asserts against the converged content-surface fill path and the imported object rows still keep their darker imported-object treatment.
+
+#### Files Changed
+- `src/app/panels/browserTreeRowPresenter.tsx`
+- `src/app/theme/surfaces/browser.css`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- `References` and visible grouping rows like `Footpads` now look like normal assembly/component rows instead of black reference-only rows.
+- Converged reference containers still show loading/highlight/error progress, but through the content-surface visual language.
+- Source/imported reference-backed object rows keep their darker imported/reference look below those containers.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/panels/BrowserPanel.test.tsx src/app/panels/selectBrowserTreeRows.test.ts src/app/panels/browserInteractions.test.ts src/app/panels/browserContextMenu.test.ts`
+- `npm.cmd run build`
+
+### [701] - 2026-03-28 20:47 - `BRW - Browser-9.7 - Normal Assembly Component Rows For Reference Hierarchy`
+<!-- ENTRY 701 -->
+HUMAN SUMMARY: `This shipped Browser-9.7 by moving the visible \`References\` root and grouping rows like \`Footpads\` into the normal Browser content lane as assembly/component rows, while keeping the old reference-target compatibility seams underneath for selection, context menus, visibility, and transform behavior.`
+#### Scope / Constraints Honored
+- Kept current reference-backed selection, Console, and transform compatibility adapter-backed instead of trying to delete every old target seam in the same pass.
+- Preserved the Browser-9.6 single-object identity and ordinary move/reparent behavior for reference-backed object rows.
+- Avoided making the synthetic `References` assembly and grouping components behave like authored draggable content owners in this first container-convergence pass.
+
+#### Summary of Implementation
+- Reworked `selectBrowserTreeRows.ts` so `References` now renders into `contentRows` as a synthetic assembly row and visible grouping containers render as synthetic component rows with explicit reference-container metadata, while source/imported reference-backed objects remain normal object rows under those containers or their landed owners.
+- Updated Browser interactions and controller drag gating so the converged assembly/component rows still route to the existing reference-root/category compatibility targets for selection, expand/collapse, visibility, and `Load All`, but no longer advertise themselves as authored draggable owner rows.
+- Updated the row presenter and Browser content section rendering so the converged rows use the reference-style state bars and nested empty-state messaging while still sharing the normal content-lane row shell.
+- Refreshed focused Browser tests to treat the new clean-tree container layout as the live source of truth.
+
+#### Files Changed
+- `src/app/panels/selectBrowserTreeRows.ts`
+- `src/app/panels/useBrowserPanelController.ts`
+- `src/app/panels/browserInteractions.ts`
+- `src/app/panels/browserContextMenu.ts`
+- `src/app/panels/browserTreeRowPresenter.tsx`
+- `src/app/panels/browserTreeSections.tsx`
+- `src/app/panels/selectBrowserTreeRows.test.ts`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-9.7 - Normal Assembly Component Rows For Reference Hierarchy.md`
+- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
+- `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-9 - Reference Tree Convergence Into Standard Content Hierarchy.md`
+- `docs/Doc-Index.md`
+- `docs/Doc-Log.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- The live Browser tree now renders `References` as a normal top-level assembly row and visible grouping containers like `Footpads`, `Shoes`, and `Premade Foothooks` as normal component rows in the same content lane as authored hierarchy rows.
+- The special rendered `references-root` and `reference-category` container species no longer drive the visible Browser tree for those containers.
+- The converged reference containers keep their reference-specific load/visibility/selection behavior through metadata and adapters instead of through a separate rendered tree species.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/panels/selectBrowserTreeRows.test.ts src/app/panels/browserInteractions.test.ts src/app/panels/browserContextMenu.test.ts src/app/panels/BrowserPanel.test.tsx`
+- `npm.cmd run build`
+
+### [700] - 2026-03-28 20:12 - `BRW - Browser-9.6 - Placement Shelf Removal And Single Object Identity`
+<!-- ENTRY 700 -->
+HUMAN SUMMARY: `This shipped Browser-9.6 by making built-in reference rows like \`XL.step\` move as the same reference-backed object during ordinary Browser drag, seeding manifest rows into the shared owner-record seam, and stopping the normal \`References -> content\` drag path from creating a second landed copy.` 
+#### Scope / Constraints Honored
+- Kept current `reference-item` compatibility alive for selection, Console routing, and transform entry.
+- Reused the existing reference-backed owner move seam instead of inventing another permanent owner type.
+- Left explicit duplicate/place behavior out of scope for this pass.
+
+#### Summary of Implementation
+- Seeded the built-in manifest/library objects into the shared reference-backed record map in `useAppStore.ts` with `sourceKind` and `categoryId` metadata so those rows now have stable owner identity before drag begins.
+- Reworked reference-tree derivation so manifest rows with a real content parent stop rendering in the `References` branch and instead appear in the content hierarchy as reference-backed object rows.
+- Updated the Browser controller so ordinary drag from `References` treats source-reference rows as the same `imported-reference` owner target and commits through `moveProjectContentOwner(...)` instead of `placeBrowserSourceReferenceObject(...)`.
+- Added focused regressions covering both the shared move seam for a built-in manifest row and the content-tree rendering of a manifest row after it gains a landing parent.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/store/useAppStore.test.ts`
+- `src/app/panels/selectBrowserTreeRows.ts`
+- `src/app/panels/selectBrowserTreeRows.test.ts`
+- `src/app/panels/useBrowserPanelController.ts`
+- `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-9.6 - Placement Shelf Removal And Single Object Identity.md`
+- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
+- `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-9 - Reference Tree Convergence Into Standard Content Hierarchy.md`
+- `docs/Doc-Index.md`
+- `docs/Doc-Log.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Dragging a built-in Browser reference object like `XL.step` from `References` into a content owner now moves that same object instead of creating a second landed imported copy.
+- Built-in manifest reference-backed rows now use the same reference-backed owner record seam as previously landed imported rows.
+- Manifest reference rows only remain visible under `References` while they have no content parent.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/panels/selectBrowserTreeRows.test.ts src/app/panels/browserInteractions.test.ts src/app/panels/browserContextMenu.test.ts src/app/panels/browserRowActions.test.ts src/app/panels/BrowserPanel.test.tsx src/app/store/useAppStore.test.ts`
+- `npm.cmd run build`
+
+### [699] - 2026-03-28 19:47 - `BRW - Browser-9.5 - Library Object Rows And Direct Placement Drag`
+<!-- ENTRY 699 -->
+HUMAN SUMMARY: `This shipped Browser-9.5 by making source/library rows like \`XL.step\` render as Browser object rows and by letting those rows drag directly into the working hierarchy through a new source-placement seam, while keeping the visible \`before\` / \`after\` / \`into\` drag grammar and the older reference-target transform compatibility intact.` 
+#### Scope / Constraints Honored
+- Kept the visible Browser drag grammar shared instead of inventing a second source-placement interaction.
+- Left the existing `moveProjectContentOwner(...)` seam scoped to already-landed owner moves.
+- Preserved current `reference-item` compatibility for selection, Console routing, and transform entry while converging the Browser row model.
+
+#### Summary of Implementation
+- Added a widened Browser drag target model and a `resolveBrowserDraggableTargetDrop(...)` legality seam so Browser can distinguish landed-owner rearrange from source/library object placement without lying about source rows already being landed owners.
+- Added `placeBrowserSourceReferenceObject(...)` in the app store so dragging a source/library row lands a new imported working object under the resolved owner and still reuses the existing move seam for optional `before` / `after` ordering.
+- Reworked Browser reference-row derivation so source/library rows now render through the shared `object` row shell with source-reference metadata instead of the older `reference-item` row species.
+- Updated Browser controller, row actions, context menu, interaction routing, and row presentation so source-reference object rows can drag, keep reference-backed visibility/transform behavior where needed, and still use the darker imported/reference visual treatment.
+- Tightened focused Browser/store tests around source-row rendering, direct placement drag, reference selection behavior, and the shipped drag/store seams.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/panels/useBrowserPanelController.ts`
+- `src/app/panels/selectBrowserTreeRows.ts`
+- `src/app/panels/browserContentDrag.ts`
+- `src/app/panels/browserInteractions.ts`
+- `src/app/panels/browserContextMenu.ts`
+- `src/app/panels/browserRowActions.ts`
+- `src/app/panels/browserRowFamilies.ts`
+- `src/app/panels/browserTreeRowPresenter.tsx`
+- `src/app/panels/selectBrowserTreeRows.test.ts`
+- `src/app/panels/BrowserPanel.test.tsx`
+
+#### Behavior Changes
+- Source/library rows in `References` now read as Browser `object` rows instead of `reference-item` rows.
+- Dragging a source/library row into a legal `Assembly` / `Component` target now creates a landed imported working object.
+- Landed imported/object rearrange still uses the existing shared move seam and still presents the same visible drop grammar.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/panels/selectBrowserTreeRows.test.ts src/app/panels/browserInteractions.test.ts src/app/panels/browserContextMenu.test.ts src/app/panels/browserRowActions.test.ts src/app/panels/BrowserPanel.test.tsx src/app/store/useAppStore.test.ts`
+- `npm.cmd run build`
+
+### [698] - 2026-03-28 19:13 - `BRW - Browser-9.4.1 - Imported Content Rows Render As Object Rows`
+<!-- ENTRY 698 -->
+HUMAN SUMMARY: `This finished a key Browser-9 convergence polish by making landed imported rows render as normal content-tree object rows in the Content pane, while still preserving the existing \`reference-item\` compatibility seam for transform and imported-reference maintenance actions.` 
+#### Scope / Constraints Honored
+- Kept imported-versus-generated visual distinction instead of flattening them into identical styling.
+- Preserved the current imported-reference workspace target and transform compatibility seam.
+- Left the separate `References` branch intact for reference-library browsing while normalizing the landed content hierarchy.
+
+#### Summary of Implementation
+- Reworked landed imported content rows so the Content pane now derives them as Browser `object` rows with imported-origin metadata instead of rendering them as `reference-item` rows inside the content hierarchy.
+- Updated Browser row presentation so imported content rows use the content-row shell and object hierarchy behavior, while keeping darker imported-state styling driven by reference load state.
+- Extended Browser selection, expand/collapse, visibility, row actions, and context-menu seams so imported content objects still route through the existing reference visibility / transform / retry / remove compatibility helpers.
+- Tightened focused Browser tests around content-row derivation, imported object actions, and imported object maintenance behavior.
+
+#### Files Changed
+- `src/app/panels/selectBrowserTreeRows.ts`
+- `src/app/panels/browserTreeRowPresenter.tsx`
+- `src/app/panels/browserInteractions.ts`
+- `src/app/panels/browserContextMenu.ts`
+- `src/app/panels/browserRowActions.ts`
+- `src/app/panels/useBrowserPanelController.ts`
+- `src/app/theme/surfaces/browser.css`
+- `src/app/panels/selectBrowserTreeRows.test.ts`
+- `src/app/panels/browserContextMenu.test.ts`
+- `src/app/panels/browserRowActions.test.ts`
+
+#### Behavior Changes
+- Landed imported references now read as normal object rows in the Content hierarchy instead of appearing as reference-specific row species inside that tree.
+- Imported object rows still look visually distinct from generated objects, but they now participate in the same object-row hierarchy grammar for content-side browsing.
+- Imported content rows keep their existing transform/retry/remove compatibility actions even though the Content pane now treats them as object rows.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/panels/selectBrowserTreeRows.test.ts src/app/panels/browserContextMenu.test.ts src/app/panels/browserRowActions.test.ts src/app/panels/BrowserPanel.test.tsx`
+- Ran `npm.cmd run build`
+
+### [697] - 2026-03-28 18:32 - `BRW - Browser-9.4 - Imported Object Promotion To True Content Owners`
+<!-- ENTRY 697 -->
+HUMAN SUMMARY: `This promoted landed imported Browser rows into true content-owner drag targets, so imported objects can now reorder and reparent in the working hierarchy while still using the current \`reference-item\` transform compatibility seam.` 
+#### Scope / Constraints Honored
+- Kept current imported-object transform compatibility intact instead of forcing backend convergence in the same pass.
+- Preserved the darker/static imported-object row treatment.
+- Kept imported object `Part` rows Browser-local and did not widen them into shared workspace `part` targets.
+
+#### Summary of Implementation
+- Added an explicit imported-reference owner target to the shared content-owner model so landed imported rows can participate in Browser move/reparent behavior honestly.
+- Extended content-owner legality and move handling to support imported-object reorder and reparent under valid assemblies/components.
+- Introduced mixed per-parent content ordering so authored content rows and imported rows can interleave under the same owner in Browser.
+- Updated Browser content-row derivation and controller drag resolution so imported rows behave like true content-owner targets while still selecting back to the existing `reference-item` workspace target.
+- Added regression coverage for mixed imported/authored ordering and imported-object reparent through the shared move seam.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/panels/selectBrowserTreeRows.ts`
+- `src/app/panels/useBrowserPanelController.ts`
+- `src/app/panels/selectBrowserTreeRows.test.ts`
+- `src/app/store/useAppStore.test.ts`
+- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
+- `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-9 - Reference Tree Convergence Into Standard Content Hierarchy.md`
+- `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-9.4 - Imported Object Promotion To True Content Owners.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+- Landed imported object rows can now be dragged and dropped like other content-owner rows in Browser.
+- Imported rows now respect mixed parent ordering beside authored content instead of being limited to compatibility-only placement behavior.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/panels/selectBrowserTreeRows.test.ts src/app/store/useAppStore.test.ts src/app/panels/BrowserPanel.test.tsx`
+- `cmd /c npm run build`
+
+### [696] - 2026-03-28 16:58 - `BRW - Browser-9.2 - Import Landing And Hierarchy Mapping`
+<!-- ENTRY 696 -->
+HUMAN SUMMARY: `This taught imported Browser rows to land in the working assembly/component hierarchy instead of the visible \`User References\` bucket, while keeping their existing \`referenceId\` seam so the current reference/viewer transform flow still works.` 
+#### Scope / Constraints Honored
+- Kept current reference-transform compatibility intact instead of forcing backend convergence in the same pass.
+- Kept simple imports object-first and avoided adding wrapper assemblies for plain imported files.
+- Preserved the darker imported-object row treatment instead of folding imported rows into generated content styling.
+
+#### Summary of Implementation
+- Extended imported reference records with resolved Browser landing-parent metadata so imports can target the selected valid owner, broader working assembly, or fallback top-level assembly.
+- Updated the Browser import path to resolve that landing parent at import time and pass it through the shared store seam.
+- Taught Browser row derivation to stop rendering landed imported rows in the visible `User References` branch and instead inject those same `reference-item` rows into the content tree under the resolved assembly/component parent.
+- Kept imported rows on their existing `referenceId` identity so selection, context menus, and current reference transform behavior remain compatible.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/panels/useBrowserPanelController.ts`
+- `src/app/panels/selectBrowserTreeRows.ts`
+- `src/app/panels/browserInteractions.ts`
+- `src/app/panels/selectBrowserTreeRows.test.ts`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
+- `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-9.2 - Import Landing And Hierarchy Mapping.md`
+- `docs/Doc-Log.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Imported references now appear inside the content hierarchy under the resolved working assembly/component parent instead of the old visible `User References` Browser branch.
+- The Browser still treats those rows as imported/reference-backed objects for transform and row-action purposes.
+- Imports now carry explicit landing-parent intent from the Browser import action.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/panels/selectBrowserTreeRows.test.ts src/app/panels/BrowserPanel.test.tsx src/app/store/useAppStore.test.ts`
+- `cmd /c npx tsc --noEmit`
+
+### [695] - 2026-03-28 15:44 - `BRW - Browser-8.8.3 - Motion And Rearrange Polish`
+<!-- ENTRY 695 -->
+HUMAN SUMMARY: `This added light drag-motion polish on top of the simpler Browser drag baseline and taught legal cross-parent moves to keep a visible blue landing slot by separating committed drop intent from displayed slot guidance, while owner highlight stays secondary support.` 
+#### Scope / Constraints Honored
+- Kept the simpler `8.8.1` / `8.8.2` visible drag grammar intact.
+- Did not reintroduce fake tree preview, hidden-source-row behavior, or new legality rules.
+- Kept store-side move/reparent truth unchanged.
+
+#### Summary of Implementation
+- Added a display-intent layer in Browser drag resolution so legal cross-parent `into` moves can render a blue `after` landing slot at the correct visible child boundary without changing the committed drop target.
+- Preserved the existing `into` highlight path for collapsed or empty owners where no visible child slot exists yet.
+- Added light motion polish to dragged rows, row shells, and insert lines so the Browser drag interaction feels calmer without making animation responsible for correctness.
+- Extended Browser panel coverage with a regression that proves cross-parent legal drops keep the landing-slot language while owner highlight remains secondary.
+
+#### Files Changed
+- `src/app/panels/browserContentDrag.ts`
+- `src/app/panels/browserTreeRowPresenter.tsx`
+- `src/app/panels/useBrowserPanelController.ts`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `src/app/theme/surfaces/browser.css`
+- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
+- `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-8.8.3 - Motion And Rearrange Polish.md`
+- `docs/Doc-Log.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Dragged Browser rows now get a calmer lifted treatment while active.
+- Legal cross-parent moves now keep a visible blue insertion slot where the row will land, with owner highlight remaining secondary support.
+- Collapsed or empty valid owners still use the existing `into` highlight path when there is no visible landing slot to show.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/panels/BrowserPanel.test.tsx`
+- `cmd /c npx tsc --noEmit`
+- `cmd /c npm run build`
+
+### [694] - 2026-03-28 15:28 - `BRW - Browser-8.8.2 - Target Clarity And Trust Tuning`
+<!-- ENTRY 694 -->
+HUMAN SUMMARY: `This tightened Browser drag target trust on top of the simpler \`8.8.1\` baseline by fixing filtered-row hover mapping, aligning exact gap-drop bias with the lower row, and making illegal middle-band object hovers fall back to the nearest legal reorder intent instead of drifting or pretending \`into\` is valid.` 
+#### Scope / Constraints Honored
+- Kept the simpler `8.8.1` visible drag grammar intact.
+- Did not widen Browser preview complexity or reintroduce fake tree preview behavior.
+- Kept committed move/reparent truth in the existing Browser/store seam.
+
+#### Summary of Implementation
+- Fixed Browser drag target resolution so hovered row lookup now stays keyed by `rowId` instead of crossing filtered geometry indices with the full content row list.
+- Tuned exact vertical-gap midpoint behavior to bias toward the lower row, keeping hover and release results aligned.
+- Tightened the Browser panel test harness legality stub so object-to-object reorder only permits `before` / `after`, matching the intended Browser drag contract more closely.
+
+#### Files Changed
+- `src/app/panels/browserContentDrag.ts`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
+- `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-8.8.2 - Target Clarity And Trust Tuning.md`
+- `docs/Doc-Log.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Same-parent reorder targeting is now more stable when some content rows do not participate in visible row geometry.
+- Gap hover and gap release now agree at the exact midpoint instead of snapping back to the earlier row.
+- Illegal object middle-band `into` hovers now resolve to the nearest legal reorder side instead of looking valid.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/panels/BrowserPanel.test.tsx`
+- `cmd /c npx tsc --noEmit`
+
+### [693] - 2026-03-28 20:55 - `BRW - Browser-8.7 - Pointer-Driven Drag Engine Rebuild`
+<!-- ENTRY 693 -->
+HUMAN SUMMARY: `This replaced the Browser's native row-drag lifecycle with a pointer-driven drag engine, adding threshold-based drag activation, shared geometry hit testing, selection handoff on drag start, and a derived local-branch preview with an active junction marker.`
+#### Scope / Constraints Honored
+- Kept the existing Browser content legality matrix and committed move/reparent store truth.
+- Absorbed the practical `8.6` drag-smartness intent into the rebuild instead of shipping a second drag rewrite.
+- Kept the first-pass preview local to the affected branch and nearby siblings.
+
+#### Summary of Implementation
+- Rebuilt Browser drag around one pointer-session model with pending-to-active threshold handling instead of row-native `dragstart` / `dragover` / `drop`.
+- Centralized Browser row geometry registration and derived drag preview state from shared row metrics plus legality helpers.
+- Promoted the dragged owner into selection on drag start so Browser, Console, and later transform context stay aligned.
+- Tightened the Browser test helpers and panel regressions around pointer-driven reorder, collapsed-owner targeting, gap hover, and cancellation cleanup.
+- Marked `Browser-8.7` shipped in the Browser docs and moved the standalone phase record into `Browser/Shipped/`.
+
+#### Files Changed
+- `src/app/panels/browserContentDrag.ts`
+- `src/app/panels/browserTreeRowPresenter.tsx`
+- `src/app/panels/browserTreeSections.tsx`
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/panels/useBrowserPanelController.ts`
+- `src/app/theme/surfaces/browser.css`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
+- `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-8.7 - Pointer-Driven Drag Engine Rebuild.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+- Browser row dragging is now pointer-driven instead of native HTML drag driven.
+- Drag activation waits for a small movement threshold, so plain click selection and drag begin are separated more cleanly.
+- Drag start now selects the dragged owner immediately.
+- Drag preview is derived from shared Browser geometry and stays local to the affected branch with the active junction marker.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/panels/BrowserPanel.test.tsx`
+- `cmd /c npx tsc --noEmit`
+
+<!-- ENTRY 693 -->
+### [693] - 2026-03-28 15:08 - `BRW - Browser-8.8.1 - Simple Reliable Rearrange Baseline`
+<!-- ENTRY 693 -->
+HUMAN SUMMARY: `Reset the visible Browser rearrange interaction back to a simpler and more trustworthy baseline by removing the fake placeholder branch preview, keeping the dragged source row mounted, and reducing active feedback to one exact insert line or one clear owner highlight.` 
+
+#### Scope / Constraints Honored
+- Kept the Browser pointer/session foundation from shipped `Browser-8.7`.
+- Kept store-side legality and committed move/reparent truth unchanged.
+- Intentionally did not reintroduce richer live-tree rewiring, depth lanes, or heavier motion polish.
+
+#### Summary of Implementation
+- Removed the content-row placeholder insertion path from the Browser content renderer so drag now renders only real rows during active rearrange.
+- Stopped hiding or collapsing the dragged source row while preview is active.
+- Kept the active drop explanation narrow:
+  - `before` = line above target
+  - `after` = line below target
+  - `into` = owner highlight on the valid container
+- Tightened the Browser drag tests to verify the simpler stable-row contract instead of the older placeholder-preview behavior.
+
+#### Files Changed
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/panels/browserTreeSections.tsx`
+- `src/app/panels/browserTreeRowPresenter.tsx`
+- `src/app/panels/useBrowserPanelController.ts`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `src/app/theme/surfaces/browser.css`
+- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
+- `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-8.8.1 - Simple Reliable Rearrange Baseline.md`
+- `docs/Doc-Log.md`
+- `docs/CHANGELOG.md`
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/panels/BrowserPanel.test.tsx`
+- `cmd /c npx tsc --noEmit`
+- `cmd /c npm run build`
+
+#### Notes
+- `npm run build` is green; the remaining output is still the existing Vite browser-compatibility and chunk-size warnings.
+- `cmd /c npm run build`
+
+### [692] - 2026-03-28 12:58 - `BRW - Browser-8.4.1 - Drag Preview And Hover Retarget Polish`
+<!-- ENTRY 692 -->
+HUMAN SUMMARY: `This polished the shipped Browser drag/drop pass with stronger live preview feedback, adding a lightweight dragged-row ghost and clearer provisional target emphasis, especially when dragging into collapsed owners, while keeping the real tree unchanged until drop.`
+#### Scope / Constraints Honored
+- Kept the shipped `Browser-8.4` legality matrix unchanged.
+- Kept real tree mutation deferred until drop.
+- Left auto-expand-on-hover out of scope for this pass.
+
+#### Summary of Implementation
+- Extended the Browser row drag state so dragged rows can render a lightweight preview ghost during active drag.
+- Strengthened row-shell drop-state styling for `before`, `after`, and `into`, with a stronger distinct treatment for collapsed-owner `into` targeting.
+- Added focused BrowserPanel regressions that verify the drag ghost and pre-drop preview states without relying on actual tree mutation.
+- Marked the follow-on phase shipped in the Browser docs.
+
+#### Files Changed
+- `src/app/panels/browserTreeRowPresenter.tsx`
+- `src/app/panels/useBrowserPanelController.ts`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `src/app/theme/surfaces/browser.css`
+- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
+- `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-8.4.1 - Drag Preview And Hover Retarget Polish.md`
+
+#### Behavior Changes (if any)
+- Dragged Browser rows now show a lightweight ghost while dragging.
+- Provisional target feedback is stronger during drag, including clearer collapsed-owner `into` targeting.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/store/useAppStore.test.ts src/app/panels/BrowserPanel.test.tsx`
+- `cmd /c npx tsc --noEmit`
+- `cmd /c npm run build`
+
+### [691] - 2026-03-28 11:49 - `BRW - Browser-8.4 - Reparenting And Drop Rules`
+<!-- ENTRY 691 -->
+HUMAN SUMMARY: `This landed the first Browser drag/drop pass for authored content owners, adding same-parent reorder plus cross-parent reparent with explicit \`before\` / \`after\` / \`into\` intent, honest invalid-drop feedback, and moved-owner selection retention after a successful drop.`
+#### Scope / Constraints Honored
+- Kept the first pass Browser UI only.
+- Kept the first pass single-row only.
+- Left imported/reference-backed hierarchy, multi-select drag/drop, and subcomponent legality out of scope.
+
+#### Summary of Implementation
+- Added a shared content-owner drop contract in `useAppStore` with centralized legality helpers for same-parent reorder and cross-parent reparent.
+- Widened project-content tree utilities so nested assembly branches and child-owner lookups stay consistent during move, delete, and Browser tree rendering.
+- Added Browser row drag lifecycle handling in the panel controller, including drop-target resolution, selected-owner retention after successful drop, and Console re-sync to the moved owner.
+- Extended the row shell and Browser CSS so draggable rows and `before` / `after` / `into` / invalid drop intent all render through one shared presentation seam.
+- Added focused store and Browser regressions for reorder, direct collapsed-owner `into` drop, and subtree cleanup behavior.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/store/useAppStore.test.ts`
+- `src/app/panels/selectBrowserTreeRows.ts`
+- `src/app/panels/browserTreeRowPresenter.tsx`
+- `src/app/panels/useBrowserPanelController.ts`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `src/app/theme/surfaces/browser.css`
+- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
+- `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-8.4 - Reparenting And Drop Rules.md`
+
+#### Behavior Changes (if any)
+- Authored Browser content rows can now be dragged for first-pass reorder/reparent.
+- Same-parent drops use `before` / `after`, and valid container reparent uses `into`.
+- Successful drop now keeps the moved owner selected and re-aligns Console to that moved owner.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/store/useAppStore.test.ts src/app/panels/BrowserPanel.test.tsx`
+- `cmd /c npx tsc --noEmit`
+
+### [690] - 2026-03-28 16:25 - `BRW - Browser-8.2 - Folder CRUD In Browser UI And Console`
+<!-- ENTRY 690 -->
+HUMAN SUMMARY: `This landed the first authored container CRUD pass for the Browser, adding top-level assembly creation plus assembly-owned component creation, rename, and delete flows across both Browser row menus and the shared \`Select > Content > ...\` Console surface.` 
+#### Scope / Constraints Honored
+- Kept the first pass narrow to `Assembly` and `Component`.
+- Left subassembly authoring, component-under-component, object creation, drag/drop, and reparenting out of scope.
+- Preserved existing runtime-backed root assembly behavior while letting new authored assemblies land as siblings.
+
+#### Summary of Implementation
+- Widened the project content model so assemblies, components, and objects now carry explicit `parentAssemblyId` ownership, and authored assemblies/components carry source-kind metadata needed for CRUD legality.
+- Added shared store actions for `createProjectAssembly`, `createProjectComponent`, `renameProjectContentOwner`, and `deleteProjectContentOwner`, with subtree delete behavior and create-then-select semantics.
+- Extended staged Console navigation with the `Content` root owner CRUD surface, including `New Assembly`, assembly-local `New Component`, and shared rename/delete prompt handling.
+- Added Browser row-menu CRUD actions and controller handlers that mirror the Console behavior, including immediate rename after create and guarded delete confirmation for non-empty containers.
+- Kept the Browser content tree compatible with both the new multi-assembly model and older single-root test fixtures by resolving top-level ownership consistently.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/store/useAppStore.test.ts`
+- `src/app/console/stagedNavigation.ts`
+- `src/app/console/stagedNavigation.test.ts`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+- `src/app/console/useConsoleStore.ts`
+- `src/app/panels/browserContextMenu.ts`
+- `src/app/panels/browserContextMenu.test.ts`
+- `src/app/panels/useBrowserPanelController.ts`
+- `src/app/panels/selectBrowserTreeRows.ts`
+- `src/app/panels/selectBrowserTreeRows.test.ts`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
+- `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-8.2 - Folder CRUD In Browser UI And Console.md`
+
+#### Behavior Changes (if any)
+- `Select > Content` now exposes `New Assembly`.
+- Selected assemblies now expose `New Component`, `Rename`, and authored-assembly `Delete`.
+- Selected authored components now expose `Rename` and `Delete`.
+- Browser row context menus now surface the same first-pass container CRUD actions.
+
+### [689] - 2026-03-28 00:09 - `TRN - Transform-15 - Generated Object Viewer Motion Under Viewer Transform`
+<!-- ENTRY 689 -->
+HUMAN SUMMARY: `This widened \`Viewer Transform\` so published generated objects can now use the same viewer-owned move / rotate / scale shell as references, while keeping object draft, commit, cancel, and history explicitly viewer-only and out of Replicad truth.` 
+#### Scope / Constraints Honored
+- Kept the first pass limited to `published-object`.
+- Left `receive-link`, assemblies, multi-select, and durable Replicad/graph writeback out of scope.
+- Reused the shared viewer-transform shell instead of creating a separate generated-object transform tool.
+
+#### Summary of Implementation
+- Added viewer/session-owned generated-object transform state and history alongside the existing reference transform state in `useAppStore`, including begin, entry, commit, cancel, delete, merge, and scrub ownership for object targets.
+- Widened the viewer bridge/runtime seam so the viewer can receive generated-object transform groups, per-object overrides, and an active object transform session.
+- Reworked `ViewerHost` to map published object rows into stable transform groups, forward object transform sessions/overrides into the viewer, and route viewer-side object transform callbacks back into shared store state.
+- Replaced the old Console object-transform fallback that only armed the gizmo on one selected part with a real generated-object `Viewer Transform` session start path.
+- Added focused regression coverage for the new object session handoff in `ViewerHost` and the object-side Console start path, then marked `Transform 15` shipped in the transform docs.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/viewerBridge.ts`
+- `src/viewer/Viewer.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+- `docs/Human-Plans/Architecture/Transform/transform-index.md`
+- `docs/Human-Plans/Architecture/Transform/Shipped/Transform_Phase Transform-15 - Generated Object Viewer Motion Under Viewer Transform.md`
+
+#### Behavior Changes (if any)
+- Selected published generated objects can now enter a real `Viewer Transform` session and use viewer-owned move / rotate / scale interaction instead of the old single-part gizmo fallback.
+- Generated-object transform commit/cancel/history now exist for the current app session, but they remain viewer-only and do not rewrite Replicad or graph truth.
+
+#### Verification Steps
+- Ran `cmd /c npx vitest run src/app/components/ViewerHost.test.tsx src/app/console/ConsoleDock.test.tsx`.
+- Ran `cmd /c npx tsc --noEmit`.
+- Ran `cmd /c npm run build`.
+
+### [688] - 2026-03-27 23:45 - `TRN - Transform-14 - Viewer Transform Rename And Shared Surface Alignment`
+<!-- ENTRY 688 -->
+HUMAN SUMMARY: `This renamed the active transform surface to \`Viewer Transform\` across the toolbar and Console shell while keeping the typed \`Transform\` token and all current transform behavior unchanged.` 
+#### Scope / Constraints Honored
+- Kept this pass as a labels-only rename.
+- Preserved the existing `Transform` command/token and internal `ReferenceTransform*` ownership names.
+- Did not widen generated-object behavior or change transform runtime semantics.
+
+#### Summary of Implementation
+- Updated staged Console transform breadcrumbs and visible transform choice labels to read `Viewer Transform` while preserving the existing command tokens and scope ids.
+- Updated the live reference-transform assist/status breadcrumb builder so toolbar status text and Console prompt labels stay aligned with the renamed shell.
+- Updated the toolbar accessibility/status/history labels and the small Console status/commit transcript strings to match the new surface name.
+- Refreshed the focused toolbar and Console tests for the renamed visible shell wording.
+- Marked `Transform 14` shipped in the transform family docs and moved its standalone record into `Shipped/`.
+
+#### Files Changed
+- `src/app/console/stagedNavigation.ts`
+- `src/app/console/referenceTransformConsole.ts`
+- `src/app/components/ReferenceTransformToolbar.tsx`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/stagedNavigation.test.ts`
+- `src/app/console/ConsoleDock.test.tsx`
+- `src/app/components/ReferenceTransformToolbar.test.tsx`
+- `docs/Human-Plans/Architecture/Transform/transform-index.md`
+- `docs/Human-Plans/Architecture/Transform/Shipped/Transform_Phase Transform-14 - Viewer Transform Rename And Shared Surface Alignment.md`
+
+#### Behavior Changes (if any)
+- The toolbar and Console now present the active shell as `Viewer Transform` instead of the narrower old transform wording.
+- Console still accepts the same `Transform` token and existing transform behavior is unchanged.
+
+#### Verification Steps
+- Ran `cmd /c npx vitest run src/app/components/ReferenceTransformToolbar.test.tsx src/app/console/stagedNavigation.test.ts src/app/console/ConsoleDock.test.tsx`.
+- Ran `cmd /c npx tsc --noEmit`.
+
 ### [687] - 2026-03-27 20:40 - `CAM - Phase Camera-5.1 - Viewer Object Window Selection`
 <!-- ENTRY 687 -->
 HUMAN SUMMARY: `This added CAD-style marquee selection to the 3D viewer, widened the old single-pick callback into batch picks, and routed object/reference window captures back through the existing shared explicit-selection path instead of inventing a viewer-local selection store.` 
@@ -22465,6 +23163,7 @@ HUMAN SUMMARY: `Initialized the new /20/parahook stack with Vite, React, TypeScr
 - [623] 2026-03-26 23:36 EDT: Landed `Transform 4.4` reference-adapter cleanup by extracting shared reference-transform Console helpers into `src/app/console/referenceTransformConsole.ts`, routing both `ConsoleDock` and `ReferenceTransformToolbar` through the same transform path/prompt/selection logic, and tightening the focused ConsoleDock/toolbar tests around transform-shell escape and shared status-path formatting.
 - [622] 2026-03-26 23:28 EDT: Extracted the shared reference-transform Console adapter helpers into `src/app/console/referenceTransformConsole.ts`, rewired `ConsoleDock` to use those shared prompt/path/value builders, and aligned the reference transform toolbar to the same shared path and axis-selection helpers so transform-specific Console and toolbar semantics no longer drift independently.
 - [621] 2026-03-26 23:02 EDT: Cleared the active reference-transform gizmo handle before console-driven entry commits so `Transform > Move/Rotate/Scale > ... axis > value` now returns cleanly to the `Transform` root instead of re-autofilling the last `@` axis prompt.
+- [692] 2026-03-28 10:57 EDT: Landed `Browser-8.3` by adding one shared selected content-owner target descriptor for `assembly`, `component`, and `object-part`, routing Console content context through that seam, and updating `Viewer Transform` focused-target display to use the same owner payload with lightweight parent context.
 - [620] 2026-03-25 13:14 EDT: Extended reference-category Console scopes so `Footpads`, `Shoes`, and the other categories now list their individual reference items, allowing users to drill into a single object from the category scope and enter the existing per-reference `Load Model` flow while Browser selection follows the chosen item.
 - [619] 2026-03-25 12:46 EDT: Synced deeper Console reference navigation back into Browser selection so `references > footpads` now deselects the `References` root and selects the `Footpads` category row instead, while `back` restores the root reference target.
 - [618] 2026-03-25 12:39 EDT: Wired the Console root `References` entry back into shared workspace selection so committing `references` from root now also selects the `References` row in the Browser instead of only changing console scope.
@@ -22472,3 +23171,153 @@ HUMAN SUMMARY: `Initialized the new /20/parahook stack with Vite, React, TypeScr
 - [616] 2026-03-25 12:30 EDT: Added `References` as a first-class Console root choice so users can enter the existing reference selection scope directly from root with `references`, `ref`, or `refs`, without requiring a prior Browser selection.
 - [615] 2026-03-25 12:22 EDT: Added staged Console aliases for reference-category navigation so `Footpads`, `Shoes`, and `Premade Foothooks` can be reached from `Select > References` with short tokens like `fp`, `sh`, and `pfh`, including the common `foodpads` typo path for footpads.
 - [614] 2026-03-25 12:17 EDT: Extended Browser-5.3 reference console depth so selecting `References` exposes child category scopes, selecting a category like `Footpads` syncs to `Select > References > Footpads`, and both Console and Browser row menus route category/root `Load All` actions through the shared reference owner seam.
+<!-- ENTRY 690 -->
+### [690] - 2026-03-28 00:48 - `TRN - Transform-15.1 - Shared Viewer Transform Target Adapter Cleanup`
+<!-- ENTRY 690 -->
+HUMAN SUMMARY: `Unified more of \`Viewer Transform\` across references and generated objects by adding the focused-target toolbar section, giving object sessions shared snap ownership and runtime snap behavior, and cleaning up the status/target adapter path so object transform no longer reads like a reference-only fallback.` 
+
+#### Scope
+- Kept the cleanup inside the existing single-target `Viewer Transform` shell.
+- Added object snap parity and shared target-surface cleanup without changing persistence truth.
+- Left multi-select, object timeline, and object camera lock for later phases.
+
+#### Summary
+- Added object-local snap state in the store via `transformSnapByObjectId`.
+- Made the shared toolbar Snap section work for generated objects and added the new focused-target section near the top of `Viewer Transform`.
+- Updated the viewer host and viewer runtime so object sessions receive shared snap values and use the same snap execution/preview path during active transform drag.
+- Cleaned up the toolbar status breadcrumb so object sessions read as `Select > Object > ... > Viewer Transform`.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/components/ReferenceTransformToolbar.tsx`
+- `src/app/components/ReferenceTransformToolbar.test.tsx`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `src/app/console/referenceTransformConsole.ts`
+- `src/viewer/Viewer.ts`
+- `docs/Human-Plans/Architecture/Transform/transform-index.md`
+- `docs/Human-Plans/Architecture/Transform/Shipped/Transform_Phase Transform-15.1 - Shared Viewer Transform Target Adapter Cleanup.md`
+- `docs/CHANGELOG.md`
+
+#### Verification
+- `cmd /c npx vitest run src/app/components/ReferenceTransformToolbar.test.tsx src/app/components/ViewerHost.test.tsx`
+- `cmd /c npx tsc --noEmit`
+- `cmd /c npm run build`
+
+#### Notes
+- `npm run build` is green; the remaining output is only the existing Vite browser-compatibility and chunk-size warnings.
+
+<!-- ENTRY 691 -->
+### [691] - 2026-03-28 15:35 - `BRW - Browser-8.1 - Container And Leaf Target Semantics`
+<!-- ENTRY 691 -->
+HUMAN SUMMARY: `Landed the first Browser-8 content hierarchy cleanup by anchoring content-side Console navigation under \`Select > Content > ...\`, making parent content targets owner-only by default, and adding explicit descendant resolution only where the user actually asks for it, such as \`SelectAll\` and zoom-style owner actions.` 
+
+#### Scope
+- Kept the phase focused on target semantics, content-root Console routing, and selection ownership cleanup.
+- Preserved existing reference browse/load flows and did not attempt Browser-8.2 container CRUD or Browser-8.4 drag/drop reparenting.
+- Tightened Browser and Console deselect/back behavior where content selection had been leaving stale highlight behind.
+
+#### Summary
+- Added a shared content Console root so object and assembly scopes now read under `Select > Content > ...`.
+- Split content selection resolution into:
+  - owner-only default selection for content containers
+  - explicit descendant resolution for `SelectAll`, zoom framing, and similar owner-wide actions
+- Added the staged `SelectAll` content action and cleaned up `Esc` / `Back` content-scope clearing so browser-selected content targets unwind more predictably.
+- Kept Browser-panel transform entry tests aligned with the current reference-transform shell entry seam while the broader Browser-8 ladder continues.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/console/stagedNavigation.ts`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/referenceTransformConsole.ts`
+- `src/app/console/stagedNavigation.test.ts`
+- `src/app/console/ConsoleBar.test.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+- `src/app/components/ReferenceTransformToolbar.test.tsx`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
+- `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-8.1 - Container And Leaf Target Semantics.md`
+- `docs/Doc-Log.md`
+- `docs/CHANGELOG.md`
+
+#### Verification
+- `cmd /c npx vitest run src/app/store/useAppStore.test.ts src/app/console/stagedNavigation.test.ts src/app/console/ConsoleBar.test.tsx src/app/console/ConsoleDock.test.tsx src/app/components/ReferenceTransformToolbar.test.tsx src/app/components/ViewerHost.test.tsx src/app/panels/BrowserPanel.test.tsx`
+- `cmd /c npx tsc --noEmit`
+
+<!-- ENTRY 692 -->
+### [692] - 2026-03-28 19:58 - `BRW - Browser-8.5 - Drag Session Architecture Cleanup`
+<!-- ENTRY 692 -->
+HUMAN SUMMARY: `Rebuilt the Browser drag internals around a clearer drag-session seam, extracting pure legality and preview derivation helpers so reorder/reparent preview is less coupled to row-local native drag behavior and stale drag state clears more reliably.` 
+
+#### Scope / Constraints Honored
+- Kept the shipped `Browser-8.4` legality matrix unchanged.
+- Kept the dragged source row mounted during drag and left real tree mutation on drop only.
+- Left the richer left/right depth-lane interaction for later `Browser-8.6`.
+
+#### Summary of Implementation
+- Added a dedicated Browser drag helper seam for:
+  - drag session creation
+  - hover legality resolution
+  - preview-layout derivation
+- Refactored the Browser panel controller to update drag state through those helpers instead of one mixed row-event block.
+- Strengthened Browser-level drag cleanup by clearing stale session state on broader interrupted-drag fallbacks, including escape and visibility/lifecycle loss.
+- Added a focused regression that verifies the global escape fallback clears preview state and row drag styling.
+
+#### Files Changed
+- `src/app/panels/browserContentDrag.ts`
+- `src/app/panels/useBrowserPanelController.ts`
+- `src/app/panels/browserTreeSections.tsx`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
+- `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-8.5 - Drag Session Architecture Cleanup.md`
+- `docs/Doc-Log.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Browser drag preview and cleanup now derive from a clearer shared drag-session model instead of being recomputed ad hoc inside row handlers.
+- Interrupted drag now clears more reliably instead of leaving provisional preview state stuck behind.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/app/panels/BrowserPanel.test.tsx`
+- `cmd /c npx tsc --noEmit`
+
+<!-- ENTRY 693 -->
+### [693] - 2026-03-28 17:24 - `BRW - Browser-9.3 - Part Row Exposure For Imported Objects`
+<!-- ENTRY 693 -->
+HUMAN SUMMARY: `Exposed truthful imported-object part rows in Browser by deriving them from the real loaded reference hierarchy, while keeping object ownership and current reference-transform behavior intact instead of promoting those part rows into the global workspace part-selection model too early.` 
+
+#### Scope / Constraints Honored
+- Only exposed part rows when the loaded imported object already contains real internal part structure.
+- Kept `Object` as the parent owner above visible imported `Part` rows.
+- Preserved current imported-object transform compatibility and did not attempt shared transform-backend convergence in the same pass.
+
+#### Summary of Implementation
+- Added viewer-side reference-part descriptor extraction and cached those descriptors per loaded reference.
+- Stored imported reference part-row descriptors in reference workspace state and synced them after successful viewer loads.
+- Extended Browser content-tree derivation so landed imported objects can expand into visible child `Part` rows when multiple real leaf parts exist.
+- Kept Browser part rows local to Browser in this first pass so generated-content part selection and reference transform behavior stay stable.
+- Hardened top-level assembly selection to treat legacy root assemblies with missing `parentAssemblyId` as top-level roots.
+
+#### Files Changed
+- `src/viewer/referencePartDescriptors.ts`
+- `src/viewer/referencePartDescriptors.test.ts`
+- `src/viewer/Viewer.ts`
+- `src/app/viewerBridge.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `src/app/store/useAppStore.ts`
+- `src/app/panels/selectBrowserTreeRows.ts`
+- `src/app/panels/selectBrowserTreeRows.test.ts`
+- `src/app/panels/browserInteractions.ts`
+- `src/app/panels/browserRowFamilies.ts`
+- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
+- `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-9.3 - Part Row Exposure For Imported Objects.md`
+- `docs/Doc-Log.md`
+- `docs/CHANGELOG.md`
+
+#### Verification Steps
+- `cmd /c npx vitest run src/viewer/referencePartDescriptors.test.ts src/app/components/ViewerHost.test.tsx src/app/panels/selectBrowserTreeRows.test.ts src/app/panels/browserInteractions.test.ts src/app/panels/BrowserPanel.test.tsx src/app/store/useAppStore.test.ts`
+- `cmd /c npx tsc --noEmit`
+# 2026-03-28
+
+- Browser: landed `Browser-9.1` reference tree convergence baseline so the Browser now presents `References` as an assembly-like root, reference categories as component-like rows, and reference items as object-like rows while preserving the current reference-transform target compatibility underneath

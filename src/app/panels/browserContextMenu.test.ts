@@ -3,6 +3,7 @@ import { buildBrowserContextMenuItems } from './browserContextMenu'
 import type {
   BrowserComponentTreeRowVm,
   BrowserGraphTreeRowVm,
+  BrowserObjectTreeRowVm,
   BrowserReferenceCategoryTreeRowVm,
   BrowserReferenceItemTreeRowVm,
   BrowserReferencesRootTreeRowVm,
@@ -20,7 +21,7 @@ const referenceRootRow = (): BrowserReferencesRootTreeRowVm => ({
   rowKind: 'references-root',
   depth: 0,
   treeGuides: [],
-  iconLabel: 'R',
+  iconLabel: 'A',
   label: 'References',
   meta: '3 categories',
   isSelected: false,
@@ -57,7 +58,7 @@ const hiddenReferenceItemRow = (): BrowserReferenceItemTreeRowVm => ({
   rowKind: 'reference-item',
   depth: 2,
   treeGuides: ['vertical', 'elbow'],
-  iconLabel: 'R',
+  iconLabel: 'O',
   label: 'Shoe 1',
   meta: 'GLB',
   isSelected: false,
@@ -80,6 +81,43 @@ const importedErrorReferenceItemRow = (): BrowserReferenceItemTreeRowVm => ({
   sourceKind: 'imported',
   state: 'error',
   stateLabel: 'Error',
+  errorMessage: 'Load failed',
+})
+
+const importedContentObjectRow = (): BrowserObjectTreeRowVm => ({
+  rowId: 'reference-item-row:shoe-1',
+  rowKind: 'object',
+  depth: 1,
+  treeGuides: ['elbow'],
+  iconLabel: 'O',
+  label: 'Shoe 1',
+  meta: 'GLB',
+  isSelected: false,
+  isExpandable: false,
+  isExpanded: false,
+  actions: [action('transform-object')],
+  isVisible: false,
+  visibilityPartKeys: [],
+  buildState: 'done',
+  buildStateLabel: 'Imported',
+  rebuildGraphDocumentIds: [],
+  ownerGraphDocumentId: null,
+  parentComponentId: null,
+  objectSourceKind: null,
+  sourceGraphDocumentId: null,
+  sourceOutputEntryId: null,
+  slotId: null,
+  sourceNodeId: null,
+  resolutionState: null,
+  highlightViewerKey: null,
+  authoringGraphDocumentId: null,
+  authoringNodeId: null,
+  contentOriginKind: 'imported-reference',
+  referenceId: 'shoe-1',
+  referenceSourceKind: 'imported',
+  referenceState: 'error',
+  fileType: 'glb',
+  assetPath: '/ReferenceModels/shoes/shoe-1.glb',
   errorMessage: 'Load failed',
 })
 
@@ -195,6 +233,21 @@ describe('buildBrowserContextMenuItems', () => {
     const items = buildBrowserContextMenuItems(importedErrorReferenceItemRow(), deps)
     const retryItem = items.find((item) => item.id === 'reference-item:retry')
     const removeItem = items.find((item) => item.id === 'reference-item:remove')
+
+    retryItem?.onSelect()
+    removeItem?.onSelect()
+
+    expect(retryItem?.label).toBe('Retry')
+    expect(removeItem?.label).toBe('Remove')
+    expect(deps.handleRetryImportedReferenceRow).toHaveBeenCalledWith('shoe-1')
+    expect(deps.handleRemoveImportedReferenceRow).toHaveBeenCalledWith('shoe-1')
+  })
+
+  it('keeps imported content-object maintenance actions on object rows in the content tree', () => {
+    const deps = createDeps()
+    const items = buildBrowserContextMenuItems(importedContentObjectRow(), deps)
+    const retryItem = items.find((item) => item.id === 'imported-object:retry')
+    const removeItem = items.find((item) => item.id === 'imported-object:remove')
 
     retryItem?.onSelect()
     removeItem?.onSelect()

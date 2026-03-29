@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+5. 2026-03-28 14:06: Corrected the family-structure note so this umbrella doc now points at the real live `Layers-index.md` root file instead of the older `Layers.md` placeholder name that no longer exists on disk
 4. 2026-03-26 12:55: Broke the `Layers` family into a code-backed four-phase execution ladder, added the first standalone `Layers/Future/` phase docs, and grounded the phase boundaries in the live app-store, Browser, Console, Viewer, and sketch-session seams instead of leaving the family as one umbrella note
 3. 2026-03-26 11:26: Expanded the layer-controls direction so the architecture now explicitly owns console-driven `turn off layer`, `turn on all layers`, and multi-layer `isolate layers` behavior instead of leaving those management actions implied by the earlier visibility-only wording
 2. 2026-03-26 11:16: Expanded this umbrella `Layers` architecture doc from a folder placeholder into a real AutoCAD-style direction surface, locking the first layer-manager behavior, supported selection/assignment targets, visibility/color expectations, and the distinction between CAD/content layers versus the separate console transcript layers
@@ -26,7 +27,7 @@ Use it to answer:
 
 Use this folder like this:
 
-- `Layers.md`
+- `Layers-index.md`
   - umbrella architecture direction
   - family summary
   - future routing surface

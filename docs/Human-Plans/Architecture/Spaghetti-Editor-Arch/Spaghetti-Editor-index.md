@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+4. 2026-03-28: Corrected the umbrella source-doc pointers after a repo audit by treating this file as the live `Spaghetti-Editor-Arch` entry point, moving the older `Spaghetti-Editor-Explained.md` reference into archived-background context, and replacing the dead local `01.2 - Browser Workspace.md` pointer with the live `Browser` family index
 3. 2026-03-25: Added the standalone future phase doc for `Master Spaghetti-1` under `Spaghetti-Editor-Arch/Future/`, turning the first smart-wiring umbrella phase into an implementation-ready planning surface grounded on the real current `SketchProfile -> Geometry/Extrude -> OutputPreview in:solid:<slotId>` path
 2. 2026-03-25: Added the first explicit `Master Spaghetti` phase section, seeding a new umbrella `Smart Wiring` proving slice so cross-node canvas QoL behavior like sketch-wire-to-output auto-extrude insertion has one narrow workspace-level planning home without turning the whole doc into a mixed execution backlog
 1. 2026-03-25: Created this umbrella index for `Spaghetti-Editor-Arch` so the folder has one clear entry-point doc that explains what `Master Spaghetti` owns, which subfamilies already have real phase ladders, and where deeper execution planning should live
@@ -79,7 +80,7 @@ The main layers are:
 - Browser workspace coordination
 - shared viewer targeting and composition
 
-### Current Source Docs In This Folder
+### Current Source Docs For This Area
 
 #### `Master Spaghetti`
 
@@ -88,16 +89,17 @@ Current role:
 - current workspace-level mental model
 
 Primary docs:
-- `Spaghetti-Editor-Explained.md`
 - this file
+- `docs/Archive/Spaghetti-Editor-Explained.md`
+  - archived background explainer, not the live family index
 
 #### `Browser Workspace`
 
 Current role:
 - browser structure and browser-to-editor coordination inside the Spaghetti architecture area
 
-Primary doc:
-- `01.2 - Browser Workspace.md`
+Current source doc:
+- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
 
 #### `Nodes`
 

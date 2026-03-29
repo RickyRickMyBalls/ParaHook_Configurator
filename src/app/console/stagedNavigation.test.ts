@@ -16,6 +16,7 @@ describe('stagedNavigation', () => {
     expect(result.breadcrumb).toEqual(['Root'])
     expect(result.validChoices.map((choice) => choice.canonicalToken)).toEqual([
       'GRAPH',
+      'CONTENT',
       'REFERENCES',
       'CAMERA',
       'RADIO',
@@ -165,7 +166,7 @@ describe('stagedNavigation', () => {
     const context = createConsoleStagedNavigationContext([])
     const objectSession = {
       scopeId: 'contentObjectSelected' as const,
-      breadcrumb: ['Select', 'Object', 'Object 1'],
+      breadcrumb: ['Select', 'Content', 'Object 1'],
       selections: {
         graphDocumentId: 'graph-document-1',
         selectedNodeId: null,
@@ -181,7 +182,7 @@ describe('stagedNavigation', () => {
       throw new Error('Expected object zoom token to advance')
     }
     expect(zoomRoot.session.scopeId).toBe('contentObjectZoomRoot')
-    expect(zoomRoot.session.breadcrumb).toEqual(['Select', 'Object', 'Object 1', 'Zoom'])
+    expect(zoomRoot.session.breadcrumb).toEqual(['Select', 'Content', 'Object 1', 'Zoom'])
     expect(zoomRoot.validChoices.map((choice) => choice.canonicalToken)).toEqual([
       'ALL',
       'EXTENTS',
@@ -197,9 +198,9 @@ describe('stagedNavigation', () => {
       throw new Error('Expected object zoom back token to advance')
     }
     expect(backResult.session.scopeId).toBe('contentObjectSelected')
-    expect(backResult.session.breadcrumb).toEqual(['Select', 'Object', 'Object 1'])
+    expect(backResult.session.breadcrumb).toEqual(['Select', 'Content', 'Object 1'])
     expect(backResult.validChoices.map((choice) => choice.canonicalToken)).toEqual([
-      'TRANSFORM',
+      'VIEWTRANSFORM',
       'MOVE',
       'ROTATE',
       'SCALE',
@@ -212,7 +213,7 @@ describe('stagedNavigation', () => {
     const context = createConsoleStagedNavigationContext([])
     const objectSession = {
       scopeId: 'contentObjectSelected' as const,
-      breadcrumb: ['Select', 'Object', 'Object 1'],
+      breadcrumb: ['Select', 'Content', 'Object 1'],
       selections: {
         graphDocumentId: 'graph-document-1',
         selectedNodeId: null,
@@ -228,7 +229,12 @@ describe('stagedNavigation', () => {
       throw new Error('Expected object transform token to advance')
     }
     expect(transformRoot.session.scopeId).toBe('contentObjectTransformRoot')
-    expect(transformRoot.session.breadcrumb).toEqual(['Select', 'Object', 'Object 1', 'Transform'])
+    expect(transformRoot.session.breadcrumb).toEqual([
+      'Select',
+      'Content',
+      'Object 1',
+      'Viewer Transform',
+    ])
     expect(transformRoot.validChoices.map((choice) => choice.canonicalToken)).toEqual([
       'MOVE',
       'ROTATE',
@@ -236,11 +242,18 @@ describe('stagedNavigation', () => {
       'BACK',
     ])
 
+    expect(submitConsoleStagedNavigationToken(objectSession, 't', context)).toMatchObject({
+      kind: 'advance',
+      session: {
+        scopeId: 'contentObjectTransformRoot',
+      },
+    })
+
     const directMove = submitConsoleStagedNavigationToken(objectSession, 'm', context)
     expect(directMove).toMatchObject({
       kind: 'execute',
       actionId: 'content.transform.move',
-      breadcrumb: ['Select', 'Object', 'Object 1', 'Transform', 'Move'],
+      breadcrumb: ['Select', 'Content', 'Object 1', 'Viewer Transform', 'Move'],
     })
   })
 
@@ -248,7 +261,7 @@ describe('stagedNavigation', () => {
     const context = createConsoleStagedNavigationContext([])
     const assemblySession = {
       scopeId: 'contentAssemblySelected' as const,
-      breadcrumb: ['Select', 'Assembly', 'Assembly 1'],
+      breadcrumb: ['Select', 'Content', 'Assembly 1'],
       selections: {
         graphDocumentId: null,
         selectedNodeId: null,
@@ -374,14 +387,14 @@ describe('stagedNavigation', () => {
       'References',
       'Shoes',
       'Shoe 1',
-      'Transform',
+      'Viewer Transform',
     ])
 
     const directMove = submitConsoleStagedNavigationToken(referenceSession, 'move', context)
     expect(directMove).toMatchObject({
       kind: 'execute',
       actionId: 'reference.transform.move',
-      breadcrumb: ['Select', 'References', 'Shoes', 'Shoe 1', 'Transform', 'Move'],
+      breadcrumb: ['Select', 'References', 'Shoes', 'Shoe 1', 'Viewer Transform', 'Move'],
     })
 
     expect(transformRoot.session.validChoices.map((choice) => choice.label)).toEqual([
@@ -402,7 +415,7 @@ describe('stagedNavigation', () => {
         'References',
         'Shoes',
         'Shoe 1',
-        'Transform',
+        'Viewer Transform',
         'Settings',
         'Space',
         'World',
@@ -439,7 +452,7 @@ describe('stagedNavigation', () => {
       'References',
       'Shoes',
       'Shoe 1',
-      'Transform',
+      'Viewer Transform',
       'Settings',
       'Snap',
     ])
@@ -461,7 +474,7 @@ describe('stagedNavigation', () => {
       'References',
       'Shoes',
       'Shoe 1',
-      'Transform',
+      'Viewer Transform',
       'Settings',
       'Space',
     ])
@@ -484,7 +497,7 @@ describe('stagedNavigation', () => {
         'References',
         'Shoes',
         'Shoe 1',
-        'Transform',
+        'Viewer Transform',
         'Settings',
         'Space',
         'Local',
@@ -502,7 +515,7 @@ describe('stagedNavigation', () => {
       'References',
       'Shoes',
       'Shoe 1',
-      'Transform',
+      'Viewer Transform',
       'Settings',
       'Space',
     ])
@@ -548,7 +561,7 @@ describe('stagedNavigation', () => {
         'References',
         'Shoes',
         'Shoe 1',
-        'Transform',
+        'Viewer Transform',
         'Settings',
         'Snap',
         'Move',
@@ -608,7 +621,7 @@ describe('stagedNavigation', () => {
     expect(deleteLatest).toMatchObject({
       kind: 'execute',
       actionId: 'reference.transform.deleteLatest',
-      breadcrumb: ['Select', 'References', 'Shoes', 'Shoe 1', 'Transform', 'DeleteLatest'],
+      breadcrumb: ['Select', 'References', 'Shoes', 'Shoe 1', 'Viewer Transform', 'DeleteLatest'],
     })
 
     const committedShell = submitConsoleStagedNavigationToken(
@@ -619,7 +632,7 @@ describe('stagedNavigation', () => {
     expect(committedShell).toMatchObject({
       kind: 'execute',
       actionId: 'reference.transform.commitShell',
-      breadcrumb: ['Select', 'References', 'Shoes', 'Shoe 1', 'Transform', 'CommitTransform'],
+      breadcrumb: ['Select', 'References', 'Shoes', 'Shoe 1', 'Viewer Transform', 'CommitTransform'],
     })
   })
 
@@ -1420,6 +1433,7 @@ describe('stagedNavigation', () => {
     expect(cancelledResult.breadcrumb).toEqual([])
     expect(cancelledResult.validChoices.map((choice) => choice.canonicalToken)).toEqual([
       'GRAPH',
+      'CONTENT',
       'REFERENCES',
       'CAMERA',
       'RADIO',

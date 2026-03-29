@@ -5,6 +5,7 @@ import {
   useRef,
   useState,
   type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent,
 } from 'react'
 import { appendConsoleEntry } from '../console/useConsoleStore'
 import { importReferenceFileFromDisk } from '../references/importReferenceFile'
@@ -16,20 +17,33 @@ import {
   useSpaghettiStore,
 } from '../spaghetti/store/useSpaghettiStore'
 import {
+  buildImportedReferenceRowId,
   buildProjectSketchBrowserRowId,
+  REFERENCE_ROOT_ROW_ID,
+  resolveBrowserDraggableTargetDrop,
   selectCurrentProjectContentBrowserRows,
   selectReferenceWorkspaceBrowserTree,
   selectShouldSuppressBrowserGraphRuntimeOutput,
+  type BrowserDraggableTarget,
+  type ProjectContentOwnerTarget,
   type WorkspaceSelectedTarget,
   useAppStore,
 } from '../store/useAppStore'
 import {
   activateGraphDocumentIntent,
   activateGraphNodeIntent,
-  activateReferenceItemIntent,
+  activateObjectIntent,
   type WorkspaceIntentDeps,
 } from '../store/workspaceIntents'
 import { buildBrowserContextMenuItems } from './browserContextMenu'
+import {
+  createBrowserContentDragSession,
+  hasBrowserContentDragCrossedThreshold,
+  resolveBrowserContentDragPreviewState,
+  type BrowserContentDragSession,
+  type BrowserContentPointer,
+  type BrowserContentRowMetric,
+} from './browserContentDrag'
 import {
   createBrowserRowInteractionHandlers,
   resolveBrowserSelectedRowIdFromTarget,
@@ -55,6 +69,7 @@ type BrowserPanelControllerOutput = {
   rowHandlers: BrowserTreeRowHandlers
   sectionHandlers: {
     onOpenContentImportMenu: (event: ReactMouseEvent<HTMLButtonElement>) => void
+    registerContentRowElement: (rowId: string) => (element: HTMLDivElement | null) => void
     onCreateGraph: () => void
     onDuplicateFocusedGraph: () => void
     onLoadGraphFile: () => void
@@ -165,6 +180,11 @@ export function useBrowserPanelController(
     (state) => state.startReferenceLoadBatchForCategory,
   )
   const removeImportedReference = useAppStore((state) => state.removeImportedReference)
+  const createProjectAssembly = useAppStore((state) => state.createProjectAssembly)
+  const createProjectComponent = useAppStore((state) => state.createProjectComponent)
+  const moveProjectContentOwner = useAppStore((state) => state.moveProjectContentOwner)
+  const renameProjectContentOwner = useAppStore((state) => state.renameProjectContentOwner)
+  const deleteProjectContentOwner = useAppStore((state) => state.deleteProjectContentOwner)
   const beginReferenceTransformShell = useAppStore((state) => state.beginReferenceTransformShell)
   const setWorkspaceSelectedTarget = useAppStore((state) => state.setWorkspaceSelectedTarget)
   const setWorkspaceExplicitSelection = useAppStore((state) => state.setWorkspaceExplicitSelection)
@@ -176,6 +196,9 @@ export function useBrowserPanelController(
   const activeTransformReferenceId = useAppStore(
     (state) => state.referenceWorkspace.activeReferenceTransformSession?.referenceId ?? null,
   )
+  const contentOrderByParentKey = useAppStore(
+    (state) => state.referenceWorkspace.contentOrderByParentKey,
+  )
   const workspaceActiveSurface = useAppStore((state) => state.workspaceSelection.activeSurface)
   const [expandedGraphDocumentIds, setExpandedGraphDocumentIds] = useState<string[]>([])
   const [graphSectionExpandedByRowId, setGraphSectionExpandedByRowId] = useState<
@@ -183,16 +206,20 @@ export function useBrowserPanelController(
   >({})
   const [collapsedContentRowIds, setCollapsedContentRowIds] = useState<string[]>([])
   const [localSelectedBrowserRowId, setLocalSelectedBrowserRowId] = useState<string | null>(null)
+  const [contentDragState, setContentDragState] = useState<BrowserContentDragSession | null>(null)
   const [contextMenu, setContextMenu] = useState<BrowserRowContextMenuState | null>(null)
   const [importMenu, setImportMenu] = useState<BrowserImportMenuState | null>(null)
   const contextMenuRef = useRef<HTMLDivElement | null>(null)
   const importMenuRef = useRef<HTMLDivElement | null>(null)
+  const contentRowElementsByIdRef = useRef(new Map<string, HTMLDivElement>())
+  const suppressedClickRowIdRef = useRef<string | null>(null)
 
   const projectContentRows = useMemo(
     () =>
       selectCurrentProjectContentBrowserRows({
         currentProject,
         projectContent,
+        referenceWorkspace,
         partsVisibility,
         sketchVisibilityByRowId,
         graphRuntimeByDocumentId,
@@ -204,6 +231,7 @@ export function useBrowserPanelController(
       graphRuntimeByDocumentId,
       partsVisibility,
       projectContent,
+      referenceWorkspace,
       sketchVisibilityByRowId,
     ],
   )
@@ -283,10 +311,10 @@ export function useBrowserPanelController(
     (target: WorkspaceSelectedTarget | null): string | null =>
       resolveBrowserSelectedRowIdFromTarget(target, {
         graphDocumentsById,
-        referenceWorkspaceRootRowId: referenceWorkspaceTree.rowId,
+        referenceWorkspaceRootRowId: REFERENCE_ROOT_ROW_ID,
         buildProjectSketchBrowserRowId,
       }),
-    [graphDocumentsById, referenceWorkspaceTree.rowId],
+    [graphDocumentsById],
   )
 
   const resolvedSelectedBrowserRowId = resolveSelectedBrowserRowIdFromTarget(workspaceSelectedTarget)
@@ -315,39 +343,13 @@ export function useBrowserPanelController(
 
   const groupedSelectedBrowserRowIds = useMemo(() => {
     const groupedRowIdSet = new Set<string>()
-    const explicitTargets =
-      workspaceExplicitSelectedTargets.length > 0
-        ? workspaceExplicitSelectedTargets
-        : workspaceSelectedTarget === null
-          ? []
-          : [workspaceSelectedTarget]
-
-    for (const target of explicitTargets) {
-      if (target.kind === 'references-root') {
-        referenceWorkspaceTree.categories.forEach((category) => {
-          groupedRowIdSet.add(category.rowId)
-          category.items.forEach((item) => groupedRowIdSet.add(item.rowId))
-        })
-        continue
-      }
-      if (target.kind === 'reference-category') {
-        const selectedReferenceCategory = referenceWorkspaceTree.categories.find(
-          (category) => category.categoryId === target.categoryId,
-        )
-        selectedReferenceCategory?.items.forEach((item) => groupedRowIdSet.add(item.rowId))
-      }
-    }
-
     if (workspaceResolvedContentSelection !== null) {
       workspaceResolvedContentSelection.groupedRowIds.forEach((rowId) => groupedRowIdSet.add(rowId))
     }
 
     return [...groupedRowIdSet]
   }, [
-    referenceWorkspaceTree,
-    workspaceExplicitSelectedTargets,
     workspaceResolvedContentSelection,
-    workspaceSelectedTarget,
   ])
 
   const workspaceIntentDeps = useMemo<WorkspaceIntentDeps>(
@@ -398,6 +400,7 @@ export function useBrowserPanelController(
         referenceLoadBatch: referenceWorkspace.referenceLoadBatch,
         activeTransformReferenceId,
         contentRows: projectContentRows,
+        contentOrderByParentKey,
         graphRows,
         browserGraphBuildPolicyByGraphDocumentId,
         browserContentBuildPolicyByRowId,
@@ -419,6 +422,7 @@ export function useBrowserPanelController(
       browserContentBuildPolicyByRowId,
       browserGraphBuildPolicyByGraphDocumentId,
       collapsedContentRowIds,
+      contentOrderByParentKey,
       editorViewports,
       expandedGraphDocumentIds,
       graphDocumentsById,
@@ -433,6 +437,148 @@ export function useBrowserPanelController(
       sharedViewerComposition,
       sharedViewerCompositionGraphDocumentIds,
     ],
+  )
+
+  const isReferenceContainerRow = useCallback(
+    (row: BrowserRenderableRowVm): boolean =>
+      (row.rowKind === 'assembly' || row.rowKind === 'component') &&
+      row.referenceContainerKind !== null &&
+      row.referenceContainerKind !== undefined,
+    [],
+  )
+
+  const resolveBrowserDraggableTargetFromRow = useCallback(
+    (row: BrowserRenderableRowVm): BrowserDraggableTarget | null => {
+      if (isReferenceContainerRow(row)) {
+        return null
+      }
+      if (row.rowKind === 'assembly') {
+        return { kind: 'assembly', assemblyId: row.rowId }
+      }
+      if (row.rowKind === 'component') {
+        return { kind: 'component', componentId: row.rowId }
+      }
+      if (
+        row.rowKind === 'object' &&
+        (row.contentOriginKind === 'source-reference' ||
+          row.contentOriginKind === 'imported-reference') &&
+        row.referenceId
+      ) {
+        return { kind: 'imported-reference', referenceId: row.referenceId }
+      }
+      if (row.rowKind === 'object') {
+        return { kind: 'object', objectId: row.rowId }
+      }
+      return null
+    },
+    [isReferenceContainerRow],
+  )
+
+  const resolveWorkspaceTargetFromContentOwnerTarget = useCallback(
+    (target: BrowserDraggableTarget): WorkspaceSelectedTarget =>
+      target.kind === 'assembly'
+        ? { kind: 'assembly', assemblyId: target.assemblyId }
+        : target.kind === 'component'
+          ? { kind: 'component', componentId: target.componentId }
+          : target.kind === 'object'
+            ? { kind: 'object', objectId: target.objectId }
+            : { kind: 'object', objectId: buildImportedReferenceRowId(target.referenceId) },
+    [],
+  )
+
+  const isDraggableContentOwnerRow = useCallback((row: BrowserRenderableRowVm): boolean => {
+    if (isReferenceContainerRow(row)) {
+      return false
+    }
+    if (row.rowKind === 'assembly') {
+      return projectContent?.assembliesById[row.rowId]?.assemblySourceKind === 'authored'
+    }
+    if (row.rowKind === 'component') {
+      return row.componentSourceKind === 'authored'
+    }
+    if (row.rowKind === 'object') {
+      if (row.contentOriginKind === 'source-reference') {
+        return true
+      }
+      if (row.contentOriginKind === 'imported-reference') {
+        return true
+      }
+      return row.objectSourceKind === 'published-object'
+    }
+    return false
+  }, [isReferenceContainerRow, projectContent])
+
+  const registerContentRowElement = useCallback(
+    (rowId: string) => (element: HTMLDivElement | null) => {
+      if (element === null) {
+        contentRowElementsByIdRef.current.delete(rowId)
+        return
+      }
+      contentRowElementsByIdRef.current.set(rowId, element)
+    },
+    [],
+  )
+
+  const resolveContentOwnerTargetFromRowId = useCallback(
+    (rowId: string): ProjectContentOwnerTarget | null => {
+      const row = browserTreeRows.contentRows.find((candidate) => candidate.rowId === rowId) ?? null
+      if (row === null) {
+        return null
+      }
+      const draggedTarget = resolveBrowserDraggableTargetFromRow(row)
+      if (draggedTarget === null) {
+        return null
+      }
+      return draggedTarget
+    },
+    [browserTreeRows.contentRows, resolveBrowserDraggableTargetFromRow],
+  )
+
+  const buildVisibleContentRowMetrics = useCallback((): BrowserContentRowMetric[] => {
+    return browserTreeRows.contentRows
+      .flatMap((row) => {
+        const element = contentRowElementsByIdRef.current.get(row.rowId)
+        if (element === undefined) {
+          return []
+        }
+        const rect = element.getBoundingClientRect()
+        if (rect.height <= 0 || rect.width <= 0) {
+          return []
+        }
+        return [
+          {
+            rowId: row.rowId,
+            depth: row.depth,
+            isExpandable: row.isExpandable,
+            isExpanded: row.isExpanded,
+            rowKind: row.rowKind,
+            top: rect.top,
+            left: rect.left,
+            width: rect.width,
+            height: rect.height,
+          } satisfies BrowserContentRowMetric,
+        ]
+      })
+      .sort((left, right) => {
+        if (left.top !== right.top) {
+          return left.top - right.top
+        }
+        if (left.left !== right.left) {
+          return left.left - right.left
+        }
+        return left.rowId.localeCompare(right.rowId)
+      })
+  }, [browserTreeRows.contentRows])
+
+  const clearSuppressedBrowserRowClick = useCallback((row: BrowserRenderableRowVm) => {
+    if (suppressedClickRowIdRef.current === row.rowId) {
+      suppressedClickRowIdRef.current = null
+    }
+  }, [])
+
+  const shouldSuppressBrowserRowClick = useCallback(
+    (row: BrowserRenderableRowVm) => suppressedClickRowIdRef.current === row.rowId,
+    [],
   )
 
   const handleOpenOrFocusGraph = useCallback(
@@ -525,11 +671,67 @@ export function useBrowserPanelController(
 
   const handleImportReferenceFile = useCallback(
     (fileType: ReferenceFileType) => {
+      const resolveImportLandingParent = (): {
+        parentAssemblyId: string | null
+        parentComponentId: string | null
+      } => {
+        if (workspaceSelectedTarget?.kind === 'component') {
+          return {
+            parentAssemblyId: null,
+            parentComponentId: workspaceSelectedTarget.componentId,
+          }
+        }
+
+        if (workspaceSelectedTarget?.kind === 'assembly') {
+          return {
+            parentAssemblyId: workspaceSelectedTarget.assemblyId,
+            parentComponentId: null,
+          }
+        }
+
+        if (workspaceSelectedTarget?.kind === 'object') {
+          const objectRow = projectContent?.objectsById?.[workspaceSelectedTarget.objectId] ?? null
+          if (objectRow !== null) {
+            if (objectRow.parentAssemblyId != null) {
+              return {
+                parentAssemblyId: objectRow.parentAssemblyId ?? null,
+                parentComponentId: null,
+              }
+            }
+            if (objectRow.parentComponentId !== null) {
+              const parentComponent =
+                projectContent?.componentsById?.[objectRow.parentComponentId] ?? null
+              if (parentComponent?.parentAssemblyId != null) {
+                return {
+                  parentAssemblyId: parentComponent.parentAssemblyId,
+                  parentComponentId: null,
+                }
+              }
+            }
+          }
+        }
+
+        const fallbackAssemblyRow =
+          projectContentRows.find(
+            (row): row is Extract<typeof projectContentRows[number], { kind: 'assembly' }> =>
+              row.kind === 'assembly' &&
+              row.parentAssemblyId == null &&
+              row.referenceContainerKind !== 'root',
+          ) ?? null
+        return {
+          parentAssemblyId: fallbackAssemblyRow?.rowId ?? null,
+          parentComponentId: null,
+        }
+      }
+
       setImportMenu(null)
       void importReferenceFileFromDisk(fileType)
         .then((file) => {
-          const referenceId = addImportedReference(file)
-          setLocalSelectedBrowserRowId(`reference-item-row:${referenceId}`)
+          const referenceId = addImportedReference({
+            ...file,
+            ...resolveImportLandingParent(),
+          })
+          setLocalSelectedBrowserRowId(buildImportedReferenceRowId(referenceId))
         })
         .catch((error: unknown) => {
           if (error instanceof Error && error.message === 'No reference file selected.') {
@@ -538,7 +740,7 @@ export function useBrowserPanelController(
           console.error(`Failed to import ${fileType.toUpperCase()} reference file.`, error)
         })
     },
-    [addImportedReference],
+    [addImportedReference, projectContent, projectContentRows, workspaceSelectedTarget],
   )
 
   useEffect(() => {
@@ -587,6 +789,162 @@ export function useBrowserPanelController(
   }, [contextMenu, importMenu])
 
   useEffect(() => {
+    if (contentDragState === null) {
+      return
+    }
+
+    const resolveDragSessionAtPointer = (
+      current: BrowserContentDragSession,
+      pointer: BrowserContentPointer,
+    ): BrowserContentDragSession =>
+      resolveBrowserContentDragPreviewState({
+        contentRows: browserTreeRows.contentRows,
+        rowMetrics: buildVisibleContentRowMetrics(),
+        session: {
+          ...current,
+          phase: 'active',
+        },
+        pointer,
+        resolveRowTarget: resolveContentOwnerTargetFromRowId,
+        resolveDrop: (sourceTarget, dropTarget) =>
+          resolveBrowserDraggableTargetDrop(
+            { projectContent, referenceWorkspace },
+            sourceTarget,
+            dropTarget,
+          ),
+      })
+
+    const clearDragPreview = () => {
+      setContentDragState(null)
+    }
+
+    const commitPointerDrag = (pointer?: BrowserContentPointer) => {
+      setContentDragState((current) => {
+        if (current === null) {
+          return null
+        }
+        const resolvedCurrent =
+          pointer === undefined
+            ? current
+            : resolveDragSessionAtPointer(
+                current.phase === 'pending'
+                  ? {
+                      ...current,
+                      phase: 'active',
+                    }
+                  : current,
+                pointer,
+              )
+        if (resolvedCurrent.phase !== 'active') {
+          return null
+        }
+        suppressedClickRowIdRef.current = resolvedCurrent.draggedRowId
+        const resolvedDropTarget = resolvedCurrent.resolvedDropTarget
+        if (resolvedDropTarget === null) {
+          return null
+        }
+        const moved = moveProjectContentOwner(resolvedCurrent.draggedTarget, resolvedDropTarget)
+        if (moved) {
+          setLocalSelectedBrowserRowId(resolvedCurrent.draggedRowId)
+          requestConsoleContextSync('target-selection')
+          const movedRow =
+            browserTreeRows.contentRows.find((row) => row.rowId === resolvedCurrent.draggedRowId) ?? null
+          appendBrowserEntry(
+            movedRow === null ? 'Move' : `Move: ${describeBrowserRow(movedRow)}`,
+          )
+        }
+        return null
+      })
+    }
+
+    const handlePointerMove = (event: PointerEvent) => {
+      setContentDragState((current) => {
+        if (current === null || event.pointerId !== current.pointerId) {
+          return current
+        }
+        const pointer: BrowserContentPointer = {
+          x: event.clientX,
+          y: event.clientY,
+        }
+        if (
+          current.phase === 'pending' &&
+          !hasBrowserContentDragCrossedThreshold(current, pointer)
+        ) {
+          return {
+            ...current,
+            currentPointer: pointer,
+          }
+        }
+
+        if (current.phase === 'pending') {
+          const selectedTarget = resolveWorkspaceTargetFromContentOwnerTarget(current.draggedTarget)
+          setWorkspaceExplicitSelection({
+            selectedTarget,
+            explicitSelectedTargets: [selectedTarget],
+            selectionAnchorTarget: selectedTarget,
+          })
+        }
+
+        return resolveDragSessionAtPointer(current, pointer)
+      })
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        clearDragPreview()
+      }
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState !== 'visible') {
+        clearDragPreview()
+      }
+    }
+
+    const handlePointerUp = (event: PointerEvent) => {
+      if (contentDragState !== null && event.pointerId === contentDragState.pointerId) {
+        commitPointerDrag({
+          x: event.clientX,
+          y: event.clientY,
+        })
+      }
+    }
+
+    const handlePointerCancel = (event: PointerEvent) => {
+      if (contentDragState !== null && event.pointerId === contentDragState.pointerId) {
+        clearDragPreview()
+      }
+    }
+
+    window.addEventListener('pointermove', handlePointerMove)
+    window.addEventListener('pointerup', handlePointerUp)
+    window.addEventListener('pointercancel', handlePointerCancel)
+    window.addEventListener('blur', clearDragPreview)
+    window.addEventListener('keydown', handleKeyDown)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove)
+      window.removeEventListener('pointerup', handlePointerUp)
+      window.removeEventListener('pointercancel', handlePointerCancel)
+      window.removeEventListener('blur', clearDragPreview)
+      window.removeEventListener('keydown', handleKeyDown)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [
+    appendBrowserEntry,
+    browserTreeRows.contentRows,
+    buildVisibleContentRowMetrics,
+    contentDragState,
+    moveProjectContentOwner,
+    projectContent,
+    referenceWorkspace,
+    requestConsoleContextSync,
+    resolveContentOwnerTargetFromRowId,
+    setWorkspaceExplicitSelection,
+  ])
+
+  useEffect(() => {
     if (workspaceSelectedTarget?.kind === 'graph-document' || workspaceSelectedTarget?.kind === 'graph-node') {
       setExpandedGraphDocumentIds((currentIds) =>
         currentIds.includes(workspaceSelectedTarget.graphDocumentId)
@@ -607,12 +965,41 @@ export function useBrowserPanelController(
     }
   }, [workspaceSelectedTarget])
 
+  useEffect(() => {
+    const referenceControlledRowIds = new Set<string>()
+    if (!referenceWorkspaceTree.isExpanded) {
+      referenceControlledRowIds.add(referenceWorkspaceTree.rowId)
+    }
+    referenceWorkspaceTree.categories.forEach((category) => {
+      if (!category.isExpanded) {
+        referenceControlledRowIds.add(category.rowId)
+      }
+    })
+    setCollapsedContentRowIds((currentRowIds) => {
+      const nextRowIds = [
+        ...currentRowIds.filter(
+          (rowId) =>
+            rowId !== referenceWorkspaceTree.rowId &&
+            !referenceWorkspaceTree.categories.some((category) => category.rowId === rowId),
+        ),
+        ...referenceControlledRowIds,
+      ]
+      if (
+        nextRowIds.length === currentRowIds.length &&
+        nextRowIds.every((rowId, index) => rowId === currentRowIds[index])
+      ) {
+        return currentRowIds
+      }
+      return nextRowIds
+    })
+  }, [referenceWorkspaceTree])
+
   const browserRowInteractionHandlers = useMemo(
     () =>
       createBrowserRowInteractionHandlers({
         browserTreeRows,
         graphDocumentsById,
-        referenceWorkspaceRootRowId: referenceWorkspaceTree.rowId,
+        referenceWorkspaceRootRowId: REFERENCE_ROOT_ROW_ID,
         buildProjectSketchBrowserRowId,
         workspaceSelectedTarget,
         workspaceExplicitSelectedTargets,
@@ -645,7 +1032,6 @@ export function useBrowserPanelController(
       closeBrowserOverlays,
       graphDocumentsById,
       newEditorSpawnPosition,
-      referenceWorkspaceTree.rowId,
       requestConsoleContextSync,
       selectPart,
       setActiveEditorViewportId,
@@ -758,7 +1144,7 @@ export function useBrowserPanelController(
       appendBrowserEntry(`Removed imported reference ${referenceId}`)
       removeImportedReference(referenceId)
       setLocalSelectedBrowserRowId((current) =>
-        current === `reference-item-row:${referenceId}` ? null : current,
+        current === buildImportedReferenceRowId(referenceId) ? null : current,
       )
     },
     [appendBrowserEntry, closeBrowserOverlays, removeImportedReference],
@@ -766,15 +1152,122 @@ export function useBrowserPanelController(
 
   const handleTransformReferenceRow = useCallback(
     (referenceId: string) => {
-      setLocalSelectedBrowserRowId(`reference-item-row:${referenceId}`)
+      const objectRowId = buildImportedReferenceRowId(referenceId)
+      setLocalSelectedBrowserRowId(objectRowId)
       closeBrowserOverlays()
       appendBrowserEntry(`Transform ${referenceId}`)
-      activateReferenceItemIntent(workspaceIntentDeps, referenceId, {
-        ensureVisible: true,
-        beginTransform: true,
-      })
+      setReferenceItemVisibility(referenceId, true)
+      activateObjectIntent(workspaceIntentDeps, objectRowId)
+      beginReferenceTransformShell(referenceId)
     },
-    [appendBrowserEntry, closeBrowserOverlays, workspaceIntentDeps],
+    [
+      appendBrowserEntry,
+      beginReferenceTransformShell,
+      closeBrowserOverlays,
+      setReferenceItemVisibility,
+      workspaceIntentDeps,
+    ],
+  )
+
+  const promptForContentOwnerRename = useCallback(
+    (
+      target:
+        | { kind: 'assembly'; assemblyId: string }
+        | { kind: 'component'; componentId: string },
+    ) => {
+      const appState = useAppStore.getState()
+      const currentLabel =
+        target.kind === 'assembly'
+          ? appState.projectContent.assembliesById[target.assemblyId]?.label ?? 'Assembly'
+          : appState.projectContent.componentsById[target.componentId]?.label ?? 'Component'
+      const nextLabel =
+        typeof window.prompt === 'function'
+          ? window.prompt(
+              `Rename ${target.kind === 'assembly' ? 'assembly' : 'component'}`,
+              currentLabel,
+            )
+          : currentLabel
+      if (nextLabel === null) {
+        return
+      }
+      const trimmed = nextLabel.trim()
+      if (trimmed.length === 0 || trimmed === currentLabel) {
+        return
+      }
+      if (!renameProjectContentOwner(target, trimmed)) {
+        return
+      }
+      appendBrowserEntry(
+        `Rename: ${target.kind === 'assembly' ? 'Assembly' : 'Component'} ${currentLabel} -> ${trimmed}`,
+      )
+      requestConsoleContextSync('target-selection')
+    },
+    [appendBrowserEntry, renameProjectContentOwner, requestConsoleContextSync],
+  )
+
+  const handleCreateAssembly = useCallback(() => {
+    closeBrowserOverlays()
+    const assemblyId = createProjectAssembly()
+    setLocalSelectedBrowserRowId(assemblyId)
+    requestConsoleContextSync('target-selection')
+    promptForContentOwnerRename({ kind: 'assembly', assemblyId })
+  }, [
+    closeBrowserOverlays,
+    createProjectAssembly,
+    promptForContentOwnerRename,
+    requestConsoleContextSync,
+  ])
+
+  const handleCreateComponent = useCallback(
+    (assemblyId: string) => {
+      closeBrowserOverlays()
+      const componentId = createProjectComponent(assemblyId)
+      if (componentId === null) {
+        return
+      }
+      setLocalSelectedBrowserRowId(componentId)
+      requestConsoleContextSync('target-selection')
+      promptForContentOwnerRename({ kind: 'component', componentId })
+    },
+    [
+      closeBrowserOverlays,
+      createProjectComponent,
+      promptForContentOwnerRename,
+      requestConsoleContextSync,
+    ],
+  )
+
+  const handleDeleteContentOwner = useCallback(
+    (
+      target:
+        | { kind: 'assembly'; assemblyId: string }
+        | { kind: 'component'; componentId: string },
+    ) => {
+      const appState = useAppStore.getState()
+      const label =
+        target.kind === 'assembly'
+          ? appState.projectContent.assembliesById[target.assemblyId]?.label ?? target.assemblyId
+          : appState.projectContent.componentsById[target.componentId]?.label ?? target.componentId
+      const childCount =
+        target.kind === 'assembly'
+          ? appState.projectContent.assembliesById[target.assemblyId]?.childRowIds.length ?? 0
+          : appState.projectContent.componentsById[target.componentId]?.childObjectIds.length ?? 0
+      if (
+        childCount > 0 &&
+        typeof window.confirm === 'function' &&
+        !window.confirm(`Delete ${label} and its subtree?`)
+      ) {
+        return
+      }
+      if (!deleteProjectContentOwner(target)) {
+        return
+      }
+      closeBrowserOverlays()
+      setLocalSelectedBrowserRowId(null)
+      requestConsoleContextSync('target-selection')
+      appendBrowserEntry(`Delete: ${label}`)
+    },
+    [appendBrowserEntry, closeBrowserOverlays, deleteProjectContentOwner, requestConsoleContextSync],
   )
 
   const handleRowAction = useCallback(
@@ -833,6 +1326,16 @@ export function useBrowserPanelController(
         closeMenus: closeBrowserOverlays,
         selectRow: (rowId) => setLocalSelectedBrowserRowId(rowId),
         appendBrowserEntry,
+        createAssembly: handleCreateAssembly,
+        createComponent: handleCreateComponent,
+        renameContentOwner: promptForContentOwnerRename,
+        deleteContentOwner: handleDeleteContentOwner,
+        canDeleteAssembly: (assemblyId) =>
+          projectContent?.assembliesById[assemblyId]?.assemblySourceKind === 'authored',
+        canRenameComponent: (componentId) =>
+          projectContent?.componentsById[componentId]?.componentSourceKind === 'authored',
+        canDeleteComponent: (componentId) =>
+          projectContent?.componentsById[componentId]?.componentSourceKind === 'authored',
         startReferenceLoadBatchForAll,
         startReferenceLoadBatchForCategory,
         retryReferenceItemLoad,
@@ -849,9 +1352,16 @@ export function useBrowserPanelController(
       clearBrowserContentBuildPolicy,
       clearBrowserGraphBuildPolicy,
       closeBrowserOverlays,
+      createProjectAssembly,
+      createProjectComponent,
       handleRemoveImportedReferenceRow,
       handleRetryImportedReferenceRow,
       handleRowAction,
+      handleCreateAssembly,
+      handleCreateComponent,
+      handleDeleteContentOwner,
+      promptForContentOwnerRename,
+      projectContent,
       retryReferenceItemLoad,
       setBrowserContentBuildPolicy,
       setBrowserGraphBuildPolicy,
@@ -882,6 +1392,60 @@ export function useBrowserPanelController(
     [createRowContextMenuItems],
   )
 
+  const handleBrowserRowPointerDragStartCandidate = useCallback(
+    (row: BrowserRenderableRowVm, event: ReactPointerEvent<HTMLButtonElement>) => {
+      if (event.button !== 0) {
+        return
+      }
+      if (!isDraggableContentOwnerRow(row)) {
+        return
+      }
+      const draggedTarget = resolveBrowserDraggableTargetFromRow(row)
+      if (draggedTarget === null) {
+        return
+      }
+      event.stopPropagation()
+      closeBrowserOverlays()
+      setContentDragState(
+        createBrowserContentDragSession({
+          draggedRowId: row.rowId,
+          draggedTarget,
+          pointerId: event.pointerId,
+          startPointer: {
+            x: event.clientX,
+            y: event.clientY,
+          },
+        }),
+      )
+    },
+    [
+      closeBrowserOverlays,
+      isDraggableContentOwnerRow,
+      resolveBrowserDraggableTargetFromRow,
+    ],
+  )
+
+  const resolveBrowserRowDragState = useCallback(
+    (row: BrowserRenderableRowVm) => ({
+      draggable: isDraggableContentOwnerRow(row),
+      isDragging:
+        contentDragState?.draggedRowId === row.rowId && contentDragState.phase === 'active',
+      isPendingDrag:
+        contentDragState?.draggedRowId === row.rowId && contentDragState.phase === 'pending',
+      dropIntent:
+        contentDragState?.previewAnchorRowId === row.rowId
+          ? contentDragState.displayIntent
+          : contentDragState?.hoveredRowId === row.rowId &&
+              contentDragState.resolvedIntent === 'invalid'
+            ? 'invalid'
+            : ('none' as const),
+      isDropOwnerSupport:
+        contentDragState?.ownerSupportRowId === row.rowId &&
+        contentDragState.phase === 'active',
+    }),
+    [contentDragState, isDraggableContentOwnerRow],
+  )
+
   const rowHandlers = useMemo<BrowserTreeRowHandlers>(
     () => ({
       onSelect: handleSelectBrowserRow,
@@ -892,9 +1456,15 @@ export function useBrowserPanelController(
       onToggleExpand: handleToggleBrowserRowExpand,
       onCycleBrowserBuildPolicy: handleCycleBrowserBuildPolicy,
       onContextMenu: handleRowContextMenu,
+      onPointerDragStartCandidate: handleBrowserRowPointerDragStartCandidate,
+      shouldSuppressClick: shouldSuppressBrowserRowClick,
+      clearSuppressedClick: clearSuppressedBrowserRowClick,
+      getDragState: resolveBrowserRowDragState,
     }),
     [
+      clearSuppressedBrowserRowClick,
       handleCycleBrowserBuildPolicy,
+      handleBrowserRowPointerDragStartCandidate,
       handleDoubleSelectBrowserRow,
       handleRowContextMenu,
       handleSelectBrowserRow,
@@ -902,6 +1472,8 @@ export function useBrowserPanelController(
       handleToggleContentVisibility,
       handleToggleReferenceVisibility,
       handleToggleSketchVisibility,
+      resolveBrowserRowDragState,
+      shouldSuppressBrowserRowClick,
     ],
   )
 
@@ -956,6 +1528,7 @@ export function useBrowserPanelController(
     rowHandlers,
     sectionHandlers: {
       onOpenContentImportMenu: handleOpenContentImportMenu,
+      registerContentRowElement,
       onCreateGraph: handleCreateGraph,
       onDuplicateFocusedGraph: handleDuplicateFocusedGraph,
       onLoadGraphFile: handleLoadGraphFile,

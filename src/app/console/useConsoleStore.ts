@@ -26,6 +26,7 @@ export type ConsolePromptSessionKind =
   | 'radio.sampleBurstTime'
   | 'reference-transform.axis'
   | 'reference-transform.plane'
+  | 'content.owner.label'
 
 export type ConsolePromptSession =
   | {
@@ -52,6 +53,16 @@ export type ConsolePromptSession =
       returnSession: ConsoleStagedNavigationSession
       mode: 'translate' | 'rotate' | 'scale'
       plane: 'xy' | 'xz' | 'yz'
+    }
+  | {
+      kind: 'content.owner.label'
+      breadcrumb: string[]
+      label: string
+      prefill: string
+      returnSession: ConsoleStagedNavigationSession
+      target:
+        | { kind: 'assembly'; assemblyId: string }
+        | { kind: 'component'; componentId: string }
     }
 
 const CONSOLE_LAYERS: ConsoleLayer[] = [
@@ -244,27 +255,25 @@ const clampZIndex = (value: number): number =>
 
 const normalizeChoiceToken = (value: string): string => value.trim().toUpperCase()
 
-const getStagedChoiceInputText = (choice: ConsoleStagedNavigationChoice): string => {
+const shouldUseChoiceLabelAsInput = (choice: {
+  canonicalToken: string
+  aliases: string[]
+  label: string
+}): boolean => {
   const normalizedLabel = normalizeChoiceToken(choice.label)
-  if (
+  const compactLabel = normalizedLabel.replace(/\s+/gu, '')
+  return (
     normalizedLabel === choice.canonicalToken ||
+    compactLabel === choice.canonicalToken ||
     choice.aliases.includes(normalizedLabel)
-  ) {
-    return choice.label
-  }
-  return choice.canonicalToken
+  )
 }
 
-const getAssistChoiceInputText = (choice: ConsoleAssistChoice): string => {
-  const normalizedLabel = normalizeChoiceToken(choice.label)
-  if (
-    normalizedLabel === choice.canonicalToken ||
-    choice.aliases.includes(normalizedLabel)
-  ) {
-    return choice.label
-  }
-  return choice.canonicalToken
-}
+const getStagedChoiceInputText = (choice: ConsoleStagedNavigationChoice): string =>
+  shouldUseChoiceLabelAsInput(choice) ? choice.label : choice.canonicalToken
+
+const getAssistChoiceInputText = (choice: ConsoleAssistChoice): string =>
+  shouldUseChoiceLabelAsInput(choice) ? choice.label : choice.canonicalToken
 
 const isInputDrivenByDescriptor = (
   descriptor: ConsoleAssistDescriptor,

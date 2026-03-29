@@ -20,8 +20,16 @@ import {
   DEFAULT_REFERENCE_TRANSFORM_SNAP_STATE,
   type ReferenceTransformSnapAxis,
   type ReferenceTransformSnapMode,
+  REFERENCE_ROOT_ROW_ID,
+  buildImportedReferenceRowId,
+  buildReferenceCategoryRowId,
   buildObjectPartKeys,
+  resolveOwnedContentSelection,
+  resolveReferenceRuntimeTraits,
+  resolveReferenceIdsForWorkspaceTarget,
+  resolveWorkspaceSelectedContentOwnerTarget,
   resolveSingleTargetContentSelection,
+  selectCurrentProjectTopLevelAssemblies,
   selectConsoleWorkspaceContextTarget,
   selectReferenceWorkspaceBrowserTree,
   useAppStore,
@@ -700,14 +708,16 @@ const getStagedScopeLabel = (session: ConsoleStagedNavigationSession | null): st
     case 'graphOutputPreviewList':
     case 'graphOutputPreviewSelected':
       return 'Output Preview'
+    case 'contentRoot':
+      return 'Content'
     case 'contentAssemblySelected':
-      return 'Assembly'
+      return 'Content'
     case 'contentAssemblyZoomRoot':
       return formatStagedBreadcrumb(session.breadcrumb)
     case 'contentComponentSelected':
-      return 'Component'
+      return 'Content'
     case 'contentObjectSelected':
-      return 'Object'
+      return 'Content'
     case 'contentObjectTransformRoot':
       return formatStagedBreadcrumb(session.breadcrumb)
     case 'contentObjectZoomRoot':
@@ -799,8 +809,10 @@ const normalizeRadioCommandIdentity = (rawToken: string): string =>
 
 const getFeatureAssistChoiceInputText = (choice: ConsoleAssistDescriptor['choices'][number]): string => {
   const normalizedLabel = normalizeRadioCommandIdentity(choice.label)
+  const compactLabel = normalizedLabel.replace(/\s+/gu, '')
   if (
     normalizedLabel === choice.canonicalToken ||
+    compactLabel === choice.canonicalToken ||
     choice.aliases.includes(normalizedLabel)
   ) {
     return choice.label
@@ -1058,6 +1070,11 @@ const buildStagedNavigationContextFromStoreState = (
           label: `outputPreview_[${index + 1}]`,
         })),
     })),
+    selectCurrentProjectTopLevelAssemblies(appState).map((assembly) => ({
+      assemblyId: assembly.assemblyId,
+      label: assembly.label,
+      canDelete: assembly.assemblySourceKind === 'authored',
+    })),
     referenceTree.categories.map((category) => ({
       categoryId: category.categoryId,
       label: category.label,
@@ -1290,6 +1307,22 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
       ) {
         appState.beginReferenceTransformShell(stagedNavigationSession.selections.referenceId)
       }
+    }
+  }, [stagedNavigationSession])
+
+  useEffect(() => {
+    if (stagedNavigationSession?.scopeId !== 'contentObjectTransformRoot') {
+      return
+    }
+    const appState = useAppStore.getState()
+    const selectedTarget = appState.workspaceSelection.selectedTarget
+    if (selectedTarget?.kind !== 'object') {
+      return
+    }
+    const activeObjectId =
+      appState.referenceWorkspace.activeContentObjectTransformSession?.objectId ?? null
+    if (activeObjectId !== selectedTarget.objectId) {
+      appState.beginContentObjectTransformShell(selectedTarget.objectId)
     }
   }, [stagedNavigationSession])
 
@@ -1675,6 +1708,37 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
     setStagedNavigationSession(createActiveReferenceTransformRootSession(activeReferenceId))
   }, [createActiveReferenceTransformRootSession, setStagedNavigationSession])
 
+  const cancelActiveContentObjectTransformSession = useCallback(() => {
+    const appState = useAppStore.getState()
+    const activeSession = appState.referenceWorkspace.activeContentObjectTransformSession
+    if (activeSession === null) {
+      return
+    }
+    const baseline = activeSession.entryOrigin ?? activeSession.draftTransform
+    getViewer()?.cancelReferenceTransformDrag()
+    getViewer()?.clearReferenceTransformHandle()
+    appState.setContentObjectTransformOverride(activeSession.objectId, baseline)
+    appState.cancelActiveContentObjectTransformEntry()
+  }, [])
+
+  const exitActiveContentObjectTransformShell = useCallback(() => {
+    const appState = useAppStore.getState()
+    if (appState.referenceWorkspace.activeContentObjectTransformSession === null) {
+      return false
+    }
+    getViewer()?.cancelReferenceTransformDrag?.()
+    getViewer()?.clearReferenceTransformHandle?.()
+    appState.exitContentObjectTransformShell()
+    useConsoleStore.getState().clearConsolePromptSession()
+    appendConsoleEntry({
+      layer: 'Transforms',
+      text: 'Exited Viewer Transform',
+      source: 'console',
+      severity: 'info',
+    })
+    return true
+  }, [])
+
   const exitActiveReferenceTransformShell = useCallback(() => {
     const appState = useAppStore.getState()
     const activeReferenceId =
@@ -1722,7 +1786,8 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
           ? null
           : spaghettiState.geometrySketchSession?.mode ?? null,
       referenceTransformActive:
-        appState.referenceWorkspace.activeReferenceTransformSession?.entryActive === true,
+        appState.referenceWorkspace.activeReferenceTransformSession?.entryActive === true ||
+        appState.referenceWorkspace.activeContentObjectTransformSession?.entryActive === true,
       stagedConsoleActive:
         useConsoleStore.getState().stagedNavigationSession !== null ||
         useConsoleStore.getState().consolePromptSession !== null ||
@@ -1906,6 +1971,8 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
     const activeSession = useConsoleStore.getState().stagedNavigationSession
     const appState = useAppStore.getState()
     const activeReferenceSession = appState.referenceWorkspace.activeReferenceTransformSession
+    const activeContentObjectSession =
+      appState.referenceWorkspace.activeContentObjectTransformSession
     if (
       activeSession?.scopeId === 'referenceTransformRoot' &&
       activeReferenceSession !== null &&
@@ -1916,6 +1983,47 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
       }
       appendEscUserEntry()
       exitActiveReferenceTransformShell()
+      return
+    }
+    if (
+      activeSession?.scopeId === 'contentObjectTransformRoot' &&
+      activeContentObjectSession !== null &&
+      !activeContentObjectSession.entryActive
+    ) {
+      appendEscUserEntry()
+      exitActiveContentObjectTransformShell()
+      return
+    }
+    if (
+      activeSession?.scopeId === 'contentAssemblySelected' ||
+      activeSession?.scopeId === 'contentComponentSelected' ||
+      activeSession?.scopeId === 'contentObjectSelected'
+    ) {
+      appendEscUserEntry()
+      setStagedNavigationSession(null)
+      appState.setWorkspaceExplicitSelection({
+        selectedTarget: null,
+        explicitSelectedTargets: [],
+        selectionAnchorTarget: null,
+      })
+      appState.selectPart(null)
+      appState.requestConsoleContextSync('surface-clear')
+      return
+    }
+    if (
+      activeSession?.scopeId === 'referencesSelected' ||
+      activeSession?.scopeId === 'referenceCategorySelected' ||
+      activeSession?.scopeId === 'referenceSelected'
+    ) {
+      appendEscUserEntry()
+      setStagedNavigationSession(null)
+      appState.setWorkspaceExplicitSelection({
+        selectedTarget: null,
+        explicitSelectedTargets: [],
+        selectionAnchorTarget: null,
+      })
+      appState.selectPart(null)
+      appState.requestConsoleContextSync('surface-clear')
       return
     }
     if (
@@ -1934,6 +2042,10 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
       cancelActiveReferenceTransformSession()
       return
     }
+    if (activeContentObjectSession?.entryActive === true) {
+      cancelActiveContentObjectTransformSession()
+      return
+    }
     if (stepActiveStagedNavigationSessionOneLevel()) {
       return
     }
@@ -1948,8 +2060,11 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
     }
   }, [
     appendEscUserEntry,
+    cancelActiveContentObjectTransformSession,
     cancelActiveReferenceTransformSession,
+    exitActiveContentObjectTransformShell,
     exitActiveReferenceTransformShell,
+    setStagedNavigationSession,
     stepActiveConsolePromptSessionBack,
     stepActiveStagedNavigationSessionOneLevel,
   ])
@@ -2009,8 +2124,11 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
   const resolveSelectedReferenceIdForZoom = useCallback((): string | null => {
     const appState = useAppStore.getState()
     const selectedTarget = appState.workspaceSelection.selectedTarget
-    if (selectedTarget?.kind === 'reference-item') {
-      return selectedTarget.referenceId
+    if (selectedTarget !== null) {
+      const resolvedReferenceIds = resolveReferenceIdsForWorkspaceTarget(appState, selectedTarget)
+      if (resolvedReferenceIds.length === 1) {
+        return resolvedReferenceIds[0]
+      }
     }
     return appState.referenceWorkspace.activeReferenceTransformSession?.referenceId ?? null
   }, [])
@@ -2044,24 +2162,32 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
     const fallbackContentSelection =
       appState.workspaceSelection.resolvedContentSelection ??
       (appState.workspaceSelection.selectedTarget !== null
-        ? resolveSingleTargetContentSelection(
-            { projectContent: appState.projectContent },
+        ? resolveOwnedContentSelection(
+            {
+              projectContent: appState.projectContent,
+              referenceWorkspace: appState.referenceWorkspace,
+            },
             appState.workspaceSelection.selectedTarget,
           )
         : null)
     const partKeys = [...new Set(fallbackContentSelection?.partKeys ?? [])]
     const referenceIds = [
       ...new Set(
-        appState.workspaceSelection.explicitSelectedTargets
-          .filter(
-            (
-              target,
-            ): target is {
-              kind: 'reference-item'
-              referenceId: string
-            } => target.kind === 'reference-item',
-          )
-          .map((target) => target.referenceId),
+        (
+          appState.workspaceSelection.explicitSelectedTargets.length > 0
+            ? appState.workspaceSelection.explicitSelectedTargets
+            : appState.workspaceSelection.selectedTarget === null
+              ? []
+              : [appState.workspaceSelection.selectedTarget]
+        ).flatMap((target) =>
+          resolveReferenceIdsForWorkspaceTarget(
+            {
+              projectContent: appState.projectContent,
+              referenceWorkspace: appState.referenceWorkspace,
+            },
+            target,
+          ),
+        ),
       ),
     ]
     return {
@@ -2112,7 +2238,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
     const nextTransformRootSession = createReferenceTransformRootSessionForTarget(
       buildStagedNavigationContextFromStoreState(useSpaghettiStore.getState()),
       target.label,
-      target.referenceId,
+      target.referenceId ?? activeReferenceId,
       target.referenceCategoryId,
       target.referenceCategoryLabel,
     )
@@ -2492,6 +2618,62 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
             nextTransformOverride,
           )
           commitActiveReferenceTransformFromConsole(rawToken)
+          return
+        }
+
+        if (activePromptSession.kind === 'content.owner.label') {
+          appendConsoleEntry({
+            layer: 'Commands',
+            commandLineKind: 'user',
+            text: `> ${rawToken}`,
+          })
+          pushCommandHistory(rawToken)
+          const nextLabel = rawToken.trim()
+          if (nextLabel.length === 0) {
+            appendConsoleEntry({
+              layer: 'Diagnostics',
+              text: 'Name cannot be empty',
+              source: 'console',
+              severity: 'warn',
+            })
+            appendConsoleEntry({
+              layer: 'Commands',
+              text: buildConsolePromptSessionText(activePromptSession),
+              source: 'console',
+              severity: 'info',
+            })
+            useConsoleStore.getState().setInputText(rawToken)
+            return
+          }
+          const renamed = useAppStore
+            .getState()
+            .renameProjectContentOwner(activePromptSession.target, nextLabel)
+          if (!renamed) {
+            appendConsoleEntry({
+              layer: 'Diagnostics',
+              text: 'Rename is not available for this content owner',
+              source: 'console',
+              severity: 'warn',
+            })
+            return
+          }
+          useAppStore.getState().requestConsoleContextSync('target-selection')
+          setStagedNavigationSession(activePromptSession.returnSession)
+          appendConsoleEntry({
+            layer: 'Browser',
+            text: `Renamed to ${nextLabel}`,
+            source: 'console',
+            severity: 'info',
+          })
+          appendConsoleEntry({
+            layer: 'Commands',
+            text: buildStagedPromptText(
+              activePromptSession.returnSession,
+              activePromptSession.returnSession.validChoices,
+            ),
+            source: 'console',
+            severity: 'info',
+          })
           return
         }
 
@@ -2906,13 +3088,40 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
                   requestConsoleContextSync: appState.requestConsoleContextSync,
                 },
                 {
-                  kind: 'references-root',
+                  kind: 'assembly',
+                  assemblyId: REFERENCE_ROOT_ROW_ID,
                 },
                 {
                   selectedPartKey: null,
                 },
               )
             }
+          }
+          if (
+            (activeStagedSession?.scopeId === 'contentAssemblySelected' ||
+              activeStagedSession?.scopeId === 'contentComponentSelected' ||
+              activeStagedSession?.scopeId === 'contentObjectSelected') &&
+            stagedResult.matchedChoice.canonicalToken === 'BACK'
+          ) {
+            const appState = useAppStore.getState()
+            appState.setWorkspaceExplicitSelection({
+              selectedTarget: null,
+              explicitSelectedTargets: [],
+              selectionAnchorTarget: null,
+            })
+            appState.selectPart(null)
+          }
+          if (
+            activeStagedSession?.scopeId === 'referencesSelected' &&
+            stagedResult.matchedChoice.canonicalToken === 'BACK'
+          ) {
+            const appState = useAppStore.getState()
+            appState.setWorkspaceExplicitSelection({
+              selectedTarget: null,
+              explicitSelectedTargets: [],
+              selectionAnchorTarget: null,
+            })
+            appState.selectPart(null)
           }
           if (
             stagedResult.session.scopeId === 'referenceCategorySelected' &&
@@ -2926,8 +3135,10 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
                 requestConsoleContextSync: appState.requestConsoleContextSync,
               },
               {
-                kind: 'reference-category',
-                categoryId: stagedResult.selections.referenceCategoryId as any,
+                kind: 'component',
+                componentId: buildReferenceCategoryRowId(
+                  stagedResult.selections.referenceCategoryId as any,
+                ),
               },
               {
                 selectedPartKey: null,
@@ -2946,13 +3157,24 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
                 requestConsoleContextSync: appState.requestConsoleContextSync,
               },
               {
-                kind: 'reference-item',
-                referenceId: stagedResult.selections.referenceId,
+                kind: 'object',
+                objectId: buildImportedReferenceRowId(stagedResult.selections.referenceId),
               },
               {
                 selectedPartKey: null,
               },
             )
+          }
+          if (stagedResult.session.scopeId === 'contentObjectTransformRoot') {
+            const appState = useAppStore.getState()
+            const selectedTarget = appState.workspaceSelection.selectedTarget
+            if (selectedTarget?.kind === 'object') {
+              const activeObjectId =
+                appState.referenceWorkspace.activeContentObjectTransformSession?.objectId ?? null
+              if (activeObjectId !== selectedTarget.objectId) {
+                appState.beginContentObjectTransformShell(selectedTarget.objectId)
+              }
+            }
           }
           if (
             activeStagedSession?.selections.selectedNodeId !== null &&
@@ -3375,6 +3597,194 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
             return
           }
           if (
+            stagedResult.actionId === 'content.newAssembly' ||
+            stagedResult.actionId === 'content.newComponent' ||
+            stagedResult.actionId === 'content.rename' ||
+            stagedResult.actionId === 'content.delete'
+          ) {
+            const appState = useAppStore.getState()
+            appendConsoleEntry({
+              layer: 'Commands',
+              text: formatStagedBreadcrumb(stagedResult.breadcrumb),
+              source: 'console',
+              severity: 'info',
+            })
+            if (stagedResult.actionId === 'content.newAssembly') {
+              const assemblyId = appState.createProjectAssembly()
+              appState.requestConsoleContextSync('target-selection')
+              const assemblyLabel =
+                useAppStore.getState().projectContent.assembliesById[assemblyId]?.label ?? 'Assembly'
+              const returnSession = resolveConsoleWorkspaceContextSync(
+                buildStagedNavigationContextFromStoreState(useSpaghettiStore.getState()),
+                {
+                  kind: 'assembly',
+                  assemblyId,
+                  label: assemblyLabel,
+                  fallbackGraphDocumentId: null,
+                  canDelete: true,
+                },
+              ).session ?? stagedResult.session
+              setStagedNavigationSession(returnSession)
+              setConsolePromptSession({
+                kind: 'content.owner.label',
+                breadcrumb: [...stagedResult.session.breadcrumb, assemblyLabel],
+                label: 'Assembly Name',
+                prefill: assemblyLabel,
+                returnSession,
+                target: { kind: 'assembly', assemblyId },
+              })
+              appendConsoleEntry({
+                layer: 'Commands',
+                text: buildConsolePromptSessionText(useConsoleStore.getState().consolePromptSession!),
+                source: 'console',
+                severity: 'info',
+              })
+              requestRadioBurst(commandIdentity, 'enter')
+              return
+            }
+
+            if (stagedResult.actionId === 'content.newComponent') {
+              const assemblyId = stagedResult.selections.contentAssemblyId ?? null
+              if (assemblyId === null) {
+                appendConsoleEntry({
+                  layer: 'Browser',
+                  text: 'New Component requires a selected assembly',
+                  source: 'console',
+                  severity: 'warn',
+                })
+                return
+              }
+              const componentId = appState.createProjectComponent(assemblyId)
+              if (componentId === null) {
+                appendConsoleEntry({
+                  layer: 'Browser',
+                  text: 'New Component is not available for this target',
+                  source: 'console',
+                  severity: 'warn',
+                })
+                return
+              }
+              appState.requestConsoleContextSync('target-selection')
+              const componentLabel =
+                useAppStore.getState().projectContent.componentsById[componentId]?.label ?? 'Component'
+              const returnSession = resolveConsoleWorkspaceContextSync(
+                buildStagedNavigationContextFromStoreState(useSpaghettiStore.getState()),
+                {
+                  kind: 'component',
+                  componentId,
+                  label: componentLabel,
+                  fallbackGraphDocumentId: null,
+                  canRename: true,
+                  canDelete: true,
+                },
+              ).session ?? stagedResult.session
+              setStagedNavigationSession(returnSession)
+              setConsolePromptSession({
+                kind: 'content.owner.label',
+                breadcrumb: [...stagedResult.session.breadcrumb, componentLabel],
+                label: 'Component Name',
+                prefill: componentLabel,
+                returnSession,
+                target: { kind: 'component', componentId },
+              })
+              appendConsoleEntry({
+                layer: 'Commands',
+                text: buildConsolePromptSessionText(useConsoleStore.getState().consolePromptSession!),
+                source: 'console',
+                severity: 'info',
+              })
+              requestRadioBurst(commandIdentity, 'enter')
+              return
+            }
+
+            if (stagedResult.actionId === 'content.rename') {
+              const assemblyId = stagedResult.selections.contentAssemblyId ?? null
+              const componentId = stagedResult.selections.contentComponentId ?? null
+              if (assemblyId !== null) {
+                const assemblyLabel =
+                  appState.projectContent.assembliesById[assemblyId]?.label ?? 'Assembly'
+                setConsolePromptSession({
+                  kind: 'content.owner.label',
+                  breadcrumb: stagedResult.breadcrumb,
+                  label: 'Assembly Name',
+                  prefill: assemblyLabel,
+                  returnSession: stagedResult.session,
+                  target: { kind: 'assembly', assemblyId },
+                })
+              } else if (componentId !== null) {
+                const componentLabel =
+                  appState.projectContent.componentsById[componentId]?.label ?? 'Component'
+                setConsolePromptSession({
+                  kind: 'content.owner.label',
+                  breadcrumb: stagedResult.breadcrumb,
+                  label: 'Component Name',
+                  prefill: componentLabel,
+                  returnSession: stagedResult.session,
+                  target: { kind: 'component', componentId },
+                })
+              }
+              appendConsoleEntry({
+                layer: 'Commands',
+                text: buildConsolePromptSessionText(useConsoleStore.getState().consolePromptSession!),
+                source: 'console',
+                severity: 'info',
+              })
+              requestRadioBurst(commandIdentity, 'enter')
+              return
+            }
+
+            const assemblyId = stagedResult.selections.contentAssemblyId ?? null
+            const componentId = stagedResult.selections.contentComponentId ?? null
+            const deleteTarget =
+              assemblyId !== null
+                ? ({ kind: 'assembly', assemblyId } as const)
+                : componentId !== null
+                  ? ({ kind: 'component', componentId } as const)
+                  : null
+            if (deleteTarget === null) {
+              appendConsoleEntry({
+                layer: 'Browser',
+                text: 'Delete requires a selected content owner',
+                source: 'console',
+                severity: 'warn',
+              })
+              return
+            }
+            const childCount =
+              deleteTarget.kind === 'assembly'
+                ? appState.projectContent.assembliesById[deleteTarget.assemblyId]?.childRowIds.length ?? 0
+                : appState.projectContent.componentsById[deleteTarget.componentId]?.childObjectIds.length ?? 0
+            const label =
+              deleteTarget.kind === 'assembly'
+                ? appState.projectContent.assembliesById[deleteTarget.assemblyId]?.label ?? deleteTarget.assemblyId
+                : appState.projectContent.componentsById[deleteTarget.componentId]?.label ?? deleteTarget.componentId
+            if (
+              childCount > 0 &&
+              typeof window.confirm === 'function' &&
+              !window.confirm(`Delete ${label} and its subtree?`)
+            ) {
+              return
+            }
+            if (!appState.deleteProjectContentOwner(deleteTarget)) {
+              appendConsoleEntry({
+                layer: 'Browser',
+                text: 'Delete is not available for this content owner',
+                source: 'console',
+                severity: 'warn',
+              })
+              return
+            }
+            appState.requestConsoleContextSync('target-selection')
+            appendConsoleEntry({
+              layer: 'Browser',
+              text: `Deleted ${label}`,
+              source: 'console',
+              severity: 'info',
+            })
+            requestRadioBurst(commandIdentity, 'enter')
+            return
+          }
+          if (
             stagedResult.actionId === 'camera.pan' ||
             stagedResult.actionId === 'camera.orbit' ||
             stagedResult.actionId === 'camera.projection.orthographic' ||
@@ -3646,12 +4056,14 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
               stagedResult.actionId === 'reference.transform.space.local' ||
               stagedResult.actionId === 'reference.transform.space.world' ||
               stagedResult.actionId.startsWith('reference.transform.snap.') ||
+              stagedResult.actionId === 'content.selectAll' ||
               stagedResult.actionId === 'content.transform.move' ||
               stagedResult.actionId === 'content.transform.rotate' ||
               stagedResult.actionId === 'content.transform.scale') &&
             (stagedResult.actionId === 'reference.loadAll' ||
               stagedResult.actionId === 'reference.category.loadAll' ||
               typeof stagedResult.selections.referenceId === 'string' ||
+              stagedResult.actionId === 'content.selectAll' ||
               stagedResult.actionId === 'content.transform.move' ||
               stagedResult.actionId === 'content.transform.rotate' ||
               stagedResult.actionId === 'content.transform.scale')
@@ -3693,10 +4105,9 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
                   stagedResult.session.breadcrumb.at(-1) ?? referenceId,
                 ),
               ).session
-              const currentLoadState =
-                appState.referenceWorkspace.loadStateById[referenceId] ?? 'unloaded'
-              const isCurrentlyVisible =
-                appState.referenceWorkspace.visibilityById[referenceId] ?? false
+              const referenceRuntimeTraits = resolveReferenceRuntimeTraits(appState, referenceId)
+              const currentLoadState = referenceRuntimeTraits.loadState
+              const isCurrentlyVisible = referenceRuntimeTraits.isVisible
               if (!isCurrentlyVisible && currentLoadState === 'unloaded') {
                 appState.retryReferenceItemLoad(referenceId)
               } else {
@@ -3913,9 +4324,47 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
               }
               requestRadioBurst(commandIdentity, 'enter')
               return
+            } else if (stagedResult.actionId === 'content.selectAll') {
+              const selectedTarget = appState.workspaceSelection.selectedTarget
+              const selectedOwnerTarget = resolveWorkspaceSelectedContentOwnerTarget(
+                appState,
+                selectedTarget,
+              )
+              if (
+                selectedTarget === null ||
+                selectedOwnerTarget === null ||
+                !selectedOwnerTarget.supportsSelectAll
+              ) {
+                appendConsoleEntry({
+                  layer: 'Browser',
+                  text: 'SelectAll requires a selected content parent',
+                  source: 'console',
+                  severity: 'warn',
+                })
+              } else {
+                appState.setWorkspaceExplicitSelection({
+                  selectedTarget,
+                  explicitSelectedTargets: [selectedTarget],
+                  selectionAnchorTarget: selectedTarget,
+                })
+                appState.requestConsoleContextSync('target-selection')
+                appendConsoleEntry({
+                  layer: 'Browser',
+                  text: `SelectAll: ${stagedResult.session.breadcrumb.at(-1) ?? 'Content'}`,
+                  source: 'console',
+                  severity: 'info',
+                })
+              }
             } else {
               const selectedTarget = appState.workspaceSelection.selectedTarget
-              if (selectedTarget?.kind !== 'object') {
+              const selectedOwnerTarget = resolveWorkspaceSelectedContentOwnerTarget(
+                appState,
+                selectedTarget,
+              )
+              if (
+                selectedTarget?.kind !== 'object' ||
+                selectedOwnerTarget?.ownerKind !== 'object-part'
+              ) {
                 appendConsoleEntry({
                   layer: 'Transforms',
                   text: 'Object transform requires a selected object',
@@ -3924,6 +4373,14 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
                 })
               } else {
                 const objectRecord = appState.projectContent.objectsById[selectedTarget.objectId] ?? null
+                if (!selectedOwnerTarget.supportsViewerTransform || objectRecord === null) {
+                  appendConsoleEntry({
+                    layer: 'Transforms',
+                    text: 'Viewer Transform is only available for published objects in this phase',
+                    source: 'console',
+                    severity: 'warn',
+                  })
+                } else {
                 const objectPartKey =
                   appState.selectedPartKey ??
                   (objectRecord !== null ? (buildObjectPartKeys(objectRecord)[0] ?? null) : null) ??
@@ -3938,16 +4395,24 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
                 if (objectPartKey === null) {
                   appendConsoleEntry({
                     layer: 'Transforms',
-                    text: 'Object transform requires a selected part',
+                    text: 'Viewer Transform requires a resolved published object with visible viewer parts',
                     source: 'console',
                     severity: 'warn',
                   })
                 } else {
+                  appState.beginContentObjectTransformShell(selectedTarget.objectId)
+                  appState.beginContentObjectTransformEntry(transformMode)
                   appState.selectPart(objectPartKey)
+                  const nextSession =
+                    useAppStore.getState().referenceWorkspace.activeContentObjectTransformSession
                   const viewer = getViewer()
                   viewer?.setSelectedPart?.(objectPartKey)
-                  viewer?.setGizmoEnabled?.(true)
-                  viewer?.setGizmoMode?.(transformMode)
+                  viewer?.setContentObjectTransformSession?.({
+                    objectId: selectedTarget.objectId,
+                    mode: transformMode,
+                    space: nextSession?.space ?? 'local',
+                    entryOrigin: nextSession?.entryOrigin ?? null,
+                  })
                   if (transformMode === 'rotate') {
                     viewer?.activateRotateCenterHandle?.()
                   } else if (transformMode === 'scale') {
@@ -3967,6 +4432,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
                     source: 'console',
                     severity: 'info',
                   })
+                }
                 }
               }
             }
@@ -5273,8 +5739,8 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
             layer: 'Shortcuts',
             text:
               activeReferenceId === null
-                ? 'Reference transform: none'
-                : `Reference transform: ${
+                ? 'Viewer Transform: none'
+                : `Viewer Transform: ${
                     appState.referenceWorkspace.activeReferenceTransformSession?.mode ?? 'translate'
                   } ${activeReferenceId}`,
             source: 'console',
@@ -5401,7 +5867,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
     if (referenceTransformShellExitRequest.source === 'commit-shell') {
       appendConsoleEntry({
         layer: 'Transforms',
-        text: 'Transform committed',
+        text: 'Viewer Transform committed',
         source: 'console',
         severity: 'info',
       })
@@ -5726,7 +6192,10 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
       }
       if (
         event.key === 'Escape' &&
-        useAppStore.getState().referenceWorkspace.activeReferenceTransformSession?.entryActive === true
+        (useAppStore.getState().referenceWorkspace.activeReferenceTransformSession?.entryActive ===
+          true ||
+          useAppStore.getState().referenceWorkspace.activeContentObjectTransformSession
+            ?.entryActive === true)
       ) {
         event.preventDefault()
         event.stopImmediatePropagation()
@@ -5856,7 +6325,10 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
       }
       if (
         event.key === 'Escape' &&
-        useAppStore.getState().referenceWorkspace.activeReferenceTransformSession?.entryActive === true
+        (useAppStore.getState().referenceWorkspace.activeReferenceTransformSession?.entryActive ===
+          true ||
+          useAppStore.getState().referenceWorkspace.activeContentObjectTransformSession
+            ?.entryActive === true)
       ) {
         event.preventDefault()
         event.stopImmediatePropagation()

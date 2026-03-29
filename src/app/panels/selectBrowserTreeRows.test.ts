@@ -246,7 +246,34 @@ describe('selectBrowserTreeRows', () => {
         ],
       },
     ])
-    expect(rows.contentRows).toEqual([])
+    expect(rows.contentRows).toEqual(
+      expect.arrayContaining([
+      expect.objectContaining({
+        rowId: 'reference-root',
+        rowKind: 'assembly',
+        referenceContainerKind: 'root',
+        label: 'References',
+      }),
+      expect.objectContaining({
+        rowId: 'reference-category-row:footpads',
+        rowKind: 'component',
+        referenceContainerKind: 'category',
+        label: 'Footpads',
+      }),
+      expect.objectContaining({
+        rowId: 'reference-category-row:shoes',
+        rowKind: 'component',
+        referenceContainerKind: 'category',
+        label: 'Shoes',
+      }),
+      expect.objectContaining({
+        rowId: 'reference-category-row:premade-foothooks',
+        rowKind: 'component',
+        referenceContainerKind: 'category',
+        label: 'Premade Foothooks',
+      }),
+      ]),
+    )
   })
 
   it('keeps Browser selection local and separates it from viewport focus state', () => {
@@ -530,28 +557,32 @@ describe('selectBrowserTreeRows', () => {
       effectiveBrowserBuildPolicySource: 'self',
       effectiveBrowserBuildPolicySourceLabel: 'Graph 1',
     })
-    expect(rows.contentRows[0]).toMatchObject({
+    expect(rows.contentRows.find((row) => row.rowId === 'assembly-root:project-file-1')).toMatchObject({
       rowKind: 'assembly',
       authoredBrowserBuildPolicy: null,
       effectiveBrowserBuildPolicy: 'live',
       effectiveBrowserBuildPolicySource: 'default',
       effectiveBrowserBuildPolicySourceLabel: null,
     })
-    expect(rows.contentRows[1]).toMatchObject({
+    expect(
+      rows.contentRows.find(
+        (row) => row.rowId === 'component-1',
+      ),
+    ).toMatchObject({
       rowKind: 'component',
       authoredBrowserBuildPolicy: 'release',
       effectiveBrowserBuildPolicy: 'release',
       effectiveBrowserBuildPolicySource: 'self',
       effectiveBrowserBuildPolicySourceLabel: 'Pedal Component',
     })
-    expect(rows.contentRows[2]).toMatchObject({
+    expect(rows.contentRows.find((row) => row.rowId === 'object-1')).toMatchObject({
       rowKind: 'object',
       authoredBrowserBuildPolicy: null,
       effectiveBrowserBuildPolicy: 'release',
       effectiveBrowserBuildPolicySource: 'component',
       effectiveBrowserBuildPolicySourceLabel: 'Pedal Component',
     })
-    expect(rows.contentRows[3]).toMatchObject({
+    expect(rows.contentRows.find((row) => row.rowId === 'object-2')).toMatchObject({
       rowKind: 'object',
       authoredBrowserBuildPolicy: 'off',
       effectiveBrowserBuildPolicy: 'off',
@@ -759,8 +790,9 @@ describe('selectBrowserTreeRows', () => {
       sharedViewerCompositionActive: false,
     })
 
-    expect(rows.contentRows).toMatchObject([
-        {
+    expect(rows.contentRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
           rowId: 'assembly-root:project-file-1',
           rowKind: 'assembly',
           depth: 0,
@@ -777,8 +809,8 @@ describe('selectBrowserTreeRows', () => {
         isExpandable: true,
         isExpanded: true,
         actions: [],
-      },
-      {
+      }),
+      expect.objectContaining({
         rowId: 'project-component:project-file-1:graph-document-1:published',
         rowKind: 'component',
           depth: 1,
@@ -812,8 +844,8 @@ describe('selectBrowserTreeRows', () => {
               ariaLabel: 'View Pedal Component in graph',
             },
           ],
-        },
-        {
+        }),
+        expect.objectContaining({
           rowId: 'project-object:project-file-1:graph-document-1:pedal-body',
           rowKind: 'object',
           depth: 2,
@@ -847,8 +879,9 @@ describe('selectBrowserTreeRows', () => {
               ariaLabel: 'View Pedal Body in graph',
             },
           ],
-        },
-      ])
+        }),
+      ]),
+    )
     expect(rows.graphRows).toEqual([])
     expect(rows.viewportRows).toEqual([])
   })
@@ -911,10 +944,18 @@ describe('selectBrowserTreeRows', () => {
     })
 
     expect(rows.contentRows.map((row) => row.rowId)).toEqual([
+      'reference-root',
+      'reference-category-row:footpads',
+      'reference-category-row:shoes',
+      'reference-category-row:premade-foothooks',
       'assembly-root:project-file-1',
       'project-component:project-file-1:graph-document-1:published',
     ])
-    expect(rows.contentRows[1]).toMatchObject({
+    expect(
+      rows.contentRows.find(
+        (row) => row.rowId === 'project-component:project-file-1:graph-document-1:published',
+      ),
+    ).toMatchObject({
       rowKind: 'component',
       treeGuides: ['none', 'elbow'],
       isExpandable: true,
@@ -961,8 +1002,9 @@ describe('selectBrowserTreeRows', () => {
       sharedViewerCompositionActive: false,
     })
 
-    expect(rows.contentRows).toMatchObject([
-        {
+    expect(rows.contentRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
           rowId: 'assembly-root:project-file-1',
           rowKind: 'assembly',
           depth: 0,
@@ -977,8 +1019,8 @@ describe('selectBrowserTreeRows', () => {
         isExpandable: true,
         isExpanded: true,
         actions: [],
-      },
-        {
+      }),
+        expect.objectContaining({
           rowId: 'project-object:project-file-1:graph-document-1:output-object:s001',
           rowKind: 'object',
           depth: 1,
@@ -1010,8 +1052,9 @@ describe('selectBrowserTreeRows', () => {
               ariaLabel: 'View Object 1 in graph',
             },
           ],
-        },
-      ])
+        }),
+      ]),
+    )
   })
 
   it('renders STEP reference rows as normal items and prefers loading over error in aggregate category state', () => {
@@ -1043,6 +1086,7 @@ describe('selectBrowserTreeRows', () => {
                 isVisible: true,
                 loadState: 'loading',
                 errorMessage: null,
+                parts: [],
               },
               {
                 rowId: 'reference-item-row:hook:medium',
@@ -1055,6 +1099,7 @@ describe('selectBrowserTreeRows', () => {
                 isVisible: false,
                 loadState: 'error',
                 errorMessage: 'STEP import failed',
+                parts: [],
               },
             ],
           },
@@ -1072,28 +1117,35 @@ describe('selectBrowserTreeRows', () => {
       sharedViewerCompositionActive: false,
     })
 
-    expect(rows.referenceRows).toEqual([
+    expect(rows.referenceRows).toEqual([])
+    expect(rows.contentRows).toEqual(
+      expect.arrayContaining([
       expect.objectContaining({
         rowId: 'reference-root',
-        rowKind: 'references-root',
+        rowKind: 'assembly',
+        iconLabel: 'A',
         treeGuides: ['elbow'],
-        state: 'loading',
-        stateLabel: 'Loading',
+        referenceContainerKind: 'root',
+        referenceContainerState: 'loading',
+        referenceContainerStateLabel: 'Loading',
       }),
       expect.objectContaining({
         rowId: 'reference-category-row:premade-foothooks',
-        rowKind: 'reference-category',
-        treeGuides: ['none', 'elbow'],
-        state: 'loading',
-        stateLabel: 'Loading',
+        rowKind: 'component',
+        iconLabel: 'C',
+        treeGuides: ['none', 'tee'],
+        referenceContainerKind: 'category',
+        referenceContainerState: 'loading',
+        referenceContainerStateLabel: 'Loading',
       }),
       expect.objectContaining({
         rowId: 'reference-item-row:hook:large',
-        rowKind: 'reference-item',
+        rowKind: 'object',
+        contentOriginKind: 'source-reference',
+        iconLabel: 'O',
         treeGuides: ['none', 'none', 'tee'],
         meta: 'STEP',
-        state: 'loading',
-        stateLabel: 'Loading',
+        referenceState: 'loading',
         isSelected: true,
         showOverflowButton: false,
         actions: [
@@ -1106,17 +1158,19 @@ describe('selectBrowserTreeRows', () => {
       }),
       expect.objectContaining({
         rowId: 'reference-item-row:hook:medium',
-        rowKind: 'reference-item',
+        rowKind: 'object',
+        contentOriginKind: 'source-reference',
+        iconLabel: 'O',
         treeGuides: ['none', 'none', 'elbow'],
         meta: 'STEP',
-        state: 'error',
-        stateLabel: 'Error',
+        referenceState: 'error',
         errorMessage: 'STEP import failed',
       }),
-    ])
+      ]),
+    )
   })
 
-  it('renders imported references under User References and preserves imported source kind on item rows', () => {
+  it('renders imported references inside the content hierarchy when they have a landing parent', () => {
     const rows = selectBrowserTreeRows({
       referenceWorkspaceTree: {
         rowId: 'reference-root',
@@ -1145,12 +1199,22 @@ describe('selectBrowserTreeRows', () => {
                 isVisible: true,
                 loadState: 'loaded',
                 errorMessage: null,
+                parentAssemblyId: 'assembly-1',
+                parentComponentId: null,
+                parts: [],
               },
             ],
           },
         ],
       },
-      contentRows: [],
+      contentRows: [
+        {
+          rowId: 'assembly-1',
+          kind: 'assembly',
+          label: 'Assembly 1',
+          meta: '',
+        },
+      ],
       graphRows: [],
       editorViewports: [],
       graphDocumentsById: {},
@@ -1162,28 +1226,235 @@ describe('selectBrowserTreeRows', () => {
       sharedViewerCompositionActive: false,
     })
 
-    expect(rows.referenceRows).toEqual([
+    expect(rows.referenceRows).toEqual([])
+    expect(rows.contentRows).toEqual(
+      expect.arrayContaining([
       expect.objectContaining({
         rowId: 'reference-root',
-        state: 'active',
-        stateLabel: 'Active',
+        rowKind: 'assembly',
+        referenceContainerKind: 'root',
+        referenceContainerState: 'dormant',
+        referenceContainerStateLabel: 'Dormant',
       }),
       expect.objectContaining({
-        rowId: 'reference-category-row:user-references',
-        label: 'User References',
-        state: 'active',
-        stateLabel: 'Active',
+        rowId: 'assembly-1',
+        rowKind: 'assembly',
       }),
       expect.objectContaining({
         rowId: 'reference-item-row:reference-import:1',
-        sourceKind: 'imported',
+        rowKind: 'object',
+        contentOriginKind: 'imported-reference',
+        referenceId: 'reference-import:1',
+        referenceSourceKind: 'imported',
         meta: 'GLB',
-        state: 'active',
-        stateLabel: 'Active',
+        referenceState: 'active',
         isSelected: true,
-        showOverflowButton: false,
       }),
-    ])
+      ]),
+    )
+  })
+
+  it('moves manifest library objects into the content hierarchy when they gain a landing parent', () => {
+    const rows = selectBrowserTreeRows({
+      referenceWorkspaceTree: {
+        rowId: 'reference-root',
+        label: 'References',
+        isExpanded: true,
+        categories: [
+          {
+            rowId: 'reference-category-row:shoes',
+            categoryId: 'shoes',
+            label: 'Shoes',
+            isExpanded: true,
+            itemCount: 1,
+            visibleItemCount: 1,
+            hasLoadingItem: false,
+            hasErrorItem: false,
+            emptyLabel: 'No loadable references yet.',
+            items: [
+              {
+                rowId: 'reference-item-row:shoe:shoe-1',
+                referenceId: 'shoe:shoe-1',
+                sourceKind: 'manifest',
+                label: 'Shoe 1',
+                categoryId: 'shoes',
+                fileType: 'glb',
+                assetPath: '/ReferenceModels/shoes/shoe-1.glb',
+                isVisible: true,
+                loadState: 'loaded',
+                errorMessage: null,
+                parentAssemblyId: 'assembly-1',
+                parentComponentId: null,
+                parts: [],
+              },
+              {
+                rowId: 'reference-item-row:shoe:shoe-2',
+                referenceId: 'shoe:shoe-2',
+                sourceKind: 'manifest',
+                label: 'Shoe 2',
+                categoryId: 'shoes',
+                fileType: 'glb',
+                assetPath: '/ReferenceModels/shoes/shoe-2.glb',
+                isVisible: true,
+                loadState: 'loaded',
+                errorMessage: null,
+                parentAssemblyId: null,
+                parentComponentId: null,
+                parts: [],
+              },
+            ],
+          },
+        ],
+      },
+      contentRows: [
+        {
+          rowId: 'assembly-1',
+          kind: 'assembly',
+          label: 'Assembly 1',
+          meta: '',
+        },
+      ],
+      graphRows: [],
+      editorViewports: [],
+      graphDocumentsById: {},
+      selectedRowId: 'reference-item-row:shoe:shoe-1',
+      collapsedContentRowIds: [],
+      expandedGraphDocumentIds: [],
+      hasActiveEditorViewport: true,
+      sharedViewerCompositionGraphDocumentIds: [],
+      sharedViewerCompositionActive: false,
+    })
+
+    expect(rows.referenceRows).toEqual([])
+    expect(rows.contentRows).toEqual(
+      expect.arrayContaining([
+      expect.objectContaining({
+        rowId: 'reference-root',
+        rowKind: 'assembly',
+        referenceContainerKind: 'root',
+      }),
+      expect.objectContaining({
+        rowId: 'reference-category-row:shoes',
+        rowKind: 'component',
+        referenceContainerKind: 'category',
+        referenceContainerItemCount: 1,
+      }),
+      expect.objectContaining({
+        rowId: 'reference-item-row:shoe:shoe-2',
+        rowKind: 'object',
+        contentOriginKind: 'source-reference',
+      }),
+      expect.objectContaining({
+        rowId: 'assembly-1',
+        rowKind: 'assembly',
+      }),
+      expect.objectContaining({
+        rowId: 'reference-item-row:shoe:shoe-1',
+        rowKind: 'object',
+        contentOriginKind: 'imported-reference',
+        referenceSourceKind: 'manifest',
+        isSelected: true,
+      }),
+      ]),
+    )
+  })
+
+  it('renders part rows under landed reference-backed objects when real part structure is available', () => {
+    const rows = selectBrowserTreeRows({
+      referenceWorkspaceTree: {
+        rowId: 'reference-root',
+        label: 'References',
+        isExpanded: true,
+        categories: [
+          {
+            rowId: 'reference-category-row:user-references',
+            categoryId: 'user-references',
+            label: 'User References',
+            isExpanded: true,
+            itemCount: 1,
+            visibleItemCount: 1,
+            hasLoadingItem: false,
+            hasErrorItem: false,
+            emptyLabel: 'No imported references yet.',
+            items: [
+              {
+                rowId: 'reference-item-row:reference-import:1',
+                referenceId: 'reference-import:1',
+                sourceKind: 'imported',
+                label: 'shoe.glb',
+                categoryId: 'user-references',
+                fileType: 'glb',
+                assetPath: 'blob:shoe-1',
+                isVisible: true,
+                loadState: 'loaded',
+                errorMessage: null,
+                parentAssemblyId: 'assembly-1',
+                parentComponentId: null,
+                parts: [
+                  {
+                    rowId: 'reference-part-row:reference-part:reference-import:1:0',
+                    partKey: 'reference-part:reference-import:1:0',
+                    label: 'Upper',
+                  },
+                  {
+                    rowId: 'reference-part-row:reference-part:reference-import:1:1',
+                    partKey: 'reference-part:reference-import:1:1',
+                    label: 'Sole',
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+      contentRows: [
+        {
+          rowId: 'assembly-1',
+          kind: 'assembly',
+          label: 'Assembly 1',
+          meta: '',
+        },
+      ],
+      graphRows: [],
+      editorViewports: [],
+      graphDocumentsById: {},
+      selectedRowId: 'reference-part-row:reference-part:reference-import:1:1',
+      collapsedContentRowIds: [],
+      expandedGraphDocumentIds: [],
+      hasActiveEditorViewport: true,
+      sharedViewerCompositionGraphDocumentIds: [],
+      sharedViewerCompositionActive: false,
+    })
+
+    expect(rows.contentRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowId: 'assembly-1',
+          rowKind: 'assembly',
+        }),
+        expect.objectContaining({
+          rowId: 'reference-item-row:reference-import:1',
+          rowKind: 'object',
+          contentOriginKind: 'imported-reference',
+          isExpandable: true,
+          isExpanded: true,
+        }),
+        expect.objectContaining({
+          rowId: 'reference-part-row:reference-part:reference-import:1:0',
+          rowKind: 'part',
+          label: 'Upper',
+          parentReferenceId: 'reference-import:1',
+          isSelected: false,
+        }),
+        expect.objectContaining({
+          rowId: 'reference-part-row:reference-part:reference-import:1:1',
+          rowKind: 'part',
+          label: 'Sole',
+          parentReferenceId: 'reference-import:1',
+          isSelected: true,
+        }),
+      ]),
+    )
   })
 
   it('derives aggregate root and category progress from the active reference batch without changing item bars', () => {
@@ -1215,6 +1486,7 @@ describe('selectBrowserTreeRows', () => {
                 isVisible: true,
                 loadState: 'loaded',
                 errorMessage: null,
+                parts: [],
               },
             ],
           },
@@ -1240,6 +1512,7 @@ describe('selectBrowserTreeRows', () => {
                 isVisible: true,
                 loadState: 'loading',
                 errorMessage: null,
+                parts: [],
               },
               {
                 rowId: 'reference-item-row:shoe:shoe-2',
@@ -1252,6 +1525,7 @@ describe('selectBrowserTreeRows', () => {
                 isVisible: true,
                 loadState: 'unloaded',
                 errorMessage: null,
+                parts: [],
               },
             ],
           },
@@ -1280,26 +1554,33 @@ describe('selectBrowserTreeRows', () => {
       sharedViewerCompositionActive: false,
     })
 
-    expect(rows.referenceRows).toEqual(
+    expect(rows.referenceRows).toEqual([])
+    expect(rows.contentRows).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           rowId: 'reference-root',
-          state: 'loading',
-          progress01: 2 / 3,
+          rowKind: 'assembly',
+          referenceContainerState: 'loading',
+          referenceContainerProgress01: 2 / 3,
         }),
         expect.objectContaining({
           rowId: 'reference-category-row:footpads',
-          state: 'loading',
-          progress01: 1,
+          rowKind: 'component',
+          referenceContainerState: 'loading',
+          referenceContainerProgress01: 1,
         }),
         expect.objectContaining({
           rowId: 'reference-category-row:shoes',
-          state: 'loading',
-          progress01: 1 / 2,
+          rowKind: 'component',
+          referenceContainerState: 'loading',
+          referenceContainerProgress01: 1 / 2,
+          isSelected: true,
         }),
         expect.objectContaining({
           rowId: 'reference-item-row:shoe:shoe-1',
-          state: 'loading',
+          rowKind: 'object',
+          contentOriginKind: 'source-reference',
+          referenceState: 'loading',
         }),
       ]),
     )
@@ -1389,5 +1670,114 @@ describe('selectBrowserTreeRows', () => {
         }),
       ]),
     )
+  })
+
+  it('interleaves imported reference rows with authored content children using parent content order', () => {
+    const rows = selectBrowserTreeRows({
+      referenceWorkspaceTree: {
+        ...emptyReferenceWorkspaceTree,
+        categories: emptyReferenceWorkspaceTree.categories.map((category) =>
+          category.categoryId !== 'user-references'
+            ? category
+            : {
+                ...category,
+                itemCount: 1,
+                visibleItemCount: 1,
+                items: [
+                  {
+                    rowId: 'reference-item-row:shoe-import-1',
+                    referenceId: 'shoe-import-1',
+                    sourceKind: 'imported',
+                    label: 'Imported Shoe',
+                    categoryId: 'user-references',
+                    fileType: 'glb',
+                    assetPath: 'references/imported/shoe.glb',
+                    isVisible: true,
+                    loadState: 'loaded',
+                    errorMessage: null,
+                    parentAssemblyId: 'assembly-root:project-file-1',
+                    parentComponentId: null,
+                    parts: [],
+                  },
+                ],
+              },
+        ),
+      },
+      contentRows: [
+        {
+          rowId: 'assembly-root:project-file-1',
+          kind: 'assembly',
+          label: 'Assembly 1',
+          meta: '',
+        },
+        {
+          rowId: 'project-object:project-file-1:graph-document-1:object-a',
+          kind: 'object',
+          label: 'Generated Object',
+          meta: 'Object',
+          isVisible: true,
+          visibilityPartKeys: [],
+          buildState: 'done',
+          buildStateLabel: 'Done',
+          rebuildGraphDocumentIds: [],
+          ownerGraphDocumentId: 'graph-document-1',
+          parentAssemblyId: 'assembly-root:project-file-1',
+          parentComponentId: null,
+          objectSourceKind: 'published-object',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-a',
+          slotId: 'slot-a',
+          sourceNodeId: 'node-a',
+          resolutionState: 'resolved',
+          highlightViewerKey: 'object-a',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-a',
+        },
+      ],
+      contentOrderByParentKey: {
+        'assembly:assembly-root:project-file-1': [
+          'reference-item-row:shoe-import-1',
+          'project-object:project-file-1:graph-document-1:object-a',
+        ],
+      },
+      graphRows: [],
+      editorViewports: [],
+      graphDocumentsById: {
+        'graph-document-1': graphDocument('graph-document-1', 'Graph 1'),
+      },
+      selectedRowId: 'reference-item-row:shoe-import-1',
+      collapsedContentRowIds: [],
+      expandedGraphDocumentIds: [],
+      hasActiveEditorViewport: true,
+      sharedViewerCompositionGraphDocumentIds: [],
+      sharedViewerCompositionActive: false,
+    })
+
+    expect(rows.contentRows.map((row) => row.rowId)).toEqual([
+      'reference-root',
+      'reference-category-row:footpads',
+      'reference-category-row:shoes',
+      'reference-category-row:premade-foothooks',
+      'assembly-root:project-file-1',
+      'reference-item-row:shoe-import-1',
+      'project-object:project-file-1:graph-document-1:object-a',
+    ])
+    expect(rows.contentRows.find((row) => row.rowId === 'reference-item-row:shoe-import-1')).toMatchObject({
+      rowKind: 'object',
+      contentOriginKind: 'imported-reference',
+      referenceId: 'shoe-import-1',
+      label: 'Imported Shoe',
+      depth: 1,
+      treeGuides: ['none', 'tee'],
+      isSelected: true,
+    })
+    expect(
+      rows.contentRows.find((row) => row.rowId === 'project-object:project-file-1:graph-document-1:object-a'),
+    ).toMatchObject({
+      rowKind: 'object',
+      label: 'Generated Object',
+      depth: 1,
+      treeGuides: ['none', 'elbow'],
+    })
   })
 })

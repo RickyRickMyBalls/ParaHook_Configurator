@@ -170,6 +170,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
   it('owns a first workspace-selection seam for shared target and active-surface truth', async () => {
     const {
       selectActiveWorkspaceSurface,
+      selectWorkspaceSelectedContentOwnerTarget,
       selectWorkspaceSelectedTarget,
       useAppStore,
     } = await import('./useAppStore')
@@ -194,6 +195,551 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
       text: 'Active surface: spaghetti',
       source: 'spaghetti',
     })
+    expect(selectWorkspaceSelectedContentOwnerTarget(useAppStore.getState())).toBeNull()
+  })
+
+  it('resolves a shared selected content owner target and keeps console content context aligned', async () => {
+    const {
+      selectConsoleWorkspaceContextTarget,
+      resolveProjectContentOwnerDrop,
+      selectWorkspaceSelectedContentOwnerTarget,
+      useAppStore,
+    } = await import('./useAppStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useAppStore.setState((state) => ({
+      ...state,
+      projectContent: {
+        ...state.projectContent,
+        assembliesById: {
+          ...state.projectContent.assembliesById,
+          'assembly-a': {
+            assemblyId: 'assembly-a',
+            label: 'Assembly A',
+            parentAssemblyId: null,
+            assemblySourceKind: 'authored',
+            childRowIds: ['component-a'],
+          },
+        },
+        componentsById: {
+          ...state.projectContent.componentsById,
+          'component-a': {
+            componentId: 'component-a',
+            parentAssemblyId: 'assembly-a',
+            ownerGraphDocumentId: 'graph-document-1',
+            sourceGraphDocumentId: 'graph-document-1',
+            sourceOutputEntryId: 'output-a',
+            sourceNodeId: 'node-a',
+            label: 'Component A',
+            componentSourceKind: 'authored',
+            resolutionState: 'resolved',
+            receiveId: null,
+            childObjectIds: ['object-a'],
+          },
+        },
+        objectsById: {
+          ...state.projectContent.objectsById,
+          'object-a': {
+            objectId: 'object-a',
+            ownerGraphDocumentId: 'graph-document-1',
+            parentAssemblyId: 'assembly-a',
+            parentComponentId: 'component-a',
+            objectSourceKind: 'published-object',
+            sourceGraphDocumentId: 'graph-document-1',
+            sourceOutputEntryId: 'output-a',
+            sourceNodeId: 'node-a',
+            slotId: 'slot-a',
+            label: 'Object A',
+            resolutionState: 'resolved',
+          },
+        },
+      },
+    }))
+
+    useAppStore.getState().setWorkspaceSelectedTarget({
+      kind: 'object',
+      objectId: 'object-a',
+    })
+
+    expect(selectWorkspaceSelectedContentOwnerTarget(useAppStore.getState())).toMatchObject({
+      ownerKind: 'object-part',
+      ownerId: 'object-a',
+      ownerLabel: 'Object A',
+      parentOwnerId: 'component-a',
+      parentOwnerKind: 'component',
+      parentOwnerLabel: 'Component A',
+      supportsViewerTransform: true,
+      supportsSelectAll: false,
+    })
+    expect(selectConsoleWorkspaceContextTarget(useAppStore.getState())).toMatchObject({
+      kind: 'object',
+      objectId: 'object-a',
+      label: 'Object A',
+      fallbackGraphDocumentId: 'graph-document-1',
+    })
+
+    useAppStore.getState().setWorkspaceSelectedTarget({
+      kind: 'component',
+      componentId: 'component-a',
+    })
+
+    expect(selectWorkspaceSelectedContentOwnerTarget(useAppStore.getState())).toMatchObject({
+      ownerKind: 'component',
+      ownerId: 'component-a',
+      ownerLabel: 'Component A',
+      parentOwnerId: 'assembly-a',
+      parentOwnerKind: 'assembly',
+      parentOwnerLabel: 'Assembly A',
+      supportsViewerTransform: false,
+      supportsSelectAll: true,
+      supportsRename: true,
+      supportsDelete: true,
+    })
+    expect(selectConsoleWorkspaceContextTarget(useAppStore.getState())).toMatchObject({
+      kind: 'component',
+      componentId: 'component-a',
+      label: 'Component A',
+      canRename: true,
+      canDelete: true,
+    })
+
+    expect(
+      resolveProjectContentOwnerDrop(
+        useAppStore.getState(),
+        { kind: 'object', objectId: 'object-a' },
+        { kind: 'component', componentId: 'component-a', position: 'into' },
+      ),
+    ).toMatchObject({
+      valid: false,
+      reason: 'same-parent-into',
+    })
+  })
+
+  it('reorders same-parent content owners through the shared move seam and keeps the moved owner selected', async () => {
+    const { useAppStore } = await import('./useAppStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useAppStore.setState((state) => ({
+      ...state,
+      projectContent: {
+        assembliesById: {
+          'assembly-1': {
+            assemblyId: 'assembly-1',
+            label: 'Assembly 1',
+            parentAssemblyId: null,
+            assemblySourceKind: 'runtime-root',
+            childRowIds: ['component-a', 'component-b'],
+          },
+        },
+        componentsById: {
+          'component-a': {
+            componentId: 'component-a',
+            parentAssemblyId: 'assembly-1',
+            ownerGraphDocumentId: null,
+            sourceGraphDocumentId: null,
+            sourceOutputEntryId: null,
+            sourceNodeId: null,
+            label: 'Component A',
+            componentSourceKind: 'authored',
+            resolutionState: 'resolved',
+            receiveId: null,
+            childObjectIds: [],
+          },
+          'component-b': {
+            componentId: 'component-b',
+            parentAssemblyId: 'assembly-1',
+            ownerGraphDocumentId: null,
+            sourceGraphDocumentId: null,
+            sourceOutputEntryId: null,
+            sourceNodeId: null,
+            label: 'Component B',
+            componentSourceKind: 'authored',
+            resolutionState: 'resolved',
+            receiveId: null,
+            childObjectIds: [],
+          },
+        },
+        objectsById: {},
+      },
+    }))
+
+    expect(
+      useAppStore.getState().moveProjectContentOwner(
+        { kind: 'component', componentId: 'component-b' },
+        { kind: 'component', componentId: 'component-a', position: 'before' },
+      ),
+    ).toBe(true)
+
+    expect(useAppStore.getState().projectContent.assembliesById['assembly-1']?.childRowIds).toEqual([
+      'component-b',
+      'component-a',
+    ])
+    expect(useAppStore.getState().workspaceSelection.selectedTarget).toEqual({
+      kind: 'component',
+      componentId: 'component-b',
+    })
+  })
+
+  it('reparents published objects into authored components through the shared move seam', async () => {
+    const { useAppStore } = await import('./useAppStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useAppStore.setState((state) => ({
+      ...state,
+      projectContent: {
+        assembliesById: {
+          'assembly-1': {
+            assemblyId: 'assembly-1',
+            label: 'Assembly 1',
+            parentAssemblyId: null,
+            assemblySourceKind: 'runtime-root',
+            childRowIds: ['component-a', 'object-a'],
+          },
+        },
+        componentsById: {
+          'component-a': {
+            componentId: 'component-a',
+            parentAssemblyId: 'assembly-1',
+            ownerGraphDocumentId: null,
+            sourceGraphDocumentId: null,
+            sourceOutputEntryId: null,
+            sourceNodeId: null,
+            label: 'Component A',
+            componentSourceKind: 'authored',
+            resolutionState: 'resolved',
+            receiveId: null,
+            childObjectIds: [],
+          },
+        },
+        objectsById: {
+          'object-a': {
+            objectId: 'object-a',
+            ownerGraphDocumentId: 'graph-document-1',
+            parentAssemblyId: 'assembly-1',
+            parentComponentId: null,
+            objectSourceKind: 'published-object',
+            sourceGraphDocumentId: 'graph-document-1',
+            sourceOutputEntryId: 'output-a',
+            sourceNodeId: 'node-a',
+            slotId: 'slot-a',
+            label: 'Object A',
+            resolutionState: 'resolved',
+          },
+        },
+      },
+    }))
+
+    expect(
+      useAppStore.getState().moveProjectContentOwner(
+        { kind: 'object', objectId: 'object-a' },
+        { kind: 'component', componentId: 'component-a', position: 'into' },
+      ),
+    ).toBe(true)
+
+    expect(useAppStore.getState().projectContent.assembliesById['assembly-1']?.childRowIds).toEqual([
+      'component-a',
+    ])
+    expect(useAppStore.getState().projectContent.componentsById['component-a']?.childObjectIds).toEqual([
+      'object-a',
+    ])
+    expect(useAppStore.getState().projectContent.objectsById['object-a']).toMatchObject({
+      parentAssemblyId: 'assembly-1',
+      parentComponentId: 'component-a',
+    })
+  })
+
+  it('reparents imported reference objects into authored components through the shared move seam', async () => {
+    const { useAppStore } = await import('./useAppStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useAppStore.setState((state) => ({
+      ...state,
+      projectContent: {
+        assembliesById: {
+          'assembly-1': {
+            assemblyId: 'assembly-1',
+            label: 'Assembly 1',
+            parentAssemblyId: null,
+            assemblySourceKind: 'runtime-root',
+            childRowIds: ['component-a'],
+          },
+        },
+        componentsById: {
+          'component-a': {
+            componentId: 'component-a',
+            parentAssemblyId: 'assembly-1',
+            ownerGraphDocumentId: null,
+            sourceGraphDocumentId: null,
+            sourceOutputEntryId: null,
+            sourceNodeId: null,
+            label: 'Component A',
+            componentSourceKind: 'authored',
+            resolutionState: 'resolved',
+            receiveId: null,
+            childObjectIds: ['object-a'],
+          },
+        },
+        objectsById: {
+          'object-a': {
+            objectId: 'object-a',
+            ownerGraphDocumentId: 'graph-document-1',
+            parentAssemblyId: 'assembly-1',
+            parentComponentId: 'component-a',
+            objectSourceKind: 'published-object',
+            sourceGraphDocumentId: 'graph-document-1',
+            sourceOutputEntryId: 'output-a',
+            sourceNodeId: 'node-a',
+            slotId: 'slot-a',
+            label: 'Object A',
+            resolutionState: 'resolved',
+          },
+        },
+      },
+      referenceWorkspace: {
+        ...state.referenceWorkspace,
+        importedReferencesById: {
+          'imported-reference-1': {
+            referenceId: 'imported-reference-1',
+            sourceKind: 'imported',
+            categoryId: 'user-references',
+            label: 'Imported Object',
+            fileType: 'glb',
+            assetPath: 'references/imported/object.glb',
+            parentAssemblyId: 'assembly-1',
+            parentComponentId: null,
+          },
+        },
+        importedReferenceOrder: ['imported-reference-1'],
+        visibilityById: {
+          ...state.referenceWorkspace.visibilityById,
+          'imported-reference-1': true,
+        },
+        loadStateById: {
+          ...state.referenceWorkspace.loadStateById,
+          'imported-reference-1': 'loaded',
+        },
+        errorById: {
+          ...state.referenceWorkspace.errorById,
+          'imported-reference-1': null,
+        },
+        contentOrderByParentKey: {
+          'assembly:assembly-1': ['component-a', 'reference-item-row:imported-reference-1'],
+          'component:component-a': ['object-a'],
+        },
+      },
+    }))
+
+    expect(
+      useAppStore.getState().moveProjectContentOwner(
+        { kind: 'imported-reference', referenceId: 'imported-reference-1' },
+        { kind: 'component', componentId: 'component-a', position: 'into' },
+      ),
+    ).toBe(true)
+
+    expect(
+      useAppStore.getState().referenceWorkspace.importedReferencesById['imported-reference-1'],
+    ).toMatchObject({
+      parentAssemblyId: 'assembly-1',
+      parentComponentId: 'component-a',
+    })
+    expect(
+      useAppStore.getState().referenceWorkspace.contentOrderByParentKey['assembly:assembly-1'],
+    ).toEqual(['component-a'])
+    expect(
+      useAppStore.getState().referenceWorkspace.contentOrderByParentKey['component:component-a'],
+    ).toEqual(['object-a', 'reference-item-row:imported-reference-1'])
+    expect(useAppStore.getState().workspaceSelection.selectedTarget).toEqual({
+      kind: 'object',
+      objectId: 'reference-item-row:imported-reference-1',
+    })
+  })
+
+  it('moves manifest reference-backed objects through the shared content-owner move seam without creating a copy', async () => {
+    const { useAppStore } = await import('./useAppStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useAppStore.setState((state) => ({
+      ...state,
+      projectContent: {
+        assembliesById: {
+          'assembly-1': {
+            assemblyId: 'assembly-1',
+            label: 'Assembly 1',
+            parentAssemblyId: null,
+            assemblySourceKind: 'runtime-root',
+            childRowIds: [],
+          },
+        },
+        componentsById: {},
+        objectsById: {},
+      },
+    }))
+
+    const initialReferenceCount = useAppStore.getState().referenceWorkspace.importedReferenceOrder.length
+
+    expect(
+      useAppStore.getState().moveProjectContentOwner(
+        { kind: 'imported-reference', referenceId: 'shoe:shoe-1' },
+        { kind: 'assembly', assemblyId: 'assembly-1', position: 'into' },
+      ),
+    ).toBe(true)
+
+    expect(
+      useAppStore.getState().referenceWorkspace.importedReferencesById['shoe:shoe-1'],
+    ).toMatchObject({
+      sourceKind: 'manifest',
+      categoryId: 'shoes',
+      parentAssemblyId: 'assembly-1',
+      parentComponentId: null,
+    })
+    expect(useAppStore.getState().referenceWorkspace.importedReferenceOrder).toHaveLength(
+      initialReferenceCount,
+    )
+    expect(
+      useAppStore.getState().referenceWorkspace.contentOrderByParentKey['assembly:assembly-1'],
+    ).toEqual(['reference-item-row:shoe:shoe-1'])
+    expect(useAppStore.getState().workspaceSelection.selectedTarget).toEqual({
+      kind: 'object',
+      objectId: 'reference-item-row:shoe:shoe-1',
+    })
+  })
+
+  it('routes reference-backed assembly, component, and object targets through shared owner selectors', async () => {
+    const {
+      buildImportedReferenceRowId,
+      buildReferenceCategoryRowId,
+      REFERENCE_ROOT_ROW_ID,
+      selectConsoleWorkspaceContextTarget,
+      selectWorkspaceSelectedContentOwnerTarget,
+      useAppStore,
+    } = await import('./useAppStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+
+    useAppStore.getState().setWorkspaceSelectedTarget({
+      kind: 'assembly',
+      assemblyId: REFERENCE_ROOT_ROW_ID,
+    })
+
+    expect(selectWorkspaceSelectedContentOwnerTarget(useAppStore.getState())).toMatchObject({
+      ownerKind: 'assembly',
+      ownerId: REFERENCE_ROOT_ROW_ID,
+      ownerLabel: 'References',
+      supportsRename: false,
+      supportsDelete: false,
+    })
+    expect(selectConsoleWorkspaceContextTarget(useAppStore.getState())).toMatchObject({
+      kind: 'assembly',
+      assemblyId: REFERENCE_ROOT_ROW_ID,
+      label: 'References',
+      canDelete: false,
+    })
+
+    useAppStore.getState().setWorkspaceSelectedTarget({
+      kind: 'component',
+      componentId: buildReferenceCategoryRowId('shoes'),
+    })
+
+    expect(selectWorkspaceSelectedContentOwnerTarget(useAppStore.getState())).toMatchObject({
+      ownerKind: 'component',
+      ownerId: buildReferenceCategoryRowId('shoes'),
+      ownerLabel: 'Shoes',
+      parentOwnerId: REFERENCE_ROOT_ROW_ID,
+      parentOwnerKind: 'assembly',
+      supportsRename: false,
+      supportsDelete: false,
+    })
+    expect(selectConsoleWorkspaceContextTarget(useAppStore.getState())).toMatchObject({
+      kind: 'component',
+      componentId: buildReferenceCategoryRowId('shoes'),
+      label: 'Shoes',
+      canRename: false,
+      canDelete: false,
+    })
+
+    useAppStore.getState().setWorkspaceSelectedTarget({
+      kind: 'object',
+      objectId: buildImportedReferenceRowId('shoe:shoe-1'),
+    })
+
+    expect(selectWorkspaceSelectedContentOwnerTarget(useAppStore.getState())).toMatchObject({
+      ownerKind: 'object-part',
+      ownerId: buildImportedReferenceRowId('shoe:shoe-1'),
+      ownerLabel: 'Shoe 1',
+    })
+    expect(selectConsoleWorkspaceContextTarget(useAppStore.getState())).toMatchObject({
+      kind: 'object',
+      objectId: buildImportedReferenceRowId('shoe:shoe-1'),
+      label: 'Shoe 1',
+    })
+  })
+
+  it('deletes authored component subtrees including child objects', async () => {
+    const { useAppStore } = await import('./useAppStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useAppStore.setState((state) => ({
+      ...state,
+      projectContent: {
+        assembliesById: {
+          'assembly-1': {
+            assemblyId: 'assembly-1',
+            label: 'Assembly 1',
+            parentAssemblyId: null,
+            assemblySourceKind: 'runtime-root',
+            childRowIds: ['component-a'],
+          },
+        },
+        componentsById: {
+          'component-a': {
+            componentId: 'component-a',
+            parentAssemblyId: 'assembly-1',
+            ownerGraphDocumentId: null,
+            sourceGraphDocumentId: null,
+            sourceOutputEntryId: null,
+            sourceNodeId: null,
+            label: 'Component A',
+            componentSourceKind: 'authored',
+            resolutionState: 'resolved',
+            receiveId: null,
+            childObjectIds: ['object-a'],
+          },
+        },
+        objectsById: {
+          'object-a': {
+            objectId: 'object-a',
+            ownerGraphDocumentId: 'graph-document-1',
+            parentAssemblyId: 'assembly-1',
+            parentComponentId: 'component-a',
+            objectSourceKind: 'published-object',
+            sourceGraphDocumentId: 'graph-document-1',
+            sourceOutputEntryId: 'output-a',
+            sourceNodeId: 'node-a',
+            slotId: 'slot-a',
+            label: 'Object A',
+            resolutionState: 'resolved',
+          },
+        },
+      },
+      workspaceSelection: {
+        ...state.workspaceSelection,
+        selectedTarget: { kind: 'object', objectId: 'object-a' },
+        explicitSelectedTargets: [{ kind: 'object', objectId: 'object-a' }],
+        selectionAnchorTarget: { kind: 'object', objectId: 'object-a' },
+        resolvedContentSelection: null,
+      },
+    }))
+
+    expect(
+      useAppStore.getState().deleteProjectContentOwner({
+        kind: 'component',
+        componentId: 'component-a',
+      }),
+    ).toBe(true)
+
+    expect(useAppStore.getState().projectContent.componentsById['component-a']).toBeUndefined()
+    expect(useAppStore.getState().projectContent.objectsById['object-a']).toBeUndefined()
+    expect(useAppStore.getState().workspaceSelection.selectedTarget).toBeNull()
   })
 
   it('clears resolved grouped content selection when the primary workspace target changes', async () => {
@@ -592,6 +1138,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
       {
         componentId: 'project-component:project-file-1:graph-document-1:published',
         ownerGraphDocumentId: 'graph-document-1',
+        parentAssemblyId: 'assembly-root:project-file-1',
         sourceGraphDocumentId: 'graph-document-1',
         sourceOutputEntryId: null,
         sourceNodeId: null,
@@ -613,6 +1160,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
       {
         componentId: 'project-component:project-file-1:graph-document-1:published',
         ownerGraphDocumentId: 'graph-document-1',
+        parentAssemblyId: 'assembly-root:project-file-1',
         sourceGraphDocumentId: 'graph-document-1',
         sourceOutputEntryId: null,
         sourceNodeId: null,
@@ -673,6 +1221,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
       {
         componentId: 'project-component:project-file-1:graph-document-1:published',
         ownerGraphDocumentId: 'graph-document-1',
+        parentAssemblyId: 'assembly-root:project-file-1',
         sourceGraphDocumentId: 'graph-document-1',
         sourceOutputEntryId: null,
         sourceNodeId: null,
@@ -698,6 +1247,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
         {
           rowId: 'assembly-root:project-file-1',
           kind: 'assembly',
+          parentAssemblyId: null,
           label: 'Assembly 1',
           meta: '',
           isVisible: true,
@@ -716,6 +1266,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
         {
           rowId: 'project-component:project-file-1:graph-document-1:published',
           kind: 'component',
+          parentAssemblyId: 'assembly-root:project-file-1',
           label: 'Component 1',
           meta: 'Graph 1',
           isVisible: true,
@@ -746,6 +1297,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
         {
           rowId: 'project-object:project-file-1:graph-document-1:output-object:slot-baseplate',
           kind: 'object',
+          parentAssemblyId: 'assembly-root:project-file-1',
           label: 'Object 1',
           meta: '',
           isVisible: true,
@@ -770,6 +1322,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
         {
           rowId: 'project-object:project-file-1:graph-document-1:output-object:slot-toe-hook',
           kind: 'object',
+          parentAssemblyId: 'assembly-root:project-file-1',
           label: 'Object 2',
           meta: '',
           isVisible: true,
@@ -1730,6 +2283,77 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
           visibleItemCount: 3,
         }),
       ]),
+    })
+  })
+
+  it('projects shared reference runtime traits through workspace items and unified content rows', async () => {
+    const {
+      resolveReferenceRuntimeTraits,
+      selectCurrentProjectContentBrowserRows,
+      selectReferenceWorkspaceItems,
+      useAppStore,
+    } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+
+    useAppStore.getState().setReferenceItemVisibility('shoe:shoe-1', true)
+      useAppStore.getState().setReferenceItemLoadState('shoe:shoe-1', 'error', 'Load failed')
+      useAppStore.getState().setReferenceItemPartRows('shoe:shoe-1', [
+        {
+          partKey: 'shoe:shoe-1:sole',
+          label: 'Sole',
+        },
+      ])
+
+    expect(resolveReferenceRuntimeTraits(useAppStore.getState(), 'shoe:shoe-1')).toMatchObject({
+      isVisible: true,
+      loadState: 'error',
+        errorMessage: 'Load failed',
+        parts: [
+          {
+            rowId: 'reference-part-row:shoe:shoe-1:sole',
+            partKey: 'shoe:shoe-1:sole',
+            label: 'Sole',
+          },
+        ],
+    })
+
+    expect(
+      selectReferenceWorkspaceItems(useAppStore.getState()).find((item) => item.referenceId === 'shoe:shoe-1'),
+    ).toMatchObject({
+      isVisible: true,
+      loadState: 'error',
+        errorMessage: 'Load failed',
+        parts: [
+          {
+            rowId: 'reference-part-row:shoe:shoe-1:sole',
+            partKey: 'shoe:shoe-1:sole',
+            label: 'Sole',
+          },
+        ],
+    })
+
+    expect(
+      selectCurrentProjectContentBrowserRows({
+        currentProject: useAppStore.getState().currentProject,
+        projectContent: useAppStore.getState().projectContent,
+        sketchVisibilityByRowId: useAppStore.getState().sketchVisibilityByRowId,
+        referenceWorkspace: useAppStore.getState().referenceWorkspace,
+        graphRuntimeByDocumentId: useSpaghettiStore.getState().graphRuntimeByDocumentId,
+        graphDocumentsById: useSpaghettiStore.getState().graphDocumentsById,
+      }).find((row) => row.kind === 'object' && row.referenceId === 'shoe:shoe-1'),
+    ).toMatchObject({
+      isVisible: true,
+      referenceLoadState: 'error',
+        errorMessage: 'Load failed',
+        partRows: [
+          {
+            rowId: 'reference-part-row:shoe:shoe-1:sole',
+            partKey: 'shoe:shoe-1:sole',
+            label: 'Sole',
+          },
+        ],
     })
   })
 

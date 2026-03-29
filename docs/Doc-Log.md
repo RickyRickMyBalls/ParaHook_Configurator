@@ -3,6 +3,93 @@
 ## Doc Header
 
 ### Doc History
+491. 2026-03-28 23:36: Cleaned up the Browser-family docs after shipping `Browser-10.5 - Compatibility Seam Retirement` by adding the shipped phase record under `Browser/Shipped/`, updating the Browser-10 umbrella plus `docs/Human-Plans/Architecture/Browser/Browser-Index.md` to point at the canonical shipped result, removing the duplicate future copy, and refreshing `docs/Doc-Index.md` so the Browser docs map reflects the landed seam-retirement cleanup
+490. 2026-03-28 23:26: Tightened `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-10.5 - Compatibility Seam Retirement.md` into an implementation-ready Browser subphase by grounding it in the surviving post-`10.4` legacy target kinds, Browser row-selection compatibility helpers, and Console staged-navigation reference-session branches, and updated the Browser-10 umbrella plus `docs/Human-Plans/Architecture/Browser/Browser-Index.md` to mirror that stronger seam-retirement read
+489. 2026-03-28 23:14: Cleaned up the Browser-family docs after shipping `Browser-10.4 - Load And Runtime Traits On Normal Nodes` by adding the shipped phase record under `Browser/Shipped/`, updating the Browser-10 umbrella plus `docs/Human-Plans/Architecture/Browser/Browser-Index.md` to point at the canonical shipped result, removing the duplicate future copy, and refreshing `docs/Doc-Index.md` so the Browser docs map reflects the landed runtime-trait cleanup
+488. 2026-03-28 22:53: Tightened `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-10.4 - Load And Runtime Traits On Normal Nodes.md` into an implementation-ready Browser subphase by grounding it in the live `referenceWorkspace` load/visibility/error/part-row/runtime seams, and updated the Browser-10 umbrella plus `docs/Human-Plans/Architecture/Browser/Browser-Index.md` to mirror that stronger runtime-trait cleanup read
+487. 2026-03-28 22:51: Cleaned up the Browser-family docs after shipping `Browser-10.3 - Unified Owner Routing Across Browser Console And Viewer` by adding the shipped phase record under `Browser/Shipped/`, updating the Browser-10 umbrella plus `docs/Human-Plans/Architecture/Browser/Browser-Index.md` to point at the canonical shipped result, removing the duplicate future copy, and refreshing `docs/Doc-Index.md` so the Browser docs map reflects the landed owner-routing cleanup
+486. 2026-03-28 22:33: Tightened `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-10.3 - Unified Owner Routing Across Browser Console And Viewer.md` into an implementation-ready Browser subphase by grounding it in the live Browser selection, Console context, viewer highlight, and workspace-intent seams that still translate unified Browser rows back into old reference target kinds, and updated the Browser-10 umbrella plus `docs/Human-Plans/Architecture/Browser/Browser-Index.md` to mirror that stronger routing-cleanup read
+485. 2026-03-28 22:21: Cleaned up the Browser-family docs after shipping `Browser-10.2 - Single Browser Tree Derivation` by adding the shipped phase record under `Browser/Shipped/`, updating `docs/Human-Plans/Architecture/Browser/Browser-Index.md` plus the Browser-10 umbrella doc to point at the shipped result, removing the duplicate future copy, and refreshing `docs/Doc-Index.md` so the Browser docs map reflects the landed one-lane tree-derivation cut
+484. 2026-03-28 21:52: Tightened `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-10.2 - Single Browser Tree Derivation.md` into an implementation-ready Browser subphase by grounding it in the live `selectBrowserTreeRows(...)` mixed derivation seam, and updated the Browser-10 umbrella plus `docs/Human-Plans/Architecture/Browser/Browser-Index.md` to mirror that stronger first-pass read
+483. 2026-03-28 21:50: Cleaned up the Browser-10 docs after landing `Browser-10.1 - Unified Reference-Backed Project Owner Records` by adding the shipped phase record under `Browser/Shipped/`, updating the Browser-10 umbrella and `docs/Human-Plans/Architecture/Browser/Browser-Index.md` to point at the shipped file, removing the duplicate future copy, and refreshing `docs/Doc-Index.md` so the Browser docs map shows the new shipped state cleanly
+482. 2026-03-28 21:45: Tightened `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-10.1 - Unified Reference-Backed Project Owner Records.md` into an implementation-ready Browser subphase by grounding it in the live `importedReferencesById` and `imported-reference` owner seam, and updated the Browser-10 umbrella plus `docs/Human-Plans/Architecture/Browser/Browser-Index.md` to mirror that stronger first-pass read
+481. 2026-03-28 21:40: Added the standalone future Browser phase docs `Browser-10.1` through `Browser-10.5`, updated the Browser-10 umbrella doc to link each subphase, refreshed `docs/Human-Plans/Architecture/Browser/Browser-Index.md` so the Browser-10 ladder is explicit in the family index, and refreshed `docs/Doc-Index.md` so the new future planning surfaces are discoverable
+480. 2026-03-28 21:35: Deleted the duplicate shipped Browser-9.1 through Browser-9.7 phase files from `docs/Human-Plans/Architecture/Browser/Future/`, rewired the Browser umbrella docs to point only at the canonical shipped records, and refreshed `docs/Doc-Index.md` so the Browser docs map no longer lists both future and shipped copies of the same `9.x` phases
+479. 2026-03-28 21:35: Cleaned up the Browser future planning docs by turning `Browser-10 - Unified Project Object Tree Source Of Truth` into an explicit umbrella reset with proposed subphases, relabeling the carried Browser-9.4 through Browser-9.7 future files as retained planning-history docs in the Browser-9 umbrella, and refreshing `docs/Human-Plans/Architecture/Browser/Browser-Index.md` so the active next-step ladder reads more cleanly
+478. 2026-03-28 21:24: Added the new standalone Browser future phase doc `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-10 - Unified Project Object Tree Source Of Truth.md`, updated `docs/Human-Plans/Architecture/Browser/Browser-Index.md` so the Browser family now locks one true project-tree direction after the Browser-9 ladder, and refreshed `docs/Doc-Index.md` so the new Browser-10 planning surface is discoverable
+477. 2026-03-28 20:47: Cleaned up the Browser-family docs after shipping `Browser-9.7 - Normal Assembly Component Rows For Reference Hierarchy` by adding the shipped phase record, marking the phase shipped in `docs/Human-Plans/Architecture/Browser/Browser-Index.md`, updating the Browser-9 umbrella doc to point at the shipped record, and refreshing `docs/Doc-Index.md` so the Browser docs map reflects the landed clean-tree container convergence
+476. 2026-03-28 20:47: Added the shipped Browser phase record `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-9.7 - Normal Assembly Component Rows For Reference Hierarchy.md` and rewrote the Browser-family docs around the landed result where `References` plus its visible grouping containers now render as normal content-lane assembly/component rows
+475. 2026-03-28 20:24: Tightened `Browser-9.7 - Normal Assembly Component Rows For Reference Hierarchy` into an implementation-ready Browser follow-on by grounding it in the live `referenceRows` versus `contentRows` split, row-family adapters, interaction and staged-navigation compatibility seams, and locking that the converged `References` assembly plus grouping components must join the normal content-row lane in the first pass
+474. 2026-03-28 20:24: Added the next Browser-9 follow-on `Browser-9.7 - Normal Assembly Component Rows For Reference Hierarchy`, updated the Browser umbrella docs so the new container-species-removal direction is locked after shipped `9.6`, created the standalone future phase doc under `Browser/Future/`, and refreshed `docs/Doc-Index.md` so the new planning surface is discoverable
+473. 2026-03-28 20:12: Cleaned up the Browser-family docs after shipping `Browser-9.6 - Placement Shelf Removal And Single Object Identity` by adding the shipped phase record, marking `9.6` shipped in the Browser umbrella docs, refreshing the Browser subtree in `docs/Doc-Index.md`, and recording the implementation in `docs/CHANGELOG.md`
+472. 2026-03-28 20:05: Tightened `Browser-9.6 - Placement Shelf Removal And Single Object Identity` into an implementation-ready Browser follow-on by grounding it in the live manifest-versus-imported owner split, updating the Browser umbrella docs to mirror that stronger read, and locking that the practical first pass should widen the existing imported-reference owner seam rather than inventing a third long-lived manifest-owner path
+471. 2026-03-28 19:54: Added the next Browser-9 follow-on `Browser-9.6 - Placement Shelf Removal And Single Object Identity`, updated the Browser umbrella docs so the new no-copy single-object-identity direction is locked after shipped `9.5`, created the standalone future phase doc under `Browser/Future/`, and refreshed `docs/Doc-Index.md` so the new planning surface is discoverable
+470. 2026-03-28 19:47: Cleaned up the Browser-family docs after shipping `Browser-9.5 - Library Object Rows And Direct Placement Drag` by adding the shipped phase record, marking `9.5` shipped in the Browser umbrella docs, refreshing the Browser subtree in `docs/Doc-Index.md`, and recording the implementation in `docs/CHANGELOG.md`
+469. 2026-03-28 19:31: Tightened `Browser-9.5 - Library Object Rows And Direct Placement Drag` into an implementation-ready Browser follow-on by grounding the phase against the live Browser/store seams, updating `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-9 - Reference Tree Convergence Into Standard Content Hierarchy.md` and `docs/Human-Plans/Architecture/Browser/Browser-Index.md` to mirror that stronger read, and clarifying that source-library drag needs a separate placement seam beside `moveProjectContentOwner(...)`
+468. 2026-03-28 19:24: Locked the remaining Browser-9 convergence questions in `docs/Human-Plans/Architecture/Browser/Browser-Index.md`, updated `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-9 - Reference Tree Convergence Into Standard Content Hierarchy.md` to carry the same locked direction plus the new `Browser-9.5` follow-on, added `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-9.5 - Library Object Rows And Direct Placement Drag.md`, and refreshed the Browser subtree in `docs/Doc-Index.md`
+467. 2026-03-28 19:18: Expanded `docs/Human-Plans/Architecture/Browser/Browser-Index.md` with a more explicit Fusion-style Browser-9.5 plan, locking that library rows like `XL.step` should read as normal `Object` rows, should drag directly into legal `Assembly` / `Subassembly` / `Component` owners, and should differ from landed/generated objects only through source/origin presentation plus backend placement seams
+466. 2026-03-28 18:32: Cleaned up the Browser-family docs after landing `Browser-9.4 - Imported Object Promotion To True Content Owners` by adding the shipped phase record `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-9.4 - Imported Object Promotion To True Content Owners.md`, marking the `9.4` decision shipped in `docs/Human-Plans/Architecture/Browser/Browser-Index.md`, and updating the umbrella Browser-9 future phase doc to point at the shipped follow-on
+465. 2026-03-28 17:39: Tightened `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-9.4 - Imported Object Promotion To True Content Owners.md` into an implementation-ready Browser follow-on by locking the first-pass constraints, concrete imported-owner target seams, compatibility-preserving type direction, and a sharper regression matrix around drag/reparent plus transform stability
+464. 2026-03-28 17:36: Added the standalone future Browser subphase doc `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-9.4 - Imported Object Promotion To True Content Owners.md`, locking the next follow-on where imported/reference-backed object rows become true content-owner rows for Browser ownership behavior while preserving the current imported-object transform compatibility seam
+463. 2026-03-28 17:31: Expanded the Browser-9 planning docs by adding the next future subphase `Browser-9.4 - Imported Object Promotion To True Content Owners` in `docs/Human-Plans/Architecture/Browser/Browser-Index.md` and `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-9 - Reference Tree Convergence Into Standard Content Hierarchy.md`, capturing the follow-on where imported/reference-backed object rows become true content owners without giving up current transform compatibility
+462. 2026-03-28 17:24: Cleaned up the Browser-family docs after landing `Browser-9.3 - Part Row Exposure For Imported Objects` by marking the Browser-9 q3 decision shipped in `docs/Human-Plans/Architecture/Browser/Browser-Index.md`, adding the shipped phase record `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-9.3 - Part Row Exposure For Imported Objects.md`, and recording the implementation in `docs/CHANGELOG.md`
+461. 2026-03-28 17:07: Tightened `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-9.3 - Part Row Exposure For Imported Objects.md` into an implementation-ready Browser subphase by locking truthful part-row exposure from source structure only, preserving one structural `Object` row type plus imported-object visual treatment above visible parts, and sharpening the Browser selection/transform compatibility boundary before later shared object-transform convergence
+460. 2026-03-28 16:58: Cleaned up the Browser-family docs after landing `Browser-9.2 - Import Landing And Hierarchy Mapping` by marking the phase shipped in `docs/Human-Plans/Architecture/Browser/Browser-Index.md`, adding the shipped phase record `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-9.2 - Import Landing And Hierarchy Mapping.md`, and recording the implementation in `docs/CHANGELOG.md`
+459. 2026-03-28 16:52: Tightened `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-9.2 - Import Landing And Hierarchy Mapping.md` into an implementation-ready Browser subphase by locking exact import parent-resolution order, object-first hierarchy mapping, the no-extra-wrapper baseline for simple single-object imports, and the boundary that current imported-object transform compatibility should stay intact while Browser import landing changes
+458. 2026-03-28 16:32: Cleaned up the Browser-family docs after landing `Browser-9.1 - Reference Tree Convergence Baseline` by adding the shipped phase record `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-9.1 - Reference Tree Convergence Baseline.md`, linking that shipped subphase from `docs/Human-Plans/Architecture/Browser/Browser-Index.md`, and recording the implementation in `docs/CHANGELOG.md`
+457. 2026-03-28 16:44: Tightened the Browser-9 planning set by updating `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-9 - Reference Tree Convergence Into Standard Content Hierarchy.md` and `docs/Human-Plans/Architecture/Browser/Browser-Index.md` so the umbrella Browser-9 direction now clearly carries the unified structural `Object` row model, imported-versus-generated visual treatment, and the new `q4` boundary that `Browser-9.1` should preserve current reference-transform compatibility while the Browser tree converges
+456. 2026-03-28 16:40: Tightened `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-9.1 - Reference Tree Convergence Baseline.md` into an implementation-ready Browser phase by locking the unified structural `Object` row model, imported-versus-generated visual treatment, and the boundary that `Browser-9.1` should preserve current reference-transform compatibility through an adapter seam while the Browser tree converges
+455. 2026-03-28 16:31: Expanded `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-9 - Reference Tree Convergence Into Standard Content Hierarchy.md` with the new object-type and transform-convergence direction, locking one structural `Object` row type across imported and generated content, preserving darker/static imported rows versus generated loading-bar rows through origin/runtime traits, and recording the long-term goal that the stronger reference/viewer transform shell should become the shared object transform entry for both object origins
+454. 2026-03-28 16:24: Added the standalone future Browser subphase docs `Browser_Phase Browser-9.1 - Reference Tree Convergence Baseline.md`, `Browser_Phase Browser-9.2 - Import Landing And Hierarchy Mapping.md`, and `Browser_Phase Browser-9.3 - Part Row Exposure For Imported Objects.md`, and updated the umbrella `Browser-9` future phase doc to link each subphase to its dedicated planning surface
+453. 2026-03-28 16:18: Expanded `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-9 - Reference Tree Convergence Into Standard Content Hierarchy.md` with an explicit `Browser-9.1 / 9.2 / 9.3` subphase breakdown and a dedicated `Questions / Decisions` block for each subphase, separating the planning work between reference-tree convergence, import landing/hierarchy mapping, and later part-row exposure for imported objects
+452. 2026-03-28 16:12: Tightened `docs/Human-Plans/Architecture/Browser/Browser-Index.md` around the new `Browser-9` direction by locking the first three hierarchy-convergence decisions and added the standalone future phase doc `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-9 - Reference Tree Convergence Into Standard Content Hierarchy.md`, deciding that `References` becomes a normal assembly, category rows become normal components, default single-object imports stay object-first, and imported objects can later expose child `Part` rows when their source structure already contains them
+451. 2026-03-28 16:02: Expanded `docs/Human-Plans/Architecture/Browser/Browser-Index.md` with a new `Browser-9 - Reference Tree Convergence Into Standard Content Hierarchy` phase, locking the direction that `References` should become a normal `Assembly`, category rows like `Footpads` / `Shoes` / `Premade Foothooks` should become normal `Component`s, and imported pubparts should later be able to expose child `Part` rows in Browser instead of preserving the older special reference-tree species
+450. 2026-03-28 15:48: Tightened `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-8.8.4 - Reintroduce Richer Hierarchy Guidance Carefully.md` into a more implementation-ready Browser follow-on by locking a restrained first pass around subtle active-branch line emphasis and an optional small junction marker, while mirroring that stronger read in `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
+449. 2026-03-28 15:44: Cleaned up the Browser-family docs after shipping `Browser-8.8.3 - Motion And Rearrange Polish` by moving `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-8.8.3 - Motion And Rearrange Polish.md` into `Browser/Shipped/`, marking the phase shipped in `docs/Human-Plans/Architecture/Browser/Browser-Index.md`, and rewriting the standalone phase record to reflect the landed Browser motion-and-slot-communication polish pass
+448. 2026-03-28 15:36: Tightened `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-8.8.3 - Motion And Rearrange Polish.md` into a more implementation-ready Browser follow-on by locking the exact cross-parent insert-line rule, keeping motion secondary to target trust, sharpening the expected Browser drag seams, and mirroring that stronger read in `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
+447. 2026-03-28 15:32: Expanded `docs/Human-Plans/Architecture/Browser/Browser-Index.md` and `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-8.8.3 - Motion And Rearrange Polish.md` so the next Browser drag follow-on now explicitly keeps the blue insert-line language consistent across legal cross-parent moves, locking that owner highlight should stay secondary while the primary cue remains the final landing slot
+446. 2026-03-28 15:28: Cleaned up the Browser-family docs after shipping `Browser-8.8.2 - Target Clarity And Trust Tuning` by moving `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-8.8.2 - Target Clarity And Trust Tuning.md` into `Browser/Shipped/`, marking the phase shipped in `docs/Human-Plans/Architecture/Browser/Browser-Index.md`, and rewriting the standalone phase record to reflect the landed Browser target-trust tuning pass
+445. 2026-03-28 15:13: Tightened `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-8.8.2 - Target Clarity And Trust Tuning.md` into a more implementation-ready Browser trust-tuning phase by locking the row-band boundary, nearest-legal fallback, collapsed-owner readability, and verification scope, while mirroring that stronger read in `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
+444. 2026-03-28 15:08: Cleaned up the Browser-family docs after shipping `Browser-8.8.1 - Simple Reliable Rearrange Baseline` by moving `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-8.8.1 - Simple Reliable Rearrange Baseline.md` into `Browser/Shipped/`, marking the phase shipped in `docs/Human-Plans/Architecture/Browser/Browser-Index.md`, and rewriting the standalone phase record to reflect the landed simpler real-row drag baseline
+443. 2026-03-28 21:18: Tightened `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-8.8.1 - Simple Reliable Rearrange Baseline.md` into a more implementation-ready Browser reset phase by locking the exact insert-line versus owner-highlight grammar, simple top/middle/bottom band rules, dragged-source stability, expected Browser drag seams, and a sharper first-pass regression matrix, while mirroring that stronger read in `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
+442. 2026-03-28 21:14: Added the standalone future Browser phase docs `Browser_Phase Browser-8.8.1 - Simple Reliable Rearrange Baseline.md`, `Browser_Phase Browser-8.8.2 - Target Clarity And Trust Tuning.md`, `Browser_Phase Browser-8.8.3 - Motion And Rearrange Polish.md`, and `Browser_Phase Browser-8.8.4 - Reintroduce Richer Hierarchy Guidance Carefully.md` under `docs/Human-Plans/Architecture/Browser/Future/`, so the post-`8.7` drag restart ladder now has one dedicated planning surface per restart subphase
+441. 2026-03-28 21:11: Restructured `docs/Human-Plans/Architecture/Browser/Browser-Index.md` so the new `Browser-8.8 - Reliable Drag Interaction Rebuild` direction now breaks into explicit `8.8.1` through `8.8.4` restart subphases, sequencing the next drag work from a simple normal rearrange baseline into later target tuning, motion polish, and only then optional richer hierarchy guidance
+440. 2026-03-28 21:05: Expanded `docs/Human-Plans/Architecture/Browser/Browser-Index.md` with a new `Browser-8.8 - Reliable Drag Interaction Rebuild` follow-on so the Browser family now preserves a simpler post-`8.7` drag reset direction, locking the idea that the next pass should keep the pointer foundation but replace the glitchy fake-tree preview with a calmer insert-line plus owner-highlight model before richer hierarchy preview returns
+439. 2026-03-28 20:55: Cleaned up the Browser-family docs after shipping `Browser-8.7 - Pointer-Driven Drag Engine Rebuild` by moving `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-8.7 - Pointer-Driven Drag Engine Rebuild.md` into `Browser/Shipped/`, marking the phase shipped in `docs/Human-Plans/Architecture/Browser/Browser-Index.md`, and recording the landed pointer-driven drag-engine rebuild in the standalone shipped phase record
+438. 2026-03-28 20:41: Tightened `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-8.7 - Pointer-Driven Drag Engine Rebuild.md` into a more implementation-ready Browser rebuild spec by locking that `8.7` absorbs the narrower `8.6` drag-smartness work, the pointer-session threshold plus selection handoff model, the Browser row-geometry registration seam, the local-branch-only live-tree preview contract, and a sharper pointer-first verification matrix, while mirroring that stronger read in `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
+437. 2026-03-28 20:34: Added the standalone future Browser phase doc `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-8.7 - Pointer-Driven Drag Engine Rebuild.md`, and updated `docs/Human-Plans/Architecture/Browser/Browser-Index.md` so the Browser family now has one dedicated planning surface for the larger pointer-driven drag-engine rebuild fallback
+436. 2026-03-28 20:30: Expanded `docs/Human-Plans/Architecture/Browser/Browser-Index.md` so `Browser-8.7 - Pointer-Driven Drag Engine Rebuild` now explicitly keeps the hierarchy tree live and connected during drag, locking the direction that local branch lines should animate/re-wire in place and that one small active junction dot can mark the current provisional attachment point
+435. 2026-03-28 20:24: Expanded `docs/Human-Plans/Architecture/Browser/Browser-Index.md` so `Browser-8.7 - Pointer-Driven Drag Engine Rebuild` now explicitly uses live hierarchy/tree lines as the main drag guidance system, locking the direction that provisional branch ownership, indent/depth, and connector lines should explain re-arrangement more than floating target-box UI
+434. 2026-03-28 20:18: Expanded `docs/Human-Plans/Architecture/Browser/Browser-Index.md` with a new `Browser-8.7 - Pointer-Driven Drag Engine Rebuild` follow-on so the Browser family now preserves the larger drag cleanup/rebuild fallback, locking the direction that ParaHook should keep the structured content legality and tree truth but later replace the native HTML drag interaction layer with a pointer-driven engine if the patched native path still feels too glitchy
+433. 2026-03-28 20:10: Tightened `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-8.6 - Depth-Lane Drag Interaction.md` into a more implementation-ready Browser phase by locking lane derivation, explicit lane-guidance rendering, default-lane bias plus hysteresis behavior, concrete Browser drag seams, and a sharper verification matrix, while mirroring that stronger read in `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
+432. 2026-03-28 20:08: Added the standalone future Browser phase doc `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-8.6 - Depth-Lane Drag Interaction.md`, and updated `docs/Human-Plans/Architecture/Browser/Browser-Index.md` so the post-`8.5` nested drag interaction upgrade now has its own dedicated planning surface for the vertical-slot plus horizontal-depth lane model
+431. 2026-03-28 20:06: Expanded `docs/Human-Plans/Architecture/Browser/Browser-Index.md` with additional locked `Browser-8.6` depth-lane questions/decisions covering explicit lane guidance, equal-width lane behavior, collapsed-owner participation, and default-lane bias so the later nested drag interaction has a fuller contract before implementation
+430. 2026-03-28 19:58: Cleaned up the Browser-family docs after shipping `Browser-8.5 - Drag Session Architecture Cleanup` by moving `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-8.5 - Drag Session Architecture Cleanup.md` into `Browser/Shipped/`, marking the phase shipped in `docs/Human-Plans/Architecture/Browser/Browser-Index.md`, and recording the landed drag-session refactor in the standalone shipped phase record
+429. 2026-03-28 19:49: Tightened `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-8.5 - Drag Session Architecture Cleanup.md` into a more implementation-ready Browser phase by locking the drag-session coordinator shape, the pure legality/preview-builder split, Browser-level cleanup fallbacks, concrete Browser-panel seams, and a sharper regression matrix, while mirroring that stronger state in `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
+428. 2026-03-28 19:45: Added the standalone future Browser phase doc `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-8.5 - Drag Session Architecture Cleanup.md`, and updated `docs/Human-Plans/Architecture/Browser/Browser-Index.md` so the new drag reliability/foundation rebuild now has its own dedicated planning surface before the later `Browser-8.6` interaction upgrade
+427. 2026-03-28 19:40: Restructured `docs/Human-Plans/Architecture/Browser/Browser-Index.md` so the new drag cleanup ladder now splits cleanly into `Browser-8.5 - Drag Session Architecture Cleanup` for stability/foundation work and `Browser-8.6 - Depth-Lane Drag Interaction` for the later vertical-slot plus horizontal-depth interaction upgrade, carrying the earlier decisions forward into the new phase
+426. 2026-03-28 19:34: Expanded `docs/Human-Plans/Architecture/Browser/Browser-Index.md` again so `Browser-8.5 - Drag Session Architecture Cleanup` now explicitly owns the nested drag depth-lane interaction model, locking vertical slot choice plus horizontal owner-depth choice and adding the first `Questions / Decisions` block for left/right hierarchy mapping, legal lane count, preview retargeting, and hysteresis
+425. 2026-03-28 19:20: Expanded `docs/Human-Plans/Architecture/Browser/Browser-Index.md` with a new `Browser-8.5 - Drag Session Architecture Cleanup` follow-on, reframing the still-glitchy Browser drag/drop work as a structural cleanup of drag-session ownership, pure legality/preview derivation, and Browser-level cleanup/recovery instead of another narrow visual-only polish pass
+424. 2026-03-28 13:19: Updated the `## To do` sequence in `docs/Human-Plans/roadmap/Architecture-roadmap.md` so the new `Edit History` groundwork now comes before later `Pasta Path` sync, and replaced the old roadmap-only `PastaPath-1` placeholder with a descriptive `PastaPath-first-standalone-phase-doc` checklist item
+423. 2026-03-28 13:16: Updated `docs/Human-Plans/roadmap/Architecture-roadmap.md` to add the new `Edit History` family, wiring in the `Edit History 1` through `Edit History 5` ladder so the cross-family roadmap now tracks canonical undo/redo planning beside the older architecture families
+422. 2026-03-28 13:15: Locked the initial questions in `docs/Human-Plans/Architecture/Edit-History/Edit-History-Index.md` into explicit decisions and expanded the new family into a real `Edit History 1` through `Edit History 5` phase ladder, so canonical undo/redo planning now has a sequenced implementation path instead of only an umbrella concept note
+421. 2026-03-28 13:07: Added the new `docs/Human-Plans/Architecture/Edit-History/Edit-History-Index.md` family index, created the folderized `Edit-History` architecture family with `Future/` and `Shipped/`, and refreshed `docs/Doc-Index.md` so canonical undo/redo planning now has a dedicated umbrella home separate from `Pasta-Path`
+420. 2026-03-28 12:58: Cleaned up the Browser-family docs after shipping `Browser-8.4.1 - Drag Preview And Hover Retarget Polish` by moving `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-8.4.1 - Drag Preview And Hover Retarget Polish.md` into `Browser/Shipped/`, marking the polish follow-on shipped in `docs/Human-Plans/Architecture/Browser/Browser-Index.md`, and recording the implementation in `docs/CHANGELOG.md`
+419. 2026-03-28 12:15: Locked the new `Browser-8.4.1` drag-preview polish questions in `docs/Human-Plans/Architecture/Browser/Browser-Index.md` and tightened `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-8.4.1 - Drag Preview And Hover Retarget Polish.md` into a more implementation-ready follow-on by choosing stronger target emphasis plus a lightweight drag ghost, stronger immediate provisional retargeting, a distinct collapsed-owner `into` treatment, and no auto-expand-on-hover in the first polish pass
+418. 2026-03-28 12:13: Added a new `Polish Questions / Decisions` block under the shipped `Browser-8.4` section in `docs/Human-Plans/Architecture/Browser/Browser-Index.md`, so the new `8.4.1` drag-preview follow-on now has concrete open questions around ghost versus placeholder treatment, stronger provisional parent retargeting, collapsed-owner preview emphasis, and whether auto-expand-on-hover should remain out of the first polish pass
+417. 2026-03-28 12:08: Added the standalone future Browser polish doc `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-8.4.1 - Drag Preview And Hover Retarget Polish.md` and linked it from `docs/Human-Plans/Architecture/Browser/Browser-Index.md`, so the post-`8.4` drag-preview readability cleanup now has its own small planning surface without muddying the shipped reparent/drop phase record
+416. 2026-03-28 12:01: Added a small shipped follow-on polish note to `Browser-8.4` in `docs/Human-Plans/Architecture/Browser/Browser-Index.md` and `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-8.4 - Reparenting And Drop Rules.md`, locking the next drag-preview cleanup around stronger provisional parent-target feedback while the user drags across assemblies/components without mutating the real tree until drop
+415. 2026-03-28 11:49: Cleaned up the Browser-family docs after shipping `Browser-8.4 - Reparenting And Drop Rules` by moving `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-8.4 - Reparenting And Drop Rules.md` into `Browser/Shipped/`, marking the phase shipped in `docs/Human-Plans/Architecture/Browser/Browser-Index.md`, and recording the implementation in `docs/CHANGELOG.md`
+414. 2026-03-28 18:55: Tightened the standalone future `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-8.4 - Reparenting And Drop Rules.md` into a more concrete implementation-ready Browser phase by locking first-pass draggable owner kinds, explicit Browser drop intents (`before` / `after` / `into`), moved-owner selection retention after successful drop, and the first-pass boundary that drag/drop remains single-row Browser UI only, while mirroring that stronger state in `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
+413. 2026-03-28 16:31: Cleaned up the shipped `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-8.2 - Folder CRUD In Browser UI And Console.md` record so it no longer reads like an open future spec, marking the phase shipped in the standalone file and updating the wording to reflect landed Browser/Console CRUD behavior
+412. 2026-03-28 16:25: Cleaned up the Browser-family docs after shipping `Browser-8.2 - Folder CRUD In Browser UI And Console` by moving `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-8.2 - Folder CRUD In Browser UI And Console.md` into `Browser/Shipped/`, marking the phase shipped in `docs/Human-Plans/Architecture/Browser/Browser-Index.md`, and recording the implementation in `docs/CHANGELOG.md`
+411. 2026-03-28 15:48: Added the standalone future `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-8.2 - Folder CRUD In Browser UI And Console.md` and tightened it into a more implementation-ready Browser phase by locking the first structured container CRUD scope, the shared Browser/Console entry points, the `Assembly` plus `Component` first-pass authoring rules, and a sharper verification matrix, while mirroring that stronger state in `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
+410. 2026-03-28 15:35: Cleaned up the Browser-family docs after shipping `Browser-8.1 - Container And Leaf Target Semantics` by moving `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-8.1 - Container And Leaf Target Semantics.md` into `Browser/Shipped/`, marking the phase shipped in `docs/Human-Plans/Architecture/Browser/Browser-Index.md`, and recording the implementation in `docs/CHANGELOG.md`
+409. 2026-03-28 00:09: Cleaned up the Transform-family docs after shipping `Transform 15` by moving `docs/Human-Plans/Architecture/Transform/Future/Transform_Phase Transform-15 - Generated Object Viewer Motion Under Viewer Transform.md` into `Shipped/`, marking the phase shipped in `docs/Human-Plans/Architecture/Transform/transform-index.md`, and recording the implementation in `docs/CHANGELOG.md`
+408. 2026-03-27 23:58: Tightened `docs/Human-Plans/Architecture/Transform/Future/Transform_Phase Transform-15 - Generated Object Viewer Motion Under Viewer Transform.md` into a more implementation-ready generated-object widening phase by locking first-pass `published-object` scope, the shared viewer-transform session direction beyond reference-only ownership, explicit viewer-only draft/commit/cancel/history rules, and concrete store/viewer/Console target files, while mirroring those locks in `docs/Human-Plans/Architecture/Transform/transform-index.md`
+407. 2026-03-27 21:02: Tightened `docs/Human-Plans/Architecture/Transform/Future/Transform_Phase Transform-14 - Viewer Transform Rename And Shared Surface Alignment.md` into a more implementation-ready rename/alignment phase by locking the exact user-facing rename scope, clarifying what should stay out of scope, and adding concrete toolbar/Console/doc targets plus a sharper verification checklist, while mirroring that stronger state in `docs/Human-Plans/Architecture/Transform/transform-index.md`
+406. 2026-03-27 20:50: Expanded `docs/Human-Plans/Architecture/Transform/transform-index.md` with a new transform-history cleanup follow-on for deleting the last entry of an older transform commit, locking the direction that the user should confirm re-entry into that prior transform session and then use the normal delete-last-entry behavior from inside it
+405. 2026-03-27 20:46: Expanded `docs/Human-Plans/Architecture/Transform/transform-index.md` with the next multi-select transform cleanup ladder, splitting that direction into `Transform 16` shared multi-select `Viewer Transform` entry plus live group motion and later `Transform 16.1` commit/history/mixed-truth cleanup so the first pass can stay focused on making multi-selection transform actually work
 404. 2026-03-27 20:40: Corrected the lingering drag-direction contradiction in `docs/Human-Plans/Architecture/Camera-Controls/Future/Camera_Controls_Phase Camera-5.1 - Viewer Object Window Selection.md` so the phase now consistently matches the implemented sketch-aligned marquee rule: drag right = `Window` full enclosure and drag left = `Crossing` overlap
 403. 2026-03-27 20:16: Added an explicit plain-language drag-direction rule to `docs/Human-Plans/Architecture/Camera-Controls/Future/Camera_Controls_Phase Camera-5.1 - Viewer Object Window Selection.md`, so the phase now says directly that dragging left counts overlapped objects while dragging right requires full enclosure, and mirrored that rule in the manual smoke-check guidance
 402. 2026-03-27 20:15: Tightened `docs/Human-Plans/Architecture/Camera-Controls/Future/Camera_Controls_Phase Camera-5.1 - Viewer Object Window Selection.md` into a more implementation-ready viewer-selection phase by locking the first eligible object classes, drag-start ownership and threshold rules, screen-space capture semantics, replace-selection behavior, and sharper viewer/host/store verification guidance
@@ -1021,6 +1108,100 @@ Do not use it for:
 - keep numbering sequential unless the user explicitly asks for a renumber pass
 
 ## Doc Body
+
+### [277] - 2026-03-28 20:24 - `DOC - Tighten Browser 9.7 Against Rendered Row And Compatibility Seams`
+
+Tightened the standalone `Browser-9.7 - Normal Assembly Component Rows For Reference Hierarchy` phase doc into an implementation-ready Browser follow-on by grounding it in the current rendered `referenceRows` versus `contentRows` split, the separate `reference` row family, the Browser interaction and context-menu adapters, and the Viewer/Console compatibility seams, and mirrored that stronger read into the Browser umbrella docs so `9.7` now clearly says the converged `References` assembly plus grouping components must move into the normal content-row lane instead of staying stranded in the old special reference lane.
+
+Files changed:
+- `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-9.7 - Normal Assembly Component Rows For Reference Hierarchy.md`
+- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
+- `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-9 - Reference Tree Convergence Into Standard Content Hierarchy.md`
+- `docs/Doc-Log.md`
+
+### [276] - 2026-03-28 20:24 - `DOC - Add Browser 9.7 Reference Container Species Removal Phase`
+
+Added the next Browser follow-on `Browser-9.7 - Normal Assembly Component Rows For Reference Hierarchy`, locking that the Browser should delete the remaining special `References` and reference-category container species, keep the familiar grouping labels, and remap them into normal `Assembly` / `Component` rows while current reference-backed compatibility stays adapter-backed.
+
+Files changed:
+- `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-9.7 - Normal Assembly Component Rows For Reference Hierarchy.md`
+- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
+- `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-9 - Reference Tree Convergence Into Standard Content Hierarchy.md`
+- `docs/Doc-Index.md`
+- `docs/Doc-Log.md`
+
+### [275] - 2026-03-28 20:12 - `DOC - Mark Browser 9.6 Shipped And Add Shipped Phase Record`
+
+Cleaned up the Browser-family docs after the `Browser-9.6 - Placement Shelf Removal And Single Object Identity` implementation by adding a shipped phase record, marking `9.6` shipped in the Browser umbrella docs, and refreshing the Browser subtree in `docs/Doc-Index.md` so the new shipped file is discoverable beside the retained future planning surface.
+
+Files changed:
+- `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-9.6 - Placement Shelf Removal And Single Object Identity.md`
+- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
+- `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-9 - Reference Tree Convergence Into Standard Content Hierarchy.md`
+- `docs/Doc-Index.md`
+- `docs/Doc-Log.md`
+- `docs/CHANGELOG.md`
+
+### [274] - 2026-03-28 20:05 - `DOC - Tighten Browser 9.6 Against Live Owner And Drag Seams`
+
+Tightened the standalone `Browser-9.6 - Placement Shelf Removal And Single Object Identity` phase doc into an implementation-ready Browser follow-on by grounding it in the current manifest-row selector path, imported-reference owner model, `source-reference` drag bridge, and Browser selection adapters, and mirrored that stronger read into the Browser umbrella docs so `9.6` now clearly says the first pass should widen the existing imported-reference owner seam into one unified reference-backed owner model while ordinary Browser drag retires the temporary copy-on-drag bridge from shipped `9.5`.
+
+Files changed:
+- `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-9.6 - Placement Shelf Removal And Single Object Identity.md`
+- `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-9 - Reference Tree Convergence Into Standard Content Hierarchy.md`
+- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
+- `docs/Doc-Log.md`
+
+### [273] - 2026-03-28 19:54 - `DOC - Add Browser 9.6 No-Copy Single-Object Identity Follow-On`
+
+Added the next Browser-9 follow-on after shipped `9.5`, locking that `References` rows like `XL.step` should stop acting like reusable placement sources, that ordinary drag from `References` should move the same object instead of creating a landed copy, and that any future copy creation should come from an explicit duplicate/import/place action rather than normal Browser rearrange.
+
+Files changed:
+- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
+- `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-9 - Reference Tree Convergence Into Standard Content Hierarchy.md`
+- `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-9.6 - Placement Shelf Removal And Single Object Identity.md`
+- `docs/Doc-Index.md`
+- `docs/Doc-Log.md`
+
+### [272] - 2026-03-28 19:47 - `DOC - Mark Browser 9.5 Shipped And Add Shipped Phase Record`
+
+Cleaned up the Browser-family docs after the `Browser-9.5 - Library Object Rows And Direct Placement Drag` implementation by adding a shipped phase record, marking `9.5` shipped in the Browser umbrella docs, and refreshing the Browser subtree in `docs/Doc-Index.md` so the new shipped file is discoverable beside the retained future planning surface.
+
+Files changed:
+- `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-9.5 - Library Object Rows And Direct Placement Drag.md`
+- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
+- `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-9 - Reference Tree Convergence Into Standard Content Hierarchy.md`
+- `docs/Doc-Index.md`
+- `docs/Doc-Log.md`
+
+### [271] - 2026-03-28 19:31 - `DOC - Tighten Browser 9.5 Against Live Drag And Store Seams`
+
+Tightened the standalone `Browser-9.5 - Library Object Rows And Direct Placement Drag` phase doc into an implementation-ready Browser follow-on by grounding it in the current `selectReferenceWorkspaceBrowserTree(...)`, `selectBrowserTreeRows(...)`, `browserContentDrag.ts`, `useBrowserPanelController.ts`, and `useAppStore.ts` seams, and mirrored that stronger read into the Browser umbrella docs so `9.5` now clearly says source/library rows should converge visually into `Object` rows while a separate placement commit seam lands the new working object beside the existing `moveProjectContentOwner(...)` path.
+
+Files changed:
+- `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-9.5 - Library Object Rows And Direct Placement Drag.md`
+- `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-9 - Reference Tree Convergence Into Standard Content Hierarchy.md`
+- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
+- `docs/Doc-Log.md`
+
+### [270] - 2026-03-28 19:24 - `DOC - Lock Browser 9 Decisions And Add Browser 9.5 Future Phase Doc`
+
+Locked the remaining open Browser-9 convergence decisions across the Browser family docs, added the standalone future `Browser-9.5 - Library Object Rows And Direct Placement Drag` phase doc, and refreshed the docs map so the Browser subtree now exposes the current Future/Shipped phase surfaces instead of the older partial listing.
+
+Files changed:
+- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
+- `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-9 - Reference Tree Convergence Into Standard Content Hierarchy.md`
+- `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-9.5 - Library Object Rows And Direct Placement Drag.md`
+- `docs/Doc-Index.md`
+- `docs/Doc-Log.md`
+
+### [269] - 2026-03-28 19:18 - `DOC - Add Fusion Style Direct Library Object Drag Plan To Browser 9`
+
+Expanded the Browser umbrella doc with a more explicit Fusion-style Browser-9.5 plan so rows like `XL.step` now read as the next direct-placement target: a normal Browser `Object` row that should drag into any legal `Assembly` / later `Subassembly` / `Component` owner, with source-versus-landed differences kept in metadata, styling, and commit seams instead of a second row species.
+
+Files changed:
+- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
+- `docs/Doc-Log.md`
 
 ### [268] - 2026-03-25 20:41 - `DOC - Tighten Worker 5.3A-7 Final Cutover Phase Against Live Code`
 
@@ -5898,3 +6079,464 @@ HUMAN SUMMARY: `Created the new permanent document-history file at \`docs/Doc-Lo
 #### Notes
 - This file starts at entry `[001]`.
 - Earlier documentation history remains in existing docs and local `Doc History` sections.
+<!-- ENTRY 410 -->
+### [410] - 2026-03-28 00:31 - `DOC - Add Transform 15.1 Shared Viewer Transform Cleanup Follow-On`
+<!-- ENTRY 410 -->
+HUMAN SUMMARY: `Added a new Transform-family cleanup phase between generated-object widening and multi-select so \`Viewer Transform\` can unify reference and object behavior behind one clearer target-adapter seam, and locked a new focused-target toolbar section that can later widen into the multi-select target list.` 
+
+#### Scope
+- Added one new standalone future phase doc under the Transform family.
+- Updated the Transform family index so the next-step ladder now includes `Transform 15.1`.
+- Did not change runtime code or shipped transform behavior.
+
+#### Summary
+- Created `Transform 15.1 - Shared Viewer Transform Target Adapter Cleanup`.
+- Locked the direction that references and generated objects should share one `Viewer Transform` system while persistence differences stay below the shell.
+- Locked a new focused-target section in the toolbar as the single-target precursor to the later multi-select target list.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Transform/Future/Transform_Phase Transform-15.1 - Shared Viewer Transform Target Adapter Cleanup.md`
+- `docs/Human-Plans/Architecture/Transform/transform-index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was a docs-only planning cleanup; no implementation work was performed.
+<!-- ENTRY 411 -->
+### [411] - 2026-03-28 00:36 - `DOC - Tighten Transform 15.1 Shared Template And Snap Parity Cleanup`
+<!-- ENTRY 411 -->
+HUMAN SUMMARY: `Tightened \`Transform 15.1\` into a more implementation-ready cleanup spec so \`Viewer Transform\` can share one target-adapter/template direction across references and generated objects, and explicitly pulled object snap parity into that same cleanup instead of leaving snap reference-only.` 
+
+#### Scope
+- Refined the existing `Transform 15.1` future phase doc rather than creating a new numbered follow-on.
+- Updated the Transform family index so the cleanup now explicitly owns object snap parity and shared template direction.
+- Did not change runtime code or shipped transform behavior.
+
+#### Summary
+- Added explicit shared-template language to `Transform 15.1`.
+- Locked the direction that snap should move into the same shared target-adapter model instead of staying reference-only.
+- Sharpened implementation targets and verification expectations for the future cleanup.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Transform/Future/Transform_Phase Transform-15.1 - Shared Viewer Transform Target Adapter Cleanup.md`
+- `docs/Human-Plans/Architecture/Transform/transform-index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was a docs-only planning refinement; no implementation work was performed.
+<!-- ENTRY 412 -->
+### [412] - 2026-03-28 00:42 - `DOC - Make Transform 15.1 Implementation Ready`
+<!-- ENTRY 412 -->
+HUMAN SUMMARY: `Made \`Transform 15.1\` implementation-ready by locking the shared \`Viewer Transform\` target-descriptor shape, the new object-side snap-state widening direction, the focused-target toolbar section contract, and the concrete verification matrix for the cleanup.` 
+
+#### Scope
+- Tightened the existing `Transform 15.1` future phase into implementation-ready detail.
+- Updated the Transform family index to reflect that sharper locked direction.
+- Did not change runtime code or current transform behavior.
+
+#### Summary
+- Locked the exact shared target-adapter/template contract for `Viewer Transform`.
+- Added the `transformSnapByObjectId` widening direction so object snap parity has a concrete store seam.
+- Sharpened the focused-target section contract and test expectations.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Transform/Future/Transform_Phase Transform-15.1 - Shared Viewer Transform Target Adapter Cleanup.md`
+- `docs/Human-Plans/Architecture/Transform/transform-index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was docs-only; no implementation work was performed.
+<!-- ENTRY 413 -->
+### [413] - 2026-03-28 00:48 - `DOC - Mark Transform 15.1 Shipped After Shared Object Snap Cleanup`
+<!-- ENTRY 413 -->
+HUMAN SUMMARY: `Cleaned up the Transform-family docs after shipping \`Transform 15.1\`, moving its standalone record into \`Shipped/\`, marking the phase shipped in the transform index, and recording the implementation in \`docs/CHANGELOG.md\`.` 
+
+#### Scope
+- Moved the `Transform 15.1` standalone phase record from `Future/` into `Shipped/`.
+- Updated the Transform family index so the next open follow-ons now start at multi-select.
+- Logged the shipped implementation in `docs/CHANGELOG.md`.
+
+#### Summary
+- Marked `Transform 15.1` shipped after the shared target-adapter cleanup landed.
+- Updated the roadmap so `Transform 16` is now the next open transform phase.
+- Preserved the standalone shipped record for future historical reference.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Transform/Shipped/Transform_Phase Transform-15.1 - Shared Viewer Transform Target Adapter Cleanup.md`
+- `docs/Human-Plans/Architecture/Transform/transform-index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This entry records docs cleanup after a shipped implementation, not separate runtime work.
+<!-- ENTRY 414 -->
+### [414] - 2026-03-28 13:05 - `DOC - Add Browser 7.6 Container Versus Leaf Target Cleanup Direction`
+<!-- ENTRY 414 -->
+HUMAN SUMMARY: `Added a new Browser-family cleanup direction so the tree can move toward one cleaner \`container vs leaf\` model, with `References`, reference categories, `Assemblies`, and `Components` treated as hierarchy/container owners while generated objects and individual reference items become the real selectable/transformable leaf targets reused by later `Viewer Transform` and multi-select work.` 
+
+#### Scope
+- Updated the Browser family umbrella doc only.
+- Added a new narrow Browser-7 tracked cleanup entry instead of creating a standalone future phase doc yet.
+- Did not change runtime Browser, transform, or selection behavior.
+
+#### Summary
+- Added `b7.6` to `Browser-7 - Browser Cleanup Follow-Ons`.
+- Locked the first direction that Browser should distinguish container rows from transformable leaf targets more clearly.
+- Connected that Browser cleanup directly to later `Viewer Transform`, `Esc` / `Back` selection clearing, and multi-select simplification work.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was a docs-only planning update; no implementation work was performed.
+<!-- ENTRY 415 -->
+### [415] - 2026-03-28 13:18 - `DOC - Expand Browser 7.6 With Folder CRUD Direction`
+<!-- ENTRY 415 -->
+HUMAN SUMMARY: `Expanded \`Browser 7.6\` so the new container-vs-leaf cleanup also explicitly owns folder/container create, rename, and delete actions from both the Browser UI and Console, while still keeping transform ownership centered on leaf targets rather than the container rows themselves.` 
+
+#### Scope
+- Refined the existing `Browser-7.6` tracked cleanup direction in the Browser umbrella doc.
+- Did not create a separate standalone future phase doc yet.
+- Did not change runtime Browser, Console, or transform behavior.
+
+#### Summary
+- Added folder/container create, rename, and delete as explicit Browser-7.6 owned work.
+- Locked that those actions should exist in both Browser UI and Console surfaces.
+- Kept durable export/STEP semantics out of this cleanup so the phase stays focused on Browser structure and target ownership.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was docs-only planning refinement; no implementation work was performed.
+<!-- ENTRY 430 -->
+### [430] - 2026-03-28 17:30 - `DOC - Add Standalone Browser 8.4 Reparenting And Drop Rules Phase`
+<!-- ENTRY 430 -->
+HUMAN SUMMARY: `Added the standalone future `Browser-8.4 - Reparenting And Drop Rules` phase doc and tightened it into an implementation-ready Browser drag/drop spec by locking same-parent reorder plus cross-parent reparent together, world-placement-preserving local-transform recalculation, collapsed-owner drop behavior, authored-content-first scope, and a sharper implementation checklist/test matrix.` 
+
+#### Scope
+- Added one new standalone future Browser phase doc.
+- Updated the Browser family index so `Browser-8.4` now points at that future doc and reflects the locked implementation-ready direction.
+- Did not change runtime Browser, Console, or transform behavior.
+
+#### Summary
+- Created `Browser_Phase Browser-8.4 - Reparenting And Drop Rules.md`.
+- Locked the first drag/drop scope and legal drop matrix into a dedicated phase file.
+- Added an implementation checklist and sharper test plan for reorder/reparent behavior.
+- Mirrored the stronger implementation-ready state back into the Browser umbrella index.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-8.4 - Reparenting And Drop Rules.md`
+- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was docs-only setup and planning refinement; no implementation work was performed.
+<!-- ENTRY 429 -->
+### [429] - 2026-03-28 17:23 - `DOC - Add Drag Drop Questions To Browser 8.4`
+<!-- ENTRY 429 -->
+HUMAN SUMMARY: `Expanded `Browser-8.4 - Reparenting And Drop Rules` with an explicit `Questions / Decisions` block covering whether reorder and reparent should ship together, how world placement versus local transform should behave on reparent, how collapsed drop targets should work, and whether first-pass drag/drop should stay on authored content owners before widening to imported/reference-backed hierarchy.` 
+
+#### Scope
+- Refined the existing `Browser-8.4` entry inside the Browser family index.
+- Did not create a separate standalone `Browser-8.4` phase doc yet.
+- Did not change runtime Browser, Console, or transform behavior.
+
+#### Summary
+- Added four concrete drag/drop questions under `Browser-8.4`.
+- Added recommendation text for reorder versus reparent scoping.
+- Reaffirmed the world-placement-preserving reparent suggestion in explicit question form.
+- Added first-pass scope caution around imported/reference-backed hierarchy rows.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was docs-only planning refinement; no implementation work was performed.
+<!-- ENTRY 428 -->
+### [428] - 2026-03-28 17:16 - `DOC - Add Later Owner Status Summary Direction To Browser 8`
+<!-- ENTRY 428 -->
+HUMAN SUMMARY: `Expanded the Browser-8 umbrella direction so the Console status can later print the selected owner path plus a compact immediate-child summary, keeping the same one-level-deep summary rule reusable across assemblies, subassemblies, components, later subcomponents, and later objects with parts.` 
+
+#### Scope
+- Refined the existing Browser-8 umbrella direction in the Browser family index.
+- Did not create a separate standalone status-summary phase doc yet.
+- Did not change runtime Browser, Console, or transform behavior.
+
+#### Summary
+- Added the later Console owner-status summary direction under Browser-8.
+- Locked example summary shapes for selected assemblies with immediate component/object contents.
+- Clarified that the same summary rule should later scale across assemblies, subassemblies, components, later subcomponents, and later objects with parts.
+- Locked the readability rule that the status summary should stay one level deep by default.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was docs-only planning refinement; no implementation work was performed.
+<!-- ENTRY 427 -->
+### [427] - 2026-03-28 17:08 - `DOC - Make Browser 8.3 Shared Owner Entry Implementation Ready`
+<!-- ENTRY 427 -->
+HUMAN SUMMARY: `Tightened `Browser-8.3` into a more implementation-ready Browser phase by locking the exact shared owner-target descriptor, the rule that `SelectAll` resolves a separate descendant action set without mutating the selected owner, the first focused-target payload, and a sharper store/Browser/Console verification matrix for shared Browser-to-`Viewer Transform` owner entry.` 
+
+#### Scope
+- Refined the existing standalone `Browser-8.3` future phase doc.
+- Updated the Browser family index to reflect the stronger implementation-ready direction.
+- Did not change runtime Browser, Console, or transform behavior.
+
+#### Summary
+- Locked one canonical owner-target contract for Browser, Console, and `Viewer Transform`.
+- Clarified that `SelectAll` should resolve descendants separately without redefining the selected owner.
+- Locked the first focused-target payload that later multi-select can widen into a list.
+- Sharpened the state direction and test plan around shared owner-resolution and capability mapping.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-8.3 - Shared Owner Target Entry For Viewer Transform And Multi-Select Prep.md`
+- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was docs-only planning refinement; no implementation work was performed.
+<!-- ENTRY 425 -->
+### [425] - 2026-03-28 16:57 - `DOC - Add Standalone Browser 8.3 Shared Owner Target Entry Phase`
+<!-- ENTRY 425 -->
+HUMAN SUMMARY: `Added the standalone future `Browser-8.3 - Shared Owner Target Entry For Viewer Transform And Multi-Select Prep` phase doc so the next Browser-8 follow-on now has a dedicated planning surface for one shared selected-owner target seam across Browser, Console, and `Viewer Transform`, while explicitly preparing that same owner shape to widen later into multi-select without changing the target model again.` 
+
+#### Scope
+- Added one new standalone future Browser phase doc.
+- Updated the Browser family index so `Browser-8.3` now points at that future doc.
+- Did not change runtime Browser, Console, or transform behavior.
+
+#### Summary
+- Created `Browser_Phase Browser-8.3 - Shared Owner Target Entry For Viewer Transform And Multi-Select Prep.md`.
+- Locked the shared selected-owner target direction across Browser, Console, and `Viewer Transform`.
+- Clarified that parent/container ownership stays explicit while descendant resolution remains a separate action like `SelectAll`.
+- Positioned the current focused-target area as the first single-owner version of a later multi-select owner list.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-8.3 - Shared Owner Target Entry For Viewer Transform And Multi-Select Prep.md`
+- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was docs-only setup; no implementation work was performed.
+<!-- ENTRY 426 -->
+### [426] - 2026-03-28 17:03 - `DOC - Add Later SubComponent Direction To Browser 8`
+<!-- ENTRY 426 -->
+HUMAN SUMMARY: `Expanded the Browser-8 umbrella direction so the hierarchy now explicitly allows later nested `SubComponent` support as a future transformable container-owner growth path, while also keeping that widening out of the current `Browser-8.3` owner-entry cleanup and the first shipped `Browser-8.2` CRUD scope.` 
+
+#### Scope
+- Refined the existing Browser-8 umbrella direction in the Browser family index.
+- Did not create a separate standalone SubComponent phase doc yet.
+- Did not change runtime Browser, Console, or transform behavior.
+
+#### Summary
+- Added a future-facing `SubComponent` note under the locked Browser-8 hierarchy direction.
+- Clarified that `SubComponent` is not part of the current `Browser-8.3` owner-entry phase.
+- Clarified that `SubComponent` was not part of the first shipped `Browser-8.2` container CRUD scope.
+- Clarified that the first `Browser-8.4` reparent/drop matrix should not imply nested subcomponents by accident.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was docs-only planning refinement; no implementation work was performed.
+<!-- ENTRY 416 -->
+### [416] - 2026-03-28 13:28 - `DOC - Promote Browser 7.6 Into Browser 8 Umbrella Phase`
+<!-- ENTRY 416 -->
+HUMAN SUMMARY: `Promoted the earlier `b7.6` container-vs-leaf Browser cleanup into a real `Browser-8` umbrella phase, removed it from the smaller Browser-7 follow-on bucket, and broke the direction into explicit subphases for target semantics, folder CRUD, and later shared leaf-target transform/multi-select alignment.` 
+
+#### Scope
+- Reorganized the Browser family umbrella doc only.
+- Did not create a standalone future Browser-8 phase doc yet.
+- Did not change runtime Browser, Console, or transform behavior.
+
+#### Summary
+- Removed the earlier `b7.6` entry from the Browser-7 small-follow-on list.
+- Added a new `Browser-8 - Container Versus Leaf Browser Model` umbrella phase.
+- Broke the new Browser-8 direction into `###` subphases:
+  - `Browser-8.1`
+  - `Browser-8.2`
+  - `Browser-8.3`
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was docs-only roadmap cleanup; no implementation work was performed.
+<!-- ENTRY 417 -->
+### [417] - 2026-03-28 13:36 - `DOC - Lock Content Root Under Browser 8 Console Direction`
+<!-- ENTRY 417 -->
+HUMAN SUMMARY: `Expanded `Browser-8` so the Browser container-vs-leaf cleanup now also locks one stable Console content root, `Select > Content > ...`, with child choices updating dynamically from the current Browser or viewport content selection instead of relying on more ad hoc content-side scope naming.` 
+
+#### Scope
+- Refined the existing `Browser-8` umbrella direction in the Browser family index.
+- Did not create a separate standalone future phase doc yet.
+- Did not change runtime Console or Browser behavior.
+
+#### Summary
+- Added a stable `Content` Console root to the Browser-8 locked direction.
+- Clarified that content-side child choices under `Content` should update dynamically with current selection.
+- Connected that Console direction directly to the `Browser-8.1` target-semantics cleanup.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was docs-only planning refinement; no implementation work was performed.
+<!-- ENTRY 418 -->
+### [418] - 2026-03-28 13:43 - `DOC - Add Parent-Only Selection And SelectAll Direction To Browser 8`
+<!-- ENTRY 418 -->
+HUMAN SUMMARY: `Expanded `Browser-8` so parent/container rows can be selected as parents without auto-selecting their descendants, and locked the rule that those parent Console scopes should expose an explicit `SelectAll` action when the user wants to resolve the full child set on demand.` 
+
+#### Scope
+- Refined the existing `Browser-8` umbrella direction in the Browser family index.
+- Did not create a separate standalone future phase doc yet.
+- Did not change runtime selection or Console behavior.
+
+#### Summary
+- Added a parent-only selection rule to the Browser-8 locked direction.
+- Added explicit `SelectAll` ownership to parent/container Console scopes.
+- Connected that behavior to `Browser-8.1` so it lands as part of the target-semantics cleanup rather than as a separate ad hoc selection rule.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was docs-only planning refinement; no implementation work was performed.
+<!-- ENTRY 419 -->
+### [419] - 2026-03-28 14:00 - `DOC - Reframe Browser 8 Around Transformable Container Owners`
+<!-- ENTRY 419 -->
+HUMAN SUMMARY: `Reframed `Browser-8` around a stronger Fusion-style hierarchy so `Assembly`, later `Subassembly`, and `Component` now read as real transformable container owners with origins, basis, and transform history, while `Object` / `Part` stays the leaf geometry owner under that structured container model.` 
+
+#### Scope
+- Refined the existing `Browser-8` umbrella direction in the Browser family index.
+- Did not create a separate standalone future phase doc yet.
+- Did not change runtime Browser or transform behavior.
+
+#### Summary
+- Replaced the earlier leaf-only transform-owner read with a structured transformable-container hierarchy.
+- Locked `Assembly` as the primary root container model, with later `Subassembly` and `Component` also acting as transform owners.
+- Updated the Browser-8 subphases so later transform and multi-select work now target both container owners and leaf geometry owners.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was docs-only planning refinement; no implementation work was performed.
+<!-- ENTRY 420 -->
+### [420] - 2026-03-28 14:08 - `DOC - Add Drag And Drop Rearrangement Direction To Browser 8`
+<!-- ENTRY 420 -->
+HUMAN SUMMARY: `Expanded `Browser-8` so the new structured hierarchy now explicitly prepares for user-driven Browser re-arrangement, locking the direction that both leaf objects and transformable containers should later support drag-and-drop reorder and reparent behavior instead of remaining a fixed static tree.` 
+
+#### Scope
+- Refined the existing `Browser-8` umbrella direction in the Browser family index.
+- Did not create a separate standalone future phase doc yet.
+- Did not change runtime Browser or tree-reordering behavior.
+
+#### Summary
+- Added drag-and-drop reorder/reparent as explicit Browser-8 owned direction.
+- Clarified that both leaf objects and transformable containers should participate in later tree rearrangement.
+- Connected that direction to the Browser-8 hierarchy and container-authoring cleanup instead of leaving it implied.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was docs-only planning refinement; no implementation work was performed.
+<!-- ENTRY 421 -->
+### [421] - 2026-03-28 14:15 - `DOC - Lock Multiple Top-Level Assembly Direction Under Browser 8`
+<!-- ENTRY 421 -->
+HUMAN SUMMARY: `Expanded `Browser-8` so the Browser hierarchy now explicitly supports multiple top-level assembly roots, and locked the import/upload rule that an incoming assembly should default to its own top-level assembly unless the user later nests it under another assembly as a subassembly.` 
+
+#### Scope
+- Refined the existing `Browser-8` umbrella direction in the Browser family index.
+- Did not create a separate standalone future phase doc yet.
+- Did not change runtime Browser or import behavior.
+
+#### Summary
+- Added explicit support for multiple top-level `Assembly` roots.
+- Locked the default import/upload rule for incoming assemblies.
+- Clarified that subassembly status should come from later nesting/reparenting, not from forced single-root import behavior.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was docs-only planning refinement; no implementation work was performed.
+<!-- ENTRY 422 -->
+### [422] - 2026-03-28 14:27 - `DOC - Add Drop Rules And Reparent Semantics To Browser 8`
+<!-- ENTRY 422 -->
+HUMAN SUMMARY: `Tightened `Browser-8` with the next hierarchy rules by locking the first legal drag/drop matrix, the reparent rule that world placement should be preserved while local transform is recalculated under the new parent, the decision to avoid a separate pure non-transform folder type for now, and a new dedicated `Browser-8.4` subphase for reparenting and drop behavior.` 
+
+#### Scope
+- Refined the existing `Browser-8` umbrella direction in the Browser family index.
+- Added one new Browser-8 subphase section inside the umbrella doc.
+- Did not change runtime Browser, transform, or drag/drop behavior.
+
+#### Summary
+- Locked first-pass legal container/leaf drop targets.
+- Locked the transform-preserving reparent behavior for later Browser drag/drop work.
+- Decided that Browser-8 should stay on structured transformable containers instead of adding a separate non-transform folder type.
+- Added `Browser-8.4 - Reparenting And Drop Rules`.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was docs-only planning refinement; no implementation work was performed.
+<!-- ENTRY 423 -->
+### [423] - 2026-03-28 14:36 - `DOC - Add Standalone Browser 8.1 Container And Leaf Semantics Phase`
+<!-- ENTRY 423 -->
+HUMAN SUMMARY: `Added the standalone future `Browser-8.1 - Container And Leaf Target Semantics` phase doc so the first Browser-8 implementation slice now has its own dedicated planning surface for the stable `Select > Content > ...` Console root, transformable container-owner semantics, and parent-only selection plus explicit `SelectAll`.` 
+
+#### Scope
+- Added one new standalone future Browser phase doc.
+- Updated the Browser family index so `Browser-8.1` now links to that future doc.
+- Did not change runtime Browser, Console, or transform behavior.
+
+#### Summary
+- Created `Browser_Phase Browser-8.1 - Container And Leaf Target Semantics.md`.
+- Locked the first structured Browser owner-versus-leaf semantics in a dedicated phase file.
+- Mirrored the new standalone future doc back into the Browser umbrella index.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-8.1 - Container And Leaf Target Semantics.md`
+- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was docs-only setup; no implementation work was performed.
+<!-- ENTRY 424 -->
+### [424] - 2026-03-28 14:45 - `DOC - Make Browser 8.1 Container And Leaf Semantics Implementation Ready`
+<!-- ENTRY 424 -->
+HUMAN SUMMARY: `Tightened `Browser-8.1` into a more implementation-ready Browser phase by locking the first target-kind contract, the exact `Select > Content > ...` Console seam, the parent-only selection plus explicit `SelectAll` behavior, and a sharper Browser/store/Console verification matrix.` 
+
+#### Scope
+- Refined the existing standalone `Browser-8.1` future phase doc.
+- Updated the Browser family index to reflect that stronger implementation-ready state.
+- Did not change runtime Browser, Console, or transform behavior.
+
+#### Summary
+- Added the first explicit owner-kind contract for `assembly`, later `subassembly`, `component`, and `object-part`.
+- Sharpened the expected Console path and selection behavior for parent/container owners.
+- Expanded likely implementation targets and the test plan so the phase can be executed with less ambiguity.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-8.1 - Container And Leaf Target Semantics.md`
+- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was docs-only planning refinement; no implementation work was performed.

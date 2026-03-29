@@ -2,8 +2,146 @@ import type {
   MouseEvent as ReactMouseEvent,
   PointerEvent as ReactPointerEvent,
 } from 'react'
-import type { BrowserGraphTreeRowVm, BrowserTreeRowsVm } from './selectBrowserTreeRows'
+import { useCallback, useEffect, useLayoutEffect, useRef } from 'react'
+import type {
+  BrowserGraphTreeRowVm,
+  BrowserTreeRowsVm,
+} from './selectBrowserTreeRows'
 import { BrowserTreeRowShell, type BrowserTreeRowHandlers } from './browserTreeRowPresenter'
+
+const BROWSER_CONTENT_ROW_FLIP_DURATION_MS = 180
+
+function BrowserAnimatedContentRows(props: {
+  contentRows: BrowserTreeRowsVm['contentRows']
+  rowHandlers: BrowserTreeRowHandlers
+  registerContentRowElement?: ((rowId: string) => (element: HTMLDivElement | null) => void) | undefined
+}) {
+  const { contentRows, registerContentRowElement, rowHandlers } = props
+  const rowElementsByIdRef = useRef(new Map<string, HTMLDivElement>())
+  const previousTopByRowIdRef = useRef(new Map<string, number>())
+  const activeCleanupByRowIdRef = useRef(new Map<string, () => void>())
+  const animationFrameIdsRef = useRef<number[]>([])
+
+  const registerRowElement = useCallback(
+    (rowId: string) => (element: HTMLDivElement | null) => {
+      registerContentRowElement?.(rowId)(element)
+      if (element === null) {
+        rowElementsByIdRef.current.delete(rowId)
+        return
+      }
+      rowElementsByIdRef.current.set(rowId, element)
+    },
+    [registerContentRowElement],
+  )
+
+  useEffect(() => {
+    return () => {
+      activeCleanupByRowIdRef.current.forEach((cleanup) => cleanup())
+      activeCleanupByRowIdRef.current.clear()
+      const cancelFrame =
+        typeof window !== 'undefined' && typeof window.cancelAnimationFrame === 'function'
+          ? window.cancelAnimationFrame.bind(window)
+          : null
+      animationFrameIdsRef.current.forEach((frameId) => {
+        if (cancelFrame !== null) {
+          cancelFrame(frameId)
+        }
+      })
+      animationFrameIdsRef.current = []
+    }
+  }, [])
+
+  useLayoutEffect(() => {
+    const nextTopByRowId = new Map<string, number>()
+    const scheduleAnimationFrame =
+      typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function'
+        ? window.requestAnimationFrame.bind(window)
+        : (callback: FrameRequestCallback) =>
+            window.setTimeout(() => callback(performance.now()), 0)
+
+    contentRows.forEach((row) => {
+      const element = rowElementsByIdRef.current.get(row.rowId)
+      if (element === undefined) {
+        return
+      }
+      const currentTop = element.getBoundingClientRect().top
+      nextTopByRowId.set(row.rowId, currentTop)
+      const previousTop = previousTopByRowIdRef.current.get(row.rowId)
+      if (
+        previousTop === undefined ||
+        element.classList.contains('isDragging')
+      ) {
+        return
+      }
+      const deltaY = previousTop - currentTop
+      if (Math.abs(deltaY) < 1) {
+        return
+      }
+
+      activeCleanupByRowIdRef.current.get(row.rowId)?.()
+      element.style.transition = 'none'
+      element.style.transform = `translateY(${deltaY}px)`
+      element.style.zIndex = '1'
+      void element.getBoundingClientRect()
+
+      const handleTransitionEnd = (event: TransitionEvent) => {
+        if (event.propertyName !== 'transform') {
+          return
+        }
+        cleanup()
+      }
+
+      const cleanup = () => {
+        element.removeEventListener('transitionend', handleTransitionEnd)
+        if (cleanupTimerId !== null) {
+          window.clearTimeout(cleanupTimerId)
+        }
+        element.style.transition = ''
+        element.style.transform = ''
+        element.style.zIndex = ''
+        activeCleanupByRowIdRef.current.delete(row.rowId)
+      }
+
+      let cleanupTimerId: number | null = null
+      element.addEventListener('transitionend', handleTransitionEnd)
+      const frameId = scheduleAnimationFrame(() => {
+        element.style.transition = `transform ${BROWSER_CONTENT_ROW_FLIP_DURATION_MS}ms ease`
+        element.style.transform = 'translateY(0px)'
+        cleanupTimerId = window.setTimeout(
+          cleanup,
+          BROWSER_CONTENT_ROW_FLIP_DURATION_MS + 40,
+        )
+      })
+      animationFrameIdsRef.current.push(frameId)
+      activeCleanupByRowIdRef.current.set(row.rowId, cleanup)
+    })
+
+    previousTopByRowIdRef.current = nextTopByRowId
+  }, [contentRows])
+
+  return (
+    <div className="BrowserAnimatedContentRows">
+      {contentRows.map((row) => (
+        <div key={row.rowId}>
+          <BrowserTreeRowShell
+            row={row}
+            rowRef={registerRowElement(row.rowId)}
+            {...rowHandlers}
+          />
+          {row.rowKind === 'component' &&
+          row.referenceContainerKind === 'category' &&
+          row.isExpanded &&
+          (row.referenceContainerItemCount ?? 0) === 0 &&
+          (row.referenceContainerEmptyLabel?.length ?? 0) > 0 ? (
+            <div className="BrowserTreeEmpty BrowserTreeEmpty--nested">
+              {row.referenceContainerEmptyLabel}
+            </div>
+          ) : null}
+        </div>
+      ))}
+    </div>
+  )
+}
 
 type BrowserSectionActionButtonProps = {
   label: string
@@ -42,14 +180,19 @@ function BrowserSectionActionButton(props: BrowserSectionActionButtonProps) {
 }
 
 type BrowserContentSectionProps = {
-  referenceRows: BrowserTreeRowsVm['referenceRows']
   contentRows: BrowserTreeRowsVm['contentRows']
   rowHandlers: BrowserTreeRowHandlers
+  registerContentRowElement?: ((rowId: string) => (element: HTMLDivElement | null) => void) | undefined
   onOpenContentImportMenu: (event: ReactMouseEvent<HTMLButtonElement>) => void
 }
 
 export function BrowserContentSection(props: BrowserContentSectionProps) {
-  const { contentRows, onOpenContentImportMenu, referenceRows, rowHandlers } = props
+  const {
+    contentRows,
+    onOpenContentImportMenu,
+    registerContentRowElement,
+    rowHandlers,
+  } = props
 
   return (
     <details open className="BrowserTreeSection BrowserTreeSection--content">
@@ -69,28 +212,19 @@ export function BrowserContentSection(props: BrowserContentSectionProps) {
         </span>
       </summary>
       <div className="BrowserTreeGroup BrowserTreeGroup--content">
-        {referenceRows.map((row) => (
-          <div key={row.rowId}>
-            <BrowserTreeRowShell row={row} {...rowHandlers} />
-            {row.rowKind === 'reference-category' &&
-            row.isExpanded &&
-            row.itemCount === 0 &&
-            row.emptyLabel.length > 0 ? (
-              <div className="BrowserTreeEmpty BrowserTreeEmpty--nested">{row.emptyLabel}</div>
-            ) : null}
-          </div>
-        ))}
-        {referenceRows.length === 0 && contentRows.length === 0 ? (
+        {contentRows.length === 0 ? (
           <div className="BrowserTreeEmpty">No project content.</div>
         ) : (
           <>
-            {contentRows.map((row) => (
-              <BrowserTreeRowShell key={row.rowId} row={row} {...rowHandlers} />
-            ))}
+            <BrowserAnimatedContentRows
+              contentRows={contentRows}
+              rowHandlers={rowHandlers}
+              registerContentRowElement={registerContentRowElement}
+            />
             {contentRows.length === 1 &&
             contentRows[0]?.rowKind === 'assembly' &&
             !contentRows[0].isExpandable &&
-            referenceRows.length === 0 ? (
+            contentRows[0].referenceContainerKind !== 'root' ? (
               <div className="BrowserTreeEmpty">No published content.</div>
             ) : null}
           </>

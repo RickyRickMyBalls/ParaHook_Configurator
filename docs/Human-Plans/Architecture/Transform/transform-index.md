@@ -3,6 +3,16 @@
 ## Doc Header
 
 ### Doc History
+64. 2026-03-28 00:48: Marked `Transform 15.1` shipped after `Viewer Transform` gained a focused-target toolbar section, object-side snap parity, and the first shared target-adapter cleanup across the toolbar/store/viewer seam, moved its standalone record into `Shipped/`, and advanced the next open follow-ons to multi-select and prior-transform delete cleanup
+63. 2026-03-28 00:42: Tightened `Transform 15.1` into an implementation-ready cleanup by locking the exact shared `Viewer Transform` target-descriptor shape, the new `transformSnapByObjectId` widening for object snap parity, and the focused-target section contract so the next cleanup can unify more of the shell before multi-select lands
+62. 2026-03-28 00:36: Tightened `Transform 15.1` into a more implementation-ready cleanup spec by locking one shared target-adapter/template direction for `Viewer Transform`, adding object snap parity to that phase, and sharpening the follow-on so references and generated objects can share more of the same shell before multi-select arrives
+61. 2026-03-28 00:31: Added a new `Transform 15.1` cleanup follow-on between the first generated-object widening and later multi-select work, locking that `Viewer Transform` should unify reference and generated-object behavior behind one clearer target-adapter seam and gain a focused-target toolbar section that can later widen into a target list for multi-select
+60. 2026-03-27 00:09: Marked `Transform 15` shipped after published generated objects gained viewer-only `Viewer Transform` session ownership for move / rotate / scale, moved its standalone record into `Shipped/`, and advanced the next open Transform-family follow-ons to multi-select entry plus prior-transform delete cleanup
+59. 2026-03-27 23:58: Tightened the standalone `Transform 15` generated-object viewer-motion record into a more implementation-ready phase by locking first-pass `published-object` scope, widening the shared viewer-transform session direction beyond reference-only ownership, and adding explicit viewer-only commit/cancel/history rules plus concrete store/viewer/Console target files
+58. 2026-03-27 23:45: Marked `Transform 14` shipped after the user-facing `Viewer Transform` rename landed across the toolbar and Console transform shell, moved its standalone record into `Shipped/`, and advanced the next open follow-ons to generated-object widening, multi-select entry, and prior-transform delete cleanup
+57. 2026-03-27 21:02: Tightened the standalone `Transform 14` rename/alignment record into a more implementation-ready phase by locking the user-facing rename scope, clarifying what must not be renamed yet, and adding concrete toolbar/Console/doc targets plus a sharper verification checklist
+56. 2026-03-27 20:50: Added a new transform-history cleanup follow-on for deleting the last entry of an older transform commit, locking the direction that the user should be able to re-enter that older transform after a confirmation prompt and then use the normal delete-last-entry behavior from inside that prior session
+55. 2026-03-27 19:08: Added the next transform cleanup ladder for multi-select, splitting the new direction into `Transform 16` shared multi-select `Viewer Transform` entry plus live group motion, and later `Transform 16.1` commit/history/truth cleanup so the first pass can focus on making multi-selection transform actually work before the harder mixed-target durability rules
 54. 2026-03-27 19:04: Split the earlier combined `Transform 14` feature in this family index into a narrower `Transform 14` rename/alignment pass plus a new `Transform 15` generated-object viewer-motion pass, so the toolbar/shell naming cleanup no longer waits on the harder target-widening work
 53. 2026-03-27 19:01: Added the new `Transform 14` feature follow-on to this family index, locking that the current transform toolbar/shell should be renamed `Viewer Transform` and widened so generated objects can use the same viewer-owned transform interaction while staying explicitly viewer-only and not writing those edits back into Replicad truth
 52. 2026-03-27 17:27: Expanded the open `Transform 13.1` rotate preview follow-on so it now explicitly owns a dedicated transform-reference `i`-menu `Rotate Snap Preview` section with viewer-only controls for on/off, line size, thickness, preview radius, and preview delay
@@ -171,6 +181,10 @@ Current Transform-native shipped records:
   - `docs/Human-Plans/Architecture/Transform/Shipped/Transform_Phase Transform-13 - Move Snap Availability Visuals.md`
 - `Transform 13.2`
   - `docs/Human-Plans/Architecture/Transform/Shipped/Transform_Phase Transform-13.2 - Persistent Move Snap Lattice Cleanup.md`
+- `Transform 14`
+  - `docs/Human-Plans/Architecture/Transform/Shipped/Transform_Phase Transform-14 - Viewer Transform Rename And Shared Surface Alignment.md`
+- `Transform 15`
+  - `docs/Human-Plans/Architecture/Transform/Shipped/Transform_Phase Transform-15 - Generated Object Viewer Motion Under Viewer Transform.md`
 
 This family now owns the shipped Transform-shell cleanup trail directly, while Browser `7.5` still holds the broader future ladder until the remaining open transform-native follow-ons are written down outside Browser.
 
@@ -178,9 +192,9 @@ This family now owns the shipped Transform-shell cleanup trail directly, while B
 
 Expected next open transform-native follow-ons:
 
-1. land the first rotate snap preview visual as `Transform 13.1`
-2. rename the current surface to `Viewer Transform` as `Transform 14`
-3. widen that renamed shell to generated-object viewer motion as `Transform 15`, while keeping those edits viewer-only and not Replicad truth yet
+1. make multi-select actually enter and use `Viewer Transform` as `Transform 16`
+2. clean up multi-select commit/history/truth rules later as `Transform 16.1`
+3. allow safe delete/re-entry into older transform sessions as `Transform 17`
 4. keep deciding how much of the remaining Browser-umbrella direction should be re-expressed as Transform-native future records instead of staying Browser-numbered
 5. keep cleaning stale family links whenever a transform follow-on moves from `Future/` to `Shipped/`
 
@@ -1330,7 +1344,7 @@ Decision:
 Standalone phase doc:
 - `docs/Human-Plans/Architecture/Transform/Shipped/Transform_Phase Transform-13.2 - Persistent Move Snap Lattice Cleanup.md`
 
-### [ ] Transform 14 - Viewer Transform Rename And Shared Surface Alignment
+### [x] Transform 14 - Viewer Transform Rename And Shared Surface Alignment
 
 - rename the current transform toolbar/shell surface from the narrower reference wording to `Viewer Transform`
 - keep this phase narrow to wording and shared-surface alignment
@@ -1377,13 +1391,15 @@ Decision:
 - generated-object viewer motion moves to later `Transform 15`
 
 Standalone phase doc:
-- `docs/Human-Plans/Architecture/Transform/Future/Transform_Phase Transform-14 - Viewer Transform Rename And Shared Surface Alignment.md`
+- `docs/Human-Plans/Architecture/Transform/Shipped/Transform_Phase Transform-14 - Viewer Transform Rename And Shared Surface Alignment.md`
 
-### [ ] Transform 15 - Generated Object Viewer Motion Under Viewer Transform
+### [x] Transform 15 - Generated Object Viewer Motion Under Viewer Transform
 
 - widen the renamed `Viewer Transform` shell so generated objects can use move / rotate / scale in the viewport
 - keep this first generated-object transform pass explicitly viewer-only
 - do not claim that generated-object transform writes back into Replicad geometry or graph truth yet
+- first-pass object eligibility should stay limited to `published-object`
+- widen the runtime contract itself, not just the visible shell entry
 
 #### [x] q1 - Should generated objects be allowed to use the same `Viewer Transform` shell even if those edits are not yet durable Replicad truth?
 
@@ -1426,5 +1442,215 @@ Decision:
 - references and generated objects should adapt into the same renamed `Viewer Transform` shell
 - target-specific truth and commit rules should stay below that shared shell
 
+#### [x] q4 - Which generated-object targets should the first pass include?
+
+##### Suggestion
+- keep the first pass narrow
+- include `published-object`
+- exclude `receive-link`, assemblies, and multi-select
+- use this phase to prove the target-contract widening before broader target families join
+
+Decision:
+- keep the first generated-object pass narrow
+- include `published-object`
+- exclude `receive-link`, assemblies, and multi-select
+- use this phase to prove the target-contract widening before broader target families join
+
+#### [x] q5 - Should the runtime stay reference-only under the hood and adapt objects through it, or should this phase widen the shared active transform contract itself?
+
+##### Suggestion
+- widen the shared active transform contract itself
+- do not fake generated-object transform through a reference-only runtime seam
+- let the shared shell point at either a reference or a generated content object, while keeping the first pass viewer-only for generated-object truth
+
+Decision:
+- widen the shared active transform contract itself
+- do not fake generated-object transform through a reference-only runtime seam
+- let the shared shell point at either a reference or a generated content object, while keeping the first pass viewer-only for generated-object truth
+
+#### [x] q6 - What should generated-object commit and cancel mean in the first pass?
+
+##### Suggestion
+- keep both viewer-only
+- commit should persist generated-object transform only in viewer/session-owned state and append viewer-only transform history
+- cancel should restore the last committed viewer-only generated-object transform
+- neither action should claim to rewrite Replicad or graph truth
+
+Decision:
+- keep generated-object commit and cancel viewer-only in the first pass
+- commit should persist generated-object transform only in viewer/session-owned state and append viewer-only transform history
+- cancel should restore the last committed viewer-only generated-object transform
+- neither action should claim to rewrite Replicad or graph truth
+
 Standalone phase doc:
-- `docs/Human-Plans/Architecture/Transform/Future/Transform_Phase Transform-15 - Generated Object Viewer Motion Under Viewer Transform.md`
+- `docs/Human-Plans/Architecture/Transform/Shipped/Transform_Phase Transform-15 - Generated Object Viewer Motion Under Viewer Transform.md`
+
+### [x] Transform 15.1 - Shared Viewer Transform Target Adapter Cleanup
+
+- clean up the first generated-object widening so `Viewer Transform` reads as one transform system for references and generated objects
+- move target-specific differences behind a clearer target-adapter seam instead of leaving them scattered throughout the shared toolbar and shell
+- add a focused-target section in the `Viewer Transform` toolbar that shows the current target now and can later widen into the multi-select target list
+- bring object transform snap into the same shared shell so snap no longer stays reference-only
+
+#### [x] q1 - Should this cleanup keep separate reference/object transform shells, or should it explicitly unify them as one shared `Viewer Transform` system with different persistence adapters underneath?
+
+##### Suggestion
+- unify them
+- keep one shared `Viewer Transform` shell, history surface, and viewer behavior
+- let the real difference live at the target adapter and persistence boundary instead of in the visible shell
+
+Decision:
+- unify them as one shared `Viewer Transform` system
+- keep one shared shell, history surface, and viewer behavior
+- let the real difference live at the target adapter and persistence boundary instead of in the visible shell
+
+#### [x] q2 - Should the toolbar gain a new focused-target section now, even before multi-select exists?
+
+##### Suggestion
+- yes
+- add one focused-target section near the top of `Viewer Transform`
+- use it to show the active target label and kind in the single-target era
+- shape it so the same area can later widen into the multi-select target list in `Transform 16`
+
+Decision:
+- yes
+- the toolbar should gain a new focused-target section now
+- it should show the active target label and kind in the single-target era
+- the same area should later widen into the multi-select target list in `Transform 16`
+
+#### [x] q3 - Should object transform snap stay reference-only for now, or should this cleanup pull snap into the same shared `Viewer Transform` adapter/template model?
+
+##### Suggestion
+- pull snap into the same shared `Viewer Transform` adapter/template model now
+- do not keep snap as a reference-only hole in an otherwise shared transform system
+- let snap storage and persistence still differ underneath by target kind where needed
+
+Decision:
+- pull snap into the same shared `Viewer Transform` adapter/template model in this cleanup
+- do not keep snap as a reference-only hole in an otherwise shared transform system
+- storage and persistence may still differ underneath by target kind where needed
+
+Standalone phase doc:
+- `docs/Human-Plans/Architecture/Transform/Shipped/Transform_Phase Transform-15.1 - Shared Viewer Transform Target Adapter Cleanup.md`
+
+### [ ] Transform 16 - Multi-Select Viewer Transform Entry And Live Group Motion
+
+- make `Viewer Transform` work when the user has multiple transformable targets selected
+- keep the first pass focused on entering one shared shell and moving the whole selection together in the viewer
+- defer the harder mixed-target commit/history durability rules to later `Transform 16.1`
+
+#### [x] q1 - Should multi-select enter one shared `Viewer Transform` shell instead of forcing the user back to one target at a time?
+
+##### Suggestion
+- yes
+- when the current selection contains multiple transformable targets, `Viewer Transform` should still work
+- do not force the feature back to single-target-only behavior
+
+Decision:
+- yes
+- multi-select should enter one shared `Viewer Transform` shell
+- the first pass should not force the user back to one target at a time
+
+#### [x] q2 - What pivot should the first multi-select transform pass use?
+
+##### Suggestion
+- use one viewer-owned shared pivot at the center of the current selection bounds in the first pass
+- keep that pivot honest and simple
+- defer custom pivot editing or per-target pivot choices
+
+Decision:
+- the first multi-select pass should use one viewer-owned shared pivot at the center of the current selection bounds
+- custom pivot editing and other pivot modes stay later
+
+#### [x] q3 - What should the first multi-select pass actually own?
+
+##### Suggestion
+- own live group move / rotate / scale in the viewer
+- let the whole current selection move together as one temporary transform set
+- focus the first pass on making multi-select transform actually work in the viewport
+
+Decision:
+- `Transform 16` should own live group move / rotate / scale in the viewer
+- the whole current selection should move together as one temporary transform set
+- the phase stays focused on making multi-select transform actually work in the viewport
+
+#### [x] q4 - Should `Transform 16` also solve the harder multi-select commit/history/truth rules?
+
+##### Suggestion
+- no
+- keep `Transform 16` focused on entry and live group motion
+- move per-target commit, history grouping, and mixed durable/viewer-only truth rules into later `Transform 16.1`
+
+Decision:
+- no
+- `Transform 16` should stay focused on shared entry and live group motion
+- per-target commit/history/truth cleanup moves to later `Transform 16.1`
+
+### [ ] Transform 16.1 - Multi-Select Commit, History, And Mixed Truth Cleanup
+
+- clean up what happens when a multi-select `Viewer Transform` session commits
+- decide how grouped history should read for many selected targets
+- decide how mixed durable targets and viewer-only generated targets should behave in one shared transform session
+
+#### [ ] q1 - On commit, should multi-select write one grouped history session with per-target child results?
+
+##### Suggestion
+- yes
+- keep one shared multi-select transform session
+- record per-target child results underneath that grouped session instead of flattening everything into one fake row
+
+#### [ ] q2 - How should mixed durable targets and viewer-only generated targets behave in the same multi-select transform commit?
+
+##### Suggestion
+- keep the commit honest per target kind
+- durable targets keep their durable commit path
+- generated objects stay viewer-only until later durable ownership exists
+- the session should not pretend all selected targets share the same truth model
+
+#### [ ] q3 - Should the first multi-select foundation phase allow mixed target kinds immediately, or should `16.1` narrow or refine that rule after the live group motion is proven?
+
+##### Suggestion
+- let `Transform 16` prove the live group motion path first
+- use `Transform 16.1` to narrow or refine mixed-target commit semantics if needed
+
+### [ ] Transform 17 - Prior Transform Delete Reentry
+
+- allow the user to delete the last history entry of an older transform commit instead of only the newest active transform session
+- keep the flow safe by requiring an explicit confirmation before re-entering that older transform
+- once the user is back inside that older transform session, let the normal delete-last-entry behavior work again
+
+#### [x] q1 - Should the user be allowed to delete the last entry of a previous transform commit?
+
+##### Suggestion
+- yes
+- do not limit delete-last-entry forever to only the newest transform session
+- let older transform sessions become active again when the user intentionally targets them
+
+Decision:
+- yes
+- the user should be allowed to delete the last entry of a previous transform commit
+- delete-last-entry should not stay permanently limited to only the newest transform session
+
+#### [x] q2 - What safety gate should protect re-entering an older transform for deletion?
+
+##### Suggestion
+- show one clear `are you sure` confirmation before jumping into that older transform
+- make the warning explicit that the user is leaving the current transform context to edit older history
+- do not silently jump across sessions
+
+Decision:
+- show one clear confirmation before re-entering an older transform for deletion
+- make it explicit that the user is leaving the current transform context to edit older history
+- do not silently jump across sessions
+
+#### [x] q3 - After the user confirms and re-enters the older transform, how should delete behave?
+
+##### Suggestion
+- once inside that older transform session, return to the normal delete-last-entry rule
+- do not invent a second special delete mode just for older history
+- let the prior transform session behave like the active one again
+
+Decision:
+- once the user confirms and re-enters the older transform, delete should behave normally again
+- do not invent a second special delete mode for older history
+- the prior transform session should behave like the active one again

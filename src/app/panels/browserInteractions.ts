@@ -100,18 +100,12 @@ const isExplicitSelectionTarget = (
   target: WorkspaceSelectedTarget | null,
 ): target is Extract<
   WorkspaceSelectedTarget,
-  | { kind: 'references-root' }
-  | { kind: 'reference-category' }
-  | { kind: 'reference-item' }
   | { kind: 'assembly' }
   | { kind: 'component' }
   | { kind: 'object' }
 > =>
   target !== null &&
-  (target.kind === 'references-root' ||
-    target.kind === 'reference-category' ||
-    target.kind === 'reference-item' ||
-    target.kind === 'assembly' ||
+  (target.kind === 'assembly' ||
     target.kind === 'component' ||
     target.kind === 'object')
 
@@ -143,11 +137,11 @@ const buildExplicitSelectionTargetFromRow = (
 ): WorkspaceSelectedTarget | null => {
   switch (row.rowKind) {
     case 'references-root':
-      return { kind: 'references-root' }
+      return { kind: 'assembly', assemblyId: row.rowId }
     case 'reference-category':
-      return { kind: 'reference-category', categoryId: row.categoryId }
+      return { kind: 'component', componentId: row.rowId }
     case 'reference-item':
-      return { kind: 'reference-item', referenceId: row.referenceId }
+      return { kind: 'object', objectId: row.rowId }
     case 'assembly':
       return { kind: 'assembly', assemblyId: row.rowId }
     case 'component':
@@ -167,18 +161,18 @@ export const createBrowserRowInteractionHandlers = (
 
   const getExplicitSelectionSectionRows = (row: BrowserRenderableRowVm): BrowserRenderableRowVm[] => {
     if (
-      row.rowKind === 'references-root' ||
-      row.rowKind === 'reference-category' ||
-      row.rowKind === 'reference-item'
+      row.rowKind === 'reference-item' ||
+      row.rowKind === 'assembly' ||
+      row.rowKind === 'component' ||
+      row.rowKind === 'object' ||
+      row.rowKind === 'part'
     ) {
-      return deps.browserTreeRows.referenceRows
-    }
-    if (row.rowKind === 'assembly' || row.rowKind === 'component' || row.rowKind === 'object') {
       return deps.browserTreeRows.contentRows.filter(
         (contentRow) =>
           contentRow.rowKind === 'assembly' ||
           contentRow.rowKind === 'component' ||
-          contentRow.rowKind === 'object',
+          contentRow.rowKind === 'object' ||
+          contentRow.rowKind === 'part',
       )
     }
     return []
@@ -205,8 +199,10 @@ export const createBrowserRowInteractionHandlers = (
       {
         activeSurface: 'browser',
         selectedPartKey:
-          selectedRow.rowKind === 'object' && !deps.sharedViewerCompositionActive
-            ? selectedRow.highlightViewerKey
+          selectedRow.rowKind === 'part'
+            ? selectedRow.partKey
+            : selectedRow.rowKind === 'object' && !deps.sharedViewerCompositionActive
+              ? selectedRow.highlightViewerKey
             : null,
       },
     )
@@ -445,6 +441,21 @@ export const createBrowserRowInteractionHandlers = (
       deps.toggleReferenceCategoryExpanded(row.categoryId)
       return
     }
+    if (row.rowKind === 'assembly' && row.referenceContainerKind === 'root') {
+      deps.closeMenus()
+      deps.toggleReferenceWorkspaceExpanded()
+      return
+    }
+    if (
+      row.rowKind === 'component' &&
+      row.referenceContainerKind === 'category' &&
+      row.referenceCategoryId !== null &&
+      row.referenceCategoryId !== undefined
+    ) {
+      deps.closeMenus()
+      deps.toggleReferenceCategoryExpanded(row.referenceCategoryId)
+      return
+    }
     if (row.rowKind === 'graph-document') {
       deps.closeMenus()
       deps.setExpandedGraphDocumentIds((currentIds) =>
@@ -465,6 +476,9 @@ export const createBrowserRowInteractionHandlers = (
     if (
       row.rowKind === 'assembly' ||
       row.rowKind === 'component' ||
+      row.rowKind === 'reference-item' ||
+      (row.rowKind === 'object' &&
+        (row.isExpandable || row.contentOriginKind === 'source-reference')) ||
       row.rowKind === 'sketches-root'
     ) {
       deps.closeMenus()
@@ -484,7 +498,26 @@ export const createBrowserRowInteractionHandlers = (
       deps.toggleReferenceCategoryVisibility(row.categoryId)
       return
     }
+    if (
+      row.rowKind === 'component' &&
+      row.referenceContainerKind === 'category' &&
+      row.referenceCategoryId !== null &&
+      row.referenceCategoryId !== undefined
+    ) {
+      deps.appendBrowserEntry(`${row.label} visibility toggled`)
+      deps.toggleReferenceCategoryVisibility(row.referenceCategoryId)
+      return
+    }
     if (row.rowKind === 'reference-item') {
+      deps.appendBrowserEntry(`${row.label} visibility toggled`)
+      deps.toggleReferenceItemVisibility(row.referenceId)
+      return
+    }
+    if (
+      row.rowKind === 'object' &&
+      (row.contentOriginKind === 'imported-reference' || row.contentOriginKind === 'source-reference') &&
+      row.referenceId
+    ) {
       deps.appendBrowserEntry(`${row.label} visibility toggled`)
       deps.toggleReferenceItemVisibility(row.referenceId)
     }
@@ -562,6 +595,9 @@ export const resolveBrowserSelectedRowIdFromTarget = (
   }
   if (target.kind === 'reference-item') {
     return `reference-item-row:${target.referenceId}`
+  }
+  if (target.kind === 'part') {
+    return null
   }
   if (target.kind === 'assembly') {
     return target.assemblyId

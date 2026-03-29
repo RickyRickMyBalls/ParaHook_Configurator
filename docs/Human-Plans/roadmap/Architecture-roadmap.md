@@ -3,6 +3,9 @@
 ## Doc Header
 
 ### Doc History
+20. 2026-03-28 14:06: Refreshed the source-doc pointers in this cross-family roadmap after a docs audit by replacing stale `Layers.md` and archived Spaghetti explainer paths with the real live family index docs, so the roadmap now points at the current umbrella files that actually exist in the repo
+19. 2026-03-28 13:19: Reordered the roadmap `## To do` list so the new `Edit History` groundwork now sits ahead of later `Pasta Path` sync, and replaced the old roadmap-only `PastaPath-1` placeholder with a descriptive `PastaPath-first-standalone-phase-doc` checklist item so the near-term sequence stays aligned with the current family source docs
+18. 2026-03-28 13:16: Added the new `Edit History` family to this cross-family roadmap, wiring in the first open `Edit History 1` through `Edit History 5` ladder so the roadmap now tracks canonical undo/redo foundation, graph and parameter commit coverage, Browser-plus-Console parity, transform commit integration, and later `Pasta Path` sync beside the older architecture families
 17. 2026-03-26 20:03: Added the new `Export` family to this cross-family roadmap, wiring in the first open `Export-1` through `Export-4` ladder so the roadmap now tracks the export toolbar surface, target collection, format-specific settings, and later project/spaghetti save-export neighbors beside the older architecture families
 16. 2026-03-26 15:40: Added the new `Layers` family to this cross-family roadmap, wiring in the open `Layers-1` through `Layers-4` ladder so the roadmap now tracks layer foundation, manager-plus-console controls, sketch entity ownership, and authored 3D object visibility beside the older architecture families
 15. 2026-03-25 22:17: Cleaned up this cross-family roadmap after shipping `Browser-6 - BrowserPanel Structure And Row-Family Cleanup`, updated the Browser family read to the post-Browser-6 state with eleven shipped cuts, and advanced the remaining open Browser architecture work to the smaller `Browser-7` follow-on bucket
@@ -37,6 +40,7 @@ Use it to answer:
 This file covers:
 - `Browser`
 - `Console`
+- `Edit History`
 - `Export`
 - `Layers`
 - `Pasta Path`
@@ -66,16 +70,20 @@ This roadmap is the compact cross-family tracker for that newer architecture pha
 
 The `Layers` family now belongs in that tracker too because it has a real four-phase execution ladder instead of only one umbrella note.
 
+The `Edit History` family now belongs in that tracker too because it has a real five-phase execution ladder instead of only one umbrella concept note.
+
 ### Source Docs
 
 - `Browser`
   - `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
 - `Console`
   - `docs/Human-Plans/Architecture/Console/Console.md`
+- `Edit History`
+  - `docs/Human-Plans/Architecture/Edit-History/Edit-History-Index.md`
 - `Export`
   - `docs/Human-Plans/Architecture/Export/Export-Index.md`
 - `Layers`
-  - `docs/Human-Plans/Architecture/Layers/Layers.md`
+  - `docs/Human-Plans/Architecture/Layers/Layers-index.md`
 - `Pasta Path`
   - `docs/Human-Plans/Architecture/Pasta-Path/Pasta-Path-Index.md`
 - `Radio`
@@ -85,7 +93,7 @@ The `Layers` family now belongs in that tracker too because it has a real four-p
 - `View Toolbar`
   - `docs/Human-Plans/Architecture/View-Toolbar/View-Toolbar-Index.md`
 - `Spaghetti Editor`
-  - `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Spaghetti-Editor-Explained.md`
+  - `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Spaghetti-Editor-index.md`
 - `Nodes`
   - `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md`
   - `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Sketch.md`
@@ -161,11 +169,39 @@ Current read:
 ### [x] [5.1F] Workspace Selection, Surface Activation, And Canonical Intents
 ### [x] [5.1G] Surface-Agnostic Command Ownership And Adapter Expansion
 
+## [ ] Edit History
+### Info
+
+Source doc:
+- `docs/Human-Plans/Architecture/Edit-History/Edit-History-Index.md`
+
+Current read:
+- the `Edit History` family now has a real first implementation ladder instead of only an umbrella concept
+- the family is explicitly framed around one canonical authored-change history for:
+  - graph edits
+  - parameter commits
+  - Browser/content organization
+  - committed transforms
+  - console-issued mutations over the same authored seams
+- none of the phases are shipped yet
+- the family currently reads as one clean five-step path:
+  - canonical entry and transaction foundation
+  - graph and parameter commit coverage
+  - Browser/content organization plus Console parity
+  - committed transform integration and shared dispatch
+  - later `Pasta Path` sync and derived-reader follow-through
+
+### [ ] Edit History 1 - Canonical Entry And Transaction Foundation
+### [ ] Edit History 2 - Spaghetti Graph And Parameter Commit Coverage
+### [ ] Edit History 3 - Browser Content Organization And Console Parity
+### [ ] Edit History 4 - Viewer Transform Commit Integration And Shared Dispatch
+### [ ] Edit History 5 - Pasta Path Sync, Derived Readers, And Later History UX
+
 ## [ ] Layers
 ### Info
 
 Source docs:
-- `docs/Human-Plans/Architecture/Layers/Layers.md`
+- `docs/Human-Plans/Architecture/Layers/Layers-index.md`
 - `docs/Human-Plans/Architecture/Layers/Future/Layers_Phase Layers-1 - Layer State, Membership, And Visibility Foundation.md`
 - `docs/Human-Plans/Architecture/Layers/Future/Layers_Phase Layers-2 - Layer Manager And Console Command Surface.md`
 - `docs/Human-Plans/Architecture/Layers/Future/Layers_Phase Layers-3 - Sketch Entity Layer Ownership.md`
@@ -309,7 +345,7 @@ Current read:
 ### Info
 
 Source docs:
-- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Spaghetti-Editor-Explained.md`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Spaghetti-Editor-index.md`
 - `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Future/Master_Spaghetti_Phase Master Spaghetti-1 - Smart Wiring And Intent-Aware Auto-Insert First Pass.md`
 
 Current read:
@@ -425,6 +461,12 @@ Current read:
 
 - [x] `Browser-6`
 - [ ] `Browser-7`
+- [ ] `EditHistory-1`
+- [ ] `EditHistory-2`
+- [ ] `EditHistory-3`
+- [ ] `EditHistory-4`
+- [ ] `PastaPath-first-standalone-phase-doc`
+- [ ] `EditHistory-5`
 - [ ] `Layers-1`
 - [ ] `Layers-2`
 - [ ] `Layers-3`
@@ -454,7 +496,6 @@ Current read:
 - [ ] `Workspace-1`
 - [ ] `Workspace-2`
 - [ ] `Workspace-3`
-- [ ] `PastaPath-1`
 
 ## Next Cleanup
 

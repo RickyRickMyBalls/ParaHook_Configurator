@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+9. 2026-03-28 14:06: Refreshed the live docs landing page after a repo audit by fixing the `Spaghetti Editor` and `Layers` quick links, replacing stale published-file entries with the real current index docs, pruning dead Spaghetti editor file pointers, and adding the new `Architecture Setup.md` file to the published inventory
 8. 2026-03-27 15:29: Added a full current `docs/` file inventory to the MkDocs landing page, separating files that are published in the hosted site from files that still live in the repo but are excluded by `mkdocs.yml`
 7. 2026-03-27 12:20: Removed the temporary manual top-level `mkdocs.yml` nav and returned the hosted site to inferred navigation, so new folders and docs under included paths appear automatically again without needing hand-maintained sidebar entries
 6. 2026-03-27 10:35: Reworked the hosted docs homepage into a denser launch surface with larger grouped link sections, added a curated top-level MkDocs nav for the highest-value public entry points, and aligned the publishing notes with the current hybrid navigation plus excluded-folder rules
@@ -101,9 +102,9 @@ This page is meant to feel like a launcher, not a raw repo dump.
 
   ---
 
-  Main Spaghetti workspace explanation and umbrella editor direction.
+  Main Spaghetti workspace index and umbrella editor direction.
 
-  [Open Spaghetti Editor](Human-Plans/Architecture/Spaghetti-Editor-Arch/Spaghetti-Editor-Explained.md)
+  [Open Spaghetti Editor](Human-Plans/Architecture/Spaghetti-Editor-Arch/Spaghetti-Editor-index.md)
 
 - __Nodes__
 
@@ -135,7 +136,7 @@ This page is meant to feel like a launcher, not a raw repo dump.
 
   Layer architecture direction and the current future execution ladder.
 
-  [Open Layers](Human-Plans/Architecture/Layers/Layers.md)
+  [Open Layers](Human-Plans/Architecture/Layers/Layers-index.md)
 
 - __Export__
 
@@ -375,6 +376,7 @@ This is the current full `docs/` file list from the repo.
 [published] Human-Plans/Architecture/AppShell/AppShell-Index.md
 [published] Human-Plans/Architecture/AppShell/Shipped/AppShell_Phase 5.0F-1 - AppShell Runtime Host Extraction.md
 [published] Human-Plans/Architecture/AppShell/Shipped/AppShell_Phase 5.0F-2 - AppShell Window And Dock Host Extraction.md
+[published] Human-Plans/Architecture/Architecture Setup.md
 [published] Human-Plans/Architecture/Audio-Patchbay.md
 [published] Human-Plans/Architecture/AutoCAD-Command-Backlog.md
 [published] Human-Plans/Architecture/Browser/Browser-Index.md
@@ -430,15 +432,14 @@ This is the current full `docs/` file list from the repo.
 [published] Human-Plans/Architecture/Layers/Future/Layers_Phase Layers-2 - Layer Manager And Console Command Surface.md
 [published] Human-Plans/Architecture/Layers/Future/Layers_Phase Layers-3 - Sketch Entity Layer Ownership.md
 [published] Human-Plans/Architecture/Layers/Future/Layers_Phase Layers-4 - Authored 3D Object Layer Ownership And Visibility.md
-[published] Human-Plans/Architecture/Layers/Layers.md
+[published] Human-Plans/Architecture/Layers/Layers-index.md
 [published] Human-Plans/Architecture/Layers/Shipped/.gitkeep
 [published] Human-Plans/Architecture/Pasta-Path/Pasta-Path-Index.md
 [published] Human-Plans/Architecture/Radio/Radio.md
 [published] Human-Plans/Architecture/Radio/Radio_Phase 11
 [published] Human-Plans/Architecture/Sampler.md
-[published] Human-Plans/Architecture/Spaghetti-Editor-Arch/01.2 - Browser Workspace.md
 [published] Human-Plans/Architecture/Spaghetti-Editor-Arch/Future/Master_Spaghetti_Phase Master Spaghetti-1 - Smart Wiring And Intent-Aware Auto-Insert First Pass.md
-[published] Human-Plans/Architecture/Spaghetti-Editor-Arch/master spaghetti-index.md
+[published] Human-Plans/Architecture/Spaghetti-Editor-Arch/Spaghetti-Editor-index.md
 [published] Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md
 [published] Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Fondation/Shipped/Nodes_Phase 3.2A-0.1 - Sketch To Extrude To Preview Contract Repair.md
 [published] Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md
@@ -472,7 +473,6 @@ This is the current full `docs/` file list from the repo.
 [published] Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Shipped/Sketch_Phase 3.2B-S7 - SketchPlane Transform History.md
 [published] Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Shipped/Sketch_Phase 3.2B-SketchPlane-1 - Source And Transform Surface.md
 [published] Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Sketch.md
-[published] Human-Plans/Architecture/Spaghetti-Editor-Arch/Spaghetti-Editor-Explained.md
 [published] Human-Plans/Architecture/Spaghetti-Types.md
 [published] Human-Plans/Architecture/System-Map.md
 [published] Human-Plans/Architecture/Terminology-Decisions.md

@@ -124,6 +124,7 @@ describe('ConsoleDock', () => {
   })
 
   it('enters the references scope from the console root', async () => {
+    const { REFERENCE_ROOT_ROW_ID } = await import('../store/useAppStore')
     container = document.createElement('div')
     document.body.appendChild(container)
     root = createRoot(container)
@@ -140,7 +141,8 @@ describe('ConsoleDock', () => {
 
     expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('referencesSelected')
     expect(useAppStore.getState().workspaceSelection.selectedTarget).toEqual({
-      kind: 'references-root',
+      kind: 'assembly',
+      assemblyId: REFERENCE_ROOT_ROW_ID,
     })
     expect(useConsoleStore.getState().entries.some((entry) => entry.text === 'Select > References')).toBe(true)
     expect(
@@ -174,6 +176,125 @@ describe('ConsoleDock', () => {
 
     expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('referencesSelected')
     expect(useConsoleStore.getState().entries.some((entry) => entry.text === 'Select > References')).toBe(true)
+  })
+
+  it('enters the content root from an explicit root staged session instead of falling through to graph', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useConsoleStore.getState().setStagedNavigationSession({
+        scopeId: 'root',
+        breadcrumb: ['Root'],
+        selections: {
+          graphDocumentId: null,
+          selectedNodeId: null,
+          sketchNodeId: null,
+        },
+        validChoices: [],
+      })
+      useConsoleStore.getState().setInputText('content')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('contentRoot')
+    expect(useConsoleStore.getState().entries.some((entry) => entry.text === 'Select > Content')).toBe(true)
+    expect(
+      useConsoleStore
+        .getState()
+        .entries.some((entry) => entry.text.includes('Content > Choose next [') && entry.text.includes('New Assembly')),
+    ).toBe(true)
+  })
+
+  it('accepts co as a root alias for the content scope', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useConsoleStore.getState().setInputText('co')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('contentRoot')
+    expect(useConsoleStore.getState().entries.some((entry) => entry.text === 'Select > Content')).toBe(true)
+  })
+
+  it('keeps multi-word content autofill labels readable instead of collapsing to canonical tokens', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useConsoleStore.getState().setInputText('content')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    const input = container?.querySelector('.ConsoleInput') as HTMLInputElement | null
+
+    await act(async () => {
+      input?.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }),
+      )
+    })
+
+    await act(async () => {
+      input?.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }),
+      )
+    })
+
+    expect(useConsoleStore.getState().inputText).toBe('New Assembly')
+  })
+
+  it('prints content breadcrumbs before opening the new assembly rename prompt', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useConsoleStore.getState().setInputText('content')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('New Assembly')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(
+      useConsoleStore.getState().entries.some((entry) => entry.text === 'Select > Content > New Assembly'),
+    ).toBe(true)
+    expect(
+      useConsoleStore
+        .getState()
+        .entries.some((entry) => entry.text === 'Select > Content > Assembly 2 > Enter value [Assembly 2]'),
+    ).toBe(true)
   })
 
   it('opens and closes the radio toolbar from the radio scope', async () => {
@@ -4313,18 +4434,18 @@ describe('ConsoleDock', () => {
 
     expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('contentObjectSelected')
     expect(useConsoleStore.getState().entries.some((entry) => entry.text === 'Selected target: Object 1')).toBe(true)
-    expect(useConsoleStore.getState().entries.some((entry) => entry.text === 'Select > Object > Object 1')).toBe(true)
+    expect(useConsoleStore.getState().entries.some((entry) => entry.text === 'Select > Content > Object 1')).toBe(true)
     expect(
       useConsoleStore
         .getState()
         .entries.some(
           (entry) =>
-            entry.text === 'Object > Choose next [Transform, Move, Rotate, Scale, Zoom, Back]',
+            entry.text === 'Content > Choose next [ViewTransform, Move, Rotate, Scale, Zoom, Back]',
         ),
     ).toBe(true)
-    expect(useConsoleStore.getState().inputText).toBe('Transform')
+    expect(useConsoleStore.getState().inputText).toBe('ViewTransform')
     expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
-      'Select > Object > Object 1 > Choose next',
+      'Select > Content > Object 1 > Choose next',
     )
   })
 
@@ -4386,15 +4507,15 @@ describe('ConsoleDock', () => {
     })
 
     expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('contentObjectZoomRoot')
-    expect(useConsoleStore.getState().entries.some((entry) => entry.text === 'Select > Object > Object 1 > Zoom')).toBe(true)
+    expect(useConsoleStore.getState().entries.some((entry) => entry.text === 'Select > Content > Object 1 > Zoom')).toBe(true)
     expect(
       useConsoleStore.getState().entries.some(
         (entry) =>
-          entry.text === 'Select > Object > Object 1 > Zoom > Choose next [All, Extents, Previous, Window, Object, Back]',
+          entry.text === 'Select > Content > Object 1 > Zoom > Choose next [All, Extents, Previous, Window, Object, Back]',
       ),
     ).toBe(true)
     expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
-      'Select > Object > Object 1 > Zoom > Choose next',
+      'Select > Content > Object 1 > Zoom > Choose next',
     )
 
     await act(async () => {
@@ -4407,7 +4528,7 @@ describe('ConsoleDock', () => {
 
     expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('contentObjectSelected')
     expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
-      'Select > Object > Object 1 > Choose next',
+      'Select > Content > Object 1 > Choose next',
     )
   })
 
@@ -4477,8 +4598,15 @@ describe('ConsoleDock', () => {
     })
 
     expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('contentAssemblySelected')
-    expect(useConsoleStore.getState().entries.some((entry) => entry.text === 'Select > Assembly > Assembly 1')).toBe(true)
-    expect(useConsoleStore.getState().entries.some((entry) => entry.text === 'Assembly > Choose next [Zoom, Back]')).toBe(true)
+    expect(useConsoleStore.getState().entries.some((entry) => entry.text === 'Select > Content > Assembly 1')).toBe(true)
+    expect(
+      useConsoleStore
+        .getState()
+        .entries.some(
+          (entry) =>
+            entry.text === 'Content > Choose next [New Component, Rename, SelectAll, Zoom, Back]',
+        ),
+    ).toBe(true)
   })
 
   it('frames a selected assembly from assembly-local z > o', async () => {
@@ -5083,6 +5211,47 @@ describe('ConsoleDock', () => {
     ).toBe(true)
   })
 
+  it('clears the selected references root when backing out of references', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useAppStore.getState().setWorkspaceExplicitSelection({
+        selectedTarget: {
+          kind: 'references-root',
+        },
+        explicitSelectedTargets: [
+          {
+            kind: 'references-root',
+          },
+        ],
+        selectionAnchorTarget: {
+          kind: 'references-root',
+        },
+      })
+      useAppStore.getState().setActiveSurface('browser')
+      useAppStore.getState().requestConsoleContextSync('target-selection')
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('referencesSelected')
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('Back')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useAppStore.getState().workspaceSelection.selectedTarget).toBeNull()
+    expect(useAppStore.getState().workspaceSelection.explicitSelectedTargets).toEqual([])
+    expect(useAppStore.getState().workspaceSelection.selectionAnchorTarget).toBeNull()
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('root')
+  })
+
   it('syncs a selected reference category target into a deeper references scope', async () => {
     container = document.createElement('div')
     document.body.appendChild(container)
@@ -5215,6 +5384,7 @@ describe('ConsoleDock', () => {
   })
 
   it('lets the references root scope advance into child categories', async () => {
+    const { buildReferenceCategoryRowId } = await import('../store/useAppStore')
     container = document.createElement('div')
     document.body.appendChild(container)
     root = createRoot(container)
@@ -5239,8 +5409,8 @@ describe('ConsoleDock', () => {
 
     expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('referenceCategorySelected')
     expect(useAppStore.getState().workspaceSelection.selectedTarget).toEqual({
-      kind: 'reference-category',
-      categoryId: 'footpads',
+      kind: 'component',
+      componentId: buildReferenceCategoryRowId('footpads'),
     })
     expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
       'Select > References > Footpads > Choose next',
@@ -5248,6 +5418,7 @@ describe('ConsoleDock', () => {
   })
 
   it('reselects the references root target when backing out of a reference category scope', async () => {
+    const { REFERENCE_ROOT_ROW_ID, buildReferenceCategoryRowId } = await import('../store/useAppStore')
     container = document.createElement('div')
     document.body.appendChild(container)
     root = createRoot(container)
@@ -5255,7 +5426,8 @@ describe('ConsoleDock', () => {
     await act(async () => {
       root?.render(<ConsoleDock />)
       useAppStore.getState().setWorkspaceSelectedTarget({
-        kind: 'references-root',
+        kind: 'assembly',
+        assemblyId: REFERENCE_ROOT_ROW_ID,
       })
       useAppStore.getState().setActiveSurface('browser')
       useAppStore.getState().requestConsoleContextSync('target-selection')
@@ -5271,8 +5443,8 @@ describe('ConsoleDock', () => {
     })
 
     expect(useAppStore.getState().workspaceSelection.selectedTarget).toEqual({
-      kind: 'reference-category',
-      categoryId: 'footpads',
+      kind: 'component',
+      componentId: buildReferenceCategoryRowId('footpads'),
     })
 
     await act(async () => {
@@ -5286,11 +5458,13 @@ describe('ConsoleDock', () => {
 
     expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('referencesSelected')
     expect(useAppStore.getState().workspaceSelection.selectedTarget).toEqual({
-      kind: 'references-root',
+      kind: 'assembly',
+      assemblyId: REFERENCE_ROOT_ROW_ID,
     })
   })
 
   it('lets a reference category scope advance into an individual reference item and select it', async () => {
+    const { buildImportedReferenceRowId, buildReferenceCategoryRowId } = await import('../store/useAppStore')
     container = document.createElement('div')
     document.body.appendChild(container)
     root = createRoot(container)
@@ -5298,8 +5472,8 @@ describe('ConsoleDock', () => {
     await act(async () => {
       root?.render(<ConsoleDock />)
       useAppStore.getState().setWorkspaceSelectedTarget({
-        kind: 'reference-category',
-        categoryId: 'footpads',
+        kind: 'component',
+        componentId: buildReferenceCategoryRowId('footpads'),
       })
       useAppStore.getState().setActiveSurface('browser')
       useAppStore.getState().requestConsoleContextSync('target-selection')
@@ -5316,8 +5490,8 @@ describe('ConsoleDock', () => {
 
     expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('referenceSelected')
     expect(useAppStore.getState().workspaceSelection.selectedTarget).toEqual({
-      kind: 'reference-item',
-      referenceId: 'footpad:pubpad-full-assembly',
+      kind: 'object',
+      objectId: buildImportedReferenceRowId('footpad:pubpad-full-assembly'),
     })
     expect(useConsoleStore.getState().entries.some((entry) => entry.text === 'Select > References > Footpads > PubPad Full Assembly')).toBe(true)
     expect(
@@ -5537,17 +5711,19 @@ describe('ConsoleDock', () => {
 
     expect(useAppStore.getState().referenceWorkspace.activeReferenceTransformSession?.referenceId).toBe('shoe:shoe-1')
     expect(useAppStore.getState().referenceWorkspace.activeReferenceTransformSession?.mode).toBe('translate')
-    expect(viewerSetReferenceTransformSession).toHaveBeenCalledWith({
-      referenceId: 'shoe:shoe-1',
-      mode: 'translate',
-      space: useAppStore.getState().referenceWorkspace.activeReferenceTransformSession?.space,
-    })
+    expect(viewerSetReferenceTransformSession).toHaveBeenCalledWith(
+      expect.objectContaining({
+        referenceId: 'shoe:shoe-1',
+        mode: 'translate',
+        space: useAppStore.getState().referenceWorkspace.activeReferenceTransformSession?.space,
+      }),
+    )
     expect(viewerActivateTranslateCenterHandle).toHaveBeenCalledTimes(1)
     expect(
       useConsoleStore.getState().entries.some((entry) => entry.text === 'Move armed'),
     ).toBe(true)
     const summaryText = container?.querySelector('.ConsoleBarSummary')?.textContent ?? ''
-    expect(summaryText).toContain('Select > References > Shoes > Shoe 1 > Transform > Move > Choose next')
+    expect(summaryText).toContain('Select > References > Shoes > Shoe 1 > Viewer Transform > Move > Choose next')
     expect(summaryText).toContain('Vec3 [0.0, 0.0, 0.0]')
     expect(summaryText).not.toContain('CommitTransform')
   })
@@ -5606,13 +5782,15 @@ describe('ConsoleDock', () => {
     })
     expect(useConsoleStore.getState().consolePromptSession).toBeNull()
     expect(container?.querySelector('.ConsoleBarSummary')?.textContent ?? '').toContain(
-      'Select > References > Shoes > Shoe 1 > Transform > Rotate > Choose next',
+      'Select > References > Shoes > Shoe 1 > Viewer Transform > Rotate > Choose next',
     )
-    expect(viewerSetReferenceTransformSession).toHaveBeenLastCalledWith({
-      referenceId: 'shoe:shoe-1',
-      mode: 'rotate',
-      space: useAppStore.getState().referenceWorkspace.activeReferenceTransformSession?.space,
-    })
+    expect(viewerSetReferenceTransformSession).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        referenceId: 'shoe:shoe-1',
+        mode: 'rotate',
+        space: useAppStore.getState().referenceWorkspace.activeReferenceTransformSession?.space,
+      }),
+    )
   })
 
   it('deletes the latest committed transform entry from Transform root', async () => {
@@ -5748,7 +5926,7 @@ describe('ConsoleDock', () => {
     })
 
     let summaryText = container?.querySelector('.ConsoleBarSummary')?.textContent ?? ''
-    expect(summaryText).toContain('Select > References > Shoes > Shoe 1 > Transform > Move > Choose next')
+    expect(summaryText).toContain('Select > References > Shoes > Shoe 1 > Viewer Transform > Move > Choose next')
     expect(summaryText).toContain('Vec3 [12.0, -3.0, 7.0]')
 
     await act(async () => {
@@ -5764,7 +5942,7 @@ describe('ConsoleDock', () => {
     })
 
     summaryText = container?.querySelector('.ConsoleBarSummary')?.textContent ?? ''
-    expect(summaryText).toContain('Select > References > Shoes > Shoe 1 > Transform > Rotate > Choose next')
+    expect(summaryText).toContain('Select > References > Shoes > Shoe 1 > Viewer Transform > Rotate > Choose next')
     expect(summaryText).toContain('Vec3 [15.0, 22.5, -30.0]')
     expect(
       useConsoleStore.getState().featureAssistDescriptor?.choices.map((choice) => choice.canonicalToken) ?? [],
@@ -5783,7 +5961,7 @@ describe('ConsoleDock', () => {
     })
 
     summaryText = container?.querySelector('.ConsoleBarSummary')?.textContent ?? ''
-    expect(summaryText).toContain('Select > References > Shoes > Shoe 1 > Transform > Scale > Choose next')
+    expect(summaryText).toContain('Select > References > Shoes > Shoe 1 > Viewer Transform > Scale > Choose next')
     expect(summaryText).toContain('Vec3 [1.3, 0.8, 1.5]')
   })
 
@@ -5842,7 +6020,7 @@ describe('ConsoleDock', () => {
 
     const summaryText = container?.querySelector('.ConsoleBarSummary')?.textContent ?? ''
     expect(summaryText).toContain(
-      'Select > References > Shoes > Shoe 1 > Transform > Move > Move X > Enter value',
+      'Select > References > Shoes > Shoe 1 > Viewer Transform > Move > Move X > Enter value',
     )
   })
 
@@ -5901,7 +6079,7 @@ describe('ConsoleDock', () => {
 
     expect(useConsoleStore.getState().consolePromptSession?.kind).toBe('reference-transform.axis')
     expect(useConsoleStore.getState().entries.at(-1)?.text ?? '').toContain(
-      'Select > References > Shoes > Shoe 1 > Transform > Move > Move X > Choose next [Enter value, Y, Z, Scale, Rotate]',
+      'Select > References > Shoes > Shoe 1 > Viewer Transform > Move > Move X > Choose next [Enter value, Y, Z, Scale, Rotate]',
     )
   })
 
@@ -5989,7 +6167,7 @@ describe('ConsoleDock', () => {
       mode: 'translate',
     })
     expect(useConsoleStore.getState().entries.at(-1)?.text ?? '').toContain(
-      'Select > References > Shoes > Shoe 1 > Transform > Move > Move Y > Choose next [Enter value, X, Z, Scale, Rotate]',
+      'Select > References > Shoes > Shoe 1 > Viewer Transform > Move > Move Y > Choose next [Enter value, X, Z, Scale, Rotate]',
     )
   })
 
@@ -6070,7 +6248,7 @@ describe('ConsoleDock', () => {
       'rotate',
     )
     expect(container?.querySelector('.ConsoleBarSummary')?.textContent ?? '').toContain(
-      'Select > References > Shoes > Shoe 1 > Transform > Rotate > Choose next',
+      'Select > References > Shoes > Shoe 1 > Viewer Transform > Rotate > Choose next',
     )
     expect(
       useConsoleStore.getState().featureAssistDescriptor?.choices.map((choice) => choice.canonicalToken) ??
@@ -6169,7 +6347,7 @@ describe('ConsoleDock', () => {
       },
     })
     expect(container?.querySelector('.ConsoleBarSummary')?.textContent ?? '').toContain(
-      'Select > References > Shoes > Shoe 1 > Transform > Rotate > Choose next',
+      'Select > References > Shoes > Shoe 1 > Viewer Transform > Rotate > Choose next',
     )
   })
 
@@ -6267,7 +6445,7 @@ describe('ConsoleDock', () => {
       },
     })
     expect(container?.querySelector('.ConsoleBarSummary')?.textContent ?? '').toContain(
-      'Select > References > Shoes > Shoe 1 > Transform > Rotate > Choose next',
+      'Select > References > Shoes > Shoe 1 > Viewer Transform > Rotate > Choose next',
     )
   })
 
@@ -6335,7 +6513,7 @@ describe('ConsoleDock', () => {
 
     expect(useConsoleStore.getState().consolePromptSession?.kind).toBe('reference-transform.axis')
     expect(useConsoleStore.getState().consolePromptSession?.label).toContain(
-      'Select > References > Shoes > Shoe 1 > Transform > Move > Move X',
+      'Select > References > Shoes > Shoe 1 > Viewer Transform > Move > Move X',
     )
     expect(viewerActivateTranslateHandle).toHaveBeenCalledWith('X')
   })
@@ -6408,7 +6586,7 @@ describe('ConsoleDock', () => {
     expect(useConsoleStore.getState().consolePromptSession?.prefill).toBe('@14')
     expect(useConsoleStore.getState().inputText).toBe('@14')
     expect(container?.querySelector('.ConsoleBarSummary')?.textContent ?? '').toContain(
-      'Select > References > Shoes > Shoe 1 > Transform > Move > Move X > Enter value[@14]',
+      'Select > References > Shoes > Shoe 1 > Viewer Transform > Move > Move X > Enter value[@14]',
     )
   })
 
@@ -7339,7 +7517,7 @@ describe('ConsoleDock', () => {
     expect(viewerCancelReferenceTransformDrag).toHaveBeenCalledTimes(1)
     expect(viewerClearReferenceTransformHandle).toHaveBeenCalledTimes(1)
     expect(container?.querySelector('.ConsoleBarSummary')?.textContent ?? '').toContain(
-      'Select > References > Shoes > Shoe 1 > Transform > Move > Choose next',
+      'Select > References > Shoes > Shoe 1 > Viewer Transform > Move > Choose next',
     )
   })
 
@@ -7394,7 +7572,7 @@ describe('ConsoleDock', () => {
 
     expect(useConsoleStore.getState().consolePromptSession?.kind).toBe('reference-transform.axis')
     expect(useConsoleStore.getState().consolePromptSession?.label).toContain(
-      'Select > References > Shoes > Shoe 1 > Transform > Move > Move Y',
+      'Select > References > Shoes > Shoe 1 > Viewer Transform > Move > Move Y',
     )
   })
 
@@ -7449,7 +7627,7 @@ describe('ConsoleDock', () => {
 
     expect(useConsoleStore.getState().consolePromptSession?.kind).toBe('reference-transform.plane')
     expect(useConsoleStore.getState().consolePromptSession?.label).toContain(
-      'Select > References > Shoes > Shoe 1 > Transform > Move > Move XY',
+      'Select > References > Shoes > Shoe 1 > Viewer Transform > Move > Move XY',
     )
   })
 
@@ -7518,7 +7696,7 @@ describe('ConsoleDock', () => {
     expect(useConsoleStore.getState().consolePromptSession).toBeNull()
     expect(useConsoleStore.getState().inputText).toBe('Vec3 [0.0, 0.0, 0.0]')
     expect(container?.querySelector('.ConsoleBarSummary')?.textContent ?? '').toContain(
-      'Select > References > Shoes > Shoe 1 > Transform > Move > Choose next',
+      'Select > References > Shoes > Shoe 1 > Viewer Transform > Move > Choose next',
     )
   })
 
@@ -7581,7 +7759,7 @@ describe('ConsoleDock', () => {
     expect(useConsoleStore.getState().consolePromptSession).toBeNull()
     expect(useConsoleStore.getState().inputText).toBe('Vec3 [0.0, 0.0, 0.0]')
     expect(container?.querySelector('.ConsoleBarSummary')?.textContent ?? '').toContain(
-      'Select > References > Shoes > Shoe 1 > Transform > Move > Choose next',
+      'Select > References > Shoes > Shoe 1 > Viewer Transform > Move > Choose next',
     )
   })
 
@@ -8159,7 +8337,7 @@ describe('ConsoleDock', () => {
       'referenceTransformSettingsRoot',
     )
     expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
-      'Select > References > Shoes > Shoe 1 > Transform > Settings > Choose next',
+      'Select > References > Shoes > Shoe 1 > Viewer Transform > Settings > Choose next',
     )
 
     await act(async () => {
@@ -8171,7 +8349,7 @@ describe('ConsoleDock', () => {
       'referenceTransformSpaceRoot',
     )
     expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
-      'Select > References > Shoes > Shoe 1 > Transform > Settings > Space > Choose next',
+      'Select > References > Shoes > Shoe 1 > Viewer Transform > Settings > Space > Choose next',
     )
 
     await act(async () => {
@@ -8195,7 +8373,7 @@ describe('ConsoleDock', () => {
       'referenceTransformRoot',
     )
     expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
-      'Select > References > Shoes > Shoe 1 > Transform > Choose next',
+      'Select > References > Shoes > Shoe 1 > Viewer Transform > Choose next',
     )
   })
 
@@ -8248,7 +8426,7 @@ describe('ConsoleDock', () => {
       'referenceTransformSnapRoot',
     )
     expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
-      'Select > References > Shoes > Shoe 1 > Transform > Settings > Snap > Choose next',
+      'Select > References > Shoes > Shoe 1 > Viewer Transform > Settings > Snap > Choose next',
     )
   })
 
@@ -8301,7 +8479,7 @@ describe('ConsoleDock', () => {
       'referenceTransformSpaceRoot',
     )
     expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
-      'Select > References > Shoes > Shoe 1 > Transform > Settings > Space > Choose next',
+      'Select > References > Shoes > Shoe 1 > Viewer Transform > Settings > Space > Choose next',
     )
   })
 
@@ -8696,21 +8874,249 @@ describe('ConsoleDock', () => {
     })
 
     expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('contentObjectSelected')
-    expect(useConsoleStore.getState().entries.some((entry) => entry.text === 'Select > Object > Object 1')).toBe(true)
+    expect(useConsoleStore.getState().entries.some((entry) => entry.text === 'Select > Content > Object 1')).toBe(true)
     expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
-      'Select > Object > Object 1 > Choose next',
+      'Select > Content > Object 1 > Choose next',
     )
+  })
+
+  it('clears a selected object on escape', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useAppStore.setState((state) => ({
+        ...state,
+        projectContent: {
+          ...state.projectContent,
+          objectsById: {
+            'object-1': {
+              objectId: 'object-1',
+              ownerGraphDocumentId: 'graph-document-1',
+              parentComponentId: null,
+              objectSourceKind: 'published-object',
+              sourceGraphDocumentId: 'graph-document-1',
+              sourceOutputEntryId: 'output-entry-1',
+              sourceNodeId: 'node-output-1',
+              slotId: 'slot-a',
+              label: 'Object 1',
+              resolutionState: 'resolved',
+            },
+          },
+        },
+      }))
+      useAppStore.getState().setWorkspaceExplicitSelection({
+        selectedTarget: {
+          kind: 'object',
+          objectId: 'object-1',
+        },
+        explicitSelectedTargets: [
+          {
+            kind: 'object',
+            objectId: 'object-1',
+          },
+        ],
+        selectionAnchorTarget: {
+          kind: 'object',
+          objectId: 'object-1',
+        },
+      })
+      useAppStore.getState().selectPart('slot-a')
+      useAppStore.getState().setActiveSurface('viewer')
+      useAppStore.getState().requestConsoleContextSync('target-selection')
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('contentObjectSelected')
+
+    await act(async () => {
+      document.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
+      )
+    })
+
+    expect(useAppStore.getState().workspaceSelection.selectedTarget).toBeNull()
+    expect(useAppStore.getState().workspaceSelection.explicitSelectedTargets).toEqual([])
+    expect(useAppStore.getState().workspaceSelection.selectionAnchorTarget).toBeNull()
+    expect(useAppStore.getState().selectedPartKey).toBeNull()
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('root')
+    expect(
+      useConsoleStore.getState().entries.some((entry) => entry.text === '> esc'),
+    ).toBe(true)
+  })
+
+  it('clears a selected reference on escape', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useAppStore.getState().setWorkspaceExplicitSelection({
+        selectedTarget: {
+          kind: 'reference-item',
+          referenceId: 'shoe:shoe-1',
+        },
+        explicitSelectedTargets: [
+          {
+            kind: 'reference-item',
+            referenceId: 'shoe:shoe-1',
+          },
+        ],
+        selectionAnchorTarget: {
+          kind: 'reference-item',
+          referenceId: 'shoe:shoe-1',
+        },
+      })
+      useAppStore.getState().setActiveSurface('viewer')
+      useAppStore.getState().requestConsoleContextSync('target-selection')
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('referenceSelected')
+
+    await act(async () => {
+      document.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
+      )
+    })
+
+    expect(useAppStore.getState().workspaceSelection.selectedTarget).toBeNull()
+    expect(useAppStore.getState().workspaceSelection.explicitSelectedTargets).toEqual([])
+    expect(useAppStore.getState().workspaceSelection.selectionAnchorTarget).toBeNull()
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('root')
+    expect(
+      useConsoleStore.getState().entries.some((entry) => entry.text === '> esc'),
+    ).toBe(true)
+  })
+
+  it('clears a browser-selected reference on escape', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useAppStore.getState().setWorkspaceExplicitSelection({
+        selectedTarget: {
+          kind: 'reference-item',
+          referenceId: 'shoe:shoe-1',
+        },
+        explicitSelectedTargets: [
+          {
+            kind: 'reference-item',
+            referenceId: 'shoe:shoe-1',
+          },
+        ],
+        selectionAnchorTarget: {
+          kind: 'reference-item',
+          referenceId: 'shoe:shoe-1',
+        },
+      })
+      useAppStore.getState().setActiveSurface('browser')
+      useAppStore.getState().requestConsoleContextSync('target-selection')
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('referenceSelected')
+
+    await act(async () => {
+      document.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
+      )
+    })
+
+    expect(useAppStore.getState().workspaceSelection.selectedTarget).toBeNull()
+    expect(useAppStore.getState().workspaceSelection.explicitSelectedTargets).toEqual([])
+    expect(useAppStore.getState().workspaceSelection.selectionAnchorTarget).toBeNull()
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('root')
+  })
+
+  it('clears a selected references root on escape', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useAppStore.getState().setWorkspaceExplicitSelection({
+        selectedTarget: {
+          kind: 'references-root',
+        },
+        explicitSelectedTargets: [
+          {
+            kind: 'references-root',
+          },
+        ],
+        selectionAnchorTarget: {
+          kind: 'references-root',
+        },
+      })
+      useAppStore.getState().setActiveSurface('browser')
+      useAppStore.getState().requestConsoleContextSync('target-selection')
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('referencesSelected')
+
+    await act(async () => {
+      document.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
+      )
+    })
+
+    expect(useAppStore.getState().workspaceSelection.selectedTarget).toBeNull()
+    expect(useAppStore.getState().workspaceSelection.explicitSelectedTargets).toEqual([])
+    expect(useAppStore.getState().workspaceSelection.selectionAnchorTarget).toBeNull()
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('root')
+  })
+
+  it('clears a selected reference category on escape', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useAppStore.getState().setWorkspaceExplicitSelection({
+        selectedTarget: {
+          kind: 'reference-category',
+          categoryId: 'shoes',
+        },
+        explicitSelectedTargets: [
+          {
+            kind: 'reference-category',
+            categoryId: 'shoes',
+          },
+        ],
+        selectionAnchorTarget: {
+          kind: 'reference-category',
+          categoryId: 'shoes',
+        },
+      })
+      useAppStore.getState().setActiveSurface('browser')
+      useAppStore.getState().requestConsoleContextSync('target-selection')
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('referenceCategorySelected')
+
+    await act(async () => {
+      document.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
+      )
+    })
+
+    expect(useAppStore.getState().workspaceSelection.selectedTarget).toBeNull()
+    expect(useAppStore.getState().workspaceSelection.explicitSelectedTargets).toEqual([])
+    expect(useAppStore.getState().workspaceSelection.selectionAnchorTarget).toBeNull()
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('root')
   })
 
   it('exposes transform under a selected object and routes direct move through the canonical branch', async () => {
     const viewerSetSelectedPart = vi.fn()
-    const viewerSetGizmoEnabled = vi.fn()
-    const viewerSetGizmoMode = vi.fn()
+    const viewerSetContentObjectTransformSession = vi.fn()
     const viewerActivateTranslateCenterHandle = vi.fn()
     setViewer({
       setSelectedPart: viewerSetSelectedPart,
-      setGizmoEnabled: viewerSetGizmoEnabled,
-      setGizmoMode: viewerSetGizmoMode,
+      setContentObjectTransformSession: viewerSetContentObjectTransformSession,
       activateTranslateCenterHandle: viewerActivateTranslateCenterHandle,
       setConsoleCameraMode: vi.fn(),
     } as any)
@@ -8755,7 +9161,7 @@ describe('ConsoleDock', () => {
         .getState()
         .entries.some(
           (entry) =>
-            entry.text === 'Object > Choose next [Transform, Move, Rotate, Scale, Zoom, Back]',
+            entry.text === 'Content > Choose next [ViewTransform, Move, Rotate, Scale, Zoom, Back]',
         ),
     ).toBe(true)
 
@@ -8769,16 +9175,80 @@ describe('ConsoleDock', () => {
     })
 
     expect(viewerSetSelectedPart).toHaveBeenCalledWith('slot-a')
-    expect(viewerSetGizmoEnabled).toHaveBeenCalledWith(true)
-    expect(viewerSetGizmoMode).toHaveBeenCalledWith('translate')
+    expect(viewerSetContentObjectTransformSession).toHaveBeenCalledWith({
+      objectId: 'object-1',
+      mode: 'translate',
+      space: 'local',
+      entryOrigin: {
+        position: { x: 0, y: 0, z: 0 },
+        rotationDeg: { x: 0, y: 0, z: 0 },
+        scale: { x: 1, y: 1, z: 1 },
+      },
+    })
     expect(viewerActivateTranslateCenterHandle).toHaveBeenCalledTimes(1)
     expect(
+      useAppStore.getState().referenceWorkspace.activeContentObjectTransformSession?.objectId,
+    ).toBe('object-1')
+    expect(
       useConsoleStore.getState().entries.some(
-        (entry) => entry.text === 'Select > Object > Object 1 > Transform > Move',
+        (entry) => entry.text === 'Select > Content > Object 1 > Viewer Transform > Move',
       ),
     ).toBe(true)
     expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
-      'Select > Object > Object 1 > Transform > Choose next',
+      'Select > Content > Object 1 > Viewer Transform > Choose next',
+    )
+  })
+
+  it('enters Viewer Transform for a selected object when the autofill is submitted with enter', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useAppStore.setState((state) => ({
+        ...state,
+        projectContent: {
+          ...state.projectContent,
+          objectsById: {
+            'object-1': {
+              objectId: 'object-1',
+              ownerGraphDocumentId: 'graph-document-1',
+              parentComponentId: null,
+              objectSourceKind: 'published-object',
+              sourceGraphDocumentId: 'graph-document-1',
+              sourceOutputEntryId: 'output-entry-1',
+              sourceNodeId: 'node-output-1',
+              slotId: 'slot-a',
+              label: 'Object 1',
+              resolutionState: 'resolved',
+            },
+          },
+        },
+      }))
+      useAppStore.getState().setWorkspaceSelectedTarget({
+        kind: 'object',
+        objectId: 'object-1',
+      })
+      useAppStore.getState().setActiveSurface('viewer')
+      useAppStore.getState().requestConsoleContextSync('target-selection')
+    })
+
+    expect(useConsoleStore.getState().inputText).toBe('ViewTransform')
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {})
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('contentObjectTransformRoot')
+    expect(
+      useAppStore.getState().referenceWorkspace.activeContentObjectTransformSession?.objectId,
+    ).toBe('object-1')
+    expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
+      'Select > Content > Object 1 > Viewer Transform > Choose next',
     )
   })
 
@@ -8829,7 +9299,7 @@ describe('ConsoleDock', () => {
 
     expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('contentObjectZoomRoot')
     expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
-      'Select > Object > Object 1 > Zoom > Choose next',
+      'Select > Content > Object 1 > Zoom > Choose next',
     )
   })
 
@@ -8912,7 +9382,7 @@ describe('ConsoleDock', () => {
 
     expect(
       useConsoleStore.getState().entries.some(
-        (entry) => entry.text === 'Select > Object > Object 1 > Zoom > Object',
+        (entry) => entry.text === 'Select > Content > Object 1 > Zoom > Object',
       ),
     ).toBe(true)
     expect(viewerFrameSelected).toHaveBeenCalledWith('slot-a')
@@ -8923,7 +9393,7 @@ describe('ConsoleDock', () => {
     ).toBe(false)
     expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('contentObjectSelected')
     expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
-      'Select > Object > Object 1 > Choose next',
+      'Select > Content > Object 1 > Choose next',
     )
   })
 
@@ -9043,7 +9513,7 @@ describe('ConsoleDock', () => {
     })
 
     expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
-      'Select > Object > Object 1 > Choose next',
+      'Select > Content > Object 1 > Choose next',
     )
 
     await act(async () => {
@@ -9057,9 +9527,9 @@ describe('ConsoleDock', () => {
 
     expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('contentObjectSelected')
     expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
-      'Select > Object > Object 2 > Choose next',
+      'Select > Content > Object 2 > Choose next',
     )
-    expect(useConsoleStore.getState().entries.some((entry) => entry.text === 'Select > Object > Object 2')).toBe(true)
+    expect(useConsoleStore.getState().entries.some((entry) => entry.text === 'Select > Content > Object 2')).toBe(true)
   })
 
   it('keeps selected object context ahead of spaghetti graph fallback sync', async () => {
@@ -9099,7 +9569,7 @@ describe('ConsoleDock', () => {
 
     expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('contentObjectSelected')
     expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
-      'Select > Object > Object 1 > Choose next',
+      'Select > Content > Object 1 > Choose next',
     )
   })
 

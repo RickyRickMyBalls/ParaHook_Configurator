@@ -3,6 +3,7 @@ import type {
   ReferenceTransformSnapAxis,
   ReferenceTransformSnapMode,
 } from '../store/useAppStore'
+import { REFERENCE_ROOT_ROW_ID, buildReferenceCategoryRowId } from '../store/useAppStore'
 
 export type ConsoleStagedNodeOption = {
   nodeId: string
@@ -19,6 +20,11 @@ export type ConsoleStagedGraphOption = {
 }
 
 export type ConsoleStagedNavigationContext = {
+  contentAssemblies: Array<{
+    assemblyId: string
+    label: string
+    canDelete: boolean
+  }>
   graphOptions: Array<{
     graphDocumentId: string
     name: string
@@ -66,12 +72,14 @@ export type ConsoleStagedNavigationChoice = {
   aliases: string[]
   label: string
   kind: ConsoleStagedNavigationChoiceKind
+  contentAssemblyId?: string
   referenceCategoryId?: string
   referenceId?: string
 }
 
 export type ConsoleStagedNavigationScopeId =
   | 'root'
+  | 'contentRoot'
   | 'cameraRoot'
   | 'cameraProjectionRoot'
   | 'zoomRoot'
@@ -128,6 +136,8 @@ export type ConsoleStagedNavigationSelection = {
   graphDocumentId: string | null
   selectedNodeId: string | null
   sketchNodeId: string | null
+  contentAssemblyId?: string | null
+  contentComponentId?: string | null
   referenceId?: string | null
   referenceCategoryId?: string | null
   referenceCanLoadModel?: boolean
@@ -187,6 +197,10 @@ export type ConsoleStagedNavigationExecuteResult = {
     | 'graph.references'
     | 'graph.open'
     | 'graph.build'
+    | 'content.newAssembly'
+    | 'content.newComponent'
+    | 'content.rename'
+    | 'content.delete'
     | 'sketch.plane'
     | 'sketch.draw'
     | 'node.delete'
@@ -223,7 +237,8 @@ export type ConsoleStagedNavigationExecuteResult = {
   | 'reference.transform.snap.scale.value'
   | 'reference.transform.snap.scale.x.value'
   | 'reference.transform.snap.scale.y.value'
-  | 'reference.transform.snap.scale.z.value'
+    | 'reference.transform.snap.scale.z.value'
+    | 'content.selectAll'
     | 'content.transform.move'
     | 'content.transform.rotate'
     | 'content.transform.scale'
@@ -263,10 +278,19 @@ export type ConsoleStagedNavigationResult =
   | ConsoleStagedNavigationInvalidResult
   | ConsoleStagedNavigationCancelledResult
 
+const VIEWER_TRANSFORM_LABEL = 'Viewer Transform'
+
 const ROOT_GRAPH_CHOICE: ConsoleStagedNavigationChoice = {
   canonicalToken: 'GRAPH',
   aliases: ['G'],
   label: 'Graph',
+  kind: 'scope',
+}
+
+const ROOT_CONTENT_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'CONTENT',
+  aliases: ['CO'],
+  label: 'Content',
   kind: 'scope',
 }
 
@@ -669,10 +693,45 @@ const SCALE_CHOICE: ConsoleStagedNavigationChoice = {
   kind: 'action',
 }
 
+const SELECT_ALL_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'SELECTALL',
+  aliases: ['SA'],
+  label: 'SelectAll',
+  kind: 'action',
+}
+
+const NEW_ASSEMBLY_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'NEWASSEMBLY',
+  aliases: ['NEW', 'ASSEMBLY'],
+  label: 'New Assembly',
+  kind: 'action',
+}
+
+const NEW_COMPONENT_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'NEWCOMPONENT',
+  aliases: ['NEW', 'COMPONENT'],
+  label: 'New Component',
+  kind: 'action',
+}
+
+const RENAME_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'RENAME',
+  aliases: [],
+  label: 'Rename',
+  kind: 'action',
+}
+
+const DELETE_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'DELETE',
+  aliases: ['DEL'],
+  label: 'Delete',
+  kind: 'action',
+}
+
 const TRANSFORM_CHOICE: ConsoleStagedNavigationChoice = {
-  canonicalToken: 'TRANSFORM',
-  aliases: ['T'],
-  label: 'Transform',
+  canonicalToken: 'VIEWTRANSFORM',
+  aliases: ['T', 'TRANSFORM'],
+  label: 'ViewTransform',
   kind: 'scope',
 }
 
@@ -762,17 +821,47 @@ const createBackChoice = (): ConsoleStagedNavigationChoice => ({
 
 const normalizeToken = (value: string): string => value.trim().toUpperCase()
 
-const matchesChoice = (choice: ConsoleStagedNavigationChoice, normalizedToken: string): boolean =>
-  normalizedToken === choice.canonicalToken || choice.aliases.includes(normalizedToken)
+const matchesChoice = (choice: ConsoleStagedNavigationChoice, normalizedToken: string): boolean => {
+  const normalizedLabel = normalizeToken(choice.label)
+  const compactLabel = normalizedLabel.replace(/\s+/gu, '')
+  return (
+    normalizedToken === choice.canonicalToken ||
+    normalizedToken === normalizedLabel ||
+    normalizedToken === compactLabel ||
+    choice.aliases.includes(normalizedToken)
+  )
+}
 
 const buildRootChoices = (): ConsoleStagedNavigationChoice[] => [
   ROOT_GRAPH_CHOICE,
+  ROOT_CONTENT_CHOICE,
   ROOT_REFERENCES_CHOICE,
   ROOT_CAMERA_CHOICE,
   ROOT_RADIO_CHOICE,
   ROOT_ZOOM_CHOICE,
   ROOT_PAN_CHOICE,
   ROOT_ORBIT_CHOICE,
+]
+
+const createContentAssemblyChoice = (
+  assemblyId: string,
+  label: string,
+): ConsoleStagedNavigationChoice => ({
+  canonicalToken: label.toUpperCase(),
+  aliases: [],
+  label,
+  kind: 'scope',
+  contentAssemblyId: assemblyId,
+})
+
+const buildContentRootChoices = (
+  contentAssemblies: ConsoleStagedNavigationContext['contentAssemblies'],
+): ConsoleStagedNavigationChoice[] => [
+  ...contentAssemblies.map((assembly) =>
+    createContentAssemblyChoice(assembly.assemblyId, assembly.label),
+  ),
+  NEW_ASSEMBLY_CHOICE,
+  createBackChoice(),
 ]
 
 const buildCameraRootChoices = (): ConsoleStagedNavigationChoice[] => [
@@ -960,8 +1049,20 @@ const buildGraphNodeSelectedChoices = (): ConsoleStagedNavigationChoice[] => [
   createBackChoice(),
 ]
 
-const buildContentSelectedChoices = (): ConsoleStagedNavigationChoice[] => [createBackChoice()]
-const buildContentAssemblySelectedChoices = (): ConsoleStagedNavigationChoice[] => [
+const buildContentComponentSelectedChoices = (
+  canRenameDelete: boolean,
+): ConsoleStagedNavigationChoice[] => [
+  ...(canRenameDelete ? [RENAME_CHOICE, DELETE_CHOICE] : []),
+  SELECT_ALL_CHOICE,
+  createBackChoice(),
+]
+const buildContentAssemblySelectedChoices = (
+  canDelete: boolean,
+): ConsoleStagedNavigationChoice[] => [
+  NEW_COMPONENT_CHOICE,
+  RENAME_CHOICE,
+  ...(canDelete ? [DELETE_CHOICE] : []),
+  SELECT_ALL_CHOICE,
   ROOT_ZOOM_CHOICE,
   createBackChoice(),
 ]
@@ -1274,21 +1375,45 @@ const createGraphSelectedSession = (
   validChoices: buildGraphSelectedChoices(),
 })
 
-const createContentAssemblySelectedSession = (label: string): ConsoleStagedNavigationSession => ({
-  scopeId: 'contentAssemblySelected',
-  breadcrumb: ['Select', 'Assembly', label],
+const createContentRootSession = (
+  context: Pick<ConsoleStagedNavigationContext, 'contentAssemblies'>,
+): ConsoleStagedNavigationSession => ({
+  scopeId: 'contentRoot',
+  breadcrumb: ['Select', 'Content'],
   selections: {
     graphDocumentId: null,
     selectedNodeId: null,
     sketchNodeId: null,
+    contentAssemblyId: null,
+    contentComponentId: null,
     referenceId: null,
   },
-  validChoices: buildContentAssemblySelectedChoices(),
+  validChoices: buildContentRootChoices(context.contentAssemblies),
+})
+
+const buildContentBreadcrumb = (label: string): string[] => ['Select', 'Content', label]
+
+const createContentAssemblySelectedSession = (
+  label: string,
+  assemblyId: string | null,
+  canDelete: boolean,
+): ConsoleStagedNavigationSession => ({
+  scopeId: 'contentAssemblySelected',
+  breadcrumb: buildContentBreadcrumb(label),
+  selections: {
+    graphDocumentId: null,
+    selectedNodeId: null,
+    sketchNodeId: null,
+    contentAssemblyId: assemblyId,
+    contentComponentId: null,
+    referenceId: null,
+  },
+  validChoices: buildContentAssemblySelectedChoices(canDelete),
 })
 
 const createContentAssemblyZoomRootSession = (label: string): ConsoleStagedNavigationSession => ({
   scopeId: 'contentAssemblyZoomRoot',
-  breadcrumb: ['Select', 'Assembly', label, 'Zoom'],
+  breadcrumb: [...buildContentBreadcrumb(label), 'Zoom'],
   selections: {
     graphDocumentId: null,
     selectedNodeId: null,
@@ -1301,16 +1426,20 @@ const createContentAssemblyZoomRootSession = (label: string): ConsoleStagedNavig
 const createContentComponentSelectedSession = (
   label: string,
   fallbackGraphDocumentId: string | null,
+  componentId: string | null,
+  canRenameDelete: boolean,
 ): ConsoleStagedNavigationSession => ({
   scopeId: 'contentComponentSelected',
-  breadcrumb: ['Select', 'Component', label],
+  breadcrumb: buildContentBreadcrumb(label),
   selections: {
     graphDocumentId: fallbackGraphDocumentId,
     selectedNodeId: null,
     sketchNodeId: null,
+    contentAssemblyId: null,
+    contentComponentId: componentId,
     referenceId: null,
   },
-  validChoices: buildContentSelectedChoices(),
+  validChoices: buildContentComponentSelectedChoices(canRenameDelete),
 })
 
 const createContentObjectSelectedSession = (
@@ -1318,11 +1447,13 @@ const createContentObjectSelectedSession = (
   fallbackGraphDocumentId: string | null,
 ): ConsoleStagedNavigationSession => ({
   scopeId: 'contentObjectSelected',
-  breadcrumb: ['Select', 'Object', label],
+  breadcrumb: buildContentBreadcrumb(label),
   selections: {
     graphDocumentId: fallbackGraphDocumentId,
     selectedNodeId: null,
     sketchNodeId: null,
+    contentAssemblyId: null,
+    contentComponentId: null,
     referenceId: null,
   },
   validChoices: buildContentObjectSelectedChoices(),
@@ -1333,11 +1464,13 @@ const createContentObjectZoomRootSession = (
   fallbackGraphDocumentId: string | null,
 ): ConsoleStagedNavigationSession => ({
   scopeId: 'contentObjectZoomRoot',
-  breadcrumb: ['Select', 'Object', label, 'Zoom'],
+  breadcrumb: [...buildContentBreadcrumb(label), 'Zoom'],
   selections: {
     graphDocumentId: fallbackGraphDocumentId,
     selectedNodeId: null,
     sketchNodeId: null,
+    contentAssemblyId: null,
+    contentComponentId: null,
     referenceId: null,
   },
   validChoices: buildZoomActionChoices(),
@@ -1348,11 +1481,13 @@ const createContentObjectTransformRootSession = (
   fallbackGraphDocumentId: string | null,
 ): ConsoleStagedNavigationSession => ({
   scopeId: 'contentObjectTransformRoot',
-  breadcrumb: ['Select', 'Object', label, 'Transform'],
+  breadcrumb: [...buildContentBreadcrumb(label), VIEWER_TRANSFORM_LABEL],
   selections: {
     graphDocumentId: fallbackGraphDocumentId,
     selectedNodeId: null,
     sketchNodeId: null,
+    contentAssemblyId: null,
+    contentComponentId: null,
     referenceId: null,
   },
   validChoices: buildTransformRootChoices(),
@@ -1419,8 +1554,8 @@ const createReferenceTransformRootSession = (
   scopeId: 'referenceTransformRoot',
   breadcrumb:
     referenceCategoryId !== null && referenceCategoryLabel !== null
-      ? ['Select', 'References', referenceCategoryLabel, label, 'Transform']
-      : ['Select', 'Reference', label, 'Transform'],
+      ? ['Select', 'References', referenceCategoryLabel, label, VIEWER_TRANSFORM_LABEL]
+      : ['Select', 'Reference', label, VIEWER_TRANSFORM_LABEL],
   selections: {
     graphDocumentId: null,
     selectedNodeId: null,
@@ -1442,8 +1577,8 @@ const createReferenceTransformSettingsRootSession = (
   scopeId: 'referenceTransformSettingsRoot',
   breadcrumb:
     referenceCategoryId !== null && referenceCategoryLabel !== null
-      ? ['Select', 'References', referenceCategoryLabel, label, 'Transform', 'Settings']
-      : ['Select', 'Reference', label, 'Transform', 'Settings'],
+      ? ['Select', 'References', referenceCategoryLabel, label, VIEWER_TRANSFORM_LABEL, 'Settings']
+      : ['Select', 'Reference', label, VIEWER_TRANSFORM_LABEL, 'Settings'],
   selections: {
     graphDocumentId: null,
     selectedNodeId: null,
@@ -1463,8 +1598,8 @@ const createReferenceTransformSpaceRootSession = (
   scopeId: 'referenceTransformSpaceRoot',
   breadcrumb:
     referenceCategoryId !== null && referenceCategoryLabel !== null
-      ? ['Select', 'References', referenceCategoryLabel, label, 'Transform', 'Settings', 'Space']
-      : ['Select', 'Reference', label, 'Transform', 'Settings', 'Space'],
+      ? ['Select', 'References', referenceCategoryLabel, label, VIEWER_TRANSFORM_LABEL, 'Settings', 'Space']
+      : ['Select', 'Reference', label, VIEWER_TRANSFORM_LABEL, 'Settings', 'Space'],
   selections: {
     graphDocumentId: null,
     selectedNodeId: null,
@@ -1484,8 +1619,8 @@ const createReferenceTransformSnapRootSession = (
   scopeId: 'referenceTransformSnapRoot',
   breadcrumb:
     referenceCategoryId !== null && referenceCategoryLabel !== null
-      ? ['Select', 'References', referenceCategoryLabel, label, 'Transform', 'Settings', 'Snap']
-      : ['Select', 'Reference', label, 'Transform', 'Settings', 'Snap'],
+      ? ['Select', 'References', referenceCategoryLabel, label, VIEWER_TRANSFORM_LABEL, 'Settings', 'Snap']
+      : ['Select', 'Reference', label, VIEWER_TRANSFORM_LABEL, 'Settings', 'Snap'],
   selections: {
     graphDocumentId: null,
     selectedNodeId: null,
@@ -1518,12 +1653,12 @@ const createReferenceTransformModeSnapRootSession = (
           'References',
           referenceCategoryLabel,
           label,
-          'Transform',
+          VIEWER_TRANSFORM_LABEL,
           'Settings',
           'Snap',
           modeLabel,
         ]
-      : ['Select', 'Reference', label, 'Transform', 'Settings', 'Snap', modeLabel],
+      : ['Select', 'Reference', label, VIEWER_TRANSFORM_LABEL, 'Settings', 'Snap', modeLabel],
   selections: {
     graphDocumentId: null,
     selectedNodeId: null,
@@ -1560,7 +1695,7 @@ const createReferenceTransformAxisSnapRootSession = (
           'References',
           referenceCategoryLabel,
           label,
-          'Transform',
+          VIEWER_TRANSFORM_LABEL,
           'Settings',
           'Snap',
           modeLabel,
@@ -1570,7 +1705,7 @@ const createReferenceTransformAxisSnapRootSession = (
           'Select',
           'Reference',
           label,
-          'Transform',
+          VIEWER_TRANSFORM_LABEL,
           'Settings',
           'Snap',
           modeLabel,
@@ -1866,20 +2001,75 @@ export const resolveConsoleWorkspaceContextSync = (
     | ConsoleWorkspaceContextTarget,
 ): ConsoleWorkspaceContextSyncResolution => {
   if ('kind' in target && target.kind === 'assembly') {
+    if (target.assemblyId === REFERENCE_ROOT_ROW_ID && target.categoryOptions !== undefined) {
+      return {
+        session: createReferencesSelectedSession(
+          target.label,
+          target.categoryOptions,
+          target.canLoadAll ?? false,
+          context.referenceCategories.flatMap((category) =>
+            category.items.map((item) => item.referenceId),
+          ),
+        ),
+        selectedLabel: target.label,
+      }
+    }
     return {
-      session: createContentAssemblySelectedSession(target.label),
+      session: createContentAssemblySelectedSession(
+        target.label,
+        target.assemblyId,
+        target.canDelete,
+      ),
       selectedLabel: target.label,
     }
   }
 
   if ('kind' in target && target.kind === 'component') {
+    if (
+      target.referenceCategoryId !== undefined &&
+      target.componentId === buildReferenceCategoryRowId(target.referenceCategoryId)
+    ) {
+      const matchedCategory = context.referenceCategories.find(
+        (category) => category.categoryId === target.referenceCategoryId,
+      )
+      return {
+        session: createReferenceCategorySelectedSession(
+          'References',
+          target.referenceCategoryId,
+          target.label,
+          matchedCategory?.items.map((item) => ({
+            referenceId: item.referenceId,
+            label: item.label,
+          })) ?? [],
+          target.canLoadAll ?? false,
+        ),
+        selectedLabel: target.label,
+      }
+    }
     return {
-      session: createContentComponentSelectedSession(target.label, target.fallbackGraphDocumentId),
+      session: createContentComponentSelectedSession(
+        target.label,
+        target.fallbackGraphDocumentId,
+        target.componentId,
+        target.canRename || target.canDelete,
+      ),
       selectedLabel: target.label,
     }
   }
 
   if ('kind' in target && target.kind === 'object') {
+    if (target.referenceId !== undefined) {
+      return {
+        session: createReferenceSelectedSession(
+          target.label,
+          target.referenceId,
+          target.canLoadModel ?? false,
+          target.referenceCategoryId ?? null,
+          target.referenceCategoryLabel ?? null,
+        ),
+        selectedLabel: target.label,
+      }
+    }
     return {
       session: createContentObjectSelectedSession(target.label, target.fallbackGraphDocumentId),
       selectedLabel: target.label,
@@ -2195,53 +2385,114 @@ const resolveSingleSketchAutoAdvance = (
   }
 }
 
+const isReferenceCategoryContextEntry = (
+  value: unknown,
+): value is ConsoleStagedNavigationContext['referenceCategories'][number] =>
+  typeof value === 'object' &&
+  value !== null &&
+  'categoryId' in value &&
+  'items' in value
+
+const isSketchDrawContext = (
+  value: unknown,
+): value is ConsoleStagedNavigationContext['sketchDraw'] =>
+  typeof value === 'object' &&
+  value !== null &&
+  'hasSelection' in value &&
+  'hasPrevious' in value &&
+  'preferredTool' in value
+
 export const createConsoleStagedNavigationContext = (
   graphOptions: ConsoleStagedGraphOption[],
-  referenceCategories: ConsoleStagedNavigationContext['referenceCategories'] = [],
-  sketchDraw: ConsoleStagedNavigationContext['sketchDraw'] = {
-    hasSelection: false,
-    hasPrevious: false,
-    preferredTool: 'LINE',
-  },
-  referenceTransformShellByReferenceId: ConsoleStagedNavigationContext['referenceTransformShellByReferenceId'] = {},
-  referenceTransformSnapLockByReferenceId: ConsoleStagedNavigationContext['referenceTransformSnapLockByReferenceId'] = {},
+  contentAssembliesOrReferenceCategories:
+    | ConsoleStagedNavigationContext['contentAssemblies']
+    | ConsoleStagedNavigationContext['referenceCategories'] = [],
+  referenceCategoriesOrSketchDraw:
+    | ConsoleStagedNavigationContext['referenceCategories']
+    | ConsoleStagedNavigationContext['sketchDraw'] = [],
+  sketchDrawOrReferenceTransformShellByReferenceId:
+    | ConsoleStagedNavigationContext['sketchDraw']
+    | ConsoleStagedNavigationContext['referenceTransformShellByReferenceId'] = {
+      hasSelection: false,
+      hasPrevious: false,
+      preferredTool: 'LINE',
+    },
+  referenceTransformShellByReferenceIdOrSnapLock:
+    | ConsoleStagedNavigationContext['referenceTransformShellByReferenceId']
+    | ConsoleStagedNavigationContext['referenceTransformSnapLockByReferenceId'] = {},
+  referenceTransformSnapLockByReferenceIdOrSnapEnabled:
+    | ConsoleStagedNavigationContext['referenceTransformSnapLockByReferenceId']
+    | ConsoleStagedNavigationContext['referenceTransformSnapEnabledByReferenceId'] = {},
   referenceTransformSnapEnabledByReferenceId: ConsoleStagedNavigationContext['referenceTransformSnapEnabledByReferenceId'] = {},
-): ConsoleStagedNavigationContext => ({
-  graphOptions: graphOptions.map((option) => ({
-    graphDocumentId: option.graphDocumentId,
-    name: option.name,
-    allNodeOptions: (option.allNodeOptions ?? []).map((nodeOption) => ({
-      nodeId: nodeOption.nodeId,
-      label: nodeOption.label,
+): ConsoleStagedNavigationContext => {
+  const usingLegacyArgumentOrder =
+    (contentAssembliesOrReferenceCategories.length > 0 &&
+      isReferenceCategoryContextEntry(contentAssembliesOrReferenceCategories[0])) ||
+    isSketchDrawContext(referenceCategoriesOrSketchDraw)
+
+  const contentAssemblies = usingLegacyArgumentOrder
+    ? []
+    : (contentAssembliesOrReferenceCategories as ConsoleStagedNavigationContext['contentAssemblies'])
+  const referenceCategories = usingLegacyArgumentOrder
+    ? (contentAssembliesOrReferenceCategories as ConsoleStagedNavigationContext['referenceCategories'])
+    : Array.isArray(referenceCategoriesOrSketchDraw)
+      ? (referenceCategoriesOrSketchDraw as ConsoleStagedNavigationContext['referenceCategories'])
+      : []
+  const sketchDraw = usingLegacyArgumentOrder
+    ? (referenceCategoriesOrSketchDraw as ConsoleStagedNavigationContext['sketchDraw'])
+    : (sketchDrawOrReferenceTransformShellByReferenceId as ConsoleStagedNavigationContext['sketchDraw'])
+  const referenceTransformShellByReferenceId = usingLegacyArgumentOrder
+    ? (sketchDrawOrReferenceTransformShellByReferenceId as ConsoleStagedNavigationContext['referenceTransformShellByReferenceId'])
+    : (referenceTransformShellByReferenceIdOrSnapLock as ConsoleStagedNavigationContext['referenceTransformShellByReferenceId'])
+  const referenceTransformSnapLockByReferenceId = usingLegacyArgumentOrder
+    ? (referenceTransformShellByReferenceIdOrSnapLock as ConsoleStagedNavigationContext['referenceTransformSnapLockByReferenceId'])
+    : (referenceTransformSnapLockByReferenceIdOrSnapEnabled as ConsoleStagedNavigationContext['referenceTransformSnapLockByReferenceId'])
+  const normalizedReferenceTransformSnapEnabledByReferenceId = usingLegacyArgumentOrder
+    ? (referenceTransformSnapLockByReferenceIdOrSnapEnabled as ConsoleStagedNavigationContext['referenceTransformSnapEnabledByReferenceId'])
+    : referenceTransformSnapEnabledByReferenceId
+
+  return {
+    contentAssemblies: contentAssemblies.map((assembly) => ({
+      assemblyId: assembly.assemblyId,
+      label: assembly.label,
+      canDelete: assembly.canDelete,
     })),
-    sketchOptions: (option.sketchOptions ?? []).map((sketchOption) => ({
-      nodeId: sketchOption.nodeId,
-      label: sketchOption.label,
+    graphOptions: graphOptions.map((option) => ({
+      graphDocumentId: option.graphDocumentId,
+      name: option.name,
+      allNodeOptions: (option.allNodeOptions ?? []).map((nodeOption) => ({
+        nodeId: nodeOption.nodeId,
+        label: nodeOption.label,
+      })),
+      sketchOptions: (option.sketchOptions ?? []).map((sketchOption) => ({
+        nodeId: sketchOption.nodeId,
+        label: sketchOption.label,
+      })),
+      extrudeOptions: (option.extrudeOptions ?? []).map((extrudeOption) => ({
+        nodeId: extrudeOption.nodeId,
+        label: extrudeOption.label,
+      })),
+      outputPreviewOptions: (option.outputPreviewOptions ?? []).map((outputPreviewOption) => ({
+        nodeId: outputPreviewOption.nodeId,
+        label: outputPreviewOption.label,
+      })),
     })),
-    extrudeOptions: (option.extrudeOptions ?? []).map((extrudeOption) => ({
-      nodeId: extrudeOption.nodeId,
-      label: extrudeOption.label,
+    referenceCategories: referenceCategories.map((category) => ({
+      categoryId: category.categoryId,
+      label: category.label,
+      canLoadAll: category.canLoadAll,
+      items: category.items.map((item) => ({
+        referenceId: item.referenceId,
+        label: item.label,
+        canLoadModel: item.canLoadModel,
+      })),
     })),
-    outputPreviewOptions: (option.outputPreviewOptions ?? []).map((outputPreviewOption) => ({
-      nodeId: outputPreviewOption.nodeId,
-      label: outputPreviewOption.label,
-    })),
-  })),
-  referenceCategories: referenceCategories.map((category) => ({
-    categoryId: category.categoryId,
-    label: category.label,
-    canLoadAll: category.canLoadAll,
-    items: category.items.map((item) => ({
-      referenceId: item.referenceId,
-      label: item.label,
-      canLoadModel: item.canLoadModel,
-    })),
-  })),
-  sketchDraw,
-  referenceTransformShellByReferenceId: { ...referenceTransformShellByReferenceId },
-  referenceTransformSnapLockByReferenceId: { ...referenceTransformSnapLockByReferenceId },
-  referenceTransformSnapEnabledByReferenceId: { ...referenceTransformSnapEnabledByReferenceId },
-})
+    sketchDraw,
+    referenceTransformShellByReferenceId: { ...referenceTransformShellByReferenceId },
+    referenceTransformSnapLockByReferenceId: { ...referenceTransformSnapLockByReferenceId },
+    referenceTransformSnapEnabledByReferenceId: { ...normalizedReferenceTransformSnapEnabledByReferenceId },
+  }
+}
 
 export const isConsoleStagedNavigationRootToken = (submittedToken: string): boolean => {
   const normalizedToken = normalizeToken(submittedToken)
@@ -2267,6 +2518,9 @@ export const submitConsoleStagedNavigationToken = (
     }
     if (matchedRootChoice.canonicalToken === ROOT_CAMERA_CHOICE.canonicalToken) {
       return createAdvanceResult(createCameraRootSession(), submittedToken, matchedRootChoice)
+    }
+    if (matchedRootChoice.canonicalToken === ROOT_CONTENT_CHOICE.canonicalToken) {
+      return createAdvanceResult(createContentRootSession(context), submittedToken, matchedRootChoice)
     }
     if (matchedRootChoice.canonicalToken === ROOT_REFERENCES_CHOICE.canonicalToken) {
       return createAdvanceResult(
@@ -2336,6 +2590,9 @@ export const submitConsoleStagedNavigationToken = (
         submittedToken,
         matchedChoice,
       )
+    }
+    if (matchedChoice.canonicalToken === ROOT_CONTENT_CHOICE.canonicalToken) {
+      return createAdvanceResult(createContentRootSession(context), submittedToken, matchedChoice)
     }
     if (matchedChoice.canonicalToken === ROOT_RADIO_CHOICE.canonicalToken) {
       const radioRootSession = createRadioRootSession()
@@ -3402,8 +3659,51 @@ export const submitConsoleStagedNavigationToken = (
     }
   }
 
+  if (session.scopeId === 'contentRoot') {
+    const contentChoices = buildContentRootChoices(context.contentAssemblies)
+    const matchedChoice =
+      contentChoices.find((choice) => matchesChoice(choice, normalizedToken)) ?? null
+    if (matchedChoice === null) {
+      return createInvalidResult({ ...session, validChoices: contentChoices }, submittedToken, contentChoices)
+    }
+    if (matchedChoice.canonicalToken === 'BACK') {
+      return createAdvanceResult(createConsoleRootSession(), submittedToken, matchedChoice)
+    }
+    if (matchedChoice.canonicalToken === NEW_ASSEMBLY_CHOICE.canonicalToken) {
+      return {
+        kind: 'execute',
+        session: { ...session, validChoices: contentChoices },
+        submittedToken,
+        matchedChoice,
+        actionId: 'content.newAssembly',
+        breadcrumb: [...session.breadcrumb, matchedChoice.label],
+        selections: session.selections,
+      }
+    }
+    if (matchedChoice.contentAssemblyId !== undefined) {
+      const assembly = context.contentAssemblies.find(
+        (entry) => entry.assemblyId === matchedChoice.contentAssemblyId,
+      )
+      if (assembly !== undefined) {
+        return createAdvanceResult(
+          createContentAssemblySelectedSession(
+            assembly.label,
+            assembly.assemblyId,
+            assembly.canDelete,
+          ),
+          submittedToken,
+          matchedChoice,
+        )
+      }
+    }
+    return createInvalidResult({ ...session, validChoices: contentChoices }, submittedToken, contentChoices)
+  }
+
   if (session.scopeId === 'contentAssemblySelected') {
-    const contentChoices = buildContentAssemblySelectedChoices()
+    const canDelete = context.contentAssemblies.find(
+      (assembly) => assembly.assemblyId === session.selections.contentAssemblyId,
+    )?.canDelete ?? false
+    const contentChoices = buildContentAssemblySelectedChoices(canDelete)
     const matchedChoice =
       contentChoices.find((choice) => matchesChoice(choice, normalizedToken)) ?? null
     if (matchedChoice === null) {
@@ -3413,14 +3713,61 @@ export const submitConsoleStagedNavigationToken = (
         contentChoices,
       )
     }
+    if (matchedChoice.canonicalToken === SELECT_ALL_CHOICE.canonicalToken) {
+      return {
+        kind: 'execute',
+        session: {
+          ...session,
+          validChoices: contentChoices,
+        },
+        submittedToken,
+        matchedChoice,
+        actionId: 'content.selectAll',
+        breadcrumb: [...session.breadcrumb, matchedChoice.label],
+        selections: session.selections,
+      }
+    }
+    if (matchedChoice.canonicalToken === NEW_COMPONENT_CHOICE.canonicalToken) {
+      return {
+        kind: 'execute',
+        session: { ...session, validChoices: contentChoices },
+        submittedToken,
+        matchedChoice,
+        actionId: 'content.newComponent',
+        breadcrumb: [...session.breadcrumb, matchedChoice.label],
+        selections: session.selections,
+      }
+    }
+    if (matchedChoice.canonicalToken === RENAME_CHOICE.canonicalToken) {
+      return {
+        kind: 'execute',
+        session: { ...session, validChoices: contentChoices },
+        submittedToken,
+        matchedChoice,
+        actionId: 'content.rename',
+        breadcrumb: [...session.breadcrumb, matchedChoice.label],
+        selections: session.selections,
+      }
+    }
+    if (matchedChoice.canonicalToken === DELETE_CHOICE.canonicalToken) {
+      return {
+        kind: 'execute',
+        session: { ...session, validChoices: contentChoices },
+        submittedToken,
+        matchedChoice,
+        actionId: 'content.delete',
+        breadcrumb: [...session.breadcrumb, matchedChoice.label],
+        selections: session.selections,
+      }
+    }
     if (matchedChoice.canonicalToken === ROOT_ZOOM_CHOICE.canonicalToken) {
       return createAdvanceResult(
-        createContentAssemblyZoomRootSession(session.breadcrumb.at(-1) ?? 'Assembly'),
+        createContentAssemblyZoomRootSession(session.breadcrumb.at(-1) ?? 'Content'),
         submittedToken,
         matchedChoice,
       )
     }
-    return createAdvanceResult(createConsoleRootSession(), submittedToken, matchedChoice)
+    return createAdvanceResult(createContentRootSession(context), submittedToken, matchedChoice)
   }
 
   if (session.scopeId === 'contentAssemblyZoomRoot') {
@@ -3432,7 +3779,13 @@ export const submitConsoleStagedNavigationToken = (
     }
     if (matchedChoice.canonicalToken === 'BACK') {
       return createAdvanceResult(
-        createContentAssemblySelectedSession(session.breadcrumb.at(-2) ?? 'Assembly'),
+        createContentAssemblySelectedSession(
+          session.breadcrumb.at(-2) ?? 'Content',
+          session.selections.contentAssemblyId ?? null,
+          context.contentAssemblies.find(
+            (assembly) => assembly.assemblyId === session.selections.contentAssemblyId,
+          )?.canDelete ?? false,
+        ),
         submittedToken,
         matchedChoice,
       )
@@ -3469,7 +3822,10 @@ export const submitConsoleStagedNavigationToken = (
   }
 
   if (session.scopeId === 'contentComponentSelected') {
-    const contentChoices = buildContentSelectedChoices()
+    const contentChoices = buildContentComponentSelectedChoices(
+      session.selections.contentComponentId !== null &&
+        session.selections.contentComponentId !== undefined,
+    )
     const matchedChoice =
       contentChoices.find((choice) => matchesChoice(choice, normalizedToken)) ?? null
     if (matchedChoice === null) {
@@ -3479,17 +3835,43 @@ export const submitConsoleStagedNavigationToken = (
         contentChoices,
       )
     }
-    if (session.selections.graphDocumentId !== null) {
-      const graphIndex = findGraphIndexByDocumentId(context, session.selections.graphDocumentId)
-      if (graphIndex !== null) {
-        return createAdvanceResult(
-          createGraphSelectedSession(graphIndex, session.selections.graphDocumentId),
-          submittedToken,
-          matchedChoice,
-        )
+    if (matchedChoice.canonicalToken === SELECT_ALL_CHOICE.canonicalToken) {
+      return {
+        kind: 'execute',
+        session: {
+          ...session,
+          validChoices: contentChoices,
+        },
+        submittedToken,
+        matchedChoice,
+        actionId: 'content.selectAll',
+        breadcrumb: [...session.breadcrumb, matchedChoice.label],
+        selections: session.selections,
       }
     }
-    return createAdvanceResult(createConsoleRootSession(), submittedToken, matchedChoice)
+    if (matchedChoice.canonicalToken === RENAME_CHOICE.canonicalToken) {
+      return {
+        kind: 'execute',
+        session: { ...session, validChoices: contentChoices },
+        submittedToken,
+        matchedChoice,
+        actionId: 'content.rename',
+        breadcrumb: [...session.breadcrumb, matchedChoice.label],
+        selections: session.selections,
+      }
+    }
+    if (matchedChoice.canonicalToken === DELETE_CHOICE.canonicalToken) {
+      return {
+        kind: 'execute',
+        session: { ...session, validChoices: contentChoices },
+        submittedToken,
+        matchedChoice,
+        actionId: 'content.delete',
+        breadcrumb: [...session.breadcrumb, matchedChoice.label],
+        selections: session.selections,
+      }
+    }
+    return createAdvanceResult(createContentRootSession(context), submittedToken, matchedChoice)
   }
 
   if (session.scopeId === 'contentObjectSelected') {
@@ -3506,7 +3888,7 @@ export const submitConsoleStagedNavigationToken = (
     if (matchedChoice.canonicalToken === ROOT_ZOOM_CHOICE.canonicalToken) {
       return createAdvanceResult(
         createContentObjectZoomRootSession(
-          session.breadcrumb.at(-1) ?? 'Object',
+          session.breadcrumb.at(-1) ?? 'Content',
           session.selections.graphDocumentId,
         ),
         submittedToken,
@@ -3516,7 +3898,7 @@ export const submitConsoleStagedNavigationToken = (
     if (matchedChoice.canonicalToken === TRANSFORM_CHOICE.canonicalToken) {
       return createAdvanceResult(
         createContentObjectTransformRootSession(
-          session.breadcrumb.at(-1) ?? 'Object',
+          session.breadcrumb.at(-1) ?? 'Content',
           session.selections.graphDocumentId,
         ),
         submittedToken,
@@ -3529,7 +3911,7 @@ export const submitConsoleStagedNavigationToken = (
       matchedChoice.canonicalToken === SCALE_CHOICE.canonicalToken
     ) {
       const transformRootSession = createContentObjectTransformRootSession(
-        session.breadcrumb.at(-1) ?? 'Object',
+        session.breadcrumb.at(-1) ?? 'Content',
         session.selections.graphDocumentId,
       )
       const actionIdByToken: Record<
@@ -3553,16 +3935,6 @@ export const submitConsoleStagedNavigationToken = (
         selections: session.selections,
       }
     }
-    if (session.selections.graphDocumentId !== null) {
-      const graphIndex = findGraphIndexByDocumentId(context, session.selections.graphDocumentId)
-      if (graphIndex !== null) {
-        return createAdvanceResult(
-          createGraphSelectedSession(graphIndex, session.selections.graphDocumentId),
-          submittedToken,
-          matchedChoice,
-        )
-      }
-    }
     return createAdvanceResult(createConsoleRootSession(), submittedToken, matchedChoice)
   }
 
@@ -3580,7 +3952,7 @@ export const submitConsoleStagedNavigationToken = (
     if (matchedChoice.canonicalToken === 'BACK') {
       return createAdvanceResult(
         createContentObjectSelectedSession(
-          session.breadcrumb.at(-2) ?? 'Object',
+          session.breadcrumb.at(-2) ?? 'Content',
           session.selections.graphDocumentId,
         ),
         submittedToken,

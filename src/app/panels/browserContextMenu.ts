@@ -16,6 +16,21 @@ export type BrowserContextMenuBuilderDeps = {
   closeMenus: () => void
   selectRow: (rowId: string) => void
   appendBrowserEntry: (text: string) => void
+  createAssembly?: () => void
+  createComponent?: (assemblyId: string) => void
+  renameContentOwner?: (
+    target:
+      | { kind: 'assembly'; assemblyId: string }
+      | { kind: 'component'; componentId: string },
+  ) => void
+  deleteContentOwner?: (
+    target:
+      | { kind: 'assembly'; assemblyId: string }
+      | { kind: 'component'; componentId: string },
+  ) => void
+  canDeleteAssembly?: (assemblyId: string) => boolean
+  canRenameComponent?: (componentId: string) => boolean
+  canDeleteComponent?: (componentId: string) => boolean
   startReferenceLoadBatchForAll: () => void
   startReferenceLoadBatchForCategory: (categoryId: ReferenceCategoryId) => void
   retryReferenceItemLoad: (referenceId: string) => void
@@ -32,6 +47,20 @@ export const buildBrowserContextMenuItems = (
   row: BrowserRenderableRowVm,
   deps: BrowserContextMenuBuilderDeps,
 ): BrowserContextMenuItem[] => {
+  const referenceContainerRootRow =
+    row.rowKind === 'assembly' && row.referenceContainerKind === 'root' ? row : null
+  const referenceContainerCategoryRow =
+    row.rowKind === 'component' && row.referenceContainerKind === 'category' ? row : null
+  const referenceBackedObjectRow =
+    row.rowKind === 'object' &&
+    (row.contentOriginKind === 'imported-reference' || row.contentOriginKind === 'source-reference') &&
+    row.referenceId
+      ? row
+      : null
+  const importedContentObjectRow =
+    referenceBackedObjectRow?.contentOriginKind === 'imported-reference' ? referenceBackedObjectRow : null
+  const sourceReferenceObjectRow =
+    referenceBackedObjectRow?.contentOriginKind === 'source-reference' ? referenceBackedObjectRow : null
   const items: BrowserContextMenuItem[] = row.actions.map((action) => ({
     id: `row-action:${action.actionId}`,
     label: action.label,
@@ -40,66 +69,182 @@ export const buildBrowserContextMenuItems = (
     onSelect: () => deps.handleRowAction(row, action),
   }))
 
-  if (row.rowKind === 'references-root') {
+  if (row.rowKind === 'assembly') {
+    const assemblyItems: BrowserContextMenuItem[] = []
+    if (referenceContainerRootRow === null && deps.renameContentOwner !== undefined) {
+      const renameContentOwner = deps.renameContentOwner
+      assemblyItems.push({
+        id: `assembly:${row.rowId}:rename`,
+        label: 'Rename',
+        ariaLabel: `Rename ${row.label}`,
+        onSelect: () => renameContentOwner({ kind: 'assembly', assemblyId: row.rowId }),
+      })
+    }
+    if (referenceContainerRootRow === null && deps.createComponent !== undefined) {
+      const createComponent = deps.createComponent
+      assemblyItems.push({
+        id: `assembly:${row.rowId}:new-component`,
+        label: 'New Component',
+        ariaLabel: `Create a component under ${row.label}`,
+        onSelect: () => createComponent(row.rowId),
+      })
+    }
+    if (referenceContainerRootRow === null && deps.createAssembly !== undefined) {
+      const createAssembly = deps.createAssembly
+      assemblyItems.push({
+        id: `assembly:${row.rowId}:new-assembly`,
+        label: 'New Assembly',
+        ariaLabel: 'Create a new assembly',
+        onSelect: () => createAssembly(),
+      })
+    }
+    if (assemblyItems.length > 0) {
+      items.unshift(...assemblyItems)
+    }
+    if (
+      referenceContainerRootRow === null &&
+      deps.deleteContentOwner !== undefined &&
+      deps.canDeleteAssembly?.(row.rowId) === true
+    ) {
+      const deleteContentOwner = deps.deleteContentOwner
+      items.push({
+        id: `assembly:${row.rowId}:delete`,
+        label: 'Delete',
+        ariaLabel: `Delete ${row.label}`,
+        onSelect: () => deleteContentOwner({ kind: 'assembly', assemblyId: row.rowId }),
+      })
+    }
+  }
+
+  if (
+    row.rowKind === 'component' &&
+    referenceContainerCategoryRow === null &&
+    deps.renameContentOwner !== undefined &&
+    deps.canRenameComponent?.(row.rowId) === true
+  ) {
+    const renameContentOwner = deps.renameContentOwner
+    items.unshift({
+      id: `component:${row.rowId}:rename`,
+      label: 'Rename',
+      ariaLabel: `Rename ${row.label}`,
+      onSelect: () => renameContentOwner({ kind: 'component', componentId: row.rowId }),
+    })
+    if (deps.deleteContentOwner !== undefined && deps.canDeleteComponent?.(row.rowId) === true) {
+      const deleteContentOwner = deps.deleteContentOwner
+      items.push({
+        id: `component:${row.rowId}:delete`,
+        label: 'Delete',
+        ariaLabel: `Delete ${row.label}`,
+        onSelect: () => deleteContentOwner({ kind: 'component', componentId: row.rowId }),
+      })
+    }
+  }
+
+  if (row.rowKind === 'references-root' || referenceContainerRootRow !== null) {
+    const loadAllRow = referenceContainerRootRow ?? row
     items.unshift({
       id: 'references-root:load-all',
       label: 'Load All',
       ariaLabel: 'Load all references',
       onSelect: () => {
         deps.closeMenus()
-        deps.selectRow(row.rowId)
+        deps.selectRow(loadAllRow.rowId)
         deps.appendBrowserEntry('Load All: References')
         deps.startReferenceLoadBatchForAll()
       },
     })
   }
 
-  if (row.rowKind === 'reference-category') {
-    items.unshift({
-      id: `reference-category:${row.categoryId}:load-all`,
-      label: 'Load All',
-      ariaLabel: `Load all references in ${row.label}`,
-      onSelect: () => {
-        deps.closeMenus()
-        deps.selectRow(row.rowId)
-        deps.appendBrowserEntry(`Load All: ${row.label}`)
-        deps.startReferenceLoadBatchForCategory(row.categoryId)
-      },
-    })
+  if (row.rowKind === 'reference-category' || referenceContainerCategoryRow !== null) {
+    const categoryRow = referenceContainerCategoryRow ?? (row.rowKind === 'reference-category' ? row : null)
+    const categoryId = categoryRow === null ? null : 'categoryId' in categoryRow ? categoryRow.categoryId : categoryRow.referenceCategoryId
+    if (categoryRow !== null && categoryId !== null && categoryId !== undefined) {
+      items.unshift({
+        id: `reference-category:${categoryId}:load-all`,
+        label: 'Load All',
+        ariaLabel: `Load all references in ${categoryRow.label}`,
+        onSelect: () => {
+          deps.closeMenus()
+          deps.selectRow(categoryRow.rowId)
+          deps.appendBrowserEntry(`Load All: ${categoryRow.label}`)
+          deps.startReferenceLoadBatchForCategory(categoryId)
+        },
+      })
+    }
   }
 
-  if (row.rowKind === 'reference-item' && !row.isVisible && row.state !== 'error') {
+  if (
+    (row.rowKind === 'reference-item' && !row.isVisible && row.state !== 'error') ||
+    (referenceBackedObjectRow !== null &&
+      !referenceBackedObjectRow.isVisible &&
+      referenceBackedObjectRow.referenceState !== 'error')
+  ) {
+    const referenceId =
+      row.rowKind === 'reference-item'
+        ? row.referenceId
+        : referenceBackedObjectRow?.referenceId ?? ''
+    const isVisible =
+      row.rowKind === 'reference-item'
+        ? row.isVisible
+        : referenceBackedObjectRow?.isVisible ?? false
     items.unshift({
-      id: 'reference-item:load-model',
+      id:
+        importedContentObjectRow !== null
+          ? 'imported-object:load-model'
+          : sourceReferenceObjectRow !== null
+            ? 'reference-object:load-model'
+            : 'reference-item:load-model',
       label: 'Load Model',
       ariaLabel: `Load model for ${row.label}`,
       onSelect: () => {
         deps.closeMenus()
-        deps.selectRow(`reference-item-row:${row.referenceId}`)
+        deps.selectRow(row.rowId)
         deps.appendBrowserEntry(`Load Model: ${row.label}`)
-        if (!row.isVisible) {
-          deps.retryReferenceItemLoad(row.referenceId)
+        if (!isVisible) {
+          deps.retryReferenceItemLoad(referenceId)
           return
         }
-        deps.setReferenceItemVisibility(row.referenceId, true)
+        deps.setReferenceItemVisibility(referenceId, true)
       },
     })
   }
 
-  if (row.rowKind === 'reference-item' && row.sourceKind === 'imported') {
-    if (row.state === 'error') {
+  if (
+    (row.rowKind === 'reference-item' && row.sourceKind === 'imported') ||
+    importedContentObjectRow !== null ||
+    sourceReferenceObjectRow?.referenceSourceKind === 'imported'
+  ) {
+    const referenceId =
+      row.rowKind === 'reference-item'
+        ? row.referenceId
+        : referenceBackedObjectRow?.referenceId ?? ''
+    const isError =
+      row.rowKind === 'reference-item'
+        ? row.state === 'error'
+        : referenceBackedObjectRow?.referenceState === 'error'
+    if (isError) {
       items.push({
-        id: 'reference-item:retry',
+        id:
+          importedContentObjectRow !== null
+            ? 'imported-object:retry'
+            : sourceReferenceObjectRow !== null
+              ? 'reference-object:retry'
+              : 'reference-item:retry',
         label: 'Retry',
         ariaLabel: `Retry ${row.label}`,
-        onSelect: () => deps.handleRetryImportedReferenceRow(row.referenceId),
+        onSelect: () => deps.handleRetryImportedReferenceRow(referenceId),
       })
     }
     items.push({
-      id: 'reference-item:remove',
+      id:
+        importedContentObjectRow !== null
+          ? 'imported-object:remove'
+          : sourceReferenceObjectRow !== null
+            ? 'reference-object:remove'
+            : 'reference-item:remove',
       label: 'Remove',
       ariaLabel: `Remove ${row.label}`,
-      onSelect: () => deps.handleRemoveImportedReferenceRow(row.referenceId),
+      onSelect: () => deps.handleRemoveImportedReferenceRow(referenceId),
     })
   }
 

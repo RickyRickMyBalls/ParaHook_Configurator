@@ -4,6 +4,23 @@
 <summary>Doc Header</summary>
 
 ### Doc History
+145. 2026-03-28 23:36: Moved the shipped `Browser-10.5 - Compatibility Seam Retirement` record out of Browser `Future/` and into `Browser/Shipped/`, refreshed the Browser subtree so the seam-retirement cleanup now appears only once as shipped history, and kept the Browser-10 umbrella doc as the remaining family-level planning surface
+144. 2026-03-28 23:14: Moved the shipped `Browser-10.4 - Load And Runtime Traits On Normal Nodes` record out of Browser `Future/` and into `Browser/Shipped/`, refreshed the Browser subtree so the runtime-trait cleanup now appears only once as shipped history, and kept the remaining `Browser-10.5` ladder under `Future/`
+143. 2026-03-28 22:51: Moved the shipped `Browser-10.3 - Unified Owner Routing Across Browser Console And Viewer` record out of Browser `Future/` and into `Browser/Shipped/`, refreshed the Browser subtree so the owner-routing cleanup now appears only once as shipped history, and kept the remaining `Browser-10.4` through `Browser-10.5` ladder under `Future/`
+142. 2026-03-28 22:21: Moved the shipped `Browser-10.2 - Single Browser Tree Derivation` record out of Browser `Future/` and into `Browser/Shipped/`, refreshed the Browser subtree so the unified one-lane Browser tree cut now appears only once as shipped history, and kept the remaining `Browser-10.3` through `Browser-10.5` ladder under `Future/`
+141. 2026-03-28 21:50: Moved the shipped `Browser-10.1 - Unified Reference-Backed Project Owner Records` record out of Browser `Future/` and into `Browser/Shipped/`, refreshed the Browser subtree so the new owner-identity cleanup now appears only once as shipped history, and kept the remaining `Browser-10.2` through `Browser-10.5` ladder under `Future/`
+140. 2026-03-28 21:40: Added the new standalone `Browser-10.1` through `Browser-10.5` future phase docs to the Browser subtree and refreshed the docs map so the Browser-10 one-tree reset now has a visible implementation ladder under `Future/`
+139. 2026-03-28 21:35: Removed the duplicate shipped Browser-9.1 through Browser-9.7 records from the Browser `Future/` subtree and refreshed the docs map so that Browser now lists those phase files only once under `Browser/Shipped/` while keeping the live `Browser-9` umbrella and `Browser-10` future docs
+138. 2026-03-28 21:24: Added `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-10 - Unified Project Object Tree Source Of Truth.md` to the Browser docs map and refreshed the Browser subtree so the next post-`9.x` architecture reset is visible as the one-tree source-of-truth follow-on for all real project objects
+137. 2026-03-28 20:47: Refreshed the Browser subtree again after shipping `Browser-9.7 - Normal Assembly Component Rows For Reference Hierarchy`, adding the new shipped phase record under `Browser/Shipped/` while keeping the standalone future planning surface listed for Browser-9 history
+136. 2026-03-28 20:47: Refreshed the Browser subtree again by keeping the new `Browser-9.7` shipped record and the future planning surface visible together, so the docs map now reflects the landed clean-tree container convergence without deleting the implementation-ready history doc
+135. 2026-03-28 20:24: Refreshed the Browser subtree again by adding the new future phase doc `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-9.7 - Normal Assembly Component Rows For Reference Hierarchy.md`, so the docs map now carries the next Browser-9 follow-on for deleting the remaining special `References` / category container species
+134. 2026-03-28 20:12: Refreshed the Browser subtree again after shipping `Browser-9.6 - Placement Shelf Removal And Single Object Identity`, adding the new shipped phase record under `Browser/Shipped/` while keeping the standalone future planning surface listed for Browser-9 history
+133. 2026-03-28 19:54: Refreshed the Browser subtree again by adding the new future phase doc `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-9.6 - Placement Shelf Removal And Single Object Identity.md`, so the docs map now carries the next no-copy Browser-9 follow-on after shipped `9.5`
+132. 2026-03-28 19:47: Refreshed the Browser subtree again after shipping `Browser-9.5 - Library Object Rows And Direct Placement Drag`, adding the new shipped phase record under `Browser/Shipped/` while keeping the standalone future planning surface listed for Browser-9 history
+131. 2026-03-28 19:24: Refreshed the Browser subtree in the docs map and added `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-9.5 - Library Object Rows And Direct Placement Drag.md`, so the Browser family listing now matches the current `Future/` and `Shipped/` phase surfaces instead of stopping at the older Browser-7-only future map
+130. 2026-03-28 14:06: Refreshed the live docs map after a repo audit by adding `docs/Human-Plans/Architecture/Architecture Setup.md`, fixing stale `Layers.md` and `master spaghetti-index.md` references to the real live index files, correcting the `Phase-Plans` and `Human-Plans` folder-map paths, and pruning dead Spaghetti editor file pointers from the architecture subtree
+129. 2026-03-28 13:07: Added `docs/Human-Plans/Architecture/Edit-History/Edit-History-Index.md` to the architecture docs map, created the new folderized `Edit-History` family with `Future/` and `Shipped/`, and refreshed the architecture subtree so canonical undo/redo planning now has its own umbrella home separate from `Pasta-Path`
 128. 2026-03-27 19:44: Renamed the live `Camera-Controls` phase-doc filenames from `5.0H-*` to `Camera-*`, refreshed `docs/Human-Plans/Architecture/Camera-Controls/Camera_Controls-Index.md` to the new `Camera-1` through `Camera-5.1` ladder, and updated the camera-controls subtree so the docs map now points at the new live file names while older historical entries keep the earlier numbering
 127. 2026-03-27 17:50: Added `docs/Human-Plans/Architecture/Camera-Controls/Future/Camera_Controls_Phase 5.0H-5.1 - Viewer Object Window Selection.md` to the architecture docs map, refreshed the `Camera-Controls` family index, and updated the camera-controls subtree so 3D viewer marquee selection now has a dedicated implementation-ready planning surface under `Future/`
 126. 2026-03-27 09:40: Added `docs/Human-Plans/Wish-Features/Collaberate/Collaberate.md` to the docs map, added a direct wishlist pointer from `docs/Human-Plans/Wish-Features/WISHLIST.md`, and refreshed the `Wish-Features` subtree so the new collaboration branch is discoverable beside `WISHLIST.md`
@@ -214,16 +231,16 @@ Use it to answer:
 - `docs/Phase-Plans/`
   - the active home for phase-system docs and phase/task plan files
 
-- `docs/Phase-Plans/Future/`
+- `docs/Phase-Plans/Tasks/Future/`
   - phase plans that are planned but not started
 
 - `docs/Phase-Plans/Tasks/`
   - active/in-progress phase plans
 
-- `docs/Phase-Plans/Old/`
+- `docs/Phase-Plans/Tasks/Old/`
   - completed or retired phase plans
 
-- `docs/Plans/`
+- `docs/Human-Plans/`
   - architecture notes, wish features, planning support docs, and decisions
 
 - `docs/History/`
@@ -331,8 +348,8 @@ Rule notes:
 
 - "What is the current architecture?"
   - start with `docs/repo.md`
-  - then `docs/Plans/Architecture/Engine-Architecture.md`
-  - then `docs/Plans/Architecture/System-Map.md`
+  - then `docs/Human-Plans/Architecture/Engine-Architecture.md`
+  - then `docs/Human-Plans/Architecture/System-Map.md`
 
 - "How do phases work?"
   - start with `docs/Phase-Plans/00_Phase-Setup.md`
@@ -462,20 +479,28 @@ Rule notes:
         - `11_CodexChatNotes.md`
         - `12_CodexChatNotes.md`
 ### ----Architecture
+        - `Architecture Setup.md`
         - `Audio-Patchbay.md`
+        - `AutoCAD-Command-Backlog.md`
+        - `AppShell/AppShell-Index.md`
         - `Browser/Browser-Index.md`
         - `Camera-Controls/Camera_Controls-Index.md`
         - `Console/Console.md`
+        - `Edit-History/Edit-History-Index.md`
         - `Engine-Architecture.md`
         - `Export/Export-Index.md`
         - `Glossary.md`
-        - `Layers/Layers.md`
+        - `Layers/Layers-index.md`
         - `Pasta-Path/Pasta-Path-Index.md`
-        - `Radio.md`
+        - `Radio/Radio.md`
         - `Sampler.md`
+        - `Spaghetti-Editor-Arch/Spaghetti-Editor-index.md`
         - `Spaghetti-Types.md`
         - `System-Map.md`
         - `Terminology-Decisions.md`
+        - `Toolbar.md`
+        - `Transform/transform-index.md`
+        - `Transform-Tool.md`
         - `View-Toolbar/ThreeViewier.md`
         - `View-Toolbar/View-Toolbar-Index.md`
         - `v15Theme.md`
@@ -487,6 +512,13 @@ Rule notes:
             - `Shipped/AppShell_Phase 5.0F-2 - AppShell Window And Dock Host Extraction.md`
 #### -------Browser
             - `Browser-Index.md`
+            - `Future/Browser_Phase Browser-7 - Browser Cleanup Follow-Ons.md`
+            - `Future/Browser_Phase Browser-7.3 - Reference Transform Session History.md`
+            - `Future/Browser_Phase Browser-7.5 - Final Transform Direction And Phase Split.md`
+            - `Future/Browser_Phase Browser-8.6 - Depth-Lane Drag Interaction.md`
+            - `Future/Browser_Phase Browser-8.8.4 - Reintroduce Richer Hierarchy Guidance Carefully.md`
+            - `Future/Browser_Phase Browser-9 - Reference Tree Convergence Into Standard Content Hierarchy.md`
+            - `Future/Browser_Phase Browser-10 - Unified Project Object Tree Source Of Truth.md`
             - `Shipped/Browser_Phase Browser-1 - Build Policy Icon Surface.md`
             - `Shipped/Browser_Phase Browser-2 - Cascade And Effective Policy Truth.md`
             - `Shipped/Browser_Phase Browser-3 - Runtime Build Policy Execution.md`
@@ -498,7 +530,28 @@ Rule notes:
             - `Shipped/Browser_Phase Browser-5.4 - Explicit Additive Multi-Select.md`
             - `Shipped/Browser_Phase Browser-5.5 - Reference Batch Load Queue And Aggregate Progress.md`
             - `Shipped/Browser_Phase Browser-6 - BrowserPanel Structure And Row-Family Cleanup.md`
-            - `Future/Browser_Phase Browser-7 - Browser Cleanup Follow-Ons.md`
+            - `Shipped/Browser_Phase Browser-8.1 - Container And Leaf Target Semantics.md`
+            - `Shipped/Browser_Phase Browser-8.2 - Folder CRUD In Browser UI And Console.md`
+            - `Shipped/Browser_Phase Browser-8.3 - Shared Owner Target Entry For Viewer Transform And Multi-Select Prep.md`
+            - `Shipped/Browser_Phase Browser-8.4 - Reparenting And Drop Rules.md`
+            - `Shipped/Browser_Phase Browser-8.4.1 - Drag Preview And Hover Retarget Polish.md`
+            - `Shipped/Browser_Phase Browser-8.5 - Drag Session Architecture Cleanup.md`
+            - `Shipped/Browser_Phase Browser-8.7 - Pointer-Driven Drag Engine Rebuild.md`
+            - `Shipped/Browser_Phase Browser-8.8.1 - Simple Reliable Rearrange Baseline.md`
+            - `Shipped/Browser_Phase Browser-8.8.2 - Target Clarity And Trust Tuning.md`
+            - `Shipped/Browser_Phase Browser-8.8.3 - Motion And Rearrange Polish.md`
+            - `Shipped/Browser_Phase Browser-9.1 - Reference Tree Convergence Baseline.md`
+            - `Shipped/Browser_Phase Browser-9.2 - Import Landing And Hierarchy Mapping.md`
+            - `Shipped/Browser_Phase Browser-9.3 - Part Row Exposure For Imported Objects.md`
+            - `Shipped/Browser_Phase Browser-9.4 - Imported Object Promotion To True Content Owners.md`
+            - `Shipped/Browser_Phase Browser-9.5 - Library Object Rows And Direct Placement Drag.md`
+            - `Shipped/Browser_Phase Browser-9.6 - Placement Shelf Removal And Single Object Identity.md`
+            - `Shipped/Browser_Phase Browser-9.7 - Normal Assembly Component Rows For Reference Hierarchy.md`
+            - `Shipped/Browser_Phase Browser-10.1 - Unified Reference-Backed Project Owner Records.md`
+            - `Shipped/Browser_Phase Browser-10.2 - Single Browser Tree Derivation.md`
+            - `Shipped/Browser_Phase Browser-10.3 - Unified Owner Routing Across Browser Console And Viewer.md`
+            - `Shipped/Browser_Phase Browser-10.4 - Load And Runtime Traits On Normal Nodes.md`
+            - `Shipped/Browser_Phase Browser-10.5 - Compatibility Seam Retirement.md`
 #### -------Camera-Controls
             - `Camera_Controls-Index.md`
             - `Future/Camera_Controls_Phase Camera-5.1 - Viewer Object Window Selection.md`
@@ -509,11 +562,13 @@ Rule notes:
 #### -------Console
             - `Console.md`
             - `Shipped/Console_Phase 5.1G - Surface-Agnostic Command Ownership And Adapter Expansion.md`
+#### -------Edit-History
+            - `Edit-History-Index.md`
 #### -------Export
             - `Export-Index.md`
             - `Future/Export_Phase Export-1 - Toolbar Shell And Format Surface.md`
 #### -------Layers
-            - `Layers.md`
+            - `Layers-index.md`
             - `Future/Layers_Phase Layers-1 - Layer State, Membership, And Visibility Foundation.md`
             - `Future/Layers_Phase Layers-2 - Layer Manager And Console Command Surface.md`
             - `Future/Layers_Phase Layers-3 - Sketch Entity Layer Ownership.md`
@@ -534,8 +589,7 @@ Rule notes:
             - `Shipped/Worker_Phase 5.3A-6 - Result Semantics, Browser Truth, And Console Truth.md`
             - `Shipped/Worker_Phase 5.3A-7 - Graph-Native Worker Cutover And Legacy Contract Deletion.md`
 #### -------Spaghetti-Editor-Arch
-            - `master spaghetti-index.md`
-            - `Spaghetti-Editor-Explained.md`
+            - `Spaghetti-Editor-index.md`
             - `Future/Master_Spaghetti_Phase Master Spaghetti-1 - Smart Wiring And Intent-Aware Auto-Insert First Pass.md`
             - `Nodes/Nodes-Index.md`
             - `Nodes/Nodes-Fondation/Shipped/Nodes_Phase 3.2A-0.1 - Sketch To Extrude To Preview Contract Repair.md`

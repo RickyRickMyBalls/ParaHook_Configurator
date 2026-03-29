@@ -171,11 +171,32 @@ export interface ViewerApi {
     space: GizmoSpace
     entryOrigin: ReferenceTransformOverride | null
   } | null) => void
+  setContentObjectTransformGroups: (
+    groups: Array<{
+      objectId: string
+      partKeys: string[]
+    }>,
+  ) => void
+  setContentObjectTransformSession: (session: {
+    objectId: string
+    mode: GizmoMode
+    space: GizmoSpace
+    entryOrigin: ReferenceTransformOverride | null
+  } | null) => void
+  setContentObjectTransformOverrides: (
+    overrides: Record<string, ReferenceTransformOverride | null>,
+  ) => void
   setReferenceCameraLock: (referenceId: string | null) => void
   setReferenceTransformOverride: (
     referenceId: string,
     transformOverride: ReferenceTransformOverride | null,
   ) => void
+  getReferencePartDescriptors: (
+    referenceId: string,
+  ) => Array<{
+    partKey: string
+    label: string
+  }>
   setOnReferenceTransformChange: (
     handler: ((referenceId: string, transform: ReferenceTransformOverride) => void) | null,
   ) => void
@@ -186,6 +207,15 @@ export interface ViewerApi {
   ) => void
   setOnReferenceTransformModeChange: ((handler: ((mode: GizmoMode) => void) | null) => void)
   setOnReferenceTransformSpaceChange: ((handler: ((space: GizmoSpace) => void) | null) => void)
+  setOnContentObjectTransformChange: (
+    handler: ((objectId: string, transform: ReferenceTransformOverride) => void) | null,
+  ) => void
+  setOnContentObjectTransformCommit: (handler: (() => void) | null) => void
+  setOnContentObjectTransformHandleChange: (
+    handler: ((handle: ActiveReferenceTransformHandle | null) => void) | null,
+  ) => void
+  setOnContentObjectTransformModeChange: ((handler: ((mode: GizmoMode) => void) | null) => void)
+  setOnContentObjectTransformSpaceChange: ((handler: ((space: GizmoSpace) => void) | null) => void)
   setAxisOverlayEnabled: (enabled: boolean) => void
   setAxisOverlayCanvas: (canvas: HTMLCanvasElement | null) => void
   setGeometrySketchOverlay: (overlay: GeometrySketchOverlayVm | null) => void

@@ -59,6 +59,10 @@ import type {
   VisibleGeometrySketchOverlayVm,
 } from '../app/viewerBridge'
 import { loadStepReferenceObject } from './stepReferenceLoader'
+import {
+  extractReferencePartDescriptors,
+  type ReferencePartDescriptor,
+} from './referencePartDescriptors'
 import { createViewerGeometryFromArtifactMesh } from './artifactMeshGeometry'
 import {
   buildGeometrySketchRenderPolylines,
@@ -102,6 +106,12 @@ type MaterialPresetId = string
 type ReferenceTransformBase = ReferenceTransformOverride
 type ReferenceTransformSession = {
   referenceId: string
+  mode: TransformControlsMode
+  space: GizmoSpace
+  entryOrigin: ReferenceTransformOverride | null
+}
+type ContentObjectTransformSession = {
+  objectId: string
   mode: TransformControlsMode
   space: GizmoSpace
   entryOrigin: ReferenceTransformOverride | null
@@ -266,15 +276,21 @@ export class Viewer {
   private frameId: number | null = null
   private readonly partMeshes = new Map<string, Mesh>()
   private readonly partSelectionOutlines = new Map<string, LineSegments>()
+  private readonly contentObjectPivots = new Map<string, Group>()
+  private readonly partKeyToContentObjectId = new Map<string, string>()
+  private contentObjectTransformOverrides: Record<string, ReferenceTransformOverride | null> = {}
   private highlightedPartKeys = new Set<string>()
   private readonly referenceSelectionOutlines = new Map<string, LineSegments[]>()
   private highlightedReferenceIds = new Set<string>()
   private readonly referenceGroup: Group
   private readonly referenceObjects = new Map<string, Object3D>()
+  private readonly referencePartDescriptorsByReferenceId = new Map<string, ReferencePartDescriptor[]>()
   private readonly referenceLoadPromises = new Map<string, Promise<void>>()
   private readonly removedReferenceIds = new Set<string>()
   private activeReferenceTransformReferenceId: string | null = null
   private activeReferenceTransformEntryOrigin: ReferenceTransformOverride | null = null
+  private activeContentObjectTransformObjectId: string | null = null
+  private activeContentObjectTransformEntryOrigin: ReferenceTransformOverride | null = null
   private cameraLockedReferenceId: string | null = null
   private cameraLockedReferenceCenter: Vector3 | null = null
   private cameraLockedReferenceMaxDim: number | null = null
@@ -306,6 +322,15 @@ export class Viewer {
   } = {}
   private onReferenceTransformModeChange: ((mode: TransformControlsMode) => void) | null = null
   private onReferenceTransformSpaceChange: ((space: GizmoSpace) => void) | null = null
+  private onContentObjectTransformChange:
+    | ((objectId: string, transform: ReferenceTransformOverride) => void)
+    | null = null
+  private onContentObjectTransformCommit: (() => void) | null = null
+  private onContentObjectTransformHandleChange:
+    | ((handle: ActiveReferenceTransformHandle | null) => void)
+    | null = null
+  private onContentObjectTransformModeChange: ((mode: TransformControlsMode) => void) | null = null
+  private onContentObjectTransformSpaceChange: ((space: GizmoSpace) => void) | null = null
   private onSketchPlanePickPlaneSelect: ((plane: SketchPlane) => void) | null = null
   private onSketchPlanePickTransformChange: ((transform: SketchPlaneTransform) => void) | null = null
   private onSketchPlanePickTransformCommit: (() => void) | null = null
@@ -609,6 +634,7 @@ export class Viewer {
   ): void {
     this.selectedPartKey = selectedPartKey
     this.clearPartMeshes()
+    this.contentObjectPivots.clear()
 
     let xCursor = -2
     for (const part of parts) {
@@ -664,10 +690,32 @@ export class Viewer {
       selectionOutline.userData.partKey = partKeyStr
       selectionOutline.userData.selectionOverlay = true
       mesh.add(selectionOutline)
-      this.rootGroup.add(mesh)
+      const contentObjectId = this.partKeyToContentObjectId.get(partKeyStr) ?? null
+      if (contentObjectId !== null) {
+        let pivot = this.contentObjectPivots.get(contentObjectId)
+        if (pivot === undefined) {
+          pivot = new Group()
+          pivot.name = `${contentObjectId}:pivot`
+          pivot.userData.referenceTransformBase = {
+            position: { x: 0, y: 0, z: 0 },
+            rotationDeg: { x: 0, y: 0, z: 0 },
+            scale: { x: 1, y: 1, z: 1 },
+          } satisfies ReferenceTransformBase
+          this.contentObjectPivots.set(contentObjectId, pivot)
+          this.rootGroup.add(pivot)
+        }
+        pivot.add(mesh)
+      } else {
+        this.rootGroup.add(mesh)
+      }
       this.partMeshes.set(partKeyStr, mesh)
       this.partSelectionOutlines.set(partKeyStr, selectionOutline)
       xCursor += Math.max(lengthForCursor, 0.2) + 0.2
+    }
+
+    for (const [objectId, pivot] of this.contentObjectPivots.entries()) {
+      this.anchorContentObjectPivotToBoundsCenter(pivot)
+      this.applyReferenceTransformOverride(pivot, this.contentObjectTransformOverrides[objectId] ?? null)
     }
 
     this.refreshSelectionStyling()
@@ -749,14 +797,18 @@ export class Viewer {
     }
 
     const loadPromise = this.loadReferenceObject(reference)
-      .then((object) => {
-        if (this.removedReferenceIds.has(reference.referenceId)) {
-          this.disposeObjectTree(object)
-          return
-        }
-        object.name = reference.referenceId
-        this.applyReferenceObjectDefaults(object)
-        this.referenceObjects.set(reference.referenceId, object)
+        .then((object) => {
+          if (this.removedReferenceIds.has(reference.referenceId)) {
+            this.disposeObjectTree(object)
+            return
+          }
+          this.referencePartDescriptorsByReferenceId.set(
+            reference.referenceId,
+            extractReferencePartDescriptors(reference.referenceId, object),
+          )
+          object.name = reference.referenceId
+          this.applyReferenceObjectDefaults(object)
+          this.referenceObjects.set(reference.referenceId, object)
         this.refreshReferenceHighlightStyling()
         this.syncReferenceTransformHistoryOverlay()
       })
@@ -802,6 +854,10 @@ export class Viewer {
     this.syncReferenceTransformMoveSnapAvailabilityOverlay()
   }
 
+  public getReferencePartDescriptors(referenceId: string): ReferencePartDescriptor[] {
+    return [...(this.referencePartDescriptorsByReferenceId.get(referenceId) ?? [])]
+  }
+
   public removeReference(referenceId: string): void {
     this.removedReferenceIds.add(referenceId)
     if (this.activeReferenceTransformReferenceId === referenceId) {
@@ -822,6 +878,7 @@ export class Viewer {
     }
     this.disposeObjectTree(object)
     this.referenceObjects.delete(referenceId)
+    this.referencePartDescriptorsByReferenceId.delete(referenceId)
     this.referenceSelectionOutlines.delete(referenceId)
     this.refreshReferenceHighlightStyling()
     this.refreshGizmoAttachment()
@@ -833,6 +890,10 @@ export class Viewer {
   public setReferenceTransformSession(session: ReferenceTransformSession | null): void {
     this.activeReferenceTransformReferenceId = session?.referenceId ?? null
     this.activeReferenceTransformEntryOrigin = session?.entryOrigin ?? null
+    if (session !== null) {
+      this.activeContentObjectTransformObjectId = null
+      this.activeContentObjectTransformEntryOrigin = null
+    }
     this.lastReferenceTransformMoveSnapHandle = null
     this.activeReferenceTransformRotatePreviewBasis = null
     this.activeReferenceTransformRotatePreviewRingRadius = null
@@ -846,6 +907,52 @@ export class Viewer {
     this.refreshReferenceHighlightStyling()
     this.refreshGizmoAttachment()
     this.syncReferenceTransformHistoryOverlay()
+    this.syncReferenceTransformMoveSnapAvailabilityOverlay()
+    this.syncReferenceTransformRotateSnapPreviewOverlay()
+  }
+
+  public setContentObjectTransformGroups(
+    groups: Array<{
+      objectId: string
+      partKeys: string[]
+    }>,
+  ): void {
+    this.partKeyToContentObjectId.clear()
+    groups.forEach((group) => {
+      group.partKeys.forEach((partKey) => {
+        this.partKeyToContentObjectId.set(partKey, group.objectId)
+      })
+    })
+  }
+
+  public setContentObjectTransformOverrides(
+    overrides: Record<string, ReferenceTransformOverride | null>,
+  ): void {
+    this.contentObjectTransformOverrides = { ...overrides }
+    for (const [objectId, pivot] of this.contentObjectPivots.entries()) {
+      this.applyReferenceTransformOverride(pivot, this.contentObjectTransformOverrides[objectId] ?? null)
+    }
+    this.refreshGizmoAttachment()
+  }
+
+  public setContentObjectTransformSession(session: ContentObjectTransformSession | null): void {
+    this.activeContentObjectTransformObjectId = session?.objectId ?? null
+    this.activeContentObjectTransformEntryOrigin = session?.entryOrigin ?? null
+    if (session !== null) {
+      this.activeReferenceTransformReferenceId = null
+      this.activeReferenceTransformEntryOrigin = null
+      this.lastReferenceTransformMoveSnapHandle = null
+      this.activeReferenceTransformRotatePreviewBasis = null
+      this.activeReferenceTransformRotatePreviewRingRadius = null
+    }
+    if (session !== null) {
+      this.gizmoMode = session.mode
+      this.gizmoSpace = session.space
+      this.transformGizmo.setMode(session.mode)
+      this.transformGizmo.setSpace(session.space)
+    }
+    this.syncGizmoEnabledState()
+    this.refreshGizmoAttachment()
     this.syncReferenceTransformMoveSnapAvailabilityOverlay()
     this.syncReferenceTransformRotateSnapPreviewOverlay()
   }
@@ -894,6 +1001,32 @@ export class Viewer {
     if (this.cameraLockedReferenceId === referenceId) {
       this.syncLockedReferenceCamera(object)
     }
+  }
+
+  public setOnContentObjectTransformChange(
+    handler: ((objectId: string, transform: ReferenceTransformOverride) => void) | null,
+  ): void {
+    this.onContentObjectTransformChange = handler
+  }
+
+  public setOnContentObjectTransformCommit(handler: (() => void) | null): void {
+    this.onContentObjectTransformCommit = handler
+  }
+
+  public setOnContentObjectTransformHandleChange(
+    handler: ((handle: ActiveReferenceTransformHandle | null) => void) | null,
+  ): void {
+    this.onContentObjectTransformHandleChange = handler
+  }
+
+  public setOnContentObjectTransformModeChange(
+    handler: ((mode: TransformControlsMode) => void) | null,
+  ): void {
+    this.onContentObjectTransformModeChange = handler
+  }
+
+  public setOnContentObjectTransformSpaceChange(handler: ((space: GizmoSpace) => void) | null): void {
+    this.onContentObjectTransformSpaceChange = handler
   }
 
   public setOnReferenceTransformChange(
@@ -1165,11 +1298,18 @@ export class Viewer {
   }
 
   public commitReferenceTransformSession(): void {
-    if (this.activeReferenceTransformReferenceId === null) {
+    if (
+      this.activeReferenceTransformReferenceId === null &&
+      this.activeContentObjectTransformObjectId === null
+    ) {
       return
     }
     if (this.transformGizmo.isDragging()) {
       this.transformGizmo.completeActiveDrag()
+      return
+    }
+    if (this.activeContentObjectTransformObjectId !== null) {
+      this.requestContentObjectTransformCommit()
       return
     }
     this.requestReferenceTransformCommit()
@@ -1963,7 +2103,9 @@ export class Viewer {
 
   private clearPartMeshes(): void {
     for (const mesh of this.partMeshes.values()) {
-      this.rootGroup.remove(mesh)
+      if (mesh.parent !== null) {
+        mesh.parent.remove(mesh)
+      }
       mesh.traverse((child) => {
         if (child instanceof LineSegments) {
           child.geometry.dispose()
@@ -1978,6 +2120,12 @@ export class Viewer {
     }
     this.partMeshes.clear()
     this.partSelectionOutlines.clear()
+    for (const pivot of this.contentObjectPivots.values()) {
+      if (pivot.parent === this.rootGroup) {
+        this.rootGroup.remove(pivot)
+      }
+    }
+    this.contentObjectPivots.clear()
   }
 
   private clearReferenceObjects(): void {
@@ -1988,6 +2136,7 @@ export class Viewer {
       this.disposeObjectTree(object)
     }
     this.referenceObjects.clear()
+    this.referencePartDescriptorsByReferenceId.clear()
     this.referenceSelectionOutlines.clear()
     this.referenceLoadPromises.clear()
     this.removedReferenceIds.clear()
@@ -2154,6 +2303,19 @@ export class Viewer {
     object.position.y -= bounds.min.y - center.y
   }
 
+  private anchorContentObjectPivotToBoundsCenter(pivot: Group): void {
+    pivot.updateMatrixWorld(true)
+    const bounds = new Box3().setFromObject(pivot)
+    if (bounds.isEmpty()) {
+      return
+    }
+    const center = bounds.getCenter(new Vector3())
+    for (const child of pivot.children) {
+      child.position.sub(center)
+    }
+    pivot.position.copy(center)
+  }
+
   private async loadReferenceObject(reference: ReferenceLoadableItem): Promise<Object3D> {
     if (reference.fileType === 'glb') {
       const loader = new GLTFLoader()
@@ -2237,6 +2399,16 @@ export class Viewer {
       return
     }
 
+    if (this.activeContentObjectTransformObjectId !== null) {
+      const contentObjectPivot = this.contentObjectPivots.get(this.activeContentObjectTransformObjectId)
+      if (contentObjectPivot === undefined || !contentObjectPivot.visible) {
+        this.transformGizmo.detach()
+        return
+      }
+      this.transformGizmo.attach(contentObjectPivot)
+      return
+    }
+
     if (this.sketchPlanePickOverlay?.stage === 'adjust') {
       this.transformGizmo.setMode(this.sketchPlanePickOverlay.gizmoMode)
       this.transformGizmo.setSpace('world')
@@ -2262,6 +2434,7 @@ export class Viewer {
     this.transformGizmo.setEnabled(
       this.gizmoEnabled ||
         this.activeReferenceTransformReferenceId !== null ||
+        this.activeContentObjectTransformObjectId !== null ||
         this.sketchPlanePickOverlay?.stage === 'adjust',
     )
   }
@@ -2279,8 +2452,29 @@ export class Viewer {
     )
   }
 
+  private getActiveViewerTransformObject(): Object3D | null {
+    if (this.activeReferenceTransformReferenceId !== null) {
+      return this.referenceObjects.get(this.activeReferenceTransformReferenceId) ?? null
+    }
+    if (this.activeContentObjectTransformObjectId !== null) {
+      return this.contentObjectPivots.get(this.activeContentObjectTransformObjectId) ?? null
+    }
+    return null
+  }
+
+  private getActiveViewerTransformEntryOrigin(): ReferenceTransformOverride | null {
+    if (this.activeReferenceTransformReferenceId !== null) {
+      return this.activeReferenceTransformEntryOrigin
+    }
+    if (this.activeContentObjectTransformObjectId !== null) {
+      return this.activeContentObjectTransformEntryOrigin
+    }
+    return null
+  }
+
   private syncReferenceTransformMoveSnapAvailabilityOverlay(): void {
-    if (this.activeReferenceTransformReferenceId === null || this.gizmoSnap.translate === undefined) {
+    const activeObject = this.getActiveViewerTransformObject()
+    if (activeObject === null || this.gizmoSnap.translate === undefined) {
       this.referenceTransformMoveSnapHelper.setOverlay(null, null)
       return
     }
@@ -2295,16 +2489,14 @@ export class Viewer {
       this.referenceTransformMoveSnapHelper.setOverlay(null, null)
       return
     }
-    const referenceObject =
-      this.referenceObjects.get(this.activeReferenceTransformReferenceId) ?? null
     this.referenceTransformMoveSnapHelper.setOverlay(
       {
         handle: moveSnapHandle,
         snapValues: this.gizmoSnap.translate,
         space: this.gizmoSpace,
-        anchorPosition: this.activeReferenceTransformEntryOrigin?.position ?? null,
+        anchorPosition: this.getActiveViewerTransformEntryOrigin()?.position ?? null,
       },
-      referenceObject,
+      activeObject,
     )
   }
 
@@ -2320,7 +2512,6 @@ export class Viewer {
 
   private syncReferenceTransformRotateSnapPreviewOverlay(): void {
     if (
-      this.activeReferenceTransformReferenceId === null ||
       this.referenceTransformDragging !== true ||
       this.gizmoSnap.rotate === undefined ||
       this.activeReferenceTransformHandle?.mode !== 'rotate' ||
@@ -2330,24 +2521,23 @@ export class Viewer {
       return
     }
 
-    const referenceObject =
-      this.referenceObjects.get(this.activeReferenceTransformReferenceId) ?? null
-    if (referenceObject === null || !referenceObject.visible) {
+    const activeObject = this.getActiveViewerTransformObject()
+    if (activeObject === null || !activeObject.visible) {
       this.referenceTransformRotateSnapHelper.setOverlay(null)
       return
     }
 
     const basis = this.getReferenceTransformRotatePreviewBasis(
       this.activeReferenceTransformHandle.axis,
-      referenceObject,
+      activeObject,
     )
     const ringRadius =
       this.activeReferenceTransformRotatePreviewRingRadius ??
       this.getReferenceTransformRotatePreviewRingRadius(
-        referenceObject,
+        activeObject,
         this.activeReferenceTransformHandle.axis,
       )
-    const landedAngleDeg = this.readReferenceTransformOverride(referenceObject).rotationDeg[
+    const landedAngleDeg = this.readReferenceTransformOverride(activeObject).rotationDeg[
       this.activeReferenceTransformHandle.axis
     ]
     const snapStepDeg = this.gizmoSnap.rotate[this.activeReferenceTransformHandle.axis]
@@ -2357,7 +2547,7 @@ export class Viewer {
       return
     }
 
-    const origin = referenceObject.getWorldPosition(new Vector3())
+    const origin = activeObject.getWorldPosition(new Vector3())
     this.referenceTransformRotateSnapHelper.setOverlay({
       axis: this.activeReferenceTransformHandle.axis,
       origin: { x: origin.x, y: origin.y, z: origin.z },
@@ -2411,7 +2601,6 @@ export class Viewer {
 
   private captureReferenceTransformRotatePreviewContext(): void {
     if (
-      this.activeReferenceTransformReferenceId === null ||
       this.activeReferenceTransformHandle?.mode !== 'rotate' ||
       this.activeReferenceTransformHandle.kind !== 'axis'
     ) {
@@ -2420,9 +2609,8 @@ export class Viewer {
       return
     }
 
-    const referenceObject =
-      this.referenceObjects.get(this.activeReferenceTransformReferenceId) ?? null
-    if (referenceObject === null) {
+    const activeObject = this.getActiveViewerTransformObject()
+    if (activeObject === null) {
       this.activeReferenceTransformRotatePreviewBasis = null
       this.activeReferenceTransformRotatePreviewRingRadius = null
       return
@@ -2430,7 +2618,7 @@ export class Viewer {
 
     const basis = this.getReferenceTransformRotatePreviewBasis(
       this.activeReferenceTransformHandle.axis,
-      referenceObject,
+      activeObject,
     )
     this.activeReferenceTransformRotatePreviewBasis =
       basis === null
@@ -2440,10 +2628,11 @@ export class Viewer {
             axisDirection: basis.axisDirection.clone(),
             referenceDirection: basis.referenceDirection.clone(),
           }
-    this.activeReferenceTransformRotatePreviewRingRadius = this.getReferenceTransformRotatePreviewRingRadius(
-      referenceObject,
-      this.activeReferenceTransformHandle.axis,
-    )
+    this.activeReferenceTransformRotatePreviewRingRadius =
+      this.getReferenceTransformRotatePreviewRingRadius(
+        activeObject,
+        this.activeReferenceTransformHandle.axis,
+      )
   }
 
   private getReferenceTransformRotatePreviewRingRadius(
@@ -2514,6 +2703,15 @@ export class Viewer {
       return
     }
     this.onReferenceTransformCommit?.()
+    this.transformGizmo.clearActiveHandle()
+    this.refreshGizmoAttachment()
+  }
+
+  private requestContentObjectTransformCommit(): void {
+    if (this.activeContentObjectTransformObjectId === null) {
+      return
+    }
+    this.onContentObjectTransformCommit?.()
     this.transformGizmo.clearActiveHandle()
     this.refreshGizmoAttachment()
   }
@@ -2642,10 +2840,13 @@ export class Viewer {
     }
     this.syncReferenceTransformMoveSnapAvailabilityOverlay()
     this.syncReferenceTransformRotateSnapPreviewOverlay()
-    if (this.activeReferenceTransformReferenceId === null) {
+    if (this.activeReferenceTransformReferenceId !== null) {
+      this.onReferenceTransformHandleChange?.(handle)
       return
     }
-    this.onReferenceTransformHandleChange?.(handle)
+    if (this.activeContentObjectTransformObjectId !== null) {
+      this.onContentObjectTransformHandleChange?.(handle)
+    }
   }
 
   private readonly handleReferenceTransformDraggingChange = (dragging: boolean): void => {
@@ -2692,6 +2893,19 @@ export class Viewer {
       this.handleReferenceTransformObjectChange(object)
       return
     }
+    if (
+      this.activeContentObjectTransformObjectId !== null &&
+      this.contentObjectPivots.get(this.activeContentObjectTransformObjectId) === object
+    ) {
+      const snappedOverride = this.applyReferenceTransformSnapToOverride(
+        object,
+        this.readReferenceTransformOverride(object),
+      )
+      this.onContentObjectTransformChange?.(this.activeContentObjectTransformObjectId, snappedOverride)
+      this.syncReferenceTransformMoveSnapAvailabilityOverlay()
+      this.syncReferenceTransformRotateSnapPreviewOverlay()
+      return
+    }
     this.handleSketchPlanePickTransformObjectChange(object)
   }
 
@@ -2701,6 +2915,13 @@ export class Viewer {
       this.referenceObjects.get(this.activeReferenceTransformReferenceId) === object
     ) {
       this.requestReferenceTransformCommit()
+      return
+    }
+    if (
+      this.activeContentObjectTransformObjectId !== null &&
+      this.contentObjectPivots.get(this.activeContentObjectTransformObjectId) === object
+    ) {
+      this.requestContentObjectTransformCommit()
       return
     }
     this.handleSketchPlanePickTransformDragComplete(object)
@@ -3628,6 +3849,8 @@ export class Viewer {
       this.setGizmoMode('translate')
       if (this.activeReferenceTransformReferenceId !== null) {
         this.onReferenceTransformModeChange?.('translate')
+      } else if (this.activeContentObjectTransformObjectId !== null) {
+        this.onContentObjectTransformModeChange?.('translate')
       }
       return
     }
@@ -3636,6 +3859,8 @@ export class Viewer {
       this.setGizmoMode('rotate')
       if (this.activeReferenceTransformReferenceId !== null) {
         this.onReferenceTransformModeChange?.('rotate')
+      } else if (this.activeContentObjectTransformObjectId !== null) {
+        this.onContentObjectTransformModeChange?.('rotate')
       }
       return
     }
@@ -3644,6 +3869,8 @@ export class Viewer {
       this.setGizmoMode('scale')
       if (this.activeReferenceTransformReferenceId !== null) {
         this.onReferenceTransformModeChange?.('scale')
+      } else if (this.activeContentObjectTransformObjectId !== null) {
+        this.onContentObjectTransformModeChange?.('scale')
       }
       return
     }
@@ -3653,6 +3880,8 @@ export class Viewer {
       this.setGizmoSpace(nextSpace)
       if (this.activeReferenceTransformReferenceId !== null) {
         this.onReferenceTransformSpaceChange?.(nextSpace)
+      } else if (this.activeContentObjectTransformObjectId !== null) {
+        this.onContentObjectTransformSpaceChange?.(nextSpace)
       }
       return
     }

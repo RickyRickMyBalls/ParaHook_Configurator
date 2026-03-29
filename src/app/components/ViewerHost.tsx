@@ -10,8 +10,11 @@ import {
 } from '../viewerBridge'
 import { Viewer } from '../../viewer/Viewer'
 import {
+  buildImportedReferenceRowId,
   DEFAULT_REFERENCE_TRANSFORM_SNAP_STATE,
   getReferenceTransformHistoryEntriesThroughScrubIndex,
+  resolveReferenceRuntimeTraits,
+  resolveReferenceIdsForWorkspaceTarget,
   selectCurrentProjectContentBrowserRows,
   type ReferenceTransformHistoryEntry,
   selectShouldSuppressBrowserGraphRuntimeOutput,
@@ -176,6 +179,7 @@ export function ViewerHost() {
   const markReferenceBatchItemStarted = useAppStore((state) => state.markReferenceBatchItemStarted)
   const markReferenceBatchItemCompleted = useAppStore((state) => state.markReferenceBatchItemCompleted)
   const setReferenceItemLoadState = useAppStore((state) => state.setReferenceItemLoadState)
+  const setReferenceItemPartRows = useAppStore((state) => state.setReferenceItemPartRows)
   const setReferenceItemVisibility = useAppStore((state) => state.setReferenceItemVisibility)
   const graphRuntimeByDocumentId = useSpaghettiStore((state) => state.graphRuntimeByDocumentId)
   const graphDocumentsById = useSpaghettiStore((state) => state.graphDocumentsById)
@@ -581,25 +585,21 @@ export function ViewerHost() {
           : [workspaceSelectedTarget]
 
     for (const target of explicitTargets) {
-      if (target.kind === 'references-root') {
-        referenceWorkspaceItems.forEach((item) => highlightedReferenceIdSet.add(item.referenceId))
-        continue
-      }
-      if (target.kind === 'reference-category') {
-        referenceWorkspaceItems
-          .filter((item) => item.categoryId === target.categoryId)
-          .forEach((item) => highlightedReferenceIdSet.add(item.referenceId))
-        continue
-      }
-      if (target.kind === 'reference-item') {
-        highlightedReferenceIdSet.add(target.referenceId)
-      }
+      resolveReferenceIdsForWorkspaceTarget({ projectContent, referenceWorkspace }, target).forEach(
+        (referenceId) => highlightedReferenceIdSet.add(referenceId),
+      )
     }
 
     return [...highlightedReferenceIdSet].filter((referenceId) =>
       referenceWorkspaceItems.some((item) => item.referenceId === referenceId),
     )
-  }, [referenceWorkspaceItems, workspaceExplicitSelectedTargets, workspaceSelectedTarget])
+  }, [
+    projectContent,
+    referenceWorkspace,
+    referenceWorkspaceItems,
+    workspaceExplicitSelectedTargets,
+    workspaceSelectedTarget,
+  ])
   const [timelineNowMs, setTimelineNowMs] = useState(() => performance.now())
   const previousReferenceIdsRef = useRef<string[]>([])
   const activeReferenceTransformSession = useMemo(
@@ -613,6 +613,35 @@ export function ViewerHost() {
             entryOrigin: referenceWorkspace.activeReferenceTransformSession.entryOrigin,
           },
     [referenceWorkspace.activeReferenceTransformSession],
+  )
+  const activeContentObjectTransformSession = useMemo(
+    () =>
+      referenceWorkspace.activeContentObjectTransformSession === null
+        ? null
+        : {
+            objectId: referenceWorkspace.activeContentObjectTransformSession.objectId,
+            mode: referenceWorkspace.activeContentObjectTransformSession.mode,
+            space: referenceWorkspace.activeContentObjectTransformSession.space,
+            entryOrigin: referenceWorkspace.activeContentObjectTransformSession.entryOrigin,
+          },
+    [referenceWorkspace.activeContentObjectTransformSession],
+  )
+  const contentObjectTransformGroups = useMemo(
+    () =>
+      projectContentRows
+        .filter(
+          (
+            row,
+          ): row is Extract<(typeof projectContentRows)[number], { kind: 'object' }> =>
+            row.kind === 'object' &&
+            row.objectSourceKind === 'published-object' &&
+            (row.visibilityPartKeys?.length ?? 0) > 0,
+        )
+        .map((row) => ({
+          objectId: row.rowId,
+          partKeys: [...new Set(row.visibilityPartKeys ?? [])],
+        })),
+    [projectContentRows],
   )
   const activeReferenceTransformHistoryOverlay = useMemo<ReferenceTransformHistoryOverlayVm | null>(() => {
     const activeSession = referenceWorkspace.activeReferenceTransformSession
@@ -708,6 +737,20 @@ export function ViewerHost() {
     timelineNowMs,
   ])
 
+  const activeContentObjectTransformSnap = useMemo(() => {
+    const activeObjectId = referenceWorkspace.activeContentObjectTransformSession?.objectId ?? null
+    if (activeObjectId === null) {
+      return null
+    }
+    return (
+      referenceWorkspace.transformSnapByObjectId[activeObjectId] ??
+      DEFAULT_REFERENCE_TRANSFORM_SNAP_STATE
+    )
+  }, [
+    referenceWorkspace.activeContentObjectTransformSession,
+    referenceWorkspace.transformSnapByObjectId,
+  ])
+
   useEffect(() => {
     if (!hasActiveReferenceTimelines) {
       return
@@ -740,6 +783,15 @@ export function ViewerHost() {
       setViewer(null)
     }
   }, [])
+
+  useEffect(() => {
+    const viewer = viewerRef.current
+    if (viewer === null) {
+      return
+    }
+
+    viewer.setContentObjectTransformGroups(contentObjectTransformGroups)
+  }, [contentObjectTransformGroups])
 
   useEffect(() => {
     const viewer = viewerRef.current
@@ -813,6 +865,40 @@ export function ViewerHost() {
     viewer.setOnReferenceTransformSpaceChange((space) => {
       useAppStore.getState().setActiveReferenceTransformSpace(space)
     })
+    viewer.setOnContentObjectTransformChange((objectId, transformOverride) => {
+      const store = useAppStore.getState()
+      const activeObjectId =
+        store.referenceWorkspace.activeContentObjectTransformSession?.objectId ?? null
+      if (activeObjectId !== objectId) {
+        return
+      }
+      store.setActiveContentObjectTransformDraft(transformOverride)
+    })
+    viewer.setOnContentObjectTransformCommit(() => {
+      useAppStore.getState().commitActiveContentObjectTransformEntry()
+    })
+    viewer.setOnContentObjectTransformHandleChange((handle) => {
+      const store = useAppStore.getState()
+      const activeSession = store.referenceWorkspace.activeContentObjectTransformSession
+      if (handle !== null && activeSession !== null) {
+        const nextMode =
+          handle.mode === 'translate'
+            ? 'translate'
+            : handle.mode === 'rotate'
+              ? 'rotate'
+              : 'scale'
+        if (!activeSession.entryActive || activeSession.mode !== nextMode) {
+          store.beginContentObjectTransformEntry(nextMode)
+        }
+      }
+      store.setActiveContentObjectTransformHandle(handle)
+    })
+    viewer.setOnContentObjectTransformModeChange((mode) => {
+      useAppStore.getState().beginContentObjectTransformEntry(mode)
+    })
+    viewer.setOnContentObjectTransformSpaceChange((space) => {
+      useAppStore.getState().setActiveContentObjectTransformSpace(space)
+    })
     viewer.setOnSketchPlanePickPlaneSelect((plane) => {
       useSpaghettiStore.getState().setSketchPlanePickDraftPlane(plane)
     })
@@ -862,8 +948,8 @@ export function ViewerHost() {
             pick.kind === 'reference-item'
               ? {
                   target: {
-                    kind: 'reference-item',
-                    referenceId: pick.referenceId,
+                    kind: 'object',
+                    objectId: buildImportedReferenceRowId(pick.referenceId),
                   } satisfies WorkspaceSelectedTarget,
                   selectedPartKey: null,
                 }
@@ -1053,6 +1139,11 @@ export function ViewerHost() {
       viewer.setOnReferenceTransformHandleChange(null)
       viewer.setOnReferenceTransformModeChange(null)
       viewer.setOnReferenceTransformSpaceChange(null)
+      viewer.setOnContentObjectTransformChange(null)
+      viewer.setOnContentObjectTransformCommit(null)
+      viewer.setOnContentObjectTransformHandleChange(null)
+      viewer.setOnContentObjectTransformModeChange(null)
+      viewer.setOnContentObjectTransformSpaceChange(null)
       viewer.setOnSketchPlanePickPlaneSelect(null)
       viewer.setOnSketchPlanePickTransformChange(null)
       viewer.setOnSketchPlanePickTransformCommit(null)
@@ -1127,13 +1218,14 @@ export function ViewerHost() {
             return
           }
           setReferenceItemLoadState(item.referenceId, 'loaded')
+          setReferenceItemPartRows(item.referenceId, viewer.getReferencePartDescriptors(item.referenceId))
           appendConsoleEntry({
             layer: 'Browser',
             text: `Loaded Model: ${item.label}`,
             source: item.referenceId,
             severity: 'info',
           })
-          if (useAppStore.getState().referenceWorkspace.visibilityById[item.referenceId] ?? false) {
+          if (resolveReferenceRuntimeTraits(useAppStore.getState(), item.referenceId).isVisible) {
             viewer.setReferenceVisible(item.referenceId, true)
           }
         } catch (error) {
@@ -1153,6 +1245,7 @@ export function ViewerHost() {
   }, [
     referenceWorkspace.referenceLoadBatch,
     referenceWorkspaceItems,
+    setReferenceItemPartRows,
     setReferenceItemLoadState,
     setReferenceItemVisibility,
   ])
@@ -1186,13 +1279,14 @@ export function ViewerHost() {
           return
         }
         setReferenceItemLoadState(nextReferenceId, 'loaded')
+        setReferenceItemPartRows(nextReferenceId, viewer.getReferencePartDescriptors(nextReferenceId))
         appendConsoleEntry({
           layer: 'Browser',
           text: `Loaded Model: ${nextItem.label}`,
           source: nextReferenceId,
           severity: 'info',
         })
-        if (useAppStore.getState().referenceWorkspace.visibilityById[nextReferenceId] ?? false) {
+        if (resolveReferenceRuntimeTraits(useAppStore.getState(), nextReferenceId).isVisible) {
           viewer.setReferenceVisible(nextReferenceId, true)
         }
         markReferenceBatchItemCompleted(nextReferenceId, referenceLoadBatch.requestId, 'loaded')
@@ -1215,6 +1309,7 @@ export function ViewerHost() {
     markReferenceBatchItemStarted,
     referenceWorkspace.referenceLoadBatch,
     referenceWorkspaceItemById,
+    setReferenceItemPartRows,
     setReferenceItemLoadState,
     setReferenceItemVisibility,
   ])
@@ -1236,27 +1331,45 @@ export function ViewerHost() {
       return
     }
     const activeReferenceId = referenceWorkspace.activeReferenceTransformSession?.referenceId ?? null
-    if (activeReferenceId === null) {
-      viewer.setGizmoSnap({})
+    if (activeReferenceId !== null) {
+      const activeReferenceItem =
+        evaluatedReferenceItems.find((item) => item.referenceId === activeReferenceId) ?? null
+      viewer.setGizmoSnap({
+        translate:
+          activeReferenceItem?.evaluatedTransformSnap.translate.enabled === true
+            ? activeReferenceItem.evaluatedTransformSnap.translate.values
+            : undefined,
+        rotate:
+          activeReferenceItem?.evaluatedTransformSnap.rotate.enabled === true
+            ? activeReferenceItem.evaluatedTransformSnap.rotate.values
+            : undefined,
+        scale:
+          activeReferenceItem?.evaluatedTransformSnap.scale.enabled === true
+            ? activeReferenceItem.evaluatedTransformSnap.scale.values
+            : undefined,
+      })
       return
     }
-    const activeReferenceItem =
-      evaluatedReferenceItems.find((item) => item.referenceId === activeReferenceId) ?? null
-    viewer.setGizmoSnap({
-      translate:
-        activeReferenceItem?.evaluatedTransformSnap.translate.enabled === true
-          ? activeReferenceItem.evaluatedTransformSnap.translate.values
-          : undefined,
-      rotate:
-        activeReferenceItem?.evaluatedTransformSnap.rotate.enabled === true
-          ? activeReferenceItem.evaluatedTransformSnap.rotate.values
-          : undefined,
-      scale:
-        activeReferenceItem?.evaluatedTransformSnap.scale.enabled === true
-          ? activeReferenceItem.evaluatedTransformSnap.scale.values
-          : undefined,
-    })
+    if (activeContentObjectTransformSnap !== null) {
+      viewer.setGizmoSnap({
+        translate:
+          activeContentObjectTransformSnap.translate.enabled === true
+            ? activeContentObjectTransformSnap.translate.values
+            : undefined,
+        rotate:
+          activeContentObjectTransformSnap.rotate.enabled === true
+            ? activeContentObjectTransformSnap.rotate.values
+            : undefined,
+        scale:
+          activeContentObjectTransformSnap.scale.enabled === true
+            ? activeContentObjectTransformSnap.scale.values
+            : undefined,
+      })
+      return
+    }
+    viewer.setGizmoSnap({})
   }, [
+    activeContentObjectTransformSnap,
     evaluatedReferenceItems,
     referenceWorkspace.activeReferenceTransformSession,
   ])
@@ -1264,6 +1377,16 @@ export function ViewerHost() {
   useEffect(() => {
     viewerRef.current?.setReferenceTransformSession(activeReferenceTransformSession)
   }, [activeReferenceTransformSession])
+
+  useEffect(() => {
+    viewerRef.current?.setContentObjectTransformSession(activeContentObjectTransformSession)
+  }, [activeContentObjectTransformSession])
+
+  useEffect(() => {
+    viewerRef.current?.setContentObjectTransformOverrides(
+      referenceWorkspace.contentObjectTransformOverrideById,
+    )
+  }, [referenceWorkspace.contentObjectTransformOverrideById])
 
   useEffect(() => {
     viewerRef.current?.setReferenceTransformMoveSnapDotsEnabled(

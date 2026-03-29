@@ -10,6 +10,163 @@ let currentAppState: any
 let importReferenceFileFromDiskMock: ReturnType<typeof vi.fn>
 let mockRequestBrowserGraphDocumentBuild: ReturnType<typeof vi.fn>
 
+const countMockRows = (count: number, singular: string, plural: string) =>
+  count === 1 ? `1 ${singular}` : `${count} ${plural}`
+
+const buildMockProjectContentRows = () => {
+  const authoredRows = currentAppState?.projectContentRows ?? []
+  const referenceWorkspaceTree = currentAppState?.referenceWorkspaceTree ?? null
+  if (referenceWorkspaceTree === null) {
+    return authoredRows
+  }
+  const hasUnifiedReferenceHierarchy = authoredRows.some(
+    (row: any) =>
+      (row.kind === 'assembly' && row.referenceContainerKind === 'root') ||
+      (row.kind === 'component' && row.referenceContainerKind === 'category') ||
+      (row.kind === 'object' &&
+        (row.contentOriginKind === 'source-reference' ||
+          row.contentOriginKind === 'imported-reference')),
+  )
+  if (hasUnifiedReferenceHierarchy) {
+    return authoredRows
+  }
+
+  const syntheticRows: any[] = [
+    {
+      rowId: referenceWorkspaceTree.rowId,
+      kind: 'assembly',
+      label: referenceWorkspaceTree.label,
+      meta: countMockRows(
+        referenceWorkspaceTree.categories.reduce(
+          (sum: number, category: any) => sum + category.itemCount,
+          0,
+        ),
+        'item',
+        'items',
+      ),
+      parentAssemblyId: null,
+      isVisible: referenceWorkspaceTree.categories.some((category: any) =>
+        category.items.some((item: any) => item.isVisible && item.loadState === 'loaded'),
+      ),
+      visibilityPartKeys: [],
+      referenceContainerKind: 'root',
+      referenceCategoryId: null,
+      referenceContainerItemCount: referenceWorkspaceTree.categories.reduce(
+        (sum: number, category: any) => sum + category.itemCount,
+        0,
+      ),
+      referenceContainerEmptyLabel: null,
+    },
+  ]
+
+  referenceWorkspaceTree.categories.forEach((category: any) => {
+    const shelfItems = category.items.filter(
+      (item: any) => item.parentAssemblyId == null && item.parentComponentId == null,
+    )
+    if (!(shelfItems.length === 0 && category.categoryId === 'user-references')) {
+      syntheticRows.push({
+        rowId: category.rowId,
+        kind: 'component',
+        label: category.label,
+        meta: countMockRows(category.itemCount, 'item', 'items'),
+        parentAssemblyId: referenceWorkspaceTree.rowId,
+        isVisible: shelfItems.some((item: any) => item.isVisible && item.loadState === 'loaded'),
+        visibilityPartKeys: [],
+        ownerGraphDocumentId: null,
+        sourceGraphDocumentId: null,
+        sourceOutputEntryId: null,
+        componentSourceKind: 'receive-link',
+        resolutionState: 'resolved',
+        receiveId: null,
+        childObjectCount: category.itemCount,
+        slotId: null,
+        sourceNodeId: null,
+        highlightViewerKey: null,
+        authoringGraphDocumentId: null,
+        authoringNodeId: null,
+        referenceContainerKind: 'category',
+        referenceCategoryId: category.categoryId,
+        referenceContainerItemCount: category.itemCount,
+        referenceContainerEmptyLabel: category.emptyLabel,
+      })
+    }
+
+    shelfItems.forEach((item: any) => {
+      syntheticRows.push({
+        rowId: item.rowId,
+        kind: 'object',
+        label: item.label,
+        meta: item.fileType.toUpperCase(),
+        parentAssemblyId:
+          item.parentAssemblyId ??
+          (item.parentComponentId == null ? referenceWorkspaceTree.rowId : null),
+        parentComponentId:
+          item.parentComponentId ?? (item.parentAssemblyId == null ? category.rowId : null),
+        isVisible: item.isVisible,
+        visibilityPartKeys: [],
+        ownerGraphDocumentId: null,
+        objectSourceKind: null,
+        sourceGraphDocumentId: null,
+        sourceOutputEntryId: null,
+        slotId: null,
+        sourceNodeId: null,
+        resolutionState: null,
+        highlightViewerKey: null,
+        authoringGraphDocumentId: null,
+        authoringNodeId: null,
+        contentOriginKind:
+          item.parentAssemblyId != null || item.parentComponentId != null
+            ? 'imported-reference'
+            : 'source-reference',
+        referenceId: item.referenceId,
+        referenceSourceKind: item.sourceKind,
+        referenceCategoryId: category.categoryId,
+        referenceLoadState: item.loadState,
+        fileType: item.fileType,
+        assetPath: item.assetPath,
+        errorMessage: item.errorMessage ?? null,
+        partRows: item.parts ?? [],
+      })
+    })
+
+    category.items
+      .filter((item: any) => item.parentAssemblyId != null || item.parentComponentId != null)
+      .forEach((item: any) => {
+        syntheticRows.push({
+          rowId: item.rowId,
+          kind: 'object',
+          label: item.label,
+          meta: item.fileType.toUpperCase(),
+          parentAssemblyId: item.parentAssemblyId ?? null,
+          parentComponentId: item.parentComponentId ?? null,
+          isVisible: item.isVisible,
+          visibilityPartKeys: [],
+          ownerGraphDocumentId: null,
+          objectSourceKind: null,
+          sourceGraphDocumentId: null,
+          sourceOutputEntryId: null,
+          slotId: null,
+          sourceNodeId: null,
+          resolutionState: null,
+          highlightViewerKey: null,
+          authoringGraphDocumentId: null,
+          authoringNodeId: null,
+          contentOriginKind: 'imported-reference',
+          referenceId: item.referenceId,
+          referenceSourceKind: item.sourceKind,
+          referenceCategoryId: category.categoryId,
+          referenceLoadState: item.loadState,
+          fileType: item.fileType,
+          assetPath: item.assetPath,
+          errorMessage: item.errorMessage ?? null,
+          partRows: item.parts ?? [],
+        })
+      })
+  })
+
+  return [...syntheticRows, ...authoredRows]
+}
+
 vi.mock('../spaghetti/store/useSpaghettiStore', () => ({
   useSpaghettiStore: (selector: (state: any) => unknown) => selector(currentSpaghettiState),
   selectSharedViewerComposition: (state: any) => state.sharedViewerComposition,
@@ -20,9 +177,146 @@ vi.mock('../spaghetti/store/useSpaghettiStore', () => ({
 
 vi.mock('../store/useAppStore', () => ({
   useAppStore: (selector: (state: any) => unknown) => selector(currentAppState),
-  selectCurrentProjectContentBrowserRows: () => currentAppState.projectContentRows,
+  REFERENCE_ROOT_ROW_ID: 'reference-root',
+  buildReferenceCategoryRowId: (categoryId: string) => `reference-category-row:${categoryId}`,
+  selectCurrentProjectContentBrowserRows: () => buildMockProjectContentRows(),
   selectReferenceWorkspaceBrowserTree: () => currentAppState.referenceWorkspaceTree,
   selectShouldSuppressBrowserGraphRuntimeOutput: () => false,
+  resolveProjectContentOwnerDrop: (_state: any, draggedTarget: any, dropTarget: any) => {
+    const resolveParentKey = (target: any) => {
+      if (target.kind === 'object') {
+        const objectRow = currentAppState.projectContent?.objectsById?.[target.objectId] ?? null
+        if (objectRow === null) {
+          return null
+        }
+        return objectRow.parentComponentId ?? objectRow.parentAssemblyId ?? null
+      }
+      if (target.kind === 'component') {
+        const componentRow = currentAppState.projectContent?.componentsById?.[target.componentId] ?? null
+        return componentRow?.parentAssemblyId ?? null
+      }
+      const assemblyRow = currentAppState.projectContent?.assembliesById?.[target.assemblyId] ?? null
+      return assemblyRow?.parentAssemblyId ?? null
+    }
+    if (
+      draggedTarget.kind === 'object' &&
+      dropTarget.kind === 'object' &&
+      (dropTarget.position === 'before' || dropTarget.position === 'after')
+    ) {
+      return resolveParentKey(draggedTarget) === resolveParentKey(dropTarget)
+        ? {
+            valid: true,
+            kind: 'reorder',
+            parentTarget: null,
+            draggedTarget,
+            dropTarget,
+          }
+        : { valid: false, reason: 'invalid-same-parent' }
+    }
+    if (
+      draggedTarget.kind === 'object' &&
+      dropTarget.kind === 'component' &&
+      dropTarget.position === 'into'
+    ) {
+      return {
+        valid: true,
+        kind: 'reparent',
+        parentTarget: { kind: 'component', componentId: dropTarget.componentId },
+        draggedTarget,
+        dropTarget,
+      }
+    }
+    if (
+      draggedTarget.kind === 'object' &&
+      dropTarget.kind === 'assembly' &&
+      dropTarget.position === 'into'
+    ) {
+      const draggedParentKey = resolveParentKey(draggedTarget)
+      const targetParentKey = dropTarget.assemblyId
+      if (draggedParentKey === targetParentKey) {
+        return { valid: false, reason: 'same-parent-into' }
+      }
+      return {
+        valid: true,
+        kind: 'reparent',
+        parentTarget: { kind: 'assembly', assemblyId: dropTarget.assemblyId },
+        draggedTarget,
+        dropTarget,
+      }
+    }
+    return { valid: false, reason: 'illegal-target' }
+  },
+  resolveBrowserDraggableTargetDrop: (state: any, draggedTarget: any, dropTarget: any) => {
+    const { resolveProjectContentOwnerDrop } = {
+      resolveProjectContentOwnerDrop: (_nextState: any, nextDraggedTarget: any, nextDropTarget: any) => {
+        const resolveParentKey = (target: any) => {
+          if (target.kind === 'object') {
+            const objectRow = currentAppState.projectContent?.objectsById?.[target.objectId] ?? null
+            if (objectRow === null) {
+              return null
+            }
+            return objectRow.parentComponentId ?? objectRow.parentAssemblyId ?? null
+          }
+          if (target.kind === 'component') {
+            const componentRow =
+              currentAppState.projectContent?.componentsById?.[target.componentId] ?? null
+            return componentRow?.parentAssemblyId ?? null
+          }
+          const assemblyRow =
+            currentAppState.projectContent?.assembliesById?.[target.assemblyId] ?? null
+          return assemblyRow?.parentAssemblyId ?? null
+        }
+        if (
+          nextDraggedTarget.kind === 'object' &&
+          nextDropTarget.kind === 'object' &&
+          (nextDropTarget.position === 'before' || nextDropTarget.position === 'after')
+        ) {
+          return resolveParentKey(nextDraggedTarget) === resolveParentKey(nextDropTarget)
+            ? {
+                valid: true,
+                kind: 'reorder',
+                parentTarget: null,
+                draggedTarget: nextDraggedTarget,
+                dropTarget: nextDropTarget,
+              }
+            : { valid: false, reason: 'invalid-same-parent' }
+        }
+        if (
+          nextDraggedTarget.kind === 'object' &&
+          nextDropTarget.kind === 'component' &&
+          nextDropTarget.position === 'into'
+        ) {
+          return {
+            valid: true,
+            kind: 'reparent',
+            parentTarget: { kind: 'component', componentId: nextDropTarget.componentId },
+            draggedTarget: nextDraggedTarget,
+            dropTarget: nextDropTarget,
+          }
+        }
+        if (
+          nextDraggedTarget.kind === 'object' &&
+          nextDropTarget.kind === 'assembly' &&
+          nextDropTarget.position === 'into'
+        ) {
+          const draggedParentKey = resolveParentKey(nextDraggedTarget)
+          const targetParentKey = nextDropTarget.assemblyId
+          if (draggedParentKey === targetParentKey) {
+            return { valid: false, reason: 'same-parent-into' }
+          }
+          return {
+            valid: true,
+            kind: 'reparent',
+            parentTarget: { kind: 'assembly', assemblyId: nextDropTarget.assemblyId },
+            draggedTarget: nextDraggedTarget,
+            dropTarget: nextDropTarget,
+          }
+        }
+        return { valid: false, reason: 'illegal-target' }
+      },
+    }
+    return resolveProjectContentOwnerDrop(state, draggedTarget, dropTarget)
+  },
   buildProjectSketchBrowserRowId: (
     graphDocumentId: string,
     nodeId: string,
@@ -227,6 +521,7 @@ const getMockSelectionTargetKey = (target: any): string => {
 }
 
 const resolveMockContentSelection = (explicitTargets: any[]) => {
+  const projectContentRows = buildMockProjectContentRows()
   const contentTargets = explicitTargets.filter((target) =>
     ['assembly', 'component', 'object'].includes(target.kind),
   )
@@ -243,7 +538,7 @@ const resolveMockContentSelection = (explicitTargets: any[]) => {
     groupedRowIds: string[]
   } | null => {
     if (target.kind === 'object') {
-      const objectRow = currentAppState.projectContentRows.find(
+      const objectRow = projectContentRows.find(
         (row: any) => row.kind === 'object' && row.rowId === target.objectId,
       )
       return objectRow === undefined
@@ -256,13 +551,13 @@ const resolveMockContentSelection = (explicitTargets: any[]) => {
           }
     }
     if (target.kind === 'component') {
-      const componentRow = currentAppState.projectContentRows.find(
+      const componentRow = projectContentRows.find(
         (row: any) => row.kind === 'component' && row.rowId === target.componentId,
       )
       if (componentRow === undefined) {
         return null
       }
-      const groupedRows = currentAppState.projectContentRows.filter(
+      const groupedRows = projectContentRows.filter(
         (row: any) => row.kind === 'object' && row.parentComponentId === componentRow.rowId,
       )
       return {
@@ -273,13 +568,13 @@ const resolveMockContentSelection = (explicitTargets: any[]) => {
       }
     }
 
-    const assemblyRow = currentAppState.projectContentRows.find(
+    const assemblyRow = projectContentRows.find(
       (row: any) => row.kind === 'assembly' && row.rowId === target.assemblyId,
     )
     if (assemblyRow === undefined) {
       return null
     }
-    const groupedRows = currentAppState.projectContentRows.filter(
+    const groupedRows = projectContentRows.filter(
       (row: any) =>
         (row.kind === 'component' || row.kind === 'object') &&
         (row.visibilityPartKeys ?? []).some((partKey: string) =>
@@ -362,6 +657,145 @@ const contextMenu = async (element: Element, clientX = 160, clientY = 200) => {
       }),
     )
   })
+}
+
+const createMockDataTransfer = () => ({
+  pointerId: 1,
+})
+
+const ensureRowRect = (row: Element) => {
+  if (Object.prototype.hasOwnProperty.call(row, 'getBoundingClientRect')) {
+    return
+  }
+  const rowElements = Array.from(document.querySelectorAll('.BrowserTreeRow'))
+  const rowIndex = Math.max(0, rowElements.indexOf(row as HTMLElement))
+  const top = rowIndex * 36
+  Object.defineProperty(row, 'getBoundingClientRect', {
+    configurable: true,
+    value: () => ({
+      x: 0,
+      y: top,
+      top,
+      left: 0,
+      right: 240,
+      bottom: top + 32,
+      width: 240,
+      height: 32,
+      toJSON: () => ({}),
+    }),
+  })
+}
+
+const mockRowRect = (
+  row: Element,
+  top: number,
+  options: { left?: number; width?: number; height?: number } = {},
+) => {
+  const { height = 32, left = 0, width = 240 } = options
+  Object.defineProperty(row, 'getBoundingClientRect', {
+    configurable: true,
+    value: () => ({
+      x: left,
+      y: top,
+      top,
+      left,
+      right: left + width,
+      bottom: top + height,
+      width,
+      height,
+      toJSON: () => ({}),
+    }),
+  })
+}
+
+const getRowMainElement = (row: Element) =>
+  (row.querySelector('.BrowserTreeRowMain') as HTMLButtonElement | null) ?? (row as HTMLButtonElement)
+
+const beginDragRow = async (source: Element, dataTransfer = createMockDataTransfer()) => {
+  ensureRowRect(source)
+  const sourceRect = (source as HTMLElement).getBoundingClientRect()
+  const sourceMain = getRowMainElement(source)
+  await act(async () => {
+    sourceMain.dispatchEvent(
+      new PointerEvent('pointerdown', {
+        bubbles: true,
+        cancelable: true,
+        button: 0,
+        pointerId: dataTransfer.pointerId,
+        clientX: sourceRect.left + 16,
+        clientY: sourceRect.top + 16,
+      }),
+    )
+  })
+  await act(async () => {
+    await Promise.resolve()
+  })
+  await act(async () => {
+    window.dispatchEvent(
+      new PointerEvent('pointermove', {
+        bubbles: true,
+        cancelable: true,
+        pointerId: dataTransfer.pointerId,
+        clientX: sourceRect.left + 24,
+        clientY: sourceRect.top + 16,
+      }),
+    )
+  })
+  return dataTransfer
+}
+
+const dragOverRow = async (target: Element, dataTransfer: ReturnType<typeof createMockDataTransfer>, clientY = 24) => {
+  ensureRowRect(target)
+  const rect = (target as HTMLElement).getBoundingClientRect()
+  await act(async () => {
+    window.dispatchEvent(
+      new PointerEvent('pointermove', {
+        bubbles: true,
+        cancelable: true,
+        pointerId: dataTransfer.pointerId,
+        clientX: rect.left + rect.width / 2,
+        clientY,
+      }),
+    )
+  })
+}
+
+const dropRow = async (target: Element, dataTransfer: ReturnType<typeof createMockDataTransfer>, clientY = 24) => {
+  ensureRowRect(target)
+  const rect = (target as HTMLElement).getBoundingClientRect()
+  await act(async () => {
+    window.dispatchEvent(
+      new PointerEvent('pointerup', {
+        bubbles: true,
+        cancelable: true,
+        pointerId: dataTransfer.pointerId,
+        clientX: rect.left + rect.width / 2,
+        clientY,
+      }),
+    )
+  })
+}
+
+const endDragRow = async (_source: Element, dataTransfer = createMockDataTransfer()) => {
+  await act(async () => {
+    window.dispatchEvent(
+      new PointerEvent('pointercancel', {
+        bubbles: true,
+        cancelable: true,
+        pointerId: dataTransfer.pointerId,
+      }),
+    )
+  })
+}
+
+const dragRow = async (source: Element, target: Element, clientY = 24) => {
+  const dataTransfer = {
+    ...createMockDataTransfer(),
+  }
+  await beginDragRow(source, dataTransfer)
+  await dragOverRow(target, dataTransfer, clientY)
+  await dropRow(target, dataTransfer, clientY)
+  await endDragRow(source, dataTransfer)
 }
 
 const findButtonByLabel = (label: string) =>
@@ -575,7 +1009,13 @@ describe('BrowserPanel', () => {
       loadAllReferences: vi.fn(),
       loadReferenceCategory: vi.fn(),
       removeImportedReference: vi.fn(),
+      createProjectAssembly: vi.fn(() => 'assembly-authored-1'),
+      createProjectComponent: vi.fn(() => 'component-authored-1'),
+      moveProjectContentOwner: vi.fn(() => true),
+      renameProjectContentOwner: vi.fn(() => true),
+      deleteProjectContentOwner: vi.fn(() => true),
       beginReferenceTransform: vi.fn(),
+      beginReferenceTransformShell: vi.fn(),
     }
   })
 
@@ -2427,20 +2867,12 @@ describe('BrowserPanel', () => {
 
     ;({ container, root } = await renderBrowserPanel())
 
-    const selectedReferenceRow = Array.from(
-      container!.querySelectorAll('.BrowserTreeRow.BrowserTreeRow--reference-item'),
-    ).find((element) => element.textContent?.includes('PubPad Full Assembly'))
+    const selectedReferenceRow = findRowMainByLabel('PubPad Full Assembly')?.closest('.BrowserTreeRow')
+    const footpadsRow = findRowMainByLabel('Footpads')?.closest('.BrowserTreeRow')
+    const referencesRow = findRowMainByLabel('References')?.closest('.BrowserTreeRow')
     expect(selectedReferenceRow?.classList.contains('isSelected')).toBe(true)
-    expect(
-      Array.from(container!.querySelectorAll('.BrowserTreeRow.BrowserTreeRow--reference-category')).find(
-        (element) => element.textContent?.includes('Footpads'),
-      )?.classList.contains('isGroupedSelected'),
-    ).toBe(false)
-    expect(
-      container
-        ?.querySelector('.BrowserTreeRow.BrowserTreeRow--references-root')
-        ?.classList.contains('isGroupedSelected'),
-    ).toBe(false)
+    expect(footpadsRow?.classList.contains('isGroupedSelected')).toBe(false)
+    expect(referencesRow?.classList.contains('isGroupedSelected')).toBe(false)
 
     currentAppState = {
       ...currentAppState,
@@ -2512,19 +2944,13 @@ describe('BrowserPanel', () => {
 
     await click(findRowMainByLabel('Footpads')!)
 
-    const selectedCategoryRow = Array.from(
-      container!.querySelectorAll('.BrowserTreeRow.BrowserTreeRow--reference-category'),
-    ).find((element) => element.textContent?.includes('Footpads'))
-    const groupedItemRow = Array.from(
-      container!.querySelectorAll('.BrowserTreeRow.BrowserTreeRow--reference-item'),
-    ).find((element) => element.textContent?.includes('PubPad Full Assembly'))
+    const selectedCategoryRow = findRowMainByLabel('Footpads')?.closest('.BrowserTreeRow')
+    const groupedItemRow = findRowMainByLabel('PubPad Full Assembly')?.closest('.BrowserTreeRow')
     expect(selectedCategoryRow?.classList.contains('isSelected')).toBe(true)
     expect(groupedItemRow?.classList.contains('isGroupedSelected')).toBe(true)
-    expect(
-      container
-        ?.querySelector('.BrowserTreeRow.BrowserTreeRow--references-root')
-        ?.classList.contains('isGroupedSelected'),
-    ).toBe(false)
+    expect(findRowMainByLabel('References')?.closest('.BrowserTreeRow')?.classList.contains('isGroupedSelected')).toBe(
+      false,
+    )
   })
 
   it('clicking reference parents selects them and groups their children downward', async () => {
@@ -2579,32 +3005,26 @@ describe('BrowserPanel', () => {
     ;({ container } = await renderBrowserPanel())
 
     await click(findRowMainByLabel('References')!)
+    expect(findRowMainByLabel('References')?.closest('.BrowserTreeRow')?.classList.contains('isSelected')).toBe(
+      true,
+    )
+    expect(findRowMainByLabel('Footpads')?.closest('.BrowserTreeRow')?.classList.contains('isGroupedSelected')).toBe(
+      true,
+    )
     expect(
-      container
-        ?.querySelector('.BrowserTreeRow.BrowserTreeRow--references-root')
-        ?.classList.contains('isSelected'),
-    ).toBe(true)
-    expect(
-      Array.from(container!.querySelectorAll('.BrowserTreeRow.BrowserTreeRow--reference-category')).find(
-        (element) => element.textContent?.includes('Footpads'),
-      )?.classList.contains('isGroupedSelected'),
-    ).toBe(true)
-    expect(
-      Array.from(container!.querySelectorAll('.BrowserTreeRow.BrowserTreeRow--reference-item')).find(
-        (element) => element.textContent?.includes('PubPad Full Assembly'),
-      )?.classList.contains('isGroupedSelected'),
+      findRowMainByLabel('PubPad Full Assembly')
+        ?.closest('.BrowserTreeRow')
+        ?.classList.contains('isGroupedSelected'),
     ).toBe(true)
 
     await click(findRowMainByLabel('Footpads')!)
+    expect(findRowMainByLabel('Footpads')?.closest('.BrowserTreeRow')?.classList.contains('isSelected')).toBe(
+      true,
+    )
     expect(
-      Array.from(container!.querySelectorAll('.BrowserTreeRow.BrowserTreeRow--reference-category')).find(
-        (element) => element.textContent?.includes('Footpads'),
-      )?.classList.contains('isSelected'),
-    ).toBe(true)
-    expect(
-      Array.from(container!.querySelectorAll('.BrowserTreeRow.BrowserTreeRow--reference-item')).find(
-        (element) => element.textContent?.includes('PubPad Full Assembly'),
-      )?.classList.contains('isGroupedSelected'),
+      findRowMainByLabel('PubPad Full Assembly')
+        ?.closest('.BrowserTreeRow')
+        ?.classList.contains('isGroupedSelected'),
     ).toBe(true)
   })
 
@@ -2886,7 +3306,7 @@ describe('BrowserPanel', () => {
     expect(currentAppState.toggleReferenceCategoryExpanded).toHaveBeenCalledWith('footpads')
   })
 
-  it('opens the Content import menu from the header + button and imports a single accepted file type into User References', async () => {
+  it('opens the Content import menu from the header + button and imports a single accepted file type into the working hierarchy', async () => {
     importReferenceFileFromDiskMock.mockResolvedValue({
       fileName: 'shoe.glb',
       fileType: 'glb',
@@ -2910,6 +3330,8 @@ describe('BrowserPanel', () => {
       fileName: 'shoe.glb',
       fileType: 'glb',
       objectUrl: 'blob:shoe-1',
+      parentAssemblyId: null,
+      parentComponentId: null,
     })
     expect(document.querySelector('.BrowserTreeContextMenu')).toBeNull()
   })
@@ -2967,7 +3389,7 @@ describe('BrowserPanel', () => {
     )
     await click(findButtonByLabel('Transform Object')!)
 
-    expect(currentAppState.beginReferenceTransform).toHaveBeenCalledWith(
+    expect(currentAppState.beginReferenceTransformShell).toHaveBeenCalledWith(
       'footpad:pubpad-full-assembly',
     )
   })
@@ -3099,8 +3521,12 @@ describe('BrowserPanel', () => {
 
     ;({ container } = await renderBrowserPanel())
 
-    expect(container?.querySelector('.BrowserReferenceStateBar--active')).not.toBeNull()
-    expect(container?.querySelector('.BrowserReferenceStateBar--dormant')).not.toBeNull()
+    expect(
+      findRowMainByLabel('PubPad Full Assembly')?.querySelector('.BrowserContentStateBar--imported-active'),
+    ).not.toBeNull()
+    expect(
+      findRowMainByLabel('Shoe 1')?.querySelector('.BrowserContentStateBar--imported-dormant'),
+    ).not.toBeNull()
   })
 
   it('renders determinate aggregate progress for loading reference root and category rows', async () => {
@@ -3170,12 +3596,18 @@ describe('BrowserPanel', () => {
     ;({ container } = await renderBrowserPanel())
 
     const rootFill = findRowMainByLabel('References')
-      ?.querySelector('.BrowserReferenceStateFill') as HTMLSpanElement | null
+      ?.querySelector('.BrowserContentStateFill') as HTMLSpanElement | null
     const categoryFill = findRowMainByLabel('Footpads')
-      ?.querySelector('.BrowserReferenceStateFill') as HTMLSpanElement | null
+      ?.querySelector('.BrowserContentStateFill') as HTMLSpanElement | null
 
-    expect(rootFill?.classList.contains('BrowserReferenceStateFill--determinate')).toBe(true)
-    expect(categoryFill?.classList.contains('BrowserReferenceStateFill--determinate')).toBe(true)
+    expect(
+      findRowMainByLabel('References')?.querySelector('.BrowserContentStateBar--reference-container-loading'),
+    ).not.toBeNull()
+    expect(
+      findRowMainByLabel('Footpads')?.querySelector('.BrowserContentStateBar--reference-container-loading'),
+    ).not.toBeNull()
+    expect(rootFill?.classList.contains('BrowserContentStateFill--determinate')).toBe(true)
+    expect(categoryFill?.classList.contains('BrowserContentStateFill--determinate')).toBe(true)
     expect(rootFill?.style.width).toBe('50%')
     expect(categoryFill?.style.width).toBe('50%')
   })
@@ -3450,5 +3882,1308 @@ describe('BrowserPanel', () => {
     expect(findButtonByLabel('Hide Assembly 1')).not.toBeNull()
     expect(findButtonByLabel('Hide Component 1')).not.toBeNull()
     expect(findButtonByLabel('Hide Object 1')).not.toBeNull()
+  })
+
+  it('shows same-parent drop intent and reorders published objects through the shared move seam', async () => {
+    currentAppState = {
+      ...currentAppState,
+      projectContent: {
+        assembliesById: {
+          'assembly-1': {
+            assemblyId: 'assembly-1',
+            label: 'Assembly 1',
+            parentAssemblyId: null,
+            assemblySourceKind: 'runtime-root',
+            childRowIds: ['object-1', 'object-2'],
+          },
+        },
+        componentsById: {},
+        objectsById: {
+          'object-1': {
+            objectId: 'object-1',
+            ownerGraphDocumentId: 'graph-document-1',
+            parentAssemblyId: 'assembly-1',
+            parentComponentId: null,
+            objectSourceKind: 'published-object',
+            sourceGraphDocumentId: 'graph-document-1',
+            sourceOutputEntryId: 'output-entry-1',
+            sourceNodeId: 'node-1',
+            slotId: 'slot-a',
+            label: 'Object 1',
+            resolutionState: 'resolved',
+          },
+          'object-2': {
+            objectId: 'object-2',
+            ownerGraphDocumentId: 'graph-document-1',
+            parentAssemblyId: 'assembly-1',
+            parentComponentId: null,
+            objectSourceKind: 'published-object',
+            sourceGraphDocumentId: 'graph-document-1',
+            sourceOutputEntryId: 'output-entry-2',
+            sourceNodeId: 'node-2',
+            slotId: 'slot-b',
+            label: 'Object 2',
+            resolutionState: 'resolved',
+          },
+        },
+      },
+      projectContentRows: [
+        {
+          rowId: 'assembly-1',
+          kind: 'assembly',
+          label: 'Assembly 1',
+          meta: '',
+          isVisible: true,
+          visibilityPartKeys: ['slot-a', 'slot-b'],
+          buildState: 'done',
+          buildStateLabel: 'Built',
+          rebuildGraphDocumentIds: [],
+        },
+        {
+          rowId: 'object-1',
+          kind: 'object',
+          label: 'Object 1',
+          meta: '',
+          isVisible: true,
+          visibilityPartKeys: ['slot-a'],
+          buildState: 'done',
+          buildStateLabel: 'Built',
+          rebuildGraphDocumentIds: [],
+          ownerGraphDocumentId: 'graph-document-1',
+          parentAssemblyId: 'assembly-1',
+          parentComponentId: null,
+          objectSourceKind: 'published-object',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry-1',
+          slotId: 'slot-a',
+          sourceNodeId: 'node-1',
+          resolutionState: 'resolved',
+          highlightViewerKey: 'slot-a',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-1',
+        },
+        {
+          rowId: 'object-2',
+          kind: 'object',
+          label: 'Object 2',
+          meta: '',
+          isVisible: true,
+          visibilityPartKeys: ['slot-b'],
+          buildState: 'done',
+          buildStateLabel: 'Built',
+          rebuildGraphDocumentIds: [],
+          ownerGraphDocumentId: 'graph-document-1',
+          parentAssemblyId: 'assembly-1',
+          parentComponentId: null,
+          objectSourceKind: 'published-object',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry-2',
+          slotId: 'slot-b',
+          sourceNodeId: 'node-2',
+          resolutionState: 'resolved',
+          highlightViewerKey: 'slot-b',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-2',
+        },
+      ],
+    }
+
+    ;({ root } = await renderBrowserPanel())
+
+    const sourceRow = findRowMainByLabel('Object 1')
+    const targetRow = findRowMainByLabel('Object 2')
+    expect(sourceRow).not.toBeNull()
+    expect(targetRow).not.toBeNull()
+
+    mockRowRect(sourceRow!.closest('.BrowserTreeRow')!, 0)
+    mockRowRect(targetRow!.closest('.BrowserTreeRow')!, 48)
+
+    await dragRow(sourceRow!.closest('.BrowserTreeRow')!, targetRow!.closest('.BrowserTreeRow')!, 74)
+
+    expect(currentAppState.moveProjectContentOwner).toHaveBeenCalledWith(
+      { kind: 'object', objectId: 'object-1' },
+      { kind: 'object', objectId: 'object-2', position: 'after' },
+    )
+    expect(currentAppState.requestConsoleContextSync).toHaveBeenCalledWith('target-selection')
+  })
+
+  it('shows a lifted dragged row and active reorder preview before drop', async () => {
+    currentAppState = {
+      ...currentAppState,
+      projectContent: {
+        assembliesById: {
+          'assembly-1': {
+            assemblyId: 'assembly-1',
+            label: 'Assembly 1',
+            parentAssemblyId: null,
+            assemblySourceKind: 'runtime-root',
+            childRowIds: ['object-1', 'object-2'],
+          },
+        },
+        componentsById: {},
+        objectsById: {
+          'object-1': {
+            objectId: 'object-1',
+            ownerGraphDocumentId: 'graph-document-1',
+            parentAssemblyId: 'assembly-1',
+            parentComponentId: null,
+            objectSourceKind: 'published-object',
+            sourceGraphDocumentId: 'graph-document-1',
+            sourceOutputEntryId: 'output-entry-1',
+            sourceNodeId: 'node-1',
+            slotId: 'slot-a',
+            label: 'Object 1',
+            resolutionState: 'resolved',
+          },
+          'object-2': {
+            objectId: 'object-2',
+            ownerGraphDocumentId: 'graph-document-1',
+            parentAssemblyId: 'assembly-1',
+            parentComponentId: null,
+            objectSourceKind: 'published-object',
+            sourceGraphDocumentId: 'graph-document-1',
+            sourceOutputEntryId: 'output-entry-2',
+            sourceNodeId: 'node-2',
+            slotId: 'slot-b',
+            label: 'Object 2',
+            resolutionState: 'resolved',
+          },
+        },
+      },
+      projectContentRows: [
+        {
+          rowId: 'assembly-1',
+          kind: 'assembly',
+          label: 'Assembly 1',
+          meta: '',
+          isVisible: true,
+          visibilityPartKeys: ['slot-a', 'slot-b'],
+          buildState: 'done',
+          buildStateLabel: 'Built',
+          rebuildGraphDocumentIds: [],
+        },
+        {
+          rowId: 'object-1',
+          kind: 'object',
+          label: 'Object 1',
+          meta: '',
+          isVisible: true,
+          visibilityPartKeys: ['slot-a'],
+          buildState: 'done',
+          buildStateLabel: 'Built',
+          rebuildGraphDocumentIds: [],
+          ownerGraphDocumentId: 'graph-document-1',
+          parentAssemblyId: 'assembly-1',
+          parentComponentId: null,
+          objectSourceKind: 'published-object',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry-1',
+          slotId: 'slot-a',
+          sourceNodeId: 'node-1',
+          resolutionState: 'resolved',
+          highlightViewerKey: 'slot-a',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-1',
+        },
+        {
+          rowId: 'object-2',
+          kind: 'object',
+          label: 'Object 2',
+          meta: '',
+          isVisible: true,
+          visibilityPartKeys: ['slot-b'],
+          buildState: 'done',
+          buildStateLabel: 'Built',
+          rebuildGraphDocumentIds: [],
+          ownerGraphDocumentId: 'graph-document-1',
+          parentAssemblyId: 'assembly-1',
+          parentComponentId: null,
+          objectSourceKind: 'published-object',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry-2',
+          slotId: 'slot-b',
+          sourceNodeId: 'node-2',
+          resolutionState: 'resolved',
+          highlightViewerKey: 'slot-b',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-2',
+        },
+      ],
+    }
+
+    ;({ root } = await renderBrowserPanel())
+
+    const sourceRowMain = findRowMainByLabel('Object 1')
+    const targetRowMain = findRowMainByLabel('Object 2')
+    expect(sourceRowMain).not.toBeNull()
+    expect(targetRowMain).not.toBeNull()
+
+    const sourceRow = sourceRowMain!.closest('.BrowserTreeRow')!
+    const targetRow = targetRowMain!.closest('.BrowserTreeRow')!
+    mockRowRect(sourceRow, 0)
+    mockRowRect(targetRow, 48)
+    const dataTransfer = await beginDragRow(sourceRow)
+
+    expect(sourceRow.classList.contains('isDragging')).toBe(true)
+    expect(sourceRow.querySelector('.BrowserTreeRowDragGhost')).toBeNull()
+
+    await dragOverRow(targetRow, dataTransfer, 74)
+
+    expect(targetRow.classList.contains('isDropTargetAfter')).toBe(true)
+    expect(sourceRow.classList.contains('isDragPreviewHidden')).toBe(false)
+    expect(document.querySelector('.BrowserTreeDropPlaceholder')).toBeNull()
+
+    await endDragRow(sourceRow)
+  })
+
+  it('resolves vertical gap hover to the nearest row instead of keeping a stale lower target', async () => {
+    currentAppState = {
+      ...currentAppState,
+      projectContent: {
+        assembliesById: {
+          'assembly-1': {
+            assemblyId: 'assembly-1',
+            label: 'Assembly 1',
+            parentAssemblyId: null,
+            assemblySourceKind: 'runtime-root',
+            childRowIds: ['object-1', 'object-2'],
+          },
+        },
+        componentsById: {},
+        objectsById: {
+          'object-1': {
+            objectId: 'object-1',
+            ownerGraphDocumentId: 'graph-document-1',
+            parentAssemblyId: 'assembly-1',
+            parentComponentId: null,
+            objectSourceKind: 'published-object',
+            sourceGraphDocumentId: 'graph-document-1',
+            sourceOutputEntryId: 'output-entry-1',
+            sourceNodeId: 'node-1',
+            slotId: 'slot-a',
+            label: 'Object 1',
+            resolutionState: 'resolved',
+          },
+          'object-2': {
+            objectId: 'object-2',
+            ownerGraphDocumentId: 'graph-document-1',
+            parentAssemblyId: 'assembly-1',
+            parentComponentId: null,
+            objectSourceKind: 'published-object',
+            sourceGraphDocumentId: 'graph-document-1',
+            sourceOutputEntryId: 'output-entry-2',
+            sourceNodeId: 'node-2',
+            slotId: 'slot-b',
+            label: 'Object 2',
+            resolutionState: 'resolved',
+          },
+        },
+      },
+      projectContentRows: [
+        {
+          rowId: 'assembly-1',
+          kind: 'assembly',
+          label: 'Assembly 1',
+          meta: '',
+          isVisible: true,
+          visibilityPartKeys: ['slot-a', 'slot-b'],
+          buildState: 'done',
+          buildStateLabel: 'Built',
+          rebuildGraphDocumentIds: [],
+        },
+        {
+          rowId: 'object-1',
+          kind: 'object',
+          label: 'Object 1',
+          meta: '',
+          isVisible: true,
+          visibilityPartKeys: ['slot-a'],
+          buildState: 'done',
+          buildStateLabel: 'Built',
+          rebuildGraphDocumentIds: [],
+          ownerGraphDocumentId: 'graph-document-1',
+          parentAssemblyId: 'assembly-1',
+          parentComponentId: null,
+          objectSourceKind: 'published-object',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry-1',
+          slotId: 'slot-a',
+          sourceNodeId: 'node-1',
+          resolutionState: 'resolved',
+          highlightViewerKey: 'slot-a',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-1',
+        },
+        {
+          rowId: 'object-2',
+          kind: 'object',
+          label: 'Object 2',
+          meta: '',
+          isVisible: true,
+          visibilityPartKeys: ['slot-b'],
+          buildState: 'done',
+          buildStateLabel: 'Built',
+          rebuildGraphDocumentIds: [],
+          ownerGraphDocumentId: 'graph-document-1',
+          parentAssemblyId: 'assembly-1',
+          parentComponentId: null,
+          objectSourceKind: 'published-object',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry-2',
+          slotId: 'slot-b',
+          sourceNodeId: 'node-2',
+          resolutionState: 'resolved',
+          highlightViewerKey: 'slot-b',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-2',
+        },
+      ],
+    }
+
+    ;({ root } = await renderBrowserPanel())
+
+    const sourceRowMain = findRowMainByLabel('Object 1')
+    const targetRowMain = findRowMainByLabel('Object 2')
+    expect(sourceRowMain).not.toBeNull()
+    expect(targetRowMain).not.toBeNull()
+
+    const sourceRow = sourceRowMain!.closest('.BrowserTreeRow')!
+    const targetRow = targetRowMain!.closest('.BrowserTreeRow')!
+    mockRowRect(sourceRow, 0)
+    mockRowRect(targetRow, 48)
+
+    const dataTransfer = await beginDragRow(sourceRow)
+
+    await dragOverRow(targetRow, dataTransfer, 41)
+
+    expect(targetRow.classList.contains('isDropTargetBefore')).toBe(true)
+
+    await dropRow(targetRow, dataTransfer, 40)
+
+    expect(currentAppState.moveProjectContentOwner).toHaveBeenCalledWith(
+      { kind: 'object', objectId: 'object-1' },
+      { kind: 'object', objectId: 'object-2', position: 'before' },
+    )
+  })
+
+  it('falls back to the nearer legal reorder side when middle-band into is illegal', async () => {
+    currentAppState = {
+      ...currentAppState,
+      projectContent: {
+        assembliesById: {
+          'assembly-1': {
+            assemblyId: 'assembly-1',
+            label: 'Assembly 1',
+            parentAssemblyId: null,
+            assemblySourceKind: 'runtime-root',
+            childRowIds: ['object-1', 'object-2'],
+          },
+        },
+        componentsById: {},
+        objectsById: {
+          'object-1': {
+            objectId: 'object-1',
+            ownerGraphDocumentId: 'graph-document-1',
+            parentAssemblyId: 'assembly-1',
+            parentComponentId: null,
+            objectSourceKind: 'published-object',
+            sourceGraphDocumentId: 'graph-document-1',
+            sourceOutputEntryId: 'output-entry-1',
+            sourceNodeId: 'node-1',
+            slotId: 'slot-a',
+            label: 'Object 1',
+            resolutionState: 'resolved',
+          },
+          'object-2': {
+            objectId: 'object-2',
+            ownerGraphDocumentId: 'graph-document-1',
+            parentAssemblyId: 'assembly-1',
+            parentComponentId: null,
+            objectSourceKind: 'published-object',
+            sourceGraphDocumentId: 'graph-document-1',
+            sourceOutputEntryId: 'output-entry-2',
+            sourceNodeId: 'node-2',
+            slotId: 'slot-b',
+            label: 'Object 2',
+            resolutionState: 'resolved',
+          },
+        },
+      },
+      projectContentRows: [
+        {
+          rowId: 'assembly-1',
+          kind: 'assembly',
+          label: 'Assembly 1',
+          meta: '',
+          isVisible: true,
+          visibilityPartKeys: ['slot-a', 'slot-b'],
+          buildState: 'done',
+          buildStateLabel: 'Built',
+          rebuildGraphDocumentIds: [],
+        },
+        {
+          rowId: 'object-1',
+          kind: 'object',
+          label: 'Object 1',
+          meta: '',
+          isVisible: true,
+          visibilityPartKeys: ['slot-a'],
+          buildState: 'done',
+          buildStateLabel: 'Built',
+          rebuildGraphDocumentIds: [],
+          ownerGraphDocumentId: 'graph-document-1',
+          parentAssemblyId: 'assembly-1',
+          parentComponentId: null,
+          objectSourceKind: 'published-object',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry-1',
+          slotId: 'slot-a',
+          sourceNodeId: 'node-1',
+          resolutionState: 'resolved',
+          highlightViewerKey: 'slot-a',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-1',
+        },
+        {
+          rowId: 'object-2',
+          kind: 'object',
+          label: 'Object 2',
+          meta: '',
+          isVisible: true,
+          visibilityPartKeys: ['slot-b'],
+          buildState: 'done',
+          buildStateLabel: 'Built',
+          rebuildGraphDocumentIds: [],
+          ownerGraphDocumentId: 'graph-document-1',
+          parentAssemblyId: 'assembly-1',
+          parentComponentId: null,
+          objectSourceKind: 'published-object',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry-2',
+          slotId: 'slot-b',
+          sourceNodeId: 'node-2',
+          resolutionState: 'resolved',
+          highlightViewerKey: 'slot-b',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-2',
+        },
+      ],
+    }
+
+    ;({ root } = await renderBrowserPanel())
+
+    const sourceRowMain = findRowMainByLabel('Object 1')
+    const targetRowMain = findRowMainByLabel('Object 2')
+    expect(sourceRowMain).not.toBeNull()
+    expect(targetRowMain).not.toBeNull()
+
+    const sourceRow = sourceRowMain!.closest('.BrowserTreeRow')!
+    const targetRow = targetRowMain!.closest('.BrowserTreeRow')!
+    mockRowRect(sourceRow, 0)
+    mockRowRect(targetRow, 48)
+
+    const dataTransfer = await beginDragRow(sourceRow)
+
+    await dragOverRow(targetRow, dataTransfer, 68)
+
+    expect(targetRow.classList.contains('isDropTargetAfter')).toBe(true)
+
+    await dropRow(targetRow, dataTransfer, 68)
+
+    expect(currentAppState.moveProjectContentOwner).toHaveBeenCalledWith(
+      { kind: 'object', objectId: 'object-1' },
+      { kind: 'object', objectId: 'object-2', position: 'after' },
+    )
+  })
+
+  it('keeps a visible insert line for legal cross-parent drops while the owner stays secondary', async () => {
+    currentAppState = {
+      ...currentAppState,
+      projectContent: {
+        assembliesById: {
+          'assembly-1': {
+            assemblyId: 'assembly-1',
+            label: 'Assembly 1',
+            parentAssemblyId: null,
+            assemblySourceKind: 'runtime-root',
+            childRowIds: ['object-1'],
+          },
+          'assembly-2': {
+            assemblyId: 'assembly-2',
+            label: 'Assembly 2',
+            parentAssemblyId: null,
+            assemblySourceKind: 'authored',
+            childRowIds: ['object-2'],
+          },
+        },
+        componentsById: {},
+        objectsById: {
+          'object-1': {
+            objectId: 'object-1',
+            ownerGraphDocumentId: 'graph-document-1',
+            parentAssemblyId: 'assembly-1',
+            parentComponentId: null,
+            objectSourceKind: 'published-object',
+            sourceGraphDocumentId: 'graph-document-1',
+            sourceOutputEntryId: 'output-entry-1',
+            sourceNodeId: 'node-1',
+            slotId: 'slot-a',
+            label: 'Object 1',
+            resolutionState: 'resolved',
+          },
+          'object-2': {
+            objectId: 'object-2',
+            ownerGraphDocumentId: 'graph-document-1',
+            parentAssemblyId: 'assembly-2',
+            parentComponentId: null,
+            objectSourceKind: 'published-object',
+            sourceGraphDocumentId: 'graph-document-1',
+            sourceOutputEntryId: 'output-entry-2',
+            sourceNodeId: 'node-2',
+            slotId: 'slot-b',
+            label: 'Object 2',
+            resolutionState: 'resolved',
+          },
+        },
+      },
+      projectContentRows: [
+        {
+          rowId: 'assembly-1',
+          kind: 'assembly',
+          label: 'Assembly 1',
+          meta: '',
+          isVisible: true,
+          visibilityPartKeys: ['slot-a'],
+          buildState: 'done',
+          buildStateLabel: 'Built',
+          rebuildGraphDocumentIds: [],
+        },
+        {
+          rowId: 'object-1',
+          kind: 'object',
+          label: 'Object 1',
+          meta: '',
+          isVisible: true,
+          visibilityPartKeys: ['slot-a'],
+          buildState: 'done',
+          buildStateLabel: 'Built',
+          rebuildGraphDocumentIds: [],
+          ownerGraphDocumentId: 'graph-document-1',
+          parentAssemblyId: 'assembly-1',
+          parentComponentId: null,
+          objectSourceKind: 'published-object',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry-1',
+          slotId: 'slot-a',
+          sourceNodeId: 'node-1',
+          resolutionState: 'resolved',
+          highlightViewerKey: 'slot-a',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-1',
+        },
+        {
+          rowId: 'assembly-2',
+          kind: 'assembly',
+          label: 'Assembly 2',
+          meta: '',
+          isVisible: true,
+          visibilityPartKeys: ['slot-b'],
+          buildState: 'done',
+          buildStateLabel: 'Built',
+          rebuildGraphDocumentIds: [],
+        },
+        {
+          rowId: 'object-2',
+          kind: 'object',
+          label: 'Object 2',
+          meta: '',
+          isVisible: true,
+          visibilityPartKeys: ['slot-b'],
+          buildState: 'done',
+          buildStateLabel: 'Built',
+          rebuildGraphDocumentIds: [],
+          ownerGraphDocumentId: 'graph-document-1',
+          parentAssemblyId: 'assembly-2',
+          parentComponentId: null,
+          objectSourceKind: 'published-object',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry-2',
+          slotId: 'slot-b',
+          sourceNodeId: 'node-2',
+          resolutionState: 'resolved',
+          highlightViewerKey: 'slot-b',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-2',
+        },
+      ],
+    }
+
+    ;({ root } = await renderBrowserPanel())
+
+    const sourceRowMain = findRowMainByLabel('Object 2')
+    const targetOwnerRowMain = findRowMainByLabel('Assembly 1')
+    const targetAnchorRowMain = findRowMainByLabel('Object 1')
+    expect(sourceRowMain).not.toBeNull()
+    expect(targetOwnerRowMain).not.toBeNull()
+    expect(targetAnchorRowMain).not.toBeNull()
+
+    const sourceRow = sourceRowMain!.closest('.BrowserTreeRow')!
+    const targetOwnerRow = targetOwnerRowMain!.closest('.BrowserTreeRow')!
+    const targetAnchorRow = targetAnchorRowMain!.closest('.BrowserTreeRow')!
+    mockRowRect(targetOwnerRow, 0)
+    mockRowRect(targetAnchorRow, 36)
+    mockRowRect(sourceRow, 96)
+
+    const dataTransfer = await beginDragRow(sourceRow)
+
+    await dragOverRow(targetOwnerRow, dataTransfer, 16)
+
+    expect(targetAnchorRow.classList.contains('isDropTargetAfter')).toBe(true)
+    expect(targetOwnerRow.classList.contains('isDropOwnerSupport')).toBe(true)
+
+    await dropRow(targetOwnerRow, dataTransfer, 16)
+
+    expect(currentAppState.moveProjectContentOwner).toHaveBeenCalledWith(
+      { kind: 'object', objectId: 'object-2' },
+      { kind: 'assembly', assemblyId: 'assembly-1', position: 'into' },
+    )
+  })
+
+  it('clears the Browser drag session through the global escape fallback', async () => {
+    currentAppState = {
+      ...currentAppState,
+      projectContent: {
+        assembliesById: {
+          'assembly-1': {
+            assemblyId: 'assembly-1',
+            label: 'Assembly 1',
+            parentAssemblyId: null,
+            assemblySourceKind: 'runtime-root',
+            childRowIds: ['object-1', 'object-2'],
+          },
+        },
+        componentsById: {},
+        objectsById: {
+          'object-1': {
+            objectId: 'object-1',
+            ownerGraphDocumentId: 'graph-document-1',
+            parentAssemblyId: 'assembly-1',
+            parentComponentId: null,
+            objectSourceKind: 'published-object',
+            sourceGraphDocumentId: 'graph-document-1',
+            sourceOutputEntryId: 'output-entry-1',
+            sourceNodeId: 'node-1',
+            slotId: 'slot-a',
+            label: 'Object 1',
+            resolutionState: 'resolved',
+          },
+          'object-2': {
+            objectId: 'object-2',
+            ownerGraphDocumentId: 'graph-document-1',
+            parentAssemblyId: 'assembly-1',
+            parentComponentId: null,
+            objectSourceKind: 'published-object',
+            sourceGraphDocumentId: 'graph-document-1',
+            sourceOutputEntryId: 'output-entry-2',
+            sourceNodeId: 'node-2',
+            slotId: 'slot-b',
+            label: 'Object 2',
+            resolutionState: 'resolved',
+          },
+        },
+      },
+      projectContentRows: [
+        {
+          rowId: 'assembly-1',
+          kind: 'assembly',
+          label: 'Assembly 1',
+          meta: '',
+          isVisible: true,
+          visibilityPartKeys: ['slot-a', 'slot-b'],
+          buildState: 'done',
+          buildStateLabel: 'Built',
+          rebuildGraphDocumentIds: [],
+        },
+        {
+          rowId: 'object-1',
+          kind: 'object',
+          label: 'Object 1',
+          meta: '',
+          isVisible: true,
+          visibilityPartKeys: ['slot-a'],
+          buildState: 'done',
+          buildStateLabel: 'Built',
+          rebuildGraphDocumentIds: [],
+          ownerGraphDocumentId: 'graph-document-1',
+          parentAssemblyId: 'assembly-1',
+          parentComponentId: null,
+          objectSourceKind: 'published-object',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry-1',
+          slotId: 'slot-a',
+          sourceNodeId: 'node-1',
+          resolutionState: 'resolved',
+          highlightViewerKey: 'slot-a',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-1',
+        },
+        {
+          rowId: 'object-2',
+          kind: 'object',
+          label: 'Object 2',
+          meta: '',
+          isVisible: true,
+          visibilityPartKeys: ['slot-b'],
+          buildState: 'done',
+          buildStateLabel: 'Built',
+          rebuildGraphDocumentIds: [],
+          ownerGraphDocumentId: 'graph-document-1',
+          parentAssemblyId: 'assembly-1',
+          parentComponentId: null,
+          objectSourceKind: 'published-object',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry-2',
+          slotId: 'slot-b',
+          sourceNodeId: 'node-2',
+          resolutionState: 'resolved',
+          highlightViewerKey: 'slot-b',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-2',
+        },
+      ],
+    }
+
+    ;({ root } = await renderBrowserPanel())
+
+    const sourceRowMain = findRowMainByLabel('Object 1')
+    const targetRowMain = findRowMainByLabel('Object 2')
+    expect(sourceRowMain).not.toBeNull()
+    expect(targetRowMain).not.toBeNull()
+
+    const sourceRow = sourceRowMain!.closest('.BrowserTreeRow')!
+    const targetRow = targetRowMain!.closest('.BrowserTreeRow')!
+    mockRowRect(sourceRow, 0)
+    mockRowRect(targetRow, 48)
+    const dataTransfer = await beginDragRow(sourceRow)
+
+    await dragOverRow(targetRow, dataTransfer, 74)
+
+    expect(targetRow.classList.contains('isDropTargetAfter')).toBe(true)
+    expect(document.querySelector('.BrowserTreeDropPlaceholder')).toBeNull()
+    expect(sourceRow.classList.contains('isDragPreviewHidden')).toBe(false)
+
+    await act(async () => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    })
+
+    expect(document.querySelector('.BrowserTreeDropPlaceholder')).toBeNull()
+    expect(sourceRow.classList.contains('isDragging')).toBe(false)
+    expect(sourceRow.classList.contains('isDragPreviewHidden')).toBe(false)
+  })
+
+  it('promotes the dragged owner into selection on drag start', async () => {
+    currentAppState = {
+      ...currentAppState,
+      projectContent: {
+        assembliesById: {
+          'assembly-1': {
+            assemblyId: 'assembly-1',
+            label: 'Assembly 1',
+            parentAssemblyId: null,
+            assemblySourceKind: 'authored',
+            childRowIds: ['component-1'],
+          },
+        },
+        componentsById: {
+          'component-1': {
+            componentId: 'component-1',
+            parentAssemblyId: 'assembly-1',
+            ownerGraphDocumentId: null,
+            sourceGraphDocumentId: null,
+            sourceOutputEntryId: null,
+            sourceNodeId: null,
+            label: 'Component 1',
+            componentSourceKind: 'authored',
+            resolutionState: 'resolved',
+            receiveId: null,
+            childObjectIds: [],
+          },
+          'component-2': {
+            componentId: 'component-2',
+            parentAssemblyId: 'assembly-1',
+            ownerGraphDocumentId: null,
+            sourceGraphDocumentId: null,
+            sourceOutputEntryId: null,
+            sourceNodeId: null,
+            label: 'Component 2',
+            componentSourceKind: 'authored',
+            resolutionState: 'resolved',
+            receiveId: null,
+            childObjectIds: [],
+          },
+        },
+        objectsById: {},
+      },
+      workspaceSelection: {
+        selectedTarget: {
+          kind: 'component',
+          componentId: 'component-2',
+        },
+        explicitSelectedTargets: [
+          {
+            kind: 'component',
+            componentId: 'component-2',
+          },
+        ],
+        selectionAnchorTarget: {
+          kind: 'component',
+          componentId: 'component-2',
+        },
+        resolvedContentSelection: null,
+        activeSurface: 'browser',
+      },
+      projectContentRows: [
+        {
+          rowId: 'assembly-1',
+          kind: 'assembly',
+          label: 'Assembly 1',
+          meta: '',
+          parentAssemblyId: null,
+          isVisible: true,
+          visibilityPartKeys: [],
+          buildState: 'done',
+          buildStateLabel: 'Built',
+          rebuildGraphDocumentIds: [],
+          statusLabel: 'Ready',
+          statusTone: 'ready',
+        },
+        {
+          rowId: 'component-1',
+          kind: 'component',
+          label: 'Component 1',
+          meta: '',
+          parentAssemblyId: 'assembly-1',
+          isVisible: true,
+          visibilityPartKeys: [],
+          buildState: 'done',
+          buildStateLabel: 'Built',
+          rebuildGraphDocumentIds: [],
+          ownerGraphDocumentId: null,
+          sourceGraphDocumentId: null,
+          sourceOutputEntryId: null,
+          componentSourceKind: 'authored',
+          resolutionState: 'resolved',
+          receiveId: null,
+          childObjectCount: 0,
+          slotId: null,
+          sourceNodeId: null,
+          highlightViewerKey: null,
+          authoringGraphDocumentId: null,
+          authoringNodeId: null,
+        },
+        {
+          rowId: 'component-2',
+          kind: 'component',
+          label: 'Component 2',
+          meta: '',
+          parentAssemblyId: 'assembly-1',
+          isVisible: true,
+          visibilityPartKeys: [],
+          buildState: 'done',
+          buildStateLabel: 'Built',
+          rebuildGraphDocumentIds: [],
+          ownerGraphDocumentId: null,
+          sourceGraphDocumentId: null,
+          sourceOutputEntryId: null,
+          componentSourceKind: 'authored',
+          resolutionState: 'resolved',
+          receiveId: null,
+          childObjectCount: 0,
+          slotId: null,
+          sourceNodeId: null,
+          highlightViewerKey: null,
+          authoringGraphDocumentId: null,
+          authoringNodeId: null,
+        },
+      ],
+    }
+
+    ;({ root } = await renderBrowserPanel())
+
+    const assemblyRowMain = findRowMainByLabel('Assembly 1')
+    expect(assemblyRowMain).not.toBeNull()
+
+    await beginDragRow(assemblyRowMain!.closest('.BrowserTreeRow')!)
+
+    expect(currentAppState.setWorkspaceExplicitSelection).toHaveBeenCalledWith({
+      selectedTarget: {
+        kind: 'assembly',
+        assemblyId: 'assembly-1',
+      },
+      explicitSelectedTargets: [
+        {
+          kind: 'assembly',
+          assemblyId: 'assembly-1',
+        },
+      ],
+      selectionAnchorTarget: {
+        kind: 'assembly',
+        assemblyId: 'assembly-1',
+      },
+    })
+    expect(currentAppState.workspaceSelection.selectedTarget).toEqual({
+      kind: 'assembly',
+      assemblyId: 'assembly-1',
+    })
+  })
+
+  it('allows direct into-drop on collapsed authored components', async () => {
+    currentAppState = {
+      ...currentAppState,
+      projectContent: {
+        assembliesById: {
+          'assembly-1': {
+            assemblyId: 'assembly-1',
+            label: 'Assembly 1',
+            parentAssemblyId: null,
+            assemblySourceKind: 'runtime-root',
+            childRowIds: ['component-1', 'object-1'],
+          },
+        },
+        componentsById: {
+          'component-1': {
+            componentId: 'component-1',
+            parentAssemblyId: 'assembly-1',
+            ownerGraphDocumentId: null,
+            sourceGraphDocumentId: null,
+            sourceOutputEntryId: null,
+            sourceNodeId: null,
+            label: 'Component 1',
+            componentSourceKind: 'authored',
+            resolutionState: 'resolved',
+            receiveId: null,
+            childObjectIds: ['object-2'],
+          },
+        },
+        objectsById: {
+          'object-1': {
+            objectId: 'object-1',
+            ownerGraphDocumentId: 'graph-document-1',
+            parentAssemblyId: 'assembly-1',
+            parentComponentId: null,
+            objectSourceKind: 'published-object',
+            sourceGraphDocumentId: 'graph-document-1',
+            sourceOutputEntryId: 'output-entry-1',
+            sourceNodeId: 'node-1',
+            slotId: 'slot-a',
+            label: 'Object 1',
+            resolutionState: 'resolved',
+          },
+          'object-2': {
+            objectId: 'object-2',
+            ownerGraphDocumentId: 'graph-document-1',
+            parentAssemblyId: 'assembly-1',
+            parentComponentId: 'component-1',
+            objectSourceKind: 'published-object',
+            sourceGraphDocumentId: 'graph-document-1',
+            sourceOutputEntryId: 'output-entry-2',
+            sourceNodeId: 'node-2',
+            slotId: 'slot-b',
+            label: 'Object 2',
+            resolutionState: 'resolved',
+          },
+        },
+      },
+      projectContentRows: [
+        {
+          rowId: 'assembly-1',
+          kind: 'assembly',
+          label: 'Assembly 1',
+          meta: '',
+          isVisible: true,
+          visibilityPartKeys: ['slot-a'],
+          buildState: 'done',
+          buildStateLabel: 'Built',
+          rebuildGraphDocumentIds: [],
+        },
+        {
+          rowId: 'component-1',
+          kind: 'component',
+          label: 'Component 1',
+          meta: '',
+          isVisible: true,
+          visibilityPartKeys: [],
+          buildState: 'done',
+          buildStateLabel: 'Built',
+          rebuildGraphDocumentIds: [],
+          ownerGraphDocumentId: null,
+          sourceGraphDocumentId: null,
+          sourceOutputEntryId: null,
+          componentSourceKind: 'authored',
+          resolutionState: 'resolved',
+          receiveId: null,
+          childObjectCount: 1,
+          slotId: null,
+          sourceNodeId: null,
+          highlightViewerKey: null,
+          authoringGraphDocumentId: null,
+          authoringNodeId: null,
+        },
+        {
+          rowId: 'object-1',
+          kind: 'object',
+          label: 'Object 1',
+          meta: '',
+          isVisible: true,
+          visibilityPartKeys: ['slot-a'],
+          buildState: 'done',
+          buildStateLabel: 'Built',
+          rebuildGraphDocumentIds: [],
+          ownerGraphDocumentId: 'graph-document-1',
+          parentAssemblyId: 'assembly-1',
+          parentComponentId: null,
+          objectSourceKind: 'published-object',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry-1',
+          slotId: 'slot-a',
+          sourceNodeId: 'node-1',
+          resolutionState: 'resolved',
+          highlightViewerKey: 'slot-a',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-1',
+        },
+        {
+          rowId: 'object-2',
+          kind: 'object',
+          label: 'Object 2',
+          meta: '',
+          isVisible: true,
+          visibilityPartKeys: ['slot-b'],
+          buildState: 'done',
+          buildStateLabel: 'Built',
+          rebuildGraphDocumentIds: [],
+          ownerGraphDocumentId: 'graph-document-1',
+          parentAssemblyId: 'assembly-1',
+          parentComponentId: 'component-1',
+          objectSourceKind: 'published-object',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry-2',
+          slotId: 'slot-b',
+          sourceNodeId: 'node-2',
+          resolutionState: 'resolved',
+          highlightViewerKey: 'slot-b',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-2',
+        },
+      ],
+    }
+
+    ;({ root } = await renderBrowserPanel())
+
+    const sourceRow = findRowMainByLabel('Object 1')
+    const targetRow = findRowMainByLabel('Component 1')
+    expect(sourceRow).not.toBeNull()
+    expect(targetRow).not.toBeNull()
+
+    Object.defineProperty(sourceRow!.closest('.BrowserTreeRow')!, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => ({
+        x: 0,
+        y: 0,
+        top: 0,
+        left: 0,
+        right: 240,
+        bottom: 32,
+        width: 240,
+        height: 32,
+        toJSON: () => ({}),
+      }),
+    })
+    Object.defineProperty(targetRow!.closest('.BrowserTreeRow')!, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => ({
+        x: 0,
+        y: 48,
+        top: 48,
+        left: 0,
+        right: 240,
+        bottom: 80,
+        width: 240,
+        height: 32,
+        toJSON: () => ({}),
+      }),
+    })
+
+    await dragRow(sourceRow!.closest('.BrowserTreeRow')!, targetRow!.closest('.BrowserTreeRow')!, 64)
+
+    expect(currentAppState.moveProjectContentOwner).toHaveBeenCalledWith(
+      { kind: 'object', objectId: 'object-1' },
+      { kind: 'component', componentId: 'component-1', position: 'into' },
+    )
+  })
+
+  it('shows a visible landing slot for collapsed or empty owner drops before commit', async () => {
+    currentAppState = {
+      ...currentAppState,
+      projectContent: {
+        assembliesById: {
+          'assembly-1': {
+            assemblyId: 'assembly-1',
+            label: 'Assembly 1',
+            parentAssemblyId: null,
+            assemblySourceKind: 'runtime-root',
+            childRowIds: ['component-1', 'object-1'],
+          },
+        },
+        componentsById: {
+          'component-1': {
+            componentId: 'component-1',
+            parentAssemblyId: 'assembly-1',
+            ownerGraphDocumentId: null,
+            sourceGraphDocumentId: null,
+            sourceOutputEntryId: null,
+            sourceNodeId: null,
+            label: 'Component 1',
+            componentSourceKind: 'authored',
+            resolutionState: 'resolved',
+            receiveId: null,
+            childObjectIds: [],
+          },
+        },
+        objectsById: {
+          'object-1': {
+            objectId: 'object-1',
+            ownerGraphDocumentId: 'graph-document-1',
+            parentAssemblyId: 'assembly-1',
+            parentComponentId: null,
+            objectSourceKind: 'published-object',
+            sourceGraphDocumentId: 'graph-document-1',
+            sourceOutputEntryId: 'output-entry-1',
+            sourceNodeId: 'node-1',
+            slotId: 'slot-a',
+            label: 'Object 1',
+            resolutionState: 'resolved',
+          },
+        },
+      },
+      projectContentRows: [
+        {
+          rowId: 'assembly-1',
+          kind: 'assembly',
+          label: 'Assembly 1',
+          meta: '',
+          isVisible: true,
+          visibilityPartKeys: ['slot-a'],
+          buildState: 'done',
+          buildStateLabel: 'Built',
+          rebuildGraphDocumentIds: [],
+        },
+        {
+          rowId: 'component-1',
+          kind: 'component',
+          label: 'Component 1',
+          meta: '',
+          isVisible: true,
+          visibilityPartKeys: [],
+          buildState: 'done',
+          buildStateLabel: 'Built',
+          rebuildGraphDocumentIds: [],
+          ownerGraphDocumentId: null,
+          sourceGraphDocumentId: null,
+          sourceOutputEntryId: null,
+          componentSourceKind: 'authored',
+          resolutionState: 'resolved',
+          receiveId: null,
+          childObjectCount: 0,
+          slotId: null,
+          sourceNodeId: null,
+          highlightViewerKey: null,
+          authoringGraphDocumentId: null,
+          authoringNodeId: null,
+        },
+        {
+          rowId: 'object-1',
+          kind: 'object',
+          label: 'Object 1',
+          meta: '',
+          isVisible: true,
+          visibilityPartKeys: ['slot-a'],
+          buildState: 'done',
+          buildStateLabel: 'Built',
+          rebuildGraphDocumentIds: [],
+          ownerGraphDocumentId: 'graph-document-1',
+          parentAssemblyId: 'assembly-1',
+          parentComponentId: null,
+          objectSourceKind: 'published-object',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry-1',
+          slotId: 'slot-a',
+          sourceNodeId: 'node-1',
+          resolutionState: 'resolved',
+          highlightViewerKey: 'slot-a',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-1',
+        },
+      ],
+    }
+
+    ;({ root } = await renderBrowserPanel())
+
+    const componentRowMain = findRowMainByLabel('Component 1')
+    expect(componentRowMain).not.toBeNull()
+
+    await click(componentRowMain!)
+
+    const componentRow = componentRowMain!.closest('.BrowserTreeRow')!
+    const collapseButton = componentRow.querySelector('.BrowserTreeRowExpand') as HTMLButtonElement | null
+    expect(collapseButton).not.toBeNull()
+
+    await click(collapseButton!)
+
+    const collapsedComponentRowMain = findRowMainByLabel('Component 1')
+    expect(collapsedComponentRowMain).not.toBeNull()
+    const collapsedComponentRow = collapsedComponentRowMain!.closest('.BrowserTreeRow')!
+    expect(findRowMainByLabel('Object 2')).toBeNull()
+    const sourceRowMain = findRowMainByLabel('Object 1')
+    expect(sourceRowMain).not.toBeNull()
+    const sourceRow = sourceRowMain!.closest('.BrowserTreeRow')!
+    Object.defineProperty(sourceRow, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => ({
+        x: 0,
+        y: 0,
+        top: 0,
+        left: 0,
+        right: 240,
+        bottom: 32,
+        width: 240,
+        height: 32,
+        toJSON: () => ({}),
+      }),
+    })
+    Object.defineProperty(collapsedComponentRow, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => ({
+        x: 0,
+        y: 48,
+        top: 48,
+        left: 0,
+        right: 240,
+        bottom: 80,
+        width: 240,
+        height: 32,
+        toJSON: () => ({}),
+      }),
+    })
+    const dataTransfer = await beginDragRow(sourceRow)
+
+    await dragOverRow(collapsedComponentRow, dataTransfer, 64)
+
+    expect(collapsedComponentRow.classList.contains('isDropTargetAfter')).toBe(true)
+    expect(collapsedComponentRow.classList.contains('isDropOwnerSupport')).toBe(true)
+    expect(sourceRow.classList.contains('isDragPreviewHidden')).toBe(false)
+    expect(document.querySelector('.BrowserTreeDropPlaceholder--into')).toBeNull()
+
+    await endDragRow(sourceRow)
   })
 })

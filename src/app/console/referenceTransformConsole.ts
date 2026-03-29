@@ -1,4 +1,5 @@
 import {
+  buildImportedReferenceRowId,
   selectReferenceWorkspaceBrowserTree,
   selectReferenceWorkspaceItems,
   type ActiveReferenceTransformHandle,
@@ -16,6 +17,12 @@ import {
 type ReferenceWorkspace = ReturnType<typeof useAppStore.getState>['referenceWorkspace']
 type ActiveReferenceTransformSession = NonNullable<ReferenceWorkspace['activeReferenceTransformSession']>
 type ReferenceTransformOverride = NonNullable<ReferenceWorkspace['transformOverrideById'][string]>
+type ViewerTransformStatusSession = {
+  mode: ActiveReferenceTransformSession['mode']
+  draftTransform: ReferenceTransformOverride
+}
+
+const VIEWER_TRANSFORM_LABEL = 'Viewer Transform'
 
 export type ReferenceTransformChannelSelection = {
   section: ReferenceTransformMode
@@ -49,21 +56,25 @@ export const getReferenceTransformModeLabel = (
 
 export const buildReferenceTransformConsoleBreadcrumb = ({
   referenceLabel,
+  targetKindLabel = 'Reference',
   stagedNavigationSession,
   mode,
   leafLabel = null,
 }: {
   referenceLabel: string | null
+  targetKindLabel?: 'Reference' | 'Object'
   stagedNavigationSession: ConsoleStagedNavigationSession | null
   mode: ActiveReferenceTransformSession['mode']
   leafLabel?: string | null
 }): string[] => {
   const modeLabel = getReferenceTransformModeLabel(mode)
   const resolvedReferenceLabel = referenceLabel ?? 'Reference'
+  const defaultRootLabel = targetKindLabel === 'Object' ? 'Content' : targetKindLabel
   const breadcrumbBase =
-    stagedNavigationSession?.scopeId === 'referenceTransformRoot'
+    stagedNavigationSession?.scopeId === 'referenceTransformRoot' ||
+    stagedNavigationSession?.scopeId === 'contentObjectTransformRoot'
       ? stagedNavigationSession.breadcrumb
-      : ['Select', 'Reference', resolvedReferenceLabel, 'Transform']
+      : ['Select', defaultRootLabel, resolvedReferenceLabel, VIEWER_TRANSFORM_LABEL]
   return [...breadcrumbBase, leafLabel ?? modeLabel]
 }
 
@@ -90,7 +101,7 @@ export const buildReferenceConsoleWorkspaceTarget = (
   referenceWorkspace: ReferenceWorkspace,
   referenceId: string,
   fallbackLabel?: string | null,
-): Extract<ConsoleWorkspaceContextTarget, { kind: 'reference-item' }> => {
+): Extract<ConsoleWorkspaceContextTarget, { kind: 'object' }> => {
   const referenceItem =
     selectReferenceWorkspaceItems({ referenceWorkspace }).find(
       (item) => item.referenceId === referenceId,
@@ -103,10 +114,11 @@ export const buildReferenceConsoleWorkspaceTarget = (
     referenceItem?.categoryId ??
     'References'
   return {
-    kind: 'reference-item',
-    referenceId,
+    kind: 'object',
+    objectId: buildImportedReferenceRowId(referenceId),
     label: referenceItem?.label ?? fallbackLabel ?? referenceId,
     fallbackGraphDocumentId: null,
+    referenceId,
     canLoadModel: referenceItem ? !referenceItem.isVisible && referenceItem.loadState !== 'error' : false,
     referenceCategoryId: categoryId,
     referenceCategoryLabel: categoryLabel,
@@ -455,15 +467,17 @@ export const getReferenceTransformChannelSelectionFromHandle = (
 
 export const buildReferenceTransformStatusPath = ({
   referenceLabel,
+  targetKindLabel = 'Reference',
   activeSession,
   stagedNavigationSession = null,
 }: {
   referenceLabel: string
-  activeSession: ActiveReferenceTransformSession | null
+  targetKindLabel?: 'Reference' | 'Object'
+  activeSession: ViewerTransformStatusSession | null
   stagedNavigationSession?: ConsoleStagedNavigationSession | null
 }): string => {
   if (activeSession === null) {
-    return `${referenceLabel} > Transform`
+    return `${targetKindLabel === 'Object' ? 'Content' : targetKindLabel} > ${referenceLabel} > ${VIEWER_TRANSFORM_LABEL}`
   }
   const currentVector =
     activeSession.mode === 'rotate'
@@ -473,6 +487,7 @@ export const buildReferenceTransformStatusPath = ({
         : activeSession.draftTransform.position
   const breadcrumb = buildReferenceTransformConsoleBreadcrumb({
     referenceLabel,
+    targetKindLabel,
     stagedNavigationSession,
     mode: activeSession.mode,
   })

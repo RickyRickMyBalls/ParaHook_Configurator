@@ -176,7 +176,7 @@ const referenceItemRow = (): BrowserReferenceItemTreeRowVm => ({
   rowKind: 'reference-item',
   depth: 2,
   treeGuides: ['vertical', 'elbow'],
-  iconLabel: 'R',
+  iconLabel: 'O',
   label: 'Shoe 1',
   meta: 'GLB',
   isSelected: false,
@@ -276,6 +276,62 @@ describe('createBrowserRowInteractionHandlers', () => {
     })
     expect(deps.setActiveSurface).toHaveBeenCalledWith('browser')
     expect(deps.selectPart).toHaveBeenCalledWith('part:object-1')
+  })
+
+  it('keeps converged reference container rows on owner targets instead of legacy reference targets', () => {
+    const row: BrowserAssemblyTreeRowVm = {
+      ...assemblyRow('reference-root', 'References'),
+      referenceContainerKind: 'root',
+    }
+    const deps = createDeps({
+      browserTreeRows: {
+        referenceRows: [],
+        contentRows: [row],
+      },
+    })
+    const handlers = createBrowserRowInteractionHandlers(deps)
+
+    handlers.handleSelectBrowserRow(row)
+
+    expect(deps.setWorkspaceExplicitSelection).toHaveBeenCalledWith({
+      selectedTarget: { kind: 'assembly', assemblyId: 'reference-root' },
+      explicitSelectedTargets: [{ kind: 'assembly', assemblyId: 'reference-root' }],
+      selectionAnchorTarget: { kind: 'assembly', assemblyId: 'reference-root' },
+    })
+  })
+
+  it('keeps converged reference-backed object rows on object targets', () => {
+    const row: BrowserObjectTreeRowVm = {
+      ...objectRow('reference-item-row:shoe-1', 'Shoe 1', 'reference:shoe-1'),
+      contentOriginKind: 'imported-reference',
+      referenceId: 'shoe-1',
+      sourceGraphDocumentId: null,
+      sourceOutputEntryId: null,
+      slotId: null,
+      sourceNodeId: null,
+      highlightViewerKey: null,
+      authoringGraphDocumentId: null,
+      authoringNodeId: null,
+      objectSourceKind: null,
+      ownerGraphDocumentId: null,
+      parentComponentId: 'reference-category-row:shoes',
+      visibilityPartKeys: [],
+    }
+    const deps = createDeps({
+      browserTreeRows: {
+        referenceRows: [],
+        contentRows: [row],
+      },
+    })
+    const handlers = createBrowserRowInteractionHandlers(deps)
+
+    handlers.handleSelectBrowserRow(row)
+
+    expect(deps.setWorkspaceExplicitSelection).toHaveBeenCalledWith({
+      selectedTarget: { kind: 'object', objectId: 'reference-item-row:shoe-1' },
+      explicitSelectedTargets: [{ kind: 'object', objectId: 'reference-item-row:shoe-1' }],
+      selectionAnchorTarget: { kind: 'object', objectId: 'reference-item-row:shoe-1' },
+    })
   })
 
   it('adds ctrl-clicked rows into explicit multi-select without rewriting the anchor logic in BrowserPanel', () => {

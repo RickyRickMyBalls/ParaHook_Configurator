@@ -108,9 +108,9 @@ export function BrowserPanel({
             <details open className="BrowserTreeSection BrowserTreeSection--root">
               <summary className="BrowserTreeSummary">Project Browser</summary>
               <BrowserContentSection
-                referenceRows={browserTreeRows.referenceRows}
                 contentRows={browserTreeRows.contentRows}
                 rowHandlers={rowHandlers}
+                registerContentRowElement={sectionHandlers.registerContentRowElement}
                 onOpenContentImportMenu={sectionHandlers.onOpenContentImportMenu}
               />
               <BrowserGraphDocumentsSection
